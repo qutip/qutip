@@ -372,7 +372,7 @@ def test_CoeffFromScipy():
     from_scipy = coefficient(interp.make_interp_spline(tlist, y, k=3))
     _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)
 
-    coeff = coefficient(y, tlist=tlist, order=3, bc_type=([(2, 0.0)],[(2, 0.0)]))
+    coeff = coefficient(y, tlist=tlist, order=3, bc_type="natural")
     from_scipy = coefficient(interp.make_interp_spline(tlist, y, k=3, bc_type="natural"))
     _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)
 

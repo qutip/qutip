@@ -424,8 +424,8 @@ cdef class InterCoefficient(Coefficient):
         elif order >= 2:
             # Use scipy to compute the spline and transform it to polynomes
             # as used in scipy's PPoly which is easier for us to use.
-            spline = make_interp_spline(tlist, coeff_arr, k=order, 
-            bc_type=boundary_conditions)
+            spline = make_interp_spline(tlist, coeff_arr, k=order,
+                                        bc_type=boundary_conditions)
             # Scipy can move knots, we add them to tlist
             tlist = np.sort(np.unique(np.concatenate([spline.t, tlist])))
             a = np.arange(spline.k+1)

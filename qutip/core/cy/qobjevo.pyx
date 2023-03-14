@@ -225,7 +225,7 @@ cdef class QobjEvo:
                 self.elements.append(
                     self._read_element(
                         op, copy=copy, tlist=tlist, args=args, order=order,
-                        function_style=function_style, 
+                        function_style=function_style,
                         boundary_conditions=boundary_conditions
                     )
                 )
@@ -233,7 +233,7 @@ cdef class QobjEvo:
             self.elements.append(
                 self._read_element(
                     Q_object, copy=copy, tlist=tlist, args=args, order=order,
-                    function_style=function_style, 
+                    function_style=function_style,
                     boundary_conditions=boundary_conditions
                 )
             )
@@ -242,7 +242,7 @@ cdef class QobjEvo:
             self.compress()
 
     def _read_element(self, op, copy, tlist, args, order, function_style, 
-    boundary_conditions):
+                      boundary_conditions):
         """ Read a Q_object item and return an element for that item. """
         if isinstance(op, Qobj):
             out = _ConstantElement(op.copy() if copy else op)
@@ -251,7 +251,7 @@ cdef class QobjEvo:
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
                 coefficient(op[1], tlist=tlist, args=args, order=order, 
-                boundary_conditions=boundary_conditions)
+                            boundary_conditions=boundary_conditions)
             )
             qobj = op[0]
         elif isinstance(op, _BaseElement):
