@@ -105,9 +105,9 @@ class _Explicit_Simple_Integrator(SIntegrator):
     N_dw = 0
 
     def __init__(self, rhs, options):
-        self.system = rhs()
         self._options = self.integrator_options.copy()
         self.options = options
+        self.system = rhs(self.options)
         self.step_func = self.stepper(self.system).run
 
     def integrate(self, t, copy=True):
@@ -143,8 +143,58 @@ class _Explicit_Simple_Integrator(SIntegrator):
         dt : float, default=0.001
             Internal time step.
 
-        tol : float, default=1e-7
-            Relative tolerance.
+        tol : float, default=1e-10
+            Tolerance for the time steps.
+        """
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        Integrator.options.fset(self, new_options)
+
+
+class _Implicit_Simple_Integrator(_Explicit_Simple_Integrator):
+    """
+    Stochastic evolution solver
+    """
+    integrator_options = {
+        "dt": 0.001,
+        "tol": 1e-10,
+        "solve_method": None,
+        "solve_options": {},
+    }
+    stepper = None
+    N_dw = 0
+
+    def __init__(self, rhs, options):
+        self._options = self.integrator_options.copy()
+        self.options = options
+        self.system = rhs(self.options)
+        self.step_func = self.stepper(
+            self.system,
+            self.options["solve_method"],
+            self.options["solve_options"],
+        ).run
+
+    @property
+    def options(self):
+        """
+        Supported options by Explicit Stochastic Integrators:
+
+        dt : float, default=0.001
+            Internal time step.
+
+        tol : float, default=1e-10
+            Tolerance for the time steps.
+
+        solve_method : str, default=None
+            Method used for solver the ``Ax=b`` of the implicit step.
+            Accept methods supported by :func:`qutip.core.data.solve`.
+            When the system is constant, the inverse of the matrix ``A`` can be
+            used by entering ``inv``.
+
+        solve_options : dict, default={}
+            Options to pass to the call to :func:`qutip.core.data.solve`.
         """
         return self._options
 
@@ -192,12 +242,34 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     N_dw = 1
 
     def __init__(self, rhs, options):
-        self.system = rhs()
         self._options = self.integrator_options.copy()
         self.options = options
+        self.system = rhs(self.options)
         self.step_func = self.stepper(
             self.system, self.options["alpha"], self.options["eta"]
         ).run
+
+    @property
+    def options(self):
+        """
+        Supported options by Explicit Stochastic Integrators:
+
+        dt : float, default=0.001
+            Internal time step.
+
+        tol : float, ...
+            ...
+
+        alpha : float, .,,
+
+        eta : float, ...
+            ...
+        """
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        Integrator.options.fset(self, new_options)
 
 
 StochasticSolver.add_integrator(PlatenSODE, "platen")

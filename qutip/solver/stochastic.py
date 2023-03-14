@@ -88,9 +88,11 @@ class StochasticRHS:
         else:
             self.dims = self.H.dims
 
-    def __call__(self):
+    def __call__(self, options):
         if self.issuper:
-            return StochasticOpenSystem(self.H , self.sc_ops, self.c_ops)
+            return StochasticOpenSystem(
+                self.H , self.sc_ops, self.c_ops, options.get("dt", 1.-6)
+            )
         else:
             return StochasticClosedSystem(self.H , self.sc_ops)
 

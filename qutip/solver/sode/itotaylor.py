@@ -1,6 +1,6 @@
 import numpy as np
 from . import _sode
-from .sode import _Explicit_Simple_Integrator
+from .sode import _Explicit_Simple_Integrator, _Implicit_Simple_Integrator
 from ..stochastic import StochasticSolver, SMESolver
 
 
@@ -22,8 +22,8 @@ class EulerSODE(_Explicit_Simple_Integrator):
 class Milstein_SODE(_Explicit_Simple_Integrator):
     """
     An order 1.0 strong Taylor scheme.  Better approximate numerical
-    solution to stochastic differential equations.  See eq. (2.9) of
-    chapter 12.2 of Peter E. Kloeden and Exkhard Platen,
+    solution to stochastic differential equations.  See eq. (3.12) of
+    chapter 10.3 of Peter E. Kloeden and Exkhard Platen,
     *Numerical Solution of Stochastic Differential Equations*..
 
     - Order strong 1.0
@@ -41,8 +41,34 @@ class Taylor1_5_SODE(_Explicit_Simple_Integrator):
 
     - Order strong 1.5
     """
+    integrator_options = {
+        "dt": 0.001,
+        "tol": 1e-10,
+        "derr_dt": 1e-6,
+    }
     stepper = _sode.Taylor15
     N_dw = 2
+
+    @property
+    def options(self):
+        """
+        Supported options by Explicit Stochastic Integrators:
+
+        dt : float, default=0.001
+            Internal time step.
+
+        tol : float, default=1e-10
+            Relative tolerance.
+
+        derr_dt : float, default=1e-6
+            Finite time difference used to compute the derrivative of the
+            hamiltonian and ``sc_ops``.
+        """
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        _Explicit_Simple_Integrator.options.fset(self, new_options)
 
 
 class Explicit1_5_SODE(_Explicit_Simple_Integrator):
@@ -60,7 +86,74 @@ class Explicit1_5_SODE(_Explicit_Simple_Integrator):
     N_dw = 2
 
 
+class Implicit_Milstein_SODE(_Implicit_Simple_Integrator):
+    """
+    An order 1.0 implicit strong Taylor scheme.  Implicit Milstein
+    scheme for the numerical simulation of stiff stochastic
+    differential equations.  Eq. (2.11) with alpha=0.5 of
+    chapter 12.2 of Peter E. Kloeden and Exkhard Platen,
+    *Numerical Solution of Stochastic Differential Equations*.
+
+    - Order strong 1.0
+    """
+    stepper = _sode.Milstein_imp
+    N_dw = 1
+
+
+class Implicit_Taylor1_5_SODE(_Implicit_Simple_Integrator):
+    """
+    Order 1.5 strong Taylor scheme.  Solver with more terms of the
+    Ito-Taylor expansion.  Default solver for :obj:`~smesolve` and
+    :obj:`~ssesolve`.  Eq. (2.18) with alpha=0.5 of chapter 12.2 of
+    Peter E. Kloeden and Exkhard Platen,
+    *Numerical Solution of Stochastic Differential Equations*.
+
+    - Order strong 1.5
+    """
+    integrator_options = {
+        "dt": 0.001,
+        "tol": 1e-10,
+        "solve_method": None,
+        "solve_options": {},
+        "deff_dt": 1e-6
+    }
+    stepper = _sode.Taylor15_imp
+    N_dw = 2
+
+    @property
+    def options(self):
+        """
+        Supported options by Explicit Stochastic Integrators:
+
+        dt : float, default=0.001
+            Internal time step.
+
+        tol : float, default=1e-10
+            Tolerance for the time steps.
+
+        solve_method : str, default=None
+            Method used for solver the ``Ax=b`` of the implicit step.
+            Accept methods supported by :func:`qutip.core.data.solve`.
+            When the system is constant, the inverse of the matrix ``A`` can be
+            used by entering ``inv``.
+
+        solve_options : dict, default={}
+            Options to pass to the call to :func:`qutip.core.data.solve`.
+
+        derr_dt : float, default=1e-6
+            Finite time difference used to compute the derrivative of the
+            hamiltonian and ``sc_ops``.
+        """
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        _Implicit_Simple_Integrator.options.fset(self, new_options)
+
+
 StochasticSolver.add_integrator(EulerSODE, "euler")
 StochasticSolver.add_integrator(Explicit1_5_SODE, "explicit1.5")
 SMESolver.add_integrator(Taylor1_5_SODE, "taylor1.5")
 SMESolver.add_integrator(Milstein_SODE, "milstein")
+SMESolver.add_integrator(Implicit_Milstein_SODE, "milstein_imp")
+SMESolver.add_integrator(Implicit_Taylor1_5_SODE, "taylor1.5_imp")

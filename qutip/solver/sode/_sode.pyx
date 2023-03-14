@@ -354,6 +354,7 @@ cdef class PredCorr:
 
 
 cdef class Taylor15(Milstein):
+    """
     @cython.wraparound(False)
     def run(self, double t, Data state, double dt, double[:, :, ::1] dW, int ntraj):
         cdef int i
@@ -366,6 +367,7 @@ cdef class Taylor15(Milstein):
             self.step(t + i * dt, state, dt, dW[i, :, :], out)
             state, out = out, state
         return state
+    """
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -403,5 +405,127 @@ cdef class Taylor15(Milstein):
                 iadd_dense(out, system.LiLjbk(i, i, j), 0.5 * (dw[i] * dw[i] -dt) * dw[j])
                 for k in range(j+1, num_ops):
                     iadd_dense(out, system.LiLjbk(i, j, k), dw[i]*dw[j]*dw[k])
+
+        return out
+
+
+cdef class Milstein_imp:
+    cdef _StochasticSystem system
+    cdef bint use_inv
+    cdef QobjEvo implicit
+    cdef Data inv
+    cdef double prev_dt
+    cdef dict imp_opt
+
+    def __init__(self, _StochasticSystem system, imp_method=None, imp_options={}):
+        self.system = system
+        self.prev_dt = 0
+        if imp_method == "inv":
+            if not self.system.L.isconstant:
+                raise TypeError("")
+            self.use_inv = True
+        else:
+            self.use_inv = False
+            self.imp_opt = {"method": imp_method, "options": imp_options}
+
+
+    @cython.wraparound(False)
+    def run(self, double t, Data state, double dt, double[:, :, ::1] dW, int ntraj):
+        cdef int i
+        if type(state) != _data.Dense:
+            state = _data.to(_data.Dense, state)
+        cdef Dense tmp = _data.mul_dense(state, 0)
+        state = state.copy()
+
+        if dt != self.prev_dt:
+            self.implicit = 1 - self.system.L * (dt / 2)
+            if self.use_inv:
+                self.inv = _data.inv(self.implicit._call(0))
+
+        for i in range(ntraj):
+            state = self.step(t + i * dt, state, dt, dW[i, :, :], tmp)
+        return state
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense target):
+        """
+        Chapter 10.3 Eq. (3.1)
+        Numerical Solution of Stochastic Differential Equations
+        By Peter E. Kloeden, Eckhard Platen
+
+        dV = -iH*V*dt + d1*dt + d2_i*dW_i
+        + 0.5*d2_i' d2_j*(dW_i*dw_j -dt*delta_ij)
+        """
+        cdef _StochasticSystem system = self.system
+        cdef int i, j, num_ops = system.num_collapse
+        cdef double dw
+
+        system.set_state(t, state)
+
+        imul_dense(target, 0.)
+        iadd_dense(target, state, 1)
+        iadd_dense(target, system.a(), dt * 0.5)
+
+        for i in range(num_ops):
+            iadd_dense(target, system.bi(i), dW[0, i])
+
+        for i in range(num_ops):
+            for j in range(i, num_ops):
+                if i == j:
+                    dw = (dW[0, i] * dW[0, j] - dt) * 0.5
+                else:
+                    dw = dW[0, i] * dW[0, j]
+                iadd_dense(target, system.Libj(i, j), dw)
+
+        if self.use_inv:
+            out = _data.matmul(self.inv, target)
+        else:
+            out = _data.solve(self.implicit._call(t+dt), target, **self.imp_opt)
+
+        return out
+
+
+cdef class Taylor15_imp(Milstein_imp):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense target):
+        """
+        Chapter 12.2 Eq. (2.18),
+        Numerical Solution of Stochastic Differential Equations
+        By Peter E. Kloeden, Eckhard Platen
+        """
+        cdef _StochasticSystem system = self.system
+        system.set_state(t, state)
+        cdef int i, j, k, num_ops = system.num_collapse
+        cdef double[:] dz, dw
+
+        num_ops = system.num_collapse
+        dw = dW[0, :]
+        dz = 0.5 * (dW[0, :] + dW[1, :] / np.sqrt(3)) * dt
+
+        imul_dense(target, 0.)
+        iadd_dense(target, state, 1)
+        iadd_dense(target, system.a(), dt * 0.5)
+
+        for i in range(num_ops):
+            iadd_dense(target, system.bi(i), dw[i])
+            iadd_dense(target, system.Libj(i, i), 0.5 * (dw[i] * dw[i] - dt))
+            iadd_dense(target, system.Lia(i), dz[i] - dw[i] * dt * 0.5)
+            iadd_dense(target, system.L0bi(i), dw[i] * dt - dz[i])
+            iadd_dense(target, system.LiLjbk(i, i, i),
+                             0.5 * ((1/3.) * dw[i] * dw[i] - dt) * dw[i])
+
+            for j in range(i+1, num_ops):
+                iadd_dense(target, system.Libj(i, j), dw[i] * dw[j])
+                iadd_dense(target, system.LiLjbk(i, j, j), 0.5 * (dw[j] * dw[j] -dt) * dw[i])
+                iadd_dense(target, system.LiLjbk(i, i, j), 0.5 * (dw[i] * dw[i] -dt) * dw[j])
+                for k in range(j+1, num_ops):
+                    iadd_dense(target, system.LiLjbk(i, j, k), dw[i]*dw[j]*dw[k])
+
+        if self.use_inv:
+            out = _data.matmul(self.inv, target)
+        else:
+            out = _data.solve(self.implicit._call(t+dt), target, **self.imp_opt)
 
         return out

@@ -78,8 +78,6 @@ cdef class _StochasticSystem:
 
 
 cdef class StochasticClosedSystem(_StochasticSystem):
-    cdef readonly QobjEvo H
-    cdef readonly list c_ops
     cdef readonly list cpcd_ops
     cdef bint _a_set, _b_set, _Lb_set
 
@@ -87,22 +85,22 @@ cdef class StochasticClosedSystem(_StochasticSystem):
     cdef readonly complex _e
 
     def __init__(self, H, sc_ops):
-        self.H = -1j * H
+        self.L = -1j * H
         self.c_ops = sc_ops
         self.cpcd_ops = [op + op.dag() for op in sc_ops]
 
         self.num_collapse = len(self.c_ops)
         for c_op in self.c_ops:
-            self.H += -0.5 * c_op.dag() * c_op
+            self.L += -0.5 * c_op.dag() * c_op
         self.issuper = False
-        self.dims = self.H.dims
+        self.dims = self.L.dims
 
     cpdef Data drift(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
         cdef Data temp, out
 
-        out = self.H.matmul_data(t, state)
+        out = self.L.matmul_data(t, state)
         for i in range(self.num_collapse):
             c_op = self.cpcd_ops[i]
             e = c_op.expect_data(t, state)
@@ -126,8 +124,6 @@ cdef class StochasticClosedSystem(_StochasticSystem):
 
 
 cdef class StochasticOpenSystem(_StochasticSystem):
-    cdef QobjEvo L
-    cdef list c_ops
     cdef int state_size, N_root
     cdef double dt
     cdef int _is_set
@@ -139,7 +135,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef complex[:, :, ::1] _Lb
     cdef complex[:, :, :, ::1] _LLb
 
-    def __init__(self, H, sc_ops, c_ops=()):
+    def __init__(self, H, sc_ops, c_ops=(), derr_dt=1e-6):
         if H.issuper:
             self.L = H + liouvillian(None, sc_ops)
         else:
@@ -154,6 +150,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         self.state_size = self.L.shape[1]
         self._is_set = 0
         self.N_root = <int> self.state_size**0.5
+        self.dt = derr_dt
 
     cpdef Data drift(self, t, Data state):
         return self.L.matmul_data(t, state)
@@ -198,7 +195,6 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self._Lb = np.zeros((n, n, l), dtype=complex)
             self._LLb = np.zeros((n, n, n, l), dtype=complex)
             self._La = np.zeros((n, l), dtype=complex)
-            self.dt = 1e-6  #  Make an options
 
     cpdef Data a(self):
         if not self._is_set:
@@ -315,11 +311,12 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             imul_dense(L0b_vec, 0.)
 
             # db/dt
-            c_op.matmul_data(self.t + self.dt, self.state, L0b_vec)
-            expect = trace_oper_ket_dense(L0b_vec)
-            iadd_dense(L0b_vec, self.state, -expect)
-            iadd_dense(L0b_vec, b_vec, -1)
-            imul_dense(L0b_vec, 1/self.dt)
+            if not c_op.isconstant:
+                c_op.matmul_data(self.t + self.dt, self.state, L0b_vec)
+                expect = trace_oper_ket_dense(L0b_vec)
+                iadd_dense(L0b_vec, self.state, -expect)
+                iadd_dense(L0b_vec, b_vec, -1)
+                imul_dense(L0b_vec, 1/self.dt)
 
             # ab'
             imul_dense(self.temp, 0)
@@ -392,9 +389,10 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef void _compute_L0a(self) except *:
         # L0a = a'a + da/dt + bba"/2  (a" = 0)
         imul_dense(self._L0a, 0.)
-        self.L.matmul_data(self.t + self.dt, self.state, self._L0a)
-        iadd_dense(self._L0a, self._a, -1)
-        imul_dense(self._L0a, 1/self.dt)
+        if not self.L.isconstant:
+            self.L.matmul_data(self.t + self.dt, self.state, self._L0a)
+            iadd_dense(self._L0a, self._a, -1)
+            imul_dense(self._L0a, 1/self.dt)
         self.L.matmul_data(self.t, self._a, self._L0a)
         self._L0a_set = True
 
@@ -402,22 +400,21 @@ cdef class StochasticOpenSystem(_StochasticSystem):
 cdef class SimpleStochasticSystem(_StochasticSystem):
     """
     Simple system that can be solver analytically.
+    Used in tests.
     """
-    cdef QobjEvo H
-    cdef list c_ops
-    cdef float dt
+    cdef double dt
 
     def __init__(self, H, c_ops):
-        self.H = -1j * H
+        self.L = -1j * H
         self.c_ops = c_ops
 
         self.num_collapse = len(self.c_ops)
         self.issuper = False
-        self.dims = self.H.dims
+        self.dims = self.L.dims
         self.dt = 1e-6
 
     cpdef Data drift(self, t, Data state):
-        return self.H.matmul_data(t, state)
+        return self.L.matmul_data(t, state)
 
     cpdef list diffusion(self, t, Data state):
         cdef int i
@@ -431,7 +428,7 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
         self.state = state
 
     cpdef Data a(self):
-        return self.H.matmul_data(self.t, self.state)
+        return self.L.matmul_data(self.t, self.state)
 
     cpdef Data bi(self, int i):
         return self.c_ops[i].matmul_data(self.t, self.state)
@@ -442,11 +439,11 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
 
     cpdef Data Lia(self, int i):
         bi = self.c_ops[i].matmul_data(self.t, self.state)
-        return self.H.matmul_data(self.t, bi)
+        return self.L.matmul_data(self.t, bi)
 
     cpdef Data L0bi(self, int i):
         # L0bi = abi' + dbi/dt + Sum_j bjbjbi"/2
-        a = self.H.matmul_data(self.t, self.state)
+        a = self.L.matmul_data(self.t, self.state)
         abi = self.c_ops[i].matmul_data(self.t, a)
         b = self.c_ops[i].matmul_data(self.t, self.state)
         bdt = self.c_ops[i].matmul_data(self.t + self.dt, self.state)
@@ -459,9 +456,9 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
 
     cpdef Data L0a(self):
         # L0a = a'a + da/dt + bba"/2  (a" = 0)
-        a = self.H.matmul_data(self.t, self.state)
-        aa = self.H.matmul_data(self.t, a)
-        adt = self.H.matmul_data(self.t + self.dt, self.state)
+        a = self.L.matmul_data(self.t, self.state)
+        aa = self.L.matmul_data(self.t, a)
+        adt = self.L.matmul_data(self.t + self.dt, self.state)
         return aa + (adt - a) / self.dt
 
     def analytic(self, t, W):
@@ -472,7 +469,7 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
         def _intergal(f, T):
             return (f(0) + 4 * f(T/2) + f(T)) / 6
 
-        out = _intergal(self.H, t) * t
+        out = _intergal(self.L, t) * t
         for i in range(self.num_collapse):
             out += _intergal(self.c_ops[i], t) * W[i]
             out -= 0.5 * _intergal(

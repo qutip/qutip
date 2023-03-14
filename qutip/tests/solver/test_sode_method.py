@@ -56,11 +56,17 @@ def _make_oper(kind, N):
 @pytest.mark.parametrize(["method", "order", "kw"], [
     pytest.param("Euler", 0.5, {}, id="Euler"),
     pytest.param("Milstein", 1.0, {}, id="Milstein"),
+    pytest.param("Milstein_imp", 1.0, {}, id="Milstein implicit"),
+    pytest.param("Milstein_imp", 1.0, {"imp_method": "inv"},
+                 id="Milstein implicit inv"),
     pytest.param("Platen", 1.0, {}, id="Platen"),
     pytest.param("PredCorr", 1.0, {}, id="PredCorr"),
     pytest.param("PredCorr", 1.0, {"alpha": 0.5}, id="PredCorr_0.5"),
     pytest.param("Taylor15", 1.5, {}, id="Taylor15"),
     pytest.param("Explicit15", 1.5, {}, id="Explicit15"),
+    pytest.param("Taylor15_imp", 1.5, {}, id="Taylor15 implicit"),
+    pytest.param("Taylor15_imp", 1.5, {"imp_method": "inv"},
+                 id="Taylor15 implicit inv"),
 ])
 @pytest.mark.parametrize(['H', 'sc_ops'], [
     pytest.param("qeye", ["destroy"], id='simple'),
@@ -70,6 +76,8 @@ def _make_oper(kind, N):
     pytest.param("qeye", ["qeye", "destroy", "destroy2"], id='3 sc_ops'),
 ])
 def test_methods(H, sc_ops, method, order, kw):
+    if kw == {"imp_method": "inv"} and ("td" in H or "td" in sc_ops[0]):
+        pytest.skip("inverse method only available for constant cases.")
     N = 5
     H = _make_oper(H, N)
     sc_ops = [_make_oper(op, N) for op in sc_ops]
@@ -109,10 +117,12 @@ def get_error_order_integrator(integrator, ref_integrator, state, plot=False):
 @pytest.mark.parametrize(["method", "order"], [
     pytest.param("euler", 0.5, id="Euler"),
     pytest.param("milstein", 1.0, id="Milstein"),
+    pytest.param("milstein_imp", 1.0, id="Milstein implicit"),
     pytest.param("platen", 1.0, id="Platen"),
     pytest.param("pred_corr", 1.0, id="PredCorr"),
     pytest.param("rouchon", 1.0, id="rouchon"),
     pytest.param("explicit1.5", 1.5, id="Explicit15"),
+    pytest.param("taylor1.5_imp", 1.5, id="Taylor15 implicit"),
 ])
 @pytest.mark.parametrize(['H', 'c_ops', 'sc_ops'], [
     pytest.param("qeye", [], ["destroy"], id='simple'),
