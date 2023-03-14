@@ -31,18 +31,12 @@ class QutipOptions:
         # Let the dict catch the KeyError
         self.options[key] = value
 
-    def __repr__(self, full=True):
+    def __repr__(self):
         out = [f"<{self.__class__.__name__}("]
-        cnt = 0
         for key, value in self.options.items():
-            if full or value != self._options[key]:
-                out += [f"    '{key}': {repr(value)},"]
-                cnt += 1
+            out += [f"    '{key}': {repr(value)},"]
         out += [")>"]
-        if cnt:
-            return "\n".join(out)
-        else:
-            return "".join(out)
+        return "\n".join(out)
 
     def __enter__(self):
         self._backup = getattr(settings, self._settings_name)
