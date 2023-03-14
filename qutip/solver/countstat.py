@@ -12,7 +12,6 @@ from ..core import (
     sprepost, spre, qeye, tensor, expect, Qobj,
     operator_to_vector, vector_to_operator
 )
-
 from ..core import data as _data
 from .steadystate import pseudo_inverse, steadystate
 from ..settings import settings
