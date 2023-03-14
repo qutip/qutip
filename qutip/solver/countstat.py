@@ -75,13 +75,6 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
     return current
 
 
-def _solve(A, V):
-    if settings.has_mkl:
-        return _data.solve(A, V, "mkl_spsolve", {"csc": True})
-    else:
-        return _data.solve(A, V, "splu")
-
-
 def _noise_direct(L, wlist, rhoss, J_ops):
     J_ops = [op.data for op in J_ops]
     rhoss_vec = operator_to_vector(rhoss).data
