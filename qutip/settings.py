@@ -286,7 +286,8 @@ class Settings:
                     lines.append(f"    {attr}: {self.__getattribute__(attr)}")
         if "compile" in self.__dir__():
             attr = "compile"
-            lines.append(f"    {attr}: {self.__getattribute__(attr)}")
+            content = self.__getattribute__('compile').__repr__(full=False)
+            lines.append(f"    {attr}: {content}")
         return '\n'.join(lines)
 
     def __repr__(self):
