@@ -31,10 +31,10 @@ class QutipOptions:
         # Let the dict catch the KeyError
         self.options[key] = value
 
-    def __repr__(self):
+    def __repr__(self, full=True):
         out = [f"<{self.__class__.__name__}("]
         for key, value in self.options.items():
-            if value != self._options[key]:
+            if  full or value != self._options[key]:
                 out += [f"    '{key}': {repr(value)},"]
         out += [")>"]
         return "\n".join(out)
