@@ -12,6 +12,7 @@ from ..core import (
     sprepost, spre, qeye, tensor, expect, Qobj,
     operator_to_vector, vector_to_operator
 )
+#_data.solveになる
 from ..core import data as _data
 from .steadystate import pseudo_inverse, steadystate
 from ..settings import settings
@@ -75,15 +76,10 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
 
 
 def _solve(A, V):
-    try:
-        if settings.has_mkl:
-            out = mkl_spsolve(A.tocsc(), V)
-        else:
-            A.sort_indices()
-            out = sp.linalg.splu(A, permc_spec='COLAMD').solve(V)
-    except Exception:
-        out = sp.linalg.lsqr(A, V)[0]
-    return out
+    if settings.has_mkl:
+        return _data.solve(A, V, "mkl_spsolve", {"csc": True})
+    else:
+        return _data.solve(A, V, "splu")
 
 
 def _noise_direct(L, wlist, rhoss, J_ops):
@@ -112,9 +108,8 @@ def _noise_direct(L, wlist, rhoss, J_ops):
             # helps prevent the solvers from throwing an exception.
             L_temp = 1e-15j * spre(tr_op) + L
 
-        A = _data.to(_data.CSR, L_temp.data).as_scipy()
-        X_rho = [_data.dense.fast_from_numpy(_solve(A, op))
-                 for op in Q_ops]
+        A = _data.to(_data.CSR, L_temp.data)
+        X_rho = [_data.solve(A, _data.Dense(op)) for op in Q_ops]
 
         for i, j in product(range(N_j_ops), repeat=2):
             if i == j:
