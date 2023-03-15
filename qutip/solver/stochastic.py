@@ -6,6 +6,7 @@ from .multitraj import MultiTrajSolver
 from ..import Qobj, QobjEvo, liouvillian, lindblad_dissipator
 import numpy as np
 from collections.abc import Iterable
+from functools import partial
 
 
 class StochasticTrajResult(Result):
@@ -24,14 +25,14 @@ class StochasticTrajResult(Result):
 
     def add(self, t, state, noise):
         super().add(t, state)
-        if noise is not None and self.options['store_wiener_process']:
+        if noise is not None and (self.options['store_wiener_process'] or self.options['store_measurement']):
             for i, dW in enumerate(noise):
                 self.W[i].append(self.W[i][-1] + dW)
 
     @property
-    def weiner_process(self):
+    def wiener_process(self):
         """
-        Weiner processes for each stochastic collapse operators.
+        Wiener processes for each stochastic collapse operators.
 
         The output shape is
             (len(sc_ops), len(tlist))
@@ -47,7 +48,7 @@ class StochasticTrajResult(Result):
     @property
     def dW(self):
         """
-        Weiner increment for each stochastic collapse operators.
+        Wiener increment for each stochastic collapse operators.
 
         The output shape is
             (len(sc_ops), len(tlist)-1)
@@ -61,7 +62,7 @@ class StochasticTrajResult(Result):
         return dw
 
     @property
-    def measurements(self):
+    def measurement(self):
         """
         Measurements for each stochastic collapse operators.
 
@@ -73,7 +74,7 @@ class StochasticTrajResult(Result):
         """
         dts = np.diff(self.times)
         m_expect = np.array(self.m_expect)[:, 1:]
-        noise = self.dW_factor @ np.diff(self.W, axis=1) @ (1/dts)
+        noise = np.einsum("i,ij,j->ij", self.dW_factor, np.diff(self.W, axis=1), (1/dts))
         if self.options["heterodyne"]:
             m_expect = m_expect.reshape(-1, 2, m_expect.shape[1])
             noise = noise.reshape(-1, 2, noise.shape[1])
@@ -90,22 +91,36 @@ class StochasticResult(MultiTrajResult):
 
         if (
             store_measurement and not store_wiener_process
-            or store_wiener_process and not keep_runs
         ):
             raise ValueError(
                 "Keeping runs is needed to store measurements "
-                "and weiner processes."
+                "and wiener processes."
             )
 
+        if not keep_runs and store_wiener_process:
+            self.add_processor(partial(self._reduce_attr, attr="wiener_process"))
+            self._wiener_process = []
+            self.add_processor(partial(self._reduce_attr, attr="dW"))
+            self._dW = []
+
+        if not keep_runs and store_measurement:
+            self.add_processor(partial(self._reduce_attr, attr="measurement"))
+            self._measurement = []
+
+    def _reduce_attr(self, trajectory, attr):
+        getattr(self, "_" + attr).append(getattr(trajectory, attr))
+
     def _trajectories_attr(self, attr):
-        if self.options['keep_runs_results']:
+        if hasattr(self, "_" + attr):
+            return getattr(self, "_" + attr)
+        elif self.options['keep_runs_results']:
             return np.array([
                 getattr(traj, attr) for traj in self.trajectories
             ])
         return None
 
     @property
-    def measurements(self):
+    def measurement(self):
         """
         Measurements for each trajectories and stochastic collapse operators.
 
@@ -115,12 +130,12 @@ class StochasticResult(MultiTrajResult):
             (ntraj, len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
         """
-        return self._trajectories_attr("measurements")
+        return self._trajectories_attr("measurement")
 
     @property
     def dW(self):
         """
-        Weiner increment for each trajectories and stochastic collapse
+        Wiener increment for each trajectories and stochastic collapse
         operators.
 
         The output shape is
@@ -132,9 +147,9 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("dW")
 
     @property
-    def weiner_process(self):
+    def wiener_process(self):
         """
-        Weiner processes for each trajectories and stochastic collapse
+        Wiener processes for each trajectories and stochastic collapse
         operators.
 
         The output shape is
@@ -143,7 +158,7 @@ class StochasticResult(MultiTrajResult):
             (ntraj, len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
         """
-        return self._trajectories_attr("weiner_process")
+        return self._trajectories_attr("wiener_process")
 
 
 class StochasticRHS:
@@ -339,7 +354,6 @@ class StochasticSolver(MultiTrajSolver):
         super().__init__(rhs, options=options)
 
         if self.options["store_measurement"]:
-            self.options["keep_runs_results"] = True
             self.options["store_wiener_process"] = True
             dW_factor = self.options["dw_factor"] or 1.
 
