@@ -1,0 +1,1 @@
+Improve print(qutip.settings) by make it shorter
