@@ -1,7 +1,7 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver", "StochasticSolver"]
 
 from .sode.ssystem import *
-from .result import MultiTrajResult, Result
+from .result import MultiTrajResult, Result, ExpectOp
 from .multitraj import MultiTrajSolver
 from ..import Qobj, QobjEvo, liouvillian, lindblad_dissipator
 import numpy as np
@@ -11,45 +11,139 @@ from collections.abc import Iterable
 class StochasticTrajResult(Result):
     def _post_init(self, m_ops=(), dw_factor=()):
         super()._post_init()
-        self.noise = []
-        self.m_ops = m_ops
+        self.W = []
+        self.m_ops = []
+        self.m_expect = []
         self.dW_factor = dw_factor
-        self.measurements = [[] for _ in range(len(m_ops))]
-
-    def _add_measurement(self, t, state, noise):
-        expects = [m_op.expect(t, state) for m_op in self.m_ops]
-        for measure, expect, dW, factor in zip(
-            self.measurements, expects, noise, self.dW_factor
-        ):
-            measure.append(expect + dW * factor)
+        for op in m_ops:
+            f = self._e_op_func(op)
+            self.W.append([0.])
+            self.m_expect.append([])
+            self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
+            self.add_processor(self.m_ops[-1]._store)
 
     def add(self, t, state, noise):
         super().add(t, state)
+        if noise is not None and self.options['store_wiener_process']:
+            for i, dW in enumerate(noise):
+                self.W[i].append(self.W[i][-1] + dW)
 
-        if noise is not None:
-            self.noise.append(noise)
-            if self.options["store_measurement"]:
-                dt = self.times[-1] - self.times[-2]
-                self._add_measurement(t, state, noise / dt)
+    @property
+    def weiner_process(self):
+        """
+        Weiner processes for each stochastic collapse operators.
+
+        The output shape is
+            (len(sc_ops), len(tlist))
+        for homodyne detection, and
+            (len(sc_ops), 2, len(tlist))
+        for heterodyne detection.
+        """
+        W = np.array(self.W)
+        if self.options["heterodyne"]:
+            W = W.reshape(-1, 2, W.shape[1])
+        return W
+
+    @property
+    def dW(self):
+        """
+        Weiner increment for each stochastic collapse operators.
+
+        The output shape is
+            (len(sc_ops), len(tlist)-1)
+        for homodyne detection, and
+            (len(sc_ops), 2, len(tlist)-1)
+        for heterodyne detection.
+        """
+        dw = np.diff(self.W, axis=1)
+        if self.options["heterodyne"]:
+            dw = dw.reshape(-1, 2, dw.shape[1])
+        return dw
+
+    @property
+    def measurements(self):
+        """
+        Measurements for each stochastic collapse operators.
+
+        The output shape is
+            (len(sc_ops), len(tlist)-1)
+        for homodyne detection, and
+            (len(sc_ops), 2, len(tlist)-1)
+        for heterodyne detection.
+        """
+        dts = np.diff(self.times)
+        m_expect = np.array(self.m_expect)[:, 1:]
+        noise = self.dW_factor @ np.diff(self.W, axis=1) @ (1/dts)
+        if self.options["heterodyne"]:
+            m_expect = m_expect.reshape(-1, 2, m_expect.shape[1])
+            noise = noise.reshape(-1, 2, noise.shape[1])
+        return m_expect + noise
 
 
 class StochasticResult(MultiTrajResult):
-    def _reduce_measurements(self, trajectory):
-        # Since measurements of each trajectories is kept, we keep only the
-        # array to save memory.
-        trajectory.measurements = np.array(trajectory.measurements)
-        if self.options["heterodyne"]:
-            shape = trajectory.measurements.shape
-            trajectory.measurements = (
-                trajectory.measurements.reshape(-1, 2, shape[-1])
-            )
-        self.measurement.append(trajectory.measurements)
-
     def _post_init(self):
         super()._post_init()
-        self.measurement = []
-        if self.options['store_measurement']:
-            self.add_processor(self._reduce_measurements)
+
+        store_measurement = self.options['store_measurement']
+        keep_runs = self.options['keep_runs_results']
+        store_wiener_process = self.options['store_wiener_process']
+
+        if (
+            store_measurement and not store_wiener_process
+            or store_wiener_process and not keep_runs
+        ):
+            raise ValueError(
+                "Keeping runs is needed to store measurements "
+                "and weiner processes."
+            )
+
+    def _trajectories_attr(self, attr):
+        if self.options['keep_runs_results']:
+            return np.array([
+                getattr(traj, attr) for traj in self.trajectories
+            ])
+        return None
+
+    @property
+    def measurements(self):
+        """
+        Measurements for each trajectories and stochastic collapse operators.
+
+        The output shape is
+            (ntraj, len(sc_ops), len(tlist)-1)
+        for homodyne detection, and
+            (ntraj, len(sc_ops), 2, len(tlist)-1)
+        for heterodyne detection.
+        """
+        return self._trajectories_attr("measurements")
+
+    @property
+    def dW(self):
+        """
+        Weiner increment for each trajectories and stochastic collapse
+        operators.
+
+        The output shape is
+            (ntraj, len(sc_ops), len(tlist)-1)
+        for homodyne detection, and
+            (ntraj, len(sc_ops), 2, len(tlist)-1)
+        for heterodyne detection.
+        """
+        return self._trajectories_attr("dW")
+
+    @property
+    def weiner_process(self):
+        """
+        Weiner processes for each trajectories and stochastic collapse
+        operators.
+
+        The output shape is
+            (ntraj, len(sc_ops), len(tlist)-1)
+        for homodyne detection, and
+            (ntraj, len(sc_ops), 2, len(tlist)-1)
+        for heterodyne detection.
+        """
+        return self._trajectories_attr("weiner_process")
 
 
 class StochasticRHS:
@@ -149,7 +243,9 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
     H = QobjEvo(H, args=args, tlist=tlist)
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
-    sol = SMESolver(H, sc_ops, c_ops=c_ops, options=options, m_ops=m_ops)
+    sol = SMESolver(H, sc_ops, c_ops=c_ops, options=options)
+    if m_ops:
+        sol.m_ops = m_ops
     return sol.run(rho0, tlist, ntraj, e_ops=e_ops)
 
 
@@ -204,7 +300,9 @@ def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
     """
     H = QobjEvo(H, args=args, tlist=tlist)
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
-    sol = SSESolver(H, sc_ops, options=options, m_ops=m_ops)
+    sol = SSESolver(H, sc_ops, options=options)
+    if m_ops:
+        sol.m_ops = m_ops
     return sol.run(psi0, tlist, ntraj, e_ops=e_ops)
 
 
@@ -226,11 +324,12 @@ class StochasticSolver(MultiTrajSolver):
         "num_cpus": None,
         "bitgenerator": None,
         "heterodyne": False,
+        "store_wiener_process": False,
         "store_measurement": False,
         "dw_factor": None,
     }
 
-    def __init__(self, H, sc_ops, *, c_ops=(), options=None, m_ops=()):
+    def __init__(self, H, sc_ops, *, c_ops=(), options=None):
         self.options = options
         heterodyne = self.options["heterodyne"]
         if self.name == "ssesolve" and c_ops:
@@ -240,34 +339,73 @@ class StochasticSolver(MultiTrajSolver):
         super().__init__(rhs, options=options)
 
         if self.options["store_measurement"]:
-            n_m_ops = len(sc_ops) * (1 + int(heterodyne))
+            self.options["keep_runs_results"] = True
+            self.options["store_wiener_process"] = True
             dW_factor = self.options["dw_factor"] or 1.
 
-            if len(m_ops) == n_m_ops:
-                self.m_ops = m_ops
-            elif heterodyne:
-                self.m_ops = []
+            if heterodyne:
+                self._m_ops = []
                 for op in sc_ops:
-                    self.m_ops += [
+                    self._m_ops += [
                         op + op.dag(), -1j * (op - op.dag())
                     ]
-                dW_factor = dW_factor * 0.5**0.5
+                self._dW_factors = np.ones(len(sc_ops) * 2) * 0.5**0.5
+
             else:
-                self.m_ops = [op + op.dag() for op in sc_ops]
-
-            if not isinstance(dW_factor, Iterable):
-                dW_factor = [dW_factor] * n_m_ops
-
-            if len(dW_factor) == len(sc_ops) and heterodyne:
-                dW_factor = [ i for i in dW_factor for _ in range(2) ]
-
-            if len(dW_factor) != n_m_ops:
-                raise ValueError("Bad dW_factor option")
-            self.dW_factors = dW_factor
+                self._m_ops = [op + op.dag() for op in sc_ops]
+                self._dW_factors = np.ones(len(sc_ops))
 
         else:
-            self.m_ops = []
+            self._m_ops = []
             self.dW_factors = []
+
+    @property
+    def m_ops(self):
+        return self._m_ops
+
+    @m_ops.setter
+    def m_ops(self, new_m_ops):
+        if not self.options["store_measurement"]:
+            raise ValueError(
+                "The 'store_measurement' options must be set to "
+                "`True` to use m_ops."
+            )
+
+        if len(new_m_ops) != len(self.rhs.sc_ops):
+            if self.options["heterodyne"]:
+                raise ValueError(
+                    f"2 `m_ops` per `sc_ops`, {len(self.rhs.sc_ops)} operators"
+                    " are expected for heterodyne measurement."
+                )
+            else:
+                raise ValueError(
+                    f"{len(self.rhs.sc_ops)} measurements "
+                    "operators are expected."
+                )
+        self._m_ops = new_m_ops
+
+    @property
+    def dW_factors(self):
+        return self._dW_factors
+
+    @dW_factors.setter
+    def dW_factors(self, new_dW_factors):
+        if not self.options["store_measurement"]:
+            raise ValueError(
+                "The 'dW_factors' are only used with measurements."
+            )
+
+        if len(new_dW_factors) != len(self.rhs.sc_ops):
+            if self.options["heterodyne"]:
+                raise ValueError(
+                    f"2 `dW_factors` per `sc_ops`, {len(self.rhs.sc_ops)} "
+                    "values are expected for heterodyne measurement."
+                )
+            else:
+                raise ValueError(
+                    f"{len(self.rhs.sc_ops)} dW_factors are expected."
+                )
+        self._dW_factors = new_dW_factors
 
     def _run_one_traj(self, seed, state, tlist, e_ops):
         """
