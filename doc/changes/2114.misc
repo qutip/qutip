@@ -1,0 +1,2 @@
+Added new argument bc_type to take boundary conditions when creating QobjEvo
+
