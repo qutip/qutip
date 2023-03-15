@@ -96,7 +96,6 @@ jobs:
           - case-name: Windows Latest
             os: windows-latest
             python-version: "3.10"
-            pytest-extra-options: "-k 'not (test_correlation or test_interpolate or test_mcsolve)'"
 
     steps:
       - uses: actions/checkout@v3
