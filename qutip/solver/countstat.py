@@ -12,6 +12,7 @@ from ..core import (
     sprepost, spre, qeye, tensor, expect, Qobj,
     operator_to_vector, vector_to_operator
 )
+#_data.solveになる
 from ..core import data as _data
 from .steadystate import pseudo_inverse, steadystate
 from ..settings import settings
@@ -74,6 +75,13 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
     return current
 
 
+def _solve(A, V):
+    try:
+        return _data.solve(A, V)
+    except Exception:
+        return _data.solve(A, V, "lsqr")
+
+
 def _noise_direct(L, wlist, rhoss, J_ops):
     J_ops = [op.data for op in J_ops]
     rhoss_vec = operator_to_vector(rhoss).data
@@ -88,8 +96,7 @@ def _noise_direct(L, wlist, rhoss, J_ops):
     Pop = _data.kron(rhoss_vec, tr_op_vec.data.transpose())
     Iop = _data.identity(np.prod(L.dims[0][0])**2)
     Q = _data.sub(Iop, Pop)
-    Q_ops = [_data.matmul(Q, _data.matmul(op, rhoss_vec)).to_array()
-             for op in J_ops]
+    Q_ops = [_data.matmul(Q, _data.matmul(op, rhoss_vec)) for op in J_ops]
 
     for k, w in enumerate(wlist):
         if w != 0.0:
@@ -101,7 +108,7 @@ def _noise_direct(L, wlist, rhoss, J_ops):
             L_temp = 1e-15j * spre(tr_op) + L
 
         A = _data.to(_data.CSR, L_temp.data)
-        X_rho = [_data.solve(A, _data.Dense(op)) for op in Q_ops]
+        X_rho = [_solve(A, op) for op in Q_ops]
 
         for i, j in product(range(N_j_ops), repeat=2):
             if i == j:
