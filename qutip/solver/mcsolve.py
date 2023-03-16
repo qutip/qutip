@@ -339,14 +339,8 @@ class MCSolver(MultiTrajSolver):
         (see :class:`qutip.QobjEvo`'s documentation). They must be operators
         even if ``H`` is a superoperator.
 
-    options : SolverOptions, [optional]
+    options : dict, [optional]
         Options for the evolution.
-
-    seed : int, SeedSequence, list, [optional]
-        Seed for the random number generator. It can be a single seed used to
-        spawn seeds for each trajectory or a list of seed, one for each
-        trajectory. Seeds are saved in the result and can be reused with::
-            seeds=prev_result.seeds
     """
     name = "mcsolve"
     resultclass = McResult

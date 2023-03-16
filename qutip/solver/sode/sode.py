@@ -179,7 +179,7 @@ class _Implicit_Simple_Integrator(_Explicit_Simple_Integrator):
     @property
     def options(self):
         """
-        Supported options by Explicit Stochastic Integrators:
+        Supported options by Implicit Stochastic Integrators:
 
         dt : float, default=0.001
             Internal time step.
@@ -257,13 +257,16 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
         dt : float, default=0.001
             Internal time step.
 
-        tol : float, ...
-            ...
+        tol : float, default=1e-10
+            Tolerance for the time steps.
 
-        alpha : float, .,,
+        alpha : float, default=0.
+            Implicit factor to the drift.
+            eff_drift ~= drift(t) * (1-alpha) + drift(t+dt) * alpha
 
-        eta : float, ...
-            ...
+        eta : float, default=0.5
+            Implicit factor to the diffusion.
+            eff_diffusion ~= diffusion(t) * (1-eta) + diffusion(t+dt) * eta
         """
         return self._options
 

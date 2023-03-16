@@ -257,7 +257,7 @@ cdef class Milstein:
     @cython.wraparound(False)
     cdef step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
-        Chapter 10.3 Eq. (3.1)
+        Chapter 10.3 Eq. (3.12)
         Numerical Solution of Stochastic Differential Equations
         By Peter E. Kloeden, Eckhard Platen
 
@@ -314,12 +314,9 @@ cdef class PredCorr:
     @cython.wraparound(False)
     cdef step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
-        Chapter 10.3 Eq. (3.1)
+        Chapter 15.5 Eq. (5.4)
         Numerical Solution of Stochastic Differential Equations
         By Peter E. Kloeden, Eckhard Platen
-
-        dV = -iH*V*dt + d1*dt + d2_i*dW_i
-        + 0.5*d2_i' d2_j*(dW_i*dw_j -dt*delta_ij)
         """
         cdef _StochasticSystem system = self.system
         cdef int i, j, k, num_ops = system.num_collapse
@@ -354,26 +351,11 @@ cdef class PredCorr:
 
 
 cdef class Taylor15(Milstein):
-    """
-    @cython.wraparound(False)
-    def run(self, double t, Data state, double dt, double[:, :, ::1] dW, int ntraj):
-        cdef int i
-        if type(state) != _data.Dense:
-            state = _data.to(_data.Dense, state)
-        cdef Dense out = _data.mul_dense(state, 0)
-        state = state.copy()
-
-        for i in range(ntraj):
-            self.step(t + i * dt, state, dt, dW[i, :, :], out)
-            state, out = out, state
-        return state
-    """
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
-        Chapter 12.2 Eq. (2.18),
+        Chapter 10.4 Eq. (4.6),
         Numerical Solution of Stochastic Differential Equations
         By Peter E. Kloeden, Eckhard Platen
         """
@@ -450,12 +432,9 @@ cdef class Milstein_imp:
     @cython.wraparound(False)
     cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense target):
         """
-        Chapter 10.3 Eq. (3.1)
+        Chapter 12.2 Eq. (2.11)
         Numerical Solution of Stochastic Differential Equations
         By Peter E. Kloeden, Eckhard Platen
-
-        dV = -iH*V*dt + d1*dt + d2_i*dW_i
-        + 0.5*d2_i' d2_j*(dW_i*dw_j -dt*delta_ij)
         """
         cdef _StochasticSystem system = self.system
         cdef int i, j, num_ops = system.num_collapse

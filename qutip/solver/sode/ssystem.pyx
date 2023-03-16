@@ -22,16 +22,39 @@ cdef Dense _dense_wrap(double complex [::1] x):
 
 
 cdef class _StochasticSystem:
+    """
+        RHS for stochastic differential equations.
+
+        Contain the deterministic drift term and the diffusion term[s] through
+        the ``drift`` and ``diffusion`` methods.
+
+        Derrivatives corresponding to the terms in the ito-tyalor expansion are
+        available through a different interface:
+        ``set_state``, ``a``, ``bi``, ``Libj`` etc.
+
+        A different interface is used since each term is not independant, but
+        which terms is needed change according to the integration method.
+        Whereas the raw drift and diffusion are independant.
+    """
     def __init__(self, a, b):
         raise NotImplementedError
 
     cpdef Data drift(self, t, Data state):
+        """
+            Compute the drift term for the ``state`` at time ``t``.
+        """
         raise NotImplementedError
 
     cpdef list diffusion(self, t, Data state):
+        """
+            Compute the diffusion terms for the ``state`` at time ``t``.
+        """
         raise NotImplementedError
 
     cpdef void set_state(self, double t, Dense state) except *:
+        """
+            Initialize the set of derrivatives.
+        """
         raise NotImplementedError
 
     cpdef Data a(self):
@@ -60,7 +83,9 @@ cdef class _StochasticSystem:
 
     cpdef Data L0bi(self, int i):
         """
-            d/dt + a_n * d bi / dx_n + sum_k bk_n bk_m *0.5 d**2 (bi) / (dx_n dx_m)
+            dbi/dt
+            + a_n * d bi / dx_n
+            + sum_k bk_n bk_m *0.5 d**2 (bi) / (dx_n dx_m)
         """
         raise NotImplementedError
 
@@ -72,12 +97,24 @@ cdef class _StochasticSystem:
 
     cpdef Data L0a(self):
         """
-            d/dt + a_n * d a / dx_n + sum_k bk_n bk_m *0.5 d**2 (a) / (dx_n dx_m)
+            da/dt
+            + a_n * d a / dx_n
+            + sum_k bk_n bk_m *0.5 d**2 (a) / (dx_n dx_m)
         """
         raise NotImplementedError
 
 
 cdef class StochasticClosedSystem(_StochasticSystem):
+    """
+        RHS for closed quantum stochastic system (ssesolve)
+
+        drift = -1H * psi
+              + sum_i (-c_i.dag * c_i / 2 + c_i * e_i / 2 - e_i**2 / 8) * psi
+
+        e_i = <psi| c_i + c_i.dag |psi>
+
+        diffusion = (c_i - e_i / 2) * psi
+    """
     cdef readonly list cpcd_ops
     cdef bint _a_set, _b_set, _Lb_set
 
@@ -124,6 +161,13 @@ cdef class StochasticClosedSystem(_StochasticSystem):
 
 
 cdef class StochasticOpenSystem(_StochasticSystem):
+    """
+        RHS for open quantum stochastic system (smesolve)
+
+        drift = liouvillian(H, sc_ops + c_ops)(rho)
+
+        diffusion = c_i @ rho + rho @ c_i/dag - tr(c_i @ rho) rho
+    """
     cdef int state_size, N_root
     cdef double dt
     cdef int _is_set
@@ -140,7 +184,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self.L = H + liouvillian(None, sc_ops)
         else:
             self.L = liouvillian(H, sc_ops)
-        if c_ops:
+        if c_ops:(c_i - e_i / 2) * psi
             self.L = self.L + liouvillian(None, c_ops)
 
         self.c_ops = [spre(op) + spost(op.dag()) for op in sc_ops]
@@ -401,6 +445,11 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
     """
     Simple system that can be solver analytically.
     Used in tests.
+
+        drift = -iH @ vec
+
+        diffusion = c_i @ vec
+
     """
     cdef double dt
 

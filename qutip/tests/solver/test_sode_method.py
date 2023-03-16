@@ -5,8 +5,8 @@ from qutip import qeye, destroy, QobjEvo, rand_ket, rand_herm, create, Qobj, ope
 import qutip.solver.sode._sode as _sode
 import pytest
 from qutip.solver.sode.ssystem import SimpleStochasticSystem, StochasticOpenSystem, StochasticClosedSystem
-from qutip.solver.sode.noise import _Noise
-from qutip.solver.stochastic import SMESolver, StochasticRHS
+from qutip.solver.sode._noise import _Noise
+from qutip.solver.stochastic import SMESolver, _StochasticRHS
 
 
 def get_error_order(system, state, method, plot=False, **kw):
@@ -142,7 +142,7 @@ def test_open_integrator(method, order, H, c_ops, sc_ops):
     c_ops = [_make_oper(op, N) for op in c_ops]
     sc_ops = [_make_oper(op, N) for op in sc_ops]
 
-    rhs = StochasticRHS(StochasticOpenSystem, H, sc_ops, c_ops, False)
+    rhs = _StochasticRHS(StochasticOpenSystem, H, sc_ops, c_ops, False)
     ref_sode = SMESolver.avail_integrators()["taylor1.5"](rhs, {"dt": 0.01})
     sode = SMESolver.avail_integrators()[method](rhs, {"dt": 0.01})
     state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
@@ -168,7 +168,7 @@ def test_closed_integrator(method, order, H, sc_ops):
     H = _make_oper(H, N)
     sc_ops = [_make_oper(op, N) for op in sc_ops]
 
-    rhs = StochasticRHS(StochasticClosedSystem, H, sc_ops, (), False)
+    rhs = _StochasticRHS(StochasticClosedSystem, H, sc_ops, (), False)
     ref_sode = SMESolver.avail_integrators()["explicit1.5"](rhs, {"dt": 0.01})
     sode = SMESolver.avail_integrators()[method](rhs, {"dt": 0.01})
     state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data

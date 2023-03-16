@@ -52,7 +52,7 @@ class Taylor1_5_SODE(_Explicit_Simple_Integrator):
     @property
     def options(self):
         """
-        Supported options by Explicit Stochastic Integrators:
+        Supported options by Order 1.5 strong Taylor Stochastic Integrators:
 
         dt : float, default=0.001
             Internal time step.
@@ -123,7 +123,8 @@ class Implicit_Taylor1_5_SODE(_Implicit_Simple_Integrator):
     @property
     def options(self):
         """
-        Supported options by Explicit Stochastic Integrators:
+        Supported options by Implicit Order 1.5 strong Taylor Stochastic
+        Integrators:
 
         dt : float, default=0.001
             Internal time step.

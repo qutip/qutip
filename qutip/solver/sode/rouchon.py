@@ -11,8 +11,7 @@ __all__ = ["RouchonSODE"]
 
 class RouchonSODE(SIntegrator):
     """
-    Scheme keeping the positivity of the density matrix
-    (:obj:`~smesolve` only).
+    Scheme keeping the positivity of the density matrix.
     See eq. (4) Pierre Rouchon and Jason F. Ralpha,
     *Efficient Quantum Filtering for Quantum Feedback Control*,
     `arXiv:1410.5345 [quant-ph] <https://arxiv.org/abs/1410.5345>`_,
@@ -31,7 +30,8 @@ class RouchonSODE(SIntegrator):
 
         self.H = rhs.H
         if self.H.issuper:
-            raise TypeError("...")
+            raise TypeError("The rouchon stochastic integration method can't"
+                            " use a premade Liouvillian.")
         self._issuper = rhs.issuper
 
         dtype = type(self.H(0).data)
@@ -55,32 +55,10 @@ class RouchonSODE(SIntegrator):
 
         self.id = _data.identity[dtype](self.H.shape[0])
 
-    def set_state(self, t, state0, generator):
-        """
-        Set the state of the SODE solver.
-
-        Parameters
-        ----------
-        t : float
-            Initial time
-
-        state0 : qutip.Data
-            Initial state.
-
-        generator : numpy.random.generator
-            Random number generator.
-        """
-        self.t = t
-        self.state = state0
-        self.generator = generator
-
-    def get_state(self, copy=True):
-        return self.t, self.state, self.generator
-
     def integrate(self, t, copy=True):
         delta_t = (t - self.t)
         if delta_t < 0:
-            raise ValueError("Stochastic integration time")
+            raise ValueError("Stochastic integration need increasing times")
         elif delta_t == 0:
             return self.t, self.state, np.zeros(self.N_dw)
 
@@ -108,8 +86,6 @@ class RouchonSODE(SIntegrator):
         return self.t, self.state, np.sum(dW, axis=0)
 
     def _step(self, t, state, dt, dW):
-        # Same output as old rouchon up to numerical error
-        # But  7x slower
         dy = [
             op.expect_data(t, state) * dt + dw
             for op, dw in zip(self.cpcds, dW)
@@ -135,7 +111,7 @@ class RouchonSODE(SIntegrator):
     @property
     def options(self):
         """
-        Supported options by Explicit Stochastic Integrators:
+        Supported options by Rouchon Stochastic Integrators:
 
         dt : float, default=0.001
             Internal time step.
