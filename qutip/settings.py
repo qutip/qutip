@@ -281,8 +281,9 @@ class Settings:
     def __str__(self):
         lines = ["Qutip settings:"]
         for attr in self.__dir__():
-            if not attr.startswith('_') and attr != "core":
+            if not attr.startswith('_') and attr not in ["core", "compile"]:
                 lines.append(f"    {attr}: {self.__getattribute__(attr)}")
+        lines.append(f"    compile: {self.compile.__repr__(full=False)}")
         return '\n'.join(lines)
 
     def __repr__(self):

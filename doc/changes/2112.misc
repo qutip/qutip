@@ -1,0 +1,1 @@
+Moved HTMLProgressBar from qutip/ipynbtools.py to qutip/ui/progressbar.py
