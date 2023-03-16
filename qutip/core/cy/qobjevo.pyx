@@ -1,6 +1,5 @@
-# cython: language_level=3
-# cython: boundscheck=False, wraparound=False,
-#         initializedcheck=False, cdvision=True
+#cython: language_level=3
+#cython: boundscheck=False, wraparound=False, initializedcheck=False, cdvision=True
 
 import numpy as np
 import numbers
@@ -18,7 +17,7 @@ from qutip.settings import settings
 from qutip.core.cy._element cimport _BaseElement
 from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.expect cimport *
-from qutip.core.data.reshape cimport(column_stack_dense, column_unstack_dense)
+from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
 from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.qobj import _MATMUL_TYPE_LOOKUP
 from libc.math cimport fabs

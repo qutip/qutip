@@ -141,27 +141,23 @@ def test_QobjEvo_repr():
     expected_repr_1= 'QobjEvo: dims=[[3], [3]], shape=(3, 3), type=oper, superrep=None, isconstant=False, num_elements=1'
     assert case_1 == expected_repr_1
 
-    case_2= repr(QobjEvo(qeye(2), lambda t: t))
-    case_3= repr(QobjEvo([qeye(2)]))
-    case_4= repr(QobjEvo(qeye(2)))
-    expected_repr_2_3_4= 'QobjEvo: dims=[[2], [2]], shape=(2, 2), type=oper, superrep=None, isconstant=True, num_elements=1'
-    assert case_2 == expected_repr_2_3_4
-    assert case_3 == expected_repr_2_3_4
-    assert case_4 == expected_repr_2_3_4
+    case_2= repr(QobjEvo(qeye(2)))
+    expected_repr_2= 'QobjEvo: dims=[[2], [2]], shape=(2, 2), type=oper, superrep=None, isconstant=True, num_elements=1'
+    assert case_2 == expected_repr_2
     
-    case_5= repr(QobjEvo(basis(5, 2)))
-    expected_repr_5= 'QobjEvo: dims=[[5], [1]], shape=(5, 1), type=ket, superrep=None, isconstant=True, num_elements=1'
-    assert case_5 == expected_repr_5
+    case_3= repr(QobjEvo(basis(5, 2)))
+    expected_repr_3= 'QobjEvo: dims=[[5], [1]], shape=(5, 1), type=ket, superrep=None, isconstant=True, num_elements=1'
+    assert case_3 == expected_repr_3
 
     X = sigmax()
     S = spre(X) * spost(X.dag())
-    case_6= repr(QobjEvo(to_choi(S)))
-    expected_repr_6= 'QobjEvo: dims=[[[2], [2]], [[2], [2]]], shape=(4, 4), type=super, superrep=choi, isconstant=True, num_elements=1'
-    assert case_6 == expected_repr_6
+    case_4= repr(QobjEvo(to_choi(S)))
+    expected_repr_4= 'QobjEvo: dims=[[[2], [2]], [[2], [2]]], shape=(4, 4), type=super, superrep=choi, isconstant=True, num_elements=1'
+    assert case_4 == expected_repr_4
 
-    case_7= repr(QobjEvo([[qeye(4), lambda t: t], [qeye(4), lambda t: t]], compress=False))
-    expected_repr_7= 'QobjEvo: dims=[[4], [4]], shape=(4, 4), type=oper, superrep=None, isconstant=False, num_elements=2'
-    assert case_7 == expected_repr_7
+    case_= repr(QobjEvo([[qeye(4), lambda t: t], [qeye(4), lambda t: t]], compress=False))
+    expected_repr_= 'QobjEvo: dims=[[4], [4]], shape=(4, 4), type=oper, superrep=None, isconstant=False, num_elements=2'
+    assert case_ == expected_repr_
 
 
 @pytest.mark.parametrize('coeff_type',
