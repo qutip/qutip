@@ -205,7 +205,7 @@ jobs:
           python -m pip install towncrier
 
       - name: Verify Towncrier entry added
-        if: False # github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         env:
           BASE_BRANCH: ${{ github.base_ref }}
         run: |
