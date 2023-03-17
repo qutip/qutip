@@ -1,0 +1,1 @@
+qutip.ipynbtools.version_table() can now be called without Cython installed
