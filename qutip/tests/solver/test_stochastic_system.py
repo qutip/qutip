@@ -108,7 +108,7 @@ def _check_equivalence(f, target, args):
 
 def _run_derr_check(solver, state):
     """
-
+    Compare each derrivatives to the finite differences equivalent.
     """
     t = 0
     N = solver.num_collapse

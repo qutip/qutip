@@ -1,10 +1,13 @@
 import numpy as np
 from itertools import product
 from qutip.core import data as _data
-from qutip import qeye, destroy, QobjEvo, rand_ket, rand_herm, create, Qobj, operator_to_vector, fock_dm
+from qutip import (qeye, destroy, QobjEvo, rand_ket, rand_herm, create, Qobj,
+                   operator_to_vector, fock_dm)
 import qutip.solver.sode._sode as _sode
 import pytest
-from qutip.solver.sode.ssystem import SimpleStochasticSystem, StochasticOpenSystem, StochasticClosedSystem
+from qutip.solver.sode.ssystem import (
+    SimpleStochasticSystem, StochasticOpenSystem, StochasticClosedSystem
+)
 from qutip.solver.sode._noise import _Noise
 from qutip.solver.stochastic import SMESolver, _StochasticRHS
 

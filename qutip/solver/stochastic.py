@@ -539,7 +539,13 @@ class StochasticSolver(MultiTrajSolver):
 
     @m_ops.setter
     def m_ops(self, new_m_ops):
+        """
+        TODO
+        """
         if not self.options["store_measurement"]:
+            if not new_m_ops:
+                self._m_ops = []
+                return
             raise ValueError(
                 "The 'store_measurement' options must be set to "
                 "`True` to use m_ops."
@@ -564,7 +570,13 @@ class StochasticSolver(MultiTrajSolver):
 
     @dW_factors.setter
     def dW_factors(self, new_dW_factors):
+        """
+        TODO
+        """
         if not self.options["store_measurement"]:
+            if not new_dW_factors:
+                self._dW_factors = []
+                return
             raise ValueError(
                 "The 'dW_factors' are only used with measurements."
             )
