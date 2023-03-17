@@ -59,7 +59,6 @@ def test_smesolve(method, heterodyne, system):
     res_ref = mesolve(H, psi0, times, c_ops + sc_ops, e_ops, args={"a": 2})
 
     options = {
-        "heterodyne": heterodyne,
         "store_measurement": True,
         "map": "serial",
         "method": method,
@@ -67,7 +66,7 @@ def test_smesolve(method, heterodyne, system):
 
     res = smesolve(
         H, psi0, times, sc_ops=sc_ops, e_ops=e_ops, c_ops=c_ops,
-        ntraj=ntraj, args={"a": 2}, options=options
+        ntraj=ntraj, args={"a": 2}, options=options, heterodyne=heterodyne,
     )
 
     for idx in range(len(e_ops)):
@@ -109,7 +108,6 @@ def test_ssesolve(method, heterodyne, system):
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a": 2})
 
     options = {
-        "heterodyne": heterodyne,
         "store_measurement": True,
         "map": "serial",
         "method": method,
@@ -117,7 +115,7 @@ def test_ssesolve(method, heterodyne, system):
 
     res = ssesolve(
         H, psi0, times, sc_ops, e_ops,
-        ntraj=ntraj, args={"a": 2}, options=options
+        ntraj=ntraj, args={"a": 2}, options=options, heterodyne=heterodyne,
     )
 
     for idx in range(len(e_ops)):

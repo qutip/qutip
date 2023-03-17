@@ -10,3 +10,4 @@ omit =
 exclude_lines =
     # Skip Python wrappers which help load in C extension modules.
     __bootstrap__()
+    raise NotImplementedError

@@ -184,7 +184,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self.L = H + liouvillian(None, sc_ops)
         else:
             self.L = liouvillian(H, sc_ops)
-        if c_ops:(c_i - e_i / 2) * psi
+        if c_ops:
             self.L = self.L + liouvillian(None, c_ops)
 
         self.c_ops = [spre(op) + spost(op.dag()) for op in sc_ops]

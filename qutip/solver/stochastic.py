@@ -352,7 +352,7 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
                     options=options, heterodyne=heterodyne)
     if m_ops:
         sol.m_ops = m_ops
-    return sol.run(rho0, tlist, ntraj, e_ops=e_ops
+    return sol.run(rho0, tlist, ntraj, e_ops=e_ops,
                    seed=seeds, target_tol=target_tol, timeout=timeout)
 
 
