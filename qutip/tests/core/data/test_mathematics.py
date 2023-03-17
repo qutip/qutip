@@ -804,6 +804,26 @@ class TestTrace(UnaryOpMixin):
     ]
 
 
+class TestTrace_oper_ket(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        N = int(matrix.shape[0] ** 0.5)
+        return np.sum(np.diag(matrix.reshape((N, N))))
+
+    shapes = [
+        (pytest.param((100, 1), id="oper-ket"),),
+    ]
+    bad_shapes = [
+        (pytest.param((1, 100), id="bra"),),
+        (pytest.param((99, 1), id="ket"),),
+        (pytest.param((99, 99), id="ket"),),
+        (pytest.param((2, 99), id="nonsquare"),),
+    ]
+    specialisations = [
+        pytest.param(data.trace_oper_ket_csr, CSR, complex),
+        pytest.param(data.trace_oper_ket_dense, Dense, complex),
+    ]
+
+
 class TestPow(UnaryOpMixin):
     def op_numpy(self, matrix, n):
         return np.linalg.matrix_power(matrix, n)
