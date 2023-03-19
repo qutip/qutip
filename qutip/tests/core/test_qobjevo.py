@@ -1,8 +1,8 @@
 import operator
 
 import pytest
-from qutip import (Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, 
-                   rand_stochastic, rand_herm, rand_ket, liouvillian, 
+from qutip import (Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz,
+                   rand_stochastic, rand_herm, rand_ket, liouvillian,
                    basis, spre, spost, to_choi)
 import numpy as np
 from numpy.testing import assert_allclose
@@ -132,32 +132,44 @@ def test_call(pseudo_qevo, coeff_type):
     assert not qevo.issuper
     _assert_qobjevo_equivalent(pseudo_qevo, qevo)
 
+
 # Test the QobjEvo.__repr__()
 def test_QobjEvo_repr():
-    # "case_n" are cases with different types of Objects of QobjEvo with unique __repr__
-    # "expected_repr_n" are the Expected result from the __repr__() of the QobjEvo objects
+    # case_n: cases with Objects of QobjEvo with unique __repr__
+    # expected_repr_n: are the Expected result from the __repr__
 
-    case_1= repr(QobjEvo([qeye(3), lambda t: t]))
-    expected_repr_1= 'QobjEvo: dims=[[3], [3]], shape=(3, 3), type=oper, superrep=None, isconstant=False, num_elements=1'
+    case_1 = repr(QobjEvo([qeye(3), lambda t: t]))
+    expected_repr_1 = 'QobjEvo: dims = [[3], [3]], shape = (3, 3), '
+    expected_repr_1 += 'type = oper, superrep = None, '
+    expected_repr_1 += 'isconstant = False, num_elements = 1'
     assert case_1 == expected_repr_1
 
-    case_2= repr(QobjEvo(qeye(2)))
-    expected_repr_2= 'QobjEvo: dims=[[2], [2]], shape=(2, 2), type=oper, superrep=None, isconstant=True, num_elements=1'
+    case_2 = repr(QobjEvo(qeye(2)))
+    expected_repr_2 = 'QobjEvo: dims = [[2], [2]], shape = (2, 2), '
+    expected_repr_2 += 'type = oper, superrep = None, '
+    expected_repr_2 += 'isconstant = True, num_elements = 1'
     assert case_2 == expected_repr_2
-    
-    case_3= repr(QobjEvo(basis(5, 2)))
-    expected_repr_3= 'QobjEvo: dims=[[5], [1]], shape=(5, 1), type=ket, superrep=None, isconstant=True, num_elements=1'
+
+    case_3 = repr(QobjEvo(basis(5, 2)))
+    expected_repr_3 = 'QobjEvo: dims = [[5], [1]], shape = (5, 1), '
+    expected_repr_3 += 'type = ket, superrep = None, '
+    expected_repr_3 += 'isconstant = True, num_elements = 1'
     assert case_3 == expected_repr_3
 
     X = sigmax()
     S = spre(X) * spost(X.dag())
-    case_4= repr(QobjEvo(to_choi(S)))
-    expected_repr_4= 'QobjEvo: dims=[[[2], [2]], [[2], [2]]], shape=(4, 4), type=super, superrep=choi, isconstant=True, num_elements=1'
+    case_4 = repr(QobjEvo(to_choi(S)))
+    expected_repr_4 = 'QobjEvo: dims = [[[2], [2]], [[2], [2]]], '
+    expected_repr_4 += 'shape = (4, 4), type = super, superrep = choi, '
+    expected_repr_4 += 'isconstant = True, num_elements = 1'
     assert case_4 == expected_repr_4
 
-    case_= repr(QobjEvo([[qeye(4), lambda t: t], [qeye(4), lambda t: t]], compress=False))
-    expected_repr_= 'QobjEvo: dims=[[4], [4]], shape=(4, 4), type=oper, superrep=None, isconstant=False, num_elements=2'
-    assert case_ == expected_repr_
+    case_5 = repr(QobjEvo([[qeye(4), lambda t: t],
+                           [qeye(4), lambda t: t]], compress=False))
+    expected_repr_5 = 'QobjEvo: dims = [[4], [4]], shape = (4, 4), '
+    expected_repr_5 += 'type = oper, superrep = None, '
+    expected_repr_5 += 'isconstant = False, num_elements = 2'
+    assert case_5 == expected_repr_5
 
 
 @pytest.mark.parametrize('coeff_type',

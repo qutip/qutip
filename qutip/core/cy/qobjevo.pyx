@@ -243,7 +243,10 @@ cdef class QobjEvo:
 
     def __repr__(self):
         cls = self.__class__.__name__
-        return f'{cls}: dims={self.dims}, shape={self.shape}, type={self.type}, superrep={self.superrep}, isconstant={self.isconstant}, num_elements={self.num_elements}'
+        repr_str = f'{cls}: dims = {self.dims}, shape = {self.shape}, '
+        repr_str += f'type = {self.type}, superrep = {self.superrep}, '
+        repr_str += f'isconstant = {self.isconstant}, num_elements = {self.num_elements}'
+        return repr_str
 
     def _read_element(self, op, copy, tlist, args, order, function_style, 
                       boundary_conditions):
