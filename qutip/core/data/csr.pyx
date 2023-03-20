@@ -902,15 +902,15 @@ cpdef CSR from_csr_blocks(
 
     cdef base.idxint rowpos, colpos
     cdef base.idxint row_idx, col_idx
-    cdef base.idxint op_i, op_row, op_row_start, op_row_end, op_row_len
+    cdef base.idxint op_i, op_row, op_row_start, op_row_end, op_row_len, i
 
     out.row_index[0] = 0
 
     for row_idx in range(n_blocks):
         prev_op_idx = op_idx
         while op_idx < op_len:
-            #if block_rows[op_idx] < row_idx:
-            #    raise ValueError("Block row indexes (block_rows) are not sorted.")
+            if block_rows[op_idx] < row_idx:
+                raise ValueError("Block row indexes (block_rows) are not sorted.")
             if block_rows[op_idx] != row_idx:
                 break
             op_idx += 1
