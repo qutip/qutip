@@ -617,7 +617,7 @@ class HEOMSolver(Solver):
         self._sId = _data.identity(self._sup_shape, dtype="csr")
 
         # pre-calculate superoperators required by _grad_prev and _grad_next:
-        Qs = [exp.Q for exp in self.ados.exponents]
+        Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
         self._spreQ = [spre(op).data for op in Qs]
         self._spostQ = [spost(op).data for op in Qs]
         self._s_pre_minus_post_Q = [
@@ -689,14 +689,11 @@ class HEOMSolver(Solver):
             )
         return exponents
 
-    def _grad_n(self, L, he_n):
+    def _grad_n(self, he_n):
         """ Get the gradient for the hierarchy ADO at level n. """
         vk = self.ados.vk
         vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
-        if L is not None:  # time-independent case
-            op = _data.sub(L, _data.mul(self._sId, vk_sum))
-        else:  # time-dependent case
-            op = _data.mul(self._sId, -vk_sum)
+        op = _data.mul(self._sId, -vk_sum)
         return op
 
     def _grad_prev(self, he_n, k):
@@ -811,15 +808,19 @@ class HEOMSolver(Solver):
             )
         return op
 
-    def _rhs(self, L):
+    def _rhs(self):
         """ Make the RHS for the HEOM. """
+        # XXX: TODO -- make this an explicit function
+        f_idx = self.ados._label_idx.__getitem__
         ops = _GatherHEOMRHS(
-            self.ados.idx, block=self._sup_shape, nhe=self._n_ados
+            f_idx, block=self._sup_shape, nhe=self._n_ados
         )
 
         for he_n in self.ados.labels:
-            op = self._grad_n(L, he_n)
+            op = self._grad_n(he_n)
             ops.add_op(he_n, he_n, op)
+            if isinstance(op, _data.Dense):
+                breakpoint()
             for k in range(len(self.ados.dims)):
                 next_he = self.ados.next(he_n, k)
                 if next_he is not None:
@@ -834,9 +835,12 @@ class HEOMSolver(Solver):
 
     def _calculate_rhs(self):
         """ Make the full RHS required by the solver. """
+        h_identity = _data.identity(self._n_ados, dtype="csr")
+
         if self.L_sys.isconstant:
-            L0 = self.L_sys(0)
-            rhs_mat = self._rhs(L0.data)
+            rhs_mat = self._rhs()
+            rhs_mat += _data.kron(h_identity, self.L_sys(0).to("csr").data)
+
             rhs = QobjEvo(Qobj(rhs_mat, dims=[
                 self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
             ]))
@@ -853,7 +857,7 @@ class HEOMSolver(Solver):
             #
             # By calling _rhs(None) we omit the Liouvillian completely from
             # the RHS and then manually add back the Liouvillian afterwards.
-            rhs_mat = self._rhs(None)
+            rhs_mat = self._rhs()
             rhs = QobjEvo(Qobj(rhs_mat))
             h_identity = _data.identity(self._n_ados, dtype="csr")
 
@@ -1265,15 +1269,15 @@ class _GatherHEOMRHS:
             The number of ADOs in the hierarchy.
     """
     def __init__(self, f_idx, block, nhe):
-        self._block = block
-        self._nhe = nhe
+        self._block_size = block
+        self._n_blocks = nhe
         self._f_idx = f_idx
         self._ops = []
 
     def add_op(self, row_he, col_he, op):
         """ Add an block operator to the list. """
         self._ops.append(
-            (self._f_idx(row_he), self._f_idx(col_he), _data.to["csr"](op))
+            (self._f_idx(row_he), self._f_idx(col_he), op)
         )
 
     def gather(self):
@@ -1294,48 +1298,20 @@ class _GatherHEOMRHS:
             rhs : :obj:`Data`
                 A combined matrix of shape ``(block * nhe, block * ne)``.
         """
-        block = self._block
-        nhe = self._nhe
-        ops = self._ops
-        shape = (block * nhe, block * nhe)
-        if not ops:
-            return _data.zeros(*shape, dtype="csr")
-        ops.sort()
-        nnz = sum(_csr.nnz(op) for _, _, op in ops)
-        indptr = np.zeros(shape[0] + 1, dtype=np.int32)
-        indices = np.zeros(nnz, dtype=np.int32)
-        data = np.zeros(nnz, dtype=np.complex128)
-        end = 0
-        op_idx = 0
-        op_len = len(ops)
-
-        for row_idx in range(nhe):
-            prev_op_idx = op_idx
-            while op_idx < op_len:
-                if ops[op_idx][0] != row_idx:
-                    break
-                op_idx += 1
-
-            row_ops = ops[prev_op_idx: op_idx]
-            rowpos = row_idx * block
-            for op_row in range(block):
-                for _, col_idx, op in row_ops:
-                    op = op.as_scipy()  # convert CSR to SciPy csr_matrix
-                    colpos = col_idx * block
-                    op_row_start = op.indptr[op_row]
-                    op_row_end = op.indptr[op_row + 1]
-                    op_row_len = op_row_end - op_row_start
-                    if op_row_len == 0:
-                        continue
-                    indices[end: end + op_row_len] = (
-                        op.indices[op_row_start: op_row_end] + colpos
-                    )
-                    data[end: end + op_row_len] = (
-                        op.data[op_row_start: op_row_end]
-                    )
-                    end += op_row_len
-                indptr[rowpos + op_row + 1] = end
-
-        return _csr.CSR(
-            (data, indices, indptr), shape=shape, copy=False,
+        self._ops.sort()
+        block_rows = np.array(
+            [op[0] for op in self._ops],
+            dtype=_data.base.idxint_dtype,
+        )
+        block_cols = np.array(
+            [op[1] for op in self._ops],
+            dtype=_data.base.idxint_dtype,
+        )
+        block_ops = np.array(
+            [op[2] for op in self._ops],
+            dtype=object,
+        )
+        return _csr.from_csr_blocks(
+            block_rows, block_cols, block_ops,
+            self._n_blocks, self._block_size,
         )
