@@ -17,3 +17,4 @@ from .brmesolve import *
 from .krylovsolve import *
 from .parallel import *
 import qutip.solver.sode
+from .stochastic import *

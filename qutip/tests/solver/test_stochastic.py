@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from qutip import (
     mesolve, liouvillian, QobjEvo, spre, spost,
-    destroy, coherent, qeye, fock_dm, num
+    destroy, coherent, qeye, fock_dm, num, basis
 )
 from qutip.solver.stochastic import smesolve, ssesolve, SMESolver, SSESolver
 from qutip.core import data as _data
@@ -277,3 +277,42 @@ def test_reuse_seeds():
         assert out1 == out2
 
     np.testing.assert_allclose(res.expect, res2.expect, atol=1e-14)
+
+
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_m_ops(heterodyne):
+    "Stochastic: smesolve: homodyne, time-dependent H"
+    N = 10
+    ntraj = 1
+
+    H = num(N)
+    sc_ops = [destroy(N), qeye(N)]
+    psi0 = basis(N, N-1)
+    m_ops = [num(N), qeye(N)]
+    if heterodyne:
+        m_ops = m_ops * 2
+
+    times = np.linspace(0, 1.0, 51)
+
+    options = {"store_measurement": True,}
+
+    solver = SMESolver(H, sc_ops, heterodyne=heterodyne, options=options)
+    solver.m_ops = m_ops
+    solver.dW_factors = [0.] * len(m_ops)
+
+    res = solver.run(psi0, times, e_ops=m_ops)
+    # With dW_factors=0, measurements are computed as expectation values.
+    if heterodyne:
+        np.testing.assert_allclose(res.expect[0][1:], res.measurement[0][0][0])
+        np.testing.assert_allclose(res.expect[1][1:], res.measurement[0][0][1])
+    else:
+        np.testing.assert_allclose(res.expect[0][1:], res.measurement[0][0])
+        np.testing.assert_allclose(res.expect[1][1:], res.measurement[0][1])
+
+    solver.dW_factors = [1.] * len(m_ops)
+    # With dW_factors=0, measurements are computed as expectation values.
+    res = solver.run(psi0, times, e_ops=m_ops)
+    std = 1/times[1]**0.5
+    noise = res.expect[0][1:] - res.measurement[0][0]
+    assert np.mean(noise) == pytest.approx(0., abs=std/50**0.5 * 4)
+    assert np.std(noise) == pytest.approx(std, abs=std/50**0.5 * 4)

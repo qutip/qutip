@@ -4,7 +4,10 @@ from .sode import _Explicit_Simple_Integrator, _Implicit_Simple_Integrator
 from ..stochastic import StochasticSolver, SMESolver
 
 
-__all__ = ["EulerSODE", "Milstein_SODE", "Taylor1_5_SODE", "Explicit1_5_SODE"]
+__all__ = [
+    "EulerSODE", "Milstein_SODE", "Taylor1_5_SODE", "Explicit1_5_SODE",
+    "Implicit_Milstein_SODE", "Implicit_Taylor1_5_SODE"
+]
 
 
 class EulerSODE(_Explicit_Simple_Integrator):

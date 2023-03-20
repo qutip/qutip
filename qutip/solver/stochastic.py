@@ -28,8 +28,7 @@ class StochasticTrajResult(Result):
         super().add(t, state)
         if (
             noise is not None
-            and (self.options['store_wiener_process']
-                 or self.options['store_measurement'])
+            and self.options['store_measurement']
         ):
             for i, dW in enumerate(noise):
                 self.W[i].append(self.W[i][-1] + dW)
@@ -92,17 +91,8 @@ class StochasticResult(MultiTrajResult):
 
         store_measurement = self.options['store_measurement']
         keep_runs = self.options['keep_runs_results']
-        store_wiener_process = self.options['store_wiener_process']
 
-        if (
-            store_measurement and not store_wiener_process
-        ):
-            raise ValueError(
-                "Keeping runs is needed to store measurements "
-                "and wiener processes."
-            )
-
-        if not keep_runs and store_wiener_process:
+        if not keep_runs and store_measurement:
             self.add_processor(partial(self._reduce_attr, attr="wiener_process"))
             self._wiener_process = []
             self.add_processor(partial(self._reduce_attr, attr="dW"))
@@ -233,7 +223,6 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
              seeds=None, target_tol=None, timeout=None):
     """
     Solve stochastic master equation.
-    **************  TODO  ******************
 
     Parameters
     ----------
@@ -306,9 +295,7 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
           On `None` the states will be saved if no expectation operators are
           given.
         - store_measurement: bool, [False]
-          Whether to store the measurement for each trajectories.
-        - store_wiener_process: bool, [False]
-          Whether to store the wiener process, or brownian noise for each
+          Whether to store the measurement and wiener process for each
           trajectories.
         - keep_runs_results : bool, [False]
           Whether to store results from all trajectories or just store the
@@ -336,7 +323,7 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
           The finite steps lenght for the Stochastic integration method.
 
         Other options could be supported depending on the integration method,
-        see `SIntegrator <./classes.html#classes-ode>`_.
+        see `SIntegrator <./classes.html#classes-sode>`_.
 
     Returns
     -------
@@ -361,7 +348,6 @@ def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
              seeds=None, target_tol=None, timeout=None):
     """
     Solve stochastic Schrodinger equation.
-    **************  TODO  ******************
 
     Parameters
     ----------
@@ -430,10 +416,8 @@ def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
           On `None` the states will be saved if no expectation operators are
           given.
         - store_measurement: bool, [False]
-          Whether to store the measurement for each trajectories.
-        - store_wiener_process: bool, [False]
-          Whether to store the wiener process, or brownian noise for each
-          trajectories.
+          Whether to store the measurement and wiener process, or brownian
+          noise for each trajectories.
         - keep_runs_results : bool, [False]
           Whether to store results from all trajectories or just store the
           averages.
@@ -460,7 +444,7 @@ def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
           The finite steps lenght for the Stochastic integration method.
 
         Other options could be supported depending on the integration method,
-        see `SIntegrator <./classes.html#classes-ode>`_.
+        see `SIntegrator <./classes.html#classes-sode>`_.
 
     Returns
     -------
@@ -490,7 +474,6 @@ class StochasticSolver(MultiTrajSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_wiener_process": False,
         "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
@@ -510,24 +493,16 @@ class StochasticSolver(MultiTrajSolver):
         rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
         super().__init__(rhs, options=options)
 
-        if self.options["store_measurement"]:
-            self.options["store_wiener_process"] = True
-
-            if heterodyne:
-                self._m_ops = []
-                for op in sc_ops:
-                    self._m_ops += [
-                        op + op.dag(), -1j * (op - op.dag())
-                    ]
-                self._dW_factors = np.ones(len(sc_ops) * 2) * 0.5**0.5
-
-            else:
-                self._m_ops = [op + op.dag() for op in sc_ops]
-                self._dW_factors = np.ones(len(sc_ops))
-
-        else:
+        if heterodyne:
             self._m_ops = []
-            self.dW_factors = []
+            for op in sc_ops:
+                self._m_ops += [
+                    op + op.dag(), -1j * (op - op.dag())
+                ]
+            self._dW_factors = np.ones(len(sc_ops) * 2) * 0.5**0.5
+        else:
+            self._m_ops = [op + op.dag() for op in sc_ops]
+            self._dW_factors = np.ones(len(sc_ops))
 
     @property
     def heterodyne(self):
@@ -540,18 +515,30 @@ class StochasticSolver(MultiTrajSolver):
     @m_ops.setter
     def m_ops(self, new_m_ops):
         """
-        TODO
-        """
-        if not self.options["store_measurement"]:
-            if not new_m_ops:
-                self._m_ops = []
-                return
-            raise ValueError(
-                "The 'store_measurement' options must be set to "
-                "`True` to use m_ops."
-            )
+        Measurements operators.
 
-        if len(new_m_ops) != len(self.rhs.sc_ops):
+        Default are:
+
+            m_ops = sc_ops + sc_ops.dag()
+
+        for homodyne detection, and
+
+            m_ops = sc_ops + sc_ops.dag(), -1j*(sc_ops - sc_ops.dag())
+
+        for heterodyne detection.
+
+        Measurements opput is computed as:
+
+            expect(m_ops_i, state(t)) + dW_i / dt * dW_factors
+
+        Where ``dW`` follows a gaussian distribution with norm 0 and derivation
+        of ``dt**0.5``. ``dt`` is the time difference between step in the
+        ``tlist``.
+
+        ``m_ops`` can be overwritten, but the number of operators must be
+        constant.
+        """
+        if len(new_m_ops) != len(self.m_ops):
             if self.heterodyne:
                 raise ValueError(
                     f"2 `m_ops` per `sc_ops`, {len(self.rhs.sc_ops)} operators"
@@ -562,6 +549,12 @@ class StochasticSolver(MultiTrajSolver):
                     f"{len(self.rhs.sc_ops)} measurements "
                     "operators are expected."
                 )
+        if not all(
+            isinstance(op, Qobj) and op.dims == self.rhs.sc_ops[0].dims
+            for op in new_m_ops
+        ):
+            raise ValueError("m_ops must be Qobj with the same dimensions"
+                             " as the Hamiltonian")
         self._m_ops = new_m_ops
 
     @property
@@ -571,17 +564,11 @@ class StochasticSolver(MultiTrajSolver):
     @dW_factors.setter
     def dW_factors(self, new_dW_factors):
         """
-        TODO
+        Scaling of the noise on the measurements.
+        Default are ``1`` for homodyne and ``sqrt(1/2)`` for heterodyne.
+        ``dW_factors`` must be a list of the same length as ``m_ops``.
         """
-        if not self.options["store_measurement"]:
-            if not new_dW_factors:
-                self._dW_factors = []
-                return
-            raise ValueError(
-                "The 'dW_factors' are only used with measurements."
-            )
-
-        if len(new_dW_factors) != len(self.rhs.sc_ops):
+        if len(new_dW_factors) != len(self._dW_factors):
             if self.heterodyne:
                 raise ValueError(
                     f"2 `dW_factors` per `sc_ops`, {len(self.rhs.sc_ops)} "
@@ -634,12 +621,10 @@ class StochasticSolver(MultiTrajSolver):
             On `None` the states will be saved if no expectation operators are
             given.
 
-          - store_measurement: bool, [False]
+        store_measurement: bool, [False]
             Whether to store the measurement for each trajectories.
-
-          - store_wiener_process: bool, [False]
-            Whether to store the wiener process, or brownian noise for each
-            trajectories.
+            Storing measurements will also store the wiener process, or
+            brownian noise for each trajectories.
 
         progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
             How to present the solver progress.
@@ -682,7 +667,7 @@ class StochasticSolver(MultiTrajSolver):
 
 class SMESolver(StochasticSolver):
     r"""
-    ***************  TODO ****************
+    Stochastic Master Equation Solver.
 
     Parameters
     ----------
@@ -694,12 +679,12 @@ class SMESolver(StochasticSolver):
     sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    heterodyne : bool, [optional]
+    heterodyne : bool, [False]
         Whether to use heterodyne or homodyne detection.
 
     options : dict, [optional]
         Options for the solver, see :obj:`SMESolver.options` and
-        `SIntegrator <./classes.html#classes-ode>`_ for a list of all options.
+        `SIntegrator <./classes.html#classes-sode>`_ for a list of all options.
     """
     name = "smesolve"
     _avail_integrators = {}
@@ -708,7 +693,7 @@ class SMESolver(StochasticSolver):
 
 class SSESolver(StochasticSolver):
     r"""
-    ***************  TODO ****************
+    Stochastic Schrodinger Equation Solver.
 
     Parameters
     ----------
@@ -724,12 +709,12 @@ class SSESolver(StochasticSolver):
     sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    heterodyne : bool, [optional]
+    heterodyne : bool, [False]
         Whether to use heterodyne or homodyne detection.
 
     options : dict, [optional]
         Options for the solver, see :obj:`SSESolver.options` and
-        `SIntegrator <./classes.html#classes-ode>`_ for a list of all options.
+        `SIntegrator <./classes.html#classes-sode>`_ for a list of all options.
     """
     name = "ssesolve"
     _avail_integrators = {}

@@ -132,6 +132,39 @@ Integrator
     :members: options
 
 
+.. _classes-sode:
+
+Integrator
+----------
+
+.. autoclass:: qutip.solver.sode.rouchon.RouchonSODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.EulerSODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Milstein_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Taylor1_5_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Implicit_Milstein_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Implicit_Taylor1_5_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.sode.PlatenSODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Explicit1_5_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.sode.PredCorr_SODE
+    :members: options
+
+
 .. _classes-non_markov_mc_and_tt:
 
 Non-Markovian Memory Cascade and Transfer Tensor Solvers
