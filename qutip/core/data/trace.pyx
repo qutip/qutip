@@ -50,24 +50,24 @@ cpdef double complex trace_dense(Dense matrix) nogil except *:
 
 
 cpdef double complex trace_oper_ket_csr(CSR matrix) nogil except *:
-    cdef int N = <int>sqrt(matrix.shape[0])
+    cdef size_t N = <size_t>sqrt(matrix.shape[0])
     _check_shape_oper_ket(N, matrix)
-    cdef size_t row, ptr
+    cdef size_t row
     cdef double complex trace = 0
+    cdef size_t stride = N + 1
     for row in range(N):
-        if matrix.row_index[row * (N+1)] != matrix.row_index[row * (N+1) + 1]:
-            trace += matrix.data[matrix.row_index[row * (N+1)]]
+        if matrix.row_index[row * stride] != matrix.row_index[row * stride + 1]:
+            trace += matrix.data[matrix.row_index[row * stride]]
     return trace
 
 cpdef double complex trace_oper_ket_dense(Dense matrix) nogil except *:
-    cdef int N = <int>sqrt(matrix.shape[0])
+    cdef size_t N = <size_t>sqrt(matrix.shape[0])
     _check_shape_oper_ket(N, matrix)
     cdef double complex trace = 0
     cdef size_t ptr = 0
     cdef size_t stride = N + 1
-    for _ in range(N):
-        trace += matrix.data[ptr]
-        ptr += stride
+    for ptr in range(N):
+        trace += matrix.data[ptr * stride]
     return trace
 
 
