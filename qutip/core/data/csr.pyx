@@ -847,3 +847,90 @@ def diags(diagonals, offsets=None, shape=None):
     return diags_(
         diagonals_, np.array(offsets_, dtype=idxint_dtype), n_rows, n_cols,
     )
+
+
+cpdef CSR from_csr_blocks(
+    base.idxint[:] block_rows, base.idxint[:] block_cols, CSR[:] block_ops,
+    base.idxint n_blocks, base.idxint block_size
+):
+    """
+    Construct a CSR from non-overlapping blocks.
+
+    Each operator in ``block_ops`` should be a square CSR operator with
+    shape ``(block_size, block_size)``. The output operator consists of
+    ``n_blocks`` by ``n_blocks`` blocks and thus has shape
+    ``(n_blocks * block_size, n_blocks * block_size)``.
+
+    None of the operators should overlap (i.e. the list of block row and
+    column pairs should be unique).
+
+    Parameters
+    ----------
+    block_rows : sequence of base.idxint integers
+        The block row for each operator. The block row should be in
+        ``range(0, n_blocks)``.
+
+    block_cols : sequence of base.idxint integers
+        The block column for each operator. The block column should be in
+        ``range(0, n_blocks)``.
+
+    block_ops : sequence of CSR matrixes
+        The operators corresponding to the rows and columns in ``block_rows``
+        and ``block_cols``.
+
+    n_blocks : base.idxint
+        Number of blocks. The shape of the final matrix is
+        (N * block, N * block).
+
+    block_size : base.idxint
+        Size of each block. The shape of matrices in ``block_ops`` is
+        ``(block_size, block_size)``.
+    """
+    cdef CSR op
+    cdef base.idxint shape = n_blocks * block_size
+    cdef base.idxint nnz_ = 0
+
+    for op in block_ops:
+        nnz_ += nnz(op)
+
+    cdef CSR out = empty(shape, shape, nnz_)
+    if nnz_ == 0:
+        return out
+
+    cdef base.idxint op_len = len(block_ops)
+    cdef base.idxint op_idx = 0
+    cdef base.idxint prev_op_idx = 0
+
+    cdef base.idxint end = 0
+
+    cdef base.idxint rowpos, colpos
+    cdef base.idxint row_idx, col_idx
+    cdef base.idxint op_i, op_row, op_row_start, op_row_end, op_row_len
+
+    out.row_index[0] = 0
+
+    for row_idx in range(n_blocks):
+        prev_op_idx = op_idx
+        while op_idx < op_len:
+            #if block_rows[op_idx] < row_idx:
+            #    raise ValueError("Block row indexes (block_rows) are not sorted.")
+            if block_rows[op_idx] != row_idx:
+                break
+            op_idx += 1
+
+        rowpos = row_idx * block_size
+        for op_row in range(block_size):
+            for op_i in range(prev_op_idx, op_idx):
+                col_idx = block_cols[op_i]
+                op = block_ops[op_i]
+                colpos = col_idx * block_size
+                op_row_start = op.row_index[op_row]
+                op_row_end = op.row_index[op_row + 1]
+                op_row_len = op_row_end - op_row_start
+                for i in range(op_row_len):
+                    out.col_index[end + i] = op.col_index[op_row_start + i] + colpos
+                    out.data[end + i] = op.data[op_row_start + i]
+                end += op_row_len
+            out.row_index[rowpos + op_row + 1] = end
+
+    return out
