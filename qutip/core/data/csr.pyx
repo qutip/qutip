@@ -846,7 +846,7 @@ def diags(diagonals, offsets=None, shape=None):
     )
 
 
-cpdef CSR from_csr_blocks(
+cpdef CSR _from_csr_blocks(
     base.idxint[:] block_rows, base.idxint[:] block_cols, CSR[:] block_ops,
     base.idxint n_blocks, base.idxint block_size
 ):

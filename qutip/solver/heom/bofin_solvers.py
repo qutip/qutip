@@ -1311,7 +1311,7 @@ class _GatherHEOMRHS:
             [op[2] for op in self._ops],
             dtype=object,
         )
-        return _csr.from_csr_blocks(
+        return _csr._from_csr_blocks(
             block_rows, block_cols, block_ops,
             self._n_blocks, self._block_size,
         )
