@@ -1299,19 +1299,12 @@ class _GatherHEOMRHS:
                 A combined matrix of shape ``(block * nhe, block * ne)``.
         """
         self._ops.sort()
-        block_rows = np.array(
-            [op[0] for op in self._ops],
-            dtype=_data.base.idxint_dtype,
-        )
-        block_cols = np.array(
-            [op[1] for op in self._ops],
-            dtype=_data.base.idxint_dtype,
-        )
-        block_ops = np.array(
-            [op[2] for op in self._ops],
-            dtype=object,
-        )
+        ops = np.array(self._ops, dtype=[
+            ("row", _data.base.idxint_dtype),
+            ("col", _data.base.idxint_dtype),
+            ("op", object),
+        ])
         return _csr._from_csr_blocks(
-            block_rows, block_cols, block_ops,
+            ops["row"], ops["col"], ops["op"],
             self._n_blocks, self._block_size,
         )
