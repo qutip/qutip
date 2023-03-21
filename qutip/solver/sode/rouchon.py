@@ -11,7 +11,7 @@ __all__ = ["RouchonSODE"]
 
 class RouchonSODE(SIntegrator):
     """
-    Scheme keeping the positivity of the density matrix.
+    Stochastic integration method keeping the positivity of the density matrix.
     See eq. (4) Pierre Rouchon and Jason F. Ralpha,
     *Efficient Quantum Filtering for Quantum Feedback Control*,
     `arXiv:1410.5345 [quant-ph] <https://arxiv.org/abs/1410.5345>`_,

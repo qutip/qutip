@@ -6,7 +6,7 @@ from .solver_base import Solver
 import numpy as np
 from copy import copy
 
-__all__ = ["MultiTrajSolver"]
+__all__ = ["MultiTrajSolver", "TrajectorySolver"]
 
 
 class MultiTrajSolver(Solver):
@@ -28,7 +28,7 @@ class MultiTrajSolver(Solver):
     options : dict
         Options for the solver.
     """
-    name = "stochastic master equation"
+    name = "generic multi trajectory"
     resultclass = MultiTrajResult
     _avail_integrators = {}
 
@@ -40,7 +40,7 @@ class MultiTrajSolver(Solver):
         "store_states": None,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "adams",
+        "method": "",
         "map": "serial",
         "job_timeout": None,
         "num_cpus": None,

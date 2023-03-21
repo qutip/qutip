@@ -53,6 +53,13 @@ Solver
 .. autoclass:: qutip.solver.brmesolve.BRSolver
     :members:
 
+.. autoclass:: qutip.solver.stochastic.SMESolver
+    :members:
+
+.. autoclass:: qutip.solver.stochastic.SSESolver
+    :members:
+
+
 
 .. _classes-non_markov_heom:
 

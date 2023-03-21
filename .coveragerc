@@ -4,10 +4,11 @@ omit =
     # QuTiP test files
     */qutip/tests/*
     # Tool for tests
-    */qutip/solver/sode/noise.py
+    */qutip/solver/sode/_noise.py
 
 [report]
 exclude_lines =
     # Skip Python wrappers which help load in C extension modules.
     __bootstrap__()
+    # Skip empty method that are never meant to be used.
     raise NotImplementedError

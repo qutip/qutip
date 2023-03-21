@@ -169,8 +169,8 @@ Floquet States and Floquet-Markov Master Equation
 Stochastic Schrödinger Equation and Master Equation
 ---------------------------------------------------
 
-.. automodule:: qutip.solve.stochastic
-    :members: ssesolve, photocurrent_sesolve, smepdpsolve, smesolve, photocurrent_mesolve, ssepdpsolve, stochastic_solvers, general_stochastic
+.. automodule:: qutip.solver.stochastic
+    :members: ssesolve, smesolve
 
 
 Hierarchical Equations of Motion

@@ -38,8 +38,7 @@ class Milstein_SODE(_Explicit_Simple_Integrator):
 class Taylor1_5_SODE(_Explicit_Simple_Integrator):
     """
     Order 1.5 strong Taylor scheme.  Solver with more terms of the
-    Ito-Taylor expansion.  Default solver for :obj:`~smesolve` and
-    :obj:`~ssesolve`.  See eq. (4.6) of chapter 10.4 of Peter E. Kloeden and
+    Ito-Taylor expansion. See eq. (4.6) of chapter 10.4 of Peter E. Kloeden and
     Exkhard Platen, *Numerical Solution of Stochastic Differential Equations*.
 
     - Order strong 1.5
@@ -105,9 +104,8 @@ class Implicit_Milstein_SODE(_Implicit_Simple_Integrator):
 
 class Implicit_Taylor1_5_SODE(_Implicit_Simple_Integrator):
     """
-    Order 1.5 strong Taylor scheme.  Solver with more terms of the
-    Ito-Taylor expansion.  Default solver for :obj:`~smesolve` and
-    :obj:`~ssesolve`.  Eq. (2.18) with alpha=0.5 of chapter 12.2 of
+    Order 1.5 implicit strong Taylor scheme.  Solver with more terms of the
+    Ito-Taylor expansion.  Eq. (2.18) with ``alpha=0.5`` of chapter 12.2 of
     Peter E. Kloeden and Exkhard Platen,
     *Numerical Solution of Stochastic Differential Equations*.
 
