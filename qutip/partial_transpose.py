@@ -74,7 +74,7 @@ def _partial_transpose_sparse(rho, mask):
     """
 
     data = sp.lil_matrix((rho.shape[0], rho.shape[1]), dtype=complex)
-    rho_data = rho.data.as_scipy()
+    rho_data = rho.to("CSR").data.as_scipy()
 
     for m in range(len(rho_data.indptr) - 1):
 
@@ -117,6 +117,6 @@ def _partial_transpose_reference(rho, mask):
             n_pt = state_number_index(
                 rho.dims[0], np.choose(mask, [psi_B, psi_A]))
 
-            A_pt[m_pt, n_pt] = rho.data.as_scipy()[m, n]
+            A_pt[m_pt, n_pt] = rho.to("CSR").data.as_scipy()[m, n]
 
     return Qobj(A_pt, dims=rho.dims)

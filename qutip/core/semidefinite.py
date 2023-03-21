@@ -4,6 +4,11 @@
 This module implements internal-use functions for semidefinite programming.
 """
 
+__all__ = [
+    'dnorm_problem',
+    'dnorm_sparse_problem',
+]
+
 import collections
 import functools
 

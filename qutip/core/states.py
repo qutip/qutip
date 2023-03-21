@@ -19,6 +19,7 @@ from . import data as _data
 from .qobj import Qobj
 from .operators import jmat, displace, qdiags
 from .tensor import tensor
+from .. import settings
 
 def _promote_to_zero_list(arg, length):
     """
@@ -42,7 +43,7 @@ def _promote_to_zero_list(arg, length):
     raise TypeError("Dimensions must be an integer or list of integers.")
 
 
-def basis(dimensions, n=None, offset=None, *, dtype=_data.Dense):
+def basis(dimensions, n=None, offset=None, *, dtype=None):
     """Generates the vector representation of a Fock state.
 
     Parameters
@@ -104,6 +105,7 @@ def basis(dimensions, n=None, offset=None, *, dtype=_data.Dense):
         basis(N, 1) = ground state
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     # Promote all parameters to lists to simplify later logic.
     if not isinstance(dimensions, list):
         dimensions = [dimensions]
@@ -129,7 +131,7 @@ def basis(dimensions, n=None, offset=None, *, dtype=_data.Dense):
                 copy=False)
 
 
-def qutrit_basis(*, dtype=_data.Dense):
+def qutrit_basis(*, dtype=None):
     """Basis states for a three level system (qutrit)
 
     dtype : type or str
@@ -142,6 +144,7 @@ def qutrit_basis(*, dtype=_data.Dense):
         Array of qutrit basis vectors
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     out = np.empty((3,), dtype=object)
     out[:] = [
         basis(3, 0, dtype=dtype),
@@ -153,7 +156,7 @@ def qutrit_basis(*, dtype=_data.Dense):
 _COHERENT_METHODS = ('operator', 'analytic')
 
 
-def coherent(N, alpha, offset=0, method=None, *, dtype=_data.Dense):
+def coherent(N, alpha, offset=0, method=None, *, dtype=None):
     """Generates a coherent state with eigenvalue alpha.
 
     Constructed using displacement operator on vacuum state.
@@ -207,6 +210,7 @@ def coherent(N, alpha, offset=0, method=None, *, dtype=_data.Dense):
     but would in that case give more accurate coefficients.
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     if offset < 0:
         raise ValueError('Offset must be non-negative')
 
@@ -240,7 +244,7 @@ def coherent(N, alpha, offset=0, method=None, *, dtype=_data.Dense):
     )
 
 
-def coherent_dm(N, alpha, offset=0, method='operator', *, dtype=_data.Dense):
+def coherent_dm(N, alpha, offset=0, method='operator', *, dtype=None):
     """Density matrix representation of a coherent state.
 
     Constructed via outer product of :func:`qutip.states.coherent`
@@ -293,10 +297,11 @@ shape = [3, 3], type = oper, isHerm = True
     but would in that case give more accurate coefficients.
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     return coherent(N, alpha, offset=offset, method=method, dtype=dtype).proj()
 
 
-def fock_dm(dimensions, n=None, offset=None, *, dtype=_data.CSR):
+def fock_dm(dimensions, n=None, offset=None, *, dtype=None):
     """Density matrix representation of a Fock state
 
     Constructed via outer product of :func:`qutip.states.fock`.
@@ -337,10 +342,11 @@ shape = [3, 3], type = oper, isHerm = True
       [ 0.+0.j  0.+0.j  0.+0.j]]
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     return basis(dimensions, n, offset=offset, dtype=dtype).proj()
 
 
-def fock(dimensions, n=None, offset=None, *, dtype=_data.Dense):
+def fock(dimensions, n=None, offset=None, *, dtype=None):
     """Bosonic Fock (number) state.
 
     Same as :func:`qutip.states.basis`.
@@ -383,7 +389,7 @@ def fock(dimensions, n=None, offset=None, *, dtype=_data.Dense):
     return basis(dimensions, n, offset=offset, dtype=dtype)
 
 
-def thermal_dm(N, n, method='operator', *, dtype=_data.CSR):
+def thermal_dm(N, n, method='operator', *, dtype=None):
     """Density matrix for a thermal state of n particles
 
     Parameters
@@ -440,6 +446,7 @@ shape = [5, 5], type = oper, isHerm = True
     if truncated too aggressively.
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     if n == 0:
         return fock_dm(N, 0, dtype=dtype)
     else:
@@ -461,7 +468,7 @@ shape = [5, 5], type = oper, isHerm = True
         return out
 
 
-def maximally_mixed_dm(N, *, dtype=_data.CSR):
+def maximally_mixed_dm(N, *, dtype=None):
     """
     Returns the maximally mixed density matrix for a Hilbert space of
     dimension N.
@@ -480,6 +487,7 @@ def maximally_mixed_dm(N, *, dtype=_data.CSR):
     dm : qobj
         Thermal state density matrix.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     if not isinstance(N, numbers.Integral) or N <= 0:
         raise ValueError("N must be integer N > 0")
     return Qobj(_data.identity[dtype](N, scale=1/N), dims=[[N], [N]],
@@ -518,7 +526,7 @@ shape = [3, 3], type = oper, isHerm = True
     raise TypeError("Input is not a ket or bra vector.")
 
 
-def projection(N, n, m, offset=None, *, dtype=_data.CSR):
+def projection(N, n, m, offset=None, *, dtype=None):
     r"""
     The projection operator that projects state :math:`\lvert m\rangle` on
     state :math:`\lvert n\rangle`.
@@ -544,11 +552,12 @@ def projection(N, n, m, offset=None, *, dtype=_data.CSR):
     oper : qobj
          Requested projection operator.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     return basis(N, n, offset=offset, dtype=dtype) @ \
            basis(N, m, offset=offset, dtype=dtype).dag()
 
 
-def qstate(string, *, dtype=_data.Dense):
+def qstate(string, *, dtype=None):
     r"""Creates a tensor product for a set of qubits in either
     the 'up' :math:`\lvert0\rangle` or 'down' :math:`\lvert1\rangle` state.
 
@@ -585,6 +594,7 @@ def qstate(string, *, dtype=_data.Dense):
      [ 0.]
      [ 0.]]
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     n = len(string)
     if n != (string.count('u') + string.count('d')):
         raise TypeError('String input to QSTATE must consist ' +
@@ -612,7 +622,7 @@ def _character_to_qudit(x):
     return _qubit_dict[x] if x in _qubit_dict else int(x)
 
 
-def ket(seq, dim=2, *, dtype=_data.Dense):
+def ket(seq, dim=2, *, dtype=None):
     """
     Produces a multiparticle ket state for a list or string,
     where each element stands for state of the respective particle.
@@ -690,12 +700,13 @@ def ket(seq, dim=2, *, dtype=_data.Dense):
      [ 0.]
      [ 0.]]
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     ns = [_character_to_qudit(x) for x in seq]
     dim = [dim]*len(ns) if isinstance(dim, numbers.Integral) else dim
     return basis(dim, ns, dtype=dtype)
 
 
-def bra(seq, dim=2, *, dtype=_data.Dense):
+def bra(seq, dim=2, *, dtype=None):
     """
     Produces a multiparticle bra state for a list or string,
     where each element stands for state of the respective particle.
@@ -749,6 +760,7 @@ def bra(seq, dim=2, *, dtype=_data.Dense):
     Qobj data =
     [[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.]]
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     return ket(seq, dim=dim, dtype=dtype).dag()
 
 
@@ -866,7 +878,7 @@ def state_index_number(dims, index):
     return np.unravel_index(index, dims)
 
 
-def state_number_qobj(dims, state, *, dtype=_data.Dense):
+def state_number_qobj(dims, state, *, dtype=None):
     """
     Return a Qobj representation of a quantum state specified by the state
     array `state`.
@@ -906,6 +918,7 @@ shape = [8, 1], type = ket
     .. note::
         Deprecated in QuTiP 5.0, use :func:`basis` instead.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     warnings.warn("basis() is a drop-in replacement for this",
                   DeprecationWarning)
     return basis(dims, state, dtype=dtype)
@@ -943,7 +956,7 @@ def enr_state_dictionaries(dims, excitations):
     return nstates, state2idx, idx2state
 
 
-def enr_fock(dims, excitations, state, *, dtype=_data.Dense):
+def enr_fock(dims, excitations, state, *, dtype=None):
     """
     Generate the Fock state representation in a excitation-number restricted
     state space. The `dims` argument is a list of integers that define the
@@ -977,6 +990,7 @@ def enr_fock(dims, excitations, state, *, dtype=_data.Dense):
         restricted state space defined by `dims` and `exciations`.
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     nstates, state2idx, _ = enr_state_dictionaries(dims, excitations)
     try:
         data =_data.one_element[dtype]((nstates, 1),
@@ -990,7 +1004,7 @@ def enr_fock(dims, excitations, state, *, dtype=_data.Dense):
     return Qobj(data, dims=[dims, [1]*len(dims)], type='ket', copy=False)
 
 
-def enr_thermal_dm(dims, excitations, n, *, dtype=_data.CSR):
+def enr_thermal_dm(dims, excitations, n, *, dtype=None):
     """
     Generate the density operator for a thermal state in the excitation-number-
     restricted state space defined by the `dims` and `exciations` arguments.
@@ -1023,6 +1037,7 @@ def enr_thermal_dm(dims, excitations, n, *, dtype=_data.CSR):
     dm : Qobj
         Thermal state density matrix.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     nstates, _, idx2state = enr_state_dictionaries(dims, excitations)
     if not isinstance(n, (list, np.ndarray)):
         n = np.ones(len(dims)) * n
@@ -1037,7 +1052,7 @@ def enr_thermal_dm(dims, excitations, n, *, dtype=_data.CSR):
     return out
 
 
-def phase_basis(N, m, phi0=0, *, dtype=_data.Dense):
+def phase_basis(N, m, phi0=0, *, dtype=None):
     """
     Basis vector for the mth phase of the Pegg-Barnett phase operator.
 
@@ -1068,13 +1083,14 @@ def phase_basis(N, m, phi0=0, *, dtype=_data.Dense):
     Hilbert space.
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     phim = phi0 + (2.0 * np.pi * m) / N
     n = np.arange(N)[:, np.newaxis]
     data = np.exp(1.0j * n * phim) / np.sqrt(N)
     return Qobj(data, dims=[[N], [1]], type='ket', copy=False).to(dtype)
 
 
-def zero_ket(N, dims=None, *, dtype=_data.Dense):
+def zero_ket(N, dims=None, *, dtype=None):
     """
     Creates the zero ket vector with shape Nx1 and dimensions `dims`.
 
@@ -1096,10 +1112,11 @@ def zero_ket(N, dims=None, *, dtype=_data.Dense):
         Zero ket on given Hilbert space.
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     return Qobj(_data.zeros[dtype](N, 1), dims=dims, type='ket', copy=False)
 
 
-def spin_state(j, m, type='ket', *, dtype=_data.Dense):
+def spin_state(j, m, type='ket', *, dtype=None):
     r"""Generates the spin state :math:`\lvert j, m\rangle`, i.e. the
     eigenstate of the spin-j Sz operator with eigenvalue m.
 
@@ -1123,6 +1140,7 @@ def spin_state(j, m, type='ket', *, dtype=_data.Dense):
     state : qobj
         Qobj quantum object for spin state
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     J = 2*j + 1
 
     if type == 'ket':
@@ -1135,7 +1153,7 @@ def spin_state(j, m, type='ket', *, dtype=_data.Dense):
         raise ValueError(f"Invalid value keyword argument type='{type}'")
 
 
-def spin_coherent(j, theta, phi, type='ket', *, dtype=_data.Dense):
+def spin_coherent(j, theta, phi, type='ket', *, dtype=None):
     r"""Generate the coherent spin state :math:`\lvert \theta, \phi\rangle`.
 
     Parameters
@@ -1161,6 +1179,7 @@ def spin_coherent(j, theta, phi, type='ket', *, dtype=_data.Dense):
     state : qobj
         Qobj quantum object for spin coherent state
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     if type not in ['ket', 'bra', 'dm']:
         raise ValueError("Invalid value keyword argument 'type'")
     Sp = jmat(j, '+')
@@ -1183,7 +1202,7 @@ _BELL_STATES = {
     '11': np.sqrt(0.5) * (basis([2, 2], [0, 1]) - basis([2, 2], [1, 0])),
 }
 
-def bell_state(state='00', *, dtype=_data.Dense):
+def bell_state(state='00', *, dtype=None):
     r"""
     Returns the selected Bell state:
 
@@ -1215,10 +1234,11 @@ def bell_state(state='00', *, dtype=_data.Dense):
     Bell_state : qobj
         Bell state
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     return _BELL_STATES[state].copy().to(dtype)
 
 
-def singlet_state(*, dtype=_data.Dense):
+def singlet_state(*, dtype=None):
     r"""
     Returns the two particle singlet-state:
 
@@ -1239,10 +1259,11 @@ def singlet_state(*, dtype=_data.Dense):
     Bell_state : qobj
         :math:`\lvert B_{11}\rangle` Bell state
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     return bell_state('11').to(dtype)
 
 
-def triplet_states(*, dtype=_data.Dense):
+def triplet_states(*, dtype=None):
     r"""
     Returns a list of the two particle triplet-states:
 
@@ -1271,7 +1292,7 @@ def triplet_states(*, dtype=_data.Dense):
     ]
 
 
-def w_state(N=3, *, dtype=_data.Dense):
+def w_state(N=3, *, dtype=None):
     """
     Returns the N-qubit W-state:
         ``[ |100..0> + |010..0> + |001..0> + ... |000..1> ] / sqrt(n)``
@@ -1298,7 +1319,7 @@ def w_state(N=3, *, dtype=_data.Dense):
     return np.sqrt(1 / N) * state
 
 
-def ghz_state(N=3, *, dtype=_data.Dense):
+def ghz_state(N=3, *, dtype=None):
     """
     Returns the N-qubit GHZ-state:
         ``[ |00...00> + |11...11> ] / sqrt(2)``

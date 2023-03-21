@@ -75,8 +75,8 @@ cdef class Coefficient:
 
     :obj:`Coefficient` are immutable.
     """
-    def __init__(self):
-        raise NotImplementedError("Only sub-classes should be initiated.")
+    def __init__(self, args, **_):
+        self.args = args
 
     def replace_arguments(self, _args=None, **kwargs):
         """
@@ -98,7 +98,7 @@ cdef class Coefficient:
         """
         return self
 
-    def __call__(self, double t, dict _args=None, **kwargs):
+    def __call__(self, t, dict _args=None, **kwargs):
         """
         Return the coefficient value at time `t`.
         Stored arguments can overwriten with `_args` or as keywords parameters.
@@ -121,8 +121,8 @@ cdef class Coefficient:
 
     cdef double complex _call(self, double t) except *:
         """Core computation of the :obj:`Coefficient`."""
-        raise NotImplementedError("All Coefficient sub-classes "
-                                  "should overwrite this.")
+        # All Coefficient sub-classes should overwrite this or __call__
+        return complex(self(t))
 
     def __add__(left, right):
         if (
@@ -185,7 +185,7 @@ cdef class FunctionCoefficient(Coefficient):
     _UNSET = object()
 
     def __init__(self, func, dict args, style=None, _f_pythonic=_UNSET,
-                 _f_parameters=_UNSET):
+                 _f_parameters=_UNSET, **_):
         if _f_pythonic is self._UNSET or _f_parameters is self._UNSET:
             if not (_f_pythonic is self._UNSET
                     and _f_parameters is self._UNSET):
@@ -204,7 +204,9 @@ cdef class FunctionCoefficient(Coefficient):
         self._f_pythonic = _f_pythonic
         self._f_parameters = _f_parameters
 
-    cdef complex _call(self, double t) except *:
+    def __call__(self, t, dict _args=None, **kwargs):
+        if _args is not None or kwargs:
+            return self.replace_arguments(_args, **kwargs)(t)
         if self._f_pythonic:
             return self.func(t, **self.args)
         return self.func(t, self.args)
@@ -321,7 +323,7 @@ cdef class StrFunctionCoefficient(Coefficient):
         "np": np,
         "spe": scipy.special}
 
-    def __init__(self, base, dict args):
+    def __init__(self, base, dict args, **_):
         args2var = "\n".join(["    {} = args['{}']".format(key, key)
                               for key in args])
         code = f"""
@@ -385,6 +387,12 @@ cdef class InterCoefficient(Coefficient):
     order : int
         Order of the interpolation. Order ``0`` uses the previous (i.e. left)
         value. The order will be reduced to ``len(tlist) - 1`` if it is larger.
+
+    boundary_conditions : 2-Tuple, str or None, optional
+        Boundary conditions for spline evaluation. Default value is `None`.
+        Correspond to `bc_type` of scipy.interpolate.make_interp_spline.
+        Refer to Scipy's documentation for further details:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.make_interp_spline.html
     """
     cdef int order
     cdef double dt
@@ -392,7 +400,7 @@ cdef class InterCoefficient(Coefficient):
     cdef complex[:, :] poly
     cdef object np_arrays
 
-    def __init__(self, coeff_arr, tlist, int order):
+    def __init__(self, coeff_arr, tlist, int order, boundary_conditions, **_):
         tlist = np.array(tlist, dtype=np.float64)
         coeff_arr = np.array(coeff_arr, dtype=np.complex128)
 
@@ -416,7 +424,8 @@ cdef class InterCoefficient(Coefficient):
         elif order >= 2:
             # Use scipy to compute the spline and transform it to polynomes
             # as used in scipy's PPoly which is easier for us to use.
-            spline = make_interp_spline(tlist, coeff_arr, k=order)
+            spline = make_interp_spline(tlist, coeff_arr, k=order,
+                                        bc_type=boundary_conditions)
             # Scipy can move knots, we add them to tlist
             tlist = np.sort(np.unique(np.concatenate([spline.t, tlist])))
             a = np.arange(spline.k+1)
@@ -499,11 +508,11 @@ cdef class InterCoefficient(Coefficient):
         return out
 
     @classmethod
-    def from_PPoly(cls, ppoly):
+    def from_PPoly(cls, ppoly, **_):
         return cls.restore(ppoly.x, ppoly.c)
 
     @classmethod
-    def from_Bspline(cls, spline):
+    def from_Bspline(cls, spline, **_):
         tlist = np.unique(spline.t)
         a = np.arange(spline.k+1)
         a[0] = 1

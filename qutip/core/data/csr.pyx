@@ -25,10 +25,7 @@ except ImportError:
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense
-from qutip.core.data.add cimport add_csr, sub_csr
 from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
-from qutip.core.data.mul cimport mul_csr, neg_csr
-from qutip.core.data.matmul cimport matmul_csr
 from qutip.core.data.trace cimport trace_csr
 from qutip.core.data.tidyup cimport tidyup_csr
 from .base import idxint_dtype
