@@ -886,48 +886,75 @@ cpdef CSR from_csr_blocks(
     cdef CSR op
     cdef base.idxint shape = n_blocks * block_size
     cdef base.idxint nnz_ = 0
+    cdef base.idxint n_ops = len(block_ops)
+    cdef base.idxint i, j
+    cdef base.idxint row_idx, col_idx
 
+    # check arrays are the same length
+    if len(block_rows) != n_ops or len(block_cols) != n_ops:
+        raise ValueError(
+            "The arrays block_rows, block_cols and block_ops should have"
+            " the same length."
+        )
+
+    # check op shapes and calculate nnz
     for op in block_ops:
         nnz_ += nnz(op)
+        if op.shape[0] != block_size or op.shape[1] != block_size:
+            raise ValueError(
+                "Block operators (block_ops) do not have the correct shape."
+            )
 
     cdef CSR out = empty(shape, shape, nnz_)
+    if n_ops == 0:
+        return out
+
+    # check ops are ordered by (row, column)
+    row_idx = block_rows[0]
+    col_idx = block_cols[0]
+    for i in range(1, n_ops):
+        if (
+            block_rows[i] < row_idx or
+            (block_rows[i] == row_idx and block_cols[i] <= col_idx)
+        ):
+            raise ValueError(
+                "The arrays block_rows and block_cols must be sorted"
+                " by (row, column)."
+            )
+        row_idx = block_rows[i]
+        col_idx = block_cols[i]
+
     if nnz_ == 0:
         return out
 
-    cdef base.idxint op_len = len(block_ops)
     cdef base.idxint op_idx = 0
     cdef base.idxint prev_op_idx = 0
-
     cdef base.idxint end = 0
-
-    cdef base.idxint rowpos, colpos
-    cdef base.idxint row_idx, col_idx
-    cdef base.idxint op_i, op_row, op_row_start, op_row_end, op_row_len, i
+    cdef base.idxint row_pos, col_pos
+    cdef base.idxint op_row, op_row_start, op_row_end, op_row_len
 
     out.row_index[0] = 0
 
     for row_idx in range(n_blocks):
         prev_op_idx = op_idx
-        while op_idx < op_len:
-            if block_rows[op_idx] < row_idx:
-                raise ValueError("Block row indexes (block_rows) are not sorted.")
+        while op_idx < n_ops:
             if block_rows[op_idx] != row_idx:
                 break
             op_idx += 1
 
-        rowpos = row_idx * block_size
+        row_pos = row_idx * block_size
         for op_row in range(block_size):
-            for op_i in range(prev_op_idx, op_idx):
-                col_idx = block_cols[op_i]
-                op = block_ops[op_i]
-                colpos = col_idx * block_size
+            for i in range(prev_op_idx, op_idx):
+                col_idx = block_cols[i]
+                op = block_ops[i]
+                col_pos = col_idx * block_size
                 op_row_start = op.row_index[op_row]
                 op_row_end = op.row_index[op_row + 1]
                 op_row_len = op_row_end - op_row_start
-                for i in range(op_row_len):
-                    out.col_index[end + i] = op.col_index[op_row_start + i] + colpos
-                    out.data[end + i] = op.data[op_row_start + i]
+                for j in range(op_row_len):
+                    out.col_index[end + j] = op.col_index[op_row_start + j] + col_pos
+                    out.data[end + j] = op.data[op_row_start + j]
                 end += op_row_len
-            out.row_index[rowpos + op_row + 1] = end
+            out.row_index[row_pos + op_row + 1] = end
 
     return out
