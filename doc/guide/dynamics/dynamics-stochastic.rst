@@ -124,7 +124,7 @@ The measurement operators can be passed using the option ``m_ops``. The homodyne
 .. math::
     :label: measurement_result
 
-    J_x = \langle x \rangle + dW,
+    J_x = \langle x \rangle + dW / dt,
 
 where :math:`x` is the operator passed using ``m_ops``. The results are available in ``result.measurements``.
 
