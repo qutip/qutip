@@ -161,7 +161,7 @@ where :math:`x` is the operator passed using ``m_ops``. The results are availabl
 
     fig, ax = plt.subplots()
     ax.set_title('Stochastic Master Equation - Homodyne Detection')
-    ax.plot(times, np.array(stoc_solution.measurement).mean(axis=0)[:].real,
+    ax.plot(times[1:], np.array(stoc_solution.measurement).mean(axis=0)[0, :].real,
             'r', lw=2, label=r'$J_x$')
     ax.plot(times, stoc_solution.expect[0], 'k', lw=2,
             label=r'$\langle x \rangle$')

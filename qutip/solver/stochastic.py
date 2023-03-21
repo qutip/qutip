@@ -272,6 +272,7 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
 
             seeds=prev_result.seeds
 
+
     target_tol : {float, tuple, list}, optional
         Target tolerance of the evolution. The evolution will compute
         trajectories until the error on the expectation values is lower than
@@ -279,7 +280,7 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
         given by ``ntraj``. The error is computed using jackknife resampling.
         ``target_tol`` can be an absolute tolerance or a pair of absolute and
         relative tolerance, in that order. Lastly, it can be a list of pairs of
-        (atol, rtol) for each e_ops.
+        ``(atol, rtol)`` for each e_ops.
 
     timeout : float [optional]
         Maximum time for the evolution in second. When reached, no more
@@ -287,6 +288,7 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
 
     options : None / dict
         Dictionary of options for the solver.
+
         - store_final_state : bool, [False]
           Whether or not to store the final state of the evolution in the
           result class.
@@ -408,6 +410,7 @@ def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
 
     options : None / dict
         Dictionary of options for the solver.
+
         - store_final_state : bool, [False]
           Whether or not to store the final state of the evolution in the
           result class.
