@@ -141,8 +141,8 @@ Integrator
 
 .. _classes-sode:
 
-Integrator
-----------
+Stochastic Integrator
+---------------------
 
 .. autoclass:: qutip.solver.sode.rouchon.RouchonSODE
     :members: options

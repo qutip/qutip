@@ -145,7 +145,7 @@ where :math:`x` is the operator passed using ``m_ops``. The results are availabl
     # operators
     a = qutip.destroy(DIM)
     x = a + a.dag()
-    H = DELTA * a.dag()* a
+    H = DELTA * a.dag() * a
 
     rho_0 = qutip.coherent(DIM, np.sqrt(INTENSITY))
     times = np.arange(0, 1, 0.0025)
