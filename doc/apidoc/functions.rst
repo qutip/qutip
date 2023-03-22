@@ -261,16 +261,6 @@ Non-Markovian Solvers
 .. automodule:: qutip.solve.nonmarkov.transfertensor
     :members: ttmsolve
 
-.. _functions-control:
-
-Optimal control
-===============
-
-.. automodule:: qutip.control.pulseoptim
-    :members: optimize_pulse, optimize_pulse_unitary, create_pulse_optimizer, opt_pulse_crab, opt_pulse_crab_unitary
-
-.. automodule:: qutip.control.pulsegen
-    :members: create_pulse_gen
 
 Utility Functions
 =================

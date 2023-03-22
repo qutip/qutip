@@ -12,10 +12,7 @@ from scipy.linalg cimport cython_blas as blas
 
 from .base import EfficiencyWarning
 from qutip.core.data cimport base, CSR
-from qutip.core.data.add cimport add_dense, sub_dense
 from qutip.core.data.adjoint cimport adjoint_dense, transpose_dense, conj_dense
-from qutip.core.data.mul cimport mul_dense, neg_dense
-from qutip.core.data.matmul cimport matmul_dense
 from qutip.core.data.trace cimport trace_dense
 
 cnp.import_array()
