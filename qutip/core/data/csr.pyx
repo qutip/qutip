@@ -897,6 +897,9 @@ cpdef CSR _from_csr_blocks(
             " the same length."
         )
 
+    if n_ops == 0:
+        return zeros(shape, shape)
+
     # check op shapes and calculate nnz
     for op in block_ops:
         nnz_ += nnz(op)
@@ -904,10 +907,6 @@ cpdef CSR _from_csr_blocks(
             raise ValueError(
                 "Block operators (block_ops) do not have the correct shape."
             )
-
-    cdef CSR out = empty(shape, shape, nnz_)
-    if n_ops == 0:
-        return out
 
     # check ops are ordered by (row, column)
     row_idx = block_rows[0]
@@ -925,8 +924,9 @@ cpdef CSR _from_csr_blocks(
         col_idx = block_cols[i]
 
     if nnz_ == 0:
-        return out
+        return zeros(shape, shape)
 
+    cdef CSR out = empty(shape, shape, nnz_)
     cdef base.idxint op_idx = 0
     cdef base.idxint prev_op_idx = 0
     cdef base.idxint end = 0
