@@ -119,6 +119,7 @@ class HierarchyADOs:
 
         self.labels = list(state_number_enumerate(self.dims, max_depth))
         self._label_idx = {s: i for i, s in enumerate(self.labels)}
+        self.idx = self._label_idx.__getitem__
 
     def idx(self, label):
         """
@@ -134,6 +135,13 @@ class HierarchyADOs:
         -------
         int
             The index of the label within the list of ADO labels.
+
+        Note
+        ----
+        This implementation of the ``.idx(...)`` method is just for
+        reference and documentation. To avoid the cost of a Python
+        function call, it is replaced with
+        ``self._label_idx.__getitem__`` when the instance is created.
         """
         return self._label_idx[label]
 
@@ -810,10 +818,8 @@ class HEOMSolver(Solver):
 
     def _rhs(self):
         """ Make the RHS for the HEOM. """
-        # XXX: TODO -- make this an explicit function
-        f_idx = self.ados._label_idx.__getitem__
         ops = _GatherHEOMRHS(
-            f_idx, block=self._sup_shape, nhe=self._n_ados
+            self.ados.idx, block=self._sup_shape, nhe=self._n_ados
         )
 
         for he_n in self.ados.labels:
