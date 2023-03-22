@@ -580,6 +580,12 @@ class HEOMSolver(Solver):
     ados : :obj:`HierarchyADOs`
         The description of the hierarchy constructed from the given bath
         and maximum depth.
+
+    rhs : :obj:`QobjEvo`
+        The right-hand side (RHS) of the hierarchy evolution ODE. Internally
+        the system and bath coupling operators are converted to
+        :class:`qutip.data.CSR` instances during construction of the RHS,
+        so the operators in the ``rhs`` will all be sparse.
     """
 
     name = "heomsolver"
