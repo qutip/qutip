@@ -825,8 +825,6 @@ class HEOMSolver(Solver):
         for he_n in self.ados.labels:
             op = self._grad_n(he_n)
             ops.add_op(he_n, he_n, op)
-            if isinstance(op, _data.Dense):
-                breakpoint()
             for k in range(len(self.ados.dims)):
                 next_he = self.ados.next(he_n, k)
                 if next_he is not None:
