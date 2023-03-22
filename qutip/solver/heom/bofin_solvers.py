@@ -835,15 +835,17 @@ class HEOMSolver(Solver):
 
     def _calculate_rhs(self):
         """ Make the full RHS required by the solver. """
+        rhs_mat = self._rhs()
+        rhs_dims = [
+            self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
+        ]
         h_identity = _data.identity(self._n_ados, dtype="csr")
 
         if self.L_sys.isconstant:
-            rhs_mat = self._rhs()
+            # For the constant case, we just add the Liouvillian to the
+            # diagonal blocks of the RHS matrix.
             rhs_mat += _data.kron(h_identity, self.L_sys(0).to("csr").data)
-
-            rhs = QobjEvo(Qobj(rhs_mat, dims=[
-                self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
-            ]))
+            rhs = QobjEvo(Qobj(rhs_mat, dims=rhs_dims))
         else:
             # In the time dependent case, we construct the parameters
             # for the ODE gradient function under the assumption that
@@ -854,23 +856,23 @@ class HEOMSolver(Solver):
             # This assumption holds because only _grad_n dependents on
             # the system Liouvillian (and not _grad_prev or _grad_next) and
             # the bath coupling operators are not time-dependent.
-            #
-            # By calling _rhs(None) we omit the Liouvillian completely from
-            # the RHS and then manually add back the Liouvillian afterwards.
-            rhs_mat = self._rhs()
-            rhs = QobjEvo(Qobj(rhs_mat))
-            h_identity = _data.identity(self._n_ados, dtype="csr")
+            rhs = QobjEvo(Qobj(rhs_mat, dims=rhs_dims))
 
             def _kron(x):
-                return Qobj(_data.kron(h_identity, x.data)).to("csr")
+                return Qobj(
+                    _data.kron(h_identity, x.data),
+                    dims=rhs_dims,
+                ).to("csr")
+
             rhs += self.L_sys.linear_map(_kron)
 
         # The assertion that rhs_mat has data type CSR is just a sanity
         # check on the RHS creation. The base solver class will still
         # convert the RHS to the type required by the ODE integrator if
-        # required.
+        # needed.
         assert isinstance(rhs_mat, _csr.CSR)
         assert isinstance(rhs, QobjEvo)
+        assert rhs.dims == rhs_dims
 
         return rhs
 
