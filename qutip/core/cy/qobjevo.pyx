@@ -241,6 +241,13 @@ cdef class QobjEvo:
         if compress:
             self.compress()
 
+    def __repr__(self):
+        cls = self.__class__.__name__
+        repr_str = f'{cls}: dims = {self.dims}, shape = {self.shape}, '
+        repr_str += f'type = {self.type}, superrep = {self.superrep}, '
+        repr_str += f'isconstant = {self.isconstant}, num_elements = {self.num_elements}'
+        return repr_str
+
     def _read_element(self, op, copy, tlist, args, order, function_style, 
                       boundary_conditions):
         """ Read a Q_object item and return an element for that item. """
@@ -456,13 +463,13 @@ cdef class QobjEvo:
         if isinstance(other, QobjEvo):
             if other.dims != self.dims:
                 raise TypeError("incompatible dimensions" +
-                                 str(self.dims) + ", " + str(other.dims))
+                                str(self.dims) + ", " + str(other.dims))
             for element in (<QobjEvo> other).elements:
                 self.elements.append(element)
         elif isinstance(other, Qobj):
             if other.dims != self.dims:
                 raise TypeError("incompatible dimensions" +
-                                 str(self.dims) + ", " + str(other.dims))
+                                str(self.dims) + ", " + str(other.dims))
             self.elements.append(_ConstantElement(other))
         elif (
             isinstance(other, numbers.Number) and
@@ -992,9 +999,9 @@ cdef class QobjEvo:
                              ", " + str(state.dims[0]))
 
         return Qobj(self.matmul_data(t, state.data),
-                    dims=[self.dims[0],state.dims[1]],
+                    dims=[self.dims[0], state.dims[1]],
                     copy=False
-                   )
+                    )
 
     cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None):
         """Compute ``out += self(t) @ state``"""
