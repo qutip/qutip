@@ -430,7 +430,7 @@ class TestFromCSRBlocks:
     def test_construct_kron(self):
         A = np.array([[1, 2], [3, 4]])
         B = np.array([[0.3, 0.35], [0.4, 0.45]])
-        B_op = data.to("csr", data.Dense(A))
+        B_op = data.to("csr", data.Dense(B))
         blocks = self._blocks(
             [0, 0, 1, 1], [0, 1, 0, 1], [
                 A[0, 0] * B_op, A[0, 1] * B_op,
@@ -438,7 +438,7 @@ class TestFromCSRBlocks:
             ]
         )
         out = blocks.from_csr_blocks()
-        assert out == data.kron(data.Dense(A), data.Dense(A))
+        assert out == data.kron(data.Dense(A), data.Dense(B))
         assert csr.nnz(out) == 16
 
 
