@@ -349,7 +349,7 @@ class TestFromCSRBlocks:
             self.rows = np.array(rows, dtype=data.base.idxint_dtype)
             self.cols = np.array(cols, dtype=data.base.idxint_dtype)
             if isinstance(ops, int):
-                ops = [csr.empty(block_size, block_size, 0)] * ops
+                ops = [csr.zeros(block_size, block_size)] * ops
             self.ops = np.array(ops, dtype=object)
             self.n_blocks = n_blocks
             self.block_size = block_size
@@ -375,7 +375,7 @@ class TestFromCSRBlocks:
     def test_op_shape_error(self):
         blocks = self._blocks(
             (0, 1), (0, 1),
-            (csr.empty(2, 2, 0), csr.empty(3, 3, 0)),
+            (csr.zeros(2, 2), csr.zeros(3, 3)),
         )
         with pytest.raises(ValueError) as exc:
             blocks.from_csr_blocks()
@@ -398,14 +398,18 @@ class TestFromCSRBlocks:
 
     @pytest.mark.parametrize(['blocks'], [
         pytest.param(_blocks((), (), ()), id='no ops'),
-        pytest.param(_blocks((0, 1), (1, 0), 2), id='empty ops'),
+        pytest.param(_blocks((0, 1), (1, 0), 2), id='zero ops'),
     ])
-    def test_empty_output_fast_paths(self, blocks):
+    def test_zeros_output_fast_paths(self, blocks):
         out = blocks.from_csr_blocks()
-        assert out == csr.empty(2 * 2, 2 * 2, 0)
+        assert out == csr.zeros(2 * 2, 2 * 2)
         assert csr.nnz(out) == 0
 
     def test_construct_identity_with_empty(self):
+        # users are not expected to be exposed to
+        # csr.empty directly, but it is good to
+        # avoid segfaults, so we test passing
+        # csr.empty(..) blocks here explicitly
         blocks = self._blocks(
             [0, 0, 1, 1], [0, 1, 0, 1], [
                 csr.identity(2), csr.empty(2, 2, 0),
