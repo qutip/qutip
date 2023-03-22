@@ -255,6 +255,7 @@ isherm.__doc__ =\
         `qutip.settings.atol` is used instead.
     """
 isherm.add_specialisations([
+    (Dense, isherm_dense),
     (CSR, isherm_csr),
 ], _defer=True)
 
@@ -277,6 +278,7 @@ isdiag.__doc__ =\
         The matrix to test for diagonality.
     """
 isdiag.add_specialisations([
+    (Dense, isdiag_dense),
     (CSR, isdiag_csr),
 ], _defer=True)
 
