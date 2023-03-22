@@ -1308,7 +1308,7 @@ class _GatherHEOMRHS:
         ops = np.array(self._ops, dtype=[
             ("row", _data.base.idxint_dtype),
             ("col", _data.base.idxint_dtype),
-            ("op", object),
+            ("op", _data.CSR),
         ])
         return _csr._from_csr_blocks(
             ops["row"], ops["col"], ops["op"],
