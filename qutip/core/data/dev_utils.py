@@ -5,16 +5,20 @@ Tools to help with data layer development.
 from collections import defaultdict
 from qutip.core import data as _data
 
+__all__ = ["all_specialisation", "specialisation_table"]
+
+
 def all_specialisation():
     """
     Create a dict of all specialisations of the dispatcher sorted in number of
     data layer inputs.
     """
-    all_dispatchers = qt.data.to.dispatchers
+    all_dispatchers = _data.to.dispatchers
     dispatchers = defaultdict(list)
     for dispatcher in all_dispatchers:
         dispatchers[len(dispatcher.inputs)].append(dispatcher)
     return dict(sorted(dispatchers.items()))
+
 
 def _bool2str(entry):
     if isinstance(entry, str):
@@ -24,18 +28,23 @@ def _bool2str(entry):
     else:
         return "False"
 
+
 def _print_table(lines, title):
-    if len(lines) == 1: return
+    if len(lines) == 1:
+        return
     print()
     print(title)
     for line in lines:
-        print(f"|{line[0]:<20}|" + "|".join(
-            f"{_bool2str(entry):^10}" for entry in line[1:]) + "|"
+        print(
+            f"|{line[0]:<20}|"
+            + "|".join(f"{_bool2str(entry):^10}" for entry in line[1:])
+            + "|"
         )
+
 
 def _extract_specialisation_per_type(N):
     dispatchers = all_specialisation()
-    all_layers = list(qt.data.to.dtypes)
+    all_layers = list(_data.to.dtypes)
     lines_output = [
         ("Dispatched function",) + tuple(dtype.__name__ for dtype in all_layers)
     ]
@@ -46,14 +55,17 @@ def _extract_specialisation_per_type(N):
         if spec.output:
             lines_output += [
                 (spec.__name__,)
-                + tuple((dtype,)*(N+1) in spec._specialisations for dtype in all_layers)
+                + tuple(
+                    (dtype,) * (N + 1) in spec._specialisations for dtype in all_layers
+                )
             ]
         else:
             lines_no_output += [
                 (spec.__name__,)
-                + tuple((dtype,)*N in spec._specialisations for dtype in all_layers)
+                + tuple((dtype,) * N in spec._specialisations for dtype in all_layers)
             ]
     return lines_output, lines_no_output
+
 
 def specialisation_table():
     """
