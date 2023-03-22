@@ -1,6 +1,8 @@
 [run]
 source = qutip
 omit =
+    # Skip dev tools
+    *dev_utils.py
     # QuTiP test files
     */qutip/tests/*
 
