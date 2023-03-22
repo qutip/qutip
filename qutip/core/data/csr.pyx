@@ -877,7 +877,7 @@ cpdef CSR _from_csr_blocks(
 
     n_blocks : base.idxint
         Number of blocks. The shape of the final matrix is
-        (N * block, N * block).
+        (n_blocks * block, n_blocks * block).
 
     block_size : base.idxint
         Size of each block. The shape of matrices in ``block_ops`` is
@@ -945,8 +945,13 @@ cpdef CSR _from_csr_blocks(
         row_pos = row_idx * block_size
         for op_row in range(block_size):
             for i in range(prev_op_idx, op_idx):
-                col_idx = block_cols[i]
                 op = block_ops[i]
+                if nnz(op) == 0:
+                    # empty CSR matrices have uninitialized row_index entries.
+                    # it's unclear whether users should ever see such matrixes
+                    # but we support them here anyway.
+                    continue
+                col_idx = block_cols[i]
                 col_pos = col_idx * block_size
                 op_row_start = op.row_index[op_row]
                 op_row_end = op.row_index[op_row + 1]
