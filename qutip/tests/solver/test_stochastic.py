@@ -162,7 +162,7 @@ def test_ssesolve(heterodyne, system):
     }
 
     res = ssesolve(
-        H, psi0, times, sc_ops, e_ops,
+        H, psi0, times, sc_ops, e_ops=e_ops,
         ntraj=ntraj, args={"w": 2}, options=options, heterodyne=heterodyne,
         seeds=list(range(ntraj)),
     )
@@ -202,7 +202,7 @@ def test_ssesolve_method(method, heterodyne):
     }
 
     res = ssesolve(
-        H, psi0, times, sc_ops, e_ops,
+        H, psi0, times, sc_ops, e_ops=e_ops,
         ntraj=ntraj, args={"w": 2}, options=options, heterodyne=heterodyne,
         seeds=1,
     )

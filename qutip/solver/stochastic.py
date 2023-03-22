@@ -3,7 +3,7 @@ __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 from .sode.ssystem import *
 from .result import MultiTrajResult, Result, ExpectOp
 from .multitraj import MultiTrajSolver
-from ..import Qobj, QobjEvo, liouvillian, lindblad_dissipator
+from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator
 import numpy as np
 from collections.abc import Iterable
 from functools import partial
@@ -19,17 +19,14 @@ class StochasticTrajResult(Result):
         self.heterodyne = heterodyne
         for op in m_ops:
             f = self._e_op_func(op)
-            self.W.append([0.])
+            self.W.append([0.0])
             self.m_expect.append([])
             self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
             self.add_processor(self.m_ops[-1]._store)
 
     def add(self, t, state, noise):
         super().add(t, state)
-        if (
-            noise is not None
-            and self.options['store_measurement']
-        ):
+        if noise is not None and self.options["store_measurement"]:
             for i, dW in enumerate(noise):
                 self.W[i].append(self.W[i][-1] + dW)
 
@@ -78,7 +75,9 @@ class StochasticTrajResult(Result):
         """
         dts = np.diff(self.times)
         m_expect = np.array(self.m_expect)[:, 1:]
-        noise = np.einsum("i,ij,j->ij", self.dW_factor, np.diff(self.W, axis=1), (1/dts))
+        noise = np.einsum(
+            "i,ij,j->ij", self.dW_factor, np.diff(self.W, axis=1), (1 / dts)
+        )
         if self.heterodyne:
             m_expect = m_expect.reshape(-1, 2, m_expect.shape[1])
             noise = noise.reshape(-1, 2, noise.shape[1])
@@ -89,11 +88,13 @@ class StochasticResult(MultiTrajResult):
     def _post_init(self):
         super()._post_init()
 
-        store_measurement = self.options['store_measurement']
-        keep_runs = self.options['keep_runs_results']
+        store_measurement = self.options["store_measurement"]
+        keep_runs = self.options["keep_runs_results"]
 
         if not keep_runs and store_measurement:
-            self.add_processor(partial(self._reduce_attr, attr="wiener_process"))
+            self.add_processor(
+                partial(self._reduce_attr, attr="wiener_process")
+            )
             self._wiener_process = []
             self.add_processor(partial(self._reduce_attr, attr="dW"))
             self._dW = []
@@ -115,7 +116,7 @@ class StochasticResult(MultiTrajResult):
         """
         if hasattr(self, "_" + attr):
             return getattr(self, "_" + attr)
-        elif self.options['keep_runs_results']:
+        elif self.options["keep_runs_results"]:
             return np.array([
                 getattr(traj, attr) for traj in self.trajectories
             ])
@@ -174,6 +175,7 @@ class _StochasticRHS:
     the rouchon integrator need the part but does not use the usual drift and
     diffusion computation.
     """
+
     def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
 
         if not isinstance(H, (Qobj, QobjEvo)) or not H.isoper:
@@ -212,15 +214,17 @@ class _StochasticRHS:
     def __call__(self, options):
         if self.issuper:
             return StochasticOpenSystem(
-                self.H , self.sc_ops, self.c_ops, options.get("dt", 1.-6)
+                self.H, self.sc_ops, self.c_ops, options.get("dt", 1.0 - 6)
             )
         else:
-            return StochasticClosedSystem(self.H , self.sc_ops)
+            return StochasticClosedSystem(self.H, self.sc_ops)
 
 
-def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
-             args={}, ntraj=500, options=None, heterodyne=False,
-             seeds=None, target_tol=None, timeout=None):
+def smesolve(
+    H, rho0, tlist, c_ops=(), sc_ops=(), heterodyne=False, *,
+    e_ops=(), args={}, ntraj=500, options=None,
+    seeds=None, target_tol=None, timeout=None,
+):
     """
     Solve stochastic master equation.
 
@@ -249,11 +253,6 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`expect` for more detail of operator expectation.
-
-    m_ops : list of :class:`qutip.Qobj`
-        List of measurements operators, when not provided, they are computed
-        from the sc_ops according to whether homodyne or heterodyne detection
-        is used.
 
     args : None / *dictionary*
         Dictionary of parameters for time-dependent Hamiltonians and
@@ -337,17 +336,20 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
     H = QobjEvo(H, args=args, tlist=tlist)
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
-    sol = SMESolver(H, sc_ops, c_ops=c_ops,
-                    options=options, heterodyne=heterodyne)
-    if m_ops:
-        sol.m_ops = m_ops
-    return sol.run(rho0, tlist, ntraj, e_ops=e_ops,
-                   seed=seeds, target_tol=target_tol, timeout=timeout)
+    sol = SMESolver(
+        H, sc_ops, c_ops=c_ops, options=options, heterodyne=heterodyne
+    )
+    return sol.run(
+        rho0, tlist, ntraj, e_ops=e_ops,
+        seed=seeds, target_tol=target_tol, timeout=timeout,
+    )
 
 
-def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
-             args={}, ntraj=500, options=None, heterodyne=False,
-             seeds=None, target_tol=None, timeout=None):
+def ssesolve(
+    H, psi0, tlist, sc_ops=(), heterodyne=False, *,
+    e_ops=(), args={}, ntraj=500, options=None,
+    seeds=None, target_tol=None, timeout=None,
+):
     """
     Solve stochastic Schrodinger equation.
 
@@ -372,11 +374,6 @@ def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`expect` for more detail of operator expectation.
-
-    m_ops : list of :class:`qutip.Qobj`
-        List of measurements operators, when not provided, they are computed
-        from the sc_ops according to whether homodyne or heterodyne detection
-        is used.
 
     args : None / *dictionary*
         Dictionary of parameters for time-dependent Hamiltonians and
@@ -458,16 +455,17 @@ def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
     H = QobjEvo(H, args=args, tlist=tlist)
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
     sol = SSESolver(H, sc_ops, options=options, heterodyne=heterodyne)
-    if m_ops:
-        sol.m_ops = m_ops
-    return sol.run(psi0, tlist, ntraj, e_ops=e_ops,
-                   seed=seeds, target_tol=target_tol, timeout=timeout)
+    return sol.run(
+        psi0, tlist, ntraj, e_ops=e_ops,
+        seed=seeds, target_tol=target_tol, timeout=timeout,
+    )
 
 
 class StochasticSolver(MultiTrajSolver):
     """
     Generic stochastic solver.
     """
+
     name = "StochasticSolver"
     resultclass = StochasticResult
     _avail_integrators = {}
@@ -499,9 +497,7 @@ class StochasticSolver(MultiTrajSolver):
         if heterodyne:
             self._m_ops = []
             for op in sc_ops:
-                self._m_ops += [
-                    op + op.dag(), -1j * (op - op.dag())
-                ]
+                self._m_ops += [op + op.dag(), -1j * (op - op.dag())]
             self._dW_factors = np.ones(len(sc_ops) * 2) * 0.5**0.5
         else:
             self._m_ops = [op + op.dag() for op in sc_ops]
@@ -556,8 +552,10 @@ class StochasticSolver(MultiTrajSolver):
             isinstance(op, Qobj) and op.dims == self.rhs.sc_ops[0].dims
             for op in new_m_ops
         ):
-            raise ValueError("m_ops must be Qobj with the same dimensions"
-                             " as the Hamiltonian")
+            raise ValueError(
+                "m_ops must be Qobj with the same dimensions"
+                " as the Hamiltonian"
+            )
         self._m_ops = new_m_ops
 
     @property
@@ -588,8 +586,11 @@ class StochasticSolver(MultiTrajSolver):
         Run one trajectory and return the result.
         """
         result = StochasticTrajResult(
-            e_ops, self.options, m_ops=self.m_ops, dw_factor=self.dW_factors,
-            heterodyne=self.heterodyne
+            e_ops,
+            self.options,
+            m_ops=self.m_ops,
+            dw_factor=self.dW_factors,
+            heterodyne=self.heterodyne,
         )
         generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator)
@@ -630,9 +631,9 @@ class StochasticSolver(MultiTrajSolver):
             brownian noise for each trajectories.
 
         progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
-            How to present the solver progress.
-            'tqdm' uses the python module of the same name and raise an error if
-            not installed. Empty string or False will disable the bar.
+            How to present the solver progress. 'tqdm' uses the python module
+            of the same name and raise an error if not installed. Empty string
+            or False will disable the bar.
 
         progress_kwargs: dict, default={"chunk_size":10}
             Arguments to pass to the progress_bar. Qutip's bars use

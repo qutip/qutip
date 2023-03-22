@@ -44,6 +44,7 @@ class SIntegrator(Integrator):
         keys, not the full options object passed to the solver. Options' keys
         included here will be supported by the :cls:SolverOdeOptions.
     """
+
     def set_state(self, t, state0, generator):
         """
         Set the state of the SODE solver.
@@ -88,7 +89,6 @@ class SIntegrator(Integrator):
         """
         raise NotImplementedError
 
-
     def mcstep(self, t, copy=True):
         raise NotImplementedError
 
@@ -97,6 +97,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
     """
     Stochastic evolution solver
     """
+
     integrator_options = {
         "dt": 0.001,
         "tol": 1e-10,
@@ -111,7 +112,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
         self.step_func = self.stepper(self.system).run
 
     def integrate(self, t, copy=True):
-        delta_t = (t - self.t)
+        delta_t = t - self.t
         if delta_t < 0:
             raise ValueError("Stochastic integration time")
         elif delta_t == 0:
@@ -125,9 +126,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
             N += 1
             dt = delta_t / N
         dW = self.generator.normal(
-            0,
-            np.sqrt(dt),
-            size=(N, self.N_dw, self.system.num_collapse)
+            0, np.sqrt(dt), size=(N, self.N_dw, self.system.num_collapse)
         )
 
         self.state = self.step_func(self.t, self.state, dt, dW, N)
@@ -157,6 +156,7 @@ class _Implicit_Simple_Integrator(_Explicit_Simple_Integrator):
     """
     Stochastic evolution solver
     """
+
     integrator_options = {
         "dt": 0.001,
         "tol": 1e-10,
@@ -213,6 +213,7 @@ class PlatenSODE(_Explicit_Simple_Integrator):
 
     - Order: strong 1, weak 2
     """
+
     stepper = _sode.Platen
     N_dw = 1
 
@@ -232,6 +233,7 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
       (:math:`\\alpha=1/2`, :math:`\\eta=1/2`): ``'pc-euler-imp'``,
       ``'pc-euler-2'`` or ``'pred-corr-2'``
     """
+
     integrator_options = {
         "dt": 0.001,
         "tol": 1e-10,
