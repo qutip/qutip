@@ -36,7 +36,7 @@ cdef class _StochasticSystem:
         which terms is needed change according to the integration method.
         Whereas the raw drift and diffusion are independant.
     """
-    def __init__(self, a, b):
+    def __init__(self):
         raise NotImplementedError
 
     cpdef Data drift(self, t, Data state):
@@ -116,10 +116,6 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         diffusion = (c_i - e_i / 2) * psi
     """
     cdef readonly list cpcd_ops
-    cdef bint _a_set, _b_set, _Lb_set
-
-    cdef readonly Dense _a, temp, _b_vec, _c_vec, _Lb
-    cdef readonly complex _e
 
     def __init__(self, H, sc_ops):
         self.L = -1j * H
@@ -129,8 +125,6 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         self.num_collapse = len(self.c_ops)
         for c_op in self.c_ops:
             self.L += -0.5 * c_op.dag() * c_op
-        self.issuper = False
-        self.dims = self.L.dims
 
     cpdef Data drift(self, t, Data state):
         cdef int i
@@ -157,6 +151,21 @@ cdef class StochasticClosedSystem(_StochasticSystem):
             c_op = self.cpcd_ops[i]
             expect = c_op.expect_data(t, state)
             out.append(_data.add(_out, state, -0.5 * expect))
+        return out
+
+    def __reduce__(self):
+        return (
+            StochasticClosedSystem.restore,
+            (self.L, self.c_ops, self.cpcd_ops)
+        )
+
+    @classmethod
+    def restore(cls, L, c_ops, cpcd_ops):
+        cdef StochasticClosedSystem out = cls.__new__(cls)
+        out.L = L
+        out.c_ops = c_ops
+        out.cpcd_ops = cpcd_ops
+        out.num_collapse = len(c_ops)
         return out
 
 
@@ -189,8 +198,6 @@ cdef class StochasticOpenSystem(_StochasticSystem):
 
         self.c_ops = [spre(op) + spost(op.dag()) for op in sc_ops]
         self.num_collapse = len(self.c_ops)
-        self.issuper = True
-        self.dims = self.L.dims
         self.state_size = self.L.shape[1]
         self._is_set = 0
         self.N_root = <int> self.state_size**0.5
@@ -440,6 +447,24 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         self.L.matmul_data(self.t, self._a, self._L0a)
         self._L0a_set = True
 
+    def __reduce__(self):
+        return (
+            StochasticOpenSystem.restore,
+            (self.L, self.c_ops, self.dt)
+        )
+
+    @classmethod
+    def restore(cls, L, c_ops, derr_dt):
+        cdef StochasticOpenSystem out = cls.__new__(cls)
+        out.L = L
+        out.c_ops = c_ops
+        out.num_collapse = len(c_ops)
+        out.state_size = out.L.shape[1]
+        out._is_set = 0
+        out.N_root = <int> out.state_size**0.5
+        out.dt = derr_dt
+        return out
+
 
 cdef class SimpleStochasticSystem(_StochasticSystem):
     """
@@ -458,8 +483,6 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
         self.c_ops = c_ops
 
         self.num_collapse = len(self.c_ops)
-        self.issuper = False
-        self.dims = self.L.dims
         self.dt = 1e-6
 
     cpdef Data drift(self, t, Data state):

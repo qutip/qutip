@@ -6,8 +6,6 @@ cdef class _StochasticSystem:
     cdef readonly list c_ops
     cdef readonly QobjEvo L
     cdef readonly int num_collapse
-    cdef readonly bint issuper
-    cdef readonly object dims
     cdef Data state
     cdef double t
 

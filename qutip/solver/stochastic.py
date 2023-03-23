@@ -498,7 +498,7 @@ class StochasticSolver(MultiTrajSolver):
             self._m_ops = []
             for op in sc_ops:
                 self._m_ops += [op + op.dag(), -1j * (op - op.dag())]
-            self._dW_factors = np.ones(len(sc_ops) * 2) * 0.5**0.5
+            self._dW_factors = np.ones(len(sc_ops) * 2) * 2**0.5
         else:
             self._m_ops = [op + op.dag() for op in sc_ops]
             self._dW_factors = np.ones(len(sc_ops))
