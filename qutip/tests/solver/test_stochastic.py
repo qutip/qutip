@@ -258,7 +258,7 @@ def test_reuse_seeds():
 
     options = {
         "store_final_state": True,
-        "map": "serial",
+        "map": "parallel",
         "keep_runs_results": True,
     }
 
