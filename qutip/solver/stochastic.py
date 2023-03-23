@@ -478,7 +478,7 @@ class StochasticSolver(MultiTrajSolver):
         "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "rouchon",
+        "method": "taylor1.5",
         "map": "serial",
         "job_timeout": None,
         "num_cpus": None,
@@ -693,6 +693,20 @@ class SMESolver(StochasticSolver):
     name = "smesolve"
     _avail_integrators = {}
     _open = True
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "store_measurement": False,
+        "keep_runs_results": False,
+        "normalize_output": False,
+        "method": "taylor1.5",
+        "map": "serial",
+        "job_timeout": None,
+        "num_cpus": None,
+        "bitgenerator": None,
+    }
 
 
 class SSESolver(StochasticSolver):
@@ -723,3 +737,17 @@ class SSESolver(StochasticSolver):
     name = "ssesolve"
     _avail_integrators = {}
     _open = False
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "store_measurement": False,
+        "keep_runs_results": False,
+        "normalize_output": False,
+        "method": "platen",
+        "map": "serial",
+        "job_timeout": None,
+        "num_cpus": None,
+        "bitgenerator": None,
+    }

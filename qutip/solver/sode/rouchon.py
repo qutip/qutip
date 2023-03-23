@@ -18,9 +18,16 @@ class RouchonSODE(SIntegrator):
     Phys. Rev. A 91, 012118, (2015).
 
     - Order: strong 1
+
+    .. note::
+
+        This method should be used with very small ``dt``. Unlike other
+        methods that will return unphysical state (negative eigenvalues, Nans)
+        when the time step is too large, this method will return state that
+        seems normal.
     """
     integrator_options = {
-        "dt": 0.001,
+        "dt": 0.0001,
         "tol": 1e-7,
     }
 
