@@ -117,7 +117,7 @@ cdef class Dispatcher:
     type on the end, if this is a dispatcher over the output type.
     """
     cdef readonly dict _specialisations
-    cdef readonly Py_ssize_t _n_dispatch
+    cdef readonly Py_ssize_t _n_dispatch, _n_inputs
     cdef readonly dict _lookup
     cdef readonly set _dtypes
     cdef readonly bint _pass_on_dtype
@@ -148,9 +148,8 @@ cdef class Dispatcher:
             an instance of `inspect.Signature`, which will be used instead.
 
         inputs : iterable of str
-            The parameters which should be dispatched over.  These can be
-            positional or keyword arguments, but must feature in the signature
-            provided.
+            The parameters which should be dispatched over.  These must be
+            positional arguments, and must feature in the signature provided.
 
         out : bool, optional (False)
             Whether to dispatch on the output of the function.  Defaults to
@@ -181,6 +180,14 @@ cdef class Dispatcher:
             self.__signature__ = signature_source
         else:
             self.__signature__ = inspect.signature(signature_source)
+        for input in self.inputs:
+            if (
+                self.__signature__._parameters[input].kind
+                != inspect.Parameter.POSITIONAL_ONLY
+            ):
+                raise ValueError("inputs parameters must be positional only.")
+            if list(self.__signature__._parameters).index(input) >= len(inputs):
+                raise ValueError("inputs must be the first positional parameters.")
         if name is not None:
             self.__name__ = name
         elif not isinstance(signature_source, inspect.Signature):
@@ -197,6 +204,7 @@ cdef class Dispatcher:
         self.output = out
         self._specialisations = {}
         self._lookup = {}
+        self._n_inputs = len(self.inputs)
         self._n_dispatch = len(self.inputs) + self.output
         self._pass_on_dtype = 'dtype' in self.__signature__.parameters
         # Add ourselves to the list of dispatchers to be updated.
@@ -361,17 +369,19 @@ cdef class Dispatcher:
         return "<dispatcher: " + self.__text_signature__ + ">"
 
     def __call__(self, *args, dtype=None, **kwargs):
-        cdef list dispatch
+        cdef list dispatch = []
+        cdef int i
         if self._pass_on_dtype:
             kwargs['dtype'] = dtype
         if not (self._pass_on_dtype or self.output) and dtype is not None:
             raise TypeError("unknown argument 'dtype'")
-        if len(args) < len(self.inputs):
+        if len(args) < self._n_inputs:
             raise TypeError(
                 "All dispatched data input must be passed "
                 "as positional arguments."
             )
-        dispatch = [type(var) for var in args[:len(self.inputs)]]
+        for i in range(self._n_inputs):
+            dispatch.append(type(args[i]))
 
         if self.output and dtype is not None:
             dtype = _to.parse(dtype)
