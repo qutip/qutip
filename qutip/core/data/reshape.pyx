@@ -135,7 +135,7 @@ import inspect as _inspect
 
 reshape = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('n_rows_out', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('n_cols_out', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
@@ -169,7 +169,7 @@ reshape.add_specialisations([
 
 column_stack = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='column_stack',
     module=__name__,
@@ -208,7 +208,7 @@ column_stack.add_specialisations([
 
 column_unstack = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('rows', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
     name='column_unstack',
@@ -249,7 +249,7 @@ column_unstack.add_specialisations([
 
 split_columns = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('copy', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=1),
     ]),

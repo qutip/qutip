@@ -71,7 +71,7 @@ import inspect as _inspect
 
 mul = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('value', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
     name='mul',
@@ -91,7 +91,7 @@ imul = _Dispatcher(
     # give expected results if used as:
     # mat = imul(mat, x)
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('value', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
     name='imul',
@@ -108,7 +108,7 @@ imul.add_specialisations([
 
 neg = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='neg',
     module=__name__,
