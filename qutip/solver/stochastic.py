@@ -271,6 +271,7 @@ def smesolve(
 
             seeds=prev_result.seeds
 
+        When using a parallel map, the trajectories can be re-ordered.
 
     target_tol : {float, tuple, list}, optional
         Target tolerance of the evolution. The evolution will compute

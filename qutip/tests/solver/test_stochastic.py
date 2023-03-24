@@ -94,7 +94,7 @@ def test_smesolve_methods(method, heterodyne):
 
     options = {
         "store_measurement": True,
-        "map": "serial",
+        "map": "parallel",
         "method": method,
     }
 
@@ -196,7 +196,7 @@ def test_ssesolve_method(method, heterodyne):
 
     options = {
         "store_measurement": True,
-        "map": "serial",
+        "map": "parallel",
         "method": method,
         "keep_runs_results": True,
     }
@@ -258,7 +258,7 @@ def test_reuse_seeds():
 
     options = {
         "store_final_state": True,
-        "map": "parallel",
+        "map": "serial",
         "keep_runs_results": True,
         "store_measurement": True,
     }
