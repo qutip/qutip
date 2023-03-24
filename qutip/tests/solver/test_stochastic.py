@@ -260,6 +260,7 @@ def test_reuse_seeds():
         "store_final_state": True,
         "map": "parallel",
         "keep_runs_results": True,
+        "store_measurement": True,
     }
 
     res = smesolve(
@@ -273,10 +274,14 @@ def test_reuse_seeds():
         seeds=res.seeds,
     )
 
-    for out1, out2 in zip(res.final_state, res2.final_state):
-        assert out1 == out2
+    np.testing.assert_allclose(
+        res.wiener_process, res2.wiener_process, atol=1e-14
+    )
 
     np.testing.assert_allclose(res.expect, res2.expect, atol=1e-14)
+
+    for out1, out2 in zip(res.final_state, res2.final_state):
+        assert out1 == out2
 
 
 @pytest.mark.parametrize("heterodyne", [True, False])
