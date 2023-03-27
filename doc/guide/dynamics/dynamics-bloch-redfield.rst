@@ -291,7 +291,7 @@ where the resulting `output` is an instance of the class :class:`qutip.Result`.
 
      output = brmesolve(H, psi0, tlist, a_ops=[[sigmax(),ohmic_spectrum]], e_ops=e_ops,sec_cutoff=-1)
 
-    Will simulate the same example as above without the secular approximation.Note that using the non-secular version may lead to negativity issues.
+    will simulate the same example as above without the secular approximation. Note that using the non-secular version may lead to negativity issues.
 
 .. _td-bloch-redfield:
 
