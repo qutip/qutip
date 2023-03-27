@@ -283,6 +283,12 @@ The two steps of calculating the Bloch-Redfield tensor and evolving according to
 
 where the resulting `output` is an instance of the class :class:`qutip.Result`.
 
+.. note::
+    While the example code simulates the Bloch-Redfield in the secular approximation, Qutip's implementation
+    allows the user to simulate the non-secular version of the Bloch-Redfield equation by setting the sec_cutoff 
+    parameter to -1. as well as do a partial secular approximation by setting it to a  float. the default value is 0.1
+
+    Note that using the non-secular version may lead to negativity issues.
 
 .. _td-bloch-redfield:
 
