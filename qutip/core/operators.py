@@ -6,7 +6,7 @@ of commonly occuring quantum operators.
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
-           'num', 'squeeze', 'squeezing', 'displace', 'commutator',
+           'num', 'squeeze', 'squeezing', 'swap', 'displace', 'commutator',
            'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
            'enr_identity', 'charge', 'tunneling', 'qft']
 
@@ -1071,3 +1071,28 @@ def qft(dimensions, *, dtype="dense"):
     L, M = np.meshgrid(arr, arr)
     data = np.exp(phase * (L * M)) / np.sqrt(N2)
     return Qobj(data, dims=dimensions).to(dtype)
+
+
+def swap(N, M, *, dtype=None):
+    """
+    Operator that exchange the order of tensored spaces:
+
+        swap(N, M) @ tensor(ketN, ketM) == tensor(ketM, ketN)
+
+    parameters
+    ----------
+    N : int
+        Number of basis states in the first Hilbert space.
+
+    M : int
+        Number of basis states in the second Hilbert space.
+    """
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    data = np.ones(N * M)
+    rows = np.arange(N * M)
+    cols = (np.arange(N * M) * M) % (N * M - 1)
+    cols[-1] += (M * N - 1)
+    return Qobj(
+        scipy.sparse.coo_matrix((data, (rows, cols))),
+        dims=[[M, N], [N, M]]
+    ).to(dtype)

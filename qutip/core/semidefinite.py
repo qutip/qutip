@@ -3,12 +3,6 @@
 """
 This module implements internal-use functions for semidefinite programming.
 """
-
-__all__ = [
-    'dnorm_problem',
-    'dnorm_sparse_problem',
-]
-
 import collections
 import functools
 
@@ -17,47 +11,44 @@ import scipy.sparse as sp
 # Conditionally import CVXPY
 try:
     import cvxpy
+    __all__ = ['dnorm_problem', 'dnorm_sparse_problem']
 except ImportError:
     cvxpy = None
+    __all__ = []
 
-from .tensor import tensor_swap
-from .operators import qeye
-from ..logging_utils import get_logger
-logger = get_logger('qutip.core.semidefinite')
+from .operators import qeye, swap
 
 Complex = collections.namedtuple('Complex', ['re', 'im'])
 
 
-def complex_var(rows=1, cols=1, name=None):
+def _complex_var(rows=1, cols=1, name=None):
     return Complex(
         re=cvxpy.Variable((rows, cols), name=(name + "_re") if name else None),
         im=cvxpy.Variable((rows, cols), name=(name + "_im") if name else None),
     )
 
 
-def herm(*Xs):
-    return sum([[X.re == X.re.T, X.im == -X.im.T] for X in Xs], [])
-
-
-def pos_noherm(*Xs):
-    return [
-        cvxpy.bmat([
-            [X.re, -X.im],
-            [X.im, X.re]
-        ]) >> 0
-        for X in Xs
-    ]
-
-
-def pos(*Xs):
-    return pos_noherm(*Xs) + herm(*Xs)
-
-
-def dens(*rhos):
-    return pos(*rhos) + [
+def _make_constraints(*rhos):
+    """
+    Create constraints to ensure definied density operators.
+    """
+    # rhos traces are 1
+    constraints = [
         cvxpy.trace(rho.re) == 1
         for rho in rhos
     ]
+    # rhos are Hermitian
+    for rho in rhos:
+        constraints += [rho.re == rho.re.T] + [rho.im == -rho.im.T]
+    # Non negative
+    constraints += [
+        cvxpy.bmat([
+            [rho.re, -rho.im],
+            [rho.im, rho.re]
+        ]) >> 0
+        for rho in rhos
+    ]
+    return constraints
 
 
 def _arr_to_complex(A):
@@ -66,7 +57,7 @@ def _arr_to_complex(A):
     return Complex(re=A, im=np.zeros_like(A))
 
 
-def kron(A, B):
+def _kron(A, B):
     if isinstance(A, np.ndarray):
         A = _arr_to_complex(A)
     if isinstance(B, np.ndarray):
@@ -78,7 +69,7 @@ def kron(A, B):
     )
 
 
-def conj(W, A):
+def _conj(W, A):
     U, V = W.re, W.im
     A, B = A.re, A.im
     return Complex(
@@ -87,61 +78,28 @@ def conj(W, A):
     )
 
 
-def bmat(B):
-    return Complex(
-        re=cvxpy.bmat([[element.re for element in row] for row in B]),
-        im=cvxpy.bmat([[element.re for element in row] for row in B]),
-    )
-
-
-def dag(X):
-    return Complex(re=X.re.T, im=-X.im.T)
-
-
-def memoize(fn):
-    cache = {}
-
-    @functools.wraps(fn)
-    def memoized(*args):
-        if args in cache:
-            return cache[args]
-        else:
-            ret = fn(*args)
-            cache[args] = ret
-            return ret
-
-    memoized.reset_cache = cache.clear
-    return memoized
-
-
-def qudit_swap(dim):
-    # We should likely generalize this and include it in qip.gates.
-    W = qeye([dim, dim])
-    return tensor_swap(W, (0, 1))
-
-
-@memoize
+@functools.cache
 def initialize_constraints_on_dnorm_problem(dim):
     # Start assembling constraints and variables.
     constraints = []
 
     # Make a complex variable for X.
-    X = complex_var(dim ** 2, dim ** 2, "X")
+    X = _complex_var(dim ** 2, dim ** 2, "X")
 
     # Make complex variables for rho0 and rho1.
-    rho0 = complex_var(dim, dim, "rho0")
-    rho1 = complex_var(dim, dim, "rho1")
-    constraints += dens(rho0, rho1)
+    rho0 = _complex_var(dim, dim, "rho0")
+    rho1 = _complex_var(dim, dim, "rho1")
+    constraints += _make_constraints(rho0, rho1)
 
     # Finally, add the tricky positive semidefinite constraint.
     # Since we're using column-stacking, but Watrous used row-stacking,
     # we need to swap the order in Rho0 and Rho1. This is not straightforward,
     # as CVXPY requires that the constant be the first argument. To solve this,
     # We conjugate by SWAP.
-    W = qudit_swap(dim).full()
+    W = swap(dim, dim).full()
     W = Complex(re=W.real, im=W.imag)
-    Rho0 = conj(W, kron(np.eye(dim), rho0))
-    Rho1 = conj(W, kron(np.eye(dim), rho1))
+    Rho0 = _conj(W, _kron(np.eye(dim), rho0))
+    Rho1 = _conj(W, _kron(np.eye(dim), rho1))
 
     Y = cvxpy.bmat([
         [Rho0.re, X.re,      -Rho0.im, -X.im],
@@ -152,12 +110,13 @@ def initialize_constraints_on_dnorm_problem(dim):
     ])
     constraints += [Y >> 0]
 
-    logger.debug("Using %d constraints.", len(constraints))
-
     return X, constraints
 
 
 def dnorm_problem(dim):
+    """
+    Creade the cvxpy ``Problem`` for the dnorm metric using dense arrays
+    """
     X, constraints = initialize_constraints_on_dnorm_problem(dim)
     Jr = cvxpy.Parameter((dim**2, dim**2))
     Ji = cvxpy.Parameter((dim**2, dim**2))
@@ -170,6 +129,9 @@ def dnorm_problem(dim):
 
 
 def dnorm_sparse_problem(dim, J_dat):
+    """
+    Creade the cvxpy ``Problem`` for the dnorm metric using sparse arrays
+    """
     X, constraints = initialize_constraints_on_dnorm_problem(dim)
     J_val = J_dat.tocoo()
 
