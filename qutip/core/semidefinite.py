@@ -8,17 +8,19 @@ import functools
 
 import numpy as np
 import scipy.sparse as sp
+
 # Conditionally import CVXPY
 try:
     import cvxpy
-    __all__ = ['dnorm_problem', 'dnorm_sparse_problem']
+
+    __all__ = ["dnorm_problem", "dnorm_sparse_problem"]
 except ImportError:
     cvxpy = None
     __all__ = []
 
-from .operators import qeye, swap
+from .operators import swap
 
-Complex = collections.namedtuple('Complex', ['re', 'im'])
+Complex = collections.namedtuple("Complex", ["re", "im"])
 
 
 def _complex_var(rows=1, cols=1, name=None):
@@ -33,20 +35,13 @@ def _make_constraints(*rhos):
     Create constraints to ensure definied density operators.
     """
     # rhos traces are 1
-    constraints = [
-        cvxpy.trace(rho.re) == 1
-        for rho in rhos
-    ]
+    constraints = [cvxpy.trace(rho.re) == 1 for rho in rhos]
     # rhos are Hermitian
     for rho in rhos:
         constraints += [rho.re == rho.re.T] + [rho.im == -rho.im.T]
     # Non negative
     constraints += [
-        cvxpy.bmat([
-            [rho.re, -rho.im],
-            [rho.im, rho.re]
-        ]) >> 0
-        for rho in rhos
+        cvxpy.bmat([[rho.re, -rho.im], [rho.im, rho.re]]) >> 0 for rho in rhos
     ]
     return constraints
 
@@ -74,7 +69,7 @@ def _conj(W, A):
     A, B = A.re, A.im
     return Complex(
         re=(U @ A @ U.T - U @ B @ V.T - V @ A @ V.T - V @ B @ U.T),
-        im=(U @ A @ V.T + U @ B @ U.T + V @ A @ U.T - V @ B @ V.T)
+        im=(U @ A @ V.T + U @ B @ U.T + V @ A @ U.T - V @ B @ V.T),
     )
 
 
@@ -84,7 +79,7 @@ def initialize_constraints_on_dnorm_problem(dim):
     constraints = []
 
     # Make a complex variable for X.
-    X = _complex_var(dim ** 2, dim ** 2, "X")
+    X = _complex_var(dim**2, dim**2, "X")
 
     # Make complex variables for rho0 and rho1.
     rho0 = _complex_var(dim, dim, "rho0")
@@ -101,13 +96,14 @@ def initialize_constraints_on_dnorm_problem(dim):
     Rho0 = _conj(W, _kron(np.eye(dim), rho0))
     Rho1 = _conj(W, _kron(np.eye(dim), rho1))
 
-    Y = cvxpy.bmat([
-        [Rho0.re, X.re,      -Rho0.im, -X.im],
-        [X.re.T, Rho1.re,    X.im.T, -Rho1.im],
-
-        [Rho0.im, X.im,      Rho0.re, X.re],
-        [-X.im.T, Rho1.im,   X.re.T, Rho1.re],
-    ])
+    Y = cvxpy.bmat(
+        [
+            [Rho0.re, X.re, -Rho0.im, -X.im],
+            [X.re.T, Rho1.re, X.im.T, -Rho1.im],
+            [Rho0.im, X.im, Rho0.re, X.re],
+            [-X.im.T, Rho1.im, X.re.T, Rho1.re],
+        ]
+    )
     constraints += [Y >> 0]
 
     return X, constraints
@@ -121,9 +117,7 @@ def dnorm_problem(dim):
     Jr = cvxpy.Parameter((dim**2, dim**2))
     Ji = cvxpy.Parameter((dim**2, dim**2))
     # The objective, however, depends on J.
-    objective = cvxpy.Maximize(cvxpy.trace(
-        Jr.T @ X.re + Ji.T @ X.im
-    ))
+    objective = cvxpy.Maximize(cvxpy.trace(Jr.T @ X.re + Ji.T @ X.im))
     problem = cvxpy.Problem(objective, constraints)
     return problem, Jr, Ji
 
@@ -148,10 +142,11 @@ def dnorm_sparse_problem(dim, J_dat):
         A_cols = np.arange(A_nnz.size)
         # We are pushing the data on the location of the nonzero elements
         # to the nonzero rows of A_indexer
-        A_Indexer = sp.coo_matrix((A_data, (A_rows, A_cols)),
-                                  shape=(side_size**2, A_nnz.size))
+        A_Indexer = sp.coo_matrix(
+            (A_data, (A_rows, A_cols)), shape=(side_size**2, A_nnz.size)
+        )
         # We get finaly the sparse matrix A which we wanted
-        A = cvxpy.reshape(A_Indexer @ A_nnz, (side_size, side_size), order='C')
+        A = cvxpy.reshape(A_Indexer @ A_nnz, (side_size, side_size), order="C")
         A_nnz.value = A_val.data
         return A
 
@@ -162,9 +157,7 @@ def dnorm_sparse_problem(dim, J_dat):
     Ji = adapt_sparse_params(Ji_val, dim)
 
     # The objective, however, depends on J.
-    objective = cvxpy.Maximize(cvxpy.trace(
-        Jr.T @ X.re + Ji.T @ X.im
-    ))
+    objective = cvxpy.Maximize(cvxpy.trace(Jr.T @ X.re + Ji.T @ X.im))
 
     problem = cvxpy.Problem(objective, constraints)
     return problem
