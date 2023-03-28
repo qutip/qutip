@@ -73,7 +73,7 @@ def _conj(W, A):
     )
 
 
-@functools.cache
+@functools.lru_cache
 def initialize_constraints_on_dnorm_problem(dim):
     # Start assembling constraints and variables.
     constraints = []
