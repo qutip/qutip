@@ -297,8 +297,8 @@ def test_qft(dims):
 
 @pytest.mark.parametrize('N', [1, 3, 5, 8])
 @pytest.mark.parametrize('M', [1, 3, 5, 8])
-def test_qft(N, M):
+def test_swap(N, M):
     ket1 = qutip.rand_ket(N)
     ket2 = qutip.rand_ket(M)
 
-    assert swap(N, M) @ (ket1 & ket2) == (ket2 & ket1)
+    assert qutip.swap(N, M) @ (ket1 & ket2) == (ket2 & ket1)

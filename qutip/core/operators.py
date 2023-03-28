@@ -1088,6 +1088,10 @@ def swap(N, M, *, dtype=None):
         Number of basis states in the second Hilbert space.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
+
+    if N == 1 and M == 1:
+        return qeye([1, 1], dtype=dtype)
+
     data = np.ones(N * M)
     rows = np.arange(N * M)
     cols = (np.arange(N * M) * M) % (N * M - 1)
