@@ -59,14 +59,14 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
           result class.
         - store_states : bool, NoneType, [None]
           Whether or not to store the state density matrices.
-          On `None` the states will be saved if no expectation operators are
+          On ``None`` the states will be saved if no expectation operators are
           given.
         - progress_bar : str {'text', 'enhanced', 'tqdm', ''}, ['text']
           How to present the solver progress.
           'tqdm' uses the python module of the same name and raise an error
           if not installed. Empty string or False will disable the bar.
         - progress_kwargs : dict, [{"chunk_size": 10}]
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+          kwargs to pass to the progress_bar. Qutip's bars use ``chunk_size``.
         - method : str {"adams", "bdf", "dop853", "vern9", etc.}, ["adams"]
           Which differential equation integration method to use.
         - keep_runs_results : bool, [False]
@@ -161,7 +161,7 @@ class NonMarkovianMCSolver(MCSolver):
     ----------
     H : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`, ``list``, callable.
         System Hamiltonian as a Qobj, QobjEvo. It can also be any input type
-        that QobjEvo accepts (see :class:`qutip.QobjEvo`'s documentation).
+        that QobjEvo accepts (see :class:`qutip.QobjEvo` documentation).
         ``H`` can also be a superoperator (liouvillian) if some collapse
         operators are to be treated deterministically.
 
@@ -179,6 +179,7 @@ class NonMarkovianMCSolver(MCSolver):
         Seed for the random number generator. It can be a single seed used to
         spawn seeds for each trajectory or a list of seed, one for each
         trajectory. Seeds are saved in the result and can be reused with::
+
             seeds=prev_result.seeds
     """
     name = "nm_mcsolve"
@@ -209,7 +210,7 @@ class NonMarkovianMCSolver(MCSolver):
 
     def _check_completeness(self, ops_and_rates):
         """
-        Checks whether sum(Li.dag() * Li) is proportional to the identity
+        Checks whether ``sum(Li.dag() * Li)`` is proportional to the identity
         operator. If not, creates an extra Lindblad operator so that it is.
 
         Returns the proportionality factor a, and the extra Lindblad operator
@@ -261,7 +262,7 @@ class NonMarkovianMCSolver(MCSolver):
         in self._mu_c.
         """
         if self._mu_c is None:
-            raise RuntimeError("The `start` method must called first.")
+            raise RuntimeError("The .start() method must called first.")
         if t in self._mu_c:
             return self._mu_c[t]
 

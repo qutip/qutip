@@ -109,7 +109,7 @@ class MultiTrajSolver(Solver):
 
         For a ``state`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :cls:`Result`. The evolution method and stored
+        expectation values in a :class:`Result`. The evolution method and stored
         results are determined by ``options``.
 
         Parameters
@@ -153,8 +153,8 @@ class MultiTrajSolver(Solver):
         seed : {int, SeedSequence, list} optional
             Seed or list of seeds for each trajectories.
 
-        Return
-        ------
+        Returns
+        -------
         results : :class:`qutip.solver.MultiTrajResult`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
