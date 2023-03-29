@@ -18,45 +18,8 @@ from qutip.core import data as _data
 from ..solver import Result, SolverOptions
 
 
-class TTMSolverOptions:
-    """Class of options for the Transfer Tensor Method solver.
-
-    Attributes
-    ----------
-    dynmaps : list of :class:`qutip.Qobj`
-        List of precomputed dynamical maps (superoperators),
-        or a callback function that returns the
-        superoperator at a given time.
-
-    times : array_like
-        List of times :math:`t_n` at which to calculate :math:`\\rho(t_n)`
-
-    learningtimes : array_like
-        List of times :math:`t_k` to use as learning times if argument
-        `dynmaps` is a callback function.
-
-    thres : float
-        Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below
-        treshold.
-
-    options : :class:`qutip.solver.SolverOptions`
-        Generic solver options.
-    """
-
-    def __init__(self, dynmaps=None, times=[], learningtimes=[],
-                 thres=0.0, options=None):
-        if options is None:
-            options = SolverOptions()
-
-        self.dynmaps = dynmaps
-        self.times = times
-        self.learningtimes = learningtimes
-        self.thres = thres
-        self.store_states = options['store_states']
-
-
-def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
-             **kwargs):
+def ttmsolve(dynmaps, state0, times, e_ops=[], learningtimes=None,
+             options=None):
     """
     Solve time-evolution using the Transfer Tensor Method, based on a set of
     precomputed dynamical maps.
@@ -68,7 +31,7 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
         or a callback function that returns the
         superoperator at a given time.
 
-    rho0 : :class:`qutip.Qobj`
+    state0 : :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
 
     times : array_like
@@ -79,16 +42,18 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
         single operator or list of operators for which to evaluate
         expectation values.
 
-    learningtimes : array_like
-        list of times :math:`t_k` for which we have knowledge of the dynamical
-        maps :math:`E(t_k)`.
+    options : dictionary
+        Dictionary of options for the solver.
 
-    tensors : array_like
-        optional list of precomputed tensors :math:`T_k`
-
-    kwargs : dictionary
-        Optional keyword arguments. See
-        :class:`qutip.nonmarkov.transfertensor.TTMSolverOptions`.
+        - store_final_state : bool
+          Whether or not to store the final state of the evolution in the
+          result class.
+        - store_states : bool, None
+          Whether or not to store the state vectors or density matrices.
+          On `None` the states will be saved if no expectation operators are
+          given.
+        - normalize_output : bool
+          Normalize output state to hide ODE numerical errors.
 
     Returns
     -------
@@ -96,92 +61,62 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
         An instance of the class :class:`qutip.solver.Result`.
     """
 
-    opt = TTMSolverOptions(dynmaps=dynmaps, times=times,
-                           learningtimes=learningtimes, **kwargs)
+    options = {
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": "ket",
+        "threshold": 0.0,
+        "num_learning": 0,
+    }.update(options)
 
-    diff = None
+    if TEST times
 
-    if rho0.isket:
-        rho0 = rho0.proj()
+    if callable(dynmaps):
+        if not options["num_learning"]:
+            raise ValueError(...)
+        dynmaps = [dynmaps(t) for t in times[:options["num_learning"]]]
 
-    output = Result()
-    e_sops_data = []
+    start = time.time()
+    tensors, diff = _generatetensors(dynmaps, options["threshold"])
+    end = time.time()
 
-    if callable(e_ops):
-        n_expt_op = 0
-        expt_callback = True
+    stats = {
+        "preparation time": end - start,
+        "run time": 0.0,
+        "ttmconvergence": diff,
+        "num_tensor": len(tensor)
+    }
 
-    else:
-        try:
-            tmp = e_ops[:]
-            del tmp
-
-            n_expt_op = len(e_ops)
-            expt_callback = False
-
-            if n_expt_op == 0:
-                # fall back on storing states
-                opt.store_states = True
-
-            for op in e_ops:
-                e_sops_data.append(spre(op).data)
-                if op.isherm and rho0.isherm:
-                    output.expect.append(np.zeros(len(times)))
-                else:
-                    output.expect.append(np.zeros(len(times), dtype=complex))
-        except TypeError:
-            raise TypeError("Argument 'e_ops' should be a callable or" +
-                            "list-like.")
-
-    if tensors is None:
-        tensors, diff = _generatetensors(dynmaps, learningtimes, opt=opt)
-
-    if rho0.isoper:
+    if state0.isoper:
         # vectorize density matrix
-        rho0vec = operator_to_vector(rho0)
+        rho0vec = operator_to_vector(state0)
+        restore = vector_to_operator
     else:
-        # rho0 might be a super in which case we should not vectorize
-        rho0vec = rho0
+        # state0 might be a super in which case we should not vectorize
+        rho0vec = state0
+        restore = lambda state: state
 
     K = len(tensors)
+    start = time.time()
+    results = Result(e_ops, options, solver="ttmsolve", stats=stats)
     states = [rho0vec]
+    results.add(times[0], state0)
     for n in range(1, len(times)):
         # Set current state
-        state = None
+        state = 0
         for j in range(1, min(K, n + 1)):
             tmp = tensors[j] * states[n - j]
-            state = tmp if state is None else tmp + state
+            state = tmp + state
         # Append state to all states
         states.append(state)
-    for i, r in enumerate(states):
-        if opt.store_states or expt_callback:
-            if r.type == 'operator-ket':
-                states[i] = vector_to_operator(r)
-            else:
-                states[i] = r
-            if expt_callback:
-                # use callback method
-                e_ops(times[i], states[i])
-        rdata = _data.column_stack(r.data)
-        for m in range(n_expt_op):
-            if output.expect[m].dtype == complex:
-                output.expect[m][i] = _data.expect_super(e_sops_data[m], rdata)
-            else:
-                output.expect[m][i] =\
-                    _data.expect_super(e_sops_data[m], rdata).real
+        results.add(times[n], restore(state))
+    end = time.time()
+    stats["run time"] = end - start
 
-    output.solver = "ttmsolve"
-    output.times = times
-
-    output.ttmconvergence = diff
-
-    if opt.store_states:
-        output.states = states
-
-    return output
+    return results
 
 
-def _generatetensors(dynmaps, learningtimes=None, **kwargs):
+def _generatetensors(dynmaps, threshold):
     r"""
     Generate the tensors :math:`T_1,\dots,T_K` from the dynamical maps
     :math:`E(t_k)`.
@@ -208,47 +143,16 @@ def _generatetensors(dynmaps, learningtimes=None, **kwargs):
     Tlist: list of :class:`qutip.Qobj.`
         A list of transfer tensors :math:`T_1,\dots,T_K`
     """
-
-    # Determine if dynmaps is callable or list-like
-    if callable(dynmaps):
-        if learningtimes is None:
-            raise TypeError("Argument 'learnintimes' required when 'dynmaps'" +
-                            "is a callback function.")
-
-        def dynmapfunc(n):
-            return dynmaps(learningtimes[n])
-
-        Kmax = len(learningtimes)
-    else:
-        try:
-            tmp = dynmaps[:]
-            del tmp
-
-            def dynmapfunc(n):
-                return dynmaps[n]
-
-            Kmax = len(dynmaps)
-        except TypeError:
-            raise TypeError("Argument 'dynmaps' should be a callable or" +
-                            "list-like.")
-
-    if "opt" not in kwargs:
-        opt = TTMSolverOptions(dynmaps=dynmaps, learningtimes=learningtimes,
-                               **kwargs)
-    else:
-        opt = kwargs['opt']
-
     Tlist = []
     diff = [0.0]
     for n in range(Kmax):
-        T = dynmapfunc(n)
+        T = dynmaps[n]
         for m in range(1, n):
-            T -= Tlist[n - m] * dynmapfunc(m)
+            T -= Tlist[n - m] * dynmaps[m]
         Tlist.append(T)
         if n > 1:
             diff.append((Tlist[-1] - Tlist[-2]).norm())
-            if diff[-1] < opt.thres:
+            if diff[-1] < threshold:
                 # Below threshold for truncation
-                print('breaking', (Tlist[-1] - Tlist[-2]).norm(), n)
                 break
     return Tlist, diff
