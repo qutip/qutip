@@ -1226,3 +1226,24 @@ def test_groundstate():
     with pytest.warns(UserWarning) as warning:
         qutip.qeye(5).groundstate()
     assert "degenerate" in warning[0].message.args[0]
+
+
+def test_get():
+    qobj = qutip.qeye(2, dtype="CSR")
+
+    assert scipy.sparse.isspmatrix_csr(qobj.get())
+    assert scipy.sparse.isspmatrix_csr(qobj.get(copy=False))
+
+    qobj.get(copy=False)[0, 0] = 0
+    qobj.get(copy=True)[0, 0] = 1
+    assert qobj == qutip.num(2, dtype="CSR")
+
+
+    qobj = qutip.qeye(2, dtype="Dense")
+
+    assert isinstance(qobj.get(), np.ndarray)
+    assert isinstance(qobj.get(copy=False), np.ndarray)
+    
+    qobj.get(copy=False)[0, 0] = 0
+    qobj.get(copy=True)[0, 0] = 1
+    assert qobj == qutip.num(2, dtype="Dense")
