@@ -293,3 +293,12 @@ def test_qft(dims):
         fft = np.fft.fft(qft[:,i])
         fft /= np.sum(fft)
         np.testing.assert_allclose(fft, target, atol=1e-16 * N)
+
+
+@pytest.mark.parametrize('N', [1, 3, 5, 8])
+@pytest.mark.parametrize('M', [1, 3, 5, 8])
+def test_swap(N, M):
+    ket1 = qutip.rand_ket(N)
+    ket2 = qutip.rand_ket(M)
+
+    assert qutip.swap(N, M) @ (ket1 & ket2) == (ket2 & ket1)
