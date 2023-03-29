@@ -538,7 +538,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # If we're still here, we need to actually solve the problem.
 
     # Assume square...
-    dim = np.prod(J.dims[0][0])
+    dim = int(np.prod(J.dims[0][0]))
 
     # Load the parameters with the Choi matrix passed in.
     J_dat = _data.to('csr', J.data).as_scipy()
