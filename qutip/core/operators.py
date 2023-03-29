@@ -1094,8 +1094,7 @@ def swap(N, M, *, dtype=None):
 
     data = np.ones(N * M)
     rows = np.arange(N * M + 1)  # last entry is nnz
-    cols = (np.arange(N * M) * M) % (N * M - 1)
-    cols[-1] += (M * N - 1)
+    cols = np.ravel(M * np.arange(N)[None, :] + np.arange(M)[:, None])
     return Qobj(
         _data.CSR((data, cols, rows), (N * M, N * M)),
         dims=[[M, N], [N, M]]
