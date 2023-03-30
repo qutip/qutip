@@ -1,10 +1,11 @@
 import pytest
 import qutip
 import numpy as np
-from qutip.solve.nonmarkov.transfertensor import ttmsolve
+from qutip.solver.nonmarkov.transfertensor import ttmsolve
 
 
-def test_ttmsolve_jc_model():
+@pytest.mark.parametrize("call", [True, False])
+def test_ttmsolve_jc_model(call):
     """
     Checks the output of ttmsolve using an example from Jaynes-Cumming model,
     which can also be found in the qutip-notebooks repository.
@@ -34,11 +35,19 @@ def test_ttmsolve_jc_model():
     times = np.arange(0, 5.0, 0.1)
     exactsol = qutip.mesolve(H, rho0, times, c_ops, [sz])
 
+    if call:
+        learning_times = np.arange(0, 2.0, 0.1)
+        Et_list = qutip.mesolve(H, E0, learning_times, c_ops, []).states
+        learning_maps = [ptracesuper @ Et @ superrho0cav for Et in Et_list]
+        opt = {}
+    else:
+        prop = qutip.Propagator(qutip.liouvillian(H, c_ops))
+        opt = {"num_learning": 21}
+        def learning_maps(t):
+            return ptracesuper @ prop(t) @ superrho0cav
+
     # solve using transfer method
-    learning_times = np.arange(0, 2.0, 0.1)
-    Et_list = qutip.mesolve(H, E0, learning_times, c_ops, []).states
-    learning_maps = [ptracesuper * (Et * superrho0cav) for Et in Et_list]
-    ttmsol = ttmsolve(learning_maps, rho0a, times, e_ops=[sz])
+    ttmsol = ttmsolve(learning_maps, rho0a, times, e_ops=[qutip.sigmaz()], options=opt)
 
     # check that ttm result and exact solution are close in the learning times
     assert np.allclose(ttmsol.expect[0], exactsol.expect[0], atol=1e-5)
