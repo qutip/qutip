@@ -1,17 +1,24 @@
 __all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
-from functools import partial
+import functools
+import numbers
+
 import numpy as np
 import scipy
+
 from .multitraj import MultiTrajSolver
 from .mcsolve import MCSolver
 from .mesolve import MESolver, mesolve
 from .result import NmmcResult, NmmcTrajectoryResult
-from ..core import CoreOptions, QobjEvo, isket, ket2dm, qeye
+from .cy.nm_mcsolve import RateShiftCoefficient
+from ..core import (
+    CoreOptions, Qobj, QobjEvo, isket, ket2dm, qeye, coefficient, Coefficient,
+)
 
 
 def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
-               options=None, seeds=None, target_tol=None, timeout=None):
+               args=None, options=None, seeds=None, target_tol=None,
+               timeout=None):
     """
     Monte-Carlo evolution corresponding to a Lindblad equation with "rates"
     that may be negative. Usage of this function is analogous to ``mcsolve``,
@@ -39,7 +46,8 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         callable. That is, ``Gamma(t)`` returns the rate at time ``t``, which
         is allowed to be negative. The Lindblad operators must be operators
         even if ``H`` is a superoperator. If none are given, the solver will
-        defer to ``sesolve`` or ``mesolve``.
+        defer to ``sesolve`` or ``mesolve``. The ``Gamma(t)`` may be
+        specified using any format accepted by :func:`qutip.coefficient`.
 
     e_ops : list, [optional]
         A ``list`` of operator as Qobj, QobjEvo or callable with signature of
@@ -50,6 +58,9 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         Maximum number of trajectories to run. Can be cut short if a time limit
         is passed with the ``timeout`` keyword or if the target tolerance is
         reached, see ``target_tol``.
+
+    args : None / dict
+        Arguments for time-dependent Hamiltonian and collapse operator terms.
 
     options : None / dict
         Dictionary of options for the solver.
@@ -131,8 +142,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         field contains the average of their trace, which will converge to one
         in the limit of sufficiently many trajectories.
     """
-    if not isinstance(ops_and_rates, (list, tuple)):
-        ops_and_rates = [ops_and_rates]
+    H = QobjEvo(H, args=args, tlist=tlist)
 
     if len(ops_and_rates) == 0:
         if options is None:
@@ -142,12 +152,30 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
             for key in options
             if key in MESolver.solver_options
         }
-        return mesolve(H, state, tlist, e_ops=e_ops, options=options)
+        return mesolve(
+            H, state, tlist, e_ops=e_ops, args=args, options=options,
+        )
+    else:
+        ops_and_rates = [
+            _parse_op_and_rate(op, rate, tlist=tlist, args=args or {})
+            for op, rate in ops_and_rates
+        ]
 
     nmmc = NonMarkovianMCSolver(H, ops_and_rates, options=options)
     result = nmmc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
                       seed=seeds, target_tol=target_tol, timeout=timeout)
     return result
+
+
+def _parse_op_and_rate(op, rate, **kw):
+    """ Sanity check the op and convert rates to coefficients. """
+    if not isinstance(op, Qobj):
+        raise ValueError("NonMarkovianMCSolver ops must be of type Qobj")
+    if isinstance(rate, numbers.Number):
+        rate = coefficient.const(rate)
+    else:
+        rate = coefficient(rate, **kw)
+    return op, rate
 
 
 class NonMarkovianMCSolver(MCSolver):
@@ -172,6 +200,9 @@ class NonMarkovianMCSolver(MCSolver):
         is allowed to be negative. The Lindblad operators must be operators
         even if ``H`` is a superoperator.
 
+    args : None / dict
+        Arguments for time-dependent Hamiltonian and collapse operator terms.
+
     options : SolverOptions, [optional]
         Options for the evolution.
 
@@ -194,16 +225,28 @@ class NonMarkovianMCSolver(MCSolver):
     trajectory_resultclass = NmmcTrajectoryResult
 
     def __init__(self, H, ops_and_rates, *args, options=None, **kwargs):
-        self.trajectory_resultclass = partial(NmmcTrajectoryResult,
-                                              solver=self)
+        # XXX Fix me -- the result class expects solver to be a string
+        #     with the name of the solver, but here it is supplied as
+        #     an object
+        self.trajectory_resultclass = functools.partial(
+            NmmcTrajectoryResult, solver=self,
+        )
 
-        self.ops_and_rates = list(ops_and_rates)
+        self.ops_and_rates = [
+            _parse_op_and_rate(op, rate)
+            for op, rate in ops_and_rates
+        ]
+
         self.options = options
         self._mu_c = None
 
         self._a_parameter, L = self._check_completeness(ops_and_rates)
         if L is not None:
-            self.ops_and_rates.append((L, float))  # float() is zero
+            self.ops_and_rates.append((L, coefficient.const(0)))
+
+        self._rate_shift = RateShiftCoefficient(
+            np.array([f for _, f in self.ops_and_rates], dtype=Coefficient)
+        )
 
         c_ops = self._compute_paired_c_ops()
         super().__init__(H, c_ops, *args, options=options, **kwargs)
@@ -238,20 +281,12 @@ class NonMarkovianMCSolver(MCSolver):
         as QobjEvo objects.
         """
         c_ops = []
-        for f in self.ops_and_rates:
+        for i, (op, _) in enumerate(self.ops_and_rates):
             # Note that this cannot be done using a lambda expression, since
             # lambda expressions can't be pickled and pickling is required
             # for parallel execution.
-            sqrt_gamma = partial(self._sqrt_gamma, original_rate=f[1])
-            c_ops.append(QobjEvo([f[0], sqrt_gamma]))
+            c_ops.append(QobjEvo([op, self._rate_shift.sqrt_shifted_rate(i)]))
         return c_ops
-
-    def _rate_shift(self, t):
-        min_rate = min(f[1](t) for f in self.ops_and_rates)
-        return 2 * abs(min(0, min_rate))
-
-    def _sqrt_gamma(self, t, original_rate):
-        return np.sqrt(original_rate(t) + self._rate_shift(t))
 
     def _continuous_martingale(self, t):
         """
@@ -272,20 +307,10 @@ class NonMarkovianMCSolver(MCSolver):
         except ValueError as exc:
             raise ValueError("Cannot integrate backwards in time.") from exc
 
-        integral = scipy.integrate.quad(self._rate_shift, t0, t)[0]
+        integral = scipy.integrate.quad(self._rate_shift.rate_shift, t0, t)[0]
         result = self._mu_c[t0] * np.exp(self._a_parameter * integral)
         self._mu_c[t] = result
         return result
-
-    def _discrete_martingale(self, collapses):
-        """
-        Discrete part of the martingale evolution. The collapses that have
-        happened until now must be provided as a list of (t_k, i_k).
-        """
-        o_r = self.ops_and_rates
-        factors = [o_r[ik][1](tk) / (o_r[ik][1](tk) + self._rate_shift(tk))
-                   for tk, ik in collapses]
-        return np.prod(factors)
 
     def _current_martingale(self):
         """
@@ -295,32 +320,37 @@ class NonMarkovianMCSolver(MCSolver):
         collapses that have happened are read out from the internal integrator.
         """
         t, *_ = self._integrator.get_state(copy=False)
-        collapses = self._integrator.collapses
-        return self._continuous_martingale(t) *\
-            self._discrete_martingale(collapses)
+        collapses = np.array(
+            self._integrator.collapses,
+            dtype=[
+                ("time", np.float64),
+                ("idx", np.int32),
+            ]
+        )
+        return (
+            self._continuous_martingale(t) *
+            self._rate_shift.discrete_martingale(
+                collapses["time"], collapses["idx"],
+            )
+        )
 
     # Override "run" and "start" to precompute
     #     continuous part of martingale evolution
     def run(self, state, tlist, *args, **kwargs):
-        if 'args' in kwargs and kwargs['args']:
-            raise RuntimeError("args not supported by nm_mcsolve.")
-
         self._mu_c = {tlist[0]: 1}
-        for t in tlist[1:]:
-            self._continuous_martingale(t)  # precompute self._mu_c
-
         return super().run(state, tlist, *args, **kwargs)
 
     def start(self, state, t0, seed=None):
         self._mu_c = {t0: 1}
         return super().start(state, t0, seed=seed)
 
+    def _argument(self, args):
+        super()._argument(args)
+        self._rate_shift = self._rate_shift.replace_arguments(args)
+
     # Override "step" to include the martingale mu in the state
     # Note that the returned state will be a density matrix with trace=mu
     def step(self, t, *, args=None, copy=True):
-        if args:
-            raise RuntimeError("args not supported by nm_mcsolve.")
-
         state = super().step(t, args=args, copy=copy)
         if isket(state):
             state = ket2dm(state)
