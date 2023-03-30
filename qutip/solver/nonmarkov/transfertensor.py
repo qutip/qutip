@@ -77,7 +77,7 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
         opt.update(options)
 
     if not np.allclose(np.diff(times), times[1] - times[0]):
-        raise ValueError
+        raise ValueError("The time should be uniformily distributed.")
 
     if callable(dynmaps):
         if not options["num_learning"]:
@@ -88,7 +88,7 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
         dynmaps = [dynmaps(t) for t in times[: opt["num_learning"]]]
 
     if not dynmaps[0].issuper:
-        raise ValueError("dynmaps must be super operators.")
+        raise ValueError("`dynmaps` entries must be super operators.")
 
     start = time.time()
     tensors, diff = _generatetensors(dynmaps, opt["threshold"])
