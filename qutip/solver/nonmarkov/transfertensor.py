@@ -17,15 +17,15 @@ from qutip import spre, vector_to_operator, operator_to_vector, Result
 
 def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
     """
-    Expand time-evolution using the Transfer Tensor Method [1]_, based on a set of
-    precomputed dynamical maps.
+    Expand time-evolution using the Transfer Tensor Method [1]_, based on a set
+    of precomputed dynamical maps.
 
     Parameters
     ----------
     dynmaps : list of :class:`qutip.Qobj`, callable
-        List of precomputed dynamical maps (superoperators) for the first times of
-        ``times`` or a callback function that returns the superoperator at a given
-        time.
+        List of precomputed dynamical maps (superoperators) for the first times
+        of ``times`` or a callback function that returns the superoperator at a
+        given time.
 
     state0 : :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
@@ -53,10 +53,11 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
         - normalize_output : bool
           Normalize output state to hide ODE numerical errors.
         - threshold : float
-          Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below treshold.
+          Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below
+          treshold.
         - num_learning : int
-          Number of times used to construct the dynmaps operators when ``dynmaps`` is a
-          callable.
+          Number of times used to construct the dynmaps operators when
+          ``dynmaps`` is a callable.
 
     Returns
     -------
@@ -82,8 +83,8 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
     if callable(dynmaps):
         if not options["num_learning"]:
             raise ValueError(
-                "When dynmaps is a callable, options['num_learning'] must be the "
-                "number of dynamical maps to compute."
+                "When dynmaps is a callable, options['num_learning'] must be "
+                "the number of dynamical maps to compute."
             )
         dynmaps = [dynmaps(t) for t in times[: opt["num_learning"]]]
 
@@ -147,7 +148,8 @@ def _generatetensors(dynmaps, threshold):
         specified in `learningtimes`.
 
     threshold : float
-        Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below treshold.
+        Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below
+        treshold.
 
     Returns
     -------
