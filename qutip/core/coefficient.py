@@ -24,7 +24,7 @@ from .options import QutipOptions
 from .data import Data
 from .cy.coefficient import (
     Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
-    ConjCoefficient, NormCoefficient
+    ConjCoefficient, NormCoefficient, ConstantCoefficient
 )
 
 
@@ -189,6 +189,18 @@ def conj(coeff):
     """ return a Coefficient with is the conjugate.
     """
     return ConjCoefficient(coeff)
+
+
+def const(value):
+    """ return a Coefficient with a constant value.
+    """
+    return ConstantCoefficient(value)
+
+
+# XXX: HACKITY HACK
+coefficient.norm = norm
+coefficient.conj = conj
+coefficient.const = const
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
