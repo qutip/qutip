@@ -3,8 +3,7 @@ import numpy as np
 import itertools
 from scipy.special import laguerre
 from numpy.random import rand
-from numpy.testing import assert , assert_equal, \
-    assert_almost_equal, assert_allclose
+from numpy.testing import assert_equal, assert_almost_equal, assert_allclose
 
 import qutip
 from qutip.core.states import coherent, fock, ket, bell_state
