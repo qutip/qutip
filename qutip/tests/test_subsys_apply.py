@@ -1,5 +1,4 @@
 from numpy.linalg import norm
-from numpy.testing import assert_, run_module_suite
 
 from qutip import (
     Qobj, tensor, vector_to_operator, operator_to_vector, kraus_to_super,
@@ -28,7 +27,7 @@ class TestSubsysApply(object):
                                        reference=True)
         naive_diff = (analytic_result - naive_result).full()
         naive_diff_norm = norm(naive_diff)
-        assert_(naive_diff_norm < tol,
+        assert (naive_diff_norm < tol,
                 msg="SimpleSingle: naive_diff_norm {} "
                     "is beyond tolerance {}".format(
                         naive_diff_norm, tol))
@@ -36,7 +35,7 @@ class TestSubsysApply(object):
         efficient_result = subsystem_apply(rho_3, single_op, [True])
         efficient_diff = (efficient_result - analytic_result).full()
         efficient_diff_norm = norm(efficient_diff)
-        assert_(efficient_diff_norm < tol,
+        assert (efficient_diff_norm < tol,
                 msg="SimpleSingle: efficient_diff_norm {} "
                     "is beyond tolerance {}".format(
                         efficient_diff_norm, tol))
@@ -54,7 +53,7 @@ class TestSubsysApply(object):
                                        reference=True)
         naive_diff = (analytic_result - naive_result).full()
         naive_diff_norm = norm(naive_diff)
-        assert_(naive_diff_norm < tol,
+        assert (naive_diff_norm < tol,
                 msg="SimpleSuper: naive_diff_norm {} "
                     "is beyond tolerance {}".format(
                         naive_diff_norm, tol))
@@ -62,7 +61,7 @@ class TestSubsysApply(object):
         efficient_result = subsystem_apply(rho_3, superop, [True])
         efficient_diff = (efficient_result - analytic_result).full()
         efficient_diff_norm = norm(efficient_diff)
-        assert_(efficient_diff_norm < tol,
+        assert (efficient_diff_norm < tol,
                 msg="SimpleSuper: efficient_diff_norm {} "
                     "is beyond tolerance {}".format(
                         efficient_diff_norm, tol))
@@ -86,7 +85,7 @@ class TestSubsysApply(object):
                                        reference=True)
         naive_diff = (analytic_result - naive_result).full()
         naive_diff_norm = norm(naive_diff)
-        assert_(naive_diff_norm < tol,
+        assert (naive_diff_norm < tol,
                 msg="ComplexSingle: naive_diff_norm {} "
                     "is beyond tolerance {}".format(
                         naive_diff_norm, tol))
@@ -95,7 +94,7 @@ class TestSubsysApply(object):
                                            [False, True, False, True, False])
         efficient_diff = (efficient_result - analytic_result).full()
         efficient_diff_norm = norm(efficient_diff)
-        assert_(efficient_diff_norm < tol,
+        assert (efficient_diff_norm < tol,
                 msg="ComplexSingle: efficient_diff_norm {} "
                     "is beyond tolerance {}".format(
                         efficient_diff_norm, tol))
@@ -126,7 +125,7 @@ class TestSubsysApply(object):
                                        reference=True)
         naive_diff = (analytic_result - naive_result).full()
         naive_diff_norm = norm(naive_diff)
-        assert_(naive_diff_norm < tol,
+        assert (naive_diff_norm < tol,
                 msg="ComplexSuper: naive_diff_norm {} "
                     "is beyond tolerance {}".format(
                         naive_diff_norm, tol))
@@ -135,7 +134,7 @@ class TestSubsysApply(object):
                                            [False, True, False, True, False])
         efficient_diff = (efficient_result - analytic_result).full()
         efficient_diff_norm = norm(efficient_diff)
-        assert_(efficient_diff_norm < tol,
+        assert (efficient_diff_norm < tol,
                 msg="ComplexSuper: efficient_diff_norm {} "
                     "is beyond tolerance {}".format(
                         efficient_diff_norm, tol))

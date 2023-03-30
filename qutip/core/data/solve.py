@@ -9,6 +9,9 @@ else:
     mkl_spsolve = None
 
 
+__all__ = ["solve_csr_dense", "solve_dense", "solve"]
+
+
 def _splu(A, B, **kwargs):
     lu = splinalg.splu(A, **kwargs)
     return lu.solve(B)

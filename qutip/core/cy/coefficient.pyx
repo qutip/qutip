@@ -13,6 +13,9 @@ cdef extern from "<complex>" namespace "std" nogil:
     double         norm(double complex x)
 
 
+__all__ = []
+
+
 def coefficient_function_parameters(func, style=None):
     """
     Return the function style (either "pythonic" or not) and a list of
