@@ -11,36 +11,34 @@ method (TTM), introduced in [1].
 """
 
 import numpy as np
+import time
+from qutip import spre, vector_to_operator, operator_to_vector, Result
 
 
-from qutip import spre, vector_to_operator, operator_to_vector
-from qutip.core import data as _data
-from ..solver import Result, SolverOptions
-
-
-def ttmsolve(dynmaps, state0, times, e_ops=[], learningtimes=None,
-             options=None):
+def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
     """
-    Solve time-evolution using the Transfer Tensor Method, based on a set of
+    Expand time-evolution using the Transfer Tensor Method [1]_, based on a set of
     precomputed dynamical maps.
 
     Parameters
     ----------
-    dynmaps : list of :class:`qutip.Qobj`
-        List of precomputed dynamical maps (superoperators),
-        or a callback function that returns the
-        superoperator at a given time.
+    dynmaps : list of :class:`qutip.Qobj`, callable
+        List of precomputed dynamical maps (superoperators) for the first times of
+        ``times`` or a callback function that returns the superoperator at a given
+        time.
 
     state0 : :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
 
     times : array_like
-        list of times :math:`t_n` at which to compute :math:`\\rho(t_n)`.
+        List of times :math:`t_n` at which to compute results.
         Must be uniformily spaced.
 
-    e_ops : list of :class:`qutip.Qobj` / callback function
-        single operator or list of operators for which to evaluate
-        expectation values.
+    e_ops : :class:`qutip.qobj`, callable, or list.
+        Single operator or list of operators for which to evaluate
+        expectation values or callable or list of callable.
+        Callable signature must be, `f(t: float, state: Qobj)`.
+        See :func:`expect` for more detail of operator expectation.
 
     options : dictionary
         Dictionary of options for the solver.
@@ -54,38 +52,56 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], learningtimes=None,
           given.
         - normalize_output : bool
           Normalize output state to hide ODE numerical errors.
+        - threshold : float
+          Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below treshold.
+        - num_learning : int
+          Number of times used to construct the dynmaps operators when ``dynmaps`` is a
+          callable.
 
     Returns
     -------
     output: :class:`qutip.solver.Result`
         An instance of the class :class:`qutip.solver.Result`.
+
+    .. [1] Javier Cerrillo and Jianshu Cao, Phys. Rev. Lett 112, 110401 (2014)
     """
 
-    options = {
+    opt = {
         "store_final_state": False,
         "store_states": None,
         "normalize_output": "ket",
         "threshold": 0.0,
         "num_learning": 0,
-    }.update(options)
+    }
+    if options:
+        opt.update(options)
 
-    if TEST times
+    if not np.allclose(np.diff(times), times[1] - times[0]):
+        raise ValueError
 
     if callable(dynmaps):
         if not options["num_learning"]:
-            raise ValueError(...)
-        dynmaps = [dynmaps(t) for t in times[:options["num_learning"]]]
+            raise ValueError(
+                "When dynmaps is a callable, options['num_learning'] must be the "
+                "number of dynamical maps to compute."
+            )
+        dynmaps = [dynmaps(t) for t in times[: opt["num_learning"]]]
+
+    if not dynmaps[0].issuper:
+        raise ValueError("dynmaps must be super operators.")
 
     start = time.time()
-    tensors, diff = _generatetensors(dynmaps, options["threshold"])
+    tensors, diff = _generatetensors(dynmaps, opt["threshold"])
     end = time.time()
 
     stats = {
         "preparation time": end - start,
         "run time": 0.0,
         "ttmconvergence": diff,
-        "num_tensor": len(tensor)
+        "num_tensor": len(tensors),
     }
+    if state0.isket:
+        state0 = state0.proj()
 
     if state0.isoper:
         # vectorize density matrix
@@ -98,9 +114,10 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], learningtimes=None,
 
     K = len(tensors)
     start = time.time()
-    results = Result(e_ops, options, solver="ttmsolve", stats=stats)
+    results = Result(e_ops, opt, solver="ttmsolve", stats=stats)
     states = [rho0vec]
     results.add(times[0], state0)
+
     for n in range(1, len(times)):
         # Set current state
         state = 0
@@ -127,32 +144,26 @@ def _generatetensors(dynmaps, threshold):
     ----------
     dynmaps : list of :class:`qutip.Qobj`
         List of precomputed dynamical maps (superoperators) at the times
-        specified in `learningtimes`, or a callback function that returns the
-        superoperator at a given time.
+        specified in `learningtimes`.
 
-    learningtimes : array_like
-        list of times :math:`t_k` to use if argument `dynmaps` is a callback
-        function.
-
-    kwargs : dictionary
-        Optional keyword arguments. See
-        :class:`qutip.nonmarkov.transfertensor.TTMSolverOptions`.
+    threshold : float
+        Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below treshold.
 
     Returns
     -------
-    Tlist: list of :class:`qutip.Qobj.`
+    Tensors, diffs: list of :class:`qutip.Qobj.`
         A list of transfer tensors :math:`T_1,\dots,T_K`
     """
-    Tlist = []
+    Tensors = []
     diff = [0.0]
-    for n in range(Kmax):
+    for n in range(len(dynmaps)):
         T = dynmaps[n]
         for m in range(1, n):
-            T -= Tlist[n - m] * dynmaps[m]
-        Tlist.append(T)
+            T -= Tensors[n - m] * dynmaps[m]
+        Tensors.append(T)
         if n > 1:
-            diff.append((Tlist[-1] - Tlist[-2]).norm())
+            diff.append((Tensors[-1] - Tensors[-2]).norm())
             if diff[-1] < threshold:
                 # Below threshold for truncation
                 break
-    return Tlist, diff
+    return Tensors, diff
