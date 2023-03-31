@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_, assert_equal, run_module_suite
+from numpy.testing import assert_equal
 from qutip import basis
 from qutip.three_level_atom import *
 
@@ -22,6 +22,3 @@ def testThreeOps():
     assert_equal((three_ops[2]*three_states[2]).full(), three_check[2].full())
     assert_equal((three_ops[3]*three_states[1]).full(), three_check[0].full())
     assert_equal((three_ops[4]*three_states[1]).full(), three_check[2].full())
-
-if __name__ == "__main__":
-    run_module_suite()
