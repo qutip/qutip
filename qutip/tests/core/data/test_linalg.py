@@ -8,6 +8,11 @@ from qutip.core import data as _data
 from qutip.core.data import Data, Dense, CSR
 
 
+skip_no_mkl = pytest.mark.skipif(
+    not settings.has_mkl, reason="mkl not available"
+)
+
+
 class TestSolve():
     def op_numpy(self, A, b):
         return np.linalg.solve(A, b)
@@ -23,12 +28,13 @@ class TestSolve():
         ("splu", {"csc": True}),
         ("gmres", {"atol": 1e-8}),
         ("lsqr", {}),
-        pytest.param(
-            "mkl_spsolve", {},
-            marks=pytest.mark.skipif(not settings.has_mkl, reason="mkl not available")
-        ),
+        ("solve", {}),
+        ("lstsq", {}),
+        pytest.param("mkl_spsolve", {}, marks=skip_no_mkl),
     ],
-        ids=["spsolve", "splu", "gmres", "lsqr", "mkl_spsolve"]
+        ids=[
+            "spsolve", "splu", "gmres", "lsqr", "solve", "lstsq", "mkl_spsolve"
+        ]
     )
     def test_mathematically_correct_CSR(self, method, opt):
         """
@@ -63,6 +69,13 @@ class TestSolve():
                                    atol=1e-7, rtol=1e-7)
         np.testing.assert_allclose(test1.to_array(), expected,
                                    atol=1e-7, rtol=1e-7)
+
+
+    def test_singular(self):
+        A = qutip.num(2).data
+        b = qutip.basis(2, 1).data
+        with pytest.raises(ValueError):
+            test1 = _data.solve(A, b)
 
 
     def test_incorrect_shape_non_square(self):
