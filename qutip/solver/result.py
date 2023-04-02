@@ -989,10 +989,9 @@ class NmmcTrajectoryResult(McTrajectoryResult):
     trajectory.
     """
 
-    def __init__(self, e_ops, options, solver, *args, **kwargs):
+    def __init__(self, e_ops, options, *args, **kwargs):
+        self._nm_solver = kwargs.pop("__nm_solver")
         super().__init__(e_ops, options, *args, **kwargs)
-
-        self._solver = solver
         self.trace = []
 
     # This gets called during the Monte-Carlo simulation of the associated
@@ -1002,7 +1001,7 @@ class NmmcTrajectoryResult(McTrajectoryResult):
     def add(self, t, state):
         if isket(state):
             state = ket2dm(state)
-        mu = self._solver._current_martingale()
+        mu = self._nm_solver._current_martingale(t)
         super().add(t, state * mu)
         self.trace.append(mu)
     add.__doc__ = Result.add.__doc__
@@ -1050,40 +1049,41 @@ class NmmcResult(McResult):
     runs_trace : list of lists
         For each recorded trajectory, the trace at each time.
         Only present if ``keep_runs_results`` is set in the options.
-
-    trace : list
-        Refers to ``average_trace`` or ``runs_trace``, depending on whether
-        ``keep_runs_results`` is set in the options.
     """
+    def _post_init(self):
+        super()._post_init()
 
-    def _add_trace(self, trajectory):
-        new_trace = np.array(trajectory.trace)
-        self._sum_trace += new_trace
-        avg = self._sum_trace / self.num_trajectories
-        self._sum2_trace += np.abs(new_trace)**2
-        avg2 = self._sum2_trace / self.num_trajectories
+        self._sum_trace = None
+        self._sum2_trace = None
+        self.average_trace = []
+        self.std_trace = []
+        self.runs_trace = []
 
-        self.trace = avg
-        self.average_trace = avg
-        self.std_trace = np.sqrt(np.abs(avg2 - np.abs(avg)**2))
-
-        if self.options['keep_runs_results']:
-            self.runs_trace.append(trajectory.trace)
-            self.trace = self.runs_trace
+        self.add_processor(self._add_trace)
 
     def _add_first_traj(self, trajectory):
         super()._add_first_traj(trajectory)
         self._sum_trace = np.zeros_like(trajectory.times)
         self._sum2_trace = np.zeros_like(trajectory.times)
 
-    def _post_init(self):
-        super()._post_init()
+    def _add_trace(self, trajectory):
+        new_trace = np.array(trajectory.trace)
+        self._sum_trace += new_trace
+        self._sum2_trace += np.abs(new_trace)**2
 
-        self._sum_trace = None
-        self._sum2_trace = None
-        self.trace = []
-        self.average_trace = []
-        self.std_trace = []
-        self.runs_trace = []
+        avg = self._sum_trace / self.num_trajectories
+        avg2 = self._sum2_trace / self.num_trajectories
 
-        self.add_processor(self._add_trace)
+        self.average_trace = avg
+        self.std_trace = np.sqrt(np.abs(avg2 - np.abs(avg)**2))
+
+        if self.options['keep_runs_results']:
+            self.runs_trace.append(trajectory.trace)
+
+    @property
+    def trace(self):
+        """
+        Refers to ``average_trace`` or ``runs_trace``, depending on whether
+        ``keep_runs_results`` is set in the options.
+        """
+        return self.runs_trace or self.average_trace
