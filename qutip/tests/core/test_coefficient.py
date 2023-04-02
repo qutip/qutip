@@ -4,11 +4,10 @@ import qutip
 import numpy as np
 import scipy.interpolate as interp
 from functools import partial
-from qutip.core.coefficient import (coefficient, norm, conj,
+from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     CompilationOptions, Coefficient,
                                     clean_compiled_coefficient
                                    )
-from qutip.core.options import CoreOptions
 
 # Ensure the latest version is tested
 clean_compiled_coefficient(True)
@@ -173,6 +172,11 @@ def test_CoeffCallArguments(base, tol):
 def test_CoeffUnitaryTransform(style, transform, expected):
     coeff = coeff_generator(style, "f")
     _assert_eq_over_interval(transform(coeff), lambda t: expected(coeff(t)))
+
+
+def test_ConstantCoefficient():
+    coeff = const(5.1)
+    _assert_eq_over_interval(coeff, lambda t: 5.1)
 
 
 @pytest.mark.parametrize(['style_left'], [
