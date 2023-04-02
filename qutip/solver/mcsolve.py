@@ -342,6 +342,7 @@ class MCSolver(MultiTrajSolver):
     name = "mcsolve"
     resultclass = McResult
     trajectory_resultclass = McTrajectoryResult
+    mc_integrator_class = MCIntegrator
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -438,7 +439,7 @@ class MCSolver(MultiTrajSolver):
         else:
             raise ValueError("Integrator method not supported.")
         integrator_instance = integrator(self.rhs, self.options)
-        mc_integrator = MCIntegrator(
+        mc_integrator = self.mc_integrator_class(
             integrator_instance, self._c_ops, self._n_ops, self.options
         )
         self._init_integrator_time = time() - _time_start
