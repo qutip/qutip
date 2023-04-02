@@ -2,16 +2,15 @@
 from qutip.core.cy.coefficient cimport Coefficient
 
 
-cdef class RateShiftCoefficient(Coefficient):
+cdef class RateSet:
     cdef:
         Coefficient [:] rate_coeffs
 
-    cpdef double rate_shift(self, double t) except *
-    cpdef Coefficient sqrt_shifted_rate(self, int i)
-    cpdef double discrete_martingale(self, double[:] collapse_times, int[:] collapse_idx) except *
+    cpdef double rate_shift(RateSet self, double t) except *
+    cpdef double rate(RateSet self, double t, int i) except *
 
 
 cdef class SqrtShiftedRateCoefficient(Coefficient):
     cdef:
         int rate_idx
-        RateShiftCoefficient rate_shift
+        RateSet rates
