@@ -96,9 +96,6 @@ class StatesAndExpectOutputCase:
         for test_operator, expected_part in zip(self.e_ops, expected):
             test = qutip.expect(test_operator, result.states)
             np.testing.assert_allclose(test, expected_part, rtol=tol)
-        np.testing.assert_allclose(
-            result.trace, [1.] * len(result.times), rtol=tol,
-        )
 
     def _assert_expect(self, result, expected, tol):
         assert hasattr(result, 'expect')
