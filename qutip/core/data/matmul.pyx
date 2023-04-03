@@ -471,4 +471,4 @@ cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense
     elif type(left) is Dense:
         matmul_dense(left, right, scale, out)
     else:
-        iadd_dense(out, matmul(left, right), scale)
+        iadd_dense(out, matmul(left, right, dtype=Dense), scale)

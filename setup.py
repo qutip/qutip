@@ -44,6 +44,7 @@ def process_options():
     options = _determine_user_arguments(options)
     options = _determine_version(options)
     options = _determine_compilation_options(options)
+    options = _determine_cythonize_options(options)
     return options
 
 
@@ -128,6 +129,17 @@ def _determine_compilation_options(options):
         if options['openmp']:
             options['cflags'].append('-fopenmp')
             options['ldflags'].append('-fopenmp')
+    return options
+
+
+def _determine_cythonize_options(options):
+    options["annotate"] = False
+    if "--annotate" in sys.argv:
+        options["annotate"] = True
+        sys.argv.remove("--annotate")
+    if "-a" in sys.argv:
+        options["annotate"] = True
+        sys.argv.remove("-a")
     return options
 
 
@@ -269,7 +281,7 @@ def create_extension_modules(options):
                              extra_compile_args=options['cflags'],
                              extra_link_args=options['ldflags'],
                              language='c++'))
-    return cythonize(out)
+    return cythonize(out, annotate=options["annotate"])
 
 
 def print_epilogue():

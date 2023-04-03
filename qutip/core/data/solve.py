@@ -3,10 +3,15 @@ import qutip.core.data as _data
 import scipy.sparse.linalg as splinalg
 import numpy as np
 from qutip.settings import settings
+import warnings
+
 if settings.has_mkl:
     from qutip._mkl.spsolve import mkl_spsolve
 else:
     mkl_spsolve = None
+
+
+__all__ = ["solve_csr_dense", "solve_dense", "solve"]
 
 
 def _splu(A, B, **kwargs):
@@ -59,6 +64,10 @@ def solve_csr_dense(matrix: CSR, target: Dense, method=None,
 
     if method == "splu":
         solver = _splu
+    elif method == "lstsq":
+        solver = splinalg.lsqr
+    elif method == "solve":
+        solver = splinalg.spsolve
     elif hasattr(splinalg, method):
         solver = getattr(splinalg, method)
     elif method == "mkl_spsolve" and mkl_spsolve is None:
@@ -73,7 +82,12 @@ def solve_csr_dense(matrix: CSR, target: Dense, method=None,
     if options.pop("csc", False):
         M = M.tocsc()
 
-    out = solver(M, b, **options)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        try:
+            out = solver(M, b, **options)
+        except splinalg.MatrixRankWarning:
+            raise ValueError("Matrix is singular")
 
     if isinstance(out, tuple) and len(out) == 2:
         # iterative method return a success flag
@@ -135,7 +149,10 @@ def solve_dense(matrix: Dense, target: Data, method=None,
         b = target.to_array()
 
     if method in ["solve", None]:
-        out = np.linalg.solve(matrix.as_ndarray(), b)
+        try:
+            out = np.linalg.solve(matrix.as_ndarray(), b)
+        except np.linalg.LinAlgError:
+            raise ValueError("Matrix is singular")
     elif method == "lstsq":
         out, *_ = np.linalg.lstsq(
             matrix.as_ndarray(),
@@ -182,6 +199,7 @@ solve.__doc__ = """
         equation Ax=b from scipy.sparse.linalg (CSR ``matrix``) or
         numpy.linalg (Dense ``matrix``) can be used.
         Sparse cases also accept `splu` and `mkl_spsolve`.
+        `solve` and `lstsq` will work for any data-type.
 
     options : dict
         Keywork options to pass to the solver. Refer to the documenentation

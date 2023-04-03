@@ -4,6 +4,7 @@ from numpy import hstack, real, imag
 import scipy.linalg as la
 from . import tensor, spre, spost, stack_columns, unstack_columns
 from .visualization import matrix_histogram, matrix_histogram_complex
+import itertools
 
 try:
     import matplotlib.pyplot as plt
@@ -11,7 +12,7 @@ except:
     pass
 
 
-def _index_permutations(size_list, perm=[]):
+def _index_permutations(size_list):
     """
     Generate a list with all index permutations.
 
@@ -19,22 +20,14 @@ def _index_permutations(size_list, perm=[]):
     ----------
     size_list : list
         A list that contains the sizes for each composite system.
-    perm : list
-        A list of permutations
 
     Returns
     -------
     perm_idx : list
         List containing index permutations.
 
-
     """
-    if len(size_list) == 0:
-        yield perm
-    else:
-        for n in range(size_list[0]):
-            for ip in _index_permutations(size_list[1:], perm + [n]):
-                yield ip
+    return itertools.product(*[range(N) for N in size_list])
 
 
 def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
