@@ -15,7 +15,7 @@ import time
 from qutip import spre, vector_to_operator, operator_to_vector, Result
 
 
-def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
+def ttmsolve(dynmaps, state0, times, e_ops=[], num_learning=0, options=None):
     """
     Expand time-evolution using the Transfer Tensor Method [1]_, based on a set
     of precomputed dynamical maps.
@@ -40,6 +40,10 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`expect` for more detail of operator expectation.
 
+    num_learning : int
+        Number of times used to construct the dynmaps operators when
+        ``dynmaps`` is a callable.
+
     options : dictionary
         Dictionary of options for the solver.
 
@@ -55,9 +59,6 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
         - threshold : float
           Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below
           treshold.
-        - num_learning : int
-          Number of times used to construct the dynmaps operators when
-          ``dynmaps`` is a callable.
 
     Returns
     -------
@@ -81,17 +82,17 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
         raise ValueError("The time should be uniformily distributed.")
 
     if callable(dynmaps):
-        if not options["num_learning"]:
+        if num_learning <= 0:
             raise ValueError(
                 "When dynmaps is a callable, options['num_learning'] must be "
                 "the number of dynamical maps to compute."
             )
-        dynmaps = [dynmaps(t) for t in times[: opt["num_learning"]]]
+        dynmaps = [dynmaps(t) for t in times[:num_learning]]
 
     if (
         not dynmaps
         or not dynmaps[0].issuper
-        or all(dmap.dims == dynmaps[0].dims for dmap in dynmaps)
+        or not all(dmap.dims == dynmaps[0].dims for dmap in dynmaps)
     ):
         raise ValueError("`dynmaps` entries must be super operators.")
 
