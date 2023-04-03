@@ -127,7 +127,7 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
         # Set current state
         state = 0
         for j in range(1, min(K, n + 1)):
-            tmp = tensors[j] * states[n - j]
+            tmp = tensors[j] @ states[n - j]
             state = tmp + state
         # Append state to all states
         states.append(state)
