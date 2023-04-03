@@ -88,7 +88,11 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], options=None):
             )
         dynmaps = [dynmaps(t) for t in times[: opt["num_learning"]]]
 
-    if not dynmaps[0].issuper:
+    if (
+        not dynmaps
+        or not dynmaps[0].issuper
+        or all(dmap.dims == dynmaps[0].dims for dmap in dynmaps)
+    ):
         raise ValueError("`dynmaps` entries must be super operators.")
 
     start = time.time()
@@ -161,7 +165,7 @@ def _generatetensors(dynmaps, threshold):
     for n in range(len(dynmaps)):
         T = dynmaps[n]
         for m in range(1, n):
-            T -= Tensors[n - m] * dynmaps[m]
+            T -= Tensors[n - m] @ dynmaps[m]
         Tensors.append(T)
         if n > 1:
             diff.append((Tensors[-1] - Tensors[-2]).norm())
