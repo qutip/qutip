@@ -101,6 +101,7 @@ Lead Developers
 - `Boxi Li <https://github.com/BoxiLi>`_
 - `Jake Lishman <https://binhbar.com>`_
 - `Simon Cross <http://hodgestar.za.net/>`_
+- `Asier Galicia <https://github.com/AGaliciaMartinez>`_
 
 Past Lead Developers
 ====================
