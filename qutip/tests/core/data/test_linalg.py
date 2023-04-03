@@ -74,8 +74,9 @@ class TestSolve():
     def test_singular(self):
         A = qutip.num(2).data
         b = qutip.basis(2, 1).data
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError) as err:
             test1 = _data.solve(A, b)
+        assert "singular" in str(err.value).lower()
 
 
     def test_incorrect_shape_non_square(self):
