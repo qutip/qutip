@@ -44,7 +44,7 @@ __all__ = [
 ]
 
 
-cdef void _check_shape(Data left, Data right, Data out=None) nogil except *:
+cdef void _check_shape(Data left, Data right, Data out=None) except * nogil:
     if left.shape[1] != right.shape[0]:
         raise ValueError(
             "incompatible matrix shapes "

@@ -92,7 +92,7 @@ cpdef double frobenius_csr(CSR matrix) nogil:
     cdef int n=csr.nnz(matrix), inc=1
     return blas.dznrm2(&n, &matrix.data[0], &inc)
 
-cpdef double l2_csr(CSR matrix) nogil except -1:
+cpdef double l2_csr(CSR matrix) except -1 nogil:
     if matrix.shape[0] != 1 and matrix.shape[1] != 1:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_csr(matrix)
@@ -128,7 +128,7 @@ cpdef double frobenius_dense(Dense matrix) nogil:
     cdef int inc = 1
     return blas.dznrm2(&n, matrix.data, &inc)
 
-cpdef double l2_dense(Dense matrix) nogil except -1:
+cpdef double l2_dense(Dense matrix) except -1 nogil:
     if matrix.shape[0] != 1 and matrix.shape[1] != 1:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_dense(matrix)

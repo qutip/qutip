@@ -1,4 +1,6 @@
 #cython: language_level=3
+#cython: c_api_binop_methods=True
+
 import inspect
 import pickle
 import scipy

@@ -20,7 +20,7 @@ __all__ = [
     'expect_super_csr_dense', 'expect_super_dense',
 ]
 
-cdef void _check_shape_ket(Data op, Data state) nogil except *:
+cdef void _check_shape_ket(Data op, Data state) except * nogil:
     if (
         op.shape[1] != state.shape[0]  # Matrix multiplication
         or state.shape[1] != 1  # State is ket
@@ -29,7 +29,7 @@ cdef void _check_shape_ket(Data op, Data state) nogil except *:
         raise ValueError("incorrect input shapes "
                          + str(op.shape) + " and " + str(state.shape))
 
-cdef void _check_shape_dm(Data op, Data state) nogil except *:
+cdef void _check_shape_dm(Data op, Data state) except * nogil:
     if (
         op.shape[1] != state.shape[0]  # Matrix multiplication
         or state.shape[0] != state.shape[1]  # State is square 
@@ -38,7 +38,7 @@ cdef void _check_shape_dm(Data op, Data state) nogil except *:
         raise ValueError("incorrect input shapes "
                          + str(op.shape) + " and " + str(state.shape))
 
-cdef void _check_shape_super(Data op, Data state) nogil except *:
+cdef void _check_shape_super(Data op, Data state) except * nogil:
     if state.shape[1] != 1:
         raise ValueError("expected a column-stacked matrix")
     if (
@@ -48,7 +48,7 @@ cdef void _check_shape_super(Data op, Data state) nogil except *:
         raise ValueError("incompatible shapes " + str(op.shape) + ", " + str(state.shape))
 
 
-cdef double complex _expect_csr_ket(CSR op, CSR state) nogil except *:
+cdef double complex _expect_csr_ket(CSR op, CSR state) except * nogil:
     """
     Perform the operation
         state.adjoint() @ op @ state
@@ -71,7 +71,7 @@ cdef double complex _expect_csr_ket(CSR op, CSR state) nogil except *:
         out += mul * sum
     return out
 
-cdef double complex _expect_csr_dm(CSR op, CSR state) nogil except *:
+cdef double complex _expect_csr_dm(CSR op, CSR state) except * nogil:
     """
     Perform the operation
         tr(op @ state)
@@ -90,7 +90,7 @@ cdef double complex _expect_csr_dm(CSR op, CSR state) nogil except *:
     return out
 
 
-cpdef double complex expect_super_csr(CSR op, CSR state) nogil except *:
+cpdef double complex expect_super_csr(CSR op, CSR state) except * nogil:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -108,7 +108,7 @@ cpdef double complex expect_super_csr(CSR op, CSR state) nogil except *:
     return out
 
 
-cpdef double complex expect_csr(CSR op, CSR state) nogil except *:
+cpdef double complex expect_csr(CSR op, CSR state) except * nogil:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -122,7 +122,7 @@ cpdef double complex expect_csr(CSR op, CSR state) nogil except *:
         return _expect_csr_ket(op, state)
     return _expect_csr_dm(op, state)
 
-cdef double complex _expect_csr_dense_ket(CSR op, Dense state) nogil except *:
+cdef double complex _expect_csr_dense_ket(CSR op, Dense state) except * nogil:
     _check_shape_ket(op, state)
     cdef double complex out=0, sum
     cdef size_t row, ptr
@@ -135,7 +135,7 @@ cdef double complex _expect_csr_dense_ket(CSR op, Dense state) nogil except *:
         out += sum * conj(state.data[row])
     return out
 
-cdef double complex _expect_csr_dense_dm(CSR op, Dense state) nogil except *:
+cdef double complex _expect_csr_dense_dm(CSR op, Dense state) except * nogil:
     _check_shape_dm(op, state)
     cdef double complex out=0
     cdef size_t row, ptr_op, ptr_state=0, row_stride, col_stride
@@ -150,7 +150,7 @@ cdef double complex _expect_csr_dense_dm(CSR op, Dense state) nogil except *:
     return out
 
 
-cdef double complex _expect_dense_ket(Dense op, Dense state) nogil except *:
+cdef double complex _expect_dense_ket(Dense op, Dense state) except * nogil:
     _check_shape_ket(op, state)
     cdef double complex out=0, sum
     cdef size_t row, col, op_row_stride, op_col_stride
@@ -165,7 +165,7 @@ cdef double complex _expect_dense_ket(Dense op, Dense state) nogil except *:
         out += sum * conj(state.data[row])
     return out
 
-cdef double complex _expect_dense_dense_dm(Dense op, Dense state) nogil except *:
+cdef double complex _expect_dense_dense_dm(Dense op, Dense state) except * nogil:
     _check_shape_dm(op, state)
     cdef double complex out=0
     cdef size_t row, col, op_row_stride, op_col_stride
@@ -182,7 +182,7 @@ cdef double complex _expect_dense_dense_dm(Dense op, Dense state) nogil except *
     return out
 
 
-cpdef double complex expect_csr_dense(CSR op, Dense state) nogil except *:
+cpdef double complex expect_csr_dense(CSR op, Dense state) except * nogil:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -197,7 +197,7 @@ cpdef double complex expect_csr_dense(CSR op, Dense state) nogil except *:
     return _expect_csr_dense_dm(op, state)
 
 
-cpdef double complex expect_dense(Dense op, Dense state) nogil except *:
+cpdef double complex expect_dense(Dense op, Dense state) except * nogil:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -212,7 +212,7 @@ cpdef double complex expect_dense(Dense op, Dense state) nogil except *:
     return _expect_dense_dense_dm(op, state)
 
 
-cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
+cpdef double complex expect_super_csr_dense(CSR op, Dense state) except * nogil:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -228,7 +228,7 @@ cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
     return out
 
 
-cpdef double complex expect_super_dense(Dense op, Dense state) nogil except *:
+cpdef double complex expect_super_dense(Dense op, Dense state) except * nogil:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
