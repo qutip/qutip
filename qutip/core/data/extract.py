@@ -53,9 +53,9 @@ def get_csr(matrix, format=None, copy=True):
     # The requirements do not require scipy>=1.8 so csr_array may not be
     # available. But as the newest options, it is the default when available.
     # We could simplify this when support for old version is dropped.
-    if format in "csr_array" and csr_array is not None:
+    if format == "csr_array" and csr_array is not None:
         base = csr_array
-    elif format in "csr_matrix":
+    elif format == "csr_matrix":
         base = csr_matrix
     elif format in [None, "scipy_csr"]:
         base = csr_array or csr_matrix
@@ -72,7 +72,7 @@ def get_csr(matrix, format=None, copy=True):
         out.indices = csr_mat.indices
         out.indptr = csr_mat.indptr
 
-    return data
+    return out
 
 
 get = _Dispatcher(
@@ -80,7 +80,7 @@ get = _Dispatcher(
         _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter(
             'format', _inspect.Parameter.POSITIONAL_OR_KEYWORD, default=None
-        )
+        ),
         _inspect.Parameter(
             'copy', _inspect.Parameter.POSITIONAL_OR_KEYWORD, default=True
         )

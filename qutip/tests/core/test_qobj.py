@@ -1231,19 +1231,27 @@ def test_groundstate():
 def test_get():
     qobj = qutip.qeye(2, dtype="CSR")
 
-    assert scipy.sparse.isspmatrix_csr(qobj.get())
+    assert scipy.sparse.isspmatrix_csr(qobj.get("csr_array"))
+    assert scipy.sparse.isspmatrix_csr(qobj.get("csr_matrix"))
     assert scipy.sparse.isspmatrix_csr(qobj.get(copy=False))
+    with pytest.raises(ValueError) as err:
+        qobj.get("ndarray")
+    assert "csr_array" in str(err.value)
 
     qobj.get(copy=False)[0, 0] = 0
-    qobj.get(copy=True)[0, 0] = 1
+    qobj.get(copy=True)[0, 1] = 2
     assert qobj == qutip.num(2, dtype="CSR")
+
 
 
     qobj = qutip.qeye(2, dtype="Dense")
 
-    assert isinstance(qobj.get(), np.ndarray)
+    assert isinstance(qobj.get("ndarray"), np.ndarray)
     assert isinstance(qobj.get(copy=False), np.ndarray)
-    
+
     qobj.get(copy=False)[0, 0] = 0
-    qobj.get(copy=True)[0, 0] = 1
+    qobj.get(copy=True)[0, 1] = 2
     assert qobj == qutip.num(2, dtype="Dense")
+    with pytest.raises(ValueError) as err:
+        qobj.get("csr_array")
+    assert "ndarray" in str(err.value)
