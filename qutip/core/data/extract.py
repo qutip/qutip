@@ -43,36 +43,21 @@ def get_csr(matrix, format=None, copy=True):
     matrix : Data
         The matrix to convert to common type.
 
-    format : str, {"csr_array", "csr_matrix"}
+    format : str, {"csr_matrix"}
         Type of the output.
         "csr_array" is available with scipy >= 1.8
 
     copy : bool, default: True
         Whether to pass a copy of the object or not.
     """
-    # The requirements do not require scipy>=1.8 so csr_array may not be
-    # available. But as the newest options, it is the default when available.
-    # We could simplify this when support for old version is dropped.
-    if format == "csr_array" and csr_array is not None:
-        base = csr_array
-    elif format == "csr_matrix":
-        base = csr_matrix
-    elif format in [None, "scipy_csr"]:
-        base = csr_array or csr_matrix
-    else:
+    if format not in [None, "scipy_csr", "csr_matrix"]:
         raise ValueError(
-            "Valid format for CSR are 'csr_matrix' and 'csr_array'"
+            "Valid format for CSR is 'csr_matrix'"
         )
-
     csr_mat = matrix.as_scipy()
-    out = base(csr_mat)
-    if not copy:
-        # The __init__ from scipy does a copy.
-        out.data = csr_mat.data
-        out.indices = csr_mat.indices
-        out.indptr = csr_mat.indptr
-
-    return out
+    if copy:
+        csr_mat = csr_mat.copy()
+    return csr_mat
 
 
 get = _Dispatcher(

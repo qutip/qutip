@@ -16,12 +16,7 @@ import warnings
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
-try:
-    # csr_array is a subclass of csr_matrix that overwrite few operation.
-    # It is the new interface available from 1.8.0
-    from scipy.sparse import csr_array as scipy_csr_matrix
-except ImportError:
-    from scipy.sparse import csr_matrix as scipy_csr_matrix
+from scipy.sparse import csr_matrix as scipy_csr_matrix
 try:
     from scipy.sparse.data import _data_matrix as scipy_data_matrix
 except ImportError:
