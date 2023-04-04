@@ -7,6 +7,7 @@ except ImportError:
     csr_array = None
 from scipy.sparse import csr_matrix
 
+
 def get_dense(matrix, format=None, copy=True):
     """
     Return the scipy's object ``csr_array``.
