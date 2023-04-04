@@ -1228,6 +1228,9 @@ def test_groundstate():
     assert "degenerate" in warning[0].message.args[0]
 
 
+@pytest.mark.filterwarnings(
+    "ignore::scipy.sparse.SparseEfficiencyWarning"
+)
 def test_get():
     qobj = qutip.qeye(2, dtype="CSR")
 
