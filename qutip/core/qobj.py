@@ -824,11 +824,16 @@ class Qobj:
         out = np.asarray(self.data.to_array(), order=order)
         return out.squeeze() if squeeze else out
 
-    def get(self, copy=True):
+    def get(self, format=None, copy=True):
         """Matrix from quantum object.
 
         Parameters
         ----------
+        format : str, default: None
+            Type of the output, "ndarray" for ``Dense``, "csr_array" for
+            ``CSR``. A ValueError will be raised if the format is not
+            supported.
+
         copy : bool {False, True}
             Whether to return a copy
 
@@ -837,7 +842,7 @@ class Qobj:
         data : numpy.ndarray, scipy.sparse.matrix_csr, etc.
             Matrix in the type of the underlying libraries.
         """
-        return _data.get(self.data, copy)
+        return _data.get(self.data, format, copy)
 
     def diag(self):
         """Diagonal elements of quantum object.
