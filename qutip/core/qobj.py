@@ -830,7 +830,7 @@ class Qobj:
         Parameters
         ----------
         format : str, default: None
-            Type of the output, "ndarray" for ``Dense``, "csr_array" for
+            Type of the output, "ndarray" for ``Dense``, "csr_matrix" for
             ``CSR``. A ValueError will be raised if the format is not
             supported.
 

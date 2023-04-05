@@ -921,7 +921,8 @@ class HEOMSolver(Solver):
 
         steady_ados : :class:`HierarchyADOsState`
             The steady state of the full ADO hierarchy. A particular ADO may be
-            extracted from the full state by calling :meth:`HEOMSolver.extract`.
+            extracted from the full state by calling
+            :meth:`HEOMSolver.extract`.
         """
         if not self.L_sys.isconstant:
             raise ValueError(
