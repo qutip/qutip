@@ -60,7 +60,7 @@ def get_csr(matrix, format=None, copy=True):
     return csr_mat
 
 
-get = _Dispatcher(
+extract = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter(
@@ -70,7 +70,7 @@ get = _Dispatcher(
             'copy', _inspect.Parameter.POSITIONAL_OR_KEYWORD, default=True
         )
     ]),
-    name='get',
+    name='extract',
     module=__name__,
     inputs=('matrix',),
     out=False,
