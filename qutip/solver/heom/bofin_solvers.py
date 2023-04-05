@@ -528,7 +528,7 @@ def heomsolve(
           if the results option ``ado_return`` was set to ``True``).
           Each element is an instance of :class:`HierarchyADOsState`.
           The state of a particular ADO may be extracted from
-          ``result.ado_states[i]`` by calling :meth:`.extract`.
+          ``result.ado_states[i]`` by calling :meth:`HEOMSolver.extract`.
 
         * ``expect``: a list containing the values of each ``e_ops`` at
           time ``t``.
@@ -921,7 +921,7 @@ class HEOMSolver(Solver):
 
         steady_ados : :class:`HierarchyADOsState`
             The steady state of the full ADO hierarchy. A particular ADO may be
-            extracted from the full state by calling :meth:`.extract`.
+            extracted from the full state by calling :meth:`HEOMSolver.extract`.
         """
         if not self.L_sys.isconstant:
             raise ValueError(
@@ -1021,7 +1021,7 @@ class HEOMSolver(Solver):
               if the results option ``ado_return`` was set to ``True``).
               Each element is an instance of :class:`HierarchyADOsState`.
               The state of a particular ADO may be extracted from
-              ``result.ado_states[i]`` by calling :meth:`.extract`.
+              ``result.ado_states[i]`` by calling :meth:`HEOMSolver.extract`.
 
             * ``expect``: a list containing the values of each ``e_ops`` at
               time ``t``.
