@@ -8,25 +8,25 @@ except ImportError:
 from scipy.sparse import csr_matrix
 
 
-def get_dense(matrix, format=None, copy=True):
+def extract_dense(matrix, format=None, copy=True):
     """
-    Return the scipy's object ``csr_array``.
+    Return an array representation of the Dense data object.
 
     Parameters
     ----------
     matrix : Data
-        The matrix to convert to common type.
+        The matrix to convert to the given format.
 
-    format : str, {"csr_array", "csr_matrix"}
+    format : str {"ndarray"}, default="ndarray"
         Type of the output.
-        "csr_array" is available with scipy >= 1.8
 
     copy : bool, default: True
-        Whether to pass a copy of the object or not.
+        Whether to return a copy of the data. If False,
+        a view of the data is returned when possible.
     """
     if format not in [None, "ndarray"]:
         raise ValueError(
-            "Valid format for Dense is 'ndarray'"
+            f"Dense data instances do not support being extracted to format {format!r}"
         )
     if copy:
         return matrix.to_array()
