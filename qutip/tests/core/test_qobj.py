@@ -1231,29 +1231,29 @@ def test_groundstate():
 @pytest.mark.filterwarnings(
     "ignore::scipy.sparse.SparseEfficiencyWarning"
 )
-def test_get():
+def test_extract():
     qobj = qutip.qeye(2, dtype="CSR")
 
-    assert scipy.sparse.isspmatrix_csr(qobj.get("csr_matrix"))
-    assert scipy.sparse.isspmatrix_csr(qobj.get(copy=False))
+    assert scipy.sparse.isspmatrix_csr(qobj.extract("csr_matrix"))
+    assert scipy.sparse.isspmatrix_csr(qobj.extract(copy=False))
     with pytest.raises(ValueError) as err:
-        qobj.get("ndarray")
+        qobj.extract("ndarray")
     assert "csr_matrix" in str(err.value)
 
-    qobj.get(copy=False)[0, 0] = 0
-    qobj.get(copy=True)[0, 1] = 2
+    qobj.extract(copy=False)[0, 0] = 0
+    qobj.extract(copy=True)[0, 1] = 2
     assert qobj == qutip.num(2, dtype="CSR")
 
 
 
     qobj = qutip.qeye(2, dtype="Dense")
 
-    assert isinstance(qobj.get("ndarray"), np.ndarray)
-    assert isinstance(qobj.get(copy=False), np.ndarray)
+    assert isinstance(qobj.extract("ndarray"), np.ndarray)
+    assert isinstance(qobj.extract(copy=False), np.ndarray)
 
-    qobj.get(copy=False)[0, 0] = 0
-    qobj.get(copy=True)[0, 1] = 2
+    qobj.extract(copy=False)[0, 0] = 0
+    qobj.extract(copy=True)[0, 1] = 2
     assert qobj == qutip.num(2, dtype="Dense")
     with pytest.raises(ValueError) as err:
-        qobj.get("csr_matrix")
+        qobj.extract("csr_matrix")
     assert "ndarray" in str(err.value)

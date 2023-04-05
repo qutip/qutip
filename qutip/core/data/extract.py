@@ -26,7 +26,7 @@ def extract_dense(matrix, format=None, copy=True):
     """
     if format not in [None, "ndarray"]:
         raise ValueError(
-            f"Dense data instances do not support being extracted to format {format!r}"
+            "Dense can only be extracted to 'ndarray'"
         )
     if copy:
         return matrix.to_array()
@@ -34,7 +34,7 @@ def extract_dense(matrix, format=None, copy=True):
         return matrix.as_ndarray()
 
 
-def get_csr(matrix, format=None, copy=True):
+def extract_csr(matrix, format=None, copy=True):
     """
     Return the scipy's object ``csr_array``.
 
@@ -52,7 +52,7 @@ def get_csr(matrix, format=None, copy=True):
     """
     if format not in [None, "scipy_csr", "csr_matrix"]:
         raise ValueError(
-            "Valid format for CSR is 'csr_matrix'"
+            "CSR can only be extracted to 'csr_matrix'"
         )
     csr_mat = matrix.as_scipy()
     if copy:
@@ -75,7 +75,7 @@ extract = _Dispatcher(
     inputs=('matrix',),
     out=False,
 )
-get.__doc__ =\
+extract.__doc__ =\
     """
     Return the common representation of the data layer object: scipy's
     ``csr_matrix`` for ``CSR``, numpy array for ``Dense``, Jax's ``Array`` for
@@ -93,9 +93,9 @@ get.__doc__ =\
     copy : bool, default: True
         Whether to pass a copy of the object.
     """
-get.add_specialisations([
-    (CSR, get_csr),
-    (Dense, get_dense),
+extract.add_specialisations([
+    (CSR, extract_csr),
+    (Dense, extract_dense),
 ], _defer=True)
 
 

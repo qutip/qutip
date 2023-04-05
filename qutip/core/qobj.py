@@ -824,7 +824,7 @@ class Qobj:
         out = np.asarray(self.data.to_array(), order=order)
         return out.squeeze() if squeeze else out
 
-    def get(self, format=None, copy=True):
+    def extract(self, format=None, copy=True):
         """Matrix from quantum object.
 
         Parameters
@@ -842,7 +842,7 @@ class Qobj:
         data : numpy.ndarray, scipy.sparse.matrix_csr, etc.
             Matrix in the type of the underlying libraries.
         """
-        return _data.get(self.data, format, copy)
+        return _data.extract(self.data, format, copy)
 
     def diag(self):
         """Diagonal elements of quantum object.
