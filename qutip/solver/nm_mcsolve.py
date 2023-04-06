@@ -10,9 +10,9 @@ from .multitraj import MultiTrajSolver
 from .mcsolve import MCSolver, MCIntegrator
 from .mesolve import MESolver, mesolve
 from .result import NmmcResult, NmmcTrajectoryResult
-from .cy.nm_mcsolve import RateSet
+from .cy.nm_mcsolve import RateShiftCoefficient, SqrtRealCoefficient
 from ..core import (
-    CoreOptions, Qobj, QobjEvo, isket, ket2dm, qeye, coefficient, Coefficient,
+    CoreOptions, Qobj, QobjEvo, isket, ket2dm, qeye, coefficient,
 )
 
 
@@ -260,7 +260,9 @@ class NonMarkovianMCSolver(MCSolver):
     # "solver" argument will be partially initialized in constructor
     trajectory_resultclass = NmmcTrajectoryResult
 
-    def __init__(self, H, ops_and_rates, *_args, args=None, options=None, **kwargs):
+    def __init__(
+        self, H, ops_and_rates, *_args, args=None, options=None, **kwargs,
+    ):
         self.trajectory_resultclass = functools.partial(
             NmmcTrajectoryResult, __nm_solver=self,
         )
@@ -279,12 +281,22 @@ class NonMarkovianMCSolver(MCSolver):
         if L is not None:
             ops_and_rates.append((L, coefficient.const(0)))
 
-        self.rates = RateSet(
-            np.array([f for _, f in ops_and_rates], dtype=Coefficient)
-        )
-        self.ops = [op for op, _ in ops_and_rates]
+        self._ops = [op for op, _ in ops_and_rates]
 
-        c_ops = self._compute_paired_c_ops()
+        # Many coefficients. These should not be publicly exposed
+        # and will all need to be updated in _arguments():
+        self._rates = [rate for _, rate in ops_and_rates]
+        self._rate_shift = RateShiftCoefficient(self._rates)
+        self._sqrt_shifted_rates = [
+            SqrtRealCoefficient(rate + self._rate_shift)
+            for rate in self._rates
+        ]
+
+        c_ops = [
+            QobjEvo([op, sqrt_shifted_rate])
+            for op, sqrt_shifted_rate
+            in zip(self._ops, self._sqrt_shifted_rates)
+        ]
         super().__init__(H, c_ops, *_args, options=options, **kwargs)
 
     def _check_completeness(self, ops_and_rates):
@@ -307,37 +319,21 @@ class NonMarkovianMCSolver(MCSolver):
         L = (a * qeye(op.dims[0]) - op).sqrtm()  # new Lindblad operator
         return a, L
 
-    def _compute_paired_c_ops(self):
-        """
-        Shift all given rate functions Gamma_i by the function rate_shift,
-        creating the positive definite rate functions
-            gamma_i = Gamma_i + rate_shift.
-        Returns the collapse operators
-            c_i = L_i * sqrt(gamma_i)
-        as QobjEvo objects.
-        """
-        c_ops = []
-        for i, op in enumerate(self.ops):
-            # Note that this cannot be done using a lambda expression, since
-            # lambda expressions can't be pickled and pickling is required
-            # for parallel execution.
-            c_ops.append(QobjEvo([op, self.rates.sqrt_shifted_rate(i)]))
-        return c_ops
-
     def _discrete_martingale(self, t, i):
         """
-        Discrete part of the martingale evolution for time ``t`` and rate ``i``.
+        Discrete part of the martingale evolution for time ``t`` and
+        rate ``i``.
         """
-        rate = self.rates.rate(t, i)
-        shift = self.rates.rate_shift(t)
-        return rate / (rate + shift)
+        rate = self._rates[i](t)
+        shift = self._rate_shift(t)
+        return np.real(rate / (rate + shift))
 
     def _continuous_martingale(self, t0, t1):
         """
         Continuous part of the martingale evolution for time ``t0`` to ``t1``.
         """
         integral, _abserr, *info = scipy.integrate.quad(
-            self.rates.rate_shift, t0, t1,
+            self._rate_shift.as_double, t0, t1,
             limit=self.options["martingale_quad_limit"],
             full_output=True,
         )
@@ -355,7 +351,9 @@ class NonMarkovianMCSolver(MCSolver):
         collapses that have happened are read out from the internal integrator.
         """
         discrete = np.prod(self._integrator.discrete_martingales, initial=1.0)
-        continuous = np.prod(self._integrator.continuous_martingales, initial=1.0)
+        continuous = np.prod(
+            self._integrator.continuous_martingales, initial=1.0,
+        )
         if self._integrator.collapses:
             tc, _ = self._integrator.collapses[-1]
             if t > tc:
@@ -363,9 +361,11 @@ class NonMarkovianMCSolver(MCSolver):
         return discrete * continuous
 
     def _argument(self, args):
-        # RateSet.arguments() updates the original rate
-        # coefficients
-        self.rates.arguments(args)
+        self._rates = [rate.replace_arguments(args) for rate in self._rates]
+        self._rate_shift = self._rate_shift.replace_arguments(args)
+        self._sqrt_shifted_rates = [
+            rate.replace_arguments(args) for rate in self._sqrt_shifted_rates
+        ]
         super()._argument(args)
 
     # Override "step" to include the martingale mu in the state
@@ -377,3 +377,57 @@ class NonMarkovianMCSolver(MCSolver):
         return state * self._current_martingale(t)
 
     step.__doc__ = MultiTrajSolver.step.__doc__
+
+    def rate_shift(self, t):
+        """
+        Return the rate shift at time ``t``.
+
+        The rate shift is ``2 * abs(min([0, rate_1(t), rate_2(t), ...]))``.
+
+        Parameters
+        ----------
+        t : float
+            The time at which to calculate the rate shift.
+
+        Returns
+        -------
+        rate_shift : float
+            The rate shift amount.
+        """
+        return self._rate_shift.as_double(t)
+
+    def rate(self, t, i):
+        """
+        Return the i'th unshifted rate at time ``t``.
+
+        Parameters
+        ----------
+        t : float
+            The time at which to calculate the rate.
+        i : int
+            Which rate to calculate.
+
+        Returns
+        -------
+        rate : float
+            The value of rate ``i`` at time ``t``.
+        """
+        return np.real(self._rates[i](t))
+
+    def sqrt_shifted_rate(self, t, i):
+        """
+        Return the square root of the i'th unshifted rate at time ``t``.
+
+        Parameters
+        ----------
+        t : float
+            The time at wich to calculate the shifted rate.
+        i : int
+            Which shifted rate to calculate.
+
+        Returns
+        -------
+        rate : float
+            The square root of the shifted value of rate ``i`` at time ``t``.
+        """
+        return np.real(self._sqrt_shifted_rates[i](t))
