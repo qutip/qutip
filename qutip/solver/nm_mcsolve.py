@@ -282,7 +282,7 @@ class NonMarkovianMCSolver(MCSolver):
         if L is not None:
             ops_and_rates.append((L, ConstantCoefficient(0)))
 
-        self._ops = [op for op, _ in ops_and_rates]
+        self.ops = [op for op, _ in ops_and_rates]
 
         # Many coefficients. These should not be publicly exposed
         # and will all need to be updated in _arguments():
@@ -296,7 +296,7 @@ class NonMarkovianMCSolver(MCSolver):
         c_ops = [
             QobjEvo([op, sqrt_shifted_rate])
             for op, sqrt_shifted_rate
-            in zip(self._ops, self._sqrt_shifted_rates)
+            in zip(self.ops, self._sqrt_shifted_rates)
         ]
         super().__init__(H, c_ops, *_args, options=options, **kwargs)
 
