@@ -54,8 +54,12 @@ def test_rough_agreement_with_mesolve_for_negative_rates():
     )
 
     np.testing.assert_allclose(mc_result.trace, [1.] * len(times))
-    np.testing.assert_allclose(me_result.expect[0], mc_result.expect[0], rtol=0.02)
-    np.testing.assert_allclose(me_result.expect[1], mc_result.expect[1], rtol=0.1)
+    np.testing.assert_allclose(
+        me_result.expect[0], mc_result.expect[0], rtol=0.02,
+    )
+    np.testing.assert_allclose(
+        me_result.expect[1], mc_result.expect[1], rtol=0.1,
+    )
 
 
 def _return_constant(t, args):
@@ -104,7 +108,9 @@ class StatesAndExpectOutputCase:
         for test, expected_part in zip(result.expect, expected):
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 
-    def test_states_and_expect(self, hamiltonian, args, ops_and_rates, expected, tol):
+    def test_states_and_expect(
+        self, hamiltonian, args, ops_and_rates, expected, tol
+    ):
         options = {"store_states": True, "map": "serial"}
         result = nm_mcsolve(
             hamiltonian, self.state, self.times, args=args,
@@ -149,7 +155,9 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     # runtimes shorter.  The known-good cases are still tested in the other
     # test cases, this is just testing the single-output behaviour.
 
-    def test_states_only(self, hamiltonian, args, ops_and_rates, expected, tol):
+    def test_states_only(
+        self, hamiltonian, args, ops_and_rates, expected, tol
+    ):
         options = {"store_states": True, "map": "serial"}
         result = nm_mcsolve(
             hamiltonian, self.state, self.times, args=args,
@@ -158,7 +166,9 @@ class TestNoCollapse(StatesAndExpectOutputCase):
         )
         self._assert_states(result, expected, tol)
 
-    def test_expect_only(self, hamiltonian, args, ops_and_rates, expected, tol):
+    def test_expect_only(
+        self, hamiltonian, args, ops_and_rates, expected, tol
+    ):
         result = nm_mcsolve(
             hamiltonian, self.state, self.times, args=args,
             ops_and_rates=ops_and_rates,
@@ -378,7 +388,10 @@ class TestSeeds:
     times = np.linspace(0, 10, 2)
     ops_and_rates = [
         (qutip.tensor(a[0], qutip.qeye(sizes[1:])), 2 * dampings[0]),
-        (qutip.tensor(qutip.qeye(sizes[0]), a[1], qutip.qeye(sizes[2])), 2 * dampings[1]),
+        (
+            qutip.tensor(qutip.qeye(sizes[0]), a[1], qutip.qeye(sizes[2])),
+            2 * dampings[1],
+        ),
         (qutip.tensor(qutip.qeye(sizes[:2]), a[2]), 2 * dampings[2]),
     ]
 
@@ -441,7 +454,9 @@ class TestSeeds:
         a = qutip.destroy(size)
         H = qutip.num(size)
         ops_and_rates = [(a, 'alpha')]
-        mcsolver = NonMarkovianMCSolver(H, ops_and_rates, args={'alpha': 0}, options={'map': 'serial'})
+        mcsolver = NonMarkovianMCSolver(
+            H, ops_and_rates, args={'alpha': 0}, options={'map': 'serial'},
+        )
         mcsolver.start(qutip.basis(size, size-1), 0, seed=5)
         state_1 = mcsolver.step(1, args={'alpha': 1})
 
@@ -531,10 +546,16 @@ def test_NonMarkovianMCSolver_stepping():
     assert qutip.expect(qutip.qeye(size), state) == pytest.approx(1)
     assert qutip.expect(qutip.num(size), state) == pytest.approx(size - 1)
     assert state.isoper
+    assert solver.rate_shift(1) == 0
+    assert solver.rate(1, 0) == 0
+    assert solver.sqrt_shifted_rate(1, 0) == 0
     state = solver.step(5, args={'coupling': 5})
     assert qutip.expect(qutip.qeye(size), state) == pytest.approx(1)
     assert qutip.expect(qutip.num(size), state) <= size - 1
     assert state.isoper
+    assert solver.rate_shift(5) == 0
+    assert solver.rate(5, 0) == 5
+    assert solver.sqrt_shifted_rate(5, 0) == np.sqrt(5)
 
 
 # Defined in module-scope so it's pickleable.
@@ -552,5 +573,7 @@ def test_dynamic_arguments():
     state = qutip.basis(size, 2)
 
     ops_and_rates = [[a, _dynamic], [a.dag(), _dynamic]]
-    mc = nm_mcsolve(H, state, times, ops_and_rates, ntraj=25, args={"collapse": []})
+    mc = nm_mcsolve(
+        H, state, times, ops_and_rates, ntraj=25, args={"collapse": []},
+    )
     assert all(len(collapses) <= 1 for collapses in mc.col_which)
