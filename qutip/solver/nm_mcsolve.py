@@ -11,6 +11,7 @@ from .mcsolve import MCSolver, MCIntegrator
 from .mesolve import MESolver, mesolve
 from .result import NmmcResult, NmmcTrajectoryResult
 from .cy.nm_mcsolve import RateShiftCoefficient, SqrtRealCoefficient
+from ..core.coefficient import ConstantCoefficient
 from ..core import (
     CoreOptions, Qobj, QobjEvo, isket, ket2dm, qeye, coefficient,
 )
@@ -172,7 +173,7 @@ def _parse_op_and_rate(op, rate, **kw):
     if not isinstance(op, Qobj):
         raise ValueError("NonMarkovianMCSolver ops must be of type Qobj")
     if isinstance(rate, numbers.Number):
-        rate = coefficient.const(rate)
+        rate = ConstantCoefficient(rate)
     else:
         rate = coefficient(rate, **kw)
     return op, rate
@@ -279,7 +280,7 @@ class NonMarkovianMCSolver(MCSolver):
 
         self._a_parameter, L = self._check_completeness(ops_and_rates)
         if L is not None:
-            ops_and_rates.append((L, coefficient.const(0)))
+            ops_and_rates.append((L, ConstantCoefficient(0)))
 
         self._ops = [op for op, _ in ops_and_rates]
 
