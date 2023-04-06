@@ -93,6 +93,8 @@ def coeff_generator(style, func):
     if style == "steparraylog":
         return coefficient(base(tlistlog, **args), tlist=tlistlog,
                            order=0)
+    if style == "const":
+        return const(2.0)
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -305,7 +307,8 @@ def _mul(coeff):
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['transform'], [
     pytest.param(_pass, id="single"),
