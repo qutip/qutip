@@ -6,6 +6,8 @@ cdef class RateShiftCoefficient(Coefficient):
     cdef:
         Coefficient [:] coeffs
 
+    cpdef double as_double(self, double t) except *
+
 
 cdef class SqrtRealCoefficient(Coefficient):
     cdef:

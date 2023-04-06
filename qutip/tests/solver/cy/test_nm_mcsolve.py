@@ -83,6 +83,13 @@ class TestRateShiftCoefficient:
         rs = RateShiftCoefficient(rates.coeffs)
         self.assert_f_equals_rate_shift(rs, rates.coeffs, rates.tlist)
 
+    def test_as_double(self, rates):
+        rs = RateShiftCoefficient(rates.coeffs)
+        self.assert_f_equals_rate_shift(
+            rs.as_double, rates.coeffs, rates.tlist,
+        )
+        assert all(isinstance(rs.as_double(t), float) for t in rates.tlist)
+
     def test_copy(self, rates):
         rs = RateShiftCoefficient(rates.coeffs)
         rs = rs.copy()

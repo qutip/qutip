@@ -53,7 +53,7 @@ cdef class RateShiftCoefficient(Coefficient):
         )
 
     cdef complex _call(self, double t) except *:
-        """Return the min value."""
+        """ Return the rate shift. """
         cdef int N = len(self.coeffs)
         cdef int i
         cdef double min_rate = 0
@@ -64,6 +64,10 @@ cdef class RateShiftCoefficient(Coefficient):
             min_rate = min(min_rate, real(coeff._call(t)))
 
         return 2 * abs(min_rate)
+
+    cpdef double as_double(self, double t) except *:
+        """ Return the rate shift as a float. """
+        return real(self._call(t))
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
