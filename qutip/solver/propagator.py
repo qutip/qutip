@@ -62,7 +62,11 @@ def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
         H = QobjEvo(H, args=args, **kwargs)
 
     if H.issuper or c_ops:
-        out = mesolve(H, qeye(H.dims), tlist, c_ops=c_ops,
+        if H.issuper:
+            Id = qeye(H.dims[0])
+        else:
+            Id = qeye(H.dims)
+        out = mesolve(H, Id, tlist, c_ops=c_ops,
                       args=args, options=options).states
     else:
         out = sesolve(H, qeye(H.dims[0]), tlist,
