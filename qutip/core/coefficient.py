@@ -10,7 +10,6 @@ import glob
 import importlib
 import warnings
 import numbers
-from contextlib import contextmanager
 from collections import defaultdict
 from setuptools import setup, Extension
 try:
@@ -195,12 +194,6 @@ def const(value):
     """ return a Coefficient with a constant value.
     """
     return ConstantCoefficient(value)
-
-
-# XXX: HACKITY HACK
-coefficient.norm = norm
-coefficient.conj = conj
-coefficient.const = const
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -391,7 +384,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None, **_):
         # Previously compiled coefficient not available: create the cython code
         code = make_cy_code(parsed, variables, constants,
                             raw, compile_opt)
-        try :
+        try:
             coeff = compile_code(code, file_name, parsed, compile_opt)
         except PermissionError:
             pass
@@ -783,6 +776,6 @@ def test_parsed(code, variables, constants, args):
     loc_env = {"t": 0, 'self': DummySelf}
     try:
         exec(code, str_env, loc_env)
-    except Exception as e:
+    except Exception:
         return False
     return True
