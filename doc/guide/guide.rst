@@ -23,5 +23,4 @@ Users Guide
    guide-saving.rst
    guide-random.rst
    guide-settings.rst
-   guide-qip.rst
    guide-measurement.rst

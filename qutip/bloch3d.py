@@ -1,9 +1,7 @@
 __all__ = ['Bloch3d']
 
 import numpy as np
-from qutip.qobj import Qobj
-from qutip.expect import expect
-from qutip.operators import sigmax, sigmay, sigmaz
+from . import Qobj, expect, sigmax, sigmay, sigmaz
 
 
 class Bloch3d:

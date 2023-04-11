@@ -1,9 +1,8 @@
 import numpy as np
-from numpy.testing import assert_, run_module_suite
 import scipy.linalg as la
 
-from qutip import (spre, spost, qeye, sigmax, sigmay, sigmaz, qpt)
-from qutip.qip.operations.gates import snot, cnot
+from qutip import spre, spost, qeye, sigmax, sigmay, sigmaz, qpt
+from qutip.core.gates import snot, cnot
 
 
 def test_qpt_snot():
@@ -19,7 +18,7 @@ def test_qpt_snot():
     chi2 = np.zeros((2 ** (2 * N), 2 ** (2 * N)), dtype=complex)
     chi2[1, 1] = chi2[1, 3] = chi2[3, 1] = chi2[3, 3] = 0.5
 
-    assert_(la.norm(chi2 - chi1) < 1e-8)
+    assert (la.norm(chi2 - chi1) < 1e-8)
 
 
 def test_qpt_cnot():
@@ -44,7 +43,4 @@ def test_qpt_cnot():
     chi2[12, 12] = chi2[13, 13] = 0.25
     chi2[13, 12] = chi2[12, 13] = -0.25
 
-    assert_(la.norm(chi2 - chi1) < 1e-8)
-
-if __name__ == "__main__":
-    run_module_suite()
+    assert (la.norm(chi2 - chi1) < 1e-8)

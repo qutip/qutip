@@ -26,10 +26,10 @@ class Test_spsolve:
         np.testing.assert_allclose(x, x2)
 
     def test_single_rhs_vector_complex(self):
-        A = qutip.rand_herm(10)
+        A = qutip.rand_herm(10, density=0.8, dtype='csr')
         x = qutip.rand_ket(10).full()
         b = A.full() @ x
-        y = mkl_spsolve(A.data, b, verbose=True)
+        y = mkl_spsolve(A.data.as_scipy(), b, verbose=True)
         np.testing.assert_allclose(x, y)
 
     @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
@@ -82,7 +82,9 @@ class Test_spsolve:
 
     @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
     def test_symmetric_solver(self, dtype):
-        A = qutip.rand_herm(np.arange(1, 11)).data
+        A = qutip.rand_herm(10, distribution="eigen",
+                            eigenvalues=np.arange(1, 11),
+                            dtype='csr').data.as_scipy()
         if dtype == np.float64:
             A = A.real
         x = np.ones(10, dtype=dtype)

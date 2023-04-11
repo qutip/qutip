@@ -10,13 +10,15 @@ HSolverDL
 ---------
 
 The original HEOM solver was implemented by Neill Lambert, Anubhav Vardhan,
-and Alexander Pitchford and is still available as
-:class:`qutip.nonmarkov.dlheom_solver.HSolverDL` and only directly provided
-support for the Drude-Lorentz bath although there was the possibility of
-sub-classing the solver to implement other baths.
+and Alexander Pitchford. In QuTiP 4.7 it was still available as
+``qutip.solve.nonmarkov.dlheom_solver.HSolverDL`` but the legacy implementation
+was removed in QuTiP 5.
 
-A compatible interface using the current implementation is available under the
-same name in :class:`qutip.nonmarkov.heom.HSolverDL`.
+It only directly provided support for the Drude-Lorentz bath although there was
+the possibility of sub-classing the solver to implement other baths.
+
+A compatible interface using the current implementation is still available
+under the same name in :class:`qutip.solver.heom.HSolverDL`.
 
 
 BoFiN-HEOM
@@ -44,12 +46,12 @@ at https://github.com/tehruhn/bofin/tree/main/examples.
 Current implementation
 ----------------------
 
-The current implementation is a rewrite of BoFiN in pure Python. It's
-right-hand side construction has similar speed to BoFiN-fast, but is written
-in pure Python. Built-in implementations of a variety of different baths
-are provided, and a single solver is used for both fermionic and bosonic baths.
-Multiple baths of the same kind (either fermionic or bosonic) may be
-specified in a single problem, and there is good support for working with
-the auxiliary density operator (ADO) state and extracting information from it.
+The current implementation is a rewrite of BoFiN in pure Python. It's right-hand
+side construction has similar speed to BoFiN-fast, but is written in pure
+Python. Built-in implementations of a variety of different baths are provided,
+and a single solver is used for both fermionic and bosonic baths. Multiple baths
+of either the same kind, or a mixture of fermionic and bosonic baths, may be
+specified in a single problem, and there is good support for working with the
+auxiliary density operator (ADO) state and extracting information from it.
 
 The code was written by Neill Lambert and Simon Cross.

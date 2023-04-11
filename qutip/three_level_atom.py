@@ -35,7 +35,7 @@ Contributed by Markus Baden, Oct. 07, 2011
 __all__ = ['three_level_basis', 'three_level_ops']
 
 import numpy as np
-from qutip.states import qutrit_basis
+from . import qutrit_basis
 
 
 def three_level_basis():
@@ -43,9 +43,8 @@ def three_level_basis():
 
     Returns
     -------
-    states : array
-        `array` of three level atom basis vectors.
-
+    states : np.array
+        :obj:`numpy.ndarray` of three level atom basis vectors.
     '''
     # A three level atom has the same representation as a qutrit, i.e.
     # three states
@@ -53,14 +52,14 @@ def three_level_basis():
 
 
 def three_level_ops():
-    ''' Operators for a three level system (qutrit)
+    """
+    Operators for a three level system (qutrit)
 
     Returns
-    --------
-    ops : array
-        `array` of three level operators.
-
-    '''
+    -------
+    ops : np.array
+        :obj:`numpy.ndarray` of three level operators.
+    """
     out = np.empty((5,), dtype=object)
     one, two, three = qutrit_basis()
     # Note that the three level operators are different

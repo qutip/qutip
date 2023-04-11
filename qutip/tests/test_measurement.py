@@ -2,12 +2,14 @@ import numpy as np
 import scipy
 import pytest
 from math import sqrt
-from qutip.qip.circuit import Measurement
-from qutip import (Qobj, basis, isequal, ket2dm,
-                    sigmax, sigmay, sigmaz, identity, tensor, rand_ket)
-from qutip.measurement import (measure_povm, measurement_statistics_povm,
-                                measure_observable,
-                                measurement_statistics_observable)
+from qutip import (
+    Qobj, basis, ket2dm, sigmax, sigmay, sigmaz, identity, tensor,
+    rand_ket,
+)
+from qutip.measurement import (
+    measure_povm, measurement_statistics_povm, measure_observable,
+    measurement_statistics_observable,
+)
 
 
 class EigenPairs:
@@ -32,7 +34,7 @@ class EigenPairs:
 
 def pairs2dm(pairs):
     """ Convert eigenpair entries into eigenvalue and density matrix pairs. """
-    return [(v, ket2dm(e)) for v, e in pairs]
+    return [(v, e.proj()) for v, e in pairs]
 
 
 SIGMAZ = EigenPairs([
@@ -61,24 +63,22 @@ PX = [ket2dm(stateplus), ket2dm(stateminus)]
 PY = [ket2dm(stateR), ket2dm(stateL)]
 PZ_ket = [state0, state1]
 
+
 def _equivalent(left, right, tol=1e-8):
     """ Equal up to a phase """
-    return 1 - abs( (left.dag() * right).tr()) < tol
+    return 1 - abs(left.overlap(right)) < tol
 
 
 @pytest.mark.parametrize(["op", "state", "pairs", "probabilities"], [
-                    pytest.param(sigmaz(), basis(2, 0),
-                            SIGMAZ, [0, 1], id="sigmaz_ket"),
-                    pytest.param(sigmaz(), ket2dm(basis(2, 0)),
-                            SIGMAZ, [0, 1], id="sigmaz_dm"),
-                    pytest.param(sigmax(), basis(2, 0),
-                            SIGMAX, [0.5, 0.5], id="sigmax_ket"),
-                    pytest.param(sigmax(), ket2dm(basis(2, 0)),
-                            SIGMAX, [0.5, 0.5], id="sigmax_dm"),
-                    pytest.param(sigmay(), basis(2, 0),
-                            SIGMAY, [0.5, 0.5], id="sigmay_ket"),
-                    pytest.param(sigmay(), ket2dm(basis(2, 0)),
-                            SIGMAY, [0.5, 0.5], id="sigmay_dm")])
+    pytest.param(sigmaz(), basis(2, 0), SIGMAZ, [0, 1], id="sigmaz_ket"),
+    pytest.param(sigmaz(), basis(2, 0).proj(), SIGMAZ, [0, 1], id="sigmaz_dm"),
+    pytest.param(sigmax(), basis(2, 0), SIGMAX, [0.5, 0.5], id="sigmax_ket"),
+    pytest.param(sigmax(), basis(2, 0).proj(), SIGMAX, [0.5, 0.5],
+                 id="sigmax_dm"),
+    pytest.param(sigmay(), basis(2, 0), SIGMAY, [0.5, 0.5], id="sigmay_ket"),
+    pytest.param(sigmay(), basis(2, 0).proj(), SIGMAY, [0.5, 0.5],
+                 id="sigmay_dm"),
+])
 def test_measurement_statistics_observable(op, state, pairs, probabilities):
     """ measurement_statistics_observable: observables on basis states. """
 
@@ -88,55 +88,29 @@ def test_measurement_statistics_observable(op, state, pairs, probabilities):
         ess = ess_or_projs
         assert len(ess) == len(pairs.eigenstates)
         for a, b in zip(ess, pairs.eigenstates):
-            assert (_equivalent(a, b))
-
+            assert _equivalent(a, b)
     else:
         projs = ess_or_projs
         assert len(projs) == len(pairs.projectors)
         for a, b in zip(projs, pairs.projectors):
-            assert (_equivalent(a, b))
+            assert _equivalent(a, b)
     np.testing.assert_almost_equal(probs, probabilities)
 
 
-@pytest.mark.parametrize(["op", "state"], [
-                    pytest.param(sigmax(), tensor(basis(2, 0), basis(2, 0)),
-                                id="partial_ket_observable"),
-                    pytest.param(sigmaz(), tensor(ket2dm(basis(2, 0)),
-                                                    ket2dm(basis(2, 0))),
-                                id="partial_dm_observable")])
-def test_measurement_statistics_observable_ind(op, state):
-    """ measurement_statistics_observable: observables on basis
-        states with targets. """
-
-    evs1, ess_or_projs1, probs1 = measurement_statistics_observable(
-                                                state, tensor(op, identity(2)))
-    evs2, ess_or_projs2, probs2 = measurement_statistics_observable(
-                                                state, op, targets=[0])
-    np.testing.assert_almost_equal(evs1, evs2)
-    for a, b in zip(ess_or_projs1, ess_or_projs2):
-        assert isequal(a, b)
-    np.testing.assert_almost_equal(probs1, probs2)
-
-
 @pytest.mark.parametrize(["ops", "state", "final_states", "probabilities"], [
-                    pytest.param(PZ, basis(2, 0),
-                            [state0, None], [1, 0], id="PZ_ket"),
-                    pytest.param(PZ, ket2dm(basis(2, 0)),
-                            [ket2dm(state0), None], [1, 0], id="PZ_dm"),
-                    pytest.param(PZ_ket, basis(2, 0),
-                            [state0, None], [1, 0], id="PZket_ket"),
-                    pytest.param(PZ_ket, ket2dm(basis(2, 0)),
-                            [ket2dm(state0), None], [1, 0], id="PZket_dm"),
-                    pytest.param(PX, basis(2, 0),
-                            [stateplus, stateminus], [0.5, 0.5], id="PX_ket"),
-                    pytest.param(PX, ket2dm(basis(2, 0)),
-                            [ket2dm(stateplus), ket2dm(stateminus)],
-                            [0.5, 0.5], id="PX_dm"),
-                    pytest.param(PY, basis(2, 0),
-                            [stateR, stateL], [0.5, 0.5], id="PY_ket"),
-                    pytest.param(PY, ket2dm(basis(2, 0)),
-                            [ket2dm(stateR), ket2dm(stateL)],
-                            [0.5, 0.5], id="PY_dm")])
+    pytest.param(PZ, basis(2, 0), [state0, None], [1, 0], id="PZ_ket"),
+    pytest.param(PZ, basis(2, 0).proj(), [state0.proj(), None], [1, 0],
+                 id="PZ_dm"),
+    pytest.param(PZ_ket, basis(2, 0), [state0, None], [1, 0], id="PZket_ket"),
+    pytest.param(PZ_ket, basis(2, 0).proj(), [state0.proj(), None], [1, 0],
+                 id="PZket_dm"),
+    pytest.param(PX, basis(2, 0), [stateplus, stateminus], [0.5, 0.5],
+                 id="PX_ket"),
+    pytest.param(PX, basis(2, 0).proj(), [stateplus.proj(), stateminus.proj()],
+                 [0.5, 0.5], id="PX_dm"),
+    pytest.param(PY, basis(2, 0), [stateR, stateL], [0.5, 0.5], id="PY_ket"),
+    pytest.param(PY, basis(2, 0).proj(), [stateR.proj(), stateL.proj()],
+                 [0.5, 0.5], id="PY_dm")])
 def test_measurement_statistics_povm(ops, state, final_states, probabilities):
     """ measurement_statistics_povm: projectors applied to basis states. """
 
@@ -144,30 +118,10 @@ def test_measurement_statistics_povm(ops, state, final_states, probabilities):
     for i, final_state in enumerate(final_states):
         collapsed_state = collapsed_states[i]
         if final_state:
-            assert isequal(collapsed_state, final_state)
+            assert collapsed_state == final_state
         else:
             assert collapsed_state is None
     np.testing.assert_almost_equal(probs, probabilities)
-
-
-@pytest.mark.parametrize(["ops", "state"], [
-                    pytest.param(PX, tensor(basis(2, 0), basis(2, 0)),
-                                id="partial_ket"),
-                    pytest.param(PX,
-                                tensor(ket2dm(basis(2, 0)),
-                                        ket2dm(basis(2, 0))),
-                                id="partial_dm")])
-def test_measurement_statistics_ind(ops, state):
-    """ measurement_statistics_povm: projectors on basis states with targets. """
-
-    states1, probs1 = measurement_statistics_povm(
-                                    state,
-                                    [tensor(op, identity(2)) for op in ops])
-    states2, probs2 = measurement_statistics_povm(state, ops, targets=[0])
-
-    for a, b in zip(states1, states2):
-        assert isequal(a, b)
-    np.testing.assert_almost_equal(probs1, probs2)
 
 
 def test_measurement_statistics_povm_input_errors():
@@ -277,7 +231,7 @@ def test_measure(ops, state):
     collapsed_states, _ = measurement_statistics_povm(state, ops)
     for _ in range(10):
         index, final_state = measure_povm(state, ops)
-        assert isequal(final_state, collapsed_states[index])
+        assert final_state == collapsed_states[index]
 
 
 def test_measure_input_errors():
@@ -345,9 +299,9 @@ def test_povm():
     E_2 = coeff * ket2dm((basis(2, 0) - basis(2, 1))/(sqrt(2)))
     E_3 = identity(2) - E_1 - E_2
 
-    M_1 = Qobj(scipy.linalg.sqrtm(E_1))
-    M_2 = Qobj(scipy.linalg.sqrtm(E_2))
-    M_3 = Qobj(scipy.linalg.sqrtm(E_3))
+    M_1 = E_1.sqrtm()
+    M_2 = E_2.sqrtm()
+    M_3 = E_3.sqrtm()
 
     ket1 = basis(2, 0)
     ket2 = (basis(2, 0) + basis(2, 1))/(sqrt(2))
@@ -358,69 +312,13 @@ def test_povm():
     M = [M_1, M_2, M_3]
 
     _, probabilities = measurement_statistics_povm(ket1, M)
-    np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], 0.001)
+    np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], atol=0.001)
 
     _, probabilities = measurement_statistics_povm(ket2, M)
-    np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], 0.001)
+    np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], atol=0.001)
 
     _, probabilities = measurement_statistics_povm(dm1, M)
-    np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], 0.001)
+    np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], atol=0.001)
 
     _, probabilities = measurement_statistics_povm(dm2, M)
-    np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], 0.001)
-
-
-@pytest.mark.repeat(10)
-def test_measurement_comp_basis():
-    """
-    Test measurements to test probability calculation in
-    computational basis measurments on a 3 qubit state
-    """
-
-    qubit_kets = [rand_ket(2), rand_ket(2), rand_ket(2)]
-    qubit_dms = [ket2dm(qubit_kets[i]) for i in range(3)]
-
-    state = tensor(qubit_kets)
-    density_mat = tensor(qubit_dms)
-
-    for i in range(3):
-        m_i = Measurement("M" + str(i), i)
-        final_states, probabilities_state = m_i.measurement_comp_basis(state)
-        final_dms, probabilities_dm = m_i.measurement_comp_basis(density_mat)
-
-        amps = qubit_kets[i].full()
-        probabilities_i = [np.abs(amps[0][0])**2, np.abs(amps[1][0])**2]
-
-        np.testing.assert_allclose(probabilities_state, probabilities_dm)
-        np.testing.assert_allclose(probabilities_state, probabilities_i)
-        for j, final_state in enumerate(final_states):
-            np.testing.assert_allclose(final_dms[j], ket2dm(final_state))
-
-
-@pytest.mark.parametrize("index", [0, 1])
-def test_measurement_collapse(index):
-    """
-    Test if correct state is created after measurement using the example of
-    the Bell state
-    """
-
-    state_00 = tensor(basis(2, 0), basis(2, 0))
-    state_11 = tensor(basis(2, 1), basis(2, 1))
-
-    bell_state = (state_00 + state_11)/sqrt(2)
-    M = Measurement("BM", targets=[index])
-
-    states, probabilities = M.measurement_comp_basis(bell_state)
-    np.testing.assert_allclose(probabilities, [0.5, 0.5])
-
-    for i, state in enumerate(states):
-        if i == 0:
-            Mprime = Measurement("00", targets=[1-index])
-            states_00, probability_00 = Mprime.measurement_comp_basis(state)
-            assert probability_00[0] == 1
-            assert states_00[1] is None
-        else:
-            Mprime = Measurement("11", targets=[1-index])
-            states_11, probability_11 = Mprime.measurement_comp_basis(state)
-            assert probability_11[1] == 1
-            assert states_11[0] is None
+    np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], atol=0.001)

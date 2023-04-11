@@ -16,9 +16,10 @@ from scipy.special import genlaguerre, binom, sph_harm, factorial
 
 import qutip
 from qutip import Qobj, ket2dm, jmat
-from qutip.parallel import parfor
-from qutip.cy.sparse_utils import _csr_get_diag
-from qutip.sparse import eigh
+from .solver.parallel import parallel_map
+from .utilities import clebsch
+from .core import data as _data
+from .core.data.eigen import eigh
 
 
 def wigner_transform(psi, j, fullparity, steps, slicearray):
@@ -67,8 +68,8 @@ def wigner_transform(psi, j, fullparity, steps, slicearray):
     if not (psi.type == 'ket' or psi.type == 'operator' or psi.type == 'bra'):
         raise TypeError('Input state is not a valid operator.')
 
-    if psi.type == 'ket' or psi.type == 'bra':
-        rho = ket2dm(psi)
+    if psi.isket or psi.isbra:
+        rho = psi.proj()
     else:
         rho = psi
 
@@ -93,8 +94,9 @@ def wigner_transform(psi, j, fullparity, steps, slicearray):
         pari = _parity(sun, j)
     for t in range(steps):
         for p in range(steps):
-            wigner[t, p] = np.real(np.trace(rho.data @ _kernelsu2(
-                theta[:, t], phi[:, p], N, j, pari, fullparity)))
+            kernel = _kernelsu2(theta[:, t], phi[:, p], N, j, pari, fullparity)
+            kernel = _data.dense.fast_from_numpy(kernel)
+            wigner[t, p] = _data.expect(rho.data, kernel).real
     return wigner
 
 
@@ -110,7 +112,7 @@ def _parity(N, j):
         foo = np.ones(mult)
         for n in np.arange(-j, j + 1, 1):
             for l in np.arange(0, mult, 1):
-                foo[l] = (2 * l + 1) * qutip.clebsch(j, l, j, n, 0, n)
+                foo[l] = (2 * l + 1) * clebsch(j, l, j, n, 0, n)
             matrix[np.int32(n + j), np.int32(n + j)] = np.sum(foo)
         return matrix / mult
 
@@ -235,8 +237,8 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
     if method == 'fft':
         return _wigner_fourier(psi, xvec, g)
 
-    if psi.type == 'ket' or psi.type == 'bra':
-        rho = ket2dm(psi)
+    if psi.isket or psi.isbra:
+        rho = psi.proj()
     else:
         rho = psi
 
@@ -320,7 +322,7 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel):
         if parallel:
             iterator = (
                 (m, rho, A, B) for m in range(len(rho.data.indptr) - 1))
-            W1_out = parfor(_par_wig_eval, iterator)
+            W1_out = parallel_map(_par_wig_eval, iterator)
             W += sum(W1_out)
         else:
             for m in range(len(rho.data.indptr) - 1):
@@ -460,7 +462,7 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
 
     B = np.abs(A2)
     B *= B
-    w0 = (2*rho.data[0,-1])*np.ones_like(A2)
+    w0 = (2*rho[0, -1])*np.ones_like(A2)
     L = M-1
     #calculation of \sum_{L} c_L (2x)^L / \sqrt(L!)
     #using Horner's method
@@ -471,10 +473,11 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
             #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
             w0 = _wig_laguerre_val(L, B, np.diag(rho, L)) + w0 * A2 * (L+1)**-0.5
     else:
+        # TODO: fix dispatch.
+        _rho = _data.to(_data.CSR, rho.data).as_scipy()
         while L > 0:
             L -= 1
-            diag = _csr_get_diag(rho.data.data,rho.data.indices,
-                                rho.data.indptr,L)
+            diag = _rho.diagonal(L)
             if L != 0:
                 diag *= 2
             #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
@@ -529,7 +532,7 @@ def _qfunc_check_state(state: Qobj):
         state.isoper
         and state.dims[0] == state.dims[1]
         and state.isherm
-        and abs(state.tr() - 1) < qutip.settings.atol
+        and abs(state.tr() - 1) < qutip.settings.core['atol']
     )
     if not (state.isket or isdm):
         raise ValueError(
@@ -803,7 +806,7 @@ def qfunc(
         that is used for single kets, set ``precompute_memory=None``.
 
     Returns
-    --------
+    -------
     ndarray
         Values representing the Husimi-Q function calculated over the specified
         range ``[xvec, yvec]``.
@@ -884,11 +887,8 @@ def spin_q_function(rho, theta, phi):
 
     """
 
-    if rho.type == 'bra':
-        rho = rho.dag()
-
-    if rho.type == 'ket':
-        rho = ket2dm(rho)
+    if rho.isket or rho.isbra:
+        rho = rho.proj()
 
     J = rho.shape[0]
     j = (J - 1) / 2
@@ -896,18 +896,19 @@ def spin_q_function(rho, theta, phi):
     THETA, PHI = meshgrid(theta, phi)
 
     Q = np.zeros_like(THETA, dtype=complex)
+    data = rho.full()
 
     for m1 in arange(-j, j + 1):
         Q += binom(2 * j, j + m1) * cos(THETA / 2) ** (2 * (j + m1)) * \
              sin(THETA / 2) ** (2 * (j - m1)) * \
-             rho.data[int(j - m1), int(j - m1)]
+             data[int(j - m1), int(j - m1)]
 
         for m2 in arange(m1 + 1, j + 1):
             Q += (sqrt(binom(2 * j, j + m1)) * sqrt(binom(2 * j, j + m2)) *
                   cos(THETA / 2) ** (2 * j + m1 + m2) *
                   sin(THETA / 2) ** (2 * j - m1 - m2)) * \
-             (exp(1j * (m1 - m2) * PHI) * rho.data[int(j - m1), int(j - m2)] +
-              exp(1j * (m2 - m1) * PHI) * rho.data[int(j - m2), int(j - m1)])
+             (exp(1j * (m1 - m2) * PHI) * data[int(j - m1), int(j - m2)] +
+              exp(1j * (m2 - m1) * PHI) * data[int(j - m2), int(j - m1)])
 
     return Q.real, THETA, PHI
 
@@ -935,13 +936,14 @@ def _rho_kq(rho, j, k, q):
     """
 
     v = 0j
+    data = rho.full()
     for m1 in arange(-j, j+1):
         for m2 in arange(-j, j+1):
             v += (
                     (-1) ** (2 * j - k - m1 - m2)
                     * np.sqrt((2 * k + 1) / (2 * j + 1))
-                    * qutip.clebsch(j, k, j, -m1, q, -m2)
-                    * rho.data[int(j - m1), int(j - m2)]
+                    * clebsch(j, k, j, -m1, q, -m2)
+                    * data[int(j - m1), int(j - m2)]
             )
     return v
 
@@ -983,12 +985,8 @@ def spin_wigner(rho, theta, phi):
     taken from Wikipedia (https://en.wikipedia.org/wiki/3-j_symbol)
 
     """
-
-    if rho.type == 'bra':
-        rho = rho.dag()
-
-    if rho.type == 'ket':
-        rho = ket2dm(rho)
+    if rho.isket or rho.isbra:
+        rho = rho.proj()
 
     J = rho.shape[0]
     j = (J - 1) / 2

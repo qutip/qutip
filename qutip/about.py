@@ -9,8 +9,8 @@ import platform
 import numpy
 import scipy
 import inspect
-from qutip.utilities import _blas_info, available_cpu_count
-import qutip.settings
+import qutip
+from qutip.settings import _blas_info, settings
 
 
 def about():
@@ -52,10 +52,10 @@ def about():
         matplotlib_ver = 'None'
     print("Matplotlib Version: %s" % matplotlib_ver)
     print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
-    print("Number of CPUs:     %s" % available_cpu_count())
+    print("Number of CPUs:     %s" % settings.num_cpus)
     print("BLAS Info:          %s" % _blas_info())
-    print("OPENMP Installed:   %s" % str(qutip.settings.has_openmp))
-    print("INTEL MKL Ext:      %s" % str(qutip.settings.has_mkl))
+    # print("OPENMP Installed:   %s" % str(qutip.settings.has_openmp))
+    print("INTEL MKL Ext:      %s" % str(settings.has_mkl))
     print("Platform Info:      %s (%s)" % (platform.system(),
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))

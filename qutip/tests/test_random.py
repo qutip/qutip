@@ -1,196 +1,311 @@
 import numpy as np
-from qutip import (
-    rand_ket, rand_dm, rand_herm, rand_unitary, rand_ket_haar, rand_dm_hs,
-    rand_super, rand_unitary_haar, rand_dm_ginibre, rand_super_bcsz, qeye,
-    rand_stochastic,
-)
+from numpy.random import SeedSequence, default_rng
+import scipy.sparse as sp
+import scipy.linalg as la
 import pytest
 
+from qutip import qeye, num, to_kraus, kraus_to_choi, CoreOptions, Qobj
+from qutip import data as _data
+from qutip.random_objects import (
+    rand_herm,
+    rand_unitary,
+    rand_dm,
+    rand_ket,
+    rand_stochastic,
+    rand_super,
+    rand_super_bcsz,
+    rand_kraus_map,
+)
 
-@pytest.mark.repeat(5)
-@pytest.mark.parametrize('func', [rand_unitary, rand_unitary_haar])
-def test_rand_unitary(func):
-    """
-    Random Qobjs: Tests that unitaries are actually unitary.
-    """
-    random_qobj = func(5)
-    I = qeye(5)
-    assert random_qobj * random_qobj.dag() == I
+
+@pytest.fixture(params=[
+    12,
+    [8],
+    [2, 2, 3],
+    [[2], [2]]
+], ids=["int", "list", "tensor", "super"])
+def dimensions(request):
+    return request.param
 
 
-@pytest.mark.repeat(5)
+@pytest.fixture(
+    params=list(_data.to.dtypes),
+    ids=lambda dtype: str(dtype)[:-2].split(".")[-1]
+)
+def dtype(request):
+    return request.param
+
+
+def _assert_density(qobj, density):
+    N = np.sum(qobj.full() != 0)
+    density = N / np.prod(qobj.shape)
+    assert density == pytest.approx(density, abs=0.2)
+
+
+def _assert_metadata(random_qobj, dims, dtype=None, super=False, ket=False):
+    if isinstance(dims, int):
+        dims = [dims]
+    N = np.prod(dims)
+    if super and not isinstance(dims[0], list):
+        target_dims_0 = [dims, dims]
+        shape0 = N**2
+    else:
+        target_dims_0 = dims
+        shape0 = N
+
+    if ket:
+        target_dims_1 = [1]
+        shape1 = 1
+    else:
+        target_dims_1 = target_dims_0
+        shape1 = shape0
+
+    assert random_qobj.dims[0] == target_dims_0
+    assert random_qobj.dims[1] == target_dims_1
+    assert random_qobj.shape == (shape0, shape1)
+
+    if dtype:
+        assert isinstance(random_qobj.data, dtype)
+
+
+@pytest.mark.repeat(3)
 @pytest.mark.parametrize('density', [0.2, 0.8], ids=["sparse", "dense"])
-@pytest.mark.parametrize('pos_def', [True, False])
-def test_rand_herm(density, pos_def):
+@pytest.mark.parametrize('distribution', ["fill", "pos_def"])
+def test_rand_herm(dimensions, density, distribution, dtype):
     """
     Random Qobjs: Hermitian matrix
     """
-    random_qobj = rand_herm(5, density=density, pos_def=pos_def)
-    if pos_def:
+    random_qobj = rand_herm(
+        dimensions,
+        density=density,
+        distribution=distribution,
+        dtype=dtype
+    )
+    if distribution == "pos_def":
         assert all(random_qobj.eigenenergies() > -1e14)
     assert random_qobj.isherm
+    assert _data.isherm(random_qobj.data)
+    _assert_metadata(random_qobj, dimensions, dtype)
+    _assert_density(random_qobj, density)
 
 
-@pytest.mark.repeat(5)
-def test_rand_herm_Eigs():
+@pytest.mark.repeat(3)
+@pytest.mark.parametrize('density', [0.2, 0.8], ids=["sparse", "dense"])
+def test_rand_herm_Eigs(dimensions, density):
     """
     Random Qobjs: Hermitian matrix - Eigs given
     """
-    eigs = np.random.random(5)
+    N = np.prod(dimensions)
+    eigs = np.random.random(N)
     eigs /= np.sum(eigs)
     eigs.sort()
-    random_qobj = rand_herm(eigs)
+    random_qobj = rand_herm(dimensions, density, "eigen", eigenvalues=eigs)
     np.testing.assert_allclose(random_qobj.eigenenergies(), eigs)
     # verify hermitian
     assert random_qobj.isherm
+    assert _data.isherm(random_qobj.data)
+    _assert_metadata(random_qobj, dimensions)
+    _assert_density(random_qobj, density)
 
 
 @pytest.mark.repeat(5)
-@pytest.mark.parametrize('func', [rand_dm, rand_dm_hs])
-def test_rand_dm(func):
+@pytest.mark.parametrize('distribution', ["haar", "exp"])
+@pytest.mark.parametrize('density', [0.2, 0.8])
+def test_rand_unitary(dimensions, distribution, density, dtype):
+    """
+    Random Qobjs: Tests that unitaries are actually unitary.
+    """
+    N = np.prod(dimensions)
+    random_qobj = rand_unitary(
+        dimensions, distribution=distribution,
+        density=density, dtype=dtype
+    )
+    I = qeye(dimensions)
+    assert random_qobj * random_qobj.dag() == I
+    _assert_metadata(random_qobj, dimensions, dtype)
+    if distribution == "exp":
+        _assert_density(random_qobj, density)
+
+
+@pytest.mark.repeat(3)
+@pytest.mark.parametrize(["distribution", "kw"], [
+    pytest.param("ginibre", {"rank": 3}),
+    pytest.param("ginibre", {"rank": 1}),
+    pytest.param("hs", {"rank": 0}),
+    pytest.param("pure", {"rank": 1, "density": 0.5}),
+    pytest.param("eigen", {"eigenvalues": True}),
+    pytest.param("herm", {"density": 0.7}),
+    pytest.param("herm", {"density": 0.3}),
+])
+def test_rand_dm(dimensions, kw, dtype, distribution):
     """
     Random Qobjs: Density matrix
     """
-    random_qobj = func(5)
+    N = np.prod(dimensions)
+    print(N, kw)
+    if "eigenvalues" in kw:
+        eigs = np.random.random(N)
+        eigs /= np.sum(eigs)
+        eigs.sort()
+        kw["eigenvalues"] = eigs
+
+    random_qobj = rand_dm(
+        dimensions,
+        distribution=distribution,
+        dtype=dtype,
+        **kw
+    )
     assert abs(random_qobj.tr() - 1.0) < 1e-14
     # verify all eigvals are >=0
     assert all(random_qobj.eigenenergies() >= -1e-14)
     # verify hermitian
     assert random_qobj.isherm
+    assert _data.isherm(random_qobj.data)
 
+    _assert_metadata(random_qobj, dimensions, dtype)
 
-@pytest.mark.repeat(5)
-def test_rand_dm_Eigs():
-    """
-    Random Qobjs: Density matrix - Eigs given
-    """
-    eigs = np.random.random(5)
-    eigs /= np.sum(eigs)
-    eigs.sort()
-    random_qobj = rand_dm(eigs)
-    assert abs(random_qobj.tr() - 1.0) < 1e-14
-    np.testing.assert_allclose(random_qobj.eigenenergies(), eigs)
-    # verify hermitian
-    assert random_qobj.isherm
+    eigenvalues = random_qobj.eigenenergies()
 
+    if "rank" in kw:
+        print(kw["rank"], N, kw["rank"] or N)
+        desired_rank = kw["rank"] or N  # 'hs' is full rank.
+        rank = sum([abs(E) >= 1e-10 for E in eigenvalues])
+        assert rank == desired_rank
 
-@pytest.mark.repeat(5)
-def test_rand_dm_ginibre_rank():
-    """
-    Random Qobjs: Ginibre-random density ops have correct rank.
-    """
-    random_qobj = rand_dm_ginibre(5, rank=3)
-    rank = sum([abs(E) >= 1e-10 for E in random_qobj.eigenenergies()])
-    assert rank == 3
+    if "eigenvalues" in kw:
+        np.testing.assert_allclose(eigenvalues, kw["eigenvalues"])
+
+    if "density" in kw:
+        _assert_density(random_qobj, kw["density"])
 
 
 @pytest.mark.repeat(5)
 @pytest.mark.parametrize('kind', ["left", "right"])
-def test_rand_stochastic(kind):
+def test_rand_stochastic(dimensions, kind, dtype):
     """
     Random Qobjs: Test random stochastic
     """
-    random_qobj = rand_stochastic(5, kind=kind)
+    random_qobj = rand_stochastic(dimensions, kind=kind, dtype=dtype)
     axis = {"left":0, "right":1}[kind]
-    np.testing.assert_allclose(np.sum(random_qobj.full(), axis=axis), 1,
-                               atol=1e-14)
+    np.testing.assert_allclose(
+        np.sum(random_qobj.full(), axis=axis),
+        1, atol=1e-14
+    )
+    _assert_metadata(random_qobj, dimensions, dtype)
 
 
 @pytest.mark.repeat(5)
-@pytest.mark.parametrize('func', [rand_ket, rand_ket_haar])
-def test_rand_ket(func):
+@pytest.mark.parametrize('distribution', ["haar", "fill"])
+def test_rand_ket(dimensions, distribution, dtype):
     """
     Random Qobjs: Test random ket type and norm.
     """
-    random_qobj = func(5)
+    random_qobj = rand_ket(dimensions, distribution=distribution, dtype=dtype)
+
     assert random_qobj.type == 'ket'
     assert abs(random_qobj.norm() - 1) < 1e-14
 
+    if isinstance(dimensions, int):
+        dims = [dimensions]
+    N = np.prod(dimensions)
+    _assert_metadata(random_qobj, dimensions, dtype, ket=True)
 
-@pytest.mark.repeat(5)
-def test_rand_super():
+
+@pytest.mark.repeat(2)
+@pytest.mark.parametrize('superrep', ["choi", "super"])
+def test_rand_super(dimensions, dtype, superrep):
     """
     Random Qobjs: Super operator.
     """
-    random_qobj = rand_super(5)
+    random_qobj = rand_super(dimensions, dtype=dtype, superrep=superrep)
     assert random_qobj.issuper
+    with CoreOptions(atol=1e-9):
+        assert random_qobj.iscptp
+    assert random_qobj.superrep == superrep
+    _assert_metadata(random_qobj, dimensions, dtype, super=True)
 
 
-@pytest.mark.repeat(5)
-def test_rand_super_bcsz_cptp():
+@pytest.mark.repeat(2)
+@pytest.mark.parametrize('rank', [None, 4])
+@pytest.mark.parametrize('superrep', ["choi", "super"])
+def test_rand_super_bcsz(dimensions, dtype, rank, superrep):
     """
     Random Qobjs: Tests that BCSZ-random superoperators are CPTP.
     """
-    random_qobj = rand_super_bcsz(5)
+
+    random_qobj = rand_super_bcsz(dimensions, rank=rank,
+                                  dtype=dtype, superrep=superrep)
     assert random_qobj.issuper
-    assert random_qobj.iscptp
+    with CoreOptions(atol=1e-9):
+        assert random_qobj.iscptp
+    assert random_qobj.superrep == superrep
+    _assert_metadata(random_qobj, dimensions, dtype, super=True)
+    if (
+        not rank
+        and isinstance(dimensions, list)
+        and isinstance(dimensions[0], list)
+    ):
+        # dimensions = [[a], [a]], qobj.dims = [[[a], [a]], [[a], [a]]]
+        rank = np.prod(dimensions)
+    elif not rank:
+        # dimensions = [a], qobj.dims = [[[a], [a]], [[a], [a]]]
+        rank = np.prod(dimensions)**2
+    rank = rank or N
+    obtained_rank = len(to_kraus(random_qobj, tol=1e-13))
+    assert obtained_rank == rank
 
 
-@pytest.mark.parametrize('func', [
-    rand_unitary, rand_unitary_haar, rand_herm,
-    rand_dm, rand_dm_hs, rand_dm_ginibre,
-    rand_ket, rand_ket_haar,
-    rand_super, rand_super_bcsz
+@pytest.mark.parametrize("function", [
+    pytest.param(rand_herm, id="rand_herm"),
+    pytest.param(rand_unitary, id="rand_unitary"),
+    pytest.param(rand_dm, id="rand_dm"),
+    pytest.param(rand_ket, id="rand_ket"),
+    pytest.param(rand_stochastic, id="rand_stochastic"),
+    pytest.param(rand_super, id="rand_super"),
+    pytest.param(rand_super_bcsz, id="rand_super_bcsz"),
 ])
-def test_random_seeds(func):
+@pytest.mark.parametrize("seed", [
+    pytest.param(lambda : 123, id="int"),
+    pytest.param(lambda : SeedSequence(123), id="SeedSequence"),
+    pytest.param(lambda : default_rng(123), id="Generator")
+])
+def test_random_seeds(function, seed):
     """
     Random Qobjs: Random number generator seed
     """
-    seed = 12345
-    U0 = func(5, seed=seed)
-    U1 = func(5, seed=None)
-    U2 = func(5, seed=seed)
+    U0 = function(5, seed=seed())
+    U1 = function(5, seed=None)
+    U2 = function(5, seed=seed())
     assert U0 != U1
     assert U0 == U2
 
 
-@pytest.mark.parametrize('func', [rand_ket, rand_ket_haar])
-@pytest.mark.parametrize(('args', 'kwargs', 'dims'), [
-    pytest.param((6,), {}, [[6], [1]], id="N"),
-    pytest.param((), {'dims': [[2, 3], [1, 1]]}, [[2, 3], [1, 1]], id="dims"),
-    pytest.param((6,), {'dims': [[2, 3], [1, 1]]}, [[2, 3], [1, 1]],
-                 id="both"),
-])
-def test_rand_vector_dims(func, args, kwargs, dims):
-    shape = np.prod(dims[0]), np.prod(dims[1])
-    output = func(*args, **kwargs)
-    assert output.shape == shape
-    assert output.dims == dims
+def test_kraus_map(dimensions, dtype):
+    kmap = rand_kraus_map(dimensions, dtype=dtype)
+    _assert_metadata(kmap[0], dimensions, dtype)
+    with CoreOptions(atol=1e-9):
+        assert kraus_to_choi(kmap).iscptp
 
 
-@pytest.mark.parametrize('func', [rand_ket, rand_ket_haar])
-def test_rand_ket_raises_if_no_args(func):
-    with pytest.raises(ValueError):
-        func()
-
-
+dtype_names = list(_data.to._str2type.keys()) + list(_data.to.dtypes)
+dtype_types = list(_data.to._str2type.values()) + list(_data.to.dtypes)
+@pytest.mark.parametrize(['alias', 'dtype'], zip(dtype_names, dtype_types),
+                         ids=[str(dtype) for dtype in dtype_names])
 @pytest.mark.parametrize('func', [
-    rand_unitary, rand_herm, rand_dm, rand_unitary_haar, rand_dm_ginibre,
-    rand_dm_hs, rand_stochastic,
+    rand_herm,
+    rand_unitary,
+    rand_dm,
+    rand_ket,
+    rand_stochastic,
+    rand_super,
+    rand_super_bcsz,
+    rand_kraus_map,
 ])
-@pytest.mark.parametrize(('args', 'kwargs', 'dims'), [
-    pytest.param((6,), {}, [[6], [6]], id="N"),
-    pytest.param((6,), {'dims': [[2, 3], [2, 3]]}, [[2, 3], [2, 3]],
-                 id="both"),
-])
-def test_rand_oper_dims(func, args, kwargs, dims):
-    shape = np.prod(dims[0]), np.prod(dims[1])
-    output = func(*args, **kwargs)
-    assert output.shape == shape
-    assert output.dims == dims
-
-
-_super_dims = [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
-
-
-@pytest.mark.parametrize('func', [rand_super, rand_super_bcsz])
-@pytest.mark.parametrize(('args', 'kwargs', 'dims'), [
-    pytest.param((6,), {}, [[[6]]*2]*2, id="N"),
-    pytest.param((6,), {'dims': _super_dims}, _super_dims,
-                 id="both"),
-])
-def test_rand_super_dims(func, args, kwargs, dims):
-    shape = np.prod(dims[0]), np.prod(dims[1])
-    output = func(*args, **kwargs)
-    assert output.shape == shape
-    assert output.dims == dims
+def test_random_dtype(func, alias, dtype):
+    with CoreOptions(default_dtype=alias):
+        object = func(2)
+        if isinstance(object, Qobj):
+            assert isinstance(object.data, dtype)
+        else:
+            for obj in object:
+                assert isinstance(obj.data, dtype)

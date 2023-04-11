@@ -3,9 +3,10 @@ __all__ = ['partial_transpose']
 import numpy as np
 import scipy.sparse as sp
 
-from qutip.qobj import Qobj
-from qutip.states import (state_index_number, state_number_index,
-                          state_number_enumerate)
+from . import (
+    Qobj, state_index_number, state_number_index, state_number_enumerate,
+)
+from .core.dimensions import flatten
 
 
 def partial_transpose(rho, mask, method='dense'):
@@ -60,9 +61,10 @@ def _partial_transpose_dense(rho, mask):
     pt_idx = np.concatenate([[pt_dims[n, mask[n]] for n in range(nsys)],
                             [pt_dims[n, 1 - mask[n]] for n in range(nsys)]])
 
-    data = rho.data.toarray().reshape(
-        np.array(rho.dims).flatten()).transpose(pt_idx).reshape(rho.shape)
-
+    data = (rho.full()
+            .reshape(flatten(rho.dims))
+            .transpose(pt_idx)
+            .reshape(rho.shape))
     return Qobj(data, dims=rho.dims)
 
 
@@ -72,15 +74,16 @@ def _partial_transpose_sparse(rho, mask):
     """
 
     data = sp.lil_matrix((rho.shape[0], rho.shape[1]), dtype=complex)
+    rho_data = rho.to("CSR").data.as_scipy()
 
-    for m in range(len(rho.data.indptr) - 1):
+    for m in range(len(rho_data.indptr) - 1):
 
-        n1 = rho.data.indptr[m]
-        n2 = rho.data.indptr[m + 1]
+        n1 = rho_data.indptr[m]
+        n2 = rho_data.indptr[m + 1]
 
         psi_A = state_index_number(rho.dims[0], m)
 
-        for idx, n in enumerate(rho.data.indices[n1:n2]):
+        for idx, n in enumerate(rho_data.indices[n1:n2]):
 
             psi_B = state_index_number(rho.dims[1], n)
 
@@ -89,7 +92,7 @@ def _partial_transpose_sparse(rho, mask):
             n_pt = state_number_index(
                 rho.dims[0], np.choose(mask, [psi_B, psi_A]))
 
-            data[m_pt, n_pt] = rho.data.data[n1 + idx]
+            data[m_pt, n_pt] = rho_data.data[n1 + idx]
 
     return Qobj(data.tocsr(), dims=rho.dims)
 
@@ -114,6 +117,6 @@ def _partial_transpose_reference(rho, mask):
             n_pt = state_number_index(
                 rho.dims[0], np.choose(mask, [psi_B, psi_A]))
 
-            A_pt[m_pt, n_pt] = rho.data[m, n]
+            A_pt[m_pt, n_pt] = rho.to("CSR").data.as_scipy()[m, n]
 
     return Qobj(A_pt, dims=rho.dims)

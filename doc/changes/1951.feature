@@ -1,0 +1,1 @@
+Add support for different spectra types for bloch_redfield_tensor

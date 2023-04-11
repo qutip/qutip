@@ -10,7 +10,7 @@ With time-consuming calculations it is often necessary to store the results to f
 Storing and loading QuTiP objects
 =================================
 
-To store and load arbitrary QuTiP related objects (:class:`qutip.Qobj`, :class:`qutip.solver.Result`, etc.) there are two functions: :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload`. The function :func:`qutip.fileio.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The function :func:`qutip.fileio.qload` takes a mandatory filename as first argument and loads and returns the objects in the file.
+To store and load arbitrary QuTiP related objects (:class:`qutip.Qobj`, :class:`qutip.solve.solver.Result`, etc.) there are two functions: :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload`. The function :func:`qutip.fileio.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The function :func:`qutip.fileio.qload` takes a mandatory filename as first argument and loads and returns the objects in the file.
 
 To illustrate how these functions can be used, consider a simple calculation of the steadystate of the harmonic oscillator ::
 

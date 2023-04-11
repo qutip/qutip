@@ -388,15 +388,15 @@ Note that to obtain :math:`\chi` with this method we have to construct a matrix 
 Implementation in QuTiP
 -----------------------
 
-In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the :math:`i`-SWAP gate for two qubits. In QuTiP the function :func:`qutip.qip.operations.iswap<qutip.qip.operations.gates.iswap>` generates the unitary transformation for the state kets:
+In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the SWAP gate for two qubits. In QuTiP the function :func:`qutip.core.operators.swap` generates the unitary transformation for the state kets:
 
 
 .. plot::
     :context: close-figs
 
-    from qutip.qip.operations import iswap
+    from qutip.core.gates import swap
 
-    U_psi = iswap()
+    U_psi = swap()
 
 To be able to use this unitary transformation matrix as input to the function :func:`qutip.tomography.qpt`, we first need to convert it to a transformation matrix for the corresponding density matrix:
 
@@ -422,7 +422,7 @@ We are now ready to compute :math:`\chi` using :func:`qutip.tomography.qpt`, and
 
     chi = qpt(U_rho, op_basis)
 
-    fig = qpt_plot_combined(chi, op_label, r'$i$SWAP')
+    fig = qpt_plot_combined(chi, op_label, r'SWAP')
 
     plt.show()
 

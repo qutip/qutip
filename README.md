@@ -18,9 +18,22 @@ and [J. R. Johansson](https://github.com/jrjohansson)
 [![Build Status](https://github.com/qutip/qutip/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/qutip/qutip/actions/workflows/tests.yml)
 [![Coverage Status](https://img.shields.io/coveralls/qutip/qutip.svg?logo=Coveralls)](https://coveralls.io/r/qutip/qutip)
 [![Maintainability](https://api.codeclimate.com/v1/badges/df502674f1dfa1f1b67a/maintainability)](https://codeclimate.com/github/qutip/qutip/maintainability)
-[![license](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)  
+[![license](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![PyPi Downloads](https://img.shields.io/pypi/dm/qutip?label=downloads%20%7C%20pip&logo=PyPI)](https://pypi.org/project/qutip)
 [![Conda-Forge Downloads](https://img.shields.io/conda/dn/conda-forge/qutip?label=downloads%20%7C%20conda&logo=Conda-Forge)](https://anaconda.org/conda-forge/qutip)
+
+> **Note**
+>
+> The master branch now contains the alpha version of QuTiP 5. This is major
+> revision that breaks compatibility in many small ways withh QuTiP 4.7.
+>
+> If you need to track QuTiP 4.7 changes or submit pull requests for 4.7,
+> please use the `qutip-4.7.X` branch.
+>
+> If you need to track QuTiP 5 changes or submit  pull request for 5,
+> please use the `master` branch (and not the `dev.major` branch).
+>
+> The change to master happened on 16 January 2023 in commit @fccec5d.
 
 QuTiP is open-source software for simulating the dynamics of closed and open quantum systems.
 It uses the excellent Numpy, Scipy, and Cython packages as numerical backends, and graphical output is provided by Matplotlib.
@@ -59,15 +72,31 @@ All back releases are also available for download in the [releases section of th
 For the most complete set of release notes and changelogs for historic versions, see the [changelog](https://qutip.org/docs/latest/changelog.html) section in the documentation.
 
 
+The pre-release of QuTiP 5.0 is available on PyPI and can be installed using pip:
+
+```bash
+pip install --pre qutip
+```
+
+This version breaks compatibility with QuTiP 4.7 in many small ways.
+Please see the [changelog](https://github.com/qutip/qutip/blob/master/doc/changelog.rst) for a list of changes, new features and deprecations.
+This version should be fully working. If you find any bugs, confusing documentation or missing features, please create a GitHub issue.
+
+
 Documentation
 -------------
 
+[![Documentation Status - Latest](https://readthedocs.org/projects/qutip/badge/?version=latest)](https://qutip.readthedocs.io/en/latest/?badge=latest)
+
+The documentation for the latest [stable release](https://qutip.readthedocs.io/en/latest/) and the [master](https://qutip.readthedocs.io/en/master/) branch is available for reading on Read The Docs.
+
 The documentation for official releases, in HTML and PDF formats, can be found in the [documentation section of the QuTiP website](https://qutip.org/documentation.html).
+
 The latest development documentation is available in this repository in the `doc` folder.
 
 A [selection of demonstration notebooks is available](https://qutip.org/tutorials.html), which demonstrate some of the many features of QuTiP.
-These are stored in the [qutip/qutip-notebooks repository](https://github.com/qutip/qutip-notebooks) here on GitHub.
-You can run the notebooks online using myBinder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/qutip/qutip-notebooks/master?filepath=index.ipynb)
+These are stored in the [qutip/qutip-tutorials repository](https://github.com/qutip/qutip-tutorials) here on GitHub.
+
 
 Contribute
 ----------

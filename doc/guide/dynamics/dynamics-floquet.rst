@@ -93,7 +93,7 @@ Consider for example the case of a strongly driven two-level atom, described by 
 In QuTiP we can define this Hamiltonian as follows:
 
 .. plot::
-   :context:
+   :context: reset
 
    >>> delta = 0.2 * 2*np.pi
    >>> eps0 = 1.0 * 2*np.pi
@@ -104,15 +104,17 @@ In QuTiP we can define this Hamiltonian as follows:
    >>> args = {'w': omega}
    >>> H = [H0, [H1, 'sin(w * t)']]
 
-The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qubit` can then be calculated using the :func:`qutip.floquet.floquet_modes` function, which returns lists containing the Floquet modes and the quasienergies
+The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qubit` can then be calculated using the :class:`qutip.FloquetBasis` class, which encapsulates the Floquet modes and the quasienergies:
 
 .. plot::
-   :context:
+   :context: close-figs
 
    >>> T = 2*np.pi / omega
-   >>> f_modes_0, f_energies = floquet_modes(H, T, args)
+   >>> floquet_basis = FloquetBasis(H, T, args)
+   >>> f_energies = floquet_basis.e_quasi
    >>> f_energies # doctest: +NORMALIZE_WHITESPACE
    array([-2.83131212,  2.83131212])
+   >>> f_modes_0 = floquet_basis.mode(0)
    >>> f_modes_0 # doctest: +NORMALIZE_WHITESPACE
    [Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
    Qobj data =
@@ -123,26 +125,29 @@ The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qu
    [[0.39993746+0.554682j]
     [0.72964231+0.j      ]]]
 
-For some problems interesting observations can be draw from the quasienergy levels alone. Consider for example the quasienergies for the driven two-level system introduced above as a function of the driving amplitude, calculated and plotted in the following example. For certain driving amplitudes the quasienergy levels cross. Since the quasienergies can be associated with the time-scale of the long-term dynamics due that the driving, degenerate quasienergies indicates a "freezing" of the dynamics (sometimes known as coherent destruction of tunneling).
+For some problems interesting observations can be draw from the quasienergy levels alone.
+Consider for example the quasienergies for the driven two-level system introduced above as a function of the driving amplitude, calculated and plotted in the following example.
+For certain driving amplitudes the quasienergy levels cross.
+Since the quasienergies can be associated with the time-scale of the long-term dynamics due that the driving, degenerate quasienergies indicates a "freezing" of the dynamics (sometimes known as coherent destruction of tunneling).
 
 .. plot::
-   :context:
+   :context: close-figs
 
-   >>> delta = 0.2 * 2*np.pi
-   >>> eps0  = 0.0 * 2*np.pi
-   >>> omega = 1.0 * 2*np.pi
+   >>> delta = 0.2 * 2 * np.pi
+   >>> eps0  = 0.0 * 2 * np.pi
+   >>> omega = 1.0 * 2 * np.pi
    >>> A_vec = np.linspace(0, 10, 100) * omega
-   >>> T = (2*np.pi)/omega
+   >>> T = (2 * np.pi) / omega
    >>> tlist = np.linspace(0.0, 10 * T, 101)
-   >>> spsi0 = basis(2,0)
+   >>> spsi0 = basis(2, 0)
    >>> q_energies = np.zeros((len(A_vec), 2))
-   >>> H0 = delta/2.0 * sigmaz() - eps0/2.0 * sigmax()
+   >>> H0 = delta / 2.0 * sigmaz() - eps0 / 2.0 * sigmax()
    >>> args = {'w': omega}
    >>> for idx, A in enumerate(A_vec): # doctest: +SKIP
-   >>>   H1 = A/2.0 * sigmax() # doctest: +SKIP
-   >>>   H = [H0, [H1, lambda t, args: np.sin(args['w']*t)]] # doctest: +SKIP
-   >>>   f_modes, f_energies = floquet_modes(H, T, args, True) # doctest: +SKIP
-   >>>   q_energies[idx,:] = f_energies # doctest: +SKIP
+   >>>   H1 = A / 2.0 * sigmax() # doctest: +SKIP
+   >>>   H = [H0, [H1, lambda t, args: np.sin(args['w'] * t)]] # doctest: +SKIP
+   >>>   floquet_basis = FloquetBasis(H, T, args)
+   >>>   q_energies[idx,:] = floquet_basis.e_quasi # doctest: +SKIP
    >>> plt.figure() # doctest: +SKIP
    >>> plt.plot(A_vec/omega, q_energies[:,0] / delta, 'b', A_vec/omega, q_energies[:,1] / delta, 'r') # doctest: +SKIP
    >>> plt.xlabel(r'$A/\omega$') # doctest: +SKIP
@@ -150,12 +155,12 @@ For some problems interesting observations can be draw from the quasienergy leve
    >>> plt.title(r'Floquet quasienergies') # doctest: +SKIP
    >>> plt.show() # doctest: +SKIP
 
-Given the Floquet modes at :math:`t=0`, we obtain the Floquet mode at some later time :math:`t` using the function :func:`qutip.floquet.floquet_modes_t`:
+Given the Floquet modes at :math:`t=0`, we obtain the Floquet mode at some later time :math:`t` using :meth:`FloquetBasis.mode`:
 
 .. plot::
    :context: close-figs
 
-   >>> f_modes_t = floquet_modes_t(f_modes_0, f_energies, 2.5, H, T, args)
+   >>> f_modes_t = floquet_basis.mode(2.5)
    >>> f_modes_t # doctest: +SKIP
    [Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
    Qobj data =
@@ -166,24 +171,25 @@ Given the Floquet modes at :math:`t=0`, we obtain the Floquet mode at some later
    [[-0.37793106-0.00431336j]
     [-0.89630512+0.23191946j]]]
 
-The purpose of calculating the Floquet modes is to find the wavefunction solution to the original problem :eq:`eq_driven_qubit` given some initial state :math:`\left|\psi_0\right>`. To do that, we first need to decompose the initial state in the Floquet states, using the function :func:`qutip.floquet.floquet_state_decomposition`
+The purpose of calculating the Floquet modes is to find the wavefunction solution to the original problem :eq:`eq_driven_qubit` given some initial state :math:`\left|\psi_0\right>`.
+To do that, we first need to decompose the initial state in the Floquet states, using the function :meth:`FloquetBasis.to_floquet_basis`
 
 .. plot::
-   :context:
+   :context: close-figs
 
    >>> psi0 = rand_ket(2)
-   >>> f_coeff = floquet_state_decomposition(f_modes_0, f_energies, psi0)
+   >>> f_coeff = floquet_basis.to_floquet_basis(psi0)
    >>> f_coeff # doctest: +SKIP
    [(-0.645265993068382+0.7304552549315746j),
    (0.15517002114250228-0.1612116102238258j)]
 
-and given this decomposition of the initial state in the Floquet states we can easily evaluate the wavefunction that is the solution to :eq:`eq_driven_qubit` at an arbitrary time :math:`t` using the function :func:`qutip.floquet.floquet_wavefunction_t`
+and given this decomposition of the initial state in the Floquet states we can easily evaluate the wavefunction that is the solution to :eq:`eq_driven_qubit` at an arbitrary time :math:`t` using the function :meth:`FloquetBasis.from_floquet_basis`:
 
 .. plot::
-   :context:
+   :context: close-figs
 
    >>> t = 10 * np.random.rand()
-   >>> psi_t = floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args)
+   >>> psi_t = floquet_basis.from_floquet_basis(f_coeff, t)
 
 The following example illustrates how to use the functions introduced above to calculate and plot the time-evolution of :eq:`eq_driven_qubit`.
 
@@ -194,7 +200,9 @@ The following example illustrates how to use the functions introduced above to c
 Pre-computing the Floquet modes for one period
 ----------------------------------------------
 
-When evaluating the Floquet states or the wavefunction at many points in time it is useful to pre-compute the Floquet modes for the first period of the driving with the required resolution. In QuTiP the function :func:`qutip.floquet.floquet_modes_table` calculates a table of Floquet modes which later can be used together with the function :func:`qutip.floquet.floquet_modes_t_lookup` to efficiently lookup the Floquet mode at an arbitrary time. The following example illustrates how the example from the previous section can be solved more efficiently using these functions for pre-computing the Floquet modes.
+When evaluating the Floquet states or the wavefunction at many points in time it is useful to pre-compute the Floquet modes for the first period of the driving with the required times.
+The list of times to pre-compute modes for may be passed to :class:`FloquetBasis` using `precompute=tlist`, and then `:meth:`FloquetBasis.from_floquet_basis` and :meth:`FloquetBasis.to_floquet_basis` can be used to efficiently retrieve the wave function at the pre-computed times.
+The following example illustrates how the example from the previous section can be solved more efficiently using these functions for pre-computing the Floquet modes:
 
 .. plot:: guide/scripts/floquet_ex2.py
    :width: 4.0in
@@ -231,9 +239,9 @@ For any coupling operator :math:`q` (given by the user) the matrix elements in t
 From the matrix elements and the spectral density :math:`J(\omega)`, the decay rate :math:`\gamma_{\alpha \beta k}` is defined:
 
 .. math::
-    \gamma_{\alpha \beta k} = 2 \pi \Theta(\Delta_{\alpha \beta k}) J(\Delta_{\alpha \beta k}) | X_{\alpha \beta k}|^2
+    \gamma_{\alpha \beta k} = 2 \pi J(\Delta_{\alpha \beta k}) | X_{\alpha \beta k}|^2
 
-where :math:`\Theta` is the Heaviside function. The master equation is further simplified by the RWA, which makes the following matrix useful:
+The master equation is further simplified by the RWA, which makes the following matrix useful:
 
 .. math::
     A_{\alpha \beta} = \sum_{k = -\infty}^\infty [\gamma_{\alpha \beta k} + n_{th}(|\Delta_{\alpha \beta k}|)(\gamma_{\alpha \beta k} + \gamma_{\alpha \beta -k})
@@ -263,15 +271,20 @@ The noise spectral-density function of the environment is implemented as a Pytho
 
     gamma1 = 0.1
     def noise_spectrum(omega):
-        return 0.5 * gamma1 * omega/(2*pi)
+        return (omega>0) * 0.5 * gamma1 * omega/(2*pi)
 
-The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the same format for the return value is used :class:`qutip.solver.Result`. The following example extends the example studied above, and uses :func:`qutip.floquet.fmmesolve` to introduce dissipation into the calculation
+The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the same format for the return value is used :class:`qutip.solve.solver.Result`. The following example extends the example studied above, and uses :func:`qutip.floquet.fmmesolve` to introduce dissipation into the calculation
 
 .. plot:: guide/scripts/floquet_ex3.py
    :width: 4.0in
    :include-source:
 
-Alternatively, we can let the :func:`qutip.floquet.fmmesolve` function transform the density matrix at each time step back to the computational basis, and calculating the expectation values for us, by using:
+Finally, :func:`qutip.solver.floquet.fmmesolve`  always expects the ``e_ops`` to be specified in the laboratory basis (as for other solvers) and we can calculate expectation values using:
 
-    output = fmmesolve(H, psi0, tlist, [sigmax()], [num(2)], [noise_spectrum], T, args, floquet_basis=False)
+    output = fmmesolve(H, psi0, tlist, [sigmax()], e_ops=[num(2)], spectra_cb=[noise_spectrum], T=T, args=args)
     p_ex = output.expect[0]
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:

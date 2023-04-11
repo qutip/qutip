@@ -439,6 +439,7 @@ HEOM revamp
 
 An overhaul of the HEOM solver, to incorporate the improvements pioneered in BoFiN.
 
+.. _release roadmap:
 
 QuTiP major release roadmap
 ===========================
@@ -458,8 +459,14 @@ These Projects need to be completed for the qutip v.5 release.
 
 The planned timeline for the release is:
 
-- **alpha version, September 2022**. Core features packaged and available for
+- **alpha version, December 2022**. Core features packaged and available for
   experienced users to test.
-- **beta version, November 2022**. All required features and documentation complete,
+- **beta version, January 2023**. All required features and documentation complete,
   packaged and ready for community testing.
-- **full release, January 2023**. Full tested version released.
+- **full release, April 2023**. Full tested version released.
+
+Planned supported environment:
+
+- python 3.8 .. 3.11
+- numpy 1.20 .. 1.23
+- scipy 1.5 .. 1.8

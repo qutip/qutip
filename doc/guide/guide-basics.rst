@@ -114,8 +114,8 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
      [0.60111501 0.70807258 0.02058449 0.96990985]
      [0.83244264 0.21233911 0.18182497 0.18340451]]
 
-Notice how both the dims and shape change according to the input data.  Although dims and shape appear to be the same, 
-dims keep track of the shapes for individual components of a multipartite system, while shape does not. We refer the reader to the section 
+Notice how both the dims and shape change according to the input data.  Although dims and shape appear to be the same,
+dims keep track of the shapes for individual components of a multipartite system, while shape does not. We refer the reader to the section
 :ref:`tensor products and partial traces <tensor>` for more information.
 
 .. note:: If you are running QuTiP from a python script you must use the :func:`print` function to view the Qobj attributes.
@@ -125,9 +125,9 @@ dims keep track of the shapes for individual components of a multipartite system
 States and operators
 ---------------------
 
-Manually specifying the data for each quantum object is inefficient. Even more so when most objects correspond to commonly used 
-types such as the 
-ladder operators of a harmonic oscillator, the Pauli spin operators for a two-level system, or state vectors such as Fock states. 
+Manually specifying the data for each quantum object is inefficient. Even more so when most objects correspond to commonly used
+types such as the
+ladder operators of a harmonic oscillator, the Pauli spin operators for a two-level system, or state vectors such as Fock states.
 Therefore, QuTiP includes predefined objects for a variety of states and operators:
 
 .. cssclass:: table-striped
@@ -138,6 +138,8 @@ Therefore, QuTiP includes predefined objects for a variety of states and operato
 | Fock state ket vector    | ``basis(N,#m)``/``fock(N,#m)``   | N = number of levels in Hilbert space, |
 |                          |                                  | m = level containing excitation        |
 |                          |                                  | (0 if no m given)                      |
++--------------------------+----------------------------------+----------------------------------------+
+| Empty ket vector         | ``zero_ket(N)``                  | N = number of levels in Hilbert space, |
 +--------------------------+----------------------------------+----------------------------------------+
 | Fock density matrix      | ``fock_dm(N,#p)``                | same as basis(N,m) / fock(N,m)         |
 | (outer product of basis) |                                  |                                        |
@@ -150,6 +152,9 @@ Therefore, QuTiP includes predefined objects for a variety of states and operato
 +--------------------------+----------------------------------+----------------------------------------+
 | Thermal density matrix   | ``thermal_dm(N,n)``              | n = particle number expectation value  |
 | (for n particles)        |                                  |                                        |
++--------------------------+----------------------------------+----------------------------------------+
+| Maximally mixed density  | ``maximally_mixed_dm(N)``        | N = number of levels in Hilbert space  |
+| matrix                   |                                  |                                        |
 +--------------------------+----------------------------------+----------------------------------------+
 
 .. cssclass:: table-striped
@@ -274,7 +279,7 @@ We have seen that a quantum object has several internal attributes, such as data
    >>> q.shape
    (4, 4)
 
-In general, the attributes (properties) of a ``Qobj`` object (or any Python object) can be retrieved using the `Q.attribute` notation.  
+In general, the attributes (properties) of a ``Qobj`` object (or any Python object) can be retrieved using the `Q.attribute` notation.
 In addition to the those shown with the ``print`` function, an instance of the ``Qobj`` class also has the following attributes:
 
 .. cssclass:: table-striped
@@ -417,12 +422,7 @@ Like attributes, the quantum object class has defined functions (methods) that o
 +-----------------+-------------------------------+----------------------------------------+
 | Eigenstates     | ``Q.eigenstates()``           | Returns eigenvalues and eigenvectors.  |
 +-----------------+-------------------------------+----------------------------------------+
-| Eliminate States| ``Q.eliminate_states(inds)``  | Returns quantum object with states in  |
-|                 |                               | list inds removed.                     |
-+-----------------+-------------------------------+----------------------------------------+
 | Exponential     | ``Q.expm()``                  | Matrix exponential of operator.        |
-+-----------------+-------------------------------+----------------------------------------+
-| Extract States  | ``Q.extract_states(inds)``    | Qobj with states listed in inds only.  |
 +-----------------+-------------------------------+----------------------------------------+
 | Full            | ``Q.full()``                  | Returns full (not sparse) array of     |
 |                 |                               | Q's data.                              |

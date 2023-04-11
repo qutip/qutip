@@ -23,27 +23,33 @@ where :math:`\Psi` is the wave function, :math:`\hat H` the Hamiltonian, and :ma
 
 where :math:`\left|\psi\right>` is the state vector and :math:`H` is the matrix representation of the Hamiltonian. This matrix equation can, in principle, be solved by diagonalizing the Hamiltonian matrix :math:`H`. In practice, however, it is difficult to perform this diagonalization unless the size of the Hilbert space (dimension of the matrix :math:`H`) is small. Analytically, it is a formidable task to calculate the dynamics for systems with more than two states. If, in addition, we consider dissipation due to the inevitable interaction with a surrounding environment, the computational complexity grows even larger, and we have to resort to numerical calculations in all realistic situations. This illustrates the importance of numerical calculations in describing the dynamics of open quantum systems, and the need for efficient and accessible tools for this task.
 
-The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, :ref:`tensor`, we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\left|\psi_0\right>` (``psi0``) using the QuTiP function :func:`qutip.sesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_ops`` at the points in time in the list ``times``, using an ordinary differential equation solver.
+The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, :ref:`tensor`, we showed how Hamiltonians and state vectors are constructed in QuTiP.
+Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\left|\psi_0\right>` (``psi0``) using the QuTiP function :func:`qutip.sesolve`.
+It evolves the state vector and evaluates the expectation values for a set of operators ``e_ops`` at the points in time in the list ``times``, using an ordinary differential equation solver.
 
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code
 
 .. plot::
-    :context:
+    :context: reset
 
     >>> H = 2*np.pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
     >>> times = np.linspace(0.0, 10.0, 20)
-    >>> result = sesolve(H, psi0, times, [sigmaz()])
+    >>> result = sesolve(H, psi0, times, e_ops=[sigmaz()])
 
 
 See the next section for examples on how dissipation is included by defining a list of collapse operators and using :func:`qutip.mesolve` instead.
 
-The function :func:`qutip.sesolve` returns an instance of :class:`qutip.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fourth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator).
+
+The function returns an instance of :class:`qutip.Result`, as described in the previous section :ref:`solver_result`.
+The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument.
+Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator)
+
 
 .. plot::
-    :context:
+    :context: close-figs
 
-    >>> result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
+    >>> result = sesolve(H, psi0, times, e_ops=[sigmaz(), sigmay()])
     >>> result.expect # doctest: +NORMALIZE_WHITESPACE
     [array([ 1.        ,  0.78914057,  0.24548559, -0.40169513, -0.8794735 ,
         -0.98636142, -0.67728219, -0.08258023,  0.54694721,  0.94581685,
@@ -58,7 +64,7 @@ The function :func:`qutip.sesolve` returns an instance of :class:`qutip.solver.R
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions:
 
 .. plot::
-    :context:
+    :context: close-figs
 
     >>> H = 2*np.pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
@@ -72,7 +78,7 @@ The resulting list of expectation values can easily be visualized using matplotl
     >>> ax.legend(("Sigma-Z", "Sigma-Y")) # doctest: +SKIP
     >>> plt.show() # doctest: +SKIP
 
-If an empty list of operators is passed as fourth parameter, the :func:`qutip.sesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``
+If an empty list of operators is passed to the ``e_ops`` parameter, the :func:`qutip.sesolve` and :func:`qutip.mesolve` functions return a :class:`qutip.Result` instance that contains a list of state vectors for the times specified in ``times``
 
 .. plot::
     :context: close-figs
@@ -167,10 +173,10 @@ operators ``[sigmaz(), sigmay()]`` to the fifth argument.
 
 
 .. plot::
-    :context:
+    :context: close-figs
 
     >>> times = np.linspace(0.0, 10.0, 100)
-    >>> result = mesolve(H, psi0, times, [np.sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
+    >>> result = mesolve(H, psi0, times, [np.sqrt(0.05) * sigmax()], e_ops=[sigmaz(), sigmay()])
     >>> fig, ax = plt.subplots()
     >>> ax.plot(times, result.expect[0]) # doctest: +SKIP
     >>> ax.plot(times, result.expect[1]) # doctest: +SKIP
@@ -180,7 +186,7 @@ operators ``[sigmaz(), sigmay()]`` to the fifth argument.
     >>> plt.show() # doctest: +SKIP
 
 
-Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation
+Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.sigmax`) describes the dissipation
 process.
 
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code
@@ -193,7 +199,7 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> a  = tensor(qeye(2), destroy(10))
     >>> sm = tensor(destroy(2), qeye(10))
     >>> H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
-    >>> result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    >>> result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], e_ops=[a.dag()*a, sm.dag()*sm])
     >>> plt.figure() # doctest: +SKIP
     >>> plt.plot(times, result.expect[0]) # doctest: +SKIP
     >>> plt.plot(times, result.expect[1]) # doctest: +SKIP
@@ -201,3 +207,8 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> plt.ylabel('Expectation values') # doctest: +SKIP
     >>> plt.legend(("cavity photon number", "atom excitation probability")) # doctest: +SKIP
     >>> plt.show() # doctest: +SKIP
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:
