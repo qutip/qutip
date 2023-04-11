@@ -18,7 +18,7 @@ class MatrixShapesStrategy(st.SearchStrategy):
         Parameters
         ----------
         shapes : list of shape specifications
-            Each shape specification show be a tuple of dimension labels,
+            Each shape specification should be a tuple of dimension labels,
             e.g. ("n", "k"). Dimensions with the same labels will be
             given the same length in the resulting shapes. Fixed dimensions
             may be specified with an integer constant, e.g. ("n", 3).
@@ -102,9 +102,9 @@ def qobj_datas(draw, shape=qobj_shapes(), dtype=qobj_dtypes()):
         A strategy to produce the array QuTiP dtypes. Defaults to
         `qobj_dtypes()`.
     """
-    # TODO: In future it might be good to have flags like unitary,
-    #       hermitian, ket, dm, oper, etc to restrict the kinds of
-    #       objects produced.
+    # In future it might be good to have flags like unitary,
+    # hermitian, ket, dm, oper, etc to restrict the kinds of
+    # objects produced.
     dtype = draw(dtype)
     data = draw(qobj_np(shape=shape))
     return _data.to(dtype, _data.create(data))
