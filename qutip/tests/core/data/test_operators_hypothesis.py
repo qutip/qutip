@@ -3,11 +3,12 @@ import pytest
 
 from hypothesis import given, strategies as st
 
+import qutip
 from qutip.core import data as _data
 from qutip.tests import strategies as qst
 
 same_shape = st.shared(qst.qobj_shapes())
-[matmul_shape_a, matmul_shape_b] = qst.qobj_shared_shapes([
+matmul_shape_a, matmul_shape_b = qst.qobj_shared_shapes([
     ("n", "k"),
     ("k", "m"),
 ])
@@ -89,7 +90,8 @@ def test_data_scalar_division_operator(a, x):
 
 @given(qst.qobj_datas(shape=same_shape), qst.qobj_datas(shape=same_shape))
 def test_data_equality_operator_same_shapes(a, b):
-    result = (a == b)
+    with qutip.CoreOptions(atol=1e-15, rtol=1e-15):
+        result = (a == b)
     qst.note(result=result, a=a, b=b)
     with qst.ignore_arithmetic_warnings():
         expected = numpy.allclose(
@@ -100,7 +102,8 @@ def test_data_equality_operator_same_shapes(a, b):
 
 @given(qst.qobj_datas(), qst.qobj_datas())
 def test_data_equality_operator_different_shapes(a, b):
-    result = (a == b)
+    with qutip.CoreOptions(atol=1e-15, rtol=1e-15):
+        result = (a == b)
     qst.note(result=result, a=a, b=b)
     if a.shape != b.shape:
         expected = False
@@ -123,7 +126,7 @@ def test_data_matmul_operator(a, b):
         expected = a.to_array() @ b.to_array()
     qst.assert_allclose(
         result.to_array(), expected,
-        atol=1e-12, treat_inf_as_nan=True,
+        atol=1e-13, rtol=1e-13, treat_inf_as_nan=True,
     )
 
 
