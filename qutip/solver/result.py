@@ -126,9 +126,10 @@ class Result(_BaseResult):
         operator given the state at ``t``. If the element is a function, ``f``,
         the value recorded is ``f(t, state)``.
 
-        The values are recorded in the ``.expect`` attribute of this result
-        object. ``.expect`` is a list, where each item contains the values
-        of the corresponding ``e_op``.
+        The values are recorded in the ``e_data`` and ``expect`` attributes of
+        this result object. ``e_data`` is a dictionary and ``expect`` is a
+        list, where each item contains the values of the corresponding
+        ``e_op``.
 
     options : dict
         The options for this result class.
@@ -153,10 +154,10 @@ class Result(_BaseResult):
         The state at each time ``t`` (if the recording of the state was
         requested).
 
-    final_state : :obj:`~Qobj:
+    final_state : :obj:`~Qobj`:
         The final state (if the recording of the final state was requested).
 
-    expect : list of lists of expectation values
+    expect : list of arrays of expectation values
         A list containing the values of each ``e_op``. The list is in
         the same order in which the ``e_ops`` were supplied and empty if
         no ``e_ops`` were given.
@@ -197,7 +198,6 @@ class Result(_BaseResult):
         super().__init__(options, solver=solver, stats=stats)
         raw_ops = self._e_ops_to_dict(e_ops)
         self.e_data = {k: [] for k in raw_ops}
-        self.expect = list(self.e_data.values())
         self.e_ops = {}
         for k, op in raw_ops.items():
             f = self._e_op_func(op)
@@ -325,6 +325,10 @@ class Result(_BaseResult):
         lines.append(">")
         return "\n".join(lines)
 
+    @property
+    def expect(self):
+        return [np.array(e_op) for e_op in self.e_data.values()]
+
 
 class MultiTrajResult(_BaseResult):
     """
@@ -345,7 +349,7 @@ class MultiTrajResult(_BaseResult):
 
         Function ``e_ops`` must return a number so the average can be computed.
 
-    options : :obj:`~SolverResultsOptions`
+    options : dict
         The options for this result class.
 
     solver : str or None
@@ -376,7 +380,7 @@ class MultiTrajResult(_BaseResult):
         The final state (if the recording of the final state was requested)
         averaged over all trajectories as a density matrix.
 
-    runs_state : list of :obj:`~Qobj`
+    runs_final_state : list of :obj:`~Qobj`
         The final state for each trajectory (if the recording of the final
         state and trajectories was requested).
 
@@ -462,13 +466,9 @@ class MultiTrajResult(_BaseResult):
         self._target_tols = None
 
         self.average_e_data = {}
-        self.average_expect = []
         self.e_data = {}
-        self.expect = []
         self.std_e_data = {}
-        self.std_expect = []
         self.runs_e_data = {}
-        self.runs_expect = []
 
         self._post_init(**kw)
 
@@ -492,10 +492,24 @@ class MultiTrajResult(_BaseResult):
             state = trajectory.final_state
             self._sum_final_states = qzero(state.dims[0])
 
-        self._sum_expect = np.array(trajectory.expect) * 0.
-        self._sum2_expect = np.array(trajectory.expect) * 0.
+        self._sum_expect = [
+            np.zeros_like(expect) for expect in trajectory.expect
+        ]
+        self._sum2_expect = [
+            np.zeros_like(expect) for expect in trajectory.expect
+        ]
 
         self.e_ops = trajectory.e_ops
+
+        self.average_e_data = {
+            k: list(avg_expect)
+            for k, avg_expect
+            in zip(self._raw_ops, self._sum_expect)
+        }
+        self.e_data = self.average_e_data
+        if self.options['keep_runs_results']:
+            self.runs_e_data = {k: [] for k in self._raw_ops}
+            self.e_data = self.runs_e_data
 
     def _store_trajectory(self, trajectory):
         self.trajectories.append(trajectory)
@@ -515,35 +529,23 @@ class MultiTrajResult(_BaseResult):
         Compute the average of the expectation values and store it in it's
         multiple formats.
         """
-        self._sum_expect += np.array(trajectory.expect)
-        self._sum2_expect += np.abs(np.array(trajectory.expect))**2
+        for i, k in enumerate(self._raw_ops):
+            expect_traj = trajectory.expect[i]
 
-        avg = self._sum_expect / self.num_trajectories
-        avg2 = self._sum2_expect / self.num_trajectories
+            self._sum_expect[i] += expect_traj
+            self._sum2_expect[i] += expect_traj**2
 
-        self.average_e_data = {
-            k: avg_expect
-            for k, avg_expect in zip(self._raw_ops, avg)
-        }
-        self.average_expect = list(self.average_e_data.values())
+            avg = self._sum_expect[i] / self.num_trajectories
+            avg2 = self._sum2_expect[i] / self.num_trajectories
 
-        self.expect = self.average_expect
-        self.e_data = self.average_e_data
+            self.average_e_data[k] = list(avg)
 
-        self.std_e_data = {
-            k: np.sqrt(avg_expect2 - abs(avg_expect**2))
-            for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
-        }
-        self.std_expect = list(self.std_e_data.values())
+            # mean(expect**2) - mean(expect)**2 can something be very small
+            # negative (-1e-15) which raise an error for float sqrt.
+            self.std_e_data[k] = list(np.sqrt(np.abs(avg2 - np.abs(avg**2))))
 
-        if self.trajectories:
-            self.runs_e_data = {
-                k: np.stack([traj.e_data[k] for traj in self.trajectories])
-                for k in self._raw_ops
-            }
-            self.runs_expect = list(self.runs_e_data.values())
-            self.expect = self.runs_expect
-            self.e_data = self.runs_e_data
+            if self.runs_e_data:
+                self.runs_e_data[k].append(trajectory.e_data[k])
 
     def _increment_traj(self, trajectory):
         if self.num_trajectories == 0:
@@ -574,8 +576,8 @@ class MultiTrajResult(_BaseResult):
         """
         if self.num_trajectories <= 1:
             return np.inf
-        avg = self._sum_expect / self.num_trajectories
-        avg2 = self._sum2_expect / self.num_trajectories
+        avg = np.array(self._sum_expect) / self.num_trajectories
+        avg2 = np.array(self._sum2_expect) / self.num_trajectories
         target = np.array([
             atol + rtol * mean
             for mean, (atol, rtol)
@@ -611,7 +613,7 @@ class MultiTrajResult(_BaseResult):
         self._early_finish_check = self._no_end
         self.stats['end_condition'] = 'unknown'
 
-    def add(self, seed, trajectory):
+    def add(self, trajectory_info):
         """
         Add a trajectory to the evolution.
 
@@ -620,11 +622,11 @@ class MultiTrajResult(_BaseResult):
 
         Parameters
         ----------
-        seed : int, SeedSequence
-            Seed used to generate the trajectory.
-
-        trajectory : :class:`Result`
-            Run result for one evolution over the times.
+        trajectory_info : tuple of seed and trajectory
+            - seed: int, SeedSequence
+              Seed used to generate the trajectory.
+            - trajectory : :class:`Result`
+              Run result for one evolution over the times.
 
         Return
         ------
@@ -632,6 +634,7 @@ class MultiTrajResult(_BaseResult):
             Return the number of trajectories still needed to reach the target
             tolerance. If no tolerance is provided, return infinity.
         """
+        seed, trajectory = trajectory_info
         self.seeds.append(seed)
 
         for op in self._state_processors:
@@ -695,7 +698,7 @@ class MultiTrajResult(_BaseResult):
         """
         States of every runs as ``states[run][t]``.
         """
-        if self.trajectories:
+        if self.trajectories and self.trajectories[0].states:
             return [traj.states for traj in self.trajectories]
         else:
             return None
@@ -721,7 +724,7 @@ class MultiTrajResult(_BaseResult):
         """
         Last states of each trajectories.
         """
-        if self.trajectories:
+        if self.trajectories and self.trajectories[0].final_state:
             return [traj.final_state for traj in self.trajectories]
         else:
             return None
@@ -742,6 +745,22 @@ class MultiTrajResult(_BaseResult):
         """
         return self.runs_final_states or self.average_final_state
 
+    @property
+    def average_expect(self):
+        return [np.array(val) for val in self.average_e_data.values()]
+
+    @property
+    def std_expect(self):
+        return [np.array(val) for val in self.std_e_data.values()]
+
+    @property
+    def runs_expect(self):
+        return [np.array(val) for val in self.runs_e_data.values()]
+
+    @property
+    def expect(self):
+        return [np.array(val) for val in self.e_data.values()]
+
     def steady_state(self, N=0):
         """
         Average the states of the last ``N`` times of every runs as a density
@@ -761,82 +780,35 @@ class MultiTrajResult(_BaseResult):
         else:
             return None
 
-    def e_data_traj_avg(self, ntraj=-1):
-        """
-        Average of the expectation values for the ``ntraj`` first runs as a
-        dict. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to average.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            return None
-        return {
-            k: np.mean(np.stack([
-                traj.e_data[k] for traj in self.trajectories[:ntraj]
-            ]), axis=0)
-            for k in self._raw_ops
-        }
-
-    def expect_traj_avg(self, ntraj=-1):
-        """
-        Average of the expectation values for the ``ntraj`` first runs as a
-        list. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to average.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            return None
-        return list(self.e_data_traj_avg(ntraj).values())
-
-    def e_data_traj_std(self, ntraj=-1):
-        """
-        Standard derivation of the expectation values for the ``ntraj``
-        first runs as a dict. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to compute de standard derivation.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            return None
-        return {
-            k: np.std(np.stack([
-                traj.e_data[k] for traj in self.trajectories[:ntraj]
-            ]), axis=0)
-            for k in self._raw_ops
-        }
-
-    def expect_traj_std(self, ntraj=-1):
-        """
-        Standard derivation of the expectation values for the ``ntraj``
-        first runs as a dict. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to compute de standard derivation.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            return None
-        return list(self.e_data_traj_std(ntraj).values())
-
     def __repr__(self):
-        repr = super().__repr__()
-        lines = repr.split("\n")
-        lines.insert(-1, f"  Number of trajectories: {self.num_trajectories}")
+        lines = [
+            f"<{self.__class__.__name__}",
+            f"  Solver: {self.solver}",
+        ]
+        if self.stats:
+            lines.append("  Solver stats:")
+            lines.extend(
+                f"    {k}: {v!r}"
+                for k, v in self.stats.items()
+            )
+        if self.times:
+            lines.append(
+                f"  Time interval: [{self.times[0]}, {self.times[-1]}]"
+                f" ({len(self.times)} steps)"
+            )
+        lines.append(f"  Number of e_ops: {len(self.e_ops)}")
+        if self.states:
+            lines.append("  States saved.")
+        elif self.final_state is not None:
+            lines.append("  Final state saved.")
+        else:
+            lines.append("  State not saved.")
+        lines.append(f"  Number of trajectories: {self.num_trajectories}")
         if self.trajectories:
-            lines.insert(-1, "  Trajectories saved.")
+            lines.append("  Trajectories saved.")
+        else:
+            lines.append("  Trajectories not saved.")
+        lines.append(">")
         return "\n".join(lines)
 
     def __add__(self, other):
@@ -846,47 +818,50 @@ class MultiTrajResult(_BaseResult):
             raise ValueError("Shared `e_ops` is required to merge results")
         if self.times != other.times:
             raise ValueError("Shared `times` are is required to merge results")
-        new = self.__class__(self._raw_ops, self.options, solver=self.solver)
+        new = self.__class__(self._raw_ops, self.options,
+                             solver=self.solver, stats=self.stats)
         if self.trajectories and other.trajectories:
             new.trajectories = self.trajectories + other.trajectories
         new.num_trajectories = self.num_trajectories + other.num_trajectories
         new.times = self.times
         new.seeds = self.seeds + other.seeds
 
-        new._sum_states = self._sum_states + other._sum_states
-        new._sum_final_states = self._sum_final_states + other._sum_final_states
+        if self._sum_states is not None and other._sum_states is not None:
+            new._sum_states = self._sum_states + other._sum_states
+
+        if (
+            self._sum_final_states is not None
+            and other._sum_final_states is not None
+        ):
+            new._sum_final_states = (
+                self._sum_final_states + other._sum_final_states
+            )
         new._target_tols = None
 
-        if self._raw_ops:
-            new._sum_expect = self._sum_expect + other._sum_expect
-            new._sum2_expect = self._sum2_expect + other._sum2_expect
+        new._sum_expect = []
+        new._sum2_expect = []
+        new.average_e_data = {}
+        new.std_e_data = {}
 
-            avg = new._sum_expect / new.num_trajectories
-            avg2 = new._sum2_expect / new.num_trajectories
+        for i, k in enumerate(self._raw_ops):
+            new._sum_expect.append(self._sum_expect[i] + other._sum_expect[i])
+            new._sum2_expect.append(self._sum2_expect[i]
+                                    + other._sum2_expect[i])
 
-            new.average_e_data = {
-                k: avg_expect
-                for k, avg_expect in zip(self._raw_ops, avg)
-            }
-            new.average_expect = list(new.average_e_data.values())
+            avg = new._sum_expect[i] / new.num_trajectories
+            avg2 = new._sum2_expect[i] / new.num_trajectories
 
-            new.expect = new.average_expect
+            new.average_e_data[k] = list(avg)
             new.e_data = new.average_e_data
 
-            new.std_e_data = {
-                k: np.sqrt(avg_expect2 - abs(avg_expect**2))
-                for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
-            }
-            new.std_expect = list(new.std_e_data.values())
+            new.std_e_data[k] = np.sqrt(np.abs(avg2 - np.abs(avg**2)))
 
             if new.trajectories:
-                new.runs_e_data = {
-                    k: np.stack([traj.e_data[k] for traj in new.trajectories])
-                    for k in new._raw_ops
-                }
-                new.runs_expect = list(new.runs_e_data.values())
-                new.expect = new.runs_expect
+                new.runs_e_data[k] = self.runs_e_data[k] + other.runs_e_data[k]
                 new.e_data = new.runs_e_data
+
+        new.stats["run time"] += other.stats["run time"]
+        new.stats['end_condition'] = "Merged results"
 
         return new
 

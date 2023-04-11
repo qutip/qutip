@@ -1,7 +1,7 @@
 """
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
-from qutip.ui.progressbar import BaseProgressBar
+from qutip.ui.progressbar import BaseProgressBar, HTMLProgressBar
 from .settings import _blas_info, available_cpu_count
 import IPython
 
@@ -10,17 +10,17 @@ import IPython
 if IPython.version_info[0] >= 4:
     try:
         from ipyparallel import Client
-        __all__ = ['version_table', 'parfor', 'plot_animation',
-                    'parallel_map', 'HTMLProgressBar']
+        __all__ = ['version_table', 'plot_animation',
+                    'parallel_map']
     except:
-         __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
+         __all__ = ['version_table', 'plot_animation']
 else:
     try:
         from IPython.parallel import Client
-        __all__ = ['version_table', 'parfor', 'plot_animation',
-                    'parallel_map', 'HTMLProgressBar']
+        __all__ = ['version_table', 'plot_animation',
+                    'parallel_map']
     except:
-         __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
+         __all__ = ['version_table', 'plot_animation']
 
 
 from IPython.display import HTML, Javascript, display
@@ -39,9 +39,14 @@ import inspect
 import qutip
 import numpy
 import scipy
-import Cython
 import matplotlib
 import IPython
+
+try:
+    import Cython
+    _cython_available = True
+except ImportError:
+    _cython_available = False
 
 
 def version_table(verbose=False):
@@ -53,7 +58,7 @@ def version_table(verbose=False):
 
 
     Returns
-    --------
+    -------
     version_table: string
         Return an HTML-formatted string containing version information for
         QuTiP dependencies.
@@ -67,13 +72,14 @@ def version_table(verbose=False):
                 ("Numpy", numpy.__version__),
                 ("SciPy", scipy.__version__),
                 ("matplotlib", matplotlib.__version__),
-                ("Cython", Cython.__version__),
                 ("Number of CPUs", available_cpu_count()),
                 ("BLAS Info", _blas_info()),
                 ("IPython", IPython.__version__),
                 ("Python", sys.version),
                 ("OS", "%s [%s]" % (os.name, sys.platform))
                 ]
+    if _cython_available:
+        packages.append(("Cython", Cython.__version__))
 
     for name, version in packages:
         html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
@@ -95,57 +101,6 @@ def version_table(verbose=False):
     html += "</table>"
 
     return HTML(html)
-
-
-class HTMLProgressBar(BaseProgressBar):
-    """
-    A simple HTML progress bar for using in IPython notebooks. Based on
-    IPython ProgressBar demo notebook:
-    https://github.com/ipython/ipython/tree/master/examples/notebooks
-
-    Example usage:
-
-        n_vec = linspace(0, 10, 100)
-        pbar = HTMLProgressBar(len(n_vec))
-        for n in n_vec:
-            pbar.update(n)
-            compute_with_n(n)
-    """
-
-    def __init__(self, iterations=0, chunk_size=1.0):
-        self.divid = str(uuid.uuid4())
-        self.textid = str(uuid.uuid4())
-        self.pb = HTML("""\
-<div style="border: 2px solid grey; width: 600px">
-  <div id="%s" \
-style="background-color: rgba(121,195,106,0.75); width:0%%">&nbsp;</div>
-</div>
-<p id="%s"></p>
-""" % (self.divid, self.textid))
-        display(self.pb)
-        super(HTMLProgressBar, self).start(iterations, chunk_size)
-
-    def start(self, iterations=0, chunk_size=1.0):
-        super(HTMLProgressBar, self).start(iterations, chunk_size)
-
-    def update(self, n):
-        p = (n / self.N) * 100.0
-        if p >= self.p_chunk:
-            lbl = ("Elapsed time: %s. " % self.time_elapsed() +
-                   "Est. remaining time: %s." % self.time_remaining_est(p))
-            js_code = ("$('div#%s').width('%i%%');" % (self.divid, p) +
-                       "$('p#%s').text('%s');" % (self.textid, lbl))
-            display(Javascript(js_code))
-            # display(Javascript("$('div#%s').width('%i%%')" % (self.divid,
-            # p)))
-            self.p_chunk += self.p_chunk_size
-
-    def finished(self):
-        self.t_done = time.time()
-        lbl = "Elapsed time: %s" % self.time_elapsed()
-        js_code = ("$('div#%s').width('%i%%');" % (self.divid, 100.0) +
-                   "$('p#%s').text('%s');" % (self.textid, lbl))
-        display(Javascript(js_code))
 
 
 def _visualize_parfor_data(metadata):
@@ -219,7 +174,7 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         loop.
 
     Returns
-    --------
+    -------
     result : list
         The result list contains the value of ``task(value, args)`` for each
         value in ``task_vec``, that is, it should be equivalent to
@@ -284,7 +239,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         loop.
 
     Returns
-    --------
+    -------
     result : list
         The result list contains the value of
         ``task(value, task_args, task_kwargs)`` for each

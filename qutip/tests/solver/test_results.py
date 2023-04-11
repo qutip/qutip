@@ -99,7 +99,7 @@ class TestResult:
                 res.e_ops[k](i, qutip.basis(N, i)) for i in range(N)
             ]
             if isinstance(res.expect[i][0], qutip.Qobj):
-                assert res.expect[i] == results[k]
+                assert (res.expect[i] == results[k]).all()
                 assert res.e_data[k] == results[k]
                 assert e_op_call_values == results[k]
             else:
@@ -183,7 +183,7 @@ class TestMultiTrajResult:
                     result.collapse.append((t+0.1, 0))
                     result.collapse.append((t+0.2, 1))
                     result.collapse.append((t+0.3, 1))
-            if multiresult.add(0, result) <= 0:
+            if multiresult.add((0, result)) <= 0:
                 break
 
     def _expect_check_types(self, multiresult):
@@ -195,17 +195,9 @@ class TestMultiTrajResult:
         if multiresult.trajectories:
             assert isinstance(multiresult.runs_expect, list)
             assert isinstance(multiresult.runs_e_data, dict)
-            assert isinstance(multiresult.expect_traj_avg(), list)
-            assert isinstance(multiresult.expect_traj_std(), list)
-            assert isinstance(multiresult.e_data_traj_avg(), dict)
-            assert isinstance(multiresult.e_data_traj_std(), dict)
         else:
             assert multiresult.runs_expect == []
             assert multiresult.runs_e_data == {}
-            assert multiresult.expect_traj_avg() is None
-            assert multiresult.expect_traj_std() is None
-            assert multiresult.e_data_traj_avg() is None
-            assert multiresult.e_data_traj_std() is None
 
     @pytest.mark.parametrize('keep_runs_results', [True, False])
     @pytest.mark.parametrize('dm', [True, False])
@@ -265,10 +257,6 @@ class TestMultiTrajResult:
                 for expect in runs_expect:
                     np.testing.assert_allclose(expect, expected,
                                                atol=1e-14, rtol=0.1)
-
-            for expect, expected in zip(m_res.expect_traj_avg(25), results):
-                np.testing.assert_allclose(expect, expected,
-                                           atol=1e-14, rtol=0.04)
 
         self._expect_check_types(m_res)
 
@@ -345,18 +333,20 @@ class TestMultiTrajResult:
         opt = fill_options(
             keep_runs_results=keep_runs_results, store_states=True
         )
-        m_res1 = MultiTrajResult([qutip.num(10)], opt)
+        m_res1 = MultiTrajResult([qutip.num(10)], opt, stats={"run time": 1})
         self._fill_trajectories(m_res1, N, 10, noise=0.1)
 
-        m_res2 = MultiTrajResult([qutip.num(10)], opt)
+        m_res2 = MultiTrajResult([qutip.num(10)], opt, stats={"run time": 2})
         self._fill_trajectories(m_res2, N, 30, noise=0.1)
 
         merged_res = m_res1 + m_res2
         assert merged_res.num_trajectories == 40
-        np.testing.assert_allclose(merged_res.average_expect[0], np.arange(10), rtol=0.1)
+        np.testing.assert_allclose(merged_res.average_expect[0],
+                                   np.arange(10), rtol=0.1)
         np.testing.assert_allclose(
             np.diag(sum(merged_res.average_states).full()),
             np.ones(N),
             rtol=0.1
         )
         assert bool(merged_res.trajectories) == keep_runs_results
+        assert merged_res.stats["run time"] == 3

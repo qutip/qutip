@@ -4,7 +4,7 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import pytest
 
-from qutip import qeye, num, to_kraus, kraus_to_choi, CoreOptions
+from qutip import qeye, num, to_kraus, kraus_to_choi, CoreOptions, Qobj
 from qutip import data as _data
 from qutip.random_objects import (
     rand_herm,
@@ -285,3 +285,27 @@ def test_kraus_map(dimensions, dtype):
     _assert_metadata(kmap[0], dimensions, dtype)
     with CoreOptions(atol=1e-9):
         assert kraus_to_choi(kmap).iscptp
+
+
+dtype_names = list(_data.to._str2type.keys()) + list(_data.to.dtypes)
+dtype_types = list(_data.to._str2type.values()) + list(_data.to.dtypes)
+@pytest.mark.parametrize(['alias', 'dtype'], zip(dtype_names, dtype_types),
+                         ids=[str(dtype) for dtype in dtype_names])
+@pytest.mark.parametrize('func', [
+    rand_herm,
+    rand_unitary,
+    rand_dm,
+    rand_ket,
+    rand_stochastic,
+    rand_super,
+    rand_super_bcsz,
+    rand_kraus_map,
+])
+def test_random_dtype(func, alias, dtype):
+    with CoreOptions(default_dtype=alias):
+        object = func(2)
+        if isinstance(object, Qobj):
+            assert isinstance(object.data, dtype)
+        else:
+            for obj in object:
+                assert isinstance(obj.data, dtype)

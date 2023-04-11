@@ -30,6 +30,7 @@ def check_exponent(
 ):
     """ Check the attributes of a BathExponent. """
     assert exp.type is BathExponent.types[type]
+    assert exp.fermionic == (type in ["+", "-"])
     assert exp.dim == dim
     assert exp.Q == Q
     assert exp.ck == pytest.approx(ck)
@@ -98,7 +99,7 @@ class TestBathExponent:
         assert repr(exp1) == (
             "<BathExponent type=R dim=None Q.dims=[[2], [2]]"
             " ck=1.0 vk=2.0 ck2=None"
-            " sigma_bar_k_offset=None tag=None>"
+            " sigma_bar_k_offset=None fermionic=False tag=None>"
         )
         exp2 = BathExponent(
             "+", None, Q=None, ck=1.0, vk=2.0, sigma_bar_k_offset=-1,
@@ -107,7 +108,7 @@ class TestBathExponent:
         assert repr(exp2) == (
             "<BathExponent type=+ dim=None Q.dims=None"
             " ck=1.0 vk=2.0 ck2=None"
-            " sigma_bar_k_offset=-1 tag='bath1'>"
+            " sigma_bar_k_offset=-1 fermionic=True tag='bath1'>"
         )
 
 

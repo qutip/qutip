@@ -2,7 +2,7 @@
 This module provides solvers for the unitary Schrodinger equation.
 """
 
-__all__ = ['sesolve', 'SeSolver']
+__all__ = ['sesolve', 'SESolver']
 
 import numpy as np
 from time import time
@@ -99,11 +99,11 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
         is an empty list of `store_states=True` in options].
     """
     H = QobjEvo(H, args=args, tlist=tlist)
-    solver = SeSolver(H, options=options)
+    solver = SESolver(H, options=options)
     return solver.run(psi0, tlist, e_ops=e_ops)
 
 
-class SeSolver(Solver):
+class SESolver(Solver):
     """
     Schrodinger equation evolution of a state vector or unitary matrix
     for a given Hamiltonian.
@@ -116,7 +116,7 @@ class SeSolver(Solver):
         that can be made into :class:`QobjEvo` are also accepted.
 
     options : dict, optional
-        Options for the solver, see :obj:`SeSolver.options` and
+        Options for the solver, see :obj:`SESolver.options` and
         `Integrator <./classes.html#classes-ode>`_ for a list of all options.
 
     attributes

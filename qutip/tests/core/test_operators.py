@@ -146,6 +146,7 @@ def test_position():
     expected = (np.diag((np.arange(1, N) / 2)**0.5, k=-1) +
                 np.diag((np.arange(1, N) / 2)**0.5, k=1))
     np.testing.assert_allclose(operator.full(), expected)
+    assert operator._isherm == True
 
 
 def test_momentum():
@@ -153,6 +154,7 @@ def test_momentum():
     expected = (np.diag((np.arange(1, N) / 2)**0.5, k=-1) -
                 np.diag((np.arange(1, N) / 2)**0.5, k=1)) * 1j
     np.testing.assert_allclose(operator.full(), expected)
+    assert operator._isherm == True
 
 
 def test_squeeze():
@@ -271,6 +273,14 @@ def test_operator_type(func, args, alias, dtype):
         for obj in object:
             assert isinstance(obj.data, dtype)
 
+    with qutip.CoreOptions(default_dtype=alias):
+        object = func(*args)
+        if isinstance(object, qutip.Qobj):
+            assert isinstance(object.data, dtype)
+        else:
+            for obj in object:
+                assert isinstance(obj.data, dtype)
+
 
 @pytest.mark.parametrize('dims', [8, 15, [2] * 4])
 def test_qft(dims):
@@ -283,3 +293,12 @@ def test_qft(dims):
         fft = np.fft.fft(qft[:,i])
         fft /= np.sum(fft)
         np.testing.assert_allclose(fft, target, atol=1e-16 * N)
+
+
+@pytest.mark.parametrize('N', [1, 3, 5, 8])
+@pytest.mark.parametrize('M', [1, 3, 5, 8])
+def test_swap(N, M):
+    ket1 = qutip.rand_ket(N)
+    ket2 = qutip.rand_ket(M)
+
+    assert qutip.swap(N, M) @ (ket1 & ket2) == (ket2 & ket1)

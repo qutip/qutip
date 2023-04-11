@@ -10,10 +10,10 @@ import scipy.sparse as sp
 from itertools import product
 from ..core import (
     sprepost, spre, qeye, tensor, expect, Qobj,
-    operator_to_vector, vector_to_operator
+    operator_to_vector, vector_to_operator, CoreOptions
 )
 from ..core import data as _data
-from qutip import pseudo_inverse, steadystate
+from .steadystate import pseudo_inverse, steadystate
 from ..settings import settings
 
 # Load MKL spsolve if avaiable
@@ -76,14 +76,9 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
 
 def _solve(A, V):
     try:
-        if settings.has_mkl:
-            out = mkl_spsolve(A.tocsc(), V)
-        else:
-            A.sort_indices()
-            out = sp.linalg.splu(A, permc_spec='COLAMD').solve(V)
-    except Exception:
-        out = sp.linalg.lsqr(A, V)[0]
-    return out
+        return _data.solve(A, V)
+    except ValueError:
+        return _data.solve(A, V, "lstsq")
 
 
 def _noise_direct(L, wlist, rhoss, J_ops):
@@ -100,8 +95,7 @@ def _noise_direct(L, wlist, rhoss, J_ops):
     Pop = _data.kron(rhoss_vec, tr_op_vec.data.transpose())
     Iop = _data.identity(np.prod(L.dims[0][0])**2)
     Q = _data.sub(Iop, Pop)
-    Q_ops = [_data.matmul(Q, _data.matmul(op, rhoss_vec)).to_array()
-             for op in J_ops]
+    Q_ops = [_data.matmul(Q, _data.matmul(op, rhoss_vec)) for op in J_ops]
 
     for k, w in enumerate(wlist):
         if w != 0.0:
@@ -110,11 +104,10 @@ def _noise_direct(L, wlist, rhoss, J_ops):
             # At zero frequency some solvers fail for small systems.
             # Adding a small finite frequency of order 1e-15
             # helps prevent the solvers from throwing an exception.
-            L_temp = 1e-15j * spre(tr_op) + L
+            with CoreOptions(auto_tidyup=False):
+                L_temp = 1e-15j * spre(tr_op) + L
 
-        A = _data.to(_data.CSR, L_temp.data).as_scipy()
-        X_rho = [_data.dense.fast_from_numpy(_solve(A, op))
-                 for op in Q_ops]
+        X_rho = [_solve(L_temp.data, op) for op in Q_ops]
 
         for i, j in product(range(N_j_ops), repeat=2):
             if i == j:

@@ -37,6 +37,7 @@ def test_dqd_current():
 
     for n, eps in enumerate(eps_vec):
         H = eps / 2 * sz + tc * sx
+        L0 = qutip.liouvillian(H)
         L = qutip.liouvillian(H, c_ops)
         rhoss = qutip.steadystate(L)
         current_1, noise_1 = qutip.countstat_current_noise(
@@ -48,10 +49,10 @@ def test_dqd_current():
         current_2 = qutip.countstat_current(L, rhoss=rhoss, J_ops=J_ops)
         assert abs(current_1[0] - current_2[0]) < 1e-8
 
-        current_2 = qutip.countstat_current(L, c_ops, J_ops=J_ops)
+        current_2 = qutip.countstat_current(L0, c_ops, J_ops=J_ops)
         assert abs(current_1[0] - current_2[0]) < 1e-8
 
-        current_2 = qutip.countstat_current(L, c_ops)
+        current_2 = qutip.countstat_current(H, c_ops)
         assert abs(current_1[0] - current_2[0]) < 1e-8
 
         current_3, noise_3 = qutip.countstat_current_noise(

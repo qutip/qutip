@@ -2,6 +2,7 @@
 #cython: boundscheck=False, wrapround=False, initializedcheck=False
 
 from qutip.core.data cimport idxint, csr, CSR, dense, Dense, Data
+from scipy.linalg.cython_blas cimport zscal
 
 __all__ = [
     'mul', 'mul_csr', 'mul_dense',
@@ -12,10 +13,9 @@ __all__ = [
 
 cpdef CSR imul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
-    cdef idxint ptr
-    with nogil:
-        for ptr in range(csr.nnz(matrix)):
-            matrix.data[ptr] *= value
+    cdef idxint l = csr.nnz(matrix)
+    cdef int ONE=1
+    zscal(&l, &value, matrix.data, &ONE)
     return matrix
 
 cpdef CSR mul_csr(CSR matrix, double complex value):
@@ -40,9 +40,9 @@ cpdef CSR neg_csr(CSR matrix):
 cpdef Dense imul_dense(Dense matrix, double complex value):
     """Multiply this Dense `matrix` by a complex scalar `value`."""
     cdef size_t ptr
-    with nogil:
-        for ptr in range(matrix.shape[0]*matrix.shape[1]):
-            matrix.data[ptr] *= value
+    cdef int ONE=1
+    cdef idxint l = matrix.shape[0]*matrix.shape[1]
+    zscal(&l, &value, matrix.data, &ONE)
     return matrix
 
 cpdef Dense mul_dense(Dense matrix, double complex value):

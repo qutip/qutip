@@ -2,6 +2,15 @@
 Module for measuring quantum objects.
 """
 
+__all__ = [
+    'measurement_statistics_povm',
+    'measurement_statistics_observable',
+    'measure_observable',
+    'measure_povm',
+    'measurement_statistics',
+    'measure'
+]
+
 import numpy as np
 
 from . import Qobj, expect, identity, tensor

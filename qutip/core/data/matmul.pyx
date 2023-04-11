@@ -21,6 +21,7 @@ from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
 from qutip.core.data cimport csr, dense
 from qutip.core.data.add cimport iadd_dense, add_csr
+from qutip.core.data.dense import OrderEfficiencyWarning
 
 cnp.import_array()
 
@@ -196,7 +197,7 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right,
             "out matrix is {}-ordered".format('Fortran' if out.fortran else 'C')
             + " but input is {}-ordered".format('Fortran' if right.fortran else 'C')
         )
-        warnings.warn(msg, dense.OrderEfficiencyWarning)
+        warnings.warn(msg, OrderEfficiencyWarning)
         # Rather than making loads of copies of the same code, we just moan at
         # the user and then transpose one of the arrays.  We prefer to have
         # `right` in Fortran-order for cache efficiency.
@@ -255,6 +256,23 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
     cdef double complex *b
     cdef char transa, transb
     cdef int m, n, k=left.shape[1], lda, ldb
+    if right.shape[1] == 1:
+        # Matrix Vector product
+        a, b = left.data, right.data
+        if left.fortran:
+            lda = left.shape[0]
+            transa = b'n'
+            m = left.shape[0]
+            n = left.shape[1]
+        else:
+            lda = left.shape[1]
+            transa = b't'
+            m = left.shape[1]
+            n = left.shape[0]
+        ldb = 1
+        blas.zgemv(&transa, &m , &n, &scale, a, &lda, b, &ldb,
+                   &out_scale, out.data, &ldb)
+        return out
     # We use the BLAS routine zgemm for every single call and pretend that
     # we're always supplying it with Fortran-ordered matrices, but to achieve
     # what we want, we use the property of matrix multiplication that
@@ -397,8 +415,8 @@ matmul.__doc__ =\
     where `scale` is (optionally) a scalar, and `left` and `right` are
     matrices.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     left : Data
         The left operand as either a bra or a ket matrix.
 
@@ -453,4 +471,4 @@ cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense
     elif type(left) is Dense:
         matmul_dense(left, right, scale, out)
     else:
-        iadd_dense(out, matmul(left, right), scale)
+        iadd_dense(out, matmul(left, right, dtype=Dense), scale)

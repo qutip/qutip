@@ -614,6 +614,7 @@ class TestInner(BinaryOpMixin):
 
     specialisations = [
         pytest.param(data.inner_csr, CSR, CSR, complex),
+        pytest.param(data.inner_dense, Dense, Dense, complex),
     ]
 
     def generate_scalar_is_ket(self, metafunc):
@@ -683,6 +684,7 @@ class TestInnerOp(TernaryOpMixin):
 
     specialisations = [
         pytest.param(data.inner_op_csr, CSR, CSR, CSR, complex),
+        pytest.param(data.inner_op_dense, Dense, Dense, Dense, complex),
     ]
 
     def generate_scalar_is_ket(self, metafunc):
@@ -802,6 +804,26 @@ class TestTrace(UnaryOpMixin):
     ]
 
 
+class TestTrace_oper_ket(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        N = int(matrix.shape[0] ** 0.5)
+        return np.sum(np.diag(matrix.reshape((N, N))))
+
+    shapes = [
+        (pytest.param((100, 1), id="oper-ket"),),
+    ]
+    bad_shapes = [
+        (pytest.param((1, 100), id="bra"),),
+        (pytest.param((99, 1), id="ket"),),
+        (pytest.param((99, 99), id="ket"),),
+        (pytest.param((2, 99), id="nonsquare"),),
+    ]
+    specialisations = [
+        pytest.param(data.trace_oper_ket_csr, CSR, complex),
+        pytest.param(data.trace_oper_ket_dense, Dense, complex),
+    ]
+
+
 class TestPow(UnaryOpMixin):
     def op_numpy(self, matrix, n):
         return np.linalg.matrix_power(matrix, n)
@@ -810,6 +832,7 @@ class TestPow(UnaryOpMixin):
     bad_shapes = shapes_not_square()
     specialisations = [
         pytest.param(data.pow_csr, CSR, CSR),
+        pytest.param(data.pow_dense, Dense, Dense),
     ]
 
     @pytest.mark.parametrize("n", [0, 1, 10], ids=["n_0", "n_1", "n_10"])
@@ -841,6 +864,18 @@ class TestExpm(UnaryOpMixin):
     specialisations = [
         pytest.param(data.expm_csr, CSR, CSR),
         pytest.param(data.expm_csr_dense, CSR, Dense),
+        pytest.param(data.expm_dense, Dense, Dense),
+    ]
+
+
+class TestLogm(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return scipy.linalg.logm(matrix)
+
+    shapes = shapes_square()
+    bad_shapes = shapes_not_square()
+    specialisations = [
+        pytest.param(data.logm_dense, Dense, Dense),
     ]
 
 

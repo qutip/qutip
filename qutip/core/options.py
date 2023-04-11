@@ -31,12 +31,16 @@ class QutipOptions:
         # Let the dict catch the KeyError
         self.options[key] = value
 
-    def __repr__(self):
+    def __repr__(self, full=True):
         out = [f"<{self.__class__.__name__}("]
         for key, value in self.options.items():
-            out += [f"    '{key}': {repr(value)},"]
+            if full or value != self._options[key]:
+                out += [f"    '{key}': {repr(value)},"]
         out += [")>"]
-        return "\n".join(out)
+        if len(out)-2:
+            return "\n".join(out)
+        else:
+            return "".join(out)
 
     def __enter__(self):
         self._backup = getattr(settings, self._settings_name)
@@ -60,16 +64,13 @@ class CoreOptions(QutipOptions):
         Whether to tidyup during sparse operations.
 
     auto_tidyup_dims : bool [True]
-        use auto tidyup dims on multiplication
-
-    auto_herm : boolTrue
-        detect hermiticity
+        Use auto tidyup dims on multiplication. (Not used yet)
 
     atol : float {1e-12}
-        general absolute tolerance
+        General absolute tolerance
 
     rtol : float {1e-12}
-        general relative tolerance
+        General relative tolerance
         Used to choose QobjEvo.expect output type
 
     auto_tidyup_atol : float {1e-14}
@@ -92,14 +93,18 @@ class CoreOptions(QutipOptions):
           on the signature of the supplied function. If the function signature
           is exactly ``f(t, args)`` then ``dict`` is used. Otherwise
           ``pythonic`` is used.
+
+    default_dtype : Nonetype, str, type {None}
+        When set, functions creating :class:`Qobj`, such as :func:"qeye" or
+        :func:"rand_herm", will use the specified data type. Any data-layer
+        known to ``qutip.data.to`` is accepted. When ``None``, these functions
+        will default to a sensible data type.
     """
     _options = {
         # use auto tidyup
         "auto_tidyup": True,
         # use auto tidyup dims on multiplication
         "auto_tidyup_dims": True,
-        # detect hermiticity
-        "auto_herm": True,
         # general absolute tolerance
         "atol": 1e-12,
         # general relative tolerance
@@ -108,6 +113,8 @@ class CoreOptions(QutipOptions):
         "auto_tidyup_atol": 1e-14,
         # signature style expected by function coefficients
         "function_coefficient_style": "auto",
+        # Default Qobj dtype for Qobj create function
+        "default_dtype": None,
     }
     _settings_name = "core"
 

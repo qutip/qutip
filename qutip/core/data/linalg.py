@@ -32,10 +32,10 @@ def inv_csr(data):
 
 from .dispatch import Dispatcher as _Dispatcher
 
-inv = _Dispatcher(inv_dense, name='inv', inputs=('data',), out=False)
+inv = _Dispatcher(inv_dense, name='inv', inputs=('data',), out=True)
 inv.__doc__ =\
     """
-    Return matric inverse for a data-layer object.
+    Return matrix inverse for a data-layer object.
 
     Parameters
     ----------
@@ -48,8 +48,8 @@ inv.__doc__ =\
         Inverse of data
     """
 inv.add_specialisations([
-    (CSR, inv_csr),
-    (Dense, inv_dense),
+    (CSR, CSR, inv_csr),
+    (Dense, Dense, inv_dense),
 ], _defer=True)
 
 del _Dispatcher

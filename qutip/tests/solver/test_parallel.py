@@ -3,7 +3,9 @@ import time
 import pytest
 import threading
 
-from qutip.solver.parallel import parallel_map, serial_map, loky_pmap
+from qutip.solver.parallel import (
+    parallel_map, serial_map, loky_pmap, MapExceptions
+)
 
 
 def _func1(x):
@@ -69,3 +71,51 @@ def test_map_accumulator(map, num_cpus):
 
     map(_func2, x, args, kwargs, reduce_func=y2.append, map_kw=map_kw)
     assert ((np.array(sorted(y1)) == np.array(sorted(y2))).all())
+
+
+class CustomException(Exception):
+    pass
+
+
+def func(i):
+    if i % 2 == 1:
+        raise CustomException(f"Error in subprocess {i}")
+    return i
+
+
+@pytest.mark.parametrize('map', [
+    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(loky_pmap, id='loky_pmap'),
+    pytest.param(serial_map, id='serial_map'),
+])
+def test_map_pass_error(map):
+    if map is loky_pmap:
+        loky = pytest.importorskip("loky")
+
+    with pytest.raises(CustomException) as err:
+        map(func, range(10))
+    assert "Error in subprocess" in str(err.value)
+
+
+@pytest.mark.parametrize('map', [
+    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(loky_pmap, id='loky_pmap'),
+    pytest.param(serial_map, id='serial_map'),
+])
+def test_map_store_error(map):
+    if map is loky_pmap:
+        loky = pytest.importorskip("loky")
+
+    with pytest.raises(MapExceptions) as err:
+        map(func, range(10), map_kw={"fail_fast": False})
+    map_error = err.value
+    assert "iterations failed" in str(map_error)
+    for iter, error in map_error.errors.items():
+        assert isinstance(error, CustomException)
+        assert f"Error in subprocess {iter}" == str(error)
+    for n, result in enumerate(map_error.results):
+        if n % 2 == 0:
+            # Passed
+            assert result == n
+        else:
+            assert result is None

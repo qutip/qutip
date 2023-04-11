@@ -7,6 +7,12 @@ import scipy.sparse
 import scipy.linalg
 
 import qutip
+from qutip.core import data as _data
+
+
+@pytest.fixture(params=[_data.CSR, _data.Dense], ids=["CSR", "Dense"])
+def datatype(request):
+    return request.param
 
 
 def _random_not_singular(N):
@@ -351,6 +357,58 @@ def test_QobjMulNotValidScalar(not_scalar):
         q1 * not_scalar
 
 
+# Allowed division operations (scalar)
+@pytest.mark.parametrize("scalar",
+                         [2+2j,  np.array(2+2j), np.array([2+2j])],
+                         ids=[
+                             "python_number",
+                             "scalar_like_array_shape_0",
+                             "scalar_like_array_shape_1",
+                         ])
+def test_QobjDivisionValidScalar(scalar):
+    "Tests multiplication of Qobj times scalar."
+    data = np.array([[1, 2], [3, 4]])
+    q = qutip.Qobj(data)
+    expect = data / (2+2j)
+
+    # Check __truediv__
+    result = q / scalar
+    assert np.all(result.full() == expect)
+
+
+# Similar as in test_QobjMulNotValidScalar, we do not allow multiplication by
+# non scalar numpy values. This should also be removed in case of implementing
+# broadcasting rules for Qobj.
+@pytest.mark.parametrize("not_scalar",
+                         [np.array([2j, 1]), np.array([[1, 2], [3, 4]])],
+                         ids=[
+                             "not_scalar_like_vector",
+                             "not_scalar_like_matrix",
+                         ])
+def test_QobjDivisionNotValidScalar(not_scalar):
+    q1 = qutip.Qobj(np.array([[1, 2], [3, 4]]))
+
+    with pytest.raises(TypeError):
+        q1 / not_scalar
+
+
+def test_QobjNotImplemented():
+    class MockerScalar():
+        def __mul__(self, other):
+            return "object not accepted by _data.mul, mul"
+
+        def __rmul__(self, other):
+            return "object not accepted by _data.mul, rmul"
+
+        def __rtruediv__(self, other):
+            return "object not accepted by _data.mul, rtruediv"
+
+    qobj = qutip.Qobj(np.array([[1, 2], [3, 4]]))
+    scalar = MockerScalar()
+    assert (qobj*scalar) == "object not accepted by _data.mul, rmul"
+    assert (scalar*qobj) == "object not accepted by _data.mul, mul"
+    assert (qobj/scalar) == "object not accepted by _data.mul, rtruediv"
+
 def test_QobjDivision():
     "qutip.Qobj division"
     data = _random_not_singular(5)
@@ -551,6 +609,29 @@ def test_QobjExpmZeroOper():
     assert B == qutip.qeye(5)
 
 
+def test_QobjLogm():
+    "qutip.Qobj expm (dense)"
+    data = _random_not_singular(15)
+    A = qutip.Qobj(data)
+    B = A.logm()
+    np.testing.assert_allclose(B.full(), scipy.linalg.logm(data), atol=1e-10)
+
+
+def test_QobjLogmExplicitlySparse():
+    "qutip.Qobj logm (sparse)"
+    data = _random_not_singular(15)
+    A = qutip.Qobj(data).to("csr")
+    B = A.logm()
+    np.testing.assert_allclose(B.full(), scipy.linalg.logm(data), atol=1e-10)
+
+
+def test_QobjLogmZeroOper():
+    "qutip.Qobj logm zero_oper (#493)"
+    A = qutip.qeye(5)
+    B = A.logm()
+    assert B == qutip.qzero(5)
+
+
 def test_Qobj_sqrtm():
     "qutip.Qobj sqrtm"
     data = _random_not_singular(5)
@@ -617,11 +698,11 @@ def test_QobjPurity():
     np.testing.assert_allclose(rho_mixed.purity(), 0.5)
 
 
-def test_QobjPermute():
+def test_QobjPermute(datatype):
     "qutip.Qobj permute"
-    A = qutip.basis(3, 0)
-    B = qutip.basis(5, 4)
-    C = qutip.basis(4, 2)
+    A = qutip.basis(3, 0, dtype=datatype)
+    B = qutip.basis(5, 4, dtype=datatype)
+    C = qutip.basis(4, 2, dtype=datatype)
     psi = qutip.tensor(A, B, C)
     psi2 = psi.permute([2, 0, 1])
     assert psi2 == qutip.tensor(C, A, B)
@@ -630,17 +711,17 @@ def test_QobjPermute():
     psi2_bra = psi_bra.permute([2, 0, 1])
     assert psi2_bra == qutip.tensor(C, A, B).dag()
 
-    A = qutip.fock_dm(3, 0)
-    B = qutip.fock_dm(5, 4)
-    C = qutip.fock_dm(4, 2)
+    A = qutip.fock_dm(3, 0, dtype=datatype)
+    B = qutip.fock_dm(5, 4, dtype=datatype)
+    C = qutip.fock_dm(4, 2, dtype=datatype)
     rho = qutip.tensor(A, B, C)
     rho2 = rho.permute([2, 0, 1])
     assert rho2 == qutip.tensor(C, A, B)
 
     for _ in range(3):
-        A = qutip.rand_ket(3)
-        B = qutip.rand_ket(4)
-        C = qutip.rand_ket(5)
+        A = qutip.rand_ket(3, dtype=datatype)
+        B = qutip.rand_ket(4, dtype=datatype)
+        C = qutip.rand_ket(5, dtype=datatype)
         psi = qutip.tensor(A, B, C)
         psi2 = psi.permute([1, 0, 2])
         assert psi2 == qutip.tensor(B, A, C)
@@ -650,9 +731,9 @@ def test_QobjPermute():
         assert psi2_bra == qutip.tensor(B, A, C).dag()
 
     for _ in range(3):
-        A = qutip.rand_dm(3)
-        B = qutip.rand_dm(4)
-        C = qutip.rand_dm(5)
+        A = qutip.rand_dm(3, dtype=datatype)
+        B = qutip.rand_dm(4, dtype=datatype)
+        C = qutip.rand_dm(5, dtype=datatype)
         rho = qutip.tensor(A, B, C)
         rho2 = rho.permute([1, 0, 2])
         assert rho2 == qutip.tensor(B, A, C)
@@ -668,7 +749,7 @@ def test_QobjPermute():
 
     for _ in range(3):
         super_dims = [3, 5, 4]
-        U = qutip.rand_unitary(super_dims)
+        U = qutip.rand_unitary(super_dims, dtype=datatype)
         Unew = U.permute([2, 1, 0])
         S_tens = qutip.to_super(U)
         S_tens_new = qutip.to_super(Unew)
@@ -1040,6 +1121,28 @@ def test_unit():
     psi.unit(inplace=True)
     assert psi == psi2
     np.testing.assert_allclose(np.linalg.norm(psi.full()), 1.0)
+
+
+def test_trace():
+    sz = qutip.sigmaz()
+    assert sz.tr() == 0
+
+
+def test_no_real_attribute(monkeypatch):
+    """This tests ensures that trace still works even if the output of a
+    specialisation does not have the ``real`` attribute. This is the case for
+    the tensorflow and cupy data layers."""
+
+    def mocker_trace_return(oper):
+        """
+        We simply return a string which does not have the `real` attribute.
+        """
+        return "object without .real"
+
+    monkeypatch.setattr(_data, "trace", mocker_trace_return)
+
+    sz = qutip.sigmaz() # the choice of the matrix does not matter
+    assert "object without .real" == sz.tr()
 
 
 @pytest.mark.parametrize('inplace', [True, False], ids=['inplace', 'new'])

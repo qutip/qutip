@@ -2,6 +2,7 @@ import os
 import warnings
 
 import qutip.settings
+from qutip.settings import settings
 import qutip.version
 from qutip.version import version as __version__
 
@@ -32,10 +33,9 @@ else:
 
 from .core import *
 from .solver import *
-from .solve import *
-# Import here to avoid circular imports
-from .solver.countstat import *
-from .solver.brmesolve import *
+from .solve import nonmarkov
+import qutip.solve.piqs as piqs
+from .solve.stochastic import *
 
 # graphics
 from .bloch import *
@@ -57,7 +57,6 @@ from .three_level_atom import *
 
 
 # utilities
-from .parallel import *
 from .utilities import *
 from .fileio import *
 from .about import *

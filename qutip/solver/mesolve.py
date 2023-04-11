@@ -3,7 +3,7 @@ This module provides solvers for the Lindblad master equation and von Neumann
 equation.
 """
 
-__all__ = ['mesolve', 'MeSolver']
+__all__ = ['mesolve', 'MESolver']
 
 import numpy as np
 from time import time
@@ -11,7 +11,7 @@ from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from .solver_base import Solver
-from .sesolve import sesolve, SeSolver
+from .sesolve import sesolve, SESolver
 
 
 def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
@@ -138,12 +138,12 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args,
                        options=options)
 
-    solver = MeSolver(H, c_ops, options=options)
+    solver = MESolver(H, c_ops, options=options)
 
     return solver.run(rho0, tlist, e_ops=e_ops)
 
 
-class MeSolver(SeSolver):
+class MESolver(SESolver):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
@@ -170,7 +170,7 @@ class MeSolver(SeSolver):
         of Liouvillian superoperators. None is equivalent to an empty list.
 
     options : dict, optional
-        Options for the solver, see :obj:`SeSolver.options` and
+        Options for the solver, see :obj:`MESolver.options` and
         `Integrator <./classes.html#classes-ode>`_ for a list of all options.
 
     attributes

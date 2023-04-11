@@ -52,12 +52,13 @@ def fidelity(A, B):
     >>> np.testing.assert_almost_equal(fidelity(x,y), 0.24104350624628332)
     """
     if A.isket or A.isbra:
+        if B.isket or B.isbra:
+            # The fidelity for pure states reduces to the modulus of their
+            # inner product.
+            return np.abs(A.overlap(B))
         # Take advantage of the fact that the density operator for A
         # is a projector to avoid a sqrtm call.
-        sqrtmA = A.proj()
-        # Check whether we have to turn B into a density operator, too.
-        if B.isket or B.isbra:
-            B = B.proj()
+        sqrtmA = ket2dm(A)
     else:
         if B.isket or B.isbra:
             # Swap the order so that we can take a more numerically
@@ -175,7 +176,7 @@ def process_fidelity(oper, target=None):
     The definition of state fidelity that the process fidelity is based on
     is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
     It is the square of the one implemented in
-    :func:`qutip.metrics.fidelity` which follows Nielsen & Chuang,
+    :func:`qutip.core.metrics.fidelity` which follows Nielsen & Chuang,
     "Quantum Computation and Quantum Information"
 
     """
@@ -235,7 +236,7 @@ def average_gate_fidelity(oper, target=None):
     The definition of state fidelity that the average gate fidelity is based on
     is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
     It is the square of the fidelity implemented in
-    :func:`qutip.metrics.fidelity` which follows Nielsen & Chuang,
+    :func:`qutip.core.metrics.fidelity` which follows Nielsen & Chuang,
     "Quantum Computation and Quantum Information"
 
     """
@@ -430,7 +431,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
           sparse=True):
     """
     Calculates the diamond norm of the quantum map q_oper, using
-    the simplified semidefinite program of [Wat12]_.
+    the simplified semidefinite program of [Wat13]_.
 
     The diamond norm SDP is solved by using CVXPY_.
 
@@ -537,18 +538,12 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # If we're still here, we need to actually solve the problem.
 
     # Assume square...
-    dim = np.prod(J.dims[0][0])
-
-    # The constraints only depend on the dimension, so
-    # we can cache them efficiently.
-    problem, Jr, Ji, *_ = dnorm_problem(dim)
+    dim = int(np.prod(J.dims[0][0]))
 
     # Load the parameters with the Choi matrix passed in.
     J_dat = _data.to('csr', J.data).as_scipy()
 
     if not sparse:
-        # The parameters and constraints only depend on the dimension, so
-        # we can cache them efficiently.
         problem, Jr, Ji = dnorm_problem(dim)
 
         # Load the parameters with the Choi matrix passed in.
@@ -560,9 +555,6 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
                                   J_dat.indptr),
                                  shape=J_dat.shape).toarray()
     else:
-
-        # The parameters do not depend solely on the dimension,
-        # so we can not cache them efficiently.
         problem = dnorm_sparse_problem(dim, J_dat)
 
     problem.solve(solver=solver, verbose=verbose)

@@ -12,14 +12,13 @@ cdef class QobjEvo:
         readonly str superrep
         int _issuper
         int _isoper
-        double _shift_dt
 
     cpdef Data _call(QobjEvo self, double t)
 
-    cdef double _prepare(QobjEvo self, double t, Data state=*)
+    cdef object _prepare(QobjEvo self, object t, Data state=*)
 
-    cpdef double complex expect_data(QobjEvo self, double t, Data state) except *
+    cpdef object expect_data(QobjEvo self, object t, Data state)
 
     cdef double complex _expect_dense(QobjEvo self, double t, Dense state) except *
 
-    cpdef Data matmul_data(QobjEvo self, double t, Data state, Data out=*)
+    cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=*)
