@@ -147,14 +147,13 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     try:
         progress_bar = kwargs['progress_bar']
         if progress_bar is True:
-            progress_bar = TextProgressBar()
+            progress_bar = TextProgressBar(len(values))
     except:
-        progress_bar = BaseProgressBar()
+        progress_bar = BaseProgressBar(len(values))
 
-    progress_bar.start(len(values))
     results = []
     for n, value in enumerate(values):
-        progress_bar.update(n)
+        progress_bar.update()
         result = task(value, *task_args, **task_kwargs)
         results.append(result)
     progress_bar.finished()
@@ -199,16 +198,15 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     try:
         progress_bar = kwargs['progress_bar']
         if progress_bar is True:
-            progress_bar = TextProgressBar()
+            progress_bar = TextProgressBar(len(values))
     except:
-        progress_bar = BaseProgressBar()
+        progress_bar = BaseProgressBar(len(values))
 
-    progress_bar.start(len(values))
     nfinished = [0]
 
     def _update_progress_bar(x):
         nfinished[0] += 1
-        progress_bar.update(nfinished[0])
+        progress_bar.update()
 
     try:
         pool = Pool(processes=kw['num_cpus'])

@@ -13,11 +13,13 @@ for alias, bar in progress_bars.items():
 
 
 @pytest.mark.parametrize("pbar", names)
-def test_progressbar(pbar):
+def test_progressbar(pbar, capsys):
     N = 5
+
     try:
         bar = progress_bars[pbar](N)
     except ImportError:
+        # ipython or tqdm could be missing
         pytest.skip(reason="module not available")
     assert bar.total_time() < 0
     for _ in range(N):
@@ -25,3 +27,8 @@ def test_progressbar(pbar):
         bar.update()
     bar.finished()
     assert bar.total_time() > 0
+    out, err = capsys.readouterr()
+    if pbar.lower() not in ["base"]:
+        # Has an non error output
+        # tqdm use error out
+        assert out != "" or err != ""

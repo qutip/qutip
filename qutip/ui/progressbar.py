@@ -151,10 +151,6 @@ class HTMLProgressBar(BaseProgressBar):
     """
 
     def __init__(self, iterations=0, chunk_size=1.0, **kwargs):
-        """if not settings.ipython:
-            raise ValueError(
-                "HTMLProgressBar is only available when using ipython"
-            )"""
         from IPython.display import HTML, Javascript, display
         import uuid
 
