@@ -192,7 +192,7 @@ cdef class Dense(base.Data):
         self._deallocate = False
         return self._np
 
-    cpdef double complex trace(self):
+    cpdef double complex trace(self) except *:
         return trace_dense(self)
 
     cpdef Dense adjoint(self):

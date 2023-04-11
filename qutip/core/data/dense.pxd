@@ -15,7 +15,7 @@ cdef class Dense(base.Data):
     cpdef Dense copy(Dense self)
     cpdef object as_ndarray(Dense self)
     cpdef object to_array(Dense self)
-    cpdef double complex trace(Dense self)
+    cpdef double complex trace(Dense self) except *
     cpdef Dense adjoint(Dense self)
     cpdef Dense conj(Dense self)
     cpdef Dense transpose(Dense self)
