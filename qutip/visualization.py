@@ -611,7 +611,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         'figsize' : tuple of two numbers
             The size of the figure.
 
-    Returns :
+    Returns
     -------
     fig, ax : tuple
         A tuple of the matplotlib figure and axes instances used to produce
