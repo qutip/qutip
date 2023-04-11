@@ -1,4 +1,5 @@
 import numpy
+import pytest
 
 from hypothesis import given, strategies as st
 
@@ -124,3 +125,45 @@ def test_data_matmul_operator(a, b):
         result.to_array(), expected,
         atol=1e-12, treat_inf_as_nan=True,
     )
+
+
+@given(qst.qobj_datas())
+def test_trace(data):
+    if data.shape[0] != data.shape[1]:
+        with pytest.raises(ValueError) as err:
+            data.trace()
+        assert str(err.value) == (
+            f"matrix shape {data.shape} is not square."
+        )
+    else:
+        result = data.trace()
+        qst.note(result=result, data=data)
+        qst.assert_allclose(result, data.to_array().trace())
+
+
+@given(qst.qobj_datas())
+def test_adjoint(data):
+    result = data.adjoint()
+    qst.note(result=result, data=data)
+    qst.assert_allclose(result.to_array(), data.to_array().T.conj())
+
+
+@given(qst.qobj_datas())
+def test_conj(data):
+    result = data.conj()
+    qst.note(result=result, data=data)
+    qst.assert_allclose(result.to_array(), data.to_array().conj())
+
+
+@given(qst.qobj_datas())
+def test_transpose(data):
+    result = data.transpose()
+    qst.note(result=result, data=data)
+    qst.assert_allclose(result.to_array(), data.to_array().T)
+
+
+@given(qst.qobj_datas())
+def test_copy(data):
+    result = data.copy()
+    qst.note(result=result, data=data)
+    qst.assert_allclose(result.to_array(), data.to_array())
