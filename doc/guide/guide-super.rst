@@ -23,10 +23,11 @@ show the real parts of matrix elements as squares whose size and color both corr
 .. plot::
    :context: reset
 
-    from qutip import visualization, identity, Qobj, to_super, sigmaz, tensor, hadamard_transform, cnot, tensor_contract
+    from qutip import hinton, identity, Qobj, to_super, sigmaz, tensor, tensor_contract
+    from qutip.core.gates import cnot, hadamard_transform
 
-    visualization.hinton(identity([2, 3]).unit())
-    visualization.hinton(Qobj([[1, 0.5], [0.5, 1]]).unit())
+    hinton(identity([2, 3]).unit())
+    hinton(Qobj([[1, 0.5], [0.5, 1]]).unit())
 
 
 We show superoperators as matrices in the *Pauli basis*, such that any Hermicity-preserving map is represented by a real-valued matrix. This is especially convienent for use with Hinton diagrams, as the plot thus carries complete information about the channel.
@@ -36,7 +37,7 @@ As an example, conjugation by :math:`\sigma_z` leaves :math:`\mathbb{1}` and :ma
 .. plot::
    :context:
 
-    visualization.hinton(to_super(sigmaz()))
+    hinton(to_super(sigmaz()))
 
 
 As a couple more examples, we also consider the supermatrix for a Hadamard transform and for :math:`\sigma_z \otimes H`.
@@ -44,8 +45,8 @@ As a couple more examples, we also consider the supermatrix for a Hadamard trans
 .. plot::
    :context:
 
-    visualization.hinton(to_super(hadamard_transform()))
-    visualization.hinton(to_super(tensor(sigmaz(), hadamard_transform())))
+    hinton(to_super(hadamard_transform()))
+    hinton(to_super(tensor(sigmaz(), hadamard_transform())))
 
 .. _super-reduced-channels:
 
@@ -86,14 +87,14 @@ For a :math:`\scriptstyle \rm CNOT` system-environment model, the composition of
 .. plot::
    :context:
 
-   visualization.hinton(to_super(cnot()))
+   hinton(to_super(cnot()))
 
 We now complete by multiplying the superunitary :math:`\scriptstyle \rm CNOT` by the preparation channel above, then applying the partial trace channel by contracting the second and fourth index indices. As expected, this gives us a dephasing map.
 
 .. plot::
    :context:
 
-   visualization.hinton(tensor_contract(to_super(cnot()), (1, 3)) * s_prep)
+   hinton(tensor_contract(to_super(cnot()), (1, 3)) * s_prep)
 
 
 .. plot::
