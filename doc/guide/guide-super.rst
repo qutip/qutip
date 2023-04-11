@@ -71,6 +71,7 @@ The two tensor wires on the left indicate where we must take a tensor contractio
 .. plot::
    :context:
    :nofigs:
+
    tensor_contract(to_super(identity([2, 2])), (1, 3))
 
 Meanwhile, the :func:`super_tensor` function implements the swap on the right, such that we can quickly find the preparation map.
