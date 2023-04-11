@@ -1,4 +1,5 @@
 #cython: language_level=3
+#cython: boundscheck=False
 
 import functools
 import inspect
@@ -48,7 +49,7 @@ cdef class _constructed_specialisation:
     """
     cdef readonly bint _output
     cdef object _call
-    cdef readonly Py_ssize_t _n_inputs
+    cdef readonly Py_ssize_t _n_inputs, _n_dispatch
     cdef readonly tuple types
     cdef readonly tuple _converters
     cdef readonly str _short_name
@@ -57,10 +58,8 @@ cdef class _constructed_specialisation:
     cdef public str __module__
     cdef public object __signature__
     cdef readonly str __text_signature__
-    cdef readonly bint direct
 
-    def __init__(self, base, Dispatcher dispatcher, types, converters, out,
-                 direct):
+    def __init__(self, base, Dispatcher dispatcher, types, converters, out):
         self.__doc__ = inspect.getdoc(dispatcher)
         self._short_name = dispatcher.__name__
         self.__name__ = (
@@ -74,10 +73,11 @@ cdef class _constructed_specialisation:
         self._output = out
         self._call = base
         self.types = types
-        self.direct = direct
         self._converters = converters
+        self._n_dispatch = len(converters)
         self._n_inputs = len(converters) - out
 
+    @cython.wraparound(False)
     def __call__(self, *args, **kwargs):
         cdef int i
         cdef list _args = list(args)
@@ -85,7 +85,7 @@ cdef class _constructed_specialisation:
             _args[i] = self._converters[i](args[i])
         out = self._call(*_args, **kwargs)
         if self._output:
-            out = self._converters[-1](out)
+            out = self._converters[self._n_dispatch - 1](out)
         return out
 
     def __repr__(self):
@@ -93,9 +93,8 @@ cdef class _constructed_specialisation:
             spec = self.types[0].__name__
         else:
             spec = "(" + ", ".join(x.__name__ for x in self.types) + ")"
-        direct = ("" if self.direct else "in") + "direct"
         return "".join([
-            "<", direct, " specialisation ", spec, " of ", self._short_name, ">"
+            "<indirect specialisation ", spec, " of ", self._short_name, ">"
         ])
 
 
@@ -320,8 +319,7 @@ cdef class Dispatcher:
                     converters = tuple(_to[pair] for pair in zip(types, in_types))
                 self._lookup[in_types] =\
                     _constructed_specialisation(function, self, in_types,
-                                                converters, self.output,
-                                                weight == 0)
+                                                converters, self.output)
         # Now build the lookup table in the case that we dispatch on the output
         # type as well, but the user has called us without specifying it.
         # TODO: option to control default output type choice if unspecified?
@@ -348,8 +346,7 @@ cdef class Dispatcher:
                     self._lookup[in_types] =\
                         _constructed_specialisation(function, self,
                                                     in_types + (types[-1],),
-                                                    converters, False,
-                                                    weight == 0)
+                                                    converters, False)
 
     def __getitem__(self, types):
         """
@@ -369,7 +366,7 @@ cdef class Dispatcher:
         return "<dispatcher: " + self.__text_signature__ + ">"
 
     def __call__(self, *args, dtype=None, **kwargs):
-        cdef list dispatch = [None] * self._n_dispatch
+        cdef list dispatch = []
         cdef int i
         if self._pass_on_dtype:
             kwargs['dtype'] = dtype
