@@ -46,9 +46,9 @@ cdef class _constructed_specialisation:
     See `self.__signature__` or `self.__text_signature__` for the call
     signature of this object.
     """
-    cdef readonly Py_ssize_t _output
+    cdef readonly bint _output
     cdef object _call
-    cdef readonly Py_ssize_t _n_input_converters
+    cdef readonly Py_ssize_t _n_inputs
     cdef readonly tuple types
     cdef readonly tuple _converters
     cdef readonly str _short_name
@@ -71,21 +71,21 @@ cdef class _constructed_specialisation:
         self.__module__ = dispatcher.__module__
         self.__signature__ = dispatcher.__signature__
         self.__text_signature__ = dispatcher.__text_signature__
-        self._output = len(types) - 1 if out else -1
+        self._output = out
         self._call = base
         self.types = types
         self.direct = direct
         self._converters = converters
-        self._n_input_converters = len(converters) - out
+        self._n_inputs = len(converters) - out
 
     def __call__(self, *args, **kwargs):
         cdef int i
-        cdef list datas = []
-        for i in range(self._n_input_converters):
-            datas.append(self._converters[i](args[i]))
-        out = self._call(*datas, *args[self._n_input_converters:], **kwargs)
-        if self._output != -1:
-            out = self._converters[self._output](out)
+        cdef list _args = list(args)
+        for i in range(self._n_inputs):
+            _args[i] = self._converters[i](args[i])
+        out = self._call(*_args, **kwargs)
+        if self._output:
+            out = self._converters[-1](out)
         return out
 
     def __repr__(self):
@@ -369,7 +369,7 @@ cdef class Dispatcher:
         return "<dispatcher: " + self.__text_signature__ + ">"
 
     def __call__(self, *args, dtype=None, **kwargs):
-        cdef list dispatch = []
+        cdef list dispatch = [None] * self._n_dispatch
         cdef int i
         if self._pass_on_dtype:
             kwargs['dtype'] = dtype
