@@ -162,6 +162,11 @@ def qobj_shared_shapes(shapes):
 def note(**kw):
     """ Generate hypothesis .note() calls for the supplied keyword arguments
         apply .to_array() or .full() as necessary.
+
+        Hypothesis notes are output when a test case fails.
+
+        See https://hypothesis.readthedocs.io/en/latest/details.html#hypothesis.note
+        for details.
     """
     for key, value in kw.items():
         if isinstance(value, Qobj):
