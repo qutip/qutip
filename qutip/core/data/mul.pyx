@@ -4,6 +4,8 @@
 from qutip.core.data cimport idxint, csr, CSR, dense, Dense, Data
 from scipy.linalg.cython_blas cimport zscal
 
+from libc.math cimport isfinite
+
 __all__ = [
     'mul', 'mul_csr', 'mul_dense',
     'imul', 'imul_csr', 'imul_dense', 'imul_data',
@@ -15,13 +17,24 @@ cpdef CSR imul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
     cdef idxint l = csr.nnz(matrix)
     cdef int ONE=1
+    if not (isfinite(value.real) and isfinite(value.imag)):
+        raise ValueError(
+            f"Multiplying CSR matrix by non-finite value {value!r}"
+            " would generate a dense matrix of NaNs."
+        )
     zscal(&l, &value, matrix.data, &ONE)
     return matrix
 
 cpdef CSR mul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
-    cdef CSR out = csr.copy_structure(matrix)
+    cdef CSR out
     cdef idxint ptr
+    if not (isfinite(value.real) and isfinite(value.imag)):
+        raise ValueError(
+            f"Multiplying CSR matrix by non-finite value {value!r}"
+            " would generate a dense matrix of NaNs."
+        )
+    out = csr.copy_structure(matrix)
     with nogil:
         for ptr in range(csr.nnz(matrix)):
             out.data[ptr] = value * matrix.data[ptr]
