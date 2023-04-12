@@ -73,6 +73,7 @@ jobs:
             os: ubuntu-latest
             python-version: "3.10"
             condaforge: 1
+            cython3: 1
 
           # Python 3.11 and latest numpy
           # Use conda-forge to provide Python 3.11 and latest numpy
@@ -114,6 +115,9 @@ jobs:
           QUTIP_TARGET="tests,graphics,semidefinite,ipython"
           if [[ -z "${{ matrix.nocython }}" ]]; then
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
+          fi
+          if [[ -z "${{ matrix.cython3 }}" ]]; then
+            pip install cython --pre
           fi
           export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
           if [[ -z "${{ matrix.nomkl }}" ]]; then
