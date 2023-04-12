@@ -1,9 +1,11 @@
 """ Hypothesis strategies for QuTiP. """
 
+import functools
 import contextlib
 import warnings
 
 import numpy as np
+import pytest
 
 from hypothesis import strategies as st, note as _note
 from hypothesis.extra import numpy as npst
@@ -223,3 +225,44 @@ def assert_allclose(
         b = _convert_inf_to_nan(b)
     with ignore_arithmetic_warnings():
         np.testing.assert_allclose(a, b, atol=atol, rtol=rtol)
+
+
+def raises_when(exc_type, msg, when, format_args=None):
+    """ A decorator that assert that a test raises a given condition when
+        a condition is fulfilled.
+
+        Parameters
+        ----------
+        exc_type : type
+            The type of exception that will be raised. E.g. ``ValueError``.
+        msg : str
+            The message the exception will raise. The message will be
+            formatted by calling ``.format`` on it with the test
+            parameters and so may include formatting such as ``{x}``
+            where ``x`` is the name of a test parameter.
+        when : callable
+            A function of the test arguments that is true when the
+            exception will be raised and false otherwise.
+        format_args : callable
+            A function of the test arguments that returns a set
+            of keyword arguments for formatting the exception
+            ``msg``. By default the function arguments are passed
+            to ``.format`` directly.
+    """
+    def decorator(f):
+
+        @functools.wraps(f)
+        def wrapper(*args, **kw):
+            if when(*args, **kw):
+                with pytest.raises(exc_type) as err:
+                    f(*args, **kw)
+                if format_args:
+                    args = []
+                    kw = format_args(*args, **kw)
+                assert str(err.value) == msg.format(*args, **kw)
+            else:
+                f(*args, **kw)
+
+        return wrapper
+
+    return decorator
