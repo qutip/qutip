@@ -77,11 +77,13 @@ def qobj_shapes():
 
 
 @st.composite
-def qobj_np(draw, shape=qobj_shapes()):
+def qobj_np(draw, shape=qobj_shapes(), elements=None):
     """
     A strategy returning Qobj compatible numpy arrays.
     """
-    np_array = draw(npst.arrays(shape=shape, dtype=np.complex128))
+    np_array = draw(npst.arrays(
+        shape=shape, elements=elements, dtype=np.complex128,
+    ))
     if len(np_array.shape) == 1:
         np_array = np.atleast_2d(np_array).transpose()
     else:
@@ -90,7 +92,7 @@ def qobj_np(draw, shape=qobj_shapes()):
 
 
 @st.composite
-def qobj_datas(draw, shape=qobj_shapes(), dtype=qobj_dtypes()):
+def qobj_datas(draw, shape=qobj_shapes(), dtype=qobj_dtypes(), elements=None):
     """
     A strategy for returning Qobj data-layer instances.
 
@@ -106,8 +108,32 @@ def qobj_datas(draw, shape=qobj_shapes(), dtype=qobj_dtypes()):
     # hermitian, ket, dm, oper, etc to restrict the kinds of
     # objects produced.
     dtype = draw(dtype)
-    data = draw(qobj_np(shape=shape))
+    data = draw(qobj_np(shape=shape, elements=elements))
     return _data.to(dtype, _data.create(data))
+
+
+def qobj_datas_matmul(*args, **kw):
+    """
+    A strategy for returning Qobj data-layer instances with suitable
+    for use in matrix multiplication. Matrix multiplication is particularly
+    prone imprecise results because it involves multiplication and
+    multiplication, addition and subtraction of floating point numbers.
+
+    We start with 53 bits of precision (double precision). Then we must
+    divide by 2 (multiplying two matrices) and that gives the maximum
+    range in matrix entries that can be accurately supported (approximately
+    26 bits or 1e7). We select a range matrix entry values from 1e-3 to 1e3.
+
+    Matrix entries that are identically zero are also allowed.
+    """
+    elements = st.one_of(
+        st.just(0j),
+        st.complex_numbers(
+            allow_nan=False, allow_infinity=False, allow_subnormal=False,
+            min_magnitude=1e-3, max_magnitude=1e3,
+        )
+    )
+    return qobj_datas(*args, elements=elements, **kw)
 
 
 def qobj_shared_shapes(shapes):
