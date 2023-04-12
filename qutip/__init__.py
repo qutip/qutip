@@ -33,7 +33,7 @@ else:
 
 from .core import *
 from .solver import *
-from .solve import nonmarkov
+from .solver import nonmarkov
 import qutip.solve.piqs as piqs
 from .solve.stochastic import *
 
