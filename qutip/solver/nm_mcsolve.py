@@ -43,11 +43,11 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
 
     ops_and_rates : list
         A ``list`` of tuples ``(L, Gamma)``, where the Lindblad operator ``L``
-        is a :class:`qutip.Qobj` and the corresponding rate ``Gamma`` is
-        callable. That is, ``Gamma(t)`` returns the rate at time ``t``, which
-        is allowed to be negative. The Lindblad operators must be operators
-        even if ``H`` is a superoperator. If none are given, the solver will
-        defer to ``sesolve`` or ``mesolve``. The ``Gamma(t)`` may be
+        is a :class:`qutip.Qobj` and ``Gamma`` represents the corresponding
+        rate, which is allowed to be negative. The Lindblad operators must be
+        operators even if ``H`` is a superoperator. If none are given, the
+        solver will defer to ``sesolve`` or ``mesolve``. Each rate ``Gamma``
+        may be just a number (in the case of a constant rate) or, otherwise,
         specified using any format accepted by :func:`qutip.coefficient`.
 
     e_ops : list, [optional]
@@ -112,6 +112,9 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
           Parameters used in determining whether the given Lindblad operators
           satisfy a certain completeness relation. If they do not, an
           additional Lindblad operator is added automatically (with zero rate).
+        - martingale_quad_limit : float or int, [100]
+          An upper bound on the number of subintervals used in the adaptive
+          integration of the martingale.
 
     seeds : int, SeedSequence, list, [optional]
         Seed for the random number generator. It can be a single seed used to
@@ -230,10 +233,11 @@ class NonMarkovianMCSolver(MCSolver):
 
     ops_and_rates : list
         A ``list`` of tuples ``(L, Gamma)``, where the Lindblad operator ``L``
-        is a :class:`qutip.Qobj` and the corresponding rate ``Gamma`` is
-        callable. That is, ``Gamma(t)`` returns the rate at time ``t``, which
-        is allowed to be negative. The Lindblad operators must be operators
-        even if ``H`` is a superoperator.
+        is a :class:`qutip.Qobj` and ``Gamma`` represents the corresponding
+        rate, which is allowed to be negative. The Lindblad operators must be
+        operators even if ``H`` is a superoperator. Each rate ``Gamma`` may be
+        just a number (in the case of a constant rate) or, otherwise, specified
+        using any format accepted by :func:`qutip.coefficient`.
 
     args : None / dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
@@ -250,7 +254,6 @@ class NonMarkovianMCSolver(MCSolver):
     """
     name = "nm_mcsolve"
     resultclass = NmmcResult
-    mc_integrator_class = NmMCIntegrator
     solver_options = {
         **MCSolver.solver_options,
         "completeness_rtol": 1e-5,
@@ -258,8 +261,9 @@ class NonMarkovianMCSolver(MCSolver):
         "martingale_quad_limit": 100,
     }
 
-    # "solver" argument will be partially initialized in constructor
+    # "__nm_solver" argument will be partially initialized in constructor
     trajectory_resultclass = NmmcTrajectoryResult
+    mc_integrator_class = NmMCIntegrator
 
     def __init__(
         self, H, ops_and_rates, *_args, args=None, options=None, **kwargs,
@@ -417,7 +421,7 @@ class NonMarkovianMCSolver(MCSolver):
 
     def sqrt_shifted_rate(self, t, i):
         """
-        Return the square root of the i'th unshifted rate at time ``t``.
+        Return the square root of the i'th shifted rate at time ``t``.
 
         Parameters
         ----------
