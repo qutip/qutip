@@ -824,7 +824,7 @@ class Qobj:
         out = np.asarray(self.data.to_array(), order=order)
         return out.squeeze() if squeeze else out
 
-    def extract(self, format=None, copy=True):
+    def data_as(self, format=None, copy=True):
         """Matrix from quantum object.
 
         Parameters
