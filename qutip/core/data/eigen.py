@@ -207,7 +207,7 @@ def _eigs_fix_eigvals(data, eigvals, sort):
     return eigvals, num_large, num_small
 
 
-def eigs_csr(data, isherm=None, vecs=True, sort='low', eigvals=0,
+def eigs_csr(data, /, isherm=None, vecs=True, sort='low', eigvals=0,
              tol=0, maxiter=100000):
     """
     Return eigenvalues and eigenvectors for a CSR matrix.  This specialisation
@@ -257,7 +257,7 @@ def eigs_csr(data, isherm=None, vecs=True, sort='low', eigvals=0,
     return (evals, Dense(evecs, copy=False)) if vecs else evals
 
 
-def eigs_dense(data, isherm=None, vecs=True, sort='low', eigvals=0):
+def eigs_dense(data, /, isherm=None, vecs=True, sort='low', eigvals=0):
     """
     Return eigenvalues and eigenvectors for a Dense matrix.  Takes no special
     keyword arguments; see the primary documentation in :func:`.eigs`.
@@ -412,7 +412,7 @@ def svd_dense(data, vecs=True, **kw):
 
 svd = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('data', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('data', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('vecs', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
     name='svd',

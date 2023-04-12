@@ -255,7 +255,7 @@ Quantum Process Tomography
 Non-Markovian Solvers
 =====================
 
-.. automodule:: qutip.solve.nonmarkov.transfertensor
+.. automodule:: qutip.solver.nonmarkov.transfertensor
     :members: ttmsolve
 
 
