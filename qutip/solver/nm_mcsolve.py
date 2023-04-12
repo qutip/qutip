@@ -17,6 +17,15 @@ from ..core import (
 )
 
 
+# The algorithm implemented here is based on the influence martingale approach
+# described in
+#     Nat Commun 13, 4140 (2022)
+#     https://doi.org/10.1038/s41467-022-31533-8
+#     https://arxiv.org/abs/2102.10355
+# and
+#     https://arxiv.org/abs/2209.08958
+
+
 def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
                args=None, options=None, seeds=None, target_tol=None,
                timeout=None):
@@ -159,11 +168,11 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         return mesolve(
             H, state, tlist, e_ops=e_ops, args=args, options=options,
         )
-    else:
-        ops_and_rates = [
-            _parse_op_and_rate(op, rate, tlist=tlist, args=args or {})
-            for op, rate in ops_and_rates
-        ]
+
+    ops_and_rates = [
+        _parse_op_and_rate(op, rate, tlist=tlist, args=args or {})
+        for op, rate in ops_and_rates
+    ]
 
     nmmc = NonMarkovianMCSolver(H, ops_and_rates, options=options)
     result = nmmc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
