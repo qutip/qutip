@@ -117,7 +117,7 @@ jobs:
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
           fi
           if [[ -z "${{ matrix.cython3 }}" ]]; then
-            pip install cython --pre
+            pip install cython --pre --upgrade
           fi
           export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
           if [[ -z "${{ matrix.nomkl }}" ]]; then
