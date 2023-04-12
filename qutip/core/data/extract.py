@@ -62,7 +62,7 @@ def extract_csr(matrix, format=None, copy=True):
 
 extract = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter(
             'format', _inspect.Parameter.POSITIONAL_OR_KEYWORD, default=None
         ),
