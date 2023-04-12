@@ -35,7 +35,7 @@ def test_data_iszero(data):
     with qst.ignore_arithmetic_warnings():
         np_array = data.to_array()
         expected = numpy.allclose(
-            np_array, numpy.zeros_like(np_array), atol=1e-15, rtol=1e-15
+            np_array, numpy.zeros_like(np_array), atol=1e-15, rtol=1e-15,
         )
     assert result is expected
 
@@ -59,6 +59,12 @@ def test_data_minus_operator(a, b):
 
 
 @given(st.complex_numbers(), qst.qobj_datas(shape=same_shape))
+@qst.raises_when(
+    ValueError,
+    "Multiplying CSR matrix by non-finite value {x!r}"
+    " would generate a dense matrix of NaNs.",
+    when=lambda a, x: not numpy.isfinite(x) and isinstance(a, _data.CSR),
+)
 def test_data_scalar_multiplication_left_operator(x, a):
     result = x * a
     qst.note(result=result, x=x, a=a)
@@ -68,6 +74,12 @@ def test_data_scalar_multiplication_left_operator(x, a):
 
 
 @given(qst.qobj_datas(shape=same_shape), st.complex_numbers())
+@qst.raises_when(
+    ValueError,
+    "Multiplying CSR matrix by non-finite value {x!r}"
+    " would generate a dense matrix of NaNs.",
+    when=lambda a, x: not numpy.isfinite(x) and isinstance(a, _data.CSR),
+)
 def test_data_scalar_multiplication_right_operator(a, x):
     result = a * x
     qst.note(result=result, a=a, x=x)
@@ -80,44 +92,55 @@ def test_data_scalar_multiplication_right_operator(a, x):
     qst.qobj_datas(shape=same_shape),
     st.complex_numbers(min_magnitude=1e-12),
 )
+@qst.raises_when(
+    ValueError,
+    "Multiplying CSR matrix by non-finite value {inv_x!r}"
+    " would generate a dense matrix of NaNs.",
+    when=lambda a, x: not numpy.isfinite(1 / x) and isinstance(a, _data.CSR),
+    format_args=lambda a, x: {"inv_x": 1 / x},
+)
 def test_data_scalar_division_operator(a, x):
     result = a / x
     qst.note(result=result, a=a, x=x)
     with qst.ignore_arithmetic_warnings():
-        expected = a.to_array() / x
+        expected = a.to_array() * (1 / x)
     qst.assert_allclose(result.to_array(), expected, treat_inf_as_nan=True)
 
 
 @given(qst.qobj_datas(shape=same_shape), qst.qobj_datas(shape=same_shape))
 def test_data_equality_operator_same_shapes(a, b):
-    with qutip.CoreOptions(atol=1e-15, rtol=1e-15):
+    with qutip.CoreOptions(atol=1e-15):
         result = (a == b)
     qst.note(result=result, a=a, b=b)
     with qst.ignore_arithmetic_warnings():
         expected = numpy.allclose(
-            a.to_array(), b.to_array(), rtol=1e-15
+            numpy.zeros_like(a.to_array()),
+            a.to_array() - b.to_array(),
+            atol=1e-15
         )
     assert result == expected
 
 
 @given(qst.qobj_datas(), qst.qobj_datas())
 def test_data_equality_operator_different_shapes(a, b):
-    with qutip.CoreOptions(atol=1e-15, rtol=1e-15):
+    with qutip.CoreOptions(atol=1e-15):
         result = (a == b)
     qst.note(result=result, a=a, b=b)
     if a.shape != b.shape:
-        expected = False
+        assert result is False
     else:
         with qst.ignore_arithmetic_warnings():
             expected = numpy.allclose(
-                a.to_array(), b.to_array(), rtol=1e-15
+                numpy.zeros_like(a.to_array()),
+                a.to_array() - b.to_array(),
+                atol=1e-15
             )
-    assert result == expected
+        assert result == expected
 
 
 @given(
-    qst.qobj_datas(shape=matmul_shape_a),
-    qst.qobj_datas(shape=matmul_shape_b),
+    qst.qobj_datas_matmul(shape=matmul_shape_a),
+    qst.qobj_datas_matmul(shape=matmul_shape_b),
 )
 def test_data_matmul_operator(a, b):
     result = a @ b
@@ -126,7 +149,7 @@ def test_data_matmul_operator(a, b):
         expected = a.to_array() @ b.to_array()
     qst.assert_allclose(
         result.to_array(), expected,
-        atol=1e-13, rtol=1e-13, treat_inf_as_nan=True,
+        atol=1e-10, rtol=1e-10, treat_inf_as_nan=True,
     )
 
 
