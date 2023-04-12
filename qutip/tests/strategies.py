@@ -165,7 +165,8 @@ def note(**kw):
 
         Hypothesis notes are output when a test case fails.
 
-        See https://hypothesis.readthedocs.io/en/latest/details.html#hypothesis.note
+        See
+        https://hypothesis.readthedocs.io/en/latest/details.html#hypothesis.note
         for details.
     """
     for key, value in kw.items():
