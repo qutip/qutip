@@ -113,7 +113,7 @@ def test_data_equality_operator_same_shapes(a, b):
     qst.note(result=result, a=a, b=b)
     with qst.ignore_arithmetic_warnings():
         expected = numpy.allclose(
-            numpy.zeros_like(a.to_array()),
+            numpy.zeros(a.shape),
             a.to_array() - b.to_array(),
             atol=1e-15
         )
@@ -130,7 +130,7 @@ def test_data_equality_operator_different_shapes(a, b):
     else:
         with qst.ignore_arithmetic_warnings():
             expected = numpy.allclose(
-                numpy.zeros_like(a.to_array()),
+                numpy.zeros(a.shape),
                 a.to_array() - b.to_array(),
                 atol=1e-15
             )
