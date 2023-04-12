@@ -300,9 +300,6 @@ class StochasticSolverOptions:
         if options is None:
             options = SolverOptions()
 
-        if progress_bar is None:
-            progress_bar = TextProgressBar()
-
         # System
         # Cast to QobjEvo so the code has only one version for both the
         # constant and time-dependent case.
@@ -420,6 +417,8 @@ class StochasticSolverOptions:
             self.noise_type = 0
 
         # Map
+        if progress_bar is None:
+            progress_bar = TextProgressBar(self.ntraj)
         self.progress_bar = progress_bar
         if self.ntraj > 1 and map_func:
             self.map_func = map_func

@@ -162,9 +162,6 @@ class StochasticSolverOptions:
         if options is None:
             options = SolverOptions()
 
-        if progress_bar is None:
-            progress_bar = TextProgressBar()
-
         self.H = H
         self.d1 = d1
         self.d2 = d2
@@ -199,6 +196,9 @@ class StochasticSolverOptions:
             self.map_func = map_func
         else:
             self.map_func = serial_map
+
+        if progress_bar is None:
+            self.progress_bar = TextProgressBar(self.ntraj)
 
         self.map_kwargs = map_kwargs if map_kwargs is not None else {}
 
@@ -352,7 +352,6 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
     for c in sso.c_ops:
         Heff += -0.5j * c.dag() * c
 
-    progress_bar.start(sso.ntraj)
     for n in range(sso.ntraj):
         progress_bar.update(n)
         psi_t = _data.dense.fast_from_numpy(sso.state0.full().ravel())
@@ -482,8 +481,6 @@ def _smepdpsolve_generic(sso, options, progress_bar):
     # Liouvillian for the deterministic part.
     # needs to be modified for TD systems
     L = liouvillian(sso.H, sso.c_ops)
-
-    progress_bar.start(sso.ntraj)
 
     for n in range(sso.ntraj):
         progress_bar.update(n)

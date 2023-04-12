@@ -17,7 +17,7 @@ from .brmesolve import BRSolver
 from .heom.bofin_solvers import HEOMSolver
 
 from .steadystate import steadystate
-from ..ui.progressbar import progess_bars
+from ..ui.progressbar import progress_bars
 
 # -----------------------------------------------------------------------------
 # PUBLIC API
@@ -495,8 +495,9 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
         solver.options["normalize_output"] = False
         solver.options["progress_bar"] = False
 
-        progress_bar = progess_bars[old_opt['progress_bar']]()
-        progress_bar.start(len(taulist) + 1, **old_opt['progress_kwargs'])
+        progress_bar = progress_bars[old_opt['progress_bar']](
+            len(taulist) + 1, **old_opt['progress_kwargs']
+        )
         rho_t = solver.run(state0, tlist).states
         corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
         progress_bar.update()
