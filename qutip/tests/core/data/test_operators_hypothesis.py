@@ -1,5 +1,4 @@
 import numpy
-import pytest
 
 from hypothesis import given, strategies as st
 
@@ -154,17 +153,18 @@ def test_data_matmul_operator(a, b):
 
 
 @given(qst.qobj_datas())
+@qst.raises_when(
+    ValueError,
+    "matrix shape {shape} is not square.",
+    when=lambda data: data.shape[0] != data.shape[1],
+    format_args=lambda data: {"shape": data.shape},
+)
 def test_trace(data):
-    if data.shape[0] != data.shape[1]:
-        with pytest.raises(ValueError) as err:
-            data.trace()
-        assert str(err.value) == (
-            f"matrix shape {data.shape} is not square."
-        )
-    else:
-        result = data.trace()
-        qst.note(result=result, data=data)
-        qst.assert_allclose(result, data.to_array().trace())
+    result = data.trace()
+    with qst.ignore_arithmetic_warnings():
+        expected = data.to_array().trace()
+    qst.note(result=result, data=data)
+    qst.assert_allclose(result, expected)
 
 
 @given(qst.qobj_datas())
