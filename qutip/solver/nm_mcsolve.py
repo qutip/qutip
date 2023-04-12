@@ -368,10 +368,14 @@ class NonMarkovianMCSolver(MCSolver):
         continuous = np.prod(
             self._integrator.continuous_martingales, initial=1.0,
         )
+
         if self._integrator.collapses:
             tc, _ = self._integrator.collapses[-1]
-            if t > tc:
-                continuous *= self._continuous_martingale(tc, t)
+        else:
+            tc = self._integrator._t0
+        if t > tc:
+            continuous *= self._continuous_martingale(tc, t)
+
         return discrete * continuous
 
     def _argument(self, args):
