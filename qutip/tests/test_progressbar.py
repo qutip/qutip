@@ -3,32 +3,42 @@ import pytest
 import time
 
 
-# We offer multiple alias for each progressbar.
-names = []
-bars = []
-for alias, bar in progress_bars.items():
-    if bar not in bars:
-        names.append(alias)
-        bars.append(bar)
+bars = ["base", "text", "Enhanced"]
+
+try:
+    import tqdm
+    bars.append("tqdm")
+except ImportError:
+    bars.append(
+        pytest.param("tqdm", marks=pytest.mark.skip("module not installed"))
+    )
+
+try:
+    import IPython
+    bars.append("html")
+except ImportError:
+    bars.append(
+        pytest.param("html", marks=pytest.mark.skip("module not installed"))
+    )
 
 
-@pytest.mark.parametrize("pbar", names)
-def test_progressbar(pbar, capsys):
+@pytest.mark.parametrize("pbar", bars)
+def test_progressbar(pbar):
     N = 5
-
-    try:
-        bar = progress_bars[pbar](N)
-    except ImportError:
-        # ipython or tqdm could be missing
-        pytest.skip(reason="module not available")
+    bar = progress_bars[pbar](N)
     assert bar.total_time() < 0
     for _ in range(N):
         time.sleep(0.25)
         bar.update()
     bar.finished()
     assert bar.total_time() > 0
+
+
+@pytest.mark.parametrize("pbar", bars[1:])
+def test_progressbar_has_print(pbar, capsys):
+    N = 2
+    bar = progress_bars[pbar](N)
+    bar.update()
+    bar.finished()
     out, err = capsys.readouterr()
-    if pbar.lower() not in ["base"]:
-        # Has an non error output
-        # tqdm use error out
-        assert out != "" or err != ""
+    assert out + err != ""
