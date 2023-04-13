@@ -403,8 +403,9 @@ cdef class Milstein_imp:
         self.prev_dt = 0
         if imp_method == "inv":
             if not self.system.L.isconstant:
-                raise TypeError("")
+                raise TypeError("The 'inv' integration method requires that the system Hamiltonian or Liouvillian be constant.")
             self.use_inv = True
+            self.imp_opt = {}
         else:
             self.use_inv = False
             self.imp_opt = {"method": imp_method, "options": imp_options}

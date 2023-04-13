@@ -43,7 +43,6 @@ def _make_system(N, system):
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_smesolve(heterodyne, system):
-    "Stochastic: smesolve: homodyne, time-dependent H"
     tol = 0.05
     N = 4
     ntraj = 20
@@ -77,7 +76,6 @@ def test_smesolve(heterodyne, system):
 @pytest.mark.parametrize("heterodyne", [True, False])
 @pytest.mark.parametrize("method", SMESolver.avail_integrators().keys())
 def test_smesolve_methods(method, heterodyne):
-    "Stochastic: smesolve: homodyne, time-dependent H"
     tol = 0.05
     N = 4
     ntraj = 20
@@ -144,7 +142,6 @@ def test_smesolve_methods(method, heterodyne):
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_ssesolve(heterodyne, system):
-    "Stochastic: smesolve: homodyne, time-dependent H"
     tol = 0.1
     N = 4
     ntraj = 20
@@ -243,7 +240,6 @@ def test_ssesolve_method(method, heterodyne):
 
 
 def test_reuse_seeds():
-    "Stochastic: smesolve: homodyne, time-dependent H"
     tol = 0.05
     N = 4
     ntraj = 5
@@ -286,7 +282,6 @@ def test_reuse_seeds():
 
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_m_ops(heterodyne):
-    "Stochastic: smesolve: homodyne, time-dependent H"
     N = 10
     ntraj = 1
 

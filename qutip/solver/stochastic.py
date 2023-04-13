@@ -321,7 +321,7 @@ def smesolve(
         - num_cpus : NoneType, int, [None]
           Number of cpus to use when running in parallel. ``None`` detect the
           number of available cpus.
-        - dt : float [0.001~0.0001]
+        - dt : float [0.001 ~ 0.0001]
           The finite steps lenght for the Stochastic integration method.
           Default change depending on the integrator.
 
