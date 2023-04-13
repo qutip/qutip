@@ -109,8 +109,8 @@ class MultiTrajSolver(Solver):
 
         For a ``state`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :class:`Result`. The evolution method and stored
-        results are determined by ``options``.
+        expectation values in a :class:`Result`. The evolution method and
+        stored results are determined by ``options``.
 
         Parameters
         ----------

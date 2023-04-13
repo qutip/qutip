@@ -1001,9 +1001,10 @@ class NmmcTrajectoryResult(McTrajectoryResult):
     def add(self, t, state):
         if isket(state):
             state = ket2dm(state)
-        mu = self._nm_solver._current_martingale(t)
+        mu = self._nm_solver.current_martingale()
         super().add(t, state * mu)
         self.trace.append(mu)
+
     add.__doc__ = Result.add.__doc__
 
 
@@ -1050,6 +1051,7 @@ class NmmcResult(McResult):
         For each recorded trajectory, the trace at each time.
         Only present if ``keep_runs_results`` is set in the options.
     """
+
     def _post_init(self):
         super()._post_init()
 

@@ -191,38 +191,88 @@ def _parse_op_and_rate(op, rate, **kw):
     return op, rate
 
 
+class InfluenceMartingale:
+    def __init__(self, nm_solver, a_parameter, quad_limit):
+        self._nm_solver = nm_solver
+        self._quad_limit = quad_limit
+        self._a_parameter = a_parameter
+        self.reset()
+
+    def reset(self):
+        self._t_prev = None
+        self._continuous_martingale_at_t_prev = None
+        self._precomputed_continuous_martingale = {}
+        self._discrete_martingale = None
+
+    def initialize(self, t0, tlist=None):
+        self._t_prev = t0
+        self._continuous_martingale_at_t_prev = 1
+        self._discrete_martingale = 1
+
+        # if a tlist was given, precompute continuous martingale values
+        self._precomputed_continuous_martingale = {}
+        if tlist is not None:
+            mu_c0 = 1
+            for t1 in tlist:
+                mu_c1 = mu_c0 * self._compute_continuous_martingale(t0, t1)
+                self._precomputed_continuous_martingale[t1] = mu_c1
+                t0, mu_c0 = t1, mu_c1
+
+    def add_collapse(self, collapse_time, collapse_channel):
+        if self._t_prev is None:
+            raise RuntimeError("The `start` method must called first.")
+
+        rate = self._nm_solver.rate(collapse_time, collapse_channel)
+        shift = self._nm_solver.rate_shift(collapse_time)
+        factor = rate / (rate + shift)
+        self._discrete_martingale *= factor
+
+    def value(self, t):
+        if self._t_prev is None:
+            raise RuntimeError("The `start` method must called first.")
+
+        # find value of continuous martingale at given time
+        if t in self._precomputed_continuous_martingale:
+            mu_c = self._precomputed_continuous_martingale[t]
+        else:
+            mu_c = (
+                self._continuous_martingale_at_t_prev *
+                self._compute_continuous_martingale(self._t_prev, t)
+            )
+        self._t_prev = t
+        self._continuous_martingale_at_t_prev = mu_c
+
+        return self._discrete_martingale * mu_c
+
+    def _compute_continuous_martingale(self, t1, t2):
+        if t1 == t2:
+            return 1
+
+        integral, _, *info = scipy.integrate.quad(
+            self._nm_solver.rate_shift, t1, t2,
+            limit=self._quad_limit,
+            full_output=True,
+        )
+        if len(info) > 1:
+            raise ValueError(
+                f"Failed to integrate the continuous martingale: {info[1]}"
+            )
+        return np.exp(self._a_parameter * integral)
+
+
 class NmMCIntegrator(MCIntegrator):
     def __init__(self, *args, **kwargs):
-        self._nm_solver = kwargs.pop("__nm_solver")
+        self._martingale = kwargs.pop("__martingale")
         super().__init__(*args, **kwargs)
-        self.continuous_martingales = []
-        self.discrete_martingales = []
-        self._t0 = None
-
-    def set_state(self, t, *args, **kwargs):
-        super().set_state(t, *args, **kwargs)
-        self.continuous_martingales = []
-        self.discrete_martingales = []
-        self._t0 = t
 
     def _do_collapse(self, *args, **kwargs):
+        # _do_collapse might not append a new collapse, so we need to check
+        # whether one was added before calculating the martingales.
+        num_collapse_old = len(self.collapses)
         super()._do_collapse(*args, **kwargs)
-        if len(self.collapses) > len(self.discrete_martingales):
-            # _do_collapse might not append a new collapse, so we
-            # need to check whether one was added before calculating
-            # the martingales.
-            t1, i = self.collapses[-1]
-            if len(self.collapses) > 1:
-                t0, _ = self.collapses[-2]
-            else:
-                assert self._t0 is not None
-                t0 = self._t0
-            self.continuous_martingales.append(
-                self._nm_solver._continuous_martingale(t0, t1)
-            )
-            self.discrete_martingales.append(
-                self._nm_solver._discrete_martingale(t1, i)
-            )
+        if len(self.collapses) > num_collapse_old:
+            collapse_time, collapse_channel = self.collapses[-1]
+            self._martingale.add_collapse(collapse_time, collapse_channel)
 
 
 class NonMarkovianMCSolver(MCSolver):
@@ -270,32 +320,27 @@ class NonMarkovianMCSolver(MCSolver):
         "martingale_quad_limit": 100,
     }
 
-    # "__nm_solver" argument will be partially initialized in constructor
+    # both classes will be partially initialized in constructor
     trajectory_resultclass = NmmcTrajectoryResult
     mc_integrator_class = NmMCIntegrator
 
     def __init__(
         self, H, ops_and_rates, *_args, args=None, options=None, **kwargs,
     ):
-        self.trajectory_resultclass = functools.partial(
-            NmmcTrajectoryResult, __nm_solver=self,
-        )
-        self.mc_integrator_class = functools.partial(
-           NmMCIntegrator, __nm_solver=self,
-        )
+        self.options = options
 
         ops_and_rates = [
             _parse_op_and_rate(op, rate, args=args or {})
             for op, rate in ops_and_rates
         ]
-
-        self.options = options
-
-        self._a_parameter, L = self._check_completeness(ops_and_rates)
+        a_parameter, L = self._check_completeness(ops_and_rates)
         if L is not None:
             ops_and_rates.append((L, ConstantCoefficient(0)))
 
         self.ops = [op for op, _ in ops_and_rates]
+        self._martingale = InfluenceMartingale(
+            self, a_parameter, self.options["martingale_quad_limit"]
+        )
 
         # Many coefficients. These should not be publicly exposed
         # and will all need to be updated in _arguments():
@@ -311,6 +356,12 @@ class NonMarkovianMCSolver(MCSolver):
             for op, sqrt_shifted_rate
             in zip(self.ops, self._sqrt_shifted_rates)
         ]
+        self.trajectory_resultclass = functools.partial(
+            NmmcTrajectoryResult, __nm_solver=self,
+        )
+        self.mc_integrator_class = functools.partial(
+            NmMCIntegrator, __martingale=self._martingale,
+        )
         super().__init__(H, c_ops, *_args, options=options, **kwargs)
 
     def _check_completeness(self, ops_and_rates):
@@ -333,50 +384,15 @@ class NonMarkovianMCSolver(MCSolver):
         L = (a * qeye(op.dims[0]) - op).sqrtm()  # new Lindblad operator
         return a, L
 
-    def _discrete_martingale(self, t, i):
-        """
-        Discrete part of the martingale evolution for time ``t`` and
-        rate ``i``.
-        """
-        rate = self._rates[i](t)
-        shift = self._rate_shift(t)
-        return np.real(rate / (rate + shift))
-
-    def _continuous_martingale(self, t0, t1):
-        """
-        Continuous part of the martingale evolution for time ``t0`` to ``t1``.
-        """
-        integral, _abserr, *info = scipy.integrate.quad(
-            self._rate_shift.as_double, t0, t1,
-            limit=self.options["martingale_quad_limit"],
-            full_output=True,
-        )
-        if len(info) > 1:
-            raise ValueError(
-                f"Failed to integrate the continuous martingale: {info[1]}"
-            )
-        return np.exp(self._a_parameter * integral)
-
-    def _current_martingale(self, t):
+    def current_martingale(self):
         """
         Returns the value of the influence martingale along the current
         trajectory. The value of the martingale is the product of the
         continuous and the discrete contribution. The current time and the
         collapses that have happened are read out from the internal integrator.
         """
-        discrete = np.prod(self._integrator.discrete_martingales, initial=1.0)
-        continuous = np.prod(
-            self._integrator.continuous_martingales, initial=1.0,
-        )
-
-        if self._integrator.collapses:
-            tc, _ = self._integrator.collapses[-1]
-        else:
-            tc = self._integrator._t0
-        if t > tc:
-            continuous *= self._continuous_martingale(tc, t)
-
-        return discrete * continuous
+        t, *_ = self._integrator.get_state(copy=False)
+        return self._martingale.value(t)
 
     def _argument(self, args):
         self._rates = [rate.replace_arguments(args) for rate in self._rates]
@@ -385,16 +401,6 @@ class NonMarkovianMCSolver(MCSolver):
             rate.replace_arguments(args) for rate in self._sqrt_shifted_rates
         ]
         super()._argument(args)
-
-    # Override "step" to include the martingale mu in the state
-    # Note that the returned state will be a density matrix with trace=mu
-    def step(self, t, *, args=None, copy=True):
-        state = super().step(t, args=args, copy=copy)
-        if isket(state):
-            state = ket2dm(state)
-        return state * self._current_martingale(t)
-
-    step.__doc__ = MultiTrajSolver.step.__doc__
 
     def rate_shift(self, t):
         """
@@ -449,3 +455,57 @@ class NonMarkovianMCSolver(MCSolver):
             The square root of the shifted value of rate ``i`` at time ``t``.
         """
         return np.real(self._sqrt_shifted_rates[i](t))
+
+    # MCSolver (and NonMarkovianMCSolver) offer two interfaces, i.e., two ways
+    # of interacting with them: either call `start` first and then manually
+    # integrate a single trajectory with subsequent calls to `step`, or call
+    # `run` to integrate a large number of trajectories, saving the results in
+    # an `NmmcResult`.
+    # We are responsible for (a) keeping our `_martingale` object in the
+    # correct state throughout and (b) multiplying all state density matrices
+    # with the martingale before passing them on to the user.
+    #
+    # Regarding (a), we firstly assume that start, step and run are only
+    # accessed by a single thread. start and step thus cannot be called while
+    # run is being executed. Secondly, we reset the martingale object at the
+    # beginning and end of run, requiring the user to call start again after
+    # calling run before calling step. Internal state of the martingale
+    # object accumulated by using one interface can thus not influence
+    # computations with the other interface.
+    # Note that the start/step-interface allows updating the `args` dictionary
+    # at each step. This action does not mess up the martingale state since we
+    # do not precompute any martingale values in this interface. In the
+    # run-interface we do precompute the values of the continuous part of the
+    # martingale, but the `args` dictionary cannot be changed in the middle of
+    # the run.
+    #
+    # Regarding (b), in the start/step-interface we just include the martingale
+    # in the step method. In order to include the martingale in the
+    # run-interface, we use a custom trajectory-resultclass that grabs the
+    # martingale value from the NonMarkovianMCSolver whenever a state is added.
+
+    def start(self, state, t0, seed=None):
+        self._martingale.initialize(t0)
+        return super().start(state, t0, seed=seed)
+
+    # The returned state will be a density matrix with trace=mu the martingale
+    def step(self, t, *, args=None, copy=True):
+        state = super().step(t, args=args, copy=copy)
+        if isket(state):
+            state = ket2dm(state)
+        return state * self.current_martingale()
+
+    def run(self, state, tlist, *args, **kwargs):
+        # update `args` dictionary before precomputing martingale
+        if 'args' in kwargs:
+            self._argument(kwargs.pop('args'))
+
+        self._martingale.initialize(tlist[0], tlist=tlist)
+        result = super().run(state, tlist, *args, **kwargs)
+        self._martingale.reset()
+
+        return result
+
+    start.__doc__ = MultiTrajSolver.start.__doc__
+    step.__doc__ = MultiTrajSolver.step.__doc__
+    run.__doc__ = MultiTrajSolver.run.__doc__
