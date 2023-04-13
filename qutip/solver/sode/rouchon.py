@@ -4,7 +4,7 @@ from qutip.core import data as _data
 from ..stochastic import StochasticSolver
 from .sode import SIntegrator
 from ..integrator.integrator import Integrator
-import qutip as qt
+
 
 __all__ = ["RouchonSODE"]
 

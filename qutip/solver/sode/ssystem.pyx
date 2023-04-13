@@ -249,21 +249,30 @@ cdef class StochasticOpenSystem(_StochasticSystem):
 
     cpdef Data a(self):
         if not self._is_set:
-            raise RuntimeError
+            raise RuntimeError(
+                "Derrivatives set for ito taylor expansion need "
+                "to receive the state with `set_state`."
+            )
         if not self._a_set:
             self._compute_a()
         return self._a
 
     cdef void _compute_a(StochasticOpenSystem self) except *:
         if not self._is_set:
-            raise RuntimeError
+            raise RuntimeError(
+                "Derrivatives set for ito taylor expansion need "
+                "to receive the state with `set_state`."
+            )
         imul_dense(self._a, 0)
         self.L.matmul_data(self.t, self.state, self._a)
         self._a_set = True
 
     cpdef Data bi(self, int i):
         if not self._is_set:
-            raise RuntimeError
+            raise RuntimeError(
+                "Derrivatives set for ito taylor expansion need "
+                "to receive the state with `set_state`."
+            )
         if not self._b_set:
             self._compute_b()
         return _dense_wrap(self._b[i, :])
@@ -272,7 +281,10 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     @cython.wraparound(False)
     cdef void _compute_b(self) except *:
         if not self._is_set:
-            raise RuntimeError
+            raise RuntimeError(
+                "Derrivatives set for ito taylor expansion need "
+                "to receive the state with `set_state`."
+            )
         cdef int i
         cdef QobjEvo c_op
         cdef Dense b_vec, state=self.state
@@ -287,7 +299,10 @@ cdef class StochasticOpenSystem(_StochasticSystem):
 
     cpdef Data Libj(self, int i, int j):
         if not self._is_set:
-            raise RuntimeError
+            raise RuntimeError(
+                "Derrivatives set for ito taylor expansion need "
+                "to receive the state with `set_state`."
+            )
         if not self._Lb_set:
             self._compute_Lb()
         # We only support commutative diffusion

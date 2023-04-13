@@ -21,7 +21,6 @@ cdef class Euler:
         double[:, :, ::1] dW, int num_step
     ):
         cdef int i
-        cdef Data out
         for i in range(num_step):
             state = self.step(t + i * dt, state, dt, dW[i, :, :])
         return state
@@ -417,7 +416,6 @@ cdef class Milstein_imp:
         if type(state) != _data.Dense:
             state = _data.to(_data.Dense, state)
         cdef Dense tmp = _data.mul_dense(state, 0)
-        state = state.copy()
 
         if dt != self.prev_dt:
             self.implicit = 1 - self.system.L * (dt / 2)

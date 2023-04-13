@@ -1,4 +1,3 @@
-import numpy as np
 from . import _sode
 from .sode import _Explicit_Simple_Integrator, _Implicit_Simple_Integrator
 from ..stochastic import StochasticSolver, SMESolver

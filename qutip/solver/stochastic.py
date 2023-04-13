@@ -214,7 +214,7 @@ class _StochasticRHS:
     def __call__(self, options):
         if self.issuper:
             return StochasticOpenSystem(
-                self.H, self.sc_ops, self.c_ops, options.get("dt", 1.0 - 6)
+                self.H, self.sc_ops, self.c_ops, options.get("derr_dt", 1e-6)
             )
         else:
             return StochasticClosedSystem(self.H, self.sc_ops)
@@ -321,8 +321,9 @@ def smesolve(
         - num_cpus : NoneType, int, [None]
           Number of cpus to use when running in parallel. ``None`` detect the
           number of available cpus.
-        - dt : float [0.001]
+        - dt : float [0.001~0.0001]
           The finite steps lenght for the Stochastic integration method.
+          Default change depending on the integrator.
 
         Other options could be supported depending on the integration method,
         see `SIntegrator <./classes.html#classes-sode>`_.
@@ -441,8 +442,9 @@ def ssesolve(
         - num_cpus : NoneType, int, [None]
           Number of cpus to use when running in parallel. ``None`` detect the
           number of available cpus.
-        - dt : float [0.001]
+        - dt : float [0.001 ~ 0.0001]
           The finite steps lenght for the Stochastic integration method.
+          Default change depending on the integrator.
 
         Other options could be supported depending on the integration method,
         see `SIntegrator <./classes.html#classes-sode>`_.
