@@ -322,7 +322,7 @@ def smesolve(
           Number of cpus to use when running in parallel. ``None`` detect the
           number of available cpus.
         - dt : float [0.001]
-          The finite steps lenght for the Stochastic integration method.
+          The finite steps length for the Stochastic integration method.
 
         Other options could be supported depending on the integration method,
         see `SIntegrator <./classes.html#classes-sode>`_.
