@@ -169,7 +169,7 @@ import inspect as _inspect
 
 ptrace = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('dims', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('sel', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),

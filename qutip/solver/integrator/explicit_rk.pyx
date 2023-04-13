@@ -14,6 +14,10 @@ from .verner9efficient import vern9_coeff
 cimport cython
 import numpy as np
 
+
+__all__ = ["Explicit_RungeKutta"]
+
+
 euler_coeff = {
     'order': 1,
     'a': np.array([[0.]], dtype=np.float64),

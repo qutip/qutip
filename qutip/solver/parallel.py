@@ -10,7 +10,7 @@ import sys
 import time
 import threading
 import concurrent.futures
-from qutip.ui.progressbar import progess_bars
+from qutip.ui.progressbar import progress_bars
 from qutip.settings import available_cpu_count
 
 if sys.platform == 'darwin':
@@ -94,8 +94,9 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
     if task_kwargs is None:
         task_kwargs = {}
     map_kw = _read_map_kw(map_kw)
-    progress_bar = progess_bars[progress_bar]()
-    progress_bar.start(len(values), **progress_bar_kwargs)
+    progress_bar = progress_bars[progress_bar](
+        len(values), **progress_bar_kwargs
+    )
     end_time = map_kw['timeout'] + time.time()
     results = None
     if reduce_func is None:
@@ -104,7 +105,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
     for n, value in enumerate(values):
         if time.time() > end_time:
             break
-        progress_bar.update(n)
+        progress_bar.update()
         try:
             result = task(value, *task_args, **task_kwargs)
         except Exception as err:
@@ -177,8 +178,9 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
 
-    progress_bar = progess_bars[progress_bar]()
-    progress_bar.start(len(values), **progress_bar_kwargs)
+    progress_bar = progress_bars[progress_bar](
+        len(values), **progress_bar_kwargs
+    )
 
     errors = {}
     if reduce_func is not None:
@@ -311,8 +313,9 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     from loky import get_reusable_executor, TimeoutError
 
-    progress_bar = progess_bars[progress_bar]()
-    progress_bar.start(len(values), **progress_bar_kwargs)
+    progress_bar = progress_bars[progress_bar](
+        len(values), **progress_bar_kwargs
+    )
 
     executor = get_reusable_executor(max_workers=map_kw['num_cpus'])
     end_time = map_kw['timeout'] + time.time()

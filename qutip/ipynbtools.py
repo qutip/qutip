@@ -272,16 +272,15 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         view.wait(ar_list)
     else:
         if progress_bar is True:
-            progress_bar = HTMLProgressBar()
-
-        n = len(ar_list)
-        progress_bar.start(n)
+            progress_bar = HTMLProgressBar(len(ar_list))
+        prev_finished = 0
         while True:
             n_finished = sum([ar.progress for ar in ar_list])
-            progress_bar.update(n_finished)
+            for _ in range(prev_finished, n_finished):
+                progress_bar.update()
+            prev_finished = n_finished
 
             if view.wait(ar_list, timeout=0.5):
-                progress_bar.update(n)
                 break
         progress_bar.finished()
 

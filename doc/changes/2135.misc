@@ -1,0 +1,1 @@
+Optimize dispatcher by dispatching on positional only args.

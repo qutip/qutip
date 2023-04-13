@@ -180,9 +180,6 @@ Non-Markovian Memory Cascade and Transfer Tensor Solvers
 .. autoclass:: qutip.solve.nonmarkov.memorycascade.MemoryCascade
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.transfertensor.TTMSolverOptions
-    :members:
-
 
 .. _classes-odeoptions:
 

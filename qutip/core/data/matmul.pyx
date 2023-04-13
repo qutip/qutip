@@ -398,8 +398,8 @@ import inspect as _inspect
 
 matmul = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=1),
     ]),
@@ -435,8 +435,8 @@ matmul.add_specialisations([
 
 multiply = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='multiply',
     module=__name__,
@@ -471,4 +471,4 @@ cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense
     elif type(left) is Dense:
         matmul_dense(left, right, scale, out)
     else:
-        iadd_dense(out, matmul(left, right), scale)
+        iadd_dense(out, matmul(left, right, dtype=Dense), scale)
