@@ -15,3 +15,6 @@ cdef class Data:
     cpdef Data conj(self)
     cpdef Data transpose(self)
     cpdef Data copy(self)
+
+cdef class SameData(Data):
+    pass

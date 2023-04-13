@@ -19,6 +19,7 @@ import numbers
 import numpy as np
 from scipy.sparse import dok_matrix, csgraph
 cimport cython
+from qutip.core.data.base cimport Data, SameData
 
 __all__ = ['to', 'create']
 
@@ -67,6 +68,10 @@ cdef class _converter:
                 + self.to.__name__
                 + " from " + self.from_.__name__
                 + ">")
+
+
+def dummyconverter(arg):
+    return arg
 
 
 cdef class _partial_converter:
@@ -147,6 +152,7 @@ cdef class _to:
     cdef dict _convert
     cdef readonly dict weight
     cdef readonly dict _str2type
+    cdef readonly float anydataweight
 
     def __init__(self):
         self._direct_convert = {}
@@ -155,6 +161,7 @@ cdef class _to:
         self.weight = {}
         self.dispatchers = []
         self._str2type = {}
+        self.anydataweight = 0.001
 
     def add_conversions(self, converters):
         """
@@ -200,6 +207,8 @@ cdef class _to:
                 safe just to leave this blank; it is always at best an
                 approximation.  The currently defined weights are accessible in
                 the `weights` attribute of this object.
+                Weight of ~0.001 are should be used in case when no conversion
+                is needed or ``converter = lambda mat : mat``.
         """
         for arg in converters:
             if len(arg) == 3:
@@ -258,6 +267,15 @@ cdef class _to:
                 self.weight[(to_t, from_t)] = weight
                 self._convert[(to_t, from_t)] =\
                     _converter(convert[::-1], to_t, from_t)
+        for dtype in self.dtypes:
+            self.weight[(dtype, Data)] = self.anydataweight
+            self.weight[(Data, dtype)] = self.anydataweight
+            self.weight[(dtype, SameData)] = self.anydataweight
+            self.weight[(SameData, dtype)] = self.anydataweight
+            self._convert[(dtype, Data)] = dummyconverter
+            self._convert[(Data, dtype)] = dummyconverter
+            self._convert[(dtype, SameData)] = dummyconverter
+            self._convert[(SameData, dtype)] = dummyconverter
         for dispatcher in self.dispatchers:
             dispatcher.rebuild_lookup()
 

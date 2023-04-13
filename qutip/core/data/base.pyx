@@ -85,5 +85,9 @@ cdef class Data:
         return False
 
 
+cdef class SameData(Data):
+    pass
+
+
 class EfficiencyWarning(Warning):
     pass

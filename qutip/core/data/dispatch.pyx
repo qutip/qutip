@@ -11,6 +11,7 @@ from .convert import to as _to
 cimport cython
 from libc cimport math
 from libcpp cimport bool
+from qutip.core.data.base cimport Data, SameData
 
 __all__ = ['Dispatcher']
 
@@ -21,8 +22,12 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out
     element-wise to the types in `tos`.  `weight_map` is a mapping of
     `(to_type, from_type): real`; it should almost certainly be
     `data.to.weight`.
+
+    Specialisations that support any types input should use ``Data`` if types
+    can be mixed, or ``SameData``, when they cannot be mixed.
     """
-    cdef double weight = 0.0
+    cdef double weight = 0.0, anydataweight = 0.01
+    cdef type sametype = None
     cdef Py_ssize_t i, n=len(froms)
     if len(tos) != n:
         raise ValueError(
@@ -31,7 +36,15 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out
     if out:
         n = n - 1
         weight += weight_map[froms[n], tos[n]]
+        if tos[n] is SameData:
+            sametype = froms[n]
+
     for i in range(n):
+        if tos[i] is SameData and sametype in [None, froms[i]]:
+            sametype = froms[i]
+        elif tos[i] is SameData:
+            # DataType not matching, can't use the function.
+            weight += math.INFINITY
         weight += weight_map[tos[i], froms[i]]
     return weight
 
@@ -269,7 +282,12 @@ cdef class Dispatcher:
                     + " and a callable"
                 )
             for i in range(self._n_dispatch):
-                if (not _defer) and arg[i] not in _to.dtypes:
+                if (
+                    not _defer
+                    and arg[i] not in _to.dtypes
+                    and arg[i] is not Data
+                    and not isinstance(arg[i], Data)
+                ):
                     raise ValueError(str(arg[i]) + " is not a known data type")
             if not callable(arg[self._n_dispatch]):
                 raise TypeError(str(arg[-1]) + " is not callable")
@@ -307,7 +325,10 @@ cdef class Dispatcher:
                     types = out_types
                     function = out_function
 
-            if weight == 0:
+            if cur == math.INFINITY:
+                raise ValueError("No valid specialisations found")
+
+            if weight <= 0.01:
                 self._lookup[in_types] = function
             else:
                 if self.output:
@@ -336,7 +357,10 @@ cdef class Dispatcher:
                         types = out_types
                         function = out_function
 
-                if weight == 0:
+                if cur == math.INFINITY:
+                    raise ValueError("No valid specialisations found")
+
+                if weight <= 0.01:
                     self._lookup[in_types] = function
                 else:
                     converters = tuple(
