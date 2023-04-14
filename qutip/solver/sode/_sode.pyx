@@ -244,7 +244,7 @@ cdef class Milstein:
         cdef int i
         if type(state) != _data.Dense:
             state = _data.to(_data.Dense, state)
-        cdef Dense out = _data.mul_dense(state, 0)
+        cdef Dense out = _data.zeros_like(state)
         state = state.copy()
 
         for i in range(ntraj):
@@ -300,8 +300,8 @@ cdef class PredCorr:
         cdef int i
         if type(state) != _data.Dense:
             state = _data.to(_data.Dense, state)
-        cdef Dense out = _data.mul_dense(state, 0)
-        self.euler = _data.mul_dense(state, 0)
+        cdef Dense out = _data.zeros_like(state)
+        self.euler = _data.zeros_like(state)
         state = state.copy()
 
         for i in range(ntraj):
@@ -416,7 +416,7 @@ cdef class Milstein_imp:
         cdef int i
         if type(state) != _data.Dense:
             state = _data.to(_data.Dense, state)
-        cdef Dense tmp = _data.mul_dense(state, 0)
+        cdef Dense tmp = _data.zeros_like(state)
 
         if dt != self.prev_dt:
             self.implicit = 1 - self.system.L * (dt / 2)
