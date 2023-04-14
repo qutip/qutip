@@ -248,7 +248,7 @@ cdef class QobjEvo:
         repr_str += f'isconstant = {self.isconstant}, num_elements = {self.num_elements}'
         return repr_str
 
-    def _read_element(self, op, copy, tlist, args, order, function_style, 
+    def _read_element(self, op, copy, tlist, args, order, function_style,
                       boundary_conditions):
         """ Read a Q_object item and return an element for that item. """
         if isinstance(op, Qobj):
@@ -257,7 +257,7 @@ cdef class QobjEvo:
         elif isinstance(op, list):
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
-                coefficient(op[1], tlist=tlist, args=args, order=order, 
+                coefficient(op[1], tlist=tlist, args=args, order=order,
                             boundary_conditions=boundary_conditions)
             )
             qobj = op[0]
@@ -475,7 +475,7 @@ cdef class QobjEvo:
             isinstance(other, numbers.Number) and
             self.dims[0] == self.dims[1]
         ):
-            self.elements.append(_ConstantElement(other * qutip.qeye(self.dims[0])))
+            self.elements.append(_ConstantElement(other * qutip.qeye_like(self)))
         else:
             return NotImplemented
         return self

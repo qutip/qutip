@@ -1754,7 +1754,7 @@ class Qobj:
         if not self.isoper or self._data.shape[0] != self._data.shape[1]:
             return False
         cmp = _data.matmul(self._data, self._data.adjoint())
-        iden = _data.identity(self.shape[0], dtype=type(cmp))
+        iden = _data.identity_like(cmp)
         return _data.iszero(_data.sub(cmp, iden),
                             tol=settings.core['atol'])
 
