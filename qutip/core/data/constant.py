@@ -72,32 +72,20 @@ identity.add_specialisations([
 ], _defer=True)
 
 
-def zeros_like_data(data, /):
+del _Dispatcher, _inspect
+
+
+def zeros_like(data, /):
     """
     Create an zeros matrix of the same type and shape.
     """
     return zeros[type(data)](*data.shape)
 
 
-zeros_like = _Dispatcher(
-    zeros_like_data, name="zeros_like", inputs=('data',), out=False
-)
-zeros_like.add_specialisations([(Data, zeros_like_data)])
-
-
-def identity_like_data(data, /):
+def identity_like(data, /):
     """
-    Create an zeros matrix of the same type and shape.
+    Create an identity matrix of the same type and shape.
     """
     if not data.shape[0] == data.shape[1]:
         raise ValueError("Can't create and identity like a non square matrix.")
     return identity[type(data)](data.shape[0])
-
-
-identity_like = _Dispatcher(
-    identity_like_data, name="identity_like", inputs=('data',), out=False
-)
-identity_like.add_specialisations([(Data, identity_like_data)])
-
-
-del _Dispatcher, _inspect

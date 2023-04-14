@@ -5,10 +5,11 @@ of commonly occuring quantum operators.
 
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
-           'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
-           'num', 'squeeze', 'squeezing', 'swap', 'displace', 'commutator',
-           'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
-           'enr_identity', 'charge', 'tunneling', 'qft']
+           'destroy', 'create', 'qeye', 'qeye_like', 'identity', 'position',
+           'momentum', 'num', 'squeeze', 'squeezing', 'swap', 'displace',
+           'commutator', 'qutrit_ops', 'qdiags', 'phase', 'qzero',
+           'qzero_like', 'enr_destroy', 'enr_identity', 'charge', 'tunneling',
+           'qft']
 
 import numbers
 
@@ -529,6 +530,27 @@ def qzero(dimensions, *, dtype=None):
                 isherm=True, isunitary=False, copy=False)
 
 
+def qzero_like(qobj):
+    """
+    Zero operator of the same dims and type as the original.
+
+    Parameters
+    ----------
+    qobj : Qobj
+        Qobj to copy the dims from.
+
+    Returns
+    -------
+    qzero : qobj
+        Zero operator Qobj.
+
+    """
+    return Qobj(
+        _data.zeros_like(qobj.data), dims=qobj.dims, type=qobj.type,
+        superrep=qobj.superrep, isherm=True, isunitary=False, copy=False
+    )
+
+
 def qeye(dimensions, *, dtype=None):
     """
     Identity operator.
@@ -578,6 +600,52 @@ isherm = True
 
 # Name alias.
 identity = qeye
+
+
+def qeye_like(qobj):
+    """
+    Identity operator.
+
+    Parameters
+    ----------
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
+
+    dtype : type or str
+        Storage representation. Any data-layer known to `qutip.data.to` is
+        accepted.
+
+    Returns
+    -------
+    oper : qobj
+        Identity operator Qobj.
+
+    Examples
+    --------
+    >>> qeye(3) # doctest: +SKIP
+    Quantum object: dims = [[3], [3]], shape = (3, 3), type = oper, \
+    isherm = True
+    Qobj data =
+    [[ 1.  0.  0.]
+     [ 0.  1.  0.]
+     [ 0.  0.  1.]]
+    >>> qeye([2,2]) # doctest: +SKIP
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, \
+    isherm = True
+    Qobj data =
+    [[1. 0. 0. 0.]
+     [0. 1. 0. 0.]
+     [0. 0. 1. 0.]
+     [0. 0. 0. 1.]]
+
+    """
+    return Qobj(
+        _data.identity_like(qobj.data), dims=qobj.dims, type=qobj.type,
+        superrep=qobj.superrep, isherm=True, isunitary=True, copy=False
+    )
 
 
 def position(N, offset=0, *, dtype=None):

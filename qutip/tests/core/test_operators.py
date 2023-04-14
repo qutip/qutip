@@ -302,3 +302,35 @@ def test_swap(N, M):
     ket2 = qutip.rand_ket(M)
 
     assert qutip.swap(N, M) @ (ket1 & ket2) == (ket2 & ket1)
+
+
+@pytest.mark.parametrize(["dims", "superrep"], [
+    pytest.param([2], None, id="simple"),
+    pytest.param([2, 3], None, id="tensor"),
+    pytest.param([[2], [2]], None, id="super"),
+    pytest.param([[2], [2]], "chi", id="chi"),
+])
+@pytest.mark.parametrize('dtype', ["CSR", "Dense"])
+def test_qeye_like(dims, superrep, dtype):
+    op = qutip.rand_herm(dims, dtype=dtype)
+    op.superrep = superrep
+    new = qutip.qeye_like(op)
+    expected = qutip.qeye(dims, dtype=dtype)
+    expected.superrep = superrep
+    assert new == expected
+
+
+@pytest.mark.parametrize(["dims", "superrep"], [
+    pytest.param([2], None, id="simple"),
+    pytest.param([2, 3], None, id="tensor"),
+    pytest.param([[2], [2]], None, id="super"),
+    pytest.param([[2], [2]], "chi", id="chi"),
+])
+@pytest.mark.parametrize('dtype', ["CSR", "Dense"])
+def test_qzero_like(dims, superrep, dtype):
+    op = qutip.rand_herm(dims, dtype=dtype)
+    op.superrep = superrep
+    new = qutip.qzero_like(op)
+    expected = qutip.qzero(dims, dtype=dtype)
+    expected.superrep = superrep
+    assert new == expected
