@@ -5,10 +5,11 @@ of commonly occuring quantum operators.
 
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
-           'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
-           'num', 'squeeze', 'squeezing', 'swap', 'displace', 'commutator',
-           'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
-           'enr_identity', 'charge', 'tunneling', 'qft']
+           'destroy', 'create', 'qeye', 'qeye_like', 'identity', 'position',
+           'momentum', 'num', 'squeeze', 'squeezing', 'swap', 'displace',
+           'commutator', 'qutrit_ops', 'qdiags', 'phase', 'qzero',
+           'qzero_like', 'enr_destroy', 'enr_identity', 'charge', 'tunneling',
+           'qft']
 
 import numbers
 
@@ -529,6 +530,27 @@ def qzero(dimensions, *, dtype=None):
                 isherm=True, isunitary=False, copy=False)
 
 
+def qzero_like(qobj):
+    """
+    Zero operator of the same dims and type as the reference.
+
+    Parameters
+    ----------
+    qobj : Qobj
+        Reference ``Qobj`` to copy the dims from.
+
+    Returns
+    -------
+    qzero : qobj
+        Zero operator Qobj.
+
+    """
+    return Qobj(
+        _data.zeros_like(qobj.data), dims=qobj.dims, type=qobj.type,
+        superrep=qobj.superrep, isherm=True, isunitary=False, copy=False
+    )
+
+
 def qeye(dimensions, *, dtype=None):
     """
     Identity operator.
@@ -578,6 +600,28 @@ isherm = True
 
 # Name alias.
 identity = qeye
+
+
+def qeye_like(qobj):
+    """
+    Identity operator with the same dims and type as the reference quantum
+    object.
+
+    Parameters
+    ----------
+    qobj : Qobj
+        Reference ``Qobj`` to copy the dims from.
+
+    Returns
+    -------
+    oper : qobj
+        Identity operator Qobj.
+
+    """
+    return Qobj(
+        _data.identity_like(qobj.data), dims=qobj.dims, type=qobj.type,
+        superrep=qobj.superrep, isherm=True, isunitary=True, copy=False
+    )
 
 
 def position(N, offset=0, *, dtype=None):
