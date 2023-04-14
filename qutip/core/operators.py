@@ -532,12 +532,12 @@ def qzero(dimensions, *, dtype=None):
 
 def qzero_like(qobj):
     """
-    Zero operator of the same dims and type as the original.
+    Zero operator of the same dims and type as the reference.
 
     Parameters
     ----------
     qobj : Qobj
-        Qobj to copy the dims from.
+        Reference ``Qobj`` to copy the dims from.
 
     Returns
     -------
@@ -604,42 +604,18 @@ identity = qeye
 
 def qeye_like(qobj):
     """
-    Identity operator.
+    Identity operator with the same dims and type as the reference quantum
+    object.
 
     Parameters
     ----------
-    dimensions : (int) or (list of int) or (list of list of int)
-        Dimension of Hilbert space. If provided as a list of ints, then the
-        dimension is the product over this list, but the ``dims`` property of
-        the new Qobj are set to this list.  This can produce either `oper` or
-        `super` depending on the passed `dimensions`.
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
+    qobj : Qobj
+        Reference ``Qobj`` to copy the dims from.
 
     Returns
     -------
     oper : qobj
         Identity operator Qobj.
-
-    Examples
-    --------
-    >>> qeye(3) # doctest: +SKIP
-    Quantum object: dims = [[3], [3]], shape = (3, 3), type = oper, \
-    isherm = True
-    Qobj data =
-    [[ 1.  0.  0.]
-     [ 0.  1.  0.]
-     [ 0.  0.  1.]]
-    >>> qeye([2,2]) # doctest: +SKIP
-    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, \
-    isherm = True
-    Qobj data =
-    [[1. 0. 0. 0.]
-     [0. 1. 0. 0.]
-     [0. 0. 1. 0.]
-     [0. 0. 0. 1.]]
 
     """
     return Qobj(
