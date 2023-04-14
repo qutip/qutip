@@ -89,7 +89,7 @@ def _noise_direct(L, wlist, rhoss, J_ops):
     current = np.zeros(N_j_ops)
     noise = np.zeros((N_j_ops, N_j_ops, len(wlist)))
 
-    tr_op = tensor(qeye(L.dims[0][0]))
+    tr_op = qeye(L.dims[0][0])
     tr_op_vec = operator_to_vector(tr_op)
 
     Pop = _data.kron(rhoss_vec, tr_op_vec.data.transpose())
