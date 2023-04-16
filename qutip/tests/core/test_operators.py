@@ -319,6 +319,10 @@ def test_qeye_like(dims, superrep, dtype):
     expected.superrep = superrep
     assert new == expected
 
+    opevo = qutip.QobjEvo(op)
+    new = qutip.qeye_like(op)
+    assert new == expected
+
 
 @pytest.mark.parametrize(["dims", "superrep"], [
     pytest.param([2], None, id="simple"),
@@ -333,4 +337,8 @@ def test_qzero_like(dims, superrep, dtype):
     new = qutip.qzero_like(op)
     expected = qutip.qzero(dims, dtype=dtype)
     expected.superrep = superrep
+    assert new == expected
+
+    opevo = qutip.QobjEvo(op)
+    new = qutip.qzero_like(op)
     assert new == expected

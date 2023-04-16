@@ -536,8 +536,8 @@ def qzero_like(qobj):
 
     Parameters
     ----------
-    qobj : Qobj
-        Reference ``Qobj`` to copy the dims from.
+    qobj : Qobj, QobjEvo
+        Reference quantum object to copy the dims from.
 
     Returns
     -------
@@ -545,6 +545,9 @@ def qzero_like(qobj):
         Zero operator Qobj.
 
     """
+    from .cy.qobjevo import QobjEvo
+    if isinstance(qobj, QobjEvo):
+        qobj = qobj(0)
     return Qobj(
         _data.zeros_like(qobj.data), dims=qobj.dims, type=qobj.type,
         superrep=qobj.superrep, isherm=True, isunitary=False, copy=False
@@ -609,8 +612,8 @@ def qeye_like(qobj):
 
     Parameters
     ----------
-    qobj : Qobj
-        Reference ``Qobj`` to copy the dims from.
+    qobj : Qobj, QobjEvo
+        Reference quantum object to copy the dims from.
 
     Returns
     -------
@@ -618,6 +621,9 @@ def qeye_like(qobj):
         Identity operator Qobj.
 
     """
+    from .cy.qobjevo import QobjEvo
+    if isinstance(qobj, QobjEvo):
+        qobj = qobj(0)
     return Qobj(
         _data.identity_like(qobj.data), dims=qobj.dims, type=qobj.type,
         superrep=qobj.superrep, isherm=True, isunitary=True, copy=False
