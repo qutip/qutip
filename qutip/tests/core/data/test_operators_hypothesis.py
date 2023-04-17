@@ -34,7 +34,7 @@ def test_data_iszero(data):
     with qst.ignore_arithmetic_warnings():
         np_array = data.to_array()
         expected = numpy.allclose(
-            np_array, numpy.zeros_like(np_array), atol=1e-15, rtol=1e-15,
+            np_array, numpy.zeros_like(np_array), atol=1e-15, rtol=0,
         )
     assert result is expected
 
@@ -115,7 +115,7 @@ def test_data_equality_operator_same_shapes(a, b):
         expected = numpy.allclose(
             numpy.zeros(a.shape),
             a.to_array() - b.to_array(),
-            atol=1e-15
+            atol=1e-15, rtol=0,
         )
     assert result == expected
 
