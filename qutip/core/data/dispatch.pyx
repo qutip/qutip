@@ -26,8 +26,7 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out
     Specialisations that support any types input should use ``Data`` if types
     can be mixed, or ``SameData``, when they cannot be mixed.
     """
-    cdef double weight = 0.0, anydataweight = 0.01
-    cdef type sametype = None
+    cdef double weight = 0.0
     cdef Py_ssize_t i, n=len(froms)
     if len(tos) != n:
         raise ValueError(
@@ -36,15 +35,7 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out
     if out:
         n = n - 1
         weight += weight_map[froms[n], tos[n]]
-        if tos[n] is SameData:
-            sametype = froms[n]
-
     for i in range(n):
-        if tos[i] is SameData and sametype in [None, froms[i]]:
-            sametype = froms[i]
-        elif tos[i] is SameData:
-            # DataType not matching, can't use the function.
-            weight += math.INFINITY
         weight += weight_map[tos[i], froms[i]]
     return weight
 
@@ -295,6 +286,64 @@ cdef class Dispatcher:
         if not _defer:
             self.rebuild_lookup()
 
+    cdef object _find_specialization(self, tuple in_type, bint output):
+        # The complexity of building the table here is very poor, but it's a
+        # cost we pay very infrequently, and until it's proved to be a
+        # bottle-neck in real code, we stick with the simple algorithm.
+        cdef double weight, cur
+        cdef tuple types, out_types, dtype, displayed_type
+        cdef object function
+        cdef int n_dispatch
+        weight = math.INFINITY
+        types = None
+        function = None
+        n_dispatch = len(in_type)
+        for out_types, out_function in self._specialisations.items():
+            if SameData in out_types:
+                # Extra loop over all possible ``SameData``
+                for dtype in self._dtypes:
+                    curr_types = (
+                        (type_ if type_ is not SameData else dtype)
+                        for type_ in out_types
+                    )
+                cur = _conversion_weight(
+                    in_types, curr_types[:n_dispatch], _to.weight, out=output)
+                # Extra cost to use ``SameData`` over real specialisations
+                # It ensure (SameData, SameData) lose to (Dense, Dense), etc.
+                cur += 0.001
+                if cur < weight:
+                    weight = cur
+                    types = curr_types
+                    function = out_function
+            else:
+                cur = _conversion_weight(
+                    in_types, out_types[:n_dispatch], _to.weight, out=output)
+                if cur < weight:
+                    weight = cur
+                    types = out_types
+                    function = out_function
+
+        if cur == math.INFINITY:
+            raise ValueError("No valid specialisations found")
+
+        if weight <= 0.01 and not (output and out_types[-1] is Data):
+            self._lookup[in_types] = function
+        else:
+            if output:
+                converters = tuple(
+                    [_to[pair] for pair in zip(types[:-1], in_types[:-1])]
+                    + [_to[in_types[-1], types[-1]]]
+                )
+            else:
+                converters = tuple(_to[pair] for pair in zip(types, in_types))
+            displayed_type = in_types
+            if len(in_dtype) < len(types):
+                displayed_type = displayed_type + (types[-1],)
+            self._lookup[in_types] =\
+                _constructed_specialisation(function, self, displayed_type,
+                                            converters, output)
+
+
     def rebuild_lookup(self):
         """
         Manually trigger a rebuild of the lookup table for this dispatcher.
@@ -304,47 +353,18 @@ cdef class Dispatcher:
 
         You most likely do not need to call this function yourself.
         """
-        cdef double weight, cur
-        cdef tuple types, out_types
-        cdef object function
         if not self._specialisations:
             return
         self._dtypes = _to.dtypes.copy()
-        # The complexity of building the table here is very poor, but it's a
-        # cost we pay very infrequently, and until it's proved to be a
-        # bottle-neck in real code, we stick with the simple algorithm.
         for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch):
-            weight = math.INFINITY
-            types = None
-            function = None
-            for out_types, out_function in self._specialisations.items():
-                cur = _conversion_weight(in_types, out_types, _to.weight,
-                                         out=self.output)
-                if cur < weight:
-                    weight = cur
-                    types = out_types
-                    function = out_function
-
-            if cur == math.INFINITY:
-                raise ValueError("No valid specialisations found")
-
-            if weight <= 0.01:
-                self._lookup[in_types] = function
-            else:
-                if self.output:
-                    converters = tuple(
-                        [_to[pair] for pair in zip(types[:-1], in_types[:-1])]
-                        + [_to[in_types[-1], types[-1]]]
-                    )
-                else:
-                    converters = tuple(_to[pair] for pair in zip(types, in_types))
-                self._lookup[in_types] =\
-                    _constructed_specialisation(function, self, in_types,
-                                                converters, self.output)
+            self._find_specialization(in_types, self.output)
         # Now build the lookup table in the case that we dispatch on the output
         # type as well, but the user has called us without specifying it.
         # TODO: option to control default output type choice if unspecified?
         if self.output:
+            for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
+                self._find_specialization(in_types, False)
+            """
             for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
                 weight = math.INFINITY
                 types = None
@@ -370,7 +390,7 @@ cdef class Dispatcher:
                     self._lookup[in_types] =\
                         _constructed_specialisation(function, self,
                                                     in_types + (types[-1],),
-                                                    converters, False)
+                                                    converters, False)"""
 
     def __getitem__(self, types):
         """
