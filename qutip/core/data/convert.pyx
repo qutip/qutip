@@ -19,7 +19,7 @@ import numbers
 import numpy as np
 from scipy.sparse import dok_matrix, csgraph
 cimport cython
-from qutip.core.data.base cimport Data, SameData
+from qutip.core.data.base cimport Data
 
 __all__ = ['to', 'create']
 
@@ -270,12 +270,8 @@ cdef class _to:
         for dtype in self.dtypes:
             self.weight[(dtype, Data)] = 1.
             self.weight[(Data, dtype)] = self.anydataweight
-            # self.weight[(dtype, SameData)] = self.anydataweight
-            # self.weight[(SameData, dtype)] = 1.
             self._convert[(dtype, Data)] = _partial_converter(self, dtype)
             self._convert[(Data, dtype)] = dummyconverter
-            # self._convert[(dtype, SameData)] = dummyconverter
-            # self._convert[(SameData, dtype)] = dummyconverter
         for dispatcher in self.dispatchers:
             dispatcher.rebuild_lookup()
 

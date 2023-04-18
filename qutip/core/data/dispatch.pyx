@@ -11,7 +11,7 @@ from .convert import to as _to
 cimport cython
 from libc cimport math
 from libcpp cimport bool
-from qutip.core.data.base cimport Data, SameData
+from qutip.core.data.base cimport Data
 
 __all__ = ['Dispatcher']
 
@@ -23,8 +23,7 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out
     `(to_type, from_type): real`; it should almost certainly be
     `data.to.weight`.
 
-    Specialisations that support any types input should use ``Data`` if types
-    can be mixed, or ``SameData``, when they cannot be mixed.
+    Specialisations that support any types input should use ``Data``.
     """
     cdef double weight = 0.0
     cdef Py_ssize_t i, n=len(froms)
@@ -276,7 +275,7 @@ cdef class Dispatcher:
                 if (
                     not _defer
                     and arg[i] not in _to.dtypes
-                    and arg[i] not in [Data, SameData]
+                    and arg[i] is not Data
                 ):
                     raise ValueError(str(arg[i]) + " is not a known data type")
             if not callable(arg[self._n_dispatch]):
@@ -299,37 +298,16 @@ cdef class Dispatcher:
         function = None
         n_dispatch = len(in_types)
         for out_types, out_function in self._specialisations.items():
-            if SameData in out_types:
-                # Extra loop over all possible ``SameData``
-                for dtype in self._dtypes:
-                    curr_types = tuple(
-                        (type_ if type_ is not SameData else dtype)
-                        for type_ in out_types
-                    )
-                cur = _conversion_weight(
-                    in_types, curr_types[:n_dispatch], _to.weight, out=output)
-                # Extra cost to use ``SameData`` over real specialisations
-                # It ensure (SameData, SameData) lose to (Dense, Dense), etc.
-                cur += 0.001
-                if cur < weight:
-                    weight = cur
-                    types = curr_types
-                    function = out_function
-            else:
-                cur = _conversion_weight(
-                    in_types, out_types[:n_dispatch], _to.weight, out=output)
-                if cur < weight:
-                    weight = cur
-                    types = out_types
-                    function = out_function
+            cur = _conversion_weight(
+                in_types, out_types[:n_dispatch], _to.weight, out=output)
+            if cur < weight:
+                weight = cur
+                types = out_types
+                function = out_function
 
         if cur == math.INFINITY:
             raise ValueError("No valid specialisations found")
 
-        print(in_types)
-        print(types)
-        print(weight, output, types[-1])
-        print(output and types[-1] is Data)
         if weight <= 0.01 and not (output and types[-1] is Data):
             self._lookup[in_types] = function
         else:

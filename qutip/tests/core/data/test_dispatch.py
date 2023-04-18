@@ -2,13 +2,11 @@ import pytest
 import itertools
 import qutip
 from qutip.core.data.dispatch import Dispatcher, _constructed_specialisation
-from qutip.core.data.base import SameData
 import qutip.core.data as _data
 
 
 class pseudo_dipatched:
     def __init__(self, types, output):
-        self.use_samedata = SameData in types
         if output:
             self.output = types[-1]
             self.inputs = types[:-1]
@@ -17,22 +15,13 @@ class pseudo_dipatched:
             self.inputs = types
 
     def __call__(self, *args, **kwargs):
-        print(args)
         assert len(args) == len(self.inputs)
         assert not kwargs
-        samedata = None
         for got, expected in zip(args, self.inputs):
-            if expected is SameData and samedata is None:
-                samedata = type(got)
-                expected = type(got)
-            elif expected is SameData:
-                expected = samedata
             assert isinstance(got, expected)
 
         if not self.output:
             return
-        elif self.output is SameData:
-            return _data.zeros[samedata](1,1)
         elif self.output is _data.Data:
             return _data.zeros(1,1)
         else:
@@ -55,23 +44,16 @@ def _test_name(arg):
     ((_data.Data, _data.Data), True),
     ((_data.Data, _data.Dense), True),
     ((_data.Dense, _data.Data), True),
-    ((SameData, SameData), True),
     ((_data.Dense, _data.Dense), False),
     ((_data.Dense, _data.CSR), False),
     ((_data.Data, _data.Data), False),
     ((_data.Data, _data.Dense), False),
     ((_data.Dense, _data.Data), False),
-    ((SameData, SameData), False),
     ((_data.Dense, _data.Dense, _data.Dense), True),
     ((_data.Dense, _data.CSR, _data.CSR), True),
     ((_data.Data, _data.Data, _data.Data), True),
     ((_data.Data, _data.Dense, _data.Dense), True),
     ((_data.Dense, _data.Data, _data.Data), True),
-    ((SameData, SameData, SameData), True),
-    ((SameData, SameData, _data.Dense), True),
-    ((SameData, SameData, _data.Data), True),
-    ((SameData, _data.Dense, SameData), True),
-    ((SameData, _data.Data, SameData), True),
 ], ids=_test_name)
 def test_build_full(specialisation, output):
     """
