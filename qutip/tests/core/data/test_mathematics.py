@@ -615,6 +615,8 @@ class TestInner(BinaryOpMixin):
     specialisations = [
         pytest.param(data.inner_csr, CSR, CSR, complex),
         pytest.param(data.inner_dense, Dense, Dense, complex),
+        pytest.param(data.inner_data, Dense, Dense, complex),
+        pytest.param(data.inner_data, CSR, CSR, complex),
     ]
 
     def generate_scalar_is_ket(self, metafunc):
@@ -685,6 +687,7 @@ class TestInnerOp(TernaryOpMixin):
     specialisations = [
         pytest.param(data.inner_op_csr, CSR, CSR, CSR, complex),
         pytest.param(data.inner_op_dense, Dense, Dense, Dense, complex),
+        pytest.param(data.inner_op_data, Dense, CSR, Dense, complex),
     ]
 
     def generate_scalar_is_ket(self, metafunc):
@@ -732,6 +735,19 @@ class TestKron(BinaryOpMixin):
     specialisations = [
         pytest.param(data.kron_csr, CSR, CSR, CSR),
         pytest.param(data.kron_dense, Dense, Dense, Dense),
+    ]
+
+
+class TestKronT(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.kron(left.T, right)
+
+    # Keep the dimension low because kron can get very expensive.
+    shapes = shapes_binary_unrestricted(dim=5)
+    bad_shapes = shapes_binary_bad_unrestricted(dim=5)
+    specialisations = [
+        pytest.param(data.kron_transpose_data, CSR, CSR, CSR),
+        pytest.param(data.kron_transpose_dense, Dense, Dense, Dense),
     ]
 
 
@@ -821,6 +837,8 @@ class TestTrace_oper_ket(UnaryOpMixin):
     specialisations = [
         pytest.param(data.trace_oper_ket_csr, CSR, complex),
         pytest.param(data.trace_oper_ket_dense, Dense, complex),
+        pytest.param(data.trace_oper_ket_data, CSR, complex),
+        pytest.param(data.trace_oper_ket_data, Dense, complex),
     ]
 
 
