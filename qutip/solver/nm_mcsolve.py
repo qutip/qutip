@@ -204,19 +204,25 @@ class InfluenceMartingale:
         self._precomputed_continuous_martingale = {}
         self._discrete_martingale = None
 
-    def initialize(self, t0, tlist=None):
+    def initialize(self, t0, cache='clear'):
+        # `cache` may be 'clear', 'keep' or a new list of times for which
+        #  to pre-compute the continuous contribution to the martingale
         self._t_prev = t0
         self._continuous_martingale_at_t_prev = 1
         self._discrete_martingale = 1
 
-        # if a tlist was given, precompute continuous martingale values
+        if np.array_equal(cache, 'clear'):
+            self._precomputed_continuous_martingale = {}
+            return
+        if np.array_equal(cache, 'keep'):
+            return
+
         self._precomputed_continuous_martingale = {}
-        if tlist is not None:
-            mu_c0 = 1
-            for t1 in tlist:
-                mu_c1 = mu_c0 * self._compute_continuous_martingale(t0, t1)
-                self._precomputed_continuous_martingale[t1] = mu_c1
-                t0, mu_c0 = t1, mu_c1
+        mu_c0 = 1
+        for t1 in cache:
+            mu_c1 = mu_c0 * self._compute_continuous_martingale(t0, t1)
+            self._precomputed_continuous_martingale[t1] = mu_c1
+            t0, mu_c0 = t1, mu_c1
 
     def add_collapse(self, collapse_time, collapse_channel):
         if self._t_prev is None:
@@ -273,6 +279,10 @@ class NmMCIntegrator(MCIntegrator):
         if len(self.collapses) > num_collapse_old:
             collapse_time, collapse_channel = self.collapses[-1]
             self._martingale.add_collapse(collapse_time, collapse_channel)
+
+    def set_state(self, t, *args, **kwargs):
+        super().set_state(t, *args, **kwargs)
+        self._martingale.initialize(t, cache='keep')
 
 
 class NonMarkovianMCSolver(MCSolver):
@@ -485,7 +495,7 @@ class NonMarkovianMCSolver(MCSolver):
     # martingale value from the NonMarkovianMCSolver whenever a state is added.
 
     def start(self, state, t0, seed=None):
-        self._martingale.initialize(t0)
+        self._martingale.initialize(t0, cache='clear')
         return super().start(state, t0, seed=seed)
 
     # The returned state will be a density matrix with trace=mu the martingale
@@ -500,7 +510,7 @@ class NonMarkovianMCSolver(MCSolver):
         if 'args' in kwargs:
             self._argument(kwargs.pop('args'))
 
-        self._martingale.initialize(tlist[0], tlist=tlist)
+        self._martingale.initialize(tlist[0], cache=tlist)
         result = super().run(state, tlist, *args, **kwargs)
         self._martingale.reset()
 
