@@ -303,7 +303,7 @@ The only difference is how the collapse operators and rate functions should be d
 Note that we give the actual rate and not its square root, and that ``nm_mcsolve`` automatically computes associated jump rates :math:`\Gamma_n(t)\geq0` appropriate for simulation.
 
 We conclude with a simple example demonstrating the usage of the ``nm_mcsolve`` function.
-For more elaborate, physically motivated examples, we refer to example notebook 1 [TODO] and example notebook 2 [TODO].
+For more elaborate, physically motivated examples, we refer to the accompanying tutorial notebook [TODO].
 
 
 .. plot::
@@ -327,10 +327,11 @@ For more elaborate, physically motivated examples, we refer to example notebook 
 
     # nm_mcsolve integration
     ops_and_rates = []
-    ops_and_rates.append( [a0.dag(), gamma1] )
-    ops_and_rates.append( [a0,       gamma2] )
+    ops_and_rates.append([a0.dag(), gamma1])
+    ops_and_rates.append([a0,       gamma2])
     MCSol = qt.nm_mcsolve(H, psi0, times, ops_and_rates,
-                          e_ops=[a0.dag() * a0, a0 * a0.dag()], ntraj=2500)
+                          e_ops=[a0.dag() * a0, a0 * a0.dag()],
+                          options={'map': 'parallel'}, ntraj=2500)
 
     # mesolve integration for comparison
     d_ops = [[qt.lindblad_dissipator(a0.dag(), a0.dag()), gamma1],
@@ -338,8 +339,11 @@ For more elaborate, physically motivated examples, we refer to example notebook 
     MESol = qt.mesolve(H, psi0, times, d_ops, e_ops=[a0.dag() * a0, a0 * a0.dag()])
 
     plt.figure()
-    plt.plot(times, MCSol.expect[0], 'g', times, MCSol.expect[1], 'b', times, MCSol.trace, 'r')
-    plt.plot(times, MESol.expect[0], 'g--', times, MESol.expect[1], 'b--')
+    plt.plot(times, MCSol.expect[0], 'g',
+             times, MCSol.expect[1], 'b',
+             times, MCSol.trace, 'r')
+    plt.plot(times, MESol.expect[0], 'g--',
+             times, MESol.expect[1], 'b--')
     plt.title('Monte Carlo time evolution')
     plt.xlabel('Time')
     plt.ylabel('Expectation values')
