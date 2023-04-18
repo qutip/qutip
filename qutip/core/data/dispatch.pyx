@@ -276,8 +276,7 @@ cdef class Dispatcher:
                 if (
                     not _defer
                     and arg[i] not in _to.dtypes
-                    and arg[i] is not Data
-                    and not isinstance(arg[i], Data)
+                    and arg[i] not in [Data, SameData]
                 ):
                     raise ValueError(str(arg[i]) + " is not a known data type")
             if not callable(arg[self._n_dispatch]):
@@ -286,23 +285,24 @@ cdef class Dispatcher:
         if not _defer:
             self.rebuild_lookup()
 
-    cdef object _find_specialization(self, tuple in_type, bint output):
+    cdef object _find_specialization(self, tuple in_types, bint output):
         # The complexity of building the table here is very poor, but it's a
         # cost we pay very infrequently, and until it's proved to be a
         # bottle-neck in real code, we stick with the simple algorithm.
         cdef double weight, cur
-        cdef tuple types, out_types, dtype, displayed_type
+        cdef tuple types, out_types, displayed_type
+        cdef type dtype
         cdef object function
         cdef int n_dispatch
         weight = math.INFINITY
         types = None
         function = None
-        n_dispatch = len(in_type)
+        n_dispatch = len(in_types)
         for out_types, out_function in self._specialisations.items():
             if SameData in out_types:
                 # Extra loop over all possible ``SameData``
                 for dtype in self._dtypes:
-                    curr_types = (
+                    curr_types = tuple(
                         (type_ if type_ is not SameData else dtype)
                         for type_ in out_types
                     )
@@ -337,7 +337,7 @@ cdef class Dispatcher:
             else:
                 converters = tuple(_to[pair] for pair in zip(types, in_types))
             displayed_type = in_types
-            if len(in_dtype) < len(types):
+            if len(in_types) < len(types):
                 displayed_type = displayed_type + (types[-1],)
             self._lookup[in_types] =\
                 _constructed_specialisation(function, self, displayed_type,

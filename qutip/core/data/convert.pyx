@@ -77,16 +77,16 @@ def dummyconverter(arg):
 cdef class _partial_converter:
     """Convert from any known data-layer type into the type `x.to`."""
 
-    cdef dict converters
+    cdef object converter
     cdef readonly type to
 
-    def __init__(self, converters, to_type):
-        self.converters = dict(converters)
+    def __init__(self, converter, to_type):
+        self.converter = converter
         self.to = to_type
 
     def __call__(self, arg):
         try:
-            return self.converters[type(arg)](arg)
+            return self.converter[self.to, type(arg)](arg)
         except KeyError:
             raise TypeError("unknown type of input: " + str(arg)) from None
 
@@ -268,14 +268,14 @@ cdef class _to:
                 self._convert[(to_t, from_t)] =\
                     _converter(convert[::-1], to_t, from_t)
         for dtype in self.dtypes:
-            self.weight[(dtype, Data)] = self.anydataweight
+            self.weight[(dtype, Data)] = 1.
             self.weight[(Data, dtype)] = self.anydataweight
-            self.weight[(dtype, SameData)] = self.anydataweight
-            self.weight[(SameData, dtype)] = self.anydataweight
-            self._convert[(dtype, Data)] = dummyconverter
+            # self.weight[(dtype, SameData)] = self.anydataweight
+            # self.weight[(SameData, dtype)] = 1.
+            self._convert[(dtype, Data)] = _partial_converter(self, dtype)
             self._convert[(Data, dtype)] = dummyconverter
-            self._convert[(dtype, SameData)] = dummyconverter
-            self._convert[(SameData, dtype)] = dummyconverter
+            # self._convert[(dtype, SameData)] = dummyconverter
+            # self._convert[(SameData, dtype)] = dummyconverter
         for dispatcher in self.dispatchers:
             dispatcher.rebuild_lookup()
 
@@ -327,7 +327,7 @@ cdef class _to:
             type.
         """
         if type(dtype) is type:
-            if dtype not in self.dtypes:
+            if dtype not in self.dtypes and dtype is not Data:
                 raise ValueError(
                     "Type is not a data-layer type: " + repr(dtype))
             return dtype
@@ -351,10 +351,7 @@ cdef class _to:
             raise KeyError(arg)
         to_t = self.parse(arg[0])
         if len(arg) == 1:
-            converters = {
-                from_t: self._convert[to_t, from_t] for from_t in self.dtypes
-            }
-            return _partial_converter(converters, to_t)
+            return _partial_converter(self, to_t)
         from_t = self.parse(arg[1])
         return self._convert[to_t, from_t]
 
