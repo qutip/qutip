@@ -326,7 +326,11 @@ cdef class Dispatcher:
         if cur == math.INFINITY:
             raise ValueError("No valid specialisations found")
 
-        if weight <= 0.01 and not (output and out_types[-1] is Data):
+        print(in_types)
+        print(types)
+        print(weight, output, types[-1])
+        print(output and types[-1] is Data)
+        if weight <= 0.01 and not (output and types[-1] is Data):
             self._lookup[in_types] = function
         else:
             if output:
@@ -364,33 +368,6 @@ cdef class Dispatcher:
         if self.output:
             for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
                 self._find_specialization(in_types, False)
-            """
-            for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
-                weight = math.INFINITY
-                types = None
-                function = None
-                for out_types, out_function in self._specialisations.items():
-                    cur = _conversion_weight(in_types, out_types[:-1],
-                                             _to.weight, out=False)
-                    if cur < weight:
-                        weight = cur
-                        types = out_types
-                        function = out_function
-
-                if cur == math.INFINITY:
-                    raise ValueError("No valid specialisations found")
-
-                if weight <= 0.01:
-                    self._lookup[in_types] = function
-                else:
-                    converters = tuple(
-                        _to[pair]
-                        for pair in zip(types, in_types)
-                    )
-                    self._lookup[in_types] =\
-                        _constructed_specialisation(function, self,
-                                                    in_types + (types[-1],),
-                                                    converters, False)"""
 
     def __getitem__(self, types):
         """
