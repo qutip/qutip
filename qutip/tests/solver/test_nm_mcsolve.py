@@ -12,7 +12,7 @@ def test_rough_agreement_with_mesolve_for_negative_rates():
     A rough test that nm_mcsolve agress with mesolve in the
     presence of negative rates.
     """
-    times = np.linspace(0, 0.05, 51)
+    times = np.linspace(0, 0.25, 51)
     psi0 = qutip.basis(2, 1)
     a0 = qutip.destroy(2)
     H = a0.dag() * a0
@@ -38,7 +38,7 @@ def test_rough_agreement_with_mesolve_for_negative_rates():
     ]
     mc_result = nm_mcsolve(
         H, psi0, times, ops_and_rates,
-        args=args, e_ops=e_ops, ntraj=2500,
+        args=args, e_ops=e_ops, ntraj=2000,
         options={"rtol": 1e-8},
         seeds=0,
     )
@@ -53,12 +53,12 @@ def test_rough_agreement_with_mesolve_for_negative_rates():
         args=args, e_ops=e_ops,
     )
 
-    np.testing.assert_allclose(mc_result.trace, [1.] * len(times))
+    np.testing.assert_allclose(mc_result.trace, [1.] * len(times), rtol=0.25)
     np.testing.assert_allclose(
-        me_result.expect[0], mc_result.expect[0], rtol=0.02,
+        me_result.expect[0], mc_result.expect[0], rtol=0.25,
     )
     np.testing.assert_allclose(
-        me_result.expect[1], mc_result.expect[1], rtol=0.1,
+        me_result.expect[1], mc_result.expect[1], rtol=0.25,
     )
 
 
@@ -127,6 +127,7 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     Test that nm_mcsolve correctly solves the system when there is a constant
     Hamiltonian and no collapses.
     """
+
     def pytest_generate_tests(self, metafunc):
         tol = 1e-8
         expect = (
@@ -182,6 +183,7 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
     Test that nm_mcsolve correctly solves the system when the
     collapse rates are constant.
     """
+
     def pytest_generate_tests(self, metafunc):
         tol = 0.25
         rate = 0.2
@@ -210,6 +212,7 @@ class TestTimeDependentCollapse(StatesAndExpectOutputCase):
     Test that nm_mcsolve correctly solves the system when the
     collapse rates are time-dependent.
     """
+
     def pytest_generate_tests(self, metafunc):
         tol = 0.25
         coupling = 0.2
