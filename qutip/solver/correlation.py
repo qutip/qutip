@@ -8,8 +8,8 @@ import numpy as np
 import scipy.fftpack
 
 from ..core import (
-    qeye, Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
-    tensor, qzero, expect
+    Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
+    tensor, expect, qeye_like, isket
 )
 from .mesolve import MESolver
 from .mcsolve import MCSolver
@@ -466,11 +466,12 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
         is returned instead.
     """
     taulist = np.asarray(taulist)
+    if isket(state0):
+        state0 = state0.proj()
 
-    dims = state0.dims[0]
-    A = QobjEvo(qeye(dims) if A in [None, 1] else A)
-    B = QobjEvo(qeye(dims) if B in [None, 1] else B)
-    C = QobjEvo(qeye(dims) if C in [None, 1] else C)
+    A = QobjEvo(qeye_like(state0) if A in [None, 1] else A)
+    B = QobjEvo(qeye_like(state0) if B in [None, 1] else B)
+    C = QobjEvo(qeye_like(state0) if C in [None, 1] else C)
 
     if isinstance(solver, (MESolver, BRSolver)):
         out = _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C)

@@ -968,3 +968,26 @@ class TestInv(UnaryOpMixin):
         pytest.param(_inv_csr, CSR, CSR),
         pytest.param(_inv_dense, Dense, Dense),
     ]
+
+
+class TestZeros_like(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.zeros_like(matrix)
+
+    specialisations = [
+        pytest.param(data.zeros_like_data, CSR, CSR),
+        pytest.param(data.zeros_like_dense, Dense, Dense),
+    ]
+
+
+class TestIdentity_like(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.eye(matrix.shape[0])
+
+    shapes = shapes_square()
+    bad_shapes = shapes_not_square()
+
+    specialisations = [
+        pytest.param(data.identity_like_data, CSR, CSR),
+        pytest.param(data.identity_like_dense, Dense, Dense),
+    ]
