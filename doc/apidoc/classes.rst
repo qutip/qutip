@@ -53,6 +53,13 @@ Solver
 .. autoclass:: qutip.solver.brmesolve.BRSolver
     :members:
 
+.. autoclass:: qutip.solver.stochastic.SMESolver
+    :members:
+
+.. autoclass:: qutip.solver.stochastic.SSESolver
+    :members:
+
+
 
 .. _classes-non_markov_heom:
 
@@ -129,6 +136,39 @@ Integrator
     :members: options
 
 .. autoclass:: qutip.solver.integrator.krylov.IntegratorKrylov
+    :members: options
+
+
+.. _classes-sode:
+
+Stochastic Integrator
+---------------------
+
+.. autoclass:: qutip.solver.sode.rouchon.RouchonSODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.EulerSODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Milstein_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Taylor1_5_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Implicit_Milstein_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Implicit_Taylor1_5_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.sode.PlatenSODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Explicit1_5_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.sode.PredCorr_SODE
     :members: options
 
 

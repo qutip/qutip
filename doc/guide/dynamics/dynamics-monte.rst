@@ -102,7 +102,12 @@ When trajectories are stored, ``result.runs_expect`` is a list over the expectat
 The averages are stored in ``result.average_expect`` and the standard derivation of the expectation values in ``result.std_expect``.
 When the states are returned, ``result.runs_states`` will be an array of length ``ntraj``. Each element contains an array of "Qobj" type ket with the same number of elements as ``times``. ``result.average_states`` is a list of density matrices computed as the average of the states at each time step.
 Furthermore, the output will also contain a list of times at which the collapse occurred, and which collapse operators did the collapse. These can be obtained in  ``result.col_times`` and ``result.col_which`` respectively.
-Lastly ``result.photocurrent`` contain the measurement of the evolution.
+
+
+Photocurrent
+------------
+
+The photocurrent, previously computed using the ``photocurrent_sesolve`` and ``photocurrent_sesolve`` functions, are now included in the output of :func:`qutip.solver.mcsolve` as ``result.photocurrent``.
 
 
 .. plot::
@@ -235,6 +240,34 @@ For example, the following code block plots expectation values for 1, 10 and 100
     plt.ylabel('Expectation values')
     plt.legend()
     plt.show()
+
+
+.. openmcsolve:
+
+Open Systems
+------------
+
+``mcsolve`` can be used to study system with have measured and dissipative interaction with the bath.
+This is done by using a liouvillian including the dissipative interaction instead of an Hamiltonian.
+
+.. plot::
+    :context: close-figs
+
+    times = np.linspace(0.0, 10.0, 200)
+    psi0 = tensor(fock(2, 0), fock(10, 8))
+    a  = tensor(qeye(2), destroy(10))
+    sm = tensor(destroy(2), qeye(10))
+    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
+    L = liouvillian(H, [0.01 * sm, np.sqrt(0.1) * a])
+    data = mcsolve(L, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm])
+
+    plt.figure()
+    plt.plot((times[:-1] + times[1:])/2, data.photocurrent[0])
+    plt.title('Monte Carlo Photocurrent')
+    plt.xlabel('Time')
+    plt.ylabel('Photon detections')
+    plt.show()
+
 
 .. plot::
     :context: reset
