@@ -290,7 +290,6 @@ cdef class Dispatcher:
         # bottle-neck in real code, we stick with the simple algorithm.
         cdef double weight, cur
         cdef tuple types, out_types, displayed_type
-        cdef type dtype
         cdef object function
         cdef int n_dispatch
         weight = math.INFINITY
@@ -324,7 +323,6 @@ cdef class Dispatcher:
             self._lookup[in_types] =\
                 _constructed_specialisation(function, self, displayed_type,
                                             converters, output)
-
 
     def rebuild_lookup(self):
         """

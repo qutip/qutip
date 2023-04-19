@@ -78,8 +78,6 @@ def zeros_like_data(data, /):
     """
     Create an zeros matrix of the same type and shape.
     """
-    if type(data) is Dense:
-        return dense.zeros(*data.shape, fortran=data.fortran)
     return zeros[type(data)](*data.shape)
 
 
@@ -96,8 +94,6 @@ def identity_like_data(data, /):
     """
     if not data.shape[0] == data.shape[1]:
         raise ValueError("Can't create and identity like a non square matrix.")
-    if type(data) is Dense:
-        return dense.identity(data.shape[0], fortran=data.fortran)
     return identity[type(data)](data.shape[0])
 
 
