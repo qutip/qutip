@@ -7,7 +7,7 @@ from functools import partial
 from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     CompilationOptions, Coefficient,
                                     clean_compiled_coefficient
-                                   )
+                                    )
 
 # Ensure the latest version is tested
 clean_compiled_coefficient(True)
@@ -165,7 +165,8 @@ def test_CoeffCallArguments(base, tol):
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['transform', 'expected'], [
     pytest.param(norm, lambda val: np.abs(val)**2, id="norm"),
@@ -187,7 +188,8 @@ def test_ConstantCoefficient():
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['style_right'], [
     pytest.param("func", id="func"),
@@ -195,7 +197,8 @@ def test_ConstantCoefficient():
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['oper'], [
     pytest.param(lambda a, b: a+b, id="sum"),
@@ -330,7 +333,8 @@ def test_Coeffpickle(style, transform):
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['transform'], [
     pytest.param(_pass, id="single"),
