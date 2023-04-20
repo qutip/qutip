@@ -76,7 +76,7 @@ import inspect as _inspect
 
 trace = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='trace',
     module=__name__,
@@ -92,7 +92,7 @@ trace.add_specialisations([
 
 trace_oper_ket = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='trace_oper_ket',
     module=__name__,

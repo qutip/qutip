@@ -171,8 +171,8 @@ import inspect as _inspect
 
 solve = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('target', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('target', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('method', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=None),
         _inspect.Parameter('options', _inspect.Parameter.POSITIONAL_OR_KEYWORD,

@@ -56,7 +56,7 @@ import inspect as _inspect
 
 pow = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('n', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
     name='pow',
