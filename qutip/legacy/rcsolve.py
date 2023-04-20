@@ -14,8 +14,8 @@ import scipy.sparse as sp
 from numpy import matrix
 from numpy import linalg
 from .. import (
-    spre, spost, sprepost, thermal_dm, tensor, identity, destroy, sigmax,
-    sigmaz, basis, qeye, mesolve
+    spre, spost, sprepost, thermal_dm, tensor, destroy,
+    qeye, mesolve, qeye_like, qzero_like
 )
 
 
