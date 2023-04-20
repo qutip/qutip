@@ -144,17 +144,23 @@ class MemoryCascade:
         s = t - (k - 1) * tau
         G1 = self.generator(k)
         E0 = qeye(G1.dims[0])
-        E = _integrate(G1, E0, 0.0, s, integrator=self.integrator, opt=self.options)
+        E = _integrate(
+            G1, E0, 0.0, s, integrator=self.integrator, opt=self.options
+        )
         if k > 1:
             G2 = self.generator(k - 1)
             G2 = composite(G2, self.Id)
-            E = _integrate(G2, E, s, tau, integrator=self.integrator, opt=self.options)
+            E = _integrate(
+                G2, E, s, tau, integrator=self.integrator, opt=self.options
+            )
 
         if not notrace:
             E = _genptrace(E, k)
         return E
 
-    def outfieldpropagator(self, blist, tlist, tau, c1=None, c2=None, notrace=False):
+    def outfieldpropagator(
+        self, blist, tlist, tau, c1=None, c2=None, notrace=False
+    ):
         r"""
         Compute propagator for computing output field expectation values
         <O_n(tn)...O_2(t2)O_1(t1)> for times t1,t2,... and
@@ -249,7 +255,9 @@ class MemoryCascade:
             elif blist[i] == 4:
                 superop = spost(l1.dag())
             else:
-                raise ValueError("Allowed values in blist are 0, 1, 2, 3 and 4.")
+                raise ValueError(
+                    "Allowed values in blist are 0, 1, 2, 3 and 4."
+                )
 
             E = superop @ E
             sprev = s

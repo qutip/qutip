@@ -5,6 +5,8 @@ omit =
     */qutip/tests/*
     # Tool for tests
     */qutip/solver/sode/_noise.py
+    # Feature we want to remove, hiding them while waiting to see if users will complain.
+    */qutip/legacy/*
 
 [report]
 exclude_lines =
