@@ -15,10 +15,8 @@ from qutip.core.data cimport base
 
 cdef class Diag(base.Data):
     cdef double complex *data
-    cdef base.idxint *col_index
-    cdef base.idxint *row_index
+    cdef base.idxint *offsets
     cdef size_t num_diag
-    cdef size_t size
     cdef object _scipy
     cdef bint _deallocate
     cpdef Diag copy(Diag self)
