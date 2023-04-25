@@ -294,7 +294,8 @@ cpdef Diag identity(base.idxint dimension, double complex scale=1):
     is passed, then the result will be `scale` times the identity.
     """
     cdef Diag out = empty(dimension, dimension, 1, dimension)
-    memset(out.data, 1, out.shape[1] * sizeof(double complex))
+    for i in range(dimension):
+        out.data[i] = scale
     out.offsets[0] = 0
     return out
 
