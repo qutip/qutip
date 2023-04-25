@@ -25,9 +25,9 @@ except ImportError:
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense
-from qutip.core.data.adjoint import adjoint_diag, transpose_diag, conj_diag#********************************
-from qutip.core.data.trace import trace_diag#********************************
-from qutip.core.data.tidyup import tidyup_diag #********************************
+# from qutip.core.data.adjoint import adjoint_diag, transpose_diag, conj_diag#********************************
+# from qutip.core.data.trace import trace_diag#********************************
+# from qutip.core.data.tidyup import tidyup_diag #********************************
 from .base import idxint_dtype
 from qutip.settings import settings
 
@@ -48,7 +48,7 @@ cdef object _dia_matrix(data, offsets, shape):
     because this takes tens of microseconds, and we already know we're in
     a sensible format.
     """
-    cdef object out = scipy_dia_array.__new__(scipy_diag_matrix)
+    cdef object out = scipy_dia_array.__new__(scipy_dia_array)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
     scipy_data_matrix.__init__(out)
@@ -85,7 +85,7 @@ cdef class Diag(base.Data):
         self._deallocate = False
         self.data = <double complex *> cnp.PyArray_GETPTR1(data, 0)
         self.offsets = <base.idxint *> cnp.PyArray_GETPTR1(offsets, 0)
-        self.num_diag = self.offsets.shape[0]
+        self.num_diag = offsets.shape[0]
 
         if shape is None:
             warnings.warn("instantiating Diag matrix of unknown shape")
@@ -116,7 +116,7 @@ cdef class Diag(base.Data):
                 raise ValueError("shape must be a 2-tuple of positive ints")
             self.shape = shape
 
-        self._scipy = _dia_matrix(self.data, self.offsets, self.shape)
+        self._scipy = _dia_matrix(data, offsets, self.shape)
         if tidyup:
             tidyup_diag(self, settings.core['auto_tidyup_atol'], True)
 
@@ -152,17 +152,10 @@ cdef class Diag(base.Data):
         cdef size_t diag, col, nrows = self.shape[0]
         cdef double complex [:, ::1] buffer = out
         for diag in range(self.num_diag):
-            for col in range(data.shape[1]):
+            for col in range(self.shape[1]):
                 if col - diag < 0 or col - diag >= nrows:
                     continue
                 out[(col-diag), col] = self.data[diag * self.shape[1] + col]
-        return out
-
-
-
-        for diag in range(self.num_diag):
-            for n in range(max(self.offsets[diag], 0), min(self.shape[1 + self.offsets[diag], self.shape[1)):
-                buffer[self.offsets[diag] + n, self.offsets[diag] + n] = self.data[diag + n* self.shape[1]
         return out
 
     cpdef object as_scipy(self):
@@ -251,7 +244,7 @@ cpdef Diag empty(base.idxint rows, base.idxint cols, base.idxint num_diag):
     """
     if num_diag < 0:
         raise ValueError("num_diag must be a positive integer.")
-    cdef CSR out = Diag.__new__(Diag)
+    cdef Diag out = Diag.__new__(Diag)
     out.shape = (rows, cols)
     out.num_diag = num_diag
     # Python doesn't like allocating nothing.
@@ -289,30 +282,32 @@ cpdef Diag identity(base.idxint dimension, double complex scale=1):
     is passed, then the result will be `scale` times the identity.
     """
     cdef Diag out = empty(dimension, dimension, 1)
-    memset(out.data, 0, out.shape[1] * sizeof(double complex))
+    memset(out.data, 1, out.shape[1] * sizeof(double complex))
     out.offsets[0] = 0
     return out
 
 
 cpdef Diag from_dense(Dense matrix):
     # Assume worst-case scenario for non-zero.
-    cdef Diag out = zeros(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1)
+    cdef Diag out = empty(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1)
     cdef size_t diag_, ptr_in, ptr_out=0, stride
     cdef row, col
 
-    out.data = np.zeros((matrix.shape[0] + matrix.shape[1] - 1, matrix.shape[1]))
-    offsets = np.arange(-matrix.shape[0] + 1, matrix.shape[1])
+    for i in range(matrix.shape[0] + matrix.shape[1] - 1):
+        out.offsets[i] = i -matrix.shape[0] + 1
     strideR = matrix.shape[0] if matrix.fortran else 1
     strideC = matrix.shape[1] if not matrix.fortran else 1
 
     for row in range(matrix.shape[0]):
         for col in range(matrix.shape[1]):
-            data[-(-col+row) -matrix.shape[1], col] = matrix.data[row * strideR + col * strideC]
+            out.data[(-(-col+row) -matrix.shape[1]) * out.shape[1] + col] = matrix.data[row * strideR + col * strideC]
 
-    return tidyup_diag(data, offsets)
+    return tidyup_diag(out)
 
 
-cpdef tidyup_diag(data, offsets, atol=1e-5, inplace=False):
+cpdef tidyup_diag(mat, atol=1e-5, inplace=False):
+    data = mat.data
+    offsets = mat.offsets
     new_offsets = []
     diags = []
     for diag, line in zip(offsets, data):
@@ -330,14 +325,22 @@ cpdef tidyup_diag(data, offsets, atol=1e-5, inplace=False):
     return data, offsets
 
 
-cdef CSR diags_(
+cdef inline base.idxint _diagonal_length(
+    base.idxint offset, base.idxint n_rows, base.idxint n_cols,
+) nogil:
+    if offset > 0:
+        return n_rows if offset <= n_cols - n_rows else n_cols - offset
+    return n_cols if offset > n_cols - n_rows else n_rows + offset
+
+
+cdef Diag diags_(
     list diagonals, base.idxint[:] offsets,
     base.idxint n_rows, base.idxint n_cols,
 ):
     """
-    Construct a CSR matrix from a list of diagonals and their offsets.  The
+    Construct a Diag matrix from a list of diagonals and their offsets.  The
     offsets are assumed to be in sorted order.  This is the C-only interface to
-    csr.diags, and inputs are not sanity checked (use the Python interface for
+    diag.diags, and inputs are not sanity checked (use the Python interface for
     that).
 
     Parameters
@@ -357,46 +360,18 @@ cdef CSR diags_(
         The shape of the output.  The result does not need to be square, but
         the diagonals must be of the correct length to fit in.
     """
-    cdef size_t n_diagonals = len(diagonals)
-    if n_diagonals == 0:
-        return zeros(n_rows, n_cols)
-    cdef base.idxint k, row, start_row, offset, nnz=0,
-    cdef base.idxint min_k=n_diagonals, max_k=n_diagonals
-    cdef double complex value
-    for k in range(n_diagonals):
-        offset = offsets[k]
-        if offset >= 0 and min_k > k:
-            min_k = k
-        nnz += _diagonal_length(offset, n_rows, n_cols)
-    cdef CSR out = empty(n_rows, n_cols, nnz)
-    nnz = 0
-    out.row_index[0] = 0
-    for row in range(n_rows):
-        if min_k > 0:
-            offset = offsets[min_k - 1]
-            start_row = 0 if offset >= 0 else -offset
-            if start_row == row:
-                min_k -= 1
-        if max_k > 0:
-            offset = offsets[max_k - 1]
-            start_row = 0 if offset >= 0 else -offset
-            if start_row + _diagonal_length(offset, n_rows, n_cols) - 1 < row:
-                max_k -= 1
-        for k in range(min_k, max_k):
-            offset = offsets[k]
-            value = diagonals[k][row if offset >= 0 else row + offset]
-            if value == 0:
-                continue
-            out.data[nnz] = value
-            out.col_index[nnz] = row + offset
-            nnz += 1
-        out.row_index[row + 1] = nnz
+    out = empty(n_rows, n_cols, len(offsets))
+    for i in range(len(offsets)):
+        out.offsets[i] = offsets[i]
+        offset = max(offsets[i], 0)
+        for col in range(len(diagonals[i])):
+            out.data[i, col + offset] = diagonals[i][col]
     return out
 
 @cython.wraparound(True)
 def diags(diagonals, offsets=None, shape=None):
     """
-    Construct a CSR matrix from diagonals and their offsets.  Using this
+    Construct a Diag matrix from diagonals and their offsets.  Using this
     function in single-argument form produces a square matrix with the given
     values on the main diagonal.
 
@@ -478,9 +453,9 @@ def diags(diagonals, offsets=None, shape=None):
             raise ValueError("given diagonals do not have the correct lengths")
     if n_rows == 0 and n_cols == 0:
         raise ValueError("can't produce a 0x0 matrix")
-    if len(offsets) == 1:
+    #if len(offsets) == 1:
         # Fast path for a single diagonal.
-        return diag(diagonals_[0], offsets_[0], n_rows, n_cols)
+        #return diag(diagonals_[0], offsets_[0], n_rows, n_cols)
     return diags_(
         diagonals_, np.array(offsets_, dtype=idxint_dtype), n_rows, n_cols,
     )

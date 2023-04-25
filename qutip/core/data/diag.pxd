@@ -20,9 +20,8 @@ cdef class Diag(base.Data):
     cdef object _scipy
     cdef bint _deallocate
     cpdef Diag copy(Diag self)
-    cpdef object as_scipy(Diag self, bint full=*)
-    cpdef Diag sort_indices(Diag self)
-    cpdef double complex trace(Diag self)
-    cpdef Diag adjoint(Diag self)
-    cpdef Diag conj(Diag self)
-    cpdef Diag transpose(Diag self)
+    cpdef object as_scipy(Diag self)
+    #cpdef double complex trace(Diag self)
+    #cpdef Diag adjoint(Diag self)
+    #cpdef Diag conj(Diag self)
+    #cpdef Diag transpose(Diag self)
