@@ -83,6 +83,7 @@ cdef class Diag(base.Data):
                     "shapes do not match: ", str(shape), " and ", str(arg.shape),
                 ]))
             shape = arg.shape
+            #
             arg = (arg.data, arg.offsets)
         if not isinstance(arg, tuple):
             raise TypeError("arg must be a scipy matrix or tuple")
@@ -157,10 +158,11 @@ cdef class Diag(base.Data):
         cdef cnp.npy_intp *dims = [self.shape[0], self.shape[1]]
         cdef object out = cnp.PyArray_ZEROS(2, dims, cnp.NPY_COMPLEX128, 0)
         cdef size_t col, i, nrows = self.shape[0]
-        cdef base.idxint diag
+        cdef base.idxint diag, size
+        size = self.size if self.size < self.shape[1] else self.shape[1]
         for i in range(self.num_diag):
             diag = self.offsets[i]
-            for col in range(self.size):
+            for col in range(size):
                 if col - diag < 0 or col - diag >= nrows:
                     continue
                 out[(col-diag), col] = self.data[i * self.size + col]

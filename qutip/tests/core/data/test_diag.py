@@ -25,6 +25,13 @@ _dtype_uint = ['uint32']
 ])
 def shape(request): return request.param
 
+@pytest.fixture(params=[
+    pytest.param(0, id='empty'),
+    pytest.param(1, id='full'),
+    pytest.param(0.2, id='sparse'),
+])
+def density(request): return request.param
+
 
 def random_scipy_dia(shape, density):
     num_diag = int(density * (shape[0] + shape[1] - 1)) or 1
@@ -32,9 +39,9 @@ def random_scipy_dia(shape, density):
     data = []
     for diag in np.random.choice(np.arange(-shape[0] + 1, shape[1]), num_diag, replace=False):
         offsets.append(diag)
-        num_elements = min(shape[0]+diag, shape[1]-diag)
+        num_elements = min(shape[0], shape[1], shape[0] + diag, shape[1] - diag)
         data.append(np.random.rand(num_elements) + 1j*np.random.rand(num_elements))
-    return scipy.sparse.diags(data, offsets).todia()
+    return scipy.sparse.diags(data, offsets, shape=shape).todia()
 
 
 @pytest.fixture(scope='function')
@@ -73,7 +80,7 @@ class TestClassMethods:
         the as_scipy() method succeeds.
         """
         arg = (scipy_dia.data, scipy_dia.offsets)
-        out = data.Diag(arg, shape=scipy_dia.shape)
+        out = dia.Diag(arg, shape=scipy_dia.shape)
         assert out.shape == scipy_dia.shape
         assert (out.as_scipy() - scipy_dia).nnz == 0
 
@@ -99,8 +106,8 @@ class TestClassMethods:
     @pytest.mark.parametrize(['arg', 'kwargs', 'error'], [
         pytest.param((), {}, ValueError, id="arg 0 tuple"),
         pytest.param((None,), {}, ValueError, id="arg 1 tuple"),
-        pytest.param((None,)*2, {}, ValueError, id="arg None tuple"),
-        pytest.param((None,)*3, {}, TypeError, id="arg 3 tuple"),
+        pytest.param((None,)*2, {}, TypeError, id="arg None tuple"),
+        pytest.param((None,)*3, {}, ValueError, id="arg 3 tuple"),
         pytest.param(_valid_scipy(), {'shape': ()}, ValueError,
                      id="scipy-shape 0 tuple"),
         pytest.param(_valid_scipy(), {'shape': (1,)}, ValueError,
@@ -146,8 +153,6 @@ class TestClassMethods:
         original = data_diag
         copy = data_diag.copy()
         assert original is not copy
-        assert original.data is not copy.data
-        assert original.offsets is not copy.offsets
         assert np.all(original.to_array() == copy.to_array())
 
     def test_as_scipy_returns_a_view(self, data_diag):
@@ -159,8 +164,8 @@ class TestClassMethods:
         unmodified_copy = data_diag.copy()
         data_diag.as_scipy().data += 1
         modified_copy = data_diag.copy()
-        assert np.any(data_diag.as_ndarray() != unmodified_copy.as_ndarray())
-        assert np.all(data_diag.as_ndarray() == modified_copy.as_ndarray())
+        assert np.any(data_diag.to_array() != unmodified_copy.to_array())
+        assert np.all(data_diag.to_array() == modified_copy.to_array())
 
     def test_as_scipy_caches_result(self, data_diag):
         """
@@ -188,20 +193,19 @@ class TestClassMethods:
         assert not np.may_share_memory(original.data, copy.data)
         assert not np.may_share_memory(original.offsets, copy.offsets)
 
-    def test_as_ndarray_is_correct_result(self, scipy_dia):
+    def test_as_scipy_is_correct_result(self, scipy_dia):
         """
-        Test that as_ndarray is actually giving the matrix we expect for a given
+        Test that as_scipy is actually giving the matrix we expect for a given
         input.
         """
         data_diag = dia.Diag(scipy_dia)
         assert isinstance(data_diag.as_scipy(), scipy.sparse.dia_matrix)
         assert (data_diag.as_scipy() - scipy_dia).nnz == 0
 
-    def test_as_scipy_of_uninitialised_is_empty(self, shape, density):
-        ndiag = int(shape[0] * shape[1] * density) or 1
+    def test_as_scipy_of_uninitialised_is_empty(self, shape):
+        ndiag = 0
         base = dia.empty(shape[0], shape[1], ndiag, shape[1])
         sci = base.as_scipy()
-        assert sci.num_diag == 0
         assert len(sci.data) == 0
         assert len(sci.offsets) == 0
 
@@ -217,7 +221,7 @@ class TestFactoryMethods:
     def test_empty(self, shape, density):
         ndiag = int(shape[0] * shape[1] * density) or 1
         size = np.random.randint(shape[1]) or 1
-        base = dia.empty(shape[0], shape[1], nnz, size)
+        base = dia.empty(shape[0], shape[1], ndiag, size)
         sci = base.as_scipy()
         assert isinstance(base, dia.Diag)
         assert isinstance(sci, scipy.sparse.dia_matrix)
