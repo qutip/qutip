@@ -25,8 +25,8 @@ except ImportError:
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense
-# from qutip.core.data.adjoint import adjoint_diag, transpose_diag, conj_diag#********************************
-# from qutip.core.data.trace import trace_diag#********************************
+from qutip.core.data.adjoint import adjoint_diag, transpose_diag, conj_diag
+from qutip.core.data.trace import trace_diag
 # from qutip.core.data.tidyup import tidyup_diag #********************************
 from .base import idxint_dtype
 from qutip.settings import settings
@@ -195,7 +195,6 @@ cdef class Diag(base.Data):
         self._scipy = _dia_matrix(data, offsets, self.shape)
         return self._scipy
 
-    """
     cpdef double complex trace(self):
         return trace_diag(self)
 
@@ -207,7 +206,6 @@ cdef class Diag(base.Data):
 
     cpdef Diag transpose(self):
         return transpose_diag(self)
-    """
 
     def __repr__(self):
         return "".join([
@@ -318,6 +316,10 @@ cpdef Diag from_dense(Dense matrix):
             out.data[(-(-col+row) -matrix.shape[1]) * out.shape[1] + col] = matrix.data[row * strideR + col * strideC]
 
     return tidyup_diag(out)
+
+
+cpdef Dense to_dense(Diag matrix):
+    return Dense(matrix.to_array(), copy=False)
 
 
 cpdef tidyup_diag(mat, atol=1e-5, inplace=False):

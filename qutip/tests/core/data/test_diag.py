@@ -33,25 +33,14 @@ def shape(request): return request.param
 def density(request): return request.param
 
 
-def random_scipy_dia(shape, density):
-    num_diag = int(density * (shape[0] + shape[1] - 1)) or 1
-    offsets = []
-    data = []
-    for diag in np.random.choice(np.arange(-shape[0] + 1, shape[1]), num_diag, replace=False):
-        offsets.append(diag)
-        num_elements = min(shape[0], shape[1], shape[0] + diag, shape[1] - diag)
-        data.append(np.random.rand(num_elements) + 1j*np.random.rand(num_elements))
-    return scipy.sparse.diags(data, offsets, shape=shape).todia()
-
-
 @pytest.fixture(scope='function')
 def scipy_dia(shape, density):
-    return random_scipy_dia(shape, density)
+    return conftest.random_scipy_dia(shape, density)
 
 
 def _valid_scipy():
     """Arbitrary valid scipy Diag"""
-    return random_scipy_dia((10, 10), 0.5)
+    return conftest.random_scipy_dia((10, 10), 0.5)
 
 
 def _valid_arg():
@@ -64,7 +53,7 @@ def _valid_arg():
 
 @pytest.fixture(scope='function')
 def data_diag(shape, density):
-    return dia.Diag(random_scipy_dia(shape, density))
+    return conftest.random_diag(shape, density)
 
 
 class TestClassMethods:

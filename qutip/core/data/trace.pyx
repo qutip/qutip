@@ -4,12 +4,12 @@
 cimport cython
 from libc.math cimport sqrt
 
-from qutip.core.data cimport Data, CSR, Dense
+from qutip.core.data cimport Data, CSR, Dense, Diag
 from qutip.core.data cimport base
 
 __all__ = [
-    'trace', 'trace_csr', 'trace_dense',
-    'trace_oper_ket', 'trace_oper_ket_csr', 'trace_oper_ket_dense',
+    'trace', 'trace_csr', 'trace_dense', 'trace_diag',
+    'trace_oper_ket', 'trace_oper_ket_csr', 'trace_oper_ket_dense', 'trace_oper_ket_diag',
 ]
 
 
@@ -48,6 +48,17 @@ cpdef double complex trace_dense(Dense matrix) nogil except *:
         ptr += stride
     return trace
 
+cpdef double complex trace_diag(Diag matrix) except * nogil:
+    _check_shape(matrix)
+    cdef double complex trace = 0
+    cdef size_t diag, j
+    for diag in range(matrix.num_diag):
+        if matrix.offsets[diag] == 0:
+            for j in range(matrix.size):
+                trace += matrix.data[diag * matrix.size + j]
+            break
+    return trace
+
 
 cpdef double complex trace_oper_ket_csr(CSR matrix) nogil except *:
     cdef size_t N = <size_t>sqrt(matrix.shape[0])
@@ -68,6 +79,17 @@ cpdef double complex trace_oper_ket_dense(Dense matrix) nogil except *:
     cdef size_t stride = N + 1
     for ptr in range(N):
         trace += matrix.data[ptr * stride]
+    return trace
+
+cpdef double complex trace_oper_ket_diag(Diag matrix) except * nogil:
+    cdef size_t N = <size_t>sqrt(matrix.shape[0])
+    _check_shape_oper_ket(N, matrix)
+    cdef double complex trace = 0
+    cdef size_t diag = 0
+    cdef size_t stride = N + 1
+    for diag in range(matrix.num_diag):
+        if -matrix.offsets[diag] % stride == 0:
+            trace += matrix.data[diag * matrix.size]
     return trace
 
 

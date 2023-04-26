@@ -2,7 +2,7 @@
 Define functions to use as Data creator for `create` in `convert.py`.
 """
 
-from scipy.sparse import isspmatrix_csr, issparse
+from scipy.sparse import isspmatrix_csr, issparse, isspmatrix_dia
 import numpy as np
 from .csr import CSR
 from .base import Data

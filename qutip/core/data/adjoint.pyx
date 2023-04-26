@@ -8,16 +8,17 @@ cimport cython
 from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
-from qutip.core.data cimport csr, dense
+from qutip.core.data.dia cimport Diag
+from qutip.core.data cimport csr, dense, dia
 
 # Import std::conj as `_conj` to avoid clashing with our 'conj' dispatcher.
 cdef extern from "<complex>" namespace "std" nogil:
     double complex _conj "conj"(double complex x)
 
 __all__ = [
-    'adjoint', 'adjoint_csr', 'adjoint_dense',
-    'conj', 'conj_csr', 'conj_dense',
-    'transpose', 'transpose_csr', 'transpose_dense',
+    'adjoint', 'adjoint_csr', 'adjoint_dense', 'adjoint_diag',
+    'conj', 'conj_csr', 'conj_dense', 'conj_diag',
+    'transpose', 'transpose_csr', 'transpose_dense', 'transpose_diag',
 ]
 
 
@@ -109,6 +110,51 @@ cpdef Dense conj_dense(Dense matrix):
     return out
 
 
+cpdef Diag adjoint_diag(Diag matrix):
+    cdef Diag out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag, matrix.shape[0])
+    cdef size_t i, new_i,
+    cdef idxint new_offset, j
+    with nogil:
+        for i in range(matrix.num_diag):
+            new_i = matrix.num_diag - i - 1
+            new_offset = out.offsets[new_i] = -matrix.offsets[i]
+            for j in range(out.size):
+                if (j < new_offset):
+                    out.data[new_i * out.size + j] = 0.
+                elif (j - new_offset >= matrix.size):
+                    out.data[new_i * out.size + j] = 0.
+                else:
+                    out.data[new_i * out.size + j] = _conj(matrix.data[i * matrix.size + j - new_offset])
+    return out
+
+
+cpdef Diag transpose_diag(Diag matrix):
+    cdef Diag out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag, matrix.shape[0])
+    cdef size_t i, new_i,
+    cdef idxint new_offset, j
+    with nogil:
+        for i in range(matrix.num_diag):
+            new_i = matrix.num_diag - i - 1
+            new_offset = out.offsets[new_i] = -matrix.offsets[i]
+            for j in range(out.size):
+                if (j < new_offset) or (j - new_offset >= matrix.size):
+                    out.data[new_i * out.size + j] = 0.
+                else:
+                    out.data[new_i * out.size + j] = matrix.data[i * matrix.size + j - new_offset]
+    return out
+
+
+cpdef Diag conj_diag(Diag matrix):
+    cdef Diag out = dia.empty_like(matrix)
+    cdef size_t i, j
+    with nogil:
+        for i in range(matrix.num_diag):
+            out.offsets[i] = matrix.offsets[i]
+            for j in range(matrix.size):
+                out.data[i * matrix.size + j] = _conj(matrix.data[i * matrix.size + j])
+    return out
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -125,6 +171,7 @@ adjoint.__doc__ = """Hermitian adjoint (matrix conjugate transpose)."""
 adjoint.add_specialisations([
     (Dense, Dense, adjoint_dense),
     (CSR, CSR, adjoint_csr),
+    (Diag, Diag, adjoint_diag),
 ], _defer=True)
 
 transpose = _Dispatcher(
@@ -140,6 +187,7 @@ transpose.__doc__ = """Transpose of a matrix."""
 transpose.add_specialisations([
     (Dense, Dense, transpose_dense),
     (CSR, CSR, transpose_csr),
+    (Diag, Diag, transpose_diag),
 ], _defer=True)
 
 conj = _Dispatcher(
@@ -155,6 +203,7 @@ conj.__doc__ = """Element-wise conjugation of a matrix."""
 conj.add_specialisations([
     (Dense, Dense, conj_dense),
     (CSR, CSR, conj_csr),
+    (Diag, Diag, conj_diag),
 ], _defer=True)
 
 del _inspect, _Dispatcher

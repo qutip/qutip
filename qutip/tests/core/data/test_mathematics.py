@@ -4,7 +4,7 @@ import scipy
 import pytest
 
 from qutip.core import data
-from qutip.core.data import Data, Dense, CSR
+from qutip.core.data import Data, Dense, CSR, Diag
 
 from . import conftest
 
@@ -159,16 +159,36 @@ def cases_dense(shape):
     ]
 
 
+def cases_diag(shape):
+    """
+    Return a list of generators of the different special cases for Dense
+    matrices of a given shape.
+    """
+    def factory(density):
+        return lambda: conftest.random_diag(shape, density)
+
+    def zero_factory():
+        return lambda: data.dia.zeros(shape[0], shape[1])
+
+    return [
+        pytest.param(factory(0.001), id="sparse"),
+        pytest.param(factory(0.8), id="filled"),
+        pytest.param(zero_factory(), id="zero"),
+    ]
+
+
 # Factory methods for generating the cases, mapping type to the function.
 # _ALL_CASES is for getting all the special cases to test, _RANDOM is for
 # getting just a single case from each.
 _ALL_CASES = {
     CSR: cases_csr,
+    Diag: cases_diag,
     Dense: cases_dense,
 }
 _RANDOM = {
     CSR: lambda shape: [lambda: conftest.random_csr(shape, 0.5, True)],
     Dense: lambda shape: [lambda: conftest.random_dense(shape, False)],
+    Diag: lambda shape: [lambda: conftest.random_diag(shape, 0.5)],
 }
 
 
@@ -568,6 +588,7 @@ class TestAdjoint(UnaryOpMixin):
     specialisations = [
         pytest.param(data.adjoint_csr, CSR, CSR),
         pytest.param(data.adjoint_dense, Dense, Dense),
+        pytest.param(data.adjoint_diag, Diag, Diag),
     ]
 
 
@@ -578,6 +599,7 @@ class TestConj(UnaryOpMixin):
     specialisations = [
         pytest.param(data.conj_csr, CSR, CSR),
         pytest.param(data.conj_dense, Dense, Dense),
+        pytest.param(data.conj_diag, Diag, Diag),
     ]
 
 
@@ -801,6 +823,7 @@ class TestTrace(UnaryOpMixin):
     specialisations = [
         pytest.param(data.trace_csr, CSR, complex),
         pytest.param(data.trace_dense, Dense, complex),
+        pytest.param(data.trace_diag, Diag, complex),
     ]
 
 
@@ -821,6 +844,7 @@ class TestTrace_oper_ket(UnaryOpMixin):
     specialisations = [
         pytest.param(data.trace_oper_ket_csr, CSR, complex),
         pytest.param(data.trace_oper_ket_dense, Dense, complex),
+        pytest.param(data.trace_oper_ket_diag, Diag, complex),
     ]
 
 
@@ -886,6 +910,7 @@ class TestTranspose(UnaryOpMixin):
     specialisations = [
         pytest.param(data.transpose_csr, CSR, CSR),
         pytest.param(data.transpose_dense, Dense, Dense),
+        pytest.param(data.transpose_diag, Diag, Diag),
     ]
 
 
