@@ -211,7 +211,7 @@ class TestFactoryMethods:
         ndiag = int(shape[0] * shape[1] * density) or 1
         size = np.random.randint(shape[1]) or 1
         base = dia.empty(shape[0], shape[1], ndiag, size)
-        sci = base.as_scipy()
+        sci = base.as_scipy(full=True)
         assert isinstance(base, dia.Diag)
         assert isinstance(sci, scipy.sparse.dia_matrix)
         assert base.shape == shape

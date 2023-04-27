@@ -115,16 +115,17 @@ cpdef Diag adjoint_diag(Diag matrix):
     cdef size_t i, new_i,
     cdef idxint new_offset, j
     with nogil:
+        out.num_diag = matrix.num_diag
         for i in range(matrix.num_diag):
             new_i = matrix.num_diag - i - 1
             new_offset = out.offsets[new_i] = -matrix.offsets[i]
-            for j in range(out.size):
+            for j in range(out._size):
                 if (j < new_offset):
-                    out.data[new_i * out.size + j] = 0.
-                elif (j - new_offset >= matrix.size):
-                    out.data[new_i * out.size + j] = 0.
+                    out.data[new_i * out._size + j] = 0.
+                elif (j - new_offset >= matrix._size):
+                    out.data[new_i * out._size + j] = 0.
                 else:
-                    out.data[new_i * out.size + j] = _conj(matrix.data[i * matrix.size + j - new_offset])
+                    out.data[new_i * out._size + j] = _conj(matrix.data[i * matrix._size + j - new_offset])
     return out
 
 
@@ -133,14 +134,15 @@ cpdef Diag transpose_diag(Diag matrix):
     cdef size_t i, new_i,
     cdef idxint new_offset, j
     with nogil:
+        out.num_diag = matrix.num_diag
         for i in range(matrix.num_diag):
             new_i = matrix.num_diag - i - 1
             new_offset = out.offsets[new_i] = -matrix.offsets[i]
-            for j in range(out.size):
-                if (j < new_offset) or (j - new_offset >= matrix.size):
-                    out.data[new_i * out.size + j] = 0.
+            for j in range(out._size):
+                if (j < new_offset) or (j - new_offset >= matrix._size):
+                    out.data[new_i * out._size + j] = 0.
                 else:
-                    out.data[new_i * out.size + j] = matrix.data[i * matrix.size + j - new_offset]
+                    out.data[new_i * out._size + j] = matrix.data[i * matrix._size + j - new_offset]
     return out
 
 
@@ -148,10 +150,11 @@ cpdef Diag conj_diag(Diag matrix):
     cdef Diag out = dia.empty_like(matrix)
     cdef size_t i, j
     with nogil:
+        out.num_diag = matrix.num_diag
         for i in range(matrix.num_diag):
             out.offsets[i] = matrix.offsets[i]
-            for j in range(matrix.size):
-                out.data[i * matrix.size + j] = _conj(matrix.data[i * matrix.size + j])
+            for j in range(matrix._size):
+                out.data[i * matrix._size + j] = _conj(matrix.data[i * matrix._size + j])
     return out
 
 

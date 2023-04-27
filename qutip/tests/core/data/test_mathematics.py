@@ -552,6 +552,7 @@ class TestAdd(BinaryOpMixin):
     specialisations = [
         pytest.param(data.add_csr, CSR, CSR, CSR),
         pytest.param(data.add_dense, Dense, Dense, Dense),
+        pytest.param(data.add_diag, Diag, Diag, Diag),
     ]
 
     # `add` has an additional scalar parameter, because the operation is
@@ -811,6 +812,7 @@ class TestSub(BinaryOpMixin):
     specialisations = [
         pytest.param(data.sub_csr, CSR, CSR, CSR),
         pytest.param(data.sub_dense, Dense, Dense, Dense),
+        pytest.param(data.sub_diag, Diag, Diag, Diag),
     ]
 
 

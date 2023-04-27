@@ -54,8 +54,8 @@ cpdef double complex trace_diag(Diag matrix) except * nogil:
     cdef size_t diag, j
     for diag in range(matrix.num_diag):
         if matrix.offsets[diag] == 0:
-            for j in range(matrix.size):
-                trace += matrix.data[diag * matrix.size + j]
+            for j in range(matrix._size):
+                trace += matrix.data[diag * matrix._size + j]
             break
     return trace
 
@@ -89,7 +89,7 @@ cpdef double complex trace_oper_ket_diag(Diag matrix) except * nogil:
     cdef size_t stride = N + 1
     for diag in range(matrix.num_diag):
         if -matrix.offsets[diag] % stride == 0:
-            trace += matrix.data[diag * matrix.size]
+            trace += matrix.data[diag * matrix._size]
     return trace
 
 

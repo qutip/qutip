@@ -16,12 +16,12 @@ from qutip.core.data.dense cimport Dense
 cdef class Diag(base.Data):
     cdef double complex *data
     cdef base.idxint *offsets
-    cdef readonly size_t num_diag, size
+    cdef readonly size_t num_diag, _size, _max_diag
     cdef object _scipy
     cdef bint _deallocate
     cpdef Diag copy(Diag self)
-    cpdef object as_scipy(Diag self)
-    #cpdef double complex trace(Diag self)
+    cpdef object as_scipy(Diag self, bint full=*)
+    cpdef double complex trace(Diag self)
     cpdef Diag adjoint(Diag self)
     cpdef Diag conj(Diag self)
     cpdef Diag transpose(Diag self)
@@ -33,3 +33,5 @@ cpdef Diag zeros(base.idxint rows, base.idxint cols)
 cpdef Diag identity(base.idxint dimension, double complex scale=*)
 cpdef Diag from_dense(Dense matrix)
 cpdef Dense to_dense(Diag matrix)
+cpdef Diag tidyup_diag(Diag matrix, double tol, bint inplace=*)
+cpdef Diag clean_diag(Diag matrix, bint inplace=*)
