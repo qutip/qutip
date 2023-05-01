@@ -109,6 +109,7 @@ trace.__doc__ =\
     """Compute the trace (sum of digaonal elements) of a square matrix."""
 trace.add_specialisations([
     (CSR, trace_csr),
+    (Diag, trace_diag),
     (Dense, trace_dense),
 ], _defer=True)
 
@@ -125,6 +126,7 @@ trace_oper_ket.__doc__ =\
     """Compute the trace (sum of digaonal elements) of a stacked square matrix ."""
 trace_oper_ket.add_specialisations([
     (CSR, trace_oper_ket_csr),
+    (Diag, trace_oper_ket_diag),
     (Dense, trace_oper_ket_dense),
 ], _defer=True)
 

@@ -4,15 +4,16 @@
 from libc.math cimport fabs
 
 cimport numpy as cnp
+from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport csr, dense, CSR, Dense
+from qutip.core.data cimport csr, dense, CSR, Dense, dia, Diag, base
 
 cdef extern from "<complex>" namespace "std" nogil:
     # abs is templated such that Cython treats std::abs as complex->complex
     double abs(double complex x)
 
 __all__ = [
-    'tidyup', 'tidyup_csr', 'tidyup_dense',
+    'tidyup', 'tidyup_csr', 'tidyup_dense', 'tidyup_diag',
 ]
 
 
@@ -52,6 +53,47 @@ cpdef Dense tidyup_dense(Dense matrix, double tol, bint inplace=True):
             matrix.data[ptr].real = 0
         if fabs(value.imag) < tol:
             matrix.data[ptr].imag = 0
+    return out
+
+
+cpdef Diag tidyup_diag(Diag matrix, double tol, bint inplace=True):
+    cdef Diag out = matrix if inplace else matrix.copy()
+    cdef base.idxint diag=0, new_diag=0, ONE=1, start, end, col
+    cdef bint re, im, has_data
+    cdef double complex value
+    cdef int length
+
+    while diag < out.num_diag:
+        start = max(0, out.offsets[diag])
+        end = min(out._size, out.shape[0] + out.offsets[diag])
+        has_data = False
+        for col in range(start, end):
+            re = False
+            im = False
+            if fabs(out.data[diag * out._size + col].real) < tol:
+                re = True
+                out.data[diag * out._size + col].real = 0
+            if fabs(out.data[diag * out._size + col].imag) < tol:
+                im = True
+                out.data[diag * out._size + col].imag = 0
+            has_data |= not (re & im)
+
+        if has_data and new_diag < diag:
+            length = out._size
+            blas.zcopy(
+                &length,
+                &out.data[diag * out._size], &ONE,
+                &out.data[new_diag * out._size], &ONE
+            )
+            out.offsets[new_diag] = out.offsets[diag]
+
+        if has_data:
+            new_diag += 1
+        diag += 1
+    out.num_diag = new_diag
+    if out._scipy is not None:
+        out._scipy.data = out._scipy.data[:new_diag]
+        out._scipy.offsets = out._scipy.offsets[:new_diag]
     return out
 
 
@@ -101,6 +143,7 @@ tidyup.__doc__ =\
 tidyup.add_specialisations([
     (CSR, tidyup_csr),
     (Dense, tidyup_dense),
+    (Diag, tidyup_diag),
 ], _defer=True)
 
 del _inspect, _Dispatcher

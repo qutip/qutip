@@ -164,15 +164,16 @@ def cases_diag(shape):
     Return a list of generators of the different special cases for Dense
     matrices of a given shape.
     """
-    def factory(density):
-        return lambda: conftest.random_diag(shape, density)
+    def factory(density, sort=False):
+        return lambda: conftest.random_diag(shape, density, sort)
 
     def zero_factory():
         return lambda: data.dia.zeros(shape[0], shape[1])
 
     return [
         pytest.param(factory(0.001), id="sparse"),
-        pytest.param(factory(0.8), id="filled"),
+        pytest.param(factory(0.8, True), id="filled,sorted"),
+        pytest.param(factory(0.8, False), id="filled,unsorted"),
         pytest.param(zero_factory(), id="zero"),
     ]
 
@@ -780,6 +781,7 @@ class TestMultiply(BinaryOpMixin):
     specialisations = [
         pytest.param(data.multiply_csr, CSR, CSR, CSR),
         pytest.param(data.multiply_dense, Dense, Dense, Dense),
+        pytest.param(data.multiply_diag, Diag, Diag, Diag),
     ]
 
 
@@ -790,6 +792,7 @@ class TestMul(UnaryScalarOpMixin):
     specialisations = [
         pytest.param(data.mul_csr, CSR, CSR),
         pytest.param(data.mul_dense, Dense, Dense),
+        pytest.param(data.mul_diag, Diag, Diag),
     ]
 
 
@@ -800,6 +803,7 @@ class TestNeg(UnaryOpMixin):
     specialisations = [
         pytest.param(data.neg_csr, CSR, CSR),
         pytest.param(data.neg_dense, Dense, Dense),
+        pytest.param(data.neg_diag, Diag, Diag),
     ]
 
 

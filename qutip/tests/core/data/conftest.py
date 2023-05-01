@@ -28,17 +28,30 @@ def shuffle_indices_scipy_csr(matrix):
     return out
 
 
-def random_scipy_dia(shape, density):
+def random_scipy_dia(shape, density, sort=False):
     """
     Generate a random scipy dia matrix with the given shape, density.
     """
     num_diag = int(density * (shape[0] + shape[1] - 1)) or 1
     offsets = []
     data = []
-    for diag in np.random.choice(np.arange(-shape[0] + 1, shape[1]), num_diag, replace=False):
+    diags = np.random.choice(
+        np.arange(-shape[0] + 1, shape[1]),
+        num_diag,
+        replace=False
+    )
+    for diag in diags:
         offsets.append(diag)
-        num_elements = min(shape[0], shape[1], shape[0] + diag, shape[1] - diag)
-        data.append(np.random.rand(num_elements) + 1j*np.random.rand(num_elements))
+        num_elements = min(
+            shape[0], shape[1], shape[0] + diag, shape[1] - diag
+        )
+        data.append(
+            np.random.rand(num_elements) + 1j*np.random.rand(num_elements)
+        )
+    if sort:
+        order = np.argsort(offsets)
+        offsets = [offsets[i] for i in order]
+        data = [data[i] for i in order]
     return scipy.sparse.diags(data, offsets, shape=shape).todia()
 
 
@@ -80,6 +93,6 @@ def random_dense(shape, fortran):
     return qutip.core.data.Dense(random_numpy_dense(shape, fortran))
 
 
-def random_diag(shape, density):
+def random_diag(shape, density, sort=False):
     """Generate a random qutip Diag matrix of the given shape and density"""
-    return qutip.core.data.Diag(random_scipy_dia(shape, density))
+    return qutip.core.data.Diag(random_scipy_dia(shape, density, sort))

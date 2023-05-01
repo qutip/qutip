@@ -2,6 +2,7 @@
 
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
+from qutip.core.data.dia cimport Diag
 from qutip.core.data.base cimport Data
 
 cpdef CSR matmul_csr(CSR left, CSR right, double complex scale=*, CSR out=*)
@@ -12,3 +13,4 @@ cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense
 
 cpdef Dense multiply_dense(Dense left, Dense right)
 cpdef CSR multiply_csr(CSR left, CSR right)
+cpdef Diag multiply_diag(Diag left, Diag right)

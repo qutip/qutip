@@ -10,6 +10,7 @@ from qutip.settings import settings
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.dia cimport Diag
+from qutip.core.data.tidyup cimport tidyup_diag
 from qutip.core.data.csr cimport (
     CSR, Accumulator, acc_alloc, acc_free, acc_scatter, acc_gather, acc_reset,
 )
@@ -276,7 +277,7 @@ cpdef Diag add_diag(Diag left, Diag right, double complex scale=1):
                     ptr_out += out._size
                     ptr_left += left._size
 
-        elif diag_right < right.num_diag:
+        if diag_right < right.num_diag:
             for i in range(right.num_diag - diag_right):
                 out.offsets[out_diag] = right.offsets[diag_right + i]
                 if out_diag != 0 and out.offsets[out_diag-1] >= out.offsets[out_diag]:
@@ -299,8 +300,8 @@ cpdef Diag add_diag(Diag left, Diag right, double complex scale=1):
 
     if not sorted:
         dia.clean_diag(out, True)
-    elif settings.core['auto_tidyup']:
-        dia.tidyup_diag(out, settings.core['auto_tidyup_atol'], True)
+    if settings.core['auto_tidyup']:
+        tidyup_diag(out, settings.core['auto_tidyup_atol'], True)
     return out
 
 

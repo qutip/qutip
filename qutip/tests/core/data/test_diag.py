@@ -2,8 +2,8 @@ import numpy as np
 import scipy.sparse
 import pytest
 
-from qutip.core import data
-from qutip.core.data import dense, dia
+from qutip.core import data, qeye, CoreOptions
+from qutip.core.data import dia
 
 from . import conftest
 
@@ -284,7 +284,7 @@ class TestFactoryMethods:
         assert base.shape == shape
         np.testing.assert_allclose(base.to_array(), test, rtol=1e-10)
 
-    """
+
     @pytest.mark.parametrize(['shape', 'position', 'value'], [
         pytest.param((1, 1), (0, 0), None, id='minimal'),
         pytest.param((10, 10), (5, 5), 1.j, id='on diagonal'),
@@ -298,12 +298,12 @@ class TestFactoryMethods:
     def test_one_element(self, shape, position, value):
         test = np.zeros(shape, dtype=np.complex128)
         if value is None:
-            base = data.one_element_dense(shape, position)
+            base = data.one_element_diag(shape, position)
             test[position] = 1.0+0.0j
         else:
-            base = data.one_element_dense(shape, position, value)
+            base = data.one_element_diag(shape, position, value)
             test[position] = value
-        assert isinstance(base, data.Dense)
+        assert isinstance(base, data.Diag)
         assert base.shape == shape
         assert np.allclose(base.to_array(), test, atol=1e-10)
 
@@ -315,7 +315,38 @@ class TestFactoryMethods:
     ])
     def test_one_element_error(self, shape, position, value):
         with pytest.raises(ValueError) as exc:
-            base = data.one_element_dense(shape, position, value)
+            base = data.one_element_diag(shape, position, value)
         assert str(exc.value).startswith("Position of the elements"
                                          " out of bound: ")
-    """
+
+
+def test_tidyup(data_diag):
+    before = data_diag.to_array()
+    sp_before = data_diag.as_scipy().toarray()
+    largest = max(np.abs(before.real).max(), np.abs(before.imag).max())
+    min_r = np.abs(before.real[np.abs(before.real) > 0]).min()
+    min_i = np.abs(before.imag[np.abs(before.imag) > 0]).min()
+    smallest = min(min_r, min_i)
+    print(largest, smallest)
+    if largest == smallest:
+        return
+    tol = (largest + smallest) / 2
+    tidy = data.tidyup_diag(data_diag, tol, False)
+    # Inplace=False, does not modify the original
+    np.testing.assert_array_equal(data_diag.to_array(), before)
+    np.testing.assert_array_equal(data_diag.as_scipy().toarray(), sp_before)
+    # Is tidyup
+    assert not np.allclose(tidy.to_array(), before)
+    assert not np.allclose(tidy.as_scipy().toarray(), sp_before)
+
+    data.tidyup_diag(data_diag, tol, True)
+    assert not np.allclose(data_diag.to_array(), before)
+    assert not np.allclose(data_diag.as_scipy().toarray(), sp_before)
+
+
+def test_autotidyup():
+    small = qeye(1) * 1e-5
+    with CoreOptions(auto_tidyup_atol=1e-3):
+        assert (small + small).tr() == 0
+    with CoreOptions(auto_tidyup_atol=1e-3, auto_tidyup=False):
+        assert (small + small).tr() == 2e-5

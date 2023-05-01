@@ -1,7 +1,8 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
-from qutip.core.data cimport CSR, Dense
+from qutip.core.data cimport CSR, Dense, Diag
 
 cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=*)
 cpdef Dense tidyup_dense(Dense matrix, double tol, bint inplace=*)
+cpdef Diag tidyup_diag(Diag matrix, double tol, bint inplace=*)

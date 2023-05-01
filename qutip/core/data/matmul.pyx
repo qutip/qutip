@@ -19,7 +19,9 @@ from qutip.core.data.base import idxint_dtype
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
-from qutip.core.data cimport csr, dense
+from qutip.core.data.dia cimport Diag
+from qutip.core.data.tidyup cimport tidyup_diag
+from qutip.core.data cimport csr, dense, dia
 from qutip.core.data.add cimport iadd_dense, add_csr
 from qutip.core.data.dense import OrderEfficiencyWarning
 
@@ -40,7 +42,7 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
 
 __all__ = [
     'matmul', 'matmul_csr', 'matmul_dense', 'matmul_csr_dense_dense',
-    'multiply', 'multiply_csr', 'multiply_dense',
+    'multiply', 'multiply_csr', 'multiply_dense', 'multiply_diag',
 ]
 
 
@@ -372,6 +374,71 @@ cpdef CSR multiply_csr(CSR left, CSR right):
     return out
 
 
+cpdef Diag multiply_diag(Diag left, Diag right):
+    if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
+        raise ValueError(
+            "incompatible matrix shapes "
+            + str(left.shape)
+            + " and "
+            + str(right.shape)
+        )
+    cdef idxint diag_left=0, diag_right=0, out_diag=0, col
+    cdef bint sorted=True
+    cdef Diag out = dia.empty(left.shape[0], left.shape[1], min(left.num_diag, right.num_diag), max(left._size, right._size))
+    cdef int length, size_left = left._size, size_right = right._size
+
+    with nogil:
+      for diag_left in range(1, left.num_diag):
+          if left.offsets[diag_left-1] > left.offsets[diag_left]:
+              sorted = False
+              continue
+      if sorted:
+          for diag_right in range(1, right.num_diag):
+              if right.offsets[diag_right-1] > right.offsets[diag_right]:
+                  sorted = False
+                  continue
+
+      if sorted:
+        diag_left = 0
+        diag_right = 0
+        while diag_left < left.num_diag and diag_right < right.num_diag:
+            if left.offsets[diag_left] == right.offsets[diag_right]:
+                out.offsets[out_diag] = left.offsets[diag_left]
+                for col in range(out._size):
+                    if col >= left._size or col >= right._size:
+                        out.data[out_diag * out._size + col] = 0
+                    else:
+                        out.data[out_diag * out._size + col] = (
+                            left.data[diag_left * left._size + col] *
+                            right.data[diag_right * right._size + col]
+                        )
+                out_diag += 1
+                diag_left += 1
+                diag_right += 1
+            elif left.offsets[diag_left] < right.offsets[diag_right]:
+                diag_left += 1
+            else:
+                diag_right += 1
+
+      else:
+        for diag_left in range(left.num_diag):
+          for diag_right in range(right.num_diag):
+            if left.offsets[diag_left] == right.offsets[diag_right]:
+                out.offsets[out_diag] = left.offsets[diag_left]
+                for col in range(size_right):
+                    out.data[out_diag * out._size + col] = (
+                        left.data[diag_left * left._size + col] *
+                        right.data[diag_right * right._size + col]
+                    )
+                out_diag += 1
+                break
+      out.num_diag = out_diag
+
+    if settings.core['auto_tidyup']:
+        tidyup_diag(out, settings.core['auto_tidyup_atol'], True)
+    return out
+
+
 cpdef Dense multiply_dense(Dense left, Dense right):
     """Element-wise multiplication of Dense matrices."""
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
@@ -448,6 +515,7 @@ multiply.__doc__ =\
 multiply.add_specialisations([
     (CSR, CSR, CSR, multiply_csr),
     (Dense, Dense, Dense, multiply_dense),
+    (Diag, Diag, Diag, multiply_diag),
 ], _defer=True)
 
 

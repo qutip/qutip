@@ -27,7 +27,7 @@ from scipy.linalg cimport cython_blas as blas
 from qutip.core.data cimport base, Dense
 from qutip.core.data.adjoint import adjoint_diag, transpose_diag, conj_diag
 from qutip.core.data.trace import trace_diag
-# from qutip.core.data.tidyup import tidyup_diag
+from qutip.core.data.tidyup import tidyup_diag
 from .base import idxint_dtype
 from qutip.settings import settings
 
@@ -302,59 +302,28 @@ cpdef Diag identity(base.idxint dimension, double complex scale=1):
     return out
 
 
+@cython.boundscheck(True)
 cpdef Diag from_dense(Dense matrix):
     # Assume worst-case scenario for non-zero.
     cdef Diag out = empty(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1, matrix.shape[1])
     cdef size_t diag_, ptr_in, ptr_out=0, stride
     cdef row, col
 
+    out.num_diag = matrix.shape[0] + matrix.shape[1] - 1
     for i in range(matrix.shape[0] + matrix.shape[1] - 1):
         out.offsets[i] = i -matrix.shape[0] + 1
-    strideR = matrix.shape[0] if matrix.fortran else 1
-    strideC = matrix.shape[1] if not matrix.fortran else 1
+    strideR = matrix.shape[1] if matrix.fortran else 1
+    strideC = matrix.shape[0] if not matrix.fortran else 1
 
     for row in range(matrix.shape[0]):
         for col in range(matrix.shape[1]):
-            out.data[(-(-col+row) -matrix.shape[1]) * out.shape[1] + col] = matrix.data[row * strideR + col * strideC]
+            out.data[(col - row + matrix.shape[0] - 1) * out.shape[1] + col] = matrix.data[row * strideR + col * strideC]
 
     return tidyup_diag(out, settings.core['auto_tidyup_atol'])
 
 
 cpdef Dense to_dense(Diag matrix):
     return Dense(matrix.to_array(), copy=False)
-
-
-cpdef Diag tidyup_diag(Diag matrix, double tol, bint inplace=False):
-    cdef Diag out = matrix if inplace else matrix.copy()
-    cdef base.idxint diag=0, new_diag=0, ONE=1, start, end, col
-    cdef bint re, im, has_data
-    cdef double complex value
-    cdef int length
-
-    while diag < out.num_diag:
-        start = max(0, out.offsets[diag])
-        end = min(out._size, out.shape[0] + out.offsets[diag], out.shape[1] - out.offsets[diag])
-        has_data = False
-        for col in range(start, end):
-            re = False
-            im = False
-            if fabs(matrix.data[diag * out._size + col].real) < tol:
-                re = True
-                matrix.data[diag * out._size + col].real = 0
-            if fabs(matrix.data[diag * out._size + col].imag) < tol:
-                im = True
-                matrix.data[diag * out._size + col].imag = 0
-            has_data |= not (re & im)
-
-        if has_data and new_diag < diag:
-            length = out._size
-            blas.zcopy(&length, &out.data[diag * out._size], &ONE, &out.data[new_diag * out._size], &ONE)
-
-        if has_data:
-            new_diag += 1
-        diag += 1
-    out.num_diag = new_diag
-    return out
 
 
 cpdef Diag clean_diag(Diag matrix, bint inplace=False):
@@ -364,7 +333,7 @@ cpdef Diag clean_diag(Diag matrix, bint inplace=False):
     """
     cdef Diag out = matrix if inplace else matrix.copy()
     cdef base.idxint diag=0, new_diag=0, start, end, col
-    cdef double complex ZONE=1.
+    cdef double complex zONE=1.
     cdef bint has_duplicate
     cdef int length, ONE=1
 
@@ -376,15 +345,17 @@ cpdef Diag clean_diag(Diag matrix, bint inplace=False):
         comp_diag = new_diag + 1
         has_duplicate = False
         for comp_diag in range(new_diag + 1, out.num_diag):
-            #if out.offsets[comp_diag] == out.shape[1]:
-            #    continue
             if out.offsets[comp_diag] < smallest_offsets:
                 smallest_offsets = out.offsets[comp_diag]
                 smallest_diag = comp_diag
                 has_duplicate = False
             elif out.offsets[comp_diag] == smallest_offsets:
                 length = out._size
-                blas.zaxpy(&length, &ZONE, &out.data[comp_diag * out._size], &ONE, &out.data[smallest_diag * out._size], &ONE)
+                blas.zaxpy(
+                    &length, &zONE,
+                    &out.data[comp_diag * out._size], &ONE,
+                    &out.data[smallest_diag * out._size], &ONE
+                )
                 out.offsets[comp_diag] = out.shape[1]
 
         if smallest_offsets == out.shape[1]:
@@ -406,6 +377,9 @@ cpdef Diag clean_diag(Diag matrix, bint inplace=False):
         for col in range(end, out._size):
             out.data[diag * out._size + col] = 0.
 
+    if out._scipy is not None:
+        out._scipy.data = out._scipy.data[:out.num_diag]
+        out._scipy.offsets = out._scipy.offsets[:out.num_diag]
     return out
 
 
