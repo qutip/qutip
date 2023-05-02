@@ -3,6 +3,7 @@
 
 from libc.string cimport memset, memcpy
 from libc.math cimport fabs
+from libcpp.algorithm cimport lower_bound
 
 import warnings
 from qutip.settings import settings
@@ -41,7 +42,8 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
         T nrows)
 
 __all__ = [
-    'matmul', 'matmul_csr', 'matmul_dense', 'matmul_csr_dense_dense',
+    'matmul', 'matmul_csr', 'matmul_dense', 'matmul_diag',
+    'matmul_csr_dense_dense', 'matmul_diag_dense_dense',
     'multiply', 'multiply_csr', 'multiply_dense', 'multiply_diag',
 ]
 
@@ -308,6 +310,78 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
         transb = b't' if left.fortran else b'n'
     blas.zgemm(&transa, &transb, &m, &n, &k, &scale, a, &lda, b, &ldb,
                &out_scale, out.data, &m)
+    return out
+
+
+#TODO: optimize, cdef types etc.
+cpdef Diag matmul_diag(Diag left, Diag right, double complex scale=1):
+    _check_shape(left, right, None)
+    # We could probably do faster than this without the gil etc.
+    npoffsets = np.unique(np.add.outer(left.as_scipy().offsets, right.as_scipy().offsets))
+    npoffsets = npoffsets[np.logical_and(npoffsets > -left.shape[0], npoffsets < right.shape[1])]
+    cdef idxint[:] offsets = npoffsets
+    if len(npoffsets) == 0:
+        return dia.zeros(left.shape[0], right.shape[1])
+    cdef idxint *ptr = &offsets[0]
+    cdef idxint num_diag = offsets.shape[0], diag_out, diag_left, diag_right, off_out
+    npdata = np.zeros((num_diag, right.shape[1]), dtype=complex)
+    cdef double complex[:, ::1] data = npdata
+
+    for diag_left in range(left.num_diag):
+      for diag_right in range(right.num_diag):
+        off_out = left.offsets[diag_left] + right.offsets[diag_right]
+        if off_out <= -left.shape[0] or off_out >= right.shape[1]:
+          continue
+        diag_out = <idxint> (lower_bound(ptr, ptr + num_diag, off_out) - ptr)
+
+        start_left = max(0, left.offsets[diag_left]) + right.offsets[diag_right]
+        start_right = max(0, right.offsets[diag_right])
+        start_out = max(0, off_out)
+        end_left = min(left._size, left.shape[0] + left.offsets[diag_left]) + right.offsets[diag_right]
+        end_right = min(right._size, right.shape[0] + right.offsets[diag_right])
+        end_out = min(right.shape[1], left.shape[0] + off_out)
+        start = max(start_left, start_right, start_out)
+        end = min(end_left, end_right, end_out)
+
+        for col in range(start, end):
+            data[diag_out, col] += (
+              scale
+              * left.data[diag_left * left._size + col - right.offsets[diag_right]]
+              * right.data[diag_right * right._size + col]
+            )
+    return Diag((npdata, npoffsets), shape=(left.shape[0], right.shape[1]), copy=False)
+
+
+#TODO: optimize, set types etc.
+cpdef Dense matmul_diag_dense_dense(Diag left, Dense right, double complex scale=1, Dense out=None):
+    _check_shape(left, right, out)
+    cdef Dense tmp = None
+    if out is None:
+        out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
+    #
+    strideR_in = right.shape[1] if right.fortran else 1
+    strideC_in = right.shape[0] if not right.fortran else 1
+    strideR_out = out.shape[1] if out.fortran else 1
+    strideC_out = out.shape[0] if not out.fortran else 1
+
+    for col in range(right.shape[1]):
+      for diag in range(left.num_diag):
+        start_left = max(0, left.offsets[diag])
+        end_left = min(left._size, left.shape[0] + left.offsets[diag])
+        start_out = max(0, -left.offsets[diag])
+        end_out = min(left._size, left.shape[1] - left.offsets[diag])
+        length = min(end_left-start_left, end_out-start_out)
+        for i in range(length):
+          idx = (start_out + i) * strideR_out + col * strideC_in
+          if idx >= out.shape[0] * out.shape[1] or idx < 0:
+            print("out of bound", i, col, start_out, strideR_out, strideC_in, idx)
+            print(start_left, end_left, start_out, end_out, length)
+            continue
+          out.data[(start_out + i) * strideR_out + col * strideC_in] += (
+            scale
+            * left.data[diag * left._size + i + start_left]
+            * out.data[(start_left + i) * strideR_in + col * strideC_in]
+          )
     return out
 
 

@@ -8,6 +8,8 @@ from qutip.core.data.base cimport Data
 cpdef CSR matmul_csr(CSR left, CSR right, double complex scale=*, CSR out=*)
 cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=*, Dense out=*)
 cpdef Dense matmul_csr_dense_dense(CSR left, Dense right, double complex scale=*, Dense out=*)
+cpdef Diag matmul_diag(Diag left, Diag right, double complex scale=*)
+cpdef Dense matmul_diag_dense_dense(Diag left, Dense right, double complex scale=*, Dense out=*)
 cdef Dense matmul_data_dense(Data left, Dense right)
 cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense out)
 
