@@ -596,6 +596,8 @@ cdef Dense matmul_data_dense(Data left, Dense right):
         out = matmul_csr_dense_dense(left, right)
     elif type(left) is Dense:
         out = matmul_dense(left, right)
+    elif type(left) is Diag:
+        out = matmul_diag_dense_dense(left, right)
     else:
         out = matmul(left, right)
     return out
@@ -604,6 +606,8 @@ cdef Dense matmul_data_dense(Data left, Dense right):
 cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense out):
     if type(left) is CSR:
         matmul_csr_dense_dense(left, right, scale, out)
+    elif type(left) is Diag:
+        matmul_diag_dense_dense(left, right, scale, out)
     elif type(left) is Dense:
         matmul_dense(left, right, scale, out)
     else:
