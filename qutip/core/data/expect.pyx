@@ -17,8 +17,8 @@ from qutip.core.data cimport csr, CSR, Dense, Diag
 __all__ = [
     'expect', 'expect_csr', 'expect_dense', 'expect_diag',
     'expect_csr_dense', 'expect_diag_dense',
-    'expect_super', 'expect_super_csr',
-    'expect_super_csr_dense', 'expect_super_dense',
+    'expect_super', 'expect_super_csr', 'expect_super_diag', 'expect_super_dense',
+    'expect_super_csr_dense', 'expect_super_diag_dense',
 ]
 
 cdef void _check_shape_ket(Data op, Data state) nogil except *:
@@ -122,7 +122,7 @@ cpdef double complex expect_csr(CSR op, CSR state) nogil except *:
     if state.shape[1] == 1:
         return _expect_csr_ket(op, state)
     return _expect_csr_dm(op, state)
-
+'expect_super_dense',
 cdef double complex _expect_csr_dense_ket(CSR op, Dense state) nogil except *:
     _check_shape_ket(op, state)
     cdef double complex out=0, sum
@@ -315,6 +315,38 @@ cpdef double complex expect_diag_dense(Diag op, Dense state) except *:
             op.data[diag_op * op._size + i]
             * state.data[start_state + i * stride]
           )
+    return expect
+
+
+cpdef double complex expect_super_diag(Diag op, Diag state) except *:
+    cdef double complex expect = 0.
+    _check_shape_super(op, state)
+    cdef idxint diag_op, diag_right
+    cdef idxint stride = <size_t> sqrt(state.shape[0]) + 1
+    for diag_op in range(op.num_diag):
+      for diag_state in range(state.num_diag):
+        if (
+            -state.offsets[diag_state] < op._size
+            and -op.offsets[diag_op] - state.offsets[diag_state] >= 0
+            and (-op.offsets[diag_op] - state.offsets[diag_state]) % stride == 0
+        ):
+            expect += state.data[diag_state * state._size] * op.data[diag_op * op._size - state.offsets[diag_state]]
+
+    return expect
+
+
+cpdef double complex expect_super_diag_dense(Diag op, Dense state) except *:
+    cdef double complex expect = 0.
+    _check_shape_super(op, state)
+    cdef idxint col, diag_op, start, end
+    cdef idxint stride = <size_t> sqrt(state.shape[0]) + 1
+    for diag_op in range(op.num_diag):
+      start = max(0, op.offsets[diag_op])
+      end = min(op._size, op.shape[0] + op.offsets[diag_op])
+      col = (((start - op.offsets[diag_op] - 1) // stride) + 1) * stride + op.offsets[diag_op]
+      while col < end:
+        expect += op.data[diag_op * op._size + col] * state.data[col]
+        col += stride
     return expect
 
 

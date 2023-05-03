@@ -312,8 +312,8 @@ cpdef Diag from_dense(Dense matrix):
     out.num_diag = matrix.shape[0] + matrix.shape[1] - 1
     for i in range(matrix.shape[0] + matrix.shape[1] - 1):
         out.offsets[i] = i -matrix.shape[0] + 1
-    strideR = matrix.shape[1] if matrix.fortran else 1
-    strideC = matrix.shape[0] if not matrix.fortran else 1
+    strideR = 1 if matrix.fortran else matrix.shape[1]
+    strideC = 1 if not matrix.fortran else matrix.shape[0]
 
     for row in range(matrix.shape[0]):
         for col in range(matrix.shape[1]):

@@ -13,7 +13,10 @@ cpdef double complex expect_dense(Dense op, Dense state) nogil except *
 cpdef double complex expect_super_dense(Dense op, Dense state) nogil except *
 
 cpdef double complex expect_diag(Diag op, Diag state) except *
-#cpdef double complex expect_dense(Dense op, Dense state) nogil except *
+cpdef double complex expect_super_diag(Diag op, Diag state) except *
+
+cpdef double complex expect_diag_dense(Diag op, Dense state) except *
+cpdef double complex expect_super_diag_dense(Diag op, Dense state) except *
 
 cdef double complex expect_data_dense(Data op, Dense state) except *
 cdef double complex expect_super_data_dense(Data op, Dense state) except *
