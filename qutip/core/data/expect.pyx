@@ -12,10 +12,11 @@ cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 from qutip.core.data.base cimport idxint, Data
-from qutip.core.data cimport csr, CSR, Dense
+from qutip.core.data cimport csr, CSR, Dense, Diag
 
 __all__ = [
-    'expect', 'expect_csr', 'expect_csr_dense', 'expect_dense',
+    'expect', 'expect_csr', 'expect_dense', 'expect_diag',
+    'expect_csr_dense', 'expect_diag_dense',
     'expect_super', 'expect_super_csr',
     'expect_super_csr_dense', 'expect_super_dense',
 ]
@@ -32,7 +33,7 @@ cdef void _check_shape_ket(Data op, Data state) nogil except *:
 cdef void _check_shape_dm(Data op, Data state) nogil except *:
     if (
         op.shape[1] != state.shape[0]  # Matrix multiplication
-        or state.shape[0] != state.shape[1]  # State is square 
+        or state.shape[0] != state.shape[1]  # State is square
         or op.shape[0] != op.shape[1]  # Op is square
     ):
         raise ValueError("incorrect input shapes "
@@ -247,6 +248,74 @@ cpdef double complex expect_super_dense(Dense op, Dense state) nogil except *:
                    state.data[col]
         row += n + 1
     return out
+
+
+cpdef double complex expect_diag(Diag op, Diag state) except *:
+    cdef double complex expect = 0.
+    if state.shape[1] == 1:
+        _check_shape_ket(op, state)
+        # Since the ket is sparse and possibly unsorted. Taking the n'th
+        # element of the state require a loop on the diags. Thus 3 loops are
+        # needed.
+        for diag_ket in range(state.num_diag):
+          if -state.offsets[diag_ket] >= op._size:
+            continue
+          for diag_bra in range(state.num_diag):
+            for diag_op in range(op.num_diag):
+              if state.offsets[diag_ket] - state.offsets[diag_bra] + op.offsets[diag_op] == 0:
+                expect += (
+                  conj(state.data[diag_bra * state._size])
+                  * state.data[diag_ket * state._size]
+                  * op.data[diag_op * op._size - state.offsets[diag_ket]]
+                )
+    else:
+      _check_shape_dm(op, state)
+      for diag_op in range(op.num_diag):
+        for diag_state in range(state.num_diag):
+          if op.offsets[diag_op] == -state.offsets[diag_state]:
+
+            start_op = max(0, op.offsets[diag_op])
+            start_state = max(0, state.offsets[diag_state])
+            end_op = min(op._size, op.shape[0] + op.offsets[diag_op])
+            end_state = min(state._size, state.shape[0] + state.offsets[diag_state])
+            length = min(end_op - start_op, end_state - start_state)
+
+            for i in range(length):
+              expect += (
+                op.data[diag_op * op._size + i + start_op]
+                * state.data[diag_state * state._size + i + start_state]
+              )
+    return expect
+
+
+cpdef double complex expect_diag_dense(Diag op, Dense state) except *:
+    cdef double complex expect = 0.
+    cdef idxint i, diag_op, start_op, end_op, strideR, stride, start_state
+    if state.shape[1] == 1:
+        _check_shape_ket(op, state)
+        for diag_op in range(op.num_diag):
+            start_op = max(0, op.offsets[diag_op])
+            end_op = min(op._size, op.shape[0] + op.offsets[diag_op])
+            for i in range(start_op, end_op):
+                expect += (
+                  op.data[diag_op * op._size + i]
+                  * state.data[i]
+                  * conj(state.data[i - op.offsets[diag_op]])
+                )
+    else:
+      _check_shape_dm(op, state)
+      stride = state.shape[0] + 1
+      strideR = state.shape[0] if state.fortran else 1
+      for diag_op in range(op.num_diag):
+        start_op = max(0, op.offsets[diag_op])
+        end_op = min(op._size, op.shape[0] + op.offsets[diag_op])
+        start_state = -op.offsets[diag_op] * strideR
+        for i in range(start_op, end_op):
+          expect += (
+            op.data[diag_op * op._size + i]
+            * state.data[start_state + i * stride]
+          )
+    return expect
 
 
 from .dispatch import Dispatcher as _Dispatcher
