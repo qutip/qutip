@@ -355,32 +355,26 @@ cpdef Diag matmul_diag(Diag left, Diag right, double complex scale=1):
 #TODO: optimize, set types etc.
 cpdef Dense matmul_diag_dense_dense(Diag left, Dense right, double complex scale=1, Dense out=None):
     _check_shape(left, right, out)
-    cdef Dense tmp = None
     if out is None:
         out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
     #
-    strideR_in = right.shape[1] if right.fortran else 1
-    strideC_in = right.shape[0] if not right.fortran else 1
-    strideR_out = out.shape[1] if out.fortran else 1
-    strideC_out = out.shape[0] if not out.fortran else 1
+    strideR_in = right.shape[1] if not right.fortran else 1
+    strideC_in = right.shape[0] if right.fortran else 1
+    strideR_out = out.shape[1] if not out.fortran else 1
+    strideC_out = out.shape[0] if out.fortran else 1
 
     for col in range(right.shape[1]):
       for diag in range(left.num_diag):
         start_left = max(0, left.offsets[diag])
         end_left = min(left._size, left.shape[0] + left.offsets[diag])
         start_out = max(0, -left.offsets[diag])
-        end_out = min(left._size, left.shape[1] - left.offsets[diag])
-        length = min(end_left-start_left, end_out-start_out)
+        end_out = min(left.shape[0], left.shape[1] - left.offsets[diag])
+        length = min(end_left - start_left, end_out - start_out)
         for i in range(length):
-          idx = (start_out + i) * strideR_out + col * strideC_in
-          if idx >= out.shape[0] * out.shape[1] or idx < 0:
-            print("out of bound", i, col, start_out, strideR_out, strideC_in, idx)
-            print(start_left, end_left, start_out, end_out, length)
-            continue
-          out.data[(start_out + i) * strideR_out + col * strideC_in] += (
+          out.data[(start_out + i) * strideR_out + col * strideC_out] += (
             scale
             * left.data[diag * left._size + i + start_left]
-            * out.data[(start_left + i) * strideR_in + col * strideC_in]
+            * right.data[(start_left + i) * strideR_in + col * strideC_in]
           )
     return out
 
