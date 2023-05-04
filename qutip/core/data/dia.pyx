@@ -306,7 +306,7 @@ cpdef Diag identity(base.idxint dimension, double complex scale=1):
 
 
 @cython.boundscheck(True)
-cpdef Diag from_dense(Dense matrix, double tol=1e-16):
+cpdef Diag from_dense(Dense matrix):
     cdef Diag out = empty(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1)
     cdef size_t diag_, ptr_in, ptr_out=0, stride
     cdef row, col
@@ -321,7 +321,10 @@ cpdef Diag from_dense(Dense matrix, double tol=1e-16):
         for col in range(matrix.shape[1]):
             out.data[(col - row + matrix.shape[0] - 1) * out.shape[1] + col] = matrix.data[row * strideR + col * strideC]
 
-    return tidyup_diag(out, tol)
+    if settings.core["auto_tidyup"]:
+        tidyup_diag(out, settings.core["auto_tidyup_atol"], True)
+
+    return out
 
 
 cpdef Dense to_dense(Diag matrix):

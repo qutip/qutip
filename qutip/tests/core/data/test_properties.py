@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from qutip import data as _data
-
+from qutip import CoreOptions
 
 @pytest.fixture(params=[_data.CSR, _data.Dense, _data.Diag], ids=["CSR", "Dense", "Diag"])
 def datatype(request):
@@ -73,9 +73,11 @@ class Test_isherm:
         zeros.
         """
 
-        base = _data.to(
-            datatype, _data.create(np.array([[1, self.tol * 1e-3j], [0, 1]]))
-        )
+        with CoreOptions(auto_tidyup=False):
+            base = _data.to(
+                datatype,
+                _data.create(np.array([[1, self.tol * 1e-3j], [0, 1]]))
+            )
         # If this first line fails, the zero has been stored explicitly and so
         # the test is invalid.
         assert np.count_nonzero(base.to_array()) == 3
@@ -127,7 +129,8 @@ class Test_isherm:
         base[np.random.rand(n, n) > density] = 0
         np.fill_diagonal(base, self.tol * 1000)
         nnz = np.count_nonzero(base)
-        base = _data.to(datatype, _data.create(base))
+        with CoreOptions(auto_tidyup=False):
+            base = _data.to(datatype, _data.create(base))
         assert np.count_nonzero(base.to_array()) == nnz
         assert _data.isherm(base, tol=self.tol)
         assert _data.isherm(base.transpose(), tol=self.tol)
@@ -143,7 +146,8 @@ class Test_isherm:
             base[np.random.rand(n, n) > density] = 0
             np.fill_diagonal(base, self.tol * 1000)
             nnz = np.count_nonzero(base)
-        base = _data.to(datatype, _data.create(base))
+        with CoreOptions(auto_tidyup=False):
+            base = _data.to(datatype, _data.create(base))
         assert np.count_nonzero(base.to_array()) == nnz
         assert not _data.isherm(base, tol=self.tol)
         assert not _data.isherm(base.transpose(), tol=self.tol)
