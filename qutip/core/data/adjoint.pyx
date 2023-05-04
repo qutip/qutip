@@ -111,7 +111,7 @@ cpdef Dense conj_dense(Dense matrix):
 
 
 cpdef Diag adjoint_diag(Diag matrix):
-    cdef Diag out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag, matrix.shape[0])
+    cdef Diag out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag)
     cdef size_t i, new_i,
     cdef idxint new_offset, j
     with nogil:
@@ -119,18 +119,16 @@ cpdef Diag adjoint_diag(Diag matrix):
         for i in range(matrix.num_diag):
             new_i = matrix.num_diag - i - 1
             new_offset = out.offsets[new_i] = -matrix.offsets[i]
-            for j in range(out._size):
-                if (j < new_offset):
-                    out.data[new_i * out._size + j] = 0.
-                elif (j - new_offset >= matrix._size):
-                    out.data[new_i * out._size + j] = 0.
+            for j in range(out.shape[1]):
+                if (j < new_offset) or (j - new_offset >= matrix.shape[1]):
+                    out.data[new_i * out.shape[1] + j] = 0.
                 else:
-                    out.data[new_i * out._size + j] = _conj(matrix.data[i * matrix._size + j - new_offset])
+                    out.data[new_i * out.shape[1] + j] = _conj(matrix.data[i * matrix.shape[1] + j - new_offset])
     return out
 
 
 cpdef Diag transpose_diag(Diag matrix):
-    cdef Diag out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag, matrix.shape[0])
+    cdef Diag out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag)
     cdef size_t i, new_i,
     cdef idxint new_offset, j
     with nogil:
@@ -138,11 +136,11 @@ cpdef Diag transpose_diag(Diag matrix):
         for i in range(matrix.num_diag):
             new_i = matrix.num_diag - i - 1
             new_offset = out.offsets[new_i] = -matrix.offsets[i]
-            for j in range(out._size):
-                if (j < new_offset) or (j - new_offset >= matrix._size):
-                    out.data[new_i * out._size + j] = 0.
+            for j in range(out.shape[1]):
+                if (j < new_offset) or (j - new_offset >= matrix.shape[1]):
+                    out.data[new_i * out.shape[1] + j] = 0.
                 else:
-                    out.data[new_i * out._size + j] = matrix.data[i * matrix._size + j - new_offset]
+                    out.data[new_i * out.shape[1] + j] = matrix.data[i * matrix.shape[1] + j - new_offset]
     return out
 
 
@@ -153,8 +151,8 @@ cpdef Diag conj_diag(Diag matrix):
         out.num_diag = matrix.num_diag
         for i in range(matrix.num_diag):
             out.offsets[i] = matrix.offsets[i]
-            for j in range(matrix._size):
-                out.data[i * matrix._size + j] = _conj(matrix.data[i * matrix._size + j])
+            for j in range(matrix.shape[1]):
+                out.data[i * matrix.shape[1] + j] = _conj(matrix.data[i * matrix.shape[1] + j])
     return out
 
 

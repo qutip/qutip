@@ -226,8 +226,8 @@ cpdef Diag add_diag(Diag left, Diag right, double complex scale=1):
     cdef double complex *ptr_left
     cdef double complex *ptr_right
     cdef bint sorted=True
-    cdef Diag out = dia.empty(left.shape[0], left.shape[1], left.num_diag + right.num_diag, max(left._size, right._size))
-    cdef int length, size_left = left._size, size_right = right._size
+    cdef Diag out = dia.empty(left.shape[0], left.shape[1], left.num_diag + right.num_diag)
+    cdef int length, size=left.shape[1]
 
     ptr_out = out.data
     ptr_left = left.data
@@ -237,29 +237,27 @@ cpdef Diag add_diag(Diag left, Diag right, double complex scale=1):
         while diag_left < left.num_diag and diag_right < right.num_diag:
             if left.offsets[diag_left] == right.offsets[diag_right]:
                 out.offsets[out_diag] = left.offsets[diag_left]
-                blas.zcopy(&size_left, ptr_left, &_ONE, ptr_out, &_ONE)
-                blas.zaxpy(&size_right, &scale, ptr_right, &_ONE, ptr_out, &_ONE)
-                ptr_left += size_left
+                blas.zcopy(&size, ptr_left, &_ONE, ptr_out, &_ONE)
+                blas.zaxpy(&size, &scale, ptr_right, &_ONE, ptr_out, &_ONE)
+                ptr_left += size
                 diag_left += 1
-                ptr_right += size_right
+                ptr_right += size
                 diag_right += 1
             elif left.offsets[diag_left] <= right.offsets[diag_right]:
                 out.offsets[out_diag] = left.offsets[diag_left]
-                length = min(out._size, size_left)
-                blas.zcopy(&length, ptr_left, &_ONE, ptr_out, &_ONE)
-                ptr_left += size_left
+                blas.zcopy(&size, ptr_left, &_ONE, ptr_out, &_ONE)
+                ptr_left += size
                 diag_left += 1
             else:
                 out.offsets[out_diag] = right.offsets[diag_right]
-                length = min(out._size, size_right)
-                blas.zcopy(&length, ptr_right, &_ONE, ptr_out, &_ONE)
+                blas.zcopy(&size, ptr_right, &_ONE, ptr_out, &_ONE)
                 if scale != 1:
-                    blas.zscal(&length, &scale, ptr_out, &_ONE)
-                ptr_right += size_right
+                    blas.zscal(&size, &scale, ptr_out, &_ONE)
+                ptr_right += size
                 diag_right += 1
             if out_diag != 0 and out.offsets[out_diag-1] >= out.offsets[out_diag]:
                 sorted=False
-            ptr_out += out._size
+            ptr_out += size
             out_diag += 1
 
         if diag_left < left.num_diag:
@@ -268,14 +266,10 @@ cpdef Diag add_diag(Diag left, Diag right, double complex scale=1):
                 if out_diag != 0 and out.offsets[out_diag-1] >= out.offsets[out_diag]:
                     sorted=False
                 out_diag += 1
-            if left._size == out._size:
-                length = left._size * (left.num_diag - diag_left)
-                blas.zcopy(&length, ptr_left, &_ONE, ptr_out, &_ONE)
-            else:
-                for i in range(left.num_diag - diag_left):
-                    blas.zcopy(&size_left, ptr_left, &_ONE, ptr_out, &_ONE)
-                    ptr_out += out._size
-                    ptr_left += left._size
+
+            length = size * (left.num_diag - diag_left)
+            blas.zcopy(&length, ptr_left, &_ONE, ptr_out, &_ONE)
+
 
         if diag_right < right.num_diag:
             for i in range(right.num_diag - diag_right):
@@ -283,18 +277,11 @@ cpdef Diag add_diag(Diag left, Diag right, double complex scale=1):
                 if out_diag != 0 and out.offsets[out_diag-1] >= out.offsets[out_diag]:
                     sorted=False
                 out_diag += 1
-            if right._size == out._size:
-                length = right._size * (right.num_diag - diag_right)
-                blas.zcopy(&length, ptr_right, &_ONE, ptr_out, &_ONE)
-                if scale != 1:
-                    blas.zscal(&length, &scale, ptr_out, &_ONE)
-            else:
-                for i in range(right.num_diag - diag_right):
-                    blas.zcopy(&size_right, ptr_right, &_ONE, ptr_out, &_ONE)
-                    if scale != 1:
-                        blas.zscal(&size_right, &scale, ptr_out, &_ONE)
-                    ptr_out += out._size
-                    ptr_right += right._size
+
+            length = size * (right.num_diag - diag_right)
+            blas.zcopy(&length, ptr_right, &_ONE, ptr_out, &_ONE)
+            if scale != 1:
+                blas.zscal(&length, &scale, ptr_out, &_ONE)
 
         out.num_diag = out_diag
 

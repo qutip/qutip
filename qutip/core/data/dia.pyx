@@ -90,12 +90,8 @@ cdef class Diag(base.Data):
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
         offsets = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
 
-        self._deallocate = False
-        self.data = <double complex *> cnp.PyArray_GETPTR1(data, 0)
-        self.offsets = <base.idxint *> cnp.PyArray_GETPTR1(offsets, 0)
         self.num_diag = offsets.shape[0]
         self._max_diag = self.num_diag
-        self._size = data.shape[1]
 
         if shape is None:
             warnings.warn("instantiating Diag matrix of unknown shape")
@@ -103,11 +99,11 @@ cdef class Diag(base.Data):
             ncols = 0
             for i in range(self.num_diag):
                 pre, post = _count_element(data[i], data.shape[1])
-                if self.offsets[i] >= 0:
+                if offsets[i] >= 0:
                     row = post
-                    col = post + self.offsets[i]
+                    col = post + offsets[i]
                 else:
-                    row = pre - self.offsets[i]
+                    row = pre - offsets[i]
                     col = pre
                 nrows = nrows if nrows > row else row
                 ncols = ncols if ncols > col else col
@@ -116,12 +112,24 @@ cdef class Diag(base.Data):
             if not isinstance(shape, tuple):
                 raise TypeError("shape must be a 2-tuple of positive ints")
             if not (len(shape) == 2
-                    and isinstance(shape[0], int)
-                    and isinstance(shape[1], int)
+                    and isinstance(shape[0], numbers.Integral)
+                    and isinstance(shape[1], numbers.Integral)
                     and shape[0] > 0
                     and shape[1] > 0):
                 raise ValueError("shape must be a 2-tuple of positive ints")
             self.shape = shape
+
+        # Scipy support ``data`` with diag of any length. They can be sorter if
+        # the last columns are empty or have extra unused columns at the end.
+        if data.shape[1] != self.shape[1]:
+            new_data = np.zeros((self.num_diag, self.shape[1]), dtype=np.complex128, order='C')
+            copy_length = min(data.shape[1], self.shape[1])
+            new_data[:, :copy_length] = data[:, :copy_length]
+            data = new_data
+
+        self._deallocate = False
+        self.data = <double complex *> cnp.PyArray_GETPTR1(data, 0)
+        self.offsets = <base.idxint *> cnp.PyArray_GETPTR1(offsets, 0)
 
         self._scipy = _dia_matrix(data, offsets, self.shape)
         if tidyup:
@@ -144,7 +152,7 @@ cdef class Diag(base.Data):
         """
         cdef Diag out = empty_like(self)
         out.num_diag = self.num_diag
-        memcpy(out.data, self.data, self.num_diag * self._size * sizeof(double complex))
+        memcpy(out.data, self.data, self.num_diag * self.shape[1] * sizeof(double complex))
         memcpy(out.offsets, self.offsets, self.num_diag * sizeof(base.idxint))
 
         return out
@@ -158,14 +166,13 @@ cdef class Diag(base.Data):
         cdef cnp.npy_intp *dims = [self.shape[0], self.shape[1]]
         cdef object out = cnp.PyArray_ZEROS(2, dims, cnp.NPY_COMPLEX128, 0)
         cdef size_t col, i, nrows = self.shape[0]
-        cdef base.idxint diag, size
-        size = min(self._size, self.shape[1])
+        cdef base.idxint diag
         for i in range(self.num_diag):
             diag = self.offsets[i]
-            for col in range(size):
+            for col in range(self.shape[1]):
                 if col - diag < 0 or col - diag >= nrows:
                     continue
-                out[(col-diag), col] = self.data[i * self._size + col]
+                out[(col-diag), col] = self.data[i * self.shape[1] + col]
         return out
 
     cpdef object as_scipy(self, bint full=False):
@@ -182,7 +189,7 @@ cdef class Diag(base.Data):
         if self._scipy is not None:
             return self._scipy
         cdef cnp.npy_intp num_diag = self.num_diag if not full else self._max_diag
-        cdef cnp.npy_intp size = self._size
+        cdef cnp.npy_intp size = self.shape[1]
         data = cnp.PyArray_SimpleNewFromData(2, [num_diag, size],
                                              cnp.NPY_COMPLEX128,
                                              self.data)
@@ -241,11 +248,10 @@ cpdef Diag fast_from_scipy(object sci):
     out.offsets = <base.idxint *> cnp.PyArray_GETPTR1(sci.offsets, 0)
     out.num_diag  = sci.offsets.shape[0]
     out._max_diag  = sci.offsets.shape[0]
-    out._size = sci.data.shape[1]
     return out
 
 
-cpdef Diag empty(base.idxint rows, base.idxint cols, base.idxint num_diag, base.idxint size):
+cpdef Diag empty(base.idxint rows, base.idxint cols, base.idxint num_diag):
     """
     Allocate an empty Diag matrix of the given shape, ``with num_diag``
     diagonals.
@@ -258,21 +264,18 @@ cpdef Diag empty(base.idxint rows, base.idxint cols, base.idxint num_diag, base.
     out.shape = (rows, cols)
     out.num_diag = 0
     # Python doesn't like allocating nothing.
-    if size == 0:
-        size += 1
     if num_diag == 0:
         num_diag += 1
     out._max_diag = num_diag
-    out._size = size
     out.data =\
-        <double complex *> PyDataMem_NEW(size * num_diag * sizeof(double complex))
+        <double complex *> PyDataMem_NEW(cols * num_diag * sizeof(double complex))
     out.offsets =\
         <base.idxint *> PyDataMem_NEW(num_diag * sizeof(base.idxint))
     return out
 
 
 cpdef Diag empty_like(Diag other):
-    return empty(other.shape[0], other.shape[1], other.num_diag, other._size)
+    return empty(other.shape[0], other.shape[1], other.num_diag)
 
 
 cpdef Diag zeros(base.idxint rows, base.idxint cols):
@@ -282,8 +285,8 @@ cpdef Diag zeros(base.idxint rows, base.idxint cols):
     """
     # We always allocate matrices with at least one element to ensure that we
     # actually _are_ asking for memory (Python doesn't like allocating nothing)
-    cdef Diag out = empty(rows, cols, 0, 0)
-    memset(out.data, 0, out._size * sizeof(double complex))
+    cdef Diag out = empty(rows, cols, 0)
+    memset(out.data, 0, out.shape[1] * sizeof(double complex))
     out.offsets[0] = 0
     return out
 
@@ -294,7 +297,7 @@ cpdef Diag identity(base.idxint dimension, double complex scale=1):
     the diagonal.  By default this will be the identity matrix, but if `scale`
     is passed, then the result will be `scale` times the identity.
     """
-    cdef Diag out = empty(dimension, dimension, 1, dimension)
+    cdef Diag out = empty(dimension, dimension, 1)
     for i in range(dimension):
         out.data[i] = scale
     out.offsets[0] = 0
@@ -303,9 +306,8 @@ cpdef Diag identity(base.idxint dimension, double complex scale=1):
 
 
 @cython.boundscheck(True)
-cpdef Diag from_dense(Dense matrix):
-    # Assume worst-case scenario for non-zero.
-    cdef Diag out = empty(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1, matrix.shape[1])
+cpdef Diag from_dense(Dense matrix, double tol=1e-16):
+    cdef Diag out = empty(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1)
     cdef size_t diag_, ptr_in, ptr_out=0, stride
     cdef row, col
 
@@ -319,7 +321,7 @@ cpdef Diag from_dense(Dense matrix):
         for col in range(matrix.shape[1]):
             out.data[(col - row + matrix.shape[0] - 1) * out.shape[1] + col] = matrix.data[row * strideR + col * strideC]
 
-    return tidyup_diag(out, settings.core['auto_tidyup_atol'])
+    return tidyup_diag(out, tol)
 
 
 cpdef Dense to_dense(Diag matrix):
@@ -335,7 +337,7 @@ cpdef Diag clean_diag(Diag matrix, bint inplace=False):
     cdef base.idxint diag=0, new_diag=0, start, end, col
     cdef double complex zONE=1.
     cdef bint has_duplicate
-    cdef int length, ONE=1
+    cdef int length=out.shape[1], ONE=1
 
     # We sort using insertion sort on the offsets, summing data of duplicated.
     # This does not scale well with large number of diagonal
@@ -350,11 +352,10 @@ cpdef Diag clean_diag(Diag matrix, bint inplace=False):
                 smallest_diag = comp_diag
                 has_duplicate = False
             elif out.offsets[comp_diag] == smallest_offsets:
-                length = out._size
                 blas.zaxpy(
                     &length, &zONE,
-                    &out.data[comp_diag * out._size], &ONE,
-                    &out.data[smallest_diag * out._size], &ONE
+                    &out.data[comp_diag * out.shape[1]], &ONE,
+                    &out.data[smallest_diag * out.shape[1]], &ONE
                 )
                 out.offsets[comp_diag] = out.shape[1]
 
@@ -363,19 +364,18 @@ cpdef Diag clean_diag(Diag matrix, bint inplace=False):
             break
         if new_diag == smallest_diag:
             continue
-        length = out._size
-        blas.zswap(&length, &out.data[new_diag * out._size], &ONE, &out.data[smallest_diag * out._size], &ONE)
+        blas.zswap(&length, &out.data[new_diag * out.shape[1]], &ONE, &out.data[smallest_diag * out.shape[1]], &ONE)
         out.offsets[smallest_diag] = out.offsets[new_diag]
         out.offsets[new_diag] = smallest_offsets
 
     out.num_diag = new_diag + 1
     for diag in range(out.num_diag):
         start = max(0, out.offsets[diag])
-        end = min(out._size, out.shape[0] + out.offsets[diag])
+        end = min(out.shape[1], out.shape[0] + out.offsets[diag])
         for col in range(start):
-            out.data[diag * out._size + col] = 0.
-        for col in range(end, out._size):
-            out.data[diag * out._size + col] = 0.
+            out.data[diag * out.shape[1] + col] = 0.
+        for col in range(end, out.shape[1]):
+            out.data[diag * out.shape[1] + col] = 0.
 
     if out._scipy is not None:
         out._scipy.data = out._scipy.data[:out.num_diag]
@@ -418,13 +418,13 @@ cdef Diag diags_(
         The shape of the output.  The result does not need to be square, but
         the diagonals must be of the correct length to fit in.
     """
-    out = empty(n_rows, n_cols, len(offsets), n_cols)
+    out = empty(n_rows, n_cols, len(offsets))
     out.num_diag = len(offsets)
     for i in range(len(offsets)):
         out.offsets[i] = offsets[i]
         offset = max(offsets[i], 0)
         for col in range(len(diagonals[i])):
-            out.data[i * out._size + col + offset] = diagonals[i][col]
+            out.data[i * out.shape[1] + col + offset] = diagonals[i][col]
     return out
 
 @cython.wraparound(True)

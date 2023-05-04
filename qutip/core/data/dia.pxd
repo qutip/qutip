@@ -16,7 +16,7 @@ from qutip.core.data.dense cimport Dense
 cdef class Diag(base.Data):
     cdef double complex *data
     cdef base.idxint *offsets
-    cdef readonly size_t num_diag, _size, _max_diag
+    cdef readonly size_t num_diag, _max_diag
     cdef object _scipy
     cdef bint _deallocate
     cpdef Diag copy(Diag self)
@@ -27,7 +27,7 @@ cdef class Diag(base.Data):
     cpdef Diag transpose(Diag self)
 
 cpdef Diag fast_from_scipy(object sci)
-cpdef Diag empty(base.idxint rows, base.idxint cols, base.idxint num_diag, base.idxint size)
+cpdef Diag empty(base.idxint rows, base.idxint cols, base.idxint num_diag)
 cpdef Diag empty_like(Diag other)
 cpdef Diag zeros(base.idxint rows, base.idxint cols)
 cpdef Diag identity(base.idxint dimension, double complex scale=*)

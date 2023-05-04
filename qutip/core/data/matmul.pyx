@@ -313,69 +313,74 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
     return out
 
 
-#TODO: optimize, cdef types etc.
+#TODO: optimize: not rely on numpy for unique offsets.
 cpdef Diag matmul_diag(Diag left, Diag right, double complex scale=1):
     _check_shape(left, right, None)
-    # We could probably do faster than this without the gil etc.
+    # We could probably do faster than this...
     npoffsets = np.unique(np.add.outer(left.as_scipy().offsets, right.as_scipy().offsets))
     npoffsets = npoffsets[np.logical_and(npoffsets > -left.shape[0], npoffsets < right.shape[1])]
     cdef idxint[:] offsets = npoffsets
     if len(npoffsets) == 0:
         return dia.zeros(left.shape[0], right.shape[1])
     cdef idxint *ptr = &offsets[0]
-    cdef idxint num_diag = offsets.shape[0], diag_out, diag_left, diag_right, off_out
+    cdef size_t num_diag = offsets.shape[0], diag_out, diag_left, diag_right
+    cdef idxint start_left, end_left, start_out, end_out, start, end, col, off_out
     npdata = np.zeros((num_diag, right.shape[1]), dtype=complex)
     cdef double complex[:, ::1] data = npdata
 
-    for diag_left in range(left.num_diag):
-      for diag_right in range(right.num_diag):
-        off_out = left.offsets[diag_left] + right.offsets[diag_right]
-        if off_out <= -left.shape[0] or off_out >= right.shape[1]:
-          continue
-        diag_out = <idxint> (lower_bound(ptr, ptr + num_diag, off_out) - ptr)
+    with nogil:
+      for diag_left in range(left.num_diag):
+        for diag_right in range(right.num_diag):
+          off_out = left.offsets[diag_left] + right.offsets[diag_right]
+          if off_out <= -left.shape[0] or off_out >= right.shape[1]:
+            continue
+          diag_out = <idxint> (lower_bound(ptr, ptr + num_diag, off_out) - ptr)
 
-        start_left = max(0, left.offsets[diag_left]) + right.offsets[diag_right]
-        start_right = max(0, right.offsets[diag_right])
-        start_out = max(0, off_out)
-        end_left = min(left._size, left.shape[0] + left.offsets[diag_left]) + right.offsets[diag_right]
-        end_right = min(right._size, right.shape[0] + right.offsets[diag_right])
-        end_out = min(right.shape[1], left.shape[0] + off_out)
-        start = max(start_left, start_right, start_out)
-        end = min(end_left, end_right, end_out)
+          start_left = max(0, left.offsets[diag_left]) + right.offsets[diag_right]
+          start_right = max(0, right.offsets[diag_right])
+          start_out = max(0, off_out)
+          end_left = min(left.shape[1], left.shape[0] + left.offsets[diag_left]) + right.offsets[diag_right]
+          end_right = min(right.shape[1], right.shape[0] + right.offsets[diag_right])
+          end_out = min(right.shape[1], left.shape[0] + off_out)
+          start = max(start_left, start_right, start_out)
+          end = min(end_left, end_right, end_out)
 
-        for col in range(start, end):
-            data[diag_out, col] += (
-              scale
-              * left.data[diag_left * left._size + col - right.offsets[diag_right]]
-              * right.data[diag_right * right._size + col]
-            )
+          for col in range(start, end):
+              data[diag_out, col] += (
+                scale
+                * left.data[diag_left * left.shape[1] + col - right.offsets[diag_right]]
+                * right.data[diag_right * right.shape[1] + col]
+              )
     return Diag((npdata, npoffsets), shape=(left.shape[0], right.shape[1]), copy=False)
 
 
-#TODO: optimize, set types etc.
 cpdef Dense matmul_diag_dense_dense(Diag left, Dense right, double complex scale=1, Dense out=None):
     _check_shape(left, right, out)
     if out is None:
         out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
-    #
-    strideR_in = right.shape[1] if not right.fortran else 1
-    strideC_in = right.shape[0] if right.fortran else 1
-    strideR_out = out.shape[1] if not out.fortran else 1
-    strideC_out = out.shape[0] if out.fortran else 1
+    cdef idxint start_left, end_left, start_out, end_out, length, i
+    cdef idxint col, strideR_in, strideC_in, strideR_out, strideC_out
+    cdef size_t diag
 
-    for col in range(right.shape[1]):
-      for diag in range(left.num_diag):
-        start_left = max(0, left.offsets[diag])
-        end_left = min(left._size, left.shape[0] + left.offsets[diag])
-        start_out = max(0, -left.offsets[diag])
-        end_out = min(left.shape[0], left.shape[1] - left.offsets[diag])
-        length = min(end_left - start_left, end_out - start_out)
-        for i in range(length):
-          out.data[(start_out + i) * strideR_out + col * strideC_out] += (
-            scale
-            * left.data[diag * left._size + i + start_left]
-            * right.data[(start_left + i) * strideR_in + col * strideC_in]
-          )
+    with nogil:
+        strideR_in = right.shape[1] if not right.fortran else 1
+        strideC_in = right.shape[0] if right.fortran else 1
+        strideR_out = out.shape[1] if not out.fortran else 1
+        strideC_out = out.shape[0] if out.fortran else 1
+
+        for col in range(right.shape[1]):
+          for diag in range(left.num_diag):
+            start_left = max(0, left.offsets[diag])
+            end_left = min(left.shape[1], left.shape[0] + left.offsets[diag])
+            start_out = max(0, -left.offsets[diag])
+            end_out = min(left.shape[0], left.shape[1] - left.offsets[diag])
+            length = min(end_left - start_left, end_out - start_out)
+            for i in range(length):
+              out.data[(start_out + i) * strideR_out + col * strideC_out] += (
+                scale
+                * left.data[diag * left.shape[1] + i + start_left]
+                * right.data[(start_left + i) * strideR_in + col * strideC_in]
+              )
     return out
 
 
@@ -452,8 +457,7 @@ cpdef Diag multiply_diag(Diag left, Diag right):
         )
     cdef idxint diag_left=0, diag_right=0, out_diag=0, col
     cdef bint sorted=True
-    cdef Diag out = dia.empty(left.shape[0], left.shape[1], min(left.num_diag, right.num_diag), max(left._size, right._size))
-    cdef int length, size_left = left._size, size_right = right._size
+    cdef Diag out = dia.empty(left.shape[0], left.shape[1], min(left.num_diag, right.num_diag))
 
     with nogil:
       for diag_left in range(1, left.num_diag):
@@ -472,13 +476,13 @@ cpdef Diag multiply_diag(Diag left, Diag right):
         while diag_left < left.num_diag and diag_right < right.num_diag:
             if left.offsets[diag_left] == right.offsets[diag_right]:
                 out.offsets[out_diag] = left.offsets[diag_left]
-                for col in range(out._size):
-                    if col >= left._size or col >= right._size:
-                        out.data[out_diag * out._size + col] = 0
+                for col in range(out.shape[1]):
+                    if col >= left.shape[1] or col >= right.shape[1]:
+                        out.data[out_diag * out.shape[1] + col] = 0
                     else:
-                        out.data[out_diag * out._size + col] = (
-                            left.data[diag_left * left._size + col] *
-                            right.data[diag_right * right._size + col]
+                        out.data[out_diag * out.shape[1] + col] = (
+                            left.data[diag_left * left.shape[1] + col] *
+                            right.data[diag_right * right.shape[1] + col]
                         )
                 out_diag += 1
                 diag_left += 1
@@ -493,10 +497,10 @@ cpdef Diag multiply_diag(Diag left, Diag right):
           for diag_right in range(right.num_diag):
             if left.offsets[diag_left] == right.offsets[diag_right]:
                 out.offsets[out_diag] = left.offsets[diag_left]
-                for col in range(size_right):
-                    out.data[out_diag * out._size + col] = (
-                        left.data[diag_left * left._size + col] *
-                        right.data[diag_right * right._size + col]
+                for col in range(right.shape[1]):
+                    out.data[out_diag * out.shape[1] + col] = (
+                        left.data[diag_left * left.shape[1] + col] *
+                        right.data[diag_right * right.shape[1] + col]
                     )
                 out_diag += 1
                 break
@@ -565,6 +569,8 @@ matmul.add_specialisations([
     (CSR, CSR, CSR, matmul_csr),
     (CSR, Dense, Dense, matmul_csr_dense_dense),
     (Dense, Dense, Dense, matmul_dense),
+    (Diag, Diag, Diag, matmul_diag),
+    (Diag, Dense, Dense, matmul_diag_dense_dense),
 ], _defer=True)
 
 

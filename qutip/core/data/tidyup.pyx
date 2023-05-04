@@ -65,25 +65,25 @@ cpdef Diag tidyup_diag(Diag matrix, double tol, bint inplace=True):
 
     while diag < out.num_diag:
         start = max(0, out.offsets[diag])
-        end = min(out._size, out.shape[0] + out.offsets[diag])
+        end = min(out.shape[1], out.shape[0] + out.offsets[diag])
         has_data = False
         for col in range(start, end):
             re = False
             im = False
-            if fabs(out.data[diag * out._size + col].real) < tol:
+            if fabs(out.data[diag * out.shape[1] + col].real) < tol:
                 re = True
-                out.data[diag * out._size + col].real = 0
-            if fabs(out.data[diag * out._size + col].imag) < tol:
+                out.data[diag * out.shape[1] + col].real = 0
+            if fabs(out.data[diag * out.shape[1] + col].imag) < tol:
                 im = True
-                out.data[diag * out._size + col].imag = 0
+                out.data[diag * out.shape[1] + col].imag = 0
             has_data |= not (re & im)
 
         if has_data and new_diag < diag:
-            length = out._size
+            length = out.shape[1]
             blas.zcopy(
                 &length,
-                &out.data[diag * out._size], &ONE,
-                &out.data[new_diag * out._size], &ONE
+                &out.data[diag * out.shape[1]], &ONE,
+                &out.data[new_diag * out.shape[1]], &ONE
             )
             out.offsets[new_diag] = out.offsets[diag]
 

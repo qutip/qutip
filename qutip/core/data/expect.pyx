@@ -258,15 +258,15 @@ cpdef double complex expect_diag(Diag op, Diag state) except *:
         # element of the state require a loop on the diags. Thus 3 loops are
         # needed.
         for diag_ket in range(state.num_diag):
-          if -state.offsets[diag_ket] >= op._size:
+          if -state.offsets[diag_ket] >= op.shape[1]:
             continue
           for diag_bra in range(state.num_diag):
             for diag_op in range(op.num_diag):
               if state.offsets[diag_ket] - state.offsets[diag_bra] + op.offsets[diag_op] == 0:
                 expect += (
-                  conj(state.data[diag_bra * state._size])
-                  * state.data[diag_ket * state._size]
-                  * op.data[diag_op * op._size - state.offsets[diag_ket]]
+                  conj(state.data[diag_bra * state.shape[1]])
+                  * state.data[diag_ket * state.shape[1]]
+                  * op.data[diag_op * op.shape[1] - state.offsets[diag_ket]]
                 )
     else:
       _check_shape_dm(op, state)
@@ -276,14 +276,14 @@ cpdef double complex expect_diag(Diag op, Diag state) except *:
 
             start_op = max(0, op.offsets[diag_op])
             start_state = max(0, state.offsets[diag_state])
-            end_op = min(op._size, op.shape[0] + op.offsets[diag_op])
-            end_state = min(state._size, state.shape[0] + state.offsets[diag_state])
+            end_op = min(op.shape[1], op.shape[0] + op.offsets[diag_op])
+            end_state = min(state.shape[1], state.shape[0] + state.offsets[diag_state])
             length = min(end_op - start_op, end_state - start_state)
 
             for i in range(length):
               expect += (
-                op.data[diag_op * op._size + i + start_op]
-                * state.data[diag_state * state._size + i + start_state]
+                op.data[diag_op * op.shape[1] + i + start_op]
+                * state.data[diag_state * state.shape[1] + i + start_state]
               )
     return expect
 
@@ -295,10 +295,10 @@ cpdef double complex expect_diag_dense(Diag op, Dense state) except *:
         _check_shape_ket(op, state)
         for diag_op in range(op.num_diag):
             start_op = max(0, op.offsets[diag_op])
-            end_op = min(op._size, op.shape[0] + op.offsets[diag_op])
+            end_op = min(op.shape[1], op.shape[0] + op.offsets[diag_op])
             for i in range(start_op, end_op):
                 expect += (
-                  op.data[diag_op * op._size + i]
+                  op.data[diag_op * op.shape[1] + i]
                   * state.data[i]
                   * conj(state.data[i - op.offsets[diag_op]])
                 )
@@ -308,11 +308,11 @@ cpdef double complex expect_diag_dense(Diag op, Dense state) except *:
       strideR = state.shape[0] if state.fortran else 1
       for diag_op in range(op.num_diag):
         start_op = max(0, op.offsets[diag_op])
-        end_op = min(op._size, op.shape[0] + op.offsets[diag_op])
+        end_op = min(op.shape[1], op.shape[0] + op.offsets[diag_op])
         start_state = -op.offsets[diag_op] * strideR
         for i in range(start_op, end_op):
           expect += (
-            op.data[diag_op * op._size + i]
+            op.data[diag_op * op.shape[1] + i]
             * state.data[start_state + i * stride]
           )
     return expect
@@ -326,11 +326,11 @@ cpdef double complex expect_super_diag(Diag op, Diag state) except *:
     for diag_op in range(op.num_diag):
       for diag_state in range(state.num_diag):
         if (
-            -state.offsets[diag_state] < op._size
+            -state.offsets[diag_state] < op.shape[1]
             and -op.offsets[diag_op] - state.offsets[diag_state] >= 0
             and (-op.offsets[diag_op] - state.offsets[diag_state]) % stride == 0
         ):
-            expect += state.data[diag_state * state._size] * op.data[diag_op * op._size - state.offsets[diag_state]]
+            expect += state.data[diag_state * state.shape[1]] * op.data[diag_op * op.shape[1] - state.offsets[diag_state]]
 
     return expect
 
@@ -342,10 +342,10 @@ cpdef double complex expect_super_diag_dense(Diag op, Dense state) except *:
     cdef idxint stride = <size_t> sqrt(state.shape[0]) + 1
     for diag_op in range(op.num_diag):
       start = max(0, op.offsets[diag_op])
-      end = min(op._size, op.shape[0] + op.offsets[diag_op])
+      end = min(op.shape[1], op.shape[0] + op.offsets[diag_op])
       col = (((start - op.offsets[diag_op] - 1) // stride) + 1) * stride + op.offsets[diag_op]
       while col < end:
-        expect += op.data[diag_op * op._size + col] * state.data[col]
+        expect += op.data[diag_op * op.shape[1] + col] * state.data[col]
         col += stride
     return expect
 
@@ -377,6 +377,8 @@ expect.add_specialisations([
     (CSR, CSR, expect_csr),
     (CSR, Dense, expect_csr_dense),
     (Dense, Dense, expect_dense),
+    (Diag, Dense, expect_diag_dense),
+    (Diag, Diag, expect_diag),
 ], _defer=True)
 
 expect_super = _Dispatcher(
@@ -399,6 +401,8 @@ expect_super.add_specialisations([
     (CSR, CSR, expect_super_csr),
     (CSR, Dense, expect_super_csr_dense),
     (Dense, Dense, expect_super_dense),
+    (Diag, Dense, expect_super_diag_dense),
+    (Diag, Diag, expect_super_diag),
 ], _defer=True)
 
 del _inspect, _Dispatcher

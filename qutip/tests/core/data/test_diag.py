@@ -3,7 +3,7 @@ import scipy.sparse
 import pytest
 
 from qutip.core import data, qeye, CoreOptions
-from qutip.core.data import dia
+from qutip.core.data import dia, Dense, Diag
 
 from . import conftest
 
@@ -193,7 +193,7 @@ class TestClassMethods:
 
     def test_as_scipy_of_uninitialised_is_empty(self, shape):
         ndiag = 0
-        base = dia.empty(shape[0], shape[1], ndiag, shape[1])
+        base = dia.empty(shape[0], shape[1], ndiag)
         sci = base.as_scipy()
         assert len(sci.data) == 0
         assert len(sci.offsets) == 0
@@ -205,17 +205,33 @@ class TestClassMethods:
         # mathematics, so they should be _identical_.
         assert np.all(test_array == data_diag.as_scipy().toarray())
 
+    def test_to_dense(self, data_diag):
+        data_dense = dia.to_dense(data_diag)
+        assert isinstance(data_dense, Dense)
+        # It's not enough to be accurate within a tolerance here - there's no
+        # mathematics, so they should be _identical_.
+        assert np.all(data_dense.to_array() == data_diag.as_scipy().toarray())
+        assert np.all(data_dense.to_array() == data_diag.to_array())
+
+    def test_from_dense(self, scipy_dia):
+        dense = Dense(scipy_dia.toarray())
+        data_diag = dia.from_dense(dense)
+        assert isinstance(data_diag, Diag)
+        # It's not enough to be accurate within a tolerance here - there's no
+        # mathematics, so they should be _identical_.
+        assert np.all(data_diag.to_array() == data_diag.as_scipy().toarray())
+        assert np.all(data_diag.to_array() == data_diag.to_array())
+
 
 class TestFactoryMethods:
     def test_empty(self, shape, density):
         ndiag = int(shape[0] * shape[1] * density) or 1
-        size = np.random.randint(shape[1]) or 1
-        base = dia.empty(shape[0], shape[1], ndiag, size)
+        base = dia.empty(shape[0], shape[1], ndiag)
         sci = base.as_scipy(full=True)
         assert isinstance(base, dia.Diag)
         assert isinstance(sci, scipy.sparse.dia_matrix)
         assert base.shape == shape
-        assert sci.data.shape == (ndiag, size)
+        assert sci.data.shape == (ndiag, shape[1])
         assert sci.offsets.shape == (ndiag,)
 
     def test_zeros(self, shape):

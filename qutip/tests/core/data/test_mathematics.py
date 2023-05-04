@@ -941,6 +941,7 @@ class TestProject(UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.project_csr, CSR, CSR),
+        pytest.param(data.project_diag, Diag, Diag),
         pytest.param(data.project_dense, Dense, Dense),
     ]
 
