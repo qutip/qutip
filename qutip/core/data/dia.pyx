@@ -342,6 +342,9 @@ cpdef Diag clean_diag(Diag matrix, bint inplace=False):
     cdef bint has_duplicate
     cdef int length=out.shape[1], ONE=1
 
+    if out.num_diag == 0:
+        return out
+
     # We sort using insertion sort on the offsets, summing data of duplicated.
     # This does not scale well with large number of diagonal
     for new_diag in range(out.num_diag):

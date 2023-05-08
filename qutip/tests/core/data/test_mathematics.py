@@ -756,6 +756,7 @@ class TestKron(BinaryOpMixin):
     specialisations = [
         pytest.param(data.kron_csr, CSR, CSR, CSR),
         pytest.param(data.kron_dense, Dense, Dense, Dense),
+        pytest.param(data.kron_diag, Diag, Diag, Diag),
     ]
 
 
@@ -897,6 +898,7 @@ class TestExpm(UnaryOpMixin):
         pytest.param(data.expm_csr, CSR, CSR),
         pytest.param(data.expm_csr_dense, CSR, Dense),
         pytest.param(data.expm_dense, Dense, Dense),
+        pytest.param(data.expm_diag, Diag, Diag),
     ]
 
 

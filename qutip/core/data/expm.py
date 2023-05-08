@@ -4,12 +4,14 @@ import scipy.linalg
 
 from .dense import Dense
 from .csr import CSR
-from .properties import isdiag_csr
+from .dia import Diag
+from . import dia
+from .properties import isdiag_csr, isdiag_diag
 from qutip.settings import settings
 from .base import idxint_dtype
 
 __all__ = [
-    'expm', 'expm_csr', 'expm_csr_dense', 'expm_dense',
+    'expm', 'expm_csr', 'expm_csr_dense', 'expm_dense', 'expm_diag',
     'logm', 'logm_dense',
 ]
 
@@ -35,6 +37,33 @@ def expm_csr(matrix: CSR) -> CSR:
     csc = matrix.as_scipy().tocsc()
     return CSR(scipy.sparse.linalg.expm(csc).tocsr(),
                tidyup=settings.core['auto_tidyup'])
+
+
+def expm_diag(matrix: Diag) -> Diag:
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("can only exponentiate square matrix")
+    if matrix.num_diag == 0:
+        out = dia.identity(matrix.shape[0])
+    elif matrix.num_diag > 1:
+        csc = matrix.as_scipy().tocsc()
+        out = Diag(scipy.sparse.linalg.expm(csc).todia(),
+                   tidyup=settings.core['auto_tidyup'], copy=False)
+    elif isdiag_diag(matrix):
+        matrix_sci = matrix.as_scipy()
+        data = np.exp(matrix_sci.data[0, :])
+        out = dia.diags(data, shape=matrix.shape)
+    else:
+        # Only one diag, this would be better implemented in cython
+        tmp = matrix
+        out = dia.identity(matrix.shape[0])
+        n = 1
+        fact = 1
+        while tmp.num_diag and n < matrix.shape[0]:
+            out = out + tmp * 1 / fact
+            n += 1
+            fact *= n
+            tmp = tmp @ matrix
+    return out
 
 
 def expm_csr_dense(matrix: CSR) -> Dense:
@@ -67,6 +96,7 @@ expm.add_specialisations([
     (CSR, CSR, expm_csr),
     (CSR, Dense, expm_csr_dense),
     (Dense, Dense, expm_dense),
+    (Diag, Diag, expm_diag),
 ], _defer=True)
 
 
