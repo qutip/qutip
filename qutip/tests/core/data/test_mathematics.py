@@ -638,6 +638,7 @@ class TestInner(BinaryOpMixin):
 
     specialisations = [
         pytest.param(data.inner_csr, CSR, CSR, complex),
+        pytest.param(data.inner_diag, Diag, Diag, complex),
         pytest.param(data.inner_dense, Dense, Dense, complex),
     ]
 
@@ -708,6 +709,7 @@ class TestInnerOp(TernaryOpMixin):
 
     specialisations = [
         pytest.param(data.inner_op_csr, CSR, CSR, CSR, complex),
+        pytest.param(data.inner_op_diag, Diag, Diag, Diag, complex),
         pytest.param(data.inner_op_dense, Dense, Dense, Dense, complex),
     ]
 
@@ -866,6 +868,7 @@ class TestPow(UnaryOpMixin):
     specialisations = [
         pytest.param(data.pow_csr, CSR, CSR),
         pytest.param(data.pow_dense, Dense, Dense),
+        pytest.param(data.pow_diag, Diag, Diag),
     ]
 
     @pytest.mark.parametrize("n", [0, 1, 10], ids=["n_0", "n_1", "n_10"])

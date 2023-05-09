@@ -3,14 +3,15 @@
 
 cimport cython
 
-from qutip.core.data cimport csr, dense
+from qutip.core.data cimport csr, dense, dia
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
-from qutip.core.data.matmul cimport matmul_csr
+from qutip.core.data.dia cimport Diag
+from qutip.core.data.matmul cimport matmul_csr, matmul_diag
 import numpy as np
 
 __all__ = [
-    'pow', 'pow_csr', 'pow_dense',
+    'pow', 'pow_csr', 'pow_dense', 'pow_diag',
 ]
 
 
@@ -37,6 +38,33 @@ cpdef CSR pow_csr(CSR matrix, unsigned long long n):
         pow = matmul_csr(pow, pow)
         if n & 1:
             out = pow if out is None else matmul_csr(out, pow)
+        n >>= 1
+    return out
+
+
+@cython.nonecheck(False)
+@cython.cdivision(True)
+cpdef Diag pow_diag(Diag matrix, unsigned long long n):
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("matrix power only works with square matrices")
+    if n == 0:
+        return dia.identity(matrix.shape[0])
+    if n == 1:
+        return matrix.copy()
+    # We do the matrix power in terms of powers of two, so we can do it
+    # ceil(lg(n)) + bits(n) - 1 matrix mulitplications, where `bits` is the
+    # number of set bits in the input.
+    #
+    # We don't have to do matrix.copy() or pow.copy() here, because we've
+    # guaranteed that we won't be returning without at least one matrix
+    # multiplcation, which will allocate a new matrix.
+    cdef Diag pow = matrix
+    cdef Diag out = pow if n & 1 else None
+    n >>= 1
+    while n:
+        pow = matmul_diag(pow, pow)
+        if n & 1:
+            out = pow if out is None else matmul_diag(out, pow)
         n >>= 1
     return out
 
@@ -81,6 +109,7 @@ pow.__doc__ =\
 pow.add_specialisations([
     (CSR, CSR, pow_csr),
     (Dense, Dense, pow_dense),
+    (Diag, Diag, pow_diag),
 ], _defer=True)
 
 del _inspect, _Dispatcher

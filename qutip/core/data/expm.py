@@ -53,16 +53,23 @@ def expm_diag(matrix: Diag) -> Diag:
         data = np.exp(matrix_sci.data[0, :])
         out = dia.diags(data, shape=matrix.shape)
     else:
-        # Only one diag, this would be better implemented in cython
-        tmp = matrix
-        out = dia.identity(matrix.shape[0])
-        n = 1
-        fact = 1
-        while tmp.num_diag and n < matrix.shape[0]:
-            out = out + tmp * 1 / fact
-            n += 1
-            fact *= n
-            tmp = tmp @ matrix
+        mat = matrix.as_scipy()
+        size = matrix.shape[0]
+        offset = mat.offsets[0]
+        n_offset = offset
+        a_offset = abs(offset)
+        data = mat.data[0, max(0, offset): min(size, size + offset)]
+        data_0 = data
+        out_oufsets = np.arange(0, size, a_offset, dtype=idxint_dtype)
+        out_oufsets *= np.sign(offset)
+        out_data = np.zeros((len(out_oufsets), size), dtype=complex)
+        out_data[0, :] += 1.
+        for i in range(1, len(out_oufsets)):
+            out_data[i, max(0, n_offset): min(size, size + n_offset)] = data
+            data = data_0[:-abs(n_offset)] * data[a_offset:] / (i+1)
+            n_offset += offset
+        out = Diag((out_data, out_oufsets), shape=matrix.shape, copy=False)
+
     return out
 
 

@@ -252,14 +252,16 @@ cpdef double complex expect_super_dense(Dense op, Dense state) nogil except *:
 
 cpdef double complex expect_diag(Diag op, Diag state) except *:
     cdef double complex expect = 0.
+    cdef idxint diag_bra, diag_op, diag_ket, i, length
+    cdef idxint start_op, start_state, end_op, end_state
     if state.shape[1] == 1:
         _check_shape_ket(op, state)
         # Since the ket is sparse and possibly unsorted. Taking the n'th
         # element of the state require a loop on the diags. Thus 3 loops are
         # needed.
         for diag_ket in range(state.num_diag):
-          if -state.offsets[diag_ket] >= op.shape[1]:
-            continue
+          #if -state.offsets[diag_ket] >= op.shape[1]:
+          #  continue
           for diag_bra in range(state.num_diag):
             for diag_op in range(op.num_diag):
               if state.offsets[diag_ket] - state.offsets[diag_bra] + op.offsets[diag_op] == 0:
@@ -321,7 +323,7 @@ cpdef double complex expect_diag_dense(Diag op, Dense state) except *:
 cpdef double complex expect_super_diag(Diag op, Diag state) except *:
     cdef double complex expect = 0.
     _check_shape_super(op, state)
-    cdef idxint diag_op, diag_right
+    cdef idxint diag_op, diag_state
     cdef idxint stride = <size_t> sqrt(state.shape[0]) + 1
     for diag_op in range(op.num_diag):
       for diag_state in range(state.num_diag):
