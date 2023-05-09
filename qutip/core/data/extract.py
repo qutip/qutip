@@ -1,4 +1,4 @@
-from . import dense, csr, Dense, CSR
+from . import Dense, CSR, Diag
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 try:
@@ -36,7 +36,7 @@ def extract_dense(matrix, format=None, copy=True):
 
 def extract_csr(matrix, format=None, copy=True):
     """
-    Return the scipy's object ``csr_array``.
+    Return the scipy's object ``csr_matrix``.
 
     Parameters
     ----------
@@ -45,7 +45,6 @@ def extract_csr(matrix, format=None, copy=True):
 
     format : str, {"csr_matrix"}
         Type of the output.
-        "csr_array" is available with scipy >= 1.8
 
     copy : bool, default: True
         Whether to pass a copy of the object or not.
@@ -58,6 +57,31 @@ def extract_csr(matrix, format=None, copy=True):
     if copy:
         csr_mat = csr_mat.copy()
     return csr_mat
+
+
+def extract_diag(matrix, format=None, copy=True):
+    """
+    Return the scipy's object ``dia_array``.
+
+    Parameters
+    ----------
+    matrix : Data
+        The matrix to convert to common type.
+
+    format : str, {"dia_matrix"}
+        Type of the output.
+
+    copy : bool, default: True
+        Whether to pass a copy of the object or not.
+    """
+    if format not in [None, "scipy_dia", "dia_matrix"]:
+        raise ValueError(
+            "Diag can only be extracted to 'dia_matrix'"
+        )
+    dia_mat = matrix.as_scipy()
+    if copy:
+        dia_mat = dia_mat.copy()
+    return dia_mat
 
 
 extract = _Dispatcher(
@@ -95,6 +119,7 @@ extract.__doc__ =\
     """
 extract.add_specialisations([
     (CSR, extract_csr),
+    (Diag, extract_diag),
     (Dense, extract_dense),
 ], _defer=True)
 
