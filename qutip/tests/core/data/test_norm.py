@@ -3,7 +3,7 @@ import numpy as np
 import scipy.linalg
 import pytest
 from qutip import data
-from qutip.core.data import CSR, Dense
+from qutip.core.data import CSR, Dense, Diag
 import numbers
 
 
@@ -13,6 +13,7 @@ class TestOneNorm(testing.UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.norm.one_csr, CSR, numbers.Number),
+        pytest.param(data.norm.one_diag, Diag, numbers.Number),
         pytest.param(data.norm.one_dense, Dense, numbers.Number),
     ]
 
@@ -23,6 +24,7 @@ class TestFrobeniusNorm(testing.UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.norm.frobenius_csr, CSR, numbers.Number),
+        pytest.param(data.norm.frobenius_diag, Diag, numbers.Number),
         pytest.param(data.norm.frobenius_dense, Dense, numbers.Number),
     ]
 
@@ -35,6 +37,7 @@ class TestMaxNorm(testing.UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.norm.max_csr, CSR, numbers.Number),
+        pytest.param(data.norm.max_diag, Diag, numbers.Number),
         pytest.param(data.norm.max_dense, Dense, numbers.Number),
     ]
 
@@ -55,6 +58,7 @@ class TestL2Norm(testing.UnaryOpMixin):
     ]
     specialisations = [
         pytest.param(data.norm.l2_csr, CSR, numbers.Number),
+        pytest.param(data.norm.l2_diag, Diag, numbers.Number),
         pytest.param(data.norm.l2_dense, Dense, numbers.Number),
     ]
 

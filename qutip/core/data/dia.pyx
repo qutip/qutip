@@ -308,6 +308,7 @@ cpdef Diag identity(base.idxint dimension, double complex scale=1):
 @cython.boundscheck(True)
 cpdef Diag from_dense(Dense matrix):
     cdef Diag out = empty(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1)
+    memset(out.data, 0, out._max_diag * out.shape[1] * sizeof(double complex))
     cdef size_t diag_, ptr_in, ptr_out=0, stride
     cdef row, col
 

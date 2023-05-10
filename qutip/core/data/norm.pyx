@@ -7,8 +7,9 @@ from cpython cimport mem
 
 from scipy.linalg cimport cython_blas as blas
 import scipy
+import numpy as np
 
-from qutip.core.data cimport CSR, Dense, csr, dense, Data
+from qutip.core.data cimport CSR, Dense, csr, Data, Diag
 
 from qutip.core.data.adjoint cimport adjoint_csr, adjoint_dense
 from qutip.core.data.matmul cimport matmul_csr
@@ -133,6 +134,45 @@ cpdef double l2_dense(Dense matrix) nogil except -1:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_dense(matrix)
 
+cpdef double frobenius_diag(Diag matrix) nogil:
+    cdef int offset, diag, start, end, col=1
+    cdef double total=0, cur
+    for diag in range(matrix.num_diag):
+        offset = matrix.offsets[diag]
+        start = int_max(0, offset)
+        end = min(matrix.shape[1], matrix.shape[0] + offset)
+        for col in range(start, end):
+            total += abssq(matrix.data[diag * matrix.shape[1] + col])
+    return math.sqrt(total)
+
+cpdef double l2_diag(Diag matrix) except -1 nogil:
+    if matrix.shape[0] != 1 and matrix.shape[1] != 1:
+        raise ValueError("L2 norm is only defined on vectors")
+    return frobenius_diag(matrix)
+
+cpdef double max_diag(Diag matrix) nogil:
+    cdef int offset, diag, start, end, col=1
+    cdef double total=0, cur
+    for diag in range(matrix.num_diag):
+        offset = matrix.offsets[diag]
+        start = int_max(0, offset)
+        end = min(matrix.shape[1], matrix.shape[0] + offset)
+        for col in range(start, end):
+            cur = abssq(matrix.data[diag * matrix.shape[1] + col])
+            total = cur if cur > total else total
+    return math.sqrt(total)
+
+cpdef double one_diag(Diag matrix) except -1:
+    cdef int offset, diag, start, end, col=1
+    cols_one = np.zeros(matrix.shape[1], dtype=float)
+    for diag in range(matrix.num_diag):
+        offset = matrix.offsets[diag]
+        start = int_max(0, offset)
+        end = min(matrix.shape[1], matrix.shape[0] + offset)
+        for col in range(start, end):
+            cols_one[col] += abs(matrix.data[diag * matrix.shape[1] + col])
+    return np.max(cols_one)
+
 
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
@@ -154,6 +194,7 @@ l2.__doc__ =\
     """
 l2.add_specialisations([
     (Dense, l2_dense),
+    (Diag, l2_diag),
     (CSR, l2_csr),
 ], _defer=True)
 
@@ -171,6 +212,7 @@ frobenius.__doc__ =\
     """
 frobenius.add_specialisations([
     (Dense, frobenius_dense),
+    (Diag, frobenius_diag),
     (CSR, frobenius_csr),
 ], _defer=True)
 
@@ -183,6 +225,7 @@ max.__doc__ =\
     """
 max.add_specialisations([
     (Dense, max_dense),
+    (Diag, max_diag),
     (CSR, max_csr),
 ], _defer=True)
 
@@ -195,6 +238,7 @@ one.__doc__ =\
     """
 one.add_specialisations([
     (Dense, one_dense),
+    (Diag, one_diag),
     (CSR, one_csr),
 ], _defer=True)
 
