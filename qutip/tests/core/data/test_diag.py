@@ -83,7 +83,7 @@ class TestClassMethods:
         the correct type.
         """
         sci = _valid_scipy()
-        data = sci.data.astype(d_type, casting='unsafe')
+        data = sci.data.real.astype(d_type, casting='unsafe')
         offsets = sci.offsets.astype(o_type, casting='unsafe')
         scipy_dia = scipy.sparse.dia_matrix((data, offsets), shape=sci.shape)
         out = dia.Diag((data, offsets), shape=sci.shape)

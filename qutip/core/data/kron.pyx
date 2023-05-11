@@ -67,11 +67,15 @@ cpdef CSR kron_csr(CSR left, CSR right):
     return out
 
 
-cdef inline void _vec_kron(double complex * ptr_l, double complex * ptr_r, double complex * ptr_out, idxint size_l, idxint size_r) nogil:
+cdef inline void _vec_kron(
+    double complex * ptr_l, double complex * ptr_r, double complex * ptr_out,
+    idxint size_l, idxint size_r, idxint step
+):
     cdef idxint i, j
+    print(size_l, size_r, step)
     for i in range(size_l):
         for j in range(size_r):
-            ptr_out[i*size_r+j] = ptr_l[i] * ptr_r[j]
+            ptr_out[i*step+j] = ptr_l[i] * ptr_r[j]
 
 
 cpdef Diag kron_diag(Diag left, Diag right):
@@ -86,17 +90,25 @@ cpdef Diag kron_diag(Diag left, Diag right):
 
     if right.shape[0] == right.shape[1]:
         out = dia.empty(nrows, ncols, max_diag)
+        memset(
+            out.data, 0,
+            max_diag * out.shape[1] * sizeof(double complex)
+        )
         for diag_left in range(left.num_diag):
             for diag_right in range(right.num_diag):
                 out.offsets[num_diag] = (
                     left.offsets[diag_left] * right.shape[0]
                     + right.offsets[diag_right]
                 )
+                start_left = max(0, left.offsets[diag_left])
+                end_left = min(left.shape[1], left.offsets[diag_left] + left.shape[0])
                 _vec_kron(
-                    left.data + (diag_left * ncols_l),
-                    right.data + (diag_right * ncols_r),
-                    out.data + (num_diag * ncols),
-                    left.shape[1], right.shape[1]
+                    left.data + (diag_left * ncols_l) + max(0, left.offsets[diag_left]),
+                    right.data + (diag_right * ncols_r) + max(0, right.offsets[diag_right]),
+                    out.data + (num_diag * ncols) + max(0, left.offsets[diag_left]) * right.shape[0] + max(0, right.offsets[diag_right]),
+                    end_left - start_left,
+                    right.shape[1] - abs(right.offsets[diag_right]),
+                    right.shape[1]
                 )
                 num_diag += 1
 

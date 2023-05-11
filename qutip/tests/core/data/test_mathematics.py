@@ -891,6 +891,8 @@ class TestPow(UnaryOpMixin):
             op(data_m(), 10)
 
 
+# Scipy complain went creating full dia matrix.
+@pytest.mark.filterwarnings("ignore:Constructing a DIA matrix")
 class TestExpm(UnaryOpMixin):
     def op_numpy(self, matrix):
         return scipy.linalg.expm(matrix)
