@@ -303,7 +303,7 @@ The only difference is how the collapse operators and rate functions should be d
 Note that we give the actual rate and not its square root, and that ``nm_mcsolve`` automatically computes associated jump rates :math:`\Gamma_n(t)\geq0` appropriate for simulation.
 
 We conclude with a simple example demonstrating the usage of the ``nm_mcsolve`` function.
-For more elaborate, physically motivated examples, we refer to the accompanying tutorial notebook [TODO].
+For more elaborate, physically motivated examples, we refer to the `accompanying tutorial notebook <https://github.com/qutip/qutip-tutorials/blob/main/tutorials-v5/time-evolution/013_nonmarkovian_monte_carlo.md>`_.
 
 
 .. plot::
