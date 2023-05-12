@@ -62,6 +62,56 @@ def test_rough_agreement_with_mesolve_for_negative_rates():
     )
 
 
+def test_completeness_relation():
+    """
+    NonMarkovianMCSolver guarantees that the operators in solver.ops
+    satisfy the completeness relation ``sum(Li.dag() * Li) = a*I`` where a is a
+    constant and I the identity.
+    """
+    # some arbitrary H
+    H = qutip.sigmaz()
+    ground_state = qutip.basis(2, 1)
+    # test using all combinations of the following operators
+    from itertools import combinations
+    all_ops_and_rates = [
+        (qutip.sigmap(), 1),
+        (qutip.sigmam(), 1),
+        (qutip.sigmaz(), 1),
+        (1j * qutip.qeye(2), 1),
+    ]
+    # empty ops_and_rates not allowed
+    for n in range(1, len(all_ops_and_rates) + 1):
+        for ops_and_rates in combinations(all_ops_and_rates, n):
+            solver = NonMarkovianMCSolver(H, ops_and_rates)
+            op = sum((L.dag() * L) for L in solver.ops)
+            a_candidate = qutip.expect(op, ground_state)
+            assert op == a_candidate * qutip.qeye(op.dims[0])
+
+
+def test_solver_pickleable():
+    """
+    NonMarkovianMCSolver objects must be pickleable for multiprocessing.
+    """
+    import pickle
+    # arbitrary Hamiltonian and Lindblad operator
+    H = qutip.sigmaz()
+    L = qutip.sigmam()
+    # try various types of coefficient functions
+    rates = [
+        0,
+        _return_constant,
+        "sin(t)",
+    ]
+    args = [
+        None,
+        {'constant': 1},
+        None,
+    ]
+    for rate, arg in zip(rates, args):
+        solver = NonMarkovianMCSolver(H, [(L, rate)], args=arg)
+        pickle.dumps(solver)
+
+
 def _return_constant(t, args):
     return args['constant']
 
