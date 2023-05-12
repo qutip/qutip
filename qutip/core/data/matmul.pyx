@@ -24,6 +24,7 @@ from qutip.core.data.dia cimport Diag
 from qutip.core.data.tidyup cimport tidyup_diag
 from qutip.core.data cimport csr, dense, dia
 from qutip.core.data.add cimport iadd_dense, add_csr
+from qutip.core.data.mul cimport imul_dense
 from qutip.core.data.dense import OrderEfficiencyWarning
 
 cnp.import_array()
@@ -40,6 +41,12 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
         double complex *data, T *col_index, T *row_index,
         double complex *vec, double complex scale, double complex *out,
         T nrows)
+
+cdef extern from "src/matmul_diag_vector.hpp" nogil:
+    void _matmul_diag_vector[T](
+        double complex *data, double complex *vec, double complex *out,
+        T length, double complex scale)
+
 
 __all__ = [
     'matmul', 'matmul_csr', 'matmul_dense', 'matmul_diag',
@@ -356,18 +363,46 @@ cpdef Diag matmul_diag(Diag left, Diag right, double complex scale=1):
 
 cpdef Dense matmul_diag_dense_dense(Diag left, Dense right, double complex scale=1, Dense out=None):
     _check_shape(left, right, out)
-    if out is None:
-        out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
-    cdef idxint start_left, end_left, start_out, end_out, length, i
+    cdef Dense tmp
+    if out is not None and scale == 1.:
+        tmp = out
+        out = None
+    else:
+        tmp = dense.zeros(left.shape[0], right.shape[1], right.fortran)
+
+    cdef idxint start_left, end_left, start_out, end_out, length, i, start_right
     cdef idxint col, strideR_in, strideC_in, strideR_out, strideC_out
     cdef size_t diag
 
     with nogil:
-        strideR_in = right.shape[1] if not right.fortran else 1
-        strideC_in = right.shape[0] if right.fortran else 1
-        strideR_out = out.shape[1] if not out.fortran else 1
-        strideC_out = out.shape[0] if out.fortran else 1
+      strideR_in = right.shape[1] if not right.fortran else 1
+      strideC_in = right.shape[0] if right.fortran else 1
+      strideR_out = tmp.shape[1] if not tmp.fortran else 1
+      strideC_out = tmp.shape[0] if tmp.fortran else 1
 
+      if (strideR_in == 1) and (strideR_out == 1):
+        for col in range(right.shape[1]):
+          for diag in range(left.num_diag):
+            start_left = max(0, left.offsets[diag])
+            end_left = min(left.shape[1], left.shape[0] + left.offsets[diag])
+            start_out = max(0, -left.offsets[diag])
+            end_out = min(left.shape[0], left.shape[1] - left.offsets[diag])
+            length = min(end_left - start_left, end_out - start_out)
+            start_right = start_left + col * strideC_in
+            start_left += diag * left.shape[1]
+            start_out += col * strideC_out
+            _matmul_diag_vector(
+                left.data + start_left,
+                right.data + start_right,
+                tmp.data + start_out,
+                length, 1.
+            )
+            # for i in range(length):
+            #   tmp.data[start_out + i] += (
+            #     left.data[start_left + i] * right.data[start_right + i]
+            #   )
+
+      else:
         for col in range(right.shape[1]):
           for diag in range(left.num_diag):
             start_left = max(0, left.offsets[diag])
@@ -376,11 +411,19 @@ cpdef Dense matmul_diag_dense_dense(Diag left, Dense right, double complex scale
             end_out = min(left.shape[0], left.shape[1] - left.offsets[diag])
             length = min(end_left - start_left, end_out - start_out)
             for i in range(length):
-              out.data[(start_out + i) * strideR_out + col * strideC_out] += (
-                scale
-                * left.data[diag * left.shape[1] + i + start_left]
+              tmp.data[(start_out + i) * strideR_out + col * strideC_out] += (
+                left.data[diag * left.shape[1] + i + start_left]
                 * right.data[(start_left + i) * strideR_in + col * strideC_in]
               )
+
+    if out is None and scale == 1.:
+        out = tmp
+    elif out is None:
+        imul_dense(tmp, scale)
+        out = tmp
+    else:
+        iadd_dense(out, tmp, scale)
+
     return out
 
 
