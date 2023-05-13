@@ -11,7 +11,7 @@ __all__ = [
 import numpy.ma as ma
 import scipy as scp
 import itertools as itertools
-
+import math
 from ..core import stack_columns
 import numpy as np
 from qutip.core import data as _data
@@ -612,13 +612,16 @@ def _floquet_rate_matrix(floquet_basis,tlist,c_ops,c_op_rates,omega,time_sense=0
     '''
     def delta(a,ap,b,bp,l,lp):
         return ((floquet_basis.e_quasi[a]-floquet_basis.e_quasi[ap]) 
-               -(floquet_basis.e_quasi[b]-floquet_basis.e_quasi[bp])
-               +(l-lp))/(list(omega.values())[0]/2)
+               -(floquet_basis.e_quasi[b]-floquet_basis.e_quasi[bp]))/(list(omega.values())[0]/2)\
+               +(l-lp)
+    
+   
     
     Nt = len(tlist)
     Hdim = len(floquet_basis.e_quasi)
     
-    Rate_matrix_list = []
+    total_R_tensor = {}
+    
     for cdx, c_op in enumerate(c_ops):
         
         '''
@@ -639,69 +642,54 @@ def _floquet_rate_matrix(floquet_basis,tlist,c_ops,c_op_rates,omega,time_sense=0
         c_op_Fourier_amplitudes_list = np.array(scp.fft.fft(c_op_Floquet_basis,axis=0)/len(tlist))
         
         '''
-        The loops over n,m,p,q are to set the n,m,p,q elements of the R matrix for a 
-            given time dependence. The other loops are to do sums within those elements.
-            The Full form of the FLime as written here can be found on the "Matrix Form 
-            FLiME" OneNote page on my report tab. Too much to explain it here!
-        
+        Next, I want to find all rate-product terms that are nonzero
         '''
-        #Iterating over all possible l, lp
-        iterations_test_list_back = [Hdx for Hdx in itertools.product(range(0,len(tlist)),
-                                                                 repeat = 2)]  
-        #Iterating over all possible iterations of A,AP,B,BP
-        iterations_test_list = [Hdx for Hdx in itertools.product(range(0,Hdim),
-                                                                 repeat = 4)] 
-        
-        full_iterations_test_list = [(*x,*y) for x in  iterations_test_list for y in iterations_test_list_back]
-        #Finding the actual time dependance (as a function)
-        time_dependence_list = [delta(*test_itx) for test_itx in full_iterations_test_list]
-        
-        #Recovering the indices of valid time arguments
-        valid_TDXs = (~ma.getmaskarray(ma.masked_where(
-                        np.absolute(time_dependence_list)>time_sense,time_dependence_list))).nonzero()[0]         
-        
+        rate_products = np.einsum('lab,kcd->abcdlk',c_op_Fourier_amplitudes_list,np.conj(c_op_Fourier_amplitudes_list))
+        rate_products_idx = np.argwhere(rate_products > 1e-6)
         
 
-        #creates a list tuples that are the valid (a,b,ap,bp,l,lp) indices to construct R(t) with the given secular constraint
-        valid_time_dependence_summation_index_values = [tuple(full_iterations_test_list[valid_index]) for valid_index in valid_TDXs]     
         
-        c_op_R_tensor = {} #Time to build R(t). Creating an empty dictionary.
-        for vdx, vals in enumerate(valid_time_dependence_summation_index_values): #For every entry in the list of tuples, create R(t)
-            a  = vals[0]
-            ap = vals[1]
-            b  = vals[2]
-            bp = vals[3]
-            l  = vals[4]
-            lp = vals[5]
-            
-            R_slice = np.zeros((Hdim**2,Hdim**2),dtype = complex)  
-            for idx in np.ndindex(Hdim,Hdim,Hdim,Hdim): #iterating over the indices of R_slice to set each value. Should figure out something faster later
-                m = idx[0]
-                n = idx[1]
-                p = idx[2]
-                q = idx[3]
+        valid_indices= [tuple(indices) for indices in rate_products_idx if delta(*tuple(indices)) == 0
+                        or abs((rate_products[tuple(indices)]/delta(*tuple(indices)))**(-1)) <= time_sense]
+        
+          
+        delta_dict = {}
+        for indices in valid_indices:
+            try:
+                delta_dict[delta(*indices)].append(indices)
+            except KeyError:
+                delta_dict[delta(*indices)] = [indices]
                 
-                R_slice[m+Hdim*n,p+Hdim*q] =                                       \
-                   c_op_Fourier_amplitudes_list[l,a,b]*np.conj(c_op_Fourier_amplitudes_list[lp,ap,bp])*c_op_rates[cdx]*                          \
-                                ( kron(m, a) * kron(n,ap) * kron(p,b) * kron(q,bp) \
-                            -(1/2)*kron(a,ap) * kron(m,bp) * kron(p,b) * kron(q, n) \
-                            -(1/2)*kron(a,ap) * kron(n, b) * kron(p,m) * kron(q,bp))
+        for key in delta_dict.keys():
+            mask_array = np.zeros((Hdim,Hdim,Hdim,Hdim,Nt,Nt))
+            for indices in delta_dict[key]:
+                mask_array[indices]=True
+                
+            valid_c_op_products =  rate_products*mask_array
             
-            try:
-                c_op_R_tensor[time_dependence_list[valid_TDXs[vdx]]] += R_slice  #If this time-dependence entry already exists, add this "slice" to it
-            except KeyError:
-                c_op_R_tensor[time_dependence_list[valid_TDXs[vdx]]]  = R_slice   #If this time-dependence entry doesn't already exist, make it
-    
-        Rate_matrix_list.append(c_op_R_tensor)
-        
-        
-    total_R_tensor = {}
-    for Rdic_idx in Rate_matrix_list:
-        for key in Rdic_idx:
-            try:
-                total_R_tensor[key] += Rdic_idx[key]  #If this time-dependence entry already exists, add this "slice" to it
-            except KeyError:
-                total_R_tensor[key]  = Rdic_idx[key]   #If this time-dependence entry doesn't already exist, make it
+            #using c = ap, d = bp, k=lp
+            flime_FirstTerm = c_op_rates[cdx]*np.einsum('abcdlk,ma,nc,pb,qd->mnpq',
+                                           valid_c_op_products, 
+                                           np.eye(Hdim,Hdim), 
+                                           np.eye(Hdim,Hdim), 
+                                           np.eye(Hdim,Hdim), 
+                                           np.eye(Hdim,Hdim))
+            
+            flime_SecondTerm = c_op_rates[cdx]*np.einsum('abcdlk,ac,md,pb,qn->mnpq', 
+                                         valid_c_op_products,
+                                         np.eye(Hdim,Hdim), 
+                                         np.eye(Hdim,Hdim), 
+                                         np.eye(Hdim,Hdim), 
+                                         np.eye(Hdim,Hdim))
+
+            flime_ThirdTerm = c_op_rates[cdx]*np.einsum('abcdlk,ac,nb,pm,qd->mnpq',
+                                        valid_c_op_products,
+                                        np.eye(Hdim,Hdim), 
+                                        np.eye(Hdim,Hdim), 
+                                        np.eye(Hdim,Hdim), 
+                                        np.eye(Hdim,Hdim))
+            
+            total_R_tensor[key] = np.reshape(flime_FirstTerm-(1/2)*(flime_SecondTerm+flime_ThirdTerm),(Hdim**2,Hdim**2))
         
     return total_R_tensor
 
@@ -1167,8 +1155,6 @@ class FLiMESolver(MESolver):
         state0 = operator_to_vector(state0*state0.dag())
         state1 = state0.full()
 
-        
- 
         quasi_e_table = np.exp(np.einsum('i,k -> ki',-1j*self.floquet_basis.e_quasi,taulist) )
         
 
@@ -1178,45 +1164,14 @@ class FLiMESolver(MESolver):
             tiled_modes.append(fmodes_table)
         tiled_modes = np.concatenate(tiled_modes)
 
-        
-     
-
         fstates_table = np.einsum('ijk,ij->ikj',tiled_modes, quasi_e_table  )
-        # fstates_table_old =  np.stack([(np.stack([self.floquet_basis.state(t)[i].full() for i in range(dims[0])]))[...,0].T for t in taulist])
-        # fstates_table =  np.stack([(np.stack([tiled_modes[i,k]*quasi_e_table[i,k] for k in range(dims[0])]).T) for i,t in enumerate(taulist)])
-       
-        # import matplotlib.pyplot as plt
-        # fig, ax = plt.subplots(2,2)    
-        # ax[0,0].plot(fstates_table_old[:,0,0],linestyle='--')
-        # ax[0,0].plot(fstates_table[:,0,0])
-        # ax[1,0].plot(fstates_table_old[:,1,0],linestyle='--')
-        # ax[1,0].plot(fstates_table[:,1,0])
-        # ax[0,1].plot(fstates_table_old[:,0,1],linestyle='--')
-        # ax[0,1].plot(fstates_table[:,0,1])
-        # ax[1,1].plot(fstates_table_old[:,1,1],linestyle='--')
-        # ax[1,1].plot(fstates_table[:,1,1])
-     
-        
-        sols = np.reshape(np.einsum('...jk,kz->...jz',self.sol_coeffs, state1),[len(taulist),dims[0],dims[0]],order='F')
 
-        
-        
-        
-        
-        # sols = ([vector_to_operator(Qobj(self.sol_coeffs[idx] @ state1,dims=state0.dims,type='operator-ket'))
-        #             for idx,t in enumerate(taulist)])
-        # sols = np.stack([i.full() for i in sols])
+        sols = np.reshape(np.einsum('...jk,kz->...jz',self.sol_coeffs, state1),[len(taulist),dims[0],dims[0]],order='F')
+     
         sols_comp = fstates_table @ sols @ np.transpose(fstates_table.conj(),axes=(0,2,1))
 
         sols_comp = [Qobj(sols_comp[i]) for i in range(len(sols_comp))]
-        # for idx, t in enumerate(taulist):
-        #     results.compadd(t, Qobj(sols_comp[idx]))
-        # statsq["run time"] = time()-_time_start_solve#+self.added_time
        
-        
-        
-        # for idx, t in enumerate(taulist):
-        #     results.add(t, Qobj(sols[idx]))
         results.times = taulist
         results.states = sols_comp
         statsq["run time"] = time()-_time_start_solve
