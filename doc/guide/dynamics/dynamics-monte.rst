@@ -341,7 +341,6 @@ For more elaborate, physically motivated examples, we refer to the `accompanying
     :context: reset
 
     import qutip as qt
-    import numpy as np
 
     times = np.linspace(0, 1, 201)
     psi0 = qt.basis(2, 1)
@@ -349,25 +348,24 @@ For more elaborate, physically motivated examples, we refer to the `accompanying
     H = a0.dag() * a0
 
     # Rate functions
-    kappa = 1.0 / 0.129
-    nth = 0.063
-    def gamma1(t):
-            return kappa * nth
-    def gamma2(t): # becomes negative at times
-            return kappa * (nth+1) + 12 * np.exp(-2*t**3) * (-np.sin(15*t)**2)
+    gamma1 = "kappa * nth"
+    gamma2 = "kappa * (nth+1) + 12 * np.exp(-2*t**3) * (-np.sin(15*t)**2)"
+    # gamma2 becomes negative during some time intervals
 
     # nm_mcsolve integration
     ops_and_rates = []
     ops_and_rates.append([a0.dag(), gamma1])
     ops_and_rates.append([a0,       gamma2])
     MCSol = qt.nm_mcsolve(H, psi0, times, ops_and_rates,
+                          args={'kappa': 1.0 / 0.129, 'nth': 0.063},
                           e_ops=[a0.dag() * a0, a0 * a0.dag()],
                           options={'map': 'parallel'}, ntraj=2500)
 
     # mesolve integration for comparison
     d_ops = [[qt.lindblad_dissipator(a0.dag(), a0.dag()), gamma1],
              [qt.lindblad_dissipator(a0, a0),             gamma2]]
-    MESol = qt.mesolve(H, psi0, times, d_ops, e_ops=[a0.dag() * a0, a0 * a0.dag()])
+    MESol = qt.mesolve(H, psi0, times, d_ops, e_ops=[a0.dag() * a0, a0 * a0.dag()],
+                       args={'kappa': 1.0 / 0.129, 'nth': 0.063})
 
     plt.figure()
     plt.plot(times, MCSol.expect[0], 'g',
