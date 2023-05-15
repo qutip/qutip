@@ -1226,3 +1226,32 @@ def test_groundstate():
     with pytest.warns(UserWarning) as warning:
         qutip.qeye(5).groundstate()
     assert "degenerate" in warning[0].message.args[0]
+
+
+@pytest.mark.filterwarnings(
+    "ignore::scipy.sparse.SparseEfficiencyWarning"
+)
+def test_data_as():
+    qobj = qutip.qeye(2, dtype="CSR")
+
+    assert scipy.sparse.isspmatrix_csr(qobj.data_as("csr_matrix"))
+    assert scipy.sparse.isspmatrix_csr(qobj.data_as(copy=False))
+    with pytest.raises(ValueError) as err:
+        qobj.data_as("ndarray")
+    assert "csr_matrix" in str(err.value)
+
+    qobj.data_as(copy=False)[0, 0] = 0
+    qobj.data_as(copy=True)[0, 1] = 2
+    assert qobj == qutip.num(2, dtype="CSR")
+
+    qobj = qutip.qeye(2, dtype="Dense")
+
+    assert isinstance(qobj.data_as("ndarray"), np.ndarray)
+    assert isinstance(qobj.data_as(copy=False), np.ndarray)
+
+    qobj.data_as(copy=False)[0, 0] = 0
+    qobj.data_as(copy=True)[0, 1] = 2
+    assert qobj == qutip.num(2, dtype="Dense")
+    with pytest.raises(ValueError) as err:
+        qobj.data_as("csr_matrix")
+    assert "ndarray" in str(err.value)

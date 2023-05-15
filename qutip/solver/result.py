@@ -1,6 +1,6 @@
 """ Class for solve function results"""
 import numpy as np
-from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero
+from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero, qzero_like
 
 __all__ = ["Result", "MultiTrajResult", "McResult", "NmmcResult"]
 
@@ -486,11 +486,11 @@ class MultiTrajResult(_BaseResult):
 
         if trajectory.states:
             state = trajectory.states[0]
-            self._sum_states = [qzero(state.dims[0])
+            self._sum_states = [qzero_like(self._to_dm(state))
                                 for state in trajectory.states]
         if trajectory.final_state:
             state = trajectory.final_state
-            self._sum_final_states = qzero(state.dims[0])
+            self._sum_final_states = qzero_like(self._to_dm(state))
 
         self._sum_expect = [
             np.zeros_like(expect) for expect in trajectory.expect

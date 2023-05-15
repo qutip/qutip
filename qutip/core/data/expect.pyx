@@ -254,8 +254,8 @@ import inspect as _inspect
 
 expect = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('op', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('op', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='expect',
     module=__name__,
@@ -280,8 +280,8 @@ expect.add_specialisations([
 
 expect_super = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('op', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('op', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='expect_super',
     module=__name__,

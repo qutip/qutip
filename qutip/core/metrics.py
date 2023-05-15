@@ -17,7 +17,7 @@ import scipy.sparse as sp
 from .superop_reps import (to_kraus, to_choi, _to_superpauli, to_super,
                            kraus_to_choi)
 from .superoperator import operator_to_vector, vector_to_operator
-from .operators import qeye
+from .operators import qeye, qeye_like
 from .states import ket2dm
 from .semidefinite import dnorm_problem, dnorm_sparse_problem
 from . import data as _data
@@ -494,7 +494,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     ):
         # Make an identity the same size as A and B to
         # compare against.
-        I = qeye(A.dims[0])
+        I = qeye_like(A)
         # Compare to B first, so that an error is raised
         # as soon as possible.
         Bd = B.dag()

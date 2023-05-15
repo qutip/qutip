@@ -4,7 +4,7 @@ from operator import mul
 
 import numpy as np
 import scipy.sparse as sp
-from . import Qobj, qeye, sigmax, fock_dm, qdiags
+from . import Qobj, qeye, sigmax, fock_dm, qdiags, qeye_like
 
 
 __all__ = [
@@ -690,7 +690,7 @@ def _powers(op, N):
     Generator that yields powers of an operator `op`,
     through to `N`.
     """
-    acc = qeye(op.dims[0])
+    acc = qeye_like(op)
     yield acc
 
     for _ in range(N - 1):

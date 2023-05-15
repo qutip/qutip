@@ -119,7 +119,7 @@ import inspect as _inspect
 
 project = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='project',
     module=__name__,
