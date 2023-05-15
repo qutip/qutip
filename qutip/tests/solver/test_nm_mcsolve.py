@@ -7,7 +7,7 @@ import qutip
 from qutip.solver.nm_mcsolve import nm_mcsolve, NonMarkovianMCSolver
 
 
-def test_rough_agreement_with_mesolve_for_negative_rates():
+def test_agreement_with_mesolve_for_negative_rates():
     """
     A rough test that nm_mcsolve agress with mesolve in the
     presence of negative rates.
@@ -109,7 +109,22 @@ def test_solver_pickleable():
     ]
     for rate, arg in zip(rates, args):
         solver = NonMarkovianMCSolver(H, [(L, rate)], args=arg)
-        pickle.dumps(solver)
+        jar = pickle.dumps(solver)
+
+        loaded_solver = pickle.loads(jar)
+        assert len(solver.ops) == len(loaded_solver.ops)
+        for i in range(len(solver.ops)):
+            assert solver.ops[i] == loaded_solver.ops[i]
+            _assert_functions_equal(lambda t: solver.rate(t, i),
+                                    lambda t: loaded_solver.rate(t, i))
+        _assert_functions_equal(solver.rate_shift, loaded_solver.rate_shift)
+
+
+def _assert_functions_equal(f1, f2):
+    times = np.linspace(0, 1)
+    values1 = [f1(t) for t in times]
+    values2 = [f2(t) for t in times]
+    np.testing.assert_allclose(values1, values2)
 
 
 def _return_constant(t, args):
