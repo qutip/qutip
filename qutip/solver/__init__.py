@@ -5,6 +5,7 @@ from .integrator import IntegratorException
 from .sesolve import *
 from .mesolve import *
 from .mcsolve import *
+from .nm_mcsolve import *
 from .propagator import *
 from .scattering import *
 from .correlation import *

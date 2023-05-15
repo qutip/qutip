@@ -4,11 +4,10 @@ import qutip
 import numpy as np
 import scipy.interpolate as interp
 from functools import partial
-from qutip.core.coefficient import (coefficient, norm, conj,
+from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     CompilationOptions, Coefficient,
                                     clean_compiled_coefficient
-                                   )
-from qutip.core.options import CoreOptions
+                                    )
 
 # Ensure the latest version is tested
 clean_compiled_coefficient(True)
@@ -94,6 +93,8 @@ def coeff_generator(style, func):
     if style == "steparraylog":
         return coefficient(base(tlistlog, **args), tlist=tlistlog,
                            order=0)
+    if style == "const":
+        return const(2.0)
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -164,7 +165,8 @@ def test_CoeffCallArguments(base, tol):
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['transform', 'expected'], [
     pytest.param(norm, lambda val: np.abs(val)**2, id="norm"),
@@ -175,13 +177,19 @@ def test_CoeffUnitaryTransform(style, transform, expected):
     _assert_eq_over_interval(transform(coeff), lambda t: expected(coeff(t)))
 
 
+def test_ConstantCoefficient():
+    coeff = const(5.1)
+    _assert_eq_over_interval(coeff, lambda t: 5.1)
+
+
 @pytest.mark.parametrize(['style_left'], [
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['style_right'], [
     pytest.param("func", id="func"),
@@ -189,7 +197,8 @@ def test_CoeffUnitaryTransform(style, transform, expected):
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['oper'], [
     pytest.param(lambda a, b: a+b, id="sum"),
@@ -301,7 +310,8 @@ def _mul(coeff):
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['transform'], [
     pytest.param(_pass, id="single"),
@@ -323,7 +333,8 @@ def test_Coeffpickle(style, transform):
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['transform'], [
     pytest.param(_pass, id="single"),

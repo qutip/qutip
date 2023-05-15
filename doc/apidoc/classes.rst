@@ -41,8 +41,8 @@ Distributions
 
 .. _classes-solver:
 
-Solver
-------
+Solvers
+-------
 
 .. autoclass:: qutip.solver.sesolve.SESolver
     :members:
@@ -59,6 +59,18 @@ Solver
 .. autoclass:: qutip.solver.stochastic.SSESolver
     :members:
 
+
+
+.. _classes-monte-carlo-solver:
+
+Monte Carlo Solvers
+-------------------
+
+.. autoclass:: qutip.solver.mcsolve.MCSolver
+    :members:
+
+.. autoclass:: qutip.solver.nm_mcsolve.NonMarkovianMCSolver
+    :members:
 
 
 .. _classes-non_markov_heom:

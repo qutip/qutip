@@ -10,7 +10,6 @@ import glob
 import importlib
 import warnings
 import numbers
-from contextlib import contextmanager
 from collections import defaultdict
 from setuptools import setup, Extension
 try:
@@ -24,7 +23,7 @@ from .options import QutipOptions
 from .data import Data
 from .cy.coefficient import (
     Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
-    ConjCoefficient, NormCoefficient
+    ConjCoefficient, NormCoefficient, ConstantCoefficient
 )
 
 
@@ -189,6 +188,12 @@ def conj(coeff):
     """ return a Coefficient with is the conjugate.
     """
     return ConjCoefficient(coeff)
+
+
+def const(value):
+    """ return a Coefficient with a constant value.
+    """
+    return ConstantCoefficient(value)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -379,7 +384,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None, **_):
         # Previously compiled coefficient not available: create the cython code
         code = make_cy_code(parsed, variables, constants,
                             raw, compile_opt)
-        try :
+        try:
             coeff = compile_code(code, file_name, parsed, compile_opt)
         except PermissionError:
             pass
@@ -771,6 +776,6 @@ def test_parsed(code, variables, constants, args):
     loc_env = {"t": 0, 'self': DummySelf}
     try:
         exec(code, str_env, loc_env)
-    except Exception as e:
+    except Exception:
         return False
     return True
