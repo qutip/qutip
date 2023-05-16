@@ -12,6 +12,7 @@
 
 from qutip.core.data cimport base
 from qutip.core.data.dense cimport Dense
+from qutip.core.data.csr cimport CSR
 
 cdef class Diag(base.Data):
     cdef double complex *data
@@ -32,5 +33,5 @@ cpdef Diag empty_like(Diag other)
 cpdef Diag zeros(base.idxint rows, base.idxint cols)
 cpdef Diag identity(base.idxint dimension, double complex scale=*)
 cpdef Diag from_dense(Dense matrix)
-cpdef Dense to_dense(Diag matrix)
+cpdef Diag from_csr(CSR matrix)
 cpdef Diag clean_diag(Diag matrix, bint inplace=*)

@@ -61,7 +61,7 @@ def extract_csr(matrix, format=None, copy=True):
 
 def extract_diag(matrix, format=None, copy=True):
     """
-    Return the scipy's object ``dia_array``.
+    Return the scipy's object ``dia_matrix``.
 
     Parameters
     ----------

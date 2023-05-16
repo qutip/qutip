@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from scipy import sparse
 from qutip import data
+from .test_mathematics import UnaryOpMixin
 
 
 def test_init_empty_data():
@@ -87,3 +88,17 @@ def test_parse_error(input, error, msg):
     with pytest.raises(error) as exc:
         data.to.parse(input)
     assert str(exc.value) == msg
+
+
+class TestConvert(UnaryOpMixin):
+    def op_numpy(self, mat):
+        return mat
+
+    specialisations = [
+        pytest.param(data.dense.from_csr, data.CSR, data.Dense),
+        pytest.param(data.dense.from_diag, data.Diag, data.Dense),
+        pytest.param(data.csr.from_dense, data.Dense, data.CSR),
+        pytest.param(data.csr.from_diag, data.Diag, data.CSR),
+        pytest.param(data.dia.from_dense, data.Dense, data.Diag),
+        pytest.param(data.dia.from_csr, data.CSR, data.Diag),
+    ]

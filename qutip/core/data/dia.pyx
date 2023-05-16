@@ -16,7 +16,7 @@ import warnings
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
-from scipy.sparse import dia_array as scipy_dia_array
+from scipy.sparse import dia_matrix as scipy_dia_matrix
 try:
     from scipy.sparse.data import _data_matrix as scipy_data_matrix
 except ImportError:
@@ -24,7 +24,7 @@ except ImportError:
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport base, Dense
+from qutip.core.data cimport base, Dense, CSR
 from qutip.core.data.adjoint import adjoint_diag, transpose_diag, conj_diag
 from qutip.core.data.trace import trace_diag
 from qutip.core.data.tidyup import tidyup_diag
@@ -46,7 +46,7 @@ cdef object _dia_matrix(data, offsets, shape):
     because this takes tens of microseconds, and we already know we're in
     a sensible format.
     """
-    cdef object out = scipy_dia_array.__new__(scipy_dia_array)
+    cdef object out = scipy_dia_matrix.__new__(scipy_dia_matrix)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
     scipy_data_matrix.__init__(out)
@@ -328,8 +328,19 @@ cpdef Diag from_dense(Dense matrix):
     return out
 
 
-cpdef Dense to_dense(Diag matrix):
-    return Dense(matrix.to_array(), copy=False)
+cpdef Diag from_csr(CSR matrix):
+    out_diag = set()
+    for row in range(matrix.shape[0]):
+        for ptr in range(matrix.row_index[row], matrix.row_index[row+1]):
+            out_diag.add(matrix.col_index[ptr] - row)
+    data = np.zeros((len(out_diag), matrix.shape[1]), dtype=complex)
+    diags = np.sort(np.fromiter(out_diag, idxint_dtype, len(out_diag)))
+    for row in range(matrix.shape[0]):
+        for ptr in range(matrix.row_index[row], matrix.row_index[row+1]):
+            diag = matrix.col_index[ptr] - row
+            idx = np.searchsorted(diags, diag)
+            data[idx, matrix.col_index[ptr]] = matrix.data[ptr]
+    return Diag((data, diags), shape=matrix.shape, copy=False)
 
 
 cpdef Diag clean_diag(Diag matrix, bint inplace=False):

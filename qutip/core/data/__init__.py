@@ -39,7 +39,9 @@ to.add_conversions([
     (Dense, CSR, dense.from_csr, 1),
     (CSR, Dense, csr.from_dense, 1.4),
     (Diag, Dense, dia.from_dense, 1.4),
-    (Dense, Diag, dia.to_dense, 1),
+    (Dense, Diag, dense.from_diag, 1.2),
+    (Diag, CSR, dia.from_csr, 1),
+    (CSR, Diag, csr.from_diag, 1),
 ])
 to.register_aliases(['csr', 'CSR'], CSR)
 to.register_aliases(['Dense', 'dense'], Dense)

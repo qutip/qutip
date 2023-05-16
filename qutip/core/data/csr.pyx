@@ -24,7 +24,7 @@ except ImportError:
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport base, Dense
+from qutip.core.data cimport base, Dense, Diag
 from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
 from qutip.core.data.trace cimport trace_csr
 from qutip.core.data.tidyup cimport tidyup_csr
@@ -637,6 +637,32 @@ cdef CSR from_coo_pointers(
     mem.PyMem_Free(cols_tmp)
     acc_free(&acc)
     return out
+
+
+cpdef CSR from_diag(Diag matrix):
+    if matrix.num_diag == 0:
+        return zeros(*matrix.shape)
+    mat = matrix.as_scipy()
+    ordered = np.argsort(mat.offsets)
+    nnz = len(mat.offsets) * max(mat.shape)
+    ptrs = np.zeros(mat.shape[0]+1, dtype=idxint_dtype)
+    indices = np.zeros(nnz, dtype=idxint_dtype)
+    data = np.zeros(nnz, dtype=complex)
+
+    ptr = 0
+    for row in range(mat.shape[0]):
+        for idx in ordered:
+            off = mat.offsets[idx]
+            if off + row < 0:
+                continue
+            elif off + row >= mat.shape[1]:
+                break
+            indices[ptr] = off + row
+            data[ptr] = mat.data[idx, off + row]
+            ptr += 1
+        ptrs[row + 1] = ptr
+
+    return CSR((data, indices, ptrs), matrix.shape, copy=False)
 
 
 cdef inline base.idxint _diagonal_length(
