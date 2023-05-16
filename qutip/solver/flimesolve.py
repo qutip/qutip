@@ -937,7 +937,9 @@ class FLiMESolver(MESolver):
         Rt_timedep_pairs = [list([Rate_Qobj_list[idx],'exp(1j*'+str(list(RateDic.keys())[idx]*list(Hargs.values())[0])+'*t)']) for idx in range(1,len(Rate_Qobj_list))]
          
         if quicksolve == True:
-            _start_time = time()    
+            _start_time = time()   
+            
+            
             self.sol_coeffs = scp.linalg.expm(np.einsum('ij,k->kij', R0.full(),taulist))
             self.added_time = time()-_start_time
            
