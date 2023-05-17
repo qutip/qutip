@@ -121,7 +121,7 @@ cdef class Diag(base.Data):
 
         # Scipy support ``data`` with diag of any length. They can be sorter if
         # the last columns are empty or have extra unused columns at the end.
-        if data.shape[1] != self.shape[1]:
+        if data.shape[0] != 0 and data.shape[1] != self.shape[1]:
             new_data = np.zeros((self.num_diag, self.shape[1]), dtype=np.complex128, order='C')
             copy_length = min(data.shape[1], self.shape[1])
             new_data[:, :copy_length] = data[:, :copy_length]

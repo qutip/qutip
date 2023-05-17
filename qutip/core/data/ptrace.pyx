@@ -6,15 +6,16 @@ import numbers
 import numpy as np
 
 cimport numpy as cnp
+cimport cython
 
-from qutip.core.data cimport csr, dense, idxint, CSR, Dense, Data
+from qutip.core.data cimport csr, dense, idxint, CSR, Dense, Data, Diag, dia
 from qutip.core.data.base import idxint_dtype
 from qutip.settings import settings
 
 cnp.import_array()
 
 __all__ = [
-    'ptrace', 'ptrace_csr', 'ptrace_dense', 'ptrace_csr_dense',
+    'ptrace', 'ptrace_csr', 'ptrace_dense', 'ptrace_csr_dense', 'ptrace_diag',
 ]
 
 cdef tuple _parse_inputs(object dims, object sel, tuple shape):
@@ -121,6 +122,41 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
                                  size, size, p, tol)
 
 
+#TODO: cythonize
+@cython.wraparound(True)
+@cython.boundscheck(True)
+@cython.initializedcheck(True)
+def ptrace_diag(matrix, dims, sel):
+    dims, sel = _parse_inputs(dims, sel, matrix.shape)
+
+    if len(sel) == len(dims):
+        return matrix.copy()
+
+    mat = matrix.as_scipy()
+    cdef idxint[:, ::1] tensor_table = np.zeros((dims.shape[0], 3), dtype=idxint_dtype)
+    cdef idxint pos[2]
+    size = _populate_tensor_table(dims, sel, tensor_table)
+    offsets = []
+    data = []
+    for i, offset in enumerate(mat.offsets):
+        _i2_k_t(offset, tensor_table, pos)
+        print(pos[0], pos[1])
+        if pos[1] == 0:
+            offsets.append(pos[0])
+            data.append([0.] * size)
+            for col in range(mat.shape[1]):
+                _i2_k_t(col, tensor_table, pos)
+                data[-1][pos[0]] += mat.data[i, col]
+    if len(offsets) == 0:
+        return dia.zeros(size, size)
+    data = np.array(data, dtype=complex)
+    offsets = np.array(offsets, dtype=idxint_dtype)
+    print(data.shape, data.dtype)
+    print(offsets.shape, offsets.dtype)
+    print(size)
+    return Diag((data, offsets), shape=(size, size), copy=False)
+
+
 cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):
     dims, sel = _parse_inputs(dims, sel, matrix.shape)
 
@@ -211,6 +247,7 @@ ptrace.add_specialisations([
     (CSR, CSR, ptrace_csr),
     (CSR, Dense, ptrace_csr_dense),
     (Dense, Dense, ptrace_dense),
+    (Diag, Diag, ptrace_diag),
 ], _defer=True)
 
 del _inspect, _Dispatcher
