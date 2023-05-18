@@ -140,11 +140,13 @@ def ptrace_diag(matrix, dims, sel):
     data = []
     for i, offset in enumerate(mat.offsets):
         _i2_k_t(offset, tensor_table, pos)
-        print(pos[0], pos[1])
+        print(offset, pos[0], pos[1])
         if pos[1] == 0:
             offsets.append(pos[0])
             data.append([0.] * size)
-            for col in range(mat.shape[1]):
+            start = max(0, offset)
+            end = min(matrix.shape[0] + offset, matrix.shape[1])
+            for col in range(start, end):
                 _i2_k_t(col, tensor_table, pos)
                 data[-1][pos[0]] += mat.data[i, col]
     if len(offsets) == 0:
@@ -154,7 +156,9 @@ def ptrace_diag(matrix, dims, sel):
     print(data.shape, data.dtype)
     print(offsets.shape, offsets.dtype)
     print(size)
-    return Diag((data, offsets), shape=(size, size), copy=False)
+    out = Diag((data, offsets), shape=(size, size), copy=False)
+    out = dia.clean_diag(out, True)
+    return out
 
 
 cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):
