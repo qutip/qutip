@@ -11,11 +11,11 @@ from ..core import (
     qeye, Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
     tensor, qzero, expect
 )
+from . floquet import FloquetBasis,FLiMESolver
 from .mesolve import MESolver
 from .mcsolve import MCSolver
 from .brmesolve import BRSolver
 from .heom.bofin_solvers import HEOMSolver
-
 from .steadystate import steadystate
 from ..ui.progressbar import progess_bars
 
@@ -147,7 +147,8 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver)
+    
+    solver = _make_solver(H, c_ops, args, options, solver,taulist)
     if tlist is None:
         tlist = [0]
     if state0 is None:
@@ -414,15 +415,17 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
     g2 = G2 / (n[0] * np.array(n))
     return g2, G2
 
-
-def _make_solver(H, c_ops, args, options, solver):
+def _make_solver(H, c_ops, args, options, solver,taulist = None):
     H = QobjEvo(H, args=args)
-    c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
+    # c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
     if solver == "me":
         solver_instance = MESolver(H, c_ops, options=options)
     elif solver == "es":
         options = {"method": "diag"}
         solver_instance = MESolver(H, c_ops, options=options)
+    elif solver == "fme":
+        floquet_basis = FloquetBasis(H,2*np.pi/list(args.values())[0],args)
+        solver_instance = FLiMESolver(floquet_basis, c_ops, taulist, args)
     elif solver == "mc":
         raise ValueError("MC solver for correlation has been removed")
     return solver_instance
@@ -515,3 +518,234 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
         solver.options = old_opt
 
     return corr_mat
+
+
+
+
+
+
+def correlation_2op_2t_floquet(H, state0, tlist_avg,tlist, taulist,T, c_ops,c_op_rates, a_op, b_op,
+                       solver="fme", reverse=False,time_sense = 0,quicksolve = False, args={},
+                       options={}):
+    r"""
+    Calculate the two-operator two-time correlation function:
+    :math:`\left<A(t+\tau)B(t)\right>`
+    along two time axes using the quantum regression theorem and the
+    evolution solver indicated by the ``solver`` parameter.
+
+    Parameters
+    ----------
+    H : :class:`Qobj`, :class:`QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of `me`.
+    state0 : :class:`Qobj`
+        Initial state density matrix :math:`\rho(t_0)` or state vector
+        :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
+        be used as the initial state. The 'steady-state' is only implemented
+        if ``c_ops`` are provided and the Hamiltonian is constant.
+    tlist : array_like
+        List of times for :math:`t`. tlist must be positive and contain the
+        element `0`. When taking steady-steady correlations only one ``tlist``
+        value is necessary, i.e. when :math:`t \rightarrow \infty`.
+        If ``tlist`` is ``None``, ``tlist=[0]`` is assumed.
+    taulist : array_like
+        List of times for :math:`\tau`. taulist must be positive and contain
+        the element `0`.
+    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+        List of collapse operators
+    a_op : :class:`Qobj`, :class:`QobjEvo`
+        Operator A.
+    b_op : :class:`Qobj`, :class:`QobjEvo`
+        Operator B.
+    reverse : bool {False}
+        If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
+        :math:`\left<A(t+\tau)B(t)\right>`.
+    solver : str {'me', 'es'}
+        Choice of solver, `me` for master-equation, and `es` for exponential
+        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
+    options : dict, optional
+        Options for the solver. Only used with `me` solver.
+
+    Returns
+    -------
+    corr_mat : ndarray
+        An 2-dimensional array (matrix) of correlation values for the times
+        specified by `tlist` (first index) and `taulist` (second index).
+
+    See Also
+    --------
+    :func:`correlation_3op` :
+        Similar function supporting various solver types.
+
+    References
+    ----------
+    See, Gardiner, Quantum Noise, Section 5.2.
+
+    """
+    solver = _make_floquet_solver(H, 
+                                  T, 
+                                  tlist_avg, taulist, 
+                                  c_ops, c_op_rates, 
+                                  args, 
+                                  quicksolve = quicksolve,
+                                  options = options)    
+    if tlist is None:
+        tlist = [0]
+
+    if reverse:
+        A_op, B_op, C_op = a_op, b_op, 1
+    else:
+        A_op, B_op, C_op = 1, a_op, b_op
+
+    # return correlation_3op_floquet(solver, state0, tlist, taulist, A_op, B_op, C_op)
+    return correlation_3op_floquet(H,T,args,solver,c_ops,c_op_rates, state0,
+                            tlist_avg,tlist, taulist, 
+                            A_op, B_op, C_op,
+                            time_sense = time_sense,
+                            quicksolve = quicksolve)
+
+
+def _make_floquet_solver(H, T, 
+                         tlist,taulist, 
+                         c_ops,c_op_rates, 
+                         args, 
+                         options,
+                         time_sense = 0,
+                         quicksolve = False):
+    
+    FloqBasis = FloquetBasis(H, T, args, precompute=None)
+    
+    solver_instance = FLiMESolver(FloqBasis, 
+                                  tlist,taulist,
+                                  args,
+                                  c_ops,c_op_rates,
+                                  time_sense = time_sense,
+                                  quicksolve = quicksolve,
+                                  options=options)
+
+    return solver_instance
+
+def correlation_3op_floquet(H,T,args,solver,c_ops,c_op_rates, state0,
+                            tlist_avg,tlist, taulist, 
+                            A=None, B=None, C=None,
+                            time_sense = 0,
+                            quicksolve = False):
+    r"""
+    Calculate the three-operator two-time correlation function:
+
+        :math:`\left<A(t)B(t+\tau)C(t)\right>`.
+
+    from a open system :class:`Solver`.
+
+    Note: it is not possible to calculate a physically meaningful correlation
+    where :math:`\tau<0`.
+
+    Parameters
+    ----------
+    solver : :class:`MESolver`, :class:`BRSolver`
+        Qutip solver for an open system.
+    state0 : :class:`Qobj`
+        Initial state density matrix :math:`\rho(t_0)` or state vector
+        :math:`\psi(t_0)`.
+    tlist : array_like
+        List of times for :math:`t`. tlist must be positive and contain the
+        element `0`.
+    taulist : array_like
+        List of times for :math:`\tau`. taulist must be positive and contain
+        the element `0`.
+    A, B, C: :class:`Qobj`, :class:`QobjEvo`, optional, default=None
+        Operators ``A``, ``B``, ``C`` from the equation ``<A(t)B(t+\tau)C(t)>``
+        in the Schrodinger picture. They do not need to be all provided. For
+        exemple, if ``A`` is not provided, ``<B(t+\tau)C(t)>`` is computed.
+
+    Returns
+    -------
+    corr_mat : array
+        An 2-dimensional array (matrix) of correlation values for the times
+        specified by `tlist` (first index) and `taulist` (second index). If
+        `tlist` is `None`, then a 1-dimensional array of correlation values
+        is returned instead.
+    """
+    taulist = np.asarray(taulist)
+
+    dims = state0.dims[0]
+    A = QobjEvo(qeye(dims) if A in [None, 1] else A)
+    B = QobjEvo(qeye(dims) if B in [None, 1] else B)
+    C = QobjEvo(qeye(dims) if C in [None, 1] else C)
+
+    out = _correlation_3op_dm_floquet(H,T,args,solver,
+                                      tlist_avg,tlist, taulist,
+                                      state0,  
+                                      A, B, C,
+                                      c_ops,c_op_rates,
+                                      time_sense = time_sense,
+                                      quicksolve = quicksolve)
+   
+    return out
+
+def _correlation_3op_dm_floquet(H, T, args, solver, 
+                                tlist_avg,tlist,taulist,
+                                state0,
+                                A, B, C,
+                                c_ops,c_op_rates,
+                                time_sense = 0,
+                                quicksolve = False):
+    old_opt = solver.options.copy()
+    try:
+        solver.options["normalize_output"] = False
+        solver.options["progress_bar"] = False
+        
+        progress_bar = progess_bars[old_opt['progress_bar']]()
+        progress_bar.start(len(taulist) + 1, **old_opt['progress_kwargs'])
+        
+        
+        
+    
+        corr_mat = np.zeros([np.size(tlist), np.size(taulist),np.size(tlist_avg)], dtype=complex)
+        progress_bar.update()
+        for t_avg_idx,tavg in enumerate(tlist_avg):
+            rho_t = solver.run(state0,tlist_avg, tlist+tavg,quicksolve=quicksolve).states
+    
+            for t_idx, rho in enumerate(rho_t):
+                t = tlist[t_idx]
+                corr_mat[t_idx, :,t_avg_idx] = solver.run(
+                    C(t) @ rho @ A(t),
+                    tlist_avg+t,
+                    taulist + t + tavg,
+                    e_ops = B,
+                    quicksolve = quicksolve
+                ).expect[0]
+                
+        #######################################################################   
+        # for t_avg_idx,tavg in enumerate(tlist_avg):
+        #     rho_t = solver.run(state0,tlist_avg, tlist+tavg).states
+    
+        #     for t_idx, rho in enumerate(rho_t):
+        #         t = tlist[t_idx]
+        #         sols = solver.run(
+        #             C(t) @ rho @ A(t),
+        #             tlist_avg,
+        #             taulist + t
+        #         ).states
+                
+        #         # sols_ct = np.array([i.full().conj().T for i in sols])
+        #         # sols_array = np.array([i.full() for i in sols])
+        #         # B_full = np.array([B(t).full() for t in taulist])
+                
+        #         corr_mat[t_idx, :,t_avg_idx] = [expect(B(t),state) for state in sols]
+        #######################################################################
+                
+                
+                progress_bar.update()
+            progress_bar.finished()
+        corr_mat = np.average(corr_mat,axis=2)
+    finally:
+        solver.options = old_opt
+        
+  
+            
+            
+     
+
+    return corr_mat
+    
+    

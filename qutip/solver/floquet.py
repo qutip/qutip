@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat May 20 22:58:13 2023
+
+@author: Fenton
+"""
+
 __all__ = [
     "FloquetBasis",
     "floquet_tensor",
@@ -8,19 +15,13 @@ __all__ = [
     "FMESolver",
 ]
 
-import numpy.ma as ma
 import scipy as scipy
-import itertools as itertools
-import math
-from ..core import stack_columns
 import numpy as np
 from qutip.core import data as _data
-from qutip.core.data import Dense
-from qutip import Qobj, QobjEvo, operator_to_vector,vector_to_operator, ket2dm
+from qutip import Qobj, QobjEvo, operator_to_vector, expect
 from .propagator import Propagator
 from .mesolve import MESolver
 from .solver_base import Solver
-from .integrator import Integrator
 from .result import Result
 from time import time
 from ..ui.progressbar import progess_bars
@@ -141,7 +142,8 @@ class FloquetBasis:
             A list of Floquet states for the time ``t`` or the states as column
             in a single matrix.
         """
-        t = t % self.T
+        t = np.round(t % self.T,8)
+        # t = t % self.T
         if t == 0.0:
             kets_mat = self.evecs
         else:
@@ -630,12 +632,12 @@ def _floquet_rate_matrix(floquet_basis,tlist,c_ops,c_op_rates,omega,time_sense=0
             basis
         '''
 
-        # fmodes = np.stack([np.stack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])[...,0]
-        # fmodes_ct = np.transpose(fmodes,(0,2,1)).conj()
+        fmodes = np.stack([np.stack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])[...,0]
+        fmodes_ct = np.transpose(fmodes,(0,2,1)).conj()
         
-        # c_op_Floquet_basis = (fmodes_ct @ c_op.full() @ fmodes)
+        c_op_Floquet_basis = (fmodes_ct @ c_op.full() @ fmodes)
         
-        c_op_Floquet_basis = np.stack([floquet_basis.to_floquet_basis(c_op,t).full() for t in tlist])
+        # c_op_Floquet_basis = np.stack([floquet_basis.to_floquet_basis(c_op,t).full() for t in tlist])
         '''
         Performing the 1-D FFT to find the Fourier amplitudes of this specific
             lowering operator in the Floquet basis
@@ -695,14 +697,11 @@ def _floquet_rate_matrix(floquet_basis,tlist,c_ops,c_op_rates,omega,time_sense=0
             total_R_tensor[key] = np.reshape(flime_FirstTerm-(1/2)*(flime_SecondTerm+flime_ThirdTerm),(Hdim**2,Hdim**2))
 
     return total_R_tensor
-
 def flimesolve(
         H,
         rho0,
-        tlist,
         taulist,
-        c_ops = [],
-        c_op_rates = [],
+        c_ops_and_rates = [],
         e_ops = [],
         T = 0,
         args = None,
@@ -792,11 +791,11 @@ def flimesolve(
         state density matrices corresponding to the times.
     
     """
-    if c_ops is None:
+    if c_ops_and_rates is None:
         return fsesolve(
             H,
             rho0,
-            tlist,
+            taulist,
             e_ops=e_ops,
             T=T,
             w_th=0,
@@ -804,10 +803,10 @@ def flimesolve(
             options=options,
         )
     
-    if isinstance(c_ops, Qobj):
-        c_ops = [c_ops]
-    if isinstance(c_op_rates,float):
-        c_op_rates = [c_op_rates]
+    # if isinstance(c_ops, Qobj):
+    #     c_ops = [c_ops]
+    # if isinstance(c_op_rates,float):
+    #     c_op_rates = [c_op_rates]
     
     '''
     Adding the requirement that tlist is a power of two. If it's not, the 
@@ -819,21 +818,24 @@ def flimesolve(
     if isinstance(H, FloquetBasis):
         floquet_basis = H
     else:
-        T = T or tlist[-1]
+        T = T
         # t_precompute = taulist
         # are for the open system evolution.
         floquet_basis = FloquetBasis(H, T, args, precompute=None)
     
-    if rho0.type == 'ket':
-        rho00 = operator_to_vector(ket2dm(rho0))
-    elif rho0.type == 'oper':
-        rho00 = operator_to_vector(rho0)
-    solver = FLiMESolver(floquet_basis, tlist,taulist,args,c_ops,c_op_rates,time_sense = time_sense,quicksolve = quicksolve,options=options)
+    # if rho0.type == 'ket':
+    #     rho00 = operator_to_vector(ket2dm(rho0))
+    # elif rho0.type == 'oper':
+    #     rho00 = operator_to_vector(rho0)
+    solver = FLiMESolver(floquet_basis,
+                         c_ops_and_rates,
+                         taulist,
+                         args,
+                         time_sense = time_sense,
+                         quicksolve = quicksolve,
+                         options=options)
 
-    if quicksolve == True:
-        return solver.quicksolve(rho0, tlist,taulist, e_ops=e_ops)
-    else:
-        return solver.run(rho0, taulist, e_ops=e_ops)
+    return solver.run(rho0, taulist,quicksolve=quicksolve, e_ops=e_ops,)
     
 class FloquetResult(Result):
     def _post_init(self, floquet_basis):
@@ -853,7 +855,7 @@ class FloquetResult(Result):
         if self.options["store_floquet_states"]:
             self.floquet_states.append(state)
         super().add(t, state)        
-    
+  
 class FLiMESolver(MESolver):
     """
     Solver for the Floquet-Markov master equation.
@@ -903,7 +905,16 @@ class FLiMESolver(MESolver):
         
     }
     def __init__(
-        self, floquet_basis, tlist,taulist,Hargs,c_ops,c_op_rates,*, time_sense = 0,quicksolve = False,options=None
+        self, 
+        floquet_basis, 
+        c_ops_and_rates, 
+        taulist,
+        Hargs, 
+        *, 
+        Nt = None,
+        time_sense = 0,
+        quicksolve = False,
+        options=None
     ):
         if isinstance(floquet_basis, FloquetBasis):
             self.floquet_basis = floquet_basis
@@ -916,55 +927,62 @@ class FLiMESolver(MESolver):
         else:
             raise TypeError("The ``floquet_basis`` must be a FloquetBasis")
         
+        c_ops = []
+        c_op_rates = []
+        for entry in c_ops_and_rates:
+            c_ops.append(entry[0])
+            c_op_rates.append(entry[1])
+
         self._num_collapse = len(c_ops)
         if not all(
             isinstance(c_op, Qobj)
             for c_op in c_ops
         ):
             raise TypeError("c_ops must be type Qobj")
-            
+        
+        self.T = 2*np.pi/list(Hargs.values())[0]                                #Period of the Hamiltonian, for calculating the rate matrix
+        dtau = taulist[1]-taulist[0]                                            #Finding dtau in taulist
+        taulist_zeroed = taulist-taulist[0]                                     #shifting taulist to zero
+        Nt_finder = abs(taulist_zeroed+dtau-self.T)                             #subtracting the period from taulist, such that Nt = where this is closest to zero
+        
+        #Defining tlist, to be used to construct the R tensor
+        Nt = Nt if Nt != None \
+                else list(np.where( 
+                    Nt_finder == np.amin(Nt_finder))
+                    )[0][0]+1                                                   #Finding the number of points in taulist that comprises a period                          
+        time = self.T                                                           #Length of time of tlist defined to be one period of the system
+        dt = time/Nt                                                            #Time point spacing in tlist
+        self.tlist_rate_dic = np.linspace(0,time-dt,Nt)
+        
         RateDic =  _floquet_rate_matrix(
              floquet_basis,
-             tlist,
+             self.tlist_rate_dic,
              c_ops,
              c_op_rates,
              Hargs,
              time_sense=time_sense)
-        
             
         
         Rate_Qobj_list = [Qobj(
             RateMat, dims=[[self.Hdim,self.Hdim], [self.Hdim,self.Hdim]], type="super", superrep="super", copy=False) for RateMat in RateDic.values()]
         
-        R0 = Rate_Qobj_list[0]
-        Rt_timedep_pairs = [list([Rate_Qobj_list[idx],'exp(1j*'+str(list(RateDic.keys())[idx]*list(Hargs.values())[0])+'*t)']) for idx in range(1,len(Rate_Qobj_list))]
+        self.R0 = Rate_Qobj_list[0]
+        self.Rt_timedep_pairs = [list([Rate_Qobj_list[idx],'exp(1j*'+str(list(RateDic.keys())[idx]*list(Hargs.values())[0])+'*t)']) for idx in range(1,len(Rate_Qobj_list))]
          
         if quicksolve == True:
-            _start_time = time()   
-            evals,evecs = scipy.linalg.eig(R0.full())
-            eval_exp_diagonal = np.einsum('ij,ki->kij',np.eye(self.Hdim**2),np.exp(np.einsum('i,k->ki', evals,taulist)))
-            self.sol_coeffs = evecs @  eval_exp_diagonal @ scipy.linalg.inv(evecs)
+            self.R0_evals,self.R0_evecs = scipy.linalg.eig(self.R0.full())
 
-            self.added_time = time()-_start_time
-           
         else:
-            if Rt_timedep_pairs != []: 
-                self.rhs = QobjEvo([R0,*Rt_timedep_pairs])
+            if self.Rt_timedep_pairs != []: 
+                self.rhs = QobjEvo([self.R0,*self.Rt_timedep_pairs])
                 
             else: 
-                self.rhs = QobjEvo(R0)
+                self.rhs = QobjEvo(self.R0)
                 
             self._integrator = self._get_integrator()
             self._state_metadata = {}
             self.stats = self._initialize_stats()
-        '''
-        Qobjevo automatically reduces tensor rank, like we do by unfolding the  R tensor.
-        I think I need to refold it before putting it into this thing?
-        '''
-        
 
-
-        
         
     def _initialize_stats(self):
         stats = Solver._initialize_stats(self)
@@ -1029,7 +1047,7 @@ class FLiMESolver(MESolver):
             state = state.copy()
         return state
 
-    def run(self, state0, tlist, *, floquet=False, args=None,e_ops=None):
+    def run(self, state00,taulist, *,quicksolve=False, floquet=False, args=None,e_ops=None,):
         """
         Calculate the evolution of the quantum system.
 
@@ -1070,130 +1088,113 @@ class FLiMESolver(MESolver):
         if args:
             raise ValueError("FMESolver cannot update arguments")
         if not floquet:
-            state0 = self.floquet_basis.to_floquet_basis(state0, tlist[0])
+            state0 = self.floquet_basis.to_floquet_basis(state00, taulist[0])
         
-        _time_start = time()
-        _data0 = self._prepare_state(state0)
-        self._integrator.set_state(tlist[0], _data0)
-        stats = self._initialize_stats()
-        results = self.resultclass(
-            e_ops,
-            self.options,
-            solver=self.name,
-            stats=stats,
-            floquet_basis=self.floquet_basis,
-        )
-
-        results.add(tlist[0], self._restore_state(_data0, copy=False))
-        stats["preparation time"] += time() - _time_start
+        dims = np.shape(state00.full())
+        fmodes_table = np.stack([np.stack([self.floquet_basis.mode(t)[i].full() for i in range(dims[0])]) for t in (taulist[0]+self.tlist_rate_dic)])[...,0]
         
-        progress_bar = progess_bars[self.options["progress_bar"]]()
-        progress_bar.start(len(tlist) - 1, **self.options["progress_kwargs"])
-        for t, state in self._integrator.run(tlist):
-            progress_bar.update()
-            results.add(t, self._restore_state(state, copy=False))
-        progress_bar.finished()
-
-        stats["run time"] = progress_bar.total_time()
-        # TODO: It would be nice if integrator could give evolution statistics
-        # stats.update(_integrator.stats)
-        return results
-    def quicksolve(self, state0, tlist,taulist, *, floquet=False, args=None,e_ops=None):
-        """
-        Calculate the evolution of the quantum system.
-
-        For a ``state0`` at time ``tlist[0]`` do the evolution as directed by
-        ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :class:`Result`. The evolution method and
-        stored results are determined by ``options``.
-
-        Parameters
-        ----------
-        state0 : :class:`Qobj`
-            Initial state of the evolution.
-
-        tlist : list of double
-            Time for which to save the results (state and/or expect) of the
-            evolution. The first element of the list is the initial time of the
-            evolution. Each times of the list must be increasing, but does not
-            need to be uniformy distributed.
-
-        floquet : bool, optional {False}
-            Whether the initial state in the floquet basis or laboratory basis.
-
-        args : dict, optional {None}
-            Not supported
-
-        e_ops : list {None}
-            List of Qobj, QobjEvo or callable to compute the expectation
-            values. Function[s] must have the signature
-            f(t : float, state : Qobj) -> expect.
-
-        Returns
-        -------
-        results : :class:`qutip.solver.FloquetResult`
-            Results of the evolution. States and/or expect will be saved. You
-            can control the saved data in the options.
-        """
-        
-        if args:
-            raise ValueError("FMESolver cannot update arguments")
-        if not floquet:
-            state0 = self.floquet_basis.to_floquet_basis(state0, tlist[0])
-        
-        _time_start = time()
-        statsq = {
-            "method": 'FLiME_quicksolve',
-            "preparation time": 0.0,
-            "run time": 0.0,
-        }
-        results = self.resultclass(
-            e_ops,
-            self.options,
-            solver=self.name,
-            stats=statsq,
-            floquet_basis=self.floquet_basis,
-        )
-
-        statsq["preparation time"] += time() - _time_start
-        _time_start_solve = time()
-        dims = np.shape(state0)
-        state0 = operator_to_vector(state0*state0.dag())
-        state1 = state0.full()
-
-        fmodes_table = np.stack([np.stack([self.floquet_basis.mode(t)[i].full() for i in range(dims[0])]) for t in tlist])[...,0]
         tiled_modes = []
-        for i in range(int(len(taulist)/len(tlist))):
-            tiled_modes.append(fmodes_table)
-        tiled_modes = np.concatenate(tiled_modes)
+        if len(taulist) >= len(self.tlist_rate_dic): 
+            for i in range(int(len(taulist)/len(self.tlist_rate_dic))):
+                tiled_modes.append(fmodes_table)
+            tiled_modes = np.concatenate(tiled_modes)
+        else:
+            tiled_modes = np.array([fmodes_table[idx] for idx,t in enumerate(taulist)])
         
         quasi_e_table = np.exp(np.einsum('i,k -> ki',-1j*self.floquet_basis.e_quasi,taulist) )
-        fstates_table = np.einsum('ijk,ij->ikj',tiled_modes, quasi_e_table  )
-
-        sols = np.reshape(np.einsum('...jk,kz->...jz',self.sol_coeffs, state1),[len(taulist),dims[0],dims[0]],order='F')
-        sols_comp = fstates_table @ sols @ np.transpose(fstates_table.conj(),axes=(0,2,1))
+        fstates_table = np.einsum('ijk,ij->ikj',tiled_modes, quasi_e_table  )    
         
-
-        sols_comp = [Qobj(Dense(state),dims=[[2], [2]], type="oper", copy=False) for state in sols_comp] 
-      
-
-        
-        results.times = taulist
-        results.states = sols_comp
-        statsq["run time"] = time()-_time_start_solve+self.added_time
-        return results
-
-        
+        if quicksolve == False:
+            
+            _time_start = time()
+            # if state0.type == 'ket':
+            #     state0 = state0*state0.dag()
+            # elif state0.type == 'oper':
+            #     state0 = state0
+            # else:
+            #     print('You need to supply a valid ket or operator')
+            _data0 = self._prepare_state(state0)
+            
+            self._integrator.set_state(taulist[0], _data0)
+            stats = self._initialize_stats()
+            results = self.resultclass(
+                e_ops,
+                self.options,
+                solver=self.name,
+                stats=stats,
+                floquet_basis=self.floquet_basis,
+            )
+            stats["preparation time"] += time() - _time_start
+            _time_start_solve = time()
+           
+            sols = [self._restore_state(_data0, copy=False).full()]
+            progress_bar = progess_bars[self.options["progress_bar"]]()
+            progress_bar.start(len(taulist) - 1, **self.options["progress_kwargs"])
+            for t, state in self._integrator.run(taulist):
+                progress_bar.update()
+                sols.append(self._restore_state(state, copy=False).full())
+            progress_bar.finished()
     
-    def _initialize_stats(self):
-        stats = Solver._initialize_stats(self)
-        stats.update(
-            {
-                "solver": "Floquet-Lindblad master equation",
-                "num_collapse": self._num_collapse,
+            sols = np.array(sols)
+            sols_comp = fstates_table @ sols @ np.transpose(fstates_table.conj(),axes=(0,2,1))
+            sols_comp = [Qobj(_data.Dense(state),dims=[[2], [2]], type="oper", copy=False) for state in sols_comp] 
+        
+            # for idx, t in enumerate(taulist):
+            #     results.compadd(t,sols_comp[idx])
+            
+            # stats["run time"] = progress_bar.total_time()
+            # return results
+        else:
+            
+                
+            _time_start = time()
+            stats = {
+                "method": 'FLiME_quicksolve',
+                "preparation time": 0.0,
+                "run time": 0.0,
             }
-        )
-        return stats
+            results = self.resultclass(
+                e_ops,
+                self.options,
+                solver=self.name,
+                stats=stats,
+                floquet_basis=self.floquet_basis,
+            )
+            
+            eval_exp_diagonal = np.einsum('ij,ki->kij',np.eye(self.Hdim**2),np.exp(np.einsum('i,k->ki', self.R0_evals,taulist-taulist[0])))
+            sol_coeffs = self.R0_evecs @  eval_exp_diagonal @ scipy.linalg.inv(self.R0_evecs)
+            
+            
+            stats["preparation time"] += time() - _time_start
+            if state0.type == 'ket':
+                state0 = operator_to_vector(state0*state0.dag())
+            elif state0.type == 'oper':
+                state0 = operator_to_vector(state0)
+            else:
+                print('You need to supply a valid ket or operator')
+
+            progress_bar = progess_bars[self.options["progress_bar"]]()
+            progress_bar.start(len(taulist) - 1, **self.options["progress_kwargs"])
+            
+            sols = np.reshape(np.einsum('...jk,kz->...jz',sol_coeffs[:len(taulist)], state0.full()),[len(taulist),dims[0],dims[0]],order='F')
+            sols_comp = fstates_table @ sols @ np.transpose(fstates_table.conj(),axes=(0,2,1))
+
+            sols_comp = [Qobj(_data.Dense(state),dims=[[2], [2]], type="oper", copy=False) for state in sols_comp] 
+            
+            '''
+            WRITE IN THE EXPECTATION VALUE FUNCTION HERE. THIS IS THE PROBLEM IN CORRELATION FUNCTIONS 
+            '''
+
+            
+            # results.times = taulist
+            # results.states = sols_comp
+            # stats["run time"] = time()-_time_start_solve+self.added_time
+            # return results
+        for idx, t in enumerate(taulist):
+            results.compadd(t,sols_comp[idx])
+        
+        stats["run time"] = progress_bar.total_time()
+        return results
 
     def _argument(self, args):
         if args:
