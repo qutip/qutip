@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Fri May 26 14:27:34 2023
+
+@author: Fenton
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Sun May 21 23:17:41 2023
 
 @author: Fenton
@@ -215,89 +222,3 @@ for idz, periods in enumerate(detuning_array):
             options={"normalize_output": False})
     rhossF = TimeEvolF1.states[-1]
     
-
-    
-    '''
-    Next step is to iterate this steady state rho_s forward in time. I'll choose the times
-    to be evenly spread out within T, the time scale of the Hamiltonian
-    
-    Also going through one time periods of the Hamiltonian so that I can graph the states
-    and make sure I'm in the limit cycle
-    '''
-
-    
-    PeriodStatesF = flimesolve(
-            Htot,
-            rhossF,
-            taulist[-1]+tlist,
-            c_ops_and_rates = [[destroy(2),Gamma]],
-            T = T,
-            args = Hargs,
-            time_sense = 0,
-            quicksolve = False,
-            options={"normalize_output": False})
-    
-
-    testg1 = np.zeros((len(tlist), len(taulist2)), dtype='complex_' ) 
-    for tdx in range(len(tlist)):
-        '''
-        Start here tomorrow. You need to write taulist into the _make_solver
-        arguments in Correlation, so that the FLiMESolver can construct
-        properly. Then, since I'm probably dropping the automatic timer averaging,
-        I'll need to use the for loop (for tdx in range(len(tlist)):) to calculate
-        all the different g1s and then average them.'
-        '''
-    
-        testg1[tdx] = correlation.correlation_2op_1t(Htot,
-                                                      PeriodStatesF.states[tdx],
-                                                      # tlist=None,
-                                                      taulist = taulist[-1]+tlist[tdx]+taulist2,
-                                                      c_ops=[[mat(0,1),Gamma]],
-                                                      a_op = destroy(2).dag(),
-                                                      b_op = destroy(2),
-                                                      solver="fme",
-                                                      reverse = True,
-                                                      options = {'T':T},
-                                                      args = Hargs)[0]
-    
-    g1avg = np.average(testg1,axis=0)
-    specF = np.fft.fft(g1avg,axis=0)
-    specF = np.fft.fftshift(specF)/len(g1avg)
-
-    ZF[idz,:] = specF
-
-fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
-ax.semilogy( omega_array+(w/(2*np.pi)), ZF[0], color = 'r' )
-# ax.semilogy( omega_array+(w/(2*np.pi)), ZM, color = 'b' )
-ax.axvline(x=(-1*abs(Om1)/(2*np.pi)), color='k', linestyle = 'dashed')
-ax.axvline(x=(0*abs(Om1)/(2*np.pi)), color='g', linestyle = 'solid')
-ax.axvline(x=(1*abs(Om1)/(2*np.pi)), color='r', linestyle = 'dashed')
-ax.set_xlabel('Detuning [THz]')
-ax.set_ylabel("Amplitude") 
-ax.set_title(r'Resonant Bichromatic 2LS $\Omega_1$ = 30 $\Omega_2$ = 0' )
-ax.legend(['Mollow Triplet From Correlation Function'])
-
-
-# Plot on a colorplot
-fig, ax = plt.subplots(1,1)
-limits = [omega_array[0]+(w/(2*np.pi)),\
-          omega_array[-1]+(w/(2*np.pi)),\
-          detuning_array[0],\
-          detuning_array[-1]]
-pos = ax.imshow(ZF,cmap=plt.get_cmap(cm.bwr), aspect='auto', interpolation='nearest', origin='lower',
-            extent = limits,  norm=matplotlib.colors.LogNorm(), clim = [1e-6,1e-2]) 
-
-fig.colorbar(pos)
-ax.set_xlabel('$\omega_{res}-\omega$ [THz]')
-ax.set_ylabel("$\u03A9_{2} (\u03BCeV)$") 
-
- 
-# fstates = np.array([i.full() for i in TimeEvolF.states])
-# # mstates = np.array([i.full() for i in TimeEvolM.states])
-# fig, ax = plt.subplots(2,1)                                                    #Plotting the results!
-# ax[0].plot(  taulist/T,np.sqrt(fstates[:,1,1]**2), color = 'black')
-# # ax[0].plot(  mstates[:,1,1], color = 'blue')
-# ax[0].legend(['Floquet'])
-# ax[1].legend(['Direct Integration'])
-# # ax.plot( (plot_freq_range), Z3_truncd, color = 'green')
-

@@ -1113,22 +1113,28 @@ class FLiMESolver(MESolver):
             state0 = self.floquet_basis.to_floquet_basis(state00, taulist[0])
         
         dims = np.shape(state00.full())
-        time_1p = self.floquet_basis.T                                                           #Length of time of tlist defined to be one period of the system
-        dt = time_1p/self.Nt                                                       #Time point spacing in tlist
-        tlist = np.linspace(0,time_1p-dt,self.Nt)
 
+        taulist_test = np.array(taulist)%self.floquet_basis.T
+        taulist_correction = np.argwhere(abs(taulist_test-self.floquet_basis.T)<1e-12)
+        taulist_test_new = np.round(taulist_test,10)
+        taulist_test_new[taulist_correction] = 0
         
-        dtau = taulist[1]-taulist[0]
+        from collections import defaultdict
 
+        def list_duplicates(seq):
+            tally = defaultdict(list)
+            for i,item in enumerate(taulist_test_new):
+                tally[item].append(i)
+            return ((key,locs) for key,locs in tally.items())
+       
+        sorted_time_args = {key:val for key,val in sorted(list_duplicates(taulist_test_new))}
 
-        if taulist[-1] >= self.floquet_basis.T and len(taulist)>= len(tlist):
-            fmodes_table = np.stack([np.stack([self.floquet_basis.mode(t)[i].full() for i in range(dims[0])]) for t in (taulist[0]+tlist)])[...,0]
-            tiled_modes = []
-            for i in range(int(np.ceil(len(taulist)/len(tlist)))):
-                tiled_modes.append(fmodes_table)
-            tiled_modes = np.concatenate(tiled_modes)[0:len(taulist)]
-        else: #taulist[-1] >= self.floquet_basis.T and len(taulist) < len(tlist):
-            tiled_modes = np.stack([np.stack([self.floquet_basis.mode(t)[i].full() for i in range(dims[0])]) for t in (taulist)])[...,0]
+        fmodes_core_dict = {t:np.stack([self.floquet_basis.mode(t)[i].full() for i in range(dims[0])])[...,0] for t in (sorted_time_args.keys())}
+        
+        tiled_modes = np.zeros((len(taulist),dims[0],dims[0]),dtype = complex)
+        for key in fmodes_core_dict:
+            tiled_modes[sorted_time_args[key]] = fmodes_core_dict[key]
+        
         
         quasi_e_table = np.exp(np.einsum('i,k -> ki',-1j*self.floquet_basis.e_quasi,taulist) )
         fstates_table = np.einsum('ijk,ij->ikj',tiled_modes, quasi_e_table  )    

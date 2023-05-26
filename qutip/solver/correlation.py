@@ -424,7 +424,8 @@ def _make_solver(H, c_ops, args, options, solver,taulist = None):
         options = {"method": "diag"}
         solver_instance = MESolver(H, c_ops, options=options)
     elif solver == "fme":
-        floquet_basis = FloquetBasis(H,2*np.pi/list(args.values())[0],args)
+        
+        floquet_basis = FloquetBasis(H,options['T'],args)
         solver_instance = FLiMESolver(floquet_basis, c_ops, taulist, args)
     elif solver == "mc":
         raise ValueError("MC solver for correlation has been removed")
