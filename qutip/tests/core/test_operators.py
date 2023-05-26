@@ -251,6 +251,8 @@ dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes
     (qutip.spin_Jp, (1,)),
     (qutip.destroy, (5,)),
     (qutip.create, (5,)),
+    (qutip.fdestroy, (5,))
+    (qutip.fcreate, (5,))
     (qutip.qzero, (5,)),
     (qutip.qeye, (5,)),
     (qutip.position, (5,)),
@@ -342,3 +344,21 @@ def test_qzero_like(dims, superrep, dtype):
     opevo = qutip.QobjEvo(op)
     new = qutip.qzero_like(op)
     assert new == expected
+
+@pytest.mark.parametrize('N', [2,3,4,5])
+def test_fcreate_fdestroy(N,size):
+    I = qutip.tensor([qutip.identity(2), *[qutip.identity(2)*(N-1)]])
+    zero_tensor = 0*I
+    for size_0 in range(N):
+        c_0 = qutip.fcreate(N, size_0)
+        d_0 = qutip.fdestroy(N, size_0)
+        for size_1 in range(N):
+            c_1 = qutip.fcreate(N, size_1)
+            d_1 = qutip.fdestroy(N, size_1)
+            assert qutip.anticommutator(c_0,c_1) == zero_tensor
+            if size_0 == size_1:
+                assert qutip.anticommutator(c_0,d_1) == I
+            else:
+                assert qutip.anticommutator(c_0,d_1) == 0
+
+    assert qutip.commutator(I, c_0) == zero_tensor
