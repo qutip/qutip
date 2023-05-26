@@ -159,14 +159,14 @@ for idz, E2P in enumerate(P_array):
     ttime = T                                          #Length of time of tlist defined to be one period of the system
     dt = ttime/Nt                                      #Time point spacing in tlist
     tlist = np.linspace(0, ttime-dt, Nt)               #Combining everything to make tlist
-    
+     
                                                       #Taulist Definition
-    Ntau =  (Nt)*50                                   #50 times the number of points of tlist
+    Ntau =  (Nt)*200                                   #50 times the number of points of tlist
     taume = (Ntau/Nt)*T                               #taulist goes over 50 periods of the system so that 50 periods can be simulated
     dtau = taume/Ntau                                 #time spacing in taulist - same as tlist!
     taulist = np.linspace(0, taume-dtau, Ntau)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
     
-    Ntau2 = (Nt)*200                                #50 times the number of points of tlist
+    Ntau2 = (Nt)*500                                #50 times the number of points of tlist
     taume2 = (Ntau2/Nt)*T                             #taulist goes over 50 periods of the system so that 50 periods can be simulated
     dtau2 = taume2/Ntau2                              #time spacing in taulist - same as tlist!
     taulist2 = np.linspace(0, taume2-dtau2, Ntau2)   
@@ -226,42 +226,59 @@ for idz, E2P in enumerate(P_array):
    
     
     TimeEvolF = flimesolve(
-        H,
-        rho0,
-        tlist,
-        taulist,
-        c_ops=[destroy(2)],
-        c_op_rates=[Gamma],
-        T=T,
-        args=Hargs,
-        time_sense=0,
-        quicksolve=True,
-        options={"normalize_output": False})
+            H,
+            rho0,
+            taulist,
+            c_ops_and_rates = [[destroy(2),Gamma]],
+            T = T,
+            args = Hargs,
+            time_sense = 0,
+            quicksolve = False,
+            options={"normalize_output": False})
     rhossF = TimeEvolF.states[-1]
-
-    g1 = correlation.correlation_2op_2t_floquet(H,
-                                            rhossF,
-                                            tlist,
-                                            None,
-                                            taulist2,
-                                            T,
-                                            c_ops = [mat(0,1)],
-                                            c_op_rates=[Gamma],
-                                            a_op = destroy(2).dag(),
-                                            b_op = destroy(2),
-                                            reverse = True,
-                                            quicksolve=True,
-                                            args = Hargs)[0]
+    
+    PeriodStatesF = flimesolve(
+            H,
+            rhossF,
+            taulist[-1]+tlist,
+            c_ops_and_rates = [[destroy(2),Gamma]],
+            T = T,
+            args = Hargs,
+            time_sense = 0,
+            quicksolve = False,
+            options={"normalize_output": False})
     
     
+    testg1 = np.zeros((len(tlist), len(taulist2)), dtype='complex_' ) 
+    for tdx in range(len(tlist)):
+        '''
+        Start here tomorrow. You need to write taulist into the _make_solver
+        arguments in Correlation, so that the FLiMESolver can construct
+        properly. Then, since I'm probably dropping the automatic timer averaging,
+        I'll need to use the for loop (for tdx in range(len(tlist)):) to calculate
+        all the different g1s and then average them.'
+        '''
     
-    specF = np.fft.fft(g1,axis=0)
+        testg1[tdx] = correlation.correlation_2op_1t(H,
+                                                     PeriodStatesF.states[tdx],
+                                                     taulist[-1]+tlist[tdx]+taulist2,
+                                                     c_ops=[[mat(0,1),Gamma]],
+                                                     a_op = destroy(2).dag(),
+                                                     b_op = destroy(2),
+                                                     solver="fme",
+                                                     reverse = True,
+                                                     args = Hargs)[0]
+    
+    g1avg = np.average(testg1,axis=0)
+    specF = np.fft.fft(g1avg,axis=0)
     specF = np.fft.fftshift(specF)
-
-    ZF[idz,:] = np.real(specF)/len(g1)
     
-total_time =  time.time()-start_time   
- 
+    ZF[idz,:] = np.real(specF)/len(g1avg)
+
+
+
+
+
 # Plot on a colorplot
 fig, ax = plt.subplots(1,1)
 limits = [omega_array[0]-(w/(2*np.pi)),\
@@ -269,7 +286,7 @@ limits = [omega_array[0]-(w/(2*np.pi)),\
           P_array[0],\
           P_array[-1]]
 pos = ax.imshow(ZF,cmap=plt.get_cmap(cm.PiYG), aspect='auto', interpolation='nearest', origin='lower',
-            extent = limits,  norm=matplotlib.colors.LogNorm() , clim = [1e-5,1e-2]) 
+            extent = limits,  norm=matplotlib.colors.LogNorm() , clim = [1e-5,1e-3]) 
 ax.axvline(x=(-1*Om2/(2*np.pi)), color='k', linestyle = 'dashed',linewidth =1,alpha = 0.5)
 ax.axvline(x=(0*Om2/(2*np.pi)), color='k', linestyle = 'solid',linewidth =1,alpha = 0.5)
 ax.axvline(x=(1*Om2/(2*np.pi)), color='k', linestyle = 'dashed',linewidth =1,alpha = 0.5)
@@ -280,18 +297,16 @@ fig.colorbar(pos)
 plt.xticks
 ax.set_xlabel('Detuning [THz]')
 ax.set_ylabel("$\u03A9_{2} (\u03BCeV)$") 
-ax.set_title('Resonant Bichromatic 2LS QuickSolve ' )
+ax.set_title('Resonant Bichromatic 2LS FLiMESolve Correlation Function ' )
 
 fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
-ax.plot( omega_array-(w/(2*np.pi)), ZF[0], color = 'r' )
-# ax.semilogy( omega_array-(w/(2*np.pi)), Z[0], color = 'b')
-# ax.axvline(x=(-1*Om2/(2*np.pi)), color='k', linestyle = 'dashed')
-# ax.axvline(x=(0*Om2/(2*np.pi)), color='g', linestyle = 'solid')
-# ax.axvline(x=(1*Om2/(2*np.pi)), color='r', linestyle = 'dashed')
+ax.plot( omega_array+(w/(2*np.pi)), ZF[0], color = 'r' )
+ax.axvline(x=(-1*Om2/(2*np.pi)), color='k', linestyle = 'dashed')
+ax.axvline(x=(0*Om2/(2*np.pi)), color='g', linestyle = 'solid')
+ax.axvline(x=(1*Om2/(2*np.pi)), color='r', linestyle = 'dashed')
 ax.set_xlabel('Detuning [THz]')
 ax.set_ylabel("Amplitude") 
-ax.set_title(r'Resonant Bichromatic 2LS $\Omega_1$ = 30 $\Omega_2$ = 45' )
-ax.legend(['Dirint','Floquet 10w'])
+ax.set_title(r'Resonant Bichromatic 2LS $\Omega_1$ = 30 $\Omega_2$ = 0' )
+ax.legend(['Mollow Triplet From Correlation Function'])
 
-# fig, ax = plt.subplots(1,1)  
-# ax.plot(taulist,np.array([i.full() for i in TimeEvolF.states])[:,1,1])
+

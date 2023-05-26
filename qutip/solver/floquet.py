@@ -568,7 +568,7 @@ def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):
 
     return result
 
-def _floquet_rate_matrix(floquet_basis,tlist,c_ops,c_op_rates,omega,time_sense=0):
+def _floquet_rate_matrix(floquet_basis,Nt,T,c_ops,c_op_rates,omega,time_sense=0):
     '''
     Parameters
     ----------
@@ -616,11 +616,12 @@ def _floquet_rate_matrix(floquet_basis,tlist,c_ops,c_op_rates,omega,time_sense=0
     def delta(a,ap,b,bp,l,lp):
         return ((floquet_basis.e_quasi[a]-floquet_basis.e_quasi[ap]) 
                -(floquet_basis.e_quasi[b]-floquet_basis.e_quasi[bp]))/(list(omega.values())[0]/2)\
-               +(l-lp)
+               +(l-lp)   
+                                         
+    time = T                                                           #Length of time of tlist defined to be one period of the system
+    dt = time/Nt                                                       #Time point spacing in tlist
+    tlist = np.linspace(0,time-dt,Nt)
     
-   
-    
-    Nt = len(tlist)
     Hdim = len(floquet_basis.e_quasi)
     
     total_R_tensor = {}
@@ -701,9 +702,10 @@ def flimesolve(
         H,
         rho0,
         taulist,
+        T,
+        Nt = None,
         c_ops_and_rates = [],
         e_ops = [],
-        T = 0,
         args = None,
         time_sense = 0,
         quicksolve = False,
@@ -819,18 +821,14 @@ def flimesolve(
         floquet_basis = H
     else:
         T = T
-        # t_precompute = taulist
         # are for the open system evolution.
         floquet_basis = FloquetBasis(H, T, args, precompute=None)
     
-    # if rho0.type == 'ket':
-    #     rho00 = operator_to_vector(ket2dm(rho0))
-    # elif rho0.type == 'oper':
-    #     rho00 = operator_to_vector(rho0)
     solver = FLiMESolver(floquet_basis,
                          c_ops_and_rates,
                          taulist,
                          args,
+                         Nt = Nt,
                          time_sense = time_sense,
                          quicksolve = quicksolve,
                          options=options)
@@ -855,7 +853,7 @@ class FloquetResult(Result):
         if self.options["store_floquet_states"]:
             self.floquet_states.append(state)
         super().add(t, state)        
-  
+
 class FLiMESolver(MESolver):
     """
     Solver for the Floquet-Markov master equation.
@@ -939,33 +937,33 @@ class FLiMESolver(MESolver):
             for c_op in c_ops
         ):
             raise TypeError("c_ops must be type Qobj")
+            
         
-        self.T = 2*np.pi/list(Hargs.values())[0]                                #Period of the Hamiltonian, for calculating the rate matrix
-        dtau = taulist[1]-taulist[0]                                            #Finding dtau in taulist
-        taulist_zeroed = taulist-taulist[0]                                     #shifting taulist to zero
-        Nt_finder = abs(taulist_zeroed+dtau-self.T)                             #subtracting the period from taulist, such that Nt = where this is closest to zero
-        
-        #Defining tlist, to be used to construct the R tensor
-        Nt = Nt if Nt != None \
-                else list(np.where( 
-                    Nt_finder == np.amin(Nt_finder))
-                    )[0][0]+1                                                   #Finding the number of points in taulist that comprises a period                          
-        time = self.T                                                           #Length of time of tlist defined to be one period of the system
-        dt = time/Nt                                                            #Time point spacing in tlist
-        self.tlist_rate_dic = np.linspace(0,time-dt,Nt)
-        
+        if Nt != None:
+            self.Nt = Nt
+        elif Nt == None:
+            if taulist[1]-taulist[0] > self.floquet_basis.T:
+                self.Nt = 16 #Reasonable number of points to use to calculate Rdic if everything else fails
+            elif type(taulist) != None and taulist[1]-taulist[0] < self.floquet_basis.T:
+                dt = taulist[1]-taulist[0]                                            #Finding dtau in taulist
+                taulist_zeroed = taulist-taulist[0]                                     #shifting taulist to zero
+                Nt_finder = abs(taulist_zeroed+dt-self.floquet_basis.T)                             #subtracting the period from taulist, such that Nt = where this is closest to zero
+                self.Nt = list(np.where(                                                     #Number of points in one period of the Hamiltonian
+                            Nt_finder == np.amin(Nt_finder))
+                            )[0][0]+1
+            else:
+                print('how did you get here?')
+       
         RateDic =  _floquet_rate_matrix(
              floquet_basis,
-             self.tlist_rate_dic,
+             self.Nt,
+             self.floquet_basis.T,
              c_ops,
              c_op_rates,
              Hargs,
              time_sense=time_sense)
-            
-        
         Rate_Qobj_list = [Qobj(
             RateMat, dims=[[self.Hdim,self.Hdim], [self.Hdim,self.Hdim]], type="super", superrep="super", copy=False) for RateMat in RateDic.values()]
-        
         self.R0 = Rate_Qobj_list[0]
         self.Rt_timedep_pairs = [list([Rate_Qobj_list[idx],'exp(1j*'+str(list(RateDic.keys())[idx]*list(Hargs.values())[0])+'*t)']) for idx in range(1,len(Rate_Qobj_list))]
          
@@ -983,6 +981,30 @@ class FLiMESolver(MESolver):
             self._state_metadata = {}
             self.stats = self._initialize_stats()
 
+
+    # def _FLiME_tlist_1period(self,taulist):
+    #     if len(taulist) > 2:
+    #         dtau = taulist[1]-taulist[0]                                            #Finding dtau in taulist
+    #         taulist_zeroed = taulist-taulist[0]                                     #shifting taulist to zero
+    #         Nt_finder = abs(taulist_zeroed+dtau-self.T)                             #subtracting the period from taulist, such that Nt = where this is closest to zero
+    #         Nt = list(np.where(                                                     #Number of points in one period of the Hamiltonian
+    #                     Nt_finder == np.amin(Nt_finder))
+    #                     )[0][0]+1     
+                                          
+    #         time = self.T                                                           #Length of time of tlist defined to be one period of the system
+    #         dt = time/Nt                                                            #Time point spacing in tlist
+    #         tlist_1period = np.linspace(0,time-dt,Nt)
+    #     elif len(taulist) == 2:
+    #         dtau = taulist[1]-taulist[0]                                            #Finding dtau in taulist                           #subtracting the period from taulist, such that Nt = where this is closest to zero
+    #         Nt = 16
+                                          
+    #         time = self.T                                                           #Length of time of tlist defined to be one period of the system
+    #         dt = time/Nt                                                            #Time point spacing in tlist
+    #         tlist_1period = np.linspace(0,time-dt,Nt)
+           
+    #     else:
+    #         return np.array([0])                                                    #For use when only one point in tlist, e.g. when using 2op_1t
+    #     return tlist_1period
         
     def _initialize_stats(self):
         stats = Solver._initialize_stats(self)
@@ -1091,28 +1113,33 @@ class FLiMESolver(MESolver):
             state0 = self.floquet_basis.to_floquet_basis(state00, taulist[0])
         
         dims = np.shape(state00.full())
-        fmodes_table = np.stack([np.stack([self.floquet_basis.mode(t)[i].full() for i in range(dims[0])]) for t in (taulist[0]+self.tlist_rate_dic)])[...,0]
+        time_1p = self.floquet_basis.T                                                           #Length of time of tlist defined to be one period of the system
+        dt = time_1p/self.Nt                                                       #Time point spacing in tlist
+        tlist = np.linspace(0,time_1p-dt,self.Nt)
+
         
-        tiled_modes = []
-        if len(taulist) >= len(self.tlist_rate_dic): 
-            for i in range(int(len(taulist)/len(self.tlist_rate_dic))):
+        dtau = taulist[1]-taulist[0]
+
+
+        if taulist[-1] >= self.floquet_basis.T and len(taulist)>= len(tlist):
+            fmodes_table = np.stack([np.stack([self.floquet_basis.mode(t)[i].full() for i in range(dims[0])]) for t in (taulist[0]+tlist)])[...,0]
+            tiled_modes = []
+            for i in range(int(np.ceil(len(taulist)/len(tlist)))):
                 tiled_modes.append(fmodes_table)
-            tiled_modes = np.concatenate(tiled_modes)
-        else:
-            tiled_modes = np.array([fmodes_table[idx] for idx,t in enumerate(taulist)])
+            tiled_modes = np.concatenate(tiled_modes)[0:len(taulist)]
+        else: #taulist[-1] >= self.floquet_basis.T and len(taulist) < len(tlist):
+            tiled_modes = np.stack([np.stack([self.floquet_basis.mode(t)[i].full() for i in range(dims[0])]) for t in (taulist)])[...,0]
         
         quasi_e_table = np.exp(np.einsum('i,k -> ki',-1j*self.floquet_basis.e_quasi,taulist) )
         fstates_table = np.einsum('ijk,ij->ikj',tiled_modes, quasi_e_table  )    
         
         if quicksolve == False:
-            
+            stats = {
+                "method": 'FLiME_quicksolve',
+                "preparation time": 0.0,
+                "run time": 0.0
+            }
             _time_start = time()
-            # if state0.type == 'ket':
-            #     state0 = state0*state0.dag()
-            # elif state0.type == 'oper':
-            #     state0 = state0
-            # else:
-            #     print('You need to supply a valid ket or operator')
             _data0 = self._prepare_state(state0)
             
             self._integrator.set_state(taulist[0], _data0)
@@ -1125,7 +1152,6 @@ class FLiMESolver(MESolver):
                 floquet_basis=self.floquet_basis,
             )
             stats["preparation time"] += time() - _time_start
-            _time_start_solve = time()
            
             sols = [self._restore_state(_data0, copy=False).full()]
             progress_bar = progess_bars[self.options["progress_bar"]]()
@@ -1138,21 +1164,13 @@ class FLiMESolver(MESolver):
             sols = np.array(sols)
             sols_comp = fstates_table @ sols @ np.transpose(fstates_table.conj(),axes=(0,2,1))
             sols_comp = [Qobj(_data.Dense(state),dims=[[2], [2]], type="oper", copy=False) for state in sols_comp] 
-        
-            # for idx, t in enumerate(taulist):
-            #     results.compadd(t,sols_comp[idx])
-            
-            # stats["run time"] = progress_bar.total_time()
-            # return results
-        else:
-            
-                
-            _time_start = time()
+        else:  
             stats = {
                 "method": 'FLiME_quicksolve',
                 "preparation time": 0.0,
                 "run time": 0.0,
             }
+            _time_start = time()
             results = self.resultclass(
                 e_ops,
                 self.options,
@@ -1160,19 +1178,19 @@ class FLiMESolver(MESolver):
                 stats=stats,
                 floquet_basis=self.floquet_basis,
             )
-            
-            eval_exp_diagonal = np.einsum('ij,ki->kij',np.eye(self.Hdim**2),np.exp(np.einsum('i,k->ki', self.R0_evals,taulist-taulist[0])))
+            if state0.type == 'ket':
+               state0 = operator_to_vector(state0*state0.dag())
+            elif state0.type == 'oper':
+               state0 = operator_to_vector(state0)
+            else:
+               print('You need to supply a valid ket or operator')
+               
+            eval_exp_diagonal = np.einsum('ij,ki->kij',np.eye(self.Hdim**2),np.exp(np.einsum('i,k->ki', self.R0_evals,taulist)))
             sol_coeffs = self.R0_evecs @  eval_exp_diagonal @ scipy.linalg.inv(self.R0_evecs)
             
-            
+           
             stats["preparation time"] += time() - _time_start
-            if state0.type == 'ket':
-                state0 = operator_to_vector(state0*state0.dag())
-            elif state0.type == 'oper':
-                state0 = operator_to_vector(state0)
-            else:
-                print('You need to supply a valid ket or operator')
-
+            
             progress_bar = progess_bars[self.options["progress_bar"]]()
             progress_bar.start(len(taulist) - 1, **self.options["progress_kwargs"])
             
@@ -1192,7 +1210,8 @@ class FLiMESolver(MESolver):
             # return results
         for idx, t in enumerate(taulist):
             results.compadd(t,sols_comp[idx])
-        
+        # results.times = taulist
+        # results.states = sols_comp
         stats["run time"] = progress_bar.total_time()
         return results
 
