@@ -8,7 +8,7 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'destroy', 'create', 'f_op', 'fdestroy', 'fcreate', 'qeye',
            'qeye_like', 'identity', 'position', 'momentum', 'num', 'squeeze',
            'squeezing', 'swap', 'displace', 'commutator', 'qutrit_ops',
-           'qdiags', 'phase','qzero', 'qzero_like', 'enr_destroy',
+           'qdiags', 'phase', 'qzero', 'qzero_like', 'enr_destroy',
            'enr_identity', 'charge', 'tunneling', 'qft']
 
 import numbers
@@ -539,13 +539,14 @@ def fcreate(n_sites, site):
     """
     return f_op(n_sites, site, 'creation')
 
+
 def f_op(n_sites, site, action):
     """ Makes fermionic creation and destruction operators.
     We use the Jordan-Wigner transformation,
     making use of the Jordan-Wigner ZZ..Z strings,
     to construct this as follows (in Latex):
     a_j = sigma_z^{otimes j}
-          otimes (frac{sigma_x \pm i sigma_y}{2})
+          otimes (frac{sigma_x pm i sigma_y}{2})
           otimes I^{otimes N-j-1}
 
     Parameters
@@ -553,7 +554,7 @@ def f_op(n_sites, site, action):
     action : str
         The type of operator to build.
         Can only be 'creation' or 'destruction'
-    
+
     n_sites : int
         Number of sites in Fock space.
 
@@ -583,7 +584,7 @@ def f_op(n_sites, site, action):
         return tensor([operator, *([identity(2)]*(n_sites-1))])
     elif n_sites-site-1 > 0:
         return tensor([*([sigmaz()]*site), operator,
-                           *([identity(2)]*(n_sites-site-1))])
+                       *([identity(2)]*(n_sites-site-1))])
     else:
         return tensor([*([sigmaz()]*site), operator])
 
