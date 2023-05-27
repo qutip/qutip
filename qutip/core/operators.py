@@ -5,11 +5,11 @@ of commonly occuring quantum operators.
 
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
-           'destroy', 'create', 'fdestroy', 'fcreate', 'qeye', 'qeye_like', 
+           'destroy', 'create', 'fdestroy', 'fcreate', 'qeye', 'qeye_like',
            'identity', 'position', 'momentum', 'num', 'squeeze', 'squeezing',
-           'swap', 'displace', 'commutator', 'qutrit_ops', 'qdiags', 'phase', 
-           'qzero', 'qzero_like', 'enr_destroy', 'enr_identity', 'charge', 
-           'tunneling','qft']
+           'swap', 'displace', 'commutator', 'qutrit_ops', 'qdiags', 'phase',
+           'qzero', 'qzero_like', 'enr_destroy', 'enr_identity', 'charge',
+           'tunneling', 'qft']
 
 import numbers
 
@@ -472,14 +472,14 @@ def create(N, offset=0, *, dtype=None):
     return qdiags(data, -1, dtype=dtype)
 
 
-def fdestroy(N, site=0, Opers=None):
+def fdestroy(N, site=0):
     """
     Fermionic destruction operator.
-    We use the Jordan-Wigner transformation, 
+    We use the Jordan-Wigner transformation,
     making use of the so-called Jordan-Wigner ZZ..Z strings,
     to construct this as follows (in Latex):
-    a_j = sigma_z^{otimes j} 
-          otimes (frac{sigma_x + i sigma_y}{2}) 
+    a_j = sigma_z^{otimes j}
+          otimes (frac{sigma_x + i sigma_y}{2})
           otimes I^{otimes N-j-1}
 
     Parameters
@@ -488,7 +488,7 @@ def fdestroy(N, site=0, Opers=None):
         Dimension of Hilbert space.
 
     site : int (default 0)
-        The site in Fock space to add a fermion to. 
+        The site in Fock space to add a fermion to.
         Corresponds to j in the above JW transform.
 
     Returns
@@ -499,7 +499,7 @@ def fdestroy(N, site=0, Opers=None):
     Examples
     --------
     >>> fdestroy(2) # doctest: +SKIP
-    Quantum object: dims=[[2 2], [2 2]], shape=(4, 4), 
+    Quantum object: dims=[[2 2], [2 2]], shape=(4, 4),
     type='oper', isherm=False
     Qobj data =
     [[0. 0. 1. 0.]
@@ -511,7 +511,7 @@ def fdestroy(N, site=0, Opers=None):
         return tensor([destroy(2), *([identity(2)]*(N-1))])
     else:
         if N-site-1 > 0:
-            return tensor([*([sigmaz()]*site), destroy(2), 
+            return tensor([*([sigmaz()]*site), destroy(2),
                            *([identity(2)]*(N-site-1))])
         else:
             return tensor([*([sigmaz()]*site), destroy(2)])
@@ -527,7 +527,8 @@ def fcreate(N, site=0):
         Dimension of Hilbert space.
 
     site : int (default 0)
-        The site in Fock space to add a fermion to. Corresponds to j in the above JW transform.
+        The site in Fock space to add a fermion to.
+        Corresponds to j in the above JW transform.
 
     Returns
     -------
@@ -537,7 +538,8 @@ def fcreate(N, site=0):
     Examples
     --------
     >>> fcreate(2) # doctest: +SKIP
-    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = False
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4),
+    type = oper, isherm = False
     Qobj data =
     [[0. 0. 0. 0.]
     [0. 0. 0. 0.]
@@ -548,7 +550,8 @@ def fcreate(N, site=0):
         return tensor([create(2), *([identity(2)]*(N-1))])
     else:
         if N-site-1 > 0:
-            return tensor([*([sigmaz()]*site), create(2), *([identity(2)]*(N-site-1))])
+            return tensor([*([sigmaz()]*site), create(2),
+                           *([identity(2)]*(N-site-1))])
         else:
             return tensor([*([sigmaz()]*site), create(2)])
 
