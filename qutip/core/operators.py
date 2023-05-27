@@ -5,11 +5,11 @@ of commonly occuring quantum operators.
 
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
-           'destroy', 'create', 'fdestroy', 'fcreate', 'qeye', 'qeye_like',
-           'identity', 'position', 'momentum', 'num', 'squeeze', 'squeezing',
-           'swap', 'displace', 'commutator', 'qutrit_ops', 'qdiags', 'phase',
-           'qzero', 'qzero_like', 'enr_destroy', 'enr_identity', 'charge',
-           'tunneling', 'qft']
+           'destroy', 'create', 'f_op', 'fdestroy', 'fcreate', 'qeye',
+           'qeye_like', 'identity', 'position', 'momentum', 'num', 'squeeze',
+           'squeezing', 'swap', 'displace', 'commutator', 'qutrit_ops',
+           'qdiags', 'phase','qzero', 'qzero_like', 'enr_destroy',
+           'enr_identity', 'charge', 'tunneling', 'qft']
 
 import numbers
 
@@ -18,7 +18,6 @@ import scipy.sparse
 
 from . import data as _data
 from .qobj import Qobj
-from .tensor import tensor
 from .dimensions import flatten
 from .. import settings
 
@@ -472,11 +471,11 @@ def create(N, offset=0, *, dtype=None):
     return qdiags(data, -1, dtype=dtype)
 
 
-def fdestroy(N, site=0):
+def fdestroy(n_sites, site):
     """
     Fermionic destruction operator.
     We use the Jordan-Wigner transformation,
-    making use of the so-called Jordan-Wigner ZZ..Z strings,
+    making use of the Jordan-Wigner ZZ..Z strings,
     to construct this as follows (in Latex):
     a_j = sigma_z^{otimes j}
           otimes (frac{sigma_x + i sigma_y}{2})
@@ -484,8 +483,8 @@ def fdestroy(N, site=0):
 
     Parameters
     ----------
-    N : int
-        Dimension of Hilbert space.
+    n_sites : int
+        Number of sites in Fock space.
 
     site : int (default 0)
         The site in Fock space to add a fermion to.
@@ -499,7 +498,7 @@ def fdestroy(N, site=0):
     Examples
     --------
     >>> fdestroy(2) # doctest: +SKIP
-    Quantum object: dims=[[2 2], [2 2]], shape=(4, 4),
+    Quantum object: dims=[[2 2], [2 2]], shape=(4, 4), \
     type='oper', isherm=False
     Qobj data =
     [[0. 0. 1. 0.]
@@ -507,26 +506,18 @@ def fdestroy(N, site=0):
     [0. 0. 0. 0.]
     [0. 0. 0. 0.]]
     """
-    if site == 0:
-        return tensor([destroy(2), *([identity(2)]*(N-1))])
-    else:
-        if N-site-1 > 0:
-            return tensor([*([sigmaz()]*site), destroy(2),
-                           *([identity(2)]*(N-site-1))])
-        else:
-            return tensor([*([sigmaz()]*site), destroy(2)])
+    return f_op(n_sites, site, 'destruction')
 
 
-def fcreate(N, site=0):
-    """
-    Fermionic creation operator.
+def fcreate(n_sites, site):
+    """ Builds a fermionic creation operator.
 
     Parameters
     ----------
-    N : int
-        Dimension of Hilbert space.
+    n_sites : int
+        Number of sites in Fock space.
 
-    site : int (default 0)
+    site : int
         The site in Fock space to add a fermion to.
         Corresponds to j in the above JW transform.
 
@@ -538,7 +529,7 @@ def fcreate(N, site=0):
     Examples
     --------
     >>> fcreate(2) # doctest: +SKIP
-    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4),
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), \
     type = oper, isherm = False
     Qobj data =
     [[0. 0. 0. 0.]
@@ -546,14 +537,55 @@ def fcreate(N, site=0):
     [1. 0. 0. 0.]
     [0. 1. 0. 0.]]
     """
-    if site == 0:
-        return tensor([create(2), *([identity(2)]*(N-1))])
+    return f_op(n_sites, site, 'creation')
+
+def f_op(n_sites, site, action):
+    """ Makes fermionic creation and destruction operators.
+    We use the Jordan-Wigner transformation,
+    making use of the Jordan-Wigner ZZ..Z strings,
+    to construct this as follows (in Latex):
+    a_j = sigma_z^{otimes j}
+          otimes (frac{sigma_x \pm i sigma_y}{2})
+          otimes I^{otimes N-j-1}
+
+    Parameters
+    ----------
+    action : str
+        The type of operator to build.
+        Can only be 'creation' or 'destruction'
+    
+    n_sites : int
+        Number of sites in Fock space.
+
+    site : int
+        The site in Fock space to create/destroy a fermion on.
+        Corresponds to j in the above JW transform.
+
+    Returns
+    -------
+    oper : qobj
+        Qobj for destruction operator.
+    """
+    from .tensor import tensor
+    # sanity check
+    if site >= n_sites:
+        raise ValueError(f'The specified site {site} is not in \
+                         the range of {n_sites} sites.')
+    if action.lower() == 'creation':
+        operator = create(2)
+    elif action.lower() == 'destruction':
+        operator = destroy(2)
     else:
-        if N-site-1 > 0:
-            return tensor([*([sigmaz()]*site), create(2),
-                           *([identity(2)]*(N-site-1))])
-        else:
-            return tensor([*([sigmaz()]*site), create(2)])
+        raise TypeError("Unknown operator '%s'. `action` must be \
+                        either 'creation' or 'destruction.'" % action)
+
+    if site == 0:
+        return tensor([operator, *([identity(2)]*(n_sites-1))])
+    elif n_sites-site-1 > 0:
+        return tensor([*([sigmaz()]*site), operator,
+                           *([identity(2)]*(n_sites-site-1))])
+    else:
+        return tensor([*([sigmaz()]*site), operator])
 
 
 def _implicit_tensor_dimensions(dimensions):
