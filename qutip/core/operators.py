@@ -471,11 +471,12 @@ def create(N, offset=0, *, dtype=None):
     data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
     return qdiags(data, -1, dtype=dtype)
 
-def fdestroy(N, site=0):
+def fdestroy(N, site=0, Opers = None):
     """
     Fermionic destruction operator.
-    We use the Jordan-Wigner transformation to construct this:
-    a_j = \sigma_z^{\otimes j} \otimes (\frac{\sigma_x - i\sigma_y}{2}) \otimes I^{\otimes N-j-1}
+    We use the Jordan-Wigner transformation, making use of the so-called Jordan-Wigner ZZ..Z strings,
+    to construct this as follows (in Latex):
+    $$a_j = \sigma_z^{\otimes j} \otimes (\frac{\sigma_x + i\sigma_y}{2}) \otimes I^{\otimes N-j-1}$$
 
     Parameters
     ----------
@@ -501,18 +502,19 @@ def fdestroy(N, site=0):
     [0. 0. 0. 0.]]
     """
     if site == 0:
-        return tensor([destroy(2), *[identity(2)*(N-1)]])
+        return tensor([destroy(2), *([identity(2)]*(N-1))])
     else:
         if N-site-1 > 0:
-            return tensor([*[sigmaz()*site], destroy(2), *[identity(2)*(N-site-1)]])
+            return tensor([*([sigmaz()]*site), destroy(2), *([identity(2)]*(N-site-1))])
         else:
-            return tensor([*[sigmaz()*site], destroy(2)])
+            return tensor([*([sigmaz()]*site), destroy(2)])
 
 def fcreate(N, site=0):
     """
     Fermionic creation operator.
-    We use the Jordan-Wigner transformation to construct this:
-    a^{\dagger}_j = \sigma_z^{\otimes j} \otimes (\frac{\sigma_x + i\sigma_y}{2}) \otimes I^{\otimes N-k-1}
+    We use the Jordan-Wigner transformation, making use of the so-called Jordan-Wigner ZZ..Z strings,
+    to construct this as follows (in Latex):
+    $$a_j = \sigma_z^{\otimes j} \otimes (\frac{\sigma_x - i\sigma_y}{2}) \otimes I^{\otimes N-j-1}$$
 
     Parameters
     ----------
@@ -538,12 +540,12 @@ def fcreate(N, site=0):
     [0. 1. 0. 0.]]
     """
     if site == 0:
-        return tensor([create(2), *[identity(2)*(N-1)]])
+        return tensor([create(2), *([identity(2)]*(N-1))])
     else:
         if N-site-1 > 0:
-            return tensor([*[sigmaz()*site], create(2), *[identity(2)*(N-site-1)]])
+            return tensor([*([sigmaz()]*site), create(2), *([identity(2)]*(N-site-1))])
         else:
-            return tensor([*[sigmaz()*site], create(2)])
+            return tensor([*([sigmaz()]*site), create(2)])
 
 
 def _implicit_tensor_dimensions(dimensions):
