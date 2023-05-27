@@ -136,11 +136,11 @@ shape = [3, 3], type = oper, isHerm = True
         return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims, type='oper',
                     isherm=False, isunitary=False, copy=False)
     if which == 'x':
-        A =  _jplus(j, dtype=dtype)
+        A = _jplus(j, dtype=dtype)
         return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
                     isherm=True, isunitary=False, copy=False) * 0.5
     if which == 'y':
-        A =  _data.mul(_jplus(j, dtype=dtype), -0.5j)
+        A = _data.mul(_jplus(j, dtype=dtype), -0.5j)
         return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
                     isherm=True, isunitary=False, copy=False)
     if which == 'z':
@@ -471,12 +471,13 @@ def create(N, offset=0, *, dtype=None):
     data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
     return qdiags(data, -1, dtype=dtype)
 
-def fdestroy(N, site=0, Opers = None):
+
+def fdestroy(N, site=0, Opers=None):
     """
     Fermionic destruction operator.
     We use the Jordan-Wigner transformation, making use of the so-called Jordan-Wigner ZZ..Z strings,
     to construct this as follows (in Latex):
-    $$a_j = \sigma_z^{\otimes j} \otimes (\frac{\sigma_x + i\sigma_y}{2}) \otimes I^{\otimes N-j-1}$$
+    a_j = sigma_z^{otimes j} otimes (frac{sigma_x + i sigma_y}{2}) otimes I^{otimes N-j-1}
 
     Parameters
     ----------
@@ -508,6 +509,7 @@ def fdestroy(N, site=0, Opers = None):
             return tensor([*([sigmaz()]*site), destroy(2), *([identity(2)]*(N-site-1))])
         else:
             return tensor([*([sigmaz()]*site), destroy(2)])
+
 
 def fcreate(N, site=0):
     """

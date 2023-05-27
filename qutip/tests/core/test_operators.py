@@ -345,9 +345,10 @@ def test_qzero_like(dims, superrep, dtype):
     new = qutip.qzero_like(op)
     assert new == expected
 
-@pytest.mark.parametrize('N', [2,3,4,5])
+
+@pytest.mark.parametrize('N', [2, 3, 4, 5])
 def test_fcreate_fdestroy(N):
-    I = qutip.tensor([*([qutip.identity(2)]*(N))])
+    identity = qutip.tensor([*([qutip.identity(2)]*(N))])
     zero_tensor = 0*I
     for size_0 in range(N):
         c_0 = qutip.fcreate(N, size_0)
@@ -355,12 +356,12 @@ def test_fcreate_fdestroy(N):
         for size_1 in range(N):
             c_1 = qutip.fcreate(N, size_1)
             d_1 = qutip.fdestroy(N, size_1)
-            assert qutip.anticommutator(c_0,c_1) == zero_tensor
-            assert qutip.anticommutator(d_0,d_1) == zero_tensor
+            assert qutip.anticommutator(c_0, c_1) == zero_tensor
+            assert qutip.anticommutator(d_0, d_1) == zero_tensor
             if size_0 == size_1:
-                assert qutip.anticommutator(c_0,d_1) == I
-                assert qutip.anticommutator(c_1,d_0) == I
+                assert qutip.anticommutator(c_0, d_1) == identity
+                assert qutip.anticommutator(c_1, d_0) == identity
             else:
-                assert qutip.anticommutator(c_0,d_1) == zero_tensor
-                assert qutip.anticommutator(c_1,d_0) == zero_tensor
-    assert qutip.commutator(I, c_0) == zero_tensor
+                assert qutip.anticommutator(c_0, d_1) == zero_tensor
+                assert qutip.anticommutator(c_1, d_0) == zero_tensor
+    assert qutip.commutator(identity, c_0) == zero_tensor
