@@ -251,8 +251,8 @@ dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes
     (qutip.spin_Jp, (1,)),
     (qutip.destroy, (5,)),
     (qutip.create, (5,)),
-    (qutip.fdestroy, (5,0))
-    (qutip.fcreate, (5,0))
+    (qutip.fdestroy, (5,0)),
+    (qutip.fcreate, (5,0)),
     (qutip.qzero, (5,)),
     (qutip.qeye, (5,)),
     (qutip.position, (5,)),
@@ -348,7 +348,7 @@ def test_qzero_like(dims, superrep, dtype):
 
 @pytest.mark.parametrize('n_sites', [2, 3, 4, 5])
 def test_fcreate_fdestroy(n_sites):
-    identity = qutip.tensor([*([qutip.identity(2)]*(N))])
+    identity = qutip.tensor([*([qutip.identity(2)]*(n_sites))])
     zero_tensor = 0*identity
     for site_0 in range(n_sites):
         c_0 = qutip.fcreate(n_sites, site_0)
@@ -356,12 +356,12 @@ def test_fcreate_fdestroy(n_sites):
         for site_1 in range(n_sites):
             c_1 = qutip.fcreate(n_sites, site_1)
             d_1 = qutip.fdestroy(n_sites, site_1)
-            assert qutip.anticommutator(c_0, c_1) == zero_tensor
-            assert qutip.anticommutator(d_0, d_1) == zero_tensor
+            assert qutip.commutator(c_0, c_1, 'anti') == zero_tensor
+            assert qutip.commutator(d_0, d_1, 'anti') == zero_tensor
             if site_0 == site_1:
-                assert qutip.anticommutator(c_0, d_1) == identity
-                assert qutip.anticommutator(c_1, d_0) == identity
+                assert qutip.commutator(c_0, d_1, 'anti') == identity
+                assert qutip.commutator(c_1, d_0, 'anti') == identity
             else:
-                assert qutip.anticommutator(c_0, d_1) == zero_tensor
-                assert qutip.anticommutator(c_1, d_0) == zero_tensor
+                assert qutip.commutator(c_0, d_1, 'anti') == zero_tensor
+                assert qutip.commutator(c_1, d_0, 'anti') == zero_tensor
     assert qutip.commutator(identity, c_0) == zero_tensor
