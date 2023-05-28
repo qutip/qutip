@@ -471,7 +471,7 @@ def create(N, offset=0, *, dtype=None):
     return qdiags(data, -1, dtype=dtype)
 
 
-def fdestroy(n_sites, site, dtype = None):
+def fdestroy(n_sites, site, dtype=None):
     """
     Fermionic destruction operator.
     We use the Jordan-Wigner transformation,
@@ -506,10 +506,10 @@ def fdestroy(n_sites, site, dtype = None):
     [0. 0. 0. 0.]
     [0. 0. 0. 0.]]
     """
-    return f_op(n_sites, site, 'destruction', dtype)
+    return f_op(n_sites, site, 'destruction', dtype=dtype)
 
 
-def fcreate(n_sites, site, dtype = None):
+def fcreate(n_sites, site, dtype=None):
     """ Builds a fermionic creation operator.
 
     Parameters
@@ -537,10 +537,10 @@ def fcreate(n_sites, site, dtype = None):
     [1. 0. 0. 0.]
     [0. 1. 0. 0.]]
     """
-    return f_op(n_sites, site, 'creation', dtype = dtype)
+    return f_op(n_sites, site, 'creation', dtype=dtype)
 
 
-def f_op(n_sites, site, action, dtype = None):
+def f_op(n_sites, site, action, dtype=None):
     """ Makes fermionic creation and destruction operators.
     We use the Jordan-Wigner transformation,
     making use of the Jordan-Wigner ZZ..Z strings,
@@ -569,29 +569,28 @@ def f_op(n_sites, site, action, dtype = None):
     """
     # get `tensor` and sigma z objects
     from .tensor import tensor
-    s_z = 2 * jmat(0.5, 'z', dtype = dtype)
+    s_z = 2 * jmat(0.5, 'z', dtype=dtype)
 
     # sanity check
     if site >= n_sites:
         raise ValueError(f'The specified site {site} is not in \
                          the range of {n_sites} sites.')
-    
+
     # figure out which operator to build
     if action.lower() == 'creation':
-        operator = create(2, dtype = dtype)
+        operator = create(2, dtype=dtype)
     elif action.lower() == 'destruction':
-        operator = destroy(2, dtype = dtype)
+        operator = destroy(2, dtype=dtype)
     else:
         raise TypeError("Unknown operator '%s'. `action` must be \
                         either 'creation' or 'destruction.'" % action)
-    
-    
+
     # build operator
     if site == 0:
-        return tensor([operator, *([identity(2, dtype = dtype)]*(n_sites-1))])
+        return tensor([operator, *([identity(2, dtype=dtype)]*(n_sites-1))])
     elif n_sites-site-1 > 0:
         return tensor([*([s_z]*site), operator,
-                       *([identity(2, dtype = dtype)]*(n_sites-site-1))])
+                       *([identity(2, dtype=dtype)]*(n_sites-site-1))])
     else:
         return tensor([*([s_z]*site), operator])
 
