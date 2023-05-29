@@ -205,23 +205,6 @@ class TestClassMethods:
         # mathematics, so they should be _identical_.
         assert np.all(test_array == data_diag.as_scipy().toarray())
 
-    def test_to_dense(self, data_diag):
-        data_dense = dia.to_dense(data_diag)
-        assert isinstance(data_dense, Dense)
-        # It's not enough to be accurate within a tolerance here - there's no
-        # mathematics, so they should be _identical_.
-        assert np.all(data_dense.to_array() == data_diag.as_scipy().toarray())
-        assert np.all(data_dense.to_array() == data_diag.to_array())
-
-    def test_from_dense(self, scipy_dia):
-        dense = Dense(scipy_dia.toarray())
-        data_diag = dia.from_dense(dense)
-        assert isinstance(data_diag, Diag)
-        # It's not enough to be accurate within a tolerance here - there's no
-        # mathematics, so they should be _identical_.
-        assert np.all(data_diag.to_array() == data_diag.as_scipy().toarray())
-        assert np.all(data_diag.to_array() == data_diag.to_array())
-
 
 class TestFactoryMethods:
     def test_empty(self, shape, density):

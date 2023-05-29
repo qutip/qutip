@@ -72,7 +72,6 @@ cdef inline void _vec_kron(
     idxint size_l, idxint size_r, idxint step
 ):
     cdef idxint i, j
-    print(size_l, size_r, step)
     for i in range(size_l):
         for j in range(size_r):
             ptr_out[i*step+j] = ptr_l[i] * ptr_r[j]

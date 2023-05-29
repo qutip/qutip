@@ -127,35 +127,31 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
 @cython.boundscheck(True)
 @cython.initializedcheck(True)
 def ptrace_diag(matrix, dims, sel):
-    dims, sel = _parse_inputs(dims, sel, matrix.shape)
-
     if len(sel) == len(dims):
         return matrix.copy()
-
+    dims, sel = _parse_inputs(dims, sel, matrix.shape)
     mat = matrix.as_scipy()
     cdef idxint[:, ::1] tensor_table = np.zeros((dims.shape[0], 3), dtype=idxint_dtype)
-    cdef idxint pos[2]
+    cdef idxint pos_row[2]
+    cdef idxint pos_col[2]
     size = _populate_tensor_table(dims, sel, tensor_table)
-    offsets = []
-    data = []
+    data = {}
     for i, offset in enumerate(mat.offsets):
-        _i2_k_t(offset, tensor_table, pos)
-        print(offset, pos[0], pos[1])
-        if pos[1] == 0:
-            offsets.append(pos[0])
-            data.append([0.] * size)
-            start = max(0, offset)
-            end = min(matrix.shape[0] + offset, matrix.shape[1])
-            for col in range(start, end):
-                _i2_k_t(col, tensor_table, pos)
-                data[-1][pos[0]] += mat.data[i, col]
-    if len(offsets) == 0:
+        start = max(0, offset)
+        end = min(matrix.shape[0] + offset, matrix.shape[1])
+        for col in range(start, end):
+            _i2_k_t(col - offset, tensor_table, pos_row)
+            _i2_k_t(col, tensor_table, pos_col)
+            if pos_row[1] == pos_col[1]:
+                new_offset = pos_col[0] - pos_row[0]
+                if new_offset not in data:
+                    data[new_offset] = np.zeros(size, dtype=complex)
+                data[new_offset][pos_col[0]] += mat.data[i, col]
+
+    if len(data) == 0:
         return dia.zeros(size, size)
-    data = np.array(data, dtype=complex)
-    offsets = np.array(offsets, dtype=idxint_dtype)
-    print(data.shape, data.dtype)
-    print(offsets.shape, offsets.dtype)
-    print(size)
+    offsets = np.array(list(data.keys()), dtype=idxint_dtype)
+    data = np.array(list(data.values()), dtype=complex)
     out = Diag((data, offsets), shape=(size, size), copy=False)
     out = dia.clean_diag(out, True)
     return out
