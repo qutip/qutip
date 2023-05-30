@@ -5,11 +5,11 @@ of commonly occuring quantum operators.
 
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
-           'destroy', 'create', 'f_op', 'fdestroy', 'fcreate', 'qeye',
-           'qeye_like', 'identity', 'position', 'momentum', 'num', 'squeeze',
-           'squeezing', 'swap', 'displace', 'commutator', 'qutrit_ops',
-           'qdiags', 'phase', 'qzero', 'qzero_like', 'enr_destroy',
-           'enr_identity', 'charge', 'tunneling', 'qft']
+           'destroy', 'create', 'fdestroy', 'fcreate', 'qeye', 'qeye_like',
+           'identity', 'position', 'momentum', 'num', 'squeeze','squeezing',
+           'swap', 'displace', 'commutator', 'qutrit_ops', 'qdiags', 'phase',
+           'qzero', 'qzero_like', 'enr_destroy','enr_identity', 'charge',
+           'tunneling', 'qft']
 
 import numbers
 
@@ -506,11 +506,19 @@ def fdestroy(n_sites, site, dtype=None):
     [0. 0. 0. 0.]
     [0. 0. 0. 0.]]
     """
-    return f_op(n_sites, site, 'destruction', dtype=dtype)
+    return _f_op(n_sites, site, 'destruction', dtype=dtype)
 
 
 def fcreate(n_sites, site, dtype=None):
-    """ Builds a fermionic creation operator.
+    """
+    Fermionic creation operator.
+    We use the Jordan-Wigner transformation,
+    making use of the Jordan-Wigner ZZ..Z strings,
+    to construct this as follows (in Latex):
+    a_j = sigma_z^{otimes j}
+          otimes (frac{sigma_x - i sigma_y}{2})
+          otimes I^{otimes N-j-1}
+
 
     Parameters
     ----------
@@ -537,10 +545,10 @@ def fcreate(n_sites, site, dtype=None):
     [1. 0. 0. 0.]
     [0. 1. 0. 0.]]
     """
-    return f_op(n_sites, site, 'creation', dtype=dtype)
+    return _f_op(n_sites, site, 'creation', dtype=dtype)
 
 
-def f_op(n_sites, site, action, dtype=None):
+def _f_op(n_sites, site, action, dtype=None):
     """ Makes fermionic creation and destruction operators.
     We use the Jordan-Wigner transformation,
     making use of the Jordan-Wigner ZZ..Z strings,
