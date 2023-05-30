@@ -199,6 +199,9 @@ def const(value):
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%      Everything under this is for string compilation      %%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+WARN_MISSING_MODULE = [0]
+
+
 class CompilationOptions(QutipOptions):
     """
     Compilation options:
@@ -259,6 +262,7 @@ class CompilationOptions(QutipOptions):
         _use_cython = True
     except ImportError:
         _use_cython = False
+        WARN_MISSING_MODULE[0] = 1
 
     _options = {
         "use_cython": _use_cython,
@@ -369,6 +373,12 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None, **_):
     coeff = None
     # Do we compile?
     if not compile_opt['use_cython']:
+        if WARN_MISSING_MODULE[0]:
+            warnings.warn(
+                "Both `cython` and `filelock` are required for compilation of "
+                "string coefficents. Falling back on `eval`.")
+            # Only warns once.
+            WARN_MISSING_MODULE[0] = 0
         return StrFunctionCoefficient(base, args)
     # Parsing tries to make the code in common pattern
     parsed, variables, constants, raw = try_parse(base, args,
