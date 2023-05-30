@@ -6,6 +6,11 @@ from qutip.solver.sesolve import sesolve, SESolver
 from qutip.solver.krylovsolve import krylovsolve
 from qutip.solver.solver_base import Solver
 
+# Deactivate warning for test without cython
+from qutip.core.coefficient import WARN_MISSING_MODULE
+WARN_MISSING_MODULE[0] = 0
+
+
 all_ode_method = [
     method for method, integrator in SESolver.avail_integrators().items()
     if integrator.support_time_dependant
@@ -15,7 +20,6 @@ def _analytic(t, alpha):
     return ((1 - np.exp(-alpha * t)) / alpha)
 
 
-@pytest.mark.filterwarnings("ignore:Both `cython` and `filelock`")
 class TestSeSolve():
     H0 = 0.2 * np.pi * qutip.sigmaz()
     H1 = np.pi * qutip.sigmax()

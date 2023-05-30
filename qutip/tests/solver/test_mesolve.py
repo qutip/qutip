@@ -7,6 +7,11 @@ from qutip.solver.solver_base import Solver
 import pickle
 import pytest
 
+# Deactivate warning for test without cython
+from qutip.core.coefficient import WARN_MISSING_MODULE
+WARN_MISSING_MODULE[0] = 0
+
+
 all_ode_method = [
     method for method, integrator in MESolver.avail_integrators().items()
     if integrator.support_time_dependant
@@ -20,7 +25,6 @@ def fidelitycheck(out1, out2, rho0vec):
     return fid
 
 
-@pytest.mark.filterwarnings("ignore:Both `cython` and `filelock`")
 class TestMESolveDecay:
     N = 10
     a = qutip.destroy(N)
