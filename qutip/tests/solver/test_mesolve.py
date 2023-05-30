@@ -20,6 +20,7 @@ def fidelitycheck(out1, out2, rho0vec):
     return fid
 
 
+@pytest.mark.filterwarnings("ignore:Both `cython` and `filelock`")
 class TestMESolveDecay:
     N = 10
     a = qutip.destroy(N)

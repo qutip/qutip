@@ -90,6 +90,7 @@ class TestIntegratorCte():
         )
 
 
+@pytest.mark.filterwarnings("ignore:Both `cython` and `filelock`")
 class TestIntegrator(TestIntegratorCte):
     _analytical_se = lambda _, t: np.cos(t**2/2 * np.pi)
     se_system = qutip.QobjEvo([-1j * qutip.sigmax() * np.pi, "t"])
