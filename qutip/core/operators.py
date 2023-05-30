@@ -6,9 +6,9 @@ of commonly occuring quantum operators.
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
            'destroy', 'create', 'fdestroy', 'fcreate', 'qeye', 'qeye_like',
-           'identity', 'position', 'momentum', 'num', 'squeeze','squeezing',
+           'identity', 'position', 'momentum', 'num', 'squeeze', 'squeezing',
            'swap', 'displace', 'commutator', 'qutrit_ops', 'qdiags', 'phase',
-           'qzero', 'qzero_like', 'enr_destroy','enr_identity', 'charge',
+           'qzero', 'qzero_like', 'enr_destroy', 'enr_identity', 'charge',
            'tunneling', 'qft']
 
 import numbers
