@@ -123,9 +123,6 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
 
 
 #TODO: cythonize
-@cython.wraparound(True)
-@cython.boundscheck(True)
-@cython.initializedcheck(True)
 def ptrace_diag(matrix, dims, sel):
     if len(sel) == len(dims):
         return matrix.copy()
