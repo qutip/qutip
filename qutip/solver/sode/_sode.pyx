@@ -27,7 +27,7 @@ cdef class Euler:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef step(self, double t, Data state, double dt, double[:, :] dW):
+    cdef Data step(self, double t, Data state, double dt, double[:, :] dW):
         """
         Integration scheme:
         Basic Euler order 0.5
@@ -50,7 +50,7 @@ cdef class Platen(Euler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef step(self, double t, Data state, double dt, double[:, :] dW):
+    cdef Data step(self, double t, Data state, double dt, double[:, :] dW):
         """
         Platen rhs function for both master eq and schrodinger eq.
         dV = -iH* (V+Vt)/2 * dt + (d1(V)+d1(Vt))/2 * dt
@@ -109,7 +109,7 @@ cdef class Explicit15(Euler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef step(self, double t, Data state, double dt, double[:, :] dW):
+    cdef Data step(self, double t, Data state, double dt, double[:, :] dW):
         """
         Chapter 11.2 Eq. (2.13)
         Numerical Solution of Stochastic Differential Equations
@@ -254,7 +254,7 @@ cdef class Milstein:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
         Chapter 10.3 Eq. (3.12)
         Numerical Solution of Stochastic Differential Equations
@@ -311,7 +311,7 @@ cdef class PredCorr:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
         Chapter 15.5 Eq. (5.4)
         Numerical Solution of Stochastic Differential Equations
@@ -352,7 +352,7 @@ cdef class PredCorr:
 cdef class Taylor15(Milstein):
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
         Chapter 10.4 Eq. (4.6),
         Numerical Solution of Stochastic Differential Equations
