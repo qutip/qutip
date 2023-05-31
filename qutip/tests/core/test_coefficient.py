@@ -6,8 +6,10 @@ import scipy.interpolate as interp
 from functools import partial
 from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     CompilationOptions, Coefficient,
-                                    clean_compiled_coefficient
+                                    clean_compiled_coefficient,
+                                    WARN_MISSING_MODULE,
                                     )
+
 
 # Ensure the latest version is tested
 clean_compiled_coefficient(True)
@@ -238,6 +240,14 @@ def test_CoeffOptions():
     for coeff1, coeff2 in combinations(coeffs, 2):
         assert not isinstance(coeff1, coeff2.__class__)
 
+
+def test_warn_no_cython():
+    option = CompilationOptions(use_cython=False)
+    WARN_MISSING_MODULE[0] = 1
+    with pytest.warns(
+        UserWarning, match="`cython` and `filelock` are required"
+    ):
+        coefficient("t", compile_opt=option)
 
 @pytest.mark.requires_cython
 @pytest.mark.parametrize(['codestring', 'args', 'reference'], [
