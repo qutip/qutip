@@ -477,7 +477,9 @@ def fdestroy(n_sites, site, dtype=None):
     We use the Jordan-Wigner transformation,
     making use of the Jordan-Wigner ZZ..Z strings,
     to construct this as follows:
+
     .. math::
+
         a_j = \\sigma_z^{\\otimes j} \\otimes 
         (\\frac{\\sigma_x + i \\sigma_y}{2}) 
         \\otimes I^{\\otimes N-j-1}
@@ -518,6 +520,7 @@ def fcreate(n_sites, site, dtype=None):
     to construct this as follows:
 
     .. math::
+
         a_j = \\sigma_z^{\\otimes j} 
         \\otimes (frac{sigma_x - i sigma_y}{2}) 
         \\otimes I^{\\otimes N-j-1}
@@ -555,10 +558,13 @@ def _f_op(n_sites, site, action, dtype=None):
     """ Makes fermionic creation and destruction operators.
     We use the Jordan-Wigner transformation,
     making use of the Jordan-Wigner ZZ..Z strings,
-    to construct this as follows (in Latex):
-    a_j = sigma_z^{otimes j}
-          otimes (frac{sigma_x pm i sigma_y}{2})
-          otimes I^{otimes N-j-1}
+    to construct this as follows:
+
+    .. math::
+
+        a_j = \\sigma_z^{\\otimes j} 
+        \\otimes (frac{sigma_x - i sigma_y}{2}) 
+        \\otimes I^{\\otimes N-j-1}
 
     Parameters
     ----------
@@ -603,7 +609,7 @@ def _f_op(n_sites, site, action, dtype=None):
                         either 'creation' or 'destruction.'" % action)
 
     eye = identity(2, dtype=dtype)
-    opers = [s_z] * site + [operator] + [eye * (n_sites - site - 1)]
+    opers = [s_z] * site + [operator] + [eye] * (n_sites - site - 1)
     return tensor(opers)
 
 
