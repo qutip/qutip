@@ -1017,3 +1017,23 @@ cdef class QobjEvo:
             part = (<_BaseElement> element)
             out = part.matmul_data_t(t, state, out)
         return out
+
+
+cdef QobjEvoHerm(QobjEvo)
+    """
+    QobjEvo with matmul_data variant that use the ``herm_matmul`` special case.
+    """
+    cpdef Data matmul_data_herm(QobjEvo self, object t, Data state, Data out=None):
+        """Compute ``out += self(t) @ state``"""
+        cdef _BaseElement part
+        t = self._prepare(t, state)
+        if out is None and type(state) is Dense:
+            out = dense.zeros(self.shape[0], state.shape[1],
+                      (<Dense> state).fortran)
+        elif out is None:
+            out = _data.zeros[type(state)](self.shape[0], state.shape[1])
+
+        for element in self.elements:
+            part = (<_BaseElement> element)
+            out = part.matmul_data_t_herm(t, state, out)
+        return out

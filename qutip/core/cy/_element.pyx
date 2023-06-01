@@ -168,6 +168,41 @@ cdef class _BaseElement:
                 _data.matmul(self.data(t), state, self.coeff(t))
             )
 
+    cdef Data matmul_data_t_herm(
+        _BaseElement self, t, Data state, size_t N, Data out=None
+    ):
+        """
+        Equivalent to ``matmul_data_t`` when the output is a column stacked
+        Hermitian matrix.
+
+        Equivalent to::
+
+          out += self.coeff(t) * self.qobj(t) @ state
+
+        Parameters
+        ----------
+        t : double
+          The time, ``t``.
+
+        state : :obj:`~Data`
+          The state to multiply by the element term.
+
+        N : int
+            Size of the original column stacked ``state`` and ``out`` matrix.
+
+        out : :obj:`~Data` or ``NULL``
+          The output to add the result of the multiplication to. If ``NULL``,
+          the result of the multiplication is returned directly (i.e. ``out``
+          is assumed to be the zero matrix).
+
+        Returns
+        -------
+        data
+          The result of ``self.coeff(t) * self.qobj(t) @ state + out``, with
+          the addition possibly having been performed in-place on ``out``.
+        """
+        return _data.herm_matmul(self.data(t), state, N, self.coeff(t), out)
+
     def linear_map(self, f, anti=False):
         """
         Return a new element representing a linear transformation ``f``
