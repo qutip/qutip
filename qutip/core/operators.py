@@ -480,8 +480,8 @@ def fdestroy(n_sites, site, dtype=None):
 
     .. math::
 
-        a_j = \\sigma_z^{\\otimes j} \\otimes 
-        (\\frac{\\sigma_x + i \\sigma_y}{2}) 
+        a_j = \\sigma_z^{\\otimes j} \\otimes
+        (\\frac{\\sigma_x + i \\sigma_y}{2})
         \\otimes I^{\\otimes N-j-1}
 
     Parameters
@@ -521,8 +521,8 @@ def fcreate(n_sites, site, dtype=None):
 
     .. math::
 
-        a_j = \\sigma_z^{\\otimes j} 
-        \\otimes (frac{sigma_x - i sigma_y}{2}) 
+        a_j = \\sigma_z^{\\otimes j}
+        \\otimes (frac{sigma_x - i sigma_y}{2})
         \\otimes I^{\\otimes N-j-1}
 
 
@@ -562,8 +562,8 @@ def _f_op(n_sites, site, action, dtype=None):
 
     .. math::
 
-        a_j = \\sigma_z^{\\otimes j} 
-        \\otimes (frac{sigma_x - i sigma_y}{2}) 
+        a_j = \\sigma_z^{\\otimes j}
+        \\otimes (frac{sigma_x \\pm i sigma_y}{2})
         \\otimes I^{\\otimes N-j-1}
 
     Parameters
