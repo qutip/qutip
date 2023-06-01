@@ -476,10 +476,11 @@ def fdestroy(n_sites, site, dtype=None):
     Fermionic destruction operator.
     We use the Jordan-Wigner transformation,
     making use of the Jordan-Wigner ZZ..Z strings,
-    to construct this as follows (in Latex):
-    a_j = sigma_z^{otimes j}
-          otimes (frac{sigma_x + i sigma_y}{2})
-          otimes I^{otimes N-j-1}
+    to construct this as follows:
+    .. math::
+        a_j = \\sigma_z^{\\otimes j} \\otimes 
+        (\\frac{\\sigma_x + i \\sigma_y}{2}) 
+        \\otimes I^{\\otimes N-j-1}
 
     Parameters
     ----------
@@ -514,10 +515,12 @@ def fcreate(n_sites, site, dtype=None):
     Fermionic creation operator.
     We use the Jordan-Wigner transformation,
     making use of the Jordan-Wigner ZZ..Z strings,
-    to construct this as follows (in Latex):
-    a_j = sigma_z^{otimes j}
-          otimes (frac{sigma_x - i sigma_y}{2})
-          otimes I^{otimes N-j-1}
+    to construct this as follows:
+
+    .. math::
+        a_j = \\sigma_z^{\\otimes j} 
+        \\otimes (frac{sigma_x - i sigma_y}{2}) 
+        \\otimes I^{\\otimes N-j-1}
 
 
     Parameters
@@ -580,7 +583,13 @@ def _f_op(n_sites, site, action, dtype=None):
     s_z = 2 * jmat(0.5, 'z', dtype=dtype)
 
     # sanity check
-    if site >= n_sites:
+    if site < 0:
+        raise ValueError(f'The specified site {site} cannot be \
+                         less than 0.')
+    elif 0 >= n_sites:
+        raise ValueError(f'The specified number of sites {n_sites} \
+                         cannot be equal to or less than 0.')
+    elif site >= n_sites:
         raise ValueError(f'The specified site {site} is not in \
                          the range of {n_sites} sites.')
 
@@ -593,14 +602,9 @@ def _f_op(n_sites, site, action, dtype=None):
         raise TypeError("Unknown operator '%s'. `action` must be \
                         either 'creation' or 'destruction.'" % action)
 
-    # build operator
-    if site == 0:
-        return tensor([operator, *([identity(2, dtype=dtype)]*(n_sites-1))])
-    elif n_sites-site-1 > 0:
-        return tensor([*([s_z]*site), operator,
-                       *([identity(2, dtype=dtype)]*(n_sites-site-1))])
-    else:
-        return tensor([*([s_z]*site), operator])
+    eye = identity(2, dtype=dtype)
+    opers = [s_z] * site + [operator] + [eye * (n_sites - site - 1)]
+    return tensor(opers)
 
 
 def _implicit_tensor_dimensions(dimensions):

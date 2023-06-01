@@ -251,8 +251,8 @@ dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes
     (qutip.spin_Jp, (1,)),
     (qutip.destroy, (5,)),
     (qutip.create, (5,)),
-    (qutip.fdestroy, (5,0)),
-    (qutip.fcreate, (5,0)),
+    (qutip.fdestroy, (5, 0)),
+    (qutip.fcreate, (5, 0)),
     (qutip.qzero, (5,)),
     (qutip.qeye, (5,)),
     (qutip.position, (5,)),
@@ -348,8 +348,8 @@ def test_qzero_like(dims, superrep, dtype):
 
 @pytest.mark.parametrize('n_sites', [2, 3, 4, 5])
 def test_fcreate_fdestroy(n_sites):
-    identity = qutip.tensor([*([qutip.identity(2)]*(n_sites))])
-    zero_tensor = 0*identity
+    identity = qutip.identity([2] * n_sites)
+    zero_tensor = qutip.qzero([2] * n_sites)
     for site_0 in range(n_sites):
         c_0 = qutip.fcreate(n_sites, site_0)
         d_0 = qutip.fdestroy(n_sites, site_0)
