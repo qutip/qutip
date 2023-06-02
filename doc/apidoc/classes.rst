@@ -46,18 +46,29 @@ Solvers
 
 .. autoclass:: qutip.solver.sesolve.SESolver
     :members:
-
+    :inherited-members:
+    :show-inheritance:
+    
 .. autoclass:: qutip.solver.mesolve.MESolver
     :members:
-
+    :inherited-members:
+    :show-inheritance:
+      
 .. autoclass:: qutip.solver.brmesolve.BRSolver
     :members:
+    :inherited-members:
+    :show-inheritance:
+
 
 .. autoclass:: qutip.solver.stochastic.SMESolver
     :members:
+    :inherited-members:
+    :show-inheritance:
 
 .. autoclass:: qutip.solver.stochastic.SSESolver
     :members:
+    :inherited-members:
+    :show-inheritance:
 
 
 
@@ -68,9 +79,13 @@ Monte Carlo Solvers
 
 .. autoclass:: qutip.solver.mcsolve.MCSolver
     :members:
+    :inherited-members:
+    :show-inheritance:
 
 .. autoclass:: qutip.solver.nm_mcsolve.NonMarkovianMCSolver
     :members:
+    :inherited-members:
+    :show-inheritance:
 
 
 .. _classes-non_markov_heom:
