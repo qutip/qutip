@@ -9,7 +9,7 @@ class Color:
     Colormap for visualization functions
     """
     def __init__(self):
-        self._cmap = None  # プライベート変数を定義
+        self._cmap = None
 
     @property
     def cmap(self):
