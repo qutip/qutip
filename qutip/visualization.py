@@ -20,7 +20,7 @@ from numpy import pi, array, sin, cos, angle, log2
 from packaging.version import parse as parse_version
 
 from . import (
-    Qobj, isket, ket2dm, tensor, vector_to_operator, to_super, settings
+    Qobj, isket, ket2dm, tensor, vector_to_operator, to_super, settings, color
 )
 from .core.dimensions import flatten
 from .core.superop_reps import _to_superpauli, isqubitdims
@@ -243,10 +243,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     # Apply default colormaps.
     # TODO: abstract this away into something that makes default
     #       colormaps.
-    cmap = (
-        (cm.Greys_r if settings.colorblind_safe else cm.RdBu)
-        if cmap is None else cmap
-    )
+    cmap = color.cmap
 
     # Extract plotting data W from the input.
     if isinstance(rho, Qobj):
