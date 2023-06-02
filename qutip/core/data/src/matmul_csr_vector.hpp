@@ -25,4 +25,4 @@ void _matmul_csr_vector_herm(
         const std::complex<double> scale,
         std::complex<double> * _RESTRICT out,
         const IntT nrows,
-        const IntT sub_size));
+        const IntT sub_size);

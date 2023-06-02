@@ -1019,11 +1019,20 @@ cdef class QobjEvo:
         return out
 
 
-cdef QobjEvoHerm(QobjEvo)
+cdef class QobjEvoHerm(QobjEvo):
     """
     QobjEvo with matmul_data variant that use the ``herm_matmul`` special case.
     """
-    cpdef Data matmul_data_herm(QobjEvo self, object t, Data state, Data out=None):
+    def __init__(self, Q_object, args=None, tlist=None,
+                 order=3, copy=True, compress=True,
+                 function_style=None, boundary_conditions=None):
+        super().__init__(
+            Q_object, args, tlist, order, copy,
+            compress, function_style, boundary_conditions
+        )
+        subsize = int(self.shape[1] ** 0.5)
+
+    cpdef Data matmul_data(QobjEvoHerm self, object t, Data state, Data out=None):
         """Compute ``out += self(t) @ state``"""
         cdef _BaseElement part
         t = self._prepare(t, state)
@@ -1035,5 +1044,5 @@ cdef QobjEvoHerm(QobjEvo)
 
         for element in self.elements:
             part = (<_BaseElement> element)
-            out = part.matmul_data_t_herm(t, state, out)
+            out = part.matmul_data_t_herm(t, state, self.subsize, out)
         return out

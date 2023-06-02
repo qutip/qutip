@@ -169,7 +169,7 @@ cdef class _BaseElement:
             )
 
     cdef Data matmul_data_t_herm(
-        _BaseElement self, t, Data state, size_t N, Data out=None
+        _BaseElement self, t, Data state, idxint N, Data out=None
     ):
         """
         Equivalent to ``matmul_data_t`` when the output is a column stacked

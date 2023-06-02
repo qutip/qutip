@@ -47,8 +47,9 @@ class Solver:
         else:
             TypeError("The rhs must be a QobjEvo")
         self.options = options
-        self._integrator = self._get_integrator()
         self._state_metadata = {}
+        self._rhs = self._update_rhs()
+        self._integrator = self._get_integrator()
         self.stats = self._initialize_stats()
 
     def _initialize_stats(self):
@@ -210,6 +211,12 @@ class Solver:
         self.stats["run time"] += time() - _time_start
         return self._restore_state(state, copy=copy)
 
+    def _update_rhs(self):
+        """
+        Optionally modify the rhs QobjEvo.
+        """
+        return self.rhs
+
     def _get_integrator(self):
         """ Return the initialted integrator. """
         _time_start = time()
@@ -220,7 +227,7 @@ class Solver:
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs, self.options)
+        integrator_instance = integrator(self._rhs, self.options)
         self._init_integrator_time = time() - _time_start
         return integrator_instance
 

@@ -11,6 +11,7 @@ from time import time
 from .. import Qobj, QobjEvo, coefficient, Coefficient
 from ..core.blochredfield import bloch_redfield_tensor, SpectraCoefficient
 from ..core.cy.coefficient import InterCoefficient
+from ..core.cy.qobjevo import QobjEvoHerm
 from ..core import data as _data
 from .solver_base import Solver
 from .options import _SolverOptions
@@ -237,6 +238,7 @@ class BRSolver(Solver):
         'method': 'adams',
         'tensor_type': 'sparse',
         'sparse_eigensolver': False,
+        "use_herm_matmul" : False,
     }
     _avail_integrators = {}
 
@@ -274,6 +276,7 @@ class BRSolver(Solver):
         self._num_collapse = len(c_ops)
         self._num_a_ops = len(a_ops)
         self.rhs = self._prepare_rhs()
+        self._rhs = self._update_rhs()
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
@@ -336,12 +339,26 @@ class BRSolver(Solver):
 
         method: str, default="adams"
             Which ODE integrator methods are supported.
+
+        use_herm_matmul: bool, default=False
+            Whether to use a an algorythm that only compute the upper part of
+            of the density matrix in internal computation. Only valid when the
+            state is always Hermitian. While this is the most common case, the
+            default is ``False`` for robusteness.
         """
         return self._options
 
     @options.setter
     def options(self, new_options):
         Solver.options.fset(self, new_options)
+
+    def _update_rhs(self):
+        """
+        Optionally modify the rhs QobjEvo.
+        """
+        if self.options["use_herm_matmul"]:
+            return QobjEvoHerm(self.rhs)
+        return self.rhs
 
     def _apply_options(self, keys):
         need_new_rhs = self.rhs is not None and not self.rhs.isconstant
@@ -350,6 +367,15 @@ class BRSolver(Solver):
         )
         if need_new_rhs:
             self.rhs = self._prepare_rhs()
+
+        if hasattr(self, "_rhs") and "use_herm_matmul" in keys:
+            self._rhs = self._update_rhs()
+            # Ensure the integrator is reset
+            keys = set(keys)
+            keys.add('method')
+
+        if hasattr(self, "_rhs") and "use_herm_matmul" in keys:
+            self._rhs = self._update_rhs()
 
         if self._integrator is None or not keys:
             pass

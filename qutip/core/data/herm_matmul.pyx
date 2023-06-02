@@ -2,30 +2,30 @@
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memset, memcpy
-from libc.math cimport fabs
+from libc.math cimport fabs, sqrt
+from scipy.linalg cimport cython_blas as blas
 
-import warnings
-from qutip.settings import settings
+cdef extern from "<complex>" namespace "std" nogil:
+    double complex _conj "conj"(double complex x)
 
 cimport cython
 
-from cpython cimport mem
-
-import numpy as np
-cimport numpy as cnp
-from scipy.linalg cimport cython_blas as blas
+# cimport numpy as cnp
 
 from qutip.core.data.base cimport idxint, Data
-from qutip.core.data.dense cimport Dense
-from qutip.core.data.csr cimport CSR
-from qutip.core.data cimport csr, dense
-from qutip.core.data.matmul import matmul, imatmul_data_dense
+from qutip.core.data cimport csr, dense, CSR, Dense
+from qutip.core.data.matmul cimport imatmul_data_dense
 from qutip.core.data.add import add
+from qutip.core.data.matmul import matmul
 
-cnp.import_array()
+# cnp.import_array()
 
-cdef extern from *:
-    void *PyMem_Calloc(size_t n, size_t elsize)
+
+__all__ = [
+    "herm_matmul", "herm_matmul_csr_dense_dense",
+    "herm_matmul_dense", "herm_matmul_data"
+]
+
 
 # This function is templated over integral types on import to allow `idxint` to
 # be any signed integer (though likely things will only work for >=32-bit).  To
@@ -38,7 +38,7 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
         T nrows, T sub_size)
 
 
-cdef void _check_shape(Data left, Data right, Data out=None, size_t subsize) except * nogil:
+cdef void _check_shape(Data left, Data right, idxint subsize, Data out=None) except * nogil:
     if left.shape[1] != right.shape[0]:
         raise ValueError(
             "incompatible matrix shapes "
@@ -69,7 +69,7 @@ cdef void _check_shape(Data left, Data right, Data out=None, size_t subsize) exc
 
 
 cpdef Dense herm_matmul_csr_dense_dense(CSR left, Dense right,
-                                        size_t subsystem_size=0,
+                                        idxint subsystem_size=0,
                                         double complex scale=1,
                                         Data out=None):
     """
@@ -83,16 +83,17 @@ cpdef Dense herm_matmul_csr_dense_dense(CSR left, Dense right,
     Made to be used in :func:`mesolve`.
 
     """
-    cdef Data prev_out=None
+    cdef Dense inplace_out=None
     if subsystem_size == 0:
         subsystem_size = <size_t> sqrt(right.shape[0])
-    _check_shape(left, right, out, subsystem_size)
+    _check_shape(left, right, subsystem_size, out)
 
-    if out is None:
-        out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
-    elif type(out) is not Dense:
-        prev_out = out
-        out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
+    if type(out) is Dense:
+        inplace_out = out
+        out = None
+    else:
+        inplace_out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
+
     # cdef idxint row, ptr, idx_r, idx_out, dm_row, dm_col
     # cdef idxint nrows=left.shape[0], ncols=right.shape[1]
     # cdef double complex val
@@ -100,11 +101,11 @@ cpdef Dense herm_matmul_csr_dense_dense(CSR left, Dense right,
     # upper triangular part.
     _matmul_csr_vector_herm(
         left.data, left.col_index, left.row_index,
-        right.data, scale, out.data,
-        nrows, subsystem_size
+        right.data, scale, inplace_out.data,
+        right.shape[0], subsystem_size
     )
-    if prev_out is not None:
-        out = add(out, prev_out)
+    if out is not None:
+        inplace_out = add(out, inplace_out)
     """
     for dm_row in range(N):
         row = dm_row * (N+1)
@@ -122,10 +123,10 @@ cpdef Dense herm_matmul_csr_dense_dense(CSR left, Dense right,
                 val += left.data[ptr] * right.data[left.col_index[ptr]]
             out.data[row] += scale * val
             out.data[dm_col*N + dm_row] += conj(scale * val)"""
-    return out
+    return inplace_out
 
 
-cpdef Dense herm_matmul_dense(Dense left, Dense right, size_t subsystem_size=0,
+cpdef Dense herm_matmul_dense(Dense left, Dense right, idxint subsystem_size=0,
                               double complex scale=1, Data out=None):
     """
     Perform the operation
@@ -138,10 +139,14 @@ cpdef Dense herm_matmul_dense(Dense left, Dense right, size_t subsystem_size=0,
     """
     if subsystem_size == 0:
         subsystem_size = <size_t> sqrt(right.shape[0])
-    _check_shape(left, right, out, subsystem_size)
+    _check_shape(left, right, subsystem_size, out)
+    cdef Dense inplace_out=None
+    if type(out) is Dense:
+        inplace_out = out
+        out = None
+    else:
+        inplace_out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
 
-    if out is None:
-        out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
     cdef double complex val
     cdef int dm_row, dm_col, row_stride, col_stride, one=1
     row_stride = 1 if left.fortran else left.shape[1]
@@ -149,30 +154,32 @@ cpdef Dense herm_matmul_dense(Dense left, Dense right, size_t subsystem_size=0,
     # right shape (N*N, 1) is interpreted as (N, N) and we loop only on the
     # upper triangular part.
     for dm_row in range(subsystem_size):
-        out.data[dm_row * (subsystem_size+1) * row_stride] += scale * blas.zdotu(&N,
+        inplace_out.data[dm_row * (subsystem_size+1)] += scale * blas.zdotu(
+            &right.shape[0],
             &left.data[dm_row * (subsystem_size+1) * row_stride], &col_stride,
             right.data, &one)
         for dm_col in range(dm_row+1, subsystem_size):
-            val = blas.zdotu(&N,
+            val = blas.zdotu(
+                &right.shape[0],
                 &left.data[(dm_row * subsystem_size + dm_col) * row_stride], &col_stride,
                 right.data, &one)
-            out.data[dm_row * subsystem_size + dm_col] += scale * val
-            out.data[dm_col * subsystem_size + dm_row] += conj(scale * val)
-    return out
+            inplace_out.data[dm_row * subsystem_size + dm_col] += scale * val
+            inplace_out.data[dm_col * subsystem_size + dm_row] += _conj(scale * val)
+    if out is not None:
+        inplace_out = add(out, inplace_out)
+    return inplace_out
 
 
 cpdef Data herm_matmul_data(Data left, Data right, size_t subsystem_size=0,
                              double complex scale=1, Data out=None):
     if out is None:
         return matmul(left, right, scale)
-    elif type(state) is Dense and type(out) is Dense:
-        imatmul_data_dense(self.data(t), state, self.coeff(t), out)
+    elif type(right) is Dense and type(out) is Dense:
+        imatmul_data_dense(left, right, scale, out)
         return out
     else:
-        return _data.add(
-            out,
-            _data.herm_matmul(self.data(t), state, N, self.coeff(t))
-        )
+        return add(out, matmul(left, right, scale))
+
 
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect

@@ -94,10 +94,10 @@ void _matmul_csr_vector_herm(
         const IntT nrows,
         const IntT sub_size)
 {
-    IntT row_start, row_end, sub_row, sub_col;
+    IntT row, row_start, row_end, sub_row, sub_col;
     __m128d num1, num2, num3, num4;
-    for (IntT sub_col=0; sub_col < sub_size; row++)
-    for (IntT sub_row=sub_col; sub_row < sub_size; row++) {
+    for (IntT sub_col=0; sub_col < sub_size; sub_col++)
+    for (IntT sub_row=sub_col; sub_row < sub_size; sub_row++) {
         row = sub_col * sub_size + sub_row;
         num4 = _mm_setzero_pd();
         row_start = row_index[row];
@@ -123,7 +123,7 @@ void _matmul_csr_vector_herm(
         num3 = _mm_add_pd(num2, num3);
         _mm_storeu_pd((double *)&out[row], num3);
         if(sub_col != sub_row) {
-            out[sub_row * sub_size + sub_col] = conj(out[row]);
+            out[sub_row * sub_size + sub_col] = std::conj(out[row]);
         }
     }
 }
@@ -139,10 +139,10 @@ void _matmul_csr_vector_herm(
         const IntT nrows,
         const IntT sub_size)
 {
-    IntT row_start, row_end;
+    IntT row, row_start, row_end;
     std::complex<double> dot;
-    for (IntT sub_col=0; sub_col < sub_size; row++)
-    for (IntT sub_row=sub_col; sub_row < sub_size; row++)
+    for (IntT sub_col=0; sub_col < sub_size; sub_col++)
+    for (IntT sub_row=sub_col; sub_row < sub_size; sub_row++)
     {
         row = sub_col * sub_size + sub_row;
         dot = 0;
@@ -154,7 +154,7 @@ void _matmul_csr_vector_herm(
         }
         out[row] += scale * dot;
         if(sub_col != sub_row) {
-            out[sub_row * sub_size + sub_col] = conj(out[row]);
+            out[sub_row * sub_size + sub_col] = std::conj(out[row]);
         }
     }
 }

@@ -8,6 +8,7 @@ __all__ = ['mesolve', 'MESolver']
 import numpy as np
 from time import time
 from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
+from ..core.cy.qobjevo import QobjEvoHerm
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from .solver_base import Solver
@@ -187,6 +188,7 @@ class MESolver(SESolver):
         "store_states": None,
         "normalize_output": True,
         'method': 'adams',
+        "use_herm_matmul" : False,
     }
 
     def __init__(self, H, c_ops=None, *, options=None):
@@ -215,3 +217,60 @@ class MESolver(SESolver):
             "num_collapse": self._num_collapse,
         })
         return stats
+
+    def _update_rhs(self):
+        """
+        Optionally modify the rhs QobjEvo.
+        """
+        if self.options["use_herm_matmul"]:
+            return QobjEvoHerm(self.rhs)
+        return self.rhs
+
+    @property
+    def options(self):
+        """
+        Solver's options:
+
+        store_final_state: bool, default=False
+            Whether or not to store the final state of the evolution in the
+            result class.
+
+        store_states: bool, default=None
+            Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+
+        normalize_output: bool, default=True
+            Normalize output state to hide ODE numerical errors.
+
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, {}
+            How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+
+        progress_kwargs: dict, default={"chunk_size": 10}
+            Arguments to pass to the progress_bar. Qutip's bars use
+            ``chunk_size``.
+
+        method: str, default="adams"
+            Which ordinary differential equation integration method to use.
+
+        use_herm_matmul: bool, default=False
+            Whether to use a an algorythm that only compute the upper part of
+            of the density matrix in internal computation. Only valid when the
+            state is always Hermitian. While this is the most common case, the
+            default is ``False`` for robusteness.
+        """
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        Solver.options.fset(self, new_options)
+
+    def _apply_options(self, keys):
+        if hasattr(self, "_rhs") and "use_herm_matmul" in keys:
+            self._rhs = self._update_rhs()
+            # Ensure the integrator is reset
+            keys = set(keys)
+            keys.add('method')
+        super()._apply_options(keys)

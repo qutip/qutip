@@ -15,6 +15,7 @@ from .inner import *
 from .kron import *
 from .linalg import *
 from .matmul import *
+from .herm_matmul import *
 from .make import *
 from .mul import *
 from .pow import *
