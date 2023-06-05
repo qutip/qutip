@@ -7,10 +7,11 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
            'plot_energy_levels', 'fock_distribution',
            'plot_fock_distribution', 'wigner_fock_distribution',
            'plot_wigner_fock_distribution', 'plot_wigner',
-           'plot_expectation_values', 'plot_spin_distribution', 'plot_spin_distribution_2d',
+           'plot_expectation_values', 'plot_spin_distribution_2d',
            'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
            'complex_array_to_rgb', 'matrix_histogram',
-           'matrix_histogram_complex', 'sphereplot', 'plot_wigner_sphere']
+           'matrix_histogram_complex', 'sphereplot', 'plot_wigner_sphere',
+           'plot_spin_distribution', 'new_hinton']
 
 import warnings
 import itertools as it
@@ -171,6 +172,199 @@ def _cb_labels(left_dims):
 
 
 # Adopted from the SciPy Cookbook.
+def new_hinton(rho, xlabels=None, ylabels=None, label_top=True, color_style="scaled",
+           figure = None, figure_options = {}, axes = None, axes_options = {}):
+    """Draws a Hinton diagram for visualizing a density matrix or superoperator.
+
+    Parameters
+    ----------
+    rho : qobj
+        Input density matrix or superoperator.
+
+    xlabels : list of strings or False
+        list of x labels
+
+    ylabels : list of strings or False
+        list of y labels
+
+    label_top : bool
+        If True, x-axis labels will be placed on top, otherwise
+        they will appear below the plot.
+
+    color_style : string
+        Determines how colors are assigned to each square:
+
+        -  If set to ``"scaled"`` (default), each color is chosen by
+           passing the absolute value of the corresponding matrix
+           element into `cmap` with the sign of the real part.
+        -  If set to ``"threshold"``, each square is plotted as
+           the maximum of `cmap` for the positive real part and as
+           the minimum for the negative part of the matrix element;
+           note that this generalizes `"threshold"` to complex numbers.
+        -  If set to ``"phase"``, each color is chosen according to
+           the angle of the corresponding matrix element.
+
+    figure : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    figure_options : dict
+        dict of options to create a figure object
+
+    axes : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+
+    axes_options : dict
+        dict of options to set to an axes object
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+
+    Raises
+    ------
+    ValueError
+        Input argument is not a quantum object.
+
+    Examples
+    --------
+    >>> import qutip
+    >>>
+    >>> dm = qutip.rand_dm(4)
+    >>> fig, ax = qutip.hinton(dm)
+    >>> fig.show()
+    >>>
+    >>> qutip.settings.colorblind_safe = True
+    >>> fig, ax = qutip.hinton(dm, color_style="threshold")
+    >>> fig.show()
+    >>> qutip.settings.colorblind_safe = False
+    >>>
+    >>> fig, ax = qutip.hinton(dm, color_style="phase")
+    >>> fig.show()
+    """
+
+    cmap = axes_options.pop('cmap', None)
+    if cmap is None:
+        cmap = color.cmap
+
+    if figure is None:
+        if axes is None:
+            figure, axes = plt.subplots(1, 1, **figure_options)
+        else:
+            figure = axes.get_figure()
+    else:
+        if axes is None:
+            axes = figure.add_subplots(1, 1)
+
+    axes.set(**axes_options)
+
+    # Extract plotting data W from the input.
+    if isinstance(rho, Qobj):
+        if rho.isoper:
+            W = rho.full()
+
+            # Create default labels if none are given.
+            if xlabels is None or ylabels is None:
+                labels = _cb_labels(rho.dims[0])
+                xlabels = xlabels if xlabels is not None else list(labels[0])
+                ylabels = ylabels if ylabels is not None else list(labels[1])
+
+        elif rho.isoperket:
+            W = vector_to_operator(rho).full()
+        elif rho.isoperbra:
+            W = vector_to_operator(rho.dag()).full()
+        elif rho.issuper:
+            if not isqubitdims(rho.dims):
+                raise ValueError("Hinton plots of superoperators are "
+                                 "currently only supported for qubits.")
+            # Convert to a superoperator in the Pauli basis,
+            # so that all the elements are real.
+            sqobj = _to_superpauli(rho)
+            nq = int(log2(sqobj.shape[0]) / 2)
+            W = sqobj.full().T
+            # Create default labels, too.
+            if (xlabels is None) or (ylabels is None):
+                labels = list(map("".join, it.product("IXYZ", repeat=nq)))
+                xlabels = xlabels if xlabels is not None else labels
+                ylabels = ylabels if ylabels is not None else labels
+
+        else:
+            raise ValueError(
+                "Input quantum object must be an operator or superoperator."
+            )
+    else:
+        W = rho
+
+    if not (xlabels or ylabels):
+        axes.axis('off')
+    axes.axis('equal')
+    axes.set_frame_on(False)
+
+    height, width = W.shape
+
+    w_max = 1.25 * max(abs(np.array(W)).flatten())
+    if w_max <= 0.0:
+        w_max = 1.0
+
+    # Set color_fn here.
+    if color_style == "scaled":
+        def color_fn(w):
+            w = np.abs(w) * np.sign(np.real(w))
+            return cmap(int((w + w_max) * 256 / (2 * w_max)))
+    elif color_style == "threshold":
+        def color_fn(w):
+            w = np.real(w)
+            return cmap(255 if w > 0 else 0)
+    elif color_style == "phase":
+        def color_fn(w):
+            return cmap(int(255 * (np.angle(w) / 2 / np.pi + 0.5)))
+    else:
+        raise ValueError(
+            "Unknown color style {} for Hinton diagrams.".format(color_style)
+        )
+
+    axes.fill(array([0, width, width, 0]), array([0, 0, height, height]),
+            color=cmap(128))
+    for x in range(width):
+        for y in range(height):
+            _x = x + 1
+            _y = y + 1
+            _blob(
+                _x - 0.5, height - _y + 0.5, W[y, x], w_max,
+                min(1, abs(W[y, x]) / w_max), color_fn=color_fn, ax=axes)
+
+    # color axis
+    vmax = np.pi if color_style == "phase" else abs(W).max()
+    norm = mpl.colors.Normalize(-vmax, vmax)
+    cax, kw = mpl.colorbar.make_axes(axes, shrink=0.75, pad=.1)
+    mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
+
+    # x axis
+    xtics = 0.5 + np.arange(width)
+    axes.xaxis.set_major_locator(plt.FixedLocator(xtics))
+    if xlabels:
+        nxlabels = len(xlabels)
+        if nxlabels != len(xtics):
+            raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
+        axes.set_xticklabels(xlabels)
+        if label_top:
+            axes.xaxis.tick_top()
+    axes.tick_params(axis='x', labelsize=14)
+
+    # y axis
+    ytics = 0.5 + np.arange(height)
+    axes.yaxis.set_major_locator(plt.FixedLocator(ytics))
+    if ylabels:
+        nylabels = len(ylabels)
+        if nylabels != len(ytics):
+            raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
+        axes.set_yticklabels(list(reversed(ylabels)))
+    axes.tick_params(axis='y', labelsize=14)
+
+    return figure, axes
+
+# Adopted from the SciPy Cookbook.
 def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
            label_top=True, color_style="scaled"):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
@@ -240,9 +434,6 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     >>> fig.show()
     """
 
-    # Apply default colormaps.
-    # TODO: abstract this away into something that makes default
-    #       colormaps.
     cmap = color.cmap
 
     # Extract plotting data W from the input.
