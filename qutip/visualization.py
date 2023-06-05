@@ -434,6 +434,10 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     >>> fig.show()
     """
 
+    # Apply default colormaps.
+    # TODO: abstract this away into something that makes default
+    #       colormaps.
+
     cmap = (
         (cm.Greys_r if settings.colorblind_safe else cm.RdBu)
         if cmap is None else cmap
@@ -1448,6 +1452,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
             axes[n, 0].legend()
         if ylabels:
             axes[n, 0].set_ylabel(ylabels[n], fontsize=12)
+
     return fig, axes
 
 
