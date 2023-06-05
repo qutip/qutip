@@ -434,7 +434,10 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     >>> fig.show()
     """
 
-    cmap = color.cmap
+    cmap = (
+        (cm.Greys_r if settings.colorblind_safe else cm.RdBu)
+        if cmap is None else cmap
+    )
 
     # Extract plotting data W from the input.
     if isinstance(rho, Qobj):
