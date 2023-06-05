@@ -308,7 +308,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
             out = self.H.to_eigbasis(t, out)
         A_eig = self.H.to_eigbasis(t, self.a_op._call(t))
         BR_eig = self._br_term(A_eig, cutoff)
-        out = _data.herm_matmul(BR_eig, state, N, out)
+        out = _data.herm_matmul(BR_eig, state, N, 1., out)
         if not self.eig_basis:
             out = self.H.from_eigbasis(t, out)
         return out

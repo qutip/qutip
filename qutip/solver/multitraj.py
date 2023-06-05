@@ -50,6 +50,7 @@ class MultiTrajSolver(Solver):
     def __init__(self, rhs, *, options=None):
         self.rhs = rhs
         self.options = options
+        self._rhs = self._update_rhs()
         self.seed_sequence = np.random.SeedSequence()
         self._integrator = self._get_integrator()
         self._state_metadata = {}

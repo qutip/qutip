@@ -145,7 +145,7 @@ class TestFloquet:
         # Solve the floquet-markov master equation
         p_ex = fmmesolve(
             H, psi0, tlist, [c_op_fmmesolve], [num(2)],
-            [spectrum], T, args=args
+            [spectrum], T, args=args, options={"use_herm_matmul": True}
         ).expect[0]
 
         # Compare with mesolve
