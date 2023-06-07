@@ -21,7 +21,7 @@ from numpy import pi, array, sin, cos, angle, log2
 from packaging.version import parse as parse_version
 
 from . import (
-    Qobj, isket, ket2dm, tensor, vector_to_operator, to_super, settings, color
+    Qobj, isket, ket2dm, tensor, vector_to_operator, to_super, settings
 )
 from .core.dimensions import flatten
 from .core.superop_reps import _to_superpauli, isqubitdims
@@ -46,6 +46,11 @@ try:
 except:
     pass
 
+def _cmap():
+    if settings.colorblind_safe:
+        return cm.Greys_r
+    else:
+        return cm.RdBu
 
 def plot_wigner_sphere(fig, ax, wigner, reflections):
     """Plots a coloured Bloch sphere.
@@ -172,8 +177,12 @@ def _cb_labels(left_dims):
 
 
 # Adopted from the SciPy Cookbook.
-def new_hinton(rho, xlabels=None, ylabels=None, label_top=True, color_style="scaled",
-           figure = None, figure_options = {}, axes = None, axes_options = {}):
+def new_hinton(rho,
+               xlabels=None, ylabels=None,
+               title = None,
+               cmap = None,
+               label_top=True, color_style="scaled",
+           figure = None, axes = None):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
@@ -244,20 +253,17 @@ def new_hinton(rho, xlabels=None, ylabels=None, label_top=True, color_style="sca
     >>> fig.show()
     """
 
-    cmap = axes_options.pop('cmap', None)
     if cmap is None:
-        cmap = color.cmap
+        cmap = _cmap()
 
     if figure is None:
         if axes is None:
-            figure, axes = plt.subplots(1, 1, **figure_options)
+            figure, axes = plt.subplots(1, 1)
         else:
             figure = axes.get_figure()
     else:
         if axes is None:
             axes = figure.add_subplots(1, 1)
-
-    axes.set(**axes_options)
 
     # Extract plotting data W from the input.
     if isinstance(rho, Qobj):
