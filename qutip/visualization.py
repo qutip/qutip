@@ -267,7 +267,12 @@ def new_hinton(rho,
 
     # Extract plotting data W from the input.
     if isinstance(rho, Qobj):
-        if rho.isoper:
+        if rho.isoper or rho.isoperket or rho.isoperbra:
+            if rho.isoperket:
+                rho =  vector_to_operator(rho)
+                print("yes")
+            if rho.isoperbra:
+                rho = vector_to_operator(rho.dag())
             W = rho.full()
 
             # Create default labels if none are given.
@@ -276,10 +281,6 @@ def new_hinton(rho,
                 xlabels = xlabels if xlabels is not None else list(labels[0])
                 ylabels = ylabels if ylabels is not None else list(labels[1])
 
-        elif rho.isoperket:
-            W = vector_to_operator(rho).full()
-        elif rho.isoperbra:
-            W = vector_to_operator(rho.dag()).full()
         elif rho.issuper:
             if not isqubitdims(rho.dims):
                 raise ValueError("Hinton plots of superoperators are "
