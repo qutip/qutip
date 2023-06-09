@@ -189,6 +189,7 @@ def new_hinton(rho,
     ----------
     rho : qobj
         Input density matrix or superoperator.
+        NOTE: Hinton plots of superoperators are currently only supported for qubits.
 
     xlabels : list of strings or False
         list of x labels
@@ -271,7 +272,7 @@ def new_hinton(rho,
             if rho.isoperket:
                 rho =  vector_to_operator(rho)
                 print("yes")
-            if rho.isoperbra:
+            elif rho.isoperbra:
                 rho = vector_to_operator(rho.dag())
             W = rho.full()
 
