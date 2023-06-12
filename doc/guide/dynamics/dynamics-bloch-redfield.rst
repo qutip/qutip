@@ -19,7 +19,7 @@ Bloch-Redfield master equation
 Introduction
 ============
 
-The Lindblad master equation introduced earlier is constructed so that it describes a physical evolution of the density matrix (i.e., trace and positivity preserving), but it does not provide a connection to any underlaying microscopic physical model.
+The Lindblad master equation introduced earlier is constructed so that it describes a physical evolution of the density matrix (i.e., trace and positivity preserving), but it does not provide a connection to any underlying microscopic physical model.
 The Lindblad operators (collapse operators) describe phenomenological processes, such as for example dephasing and spin flips, and the rates of these processes are arbitrary parameters in the model.
 In many situations the collapse operators and their corresponding rates have clear physical interpretation, such as dephasing and relaxation rates, and in those cases the Lindblad master equation is usually the method of choice.
 
@@ -310,7 +310,7 @@ Fortunately, this eigen decomposition occurs at the Hamiltonian level, as oppose
 For time-dependent Hamiltonians, the Hamiltonian itself can be passed into the solver like any other time dependent Hamiltonian, as thus we will not discuss this topic further.
 Instead, here the focus is on time-dependent bath coupling terms.
 To this end, suppose that we have a dissipative harmonic oscillator, where the white-noise dissipation rate decreases exponentially with time :math:`\kappa(t) = \kappa(0)\exp(-t)`.
-In the Lindblad or monte-carlo solvers, this could be implemented as a time-dependent collapse operator list ``c_ops = [[a, 'sqrt(kappa*exp(-t))']]``.
+In the Lindblad or Monte Carlo solvers, this could be implemented as a time-dependent collapse operator list ``c_ops = [[a, 'sqrt(kappa*exp(-t))']]``.
 In the Bloch-Redfield solver, the bath coupling terms must be Hermitian.
 As such, in this example, our coupling operator is the position operator ``a+a.dag()``.
 The complete example, and comparison to the analytic expression is:
