@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue May 16 18:56:18 2023
+Created on Fri Jun  2 13:36:08 2023
 
 @author: Fenton
 """
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,17 +24,16 @@ def mat(i,j):
 '''
 power range is how many spectra you want to do. 
 
-Change the constant in P_array to change the starting offresonant laser
+Change the constant in power_array to change the starting offresonant laser
     Rabi frequency (in mu-eV)
 ''' 
-power_range = 60
-P_array = np.zeros(power_range)
-for i in range(power_range):
-    P_array[i]=(0+i)
 
 
-for idz, E2P in enumerate(P_array):
-    print('Working on Spectra number', idz+1, 'of', len(P_array))
+power_array = np.linspace(0,60,61, dtype=int)
+fsolve_time_array = []
+msolve_time_array = []
+for idz, E2P in enumerate(power_array):
+    print('Working on Spectra number', idz+1, 'of', len(power_array))
     ############## Experimentally adjustable parameters ##########################
     '''
     The purpose of this section is to set up the laser and dipole moment parameters
@@ -161,7 +161,7 @@ for idz, E2P in enumerate(P_array):
     tlist = np.linspace(0, ttime-dt, Nt)               #Combining everything to make tlist
      
                                                       #Taulist Definition
-    Ntau =  (Nt)*200                                   #50 times the number of points of tlist
+    Ntau =  int((Nt)*100)                                   #50 times the number of points of tlist
     taume = (Ntau/Nt)*T                               #taulist goes over 50 periods of the system so that 50 periods can be simulated
     dtau = taume/Ntau                                 #time spacing in taulist - same as tlist!
     taulist = np.linspace(0, taume-dtau, Ntau)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
@@ -177,7 +177,7 @@ for idz, E2P in enumerate(P_array):
         omega_array1 = np.fft.fftfreq(Ntau2,dtau)
         omega_array = np.fft.fftshift(omega_array1)
         
-        ZF = np.zeros( (len(P_array), len(omega_array1)) )
+        ZF = np.zeros( (len(power_array), len(omega_array1)) )
        
 
         ################################# Hamiltonian #################################
@@ -233,22 +233,18 @@ for idz, E2P in enumerate(P_array):
             T = T,
             args = Hargs,
             time_sense = 0,
-            quicksolve = False,
+            quicksolve = True,
             options={"normalize_output": False})
-    rhossF = TimeEvolF.states[-1]
+
+ 
     
-    PeriodStatesF = flimesolve(
-            H,
-            rhossF,
-            taulist[-1]+tlist,
-            c_ops_and_rates = [[destroy(2),Gamma]],
-            T = T,
-            args = Hargs,
-            time_sense = 0,
-            quicksolve = False,
-            options={"normalize_output": False})
+    '''
+    Next step is to iterate this steady state rho_s forward in time. I'll choose the times
+    to be evenly spread out within T, the time scale of the Hamiltonian
     
-    
+    Also going through one time periods of the Hamiltonian so that I can graph the states
+    and make sure I'm in the limit cycle
+    '''
     testg1 = np.zeros((len(tlist), len(taulist2)), dtype='complex_' ) 
     for tdx in range(len(tlist)):
         '''
@@ -258,56 +254,52 @@ for idz, E2P in enumerate(P_array):
         I'll need to use the for loop (for tdx in range(len(tlist)):) to calculate
         all the different g1s and then average them.'
         '''
-    
+        PeriodStatesF = flimesolve(
+                H,
+                TimeEvolF.states[-1],
+                taulist[-1]+tlist,
+                c_ops_and_rates = [[destroy(2),Gamma]],
+                T = T,
+                args = Hargs,
+                time_sense = 0,
+                quicksolve = True,
+                options={"normalize_output": False})
+        
         testg1[tdx] = correlation.correlation_2op_1t(H,
-                                                     PeriodStatesF.states[tdx],
-                                                     taulist[-1]+tlist[tdx]+taulist2,
-                                                     c_ops=[[mat(0,1),Gamma]],
-                                                     a_op = destroy(2).dag(),
-                                                     b_op = destroy(2),
-                                                     solver="fme",
-                                                     reverse = True,
-                                                     options = {'T':T},
-                                                     args = Hargs)[0]
-    
+                                                      PeriodStatesF.states[tdx],
+                                                      taulist = taulist[-1]+tlist[tdx]+taulist2,
+                                                      c_ops=[[destroy(2),Gamma]],
+                                                      a_op = destroy(2).dag(),
+                                                      b_op = destroy(2),
+                                                      solver="fme",
+                                                      reverse = True,
+                                                      options = {'T':T},
+                                                      args = Hargs)[0]
+        
     g1avg = np.average(testg1,axis=0)
     specF = np.fft.fft(g1avg,axis=0)
-    specF = np.fft.fftshift(specF)
-    
-    ZF[idz,:] = np.real(specF)/len(g1avg)
+    specF = np.fft.fftshift(specF)/len(g1avg)
 
+    ZF[idz,:] = specF
 
+ 
+ 
+
+# fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
+# ax.semilogy( (omega_array+(beat/(4*np.pi))), ZF[0], color = 'r' )
+# ax.set_xlabel('Detuning [THz]')
+# ax.set_ylabel("Amplitude") 
 
 
 
 # Plot on a colorplot
 fig, ax = plt.subplots(1,1)
-limits = [omega_array[0]-(w/(2*np.pi)),\
-          omega_array[-1]-(w/(2*np.pi)),\
-          P_array[0],\
-          P_array[-1]]
-pos = ax.imshow(ZF,cmap=plt.get_cmap(cm.PiYG), aspect='auto', interpolation='nearest', origin='lower',
-            extent = limits,  norm=matplotlib.colors.LogNorm() , clim = [1e-5,1e-3]) 
-ax.axvline(x=(-1*Om2/(2*np.pi)), color='k', linestyle = 'dashed',linewidth =1,alpha = 0.5)
-ax.axvline(x=(0*Om2/(2*np.pi)), color='k', linestyle = 'solid',linewidth =1,alpha = 0.5)
-ax.axvline(x=(1*Om2/(2*np.pi)), color='k', linestyle = 'dashed',linewidth =1,alpha = 0.5)
+limits = [omega_array[0]+(beat/(4*np.pi)),\
+          omega_array[-1]+(beat/(4*np.pi)),\
+          power_array[0] *1000*0.0072992700729927/30 * 4.11,\
+          power_array[-1]*1000*0.0072992700729927/30 * 4.11]
+pos = ax.imshow(ZF,cmap=plt.get_cmap(cm.bwr), aspect='auto', interpolation='nearest', origin='lower',
+            extent = limits,  norm=matplotlib.colors.LogNorm(), clim = [1e-6,1e-2]) 
 fig.colorbar(pos)
-# extraticks=[-1*Om2/(2*np.pi), 1*Om2/(2*np.pi)]
-# plt.xticks(list(plt.xticks()[0]) + extraticks)
-# ax.set_xticklabels([-.03,-.02,-.01,0,.01,.02,.03,"$-\u03A9_{res}$","$\u03A9_{res}$"])
-plt.xticks
-ax.set_xlabel('Detuning [THz]')
-ax.set_ylabel("$\u03A9_{2} (\u03BCeV)$") 
-ax.set_title('Resonant Bichromatic 2LS FLiMESolve Correlation Function ' )
-
-fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
-ax.plot( omega_array+(w/(2*np.pi)), ZF[0], color = 'r' )
-ax.axvline(x=(-1*Om2/(2*np.pi)), color='k', linestyle = 'dashed')
-ax.axvline(x=(0*Om2/(2*np.pi)), color='g', linestyle = 'solid')
-ax.axvline(x=(1*Om2/(2*np.pi)), color='r', linestyle = 'dashed')
-ax.set_xlabel('Detuning [THz]')
-ax.set_ylabel("Amplitude") 
-ax.set_title(r'Resonant Bichromatic 2LS $\Omega_1$ = 30 $\Omega_2$ = 0' )
-ax.legend(['Mollow Triplet From Correlation Function'])
-
-
+ax.set_xlabel('$\omega_{beat}-\omega_{emission}$ [THz]')
+ax.set_ylabel('$\Omega_{2}$ (GHz)') 

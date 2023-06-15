@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri May 26 14:27:34 2023
+Created on Thu Jun  1 15:27:36 2023
 
 @author: Fenton
 """
-
-# -*- coding: utf-8 -*-
-"""
-Created on Sun May 21 23:17:41 2023
-
-@author: Fenton
-"""
-
 
 import matplotlib.pyplot as plt
-from qutip import flimesolve,Qobj,basis,destroy,correlation
+from qutip import flimesolve,mesolve,Qobj,basis,destroy,correlation,sigmaz
 import numpy as np
 # from qutip import *
 # from qutip.ui.progressbar import BaseProgressBar
@@ -31,7 +23,7 @@ Google says these have transition frequencies in the 1-10 GHz range.
 
 Choosing an intermediate value of 5.
 '''
-wres = 2*np.pi*280 #THz
+wres = 2*np.pi*50 #THz
 
 '''
 For loop used to create the range of powers for laser 2.
@@ -42,9 +34,11 @@ The way it's set up now, the Om_2 will be integers that go up to the value of po
 
 
 
-detuning_array = [0,1,2,3,4,5,6]
-for idz, periods in enumerate(detuning_array):
-    print('Working on Spectra number', idz, 'of',len(detuning_array))
+period_array = np.linspace(1,50,100)
+fsolve_time_array = []
+msolve_time_array = []
+for idz, periods in enumerate(period_array):
+    print('Working on Spectra number', idz+1, 'of',len(period_array))
     ############## Experimentally adjustable parameters #####################
     #electric field definitions
     
@@ -56,13 +50,13 @@ for idz, periods in enumerate(detuning_array):
         resonant frequency. Since my dipole moment has magnitude 1, I define
         the coupling constant here, effectively.'
     '''
-    E1mag = wres*0.5
-   
+    a = 1
+    E1mag = wres*a/2   
     '''
     Defining the polarization that will dot with the dipole moment to form the
     Rabi Frequencies
     '''
-    E1pol = np.array([0, 1, 0]); 
+    E1pol = np.sqrt(1/2)*np.array([1, 1, 0]); 
    
     
     '''
@@ -94,13 +88,13 @@ for idz, periods in enumerate(detuning_array):
         to form the Rabi Frequency and Rabi Frequency Tilde
     '''
     dmag = 1
-    d = dmag *  np.sqrt(1/2) * np.array([1, -1j, 0]) 
+    d = dmag *  np.sqrt(1/2) * np.array([1, 1, 0]) 
     
     Om1  = np.dot(d,        E1)
     Om1t = np.dot(d,np.conj(E1))
-    
    
-    wlas = wres+((-3+idz)*Om1)
+    wlas = wres
+   
    
     T = 2*np.pi/abs(wlas) # period of the Hamiltonian
     Hargs = {'l': (wlas)}                           #Characteristic frequency of the Hamiltonian is half the beating frequency of the Hamiltonian after the RWA. QuTiP needs it in Dictionary form.
@@ -114,8 +108,8 @@ for idz, periods in enumerate(detuning_array):
     Gamma = wres*0.03   #in THz, roughly equivalent to 1 micro eV
     spont_emis = np.sqrt(Gamma) * mat(0,1)           # Spontaneous emission operator   
     
-
-      
+    # dep_op = sigmaz()
+    # dep_rate = wres*0.06
         
     '''
     The following tlist definitions are for different parts of the following calulations
@@ -129,29 +123,11 @@ for idz, periods in enumerate(detuning_array):
     dt = time/Nt                                      #Time point spacing in tlist
     tlist = np.linspace(0, time-dt, Nt)               #Combining everything to make tlist
      
-                                                      #Taulist Definition
-    Ntau =  int((Nt)*2e+4)                                 #50 times the number of points of tlist
+    Ntau =  int((Nt)*periods)                                 #50 times the number of points of tlist
     taume = (Ntau/Nt)*T                               #taulist goes over 50 periods of the system so that 50 periods can be simulated
     dtau = taume/Ntau                                 #time spacing in taulist - same as tlist!
-    taulist = np.linspace(0, taume, 2)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
+    taulist = np.linspace(0, taume-dtau, Ntau)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
    
-    # Ntau =  int((Nt)*2e+4)                                 #50 times the number of points of tlist
-    # taume = (Ntau/Nt)*T                               #taulist goes over 50 periods of the system so that 50 periods can be simulated
-    # dtau = taume/Ntau                                 #time spacing in taulist - same as tlist!
-    # taulist = np.linspace(0, taume-dtau, Ntau)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
-   
-     
-    Ntau2 = (Nt)*2500                                #50 times the number of points of tlist
-    taume2 = (Ntau2/Nt)*T                             #taulist goes over 50 periods of the system so that 50 periods can be simulated
-    dtau2 = taume2/Ntau2                              #time spacing in taulist - same as tlist!
-    taulist2 = np.linspace(0, taume2-dtau2, Ntau2)   
-    if idz == 0:
-
-        
-        omega_array1 = np.fft.fftfreq(Ntau2,dtau)
-        omega_array = np.fft.fftshift(omega_array1)
-        
-        ZF = np.zeros( (len(detuning_array), len(omega_array1)) )
    
     ################################# Hamiltonian #################################
     '''
@@ -210,7 +186,7 @@ for idz, periods in enumerate(detuning_array):
     '''
 
     
-    TimeEvolF1 = flimesolve(
+    TimeEvolF = flimesolve(
             Htot,
             rho0,
             taulist,
@@ -220,5 +196,59 @@ for idz, periods in enumerate(detuning_array):
             time_sense = 0,
             quicksolve = True,
             options={"normalize_output": False})
-    rhossF = TimeEvolF1.states[-1]
+    fsolve_time_array.append(TimeEvolF.stats["run time"])
     
+    TimeEvolM =  mesolve(
+            Htot,
+            rho0,
+            taulist,
+            c_ops=[np.sqrt(Gamma)*destroy(2)],
+            options={"normalize_output": False},
+            args=Hargs,
+            )
+    msolve_time_array.append(TimeEvolM.stats["run time"])
+ 
+    
+    '''
+    Next step is to iterate this steady state rho_s forward in time. I'll choose the times
+    to be evenly spread out within T, the time scale of the Hamiltonian
+    
+    Also going through one time periods of the Hamiltonian so that I can graph the states
+    and make sure I'm in the limit cycle
+    '''
+
+
+ 
+fstates = np.array([i.full() for i in TimeEvolF.states])
+mstates = np.array([i.full() for i in TimeEvolM.states])
+fig, ax = plt.subplots(2,1)                                                    #Plotting the results!
+ax[0].plot(  taulist/T,np.sqrt(fstates[:,1,1]**2), color = 'black')
+ax[1].plot(  taulist/T,np.sqrt(mstates[:,1,1]**2), color = 'blue')
+ax[0].legend(['Floquet excited State Population'])
+ax[1].legend(['Direct Integration Excited State Population'])
+ax[1].set_xlabel('Evolution time (t/$\\tau$)')
+
+
+# rms_diff = np.sqrt((mstates[:,1,1]-fstates[:,1,1])**2)
+# fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
+# ax.plot(  taulist/T,rms_diff, color = 'black')
+# ax.legend(['RMS difference in Excited State Population'])
+# ax.set_xlabel('Evolution time (t/$\\tau$)')
+
+perc_dev = 100*(mstates[1::,1,1]-fstates[1::,1,1])/mstates[1::,1,1]
+fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
+ax.plot(  taulist[1::]/T,perc_dev, color = 'black')
+ax.set_ylabel('Percent deviation')
+ax.set_xlabel('Evolution time (t/$\\tau$)')
+
+
+time_quotient = np.array([fsolve_time_array[i]/msolve_time_array[i] for i in range(len(period_array))])
+fita,fitb = np.polyfit(period_array,time_quotient,1)
+fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
+ax.scatter(  period_array,time_quotient, color = 'black')
+# ax.plot(  period_array,fita*period_array+fitb, color = 'blue',linestyle='--')
+ax.set_ylabel(['solution time quotient'])
+ax.set_xlabel('Evolution time (t/$\\tau$)')
+
+
+

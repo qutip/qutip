@@ -14,7 +14,7 @@ __all__ = [
     "FLiMESolver",
     "FMESolver",
 ]
-
+# from collections import defaultdict
 import scipy as scipy
 import numpy as np
 from qutip.core import data as _data
@@ -615,7 +615,7 @@ def _floquet_rate_matrix(floquet_basis,Nt,T,c_ops,c_op_rates,omega,time_sense=0)
     '''
     def delta(a,ap,b,bp,l,lp):
         return ((floquet_basis.e_quasi[a]-floquet_basis.e_quasi[ap]) 
-               -(floquet_basis.e_quasi[b]-floquet_basis.e_quasi[bp]))/(list(omega.values())[0]/2)\
+               -(floquet_basis.e_quasi[b]-floquet_basis.e_quasi[bp]))/(list(omega.values())[0])\
                +(l-lp)   
                                          
     time = T                                                           #Length of time of tlist defined to be one period of the system
@@ -637,8 +637,7 @@ def _floquet_rate_matrix(floquet_basis,Nt,T,c_ops,c_op_rates,omega,time_sense=0)
         fmodes_ct = np.transpose(fmodes,(0,2,1)).conj()
         
         c_op_Floquet_basis = (fmodes_ct @ c_op.full() @ fmodes)
-        
-        # c_op_Floquet_basis = np.stack([floquet_basis.to_floquet_basis(c_op,t).full() for t in tlist])
+
         '''
         Performing the 1-D FFT to find the Fourier amplitudes of this specific
             lowering operator in the Floquet basis
@@ -646,17 +645,14 @@ def _floquet_rate_matrix(floquet_basis,Nt,T,c_ops,c_op_rates,omega,time_sense=0)
         Divided by the length of tlist for normalization
         '''
         c_op_Fourier_amplitudes_list = np.array(scipy.fft.fft(c_op_Floquet_basis,axis=0)/len(tlist))
-        
         '''
         Next, I want to find all rate-product terms that are nonzero
         '''
         rate_products = np.einsum('lab,kcd->abcdlk',c_op_Fourier_amplitudes_list,np.conj(c_op_Fourier_amplitudes_list))
-        rate_products_idx = np.argwhere(rate_products != 0)
-        
-
+        rate_products_idx = np.argwhere(abs(rate_products) != 0)
         
         valid_indices= [tuple(indices) for indices in rate_products_idx if delta(*tuple(indices)) == 0
-                        or abs((rate_products[tuple(indices)]/delta(*tuple(indices)))**(-1)) <= time_sense]
+                        or abs((rate_products[tuple(indices)]/(omega['l']*delta(*tuple(indices))))**(-1)) <= time_sense and abs(omega['l']*delta(*tuple(indices))) < Nt/2]
         
           
         delta_dict = {}
@@ -694,8 +690,10 @@ def _floquet_rate_matrix(floquet_basis,Nt,T,c_ops,c_op_rates,omega,time_sense=0)
                                         np.eye(Hdim,Hdim), 
                                         np.eye(Hdim,Hdim), 
                                         np.eye(Hdim,Hdim))
-            
-            total_R_tensor[key] = np.reshape(flime_FirstTerm-(1/2)*(flime_SecondTerm+flime_ThirdTerm),(Hdim**2,Hdim**2))
+            try:
+                total_R_tensor[key] += np.reshape(flime_FirstTerm-(1/2)*(flime_SecondTerm+flime_ThirdTerm),(Hdim**2,Hdim**2))
+            except KeyError:
+                total_R_tensor[key] = np.reshape(flime_FirstTerm-(1/2)*(flime_SecondTerm+flime_ThirdTerm),(Hdim**2,Hdim**2))
 
     return total_R_tensor
 def flimesolve(
@@ -826,8 +824,9 @@ def flimesolve(
     
     solver = FLiMESolver(floquet_basis,
                          c_ops_and_rates,
-                         taulist,
+                         
                          args,
+                         taulist=taulist,
                          Nt = Nt,
                          time_sense = time_sense,
                          quicksolve = quicksolve,
@@ -906,9 +905,9 @@ class FLiMESolver(MESolver):
         self, 
         floquet_basis, 
         c_ops_and_rates, 
-        taulist,
         Hargs, 
         *, 
+        taulist = None,
         Nt = None,
         time_sense = 0,
         quicksolve = False,
@@ -942,17 +941,20 @@ class FLiMESolver(MESolver):
         if Nt != None:
             self.Nt = Nt
         elif Nt == None:
-            if taulist[1]-taulist[0] > self.floquet_basis.T:
-                self.Nt = 16 #Reasonable number of points to use to calculate Rdic if everything else fails
-            elif type(taulist) != None and taulist[1]-taulist[0] < self.floquet_basis.T:
-                dt = taulist[1]-taulist[0]                                            #Finding dtau in taulist
-                taulist_zeroed = taulist-taulist[0]                                     #shifting taulist to zero
-                Nt_finder = abs(taulist_zeroed+dt-self.floquet_basis.T)                             #subtracting the period from taulist, such that Nt = where this is closest to zero
-                self.Nt = list(np.where(                                                     #Number of points in one period of the Hamiltonian
-                            Nt_finder == np.amin(Nt_finder))
-                            )[0][0]+1
+            if taulist is not None:
+                if taulist[1]-taulist[0] > self.floquet_basis.T:
+                    self.Nt = 2**4 #Reasonable number of points to use to calculate Rdic if everything else fails
+                elif taulist[1]-taulist[0] < self.floquet_basis.T:
+                    dt = taulist[1]-taulist[0]                                            #Finding dtau in taulist
+                    taulist_zeroed = taulist-taulist[0]                                     #shifting taulist to zero
+                    Nt_finder = abs(taulist_zeroed+dt-self.floquet_basis.T)                             #subtracting the period from taulist, such that Nt = where this is closest to zero
+                    self.Nt = list(np.where(                                                     #Number of points in one period of the Hamiltonian
+                                Nt_finder == np.amin(Nt_finder))
+                                )[0][0]+1
+                
             else:
-                print('how did you get here?')
+                self.Nt = 2**4 #Reasonable number of points to use to calculate Rdic if everything else fails
+                # print('how did you get here?')
        
         RateDic =  _floquet_rate_matrix(
              floquet_basis,
@@ -965,47 +967,29 @@ class FLiMESolver(MESolver):
         Rate_Qobj_list = [Qobj(
             RateMat, dims=[[self.Hdim,self.Hdim], [self.Hdim,self.Hdim]], type="super", superrep="super", copy=False) for RateMat in RateDic.values()]
         self.R0 = Rate_Qobj_list[0]
-        self.Rt_timedep_pairs = [list([Rate_Qobj_list[idx],'exp(1j*'+str(list(RateDic.keys())[idx]*list(Hargs.values())[0])+'*t)']) for idx in range(1,len(Rate_Qobj_list))]
-         
+        
+        self.Rt_timedep_pairs = []
+        for idx,key in enumerate(RateDic.keys()):
+            if key != 0.0:
+                self.Rt_timedep_pairs.append(list([Rate_Qobj_list[idx],'exp(1j*'+str(key*list(Hargs.values())[0])+'*t)']))
+            
+        
+        
+        self.Rt_timedep_pairs = [list([Rate_Qobj_list[idx],'exp(1j*'+str(list(RateDic.keys())[idx]*list(Hargs.values())[0])+'*t)']) for idx in range(0,len(Rate_Qobj_list))]
+        # self.Rt_timedep_pairs = [list([Rate_Qobj_list[idx],'exp(1j*'+str((list(RateDic.keys())[idx]+1)*list(Hargs.values())[0])+'*t)']) for idx in range(1,len(Rate_Qobj_list))]
+
         if quicksolve == True:
             self.R0_evals,self.R0_evecs = scipy.linalg.eig(self.R0.full())
 
         else:
-            if self.Rt_timedep_pairs != []: 
-                self.rhs = QobjEvo([self.R0,*self.Rt_timedep_pairs])
-                
-            else: 
-                self.rhs = QobjEvo(self.R0)
+            self.rhs = QobjEvo(self.R0)
                 
             self._integrator = self._get_integrator()
             self._state_metadata = {}
             self.stats = self._initialize_stats()
 
 
-    # def _FLiME_tlist_1period(self,taulist):
-    #     if len(taulist) > 2:
-    #         dtau = taulist[1]-taulist[0]                                            #Finding dtau in taulist
-    #         taulist_zeroed = taulist-taulist[0]                                     #shifting taulist to zero
-    #         Nt_finder = abs(taulist_zeroed+dtau-self.T)                             #subtracting the period from taulist, such that Nt = where this is closest to zero
-    #         Nt = list(np.where(                                                     #Number of points in one period of the Hamiltonian
-    #                     Nt_finder == np.amin(Nt_finder))
-    #                     )[0][0]+1     
-                                          
-    #         time = self.T                                                           #Length of time of tlist defined to be one period of the system
-    #         dt = time/Nt                                                            #Time point spacing in tlist
-    #         tlist_1period = np.linspace(0,time-dt,Nt)
-    #     elif len(taulist) == 2:
-    #         dtau = taulist[1]-taulist[0]                                            #Finding dtau in taulist                           #subtracting the period from taulist, such that Nt = where this is closest to zero
-    #         Nt = 16
-                                          
-    #         time = self.T                                                           #Length of time of tlist defined to be one period of the system
-    #         dt = time/Nt                                                            #Time point spacing in tlist
-    #         tlist_1period = np.linspace(0,time-dt,Nt)
-           
-    #     else:
-    #         return np.array([0])                                                    #For use when only one point in tlist, e.g. when using 2op_1t
-    #     return tlist_1period
-        
+  
     def _initialize_stats(self):
         stats = Solver._initialize_stats(self)
         stats.update(
@@ -1116,15 +1100,16 @@ class FLiMESolver(MESolver):
 
         taulist_test = np.array(taulist)%self.floquet_basis.T
         taulist_correction = np.argwhere(abs(taulist_test-self.floquet_basis.T)<1e-12)
-        taulist_test_new = np.round(taulist_test,10)
+        taulist_test_new = np.round(taulist_test,12)
         taulist_test_new[taulist_correction] = 0
-        
-        from collections import defaultdict
 
         def list_duplicates(seq):
-            tally = defaultdict(list)
+            tally = {}#defaultdict(list)
             for i,item in enumerate(taulist_test_new):
-                tally[item].append(i)
+                try:
+                    tally[item].append(i)
+                except KeyError:
+                    tally[item] = [i]
             return ((key,locs) for key,locs in tally.items())
        
         sorted_time_args = {key:val for key,val in sorted(list_duplicates(taulist_test_new))}
@@ -1134,14 +1119,12 @@ class FLiMESolver(MESolver):
         tiled_modes = np.zeros((len(taulist),dims[0],dims[0]),dtype = complex)
         for key in fmodes_core_dict:
             tiled_modes[sorted_time_args[key]] = fmodes_core_dict[key]
-        
-        
         quasi_e_table = np.exp(np.einsum('i,k -> ki',-1j*self.floquet_basis.e_quasi,taulist) )
         fstates_table = np.einsum('ijk,ij->ikj',tiled_modes, quasi_e_table  )    
         
         if quicksolve == False:
             stats = {
-                "method": 'FLiME_quicksolve',
+                "method": 'FLiME',
                 "preparation time": 0.0,
                 "run time": 0.0
             }
@@ -1168,8 +1151,6 @@ class FLiMESolver(MESolver):
             progress_bar.finished()
     
             sols = np.array(sols)
-            sols_comp = fstates_table @ sols @ np.transpose(fstates_table.conj(),axes=(0,2,1))
-            sols_comp = [Qobj(_data.Dense(state),dims=[[2], [2]], type="oper", copy=False) for state in sols_comp] 
         else:  
             stats = {
                 "method": 'FLiME_quicksolve',
@@ -1201,24 +1182,17 @@ class FLiMESolver(MESolver):
             progress_bar.start(len(taulist) - 1, **self.options["progress_kwargs"])
             
             sols = np.reshape(np.einsum('...jk,kz->...jz',sol_coeffs[:len(taulist)], state0.full()),[len(taulist),dims[0],dims[0]],order='F')
-            sols_comp = fstates_table @ sols @ np.transpose(fstates_table.conj(),axes=(0,2,1))
-
-            sols_comp = [Qobj(_data.Dense(state),dims=[[2], [2]], type="oper", copy=False) for state in sols_comp] 
             
-            '''
-            WRITE IN THE EXPECTATION VALUE FUNCTION HERE. THIS IS THE PROBLEM IN CORRELATION FUNCTIONS 
-            '''
-
-            
-            # results.times = taulist
-            # results.states = sols_comp
-            # stats["run time"] = time()-_time_start_solve+self.added_time
-            # return results
-        for idx, t in enumerate(taulist):
-            results.compadd(t,sols_comp[idx])
-        # results.times = taulist
-        # results.states = sols_comp
-        stats["run time"] = progress_bar.total_time()
+        sols_comp_arr = fstates_table @ sols @ np.transpose(fstates_table.conj(),axes=(0,2,1))
+        sols_comp = [Qobj(_data.Dense(state),dims=[[2], [2]], type="oper", copy=False) for state in sols_comp_arr] 
+        results.times = taulist
+        results.states = sols_comp
+        if results.e_ops:
+            for key in results.e_ops.keys():
+                expects = np.trace(sols_comp_arr @ results.e_ops[key].op(0).full(),axis1=1,axis2=2)
+                results.e_ops[key]._append(expects)
+        stats["run time"] = time()-_time_start
+        
         return results
 
     def _argument(self, args):

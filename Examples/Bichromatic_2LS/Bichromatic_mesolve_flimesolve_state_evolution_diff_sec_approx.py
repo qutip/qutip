@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue May 16 18:56:18 2023
+Created on Fri Jun  2 13:36:08 2023
 
 @author: Fenton
 """
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,17 +24,20 @@ def mat(i,j):
 '''
 power range is how many spectra you want to do. 
 
-Change the constant in P_array to change the starting offresonant laser
+Change the constant in period_array to change the starting offresonant laser
     Rabi frequency (in mu-eV)
 ''' 
-power_range = 60
-P_array = np.zeros(power_range)
-for i in range(power_range):
-    P_array[i]=(0+i)
 
 
-for idz, E2P in enumerate(P_array):
-    print('Working on Spectra number', idz+1, 'of', len(P_array))
+period_array = [50]#np.linspace(1,50,100)
+fsolve_time_array0 = []
+fsolve_time_array1 = []
+fsolve_time_array10 = []
+fsolve_time_array100 = []
+fsolve_time_array1000 = []
+msolve_time_array = []
+for idz, periods in enumerate(period_array):
+    print('Working on Spectra number', idz+1, 'of', len(period_array))
     ############## Experimentally adjustable parameters ##########################
     '''
     The purpose of this section is to set up the laser and dipole moment parameters
@@ -53,7 +57,7 @@ for idz, E2P in enumerate(P_array):
     '''
     
     E2mag = 2*np.pi*0.0072992700729927                #Don't remember why we use this number but it's important. Related to experimental values! Maybe Gustin's?
-    E1mag = 2*np.pi*E2P*0.0072992700729927/30                               
+    E1mag = 2*np.pi*60*0.0072992700729927/30                               
     dmag  = 1                                         #Dipole moment magnitude. Setting to 1 because it makes things simpler
     
     '''
@@ -155,13 +159,13 @@ for idz, E2P in enumerate(P_array):
     Using a coarse step size for now to make it solve much faster. Will improve
         resolution later!
     '''
-    Nt = (2**4)                                       #Number of Points
+    Nt = (2**8)                                       #Number of Points
     ttime = T                                          #Length of time of tlist defined to be one period of the system
     dt = ttime/Nt                                      #Time point spacing in tlist
     tlist = np.linspace(0, ttime-dt, Nt)               #Combining everything to make tlist
      
                                                       #Taulist Definition
-    Ntau =  (Nt)*200                                   #50 times the number of points of tlist
+    Ntau =  int((Nt)*periods)                                   #50 times the number of points of tlist
     taume = (Ntau/Nt)*T                               #taulist goes over 50 periods of the system so that 50 periods can be simulated
     dtau = taume/Ntau                                 #time spacing in taulist - same as tlist!
     taulist = np.linspace(0, taume-dtau, Ntau)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
@@ -177,7 +181,7 @@ for idz, E2P in enumerate(P_array):
         omega_array1 = np.fft.fftfreq(Ntau2,dtau)
         omega_array = np.fft.fftshift(omega_array1)
         
-        ZF = np.zeros( (len(P_array), len(omega_array1)) )
+        ZF = np.zeros( (len(period_array), len(omega_array1)) )
        
 
         ################################# Hamiltonian #################################
@@ -225,7 +229,7 @@ for idz, E2P in enumerate(P_array):
     rho0 = basis(2,0)
    
     
-    TimeEvolF = flimesolve(
+    TimeEvolF0 = flimesolve(
             H,
             rho0,
             taulist,
@@ -235,79 +239,124 @@ for idz, E2P in enumerate(P_array):
             time_sense = 0,
             quicksolve = False,
             options={"normalize_output": False})
-    rhossF = TimeEvolF.states[-1]
+    fsolve_time_array0.append(TimeEvolF0.stats["run time"])
     
-    PeriodStatesF = flimesolve(
+    TimeEvolF1 = flimesolve(
             H,
-            rhossF,
-            taulist[-1]+tlist,
+            rho0,
+            taulist,
             c_ops_and_rates = [[destroy(2),Gamma]],
             T = T,
             args = Hargs,
-            time_sense = 0,
+            time_sense = 1,
             quicksolve = False,
             options={"normalize_output": False})
+    fsolve_time_array1.append(TimeEvolF1.stats["run time"])
     
+    TimeEvolF10 = flimesolve(
+            H,
+            rho0,
+            taulist,
+            c_ops_and_rates = [[destroy(2),Gamma]],
+            T = T,
+            args = Hargs,
+            time_sense = 1e+2,
+            quicksolve = False,
+            options={"normalize_output": False})
+    fsolve_time_array10.append(TimeEvolF10.stats["run time"])
     
-    testg1 = np.zeros((len(tlist), len(taulist2)), dtype='complex_' ) 
-    for tdx in range(len(tlist)):
-        '''
-        Start here tomorrow. You need to write taulist into the _make_solver
-        arguments in Correlation, so that the FLiMESolver can construct
-        properly. Then, since I'm probably dropping the automatic timer averaging,
-        I'll need to use the for loop (for tdx in range(len(tlist)):) to calculate
-        all the different g1s and then average them.'
-        '''
+    TimeEvolF100 = flimesolve(
+            H,
+            rho0,
+            taulist,
+            c_ops_and_rates = [[destroy(2),Gamma]],
+            T = T,
+            args = Hargs,
+            time_sense = 1e+3,
+            quicksolve = False,
+            options={"normalize_output": False})
+    fsolve_time_array100.append(TimeEvolF100.stats["run time"])
     
-        testg1[tdx] = correlation.correlation_2op_1t(H,
-                                                     PeriodStatesF.states[tdx],
-                                                     taulist[-1]+tlist[tdx]+taulist2,
-                                                     c_ops=[[mat(0,1),Gamma]],
-                                                     a_op = destroy(2).dag(),
-                                                     b_op = destroy(2),
-                                                     solver="fme",
-                                                     reverse = True,
-                                                     options = {'T':T},
-                                                     args = Hargs)[0]
+    TimeEvolF1000 = flimesolve(
+            H,
+            rho0,
+            taulist,
+            c_ops_and_rates = [[destroy(2),Gamma]],
+            T = T,
+            args = Hargs,
+            time_sense = 1e+8,
+            quicksolve = False,
+            options={"normalize_output": False})
+    fsolve_time_array1000.append(TimeEvolF1000.stats["run time"])
+
+    TimeEvolM =  mesolve(
+            H,
+            rho0,
+            taulist,
+            c_ops=[np.sqrt(Gamma)*destroy(2)],
+            options={"normalize_output": False,
+                     'atol':1e-16,
+                     'rtol':1e-16},
+            args=Hargs,
+            )
+    msolve_time_array.append(TimeEvolM.stats["run time"])
+ 
     
-    g1avg = np.average(testg1,axis=0)
-    specF = np.fft.fft(g1avg,axis=0)
-    specF = np.fft.fftshift(specF)
+    '''
+    Next step is to iterate this steady state rho_s forward in time. I'll choose the times
+    to be evenly spread out within T, the time scale of the Hamiltonian
     
-    ZF[idz,:] = np.real(specF)/len(g1avg)
+    Also going through one time periods of the Hamiltonian so that I can graph the states
+    and make sure I'm in the limit cycle
+    '''
 
 
-
-
-
-# Plot on a colorplot
-fig, ax = plt.subplots(1,1)
-limits = [omega_array[0]-(w/(2*np.pi)),\
-          omega_array[-1]-(w/(2*np.pi)),\
-          P_array[0],\
-          P_array[-1]]
-pos = ax.imshow(ZF,cmap=plt.get_cmap(cm.PiYG), aspect='auto', interpolation='nearest', origin='lower',
-            extent = limits,  norm=matplotlib.colors.LogNorm() , clim = [1e-5,1e-3]) 
-ax.axvline(x=(-1*Om2/(2*np.pi)), color='k', linestyle = 'dashed',linewidth =1,alpha = 0.5)
-ax.axvline(x=(0*Om2/(2*np.pi)), color='k', linestyle = 'solid',linewidth =1,alpha = 0.5)
-ax.axvline(x=(1*Om2/(2*np.pi)), color='k', linestyle = 'dashed',linewidth =1,alpha = 0.5)
-fig.colorbar(pos)
-# extraticks=[-1*Om2/(2*np.pi), 1*Om2/(2*np.pi)]
-# plt.xticks(list(plt.xticks()[0]) + extraticks)
-# ax.set_xticklabels([-.03,-.02,-.01,0,.01,.02,.03,"$-\u03A9_{res}$","$\u03A9_{res}$"])
-plt.xticks
-ax.set_xlabel('Detuning [THz]')
-ax.set_ylabel("$\u03A9_{2} (\u03BCeV)$") 
-ax.set_title('Resonant Bichromatic 2LS FLiMESolve Correlation Function ' )
+ 
+ 
+fstates0 = np.array([i.full() for i in TimeEvolF0.states])
+fstates1 = np.array([i.full() for i in TimeEvolF1.states])
+fstates10 = np.array([i.full() for i in TimeEvolF10.states])
+fstates100 = np.array([i.full() for i in TimeEvolF100.states])
+fstates1000 = np.array([i.full() for i in TimeEvolF1000.states])
+mstates = np.array([i.full() for i in TimeEvolM.states])
 
 fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
-ax.plot( omega_array+(w/(2*np.pi)), ZF[0], color = 'r' )
-ax.axvline(x=(-1*Om2/(2*np.pi)), color='k', linestyle = 'dashed')
-ax.axvline(x=(0*Om2/(2*np.pi)), color='g', linestyle = 'solid')
-ax.axvline(x=(1*Om2/(2*np.pi)), color='r', linestyle = 'dashed')
-ax.set_xlabel('Detuning [THz]')
-ax.set_ylabel("Amplitude") 
-ax.set_title(r'Resonant Bichromatic 2LS $\Omega_1$ = 30 $\Omega_2$ = 0' )
-ax.legend(['Mollow Triplet From Correlation Function'])
+ax.plot(  taulist/T,np.sqrt(fstates0[:,1,1]**2), color = 'red')
+ax.plot(  taulist/T,np.sqrt(fstates1[:,1,1]**2), color = 'orange')
+ax.plot(  taulist/T,np.sqrt(fstates10[:,1,1]**2), color = 'yellow')
+ax.plot(  taulist/T,np.sqrt(fstates100[:,1,1]**2), color = 'green')
+ax.plot(  taulist/T,np.sqrt(fstates1000[:,1,1]**2), color = 'blue')
+ax.plot(  taulist/T,np.sqrt(mstates[:,1,1]**2), color = 'black')
+# ax.legend(['Floquet excited State Population'])
+# ax[1].legend(['Direct Integration Excited State Population'])
+ax.set_xlabel('Evolution time (t/$\\tau$)')
+
+perc_dev0 = np.sqrt(np.average(((mstates[1::,1,1]-fstates0[1::,1,1])/mstates[1::,1,1])**2))
+perc_dev1 = np.sqrt(np.average(((mstates[1::,1,1]-fstates1[1::,1,1])/mstates[1::,1,1])**2))
+perc_dev10 = np.sqrt(np.average(((mstates[1::,1,1]-fstates10[1::,1,1])/mstates[1::,1,1])**2))
+perc_dev100 = np.sqrt(np.average(((mstates[1::,1,1]-fstates100[1::,1,1])/mstates[1::,1,1])**2))
+perc_dev1000 = np.sqrt(np.average(((mstates[1::,1,1]-fstates1000[1::,1,1])/mstates[1::,1,1])**2))
+# fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
+# ax.plot(  taulist[1::]/T,perc_dev0, color = 'black')
+# ax.plot(  taulist[1::]/T,perc_dev1, color = 'magenta')
+# ax.plot(  taulist[1::]/T,perc_dev10, color = 'blue')
+# ax.plot(  taulist[1::]/T,perc_dev100, color = 'green')
+# ax.plot(  taulist[1::]/T,perc_dev1000, color = 'yellow')
+# ax.set_ylabel('Percent deviation')
+# ax.set_xlabel('Evolution time (t/$\\tau$)')
 
 
+# time_quotient0 = np.array([fsolve_time_array0[i]/msolve_time_array[i] for i in range(len(period_array))])
+# time_quotient1 = np.array([fsolve_time_array1[i]/msolve_time_array[i] for i in range(len(period_array))])
+# time_quotient10 = np.array([fsolve_time_array10[i]/msolve_time_array[i] for i in range(len(period_array))])
+# time_quotient100 = np.array([fsolve_time_array100[i]/msolve_time_array[i] for i in range(len(period_array))])
+# time_quotient1000 = np.array([fsolve_time_array1000[i]/msolve_time_array[i] for i in range(len(period_array))])
+
+# fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
+# ax.scatter(  period_array,time_quotient0, color = 'black')
+# ax.scatter(  period_array,time_quotient1, color = 'magenta')
+# ax.scatter(  period_array,time_quotient10, color = 'blue')
+# ax.scatter(  period_array,time_quotient100, color = 'green')
+# ax.scatter(  period_array,time_quotient1000, color = 'yellow')
+# ax.set_ylabel('solution time quotient')
+# ax.set_xlabel('Evolution time (t/$\\tau$)')

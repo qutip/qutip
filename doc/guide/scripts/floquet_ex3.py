@@ -28,13 +28,31 @@ output = qutip.fmmesolve(
 )
 
 # calculate expectation values in the computational basis
-p_ex = np.zeros(tlist.shape, dtype=np.complex128)
+p_ex_fmme = np.zeros(tlist.shape, dtype=np.complex128)
 for idx, t in enumerate(tlist):
     f_coeff_t = output.floquet_states[idx]
     psi_t = output.floquet_basis.from_floquet_basis(f_coeff_t, t)
     # Alternatively
     psi_t = output.states[idx]
-    p_ex[idx] = qutip.expect(qutip.num(2), psi_t)
+    p_ex_fmme[idx] = qutip.expect(qutip.num(2), psi_t)
+    
+    
+# solve the floquet-markov master equation
+output = qutip.flimesolve(
+    H, psi0, tlist, 
+    c_ops_and_rates = [[qutip.sigmax(),gamma1]], 
+    T=T,
+    args=args, options={"store_floquet_states": True}
+)
+
+# calculate expectation values in the computational basis
+p_ex_flime = np.zeros(tlist.shape, dtype=np.complex128)
+for idx, t in enumerate(tlist):
+    f_coeff_t = output.floquet_states[idx]
+    psi_t = output.floquet_basis.from_floquet_basis(f_coeff_t, t)
+    # Alternatively
+    psi_t = output.states[idx]
+    p_ex_flime[idx] = qutip.expect(qutip.num(2), psi_t)
 
 # For reference: calculate the same thing with mesolve
 output = qutip.mesolve(H, psi0, tlist,
@@ -43,9 +61,12 @@ output = qutip.mesolve(H, psi0, tlist,
 p_ex_ref = output.expect[0]
 
 # plot the results
-pyplot.plot(tlist, np.real(p_ex), 'r--', tlist, 1-np.real(p_ex), 'b--')
-pyplot.plot(tlist, np.real(p_ex_ref), 'r', tlist, 1-np.real(p_ex_ref), 'b')
+pyplot.plot(tlist, np.real(p_ex_fmme), 'r--', tlist, 1-np.real(p_ex_fmme), 'b--')
+pyplot.plot(tlist, np.real(p_ex_flime), color='m')
+pyplot.plot(tlist, 1-np.real(p_ex_flime), 'green')
+pyplot.plot(tlist, np.real(p_ex_ref), 'r',alpha=0.5)
+pyplot.plot(tlist, 1-np.real(p_ex_ref), 'b',alpha=0.5)
 pyplot.xlabel('Time')
 pyplot.ylabel('Occupation probability')
-pyplot.legend(("Floquet $P_1$", "Floquet $P_0$", "Lindblad $P_1$", "Lindblad $P_0$"))
+pyplot.legend(("Floquet $P_1$", "Floquet $P_0$","Floquet-Lindblad $P_1$","Floquet-Lindblad $P_0$", "Lindblad $P_1$", "Lindblad $P_0$"))
 pyplot.show()
