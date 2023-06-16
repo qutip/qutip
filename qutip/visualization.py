@@ -864,8 +864,7 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
     return figure, axes
 
 
-def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
-                       figure=None, axes=None):
+def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None, figure=None, axes=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
     up to N energy levels. For each element in H_list, the energy
@@ -948,7 +947,7 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
         yticks = np.unique(np.around(yticks, 1))
         _set_yticklabels(axes, yticklabels, yticks)
     else:
-        # show eigenenergies
+        #show eigenenergies
         yticks = np.unique(np.around(yticks, 1))
         axes.set_yticks(yticks)
 
@@ -956,9 +955,8 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
         axes.get_xaxis().tick_bottom()
         _set_yticklabels(axes, xticklabels, xticks)
     else:
-        # hide xtick
-        axes.tick_params(axis='x', which='both',
-                         bottom=False, labelbottom=False)
+        #hide xtick
+        axes.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
 
     return figure, axes
 
@@ -1272,7 +1270,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
 
 
 def plot_spin_distribution(P, THETA, PHI,
-                           fig=None, ax=None, figsize=(8,6), projection='2d'):
+                           fig=None, ax=None, figsize=(8,6),projection='2d'):
     """
     Plots a spin distribution (given as meshgrid data).
 
@@ -1299,8 +1297,8 @@ def plot_spin_distribution(P, THETA, PHI,
 
     projection: string {'2d', '3d'}
         Specify whether the spin distribution function is to be plotted as a 2D
-        projection where the surface of the unit sphere is mapped on
-        the unit disk ('2d') or surface plot ('3d').
+        projection where the surface of the unit sphere is mapped on the unit disk ('2d')
+        or surface plot ('3d').
 
     Returns
     -------
