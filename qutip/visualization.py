@@ -48,7 +48,7 @@ except:
 
 def _cmap():
     if settings.colorblind_safe:
-        return cm.Greys_r
+        return cm.cividis
     else:
         return cm.RdBu
 
@@ -57,6 +57,37 @@ def _cyclic_cmap():
         return cm.twilight
     else:
         return complex_phase_cmap()
+
+def _is_figure_and_axes(figure, axes, projection='2d'):
+    if figure is None:
+        if axes is None:
+            figure = plt.sigure()
+            if projection == '2d':
+                axes = figure.add_subplot(1, 1, 1)
+            else:
+                axes = _axes3D(figure)
+        else:
+            figure = axes.get_figure()
+    else:
+        if axes is None:
+            if projection == '2d':
+                axes = figure.add_subplot(1, 1, 1)
+            else:
+                axes = _axes3D(figure)
+
+    return figure, axes
+
+def _set_xticklabels(axes, xticklabels, xticks):
+    if len(xticks) != len(xticklabels):
+        raise ValueError(f"got {len(xticklabels)} xticklabels but needed {len(xticks)}")
+    axes.set_xticks(xticks)
+    axes.set_xticklabels(xticklabels, fontsize=14)
+
+def _set_yticklabels(axes, yticklabels, yticks):
+    if len(yticks) != len(yticklabels):
+        raise ValueError(f"got {len(yticklabels)} yticklabels but needed {len(yticks)}")
+    axes.set_yticks(yticks)
+    axes.set_yticklabels(yticklabels, fontsize=14)
 
 def plot_wigner_sphere(fig, ax, wigner, reflections):
     """Plots a coloured Bloch sphere.
@@ -183,8 +214,8 @@ def _cb_labels(left_dims):
 
 
 # Adopted from the SciPy Cookbook.
-def hinton(rho, xticklabels=None, yticklabels=None, cmap = None, colorbar = True,
-           color_style="scaled", label_top=True, figure = None, axes = None):
+def hinton(rho, color_style="scaled", label_top=True, *,
+           xticklabels=None, yticklabels=None, cmap = None, colorbar = True, figure = None, axes = None):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
@@ -192,18 +223,6 @@ def hinton(rho, xticklabels=None, yticklabels=None, cmap = None, colorbar = True
     rho : qobj
         Input density matrix or superoperator.
         NOTE: Hinton plots of superoperators are currently only supported for qubits.
-
-    xticklabels : list of strings or False
-        list of x ticklabels
-
-    yticklabels : list of strings or False
-        list of y ticklabels
-
-    cmap : a matplotlib colormap instance
-        Color map to use when plotting.
-
-    colorbar : bool
-        Whether (True) or not (False) a colorbar should be attached.
 
     color_style : string
         Determines how colors are assigned to each square:
@@ -222,17 +241,23 @@ def hinton(rho, xticklabels=None, yticklabels=None, cmap = None, colorbar = True
         If True, x ticklabels will be placed on top, otherwise
         they will appear below the plot.
 
+    xticklabels : list of strings or False
+        list of x ticklabels
+
+    yticklabels : list of strings or False
+        list of y ticklabels
+
+    cmap : a matplotlib colormap instance
+        Color map to use when plotting.
+
+    colorbar : bool
+        Whether (True) or not (False) a colorbar should be attached.
+
     figure : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
 
-    figure_options : dict
-        dict of options to create a figure object
-
     axes : a matplotlib axes instance
         The axes context in which the plot will be drawn.
-
-    axes_options : dict
-        dict of options to set to an axes object
 
     Returns
     -------
@@ -262,14 +287,7 @@ def hinton(rho, xticklabels=None, yticklabels=None, cmap = None, colorbar = True
     >>> fig.show()
     """
 
-    if figure is None:
-        if axes is None:
-            figure, axes = plt.subplots(1, 1)
-        else:
-            figure = axes.get_figure()
-    else:
-        if axes is None:
-            axes = figure.add_subplots(1, 1)
+    figure, axes = _is_figure_and_axes(figure, axes)
 
     # Extract plotting data W from the input.
     if isinstance(rho, Qobj):
@@ -279,7 +297,6 @@ def hinton(rho, xticklabels=None, yticklabels=None, cmap = None, colorbar = True
             elif rho.isoperbra:
                 rho = vector_to_operator(rho.dag())
             W = rho.full()
-
             # Create default labels if none are given.
             if xticklabels is None or yticklabels is None:
                 labels = _cb_labels(rho.dims[0])
@@ -307,12 +324,6 @@ def hinton(rho, xticklabels=None, yticklabels=None, cmap = None, colorbar = True
             )
     else:
         W = rho
-
-    if not (xticklabels or yticklabels):
-        axes.axis('off')
-
-    axes.axis('equal')
-    axes.set_frame_on(False)
 
     height, width = W.shape
 
@@ -355,27 +366,23 @@ def hinton(rho, xticklabels=None, yticklabels=None, cmap = None, colorbar = True
         cax, kw = mpl.colorbar.make_axes(axes, shrink=0.75, pad=.1)
         mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
+    # axis
+    if not (xticklabels or yticklabels):
+        axes.axis('off')
+    axes.axis('equal')
+    axes.set_frame_on(False)
+
     # x axis
-    xtics = 0.5 + np.arange(width)
-    axes.xaxis.set_major_locator(plt.FixedLocator(xtics))
+    xticks = 0.5 + np.arange(width)
     if xticklabels:
-        nxticklabels = len(xticklabels)
-        if nxticklabels != len(xtics):
-            raise ValueError(f"got {nxticklabels} xticklabels but needed {len(xtics)}")
-        axes.set_xticklabels(xticklabels)
-        if label_top:
-            axes.xaxis.tick_top()
-    axes.tick_params(axis='x', labelsize=14)
+        _set_xticklabels(axes, xticklabels, xticks)
+    if label_top:
+        axes.xaxis.tick_top()
 
     # y axis
-    ytics = 0.5 + np.arange(height)
-    axes.yaxis.set_major_locator(plt.FixedLocator(ytics))
+    yticks = 0.5 + np.arange(height)
     if yticklabels:
-        nyticklabels = len(yticklabels)
-        if nyticklabels != len(ytics):
-            raise ValueError(f"got {nyticklabels} yticklabels but needed {len(ytics)}")
-        axes.set_yticklabels(list(reversed(yticklabels)))
-    axes.tick_params(axis='y', labelsize=14)
+        _set_yticklabels(axes, yticklabels, yticks)
 
     return figure, axes
 
@@ -533,7 +540,7 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     ax.set_zlim3d([min(z_min, 0), z_max])
 
 
-def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
+def matrix_histogram(M, xlabels=None, ylabels=None,
                      colorbar=True, fig=None, ax=None, options=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
@@ -548,12 +555,6 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
     ylabels : list of strings
         list of y labels
-
-    title : string
-        title of the plot (optional)
-
-    limits : list/array with two float numbers
-        The z-axis limits [min, max] (optional)
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
@@ -672,15 +673,11 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     dx = dy = (1 - default_opts['bars_spacing']) * np.ones(n)
     dz = np.real(M.flatten())
 
-    if isinstance(limits, list) and len(limits) == 2:
-        z_min = limits[0]
-        z_max = limits[1]
-    else:
-        z_min = min(dz)
-        z_max = max(dz)
-        if z_min == z_max:
-            z_min -= 0.1
-            z_max += 0.1
+    z_min = min(dz)
+    z_max = max(dz)
+    if z_min == z_max:
+        z_min -= 0.1
+        z_max += 0.1
 
     if default_opts['cbar_to_z']:
         norm = mpl.colors.Normalize(min(dz), max(dz))
@@ -706,9 +703,6 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     # remove vertical lines on xz and yz plane
     ax.yaxis._axinfo["grid"]['linewidth'] = 0
     ax.xaxis._axinfo["grid"]['linewidth'] = 0
-
-    if title:
-        ax.set_title(title)
 
     # x axis
     _update_xaxis(default_opts['bars_spacing'], M, ax, xlabels)
@@ -738,8 +732,8 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     return fig, ax
 
 
-def matrix_histogram_complex(M, xticklabels=None, yticklabels=None, cmap = None, colorbar=True,
-                            phase_limits=None, threshold=None, figure=None, axes=None):
+def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
+                             xticklabels=None, yticklabels=None, cmap = None, colorbar=True, figure=None, axes=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument
     of each element for coloring the bars, with the given x and y labels
@@ -749,6 +743,13 @@ def matrix_histogram_complex(M, xticklabels=None, yticklabels=None, cmap = None,
     ----------
     M : Matrix of Qobj
         The matrix to visualize
+
+    phase_limits : list/array with two float numbers
+        The phase-axis (colorbar) limits [min, max] (optional)
+
+    threshold: float (None)
+        Threshold for when bars of smaller height should be transparent. If
+        not set, all bars are colored according to the color map.
 
     xticklabels : list of strings
         list of x ticklabels
@@ -761,13 +762,6 @@ def matrix_histogram_complex(M, xticklabels=None, yticklabels=None, cmap = None,
 
     colorbar : bool
         Whether (True) or not (False) a colorbar should be attached.
-
-    phase_limits : list/array with two float numbers
-        The phase-axis (colorbar) limits [min, max] (optional)
-
-    threshold: float (None)
-        Threshold for when bars of smaller height should be transparent. If
-        not set, all bars are colored according to the color map.
 
     axes : a matplotlib axes instance
         The axes context in which the plot will be drawn.
@@ -787,6 +781,9 @@ def matrix_histogram_complex(M, xticklabels=None, yticklabels=None, cmap = None,
         Input argument is not valid.
 
     """
+    figure, axes = _is_figure_and_axes(figure, axes, projection='3d')
+    #set angle
+    axes.view_init(azim=-35, elev=35)
 
     if isinstance(M, Qobj):
         # extract matrix data from Qobj
@@ -821,33 +818,19 @@ def matrix_histogram_complex(M, xticklabels=None, yticklabels=None, cmap = None,
     if threshold is not None:
         colors[:, 3] = 1 * (dz > threshold)
 
-    if axes is None:
-        figure = plt.figure()
-        axes = _axes3D(figure, azim=-35, elev=35)
-
     axes.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
     # x axis
     xtics = -0.5 + np.arange(M.shape[0])
-    axes.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xticklabels:
-        nxticklabels = len(xticklabels)
-        if nxticklabels != len(xtics):
-            raise ValueError(f"got {nxticklabels} xticklabels but needed {len(xtics)}")
-        axes.set_xticklabels(xticklabels)
-        axes.tick_params(axis='x', labelsize=12)
+        _set_xticklabels(axes, xticklabels, xtics)
     else:
         axes.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
 
     # y axis
     ytics = -0.5 + np.arange(M.shape[1])
-    axes.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
     if yticklabels:
-        nyticklabels = len(yticklabels)
-        if nyticklabels != len(ytics):
-            raise ValueError(f"got {nyticklabels} yticklabels but needed {len(ytics)}")
-        axes.set_yticklabels(yticklabels)
-        axes.tick_params(axis='y', labelsize=12)
+        _set_xticklabels(axes, yticklabels, ytics)
     else:
         axes.tick_params(axis='y', which='both', left=False, labelleft=False)
 
@@ -863,7 +846,7 @@ def matrix_histogram_complex(M, xticklabels=None, yticklabels=None, cmap = None,
     return figure, axes
 
 
-def plot_energy_levels(H_list, xticklabels=None, yticklabels=None, N=0,
+def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
                         figure=None, axes=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
@@ -877,15 +860,15 @@ def plot_energy_levels(H_list, xticklabels=None, yticklabels=None, N=0,
         H_list : List of Qobj
             A list of Hamiltonians.
 
+        N : int
+            The number of energy levels to plot
+
         xticklabels : List of string
             A list of xticklabels for each Hamiltonian
 
         yticklabels : List of string
             A list of  yticklabels to the left of energy levels of the initial
             Hamiltonian.
-
-        N : int
-            The number of energy levels to plot
 
         figure : a matplotlib Figure instance
             The Figure canvas in which the plot will be drawn.
@@ -907,17 +890,11 @@ def plot_energy_levels(H_list, xticklabels=None, yticklabels=None, N=0,
 
     """
 
+    figure, axes = _is_figure_and_axes(figure, axes)
+    axes.set_frame_on(False)
+
     if not isinstance(H_list, list):
         raise ValueError("H_list must be a list of Qobj instances")
-
-    if figure is None:
-        if axes is None:
-            figure, axes = plt.subplots(1, 1)
-        else:
-            figure = axes.get_figure()
-    else:
-        if axes is None:
-            axes = figure.add_subplots(1, 1)
 
     H = H_list[0]
     N = H.shape[0] if N == 0 else min(H.shape[0], N)
@@ -949,21 +926,19 @@ def plot_energy_levels(H_list, xticklabels=None, yticklabels=None, N=0,
 
         evals0 = evals1
 
-    axes.set_frame_on(False)
-
     if yticklabels:
         yticks = np.unique(np.around(yticks, 1))
-        axes.set_yticks(yticks)
-        axes.set_yticklabels(yticklabels)
+        _set_yticklabels(axes, yticklabels, yticks)
     else:
+        #show eigenenergies
         yticks = np.unique(np.around(yticks, 1))
         axes.set_yticks(yticks)
 
     if xticklabels:
         axes.get_xaxis().tick_bottom()
-        axes.set_xticks(xticks)
-        axes.set_xticklabels(xticklabels, fontsize=16)
+        _set_yticklabels(axes, xticklabels, xticks)
     else:
+        #hide xtick
         axes.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
 
     return figure, axes
