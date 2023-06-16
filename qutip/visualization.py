@@ -46,17 +46,20 @@ try:
 except:
     pass
 
+
 def _cmap():
     if settings.colorblind_safe:
         return cm.cividis
     else:
         return cm.RdBu
 
+
 def _cyclic_cmap():
     if settings.colorblind_safe:
         return cm.twilight
     else:
         return complex_phase_cmap()
+
 
 def _is_figure_and_axes(figure, axes, projection='2d'):
     if figure is None:
@@ -77,17 +80,24 @@ def _is_figure_and_axes(figure, axes, projection='2d'):
 
     return figure, axes
 
+
 def _set_xticklabels(axes, xticklabels, xticks):
     if len(xticks) != len(xticklabels):
-        raise ValueError(f"got {len(xticklabels)} xticklabels but needed {len(xticks)}")
+        raise ValueError(
+            f"got {len(xticklabels)} xticklabels but needed {len(xticks)}"
+            )
     axes.set_xticks(xticks)
     axes.set_xticklabels(xticklabels, fontsize=14)
 
+
 def _set_yticklabels(axes, yticklabels, yticks):
     if len(yticks) != len(yticklabels):
-        raise ValueError(f"got {len(yticklabels)} yticklabels but needed {len(yticks)}")
+        raise ValueError(
+            f"got {len(yticklabels)} yticklabels but needed {len(yticks)}"
+            )
     axes.set_yticks(yticks)
     axes.set_yticklabels(yticklabels, fontsize=14)
+
 
 def plot_wigner_sphere(fig, ax, wigner, reflections):
     """Plots a coloured Bloch sphere.
@@ -215,14 +225,16 @@ def _cb_labels(left_dims):
 
 # Adopted from the SciPy Cookbook.
 def hinton(rho, color_style="scaled", label_top=True, *,
-           xticklabels=None, yticklabels=None, cmap = None, colorbar = True, figure = None, axes = None):
+           xticklabels=None, yticklabels=None, cmap=None, colorbar=True,
+           figure=None, axes=None):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
     ----------
     rho : qobj
         Input density matrix or superoperator.
-        NOTE: Hinton plots of superoperators are currently only supported for qubits.
+        NOTE: Hinton plots of superoperators are
+        currently only supported for qubits.
 
     color_style : string
         Determines how colors are assigned to each square:
@@ -293,15 +305,17 @@ def hinton(rho, color_style="scaled", label_top=True, *,
     if isinstance(rho, Qobj):
         if rho.isoper or rho.isoperket or rho.isoperbra:
             if rho.isoperket:
-                rho =  vector_to_operator(rho)
+                rho = vector_to_operator(rho)
             elif rho.isoperbra:
                 rho = vector_to_operator(rho.dag())
             W = rho.full()
             # Create default labels if none are given.
             if xticklabels is None or yticklabels is None:
                 labels = _cb_labels(rho.dims[0])
-                xticklabels = xticklabels if xticklabels is not None else list(labels[0])
-                yticklabels = yticklabels if yticklabels is not None else list(labels[1])
+                if xticklabels is None:
+                    xticklabels = list(labels[0])
+                if yticklabels is None:
+                    yticklabels = list(labels[1])
 
         elif rho.issuper:
             if not isqubitdims(rho.dims):
@@ -315,8 +329,10 @@ def hinton(rho, color_style="scaled", label_top=True, *,
             # Create default labels, too.
             if (xticklabels is None) or (yticklabels is None):
                 labels = list(map("".join, it.product("IXYZ", repeat=nq)))
-                xticklabels = xticklabels if xticklabels is not None else labels
-                yticklabels = yticklabels if yticklabels is not None else labels
+                if xticklabels is None:
+                    xticklabels = labels
+                if yticklabels is None:
+                    yticklabels = labels
 
         else:
             raise ValueError(
@@ -733,7 +749,8 @@ def matrix_histogram(M, xlabels=None, ylabels=None,
 
 
 def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
-                             xticklabels=None, yticklabels=None, cmap = None, colorbar=True, figure=None, axes=None):
+                             xticklabels=None, yticklabels=None, cmap=None,
+                             colorbar=True, figure=None, axes=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument
     of each element for coloring the bars, with the given x and y labels
@@ -782,7 +799,7 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
 
     """
     figure, axes = _is_figure_and_axes(figure, axes, projection='3d')
-    #set angle
+    # set angle
     axes.view_init(azim=-35, elev=35)
 
     if isinstance(M, Qobj):
@@ -825,7 +842,8 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
     if xticklabels:
         _set_xticklabels(axes, xticklabels, xtics)
     else:
-        axes.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
+        axes.tick_params(axis='x', which='both',
+                         bottom=False, labelbottom=False)
 
     # y axis
     ytics = -0.5 + np.arange(M.shape[1])
@@ -847,7 +865,7 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
 
 
 def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
-                        figure=None, axes=None):
+                       figure=None, axes=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
     up to N energy levels. For each element in H_list, the energy
@@ -930,7 +948,7 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
         yticks = np.unique(np.around(yticks, 1))
         _set_yticklabels(axes, yticklabels, yticks)
     else:
-        #show eigenenergies
+        # show eigenenergies
         yticks = np.unique(np.around(yticks, 1))
         axes.set_yticks(yticks)
 
@@ -938,8 +956,9 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
         axes.get_xaxis().tick_bottom()
         _set_yticklabels(axes, xticklabels, xticks)
     else:
-        #hide xtick
-        axes.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
+        # hide xtick
+        axes.tick_params(axis='x', which='both',
+                         bottom=False, labelbottom=False)
 
     return figure, axes
 
@@ -1253,7 +1272,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
 
 
 def plot_spin_distribution(P, THETA, PHI,
-                           fig=None, ax=None, figsize=(8,6),projection='2d'):
+                           fig=None, ax=None, figsize=(8,6), projection='2d'):
     """
     Plots a spin distribution (given as meshgrid data).
 
@@ -1280,8 +1299,8 @@ def plot_spin_distribution(P, THETA, PHI,
 
     projection: string {'2d', '3d'}
         Specify whether the spin distribution function is to be plotted as a 2D
-        projection where the surface of the unit sphere is mapped on the unit disk ('2d')
-        or surface plot ('3d').
+        projection where the surface of the unit sphere is mapped on
+        the unit disk ('2d') or surface plot ('3d').
 
     Returns
     -------
