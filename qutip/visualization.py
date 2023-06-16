@@ -64,7 +64,7 @@ def _cyclic_cmap():
 def _is_figure_and_axes(figure, axes, projection='2d'):
     if figure is None:
         if axes is None:
-            figure = plt.sigure()
+            figure = plt.figure()
             if projection == '2d':
                 axes = figure.add_subplot(1, 1, 1)
             else:
@@ -81,22 +81,21 @@ def _is_figure_and_axes(figure, axes, projection='2d'):
     return figure, axes
 
 
-def _set_xticklabels(axes, xticklabels, xticks):
-    if len(xticks) != len(xticklabels):
+def _set_ticklabels(axes, ticklabels, ticks, axis):
+    if len(ticks) != len(ticklabels):
         raise ValueError(
-            f"got {len(xticklabels)} xticklabels but needed {len(xticks)}"
+            f"got {len(ticklabels)} ticklabels but needed {len(ticks)}"
             )
-    axes.set_xticks(xticks)
-    axes.set_xticklabels(xticklabels, fontsize=14)
-
-
-def _set_yticklabels(axes, yticklabels, yticks):
-    if len(yticks) != len(yticklabels):
+    if axis == 'x':
+        axes.set_xticks(ticks)
+        axes.set_xticklabels(ticklabels, fontsize=14)
+    elif axis == 'y':
+        axes.set_yticks(ticks)
+        axes.set_yticklabels(ticklabels, fontsize=14)
+    else:
         raise ValueError(
-            f"got {len(yticklabels)} yticklabels but needed {len(yticks)}"
+            "axis must be either 'x' or 'y'"
             )
-    axes.set_yticks(yticks)
-    axes.set_yticklabels(yticklabels, fontsize=14)
 
 
 def plot_wigner_sphere(fig, ax, wigner, reflections):
@@ -391,14 +390,14 @@ def hinton(rho, color_style="scaled", label_top=True, *,
     # x axis
     xticks = 0.5 + np.arange(width)
     if xticklabels:
-        _set_xticklabels(axes, xticklabels, xticks)
+        _set_ticklabels(axes, xticklabels, xticks, 'x')
     if label_top:
         axes.xaxis.tick_top()
 
     # y axis
     yticks = 0.5 + np.arange(height)
     if yticklabels:
-        _set_yticklabels(axes, yticklabels, yticks)
+        _set_ticklabels(axes, list(reversed(yticklabels)), yticks, 'y')
 
     return figure, axes
 
@@ -838,17 +837,17 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
     axes.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
     # x axis
-    xtics = -0.5 + np.arange(M.shape[0])
+    xticks = -0.5 + np.arange(M.shape[0])
     if xticklabels:
-        _set_xticklabels(axes, xticklabels, xtics)
+        _set_ticklabels(axes, xticklabels, xticks, 'x')
     else:
         axes.tick_params(axis='x', which='both',
                          bottom=False, labelbottom=False)
 
     # y axis
-    ytics = -0.5 + np.arange(M.shape[1])
+    yticks = -0.5 + np.arange(M.shape[1])
     if yticklabels:
-        _set_xticklabels(axes, yticklabels, ytics)
+        _set_ticklabels(axes, yticklabels, yticks, 'y')
     else:
         axes.tick_params(axis='y', which='both', left=False, labelleft=False)
 
@@ -864,7 +863,8 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
     return figure, axes
 
 
-def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None, figure=None, axes=None):
+def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
+                       figure=None, axes=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
     up to N energy levels. For each element in H_list, the energy
@@ -945,18 +945,19 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None, figur
 
     if yticklabels:
         yticks = np.unique(np.around(yticks, 1))
-        _set_yticklabels(axes, yticklabels, yticks)
+        _set_ticklabels(axes, yticklabels, yticks, 'y')
     else:
-        #show eigenenergies
+        # show eigenenergies
         yticks = np.unique(np.around(yticks, 1))
         axes.set_yticks(yticks)
 
     if xticklabels:
         axes.get_xaxis().tick_bottom()
-        _set_yticklabels(axes, xticklabels, xticks)
+        _set_ticklabels(axes, xticklabels, xticks, 'x')
     else:
-        #hide xtick
-        axes.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
+        # hide xtick
+        axes.tick_params(axis='x', which='both',
+                         bottom=False, labelbottom=False)
 
     return figure, axes
 
@@ -1270,7 +1271,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
 
 
 def plot_spin_distribution(P, THETA, PHI,
-                           fig=None, ax=None, figsize=(8,6),projection='2d'):
+                           fig=None, ax=None, figsize=(8, 6), projection='2d'):
     """
     Plots a spin distribution (given as meshgrid data).
 
@@ -1297,8 +1298,8 @@ def plot_spin_distribution(P, THETA, PHI,
 
     projection: string {'2d', '3d'}
         Specify whether the spin distribution function is to be plotted as a 2D
-        projection where the surface of the unit sphere is mapped on the unit disk ('2d')
-        or surface plot ('3d').
+        projection where the surface of the unit sphere is mapped on
+        the unit disk ('2d') or surface plot ('3d').
 
     Returns
     -------
