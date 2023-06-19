@@ -7,10 +7,11 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
            'plot_energy_levels', 'fock_distribution',
            'plot_fock_distribution', 'wigner_fock_distribution',
            'plot_wigner_fock_distribution', 'plot_wigner',
-           'plot_expectation_values', 'plot_spin_distribution',
-           'plot_qubism', 'plot_schmidt',
+           'plot_expectation_values', 'plot_spin_distribution_2d',
+           'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
            'complex_array_to_rgb', 'matrix_histogram',
-           'matrix_histogram_complex', 'sphereplot', 'plot_wigner_sphere']
+           'matrix_histogram_complex', 'sphereplot', 'plot_wigner_sphere',
+           'plot_spin_distribution']
 
 import warnings
 import itertools as it
@@ -1335,6 +1336,123 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
         cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
         cb1.set_label('magnitude')
+
+    return fig, ax
+
+
+def plot_spin_distribution_2d(P, THETA, PHI,
+                              fig=None, ax=None, figsize=(8, 8)):
+    """
+    Plot a spin distribution function (given as meshgrid data) with a 2D
+    projection where the surface of the unit sphere is mapped on the unit disk.
+
+    Parameters
+    ----------
+    P : matrix
+        Distribution values as a meshgrid matrix.
+
+    THETA : matrix
+        Meshgrid matrix for the theta coordinate.
+
+    PHI : matrix
+        Meshgrid matrix for the phi coordinate.
+
+    fig : a matplotlib figure instance
+        The figure canvas on which the plot will be drawn.
+
+    ax : a matplotlib axis instance
+        The axis context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+    """
+
+    if not fig or not ax:
+        if not figsize:
+            figsize = (8, 8)
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+    Y = (THETA - pi / 2) / (pi / 2)
+    X = (pi - PHI) / pi * np.sqrt(cos(THETA - pi / 2))
+
+    if P.min() < -1e12:
+        cmap = cm.RdBu
+    else:
+        cmap = cm.RdYlBu
+
+    ax.pcolor(X, Y, P.real, cmap=cmap)
+    ax.set_xlabel(r'$\varphi$', fontsize=18)
+    ax.set_ylabel(r'$\theta$', fontsize=18)
+
+    ax.set_xticks([-1, 0, 1])
+    ax.set_xticklabels([r'$0$', r'$\pi$', r'$2\pi$'], fontsize=18)
+    ax.set_yticks([-1, 0, 1])
+    ax.set_yticklabels([r'$\pi$', r'$\pi/2$', r'$0$'], fontsize=18)
+
+    return fig, ax
+
+
+def plot_spin_distribution_3d(P, THETA, PHI,
+                              fig=None, ax=None, figsize=(8, 6)):
+    """Plots a matrix of values on a sphere
+
+    Parameters
+    ----------
+    P : matrix
+        Distribution values as a meshgrid matrix.
+
+    THETA : matrix
+        Meshgrid matrix for the theta coordinate.
+
+    PHI : matrix
+        Meshgrid matrix for the phi coordinate.
+
+    fig : a matplotlib figure instance
+        The figure canvas on which the plot will be drawn.
+
+    ax : a matplotlib axis instance
+        The axis context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+
+    """
+
+    if fig is None or ax is None:
+        fig = plt.figure(figsize=figsize)
+        ax = _axes3D(fig, azim=-35, elev=35)
+
+    xx = sin(THETA) * cos(PHI)
+    yy = sin(THETA) * sin(PHI)
+    zz = cos(THETA)
+
+    if P.min() < -1e12:
+        cmap = cm.RdBu
+        norm = mpl.colors.Normalize(-P.max(), P.max())
+    else:
+        cmap = cm.RdYlBu
+        norm = mpl.colors.Normalize(P.min(), P.max())
+
+    ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
+                    facecolors=cmap(norm(P)), linewidth=0)
+
+    cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
+    cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+    cb1.set_label('magnitude')
 
     return fig, ax
 
