@@ -61,37 +61,37 @@ def _cyclic_cmap():
         return complex_phase_cmap()
 
 
-def _is_figure_and_axes(figure, axes, projection='2d'):
-    if figure is None:
-        if axes is None:
-            figure = plt.figure()
+def _is_fig_and_ax(fig, ax, projection='2d'):
+    if fig is None:
+        if ax is None:
+            fig = plt.figure()
             if projection == '2d':
-                axes = figure.add_subplot(1, 1, 1)
+                ax = fig.add_subplot(1, 1, 1)
             else:
-                axes = _axes3D(figure)
+                ax = _axes3D(fig)
         else:
-            figure = axes.get_figure()
+            fig = ax.get_figure()
     else:
-        if axes is None:
+        if ax is None:
             if projection == '2d':
-                axes = figure.add_subplot(1, 1, 1)
+                ax = fig.add_subplot(1, 1, 1)
             else:
-                axes = _axes3D(figure)
+                ax = _axes3D(fig)
 
-    return figure, axes
+    return fig, ax
 
 
-def _set_ticklabels(axes, ticklabels, ticks, axis):
+def _set_ticklabels(ax, ticklabels, ticks, axis):
     if len(ticks) != len(ticklabels):
         raise ValueError(
             f"got {len(ticklabels)} ticklabels but needed {len(ticks)}"
             )
     if axis == 'x':
-        axes.set_xticks(ticks)
-        axes.set_xticklabels(ticklabels, fontsize=14)
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(ticklabels, fontsize=14)
     elif axis == 'y':
-        axes.set_yticks(ticks)
-        axes.set_yticklabels(ticklabels, fontsize=14)
+        ax.set_yticks(ticks)
+        ax.set_yticklabels(ticklabels, fontsize=14)
     else:
         raise ValueError(
             "axis must be either 'x' or 'y'"
@@ -225,7 +225,7 @@ def _cb_labels(left_dims):
 # Adopted from the SciPy Cookbook.
 def hinton(rho, color_style="scaled", label_top=True, *,
            xticklabels=None, yticklabels=None, cmap=None, colorbar=True,
-           figure=None, axes=None):
+           fig=None, ax=None):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
@@ -264,11 +264,11 @@ def hinton(rho, color_style="scaled", label_top=True, *,
     colorbar : bool
         Whether (True) or not (False) a colorbar should be attached.
 
-    figure : a matplotlib Figure instance
+    fig : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
 
-    axes : a matplotlib axes instance
-        The axes context in which the plot will be drawn.
+    ax : a matplotlib axes instance
+        The ax context in which the plot will be drawn.
 
     Returns
     -------
@@ -298,7 +298,7 @@ def hinton(rho, color_style="scaled", label_top=True, *,
     >>> fig.show()
     """
 
-    figure, axes = _is_figure_and_axes(figure, axes)
+    fig, ax = _is_fig_and_ax(fig, ax)
 
     # Extract plotting data W from the input.
     if isinstance(rho, Qobj):
@@ -365,7 +365,7 @@ def hinton(rho, color_style="scaled", label_top=True, *,
             "Unknown color style {} for Hinton diagrams.".format(color_style)
         )
 
-    axes.fill(array([0, width, width, 0]), array([0, 0, height, height]),
+    ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
             color=cmap(128))
     for x in range(width):
         for y in range(height):
@@ -373,36 +373,36 @@ def hinton(rho, color_style="scaled", label_top=True, *,
             _y = y + 1
             _blob(
                 _x - 0.5, height - _y + 0.5, W[y, x], w_max,
-                min(1, abs(W[y, x]) / w_max), color_fn=color_fn, ax=axes)
+                min(1, abs(W[y, x]) / w_max), color_fn=color_fn, ax=ax)
 
     if colorbar:
         vmax = np.pi if color_style == "phase" else abs(W).max()
         norm = mpl.colors.Normalize(-vmax, vmax)
-        cax, kw = mpl.colorbar.make_axes(axes, shrink=0.75, pad=.1)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
         mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
     # axis
     if not (xticklabels or yticklabels):
-        axes.axis('off')
-    axes.axis('equal')
-    axes.set_frame_on(False)
+        ax.axis('off')
+    ax.axis('equal')
+    ax.set_frame_on(False)
 
     # x axis
     xticks = 0.5 + np.arange(width)
     if xticklabels:
-        _set_ticklabels(axes, xticklabels, xticks, 'x')
+        _set_ticklabels(ax, xticklabels, xticks, 'x')
     if label_top:
-        axes.xaxis.tick_top()
+        ax.xaxis.tick_top()
 
     # y axis
     yticks = 0.5 + np.arange(height)
     if yticklabels:
-        _set_ticklabels(axes, list(reversed(yticklabels)), yticks, 'y')
+        _set_ticklabels(ax, list(reversed(yticklabels)), yticks, 'y')
 
-    return figure, axes
+    return fig, ax
 
 
-def sphereplot(theta, phi, values, fig=None, ax=None):
+def sphereplot(theta, phi, values, *, cmap=None, colorbar=True, fig=None, ax=None):
     """Plots a matrix of values on a sphere
 
     Parameters
@@ -416,14 +416,17 @@ def sphereplot(theta, phi, values, fig=None, ax=None):
     values : array
         Data set to be plotted
 
+    cmap : a matplotlib colormap instance
+        Color map to use when plotting.
+
+    colorbar : bool
+        Whether (True) or not (False) a colorbar should be attached.
+
     fig : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
-
-    save : bool {False , True}
-        Whether to save the figure or not
 
     Returns
     -------
@@ -431,9 +434,10 @@ def sphereplot(theta, phi, values, fig=None, ax=None):
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
     """
-    if fig is None or ax is None:
-        fig = plt.figure()
-        ax = _axes3D(fig)
+    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
+
+    if cmap is None:
+        cmap = _cmap()
 
     thetam, phim = np.meshgrid(theta, phi)
     xx = sin(thetam) * cos(phim)
@@ -442,20 +446,22 @@ def sphereplot(theta, phi, values, fig=None, ax=None):
     r = array(abs(values))
     ph = angle(values)
     # normalize color range based on phase angles in list ph
-    nrm = mpl.colors.Normalize(ph.min(), ph.max())
+    norm = mpl.colors.Normalize(ph.min(), ph.max())
 
     # plot with facecolors set to cm.jet colormap normalized to nrm
     ax.plot_surface(r * xx, r * yy, r * zz, rstride=1, cstride=1,
-                    facecolors=cm.jet(nrm(ph)), linewidth=0)
-    # create new axes on plot for colorbar and shrink it a bit.
-    # pad shifts location of bar with repsect to the main plot
-    cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
+                    facecolors=cmap(norm(ph)), linewidth=0,)
 
-    # create new colorbar in axes cax with cm jet and normalized to nrm like
-    # our facecolors
-    cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cm.jet, norm=nrm)
-    # add our colorbar label
-    cb1.set_label('Angle')
+    if colorbar:
+        # create new axes on plot for colorbar and shrink it a bit.
+        # pad shifts location of bar with repsect to the main plot
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
+
+        # create new colorbar in axes cax with cm jet and normalized to nrm like
+        # our facecolors
+        cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+        # add our colorbar label
+        cb1.set_label('Angle')
 
     return fig, ax
 
@@ -749,7 +755,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None,
 
 def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
                              xticklabels=None, yticklabels=None, cmap=None,
-                             colorbar=True, figure=None, axes=None):
+                             colorbar=True, fig=None, ax=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument
     of each element for coloring the bars, with the given x and y labels
@@ -779,15 +785,15 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
     colorbar : bool
         Whether (True) or not (False) a colorbar should be attached.
 
-    axes : a matplotlib axes instance
-        The axes context in which the plot will be drawn.
-
-    figure : a matplotlib Figure instance
+    fig : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
 
     Returns
     -------
-    figure, axes : tuple
+    fig, ax : tuple
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
 
@@ -797,9 +803,9 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
         Input argument is not valid.
 
     """
-    figure, axes = _is_figure_and_axes(figure, axes, projection='3d')
+    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
     # set angle
-    axes.view_init(azim=-35, elev=35)
+    ax.view_init(azim=-35, elev=35)
 
     if isinstance(M, Qobj):
         # extract matrix data from Qobj
@@ -834,37 +840,37 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
     if threshold is not None:
         colors[:, 3] = 1 * (dz > threshold)
 
-    axes.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
+    ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
     # x axis
     xticks = -0.5 + np.arange(M.shape[0])
     if xticklabels:
-        _set_ticklabels(axes, xticklabels, xticks, 'x')
+        _set_ticklabels(ax, xticklabels, xticks, 'x')
     else:
-        axes.tick_params(axis='x', which='both',
+        ax.tick_params(axis='x', which='both',
                          bottom=False, labelbottom=False)
 
     # y axis
     yticks = -0.5 + np.arange(M.shape[1])
     if yticklabels:
-        _set_ticklabels(axes, yticklabels, yticks, 'y')
+        _set_ticklabels(ax, yticklabels, yticks, 'y')
     else:
-        axes.tick_params(axis='y', which='both', left=False, labelleft=False)
+        ax.tick_params(axis='y', which='both', left=False, labelleft=False)
 
     # color axis
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(axes, shrink=.75, pad=.0)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
         cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
         cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
         cb.set_ticklabels(
             (r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
         cb.set_label('arg')
 
-    return figure, axes
+    return fig, ax
 
 
 def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
-                       figure=None, axes=None):
+                       fig=None, ax=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
     up to N energy levels. For each element in H_list, the energy
@@ -887,15 +893,15 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
             A list of  yticklabels to the left of energy levels of the initial
             Hamiltonian.
 
-        figure : a matplotlib Figure instance
+        fig : a matplotlib Figure instance
             The Figure canvas in which the plot will be drawn.
 
-        axes : a matplotlib axes instance
+        ax : a matplotlib axes instance
             The axes context in which the plot will be drawn.
 
     Returns
     -------
-    figure, axes : tuple
+    fig, ax : tuple
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
 
@@ -907,8 +913,8 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
 
     """
 
-    figure, axes = _is_figure_and_axes(figure, axes)
-    axes.set_frame_on(False)
+    fig, ax = _is_fig_and_ax(fig, ax)
+    ax.set_frame_on(False)
 
     if not isinstance(H_list, list):
         raise ValueError("H_list must be a list of Qobj instances")
@@ -922,7 +928,7 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
     x = 0
     evals0 = H.eigenenergies(eigvals=N)
     for e_idx, e in enumerate(evals0[:N]):
-        axes.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
+        ax.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
         yticks.append(e)
     xticks.append(x + 1)
     x += 2
@@ -933,11 +939,11 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
         evals1 = H.eigenenergies()
 
         for e_idx, e in enumerate(evals1[:N]):
-            axes.plot([x, x + 1], np.array([evals0[e_idx], e]), 'k:')
+            ax.plot([x, x + 1], np.array([evals0[e_idx], e]), 'k:')
         x += 1
 
         for e_idx, e in enumerate(evals1[:N]):
-            axes.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
+            ax.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
         xticks.append(x + 1)
         x += 2
 
@@ -945,33 +951,30 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
 
     if yticklabels:
         yticks = np.unique(np.around(yticks, 1))
-        _set_ticklabels(axes, yticklabels, yticks, 'y')
+        _set_ticklabels(ax, yticklabels, yticks, 'y')
     else:
         # show eigenenergies
         yticks = np.unique(np.around(yticks, 1))
-        axes.set_yticks(yticks)
+        ax.set_yticks(yticks)
 
     if xticklabels:
-        axes.get_xaxis().tick_bottom()
-        _set_ticklabels(axes, xticklabels, xticks, 'x')
+        ax.get_xaxis().tick_bottom()
+        _set_ticklabels(ax, xticklabels, xticks, 'x')
     else:
         # hide xtick
-        axes.tick_params(axis='x', which='both',
+        ax.tick_params(axis='x', which='both',
                          bottom=False, labelbottom=False)
 
-    return figure, axes
+    return fig, ax
 
 
 def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
                          figsize=(8, 12), fig=None, ax=None):
     warnings.warn("Deprecated: Use plot_energy_levels")
-    return plot_energy_levels(H_list, N=N, labels=labels,
-                              show_ylabels=show_ylabels,
-                              figsize=figsize, fig=fig, ax=ax)
+    return plot_energy_levels(H_list, N=N, fig=fig, ax=ax)
 
 
-def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
-                           figsize=(8, 6), title=None, unit_y_range=True):
+def plot_fock_distribution(rho, offset=0, unit_y_range=True, *, fig=None, ax=None):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -981,18 +984,14 @@ def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
     rho : :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
+    offset : int
+        Offset the fock number
+
     fig : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
-
-    title : string
-        An optional title for the figure.
-
-    figsize : (width, height)
-        The size of the matplotlib figure (in inches) if it is to be created
-        (that is, if no 'fig' and 'ax' arguments are passed).
 
     Returns
     -------
@@ -1001,8 +1000,7 @@ def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
         the figure.
     """
 
-    if not fig and not ax:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+    fig, ax = _is_fig_and_ax(fig, ax)
 
     if isket(rho):
         rho = ket2dm(rho)
@@ -1011,15 +1009,12 @@ def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
 
     ax.bar(np.arange(offset, offset + N), np.real(rho.diag()),
            color="green", alpha=0.6, width=0.8)
+
     if unit_y_range:
         ax.set_ylim(0, 1)
-
     ax.set_xlim(-.5 + offset, N + offset)
     ax.set_xlabel('Fock number', fontsize=12)
     ax.set_ylabel('Occupation probability', fontsize=12)
-
-    if title:
-        ax.set_title(title)
 
     return fig, ax
 
@@ -1027,14 +1022,11 @@ def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
 def fock_distribution(rho, offset=0, fig=None, ax=None,
                       figsize=(8, 6), title=None, unit_y_range=True):
     warnings.warn("Deprecated: Use plot_fock_distribution")
-    return plot_fock_distribution(rho, offset=offset, fig=fig, ax=ax,
-                                  figsize=figsize, title=title,
-                                  unit_y_range=unit_y_range)
+    return plot_fock_distribution(rho, offset=offset, fig=fig, ax=ax)
 
 
-def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
-                cmap=None, alpha_max=7.5, colorbar=False,
-                method='clenshaw', projection='2d'):
+def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
+                cmap=None, colorbar=False, fig=None, ax=None):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1044,25 +1036,8 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
     rho : :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
-    fig : a matplotlib Figure instance
-        The Figure canvas in which the plot will be drawn.
-
-    ax : a matplotlib axes instance
-        The axes context in which the plot will be drawn.
-
-    figsize : (width, height)
-        The size of the matplotlib figure (in inches) if it is to be created
-        (that is, if no 'fig' and 'ax' arguments are passed).
-
-    cmap : a matplotlib cmap instance
-        The colormap.
-
     alpha_max : float
         The span of the x and y coordinates (both [-alpha_max, alpha_max]).
-
-    colorbar : bool
-        Whether (True) or not (False) a colorbar should be attached to the
-        Wigner function graph.
 
     method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
         The method used for calculating the wigner function. See the
@@ -1072,6 +1047,19 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
         Specify whether the Wigner function is to be plotted as a
         contour graph ('2d') or surface plot ('3d').
 
+    cmap : a matplotlib cmap instance
+        The colormap.
+
+    colorbar : bool
+        Whether (True) or not (False) a colorbar should be attached to the
+        Wigner function graph.
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+
     Returns
     -------
     fig, ax : tuple
@@ -1079,14 +1067,10 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
         the figure.
     """
 
-    if not fig and not ax:
-        if projection == '2d':
-            fig, ax = plt.subplots(1, 1, figsize=figsize)
-        elif projection == '3d':
-            fig = plt.figure(figsize=figsize)
-            ax = fig.add_subplot(1, 1, 1, projection='3d')
-        else:
-            raise ValueError('Unexpected value of projection keyword argument')
+    if projection in ('2d','3d'):
+        fig, ax = _is_fig_and_ax(fig, ax, projection)
+    else:
+        raise ValueError('Unexpected value of projection keyword argument')
 
     if isket(rho):
         rho = ket2dm(rho)
@@ -1097,19 +1081,16 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
     W, yvec = W0 if isinstance(W0, tuple) else (W0, xvec)
 
     wlim = abs(W).max()
-
+    norm = mpl.colors.Normalize(-wlim, wlim)
     if cmap is None:
-        cmap = cm.get_cmap('RdBu')
+        cmap = _cmap()
 
     if projection == '2d':
-        cf = ax.contourf(xvec, yvec, W, 100,
-                         norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
-    elif projection == '3d':
+        cf = ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)
+    else:
         X, Y = np.meshgrid(xvec, xvec)
         cf = ax.plot_surface(X, Y, W0, rstride=5, cstride=5, linewidth=0.5,
-                             norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
-    else:
-        raise ValueError('Unexpected value of projection keyword argument.')
+                             norm=norm, cmap=cmap)
 
     if xvec is not yvec:
         ax.set_ylim(xvec.min(), xvec.max())
@@ -1118,16 +1099,17 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
     ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
 
     if colorbar:
-        fig.colorbar(cf, ax=ax)
+        cax, kw = mpl.colorbar.make_axes(ax)
+        cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
     ax.set_title("Wigner function", fontsize=12)
 
     return fig, ax
 
 
-def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
-                                  cmap=None, alpha_max=7.5, colorbar=False,
-                                  method='iterative', projection='2d'):
+def plot_wigner_fock_distribution(rho, alpha_max=7.5, method='iterative',
+                                  projection='2d', *, cmap=None,
+                                  colorbar=False, fig=None, axes=None):
     """
     Plot the Fock distribution and the Wigner function for a density matrix
     (or ket) that describes an oscillator mode.
@@ -1137,27 +1119,10 @@ def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
     rho : :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
-    fig : a matplotlib Figure instance
-        The Figure canvas in which the plot will be drawn.
-
-    axes : a list of two matplotlib axes instances
-        The axes context in which the plot will be drawn.
-
-    figsize : (width, height)
-        The size of the matplotlib figure (in inches) if it is to be created
-        (that is, if no 'fig' and 'ax' arguments are passed).
-
-    cmap : a matplotlib cmap instance
-        The colormap.
-
     alpha_max : float
         The span of the x and y coordinates (both [-alpha_max, alpha_max]).
 
-    colorbar : bool
-        Whether (True) or not (False) a colorbar should be attached to the
-        Wigner function graph.
-
-    method : string {'iterative', 'laguerre', 'fft'}
+    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
 
@@ -1165,18 +1130,52 @@ def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
         Specify whether the Wigner function is to be plotted as a
         contour graph ('2d') or surface plot ('3d').
 
+    cmap : a matplotlib cmap instance
+        The colormap.
+
+    colorbar : bool
+        Whether (True) or not (False) a colorbar should be attached to the
+        Wigner function graph.
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    axes : a list of two matplotlib axes instances
+        The axes context in which the plot will be drawn.
+
+    method : string {'iterative', 'laguerre', 'fft'}
+        The method used for calculating the wigner function. See the
+        documentation for qutip.wigner for details.
+
     Returns
     -------
-    fig, ax : tuple
+    fig, axes : tuple
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
     """
+    if fig is None and axes is not None:
+        raise ValueError("figure object is neccessary")
+    if fig is None:
+        fig = plt.figure()
+    if axes is None:
+        if projection == '2d':
+            axes = [fig.add_subplot(1, 2, 1),
+                    fig.add_subplot(1, 2, 2)]
+        elif projection == '3d':
+            axes = [fig.add_subplot(1, 2, 1),
+                fig.add_subplot(1, 2, 2, projection=projection)]
+        else:
+            raise ValueError("Unexpected value of projection keyword argument")
+    else:
+        if not isinstance(axes, list) or len(axes) != 2:
+            raise ValueError("axes must be a list of two matplotlib axes instances")
+    fig.set_size_inches(8, 4)
 
     if not fig and not axes:
         if projection == '2d':
-            fig, axes = plt.subplots(1, 2, figsize=figsize)
+            fig, axes = plt.subplots(1, 2)
         elif projection == '3d':
-            fig = plt.figure(figsize=figsize)
+            fig = plt.figure()
             axes = [fig.add_subplot(1, 2, 1),
                     fig.add_subplot(1, 2, 2, projection='3d')]
         else:
@@ -1186,9 +1185,8 @@ def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
         rho = ket2dm(rho)
 
     plot_fock_distribution(rho, fig=fig, ax=axes[0])
-    plot_wigner(rho, fig=fig, ax=axes[1], figsize=figsize, cmap=cmap,
-                alpha_max=alpha_max, colorbar=colorbar, method=method,
-                projection=projection)
+    plot_wigner(rho, alpha_max=alpha_max, method=method, projection=projection,
+                 cmap=cmap, colorbar=colorbar, fig=fig, ax=axes[1])
 
     return fig, axes
 
@@ -1204,8 +1202,8 @@ def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
                                          method=method)
 
 
-def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
-                            fig=None, axes=None, figsize=(8, 4)):
+def plot_expectation_values(results, ylabels=None, title=None, *,
+                            fig=None, axes=None):
     """
     Visualize the results (expectation values) for an evolution solver.
     `results` is assumed to be an instance of Result, or a list of Result
@@ -1222,22 +1220,15 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
     title : string
         The title of the figure.
 
-    show_legend : bool
-        Whether or not to show the legend.
-
     fig : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
 
-    axes : a matplotlib axes instance
+    axes : (list of)  axes instances
         The axes context in which the plot will be drawn.
-
-    figsize : (width, height)
-        The size of the matplotlib figure (in inches) if it is to be created
-        (that is, if no 'fig' and 'ax' arguments are passed).
 
     Returns
     -------
-    fig, ax : tuple
+    fig, axes : tuple
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
     """
@@ -1246,11 +1237,20 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
 
     n_e_ops = max([len(result.expect) for result in results])
 
-    if not fig or not axes:
-        if not figsize:
-            figsize = (12, 3 * n_e_ops)
-        fig, axes = plt.subplots(n_e_ops, 1, sharex=True,
-                                 figsize=figsize, squeeze=False)
+    if fig is None:
+        if axes is None:
+            fig, axes = plt.subplots(n_e_ops, 1, sharex=True,
+                                    figsize=(12, 3 * n_e_ops), squeeze=False)
+        else:
+            raise ValueError('figure object is necessary')
+    else:
+        if axes is None:
+                axes = np.array([[fig.add_subplot(n_e_ops, 1, i+1)]
+                                 for i in range(n_e_ops)])
+        else:
+            if not isinstance(axes, list):
+                axes = [axes]
+            axes = np.array(axes)
 
     for r_idx, result in enumerate(results):
         for e_idx, e in enumerate(result.expect):
@@ -1262,16 +1262,14 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
 
     axes[n_e_ops - 1, 0].set_xlabel("time", fontsize=12)
     for n in range(n_e_ops):
-        if show_legend:
-            axes[n, 0].legend()
         if ylabels:
             axes[n, 0].set_ylabel(ylabels[n], fontsize=12)
 
-    return fig, axes
+    return fig, axes.tolist()
 
 
-def plot_spin_distribution(P, THETA, PHI,
-                           fig=None, ax=None, figsize=(8, 6), projection='2d'):
+def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
+                           cmap=None, colorbar=False, fig=None, ax=None):
     """
     Plots a spin distribution (given as meshgrid data).
 
@@ -1286,20 +1284,23 @@ def plot_spin_distribution(P, THETA, PHI,
     PHI : matrix
         Meshgrid matrix for the phi coordinate.
 
+    projection: string {'2d', '3d'}
+        Specify whether the spin distribution function is to be plotted as a 2D
+        projection where the surface of the unit sphere is mapped on
+        the unit disk ('2d') or surface plot ('3d').
+
+    cmap : a matplotlib cmap instance
+        The colormap.
+
+    colorbar : bool
+        Whether (True) or not (False) a colorbar should be attached to the
+        Wigner function graph.
+
     fig : a matplotlib figure instance
         The figure canvas on which the plot will be drawn.
 
     ax : a matplotlib axis instance
         The axis context in which the plot will be drawn.
-
-    figsize : (width, height)
-        The size of the matplotlib figure (in inches) if it is to be created
-        (that is, if no 'fig' and 'ax' arguments are passed).
-
-    projection: string {'2d', '3d'}
-        Specify whether the spin distribution function is to be plotted as a 2D
-        projection where the surface of the unit sphere is mapped on
-        the unit disk ('2d') or surface plot ('3d').
 
     Returns
     -------
@@ -1307,48 +1308,45 @@ def plot_spin_distribution(P, THETA, PHI,
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
     """
+
+    if projection in ('2d', '3d'):
+        fig, ax = _is_fig_and_ax(fig, ax, projection)
+    else:
+        raise ValueError('Unexpected value of projection keyword argument')
+
+    if P.min() < -1e12:
+        cmap = cm.RdBu
+        norm = mpl.colors.Normalize(-P.max(), P.max())
+    else:
+        cmap = cm.RdYlBu
+        norm = mpl.colors.Normalize(P.min(), P.max())
+
     if projection == '2d':
-        if not fig and not ax:
-            fig, ax = plt.subplots(1, 1, figsize=figsize)
         Y = (THETA - pi / 2) / (pi / 2)
         X = (pi - PHI) / pi * np.sqrt(cos(THETA - pi / 2))
-
-        if P.min() < -1e12:
-            cmap = cm.RdBu
-        else:
-            cmap = cm.RdYlBu
 
         ax.pcolor(X, Y, P.real, cmap=cmap)
         ax.set_xlabel(r'$\varphi$', fontsize=18)
         ax.set_ylabel(r'$\theta$', fontsize=18)
-
+        ax.axis('equal')
         ax.set_xticks([-1, 0, 1])
         ax.set_xticklabels([r'$0$', r'$\pi$', r'$2\pi$'], fontsize=18)
         ax.set_yticks([-1, 0, 1])
         ax.set_yticklabels([r'$\pi$', r'$\pi/2$', r'$0$'], fontsize=18)
-    elif projection == '3d':
-        if not fig and not ax:
-            fig = plt.figure(figsize=figsize)
-            ax = _axes3D(fig, azim=-35, elev=35)
+    else:
+        ax.view_init(azim=-35, elev=35)
+
         xx = sin(THETA) * cos(PHI)
         yy = sin(THETA) * sin(PHI)
         zz = cos(THETA)
 
-        if P.min() < -1e12:
-            cmap = cm.RdBu
-            norm = mpl.colors.Normalize(-P.max(), P.max())
-        else:
-            cmap = cm.RdYlBu
-            norm = mpl.colors.Normalize(P.min(), P.max())
-
         ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
                         facecolors=cmap(norm(P)), linewidth=0)
-
+    if colorbar:
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
         cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
         cb1.set_label('magnitude')
-    else:
-        raise ValueError('Unexpected value of projection keyword argument')
+
     return fig, ax
 
 
@@ -1643,9 +1641,8 @@ def _sequence_to_latex(seq, style='ket'):
     return latex.format("".join(map(str, seq)))
 
 
-def plot_qubism(ket, theme='light', how='pairs',
-                grid_iteration=1, legend_iteration=0,
-                fig=None, ax=None, figsize=(6, 6)):
+def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
+                legend_iteration=0, *, fig=None, ax=None):
     """
     Qubism plot for pure states of many qudits.  Works best for spin chains,
     especially with even number of particles of the same dimension.  Allows to
@@ -1683,10 +1680,6 @@ def plot_qubism(ket, theme='light', how='pairs',
     ax : a matplotlib axis instance
         The axis context in which the plot will be drawn.
 
-    figsize : (width, height)
-        The size of the matplotlib figure (in inches) if it is to be created
-        (that is, if no 'fig' and 'ax' arguments are passed).
-
     Returns
     -------
     fig, ax : tuple
@@ -1706,12 +1699,11 @@ def plot_qubism(ket, theme='light', how='pairs',
        (2012), open access.
     """
 
+    fig, ax = _is_fig_and_ax(fig, ax)
+
     if not isket(ket):
         raise Exception("Qubism works only for pure states, i.e. kets.")
         # add for dm? (perhaps a separate function, plot_qubism_dm)
-
-    if not fig and not ax:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     dim_list = ket.dims[0]
     n = len(dim_list)
@@ -1809,10 +1801,8 @@ def plot_qubism(ket, theme='light', how='pairs',
     return fig, ax
 
 
-def plot_schmidt(ket, splitting=None,
-                 labels_iteration=(3, 2),
-                 theme='light',
-                 fig=None, ax=None, figsize=(6, 6)):
+def plot_schmidt(ket, splitting=None, labels_iteration=(3, 2),
+                 theme='light', *, fig=None, ax=None):
     """
     Plotting scheme related to Schmidt decomposition.
     Converts a state into a matrix (A_ij -> A_i^j),
@@ -1843,10 +1833,6 @@ def plot_schmidt(ket, splitting=None,
     ax : a matplotlib axis instance
         The axis context in which the plot will be drawn.
 
-    figsize : (width, height)
-        The size of the matplotlib figure (in inches) if it is to be created
-        (that is, if no 'fig' and 'ax' arguments are passed).
-
     Returns
     -------
     fig, ax : tuple
@@ -1854,11 +1840,11 @@ def plot_schmidt(ket, splitting=None,
         the figure.
 
     """
+
+    fig, ax = _is_fig_and_ax(fig, ax)
+
     if not isket(ket):
         raise Exception("Schmidt plot works only for pure states, i.e. kets.")
-
-    if not fig and not ax:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     dim_list = ket.dims[0]
 
