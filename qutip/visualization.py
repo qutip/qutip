@@ -1171,16 +1171,6 @@ def plot_wigner_fock_distribution(rho, alpha_max=7.5, method='iterative',
             raise ValueError("axes must be a list of two matplotlib axes instances")
     fig.set_size_inches(8, 4)
 
-    if not fig and not axes:
-        if projection == '2d':
-            fig, axes = plt.subplots(1, 2)
-        elif projection == '3d':
-            fig = plt.figure()
-            axes = [fig.add_subplot(1, 2, 1),
-                    fig.add_subplot(1, 2, 2, projection='3d')]
-        else:
-            raise ValueError('Unexpected value of projection keyword argument')
-
     if isket(rho):
         rho = ket2dm(rho)
 
