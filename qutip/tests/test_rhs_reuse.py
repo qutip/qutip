@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_, assert_equal, run_module_suite
+from numpy.testing import assert_, assert_equal
 import qutip as qt
 from qutip.solver import config
 
@@ -47,6 +47,4 @@ def test_rhs_reuse():
 
     assert_(config.tdname == _temp_config_name)
 
-if __name__ == "__main__":
-    run_module_suite()
 """

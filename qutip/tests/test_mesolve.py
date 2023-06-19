@@ -1,7 +1,7 @@
 from functools import partial
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite, assert_allclose
+from numpy.testing import assert_, assert_allclose
 import pytest
 
 # disable the MC progress bar

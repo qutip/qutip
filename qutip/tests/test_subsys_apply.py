@@ -1,5 +1,5 @@
 from numpy.linalg import norm
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_
 
 from qutip.random_objects import rand_dm, rand_unitary, rand_kraus_map
 from qutip.subsystem_apply import subsystem_apply
@@ -135,7 +135,3 @@ class TestSubsysApply(object):
                 msg="ComplexSuper: efficient_diff_norm {} "
                     "is beyond tolerance {}".format(
                         efficient_diff_norm, tol))
-
-
-if __name__ == "__main__":
-    run_module_suite()

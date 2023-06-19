@@ -1,4 +1,4 @@
-from numpy.testing import assert_, run_module_suite, assert_allclose
+from numpy.testing import assert_, assert_allclose
 import numpy as np
 
 from qutip.qip.device.processor import Processor

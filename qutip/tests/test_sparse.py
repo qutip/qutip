@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import run_module_suite, assert_equal, assert_almost_equal
+from numpy.testing import assert_equal, assert_almost_equal
 import scipy.sparse as sp
 
 from qutip.random_objects import (rand_dm, rand_herm,
@@ -163,7 +163,7 @@ def test_sp_one_norm():
         nrm = sp_one_norm(H)
         ans = max(abs(H).sum(axis=0).flat)
         assert_almost_equal(nrm,ans)
-        
+
 def test_sp_inf_norm():
     "Sparse: inf-norm"
     for kk in range(10):
@@ -171,7 +171,3 @@ def test_sp_inf_norm():
         nrm = sp_inf_norm(H)
         ans = max(abs(H).sum(axis=1).flat)
         assert_almost_equal(nrm,ans)
-
-
-if __name__ == "__main__":
-    run_module_suite()

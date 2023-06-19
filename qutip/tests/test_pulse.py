@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_, run_module_suite, assert_allclose
+from numpy.testing import assert_,  assert_allclose
 
 from qutip.qobj import Qobj
 from qutip.qip.pulse import Pulse, Drift
@@ -142,7 +142,3 @@ def TestDrift():
     drift.add_drift(sigmaz(), targets=1)
     assert_allclose(
         drift.get_ideal_qobjevo(dims=[3, 2]).cte, tensor(identity(3), sigmaz()))
-
-
-if __name__ == "__main__":
-    run_module_suite()

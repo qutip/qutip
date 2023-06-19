@@ -344,7 +344,7 @@ def tensor_contract(qobj, *pairs):
     # We don't need to check for tensor idxs versus dims idxs here,
     # as column- versus row-stacking will never move an index for the
     # vectorized operator spaces all the way from the left to the right.
-    l_mtx_dims, r_mtx_dims = map(np.product, map(flatten, contracted_dims))
+    l_mtx_dims, r_mtx_dims = map(np.prod, map(flatten, contracted_dims))
 
     # Reshape back into a 2D matrix.
     qmtx = qtens.reshape((l_mtx_dims, r_mtx_dims))

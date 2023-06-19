@@ -3,7 +3,7 @@ import numpy as np
 import itertools
 from scipy.special import laguerre
 from numpy.random import rand
-from numpy.testing import assert_, run_module_suite, assert_equal, \
+from numpy.testing import assert_, assert_equal, \
     assert_almost_equal, assert_allclose
 
 import qutip
@@ -226,7 +226,7 @@ class TestHusimiQ:
         naive = np.empty(alphas.shape, dtype=np.float64)
         for i, alpha in enumerate(alphas.flat):
             coh = qutip.coherent(size, alpha, method='analytic').full()
-            naive.flat[i] = (coh.conj().T @ state_np @ coh).real
+            naive.flat[i] = (coh.conj().T @ state_np @ coh).real[0, 0]
         naive *= (0.5*g)**2 / np.pi
         np.testing.assert_allclose(naive, qutip.qfunc(state, xs, ys, g))
         np.testing.assert_allclose(naive, qutip.QFunc(xs, ys, g)(state))
@@ -691,6 +691,3 @@ def test_spin_wigner_overlap(spin, pure, n=5):
         W_overlap = np.trapz(
             np.trapz(W_state * W * np.sin(THETA), theta), phi).real
         assert_almost_equal(W_overlap, state_overlap, decimal=4)
-
-if __name__ == "__main__":
-    run_module_suite()

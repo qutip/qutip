@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import run_module_suite, assert_equal
+from numpy.testing import assert_equal
 import pytest
 
 from qutip import (
@@ -148,7 +148,3 @@ def test_MCSolverCase2():
     assert_equal(max(abs(sx - sx_analytic)) < 0.25, True)
     assert_equal(max(abs(sy - sy_analytic)) < 0.25, True)
     assert_equal(max(abs(sz - sz_analytic)) < 0.25, True)
-
-
-if __name__ == "__main__":
-    run_module_suite()

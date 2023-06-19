@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_
 
 from qutip.parallel import parfor, parallel_map, serial_map
 
@@ -57,6 +57,3 @@ def test_serial_map():
 
     y2 = serial_map(_func2, x, args, kwargs, num_cpus=2)
     assert_((np.array(y1) == np.array(y2)).all())
-
-if __name__ == "__main__":
-    run_module_suite()

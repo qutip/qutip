@@ -224,7 +224,7 @@ def kraus_to_super(kraus_list):
 
 
 def _nq(dims):
-    dim = np.product(dims[0][0])
+    dim = np.prod(dims[0][0])
     nq = int(log2(dim))
     if 2 ** nq != dim:
         raise ValueError("{} is not an integer power of 2.".format(dim))

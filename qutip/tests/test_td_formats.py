@@ -1,4 +1,4 @@
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_
 
 from qutip import rand_herm, qeye
 from qutip.rhs_generate import _td_format_check
@@ -55,7 +55,3 @@ def test_setTDFormatCheckMC():
     # check func H and func C_ops
     time_type, h_stuff, c_stuff = _td_format_check(f_H, [f_c_op], 'mc')
     # assert_(time_type==22)
-
-
-if __name__ == "__main__":
-    run_module_suite()

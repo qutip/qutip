@@ -3,7 +3,7 @@ Unit tests for QuTiP partial transpose functions.
 """
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_
 
 from qutip import Qobj, partial_transpose, tensor, rand_dm
 from qutip.partial_transpose import _partial_transpose_reference
@@ -72,7 +72,3 @@ def test_partial_transpose_randomized():
 
     rho_pt2 = partial_transpose(rho, mask, method="sparse")
     np.abs(np.max(rho_pt2.full() - rho_pt_ref.full())) < 1e-12
-
-
-if __name__ == "__main__":
-    run_module_suite()

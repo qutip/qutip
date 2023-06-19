@@ -1,6 +1,6 @@
 import scipy
 import numpy as np
-from numpy.testing import assert_equal, run_module_suite, assert_
+from numpy.testing import assert_equal, assert_
 import unittest
 
 from qutip import num, rand_herm, expect, rand_unitary
@@ -214,7 +214,3 @@ def test_BigDenseValsOnly():
     H = rand_herm(dimension, density=1e-2)
     spvals = H.eigenenergies()
     assert abs(H.tr() - spvals.sum()) < tol
-
-
-if __name__ == "__main__":
-    run_module_suite()
