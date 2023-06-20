@@ -4,7 +4,7 @@ from qutip import *
 import qutip.settings as settings
 import numpy as np
 from numpy.testing import (assert_equal, assert_, assert_almost_equal,
-                            run_module_suite, assert_allclose)
+                           assert_allclose)
 from functools import partial
 from types import FunctionType, BuiltinFunctionType
 from qutip.interpolate import Cubic_Spline

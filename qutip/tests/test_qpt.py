@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_
 import scipy.linalg as la
 
 from qutip import (spre, spost, qeye, sigmax, sigmay, sigmaz, qpt)
@@ -45,6 +45,3 @@ def test_qpt_cnot():
     chi2[13, 12] = chi2[12, 13] = -0.25
 
     assert_(la.norm(chi2 - chi1) < 1e-8)
-
-if __name__ == "__main__":
-    run_module_suite()

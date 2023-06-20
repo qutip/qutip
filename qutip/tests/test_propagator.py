@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_, assert_equal, run_module_suite
+from numpy.testing import assert_, assert_equal
 from qutip import *
 
 
@@ -140,7 +140,3 @@ def testPropHWithCopsParallel():
     rho_fs = [vector_to_operator(F * operator_to_vector(rho0)) for F in Fs]
     expected_rho_fs = mesolve(H, rho0, tlist, c_ops=c_ops).states
     assert rho_fs == expected_rho_fs
-
-
-if __name__ == "__main__":
-    run_module_suite()

@@ -1,6 +1,5 @@
 import numpy as np
-from numpy.testing import (run_module_suite, assert_,
-                        assert_equal, assert_almost_equal)
+from numpy.testing import (assert_, assert_equal, assert_almost_equal)
 import scipy.sparse as sp
 
 from qutip.fastsparse import fast_csr_matrix, fast_identity
@@ -321,7 +320,3 @@ def test_issue_1998():
     base = fast_csr_matrix((base.data, base.indices, base.indptr), base.shape)
     assert not zcsr_isherm(base, tol=tol)
     assert not zcsr_isherm(base.T, tol=tol)
-
-
-if __name__ == "__main__":
-    run_module_suite()

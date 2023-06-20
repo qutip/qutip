@@ -1,6 +1,6 @@
 import numpy as np
 
-from numpy.testing import assert_equal, assert_, run_module_suite
+from numpy.testing import assert_equal, assert_
 
 from qutip.qobj import Qobj
 from qutip.operators import identity, sigmax, sigmay
@@ -25,8 +25,8 @@ def test_tensor_contract_ident():
     assert_equal(correct_dims, tensor_contract(sqobj, (1, 4), (7, 10)).dims)
 
 def case_tensor_contract_other(left, right, pairs, expected_dims, expected_data=None):
-    dat = np.arange(np.product(left) * np.product(right)).reshape((np.product(left), np.product(right)))
-    
+    dat = np.arange(np.prod(left) * np.prod(right)).reshape((np.prod(left), np.prod(right)))
+
     qobj = Qobj(dat, dims=[left, right])
     cqobj = tensor_contract(qobj, *pairs)
 
@@ -93,7 +93,3 @@ def test_tensor_swap_other():
         # Swapping the inner indices on a superoperator should give a Choi matrix.
         J = to_choi(S)
         case_tensor_swap(S, [(1, 2)], [[[dim], [dim]], [[dim], [dim]]], J)
-
-
-if __name__ == "__main__":
-    run_module_suite()

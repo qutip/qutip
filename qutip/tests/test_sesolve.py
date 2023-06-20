@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_
 
 # disable the progress bar
 import os

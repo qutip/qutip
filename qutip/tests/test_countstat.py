@@ -35,9 +35,9 @@ def test_dqd_current():
         H = (eps/2 * sz + tc * sx)
         L = qutip.liouvillian(H, c_ops)
         rhoss = qutip.steadystate(L)
-        current[n], noise[n] = qutip.countstat_current_noise(L, [],
-                                                             rhoss=rhoss,
-                                                             J_ops=J_ops)
+        c_, n_ = qutip.countstat_current_noise(L, [], rhoss=rhoss, J_ops=J_ops)
+        current[n] = c_[0]
+        noise[n] = n_[0, 0, 0]
 
         current2 = qutip.countstat_current(L, rhoss=rhoss, J_ops=J_ops)
         assert abs(current[n] - current2) < 1e-8

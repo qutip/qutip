@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from numpy.testing import assert_,  run_module_suite
+from numpy.testing import assert_
 
 from qutip import (ssesolve, destroy, coherent, mesolve, fock, qeye,
                    parallel_map, photocurrent_sesolve, num)
