@@ -98,7 +98,7 @@ def _set_ticklabels(ax, ticklabels, ticks, axis):
             )
 
 
-def plot_wigner_sphere(fig, ax, wigner, reflections):
+def plot_wigner_sphere(wigner, reflections=True, *, cmap=None, colorbar=True, fig=None, ax=None):
     """Plots a coloured Bloch sphere.
 
     Parameters
@@ -116,6 +116,12 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
     -----
     Special thanks to Russell P Rundle for writing this function.
     """
+
+    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
+
+    if cmap is None:
+        cmap = _cmap()
+
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
@@ -130,7 +136,7 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
     wigner = np.real(wigner)
     wigner_max = np.real(np.amax(np.abs(wigner)))
 
-    wigner_c1 = cm.seismic_r((wigner + wigner_max) / (2 * wigner_max))
+    wigner_c1 = cmap((wigner + wigner_max) / (2 * wigner_max))
 
     # Plot coloured Bloch sphere:
     ax.plot_surface(x, y, z, facecolors=wigner_c1, vmin=-wigner_max,
@@ -138,11 +144,11 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
                     zorder=0.5, antialiased=None)
 
     if reflections:
-        wigner_c2 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
+        wigner_c2 = cmap((wigner[0:steps, 0:steps]+wigner_max) /
                                  (2*wigner_max))  # bottom
-        wigner_c3 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
+        wigner_c3 = cmap((wigner[0:steps, 0:steps]+wigner_max) /
                                  (2*wigner_max))  # side
-        wigner_c4 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
+        wigner_c4 = cmap((wigner[0:steps, 0:steps]+wigner_max) /
                                  (2*wigner_max))  # back
 
         # Plot bottom reflection:
@@ -167,11 +173,16 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
                         antialiased=False)
 
     # Create colourbar:
-    m = cm.ScalarMappable(cmap=cm.seismic_r)
-    m.set_array([-wigner_max, wigner_max])
-    plt.colorbar(m, shrink=0.5, aspect=10)
+    if colorbar:
+        m = cm.ScalarMappable(cmap=cmap)
+        m.set_array([-wigner_max, wigner_max])
+        plt.colorbar(m, shrink=0.5, aspect=10)
+    else:
+        norm = mpl.colors.Normalize(-wigner_max, wigner_max)
+        cax, kw = mpl.colorbar.make_axes(ax)
+        mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
-    plt.show()
+    return fig, ax
 
 
 # Adopted from the SciPy Cookbook.
@@ -561,7 +572,7 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     ax.set_zlim3d([min(z_min, 0), z_max])
 
 
-def matrix_histogram(M, xlabels=None, ylabels=None,
+def matrix_histogram(M, xlabels=None, ylabels=None, zlims=None,
                      colorbar=True, fig=None, ax=None, options=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
@@ -576,6 +587,9 @@ def matrix_histogram(M, xlabels=None, ylabels=None,
 
     ylabels : list of strings
         list of y labels
+
+    zlims : list/array with two float numbers
+        The z-axis limits [min, max] (optional)
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
@@ -694,11 +708,15 @@ def matrix_histogram(M, xlabels=None, ylabels=None,
     dx = dy = (1 - default_opts['bars_spacing']) * np.ones(n)
     dz = np.real(M.flatten())
 
-    z_min = min(dz)
-    z_max = max(dz)
-    if z_min == z_max:
-        z_min -= 0.1
-        z_max += 0.1
+    if isinstance(zlims, list) and len(zlims) == 2:
+        z_min = zlims[0]
+        z_max = zlims[1]
+    else:
+        z_min = min(dz)
+        z_max = max(dz)
+        if z_min == z_max:
+            z_min -= 0.1
+            z_max += 0.1
 
     if default_opts['cbar_to_z']:
         norm = mpl.colors.Normalize(min(dz), max(dz))
@@ -753,7 +771,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None,
     return fig, ax
 
 
-def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
+def matrix_histogram_complex(M, phase_limits=None, threshold=None, zlims=None, *,
                              xticklabels=None, yticklabels=None, cmap=None,
                              colorbar=True, fig=None, ax=None):
     """
@@ -772,6 +790,9 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
     threshold: float (None)
         Threshold for when bars of smaller height should be transparent. If
         not set, all bars are colored according to the color map.
+
+    zlims : list/array with two float numbers
+        The z-axis limits [min, max] (optional)
 
     xticklabels : list of strings
         list of x ticklabels
@@ -857,6 +878,12 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
     else:
         ax.tick_params(axis='y', which='both', left=False, labelleft=False)
 
+    # z axis
+    if isinstance(zlims, list):
+        ax.set_zlim3d(zlims)
+    else:
+        ax.set_zlim3d([0, 1])
+
     # color axis
     if colorbar:
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
@@ -869,7 +896,7 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, *,
     return fig, ax
 
 
-def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
+def plot_energy_levels(H_list, N=0, hamiltonians=None, energy_levels=None, *,
                        fig=None, ax=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
@@ -886,10 +913,10 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
         N : int
             The number of energy levels to plot
 
-        xticklabels : List of string
+        hamiltonians : List of string
             A list of xticklabels for each Hamiltonian
 
-        yticklabels : List of string
+        energy_levels : List of string
             A list of  yticklabels to the left of energy levels of the initial
             Hamiltonian.
 
@@ -949,17 +976,17 @@ def plot_energy_levels(H_list, N=0, *, xticklabels=None, yticklabels=None,
 
         evals0 = evals1
 
-    if yticklabels:
+    if energy_levels:
         yticks = np.unique(np.around(yticks, 1))
-        _set_ticklabels(ax, yticklabels, yticks, 'y')
+        _set_ticklabels(ax, energy_levels, yticks, 'y')
     else:
         # show eigenenergies
         yticks = np.unique(np.around(yticks, 1))
         ax.set_yticks(yticks)
 
-    if xticklabels:
+    if hamiltonians:
         ax.get_xaxis().tick_bottom()
-        _set_ticklabels(ax, xticklabels, xticks, 'x')
+        _set_ticklabels(ax, hamiltonians, xticks, 'x')
     else:
         # hide xtick
         ax.tick_params(axis='x', which='both',
@@ -1169,7 +1196,6 @@ def plot_wigner_fock_distribution(rho, alpha_max=7.5, method='iterative',
     else:
         if not isinstance(axes, list) or len(axes) != 2:
             raise ValueError("axes must be a list of two matplotlib axes instances")
-    fig.set_size_inches(8, 4)
 
     if isket(rho):
         rho = ket2dm(rho)
@@ -1342,119 +1368,14 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
 
 def plot_spin_distribution_2d(P, THETA, PHI,
                               fig=None, ax=None, figsize=(8, 8)):
-    """
-    Plot a spin distribution function (given as meshgrid data) with a 2D
-    projection where the surface of the unit sphere is mapped on the unit disk.
-
-    Parameters
-    ----------
-    P : matrix
-        Distribution values as a meshgrid matrix.
-
-    THETA : matrix
-        Meshgrid matrix for the theta coordinate.
-
-    PHI : matrix
-        Meshgrid matrix for the phi coordinate.
-
-    fig : a matplotlib figure instance
-        The figure canvas on which the plot will be drawn.
-
-    ax : a matplotlib axis instance
-        The axis context in which the plot will be drawn.
-
-    figsize : (width, height)
-        The size of the matplotlib figure (in inches) if it is to be created
-        (that is, if no 'fig' and 'ax' arguments are passed).
-
-    Returns
-    -------
-    fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce
-        the figure.
-    """
-
-    if not fig or not ax:
-        if not figsize:
-            figsize = (8, 8)
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-
-    Y = (THETA - pi / 2) / (pi / 2)
-    X = (pi - PHI) / pi * np.sqrt(cos(THETA - pi / 2))
-
-    if P.min() < -1e12:
-        cmap = cm.RdBu
-    else:
-        cmap = cm.RdYlBu
-
-    ax.pcolor(X, Y, P.real, cmap=cmap)
-    ax.set_xlabel(r'$\varphi$', fontsize=18)
-    ax.set_ylabel(r'$\theta$', fontsize=18)
-
-    ax.set_xticks([-1, 0, 1])
-    ax.set_xticklabels([r'$0$', r'$\pi$', r'$2\pi$'], fontsize=18)
-    ax.set_yticks([-1, 0, 1])
-    ax.set_yticklabels([r'$\pi$', r'$\pi/2$', r'$0$'], fontsize=18)
-
-    return fig, ax
+    warnings.warn("Deprecated: Use plot_spin_distribution")
+    return plot_spin_distribution(P, THETA, PHI, fig=fig, ax=ax)
 
 
 def plot_spin_distribution_3d(P, THETA, PHI,
                               fig=None, ax=None, figsize=(8, 6)):
-    """Plots a matrix of values on a sphere
-
-    Parameters
-    ----------
-    P : matrix
-        Distribution values as a meshgrid matrix.
-
-    THETA : matrix
-        Meshgrid matrix for the theta coordinate.
-
-    PHI : matrix
-        Meshgrid matrix for the phi coordinate.
-
-    fig : a matplotlib figure instance
-        The figure canvas on which the plot will be drawn.
-
-    ax : a matplotlib axis instance
-        The axis context in which the plot will be drawn.
-
-    figsize : (width, height)
-        The size of the matplotlib figure (in inches) if it is to be created
-        (that is, if no 'fig' and 'ax' arguments are passed).
-
-    Returns
-    -------
-    fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce
-        the figure.
-
-    """
-
-    if fig is None or ax is None:
-        fig = plt.figure(figsize=figsize)
-        ax = _axes3D(fig, azim=-35, elev=35)
-
-    xx = sin(THETA) * cos(PHI)
-    yy = sin(THETA) * sin(PHI)
-    zz = cos(THETA)
-
-    if P.min() < -1e12:
-        cmap = cm.RdBu
-        norm = mpl.colors.Normalize(-P.max(), P.max())
-    else:
-        cmap = cm.RdYlBu
-        norm = mpl.colors.Normalize(P.min(), P.max())
-
-    ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
-                    facecolors=cmap(norm(P)), linewidth=0)
-
-    cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
-    cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
-    cb1.set_label('magnitude')
-
-    return fig, ax
+    warnings.warn("Deprecated: Use plot_spin_distribution")
+    return plot_spin_distribution(P, THETA, PHI, projection='3d', fig=fig, ax=ax)
 
 
 #
