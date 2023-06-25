@@ -638,7 +638,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None, zlims=None
             Whether to set the color of maximum and minimum z-values to the
             maximum and minimum colors in the colorbar (True) or not (False).
 
-    Returns :
+    Returns
     -------
     fig, ax : tuple
         A tuple of the matplotlib figure and axes instances used to produce
