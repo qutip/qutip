@@ -1,13 +1,10 @@
 __all__ = ['mcsolve', "MCSolver"]
 
-import warnings
-
 import numpy as np
-from copy import copy
-from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, liouvillian
+from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .multitraj import MultiTrajSolver
-from .solver_base import Solver
-from .result import McResult, Result
+from .solver_base import Solver, Integrator
+from .result import McResult, McTrajectoryResult
 from .mesolve import mesolve, MESolver
 import qutip.core.data as _data
 from time import time
@@ -56,7 +53,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     options : None / dict
         Dictionary of options for the solver.
 
-        - store_final_state : bool [False]
+        - store_final_state : bool, [False]
           Whether or not to store the final state of the evolution in the
           result class.
         - store_states : bool, NoneType, [None]
@@ -69,7 +66,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
           if not installed. Empty string or False will disable the bar.
         - progress_kwargs : dict, [{"chunk_size": 10}]
           kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - method : str {"adams", "bdf", "dop853", "vern9", etc.} ["adams"]
+        - method : str {"adams", "bdf", "dop853", "vern9", etc.}, ["adams"]
           Which differential equation integration method to use.
         - keep_runs_results : bool, [False]
           Whether to store results from all trajectories or just store the
@@ -106,7 +103,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
 
             seeds=prev_result.seeds
 
-    target_tol : {float, tuple, list}, optional
+    target_tol : float, tuple, list, [optional]
         Target tolerance of the evolution. The evolution will compute
         trajectories until the error on the expectation values is lower than
         this tolerance. The maximum number of trajectories employed is
@@ -115,13 +112,13 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
 
-    timeout : float [optional]
+    timeout : float, [optional]
         Maximum time for the evolution in second. When reached, no more
-        trajectories will be computed. Overwrite the option of the same name.
+        trajectories will be computed.
 
     Returns
     -------
-    results : :class:`qutip.solver.Result`
+    results : :class:`qutip.solver.McResult`
         Object storing all results from the simulation. Which results is saved
         depends on the presence of ``e_ops`` and the options used. ``collapse``
         and ``photocurrent`` is available to Monte Carlo simulation results.
@@ -225,12 +222,12 @@ class MCIntegrator:
 
     def _prob_func(self, state):
         if self.issuper:
-            return _data.norm.trace(unstack_columns(state))
+            return _data.trace_oper_ket(state).real
         return _data.norm.l2(state)**2
 
     def _norm_func(self, state):
         if self.issuper:
-            return _data.norm.trace(unstack_columns(state))
+            return _data.trace_oper_ket(state).real
         return _data.norm.l2(state)
 
     def _find_collapse_time(self, norm_old, norm, t_prev, t_final):
@@ -339,17 +336,13 @@ class MCSolver(MultiTrajSolver):
         (see :class:`qutip.QobjEvo`'s documentation). They must be operators
         even if ``H`` is a superoperator.
 
-    options : SolverOptions, [optional]
+    options : dict, [optional]
         Options for the evolution.
-
-    seed : int, SeedSequence, list, [optional]
-        Seed for the random number generator. It can be a single seed used to
-        spawn seeds for each trajectory or a list of seed, one for each
-        trajectory. Seeds are saved in the result and can be reused with::
-            seeds=prev_result.seeds
     """
     name = "mcsolve"
     resultclass = McResult
+    trajectory_resultclass = McTrajectoryResult
+    mc_integrator_class = MCIntegrator
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -432,13 +425,7 @@ class MCSolver(MultiTrajSolver):
         # multiprocessing, but will fail with multithreading.
         # If a thread base parallel map is created, eahc trajectory should use
         # a copy of the integrator.
-        result = Result(e_ops, {**self.options, "normalize_output": False})
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator)
-        result.add(tlist[0], self._restore_state(state, copy=False))
-        for t in tlist[1:]:
-            t, state = self._integrator.integrate(t, copy=False)
-            result.add(t, self._restore_state(state, copy=False))
+        seed, result = super()._run_one_traj(seed, state, tlist, e_ops)
         result.collapse = self._integrator.collapses
         return seed, result
 
@@ -452,7 +439,7 @@ class MCSolver(MultiTrajSolver):
         else:
             raise ValueError("Integrator method not supported.")
         integrator_instance = integrator(self.rhs, self.options)
-        mc_integrator = MCIntegrator(
+        mc_integrator = self.mc_integrator_class(
             integrator_instance, self._c_ops, self._n_ops, self.options
         )
         self._init_integrator_time = time() - _time_start

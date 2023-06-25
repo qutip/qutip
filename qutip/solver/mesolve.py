@@ -170,7 +170,7 @@ class MESolver(SESolver):
         of Liouvillian superoperators. None is equivalent to an empty list.
 
     options : dict, optional
-        Options for the solver, see :obj:`SESolver.options` and
+        Options for the solver, see :obj:`MESolver.options` and
         `Integrator <./classes.html#classes-ode>`_ for a list of all options.
 
     attributes

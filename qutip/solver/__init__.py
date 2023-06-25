@@ -1,10 +1,11 @@
 from .result import *
 from .options import *
-import qutip.solver.integrator
+import qutip.solver.integrator as integrator
 from .integrator import IntegratorException
 from .sesolve import *
 from .mesolve import *
 from .mcsolve import *
+from .nm_mcsolve import *
 from .propagator import *
 from .scattering import *
 from .correlation import *
@@ -16,3 +17,5 @@ from .countstat import *
 from .brmesolve import *
 from .krylovsolve import *
 from .parallel import *
+import qutip.solver.sode as sode
+from .stochastic import *

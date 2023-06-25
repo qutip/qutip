@@ -230,8 +230,8 @@ import inspect as _inspect
 
 add = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=1),
     ]),
@@ -254,8 +254,8 @@ add.add_specialisations([
 
 sub = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='sub',
     module=__name__,

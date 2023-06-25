@@ -8,6 +8,10 @@ import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 
+# Deactivate warning for test without cython
+from qutip.core.coefficient import WARN_MISSING_MODULE
+WARN_MISSING_MODULE[0] = 0
+
 
 class TestIntegratorCte():
     _analytical_se = lambda _, t: np.cos(t * np.pi)

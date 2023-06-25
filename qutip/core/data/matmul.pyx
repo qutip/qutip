@@ -21,6 +21,7 @@ from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
 from qutip.core.data cimport csr, dense
 from qutip.core.data.add cimport iadd_dense, add_csr
+from qutip.core.data.dense import OrderEfficiencyWarning
 
 cnp.import_array()
 
@@ -196,7 +197,7 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right,
             "out matrix is {}-ordered".format('Fortran' if out.fortran else 'C')
             + " but input is {}-ordered".format('Fortran' if right.fortran else 'C')
         )
-        warnings.warn(msg, dense.OrderEfficiencyWarning)
+        warnings.warn(msg, OrderEfficiencyWarning)
         # Rather than making loads of copies of the same code, we just moan at
         # the user and then transpose one of the arrays.  We prefer to have
         # `right` in Fortran-order for cache efficiency.
@@ -397,8 +398,8 @@ import inspect as _inspect
 
 matmul = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=1),
     ]),
@@ -434,8 +435,8 @@ matmul.add_specialisations([
 
 multiply = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='multiply',
     module=__name__,
@@ -470,4 +471,4 @@ cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense
     elif type(left) is Dense:
         matmul_dense(left, right, scale, out)
     else:
-        iadd_dense(out, matmul(left, right), scale)
+        iadd_dense(out, matmul(left, right, dtype=Dense), scale)
