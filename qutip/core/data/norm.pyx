@@ -139,7 +139,7 @@ import inspect as _inspect
 
 l2 = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('vector', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('vector', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='l2',
     module=__name__,
@@ -158,7 +158,7 @@ l2.add_specialisations([
 ], _defer=True)
 
 _norm_signature = _inspect.Signature([
-    _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
 ])
 
 frobenius = _Dispatcher(_norm_signature, name='frobenius', module=__name__, inputs=('matrix',))
@@ -201,7 +201,7 @@ one.add_specialisations([
 
 trace = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     inputs=('matrix',),
     name='trace',

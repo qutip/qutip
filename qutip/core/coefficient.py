@@ -10,7 +10,6 @@ import glob
 import importlib
 import warnings
 import numbers
-from contextlib import contextmanager
 from collections import defaultdict
 from setuptools import setup, Extension
 try:
@@ -24,7 +23,7 @@ from .options import QutipOptions
 from .data import Data
 from .cy.coefficient import (
     Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
-    ConjCoefficient, NormCoefficient
+    ConjCoefficient, NormCoefficient, ConstantCoefficient
 )
 
 
@@ -53,7 +52,8 @@ coefficient_builders = {
 
 
 def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                order=3, compile_opt=None, function_style=None, **kwargs):
+                order=3, compile_opt=None, function_style=None,
+                boundary_conditions=None, **kwargs):
     """Build ``Coefficient`` for time dependent systems:
 
     ```
@@ -149,6 +149,9 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     compile_opt : CompilationOptions, optional
         Sets of options for the compilation of string based coefficients.
 
+    boundary_conditions: 2-tupule, str or None, optional
+        Specify boundary conditions for spline interpolation.
+
     **kwargs
         Extra arguments to pass the the coefficients.
     """
@@ -159,6 +162,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         'order': order,
         'compile_opt': compile_opt,
         'function_style': function_style,
+        'boundary_conditions': boundary_conditions
     })
 
     for type_ in coefficient_builders:
@@ -186,9 +190,18 @@ def conj(coeff):
     return ConjCoefficient(coeff)
 
 
+def const(value):
+    """ return a Coefficient with a constant value.
+    """
+    return ConstantCoefficient(value)
+
+
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%      Everything under this is for string compilation      %%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+WARN_MISSING_MODULE = [0]
+
+
 class CompilationOptions(QutipOptions):
     """
     Compilation options:
@@ -249,6 +262,7 @@ class CompilationOptions(QutipOptions):
         _use_cython = True
     except ImportError:
         _use_cython = False
+        WARN_MISSING_MODULE[0] = 1
 
     _options = {
         "use_cython": _use_cython,
@@ -359,6 +373,12 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None, **_):
     coeff = None
     # Do we compile?
     if not compile_opt['use_cython']:
+        if WARN_MISSING_MODULE[0]:
+            warnings.warn(
+                "Both `cython` and `filelock` are required for compilation of "
+                "string coefficents. Falling back on `eval`.")
+            # Only warns once.
+            WARN_MISSING_MODULE[0] = 0
         return StrFunctionCoefficient(base, args)
     # Parsing tries to make the code in common pattern
     parsed, variables, constants, raw = try_parse(base, args,
@@ -374,7 +394,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None, **_):
         # Previously compiled coefficient not available: create the cython code
         code = make_cy_code(parsed, variables, constants,
                             raw, compile_opt)
-        try :
+        try:
             coeff = compile_code(code, file_name, parsed, compile_opt)
         except PermissionError:
             pass
@@ -766,6 +786,6 @@ def test_parsed(code, variables, constants, args):
     loc_env = {"t": 0, 'self': DummySelf}
     try:
         exec(code, str_env, loc_env)
-    except Exception as e:
+    except Exception:
         return False
     return True

@@ -804,6 +804,26 @@ class TestTrace(UnaryOpMixin):
     ]
 
 
+class TestTrace_oper_ket(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        N = int(matrix.shape[0] ** 0.5)
+        return np.sum(np.diag(matrix.reshape((N, N))))
+
+    shapes = [
+        (pytest.param((100, 1), id="oper-ket"),),
+    ]
+    bad_shapes = [
+        (pytest.param((1, 100), id="bra"),),
+        (pytest.param((99, 1), id="ket"),),
+        (pytest.param((99, 99), id="ket"),),
+        (pytest.param((2, 99), id="nonsquare"),),
+    ]
+    specialisations = [
+        pytest.param(data.trace_oper_ket_csr, CSR, complex),
+        pytest.param(data.trace_oper_ket_dense, Dense, complex),
+    ]
+
+
 class TestPow(UnaryOpMixin):
     def op_numpy(self, matrix, n):
         return np.linalg.matrix_power(matrix, n)
@@ -929,4 +949,27 @@ class TestInv(UnaryOpMixin):
     specialisations = [
         pytest.param(_inv_csr, CSR, CSR),
         pytest.param(_inv_dense, Dense, Dense),
+    ]
+
+
+class TestZeros_like(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.zeros_like(matrix)
+
+    specialisations = [
+        pytest.param(data.zeros_like, CSR, CSR),
+        pytest.param(data.zeros_like, Dense, Dense),
+    ]
+
+
+class TestIdentity_like(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.eye(matrix.shape[0])
+
+    shapes = shapes_square()
+    bad_shapes = shapes_not_square()
+
+    specialisations = [
+        pytest.param(data.identity_like, CSR, CSR),
+        pytest.param(data.identity_like, Dense, Dense),
     ]

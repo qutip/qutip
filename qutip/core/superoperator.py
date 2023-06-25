@@ -311,7 +311,7 @@ def spost(A):
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
     data = _data.kron(A.data.transpose(),
-                      _data.identity(A.shape[0], dtype=type(A.data)))
+                      _data.identity_like(A.data))
     return Qobj(data,
                 dims=[A.dims, A.dims],
                 type='super',
@@ -336,7 +336,7 @@ def spre(A):
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
-    data = _data.kron(_data.identity(A.shape[0], dtype=type(A.data)), A.data)
+    data = _data.kron(_data.identity_like(A.data), A.data)
     return Qobj(data,
                 dims=[A.dims, A.dims],
                 type='super',

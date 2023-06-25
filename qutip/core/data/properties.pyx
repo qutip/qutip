@@ -227,7 +227,7 @@ import inspect as _inspect
 
 isherm = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=-1),
     ]),
@@ -255,12 +255,13 @@ isherm.__doc__ =\
         `qutip.settings.atol` is used instead.
     """
 isherm.add_specialisations([
+    (Dense, isherm_dense),
     (CSR, isherm_csr),
 ], _defer=True)
 
 isdiag = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='isdiag',
     module=__name__,
@@ -277,12 +278,13 @@ isdiag.__doc__ =\
         The matrix to test for diagonality.
     """
 isdiag.add_specialisations([
+    (Dense, isdiag_dense),
     (CSR, isdiag_csr),
 ], _defer=True)
 
 iszero = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=-1),
     ]),

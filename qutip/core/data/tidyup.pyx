@@ -63,7 +63,7 @@ import inspect as _inspect
 
 tidyup = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('inplace', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=True),
