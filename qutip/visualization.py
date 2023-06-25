@@ -47,9 +47,16 @@ except:
     pass
 
 
-def _cmap():
+def _sequential_cmap():
     if settings.colorblind_safe:
         return cm.cividis
+    else:
+        return cm.jet
+
+
+def _diverging_cmap():
+    if settings.colorblind_safe:
+        return cm.seismic
     else:
         return cm.RdBu
 
@@ -98,7 +105,7 @@ def _set_ticklabels(ax, ticklabels, ticks, axis):
             )
 
 
-def plot_wigner_sphere(wigner, reflections=True, *, cmap=None, colorbar=True, fig=None, ax=None):
+def plot_wigner_sphere(fig, ax, wigner, reflections):
     """Plots a coloured Bloch sphere.
 
     Parameters
@@ -116,12 +123,6 @@ def plot_wigner_sphere(wigner, reflections=True, *, cmap=None, colorbar=True, fi
     -----
     Special thanks to Russell P Rundle for writing this function.
     """
-
-    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
-
-    if cmap is None:
-        cmap = _cmap()
-
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
@@ -136,7 +137,7 @@ def plot_wigner_sphere(wigner, reflections=True, *, cmap=None, colorbar=True, fi
     wigner = np.real(wigner)
     wigner_max = np.real(np.amax(np.abs(wigner)))
 
-    wigner_c1 = cmap((wigner + wigner_max) / (2 * wigner_max))
+    wigner_c1 = cm.seismic_r((wigner + wigner_max) / (2 * wigner_max))
 
     # Plot coloured Bloch sphere:
     ax.plot_surface(x, y, z, facecolors=wigner_c1, vmin=-wigner_max,
@@ -144,11 +145,11 @@ def plot_wigner_sphere(wigner, reflections=True, *, cmap=None, colorbar=True, fi
                     zorder=0.5, antialiased=None)
 
     if reflections:
-        wigner_c2 = cmap((wigner[0:steps, 0:steps]+wigner_max) /
+        wigner_c2 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
                                  (2*wigner_max))  # bottom
-        wigner_c3 = cmap((wigner[0:steps, 0:steps]+wigner_max) /
+        wigner_c3 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
                                  (2*wigner_max))  # side
-        wigner_c4 = cmap((wigner[0:steps, 0:steps]+wigner_max) /
+        wigner_c4 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
                                  (2*wigner_max))  # back
 
         # Plot bottom reflection:
@@ -173,16 +174,11 @@ def plot_wigner_sphere(wigner, reflections=True, *, cmap=None, colorbar=True, fi
                         antialiased=False)
 
     # Create colourbar:
-    if colorbar:
-        m = cm.ScalarMappable(cmap=cmap)
-        m.set_array([-wigner_max, wigner_max])
-        plt.colorbar(m, shrink=0.5, aspect=10)
-    else:
-        norm = mpl.colors.Normalize(-wigner_max, wigner_max)
-        cax, kw = mpl.colorbar.make_axes(ax)
-        mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
+    m = cm.ScalarMappable(cmap=cm.seismic_r)
+    m.set_array([-wigner_max, wigner_max])
+    plt.colorbar(m, shrink=0.5, aspect=10)
 
-    return fig, ax
+    plt.show()
 
 
 # Adopted from the SciPy Cookbook.
@@ -243,6 +239,7 @@ def hinton(rho, color_style="scaled", label_top=True, *,
     ----------
     rho : qobj
         Input density matrix or superoperator.
+
         NOTE: Hinton plots of superoperators are
         currently only supported for qubits.
 
@@ -359,7 +356,7 @@ def hinton(rho, color_style="scaled", label_top=True, *,
 
     # Set color_fn here.
     if cmap is None:
-        cmap = _cmap()
+        cmap = _diverging_cmap()
     if color_style == "scaled":
         def color_fn(w):
             w = np.abs(w) * np.sign(np.real(w))
@@ -448,7 +445,7 @@ def sphereplot(theta, phi, values, *, cmap=None, colorbar=True, fig=None, ax=Non
     fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
 
     if cmap is None:
-        cmap = _cmap()
+        cmap = _sequential_cmap()
 
     thetam, phim = np.meshgrid(theta, phi)
     xx = sin(thetam) * cos(phim)
@@ -493,7 +490,7 @@ def _remove_margins(axis):
     axis._get_coord_info = _get_coord_info_new
 
 
-def _truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
     """
     truncates portion of a colormap and returns the new one
     """
@@ -508,7 +505,7 @@ def _truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
 
 def _stick_to_planes(stick, azim, ax, M, spacing):
     """adjusts xlim and ylim in way that bars will
-    Stick to xz and yz planes
+    stick to xz and yz planes
     """
     if stick is True:
         azim = azim % 360
@@ -572,8 +569,9 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     ax.set_zlim3d([min(z_min, 0), z_max])
 
 
-def matrix_histogram(M, xlabels=None, ylabels=None, zlims=None,
-                     colorbar=True, fig=None, ax=None, options=None):
+def matrix_histogram(M, zlims=None, bar_opts=None, *,
+                     xtickalbels=None, yticklabels=None, zticklables=None,
+                     cmap=None, colorbar=True, fig=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -582,52 +580,45 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zlims=None,
     M : Matrix of Qobj
         The matrix to visualize
 
-    xlabels : list of strings
+    xticklabels : list of strings
         list of x labels
 
-    ylabels : list of strings
+    yticklabels : list of strings
         list of y labels
+
+    zticklabels : list of numbers
+        A list of z-axis tick locations.
 
     zlims : list/array with two float numbers
         The z-axis limits [min, max] (optional)
 
-    ax : a matplotlib axes instance
-        The axes context in which the plot will be drawn.
+    cmap : string (default: 'jet')
+        The name of the color map to use.
 
     colorbar : bool (default: True)
         show colorbar
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
 
     options : dict
         A dictionary containing extra options for the plot.
         The names (keys) and values of the options are
         described below:
 
-        'zticks' : list of numbers
-            A list of z-axis tick locations.
-
-        'cmap' : string (default: 'jet')
-            The name of the color map to use.
-
-        'cmap_min' : float (default: 0.0)
-            The lower bound to truncate the color map at.
-            A value in range 0 - 1. The default, 0, leaves the lower
-            bound of the map unchanged.
-
-        'cmap_max' : float (default: 1.0)
-            The upper bound to truncate the color map at.
-            A value in range 0 - 1. The default, 1, leaves the upper
-            bound of the map unchanged.
-
-        'bars_spacing' : float (default: 0.1)
+        'spacing' : float (default: 0.1)
             spacing between bars.
 
-        'bars_alpha' : float (default: 1.)
+        'alpha' : float (default: 1.)
             transparency of bars, should be in range 0 - 1
 
-        'bars_lw' : float (default: 0.5)
+        'linewidth' : float (default: 0.5)
             linewidth of bars' edges.
 
-        'bars_edgecolor' : color (default: 'k')
+        'edgecolor' : color (default: 'k')
             The colors of the bars' edges.
             Examples: 'k', (0.1, 0.2, 0.5) or '#0f0f0f80'.
 
@@ -635,21 +626,12 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zlims=None,
             Whether to shade the dark sides of the bars (True) or not (False).
             The shading is relative to plot's source of light.
 
-        'azim' : float
-            The azimuthal viewing angle.
-
-        'elev' : float
-            The elevation viewing angle.
-
-        'proj_type' : string (default: 'ortho' if ax is not passed)
-            The type of projection ('ortho' or 'persp')
-
         'stick' : bool (default: False)
             Changes xlim and ylim in such a way that bars next to
             XZ and YZ planes will stick to those planes.
             This option has no effect if ``ax`` is passed as a parameter.
 
-        'cbar_pad' : float (default: 0.04)
+        'pad' : float (default: 0.04)
             The fraction of the original axes between the colorbar
             and the new image axes.
             (i.e. the padding between the 3D figure and the colorbar).
@@ -657,9 +639,6 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zlims=None,
         'cbar_to_z' : bool (default: False)
             Whether to set the color of maximum and minimum z-values to the
             maximum and minimum colors in the colorbar (True) or not (False).
-
-        'figsize' : tuple of two numbers
-            The size of the figure.
 
     Returns :
     -------
@@ -675,24 +654,22 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zlims=None,
     """
 
     # default options
-    default_opts = {'figsize': None, 'cmap': 'jet', 'cmap_min': 0.,
-                    'cmap_max': 1., 'zticks': None, 'bars_spacing': 0.2,
-                    'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
-                    'shade': False, 'azim': -35, 'elev': 35,
-                    'proj_type': 'ortho', 'stick': False,
-                    'cbar_pad': 0.04, 'cbar_to_z': False}
+    default_opts = {'spacing': 0.2,
+                    'alpha': 1., 'linewidth': 0.5, 'edgecolor': 'k',
+                    'shade': False, 'stick': False,
+                    'pad': 0.04, 'cbar_to_z': False}
 
     # update default_opts from input options
-    if options is None:
+    if bar_opts is None:
         pass
-    elif isinstance(options, dict):
+    elif isinstance(bar_opts, dict):
         # check if keys in options dict are valid
-        if set(options) - set(default_opts):
+        if set(bar_opts) - set(default_opts):
             raise ValueError("invalid key(s) found in options: "
-                             f"{', '.join(set(options) - set(default_opts))}")
+                             f"{', '.join(set(bar_opts) - set(default_opts))}")
         else:
             # updating default options
-            default_opts.update(options)
+            default_opts.update(bar_opts)
     else:
         raise ValueError("options must be a dictionary")
 
@@ -705,7 +682,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zlims=None,
     xpos = xpos.T.flatten() + 0.5
     ypos = ypos.T.flatten() + 0.5
     zpos = np.zeros(n)
-    dx = dy = (1 - default_opts['bars_spacing']) * np.ones(n)
+    dx = dy = (1 - default_opts['spacing']) * np.ones(n)
     dz = np.real(M.flatten())
 
     if isinstance(zlims, list) and len(zlims) == 2:
@@ -722,45 +699,42 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zlims=None,
         norm = mpl.colors.Normalize(min(dz), max(dz))
     else:
         norm = mpl.colors.Normalize(z_min, z_max)
-    cmap = _truncate_colormap(default_opts['cmap'],
-                              default_opts['cmap_min'],
-                              default_opts['cmap_max'])
+
+    if cmap is None:
+        cmap = _sequential_cmap()
+
     colors = cmap(norm(dz))
 
-    if ax is None:
-        fig = plt.figure(figsize=default_opts['figsize'])
-        ax = _axes3D(fig,
-                     azim=default_opts['azim'] % 360,
-                     elev=default_opts['elev'] % 360)
-        ax.set_proj_type(default_opts['proj_type'])
+    fig, ax = _is_fig_and_ax(fig, ax)
+    ax.view_init(azim=-35, elev=35)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors,
-             edgecolors=default_opts['bars_edgecolor'],
-             linewidths=default_opts['bars_lw'],
-             alpha=default_opts['bars_alpha'],
+             edgecolors=default_opts['edgecolor'],
+             linewidths=default_opts['linewidth'],
+             alpha=default_opts['alpha'],
              shade=default_opts['shade'])
     # remove vertical lines on xz and yz plane
     ax.yaxis._axinfo["grid"]['linewidth'] = 0
     ax.xaxis._axinfo["grid"]['linewidth'] = 0
 
     # x axis
-    _update_xaxis(default_opts['bars_spacing'], M, ax, xlabels)
+    _update_xaxis(default_opts['spacing'], M, ax, xtickalbels)
 
     # y axis
-    _update_yaxis(default_opts['bars_spacing'], M, ax, ylabels)
+    _update_yaxis(default_opts['spacing'], M, ax, yticklabels)
 
     # z axis
-    _update_zaxis(ax, z_min, z_max, default_opts['zticks'])
+    _update_zaxis(ax, z_min, z_max, zticklables)
 
     # stick to xz and yz plane
     _stick_to_planes(default_opts['stick'],
                      default_opts['azim'], ax, M,
-                     default_opts['bars_spacing'])
+                     default_opts['spacing'])
 
     # color axis
     if colorbar:
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.75,
-                                         pad=default_opts['cbar_pad'])
+                                         pad=default_opts['pad'])
         mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
     # removing margins
@@ -1110,7 +1084,7 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
     wlim = abs(W).max()
     norm = mpl.colors.Normalize(-wlim, wlim)
     if cmap is None:
-        cmap = _cmap()
+        cmap = _diverging_cmap()
 
     if projection == '2d':
         cf = ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)
@@ -1329,13 +1303,13 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         fig, ax = _is_fig_and_ax(fig, ax, projection)
     else:
         raise ValueError('Unexpected value of projection keyword argument')
-
-    if P.min() < -1e12:
-        cmap = cm.RdBu
-        norm = mpl.colors.Normalize(-P.max(), P.max())
-    else:
-        cmap = cm.RdYlBu
-        norm = mpl.colors.Normalize(P.min(), P.max())
+    if cmap is None:
+        if P.min() < -1e12:
+            cmap = _diverging_cmap()
+            norm = mpl.colors.Normalize(-P.max(), P.max())
+        else:
+            cmap = _sequential_cmap()
+            norm = mpl.colors.Normalize(P.min(), P.max())
 
     if projection == '2d':
         Y = (THETA - pi / 2) / (pi / 2)
@@ -1559,6 +1533,8 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
     especially with even number of particles of the same dimension.  Allows to
     see entanglement between first 2k particles and the rest.
 
+    NOTE: colorblind_safe does not apply because of its unique colormap
+
     Parameters
     ----------
     ket : Qobj
@@ -1720,6 +1696,8 @@ def plot_schmidt(ket, splitting=None, labels_iteration=(3, 2),
     where rows are first particles and columns - last.
 
     See also: plot_qubism with how='before_after' for a similar plot.
+
+    NOTE: colorblind_safe does not apply because of its unique colormap
 
     Parameters
     ----------
