@@ -569,7 +569,7 @@ def _update_zaxis(ax, z_min, z_max, zticks):
 
 
 def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None, zlims=None,
-                     bar_opts=None, *, cmap=None, colorbar=True, fig=None, ax=None):
+                     options=None, *, cmap=None, colorbar=True, fig=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -606,6 +606,12 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None, zlims=None
         A dictionary containing extra options for the plot.
         The names (keys) and values of the options are
         described below:
+
+        'azim' : float
+            The azimuthal viewing angle.
+
+        'elev' : float
+            The elevation viewing angle.
 
         'spacing' : float (default: 0.1)
             spacing between bars.
@@ -652,22 +658,22 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None, zlims=None
     """
 
     # default options
-    default_opts = {'spacing': 0.2,
+    default_opts = {'azim': -35, 'elev': 35, 'spacing': 0.2,
                     'alpha': 1., 'linewidth': 0.5, 'edgecolor': 'k',
                     'shade': False, 'stick': False,
                     'pad': 0.04, 'cbar_to_z': False}
 
     # update default_opts from input options
-    if bar_opts is None:
+    if options is None:
         pass
-    elif isinstance(bar_opts, dict):
+    elif isinstance(options, dict):
         # check if keys in options dict are valid
-        if set(bar_opts) - set(default_opts):
+        if set(options) - set(default_opts):
             raise ValueError("invalid key(s) found in options: "
-                             f"{', '.join(set(bar_opts) - set(default_opts))}")
+                             f"{', '.join(set(options) - set(default_opts))}")
         else:
             # updating default options
-            default_opts.update(bar_opts)
+            default_opts.update(options)
     else:
         raise ValueError("options must be a dictionary")
 
@@ -704,7 +710,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None, zlims=None
     colors = cmap(norm(dz))
 
     fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
-    ax.view_init(azim=-35, elev=35)
+    ax.view_init(azim=default_opts['azim'] % 360, elev=default_opts['elev'] % 360)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors,
              edgecolors=default_opts['edgecolor'],
