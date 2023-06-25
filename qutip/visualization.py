@@ -230,9 +230,8 @@ def _cb_labels(left_dims):
 
 
 # Adopted from the SciPy Cookbook.
-def hinton(rho, color_style="scaled", label_top=True, *,
-           xticklabels=None, yticklabels=None, cmap=None, colorbar=True,
-           fig=None, ax=None):
+def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
+           label_top=True, *, cmap=None, colorbar=True, fig=None, ax=None):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
@@ -242,6 +241,12 @@ def hinton(rho, color_style="scaled", label_top=True, *,
 
         NOTE: Hinton plots of superoperators are
         currently only supported for qubits.
+
+    x_basis : list of strings or False
+        list of x ticklabels to represent x basis of the input.
+
+    y_basis : list of strings or False
+        list of y ticklabels to represent y basis of the input.
 
     color_style : string
         Determines how colors are assigned to each square:
@@ -259,12 +264,6 @@ def hinton(rho, color_style="scaled", label_top=True, *,
     label_top : bool
         If True, x ticklabels will be placed on top, otherwise
         they will appear below the plot.
-
-    xticklabels : list of strings or False
-        list of x ticklabels
-
-    yticklabels : list of strings or False
-        list of y ticklabels
 
     cmap : a matplotlib colormap instance
         Color map to use when plotting.
@@ -317,12 +316,12 @@ def hinton(rho, color_style="scaled", label_top=True, *,
                 rho = vector_to_operator(rho.dag())
             W = rho.full()
             # Create default labels if none are given.
-            if xticklabels is None or yticklabels is None:
+            if x_basis is None or y_basis is None:
                 labels = _cb_labels(rho.dims[0])
-                if xticklabels is None:
-                    xticklabels = list(labels[0])
-                if yticklabels is None:
-                    yticklabels = list(labels[1])
+                if x_basis is None:
+                    x_basis = list(labels[0])
+                if y_basis is None:
+                    y_basis = list(labels[1])
 
         elif rho.issuper:
             if not isqubitdims(rho.dims):
@@ -334,12 +333,12 @@ def hinton(rho, color_style="scaled", label_top=True, *,
             nq = int(log2(sqobj.shape[0]) / 2)
             W = sqobj.full().T
             # Create default labels, too.
-            if (xticklabels is None) or (yticklabels is None):
+            if (x_basis is None) or (y_basis is None):
                 labels = list(map("".join, it.product("IXYZ", repeat=nq)))
-                if xticklabels is None:
-                    xticklabels = labels
-                if yticklabels is None:
-                    yticklabels = labels
+                if x_basis is None:
+                    x_basis = labels
+                if y_basis is None:
+                    y_basis = labels
 
         else:
             raise ValueError(
@@ -390,22 +389,22 @@ def hinton(rho, color_style="scaled", label_top=True, *,
         mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
     # axis
-    if not (xticklabels or yticklabels):
+    if not (x_basis or y_basis):
         ax.axis('off')
     ax.axis('equal')
     ax.set_frame_on(False)
 
     # x axis
     xticks = 0.5 + np.arange(width)
-    if xticklabels:
-        _set_ticklabels(ax, xticklabels, xticks, 'x')
+    if x_basis:
+        _set_ticklabels(ax, x_basis, xticks, 'x')
     if label_top:
         ax.xaxis.tick_top()
 
     # y axis
     yticks = 0.5 + np.arange(height)
-    if yticklabels:
-        _set_ticklabels(ax, list(reversed(yticklabels)), yticks, 'y')
+    if y_basis:
+        _set_ticklabels(ax, list(reversed(y_basis)), yticks, 'y')
 
     return fig, ax
 
@@ -569,9 +568,8 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     ax.set_zlim3d([min(z_min, 0), z_max])
 
 
-def matrix_histogram(M, zlims=None, bar_opts=None, *,
-                     xtickalbels=None, yticklabels=None, zticklables=None,
-                     cmap=None, colorbar=True, fig=None, ax=None):
+def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None, zlims=None,
+                     bar_opts=None, *, cmap=None, colorbar=True, fig=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -580,11 +578,11 @@ def matrix_histogram(M, zlims=None, bar_opts=None, *,
     M : Matrix of Qobj
         The matrix to visualize
 
-    xticklabels : list of strings
-        list of x labels
+    x_basis : list of strings or False
+        list of x ticklabels to represent x basis of the input.
 
-    yticklabels : list of strings
-        list of y labels
+    y_basis : list of strings or False
+        list of y ticklabels to represent y basis of the input.
 
     zticklabels : list of numbers
         A list of z-axis tick locations.
@@ -718,10 +716,10 @@ def matrix_histogram(M, zlims=None, bar_opts=None, *,
     ax.xaxis._axinfo["grid"]['linewidth'] = 0
 
     # x axis
-    _update_xaxis(default_opts['spacing'], M, ax, xtickalbels)
+    _update_xaxis(default_opts['spacing'], M, ax, x_basis)
 
     # y axis
-    _update_yaxis(default_opts['spacing'], M, ax, yticklabels)
+    _update_yaxis(default_opts['spacing'], M, ax, y_basis)
 
     # z axis
     _update_zaxis(ax, z_min, z_max, zticklables)
@@ -745,9 +743,8 @@ def matrix_histogram(M, zlims=None, bar_opts=None, *,
     return fig, ax
 
 
-def matrix_histogram_complex(M, phase_limits=None, threshold=None, zlims=None, *,
-                             xticklabels=None, yticklabels=None, cmap=None,
-                             colorbar=True, fig=None, ax=None):
+def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None, threshold=None,
+                             zlims=None, *, cmap=None, colorbar=True, fig=None, ax=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument
     of each element for coloring the bars, with the given x and y labels
@@ -758,6 +755,12 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, zlims=None, *
     M : Matrix of Qobj
         The matrix to visualize
 
+    x_basis : list of strings or False
+        list of x ticklabels to represent x basis of the input.
+
+    y_basis : list of strings or False
+        list of y ticklabels to represent y basis of the input.
+
     phase_limits : list/array with two float numbers
         The phase-axis (colorbar) limits [min, max] (optional)
 
@@ -767,12 +770,6 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, zlims=None, *
 
     zlims : list/array with two float numbers
         The z-axis limits [min, max] (optional)
-
-    xticklabels : list of strings
-        list of x ticklabels
-
-    yticklabels : list of strings
-        list of y ticklabels
 
     cmap : a matplotlib colormap instance
         Color map to use when plotting.
@@ -839,16 +836,16 @@ def matrix_histogram_complex(M, phase_limits=None, threshold=None, zlims=None, *
 
     # x axis
     xticks = -0.5 + np.arange(M.shape[0])
-    if xticklabels:
-        _set_ticklabels(ax, xticklabels, xticks, 'x')
+    if x_basis:
+        _set_ticklabels(ax, x_basis, xticks, 'x')
     else:
         ax.tick_params(axis='x', which='both',
                          bottom=False, labelbottom=False)
 
     # y axis
     yticks = -0.5 + np.arange(M.shape[1])
-    if yticklabels:
-        _set_ticklabels(ax, yticklabels, yticks, 'y')
+    if y_basis:
+        _set_ticklabels(ax, y_basis, yticks, 'y')
     else:
         ax.tick_params(axis='y', which='both', left=False, labelleft=False)
 
