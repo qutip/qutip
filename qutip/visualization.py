@@ -703,7 +703,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None, zlims=None
 
     colors = cmap(norm(dz))
 
-    fig, ax = _is_fig_and_ax(fig, ax)
+    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
     ax.view_init(azim=-35, elev=35)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors,
