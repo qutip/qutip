@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri May 26 14:27:34 2023
+Created on Mon Jun 19 17:51:41 2023
 
 @author: Fenton
 """
@@ -14,7 +14,7 @@ Created on Sun May 21 23:17:41 2023
 
 
 import matplotlib.pyplot as plt
-from qutip import flimesolve,Qobj,basis,destroy,correlation
+from qutip import flimesolve,mesolve,Qobj,basis,destroy,correlation
 import numpy as np
 # from qutip import *
 # from qutip.ui.progressbar import BaseProgressBar
@@ -31,7 +31,7 @@ Google says these have transition frequencies in the 1-10 GHz range.
 
 Choosing an intermediate value of 5.
 '''
-wres = 2*np.pi*280 #THz
+wres = 2*np.pi*50 #THz
 
 '''
 For loop used to create the range of powers for laser 2.
@@ -42,9 +42,10 @@ The way it's set up now, the Om_2 will be integers that go up to the value of po
 
 
 
-detuning_array = [0,1,2,3,4,5,6]
-for idz, periods in enumerate(detuning_array):
-    print('Working on Spectra number', idz, 'of',len(detuning_array))
+# detuning_array = np.linspace(-0.5,0.5,101)
+detuning_array = [0.0]
+for idz, detuning in enumerate(detuning_array):
+    print('Working on Spectra number', idz+1, 'of',len(detuning_array))
     ############## Experimentally adjustable parameters #####################
     #electric field definitions
     
@@ -56,20 +57,19 @@ for idz, periods in enumerate(detuning_array):
         resonant frequency. Since my dipole moment has magnitude 1, I define
         the coupling constant here, effectively.'
     '''
-    E1mag = wres*0.5
-   
+    a = 1
+    E1mag = wres*a/2   
     '''
     Defining the polarization that will dot with the dipole moment to form the
     Rabi Frequencies
     '''
-    E1pol = np.array([0, 1, 0]); 
+    E1pol = np.sqrt(1/2)*np.array([1, 1, 0]); 
    
     
     '''
     Total E field
     '''
     E1 = E1mag*E1pol
-   
    
     ############## Hamiltonian parameters ###################################
     '''
@@ -94,13 +94,13 @@ for idz, periods in enumerate(detuning_array):
         to form the Rabi Frequency and Rabi Frequency Tilde
     '''
     dmag = 1
-    d = dmag *  np.sqrt(1/2) * np.array([1, -1j, 0]) 
+    d = dmag *  np.sqrt(1/2) * np.array([1, 1, 0]) 
     
     Om1  = np.dot(d,        E1)
     Om1t = np.dot(d,np.conj(E1))
-    
    
-    wlas = wres+((-3+idz)*Om1)
+    wlas = wres+((detuning)*wres)
+   
    
     T = 2*np.pi/abs(wlas) # period of the Hamiltonian
     Hargs = {'l': (wlas)}                           #Characteristic frequency of the Hamiltonian is half the beating frequency of the Hamiltonian after the RWA. QuTiP needs it in Dictionary form.
@@ -130,18 +130,18 @@ for idz, periods in enumerate(detuning_array):
     tlist = np.linspace(0, time-dt, Nt)               #Combining everything to make tlist
      
                                                       #Taulist Definition
-    Ntau =  int((Nt)*2e+4)                                 #50 times the number of points of tlist
-    taume = (Ntau/Nt)*T                               #taulist goes over 50 periods of the system so that 50 periods can be simulated
-    dtau = taume/Ntau                                 #time spacing in taulist - same as tlist!
-    taulist = np.linspace(0, taume, 2)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
-   
-    # Ntau =  int((Nt)*2e+4)                                 #50 times the number of points of tlist
+    # Ntau =  int((Nt)*2e+5)                                 #50 times the number of points of tlist
     # taume = (Ntau/Nt)*T                               #taulist goes over 50 periods of the system so that 50 periods can be simulated
     # dtau = taume/Ntau                                 #time spacing in taulist - same as tlist!
-    # taulist = np.linspace(0, taume-dtau, Ntau)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
+    # taulist = np.linspace(0, taume, 2)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
+   
+    Ntau =  int((Nt)*2e+2)                                 #50 times the number of points of tlist
+    taume = (Ntau/Nt)*T                               #taulist goes over 50 periods of the system so that 50 periods can be simulated
+    dtau = taume/Ntau                                 #time spacing in taulist - same as tlist!
+    taulist = np.linspace(0, taume-dtau, Ntau)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
    
      
-    Ntau2 = (Nt)*2500                                #50 times the number of points of tlist
+    Ntau2 = (Nt)*1000                               #50 times the number of points of tlist
     taume2 = (Ntau2/Nt)*T                             #taulist goes over 50 periods of the system so that 50 periods can be simulated
     dtau2 = taume2/Ntau2                              #time spacing in taulist - same as tlist!
     taulist2 = np.linspace(0, taume2-dtau2, Ntau2)   
@@ -168,9 +168,9 @@ for idz, periods in enumerate(detuning_array):
                                 [ 0,1]])
     
     Hf1  = -(1/2)*np.array([[    0,Om1],
-                                [np.conj(Om1t),  0]])
+                                [0,  0]])
     
-    Hb1 = -(1/2)*np.array([[   0,Om1t],
+    Hb1 = -(1/2)*np.array([[   0,0],
                                 [np.conj(Om1),   0]])
     
   
@@ -210,15 +210,116 @@ for idz, periods in enumerate(detuning_array):
     '''
 
     
-    TimeEvolF1 = flimesolve(
+    # TimeEvolF = flimesolve(
+    #         Htot,
+    #         rho0,
+    #         taulist,
+    #         c_ops_and_rates = [[destroy(2),Gamma]],
+    #         T = T,
+    #         args = Hargs,
+    #         time_sense = 0,
+    #         quicksolve = True,
+    #         options={"normalize_output": False})
+    # rhossF = TimeEvolF.states[-1]
+    
+    TimeEvolM =  mesolve(
             Htot,
             rho0,
             taulist,
-            c_ops_and_rates = [[destroy(2),Gamma]],
-            T = T,
-            args = Hargs,
-            time_sense = 0,
-            quicksolve = True,
-            options={"normalize_output": False})
-    rhossF = TimeEvolF1.states[-1]
+            c_ops=[np.sqrt(Gamma)*destroy(2)],
+            options={"normalize_output": False},
+            args=Hargs,
+            )
+    rhossF = TimeEvolM.states[-1]
+ 
     
+    '''
+    Next step is to iterate this steady state rho_s forward in time. I'll choose the times
+    to be evenly spread out within T, the time scale of the Hamiltonian
+    
+    Also going through one time periods of the Hamiltonian so that I can graph the states
+    and make sure I'm in the limit cycle
+    '''
+
+    
+    # PeriodStatesF = flimesolve(
+    #         Htot,
+    #         rhossF,
+    #         taulist[-1]+tlist,
+    #         c_ops_and_rates = [[destroy(2),Gamma]],
+    #         T = T,
+    #         args = Hargs,
+    #         time_sense = 0,
+    #         quicksolve = True,
+    #         options={"normalize_output": False})
+    PeriodStatesF =  mesolve(
+            Htot,
+            rhossF,
+            taulist[-1]+tlist,
+            c_ops=[np.sqrt(Gamma)*destroy(2)],
+            options={"normalize_output": False},
+            args=Hargs,
+            )
+    rhossF = TimeEvolM.states[-1]
+
+    testg1 = np.zeros((len(tlist), len(taulist2)), dtype='complex_' ) 
+    for tdx in range(len(tlist)):
+        '''
+        Start here tomorrow. You need to write taulist into the _make_solver
+        arguments in Correlation, so that the FLiMESolver can construct
+        properly. Then, since I'm probably dropping the automatic timer averaging,
+        I'll need to use the for loop (for tdx in range(len(tlist)):) to calculate
+        all the different g1s and then average them.'
+        '''
+    
+        testg1[tdx] = correlation.correlation_2op_1t(Htot,
+                                                      PeriodStatesF.states[tdx],
+                                                      taulist = taulist[-1]+tlist[tdx]+taulist2,
+                                                      c_ops=[np.sqrt(Gamma)*destroy(2)],
+                                                      a_op = destroy(2).dag(),
+                                                      b_op = destroy(2),
+                                                      solver="me",
+                                                      reverse = True,
+                                                      args = Hargs)[0]
+    
+    g1avg = np.average(testg1,axis=0)
+    specF = np.fft.fft(g1avg,axis=0)
+    specF = np.fft.fftshift(specF)/len(g1avg)
+
+    ZF[idz,:] = specF
+    
+generalized_rabi = np.sqrt(abs(Om1)**2+(wres-wlas)**2)
+
+fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
+ax.semilogy( (omega_array+(wres/(2*np.pi))), ZF[-1], color = 'r' )
+ax.axvline(x=(-1*generalized_rabi/(2*np.pi)), color='k', linestyle = 'dashed')
+ax.axvline(x=(0*generalized_rabi/(2*np.pi)), color='g', linestyle = 'solid')
+ax.axvline(x=(1*generalized_rabi/(2*np.pi)), color='r', linestyle = 'dashed')
+ax.set_xlabel('Detuning [THz]')
+ax.set_ylabel("Amplitude") 
+ax.set_title(r'Heavily Driven 2LS at resonance with $E_{mag} = 0.5 \omega_{res}$' )
+ax.legend(['Mollow Triplet From Correlation Function'])
+
+
+# Plot on a colorplot
+fig, ax = plt.subplots(1,1)
+limits = [omega_array[0]+(wres/(4*np.pi)),\
+          omega_array[-1]+(wres/(4*np.pi)),\
+          detuning_array[0]*wres/(2*np.pi),\
+          detuning_array[-1]*wres/(2*np.pi)]
+pos = ax.imshow(ZF,cmap=plt.get_cmap(cm.bwr), aspect='auto', interpolation='nearest', origin='lower',
+            extent = limits,  norm=matplotlib.colors.LogNorm(), clim = [1e-6,1e-2]) 
+fig.colorbar(pos)
+ax.set_xlabel('$\omega_{laser}-\omega_{emission}$ [THz]')
+ax.set_ylabel('detuning (THz)') 
+
+ 
+# fstates = np.array([i.full() for i in TimeEvolF.states])
+# mstates = np.array([i.full() for i in TimeEvolM.states])
+# fig, ax = plt.subplots(2,1)                                                    #Plotting the results!
+# ax[0].plot(  taulist/T,np.sqrt(fstates[:,1,1]**2), color = 'black')
+# ax[0].plot(  taulist/T,np.sqrt(mstates[:,1,1]**2), color = 'blue')
+# ax[0].legend(['Floquet'])
+# ax[1].legend(['Direct Integration'])
+
+
