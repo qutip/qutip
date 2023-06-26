@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun May 21 23:17:41 2023
+Created on Mon Jun 19 18:22:52 2023
 
 @author: Fenton
 """
+
 
 
 import matplotlib.pyplot as plt
@@ -18,13 +19,7 @@ import matplotlib
 from IPython import get_ipython
 # get_ipython().run_line_magic('matplotlib', 'qt')
 
-'''
-Modelling on Josepheson junction QUbits, because I see no reason not to
-Google says these have transition frequencies in the 1-10 GHz range.
 
-Choosing an intermediate value of 5.
-'''
-wres = 2*np.pi*50 #THz
 
 '''
 For loop used to create the range of powers for laser 2.
@@ -36,12 +31,12 @@ The way it's set up now, the Om_2 will be integers that go up to the value of po
 
 
 # detuning_array = np.linspace(-0.5,0.5,101)
-detuning_array = [0.2]
+detuning_array = [0.0]
 for idz, detuning in enumerate(detuning_array):
     print('Working on Spectra number', idz+1, 'of',len(detuning_array))
     ############## Experimentally adjustable parameters #####################
     #electric field definitions
-    
+    Gamma = 2*2*np.pi    #in THz, roughly equivalent to 1 micro eV
     '''
     In THz so .01 is rather large
     
@@ -50,13 +45,12 @@ for idz, detuning in enumerate(detuning_array):
         resonant frequency. Since my dipole moment has magnitude 1, I define
         the coupling constant here, effectively.'
     '''
-    a = 1
-    E1mag = wres*a/2   
+    E1mag = Gamma/2 #2*np.pi*.05   
     '''
     Defining the polarization that will dot with the dipole moment to form the
     Rabi Frequencies
     '''
-    E1pol = np.sqrt(1/2)*np.array([1, 1, 0]); 
+    E1pol = 1 
    
     
     '''
@@ -87,13 +81,23 @@ for idz, detuning in enumerate(detuning_array):
         to form the Rabi Frequency and Rabi Frequency Tilde
     '''
     dmag = 1
-    d = dmag *  np.sqrt(1/2) * np.array([1, 1, 0]) 
+    d1 = 1 
+    d2 = 1
     
-    Om1  = np.dot(d,        E1)
-    Om1t = np.dot(d,np.conj(E1))
+    
+    
+    
+    
+    Om1  = np.dot(d1,        E1)
+    Om1t = np.dot(d1,np.conj(E1))
+    
+    Om2  = np.dot(d2,        E1)
+    Om2t = np.dot(d2,np.conj(E1))
    
-    wlas = wres+((detuning)*wres)
-   
+    wlas = 2*np.pi*280 #THz
+    wres1 = wlas+3*Gamma
+    wres2 = wlas-4*Gamma
+
    
     T = 2*np.pi/abs(wlas) # period of the Hamiltonian
     Hargs = {'l': (wlas)}                           #Characteristic frequency of the Hamiltonian is half the beating frequency of the Hamiltonian after the RWA. QuTiP needs it in Dictionary form.
@@ -104,8 +108,6 @@ for idz, detuning in enumerate(detuning_array):
     Another paper I've looked up seems to say that decay values of ~275 kHz
         are common. I think.
     '''
-    Gamma = wres*0.03   #in THz, roughly equivalent to 1 micro eV
-    spont_emis = np.sqrt(Gamma) * mat(0,1)           # Spontaneous emission operator   
     
 
       
@@ -117,7 +119,7 @@ for idz, detuning in enumerate(detuning_array):
     The third is for the tau values that are used to iterate the matrix forward after multiplying by the B operator
     '''
     
-    Nt = (2**4)                                       #Number of Points
+    Nt = (2**0)                                       #Number of Points
     time = T                                          #Length of time of tlist defined to be one period of the system
     dt = time/Nt                                      #Time point spacing in tlist
     tlist = np.linspace(0, time-dt, Nt)               #Combining everything to make tlist
@@ -128,13 +130,13 @@ for idz, detuning in enumerate(detuning_array):
     # dtau = taume/Ntau                                 #time spacing in taulist - same as tlist!
     # taulist = np.linspace(0, taume, 2)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
    
-    Ntau =  int((Nt)*2e+2)                                 #50 times the number of points of tlist
+    Ntau =  int((Nt)*1e+1)                                 #50 times the number of points of tlist
     taume = (Ntau/Nt)*T                               #taulist goes over 50 periods of the system so that 50 periods can be simulated
     dtau = taume/Ntau                                 #time spacing in taulist - same as tlist!
     taulist = np.linspace(0, taume-dtau, Ntau)        #Combining everything to make taulist, and I want taulist to end exactly at the beginning/end of a period to make some math easier on my end later
    
      
-    Ntau2 = (Nt)*1000                               #50 times the number of points of tlist
+    Ntau2 = (Nt)*1000                              #50 times the number of points of tlist
     taume2 = (Ntau2/Nt)*T                             #taulist goes over 50 periods of the system so that 50 periods can be simulated
     dtau2 = taume2/Ntau2                              #time spacing in taulist - same as tlist!
     taulist2 = np.linspace(0, taume2-dtau2, Ntau2)   
@@ -157,27 +159,51 @@ for idz, detuning in enumerate(detuning_array):
     '''
    
     
-    H_atom = (wres/2)*np.array([[-1,0],
-                                [ 0,1]])
+    H_atom = ((wres1-wlas)/2)*np.array([[-1,0,0,0],
+                                       [ 0,1,0,0],
+                                       [ 0,0,0,0],
+                                       [ 0,0,0,0]
+                                       ]) \
+            +((wres2-wlas)/2)*np.array([[0,0,0,0],
+                                        [ 0,0,0,0],
+                                        [ 0,0,-1,0],
+                                        [ 0,0,0,1]
+                                        ])
     
-    Hf1  = -(1/2)*np.array([[    0,Om1],
-                                [np.conj(Om1t),  0]])
+    Hf1  = -(1/2)*np.array([[0,Om1,0,0],
+                            [0,0,0,0],
+                            [0,0,0,0],
+                            [0,0,0,0],]) \
+            -(1/2)*np.array([[0,0,0,0],
+                             [0,0,0,0],
+                             [0,0,0,Om2],
+                             [0,0,0,0],])
     
-    Hb1 = -(1/2)*np.array([[   0,Om1t],
-                                [np.conj(Om1),   0]])
+    Hb1 = -(1/2)*np.array([[0,0,0,0],
+                           [np.conj(Om1),0,0,0],
+                           [0,0,0,0],
+                           [0,0,0,0]])\
+            -(1/2)*np.array([[0,0,0,0],
+                             [0,0,0,0],
+                             [0,0,0,0],
+                             [0,0,np.conj(Om2),0]])
     
   
-    
-    H0 =  Qobj(H_atom)                                  #Time independant Term
-    Hf1 =  Qobj(Hf1)                     #Forward Rotating Term
-    Hb1 =  Qobj(Hb1)                     #Backward Rotating Term
-  
-    Htot= [H0,                                        \
-        [Hf1,'exp(1j * l * t )'],                    \
-        [Hb1, 'exp(-1j * l * t )']]                                        #Full Hamiltonian in string format, a form acceptable to QuTiP
+    # Delta = wres-wlas
+    # H0 = (1/2)*Delta*(-mat(0,0)+mat(1,1))+(1/2)*(Om1*mat(0,1)+np.conj(Om1)*mat(1,0)) #Time independant
+    Htot = [Qobj(H_atom+Hf1+Hb1)]                                      
     
    
-    
+    lower_dot_1 = Qobj(np.sqrt(Gamma)*np.array([[0,1,0,0],
+                                 [0,0,0,0],
+                                 [0,0,0,0],
+                                 [0,0,0,0]
+                                 ]))
+    lower_dot_2 = Qobj(np.sqrt(Gamma)*np.array([[0,0,0,0],
+                                 [0,0,0,0],
+                                 [0,0,0,1],
+                                 [0,0,0,0]
+                                 ]))
     print('finished setting up the Hamiltonian')
 
     ############## Calculate the Emission Spectrum ###############################
@@ -187,7 +213,7 @@ for idz, detuning in enumerate(detuning_array):
     Doing the ground state cause why not
     '''
     
-    rho0 = basis(2,0)
+    rho0 = basis(4,1)+basis(4,3)
     
     '''
     Next step is to iterate it FAR forward in time, i.e. far greater than any timescale present in the Hamiltonian
@@ -203,27 +229,27 @@ for idz, detuning in enumerate(detuning_array):
     '''
 
     
-    TimeEvolF = flimesolve(
-            Htot,
-            rho0,
-            taulist,
-            c_ops_and_rates = [[destroy(2),Gamma]],
-            T = T,
-            args = Hargs,
-            time_sense = 0,
-            quicksolve = True,
-            options={"normalize_output": False})
-    rhossF = TimeEvolF.states[-1]
-    
-    # TimeEvolM =  mesolve(
+    # TimeEvolF = flimesolve(
     #         Htot,
     #         rho0,
     #         taulist,
-    #         c_ops=[np.sqrt(Gamma)*destroy(2)],
-    #         options={"normalize_output": False},
-    #         args=Hargs,
-    #         )
+    #         c_ops_and_rates = [[destroy(2),Gamma]],
+    #         T = T,
+    #         args = Hargs,
+    #         time_sense = 0,
+    #         quicksolve = True,
+    #         options={"normalize_output": False})
     # rhossF = TimeEvolF.states[-1]
+    
+    TimeEvolM =  mesolve(
+            Htot,
+            rho0,
+            taulist,
+            c_ops=[lower_dot_1+lower_dot_2],
+            options={"normalize_output": False},
+            args=Hargs,
+            )
+    rhossF = TimeEvolM.states[-1]
  
     
     '''
@@ -235,17 +261,25 @@ for idz, detuning in enumerate(detuning_array):
     '''
 
     
-    PeriodStatesF = flimesolve(
+    # PeriodStatesF = flimesolve(
+    #         Htot,
+    #         rhossF,
+    #         taulist[-1]+tlist,
+    #         c_ops_and_rates = [[destroy(2),Gamma]],
+    #         T = T,
+    #         args = Hargs,
+    #         time_sense = 0,
+    #         quicksolve = True,
+    #         options={"normalize_output": False})
+    PeriodStatesF =  mesolve(
             Htot,
             rhossF,
             taulist[-1]+tlist,
-            c_ops_and_rates = [[destroy(2),Gamma]],
-            T = T,
-            args = Hargs,
-            time_sense = 0,
-            quicksolve = True,
-            options={"normalize_output": False})
-    
+            c_ops=[lower_dot_1+lower_dot_2],
+            options={"normalize_output": False},
+            args=Hargs,
+            )
+    rhossF = TimeEvolM.states[-1]
 
     testg1 = np.zeros((len(tlist), len(taulist2)), dtype='complex_' ) 
     for tdx in range(len(tlist)):
@@ -260,12 +294,11 @@ for idz, detuning in enumerate(detuning_array):
         testg1[tdx] = correlation.correlation_2op_1t(Htot,
                                                       PeriodStatesF.states[tdx],
                                                       taulist = taulist[-1]+tlist[tdx]+taulist2,
-                                                      c_ops=[[mat(0,1),Gamma]],
-                                                      a_op = destroy(2).dag(),
-                                                      b_op = destroy(2),
-                                                      solver="fme",
+                                                      c_ops=[lower_dot_1+lower_dot_2],
+                                                      a_op = (lower_dot_1+lower_dot_2).dag(),
+                                                      b_op = lower_dot_1+lower_dot_2,
+                                                      solver="me",
                                                       reverse = True,
-                                                      options = {'T':T},
                                                       args = Hargs)[0]
     
     g1avg = np.average(testg1,axis=0)
@@ -274,30 +307,42 @@ for idz, detuning in enumerate(detuning_array):
 
     ZF[idz,:] = specF
     
-generalized_rabi = np.sqrt(abs(Om1)**2+(wres-wlas)**2)
+freqlims = [-10*Gamma/(2*np.pi),10*Gamma/(2*np.pi)]
+
+
+frequency_range = (omega_array)
+idx0 = np.where(abs(frequency_range-freqlims[0]) == np.amin(abs((frequency_range-freqlims[0] ))))[0][0]
+idxf = np.where(abs(frequency_range-freqlims[1]) == np.amin(abs((frequency_range-freqlims[1] ))))[0][0]
+
+plot_freq_range = frequency_range[idx0:idxf]
+ZF_truncated = np.stack(ZF[0][idx0:idxf])
+
 
 fig, ax = plt.subplots(1,1)                                                    #Plotting the results!
-ax.semilogy( (omega_array+(wres/(2*np.pi))), ZF[-1], color = 'r' )
-ax.axvline(x=(-1*generalized_rabi/(2*np.pi)), color='k', linestyle = 'dashed')
-ax.axvline(x=(0*generalized_rabi/(2*np.pi)), color='g', linestyle = 'solid')
-ax.axvline(x=(1*generalized_rabi/(2*np.pi)), color='r', linestyle = 'dashed')
-ax.set_xlabel('Detuning [THz]')
+ax.semilogy( (plot_freq_range/(Gamma/(2*np.pi)) ), ZF_truncated, color = 'r' )
+# ax.plot( (omega_array), ZF[-1], color = 'r' )
+
+ax.axvline(x=(-(wres1-wlas)/(Gamma)), color='r', linestyle = 'dashed')
+# ax.axvline(x=(0*generalized_rabi/(2*np.pi)), color='g', linestyle = 'solid')
+
+ax.axvline(x=(-(wres2-wlas)/(Gamma)), color='g', linestyle = 'dashed')
+ax.set_xlabel('Detuning [$\Gamma$]')
 ax.set_ylabel("Amplitude") 
-ax.set_title(r'Heavily Driven 2LS at resonance with $E_{mag} = 0.5 \omega_{res}$' )
-ax.legend(['Mollow Triplet From Correlation Function'])
+# ax.set_title(r'Heavily Driven 2LS at resonance with $E_{mag} = 0.5 \omega_{res}$' )
+ax.legend(['Emission','$QD_{1}$ resonance','$QD_{2}$ resonance'])
 
 
-# Plot on a colorplot
-fig, ax = plt.subplots(1,1)
-limits = [omega_array[0]+(wres/(4*np.pi)),\
-          omega_array[-1]+(wres/(4*np.pi)),\
-          detuning_array[0]*wres/(2*np.pi),\
-          detuning_array[-1]*wres/(2*np.pi)]
-pos = ax.imshow(ZF,cmap=plt.get_cmap(cm.bwr), aspect='auto', interpolation='nearest', origin='lower',
-            extent = limits,  norm=matplotlib.colors.LogNorm(), clim = [1e-6,1e-2]) 
-fig.colorbar(pos)
-ax.set_xlabel('$\omega_{laser}-\omega_{emission}$ [THz]')
-ax.set_ylabel('detuning (THz)') 
+# # Plot on a colorplot
+# fig, ax = plt.subplots(1,1)
+# limits = [omega_array[0]+(wres/(4*np.pi)),\
+#           omega_array[-1]+(wres/(4*np.pi)),\
+#           detuning_array[0]*wres/(2*np.pi),\
+#           detuning_array[-1]*wres/(2*np.pi)]
+# pos = ax.imshow(ZF,cmap=plt.get_cmap(cm.bwr), aspect='auto', interpolation='nearest', origin='lower',
+#             extent = limits,  norm=matplotlib.colors.LogNorm(), clim = [1e-6,1e-2]) 
+# fig.colorbar(pos)
+# ax.set_xlabel('$\omega_{laser}-\omega_{emission}$ [THz]')
+# ax.set_ylabel('detuning (THz)') 
 
  
 # fstates = np.array([i.full() for i in TimeEvolF.states])
