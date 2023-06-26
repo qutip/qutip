@@ -409,7 +409,8 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     return fig, ax
 
 
-def sphereplot(theta, phi, values, *, cmap=None, colorbar=True, fig=None, ax=None):
+def sphereplot(theta, phi, values, *,
+               cmap=None, colorbar=True, fig=None, ax=None):
     """Plots a matrix of values on a sphere
 
     Parameters
@@ -464,7 +465,7 @@ def sphereplot(theta, phi, values, *, cmap=None, colorbar=True, fig=None, ax=Non
         # pad shifts location of bar with repsect to the main plot
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
 
-        # create new colorbar in axes cax with cm jet and normalized to nrm like
+        # create new colorbar in axes cax with cmap and normalized to nrm like
         # our facecolors
         cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
         # add our colorbar label
@@ -568,8 +569,9 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     ax.set_zlim3d([min(z_min, 0), z_max])
 
 
-def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None, zlims=None,
-                     options=None, *, cmap=None, colorbar=True, fig=None, ax=None):
+def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None,
+                     zlims=None, options=None, *, cmap=None,
+                     colorbar=True, fig=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -710,7 +712,8 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None, zlims=None
     colors = cmap(norm(dz))
 
     fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
-    ax.view_init(azim=default_opts['azim'] % 360, elev=default_opts['elev'] % 360)
+    ax.view_init(azim=default_opts['azim'] % 360,
+                 elev=default_opts['elev'] % 360)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors,
              edgecolors=default_opts['edgecolor'],
@@ -749,8 +752,9 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None, zlims=None
     return fig, ax
 
 
-def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None, threshold=None,
-                             zlims=None, *, cmap=None, colorbar=True, fig=None, ax=None):
+def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
+                             threshold=None, zlims=None, *, cmap=None,
+                             colorbar=True, fig=None, ax=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument
     of each element for coloring the bars, with the given x and y labels
@@ -846,7 +850,7 @@ def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None, t
         _set_ticklabels(ax, x_basis, xticks, 'x')
     else:
         ax.tick_params(axis='x', which='both',
-                         bottom=False, labelbottom=False)
+                       bottom=False, labelbottom=False)
 
     # y axis
     yticks = -0.5 + np.arange(M.shape[1])
@@ -978,7 +982,8 @@ def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
     return plot_energy_levels(H_list, N=N, fig=fig, ax=ax)
 
 
-def plot_fock_distribution(rho, offset=0, unit_y_range=True, *, fig=None, ax=None):
+def plot_fock_distribution(rho, offset=0, unit_y_range=True, *,
+                           fig=None, ax=None):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1071,7 +1076,7 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
         the figure.
     """
 
-    if projection in ('2d','3d'):
+    if projection in ('2d', '3d'):
         fig, ax = _is_fig_and_ax(fig, ax, projection)
     else:
         raise ValueError('Unexpected value of projection keyword argument')
@@ -1167,19 +1172,21 @@ def plot_wigner_fock_distribution(rho, alpha_max=7.5, method='iterative',
                     fig.add_subplot(1, 2, 2)]
         elif projection == '3d':
             axes = [fig.add_subplot(1, 2, 1),
-                fig.add_subplot(1, 2, 2, projection=projection)]
+                    fig.add_subplot(1, 2, 2, projection=projection)]
         else:
             raise ValueError("Unexpected value of projection keyword argument")
     else:
         if not isinstance(axes, list) or len(axes) != 2:
-            raise ValueError("axes must be a list of two matplotlib axes instances")
+            raise ValueError(
+                "axes must be a list of two matplotlib axes instances"
+                )
 
     if isket(rho):
         rho = ket2dm(rho)
 
     plot_fock_distribution(rho, fig=fig, ax=axes[0])
     plot_wigner(rho, alpha_max=alpha_max, method=method, projection=projection,
-                 cmap=cmap, colorbar=colorbar, fig=fig, ax=axes[1])
+                cmap=cmap, colorbar=colorbar, fig=fig, ax=axes[1])
 
     return fig, axes
 
@@ -1233,13 +1240,13 @@ def plot_expectation_values(results, ylabels=None, title=None, *,
     if fig is None:
         if axes is None:
             fig, axes = plt.subplots(n_e_ops, 1, sharex=True,
-                                    figsize=(12, 3 * n_e_ops), squeeze=False)
+                                     figsize=(12, 3 * n_e_ops), squeeze=False)
         else:
             raise ValueError('figure object is necessary')
     else:
         if axes is None:
-                axes = np.array([[fig.add_subplot(n_e_ops, 1, i+1)]
-                                 for i in range(n_e_ops)])
+            axes = np.array([[fig.add_subplot(n_e_ops, 1, i+1)]
+                             for i in range(n_e_ops)])
         else:
             if not isinstance(axes, list):
                 axes = [axes]
@@ -1352,7 +1359,8 @@ def plot_spin_distribution_2d(P, THETA, PHI,
 def plot_spin_distribution_3d(P, THETA, PHI,
                               fig=None, ax=None, figsize=(8, 6)):
     warnings.warn("Deprecated: Use plot_spin_distribution")
-    return plot_spin_distribution(P, THETA, PHI, projection='3d', fig=fig, ax=ax)
+    return plot_spin_distribution(P, THETA, PHI, projection='3d',
+                                  fig=fig, ax=ax)
 
 
 #
