@@ -651,8 +651,9 @@ def _floquet_rate_matrix(floquet_basis,Nt,T,c_ops,c_op_rates,omega,time_sense=0)
         rate_products = np.einsum('lab,kcd->abcdlk',c_op_Fourier_amplitudes_list,np.conj(c_op_Fourier_amplitudes_list))
         rate_products_idx = np.argwhere(abs(rate_products) != 0)
         
+        args_key = list(omega.keys())[0]
         valid_indices= [tuple(indices) for indices in rate_products_idx if delta(*tuple(indices)) == 0
-                        or abs((rate_products[tuple(indices)]/(omega['l']*delta(*tuple(indices))))**(-1)) <= time_sense and abs(omega['l']*delta(*tuple(indices))) < Nt/2]
+                        or abs((rate_products[tuple(indices)]/(omega[args_key]*delta(*tuple(indices))))**(-1)) <= time_sense and abs(omega[args_key]*delta(*tuple(indices))) < Nt/2]
         
           
         delta_dict = {}
@@ -719,33 +720,37 @@ def flimesolve(
     
     rho0 / psi0 : :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
-    tlist : *list* / *array*
-        List/Array of times over one period of Hamiltonian evolution. This is used
-        to solve for the Rate matrix:math:`t`.
+        
     Taulist:*list* / *array*
-        List/Array of times over which the solution(s) is (are) desired.
-    
-    c_ops : list of :class:`qutip.Qobj`.
-        List of collapse operator matrices
-    
-    c_op_rates : list of floats
-        List of collapse operator rates, ordered as above
+        List of times for :math:`t`.
+
+    T : float
+        The period of the time-dependence of the hamiltonian.
+
+    c_ops_and_rates : list of :class:`qutip.Qobj`.
+        List of lists of [collapse operator,collapse operator rate] pairs
     
     e_ops : list of :class:`qutip.Qobj` / callback function
         List of operators for which to evaluate expectation values.
         The states are reverted to the lab basis before applying the
-    
-    T : float
-        The period of the time-dependence of the hamiltonian. The default value
-        'None' indicates that the 'tlist' spans a single period of the driving.
-    
+        
     args : *dictionary*
         Dictionary of parameters for time-dependent Hamiltonian
+        
+    time_sense : float
+        Experimental. Value of the secular approximation (in terms of system
+        frequency 2*np.pi/T) to use when constructing the rate matrix R(t). 
+        Default value of zero uses the fully time-independent/most strict
+        secular approximation.
     
-    T : time-dependance sensitivity
-        The value of time dependance to be taken in the secular approximation.
-            Ranges from 0 to...a number? Experimental for now until I figure it
-            out better.
+    quicksolve: Boolean
+        True to use the quicksolve method, which utilizes the most strict 
+        secular approximation to quickly solve the system dynamics with a 
+        matrix-exponential method instead of QuTiP internal IVP solvers. 
+        Automatically updates based on time_sense, with the default time_sense
+        value 0 using quicksolve, and any other time-sense value using the 
+        IVP solvers. Can be overridden if desired (e.g. for 
+                                                   debuggin/troubleshooting).
     
     options : None / dict
         Dictionary of options for the solver.
@@ -829,10 +834,9 @@ def flimesolve(
                          taulist=taulist,
                          Nt = Nt,
                          time_sense = time_sense,
-                         quicksolve = quicksolve,
                          options=options)
 
-    return solver.run(rho0, taulist,quicksolve=quicksolve, e_ops=e_ops,)
+    return solver.run(rho0, taulist, e_ops=e_ops,)
     
 class FloquetResult(Result):
     def _post_init(self, floquet_basis):
@@ -870,6 +874,7 @@ class FLiMESolver(MESolver):
     tlist : np.ndarray
         List of 2**n times distributed evenly over one period of the 
             Hamiltonian
+            
     taulist: np.ndarray
         List of number_of_periods*2**n times distributed evenly over the
             entire duration of Hamiltonian driving
@@ -877,11 +882,8 @@ class FLiMESolver(MESolver):
     Hargs : list
         The time dependence of the Hamiltonian
 
-   c_ops : list of :class:`qutip.Qobj`.
-       List of collapse operator matrices
-   
-   c_op_rates : list of floats
-       List of collapse operator rates, ordered as above
+   c_ops_and_rates : list of :class:`qutip.Qobj`.
+       List of lists of [collapse operator,collapse operator rate] pairs
    
     options : dict, optional
         Options for the solver, see :obj:`FMESolver.options` and
@@ -910,7 +912,6 @@ class FLiMESolver(MESolver):
         taulist = None,
         Nt = None,
         time_sense = 0,
-        quicksolve = False,
         options=None
     ):
         if isinstance(floquet_basis, FloquetBasis):
@@ -942,20 +943,19 @@ class FLiMESolver(MESolver):
             self.Nt = Nt
         elif Nt == None:
             if taulist is not None:
-                if taulist[1]-taulist[0] > self.floquet_basis.T:
+                if taulist[1]-taulist[0] >= self.floquet_basis.T:
                     self.Nt = 2**4 #Reasonable number of points to use to calculate Rdic if everything else fails
                 elif taulist[1]-taulist[0] < self.floquet_basis.T:
                     dt = taulist[1]-taulist[0]                                            #Finding dtau in taulist
-                    taulist_zeroed = taulist-taulist[0]                                     #shifting taulist to zero
-                    Nt_finder = abs(taulist_zeroed+dt-self.floquet_basis.T)                             #subtracting the period from taulist, such that Nt = where this is closest to zero
-                    self.Nt = list(np.where(                                                     #Number of points in one period of the Hamiltonian
+                    taulist_zeroed = taulist-taulist[0]                                   #shifting taulist to zero
+                    Nt_finder = abs(taulist_zeroed+dt-self.floquet_basis.T)               #subtracting the period from taulist, such that Nt = where this is closest to zero
+                    self.Nt = list(np.where(                                              #Number of points in one period of the Hamiltonian
                                 Nt_finder == np.amin(Nt_finder))
                                 )[0][0]+1
                 
             else:
                 self.Nt = 2**4 #Reasonable number of points to use to calculate Rdic if everything else fails
-                # print('how did you get here?')
-       
+        self.time_sense = time_sense
         RateDic =  _floquet_rate_matrix(
              floquet_basis,
              self.Nt,
@@ -972,13 +972,10 @@ class FLiMESolver(MESolver):
         for idx,key in enumerate(RateDic.keys()):
             if key != 0.0:
                 self.Rt_timedep_pairs.append(list([Rate_Qobj_list[idx],'exp(1j*'+str(key*list(Hargs.values())[0])+'*t)']))
-            
-        
-        
-        self.Rt_timedep_pairs = [list([Rate_Qobj_list[idx],'exp(1j*'+str(list(RateDic.keys())[idx]*list(Hargs.values())[0])+'*t)']) for idx in range(0,len(Rate_Qobj_list))]
-        # self.Rt_timedep_pairs = [list([Rate_Qobj_list[idx],'exp(1j*'+str((list(RateDic.keys())[idx]+1)*list(Hargs.values())[0])+'*t)']) for idx in range(1,len(Rate_Qobj_list))]
 
-        if quicksolve == True:
+        self.Rt_timedep_pairs = [list([Rate_Qobj_list[idx],'exp(1j*'+str(list(RateDic.keys())[idx]*list(Hargs.values())[0])+'*t)']) for idx in range(0,len(Rate_Qobj_list))]
+
+        if time_sense == 0:
             self.R0_evals,self.R0_evecs = scipy.linalg.eig(self.R0.full())
 
         else:
@@ -1053,7 +1050,7 @@ class FLiMESolver(MESolver):
             state = state.copy()
         return state
 
-    def run(self, state00,taulist, *,quicksolve=False, floquet=False, args=None,e_ops=None,):
+    def run(self, state00,taulist, *, floquet=False, args=None,e_ops=None,):
         """
         Calculate the evolution of the quantum system.
 
@@ -1104,7 +1101,7 @@ class FLiMESolver(MESolver):
         taulist_test_new[taulist_correction] = 0
 
         def list_duplicates(seq):
-            tally = {}#defaultdict(list)
+            tally = {}
             for i,item in enumerate(taulist_test_new):
                 try:
                     tally[item].append(i)
@@ -1122,36 +1119,9 @@ class FLiMESolver(MESolver):
         quasi_e_table = np.exp(np.einsum('i,k -> ki',-1j*self.floquet_basis.e_quasi,taulist) )
         fstates_table = np.einsum('ijk,ij->ikj',tiled_modes, quasi_e_table  )    
         
-        if quicksolve == False:
-            stats = {
-                "method": 'FLiME',
-                "preparation time": 0.0,
-                "run time": 0.0
-            }
-            _time_start = time()
-            _data0 = self._prepare_state(state0)
-            
-            self._integrator.set_state(taulist[0], _data0)
-            stats = self._initialize_stats()
-            results = self.resultclass(
-                e_ops,
-                self.options,
-                solver=self.name,
-                stats=stats,
-                floquet_basis=self.floquet_basis,
-            )
-            stats["preparation time"] += time() - _time_start
-           
-            sols = [self._restore_state(_data0, copy=False).full()]
-            progress_bar = progess_bars[self.options["progress_bar"]]()
-            progress_bar.start(len(taulist) - 1, **self.options["progress_kwargs"])
-            for t, state in self._integrator.run(taulist):
-                progress_bar.update()
-                sols.append(self._restore_state(state, copy=False).full())
-            progress_bar.finished()
-    
-            sols = np.array(sols)
-        else:  
+       
+        
+        if self.time_sense == 0:
             stats = {
                 "method": 'FLiME_quicksolve',
                 "preparation time": 0.0,
@@ -1183,14 +1153,52 @@ class FLiMESolver(MESolver):
             
             sols = np.reshape(np.einsum('...jk,kz->...jz',sol_coeffs[:len(taulist)], state0.full()),[len(taulist),dims[0],dims[0]],order='F')
             
+        else:
+            stats = {
+                "method": 'FLiME',
+                "preparation time": 0.0,
+                "run time": 0.0
+            }
+            _time_start = time()
+            _data0 = self._prepare_state(state0)
+            
+            self._integrator.set_state(taulist[0], _data0)
+            stats = self._initialize_stats()
+            results = self.resultclass(
+                e_ops,
+                self.options,
+                solver=self.name,
+                stats=stats,
+                floquet_basis=self.floquet_basis,
+            )
+            stats["preparation time"] += time() - _time_start
+           
+            sols = [self._restore_state(_data0, copy=False).full()]
+            progress_bar = progess_bars[self.options["progress_bar"]]()
+            progress_bar.start(len(taulist) - 1, **self.options["progress_kwargs"])
+            for t, state in self._integrator.run(taulist):
+                progress_bar.update()
+                sols.append(self._restore_state(state, copy=False).full())
+            progress_bar.finished()
+    
+            sols = np.array(sols)
+
+            
         sols_comp_arr = fstates_table @ sols @ np.transpose(fstates_table.conj(),axes=(0,2,1))
-        sols_comp = [Qobj(_data.Dense(state),dims=[[2], [2]], type="oper", copy=False) for state in sols_comp_arr] 
+        sols_comp = [Qobj(_data.Dense(state),dims=[[dims[0]], [dims[0]]], type="oper", copy=False) for state in sols_comp_arr] 
         results.times = taulist
         results.states = sols_comp
+        
+        if self.options["store_floquet_states"]:
+            results.floquet_states = [Qobj(_data.Dense(state)) for state in fstates_table] 
         if results.e_ops:
             for key in results.e_ops.keys():
-                expects = np.trace(sols_comp_arr @ results.e_ops[key].op(0).full(),axis1=1,axis2=2)
-                results.e_ops[key]._append(expects)
+                try:
+                    expects = np.trace(sols_comp_arr @ results.e_ops[key].op(0).full(),axis1=1,axis2=2)
+                    results.e_ops[key]._append(expects)
+                except TypeError:
+                    expects = np.trace(sols_comp_arr @ results.e_ops[key].op.full(),axis1=1,axis2=2)
+                    results.e_ops[key]._append(expects)
         stats["run time"] = time()-_time_start
         
         return results
