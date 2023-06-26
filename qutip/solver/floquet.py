@@ -808,11 +808,7 @@ def flimesolve(
             options=options,
         )
     
-    # if isinstance(c_ops, Qobj):
-    #     c_ops = [c_ops]
-    # if isinstance(c_op_rates,float):
-    #     c_op_rates = [c_op_rates]
-    
+
     '''
     Adding the requirement that tlist is a power of two. If it's not, the 
         code will just bring it to the nearest power of two
