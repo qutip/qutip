@@ -971,7 +971,7 @@ def plot_energy_levels(H_list, N=0, hamiltonians=None, energy_levels=None, *,
     else:
         # hide xtick
         ax.tick_params(axis='x', which='both',
-                         bottom=False, labelbottom=False)
+                       bottom=False, labelbottom=False)
 
     return fig, ax
 
