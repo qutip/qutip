@@ -490,6 +490,19 @@ def _remove_margins(axis):
     axis._get_coord_info = _get_coord_info_new
 
 
+def _truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+    """
+    truncates portion of a colormap and returns the new one
+    """
+    if isinstance(cmap, str):
+        cmap = plt.get_cmap(cmap)
+    new_cmap = mpl.colors.LinearSegmentedColormap.from_list(
+        'trunc({n},{a:.2f},{b:.2f})'.format(
+            n=cmap.name, a=minval, b=maxval),
+        cmap(np.linspace(minval, maxval, n)))
+    return new_cmap
+
+
 def _stick_to_planes(stick, azim, ax, M, spacing):
     """adjusts xlim and ylim in way that bars will
     stick to xz and yz planes
