@@ -312,7 +312,7 @@ let's visualize of the Jaynes-Cummings Hamiltonian:
     for inds in tomography._index_permutations([len(lbls) for lbls in lbls_list]):
        xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))
 
-    fig, ax = matrix_histogram(H, xlabels, xlabels, zlims=[-4,4])
+    fig, ax = matrix_histogram(H, xlabels, xlabels, limits=[-4,4])
 
     ax.view_init(azim=-55, elev=45)
 

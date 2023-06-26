@@ -490,19 +490,6 @@ def _remove_margins(axis):
     axis._get_coord_info = _get_coord_info_new
 
 
-def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
-    """
-    truncates portion of a colormap and returns the new one
-    """
-    if isinstance(cmap, str):
-        cmap = plt.get_cmap(cmap)
-    new_cmap = mpl.colors.LinearSegmentedColormap.from_list(
-        'trunc({n},{a:.2f},{b:.2f})'.format(
-            n=cmap.name, a=minval, b=maxval),
-        cmap(np.linspace(minval, maxval, n)))
-    return new_cmap
-
-
 def _stick_to_planes(stick, azim, ax, M, spacing):
     """adjusts xlim and ylim in way that bars will
     stick to xz and yz planes
@@ -569,9 +556,8 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     ax.set_zlim3d([min(z_min, 0), z_max])
 
 
-def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None,
-                     zlims=None, options=None, *, cmap=None,
-                     colorbar=True, fig=None, ax=None):
+def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
+                     colorbar=True, fig=None, ax=None, options=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -580,51 +566,55 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None,
     M : Matrix of Qobj
         The matrix to visualize
 
-    x_basis : list of strings or False
-        list of x ticklabels to represent x basis of the input.
+    xlabels : list of strings
+        list of x labels
 
-    y_basis : list of strings or False
-        list of y ticklabels to represent y basis of the input.
+    ylabels : list of strings
+        list of y labels
 
-    zticklabels : list of numbers
-        A list of z-axis tick locations.
+    title : string
+        title of the plot (optional)
 
-    zlims : list/array with two float numbers
+    limits : list/array with two float numbers
         The z-axis limits [min, max] (optional)
-
-    cmap : string (default: 'jet')
-        The name of the color map to use.
-
-    colorbar : bool (default: True)
-        show colorbar
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
 
-    fig : a matplotlib Figure instance
-        The Figure canvas in which the plot will be drawn.
+    colorbar : bool (default: True)
+        show colorbar
 
     options : dict
         A dictionary containing extra options for the plot.
         The names (keys) and values of the options are
         described below:
 
-        'azim' : float
-            The azimuthal viewing angle.
+        'zticks' : list of numbers
+            A list of z-axis tick locations.
 
-        'elev' : float
-            The elevation viewing angle.
+        'cmap' : string (default: 'jet')
+            The name of the color map to use.
 
-        'spacing' : float (default: 0.1)
+        'cmap_min' : float (default: 0.0)
+            The lower bound to truncate the color map at.
+            A value in range 0 - 1. The default, 0, leaves the lower
+            bound of the map unchanged.
+
+        'cmap_max' : float (default: 1.0)
+            The upper bound to truncate the color map at.
+            A value in range 0 - 1. The default, 1, leaves the upper
+            bound of the map unchanged.
+
+        'bars_spacing' : float (default: 0.1)
             spacing between bars.
 
-        'alpha' : float (default: 1.)
+        'bars_alpha' : float (default: 1.)
             transparency of bars, should be in range 0 - 1
 
-        'linewidth' : float (default: 0.5)
+        'bars_lw' : float (default: 0.5)
             linewidth of bars' edges.
 
-        'edgecolor' : color (default: 'k')
+        'bars_edgecolor' : color (default: 'k')
             The colors of the bars' edges.
             Examples: 'k', (0.1, 0.2, 0.5) or '#0f0f0f80'.
 
@@ -632,12 +622,21 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None,
             Whether to shade the dark sides of the bars (True) or not (False).
             The shading is relative to plot's source of light.
 
+        'azim' : float
+            The azimuthal viewing angle.
+
+        'elev' : float
+            The elevation viewing angle.
+
+        'proj_type' : string (default: 'ortho' if ax is not passed)
+            The type of projection ('ortho' or 'persp')
+
         'stick' : bool (default: False)
             Changes xlim and ylim in such a way that bars next to
             XZ and YZ planes will stick to those planes.
             This option has no effect if ``ax`` is passed as a parameter.
 
-        'pad' : float (default: 0.04)
+        'cbar_pad' : float (default: 0.04)
             The fraction of the original axes between the colorbar
             and the new image axes.
             (i.e. the padding between the 3D figure and the colorbar).
@@ -645,6 +644,9 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None,
         'cbar_to_z' : bool (default: False)
             Whether to set the color of maximum and minimum z-values to the
             maximum and minimum colors in the colorbar (True) or not (False).
+
+        'figsize' : tuple of two numbers
+            The size of the figure.
 
     Returns
     -------
@@ -660,10 +662,12 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None,
     """
 
     # default options
-    default_opts = {'azim': -35, 'elev': 35, 'spacing': 0.2,
-                    'alpha': 1., 'linewidth': 0.5, 'edgecolor': 'k',
-                    'shade': False, 'stick': False,
-                    'pad': 0.04, 'cbar_to_z': False}
+    default_opts = {'figsize': None, 'cmap': 'jet', 'cmap_min': 0.,
+                    'cmap_max': 1., 'zticks': None, 'bars_spacing': 0.2,
+                    'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
+                    'shade': False, 'azim': -35, 'elev': 35,
+                    'proj_type': 'ortho', 'stick': False,
+                    'cbar_pad': 0.04, 'cbar_to_z': False}
 
     # update default_opts from input options
     if options is None:
@@ -688,12 +692,12 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None,
     xpos = xpos.T.flatten() + 0.5
     ypos = ypos.T.flatten() + 0.5
     zpos = np.zeros(n)
-    dx = dy = (1 - default_opts['spacing']) * np.ones(n)
+    dx = dy = (1 - default_opts['bars_spacing']) * np.ones(n)
     dz = np.real(M.flatten())
 
-    if isinstance(zlims, list) and len(zlims) == 2:
-        z_min = zlims[0]
-        z_max = zlims[1]
+    if isinstance(limits, list) and len(limits) == 2:
+        z_min = limits[0]
+        z_max = limits[1]
     else:
         z_min = min(dz)
         z_max = max(dz)
@@ -705,43 +709,48 @@ def matrix_histogram(M, x_basis=None, y_basis=None, zticklables=None,
         norm = mpl.colors.Normalize(min(dz), max(dz))
     else:
         norm = mpl.colors.Normalize(z_min, z_max)
-
-    if cmap is None:
-        cmap = _sequential_cmap()
-
+    cmap = _truncate_colormap(default_opts['cmap'],
+                              default_opts['cmap_min'],
+                              default_opts['cmap_max'])
     colors = cmap(norm(dz))
 
-    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
-    ax.view_init(azim=default_opts['azim'] % 360,
-                 elev=default_opts['elev'] % 360)
+    if ax is None:
+        fig = plt.figure(figsize=default_opts['figsize'])
+        ax = _axes3D(fig,
+                     azim=default_opts['azim'] % 360,
+                     elev=default_opts['elev'] % 360)
+        ax.set_proj_type(default_opts['proj_type'])
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors,
-             edgecolors=default_opts['edgecolor'],
-             linewidths=default_opts['linewidth'],
-             alpha=default_opts['alpha'],
+             edgecolors=default_opts['bars_edgecolor'],
+             linewidths=default_opts['bars_lw'],
+             alpha=default_opts['bars_alpha'],
              shade=default_opts['shade'])
     # remove vertical lines on xz and yz plane
     ax.yaxis._axinfo["grid"]['linewidth'] = 0
     ax.xaxis._axinfo["grid"]['linewidth'] = 0
 
+    if title:
+        ax.set_title(title)
+
     # x axis
-    _update_xaxis(default_opts['spacing'], M, ax, x_basis)
+    _update_xaxis(default_opts['bars_spacing'], M, ax, xlabels)
 
     # y axis
-    _update_yaxis(default_opts['spacing'], M, ax, y_basis)
+    _update_yaxis(default_opts['bars_spacing'], M, ax, ylabels)
 
     # z axis
-    _update_zaxis(ax, z_min, z_max, zticklables)
+    _update_zaxis(ax, z_min, z_max, default_opts['zticks'])
 
     # stick to xz and yz plane
     _stick_to_planes(default_opts['stick'],
                      default_opts['azim'], ax, M,
-                     default_opts['spacing'])
+                     default_opts['bars_spacing'])
 
     # color axis
     if colorbar:
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.75,
-                                         pad=default_opts['pad'])
+                                         pad=default_opts['cbar_pad'])
         mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
     # removing margins
@@ -877,7 +886,7 @@ def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
     return fig, ax
 
 
-def plot_energy_levels(H_list, N=0, hamiltonians=None, energy_levels=None, *,
+def plot_energy_levels(H_list, N=0, h_labels=None, energy_levels=None, *,
                        fig=None, ax=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
@@ -894,7 +903,7 @@ def plot_energy_levels(H_list, N=0, hamiltonians=None, energy_levels=None, *,
         N : int
             The number of energy levels to plot
 
-        hamiltonians : List of string
+        h_lables : List of string
             A list of xticklabels for each Hamiltonian
 
         energy_levels : List of string
@@ -965,9 +974,9 @@ def plot_energy_levels(H_list, N=0, hamiltonians=None, energy_levels=None, *,
         yticks = np.unique(np.around(yticks, 1))
         ax.set_yticks(yticks)
 
-    if hamiltonians:
+    if h_labels:
         ax.get_xaxis().tick_bottom()
-        _set_ticklabels(ax, hamiltonians, xticks, 'x')
+        _set_ticklabels(ax, h_labels, xticks, 'x')
     else:
         # hide xtick
         ax.tick_params(axis='x', which='both',
