@@ -283,3 +283,29 @@ Finally, :func:`qutip.solver.floquet.fmmesolve`  always expects the ``e_ops`` to
 
     output = fmmesolve(H, psi0, tlist, [sigmax()], e_ops=[num(2)], spectra_cb=[noise_spectrum], T=T, args=args)
     p_ex = output.expect[0]
+
+The Floquet-Lindblad master equation in QuTiP
+-------------------------------------------
+The QuTiP function :func:`qutip.floquet.flimesolve` implements the Floquet-Lindblad master equation. It calculates the dynamics of a system given its initial state, a time-dependent Hamiltonian, a list of operators through which the system couples to its environment and a list of corresponding time-independent decay rates for the associated operators. Flimesolve is much like the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, in how the system couples to the environment. 
+
+.. note::
+
+    Currently the :func:`qutip.floquet.flimesolve` can accept multiple collapse operators and their associated rates
+
+Flimesolve expects the collapse operators and rates to be provided as a list of [c_op, rate] pairs. For example:
+
+.. code-block:: python
+
+    gamma1 = 0.1
+    c_ops_and_rates = [[sigmax(),gamma1]]
+
+The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the same format for the return value is used :class:`qutip.solve.solver.Result`. The following example extends the example studied above, and uses :func:`qutip.floquet.flimesolve` to introduce dissipation into the calculation
+
+.. plot:: guide/scripts/floquet_ex4.py
+   :width: 4.0in
+   :include-source:
+
+Finally, :func:`qutip.solver.floquet.fmmesolve`, similar to :func:`qutip.solver.floquet.flimesolve`, always expects the ``e_ops`` to be specified in the laboratory basis:
+
+    output = flimesolve(H, psi0, tlist, [[sigmax(),gamma1]], e_ops=[num(2)], T=T, args=args)
+    p_ex = output.expect[0]
