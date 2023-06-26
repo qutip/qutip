@@ -52,7 +52,11 @@ class fast_csr_matrix(csr_matrix):
                 self._shape = tuple(int(s) for s in shape)
         self.dtype = complex
         self.maxprint = 50
-        self.format = 'csr'
+        if hasattr(self, "_format"):
+            # format is readonly since 1.11
+            self._format = 'csr'
+        else:
+            self.format = 'csr'
 
     def _binopt(self, other, op):
         """
