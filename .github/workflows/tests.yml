@@ -90,6 +90,7 @@ jobs:
             os: ubuntu-latest
             python-version: "3.10"
             condaforge: 1
+            nocvxopt: 1
             pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning"
 
           # Python 3.11 and latest numpy
@@ -135,9 +136,12 @@ jobs:
         # rather than in the GitHub Actions file directly, because bash gives us
         # a proper programming language to use.
         run: |
-          QUTIP_TARGET="tests,graphics,semidefinite,ipython"
+          QUTIP_TARGET="tests,graphics,ipython"
           if [[ -z "${{ matrix.nocython }}" ]]; then
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
+          fi
+          if [[ -z "${{ matrix.nocvxopt }}" ]]; then
+            QUTIP_TARGET="$QUTIP_TARGET,semidefinite"
           fi
           export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
           if [[ -z "${{ matrix.nomkl }}" ]]; then
