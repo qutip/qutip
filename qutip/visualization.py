@@ -47,11 +47,11 @@ except:
     pass
 
 
-def _sequential_cmap():
+def _cyclic_cmap():
     if settings.colorblind_safe:
-        return cm.cividis
+        return cm.twilight
     else:
-        return cm.jet
+        return complex_phase_cmap()
 
 
 def _diverging_cmap():
@@ -61,11 +61,11 @@ def _diverging_cmap():
         return cm.RdBu
 
 
-def _cyclic_cmap():
+def _sequential_cmap():
     if settings.colorblind_safe:
-        return cm.twilight
+        return cm.cividis
     else:
-        return complex_phase_cmap()
+        return cm.jet
 
 
 def _is_fig_and_ax(fig, ax, projection='2d'):
@@ -899,7 +899,7 @@ def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
     return fig, ax
 
 
-def plot_energy_levels(H_list, N=0, h_labels=None, energy_levels=None, *,
+def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
                        fig=None, ax=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
@@ -913,15 +913,15 @@ def plot_energy_levels(H_list, N=0, h_labels=None, energy_levels=None, *,
         H_list : List of Qobj
             A list of Hamiltonians.
 
-        N : int
-            The number of energy levels to plot
-
         h_lables : List of string
             A list of xticklabels for each Hamiltonian
 
         energy_levels : List of string
             A list of  yticklabels to the left of energy levels of the initial
             Hamiltonian.
+
+        N : int
+            The number of energy levels to plot
 
         fig : a matplotlib Figure instance
             The Figure canvas in which the plot will be drawn.
@@ -1017,6 +1017,9 @@ def plot_fock_distribution(rho, offset=0, unit_y_range=True, *,
 
     offset : int
         Offset the fock number
+
+    unit_y_range : bool
+        Set y-axis limits [0, 1] or not
 
     fig : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
@@ -1173,10 +1176,6 @@ def plot_wigner_fock_distribution(rho, alpha_max=7.5, method='iterative',
 
     axes : a list of two matplotlib axes instances
         The axes context in which the plot will be drawn.
-
-    method : string {'iterative', 'laguerre', 'fft'}
-        The method used for calculating the wigner function. See the
-        documentation for qutip.wigner for details.
 
     Returns
     -------
