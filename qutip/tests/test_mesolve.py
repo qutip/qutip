@@ -957,6 +957,22 @@ def test_tlist_h_with_constant_c_ops():
     assert len(result.states) == len(few_times)
 
 
+def test_mixed_e_ops():
+    """
+    Test callable and Qobj e_ops can mix.
+
+    See gh-2118.
+    """
+    state = basis(2, 0)
+    hamiltonian = QobjEvo(sigmax())
+    collapse = create(2)
+    e_ops = [qeye(2), lambda t, qobj: qobj.norm()]
+    result = mesolve(
+        hamiltonian, state, [0, 1, 2], c_ops=[collapse], e_ops=e_ops
+    )
+    assert result.num_expect == 2
+
+
 def test_tlist_h_with_other_tlist_c_ops_raises():
     state = basis(2, 0)
     all_times = np.linspace(0, 1, 11)

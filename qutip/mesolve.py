@@ -449,10 +449,12 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
 
     e_ops_data = []
     output.expect = []
+    need_qobj_state = opt.store_states
     if callable(e_ops):
         n_expt_op = 0
         expt_callback = True
         output.num_expect = 1
+        need_qobj_state = True
     elif isinstance(e_ops, list):
         n_expt_op = len(e_ops)
         expt_callback = False
@@ -460,10 +462,13 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
         if n_expt_op == 0:
             # fall back on storing states
             opt.store_states = True
+            need_qobj_state = True
         else:
             for op in e_ops:
                 if not isinstance(op, Qobj) and callable(op):
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                    need_qobj_state = True
+                    e_ops_data.append(None)
                     continue
                 if op.dims != rho0.dims:
                     raise TypeError(f"e_ops dims ({op.dims}) are not "
@@ -497,7 +502,7 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
 
-        if opt.store_states or expt_callback:
+        if need_qobj_state:
             cdata = get_curr_state_data(r)
             fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
 
@@ -517,10 +522,10 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
         for m in range(n_expt_op):
             if not isinstance(e_ops[m], Qobj) and callable(e_ops[m]):
                 output.expect[m][t_idx] = e_ops[m](t, rho_t)
-                continue
-            output.expect[m][t_idx] = expect_rho_vec(e_ops_data[m], r.y,
-                                                     e_ops[m].isherm
-                                                     and rho0.isherm)
+            else:
+                output.expect[m][t_idx] = expect_rho_vec(e_ops_data[m], r.y,
+                                                         e_ops[m].isherm
+                                                         and rho0.isherm)
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
