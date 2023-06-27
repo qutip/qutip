@@ -347,7 +347,8 @@ def coherence_function_g1(
         n = solver.run(state0, taulist, e_ops=[a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G1 and normalize with n to obtain g1
-    G1 = correlation_3op(solver, state0, [0], taulist, None, a_op.dag(), a_op)[0]
+    G1 = correlation_3op(
+        solver, state0, [0], taulist, None, a_op.dag(), a_op)[0]
 
     g1 = G1 / np.sqrt(n[0] * np.array(n))[0]
     return g1, G1
@@ -415,18 +416,19 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
     g2 = G2 / (n[0] * np.array(n))
     return g2, G2
 
+
 def _make_solver(H, c_ops, args, options, solver):
-    if solver =="fme":
+    if solver == "fme":
         if isinstance(H, FloquetBasis):
             floquet_basis = H
         else:
             T = options['T']
             # are for the open system evolution.
-            floquet_basis = FloquetBasis(H, T, args, precompute=None) 
+            floquet_basis = FloquetBasis(H, T, args, precompute=None)
         time_sense = options.get('time sense', 0.)
         solver_instance = FLiMESolver(
-            floquet_basis, 
-            c_ops, 
+            floquet_basis,
+            c_ops,
             args,
             time_sense=time_sense
         )

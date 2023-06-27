@@ -11,7 +11,7 @@ from .solver_base import Solver
 from .result import Result
 from time import time
 from ..ui.progressbar import progess_bars
-from qutip.solver.floquet import fsesolve, FloquetBasis
+from qutip.solver.floquet import fsesolve, FloquetBasis, FloquetResult
 
 
 def _floquet_rate_matrix(floquet_basis,
@@ -291,24 +291,6 @@ def flimesolve(
                          time_sense=time_sense,
                          options=options)
     return solver.run(rho0, taulist, e_ops=e_ops,)
-
-
-class FloquetResult(Result):
-    def _post_init(self, floquet_basis):
-        self.floquet_basis = floquet_basis
-        if self.options["store_floquet_states"]:
-            self.floquet_states = []
-        else:
-            self.floquet_states = None
-        super()._post_init()
-
-    def add(self, t, state):
-        if self.options["store_floquet_states"]:
-            self.floquet_states.append(
-                state)
-        state = self.floquet_basis.from_floquet_basis(
-            state, t)
-        super().add(t, state)
 
 
 class FLiMESolver(MESolver):

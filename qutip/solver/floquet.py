@@ -98,7 +98,8 @@ class FloquetBasis:
         e_quasi = -np.angle(evals) / T
         if sort:
             perm = np.argsort(e_quasi)
-            self.evecs = _data.permute.indices(evecs, col_perm=np.argsort(perm))
+            self.evecs = _data.permute.indices(
+                evecs, col_perm=np.argsort(perm))
             self.e_quasi = e_quasi[perm]
         else:
             self.evecs = evecs
@@ -928,5 +929,5 @@ class FMESolver(MESolver):
         stats["run time"] = progress_bar.total_time()
         # TODO: It would be nice if integrator could give evolution statistics
         # stats.update(_integrator.stats)
-        
+
         return results
