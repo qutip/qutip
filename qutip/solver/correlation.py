@@ -11,7 +11,8 @@ from ..core import (
     qeye, Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
     tensor, qzero, expect
 )
-from . floquet import FloquetBasis,FLiMESolver
+from .floquet import FloquetBasis
+from .flimesolve import FLiMESolver
 from .mesolve import MESolver
 from .mcsolve import MCSolver
 from .brmesolve import BRSolver
@@ -78,7 +79,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver,taulist)
+    solver = _make_solver(H, c_ops, args, options, solver)
 
     if reverse:
         A_op, B_op, C_op = a_op, b_op, 1
@@ -87,7 +88,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     if state0 is None:
         state0 = steadystate(H, c_ops)
 
-    return correlation_3op(solver, state0, [0], taulist, A_op, B_op, C_op)#[0]
+    return correlation_3op(solver, state0, [0], taulist, A_op, B_op, C_op)[0]
 
 
 def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
@@ -147,8 +148,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    
-    solver = _make_solver(H, c_ops, args, options, solver,taulist)
+    solver = _make_solver(H, c_ops, args, options, solver)
     if tlist is None:
         tlist = [0]
     if state0 is None:
@@ -215,7 +215,7 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver,taulist)
+    solver = _make_solver(H, c_ops, args, options, solver)
     if state0 is None:
         state0 = steadystate(H, c_ops)
     return correlation_3op(solver, state0, [0], taulist, a_op, b_op, c_op)[0]
@@ -281,7 +281,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver,taulist)
+    solver = _make_solver(H, c_ops, args, options, solver)
 
     if tlist is None:
         tlist = [0]
@@ -337,7 +337,7 @@ def coherence_function_g1(
         The normalized and unnormalized second-order coherence function.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver,taulist)
+    solver = _make_solver(H, c_ops, args, options, solver)
 
     # first calculate the photon number
     if state0 is None:
@@ -399,7 +399,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         The normalized and unnormalized second-order coherence function.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver,taulist)
+    solver = _make_solver(H, c_ops, args, options, solver)
 
     # first calculate the photon number
     if state0 is None:
@@ -415,18 +415,31 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
     g2 = G2 / (n[0] * np.array(n))
     return g2, G2
 
-def _make_solver(H, c_ops, args, options, solver,taulist = None):
-    H = QobjEvo(H, args=args)
-    # c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
+def _make_solver(H, c_ops, args, options, solver):
+    if solver =="fme":
+        if isinstance(H, FloquetBasis):
+            floquet_basis = H
+        else:
+            T = options['T']
+            # are for the open system evolution.
+            floquet_basis = FloquetBasis(H, T, args, precompute=None) 
+        try:
+            time_sense = options['time sense']
+        except KeyError:
+            time_sense = 0
+        solver_instance = FLiMESolver(
+            floquet_basis, 
+            c_ops, 
+            args,
+            time_sense=time_sense)
+    else:
+        H = QobjEvo(H, args=args)
+        c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
     if solver == "me":
         solver_instance = MESolver(H, c_ops, options=options)
     elif solver == "es":
         options = {"method": "diag"}
         solver_instance = MESolver(H, c_ops, options=options)
-    elif solver == "fme":
-        
-        floquet_basis = FloquetBasis(H,options['T'],args)
-        solver_instance = FLiMESolver(floquet_basis, c_ops, taulist, args)
     elif solver == "mc":
         raise ValueError("MC solver for correlation has been removed")
     return solver_instance
