@@ -11,7 +11,7 @@ from ..core import (
     qeye, Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
     tensor, qzero, expect
 )
-from . floquet import FloquetBasis
+from .floquet import FloquetBasis
 from .flimesolve import FLiMESolver
 from .mesolve import MESolver
 from .mcsolve import MCSolver
@@ -88,7 +88,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     if state0 is None:
         state0 = steadystate(H, c_ops)
 
-    return correlation_3op(solver, state0, [0], taulist, A_op, B_op, C_op)#[0]
+    return correlation_3op(solver, state0, [0], taulist, A_op, B_op, C_op)[0]
 
 
 def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
@@ -148,7 +148,6 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    
     solver = _make_solver(H, c_ops, args, options, solver)
     if tlist is None:
         tlist = [0]
@@ -407,9 +406,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         state0 = steadystate(H, c_ops)
         n = np.array([expect(state0, a_op.dag() * a_op)])
     else:
-        n = solver.run(state0, 
-                       taulist, 
-                       e_ops=[a_op.dag() * a_op]).expect[0]
+        n = solver.run(state0, taulist, e_ops=[a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
     G2 = correlation_3op(solver, state0, [0], taulist,
@@ -430,7 +427,11 @@ def _make_solver(H, c_ops, args, options, solver):
             time_sense = options['time sense']
         except KeyError:
             time_sense = 0
-        solver_instance = FLiMESolver( floquet_basis, c_ops,  args,time_sense=time_sense)
+        solver_instance = FLiMESolver(
+            floquet_basis, 
+            c_ops, 
+            args,
+            time_sense=time_sense)
     else:
         H = QobjEvo(H, args=args)
         c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
