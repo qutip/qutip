@@ -428,7 +428,8 @@ def _make_solver(H, c_ops, args, options, solver):
             floquet_basis, 
             c_ops, 
             args,
-            time_sense=time_sense)
+            time_sense=time_sense
+        )
     else:
         H = QobjEvo(H, args=args)
         c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
