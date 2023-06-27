@@ -1357,9 +1357,12 @@ class Qobj(object):
         if sparse:
             q = Qobj()
             q.data, q.dims, _ = _ptrace(self, sel)
-            return q.tidyup() if settings.auto_tidyup else q
+            out = q.tidyup() if settings.auto_tidyup else q
         else:
-            return _ptrace_dense(self, sel)
+            out = _ptrace_dense(self, sel)
+        if isket(out):
+            out = out.proj()
+        return out
 
     def permute(self, order):
         """Permutes a composite quantum object.

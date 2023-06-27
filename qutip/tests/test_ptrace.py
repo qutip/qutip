@@ -33,7 +33,11 @@ def test_ptrace_noncompound_rand(sparse, dm):
         state = qutip.rand_ket(5)
         if dm:
             state = state.proj()
-        assert state.ptrace(0, sparse=sparse) == state
+        if state.isket:
+            target = state.proj()
+        else:
+            target = state
+        assert state.ptrace(0, sparse=sparse) == target
 
 
 @pytest.mark.parametrize('pair', list(itertools.combinations(range(3), 2)))
@@ -49,9 +53,19 @@ def test_ptrace_unsorted_selection_subset(state, sparse, pair):
     assert state_ordered == state_reversed
 
 
+def test_ptrace_ket():
+    ket_1 = qutip.rand_ket(3)
+    ket_2 = qutip.rand_ket(4)
+    ket = qutip.tensor(ket_1, ket_2)
+    assert ket.ptrace([0, 1]) == ket.proj()
+    assert ket.ptrace([0]) == ket_1.proj() * ket_2.norm()
+
+
 @pytest.mark.parametrize('permutation', list(itertools.permutations(range(3))))
 def test_ptrace_unsorted_selection_all(state, sparse, permutation):
     state_ptraced = state.ptrace(permutation, sparse=sparse)
+    if state.isket:
+        state = state.proj()
     assert state.dims == state_ptraced.dims
     assert state == state_ptraced
 
