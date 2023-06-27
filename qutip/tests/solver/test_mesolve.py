@@ -7,6 +7,11 @@ from qutip.solver.solver_base import Solver
 import pickle
 import pytest
 
+# Deactivate warning for test without cython
+from qutip.core.coefficient import WARN_MISSING_MODULE
+WARN_MISSING_MODULE[0] = 0
+
+
 all_ode_method = [
     method for method, integrator in MESolver.avail_integrators().items()
     if integrator.support_time_dependant

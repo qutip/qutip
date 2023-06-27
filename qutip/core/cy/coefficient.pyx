@@ -13,6 +13,12 @@ cdef extern from "<complex>" namespace "std" nogil:
     double         norm(double complex x)
 
 
+__all__ = [
+    "Coefficient",  "InterCoefficient", "FunctionCoefficient",
+    "StrFunctionCoefficient", "ConjCoefficient", "NormCoefficient"
+]
+
+
 def coefficient_function_parameters(func, style=None):
     """
     Return the function style (either "pythonic" or not) and a list of
@@ -726,3 +732,43 @@ cdef class NormCoefficient(Coefficient):
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
         return NormCoefficient(self.base.copy())
+
+
+@cython.auto_pickle(True)
+cdef class ConstantCoefficient(Coefficient):
+    """
+    A time-independent coefficient.
+
+    :obj:`ConstantCoefficient` is returned by ``qutip.coefficent.const(value)``.
+    """
+    cdef complex value
+
+    def __init__(self, complex value):
+        self.value = value
+
+    def replace_arguments(self, _args=None, **kwargs):
+        """
+        Replace the arguments (``args``) of a coefficient.
+
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
+
+        Parameters
+        ----------
+        _args : dict
+            Dictionary of arguments to replace.
+
+        **kwargs
+            Arguments to replace.
+        """
+        return self
+
+    cdef complex _call(self, double t) except *:
+        return self.value
+
+    cpdef Coefficient copy(self):
+        """Return a copy of the :obj:`Coefficient`."""
+        return self

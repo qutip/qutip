@@ -25,6 +25,7 @@ from .reshape import *
 from .tidyup import *
 from .trace import *
 from .solve import *
+from .extract import *
 # For operations with mulitple related versions, we just import the module.
 from . import norm, permute
 

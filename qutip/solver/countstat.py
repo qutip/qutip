@@ -10,7 +10,7 @@ import scipy.sparse as sp
 from itertools import product
 from ..core import (
     sprepost, spre, qeye, tensor, expect, Qobj,
-    operator_to_vector, vector_to_operator
+    operator_to_vector, vector_to_operator, CoreOptions
 )
 from ..core import data as _data
 from .steadystate import pseudo_inverse, steadystate
@@ -77,8 +77,8 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
 def _solve(A, V):
     try:
         return _data.solve(A, V)
-    except Exception:
-        return _data.solve(A, V, "lsqr")
+    except ValueError:
+        return _data.solve(A, V, "lstsq")
 
 
 def _noise_direct(L, wlist, rhoss, J_ops):
@@ -89,7 +89,7 @@ def _noise_direct(L, wlist, rhoss, J_ops):
     current = np.zeros(N_j_ops)
     noise = np.zeros((N_j_ops, N_j_ops, len(wlist)))
 
-    tr_op = tensor([qeye(n) for n in L.dims[0][0]])
+    tr_op = qeye(L.dims[0][0])
     tr_op_vec = operator_to_vector(tr_op)
 
     Pop = _data.kron(rhoss_vec, tr_op_vec.data.transpose())
@@ -104,10 +104,10 @@ def _noise_direct(L, wlist, rhoss, J_ops):
             # At zero frequency some solvers fail for small systems.
             # Adding a small finite frequency of order 1e-15
             # helps prevent the solvers from throwing an exception.
-            L_temp = 1e-15j * spre(tr_op) + L
+            with CoreOptions(auto_tidyup=False):
+                L_temp = 1e-15j * spre(tr_op) + L
 
-        A = _data.to(_data.CSR, L_temp.data)
-        X_rho = [_solve(A, op) for op in Q_ops]
+        X_rho = [_solve(L_temp.data, op) for op in Q_ops]
 
         for i, j in product(range(N_j_ops), repeat=2):
             if i == j:

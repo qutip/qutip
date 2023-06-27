@@ -6,10 +6,11 @@
 from . import csr, dense
 from .csr import CSR
 from .dense import Dense
+from .base import Data
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
-__all__ = ['zeros', 'identity']
+__all__ = ['zeros', 'identity', 'zeros_like', 'identity_like']
 
 zeros = _Dispatcher(
     _inspect.Signature([
@@ -70,4 +71,25 @@ identity.add_specialisations([
     (Dense, dense.identity),
 ], _defer=True)
 
+
 del _Dispatcher, _inspect
+
+
+def zeros_like(data, /):
+    """
+    Create an zeros matrix of the same type and shape.
+    """
+    if type(data) is Dense:
+        return dense.zeros(*data.shape, fortran=data.fortran)
+    return zeros[type(data)](*data.shape)
+
+
+def identity_like(data, /):
+    """
+    Create an identity matrix of the same type and shape.
+    """
+    if not data.shape[0] == data.shape[1]:
+        raise ValueError("Can't create and identity like a non square matrix.")
+    if type(data) is Dense:
+        return dense.identity(data.shape[0], fortran=data.fortran)
+    return identity[type(data)](data.shape[0])
