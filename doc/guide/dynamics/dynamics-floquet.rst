@@ -293,7 +293,7 @@ Flimesolve expects the collapse operators and rates to be provided as a list of 
 .. code-block:: python
 
     gamma1 = 0.1
-    c_ops_and_rates = [[sigmax(),gamma1]]
+    c_ops_and_rates = [[sigmax(), gamma1]]
 
 The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the same format for the return value is used :class:`qutip.solve.solver.Result`. The following example extends the example studied above, and uses :func:`qutip.floquet.flimesolve` to introduce dissipation into the calculation
 

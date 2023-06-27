@@ -423,15 +423,13 @@ def _make_solver(H, c_ops, args, options, solver):
             T = options['T']
             # are for the open system evolution.
             floquet_basis = FloquetBasis(H, T, args, precompute=None) 
-        try:
-            time_sense = options['time sense']
-        except KeyError:
-            time_sense = 0
+        time_sense = options.get('time sense', 0.)
         solver_instance = FLiMESolver(
             floquet_basis, 
             c_ops, 
             args,
-            time_sense=time_sense)
+            time_sense=time_sense
+        )
     else:
         H = QobjEvo(H, args=args)
         c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
