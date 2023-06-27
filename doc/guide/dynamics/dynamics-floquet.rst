@@ -286,11 +286,7 @@ Finally, :func:`qutip.solver.floquet.fmmesolve`  always expects the ``e_ops`` to
 
 The Floquet-Lindblad master equation in QuTiP
 -------------------------------------------
-The QuTiP function :func:`qutip.floquet.flimesolve` implements the Floquet-Lindblad master equation. It calculates the dynamics of a system given its initial state, a time-dependent Hamiltonian, a list of operators through which the system couples to its environment and a list of corresponding time-independent decay rates for the associated operators. Flimesolve is much like the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, in how the system couples to the environment. 
-
-.. note::
-
-    Currently the :func:`qutip.floquet.flimesolve` can accept multiple collapse operators and their associated rates
+The QuTiP function :func:`qutip.floquet.flimesolve` implements the Floquet-Lindblad master equation. It calculates the dynamics of a system given its initial state, a time-dependent Hamiltonian, a list of operators through which the system couples to its environment and a list of corresponding time-independent decay rates for the associated operators. Flimesolve is much like the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, in how the system couples to the environment.
 
 Flimesolve expects the collapse operators and rates to be provided as a list of [c_op, rate] pairs. For example:
 

@@ -928,4 +928,5 @@ class FMESolver(MESolver):
         stats["run time"] = progress_bar.total_time()
         # TODO: It would be nice if integrator could give evolution statistics
         # stats.update(_integrator.stats)
+        
         return results
