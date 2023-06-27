@@ -11,11 +11,12 @@ from ..core import (
     qeye, Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
     tensor, qzero, expect
 )
+from .floquet import FloquetBasis
+from .flimesolve import FLiMESolver
 from .mesolve import MESolver
 from .mcsolve import MCSolver
 from .brmesolve import BRSolver
 from .heom.bofin_solvers import HEOMSolver
-
 from .steadystate import steadystate
 from ..ui.progressbar import progess_bars
 
@@ -414,10 +415,24 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
     g2 = G2 / (n[0] * np.array(n))
     return g2, G2
 
-
 def _make_solver(H, c_ops, args, options, solver):
-    H = QobjEvo(H, args=args)
-    c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
+    if solver =="fme":
+        if isinstance(H, FloquetBasis):
+            floquet_basis = H
+        else:
+            T = options['T']
+            # are for the open system evolution.
+            floquet_basis = FloquetBasis(H, T, args, precompute=None) 
+        time_sense = options.get('time sense', 0.)
+        solver_instance = FLiMESolver(
+            floquet_basis, 
+            c_ops, 
+            args,
+            time_sense=time_sense
+        )
+    else:
+        H = QobjEvo(H, args=args)
+        c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
     if solver == "me":
         solver_instance = MESolver(H, c_ops, options=options)
     elif solver == "es":
