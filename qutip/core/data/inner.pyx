@@ -193,8 +193,8 @@ import inspect as _inspect
 
 inner = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('scalar_is_ket', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=False),
     ]),
@@ -236,9 +236,9 @@ inner.add_specialisations([
 
 inner_op = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('op', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('op', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('scalar_is_ket', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=False),
     ]),

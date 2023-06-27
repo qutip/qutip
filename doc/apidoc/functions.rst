@@ -18,7 +18,7 @@ Quantum Operators
 -----------------
 
 .. automodule:: qutip.core.operators
-    :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
+    :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
 
 
 .. _functions-rand:
@@ -144,6 +144,9 @@ Monte Carlo Evolution
 .. automodule:: qutip.solver.mcsolve
     :members: mcsolve
 
+.. automodule:: qutip.solver.nm_mcsolve
+    :members: nm_mcsolve
+
 
 Krylov Subspace Solver
 ----------------------
@@ -169,8 +172,8 @@ Floquet States and Floquet-Markov Master Equation
 Stochastic Schrödinger Equation and Master Equation
 ---------------------------------------------------
 
-.. automodule:: qutip.solve.stochastic
-    :members: ssesolve, photocurrent_sesolve, smepdpsolve, smesolve, photocurrent_mesolve, ssepdpsolve, stochastic_solvers, general_stochastic
+.. automodule:: qutip.solver.stochastic
+    :members: ssesolve, smesolve
 
 
 Hierarchical Equations of Motion
@@ -255,7 +258,7 @@ Quantum Process Tomography
 Non-Markovian Solvers
 =====================
 
-.. automodule:: qutip.solve.nonmarkov.transfertensor
+.. automodule:: qutip.solver.nonmarkov.transfertensor
     :members: ttmsolve
 
 

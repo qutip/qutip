@@ -1,4 +1,4 @@
-from qutip import liouvillian, lindblad_dissipator, Qobj, qeye, qzero
+from qutip import liouvillian, lindblad_dissipator, Qobj, qzero_like, qeye_like
 from qutip import vector_to_operator, operator_to_vector
 from qutip import settings
 import qutip.core.data as _data
@@ -377,8 +377,8 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     # L_p and L_m correspond to the positive and negative
     # frequency terms respectively.
     # They are independent in the model, so we keep both names.
-    Id = qeye(L_0.dims[0], dtype=type(L_0.data))
-    S = T = qzero(L_0.dims[0], dtype=type(L_0.data))
+    Id = qeye_like(L_0)
+    S = T = qzero_like(L_0)
 
     if isinstance(H_0.data, _data.CSR) and not sparse:
         L_0 = L_0.to("Dense")
@@ -478,11 +478,11 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     dtype = type(L.data)
     rhoss_vec = operator_to_vector(rhoss)
 
-    tr_op = qeye(L.dims[0][0])
+    tr_op = qeye_like(rhoss)
     tr_op_vec = operator_to_vector(tr_op)
 
     P = _data.kron(rhoss_vec.data, tr_op_vec.data.transpose(), dtype=dtype)
-    I = _data.csr.identity(N * N)
+    I = _data.identity_like(P)
     Q = _data.sub(I, P)
 
     if w in [None, 0.0]:
