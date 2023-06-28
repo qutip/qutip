@@ -5,10 +5,11 @@ of commonly occuring quantum operators.
 
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
-           'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
-           'num', 'squeeze', 'squeezing', 'displace', 'commutator',
-           'qutrit_ops', 'qdiags', 'phase', 'qzero', 'charge', 'tunneling',
-           'qft']
+           'destroy', 'create', 'fdestroy', 'fcreate', 'qeye', 'identity',
+           'position', 'momentum', 'num', 'squeeze', 'squeezing', 'displace',
+           'commutator', 'qutrit_ops', 'qdiags', 'phase', 'qzero', 'charge',
+           'tunneling', 'qft', 'qzero_like', 'qeye_like', 'swap',
+          ]
 
 import numbers
 
@@ -134,11 +135,11 @@ shape = [3, 3], type = oper, isHerm = True
         return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims, type='oper',
                     isherm=False, isunitary=False, copy=False)
     if which == 'x':
-        A =  _jplus(j, dtype=dtype)
+        A = _jplus(j, dtype=dtype)
         return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
                     isherm=True, isunitary=False, copy=False) * 0.5
     if which == 'y':
-        A =  _data.mul(_jplus(j, dtype=dtype), -0.5j)
+        A = _data.mul(_jplus(j, dtype=dtype), -0.5j)
         return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
                     isherm=True, isunitary=False, copy=False)
     if which == 'z':
@@ -470,6 +471,148 @@ def create(N, offset=0, *, dtype=None):
     return qdiags(data, -1, dtype=dtype)
 
 
+def fdestroy(n_sites, site, dtype=None):
+    """
+    Fermionic destruction operator.
+    We use the Jordan-Wigner transformation,
+    making use of the Jordan-Wigner ZZ..Z strings,
+    to construct this as follows:
+
+    .. math::
+
+        a_j = \\sigma_z^{\\otimes j} \\otimes
+        (\\frac{\\sigma_x + i \\sigma_y}{2})
+        \\otimes I^{\\otimes N-j-1}
+
+    Parameters
+    ----------
+    n_sites : int
+        Number of sites in Fock space.
+
+    site : int (default 0)
+        The site in Fock space to add a fermion to.
+        Corresponds to j in the above JW transform.
+
+    Returns
+    -------
+    oper : qobj
+        Qobj for destruction operator.
+
+    Examples
+    --------
+    >>> fdestroy(2) # doctest: +SKIP
+    Quantum object: dims=[[2 2], [2 2]], shape=(4, 4), \
+    type='oper', isherm=False
+    Qobj data =
+    [[0. 0. 1. 0.]
+    [0. 0. 0. 1.]
+    [0. 0. 0. 0.]
+    [0. 0. 0. 0.]]
+    """
+    return _f_op(n_sites, site, 'destruction', dtype=dtype)
+
+
+def fcreate(n_sites, site, dtype=None):
+    """
+    Fermionic creation operator.
+    We use the Jordan-Wigner transformation,
+    making use of the Jordan-Wigner ZZ..Z strings,
+    to construct this as follows:
+
+    .. math::
+
+        a_j = \\sigma_z^{\\otimes j}
+        \\otimes (frac{sigma_x - i sigma_y}{2})
+        \\otimes I^{\\otimes N-j-1}
+
+
+    Parameters
+    ----------
+    n_sites : int
+        Number of sites in Fock space.
+
+    site : int
+        The site in Fock space to add a fermion to.
+        Corresponds to j in the above JW transform.
+
+    Returns
+    -------
+    oper : qobj
+        Qobj for raising operator.
+
+    Examples
+    --------
+    >>> fcreate(2) # doctest: +SKIP
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), \
+    type = oper, isherm = False
+    Qobj data =
+    [[0. 0. 0. 0.]
+    [0. 0. 0. 0.]
+    [1. 0. 0. 0.]
+    [0. 1. 0. 0.]]
+    """
+    return _f_op(n_sites, site, 'creation', dtype=dtype)
+
+
+def _f_op(n_sites, site, action, dtype=None):
+    """ Makes fermionic creation and destruction operators.
+    We use the Jordan-Wigner transformation,
+    making use of the Jordan-Wigner ZZ..Z strings,
+    to construct this as follows:
+
+    .. math::
+
+        a_j = \\sigma_z^{\\otimes j}
+        \\otimes (frac{sigma_x \\pm i sigma_y}{2})
+        \\otimes I^{\\otimes N-j-1}
+
+    Parameters
+    ----------
+    action : str
+        The type of operator to build.
+        Can only be 'creation' or 'destruction'
+
+    n_sites : int
+        Number of sites in Fock space.
+
+    site : int
+        The site in Fock space to create/destroy a fermion on.
+        Corresponds to j in the above JW transform.
+
+    Returns
+    -------
+    oper : qobj
+        Qobj for destruction operator.
+    """
+    # get `tensor` and sigma z objects
+    from .tensor import tensor
+    s_z = 2 * jmat(0.5, 'z', dtype=dtype)
+
+    # sanity check
+    if site < 0:
+        raise ValueError(f'The specified site {site} cannot be \
+                         less than 0.')
+    elif 0 >= n_sites:
+        raise ValueError(f'The specified number of sites {n_sites} \
+                         cannot be equal to or less than 0.')
+    elif site >= n_sites:
+        raise ValueError(f'The specified site {site} is not in \
+                         the range of {n_sites} sites.')
+
+    # figure out which operator to build
+    if action.lower() == 'creation':
+        operator = create(2, dtype=dtype)
+    elif action.lower() == 'destruction':
+        operator = destroy(2, dtype=dtype)
+    else:
+        raise TypeError("Unknown operator '%s'. `action` must be \
+                        either 'creation' or 'destruction.'" % action)
+
+    eye = identity(2, dtype=dtype)
+    opers = [s_z] * site + [operator] + [eye] * (n_sites - site - 1)
+    return tensor(opers)
+
+
 def _implicit_tensor_dimensions(dimensions):
     """
     Total flattened size and operator dimensions for operator creation routines
@@ -529,6 +672,30 @@ def qzero(dimensions, *, dtype=None):
                 isherm=True, isunitary=False, copy=False)
 
 
+def qzero_like(qobj):
+    """
+    Zero operator of the same dims and type as the reference.
+
+    Parameters
+    ----------
+    qobj : Qobj, QobjEvo
+        Reference quantum object to copy the dims from.
+
+    Returns
+    -------
+    qzero : qobj
+        Zero operator Qobj.
+
+    """
+    from .cy.qobjevo import QobjEvo
+    if isinstance(qobj, QobjEvo):
+        qobj = qobj(0)
+    return Qobj(
+        _data.zeros_like(qobj.data), dims=qobj.dims, type=qobj.type,
+        superrep=qobj.superrep, isherm=True, isunitary=False, copy=False
+    )
+
+
 def qeye(dimensions, *, dtype=None):
     """
     Identity operator.
@@ -578,6 +745,31 @@ isherm = True
 
 # Name alias.
 identity = qeye
+
+
+def qeye_like(qobj):
+    """
+    Identity operator with the same dims and type as the reference quantum
+    object.
+
+    Parameters
+    ----------
+    qobj : Qobj, QobjEvo
+        Reference quantum object to copy the dims from.
+
+    Returns
+    -------
+    oper : qobj
+        Identity operator Qobj.
+
+    """
+    from .cy.qobjevo import QobjEvo
+    if isinstance(qobj, QobjEvo):
+        qobj = qobj(0)
+    return Qobj(
+        _data.identity_like(qobj.data), dims=qobj.dims, type=qobj.type,
+        superrep=qobj.superrep, isherm=True, isunitary=True, copy=False
+    )
 
 
 def position(N, offset=0, *, dtype=None):
@@ -965,3 +1157,31 @@ def qft(dimensions, *, dtype="dense"):
     L, M = np.meshgrid(arr, arr)
     data = np.exp(phase * (L * M)) / np.sqrt(N2)
     return Qobj(data, dims=dimensions).to(dtype)
+
+
+def swap(N, M, *, dtype=None):
+    """
+    Operator that exchanges the order of tensored spaces:
+
+        swap(N, M) @ tensor(ketN, ketM) == tensor(ketM, ketN)
+
+    parameters
+    ----------
+    N : int
+        Number of basis states in the first Hilbert space.
+
+    M : int
+        Number of basis states in the second Hilbert space.
+    """
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+
+    if N == 1 and M == 1:
+        return qeye([1, 1], dtype=dtype)
+
+    data = np.ones(N * M)
+    rows = np.arange(N * M + 1)  # last entry is nnz
+    cols = np.ravel(M * np.arange(N)[None, :] + np.arange(M)[:, None])
+    return Qobj(
+        _data.CSR((data, cols, rows), (N * M, N * M)),
+        dims=[[M, N], [N, M]]
+    ).to(dtype)

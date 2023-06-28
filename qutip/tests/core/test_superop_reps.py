@@ -14,7 +14,7 @@ from qutip import (
     Qobj, basis, identity, sigmax, sigmay, qeye, create, rand_super,
     rand_super_bcsz, rand_dm, tensor, super_tensor, kraus_to_choi,
     to_super, to_choi, to_kraus, to_chi, to_stinespring, operator_to_vector,
-    vector_to_operator, sprepost, destroy
+    vector_to_operator, sprepost, destroy, CoreOptions
 )
 from qutip.core.gates import swap
 
@@ -171,8 +171,9 @@ class TestSuperopReps:
         Superoperator: Randomly generated superoperators are
         correctly reported as CPTP and HP.
         """
-        assert superoperator.iscptp
-        assert superoperator.ishp
+        with CoreOptions(atol=1e-9):
+            assert superoperator.iscptp
+            assert superoperator.ishp
 
     @pytest.mark.parametrize(['qobj', 'hp', 'cp', 'tp'], [
         pytest.param(sprepost(destroy(2), create(2)), True, True, False),

@@ -119,6 +119,7 @@ class HierarchyADOs:
 
         self.labels = list(state_number_enumerate(self.dims, max_depth))
         self._label_idx = {s: i for i, s in enumerate(self.labels)}
+        self.idx = self._label_idx.__getitem__
 
     def idx(self, label):
         """
@@ -134,6 +135,13 @@ class HierarchyADOs:
         -------
         int
             The index of the label within the list of ADO labels.
+
+        Note
+        ----
+        This implementation of the ``.idx(...)`` method is just for
+        reference and documentation. To avoid the cost of a Python
+        function call, it is replaced with
+        ``self._label_idx.__getitem__`` when the instance is created.
         """
         return self._label_idx[label]
 
@@ -520,7 +528,7 @@ def heomsolve(
           if the results option ``ado_return`` was set to ``True``).
           Each element is an instance of :class:`HierarchyADOsState`.
           The state of a particular ADO may be extracted from
-          ``result.ado_states[i]`` by calling :meth:`.extract`.
+          ``result.ado_states[i]`` by calling :meth:`extract`.
 
         * ``expect``: a list containing the values of each ``e_ops`` at
           time ``t``.
@@ -572,6 +580,12 @@ class HEOMSolver(Solver):
     ados : :obj:`HierarchyADOs`
         The description of the hierarchy constructed from the given bath
         and maximum depth.
+
+    rhs : :obj:`QobjEvo`
+        The right-hand side (RHS) of the hierarchy evolution ODE. Internally
+        the system and bath coupling operators are converted to
+        :class:`qutip.data.CSR` instances during construction of the RHS,
+        so the operators in the ``rhs`` will all be sparse.
     """
 
     name = "heomsolver"
@@ -617,7 +631,7 @@ class HEOMSolver(Solver):
         self._sId = _data.identity(self._sup_shape, dtype="csr")
 
         # pre-calculate superoperators required by _grad_prev and _grad_next:
-        Qs = [exp.Q for exp in self.ados.exponents]
+        Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
         self._spreQ = [spre(op).data for op in Qs]
         self._spostQ = [spost(op).data for op in Qs]
         self._s_pre_minus_post_Q = [
@@ -689,14 +703,11 @@ class HEOMSolver(Solver):
             )
         return exponents
 
-    def _grad_n(self, L, he_n):
+    def _grad_n(self, he_n):
         """ Get the gradient for the hierarchy ADO at level n. """
         vk = self.ados.vk
         vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
-        if L is not None:  # time-independent case
-            op = _data.sub(L, _data.mul(self._sId, vk_sum))
-        else:  # time-dependent case
-            op = _data.mul(self._sId, -vk_sum)
+        op = _data.mul(self._sId, -vk_sum)
         return op
 
     def _grad_prev(self, he_n, k):
@@ -811,14 +822,14 @@ class HEOMSolver(Solver):
             )
         return op
 
-    def _rhs(self, L):
+    def _rhs(self):
         """ Make the RHS for the HEOM. """
         ops = _GatherHEOMRHS(
             self.ados.idx, block=self._sup_shape, nhe=self._n_ados
         )
 
         for he_n in self.ados.labels:
-            op = self._grad_n(L, he_n)
+            op = self._grad_n(he_n)
             ops.add_op(he_n, he_n, op)
             for k in range(len(self.ados.dims)):
                 next_he = self.ados.next(he_n, k)
@@ -834,12 +845,17 @@ class HEOMSolver(Solver):
 
     def _calculate_rhs(self):
         """ Make the full RHS required by the solver. """
+        rhs_mat = self._rhs()
+        rhs_dims = [
+            [self._sup_shape * self._n_ados], [self._sup_shape * self._n_ados]
+        ]
+        h_identity = _data.identity(self._n_ados, dtype="csr")
+
         if self.L_sys.isconstant:
-            L0 = self.L_sys(0)
-            rhs_mat = self._rhs(L0.data)
-            rhs = QobjEvo(Qobj(rhs_mat, dims=[
-                self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
-            ]))
+            # For the constant case, we just add the Liouvillian to the
+            # diagonal blocks of the RHS matrix.
+            rhs_mat += _data.kron(h_identity, self.L_sys(0).to("csr").data)
+            rhs = QobjEvo(Qobj(rhs_mat, dims=rhs_dims))
         else:
             # In the time dependent case, we construct the parameters
             # for the ODE gradient function under the assumption that
@@ -850,23 +866,24 @@ class HEOMSolver(Solver):
             # This assumption holds because only _grad_n dependents on
             # the system Liouvillian (and not _grad_prev or _grad_next) and
             # the bath coupling operators are not time-dependent.
-            #
-            # By calling _rhs(None) we omit the Liouvillian completely from
-            # the RHS and then manually add back the Liouvillian afterwards.
-            rhs_mat = self._rhs(None)
-            rhs = QobjEvo(Qobj(rhs_mat))
-            h_identity = _data.identity(self._n_ados, dtype="csr")
+            rhs = QobjEvo(Qobj(rhs_mat, dims=rhs_dims))
 
             def _kron(x):
-                return Qobj(_data.kron(h_identity, x.data)).to("csr")
+                return Qobj(
+                    _data.kron(h_identity, x.data),
+                    dims=rhs_dims,
+                ).to("csr")
+
             rhs += self.L_sys.linear_map(_kron)
 
         # The assertion that rhs_mat has data type CSR is just a sanity
         # check on the RHS creation. The base solver class will still
         # convert the RHS to the type required by the ODE integrator if
-        # required.
+        # needed.
         assert isinstance(rhs_mat, _csr.CSR)
         assert isinstance(rhs, QobjEvo)
+        print(rhs.dims, rhs_dims)
+        assert rhs.dims == rhs_dims
 
         return rhs
 
@@ -905,7 +922,8 @@ class HEOMSolver(Solver):
 
         steady_ados : :class:`HierarchyADOsState`
             The steady state of the full ADO hierarchy. A particular ADO may be
-            extracted from the full state by calling :meth:`.extract`.
+            extracted from the full state by calling
+            :meth:`HEOMSolver.extract`.
         """
         if not self.L_sys.isconstant:
             raise ValueError(
@@ -1005,7 +1023,7 @@ class HEOMSolver(Solver):
               if the results option ``ado_return`` was set to ``True``).
               Each element is an instance of :class:`HierarchyADOsState`.
               The state of a particular ADO may be extracted from
-              ``result.ado_states[i]`` by calling :meth:`.extract`.
+              ``result.ado_states[i]`` by calling :meth:`extract`.
 
             * ``expect``: a list containing the values of each ``e_ops`` at
               time ``t``.
@@ -1265,15 +1283,15 @@ class _GatherHEOMRHS:
             The number of ADOs in the hierarchy.
     """
     def __init__(self, f_idx, block, nhe):
-        self._block = block
-        self._nhe = nhe
+        self._block_size = block
+        self._n_blocks = nhe
         self._f_idx = f_idx
         self._ops = []
 
     def add_op(self, row_he, col_he, op):
         """ Add an block operator to the list. """
         self._ops.append(
-            (self._f_idx(row_he), self._f_idx(col_he), _data.to["csr"](op))
+            (self._f_idx(row_he), self._f_idx(col_he), op)
         )
 
     def gather(self):
@@ -1294,48 +1312,13 @@ class _GatherHEOMRHS:
             rhs : :obj:`Data`
                 A combined matrix of shape ``(block * nhe, block * ne)``.
         """
-        block = self._block
-        nhe = self._nhe
-        ops = self._ops
-        shape = (block * nhe, block * nhe)
-        if not ops:
-            return _data.zeros(*shape, dtype="csr")
-        ops.sort()
-        nnz = sum(_csr.nnz(op) for _, _, op in ops)
-        indptr = np.zeros(shape[0] + 1, dtype=np.int32)
-        indices = np.zeros(nnz, dtype=np.int32)
-        data = np.zeros(nnz, dtype=np.complex128)
-        end = 0
-        op_idx = 0
-        op_len = len(ops)
-
-        for row_idx in range(nhe):
-            prev_op_idx = op_idx
-            while op_idx < op_len:
-                if ops[op_idx][0] != row_idx:
-                    break
-                op_idx += 1
-
-            row_ops = ops[prev_op_idx: op_idx]
-            rowpos = row_idx * block
-            for op_row in range(block):
-                for _, col_idx, op in row_ops:
-                    op = op.as_scipy()  # convert CSR to SciPy csr_matrix
-                    colpos = col_idx * block
-                    op_row_start = op.indptr[op_row]
-                    op_row_end = op.indptr[op_row + 1]
-                    op_row_len = op_row_end - op_row_start
-                    if op_row_len == 0:
-                        continue
-                    indices[end: end + op_row_len] = (
-                        op.indices[op_row_start: op_row_end] + colpos
-                    )
-                    data[end: end + op_row_len] = (
-                        op.data[op_row_start: op_row_end]
-                    )
-                    end += op_row_len
-                indptr[rowpos + op_row + 1] = end
-
-        return _csr.CSR(
-            (data, indices, indptr), shape=shape, copy=False,
+        self._ops.sort()
+        ops = np.array(self._ops, dtype=[
+            ("row", _data.base.idxint_dtype),
+            ("col", _data.base.idxint_dtype),
+            ("op", _data.CSR),
+        ])
+        return _csr._from_csr_blocks(
+            ops["row"], ops["col"], ops["op"],
+            self._n_blocks, self._block_size,
         )

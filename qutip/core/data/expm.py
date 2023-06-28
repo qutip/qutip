@@ -55,7 +55,7 @@ import inspect as _inspect
 
 expm = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='expm',
     module=__name__,
@@ -78,7 +78,7 @@ def logm_dense(matrix: Dense) -> Dense:
 
 logm = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='logm',
     module=__name__,

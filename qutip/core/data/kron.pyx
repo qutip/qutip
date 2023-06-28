@@ -70,8 +70,8 @@ import inspect as _inspect
 
 kron = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='kron',
     module=__name__,

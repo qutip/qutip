@@ -3,8 +3,6 @@ Tests for Permutational Invariant Quantum solver (PIQS).
 """
 import numpy as np
 from numpy.testing import (
-    assert_,
-    run_module_suite,
     assert_raises,
     assert_array_equal,
     assert_array_almost_equal,
@@ -130,14 +128,14 @@ class TestDicke:
         true_matrix = (excited(N) + dicke(N, 0.5, 0.5)).unit()
         test_blocks = dicke_blocks(true_matrix)
         test_matrix = Qobj(block_diag(test_blocks))
-        assert_(test_matrix == true_matrix)
+        assert (test_matrix == true_matrix)
         # test 2
         # all elements in block-diagonal matrix
         N = 4
         true_matrix = Qobj(block_matrix(N)).unit()
         test_blocks = dicke_blocks(true_matrix)
         test_matrix = Qobj(block_diag(test_blocks))
-        assert_(test_matrix == true_matrix)
+        assert (test_matrix == true_matrix)
 
     def test_dicke_blocks_full(self):
         """
@@ -148,7 +146,7 @@ class TestDicke:
         test_matrix = Qobj(block_diag(test_blocks))
         true_expanded = np.zeros((8, 8))
         true_expanded[0, 0] = 1.0
-        assert_(test_matrix == Qobj(true_expanded))
+        assert (test_matrix == Qobj(true_expanded))
 
     def test_dicke_function_trace(self):
         """
@@ -567,10 +565,10 @@ class TestDicke:
         odd = [1, 3, 5, 7]
 
         for i in even:
-            assert_(j_min(i) == 0)
+            assert (j_min(i) == 0)
 
         for i in odd:
-            assert_(j_min(i) == 0.5)
+            assert (j_min(i) == 0.5)
 
     def test_energy_degeneracy(self):
         """
@@ -1530,7 +1528,3 @@ class TestPim:
         no_hamiltonian_system = Dicke(4, emission=0.1)
         result = no_hamiltonian_system.pisolve(diag_initial_state, tlist)
         assert_equal(True, len(result.states) > 0)
-
-
-if __name__ == "__main__":
-    run_module_suite()

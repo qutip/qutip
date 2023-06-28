@@ -98,6 +98,14 @@ cdef class QobjEvo:
         ``qutip.settings.core["function_coefficient_style"]``
         is used. Otherwise the supplied value overrides the global setting.
 
+
+    boundary_conditions : 2-Tuple, str or None, optional
+        Boundary conditions for spline evaluation. Default value is `None`.
+        Correspond to `bc_type` of scipy.interpolate.make_interp_spline.
+        Refer to Scipy's documentation for further details:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.make_interp_spline.html
+
+
     Attributes
     ----------
     dims : list
@@ -180,7 +188,7 @@ cdef class QobjEvo:
     """
     def __init__(QobjEvo self, Q_object, args=None, tlist=None,
                  order=3, copy=True, compress=True,
-                 function_style=None):
+                 function_style=None, boundary_conditions=None):
         if isinstance(Q_object, QobjEvo):
             self._dims = Q_object._dims
             self.shape = Q_object.shape
@@ -210,21 +218,31 @@ cdef class QobjEvo:
                 self.elements.append(
                     self._read_element(
                         op, copy=copy, tlist=tlist, args=args, order=order,
-                        function_style=function_style
+                        function_style=function_style,
+                        boundary_conditions=boundary_conditions
                     )
                 )
         else:
             self.elements.append(
                 self._read_element(
                     Q_object, copy=copy, tlist=tlist, args=args, order=order,
-                    function_style=function_style
+                    function_style=function_style,
+                    boundary_conditions=boundary_conditions
                 )
             )
 
         if compress:
             self.compress()
 
-    def _read_element(self, op, copy, tlist, args, order, function_style):
+    def __repr__(self):
+        cls = self.__class__.__name__
+        repr_str = f'{cls}: dims = {self.dims}, shape = {self.shape}, '
+        repr_str += f'type = {self.type}, superrep = {self.superrep}, '
+        repr_str += f'isconstant = {self.isconstant}, num_elements = {self.num_elements}'
+        return repr_str
+
+    def _read_element(self, op, copy, tlist, args, order, function_style,
+                      boundary_conditions):
         """ Read a Q_object item and return an element for that item. """
         if isinstance(op, Qobj):
             out = _ConstantElement(op.copy() if copy else op)
@@ -232,7 +250,8 @@ cdef class QobjEvo:
         elif isinstance(op, list):
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
-                coefficient(op[1], tlist=tlist, args=args, order=order)
+                coefficient(op[1], tlist=tlist, args=args, order=order,
+                            boundary_conditions=boundary_conditions)
             )
             qobj = op[0]
         elif isinstance(op, _BaseElement):
@@ -419,19 +438,19 @@ cdef class QobjEvo:
         if isinstance(other, QobjEvo):
             if other._dims != self._dims:
                 raise TypeError("incompatible dimensions" +
-                                 str(self.dims) + ", " + str(other.dims))
+                                str(self.dims) + ", " + str(other.dims))
             for element in (<QobjEvo> other).elements:
                 self.elements.append(element)
         elif isinstance(other, Qobj):
             if other._dims != self._dims:
                 raise TypeError("incompatible dimensions" +
-                                 str(self.dims) + ", " + str(other.dims))
+                                str(self.dims) + ", " + str(other.dims))
             self.elements.append(_ConstantElement(other))
         elif (
             isinstance(other, numbers.Number) and
             self._dims[0] == self._dims[1]
         ):
-            self.elements.append(_ConstantElement(other * qutip.qeye(self.dims[0])))
+            self.elements.append(_ConstantElement(other * qutip.qeye_like(self)))
         else:
             return NotImplemented
         return self
@@ -792,7 +811,7 @@ cdef class QobjEvo:
 
     @property
     def superrep(self):
-        return self._dims.superrep
+        return self._dims.superrep or None
 
     ###########################################################################
     # operation methods                                                       #
@@ -926,7 +945,7 @@ cdef class QobjEvo:
         return Qobj(self.matmul_data(t, state.data),
                     dims=[self._dims[0], state._dims[1]],
                     copy=False
-                   )
+                    )
 
     cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None):
         """Compute ``out += self(t) @ state``"""

@@ -3,7 +3,7 @@ __all__ = ['Propagator', 'propagator', 'propagator_steadystate']
 import numbers
 import numpy as np
 
-from .. import Qobj, qeye, unstack_columns, QobjEvo
+from .. import Qobj, qeye, qeye_like, unstack_columns, QobjEvo, liouvillian
 from ..core import data as _data
 from .mesolve import mesolve, MESolver
 from .sesolve import sesolve, SESolver
@@ -61,12 +61,15 @@ def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
     if not isinstance(H, (Qobj, QobjEvo)):
         H = QobjEvo(H, args=args, **kwargs)
 
-    if H.issuper or c_ops:
-        out = mesolve(H, qeye(H.dims), tlist, c_ops=c_ops,
-                      args=args, options=options).states
+    if c_ops:
+        H = liouvillian(H, c_ops)
+
+    U0 = qeye_like(H)
+
+    if H.issuper:
+        out = mesolve(H, U0, tlist, args=args, options=options).states
     else:
-        out = sesolve(H, qeye(H.dims[0]), tlist,
-                      args=args, options=options).states
+        out = sesolve(H, U0, tlist, args=args, options=options).states
 
     if list_output:
         return out
@@ -212,7 +215,7 @@ class Propagator:
             self.args = args
             self.solver._argument(args)
             self.times = [0]
-            self.props = [qeye(self.props[0].dims[0])]
+            self.props = [qeye_like(self.props[0])]
             self.solver.start(self.props[0], self.times[0])
 
         if t_start:
@@ -256,7 +259,7 @@ class Propagator:
             U = self.solver.step(t)
         else:
             # Evolving backward in time is not supported by all integrator.
-            self.solver.start(qeye(self.props[0].dims[0]), t)
+            self.solver.start(qeye_like(self.props[0]), t)
             Uinv = self.solver.step(self.times[idx])
             U = self._inv(Uinv)
         return U
