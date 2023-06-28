@@ -16,7 +16,7 @@ Bug Fixes
 ---------
 - Fix setting of sso.m_ops in heterodyne smesolver and passing through of sc_ops to photocurrent solver. (#2081 by Bogdan Reznychenko and Simon Cross)
 - Update calls to SciPy eigvalsh and eigsh to pass the range of eigenvalues to return using ``subset_by_index=``. (#2081 by Simon Cross)
-- Fixed bug were some matrices were wrongly found to be hermitian. (#2082 by AGaliciaMartinez)
+- Fixed bug where some matrices were wrongly found to be hermitian. (#2082 by AGaliciaMartinez)
 
 Miscellaneous
 -------------
