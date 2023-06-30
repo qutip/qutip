@@ -1255,33 +1255,34 @@ def plot_expectation_values(results, ylabels=None, title=None, *,
 
     if fig is None:
         if axes is None:
-            fig, axes = plt.subplots(n_e_ops, 1, sharex=True,
-                                     figsize=(12, 3 * n_e_ops), squeeze=False)
+            fig, axes = plt.subplots(n_e_ops, 1, sharex=True)
         else:
             raise ValueError('figure object is necessary')
     else:
         if axes is None:
-            axes = np.array([[fig.add_subplot(n_e_ops, 1, i+1)]
+            axes = np.array([fig.add_subplot(n_e_ops, 1, i+1)
                              for i in range(n_e_ops)])
-        else:
-            if not isinstance(axes, list):
-                axes = [axes]
-            axes = np.array(axes)
+
+    # create np.ndarray if axes is one axes object or list
+    if not isinstance(axes, np.ndarray):
+        if not isinstance(axes, list):
+            axes = [axes]
+        axes = np.array(axes)
 
     for r_idx, result in enumerate(results):
         for e_idx, e in enumerate(result.expect):
-            axes[e_idx, 0].plot(result.times, e,
+            axes[e_idx].plot(result.times, e,
                                 label="%s [%d]" % (result.solver, e_idx))
 
     if title:
         fig.suptitle(title)
 
-    axes[n_e_ops - 1, 0].set_xlabel("time", fontsize=12)
+    axes[n_e_ops - 1].set_xlabel("time", fontsize=12)
     for n in range(n_e_ops):
         if ylabels:
-            axes[n, 0].set_ylabel(ylabels[n], fontsize=12)
+            axes[n].set_ylabel(ylabels[n], fontsize=12)
 
-    return fig, axes.tolist()
+    return fig, axes
 
 
 def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
