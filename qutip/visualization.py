@@ -1272,7 +1272,7 @@ def plot_expectation_values(results, ylabels=None, title=None, *,
     for r_idx, result in enumerate(results):
         for e_idx, e in enumerate(result.expect):
             axes[e_idx].plot(result.times, e,
-                                label="%s [%d]" % (result.solver, e_idx))
+                             label="%s [%d]" % (result.solver, e_idx))
 
     if title:
         fig.suptitle(title)
