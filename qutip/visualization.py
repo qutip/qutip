@@ -1175,18 +1175,18 @@ def plot_wigner_fock_distribution(rho, alpha_max=7.5, method='iterative',
     Returns
     -------
     fig, axes : tuple
-        A tuple of the matplotlib figure and array of axes objects used to produce
-        the figure.
+        A tuple of the matplotlib figure and array of axes objects
+        used to produce the figure.
     """
     if axes is None:
         if fig is None:
             fig = plt.figure()
         if projection == '2d':
             axes = np.array([fig.add_subplot(1, 2, 1),
-                    fig.add_subplot(1, 2, 2)])
+                             fig.add_subplot(1, 2, 2)])
         elif projection == '3d':
             axes = np.array([fig.add_subplot(1, 2, 1),
-                    fig.add_subplot(1, 2, 2, projection=projection)])
+                             fig.add_subplot(1, 2, 2, projection='3d')])
         else:
             raise ValueError(
                 "Unexpected value of projection keyword argument"
@@ -1244,8 +1244,8 @@ def plot_expectation_values(results, ylabels=None, title=None, *,
     Returns
     -------
     fig, axes : tuple
-        A tuple of the matplotlib figure and axes instances used to produce
-        the figure.
+        A tuple of the matplotlib figure and array of axes instances
+        used to produce the figure.
     """
     if not isinstance(results, list):
         results = [results]
@@ -1256,7 +1256,7 @@ def plot_expectation_values(results, ylabels=None, title=None, *,
         if fig is None:
             fig = plt.figure()
         axes = np.array([fig.add_subplot(n_e_ops, 1, i+1)
-                            for i in range(n_e_ops)])
+                         for i in range(n_e_ops)])
 
     # create np.ndarray if axes is one axes object or list
     if not isinstance(axes, np.ndarray):
