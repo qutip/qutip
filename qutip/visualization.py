@@ -239,8 +239,9 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     rho : qobj
         Input density matrix or superoperator.
 
-        NOTE: Hinton plots of superoperators are
-        currently only supported for qubits.
+    .. note::
+
+        Hinton plots of superoperators are currently only supported for qubits.
 
     x_basis : list of strings or False
         list of x ticklabels to represent x basis of the input.
@@ -1559,7 +1560,9 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
     especially with even number of particles of the same dimension.  Allows to
     see entanglement between first 2k particles and the rest.
 
-    NOTE: colorblind_safe does not apply because of its unique colormap
+    .. note::
+
+        colorblind_safe does not apply because of its unique colormap
 
     Parameters
     ----------
@@ -1723,7 +1726,9 @@ def plot_schmidt(ket, splitting=None, labels_iteration=(3, 2),
 
     See also: plot_qubism with how='before_after' for a similar plot.
 
-    NOTE: colorblind_safe does not apply because of its unique colormap
+    .. note::
+
+        colorblind_safe does not apply because of its unique colormap
 
     Parameters
     ----------
