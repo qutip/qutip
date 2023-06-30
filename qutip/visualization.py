@@ -775,8 +775,8 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
 
 def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
-                             threshold=None, zlims=None, *, cmap=None,
-                             colorbar=True, fig=None, ax=None):
+                             threshold=None, *, cmap=None, colorbar=True,
+                             fig=None, ax=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument
     of each element for coloring the bars, with the given x and y labels
@@ -799,9 +799,6 @@ def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
     threshold: float (None)
         Threshold for when bars of smaller height should be transparent. If
         not set, all bars are colored according to the color map.
-
-    zlims : list/array with two float numbers
-        The z-axis limits [min, max] (optional)
 
     cmap : a matplotlib colormap instance
         Color map to use when plotting.
@@ -881,15 +878,12 @@ def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
     else:
         ax.tick_params(axis='y', which='both', left=False, labelleft=False)
 
-    # z axis
-    if isinstance(zlims, list):
-        ax.set_zlim3d(zlims)
-    else:
-        ax.set_zlim3d([0, 1])
+    # limit z axis by default
+    ax.set_zlim3d([0, max(max(dz), 1)])
 
     # color axis
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.05)
         cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
         cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
         cb.set_ticklabels(
