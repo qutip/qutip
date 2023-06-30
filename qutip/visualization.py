@@ -1175,27 +1175,26 @@ def plot_wigner_fock_distribution(rho, alpha_max=7.5, method='iterative',
     Returns
     -------
     fig, axes : tuple
-        A tuple of the matplotlib figure and axes instances used to produce
+        A tuple of the matplotlib figure and array of axes objects used to produce
         the figure.
     """
-    if fig is None and axes is not None:
-        raise ValueError("figure object is neccessary")
-    if fig is None:
-        fig = plt.figure()
     if axes is None:
+        if fig is None:
+            fig = plt.figure()
         if projection == '2d':
-            axes = [fig.add_subplot(1, 2, 1),
-                    fig.add_subplot(1, 2, 2)]
+            axes = np.array([fig.add_subplot(1, 2, 1),
+                    fig.add_subplot(1, 2, 2)])
         elif projection == '3d':
-            axes = [fig.add_subplot(1, 2, 1),
-                    fig.add_subplot(1, 2, 2, projection=projection)]
+            axes = np.array([fig.add_subplot(1, 2, 1),
+                    fig.add_subplot(1, 2, 2, projection=projection)])
         else:
-            raise ValueError("Unexpected value of projection keyword argument")
-    else:
-        if not isinstance(axes, list) or len(axes) != 2:
             raise ValueError(
-                "axes must be a list of two matplotlib axes instances"
+                "Unexpected value of projection keyword argument"
                 )
+    if not isinstance(axes, np.ndarray) or len(axes) != 2:
+        raise ValueError(
+            "axes must be a np.array of two matplotlib axes instances"
+            )
 
     if isket(rho):
         rho = ket2dm(rho)
@@ -1253,15 +1252,11 @@ def plot_expectation_values(results, ylabels=None, title=None, *,
 
     n_e_ops = max([len(result.expect) for result in results])
 
-    if fig is None:
-        if axes is None:
-            fig, axes = plt.subplots(n_e_ops, 1, sharex=True)
-        else:
-            raise ValueError('figure object is necessary')
-    else:
-        if axes is None:
-            axes = np.array([fig.add_subplot(n_e_ops, 1, i+1)
-                             for i in range(n_e_ops)])
+    if axes is None:
+        if fig is None:
+            fig = plt.figure()
+        axes = np.array([fig.add_subplot(n_e_ops, 1, i+1)
+                            for i in range(n_e_ops)])
 
     # create np.ndarray if axes is one axes object or list
     if not isinstance(axes, np.ndarray):
