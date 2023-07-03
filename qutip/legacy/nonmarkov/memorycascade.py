@@ -32,6 +32,9 @@ from qutip import (
 )
 
 
+__all__ = ["MemoryCascade"]
+
+
 class MemoryCascade:
     """Class for running memory cascade simulations of open quantum systems
     with time-delayed coherent feedback.
