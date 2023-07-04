@@ -225,6 +225,18 @@ def _cb_labels(left_dims):
     ]
 
 
+def _default_cb_labels(x_labels, y_labels, matrix):
+    """
+    Creates default plot labels for matrix elements in the computational basis.
+    """
+    labels = _cb_labels(matrix.dims[0])
+    if x_labels is None:
+        x_labels = list(labels[0])
+    if y_labels is None:
+        y_labels = list(labels[1])
+    return x_labels, y_labels
+
+
 # Adopted from the SciPy Cookbook.
 def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
            label_top=True, *, cmap=None, colorbar=True, fig=None, ax=None):
@@ -313,12 +325,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
                 rho = vector_to_operator(rho.dag())
             W = rho.full()
             # Create default labels if none are given.
-            if x_basis is None or y_basis is None:
-                labels = _cb_labels(rho.dims[0])
-                if x_basis is None:
-                    x_basis = list(labels[0])
-                if y_basis is None:
-                    y_basis = list(labels[1])
+            x_basis, y_basis = _default_cb_labels(x_basis, y_basis, rho)
 
         elif rho.issuper:
             if not isqubitdims(rho.dims):
@@ -834,12 +841,7 @@ def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
 
     if isinstance(M, Qobj):
         try:
-            if x_basis is None or y_basis is None:
-                labels = _cb_labels(M.dims[0])
-                if x_basis is None:
-                    x_basis = list(labels[0])
-                if y_basis is None:
-                    y_basis = list(labels[1])
+            x_basis, y_basis = _default_cb_labels(x_basis, y_basis, M)
         except Exception:
             pass
         # extract matrix data from Qobj
