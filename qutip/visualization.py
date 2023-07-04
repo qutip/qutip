@@ -1194,10 +1194,10 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         Distribution values as a meshgrid matrix.
 
     THETA : matrix
-        Meshgrid matrix for the theta coordinate.
+        Meshgrid matrix for the theta coordinate. Its range is between 0 and pi
 
     PHI : matrix
-        Meshgrid matrix for the phi coordinate.
+        Meshgrid matrix for the phi coordinate. Its range is between 0 and 2*pi
 
     projection: string {'2d', '3d'}, default='2d'
         Specify whether the spin distribution function is to be plotted as a 2D
