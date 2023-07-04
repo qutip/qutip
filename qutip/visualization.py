@@ -996,7 +996,7 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
     return fig, ax
 
 
-def plot_fock_distribution(rho, offset=0, unit_y_range=True, *,
+def plot_fock_distribution(rho, color="green", offset=0, unit_y_range=True, *,
                            fig=None, ax=None):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
@@ -1007,8 +1007,11 @@ def plot_fock_distribution(rho, offset=0, unit_y_range=True, *,
     rho : :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
+    color: color or list of colors, default="green"
+        The colors of the bar faces.
+
     offset : int, default=0
-        Offset the fock number
+        Offset the fock number.
 
     unit_y_range : bool, default=True
         Set y-axis limits [0, 1] or not
@@ -1034,7 +1037,7 @@ def plot_fock_distribution(rho, offset=0, unit_y_range=True, *,
     N = rho.shape[0]
 
     ax.bar(np.arange(offset, offset + N), np.real(rho.diag()),
-           color="green", alpha=0.6, width=0.8)
+           color=color, alpha=0.6, width=0.8)
 
     if unit_y_range:
         ax.set_ylim(0, 1)
