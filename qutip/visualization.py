@@ -3,15 +3,12 @@ Functions for visualizing results of quantum dynamics simulations,
 visualizations of quantum states and processes.
 """
 
-__all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
-           'plot_energy_levels', 'fock_distribution',
-           'plot_fock_distribution', 'wigner_fock_distribution',
-           'plot_wigner_fock_distribution', 'plot_wigner',
-           'plot_expectation_values', 'plot_spin_distribution_2d',
-           'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
-           'complex_array_to_rgb', 'matrix_histogram',
-           'matrix_histogram_complex', 'sphereplot', 'plot_wigner_sphere',
-           'plot_spin_distribution']
+__all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
+           'matrix_histogram', 'matrix_histogram_complex',
+           'plot_energy_levels', 'plot_fock_distribution',
+           'plot_wigner', 'plot_expectation_values',
+           'plot_spin_distribution' 'complex_array_to_rgb',
+           'plot_qubism', 'plot_schmidt']
 
 import warnings
 import itertools as it
@@ -1083,10 +1080,9 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
         the figure.
     """
 
-    if projection in ('2d', '3d'):
-        fig, ax = _is_fig_and_ax(fig, ax, projection)
-    else:
+    if projection not in ('2d', '3d'):
         raise ValueError('Unexpected value of projection keyword argument')
+    fig, ax = _is_fig_and_ax(fig, ax, projection)
 
     if isket(rho):
         rho = ket2dm(rho)
@@ -1121,139 +1117,6 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
     ax.set_title("Wigner function", fontsize=12)
 
     return fig, ax
-
-
-def plot_wigner_fock_distribution(rho, alpha_max=7.5, method='iterative',
-                                  projection='2d', *, cmap=None,
-                                  colorbar=False, fig=None, axes=None):
-    """
-    Plot the Fock distribution and the Wigner function for a density matrix
-    (or ket) that describes an oscillator mode.
-
-    Parameters
-    ----------
-    rho : :class:`qutip.Qobj`
-        The density matrix (or ket) of the state to visualize.
-
-    alpha_max : float
-        The span of the x and y coordinates (both [-alpha_max, alpha_max]).
-
-    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
-        The method used for calculating the wigner function. See the
-        documentation for qutip.wigner for details.
-
-    projection: string {'2d', '3d'}
-        Specify whether the Wigner function is to be plotted as a
-        contour graph ('2d') or surface plot ('3d').
-
-    cmap : a matplotlib cmap instance
-        The colormap.
-
-    colorbar : bool
-        Whether (True) or not (False) a colorbar should be attached to the
-        Wigner function graph.
-
-    fig : a matplotlib Figure instance
-        The Figure canvas in which the plot will be drawn.
-
-    axes : a list of two matplotlib axes instances
-        The axes context in which the plot will be drawn.
-
-    Returns
-    -------
-    fig, axes : tuple
-        A tuple of the matplotlib figure and array of axes objects
-        used to produce the figure.
-    """
-    if axes is None:
-        if fig is None:
-            fig = plt.figure()
-        if projection == '2d':
-            axes = np.array([fig.add_subplot(1, 2, 1),
-                             fig.add_subplot(1, 2, 2)])
-        elif projection == '3d':
-            axes = np.array([fig.add_subplot(1, 2, 1),
-                             fig.add_subplot(1, 2, 2, projection='3d')])
-        else:
-            raise ValueError(
-                "Unexpected value of projection keyword argument"
-                )
-    if not isinstance(axes, np.ndarray) or len(axes) != 2:
-        raise ValueError(
-            "axes must be a np.array of two matplotlib axes instances"
-            )
-
-    if isket(rho):
-        rho = ket2dm(rho)
-
-    plot_fock_distribution(rho, fig=fig, ax=axes[0])
-    plot_wigner(rho, alpha_max=alpha_max, method=method, projection=projection,
-                cmap=cmap, colorbar=colorbar, fig=fig, ax=axes[1])
-
-    return fig, axes
-
-
-def plot_expectation_values(results, ylabels=None, title=None, *,
-                            fig=None, axes=None):
-    """
-    Visualize the results (expectation values) for an evolution solver.
-    `results` is assumed to be an instance of Result, or a list of Result
-    instances.
-
-    Parameters
-    ----------
-    results : (list of) :class:`qutip.solver.Result`
-        List of results objects returned by any of the QuTiP evolution solvers.
-
-    ylabels : list of strings
-        The y-axis labels. List should be of the same length as `results`.
-
-    title : string
-        The title of the figure.
-
-    fig : a matplotlib Figure instance
-        The Figure canvas in which the plot will be drawn.
-
-    axes : (list of)  axes instances
-        The axes context in which the plot will be drawn.
-
-    Returns
-    -------
-    fig, axes : tuple
-        A tuple of the matplotlib figure and array of axes instances
-        used to produce the figure.
-    """
-    if not isinstance(results, list):
-        results = [results]
-
-    n_e_ops = max([len(result.expect) for result in results])
-
-    if axes is None:
-        if fig is None:
-            fig = plt.figure()
-        axes = np.array([fig.add_subplot(n_e_ops, 1, i+1)
-                         for i in range(n_e_ops)])
-
-    # create np.ndarray if axes is one axes object or list
-    if not isinstance(axes, np.ndarray):
-        if not isinstance(axes, list):
-            axes = [axes]
-        axes = np.array(axes)
-
-    for r_idx, result in enumerate(results):
-        for e_idx, e in enumerate(result.expect):
-            axes[e_idx].plot(result.times, e,
-                             label="%s [%d]" % (result.solver, e_idx))
-
-    if title:
-        fig.suptitle(title)
-
-    axes[n_e_ops - 1].set_xlabel("time", fontsize=12)
-    for n in range(n_e_ops):
-        if ylabels:
-            axes[n].set_ylabel(ylabels[n], fontsize=12)
-
-    return fig, axes
 
 
 def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
