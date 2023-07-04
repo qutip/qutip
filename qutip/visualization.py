@@ -1122,7 +1122,7 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
     ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
 
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax)
+        cax, kw = mpl.colorbar.make_axes(ax, pad=.1)
         cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
     ax.set_title("Wigner function", fontsize=12)
@@ -1261,7 +1261,7 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
                         facecolors=cmap(norm(P)), linewidth=0)
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.1)
         cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
         cb1.set_label('magnitude')
 
