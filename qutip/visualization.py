@@ -1119,7 +1119,7 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
     return fig, ax
 
 
-def plot_expectation_values(results, ylabels=None, title=None, *,
+def plot_expectation_values(results, ylabels=None, *,
                             fig=None, axes=None):
     """
     Visualize the results (expectation values) for an evolution solver.
@@ -1131,8 +1131,7 @@ def plot_expectation_values(results, ylabels=None, title=None, *,
         List of results objects returned by any of the QuTiP evolution solvers.
     ylabels : list of strings
         The y-axis labels. List should be of the same length as `results`.
-    title : string
-        The title of the figure.
+
     fig : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
     axes : (list of)  axes instances
@@ -1164,9 +1163,6 @@ def plot_expectation_values(results, ylabels=None, title=None, *,
         for e_idx, e in enumerate(result.expect):
             axes[e_idx].plot(result.times, e,
                              label="%s [%d]" % (result.solver, e_idx))
-
-    if title:
-        fig.suptitle(title)
 
     axes[n_e_ops - 1].set_xlabel("time", fontsize=12)
     for n in range(n_e_ops):
