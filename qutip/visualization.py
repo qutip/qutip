@@ -89,7 +89,7 @@ def _set_ticklabels(ax, ticklabels, ticks, axis):
     if len(ticks) != len(ticklabels):
         raise ValueError(
             f"got {len(ticklabels)} ticklabels but needed {len(ticks)}"
-            )
+        )
     if axis == 'x':
         ax.set_xticks(ticks)
         ax.set_xticklabels(ticklabels, fontsize=14)
@@ -99,7 +99,7 @@ def _set_ticklabels(ax, ticklabels, ticks, axis):
     else:
         raise ValueError(
             "axis must be either 'x' or 'y'"
-            )
+        )
 
 
 def plot_wigner_sphere(fig, ax, wigner, reflections):
