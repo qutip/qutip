@@ -7,7 +7,7 @@ __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
            'matrix_histogram', 'matrix_histogram_complex',
            'plot_energy_levels', 'plot_fock_distribution',
            'plot_wigner', 'plot_expectation_values',
-           'plot_spin_distribution' 'complex_array_to_rgb',
+           'plot_spin_distribution', 'complex_array_to_rgb',
            'plot_qubism', 'plot_schmidt']
 
 import warnings
@@ -420,10 +420,10 @@ def sphereplot(theta, phi, values, *,
     Parameters
     ----------
     theta : float
-        Angle with respect to z-axis
+        Angle with respect to z-axis. Its range is between 0 and pi
 
     phi : float
-        Angle in x-y plane
+        Angle in x-y plane. Its range is between 0 and 2*pi
 
     values : array
         Data set to be plotted
