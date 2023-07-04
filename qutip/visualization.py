@@ -196,8 +196,7 @@ def _blob(x, y, w, w_max, area, color_fn, ax=None):
     else:
         handle = plt
 
-    handle.fill(xcorners, ycorners,
-             color=color_fn(w))
+    handle.fill(xcorners, ycorners, color=color_fn(w))
 
 
 def _cb_labels(left_dims):
@@ -232,7 +231,7 @@ def _cb_labels(left_dims):
 # Adopted from the SciPy Cookbook.
 def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
            label_top=True, *, cmap=None, colorbar=True, fig=None, ax=None):
-    """Draws a Hinton diagram for visualizing a density matrix or superoperator.
+    """Draws a Hinton diagram to visualize a density matrix or superoperator.
 
     Parameters
     ----------
@@ -464,7 +463,7 @@ def sphereplot(theta, phi, values, *,
     if colorbar:
         # create new axes on plot for colorbar and shrink it a bit.
         # pad shifts location of bar with repsect to the main plot
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.05)
 
         # create new colorbar in axes cax with cmap and normalized to nrm like
         # our facecolors
@@ -993,12 +992,6 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
     return fig, ax
 
 
-def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
-                         figsize=(8, 12), fig=None, ax=None):
-    warnings.warn("Deprecated: Use plot_energy_levels")
-    return plot_energy_levels(H_list, N=N, fig=fig, ax=ax)
-
-
 def plot_fock_distribution(rho, offset=0, unit_y_range=True, *,
                            fig=None, ax=None):
     """
@@ -1046,12 +1039,6 @@ def plot_fock_distribution(rho, offset=0, unit_y_range=True, *,
     ax.set_ylabel('Occupation probability', fontsize=12)
 
     return fig, ax
-
-
-def fock_distribution(rho, offset=0, fig=None, ax=None,
-                      figsize=(8, 6), title=None, unit_y_range=True):
-    warnings.warn("Deprecated: Use plot_fock_distribution")
-    return plot_fock_distribution(rho, offset=offset, fig=fig, ax=ax)
 
 
 def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
@@ -1206,17 +1193,6 @@ def plot_wigner_fock_distribution(rho, alpha_max=7.5, method='iterative',
     return fig, axes
 
 
-def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
-                             cmap=None, alpha_max=7.5, colorbar=False,
-                             method='iterative'):
-    warnings.warn("Deprecated: Use plot_wigner_fock_distribution")
-    return plot_wigner_fock_distribution(rho, fig=fig, axes=axes,
-                                         figsize=figsize, cmap=cmap,
-                                         alpha_max=alpha_max,
-                                         colorbar=colorbar,
-                                         method=method)
-
-
 def plot_expectation_values(results, ylabels=None, title=None, *,
                             fig=None, axes=None):
     """
@@ -1360,19 +1336,6 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         cb1.set_label('magnitude')
 
     return fig, ax
-
-
-def plot_spin_distribution_2d(P, THETA, PHI,
-                              fig=None, ax=None, figsize=(8, 8)):
-    warnings.warn("Deprecated: Use plot_spin_distribution")
-    return plot_spin_distribution(P, THETA, PHI, fig=fig, ax=ax)
-
-
-def plot_spin_distribution_3d(P, THETA, PHI,
-                              fig=None, ax=None, figsize=(8, 6)):
-    warnings.warn("Deprecated: Use plot_spin_distribution")
-    return plot_spin_distribution(P, THETA, PHI, projection='3d',
-                                  fig=fig, ax=ax)
 
 
 #
