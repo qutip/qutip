@@ -833,6 +833,15 @@ def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
     ax.view_init(azim=-35, elev=35)
 
     if isinstance(M, Qobj):
+        try:
+            if x_basis is None or y_basis is None:
+                labels = _cb_labels(M.dims[0])
+                if x_basis is None:
+                    x_basis = list(labels[0])
+                if y_basis is None:
+                    y_basis = list(labels[1])
+        except Exception:
+            pass
         # extract matrix data from Qobj
         M = M.full()
 
@@ -887,7 +896,7 @@ def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
 
     # color axis
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.05)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.1)
         cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
         cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
         cb.set_ticklabels(
