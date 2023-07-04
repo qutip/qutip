@@ -351,17 +351,24 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
         w_max = 1.0
 
     # Set color_fn here.
-    if cmap is None:
-        cmap = _diverging_cmap()
     if color_style == "scaled":
+        if cmap is None:
+            cmap = _diverging_cmap()
+
         def color_fn(w):
             w = np.abs(w) * np.sign(np.real(w))
             return cmap(int((w + w_max) * 256 / (2 * w_max)))
     elif color_style == "threshold":
+        if cmap is None:
+            cmap = _diverging_cmap()
+
         def color_fn(w):
             w = np.real(w)
             return cmap(255 if w > 0 else 0)
     elif color_style == "phase":
+        if cmap is None:
+            cmap = _cyclic_cmap()
+
         def color_fn(w):
             return cmap(int(255 * (np.angle(w) / 2 / np.pi + 0.5)))
     else:
@@ -1052,7 +1059,8 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
     alpha_max : float, default=7.5
         The span of the x and y coordinates (both [-alpha_max, alpha_max]).
 
-    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}, default='clenshaw'
+    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'},
+        default='clenshaw'
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
 
