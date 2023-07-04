@@ -1119,6 +1119,63 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
     return fig, ax
 
 
+def plot_expectation_values(results, ylabels=None, title=None, *,
+                            fig=None, axes=None):
+    """
+    Visualize the results (expectation values) for an evolution solver.
+    `results` is assumed to be an instance of Result, or a list of Result
+    instances.
+    Parameters
+    ----------
+    results : (list of) :class:`qutip.solver.Result`
+        List of results objects returned by any of the QuTiP evolution solvers.
+    ylabels : list of strings
+        The y-axis labels. List should be of the same length as `results`.
+    title : string
+        The title of the figure.
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+    axes : (list of)  axes instances
+        The axes context in which the plot will be drawn.
+    Returns
+    -------
+    fig, axes : tuple
+        A tuple of the matplotlib figure and array of axes instances
+        used to produce the figure.
+    """
+    if not isinstance(results, list):
+        results = [results]
+
+    n_e_ops = max([len(result.expect) for result in results])
+
+    if axes is None:
+        if fig is None:
+            fig = plt.figure()
+        axes = np.array([fig.add_subplot(n_e_ops, 1, i+1)
+                         for i in range(n_e_ops)])
+
+    # create np.ndarray if axes is one axes object or list
+    if not isinstance(axes, np.ndarray):
+        if not isinstance(axes, list):
+            axes = [axes]
+        axes = np.array(axes)
+
+    for r_idx, result in enumerate(results):
+        for e_idx, e in enumerate(result.expect):
+            axes[e_idx].plot(result.times, e,
+                             label="%s [%d]" % (result.solver, e_idx))
+
+    if title:
+        fig.suptitle(title)
+
+    axes[n_e_ops - 1].set_xlabel("time", fontsize=12)
+    for n in range(n_e_ops):
+        if ylabels:
+            axes[n].set_ylabel(ylabels[n], fontsize=12)
+
+    return fig, axes
+
+
 def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
                            cmap=None, colorbar=False, fig=None, ax=None):
     """
