@@ -239,13 +239,13 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
 
         Hinton plots of superoperators are currently only supported for qubits.
 
-    x_basis : list of strings or False
+    x_basis : list of strings, optional
         list of x ticklabels to represent x basis of the input.
 
-    y_basis : list of strings or False
+    y_basis : list of strings, optional
         list of y ticklabels to represent y basis of the input.
 
-    color_style : string
+    color_style : string, default="scaled"
         Determines how colors are assigned to each square:
 
         -  If set to ``"scaled"`` (default), each color is chosen by
@@ -258,20 +258,20 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
         -  If set to ``"phase"``, each color is chosen according to
            the angle of the corresponding matrix element.
 
-    label_top : bool
+    label_top : bool, default=True
         If True, x ticklabels will be placed on top, otherwise
         they will appear below the plot.
 
-    cmap : a matplotlib colormap instance
+    cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
 
-    colorbar : bool
+    colorbar : bool, default=True
         Whether (True) or not (False) a colorbar should be attached.
 
-    fig : a matplotlib Figure instance
+    fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
 
-    ax : a matplotlib axes instance
+    ax : a matplotlib axes instance, optional
         The ax context in which the plot will be drawn.
 
     Returns
@@ -421,16 +421,16 @@ def sphereplot(theta, phi, values, *,
     values : array
         Data set to be plotted
 
-    cmap : a matplotlib colormap instance
+    cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
 
-    colorbar : bool
+    colorbar : bool, default=True
         Whether (True) or not (False) a colorbar should be attached.
 
-    fig : a matplotlib Figure instance
+    fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
 
-    ax : a matplotlib axes instance
+    ax : a matplotlib axes instance, optional
         The axes context in which the plot will be drawn.
 
     Returns
@@ -784,29 +784,29 @@ def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
     M : Matrix of Qobj
         The matrix to visualize
 
-    x_basis : list of strings or False
+    x_basis : list of strings or False, optional
         list of x ticklabels to represent x basis of the input.
 
-    y_basis : list of strings or False
+    y_basis : list of strings or False, optional
         list of y ticklabels to represent y basis of the input.
 
-    phase_limits : list/array with two float numbers
+    phase_limits : list/array with two float numbers, optional
         The phase-axis (colorbar) limits [min, max] (optional)
 
-    threshold: float (None)
+    threshold: float, optional
         Threshold for when bars of smaller height should be transparent. If
         not set, all bars are colored according to the color map.
 
-    cmap : a matplotlib colormap instance
+    cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
 
-    colorbar : bool
+    colorbar : bool, optional
         Whether (True) or not (False) a colorbar should be attached.
 
-    fig : a matplotlib Figure instance
+    fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
 
-    ax : a matplotlib axes instance
+    ax : a matplotlib axes instance, optional
         The axes context in which the plot will be drawn.
 
     Returns
@@ -904,20 +904,20 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
         H_list : List of Qobj
             A list of Hamiltonians.
 
-        h_lables : List of string
+        h_lables : List of string, optional
             A list of xticklabels for each Hamiltonian
 
-        energy_levels : List of string
+        energy_levels : List of string, optional
             A list of  yticklabels to the left of energy levels of the initial
             Hamiltonian.
 
-        N : int
+        N : int, default=0
             The number of energy levels to plot
 
-        fig : a matplotlib Figure instance
+        fig : a matplotlib Figure instance, optional
             The Figure canvas in which the plot will be drawn.
 
-        ax : a matplotlib axes instance
+        ax : a matplotlib axes instance, optional
             The axes context in which the plot will be drawn.
 
     Returns
@@ -1000,16 +1000,16 @@ def plot_fock_distribution(rho, offset=0, unit_y_range=True, *,
     rho : :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
-    offset : int
+    offset : int, default=0
         Offset the fock number
 
-    unit_y_range : bool
+    unit_y_range : bool, default=True
         Set y-axis limits [0, 1] or not
 
-    fig : a matplotlib Figure instance
+    fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
 
-    ax : a matplotlib axes instance
+    ax : a matplotlib axes instance, optional
         The axes context in which the plot will be drawn.
 
     Returns
@@ -1049,28 +1049,28 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
     rho : :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
-    alpha_max : float
+    alpha_max : float, default=7.5
         The span of the x and y coordinates (both [-alpha_max, alpha_max]).
 
-    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
+    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}, default='clenshaw'
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
 
-    projection: string {'2d', '3d'}
+    projection: string {'2d', '3d'}, default='2d'
         Specify whether the Wigner function is to be plotted as a
         contour graph ('2d') or surface plot ('3d').
 
-    cmap : a matplotlib cmap instance
+    cmap : a matplotlib cmap instance, optional
         The colormap.
 
-    colorbar : bool
+    colorbar : bool, default=False
         Whether (True) or not (False) a colorbar should be attached to the
         Wigner function graph.
 
-    fig : a matplotlib Figure instance
+    fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
 
-    ax : a matplotlib axes instance
+    ax : a matplotlib axes instance, optional
         The axes context in which the plot will be drawn.
 
     Returns
@@ -1129,13 +1129,16 @@ def plot_expectation_values(results, ylabels=None, *,
     ----------
     results : (list of) :class:`qutip.solver.Result`
         List of results objects returned by any of the QuTiP evolution solvers.
-    ylabels : list of strings
+
+    ylabels : list of strings, optional
         The y-axis labels. List should be of the same length as `results`.
 
-    fig : a matplotlib Figure instance
+    fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
-    axes : (list of)  axes instances
+
+    axes : (list of)  axes instances, optional
         The axes context in which the plot will be drawn.
+
     Returns
     -------
     fig, axes : tuple
@@ -1188,22 +1191,22 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
     PHI : matrix
         Meshgrid matrix for the phi coordinate.
 
-    projection: string {'2d', '3d'}
+    projection: string {'2d', '3d'}, default='2d'
         Specify whether the spin distribution function is to be plotted as a 2D
         projection where the surface of the unit sphere is mapped on
         the unit disk ('2d') or surface plot ('3d').
 
-    cmap : a matplotlib cmap instance
+    cmap : a matplotlib cmap instance, optional
         The colormap.
 
-    colorbar : bool
+    colorbar : bool, default=False
         Whether (True) or not (False) a colorbar should be attached to the
         Wigner function graph.
 
-    fig : a matplotlib figure instance
+    fig : a matplotlib figure instance, optional
         The figure canvas on which the plot will be drawn.
 
-    ax : a matplotlib axis instance
+    ax : a matplotlib axis instance, optional
         The axis context in which the plot will be drawn.
 
     Returns
@@ -1273,10 +1276,10 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
     X : array
         Array (of any dimension) of complex numbers.
 
-    theme : 'light' (default) or 'dark'
+    theme : 'light' or 'dark', default='light'
         Set coloring theme for mapping complex values into colors.
 
-    rmax : float
+    rmax : float, optional
         Maximal abs value for color normalization.
         If None (default), uses np.abs(X).max().
 
@@ -1444,31 +1447,31 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
     ket : Qobj
         Pure state for plotting.
 
-    theme : 'light' (default) or 'dark'
+    theme : 'light' or 'dark', default='light'
         Set coloring theme for mapping complex values into colors.
         See: complex_array_to_rgb.
 
-    how : 'pairs' (default), 'pairs_skewed' or 'before_after'
+    how : 'pairs', 'pairs_skewed' or 'before_after', default='pairs'
         Type of Qubism plotting.  Options:
 
         - 'pairs' - typical coordinates,
         - 'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
         - 'before_after' - related to Schmidt plot (see also: plot_schmidt).
 
-    grid_iteration : int (default 1)
+    grid_iteration : int, default=1
         Helper lines to be drawn on plot.
         Show tiles for 2*grid_iteration particles vs all others.
 
-    legend_iteration : int (default 0) or 'grid_iteration' or 'all'
+    legend_iteration : int or 'grid_iteration' or 'all', default=0
         Show labels for first ``2*legend_iteration`` particles.  Option
         'grid_iteration' sets the same number of particles as for
         grid_iteration.  Option 'all' makes label for all particles.  Typically
         it should be 0, 1, 2 or perhaps 3.
 
-    fig : a matplotlib figure instance
+    fig : a matplotlib figure instance, optional
         The figure canvas on which the plot will be drawn.
 
-    ax : a matplotlib axis instance
+    ax : a matplotlib axis instance, optional
         The axis context in which the plot will be drawn.
 
     Returns
@@ -1592,8 +1595,8 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
     return fig, ax
 
 
-def plot_schmidt(ket, splitting=None, labels_iteration=(3, 2),
-                 theme='light', *, fig=None, ax=None):
+def plot_schmidt(ket, theme='light', splitting=None,
+                 labels_iteration=(3, 2), *, fig=None, ax=None):
     """
     Plotting scheme related to Schmidt decomposition.
     Converts a state into a matrix (A_ij -> A_i^j),
@@ -1610,22 +1613,22 @@ def plot_schmidt(ket, splitting=None, labels_iteration=(3, 2),
     ket : Qobj
         Pure state for plotting.
 
-    splitting : int
-        Plot for a number of first particles versus the rest.
-        If not given, it is (number of particles + 1) // 2.
-
-    theme : 'light' (default) or 'dark'
+    theme : 'light' or 'dark', default='light'
         Set coloring theme for mapping complex values into colors.
         See: complex_array_to_rgb.
 
-    labels_iteration : int or pair of ints (default (3,2))
+    splitting : int, optional
+        Plot for a number of first particles versus the rest.
+        If not given, it is (number of particles + 1) // 2.
+
+    labels_iteration : int or pair of ints, default=(3,2)
         Number of particles to be shown as tick labels,
         for first (vertical) and last (horizontal) particles, respectively.
 
-    fig : a matplotlib figure instance
+    fig : a matplotlib figure instance, optional
         The figure canvas on which the plot will be drawn.
 
-    ax : a matplotlib axis instance
+    ax : a matplotlib axis instance, optional
         The axis context in which the plot will be drawn.
 
     Returns
