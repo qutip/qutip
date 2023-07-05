@@ -70,7 +70,7 @@ cdef class _converter:
                 + ">")
 
 
-def dummyconverter(arg):
+def identity_converter(arg):
     return arg
 
 
