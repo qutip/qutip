@@ -85,17 +85,17 @@ def _is_fig_and_ax(fig, ax, projection='2d'):
     return fig, ax
 
 
-def _set_ticklabels(ax, ticklabels, ticks, axis):
+def _set_ticklabels(ax, ticklabels, ticks, axis, fontsize=14):
     if len(ticks) != len(ticklabels):
         raise ValueError(
             f"got {len(ticklabels)} ticklabels but needed {len(ticks)}"
         )
     if axis == 'x':
         ax.set_xticks(ticks)
-        ax.set_xticklabels(ticklabels, fontsize=14)
+        ax.set_xticklabels(ticklabels, fontsize=fontsize)
     elif axis == 'y':
         ax.set_yticks(ticks)
-        ax.set_yticklabels(ticklabels, fontsize=14)
+        ax.set_yticklabels(ticklabels, fontsize=fontsize)
     else:
         raise ValueError(
             "axis must be either 'x' or 'y'"
@@ -1007,22 +1007,22 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
     return fig, ax
 
 
-def plot_fock_distribution(rho, color="green", offset=0, unit_y_range=True, *,
-                           fig=None, ax=None):
+def plot_fock_distribution(rho, fock_numbers=None, color="green",
+                           unit_y_range=True, *, fig=None, ax=None):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho :`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
-    color: color or list of colors, default="green"
-        The colors of the bar faces.
+    fock_numbers : list of strings, optional
+        list of x ticklabels to represent fock numbers
 
-    offset : int, default=0
-        Offset the fock number.
+    color : color or list of colors, default="green"
+        The colors of the bar faces.
 
     unit_y_range : bool, default=True
         Set y-axis limits [0, 1] or not
@@ -1047,12 +1047,15 @@ def plot_fock_distribution(rho, color="green", offset=0, unit_y_range=True, *,
 
     N = rho.shape[0]
 
-    ax.bar(np.arange(offset, offset + N), np.real(rho.diag()),
+    ax.bar(np.arange(N), np.real(rho.diag()),
            color=color, alpha=0.6, width=0.8)
+
+    if fock_numbers:
+        _set_ticklabels(ax, fock_numbers, np.arange(N), 'x', fontsize=12)
 
     if unit_y_range:
         ax.set_ylim(0, 1)
-    ax.set_xlim(-.5 + offset, N + offset)
+    ax.set_xlim(-.5, N)
     ax.set_xlabel('Fock number', fontsize=12)
     ax.set_ylabel('Occupation probability', fontsize=12)
 
