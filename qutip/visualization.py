@@ -1059,8 +1059,9 @@ def plot_fock_distribution(rho, color="green", offset=0, unit_y_range=True, *,
     return fig, ax
 
 
-def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
-                cmap=None, colorbar=False, fig=None, ax=None):
+def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
+                projection='2d', *, cmap=None, colorbar=False,
+                fig=None, ax=None):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1070,8 +1071,12 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
     rho : :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
-    alpha_max : float, default=7.5
-        The span of the x and y coordinates (both [-alpha_max, alpha_max]).
+    xvec : array_like, optional
+        x-coordinates at which to calculate the Wigner function.
+
+    yvec : array_like, optional
+        y-coordinates at which to calculate the Wigner function.  Does not
+        apply to the 'fft' method.
 
     method : string {'clenshaw', 'iterative', 'laguerre', 'fft'},
         default='clenshaw'
@@ -1109,10 +1114,14 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
     if isket(rho):
         rho = ket2dm(rho)
 
-    xvec = np.linspace(-alpha_max, alpha_max, 200)
-    W0 = wigner(rho, xvec, xvec, method=method)
+    if xvec is None:
+        xvec = np.linspace(-7.5, 7.5, 200)
+    if yvec is None:
+        yvec = np.linspace(-7.5, 7.5, 200)
 
-    W, yvec = W0 if isinstance(W0, tuple) else (W0, xvec)
+    W0 = wigner(rho, xvec, yvec, method=method)
+
+    W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)
 
     wlim = abs(W).max()
     norm = mpl.colors.Normalize(-wlim, wlim)
@@ -1122,12 +1131,9 @@ def plot_wigner(rho, alpha_max=7.5, method='clenshaw', projection='2d', *,
     if projection == '2d':
         cf = ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)
     else:
-        X, Y = np.meshgrid(xvec, xvec)
+        X, Y = np.meshgrid(xvec, yvec)
         cf = ax.plot_surface(X, Y, W0, rstride=5, cstride=5, linewidth=0.5,
                              norm=norm, cmap=cmap)
-
-    if xvec is not yvec:
-        ax.set_ylim(xvec.min(), xvec.max())
 
     ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
     ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
