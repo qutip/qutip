@@ -7,6 +7,7 @@ import itertools
 import warnings
 
 from .convert import to as _to
+from .convert import EPSILON
 
 cimport cython
 from libc cimport math
@@ -33,9 +34,9 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out
         )
     if out:
         n = n - 1
-        weight += weight_map[froms[n], tos[n]]
+        weight = weight + weight_map[froms[n], tos[n]]
     for i in range(n):
-        weight += weight_map[tos[i], froms[i]]
+        weight = weight + weight_map[tos[i], froms[i]]
     return weight
 
 
@@ -307,7 +308,7 @@ cdef class Dispatcher:
         if cur == math.INFINITY:
             raise ValueError("No valid specialisations found")
 
-        if weight <= 0.01 and not (output and types[-1] is Data):
+        if weight in [EPSILON, 0.] and not (output and types[-1] is Data):
             self._lookup[in_types] = function
         else:
             if output:
