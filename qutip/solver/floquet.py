@@ -647,6 +647,10 @@ def fmmesolve(
         - max_step : float, 0
           Maximum lenght of one internal step. When using pulses, it should be
           less than half the width of the thinnest pulse.
+        - use_herm_matmul: bool, default=False
+          Whether to use a an algorithm that use the hermiticity of the density
+          matrix to speed up computations. While this is the most common case,
+          the default is ``False`` for robusteness.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
@@ -761,6 +765,7 @@ class FMESolver(MESolver):
         "normalize_output": True,
         "method": "adams",
         "store_floquet_states": False,
+        "use_herm_matmul" : False,
     }
 
     def __init__(
@@ -790,6 +795,7 @@ class FMESolver(MESolver):
                 nT=nT,
             )
         )
+        self._rhs = self._update_rhs()
 
         self._integrator = self._get_integrator()
         self._state_metadata = {}

@@ -4,7 +4,7 @@ Class to represent a stochastic differential equation system.
 """
 
 from qutip.core import data as _data
-from qutip.core.cy.qobjevo cimport QobjEvo
+from qutip.core.cy.qobjevo cimport QobjEvo, QobjEvoHerm
 from qutip.core.data cimport Data, dense, Dense, imul_dense, iadd_dense
 from qutip.core.data.trace cimport trace_oper_ket_dense
 cimport cython
@@ -188,7 +188,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef complex[:, :, ::1] _Lb
     cdef complex[:, :, :, ::1] _LLb
 
-    def __init__(self, H, sc_ops, c_ops=(), derr_dt=1e-6):
+    def __init__(self, H, sc_ops, c_ops=(), derr_dt=1e-6, herm_matmul=False):
         if H.issuper:
             self.L = H + liouvillian(None, sc_ops)
         else:
@@ -197,6 +197,10 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self.L = self.L + liouvillian(None, c_ops)
 
         self.c_ops = [spre(op) + spost(op.dag()) for op in sc_ops]
+        print("herm_matmul", herm_matmul)
+        if herm_matmul:
+            self.L = QobjEvoHerm(self.L)
+            self.c_ops = [QobjEvoHerm(op) for op in self.c_ops]
         self.num_collapse = len(self.c_ops)
         self.state_size = self.L.shape[1]
         self._is_set = 0

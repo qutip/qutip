@@ -22,7 +22,8 @@ _x_a_op = [qutip.sigmax(), coeff]
     pytest.param([_m_c_op, _z_c_op], [_z_c_op], [_x_a_op],
                  id="me collapse-br collapse-br coupling"),
 ])
-def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
+@pytest.mark.parametrize("use_herm_matmul", [True, False])
+def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops, use_herm_matmul):
     """
     Test that the BR solver handles collapse and coupling operators correctly
     relative to the standard ME solver.
@@ -34,7 +35,7 @@ def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
     psi0 = (2 * qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
     times = np.linspace(0, 10, 100)
     me = qutip.mesolve(H, psi0, times, c_ops=me_c_ops, e_ops=e_ops)
-    opt = {"tensor_type": "dense"}
+    opt = {"tensor_type": "dense", "use_herm_matmul": use_herm_matmul}
     brme = brmesolve(
         H, psi0, times,
         a_ops=brme_a_ops, c_ops=brme_c_ops,

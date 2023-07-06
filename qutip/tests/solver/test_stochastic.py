@@ -59,6 +59,7 @@ def test_smesolve(heterodyne, system):
     options = {
         "store_measurement": False,
         "map": "serial",
+        "use_herm_matmul": True,
     }
 
     res = smesolve(

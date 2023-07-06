@@ -111,6 +111,10 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
         - max_step : float, 0
           Maximum lenght of one internal step. When using pulses, it should be
           less than half the width of the thinnest pulse.
+        - use_herm_matmul: bool, default=False
+          Whether to use a an algorithm that use the hermiticity of the density
+          matrix to speed up computations. While this is the most common case,
+          the default is ``False`` for robusteness.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
@@ -256,7 +260,7 @@ class MESolver(SESolver):
             Which ordinary differential equation integration method to use.
 
         use_herm_matmul: bool, default=False
-            Whether to use a an algorythm that only compute the upper part of
+            Whether to use a an algorithm that only compute the upper part of
             of the density matrix in internal computation. Only valid when the
             state is always Hermitian. While this is the most common case, the
             default is ``False`` for robusteness.
