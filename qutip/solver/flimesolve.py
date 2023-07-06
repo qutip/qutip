@@ -440,14 +440,9 @@ class FLiMESolver(MESolver):
             c_op_rates,
             Hargs,
             time_sense=time_sense)
-
-        # Rate_Qobj_list = [Qobj(
-        #     RateMat, type="super", superrep="super", copy=False
         Rate_Qobj_list = [Qobj(
             RateMat, dims=[self.floquet_basis.U(0).dims, self.floquet_basis.U(0).dims], type="super", superrep="super", copy=False
         ) for RateMat in RateDic.values()]
-        # for rate_matrix in Rate_Qobj_list:
-        #     rate_matrix.dims =  floquet_basis.U(0).dims
         R0 = Rate_Qobj_list[0]
 
         Rt_timedep_pairs = [list(
