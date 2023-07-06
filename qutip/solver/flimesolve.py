@@ -14,7 +14,6 @@ import numpy as np
 from qutip.core import data as _data
 from qutip import Qobj, QobjEvo, operator_to_vector
 from .mesolve import MESolver
-from .integrator import qutip_integrator
 from .solver_base import Solver
 from .result import Result
 from time import time
@@ -68,6 +67,7 @@ def _floquet_rate_matrix(floquet_basis,
     First,divide all quasienergies by omega to get everything in terms of
         omega.
     '''
+
     def delta(a, ap, b, bp, l, lp):
         return ((floquet_basis.e_quasi[a] - floquet_basis.e_quasi[ap])
                 - (floquet_basis.e_quasi[b] - floquet_basis.e_quasi[bp])) \
