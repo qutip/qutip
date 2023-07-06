@@ -7,6 +7,7 @@ eps0 = 1.0 * 2 * np.pi
 A = 0.25 * 2 * np.pi
 omega = 1.0 * 2 * np.pi
 T = 2 * np.pi / omega
+
 tlist = np.linspace(0.0, 20 * T, 301)
 psi0 = qutip.basis(2, 0)
 
