@@ -35,6 +35,7 @@ for idx, t in enumerate(tlist):
     # Alternatively
     psi_t = output.states[idx]
     p_ex[idx] = qutip.expect(qutip.num(2), psi_t)
+
 # For reference: calculate the same thing with mesolve
 output = qutip.mesolve(H, psi0, tlist,
                        [np.sqrt(gamma1) * qutip.sigmax()], [qutip.num(2)],

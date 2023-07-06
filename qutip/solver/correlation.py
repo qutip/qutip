@@ -15,6 +15,7 @@ from .floquet import FloquetBasis
 from .flimesolve import FLiMESolver
 from .mesolve import MESolver
 from .mcsolve import MCSolver
+
 from .brmesolve import BRSolver
 from .heom.bofin_solvers import HEOMSolver
 from .steadystate import steadystate
@@ -347,9 +348,7 @@ def coherence_function_g1(
         n = solver.run(state0, taulist, e_ops=[a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G1 and normalize with n to obtain g1
-    G1 = correlation_3op(
-        solver, state0, [0], taulist, None, a_op.dag(), a_op
-    )[0]
+    G1 = correlation_3op(solver, state0, [0], taulist, None, a_op.dag(), a_op)[0]
 
     g1 = G1 / np.sqrt(n[0] * np.array(n))[0]
     return g1, G1

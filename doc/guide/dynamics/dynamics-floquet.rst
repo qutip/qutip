@@ -93,7 +93,7 @@ Consider for example the case of a strongly driven two-level atom, described by 
 In QuTiP we can define this Hamiltonian as follows:
 
 .. plot::
-   :context: close-figs
+   :context: reset
 
    >>> delta = 0.2 * 2*np.pi
    >>> eps0 = 1.0 * 2*np.pi
@@ -107,7 +107,7 @@ In QuTiP we can define this Hamiltonian as follows:
 The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qubit` can then be calculated using the :class:`qutip.FloquetBasis` class, which encapsulates the Floquet modes and the quasienergies:
 
 .. plot::
-   :context:
+   :context: close-figs
 
    >>> T = 2*np.pi / omega
    >>> floquet_basis = FloquetBasis(H, T, args)
@@ -131,7 +131,7 @@ For certain driving amplitudes the quasienergy levels cross.
 Since the quasienergies can be associated with the time-scale of the long-term dynamics due that the driving, degenerate quasienergies indicates a "freezing" of the dynamics (sometimes known as coherent destruction of tunneling).
 
 .. plot::
-   :context:
+   :context: close-figs
 
    >>> delta = 0.2 * 2 * np.pi
    >>> eps0  = 0.0 * 2 * np.pi
@@ -175,7 +175,7 @@ The purpose of calculating the Floquet modes is to find the wavefunction solutio
 To do that, we first need to decompose the initial state in the Floquet states, using the function :meth:`FloquetBasis.to_floquet_basis`
 
 .. plot::
-   :context:
+   :context: close-figs
 
    >>> psi0 = rand_ket(2)
    >>> f_coeff = floquet_basis.to_floquet_basis(psi0)
@@ -186,7 +186,7 @@ To do that, we first need to decompose the initial state in the Floquet states, 
 and given this decomposition of the initial state in the Floquet states we can easily evaluate the wavefunction that is the solution to :eq:`eq_driven_qubit` at an arbitrary time :math:`t` using the function :meth:`FloquetBasis.from_floquet_basis`:
 
 .. plot::
-   :context:
+   :context: close-figs
 
    >>> t = 10 * np.random.rand()
    >>> psi_t = floquet_basis.from_floquet_basis(f_coeff, t)
@@ -283,6 +283,11 @@ Finally, :func:`qutip.solver.floquet.fmmesolve`  always expects the ``e_ops`` to
 
     output = fmmesolve(H, psi0, tlist, [sigmax()], e_ops=[num(2)], spectra_cb=[noise_spectrum], T=T, args=args)
     p_ex = output.expect[0]
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:
 
 The Floquet-Lindblad master equation in QuTiP
 -------------------------------------------
