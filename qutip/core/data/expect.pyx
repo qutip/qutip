@@ -13,11 +13,14 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr, CSR, Dense
+from .inner import inner
+from .trace import trace, trace_oper_ket
+from .matmul import matmul
 
 __all__ = [
-    'expect', 'expect_csr', 'expect_csr_dense', 'expect_dense',
+    'expect', 'expect_csr', 'expect_csr_dense', 'expect_dense', 'expect_data',
     'expect_super', 'expect_super_csr',
-    'expect_super_csr_dense', 'expect_super_dense',
+    'expect_super_csr_dense', 'expect_super_dense', 'expect_super_data',
 ]
 
 cdef void _check_shape_ket(Data op, Data state) nogil except *:
@@ -32,7 +35,7 @@ cdef void _check_shape_ket(Data op, Data state) nogil except *:
 cdef void _check_shape_dm(Data op, Data state) nogil except *:
     if (
         op.shape[1] != state.shape[0]  # Matrix multiplication
-        or state.shape[0] != state.shape[1]  # State is square 
+        or state.shape[0] != state.shape[1]  # State is square
         or op.shape[0] != op.shape[1]  # Op is square
     ):
         raise ValueError("incorrect input shapes "
@@ -249,6 +252,32 @@ cpdef double complex expect_super_dense(Dense op, Dense state) nogil except *:
     return out
 
 
+def expect_data(Data op, Data state):
+    """
+    Get the expectation value of the operator `op` over the state `state`.  The
+    state can be either a ket or a density matrix.
+
+    The expectation of a state is defined as the operation:
+        state.adjoint() @ op @ state
+    and of a density matrix:
+        tr(op @ state)
+    """
+    if state.shape[1] == 1:
+        _check_shape_ket(op, state)
+        return inner(state, matmul(op, state))
+    _check_shape_dm(op, state)
+    return trace(matmul(op, state))
+
+
+def expect_super_data(Data op, Data state):
+    """
+    Perform the operation `tr(op @ state)` where `op` is supplied as a
+    superoperator, and `state` is a column-stacked operator.
+    """
+    _check_shape_super(op, state)
+    return trace_oper_ket(matmul(op, state))
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -276,6 +305,7 @@ expect.add_specialisations([
     (CSR, CSR, expect_csr),
     (CSR, Dense, expect_csr_dense),
     (Dense, Dense, expect_dense),
+    (Data, Data, expect_data),
 ], _defer=True)
 
 expect_super = _Dispatcher(
@@ -298,6 +328,7 @@ expect_super.add_specialisations([
     (CSR, CSR, expect_super_csr),
     (CSR, Dense, expect_super_csr_dense),
     (Dense, Dense, expect_super_dense),
+    (Data, Data, expect_super_data),
 ], _defer=True)
 
 del _inspect, _Dispatcher
