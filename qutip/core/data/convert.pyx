@@ -24,6 +24,44 @@ from qutip.core.data.base cimport Data
 __all__ = ['to', 'create']
 
 
+class _Epsilon:
+    """
+    Constant for an small weight non-null weight.
+    Use to set `Data` specialisation just over direct specialisation.
+    """
+    def __repr__(self):
+        return "EPSILON"
+
+    def __eq__(self, other):
+        if isinstance(other, _Epsilon):
+            return True
+        return NotImplemented
+
+    def __add__(self, other):
+        if isinstance(other, _Epsilon):
+            return self
+        return other
+
+    def __radd__(self, other):
+        if isinstance(other, _Epsilon):
+            return self
+        return other
+
+    def __lt__(self, other):
+        """ positive number > _Epsilon > 0 """
+        if isinstance(other, _Epsilon):
+            return False
+        return other > 0.
+
+    def __gt__(self, other):
+        if isinstance(other, _Epsilon):
+            return False
+        return other <= 0.
+
+
+EPSILON = _Epsilon()
+
+
 def _raise_if_unconnected(dtype_list, weights):
     unconnected = {}
     for i, type_ in enumerate(dtype_list):
@@ -70,7 +108,7 @@ cdef class _converter:
                 + ">")
 
 
-def dummyconverter(arg):
+def identity_converter(arg):
     return arg
 
 
@@ -152,7 +190,6 @@ cdef class _to:
     cdef dict _convert
     cdef readonly dict weight
     cdef readonly dict _str2type
-    cdef readonly float anydataweight
 
     def __init__(self):
         self._direct_convert = {}
@@ -161,7 +198,6 @@ cdef class _to:
         self.weight = {}
         self.dispatchers = []
         self._str2type = {}
-        self.anydataweight = 0.001
 
     def add_conversions(self, converters):
         """
@@ -269,9 +305,9 @@ cdef class _to:
                     _converter(convert[::-1], to_t, from_t)
         for dtype in self.dtypes:
             self.weight[(dtype, Data)] = 1.
-            self.weight[(Data, dtype)] = self.anydataweight
+            self.weight[(Data, dtype)] = EPSILON
             self._convert[(dtype, Data)] = _partial_converter(self, dtype)
-            self._convert[(Data, dtype)] = dummyconverter
+            self._convert[(Data, dtype)] = identity_converter
         for dispatcher in self.dispatchers:
             dispatcher.rebuild_lookup()
 

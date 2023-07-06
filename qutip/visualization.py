@@ -842,7 +842,7 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     # color axis
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.05)
         cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
         cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
         cb.set_ticklabels(

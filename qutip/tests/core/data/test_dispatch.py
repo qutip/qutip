@@ -77,29 +77,29 @@ def test_build_full(specialisation, output):
         if not output:
             out = dispatched(*ins)
             out = dispatched[in_types](*ins)
-            continue
 
-        out = dispatched(*ins)
-        assert out is not None
+        else:
+            out = dispatched(*ins)
+            assert out is not None
 
-        out = dispatched[in_types](*ins)
-        assert out is not None
+            out = dispatched[in_types](*ins)
+            assert out is not None
 
-        if output:
-            for out_dtype in _data.to.dtypes:
+            if output:
+                for out_dtype in _data.to.dtypes:
 
-                out = dispatched[in_types + (out_dtype,)](*ins)
-                if output:
-                    assert isinstance(out, out_dtype)
+                    out = dispatched[in_types + (out_dtype,)](*ins)
+                    if output:
+                        assert isinstance(out, out_dtype)
 
-                out = dispatched(*ins, dtype=out_dtype)
-                if output:
-                    assert isinstance(out, out_dtype)
+                    out = dispatched(*ins, dtype=out_dtype)
+                    if output:
+                        assert isinstance(out, out_dtype)
 
 
 def test_Data_low_priority_one_dispatch():
     class func():
-        __name__ = ""
+        __name__ = "dummy name"
         def __call__(self, a, /):
             return _data.zeros[_data.Dense](1, 1)
 
