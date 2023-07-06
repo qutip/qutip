@@ -295,3 +295,13 @@ def test_OrderEfficiencyWarning():
     fortran_ordered = dense.zeros(N, 1, fortran=True)
     with pytest.warns(dense.OrderEfficiencyWarning):
         data.matmul_csr_dense_dense(M, C_ordered, out=fortran_ordered)
+
+
+@pytest.mark.parametrize("fortran", [True, False])
+@pytest.mark.parametrize("func",
+    [data.zeros_like_dense, data.identity_like_dense]
+)
+def test_like_keep_order(func, fortran):
+    old = dense.zeros(3, 3, fortran=fortran)
+    new = func(old)
+    assert new.fortran == old.fortran

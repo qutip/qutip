@@ -3,14 +3,16 @@
 
 cimport cython
 
-from qutip.core.data.base cimport idxint
+from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
 from qutip.core.data cimport csr
+from .adjoint import transpose
 import numpy
 
 __all__ = [
-    'kron', 'kron_csr', 'kron_dense'
+    'kron', 'kron_csr', 'kron_dense',
+    'kron_transpose', 'kron_transpose_dense', 'kron_transpose_data',
 ]
 
 
@@ -87,5 +89,35 @@ kron.add_specialisations([
     (CSR, CSR, CSR, kron_csr),
     (Dense, Dense, Dense, kron_dense),
 ], _defer=True)
+
+
+cpdef Data kron_transpose_data(Data left, Data right):
+    return kron(transpose(left), right)
+
+
+cpdef Dense kron_transpose_dense(Dense left, Dense right):
+    return Dense(numpy.kron(left.as_ndarray().T, right.as_ndarray()), copy=False)
+
+
+kron_transpose = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
+    ]),
+    name='kron_transpose',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+kron_transpose.__doc__ =\
+    """
+    Compute the Kronecker product of two matrices with transposing the first
+    one.  This is used to represent superoperator.
+    """
+kron_transpose.add_specialisations([
+    (Data, Data, Data, kron_transpose_data),
+    (Dense, Dense, Dense, kron_transpose_dense),
+], _defer=True)
+
 
 del _inspect, _Dispatcher
