@@ -12,4 +12,4 @@ cpdef double l2_csr(CSR matrix) nogil except -1
 cpdef double frobenius_dense(Dense matrix) nogil
 cpdef double l2_dense(Dense matrix) nogil except -1
 
-cpdef double frobenius_data(Data state)
+cpdef double frobenius_data(Data state) except -1
