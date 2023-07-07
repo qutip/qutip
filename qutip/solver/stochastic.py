@@ -533,7 +533,7 @@ class StochasticSolver(MultiTrajSolver):
 
         Default are:
 
-            m_ops = sc_ops + sselfc_ops.dag()
+            m_ops = sc_ops + sc_ops.dag()
 
         for homodyne detection, and
 

@@ -94,9 +94,6 @@ cpdef Dense herm_matmul_csr_dense_dense(CSR left, Dense right,
     else:
         inplace_out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
 
-    # cdef idxint row, ptr, idx_r, idx_out, dm_row, dm_col
-    # cdef idxint nrows=left.shape[0], ncols=right.shape[1]
-    # cdef double complex val
     # right shape (N*N, 1) is interpreted as (N, N) and we loop only on the
     # upper triangular part.
     _matmul_csr_vector_herm(
@@ -211,7 +208,7 @@ herm_matmul.__doc__ =\
     This is not tested but only half of the matrix product is computed. The
     other half being filled with the conj of the first.
 
-    Intented to be used in ``mesolve``.
+    Intended to be used in ``mesolve``.
 
     Parameters
     ----------
