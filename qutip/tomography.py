@@ -132,8 +132,9 @@ def qpt_plot_combined(chi, lbls_list, title=None,
     if not title:
         title = r"$\chi$"
 
-    matrix_histogram_complex(chi, xlabels, xlabels, title=title, ax=ax,
+    matrix_histogram_complex(chi, xlabels, xlabels, ax=ax,
                              threshold=threshold)
+    ax.set_title(title)
 
     return fig, ax
 

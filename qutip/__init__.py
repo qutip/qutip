@@ -5,7 +5,6 @@ import qutip.settings
 from qutip.settings import settings
 import qutip.version
 from qutip.version import version as __version__
-
 # -----------------------------------------------------------------------------
 # Look to see if we are running with OPENMP
 #
