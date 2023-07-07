@@ -199,15 +199,6 @@ Stochastic Integrator
     :members: options
 
 
-.. _classes-non_markov_mc_and_tt:
-
-Non-Markovian Memory Cascade and Transfer Tensor Solvers
---------------------------------------------------------
-
-.. autoclass:: qutip.solve.nonmarkov.memorycascade.MemoryCascade
-    :members:
-
-
 .. _classes-odeoptions:
 
 Solver Options and Results
