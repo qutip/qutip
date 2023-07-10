@@ -828,11 +828,18 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
                                          pad=default_opts['cbar_pad'])
         cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
-        if default_opts['color_style'] == 'phase' and \
-                default_opts['color_limits'] is None:
-            cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
-            cb.set_ticklabels(
-                (r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
+        if default_opts['color_style'] == 'real':
+            cb.set_label('real')
+        elif default_opts['color_style'] == 'img':
+            cb.set_label('imaginary')
+        elif default_opts['color_style'] == 'abs':
+            cb.set_label('absolute')
+        else:
+            cb.set_label('arg')
+            if default_opts['color_limits'] is None:
+                cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
+                cb.set_ticklabels(
+                    (r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
 
     # removing margins
     _remove_margins(ax.xaxis)
