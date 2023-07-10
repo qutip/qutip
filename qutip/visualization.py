@@ -821,6 +821,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
     _stick_to_planes(default_opts['stick'],
                      default_opts['azim'], ax, M,
                      default_opts['bars_spacing'])
+    ax.view_init(azim=default_opts['azim'], elev=default_opts['elev'])
 
     # color axis
     if colorbar:
