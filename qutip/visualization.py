@@ -102,7 +102,7 @@ def _set_ticklabels(ax, ticklabels, ticks, axis, fontsize=14):
         )
 
 
-def plot_wigner_sphere(wigner, reflections, *, cmap=None,
+def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
                        colorbar=True, fig=None, ax=None):
     """Plots a coloured Bloch sphere.
 
