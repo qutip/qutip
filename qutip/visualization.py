@@ -102,7 +102,8 @@ def _set_ticklabels(ax, ticklabels, ticks, axis, fontsize=14):
         )
 
 
-def plot_wigner_sphere(fig, ax, wigner, reflections):
+def plot_wigner_sphere(wigner, reflections, *, cmap=None,
+                       colorbar=True, fig=None, ax=None):
     """Plots a coloured Bloch sphere.
 
     Parameters
@@ -116,10 +117,28 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
     reflections : bool
         If the reflections of the sphere should be plotted as well.
 
+    cmap : a matplotlib colormap instance, optional
+        Color map to use when plotting.
+
+    colorbar : bool, default=True
+        Whether (True) or not (False) a colorbar should be attached.
+
+    fig : a matplotlib Figure instance, optional
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance, optional
+        The ax context in which the plot will be drawn.
+
     Notes
     -----
     Special thanks to Russell P Rundle for writing this function.
     """
+
+    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
+
+    if cmap is None:
+        cmap = _diverging_cmap()
+    print(cmap)
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
@@ -134,7 +153,7 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
     wigner = np.real(wigner)
     wigner_max = np.real(np.amax(np.abs(wigner)))
 
-    wigner_c1 = cm.seismic_r((wigner + wigner_max) / (2 * wigner_max))
+    wigner_c1 = cmap((wigner + wigner_max) / (2 * wigner_max))
 
     # Plot coloured Bloch sphere:
     ax.plot_surface(x, y, z, facecolors=wigner_c1, vmin=-wigner_max,
@@ -142,12 +161,12 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
                     zorder=0.5, antialiased=None)
 
     if reflections:
-        wigner_c2 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
-                                 (2*wigner_max))  # bottom
-        wigner_c3 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
-                                 (2*wigner_max))  # side
-        wigner_c4 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
-                                 (2*wigner_max))  # back
+        wigner_c2 = cmap((wigner[0:steps, 0:steps]+wigner_max) /
+                         (2*wigner_max))  # bottom
+        wigner_c3 = cmap((wigner[0:steps, 0:steps]+wigner_max) /
+                         (2*wigner_max))  # side
+        wigner_c4 = cmap((wigner[0:steps, 0:steps]+wigner_max) /
+                         (2*wigner_max))  # back
 
         # Plot bottom reflection:
         ax.plot_surface(x[0:steps, 0:steps], y[0:steps, 0:steps],
@@ -171,11 +190,12 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
                         antialiased=False)
 
     # Create colourbar:
-    m = cm.ScalarMappable(cmap=cm.seismic_r)
-    m.set_array([-wigner_max, wigner_max])
-    plt.colorbar(m, shrink=0.5, aspect=10)
+    if colorbar:
+        norm = mpl.colors.Normalize(-wigner_max, wigner_max)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
+        mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
-    plt.show()
+    return fig, ax
 
 
 # Adopted from the SciPy Cookbook.
