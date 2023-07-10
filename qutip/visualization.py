@@ -138,7 +138,7 @@ def plot_wigner_sphere(wigner, reflections, *, cmap=None,
 
     if cmap is None:
         cmap = _diverging_cmap()
-    print(cmap)
+
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
