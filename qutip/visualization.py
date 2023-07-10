@@ -514,19 +514,6 @@ def _remove_margins(axis):
     axis._get_coord_info = _get_coord_info_new
 
 
-def _truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
-    """
-    truncates portion of a colormap and returns the new one
-    """
-    if isinstance(cmap, str):
-        cmap = plt.get_cmap(cmap)
-    new_cmap = mpl.colors.LinearSegmentedColormap.from_list(
-        'trunc({n},{a:.2f},{b:.2f})'.format(
-            n=cmap.name, a=minval, b=maxval),
-        cmap(np.linspace(minval, maxval, n)))
-    return new_cmap
-
-
 def _stick_to_planes(stick, azim, ax, M, spacing):
     """adjusts xlim and ylim in way that bars will
     stick to xz and yz planes
@@ -593,7 +580,7 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     ax.set_zlim3d([min(z_min, 0), z_max])
 
 
-def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
+def matrix_histogram(M, x_basis=None, y_basis=None, limits=None, *, cmap=None,
                      colorbar=True, fig=None, ax=None, options=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
@@ -603,23 +590,26 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     M : Matrix of Qobj
         The matrix to visualize
 
-    xlabels : list of strings
+    x_basis : list of strings
         list of x labels
 
-    ylabels : list of strings
+    y_basis : list of strings
         list of y labels
-
-    title : string
-        title of the plot (optional)
 
     limits : list/array with two float numbers
         The z-axis limits [min, max] (optional)
 
-    ax : a matplotlib axes instance
-        The axes context in which the plot will be drawn.
+    cmap : a matplotlib colormap instance, optional
+        Color map to use when plotting.
 
     colorbar : bool (default: True)
         show colorbar
+
+    fig : a matplotlib Figure instance, optional
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
 
     options : dict
         A dictionary containing extra options for the plot.
@@ -628,19 +618,6 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
         'zticks' : list of numbers
             A list of z-axis tick locations.
-
-        'cmap' : string (default: 'jet')
-            The name of the color map to use.
-
-        'cmap_min' : float (default: 0.0)
-            The lower bound to truncate the color map at.
-            A value in range 0 - 1. The default, 0, leaves the lower
-            bound of the map unchanged.
-
-        'cmap_max' : float (default: 1.0)
-            The upper bound to truncate the color map at.
-            A value in range 0 - 1. The default, 1, leaves the upper
-            bound of the map unchanged.
 
         'bars_spacing' : float (default: 0.1)
             spacing between bars.
@@ -682,9 +659,6 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
             Whether to set the color of maximum and minimum z-values to the
             maximum and minimum colors in the colorbar (True) or not (False).
 
-        'figsize' : tuple of two numbers
-            The size of the figure.
-
     Returns
     -------
     fig, ax : tuple
@@ -699,11 +673,10 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     """
 
     # default options
-    default_opts = {'figsize': None, 'cmap': 'jet', 'cmap_min': 0.,
-                    'cmap_max': 1., 'zticks': None, 'bars_spacing': 0.2,
+    default_opts = { 'zticks': None, 'bars_spacing': 0.2,
                     'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
                     'shade': False, 'azim': -35, 'elev': 35,
-                    'proj_type': 'ortho', 'stick': False,
+                    'stick': False,
                     'cbar_pad': 0.04, 'cbar_to_z': False}
 
     # update default_opts from input options
@@ -746,9 +719,11 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         norm = mpl.colors.Normalize(min(dz), max(dz))
     else:
         norm = mpl.colors.Normalize(z_min, z_max)
-    cmap = _truncate_colormap(default_opts['cmap'],
-                              default_opts['cmap_min'],
-                              default_opts['cmap_max'])
+
+    if cmap is None:
+        # change later
+        cmap = _sequential_cmap()
+
     colors = cmap(norm(dz))
 
     if ax is None:
@@ -756,7 +731,8 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         ax = _axes3D(fig,
                      azim=default_opts['azim'] % 360,
                      elev=default_opts['elev'] % 360)
-        ax.set_proj_type(default_opts['proj_type'])
+
+    ax.set_proj_type('ortho')
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors,
              edgecolors=default_opts['bars_edgecolor'],
@@ -767,14 +743,11 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     ax.yaxis._axinfo["grid"]['linewidth'] = 0
     ax.xaxis._axinfo["grid"]['linewidth'] = 0
 
-    if title:
-        ax.set_title(title)
-
     # x axis
-    _update_xaxis(default_opts['bars_spacing'], M, ax, xlabels)
+    _update_xaxis(default_opts['bars_spacing'], M, ax, x_basis)
 
     # y axis
-    _update_yaxis(default_opts['bars_spacing'], M, ax, ylabels)
+    _update_yaxis(default_opts['bars_spacing'], M, ax, y_basis)
 
     # z axis
     _update_zaxis(ax, z_min, z_max, default_opts['zticks'])
