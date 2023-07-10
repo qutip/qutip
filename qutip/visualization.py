@@ -686,6 +686,9 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
             Whether to set the color of maximum and minimum z-values to the
             maximum and minimum colors in the colorbar (True) or not (False).
 
+        'threshold': float, optional
+            Threshold for when bars of smaller height should be transparent. If
+            not set, all bars are colored according to the color map.
     Returns
     -------
     fig, ax : tuple
@@ -704,7 +707,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
                     'color_style': 'real', 'zticks': None, 'bars_spacing': 0.2,
                     'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
                     'shade': False, 'azim': -35, 'elev': 35, 'stick': False,
-                    'cbar_pad': 0.04, 'cbar_to_z': False}
+                    'cbar_pad': 0.04, 'cbar_to_z': False, 'threshold': None}
 
     # update default_opts from input options
     if options is None:
@@ -790,6 +793,9 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
             cmap = _sequential_cmap()
 
     colors = cmap(norm(color_M))
+
+    if default_opts['threshold'] is not None:
+        colors[:, 3] = 1 * (color_M > default_opts['threshold'])
 
     fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
 
