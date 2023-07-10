@@ -580,6 +580,17 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     ax.set_zlim3d([min(z_min, 0), z_max])
 
 
+def _get_matrix_components(option, M):
+    if option == 'real':
+        return np.real(M.flatten())
+    elif option == 'imag':
+        return np.imag(M.flatten())
+    elif option == 'abs':
+        return np.abs(M.flatten())
+    else:
+        return angle(M.flatten())
+
+
 def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
                      colorbar=True, fig=None, ax=None):
     """
@@ -738,14 +749,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
     zpos = np.zeros(n)
     dx = dy = (1 - default_opts['bars_spacing']) * np.ones(n)
 
-    if default_opts['bar_style'] == 'real':
-        bar_M = np.real(M.flatten())
-    elif default_opts['bar_style'] == 'imag':
-        bar_M = np.imag(M.flatten())
-    elif default_opts['bar_style'] == 'abs':
-        bar_M = np.abs(M.flatten())
-    else:
-        bar_M = angle(M.flatten())
+    bar_M = _get_matrix_components(default_opts['bar_style'], M)
 
     if isinstance(default_opts['limits'], list) and \
             len(default_opts['limits']) == 2:
@@ -758,14 +762,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
             z_min -= 0.1
             z_max += 0.1
 
-    if default_opts['color_style'] == 'real':
-        color_M = np.real(M.flatten())
-    elif default_opts['color_style'] == 'imag':
-        color_M = np.imag(M.flatten())
-    elif default_opts['color_style'] == 'abs':
-        color_M = np.abs(M.flatten())
-    else:
-        color_M = angle(M.flatten())
+    color_M = _get_matrix_components(default_opts['color_style'], M)
 
     if isinstance(default_opts['color_limits'], list) and \
             len(default_opts['color_limits']) == 2:
