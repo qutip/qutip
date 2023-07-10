@@ -108,13 +108,10 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
 
     Parameters
     ----------
-    fig : :obj:`matplotlib.figure.Figure`
-        An instance of :obj:`~matplotlib.figure.Figure`.
-    ax : :obj:`matplotlib.axes.Axes`
-        An axes instance in the given figure.
     wigner : list of float
         The wigner transformation at `steps` different theta and phi.
-    reflections : bool
+
+    reflections : bool, default=False
         If the reflections of the sphere should be plotted as well.
 
     cmap : a matplotlib colormap instance, optional
@@ -128,6 +125,12 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
 
     ax : a matplotlib axes instance, optional
         The ax context in which the plot will be drawn.
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
 
     Notes
     -----
@@ -601,25 +604,25 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
     M : Matrix of Qobj
         The matrix to visualize
 
-    x_basis : list of strings
+    x_basis : list of strings, optional
         list of x ticklabels
 
-    y_basis : list of strings
+    y_basis : list of strings, optional
         list of y ticklabels
 
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
 
-    colorbar : bool (default: True)
+    colorbar : bool, default=True
         show colorbar
 
     fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
 
-    ax : a matplotlib axes instance
+    ax : a matplotlib axes instance, optional
         The axes context in which the plot will be drawn.
 
-    options : dict
+    options : dict, optional
         A dictionary containing extra options for the plot.
         The names (keys) and values of the options are
         described below:
@@ -654,46 +657,43 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
             -  If set to ``"phase"``, each color is chosen according to
             the angle of the corresponding matrix element.
 
-        'zticks' : list of numbers
+        'zticks' : list of numbers, optional
             A list of z-axis tick locations.
 
-        'bars_spacing' : float (default: 0.1)
+        'bars_spacing' : float, default=0.1
             spacing between bars.
 
-        'bars_alpha' : float (default: 1.)
+        'bars_alpha' : float, default=1.
             transparency of bars, should be in range 0 - 1
 
-        'bars_lw' : float (default: 0.5)
+        'bars_lw' : float, default=0.5
             linewidth of bars' edges.
 
-        'bars_edgecolor' : color (default: 'k')
+        'bars_edgecolor' : color, default='k'
             The colors of the bars' edges.
             Examples: 'k', (0.1, 0.2, 0.5) or '#0f0f0f80'.
 
-        'shade' : bool (default: True)
+        'shade' : bool, default=True
             Whether to shade the dark sides of the bars (True) or not (False).
             The shading is relative to plot's source of light.
 
-        'azim' : float
+        'azim' : float, default=-35
             The azimuthal viewing angle.
 
-        'elev' : float
+        'elev' : float, default=35
             The elevation viewing angle.
 
-        'proj_type' : string (default: 'ortho' if ax is not passed)
-            The type of projection ('ortho' or 'persp')
-
-        'stick' : bool (default: False)
+        'stick' : bool, default=False
             Changes xlim and ylim in such a way that bars next to
             XZ and YZ planes will stick to those planes.
             This option has no effect if ``ax`` is passed as a parameter.
 
-        'cbar_pad' : float (default: 0.04)
+        'cbar_pad' : float, default=0.04
             The fraction of the original axes between the colorbar
             and the new image axes.
             (i.e. the padding between the 3D figure and the colorbar).
 
-        'cbar_to_z' : bool (default: False)
+        'cbar_to_z' : bool, default=False
             Whether to set the color of maximum and minimum z-values to the
             maximum and minimum colors in the colorbar (True) or not (False).
 
