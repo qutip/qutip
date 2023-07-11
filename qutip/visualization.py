@@ -583,19 +583,22 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     ax.set_zlim3d([min(z_min, 0), z_max])
 
 
-def _get_matrix_components(option, M):
+def _get_matrix_components(option, M, argument):
     if option == 'real':
         return np.real(M.flatten())
-    elif option == 'imag':
+    elif option == 'img':
         return np.imag(M.flatten())
     elif option == 'abs':
         return np.abs(M.flatten())
-    else:
+    elif option == 'phase':
         return angle(M.flatten())
+    else:
+        raise ValueError(f"got an unexpected argument, {option} for {argument}")
 
 
-def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
-                     colorbar=True, fig=None, ax=None):
+def matrix_histogram(M, x_basis=None, y_basis=None, limits=None, bar_style=None,
+                     color_limits=None, color_style=None, options=None, *,
+                     cmap=None, colorbar=True, fig=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -609,6 +612,36 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
 
     y_basis : list of strings, optional
         list of y ticklabels
+
+    limits : list/array with two float numbers, optional
+        The z-axis limits [min, max]
+
+    bar_style : string, default="real"
+
+        -  If set to ``"real"`` (default), each bar is plotted
+        as the real part of the corresponding matrix element
+        Determines how colors are assigned to each square:
+        -  If set to ``"img"``, each bar is plotted
+        as the imaginary part of the corresponding matrix element
+        -  If set to ``"abs"``, each bar is plotted
+        as the absolute value of the corresponding matrix element
+        -  If set to ``"phase"`` (default), each bar is plotted
+        as the angle of the corresponding matrix element
+
+    color_limits : list/array with two float numbers, optional
+        The limits of colorbar [min, max]
+
+    color_style : string, default="real"
+        Determines how colors are assigned to each square:
+
+        -  If set to ``"real"`` (default), each color is chosen
+        according to the real part of the corresponding matrix element.
+        -  If set to ``"img"``, each color is chosen according to
+        the imaginary part of the corresponding matrix element.
+        -  If set to ``"abs"``, each color is chosen according to
+        the absolute value of the corresponding matrix element.
+        -  If set to ``"phase"``, each color is chosen according to
+            the angle of the corresponding matrix element.
 
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
@@ -626,36 +659,6 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
         A dictionary containing extra options for the plot.
         The names (keys) and values of the options are
         described below:
-
-        'limits' : list/array with two float numbers, optional
-            The z-axis limits [min, max]
-
-        'bar_style' : string, default="real"
-            Determines how colors are assigned to each square:
-
-            -  If set to ``"real"`` (default), each bar is plotted
-            as the real part of the corresponding matrix element
-            -  If set to ``"img"``, each bar is plotted
-            as the imaginary part of the corresponding matrix element
-            -  If set to ``"abs"``, each bar is plotted
-            as the absolute value of the corresponding matrix element
-            -  If set to ``"phase"`` (default), each bar is plotted
-            as the angle of the corresponding matrix element
-
-        'color_limits' : list/array with two float numbers, optional
-            The limits of colorbar [min, max]
-
-        'color_style' : string, default="real"
-            Determines how colors are assigned to each square:
-
-            -  If set to ``"real"`` (default), each color is chosen
-            according to the real part of the corresponding matrix element.
-            -  If set to ``"img"``, each color is chosen according to
-            the imaginary part of the corresponding matrix element.
-            -  If set to ``"abs"``, each color is chosen according to
-            the absolute value of the corresponding matrix element.
-            -  If set to ``"phase"``, each color is chosen according to
-            the angle of the corresponding matrix element.
 
         'zticks' : list of numbers, optional
             A list of z-axis tick locations.
@@ -714,8 +717,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
     """
 
     # default options
-    default_opts = {'limits': None, 'bar_style': 'real', 'color_limits': None,
-                    'color_style': 'real', 'zticks': None, 'bars_spacing': 0.2,
+    default_opts = {'zticks': None, 'bars_spacing': 0.2,
                     'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
                     'shade': False, 'azim': -35, 'elev': 35, 'stick': False,
                     'cbar_pad': 0.04, 'cbar_to_z': False, 'threshold': None}
@@ -749,12 +751,12 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
     zpos = np.zeros(n)
     dx = dy = (1 - default_opts['bars_spacing']) * np.ones(n)
 
-    bar_M = _get_matrix_components(default_opts['bar_style'], M)
+    bar_M = _get_matrix_components(bar_style, M, 'bar_style')
 
-    if isinstance(default_opts['limits'], list) and \
-            len(default_opts['limits']) == 2:
-        z_min = default_opts['limits'][0]
-        z_max = default_opts['limits'][1]
+    if isinstance(limits, list) and \
+            len(limits) == 2:
+        z_min = limits[0]
+        z_max = limits[1]
     else:
         z_min = min(bar_M)
         z_max = max(bar_M)
@@ -762,14 +764,14 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
             z_min -= 0.1
             z_max += 0.1
 
-    color_M = _get_matrix_components(default_opts['color_style'], M)
+    color_M = _get_matrix_components(color_style, M, 'color_style')
 
-    if isinstance(default_opts['color_limits'], list) and \
-            len(default_opts['color_limits']) == 2:
-        c_min = default_opts['color_limits'][0]
-        c_max = default_opts['color_limits'][1]
+    if isinstance(color_limits, list) and \
+            len(color_limits) == 2:
+        c_min = color_limits[0]
+        c_max = color_limits[1]
     else:
-        if default_opts['color_style'] == 'phase':
+        if color_style == 'phase':
             c_min = -pi
             c_max = pi
         else:
@@ -784,7 +786,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
 
     if cmap is None:
         # change later
-        if default_opts['color_style'] == 'phase':
+        if color_style == 'phase':
             cmap = _cyclic_cmap()
         else:
             cmap = _sequential_cmap()
@@ -826,15 +828,15 @@ def matrix_histogram(M, x_basis=None, y_basis=None, options=None, *, cmap=None,
                                          pad=default_opts['cbar_pad'])
         cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
-        if default_opts['color_style'] == 'real':
+        if color_style == 'real':
             cb.set_label('real')
-        elif default_opts['color_style'] == 'img':
+        elif color_style == 'img':
             cb.set_label('imaginary')
-        elif default_opts['color_style'] == 'abs':
+        elif color_style == 'abs':
             cb.set_label('absolute')
         else:
             cb.set_label('arg')
-            if default_opts['color_limits'] is None:
+            if color_limits is None:
                 cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
                 cb.set_ticklabels(
                     (r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
