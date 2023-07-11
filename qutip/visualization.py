@@ -795,7 +795,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     colors = cmap(norm(color_M))
 
-    colors[:, 3] *= default_opts['bars_alpha']
+    colors[:, 3] = default_opts['bars_alpha']
 
     if default_opts['threshold'] is not None:
         colors[:, 3] = 1 * (bar_M >= default_opts['threshold'])
