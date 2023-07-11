@@ -593,12 +593,14 @@ def _get_matrix_components(option, M, argument):
     elif option == 'phase':
         return angle(M.flatten())
     else:
-        raise ValueError(f"got an unexpected argument, {option} for {argument}")
+        raise ValueError(f"got an unexpected argument, \
+                         {option} for {argument}")
 
 
-def matrix_histogram(M, x_basis=None, y_basis=None, limits=None, bar_style=None,
-                     color_limits=None, color_style=None, options=None, *,
-                     cmap=None, colorbar=True, fig=None, ax=None):
+def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
+                     bar_style=None, color_limits=None, color_style=None,
+                     options=None, *, cmap=None, colorbar=True,
+                     fig=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
