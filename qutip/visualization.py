@@ -721,7 +721,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     # default options
     default_opts = {'zticks': None, 'bars_spacing': 0.2,
                     'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
-                    'shade': False, 'azim': -35, 'elev': 35, 'stick': False,
+                    'shade': True, 'azim': -35, 'elev': 35, 'stick': False,
                     'cbar_pad': 0.04, 'cbar_to_z': False, 'threshold': None}
 
     # update default_opts from input options
@@ -796,14 +796,16 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     colors = cmap(norm(color_M))
 
     if default_opts['threshold'] is not None:
-        colors[:, 3] = 1 * (color_M > default_opts['threshold'])
+        colors[:, 3] = 1 * (bar_M >= default_opts['threshold']) * default_opts['bars_alpha']
+
+        idx, = np.where(bar_M < default_opts['threshold'])
+        bar_M[idx] = 0
 
     fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, bar_M, color=colors,
              edgecolors=default_opts['bars_edgecolor'],
              linewidths=default_opts['bars_lw'],
-             alpha=default_opts['bars_alpha'],
              shade=default_opts['shade'])
     # remove vertical lines on xz and yz plane
     ax.yaxis._axinfo["grid"]['linewidth'] = 0
