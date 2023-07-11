@@ -598,7 +598,7 @@ def _get_matrix_components(option, M, argument):
 
 
 def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
-                     bar_style=None, color_limits=None, color_style=None,
+                     bar_style='real', color_limits=None, color_style='real',
                      options=None, *, cmap=None, colorbar=True,
                      fig=None, ax=None):
     """
