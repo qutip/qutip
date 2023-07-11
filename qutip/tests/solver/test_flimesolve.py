@@ -22,7 +22,7 @@ Writing this script to closely mirror test_floquet.py, but without
 """
 
 
-class TestFloquet:
+class TestFlimesolve:
     """
     A test class for the QuTiP functions for Floquet formalism.
     """
