@@ -272,14 +272,14 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
         Determines how colors are assigned to each square:
 
         -  If set to ``"scaled"`` (default), each color is chosen by
-           passing the absolute value of the corresponding matrix
-           element into `cmap` with the sign of the real part.
+        passing the absolute value of the corresponding matrix
+        element into `cmap` with the sign of the real part.
         -  If set to ``"threshold"``, each square is plotted as
-           the maximum of `cmap` for the positive real part and as
-           the minimum for the negative part of the matrix element;
-           note that this generalizes `"threshold"` to complex numbers.
+        the maximum of `cmap` for the positive real part and as
+        the minimum for the negative part of the matrix element;
+        note that this generalizes `"threshold"` to complex numbers.
         -  If set to ``"phase"``, each color is chosen according to
-           the angle of the corresponding matrix element.
+        the angle of the corresponding matrix element.
 
     label_top : bool, default=True
         If True, x ticklabels will be placed on top, otherwise
@@ -643,7 +643,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         -  If set to ``"abs"``, each color is chosen according to
         the absolute value of the corresponding matrix element.
         -  If set to ``"phase"``, each color is chosen according to
-            the angle of the corresponding matrix element.
+        the angle of the corresponding matrix element.
 
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
@@ -851,129 +851,6 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     _remove_margins(ax.xaxis)
     _remove_margins(ax.yaxis)
     _remove_margins(ax.zaxis)
-
-    return fig, ax
-
-
-def matrix_histogram_complex(M, x_basis=None, y_basis=None, phase_limits=None,
-                             threshold=None, *, cmap=None, colorbar=True,
-                             fig=None, ax=None):
-    """
-    Draw a histogram for the amplitudes of matrix M, using the argument
-    of each element for coloring the bars, with the given x and y labels
-    and title.
-
-    Parameters
-    ----------
-    M : Matrix of Qobj
-        The matrix to visualize
-
-    x_basis : list of strings or False, optional
-        list of x ticklabels to represent x basis of the input.
-
-    y_basis : list of strings or False, optional
-        list of y ticklabels to represent y basis of the input.
-
-    phase_limits : list/array with two float numbers, optional
-        The phase-axis (colorbar) limits [min, max] (optional)
-
-    threshold: float, optional
-        Threshold for when bars of smaller height should be transparent. If
-        not set, all bars are colored according to the color map.
-
-    cmap : a matplotlib colormap instance, optional
-        Color map to use when plotting.
-
-    colorbar : bool, optional
-        Whether (True) or not (False) a colorbar should be attached.
-
-    fig : a matplotlib Figure instance, optional
-        The Figure canvas in which the plot will be drawn.
-
-    ax : a matplotlib axes instance, optional
-        The axes context in which the plot will be drawn.
-
-    Returns
-    -------
-    fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce
-        the figure.
-
-    Raises
-    ------
-    ValueError
-        Input argument is not valid.
-
-    """
-    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
-    # set angle
-    ax.view_init(azim=-35, elev=35)
-
-    if isinstance(M, Qobj):
-        if x_basis is None:
-            x_basis = list(_cb_labels([M.shape[0]])[0])
-        if y_basis is None:
-            y_basis = list(_cb_labels([M.shape[1]])[1])
-        # extract matrix data from Qobj
-        M = M.full()
-
-    n = np.size(M)
-    xpos, ypos = np.meshgrid(range(M.shape[0]), range(M.shape[1]))
-    xpos = xpos.T.flatten() - 0.5
-    ypos = ypos.T.flatten() - 0.5
-    zpos = np.zeros(n)
-    dx = dy = 0.8 * np.ones(n)
-    Mvec = M.flatten()
-    dz = abs(Mvec)
-
-    # make small numbers real, to avoid random colors
-    idx, = np.where(abs(Mvec) < 0.001)
-    Mvec[idx] = abs(Mvec[idx])
-
-    if phase_limits:  # check that limits is a list type
-        phase_min = phase_limits[0]
-        phase_max = phase_limits[1]
-    else:
-        phase_min = -pi
-        phase_max = pi
-
-    norm = mpl.colors.Normalize(phase_min, phase_max)
-
-    if cmap is None:
-        cmap = _cyclic_cmap()
-
-    colors = cmap(norm(angle(Mvec)))
-    if threshold is not None:
-        colors[:, 3] = 1 * (dz > threshold)
-
-    ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
-
-    # x axis
-    xticks = -0.5 + np.arange(M.shape[0])
-    if x_basis:
-        _set_ticklabels(ax, x_basis, xticks, 'x')
-    else:
-        ax.tick_params(axis='x', which='both',
-                       bottom=False, labelbottom=False)
-
-    # y axis
-    yticks = -0.5 + np.arange(M.shape[1])
-    if y_basis:
-        _set_ticklabels(ax, y_basis, yticks, 'y')
-    else:
-        ax.tick_params(axis='y', which='both', left=False, labelleft=False)
-
-    # limit z axis by default
-    ax.set_zlim3d([0, max(max(dz), 1)])
-
-    # color axis
-    if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.05)
-        cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
-        cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
-        cb.set_ticklabels(
-            (r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
-        cb.set_label('arg')
 
     return fig, ax
 
