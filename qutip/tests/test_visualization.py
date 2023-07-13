@@ -139,12 +139,12 @@ def test_plot_wigner(rho_type, args):
 
 
 def test_plot_wigner_ValueError():
+    text = "Unexpected value of projection keyword argument"
     with pytest.raises(ValueError) as exc_info:
         rho = qutip.rand_dm(4)
 
         fig, ax = qutip.plot_wigner(rho, projection=1)
         plt.close()
-    text = "Unexpected value of projection keyword argument"
     assert str(exc_info.value) == text
 
 
@@ -179,3 +179,107 @@ def test_plot_expectation_values(n_of_results, n_of_e_ops, one_axes, args):
 
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(axes, np.ndarray)
+
+
+@pytest.mark.parametrize('color, args', [
+    ('sequential', {}),
+    ('diverging', {}),
+    ('sequential', {'projection': '3d'}),
+    ('sequential', {'colorbar': True})
+])
+def test_plot_spin_distribution(color, args):
+    j = 5
+    psi = qutip.spin_state(j, -j)
+    psi = qutip.spin_coherent(j, np.random.rand() * np.pi,
+                              np.random.rand() * 2 * np.pi)
+    rho = qutip.ket2dm(psi)
+    theta = np.linspace(0, np.pi, 50)
+    phi = np.linspace(0, 2 * np.pi, 50)
+    Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)
+    if color == 'diverging':
+        Q *= -1e12
+        Q[0, 0] = -1e13
+
+    fig, ax = qutip.plot_spin_distribution(Q, THETA, PHI, **args)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_plot_spin_distribution_ValueError():
+    text = "Unexpected value of projection keyword argument"
+    j = 5
+    psi = qutip.spin_state(j, -j)
+    psi = qutip.spin_coherent(j, np.random.rand() * np.pi,
+                              np.random.rand() * 2 * np.pi)
+    rho = qutip.ket2dm(psi)
+    theta = np.linspace(0, np.pi, 50)
+    phi = np.linspace(0, 2 * np.pi, 50)
+    Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)
+    with pytest.raises(ValueError) as exc_info:
+        fig, ax = qutip.plot_spin_distribution(Q, THETA, PHI, projection=1)
+    assert str(exc_info.value) == text
+
+
+@pytest.mark.parametrize('dims, args', [
+    (2, {}),
+    (3, {}),
+    (2, {'how': 'pairs'}),
+    (2, {'how': 'pairs_skewed'}),
+    (2, {'how': 'before_after'}),
+    (2, {'legend_iteration': 'all'}),
+    (2, {'legend_iteration': 'grid_iteration'}),
+    (2, {'legend_iteration': 1, 'how': 'before_after'}),
+    (2, {'legend_iteration': 1, 'how': 'pairs'}),
+])
+def test_plot_qubism(dims, args):
+    if dims == 2:
+        state = qutip.ket("01")
+    else:
+        state = qutip.ket("010")
+
+    fig, ax = qutip.plot_qubism(state, **args)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+@pytest.mark.parametrize('ket, args, expected', [
+    (False, {}, "Qubism works only for pure states, i.e. kets."),
+    (True, {'how': 'error'}, "No such 'how'."),
+    (True, {'legend_iteration': 'error'}, "No such option for " +
+     "legend_iteration keyword argument. " +
+     "Use 'all', 'grid_iteration' or an integer."),
+])
+def test_plot_qubism_Error(ket, args, expected):
+    if ket:
+        state = qutip.ket("01")
+    else:
+        state = qutip.bra("01")
+    with pytest.raises(Exception) as exc_info:
+        fig, ax = qutip.plot_qubism(state, **args)
+    assert str(exc_info.value) == expected
+
+
+@pytest.mark.parametrize('args', [
+    ({'splitting': None}),
+    ({'labels_iteration': 1}),
+])
+def test_plot_schmidt(args):
+    state = qutip.ket("01")
+
+    fig, ax = qutip.plot_schmidt(state, **args)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_plot_schmidt_Error():
+    state = qutip.bra("01")
+    text = "Schmidt plot works only for pure states, i.e. kets."
+    with pytest.raises(Exception) as exc_info:
+        fig, ax = qutip.plot_schmidt(state)
+    assert str(exc_info.value) == text
