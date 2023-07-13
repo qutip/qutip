@@ -1,4 +1,4 @@
-from . import Dense, CSR, Diag
+from . import Dense, CSR, Dia
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 try:
@@ -6,6 +6,9 @@ try:
 except ImportError:
     csr_array = None
 from scipy.sparse import csr_matrix
+
+
+__all__ = ["extract"]
 
 
 def extract_dense(matrix, format=None, copy=True):
@@ -59,7 +62,7 @@ def extract_csr(matrix, format=None, copy=True):
     return csr_mat
 
 
-def extract_diag(matrix, format=None, copy=True):
+def extract_dia(matrix, format=None, copy=True):
     """
     Return the scipy's object ``dia_matrix``.
 
@@ -76,7 +79,7 @@ def extract_diag(matrix, format=None, copy=True):
     """
     if format not in [None, "scipy_dia", "dia_matrix"]:
         raise ValueError(
-            "Diag can only be extracted to 'dia_matrix'"
+            "Dia can only be extracted to 'dia_matrix'"
         )
     dia_mat = matrix.as_scipy()
     if copy:
@@ -119,7 +122,7 @@ extract.__doc__ =\
     """
 extract.add_specialisations([
     (CSR, extract_csr),
-    (Diag, extract_diag),
+    (Dia, extract_dia),
     (Dense, extract_dense),
 ], _defer=True)
 

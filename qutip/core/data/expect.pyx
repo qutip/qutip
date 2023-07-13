@@ -12,13 +12,13 @@ cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 from qutip.core.data.base cimport idxint, Data
-from qutip.core.data cimport csr, CSR, Dense, Diag
+from qutip.core.data cimport csr, CSR, Dense, Dia
 
 __all__ = [
-    'expect', 'expect_csr', 'expect_dense', 'expect_diag',
-    'expect_csr_dense', 'expect_diag_dense',
-    'expect_super', 'expect_super_csr', 'expect_super_diag', 'expect_super_dense',
-    'expect_super_csr_dense', 'expect_super_diag_dense',
+    'expect', 'expect_csr', 'expect_dense', 'expect_dia',
+    'expect_csr_dense', 'expect_dia_dense',
+    'expect_super', 'expect_super_csr', 'expect_super_dia', 'expect_super_dense',
+    'expect_super_csr_dense', 'expect_super_dia_dense',
 ]
 
 cdef void _check_shape_ket(Data op, Data state) nogil except *:
@@ -250,7 +250,7 @@ cpdef double complex expect_super_dense(Dense op, Dense state) nogil except *:
     return out
 
 
-cpdef double complex expect_diag(Diag op, Diag state) except *:
+cpdef double complex expect_dia(Dia op, Dia state) except *:
     cdef double complex expect = 0.
     cdef idxint diag_bra, diag_op, diag_ket, i, length
     cdef idxint start_op, start_state, end_op, end_state
@@ -290,7 +290,7 @@ cpdef double complex expect_diag(Diag op, Diag state) except *:
     return expect
 
 
-cpdef double complex expect_diag_dense(Diag op, Dense state) except *:
+cpdef double complex expect_dia_dense(Dia op, Dense state) except *:
     cdef double complex expect = 0.
     cdef idxint i, diag_op, start_op, end_op, strideR, stride, start_state
     if state.shape[1] == 1:
@@ -320,7 +320,7 @@ cpdef double complex expect_diag_dense(Diag op, Dense state) except *:
     return expect
 
 
-cpdef double complex expect_super_diag(Diag op, Diag state) except *:
+cpdef double complex expect_super_dia(Dia op, Dia state) except *:
     cdef double complex expect = 0.
     _check_shape_super(op, state)
     cdef idxint diag_op, diag_state
@@ -337,7 +337,7 @@ cpdef double complex expect_super_diag(Diag op, Diag state) except *:
     return expect
 
 
-cpdef double complex expect_super_diag_dense(Diag op, Dense state) except *:
+cpdef double complex expect_super_dia_dense(Dia op, Dense state) except *:
     cdef double complex expect = 0.
     _check_shape_super(op, state)
     cdef idxint col, diag_op, start, end
@@ -379,8 +379,8 @@ expect.add_specialisations([
     (CSR, CSR, expect_csr),
     (CSR, Dense, expect_csr_dense),
     (Dense, Dense, expect_dense),
-    (Diag, Dense, expect_diag_dense),
-    (Diag, Diag, expect_diag),
+    (Dia, Dense, expect_dia_dense),
+    (Dia, Dia, expect_dia),
 ], _defer=True)
 
 expect_super = _Dispatcher(
@@ -403,8 +403,8 @@ expect_super.add_specialisations([
     (CSR, CSR, expect_super_csr),
     (CSR, Dense, expect_super_csr_dense),
     (Dense, Dense, expect_super_dense),
-    (Diag, Dense, expect_super_diag_dense),
-    (Diag, Diag, expect_super_diag),
+    (Dia, Dense, expect_super_dia_dense),
+    (Dia, Dia, expect_super_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher

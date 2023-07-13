@@ -4,12 +4,12 @@
 cimport cython
 from libc.math cimport sqrt
 
-from qutip.core.data cimport Data, CSR, Dense, Diag
+from qutip.core.data cimport Data, CSR, Dense, Dia
 from qutip.core.data cimport base
 
 __all__ = [
-    'trace', 'trace_csr', 'trace_dense', 'trace_diag',
-    'trace_oper_ket', 'trace_oper_ket_csr', 'trace_oper_ket_dense', 'trace_oper_ket_diag',
+    'trace', 'trace_csr', 'trace_dense', 'trace_dia',
+    'trace_oper_ket', 'trace_oper_ket_csr', 'trace_oper_ket_dense', 'trace_oper_ket_dia',
 ]
 
 
@@ -48,7 +48,7 @@ cpdef double complex trace_dense(Dense matrix) nogil except *:
         ptr += stride
     return trace
 
-cpdef double complex trace_diag(Diag matrix) except * nogil:
+cpdef double complex trace_dia(Dia matrix) except * nogil:
     _check_shape(matrix)
     cdef double complex trace = 0
     cdef size_t diag, j
@@ -81,7 +81,7 @@ cpdef double complex trace_oper_ket_dense(Dense matrix) nogil except *:
         trace += matrix.data[ptr * stride]
     return trace
 
-cpdef double complex trace_oper_ket_diag(Diag matrix) except * nogil:
+cpdef double complex trace_oper_ket_dia(Dia matrix) except * nogil:
     cdef size_t N = <size_t>sqrt(matrix.shape[0])
     _check_shape_oper_ket(N, matrix)
     cdef double complex trace = 0
@@ -109,7 +109,7 @@ trace.__doc__ =\
     """Compute the trace (sum of digaonal elements) of a square matrix."""
 trace.add_specialisations([
     (CSR, trace_csr),
-    (Diag, trace_diag),
+    (Dia, trace_dia),
     (Dense, trace_dense),
 ], _defer=True)
 
@@ -126,7 +126,7 @@ trace_oper_ket.__doc__ =\
     """Compute the trace (sum of digaonal elements) of a stacked square matrix ."""
 trace_oper_ket.add_specialisations([
     (CSR, trace_oper_ket_csr),
-    (Diag, trace_oper_ket_diag),
+    (Dia, trace_oper_ket_dia),
     (Dense, trace_oper_ket_dense),
 ], _defer=True)
 

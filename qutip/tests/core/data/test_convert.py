@@ -15,15 +15,15 @@ def test_init_empty_data():
 @pytest.mark.parametrize(['base', 'dtype'], [
     pytest.param(data.dense.zeros(2, 2), data.Dense, id='data.Dense'),
     pytest.param(data.csr.zeros(2, 2), data.CSR, id='data.CSR'),
-    pytest.param(data.dia.zeros(2, 2), data.Diag, id='data.Diag'),
+    pytest.param(data.dia.zeros(2, 2), data.Dia, id='data.Dia'),
     pytest.param(np.zeros((10, 10), dtype=np.complex128), data.Dense,
                  id='array'),
     pytest.param(sparse.eye(10, dtype=np.complex128, format='csr'), data.CSR,
                  id='sparse'),
-    pytest.param(sparse.eye(10, dtype=np.complex128, format='dia'), data.Diag,
+    pytest.param(sparse.eye(10, dtype=np.complex128, format='dia'), data.Dia,
                  id='diag'),
     pytest.param(np.zeros((10, 10), dtype=np.int32), data.Dense, id='array'),
-    pytest.param(sparse.eye(10, dtype=float, format='dia'), data.Diag,
+    pytest.param(sparse.eye(10, dtype=float, format='dia'), data.Dia,
                  id='diag'),
     pytest.param(sparse.eye(10, dtype=float, format='csr'), data.CSR,
                  id='sparse'),
@@ -41,9 +41,9 @@ def test_create(base, dtype):
     pytest.param('csr', data.csr.zeros(2, 2), id='from CSR str'),
     pytest.param('CSR', data.csr.zeros(2, 2), id='from CSR STR'),
     pytest.param(data.CSR, data.csr.zeros(2, 2), id='from CSR type'),
-    pytest.param('Diag', data.dia.zeros(2, 2), id='from Diag STR'),
-    pytest.param('dia', data.dia.zeros(2, 2), id='from Diag str'),
-    pytest.param(data.Diag, data.dia.zeros(2, 2), id='from Diag type'),
+    pytest.param('Dia', data.dia.zeros(2, 2), id='from Dia STR'),
+    pytest.param('dia', data.dia.zeros(2, 2), id='from Dia str'),
+    pytest.param(data.Dia, data.dia.zeros(2, 2), id='from Dia type'),
 ])
 @pytest.mark.parametrize(['to_', 'dtype'], [
     pytest.param('dense', data.Dense, id='to Dense str'),
@@ -52,9 +52,9 @@ def test_create(base, dtype):
     pytest.param('csr', data.CSR, id='to CSR str'),
     pytest.param('CSR', data.CSR, id='to CSR STR'),
     pytest.param(data.CSR, data.CSR, id='to CSR type'),
-    pytest.param('Diag', data.Diag, id='to Diag STR'),
-    pytest.param('dia', data.Diag, id='to Diag str'),
-    pytest.param(data.Diag, data.Diag, id='to Diag type'),
+    pytest.param('Dia', data.Dia, id='to Dia STR'),
+    pytest.param('dia', data.Dia, id='to Dia str'),
+    pytest.param(data.Dia, data.Dia, id='to Dia type'),
 ])
 def test_converters(from_, base, to_, dtype):
     converter = data.to[to_, from_]
@@ -96,9 +96,9 @@ class TestConvert(UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.dense.from_csr, data.CSR, data.Dense),
-        pytest.param(data.dense.from_diag, data.Diag, data.Dense),
+        pytest.param(data.dense.from_dia, data.Dia, data.Dense),
         pytest.param(data.csr.from_dense, data.Dense, data.CSR),
-        pytest.param(data.csr.from_diag, data.Diag, data.CSR),
-        pytest.param(data.dia.from_dense, data.Dense, data.Diag),
-        pytest.param(data.dia.from_csr, data.CSR, data.Diag),
+        pytest.param(data.csr.from_dia, data.Dia, data.CSR),
+        pytest.param(data.dia.from_dense, data.Dense, data.Dia),
+        pytest.param(data.dia.from_csr, data.CSR, data.Dia),
     ]

@@ -4,7 +4,7 @@ import scipy
 import pytest
 
 from qutip.core import data
-from qutip.core.data import Data, Dense, CSR, Diag
+from qutip.core.data import Data, Dense, CSR, Dia
 
 from . import conftest
 
@@ -183,13 +183,13 @@ def cases_diag(shape):
 # getting just a single case from each.
 _ALL_CASES = {
     CSR: cases_csr,
-    Diag: cases_diag,
+    Dia: cases_diag,
     Dense: cases_dense,
 }
 _RANDOM = {
     CSR: lambda shape: [lambda: conftest.random_csr(shape, 0.5, True)],
     Dense: lambda shape: [lambda: conftest.random_dense(shape, False)],
-    Diag: lambda shape: [lambda: conftest.random_diag(shape, 0.5)],
+    Dia: lambda shape: [lambda: conftest.random_diag(shape, 0.5)],
 }
 
 
@@ -553,7 +553,7 @@ class TestAdd(BinaryOpMixin):
     specialisations = [
         pytest.param(data.add_csr, CSR, CSR, CSR),
         pytest.param(data.add_dense, Dense, Dense, Dense),
-        pytest.param(data.add_diag, Diag, Diag, Diag),
+        pytest.param(data.add_dia, Dia, Dia, Dia),
     ]
 
     # `add` has an additional scalar parameter, because the operation is
@@ -590,7 +590,7 @@ class TestAdjoint(UnaryOpMixin):
     specialisations = [
         pytest.param(data.adjoint_csr, CSR, CSR),
         pytest.param(data.adjoint_dense, Dense, Dense),
-        pytest.param(data.adjoint_diag, Diag, Diag),
+        pytest.param(data.adjoint_dia, Dia, Dia),
     ]
 
 
@@ -601,7 +601,7 @@ class TestConj(UnaryOpMixin):
     specialisations = [
         pytest.param(data.conj_csr, CSR, CSR),
         pytest.param(data.conj_dense, Dense, Dense),
-        pytest.param(data.conj_diag, Diag, Diag),
+        pytest.param(data.conj_dia, Dia, Dia),
     ]
 
 
@@ -638,7 +638,7 @@ class TestInner(BinaryOpMixin):
 
     specialisations = [
         pytest.param(data.inner_csr, CSR, CSR, complex),
-        pytest.param(data.inner_diag, Diag, Diag, complex),
+        pytest.param(data.inner_dia, Dia, Dia, complex),
         pytest.param(data.inner_dense, Dense, Dense, complex),
     ]
 
@@ -709,7 +709,7 @@ class TestInnerOp(TernaryOpMixin):
 
     specialisations = [
         pytest.param(data.inner_op_csr, CSR, CSR, CSR, complex),
-        pytest.param(data.inner_op_diag, Diag, Diag, Diag, complex),
+        pytest.param(data.inner_op_dia, Dia, Dia, Dia, complex),
         pytest.param(data.inner_op_dense, Dense, Dense, Dense, complex),
     ]
 
@@ -758,7 +758,7 @@ class TestKron(BinaryOpMixin):
     specialisations = [
         pytest.param(data.kron_csr, CSR, CSR, CSR),
         pytest.param(data.kron_dense, Dense, Dense, Dense),
-        pytest.param(data.kron_diag, Diag, Diag, Diag),
+        pytest.param(data.kron_dia, Dia, Dia, Dia),
     ]
 
 
@@ -772,8 +772,8 @@ class TestMatmul(BinaryOpMixin):
         pytest.param(data.matmul_csr, CSR, CSR, CSR),
         pytest.param(data.matmul_csr_dense_dense, CSR, Dense, Dense),
         pytest.param(data.matmul_dense, Dense, Dense, Dense),
-        pytest.param(data.matmul_diag, Diag, Diag, Diag),
-        pytest.param(data.matmul_diag_dense_dense, Diag, Dense, Dense),
+        pytest.param(data.matmul_dia, Dia, Dia, Dia),
+        pytest.param(data.matmul_dia_dense_dense, Dia, Dense, Dense),
     ]
 
 
@@ -786,7 +786,7 @@ class TestMultiply(BinaryOpMixin):
     specialisations = [
         pytest.param(data.multiply_csr, CSR, CSR, CSR),
         pytest.param(data.multiply_dense, Dense, Dense, Dense),
-        pytest.param(data.multiply_diag, Diag, Diag, Diag),
+        pytest.param(data.multiply_dia, Dia, Dia, Dia),
     ]
 
 
@@ -797,7 +797,7 @@ class TestMul(UnaryScalarOpMixin):
     specialisations = [
         pytest.param(data.mul_csr, CSR, CSR),
         pytest.param(data.mul_dense, Dense, Dense),
-        pytest.param(data.mul_diag, Diag, Diag),
+        pytest.param(data.mul_dia, Dia, Dia),
     ]
 
 
@@ -808,7 +808,7 @@ class TestNeg(UnaryOpMixin):
     specialisations = [
         pytest.param(data.neg_csr, CSR, CSR),
         pytest.param(data.neg_dense, Dense, Dense),
-        pytest.param(data.neg_diag, Diag, Diag),
+        pytest.param(data.neg_dia, Dia, Dia),
     ]
 
 
@@ -821,7 +821,7 @@ class TestSub(BinaryOpMixin):
     specialisations = [
         pytest.param(data.sub_csr, CSR, CSR, CSR),
         pytest.param(data.sub_dense, Dense, Dense, Dense),
-        pytest.param(data.sub_diag, Diag, Diag, Diag),
+        pytest.param(data.sub_dia, Dia, Dia, Dia),
     ]
 
 
@@ -834,7 +834,7 @@ class TestTrace(UnaryOpMixin):
     specialisations = [
         pytest.param(data.trace_csr, CSR, complex),
         pytest.param(data.trace_dense, Dense, complex),
-        pytest.param(data.trace_diag, Diag, complex),
+        pytest.param(data.trace_dia, Dia, complex),
     ]
 
 
@@ -855,7 +855,7 @@ class TestTrace_oper_ket(UnaryOpMixin):
     specialisations = [
         pytest.param(data.trace_oper_ket_csr, CSR, complex),
         pytest.param(data.trace_oper_ket_dense, Dense, complex),
-        pytest.param(data.trace_oper_ket_diag, Diag, complex),
+        pytest.param(data.trace_oper_ket_dia, Dia, complex),
     ]
 
 
@@ -868,7 +868,7 @@ class TestPow(UnaryOpMixin):
     specialisations = [
         pytest.param(data.pow_csr, CSR, CSR),
         pytest.param(data.pow_dense, Dense, Dense),
-        pytest.param(data.pow_diag, Diag, Diag),
+        pytest.param(data.pow_dia, Dia, Dia),
     ]
 
     @pytest.mark.parametrize("n", [0, 1, 10], ids=["n_0", "n_1", "n_10"])
@@ -903,7 +903,7 @@ class TestExpm(UnaryOpMixin):
         pytest.param(data.expm_csr, CSR, CSR),
         pytest.param(data.expm_csr_dense, CSR, Dense),
         pytest.param(data.expm_dense, Dense, Dense),
-        pytest.param(data.expm_diag, Diag, Diag),
+        pytest.param(data.expm_dia, Dia, Dia),
     ]
 
 
@@ -925,7 +925,7 @@ class TestTranspose(UnaryOpMixin):
     specialisations = [
         pytest.param(data.transpose_csr, CSR, CSR),
         pytest.param(data.transpose_dense, Dense, Dense),
-        pytest.param(data.transpose_diag, Diag, Diag),
+        pytest.param(data.transpose_dia, Dia, Dia),
     ]
 
 
@@ -948,7 +948,7 @@ class TestProject(UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.project_csr, CSR, CSR),
-        pytest.param(data.project_diag, Diag, Diag),
+        pytest.param(data.project_dia, Dia, Dia),
         pytest.param(data.project_dense, Dense, Dense),
     ]
 

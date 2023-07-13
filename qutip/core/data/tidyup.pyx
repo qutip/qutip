@@ -6,14 +6,14 @@ from libc.math cimport fabs
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport csr, dense, CSR, Dense, dia, Diag, base
+from qutip.core.data cimport csr, dense, CSR, Dense, dia, Dia, base
 
 cdef extern from "<complex>" namespace "std" nogil:
     # abs is templated such that Cython treats std::abs as complex->complex
     double abs(double complex x)
 
 __all__ = [
-    'tidyup', 'tidyup_csr', 'tidyup_dense', 'tidyup_diag',
+    'tidyup', 'tidyup_csr', 'tidyup_dense', 'tidyup_dia',
 ]
 
 
@@ -56,8 +56,8 @@ cpdef Dense tidyup_dense(Dense matrix, double tol, bint inplace=True):
     return out
 
 
-cpdef Diag tidyup_diag(Diag matrix, double tol, bint inplace=True):
-    cdef Diag out = matrix if inplace else matrix.copy()
+cpdef Dia tidyup_dia(Dia matrix, double tol, bint inplace=True):
+    cdef Dia out = matrix if inplace else matrix.copy()
     cdef base.idxint diag=0, new_diag=0, ONE=1, start, end, col
     cdef bint re, im, has_data
     cdef double complex value
@@ -143,7 +143,7 @@ tidyup.__doc__ =\
 tidyup.add_specialisations([
     (CSR, tidyup_csr),
     (Dense, tidyup_dense),
-    (Diag, tidyup_diag),
+    (Dia, tidyup_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher

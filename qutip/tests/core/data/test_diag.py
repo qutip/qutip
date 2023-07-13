@@ -3,7 +3,7 @@ import scipy.sparse
 import pytest
 
 from qutip.core import data, qeye, CoreOptions
-from qutip.core.data import dia, Dense, Diag
+from qutip.core.data import dia, Dense, Dia
 
 from . import conftest
 
@@ -39,7 +39,7 @@ def scipy_dia(shape, density):
 
 
 def _valid_scipy():
-    """Arbitrary valid scipy Diag"""
+    """Arbitrary valid scipy Dia"""
     return conftest.random_scipy_dia((10, 10), 0.5)
 
 
@@ -59,7 +59,7 @@ def data_diag(shape, density):
 class TestClassMethods:
     def test_init_from_scipy(self, scipy_dia):
         """Test that __init__ can accept a scipy dia matrix."""
-        out = dia.Diag(scipy_dia)
+        out = dia.Dia(scipy_dia)
         assert out.shape == scipy_dia.shape
         assert (out.as_scipy() - scipy_dia).nnz == 0
 
@@ -69,7 +69,7 @@ class TestClassMethods:
         the as_scipy() method succeeds.
         """
         arg = (scipy_dia.data, scipy_dia.offsets)
-        out = dia.Diag(arg, shape=scipy_dia.shape)
+        out = dia.Dia(arg, shape=scipy_dia.shape)
         assert out.shape == scipy_dia.shape
         assert (out.as_scipy() - scipy_dia).nnz == 0
 
@@ -86,7 +86,7 @@ class TestClassMethods:
         data = sci.data.real.astype(d_type, casting='unsafe')
         offsets = sci.offsets.astype(o_type, casting='unsafe')
         scipy_dia = scipy.sparse.dia_matrix((data, offsets), shape=sci.shape)
-        out = dia.Diag((data, offsets), shape=sci.shape)
+        out = dia.Dia((data, offsets), shape=sci.shape)
         out_scipy = out.as_scipy()
         assert out.shape == scipy_dia.shape
         assert out_scipy.data.dtype == np.complex128
@@ -125,14 +125,14 @@ class TestClassMethods:
         Test that the __init__ method raises a suitable error when passed
         incorrectly formatted inputs.
 
-        This test also serves as a *partial* check that Diag safely handles
+        This test also serves as a *partial* check that Dia safely handles
         deallocation in the presence of exceptions in its __init__ method.  If
         the tests segfault, it's quite likely that the memory management isn't
         being done correctly in the hand-off us setting our data buffers up and
         marking the numpy actually owns the data.
         """
         with pytest.raises(error):
-            dia.Diag(arg, **kwargs)
+            dia.Dia(arg, **kwargs)
 
     def test_copy_returns_a_correct_copy(self, data_diag):
         """
@@ -168,12 +168,12 @@ class TestClassMethods:
         Test that we produce a new scipy matrix, regardless of how we have
         initialised the type.
         """
-        assert dia.Diag(scipy_dia).as_scipy() is not scipy_dia
+        assert dia.Dia(scipy_dia).as_scipy() is not scipy_dia
 
     def test_as_scipy_of_copy_is_different(self, data_diag):
         """
         Test that as_scipy() does not return the same array, or the same views
-        if it's not the same input matrix.  We don't want two Diag matrices to
+        if it's not the same input matrix.  We don't want two Dia matrices to
         be linked.
         """
         original = data_diag.as_scipy()
@@ -187,7 +187,7 @@ class TestClassMethods:
         Test that as_scipy is actually giving the matrix we expect for a given
         input.
         """
-        data_diag = dia.Diag(scipy_dia)
+        data_diag = dia.Dia(scipy_dia)
         assert isinstance(data_diag.as_scipy(), scipy.sparse.dia_matrix)
         assert (data_diag.as_scipy() - scipy_dia).nnz == 0
 
@@ -211,7 +211,7 @@ class TestFactoryMethods:
         ndiag = int(shape[0] * shape[1] * density) or 1
         base = dia.empty(shape[0], shape[1], ndiag)
         sci = base.as_scipy(full=True)
-        assert isinstance(base, dia.Diag)
+        assert isinstance(base, dia.Dia)
         assert isinstance(sci, scipy.sparse.dia_matrix)
         assert base.shape == shape
         assert sci.data.shape == (ndiag, shape[1])
@@ -220,7 +220,7 @@ class TestFactoryMethods:
     def test_zeros(self, shape):
         base = dia.zeros(shape[0], shape[1])
         sci = base.as_scipy()
-        assert isinstance(base, dia.Diag)
+        assert isinstance(base, dia.Dia)
         assert base.shape == shape
         assert sci.nnz == 0
         assert np.all(base.to_array() == 0)
@@ -240,7 +240,7 @@ class TestFactoryMethods:
                                       dtype=np.complex128, format='dia')
         if scale is not None:
             scipy_test *= scale
-        assert isinstance(base, dia.Diag)
+        assert isinstance(base, dia.Dia)
         assert base.shape == (dimension, dimension)
         assert sci.nnz == dimension
         assert (sci - scipy_test).nnz == 0
@@ -279,7 +279,7 @@ class TestFactoryMethods:
         test = np.zeros(shape, dtype=np.complex128)
         for diagonal, offset in zip(diagonals, offsets):
             test[np.where(np.eye(*shape, k=offset) == 1)] += diagonal
-        assert isinstance(base, dia.Diag)
+        assert isinstance(base, dia.Dia)
         assert base.shape == shape
         np.testing.assert_allclose(base.to_array(), test, rtol=1e-10)
 
@@ -297,12 +297,12 @@ class TestFactoryMethods:
     def test_one_element(self, shape, position, value):
         test = np.zeros(shape, dtype=np.complex128)
         if value is None:
-            base = data.one_element_diag(shape, position)
+            base = data.one_element_dia(shape, position)
             test[position] = 1.0+0.0j
         else:
-            base = data.one_element_diag(shape, position, value)
+            base = data.one_element_dia(shape, position, value)
             test[position] = value
-        assert isinstance(base, data.Diag)
+        assert isinstance(base, data.Dia)
         assert base.shape == shape
         assert np.allclose(base.to_array(), test, atol=1e-10)
 
@@ -314,7 +314,7 @@ class TestFactoryMethods:
     ])
     def test_one_element_error(self, shape, position, value):
         with pytest.raises(ValueError) as exc:
-            base = data.one_element_diag(shape, position, value)
+            base = data.one_element_dia(shape, position, value)
         assert str(exc.value).startswith("Position of the elements"
                                          " out of bound: ")
 
@@ -330,7 +330,7 @@ def test_tidyup(data_diag):
     if largest == smallest:
         return
     tol = (largest + smallest) / 2
-    tidy = data.tidyup_diag(data_diag, tol, False)
+    tidy = data.tidyup_dia(data_diag, tol, False)
     # Inplace=False, does not modify the original
     np.testing.assert_array_equal(data_diag.to_array(), before)
     np.testing.assert_array_equal(data_diag.as_scipy().toarray(), sp_before)
@@ -338,7 +338,7 @@ def test_tidyup(data_diag):
     assert not np.allclose(tidy.to_array(), before)
     assert not np.allclose(tidy.as_scipy().toarray(), sp_before)
 
-    data.tidyup_diag(data_diag, tol, True)
+    data.tidyup_dia(data_diag, tol, True)
     assert not np.allclose(data_diag.to_array(), before)
     assert not np.allclose(data_diag.as_scipy().toarray(), sp_before)
 

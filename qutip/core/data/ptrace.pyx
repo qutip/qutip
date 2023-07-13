@@ -8,14 +8,14 @@ import numpy as np
 cimport numpy as cnp
 cimport cython
 
-from qutip.core.data cimport csr, dense, idxint, CSR, Dense, Data, Diag, dia
+from qutip.core.data cimport csr, dense, idxint, CSR, Dense, Data, Dia, dia
 from qutip.core.data.base import idxint_dtype
 from qutip.settings import settings
 
 cnp.import_array()
 
 __all__ = [
-    'ptrace', 'ptrace_csr', 'ptrace_dense', 'ptrace_csr_dense', 'ptrace_diag',
+    'ptrace', 'ptrace_csr', 'ptrace_dense', 'ptrace_csr_dense', 'ptrace_dia',
 ]
 
 cdef tuple _parse_inputs(object dims, object sel, tuple shape):
@@ -123,7 +123,7 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
 
 
 #TODO: cythonize
-def ptrace_diag(matrix, dims, sel):
+def ptrace_dia(matrix, dims, sel):
     if len(sel) == len(dims):
         return matrix.copy()
     dims, sel = _parse_inputs(dims, sel, matrix.shape)
@@ -149,8 +149,8 @@ def ptrace_diag(matrix, dims, sel):
         return dia.zeros(size, size)
     offsets = np.array(list(data.keys()), dtype=idxint_dtype)
     data = np.array(list(data.values()), dtype=complex)
-    out = Diag((data, offsets), shape=(size, size), copy=False)
-    out = dia.clean_diag(out, True)
+    out = Dia((data, offsets), shape=(size, size), copy=False)
+    out = dia.clean_dia(out, True)
     return out
 
 
@@ -244,7 +244,7 @@ ptrace.add_specialisations([
     (CSR, CSR, ptrace_csr),
     (CSR, Dense, ptrace_csr_dense),
     (Dense, Dense, ptrace_dense),
-    (Diag, Diag, ptrace_diag),
+    (Dia, Dia, ptrace_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher

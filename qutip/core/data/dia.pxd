@@ -14,24 +14,24 @@ from qutip.core.data cimport base
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
 
-cdef class Diag(base.Data):
+cdef class Dia(base.Data):
     cdef double complex *data
     cdef base.idxint *offsets
     cdef readonly size_t num_diag, _max_diag
     cdef object _scipy
     cdef bint _deallocate
-    cpdef Diag copy(Diag self)
-    cpdef object as_scipy(Diag self, bint full=*)
-    cpdef double complex trace(Diag self)
-    cpdef Diag adjoint(Diag self)
-    cpdef Diag conj(Diag self)
-    cpdef Diag transpose(Diag self)
+    cpdef Dia copy(Dia self)
+    cpdef object as_scipy(Dia self, bint full=*)
+    cpdef double complex trace(Dia self)
+    cpdef Dia adjoint(Dia self)
+    cpdef Dia conj(Dia self)
+    cpdef Dia transpose(Dia self)
 
-cpdef Diag fast_from_scipy(object sci)
-cpdef Diag empty(base.idxint rows, base.idxint cols, base.idxint num_diag)
-cpdef Diag empty_like(Diag other)
-cpdef Diag zeros(base.idxint rows, base.idxint cols)
-cpdef Diag identity(base.idxint dimension, double complex scale=*)
-cpdef Diag from_dense(Dense matrix)
-cpdef Diag from_csr(CSR matrix)
-cpdef Diag clean_diag(Diag matrix, bint inplace=*)
+cpdef Dia fast_from_scipy(object sci)
+cpdef Dia empty(base.idxint rows, base.idxint cols, base.idxint num_diag)
+cpdef Dia empty_like(Dia other)
+cpdef Dia zeros(base.idxint rows, base.idxint cols)
+cpdef Dia identity(base.idxint dimension, double complex scale=*)
+cpdef Dia from_dense(Dense matrix)
+cpdef Dia from_csr(CSR matrix)
+cpdef Dia clean_dia(Dia matrix, bint inplace=*)

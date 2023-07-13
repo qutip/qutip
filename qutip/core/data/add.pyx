@@ -9,8 +9,8 @@ from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
-from qutip.core.data.dia cimport Diag
-from qutip.core.data.tidyup cimport tidyup_diag
+from qutip.core.data.dia cimport Dia
+from qutip.core.data.tidyup cimport tidyup_dia
 from qutip.core.data.csr cimport (
     CSR, Accumulator, acc_alloc, acc_free, acc_scatter, acc_gather, acc_reset,
 )
@@ -25,8 +25,8 @@ cdef extern from *:
 
 
 __all__ = [
-    'add', 'add_csr', 'add_dense', 'iadd_dense', 'add_diag',
-    'sub', 'sub_csr', 'sub_dense', 'sub_diag',
+    'add', 'add_csr', 'add_dense', 'iadd_dense', 'add_dia',
+    'sub', 'sub_csr', 'sub_dense', 'sub_dia',
 ]
 
 
@@ -219,14 +219,14 @@ cpdef Dense iadd_dense(Dense left, Dense right, double complex scale=1):
     return left
 
 
-cpdef Diag add_diag(Diag left, Diag right, double complex scale=1):
+cpdef Dia add_dia(Dia left, Dia right, double complex scale=1):
     _check_shape(left, right)
     cdef idxint diag_left=0, diag_right=0, out_diag=0, i
     cdef double complex *ptr_out,
     cdef double complex *ptr_left
     cdef double complex *ptr_right
     cdef bint sorted=True
-    cdef Diag out = dia.empty(left.shape[0], left.shape[1], left.num_diag + right.num_diag)
+    cdef Dia out = dia.empty(left.shape[0], left.shape[1], left.num_diag + right.num_diag)
     cdef int length, size=left.shape[1]
 
     ptr_out = out.data
@@ -286,9 +286,9 @@ cpdef Diag add_diag(Diag left, Diag right, double complex scale=1):
         out.num_diag = out_diag
 
     if not sorted:
-        dia.clean_diag(out, True)
+        dia.clean_dia(out, True)
     if settings.core['auto_tidyup']:
-        tidyup_diag(out, settings.core['auto_tidyup_atol'], True)
+        tidyup_dia(out, settings.core['auto_tidyup_atol'], True)
     return out
 
 
@@ -300,8 +300,8 @@ cpdef Dense sub_dense(Dense left, Dense right):
     return add_dense(left, right, -1)
 
 
-cpdef Diag sub_diag(Diag left, Diag right):
-    return add_diag(left, right, -1)
+cpdef Dia sub_dia(Dia left, Dia right):
+    return add_dia(left, right, -1)
 
 
 from .dispatch import Dispatcher as _Dispatcher
@@ -329,7 +329,7 @@ add.__doc__ =\
 add.add_specialisations([
     (Dense, Dense, Dense, add_dense),
     (CSR, CSR, CSR, add_csr),
-    (Diag, Diag, Diag, add_diag),
+    (Dia, Dia, Dia, add_dia),
 ], _defer=True)
 
 sub = _Dispatcher(
@@ -351,7 +351,7 @@ sub.__doc__ =\
 sub.add_specialisations([
     (Dense, Dense, Dense, sub_dense),
     (CSR, CSR, CSR, sub_csr),
-    (Diag, Diag, Diag, sub_diag),
+    (Dia, Dia, Dia, sub_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher

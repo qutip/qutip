@@ -4,14 +4,14 @@
 from libc.string cimport memcpy, memset
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr, dense, Dense, dia, Diag
+from qutip.core.data cimport csr, dense, Dense, dia, Dia
 from qutip.core.data.csr cimport CSR
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 __all__ = [
-    'project', 'project_csr', 'project_dense', 'project_diag',
+    'project', 'project_csr', 'project_dense', 'project_dia',
 ]
 
 
@@ -115,13 +115,13 @@ cpdef Dense project_dense(Dense state):
     return out
 
 
-cpdef Diag project_diag(Diag state):
+cpdef Dia project_dia(Dia state):
     """
     Calculate the projection |state><state|.  The shape of `state` will be used
     to determine if it has been supplied as a ket or a bra.  The result of this
     function will be identical is passed `state` or `adjoint(state)`.
     """
-    cdef Diag out
+    cdef Dia out
     cdef size_t size, i, j, k, num_diag=0, max_diag
     if state.shape[1] == 1:
         size = state.shape[0]
@@ -196,7 +196,7 @@ project.__doc__ =\
     """
 project.add_specialisations([
     (CSR, CSR, project_csr),
-    (Diag, Diag, project_diag),
+    (Dia, Dia, project_dia),
     (Dense, Dense, project_dense),
 ], _defer=True)
 

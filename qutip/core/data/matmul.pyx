@@ -20,8 +20,8 @@ from qutip.core.data.base import idxint_dtype
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
-from qutip.core.data.dia cimport Diag
-from qutip.core.data.tidyup cimport tidyup_diag
+from qutip.core.data.dia cimport Dia
+from qutip.core.data.tidyup cimport tidyup_dia
 from qutip.core.data cimport csr, dense, dia
 from qutip.core.data.add cimport iadd_dense, add_csr
 from qutip.core.data.mul cimport imul_dense
@@ -49,9 +49,9 @@ cdef extern from "src/matmul_diag_vector.hpp" nogil:
 
 
 __all__ = [
-    'matmul', 'matmul_csr', 'matmul_dense', 'matmul_diag',
-    'matmul_csr_dense_dense', 'matmul_diag_dense_dense',
-    'multiply', 'multiply_csr', 'multiply_dense', 'multiply_diag',
+    'matmul', 'matmul_csr', 'matmul_dense', 'matmul_dia',
+    'matmul_csr_dense_dense', 'matmul_dia_dense_dense',
+    'multiply', 'multiply_csr', 'multiply_dense', 'multiply_dia',
 ]
 
 
@@ -321,7 +321,7 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
 
 
 #TODO: optimize: not rely on numpy for unique offsets.
-cpdef Diag matmul_diag(Diag left, Diag right, double complex scale=1):
+cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=1):
     _check_shape(left, right, None)
     # We could probably do faster than this...
     npoffsets = np.unique(np.add.outer(left.as_scipy().offsets, right.as_scipy().offsets))
@@ -358,10 +358,10 @@ cpdef Diag matmul_diag(Diag left, Diag right, double complex scale=1):
                 * left.data[diag_left * left.shape[1] + col - right.offsets[diag_right]]
                 * right.data[diag_right * right.shape[1] + col]
               )
-    return Diag((npdata, npoffsets), shape=(left.shape[0], right.shape[1]), copy=False)
+    return Dia((npdata, npoffsets), shape=(left.shape[0], right.shape[1]), copy=False)
 
 
-cpdef Dense matmul_diag_dense_dense(Diag left, Dense right, double complex scale=1, Dense out=None):
+cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1, Dense out=None):
     _check_shape(left, right, out)
     cdef Dense tmp
     if out is not None and scale == 1.:
@@ -490,7 +490,7 @@ cpdef CSR multiply_csr(CSR left, CSR right):
     return out
 
 
-cpdef Diag multiply_diag(Diag left, Diag right):
+cpdef Dia multiply_dia(Dia left, Dia right):
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
         raise ValueError(
             "incompatible matrix shapes "
@@ -500,7 +500,7 @@ cpdef Diag multiply_diag(Diag left, Diag right):
         )
     cdef idxint diag_left=0, diag_right=0, out_diag=0, col
     cdef bint sorted=True
-    cdef Diag out = dia.empty(left.shape[0], left.shape[1], min(left.num_diag, right.num_diag))
+    cdef Dia out = dia.empty(left.shape[0], left.shape[1], min(left.num_diag, right.num_diag))
 
     with nogil:
       for diag_left in range(1, left.num_diag):
@@ -550,7 +550,7 @@ cpdef Diag multiply_diag(Diag left, Diag right):
       out.num_diag = out_diag
 
     if settings.core['auto_tidyup']:
-        tidyup_diag(out, settings.core['auto_tidyup_atol'], True)
+        tidyup_dia(out, settings.core['auto_tidyup_atol'], True)
     return out
 
 
@@ -612,8 +612,8 @@ matmul.add_specialisations([
     (CSR, CSR, CSR, matmul_csr),
     (CSR, Dense, Dense, matmul_csr_dense_dense),
     (Dense, Dense, Dense, matmul_dense),
-    (Diag, Diag, Diag, matmul_diag),
-    (Diag, Dense, Dense, matmul_diag_dense_dense),
+    (Dia, Dia, Dia, matmul_dia),
+    (Dia, Dense, Dense, matmul_dia_dense_dense),
 ], _defer=True)
 
 
@@ -632,7 +632,7 @@ multiply.__doc__ =\
 multiply.add_specialisations([
     (CSR, CSR, CSR, multiply_csr),
     (Dense, Dense, Dense, multiply_dense),
-    (Diag, Diag, Diag, multiply_diag),
+    (Dia, Dia, Dia, multiply_dia),
 ], _defer=True)
 
 
@@ -645,8 +645,8 @@ cdef Dense matmul_data_dense(Data left, Dense right):
         out = matmul_csr_dense_dense(left, right)
     elif type(left) is Dense:
         out = matmul_dense(left, right)
-    elif type(left) is Diag:
-        out = matmul_diag_dense_dense(left, right)
+    elif type(left) is Dia:
+        out = matmul_dia_dense_dense(left, right)
     else:
         out = matmul(left, right)
     return out
@@ -655,8 +655,8 @@ cdef Dense matmul_data_dense(Data left, Dense right):
 cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense out):
     if type(left) is CSR:
         matmul_csr_dense_dense(left, right, scale, out)
-    elif type(left) is Diag:
-        matmul_diag_dense_dense(left, right, scale, out)
+    elif type(left) is Dia:
+        matmul_dia_dense_dense(left, right, scale, out)
     elif type(left) is Dense:
         matmul_dense(left, right, scale, out)
     else:

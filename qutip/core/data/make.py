@@ -1,10 +1,10 @@
 from .dispatch import Dispatcher as _Dispatcher
-from . import csr, dense, dia, CSR, Dense, Diag
+from . import csr, dense, dia, CSR, Dense, Dia
 import numpy as np
 
 __all__ = [
     'diag',
-    'one_element_csr', 'one_element_dense', 'one_element_diag', 'one_element'
+    'one_element_csr', 'one_element_dense', 'one_element_dia', 'one_element'
 ]
 
 
@@ -40,7 +40,7 @@ def _diag_signature(diagonals, offsets=0, shape=None):
 diag = _Dispatcher(_diag_signature, name='diag', inputs=(), out=True)
 diag.add_specialisations([
     (CSR, csr.diags),
-    (Diag, dia.diags),
+    (Dia, dia.diags),
     (Dense, dense.diags),
 ], _defer=True)
 
@@ -98,7 +98,7 @@ def one_element_dense(shape, position, value=1.0):
     return data
 
 
-def one_element_diag(shape, position, value=1.0):
+def one_element_dia(shape, position, value=1.0):
     """
     Create a matrix with only one nonzero element.
 
@@ -119,7 +119,7 @@ def one_element_diag(shape, position, value=1.0):
     data = np.zeros((1 ,shape[1]), dtype=complex)
     data[0, position[1]] = value
     offsets = np.array([position[1]-position[0]])
-    return Diag((data, offsets), copy=False, shape=shape)
+    return Dia((data, offsets), copy=False, shape=shape)
 
 
 one_element = _Dispatcher(one_element_dense, name='one_element',
@@ -127,5 +127,5 @@ one_element = _Dispatcher(one_element_dense, name='one_element',
 one_element.add_specialisations([
     (CSR, one_element_csr),
     (Dense, one_element_dense),
-    (Diag, one_element_diag),
+    (Dia, one_element_dia),
 ], _defer=True)

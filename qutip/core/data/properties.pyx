@@ -7,7 +7,7 @@ from cpython cimport mem
 from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr, dense, CSR, Dense, Diag
+from qutip.core.data cimport csr, dense, CSR, Dense, Dia
 from qutip.core.data.adjoint cimport transpose_csr
 
 cdef extern from *:
@@ -15,9 +15,9 @@ cdef extern from *:
     void *PyMem_Calloc(size_t nelem, size_t elsize)
 
 __all__ = [
-    'isherm', 'isherm_csr', 'isherm_dense', 'isherm_diag',
-    'isdiag', 'isdiag_csr', 'isdiag_dense', 'isdiag_diag',
-    'iszero', 'iszero_csr', 'iszero_dense', 'iszero_diag',
+    'isherm', 'isherm_csr', 'isherm_dense', 'isherm_dia',
+    'isdiag', 'isdiag_csr', 'isdiag_dense', 'isdiag_dia',
+    'iszero', 'iszero_csr', 'iszero_dense', 'iszero_dia',
 ]
 
 cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil:
@@ -145,7 +145,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
         mem.PyMem_Free(out_row_index)
 
 
-cpdef bint isherm_diag(Diag matrix, double tol=-1) nogil:
+cpdef bint isherm_dia(Dia matrix, double tol=-1) nogil:
     cdef double complex val, valT
     cdef size_t diag, other_diag, col, start, end, other_start
     if tol < 0:
@@ -222,7 +222,7 @@ cpdef bint isherm_dense(Dense matrix, double tol=-1):
     return True
 
 
-cpdef bint isdiag_diag(Diag matrix, double tol=-1) nogil:
+cpdef bint isdiag_dia(Dia matrix, double tol=-1) nogil:
     cdef size_t diag, start, end, col
     if tol < 0:
         with gil:
@@ -261,7 +261,7 @@ cpdef bint isdiag_dense(Dense matrix) nogil:
     return True
 
 
-cpdef bint iszero_diag(Diag matrix, double tol=-1) nogil:
+cpdef bint iszero_dia(Dia matrix, double tol=-1) nogil:
     cdef size_t diag, start, end, col
     if tol < 0:
         with gil:
@@ -334,7 +334,7 @@ isherm.__doc__ =\
     """
 isherm.add_specialisations([
     (Dense, isherm_dense),
-    (Diag, isherm_diag),
+    (Dia, isherm_dia),
     (CSR, isherm_csr),
 ], _defer=True)
 
@@ -358,7 +358,7 @@ isdiag.__doc__ =\
     """
 isdiag.add_specialisations([
     (Dense, isdiag_dense),
-    (Diag, isdiag_diag),
+    (Dia, isdiag_dia),
     (CSR, isdiag_csr),
 ], _defer=True)
 
@@ -393,7 +393,7 @@ iszero.__doc__ =\
     """
 iszero.add_specialisations([
     (CSR, iszero_csr),
-    (Diag, iszero_diag),
+    (Dia, iszero_dia),
     (Dense, iszero_dense),
 ], _defer=True)
 

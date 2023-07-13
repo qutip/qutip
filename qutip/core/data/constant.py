@@ -5,7 +5,7 @@
 
 from . import csr, dense, dia
 from .csr import CSR
-from .dia import Diag
+from .dia import Dia
 from .dense import Dense
 from .base import Data
 from .dispatch import Dispatcher as _Dispatcher
@@ -39,7 +39,7 @@ zeros.__doc__ =\
     """
 zeros.add_specialisations([
     (CSR, csr.zeros),
-    (Diag, dia.zeros),
+    (Dia, dia.zeros),
     (Dense, dense.zeros),
 ], _defer=True)
 
@@ -70,7 +70,7 @@ identity.__doc__ =\
     """
 identity.add_specialisations([
     (CSR, csr.identity),
-    (Diag, dia.identity),
+    (Dia, dia.identity),
     (Dense, dense.identity),
 ], _defer=True)
 

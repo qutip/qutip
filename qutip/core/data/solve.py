@@ -1,4 +1,4 @@
-from qutip.core.data import CSR, Data, csr, Dense, Diag
+from qutip.core.data import CSR, Data, csr, Dense, Dia
 import qutip.core.data as _data
 import scipy.sparse.linalg as splinalg
 import numpy as np
@@ -12,7 +12,7 @@ else:
     mkl_spsolve = None
 
 
-__all__ = ["solve_csr_dense", "solve_diag_dense", "solve_dense", "solve"]
+__all__ = ["solve_csr_dense", "solve_dia_dense", "solve_dense", "solve"]
 
 
 def _splu(A, B, **kwargs):
@@ -20,7 +20,7 @@ def _splu(A, B, **kwargs):
     return lu.solve(B)
 
 
-def solve_csr_dense(matrix: Union[CSR, Diag], target: Dense, method=None,
+def solve_csr_dense(matrix: Union[CSR, Dia], target: Dense, method=None,
                     options: dict={}) -> Dense:
     """
     Solve ``Ax=b`` for ``x``.
@@ -28,7 +28,7 @@ def solve_csr_dense(matrix: Union[CSR, Diag], target: Dense, method=None,
     Parameters:
     -----------
 
-    matrix : CSR, Diag
+    matrix : CSR, Dia
         The matrix ``A``.
 
     target : Data
@@ -80,7 +80,7 @@ def solve_csr_dense(matrix: Union[CSR, Diag], target: Dense, method=None,
 
     options = options.copy()
     M = matrix.as_scipy()
-    if options.pop("csc", False) or isinstance(matrix, Diag):
+    if options.pop("csc", False) or isinstance(matrix, Dia):
         M = M.tocsc()
 
     with warnings.catch_warnings():
@@ -113,7 +113,7 @@ def solve_csr_dense(matrix: Union[CSR, Diag], target: Dense, method=None,
     return Dense(out, copy=False)
 
 
-solve_diag_dense = solve_csr_dense
+solve_dia_dense = solve_csr_dense
 
 
 def solve_dense(matrix: Dense, target: Data, method=None,
@@ -222,7 +222,7 @@ solve.__doc__ = """
 """
 solve.add_specialisations([
     (CSR, Dense, Dense, solve_csr_dense),
-    (Diag, Dense, Dense, solve_diag_dense),
+    (Dia, Dense, Dense, solve_dia_dense),
     (Dense, Dense, Dense, solve_dense),
 ], _defer=True)
 

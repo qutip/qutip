@@ -8,7 +8,7 @@ cimport cython
 from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
-from qutip.core.data.dia cimport Diag
+from qutip.core.data.dia cimport Dia
 from qutip.core.data cimport csr, dense, dia
 
 # Import std::conj as `_conj` to avoid clashing with our 'conj' dispatcher.
@@ -16,9 +16,9 @@ cdef extern from "<complex>" namespace "std" nogil:
     double complex _conj "conj"(double complex x)
 
 __all__ = [
-    'adjoint', 'adjoint_csr', 'adjoint_dense', 'adjoint_diag',
-    'conj', 'conj_csr', 'conj_dense', 'conj_diag',
-    'transpose', 'transpose_csr', 'transpose_dense', 'transpose_diag',
+    'adjoint', 'adjoint_csr', 'adjoint_dense', 'adjoint_dia',
+    'conj', 'conj_csr', 'conj_dense', 'conj_dia',
+    'transpose', 'transpose_csr', 'transpose_dense', 'transpose_dia',
 ]
 
 
@@ -110,8 +110,8 @@ cpdef Dense conj_dense(Dense matrix):
     return out
 
 
-cpdef Diag adjoint_diag(Diag matrix):
-    cdef Diag out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag)
+cpdef Dia adjoint_dia(Dia matrix):
+    cdef Dia out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag)
     cdef size_t i, new_i,
     cdef idxint new_offset, j
     with nogil:
@@ -127,8 +127,8 @@ cpdef Diag adjoint_diag(Diag matrix):
     return out
 
 
-cpdef Diag transpose_diag(Diag matrix):
-    cdef Diag out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag)
+cpdef Dia transpose_dia(Dia matrix):
+    cdef Dia out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag)
     cdef size_t i, new_i,
     cdef idxint new_offset, j
     with nogil:
@@ -144,8 +144,8 @@ cpdef Diag transpose_diag(Diag matrix):
     return out
 
 
-cpdef Diag conj_diag(Diag matrix):
-    cdef Diag out = dia.empty_like(matrix)
+cpdef Dia conj_dia(Dia matrix):
+    cdef Dia out = dia.empty_like(matrix)
     cdef size_t i, j
     with nogil:
         out.num_diag = matrix.num_diag
@@ -172,7 +172,7 @@ adjoint.__doc__ = """Hermitian adjoint (matrix conjugate transpose)."""
 adjoint.add_specialisations([
     (Dense, Dense, adjoint_dense),
     (CSR, CSR, adjoint_csr),
-    (Diag, Diag, adjoint_diag),
+    (Dia, Dia, adjoint_dia),
 ], _defer=True)
 
 transpose = _Dispatcher(
@@ -188,7 +188,7 @@ transpose.__doc__ = """Transpose of a matrix."""
 transpose.add_specialisations([
     (Dense, Dense, transpose_dense),
     (CSR, CSR, transpose_csr),
-    (Diag, Diag, transpose_diag),
+    (Dia, Dia, transpose_dia),
 ], _defer=True)
 
 conj = _Dispatcher(
@@ -204,7 +204,7 @@ conj.__doc__ = """Element-wise conjugation of a matrix."""
 conj.add_specialisations([
     (Dense, Dense, conj_dense),
     (CSR, CSR, conj_csr),
-    (Diag, Diag, conj_diag),
+    (Dia, Dia, conj_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher

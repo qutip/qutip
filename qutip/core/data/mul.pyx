@@ -1,13 +1,13 @@
 #cython: language_level=3
 #cython: boundscheck=False, wrapround=False, initializedcheck=False
 
-from qutip.core.data cimport idxint, csr, CSR, dense, Dense, Data, Diag, dia
+from qutip.core.data cimport idxint, csr, CSR, dense, Dense, Data, Dia, dia
 from scipy.linalg.cython_blas cimport zscal
 
 __all__ = [
-    'mul', 'mul_csr', 'mul_dense', 'mul_diag',
-    'imul', 'imul_csr', 'imul_dense', 'imul_diag', 'imul_data',
-    'neg', 'neg_csr', 'neg_dense', 'neg_diag',
+    'mul', 'mul_csr', 'mul_dense', 'mul_dia',
+    'imul', 'imul_csr', 'imul_dense', 'imul_dia', 'imul_data',
+    'neg', 'neg_csr', 'neg_dense', 'neg_dia',
 ]
 
 
@@ -39,18 +39,18 @@ cpdef CSR neg_csr(CSR matrix):
     return out
 
 
-cpdef Diag imul_diag(Diag matrix, double complex value):
-    """Multiply this Diag `matrix` by a complex scalar `value`."""
+cpdef Dia imul_dia(Dia matrix, double complex value):
+    """Multiply this Dia `matrix` by a complex scalar `value`."""
     cdef idxint l = matrix.num_diag * matrix.shape[1]
     cdef int ONE=1
     zscal(&l, &value, matrix.data, &ONE)
     return matrix
 
-cpdef Diag mul_diag(Diag matrix, double complex value):
-    """Multiply this Diag `matrix` by a complex scalar `value`."""
+cpdef Dia mul_dia(Dia matrix, double complex value):
+    """Multiply this Dia `matrix` by a complex scalar `value`."""
     if value == 0:
         return dia.zeros(matrix.shape[0], matrix.shape[1])
-    cdef Diag out = dia.empty_like(matrix)
+    cdef Dia out = dia.empty_like(matrix)
     cdef idxint ptr, diag, l = matrix.num_diag * matrix.shape[1]
     with nogil:
         for ptr in range(l):
@@ -60,9 +60,9 @@ cpdef Diag mul_diag(Diag matrix, double complex value):
         out.num_diag = matrix.num_diag
     return out
 
-cpdef Diag neg_diag(Diag matrix):
-    """Unary negation of this Diag `matrix`.  Return a new object."""
-    cdef Diag out = matrix.copy()
+cpdef Dia neg_dia(Dia matrix):
+    """Unary negation of this Dia `matrix`.  Return a new object."""
+    cdef Dia out = matrix.copy()
     cdef idxint ptr, l = matrix.num_diag * matrix.shape[1]
     with nogil:
         for ptr in range(l):
@@ -114,7 +114,7 @@ mul.__doc__ =\
     """Multiply a matrix element-wise by a scalar."""
 mul.add_specialisations([
     (CSR, CSR, mul_csr),
-    (Diag, Diag, mul_diag),
+    (Dia, Dia, mul_dia),
     (Dense, Dense, mul_dense),
 ], _defer=True)
 
@@ -135,7 +135,7 @@ imul.__doc__ =\
     """Multiply inplace a matrix element-wise by a scalar."""
 imul.add_specialisations([
     (CSR, CSR, imul_csr),
-    (Diag, Diag, imul_diag),
+    (Dia, Dia, imul_dia),
     (Dense, Dense, imul_dense),
 ], _defer=True)
 
@@ -152,7 +152,7 @@ neg.__doc__ =\
     """Unary element-wise negation of a matrix."""
 neg.add_specialisations([
     (CSR, CSR, neg_csr),
-    (Diag, Diag, neg_diag),
+    (Dia, Dia, neg_dia),
     (Dense, Dense, neg_dense),
 ], _defer=True)
 
@@ -164,7 +164,7 @@ cpdef Data imul_data(Data matrix, double complex value):
         return imul_csr(matrix, value)
     elif type(matrix) is Dense:
         return imul_dense(matrix, value)
-    elif type(matrix) is Diag:
-        return imul_diag(matrix, value)
+    elif type(matrix) is Dia:
+        return imul_dia(matrix, value)
     else:
         return imul(matrix, value)

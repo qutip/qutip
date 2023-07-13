@@ -6,7 +6,7 @@ import qutip
 import warnings
 
 from qutip.core import data as _data
-from qutip.core.data import Data, Dense, CSR, Diag
+from qutip.core.data import Data, Dense, CSR, Dia
 
 
 skip_no_mkl = pytest.mark.skipif(
@@ -37,7 +37,7 @@ class TestSolve():
             "spsolve", "splu", "gmres", "lsqr", "solve", "lstsq", "mkl_spsolve"
         ]
     )
-    @pytest.mark.parametrize('dtype', [CSR, Diag])
+    @pytest.mark.parametrize('dtype', [CSR, Dia])
     def test_mathematically_correct_sparse(self, method, opt, dtype):
         """
         Test that the binary operation is mathematically correct for all the

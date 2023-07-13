@@ -25,9 +25,9 @@ except ImportError:
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, CSR
-from qutip.core.data.adjoint import adjoint_diag, transpose_diag, conj_diag
-from qutip.core.data.trace import trace_diag
-from qutip.core.data.tidyup import tidyup_diag
+from qutip.core.data.adjoint import adjoint_dia, transpose_dia, conj_dia
+from qutip.core.data.trace import trace_dia
+from qutip.core.data.tidyup import tidyup_dia
 from .base import idxint_dtype
 from qutip.settings import settings
 
@@ -38,7 +38,7 @@ cdef extern from *:
     void *PyDataMem_NEW(size_t size)
     void PyDataMem_FREE(void *ptr)
 
-__all__ = ['Diag']
+__all__ = ['Dia']
 
 cdef object _dia_matrix(data, offsets, shape):
     """
@@ -65,7 +65,7 @@ cdef tuple _count_element(complex[:] line, size_t length):
     return (post, length - pre)
 
 
-cdef class Diag(base.Data):
+cdef class Dia(base.Data):
     def __cinit__(self, *args, **kwargs):
         self._deallocate = True
 
@@ -94,7 +94,7 @@ cdef class Diag(base.Data):
         self._max_diag = self.num_diag
 
         if shape is None:
-            warnings.warn("instantiating Diag matrix of unknown shape")
+            warnings.warn("instantiating Dia matrix of unknown shape")
             nrows = 0
             ncols = 0
             for i in range(self.num_diag):
@@ -133,12 +133,12 @@ cdef class Diag(base.Data):
 
         self._scipy = _dia_matrix(data, offsets, self.shape)
         if tidyup:
-            tidyup_diag(self, settings.core['auto_tidyup_atol'], True)
+            tidyup_dia(self, settings.core['auto_tidyup_atol'], True)
 
     def __reduce__(self):
         return (fast_from_scipy, (self.as_scipy(),))
 
-    cpdef Diag copy(self):
+    cpdef Dia copy(self):
         """
         Return a complete (deep) copy of this object.
 
@@ -150,7 +150,7 @@ cdef class Diag(base.Data):
         unnecessary speed penalty for users who do not need it (including
         low-level C code).
         """
-        cdef Diag out = empty_like(self)
+        cdef Dia out = empty_like(self)
         out.num_diag = self.num_diag
         memcpy(out.data, self.data, self.num_diag * self.shape[1] * sizeof(double complex))
         memcpy(out.offsets, self.offsets, self.num_diag * sizeof(base.idxint))
@@ -203,20 +203,20 @@ cdef class Diag(base.Data):
         return self._scipy
 
     cpdef double complex trace(self):
-        return trace_diag(self)
+        return trace_dia(self)
 
-    cpdef Diag adjoint(self):
-        return adjoint_diag(self)
+    cpdef Dia adjoint(self):
+        return adjoint_dia(self)
 
-    cpdef Diag conj(self):
-        return conj_diag(self)
+    cpdef Dia conj(self):
+        return conj_dia(self)
 
-    cpdef Diag transpose(self):
-        return transpose_diag(self)
+    cpdef Dia transpose(self):
+        return transpose_dia(self)
 
     def __repr__(self):
         return "".join([
-            "Diag(shape=", str(self.shape), ", num_diag=", str(self.num_diag), ")",
+            "Dia(shape=", str(self.shape), ", num_diag=", str(self.num_diag), ")",
         ])
 
     def __str__(self):
@@ -234,13 +234,13 @@ cdef class Diag(base.Data):
             PyDataMem_FREE(self.offsets)
 
 
-cpdef Diag fast_from_scipy(object sci):
+cpdef Dia fast_from_scipy(object sci):
     """
     Fast path construction from scipy.sparse.csr_matrix.  This does _no_ type
     checking on any of the inputs, and should consequently be considered very
     unsafe.  This is primarily for use in the unpickling operation.
     """
-    cdef Diag out = Diag.__new__(Diag)
+    cdef Dia out = Dia.__new__(Dia)
     out.shape = sci.shape
     out._deallocate = False
     out._scipy = sci
@@ -251,16 +251,16 @@ cpdef Diag fast_from_scipy(object sci):
     return out
 
 
-cpdef Diag empty(base.idxint rows, base.idxint cols, base.idxint num_diag):
+cpdef Dia empty(base.idxint rows, base.idxint cols, base.idxint num_diag):
     """
-    Allocate an empty Diag matrix of the given shape, ``with num_diag``
+    Allocate an empty Dia matrix of the given shape, ``with num_diag``
     diagonals.
 
     This does not initialise any of the memory returned.
     """
     if num_diag < 0:
         raise ValueError("num_diag must be a positive integer.")
-    cdef Diag out = Diag.__new__(Diag)
+    cdef Dia out = Dia.__new__(Dia)
     out.shape = (rows, cols)
     out.num_diag = 0
     # Python doesn't like allocating nothing.
@@ -274,30 +274,30 @@ cpdef Diag empty(base.idxint rows, base.idxint cols, base.idxint num_diag):
     return out
 
 
-cpdef Diag empty_like(Diag other):
+cpdef Dia empty_like(Dia other):
     return empty(other.shape[0], other.shape[1], other.num_diag)
 
 
-cpdef Diag zeros(base.idxint rows, base.idxint cols):
+cpdef Dia zeros(base.idxint rows, base.idxint cols):
     """
     Allocate the zero matrix with a given shape.  There will not be any room in
     the `data` and `col_index` buffers to add new elements.
     """
     # We always allocate matrices with at least one element to ensure that we
     # actually _are_ asking for memory (Python doesn't like allocating nothing)
-    cdef Diag out = empty(rows, cols, 0)
+    cdef Dia out = empty(rows, cols, 0)
     memset(out.data, 0, out.shape[1] * sizeof(double complex))
     out.offsets[0] = 0
     return out
 
 
-cpdef Diag identity(base.idxint dimension, double complex scale=1):
+cpdef Dia identity(base.idxint dimension, double complex scale=1):
     """
     Return a square matrix of the specified dimension, with a constant along
     the diagonal.  By default this will be the identity matrix, but if `scale`
     is passed, then the result will be `scale` times the identity.
     """
-    cdef Diag out = empty(dimension, dimension, 1)
+    cdef Dia out = empty(dimension, dimension, 1)
     for i in range(dimension):
         out.data[i] = scale
     out.offsets[0] = 0
@@ -306,8 +306,8 @@ cpdef Diag identity(base.idxint dimension, double complex scale=1):
 
 
 @cython.boundscheck(True)
-cpdef Diag from_dense(Dense matrix):
-    cdef Diag out = empty(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1)
+cpdef Dia from_dense(Dense matrix):
+    cdef Dia out = empty(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1)
     memset(out.data, 0, out._max_diag * out.shape[1] * sizeof(double complex))
     cdef size_t diag_, ptr_in, ptr_out=0, stride
     cdef row, col
@@ -323,12 +323,12 @@ cpdef Diag from_dense(Dense matrix):
             out.data[(col - row + matrix.shape[0] - 1) * out.shape[1] + col] = matrix.data[row * strideR + col * strideC]
 
     if settings.core["auto_tidyup"]:
-        tidyup_diag(out, settings.core["auto_tidyup_atol"], True)
+        tidyup_dia(out, settings.core["auto_tidyup_atol"], True)
 
     return out
 
 
-cpdef Diag from_csr(CSR matrix):
+cpdef Dia from_csr(CSR matrix):
     out_diag = set()
     for row in range(matrix.shape[0]):
         for ptr in range(matrix.row_index[row], matrix.row_index[row+1]):
@@ -340,15 +340,15 @@ cpdef Diag from_csr(CSR matrix):
             diag = matrix.col_index[ptr] - row
             idx = np.searchsorted(diags, diag)
             data[idx, matrix.col_index[ptr]] = matrix.data[ptr]
-    return Diag((data, diags), shape=matrix.shape, copy=False)
+    return Dia((data, diags), shape=matrix.shape, copy=False)
 
 
-cpdef Diag clean_diag(Diag matrix, bint inplace=False):
+cpdef Dia clean_dia(Dia matrix, bint inplace=False):
     """
     Sort and sum duplicates of offsets.
     Set out of bound values to zeros.
     """
-    cdef Diag out = matrix if inplace else matrix.copy()
+    cdef Dia out = matrix if inplace else matrix.copy()
     cdef base.idxint diag=0, new_diag=0, start, end, col
     cdef double complex zONE=1.
     cdef bint has_duplicate
@@ -409,12 +409,12 @@ cdef inline base.idxint _diagonal_length(
     return n_cols if offset > n_cols - n_rows else n_rows + offset
 
 
-cdef Diag diags_(
+cdef Dia diags_(
     list diagonals, base.idxint[:] offsets,
     base.idxint n_rows, base.idxint n_cols,
 ):
     """
-    Construct a Diag matrix from a list of diagonals and their offsets.  The
+    Construct a Dia matrix from a list of diagonals and their offsets.  The
     offsets are assumed to be in sorted order.  This is the C-only interface to
     diag.diags, and inputs are not sanity checked (use the Python interface for
     that).
@@ -448,7 +448,7 @@ cdef Diag diags_(
 @cython.wraparound(True)
 def diags(diagonals, offsets=None, shape=None):
     """
-    Construct a Diag matrix from diagonals and their offsets.  Using this
+    Construct a Dia matrix from diagonals and their offsets.  Using this
     function in single-argument form produces a square matrix with the given
     values on the main diagonal.
 

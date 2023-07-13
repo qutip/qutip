@@ -4,14 +4,14 @@ import scipy.linalg
 
 from .dense import Dense
 from .csr import CSR
-from .dia import Diag
+from .dia import Dia
 from . import dia
-from .properties import isdiag_csr, isdiag_diag
+from .properties import isdiag_csr, isdiag_dia
 from qutip.settings import settings
 from .base import idxint_dtype
 
 __all__ = [
-    'expm', 'expm_csr', 'expm_csr_dense', 'expm_dense', 'expm_diag',
+    'expm', 'expm_csr', 'expm_csr_dense', 'expm_dense', 'expm_dia',
     'logm', 'logm_dense',
 ]
 
@@ -39,16 +39,16 @@ def expm_csr(matrix: CSR) -> CSR:
                tidyup=settings.core['auto_tidyup'])
 
 
-def expm_diag(matrix: Diag) -> Diag:
+def expm_dia(matrix: Dia) -> Dia:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only exponentiate square matrix")
     if matrix.num_diag == 0:
         out = dia.identity(matrix.shape[0])
     elif matrix.num_diag > 1:
         csc = matrix.as_scipy().tocsc()
-        out = Diag(scipy.sparse.linalg.expm(csc).todia(),
+        out = Dia(scipy.sparse.linalg.expm(csc).todia(),
                    tidyup=settings.core['auto_tidyup'], copy=False)
-    elif isdiag_diag(matrix):
+    elif isdiag_dia(matrix):
         matrix_sci = matrix.as_scipy()
         data = np.exp(matrix_sci.data[0, :])
         out = dia.diags(data, shape=matrix.shape)
@@ -68,7 +68,7 @@ def expm_diag(matrix: Diag) -> Diag:
             out_data[i, max(0, n_offset): min(size, size + n_offset)] = data
             data = data_0[:-abs(n_offset)] * data[a_offset:] / (i+1)
             n_offset += offset
-        out = Diag((out_data, out_oufsets), shape=matrix.shape, copy=False)
+        out = Dia((out_data, out_oufsets), shape=matrix.shape, copy=False)
 
     return out
 
@@ -103,7 +103,7 @@ expm.add_specialisations([
     (CSR, CSR, expm_csr),
     (CSR, Dense, expm_csr_dense),
     (Dense, Dense, expm_dense),
-    (Diag, Diag, expm_diag),
+    (Dia, Dia, expm_dia),
 ], _defer=True)
 
 

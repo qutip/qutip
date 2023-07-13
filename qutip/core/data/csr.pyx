@@ -24,7 +24,7 @@ except ImportError:
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport base, Dense, Diag
+from qutip.core.data cimport base, Dense, Dia
 from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
 from qutip.core.data.trace cimport trace_csr
 from qutip.core.data.tidyup cimport tidyup_csr
@@ -639,7 +639,7 @@ cdef CSR from_coo_pointers(
     return out
 
 
-cpdef CSR from_diag(Diag matrix):
+cpdef CSR from_dia(Dia matrix):
     if matrix.num_diag == 0:
         return zeros(*matrix.shape)
     mat = matrix.as_scipy()

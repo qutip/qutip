@@ -9,7 +9,7 @@ from scipy.linalg cimport cython_blas as blas
 import scipy
 import numpy as np
 
-from qutip.core.data cimport CSR, Dense, csr, Data, Diag
+from qutip.core.data cimport CSR, Dense, csr, Data, Dia
 
 from qutip.core.data.adjoint cimport adjoint_csr, adjoint_dense
 from qutip.core.data.matmul cimport matmul_csr
@@ -134,7 +134,7 @@ cpdef double l2_dense(Dense matrix) nogil except -1:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_dense(matrix)
 
-cpdef double frobenius_diag(Diag matrix) nogil:
+cpdef double frobenius_dia(Dia matrix) nogil:
     cdef int offset, diag, start, end, col=1
     cdef double total=0, cur
     for diag in range(matrix.num_diag):
@@ -145,12 +145,12 @@ cpdef double frobenius_diag(Diag matrix) nogil:
             total += abssq(matrix.data[diag * matrix.shape[1] + col])
     return math.sqrt(total)
 
-cpdef double l2_diag(Diag matrix) except -1 nogil:
+cpdef double l2_dia(Dia matrix) except -1 nogil:
     if matrix.shape[0] != 1 and matrix.shape[1] != 1:
         raise ValueError("L2 norm is only defined on vectors")
-    return frobenius_diag(matrix)
+    return frobenius_dia(matrix)
 
-cpdef double max_diag(Diag matrix) nogil:
+cpdef double max_dia(Dia matrix) nogil:
     cdef int offset, diag, start, end, col=1
     cdef double total=0, cur
     for diag in range(matrix.num_diag):
@@ -162,7 +162,7 @@ cpdef double max_diag(Diag matrix) nogil:
             total = cur if cur > total else total
     return math.sqrt(total)
 
-cpdef double one_diag(Diag matrix) except -1:
+cpdef double one_dia(Dia matrix) except -1:
     cdef int offset, diag, start, end, col=1
     cols_one = np.zeros(matrix.shape[1], dtype=float)
     for diag in range(matrix.num_diag):
@@ -194,7 +194,7 @@ l2.__doc__ =\
     """
 l2.add_specialisations([
     (Dense, l2_dense),
-    (Diag, l2_diag),
+    (Dia, l2_dia),
     (CSR, l2_csr),
 ], _defer=True)
 
@@ -212,7 +212,7 @@ frobenius.__doc__ =\
     """
 frobenius.add_specialisations([
     (Dense, frobenius_dense),
-    (Diag, frobenius_diag),
+    (Dia, frobenius_dia),
     (CSR, frobenius_csr),
 ], _defer=True)
 
@@ -225,7 +225,7 @@ max.__doc__ =\
     """
 max.add_specialisations([
     (Dense, max_dense),
-    (Diag, max_diag),
+    (Dia, max_dia),
     (CSR, max_csr),
 ], _defer=True)
 
@@ -238,7 +238,7 @@ one.__doc__ =\
     """
 one.add_specialisations([
     (Dense, one_dense),
-    (Diag, one_diag),
+    (Dia, one_dia),
     (CSR, one_csr),
 ], _defer=True)
 

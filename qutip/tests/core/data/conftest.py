@@ -94,5 +94,5 @@ def random_dense(shape, fortran):
 
 
 def random_diag(shape, density, sort=False):
-    """Generate a random qutip Diag matrix of the given shape and density"""
-    return qutip.core.data.Diag(random_scipy_dia(shape, density, sort))
+    """Generate a random qutip Dia matrix of the given shape and density"""
+    return qutip.core.data.Dia(random_scipy_dia(shape, density, sort))

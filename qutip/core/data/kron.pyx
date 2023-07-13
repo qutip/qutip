@@ -7,12 +7,12 @@ from libc.string cimport memset
 from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
-from qutip.core.data.dia cimport Diag
+from qutip.core.data.dia cimport Dia
 from qutip.core.data cimport csr, dia
 import numpy
 
 __all__ = [
-    'kron', 'kron_csr', 'kron_dense', 'kron_diag',
+    'kron', 'kron_csr', 'kron_dense', 'kron_dia',
 ]
 
 
@@ -77,7 +77,7 @@ cdef inline void _vec_kron(
             ptr_out[i*step+j] = ptr_l[i] * ptr_r[j]
 
 
-cpdef Diag kron_diag(Diag left, Diag right):
+cpdef Dia kron_dia(Dia left, Dia right):
     cdef idxint nrows_l=left.shape[0], nrows_r=right.shape[0]
     cdef idxint ncols_l=left.shape[1], ncols_r=right.shape[1]
     cdef idxint nrows=_mul_checked(nrows_l, nrows_r)
@@ -85,7 +85,7 @@ cpdef Diag kron_diag(Diag left, Diag right):
     cdef idxint max_diag=_mul_checked(right.num_diag, left.num_diag)
     cdef idxint num_diag=0, diag_left, diag_right, delta, col_left, col_right
     cdef idxint start_left, end_left, start_right, end_right
-    cdef Diag out
+    cdef Dia out
 
     if right.shape[0] == right.shape[1]:
         out = dia.empty(nrows, ncols, max_diag)
@@ -140,7 +140,7 @@ cpdef Diag kron_diag(Diag left, Diag right):
                     num_diag += 1
 
     out.num_diag = num_diag
-    out = dia.clean_diag(out, True)
+    out = dia.clean_dia(out, True)
     return out
 
 
@@ -165,7 +165,7 @@ kron.__doc__ =\
 kron.add_specialisations([
     (CSR, CSR, CSR, kron_csr),
     (Dense, Dense, Dense, kron_dense),
-    (Diag, Diag, Diag, kron_diag),
+    (Dia, Dia, Dia, kron_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher

@@ -8,12 +8,12 @@ from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr, dense
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
-from qutip.core.data.dia cimport Diag
+from qutip.core.data.dia cimport Dia
 from qutip.core.data.matmul cimport matmul_dense
 
 __all__ = [
-    'inner', 'inner_csr', 'inner_dense', 'inner_diag',
-    'inner_op', 'inner_op_csr', 'inner_op_dense', 'inner_op_diag',
+    'inner', 'inner_csr', 'inner_dense', 'inner_dia',
+    'inner_op', 'inner_op_csr', 'inner_op_dense', 'inner_op_dia',
 ]
 
 
@@ -91,7 +91,7 @@ cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) no
         return _inner_csr_bra_ket(left, right)
     return _inner_csr_ket_ket(left, right)
 
-cpdef double complex inner_diag(Diag left, Diag right, bint scalar_is_ket=False) nogil except *:
+cpdef double complex inner_dia(Dia left, Dia right, bint scalar_is_ket=False) nogil except *:
     """
     Compute the complex inner product <left|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
@@ -189,7 +189,7 @@ cdef double complex _inner_op_csr_ket_ket(CSR left, CSR op, CSR right) nogil:
         out += conj(left.data[ptr_l]) * sum
     return out
 
-cpdef double complex inner_op_diag(Diag left, Diag op, Diag right,
+cpdef double complex inner_op_dia(Dia left, Dia op, Dia right,
                                    bint scalar_is_ket=False) nogil except *:
     """
     Compute the complex inner product <left|op|right>.  The shape of `left` is
@@ -315,7 +315,7 @@ inner.__doc__ =\
     """
 inner.add_specialisations([
     (CSR, CSR, inner_csr),
-    (Diag, Diag, inner_diag),
+    (Dia, Dia, inner_dia),
     (Dense, Dense, inner_dense),
 ], _defer=True)
 
@@ -365,7 +365,7 @@ inner_op.__doc__ =\
     """
 inner_op.add_specialisations([
     (CSR, CSR, CSR, inner_op_csr),
-    (Diag, Diag, Diag, inner_op_diag),
+    (Dia, Dia, Dia, inner_op_dia),
     (Dense, Dense, Dense, inner_op_dense),
 ], _defer=True)
 

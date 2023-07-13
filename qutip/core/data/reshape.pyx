@@ -8,13 +8,13 @@ cimport cython
 import warnings
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr, dense, CSR, Dense, Data, Diag
+from qutip.core.data cimport csr, dense, CSR, Dense, Data, Dia
 
 __all__ = [
-    'reshape', 'reshape_csr', 'reshape_dense', 'reshape_diag',
-    'column_stack', 'column_stack_csr', 'column_stack_dense', 'column_stack_diag',
-    'column_unstack', 'column_unstack_csr', 'column_unstack_dense', 'column_unstack_diag',
-    'split_columns', 'split_columns_dense', 'split_columns_csr', 'split_columns_diag',
+    'reshape', 'reshape_csr', 'reshape_dense', 'reshape_dia',
+    'column_stack', 'column_stack_csr', 'column_stack_dense', 'column_stack_dia',
+    'column_unstack', 'column_unstack_csr', 'column_unstack_dense', 'column_unstack_dia',
+    'split_columns', 'split_columns_dense', 'split_columns_csr', 'split_columns_dia',
 ]
 
 
@@ -74,10 +74,10 @@ cpdef Dense reshape_dense(Dense matrix, idxint n_rows_out, idxint n_cols_out):
     return out
 
 
-cpdef Diag reshape_diag(Diag matrix, idxint n_rows_out, idxint n_cols_out):
+cpdef Dia reshape_dia(Dia matrix, idxint n_rows_out, idxint n_cols_out):
     _reshape_check_input(matrix, n_rows_out, n_cols_out)
     # Once reshaped, diagonals are no longer ligned up.
-    return Diag(
+    return Dia(
         matrix.as_scipy().reshape((n_rows_out, n_cols_out)).todia(), copy=False
     )
 
@@ -102,10 +102,10 @@ cpdef Dense column_stack_dense(Dense matrix, bint inplace=False):
     return reshape_dense(matrix.transpose(), matrix.shape[0]*matrix.shape[1], 1)
 
 
-cpdef Diag column_stack_diag(Diag matrix):
+cpdef Dia column_stack_dia(Dia matrix):
     if matrix.shape[1] == 1:
         return matrix.copy()
-    return reshape_diag(matrix.transpose(), matrix.shape[0]*matrix.shape[1], 1)
+    return reshape_dia(matrix.transpose(), matrix.shape[0]*matrix.shape[1], 1)
 
 
 cdef void _column_unstack_check_shape(Data matrix, idxint rows) except *:
@@ -136,10 +136,10 @@ cpdef Dense column_unstack_dense(Dense matrix, idxint rows, bint inplace=False):
     return out
 
 
-cpdef Diag column_unstack_diag(Diag matrix, idxint rows):
+cpdef Dia column_unstack_dia(Dia matrix, idxint rows):
     _column_unstack_check_shape(matrix, rows)
     cdef idxint cols = matrix.shape[0] // rows
-    return reshape_diag(matrix, cols, rows).transpose()
+    return reshape_dia(matrix, cols, rows).transpose()
 
 
 cpdef list split_columns_dense(Dense matrix, copy=True):
@@ -152,7 +152,7 @@ cpdef list split_columns_csr(CSR matrix, copy=True):
             for k in range(matrix.shape[1])]
 
 
-cpdef list split_columns_diag(Diag matrix, copy=None):
+cpdef list split_columns_dia(Dia matrix, copy=None):
     as_array = matrix.to_array()
     return [Dense(as_array[:, k], copy=False) for k in range(matrix.shape[1])]
 
@@ -187,7 +187,7 @@ reshape.__doc__ =\
 reshape.add_specialisations([
     (CSR, CSR, reshape_csr),
     (Dense, Dense, reshape_dense),
-    (Diag, Diag, reshape_diag),
+    (Dia, Dia, reshape_dia),
 ], _defer=True)
 
 
@@ -232,7 +232,7 @@ column_stack.__doc__ =\
 column_stack.add_specialisations([
     (CSR, CSR, column_stack_csr),
     (Dense, Dense, column_stack_dense),
-    (Diag, Diag, column_stack_diag),
+    (Dia, Dia, column_stack_dia),
 ], _defer=True)
 
 column_unstack = _Dispatcher(
@@ -273,7 +273,7 @@ column_unstack.__doc__ =\
 column_unstack.add_specialisations([
     (CSR, CSR, column_unstack_csr),
     (Dense, Dense, column_unstack_dense),
-    (Diag, Diag, column_unstack_diag),
+    (Dia, Dia, column_unstack_dia),
 ], _defer=True)
 
 
@@ -310,7 +310,7 @@ split_columns.__doc__ =\
 split_columns.add_specialisations([
     (CSR, split_columns_csr),
     (Dense, split_columns_dense),
-    (Diag, split_columns_diag),
+    (Dia, split_columns_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher
