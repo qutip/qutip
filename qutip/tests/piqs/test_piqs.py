@@ -11,7 +11,7 @@ from numpy.testing import (
 )
 from scipy.sparse import block_diag
 from qutip import Qobj, entropy_vn, sigmax, sigmaz
-from qutip.solve._piqs import (
+from qutip.piqs._piqs import (
     get_blocks,
     j_min,
     j_vals,
@@ -21,8 +21,8 @@ from qutip.solve._piqs import (
     get_index,
     jmm1_dictionary,
 )
-from qutip.solve._piqs import Dicke as _Dicke
-from qutip.solve.piqs import *
+from qutip.piqs._piqs import Dicke as _Dicke
+from qutip.piqs.piqs import *
 
 import sys
 import unittest
