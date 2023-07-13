@@ -135,7 +135,7 @@ def qpt_plot_combined(chi, lbls_list, title=None,
 
     matrix_histogram(chi, xlabels, xlabels, bar_style='abs',
                      color_style='phase',
-                     options={'threshold':threshold}, ax=ax)
+                     options={'threshold': threshold}, ax=ax)
     ax.set_title(title)
 
     return fig, ax
