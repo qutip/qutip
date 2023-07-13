@@ -257,9 +257,9 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     rho : qobj
         Input density matrix or superoperator.
 
-    .. note::
+        .. note::
 
-        Hinton plots of superoperators are currently only supported for qubits.
+            Hinton plots of superoperators are currently only supported for qubits.
 
     x_basis : list of strings, optional
         list of x ticklabels to represent x basis of the input.
@@ -268,6 +268,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
         list of y ticklabels to represent y basis of the input.
 
     color_style : string, default="scaled"
+
         Determines how colors are assigned to each square:
 
         -  If set to ``"scaled"`` (default), each color is chosen by
