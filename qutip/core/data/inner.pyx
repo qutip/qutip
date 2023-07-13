@@ -10,10 +10,14 @@ from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.dia cimport Dia
 from qutip.core.data.matmul cimport matmul_dense
+from .matmul import matmul
+from .trace import trace
+from .adjoint import adjoint
 
 __all__ = [
-    'inner', 'inner_csr', 'inner_dense', 'inner_dia',
+    'inner', 'inner_csr', 'inner_dense', 'inner_dia', 'inner_data',
     'inner_op', 'inner_op_csr', 'inner_op_dense', 'inner_op_dia',
+    'inner_op_data',
 ]
 
 
@@ -272,6 +276,45 @@ cpdef double complex inner_op_dense(Dense left, Dense op, Dense right,
     return inner_dense(left, matmul_dense(op, right), scalar_is_ket)
 
 
+cpdef inner_data(Data left, Data right, bint scalar_is_ket=False):
+    """
+    Compute the complex inner product <left|right>.  The shape of `left` is
+    used to determine if it has been supplied as a ket or a bra.  The result of
+    this function will be identical if passed `left` or `adjoint(left)`.
+
+    The parameter `scalar_is_ket` is only intended for the case where `left`
+    and `right` are both of shape (1, 1).  In this case, `left` will be assumed
+    to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
+    all other times.
+    """
+    _check_shape_inner(left, right)
+    if left.shape[0] == left.shape[1] == right.shape[1] == 1:
+        return (
+            trace(left).conjugate() * trace(right) if scalar_is_ket
+            else trace(left) * trace(right)
+        )
+
+    if left.shape[0] != 1:
+        left = adjoint(left)
+    # We use trace so we don't force convertion to complex.
+    return trace(matmul(left, right))
+
+
+cpdef inner_op_data(Data left, Data op, Data right, bint scalar_is_ket=False):
+    """
+    Compute the complex inner product <left|op|right>.  The shape of `left` is
+    used to determine if it has been supplied as a ket or a bra.  The result of
+    this function will be identical if passed `left` or `adjoint(left)`.
+
+    The parameter `scalar_is_ket` is only intended for the case where `left`
+    and `right` are both of shape (1, 1).  In this case, `left` will be assumed
+    to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
+    all other times.
+    """
+    _check_shape_inner_op(left, op, right)
+    return inner_data(left, matmul(op, right), scalar_is_ket)
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -317,6 +360,7 @@ inner.add_specialisations([
     (CSR, CSR, inner_csr),
     (Dia, Dia, inner_dia),
     (Dense, Dense, inner_dense),
+    (Data, Data, inner_data),
 ], _defer=True)
 
 inner_op = _Dispatcher(
@@ -367,6 +411,7 @@ inner_op.add_specialisations([
     (CSR, CSR, CSR, inner_op_csr),
     (Dia, Dia, Dia, inner_op_dia),
     (Dense, Dense, Dense, inner_op_dense),
+    (Data, Data, Data, inner_op_data),
 ], _defer=True)
 
 del _inspect, _Dispatcher

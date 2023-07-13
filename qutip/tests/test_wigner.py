@@ -225,7 +225,7 @@ class TestHusimiQ:
         naive = np.empty(alphas.shape, dtype=np.float64)
         for i, alpha in enumerate(alphas.flat):
             coh = qutip.coherent(size, alpha, method='analytic').full()
-            naive.flat[i] = (coh.conj().T @ state_np @ coh).real
+            naive.flat[i] = (coh.conj().T @ state_np @ coh).real[0, 0]
         naive *= (0.5*g)**2 / np.pi
         np.testing.assert_allclose(naive, qutip.qfunc(state, xs, ys, g))
         np.testing.assert_allclose(naive, qutip.QFunc(xs, ys, g)(state))

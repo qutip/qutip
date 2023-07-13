@@ -41,6 +41,7 @@ class TestExpect(BinaryOpMixin):
         pytest.param(data.expect_csr_dense, CSR, Dense, complex),
         pytest.param(data.expect_dia, Dia, Dia, complex),
         pytest.param(data.expect_dia_dense, Dia, Dense, complex),
+        pytest.param(data.expect_data, Dense, CSR, complex),
     ]
 
 
@@ -68,4 +69,5 @@ class TestExpectSuper(BinaryOpMixin):
         pytest.param(data.expect_super_csr_dense, CSR, Dense, complex),
         pytest.param(data.expect_super_dia, Dia, Dia, complex),
         pytest.param(data.expect_super_dia_dense, Dia, Dense, complex),
+        pytest.param(data.expect_super_data, CSR, Dense, complex),
     ]

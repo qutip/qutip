@@ -13,30 +13,30 @@ Introduction
 Where as the density matrix formalism describes the ensemble average over many identical realizations of a quantum system, the Monte Carlo (MC), or quantum-jump approach to wave function evolution, allows for simulating an individual realization of the system dynamics.  Here, the environment is continuously monitored, resulting in a series of quantum jumps in the system wave function, conditioned on the increase in information gained about the state of the system via the environmental measurements.  In general, this evolution is governed by the Schrödinger equation with a **non-Hermitian** effective Hamiltonian
 
 .. math::
-	:label: heff
+    :label: heff
 
-	H_{\rm eff}=H_{\rm sys}-\frac{i\hbar}{2}\sum_{i}C^{+}_{n}C_{n},
+    H_{\rm eff}=H_{\rm sys}-\frac{i\hbar}{2}\sum_{i}C^{+}_{n}C_{n},
 
 where again, the :math:`C_{n}` are collapse operators, each corresponding to a separate irreversible process with rate :math:`\gamma_{n}`.  Here, the strictly negative non-Hermitian portion of Eq. :eq:`heff` gives rise to a reduction in the norm of the wave function, that to first-order in a small time :math:`\delta t`, is given by :math:`\left<\psi(t+\delta t)|\psi(t+\delta t)\right>=1-\delta p` where
 
 .. math::
-	:label: jump
+    :label: jump
 
-	\delta p =\delta t \sum_{n}\left<\psi(t)|C^{+}_{n}C_{n}|\psi(t)\right>,
+    \delta p =\delta t \sum_{n}\left<\psi(t)|C^{+}_{n}C_{n}|\psi(t)\right>,
 
 and :math:`\delta t` is such that :math:`\delta p \ll 1`.  With a probability of remaining in the state :math:`\left|\psi(t+\delta t)\right>` given by :math:`1-\delta p`, the corresponding quantum jump probability is thus Eq. :eq:`jump`.  If the environmental measurements register a quantum jump, say via the emission of a photon into the environment, or a change in the spin of a quantum dot, the wave function undergoes a jump into a state defined by projecting :math:`\left|\psi(t)\right>` using the collapse operator :math:`C_{n}` corresponding to the measurement
 
 .. math::
-	:label: project
+    :label: project
 
-	\left|\psi(t+\delta t)\right>=C_{n}\left|\psi(t)\right>/\left<\psi(t)|C_{n}^{+}C_{n}|\psi(t)\right>^{1/2}.
+    \left|\psi(t+\delta t)\right>=C_{n}\left|\psi(t)\right>/\left<\psi(t)|C_{n}^{+}C_{n}|\psi(t)\right>^{1/2}.
 
 If more than a single collapse operator is present in Eq. :eq:`heff`, the probability of collapse due to the :math:`i\mathrm{th}`-operator :math:`C_{i}` is given by
 
 .. math::
-	:label: pcn
+    :label: pcn
 
-	P_{i}(t)=\left<\psi(t)|C_{i}^{+}C_{i}|\psi(t)\right>/\delta p.
+    P_{i}(t)=\left<\psi(t)|C_{i}^{+}C_{i}|\psi(t)\right>/\delta p.
 
 Evaluating the MC evolution to first-order in time is quite tedious.  Instead, QuTiP uses the following algorithm to simulate a single realization of a quantum system.  Starting from a pure state :math:`\left|\psi(0)\right>`:
 
@@ -241,7 +241,6 @@ For example, the following code block plots expectation values for 1, 10 and 100
     plt.legend()
     plt.show()
 
-
 .. openmcsolve:
 
 Open Systems
@@ -266,6 +265,120 @@ This is done by using a liouvillian including the dissipative interaction instea
     plt.title('Monte Carlo Photocurrent')
     plt.xlabel('Time')
     plt.ylabel('Photon detections')
+    plt.show()
+
+
+
+.. _monte-nonmarkov:
+
+Monte Carlo for Non-Markovian Dynamics
+--------------------------------------
+
+The Monte Carlo solver of QuTiP can also be used to solve the dynamics of time-local non-Markovian master equations, i.e., master equations of the Lindblad form
+
+.. math::
+    :label: lindblad_master_equation_with_rates
+
+    \dot\rho(t) = -\frac{i}{\hbar} [H, \rho(t)] + \sum_n \frac{\gamma_n(t)}{2} \left[2 A_n \rho(t) A_n^\dagger - \rho(t) A_n^\dagger A_n - A_n^\dagger A_n \rho(t)\right]
+
+with "rates" :math:`\gamma_n(t)` that can take negative values.
+This can be done with the :func:`qutip.nm_mcsolve` function.
+The function is based on the influence martingale formalism [Donvil22]_ and formally requires that the collapse operators :math:`A_n` satisfy a completeness relation of the form
+
+.. math::
+    :label: nmmcsolve_completeness
+
+    \sum_n A_n^\dagger A_n = \alpha \mathbb{I} ,
+
+where :math:`\mathbb{I}` is the identity operator on the system Hilbert space and :math:`\alpha>0`.
+Note that when the collapse operators of a model don't satisfy such a relation, ``qutip.nm_mcsolve`` automatically adds an extra collapse operator such that :eq:`nmmcsolve_completeness` is satisfied.
+The rate corresponding to this extra collapse operator is set to zero.
+
+Technically, the influence martingale formalism works as follows.
+We introduce an influence martingale :math:`\mu(t)`, which follows the evolution of the system state.
+When no jump happens, it evolves as
+
+.. math::
+    :label: influence_cont
+
+    \mu(t) = \exp\left( \alpha\int_0^t K(\tau) d\tau \right)
+
+where :math:`K(t)` is for now an arbitrary function.
+When a jump corresponding to the collapse operator :math:`A_n` happens, the influence martingale becomes
+
+.. math::
+    :label: influence_disc
+
+    \mu(t+\delta t) = \mu(t)\left(\frac{K(t)-\gamma_n(t)}{\gamma_n(t)}\right)
+
+Assuming that the state :math:`\bar\rho(t)` computed by the Monte Carlo average
+
+.. math::
+    :label: mc_paired_state
+
+    \bar\rho(t) = \frac{1}{N}\sum_{l=1}^N |\psi_l(t)\rangle\langle \psi_l(t)|
+
+solves a Lindblad master equation with collapse operators :math:`A_n` and rates :math:`\Gamma_n(t)`, the state :math:`\rho(t)` defined by
+
+.. math::
+    :label: mc_martingale_state
+
+    \rho(t) = \frac{1}{N}\sum_{l=1}^N \mu_l(t) |\psi_l(t)\rangle\langle \psi_l(t)|
+
+solves a Lindblad master equation with collapse operators :math:`A_n` and shifted rates :math:`\gamma_n(t)-K(t)`.
+Thus, while :math:`\Gamma_n(t) \geq 0`, the new "rates" :math:`\gamma_n(t) = \Gamma_n(t) - K(t)` satisfy no positivity requirement.
+
+The input of :func:`qutip.nm_mcsolve` is almost the same as for :func:`qutip.mcsolve`.
+The only difference is how the collapse operators and rate functions should be defined.
+``nm_mcsolve`` requires collapse operators :math:`A_n` and target "rates" :math:`\gamma_n` (which are allowed to take negative values) to be given in list form ``[[C_1, gamma_1], [C_2, gamma_2], ...]``.
+Note that we give the actual rate and not its square root, and that ``nm_mcsolve`` automatically computes associated jump rates :math:`\Gamma_n(t)\geq0` appropriate for simulation.
+
+We conclude with a simple example demonstrating the usage of the ``nm_mcsolve`` function.
+For more elaborate, physically motivated examples, we refer to the `accompanying tutorial notebook <https://github.com/qutip/qutip-tutorials/blob/main/tutorials-v5/time-evolution/013_nonmarkovian_monte_carlo.md>`_.
+
+
+.. plot::
+    :context: reset
+
+    import qutip as qt
+
+    times = np.linspace(0, 1, 201)
+    psi0 = qt.basis(2, 1)
+    a0 = qt.destroy(2)
+    H = a0.dag() * a0
+
+    # Rate functions
+    gamma1 = "kappa * nth"
+    gamma2 = "kappa * (nth+1) + 12 * np.exp(-2*t**3) * (-np.sin(15*t)**2)"
+    # gamma2 becomes negative during some time intervals
+
+    # nm_mcsolve integration
+    ops_and_rates = []
+    ops_and_rates.append([a0.dag(), gamma1])
+    ops_and_rates.append([a0,       gamma2])
+    MCSol = qt.nm_mcsolve(H, psi0, times, ops_and_rates,
+                          args={'kappa': 1.0 / 0.129, 'nth': 0.063},
+                          e_ops=[a0.dag() * a0, a0 * a0.dag()],
+                          options={'map': 'parallel'}, ntraj=2500)
+
+    # mesolve integration for comparison
+    d_ops = [[qt.lindblad_dissipator(a0.dag(), a0.dag()), gamma1],
+             [qt.lindblad_dissipator(a0, a0),             gamma2]]
+    MESol = qt.mesolve(H, psi0, times, d_ops, e_ops=[a0.dag() * a0, a0 * a0.dag()],
+                       args={'kappa': 1.0 / 0.129, 'nth': 0.063})
+
+    plt.figure()
+    plt.plot(times, MCSol.expect[0], 'g',
+             times, MCSol.expect[1], 'b',
+             times, MCSol.trace, 'r')
+    plt.plot(times, MESol.expect[0], 'g--',
+             times, MESol.expect[1], 'b--')
+    plt.title('Monte Carlo time evolution')
+    plt.xlabel('Time')
+    plt.ylabel('Expectation values')
+    plt.legend((r'$\langle 1 | \rho | 1 \rangle$',
+                r'$\langle 0 | \rho | 0 \rangle$',
+                r'$\operatorname{tr} \rho$'))
     plt.show()
 
 

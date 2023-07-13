@@ -11,7 +11,9 @@ from .base import Data
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
-__all__ = ['zeros', 'identity', 'zeros_like', 'identity_like']
+__all__ = ['zeros', 'identity', 'zeros_like', 'identity_like',
+           'zeros_like_dense', 'identity_like_dense',
+           'zeros_like_data', 'identity_like_data']
 
 zeros = _Dispatcher(
     _inspect.Signature([
@@ -75,24 +77,56 @@ identity.add_specialisations([
 ], _defer=True)
 
 
-del _Dispatcher, _inspect
-
-
-def zeros_like(data, /):
+def zeros_like_data(data, /):
     """
     Create an zeros matrix of the same type and shape.
     """
-    if type(data) is Dense:
-        return dense.zeros(*data.shape, fortran=data.fortran)
     return zeros[type(data)](*data.shape)
 
 
-def identity_like(data, /):
+def zeros_like_dense(data, /):
+    """
+    Create an zeros matrix of the same type and shape.
+    """
+    return dense.zeros(*data.shape, fortran=data.fortran)
+
+
+def identity_like_data(data, /):
     """
     Create an identity matrix of the same type and shape.
     """
     if not data.shape[0] == data.shape[1]:
         raise ValueError("Can't create and identity like a non square matrix.")
-    if type(data) is Dense:
-        return dense.identity(data.shape[0], fortran=data.fortran)
     return identity[type(data)](data.shape[0])
+
+
+def identity_like_dense(data, /):
+    """
+    Create an identity matrix of the same type and shape.
+    """
+    if not data.shape[0] == data.shape[1]:
+        raise ValueError("Can't create and identity like a non square matrix.")
+    return dense.identity(data.shape[0], fortran=data.fortran)
+
+
+identity_like = _Dispatcher(
+    identity_like_data, name='identity_like',
+    module=__name__, inputs=("data",), out=False,
+)
+identity_like.add_specialisations([
+    (Data, identity_like_data),
+    (Dense, identity_like_dense),
+], _defer=True)
+
+
+zeros_like = _Dispatcher(
+    zeros_like_data, name='zeros_like',
+    module=__name__, inputs=("data",), out=False,
+)
+zeros_like.add_specialisations([
+    (Data, zeros_like_data),
+    (Dense, zeros_like_dense),
+], _defer=True)
+
+
+del _Dispatcher, _inspect

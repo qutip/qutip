@@ -5,7 +5,6 @@ import qutip.settings
 from qutip.settings import settings
 import qutip.version
 from qutip.version import version as __version__
-
 # -----------------------------------------------------------------------------
 # Look to see if we are running with OPENMP
 #
@@ -33,7 +32,7 @@ else:
 
 from .core import *
 from .solver import *
-from .solve import nonmarkov
+from .solver import nonmarkov
 import qutip.solve.piqs as piqs
 
 # graphics

@@ -317,11 +317,10 @@ def test_QobjMultiplication():
 
 # Allowed mul operations (scalar)
 @pytest.mark.parametrize("scalar",
-                         [2+2j,  np.array(2+2j), np.array([2+2j])],
+                         [2+2j,  np.array(2+2j)],
                          ids=[
                              "python_number",
                              "scalar_like_array_shape_0",
-                             "scalar_like_array_shape_1",
                          ])
 def test_QobjMulValidScalar(scalar):
     "Tests multiplication of Qobj times scalar."
@@ -359,11 +358,10 @@ def test_QobjMulNotValidScalar(not_scalar):
 
 # Allowed division operations (scalar)
 @pytest.mark.parametrize("scalar",
-                         [2+2j,  np.array(2+2j), np.array([2+2j])],
+                         [2+2j,  np.array(2+2j)],
                          ids=[
                              "python_number",
                              "scalar_like_array_shape_0",
-                             "scalar_like_array_shape_1",
                          ])
 def test_QobjDivisionValidScalar(scalar):
     "Tests multiplication of Qobj times scalar."

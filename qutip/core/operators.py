@@ -5,11 +5,11 @@ of commonly occuring quantum operators.
 
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
-           'destroy', 'create', 'qeye', 'qeye_like', 'identity', 'position',
-           'momentum', 'num', 'squeeze', 'squeezing', 'swap', 'displace',
-           'commutator', 'qutrit_ops', 'qdiags', 'phase', 'qzero',
-           'qzero_like', 'enr_destroy', 'enr_identity', 'charge', 'tunneling',
-           'qft']
+           'destroy', 'create', 'fdestroy', 'fcreate', 'qeye', 'qeye_like',
+           'identity', 'position', 'momentum', 'num', 'squeeze', 'squeezing',
+           'swap', 'displace', 'commutator', 'qutrit_ops', 'qdiags', 'phase',
+           'qzero', 'qzero_like', 'enr_destroy', 'enr_identity', 'charge',
+           'tunneling', 'qft']
 
 import numbers
 
@@ -135,11 +135,11 @@ shape = [3, 3], type = oper, isHerm = True
         return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims, type='oper',
                     isherm=False, isunitary=False, copy=False)
     if which == 'x':
-        A =  _jplus(j, dtype=dtype)
+        A = _jplus(j, dtype=dtype)
         return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
                     isherm=True, isunitary=False, copy=False) * 0.5
     if which == 'y':
-        A =  _data.mul(_jplus(j, dtype=dtype), -0.5j)
+        A = _data.mul(_jplus(j, dtype=dtype), -0.5j)
         return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
                     isherm=True, isunitary=False, copy=False)
     if which == 'z':
@@ -469,6 +469,148 @@ def create(N, offset=0, *, dtype=None):
         raise ValueError("Hilbert space dimension must be integer value")
     data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
     return qdiags(data, -1, dtype=dtype)
+
+
+def fdestroy(n_sites, site, dtype=None):
+    """
+    Fermionic destruction operator.
+    We use the Jordan-Wigner transformation,
+    making use of the Jordan-Wigner ZZ..Z strings,
+    to construct this as follows:
+
+    .. math::
+
+        a_j = \\sigma_z^{\\otimes j} \\otimes
+        (\\frac{\\sigma_x + i \\sigma_y}{2})
+        \\otimes I^{\\otimes N-j-1}
+
+    Parameters
+    ----------
+    n_sites : int
+        Number of sites in Fock space.
+
+    site : int (default 0)
+        The site in Fock space to add a fermion to.
+        Corresponds to j in the above JW transform.
+
+    Returns
+    -------
+    oper : qobj
+        Qobj for destruction operator.
+
+    Examples
+    --------
+    >>> fdestroy(2) # doctest: +SKIP
+    Quantum object: dims=[[2 2], [2 2]], shape=(4, 4), \
+    type='oper', isherm=False
+    Qobj data =
+    [[0. 0. 1. 0.]
+    [0. 0. 0. 1.]
+    [0. 0. 0. 0.]
+    [0. 0. 0. 0.]]
+    """
+    return _f_op(n_sites, site, 'destruction', dtype=dtype)
+
+
+def fcreate(n_sites, site, dtype=None):
+    """
+    Fermionic creation operator.
+    We use the Jordan-Wigner transformation,
+    making use of the Jordan-Wigner ZZ..Z strings,
+    to construct this as follows:
+
+    .. math::
+
+        a_j = \\sigma_z^{\\otimes j}
+        \\otimes (frac{sigma_x - i sigma_y}{2})
+        \\otimes I^{\\otimes N-j-1}
+
+
+    Parameters
+    ----------
+    n_sites : int
+        Number of sites in Fock space.
+
+    site : int
+        The site in Fock space to add a fermion to.
+        Corresponds to j in the above JW transform.
+
+    Returns
+    -------
+    oper : qobj
+        Qobj for raising operator.
+
+    Examples
+    --------
+    >>> fcreate(2) # doctest: +SKIP
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), \
+    type = oper, isherm = False
+    Qobj data =
+    [[0. 0. 0. 0.]
+    [0. 0. 0. 0.]
+    [1. 0. 0. 0.]
+    [0. 1. 0. 0.]]
+    """
+    return _f_op(n_sites, site, 'creation', dtype=dtype)
+
+
+def _f_op(n_sites, site, action, dtype=None):
+    """ Makes fermionic creation and destruction operators.
+    We use the Jordan-Wigner transformation,
+    making use of the Jordan-Wigner ZZ..Z strings,
+    to construct this as follows:
+
+    .. math::
+
+        a_j = \\sigma_z^{\\otimes j}
+        \\otimes (frac{sigma_x \\pm i sigma_y}{2})
+        \\otimes I^{\\otimes N-j-1}
+
+    Parameters
+    ----------
+    action : str
+        The type of operator to build.
+        Can only be 'creation' or 'destruction'
+
+    n_sites : int
+        Number of sites in Fock space.
+
+    site : int
+        The site in Fock space to create/destroy a fermion on.
+        Corresponds to j in the above JW transform.
+
+    Returns
+    -------
+    oper : qobj
+        Qobj for destruction operator.
+    """
+    # get `tensor` and sigma z objects
+    from .tensor import tensor
+    s_z = 2 * jmat(0.5, 'z', dtype=dtype)
+
+    # sanity check
+    if site < 0:
+        raise ValueError(f'The specified site {site} cannot be \
+                         less than 0.')
+    elif 0 >= n_sites:
+        raise ValueError(f'The specified number of sites {n_sites} \
+                         cannot be equal to or less than 0.')
+    elif site >= n_sites:
+        raise ValueError(f'The specified site {site} is not in \
+                         the range of {n_sites} sites.')
+
+    # figure out which operator to build
+    if action.lower() == 'creation':
+        operator = create(2, dtype=dtype)
+    elif action.lower() == 'destruction':
+        operator = destroy(2, dtype=dtype)
+    else:
+        raise TypeError("Unknown operator '%s'. `action` must be \
+                        either 'creation' or 'destruction.'" % action)
+
+    eye = identity(2, dtype=dtype)
+    opers = [s_z] * site + [operator] + [eye] * (n_sites - site - 1)
+    return tensor(opers)
 
 
 def _implicit_tensor_dimensions(dimensions):

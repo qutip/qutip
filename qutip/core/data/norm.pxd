@@ -17,7 +17,7 @@ cpdef double max_dia(Dia matrix) nogil
 cpdef double frobenius_dia(Dia matrix) nogil
 cpdef double l2_dia(Dia matrix) except -1 nogil
 
-cpdef double frobenius_data(Data state)
+cpdef double frobenius_data(Data state) except -1
 
 cdef inline int int_max(int a, int b) nogil:
     # Name collision between the ``max`` builtin and norm.max

@@ -7,10 +7,12 @@ import itertools
 import warnings
 
 from .convert import to as _to
+from .convert import EPSILON
 
 cimport cython
 from libc cimport math
 from libcpp cimport bool
+from qutip.core.data.base cimport Data
 
 __all__ = ['Dispatcher']
 
@@ -21,6 +23,8 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out
     element-wise to the types in `tos`.  `weight_map` is a mapping of
     `(to_type, from_type): real`; it should almost certainly be
     `data.to.weight`.
+
+    Specialisations that support any types input should use ``Data``.
     """
     cdef double weight = 0.0
     cdef Py_ssize_t i, n=len(froms)
@@ -30,9 +34,9 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out
         )
     if out:
         n = n - 1
-        weight += weight_map[froms[n], tos[n]]
+        weight = weight + weight_map[froms[n], tos[n]]
     for i in range(n):
-        weight += weight_map[tos[i], froms[i]]
+        weight = weight + weight_map[tos[i], froms[i]]
     return weight
 
 
@@ -269,13 +273,57 @@ cdef class Dispatcher:
                     + " and a callable"
                 )
             for i in range(self._n_dispatch):
-                if (not _defer) and arg[i] not in _to.dtypes:
+                if (
+                    not _defer
+                    and arg[i] not in _to.dtypes
+                    and arg[i] is not Data
+                ):
                     raise ValueError(str(arg[i]) + " is not a known data type")
             if not callable(arg[self._n_dispatch]):
                 raise TypeError(str(arg[-1]) + " is not callable")
             self._specialisations[arg[:-1]] = arg[-1]
         if not _defer:
             self.rebuild_lookup()
+
+    cdef object _find_specialization(self, tuple in_types, bint output):
+        # The complexity of building the table here is very poor, but it's a
+        # cost we pay very infrequently, and until it's proved to be a
+        # bottle-neck in real code, we stick with the simple algorithm.
+        cdef double weight, cur
+        cdef tuple types, out_types, displayed_type
+        cdef object function
+        cdef int n_dispatch
+        weight = math.INFINITY
+        types = None
+        function = None
+        n_dispatch = len(in_types)
+        for out_types, out_function in self._specialisations.items():
+            cur = _conversion_weight(
+                in_types, out_types[:n_dispatch], _to.weight, out=output)
+            if cur < weight:
+                weight = cur
+                types = out_types
+                function = out_function
+
+        if cur == math.INFINITY:
+            raise ValueError("No valid specialisations found")
+
+        if weight in [EPSILON, 0.] and not (output and types[-1] is Data):
+            self._lookup[in_types] = function
+        else:
+            if output:
+                converters = tuple(
+                    [_to[pair] for pair in zip(types[:-1], in_types[:-1])]
+                    + [_to[in_types[-1], types[-1]]]
+                )
+            else:
+                converters = tuple(_to[pair] for pair in zip(types, in_types))
+            displayed_type = in_types
+            if len(in_types) < len(types):
+                displayed_type = displayed_type + (types[-1],)
+            self._lookup[in_types] =\
+                _constructed_specialisation(function, self, displayed_type,
+                                            converters, output)
 
     def rebuild_lookup(self):
         """
@@ -286,67 +334,17 @@ cdef class Dispatcher:
 
         You most likely do not need to call this function yourself.
         """
-        cdef double weight, cur
-        cdef tuple types, out_types
-        cdef object function
         if not self._specialisations:
             return
         self._dtypes = _to.dtypes.copy()
-        # The complexity of building the table here is very poor, but it's a
-        # cost we pay very infrequently, and until it's proved to be a
-        # bottle-neck in real code, we stick with the simple algorithm.
         for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch):
-            weight = math.INFINITY
-            types = None
-            function = None
-            for out_types, out_function in self._specialisations.items():
-                cur = _conversion_weight(in_types, out_types, _to.weight,
-                                         out=self.output)
-                if cur < weight:
-                    weight = cur
-                    types = out_types
-                    function = out_function
-
-            if weight == 0:
-                self._lookup[in_types] = function
-            else:
-                if self.output:
-                    converters = tuple(
-                        [_to[pair] for pair in zip(types[:-1], in_types[:-1])]
-                        + [_to[in_types[-1], types[-1]]]
-                    )
-                else:
-                    converters = tuple(_to[pair] for pair in zip(types, in_types))
-                self._lookup[in_types] =\
-                    _constructed_specialisation(function, self, in_types,
-                                                converters, self.output)
+            self._find_specialization(in_types, self.output)
         # Now build the lookup table in the case that we dispatch on the output
         # type as well, but the user has called us without specifying it.
         # TODO: option to control default output type choice if unspecified?
         if self.output:
             for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
-                weight = math.INFINITY
-                types = None
-                function = None
-                for out_types, out_function in self._specialisations.items():
-                    cur = _conversion_weight(in_types, out_types[:-1],
-                                             _to.weight, out=False)
-                    if cur < weight:
-                        weight = cur
-                        types = out_types
-                        function = out_function
-
-                if weight == 0:
-                    self._lookup[in_types] = function
-                else:
-                    converters = tuple(
-                        _to[pair]
-                        for pair in zip(types, in_types)
-                    )
-                    self._lookup[in_types] =\
-                        _constructed_specialisation(function, self,
-                                                    in_types + (types[-1],),
-                                                    converters, False)
+                self._find_specialization(in_types, False)
 
     def __getitem__(self, types):
         """

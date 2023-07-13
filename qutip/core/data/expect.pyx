@@ -13,12 +13,15 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr, CSR, Dense, Dia
+from .inner import inner
+from .trace import trace, trace_oper_ket
+from .matmul import matmul
 
 __all__ = [
-    'expect', 'expect_csr', 'expect_dense', 'expect_dia',
+    'expect', 'expect_csr', 'expect_dense', 'expect_dia', 'expect_data',
     'expect_csr_dense', 'expect_dia_dense',
     'expect_super', 'expect_super_csr', 'expect_super_dia', 'expect_super_dense',
-    'expect_super_csr_dense', 'expect_super_dia_dense',
+    'expect_super_csr_dense', 'expect_super_dia_dense', 'expect_super_data',
 ]
 
 cdef void _check_shape_ket(Data op, Data state) nogil except *:
@@ -352,6 +355,32 @@ cpdef double complex expect_super_dia_dense(Dia op, Dense state) except *:
     return expect
 
 
+def expect_data(Data op, Data state):
+    """
+    Get the expectation value of the operator `op` over the state `state`.  The
+    state can be either a ket or a density matrix.
+
+    The expectation of a state is defined as the operation:
+        state.adjoint() @ op @ state
+    and of a density matrix:
+        tr(op @ state)
+    """
+    if state.shape[1] == 1:
+        _check_shape_ket(op, state)
+        return inner(state, matmul(op, state))
+    _check_shape_dm(op, state)
+    return trace(matmul(op, state))
+
+
+def expect_super_data(Data op, Data state):
+    """
+    Perform the operation `tr(op @ state)` where `op` is supplied as a
+    superoperator, and `state` is a column-stacked operator.
+    """
+    _check_shape_super(op, state)
+    return trace_oper_ket(matmul(op, state))
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -381,6 +410,7 @@ expect.add_specialisations([
     (Dense, Dense, expect_dense),
     (Dia, Dense, expect_dia_dense),
     (Dia, Dia, expect_dia),
+    (Data, Data, expect_data),
 ], _defer=True)
 
 expect_super = _Dispatcher(
@@ -405,6 +435,7 @@ expect_super.add_specialisations([
     (Dense, Dense, expect_super_dense),
     (Dia, Dense, expect_super_dia_dense),
     (Dia, Dia, expect_super_dia),
+    (Data, Data, expect_super_data),
 ], _defer=True)
 
 del _inspect, _Dispatcher

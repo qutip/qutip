@@ -18,7 +18,7 @@ Quantum Operators
 -----------------
 
 .. automodule:: qutip.core.operators
-    :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
+    :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
 
 
 .. _functions-rand:
@@ -144,6 +144,9 @@ Monte Carlo Evolution
 .. automodule:: qutip.solver.mcsolve
     :members: mcsolve
 
+.. automodule:: qutip.solver.nm_mcsolve
+    :members: nm_mcsolve
+
 
 Krylov Subspace Solver
 ----------------------
@@ -232,7 +235,7 @@ Graphs and Visualization
 ------------------------
 
 .. automodule:: qutip.visualization
-    :members: hinton, matrix_histogram, matrix_histogram_complex, plot_energy_levels, plot_fock_distribution, plot_wigner_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_spin_distribution_2d, plot_spin_distribution_3d, plot_wigner_sphere
+    :members: hinton, matrix_histogram, matrix_histogram_complex, plot_energy_levels, plot_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_wigner_sphere, plot_spin_distribution
     :undoc-members:
 
 .. automodule:: qutip.orbital

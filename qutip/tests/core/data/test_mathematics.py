@@ -640,6 +640,8 @@ class TestInner(BinaryOpMixin):
         pytest.param(data.inner_csr, CSR, CSR, complex),
         pytest.param(data.inner_dia, Dia, Dia, complex),
         pytest.param(data.inner_dense, Dense, Dense, complex),
+        pytest.param(data.inner_data, Dense, Dense, complex),
+        pytest.param(data.inner_data, CSR, CSR, complex),
     ]
 
     def generate_scalar_is_ket(self, metafunc):
@@ -711,6 +713,7 @@ class TestInnerOp(TernaryOpMixin):
         pytest.param(data.inner_op_csr, CSR, CSR, CSR, complex),
         pytest.param(data.inner_op_dia, Dia, Dia, Dia, complex),
         pytest.param(data.inner_op_dense, Dense, Dense, Dense, complex),
+        pytest.param(data.inner_op_data, Dense, CSR, Dense, complex),
     ]
 
     def generate_scalar_is_ket(self, metafunc):
@@ -759,6 +762,19 @@ class TestKron(BinaryOpMixin):
         pytest.param(data.kron_csr, CSR, CSR, CSR),
         pytest.param(data.kron_dense, Dense, Dense, Dense),
         pytest.param(data.kron_dia, Dia, Dia, Dia),
+    ]
+
+
+class TestKronT(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.kron(left.T, right)
+
+    # Keep the dimension low because kron can get very expensive.
+    shapes = shapes_binary_unrestricted(dim=5)
+    bad_shapes = shapes_binary_bad_unrestricted(dim=5)
+    specialisations = [
+        pytest.param(data.kron_transpose_data, CSR, CSR, CSR),
+        pytest.param(data.kron_transpose_dense, Dense, Dense, Dense),
     ]
 
 
@@ -856,6 +872,8 @@ class TestTrace_oper_ket(UnaryOpMixin):
         pytest.param(data.trace_oper_ket_csr, CSR, complex),
         pytest.param(data.trace_oper_ket_dense, Dense, complex),
         pytest.param(data.trace_oper_ket_dia, Dia, complex),
+        pytest.param(data.trace_oper_ket_data, CSR, complex),
+        pytest.param(data.trace_oper_ket_data, Dense, complex),
     ]
 
 
@@ -998,8 +1016,8 @@ class TestZeros_like(UnaryOpMixin):
         return np.zeros_like(matrix)
 
     specialisations = [
-        pytest.param(data.zeros_like, CSR, CSR),
-        pytest.param(data.zeros_like, Dense, Dense),
+        pytest.param(data.zeros_like_data, CSR, CSR),
+        pytest.param(data.zeros_like_dense, Dense, Dense),
     ]
 
 
@@ -1011,6 +1029,6 @@ class TestIdentity_like(UnaryOpMixin):
     bad_shapes = shapes_not_square()
 
     specialisations = [
-        pytest.param(data.identity_like, CSR, CSR),
-        pytest.param(data.identity_like, Dense, Dense),
+        pytest.param(data.identity_like_data, CSR, CSR),
+        pytest.param(data.identity_like_dense, Dense, Dense),
     ]
