@@ -397,10 +397,6 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
                 tmp.data + start_out,
                 length, 1.
             )
-            # for i in range(length):
-            #   tmp.data[start_out + i] += (
-            #     left.data[start_left + i] * right.data[start_right + i]
-            #   )
 
       else:
         for col in range(right.shape[1]):
