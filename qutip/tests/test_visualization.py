@@ -181,6 +181,7 @@ def test_plot_expectation_values(n_of_results, n_of_e_ops, one_axes, args):
     assert isinstance(axes, np.ndarray)
 
 
+@pytest.mark.filterwarnings("ignore:The input coordinates to pcolor:UserWarning")
 @pytest.mark.parametrize('color, args', [
     ('sequential', {}),
     ('diverging', {}),
