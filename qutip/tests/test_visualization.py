@@ -181,7 +181,9 @@ def test_plot_expectation_values(n_of_results, n_of_e_ops, one_axes, args):
     assert isinstance(axes, np.ndarray)
 
 
-@pytest.mark.filterwarnings("ignore:The input coordinates to pcolor:UserWarning")
+@pytest.mark.filterwarnings(
+    "ignore:The input coordinates to pcolor:UserWarning"
+    )
 @pytest.mark.parametrize('color, args', [
     ('sequential', {}),
     ('diverging', {}),
@@ -264,9 +266,9 @@ def test_plot_qubism_Error(ket, args, expected):
     assert str(exc_info.value) == expected
 
 
-
 def test_plot_qubism_mock(monkeypatch: pytest.MonkeyPatch):
     text = "For 'pairs_skewed' pairs of dimensions need to be the same."
+
     def mock_func(ket, kwarg):
         return ket
     monkeypatch.setattr("qutip.visualization.tensor", mock_func)
