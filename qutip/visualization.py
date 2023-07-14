@@ -259,7 +259,8 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
 
         .. note::
 
-            Hinton plots of superoperators are currently only supported for qubits.
+            Hinton plots of superoperators are currently only
+            supported for qubits.
 
     x_basis : list of strings, optional
         list of x ticklabels to represent x basis of the input.
