@@ -45,7 +45,7 @@ to.add_conversions([
 ])
 to.register_aliases(['csr', 'CSR'], CSR)
 to.register_aliases(['Dense', 'dense'], Dense)
-to.register_aliases(['Dia', 'dia', 'diag'], Dia)
+to.register_aliases(['DIA', 'Dia', 'dia', 'diag'], Dia)
 
 
 from . import _creator_utils
