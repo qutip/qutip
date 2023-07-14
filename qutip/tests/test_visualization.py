@@ -264,6 +264,17 @@ def test_plot_qubism_Error(ket, args, expected):
     assert str(exc_info.value) == expected
 
 
+
+def test_plot_qubism_mock(monkeypatch: pytest.MonkeyPatch):
+    text = "For 'pairs_skewed' pairs of dimensions need to be the same."
+    def mock_func(ket, kwarg):
+        return ket
+    monkeypatch.setattr("qutip.visualization.tensor", mock_func)
+    with pytest.raises(Exception) as exc_info:
+        qutip.plot_qubism(qutip.ket("010"), how='pairs_skewed')
+    assert str(exc_info.value) == text
+
+
 @pytest.mark.parametrize('args', [
     ({'splitting': None}),
     ({'labels_iteration': 1}),
