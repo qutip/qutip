@@ -272,14 +272,14 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
         Determines how colors are assigned to each square:
 
         -  If set to ``"scaled"`` (default), each color is chosen by
-        passing the absolute value of the corresponding matrix
-        element into `cmap` with the sign of the real part.
+            passing the absolute value of the corresponding matrix
+            element into `cmap` with the sign of the real part.
         -  If set to ``"threshold"``, each square is plotted as
-        the maximum of `cmap` for the positive real part and as
-        the minimum for the negative part of the matrix element;
-        note that this generalizes `"threshold"` to complex numbers.
+            the maximum of `cmap` for the positive real part and as
+            the minimum for the negative part of the matrix element;
+            note that this generalizes `"threshold"` to complex numbers.
         -  If set to ``"phase"``, each color is chosen according to
-        the angle of the corresponding matrix element.
+            the angle of the corresponding matrix element.
 
     label_top : bool, default=True
         If True, x ticklabels will be placed on top, otherwise
