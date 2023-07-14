@@ -621,14 +621,14 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     bar_style : string, default="real"
 
         -  If set to ``"real"`` (default), each bar is plotted
-        as the real part of the corresponding matrix element
-        Determines how colors are assigned to each square:
+            as the real part of the corresponding matrix element
+            Determines how colors are assigned to each square:
         -  If set to ``"img"``, each bar is plotted
-        as the imaginary part of the corresponding matrix element
+            as the imaginary part of the corresponding matrix element
         -  If set to ``"abs"``, each bar is plotted
-        as the absolute value of the corresponding matrix element
+            as the absolute value of the corresponding matrix element
         -  If set to ``"phase"`` (default), each bar is plotted
-        as the angle of the corresponding matrix element
+            as the angle of the corresponding matrix element
 
     color_limits : list/array with two float numbers, optional
         The limits of colorbar [min, max]
@@ -637,13 +637,13 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         Determines how colors are assigned to each square:
 
         -  If set to ``"real"`` (default), each color is chosen
-        according to the real part of the corresponding matrix element.
+            according to the real part of the corresponding matrix element.
         -  If set to ``"img"``, each color is chosen according to
-        the imaginary part of the corresponding matrix element.
+            the imaginary part of the corresponding matrix element.
         -  If set to ``"abs"``, each color is chosen according to
-        the absolute value of the corresponding matrix element.
+            the absolute value of the corresponding matrix element.
         -  If set to ``"phase"``, each color is chosen according to
-        the angle of the corresponding matrix element.
+            the angle of the corresponding matrix element.
 
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
