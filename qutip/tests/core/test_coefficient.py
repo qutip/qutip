@@ -294,7 +294,7 @@ from qutip import basis
 from qutip.core.data cimport CSR
 from qutip.core.data.expect cimport expect_csr
 """)
-    csr = qutip.num(3).data
+    csr = qutip.num(3, dtype="CSR").data
     coeff = coefficient("expect_csr(op, op)",
                         args={"op": csr},
                         args_ctypes={"op": "CSR"},
