@@ -5,6 +5,81 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
+def test_cyclic():
+    qutip.settings.colorblind_safe = True
+    rho = qutip.rand_dm(5)
+    fig, ax = qutip.hinton(rho, color_style='phase')
+    plt.close()
+    qutip.settings.colorblind_safe = False
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_diverging():
+    qutip.settings.colorblind_safe = True
+    rho = qutip.rand_dm(5)
+    fig, ax = qutip.hinton(rho)
+    plt.close()
+    qutip.settings.colorblind_safe = False
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_sequential():
+    qutip.settings.colorblind_safe = True
+    theta = np.linspace(0, np.pi, 90)
+    phi = np.linspace(0, 2 * np.pi, 60)
+
+    fig, ax = qutip.sphereplot(theta, phi,
+                               qutip.orbital(theta, phi, qutip.basis(3, 0)).T)
+    plt.close()
+    qutip.settings.colorblind_safe = False
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+@pytest.mark.parametrize('f, a, projection', [
+    (True, True, '2d'),
+    (True, True, '3d'),
+    (True, False, '2d'),
+    (True, False, '3d'),
+    (False, True, '2d'),
+    (False, True, '3d'),
+    (False, False, '2d'),
+    (False, False, '3d'),
+])
+def test_is_fig_and_ax(f, a, projection):
+    rho = qutip.rand_dm(5)
+
+    fig = plt.figure()
+    ax = None
+    if a:
+        if projection == '2d':
+            ax = fig.add_subplot(111)
+        else:
+            ax = fig.add_subplot(111, projection='3d')
+    if f is None:
+        fig = None
+
+    rho = qutip.rand_dm(5)
+    fig, ax = qutip.plot_wigner(rho, projection=projection,
+                                fig=fig, ax=ax)
+    plt.close()
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_set_ticklabels():
+    rho = qutip.rand_dm(5)
+    text = "got 1 ticklabels but needed 5"
+    with pytest.raises(Exception) as exc_info:
+        fig, ax = qutip.hinton(rho, x_basis=[1])
+    assert str(exc_info.value) == text
+
+
 def to_oper_bra(oper):
     return qutip.operator_to_vector(oper).dag()
 
@@ -28,6 +103,14 @@ def test_hinton(transform, args):
     rho = transform(qutip.rand_dm(4))
 
     fig, ax = qutip.hinton(rho, **args)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_hinton1():
+    fig, ax = qutip.hinton(np.zeros((3, 3)))
     plt.close()
 
     assert isinstance(fig, mpl.figure.Figure)
@@ -183,7 +266,7 @@ def test_plot_expectation_values(n_of_results, n_of_e_ops, one_axes, args):
 
 @pytest.mark.filterwarnings(
     "ignore:The input coordinates to pcolor:UserWarning"
-    )
+)
 @pytest.mark.parametrize('color, args', [
     ('sequential', {}),
     ('diverging', {}),
@@ -223,6 +306,16 @@ def test_plot_spin_distribution_ValueError():
     with pytest.raises(ValueError) as exc_info:
         fig, ax = qutip.plot_spin_distribution(Q, THETA, PHI, projection=1)
     assert str(exc_info.value) == text
+
+
+@pytest.mark.parametrize('args', [
+    ({}),
+    ({'theme': 'dark'}),
+])
+def test_complex_array_to_rgb(args):
+    Y = qutip.complex_array_to_rgb(np.zeros((3, 3)), **args)
+
+    assert isinstance(Y, np.ndarray)
 
 
 @pytest.mark.parametrize('dims, args', [
