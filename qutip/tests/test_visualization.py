@@ -27,7 +27,7 @@ def test_plot_wigner_sphere(args):
 ])
 def test_update_yaxis(response):
     if response == 'normal':
-        fig, ax = qutip.hinton(np.zeros((3, 3)))
+        fig, ax = qutip.matrix_histogram(np.zeros((3, 3)))
         assert isinstance(fig, mpl.figure.Figure)
         assert isinstance(ax, mpl.axes.Axes)
     else:
@@ -44,7 +44,7 @@ def test_update_yaxis(response):
 ])
 def test_update_xaxis(response):
     if response == 'normal':
-        fig, ax = qutip.hinton(np.zeros((3, 3)))
+        fig, ax = qutip.matrix_histogram(np.zeros((3, 3)))
         assert isinstance(fig, mpl.figure.Figure)
         assert isinstance(ax, mpl.axes.Axes)
     else:
