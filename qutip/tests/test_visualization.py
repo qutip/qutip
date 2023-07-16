@@ -46,9 +46,25 @@ def test_matrix_histogram(args):
     assert isinstance(ax, mpl.axes.Axes)
 
 
-def test_matrix_histogram_ValueError():
+def test_matrix_histogram_zeros():
+    rho = qutip.Qobj([[0, 0], [0, 0]])
+
+    fig, ax = qutip.matrix_histogram(rho)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+@pytest.mark.parametrize('args, expected', [
+    ({'options': 'error'}, ("options must be a dictionary")),
+    ({'options': {'e1': '1', 'e2': '2'}},
+     ("invalid key(s) found in options: e1, e2",
+      "invalid key(s) found in options: e2, e1")),
+])
+def test_matrix_histogram_ValueError(args, expected):
     text = "options must be a dictionary"
     with pytest.raises(ValueError) as exc_info:
         fig, ax = qutip.matrix_histogram(qutip.rand_dm(5),
-                                         options='error')
-    assert str(exc_info.value) == text
+                                         **args)
+    assert str(exc_info.value) in expected
