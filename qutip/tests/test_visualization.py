@@ -21,6 +21,64 @@ def test_plot_wigner_sphere(args):
     assert isinstance(ax, mpl.axes.Axes)
 
 
+@pytest.mark.parametrize('response', [
+    ('normal'),
+    ('error')
+])
+def test_update_yaxis(response):
+    if response == 'normal':
+        fig, ax = qutip.hinton(np.zeros((3, 3)))
+        assert isinstance(fig, mpl.figure.Figure)
+        assert isinstance(ax, mpl.axes.Axes)
+    else:
+        text = "got 1 ylabels but needed 5"
+        with pytest.raises(ValueError) as exc_info:
+            fig, ax = qutip.matrix_histogram(qutip.rand_dm(5),
+                                             y_basis=[1])
+        assert str(exc_info.value) == text
+
+
+@pytest.mark.parametrize('response', [
+    ('normal'),
+    ('error')
+])
+def test_update_xaxis(response):
+    if response == 'normal':
+        fig, ax = qutip.hinton(np.zeros((3, 3)))
+        assert isinstance(fig, mpl.figure.Figure)
+        assert isinstance(ax, mpl.axes.Axes)
+    else:
+        text = "got 1 xlabels but needed 5"
+        with pytest.raises(ValueError) as exc_info:
+            fig, ax = qutip.matrix_histogram(qutip.rand_dm(5),
+                                             x_basis=[1])
+        assert str(exc_info.value) == text
+
+
+def test_get_matrix_components():
+    text = "got an unexpected argument, error for bar_style"
+    with pytest.raises(ValueError) as exc_info:
+        fig, ax = qutip.matrix_histogram(qutip.rand_dm(5),
+                                         bar_style='error')
+    assert str(exc_info.value) == text
+
+
+@pytest.mark.parametrize('args', [
+    ({'options': {'stick': True, 'azim': 45}}),
+    ({'options': {'stick': True, 'azim': 135}}),
+    ({'options': {'stick': True, 'azim': 225}}),
+    ({'options': {'stick': True, 'azim': 315}}),
+])
+def test_matrix_histogram(args):
+    rho = qutip.rand_dm(5)
+
+    fig, ax = qutip.matrix_histogram(rho, **args)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
 @pytest.mark.parametrize('args', [
     ({}),
     ({'options': {'zticks': [1]}}),

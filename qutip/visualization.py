@@ -594,8 +594,8 @@ def _get_matrix_components(option, M, argument):
     elif option == 'phase':
         return angle(M.flatten())
     else:
-        raise ValueError(f"got an unexpected argument, \
-                         {option} for {argument}")
+        raise ValueError("got an unexpected argument, "
+                         f"{option} for {argument}")
 
 
 def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
