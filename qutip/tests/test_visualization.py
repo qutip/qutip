@@ -61,7 +61,7 @@ def test_is_fig_and_ax(f, a, projection):
             ax = fig.add_subplot(111)
         else:
             ax = fig.add_subplot(111, projection='3d')
-    if f is None:
+    if not f:
         fig = None
 
     rho = qutip.rand_dm(5)
