@@ -542,7 +542,7 @@ def _update_yaxis(spacing, M, ax, ylabels):
     """
     updates the y-axis
     """
-    ytics = [x + (1 - (spacing / 2)) for x in range(M.shape[1])]
+    ytics = [y + (1 - (spacing / 2)) for y in range(M.shape[1])]
     ax.yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
         nylabels = len(ylabels)
@@ -560,7 +560,7 @@ def _update_xaxis(spacing, M, ax, xlabels):
     """
     updates the x-axis
     """
-    xtics = [x + (1 - (spacing / 2)) for x in range(M.shape[1])]
+    xtics = [x + (1 - (spacing / 2)) for x in range(M.shape[0])]
     ax.xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
         nxlabels = len(xlabels)
