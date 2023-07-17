@@ -3,6 +3,7 @@
 
 from libc.string cimport memset, memcpy
 from libc.math cimport fabs
+from libc.stdlib cimport abs
 from libcpp.algorithm cimport lower_bound
 
 import warnings
@@ -46,11 +47,14 @@ cdef extern from "src/matmul_diag_vector.hpp" nogil:
     void _matmul_diag_vector[T](
         double complex *data, double complex *vec, double complex *out,
         T length, double complex scale)
+    void _matmul_diag_block[T](
+        double complex *data, double complex *vec, double complex *out,
+        T length, T width)
 
 
 __all__ = [
     'matmul', 'matmul_csr', 'matmul_dense', 'matmul_dia',
-    'matmul_csr_dense_dense', 'matmul_dia_dense_dense',
+    'matmul_csr_dense_dense', 'matmul_dia_dense_dense', 'matmul_dense_dia_dense',
     'multiply', 'multiply_csr', 'multiply_dense', 'multiply_dia',
 ]
 
@@ -380,7 +384,22 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
       strideR_out = tmp.shape[1] if not tmp.fortran else 1
       strideC_out = tmp.shape[0] if tmp.fortran else 1
 
-      if (strideR_in == 1) and (strideR_out == 1):
+      if (
+        (left.shape[0] == left.shape[1])
+        and (strideC_in == 1)
+        and (strideC_out == 1)
+      ):
+          #Fast track for easy case
+          for diag in range(left.num_diag):
+              _matmul_diag_block(
+                  right.data + max(0, left.offsets[diag]) * strideR_in,
+                  left.data + diag * left.shape[1] + max(0, left.offsets[diag]),
+                  tmp.data + max(0, -left.offsets[diag]) * strideR_out,
+                  left.shape[1] - abs(left.offsets[diag]),
+                  right.shape[1]
+              )
+
+      elif (strideR_in == 1) and (strideR_out == 1):
         for col in range(right.shape[1]):
           for diag in range(left.num_diag):
             start_left = max(0, left.offsets[diag])
@@ -410,6 +429,81 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
               tmp.data[(start_out + i) * strideR_out + col * strideC_out] += (
                 left.data[diag * left.shape[1] + i + start_left]
                 * right.data[(start_left + i) * strideR_in + col * strideC_in]
+              )
+
+    if out is None and scale == 1.:
+        out = tmp
+    elif out is None:
+        imul_dense(tmp, scale)
+        out = tmp
+    else:
+        iadd_dense(out, tmp, scale)
+
+    return out
+
+
+cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1, Dense out=None):
+    _check_shape(left, right, out)
+    cdef Dense tmp
+    if out is not None and scale == 1.:
+        tmp = out
+        out = None
+    else:
+        tmp = dense.zeros(left.shape[0], right.shape[1], left.fortran)
+
+    cdef idxint start_left, end_right, start_out, end_out, length, i, start_right
+    cdef idxint row, strideR_in, strideC_in, strideR_out, strideC_out
+    cdef size_t diag
+
+    with nogil:
+      strideR_in = left.shape[1] if not left.fortran else 1
+      strideC_in = left.shape[0] if left.fortran else 1
+      strideR_out = tmp.shape[1] if not tmp.fortran else 1
+      strideC_out = tmp.shape[0] if tmp.fortran else 1
+
+      if (
+        (right.shape[0] == right.shape[1])
+        and (strideR_in == 1)
+        and (strideR_out == 1)
+      ):
+          #Fast track for easy case
+          for diag in range(right.num_diag):
+              _matmul_diag_block(
+                  left.data + max(0, -right.offsets[diag]) * strideC_in,
+                  right.data + diag * right.shape[1] + max(0, right.offsets[diag]),
+                  tmp.data + max(0, right.offsets[diag]) * strideC_out,
+                  right.shape[1] - abs(right.offsets[diag]),
+                  left.shape[0]
+              )
+
+      elif (strideC_in == 1) and (strideC_out == 1):
+        for row in range(left.shape[0]):
+          for diag in range(right.num_diag):
+            start_right = max(0, right.offsets[diag])
+            end_right = min(right.shape[1], right.shape[0] + right.offsets[diag])
+            start_out = max(0, right.offsets[diag])
+            length = end_right - start_right
+            start_left = max(0, -right.offsets[diag]) + row * strideR_in
+            start_right += diag * right.shape[1]
+            start_out = max(0, right.offsets[diag]) + row * strideR_out
+            _matmul_diag_vector(
+                right.data + start_right,
+                left.data + start_left,
+                tmp.data + start_out,
+                length, 1.
+            )
+
+      else:
+        for row in range(left.shape[0]):
+          for diag in range(right.num_diag):
+            start_right = max(0, right.offsets[diag])
+            end_right = min(right.shape[1], right.shape[0] + right.offsets[diag])
+            start_left = max(0, -right.offsets[diag])
+            length = end_right - start_right
+            for i in range(length):
+              tmp.data[(start_right + i) * strideC_out + row * strideR_out] += (
+                right.data[diag * right.shape[1] + i + start_right]
+                * left.data[(start_left + i) * strideC_in + row * strideR_in]
               )
 
     if out is None and scale == 1.:
@@ -610,6 +704,7 @@ matmul.add_specialisations([
     (Dense, Dense, Dense, matmul_dense),
     (Dia, Dia, Dia, matmul_dia),
     (Dia, Dense, Dense, matmul_dia_dense_dense),
+    (Dense, Dia, Dense, matmul_dense_dia_dense),
 ], _defer=True)
 
 

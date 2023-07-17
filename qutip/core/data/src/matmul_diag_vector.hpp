@@ -14,3 +14,13 @@ void _matmul_diag_vector(
         const IntT length,
         const std::complex<double> scale
 );
+
+
+template <typename IntT>
+void _matmul_diag_block(
+        const std::complex<double> * _RESTRICT data,
+        const std::complex<double> * _RESTRICT vec,
+        std::complex<double> * _RESTRICT out,
+        const IntT length,
+        const IntT width
+);

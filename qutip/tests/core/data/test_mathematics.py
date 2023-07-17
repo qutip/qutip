@@ -790,6 +790,7 @@ class TestMatmul(BinaryOpMixin):
         pytest.param(data.matmul_dense, Dense, Dense, Dense),
         pytest.param(data.matmul_dia, Dia, Dia, Dia),
         pytest.param(data.matmul_dia_dense_dense, Dia, Dense, Dense),
+        pytest.param(data.matmul_dense_dia_dense, Dense, Dia, Dense),
     ]
 
 
