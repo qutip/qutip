@@ -117,15 +117,12 @@ def test_hinton1():
     assert isinstance(ax, mpl.axes.Axes)
 
 
-@pytest.mark.parametrize('transform, args, error_message', [
-    (to_oper, {},
-     "Input quantum object must be an operator or superoperator.")
-])
-def test_hinton_ValueError0(transform, args, error_message):
-    rho = transform(qutip.basis(2, 0))
+def test_hinton_ValueError0():
+    text = "Input quantum object must be an operator or superoperator."
+    rho = qutip.basis(2, 0)
     with pytest.raises(ValueError) as exc_info:
-        fig, ax = qutip.hinton(rho, **args)
-    assert str(exc_info.value) == error_message
+        fig, ax = qutip.hinton(rho)
+    assert str(exc_info.value) == text
 
 
 @pytest.mark.parametrize('transform, args, error_message', [
@@ -359,14 +356,12 @@ def test_plot_qubism_Error(ket, args, expected):
     assert str(exc_info.value) == expected
 
 
-def test_plot_qubism_mock(monkeypatch: pytest.MonkeyPatch):
+def test_plot_qubism_dimension():
     text = "For 'pairs_skewed' pairs of dimensions need to be the same."
 
-    def mock_func(ket, kwarg):
-        return ket
-    monkeypatch.setattr("qutip.visualization.tensor", mock_func)
+    ket = qutip.basis(3) & qutip.basis(2)
     with pytest.raises(Exception) as exc_info:
-        qutip.plot_qubism(qutip.ket("010"), how='pairs_skewed')
+        qutip.plot_qubism(ket, how='pairs_skewed')
     assert str(exc_info.value) == text
 
 
