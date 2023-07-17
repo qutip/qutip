@@ -469,7 +469,7 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         method = "splu" if sparse else "pinv"
     sparse_solvers = ["splu", "mkl_spsolve", "spilu"]
     dense_solvers = ["solve", "lstsq", "pinv"]
-    if isinstance(L.data, _data.CSR) and method in dense_solvers:
+    if isinstance(L.data, (_data.CSR, _data.Dia)) and method in dense_solvers:
         L = L.to("dense")
     elif isinstance(L.data, _data.Dense) and method in sparse_solvers:
         L = L.to("csr")
@@ -488,7 +488,7 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     if w in [None, 0.0]:
         L += 1e-15j
     else:
-        L += 1.0j*w
+        L += 1.0j * w
 
     use_rcm = use_rcm and isinstance(L.data, _data.CSR)
 
