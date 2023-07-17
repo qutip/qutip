@@ -69,7 +69,7 @@ def test_get_matrix_components():
     ({'options': {'stick': True, 'azim': 225}}),
     ({'options': {'stick': True, 'azim': 315}}),
 ])
-def test_matrix_histogram(args):
+def test_stick_to_planes(args):
     rho = qutip.rand_dm(5)
 
     fig, ax = qutip.matrix_histogram(rho, **args)
