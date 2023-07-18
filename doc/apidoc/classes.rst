@@ -48,12 +48,12 @@ Solvers
     :members:
     :inherited-members:
     :show-inheritance:
-    
+
 .. autoclass:: qutip.solver.mesolve.MESolver
     :members:
     :inherited-members:
     :show-inheritance:
-      
+
 .. autoclass:: qutip.solver.brmesolve.BRSolver
     :members:
     :inherited-members:
@@ -212,10 +212,10 @@ Solver Options and Results
 Permutational Invariance
 ------------------------
 
-.. autoclass:: qutip.solve.piqs.Dicke
+.. autoclass:: qutip.piqs.piqs.Dicke
     :members:
 
-.. autoclass:: qutip.solve.piqs.Pim
+.. autoclass:: qutip.piqs.piqs.Pim
     :members:
 
 .. _classes-distributions:

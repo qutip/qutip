@@ -22,7 +22,6 @@ from .. import (
     sigmap, sigmam,
 )
 from ..entropy import entropy_vn
-from .solver import SolverOptions, Result
 from ._piqs import Dicke as _Dicke
 from ._piqs import (
     jmm1_dictionary,
@@ -314,12 +313,16 @@ def purity_dicke(rho):
     return dicke_function_trace(f, rho)
 
 
+class Result:
+    pass
+
+
 class Dicke(object):
     """The Dicke class which builds the Lindbladian and Liouvillian matrix.
 
     Examples
     --------
-    >>> from piqs import Dicke, jspin
+    >>> from qutip.piqs import Dicke, jspin
     >>> N = 2
     >>> jx, jy, jz = jspin(N)
     >>> jp = jspin(N, "+")
@@ -499,7 +502,7 @@ class Dicke(object):
             liouv = lindblad + hamiltonian_superoperator
         return liouv
 
-    def pisolve(self, initial_state, tlist, options=None):
+    def pisolve(self, initial_state, tlist):
         """
         Solve for diagonal Hamiltonians and initial states faster.
 
@@ -512,13 +515,10 @@ class Dicke(object):
         tlist: ndarray
             A 1D numpy array of list of timesteps to integrate
 
-        options : :class:`qutip.solver.SolverOptions`
-            The options for the solver.
-
         Returns
         =======
         result: list
-            A dictionary of the type `qutip.solver.Result` which holds the
+            A dictionary of the type `qutip.piqs.Result` which holds the
             results of the evolution.
         """
         if isdiagonal(initial_state) == False:
@@ -546,7 +546,7 @@ class Dicke(object):
             self.collective_pumping,
             self.collective_dephasing,
         )
-        result = pim.solve(initial_state, tlist, options=None)
+        result = pim.solve(initial_state, tlist)
         return result
 
     def c_ops(self):
@@ -1789,12 +1789,10 @@ class Pim(object):
                     sparse_M[k, int(current_col)] = taus[tau]
         return sparse_M.tocsr()
 
-    def solve(self, rho0, tlist, options=None):
+    def solve(self, rho0, tlist):
         """
         Solve the ODE for the evolution of diagonal states and Hamiltonians.
         """
-        if options is None:
-            options = SolverOptions()
         output = Result()
         output.solver = "pisolve"
         output.times = tlist

@@ -33,7 +33,7 @@ else:
 from .core import *
 from .solver import *
 from .solver import nonmarkov
-import qutip.solve.piqs as piqs
+import qutip.piqs.piqs as piqs
 
 # graphics
 from .bloch import *
