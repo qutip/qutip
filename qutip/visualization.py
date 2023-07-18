@@ -273,14 +273,14 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
         Determines how colors are assigned to each square:
 
         -  If set to ``"scaled"`` (default), each color is chosen by
-            passing the absolute value of the corresponding matrix
-            element into `cmap` with the sign of the real part.
+           passing the absolute value of the corresponding matrix
+           element into `cmap` with the sign of the real part.
         -  If set to ``"threshold"``, each square is plotted as
-            the maximum of `cmap` for the positive real part and as
-            the minimum for the negative part of the matrix element;
-            note that this generalizes `"threshold"` to complex numbers.
+           the maximum of `cmap` for the positive real part and as
+           the minimum for the negative part of the matrix element;
+           note that this generalizes `"threshold"` to complex numbers.
         -  If set to ``"phase"``, each color is chosen according to
-            the angle of the corresponding matrix element.
+           the angle of the corresponding matrix element.
 
     label_top : bool, default=True
         If True, x ticklabels will be placed on top, otherwise
@@ -600,7 +600,7 @@ def _get_matrix_components(option, M, argument):
 
 def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                      bar_style='real', color_limits=None, color_style='real',
-                     options=None, *, cmap=None, colorbar=True,
+                     options={}, *, cmap=None, colorbar=True,
                      fig=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
@@ -622,14 +622,13 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     bar_style : string, default="real"
 
         -  If set to ``"real"`` (default), each bar is plotted
-            as the real part of the corresponding matrix element
-            Determines how colors are assigned to each square:
+           as the real part of the corresponding matrix element
         -  If set to ``"img"``, each bar is plotted
-            as the imaginary part of the corresponding matrix element
+           as the imaginary part of the corresponding matrix element
         -  If set to ``"abs"``, each bar is plotted
-            as the absolute value of the corresponding matrix element
+           as the absolute value of the corresponding matrix element
         -  If set to ``"phase"`` (default), each bar is plotted
-            as the angle of the corresponding matrix element
+           as the angle of the corresponding matrix element
 
     color_limits : list/array with two float numbers, optional
         The limits of colorbar [min, max]
@@ -638,13 +637,13 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         Determines how colors are assigned to each square:
 
         -  If set to ``"real"`` (default), each color is chosen
-            according to the real part of the corresponding matrix element.
+           according to the real part of the corresponding matrix element.
         -  If set to ``"img"``, each color is chosen according to
-            the imaginary part of the corresponding matrix element.
+           the imaginary part of the corresponding matrix element.
         -  If set to ``"abs"``, each color is chosen according to
-            the absolute value of the corresponding matrix element.
+           the absolute value of the corresponding matrix element.
         -  If set to ``"phase"``, each color is chosen according to
-            the angle of the corresponding matrix element.
+           the angle of the corresponding matrix element.
 
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
@@ -658,7 +657,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     ax : a matplotlib axes instance, optional
         The axes context in which the plot will be drawn.
 
-    options : dict, optional
+    options : dict, defaut={}
         A dictionary containing extra options for the plot.
         The names (keys) and values of the options are
         described below:
@@ -726,9 +725,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                     'cbar_pad': 0.04, 'cbar_to_z': False, 'threshold': None}
 
     # update default_opts from input options
-    if options is None:
-        pass
-    elif isinstance(options, dict):
+    if isinstance(options, dict):
         # check if keys in options dict are valid
         if set(options) - set(default_opts):
             raise ValueError("invalid key(s) found in options: "
@@ -736,6 +733,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         else:
             # updating default options
             default_opts.update(options)
+            options = default_opts
     else:
         raise ValueError("options must be a dictionary")
 
@@ -752,7 +750,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     xpos = xpos.T.flatten() + 0.5
     ypos = ypos.T.flatten() + 0.5
     zpos = np.zeros(n)
-    dx = dy = (1 - default_opts['bars_spacing']) * np.ones(n)
+    dx = dy = (1 - options['bars_spacing']) * np.ones(n)
 
     bar_M = _get_matrix_components(bar_style, M, 'bar_style')
 
@@ -796,43 +794,43 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     colors = cmap(norm(color_M))
 
-    colors[:, 3] = default_opts['bars_alpha']
+    colors[:, 3] = options['bars_alpha']
 
-    if default_opts['threshold'] is not None:
-        colors[:, 3] = 1 * (bar_M >= default_opts['threshold'])
+    if options['threshold'] is not None:
+        colors[:, 3] *= 1 * (bar_M >= options['threshold'])
 
-        idx, = np.where(bar_M < default_opts['threshold'])
+        idx, = np.where(bar_M < options['threshold'])
         bar_M[idx] = 0
 
     fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, bar_M, color=colors,
-             edgecolors=default_opts['bars_edgecolor'],
-             linewidths=default_opts['bars_lw'],
-             shade=default_opts['shade'])
+             edgecolors=options['bars_edgecolor'],
+             linewidths=options['bars_lw'],
+             shade=options['shade'])
     # remove vertical lines on xz and yz plane
     ax.yaxis._axinfo["grid"]['linewidth'] = 0
     ax.xaxis._axinfo["grid"]['linewidth'] = 0
 
     # x axis
-    _update_xaxis(default_opts['bars_spacing'], M, ax, x_basis)
+    _update_xaxis(options['bars_spacing'], M, ax, x_basis)
 
     # y axis
-    _update_yaxis(default_opts['bars_spacing'], M, ax, y_basis)
+    _update_yaxis(options['bars_spacing'], M, ax, y_basis)
 
     # z axis
-    _update_zaxis(ax, z_min, z_max, default_opts['zticks'])
+    _update_zaxis(ax, z_min, z_max, options['zticks'])
 
     # stick to xz and yz plane
-    _stick_to_planes(default_opts['stick'],
-                     default_opts['azim'], ax, M,
-                     default_opts['bars_spacing'])
-    ax.view_init(azim=default_opts['azim'], elev=default_opts['elev'])
+    _stick_to_planes(options['stick'],
+                     options['azim'], ax, M,
+                     options['bars_spacing'])
+    ax.view_init(azim=options['azim'], elev=options['elev'])
 
     # color axis
     if colorbar:
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.75,
-                                         pad=default_opts['cbar_pad'])
+                                         pad=options['cbar_pad'])
         cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
         if color_style == 'real':
