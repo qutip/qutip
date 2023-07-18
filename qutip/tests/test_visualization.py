@@ -8,8 +8,10 @@ import matplotlib.pyplot as plt
 def test_cyclic():
     qutip.settings.colorblind_safe = True
     rho = qutip.rand_dm(5)
+
     fig, ax = qutip.hinton(rho, color_style='phase')
     plt.close()
+
     qutip.settings.colorblind_safe = False
 
     assert isinstance(fig, mpl.figure.Figure)
@@ -19,8 +21,10 @@ def test_cyclic():
 def test_diverging():
     qutip.settings.colorblind_safe = True
     rho = qutip.rand_dm(5)
+
     fig, ax = qutip.hinton(rho)
     plt.close()
+
     qutip.settings.colorblind_safe = False
 
     assert isinstance(fig, mpl.figure.Figure)
@@ -35,6 +39,7 @@ def test_sequential():
     fig, ax = qutip.sphereplot(theta, phi,
                                qutip.orbital(theta, phi, qutip.basis(3, 0)).T)
     plt.close()
+
     qutip.settings.colorblind_safe = False
 
     assert isinstance(fig, mpl.figure.Figure)
@@ -64,10 +69,10 @@ def test_is_fig_and_ax(f, a, projection):
     if not f:
         fig = None
 
-    rho = qutip.rand_dm(5)
     fig, ax = qutip.plot_wigner(rho, projection=projection,
                                 fig=fig, ax=ax)
     plt.close()
+
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
 
@@ -75,6 +80,7 @@ def test_is_fig_and_ax(f, a, projection):
 def test_set_ticklabels():
     rho = qutip.rand_dm(5)
     text = "got 1 ticklabels but needed 5"
+
     with pytest.raises(Exception) as exc_info:
         fig, ax = qutip.hinton(rho, x_basis=[1])
     assert str(exc_info.value) == text
@@ -90,7 +96,11 @@ def test_plot_wigner_sphere(args):
     wigner = qutip.wigner_transform(psi, 2, False, 50, ["x"])
 
     fig, ax = qutip.plot_wigner_sphere(wigner, **args)
-  
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
 
 def to_oper_bra(oper):
     return qutip.operator_to_vector(oper).dag()
@@ -132,6 +142,7 @@ def test_hinton1():
 def test_hinton_ValueError0():
     text = "Input quantum object must be an operator or superoperator."
     rho = qutip.basis(2, 0)
+
     with pytest.raises(ValueError) as exc_info:
         fig, ax = qutip.hinton(rho)
     assert str(exc_info.value) == text
@@ -145,6 +156,7 @@ def test_hinton_ValueError0():
 ])
 def test_hinton_ValueError1(transform, args, error_message):
     rho = transform(qutip.rand_dm(5))
+
     with pytest.raises(ValueError) as exc_info:
         fig, ax = qutip.hinton(rho, **args)
     assert str(exc_info.value) == error_message
@@ -174,13 +186,17 @@ def test_sphereplot(args):
 def test_update_yaxis(response):
     if response == 'normal':
         fig, ax = qutip.matrix_histogram(np.zeros((3, 3)))
+        plt.close()
+
         assert isinstance(fig, mpl.figure.Figure)
         assert isinstance(ax, mpl.axes.Axes)
     else:
         text = "got 1 ylabels but needed 5"
+
         with pytest.raises(ValueError) as exc_info:
             fig, ax = qutip.matrix_histogram(qutip.rand_dm(5),
                                              y_basis=[1])
+
         assert str(exc_info.value) == text
 
 
@@ -191,10 +207,13 @@ def test_update_yaxis(response):
 def test_update_xaxis(response):
     if response == 'normal':
         fig, ax = qutip.matrix_histogram(np.zeros((3, 3)))
+        plt.close()
+
         assert isinstance(fig, mpl.figure.Figure)
         assert isinstance(ax, mpl.axes.Axes)
     else:
         text = "got 1 xlabels but needed 5"
+
         with pytest.raises(ValueError) as exc_info:
             fig, ax = qutip.matrix_histogram(qutip.rand_dm(5),
                                              x_basis=[1])
@@ -203,6 +222,7 @@ def test_update_xaxis(response):
 
 def test_get_matrix_components():
     text = "got an unexpected argument, error for bar_style"
+
     with pytest.raises(ValueError) as exc_info:
         fig, ax = qutip.matrix_histogram(qutip.rand_dm(5),
                                          bar_style='error')
@@ -219,9 +239,11 @@ def test_stick_to_planes(args):
     rho = qutip.rand_dm(5)
 
     fig, ax = qutip.matrix_histogram(rho, **args)
+    plt.close()
+
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
-    
+
 
 @pytest.mark.parametrize('args', [
     ({}),
@@ -242,18 +264,22 @@ def test_matrix_histogram(args):
     rho = qutip.rand_dm(5)
 
     fig, ax = qutip.matrix_histogram(rho, **args)
+    plt.close()
+
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
-    
+
 
 def test_matrix_histogram_zeros():
     rho = qutip.Qobj([[0, 0], [0, 0]])
 
     fig, ax = qutip.matrix_histogram(rho)
+    plt.close()
+
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
 
-    
+
 @pytest.mark.parametrize('args, expected', [
     ({'options': 'error'}, ("options must be a dictionary")),
     ({'options': {'e1': '1', 'e2': '2'}},
@@ -262,11 +288,12 @@ def test_matrix_histogram_zeros():
 ])
 def test_matrix_histogram_ValueError(args, expected):
     text = "options must be a dictionary"
+
     with pytest.raises(ValueError) as exc_info:
         fig, ax = qutip.matrix_histogram(qutip.rand_dm(5),
                                          **args)
     assert str(exc_info.value) in expected
-    
+
 
 @pytest.mark.parametrize('args', [
     ({'h_labels': ['H0', 'H0+Hint']}),
@@ -337,7 +364,6 @@ def test_plot_wigner_ValueError():
         rho = qutip.rand_dm(4)
 
         fig, ax = qutip.plot_wigner(rho, projection=1)
-        plt.close()
     assert str(exc_info.value) == text
 
 
@@ -413,6 +439,7 @@ def test_plot_spin_distribution_ValueError():
     theta = np.linspace(0, np.pi, 50)
     phi = np.linspace(0, 2 * np.pi, 50)
     Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)
+
     with pytest.raises(ValueError) as exc_info:
         fig, ax = qutip.plot_spin_distribution(Q, THETA, PHI, projection=1)
     assert str(exc_info.value) == text
@@ -424,6 +451,7 @@ def test_plot_spin_distribution_ValueError():
 ])
 def test_complex_array_to_rgb(args):
     Y = qutip.complex_array_to_rgb(np.zeros((3, 3)), **args)
+    plt.close()
 
     assert isinstance(Y, np.ndarray)
 
@@ -451,7 +479,7 @@ def test_plot_qubism(dims, args):
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
 
-   
+
 @pytest.mark.parametrize('ket, args, expected', [
     (False, {}, "Qubism works only for pure states, i.e. kets."),
     (True, {'how': 'error'}, "No such 'how'."),
@@ -464,6 +492,7 @@ def test_plot_qubism_Error(ket, args, expected):
         state = qutip.ket("01")
     else:
         state = qutip.bra("01")
+
     with pytest.raises(Exception) as exc_info:
         fig, ax = qutip.plot_qubism(state, **args)
     assert str(exc_info.value) == expected
@@ -473,6 +502,7 @@ def test_plot_qubism_dimension():
     text = "For 'pairs_skewed' pairs of dimensions need to be the same."
 
     ket = qutip.basis(3) & qutip.basis(2)
+
     with pytest.raises(Exception) as exc_info:
         qutip.plot_qubism(ket, how='pairs_skewed')
     assert str(exc_info.value) == text
@@ -491,11 +521,11 @@ def test_plot_schmidt(args):
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
 
-    
+
 def test_plot_schmidt_Error():
     state = qutip.bra("01")
     text = "Schmidt plot works only for pure states, i.e. kets."
+
     with pytest.raises(Exception) as exc_info:
         fig, ax = qutip.plot_schmidt(state)
     assert str(exc_info.value) == text
-
