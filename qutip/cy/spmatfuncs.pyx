@@ -275,7 +275,8 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmm(object sparse,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs(
+@cython.binding(False)
+def cy_ode_rhs(
         double t,
         complex[::1] rho,
         complex[::1] data,
@@ -292,7 +293,8 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rhs(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td(
+@cython.binding(False)
+def cy_ode_psi_func_td(
         double t,
         cnp.ndarray[complex, ndim=1, mode="c"] psi,
         object H_func,
@@ -304,7 +306,8 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td_with_state(
+@cython.binding(False)
+def cy_ode_psi_func_td_with_state(
         double t,
         cnp.ndarray[complex, ndim=1, mode="c"] psi,
         object H_func,
@@ -316,7 +319,8 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_psi_func_td_with_state(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cnp.ndarray[complex, ndim=1, mode="c"] cy_ode_rho_func_td(
+@cython.binding(False)
+def cy_ode_rho_func_td(
         double t,
         cnp.ndarray[complex, ndim=1, mode="c"] rho,
         object L0,
