@@ -44,7 +44,7 @@ class TestSolve():
         known type specialisations.
         """
         if dtype is Dia and method == "mkl_spsolve":
-            pytest.mark.skip("mkl is not supported for dia matrix")
+            pytest.skip("mkl is not supported for dia matrix")
         A = self._gen_op(10, dtype)
         b = self._gen_ket(10, Dense)
         expected = self.op_numpy(A.to_array(), b.to_array())
