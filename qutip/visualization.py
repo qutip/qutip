@@ -705,6 +705,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         'threshold': float, optional
             Threshold for when bars of smaller height should be transparent. If
             not set, all bars are colored according to the color map.
+
     Returns
     -------
     fig, ax : tuple
