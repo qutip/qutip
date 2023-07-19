@@ -20,6 +20,7 @@ from qutip.cy.utilities import _cython_build_cleanup
 from qutip.expect import expect_rho_vec
 from qutip.rhs_generate import _td_format_check
 from qutip.cy.openmp.utilities import check_use_openmp
+from qutip.cy.pyxbuilder import importpyx
 import qutip.settings as qset
 from qutip.cy.br_tensor import bloch_redfield_tensor
 
@@ -444,7 +445,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
             raise TypeError('NumPy arrays not valid args for BR solver.')
         else:
             string_list.append(str(value))
-    parameter_string = ",".join(string_list)
+    parameter_string = ", ".join(string_list)
 
     if verbose:
         print('BR prep time:', time.time()-_prep_time)
@@ -453,7 +454,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
     #
     if not options.rhs_reuse or config.tdfunc is None:
         if options.rhs_filename is None:
-            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
+            config.tdname = f"rhs{os.getpid()}{time.time_ns()}"
         else:
             config.tdname = opt.rhs_filename
         if verbose:
@@ -477,16 +478,23 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
                     atol=tol)
 
         cgen.generate(config.tdname + ".pyx")
-        code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
-                       '<string>', 'exec')
-        exec(code, globals())
-        config.tdfunc = cy_td_ode_rhs
+        #code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
+        #               '<string>', 'exec')
+        #exec(code, globals())
+        #config.tdfunc = cy_td_ode_rhs
+        tmp = importpyx(config.tdname, "cy_td_ode_rhs")
+
+        def rhs(t, v, args):
+            return tmp(t, v, *args)
+
+        config.tdfunc = rhs
+
         if verbose:
             print('BR compile time:', time.time()-_st)
     initial_vector = mat2vec(rho0.full()).ravel()
 
     _ode = scipy.integrate.ode(config.tdfunc)
-    code = compile('_ode.set_f_params(' + parameter_string + ')',
+    code = compile('_ode.set_f_params((' + parameter_string + '))',
                     '<string>', 'exec')
     _ode.set_integrator('zvode', method=options.method,
                     order=options.order, atol=options.atol,

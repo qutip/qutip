@@ -86,6 +86,7 @@ class BR_Codegen(object):
         # write function for Hamiltonian terms (there is always
         # be at least one term)
         for line in cython_checks() + self.ODE_func_header():
+            print(line)
             self.write(line)
         self.indent()
         #Reset spline count

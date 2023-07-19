@@ -61,9 +61,9 @@ else:
             .format(_cy_require, _Cython.__version__)
         )
     # Setup pyximport
-    import qutip.cy.pyxbuilder as _pyxbuilder
-    _pyxbuilder.install()
-    del _pyxbuilder, _Cython, _version2int
+    # import qutip.cy.pyxbuilder as _pyxbuilder
+    # _pyxbuilder.install()
+    # del _pyxbuilder, _Cython, _version2int
 
 
 # -----------------------------------------------------------------------------
