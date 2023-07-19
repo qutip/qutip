@@ -43,12 +43,7 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
         file_.close()
         if not os.access(try_file, os.R_OK):
             time.sleep(0.1)
-        #codeString = str("from " + try_file +
-        #                 " import " + obj_name + '\n' +
-        #                 "import_list.append(" + obj_name + ")")
         try:
-            # import_code = compile(codeString, '<string>', 'exec')
-            # exec(import_code, locals())
             if cythonfile:
                 coeff_obj = importpyx(try_file, obj_name)
             else:
@@ -63,7 +58,6 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
     if coeff_obj is None:
         raise Exception("Could not convert string to importable function, "
                         "tmpfile:" + try_file + ext) from err
-    # coeff_obj = import_list[0]
     return coeff_obj, try_file + ext
 
 

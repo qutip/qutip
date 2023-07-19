@@ -478,23 +478,14 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
                     atol=tol)
 
         cgen.generate(config.tdname + ".pyx")
-        #code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
-        #               '<string>', 'exec')
-        #exec(code, globals())
-        #config.tdfunc = cy_td_ode_rhs
-        tmp = importpyx(config.tdname, "cy_td_ode_rhs")
-
-        def rhs(t, v, args):
-            return tmp(t, v, *args)
-
-        config.tdfunc = rhs
+        config.tdfunc = importpyx(config.tdname, "cy_td_ode_rhs")
 
         if verbose:
             print('BR compile time:', time.time()-_st)
     initial_vector = mat2vec(rho0.full()).ravel()
 
     _ode = scipy.integrate.ode(config.tdfunc)
-    code = compile('_ode.set_f_params((' + parameter_string + '))',
+    code = compile('_ode.set_f_params(' + parameter_string + ')',
                     '<string>', 'exec')
     _ode.set_integrator('zvode', method=options.method,
                     order=options.order, atol=options.atol,

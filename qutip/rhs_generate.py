@@ -12,6 +12,7 @@ from qutip.superoperator import spre, spost
 from qutip.interpolate import Cubic_Spline
 from qutip.cy.pyxbuilder import importpyx
 
+
 def rhs_clear():
     """
     Resets the string-format time-dependent Hamiltonian parameters.
@@ -185,14 +186,6 @@ def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
     cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
                    config=config)
     cgen.generate(config.tdname + ".pyx")
-
-    """
-    code = compile('from ' + config.tdname +
-                   ' import cy_td_ode_rhs', '<string>', 'exec')
-    exec(code, globals())
-
-    config.tdfunc = cy_td_ode_rhs
-    """
     config.tdfunc = importpyx(config.tdname, "cy_td_ode_rhs")
 
     if cleanup:
