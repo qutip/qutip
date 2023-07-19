@@ -3,7 +3,7 @@ __all__ = ['qpt_plot', 'qpt_plot_combined', 'qpt']
 from numpy import hstack, real, imag
 import scipy.linalg as la
 from . import tensor, spre, spost, stack_columns, unstack_columns
-from .visualization import matrix_histogram, matrix_histogram_complex
+from .visualization import matrix_histogram
 import itertools
 
 try:
@@ -71,10 +71,11 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
         xlabels.append("".join([lbls_list[k][inds[k]]
                                 for k in range(len(lbls_list))]))
 
-    matrix_histogram(real(chi), xlabels, xlabels,
-                     title=r"real($\chi$)", limits=[-1, 1], ax=axes[0])
-    matrix_histogram(imag(chi), xlabels, xlabels,
-                     title=r"imag($\chi$)", limits=[-1, 1], ax=axes[1])
+    matrix_histogram(real(chi), xlabels, xlabels, limits=[-1, 1], ax=axes[0])
+    axes[0].set_title(r"real($\chi$)")
+
+    matrix_histogram(imag(chi), xlabels, xlabels, limits=[-1, 1], ax=axes[1])
+    axes[1].set_title(r"imag($\chi$)")
 
     if title and fig:
         fig.suptitle(title)
@@ -132,8 +133,9 @@ def qpt_plot_combined(chi, lbls_list, title=None,
     if not title:
         title = r"$\chi$"
 
-    matrix_histogram_complex(chi, xlabels, xlabels, ax=ax,
-                             threshold=threshold)
+    matrix_histogram(chi, xlabels, xlabels, bar_style='abs',
+                     color_style='phase',
+                     options={'threshold': threshold}, ax=ax)
     ax.set_title(title)
 
     return fig, ax
