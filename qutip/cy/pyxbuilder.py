@@ -1,12 +1,18 @@
 import sys
 from setuptools import Extension, setup
 from Cython.Build import cythonize
+import Cython.Build.Inline as Inline
 import importlib
 import numpy as np
 
 __all__ = ["importpyx"]
 
 def importpyx(file, func):
+    """
+    Compile f"{file}.pyx" import "func" from it and return that object.
+
+    Inspired cython#3145.
+    """
     extra_link_args = []
     if sys.platform == 'win32' and os.environ.get('MSYSTEM') is None:
         extra_compile_args = ['/w', '/O1']
@@ -27,7 +33,12 @@ def importpyx(file, func):
         extra_link_args=extra_link_args,
         language='c++'
     )
-    setup(ext_modules=cythonize(ext))
+
+    build_extension = Inline._get_build_extension()
+    build_extension.extensions = cythonize(ext)
+    build_extension.build_temp = "."
+    build_extension.build_lib  = "."
+    build_extension.run()
 
     module = importlib.import_module(file)
 
