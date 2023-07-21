@@ -23,8 +23,6 @@ def importpyx(file, func):
         extra_compile_args.append('-mmacosx-version-min=10.9')
         extra_link_args.append('-mmacosx-version-min=10.9')
 
-    sys.argv = ["setup.py", "build_ext", "--inplace"]
-
     ext = Extension(
         file,
         sources=[file+".pyx"],
