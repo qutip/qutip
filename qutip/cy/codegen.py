@@ -345,8 +345,7 @@ def cython_preamble(use_openmp=False):
     else:
         openmp_string=''
 
-    return ["""#!python
-#cython: language_level=3
+    return ["""#cython: language_level=3
 # This file is generated automatically by QuTiP.
 # (C) 2011 and later, QuSTaR
 
