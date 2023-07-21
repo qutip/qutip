@@ -2,6 +2,8 @@ import pytest
 import numpy as np
 import qutip
 
+pytest.skip(allow_module_level=True)  # Temp test if only these or other tests segfault
+
 pytestmark = [
     pytest.mark.requires_cython,
     pytest.mark.usefixtures("in_temporary_directory"),

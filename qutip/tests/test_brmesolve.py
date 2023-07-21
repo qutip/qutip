@@ -168,7 +168,6 @@ def test_solver_accepts_list_hamiltonian():
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-8)
 
 
-@pytest.mark.skip()
 @pytest.mark.filterwarnings("ignore:zvode.*Excess work done:UserWarning")
 def test_solver_overwork_error():
     """
