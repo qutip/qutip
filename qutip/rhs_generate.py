@@ -77,7 +77,7 @@ def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
     if name:
         config.tdname = name
     else:
-        config.tdname = f"rhs{os.getpid()}{time.time_ns()}"
+        config.tdname = f"rhs{os.getpid()}{str(time.monotonic())[-5:]}"
 
     Lconst = 0
 

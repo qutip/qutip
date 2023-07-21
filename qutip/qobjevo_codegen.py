@@ -29,7 +29,7 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
         + str(hash(code))[1:4]
         + str(os.getpid())[:2]
         + time.strftime("%M%S")
-        + str(time.time_ns())[-3:]
+        + str(time.monotonic())[-3:]
     )
     tries = 0
     coeff_obj = None
@@ -68,8 +68,7 @@ def _compile_str_single(string, args):
                     "\\", "/")
     _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
 
-    Code = """#!python
-#cython: language_level=3
+    Code = """#cython: language_level=3
 # This file is generated automatically by QuTiP.
 
 import numpy as np
@@ -110,8 +109,7 @@ def _make_code_4_cimport(ops, args, dyn_args, tlist):
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
     _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
 
-    code = """#!python
-#cython: language_level=3
+    code = """#cython: language_level=3
 # This file is generated automatically by QuTiP.
 
 import numpy as np
