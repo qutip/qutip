@@ -385,7 +385,8 @@ def cython_preamble(use_omp=False):
     """
     Returns list of code segments for Cython preamble.
     """
-    return ["""#cython: language_level=3
+    return ["""#!python
+#cython: language_level=3
 # This file is generated automatically by QuTiP.
 # (C) 2011 and later, QuSTaR
 import numpy as np
@@ -417,5 +418,5 @@ def cython_checks():
     return ["""
 @cython.cdivision(True)
 @cython.boundscheck(False)
-@cython.wraparound(False)"""]
-# @cython.binding(False)"""]
+@cython.wraparound(False)]
+@cython.binding(False)"""]
