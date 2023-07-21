@@ -55,6 +55,7 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
             tries += 1
             _try_remove(try_file+ext)
             err = e
+
     if coeff_obj is None:
         raise Exception("Could not convert string to importable function, "
                         "tmpfile:" + try_file + ext) from err
