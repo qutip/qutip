@@ -14,6 +14,7 @@ import numpy as np
 from qutip.core import data as _data
 from qutip import Qobj, QobjEvo, operator_to_vector
 from .mesolve import MESolver
+from .integrator import qutip_integrator
 from .solver_base import Solver
 from .result import Result
 from time import time
@@ -67,7 +68,6 @@ def _floquet_rate_matrix(floquet_basis,
     First,divide all quasienergies by omega to get everything in terms of
         omega.
     '''
-
     def delta(a, ap, b, bp, l, lp):
         return ((floquet_basis.e_quasi[a] - floquet_basis.e_quasi[ap])
                 - (floquet_basis.e_quasi[b] - floquet_basis.e_quasi[bp])) \
@@ -80,20 +80,21 @@ def _floquet_rate_matrix(floquet_basis,
         These lines transform the lowering operator into the Floquet mode
             basis
         '''
-        fmodes = np.stack([np.stack(
-            [i.full() for i in floquet_basis.mode(t)])
-            for t in tlist])[..., 0]
-        fmodes_ct = np.transpose(fmodes, (0, 2, 1)).conj()
-        c_op_Floquet_basis = (fmodes_ct @ c_op.full() @ fmodes)
-
+        # fmodes = np.stack([np.stack(
+        #     [i.full() for i in floquet_basis.mode(t)])
+        #     for t in tlist])[..., 0]
+        # fmodes_ct = np.transpose(fmodes, (0, 2, 1)).conj()
+        # c_op_Floquet_basis = (fmodes_ct @ c_op.full() @ fmodes)
+        c_op_Floquet_basis = np.array(
+            [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist])
         '''
         Performing the 1-D FFT to find the Fourier amplitudes of this specific
             lowering operator in the Floquet basis
 
         Divided by the length of tlist for normalization
         '''
-        c_op_Fourier_amplitudes_list = np.array(np.fft.fft(
-            c_op_Floquet_basis, axis=0) / len(tlist))
+        c_op_Fourier_amplitudes_list = np.array(np.fft.fftshift(np.fft.fft(
+            c_op_Floquet_basis, axis=0)) / len(tlist))
 
         '''
         Next,I want to find all rate-product terms that are nonzero
@@ -125,27 +126,17 @@ def _floquet_rate_matrix(floquet_basis,
 
             # using c = ap,d = bp,k=lp
             flime_FirstTerm = c_op_rates[cdx] \
-                * np.einsum('abcdlk,ma,nc,pb,qd->mnpq',
-                            valid_c_op_products,
-                            np.eye(Hdim, Hdim),
-                            np.eye(Hdim, Hdim),
-                            np.eye(Hdim, Hdim),
-                            np.eye(Hdim, Hdim))
+                * np.einsum('mpnqlk->mnpq',
+                            valid_c_op_products)
 
             flime_SecondTerm = c_op_rates[cdx] \
-                * np.einsum('abcdlk,ac,md,pb,qn->mnpq',
+                * np.einsum('apamlk,qn->mnpq',
                             valid_c_op_products,
-                            np.eye(Hdim, Hdim),
-                            np.eye(Hdim, Hdim),
-                            np.eye(Hdim, Hdim),
                             np.eye(Hdim, Hdim))
 
             flime_ThirdTerm = c_op_rates[cdx] \
-                * np.einsum('abcdlk,ac,nb,pm,qd->mnpq',
+                * np.einsum('anaqlk,pm->mnpq',
                             valid_c_op_products,
-                            np.eye(Hdim, Hdim),
-                            np.eye(Hdim, Hdim),
-                            np.eye(Hdim, Hdim),
                             np.eye(Hdim, Hdim))
             try:
                 total_R_tensor[key] += np.reshape(flime_FirstTerm - (1 / 2)
@@ -440,9 +431,14 @@ class FLiMESolver(MESolver):
             c_op_rates,
             Hargs,
             time_sense=time_sense)
+
+        # Rate_Qobj_list = [Qobj(
+        #     RateMat, type="super", superrep="super", copy=False
         Rate_Qobj_list = [Qobj(
             RateMat, dims=[self.floquet_basis.U(0).dims, self.floquet_basis.U(0).dims], type="super", superrep="super", copy=False
         ) for RateMat in RateDic.values()]
+        # for rate_matrix in Rate_Qobj_list:
+        #     rate_matrix.dims =  floquet_basis.U(0).dims
         R0 = Rate_Qobj_list[0]
 
         Rt_timedep_pairs = [list(

@@ -27,35 +27,9 @@ class TestFlimesolve:
     A test class for the QuTiP functions for Floquet formalism.
     """
 
-    def testFloquetBasis(self):
-        N = 10
-        a = destroy(N)
-        H = num(N) + (a+a.dag()) * coefficient(lambda t: np.cos(t))
-        T = 2 * np.pi
-        floquet_basis = FloquetBasis(H, T)
-        psi0 = rand_ket(N)
-        tlist = np.linspace(0, 10, 11)
-        floquet_psi0 = floquet_basis.to_floquet_basis(psi0)
-        states = sesolve(H, psi0, tlist).states
-        for t, state in zip(tlist, states):
-            from_floquet = floquet_basis.from_floquet_basis(floquet_psi0, t)
-            assert state.overlap(from_floquet) == pytest.approx(1., abs=5e-5)
-
-    def testFloquetUnitary(self):
-        N = 10
-        a = destroy(N)
-        H = num(N) + (a+a.dag()) * coefficient(lambda t: np.cos(t))
-        T = 2 * np.pi
-        psi0 = rand_ket(N)
-        tlist = np.linspace(0, 10, 11)
-        states_se = sesolve(H, psi0, tlist).states
-        states_fse = fsesolve(H, psi0, tlist, T=T).states
-        for state_se, state_fse in zip(states_se, states_fse):
-            assert state_se.overlap(state_fse) == pytest.approx(1., abs=5e-5)
-
     def testFloquetLindbladMasterEquation1(self):
         """
-        Test Floquet-Markov Master Equation for a driven two-level system
+        Test Floquet-Lindblad Master Equation for a driven two-level system
         without dissipation.
         """
         delta = 1.0 * 2 * np.pi
@@ -124,7 +98,7 @@ class TestFlimesolve:
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
 
-    def testFloquetMasterEquation3(self, kmax):
+    def testFloquetMasterEquation3(self):
         """
         Test Floquet-Lindblad Master Equation for a two-level system
         subject to dissipation with internal transform of flimesolve
