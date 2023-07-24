@@ -29,7 +29,7 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
         + str(hash(code))[1:4]
         + str(os.getpid())[:2]
         + time.strftime("%M%S")
-        + str(time.monotonic())[-3:]
+        + str(time.monotonic())[-3:].replace(".", "")
     )
     tries = 0
     coeff_obj = None

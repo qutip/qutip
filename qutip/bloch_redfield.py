@@ -455,6 +455,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
     if not options.rhs_reuse or config.tdfunc is None:
         if options.rhs_filename is None:
             config.tdname = f"rhs{os.getpid()}{str(time.monotonic())[-5:]}"
+            config.tdname = config.tdname.replace(".", "")
         else:
             config.tdname = opt.rhs_filename
         if verbose:
