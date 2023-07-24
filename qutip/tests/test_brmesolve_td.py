@@ -2,10 +2,6 @@ import pytest
 import numpy as np
 import qutip
 
-import faulthandler
-
-faulthandler.enable() # Better error msg on segfault.
-# pytest.skip(allow_module_level=True)  # Temp test if only these or other tests segfault
 
 pytestmark = [
     pytest.mark.requires_cython,

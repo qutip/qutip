@@ -91,7 +91,6 @@ jobs:
             python-version: "3.10"
             condaforge: 1
             nocvxopt: 1
-            old_cython: 1
             pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning"
 
           # Python 3.11 and latest numpy
@@ -153,9 +152,6 @@ jobs:
             pip install "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           else
             conda install nomkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
-          fi
-          if [[ -z "${{ matrix.old_cython }}" ]]; then
-            pip install cython==0.29.36
           fi
           if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install "${{ matrix.conda-extra-pkgs }}"
