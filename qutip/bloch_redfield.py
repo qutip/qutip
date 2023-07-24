@@ -482,10 +482,14 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
 
         if verbose:
             print('BR compile time:', time.time()-_st)
+
+    def wrap(t, x, args):
+        return config.tdfunc(t, x, *args)
+
     initial_vector = mat2vec(rho0.full()).ravel()
 
-    _ode = scipy.integrate.ode(config.tdfunc)
-    code = compile('_ode.set_f_params(' + parameter_string + ')',
+    _ode = scipy.integrate.ode(wrap)
+    code = compile('_ode.set_f_params((' + parameter_string + '))',
                     '<string>', 'exec')
     _ode.set_integrator('zvode', method=options.method,
                     order=options.order, atol=options.atol,

@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import qutip
 
-pytest.skip(allow_module_level=True)  # Temp test if only these or other tests segfault
+# pytest.skip(allow_module_level=True)  # Temp test if only these or other tests segfault
 
 pytestmark = [
     pytest.mark.requires_cython,
