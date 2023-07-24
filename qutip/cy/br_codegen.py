@@ -416,7 +416,7 @@ def cython_checks():
     List of strings that turn off Cython checks.
     """
     return ["""
-#@cython.binding(False)
+@cython.binding(False)
 @cython.cdivision(True)
-@cython.boundscheck(True)
+@cython.boundscheck(False)
 @cython.wraparound(False)"""]

@@ -1,12 +1,19 @@
 import os
 import sys
 from setuptools import Extension, setup
-from Cython.Build import cythonize
-import Cython.Build.Inline as Inline
 import importlib
 import numpy as np
 
+try:
+    from Cython.Build import cythonize
+    import Cython.Build.Inline as Inline
+except ImportError:
+    cythonize = None
+    Inline = None
+
+
 __all__ = ["importpyx"]
+
 
 def importpyx(file, func):
     """
