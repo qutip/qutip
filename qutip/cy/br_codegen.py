@@ -418,5 +418,5 @@ def cython_checks():
     return ["""
 #@cython.binding(False)
 @cython.cdivision(True)
-@cython.boundscheck(False)
+@cython.boundscheck(True)
 @cython.wraparound(False)"""]
