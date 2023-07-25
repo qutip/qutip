@@ -14,8 +14,8 @@ import scipy.sparse as sp
 from numpy import matrix
 from numpy import linalg
 from .. import (
-    spre, spost, sprepost, thermal_dm, tensor, identity, destroy, sigmax,
-    sigmaz, basis, qeye, mesolve
+    spre, spost, sprepost, thermal_dm, tensor, destroy,
+    qeye, mesolve, qeye_like, qzero_like
 )
 
 
@@ -56,12 +56,15 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
     output: Result
         System evolution.
     """
+    if psi0.isket:
+        psi0 = psi0.proj()
+
     if options is None:
         options = {}
 
     dot_energy, dot_state = Hsys.eigenstates(sparse=sparse)
     deltaE = dot_energy[1] - dot_energy[0]
-    if (w_th < deltaE/2):
+    if (w_th < deltaE / 2):
         warnings.warn("Given w_th might not provide accurate results")
     gamma = deltaE / (2 * np.pi * wc)
     wa = 2 * np.pi * gamma * wc  # reaction coordinate frequency
@@ -69,11 +72,8 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
     nb = (1 / (np.exp(wa/w_th) - 1))
 
     # Reaction coordinate hamiltonian/operators
-
-    dimensions = Q.dims
-    a = tensor(destroy(N), qeye(dimensions[1]))
-    unit = tensor(qeye(N), qeye(dimensions[1]))
-    Nmax = N * dimensions[1][0]
+    a = tensor(destroy(N), qeye_like(Hsys))
+    unit = tensor(qeye(N), qeye_like(Hsys))
     Q_exp = tensor(qeye(N), Q)
     Hsys_exp = tensor(qeye(N), Hsys)
     e_ops_exp = [tensor(qeye(N), kk) for kk in e_ops]
@@ -86,29 +86,22 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
     # interaction
     H1 = (g * (a.dag() + a) * Q_exp)
     H = H0 + H1
-    L = 0
-    PsipreEta = 0
-    PsipreX = 0
+    PsipreEta = qzero_like(H)
+    PsipreX = qzero_like(H)
 
     all_energy, all_state = H.eigenstates(sparse=sparse)
-    Apre = spre((a + a.dag()))
-    Apost = spost(a + a.dag())
+    Nmax = len(all_energy)
     for j in range(Nmax):
         for k in range(Nmax):
             A = xa.matrix_element(all_state[j].dag(), all_state[k])
             delE = (all_energy[j] - all_energy[k])
             if abs(A) > 0.0:
                 if abs(delE) > 0.0:
-                    X = (0.5 * np.pi * gamma*(all_energy[j] - all_energy[k])
-                         * (np.cosh((all_energy[j] - all_energy[k]) /
-                            (2 * w_th))
-                         / (np.sinh((all_energy[j] - all_energy[k]) /
-                            (2 * w_th)))) * A)
-                    eta = (0.5 * np.pi * gamma *
-                           (all_energy[j] - all_energy[k]) * A)
-                    PsipreX = PsipreX + X * all_state[j] * all_state[k].dag()
-                    PsipreEta = PsipreEta + (eta * all_state[j]
-                                             * all_state[k].dag())
+                    eta = 0.5 * np.pi * gamma * delE * A
+                    X = eta / np.tanh(delE / (2 * w_th))
+                    proj = all_state[j] * all_state[k].dag()
+                    PsipreX = PsipreX + X * proj
+                    PsipreEta = PsipreEta + eta * proj
                 else:
                     X = 0.5 * np.pi * gamma * A * 2 * w_th
                     PsipreX = PsipreX + X * all_state[j] * all_state[k].dag()
