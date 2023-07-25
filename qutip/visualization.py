@@ -7,18 +7,13 @@ __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
            'matrix_histogram', 'plot_energy_levels', 'plot_fock_distribution',
            'plot_wigner', 'plot_expectation_values',
            'plot_spin_distribution', 'complex_array_to_rgb',
-           'plot_qubism', 'plot_schmidt', 'anim_matrix_histogram',
-           'anim_fock_distribution', 'anim_wigner']
+           'plot_qubism', 'plot_schmidt']
 
 import warnings
 import itertools as it
 import numpy as np
-import os
-
 from numpy import pi, array, sin, cos, angle, log2
-from functools import partial
-from IPython.display import HTML
-from base64 import b64encode
+
 from packaging.version import parse as parse_version
 
 from . import (
@@ -31,7 +26,6 @@ from .matplotlib_utilities import complex_phase_cmap
 
 try:
     import matplotlib.pyplot as plt
-    import matplotlib.animation as animation
     import matplotlib as mpl
     from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
@@ -70,7 +64,7 @@ def _sequential_cmap():
         return cm.jet
 
 
-def _same_fig_and_ax(fig, ax, projection='2d'):
+def _is_fig_and_ax(fig, ax, projection='2d'):
     if fig is None:
         if ax is None:
             fig = plt.figure()
@@ -142,7 +136,7 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
     Special thanks to Russell P Rundle for writing this function.
     """
 
-    fig, ax = _same_fig_and_ax(fig, ax, projection='3d')
+    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
 
     if cmap is None:
         cmap = _diverging_cmap()
@@ -332,7 +326,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     >>> fig.show()
     """
 
-    fig, ax = _same_fig_and_ax(fig, ax)
+    fig, ax = _is_fig_and_ax(fig, ax)
 
     # Extract plotting data W from the input.
     if isinstance(rho, Qobj):
@@ -476,7 +470,7 @@ def sphereplot(theta, phi, values, *,
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
     """
-    fig, ax = _same_fig_and_ax(fig, ax, projection='3d')
+    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
 
     if cmap is None:
         cmap = _sequential_cmap()
@@ -809,7 +803,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         idx, = np.where(bar_M < options['threshold'])
         bar_M[idx] = 0
 
-    fig, ax = _same_fig_and_ax(fig, ax, projection='3d')
+    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, bar_M, color=colors,
              edgecolors=options['bars_edgecolor'],
@@ -904,7 +898,7 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
 
     """
 
-    fig, ax = _same_fig_and_ax(fig, ax)
+    fig, ax = _is_fig_and_ax(fig, ax)
     ax.set_frame_on(False)
 
     if not isinstance(H_list, list):
@@ -992,7 +986,7 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
         the figure.
     """
 
-    fig, ax = _same_fig_and_ax(fig, ax)
+    fig, ax = _is_fig_and_ax(fig, ax)
 
     if isket(rho):
         rho = ket2dm(rho)
@@ -1002,9 +996,8 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
     ax.bar(np.arange(N), np.real(rho.diag()),
            color=color, alpha=0.6, width=0.8)
 
-    if fock_numbers is None:
-        fock_numbers = np.arange(N)
-    _set_ticklabels(ax, fock_numbers, np.arange(N), 'x', fontsize=12)
+    if fock_numbers:
+        _set_ticklabels(ax, fock_numbers, np.arange(N), 'x', fontsize=12)
 
     if unit_y_range:
         ax.set_ylim(0, 1)
@@ -1017,7 +1010,7 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
 def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
                 projection='2d', *, cmap=None, colorbar=False,
-                color_limits=None, colorbar_opts=None, fig=None, ax=None):
+                fig=None, ax=None):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1033,9 +1026,6 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     yvec : array_like, optional
         y-coordinates at which to calculate the Wigner function.  Does not
         apply to the 'fft' method.
-
-    color_limits : list/array with two float numbers, optional
-        The limits of colorbar [min, max]
 
     method : string {'clenshaw', 'iterative', 'laguerre', 'fft'},
         default='clenshaw'
@@ -1053,9 +1043,6 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
         Whether (True) or not (False) a colorbar should be attached to the
         Wigner function graph.
 
-    colorbar_opts : dict, optional
-        Options for the colorbar axes and the colorbar instance.
-
     fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
 
@@ -1069,15 +1056,9 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
         the figure.
     """
 
-    if colorbar_opts is None:
-        colorbar_opts = dict()
-
-    if not isinstance(colorbar_opts, dict):
-        raise ValueError('colorbar_opts must be a dictionary')
-
     if projection not in ('2d', '3d'):
         raise ValueError('Unexpected value of projection keyword argument')
-    fig, ax = _same_fig_and_ax(fig, ax, projection)
+    fig, ax = _is_fig_and_ax(fig, ax, projection)
 
     if isket(rho):
         rho = ket2dm(rho)
@@ -1091,18 +1072,10 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
 
     W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)
 
-    if isinstance(color_limits, list) and \
-            len(color_limits) == 2:
-        norm = mpl.colors.Normalize(color_limits[0], color_limits[1])
-    else:
-        wlim = abs(W).max()
-        norm = mpl.colors.Normalize(-wlim, wlim)
-
-    colorbar_opts['norm'] = norm
-
+    wlim = abs(W).max()
+    norm = mpl.colors.Normalize(-wlim, wlim)
     if cmap is None:
         cmap = _diverging_cmap()
-        colorbar_opts['cmap'] = cmap
 
     if projection == '2d':
         cf = ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)
@@ -1115,8 +1088,8 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
 
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, **colorbar_opts)
-        cbar = mpl.colorbar.ColorbarBase(cax, **kw)
+        cax, kw = mpl.colorbar.make_axes(ax, pad=.1)
+        cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
     ax.set_title("Wigner function", fontsize=12)
 
@@ -1221,7 +1194,7 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
     """
 
     if projection in ('2d', '3d'):
-        fig, ax = _same_fig_and_ax(fig, ax, projection)
+        fig, ax = _is_fig_and_ax(fig, ax, projection)
     else:
         raise ValueError('Unexpected value of projection keyword argument')
     if cmap is None:
@@ -1497,7 +1470,7 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
        (2012), open access.
     """
 
-    fig, ax = _same_fig_and_ax(fig, ax)
+    fig, ax = _is_fig_and_ax(fig, ax)
 
     if not isket(ket):
         raise Exception("Qubism works only for pure states, i.e. kets.")
@@ -1643,7 +1616,7 @@ def plot_schmidt(ket, theme='light', splitting=None,
 
     """
 
-    fig, ax = _same_fig_and_ax(fig, ax)
+    fig, ax = _is_fig_and_ax(fig, ax)
 
     if not isket(ket):
         raise Exception("Schmidt plot works only for pure states, i.e. kets.")
@@ -1696,96 +1669,3 @@ def plot_schmidt(ket, theme='light', splitting=None,
               extent=(0, size_x, 0, size_y))
 
     return fig, ax
-
-
-def _same_fig(fig, func_options):
-    if fig is None:
-        if 'fig' not in func_options.keys():
-            fig = plt.figure()
-            func_options['fig'] = fig
-        else:
-            fig = func_options['fig']
-    else:
-        if 'fig' not in func_options.keys():
-            func_options['fig'] = fig
-        else:
-            error = "fig and func_options['fig'] must be the same"
-            if fig != func_options['fig']:
-                raise ValueError(error)
-
-    return fig, func_options
-
-
-def _is_options(options, arg_name):
-    if options is None:
-        options = dict()
-
-    if not isinstance(options, dict):
-        raise TypeError(str(arg_name) + " must be a dict")
-
-    return options
-
-
-def _delete_axes(fig):
-    for ax in fig.axes:
-        fig.delaxes(ax)
-
-
-def _default_setup(ax, frame):
-    return ax
-
-
-def make_html_video(ani):
-    file_name = 'animation_for_video.mp4'
-    ani.save(file_name, fps=10)
-    video = open(file_name, "rb").read()
-    os.remove(file_name)
-    video_encoded = b64encode(video).decode("ascii")
-    video_tag = '<video controls src="data:video/x-m4v;base64,{0}">'.format(
-        video_encoded)
-
-    return ani, HTML(video_tag)
-
-
-def _make_anim(func_to_anim, list_of_obj, setup_ax=None,
-               func_options=None, anim_options=None, fig=None):
-
-    func_options = _is_options(func_options, "func_options")
-
-    anim_options = _is_options(anim_options, "anim_options")
-    if 'frames' not in anim_options.keys():
-        anim_options['frames'] = len(list_of_obj)
-
-    fig, func_options = _same_fig(fig, func_options)
-
-    if setup_ax is None:
-        setup_ax = _default_setup
-
-    def func(frame, list_of_obj, func_options):
-        _delete_axes(fig)
-        _, ax = func_to_anim(list_of_obj[frame], **func_options)
-        ax = setup_ax(ax, frame)
-
-    update = partial(func, list_of_obj=list_of_obj, func_options=func_options)
-    ani = animation.FuncAnimation(fig, update, **anim_options)
-    plt.close()
-
-    return make_html_video(ani)
-
-
-def anim_wigner(rhos, setup_ax=None, func_options=None,
-                anim_options=None, fig=None):
-    return _make_anim(plot_wigner, rhos, setup_ax, func_options,
-                      anim_options, fig)
-
-
-def anim_fock_distribution(rhos, setup_ax=None, func_options=None,
-                           anim_options=None, fig=None):
-    return _make_anim(plot_fock_distribution, rhos, setup_ax, func_options,
-                      anim_options, fig)
-
-
-def anim_matrix_histogram(rhos, setup_ax=None, func_options=None,
-                          anim_options=None, fig=None):
-    return _make_anim(matrix_histogram, rhos, setup_ax, func_options,
-                      anim_options, fig)
