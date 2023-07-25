@@ -402,6 +402,13 @@ cdef class QobjEvo:
     cdef object _prepare(QobjEvo self, object t, Data state=None):
         """ Precomputation before computing getting the element at `t`"""
         # We keep the function for feedback eventually
+        if self.feedback_functions is not None:
+            new_args = {
+                key: func(t, state)
+                for key, func in self.feedback_functions
+            }
+            self.arguments(**new_args)
+
         return t
 
     def copy(QobjEvo self):
@@ -434,6 +441,30 @@ cdef class QobjEvo:
             for element in self.elements
         ]
 
+    def add_feedback(QobjEvo self, str key, object feedback):
+        if self.feedback_functions == None:
+            self.feedback_functions = {}
+        if feedback == "data" and self.issuper:
+            self.feedback_functions[key] = _Column_Stacker(self.shape[1])
+        elif feedback in ["raw", "data"]:
+            self.feedback_functions[key] = _pass_through
+        elif feedback in ["qobj", "Qobj"]:
+            self.feedback_functions[key] = _To_Qobj(self.dims, self.issuper)
+        elif isinstance(feedback, [Qobj, QobjEvo]):
+            if isinstance(feedback, Qobj):
+                feedback = QobjEvo(feedback)
+            if feedback.dims == self.dims:
+                self.feedback_functions[key] = feedback.expect_data
+            elif self.issuper and self.dims[1][0] == feedback.dims:
+                # tr(op @ dm) cases
+                self.feedback_functions[key] = _Expect_Stacked(feedback)
+            else:
+                raise TypeError(
+                    "dims of the feedback operator do "
+                    "not fit the original system."
+                )
+        else:
+            ValueError("Feedback type not understood.")
 
     ###########################################################################
     # Math function                                                           #
@@ -1017,3 +1048,53 @@ cdef class QobjEvo:
             part = (<_BaseElement> element)
             out = part.matmul_data_t(t, state, out)
         return out
+
+
+cdef class _Expect_Stacked:
+    cdef QobjEvo oper
+
+    def __init__(self, oper):
+        self.oper = oper
+
+    def __call__(self, t, state):
+        return self.oper.expect_data(t, column_unstack(state, self.oper.shape[0]))
+
+
+cdef class _To_Qobj:
+    cdef list dims, dims_flat
+    cdef bint issuper
+    cdef idxint N
+
+    def __init__(self, base):
+        self.dims = base.dims
+        if not base.issuper:
+            self.dims_flat = [1 for _ in base.dims[0]]
+        self.issuper = base.issuper
+        self.N = int(base.shape[0]**0.5)
+
+    def __call__(self, t, state):
+        if state.shape[0] == state.shape[1]:
+            out = Qobj(state, dims=self.dims)
+        elif self.issuper and state.shape[1] == 1:
+            state = column_unstack(state, self.N)
+            out = Qobj(state, dims=self.dims[1])
+        elif state.shape[1] == 1:
+            out = Qobj(state, dims=[self.dims[1], self.dims_flat])
+        else:
+            # rectangular state dims are patially lost...
+            out = Qobj(state, dims=[self.dims[1], [state.shape[1]]])
+        return out
+
+
+def _pass_through(t, state):
+    return state
+
+
+def _Column_Stacker:
+    cdef idxint N
+
+    def __init__(self, shape):
+        self.N = int(shape**0.5)
+
+    def __call__(self, t, state):
+        return column_unstack(state, self.N)

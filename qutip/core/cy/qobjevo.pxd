@@ -12,6 +12,7 @@ cdef class QobjEvo:
         readonly str superrep
         int _issuper
         int _isoper
+        #readonly dict feedback_functions
 
     cpdef Data _call(QobjEvo self, double t)
 
