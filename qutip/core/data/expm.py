@@ -46,8 +46,10 @@ def expm_dia(matrix: Dia) -> Dia:
         out = dia.identity(matrix.shape[0])
     elif matrix.num_diag > 1:
         csc = matrix.as_scipy().tocsc()
-        out = Dia(scipy.sparse.linalg.expm(csc).todia(),
-                   tidyup=settings.core['auto_tidyup'], copy=False)
+        out = Dia(
+            scipy.sparse.linalg.expm(csc).todia(),
+            tidyup=settings.core['auto_tidyup'], copy=False
+        )
     elif isdiag_dia(matrix):
         matrix_sci = matrix.as_scipy()
         data = np.exp(matrix_sci.data[0, :])

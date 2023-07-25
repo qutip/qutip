@@ -116,7 +116,7 @@ def one_element_dia(shape, position, value=1.0):
     if not (0 <= position[0] < shape[0] and 0 <= position[1] < shape[1]):
         raise ValueError("Position of the elements out of bound: " +
                          str(position) + " in " + str(shape))
-    data = np.zeros((1 ,shape[1]), dtype=complex)
+    data = np.zeros((1, shape[1]), dtype=complex)
     data[0, position[1]] = value
     offsets = np.array([position[1]-position[0]])
     return Dia((data, offsets), copy=False, shape=shape)

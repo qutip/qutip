@@ -122,7 +122,6 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
                                  size, size, p, tol)
 
 
-#TODO: cythonize
 def ptrace_dia(matrix, dims, sel):
     if len(sel) == len(dims):
         return matrix.copy()

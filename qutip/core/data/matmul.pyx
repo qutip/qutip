@@ -324,7 +324,6 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
     return out
 
 
-#TODO: optimize: not rely on numpy for unique offsets.
 cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=1):
     _check_shape(left, right, None)
     # We could probably do faster than this...
