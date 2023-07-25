@@ -664,7 +664,7 @@ class SMESolver(StochasticSolver):
         "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
-        "use_herm_matmul" : False,
+        "use_herm_matmul": False,
     }
 
     @property
