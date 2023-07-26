@@ -442,6 +442,28 @@ cdef class QobjEvo:
         ]
 
     def add_feedback(QobjEvo self, str key, object feedback):
+          """
+          Register an argument to be updated with the state during `matmul` and
+          `expect`.
+
+          Equivalent to do:
+              `solver.argument(key=state_t)`
+
+          Parameters
+          ----------
+          key : str
+              Arguments key to update.
+
+          type : str, Qobj, QobjEvo
+              Format of the `state_t`.
+              - "qobj": As a Qobj, either a ket or dm.
+              - "data": As a qutip data layer object. Density matrices will be
+                square matrix.
+              - "raw": As a qutip data layer object. Density matrices will be
+                columns stacked: shape=(N**2, 1).
+              - Qobj, QobjEvo: The value is updated with the expectation value of
+                the given operator and the state.
+          """
         if self.feedback_functions == None:
             self.feedback_functions = {}
         if feedback == "data" and self.issuper:
