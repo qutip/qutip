@@ -8,7 +8,7 @@ import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.tensor import tensor
 from qutip.operators import qeye
-from qutip.rhs_generate import (rhs_generate, rhs_clear, _td_format_check)
+from qutip.rhs_generate import rhs_clear, _td_format_check
 from qutip.superoperator import (vec2mat, mat2vec,
                                  vector_to_operator, operator_to_vector)
 from qutip.sparse import sp_reshape

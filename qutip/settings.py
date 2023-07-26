@@ -24,6 +24,8 @@ mkl_lib = None
 has_mkl = False
 # Has OPENMP
 has_openmp = False
+# Has usable cython
+has_cython = False
 # debug mode for development
 debug = False
 # Running on mac with openblas make eigh unsafe

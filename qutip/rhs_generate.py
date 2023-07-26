@@ -70,6 +70,7 @@ def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
     will result in an error.
 
     """
+    raise Exception
     config.reset()
     config.options = options
 

@@ -55,15 +55,23 @@ except ImportError:
 else:
     from qutip.utilities import _version2int
     _cy_require = "0.29.20"
+    _cy_unsupported = "3.0.0"
     if _version2int(_Cython.__version__) < _version2int(_cy_require):
         warnings.warn(
             "Old version of Cython detected: needed {}, got {}."
             .format(_cy_require, _Cython.__version__)
         )
-    # Setup pyximport
-    import qutip.cy.pyxbuilder as _pyxbuilder
-    _pyxbuilder.install()
-    del _pyxbuilder, _Cython, _version2int
+    if _version2int(_Cython.__version__) >= _version2int(_cy_unsupported):
+        warnings.warn(
+            "The new version of Cython, (>= 3.0.0) is not supported."
+            .format(_Cython.__version__)
+        )
+    else:
+        # Setup pyximport
+        import qutip.cy.pyxbuilder as _pyxbuilder
+        _pyxbuilder.install()
+        del _pyxbuilder, _Cython, _version2int
+        qutip.settings.has_cython = True
 
 
 # -----------------------------------------------------------------------------
