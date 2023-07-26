@@ -449,13 +449,13 @@ cdef class QobjEvo:
         elif feedback in ["raw", "data"]:
             self.feedback_functions[key] = _pass_through
         elif feedback in ["qobj", "Qobj"]:
-            self.feedback_functions[key] = _To_Qobj(self.dims, self.issuper)
-        elif isinstance(feedback, [Qobj, QobjEvo]):
+            self.feedback_functions[key] = _To_Qobj(self)
+        elif isinstance(feedback, (Qobj, QobjEvo)):
             if isinstance(feedback, Qobj):
                 feedback = QobjEvo(feedback)
             if feedback.dims == self.dims:
                 self.feedback_functions[key] = feedback.expect_data
-            elif self.issuper and self.dims[1][0] == feedback.dims:
+            elif self.issuper and self.dims[1] == feedback.dims:
                 # tr(op @ dm) cases
                 self.feedback_functions[key] = _Expect_Stacked(feedback)
             else:
@@ -1057,7 +1057,10 @@ cdef class _Expect_Stacked:
         self.oper = oper
 
     def __call__(self, t, state):
-        return self.oper.expect_data(t, column_unstack(state, self.oper.shape[0]))
+        return self.oper.expect_data(
+            t,
+            _data.column_unstack(state, self.oper.shape[0])
+        )
 
 
 cdef class _To_Qobj:
@@ -1076,7 +1079,7 @@ cdef class _To_Qobj:
         if state.shape[0] == state.shape[1]:
             out = Qobj(state, dims=self.dims)
         elif self.issuper and state.shape[1] == 1:
-            state = column_unstack(state, self.N)
+            state = _data.column_unstack(state, self.N)
             out = Qobj(state, dims=self.dims[1])
         elif state.shape[1] == 1:
             out = Qobj(state, dims=[self.dims[1], self.dims_flat])
@@ -1090,11 +1093,13 @@ def _pass_through(t, state):
     return state
 
 
-def _Column_Stacker:
+cdef class _Column_Stacker:
     cdef idxint N
 
     def __init__(self, shape):
         self.N = int(shape**0.5)
 
     def __call__(self, t, state):
-        return column_unstack(state, self.N)
+        if state.shape[1] == 1:
+            return _data.column_unstack(state, self.N)
+        return state

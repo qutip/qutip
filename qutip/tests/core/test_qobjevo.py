@@ -1,9 +1,11 @@
 import operator
 
 import pytest
-from qutip import (Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz,
-                   rand_stochastic, rand_herm, rand_ket, liouvillian,
-                   basis, spre, spost, to_choi)
+from qutip import (
+    Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, rand_stochastic,
+    rand_herm, rand_ket, liouvillian, basis, spre, spost, to_choi, expect,
+    rand_ket, rand_dm, operator_to_vector
+)
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -513,3 +515,69 @@ def test_QobjEvo_to_list(coeff_type, pseudo_qevo):
     assert len(as_list) == 2
     restored = QobjEvo(as_list)
     _assert_qobjevo_equivalent(qevo, restored)
+
+
+class Feedback_Checker_Coefficient:
+    def __init__(self):
+        self.state = None
+
+    def __call__(self, t, data=None, qobj=None, e_val=None):
+        if self.state is not None:
+            if data is not None:
+                assert data == self.state.data
+            if qobj is not None:
+                assert qobj == self.state
+            if e_val is not None:
+                assert e_val == expect(qeye(self.state.dims[0]), self.state)
+        return 1.
+
+
+def test_feedback_oper():
+    checker = Feedback_Checker_Coefficient()
+    qevo = QobjEvo([qeye(2), checker])
+    qevo.add_feedback("data", "data")
+    qevo.add_feedback("qobj", "qobj")
+    qevo.add_feedback("e_val", qeye(2))
+
+    checker.state = rand_ket(2)
+    qevo.expect(0, checker.state)
+    qevo.matmul_data(0, checker.state.data)
+
+    checker.state = rand_ket(2)
+    qevo.expect(0, checker.state)
+    qevo.matmul_data(0, checker.state.data)
+
+
+def test_feedback_super():
+    checker = Feedback_Checker_Coefficient()
+    qevo = QobjEvo([spre(qeye(2)), checker])
+    qevo.add_feedback("data", "data")
+    qevo.add_feedback("qobj", "qobj")
+    qevo.add_feedback("e_val", qeye(2))
+
+    checker.state = rand_dm(2)
+    qevo.expect(0, operator_to_vector(checker.state))
+    qevo.matmul_data(0, operator_to_vector(checker.state).data)
+
+    qevo.add_feedback("e_val", spre(qeye(2)))
+
+    checker.state = rand_dm(2)
+    qevo.expect(0, operator_to_vector(checker.state))
+    qevo.matmul_data(0, operator_to_vector(checker.state).data)
+
+    checker = Feedback_Checker_Coefficient()
+    qevo = QobjEvo([spre(qeye(2)), checker])
+    qevo.add_feedback("data", "data")
+    qevo.add_feedback("qobj", "qobj")
+
+    checker.state = rand_dm(4)
+    checker.state.dims = [[[2],[2]], [[2],[2]]]
+    qevo.matmul_data(0, checker.state.data)
+
+    checker = Feedback_Checker_Coefficient()
+    qevo = QobjEvo([spre(qeye(2)), checker])
+    qevo.add_feedback("data", "raw")
+
+    checker.state = operator_to_vector(rand_dm(2))
+    qevo.expect(0, checker.state)
+    qevo.matmul_data(0, checker.state.data)
