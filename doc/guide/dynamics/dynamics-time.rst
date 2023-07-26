@@ -422,17 +422,16 @@ where the last code block sets up the problem using a string-based Hamiltonian, 
 values for different values of :math:`\epsilon` and :math:`A` in the
 Hamiltonian :math:`H = -\frac{1}{2}\Delta\sigma_x -\frac{1}{2}\epsilon\sigma_z- \frac{1}{2}A\sin(\omega t)`.
 
-We must now tell the :func:`qutip.mesolve` function, that is called by :func:`qutip.propagator` to reuse a
-pre-generated Hamiltonian constructed using the :func:`qutip.rhs_generate` command:
+We must now tell the :func:`qutip.mesolve` function, that is called by :func:`qutip.propagator` to reuse the Hamiltonian:
 
 .. plot::
    :context:
    :nofigs:
 
    opts = Options(rhs_reuse=True)
-   rhs_generate(H_td, c_ops, Hargs, name='lz_func')
 
-Here, we have given the generated file a custom name ``lz_func``, however this is not necessary as a generic name will automatically be given.  Now we define the function ``task`` that is called by :func:`qutip.parallel.parfor` with the m-index parallelized in loop over the elements of ``p_mat[m,n]``:
+
+Now we define the function ``task`` that is called by :func:`qutip.parallel.parfor` with the m-index parallelized in loop over the elements of ``p_mat[m,n]``:
 
 .. code-block:: python
 
@@ -447,7 +446,7 @@ Here, we have given the generated file a custom name ``lz_func``, however this i
           p_mat_m[n] = expect(sn, rho_ss)
       return [m, p_mat_m]
 
-Notice the Options ``opts`` in the call to the :func:`qutip.propagator` function.  This tells the :func:`qutip.mesolve` function used in the propagator to call the pre-generated file ``lz_func``. If this was missing then the routine would fail.
+Notice the Options ``opts`` in the call to the :func:`qutip.propagator` function.  This tells the :func:`qutip.mesolve` function used in the propagator to reuse the compiled system.
 
 .. plot::
     :context: reset
