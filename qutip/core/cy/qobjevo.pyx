@@ -405,7 +405,7 @@ cdef class QobjEvo:
         if self.feedback_functions is not None:
             new_args = {
                 key: func(t, state)
-                for key, func in self.feedback_functions
+                for key, func in self.feedback_functions.items()
             }
             self.arguments(**new_args)
 
@@ -461,7 +461,7 @@ cdef class QobjEvo:
             else:
                 raise TypeError(
                     "dims of the feedback operator do "
-                    "not fit the original system."
+                    "not match the original system."
                 )
         else:
             ValueError("Feedback type not understood.")
