@@ -417,4 +417,4 @@ class Solver:
             - Qobj, QobjEvo: The value is updated with the expectation value of
               the given operator and the state.
         """
-        self.rhs.add_feedback(key, type)
+        self.rhs._add_feedback(key, type)

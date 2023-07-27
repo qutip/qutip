@@ -402,10 +402,10 @@ cdef class QobjEvo:
     cdef object _prepare(QobjEvo self, object t, Data state=None):
         """ Precomputation before computing getting the element at `t`"""
         # We keep the function for feedback eventually
-        if self.feedback_functions is not None:
+        if self._feedback_functions is not None and state is not None:
             new_args = {
                 key: func(t, state)
-                for key, func in self.feedback_functions.items()
+                for key, func in self._feedback_functions.items()
             }
             self.arguments(**new_args)
 
@@ -441,45 +441,53 @@ cdef class QobjEvo:
             for element in self.elements
         ]
 
-    def add_feedback(QobjEvo self, str key, object feedback):
-          """
-          Register an argument to be updated with the state during `matmul` and
-          `expect`.
+    def _add_feedback(QobjEvo self, str key, feedback, normalize=False):
+        """
+        Register an argument to be updated with the state during `matmul` and
+        `expect`.
 
-          Equivalent to do:
-              `solver.argument(key=state_t)`
+        Equivalent to do:
+            `solver.argument(key=state_t)`
 
-          Parameters
-          ----------
-          key : str
-              Arguments key to update.
+        Parameters
+        ----------
+        key: str
+            Arguments key to update.
 
-          type : str, Qobj, QobjEvo
-              Format of the `state_t`.
-              - "qobj": As a Qobj, either a ket or dm.
-              - "data": As a qutip data layer object. Density matrices will be
-                square matrix.
-              - "raw": As a qutip data layer object. Density matrices will be
-                columns stacked: shape=(N**2, 1).
-              - Qobj, QobjEvo: The value is updated with the expectation value of
-                the given operator and the state.
-          """
-        if self.feedback_functions == None:
-            self.feedback_functions = {}
+        type: str, Qobj, QobjEvo
+            Format of the `state_t`.
+            - "qobj": As a Qobj, either a ket or dm.
+            - "data": As a qutip data layer object. Density matrices will be
+              square matrix.
+            - "raw": As a qutip data layer object. Density matrices will be
+              columns stacked: shape=(N**2, 1).
+            - Qobj, QobjEvo: The value is updated with the expectation value of
+              the given operator and the state.
+
+        normalize: bool
+            Whether to normalize the state before using it.
+        """
+        if self._feedback_functions is None:
+            self._feedback_functions = {}
         if feedback == "data" and self.issuper:
-            self.feedback_functions[key] = _Column_Stacker(self.shape[1])
+            self._feedback_functions[key] = \
+                _Column_Stacker(self.shape[1], normalize)
+        elif feedback == "data" and normalize:
+            self._feedback_functions[key] = _normalize
         elif feedback in ["raw", "data"]:
-            self.feedback_functions[key] = _pass_through
+            self._feedback_functions[key] = _pass_through
         elif feedback in ["qobj", "Qobj"]:
-            self.feedback_functions[key] = _To_Qobj(self)
+            self._feedback_functions[key] = _To_Qobj(self, normalize)
         elif isinstance(feedback, (Qobj, QobjEvo)):
             if isinstance(feedback, Qobj):
                 feedback = QobjEvo(feedback)
             if feedback.dims == self.dims:
-                self.feedback_functions[key] = feedback.expect_data
+                self._feedback_functions[key] = \
+                    _Expect(feedback, normalize, False)
             elif self.issuper and self.dims[1] == feedback.dims:
                 # tr(op @ dm) cases
-                self.feedback_functions[key] = _Expect_Stacked(feedback)
+                self._feedback_functions[key] = \
+                    _Expect(feedback, normalize, True)
             else:
                 raise TypeError(
                     "dims of the feedback operator do "
@@ -1072,30 +1080,37 @@ cdef class QobjEvo:
         return out
 
 
-cdef class _Expect_Stacked:
+cdef class _Expect:
     cdef QobjEvo oper
+    cdef bint normalize
+    cdef bint stack
 
-    def __init__(self, oper):
+    def __init__(self, oper, normalize, stack):
         self.oper = oper
+        self.normalize = normalize
+        self.stack = stack
 
     def __call__(self, t, state):
-        return self.oper.expect_data(
-            t,
-            _data.column_unstack(state, self.oper.shape[0])
-        )
+        if self.stack:
+            state = _data.column_unstack(state, self.oper.shape[0])
+        if self.normalize:
+            state = _normalize(None, state)
+        return self.oper.expect_data(t, state)
 
 
 cdef class _To_Qobj:
     cdef list dims, dims_flat
     cdef bint issuper
     cdef idxint N
+    cdef bint normalize
 
-    def __init__(self, base):
+    def __init__(self, base, normalize):
         self.dims = base.dims
         if not base.issuper:
             self.dims_flat = [1 for _ in base.dims[0]]
         self.issuper = base.issuper
         self.N = int(base.shape[0]**0.5)
+        self.normalize = normalize
 
     def __call__(self, t, state):
         if state.shape[0] == state.shape[1]:
@@ -1108,6 +1123,8 @@ cdef class _To_Qobj:
         else:
             # rectangular state dims are patially lost...
             out = Qobj(state, dims=[self.dims[1], [state.shape[1]]])
+        if self.normalize:
+            out = out.unit()
         return out
 
 
@@ -1115,13 +1132,25 @@ def _pass_through(t, state):
     return state
 
 
+def _normalize(t, state):
+    if state.shape[0] == state.shape[1]:
+        norm = _data.trace(state)
+    else:
+        norm = _data.norm.frobenius(state)
+    return _data.mul(state, 1 / norm)
+
+
 cdef class _Column_Stacker:
     cdef idxint N
+    cdef bint normalize
 
-    def __init__(self, shape):
+    def __init__(self, shape, normalize):
         self.N = int(shape**0.5)
+        self.normalize = normalize
 
     def __call__(self, t, state):
         if state.shape[1] == 1:
-            return _data.column_unstack(state, self.N)
+            state = _data.column_unstack(state, self.N)
+        if self.normalize:
+            state = _normalize(None, state)
         return state

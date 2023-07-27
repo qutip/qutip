@@ -535,9 +535,9 @@ class Feedback_Checker_Coefficient:
 def test_feedback_oper():
     checker = Feedback_Checker_Coefficient()
     qevo = QobjEvo([qeye(2), checker])
-    qevo.add_feedback("data", "data")
-    qevo.add_feedback("qobj", "qobj")
-    qevo.add_feedback("e_val", qeye(2))
+    qevo._add_feedback("data", "data")
+    qevo._add_feedback("qobj", "qobj")
+    qevo._add_feedback("e_val", qeye(2))
 
     checker.state = rand_ket(2)
     qevo.expect(0, checker.state)
@@ -551,15 +551,15 @@ def test_feedback_oper():
 def test_feedback_super():
     checker = Feedback_Checker_Coefficient()
     qevo = QobjEvo([spre(qeye(2)), checker])
-    qevo.add_feedback("data", "data")
-    qevo.add_feedback("qobj", "qobj")
-    qevo.add_feedback("e_val", qeye(2))
+    qevo._add_feedback("data", "data")
+    qevo._add_feedback("qobj", "qobj")
+    qevo._add_feedback("e_val", qeye(2))
 
     checker.state = rand_dm(2)
     qevo.expect(0, operator_to_vector(checker.state))
     qevo.matmul_data(0, operator_to_vector(checker.state).data)
 
-    qevo.add_feedback("e_val", spre(qeye(2)))
+    qevo._add_feedback("e_val", spre(qeye(2)))
 
     checker.state = rand_dm(2)
     qevo.expect(0, operator_to_vector(checker.state))
@@ -567,8 +567,8 @@ def test_feedback_super():
 
     checker = Feedback_Checker_Coefficient()
     qevo = QobjEvo([spre(qeye(2)), checker])
-    qevo.add_feedback("data", "data")
-    qevo.add_feedback("qobj", "qobj")
+    qevo._add_feedback("data", "data")
+    qevo._add_feedback("qobj", "qobj")
 
     checker.state = rand_dm(4)
     checker.state.dims = [[[2],[2]], [[2],[2]]]
@@ -576,7 +576,7 @@ def test_feedback_super():
 
     checker = Feedback_Checker_Coefficient()
     qevo = QobjEvo([spre(qeye(2)), checker])
-    qevo.add_feedback("data", "raw")
+    qevo._add_feedback("data", "raw")
 
     checker.state = operator_to_vector(rand_dm(2))
     qevo.expect(0, checker.state)

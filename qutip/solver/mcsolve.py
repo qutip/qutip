@@ -417,6 +417,13 @@ class MCSolver(MultiTrajSolver):
         for n_op in self._n_ops:
             n_op.arguments(args)
 
+    def add_feedback(self, key, type):
+        self.rhs._add_feedback(key, type, True)
+        for c_op in self._c_ops:
+            c_op._add_feedback(key, type, True)
+        for n_op in self._n_ops:
+            n_op._add_feedback(key, type, True)
+
     def _run_one_traj(self, seed, state, tlist, e_ops):
         """
         Run one trajectory and return the result.

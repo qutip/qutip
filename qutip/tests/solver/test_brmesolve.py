@@ -294,3 +294,19 @@ def test_hamiltonian_taking_arguments():
     args = brmesolve([[H, 'ii']], psi0, times, a_ops, e_ops, args=args)
     for arg, no_arg in zip(args.expect, no_args.expect):
         np.testing.assert_allclose(arg, no_arg, atol=1e-10)
+
+
+def test_feedback():
+    N = 10
+    tol = 1e-4
+    psi0 = qutip.basis(N, 7)
+    a = qutip.destroy(N)
+    H = qutip.QobjEvo(qutip.num(N))
+    a_op = (
+        qutip.QobjEvo(a + a.dag()),
+        qutip.coefficient("(A.real - 4)*(w > 0)", args={"A": 7.+0j, "w": 0.})
+    )
+    solver = qutip.BRSolver(H, [a_op])
+    solver.add_feedback("A", qutip.num(N))
+    result = solver.run(psi0, np.linspace(0, 3, 31), e_ops=[qutip.num(N)])
+    assert np.all(result.expect[0] > 4. - tol)

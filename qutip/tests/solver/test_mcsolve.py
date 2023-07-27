@@ -437,3 +437,23 @@ def test_dynamic_arguments():
     c_ops = [[a, _dynamic], [a.dag(), _dynamic]]
     mc = mcsolve(H, state, times, c_ops, ntraj=25, args={"collapse": []})
     assert all(len(collapses) <= 1 for collapses in mc.col_which)
+
+
+def test_feedback():
+
+    def f(t, A):
+        return (A-4.)
+
+    N = 10
+    tol = 1e-6
+    psi0 = qutip.basis(N, 7)
+    a = qutip.destroy(N)
+    H = qutip.QobjEvo(qutip.num(N))
+    solver = qutip.MCSolver(
+        H, c_ops=[qutip.QobjEvo([a, f], args={"A": 7.})]
+    )
+    solver.add_feedback("A", qutip.num(N))
+    result = solver.run(
+        psi0, np.linspace(0, 3, 31), e_ops=[qutip.num(N)], ntraj=10
+    )
+    assert np.all(result.expect[0] > 4. - tol)
