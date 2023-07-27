@@ -7,7 +7,10 @@ __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
            'matrix_histogram', 'plot_energy_levels', 'plot_fock_distribution',
            'plot_wigner', 'plot_expectation_values',
            'plot_spin_distribution', 'complex_array_to_rgb',
-           'plot_qubism', 'plot_schmidt']
+           'plot_qubism', 'plot_schmidt', '_cyclic_cmap', '_diverging_cmap',
+           '_sequential_cmap', '_is_fig_and_ax', '_cb_labels',
+           '_get_matrix_components', '_update_xaxis', '_update_yaxis',
+           '_update_zaxis', '_stick_to_planes', '_remove_margins']
 
 import warnings
 import itertools as it
@@ -601,7 +604,7 @@ def _get_matrix_components(option, M, argument):
 def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                      bar_style='real', color_limits=None, color_style='real',
                      options=None, *, cmap=None, colorbar=True,
-                     colorbar_opts=None, fig=None, ax=None):
+                     fig=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -693,6 +696,15 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
             XZ and YZ planes will stick to those planes.
             This option has no effect if ``ax`` is passed as a parameter.
 
+        'cbar_pad' : float, default=0.04
+            The fraction of the original axes between the colorbar
+            and the new image axes.
+            (i.e. the padding between the 3D figure and the colorbar).
+
+        'cbar_to_z' : bool, default=False
+            Whether to set the color of maximum and minimum z-values to the
+            maximum and minimum colors in the colorbar (True) or not (False).
+
         'threshold': float, optional
             Threshold for when bars of smaller height should be transparent. If
             not set, all bars are colored according to the color map.
@@ -710,14 +722,11 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     """
 
-    if colorbar_opts is None:
-        colorbar_opts = dict()
-
     # default options
     default_opts = {'zticks': None, 'bars_spacing': 0.2,
                     'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
                     'shade': True, 'azim': -35, 'elev': 35, 'stick': False,
-                    'cbar_pad': 0.04, 'threshold': None}
+                    'cbar_pad': 0.04, 'cbar_to_z': False, 'threshold': None}
 
     # update default_opts from input options
     if options is None:
@@ -782,7 +791,6 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
             c_max += 0.1
 
     norm = mpl.colors.Normalize(c_min, c_max)
-    colorbar_opts['norm'] = norm
 
     if cmap is None:
         # change later
@@ -790,8 +798,6 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
             cmap = _cyclic_cmap()
         else:
             cmap = _sequential_cmap()
-
-    colorbar_opts['cmap'] = cmap
 
     colors = cmap(norm(color_M))
 
@@ -830,20 +836,21 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     # color axis
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, **colorbar_opts)
-        cbar = mpl.colorbar.ColorbarBase(cax, **kw)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75,
+                                         pad=options['cbar_pad'])
+        cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
         if color_style == 'real':
-            cbar.set_label('real')
+            cb.set_label('real')
         elif color_style == 'img':
-            cbar.set_label('imaginary')
+            cb.set_label('imaginary')
         elif color_style == 'abs':
-            cbar.set_label('absolute')
+            cb.set_label('absolute')
         else:
-            cbar.set_label('arg')
+            cb.set_label('arg')
             if color_limits is None:
-                cbar.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
-                cbar.set_ticklabels(
+                cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
+                cb.set_ticklabels(
                     (r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
 
     # removing margins
