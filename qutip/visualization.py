@@ -10,7 +10,8 @@ __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
            'plot_qubism', 'plot_schmidt', '_cyclic_cmap', '_diverging_cmap',
            '_sequential_cmap', '_is_fig_and_ax', '_cb_labels',
            '_get_matrix_components', '_update_xaxis', '_update_yaxis',
-           '_update_zaxis', '_stick_to_planes', '_remove_margins']
+           '_update_zaxis', '_stick_to_planes', '_remove_margins',
+           '_set_ticklabels']
 
 import warnings
 import itertools as it

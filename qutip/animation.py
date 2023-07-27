@@ -3,7 +3,7 @@ Functions for creating animations of results of quantum dynamics simulations,
 visualizations of quantum states and processes.
 """
 
-__all__ = ['anim_wigner', 'anim_matrix_histogram']
+__all__ = ['anim_wigner', 'anim_matrix_histogram', 'anim_fock_distribution']
 
 import warnings
 import itertools as it
@@ -82,8 +82,8 @@ def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw',
                 projection='2d', *, cmap=None, colorbar=False,
                 fig=None, ax=None, save_options=None):
     """
-    Plot the time evolution of the Wigner function for density matrices (or kets)
-    that describes an oscillator mode.
+    Plot the time evolution of the Wigner function for density matrices
+    (or kets) hat describes an oscillator mode.
 
     Parameters
     ----------
@@ -170,11 +170,12 @@ def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw',
 
     for W in Ws:
         if projection == '2d':
-            cf = ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap).collections
+            cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
+                             cmap=cmap).collections
         else:
             X, Y = np.meshgrid(xvec, yvec)
             cf = [ax.plot_surface(X, Y, W, rstride=5, cstride=5, linewidth=0.5,
-                                norm=norm, cmap=cmap)]
+                                  norm=norm, cmap=cmap)]
         artist_list.append(cf)
 
     ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
@@ -493,4 +494,83 @@ def anim_matrix_histogram(Ms, x_basis=None, y_basis=None, limits=None,
 
     ani, html_video = make_html_video(ani, save_options)
     print(z_min, z_max)
+    return fig, ani, html_video
+
+
+def anim_fock_distribution(rhos, fock_numbers=None, color="green",
+                           unit_y_range=True, *, fig=None, ax=None,
+                           save_options=None):
+    """
+    Plot the Fock distribution for a density matrix (or ket) that describes
+    an oscillator mode.
+
+    Parameters
+    ----------
+    rhos : list of `qutip.Qobj`
+        The density matrices (or kets) to visualize.
+
+    fock_numbers : list of strings, optional
+        list of x ticklabels to represent fock numbers
+
+    color : color or list of colors, default="green"
+        The colors of the bar faces.
+
+    unit_y_range : bool, default=True
+        Set y-axis limits [0, 1] or not
+
+    fig : a matplotlib Figure instance, optional
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance, optional
+        The axes context in which the plot will be drawn.
+
+    save_options : dict, optional
+        A dictionary containing options to save the animation.
+
+        'name' : str, default='animation'
+            The output filename, e.g., :file:`mymovie.mp4`.
+
+        'writer' : `MovieWriter` or str, optional
+            A `MovieWriter` instance to use or a key that identifies a
+            class to use, such as 'ffmpeg'.
+
+        'codec' : str, optional
+            The video codec to use.  Not all codecs are supported by a given
+            `MovieWriter`.
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+    """
+
+    fig, ax = _is_fig_and_ax(fig, ax)
+
+    artist_list = list()
+    for rho in rhos:
+        if isket(rho):
+            rho = ket2dm(rho)
+
+        N = rho.shape[0]
+
+        artist = ax.bar(np.arange(N), np.real(rho.diag()),
+                        color=color, alpha=0.6, width=0.8).patches
+        artist_list.append(artist)
+
+    if fock_numbers:
+        _set_ticklabels(ax, fock_numbers, np.arange(N), 'x', fontsize=12)
+
+    if unit_y_range:
+        ax.set_ylim(0, 1)
+    ax.set_xlim(-.5, N)
+    ax.set_xlabel('Fock number', fontsize=12)
+    ax.set_ylabel('Occupation probability', fontsize=12)
+
+    ani = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                    blit=True, repeat_delay=1000)
+    plt.close()
+
+    ani, html_video = make_html_video(ani, save_options)
+
     return fig, ani, html_video
