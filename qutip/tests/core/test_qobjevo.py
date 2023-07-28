@@ -528,7 +528,8 @@ class Feedback_Checker_Coefficient:
             if qobj is not None:
                 assert qobj == self.state
             if e_val is not None:
-                assert e_val == expect(qeye(self.state.dims[0]), self.state)
+                expected = expect(qeye(self.state.dims[0]), self.state)
+                assert e_val == pytest.approx(expected, abs=1e-7)
         return 1.
 
 

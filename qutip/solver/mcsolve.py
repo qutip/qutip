@@ -155,21 +155,59 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     return result
 
 
+class _MCSystem:
+    def __init__(self, rhs, c_ops, n_ops):
+        self.rhs = rhs
+        self.c_ops = c_ops
+        self.n_ops = n_ops
+        self._collapse_key = ""
+
+    def __call__(self):
+        return self.rhs
+
+    def __getattr__(self, attr):
+        if hasattr(self.rhs, attr):
+            return getattr(self.rhs, attr)
+        raise AttributeError
+
+    def arguments(self, args):
+        self.rhs.arguments(args)
+        for c_op in self.c_ops:
+            c_op.arguments(args)
+        for n_op in self.n_ops:
+            n_op.arguments(args)
+
+    def add_feedback(self, key, type):
+        if type == "collapse":
+            self._collapse_key = key
+            return
+        self.rhs._add_feedback(key, type, True)
+        for c_op in self.c_ops:
+            c_op._add_feedback(key, type, True)
+        for n_op in self.n_ops:
+            n_op._add_feedback(key, type, True)
+
+    def register_feedback(self, type, val):
+        if type == "collapse" and self._collapse_key:
+            self.arguments({self._collapse_key: val})
+
+
 class MCIntegrator:
     """
     Integrator like object for mcsolve trajectory.
     """
     name = "mcsolve"
 
-    def __init__(self, integrator, c_ops, n_ops, options=None):
+    def __init__(self, integrator, system, options=None):
         self._integrator = integrator
-        self._c_ops = c_ops
-        self._n_ops = n_ops
+        self.system = system
+        self._c_ops = system.c_ops
+        self._n_ops = system.n_ops
         self.options = options
         self._generator = None
         self.method = f"{self.name} {self._integrator.method}"
         self._is_set = False
-        self.issuper = c_ops[0].issuper
+        self.issuper = self._c_ops[0].issuper
 
     def set_state(self, t, state0, generator):
         """
@@ -187,6 +225,7 @@ class MCIntegrator:
             Random number generator.
         """
         self.collapses = []
+        self.system.register_feedback("collapse", self.collapses)
         self._generator = generator
         self.target_norm = self._generator.random()
         self._integrator.set_state(t, state0)
@@ -386,7 +425,8 @@ class MCSolver(MultiTrajSolver):
 
         self._num_collapse = len(self._c_ops)
 
-        super().__init__(rhs, options=options)
+        system = _MCSystem(rhs, self._c_ops, self._n_ops)
+        super().__init__(system, options=options)
 
     def _restore_state(self, data, *, copy=True):
         """
@@ -409,21 +449,6 @@ class MCSolver(MultiTrajSolver):
         })
         return stats
 
-    def _argument(self, args):
-        self._integrator.arguments(args)
-        self.rhs.arguments(args)
-        for c_op in self._c_ops:
-            c_op.arguments(args)
-        for n_op in self._n_ops:
-            n_op.arguments(args)
-
-    def add_feedback(self, key, type):
-        self.rhs._add_feedback(key, type, True)
-        for c_op in self._c_ops:
-            c_op._add_feedback(key, type, True)
-        for n_op in self._n_ops:
-            n_op._add_feedback(key, type, True)
-
     def _run_one_traj(self, seed, state, tlist, e_ops):
         """
         Run one trajectory and return the result.
@@ -445,9 +470,9 @@ class MCSolver(MultiTrajSolver):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs, self.options)
+        integrator_instance = integrator(self.system(), self.options)
         mc_integrator = self.mc_integrator_class(
-            integrator_instance, self._c_ops, self._n_ops, self.options
+            integrator_instance, self.system, self.options
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator

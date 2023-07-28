@@ -198,6 +198,7 @@ class _StochasticRHS:
 
         self.issuper = issuper
         self.heterodyne = heterodyne
+        self._noise_key = None
 
         if heterodyne:
             sc_ops = []
@@ -211,13 +212,34 @@ class _StochasticRHS:
         else:
             self.dims = self.H.dims
 
-    def __call__(self, options):
+    def __call__(self, options={}):
         if self.issuper:
             return StochasticOpenSystem(
                 self.H, self.sc_ops, self.c_ops, options.get("derr_dt", 1e-6)
             )
         else:
             return StochasticClosedSystem(self.H, self.sc_ops)
+
+    def arguments(self, args):
+        self.H.arguments(args)
+        for c_op in self.c_ops:
+            c_op.arguments(args)
+        for sc_op in self.sc_ops:
+            sc_op.arguments(args)
+
+    def add_feedback(self, key, type):
+        if type == "noise":
+            self._noise_key = key
+            return
+        self.H._add_feedback(key, type)
+        for c_op in self.c_ops:
+            c_op._add_feedback(key, type)
+        for sc_op in self.sc_ops:
+            sc_op._add_feedback(key, type)
+
+    def register_feedback(self, type, val):
+        if type == "noise" and self._noise_key:
+            self.arguments({self._noise_key: val})
 
 
 def smesolve(
@@ -495,7 +517,13 @@ class StochasticSolver(MultiTrajSolver):
             raise ValueError("c_ops are not supported by ssesolve.")
 
         rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
-        super().__init__(rhs, options=options)
+        self.rhs = rhs
+        self.system = rhs
+        self.options = options
+        self.seed_sequence = np.random.SeedSequence()
+        self._integrator = self._get_integrator()
+        self._state_metadata = {}
+        self.stats = self._initialize_stats()
 
         if heterodyne:
             self._m_ops = []

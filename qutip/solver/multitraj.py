@@ -2,9 +2,32 @@ from .result import Result, MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver
+from ..core import QobjEvo
 import numpy as np
 
 __all__ = ["MultiTrajSolver"]
+
+
+class _MTSystem:
+    def __init__(self, rhs):
+        self.rhs = rhs
+
+    def __call__(self):
+        return self.rhs
+
+    def arguments(self, args):
+        self.rhs.arguments(args)
+
+    def add_feedback(self, key, type):
+        self.rhs._add_feedback(key, type)
+
+    def register_feedback(self, type, val):
+        pass
+
+    def __getattr__(self, attr):
+        if hasattr(self.rhs, attr):
+            return getattr(self.rhs, attr)
+        raise AttributeError
 
 
 class MultiTrajSolver(Solver):
@@ -47,7 +70,11 @@ class MultiTrajSolver(Solver):
     }
 
     def __init__(self, rhs, *, options=None):
-        self.rhs = rhs
+        if isinstance(rhs, QobjEvo):
+            self.system = _MTSystem(rhs)
+        else:
+            self.system = rhs
+        self.rhs = self.system()
         self.options = options
         self.seed_sequence = np.random.SeedSequence()
         self._integrator = self._get_integrator()
@@ -231,7 +258,11 @@ class MultiTrajSolver(Solver):
     def _argument(self, args):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
         if args:
-            self.rhs.arguments(args)
+            self.system.arguments(args)
+
+    def add_feedback(self, key, type):
+        self.system.add_feedback(key, type)
+        self._integrator.reset(hard=True)
 
     def _get_generator(self, seed):
         """
@@ -250,7 +281,3 @@ class MultiTrajSolver(Solver):
         else:
             generator = np.random.default_rng(seed)
         return generator
-
-    @classmethod
-    def avail_integrators(cls):
-        return cls._avail_integrators

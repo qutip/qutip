@@ -132,5 +132,13 @@ class RouchonSODE(SIntegrator):
     def options(self, new_options):
         Integrator.options.fset(self, new_options)
 
+    def reset(self, hard=False):
+        if self._is_set:
+            state = self.get_state()
+        if hard:
+            raise NotImplementedError
+        if self._is_set:
+            self.set_state(*state)
+
 
 StochasticSolver.add_integrator(RouchonSODE, "rouchon")

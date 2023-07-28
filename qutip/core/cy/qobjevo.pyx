@@ -198,6 +198,7 @@ cdef class QobjEvo:
             self._issuper = (<QobjEvo> Q_object)._issuper
             self._isoper = (<QobjEvo> Q_object)._isoper
             self.elements = (<QobjEvo> Q_object).elements.copy()
+            self._feedback_functions = Q_object._feedback_functions.copy()
             if args:
                 self.arguments(args)
             if compress:
@@ -209,6 +210,7 @@ cdef class QobjEvo:
         self.shape = (0, 0)
         self._issuper = -1
         self._isoper = -1
+        self._feedback_functions = {}
         args = args or {}
 
         if (
@@ -481,18 +483,13 @@ cdef class QobjEvo:
         elif isinstance(feedback, (Qobj, QobjEvo)):
             if isinstance(feedback, Qobj):
                 feedback = QobjEvo(feedback)
-            if feedback.dims == self.dims:
-                self._feedback_functions[key] = \
-                    _Expect(feedback, normalize, False)
-            elif self.issuper and self.dims[1] == feedback.dims:
+            if self.issuper and self.dims[1] == feedback.dims:
                 # tr(op @ dm) cases
                 self._feedback_functions[key] = \
                     _Expect(feedback, normalize, True)
             else:
-                raise TypeError(
-                    "dims of the feedback operator do "
-                    "not match the original system."
-                )
+                self._feedback_functions[key] = \
+                    _Expect(feedback, normalize, False)
         else:
             ValueError("Feedback type not understood.")
 
@@ -527,6 +524,7 @@ cdef class QobjEvo:
                                 str(self.dims) + ", " + str(other.dims))
             for element in (<QobjEvo> other).elements:
                 self.elements.append(element)
+            self._feedback_functions.update(other._feedback_functions)
         elif isinstance(other, Qobj):
             if other.dims != self.dims:
                 raise TypeError("incompatible dimensions" +
@@ -648,6 +646,7 @@ cdef class QobjEvo:
                     for left, right in itertools.product(
                         self.elements, (<QobjEvo> other).elements
                     )]
+                self._feedback_functions.update(other._feedback_functions)
         else:
             return NotImplemented
         return self

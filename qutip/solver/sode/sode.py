@@ -44,6 +44,7 @@ class SIntegrator(Integrator):
         keys, not the full options object passed to the solver. Options' keys
         included here will be supported by the :cls:SolverOdeOptions.
     """
+    _is_set = False
 
     def set_state(self, t, state0, generator):
         """
@@ -63,6 +64,7 @@ class SIntegrator(Integrator):
         self.t = t
         self.state = state0
         self.generator = generator
+        self._is_set = True
 
     def get_state(self, copy=True):
         return self.t, self.state, self.generator
@@ -92,6 +94,16 @@ class SIntegrator(Integrator):
     def mcstep(self, t, copy=True):
         raise NotImplementedError
 
+    def reset(self, hard=False):
+        print("reset")
+        if self._is_set:
+            state = self.get_state()
+        if hard:
+            self.system = self.rhs(self.options)
+            self.step_func = self.stepper(self.system).run
+        if self._is_set:
+            self.set_state(*state)
+
 
 class _Explicit_Simple_Integrator(SIntegrator):
     """
@@ -108,6 +120,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
     def __init__(self, rhs, options):
         self._options = self.integrator_options.copy()
         self.options = options
+        self.rhs = rhs
         self.system = rhs(self.options)
         self.step_func = self.stepper(self.system).run
 
@@ -169,6 +182,7 @@ class _Implicit_Simple_Integrator(_Explicit_Simple_Integrator):
     def __init__(self, rhs, options):
         self._options = self.integrator_options.copy()
         self.options = options
+        self.rhs = rhs
         self.system = rhs(self.options)
         self.step_func = self.stepper(
             self.system,
@@ -246,6 +260,7 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     def __init__(self, rhs, options):
         self._options = self.integrator_options.copy()
         self.options = options
+        self.rhs = rhs
         self.system = rhs(self.options)
         self.step_func = self.stepper(
             self.system, self.options["alpha"], self.options["eta"]

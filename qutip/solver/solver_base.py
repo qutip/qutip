@@ -409,6 +409,7 @@ class Solver:
 
         type : str, Qobj, QobjEvo
             Format of the `state_t`.
+
             - "qobj": As a Qobj, either a ket or dm.
             - "data": As a qutip data layer object. Density matrices will be
               square matrix.
