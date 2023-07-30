@@ -11,7 +11,8 @@ __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
            '_sequential_cmap', '_is_fig_and_ax', '_cb_labels',
            '_get_matrix_components', '_update_xaxis', '_update_yaxis',
            '_update_zaxis', '_stick_to_planes', '_remove_margins',
-           '_set_ticklabels']
+           '_set_ticklabels', '_blob', '_sequence_to_latex',
+           '_index_to_sequence', '_to_qubism_index_pair']
 
 import warnings
 import itertools as it
@@ -219,7 +220,7 @@ def _blob(x, y, w, w_max, area, color_fn, ax=None):
     else:
         handle = plt
 
-    handle.fill(xcorners, ycorners, color=color_fn(w))
+    return handle.fill(xcorners, ycorners, color=color_fn(w))
 
 
 def _cb_labels(left_dims):
