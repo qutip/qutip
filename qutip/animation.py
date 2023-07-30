@@ -52,18 +52,12 @@ import matplotlib as mpl
 from .visualization import *
 
 
-def _is_options(options, keyward):
-    if options is None:
-        options = dict()
-
-    if not isinstance(options, dict):
-        raise ValueError(str(keyward) + ' must be a dict')
-
-    return options
-
-
 def make_html_video(ani, save_options=None):
-    save_options = _is_options(save_options, 'save_options')
+    if save_options is None:
+        save_options = dict()
+    if not isinstance(save_options, dict):
+        raise ValueError('save_options must be a dict')
+
     if 'name' not in save_options.keys():
         save_options['name'] = 'animation'
     if 'writer' not in save_options.keys():
