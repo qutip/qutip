@@ -259,6 +259,13 @@ def test_QobjAddition():
     assert np.all(x3.full() == data)
     assert np.all(x4.full() == data)
 
+    ket = Qobj([[1j],[0.]])
+    with pytest.raises(TypeError):
+        out = ket + 1.
+
+    with pytest.raises(TypeError):
+        out = 1. + ket
+
 
 def test_QobjSubtraction():
     "Qobj subtraction"
