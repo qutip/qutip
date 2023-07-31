@@ -3,6 +3,7 @@ import functools
 import os
 import tempfile
 import numpy as np
+from qutip.utilities import _version2int
 
 
 def _add_repeats_if_marked(metafunc):
@@ -27,7 +28,10 @@ def _skip_cython_tests_if_unavailable(item):
     if item.get_closest_marker("requires_cython"):
         # importorskip rather than mark.skipif because this way we get pytest's
         # version-handling semantics.
-        pytest.importorskip('Cython', minversion='0.14')
+        _Cython = pytest.importorskip('Cython', minversion='0.14')
+        # importorskip does not have maxversion
+        if _version2int(_Cython.__version__) >= _version2int("3.0.0"):
+            pytest.skip("cython 3.0.0 not supported")
 
 
 @pytest.hookimpl(trylast=True)

@@ -210,7 +210,7 @@ Time-dependent problems
 -----------------------
 
 .. automodule:: qutip.rhs_generate
-    :members: rhs_generate, rhs_clear
+    :members: rhs_clear
 
 Scattering in Quantum Optical Systems
 -------------------------------------

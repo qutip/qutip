@@ -32,10 +32,11 @@ safePickle = [False]
 if sys.platform == 'win32':
     safePickle[0] = True
 
-try:
+
+if qset.has_cython:
     import cython
     use_cython = [True]
-except:
+else:
     use_cython = [False]
 
 
