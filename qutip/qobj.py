@@ -386,8 +386,7 @@ class Qobj(object):
                 out.data = self.data + dat * fast_identity(
                     self.shape[0])
             else:
-                out.data = self.data
-                out.data.data = out.data.data + dat
+                raise TypeError("Only operators can be added to a scalar.")
 
             out.dims = self.dims
 
@@ -415,8 +414,7 @@ class Qobj(object):
             if other.type in ['oper', 'super']:
                 out.data = dat * fast_identity(other.shape[0]) + other.data
             else:
-                out.data = other.data
-                out.data.data = out.data.data + dat
+                raise TypeError("Only operators can be added to a scalar.")
             out.dims = other.dims
 
             if settings.auto_tidyup:
