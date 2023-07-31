@@ -4,6 +4,7 @@ from qutip.core import data as _data
 from ..stochastic import StochasticSolver
 from .sode import SIntegrator
 from ..integrator.integrator import Integrator
+from ._noise import Wiener
 
 
 __all__ = ["RouchonSODE"]
@@ -72,15 +73,10 @@ class RouchonSODE(SIntegrator):
         dt = self.options["dt"]
         N, extra = np.divmod(delta_t, dt)
         N = int(N)
-        if extra > self.options["tol"]:
-            # Not a whole number of steps.
+        if extra > 0.5 * dt:
+            # Not a whole number of steps, round to higher
             N += 1
-            dt = delta_t / N
-        dW = self.generator.normal(
-            0,
-            np.sqrt(dt),
-            size=(N, self.num_collapses)
-        )
+        dW = self.wiener.dW(self.t, N)
 
         if self._issuper:
             self.state = unstack_columns(self.state)

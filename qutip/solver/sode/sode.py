@@ -2,7 +2,7 @@ import numpy as np
 from . import _sode
 from ..integrator.integrator import Integrator
 from ..stochastic import StochasticSolver, SMESolver
-
+from ._noise import Wiener
 
 __all__ = ["SIntegrator", "PlatenSODE", "PredCorr_SODE"]
 
@@ -63,11 +63,19 @@ class SIntegrator(Integrator):
         """
         self.t = t
         self.state = state0
-        self.generator = generator
+        if isinstance(generator, Wiener):
+            self.wiener = generator
+        else:
+            self.wiener = Wiener(
+                t, self.options["dt"], generator,
+                (self.N_dw, self.system.num_collapse)
+            )
+        self.rhs.register_feedback("wiener_process", self.wiener)
+        self.system = self.rhs(self.options)
         self._is_set = True
 
     def get_state(self, copy=True):
-        return self.t, self.state, self.generator
+        return self.t, self.state, self.wiener
 
     def integrate(self, t, copy=True):
         """
@@ -95,7 +103,6 @@ class SIntegrator(Integrator):
         raise NotImplementedError
 
     def reset(self, hard=False):
-        print("reset")
         if self._is_set:
             state = self.get_state()
         if hard:
@@ -121,7 +128,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
         self._options = self.integrator_options.copy()
         self.options = options
         self.rhs = rhs
-        self.system = rhs(self.options)
+        self.system = None
         self.step_func = self.stepper(self.system).run
 
     def integrate(self, t, copy=True):
@@ -134,13 +141,10 @@ class _Explicit_Simple_Integrator(SIntegrator):
         dt = self.options["dt"]
         N, extra = np.divmod(delta_t, dt)
         N = int(N)
-        if extra > self.options["tol"]:
-            # Not a whole number of steps.
+        if extra > 0.5 * dt:
+            # Not a whole number of steps, round to higher
             N += 1
-            dt = delta_t / N
-        dW = self.generator.normal(
-            0, np.sqrt(dt), size=(N, self.N_dw, self.system.num_collapse)
-        )
+        dW = self.wiener.dW(self.t, N)
 
         self.state = self.step_func(self.t, self.state, dt, dW, N)
         self.t += dt * N

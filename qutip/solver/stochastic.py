@@ -238,7 +238,7 @@ class _StochasticRHS:
             sc_op._add_feedback(key, type)
 
     def register_feedback(self, type, val):
-        if type == "noise" and self._noise_key:
+        if type == "wiener_process" and self._noise_key:
             self.arguments({self._noise_key: val})
 
 
