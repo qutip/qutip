@@ -35,7 +35,12 @@ class RouchonSODE(SIntegrator):
     def __init__(self, rhs, options):
         self._options = self.integrator_options.copy()
         self.options = options
+        self.rhs = rhs
+        self.system = None
+        self._make_operators()
 
+    def _make_operators(self):
+        rhs = self.rhs
         self.H = rhs.H
         if self.H.issuper:
             raise TypeError("The rouchon stochastic integration method can't"
@@ -63,12 +68,40 @@ class RouchonSODE(SIntegrator):
 
         self.id = _data.identity[dtype](self.H.shape[0])
 
+    def set_state(self, t, state0, generator):
+        """
+        Set the state of the SODE solver.
+
+        Parameters
+        ----------
+        t : float
+            Initial time
+
+        state0 : qutip.Data
+            Initial state.
+
+        generator : numpy.random.generator
+            Random number generator.
+        """
+        self.t = t
+        self.state = state0
+        if isinstance(generator, Wiener):
+            self.wiener = generator
+        else:
+            self.wiener = Wiener(
+                t, self.options["dt"], generator,
+                (1, self.num_collapses,)
+            )
+        self.rhs.register_feedback("wiener_process", self.wiener)
+        self._make_operators()
+        self._is_set = True
+
     def integrate(self, t, copy=True):
         delta_t = (t - self.t)
         if delta_t < 0:
             raise ValueError("Stochastic integration need increasing times")
         elif delta_t == 0:
-            return self.t, self.state, np.zeros(self.N_dw)
+            return self.t, self.state, np.zeros()
 
         dt = self.options["dt"]
         N, extra = np.divmod(delta_t, dt)
@@ -76,7 +109,7 @@ class RouchonSODE(SIntegrator):
         if extra > 0.5 * dt:
             # Not a whole number of steps, round to higher
             N += 1
-        dW = self.wiener.dW(self.t, N)
+        dW = self.wiener.dW(self.t, N)[:, 0, :]
 
         if self._issuper:
             self.state = unstack_columns(self.state)

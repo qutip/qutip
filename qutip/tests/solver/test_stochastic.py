@@ -316,3 +316,25 @@ def test_m_ops(heterodyne):
     noise = res.expect[0][1:] - res.measurement[0][0]
     assert np.mean(noise) == pytest.approx(0., abs=std/50**0.5 * 4)
     assert np.std(noise) == pytest.approx(std, abs=std/50**0.5 * 4)
+
+
+def test_feedback():
+    tol = 0.05
+    N = 10
+    ntraj = 5
+
+    def func(t, A):
+        return (A - 6) * (A.real > 6.)
+
+    H = num(10)
+    sc_ops = [QobjEvo([destroy(N), func], args={"A": 8})]
+    psi0 = basis(N, N-2)
+
+    times = np.linspace(0, 10, 101)
+    options = {"map": "serial", "dt": 0.001}
+
+    solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
+    solver.add_feedback("A", spre(num(10)))
+    results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
+
+    assert np.all(results.expect[0] > 6.-1e-6)

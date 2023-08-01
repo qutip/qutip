@@ -100,8 +100,8 @@ def get_error_order_integrator(integrator, ref_integrator, state, plot=False):
     # state = rand_ket(system.dims[0]).data
     err = np.zeros(len(ts), dtype=float)
     for i, t in enumerate(ts):
-        integrator.options["dt"] = 0.1
-        ref_integrator.options["dt"] = 0.1
+        integrator.options["dt"] = t
+        ref_integrator.options["dt"] = t
         integrator.set_state(0., state, np.random.default_rng(0))
         ref_integrator.set_state(0., state, np.random.default_rng(0))
         out = integrator.integrate(t)[1]

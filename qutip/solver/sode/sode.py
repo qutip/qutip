@@ -66,12 +66,17 @@ class SIntegrator(Integrator):
         if isinstance(generator, Wiener):
             self.wiener = generator
         else:
+            if self.system:
+                num_collapse = self.system.num_collapse
+            else:
+                num_collapse = len(self.rhs.sc_ops)
             self.wiener = Wiener(
                 t, self.options["dt"], generator,
-                (self.N_dw, self.system.num_collapse)
+                (self.N_dw, num_collapse)
             )
         self.rhs.register_feedback("wiener_process", self.wiener)
         self.system = self.rhs(self.options)
+        self.step_func = self.stepper(self.system).run
         self._is_set = True
 
     def get_state(self, copy=True):

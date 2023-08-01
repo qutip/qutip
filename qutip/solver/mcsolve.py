@@ -166,6 +166,8 @@ class _MCSystem:
         return self.rhs
 
     def __getattr__(self, attr):
+        if attr == "rhs":
+            raise AttributeError
         if hasattr(self.rhs, attr):
             return getattr(self.rhs, attr)
         raise AttributeError
