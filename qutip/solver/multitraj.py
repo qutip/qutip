@@ -9,6 +9,9 @@ __all__ = ["MultiTrajSolver"]
 
 
 class _MTSystem:
+    """
+    Container for the operators of the solver.
+    """
     def __init__(self, rhs):
         self.rhs = rhs
 

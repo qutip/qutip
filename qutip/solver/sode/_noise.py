@@ -34,7 +34,7 @@ class Wiener:
         if t > self.t_end:
             self._extend(t)
         idx = int((t - self.t0 + self.dt * 0.01) // self.dt)
-        return self.process[idx, :, :]
+        return self.process[idx, 0, :]
 
 
 class _Noise:

@@ -228,7 +228,32 @@ class _StochasticRHS:
             sc_op.arguments(args)
 
     def add_feedback(self, key, type):
-        if type == "noise":
+        """
+        Register an argument to be updated with the state during the evolution.
+
+        Equivalent to do:
+            `solver.argument(key=state_t)`
+
+        Parameters
+        ----------
+        key : str
+            Arguments key to update.
+
+        type : str, Qobj, QobjEvo
+            Format of the `state_t`.
+
+            - "qobj": As a Qobj, either a ket or dm.
+            - "data": As a qutip data layer object. Density matrices will be
+              square matrix.
+            - "raw": As a qutip data layer object. Density matrices will be
+              columns stacked: shape=(N**2, 1).
+            - Qobj, QobjEvo: The value is updated with the expectation value of
+              the given operator and the state.
+            - "wiener_process": The value is replaced by a function ``W(t)``
+              that return the wiener process value at the time t. The process
+              is a step function with step of lenght ``options["dt"]``.
+        """
+        if type == "wiener_process":
             self._noise_key = key
             return
         self.H._add_feedback(key, type)
@@ -698,6 +723,35 @@ class StochasticSolver(MultiTrajSolver):
     @options.setter
     def options(self, new_options):
         MultiTrajSolver.options.fset(self, new_options)
+
+    def add_feedback(self, key, type):
+        """
+        Register an argument to be updated with the state during the evolution.
+
+        Equivalent to do:
+            `solver.argument(key=state_t)`
+
+        Parameters
+        ----------
+        key : str
+            Arguments key to update.
+
+        type : str, Qobj, QobjEvo
+            Format of the `state_t`.
+
+            - "qobj": As a Qobj, either a ket or dm.
+            - "data": As a qutip data layer object. Density matrices will be
+              square matrix.
+            - "raw": As a qutip data layer object. Density matrices will be
+              columns stacked: shape=(N**2, 1).
+            - Qobj, QobjEvo: The value is updated with the expectation value of
+              the given operator and the state.
+            - "wiener_process": The value is replaced by a function ``W(t)``
+              that return the wiener process value at the time t. The process
+              is a step function with step of lenght ``options["dt"]``.
+        """
+        self.system.add_feedback(key, type)
+        self._integrator.reset(hard=True)
 
 
 class SMESolver(StochasticSolver):

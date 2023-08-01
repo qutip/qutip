@@ -323,18 +323,20 @@ def test_feedback():
     N = 10
     ntraj = 5
 
-    def func(t, A):
-        return (A - 6) * (A.real > 6.)
+    def func(t, A, W):
+        return (A - 6) * (A.real > 6.) * W(t)
 
     H = num(10)
-    sc_ops = [QobjEvo([destroy(N), func], args={"A": 8})]
-    psi0 = basis(N, N-2)
+    sc_ops = [QobjEvo([destroy(N), func], args={"A": 8, "W": lambda t: 0.})]
+    psi0 = basis(N, N-3)
 
     times = np.linspace(0, 10, 101)
     options = {"map": "serial", "dt": 0.001}
 
     solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
     solver.add_feedback("A", spre(num(10)))
+    solver.add_feedback("W", "wiener_process")
     results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
 
     assert np.all(results.expect[0] > 6.-1e-6)
+    assert np.all(results.expect[0][-20:] < 6.7)
