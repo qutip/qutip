@@ -201,7 +201,7 @@ cdef class _EigenBasisTransform:
     def __init__(self, QobjEvo oper, bint sparse=False):
         if oper.dims[0] != oper.dims[1]:
             raise ValueError
-        if type(oper(0).data) in [_data.CSR, _data.Dia] and not sparse:
+        if type(oper(0).data) in (_data.CSR, _data.Dia) and not sparse:
             oper = oper.to(Dense)
         self.oper = oper
         self.isconstant = oper.isconstant
