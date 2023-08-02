@@ -324,10 +324,10 @@ def test_feedback():
     ntraj = 5
 
     def func(t, A, W):
-        return (A - 6) * (A.real > 6.) * W(t)
+        return (A - 6) * (A.real > 6.) * W(t)[0]
 
     H = num(10)
-    sc_ops = [QobjEvo([destroy(N), func], args={"A": 8, "W": lambda t: 0.})]
+    sc_ops = [QobjEvo([destroy(N), func], args={"A": 8, "W": lambda t: [0.]})]
     psi0 = basis(N, N-3)
 
     times = np.linspace(0, 10, 101)
