@@ -48,12 +48,12 @@ Solvers
     :members:
     :inherited-members:
     :show-inheritance:
-    
+
 .. autoclass:: qutip.solver.mesolve.MESolver
     :members:
     :inherited-members:
     :show-inheritance:
-      
+
 .. autoclass:: qutip.solver.brmesolve.BRSolver
     :members:
     :inherited-members:
@@ -199,15 +199,6 @@ Stochastic Integrator
     :members: options
 
 
-.. _classes-non_markov_mc_and_tt:
-
-Non-Markovian Memory Cascade and Transfer Tensor Solvers
---------------------------------------------------------
-
-.. autoclass:: qutip.solve.nonmarkov.memorycascade.MemoryCascade
-    :members:
-
-
 .. _classes-odeoptions:
 
 Solver Options and Results
@@ -221,10 +212,10 @@ Solver Options and Results
 Permutational Invariance
 ------------------------
 
-.. autoclass:: qutip.solve.piqs.Dicke
+.. autoclass:: qutip.piqs.piqs.Dicke
     :members:
 
-.. autoclass:: qutip.solve.piqs.Pim
+.. autoclass:: qutip.piqs.piqs.Pim
     :members:
 
 .. _classes-distributions:

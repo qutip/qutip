@@ -220,7 +220,7 @@ trace.add_specialisations([
 ], _defer=True)
 
 
-cpdef double frobenius_data(Data state):
+cpdef double frobenius_data(Data state) except -1:
     if type(state) is Dense:
         return frobenius_dense(state)
     elif type(state) is CSR:

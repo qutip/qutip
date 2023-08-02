@@ -6,6 +6,7 @@ from qutip.core.data.base cimport idxint
 from libcpp cimport bool
 
 cdef class _BaseElement:
+    cdef Data _data
     cpdef Data data(self, t)
     cpdef object qobj(self, t)
     cpdef object coeff(self, t)

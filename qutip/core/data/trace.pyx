@@ -6,10 +6,12 @@ from libc.math cimport sqrt
 
 from qutip.core.data cimport Data, CSR, Dense
 from qutip.core.data cimport base
+from .reshape import column_unstack
 
 __all__ = [
     'trace', 'trace_csr', 'trace_dense',
     'trace_oper_ket', 'trace_oper_ket_csr', 'trace_oper_ket_dense',
+    'trace_oper_ket_data',
 ]
 
 
@@ -70,6 +72,11 @@ cpdef double complex trace_oper_ket_dense(Dense matrix) nogil except *:
         trace += matrix.data[ptr * stride]
     return trace
 
+cpdef trace_oper_ket_data(Data matrix):
+    cdef size_t N = <size_t>sqrt(matrix.shape[0])
+    _check_shape_oper_ket(N, matrix)
+    return trace(column_unstack(matrix, N))
+
 
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
@@ -104,6 +111,7 @@ trace_oper_ket.__doc__ =\
 trace_oper_ket.add_specialisations([
     (CSR, trace_oper_ket_csr),
     (Dense, trace_oper_ket_dense),
+    (Data, trace_oper_ket_data),
 ], _defer=True)
 
 del _inspect, _Dispatcher
