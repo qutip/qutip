@@ -8,14 +8,16 @@ from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr, dense
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
+from qutip.core.data.dia cimport Dia
 from qutip.core.data.matmul cimport matmul_dense
 from .matmul import matmul
 from .trace import trace
 from .adjoint import adjoint
 
 __all__ = [
-    'inner', 'inner_csr', 'inner_dense', 'inner_data',
-    'inner_op', 'inner_op_csr', 'inner_op_dense', 'inner_op_data',
+    'inner', 'inner_csr', 'inner_dense', 'inner_dia', 'inner_data',
+    'inner_op', 'inner_op_csr', 'inner_op_dense', 'inner_op_dia',
+    'inner_op_data',
 ]
 
 
@@ -93,6 +95,45 @@ cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) no
         return _inner_csr_bra_ket(left, right)
     return _inner_csr_ket_ket(left, right)
 
+cpdef double complex inner_dia(Dia left, Dia right, bint scalar_is_ket=False) nogil except *:
+    """
+    Compute the complex inner product <left|right>.  The shape of `left` is
+    used to determine if it has been supplied as a ket or a bra.  The result of
+    this function will be identical if passed `left` or `adjoint(left)`.
+
+    The parameter `scalar_is_ket` is only intended for the case where `left`
+    and `right` are both of shape (1, 1).  In this case, `left` will be assumed
+    to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
+    all other times.
+    """
+    _check_shape_inner(left, right)
+    cdef double complex inner = 0.
+    cdef idxint diag_left, diag_right
+    cdef bint is_ket
+    if right.shape[0] == 1:
+        is_ket = scalar_is_ket
+    else:
+        is_ket = left.shape[0] == right.shape[0]
+
+    if is_ket:
+      for diag_right in range(right.num_diag):
+        for diag_left in range(left.num_diag):
+          if left.offsets[diag_left] - right.offsets[diag_right] == 0:
+            inner += (
+              conj(left.data[diag_left * left.shape[1]])
+              * right.data[diag_right * right.shape[1]]
+            )
+    else:
+      for diag_right in range(right.num_diag):
+        for diag_left in range(left.num_diag):
+          if left.offsets[diag_left] + right.offsets[diag_right] == 0:
+            inner += (
+              left.data[diag_left * left.shape[1] + left.offsets[diag_left]]
+              * right.data[diag_right * right.shape[1]]
+            )
+
+    return inner
+
 cpdef double complex inner_dense(Dense left, Dense right, bint scalar_is_ket=False) nogil except *:
     """
     Compute the complex inner product <left|right>.  The shape of `left` is
@@ -151,6 +192,50 @@ cdef double complex _inner_op_csr_ket_ket(CSR left, CSR op, CSR right) nogil:
                 sum += op.data[ptr_op] * right.data[ptr_r]
         out += conj(left.data[ptr_l]) * sum
     return out
+
+cpdef double complex inner_op_dia(Dia left, Dia op, Dia right,
+                                   bint scalar_is_ket=False) nogil except *:
+    """
+    Compute the complex inner product <left|op|right>.  The shape of `left` is
+    used to determine if it has been supplied as a ket or a bra.  The result of
+    this function will be identical if passed `left` or `adjoint(left)`.
+
+    The parameter `scalar_is_ket` is only intended for the case where `left`
+    and `right` are both of shape (1, 1).  In this case, `left` will be assumed
+    to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
+    all other times.
+    """
+    _check_shape_inner_op(left, op, right)
+    cdef double complex inner = 0., val
+    cdef idxint diag_left, diag_op, diag_right
+    cdef int is_ket
+    if op.shape[0] == 1:
+        is_ket = scalar_is_ket
+    else:
+        is_ket = left.shape[0] == op.shape[0]
+
+    if is_ket:
+      for diag_right in range(right.num_diag):
+        for diag_left in range(left.num_diag):
+          for diag_op in range(op.num_diag):
+            if -left.offsets[diag_left] + right.offsets[diag_right] + op.offsets[diag_op] == 0:
+              inner += (
+                conj(left.data[diag_left])
+                * right.data[diag_right]
+                * op.data[diag_op * op.shape[1] - right.offsets[diag_right]]
+              )
+    else:
+      for diag_right in range(right.num_diag):
+        for diag_left in range(left.num_diag):
+          for diag_op in range(op.num_diag):
+            if left.offsets[diag_left] + right.offsets[diag_right] + op.offsets[diag_op] == 0:
+              inner += (
+                left.data[diag_left * left.shape[1] + left.offsets[diag_left]]
+                * right.data[diag_right]
+                * op.data[diag_op * op.shape[1] - right.offsets[diag_right]]
+              )
+
+    return inner
 
 cpdef double complex inner_op_csr(CSR left, CSR op, CSR right,
                                   bint scalar_is_ket=False) nogil except *:
@@ -273,6 +358,7 @@ inner.__doc__ =\
     """
 inner.add_specialisations([
     (CSR, CSR, inner_csr),
+    (Dia, Dia, inner_dia),
     (Dense, Dense, inner_dense),
     (Data, Data, inner_data),
 ], _defer=True)
@@ -323,6 +409,7 @@ inner_op.__doc__ =\
     """
 inner_op.add_specialisations([
     (CSR, CSR, CSR, inner_op_csr),
+    (Dia, Dia, Dia, inner_op_dia),
     (Dense, Dense, Dense, inner_op_dense),
     (Data, Data, Data, inner_op_data),
 ], _defer=True)

@@ -3,8 +3,9 @@
 # (e.g. `create`) should not be here, but should be defined within the
 # higher-level components of QuTiP instead.
 
-from . import csr, dense
+from . import csr, dense, dia
 from .csr import CSR
+from .dia import Dia
 from .dense import Dense
 from .base import Data
 from .dispatch import Dispatcher as _Dispatcher
@@ -40,6 +41,7 @@ zeros.__doc__ =\
     """
 zeros.add_specialisations([
     (CSR, csr.zeros),
+    (Dia, dia.zeros),
     (Dense, dense.zeros),
 ], _defer=True)
 
@@ -70,6 +72,7 @@ identity.__doc__ =\
     """
 identity.add_specialisations([
     (CSR, csr.identity),
+    (Dia, dia.identity),
     (Dense, dense.identity),
 ], _defer=True)
 

@@ -3,9 +3,10 @@ import numpy as np
 import scipy
 import pytest
 import qutip
+import warnings
 
 from qutip.core import data as _data
-from qutip.core.data import Data, Dense, CSR
+from qutip.core.data import Data, Dense, CSR, Dia
 
 
 skip_no_mkl = pytest.mark.skipif(
@@ -36,12 +37,15 @@ class TestSolve():
             "spsolve", "splu", "gmres", "lsqr", "solve", "lstsq", "mkl_spsolve"
         ]
     )
-    def test_mathematically_correct_CSR(self, method, opt):
+    @pytest.mark.parametrize('dtype', [CSR, Dia])
+    def test_mathematically_correct_sparse(self, method, opt, dtype):
         """
         Test that the binary operation is mathematically correct for all the
         known type specialisations.
         """
-        A = self._gen_op(10, CSR)
+        if dtype is Dia and method == "mkl_spsolve":
+            pytest.skip("mkl is not supported for dia matrix")
+        A = self._gen_op(10, dtype)
         b = self._gen_ket(10, Dense)
         expected = self.op_numpy(A.to_array(), b.to_array())
         test = _data.solve_csr_dense(A, b, method, opt)

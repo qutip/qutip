@@ -29,6 +29,7 @@ rhs*.pyx
 
 qutip/cy/*.c
 *.cpp
+!qutip/core/data/src/*.cpp
 *.dat
 qutip/core/*.h
 
