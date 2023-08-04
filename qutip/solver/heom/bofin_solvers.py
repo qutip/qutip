@@ -882,7 +882,6 @@ class HEOMSolver(Solver):
         # needed.
         assert isinstance(rhs_mat, _csr.CSR)
         assert isinstance(rhs, QobjEvo)
-        print(rhs.dims, rhs_dims)
         assert rhs.dims == rhs_dims
 
         return rhs

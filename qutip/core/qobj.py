@@ -271,35 +271,38 @@ class Qobj:
     __array_ufunc__ = None
 
     def _initialize_data(self, arg, dims, copy):
-        self._dims = None
-        self._data = None
         if isinstance(arg, _data.Data):
             self._data = arg.copy() if copy else arg
-            self.dims = dims or [[arg.shape[0]], [arg.shape[1]]]
+            self._dims = Dimensions(dims or [[arg.shape[0]], [arg.shape[1]]])
         elif isinstance(arg, Qobj):
             self._data = arg.data.copy() if copy else arg.data
-            self._dims = dims or arg._dims
-            if arg._isherm is not None:
+            self._dims = Dimensions(dims or arg._dims)
+            if self._isherm is None and arg._isherm is not None:
                 self._isherm = arg._isherm
-            if arg._isunitary is not None:
+            if self._isunitary is None and arg._isunitary is not None:
                 self._isunitary = arg._isunitary
         else:
             self._data = _data.create(arg, copy=copy)
+            dims = Dimensions(
+                dims or [[self._data.shape[0]], [self._data.shape[1]]]
+            )
             if (
                 dims
+                and self._data.shape[1] == 1
                 and self._data.shape != dims.shape
                 and self._data.shape == dims.shape[::-1]
             ):
+                # 1D array are ket, convert to bra if bra dims are passed.
                 self._data = _data.transpose(self._data)
-            self.dims = dims or [[self._data.shape[0]], [self._data.shape[1]]]
+            self._dims = dims
+        if self._dims.shape != self._data.shape:
+            raise ValueError('Provided dimensions do not match the data: ' +
+                             f"{self._dims.shape} vs {self._data.shape}")
 
     def __init__(self, arg=None, dims=None, type=None,
                  copy=True, superrep=None, isherm=None, isunitary=None):
         self._isherm = isherm
         self._isunitary = isunitary
-        self._superrep = None
-        if isinstance(dims, list):
-            dims = Dimensions(dims)
         self._initialize_data(arg, dims, copy)
 
         # Dims are guessed from the data and need to be changed to super.
@@ -336,7 +339,7 @@ class Qobj:
     @dims.setter
     def dims(self, dims):
         dims = Dimensions(dims, rep=self.superrep)
-        if self._data and dims.shape != self._data.shape:
+        if dims.shape != self._data.shape:
             raise ValueError('Provided dimensions do not match the data: ' +
                              f"{dims.shape} vs {self._data.shape}")
         self._dims = dims
@@ -383,7 +386,7 @@ class Qobj:
     def data(self, data):
         if not isinstance(data, _data.Data):
             raise TypeError('Qobj data must be a data-layer format.')
-        if self._dims and self._dims.shape != data.shape:
+        if self._dims.shape != data.shape:
             raise ValueError('Provided data do not match the dimensions: ' +
                              f"{dims.shape} vs {self._data.shape}")
         self._data = data
