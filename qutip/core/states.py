@@ -341,7 +341,7 @@ shape = [3, 3], type = oper, isHerm = True
       [ 0.+0.j  0.+0.j  0.+0.j]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     return basis(dimensions, n, offset=offset, dtype=dtype).proj()
 
 
@@ -445,7 +445,7 @@ shape = [5, 5], type = oper, isHerm = True
     if truncated too aggressively.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     if n == 0:
         return fock_dm(N, 0, dtype=dtype)
     else:
@@ -486,7 +486,7 @@ def maximally_mixed_dm(N, *, dtype=None):
     dm : qobj
         Thermal state density matrix.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     if not isinstance(N, numbers.Integral) or N <= 0:
         raise ValueError("N must be integer N > 0")
     return Qobj(_data.identity[dtype](N, scale=1/N), dims=[[N], [N]],

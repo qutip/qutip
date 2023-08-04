@@ -227,19 +227,20 @@ def enr_destroy(dims, excitations, *, dtype=None):
         quantum system described by dims.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    nstates, _, idx2state = enr_state_dictionaries(dims, excitations)
+    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
     enr_dims = [EnrSpace(dims, excitations)] * 2
 
     a_ops = [scipy.sparse.lil_matrix((nstates, nstates), dtype=np.complex128)
              for _ in dims]
 
     for n1, state1 in idx2state.items():
-        for n2, state2 in idx2state.items():
-            for idx, a in enumerate(a_ops):
-                s1 = [s for idx2, s in enumerate(state1) if idx != idx2]
-                s2 = [s for idx2, s in enumerate(state2) if idx != idx2]
-                if (state1[idx] == state2[idx] - 1) and (s1 == s2):
-                    a[n1, n2] = np.sqrt(state2[idx])
+        for idx, s in enumerate(state1):
+            # if s > 0, the annihilation operator of mode idx has a non-zero
+            # entry with one less excitation in mode idx in the final state
+            if s > 0:
+                state2 = state1[:idx] + (s-1,) + state1[idx+1:]
+                n2 = state2idx[state2]
+                a_ops[idx][n2, n1] = np.sqrt(s)
 
     return [Qobj(a, dims=enr_dims).to(dtype) for a in a_ops]
 
@@ -274,10 +275,10 @@ def enr_identity(dims, excitations, *, dtype=None):
         exication-number-restricted state space defined by `dims` and
         `exciations`.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    dims = [EnrSpace(dims, excitations)] * 2
-    return Qobj(_data.identity[dtype](dims[0].size),
-                dims=dims,
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dims = EnrSpace(dims, excitations)
+    return Qobj(_data.identity[dtype](dims.size),
+                dims=[dims, dims],
                 isherm=True,
                 isunitary=True,
                 copy=False)
