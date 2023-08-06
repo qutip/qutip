@@ -104,7 +104,7 @@ def _set_ticklabels(ax, ticklabels, ticks, axis, fontsize=14):
         )
 
 
-def make_html_video(ani, save_options=None):
+def make_html_video(ani, file_path, writer=None, codec=None):
     """Plots a coloured Bloch sphere.
 
     Parameters
@@ -112,41 +112,26 @@ def make_html_video(ani, save_options=None):
     ani : ArtistAnimation
         The ArtistAnimation instance to be converted to HTML content.
 
-    save_options : dict, optional
-        A dictionary containing options to save the animation.
+    'file_path' : str
+        The output file path, e.g., :file:`./animation.mp4`.
 
-        'name' : str, default='animation.mp4'
-            The output filename, e.g., :file:`animation.mp4`.
+    'writer' : `MovieWriter` or str, optional
+        A `MovieWriter` instance to use or a key that identifies a
+        class to use, such as 'ffmpeg'.
 
-        'writer' : `MovieWriter` or str, optional
-            A `MovieWriter` instance to use or a key that identifies a
-            class to use, such as 'ffmpeg'.
-
-        'codec' : str, optional
-            The video codec to use.  Not all codecs are supported by a given
-            `MovieWriter`.
+    'codec' : str, optional
+        The video codec to use.  Not all codecs are supported by a given
+        `MovieWriter`.
 
     Returns
     -------
     html : IPython.core.display.HTML
         html video to display the animation
     """
-    if save_options is None:
-        save_options = dict()
-    if not isinstance(save_options, dict):
-        raise ValueError('save_options must be a dict')
 
-    if 'file_path' not in save_options.keys():
-        save_options['file_path'] = 'animation.mp4'
-    if 'writer' not in save_options.keys():
-        save_options['writer'] = None
-    if 'codec' not in save_options.keys():
-        save_options['codec'] = None
-
-    ani.save(save_options['file_path'], fps=10,
-             writer=save_options['writer'], codec=save_options['codec'])
-    tag = mimetypes.guess_type(save_options['file_path'])[0].split('/')[0]
-    video_tag = '<'+tag+' controls src="'+save_options['file_path']+'" />'
+    ani.save(file_path, fps=10, writer=writer, codec=codec)
+    tag = mimetypes.guess_type(file_path)[0].split('/')[0]
+    video_tag = '<'+tag+' controls src="'+file_path+'" />'
     html = HTML(video_tag)
     return html
 
@@ -417,12 +402,11 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
                     rho = vector_to_operator(rho.dag())
                 W = rho.full()
                 # Create default labels if none are given.
-                if x_basis is None or y_basis is None:
-                    labels = _cb_labels(rho.dims[0])
-                    if x_basis is None:
-                        x_basis = list(labels[0])
-                    if y_basis is None:
-                        y_basis = list(labels[1])
+                labels = _cb_labels(rho.dims[0])
+                if x_basis is None:
+                    x_basis = list(labels[0])
+                if y_basis is None:
+                    y_basis = list(labels[1])
 
             elif rho.issuper:
                 if not isqubitdims(rho.dims):
@@ -434,12 +418,11 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
                 nq = int(log2(sqobj.shape[0]) / 2)
                 W = sqobj.full().T
                 # Create default labels, too.
-                if (x_basis is None) or (y_basis is None):
-                    labels = list(map("".join, it.product("IXYZ", repeat=nq)))
-                    if x_basis is None:
-                        x_basis = labels
-                    if y_basis is None:
-                        y_basis = labels
+                labels = list(map("".join, it.product("IXYZ", repeat=nq)))
+                if x_basis is None:
+                    x_basis = labels
+                if y_basis is None:
+                    y_basis = labels
 
             else:
                 raise ValueError(
