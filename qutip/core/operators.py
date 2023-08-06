@@ -61,7 +61,7 @@ shape = [4, 4], type = oper, isherm = False
      [ 0.          0.          0.          0.        ]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     offsets = [0] if offsets is None else offsets
     data = _data.diag[dtype](diagonals, offsets, shape)
     return Qobj(data, dims=dims, type='oper', copy=False)
@@ -421,7 +421,7 @@ def destroy(N, offset=0, *, dtype=None):
      [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  1.73205081+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]]
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
@@ -464,7 +464,7 @@ def create(N, offset=0, *, dtype=None):
      [ 0.00000000+0.j  1.41421356+0.j  0.00000000+0.j  0.00000000+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
@@ -736,7 +736,7 @@ isherm = True
      [0. 0. 0. 1.]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     size, dimensions = _implicit_tensor_dimensions(dimensions)
     type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
     return Qobj(_data.identity[dtype](size), dims=dimensions, type=type_,
@@ -860,7 +860,7 @@ def num(N, offset=0, *, dtype=None):
      [0 0 2 0]
      [0 0 0 3]]
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     data = np.arange(offset, offset + N, dtype=complex)
     return qdiags(data, 0, dtype=dtype)
 
@@ -1152,7 +1152,7 @@ def enr_identity(dims, excitations, *, dtype=None):
         exication-number-restricted state space defined by `dims` and
         `exciations`.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     from .states import enr_state_dictionaries
     nstates, _, _ = enr_state_dictionaries(dims, excitations)
     return Qobj(_data.identity[dtype](nstates),
@@ -1193,7 +1193,7 @@ def charge(Nmax, Nmin=None, frac=1, *, dtype=None):
     .. versionadded:: 3.2
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     if Nmin is None:
         Nmin = -Nmax
     diag = frac * np.arange(Nmin, Nmax+1, dtype=float)

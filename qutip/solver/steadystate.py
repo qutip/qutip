@@ -215,16 +215,16 @@ def _steadystate_direct(A, weight, **kw):
         if isinstance(L, _data.CSR):
             L, b = _permute_wbm(L, b)
         else:
-            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrice can be permuted.", RuntimeWarning)
     use_rcm = False
     if kw.pop("use_rcm", False):
         if isinstance(L, _data.CSR):
             L, b, perm = _permute_rcm(L, b)
             use_rcm = True
         else:
-            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrice can be permuted.", RuntimeWarning)
     if kw.pop("use_precond", False):
-        if isinstance(L, _data.CSR):
+        if isinstance(L, (_data.CSR, _data.Dia)):
             kw["M"] = _compute_precond(L, kw)
         else:
             warn("Only sparse solver use preconditioners.", RuntimeWarning)
@@ -271,16 +271,16 @@ def _steadystate_power(A, **kw):
         if isinstance(L, _data.CSR):
             L, y = _permute_wbm(L, y)
         else:
-            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrice can be permuted.", RuntimeWarning)
     use_rcm = False
     if kw.pop("use_rcm", False):
         if isinstance(L, _data.CSR):
             L, y, perm = _permute_rcm(L, y)
             use_rcm = True
         else:
-            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrice can be permuted.", RuntimeWarning)
     if kw.pop("use_precond", False):
-        if isinstance(L, _data.CSR):
+        if isinstance(L, (_data.CSR, _data.Dia)):
             kw["M"] = _compute_precond(L, kw)
         else:
             warn("Only sparse solver use preconditioners.", RuntimeWarning)
@@ -469,7 +469,7 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         method = "splu" if sparse else "pinv"
     sparse_solvers = ["splu", "mkl_spsolve", "spilu"]
     dense_solvers = ["solve", "lstsq", "pinv"]
-    if isinstance(L.data, _data.CSR) and method in dense_solvers:
+    if isinstance(L.data, (_data.CSR, _data.Dia)) and method in dense_solvers:
         L = L.to("dense")
     elif isinstance(L.data, _data.Dense) and method in sparse_solvers:
         L = L.to("csr")
@@ -488,7 +488,7 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     if w in [None, 0.0]:
         L += 1e-15j
     else:
-        L += 1.0j*w
+        L += 1.0j * w
 
     use_rcm = use_rcm and isinstance(L.data, _data.CSR)
 
@@ -504,8 +504,9 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         LI = _data.Dense(scipy.linalg.pinv(A.to_array()), copy=False)
         LIQ = _data.matmul(LI, Q)
     elif method == "spilu":
-        if not isinstance(A, _data.CSR):
-            raise TypeError("'spilu' method can only be used with sparse data")
+        if not isinstance(A, (_data.CSR, _data.Dia)):
+            warn("'spilu' method can only be used with sparse data.")
+            A = _data.to(_data.CSR, A)
         ILU = scipy.sparse.linalg.spilu(A.as_scipy().tocsc(), **kwargs)
         LIQ = _data.Dense(ILU.solve(Q.to_array()))
     else:

@@ -5,7 +5,7 @@ from .test_mathematics import BinaryOpMixin
 import pytest
 import numpy as np
 from qutip import data
-from qutip.core.data import CSR, Dense
+from qutip.core.data import CSR, Dense, Dia
 from itertools import product
 
 
@@ -39,6 +39,8 @@ class TestExpect(BinaryOpMixin):
         pytest.param(data.expect_csr, CSR, CSR, complex),
         pytest.param(data.expect_dense, Dense, Dense, complex),
         pytest.param(data.expect_csr_dense, CSR, Dense, complex),
+        pytest.param(data.expect_dia, Dia, Dia, complex),
+        pytest.param(data.expect_dia_dense, Dia, Dense, complex),
         pytest.param(data.expect_data, Dense, CSR, complex),
     ]
 
@@ -65,5 +67,7 @@ class TestExpectSuper(BinaryOpMixin):
         pytest.param(data.expect_super_dense, Dense, Dense, complex),
         pytest.param(data.expect_super_csr, CSR, CSR, complex),
         pytest.param(data.expect_super_csr_dense, CSR, Dense, complex),
+        pytest.param(data.expect_super_dia, Dia, Dia, complex),
+        pytest.param(data.expect_super_dia_dense, Dia, Dense, complex),
         pytest.param(data.expect_super_data, CSR, Dense, complex),
     ]
