@@ -112,14 +112,14 @@ def make_html_video(ani, file_path, writer=None, codec=None):
     ani : ArtistAnimation
         The ArtistAnimation instance to be converted to HTML content.
 
-    'file_path' : str
+    file_path : str
         The output file path, e.g., :file:`./animation.mp4`.
 
-    'writer' : `MovieWriter` or str, optional
+    writer : `MovieWriter` or str, optional
         A `MovieWriter` instance to use or a key that identifies a
         class to use, such as 'ffmpeg'.
 
-    'codec' : str, optional
+    codec : str, optional
         The video codec to use.  Not all codecs are supported by a given
         `MovieWriter`.
 
