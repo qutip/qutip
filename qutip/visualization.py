@@ -172,7 +172,7 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
     """
 
     fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
-    
+
     if not isinstance(wigner, list):
         wigners = [wigner]
     else:
@@ -504,7 +504,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
         norm = mpl.colors.Normalize(-vmax, vmax)
         cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
         mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
-  
+
     return fig, output
 
 
@@ -860,8 +860,8 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
             z_min = limits[0]
             z_max = limits[1]
         else:
-            z_min = min(bar_M) if i==0 else min(min(bar_M), z_min)
-            z_max = max(bar_M) if i==0 else max(max(bar_M), z_max)
+            z_min = min(bar_M) if i == 0 else min(min(bar_M), z_min)
+            z_max = max(bar_M) if i == 0 else max(max(bar_M), z_max)
 
             if z_min == z_max:
                 z_min -= 0.1
@@ -878,8 +878,8 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                 c_min = -pi
                 c_max = pi
             else:
-                c_min = min(color_M) if i==0 else min(min(color_M), c_min)
-                c_max = min(color_M) if i==0 else max(max(color_M), c_max)
+                c_min = min(color_M) if i == 0 else min(min(color_M), c_min)
+                c_max = min(color_M) if i == 0 else max(max(color_M), c_max)
 
             if c_min == c_max:
                 c_min -= 0.1
@@ -1136,7 +1136,7 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
     if unit_y_range:
         ax.set_ylim(0, 1)
-        
+
     ax.set_xlim(-.5, N)
     ax.set_xlabel('Fock number', fontsize=12)
     ax.set_ylabel('Occupation probability', fontsize=12)
@@ -1251,7 +1251,7 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
             shrink = .75
         cax, kw = mpl.colorbar.make_axes(ax, shrink=shrink, pad=.1)
         cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
-    
+
     return fig, output
 
 
