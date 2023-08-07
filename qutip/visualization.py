@@ -250,7 +250,6 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
     else:
         ani = animation.ArtistAnimation(fig, artist_list, interval=50,
                                         blit=True, repeat_delay=1000)
-        plt.close()
         output = ani
 
     return fig, output
