@@ -172,29 +172,24 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
     """
 
     fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
-
-    if cmap is None:
-        cmap = _diverging_cmap()
-
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
-
+    
     if not isinstance(wigner, list):
         wigners = [wigner]
     else:
         wigners = wigner
 
-    wigner_max = 0
+    wigner_max = np.real(np.amax(np.abs(wigners[0])))
     for wigner in wigners:
         wigner_max = max(np.real(np.amax(np.abs(wigner))), wigner_max)
 
     norm = mpl.colors.Normalize(-wigner_max, wigner_max)
 
+    if cmap is None:
+        cmap = _diverging_cmap()
+
     artist_list = list()
     for wigner in wigners:
-        steps = len(wigner)
-
+        steps = len(wigners)
         theta = np.linspace(0, np.pi, steps)
         phi = np.linspace(0, 2 * np.pi, steps)
         x = np.outer(np.sin(theta), np.cos(phi))
@@ -239,18 +234,21 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
                                           antialiased=False))
         artist_list.append(artist)
 
-    # Create colourbar:
-    if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
-        mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
-
     if len(wigners) == 1:
         output = ax
-
     else:
         ani = animation.ArtistAnimation(fig, artist_list, interval=50,
                                         blit=True, repeat_delay=1000)
         output = ani
+
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
+
+    # Create colourbar:
+    if colorbar:
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
+        mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
     return fig, output
 
@@ -383,14 +381,13 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
 
     fig, ax = _is_fig_and_ax(fig, ax)
 
-    Ws = list()
-    w_max = 0
-
     if not isinstance(rho, list):
         rhos = [rho]
     else:
         rhos = rho
 
+    Ws = list()
+    w_max = 0
     for rho in rhos:
         # Extract plotting data W from the input.
         if isinstance(rho, Qobj):
@@ -477,11 +474,12 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
                                 color_fn=color_fn, ax=ax)
         artist_list.append(artist)
 
-    if colorbar:
-        vmax = np.pi if color_style == "phase" else w_max
-        norm = mpl.colors.Normalize(-vmax, vmax)
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
-        mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
+    if len(rhos) == 1:
+        output = ax
+    else:
+        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                        blit=True, repeat_delay=1000)
+        output = ani
 
     # axis
     if not (x_basis or y_basis):
@@ -501,12 +499,13 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     if y_basis:
         _set_ticklabels(ax, list(reversed(y_basis)), yticks, 'y')
 
-    if len(rhos) == 1:
-        return fig, ax
-    else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        return fig, ani
+    if colorbar:
+        vmax = np.pi if color_style == "phase" else w_max
+        norm = mpl.colors.Normalize(-vmax, vmax)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
+        mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
+  
+    return fig, output
 
 
 def sphereplot(theta, phi, values, *,
@@ -545,37 +544,44 @@ def sphereplot(theta, phi, values, *,
 
     fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
 
-    if cmap is None:
-        cmap = _sequential_cmap()
-
-    thetam, phim = np.meshgrid(theta, phi)
-    xx = sin(thetam) * cos(phim)
-    yy = sin(thetam) * sin(phim)
-    zz = cos(thetam)
-    min_ph = pi
-    max_ph = -pi
-
-    r_and_ph = list()
     if not isinstance(values, list):
         V = [values]
     else:
         V = values
 
+    r_and_ph = list()
+    min_ph = pi
+    max_ph = -pi
     for values in V:
         r = array(abs(values))
         ph = angle(values)
         min_ph = min(min_ph, ph.min())
         max_ph = max(max_ph, ph.max())
         r_and_ph.append((r, ph))
+
     # normalize color range based on phase angles in list ph
     norm = mpl.colors.Normalize(min_ph, max_ph)
 
+    if cmap is None:
+        cmap = _sequential_cmap()
+
     # plot with facecolors set to cm.jet colormap normalized to nrm
+    thetam, phim = np.meshgrid(theta, phi)
+    xx = sin(thetam) * cos(phim)
+    yy = sin(thetam) * sin(phim)
+    zz = cos(thetam)
     artist_list = list()
     for r, ph in r_and_ph:
         artist = [ax.plot_surface(r * xx, r * yy, r * zz, rstride=1, cstride=1,
                                   facecolors=cmap(norm(ph)), linewidth=0,)]
         artist_list.append(artist)
+
+    if len(V) == 1:
+        output = ax
+    else:
+        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                        blit=True, repeat_delay=1000)
+        output = ani
 
     if colorbar:
         # create new axes on plot for colorbar and shrink it a bit.
@@ -588,12 +594,7 @@ def sphereplot(theta, phi, values, *,
         # add our colorbar label
         cb1.set_label('Angle')
 
-    if len(V) == 1:
-        return fig, ax
-    else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        return fig, ani
+    return fig, output
 
 
 def _remove_margins(axis):
@@ -835,12 +836,13 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     else:
         raise ValueError("options must be a dictionary")
 
+    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
+
     if not isinstance(M, list):
         Ms = [M]
     else:
         Ms = M
 
-    _bars_and_colors = list()
     for i in range(len(Ms)):
         M = Ms[i]
         if isinstance(M, Qobj):
@@ -851,13 +853,6 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
             # extract matrix data from Qobj
             M = M.full()
 
-        n = np.size(M)
-        xpos, ypos = np.meshgrid(range(M.shape[0]), range(M.shape[1]))
-        xpos = xpos.T.flatten() + 0.5
-        ypos = ypos.T.flatten() + 0.5
-        zpos = np.zeros(n)
-        dx = dy = (1 - options['bars_spacing']) * np.ones(n)
-
         bar_M = _get_matrix_components(bar_style, M, 'bar_style')
 
         if isinstance(limits, list) and \
@@ -865,12 +860,8 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
             z_min = limits[0]
             z_max = limits[1]
         else:
-            if i == 0:
-                z_min = min(bar_M)
-                z_max = max(bar_M)
-            else:
-                z_min = min(min(bar_M), z_min)
-                z_max = max(max(bar_M), z_max)
+            z_min = min(bar_M) if i==0 else min(min(bar_M), z_min)
+            z_max = max(bar_M) if i==0 else max(max(bar_M), z_max)
 
             if z_min == z_max:
                 z_min -= 0.1
@@ -887,17 +878,13 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                 c_min = -pi
                 c_max = pi
             else:
-                if i == 0:
-                    c_min = min(color_M)
-                    c_max = max(color_M)
-                else:
-                    c_min = min(min(color_M), c_min)
-                    c_max = max(max(color_M), c_max)
+                c_min = min(color_M) if i==0 else min(min(color_M), c_min)
+                c_max = min(color_M) if i==0 else max(max(color_M), c_max)
 
             if c_min == c_max:
                 c_min -= 0.1
                 c_max += 0.1
-        _bars_and_colors.append((bar_M, color_M))
+
     norm = mpl.colors.Normalize(c_min, c_max)
 
     if cmap is None:
@@ -908,7 +895,17 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
             cmap = _sequential_cmap()
 
     artist_list = list()
-    for bar_M, color_M in _bars_and_colors:
+    for M in Ms:
+
+        if isinstance(M, Qobj):
+            M = M.full()
+
+        n = np.size(M)
+        xpos, ypos = np.meshgrid(range(M.shape[0]), range(M.shape[1]))
+        xpos = xpos.T.flatten() + 0.5
+        ypos = ypos.T.flatten() + 0.5
+        zpos = np.zeros(n)
+        dx = dy = (1 - options['bars_spacing']) * np.ones(n)
         colors = cmap(norm(color_M))
 
         colors[:, 3] = options['bars_alpha']
@@ -919,13 +916,18 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
             idx, = np.where(bar_M < options['threshold'])
             bar_M[idx] = 0
 
-        fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
-
         artist = ax.bar3d(xpos, ypos, zpos, dx, dy, bar_M, color=colors,
                           edgecolors=options['bars_edgecolor'],
                           linewidths=options['bars_lw'],
                           shade=options['shade'])
         artist_list.append([artist])
+
+    if len(Ms) == 1:
+        output = ax
+    else:
+        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                        blit=True, repeat_delay=1000)
+        output = ani
 
     # remove vertical lines on xz and yz plane
     ax.yaxis._axinfo["grid"]['linewidth'] = 0
@@ -946,6 +948,11 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                      options['bars_spacing'])
     ax.view_init(azim=options['azim'], elev=options['elev'])
 
+    # removing margins
+    _remove_margins(ax.xaxis)
+    _remove_margins(ax.yaxis)
+    _remove_margins(ax.zaxis)
+
     # color axis
     if colorbar:
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.75,
@@ -965,17 +972,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                 cb.set_ticklabels(
                     (r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
 
-    # removing margins
-    _remove_margins(ax.xaxis)
-    _remove_margins(ax.yaxis)
-    _remove_margins(ax.zaxis)
-
-    if len(Ms) == 1:
-        return fig, ax
-    else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        return fig, ani
+    return fig, output
 
 
 def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
@@ -1022,18 +1019,15 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
 
     """
 
-    fig, ax = _is_fig_and_ax(fig, ax)
-    ax.set_frame_on(False)
-
     if not isinstance(H_list, list):
         raise ValueError("H_list must be a list of Qobj instances")
 
+    fig, ax = _is_fig_and_ax(fig, ax)
+
     H = H_list[0]
     N = H.shape[0] if N == 0 else min(H.shape[0], N)
-
     xticks = []
     yticks = []
-
     x = 0
     evals0 = H.eigenenergies(eigvals=N)
     for e_idx, e in enumerate(evals0[:N]):
@@ -1057,6 +1051,8 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
         x += 2
 
         evals0 = evals1
+
+    ax.set_frame_on(False)
 
     if energy_levels:
         yticks = np.unique(np.around(yticks, 1))
@@ -1118,7 +1114,6 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
         rhos = rho
 
     artist_list = list()
-
     for rho in rhos:
         if isket(rho):
             rho = ket2dm(rho)
@@ -1129,21 +1124,24 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
                         color=color, alpha=0.6, width=0.8).patches
         artist_list.append(artist)
 
+    if len(rhos) == 1:
+        output = ax
+    else:
+        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                        blit=True, repeat_delay=1000)
+        output = ani
+
     if fock_numbers:
         _set_ticklabels(ax, fock_numbers, np.arange(N), 'x', fontsize=12)
 
     if unit_y_range:
         ax.set_ylim(0, 1)
+        
     ax.set_xlim(-.5, N)
     ax.set_xlabel('Fock number', fontsize=12)
     ax.set_ylabel('Occupation probability', fontsize=12)
 
-    if len(rhos) == 1:
-        return fig, ax
-    else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        return fig, ani
+    return fig, output
 
 
 def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
@@ -1194,12 +1192,9 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
         instance used to produce the figure.
     """
 
-    wlim = 0
-    Ws = list()
-    artist_list = list()
-
     if projection not in ('2d', '3d'):
         raise ValueError('Unexpected value of projection keyword argument')
+
     fig, ax = _is_fig_and_ax(fig, ax, projection)
 
     if not isinstance(rho, list):
@@ -1207,14 +1202,13 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     else:
         rhos = rho
 
+    wlim = 0
+    Ws = list()
+    xvec = np.linspace(-7.5, 7.5, 200) if xvec is None else xvec
+    yvec = np.linspace(-7.5, 7.5, 200) if yvec is None else yvec
     for rho in rhos:
         if isket(rho):
             rho = ket2dm(rho)
-
-        if xvec is None:
-            xvec = np.linspace(-7.5, 7.5, 200)
-        if yvec is None:
-            yvec = np.linspace(-7.5, 7.5, 200)
 
         W0 = wigner(rho, xvec, yvec, method=method)
 
@@ -1224,9 +1218,11 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
         wlim = max(abs(W).max(), wlim)
 
     norm = mpl.colors.Normalize(-wlim, wlim)
-    if cmap is None:
-        cmap = mpl.cm.RdBu
 
+    if cmap is None:
+        cmap = _diverging_cmap()
+
+    artist_list = list()
     for W in Ws:
         if projection == '2d':
             cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
@@ -1237,8 +1233,16 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
                                   norm=norm, cmap=cmap)]
         artist_list.append(cf)
 
+    if len(rhos) == 1:
+        output = ax
+    else:
+        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                        blit=True, repeat_delay=1000)
+        output = ani
+
     ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
     ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
+    ax.set_title("Wigner function", fontsize=12)
 
     if colorbar:
         if projection == '2d':
@@ -1247,15 +1251,8 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
             shrink = .75
         cax, kw = mpl.colorbar.make_axes(ax, shrink=shrink, pad=.1)
         cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
-
-    ax.set_title("Wigner function", fontsize=12)
-
-    if len(rhos) == 1:
-        return fig, ax
-    else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        return fig, ani
+    
+    return fig, output
 
 
 def plot_expectation_values(results, ylabels=None, *,
@@ -1301,7 +1298,7 @@ def plot_expectation_values(results, ylabels=None, *,
             axes = [axes]
         axes = np.array(axes)
 
-    for r_idx, result in enumerate(results):
+    for _, result in enumerate(results):
         for e_idx, e in enumerate(result.expect):
             axes[e_idx].plot(result.times, e,
                              label="%s [%d]" % (result.solver, e_idx))
@@ -1393,8 +1390,6 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         ax.set_yticks([-1, 0, 1])
         ax.set_yticklabels([r'$\pi$', r'$\pi/2$', r'$0$'], fontsize=18)
     else:
-        ax.view_init(azim=-35, elev=35)
-
         xx = sin(THETA) * cos(PHI)
         yy = sin(THETA) * sin(PHI)
         zz = cos(THETA)
@@ -1402,17 +1397,21 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
             artist = [ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
                       facecolors=cmap(norm(P)), linewidth=0)]
             artist_list.append(artist)
-    if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.1)
-        cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
-        cb1.set_label('magnitude')
+        ax.view_init(azim=-35, elev=35)
 
     if len(Ps) == 1:
-        return fig, ax
+        output = ax
     else:
         ani = animation.ArtistAnimation(fig, artist_list, interval=50,
                                         blit=True, repeat_delay=1000)
-        return fig, ani
+        output = ani
+
+    if colorbar:
+        cax, _ = mpl.colorbar.make_axes(ax, shrink=.66, pad=.1)
+        cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+        cb1.set_label('magnitude')
+
+    return fig, output
 
 
 #
@@ -1698,23 +1697,31 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
             qub[_to_qubism_index_pair(i, dim_list, how=how)] = ketdata[i, 0]
         qub = qub.transpose()
 
-        quadrants_x = np.prod(dim_list_x[:grid_iteration])
-        quadrants_y = np.prod(dim_list_y[:grid_iteration])
-
-        ticks_x = [size_x // quadrants_x * i for i in range(1, quadrants_x)]
-        ticks_y = [size_y // quadrants_y * i for i in range(1, quadrants_y)]
-
-        ax.set_xticks(ticks_x)
-        ax.set_xticklabels([""] * (quadrants_x - 1))
-        ax.set_yticks(ticks_y)
-        ax.set_yticklabels([""] * (quadrants_y - 1))
-        theme2color_of_lines = {'light': '#000000',
-                                'dark': '#FFFFFF'}
-        ax.grid(True, color=theme2color_of_lines[theme])
         artist = [ax.imshow(complex_array_to_rgb(qub, theme=theme),
                   interpolation="none",
                   extent=(0, size_x, 0, size_y))]
         artist_list.append(artist)
+
+    if len(kets) == 1:
+        output = ax
+    else:
+        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                        blit=True, repeat_delay=1000)
+        output = ani
+
+    quadrants_x = np.prod(dim_list_x[:grid_iteration])
+    quadrants_y = np.prod(dim_list_y[:grid_iteration])
+
+    ticks_x = [size_x // quadrants_x * i for i in range(1, quadrants_x)]
+    ticks_y = [size_y // quadrants_y * i for i in range(1, quadrants_y)]
+
+    ax.set_xticks(ticks_x)
+    ax.set_xticklabels([""] * (quadrants_x - 1))
+    ax.set_yticks(ticks_y)
+    ax.set_yticklabels([""] * (quadrants_y - 1))
+    theme2color_of_lines = {'light': '#000000',
+                            'dark': '#FFFFFF'}
+    ax.grid(True, color=theme2color_of_lines[theme])
 
     if legend_iteration == 'all':
         label_n = n // 2
@@ -1758,12 +1765,8 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
                     size_y - (scale_y * y + shift_y),
                     _sequence_to_latex(seq),
                     **opts)
-    if len(kets) == 1:
-        return fig, ax
-    else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        return fig, ani
+
+    return fig, output
 
 
 def plot_schmidt(ket, theme='light', splitting=None,
@@ -1847,6 +1850,13 @@ def plot_schmidt(ket, theme='light', splitting=None,
                             extent=(0, size_x, 0, size_y))]
         artist_list.append(artist)
 
+    if len(kets) == 1:
+        output = ax
+    else:
+        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                        blit=True, repeat_delay=1000)
+        output = ani
+
     dim_list_small_x = dim_list_x[:labels_iteration[1]]
     dim_list_small_y = dim_list_y[:labels_iteration[0]]
 
@@ -1872,9 +1882,4 @@ def plot_schmidt(ket, theme='light', splitting=None,
     ax.set_xlabel("last particles")
     ax.set_ylabel("first particles")
 
-    if len(kets) == 1:
-        return fig, ax
-    else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        return fig, ani
+    return fig, output
