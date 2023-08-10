@@ -328,7 +328,8 @@ def dims_idxs_to_tensor_idxs(dims, indices):
 
 def to_tensor_rep(q_oper):
     """
-    Transform a ``Qobj`` to a numpy array whose shape is the flattened dimensions.
+    Transform a ``Qobj`` to a numpy array whose shape is the flattened
+    dimensions.
 
     ```
     ket.dims == [[2, 3], [1]]
@@ -439,6 +440,7 @@ class MetaSpace(type):
 
 class Space(metaclass=MetaSpace):
     _stored_dims = {}
+
     def __init__(self, dims):
         idims = int(dims)
         if idims <= 0 or idims != dims:
@@ -510,12 +512,15 @@ class Space(metaclass=MetaSpace):
         ``Space([2, 3, 4]).replace(1, 5) == Space([2, 5, 4])``
         """
         if idx != 0:
-            raise ValueError("Cannot replace a non-zero index in a flat space.")
+            raise ValueError(
+                "Cannot replace a non-zero index in a flat space."
+            )
         return Space(new)
 
 
 class Field(Space):
     field_instance = None
+
     def __init__(self):
         self.size = 1
         self.issuper = False
@@ -554,6 +559,7 @@ Field.field_instance.__init__()
 
 class Compound(Space):
     _stored_dims = {}
+
     def __init__(self, *spaces):
         self.spaces = []
         for space in spaces:
@@ -623,7 +629,7 @@ class Compound(Space):
         new_spaces = []
         for space in self.spaces:
             n_indices = len(space.flat())
-            idx_space = [i for i in idx if i<n_indices]
+            idx_space = [i for i in idx if i < n_indices]
             idx = [i-n_indices for i in idx if i >= n_indices]
             new_space = space.remove(idx_space)
         if new_spaces:
@@ -644,6 +650,7 @@ class Compound(Space):
 
 class SuperSpace(Space):
     _stored_dims = {}
+
     def __init__(self, oper, rep='super'):
         self.oper = oper
         self.superrep = rep

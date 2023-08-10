@@ -119,8 +119,11 @@ def enr_fock(dims, excitations, state, *, dtype=None):
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
     nstates, state2idx, _ = enr_state_dictionaries(dims, excitations)
     try:
-        data =_data.one_element[dtype]((nstates, 1),
-                                       (state2idx[tuple(state)], 0), 1)
+        data = _data.one_element[dtype](
+            (nstates, 1),
+            (state2idx[tuple(state)], 0),
+            1
+        )
     except KeyError:
         msg = (
             "state tuple " + str(tuple(state))
