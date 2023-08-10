@@ -328,8 +328,7 @@ def dims_idxs_to_tensor_idxs(dims, indices):
 
 def to_tensor_rep(q_oper):
     """
-    Transform a ``Qobj`` to a numpy array of one with it's shape the dimensions
-    flattened.
+    Transform a ``Qobj`` to a numpy array whose shape is the flattened dimensions.
 
     ```
     ket.dims == [[2, 3], [1]]
@@ -442,8 +441,8 @@ class Space(metaclass=MetaSpace):
     _stored_dims = {}
     def __init__(self, dims):
         idims = int(dims)
-        if dims <= 0 or idims != dims:
-            raise ValueError("Dimensions must be integers >= 0")
+        if idims <= 0 or idims != dims:
+            raise ValueError("Dimensions must be integers > 0")
         # Size of the hilbert space
         self.size = dims
         self.issuper = False
@@ -510,6 +509,8 @@ class Space(metaclass=MetaSpace):
 
         ``Space([2, 3, 4]).replace(1, 5) == Space([2, 5, 4])``
         """
+        if idx != 0:
+            raise ValueError("Cannot replace a non-zero index in a flat space.")
         return Space(new)
 
 
