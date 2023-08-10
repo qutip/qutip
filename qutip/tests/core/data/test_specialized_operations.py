@@ -5,8 +5,6 @@ from qutip.core.data import CSR, Dense
 import qutip
 
 
-
-
 @pytest.mark.parametrize(["op_type", "state_type", "function"], [
     (Dense, Dense, data.herm_matmul_dense),
     (CSR, Dense, data.herm_matmul_csr_dense_dense),

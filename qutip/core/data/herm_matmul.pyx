@@ -106,23 +106,7 @@ cpdef Dense herm_matmul_csr_dense_dense(CSR left, Dense right,
     )
     if out is not None:
         inplace_out = add(out, inplace_out)
-    """
-    for dm_row in range(N):
-        row = dm_row * (N+1)
-        val = 0
-        for ptr in range(left.row_index[row], left.row_index[row+1]):
-            # diagonal part
-            val += left.data[ptr] * right.data[left.col_index[ptr]]
-        out.data[row] += scale * val
 
-        for dm_col in range(dm_row+1, N):
-            # upper triangular part
-            row = dm_row*N + dm_col
-            val = 0
-            for ptr in range(left.row_index[row], left.row_index[row+1]):
-                val += left.data[ptr] * right.data[left.col_index[ptr]]
-            out.data[row] += scale * val
-            out.data[dm_col*N + dm_row] += conj(scale * val)"""
     return inplace_out
 
 
