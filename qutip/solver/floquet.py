@@ -765,7 +765,7 @@ class FMESolver(MESolver):
         "normalize_output": True,
         "method": "adams",
         "store_floquet_states": False,
-        "use_herm_matmul" : False,
+        "use_herm_matmul": False,
     }
 
     def __init__(

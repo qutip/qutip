@@ -533,7 +533,7 @@ class StochasticSolver(MultiTrajSolver):
 
         Default are:
 
-            m_ops = sc_ops + sselfc_ops.dag()
+            m_ops = sc_ops + sc_ops.dag()
 
         for homodyne detection, and
 
@@ -664,7 +664,7 @@ class SMESolver(StochasticSolver):
         "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
-        "use_herm_matmul" : False,
+        "use_herm_matmul": False,
     }
 
     @property

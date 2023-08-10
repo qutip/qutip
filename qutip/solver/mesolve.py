@@ -192,7 +192,7 @@ class MESolver(SESolver):
         "store_states": None,
         "normalize_output": True,
         'method': 'adams',
-        "use_herm_matmul" : False,
+        "use_herm_matmul": False,
     }
 
     def __init__(self, H, c_ops=None, *, options=None):

@@ -242,7 +242,7 @@ class BRSolver(Solver):
         'method': 'adams',
         'tensor_type': 'sparse',
         'sparse_eigensolver': False,
-        "use_herm_matmul" : False,
+        "use_herm_matmul": False,
     }
     _avail_integrators = {}
 
