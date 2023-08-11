@@ -93,35 +93,58 @@ def _floquet_rate_matrix(floquet_basis,
 
         Divided by the length of tlist for normalization
         '''
-        c_op_Fourier_amplitudes_list = np.array(np.fft.fftshift(np.fft.fft(
+        c_op_Fourier_amplitudes_list = np.array((np.fft.fft(
             c_op_Floquet_basis, axis=0)) / len(tlist))
 
         '''
         Next,I want to find all rate-product terms that are nonzero
         '''
         rate_products = np.einsum('lab,kcd->abcdlk',
-                                  c_op_Fourier_amplitudes_list, np.conj(c_op_Fourier_amplitudes_list))
-        rate_products_idx = np.argwhere(abs(rate_products) != 0)
+                                  c_op_Fourier_amplitudes_list,
+                                  np.conj(c_op_Fourier_amplitudes_list))
 
         args_key = list(omega.keys())[0]
-        valid_indices = [tuple(indices) for indices in rate_products_idx
-                         if delta(*tuple(indices)) == 0
-                         or abs((rate_products[tuple(indices)]
-                                 / (omega[args_key]
-                                    * delta(*tuple(indices))))**(-1)) <= time_sense
-                         and abs(omega[args_key] * delta(*tuple(indices))) < Nt / 2]
+
+        delta_array = np.add.outer(
+            np.subtract.outer(
+                np.subtract.outer(floquet_basis.e_quasi,
+                                  floquet_basis.e_quasi),
+                np.subtract.outer(floquet_basis.e_quasi, floquet_basis.e_quasi)
+            )/(list(omega.values())[0]),
+            np.subtract.outer(np.arange(Nt), np.arange(Nt))
+        )
+
+        quotient_array = np.divide(
+            omega[args_key]*delta_array,
+            abs(rate_products),
+            out=np.full(np.shape(delta_array), (time_sense+1), dtype=complex),
+            where=abs(rate_products) != 0,
+            dtype=complex)
+
+        # Masking any frequency greater than Nyquist Frequency
+        nyquist_mask = np.ma.getmaskarray(np.ma.masked_greater(
+            delta_array, np.pi/(tlist[1]-tlist[0])))
+        # Masking any rate quotient greater than time_sense
+        quotient_mask = np.ma.getmaskarray(np.ma.masked_greater(
+            abs(quotient_array), time_sense))
+
+        full_mask = nyquist_mask | quotient_mask
+
+        valid_indices = np.argwhere(full_mask == False)
+        delta_vals_truncd = [
+            delta_array[tuple(indices)] for indices in valid_indices]
 
         delta_dict = {}
-        for indices in valid_indices:
+        for idx, indices in enumerate(valid_indices):
             try:
-                delta_dict[delta(*indices)].append(indices)
+                delta_dict[delta_vals_truncd[idx]].append(indices)
             except KeyError:
-                delta_dict[delta(*indices)] = [indices]
+                delta_dict[delta_vals_truncd[idx]] = [indices]
 
         for key in delta_dict.keys():
             mask_array = np.zeros((Hdim, Hdim, Hdim, Hdim, Nt, Nt))
             for indices in delta_dict[key]:
-                mask_array[indices] = True
+                mask_array[tuple(indices)] = True
             valid_c_op_products = rate_products * mask_array
 
             # using c = ap,d = bp,k=lp
