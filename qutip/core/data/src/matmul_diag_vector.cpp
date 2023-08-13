@@ -82,3 +82,56 @@ template void _matmul_diag_block<>(
         std::complex<double> * _RESTRICT,
         const long long,
         const long long);
+
+
+template <typename IntT>
+void _matmul_diag_vector_herm(
+        const std::complex<double> * _RESTRICT data,
+        const std::complex<double> * _RESTRICT vec,
+        std::complex<double> * _RESTRICT out,
+        const IntT start_out,
+        const IntT subsystem_size,
+        const IntT length
+){
+    const double * data_dbl = reinterpret_cast<const double *>(data);
+    const double * vec_dbl = reinterpret_cast<const double *>(vec);
+    double * out_dbl = reinterpret_cast<double *>(out);
+    // Gcc does not vectorize complex automatically?
+    IntT ptr = 0;
+    IntT idx = 0;
+    for (IntT i=0; i<subsystem_size; i++){
+        ptr += 2*i;
+        for (IntT j=i; j<subsystem_size; j++){
+            if (ptr > start_out * 2){
+                idx = ptr - start_out * 2;
+                out_dbl[ptr] += data_dbl[idx] * vec_dbl[idx];
+                out_dbl[ptr] -= data_dbl[idx+1] * vec_dbl[idx+1];
+                out_dbl[ptr+1] += data_dbl[idx] * vec_dbl[idx+1];
+                out_dbl[ptr+1] += data_dbl[idx+1] * vec_dbl[idx];
+            }
+            ptr += 2;
+        }
+    }
+}
+
+template void _matmul_diag_vector_herm<>(
+        const std::complex<double> * _RESTRICT,
+        const std::complex<double> * _RESTRICT,
+        std::complex<double> * _RESTRICT,
+        const int,
+        const int,
+        const int);
+template void _matmul_diag_vector_herm<>(
+        const std::complex<double> * _RESTRICT,
+        const std::complex<double> * _RESTRICT,
+        std::complex<double> * _RESTRICT,
+        const long,
+        const long,
+        const long);
+template void _matmul_diag_vector_herm<>(
+        const std::complex<double> * _RESTRICT,
+        const std::complex<double> * _RESTRICT,
+        std::complex<double> * _RESTRICT,
+        const long long,
+        const long long,
+        const long long);

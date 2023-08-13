@@ -24,3 +24,13 @@ void _matmul_diag_block(
         const IntT length,
         const IntT width
 );
+
+template <typename IntT>
+void _matmul_diag_vector_herm(
+        const std::complex<double> * _RESTRICT data,
+        const std::complex<double> * _RESTRICT vec,
+        std::complex<double> * _RESTRICT out,
+        const IntT start_out,
+        const IntT subsystem_size,
+        const IntT length
+);

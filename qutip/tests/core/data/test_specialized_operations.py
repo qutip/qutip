@@ -8,6 +8,7 @@ import qutip
 @pytest.mark.parametrize(["op_type", "state_type", "function"], [
     (Dense, Dense, data.herm_matmul_dense),
     (CSR, Dense, data.herm_matmul_csr_dense_dense),
+    (Dia, Dense, data.herm_matmul_dia_dense_dense),
     (Dense, CSR, data.herm_matmul_data),
 ])
 def test_herm_matmul(op_type, state_type, function):

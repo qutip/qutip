@@ -194,6 +194,7 @@ class MESolver(SESolver):
         'method': 'adams',
         "use_herm_matmul": False,
     }
+    _reset_options = {"method", "use_herm_matmul"}
 
     def __init__(self, H, c_ops=None, *, options=None):
         _time_start = time()
@@ -208,11 +209,16 @@ class MESolver(SESolver):
 
         self._num_collapse = len(c_ops)
 
-        rhs = H if H.issuper else liouvillian(H)
-        rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
-                   for c_op in c_ops)
+        self.H = QobjEvo(H) if not H.issuper else 0.
+        self.L0 = QobjEvo(H) if H.issuper else 0.
+        self.c_ops = []
+        for c_op in c_ops:
+            if c_op.issuper:
+                self.L0 += c_op
+            else:
+                self.c_ops.append(QobjEvo(c_op))
 
-        Solver.__init__(self, rhs, options=options)
+        Solver.__init__(self, None, options=options)
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
@@ -222,13 +228,28 @@ class MESolver(SESolver):
         })
         return stats
 
-    def _update_rhs(self):
+    def _build_rhs(self):
         """
-        Optionally modify the rhs QobjEvo.
+        Build the rhs QobjEvo.
         """
+        self.rhs = self.L0
+        if self.H != 0.:
+            self.rhs += liouvillian(self.H)
+        self.rhs += sum(lindblad_dissipator(c_op) for c_op in self.c_ops)
         if self.options["use_herm_matmul"]:
-            return QobjEvoHerm(self.rhs)
+            self.rhs = QobjEvoHerm(self.rhs)
         return self.rhs
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and other operators."""
+        if args:
+            if self.H != 0.:
+                self.H.arguments(args)
+            if self.L0 != 0.:
+                self.L0.arguments(args)
+            for c_op in self.c_ops:
+                c_op.arguments(args)
+            self._integrator.arguments(args)
 
     @property
     def options(self):
@@ -270,11 +291,3 @@ class MESolver(SESolver):
     @options.setter
     def options(self, new_options):
         Solver.options.fset(self, new_options)
-
-    def _apply_options(self, keys):
-        if hasattr(self, "_rhs") and "use_herm_matmul" in keys:
-            self._rhs = self._update_rhs()
-            # Ensure the integrator is reset
-            keys = set(keys)
-            keys.add('method')
-        super()._apply_options(keys)

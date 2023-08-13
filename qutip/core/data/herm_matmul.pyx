@@ -10,20 +10,20 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 cimport cython
 
-# cimport numpy as cnp
-
 from qutip.core.data.base cimport idxint, Data
-from qutip.core.data cimport csr, dense, CSR, Dense
+from qutip.core.data cimport csr, dense, CSR, Dense, Dia, dia
 from qutip.core.data.matmul cimport imatmul_data_dense
 from qutip.core.data.add import add
 from qutip.core.data.matmul import matmul
-
-# cnp.import_array()
-
+from qutip.core.data.add cimport iadd_dense
+from qutip.core.data.mul cimport imul_dense
 
 __all__ = [
-    "herm_matmul", "herm_matmul_csr_dense_dense",
-    "herm_matmul_dense", "herm_matmul_data"
+    "herm_matmul",
+    "herm_matmul_csr_dense_dense",
+    "herm_matmul_dia_dense_dense",
+    "herm_matmul_dense",
+    "herm_matmul_data",
 ]
 
 
@@ -37,6 +37,11 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
         double complex *vec, double complex scale, double complex *out,
         T nrows, T sub_size)
 
+cdef extern from "src/matmul_diag_vector.hpp" nogil:
+    void _matmul_diag_vector_herm[T](
+        double complex *data, double complex *vec, double complex *out,
+        T start_out, T subsystem_size, T length
+    )
 
 cdef void _check_shape(Data left, Data right, idxint subsize, Data out=None) except * nogil:
     if left.shape[1] != right.shape[0]:
@@ -45,6 +50,10 @@ cdef void _check_shape(Data left, Data right, idxint subsize, Data out=None) exc
             + str(left.shape)
             + " and "
             + str(right.shape)
+        )
+    if left.shape[0] != left.shape[1]:
+        raise ValueError(
+            "A square operator is expected for hermitian preserving matmul."
         )
     if right.shape[1] != 1:
         raise ValueError(
@@ -105,6 +114,67 @@ cpdef Dense herm_matmul_csr_dense_dense(CSR left, Dense right,
         inplace_out = add(out, inplace_out)
 
     return inplace_out
+
+
+cpdef Dense herm_matmul_dia_dense_dense(Dia left, Dense right,
+                                        idxint subsystem_size=0,
+                                        double complex scale=1,
+                                        Data out=None):
+    """
+    Perform the operation
+        ``out := scale * (left @ right) + out``
+    where `left`, `right` and `out` are matrices.  `scale` is a complex scalar,
+    defaulting to 1.
+    `left` and `right` must be chossen so `out` is hemitian.
+    `left` and 'out' must be vectorized operator: `shape = (N**2, 1)`
+
+    Made to be used in :func:`mesolve`.
+
+    """
+    cdef Dense inplace_out=None
+    if subsystem_size == 0:
+        subsystem_size = <size_t> sqrt(right.shape[0])
+    _check_shape(left, right, subsystem_size, out)
+
+    cdef Dense tmp
+    if out is not None and scale == 1.:
+        tmp = out
+        out = None
+    else:
+        tmp = dense.zeros(left.shape[0], right.shape[1], right.fortran)
+
+    cdef idxint start_left, end_left, start_out, end_out, length, start_right
+    cdef idxint col
+    cdef size_t diag
+
+    with nogil:
+        for diag in range(left.num_diag):
+            start_left = max(0, left.offsets[diag])
+            end_left = min(left.shape[1], left.shape[0] + left.offsets[diag])
+            start_out = max(0, -left.offsets[diag])
+            end_out = min(left.shape[0], left.shape[1] - left.offsets[diag])
+            length = min(end_left - start_left, end_out - start_out)
+            start_right = start_left
+            start_left += diag * left.shape[1]
+
+            _matmul_diag_vector_herm(
+                left.data + start_left,
+                right.data + start_right,
+                tmp.data,
+                start_out,
+                subsystem_size,
+                length
+            )
+
+    if out is None and scale == 1.:
+        out = tmp
+    elif out is None:
+        imul_dense(tmp, scale)
+        out = tmp
+    else:
+        iadd_dense(out, tmp, scale)
+
+    return out
 
 
 cpdef Dense herm_matmul_dense(Dense left, Dense right, idxint subsystem_size=0,
