@@ -1012,6 +1012,14 @@ def test_overlap():
         assert np.allclose(Ad.overlap(Bd), ans)
         assert np.allclose(A.overlap(Bd), np.conj(ans))
 
+def test_extract_states_hermiticity():
+    """Test that hermiticity is preserved after extract_states."""
+
+    H_t = rand_herm(10, seed=0)
+    H_t_reduced = H_t.extract_states(range(3))
+
+    assert H_t_reduced._isherm == True
+
 
 def test_unit():
     """
