@@ -101,6 +101,15 @@ def test_set_ticklabels():
     assert str(exc_info.value) == text
 
 
+def test_equal_shape():
+    rhos = [qutip.rand_dm(5)]*2 + [qutip.rand_dm(4)]
+    text = "All inputs should have the same shape."
+
+    with pytest.raises(Exception) as exc_info:
+        fig, ax = qutip.hinton(rhos)
+    assert str(exc_info.value) == text
+
+
 def test_make_html_video():
     rho = qutip.rand_dm(5)
     rhos = [rho]*2

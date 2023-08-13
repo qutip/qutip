@@ -104,6 +104,14 @@ def _set_ticklabels(ax, ticklabels, ticks, axis, fontsize=14):
         )
 
 
+def _equal_shape(matrices):
+    first_shape = matrices[0].shape
+
+    text = "All inputs should have the same shape."
+    if not all(matrix.shape == first_shape for matrix in matrices):
+        raise ValueError(text)
+
+
 def make_html_video(ani, file_path, writer=None, codec=None):
     """Plots a coloured Bloch sphere.
 
@@ -177,6 +185,8 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
         wigners = [wigner]
     else:
         wigners = wigner
+
+    _equal_shape(wigners)
 
     wigner_max = np.real(np.amax(np.abs(wigners[0])))
     for wigner in wigners:
@@ -386,6 +396,8 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     else:
         rhos = rho
 
+    _equal_shape(rhos)
+
     Ws = list()
     w_max = 0
     for rho in rhos:
@@ -548,6 +560,8 @@ def sphereplot(theta, phi, values, *,
         V = [values]
     else:
         V = values
+
+    _equal_shape(V)
 
     r_and_ph = list()
     min_ph = pi
@@ -843,6 +857,8 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     else:
         Ms = M
 
+    _equal_shape(Ms)
+
     for i in range(len(Ms)):
         M = Ms[i]
         if isinstance(M, Qobj):
@@ -899,6 +915,9 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
         if isinstance(M, Qobj):
             M = M.full()
+
+        bar_M = _get_matrix_components(bar_style, M, 'bar_style')
+        color_M = _get_matrix_components(color_style, M, 'color_style')
 
         n = np.size(M)
         xpos, ypos = np.meshgrid(range(M.shape[0]), range(M.shape[1]))
@@ -1113,6 +1132,8 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
     else:
         rhos = rho
 
+    _equal_shape(rhos)
+
     artist_list = list()
     for rho in rhos:
         if isket(rho):
@@ -1202,6 +1223,8 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     else:
         rhos = rho
 
+    _equal_shape(rhos)
+
     wlim = 0
     Ws = list()
     xvec = np.linspace(-7.5, 7.5, 200) if xvec is None else xvec
@@ -1242,7 +1265,6 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
 
     ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
     ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
-    ax.set_title("Wigner function", fontsize=12)
 
     if colorbar:
         if projection == '2d':
@@ -1361,6 +1383,8 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         Ps = [P]
     else:
         Ps = P
+
+    _equal_shape(Ps)
 
     min_P = Ps[0].min()
     max_P = Ps[0].max()
@@ -1657,6 +1681,8 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
     else:
         kets = ket
 
+    _equal_shape(kets)
+
     artist_list = list()
     for ket in kets:
         if not isket(ket):
@@ -1819,6 +1845,8 @@ def plot_schmidt(ket, theme='light', splitting=None,
         kets = [ket]
     else:
         kets = ket
+
+    _equal_shape(kets)
 
     artist_list = list()
 
