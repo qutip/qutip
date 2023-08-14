@@ -1843,7 +1843,7 @@ class Qobj(object):
 
         """
         if self.isoper:
-            q = Qobj(self.data[states_inds, :][:, states_inds], isherm=self._isherm)
+            q = Qobj(self.data[states_inds, :][:, states_inds], isherm=self._isherm or None)
         elif self.isket:
             q = Qobj(self.data[states_inds, :])
         elif self.isbra:
