@@ -96,22 +96,49 @@ void _matmul_diag_vector_herm(
     const double * data_dbl = reinterpret_cast<const double *>(data);
     const double * vec_dbl = reinterpret_cast<const double *>(vec);
     double * out_dbl = reinterpret_cast<double *>(out);
-    // Gcc does not vectorize complex automatically?
-    IntT ptr = 0;
-    IntT idx = 0;
-    for (IntT i=0; i<subsystem_size; i++){
-        ptr += 2*i;
-        for (IntT j=i; j<subsystem_size; j++){
-            if (ptr > start_out * 2){
-                idx = ptr - start_out * 2;
-                out_dbl[ptr] += data_dbl[idx] * vec_dbl[idx];
-                out_dbl[ptr] -= data_dbl[idx+1] * vec_dbl[idx+1];
-                out_dbl[ptr+1] += data_dbl[idx] * vec_dbl[idx+1];
-                out_dbl[ptr+1] += data_dbl[idx+1] * vec_dbl[idx];
+
+    IntT col = start_out / subsystem_size;
+    IntT row = start_out % subsystem_size;
+    IntT ptr = (col*subsystem_size + row)*2;
+
+    for (IntT idx=0; idx<length*2; idx+=2){
+        if (col <= row){
+            out_dbl[ptr] += data_dbl[idx] * vec_dbl[idx];
+            out_dbl[ptr] -= data_dbl[idx+1] * vec_dbl[idx+1];
+            out_dbl[ptr + 1] += data_dbl[idx] * vec_dbl[idx+1];
+            out_dbl[ptr + 1] += data_dbl[idx+1] * vec_dbl[idx];
+            if (col != row){
+                out_dbl[(row*subsystem_size + col)*2] = out_dbl[ptr];
+                out_dbl[(row*subsystem_size + col)*2 + 1] = -out_dbl[ptr + 1];
             }
-            ptr += 2;
+        }
+        row += 1;
+        ptr += 2;
+        if (row == subsystem_size){
+            col += 1;
+            row = 0;
         }
     }
+
+    /*
+    for (IntT row=0; row<subsystem_size; row++){
+      for (IntT col=row; col<subsystem_size; col++){
+        ptr = (row*subsystem_size + col)*2;
+        if (ptr < start_out * 2){continue;}
+        if (ptr > (start_out + length) * 2){idx += 2; continue;}
+
+        out_dbl[ptr] += idx*10000;
+        idx += 2;
+      }
+      if (ptr > start_out * 2){idx += 2 * (row+1);}
+
+    }
+    for (IntT row=0; row<subsystem_size; row++){
+      for (IntT col=0; col<row; col++){
+
+      }
+    }
+    */
 }
 
 template void _matmul_diag_vector_herm<>(

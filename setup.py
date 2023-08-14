@@ -218,6 +218,7 @@ def _extension_extra_sources():
         ],
         'qutip.core.data.herm_matmul': [
             'qutip/core/data/src/matmul_csr_vector.cpp',
+            'qutip/core/data/src/matmul_diag_vector.cpp',
         ],
     }
     out = collections.defaultdict(list)

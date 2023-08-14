@@ -9,6 +9,7 @@ __all__ = [
 import numpy as np
 from qutip.core import data as _data
 from qutip import Qobj, QobjEvo
+from qutip.core.cy.qobjevo import QobjEvoHerm
 from .propagator import Propagator
 from .mesolve import MESolver
 from .solver_base import Solver
@@ -779,27 +780,32 @@ class FMESolver(MESolver):
 
         nT = nT or max(100, 20 * kmax)
         self._num_collapse = len(a_ops)
+        self.a_ops = a_ops
+        self.param = {"w_th": w_th, "kmax": kmax, "nT": nT}
         c_ops, spectra_cb = zip(*a_ops)
         if not all(
             isinstance(c_op, Qobj) and callable(spectrum)
             for c_op, spectrum in a_ops
         ):
             raise TypeError("a_ops must be tuple of (Qobj, callable)")
+
+        self._integrator = self._get_integrator()
+        self._state_metadata = {}
+        self.stats = self._initialize_stats()
+
+    def _build_rhs(self):
+        c_ops, spectra_cb = zip(*self.a_ops)
         self.rhs = QobjEvo(
             floquet_tensor(
                 self.floquet_basis,
                 c_ops,
                 spectra_cb,
-                w_th=w_th,
-                kmax=kmax,
-                nT=nT,
+                **self.param
             )
         )
-        self._rhs = self._update_rhs()
-
-        self._integrator = self._get_integrator()
-        self._state_metadata = {}
-        self.stats = self._initialize_stats()
+        if self.options["use_herm_matmul"]:
+            self.rhs = QobjEvoHerm(self.rhs)
+        return self.rhs
 
     def _initialize_stats(self):
         stats = Solver._initialize_stats(self)

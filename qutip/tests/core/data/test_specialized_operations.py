@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from qutip import data
-from qutip.core.data import CSR, Dense
+from qutip.core.data import CSR, Dense, Dia
 import qutip
 
 

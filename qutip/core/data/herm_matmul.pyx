@@ -285,6 +285,7 @@ herm_matmul.__doc__ =\
 herm_matmul.add_specialisations([
     (Data, Data, Data, herm_matmul_data),
     (CSR, Dense, Dense, herm_matmul_csr_dense_dense),
+    (Dia, Dense, Dense, herm_matmul_dia_dense_dense),
     (Dense, Dense, Dense, herm_matmul_dense),
 ], _defer=True)
 
