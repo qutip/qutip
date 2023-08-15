@@ -112,7 +112,7 @@ def _equal_shape(matrices):
 
 def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
                        colorbar=True, fig=None, ax=None):
-    """Plot or animate a coloured Bloch sphere.
+    """Plots a coloured Bloch sphere.
 
     Parameters
     ----------
@@ -282,7 +282,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
 
     Parameters
     ----------
-    rho : qobj or a list of qobj instances
+    rho : qobj
         Input density matrix or superoperator.
 
         .. note::
@@ -496,7 +496,7 @@ def sphereplot(theta, phi, values, *,
     phi : float
         Angle in x-y plane. Its range is between 0 and 2*pi
 
-    values : array or list of array instances
+    values : array
         Data set to be plotted
 
     cmap : a matplotlib colormap instance, optional
@@ -679,7 +679,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     Parameters
     ----------
-    M : Matrix of Qobj or list of matrices
+    M : Matrix of Qobj
         The matrix to visualize
 
     x_basis : list of strings, optional
@@ -1062,7 +1062,7 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
     Parameters
     ----------
-    rho : `qutip.Qobj` or list of `qutip.Qobj` instances
+    rho : `qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
     fock_numbers : list of strings, optional
@@ -1135,7 +1135,7 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
 
     Parameters
     ----------
-    rho : `qutip.Qobj` or list of `qutip.Qobj` instances
+    rho : `qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
     xvec : array_like, optional
@@ -1584,7 +1584,7 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
 
     Parameters
     ----------
-    ket : Qobj or list of Qobj instances
+    ket : Qobj
         Pure state for plotting.
 
     theme : 'light' or 'dark', default='light'
