@@ -137,7 +137,7 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
             M = _rand_herm_dense(N, density, pos_def)
     else:
         raise TypeError('Input N must be an integer or array_like.')
-    return Qobj(M, dims=dims)
+    return Qobj(M, dims=dims, isherm=True)
 
 
 def _rand_herm_sparse(N, density, pos_def):
