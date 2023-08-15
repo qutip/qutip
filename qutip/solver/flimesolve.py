@@ -27,29 +27,30 @@ def _floquet_rate_matrix(floquet_basis,
                          T,
                          c_ops,
                          c_op_rates,
-                         omega,
+                         args,
                          time_sense=0):
     '''
     Parameters
     ----------
-    qe : list
-        List of Floquet quasienergies of the system.
-    tlist : numpy.ndarray
-        List of 2**n times distributes evenly over one period of system driving
+    floquet_basis : FloquetBasis Object
+        The FloquetBasis object formed from qutip.floquet.FloquetBasis
+    Nt : Int
+        Number of points in one period of the Hamiltonian
     c_ops : list
-        list of collapse operator matrices,used to calculate the Fourier
-            Amplitudes for each rate matrix
+        list of collapse operator matrices as Qobjs
     c_op_rates : list
         List of collapse operator rates/magnitudes.
-    omega : float
-        the sinusoidal time-dependance of the system
+    args : *dictionary*
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators. ***FIX THIS NEXT BIT*** Currently, the first
+        element MUST be the frequency-dependence of the Hamiltonian
     time_sense : float 0-1,optional
-        the time sensitivity/secular approximation restriction for this rate
-            matrix as a multiple of the system frequency beatfreq. As far as
-            Ned and I have guessed (cause we aren't positive),0 is completely
-            time independant and in line with,e.g. Blumel's R tensor
-            description (sure of this) and 1 is completely time dependant
-            (unsure of this). The default is 0.
+        the time sensitivity or secular approximation restriction of 
+        FLiMESolve. Decides "acceptable" values of (frequency/rate) for rate 
+        matrix entries. Lower values imply rate occurs much faster than
+        rotation frtequency, i.e. more important matrix entries. Higher
+        values meaning rates cause changes slower than the Hamiltonian rotates,
+        i.e. the changes average out on longer time scales.
 
     Returns
     -------
@@ -58,82 +59,75 @@ def _floquet_rate_matrix(floquet_basis,
             Rate matrix of each individual collapse operator. Something
             something Rate Matrix something something linear Operator.
     '''
-    Hdim = len(floquet_basis.e_quasi)
+    Hdim = len(floquet_basis.e_quasi)  # Dimensionality of the Hamiltonian
+    args_key = list(args.values())[0]  # Frequency dependence of Hamiltonian
 
+    # Forming tlist to take FFT of collapse operators
     time = T
     dt = time / Nt
     tlist = np.linspace(0, time - dt, Nt)
 
-    '''
-    First,divide all quasienergies by omega to get everything in terms of
-        omega.
-    '''
-    def delta(a, ap, b, bp, l, lp):
-        return ((floquet_basis.e_quasi[a] - floquet_basis.e_quasi[ap])
-                - (floquet_basis.e_quasi[b] - floquet_basis.e_quasi[bp])) \
-            / (list(omega.values())[0]) \
-            + (l - lp)
-
     total_R_tensor = {}
     for cdx, c_op in enumerate(c_ops):
         '''
-        These lines transform the lowering operator into the Floquet mode
-            basis
+        Transforming the lowering operator into the Floquet Basis
+            and taking the FFT
         '''
-        # fmodes = np.stack([np.stack(
-        #     [i.full() for i in floquet_basis.mode(t)])
-        #     for t in tlist])[..., 0]
-        # fmodes_ct = np.transpose(fmodes, (0, 2, 1)).conj()
-        # c_op_Floquet_basis = (fmodes_ct @ c_op.full() @ fmodes)
         c_op_Floquet_basis = np.array(
             [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist])
-        '''
-        Performing the 1-D FFT to find the Fourier amplitudes of this specific
-            lowering operator in the Floquet basis
 
-        Divided by the length of tlist for normalization
-        '''
-        c_op_Fourier_amplitudes_list = np.array((np.fft.fft(
-            c_op_Floquet_basis, axis=0)) / len(tlist))
+        c_op_Fourier_amplitudes_list = np.array(
+            np.fft.fft(c_op_Floquet_basis, axis=0) / len(tlist)
+        )
 
         '''
-        Next,I want to find all rate-product terms that are nonzero
+        Next step is to form arrays of the rate products (rate_products)
+            and the frequency at which these components rotate (delta_array),
+            then dividing the arrays to form the rate quotient array.
+        
+        In quotient array, setting any undefined value, i.e. those for which
+            rate_products = 0, equal to time_sense+1 so that the mask
+            arrays mask out these values.
         '''
         rate_products = np.einsum('lab,kcd->abcdlk',
                                   c_op_Fourier_amplitudes_list,
                                   np.conj(c_op_Fourier_amplitudes_list))
-
-        args_key = list(omega.keys())[0]
 
         delta_array = np.add.outer(
             np.subtract.outer(
                 np.subtract.outer(floquet_basis.e_quasi,
                                   floquet_basis.e_quasi),
                 np.subtract.outer(floquet_basis.e_quasi, floquet_basis.e_quasi)
-            )/(list(omega.values())[0]),
+            )/args_key,
             np.subtract.outer(np.arange(Nt), np.arange(Nt))
         )
 
         quotient_array = np.divide(
-            omega[args_key]*delta_array,
+            args_key*delta_array,
             abs(rate_products),
             out=np.full(np.shape(delta_array), (time_sense+1), dtype=complex),
-            where=abs(rate_products) != 0,
             dtype=complex)
 
+        '''
+        Finally, creating masks to mask out "bad" values of the delta_array
+            and the quotient_array. What remains after masking will be used
+            to form the rate matrix.
+        '''
         # Masking any frequency greater than Nyquist Frequency
         nyquist_mask = np.ma.getmaskarray(np.ma.masked_greater(
             delta_array, np.pi/(tlist[1]-tlist[0])))
         # Masking any rate quotient greater than time_sense
         quotient_mask = np.ma.getmaskarray(np.ma.masked_greater(
             abs(quotient_array), time_sense))
-
+        # Full mask formed from the total of the above masks
         full_mask = nyquist_mask | quotient_mask
 
+        # Valid indices are unmasked indices
         valid_indices = np.argwhere(full_mask == False)
         delta_vals_truncd = [
             delta_array[tuple(indices)] for indices in valid_indices]
 
+        # Grouping valid_indices by their frequency values
         delta_dict = {}
         for idx, indices in enumerate(valid_indices):
             try:
@@ -141,6 +135,7 @@ def _floquet_rate_matrix(floquet_basis,
             except KeyError:
                 delta_dict[delta_vals_truncd[idx]] = [indices]
 
+        # For each valid frequency, form a slice of total_R_tensor
         for key in delta_dict.keys():
             mask_array = np.zeros((Hdim, Hdim, Hdim, Hdim, Nt, Nt))
             for indices in delta_dict[key]:
@@ -171,6 +166,7 @@ def _floquet_rate_matrix(floquet_basis,
                                                  * (flime_SecondTerm +
                                                     flime_ThirdTerm),
                                                  (Hdim**2, Hdim**2))
+
     return total_R_tensor
 
 
