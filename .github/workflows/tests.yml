@@ -52,6 +52,7 @@ jobs:
             # let the old SciPy version select an appropriate numpy version:
             numpy-requirement: ""
             coverage-requirement: "==6.2"  # last coverage that supported 3.6
+            nocvxopt: 1
 
           # No MKL runs.  MKL is now the default for conda installations, but
           # not necessarily for pip.
