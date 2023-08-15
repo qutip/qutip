@@ -283,7 +283,7 @@ class BRSolver(Solver):
                                 "must be a Coefficient.")
 
         self.H = H
-        self.a_ops = [(QobjEvo(a_op), spectra) for (a_op, spectra) in a_ops]
+        self.a_ops = a_ops
         self.c_ops = [QobjEvo(c_op) for c_op in c_ops]
         self._num_collapse = len(c_ops)
         self._num_a_ops = len(a_ops)
