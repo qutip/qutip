@@ -21,7 +21,7 @@ def anim_wigner_sphere(wigners, reflections=False, *, cmap=None,
 
     Parameters
     ----------
-    wigner : a list of transformations.
+    wigners : a list of transformations.
         The wigner transformation at `steps` different theta and phi.
 
     reflections : bool, default=False
@@ -57,14 +57,14 @@ def anim_wigner_sphere(wigners, reflections=False, *, cmap=None,
     return fig, ani
 
 
-def anim_hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
+def anim_hinton(rhos, x_basis=None, y_basis=None, color_style="scaled",
                 label_top=True, *, cmap=None, colorbar=True,
                 fig=None, ax=None):
     """Draws an animation of Hinton diagram.
 
     Parameters
     ----------
-    rho : a list of qobj instances
+    rhos : a list of qobj instances
         Input density matrix or superoperator.
 
         .. note::
@@ -121,7 +121,7 @@ def anim_hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
 
     """
 
-    fig, ani = hinton(rho, x_basis, y_basis, color_style, label_top,
+    fig, ani = hinton(rhos, x_basis, y_basis, color_style, label_top,
                       cmap=cmap, colorbar=colorbar, fig=fig, ax=ax)
 
     plt.close(fig)
@@ -129,7 +129,7 @@ def anim_hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     return fig, ani
 
 
-def anim_sphereplot(theta, phi, values, *, cmap=None,
+def anim_sphereplot(theta, phi, V, *, cmap=None,
                     colorbar=True, fig=None, ax=None):
     """animation of a matrices of values on a sphere
 
@@ -141,7 +141,7 @@ def anim_sphereplot(theta, phi, values, *, cmap=None,
     phi : float
         Angle in x-y plane. Its range is between 0 and 2*pi
 
-    values : list of array instances
+    V : list of array instances
         Data set to be plotted
 
     cmap : a matplotlib colormap instance, optional
@@ -163,7 +163,7 @@ def anim_sphereplot(theta, phi, values, *, cmap=None,
         used to produce the figure.
     """
 
-    fig, ani = sphereplot(theta, phi, values, cmap=cmap,
+    fig, ani = sphereplot(theta, phi, V, cmap=cmap,
                           colorbar=colorbar, fig=fig, ax=ax)
 
     plt.close(fig)
@@ -171,7 +171,7 @@ def anim_sphereplot(theta, phi, values, *, cmap=None,
     return fig, ani
 
 
-def anim_matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
+def anim_matrix_histogram(Ms, x_basis=None, y_basis=None, limits=None,
                           bar_style='real', color_limits=None,
                           color_style='real', options=None, *, cmap=None,
                           colorbar=True, fig=None, ax=None):
@@ -181,7 +181,7 @@ def anim_matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     Parameters
     ----------
-    M : list of matrices
+    Ms : list of matrices
         The matrix to visualize
 
     x_basis : list of strings, optional
@@ -293,7 +293,7 @@ def anim_matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     """
 
-    fig, ani = matrix_histogram(M, x_basis, y_basis, limits, bar_style,
+    fig, ani = matrix_histogram(Ms, x_basis, y_basis, limits, bar_style,
                                 color_limits, color_style, options, cmap=cmap,
                                 colorbar=colorbar, fig=fig, ax=ax)
 
@@ -302,7 +302,7 @@ def anim_matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     return fig, ani
 
 
-def anim_fock_distribution(rho, fock_numbers=None, color="green",
+def anim_fock_distribution(rhos, fock_numbers=None, color="green",
                            unit_y_range=True, *, fig=None, ax=None):
     """
     Animation of the Fock distribution for a density matrix (or ket)
@@ -310,7 +310,7 @@ def anim_fock_distribution(rho, fock_numbers=None, color="green",
 
     Parameters
     ----------
-    rho : list of `qutip.Qobj` instances
+    rhos : list of `qutip.Qobj` instances
         The density matrix (or ket) of the state to visualize.
 
     fock_numbers : list of strings, optional
@@ -335,7 +335,7 @@ def anim_fock_distribution(rho, fock_numbers=None, color="green",
         used to produce the figure.
     """
 
-    fig, ani = plot_fock_distribution(rho, fock_numbers, color,
+    fig, ani = plot_fock_distribution(rhos, fock_numbers, color,
                                       unit_y_range, fig=fig, ax=ax)
 
     plt.close(fig)
@@ -343,7 +343,7 @@ def anim_fock_distribution(rho, fock_numbers=None, color="green",
     return fig, ani
 
 
-def anim_wigner(rho, xvec=None, yvec=None, method='clenshaw',
+def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw',
                 projection='2d', *, cmap=None, colorbar=False,
                 fig=None, ax=None):
     """
@@ -352,7 +352,7 @@ def anim_wigner(rho, xvec=None, yvec=None, method='clenshaw',
 
     Parameters
     ----------
-    rho : list of `qutip.Qobj` instances
+    rhos : list of `qutip.Qobj` instances
         The density matrix (or ket) of the state to visualize.
 
     xvec : array_like, optional
@@ -391,7 +391,7 @@ def anim_wigner(rho, xvec=None, yvec=None, method='clenshaw',
         used to produce the figure.
     """
 
-    fig, ani = plot_wigner(rho, xvec, yvec, method, projection,
+    fig, ani = plot_wigner(rhos, xvec, yvec, method, projection,
                            cmap=cmap, colorbar=colorbar, fig=fig, ax=ax)
 
     plt.close(fig)
@@ -399,14 +399,14 @@ def anim_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     return fig, ani
 
 
-def anim_spin_distribution(P, THETA, PHI, projection='2d', *,
+def anim_spin_distribution(Ps, THETA, PHI, projection='2d', *,
                            cmap=None, colorbar=False, fig=None, ax=None):
     """
     animation of a spin distribution (given as meshgrid data).
 
     Parameters
     ----------
-    P : list of matrices
+    Ps : list of matrices
         Distribution values as a meshgrid matrix.
 
     THETA : matrix
@@ -440,7 +440,7 @@ def anim_spin_distribution(P, THETA, PHI, projection='2d', *,
         used to produce the figure.
     """
 
-    fig, ani = plot_spin_distribution(P, THETA, PHI, projection, cmap=cmap,
+    fig, ani = plot_spin_distribution(Ps, THETA, PHI, projection, cmap=cmap,
                                       colorbar=colorbar, fig=fig, ax=ax)
 
     plt.close(fig)
@@ -448,7 +448,7 @@ def anim_spin_distribution(P, THETA, PHI, projection='2d', *,
     return fig, ani
 
 
-def anim_qubism(ket, theme='light', how='pairs', grid_iteration=1,
+def anim_qubism(kets, theme='light', how='pairs', grid_iteration=1,
                 legend_iteration=0, *, fig=None, ax=None):
     """
     Animation of Qubism plot for pure states of many qudits.
@@ -462,7 +462,7 @@ def anim_qubism(ket, theme='light', how='pairs', grid_iteration=1,
 
     Parameters
     ----------
-    ket : list of Qobj instances
+    kets : list of Qobj instances
         Pure states for animation.
 
     theme : 'light' or 'dark', default='light'
@@ -511,7 +511,7 @@ def anim_qubism(ket, theme='light', how='pairs', grid_iteration=1,
        (2012), open access.
     """
 
-    fig, ani = plot_qubism(ket, theme, how, grid_iteration,
+    fig, ani = plot_qubism(kets, theme, how, grid_iteration,
                            legend_iteration, fig=fig, ax=ax)
 
     plt.close(fig)
@@ -519,7 +519,7 @@ def anim_qubism(ket, theme='light', how='pairs', grid_iteration=1,
     return fig, ani
 
 
-def anim_schmidt(ket, theme='light', splitting=None,
+def anim_schmidt(kets, theme='light', splitting=None,
                  labels_iteration=(3, 2), *, fig=None, ax=None):
     """
     Animation of Schmidt decomposition.
@@ -563,7 +563,7 @@ def anim_schmidt(ket, theme='light', splitting=None,
 
     """
 
-    fig, ani = plot_schmidt(ket, theme, splitting, labels_iteration,
+    fig, ani = plot_schmidt(kets, theme, splitting, labels_iteration,
                             fig=fig, ax=ax)
 
     plt.close(fig)
