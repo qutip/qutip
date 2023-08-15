@@ -7,14 +7,12 @@ __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
            'matrix_histogram', 'plot_energy_levels', 'plot_fock_distribution',
            'plot_wigner', 'plot_expectation_values',
            'plot_spin_distribution', 'complex_array_to_rgb',
-           'plot_qubism', 'plot_schmidt', 'make_html_video']
+           'plot_qubism', 'plot_schmidt']
 
 import warnings
 import itertools as it
 import numpy as np
-import mimetypes
 from numpy import pi, array, sin, cos, angle, log2
-from IPython.display import HTML
 
 from packaging.version import parse as parse_version
 
@@ -112,38 +110,6 @@ def _equal_shape(matrices):
         raise ValueError(text)
 
 
-def make_html_video(ani, file_path, writer=None, codec=None):
-    """Plots a coloured Bloch sphere.
-
-    Parameters
-    ----------
-    ani : ArtistAnimation
-        The ArtistAnimation instance to be converted to HTML content.
-
-    file_path : str
-        The output file path, e.g., :file:`./animation.mp4`.
-
-    writer : `MovieWriter` or str, optional
-        A `MovieWriter` instance to use or a key that identifies a
-        class to use, such as 'ffmpeg'.
-
-    codec : str, optional
-        The video codec to use.  Not all codecs are supported by a given
-        `MovieWriter`.
-
-    Returns
-    -------
-    html : IPython.core.display.HTML
-        html video to display the animation
-    """
-
-    ani.save(file_path, fps=10, writer=writer, codec=codec)
-    tag = mimetypes.guess_type(file_path)[0].split('/')[0]
-    video_tag = '<'+tag+' controls src="'+file_path+'" />'
-    html = HTML(video_tag)
-    return html
-
-
 def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
                        colorbar=True, fig=None, ax=None):
     """Plot or animate a coloured Bloch sphere.
@@ -199,7 +165,7 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
 
     artist_list = list()
     for wigner in wigners:
-        steps = len(wigners)
+        steps = len(wigner)
         theta = np.linspace(0, np.pi, steps)
         phi = np.linspace(0, 2 * np.pi, steps)
         x = np.outer(np.sin(theta), np.cos(phi))
@@ -247,9 +213,8 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
     if len(wigners) == 1:
         output = ax
     else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        output = ani
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
 
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -489,9 +454,8 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     if len(rhos) == 1:
         output = ax
     else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        output = ani
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
 
     # axis
     if not (x_basis or y_basis):
@@ -593,9 +557,8 @@ def sphereplot(theta, phi, values, *,
     if len(V) == 1:
         output = ax
     else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        output = ani
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
 
     if colorbar:
         # create new axes on plot for colorbar and shrink it a bit.
@@ -944,9 +907,8 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     if len(Ms) == 1:
         output = ax
     else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        output = ani
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
 
     # remove vertical lines on xz and yz plane
     ax.yaxis._axinfo["grid"]['linewidth'] = 0
@@ -1148,9 +1110,8 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
     if len(rhos) == 1:
         output = ax
     else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        output = ani
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
 
     if fock_numbers:
         _set_ticklabels(ax, fock_numbers, np.arange(N), 'x', fontsize=12)
@@ -1259,9 +1220,8 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     if len(rhos) == 1:
         output = ax
     else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        output = ani
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
 
     ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
     ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
@@ -1426,9 +1386,8 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
     if len(Ps) == 1:
         output = ax
     else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        output = ani
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
 
     if colorbar:
         cax, _ = mpl.colorbar.make_axes(ax, shrink=.66, pad=.1)
@@ -1731,9 +1690,8 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
     if len(kets) == 1:
         output = ax
     else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        output = ani
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
 
     quadrants_x = np.prod(dim_list_x[:grid_iteration])
     quadrants_y = np.prod(dim_list_y[:grid_iteration])
@@ -1881,9 +1839,8 @@ def plot_schmidt(ket, theme='light', splitting=None,
     if len(kets) == 1:
         output = ax
     else:
-        ani = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                        blit=True, repeat_delay=1000)
-        output = ani
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
 
     dim_list_small_x = dim_list_x[:labels_iteration[1]]
     dim_list_small_y = dim_list_y[:labels_iteration[0]]

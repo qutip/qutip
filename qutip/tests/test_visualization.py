@@ -5,7 +5,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 import shutil
-import IPython
 
 
 def setup_module(module):
@@ -108,17 +107,6 @@ def test_equal_shape():
     with pytest.raises(Exception) as exc_info:
         fig, ax = qutip.hinton(rhos)
     assert str(exc_info.value) == text
-
-
-def test_make_html_video():
-    rho = qutip.rand_dm(5)
-    rhos = [rho]*2
-
-    fig, ani = qutip.plot_wigner(rhos)
-    html = qutip.make_html_video(ani, './animation/ani.gif')
-    plt.close()
-
-    assert isinstance(html, IPython.core.display.HTML)
 
 
 @pytest.mark.parametrize('args', [
