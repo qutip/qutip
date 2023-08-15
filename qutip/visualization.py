@@ -116,7 +116,7 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
 
     Parameters
     ----------
-    wigner : a wigner transformation or a list of transformations.
+    wigner : a wigner transformation
         The wigner transformation at `steps` different theta and phi.
 
     reflections : bool, default=False
