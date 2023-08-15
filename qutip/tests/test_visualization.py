@@ -3,20 +3,6 @@ import qutip
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import os
-import shutil
-
-
-def setup_module(module):
-    """ setup any state specific to the execution of the given module."""
-    os.mkdir('animation')
-
-
-def teardown_module(module):
-    """teardown any state that was previously setup with a setup_module
-    method.
-    """
-    shutil.rmtree('animation')
 
 
 def test_cyclic():
