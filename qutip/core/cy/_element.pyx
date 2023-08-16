@@ -277,6 +277,7 @@ cdef class _ConstantElement(_BaseElement):
     """
     def __init__(self, qobj):
         self._qobj = qobj
+        self._data = self._qobj.data
 
     def __mul__(left, right):
         if type(left) is _ConstantElement:
@@ -294,7 +295,7 @@ cdef class _ConstantElement(_BaseElement):
         return NotImplemented
 
     cpdef Data data(self, t):
-        return self._qobj.data
+        return self._data
 
     cpdef object qobj(self, t):
         return self._qobj
@@ -322,6 +323,7 @@ cdef class _EvoElement(_BaseElement):
     """
     def __init__(self, qobj, coefficient):
         self._qobj = qobj
+        self._data = self._qobj.data
         self._coefficient = coefficient
 
     def __mul__(left, right):
@@ -347,7 +349,7 @@ cdef class _EvoElement(_BaseElement):
         return _EvoElement(left._qobj * right._qobj, coefficient)
 
     cpdef Data data(self, t):
-        return self._qobj.data
+        return self._data
 
     cpdef object qobj(self, t):
         return self._qobj

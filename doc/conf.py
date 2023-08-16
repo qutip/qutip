@@ -117,7 +117,7 @@ version = ".".join(release.split(".")[:2])
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -252,7 +252,7 @@ htmlhelp_basename = 'QuTiPdoc'
 #
 # See:
 # - https://docs.mathjax.org/en/v3.0-latest/input/tex/extensions/physics.html
-mathjax_config = {
+mathjax3_config = {
     'TeX': {
         'Macros': {
             'bra': [r'\left\langle{#1}\right\rvert', 1],
@@ -362,8 +362,8 @@ autodoc_member_order = 'alphabetical'
 ## EXTLINKS CONFIGURATION ######################################################
 
 extlinks = {
-    'arxiv': ('https://arxiv.org/abs/%s', 'arXiv:'),
-    'doi': ('https://dx.doi.org/%s', 'doi:'),
+    'arxiv': ('https://arxiv.org/abs/%s', 'arXiv:%s'),
+    'doi': ('https://dx.doi.org/%s', 'doi:%s'),
 }
 
 # configuration declares the location of the examples directory for

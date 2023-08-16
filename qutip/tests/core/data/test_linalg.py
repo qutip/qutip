@@ -3,9 +3,15 @@ import numpy as np
 import scipy
 import pytest
 import qutip
+import warnings
 
 from qutip.core import data as _data
-from qutip.core.data import Data, Dense, CSR
+from qutip.core.data import Data, Dense, CSR, Dia
+
+
+skip_no_mkl = pytest.mark.skipif(
+    not settings.has_mkl, reason="mkl not available"
+)
 
 
 class TestSolve():
@@ -23,19 +29,23 @@ class TestSolve():
         ("splu", {"csc": True}),
         ("gmres", {"atol": 1e-8}),
         ("lsqr", {}),
-        pytest.param(
-            "mkl_spsolve", {},
-            marks=pytest.mark.skipif(not settings.has_mkl, reason="mkl not available")
-        ),
+        ("solve", {}),
+        ("lstsq", {}),
+        pytest.param("mkl_spsolve", {}, marks=skip_no_mkl),
     ],
-        ids=["spsolve", "splu", "gmres", "lsqr", "mkl_spsolve"]
+        ids=[
+            "spsolve", "splu", "gmres", "lsqr", "solve", "lstsq", "mkl_spsolve"
+        ]
     )
-    def test_mathematically_correct_CSR(self, method, opt):
+    @pytest.mark.parametrize('dtype', [CSR, Dia])
+    def test_mathematically_correct_sparse(self, method, opt, dtype):
         """
         Test that the binary operation is mathematically correct for all the
         known type specialisations.
         """
-        A = self._gen_op(10, CSR)
+        if dtype is Dia and method == "mkl_spsolve":
+            pytest.skip("mkl is not supported for dia matrix")
+        A = self._gen_op(10, dtype)
         b = self._gen_ket(10, Dense)
         expected = self.op_numpy(A.to_array(), b.to_array())
         test = _data.solve_csr_dense(A, b, method, opt)
@@ -63,6 +73,14 @@ class TestSolve():
                                    atol=1e-7, rtol=1e-7)
         np.testing.assert_allclose(test1.to_array(), expected,
                                    atol=1e-7, rtol=1e-7)
+
+
+    def test_singular(self):
+        A = qutip.num(2).data
+        b = qutip.basis(2, 1).data
+        with pytest.raises(ValueError) as err:
+            test1 = _data.solve(A, b)
+        assert "singular" in str(err.value).lower()
 
 
     def test_incorrect_shape_non_square(self):

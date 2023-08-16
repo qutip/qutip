@@ -342,10 +342,10 @@ Any function or method that can be called by ``f(t, args)``, ``f(t, **args)`` is
 **String coefficients** :
 Use a string containing a simple Python expression.
 The variable ``t``, common mathematical functions such as ``sin`` or ``exp`` an variable in args will be available.
-If available, the string will be compiled using cython, fixing variable type when possible, allowing slightly faster excution than function.
+If available, the string will be compiled using cython, fixing variable type when possible, allowing slightly faster execution than function.
 While the speed up is usually very small, in long evolution, numerous calls to the functions are made and it's can accumulate.
 From version 5, compilation of the coefficient is done only once and saved between sessions.
-When Cython is not available, the code will be executed in python with the same environment.
+When either the cython or filelock modules are not available, the code will be executed in python using ``exec`` with the same environment .
 This, however, as no advantage over using python function.
 
 

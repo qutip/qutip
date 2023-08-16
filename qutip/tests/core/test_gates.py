@@ -35,7 +35,7 @@ def _make_random_three_qubit_gate():
 
 
 def _make_controled(op):
-    out = qutip.tensor(qutip.fock_dm(2, 0), qutip.qeye(op.dims[0]))
+    out = qutip.tensor(qutip.fock_dm(2, 0), qutip.qeye_like(op))
     out += qutip.tensor(qutip.fock_dm(2, 1), op)
     return out
 

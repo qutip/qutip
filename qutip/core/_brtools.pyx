@@ -196,7 +196,7 @@ cdef class _EigenBasisTransform:
     def __init__(self, QobjEvo oper, bint sparse=False):
         if oper.dims[0] != oper.dims[1]:
             raise ValueError
-        if type(oper(0).data) is _data.CSR and not sparse:
+        if type(oper(0).data) in (_data.CSR, _data.Dia) and not sparse:
             oper = oper.to(Dense)
         self.oper = oper
         self.isconstant = oper.isconstant
@@ -245,10 +245,10 @@ cdef class _EigenBasisTransform:
         return self._evecs_inv
 
     cdef Data _S_converter(self, double t):
-        return _data.kron(self.evecs(t).transpose(), self._inv(t))
+        return _data.kron_transpose(self.evecs(t), self._inv(t))
 
     cdef Data _S_converter_inverse(self, double t):
-        return _data.kron(self._inv(t).transpose(), self.evecs(t))
+        return _data.kron_transpose(self._inv(t), self.evecs(t))
 
     cpdef Data to_eigbasis(self, double t, Data fock):
         """

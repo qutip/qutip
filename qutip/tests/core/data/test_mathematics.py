@@ -4,7 +4,7 @@ import scipy
 import pytest
 
 from qutip.core import data
-from qutip.core.data import Data, Dense, CSR
+from qutip.core.data import Data, Dense, CSR, Dia
 
 from . import conftest
 
@@ -159,16 +159,37 @@ def cases_dense(shape):
     ]
 
 
+def cases_diag(shape):
+    """
+    Return a list of generators of the different special cases for Dense
+    matrices of a given shape.
+    """
+    def factory(density, sort=False):
+        return lambda: conftest.random_diag(shape, density, sort)
+
+    def zero_factory():
+        return lambda: data.dia.zeros(shape[0], shape[1])
+
+    return [
+        pytest.param(factory(0.001), id="sparse"),
+        pytest.param(factory(0.8, True), id="filled,sorted"),
+        pytest.param(factory(0.8, False), id="filled,unsorted"),
+        pytest.param(zero_factory(), id="zero"),
+    ]
+
+
 # Factory methods for generating the cases, mapping type to the function.
 # _ALL_CASES is for getting all the special cases to test, _RANDOM is for
 # getting just a single case from each.
 _ALL_CASES = {
     CSR: cases_csr,
+    Dia: cases_diag,
     Dense: cases_dense,
 }
 _RANDOM = {
     CSR: lambda shape: [lambda: conftest.random_csr(shape, 0.5, True)],
     Dense: lambda shape: [lambda: conftest.random_dense(shape, False)],
+    Dia: lambda shape: [lambda: conftest.random_diag(shape, 0.5)],
 }
 
 
@@ -532,6 +553,7 @@ class TestAdd(BinaryOpMixin):
     specialisations = [
         pytest.param(data.add_csr, CSR, CSR, CSR),
         pytest.param(data.add_dense, Dense, Dense, Dense),
+        pytest.param(data.add_dia, Dia, Dia, Dia),
     ]
 
     # `add` has an additional scalar parameter, because the operation is
@@ -568,6 +590,7 @@ class TestAdjoint(UnaryOpMixin):
     specialisations = [
         pytest.param(data.adjoint_csr, CSR, CSR),
         pytest.param(data.adjoint_dense, Dense, Dense),
+        pytest.param(data.adjoint_dia, Dia, Dia),
     ]
 
 
@@ -578,6 +601,7 @@ class TestConj(UnaryOpMixin):
     specialisations = [
         pytest.param(data.conj_csr, CSR, CSR),
         pytest.param(data.conj_dense, Dense, Dense),
+        pytest.param(data.conj_dia, Dia, Dia),
     ]
 
 
@@ -614,7 +638,10 @@ class TestInner(BinaryOpMixin):
 
     specialisations = [
         pytest.param(data.inner_csr, CSR, CSR, complex),
+        pytest.param(data.inner_dia, Dia, Dia, complex),
         pytest.param(data.inner_dense, Dense, Dense, complex),
+        pytest.param(data.inner_data, Dense, Dense, complex),
+        pytest.param(data.inner_data, CSR, CSR, complex),
     ]
 
     def generate_scalar_is_ket(self, metafunc):
@@ -684,7 +711,9 @@ class TestInnerOp(TernaryOpMixin):
 
     specialisations = [
         pytest.param(data.inner_op_csr, CSR, CSR, CSR, complex),
+        pytest.param(data.inner_op_dia, Dia, Dia, Dia, complex),
         pytest.param(data.inner_op_dense, Dense, Dense, Dense, complex),
+        pytest.param(data.inner_op_data, Dense, CSR, Dense, complex),
     ]
 
     def generate_scalar_is_ket(self, metafunc):
@@ -732,6 +761,20 @@ class TestKron(BinaryOpMixin):
     specialisations = [
         pytest.param(data.kron_csr, CSR, CSR, CSR),
         pytest.param(data.kron_dense, Dense, Dense, Dense),
+        pytest.param(data.kron_dia, Dia, Dia, Dia),
+    ]
+
+
+class TestKronT(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.kron(left.T, right)
+
+    # Keep the dimension low because kron can get very expensive.
+    shapes = shapes_binary_unrestricted(dim=5)
+    bad_shapes = shapes_binary_bad_unrestricted(dim=5)
+    specialisations = [
+        pytest.param(data.kron_transpose_data, CSR, CSR, CSR),
+        pytest.param(data.kron_transpose_dense, Dense, Dense, Dense),
     ]
 
 
@@ -745,6 +788,9 @@ class TestMatmul(BinaryOpMixin):
         pytest.param(data.matmul_csr, CSR, CSR, CSR),
         pytest.param(data.matmul_csr_dense_dense, CSR, Dense, Dense),
         pytest.param(data.matmul_dense, Dense, Dense, Dense),
+        pytest.param(data.matmul_dia, Dia, Dia, Dia),
+        pytest.param(data.matmul_dia_dense_dense, Dia, Dense, Dense),
+        pytest.param(data.matmul_dense_dia_dense, Dense, Dia, Dense),
     ]
 
 
@@ -757,6 +803,7 @@ class TestMultiply(BinaryOpMixin):
     specialisations = [
         pytest.param(data.multiply_csr, CSR, CSR, CSR),
         pytest.param(data.multiply_dense, Dense, Dense, Dense),
+        pytest.param(data.multiply_dia, Dia, Dia, Dia),
     ]
 
 
@@ -767,6 +814,7 @@ class TestMul(UnaryScalarOpMixin):
     specialisations = [
         pytest.param(data.mul_csr, CSR, CSR),
         pytest.param(data.mul_dense, Dense, Dense),
+        pytest.param(data.mul_dia, Dia, Dia),
     ]
 
 
@@ -777,6 +825,7 @@ class TestNeg(UnaryOpMixin):
     specialisations = [
         pytest.param(data.neg_csr, CSR, CSR),
         pytest.param(data.neg_dense, Dense, Dense),
+        pytest.param(data.neg_dia, Dia, Dia),
     ]
 
 
@@ -789,6 +838,7 @@ class TestSub(BinaryOpMixin):
     specialisations = [
         pytest.param(data.sub_csr, CSR, CSR, CSR),
         pytest.param(data.sub_dense, Dense, Dense, Dense),
+        pytest.param(data.sub_dia, Dia, Dia, Dia),
     ]
 
 
@@ -801,6 +851,7 @@ class TestTrace(UnaryOpMixin):
     specialisations = [
         pytest.param(data.trace_csr, CSR, complex),
         pytest.param(data.trace_dense, Dense, complex),
+        pytest.param(data.trace_dia, Dia, complex),
     ]
 
 
@@ -821,6 +872,9 @@ class TestTrace_oper_ket(UnaryOpMixin):
     specialisations = [
         pytest.param(data.trace_oper_ket_csr, CSR, complex),
         pytest.param(data.trace_oper_ket_dense, Dense, complex),
+        pytest.param(data.trace_oper_ket_dia, Dia, complex),
+        pytest.param(data.trace_oper_ket_data, CSR, complex),
+        pytest.param(data.trace_oper_ket_data, Dense, complex),
     ]
 
 
@@ -833,6 +887,7 @@ class TestPow(UnaryOpMixin):
     specialisations = [
         pytest.param(data.pow_csr, CSR, CSR),
         pytest.param(data.pow_dense, Dense, Dense),
+        pytest.param(data.pow_dia, Dia, Dia),
     ]
 
     @pytest.mark.parametrize("n", [0, 1, 10], ids=["n_0", "n_1", "n_10"])
@@ -855,6 +910,8 @@ class TestPow(UnaryOpMixin):
             op(data_m(), 10)
 
 
+# Scipy complain went creating full dia matrix.
+@pytest.mark.filterwarnings("ignore:Constructing a DIA matrix")
 class TestExpm(UnaryOpMixin):
     def op_numpy(self, matrix):
         return scipy.linalg.expm(matrix)
@@ -865,6 +922,7 @@ class TestExpm(UnaryOpMixin):
         pytest.param(data.expm_csr, CSR, CSR),
         pytest.param(data.expm_csr_dense, CSR, Dense),
         pytest.param(data.expm_dense, Dense, Dense),
+        pytest.param(data.expm_dia, Dia, Dia),
     ]
 
 
@@ -886,6 +944,7 @@ class TestTranspose(UnaryOpMixin):
     specialisations = [
         pytest.param(data.transpose_csr, CSR, CSR),
         pytest.param(data.transpose_dense, Dense, Dense),
+        pytest.param(data.transpose_dia, Dia, Dia),
     ]
 
 
@@ -908,6 +967,7 @@ class TestProject(UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.project_csr, CSR, CSR),
+        pytest.param(data.project_dia, Dia, Dia),
         pytest.param(data.project_dense, Dense, Dense),
     ]
 
@@ -949,4 +1009,27 @@ class TestInv(UnaryOpMixin):
     specialisations = [
         pytest.param(_inv_csr, CSR, CSR),
         pytest.param(_inv_dense, Dense, Dense),
+    ]
+
+
+class TestZeros_like(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.zeros_like(matrix)
+
+    specialisations = [
+        pytest.param(data.zeros_like_data, CSR, CSR),
+        pytest.param(data.zeros_like_dense, Dense, Dense),
+    ]
+
+
+class TestIdentity_like(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.eye(matrix.shape[0])
+
+    shapes = shapes_square()
+    bad_shapes = shapes_not_square()
+
+    specialisations = [
+        pytest.param(data.identity_like_data, CSR, CSR),
+        pytest.param(data.identity_like_dense, Dense, Dense),
     ]

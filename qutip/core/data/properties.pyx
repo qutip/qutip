@@ -7,7 +7,7 @@ from cpython cimport mem
 from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr, dense, CSR, Dense
+from qutip.core.data cimport csr, dense, CSR, Dense, Dia
 from qutip.core.data.adjoint cimport transpose_csr
 
 cdef extern from *:
@@ -15,9 +15,9 @@ cdef extern from *:
     void *PyMem_Calloc(size_t nelem, size_t elsize)
 
 __all__ = [
-    'isherm', 'isherm_csr', 'isherm_dense',
-    'isdiag', 'isdiag_csr', 'isdiag_dense',
-    'iszero', 'iszero_csr', 'iszero_dense',
+    'isherm', 'isherm_csr', 'isherm_dense', 'isherm_dia',
+    'isdiag', 'isdiag_csr', 'isdiag_dense', 'isdiag_dia',
+    'iszero', 'iszero_csr', 'iszero_dense', 'iszero_dia',
 ]
 
 cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil:
@@ -78,6 +78,7 @@ cdef bint _isherm_csr_full(CSR matrix, double tol) except 2:
             if not _feq_zero(transpose.data[ptr_b], tol):
                 return False
     return True
+
 
 cpdef bint isherm_csr(CSR matrix, double tol=-1):
     """
@@ -144,6 +145,50 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
         mem.PyMem_Free(out_row_index)
 
 
+cpdef bint isherm_dia(Dia matrix, double tol=-1) nogil:
+    cdef double complex val, valT
+    cdef size_t diag, other_diag, col, start, end, other_start
+    if tol < 0:
+        with gil:
+            tol = settings.core["atol"]
+    if matrix.shape[0] != matrix.shape[1]:
+        return False
+    for diag in range(matrix.num_diag):
+        if matrix.offsets[diag] == 0:
+            for col in range(matrix.shape[1]):
+                val = valT = matrix.data[diag * matrix.shape[1] + col]
+                if not _conj_feq(val, valT, tol):
+                    return False
+            continue
+        other_diag = 0
+        while other_diag < matrix.num_diag:
+            if matrix.offsets[diag] == -matrix.offsets[other_diag]:
+                break
+            other_diag += 1
+
+        if other_diag < diag:
+            continue
+
+        start = max(0, matrix.offsets[diag])
+        end = min(matrix.shape[1], matrix.shape[0] + matrix.offsets[diag])
+
+        if other_diag == matrix.num_diag:
+            # No matching diag, should be 0
+            for col in range(start, end):
+                val = matrix.data[diag * matrix.shape[1] + col]
+                if not _feq_zero(val, tol):
+                    return False
+            continue
+
+        other_start = max(0, matrix.offsets[other_diag])
+        for col in range(end - start):
+            val = matrix.data[diag * matrix.shape[1] + col + start]
+            valT = matrix.data[other_diag * matrix.shape[1] + col + other_start]
+            if not _conj_feq(val, valT, tol):
+                return False
+    return True
+
+
 cpdef bint isherm_dense(Dense matrix, double tol=-1):
     """
     Determine whether an input Dense matrix is Hermitian up to a given
@@ -177,6 +222,23 @@ cpdef bint isherm_dense(Dense matrix, double tol=-1):
     return True
 
 
+cpdef bint isdiag_dia(Dia matrix, double tol=-1) nogil:
+    cdef size_t diag, start, end, col
+    if tol < 0:
+        with gil:
+            tol = settings.core["atol"]
+    cdef double tolsq = tol*tol
+    for diag in range(matrix.num_diag):
+        if matrix.offsets[diag] == 0:
+            continue
+        start = max(0, matrix.offsets[diag])
+        end = min(matrix.shape[1], matrix.shape[0] + matrix.offsets[diag])
+        for col in range(start, end):
+            if _abssq(matrix.data[diag * matrix.shape[1] + col]) > tolsq:
+                return False
+    return True
+
+
 cpdef bint isdiag_csr(CSR matrix) nogil:
     cdef size_t row, ptr_start, ptr_end=matrix.row_index[0]
     for row in range(matrix.shape[0]):
@@ -199,6 +261,21 @@ cpdef bint isdiag_dense(Dense matrix) nogil:
     return True
 
 
+cpdef bint iszero_dia(Dia matrix, double tol=-1) nogil:
+    cdef size_t diag, start, end, col
+    if tol < 0:
+        with gil:
+            tol = settings.core["atol"]
+    cdef double tolsq = tol*tol
+    for diag in range(matrix.num_diag):
+        start = max(0, matrix.offsets[diag])
+        end = min(matrix.shape[1], matrix.shape[0] + matrix.offsets[diag])
+        for col in range(start, end):
+            if _abssq(matrix.data[diag * matrix.shape[1] + col]) > tolsq:
+                return False
+    return True
+
+
 cpdef bint iszero_csr(CSR matrix, double tol=-1) nogil:
     cdef size_t ptr
     if tol < 0:
@@ -209,6 +286,7 @@ cpdef bint iszero_csr(CSR matrix, double tol=-1) nogil:
         if _abssq(matrix.data[ptr]) > tolsq:
             return False
     return True
+
 
 cpdef bint iszero_dense(Dense matrix, double tol=-1) nogil:
     cdef size_t ptr
@@ -227,7 +305,7 @@ import inspect as _inspect
 
 isherm = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=-1),
     ]),
@@ -256,12 +334,13 @@ isherm.__doc__ =\
     """
 isherm.add_specialisations([
     (Dense, isherm_dense),
+    (Dia, isherm_dia),
     (CSR, isherm_csr),
 ], _defer=True)
 
 isdiag = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='isdiag',
     module=__name__,
@@ -279,12 +358,13 @@ isdiag.__doc__ =\
     """
 isdiag.add_specialisations([
     (Dense, isdiag_dense),
+    (Dia, isdiag_dia),
     (CSR, isdiag_csr),
 ], _defer=True)
 
 iszero = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=-1),
     ]),
@@ -313,6 +393,7 @@ iszero.__doc__ =\
     """
 iszero.add_specialisations([
     (CSR, iszero_csr),
+    (Dia, iszero_dia),
     (Dense, iszero_dense),
 ], _defer=True)
 

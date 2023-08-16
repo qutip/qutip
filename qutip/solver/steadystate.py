@@ -1,4 +1,4 @@
-from qutip import liouvillian, lindblad_dissipator, Qobj, qeye, qzero
+from qutip import liouvillian, lindblad_dissipator, Qobj, qzero_like, qeye_like
 from qutip import vector_to_operator, operator_to_vector
 from qutip import settings
 import qutip.core.data as _data
@@ -215,16 +215,16 @@ def _steadystate_direct(A, weight, **kw):
         if isinstance(L, _data.CSR):
             L, b = _permute_wbm(L, b)
         else:
-            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrice can be permuted.", RuntimeWarning)
     use_rcm = False
     if kw.pop("use_rcm", False):
         if isinstance(L, _data.CSR):
             L, b, perm = _permute_rcm(L, b)
             use_rcm = True
         else:
-            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrice can be permuted.", RuntimeWarning)
     if kw.pop("use_precond", False):
-        if isinstance(L, _data.CSR):
+        if isinstance(L, (_data.CSR, _data.Dia)):
             kw["M"] = _compute_precond(L, kw)
         else:
             warn("Only sparse solver use preconditioners.", RuntimeWarning)
@@ -271,16 +271,16 @@ def _steadystate_power(A, **kw):
         if isinstance(L, _data.CSR):
             L, y = _permute_wbm(L, y)
         else:
-            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrice can be permuted.", RuntimeWarning)
     use_rcm = False
     if kw.pop("use_rcm", False):
         if isinstance(L, _data.CSR):
             L, y, perm = _permute_rcm(L, y)
             use_rcm = True
         else:
-            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrice can be permuted.", RuntimeWarning)
     if kw.pop("use_precond", False):
-        if isinstance(L, _data.CSR):
+        if isinstance(L, (_data.CSR, _data.Dia)):
             kw["M"] = _compute_precond(L, kw)
         else:
             warn("Only sparse solver use preconditioners.", RuntimeWarning)
@@ -377,8 +377,8 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     # L_p and L_m correspond to the positive and negative
     # frequency terms respectively.
     # They are independent in the model, so we keep both names.
-    Id = qeye(L_0.dims[0], dtype=type(L_0.data))
-    S = T = qzero(L_0.dims[0], dtype=type(L_0.data))
+    Id = qeye_like(L_0)
+    S = T = qzero_like(L_0)
 
     if isinstance(H_0.data, _data.CSR) and not sparse:
         L_0 = L_0.to("Dense")
@@ -469,7 +469,7 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         method = "splu" if sparse else "pinv"
     sparse_solvers = ["splu", "mkl_spsolve", "spilu"]
     dense_solvers = ["solve", "lstsq", "pinv"]
-    if isinstance(L.data, _data.CSR) and method in dense_solvers:
+    if isinstance(L.data, (_data.CSR, _data.Dia)) and method in dense_solvers:
         L = L.to("dense")
     elif isinstance(L.data, _data.Dense) and method in sparse_solvers:
         L = L.to("csr")
@@ -478,17 +478,17 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     dtype = type(L.data)
     rhoss_vec = operator_to_vector(rhoss)
 
-    tr_op = qeye(L.dims[0][0])
+    tr_op = qeye_like(rhoss)
     tr_op_vec = operator_to_vector(tr_op)
 
     P = _data.kron(rhoss_vec.data, tr_op_vec.data.transpose(), dtype=dtype)
-    I = _data.csr.identity(N * N)
+    I = _data.identity_like(P)
     Q = _data.sub(I, P)
 
     if w in [None, 0.0]:
         L += 1e-15j
     else:
-        L += 1.0j*w
+        L += 1.0j * w
 
     use_rcm = use_rcm and isinstance(L.data, _data.CSR)
 
@@ -504,8 +504,9 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         LI = _data.Dense(scipy.linalg.pinv(A.to_array()), copy=False)
         LIQ = _data.matmul(LI, Q)
     elif method == "spilu":
-        if not isinstance(A, _data.CSR):
-            raise TypeError("'spilu' method can only be used with sparse data")
+        if not isinstance(A, (_data.CSR, _data.Dia)):
+            warn("'spilu' method can only be used with sparse data.")
+            A = _data.to(_data.CSR, A)
         ILU = scipy.sparse.linalg.spilu(A.as_scipy().tocsc(), **kwargs)
         LIQ = _data.Dense(ILU.solve(Q.to_array()))
     else:
