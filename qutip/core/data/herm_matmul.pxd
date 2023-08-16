@@ -2,6 +2,13 @@
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
+from qutip.core.data.dia cimport Dia
+
+cpdef Dense herm_matmul_dia_dense_dense(
+    Dia left, Dense right,
+    idxint subsystem_size=*, double complex scale=*,
+    Data out=*
+)
 
 cpdef Dense herm_matmul_csr_dense_dense(
     CSR left, Dense right,

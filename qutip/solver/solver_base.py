@@ -42,14 +42,14 @@ class Solver:
     _reset_options = {"method"}
     resultclass = Result
 
-    def __init__(self, rhs=None, *, options=None):
+    def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
             self.rhs = QobjEvo(rhs)
         elif rhs is not None:
             TypeError("The rhs must be a QobjEvo")
         self.options = options
-        self._state_metadata = {}
         self._integrator = self._get_integrator()
+        self._state_metadata = {}
         self.stats = self._initialize_stats()
 
     def _initialize_stats(self):

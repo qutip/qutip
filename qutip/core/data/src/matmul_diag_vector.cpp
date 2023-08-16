@@ -115,30 +115,10 @@ void _matmul_diag_vector_herm(
         row += 1;
         ptr += 2;
         if (row == subsystem_size){
-            col += 1;
             row = 0;
+            col += 1;
         }
     }
-
-    /*
-    for (IntT row=0; row<subsystem_size; row++){
-      for (IntT col=row; col<subsystem_size; col++){
-        ptr = (row*subsystem_size + col)*2;
-        if (ptr < start_out * 2){continue;}
-        if (ptr > (start_out + length) * 2){idx += 2; continue;}
-
-        out_dbl[ptr] += idx*10000;
-        idx += 2;
-      }
-      if (ptr > start_out * 2){idx += 2 * (row+1);}
-
-    }
-    for (IntT row=0; row<subsystem_size; row++){
-      for (IntT col=0; col<row; col++){
-
-      }
-    }
-    */
 }
 
 template void _matmul_diag_vector_herm<>(

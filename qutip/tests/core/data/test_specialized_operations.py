@@ -11,8 +11,8 @@ import qutip
     (Dia, Dense, data.herm_matmul_dia_dense_dense),
     (Dense, CSR, data.herm_matmul_data),
 ])
-def test_herm_matmul(op_type, state_type, function):
-    N = 20
+@pytest.mark.parametrize("N", [1, 2, 5, 10, 25])
+def test_herm_matmul(N, op_type, state_type, function):
     H = qutip.rand_herm(N, dtype=op_type)
     a = qutip.destroy(N, dtype=op_type)
     L = qutip.liouvillian(H, [a]).to(op_type).data

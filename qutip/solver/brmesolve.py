@@ -313,7 +313,7 @@ class BRSolver(Solver):
             br_dtype=self.options['tensor_type']
         )
         if self.options["use_herm_matmul"]:
-            self.rhs =  QobjEvoHerm(self.rhs)
+            self.rhs = QobjEvoHerm(self.rhs)
         self._init_rhs_time += time() - _time_start
         return self.rhs
 
@@ -374,29 +374,3 @@ class BRSolver(Solver):
     @options.setter
     def options(self, new_options):
         Solver.options.fset(self, new_options)
-
-    """
-    def _apply_options(self, keys):
-        need_new_rhs = self.rhs is not None and not self.rhs.isconstant
-        need_new_rhs &= (
-            'sparse_eigensolver' in keys or 'tensor_type' in keys
-        )
-        if need_new_rhs:
-            self.rhs = self._prepare_rhs()
-
-        if hasattr(self, "_rhs") and "use_herm_matmul" in keys:
-            self._rhs = self._update_rhs()
-            # Ensure the integrator is reset
-            keys = set(keys)
-            keys.add('method')
-
-        if self._integrator is None or not keys:
-            pass
-        elif 'method' in keys or need_new_rhs:
-            state = self._integrator.get_state()
-            self._integrator = self._get_integrator()
-            self._integrator.set_state(*state)
-        else:
-            self._integrator.options = self._options
-            self._integrator.reset(hard=True)
-    """
