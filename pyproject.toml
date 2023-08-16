@@ -3,7 +3,7 @@ requires = [
     "setuptools",
     "packaging",
     "wheel",
-    "cython>=0.29.20,<3.0.0",
+    "cython>=0.29.20",
     # See https://numpy.org/doc/stable/user/depending_on_numpy.html for
     # the recommended way to build against numpy's C API:
     "oldest-supported-numpy",
