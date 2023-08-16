@@ -257,7 +257,7 @@ cdef class _constructed_specialisation:
     cdef str _short_name
     cdef public str __doc__
     cdef public str __name__
-    cdef public str __module__
+    # cdef public str __module__
     cdef public object __signature__
     cdef readonly str __text_signature__
     cdef readonly bint direct
@@ -271,7 +271,7 @@ cdef class _constructed_specialisation:
             + "_"
             + "_".join([x.__name__ for x in types])
         )
-        self.__module__ = dispatcher.__module__
+        # self.__module__ = dispatcher.__module__
         self.__signature__ = dispatcher.__signature__
         self.__text_signature__ = dispatcher.__text_signature__
         self._parameters = dispatcher._parameters
@@ -338,7 +338,7 @@ cdef class Dispatcher:
     cdef readonly bint output
     cdef public str __doc__
     cdef public str __name__
-    cdef public str __module__
+    # cdef public str __module__
     cdef public object __signature__
     cdef readonly str __text_signature__
 
@@ -380,6 +380,10 @@ cdef class Dispatcher:
             this.  If not given and `signature_source` is _not_ an instance of
             `inspect.Signature`, then we will attempt to read `__module__` from
             there instead.
+
+            .. note::
+
+                Commented for now because of a bug in cython 3 (cython#5472)
         """
         if isinstance(inputs, str):
             inputs = (inputs,)
@@ -401,10 +405,10 @@ cdef class Dispatcher:
             self.__name__ = signature_source.__name__
         else:
             self.__name__ = 'dispatcher'
-        if module is not None:
-            self.__module__ = module
-        elif not isinstance(signature_source, inspect.Signature):
-            self.__module__ = signature_source.__module__
+        # if module is not None:
+        #     self.__module__ = module
+        # elif not isinstance(signature_source, inspect.Signature):
+        #     self.__module__ = signature_source.__module__
         self.__text_signature__ = self.__name__ + str(self.__signature__)
         if not isinstance(signature_source, inspect.Signature):
             self.__doc__ = inspect.getdoc(signature_source)
