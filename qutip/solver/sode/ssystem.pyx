@@ -200,7 +200,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         self.num_collapse = len(self.c_ops)
         self.state_size = self.L.shape[1]
         self._is_set = 0
-        self.N_root = <int> self.state_size**0.5
+        self.N_root = int(self.state_size**0.5)
         self.dt = derr_dt
 
     cpdef Data drift(self, t, Data state):
@@ -476,7 +476,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         out.num_collapse = len(c_ops)
         out.state_size = out.L.shape[1]
         out._is_set = 0
-        out.N_root = <int> out.state_size**0.5
+        out.N_root = int(out.state_size**0.5)
         out.dt = derr_dt
         return out
 

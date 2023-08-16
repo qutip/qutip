@@ -54,11 +54,6 @@ cdef class SpectraCoefficient(Coefficient):
         return self
 
 
-@cython.overflowcheck(True)
-cdef size_t _mul_checked(size_t a, size_t b) except? -1:
-    return a * b
-
-
 cdef Data _apply_trans(Data original, int trans):
     """helper function for matmul_var_data, apply transform."""
     cdef Data out

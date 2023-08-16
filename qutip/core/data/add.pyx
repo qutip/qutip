@@ -33,7 +33,7 @@ __all__ = [
 cdef int _ONE=1
 
 
-cdef void _check_shape(Data left, Data right) nogil except *:
+cdef void _check_shape(Data left, Data right) except * nogil:
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
         raise ValueError(
             "incompatible matrix shapes "
