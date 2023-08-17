@@ -1321,7 +1321,10 @@ def _sesolve_generic(sso, options, progress_bar):
     # ajgpitch 2019-10-25: np.any(res.states) seems to error
     # I guess there may be a potential exception if there are no states?
     # store individual trajectory states
-    res.traj_states = res.states
+    if options.store_states:
+        res.traj_states = res.states
+    else:
+        res.traj_states = None
     res.avg_states = None
     if options.average_states:
         avg_states_list = []
