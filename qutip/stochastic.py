@@ -1303,7 +1303,8 @@ def _sesolve_generic(sso, options, progress_bar):
     noise = []
     for result in results:
         states_list, dW, m, expect = result
-        res.states.append(states_list)
+        if options.average_states or options.store_states:
+            res.states.append(states_list)
         noise.append(dW)
         res.measurement.append(m)
         res.expect += expect
@@ -1322,13 +1323,19 @@ def _sesolve_generic(sso, options, progress_bar):
     # store individual trajectory states
     res.traj_states = res.states
     res.avg_states = None
-    if options.average_states and options.store_states:
+    if options.average_states:
         avg_states_list = []
         for n in range(len(res.times)):
-            tslot_states = [res.states[mm][n].data for mm in range(nt)]
+            if res.states[0][n].shape[1] == 1:
+                tslot_states = [
+                    res.states[mm][n].proj().data
+                    for mm in range(nt)
+                ]
+            else:
+                tslot_states = [res.states[mm][n].data for mm in range(nt)]
             if len(tslot_states) > 0:
                 state = Qobj(np.sum(tslot_states),
-                             dims=res.states[0][n].dims).unit()
+                             dims=[res.states[0][n].dims[0]] * 2).unit()
                 avg_states_list.append(state)
         # store average states
         res.states = res.avg_states = avg_states_list

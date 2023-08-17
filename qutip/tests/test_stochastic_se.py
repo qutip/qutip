@@ -3,7 +3,7 @@ import numpy as np
 from numpy.testing import assert_
 
 from qutip import (ssesolve, destroy, coherent, mesolve, fock, qeye,
-                   parallel_map, photocurrent_sesolve, num)
+                   parallel_map, photocurrent_sesolve, num, Options)
 
 def f(t, args):
     return args["a"] * t
@@ -140,13 +140,15 @@ def test_ssesolve_homodyne():
     psi0 = coherent(N, 0.5)
     sc_ops = [np.sqrt(gamma) * a, np.sqrt(gamma) * a*0.5]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
+    options = Options(average_states=True, store_states=True)
 
     times = np.linspace(0, 2.5, 50)
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a":2})
     res = ssesolve(H, psi0, times, sc_ops, e_ops,
                    ntraj=ntraj, nsubsteps=nsubsteps,
                    method='homodyne', store_measurement=True,
-                   map_func=parallel_map, args={"a":2})
+                   map_func=parallel_map, args={"a":2},
+                   options=options)
 
     assert_(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
                  for idx in range(len(e_ops))]))
@@ -154,6 +156,7 @@ def test_ssesolve_homodyne():
     assert_(len(res.measurement) == ntraj)
     assert_(all([m.shape == (len(times), len(sc_ops))
                  for m in res.measurement]))
+    assert_(np.array(res.states).shape == (len(times), N, N))
 
 
 @pytest.mark.slow
