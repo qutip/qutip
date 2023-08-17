@@ -5,7 +5,7 @@ from numpy.testing import assert_
 from qutip import (smesolve, mesolve, photocurrent_mesolve, liouvillian,
                    QobjEvo, spre, spost, destroy, coherent, parallel_map,
                    qeye, fock_dm, general_stochastic, ket2dm, num,
-                   basis, sigmax, sigmay, sigmaz, sigmam)
+                   basis, sigmax, sigmay, sigmaz, sigmam, Options)
 
 def f(t, args):
     return args["a"] * t
@@ -144,6 +144,7 @@ def test_smesolve_homodyne():
     psi0 = coherent(N, 0.5)
     sc_ops = [np.sqrt(gamma) * a, np.sqrt(gamma) * a * 0.5]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
+    options = Options(average_states=True, store_states=True)
 
     times = np.linspace(0, 1.0, 21)
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a":2})
@@ -161,12 +162,17 @@ def test_smesolve_homodyne():
         res = smesolve(H, psi0, times, [], sc_ops, e_ops,
                        ntraj=ntraj, nsubsteps=nsubsteps, args={"a":2},
                        method='homodyne', store_measurement=True,
-                       solver=solver, map_func=parallel_map)
+                       solver=solver, map_func=parallel_map,
+                       options=options)
         assert_(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
                      for idx in range(len(e_ops))]))
         assert_(len(res.measurement) == ntraj)
         assert_(all([m.shape == (len(times), len(sc_ops))
                      for m in res.measurement]))
+        assert_(
+            np.array([state.full() for state in res.states]).shape
+            == (len(times), N, N)
+        )
 
 
 @pytest.mark.slow
