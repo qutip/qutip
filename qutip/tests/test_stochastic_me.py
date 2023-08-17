@@ -169,7 +169,10 @@ def test_smesolve_homodyne():
         assert_(len(res.measurement) == ntraj)
         assert_(all([m.shape == (len(times), len(sc_ops))
                      for m in res.measurement]))
-        assert_(np.array(res.states).shape == (len(times), N, N))
+        assert_(
+            np.array([state.full() for state in res.states]).shape
+            == (len(times), N, N)
+        )
 
 
 @pytest.mark.slow
