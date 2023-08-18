@@ -5,6 +5,18 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
+def test_result_state():
+    H = qutip.rand_dm(2)
+    tlist = np.linspace(0, 3*np.pi, 2)
+    results = qutip.mesolve(H, H, tlist, [], [])
+
+    fig, ani = qutip.anim_fock_distribution(results)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
+
+
 def test_anim_wigner_sphere():
     psi = qutip.rand_ket(5)
     wigner = qutip.wigner_transform(psi, 2, False, 50, ["x"])

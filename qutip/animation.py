@@ -8,11 +8,18 @@ __all__ = ['anim_wigner_sphere', 'anim_hinton', 'anim_sphereplot',
 from . import (plot_wigner_sphere, hinton, sphereplot, matrix_histogram,
                plot_fock_distribution, plot_wigner, plot_spin_distribution,
                plot_qubism, plot_schmidt)
+from .solver import Result
 
 try:
     import matplotlib.pyplot as plt
 except Exception:
     pass
+
+
+def _result_state(obj):
+    if isinstance(obj, Result):
+        return obj.states
+    return obj
 
 
 def anim_wigner_sphere(wigners, reflections=False, *, cmap=None,
@@ -21,7 +28,7 @@ def anim_wigner_sphere(wigners, reflections=False, *, cmap=None,
 
     Parameters
     ----------
-    wigners : a list of transformations.
+    wigners : a list of transformations or :class:`qutip.solver.Result`
         The wigner transformation at `steps` different theta and phi.
 
     reflections : bool, default=False
@@ -50,9 +57,10 @@ def anim_wigner_sphere(wigners, reflections=False, *, cmap=None,
     Special thanks to Russell P Rundle for writing this function.
     """
 
+    wigners = _result_state(wigners)
+
     fig, ani = plot_wigner_sphere(wigners, reflections, cmap=cmap,
                                   colorbar=colorbar, fig=fig, ax=ax)
-    plt.close(fig)
 
     return fig, ani
 
@@ -64,7 +72,7 @@ def anim_hinton(rhos, x_basis=None, y_basis=None, color_style="scaled",
 
     Parameters
     ----------
-    rhos : a list of qobj instances
+    rhos : :class:`qutip.solver.Result` or list of :class:`qutip.Qobj`
         Input density matrix or superoperator.
 
         .. note::
@@ -121,10 +129,10 @@ def anim_hinton(rhos, x_basis=None, y_basis=None, color_style="scaled",
 
     """
 
+    rhos = _result_state(rhos)
+
     fig, ani = hinton(rhos, x_basis, y_basis, color_style, label_top,
                       cmap=cmap, colorbar=colorbar, fig=fig, ax=ax)
-
-    plt.close(fig)
 
     return fig, ani
 
@@ -141,7 +149,7 @@ def anim_sphereplot(theta, phi, V, *, cmap=None,
     phi : float
         Angle in x-y plane. Its range is between 0 and 2*pi
 
-    V : list of array instances
+    V : list of array instances or :class:`qutip.solver.Result`
         Data set to be plotted
 
     cmap : a matplotlib colormap instance, optional
@@ -163,10 +171,10 @@ def anim_sphereplot(theta, phi, V, *, cmap=None,
         used to produce the figure.
     """
 
+    V = _result_state(V)
+
     fig, ani = sphereplot(theta, phi, V, cmap=cmap,
                           colorbar=colorbar, fig=fig, ax=ax)
-
-    plt.close(fig)
 
     return fig, ani
 
@@ -181,7 +189,7 @@ def anim_matrix_histogram(Ms, x_basis=None, y_basis=None, limits=None,
 
     Parameters
     ----------
-    Ms : list of matrices
+    Ms : list of matrices or :class:`qutip.solver.Result`
         The matrix to visualize
 
     x_basis : list of strings, optional
@@ -293,11 +301,11 @@ def anim_matrix_histogram(Ms, x_basis=None, y_basis=None, limits=None,
 
     """
 
+    Ms = _result_state(Ms)
+
     fig, ani = matrix_histogram(Ms, x_basis, y_basis, limits, bar_style,
                                 color_limits, color_style, options, cmap=cmap,
                                 colorbar=colorbar, fig=fig, ax=ax)
-
-    plt.close(fig)
 
     return fig, ani
 
@@ -310,7 +318,7 @@ def anim_fock_distribution(rhos, fock_numbers=None, color="green",
 
     Parameters
     ----------
-    rhos : list of `qutip.Qobj` instances
+    rhos : :class:`qutip.solver.Result` or list of :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
     fock_numbers : list of strings, optional
@@ -335,10 +343,10 @@ def anim_fock_distribution(rhos, fock_numbers=None, color="green",
         used to produce the figure.
     """
 
+    rhos = _result_state(rhos)
+
     fig, ani = plot_fock_distribution(rhos, fock_numbers, color,
                                       unit_y_range, fig=fig, ax=ax)
-
-    plt.close(fig)
 
     return fig, ani
 
@@ -352,7 +360,7 @@ def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw',
 
     Parameters
     ----------
-    rhos : list of `qutip.Qobj` instances
+    rhos : :class:`qutip.solver.Result` or list of :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
     xvec : array_like, optional
@@ -391,10 +399,10 @@ def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw',
         used to produce the figure.
     """
 
+    rhos = _result_state(rhos)
+
     fig, ani = plot_wigner(rhos, xvec, yvec, method, projection,
                            cmap=cmap, colorbar=colorbar, fig=fig, ax=ax)
-
-    plt.close(fig)
 
     return fig, ani
 
@@ -402,11 +410,11 @@ def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw',
 def anim_spin_distribution(Ps, THETA, PHI, projection='2d', *,
                            cmap=None, colorbar=False, fig=None, ax=None):
     """
-    animation of a spin distribution (given as meshgrid data).
+    Animation of a spin distribution (given as meshgrid data).
 
     Parameters
     ----------
-    Ps : list of matrices
+    Ps : list of matrices or :class:`qutip.solver.Result`
         Distribution values as a meshgrid matrix.
 
     THETA : matrix
@@ -440,10 +448,10 @@ def anim_spin_distribution(Ps, THETA, PHI, projection='2d', *,
         used to produce the figure.
     """
 
+    Ps = _result_state(Ps)
+
     fig, ani = plot_spin_distribution(Ps, THETA, PHI, projection, cmap=cmap,
                                       colorbar=colorbar, fig=fig, ax=ax)
-
-    plt.close(fig)
 
     return fig, ani
 
@@ -462,7 +470,7 @@ def anim_qubism(kets, theme='light', how='pairs', grid_iteration=1,
 
     Parameters
     ----------
-    kets : list of Qobj instances
+    kets : :class:`qutip.solver.Result` or list of :class:`qutip.Qobj`
         Pure states for animation.
 
     theme : 'light' or 'dark', default='light'
@@ -511,10 +519,10 @@ def anim_qubism(kets, theme='light', how='pairs', grid_iteration=1,
        (2012), open access.
     """
 
+    kets = _result_state(kets)
+
     fig, ani = plot_qubism(kets, theme, how, grid_iteration,
                            legend_iteration, fig=fig, ax=ax)
-
-    plt.close(fig)
 
     return fig, ani
 
@@ -534,7 +542,7 @@ def anim_schmidt(kets, theme='light', splitting=None,
 
     Parameters
     ----------
-    ket : list of Qobj
+    ket : :class:`qutip.solver.Result` or list of :class:`qutip.Qobj`
         Pure states for animation.
 
     theme : 'light' or 'dark', default='light'
@@ -563,9 +571,9 @@ def anim_schmidt(kets, theme='light', splitting=None,
 
     """
 
+    kets = _result_state(kets)
+
     fig, ani = plot_schmidt(kets, theme, splitting, labels_iteration,
                             fig=fig, ax=ax)
-
-    plt.close(fig)
 
     return fig, ani
