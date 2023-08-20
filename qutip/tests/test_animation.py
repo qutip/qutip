@@ -17,6 +17,19 @@ def test_result_state():
     assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
+def test_result_state_ValueError():
+    H = qutip.rand_dm(2)
+    tlist = np.linspace(0, 3*np.pi, 2)
+    results = qutip.mesolve(H, H, tlist, [], [],
+                            options={"store_states": False})
+
+    text = 'Nothing to visualize. You might forget ' +\
+           'to set options={"store_states": True}.'
+    with pytest.raises(ValueError) as exc_info:
+        fig, ani = qutip.anim_fock_distribution(results)
+    assert str(exc_info.value) == text
+
+
 def test_anim_wigner_sphere():
     psi = qutip.rand_ket(5)
     wigner = qutip.wigner_transform(psi, 2, False, 50, ["x"])
@@ -91,7 +104,6 @@ def test_anim_spin_distribution():
     psi = qutip.spin_state(j, -j)
     psi = qutip.spin_coherent(j, np.random.rand() * np.pi,
                               np.random.rand() * 2 * np.pi)
-    rho = qutip.ket2dm(psi)
     theta = np.linspace(0, np.pi, 50)
     phi = np.linspace(0, 2 * np.pi, 50)
     Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)

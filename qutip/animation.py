@@ -10,15 +10,14 @@ from . import (plot_wigner_sphere, hinton, sphereplot, matrix_histogram,
                plot_qubism, plot_schmidt)
 from .solver import Result
 
-try:
-    import matplotlib.pyplot as plt
-except Exception:
-    pass
-
 
 def _result_state(obj):
     if isinstance(obj, Result):
-        return obj.states
+        obj = obj.states
+        if len(obj) == 0:
+            raise ValueError('Nothing to visualize. You might forget '
+                             'to set options={"store_states": True}.')
+
     return obj
 
 
@@ -28,7 +27,7 @@ def anim_wigner_sphere(wigners, reflections=False, *, cmap=None,
 
     Parameters
     ----------
-    wigners : a list of transformations or :class:`qutip.solver.Result`
+    wigners : list of transformations
         The wigner transformation at `steps` different theta and phi.
 
     reflections : bool, default=False
@@ -56,8 +55,6 @@ def anim_wigner_sphere(wigners, reflections=False, *, cmap=None,
     -----
     Special thanks to Russell P Rundle for writing this function.
     """
-
-    wigners = _result_state(wigners)
 
     fig, ani = plot_wigner_sphere(wigners, reflections, cmap=cmap,
                                   colorbar=colorbar, fig=fig, ax=ax)
@@ -149,7 +146,7 @@ def anim_sphereplot(theta, phi, V, *, cmap=None,
     phi : float
         Angle in x-y plane. Its range is between 0 and 2*pi
 
-    V : list of array instances or :class:`qutip.solver.Result`
+    V : list of array instances
         Data set to be plotted
 
     cmap : a matplotlib colormap instance, optional
@@ -170,8 +167,6 @@ def anim_sphereplot(theta, phi, V, *, cmap=None,
         A tuple of the matplotlib figure and the animation instance
         used to produce the figure.
     """
-
-    V = _result_state(V)
 
     fig, ani = sphereplot(theta, phi, V, cmap=cmap,
                           colorbar=colorbar, fig=fig, ax=ax)
@@ -414,7 +409,7 @@ def anim_spin_distribution(Ps, THETA, PHI, projection='2d', *,
 
     Parameters
     ----------
-    Ps : list of matrices or :class:`qutip.solver.Result`
+    Ps : list of matrices
         Distribution values as a meshgrid matrix.
 
     THETA : matrix
@@ -447,8 +442,6 @@ def anim_spin_distribution(Ps, THETA, PHI, projection='2d', *,
         A tuple of the matplotlib figure and the animation instance
         used to produce the figure.
     """
-
-    Ps = _result_state(Ps)
 
     fig, ani = plot_spin_distribution(Ps, THETA, PHI, projection, cmap=cmap,
                                       colorbar=colorbar, fig=fig, ax=ax)
