@@ -26,7 +26,6 @@ class MultiTrajSolver(Solver):
     options : dict
         Options for the solver.
     """
-
     name = "generic multi trajectory"
     resultclass = MultiTrajResult
     trajectory_resultclass = Result
@@ -103,47 +102,30 @@ class MultiTrajSolver(Solver):
         _, state = self._integrator.integrate(t, copy=False)
         return self._restore_state(state, copy=copy)
 
-    def _initialize_run(
-        self,
-        state,
-        ntraj=1,
-        *,
-        args=None,
-        e_ops=(),
-        timeout=None,
-        target_tol=None,
-        seed=None
-    ):
+    def _initialize_run(self, state, ntraj=1, *,
+                        args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
         start_time = time()
         self._argument(args)
         stats = self._initialize_stats()
         seeds = self._read_seed(seed, ntraj)
 
-        result = self.resultclass(e_ops, self.options, solver=self.name, stats=stats)
+        result = self.resultclass(
+            e_ops, self.options, solver=self.name, stats=stats
+        )
         result.add_end_condition(ntraj, target_tol)
 
-        map_func = _get_map[self.options["map"]]
+        map_func = _get_map[self.options['map']]
         map_kw = {
-            "timeout": timeout,
-            "job_timeout": self.options["job_timeout"],
-            "num_cpus": self.options["num_cpus"],
+            'timeout': timeout,
+            'job_timeout': self.options['job_timeout'],
+            'num_cpus': self.options['num_cpus'],
         }
         state0 = self._prepare_state(state)
-        stats["preparation time"] += time() - start_time
+        stats['preparation time'] += time() - start_time
         return stats, seeds, result, map_func, map_kw, state0
 
-    def run(
-        self,
-        state,
-        tlist,
-        ntraj=1,
-        *,
-        args=None,
-        e_ops=(),
-        timeout=None,
-        target_tol=None,
-        seed=None
-    ):
+    def run(self, state, tlist, ntraj=1, *,
+            args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
         """
         Do the evolution of the Quantum system.
 
@@ -203,39 +185,27 @@ class MultiTrajSolver(Solver):
             The simulation will end when the first end condition is reached
             between ``ntraj``, ``timeout`` and ``target_tol``.
         """
-        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
-            state,
-            ntraj,
-            args=args,
-            e_ops=e_ops,
-            timeout=timeout,
-            target_tol=target_tol,
-            seed=seed,
-        )
+        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(state, ntraj,
+                                                                              args=args, e_ops=e_ops, timeout=timeout,
+                                                                              target_tol=target_tol, seed=seed)
         start_time = time()
         map_func(
-            self._run_one_traj,
-            seeds,
+            self._run_one_traj, seeds,
             (state0, tlist, e_ops),
-            reduce_func=result.add,
-            map_kw=map_kw,
+            reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
-            progress_bar_kwargs=self.options["progress_kwargs"],
+            progress_bar_kwargs=self.options["progress_kwargs"]
         )
-        result.stats["run time"] = time() - start_time
+        result.stats['run time'] = time() - start_time
         return result
 
-    def _run_one_traj(
-        self, seed, state, tlist, e_ops, no_jump=False, jump_prob_floor=0.0
-    ):
+    def _run_one_traj(self, seed, state, tlist, e_ops, no_jump=False, jump_prob_floor=0.0):
         """
         Run one trajectory and return the result.
         """
         result = self.trajectory_resultclass(e_ops, self.options)
         generator = self._get_generator(seed)
-        self._integrator.set_state(
-            tlist[0], state, generator, no_jump=no_jump, jump_prob_floor=jump_prob_floor
-        )
+        self._integrator.set_state(tlist[0], state, generator, no_jump=no_jump, jump_prob_floor=jump_prob_floor)
         result.add(tlist[0], self._restore_state(state, copy=False))
         for t in tlist[1:]:
             t, state = self._integrator.integrate(t, copy=False)
@@ -255,11 +225,8 @@ class MultiTrajSolver(Solver):
             seeds = np.random.SeedSequence(seed).spawn(ntraj)
         elif len(seed) >= ntraj:
             seeds = [
-                seed_
-                if (
-                    isinstance(seed_, np.random.SeedSequence)
-                    or hasattr(seed_, "random")
-                )
+                seed_ if (isinstance(seed_, np.random.SeedSequence)
+                          or hasattr(seed_, 'random'))
                 else np.random.SeedSequence(seed_)
                 for seed_ in seed[:ntraj]
             ]
@@ -278,13 +245,13 @@ class MultiTrajSolver(Solver):
         If the ``seed`` has a ``random`` method, it will be used as the
         generator.
         """
-        if hasattr(seed, "random"):
+        if hasattr(seed, 'random'):
             # We check for the method, not the type to accept pseudo non-random
             # generator for debug/testing purpose.
             return seed
 
-        if self.options["bitgenerator"]:
-            bit_gen = getattr(np.random, self.options["bitgenerator"])
+        if self.options['bitgenerator']:
+            bit_gen = getattr(np.random, self.options['bitgenerator'])
             generator = np.random.Generator(bit_gen(seed))
         else:
             generator = np.random.default_rng(seed)
@@ -307,56 +274,36 @@ class MultiTrajSolverImprovedSampling(MultiTrajSolver):
     def __init__(self, rhs, *, options=None):
         super().__init__(rhs, options=options)
 
-    def run(
-        self,
-        state,
-        tlist,
-        ntraj=1,
-        *,
-        args=None,
-        e_ops=(),
-        timeout=None,
-        target_tol=None,
-        seed=None
-    ):
+    def run(self, state, tlist, ntraj=1, *,
+            args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
         """
         Do the evolution of the Quantum system.
         See the overridden method for further details. The modification here is to sample
         the no-jump trajectory first. Then, the no-jump probability is used as a lower-bound
         for random numbers in future monte carlo runs
         """
-        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
-            state,
-            ntraj,
-            args=args,
-            e_ops=e_ops,
-            timeout=timeout,
-            target_tol=target_tol,
-            seed=seed,
-        )
+        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(state, ntraj,
+                                                                              args=args, e_ops=e_ops, timeout=timeout,
+                                                                              target_tol=target_tol, seed=seed)
         # first run the no-jump trajectory
         start_time = time()
-        seed0, no_jump_result = self._run_one_traj(
-            seeds[0], state0, tlist, e_ops, no_jump=True
-        )
+        seed0, no_jump_result = self._run_one_traj(seeds[0], state0, tlist, e_ops, no_jump=True)
         _, state, _ = self._integrator.get_state(copy=False)
         no_jump_prob = self._integrator._prob_func(state)
         result.no_jump_prob = no_jump_prob
         result.add((seed0, no_jump_result), no_jump=True)
-        result.stats["no jump run time"] = time() - start_time
+        result.stats['no jump run time'] = time() - start_time
 
         # run the remaining trajectories with the random number floor set to the
         # no jump probability such that we only sample trajectories with jumps
         start_time = time()
         # implied here that no_jump=False for result.add
         map_func(
-            self._run_one_traj,
-            seeds[1:],
+            self._run_one_traj, seeds[1:],
             (state0, tlist, e_ops, False, no_jump_prob),
-            reduce_func=result.add,
-            map_kw=map_kw,
+            reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
-            progress_bar_kwargs=self.options["progress_kwargs"],
+            progress_bar_kwargs=self.options["progress_kwargs"]
         )
-        result.stats["run time"] = time() - start_time
+        result.stats['run time'] = time() - start_time
         return result
