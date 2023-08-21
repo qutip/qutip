@@ -1,4 +1,4 @@
-__all__ = ['mcsolve', "MCSolver"]
+__all__ = ["mcsolve", "MCSolver"]
 
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
@@ -10,9 +10,21 @@ import qutip.core.data as _data
 from time import time
 
 
-def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
-            args=None, options=None, seeds=None, target_tol=None, timeout=None,
-            improved_sampling=False):
+def mcsolve(
+    H,
+    state,
+    tlist,
+    c_ops=(),
+    e_ops=None,
+    ntraj=500,
+    *,
+    args=None,
+    options=None,
+    seeds=None,
+    target_tol=None,
+    timeout=None,
+    improved_sampling=False,
+):
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -141,25 +153,28 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         if options is None:
             options = {}
         options = {
-            key: options[key]
-            for key in options
-            if key in MESolver.solver_options
+            key: options[key] for key in options if key in MESolver.solver_options
         }
-        return mesolve(H, state, tlist, e_ops=e_ops, args=args,
-                       options=options)
+        return mesolve(H, state, tlist, e_ops=e_ops, args=args, options=options)
 
     if isinstance(ntraj, (list, tuple)):
         raise TypeError(
-            "ntraj must be an integer. "
-            "A list of numbers is not longer supported."
+            "ntraj must be an integer. " "A list of numbers is not longer supported."
         )
     if not improved_sampling:
         mc = MCSolver(H, c_ops, options=options)
     else:
         mc = MCSolverImprovedSampling(H, c_ops, options=options)
 
-    result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
-                    seed=seeds, target_tol=target_tol, timeout=timeout)
+    result = mc.run(
+        state,
+        tlist=tlist,
+        ntraj=ntraj,
+        e_ops=e_ops,
+        seed=seeds,
+        target_tol=target_tol,
+        timeout=timeout,
+    )
     return result
 
 
@@ -167,6 +182,7 @@ class MCIntegrator:
     """
     Integrator like object for mcsolve trajectory.
     """
+
     name = "mcsolve"
 
     def __init__(self, integrator, c_ops, n_ops, options=None):
@@ -208,7 +224,7 @@ class MCIntegrator:
             self.target_norm = 0.0
         else:
             self.target_norm = (
-                    self._generator.random() * (1 - jump_prob_floor) + jump_prob_floor
+                self._generator.random() * (1 - jump_prob_floor) + jump_prob_floor
             )
         self._integrator.set_state(t, state0)
         self._is_set = True
@@ -223,11 +239,10 @@ class MCIntegrator:
             t_step, state = self._integrator.mcstep(t, copy=False)
             norm = self._prob_func(state)
             if norm <= self.target_norm:
-                t_col, state = self._find_collapse_time(norm_old, norm,
-                                                        t_old, t_step)
+                t_col, state = self._find_collapse_time(norm_old, norm, t_old, t_step)
                 self._do_collapse(t_col, state)
                 t_old, y_old = self._integrator.get_state(copy=False)
-                norm_old = 1.
+                norm_old = 1.0
             else:
                 t_old, y_old = t_step, state
                 norm_old = norm
@@ -244,7 +259,7 @@ class MCIntegrator:
     def _prob_func(self, state):
         if self.issuper:
             return _data.trace_oper_ket(state).real
-        return _data.norm.l2(state)**2
+        return _data.norm.l2(state) ** 2
 
     def _norm_func(self, state):
         if self.issuper:
@@ -254,28 +269,27 @@ class MCIntegrator:
     def _find_collapse_time(self, norm_old, norm, t_prev, t_final):
         """Find the time of the collapse and state just before it."""
         tries = 0
-        while tries < self.options['norm_steps']:
+        while tries < self.options["norm_steps"]:
             tries += 1
-            if (t_final - t_prev) < self.options['norm_t_tol']:
+            if (t_final - t_prev) < self.options["norm_t_tol"]:
                 t_guess = t_final
                 _, state = self._integrator.get_state()
                 break
-            t_guess = (
-                t_prev
-                + ((t_final - t_prev)
-                   * np.log(norm_old / self.target_norm)
-                   / np.log(norm_old / norm))
+            t_guess = t_prev + (
+                (t_final - t_prev)
+                * np.log(norm_old / self.target_norm)
+                / np.log(norm_old / norm)
             )
-            if (t_guess - t_prev) < self.options['norm_t_tol']:
-                t_guess = t_prev + self.options['norm_t_tol']
+            if (t_guess - t_prev) < self.options["norm_t_tol"]:
+                t_guess = t_prev + self.options["norm_t_tol"]
             _, state = self._integrator.mcstep(t_guess, copy=False)
             norm2_guess = self._prob_func(state)
             if (
-                np.abs(self.target_norm - norm2_guess) <
-                self.options['norm_tol'] * self.target_norm
+                np.abs(self.target_norm - norm2_guess)
+                < self.options["norm_tol"] * self.target_norm
             ):
                 break
-            elif (norm2_guess < self.target_norm):
+            elif norm2_guess < self.target_norm:
                 # t_guess is still > t_jump
                 t_final = t_guess
                 norm = norm2_guess
@@ -284,11 +298,12 @@ class MCIntegrator:
                 t_prev = t_guess
                 norm_old = norm2_guess
 
-        if tries >= self.options['norm_steps']:
+        if tries >= self.options["norm_steps"]:
             raise RuntimeError(
                 "Could not find the collapse time within desired tolerance. "
                 "Increase accuracy of the ODE solver or lower the tolerance "
-                "with the options 'norm_steps', 'norm_tol', 'norm_t_tol'.")
+                "with the options 'norm_steps', 'norm_tol', 'norm_t_tol'."
+            )
 
         return t_guess, state
 
@@ -308,12 +323,11 @@ class MCIntegrator:
             for i, n_op in enumerate(self._n_ops):
                 probs[i] = n_op.expect_data(collapse_time, state).real
             probs = np.cumsum(probs)
-            which = np.searchsorted(probs,
-                                    probs[-1] * self._generator.random())
+            which = np.searchsorted(probs, probs[-1] * self._generator.random())
 
         state_new = self._c_ops[which].matmul_data(collapse_time, state)
         new_norm = self._norm_func(state_new)
-        if new_norm < self.options['mc_corr_eps']:
+        if new_norm < self.options["mc_corr_eps"]:
             # This happen when the collapse is caused by numerical error
             state_new = _data.mul(state, 1 / self._norm_func(state))
         else:
@@ -416,9 +430,8 @@ class MCSolver(MultiTrajSolver):
         """
         Retore the Qobj state from its data.
         """
-        if self._state_metadata['dims'] == self.rhs.dims[1]:
-            state = Qobj(unstack_columns(data),
-                         **self._state_metadata, copy=False)
+        if self._state_metadata["dims"] == self.rhs.dims[1]:
+            state = Qobj(unstack_columns(data), **self._state_metadata, copy=False)
         else:
             state = Qobj(data, **self._state_metadata, copy=copy)
 
@@ -426,11 +439,13 @@ class MCSolver(MultiTrajSolver):
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
-        stats.update({
-            "method": self.options["method"],
-            "solver": "Master Equation Evolution",
-            "num_collapse": self._num_collapse,
-        })
+        stats.update(
+            {
+                "method": self.options["method"],
+                "solver": "Master Equation Evolution",
+                "num_collapse": self._num_collapse,
+            }
+        )
         return stats
 
     def _argument(self, args):
@@ -441,7 +456,9 @@ class MCSolver(MultiTrajSolver):
         for n_op in self._n_ops:
             n_op.arguments(args)
 
-    def _run_one_traj(self, seed, state, tlist, e_ops, no_jump=False, jump_prob_floor=0.0):
+    def _run_one_traj(
+        self, seed, state, tlist, e_ops, no_jump=False, jump_prob_floor=0.0
+    ):
         """
         Run one trajectory and return the result.
         """
@@ -449,7 +466,9 @@ class MCSolver(MultiTrajSolver):
         # multiprocessing, but will fail with multithreading.
         # If a thread base parallel map is created, eahc trajectory should use
         # a copy of the integrator.
-        seed, result = super()._run_one_traj(seed, state, tlist, e_ops, no_jump=no_jump, jump_prob_floor=jump_prob_floor)
+        seed, result = super()._run_one_traj(
+            seed, state, tlist, e_ops, no_jump=no_jump, jump_prob_floor=jump_prob_floor
+        )
         result.collapse = self._integrator.collapses
         return seed, result
 

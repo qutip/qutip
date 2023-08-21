@@ -15,6 +15,7 @@ class _QobjExpectEop:
     op : :obj:`~Qobj`
         The expectation value operator.
     """
+
     def __init__(self, op):
         self.op = op
 
@@ -45,6 +46,7 @@ class ExpectOp:
     op : object
         The original object used to define the e_op operation.
     """
+
     def __init__(self, op, f, append):
         self.op = op
         self._f = f
@@ -69,6 +71,7 @@ class _BaseResult:
     """
     Common method for all ``Result``.
     """
+
     def __init__(self, options, *, solver=None, stats=None):
         self.solver = solver
         if stats is None:
@@ -81,7 +84,7 @@ class _BaseResult:
         self.options = options
 
     def _e_ops_to_dict(self, e_ops):
-        """ Convert the supplied e_ops to a dictionary of Eop instances. """
+        """Convert the supplied e_ops to a dictionary of Eop instances."""
         if e_ops is None:
             e_ops = {}
         elif isinstance(e_ops, (list, tuple)):
@@ -194,6 +197,7 @@ class Result(_BaseResult):
     options : dict
         The options for this result class.
     """
+
     def __init__(self, e_ops, options, *, solver=None, stats=None, **kw):
         super().__init__(options, solver=solver, stats=stats)
         raw_ops = self._e_ops_to_dict(e_ops)
@@ -238,8 +242,8 @@ class Result(_BaseResult):
         Sub-class ``.post_init()`` implementation may take additional keyword
         arguments if required.
         """
-        store_states = self.options['store_states']
-        store_final_state = self.options['store_final_state']
+        store_states = self.options["store_states"]
+        store_final_state = self.options["store_final_state"]
 
         if store_states is None:
             store_states = len(self.e_ops) == 0
@@ -250,17 +254,17 @@ class Result(_BaseResult):
             self.add_processor(self._store_final_state, requires_copy=True)
 
     def _store_state(self, t, state):
-        """ Processor that stores a state in ``.states``. """
+        """Processor that stores a state in ``.states``."""
         self.states.append(state)
 
     def _store_final_state(self, t, state):
-        """ Processor that writes the state to ``.final_state``. """
+        """Processor that writes the state to ``.final_state``."""
         self.final_state = state
 
     def _pre_copy(self, state):
-        """ Return a copy of the state. Sub-classes may override this to
-            copy a state in different manner or to skip making a copy
-            altogether if a copy is not necessary.
+        """Return a copy of the state. Sub-classes may override this to
+        copy a state in different manner or to skip making a copy
+        altogether if a copy is not necessary.
         """
         return state.copy()
 
@@ -306,10 +310,7 @@ class Result(_BaseResult):
         ]
         if self.stats:
             lines.append("  Solver stats:")
-            lines.extend(
-                f"    {k}: {v!r}"
-                for k, v in self.stats.items()
-            )
+            lines.extend(f"    {k}: {v!r}" for k, v in self.stats.items())
         if self.times:
             lines.append(
                 f"  Time interval: [{self.times[0]}, {self.times[-1]}]"
@@ -450,6 +451,7 @@ class MultiTrajResult(_BaseResult):
     options : :obj:`~SolverResultsOptions`
         The options for this result class.
     """
+
     def __init__(self, e_ops, options, *, solver=None, stats=None, **kw):
         super().__init__(options, solver=solver, stats=stats)
         self._raw_ops = self._e_ops_to_dict(e_ops)
@@ -474,7 +476,7 @@ class MultiTrajResult(_BaseResult):
 
     @staticmethod
     def _to_dm(state):
-        if state.type == 'ket':
+        if state.type == "ket":
             state = state.proj()
         return state
 
@@ -485,28 +487,24 @@ class MultiTrajResult(_BaseResult):
         self.times = trajectory.times
 
         if trajectory.states:
-            self._sum_states = [qzero_like(self._to_dm(state))
-                                for state in trajectory.states]
+            self._sum_states = [
+                qzero_like(self._to_dm(state)) for state in trajectory.states
+            ]
         if trajectory.final_state:
             state = trajectory.final_state
             self._sum_final_states = qzero_like(self._to_dm(state))
 
-        self._sum_expect = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
-        self._sum2_expect = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
+        self._sum_expect = [np.zeros_like(expect) for expect in trajectory.expect]
+        self._sum2_expect = [np.zeros_like(expect) for expect in trajectory.expect]
 
         self.e_ops = trajectory.e_ops
 
         self.average_e_data = {
             k: list(avg_expect)
-            for k, avg_expect
-            in zip(self._raw_ops, self._sum_expect)
+            for k, avg_expect in zip(self._raw_ops, self._sum_expect)
         }
         self.e_data = self.average_e_data
-        if self.options['keep_runs_results']:
+        if self.options["keep_runs_results"]:
             self.runs_e_data = {k: [] for k in self._raw_ops}
             self.e_data = self.runs_e_data
 
@@ -516,8 +514,7 @@ class MultiTrajResult(_BaseResult):
     def _reduce_states(self, trajectory):
         self._sum_states = [
             accu + self._to_dm(state)
-            for accu, state
-            in zip(self._sum_states, trajectory.states)
+            for accu, state in zip(self._sum_states, trajectory.states)
         ]
 
     def _reduce_final_state(self, trajectory):
@@ -564,7 +561,7 @@ class MultiTrajResult(_BaseResult):
         """
         ntraj_left = self._target_ntraj - self.num_trajectories
         if ntraj_left == 0:
-            self.stats['end_condition'] = 'ntraj reached'
+            self.stats["end_condition"] = "ntraj reached"
         return ntraj_left
 
     def _target_tolerance_end(self):
@@ -577,25 +574,23 @@ class MultiTrajResult(_BaseResult):
             return np.inf
         avg = np.array(self._sum_expect) / self.num_trajectories
         avg2 = np.array(self._sum2_expect) / self.num_trajectories
-        target = np.array([
-            atol + rtol * mean
-            for mean, (atol, rtol)
-            in zip(avg, self._target_tols)
-        ])
-        target_ntraj = np.max((avg2 - abs(avg)**2) / target**2 + 1)
+        target = np.array(
+            [atol + rtol * mean for mean, (atol, rtol) in zip(avg, self._target_tols)]
+        )
+        target_ntraj = np.max((avg2 - abs(avg) ** 2) / target**2 + 1)
 
         self._estimated_ntraj = min(target_ntraj, self._target_ntraj)
         if (self._estimated_ntraj - self.num_trajectories) <= 0:
-            self.stats['end_condition'] = 'target tolerance reached'
+            self.stats["end_condition"] = "target tolerance reached"
         return self._estimated_ntraj - self.num_trajectories
 
     def _post_init(self):
         self.num_trajectories = 0
         self._target_ntraj = None
 
-        store_states = self.options['store_states']
-        store_final_state = self.options['store_final_state']
-        store_traj = self.options['keep_runs_results']
+        store_states = self.options["store_states"]
+        store_final_state = self.options["store_final_state"]
+        store_traj = self.options["keep_runs_results"]
 
         self.add_processor(self._increment_traj)
         if store_traj:
@@ -610,7 +605,7 @@ class MultiTrajResult(_BaseResult):
             self.add_processor(self._reduce_expect)
 
         self._early_finish_check = self._no_end
-        self.stats['end_condition'] = 'unknown'
+        self.stats["end_condition"] = "unknown"
 
     def add(self, trajectory_info):
         """
@@ -666,7 +661,7 @@ class MultiTrajResult(_BaseResult):
             Error estimation is done with jackknife resampling.
         """
         self._target_ntraj = ntraj
-        self.stats['end_condition'] = 'timeout'
+        self.stats["end_condition"] = "timeout"
 
         if target_tol is None:
             self._early_finish_check = self._fixed_end
@@ -681,14 +676,16 @@ class MultiTrajResult(_BaseResult):
 
         targets = np.array(target_tol)
         if targets.ndim == 0:
-            self._target_tols = np.array([(target_tol, 0.)] * num_e_ops)
+            self._target_tols = np.array([(target_tol, 0.0)] * num_e_ops)
         elif targets.shape == (2,):
             self._target_tols = np.ones((num_e_ops, 2)) * targets
         elif targets.shape == (num_e_ops, 2):
             self._target_tols = targets
         else:
-            raise ValueError("target_tol must be a number, a pair of (atol, "
-                             "rtol) or a list of (atol, rtol) for each e_ops")
+            raise ValueError(
+                "target_tol must be a number, a pair of (atol, "
+                "rtol) or a list of (atol, rtol) for each e_ops"
+            )
 
         self._early_finish_check = self._target_tolerance_end
 
@@ -786,10 +783,7 @@ class MultiTrajResult(_BaseResult):
         ]
         if self.stats:
             lines.append("  Solver stats:")
-            lines.extend(
-                f"    {k}: {v!r}"
-                for k, v in self.stats.items()
-            )
+            lines.extend(f"    {k}: {v!r}" for k, v in self.stats.items())
         if self.times:
             lines.append(
                 f"  Time interval: [{self.times[0]}, {self.times[-1]}]"
@@ -817,8 +811,9 @@ class MultiTrajResult(_BaseResult):
             raise ValueError("Shared `e_ops` is required to merge results")
         if self.times != other.times:
             raise ValueError("Shared `times` are is required to merge results")
-        new = self.__class__(self._raw_ops, self.options,
-                             solver=self.solver, stats=self.stats)
+        new = self.__class__(
+            self._raw_ops, self.options, solver=self.solver, stats=self.stats
+        )
         if self.trajectories and other.trajectories:
             new.trajectories = self.trajectories + other.trajectories
         new.num_trajectories = self.num_trajectories + other.num_trajectories
@@ -828,13 +823,8 @@ class MultiTrajResult(_BaseResult):
         if self._sum_states is not None and other._sum_states is not None:
             new._sum_states = self._sum_states + other._sum_states
 
-        if (
-            self._sum_final_states is not None
-            and other._sum_final_states is not None
-        ):
-            new._sum_final_states = (
-                self._sum_final_states + other._sum_final_states
-            )
+        if self._sum_final_states is not None and other._sum_final_states is not None:
+            new._sum_final_states = self._sum_final_states + other._sum_final_states
         new._target_tols = None
 
         new._sum_expect = []
@@ -844,8 +834,7 @@ class MultiTrajResult(_BaseResult):
 
         for i, k in enumerate(self._raw_ops):
             new._sum_expect.append(self._sum_expect[i] + other._sum_expect[i])
-            new._sum2_expect.append(self._sum2_expect[i]
-                                    + other._sum2_expect[i])
+            new._sum2_expect.append(self._sum2_expect[i] + other._sum2_expect[i])
 
             avg = new._sum_expect[i] / new.num_trajectories
             avg2 = new._sum2_expect[i] / new.num_trajectories
@@ -860,7 +849,7 @@ class MultiTrajResult(_BaseResult):
                 new.e_data = new.runs_e_data
 
         new.stats["run time"] += other.stats["run time"]
-        new.stats['end_condition'] = "Merged results"
+        new.stats["end_condition"] = "Merged results"
 
         return new
 
@@ -887,14 +876,12 @@ class MultiTrajResultImprovedSampling(MultiTrajResult):
         if no_jump:
             self._sum_states_no_jump = [
                 accu + self._to_dm(state)
-                for accu, state
-                in zip(self._sum_states_no_jump, trajectory.states)
+                for accu, state in zip(self._sum_states_no_jump, trajectory.states)
             ]
         else:
             self._sum_states_jump = [
                 accu + self._to_dm(state)
-                for accu, state
-                in zip(self._sum_states_jump, trajectory.states)
+                for accu, state in zip(self._sum_states_jump, trajectory.states)
             ]
 
     def _increment_traj(self, trajectory, no_jump=False):
@@ -915,21 +902,19 @@ class MultiTrajResultImprovedSampling(MultiTrajResult):
         super()._add_first_traj(trajectory)
         if trajectory.states:
             del self._sum_states
-            self._sum_states_no_jump = [qzero_like(self._to_dm(state))
-                                        for state in trajectory.states]
-            self._sum_states_jump = [qzero_like(self._to_dm(state))
-                                     for state in trajectory.states]
+            self._sum_states_no_jump = [
+                qzero_like(self._to_dm(state)) for state in trajectory.states
+            ]
+            self._sum_states_jump = [
+                qzero_like(self._to_dm(state)) for state in trajectory.states
+            ]
         if trajectory.final_state:
             state = trajectory.final_state
             del self._sum_final_states
             self._sum_final_states_no_jump = qzero_like(self._to_dm(state))
             self._sum_final_states_jump = qzero_like(self._to_dm(state))
-        self._sum_expect_jump = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
-        self._sum2_expect_jump = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
+        self._sum_expect_jump = [np.zeros_like(expect) for expect in trajectory.expect]
+        self._sum2_expect_jump = [np.zeros_like(expect) for expect in trajectory.expect]
         self._sum_expect_no_jump = [
             np.zeros_like(expect) for expect in trajectory.expect
         ]
@@ -955,9 +940,13 @@ class MultiTrajResultImprovedSampling(MultiTrajResult):
                 avg2 = self._sum2_expect_no_jump[i]
             else:
                 self._sum_expect_jump[i] += expect_traj * (1 - self.no_jump_prob)
-                self._sum2_expect_jump[i] += expect_traj ** 2 * (1 - self.no_jump_prob)
-                avg = self._sum_expect_no_jump[i] + self._sum_expect_jump[i] / (self.num_trajectories - 1)
-                avg2 = self._sum2_expect_no_jump[i] + self._sum2_expect_jump[i] / (self.num_trajectories - 1)
+                self._sum2_expect_jump[i] += expect_traj**2 * (1 - self.no_jump_prob)
+                avg = self._sum_expect_no_jump[i] + self._sum_expect_jump[i] / (
+                    self.num_trajectories - 1
+                )
+                avg2 = self._sum2_expect_no_jump[i] + self._sum2_expect_jump[i] / (
+                    self.num_trajectories - 1
+                )
 
             self.average_e_data[k] = list(avg)
 
@@ -976,7 +965,9 @@ class MultiTrajResultImprovedSampling(MultiTrajResult):
         if self._sum_states_no_jump is None:
             return None
         p = self.no_jump_prob
-        avg_jump_states = [final / (self.num_trajectories - 1) for final in self._sum_states_jump]
+        avg_jump_states = [
+            final / (self.num_trajectories - 1) for final in self._sum_states_jump
+        ]
         return p * self._sum_states_no_jump + (1 - p) * avg_jump_states
 
     @property
@@ -987,7 +978,10 @@ class MultiTrajResultImprovedSampling(MultiTrajResult):
         if self._sum_final_states_no_jump is None:
             return None
         p = self.no_jump_prob
-        return p * self._sum_final_states_no_jump + (1 - p) * self._sum_final_states_jump / self.num_trajectories
+        return (
+            p * self._sum_final_states_no_jump
+            + (1 - p) * self._sum_final_states_jump / self.num_trajectories
+        )
 
     def add(self, trajectory_info, no_jump=False):
         seed, trajectory = trajectory_info
@@ -1008,8 +1002,7 @@ class McTrajectoryResult(Result):
     """
 
     def __init__(self, e_ops, options, *args, **kwargs):
-        super().__init__(e_ops, {**options, "normalize_output": False},
-                         *args, **kwargs)
+        super().__init__(e_ops, {**options, "normalize_output": False}, *args, **kwargs)
 
 
 class McResult(MultiTrajResult):
@@ -1049,6 +1042,7 @@ class McResult(MultiTrajResult):
         For each runs, a list of every collapse as a tuple of the time it
         happened and the corresponding ``c_ops`` index.
     """
+
     # Collapse are only produced by mcsolve.
 
     def _add_collapse(self, trajectory):
@@ -1068,7 +1062,7 @@ class McResult(MultiTrajResult):
         out = []
         for col_ in self.collapse:
             col = list(zip(*col_))
-            col = ([] if len(col) == 0 else col[0])
+            col = [] if len(col) == 0 else col[0]
             out.append(col)
         return out
 
@@ -1080,7 +1074,7 @@ class McResult(MultiTrajResult):
         out = []
         for col_ in self.collapse:
             col = list(zip(*col_))
-            col = ([] if len(col) == 0 else col[1])
+            col = [] if len(col) == 0 else col[1]
             out.append(col)
         return out
 
@@ -1111,17 +1105,22 @@ class McResult(MultiTrajResult):
             cols = [[] for _ in range(self.num_c_ops)]
             for t, which in collapses:
                 cols[which].append(t)
-            measurements.append([
-                np.histogram(cols[i], tlist)[0] / np.diff(tlist)
-                for i in range(self.num_c_ops)
-            ])
+            measurements.append(
+                [
+                    np.histogram(cols[i], tlist)[0] / np.diff(tlist)
+                    for i in range(self.num_c_ops)
+                ]
+            )
         return measurements
 
 
 class McResultImprovedSampling(MultiTrajResultImprovedSampling, McResult):
     """McResult class using the MultiTrajResultImprovedSampling functionality"""
+
     def __init__(self, e_ops, options, **kw):
-        MultiTrajResultImprovedSampling.__init__(self, e_ops=e_ops, options=options, **kw)
+        MultiTrajResultImprovedSampling.__init__(
+            self, e_ops=e_ops, options=options, **kw
+        )
 
     def _add_collapse(self, trajectory, no_jump=False):
         super()._add_collapse(trajectory)
@@ -1216,15 +1215,15 @@ class NmmcResult(McResult):
     def _add_trace(self, trajectory):
         new_trace = np.array(trajectory.trace)
         self._sum_trace += new_trace
-        self._sum2_trace += np.abs(new_trace)**2
+        self._sum2_trace += np.abs(new_trace) ** 2
 
         avg = self._sum_trace / self.num_trajectories
         avg2 = self._sum2_trace / self.num_trajectories
 
         self.average_trace = avg
-        self.std_trace = np.sqrt(np.abs(avg2 - np.abs(avg)**2))
+        self.std_trace = np.sqrt(np.abs(avg2 - np.abs(avg) ** 2))
 
-        if self.options['keep_runs_results']:
+        if self.options["keep_runs_results"]:
             self.runs_trace.append(trajectory.trace)
 
     @property
