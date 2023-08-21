@@ -159,7 +159,16 @@ by only sampling the no-jump trajectory once. We then extract the no-jump probab
 and for all future runs we only sample random numbers :math:`r_1` where :math:`r_1>p`, thus ensuring
 that a jump will occur. When it comes time to compute expectation values, we weight the no-jump
 trajectory by :math:`p` and the jump trajectories by :math:`1-p`. This algorithm is described
-in [Abd19]_.
+in [Abd19]_. This algorithm can be utilized by setting the flag ``improved_sampling=True`` in the call to
+``mcsolve``:
+
+.. plot::
+    :context: close-figs
+
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], improved_sampling=True)
+
+where in this case the first run samples the no-jump trajectory, and the remaining 499 trajectories are all
+guaranteed to include (at least) one jump.
 
 
 .. _monte-reuse:
