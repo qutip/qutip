@@ -441,7 +441,8 @@ class MCSolver(MultiTrajSolver):
         for n_op in self._n_ops:
             n_op.arguments(args)
 
-    def _run_one_traj(self, seed, state, tlist, e_ops, no_jump=False, jump_prob_floor=0.0):
+    def _run_one_traj(self, seed, state, tlist, e_ops,
+                      no_jump=False, jump_prob_floor=0.0):
         """
         Run one trajectory and return the result.
         """
@@ -449,7 +450,10 @@ class MCSolver(MultiTrajSolver):
         # multiprocessing, but will fail with multithreading.
         # If a thread base parallel map is created, eahc trajectory should use
         # a copy of the integrator.
-        seed, result = super()._run_one_traj(seed, state, tlist, e_ops, no_jump=no_jump, jump_prob_floor=jump_prob_floor)
+        seed, result = super()._run_one_traj(
+            seed, state, tlist, e_ops,
+            no_jump=no_jump, jump_prob_floor=jump_prob_floor
+        )
         result.collapse = self._integrator.collapses
         return seed, result
 
@@ -557,12 +561,3 @@ class MCSolverImprovedSampling(MultiTrajSolverImprovedSampling, MCSolver):
 
     def __init__(self, H, c_ops, *, options=None):
         MCSolver.__init__(self, H, c_ops, options=options)
-
-    def _run_one_traj(
-        self, seed, state, tlist, e_ops, no_jump=False, jump_prob_floor=0.0
-    ):
-        seed, result = super()._run_one_traj(
-            seed, state, tlist, e_ops, no_jump=no_jump, jump_prob_floor=jump_prob_floor
-        )
-        result.collapse = self._integrator.collapses
-        return seed, result
