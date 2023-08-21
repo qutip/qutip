@@ -179,7 +179,7 @@ class MCIntegrator:
         self._is_set = False
         self.issuper = c_ops[0].issuper
 
-    def set_state(self, t, state0, generator):
+    def set_state(self, t, state0, generator, no_jump=False, jump_prob_floor=0.0):
         """
         Set the state of the ODE solver.
 
@@ -193,10 +193,23 @@ class MCIntegrator:
 
         generator : numpy.random.generator
             Random number generator.
+
+        no_jump: Bool
+            whether or not to sample the no-jump trajectory. If so, the "random number"
+            should be set to zero
+
+        jump_prob_floor: float
+            if no_jump == False, this is set to the no-jump probability. This setting
+            ensures that we sample a trajectory with jumps
         """
         self.collapses = []
         self._generator = generator
-        self.target_norm = self._generator.random()
+        if no_jump:
+            self.target_norm = 0.0
+        else:
+            self.target_norm = (
+                    self._generator.random() * (1 - jump_prob_floor) + jump_prob_floor
+            )
         self._integrator.set_state(t, state0)
         self._is_set = True
 
@@ -306,6 +319,9 @@ class MCIntegrator:
         else:
             state_new = _data.mul(state_new, 1 / new_norm)
             self.collapses.append((collapse_time, which))
+            # this does not need to be modified for improved sampling:
+            # as noted in Abdelhafez PRA (2019),
+            # after a jump we reset to the full range [0, 1)
             self.target_norm = self._generator.random()
         self._integrator.set_state(collapse_time, state_new)
 
@@ -320,35 +336,6 @@ class MCIntegrator:
     @property
     def integrator_options(self):
         return self._integrator.integrator_options
-
-
-class MCIntegratorImprovedSampling(MCIntegrator):
-    def __init__(self, integrator, c_ops, n_ops, options=None):
-        super().__init__(integrator, c_ops, n_ops, options=options)
-
-    def set_state(self, t, state0, generator, no_jump=False, jump_prob_floor=0.0):
-        """
-        see the overidden function for additional details.
-            The parameters introduced here are:
-
-        no_jump: Bool
-            whether or not to sample the no-jump trajectory. If so, the "random number"
-            should be set to zero
-
-        jump_prob_floor: float
-            if no_jump == False, this is set to the no-jump probability. This setting
-            ensures that we sample a trajectory with jumps
-
-        generator : numpy.random.generator
-            Random number generator.
-        """
-        super().set_state(t, state0, generator)
-        if no_jump:
-            self.target_norm = 0.0
-        else:
-            self.target_norm = (
-                    self._generator.random() * (1 - jump_prob_floor) + jump_prob_floor
-            )
 
 
 # -----------------------------------------------------------------------------
@@ -454,7 +441,7 @@ class MCSolver(MultiTrajSolver):
         for n_op in self._n_ops:
             n_op.arguments(args)
 
-    def _run_one_traj(self, seed, state, tlist, e_ops):
+    def _run_one_traj(self, seed, state, tlist, e_ops, no_jump=False, jump_prob_floor=0.0):
         """
         Run one trajectory and return the result.
         """
@@ -462,7 +449,7 @@ class MCSolver(MultiTrajSolver):
         # multiprocessing, but will fail with multithreading.
         # If a thread base parallel map is created, eahc trajectory should use
         # a copy of the integrator.
-        seed, result = super()._run_one_traj(seed, state, tlist, e_ops)
+        seed, result = super()._run_one_traj(seed, state, tlist, e_ops, no_jump=no_jump, jump_prob_floor=jump_prob_floor)
         result.collapse = self._integrator.collapses
         return seed, result
 
@@ -561,7 +548,7 @@ class MCSolverImprovedSampling(MultiTrajSolverImprovedSampling, MCSolver):
     name = "mcsolve improved sampling"
     resultclass = McResultImprovedSampling
     trajectory_resultclass = McTrajectoryResult
-    mc_integrator_class = MCIntegratorImprovedSampling
+    mc_integrator_class = MCIntegrator
 
     def __init__(self, H, c_ops, *, options=None):
         MCSolver.__init__(self, H, c_ops, options=options)

@@ -485,7 +485,6 @@ class MultiTrajResult(_BaseResult):
         self.times = trajectory.times
 
         if trajectory.states:
-            state = trajectory.states[0]
             self._sum_states = [qzero_like(self._to_dm(state))
                                 for state in trajectory.states]
         if trajectory.final_state:
@@ -869,24 +868,44 @@ class MultiTrajResult(_BaseResult):
 class MultiTrajResultImprovedSampling(MultiTrajResult):
     def __init__(self, e_ops, options, **kw):
         super().__init__(e_ops, options, **kw)
-        self._sum_expect_jump = None
         self._sum_expect_no_jump = None
-        self._sum2_expect_jump = None
+        self._sum_expect_jump = None
         self._sum2_expect_no_jump = None
+        self._sum2_expect_jump = None
+
+        self._sum_states_no_jump = None
+        self._sum_states_jump = None
+        self._sum_final_states_no_jump = None
+        self._sum_final_states_jump = None
+
         self.no_jump_prob = None
 
     def _store_trajectory(self, trajectory, no_jump=False):
         super()._store_trajectory(trajectory)
 
     def _reduce_states(self, trajectory, no_jump=False):
-        # TODO this probably also needs to be changed
-        super()._reduce_states(trajectory)
+        if no_jump:
+            self._sum_states_no_jump = [
+                accu + self._to_dm(state)
+                for accu, state
+                in zip(self._sum_states_no_jump, trajectory.states)
+            ]
+        else:
+            self._sum_states_jump = [
+                accu + self._to_dm(state)
+                for accu, state
+                in zip(self._sum_states_jump, trajectory.states)
+            ]
 
     def _increment_traj(self, trajectory, no_jump=False):
         super()._increment_traj(trajectory)
 
     def _reduce_final_state(self, trajectory, no_jump=False):
-        super()._reduce_final_state(trajectory)
+        dm_final_state = self._to_dm(trajectory.final_state)
+        if no_jump:
+            self._sum_final_states_no_jump += dm_final_state
+        else:
+            self._sum_final_states_jump += dm_final_state
 
     def _add_first_traj(self, trajectory):
         """
@@ -894,6 +913,17 @@ class MultiTrajResultImprovedSampling(MultiTrajResult):
         """
 
         super()._add_first_traj(trajectory)
+        if trajectory.states:
+            del self._sum_states
+            self._sum_states_no_jump = [qzero_like(self._to_dm(state))
+                                        for state in trajectory.states]
+            self._sum_states_jump = [qzero_like(self._to_dm(state))
+                                     for state in trajectory.states]
+        if trajectory.final_state:
+            state = trajectory.final_state
+            del self._sum_final_states
+            self._sum_final_states_no_jump = qzero_like(self._to_dm(state))
+            self._sum_final_states_jump = qzero_like(self._to_dm(state))
         self._sum_expect_jump = [
             np.zeros_like(expect) for expect in trajectory.expect
         ]
@@ -943,20 +973,21 @@ class MultiTrajResultImprovedSampling(MultiTrajResult):
         """
         States averages as density matrices.
         """
-        # TODO this needs to be changed
-        if self._sum_states is None:
+        if self._sum_states_no_jump is None:
             return None
-        return [final / self.num_trajectories for final in self._sum_states]
+        p = self.no_jump_prob
+        avg_jump_states = [final / (self.num_trajectories - 1) for final in self._sum_states_jump]
+        return p * self._sum_states_no_jump + (1 - p) * avg_jump_states
 
     @property
     def average_final_state(self):
         """
         Last states of each trajectories averaged into a density matrix.
         """
-        # TODO this needs to be changed
-        if self._sum_final_states is None:
+        if self._sum_final_states_no_jump is None:
             return None
-        return self._sum_final_states / self.num_trajectories
+        p = self.no_jump_prob
+        return p * self._sum_final_states_no_jump + (1 - p) * self._sum_final_states_jump / self.num_trajectories
 
     def add(self, trajectory_info, no_jump=False):
         seed, trajectory = trajectory_info
