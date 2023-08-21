@@ -15,7 +15,7 @@ def _result_state(obj):
     if isinstance(obj, Result):
         obj = obj.states
         if len(obj) == 0:
-            raise ValueError('Nothing to visualize. You might forget '
+            raise ValueError('Nothing to visualize. You might have forgotten '
                              'to set options={"store_states": True}.')
 
     return obj
