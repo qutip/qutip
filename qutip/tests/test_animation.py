@@ -23,7 +23,7 @@ def test_result_state_ValueError():
     results = qutip.mesolve(H, H, tlist, [], [],
                             options={"store_states": False})
 
-    text = 'Nothing to visualize. You might forget ' +\
+    text = 'Nothing to visualize. You might have forgotten ' +\
            'to set options={"store_states": True}.'
     with pytest.raises(ValueError) as exc_info:
         fig, ani = qutip.anim_fock_distribution(results)
