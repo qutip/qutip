@@ -93,26 +93,20 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     # runtimes shorter.  The known-good cases are still tested in the other
     # test cases, this is just testing the single-output behaviour.
 
-    def test_states_only(self, hamiltonian, args, c_ops, expected, tol):
+    @pytest.mark.parametrize("improved_sampling", [True, False])
+    def test_states_only(self, hamiltonian, args, c_ops, expected, tol, improved_sampling):
         options = {"store_states": True, "map": "serial"}
         result = mcsolve(hamiltonian, self.state, self.times, args=args,
                          c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
-                         options=options)
-        result_improved_sampling = mcsolve(hamiltonian, self.state, self.times, args=args,
-                         c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
-                         options=options, improved_sampling=True)
+                         options=options, improved_sampling=improved_sampling)
         self._assert_states(result, expected, tol)
-        self._assert_states(result_improved_sampling, expected, tol)
 
-    def test_expect_only(self, hamiltonian, args, c_ops, expected, tol):
+    @pytest.mark.parametrize("improved_sampling", [True, False])
+    def test_expect_only(self, hamiltonian, args, c_ops, expected, tol, improved_sampling):
         result = mcsolve(hamiltonian, self.state, self.times, args=args,
                          c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
-                         options={'map': 'serial'})
-        result_improved_sampling = mcsolve(hamiltonian, self.state, self.times, args=args,
-                         c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
-                         options={'map': 'serial'}, improved_sampling=True)
+                         options={'map': 'serial'}, improved_sampling=improved_sampling)
         self._assert_expect(result, expected, tol)
-        self._assert_expect(result_improved_sampling, expected, tol)
 
 
 class TestConstantCollapse(StatesAndExpectOutputCase):
@@ -181,8 +175,8 @@ def test_stored_collapse_operators_and_times():
     assert all(col in [0, 1] for col in result.col_which[0])
 
 
-@pytest.mark.parametrize("keep_runs_results, improved_sampling",
-                         [(True, True), (True, False), (False, True), (False, False)])
+@pytest.mark.parametrize("improved_sampling", [True, False])
+@pytest.mark.parametrize("keep_runs_results", [True, False])
 def test_states_outputs(keep_runs_results, improved_sampling):
     # We're just testing the output value, so it's important whether certain
     # things are complex or real, but not what the magnitudes of constants are.
@@ -238,8 +232,8 @@ def test_states_outputs(keep_runs_results, improved_sampling):
     assert data.stats['end_condition'] == "ntraj reached"
 
 
-@pytest.mark.parametrize("keep_runs_results, improved_sampling",
-                         [(True, True), (True, False), (False, True), (False, False)])
+@pytest.mark.parametrize("improved_sampling", [True, False])
+@pytest.mark.parametrize("keep_runs_results", [True, False])
 def test_expectation_outputs(keep_runs_results, improved_sampling):
     # We're just testing the output value, so it's important whether certain
     # things are complex or real, but not what the magnitudes of constants are.
@@ -322,9 +316,8 @@ class TestSeeds:
                        for first_w, second_w in zip(first.col_which,
                                                     second.col_which))
 
-    @pytest.mark.parametrize('seed, improved_sampling',
-                             [(1, True), (np.random.SeedSequence(2), False),
-                              (1, False), (np.random.SeedSequence(2), True)])
+    @pytest.mark.parametrize("seed", [1, np.random.SeedSequence(2)])
+    @pytest.mark.parametrize("improved_sampling", [True, False])
     def test_seed_type(self, seed, improved_sampling):
         args = (self.H, self.state, self.times)
         kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj, "improved_sampling": improved_sampling}
