@@ -564,6 +564,11 @@ class MCSolver(MultiTrajSolver):
 
 
 class MCSolverImprovedSampling(MultiTrajSolverImprovedSampling, MCSolver):
+    r"""
+    Monte Carlo Solver of a state vector :math:`|\psi \rangle` for a
+    given Hamiltonian and sets of collapse operators using the improved
+    sampling algorithm. See MCSolver for further details and documentation
+    """
     name = "mcsolve improved sampling"
     resultclass = McResultImprovedSampling
     trajectory_resultclass = McTrajectoryResult
@@ -575,9 +580,6 @@ class MCSolverImprovedSampling(MultiTrajSolverImprovedSampling, MCSolver):
     def _run_one_traj(
         self, seed, state, tlist, e_ops, no_jump=False, jump_prob_floor=0.0
     ):
-        """
-        See the overridden function for additional details.
-        """
         seed, result = super()._run_one_traj(
             seed, state, tlist, e_ops, no_jump=no_jump, jump_prob_floor=jump_prob_floor
         )

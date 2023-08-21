@@ -296,6 +296,10 @@ class MultiTrajSolver(Solver):
 
 
 class MultiTrajSolverImprovedSampling(MultiTrajSolver):
+    """
+    Class for multi-trajectory evolutions using the improved sampling algorithm.
+    See docstring for MultiTrajSolver for further documentation
+    """
     name = "multi trajectory efficient"
     resultclass = MultiTrajResultImprovedSampling
     trajectory_resultclass = Result

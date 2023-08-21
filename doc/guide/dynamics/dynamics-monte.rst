@@ -148,6 +148,20 @@ Now, the Monte Carlo solver will calculate expectation values for both operators
 
 
 
+Using the Improved Sampling Algorithm
+-------------------------------------
+
+Oftentimes, quantum jumps are rare. This is especially true in the context of simulating gates
+for quantum information purposes, where typical gate times are orders of magnitude smaller than
+typical timescales for decoherence. In this case, using the standard monte-carlo sampling algorithm,
+we often repeatedly sample the no-jump trajectory. We can thus reduce the number of required runs
+by only sampling the no-jump trajectory once. We then extract the no-jump probability :math:`p`,
+and for all future runs we only sample random numbers :math:`r_1` where :math:`r_1>p`, thus ensuring
+that a jump will occur. When it comes time to compute expectation values, we weight the no-jump
+trajectory by :math:`p` and the jump trajectories by :math:`1-p`. This algorithm is described
+in [Abd19]_.
+
+
 .. _monte-reuse:
 
 Reusing Hamiltonian Data
