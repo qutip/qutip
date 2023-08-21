@@ -866,6 +866,111 @@ class MultiTrajResult(_BaseResult):
         return new
 
 
+class MultiTrajResultImprovedSampling(MultiTrajResult):
+    def __init__(self, e_ops, options, **kw):
+        super().__init__(e_ops, options, **kw)
+        self._sum_expect_jump = None
+        self._sum_expect_no_jump = None
+        self._sum2_expect_jump = None
+        self._sum2_expect_no_jump = None
+        self.no_jump_prob = None
+
+    def _store_trajectory(self, trajectory, no_jump=False):
+        super()._store_trajectory(trajectory)
+
+    def _reduce_states(self, trajectory, no_jump=False):
+        # TODO this probably also needs to be changed
+        super()._reduce_states(trajectory)
+
+    def _increment_traj(self, trajectory, no_jump=False):
+        super()._increment_traj(trajectory)
+
+    def _reduce_final_state(self, trajectory, no_jump=False):
+        super()._reduce_final_state(trajectory)
+
+    def _add_first_traj(self, trajectory):
+        """
+        Read the first trajectory, intitializing needed data.
+        """
+
+        super()._add_first_traj(trajectory)
+        self._sum_expect_jump = [
+            np.zeros_like(expect) for expect in trajectory.expect
+        ]
+        self._sum2_expect_jump = [
+            np.zeros_like(expect) for expect in trajectory.expect
+        ]
+        self._sum_expect_no_jump = [
+            np.zeros_like(expect) for expect in trajectory.expect
+        ]
+        self._sum2_expect_no_jump = [
+            np.zeros_like(expect) for expect in trajectory.expect
+        ]
+        del self._sum_expect
+        del self._sum2_expect
+
+    def _reduce_expect(self, trajectory, no_jump=False):
+        """
+        Compute the average of the expectation values and store it in it's
+        multiple formats for the no-jump trajectory
+        """
+        for i, k in enumerate(self._raw_ops):
+            expect_traj = trajectory.expect[i]
+
+            if no_jump:
+                self._sum_expect_no_jump[i] += expect_traj * self.no_jump_prob
+                self._sum2_expect_no_jump[i] += expect_traj**2 * self.no_jump_prob
+                # no jump trajectory will always be the first one
+                avg = self._sum_expect_no_jump[i]
+                avg2 = self._sum2_expect_no_jump[i]
+            else:
+                self._sum_expect_jump[i] += expect_traj * (1 - self.no_jump_prob)
+                self._sum2_expect_jump[i] += expect_traj ** 2 * (1 - self.no_jump_prob)
+                avg = self._sum_expect_no_jump[i] + self._sum_expect_jump[i] / (self.num_trajectories - 1)
+                avg2 = self._sum2_expect_no_jump[i] + self._sum2_expect_jump[i] / (self.num_trajectories - 1)
+
+            self.average_e_data[k] = list(avg)
+
+            # mean(expect**2) - mean(expect)**2 can something be very small
+            # negative (-1e-15) which raise an error for float sqrt.
+            self.std_e_data[k] = list(np.sqrt(np.abs(avg2 - np.abs(avg**2))))
+
+            if self.runs_e_data:
+                self.runs_e_data[k].append(trajectory.e_data[k])
+
+    @property
+    def average_states(self):
+        """
+        States averages as density matrices.
+        """
+        # TODO this needs to be changed
+        if self._sum_states is None:
+            return None
+        return [final / self.num_trajectories for final in self._sum_states]
+
+    @property
+    def average_final_state(self):
+        """
+        Last states of each trajectories averaged into a density matrix.
+        """
+        # TODO this needs to be changed
+        if self._sum_final_states is None:
+            return None
+        return self._sum_final_states / self.num_trajectories
+
+    def add(self, trajectory_info, no_jump=False):
+        seed, trajectory = trajectory_info
+        self.seeds.append(seed)
+
+        for op in self._state_processors:
+            op(trajectory, no_jump)
+
+        return self._early_finish_check()
+
+    def __add__(self, other):
+        raise NotImplemented
+
+
 class McTrajectoryResult(Result):
     """
     Result class used by the :class:`qutip.MCSolver` for single trajectories.
@@ -980,6 +1085,15 @@ class McResult(MultiTrajResult):
                 for i in range(self.num_c_ops)
             ])
         return measurements
+
+
+class McResultImprovedSampling(MultiTrajResultImprovedSampling, McResult):
+    """McResult class using the MultiTrajResultImprovedSampling functionality"""
+    def __init__(self, e_ops, options, **kw):
+        MultiTrajResultImprovedSampling.__init__(self, e_ops=e_ops, options=options, **kw)
+
+    def _add_collapse(self, trajectory, no_jump=False):
+        super()._add_collapse(trajectory)
 
 
 class NmmcTrajectoryResult(McTrajectoryResult):

@@ -2,16 +2,17 @@ __all__ = ['mcsolve', "MCSolver"]
 
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
-from .multitraj import MultiTrajSolver
+from .multitraj import MultiTrajSolver, MultiTrajSolverImprovedSampling
 from .solver_base import Solver, Integrator
-from .result import McResult, McTrajectoryResult
+from .result import McResult, McTrajectoryResult, McResultImprovedSampling
 from .mesolve import mesolve, MESolver
 import qutip.core.data as _data
 from time import time
 
 
 def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
-            args=None, options=None, seeds=None, target_tol=None, timeout=None):
+            args=None, options=None, seeds=None, target_tol=None, timeout=None,
+            improved_sampling=False):
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -116,6 +117,10 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         Maximum time for the evolution in second. When reached, no more
         trajectories will be computed.
 
+    improved_sampling: Bool
+        Whether to use the improved sampling algorithm from Abdelhafez et al.
+        PRA (2019)
+
     Returns
     -------
     results : :class:`qutip.solver.McResult`
@@ -148,8 +153,11 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
             "ntraj must be an integer. "
             "A list of numbers is not longer supported."
         )
+    if not improved_sampling:
+        mc = MCSolver(H, c_ops, options=options)
+    else:
+        mc = MCSolverImprovedSampling(H, c_ops, options=options)
 
-    mc = MCSolver(H, c_ops, options=options)
     result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
                     seed=seeds, target_tol=target_tol, timeout=timeout)
     return result
@@ -312,6 +320,35 @@ class MCIntegrator:
     @property
     def integrator_options(self):
         return self._integrator.integrator_options
+
+
+class MCIntegratorImprovedSampling(MCIntegrator):
+    def __init__(self, integrator, c_ops, n_ops, options=None):
+        super().__init__(integrator, c_ops, n_ops, options=options)
+
+    def set_state(self, t, state0, generator, no_jump=False, jump_prob_floor=0.0):
+        """
+        see the overidden function for additional details.
+            The parameters introduced here are:
+
+        no_jump: Bool
+            whether or not to sample the no-jump trajectory. If so, the "random number"
+            should be set to zero
+
+        jump_prob_floor: float
+            if no_jump == False, this is set to the no-jump probability. This setting
+            ensures that we sample a trajectory with jumps
+
+        generator : numpy.random.generator
+            Random number generator.
+        """
+        super().set_state(t, state0, generator)
+        if no_jump:
+            self.target_norm = 0.0
+        else:
+            self.target_norm = (
+                    self._generator.random() * (1 - jump_prob_floor) + jump_prob_floor
+            )
 
 
 # -----------------------------------------------------------------------------
@@ -518,3 +555,25 @@ class MCSolver(MultiTrajSolver):
             **Solver.avail_integrators(),
             **cls._avail_integrators,
         }
+
+
+class MCSolverImprovedSampling(MultiTrajSolverImprovedSampling, MCSolver):
+    name = "mcsolve improved sampling"
+    resultclass = McResultImprovedSampling
+    trajectory_resultclass = McTrajectoryResult
+    mc_integrator_class = MCIntegratorImprovedSampling
+
+    def __init__(self, H, c_ops, *, options=None):
+        MCSolver.__init__(self, H, c_ops, options=options)
+
+    def _run_one_traj(
+        self, seed, state, tlist, e_ops, no_jump=False, jump_prob_floor=0.0
+    ):
+        """
+        See the overridden function for additional details.
+        """
+        seed, result = super()._run_one_traj(
+            seed, state, tlist, e_ops, no_jump=no_jump, jump_prob_floor=jump_prob_floor
+        )
+        result.collapse = self._integrator.collapses
+        return seed, result
