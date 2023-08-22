@@ -484,20 +484,20 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     return fig, output
 
 
-def sphereplot(theta, phi, values, *,
+def sphereplot(values, theta, phi, *,
                cmap=None, colorbar=True, fig=None, ax=None):
     """Plots a matrix of values on a sphere
 
     Parameters
     ----------
+    values : array
+        Data set to be plotted
+
     theta : float
         Angle with respect to z-axis. Its range is between 0 and pi
 
     phi : float
         Angle in x-y plane. Its range is between 0 and 2*pi
-
-    values : array
-        Data set to be plotted
 
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.

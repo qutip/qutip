@@ -134,20 +134,20 @@ def anim_hinton(rhos, x_basis=None, y_basis=None, color_style="scaled",
     return fig, ani
 
 
-def anim_sphereplot(theta, phi, V, *, cmap=None,
+def anim_sphereplot(V, theta, phi, *, cmap=None,
                     colorbar=True, fig=None, ax=None):
     """animation of a matrices of values on a sphere
 
     Parameters
     ----------
+    V : list of array instances
+        Data set to be plotted
+
     theta : float
         Angle with respect to z-axis. Its range is between 0 and pi
 
     phi : float
         Angle in x-y plane. Its range is between 0 and 2*pi
-
-    V : list of array instances
-        Data set to be plotted
 
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
@@ -168,7 +168,7 @@ def anim_sphereplot(theta, phi, V, *, cmap=None,
         used to produce the figure.
     """
 
-    fig, ani = sphereplot(theta, phi, V, cmap=cmap,
+    fig, ani = sphereplot(V, theta, phi, cmap=cmap,
                           colorbar=colorbar, fig=fig, ax=ax)
 
     return fig, ani

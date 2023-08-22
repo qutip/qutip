@@ -56,7 +56,7 @@ def test_anim_sphereplot():
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
     values = qutip.orbital(theta, phi, qutip.basis(3, 0)).T
-    fig, ani = qutip.anim_sphereplot(theta, phi, [values]*2)
+    fig, ani = qutip.anim_sphereplot([values]*2, theta, phi)
     plt.close()
 
     assert isinstance(fig, mpl.figure.Figure)
