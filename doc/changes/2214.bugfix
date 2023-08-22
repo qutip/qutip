@@ -1,2 +1,0 @@
-Fixed issue where `extrac_states` did not preserve hermiticity.
-Fixed issue where `rand_herm` did not set the private attribute _isherm to True.

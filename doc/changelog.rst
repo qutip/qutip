@@ -6,6 +6,25 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 4.7.3 (2023-08-22)
+========================
+
+Bug Fixes
+---------
+
+- Non-oper qobj + scalar raise an error. (#2208 reported by vikramkashyap)
+- Fixed issue where `extract_states` did not preserve hermiticity.
+  Fixed issue where `rand_herm` did not set the private attribute _isherm to True. (#2214 by AGaliciaMartinez)
+- ssesolve average states to density matrices (#2216 reported by BenjaminDAnjou)
+
+
+Miscellaneous
+-------------
+
+- Exclude cython 3.0.0 from requirement (#2204)
+- Run in no cython mode with cython >=3.0.0 (#2207)
+
+
 QuTiP 4.7.2 (2023-06-28)
 ========================
 
