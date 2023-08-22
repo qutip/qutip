@@ -35,9 +35,8 @@ def test_sequential():
     qutip.settings.colorblind_safe = True
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
-
-    fig, ax = qutip.sphereplot(theta, phi,
-                               qutip.orbital(theta, phi, qutip.basis(3, 0)).T)
+    values = qutip.orbital(theta, phi, qutip.basis(3, 0)).T
+    fig, ax = qutip.sphereplot(values, theta, phi)
     plt.close()
 
     qutip.settings.colorblind_safe = False
@@ -200,10 +199,8 @@ def test_hinton_ValueError1(transform, args, error_message):
 def test_sphereplot(args):
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
-
-    fig, ax = qutip.sphereplot(theta, phi,
-                               qutip.orbital(theta, phi, qutip.basis(3, 0)).T,
-                               **args)
+    values = qutip.orbital(theta, phi, qutip.basis(3, 0)).T
+    fig, ax = qutip.sphereplot(values, theta, phi, **args)
     plt.close()
 
     assert isinstance(fig, mpl.figure.Figure)
@@ -214,7 +211,7 @@ def test_sphereplot_anim():
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
     values = qutip.orbital(theta, phi, qutip.basis(3, 0)).T
-    fig, ani = qutip.sphereplot(theta, phi, [values]*2)
+    fig, ani = qutip.sphereplot([values]*2, theta, phi)
     plt.close()
 
     assert isinstance(fig, mpl.figure.Figure)
@@ -340,7 +337,6 @@ def test_matrix_histogram_anim():
       "invalid key(s) found in options: e2, e1")),
 ])
 def test_matrix_histogram_ValueError(args, expected):
-    text = "options must be a dictionary"
 
     with pytest.raises(ValueError) as exc_info:
         fig, ax = qutip.matrix_histogram(qutip.rand_dm(5),
@@ -486,10 +482,8 @@ def test_plot_expectation_values(n_of_results, n_of_e_ops, one_axes, args):
 ])
 def test_plot_spin_distribution(color, args):
     j = 5
-    psi = qutip.spin_state(j, -j)
     psi = qutip.spin_coherent(j, np.random.rand() * np.pi,
                               np.random.rand() * 2 * np.pi)
-    rho = qutip.ket2dm(psi)
     theta = np.linspace(0, np.pi, 50)
     phi = np.linspace(0, 2 * np.pi, 50)
     Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)
@@ -509,10 +503,8 @@ def test_plot_spin_distribution(color, args):
 )
 def test_plot_spin_distribution_anim():
     j = 5
-    psi = qutip.spin_state(j, -j)
     psi = qutip.spin_coherent(j, np.random.rand() * np.pi,
                               np.random.rand() * 2 * np.pi)
-    rho = qutip.ket2dm(psi)
     theta = np.linspace(0, np.pi, 50)
     phi = np.linspace(0, 2 * np.pi, 50)
     Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)
@@ -527,10 +519,8 @@ def test_plot_spin_distribution_anim():
 def test_plot_spin_distribution_ValueError():
     text = "Unexpected value of projection keyword argument"
     j = 5
-    psi = qutip.spin_state(j, -j)
     psi = qutip.spin_coherent(j, np.random.rand() * np.pi,
                               np.random.rand() * 2 * np.pi)
-    rho = qutip.ket2dm(psi)
     theta = np.linspace(0, np.pi, 50)
     phi = np.linspace(0, 2 * np.pi, 50)
     Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)
