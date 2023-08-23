@@ -2,7 +2,8 @@
 import numpy as np
 from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero, qzero_like
 
-__all__ = ["Result", "MultiTrajResult", "McResult", "NmmcResult"]
+__all__ = ["Result", "MultiTrajResult", "McResult", "NmmcResult",
+           "MultiTrajResultImprovedSampling"]
 
 
 class _QobjExpectEop:
@@ -1130,7 +1131,7 @@ class McResult(MultiTrajResult):
 
 
 class McResultImprovedSampling(MultiTrajResultImprovedSampling, McResult):
-    """McResult class using the MultiTrajResultImprovedSampling functionality"""
+    """McResult class using MultiTrajResultImprovedSampling"""
     def __init__(self, e_ops, options, **kw):
         MultiTrajResultImprovedSampling.__init__(self, e_ops=e_ops,
                                                  options=options, **kw)

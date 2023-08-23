@@ -4,7 +4,7 @@ from time import time
 from .solver_base import Solver
 import numpy as np
 
-__all__ = ["MultiTrajSolver"]
+__all__ = ["MultiTrajSolver", "MultiTrajSolverImprovedSampling"]
 
 
 class MultiTrajSolver(Solver):
@@ -213,7 +213,8 @@ class MultiTrajSolver(Solver):
         result = self.trajectory_resultclass(e_ops, self.options)
         generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator,
-                                   no_jump=no_jump, jump_prob_floor=jump_prob_floor)
+                                   no_jump=no_jump,
+                                   jump_prob_floor=jump_prob_floor)
         result.add(tlist[0], self._restore_state(state, copy=False))
         for t in tlist[1:]:
             t, state = self._integrator.integrate(t, copy=False)
@@ -272,8 +273,8 @@ class MultiTrajSolver(Solver):
 
 class MultiTrajSolverImprovedSampling(MultiTrajSolver):
     """
-    Class for multi-trajectory evolutions using the improved sampling algorithm.
-    See docstring for MultiTrajSolver for further documentation
+    Class for multi-trajectory evolutions using the improved sampling
+    algorithm. See docstring for MultiTrajSolver for further documentation
     """
     name = "multi trajectory efficient"
     resultclass = MultiTrajResultImprovedSampling
@@ -286,9 +287,10 @@ class MultiTrajSolverImprovedSampling(MultiTrajSolver):
             args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
         """
         Do the evolution of the Quantum system.
-        See the overridden method for further details. The modification here is to sample
-        the no-jump trajectory first. Then, the no-jump probability is used as a lower-bound
-        for random numbers in future monte carlo runs
+        See the overridden method for further details. The modification
+        here is to sample the no-jump trajectory first. Then, the no-jump
+        probability is used as a lower-bound for random numbers in future
+        monte carlo runs
         """
         stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
             state,
@@ -309,8 +311,9 @@ class MultiTrajSolverImprovedSampling(MultiTrajSolver):
         result.add((seed0, no_jump_result))
         result.stats['no jump run time'] = time() - start_time
 
-        # run the remaining trajectories with the random number floor set to the
-        # no jump probability such that we only sample trajectories with jumps
+        # run the remaining trajectories with the random number floor
+        # set to the no jump probability such that we only sample
+        # trajectories with jumps
         start_time = time()
         map_func(
             self._run_one_traj, seeds[1:],

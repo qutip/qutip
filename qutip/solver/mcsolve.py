@@ -1,4 +1,4 @@
-__all__ = ['mcsolve', "MCSolver"]
+__all__ = ['mcsolve', "MCSolver", "MCSolverImprovedSampling"]
 
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
@@ -179,7 +179,8 @@ class MCIntegrator:
         self._is_set = False
         self.issuper = c_ops[0].issuper
 
-    def set_state(self, t, state0, generator, no_jump=False, jump_prob_floor=0.0):
+    def set_state(self, t, state0, generator,
+                  no_jump=False, jump_prob_floor=0.0):
         """
         Set the state of the ODE solver.
 
@@ -195,12 +196,13 @@ class MCIntegrator:
             Random number generator.
 
         no_jump: Bool
-            whether or not to sample the no-jump trajectory. If so, the "random number"
-            should be set to zero
+            whether or not to sample the no-jump trajectory.
+            If so, the "random number" should be set to zero
 
         jump_prob_floor: float
-            if no_jump == False, this is set to the no-jump probability. This setting
-            ensures that we sample a trajectory with jumps
+            if no_jump == False, this is set to the no-jump
+            probability. This setting ensures that we sample
+            a trajectory with jumps
         """
         self.collapses = []
         self._generator = generator
@@ -208,7 +210,8 @@ class MCIntegrator:
             self.target_norm = 0.0
         else:
             self.target_norm = (
-                    self._generator.random() * (1 - jump_prob_floor) + jump_prob_floor
+                    self._generator.random() * (1 - jump_prob_floor)
+                    + jump_prob_floor
             )
         self._integrator.set_state(t, state0)
         self._is_set = True
