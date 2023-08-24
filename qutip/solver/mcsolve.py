@@ -1,8 +1,8 @@
-__all__ = ['mcsolve', "MCSolver", "MCSolverImprovedSampling"]
+__all__ = ['mcsolve', "MCSolver"]
 
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
-from .multitraj import MultiTrajSolver, MultiTrajSolverImprovedSampling
+from .multitraj import MultiTrajSolver
 from .solver_base import Solver, Integrator
 from .result import McResult, McTrajectoryResult, McResultImprovedSampling
 from .mesolve import mesolve, MESolver
@@ -11,8 +11,7 @@ from time import time
 
 
 def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
-            args=None, options=None, seeds=None, target_tol=None, timeout=None,
-            improved_sampling=False):
+            args=None, options=None, seeds=None, target_tol=None, timeout=None):
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -96,6 +95,9 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         - max_step : float, [0]
           Maximum lenght of one internal step. When using pulses, it should be
           less than half the width of the thinnest pulse.
+        - improved_sampling : Bool
+          Whether to use the improved sampling algorithm from Abdelhafez et al.
+          PRA (2019)
 
     seeds : int, SeedSequence, list, [optional]
         Seed for the random number generator. It can be a single seed used to
@@ -116,10 +118,6 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     timeout : float, [optional]
         Maximum time for the evolution in second. When reached, no more
         trajectories will be computed.
-
-    improved_sampling: Bool
-        Whether to use the improved sampling algorithm from Abdelhafez et al.
-        PRA (2019)
 
     Returns
     -------
@@ -153,10 +151,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
             "ntraj must be an integer. "
             "A list of numbers is not longer supported."
         )
-    if not improved_sampling:
-        mc = MCSolver(H, c_ops, options=options)
-    else:
-        mc = MCSolverImprovedSampling(H, c_ops, options=options)
+    mc = MCSolver(H, c_ops, options=options)
 
     result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
                     seed=seeds, target_tol=target_tol, timeout=timeout)
@@ -385,6 +380,7 @@ class MCSolver(MultiTrajSolver):
         "norm_steps": 5,
         "norm_t_tol": 1e-6,
         "norm_tol": 1e-4,
+        "improved_sampling": False,
     }
 
     def __init__(self, H, c_ops, *, options=None):
@@ -412,6 +408,9 @@ class MCSolver(MultiTrajSolver):
                 rhs -= 0.5 * n_op
 
         self._num_collapse = len(self._c_ops)
+        self.options = options
+        if self.options["improved_sampling"]:
+            self.resultclass = McResultImprovedSampling
 
         super().__init__(rhs, options=options)
 
@@ -444,21 +443,73 @@ class MCSolver(MultiTrajSolver):
         for n_op in self._n_ops:
             n_op.arguments(args)
 
-    def _run_one_traj(self, seed, state, tlist, e_ops,
-                      no_jump=False, jump_prob_floor=0.0):
+    def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
+                                 no_jump=False, jump_prob_floor=0.0):
+        result = self.trajectory_resultclass(e_ops, self.options)
+        generator = self._get_generator(seed)
+        self._integrator.set_state(tlist[0], state, generator,
+                                   no_jump=no_jump,
+                                   jump_prob_floor=jump_prob_floor)
+        result.add(tlist[0], self._restore_state(state, copy=False))
+        return result
+
+    def _run_one_traj(self, seed, state, tlist, e_ops, no_jump=False,
+                      jump_prob_floor=0.0):
         """
         Run one trajectory and return the result.
         """
-        # The integrators is reused, but non-reentrant. They are are fine for
-        # multiprocessing, but will fail with multithreading.
-        # If a thread base parallel map is created, eahc trajectory should use
-        # a copy of the integrator.
-        seed, result = super()._run_one_traj(
-            seed, state, tlist, e_ops,
-            no_jump=no_jump, jump_prob_floor=jump_prob_floor
-        )
+        result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
+                                               no_jump=no_jump,
+                                               jump_prob_floor=jump_prob_floor)
+        seed, result = self._integrate_one_traj(seed, tlist, result)
         result.collapse = self._integrator.collapses
         return seed, result
+
+    def run(self, state, tlist, ntraj=1, *,
+            args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
+        """
+        Do the evolution of the Quantum system.
+        See the overridden method for further details. The modification
+        here is to sample the no-jump trajectory first. Then, the no-jump
+        probability is used as a lower-bound for random numbers in future
+        monte carlo runs
+        """
+        if not self.options["improved_sampling"]:
+            return super().run(state, tlist, ntraj=ntraj, args=args,
+                               e_ops=e_ops, timeout=timeout,
+                               target_tol=target_tol, seed=seed)
+        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
+            state,
+            ntraj,
+            args=args,
+            e_ops=e_ops,
+            timeout=timeout,
+            target_tol=target_tol,
+            seed=seed,
+        )
+        # first run the no-jump trajectory
+        start_time = time()
+        seed0, no_jump_result = self._run_one_traj(seeds[0], state0, tlist,
+                                                   e_ops, no_jump=True)
+        _, state, _ = self._integrator.get_state(copy=False)
+        no_jump_prob = self._integrator._prob_func(state)
+        result.no_jump_prob = no_jump_prob
+        result.add((seed0, no_jump_result))
+        result.stats['no jump run time'] = time() - start_time
+
+        # run the remaining trajectories with the random number floor
+        # set to the no jump probability such that we only sample
+        # trajectories with jumps
+        start_time = time()
+        map_func(
+            self._run_one_traj, seeds[1:],
+            (state0, tlist, e_ops, False, no_jump_prob),
+            reduce_func=result.add, map_kw=map_kw,
+            progress_bar=self.options["progress_bar"],
+            progress_bar_kwargs=self.options["progress_kwargs"]
+        )
+        result.stats['run time'] = time() - start_time
+        return result
 
     def _get_integrator(self):
         _time_start = time()
@@ -534,6 +585,10 @@ class MCSolver(MultiTrajSolver):
 
         norm_steps: int
             Maximum number of tries to find the collapse.
+
+        improved_sampling: Bool
+            Whether to use the improved sampling algorithm
+            of Abdelhafez et al. PRA (2019)
         """
         return self._options
 
@@ -549,18 +604,3 @@ class MCSolver(MultiTrajSolver):
             **Solver.avail_integrators(),
             **cls._avail_integrators,
         }
-
-
-class MCSolverImprovedSampling(MultiTrajSolverImprovedSampling, MCSolver):
-    r"""
-    Monte Carlo Solver of a state vector :math:`|\psi \rangle` for a
-    given Hamiltonian and sets of collapse operators using the improved
-    sampling algorithm. See MCSolver for further details and documentation
-    """
-    name = "mcsolve improved sampling"
-    resultclass = McResultImprovedSampling
-    trajectory_resultclass = McTrajectoryResult
-    mc_integrator_class = MCIntegrator
-
-    def __init__(self, H, c_ops, *, options=None):
-        MCSolver.__init__(self, H, c_ops, options=options)

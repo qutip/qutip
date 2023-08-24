@@ -1,10 +1,10 @@
-from .result import Result, MultiTrajResult, MultiTrajResultImprovedSampling
+from .result import Result, MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver
 import numpy as np
 
-__all__ = ["MultiTrajSolver", "MultiTrajSolverImprovedSampling"]
+__all__ = ["MultiTrajSolver"]
 
 
 class MultiTrajSolver(Solver):
@@ -205,17 +205,21 @@ class MultiTrajSolver(Solver):
         result.stats['run time'] = time() - start_time
         return result
 
-    def _run_one_traj(self, seed, state, tlist, e_ops,
-                      no_jump=False, jump_prob_floor=0.0):
+    def _initialize_run_one_traj(self, seed, state, tlist, e_ops):
+        result = self.trajectory_resultclass(e_ops, self.options)
+        generator = self._get_generator(seed)
+        self._integrator.set_state(tlist[0], state, generator)
+        result.add(tlist[0], self._restore_state(state, copy=False))
+        return result
+
+    def _run_one_traj(self, seed, state, tlist, e_ops):
         """
         Run one trajectory and return the result.
         """
-        result = self.trajectory_resultclass(e_ops, self.options)
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator,
-                                   no_jump=no_jump,
-                                   jump_prob_floor=jump_prob_floor)
-        result.add(tlist[0], self._restore_state(state, copy=False))
+        result = self._initialize_run_one_traj(seed, state, tlist, e_ops)
+        return self._integrate_one_traj(seed, tlist, result)
+
+    def _integrate_one_traj(self, seed, tlist, result):
         for t in tlist[1:]:
             t, state = self._integrator.integrate(t, copy=False)
             result.add(t, self._restore_state(state, copy=False))
@@ -269,58 +273,3 @@ class MultiTrajSolver(Solver):
     @classmethod
     def avail_integrators(cls):
         return cls._avail_integrators
-
-
-class MultiTrajSolverImprovedSampling(MultiTrajSolver):
-    """
-    Class for multi-trajectory evolutions using the improved sampling
-    algorithm. See docstring for MultiTrajSolver for further documentation
-    """
-    name = "multi trajectory efficient"
-    resultclass = MultiTrajResultImprovedSampling
-    trajectory_resultclass = Result
-
-    def __init__(self, rhs, *, options=None):
-        super().__init__(rhs, options=options)
-
-    def run(self, state, tlist, ntraj=1, *,
-            args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
-        """
-        Do the evolution of the Quantum system.
-        See the overridden method for further details. The modification
-        here is to sample the no-jump trajectory first. Then, the no-jump
-        probability is used as a lower-bound for random numbers in future
-        monte carlo runs
-        """
-        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
-            state,
-            ntraj,
-            args=args,
-            e_ops=e_ops,
-            timeout=timeout,
-            target_tol=target_tol,
-            seed=seed,
-        )
-        # first run the no-jump trajectory
-        start_time = time()
-        seed0, no_jump_result = self._run_one_traj(seeds[0], state0, tlist,
-                                                   e_ops, no_jump=True)
-        _, state, _ = self._integrator.get_state(copy=False)
-        no_jump_prob = self._integrator._prob_func(state)
-        result.no_jump_prob = no_jump_prob
-        result.add((seed0, no_jump_result))
-        result.stats['no jump run time'] = time() - start_time
-
-        # run the remaining trajectories with the random number floor
-        # set to the no jump probability such that we only sample
-        # trajectories with jumps
-        start_time = time()
-        map_func(
-            self._run_one_traj, seeds[1:],
-            (state0, tlist, e_ops, False, no_jump_prob),
-            reduce_func=result.add, map_kw=map_kw,
-            progress_bar=self.options["progress_bar"],
-            progress_bar_kwargs=self.options["progress_kwargs"]
-        )
-        result.stats['run time'] = time() - start_time
-        return result
