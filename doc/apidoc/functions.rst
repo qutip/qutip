@@ -37,14 +37,6 @@ Random Operators and States
     :members: rand_dm, rand_herm, rand_ket, rand_stochastic, rand_unitary, rand_super, rand_super_bcsz
 
 
-Three-Level Atoms
------------------
-
-.. automodule:: qutip.three_level_atom
-    :members: three_level_basis, three_level_ops
-    :undoc-members:
-
-
 Superoperators and Liouvillians
 -------------------------------
 
