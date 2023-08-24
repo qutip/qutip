@@ -198,7 +198,7 @@ units of nanoseconds)
     plt.show()
 
 
-The original sampling algorithm samples the no-jump trajectory on average ``97.8\%" of the time, while the improved
+The original sampling algorithm samples the no-jump trajectory on average 97.8% of the time, while the improved
 sampling algorithm only does so once.
 
 
