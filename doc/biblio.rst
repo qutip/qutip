@@ -74,3 +74,6 @@ Bibliography
 
 .. [Donvil22]
     B. Donvil, P. Muratore-Ginanneschi, *Quantum trajectory framework for general time-local master equations*, Nat Commun **13**, 4140 (2022). :doi:`10.1038/s41467-022-31533-8`.
+
+.. [Abd19]
+    M. Abdelhafez, D. I. Schuster, J. Koch, *Gradient-based optimal control of open quantum systems using quantumtrajectories and automatic differentiation*, Phys. Rev. A **99**, 052327 (2019). :doi:`10.1103/PhysRevA.99.052327`.
