@@ -362,7 +362,6 @@ class MCSolver(MultiTrajSolver):
         Options for the evolution.
     """
     name = "mcsolve"
-    resultclass = McResult
     trajectory_resultclass = McTrajectoryResult
     mc_integrator_class = MCIntegrator
     solver_options = {
@@ -409,8 +408,6 @@ class MCSolver(MultiTrajSolver):
 
         self._num_collapse = len(self._c_ops)
         self.options = options
-        if self.options["improved_sampling"]:
-            self.resultclass = McResultImprovedSampling
 
         super().__init__(rhs, options=options)
 
@@ -526,6 +523,13 @@ class MCSolver(MultiTrajSolver):
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator
+
+    @property
+    def resultclass(self):
+        if self.options["improved_sampling"]:
+            return McResultImprovedSampling
+        else:
+            return McResult
 
     @property
     def options(self):
