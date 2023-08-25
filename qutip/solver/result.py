@@ -1140,8 +1140,8 @@ class McResultImprovedSampling(McResult, MultiTrajResult):
             for t, which in collapses:
                 cols[which].append(t)
         mesurement = [
-            (1 - self.no_jump_prob) *
-            np.histogram(cols[i], tlist)[0] / np.diff(tlist) / (self.num_trajectories - 1)
+            (1 - self.no_jump_prob) / (self.num_trajectories - 1) *
+            np.histogram(cols[i], tlist)[0] / np.diff(tlist)
             for i in range(self.num_c_ops)
         ]
         return mesurement
