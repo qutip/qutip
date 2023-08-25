@@ -171,8 +171,8 @@ where in this case the first run samples the no-jump trajectory, and the remaini
 guaranteed to include (at least) one jump.
 
 The power of this algorithm is most obvious when considering systems that rarely undergo jumps.
-For instance, consider the following T1 simulation of a qubit with a lifetime of 100 microseconds (assuming time is in
-units of nanoseconds)
+For instance, consider the following T1 simulation of a qubit with a lifetime of 10 microseconds
+(assuming time is in units of nanoseconds)
 
 
 .. plot::
@@ -183,7 +183,7 @@ units of nanoseconds)
     sm = fock(2, 0) * fock(2, 1).dag()
     omega = 2.0 * np.pi * 1.0
     H0 = -0.5 * omega * sigmaz()
-    gamma = 2.0 * np.pi * 0.00001
+    gamma = 1/10000
     data = mcsolve([H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100)
     data_imp = mcsolve([H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm],ntraj=100, options={"improved_sampling": True})
 
@@ -198,7 +198,7 @@ units of nanoseconds)
     plt.show()
 
 
-The original sampling algorithm samples the no-jump trajectory on average 97.8% of the time, while the improved
+The original sampling algorithm samples the no-jump trajectory on average 96.7% of the time, while the improved
 sampling algorithm only does so once.
 
 
