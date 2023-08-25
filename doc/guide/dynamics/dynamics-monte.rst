@@ -165,7 +165,7 @@ in [Abd19]_ and can be utilized by setting the option ``"improved_sampling"`` in
 .. plot::
     :context: close-figs
 
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm],options={"improved_sampling": True})
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], options={"improved_sampling": True})
 
 where in this case the first run samples the no-jump trajectory, and the remaining 499 trajectories are all
 guaranteed to include (at least) one jump.
