@@ -20,6 +20,7 @@ from .result import Result
 from time import time
 from ..ui.progressbar import progress_bars
 from qutip.solver.floquet import fsesolve, FloquetBasis
+from collections import defaultdict
 
 
 def _floquet_rate_matrix(floquet_basis,
@@ -27,7 +28,6 @@ def _floquet_rate_matrix(floquet_basis,
                          T,
                          c_ops,
                          c_op_rates,
-                         args,
                          time_sense=0):
     '''
     Parameters
@@ -36,6 +36,9 @@ def _floquet_rate_matrix(floquet_basis,
         The FloquetBasis object formed from qutip.floquet.FloquetBasis
     Nt : Int
         Number of points in one period of the Hamiltonian
+    T : float
+        Time period of the Hamiltonian. Retrieved from the FloquetBasis
+        object
     c_ops : list
         list of collapse operator matrices as Qobjs
     c_op_rates : list
@@ -60,7 +63,7 @@ def _floquet_rate_matrix(floquet_basis,
             something Rate Matrix something something linear Operator.
     '''
     Hdim = len(floquet_basis.e_quasi)  # Dimensionality of the Hamiltonian
-    args_key = list(args.values())[0]  # Frequency dependence of Hamiltonian
+    args_key = (2*np.pi)/T  # Frequency dependence of Hamiltonian
 
     # Forming tlist to take FFT of collapse operators
     time = T
@@ -69,10 +72,8 @@ def _floquet_rate_matrix(floquet_basis,
 
     total_R_tensor = {}
     for cdx, c_op in enumerate(c_ops):
-        '''
-        Transforming the lowering operator into the Floquet Basis
-            and taking the FFT
-        '''
+        # Transforming the lowering operator into the Floquet Basis
+        #     and taking the FFT
         c_op_Floquet_basis = np.array(
             [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist])
 
@@ -80,15 +81,13 @@ def _floquet_rate_matrix(floquet_basis,
             np.fft.fft(c_op_Floquet_basis, axis=0) / len(tlist)
         )
 
-        '''
-        Next step is to form arrays of the rate products (rate_products)
-            and the frequency at which these components rotate (delta_array),
-            then dividing the arrays to form the rate quotient array.
-        
-        In quotient array, setting any undefined value, i.e. those for which
-            rate_products = 0, equal to time_sense+1 so that the mask
-            arrays mask out these values.
-        '''
+        # Next step is to form arrays of the rate products (rate_products)
+        #     and the frequency at which these components rotate (delta_array),
+        #     then dividing the arrays to form the rate quotient array.
+
+        # In quotient array, setting any undefined value, i.e. those for which
+        #     rate_products = 0, equal to time_sense+1 so that the mask
+        #     arrays mask out these values.
         rate_products = np.einsum('lab,kcd->abcdlk',
                                   c_op_Fourier_amplitudes_list,
                                   np.conj(c_op_Fourier_amplitudes_list))
@@ -102,20 +101,22 @@ def _floquet_rate_matrix(floquet_basis,
             np.subtract.outer(np.arange(Nt), np.arange(Nt))
         )
 
+        # The default "out" value returns values higher than the time_sense
+        #   cutoff, so that rate products of 0 are excluded from the
+        #   valid_indices list via the quotient mask
         quotient_array = np.divide(
             args_key*delta_array,
             abs(rate_products),
             out=np.full(np.shape(delta_array), (time_sense+1), dtype=complex),
             dtype=complex)
 
-        '''
-        Finally, creating masks to mask out "bad" values of the delta_array
-            and the quotient_array. What remains after masking will be used
-            to form the rate matrix.
-        '''
+        # Finally, creating masks to mask out "bad" values of the delta_array
+        #     and the quotient_array. What remains after masking will be used
+        #     to form the rate matrix.
+
         # Masking any frequency greater than Nyquist Frequency
         nyquist_mask = np.ma.getmaskarray(np.ma.masked_greater(
-            delta_array, np.pi/(tlist[1]-tlist[0])))
+            delta_array, np.pi/dt))
         # Masking any rate quotient greater than time_sense
         quotient_mask = np.ma.getmaskarray(np.ma.masked_greater(
             abs(quotient_array), time_sense))
@@ -128,15 +129,12 @@ def _floquet_rate_matrix(floquet_basis,
             delta_array[tuple(indices)] for indices in valid_indices]
 
         # Grouping valid_indices by their frequency values
-        delta_dict = {}
+        delta_dict = defaultdict(list)
         for idx, indices in enumerate(valid_indices):
-            try:
-                delta_dict[delta_vals_truncd[idx]].append(indices)
-            except KeyError:
-                delta_dict[delta_vals_truncd[idx]] = [indices]
+            delta_dict[delta_vals_truncd[idx]].append(indices)
 
         # For each valid frequency, form a slice of total_R_tensor
-        for key in delta_dict.keys():
+        for key in delta_dict:
             mask_array = np.zeros((Hdim, Hdim, Hdim, Hdim, Nt, Nt))
             for indices in delta_dict[key]:
                 mask_array[tuple(indices)] = True
@@ -176,8 +174,8 @@ def flimesolve(
         tlist,
         T,
         Nt=None,
-        c_ops_and_rates=[],
-        e_ops=[],
+        c_ops_and_rates=None,
+        e_ops=None,
         args=None,
         time_sense=0,
         options=None):
@@ -187,13 +185,13 @@ def flimesolve(
 
     H : :class:`Qobj`,:class:`QobjEvo`,:class:`QobjEvo` compatible format.
         Periodic system Hamiltonian as :class:`QobjEvo`. List of
-        [:class:`Qobj`,:class:`Coefficient`] or callable that
+        :class:`Qobj`, :class:`Coefficient` or callable that
         can be made into :class:`QobjEvo` are also accepted.
 
     rho0 / psi0 : :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
 
-    tlist:*list* / *array*
+    tlist : *list* / *array*
         List of times for :math:`t`.
 
     T : float
@@ -280,8 +278,6 @@ def flimesolve(
     if isinstance(H, FloquetBasis):
         floquet_basis = H
     else:
-        T = T
-        # are for the open system evolution.
         floquet_basis = FloquetBasis(H, T, args, precompute=None)
 
     solver = FLiMESolver(floquet_basis,
@@ -448,28 +444,11 @@ class FLiMESolver(MESolver):
             self.floquet_basis.T,
             c_ops,
             c_op_rates,
-            Hargs,
             time_sense=time_sense)
-
-        # Rate_Qobj_list = [Qobj(
-        #     RateMat, type="super", superrep="super", copy=False
-        Rate_Qobj_list = [Qobj(
-            RateMat, dims=[self.floquet_basis.U(0).dims, self.floquet_basis.U(0).dims], type="super", superrep="super", copy=False
-        ) for RateMat in RateDic.values()]
-        # for rate_matrix in Rate_Qobj_list:
-        #     rate_matrix.dims =  floquet_basis.U(0).dims
-        R0 = Rate_Qobj_list[0]
-
-        Rt_timedep_pairs = [list(
-            [Rate_Qobj_list[idx], 'exp(1j*' + str(list(
-                RateDic.keys())[idx]
-                * list(Hargs.values())[0]) + '*t)'])
-            for idx in range(0, len(Rate_Qobj_list))]
-        Rate_matrix_timedep_list = [R0, *Rt_timedep_pairs[1::]]
 
         if time_sense == 0:
             self.solver_options["method"] = "diag"
-        self.rhs = QobjEvo(Rate_matrix_timedep_list)
+        self.rhs = self._create_rhs(RateDic)
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
@@ -480,9 +459,36 @@ class FLiMESolver(MESolver):
             {
                 "solver": "Floquet-Lindblad master equation",
                 "num_collapse": self._num_collapse,
+                "init rhs time": self._init_rhs_time,
             }
         )
         return stats
+
+    def _create_rhs(self,
+                    rate_matrix_dictionary):
+        _time_start = time()
+
+        Rate_Qobj_list = [Qobj(
+            RateMat,
+            dims=[self.floquet_basis.U(0).dims,
+                  self.floquet_basis.U(0).dims],
+            type="super",
+            superrep="super",
+            copy=False
+        ).to("csr") for RateMat in rate_matrix_dictionary.values()]
+        R0 = Rate_Qobj_list[0]
+
+        Rt_timedep_pairs = [
+            [Rate_Qobj_list[idx], 'exp(1j*' + str(list(
+                rate_matrix_dictionary.keys())[idx]
+                * self.floquet_basis.T) + '*t)']
+            for idx in range(0, len(Rate_Qobj_list))]
+        Rate_matrix_timedep_list = [R0, *Rt_timedep_pairs[1::]]
+
+        rhs = QobjEvo(Rate_matrix_timedep_list)
+
+        self._init_rhs_time = time() - _time_start
+        return rhs
 
     def start(self, state0, t0, *, floquet=False):
         """
@@ -599,7 +605,7 @@ class FLiMESolver(MESolver):
         elif state0.type == 'oper':
             state0 = operator_to_vector(state0)
         else:
-            print('You need to supply a valid ket or operator')
+            raise ValueError('You need to supply a valid ket or operator')
 
         # if state0.type == 'ket':
         #     state0 = operator_to_vector(

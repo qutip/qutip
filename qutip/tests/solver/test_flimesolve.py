@@ -16,10 +16,9 @@ from qutip.solver.flimesolve import (
 )
 import pytest
 
-"""
-Writing this script to closely mirror test_floquet.py, but without
-    anything already tested there (e.g. unitary evolution)
-"""
+
+# Writing this script to closely mirror test_floquet.py, but without
+#    anything already tested there (e.g. unitary evolution)
 
 
 class TestFlimesolve:
@@ -171,3 +170,53 @@ class TestFlimesolve:
         p_ex_ref = output2.expect[0]
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
+
+    def testFloquetMasterEquation_multiple_coupling(self):
+        """
+        Test Floquet-Lindblad Master Equation for a two-level system
+        subject to dissipation with multiple coupling operators
+        """
+        delta = 0.0 * 2 * np.pi
+        eps0 = 1.0 * 2 * np.pi
+        A = 1 * 2 * np.pi
+        omega = 10*np.sqrt(delta ** 2 + eps0 ** 2)
+        T = (2 * np.pi) / omega
+        tlist = np.linspace(0.0, 2 * T, 2**6+1)
+        psi0 = rand_ket(2)
+        H0 = - eps0 / 2.0 * sigmaz() - delta / 2.0 * sigmax()
+        H1 = A / 2.0 * sigmax()
+        args = {'w': omega}
+        H = QobjEvo([H0, [H1, lambda t, w: np.sin(w * t)]],
+                    args=args)
+        e_ops = [num(2)]
+        gamma1 = 0.01
+
+        # Collapse operator for Floquet-Markov Master Equation
+        c_ops_fmmesolve = [sigmax(), sigmay()]
+        c_ops_flimesolve = [[sigmax(), gamma1],
+                            [sigmay(), gamma1]]
+
+        # Collapse operator for Lindblad Master Equation
+        def noise_spectrum1(omega):
+            return (omega > 0) * 0.5 * gamma1 * omega/(2*np.pi)
+
+        def noise_spectrum2(omega):
+            return (omega > 0) * 0.5 * gamma1 / (2 * np.pi)
+
+        noise_spectra = [noise_spectrum1, noise_spectrum2]
+
+        # Solve the floquet-lindblad master equation
+
+        output1 = flimesolve(H, psi0, tlist, T=T,
+                             c_ops_and_rates=c_ops_flimesolve,
+                             e_ops=e_ops, args=args)
+        p_ex = output1.expect[0]
+
+        # Compare with mesolve
+        output2 = fmmesolve(
+            H, psi0, tlist, c_ops_fmmesolve, e_ops, noise_spectra, T
+        )
+        p_ex_ref = output2.expect[0]
+
+        np.testing.assert_allclose(
+            np.real(p_ex), np.real(p_ex_ref), atol=1e-20)
