@@ -170,6 +170,8 @@ def e_op_num(t, state):
 class TestMultiTrajResult:
     def _fill_trajectories(self, multiresult, N, ntraj,
                            collapse=False, noise=0, dm=False):
+        # Fix the seed to avoid failing due to bad luck
+        np.random.seed(1)
         for _ in range(ntraj):
             result = Result(multiresult._raw_ops, multiresult.options)
             result.collapse = []

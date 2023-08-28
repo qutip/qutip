@@ -11,7 +11,7 @@ cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
 
 from .base import EfficiencyWarning
-from qutip.core.data cimport base, CSR
+from qutip.core.data cimport base, CSR, Dia
 from qutip.core.data.adjoint cimport adjoint_dense, transpose_dense, conj_dense
 from qutip.core.data.trace cimport trace_dense
 
@@ -301,6 +301,10 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
             out.data[ptr_out + matrix.col_index[ptr_in]*col_stride] = matrix.data[ptr_in]
         ptr_out += row_stride
     return out
+
+
+cpdef Dense from_dia(Dia matrix):
+    return Dense(matrix.to_array(), copy=False)
 
 
 cdef inline base.idxint _diagonal_length(

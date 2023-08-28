@@ -4,32 +4,32 @@
 cimport cython
 from libc.math cimport sqrt
 
-from qutip.core.data cimport Data, CSR, Dense
+from qutip.core.data cimport Data, CSR, Dense, Dia
 from qutip.core.data cimport base
 from .reshape import column_unstack
 
 __all__ = [
-    'trace', 'trace_csr', 'trace_dense',
+    'trace', 'trace_csr', 'trace_dense', 'trace_dia',
     'trace_oper_ket', 'trace_oper_ket_csr', 'trace_oper_ket_dense',
-    'trace_oper_ket_data',
+    'trace_oper_ket_dia', 'trace_oper_ket_data',
 ]
 
 
-cdef void _check_shape(Data matrix) nogil except *:
+cdef void _check_shape(Data matrix) except * nogil:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("".join([
             "matrix shape ", str(matrix.shape), " is not square.",
         ]))
 
 
-cdef void _check_shape_oper_ket(int N, Data matrix) nogil except *:
+cdef void _check_shape_oper_ket(int N, Data matrix) except * nogil:
     if matrix.shape[0] != N * N or matrix.shape[1] != 1:
         raise ValueError("".join([
             "matrix ", str(matrix.shape), " is not a stacked square matrix."
         ]))
 
 
-cpdef double complex trace_csr(CSR matrix) nogil except *:
+cpdef double complex trace_csr(CSR matrix) except * nogil:
     _check_shape(matrix)
     cdef size_t row, ptr
     cdef double complex trace = 0
@@ -40,7 +40,7 @@ cpdef double complex trace_csr(CSR matrix) nogil except *:
                 break
     return trace
 
-cpdef double complex trace_dense(Dense matrix) nogil except *:
+cpdef double complex trace_dense(Dense matrix) except * nogil:
     _check_shape(matrix)
     cdef double complex trace = 0
     cdef size_t ptr = 0
@@ -50,8 +50,19 @@ cpdef double complex trace_dense(Dense matrix) nogil except *:
         ptr += stride
     return trace
 
+cpdef double complex trace_dia(Dia matrix) except * nogil:
+    _check_shape(matrix)
+    cdef double complex trace = 0
+    cdef size_t diag, j
+    for diag in range(matrix.num_diag):
+        if matrix.offsets[diag] == 0:
+            for j in range(matrix.shape[1]):
+                trace += matrix.data[diag * matrix.shape[1] + j]
+            break
+    return trace
 
-cpdef double complex trace_oper_ket_csr(CSR matrix) nogil except *:
+
+cpdef double complex trace_oper_ket_csr(CSR matrix) except * nogil:
     cdef size_t N = <size_t>sqrt(matrix.shape[0])
     _check_shape_oper_ket(N, matrix)
     cdef size_t row
@@ -62,7 +73,7 @@ cpdef double complex trace_oper_ket_csr(CSR matrix) nogil except *:
             trace += matrix.data[matrix.row_index[row * stride]]
     return trace
 
-cpdef double complex trace_oper_ket_dense(Dense matrix) nogil except *:
+cpdef double complex trace_oper_ket_dense(Dense matrix) except * nogil:
     cdef size_t N = <size_t>sqrt(matrix.shape[0])
     _check_shape_oper_ket(N, matrix)
     cdef double complex trace = 0
@@ -71,6 +82,19 @@ cpdef double complex trace_oper_ket_dense(Dense matrix) nogil except *:
     for ptr in range(N):
         trace += matrix.data[ptr * stride]
     return trace
+
+
+cpdef double complex trace_oper_ket_dia(Dia matrix) except * nogil:
+    cdef size_t N = <size_t>sqrt(matrix.shape[0])
+    _check_shape_oper_ket(N, matrix)
+    cdef double complex trace = 0
+    cdef size_t diag = 0
+    cdef size_t stride = N + 1
+    for diag in range(matrix.num_diag):
+        if -matrix.offsets[diag] % stride == 0:
+            trace += matrix.data[diag * matrix.shape[1]]
+    return trace
+
 
 cpdef trace_oper_ket_data(Data matrix):
     cdef size_t N = <size_t>sqrt(matrix.shape[0])
@@ -94,6 +118,7 @@ trace.__doc__ =\
     """Compute the trace (sum of digaonal elements) of a square matrix."""
 trace.add_specialisations([
     (CSR, trace_csr),
+    (Dia, trace_dia),
     (Dense, trace_dense),
 ], _defer=True)
 
@@ -110,6 +135,7 @@ trace_oper_ket.__doc__ =\
     """Compute the trace (sum of digaonal elements) of a stacked square matrix ."""
 trace_oper_ket.add_specialisations([
     (CSR, trace_oper_ket_csr),
+    (Dia, trace_oper_ket_dia),
     (Dense, trace_oper_ket_dense),
     (Data, trace_oper_ket_data),
 ], _defer=True)

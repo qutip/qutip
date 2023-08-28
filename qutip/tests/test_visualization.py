@@ -35,9 +35,8 @@ def test_sequential():
     qutip.settings.colorblind_safe = True
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
-
-    fig, ax = qutip.sphereplot(theta, phi,
-                               qutip.orbital(theta, phi, qutip.basis(3, 0)).T)
+    values = qutip.orbital(theta, phi, qutip.basis(3, 0)).T
+    fig, ax = qutip.sphereplot(values, theta, phi)
     plt.close()
 
     qutip.settings.colorblind_safe = False
@@ -86,6 +85,15 @@ def test_set_ticklabels():
     assert str(exc_info.value) == text
 
 
+def test_equal_shape():
+    rhos = [qutip.rand_dm(5)]*2 + [qutip.rand_dm(4)]
+    text = "All inputs should have the same shape."
+
+    with pytest.raises(Exception) as exc_info:
+        fig, ax = qutip.hinton(rhos)
+    assert str(exc_info.value) == text
+
+
 @pytest.mark.parametrize('args', [
     ({'reflections': True}),
     ({'cmap': mpl.cm.cividis}),
@@ -100,6 +108,17 @@ def test_plot_wigner_sphere(args):
 
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_plot_wigner_sphere_anim():
+    psi = qutip.rand_ket(5)
+    wigner = qutip.wigner_transform(psi, 2, False, 50, ["x"])
+
+    fig, ani = qutip.plot_wigner_sphere([wigner]*2)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
 def to_oper_bra(oper):
@@ -139,6 +158,17 @@ def test_hinton1():
     assert isinstance(ax, mpl.axes.Axes)
 
 
+def test_hinton_anim():
+    rho = qutip.rand_dm(5)
+    rhos = [rho]*2
+
+    fig, ani = qutip.hinton(rhos)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
+
+
 def test_hinton_ValueError0():
     text = "Input quantum object must be an operator or superoperator."
     rho = qutip.basis(2, 0)
@@ -169,14 +199,23 @@ def test_hinton_ValueError1(transform, args, error_message):
 def test_sphereplot(args):
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
-
-    fig, ax = qutip.sphereplot(theta, phi,
-                               qutip.orbital(theta, phi, qutip.basis(3, 0)).T,
-                               **args)
+    values = qutip.orbital(theta, phi, qutip.basis(3, 0)).T
+    fig, ax = qutip.sphereplot(values, theta, phi, **args)
     plt.close()
 
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_sphereplot_anim():
+    theta = np.linspace(0, np.pi, 90)
+    phi = np.linspace(0, 2 * np.pi, 60)
+    values = qutip.orbital(theta, phi, qutip.basis(3, 0)).T
+    fig, ani = qutip.sphereplot([values]*2, theta, phi)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
 @pytest.mark.parametrize('response', [
@@ -280,6 +319,17 @@ def test_matrix_histogram_zeros():
     assert isinstance(ax, mpl.axes.Axes)
 
 
+def test_matrix_histogram_anim():
+    rho = qutip.rand_dm(5)
+    rhos = [rho]*2
+
+    fig, ani = qutip.matrix_histogram(rhos)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
+
+
 @pytest.mark.parametrize('args, expected', [
     ({'options': 'error'}, ("options must be a dictionary")),
     ({'options': {'e1': '1', 'e2': '2'}},
@@ -287,7 +337,6 @@ def test_matrix_histogram_zeros():
       "invalid key(s) found in options: e2, e1")),
 ])
 def test_matrix_histogram_ValueError(args, expected):
-    text = "options must be a dictionary"
 
     with pytest.raises(ValueError) as exc_info:
         fig, ax = qutip.matrix_histogram(qutip.rand_dm(5),
@@ -336,6 +385,17 @@ def test_plot_fock_distribution(rho_type, args):
     assert isinstance(ax, mpl.axes.Axes)
 
 
+def test_plot_fock_distribution_anim():
+    rho = qutip.rand_dm(5)
+    rhos = [rho]*2
+
+    fig, ani = qutip.plot_fock_distribution(rhos)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
+
+
 @pytest.mark.parametrize('rho_type, args', [
     ('oper', {}),
     ('ket', {}),
@@ -356,6 +416,17 @@ def test_plot_wigner(rho_type, args):
 
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_plot_wigner_anim():
+    rho = qutip.rand_dm(5)
+    rhos = [rho]*2
+
+    fig, ani = qutip.plot_wigner(rhos)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
 def test_plot_wigner_ValueError():
@@ -411,10 +482,8 @@ def test_plot_expectation_values(n_of_results, n_of_e_ops, one_axes, args):
 ])
 def test_plot_spin_distribution(color, args):
     j = 5
-    psi = qutip.spin_state(j, -j)
     psi = qutip.spin_coherent(j, np.random.rand() * np.pi,
                               np.random.rand() * 2 * np.pi)
-    rho = qutip.ket2dm(psi)
     theta = np.linspace(0, np.pi, 50)
     phi = np.linspace(0, 2 * np.pi, 50)
     Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)
@@ -429,13 +498,29 @@ def test_plot_spin_distribution(color, args):
     assert isinstance(ax, mpl.axes.Axes)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The input coordinates to pcolor:UserWarning"
+)
+def test_plot_spin_distribution_anim():
+    j = 5
+    psi = qutip.spin_coherent(j, np.random.rand() * np.pi,
+                              np.random.rand() * 2 * np.pi)
+    theta = np.linspace(0, np.pi, 50)
+    phi = np.linspace(0, 2 * np.pi, 50)
+    Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)
+
+    fig, ani = qutip.plot_spin_distribution([Q]*2, THETA, PHI)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
+
+
 def test_plot_spin_distribution_ValueError():
     text = "Unexpected value of projection keyword argument"
     j = 5
-    psi = qutip.spin_state(j, -j)
     psi = qutip.spin_coherent(j, np.random.rand() * np.pi,
                               np.random.rand() * 2 * np.pi)
-    rho = qutip.ket2dm(psi)
     theta = np.linspace(0, np.pi, 50)
     phi = np.linspace(0, 2 * np.pi, 50)
     Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)
@@ -480,6 +565,16 @@ def test_plot_qubism(dims, args):
     assert isinstance(ax, mpl.axes.Axes)
 
 
+def test_plot_qubism_anim():
+    state = qutip.ket("01")
+
+    fig, ani = qutip.plot_qubism([state]*2)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
+
+
 @pytest.mark.parametrize('ket, args, expected', [
     (False, {}, "Qubism works only for pure states, i.e. kets."),
     (True, {'how': 'error'}, "No such 'how'."),
@@ -520,6 +615,16 @@ def test_plot_schmidt(args):
 
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_plot_schmidt_anim():
+    state = qutip.ket("01")
+
+    fig, ani = qutip.plot_schmidt([state]*2)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
 def test_plot_schmidt_Error():

@@ -148,6 +148,60 @@ Now, the Monte Carlo solver will calculate expectation values for both operators
 
 
 
+Using the Improved Sampling Algorithm
+-------------------------------------
+
+Oftentimes, quantum jumps are rare. This is especially true in the context of simulating gates
+for quantum information purposes, where typical gate times are orders of magnitude smaller than
+typical timescales for decoherence. In this case, using the standard monte-carlo sampling algorithm,
+we often repeatedly sample the no-jump trajectory. We can thus reduce the number of required runs
+by only sampling the no-jump trajectory once. We then extract the no-jump probability :math:`p`,
+and for all future runs we only sample random numbers :math:`r_1` where :math:`r_1>p`, thus ensuring
+that a jump will occur. When it comes time to compute expectation values, we weight the no-jump
+trajectory by :math:`p` and the jump trajectories by :math:`1-p`. This algorithm is described
+in [Abd19]_ and can be utilized by setting the option ``"improved_sampling"`` in the call to
+``mcsolve``:
+
+.. plot::
+    :context: close-figs
+
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], options={"improved_sampling": True})
+
+where in this case the first run samples the no-jump trajectory, and the remaining 499 trajectories are all
+guaranteed to include (at least) one jump.
+
+The power of this algorithm is most obvious when considering systems that rarely undergo jumps.
+For instance, consider the following T1 simulation of a qubit with a lifetime of 10 microseconds
+(assuming time is in units of nanoseconds)
+
+
+.. plot::
+    :context: close-figs
+
+    times = np.linspace(0.0, 300.0, 100)
+    psi0 = fock(2, 1)
+    sm = fock(2, 0) * fock(2, 1).dag()
+    omega = 2.0 * np.pi * 1.0
+    H0 = -0.5 * omega * sigmaz()
+    gamma = 1/10000
+    data = mcsolve([H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100)
+    data_imp = mcsolve([H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm],ntraj=100, options={"improved_sampling": True})
+
+    plt.figure()
+    plt.plot(times, data.expect[0], label="original")
+    plt.plot(times, data_imp.expect[0], label="improved sampling")
+    plt.plot(times, np.exp(-gamma * times), label=r"$\exp(-\gamma t)$")
+    plt.title('Monte Carlo: improved sampling algorithm')
+    plt.xlabel("time [ns]")
+    plt.ylabel(r"$p_{1}$")
+    plt.legend()
+    plt.show()
+
+
+The original sampling algorithm samples the no-jump trajectory on average 96.7% of the time, while the improved
+sampling algorithm only does so once.
+
+
 .. _monte-reuse:
 
 Reusing Hamiltonian Data

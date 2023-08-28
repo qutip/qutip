@@ -12,18 +12,19 @@ cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 from qutip.core.data.base cimport idxint, Data
-from qutip.core.data cimport csr, CSR, Dense
+from qutip.core.data cimport csr, CSR, Dense, Dia
 from .inner import inner
 from .trace import trace, trace_oper_ket
 from .matmul import matmul
 
 __all__ = [
-    'expect', 'expect_csr', 'expect_csr_dense', 'expect_dense', 'expect_data',
-    'expect_super', 'expect_super_csr',
-    'expect_super_csr_dense', 'expect_super_dense', 'expect_super_data',
+    'expect', 'expect_csr', 'expect_dense', 'expect_dia', 'expect_data',
+    'expect_csr_dense', 'expect_dia_dense',
+    'expect_super', 'expect_super_csr', 'expect_super_dia', 'expect_super_dense',
+    'expect_super_csr_dense', 'expect_super_dia_dense', 'expect_super_data',
 ]
 
-cdef void _check_shape_ket(Data op, Data state) nogil except *:
+cdef void _check_shape_ket(Data op, Data state) except * nogil:
     if (
         op.shape[1] != state.shape[0]  # Matrix multiplication
         or state.shape[1] != 1  # State is ket
@@ -32,7 +33,7 @@ cdef void _check_shape_ket(Data op, Data state) nogil except *:
         raise ValueError("incorrect input shapes "
                          + str(op.shape) + " and " + str(state.shape))
 
-cdef void _check_shape_dm(Data op, Data state) nogil except *:
+cdef void _check_shape_dm(Data op, Data state) except * nogil:
     if (
         op.shape[1] != state.shape[0]  # Matrix multiplication
         or state.shape[0] != state.shape[1]  # State is square
@@ -41,7 +42,7 @@ cdef void _check_shape_dm(Data op, Data state) nogil except *:
         raise ValueError("incorrect input shapes "
                          + str(op.shape) + " and " + str(state.shape))
 
-cdef void _check_shape_super(Data op, Data state) nogil except *:
+cdef void _check_shape_super(Data op, Data state) except * nogil:
     if state.shape[1] != 1:
         raise ValueError("expected a column-stacked matrix")
     if (
@@ -51,7 +52,7 @@ cdef void _check_shape_super(Data op, Data state) nogil except *:
         raise ValueError("incompatible shapes " + str(op.shape) + ", " + str(state.shape))
 
 
-cdef double complex _expect_csr_ket(CSR op, CSR state) nogil except *:
+cdef double complex _expect_csr_ket(CSR op, CSR state) except * nogil:
     """
     Perform the operation
         state.adjoint() @ op @ state
@@ -74,7 +75,7 @@ cdef double complex _expect_csr_ket(CSR op, CSR state) nogil except *:
         out += mul * sum
     return out
 
-cdef double complex _expect_csr_dm(CSR op, CSR state) nogil except *:
+cdef double complex _expect_csr_dm(CSR op, CSR state) except * nogil:
     """
     Perform the operation
         tr(op @ state)
@@ -93,7 +94,7 @@ cdef double complex _expect_csr_dm(CSR op, CSR state) nogil except *:
     return out
 
 
-cpdef double complex expect_super_csr(CSR op, CSR state) nogil except *:
+cpdef double complex expect_super_csr(CSR op, CSR state) except * nogil:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -111,7 +112,7 @@ cpdef double complex expect_super_csr(CSR op, CSR state) nogil except *:
     return out
 
 
-cpdef double complex expect_csr(CSR op, CSR state) nogil except *:
+cpdef double complex expect_csr(CSR op, CSR state) except * nogil:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -125,7 +126,7 @@ cpdef double complex expect_csr(CSR op, CSR state) nogil except *:
         return _expect_csr_ket(op, state)
     return _expect_csr_dm(op, state)
 
-cdef double complex _expect_csr_dense_ket(CSR op, Dense state) nogil except *:
+cdef double complex _expect_csr_dense_ket(CSR op, Dense state) except * nogil:
     _check_shape_ket(op, state)
     cdef double complex out=0, sum
     cdef size_t row, ptr
@@ -138,7 +139,7 @@ cdef double complex _expect_csr_dense_ket(CSR op, Dense state) nogil except *:
         out += sum * conj(state.data[row])
     return out
 
-cdef double complex _expect_csr_dense_dm(CSR op, Dense state) nogil except *:
+cdef double complex _expect_csr_dense_dm(CSR op, Dense state) except * nogil:
     _check_shape_dm(op, state)
     cdef double complex out=0
     cdef size_t row, ptr_op, ptr_state=0, row_stride, col_stride
@@ -153,7 +154,7 @@ cdef double complex _expect_csr_dense_dm(CSR op, Dense state) nogil except *:
     return out
 
 
-cdef double complex _expect_dense_ket(Dense op, Dense state) nogil except *:
+cdef double complex _expect_dense_ket(Dense op, Dense state) except * nogil:
     _check_shape_ket(op, state)
     cdef double complex out=0, sum
     cdef size_t row, col, op_row_stride, op_col_stride
@@ -168,7 +169,7 @@ cdef double complex _expect_dense_ket(Dense op, Dense state) nogil except *:
         out += sum * conj(state.data[row])
     return out
 
-cdef double complex _expect_dense_dense_dm(Dense op, Dense state) nogil except *:
+cdef double complex _expect_dense_dense_dm(Dense op, Dense state) except * nogil:
     _check_shape_dm(op, state)
     cdef double complex out=0
     cdef size_t row, col, op_row_stride, op_col_stride
@@ -185,7 +186,7 @@ cdef double complex _expect_dense_dense_dm(Dense op, Dense state) nogil except *
     return out
 
 
-cpdef double complex expect_csr_dense(CSR op, Dense state) nogil except *:
+cpdef double complex expect_csr_dense(CSR op, Dense state) except * nogil:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -200,7 +201,7 @@ cpdef double complex expect_csr_dense(CSR op, Dense state) nogil except *:
     return _expect_csr_dense_dm(op, state)
 
 
-cpdef double complex expect_dense(Dense op, Dense state) nogil except *:
+cpdef double complex expect_dense(Dense op, Dense state) except * nogil:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -215,7 +216,7 @@ cpdef double complex expect_dense(Dense op, Dense state) nogil except *:
     return _expect_dense_dense_dm(op, state)
 
 
-cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
+cpdef double complex expect_super_csr_dense(CSR op, Dense state) except * nogil:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -231,7 +232,7 @@ cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
     return out
 
 
-cpdef double complex expect_super_dense(Dense op, Dense state) nogil except *:
+cpdef double complex expect_super_dense(Dense op, Dense state) except * nogil:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -250,6 +251,108 @@ cpdef double complex expect_super_dense(Dense op, Dense state) nogil except *:
                    state.data[col]
         row += n + 1
     return out
+
+
+cpdef double complex expect_dia(Dia op, Dia state) except *:
+    cdef double complex expect = 0.
+    cdef idxint diag_bra, diag_op, diag_ket, i, length
+    cdef idxint start_op, start_state, end_op, end_state
+    if state.shape[1] == 1:
+        _check_shape_ket(op, state)
+        # Since the ket is sparse and possibly unsorted. Taking the n'th
+        # element of the state require a loop on the diags. Thus 3 loops are
+        # needed.
+        for diag_ket in range(state.num_diag):
+          #if -state.offsets[diag_ket] >= op.shape[1]:
+          #  continue
+          for diag_bra in range(state.num_diag):
+            for diag_op in range(op.num_diag):
+              if state.offsets[diag_ket] - state.offsets[diag_bra] + op.offsets[diag_op] == 0:
+                expect += (
+                  conj(state.data[diag_bra * state.shape[1]])
+                  * state.data[diag_ket * state.shape[1]]
+                  * op.data[diag_op * op.shape[1] - state.offsets[diag_ket]]
+                )
+    else:
+      _check_shape_dm(op, state)
+      for diag_op in range(op.num_diag):
+        for diag_state in range(state.num_diag):
+          if op.offsets[diag_op] == -state.offsets[diag_state]:
+
+            start_op = max(0, op.offsets[diag_op])
+            start_state = max(0, state.offsets[diag_state])
+            end_op = min(op.shape[1], op.shape[0] + op.offsets[diag_op])
+            end_state = min(state.shape[1], state.shape[0] + state.offsets[diag_state])
+            length = min(end_op - start_op, end_state - start_state)
+
+            for i in range(length):
+              expect += (
+                op.data[diag_op * op.shape[1] + i + start_op]
+                * state.data[diag_state * state.shape[1] + i + start_state]
+              )
+    return expect
+
+
+cpdef double complex expect_dia_dense(Dia op, Dense state) except *:
+    cdef double complex expect = 0.
+    cdef idxint i, diag_op, start_op, end_op, strideR, stride, start_state
+    if state.shape[1] == 1:
+        _check_shape_ket(op, state)
+        for diag_op in range(op.num_diag):
+            start_op = max(0, op.offsets[diag_op])
+            end_op = min(op.shape[1], op.shape[0] + op.offsets[diag_op])
+            for i in range(start_op, end_op):
+                expect += (
+                  op.data[diag_op * op.shape[1] + i]
+                  * state.data[i]
+                  * conj(state.data[i - op.offsets[diag_op]])
+                )
+    else:
+      _check_shape_dm(op, state)
+      stride = state.shape[0] + 1
+      strideR = state.shape[0] if state.fortran else 1
+      for diag_op in range(op.num_diag):
+        start_op = max(0, op.offsets[diag_op])
+        end_op = min(op.shape[1], op.shape[0] + op.offsets[diag_op])
+        start_state = -op.offsets[diag_op] * strideR
+        for i in range(start_op, end_op):
+          expect += (
+            op.data[diag_op * op.shape[1] + i]
+            * state.data[start_state + i * stride]
+          )
+    return expect
+
+
+cpdef double complex expect_super_dia(Dia op, Dia state) except *:
+    cdef double complex expect = 0.
+    _check_shape_super(op, state)
+    cdef idxint diag_op, diag_state
+    cdef idxint stride = <size_t> sqrt(state.shape[0]) + 1
+    for diag_op in range(op.num_diag):
+      for diag_state in range(state.num_diag):
+        if (
+            -state.offsets[diag_state] < op.shape[1]
+            and -op.offsets[diag_op] - state.offsets[diag_state] >= 0
+            and (-op.offsets[diag_op] - state.offsets[diag_state]) % stride == 0
+        ):
+            expect += state.data[diag_state * state.shape[1]] * op.data[diag_op * op.shape[1] - state.offsets[diag_state]]
+
+    return expect
+
+
+cpdef double complex expect_super_dia_dense(Dia op, Dense state) except *:
+    cdef double complex expect = 0.
+    _check_shape_super(op, state)
+    cdef idxint col, diag_op, start, end
+    cdef idxint stride = <size_t> sqrt(state.shape[0]) + 1
+    for diag_op in range(op.num_diag):
+      start = max(0, op.offsets[diag_op])
+      end = min(op.shape[1], op.shape[0] + op.offsets[diag_op])
+      col = (((start - op.offsets[diag_op] - 1) // stride) + 1) * stride + op.offsets[diag_op]
+      while col < end:
+        expect += op.data[diag_op * op.shape[1] + col] * state.data[col]
+        col += stride
+    return expect
 
 
 def expect_data(Data op, Data state):
@@ -305,6 +408,8 @@ expect.add_specialisations([
     (CSR, CSR, expect_csr),
     (CSR, Dense, expect_csr_dense),
     (Dense, Dense, expect_dense),
+    (Dia, Dense, expect_dia_dense),
+    (Dia, Dia, expect_dia),
     (Data, Data, expect_data),
 ], _defer=True)
 
@@ -328,6 +433,8 @@ expect_super.add_specialisations([
     (CSR, CSR, expect_super_csr),
     (CSR, Dense, expect_super_csr_dense),
     (Dense, Dense, expect_super_dense),
+    (Dia, Dense, expect_super_dia_dense),
+    (Dia, Dia, expect_super_dia),
     (Data, Data, expect_super_data),
 ], _defer=True)
 

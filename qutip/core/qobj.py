@@ -1558,7 +1558,7 @@ class Qobj:
                                           isherm=self._isherm,
                                           sort=sort, eigvals=eigvals, tol=tol,
                                           maxiter=maxiter)
-        elif isinstance(self.data, _data.CSR):
+        elif isinstance(self.data, (_data.CSR, _data.Dia)):
             evals, evecs = _data.eigs(_data.to(_data.Dense, self.data),
                                       isherm=self._isherm,
                                       sort=sort, eigvals=eigvals)
@@ -1623,7 +1623,7 @@ class Qobj:
                                   isherm=self._isherm,
                                   sort=sort, eigvals=eigvals,
                                   tol=tol, maxiter=maxiter)
-        elif isinstance(self.data, _data.CSR):
+        elif isinstance(self.data, (_data.CSR, _data.Dia)):
             return _data.eigs(_data.to(_data.Dense, self.data),
                               vecs=False, isherm=self._isherm,
                               sort=sort, eigvals=eigvals)
