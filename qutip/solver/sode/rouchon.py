@@ -36,7 +36,6 @@ class RouchonSODE(SIntegrator):
         self._options = self.integrator_options.copy()
         self.options = options
         self.rhs = rhs
-        self.system = None
         self._make_operators()
 
     def _make_operators(self):

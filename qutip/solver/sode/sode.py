@@ -45,6 +45,7 @@ class SIntegrator(Integrator):
         included here will be supported by the :cls:SolverOdeOptions.
     """
     _is_set = False
+    _stepper_options = []
 
     def set_state(self, t, state0, generator):
         """
@@ -66,17 +67,14 @@ class SIntegrator(Integrator):
         if isinstance(generator, Wiener):
             self.wiener = generator
         else:
-            if self.system:
-                num_collapse = self.system.num_collapse
-            else:
-                num_collapse = len(self.rhs.sc_ops)
+            num_collapse = len(self.rhs.sc_ops)
             self.wiener = Wiener(
                 t, self.options["dt"], generator,
                 (self.N_dw, num_collapse)
             )
         self.rhs.register_feedback("wiener_process", self.wiener)
-        self.system = self.rhs(self.options)
-        self.step_func = self.stepper(self.system).run
+        opt = [self.options[key] for key in self._stepper_options]
+        self.step_func = self.stepper(self.rhs(self.options), *opt).run
         self._is_set = True
 
     def get_state(self, copy=True):
@@ -110,10 +108,6 @@ class SIntegrator(Integrator):
     def reset(self, hard=False):
         if self._is_set:
             state = self.get_state()
-        if hard:
-            self.system = self.rhs(self.options)
-            self.step_func = self.stepper(self.system).run
-        if self._is_set:
             self.set_state(*state)
 
 
@@ -133,8 +127,6 @@ class _Explicit_Simple_Integrator(SIntegrator):
         self._options = self.integrator_options.copy()
         self.options = options
         self.rhs = rhs
-        self.system = None
-        self.step_func = self.stepper(self.system).run
 
     def integrate(self, t, copy=True):
         delta_t = t - self.t
@@ -185,19 +177,9 @@ class _Implicit_Simple_Integrator(_Explicit_Simple_Integrator):
         "solve_method": None,
         "solve_options": {},
     }
+    _stepper_options = ["solve_method", "solve_options"]
     stepper = None
     N_dw = 0
-
-    def __init__(self, rhs, options):
-        self._options = self.integrator_options.copy()
-        self.options = options
-        self.rhs = rhs
-        self.system = rhs(self.options)
-        self.step_func = self.stepper(
-            self.system,
-            self.options["solve_method"],
-            self.options["solve_options"],
-        ).run
 
     @property
     def options(self):
@@ -265,15 +247,7 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.PredCorr
     N_dw = 1
-
-    def __init__(self, rhs, options):
-        self._options = self.integrator_options.copy()
-        self.options = options
-        self.rhs = rhs
-        self.system = rhs(self.options)
-        self.step_func = self.stepper(
-            self.system, self.options["alpha"], self.options["eta"]
-        ).run
+    _stepper_options = ["alpha", "eta"]
 
     @property
     def options(self):
