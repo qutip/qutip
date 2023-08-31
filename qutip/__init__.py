@@ -65,6 +65,7 @@ def orbital(*_, **_):
         "'orbital was removed. Use scipy.special.sph_harm instead'"
     )
 
+
 # -----------------------------------------------------------------------------
 # Clean name space
 #
