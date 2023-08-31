@@ -60,7 +60,7 @@ from .about import *
 from .cite import *
 
 
-def orbital(*_, **_):
+def orbital(*_, **__):
     raise NotImplementedError(
         "'orbital was removed. Use scipy.special.sph_harm instead'"
     )
