@@ -59,13 +59,6 @@ from .fileio import *
 from .about import *
 from .cite import *
 
-
-def orbital(*_, **__):
-    raise NotImplementedError(
-        "'orbital was removed. Use scipy.special.sph_harm instead'"
-    )
-
-
 # -----------------------------------------------------------------------------
 # Clean name space
 #
