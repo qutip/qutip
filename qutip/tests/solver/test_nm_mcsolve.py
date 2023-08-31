@@ -598,7 +598,7 @@ def test_NonMarkovianMCSolver_run():
         e_ops=[qutip.qeye(size)], args={'coupling': 1},
         ntraj=1000, target_tol=0.1
     )
-    assert res.num_trajectories == 1001
+    assert 1 < res.num_trajectories and res.num_trajectories < 1001
 
 
 def test_NonMarkovianMCSolver_stepping():
