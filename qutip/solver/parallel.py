@@ -73,7 +73,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
         If provided, it will be called with the output of each tasks instead of
         storing a them in a list. It should return None or a number.
         When returning a number, it represent the estimation of the number of
-        task left. On a return >= 0, the map will end early.
+        task left. On a return <= 0, the map will end early.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
@@ -157,7 +157,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         storing a them in a list. Note that the order in which results are
         passed to ``reduce_func`` is not defined. It should return None or a
         number. When returning a number, it represent the estimation of the
-        number of task left. On a return >= 0, the map will end early.
+        number of task left. On a return <= 0, the map will end early.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
@@ -301,7 +301,7 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         If provided, it will be called with the output of each tasks instead of
         storing a them in a list. It should return None or a number.  When
         returning a number, it represent the estimation of the number of task
-        left. On a return >= 0, the map will end early.
+        left. On a return <= 0, the map will end early.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
