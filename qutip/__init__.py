@@ -39,7 +39,6 @@ import qutip.piqs.piqs as piqs
 from .bloch import *
 from .visualization import *
 from .animation import *
-from .orbital import *
 from .bloch3d import *
 from .matplotlib_utilities import *
 
@@ -59,6 +58,12 @@ from .utilities import *
 from .fileio import *
 from .about import *
 from .cite import *
+
+
+def orbital(*_, **_):
+    raise NotImplementedError(
+        "'orbital was removed. Use scipy.special.sph_harm instead'"
+    )
 
 # -----------------------------------------------------------------------------
 # Clean name space

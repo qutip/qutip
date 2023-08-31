@@ -55,7 +55,8 @@ def test_anim_hinton():
 def test_anim_sphereplot():
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
-    values = qutip.orbital(theta, phi, qutip.basis(3, 0)).T
+    phi_mesh, theta_mesh = np.meshgrid(phi, theta)
+    values = sph_harm(-1, 2, phi_mesh, theta_mesh).T
     fig, ani = qutip.anim_sphereplot([values]*2, theta, phi)
     plt.close()
 

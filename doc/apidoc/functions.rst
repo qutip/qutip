@@ -233,8 +233,6 @@ Graphs and Visualization
 .. automodule:: qutip.animation
     :members: anim_hinton, anim_matrix_histogram, anim_fock_distribution, anim_wigner, anim_sphereplot, anim_schmidt, anim_qubism, anim_wigner_sphere, anim_spin_distribution
 
-.. automodule:: qutip.orbital
-    :members: orbital
 
 .. automodule:: qutip.matplotlib_utilities
    :members: wigner_cmap, complex_phase_cmap
