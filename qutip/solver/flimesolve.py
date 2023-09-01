@@ -72,6 +72,7 @@ def _floquet_rate_matrix(floquet_basis,
 
     total_R_tensor = {}
     for cdx, c_op in enumerate(c_ops):
+
         # Transforming the lowering operator into the Floquet Basis
         #     and taking the FFT
         c_op_Floquet_basis = np.array(
@@ -111,9 +112,8 @@ def _floquet_rate_matrix(floquet_basis,
             dtype=complex)
 
         # Finally, creating masks to mask out "bad" values of the delta_array
-        #     and the quotient_array. What remains after masking will be used
-        #     to form the rate matrix.
-
+        # and the quotient_array. What remains after masking will be used
+        # to form the rate matrix.
         # Masking any frequency greater than Nyquist Frequency
         nyquist_mask = np.ma.getmaskarray(np.ma.masked_greater(
             delta_array, np.pi/dt))
@@ -121,39 +121,38 @@ def _floquet_rate_matrix(floquet_basis,
         quotient_mask = np.ma.getmaskarray(np.ma.masked_greater(
             abs(quotient_array), time_sense))
         # Full mask formed from the total of the above masks
-        full_mask = nyquist_mask | quotient_mask
+        full_mask = (nyquist_mask | quotient_mask)
 
-        # Valid indices are unmasked indices
-        valid_indices = np.argwhere(full_mask == False)
-        delta_vals_truncd = [
-            delta_array[tuple(indices)] for indices in valid_indices]
+        # Creating a mask for each unique frequency value
+        # Masking values to zero should be fine, as zero should always
+        # be an entry in the valid frequencies, anyways.
+        unique_valid_deltas = np.unique(delta_array[~full_mask])
+        delta_masks = (np.ma.masked_where(full_mask, delta_array) ==
+                       unique_valid_deltas[:, None, None, None,
+                                           None, None, None])
+        np.ma.set_fill_value(delta_masks, 0)
+        delta_masks = np.ma.getdata(delta_masks)
 
-        # Grouping valid_indices by their frequency values
-        delta_dict = defaultdict(list)
-        for idx, indices in enumerate(valid_indices):
-            delta_dict[delta_vals_truncd[idx]].append(indices)
-
-        # For each valid frequency, form a slice of total_R_tensor
-        for key in delta_dict:
-            mask_array = np.zeros((Hdim, Hdim, Hdim, Hdim, Nt, Nt))
-            for indices in delta_dict[key]:
-                mask_array[tuple(indices)] = True
-            valid_c_op_products = rate_products * mask_array
+        for idx, key in enumerate(unique_valid_deltas):
+            # For each valid frequency, form a slice of total_R_tensor
+            valid_c_op_products1 = rate_products * \
+                (delta_masks[idx])
 
             # using c = ap,d = bp,k=lp
             flime_FirstTerm = c_op_rates[cdx] \
                 * np.einsum('mpnqlk->mnpq',
-                            valid_c_op_products)
+                            valid_c_op_products1)
 
             flime_SecondTerm = c_op_rates[cdx] \
                 * np.einsum('apamlk,qn->mnpq',
-                            valid_c_op_products,
+                            valid_c_op_products1,
                             np.eye(Hdim, Hdim))
 
             flime_ThirdTerm = c_op_rates[cdx] \
                 * np.einsum('anaqlk,pm->mnpq',
-                            valid_c_op_products,
+                            valid_c_op_products1,
                             np.eye(Hdim, Hdim))
+
             try:
                 total_R_tensor[key] += np.reshape(flime_FirstTerm - (1 / 2)
                                                   * (flime_SecondTerm +
@@ -607,13 +606,6 @@ class FLiMESolver(MESolver):
         else:
             raise ValueError('You need to supply a valid ket or operator')
 
-        # if state0.type == 'ket':
-        #     state0 = operator_to_vector(
-        #         Qobj(state0 * state0.dag(), dims=[self.floquet_basis.U(0).dims[0], self.floquet_basis.U(0).dims[0]]))
-        # elif state0.type == 'oper':
-        #     state0 = operator_to_vector(Qobj(state0, dims=[self.floquet_basis.U(
-        #         0).dims[0], self.floquet_basis.U(0).dims[0]]))
-
         fstates_table = flimesolve_floquet_state_table(
             self.floquet_basis, tlist)
 
@@ -638,7 +630,10 @@ class FLiMESolver(MESolver):
 
         sols_comp = [Qobj(
             _data.Dense(state),
-            dims=[self.floquet_basis.U(0).dims[0], self.floquet_basis.U(0).dims[0]], type="oper", copy=False)
+            dims=[self.floquet_basis.U(0).dims[0],
+                  self.floquet_basis.U(0).dims[0]],
+            type="oper",
+            copy=False)
             for state in sols_comp_arr]
 
         for idx, state in enumerate(sols_comp):
