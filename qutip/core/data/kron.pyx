@@ -114,7 +114,9 @@ cpdef Dia kron_dia(Dia left, Dia right):
                 num_diag += 1
 
     else:
-        out = dia.empty(nrows, ncols, _mul_checked(max_diag, ncols_l))
+        max_diag = _mul_checked(max_diag, ncols_l)
+        max_diag = min(max_diag, nrows + ncols - 1)
+        out = dia.empty(nrows, ncols, max_diag)
         delta = right.shape[0] - right.shape[1]
         for diag_left in range(left.num_diag):
             for diag_right in range(right.num_diag):
