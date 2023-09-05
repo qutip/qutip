@@ -10,6 +10,7 @@ from qutip.core.data.dense cimport Dense
 from .adjoint import transpose
 from qutip.core.data.dia cimport Dia
 from qutip.core.data cimport csr, dia
+from qutip.core.data.convert import to as _to
 import numpy
 
 __all__ = [
@@ -112,36 +113,48 @@ cpdef Dia kron_dia(Dia left, Dia right):
                     right.shape[1]
                 )
                 num_diag += 1
+        out.num_diag = num_diag
 
     else:
-        out = dia.empty(nrows, ncols, _mul_checked(max_diag, ncols_l))
-        delta = right.shape[0] - right.shape[1]
-        for diag_left in range(left.num_diag):
-            for diag_right in range(right.num_diag):
-                start_left = max(0, left.offsets[diag_left])
-                end_left = min(left.shape[1], left.shape[0] + left.offsets[diag_left])
-                for col_left in range(start_left, end_left):
-                    memset(
-                        out.data + (num_diag * out.shape[1]), 0,
-                        out.shape[1] * sizeof(double complex)
-                    )
-
-                    out.offsets[num_diag] = (
-                        left.offsets[diag_left] * right.shape[0]
-                        + right.offsets[diag_right]
-                        - col_left * delta
-                    )
-
-                    start_right = max(0, right.offsets[diag_right])
-                    end_right = min(right.shape[1], right.shape[0] + right.offsets[diag_right])
-                    for col_right in range(start_right, end_right):
-                        out.data[num_diag * out.shape[1] + col_left * right.shape[1] + col_right] = (
-                            right.data[diag_right * right.shape[1] + col_right]
-                            * left.data[diag_left * left.shape[1] + col_left]
+        max_diag = _mul_checked(max_diag, ncols_l)
+        if max_diag < nrows:
+            out = dia.empty(nrows, ncols, max_diag)
+            delta = right.shape[0] - right.shape[1]
+            for diag_left in range(left.num_diag):
+                for diag_right in range(right.num_diag):
+                    start_left = max(0, left.offsets[diag_left])
+                    end_left = min(left.shape[1], left.shape[0] + left.offsets[diag_left])
+                    for col_left in range(start_left, end_left):
+                        memset(
+                            out.data + (num_diag * out.shape[1]), 0,
+                            out.shape[1] * sizeof(double complex)
                         )
-                    num_diag += 1
 
-    out.num_diag = num_diag
+                        out.offsets[num_diag] = (
+                            left.offsets[diag_left] * right.shape[0]
+                            + right.offsets[diag_right]
+                            - col_left * delta
+                        )
+
+                        start_right = max(0, right.offsets[diag_right])
+                        end_right = min(right.shape[1], right.shape[0] + right.offsets[diag_right])
+                        for col_right in range(start_right, end_right):
+                            out.data[num_diag * out.shape[1] + col_left * right.shape[1] + col_right] = (
+                                right.data[diag_right * right.shape[1] + col_right]
+                                * left.data[diag_left * left.shape[1] + col_left]
+                            )
+                        num_diag += 1
+            out.num_diag = num_diag
+
+        else:
+            # The output is not sparse enough ant the empty data array would be
+            # larger than the dense array.
+            # Fallback on dense operation
+            left_dense = _to(Dense, left)
+            right_dense = _to(Dense, right)
+            out_dense = kron_dense(left_dense, right_dense)
+            out = _to(Dia, out_dense)
+
     out = dia.clean_dia(out, True)
     return out
 

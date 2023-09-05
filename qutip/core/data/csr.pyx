@@ -530,6 +530,9 @@ cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
         <base.idxint *> PyDataMem_NEW(size * sizeof(base.idxint))
     out.row_index =\
         <base.idxint *> PyDataMem_NEW(row_size * sizeof(base.idxint))
+    if not out.data: raise MemoryError()
+    if not out.col_index: raise MemoryError()
+    if not out.row_index: raise MemoryError()
     # Set the number of non-zero elements to 0.
     out.row_index[rows] = 0
     return out
