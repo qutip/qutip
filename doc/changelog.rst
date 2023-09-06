@@ -26,15 +26,13 @@ Features
 - Add `Qobj.get` to extract underlying data in original format. (#2141)
 - Add qeye_like and qzero_like (#2153)
 - Add capacity to dispatch on ``Data`` (#2157)
-- added fermionic annihilation and creation operators.
-  Closely followed the protocol proposed in the following `source
-  <https://github.com/qutip/qutip/issues/863>`_. (#2166 by khnikhil)
-- changed arguments and apply colorblind_safe to functions in visualization.py (#2170 by Yuji Tamakoshi)
-- changed arguments and applied colorblind_safe to plot_wigner_sphere and matrix_histogram in visualization.py (#2193 by Yuji Tamakoshi)
-- Add Dia data layer (#2196)
-- add animation (#2203 by Yuji Tamakoshi)
+- Added fermionic annihilation and creation operators. (#2166 by khnikhil)
+- Changed arguments and applied colorblind_safe to functions in visualization.py (#2170 by Yuji Tamakoshi)
+- Changed arguments and applied colorblind_safe to plot_wigner_sphere and matrix_histogram in visualization.py (#2193 by Yuji Tamakoshi)
+- Added Dia data layer which represents operators as multi-diagonal matrices. (#2196)
+- Added support for animated plots. (#2203 by Yuji Tamakoshi)
 - Improved sampling algorithm for mcsolve (#2218 by Daniel Weiss)
-- Add early end of support in map functions. (#2222)
+- Added support for early termination of map functions. (#2222)
 
 
 
@@ -61,16 +59,16 @@ Documentation
 -------------
 
 - Add a guide on Superoperators, Pauli Basis and Channel Contraction. (#1984 by christian512)
-- added info about sec_cutoff to the documentation (#2136 by Gerardo Jose Suarez)
-- added inherited members to API doc of MESolver, SMESolver, SSESolver, NonMarkovianMCSolver (#2167 by Cristian Emiliano Godinez Ramirez)
-- Correct grammar in Bloch-Redfield master equation documentation (#2174 by Andrey Rakhubovsky)
+- Added information on sec_cutoff to the documentation (#2136 by Gerardo Jose Suarez)
+- Added inherited members to API doc of MESolver, SMESolver, SSESolver, NonMarkovianMCSolver (#2167 by Cristian Emiliano Godinez Ramirez)
+- Corrected grammar in Bloch-Redfield master equation documentation (#2174 by Andrey Rakhubovsky)
 
 
 Miscellaneous
 -------------
 
 - Update scipy version requirement to 1.5+ (#1982 by Pieter Eendebak)
-- added __all__ to qutip/measurements.py and qutip/core/semidefinite.py (#2103 by Rushiraj Gadhvi)
+- Added __all__ to qutip/measurements.py and qutip/core/semidefinite.py (#2103 by Rushiraj Gadhvi)
 - Restore towncrier check (#2105)
 - qutip.ipynbtools.version_table() can now be called without Cython installed (#2110 by Rushiraj Gadhvi)
 - Moved HTMLProgressBar from qutip/ipynbtools.py to qutip/ui/progressbar.py (#2112 by Harsh Khilawala)
@@ -81,8 +79,8 @@ Miscellaneous
 - Migrate `transfertensor.py` to solver (#2142)
 - Add a test for progress_bar (#2150)
 - Enable cython 3 (#2151)
-- add pytest for visualization.py (#2192 by Yuji Tamakoshi)
-- sort args of sphereplot and looks similar to those of plot_spin_distribution (#2219 by Yuji Tamakoshi)
+- Added tests for visualization.py (#2192 by Yuji Tamakoshi)
+- Sorted arguments of sphereplot so that the order is similar to those of plot_spin_distribution (#2219 by Yuji Tamakoshi)
 
 
 Version 5.0.0a1 (February 7, 2023)
