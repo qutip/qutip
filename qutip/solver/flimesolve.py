@@ -11,21 +11,20 @@ __all__ = [
 ]
 
 import numpy as np
+from collections import defaultdict
+from itertools import product
 from qutip.core import data as _data
 from qutip import Qobj, QobjEvo, operator_to_vector
 from .mesolve import MESolver
-from .integrator import qutip_integrator
 from .solver_base import Solver
 from .result import Result
 from time import time
 from ..ui.progressbar import progress_bars
 from qutip.solver.floquet import fsesolve, FloquetBasis
-from collections import defaultdict
 
 
 def _floquet_rate_matrix(floquet_basis,
                          Nt,
-                         T,
                          c_ops,
                          c_op_rates,
                          time_sense=0):
@@ -36,9 +35,6 @@ def _floquet_rate_matrix(floquet_basis,
         The FloquetBasis object formed from qutip.floquet.FloquetBasis
     Nt : Int
         Number of points in one period of the Hamiltonian
-    T : float
-        Time period of the Hamiltonian. Retrieved from the FloquetBasis
-        object
     c_ops : list
         list of collapse operator matrices as Qobjs
     c_op_rates : list
@@ -63,14 +59,14 @@ def _floquet_rate_matrix(floquet_basis,
             something Rate Matrix something something linear Operator.
     '''
     Hdim = len(floquet_basis.e_quasi)  # Dimensionality of the Hamiltonian
-    args_key = (2*np.pi)/T  # Frequency dependence of Hamiltonian
 
     # Forming tlist to take FFT of collapse operators
-    time = T
-    dt = time / Nt
-    tlist = np.linspace(0, time - dt, Nt)
+    timet = floquet_basis.T
+    dt = timet / Nt
+    tlist = np.linspace(0, timet - dt, Nt)
+    omega = (2*np.pi)/floquet_basis.T  # Frequency dependence of Hamiltonian
 
-    total_R_tensor = {}
+    total_R_tensor = defaultdict(lambda: 0)
     for cdx, c_op in enumerate(c_ops):
 
         # Transforming the lowering operator into the Floquet Basis
@@ -78,9 +74,8 @@ def _floquet_rate_matrix(floquet_basis,
         c_op_Floquet_basis = np.array(
             [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist])
 
-        c_op_Fourier_amplitudes_list = np.array(
-            np.fft.fft(c_op_Floquet_basis, axis=0) / len(tlist)
-        )
+        c_op_Fourier_amplitudes_list = np.fft.fft(c_op_Floquet_basis, axis=0) \
+            / len(tlist)
 
         # Next step is to form arrays of the rate products (rate_products)
         #     and the frequency at which these components rotate (delta_array),
@@ -93,77 +88,71 @@ def _floquet_rate_matrix(floquet_basis,
                                   c_op_Fourier_amplitudes_list,
                                   np.conj(c_op_Fourier_amplitudes_list))
 
-        delta_array = np.add.outer(
-            np.subtract.outer(
-                np.subtract.outer(floquet_basis.e_quasi,
-                                  floquet_basis.e_quasi),
-                np.subtract.outer(floquet_basis.e_quasi, floquet_basis.e_quasi)
-            )/args_key,
-            np.subtract.outer(np.arange(Nt), np.arange(Nt))
+        # delta_array = np.add.outer(
+        #     np.subtract.outer(
+        #         np.subtract.outer(floquet_basis.e_quasi,
+        #                           floquet_basis.e_quasi),
+        #         np.subtract.outer(floquet_basis.e_quasi, floquet_basis.e_quasi)
+        #     )/omega,
+        #     np.subtract.outer(np.arange(Nt), np.arange(Nt))
+        # )
+        delta_m = np.add.outer(floquet_basis.e_quasi, -floquet_basis.e_quasi)
+        delta_m = np.add.outer(delta_m, -delta_m)
+        delta_m /= omega
+
+        for l, k in product(np.arange(Nt), repeat=2):
+            delta_shift = delta_m + (l - k)
+            mask = {}
+            if time_sense <= 0.:
+                mask[0] = delta_shift == 0
+                if not np.any(mask):
+                    continue
+                rate_products = np.multiply.outer(
+                    c_op_Fourier_amplitudes_list[l],
+                    np.conj(c_op_Fourier_amplitudes_list)[k]
+                ) * c_op_rates[cdx]
+            else:
+                rate_products = np.multiply.outer(
+                    c_op_Fourier_amplitudes_list[l],
+                    np.conj(c_op_Fourier_amplitudes_list)[k]
+                )
+                cmp_array = np.minimum(
+                    np.abs(rate_products) * time_sense, Nt/2)
+
+                included_deltas = np.abs(delta_shift) * omega <= cmp_array
+                if not np.any(included_deltas):
+                    continue
+                keys = np.unique(delta_shift[included_deltas])
+                rate_products *= c_op_rates[cdx]
+                for key in keys:
+                    mask[key] = np.logical_and(
+                        delta_shift == key, included_deltas)
+
+            for key in mask.keys():
+                valid_c_op_products = rate_products * mask[key]
+                I_ = np.eye(Hdim, Hdim)
+
+                # using c = ap,d = bp,k=lp
+                flime_FirstTerm = np.transpose(
+                    valid_c_op_products, [0, 2, 1, 3]).reshape(Hdim**2, Hdim**2)
+                tmp = np.trace(valid_c_op_products, axis1=0, axis2=2)
+                flime_SecondTerm = np.kron(tmp.T, I_)
+                flime_ThirdTerm = np.kron(I_, tmp)
+
+                total_R_tensor[key] += flime_FirstTerm - \
+                    (0.5) * (flime_SecondTerm + flime_ThirdTerm)
+
+    dims = [floquet_basis.U(0).dims] * 2
+    total_R_tensor = {
+        key: Qobj(
+            RateMat, dims=dims, type="super", superrep="super", copy=False
         )
-
-        # The default "out" value returns values higher than the time_sense
-        #   cutoff, so that rate products of 0 are excluded from the
-        #   valid_indices list via the quotient mask
-        quotient_array = np.divide(
-            args_key*delta_array,
-            abs(rate_products),
-            out=np.full(np.shape(delta_array), (time_sense+1), dtype=complex),
-            dtype=complex)
-
-        # Finally, creating masks to mask out "bad" values of the delta_array
-        # and the quotient_array. What remains after masking will be used
-        # to form the rate matrix.
-        # Masking any frequency greater than Nyquist Frequency
-        nyquist_mask = np.ma.getmaskarray(np.ma.masked_greater(
-            delta_array, np.pi/dt))
-        # Masking any rate quotient greater than time_sense
-        quotient_mask = np.ma.getmaskarray(np.ma.masked_greater(
-            abs(quotient_array), time_sense))
-        # Full mask formed from the total of the above masks
-        full_mask = (nyquist_mask | quotient_mask)
-
-        # Creating a mask for each unique frequency value
-        # Masking values to zero should be fine, as zero should always
-        # be an entry in the valid frequencies, anyways.
-        unique_valid_deltas = np.unique(delta_array[~full_mask])
-        delta_masks = (np.ma.masked_where(full_mask, delta_array) ==
-                       unique_valid_deltas[:, None, None, None,
-                                           None, None, None])
-        np.ma.set_fill_value(delta_masks, 0)
-        delta_masks = np.ma.getdata(delta_masks)
-
-        for idx, key in enumerate(unique_valid_deltas):
-            # For each valid frequency, form a slice of total_R_tensor
-            valid_c_op_products1 = rate_products * \
-                (delta_masks[idx])
-
-            # using c = ap,d = bp,k=lp
-            flime_FirstTerm = c_op_rates[cdx] \
-                * np.einsum('mpnqlk->mnpq',
-                            valid_c_op_products1)
-
-            flime_SecondTerm = c_op_rates[cdx] \
-                * np.einsum('apamlk,qn->mnpq',
-                            valid_c_op_products1,
-                            np.eye(Hdim, Hdim))
-
-            flime_ThirdTerm = c_op_rates[cdx] \
-                * np.einsum('anaqlk,pm->mnpq',
-                            valid_c_op_products1,
-                            np.eye(Hdim, Hdim))
-
-            try:
-                total_R_tensor[key] += np.reshape(flime_FirstTerm - (1 / 2)
-                                                  * (flime_SecondTerm +
-                                                     flime_ThirdTerm),
-                                                  (Hdim**2, Hdim**2))
-            except KeyError:
-                total_R_tensor[key] = np.reshape(flime_FirstTerm - (1 / 2)
-                                                 * (flime_SecondTerm +
-                                                    flime_ThirdTerm),
-                                                 (Hdim**2, Hdim**2))
-
+        for key, RateMat in total_R_tensor.items()
+    }
+    # total_R_tensor = {
+    #     key: RateMat
+    #     for key, RateMat in total_R_tensor.items()
+    # }
     return total_R_tensor
 
 
@@ -440,7 +429,6 @@ class FLiMESolver(MESolver):
         RateDic = _floquet_rate_matrix(
             floquet_basis,
             self.Nt,
-            self.floquet_basis.T,
             c_ops,
             c_op_rates,
             time_sense=time_sense)
