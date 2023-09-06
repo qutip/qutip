@@ -6,6 +6,85 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.0.0a2 (2023-09-06)
+==========================
+
+Features
+--------
+
+- Add support for different spectra types for bloch_redfield_tensor (#1951)
+- Improve qutip import times by setting logger names explicitly. (#1981, by Pieter Eendebak)
+- Change the order of parameters in expand_operator (#1991)
+- Add `svn` and `solve` to dispatched (#2002)
+- Added nm_mcsolve to provide support for Monte-Carlo simulations of master equations with possibly negative rates. The method implemented here is described in arXiv:2209.08958 [quant-ph]. (#2070 by pmenczel)
+- Add support for combining bosinic and fermionic HEOM baths (#2089)
+- Added __repr__ to QobjEvo (#2111 by lklivingstone)
+- Improve print(qutip.settings) by make it shorter (#2113 by tamakoshi2001)
+- Create the `trace_oper_ket` operation (#2126)
+- Speed up the construction of the RHS of the HEOM solver by a factor of 4x by converting the final step to Cython. (#2128)
+- Rewrite the stochastic solver to use the v5 solver interface. (#2131)
+- Add `Qobj.get` to extract underlying data in original format. (#2141)
+- Add qeye_like and qzero_like (#2153)
+- Add capacity to dispatch on ``Data`` (#2157)
+- added fermionic annihilation and creation operators.
+  Closely followed the protocol proposed in the following `source
+  <https://github.com/qutip/qutip/issues/863>`_. (#2166 by khnikhil)
+- changed arguments and apply colorblind_safe to functions in visualization.py (#2170 by Yuji Tamakoshi)
+- changed arguments and applied colorblind_safe to plot_wigner_sphere and matrix_histogram in visualization.py (#2193 by Yuji Tamakoshi)
+- Add Dia data layer (#2196)
+- add animation (#2203 by Yuji Tamakoshi)
+- Improved sampling algorithm for mcsolve (#2218 by Daniel Weiss)
+- Add early end of support in map functions. (#2222)
+
+
+
+Bug Fixes
+---------
+
+- Add missing state transformation to floquet_markov_mesolve (#1952 by christian512)
+- Added default _isherm value (True) for momentum and position operators. (#2032 by Asier Galicia)
+- Changed qutip-notebooks to qutip-tutorials and fixed the typo in the link redirecting to the changelog section in the PR template. (#2107 by Valan Baptist Mathuranayagam)
+- Increase missing colorbar padding for matrix_histogram_complex() from 0 to 0.05. (#2181 by SJUW)
+- Raise error on insufficient memory. (#2224)
+
+
+Removals
+--------
+
+- Remove qutip.control and replace with qutip_qtrl. (#2116)
+- Deleted _solve in countstat.py and used _data.solve. (#2120 by Yuji Tamakoshi)
+- Deprecate three_level_atom (#2221)
+- Deprecate orbital (#2223)
+
+
+Documentation
+-------------
+
+- Add a guide on Superoperators, Pauli Basis and Channel Contraction. (#1984 by christian512)
+- added info about sec_cutoff to the documentation (#2136 by Gerardo Jose Suarez)
+- added inherited members to API doc of MESolver, SMESolver, SSESolver, NonMarkovianMCSolver (#2167 by Cristian Emiliano Godinez Ramirez)
+- Correct grammar in Bloch-Redfield master equation documentation (#2174 by Andrey Rakhubovsky)
+
+
+Miscellaneous
+-------------
+
+- Update scipy version requirement to 1.5+ (#1982 by Pieter Eendebak)
+- added __all__ to qutip/measurements.py and qutip/core/semidefinite.py (#2103 by Rushiraj Gadhvi)
+- Restore towncrier check (#2105)
+- qutip.ipynbtools.version_table() can now be called without Cython installed (#2110 by Rushiraj Gadhvi)
+- Moved HTMLProgressBar from qutip/ipynbtools.py to qutip/ui/progressbar.py (#2112 by Harsh Khilawala)
+- Added new argument bc_type to take boundary conditions when creating QobjEvo (#2114 by Avatar Srinidhi P V )
+- Remove Windows build warning suppression. (#2119)
+- Optimize dispatcher by dispatching on positional only args. (#2135)
+- Clean semidefinite (#2138)
+- Migrate `transfertensor.py` to solver (#2142)
+- Add a test for progress_bar (#2150)
+- Enable cython 3 (#2151)
+- add pytest for visualization.py (#2192 by Yuji Tamakoshi)
+- sort args of sphereplot and looks similar to those of plot_spin_distribution (#2219 by Yuji Tamakoshi)
+
+
 Version 5.0.0a1 (February 7, 2023)
 ++++++++++++++++++++++++++++++++++
 
