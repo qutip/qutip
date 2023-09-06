@@ -63,7 +63,7 @@ significantly to test the data layer API:
 - ``qutip-tensorflow``: a TensorFlow backend by Asier Galicia (`<https://github.com/qutip/qutip-tensorflow>`)
 - ``qutip-cupy``: a CuPy GPU backend by Felipe Bivort Haiek (`<https://github.com/qutip/qutip-cupy/>`)`
 - ``qutip-tensornetwork``: a TensorNetwork backend by Asier Galicia (`<https://github.com/qutip/qutip-tensornetwork>`)
-- ``qutip-jax```: a JAX backend by Eric Giguère (`<https://github.com/qutip/qutip-jax/>`)
+- ``qutip-jax``: a JAX backend by Eric Giguère (`<https://github.com/qutip/qutip-jax/>`)
 
 We have also had many other contributors, whose specific contributions are
 detailed below:

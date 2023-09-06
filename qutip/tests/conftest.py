@@ -28,6 +28,7 @@ def _skip_cython_tests_if_unavailable(item):
         # importorskip rather than mark.skipif because this way we get pytest's
         # version-handling semantics.
         pytest.importorskip('Cython', minversion='0.14')
+        pytest.importorskip('filelock')
 
 
 @pytest.hookimpl(trylast=True)

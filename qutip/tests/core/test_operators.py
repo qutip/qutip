@@ -251,6 +251,8 @@ dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes
     (qutip.spin_Jp, (1,)),
     (qutip.destroy, (5,)),
     (qutip.create, (5,)),
+    (qutip.fdestroy, (5, 0)),
+    (qutip.fcreate, (5, 0)),
     (qutip.qzero, (5,)),
     (qutip.qeye, (5,)),
     (qutip.position, (5,)),
@@ -273,6 +275,14 @@ def test_operator_type(func, args, alias, dtype):
         for obj in object:
             assert isinstance(obj.data, dtype)
 
+    with qutip.CoreOptions(default_dtype=alias):
+        object = func(*args)
+        if isinstance(object, qutip.Qobj):
+            assert isinstance(object.data, dtype)
+        else:
+            for obj in object:
+                assert isinstance(obj.data, dtype)
+
 
 @pytest.mark.parametrize('dims', [8, 15, [2] * 4])
 def test_qft(dims):
@@ -285,3 +295,73 @@ def test_qft(dims):
         fft = np.fft.fft(qft[:,i])
         fft /= np.sum(fft)
         np.testing.assert_allclose(fft, target, atol=1e-16 * N)
+
+
+@pytest.mark.parametrize('N', [1, 3, 5, 8])
+@pytest.mark.parametrize('M', [1, 3, 5, 8])
+def test_swap(N, M):
+    ket1 = qutip.rand_ket(N)
+    ket2 = qutip.rand_ket(M)
+
+    assert qutip.swap(N, M) @ (ket1 & ket2) == (ket2 & ket1)
+
+
+@pytest.mark.parametrize(["dims", "superrep"], [
+    pytest.param([2], None, id="simple"),
+    pytest.param([2, 3], None, id="tensor"),
+    pytest.param([[2], [2]], None, id="super"),
+    pytest.param([[2], [2]], "chi", id="chi"),
+])
+@pytest.mark.parametrize('dtype', ["CSR", "Dense"])
+def test_qeye_like(dims, superrep, dtype):
+    op = qutip.rand_herm(dims, dtype=dtype)
+    op.superrep = superrep
+    new = qutip.qeye_like(op)
+    expected = qutip.qeye(dims, dtype=dtype)
+    expected.superrep = superrep
+    assert new == expected
+
+    opevo = qutip.QobjEvo(op)
+    new = qutip.qeye_like(op)
+    assert new == expected
+
+
+@pytest.mark.parametrize(["dims", "superrep"], [
+    pytest.param([2], None, id="simple"),
+    pytest.param([2, 3], None, id="tensor"),
+    pytest.param([[2], [2]], None, id="super"),
+    pytest.param([[2], [2]], "chi", id="chi"),
+])
+@pytest.mark.parametrize('dtype', ["CSR", "Dense"])
+def test_qzero_like(dims, superrep, dtype):
+    op = qutip.rand_herm(dims, dtype=dtype)
+    op.superrep = superrep
+    new = qutip.qzero_like(op)
+    expected = qutip.qzero(dims, dtype=dtype)
+    expected.superrep = superrep
+    assert new == expected
+
+    opevo = qutip.QobjEvo(op)
+    new = qutip.qzero_like(op)
+    assert new == expected
+
+
+@pytest.mark.parametrize('n_sites', [2, 3, 4, 5])
+def test_fcreate_fdestroy(n_sites):
+    identity = qutip.identity([2] * n_sites)
+    zero_tensor = qutip.qzero([2] * n_sites)
+    for site_0 in range(n_sites):
+        c_0 = qutip.fcreate(n_sites, site_0)
+        d_0 = qutip.fdestroy(n_sites, site_0)
+        for site_1 in range(n_sites):
+            c_1 = qutip.fcreate(n_sites, site_1)
+            d_1 = qutip.fdestroy(n_sites, site_1)
+            assert qutip.commutator(c_0, c_1, 'anti') == zero_tensor
+            assert qutip.commutator(d_0, d_1, 'anti') == zero_tensor
+            if site_0 == site_1:
+                assert qutip.commutator(c_0, d_1, 'anti') == identity
+                assert qutip.commutator(c_1, d_0, 'anti') == identity
+            else:
+                assert qutip.commutator(c_0, d_1, 'anti') == zero_tensor
+                assert qutip.commutator(c_1, d_0, 'anti') == zero_tensor
+    assert qutip.commutator(identity, c_0) == zero_tensor

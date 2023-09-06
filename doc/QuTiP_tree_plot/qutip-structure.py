@@ -47,7 +47,6 @@ module_groups = [
     # States
     ("#007143", {
         "states", "continuous_variables", "qstate", "random_objects",
-        "three_level_atom",
     }),
     # QIP
     ("#36d695", {"measurement"}),

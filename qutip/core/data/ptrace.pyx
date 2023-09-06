@@ -6,15 +6,16 @@ import numbers
 import numpy as np
 
 cimport numpy as cnp
+cimport cython
 
-from qutip.core.data cimport csr, dense, idxint, CSR, Dense, Data
+from qutip.core.data cimport csr, dense, idxint, CSR, Dense, Data, Dia, dia
 from qutip.core.data.base import idxint_dtype
 from qutip.settings import settings
 
 cnp.import_array()
 
 __all__ = [
-    'ptrace', 'ptrace_csr', 'ptrace_dense', 'ptrace_csr_dense',
+    'ptrace', 'ptrace_csr', 'ptrace_dense', 'ptrace_csr_dense', 'ptrace_dia',
 ]
 
 cdef tuple _parse_inputs(object dims, object sel, tuple shape):
@@ -121,6 +122,37 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
                                  size, size, p, tol)
 
 
+def ptrace_dia(matrix, dims, sel):
+    if len(sel) == len(dims):
+        return matrix.copy()
+    dims, sel = _parse_inputs(dims, sel, matrix.shape)
+    mat = matrix.as_scipy()
+    cdef idxint[:, ::1] tensor_table = np.zeros((dims.shape[0], 3), dtype=idxint_dtype)
+    cdef idxint pos_row[2]
+    cdef idxint pos_col[2]
+    size = _populate_tensor_table(dims, sel, tensor_table)
+    data = {}
+    for i, offset in enumerate(mat.offsets):
+        start = max(0, offset)
+        end = min(matrix.shape[0] + offset, matrix.shape[1])
+        for col in range(start, end):
+            _i2_k_t(col - offset, tensor_table, pos_row)
+            _i2_k_t(col, tensor_table, pos_col)
+            if pos_row[1] == pos_col[1]:
+                new_offset = pos_col[0] - pos_row[0]
+                if new_offset not in data:
+                    data[new_offset] = np.zeros(size, dtype=complex)
+                data[new_offset][pos_col[0]] += mat.data[i, col]
+
+    if len(data) == 0:
+        return dia.zeros(size, size)
+    offsets = np.array(list(data.keys()), dtype=idxint_dtype)
+    data = np.array(list(data.values()), dtype=complex)
+    out = Dia((data, offsets), shape=(size, size), copy=False)
+    out = dia.clean_dia(out, True)
+    return out
+
+
 cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):
     dims, sel = _parse_inputs(dims, sel, matrix.shape)
 
@@ -169,7 +201,7 @@ import inspect as _inspect
 
 ptrace = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('dims', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('sel', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
@@ -211,6 +243,7 @@ ptrace.add_specialisations([
     (CSR, CSR, ptrace_csr),
     (CSR, Dense, ptrace_csr_dense),
     (Dense, Dense, ptrace_dense),
+    (Dia, Dia, ptrace_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher

@@ -18,7 +18,7 @@ Quantum Operators
 -----------------
 
 .. automodule:: qutip.core.operators
-    :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
+    :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
 
 
 .. _functions-rand:
@@ -35,14 +35,6 @@ Random Operators and States
 
 .. automodule:: qutip.random_objects
     :members: rand_dm, rand_herm, rand_ket, rand_stochastic, rand_unitary, rand_super, rand_super_bcsz
-
-
-Three-Level Atoms
------------------
-
-.. automodule:: qutip.three_level_atom
-    :members: three_level_basis, three_level_ops
-    :undoc-members:
 
 
 Superoperators and Liouvillians
@@ -144,6 +136,9 @@ Monte Carlo Evolution
 .. automodule:: qutip.solver.mcsolve
     :members: mcsolve
 
+.. automodule:: qutip.solver.nm_mcsolve
+    :members: nm_mcsolve
+
 
 Krylov Subspace Solver
 ----------------------
@@ -169,8 +164,8 @@ Floquet States and Floquet-Markov Master Equation
 Stochastic Schrödinger Equation and Master Equation
 ---------------------------------------------------
 
-.. automodule:: qutip.solve.stochastic
-    :members: ssesolve, photocurrent_sesolve, smepdpsolve, smesolve, photocurrent_mesolve, ssepdpsolve, stochastic_solvers, general_stochastic
+.. automodule:: qutip.solver.stochastic
+    :members: ssesolve, smesolve
 
 
 Hierarchical Equations of Motion
@@ -214,7 +209,7 @@ Scattering in Quantum Optical Systems
 Permutational Invariance
 ------------------------
 
-.. automodule:: qutip.solve.piqs
+.. automodule:: qutip.piqs.piqs
     :members: num_dicke_states, num_dicke_ladders, num_tls, isdiagonal, dicke_blocks, dicke_blocks_full, dicke_function_trace, purity_dicke, entropy_vn_dicke, state_degeneracy, m_degeneracy, energy_degeneracy, ap, am, spin_algebra, jspin, collapse_uncoupled, dicke_basis, dicke, excited, superradiant, css, ghz, ground, identity_uncoupled, block_matrix, tau_column,
 
 
@@ -232,11 +227,12 @@ Graphs and Visualization
 ------------------------
 
 .. automodule:: qutip.visualization
-    :members: hinton, matrix_histogram, matrix_histogram_complex, plot_energy_levels, plot_fock_distribution, plot_wigner_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_spin_distribution_2d, plot_spin_distribution_3d, plot_wigner_sphere
+    :members: hinton, matrix_histogram, plot_energy_levels, plot_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_wigner_sphere, plot_spin_distribution
     :undoc-members:
 
-.. automodule:: qutip.orbital
-    :members: orbital
+.. automodule:: qutip.animation
+    :members: anim_hinton, anim_matrix_histogram, anim_fock_distribution, anim_wigner, anim_sphereplot, anim_schmidt, anim_qubism, anim_wigner_sphere, anim_spin_distribution
+
 
 .. automodule:: qutip.matplotlib_utilities
    :members: wigner_cmap, complex_phase_cmap
@@ -255,19 +251,9 @@ Quantum Process Tomography
 Non-Markovian Solvers
 =====================
 
-.. automodule:: qutip.solve.nonmarkov.transfertensor
+.. automodule:: qutip.solver.nonmarkov.transfertensor
     :members: ttmsolve
 
-.. _functions-control:
-
-Optimal control
-===============
-
-.. automodule:: qutip.control.pulseoptim
-    :members: optimize_pulse, optimize_pulse_unitary, create_pulse_optimizer, opt_pulse_crab, opt_pulse_crab_unitary
-
-.. automodule:: qutip.control.pulsegen
-    :members: create_pulse_gen
 
 Utility Functions
 =================

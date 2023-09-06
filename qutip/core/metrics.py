@@ -17,7 +17,7 @@ import scipy.sparse as sp
 from .superop_reps import (to_kraus, to_choi, _to_superpauli, to_super,
                            kraus_to_choi)
 from .superoperator import operator_to_vector, vector_to_operator
-from .operators import qeye
+from .operators import qeye, qeye_like
 from .states import ket2dm
 from .semidefinite import dnorm_problem, dnorm_sparse_problem
 from . import data as _data
@@ -494,7 +494,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     ):
         # Make an identity the same size as A and B to
         # compare against.
-        I = qeye(A.dims[0])
+        I = qeye_like(A)
         # Compare to B first, so that an error is raised
         # as soon as possible.
         Bd = B.dag()
@@ -538,18 +538,12 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # If we're still here, we need to actually solve the problem.
 
     # Assume square...
-    dim = np.prod(J.dims[0][0])
-
-    # The constraints only depend on the dimension, so
-    # we can cache them efficiently.
-    problem, Jr, Ji, *_ = dnorm_problem(dim)
+    dim = int(np.prod(J.dims[0][0]))
 
     # Load the parameters with the Choi matrix passed in.
     J_dat = _data.to('csr', J.data).as_scipy()
 
     if not sparse:
-        # The parameters and constraints only depend on the dimension, so
-        # we can cache them efficiently.
         problem, Jr, Ji = dnorm_problem(dim)
 
         # Load the parameters with the Choi matrix passed in.
@@ -561,9 +555,6 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
                                   J_dat.indptr),
                                  shape=J_dat.shape).toarray()
     else:
-
-        # The parameters do not depend solely on the dimension,
-        # so we can not cache them efficiently.
         problem = dnorm_sparse_problem(dim, J_dat)
 
     problem.solve(solver=solver, verbose=verbose)

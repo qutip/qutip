@@ -1,13 +1,10 @@
 __all__ = ['mcsolve', "MCSolver"]
 
-import warnings
-
 import numpy as np
-from copy import copy
-from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, liouvillian
+from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .multitraj import MultiTrajSolver
-from .solver_base import Solver
-from .result import McResult, Result
+from .solver_base import Solver, Integrator
+from .result import McResult, McTrajectoryResult, McResultImprovedSampling
 from .mesolve import mesolve, MESolver
 import qutip.core.data as _data
 from time import time
@@ -56,7 +53,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     options : None / dict
         Dictionary of options for the solver.
 
-        - store_final_state : bool [False]
+        - store_final_state : bool, [False]
           Whether or not to store the final state of the evolution in the
           result class.
         - store_states : bool, NoneType, [None]
@@ -69,7 +66,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
           if not installed. Empty string or False will disable the bar.
         - progress_kwargs : dict, [{"chunk_size": 10}]
           kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - method : str {"adams", "bdf", "dop853", "vern9", etc.} ["adams"]
+        - method : str {"adams", "bdf", "dop853", "vern9", etc.}, ["adams"]
           Which differential equation integration method to use.
         - keep_runs_results : bool, [False]
           Whether to store results from all trajectories or just store the
@@ -98,6 +95,9 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         - max_step : float, [0]
           Maximum lenght of one internal step. When using pulses, it should be
           less than half the width of the thinnest pulse.
+        - improved_sampling : Bool
+          Whether to use the improved sampling algorithm from Abdelhafez et al.
+          PRA (2019)
 
     seeds : int, SeedSequence, list, [optional]
         Seed for the random number generator. It can be a single seed used to
@@ -106,7 +106,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
 
             seeds=prev_result.seeds
 
-    target_tol : {float, tuple, list}, optional
+    target_tol : float, tuple, list, [optional]
         Target tolerance of the evolution. The evolution will compute
         trajectories until the error on the expectation values is lower than
         this tolerance. The maximum number of trajectories employed is
@@ -115,13 +115,13 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
 
-    timeout : float [optional]
+    timeout : float, [optional]
         Maximum time for the evolution in second. When reached, no more
-        trajectories will be computed. Overwrite the option of the same name.
+        trajectories will be computed.
 
     Returns
     -------
-    results : :class:`qutip.solver.Result`
+    results : :class:`qutip.solver.McResult`
         Object storing all results from the simulation. Which results is saved
         depends on the presence of ``e_ops`` and the options used. ``collapse``
         and ``photocurrent`` is available to Monte Carlo simulation results.
@@ -151,8 +151,8 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
             "ntraj must be an integer. "
             "A list of numbers is not longer supported."
         )
-
     mc = MCSolver(H, c_ops, options=options)
+
     result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
                     seed=seeds, target_tol=target_tol, timeout=timeout)
     return result
@@ -174,7 +174,8 @@ class MCIntegrator:
         self._is_set = False
         self.issuper = c_ops[0].issuper
 
-    def set_state(self, t, state0, generator):
+    def set_state(self, t, state0, generator,
+                  no_jump=False, jump_prob_floor=0.0):
         """
         Set the state of the ODE solver.
 
@@ -188,10 +189,25 @@ class MCIntegrator:
 
         generator : numpy.random.generator
             Random number generator.
+
+        no_jump: Bool
+            whether or not to sample the no-jump trajectory.
+            If so, the "random number" should be set to zero
+
+        jump_prob_floor: float
+            if no_jump == False, this is set to the no-jump
+            probability. This setting ensures that we sample
+            a trajectory with jumps
         """
         self.collapses = []
         self._generator = generator
-        self.target_norm = self._generator.random()
+        if no_jump:
+            self.target_norm = 0.0
+        else:
+            self.target_norm = (
+                    self._generator.random() * (1 - jump_prob_floor)
+                    + jump_prob_floor
+            )
         self._integrator.set_state(t, state0)
         self._is_set = True
 
@@ -225,12 +241,12 @@ class MCIntegrator:
 
     def _prob_func(self, state):
         if self.issuper:
-            return _data.norm.trace(unstack_columns(state))
+            return _data.trace_oper_ket(state).real
         return _data.norm.l2(state)**2
 
     def _norm_func(self, state):
         if self.issuper:
-            return _data.norm.trace(unstack_columns(state))
+            return _data.trace_oper_ket(state).real
         return _data.norm.l2(state)
 
     def _find_collapse_time(self, norm_old, norm, t_prev, t_final):
@@ -301,6 +317,9 @@ class MCIntegrator:
         else:
             state_new = _data.mul(state_new, 1 / new_norm)
             self.collapses.append((collapse_time, which))
+            # this does not need to be modified for improved sampling:
+            # as noted in Abdelhafez PRA (2019),
+            # after a jump we reset to the full range [0, 1)
             self.target_norm = self._generator.random()
         self._integrator.set_state(collapse_time, state_new)
 
@@ -339,17 +358,12 @@ class MCSolver(MultiTrajSolver):
         (see :class:`qutip.QobjEvo`'s documentation). They must be operators
         even if ``H`` is a superoperator.
 
-    options : SolverOptions, [optional]
+    options : dict, [optional]
         Options for the evolution.
-
-    seed : int, SeedSequence, list, [optional]
-        Seed for the random number generator. It can be a single seed used to
-        spawn seeds for each trajectory or a list of seed, one for each
-        trajectory. Seeds are saved in the result and can be reused with::
-            seeds=prev_result.seeds
     """
     name = "mcsolve"
-    resultclass = McResult
+    trajectory_resultclass = McTrajectoryResult
+    mc_integrator_class = MCIntegrator
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -365,6 +379,7 @@ class MCSolver(MultiTrajSolver):
         "norm_steps": 5,
         "norm_t_tol": 1e-6,
         "norm_tol": 1e-4,
+        "improved_sampling": False,
     }
 
     def __init__(self, H, c_ops, *, options=None):
@@ -392,6 +407,7 @@ class MCSolver(MultiTrajSolver):
                 rhs -= 0.5 * n_op
 
         self._num_collapse = len(self._c_ops)
+        self.options = options
 
         super().__init__(rhs, options=options)
 
@@ -424,23 +440,73 @@ class MCSolver(MultiTrajSolver):
         for n_op in self._n_ops:
             n_op.arguments(args)
 
-    def _run_one_traj(self, seed, state, tlist, e_ops):
+    def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
+                                 no_jump=False, jump_prob_floor=0.0):
+        result = self.trajectory_resultclass(e_ops, self.options)
+        generator = self._get_generator(seed)
+        self._integrator.set_state(tlist[0], state, generator,
+                                   no_jump=no_jump,
+                                   jump_prob_floor=jump_prob_floor)
+        result.add(tlist[0], self._restore_state(state, copy=False))
+        return result
+
+    def _run_one_traj(self, seed, state, tlist, e_ops, no_jump=False,
+                      jump_prob_floor=0.0):
         """
         Run one trajectory and return the result.
         """
-        # The integrators is reused, but non-reentrant. They are are fine for
-        # multiprocessing, but will fail with multithreading.
-        # If a thread base parallel map is created, eahc trajectory should use
-        # a copy of the integrator.
-        result = Result(e_ops, {**self.options, "normalize_output": False})
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator)
-        result.add(tlist[0], self._restore_state(state, copy=False))
-        for t in tlist[1:]:
-            t, state = self._integrator.integrate(t, copy=False)
-            result.add(t, self._restore_state(state, copy=False))
+        result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
+                                               no_jump=no_jump,
+                                               jump_prob_floor=jump_prob_floor)
+        seed, result = self._integrate_one_traj(seed, tlist, result)
         result.collapse = self._integrator.collapses
         return seed, result
+
+    def run(self, state, tlist, ntraj=1, *,
+            args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
+        """
+        Do the evolution of the Quantum system.
+        See the overridden method for further details. The modification
+        here is to sample the no-jump trajectory first. Then, the no-jump
+        probability is used as a lower-bound for random numbers in future
+        monte carlo runs
+        """
+        if not self.options["improved_sampling"]:
+            return super().run(state, tlist, ntraj=ntraj, args=args,
+                               e_ops=e_ops, timeout=timeout,
+                               target_tol=target_tol, seed=seed)
+        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
+            state,
+            ntraj,
+            args=args,
+            e_ops=e_ops,
+            timeout=timeout,
+            target_tol=target_tol,
+            seed=seed,
+        )
+        # first run the no-jump trajectory
+        start_time = time()
+        seed0, no_jump_result = self._run_one_traj(seeds[0], state0, tlist,
+                                                   e_ops, no_jump=True)
+        _, state, _ = self._integrator.get_state(copy=False)
+        no_jump_prob = self._integrator._prob_func(state)
+        result.no_jump_prob = no_jump_prob
+        result.add((seed0, no_jump_result))
+        result.stats['no jump run time'] = time() - start_time
+
+        # run the remaining trajectories with the random number floor
+        # set to the no jump probability such that we only sample
+        # trajectories with jumps
+        start_time = time()
+        map_func(
+            self._run_one_traj, seeds[1:],
+            (state0, tlist, e_ops, False, no_jump_prob),
+            reduce_func=result.add, map_kw=map_kw,
+            progress_bar=self.options["progress_bar"],
+            progress_bar_kwargs=self.options["progress_kwargs"]
+        )
+        result.stats['run time'] = time() - start_time
+        return result
 
     def _get_integrator(self):
         _time_start = time()
@@ -452,11 +518,18 @@ class MCSolver(MultiTrajSolver):
         else:
             raise ValueError("Integrator method not supported.")
         integrator_instance = integrator(self.rhs, self.options)
-        mc_integrator = MCIntegrator(
+        mc_integrator = self.mc_integrator_class(
             integrator_instance, self._c_ops, self._n_ops, self.options
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator
+
+    @property
+    def resultclass(self):
+        if self.options["improved_sampling"]:
+            return McResultImprovedSampling
+        else:
+            return McResult
 
     @property
     def options(self):
@@ -516,6 +589,10 @@ class MCSolver(MultiTrajSolver):
 
         norm_steps: int
             Maximum number of tries to find the collapse.
+
+        improved_sampling: Bool
+            Whether to use the improved sampling algorithm
+            of Abdelhafez et al. PRA (2019)
         """
         return self._options
 

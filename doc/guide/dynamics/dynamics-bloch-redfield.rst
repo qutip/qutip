@@ -6,6 +6,7 @@ Bloch-Redfield master equation
 
 
 .. plot::
+      :context: reset
       :include-source: False
 
       import pylab as plt
@@ -18,7 +19,7 @@ Bloch-Redfield master equation
 Introduction
 ============
 
-The Lindblad master equation introduced earlier is constructed so that it describes a physical evolution of the density matrix (i.e., trace and positivity preserving), but it does not provide a connection to any underlaying microscopic physical model.
+The Lindblad master equation introduced earlier is constructed so that it describes a physical evolution of the density matrix (i.e., trace and positivity preserving), but it does not provide a connection to any underlying microscopic physical model.
 The Lindblad operators (collapse operators) describe phenomenological processes, such as for example dephasing and spin flips, and the rates of these processes are arbitrary parameters in the model.
 In many situations the collapse operators and their corresponding rates have clear physical interpretation, such as dephasing and relaxation rates, and in those cases the Lindblad master equation is usually the method of choice.
 
@@ -282,6 +283,15 @@ The two steps of calculating the Bloch-Redfield tensor and evolving according to
 
 where the resulting `output` is an instance of the class :class:`qutip.Result`.
 
+.. note::
+    While the code example simulates the Bloch-Redfield equation in the secular approximation, QuTiP's implementation allows the user to simulate the non-secular version of the Bloch-Redfield equation by setting ``sec_cutoff=-1``, as well as do a partial secular approximation by setting it to a  ``float`` , this float will become the cutoff for the sum in :eq:`br-final` meaning terms with :math:`|\omega_{ab}-\omega_{cd}|` greater than the cutoff will be neglected.
+    Its default value is 0.1 which corresponds to the secular approximation.
+    For example the command
+    ::
+
+        output = brmesolve(H, psi0, tlist, a_ops=[[sigmax(), ohmic_spectrum]], e_ops=e_ops, sec_cutoff=-1)
+    
+    will simulate the same example as above without the secular approximation. Note that using the non-secular version may lead to negativity issues.
 
 .. _td-bloch-redfield:
 
@@ -300,7 +310,7 @@ Fortunately, this eigen decomposition occurs at the Hamiltonian level, as oppose
 For time-dependent Hamiltonians, the Hamiltonian itself can be passed into the solver like any other time dependent Hamiltonian, as thus we will not discuss this topic further.
 Instead, here the focus is on time-dependent bath coupling terms.
 To this end, suppose that we have a dissipative harmonic oscillator, where the white-noise dissipation rate decreases exponentially with time :math:`\kappa(t) = \kappa(0)\exp(-t)`.
-In the Lindblad or monte-carlo solvers, this could be implemented as a time-dependent collapse operator list ``c_ops = [[a, 'sqrt(kappa*exp(-t))']]``.
+In the Lindblad or Monte Carlo solvers, this could be implemented as a time-dependent collapse operator list ``c_ops = [[a, 'sqrt(kappa*exp(-t))']]``.
 In the Bloch-Redfield solver, the bath coupling terms must be Hermitian.
 As such, in this example, our coupling operator is the position operator ``a+a.dag()``.
 The complete example, and comparison to the analytic expression is:
@@ -392,7 +402,9 @@ A full example is:
 
     plt.show()
 
-.. plot::
-    :context: close-figs
-
 Further examples on time-dependent Bloch-Redfield simulations can be found in the online tutorials.
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:
