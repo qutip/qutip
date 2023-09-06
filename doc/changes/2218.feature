@@ -1,1 +1,0 @@
-Improved sampling algorithm for mcsolve
