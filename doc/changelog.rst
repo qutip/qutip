@@ -44,6 +44,7 @@ Bug Fixes
 - Changed qutip-notebooks to qutip-tutorials and fixed the typo in the link redirecting to the changelog section in the PR template. (#2107 by Valan Baptist Mathuranayagam)
 - Increase missing colorbar padding for matrix_histogram_complex() from 0 to 0.05. (#2181 by SJUW)
 - Raise error on insufficient memory. (#2224)
+- Fixed fallback to fsesolve call in fmmesolve (#2225)
 
 
 Removals
