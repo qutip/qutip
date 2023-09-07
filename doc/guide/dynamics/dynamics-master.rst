@@ -30,7 +30,7 @@ It evolves the state vector and evaluates the expectation values for a set of op
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code
 
 .. plot::
-    :context:
+    :context: reset
 
     >>> H = 2*np.pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
@@ -47,7 +47,7 @@ Adding operators to this list results in a larger output list returned by the fu
 
 
 .. plot::
-    :context:
+    :context: close-figs
 
     >>> result = sesolve(H, psi0, times, e_ops=[sigmaz(), sigmay()])
     >>> result.expect # doctest: +NORMALIZE_WHITESPACE
@@ -64,7 +64,7 @@ Adding operators to this list results in a larger output list returned by the fu
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions:
 
 .. plot::
-    :context:
+    :context: close-figs
 
     >>> H = 2*np.pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
@@ -173,7 +173,7 @@ operators ``[sigmaz(), sigmay()]`` to the fifth argument.
 
 
 .. plot::
-    :context:
+    :context: close-figs
 
     >>> times = np.linspace(0.0, 10.0, 100)
     >>> result = mesolve(H, psi0, times, [np.sqrt(0.05) * sigmax()], e_ops=[sigmaz(), sigmay()])
@@ -207,3 +207,8 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> plt.ylabel('Expectation values') # doctest: +SKIP
     >>> plt.legend(("cavity photon number", "atom excitation probability")) # doctest: +SKIP
     >>> plt.show() # doctest: +SKIP
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:

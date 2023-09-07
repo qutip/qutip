@@ -119,3 +119,23 @@ def test_map_store_error(map):
             assert result == n
         else:
             assert result is None
+
+
+@pytest.mark.parametrize('map', [
+    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(loky_pmap, id='loky_pmap'),
+    pytest.param(serial_map, id='serial_map'),
+])
+def test_map_early_end(map):
+    if map is loky_pmap:
+        loky = pytest.importorskip("loky")
+
+    results = []
+
+    def reduce_func(result):
+        results.append(result)
+        return 5 - len(results)
+
+    map(_func1, range(100), reduce_func=reduce_func)
+
+    assert len(results) < 100

@@ -147,7 +147,7 @@ def test_br_term_linbblad_comp(func):
     diag = H.eigenenergies()
     skew =  np.einsum('i,j->ji', np.ones(N), diag) - diag * np.ones((N, N))
     spectrum = (skew > 0) * 1.
-    computation = func(A_op.data, spectrum, skew, 2).to_array()
+    computation = func(A_op.data, spectrum, skew, 1.5).to_array()
     lindblad = qutip.lindblad_dissipator(a).full()
     np.testing.assert_allclose(computation, lindblad, rtol=1e-14, atol=1e-14)
 

@@ -15,7 +15,7 @@ from .solver_base import Solver
 from .integrator import Integrator
 from .result import Result
 from time import time
-from ..ui.progressbar import progess_bars
+from ..ui.progressbar import progress_bars
 
 
 class FloquetBasis:
@@ -659,14 +659,13 @@ def fmmesolve(
         the expectation values for the times specified by `tlist`, and/or the
         state density matrices corresponding to the times.
     """
-    if c_ops is None:
+    if c_ops is None and rho0.isket:
         return fsesolve(
             H,
             rho0,
             tlist,
             e_ops=e_ops,
             T=T,
-            w_th=w_th,
             args=args,
             options=options,
         )
@@ -918,8 +917,9 @@ class FMESolver(MESolver):
         results.add(tlist[0], self._restore_state(_data0, copy=False))
         stats["preparation time"] += time() - _time_start
 
-        progress_bar = progess_bars[self.options["progress_bar"]]()
-        progress_bar.start(len(tlist) - 1, **self.options["progress_kwargs"])
+        progress_bar = progress_bars[self.options["progress_bar"]](
+            len(tlist) - 1, **self.options["progress_kwargs"]
+        )
         for t, state in self._integrator.run(tlist):
             progress_bar.update()
             results.add(t, self._restore_state(state, copy=False))

@@ -105,11 +105,14 @@ above, so QuTiP provides a convenience function for doing this, see
 
     fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
-    plot_fock_distribution(rho_coherent, fig=fig, ax=axes[0], title="Coherent state");
+    fig, axes[0] = plot_fock_distribution(rho_coherent, fig=fig, ax=axes[0]);
+    axes[0].set_title('Coherent state')
 
-    plot_fock_distribution(rho_thermal, fig=fig, ax=axes[1], title="Thermal state");
+    fig, axes[1] = plot_fock_distribution(rho_thermal, fig=fig, ax=axes[1]);
+    axes[1].set_title('Thermal state')
 
-    plot_fock_distribution(rho_fock, fig=fig, ax=axes[2], title="Fock state");
+    fig, axes[2] = plot_fock_distribution(rho_fock, fig=fig, ax=axes[2]);
+    axes[2].set_title('Fock state')
 
     fig.tight_layout()
 
@@ -278,10 +281,9 @@ structure and relative importance of various elements.
 
 QuTiP offers a few functions for quickly visualizing matrix data in the
 form of histograms, :func:`qutip.visualization.matrix_histogram` and
-:func:`qutip.visualization.matrix_histogram_complex`, and as Hinton diagram of weighted
-squares, :func:`qutip.visualization.hinton`. These functions takes a
-:class:`qutip.Qobj` as first argument, and optional arguments to, for
-example, set the axis labels and figure title (see the function's documentation
+as Hinton diagram of weighted squares, :func:`qutip.visualization.hinton`.
+These functions takes a :class:`qutip.Qobj` as first argument, and optional arguments to,
+for example, set the axis labels and figure title (see the function's documentation
 for details).
 
 For example, to illustrate the use of :func:`qutip.visualization.matrix_histogram`,

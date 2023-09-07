@@ -1,12 +1,10 @@
-from .. import Qobj, QobjEvo
 from .result import Result, MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver
 import numpy as np
-from copy import copy
 
-__all__ = ["MultiTrajSolver", "TrajectorySolver"]
+__all__ = ["MultiTrajSolver"]
 
 
 class MultiTrajSolver(Solver):
@@ -30,6 +28,7 @@ class MultiTrajSolver(Solver):
     """
     name = "generic multi trajectory"
     resultclass = MultiTrajResult
+    trajectory_resultclass = Result
     _avail_integrators = {}
 
     # Class of option used by the solver
@@ -103,6 +102,28 @@ class MultiTrajSolver(Solver):
         _, state = self._integrator.integrate(t, copy=False)
         return self._restore_state(state, copy=copy)
 
+    def _initialize_run(self, state, ntraj=1, args=None, e_ops=(),
+                        timeout=None, target_tol=None, seed=None):
+        start_time = time()
+        self._argument(args)
+        stats = self._initialize_stats()
+        seeds = self._read_seed(seed, ntraj)
+
+        result = self.resultclass(
+            e_ops, self.options, solver=self.name, stats=stats
+        )
+        result.add_end_condition(ntraj, target_tol)
+
+        map_func = _get_map[self.options['map']]
+        map_kw = {
+            'timeout': timeout,
+            'job_timeout': self.options['job_timeout'],
+            'num_cpus': self.options['num_cpus'],
+        }
+        state0 = self._prepare_state(state)
+        stats['preparation time'] += time() - start_time
+        return stats, seeds, result, map_func, map_kw, state0
+
     def run(self, state, tlist, ntraj=1, *,
             args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
         """
@@ -110,8 +131,8 @@ class MultiTrajSolver(Solver):
 
         For a ``state`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :cls:`Result`. The evolution method and stored
-        results are determined by ``options``.
+        expectation values in a :class:`Result`. The evolution method and
+        stored results are determined by ``options``.
 
         Parameters
         ----------
@@ -154,8 +175,8 @@ class MultiTrajSolver(Solver):
         seed : {int, SeedSequence, list} optional
             Seed or list of seeds for each trajectories.
 
-        Return
-        ------
+        Returns
+        -------
         results : :class:`qutip.solver.MultiTrajResult`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
@@ -164,25 +185,15 @@ class MultiTrajSolver(Solver):
             The simulation will end when the first end condition is reached
             between ``ntraj``, ``timeout`` and ``target_tol``.
         """
-        start_time = time()
-        self._argument(args)
-        stats = self._initialize_stats()
-        seeds = self._read_seed(seed, ntraj)
-
-        result = self.resultclass(
-            e_ops, self.options, solver=self.name, stats=stats
+        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
+            state,
+            ntraj,
+            args=args,
+            e_ops=e_ops,
+            timeout=timeout,
+            target_tol=target_tol,
+            seed=seed,
         )
-        result.add_end_condition(ntraj, target_tol)
-
-        map_func = _get_map[self.options['map']]
-        map_kw = {
-            'timeout': timeout,
-            'job_timeout': self.options['job_timeout'],
-            'num_cpus': self.options['num_cpus'],
-        }
-        state0 = self._prepare_state(state)
-        stats['preparation time'] += time() - start_time
-
         start_time = time()
         map_func(
             self._run_one_traj, seeds,
@@ -194,16 +205,23 @@ class MultiTrajSolver(Solver):
         result.stats['run time'] = time() - start_time
         return result
 
+    def _initialize_run_one_traj(self, seed, state, tlist, e_ops):
+        result = self.trajectory_resultclass(e_ops, self.options)
+        generator = self._get_generator(seed)
+        self._integrator.set_state(tlist[0], state, generator)
+        result.add(tlist[0], self._restore_state(state, copy=False))
+        return result
+
     def _run_one_traj(self, seed, state, tlist, e_ops):
         """
         Run one trajectory and return the result.
         """
-        result = Result(e_ops, self.options)
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator)
-        result.add(tlist[0], self._restore_state(state, copy=False))
+        result = self._initialize_run_one_traj(seed, state, tlist, e_ops)
+        return self._integrate_one_traj(seed, tlist, result)
+
+    def _integrate_one_traj(self, seed, tlist, result):
         for t in tlist[1:]:
-            t, state = self._integrator.step(t, copy=False)
+            t, state = self._integrator.integrate(t, copy=False)
             result.add(t, self._restore_state(state, copy=False))
         return seed, result
 

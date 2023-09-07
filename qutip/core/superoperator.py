@@ -100,7 +100,7 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
     spI = _data.identity(op_shape[0], dtype=type(H.data))
 
     data = _data.mul(_data.kron(spI, H.data), -1j)
-    data = _data.add(data, _data.kron(H.data.transpose(), spI), scale=1j)
+    data = _data.add(data, _data.kron_transpose(H.data, spI), scale=1j)
 
     for c_op, chi_ in zip(c_ops, chi):
         c = c_op.data
@@ -108,7 +108,7 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         cdc = _data.matmul(cd, c)
         data = _data.add(data, _data.kron(c.conj(), c), np.exp(1j*chi_))
         data = _data.add(data, _data.kron(spI, cdc), -0.5)
-        data = _data.add(data, _data.kron(cdc.transpose(), spI), -0.5)
+        data = _data.add(data, _data.kron_transpose(cdc, spI), -0.5)
 
     if data_only:
         return data
@@ -310,8 +310,8 @@ def spost(A):
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
-    data = _data.kron(A.data.transpose(),
-                      _data.identity(A.shape[0], dtype=type(A.data)))
+    Id = _data.identity(A.shape[0], dtype=type(A.data))
+    data = _data.kron_transpose(A.data, _data.identity_like(A.data))
     return Qobj(data,
                 dims=[A.dims, A.dims],
                 type='super',
@@ -336,7 +336,7 @@ def spre(A):
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
-    data = _data.kron(_data.identity(A.shape[0], dtype=type(A.data)), A.data)
+    data = _data.kron(_data.identity_like(A.data), A.data)
     return Qobj(data,
                 dims=[A.dims, A.dims],
                 type='super',
@@ -379,7 +379,7 @@ def sprepost(A, B):
              _drop_projected_dims(B.dims[1])],
             [_drop_projected_dims(A.dims[1]),
              _drop_projected_dims(B.dims[0])]]
-    return Qobj(_data.kron(B.data.transpose(), A.data),
+    return Qobj(_data.kron_transpose(B.data, A.data),
                 dims=dims,
                 type='super',
                 superrep='super',

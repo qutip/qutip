@@ -1,6 +1,7 @@
 """
 This module provides functions for parallel execution of loops and function
-mappings, using the builtin Python module multiprocessing or the loky parallel execution library.
+mappings, using the builtin Python module multiprocessing or the loky parallel
+execution library.
 """
 __all__ = ['parallel_map', 'serial_map', 'loky_pmap']
 
@@ -10,7 +11,7 @@ import sys
 import time
 import threading
 import concurrent.futures
-from qutip.ui.progressbar import progess_bars
+from qutip.ui.progressbar import progress_bars
 from qutip.settings import available_cpu_count
 
 if sys.platform == 'darwin':
@@ -70,7 +71,9 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
         The optional additional keyword argument to the ``task`` function.
     reduce_func : func (optional)
         If provided, it will be called with the output of each tasks instead of
-        storing a them in a list.
+        storing a them in a list. It should return None or a number.
+        When returning a number, it represent the estimation of the number of
+        task left. On a return <= 0, the map will end early.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
@@ -94,8 +97,10 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
     if task_kwargs is None:
         task_kwargs = {}
     map_kw = _read_map_kw(map_kw)
-    progress_bar = progess_bars[progress_bar]()
-    progress_bar.start(len(values), **progress_bar_kwargs)
+    remaining_ntraj = None
+    progress_bar = progress_bars[progress_bar](
+        len(values), **progress_bar_kwargs
+    )
     end_time = map_kw['timeout'] + time.time()
     results = None
     if reduce_func is None:
@@ -104,7 +109,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
     for n, value in enumerate(values):
         if time.time() > end_time:
             break
-        progress_bar.update(n)
+        progress_bar.update()
         try:
             result = task(value, *task_args, **task_kwargs)
         except Exception as err:
@@ -114,9 +119,11 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
                 errors[n] = err
         else:
             if reduce_func is not None:
-                reduce_func(result)
+                remaining_ntraj = reduce_func(result)
             else:
                 results[n] = result
+        if remaining_ntraj is not None and remaining_ntraj <= 0:
+            end_time = 0
     progress_bar.finished()
 
     if errors:
@@ -148,7 +155,9 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     reduce_func : func (optional)
         If provided, it will be called with the output of each tasks instead of
         storing a them in a list. Note that the order in which results are
-        passed to ``reduce_func`` is not defined.
+        passed to ``reduce_func`` is not defined. It should return None or a
+        number. When returning a number, it represent the estimation of the
+        number of task left. On a return <= 0, the map will end early.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
@@ -177,10 +186,12 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
 
-    progress_bar = progess_bars[progress_bar]()
-    progress_bar.start(len(values), **progress_bar_kwargs)
+    progress_bar = progress_bars[progress_bar](
+        len(values), **progress_bar_kwargs
+    )
 
     errors = {}
+    finished = []
     if reduce_func is not None:
         results = None
         result_func = lambda i, value: reduce_func(value)
@@ -194,7 +205,9 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
                 result = future.result()
             except Exception as e:
                 errors[future._i] = e
-        result_func(future._i, result)
+        remaining_ntraj = result_func(future._i, result)
+        if remaining_ntraj is not None and remaining_ntraj <= 0:
+            finished.append(True)
         progress_bar.update()
 
     if sys.version_info >= (3, 7):
@@ -224,7 +237,11 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
                         timeout=timeout,
                         return_when=concurrent.futures.FIRST_COMPLETED,
                     )
-                if time.time() >= end_time or (errors and map_kw['fail_fast']):
+                if (
+                    time.time() >= end_time
+                    or (errors and map_kw['fail_fast'])
+                    or finished
+                ):
                     # no time left, exit the loop
                     break
                 while len(waiting) < map_kw['num_cpus'] and i < len(values):
@@ -282,7 +299,9 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         The optional additional keyword argument to the ``task`` function.
     reduce_func : func (optional)
         If provided, it will be called with the output of each tasks instead of
-        storing a them in a list.
+        storing a them in a list. It should return None or a number.  When
+        returning a number, it represent the estimation of the number of task
+        left. On a return <= 0, the map will end early.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
@@ -311,13 +330,15 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     from loky import get_reusable_executor, TimeoutError
 
-    progress_bar = progess_bars[progress_bar]()
-    progress_bar.start(len(values), **progress_bar_kwargs)
+    progress_bar = progress_bars[progress_bar](
+        len(values), **progress_bar_kwargs
+    )
 
     executor = get_reusable_executor(max_workers=map_kw['num_cpus'])
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
     results = None
+    remaining_ntraj = None
     errors = {}
     if reduce_func is None:
         results = [None] * len(values)
@@ -337,10 +358,12 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
                     errors[n] = err
             else:
                 if reduce_func is not None:
-                    reduce_func(result)
+                    remaining_ntraj = reduce_func(result)
                 else:
                     results[n] = result
             progress_bar.update()
+            if remaining_ntraj is not None and remaining_ntraj <= 0:
+                break
 
     except KeyboardInterrupt as e:
         [job.cancel() for job in jobs]
