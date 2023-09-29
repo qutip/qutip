@@ -2,6 +2,7 @@ __all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
 import functools
 import numbers
+import warnings
 
 import numpy as np
 import scipy
@@ -338,6 +339,13 @@ class NonMarkovianMCSolver(MCSolver):
         self, H, ops_and_rates, *_args, args=None, options=None, **kwargs,
     ):
         self.options = options
+
+        if self.options["improved_sampling"]:
+            warnings.warn(
+                "NonMarkovianMCSolver currently does not support 'improved_sampling'. "
+                "Improved sampling has been deactivated.")
+            self.options["improved_sampling"] = False
+            options.update({"improved_sampling": False})
 
         ops_and_rates = [
             _parse_op_and_rate(op, rate, args=args or {})
