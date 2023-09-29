@@ -7,7 +7,8 @@ import qutip
 from qutip.solver.nm_mcsolve import nm_mcsolve, NonMarkovianMCSolver
 
 
-def test_agreement_with_mesolve_for_negative_rates():
+@pytest.mark.parametrize("improved_sampling", [True, False])
+def test_agreement_with_mesolve_for_negative_rates(improved_sampling):
     """
     A rough test that nm_mcsolve agress with mesolve in the
     presence of negative rates.
@@ -39,7 +40,7 @@ def test_agreement_with_mesolve_for_negative_rates():
     mc_result = nm_mcsolve(
         H, psi0, times, ops_and_rates,
         args=args, e_ops=e_ops, ntraj=2000,
-        options={"rtol": 1e-8},
+        options={"rtol": 1e-8, "improved_sampling": improved_sampling},
         seeds=0,
     )
 
@@ -173,10 +174,13 @@ class StatesAndExpectOutputCase:
         for test, expected_part in zip(result.expect, expected):
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 
+    @pytest.mark.parametrize("improved_sampling", [True, False])
     def test_states_and_expect(
-        self, hamiltonian, args, ops_and_rates, expected, tol
+        self, hamiltonian, args, ops_and_rates, expected, tol,
+        improved_sampling
     ):
-        options = {"store_states": True, "map": "serial"}
+        options = {"store_states": True, "map": "serial",
+                   "improved_sampling": improved_sampling}
         result = nm_mcsolve(
             hamiltonian, self.state, self.times, args=args,
             ops_and_rates=ops_and_rates,
@@ -221,10 +225,13 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     # runtimes shorter.  The known-good cases are still tested in the other
     # test cases, this is just testing the single-output behaviour.
 
+    @pytest.mark.parametrize("improved_sampling", [True, False])
     def test_states_only(
-        self, hamiltonian, args, ops_and_rates, expected, tol
+        self, hamiltonian, args, ops_and_rates, expected, tol,
+        improved_sampling
     ):
-        options = {"store_states": True, "map": "serial"}
+        options = {"store_states": True, "map": "serial",
+                   "improved_sampling": improved_sampling}
         result = nm_mcsolve(
             hamiltonian, self.state, self.times, args=args,
             ops_and_rates=ops_and_rates,
@@ -232,13 +239,16 @@ class TestNoCollapse(StatesAndExpectOutputCase):
         )
         self._assert_states(result, expected, tol)
 
+    @pytest.mark.parametrize("improved_sampling", [True, False])
     def test_expect_only(
-        self, hamiltonian, args, ops_and_rates, expected, tol
+        self, hamiltonian, args, ops_and_rates, expected, tol,
+        improved_sampling
     ):
+        options = {"map": "serial", "improved_sampling": improved_sampling}
         result = nm_mcsolve(
             hamiltonian, self.state, self.times, args=args,
             ops_and_rates=ops_and_rates,
-            e_ops=self.e_ops, ntraj=self.ntraj, options={'map': 'serial'},
+            e_ops=self.e_ops, ntraj=self.ntraj, options=options,
         )
         self._assert_expect(result, expected, tol)
 
@@ -392,8 +402,9 @@ def test_states_outputs(keep_runs_results):
     assert data.stats['end_condition'] == "ntraj reached"
 
 
+@pytest.mark.parametrize("improved_sampling", [True, False])
 @pytest.mark.parametrize('keep_runs_results', [True, False])
-def test_expectation_outputs(keep_runs_results):
+def test_expectation_outputs(keep_runs_results, improved_sampling):
     # We're just testing the output value, so it's important whether certain
     # things are complex or real, but not what the magnitudes of constants are.
     focks = 5
@@ -417,8 +428,7 @@ def test_expectation_outputs(keep_runs_results):
         options={
             "keep_runs_results": keep_runs_results,
             "map": "serial",
-        },
-    )
+            "improved_sampling": improved_sampling})
     assert isinstance(data.average_expect[0][1], float)
     assert isinstance(data.average_expect[1][1], float)
     assert isinstance(data.average_expect[2][1], complex)
@@ -463,9 +473,11 @@ class TestSeeds:
         (qutip.tensor(qutip.qeye(sizes[:2]), a[2]), 2 * dampings[2]),
     ]
 
-    def test_seeds_can_be_reused(self):
+    @pytest.mark.parametrize("improved_sampling", [True, False])
+    def test_seeds_can_be_reused(self, improved_sampling):
         args = (self.H, self.state, self.times)
-        kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj}
+        kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj,
+                  'options': {"improved_sampling": improved_sampling}}
         first = nm_mcsolve(*args, **kwargs)
         second = nm_mcsolve(*args, seeds=first.seeds, **kwargs)
         for first_t, second_t in zip(first.col_times, second.col_times):
@@ -473,9 +485,11 @@ class TestSeeds:
         for first_w, second_w in zip(first.col_which, second.col_which):
             np.testing.assert_equal(first_w, second_w)
 
-    def test_seeds_are_not_reused_by_default(self):
+    @pytest.mark.parametrize("improved_sampling", [True, False])
+    def test_seeds_are_not_reused_by_default(self, improved_sampling):
         args = (self.H, self.state, self.times)
-        kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj}
+        kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj,
+                  'options': {"improved_sampling": improved_sampling}}
         first = nm_mcsolve(*args, **kwargs)
         second = nm_mcsolve(*args, **kwargs)
         assert not all(np.array_equal(first_t, second_t)
@@ -485,26 +499,32 @@ class TestSeeds:
                        for first_w, second_w in zip(first.col_which,
                                                     second.col_which))
 
+    @pytest.mark.parametrize("improved_sampling", [True, False])
     @pytest.mark.parametrize('seed', [1, np.random.SeedSequence(2)])
-    def test_seed_type(self, seed):
+    def test_seed_type(self, seed, improved_sampling):
         args = (self.H, self.state, self.times)
-        kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj}
+        kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj,
+                  'options': {"improved_sampling": improved_sampling}}
         first = nm_mcsolve(*args, seeds=copy(seed), **kwargs)
         second = nm_mcsolve(*args, seeds=copy(seed), **kwargs)
         for f_seed, s_seed in zip(first.seeds, second.seeds):
             assert f_seed.state == s_seed.state
 
-    def test_bad_seed(self):
+    @pytest.mark.parametrize("improved_sampling", [True, False])
+    def test_bad_seed(self, improved_sampling):
         args = (self.H, self.state, self.times)
-        kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj}
+        kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj,
+                  'options': {"improved_sampling": improved_sampling}}
         with pytest.raises(ValueError):
             nm_mcsolve(*args, seeds=[1], **kwargs)
 
-    def test_generator(self):
+    @pytest.mark.parametrize("improved_sampling", [True, False])
+    def test_generator(self, improved_sampling):
         args = (self.H, self.state, self.times)
         kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj}
         first = nm_mcsolve(
-            *args, seeds=1, options={'bitgenerator': 'MT19937'},
+            *args, seeds=1, options={'bitgenerator': 'MT19937',
+                                     'improved_sampling': improved_sampling},
             **kwargs,
         )
         second = nm_mcsolve(*args, seeds=1, **kwargs)
@@ -533,7 +553,8 @@ class TestSeeds:
         assert state_1 == state_2
 
 
-def test_timeout():
+@pytest.mark.parametrize("improved_sampling", [True, False])
+def test_timeout(improved_sampling):
     size = 10
     ntraj = 1000
     a = qutip.destroy(size)
@@ -548,12 +569,14 @@ def test_timeout():
     e_ops = [qutip.num(size)]
     res = nm_mcsolve(
         H, state, times, ops_and_rates, e_ops, ntraj=ntraj,
-        options={'map': 'serial'}, timeout=1e-6,
+        options={'map': 'serial',
+                 'improved_sampling': improved_sampling}, timeout=1e-6,
     )
     assert res.stats['end_condition'] == 'timeout'
 
 
-def test_super_H():
+@pytest.mark.parametrize("improved_sampling", [True, False])
+def test_super_H(improved_sampling):
     size = 10
     ntraj = 1000
     a = qutip.destroy(size)
@@ -573,7 +596,8 @@ def test_super_H():
     )
     mc = nm_mcsolve(
         qutip.liouvillian(H), state, times, ops_and_rates, e_ops, ntraj=ntraj,
-        target_tol=0.1, options={'map': 'serial'},
+        target_tol=0.1, options={'map': 'serial',
+                                 'improved_sampling': improved_sampling},
     )
     np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.5)
 
