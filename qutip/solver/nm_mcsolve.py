@@ -342,8 +342,8 @@ class NonMarkovianMCSolver(MCSolver):
 
         if self.options["improved_sampling"]:
             warnings.warn(
-                "NonMarkovianMCSolver currently does not support 'improved_sampling'. "
-                "Improved sampling has been deactivated.")
+                "NonMarkovianMCSolver currently does not support "
+                "'improved_sampling'. Improved sampling has been deactivated.")
             self.options["improved_sampling"] = False
             options.update({"improved_sampling": False})
 
