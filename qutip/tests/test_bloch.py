@@ -213,6 +213,7 @@ class TestBloch:
                                  np.ceil(points.shape[1]/len(point_colors)
                                          ).astype(int))
                 colors = colors[:points.shape[1]]
+                colors = list(colors)
             point_size = point_sizes[idx % len(point_sizes)]
             point_marker = point_markers[idx % len(point_markers)]
             point_alpha = kw.get("alpha", 1.0)

@@ -1209,8 +1209,11 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     artist_list = list()
     for W in Ws:
         if projection == '2d':
-            cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
-                             cmap=cmap).collections
+            if parse_version(mpl.__version__) >= parse_version('3.8'):
+                cf = [ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)]
+            else:
+                cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
+                                 cmap=cmap).collections
         else:
             X, Y = np.meshgrid(xvec, yvec)
             cf = [ax.plot_surface(X, Y, W, rstride=5, cstride=5, linewidth=0.5,
