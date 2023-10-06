@@ -47,7 +47,7 @@ jobs:
           # Scipy 1.8
           - case-name: old SciPy
             os: ubuntu-latest
-            python-version: "3.8"
+            python-version: "3.10"
             numpy-requirement: ">=1.22,<1.23"
             scipy-requirement: ">=1.8,<1.9"
             condaforge: 1
