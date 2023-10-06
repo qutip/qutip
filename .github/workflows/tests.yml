@@ -133,7 +133,8 @@ jobs:
           if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install "${{ matrix.conda-extra-pkgs }}"
           fi
-          python -m pip install -e .[$QUTIP_TARGET]
+          conda list
+          python -m pip install --no-build-isolation -e .[$QUTIP_TARGET] -v
           python -m pip install "coverage${{ matrix.coverage-requirement }}"
           python -m pip install pytest-cov coveralls pytest-fail-slow
 
