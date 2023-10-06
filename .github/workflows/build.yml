@@ -107,7 +107,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     env:
-      # Set up wheels matrix.  This is CPython 3.8--3.10 for all OS targets.
+      # Set up wheels matrix.  This is CPython 3.10--3.12 for all OS targets.
       CIBW_BUILD: "cp3{10,11,12}-*"
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
