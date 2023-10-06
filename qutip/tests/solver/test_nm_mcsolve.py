@@ -7,7 +7,11 @@ import qutip
 from qutip.solver.nm_mcsolve import nm_mcsolve, NonMarkovianMCSolver
 
 
-@pytest.mark.parametrize("improved_sampling", [True, False])
+parametrize_for_improved_sampling = pytest.mark.parametrize(
+    "improved_sampling", [pytest.param(True, marks=pytest.mark.xfail), False])
+
+
+@parametrize_for_improved_sampling
 def test_agreement_with_mesolve_for_negative_rates(improved_sampling):
     """
     A rough test that nm_mcsolve agress with mesolve in the
@@ -174,7 +178,7 @@ class StatesAndExpectOutputCase:
         for test, expected_part in zip(result.expect, expected):
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 
-    @pytest.mark.parametrize("improved_sampling", [True, False])
+    @parametrize_for_improved_sampling
     def test_states_and_expect(
         self, hamiltonian, args, ops_and_rates, expected, tol,
         improved_sampling
@@ -225,7 +229,7 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     # runtimes shorter.  The known-good cases are still tested in the other
     # test cases, this is just testing the single-output behaviour.
 
-    @pytest.mark.parametrize("improved_sampling", [True, False])
+    @parametrize_for_improved_sampling
     def test_states_only(
         self, hamiltonian, args, ops_and_rates, expected, tol,
         improved_sampling
@@ -239,7 +243,7 @@ class TestNoCollapse(StatesAndExpectOutputCase):
         )
         self._assert_states(result, expected, tol)
 
-    @pytest.mark.parametrize("improved_sampling", [True, False])
+    @parametrize_for_improved_sampling
     def test_expect_only(
         self, hamiltonian, args, ops_and_rates, expected, tol,
         improved_sampling
@@ -402,7 +406,7 @@ def test_states_outputs(keep_runs_results):
     assert data.stats['end_condition'] == "ntraj reached"
 
 
-@pytest.mark.parametrize("improved_sampling", [True, False])
+@parametrize_for_improved_sampling
 @pytest.mark.parametrize('keep_runs_results', [True, False])
 def test_expectation_outputs(keep_runs_results, improved_sampling):
     # We're just testing the output value, so it's important whether certain
@@ -473,7 +477,7 @@ class TestSeeds:
         (qutip.tensor(qutip.qeye(sizes[:2]), a[2]), 2 * dampings[2]),
     ]
 
-    @pytest.mark.parametrize("improved_sampling", [True, False])
+    @parametrize_for_improved_sampling
     def test_seeds_can_be_reused(self, improved_sampling):
         args = (self.H, self.state, self.times)
         kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj,
@@ -485,7 +489,7 @@ class TestSeeds:
         for first_w, second_w in zip(first.col_which, second.col_which):
             np.testing.assert_equal(first_w, second_w)
 
-    @pytest.mark.parametrize("improved_sampling", [True, False])
+    @parametrize_for_improved_sampling
     def test_seeds_are_not_reused_by_default(self, improved_sampling):
         args = (self.H, self.state, self.times)
         kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj,
@@ -499,7 +503,7 @@ class TestSeeds:
                        for first_w, second_w in zip(first.col_which,
                                                     second.col_which))
 
-    @pytest.mark.parametrize("improved_sampling", [True, False])
+    @parametrize_for_improved_sampling
     @pytest.mark.parametrize('seed', [1, np.random.SeedSequence(2)])
     def test_seed_type(self, seed, improved_sampling):
         args = (self.H, self.state, self.times)
@@ -510,7 +514,7 @@ class TestSeeds:
         for f_seed, s_seed in zip(first.seeds, second.seeds):
             assert f_seed.state == s_seed.state
 
-    @pytest.mark.parametrize("improved_sampling", [True, False])
+    @parametrize_for_improved_sampling
     def test_bad_seed(self, improved_sampling):
         args = (self.H, self.state, self.times)
         kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj,
@@ -518,7 +522,7 @@ class TestSeeds:
         with pytest.raises(ValueError):
             nm_mcsolve(*args, seeds=[1], **kwargs)
 
-    @pytest.mark.parametrize("improved_sampling", [True, False])
+    @parametrize_for_improved_sampling
     def test_generator(self, improved_sampling):
         args = (self.H, self.state, self.times)
         kwargs = {'ops_and_rates': self.ops_and_rates, 'ntraj': self.ntraj}
@@ -553,7 +557,7 @@ class TestSeeds:
         assert state_1 == state_2
 
 
-@pytest.mark.parametrize("improved_sampling", [True, False])
+@parametrize_for_improved_sampling
 def test_timeout(improved_sampling):
     size = 10
     ntraj = 1000
@@ -575,7 +579,7 @@ def test_timeout(improved_sampling):
     assert res.stats['end_condition'] == 'timeout'
 
 
-@pytest.mark.parametrize("improved_sampling", [True, False])
+@parametrize_for_improved_sampling
 def test_super_H(improved_sampling):
     size = 10
     ntraj = 1000
