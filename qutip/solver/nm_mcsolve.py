@@ -125,7 +125,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         - martingale_quad_limit : float or int, [100]
           An upper bound on the number of subintervals used in the adaptive
           integration of the martingale.
-    
+
         Note that the 'improved_sampling' option is not currently supported.
 
     seeds : int, SeedSequence, list, [optional]
@@ -535,8 +535,8 @@ class NonMarkovianMCSolver(MCSolver):
 
         progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
             How to present the solver progress.
-            'tqdm' uses the python module of the same name and raise an error if
-            not installed. Empty string or False will disable the bar.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
 
         progress_kwargs: dict, default={"chunk_size":10}
             Arguments to pass to the progress_bar. Qutip's bars use
@@ -591,7 +591,7 @@ class NonMarkovianMCSolver(MCSolver):
         martingale_quad_limit: float or int, default=100
             An upper bound on the number of subintervals used in the adaptive
             integration of the martingale.
-    
+
         Note that the 'improved_sampling' option is not currently supported.
         """
         return self._options
@@ -600,7 +600,7 @@ class NonMarkovianMCSolver(MCSolver):
     def options(self, new_options):
         if (new_options is not None and
             "improved_sampling" in new_options and
-            new_options["improved_sampling"]):
+                new_options["improved_sampling"]):
             warnings.warn(
                 "NonMarkovianMCSolver currently does not support "
                 "'improved_sampling'. Improved sampling has been deactivated.")
