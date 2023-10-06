@@ -161,17 +161,9 @@ class Settings:
         Whether `eigh` call is reliable.
         Some implementation of blas have some issues on some OS.
         """
-        from packaging import version as pac_version
-        import scipy
-        is_old_scipy = (
-            pac_version.parse(scipy.__version__) < pac_version.parse("1.5")
-        )
         return (
             # macOS OpenBLAS eigh is unstable, see #1288
             (_blas_info() == "OPENBLAS" and platform.system() == 'Darwin')
-            # The combination of scipy<1.5 and MKL causes wrong results when
-            # calling eigh for big matrices.  See #1495, #1491 and #1498.
-            or (is_old_scipy and (_blas_info() == 'INTEL MKL'))
         )
 
     @property

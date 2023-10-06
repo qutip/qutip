@@ -32,14 +32,10 @@ try:
     from mpl_toolkits.mplot3d import Axes3D
 
     # Define a custom _axes3D function based on the matplotlib version.
-    # The auto_add_to_figure keyword is new for matplotlib>=3.4.
-    if parse_version(mpl.__version__) >= parse_version('3.4'):
-        def _axes3D(fig, *args, **kwargs):
-            ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
-            return fig.add_axes(ax)
-    else:
-        def _axes3D(*args, **kwargs):
-            return Axes3D(*args, **kwargs)
+    def _axes3D(fig, *args, **kwargs):
+        ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
+        return fig.add_axes(ax)
+
 except:
     pass
 

@@ -17,14 +17,10 @@ try:
     from mpl_toolkits.mplot3d import proj3d
 
     # Define a custom _axes3D function based on the matplotlib version.
-    # The auto_add_to_figure keyword is new for matplotlib>=3.4.
-    if parse_version(matplotlib.__version__) >= parse_version('3.4'):
-        def _axes3D(fig, *args, **kwargs):
-            ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
-            return fig.add_axes(ax)
-    else:
-        def _axes3D(*args, **kwargs):
-            return Axes3D(*args, **kwargs)
+    def _axes3D(fig, *args, **kwargs):
+        ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
+        return fig.add_axes(ax)
+
 
     class Arrow3D(FancyArrowPatch):
         def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -666,9 +662,7 @@ class Bloch:
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
         # Manually set aspect ratio to fit a square bounding box.
-        # Matplotlib did this stretching for < 3.3.0, but not above.
-        if parse_version(matplotlib.__version__) >= parse_version('3.3'):
-            self.axes.set_box_aspect((1, 1, 1))
+        self.axes.set_box_aspect((1, 1, 1))
         if not self.background:
             self.plot_axes()
 

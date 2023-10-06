@@ -1,6 +1,6 @@
 # The name is short because we mostly care how it appears in the pull request
 # "checks" dialogue box - it looks like
-#     Tests / ubuntu-latest, python-3.9, defaults
+#     Tests / ubuntu-latest, python-3.11, defaults
 # or similar.
 name: Tests
 
@@ -27,7 +27,7 @@ jobs:
         os: [ubuntu-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
-        python-version: ["3.9"]
+        python-version: ["3.11"]
         case-name: [defaults]
         numpy-requirement: [">=1.20,<1.21"]
         coverage-requirement: ["==6.5"]
@@ -44,12 +44,12 @@ jobs:
             condaforge: 1
             nomkl: 1
 
-          # Scipy 1.5
+          # Scipy 1.8
           - case-name: old SciPy
             os: ubuntu-latest
             python-version: "3.8"
-            numpy-requirement: ">=1.20,<1.21"
-            scipy-requirement: ">=1.5,<1.6"
+            numpy-requirement: ">=1.22,<1.23"
+            scipy-requirement: ">=1.8,<1.9"
             condaforge: 1
             oldcython: 1
 
@@ -57,15 +57,15 @@ jobs:
           # not necessarily for pip.
           - case-name: no MKL
             os: ubuntu-latest
-            python-version: "3.9"
-            numpy-requirement: ">=1.20,<1.21"
+            python-version: "3.10"
+            numpy-requirement: ">=1.22,<1.23"
             nomkl: 1
 
           # Builds without Cython at runtime.  This is a core feature;
           # everything should be able to run this.
           - case-name: no Cython
             os: ubuntu-latest
-            python-version: "3.8"
+            python-version: "3.11"
             nocython: 1
 
           # Python 3.10 and numpy 1.22
@@ -76,15 +76,15 @@ jobs:
             condaforge: 1
             oldcython: 1
 
-          # Python 3.11 and latest numpy
-          # Use conda-forge to provide Python 3.11 and latest numpy
-          # Ignore deprecation of the cgi module in Python 3.11 that is
+          # Python 3.12 and latest numpy
+          # Use conda-forge to provide Python 3.12 and latest numpy
+          # Ignore deprecation of the cgi module in Python 3.12 that is
           # still imported by Cython.Tempita. This was addressed in
           # https://github.com/cython/cython/pull/5128 but not backported
           # to any currently released version.
-          - case-name: Python 3.11
+          - case-name: Python 3.12
             os: ubuntu-latest
-            python-version: "3.11"
+            python-version: "3.12"
             condaforge: 1
             conda-extra-pkgs: "suitesparse"  # for compiling cvxopt
             pytest-extra-options: "-W ignore::DeprecationWarning:Cython.Tempita"
@@ -97,7 +97,7 @@ jobs:
           # error prone. See, e.g., https://github.com/qutip/qutip/issues/1202
           - case-name: Windows Latest
             os: windows-latest
-            python-version: "3.10"
+            python-version: "3.11"
 
     steps:
       - uses: actions/checkout@v3
