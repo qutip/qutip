@@ -2,7 +2,6 @@ __all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
 import functools
 import numbers
-import warnings
 
 import numpy as np
 import scipy
@@ -330,6 +329,7 @@ class NonMarkovianMCSolver(MCSolver):
         "completeness_atol": 1e-8,
         "martingale_quad_limit": 100,
     }
+    del solver_options["improved_sampling"]
 
     # both classes will be partially initialized in constructor
     trajectory_resultclass = NmmcTrajectoryResult
@@ -339,13 +339,6 @@ class NonMarkovianMCSolver(MCSolver):
         self, H, ops_and_rates, *_args, args=None, options=None, **kwargs,
     ):
         self.options = options
-
-        if self.options["improved_sampling"]:
-            warnings.warn(
-                "NonMarkovianMCSolver currently does not support "
-                "'improved_sampling'. Improved sampling has been deactivated.")
-            self.options["improved_sampling"] = False
-            options.update({"improved_sampling": False})
 
         ops_and_rates = [
             _parse_op_and_rate(op, rate, args=args or {})
