@@ -233,7 +233,7 @@ jobs:
           python -m pip install coveralls
           coveralls --service=github --finish
 
-      -name: Send Email
+      - name: Send Email
         uses: dawidd6/action-send-mail@v3
         with:
           # Required mail server address if not connection_url:
@@ -241,9 +241,9 @@ jobs:
           server_port: 1025
           secure: true
           # Optional (recommended) mail server username:
-          username: ${{vars.PROTON_MAIL}}
+          username: ${{ vars.PROTON_MAIL }}
           # Optional (recommended) mail server password:
-          password: ${{secrets.PROTON_MAIL_PWD}}
+          password: ${{ secrets.PROTON_MAIL_PWD }}
           # Required mail subject:
           subject: ${{ github.job }} job of ${{ github.repository }} has ${{ job.status }}
           # Required recipients' addresses:
