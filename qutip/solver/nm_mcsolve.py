@@ -2,7 +2,6 @@ __all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
 import functools
 import numbers
-import warnings
 
 import numpy as np
 import scipy
@@ -332,6 +331,7 @@ class NonMarkovianMCSolver(MCSolver):
         "completeness_atol": 1e-8,
         "martingale_quad_limit": 100,
     }
+    del solver_options["improved_sampling"]
 
     # both classes will be partially initialized in constructor
     trajectory_resultclass = NmmcTrajectoryResult
