@@ -598,13 +598,6 @@ class NonMarkovianMCSolver(MCSolver):
 
     @options.setter
     def options(self, new_options):
-        if (new_options is not None and
-            "improved_sampling" in new_options and
-                new_options["improved_sampling"]):
-            warnings.warn(
-                "NonMarkovianMCSolver currently does not support "
-                "'improved_sampling'. Improved sampling has been deactivated.")
-            new_options["improved_sampling"] = False
         MCSolver.options.fset(self, new_options)
 
     start.__doc__ = MultiTrajSolver.start.__doc__
