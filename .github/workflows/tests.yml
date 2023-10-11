@@ -143,7 +143,7 @@ jobs:
           server_port: 587
           # secure: true
           # Optional (recommended) mail server username:
-          username: qutip_dev
+          username: qutip_dev@outlook.com
           # Optional (recommended) mail server password:
           password: ${{ secrets.OUTLOOK_PWD }}
           # Required mail subject:
