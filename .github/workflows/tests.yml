@@ -143,7 +143,7 @@ jobs:
           server_port: 587
           # secure: true
           # Optional (recommended) mail server username:
-          username: ${{ secrets.OUTLOOK_ADR }}
+          username: qutip_dev
           # Optional (recommended) mail server password:
           password: ${{ secrets.OUTLOOK_PWD }}
           # Required mail subject:
@@ -151,6 +151,6 @@ jobs:
           # Required recipients' addresses:
           to: eric.giguere@calculquebec.ca
           # Required sender full name (address can be skipped):
-          from: QuTiP
+          from: ${{ secrets.OUTLOOK_ADR }}
           # Optional plain body:
           body: ${{ github.job }} job in worflow ${{ github.workflow }} of ${{ github.repository }} has ${{ job.status }}
