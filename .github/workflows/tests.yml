@@ -146,13 +146,13 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         with:
           # Required mail server address if not connection_url:
-          server_address: smtp.gmail.com
-          server_port: 465
-          # secure: true
+          server_address: outlook.office365.com
+          server_port: 443
+          secure: true
           # Optional (recommended) mail server username:
-          username: ${{ secrets.GMAIL_ADR }}
+          username: ${{ secrets.OUTLOOK_ADR }}
           # Optional (recommended) mail server password:
-          password: ${{ secrets.GMAIL_PWD }}
+          password: ${{ secrets.OUTLOOK_PWD }}
           # Required mail subject:
           subject: ${{ github.job }} job of ${{ github.repository }} has ${{ job.status }}
           # Required recipients' addresses:
