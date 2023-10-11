@@ -133,7 +133,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.github_token }}
         run: |
           python -m pip install coveralls
-          coveralls --service=github --finish
+          # coveralls --service=github --finish
 
       - name: Send Email
         uses: dawidd6/action-send-mail@v3
