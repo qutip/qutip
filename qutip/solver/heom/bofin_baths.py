@@ -10,10 +10,11 @@ implementation in QuTiP itself.
 """
 
 import enum
-
+import matplotlib.pyplot as plt
 import numpy as np
+from mpmath import mp
 from scipy.linalg import eigvalsh
-
+from scipy.optimize import curve_fit
 from qutip.core import data as _data
 from qutip.core.qobj import Qobj
 from qutip.core.superoperator import spre, spost
@@ -28,6 +29,8 @@ __all__ = [
     "FermionicBath",
     "LorentzianBath",
     "LorentzianPadeBath",
+    "FitBath",
+    "OhmicBath"
 ]
 
 
@@ -980,3 +983,315 @@ class LorentzianPadeBath(FermionicBath):
         evals = eigvalsh(alpha_p)
         chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
+
+
+class FitBath():
+    def __init__(self,alpha,T,wc,Q):
+        self.Q= Q
+        self.alpha = alpha
+        self.T = T
+        self.wc = wc
+        self.beta = 1 / self.T
+    def pack(self,a, b, c):
+        """ Pack parameter lists for fitting. """
+        return np.concatenate((a, b, c))
+    def unpack(self,params):
+        """ Unpack parameter lists for fitting. """
+        N = len(params) // 3
+        a = params[:N]
+        b = params[N:2 * N]
+        c = params[2 * N:]
+        return a, b, c
+    def spectral_density_approx(self,w, a, b, c):
+        """ Calculate the fitted value of the function for the given parameters. """
+        tot = 0
+        for i in range(len(a)):
+            tot += 2 * a[i] * b[i] * w / (((w + c[i])**2 + b[i]**2) * ((w - c[i])**2 + b[i]**2))
+        return tot
+    def fit_spectral_density(self,J,w, N=4):
+        """ Fit the spectral density with N underdamped oscillators. """
+        sigma = [1e-4] * len(w)
+        J_max = abs(max(J, key=abs))
+        guesses = self.pack([J_max] * N, [self.wc] * N, [self.wc] * N)
+        lower_bounds = self.pack([-100 * J_max] * N, [0.1 * self.wc] * N, [0.1 * self.wc] * N)
+        upper_bounds = self.pack([100 * J_max] * N, [100 * self.wc] * N, [100 * self.wc] * N)
+        params, _ = curve_fit(
+            lambda x, *params: self.spectral_density_approx(w,*self.unpack(params)),
+            w, J,
+            p0=guesses,
+            bounds=(lower_bounds, upper_bounds),
+            sigma=sigma,
+            maxfev=int(1e9),
+            method='trf'
+        )
+
+        return self.unpack(params)
+    def get_fit(self,J,w,N=False,plots=True,final_rmse=5e-6):
+        if N==False:
+            N=1
+            rmse=8
+            while rmse>final_rmse:
+                params=self.fit_spectral_density(J, w, N)
+                lam, gamma, w0 = params
+                y = self.spectral_density_approx(w, lam, gamma, w0)
+                rmse=np.sqrt(np.mean((y-J)**2)/len(J))/(np.max(J)-np.min(J))
+                print(f"Parameters [k={N}]: lam={lam}; gamma={gamma}; w0={w0}, Obtain a normalized RMSE of {rmse}")
+                if plots:
+                    plt.plot(w, J,label='Original',color='red')
+                    plt.plot(w, y,label='Fit',linestyle='dotted',color='k',linewidth=3)
+                    plt.xlabel(r'$\omega$',fontsize=20)
+                    plt.ylabel(r'$J(\omega)$',fontsize=20)
+                    plt.legend(fontsize=20)
+                    plt.show()
+                N=N+1
+        else:
+            params=self.fit_spectral_density(J, w, N)
+            lam, gamma, w0 = params
+            y = self.spectral_density_approx(w, lam, gamma, w0)
+            rmse=np.sqrt(np.mean((y-J)**2)/len(J))/(np.max(J)-np.min(J))
+            print(f"Parameters [k={N}]: lam={lam}; gamma={gamma}; w0={w0}, Obtain a normalized RMSE of {rmse}")
+            if plots:
+                    plt.plot(w, J,label='Original',color='red')
+                    plt.plot(w, y,label='Fit',linestyle='dotted',color='k',linewidth=3)
+                    plt.xlabel(r'$\omega$',fontsize=20)
+                    plt.ylabel(r'$J(\omega)$',fontsize=20)
+                    plt.legend(fontsize=20)
+                    plt.show()
+        self.params_spec=params
+    def spec_spectrum_approx(self,w):
+        """ Calculates the approximate power spectrum from ck and vk. """
+        lam, gamma, w0=self.params_spec
+        s_fit = (self.spectral_density_approx(w, lam, gamma, w0) *((1 / (np.e**(w / self.T) - 1)) + 1) * 2)
+        return s_fit
+    def matsubara_coefficients_from_spectral_fit(self, Nk):
+        """ Calculate the Matsubara co-efficients for a fit to the spectral
+            density.
+        """
+        # initial 0 value with the correct dimensions:
+        terminator = 0. * spre(self.Q)
+        # the number of matsubara expansion terms to include in the terminator:
+        terminator_max_k = 1000
+
+        ckAR = []
+        vkAR = []
+        ckAI = []
+        vkAI = []
+
+        lam,gamma,w0=self.params_spec
+        for lamt, Gamma, Om in zip(lam, gamma, w0):
+
+            ckAR.extend([
+                (lamt / (4 * Om)) * 1/np.tanh(self.beta * (Om + 1.0j * Gamma) / 2),
+                (lamt / (4 * Om)) * 1/np.tanh(self.beta * (Om - 1.0j * Gamma) / 2),
+            ])
+            for k in range(1, Nk + 1):
+                ek = 2 * np.pi * k / self.beta
+                ckAR.append(
+                    (-2 * lamt * 2 * Gamma / self.beta) * ek /
+                    (
+                        ((Om + 1.0j * Gamma)**2 + ek**2) *
+                        ((Om - 1.0j * Gamma)**2 + ek**2)
+                    )
+                )
+
+            terminator_factor = 0
+            for k in range(Nk + 1, terminator_max_k):
+                ek = 2 * np.pi * k / self.beta
+                ck = (
+                    (-2 * lamt * 2 * Gamma / self.beta) * ek /
+                    (
+                        ((Om + 1.0j * Gamma)**2 + ek**2) *
+                        ((Om - 1.0j * Gamma)**2 + ek**2)
+                    )
+                )
+                terminator_factor += ck / ek
+            terminator += terminator_factor * (
+                2 * spre(self.Q) * spost(self.Q.dag())
+                - spre(self.Q.dag() * self.Q)
+                - spost(self.Q.dag() * self.Q)
+            )
+
+            vkAR.extend([
+                -1.0j * Om + Gamma,
+                1.0j * Om + Gamma,
+            ])
+            vkAR.extend([
+                2 * np.pi * k * self.T + 0.j
+                for k in range(1, Nk + 1)
+            ])
+
+            ckAI.extend([
+                -0.25 * lamt * 1.0j / Om,
+                0.25 * lamt * 1.0j / Om,
+            ])
+            vkAI.extend([
+                -(-1.0j * Om - Gamma),
+                -(1.0j * Om - Gamma),
+            ])
+        self.matsubara_coeff_spec= ckAR, vkAR, ckAI, vkAI, terminator
+        self.terminator=terminator
+        self.Bath_spec=BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
+        return ckAR, vkAR, ckAI, vkAI, terminator
+    def is_pos_def(self,x):
+        return np.all(np.linalg.eigvals(x) >= 0)
+    def corr_approx(self,t, a, b, c):
+            """ Calculate the fitted value of the function for the given parameters.
+            """
+            a = np.array(a)
+            b = np.array(b)
+            c = np.array(c)
+            return np.sum(
+                a[:, None] * np.exp(b[:, None] * t) * np.exp(1j*c[:, None] * t),
+                axis=0,
+            )
+    def fit_correlation(self,t,C, Nr=False,Ni=False,plots=True,final_rmse=2e-5):
+        """ Fit the spectral density with N underdamped oscillators. """
+        C_max = abs(max(C, key=abs))
+        oNr=Nr
+        oNi=Ni
+        if Nr==False:
+            Nr=1
+        if Ni==False:
+            Ni=1
+        rmse1=8
+        rmse2=8
+        if bool(oNr)&bool(oNi):
+            print('happened')
+            final_rmse=7
+        while (rmse1>final_rmse)|(rmse2>final_rmse):
+
+            if rmse1>final_rmse:
+                sigma = [0.1] * len(t)
+                guesses = self.pack([C_max] * Nr, [-self.wc] * Nr, [self.wc] * Nr)
+                lower_bounds = self.pack([-20 * C_max] * Nr, [-np.inf] * Nr, [0.] * Nr)
+                upper_bounds = self.pack([20 * C_max] * Nr, [0.1] * Nr, [np.inf] * Nr)
+
+                params1, _ = curve_fit(
+                    lambda x, *params: np.real(self.corr_approx(t, *self.unpack(params))),
+                    t, np.real(C),
+                    p0=guesses,
+                    bounds=(lower_bounds, upper_bounds),
+                    sigma=sigma,
+                    maxfev=1000000000,
+                )
+            if rmse2>final_rmse:
+                sigma = [0.0001] * len(t)
+                guesses = self.pack([-C_max] * Ni, [-2] * Ni, [1] * Ni)
+                lower_bounds = self.pack([-5 * C_max] * Ni, [-100] * Ni, [0.] * Ni)
+                upper_bounds = self.pack([5 * C_max] * Ni, [0.01] * Ni, [100] * Ni)
+                params2, _ = curve_fit(
+                    lambda x, *params: np.imag(self.corr_approx(t, *self.unpack(params))),
+                    t, np.imag(C),
+                    p0=guesses,
+                    bounds=(lower_bounds, upper_bounds),
+                    sigma=sigma,
+                    maxfev=1000000000,
+                )
+            lam,gamma,w0=self.unpack(params1)
+            lam2,gamma2,w02=self.unpack(params2)
+            y = np.real(self.corr_approx(t, lam, gamma, w0))
+            rmse1=np.sqrt(np.mean((y-np.real(C))**2)/len(C))/(np.max(np.real(C))-np.min(np.real(C)))
+            y2 = np.imag(self.corr_approx(t, lam2, gamma2, w02))
+            rmse2=np.sqrt(np.mean((y2-np.imag(C))**2)/len(C))/(np.max(np.imag(C))-np.min(np.imag(C)))
+            print(rmse1,rmse2)
+            print(f"Parameters: \n [kr={Nr}]: lam={lam}; gamma={gamma}; w0={w0} with normalized RMSE {rmse1} \n [ki={Ni}]: lam={lam2}; gamma={gamma2}; w0={w02} with normalized {rmse2}")
+            if plots:
+                fig, axs = plt.subplots(2)
+                axs[0].plot(t, np.real(C),label='Original',color='red')
+                axs[0].plot(t, y,label='Fit',linestyle='dotted',color='k',linewidth=3)
+                axs[0].legend(fontsize=20)
+                axs[1].plot(t, np.imag(C),label='Original',color='red')
+                axs[1].plot(t, y2,label='Fit',linestyle='dotted',color='k',linewidth=3)
+                axs[1].set_xlabel('t',fontsize=20)
+                axs[1].set_ylabel('C(t)',fontsize=20)
+                axs[0].set_xlabel('t',fontsize=20)
+                axs[0].set_ylabel('C(t)',fontsize=20)
+                plt.show()
+            if oNr==False:
+                Nr+=1
+            if oNi==False:
+                Ni+=1
+        self.params_corr=[lam,gamma,w0,lam2,gamma2,w02]
+    
+    def corr_spectrum_approx(self,w):
+        """ Calculates the approximate power spectrum from ck and vk. """
+        S = np.zeros(len(w), dtype=np.complex128)
+        self.matsubara_coefficients()
+        ckAR, vkAR,ckAI, vkAI = self.matsubara_coeff
+        for ck, vk in zip(ckAR, vkAR):
+            S += (
+                2 * ck * np.real(vk) /
+                ((w - np.imag(vk))**2 + (np.real(vk)**2))
+            )
+        for ck, vk in zip(ckAI, vkAI):
+            S += (
+                2 * 1.0j * ck * np.real(vk) /
+                ((w - np.imag(vk))**2 + (np.real(vk)**2))
+            )
+        return S
+    def matsubara_coefficients(self):
+        lam,gamma,w0,lam2,gamma2,w02=self.params_corr
+        ckAR = [0.5 * x + 0j for x in lam]  # the 0.5 is from the cosine
+        # extend the list with the complex conjugates:
+        ckAR.extend(np.conjugate(ckAR))
+        vkAR = [-x - 1.0j * y for x, y in zip(gamma, w0)]
+        vkAR.extend([-x + 1.0j * y for x, y in zip(gamma, w0)])
+        ckAI = [-0.5j * x for x in lam2]  # the 0.5 is from the sine
+        # extend the list with the complex conjugates:
+        ckAI.extend(np.conjugate(ckAI))
+
+        vkAI = [-x - 1.0j * y for x, y in zip(gamma2, w02)]
+        vkAI.extend([-x + 1.0j * y for x, y in zip(gamma2, w02)])
+        self.matsubara_coeff=[ckAR, vkAR,ckAI, vkAI]
+        self.Bath_corr=BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
+class OhmicBath(FitBath):
+    def __init__(self,alpha,T,wc,s,Q,Nk=None):
+        self.Q= Q
+        self.alpha = alpha
+        self.T = T
+        self.wc = wc
+        self.s=s
+        self.beta = 1 / self.T
+        self.Nk=Nk
+        if Nk==None:
+            t=np.linspace(0,50/self.wc,10000)
+            C=self.ohmic_correlation(t,self.s)
+            self.fit_correlation(t,C,plots=False)
+            self.matsubara_coefficients()
+
+        else:
+            w=np.linspace(0,50*self.wc,10000)
+            J=self.ohmic_spectral_density(w)
+            self.get_fit(J,w,plots=False)
+            self.matsubara_coefficients_from_spectral_fit(self.Nk)
+    def ohmic_spectral_density(self,w):
+        """ The Ohmic bath spectral density as a function of w
+            (and the bath parameters).
+        """
+        return  self.alpha * w**(self.s)/(self.wc**(1-self.s))*np.e**(-abs(w) / self.wc)
+    def ohmic_correlation(self,t, s=1):
+        """ The Ohmic bath correlation function as a function of t
+            (and the bath parameters).
+        """
+        corr = (
+            (1 / np.pi) * self.alpha * self.wc**(1 - s) * self.beta**(-(s + 1)) * mp.gamma(s + 1)
+        )
+        z1_u = (1 + self.beta * self.wc - 1.0j * self.wc * t) / (self.beta * self.wc)
+        z2_u = (1 + 1.0j * self.wc * t) / (self.beta * self.wc)
+        # Note: the arguments to zeta should be in as high precision as possible.
+        # See http://mpmath.org/doc/current/basics.html#providing-correct-input
+        return np.array([
+            complex(corr * (mp.zeta(s + 1, u1) + mp.zeta(s + 1, u2)))
+            for u1, u2 in zip(z1_u, z2_u)
+        ], dtype=np.complex128)
+    def ohmic_power_spectrum(self,w):
+        """ The Ohmic bath power spectrum as a function of w
+            (and the bath parameters).
+        """
+        return (
+            w * self.alpha * np.e**(-abs(w) / self.wc) *
+            ((1 / (np.e**(w * self.beta) - 1)) + 1) * 2
+        )
+
+        
+    
