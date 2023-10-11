@@ -73,8 +73,8 @@ jobs:
       - name: Package information
         run: |
           conda list
-          python -c "import qutip; qutip.about()"
-          python -c "import qutip; print(qutip.settings)"
+          #python -c "import qutip; qutip.about()"
+          #python -c "import qutip; print(qutip.settings)"
 
       - name: Environment information
         run: |
