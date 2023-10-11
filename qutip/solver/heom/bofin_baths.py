@@ -30,12 +30,12 @@ __all__ = [
     "LorentzianBath",
     "LorentzianPadeBath",
     "FitBath",
-    "OhmicBath"
+    "OhmicBath",
 ]
 
 
 def _isequal(Q1, Q2, tol):
-    """ Return true if Q1 and Q2 are equal to within the given tolerance. """
+    """Return true if Q1 and Q2 are equal to within the given tolerance."""
     return _data.iszero(_data.sub(Q1.data, Q2.data), tol=tol)
 
 
@@ -100,6 +100,7 @@ class BathExponent:
 
     All of the parameters are also available as attributes.
     """
+
     types = enum.Enum("ExponentType", ["R", "I", "RI", "+", "-"])
 
     def _check_ck2(self, type, ck2):
@@ -116,9 +117,7 @@ class BathExponent:
     def _check_sigma_bar_k_offset(self, type, offset):
         if type in (self.types["+"], self.types["-"]):
             if offset is None:
-                raise ValueError(
-                    "+ and - bath exponents require sigma_bar_k_offset"
-                )
+                raise ValueError("+ and - bath exponents require sigma_bar_k_offset")
         else:
             if offset is not None:
                 raise ValueError(
@@ -130,8 +129,15 @@ class BathExponent:
         return type in (self.types["+"], self.types["-"])
 
     def __init__(
-            self, type, dim, Q, ck, vk, ck2=None,
-            sigma_bar_k_offset=None, tag=None,
+        self,
+        type,
+        dim,
+        Q,
+        ck,
+        vk,
+        ck2=None,
+        sigma_bar_k_offset=None,
+        tag=None,
     ):
         if not isinstance(type, self.types):
             type = self.types[type]
@@ -174,6 +180,7 @@ class Bath:
 
     All of the parameters are available as attributes.
     """
+
     def __init__(self, exponents):
         self.exponents = exponents
 
@@ -233,6 +240,7 @@ class BosonicBath(Bath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
         if len(ck_real) != len(vk_real) or len(ck_imag) != len(vk_imag):
             raise ValueError(
@@ -245,8 +253,14 @@ class BosonicBath(Bath):
             raise ValueError("The coupling operator Q must be a Qobj.")
 
     def __init__(
-            self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
-            tag=None,
+        self,
+        Q,
+        ck_real,
+        vk_real,
+        ck_imag,
+        vk_imag,
+        combine=True,
+        tag=None,
     ):
         self._check_cks_and_vks(ck_real, vk_real, ck_imag, vk_imag)
         self._check_coup_op(Q)
@@ -304,9 +318,8 @@ class BosonicBath(Bath):
             e1 = remaining.pop(0)
             group = [e1]
             for e2 in remaining[:]:
-                if (
-                    np.isclose(e1.vk, e2.vk, rtol=rtol, atol=atol) and
-                    _isequal(e1.Q, e2.Q, tol=atol)
+                if np.isclose(e1.vk, e2.vk, rtol=rtol, atol=atol) and _isequal(
+                    e1.Q, e2.Q, tol=atol
                 ):
                     group.append(e2)
                     remaining.remove(e2)
@@ -320,23 +333,35 @@ class BosonicBath(Bath):
             ):
                 # the group is either type I or R
                 ck = sum(exp.ck for exp in combine)
-                new_exponents.append(BathExponent(
-                    exp1.type, None, exp1.Q, ck, exp1.vk, tag=exp1.tag,
-                ))
+                new_exponents.append(
+                    BathExponent(
+                        exp1.type,
+                        None,
+                        exp1.Q,
+                        ck,
+                        exp1.vk,
+                        tag=exp1.tag,
+                    )
+                )
             else:
                 # the group includes both type I and R exponents
-                ck_R = (
-                    sum(exp.ck for exp in combine if exp.type == exp.types.R) +
-                    sum(exp.ck for exp in combine if exp.type == exp.types.RI)
+                ck_R = sum(exp.ck for exp in combine if exp.type == exp.types.R) + sum(
+                    exp.ck for exp in combine if exp.type == exp.types.RI
                 )
-                ck_I = (
-                    sum(exp.ck for exp in combine if exp.type == exp.types.I) +
-                    sum(exp.ck2 for exp in combine if exp.type == exp.types.RI)
+                ck_I = sum(exp.ck for exp in combine if exp.type == exp.types.I) + sum(
+                    exp.ck2 for exp in combine if exp.type == exp.types.RI
                 )
-                new_exponents.append(BathExponent(
-                    "RI", None, exp1.Q, ck_R, exp1.vk, ck2=ck_I,
-                    tag=exp1.tag,
-                ))
+                new_exponents.append(
+                    BathExponent(
+                        "RI",
+                        None,
+                        exp1.Q,
+                        ck_R,
+                        exp1.vk,
+                        ck2=ck_I,
+                        tag=exp1.tag,
+                    )
+                )
 
         return new_exponents
 
@@ -373,8 +398,16 @@ class DrudeLorentzBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(
-        self, Q, lam, gamma, T, Nk, combine=True, tag=None,
+        self,
+        Q,
+        lam,
+        gamma,
+        T,
+        Nk,
+        combine=True,
+        tag=None,
     ):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
@@ -384,11 +417,20 @@ class DrudeLorentzBath(BosonicBath):
         )
 
         super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
+            Q,
+            ck_real,
+            vk_real,
+            ck_imag,
+            vk_imag,
+            combine=combine,
+            tag=tag,
         )
 
         self._dl_terminator = _DrudeLorentzTerminator(
-            Q=Q, lam=lam, gamma=gamma, T=T,
+            Q=Q,
+            lam=lam,
+            gamma=gamma,
+            T=T,
         )
 
     def terminator(self):
@@ -416,13 +458,23 @@ class DrudeLorentzBath(BosonicBath):
         return delta, L
 
     def _matsubara_params(self, lam, gamma, T, Nk):
-        """ Calculate the Matsubara coefficents and frequencies. """
+        """Calculate the Matsubara coefficents and frequencies."""
         ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
-        ck_real.extend([
-            (8 * lam * gamma * T * np.pi * k * T /
-                ((2 * np.pi * k * T)**2 - gamma**2))
-            for k in range(1, Nk + 1)
-        ])
+        ck_real.extend(
+            [
+                (
+                    8
+                    * lam
+                    * gamma
+                    * T
+                    * np.pi
+                    * k
+                    * T
+                    / ((2 * np.pi * k * T) ** 2 - gamma**2)
+                )
+                for k in range(1, Nk + 1)
+            ]
+        )
         vk_real = [gamma]
         vk_real.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
 
@@ -479,9 +531,8 @@ class DrudeLorentzPadeBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-    def __init__(
-        self, Q, lam, gamma, T, Nk, combine=True, tag=None
-    ):
+
+    def __init__(self, Q, lam, gamma, T, Nk, combine=True, tag=None):
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
 
         ck_real = [np.real(eta) for eta in eta_p]
@@ -492,11 +543,20 @@ class DrudeLorentzPadeBath(BosonicBath):
         vk_imag = [gamma_p[0]]
 
         super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
+            Q,
+            ck_real,
+            vk_real,
+            ck_imag,
+            vk_imag,
+            combine=combine,
+            tag=tag,
         )
 
         self._dl_terminator = _DrudeLorentzTerminator(
-            Q=Q, lam=lam, gamma=gamma, T=T,
+            Q=Q,
+            lam=lam,
+            gamma=gamma,
+            T=T,
         )
 
     def terminator(self):
@@ -524,7 +584,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         return delta, L
 
     def _corr(self, lam, gamma, T, Nk):
-        beta = 1. / T
+        beta = 1.0 / T
         kappa, epsilon = self._kappa_epsilon(Nk)
 
         eta_p = [lam * gamma * (self._cot(gamma * beta / 2.0) - 1.0j)]
@@ -532,15 +592,19 @@ class DrudeLorentzPadeBath(BosonicBath):
 
         for ll in range(1, Nk + 1):
             eta_p.append(
-                (kappa[ll] / beta) * 4 * lam * gamma * (epsilon[ll] / beta)
-                / ((epsilon[ll]**2 / beta**2) - gamma**2)
+                (kappa[ll] / beta)
+                * 4
+                * lam
+                * gamma
+                * (epsilon[ll] / beta)
+                / ((epsilon[ll] ** 2 / beta**2) - gamma**2)
             )
             gamma_p.append(epsilon[ll] / beta)
 
         return eta_p, gamma_p
 
     def _cot(self, x):
-        return 1. / np.tan(x)
+        return 1.0 / np.tan(x)
 
     def _kappa_epsilon(self, Nk):
         eps = self._calc_eps(Nk)
@@ -551,12 +615,11 @@ class DrudeLorentzPadeBath(BosonicBath):
         for j in range(Nk):
             term = prefactor
             for k in range(Nk - 1):
-                term *= (
-                    (chi[k]**2 - eps[j]**2) /
-                    (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+                term *= (chi[k] ** 2 - eps[j] ** 2) / (
+                    eps[k] ** 2 - eps[j] ** 2 + self._delta(j, k)
                 )
             for k in [Nk - 1]:
-                term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+                term /= eps[k] ** 2 - eps[j] ** 2 + self._delta(j, k)
             kappa.append(term)
 
         epsilon = [0] + eps
@@ -567,30 +630,29 @@ class DrudeLorentzPadeBath(BosonicBath):
         return 1.0 if i == j else 0.0
 
     def _calc_eps(self, Nk):
-        alpha = np.diag([
-                1. / np.sqrt((2 * k + 5) * (2 * k + 3))
-                for k in range(2 * Nk - 1)
-        ], k=1)
+        alpha = np.diag(
+            [1.0 / np.sqrt((2 * k + 5) * (2 * k + 3)) for k in range(2 * Nk - 1)], k=1
+        )
         alpha += alpha.transpose()
         evals = eigvalsh(alpha)
-        eps = [-2. / val for val in evals[0: Nk]]
+        eps = [-2.0 / val for val in evals[0:Nk]]
         return eps
 
     def _calc_chi(self, Nk):
-        alpha_p = np.diag([
-                1. / np.sqrt((2 * k + 7) * (2 * k + 5))
-                for k in range(2 * Nk - 2)
-        ], k=1)
+        alpha_p = np.diag(
+            [1.0 / np.sqrt((2 * k + 7) * (2 * k + 5)) for k in range(2 * Nk - 2)], k=1
+        )
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
-        chi = [-2. / val for val in evals[0: Nk - 1]]
+        chi = [-2.0 / val for val in evals[0 : Nk - 1]]
         return chi
 
 
 class _DrudeLorentzTerminator:
-    """ A class for calculating the terminator of a Drude-Lorentz bath
-        expansion.
+    """A class for calculating the terminator of a Drude-Lorentz bath
+    expansion.
     """
+
     def __init__(self, Q, lam, gamma, T):
         self.Q = Q
         self.lam = lam
@@ -598,7 +660,7 @@ class _DrudeLorentzTerminator:
         self.T = T
 
     def terminator(self, exponents):
-        """ Calculate the terminator for a Drude-Lorentz bath. """
+        """Calculate the terminator for a Drude-Lorentz bath."""
         Q = self.Q
         lam = self.lam
         gamma = self.gamma
@@ -614,7 +676,7 @@ class _DrudeLorentzTerminator:
             else:
                 delta -= 1j * exp.ck / exp.vk
 
-        op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
+        op = -2 * spre(Q) * spost(Q.dag()) + spre(Q.dag() * Q) + spost(Q.dag() * Q)
         L_bnd = -delta * op
 
         return delta, L_bnd
@@ -655,8 +717,17 @@ class UnderDampedBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(
-        self, Q, lam, gamma, w0, T, Nk, combine=True, tag=None,
+        self,
+        Q,
+        lam,
+        gamma,
+        w0,
+        T,
+        Nk,
+        combine=True,
+        tag=None,
     ):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
@@ -667,36 +738,40 @@ class UnderDampedBath(BosonicBath):
         )
 
         super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
+            Q,
+            ck_real,
+            vk_real,
+            ck_imag,
+            vk_imag,
+            combine=combine,
+            tag=tag,
         )
 
     def _matsubara_params(self, lam, gamma, w0, T, Nk):
-        """ Calculate the Matsubara coefficents and frequencies. """
-        beta = 1/T
-        Om = np.sqrt(w0**2 - (gamma/2)**2)
-        Gamma = gamma/2.
+        """Calculate the Matsubara coefficents and frequencies."""
+        beta = 1 / T
+        Om = np.sqrt(w0**2 - (gamma / 2) ** 2)
+        Gamma = gamma / 2.0
 
-        ck_real = ([
-            (lam**2 / (4 * Om))
-            * (1 / np.tanh(beta * (Om + 1.0j * Gamma) / 2)),
-            (lam**2 / (4*Om))
-            * (1 / np.tanh(beta * (Om - 1.0j * Gamma) / 2)),
-        ])
+        ck_real = [
+            (lam**2 / (4 * Om)) * (1 / np.tanh(beta * (Om + 1.0j * Gamma) / 2)),
+            (lam**2 / (4 * Om)) * (1 / np.tanh(beta * (Om - 1.0j * Gamma) / 2)),
+        ]
 
-        ck_real.extend([
-            (-2 * lam**2 * gamma / beta) * (2 * np.pi * k / beta)
-            / (
-                ((Om + 1.0j * Gamma)**2 + (2 * np.pi * k/beta)**2)
-                * ((Om - 1.0j * Gamma)**2 + (2 * np.pi * k / beta)**2)
-            )
-            for k in range(1, Nk + 1)
-        ])
+        ck_real.extend(
+            [
+                (-2 * lam**2 * gamma / beta)
+                * (2 * np.pi * k / beta)
+                / (
+                    ((Om + 1.0j * Gamma) ** 2 + (2 * np.pi * k / beta) ** 2)
+                    * ((Om - 1.0j * Gamma) ** 2 + (2 * np.pi * k / beta) ** 2)
+                )
+                for k in range(1, Nk + 1)
+            ]
+        )
 
         vk_real = [-1.0j * Om + Gamma, 1.0j * Om + Gamma]
-        vk_real.extend([
-            2 * np.pi * k * T
-            for k in range(1, Nk + 1)
-        ])
+        vk_real.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
 
         ck_imag = [
             1.0j * lam**2 / (4 * Om),
@@ -784,12 +859,28 @@ class FermionicBath(Bath):
 
         exponents = []
         for ckp, vkp, ckm, vkm in zip(ck_plus, vk_plus, ck_minus, vk_minus):
-            exponents.append(BathExponent(
-                "+", 2, Q, ckp, vkp, sigma_bar_k_offset=1, tag=tag,
-            ))
-            exponents.append(BathExponent(
-                "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1, tag=tag,
-            ))
+            exponents.append(
+                BathExponent(
+                    "+",
+                    2,
+                    Q,
+                    ckp,
+                    vkp,
+                    sigma_bar_k_offset=1,
+                    tag=tag,
+                )
+            )
+            exponents.append(
+                BathExponent(
+                    "-",
+                    2,
+                    Q,
+                    ckm,
+                    vkm,
+                    sigma_bar_k_offset=-1,
+                    tag=tag,
+                )
+            )
         super().__init__(exponents)
 
 
@@ -831,18 +922,24 @@ class LorentzianBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
         ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
 
         super().__init__(
-            Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
+            Q,
+            ck_plus,
+            vk_plus,
+            ck_minus,
+            vk_minus,
+            tag=tag,
         )
 
     def _corr(self, gamma, w, mu, T, Nk, sigma):
-        beta = 1. / T
-        kappa = [0.]
-        kappa.extend([1. for _ in range(1, Nk + 1)])
+        beta = 1.0 / T
+        kappa = [0.0]
+        kappa.extend([1.0 for _ in range(1, Nk + 1)])
         epsilon = [0]
         epsilon.extend([(2 * ll - 1) * np.pi for ll in range(1, Nk + 1)])
 
@@ -854,8 +951,11 @@ class LorentzianBath(FermionicBath):
 
         for ll in range(1, Nk + 1):
             eta_list.append(
-                -1.0j * (kappa[ll] / beta) * gamma * w**2 /
-                (-(epsilon[ll]**2 / beta**2) + w**2)
+                -1.0j
+                * (kappa[ll] / beta)
+                * gamma
+                * w**2
+                / (-(epsilon[ll] ** 2 / beta**2) + w**2)
             )
             gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * mu)
 
@@ -909,22 +1009,28 @@ class LorentzianPadeBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
         ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
 
         super().__init__(
-            Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
+            Q,
+            ck_plus,
+            vk_plus,
+            ck_minus,
+            vk_minus,
+            tag=tag,
         )
 
     def _corr(self, gamma, w, mu, T, Nk, sigma):
-        beta = 1. / T
+        beta = 1.0 / T
         kappa, epsilon = self._kappa_epsilon(Nk)
 
         def f_approx(x):
             f = 0.5
             for ll in range(1, Nk + 1):
-                f = f - 2 * kappa[ll] * x / (x**2 + epsilon[ll]**2)
+                f = f - 2 * kappa[ll] * x / (x**2 + epsilon[ll] ** 2)
             return f
 
         eta_list = [0.5 * gamma * w * f_approx(1.0j * beta * w)]
@@ -932,8 +1038,11 @@ class LorentzianPadeBath(FermionicBath):
 
         for ll in range(1, Nk + 1):
             eta_list.append(
-                -1.0j * (kappa[ll] / beta) * gamma * w**2
-                / (-(epsilon[ll]**2 / beta**2) + w**2)
+                -1.0j
+                * (kappa[ll] / beta)
+                * gamma
+                * w**2
+                / (-(epsilon[ll] ** 2 / beta**2) + w**2)
             )
             gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * mu)
 
@@ -948,12 +1057,11 @@ class LorentzianPadeBath(FermionicBath):
         for j in range(Nk):
             term = prefactor
             for k in range(Nk - 1):
-                term *= (
-                    (chi[k]**2 - eps[j]**2) /
-                    (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+                term *= (chi[k] ** 2 - eps[j] ** 2) / (
+                    eps[k] ** 2 - eps[j] ** 2 + self._delta(j, k)
                 )
             for k in [Nk - 1]:
-                term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+                term /= eps[k] ** 2 - eps[j] ** 2 + self._delta(j, k)
             kappa.append(term)
 
         epsilon = [0] + eps
@@ -964,111 +1072,158 @@ class LorentzianPadeBath(FermionicBath):
         return 1.0 if i == j else 0.0
 
     def _calc_eps(self, Nk):
-        alpha = np.diag([
-                1. / np.sqrt((2 * k + 3) * (2 * k + 1))
-                for k in range(2 * Nk - 1)
-        ], k=1)
+        alpha = np.diag(
+            [1.0 / np.sqrt((2 * k + 3) * (2 * k + 1)) for k in range(2 * Nk - 1)], k=1
+        )
         alpha += alpha.transpose()
 
         evals = eigvalsh(alpha)
-        eps = [-2. / val for val in evals[0: Nk]]
+        eps = [-2.0 / val for val in evals[0:Nk]]
         return eps
 
     def _calc_chi(self, Nk):
-        alpha_p = np.diag([
-                1. / np.sqrt((2 * k + 5) * (2 * k + 3))
-                for k in range(2 * Nk - 2)
-        ], k=1)
+        alpha_p = np.diag(
+            [1.0 / np.sqrt((2 * k + 5) * (2 * k + 3)) for k in range(2 * Nk - 2)], k=1
+        )
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
-        chi = [-2. / val for val in evals[0: Nk - 1]]
+        chi = [-2.0 / val for val in evals[0 : Nk - 1]]
         return chi
 
 
-class FitBath():
-    def __init__(self,alpha,T,wc,Q):
-        self.Q= Q
+class FitBath:
+    def __init__(self, alpha, T, wc, Q):
+        self.Q = Q
         self.alpha = alpha
         self.T = T
         self.wc = wc
         self.beta = 1 / self.T
-    def pack(self,a, b, c):
-        """ Pack parameter lists for fitting. """
+
+    def pack(self, a, b, c):
+        """Pack parameter lists for fitting."""
         return np.concatenate((a, b, c))
-    def unpack(self,params):
-        """ Unpack parameter lists for fitting. """
+
+    def unpack(self, params):
+        """Unpack parameter lists for fitting."""
         N = len(params) // 3
         a = params[:N]
-        b = params[N:2 * N]
-        c = params[2 * N:]
+        b = params[N : 2 * N]
+        c = params[2 * N :]
         return a, b, c
-    def spectral_density_approx(self,w, a, b, c):
-        """ Calculate the fitted value of the function for the given parameters. """
+
+    def spectral_density_approx(self, w, a, b, c):
+        """Calculate the fitted value of the function for the given parameters."""
         tot = 0
         for i in range(len(a)):
-            tot += 2 * a[i] * b[i] * w / (((w + c[i])**2 + b[i]**2) * ((w - c[i])**2 + b[i]**2))
+            tot += (
+                2
+                * a[i]
+                * b[i]
+                * w
+                / (((w + c[i]) ** 2 + b[i] ** 2) * ((w - c[i]) ** 2 + b[i] ** 2))
+            )
         return tot
-    def fit_spectral_density(self,J,w, N=4):
-        """ Fit the spectral density with N underdamped oscillators. """
+
+    def fit_spectral_density(self, J, w, N=4):
+        """Fit the spectral density with N underdamped oscillators."""
         sigma = [1e-4] * len(w)
         J_max = abs(max(J, key=abs))
         guesses = self.pack([J_max] * N, [self.wc] * N, [self.wc] * N)
-        lower_bounds = self.pack([-100 * J_max] * N, [0.1 * self.wc] * N, [0.1 * self.wc] * N)
-        upper_bounds = self.pack([100 * J_max] * N, [100 * self.wc] * N, [100 * self.wc] * N)
+        lower_bounds = self.pack(
+            [-100 * J_max] * N, [0.1 * self.wc] * N, [0.1 * self.wc] * N
+        )
+        upper_bounds = self.pack(
+            [100 * J_max] * N, [100 * self.wc] * N, [100 * self.wc] * N
+        )
         params, _ = curve_fit(
-            lambda x, *params: self.spectral_density_approx(w,*self.unpack(params)),
-            w, J,
+            lambda x, *params: self.spectral_density_approx(w, *self.unpack(params)),
+            w,
+            J,
             p0=guesses,
             bounds=(lower_bounds, upper_bounds),
             sigma=sigma,
             maxfev=int(1e9),
-            method='trf'
+            method="trf",
         )
 
         return self.unpack(params)
-    def get_fit(self,J,w,N=False,plots=True,final_rmse=5e-6):
-        if N==False:
-            N=1
-            rmse=8
-            while rmse>final_rmse:
-                params=self.fit_spectral_density(J, w, N)
+
+    def get_fit(self, J, w, N=False, plots=True, final_rmse=5e-6):
+        """
+        Provides a fit to the with N underdamped oscillators, This function gets the number of harmonic oscillators based
+        on reducing the normalized root mean squared error below a certain threshold. use plots, True to see how the fitting improves
+        the number of oscillators is increased
+        Parameters
+        ----------
+        J : np.array
+            Spectral density to be fit.
+        w : np.array
+            range of frequencies for the fit.
+
+        N : optional,int
+            Number of underdamped oscillators to use, if set to False it is found automaticlly.
+
+        plots : bool
+            Tag to indicate if fitting plots should be displayed.
+
+        final_rmse : float
+            Desired normalized root mean squared error .
+
+        """
+        if N == False:
+            N = 1
+            rmse = 8
+            while rmse > final_rmse:
+                params = self.fit_spectral_density(J, w, N)
                 lam, gamma, w0 = params
                 y = self.spectral_density_approx(w, lam, gamma, w0)
-                rmse=np.sqrt(np.mean((y-J)**2)/len(J))/(np.max(J)-np.min(J))
-                print(f"Parameters [k={N}]: lam={lam}; gamma={gamma}; w0={w0}, Obtain a normalized RMSE of {rmse}")
+                rmse = np.sqrt(np.mean((y - J) ** 2) / len(J)) / (np.max(J) - np.min(J))
+                print(
+                    f"Parameters [k={N}]: lam={lam}; gamma={gamma}; w0={w0}, Obtain a normalized RMSE of {rmse}"
+                )
                 if plots:
-                    plt.plot(w, J,label='Original',color='red')
-                    plt.plot(w, y,label='Fit',linestyle='dotted',color='k',linewidth=3)
-                    plt.xlabel(r'$\omega$',fontsize=20)
-                    plt.ylabel(r'$J(\omega)$',fontsize=20)
+                    plt.plot(w, J, label="Original", color="red")
+                    plt.plot(
+                        w, y, label="Fit", linestyle="dotted", color="k", linewidth=3
+                    )
+                    plt.xlabel(r"$\omega$", fontsize=20)
+                    plt.ylabel(r"$J(\omega)$", fontsize=20)
                     plt.legend(fontsize=20)
                     plt.show()
-                N=N+1
+                N = N + 1
         else:
-            params=self.fit_spectral_density(J, w, N)
+            params = self.fit_spectral_density(J, w, N)
             lam, gamma, w0 = params
             y = self.spectral_density_approx(w, lam, gamma, w0)
-            rmse=np.sqrt(np.mean((y-J)**2)/len(J))/(np.max(J)-np.min(J))
-            print(f"Parameters [k={N}]: lam={lam}; gamma={gamma}; w0={w0}, Obtain a normalized RMSE of {rmse}")
+            rmse = np.sqrt(np.mean((y - J) ** 2) / len(J)) / (np.max(J) - np.min(J))
+            print(
+                f"Parameters [k={N}]: lam={lam}; gamma={gamma}; w0={w0}, Obtain a normalized RMSE of {rmse}"
+            )
             if plots:
-                    plt.plot(w, J,label='Original',color='red')
-                    plt.plot(w, y,label='Fit',linestyle='dotted',color='k',linewidth=3)
-                    plt.xlabel(r'$\omega$',fontsize=20)
-                    plt.ylabel(r'$J(\omega)$',fontsize=20)
-                    plt.legend(fontsize=20)
-                    plt.show()
-        self.params_spec=params
-    def spec_spectrum_approx(self,w):
-        """ Calculates the approximate power spectrum from ck and vk. """
-        lam, gamma, w0=self.params_spec
-        s_fit = (self.spectral_density_approx(w, lam, gamma, w0) *((1 / (np.e**(w / self.T) - 1)) + 1) * 2)
+                plt.plot(w, J, label="Original", color="red")
+                plt.plot(w, y, label="Fit", linestyle="dotted", color="k", linewidth=3)
+                plt.xlabel(r"$\omega$", fontsize=20)
+                plt.ylabel(r"$J(\omega)$", fontsize=20)
+                plt.legend(fontsize=20)
+                plt.show()
+        self.params_spec = params
+
+    def spec_spectrum_approx(self, w):
+        """Calculates the approximate power spectrum from ck and vk."""
+        lam, gamma, w0 = self.params_spec
+        s_fit = (
+            self.spectral_density_approx(w, lam, gamma, w0)
+            * ((1 / (np.e ** (w / self.T) - 1)) + 1)
+            * 2
+        )
         return s_fit
+
     def matsubara_coefficients_from_spectral_fit(self, Nk):
-        """ Calculate the Matsubara co-efficients for a fit to the spectral
-            density.
+        """Calculate the Matsubara co-efficients for a fit to the spectral
+        density.
         """
         # initial 0 value with the correct dimensions:
-        terminator = 0. * spre(self.Q)
+        terminator = 0.0 * spre(self.Q)
         # the number of matsubara expansion terms to include in the terminator:
         terminator_max_k = 1000
 
@@ -1077,20 +1232,26 @@ class FitBath():
         ckAI = []
         vkAI = []
 
-        lam,gamma,w0=self.params_spec
+        lam, gamma, w0 = self.params_spec
         for lamt, Gamma, Om in zip(lam, gamma, w0):
-
-            ckAR.extend([
-                (lamt / (4 * Om)) * 1/np.tanh(self.beta * (Om + 1.0j * Gamma) / 2),
-                (lamt / (4 * Om)) * 1/np.tanh(self.beta * (Om - 1.0j * Gamma) / 2),
-            ])
+            ckAR.extend(
+                [
+                    (lamt / (4 * Om))
+                    * 1
+                    / np.tanh(self.beta * (Om + 1.0j * Gamma) / 2),
+                    (lamt / (4 * Om))
+                    * 1
+                    / np.tanh(self.beta * (Om - 1.0j * Gamma) / 2),
+                ]
+            )
             for k in range(1, Nk + 1):
                 ek = 2 * np.pi * k / self.beta
                 ckAR.append(
-                    (-2 * lamt * 2 * Gamma / self.beta) * ek /
-                    (
-                        ((Om + 1.0j * Gamma)**2 + ek**2) *
-                        ((Om - 1.0j * Gamma)**2 + ek**2)
+                    (-2 * lamt * 2 * Gamma / self.beta)
+                    * ek
+                    / (
+                        ((Om + 1.0j * Gamma) ** 2 + ek**2)
+                        * ((Om - 1.0j * Gamma) ** 2 + ek**2)
                     )
                 )
 
@@ -1098,10 +1259,11 @@ class FitBath():
             for k in range(Nk + 1, terminator_max_k):
                 ek = 2 * np.pi * k / self.beta
                 ck = (
-                    (-2 * lamt * 2 * Gamma / self.beta) * ek /
-                    (
-                        ((Om + 1.0j * Gamma)**2 + ek**2) *
-                        ((Om - 1.0j * Gamma)**2 + ek**2)
+                    (-2 * lamt * 2 * Gamma / self.beta)
+                    * ek
+                    / (
+                        ((Om + 1.0j * Gamma) ** 2 + ek**2)
+                        * ((Om - 1.0j * Gamma) ** 2 + ek**2)
                     )
                 )
                 terminator_factor += ck / ek
@@ -1111,126 +1273,168 @@ class FitBath():
                 - spost(self.Q.dag() * self.Q)
             )
 
-            vkAR.extend([
-                -1.0j * Om + Gamma,
-                1.0j * Om + Gamma,
-            ])
-            vkAR.extend([
-                2 * np.pi * k * self.T + 0.j
-                for k in range(1, Nk + 1)
-            ])
-
-            ckAI.extend([
-                -0.25 * lamt * 1.0j / Om,
-                0.25 * lamt * 1.0j / Om,
-            ])
-            vkAI.extend([
-                -(-1.0j * Om - Gamma),
-                -(1.0j * Om - Gamma),
-            ])
-        self.matsubara_coeff_spec= ckAR, vkAR, ckAI, vkAI, terminator
-        self.terminator=terminator
-        self.Bath_spec=BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
-        return ckAR, vkAR, ckAI, vkAI, terminator
-    def is_pos_def(self,x):
-        return np.all(np.linalg.eigvals(x) >= 0)
-    def corr_approx(self,t, a, b, c):
-            """ Calculate the fitted value of the function for the given parameters.
-            """
-            a = np.array(a)
-            b = np.array(b)
-            c = np.array(c)
-            return np.sum(
-                a[:, None] * np.exp(b[:, None] * t) * np.exp(1j*c[:, None] * t),
-                axis=0,
+            vkAR.extend(
+                [
+                    -1.0j * Om + Gamma,
+                    1.0j * Om + Gamma,
+                ]
             )
-    def fit_correlation(self,t,C, Nr=False,Ni=False,plots=True,final_rmse=2e-5):
-        """ Fit the spectral density with N underdamped oscillators. """
-        C_max = abs(max(C, key=abs))
-        oNr=Nr
-        oNi=Ni
-        if Nr==False:
-            Nr=1
-        if Ni==False:
-            Ni=1
-        rmse1=8
-        rmse2=8
-        if bool(oNr)&bool(oNi):
-            print('happened')
-            final_rmse=7
-        while (rmse1>final_rmse)|(rmse2>final_rmse):
+            vkAR.extend([2 * np.pi * k * self.T + 0.0j for k in range(1, Nk + 1)])
 
-            if rmse1>final_rmse:
+            ckAI.extend(
+                [
+                    -0.25 * lamt * 1.0j / Om,
+                    0.25 * lamt * 1.0j / Om,
+                ]
+            )
+            vkAI.extend(
+                [
+                    -(-1.0j * Om - Gamma),
+                    -(1.0j * Om - Gamma),
+                ]
+            )
+        self.matsubara_coeff_spec = ckAR, vkAR, ckAI, vkAI, terminator
+        self.terminator = terminator
+        self.Bath_spec = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
+        return ckAR, vkAR, ckAI, vkAI, terminator
+
+    def is_pos_def(self, x):
+        return np.all(np.linalg.eigvals(x) >= 0)
+
+    def corr_approx(self, t, a, b, c):
+        """Calculate the fitted value of the function for the given parameters."""
+        a = np.array(a)
+        b = np.array(b)
+        c = np.array(c)
+        return np.sum(
+            a[:, None] * np.exp(b[:, None] * t) * np.exp(1j * c[:, None] * t),
+            axis=0,
+        )
+
+    def fit_correlation(self, t, C, Nr=False, Ni=False, plots=True, final_rmse=2e-5):
+        """Fit the correlation function with N underdamped oscillators.
+        Provides a fit to the with N underdamped oscillators, This function gets the number of harmonic oscillators based
+        on reducing the normalized root mean squared error below a certain threshold. use plots, True to see how the fitting improves
+        the number of oscillators is increased
+        Parameters
+        ----------
+        t : np.array
+            range of frequencies for the fit.
+        C : np.array
+            Correlation function to be fit.
+
+        Nr : optional,int
+            Number of underdamped oscillators to use for the real part, if set to False it is found automaticlly.
+        Ni : optional,int
+            Number of underdamped oscillators to use for the imaginary part, if set to False it is found automaticlly.
+        plots : bool
+            Tag to indicate if fitting plots should be displayed.
+
+        final_rmse : float
+            Desired normalized root mean squared error .
+
+        """
+        C_max = abs(max(C, key=abs))
+        oNr = Nr
+        oNi = Ni
+        if Nr == False:
+            Nr = 1
+        if Ni == False:
+            Ni = 1
+        rmse1 = 8
+        rmse2 = 8
+        if bool(oNr) & bool(oNi):
+            print("happened")
+            final_rmse = 7
+        while (rmse1 > final_rmse) | (rmse2 > final_rmse):
+            if rmse1 > final_rmse:
                 sigma = [0.1] * len(t)
                 guesses = self.pack([C_max] * Nr, [-self.wc] * Nr, [self.wc] * Nr)
-                lower_bounds = self.pack([-20 * C_max] * Nr, [-np.inf] * Nr, [0.] * Nr)
+                lower_bounds = self.pack([-20 * C_max] * Nr, [-np.inf] * Nr, [0.0] * Nr)
                 upper_bounds = self.pack([20 * C_max] * Nr, [0.1] * Nr, [np.inf] * Nr)
 
                 params1, _ = curve_fit(
-                    lambda x, *params: np.real(self.corr_approx(t, *self.unpack(params))),
-                    t, np.real(C),
+                    lambda x, *params: np.real(
+                        self.corr_approx(t, *self.unpack(params))
+                    ),
+                    t,
+                    np.real(C),
                     p0=guesses,
                     bounds=(lower_bounds, upper_bounds),
                     sigma=sigma,
                     maxfev=1000000000,
                 )
-            if rmse2>final_rmse:
+            if rmse2 > final_rmse:
                 sigma = [0.0001] * len(t)
                 guesses = self.pack([-C_max] * Ni, [-2] * Ni, [1] * Ni)
-                lower_bounds = self.pack([-5 * C_max] * Ni, [-100] * Ni, [0.] * Ni)
+                lower_bounds = self.pack([-5 * C_max] * Ni, [-100] * Ni, [0.0] * Ni)
                 upper_bounds = self.pack([5 * C_max] * Ni, [0.01] * Ni, [100] * Ni)
                 params2, _ = curve_fit(
-                    lambda x, *params: np.imag(self.corr_approx(t, *self.unpack(params))),
-                    t, np.imag(C),
+                    lambda x, *params: np.imag(
+                        self.corr_approx(t, *self.unpack(params))
+                    ),
+                    t,
+                    np.imag(C),
                     p0=guesses,
                     bounds=(lower_bounds, upper_bounds),
                     sigma=sigma,
                     maxfev=1000000000,
                 )
-            lam,gamma,w0=self.unpack(params1)
-            lam2,gamma2,w02=self.unpack(params2)
+            lam, gamma, w0 = self.unpack(params1)
+            lam2, gamma2, w02 = self.unpack(params2)
             y = np.real(self.corr_approx(t, lam, gamma, w0))
-            rmse1=np.sqrt(np.mean((y-np.real(C))**2)/len(C))/(np.max(np.real(C))-np.min(np.real(C)))
+            rmse1 = np.sqrt(np.mean((y - np.real(C)) ** 2) / len(C)) / (
+                np.max(np.real(C)) - np.min(np.real(C))
+            )
             y2 = np.imag(self.corr_approx(t, lam2, gamma2, w02))
-            rmse2=np.sqrt(np.mean((y2-np.imag(C))**2)/len(C))/(np.max(np.imag(C))-np.min(np.imag(C)))
-            print(rmse1,rmse2)
-            print(f"Parameters: \n [kr={Nr}]: lam={lam}; gamma={gamma}; w0={w0} with normalized RMSE {rmse1} \n [ki={Ni}]: lam={lam2}; gamma={gamma2}; w0={w02} with normalized {rmse2}")
+            rmse2 = np.sqrt(np.mean((y2 - np.imag(C)) ** 2) / len(C)) / (
+                np.max(np.imag(C)) - np.min(np.imag(C))
+            )
+            print(rmse1, rmse2)
+            print(
+                f"Parameters: \n [kr={Nr}]: lam={lam}; gamma={gamma}; w0={w0} with normalized RMSE {rmse1} \n [ki={Ni}]: lam={lam2}; gamma={gamma2}; w0={w02} with normalized {rmse2}"
+            )
             if plots:
                 fig, axs = plt.subplots(2)
-                axs[0].plot(t, np.real(C),label='Original',color='red')
-                axs[0].plot(t, y,label='Fit',linestyle='dotted',color='k',linewidth=3)
+                axs[0].plot(t, np.real(C), label="Original", color="red")
+                axs[0].plot(
+                    t, y, label="Fit", linestyle="dotted", color="k", linewidth=3
+                )
                 axs[0].legend(fontsize=20)
-                axs[1].plot(t, np.imag(C),label='Original',color='red')
-                axs[1].plot(t, y2,label='Fit',linestyle='dotted',color='k',linewidth=3)
-                axs[1].set_xlabel('t',fontsize=20)
-                axs[1].set_ylabel('C(t)',fontsize=20)
-                axs[0].set_xlabel('t',fontsize=20)
-                axs[0].set_ylabel('C(t)',fontsize=20)
+                axs[1].plot(t, np.imag(C), label="Original", color="red")
+                axs[1].plot(
+                    t, y2, label="Fit", linestyle="dotted", color="k", linewidth=3
+                )
+                axs[1].set_xlabel("t", fontsize=20)
+                axs[1].set_ylabel("C(t)", fontsize=20)
+                axs[0].set_xlabel("t", fontsize=20)
+                axs[0].set_ylabel("C(t)", fontsize=20)
                 plt.show()
-            if oNr==False:
-                Nr+=1
-            if oNi==False:
-                Ni+=1
-        self.params_corr=[lam,gamma,w0,lam2,gamma2,w02]
-    
-    def corr_spectrum_approx(self,w):
-        """ Calculates the approximate power spectrum from ck and vk. """
+            if oNr == False:
+                Nr += 1
+            if oNi == False:
+                Ni += 1
+        self.params_corr = [lam, gamma, w0, lam2, gamma2, w02]
+
+    def corr_spectrum_approx(self, w):
+        """Calculates the approximate power spectrum from ck and vk."""
         S = np.zeros(len(w), dtype=np.complex128)
         self.matsubara_coefficients()
-        ckAR, vkAR,ckAI, vkAI = self.matsubara_coeff
+        ckAR, vkAR, ckAI, vkAI = self.matsubara_coeff
         for ck, vk in zip(ckAR, vkAR):
-            S += (
-                2 * ck * np.real(vk) /
-                ((w - np.imag(vk))**2 + (np.real(vk)**2))
-            )
+            S += 2 * ck * np.real(vk) / ((w - np.imag(vk)) ** 2 + (np.real(vk) ** 2))
         for ck, vk in zip(ckAI, vkAI):
             S += (
-                2 * 1.0j * ck * np.real(vk) /
-                ((w - np.imag(vk))**2 + (np.real(vk)**2))
+                2
+                * 1.0j
+                * ck
+                * np.real(vk)
+                / ((w - np.imag(vk)) ** 2 + (np.real(vk) ** 2))
             )
         return S
+
     def matsubara_coefficients(self):
-        lam,gamma,w0,lam2,gamma2,w02=self.params_corr
+        lam, gamma, w0, lam2, gamma2, w02 = self.params_corr
         ckAR = [0.5 * x + 0j for x in lam]  # the 0.5 is from the cosine
         # extend the list with the complex conjugates:
         ckAR.extend(np.conjugate(ckAR))
@@ -1242,56 +1446,73 @@ class FitBath():
 
         vkAI = [-x - 1.0j * y for x, y in zip(gamma2, w02)]
         vkAI.extend([-x + 1.0j * y for x, y in zip(gamma2, w02)])
-        self.matsubara_coeff=[ckAR, vkAR,ckAI, vkAI]
-        self.Bath_corr=BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
+        self.matsubara_coeff = [ckAR, vkAR, ckAI, vkAI]
+        self.Bath_corr = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
+
+
 class OhmicBath(FitBath):
-    def __init__(self,alpha,T,wc,s,Q,Nk=None):
-        self.Q= Q
+    def __init__(self, alpha, T, wc, s, Q, Nk=None):
+        self.Q = Q
         self.alpha = alpha
         self.T = T
         self.wc = wc
-        self.s=s
+        self.s = s
         self.beta = 1 / self.T
-        self.Nk=Nk
-        if Nk==None:
-            t=np.linspace(0,50/self.wc,10000)
-            C=self.ohmic_correlation(t,self.s)
-            self.fit_correlation(t,C,plots=False)
+        self.Nk = Nk
+        if Nk == None:
+            t = np.linspace(0, 50 / self.wc, 10000)
+            C = self.ohmic_correlation(t, self.s)
+            self.fit_correlation(t, C, plots=False)
             self.matsubara_coefficients()
 
         else:
-            w=np.linspace(0,50*self.wc,10000)
-            J=self.ohmic_spectral_density(w)
-            self.get_fit(J,w,plots=False)
+            w = np.linspace(0, 50 * self.wc, 10000)
+            J = self.ohmic_spectral_density(w)
+            self.get_fit(J, w, plots=False)
             self.matsubara_coefficients_from_spectral_fit(self.Nk)
-    def ohmic_spectral_density(self,w):
-        """ The Ohmic bath spectral density as a function of w
-            (and the bath parameters).
+
+    def ohmic_spectral_density(self, w):
+        """The Ohmic bath spectral density as a function of w
+        (and the bath parameters).
         """
-        return  self.alpha * w**(self.s)/(self.wc**(1-self.s))*np.e**(-abs(w) / self.wc)
-    def ohmic_correlation(self,t, s=1):
-        """ The Ohmic bath correlation function as a function of t
-            (and the bath parameters).
+        return (
+            self.alpha
+            * w ** (self.s)
+            / (self.wc ** (1 - self.s))
+            * np.e ** (-abs(w) / self.wc)
+        )
+
+    def ohmic_correlation(self, t, s=1):
+        """The Ohmic bath correlation function as a function of t
+        (and the bath parameters).
         """
         corr = (
-            (1 / np.pi) * self.alpha * self.wc**(1 - s) * self.beta**(-(s + 1)) * mp.gamma(s + 1)
+            (1 / np.pi)
+            * self.alpha
+            * self.wc ** (1 - s)
+            * self.beta ** (-(s + 1))
+            * mp.gamma(s + 1)
         )
         z1_u = (1 + self.beta * self.wc - 1.0j * self.wc * t) / (self.beta * self.wc)
         z2_u = (1 + 1.0j * self.wc * t) / (self.beta * self.wc)
         # Note: the arguments to zeta should be in as high precision as possible.
         # See http://mpmath.org/doc/current/basics.html#providing-correct-input
-        return np.array([
-            complex(corr * (mp.zeta(s + 1, u1) + mp.zeta(s + 1, u2)))
-            for u1, u2 in zip(z1_u, z2_u)
-        ], dtype=np.complex128)
-    def ohmic_power_spectrum(self,w):
-        """ The Ohmic bath power spectrum as a function of w
-            (and the bath parameters).
-        """
-        return (
-            w * self.alpha * np.e**(-abs(w) / self.wc) *
-            ((1 / (np.e**(w * self.beta) - 1)) + 1) * 2
+        return np.array(
+            [
+                complex(corr * (mp.zeta(s + 1, u1) + mp.zeta(s + 1, u2)))
+                for u1, u2 in zip(z1_u, z2_u)
+            ],
+            dtype=np.complex128,
         )
 
-        
-    
+    def ohmic_power_spectrum(self, w):
+        """The Ohmic bath power spectrum as a function of w
+        (and the bath parameters).
+        """
+        return (
+            w
+            * self.alpha
+            * np.e ** (-abs(w) / self.wc)
+            * ((1 / (np.e ** (w * self.beta) - 1)) + 1)
+            * 2
+        )
