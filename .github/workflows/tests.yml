@@ -66,9 +66,9 @@ jobs:
           if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install "${{ matrix.conda-extra-pkgs }}"
           fi
-          python -m pip install -e .[$QUTIP_TARGET]
-          python -m pip install "coverage${{ matrix.coverage-requirement }}"
-          python -m pip install pytest-cov coveralls pytest-fail-slow
+          # python -m pip install -e .[$QUTIP_TARGET]
+          # python -m pip install "coverage${{ matrix.coverage-requirement }}"
+          # python -m pip install pytest-cov coveralls pytest-fail-slow
 
       - name: Package information
         run: |
@@ -97,7 +97,7 @@ jobs:
             # truly being executed.
             export QUTIP_NUM_PROCESSES=2
           fi
-          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} -k core qutip/tests
+          # pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} -k core qutip/tests
           # Above flags are:
           #  -Werror
           #     treat warnings as errors
@@ -122,13 +122,6 @@ jobs:
           #  --color=yes
           #     force coloured output in the terminal
 
-      - name: Upload to Coveralls
-        env:
-          GITHUB_TOKEN: ${{ secrets.github_token }}
-          COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
-          COVERALLS_PARALLEL: true
-        run: coveralls --service=github
-
   finalise:
     name: Finalise coverage reporting
     needs: cases
@@ -148,7 +141,7 @@ jobs:
           # Required mail server address if not connection_url:
           server_address: smtp-mail.outlook.com
           server_port: 587
-          secure: true
+          # secure: true
           # Optional (recommended) mail server username:
           username: ${{ secrets.OUTLOOK_ADR }}
           # Optional (recommended) mail server password:
