@@ -146,8 +146,8 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         with:
           # Required mail server address if not connection_url:
-          server_address: outlook.office365.com
-          server_port: 443
+          server_address: smtp-mail.outlook.com
+          server_port: 587
           secure: true
           # Optional (recommended) mail server username:
           username: ${{ secrets.OUTLOOK_ADR }}
