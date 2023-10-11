@@ -146,13 +146,13 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         with:
           # Required mail server address if not connection_url:
-          server_address: 127.0.0.1
-          server_port: 1025
-          secure: true
+          server_address: smtp.gmail.com
+          server_port: 465
+          # secure: true
           # Optional (recommended) mail server username:
-          username: ${{ vars.PROTON_MAIL }}
+          username: ${{ secrets.GMAIL_ADR }}
           # Optional (recommended) mail server password:
-          password: ${{ secrets.PROTON_MAIL_PWD }}
+          password: ${{ secrets.GMAIL_PWD }}
           # Required mail subject:
           subject: ${{ github.job }} job of ${{ github.repository }} has ${{ job.status }}
           # Required recipients' addresses:
