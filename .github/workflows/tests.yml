@@ -151,6 +151,6 @@ jobs:
           # Required recipients' addresses:
           to: eric.giguere@calculquebec.ca
           # Required sender full name (address can be skipped):
-          from: ${{ secrets.OUTLOOK_ADR }}
+          from: QuTiP
           # Optional plain body:
-          body: ${{ github.job }} job in worflow ${{ github.workflow }} of ${{ github.repository }} has ${{ job.status }}
+          body: ${{ github.job }} job in worflow ${{ github.workflow }} of ${{ github.repository }} has ${{ job.status }} from ${{ secrets.OUTLOOK_ADR }}
