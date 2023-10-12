@@ -131,7 +131,7 @@ jobs:
       - name: Finalise coverage reporting
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
-          ADR: ${{ secrets.github_token }}
+          ADR: ${{ secrets.OUTLOOK_ADR }}
         run: |
           python -m pip install coveralls
           # coveralls --service=github --finish
