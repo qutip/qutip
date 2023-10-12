@@ -659,14 +659,13 @@ def fmmesolve(
         the expectation values for the times specified by `tlist`, and/or the
         state density matrices corresponding to the times.
     """
-    if c_ops is None:
+    if c_ops is None and rho0.isket:
         return fsesolve(
             H,
             rho0,
             tlist,
             e_ops=e_ops,
             T=T,
-            w_th=w_th,
             args=args,
             options=options,
         )

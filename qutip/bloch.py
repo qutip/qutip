@@ -809,6 +809,7 @@ class Bloch:
                 length = np.ceil(num_points/len(self.point_default_color))
                 color = np.tile(self.point_default_color, length.astype(int))
                 color = color[indperm]
+                color = list(color)
 
             if self.point_style[k] in ['s', 'm']:
                 self.axes.scatter(np.real(points[1]),

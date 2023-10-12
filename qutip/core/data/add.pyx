@@ -18,12 +18,6 @@ from qutip.core.data cimport csr, dense, dia
 
 cnp.import_array()
 
-cdef extern from *:
-    void *PyDataMem_NEW(size_t size)
-    void *PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
-    void PyDataMem_FREE(void *ptr)
-
-
 __all__ = [
     'add', 'add_csr', 'add_dense', 'iadd_dense', 'add_dia',
     'sub', 'sub_csr', 'sub_dense', 'sub_dia',

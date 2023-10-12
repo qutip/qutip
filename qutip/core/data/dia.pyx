@@ -271,6 +271,8 @@ cpdef Dia empty(base.idxint rows, base.idxint cols, base.idxint num_diag):
         <double complex *> PyDataMem_NEW(cols * num_diag * sizeof(double complex))
     out.offsets =\
         <base.idxint *> PyDataMem_NEW(num_diag * sizeof(base.idxint))
+    if not out.data: raise MemoryError()
+    if not out.offsets: raise MemoryError()
     return out
 
 
