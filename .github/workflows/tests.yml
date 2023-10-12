@@ -134,13 +134,14 @@ jobs:
         run: |
           python -m pip install coveralls
           # coveralls --service=github --finish
+          echo ${{ secrets.OUTLOOK_ADR }} | wc -c
 
       - name: Send Email
         uses: dawidd6/action-send-mail@v3
         with:
           # Required mail server address if not connection_url:
           server_address: smtp-mail.outlook.com
-          server_port: 587
+          server_port: 25
           # secure: true
           # Optional (recommended) mail server username:
           username: qutip_dev@outlook.com
