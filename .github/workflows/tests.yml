@@ -132,10 +132,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           ADR: ${{ secrets.OUTLOOK_ADR }}
+          ADR2: ${{ vars.PROTON_MAIL }}
         run: |
           python -m pip install coveralls
           # coveralls --service=github --finish
           echo "$ADR" | wc -c
+          echo "$ADR2" | wc -c
 
       - name: Send Email
         uses: dawidd6/action-send-mail@v3
