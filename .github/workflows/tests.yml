@@ -132,9 +132,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           ADR: ${{ secrets.OUTLOOK_ADR }}
-          ADR2: ${{ vars.PROTON_MAIL }}
+          ADR2: ${{ secrets.NOT_A_SECRET }}
         run: |
-          python -m pip install coveralls
+          # python -m pip install coveralls
           # coveralls --service=github --finish
           echo "$ADR" | wc -c
           echo "$ADR2" | wc -c
@@ -147,9 +147,9 @@ jobs:
           server_port: 25
           # secure: true
           # Optional (recommended) mail server username:
-          username: qutip_dev@outlook.com
+          # username: qutip_dev@outlook.com
           # Optional (recommended) mail server password:
-          password: ${{ secrets.OUTLOOK_PWD }}
+          # password: ${{ secrets.OUTLOOK_PWD }}
           # Required mail subject:
           subject: ${{ github.job }} job of ${{ github.repository }} has ${{ job.status }}
           # Required recipients' addresses:
