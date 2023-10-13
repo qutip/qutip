@@ -1100,11 +1100,11 @@ class FitBath:
         self.beta = 1 / self.T
 
     def pack(self, a, b, c):
-        """Pack parameter lists for fitting."""
+        """Pack parameter lists for fitting."""  # Maybe this can be substituted for flatten
         return np.concatenate((a, b, c))
 
     def unpack(self, params):
-        """Unpack parameter lists for fitting."""
+        """Unpack parameter lists for fitting."""  # Maybe substitute for reshape
         N = len(params) // 3
         a = params[:N]
         b = params[N : 2 * N]
@@ -1207,6 +1207,7 @@ class FitBath:
                 plt.legend(fontsize=20)
                 plt.show()
         self.params_spec = params
+        self.spec_n = N
 
     def spec_spectrum_approx(self, w):
         """Calculates the approximate power spectrum from ck and vk."""
@@ -1297,9 +1298,6 @@ class FitBath:
         self.terminator = terminator
         self.Bath_spec = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
         return ckAR, vkAR, ckAI, vkAI, terminator
-
-    def is_pos_def(self, x):
-        return np.all(np.linalg.eigvals(x) >= 0)
 
     def corr_approx(self, t, a, b, c):
         """Calculate the fitted value of the function for the given parameters."""
@@ -1505,14 +1503,12 @@ class OhmicBath(FitBath):
             dtype=np.complex128,
         )
 
-    def ohmic_power_spectrum(self, w):
+    def ohmic_power_spectrum(self, w):  # ask if generalization is trivial I think so
         """The Ohmic bath power spectrum as a function of w
         (and the bath parameters).
         """
         return (
-            w
-            * self.alpha
-            * np.e ** (-abs(w) / self.wc)
+            self.ohmic_spectral_density(w)
             * ((1 / (np.e ** (w * self.beta) - 1)) + 1)
             * 2
         )
