@@ -471,7 +471,7 @@ class MCSolver(MultiTrajSolver):
         probability is used as a lower-bound for random numbers in future
         monte carlo runs
         """
-        if not self.options["improved_sampling"]:
+        if not self.options.get("improved_sampling", False):
             return super().run(state, tlist, ntraj=ntraj, args=args,
                                e_ops=e_ops, timeout=timeout,
                                target_tol=target_tol, seed=seed)
@@ -526,7 +526,7 @@ class MCSolver(MultiTrajSolver):
 
     @property
     def resultclass(self):
-        if self.options["improved_sampling"]:
+        if self.options.get("improved_sampling", False):
             return McResultImprovedSampling
         else:
             return McResult
