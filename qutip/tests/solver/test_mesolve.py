@@ -690,9 +690,9 @@ def test_feedback():
     N = 10
     tol = 1e-14
     psi0 = qutip.basis(N, 7)
-    a = qutip.destroy(N)
+    a = qutip.QobjEvo([qutip.destroy(N), f])
     H = qutip.QobjEvo(qutip.num(N))
-    solver = qutip.MESolver(H)
+    solver = qutip.MESolver(H, c_ops=[a])
     solver.add_feedback("A", qutip.num(N))
     result = solver.run(psi0, np.linspace(0, 30, 301), e_ops=[qutip.num(N)])
     assert np.all(result.expect[0] > 4. - tol)

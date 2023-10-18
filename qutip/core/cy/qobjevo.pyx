@@ -188,9 +188,9 @@ cdef class QobjEvo:
         qevo = H0 + H1 * coeff
 
     """
-    def __init__(QobjEvo self, Q_object, args=None, tlist=None,
-                 order=3, copy=True, compress=True,
-                 function_style=None, boundary_conditions=None):
+    def __init__(QobjEvo self, Q_object, args=None, copy=True, compress=True, *,
+                 function_style=None, feedback=None,
+                 tlist=None, order=3, boundary_conditions=None):
         if isinstance(Q_object, QobjEvo):
             self.dims = Q_object.dims.copy()
             self.shape = Q_object.shape
@@ -212,6 +212,9 @@ cdef class QobjEvo:
         self._isoper = -1
         self._feedback_functions = {}
         args = args or {}
+        if feedback is not None:
+            for key, feed in feedback.items():
+                args = self._add_feedback(key, feed, args)
 
         if (
             isinstance(Q_object, list)
@@ -443,7 +446,7 @@ cdef class QobjEvo:
             for element in self.elements
         ]
 
-    def _add_feedback(QobjEvo self, str key, feedback, normalize=False):
+    def _add_feedback(QobjEvo self, str key, feedback, args):
         """
         Register an argument to be updated with the state during `matmul` and
         `expect`.
@@ -456,7 +459,7 @@ cdef class QobjEvo:
         key: str
             Arguments key to update.
 
-        type: str, Qobj, QobjEvo
+        feedback: str, Qobj, QobjEvo
             Format of the `state_t`.
             - "qobj": As a Qobj, either a ket or dm.
             - "data": As a qutip data layer object. Density matrices will be
@@ -466,11 +469,10 @@ cdef class QobjEvo:
             - Qobj, QobjEvo: The value is updated with the expectation value of
               the given operator and the state.
 
-        normalize: bool
-            Whether to normalize the state before using it.
+        args: dict
+            dictionary to add the initial / default value first.
         """
-        if self._feedback_functions is None:
-            self._feedback_functions = {}
+
         if feedback == "data" and self.issuper:
             self._feedback_functions[key] = \
                 _Column_Stacker(self.shape[1], normalize)
@@ -479,17 +481,17 @@ cdef class QobjEvo:
         elif feedback in ["raw", "data"]:
             self._feedback_functions[key] = _pass_through
         elif feedback in ["qobj", "Qobj"]:
-            self._feedback_functions[key] = _To_Qobj(self, normalize)
+            self._feedback_functions[key] = _To_Qobj(self)
         elif isinstance(feedback, (Qobj, QobjEvo)):
             if isinstance(feedback, Qobj):
                 feedback = QobjEvo(feedback)
             if self.issuper and self.dims[1] == feedback.dims:
                 # tr(op @ dm) cases
                 self._feedback_functions[key] = \
-                    _Expect(feedback, normalize, True)
+                    _Expect(feedback, True)
             else:
                 self._feedback_functions[key] = \
-                    _Expect(feedback, normalize, False)
+                    _Expect(feedback, False)
         else:
             ValueError("Feedback type not understood.")
 

@@ -438,6 +438,7 @@ cdef Dia diags_(
         The shape of the output.  The result does not need to be square, but
         the diagonals must be of the correct length to fit in.
     """
+    cdef base.idxint i
     out = empty(n_rows, n_cols, len(offsets))
     out.num_diag = len(offsets)
     for i in range(len(offsets)):
