@@ -7,6 +7,7 @@ from .result import Result
 from .integrator import Integrator
 from ..ui.progressbar import progress_bars
 from time import time
+import warnings
 
 
 class Solver:
@@ -394,3 +395,98 @@ class Solver:
                             " of `qutip.solver.Integrator`")
 
         cls._avail_integrators[key] = integrator
+
+
+def _solver_deprecation(kwargs, options, solver="me"):
+    """
+    Function to help the transition from v4 to v5.
+    Raise warnings for solver input that where moved from parameter to options.
+    """
+    if options is None:
+        options = {}
+    # TODO remove by 5.1
+    if "progress_bar" in kwargs:
+        warnings.warn(
+            '"progress_bar" is now included in options:\n'
+            'Use `options={"progress_bar": False / True / "tqdm" / "enhanced"}`'
+        )
+        options["progress_bar"] = kwargs.pop("progress_bar")
+
+    if "_safe_mode" in kwargs:
+        warnings.warn(
+            '"_safe_mode" is no longer supported.'
+        )
+        del kwargs["_safe_mode"]
+
+    if "verbose" in kwargs and solver == "br":
+        warnings.warn(
+            '"verbose" is no longer supported.'
+        )
+        del kwargs["verbose"]
+
+    if "tol" in kwargs and solver == "br":
+        warnings.warn(
+            'The "tol" parameter is no longer used. '
+            '`qutip.settings.core["auto_tidyup_atol"]` '
+            'is now used for rounding small values in sparse arrays.'
+        )
+        del kwargs["tol"]
+
+    if "map_func" in kwargs and solver in ["mc", "stoc"]:
+        warnings.warn(
+            '"map_func" is now included in options:\n'
+            'Use `options={"map": "serial" / "parallel" / "loky"}`'
+        )
+        # 4.X pass the function, 5.X use a string
+        del kwargs["map_func"]
+
+    if "map_kwargs" in kwargs and solver in ["mc", "stoc"]:
+        warnings.warn(
+            '"map_kwargs" are now included in options:\n'
+            'Use `options={"num_cpus": N, "job_timeout": Nsec}`'
+        )
+        del kwargs["map_kwargs"]
+
+    if "nsubsteps" in kwargs and solver == "stoc":
+        warnings.warn(
+            '"nsubsteps" is now replaced by "dt" in options:\n'
+            'Use `options={"dt": 0.001}`\n'
+            'The given value of "nsubsteps" is ignored in this call.'
+        )
+        # Could be (tlist[1] - tlist[0]) / kwargs["nsubsteps"]
+        del kwargs["nsubsteps"]
+
+    if "tol" in kwargs and solver == "stoc":
+        warnings.warn(
+            'The "tol" parameter is now the "atol" options:\n'
+            'Use `options={"atol": tol}`'
+        )
+        options["atol"] = kwargs.pop("tol")
+
+    if "store_all_expect" in kwargs and solver == "stoc":
+        warnings.warn(
+            'The "store_all_expect" parameter is now the '
+            '"keep_runs_results" options:\n'
+            'Use `options={"keep_runs_results": False / True}`'
+        )
+        options["keep_runs_results"] = kwargs.pop("store_all_expect")
+
+    if "store_measurement" in kwargs and solver == "stoc":
+        warnings.warn(
+            'The "store_measurement" parameter is now an options:\n'
+            'Use `options={"store_measurement": False / True}`'
+        )
+        options["store_measurement"] = kwargs.pop("store_measurement")
+
+    if ("dW_factors" in kwargs or "m_ops" in kwargs) and solver == "stoc":
+        raise TypeError(
+            '"m_ops" and "dW_factors" are now properties of '
+            'the stochastic solver class, use:\n'
+            '>>> solver = SMESolver(H, c_ops)\n'
+            '>>> solver.m_ops = m_ops\n'
+            '>>> solver.dW_factors = dW_factors\n'
+        )
+
+    if kwargs:
+        raise TypeError(f"unexpected keyword argument {kwargs.keys()}")
+    return options
