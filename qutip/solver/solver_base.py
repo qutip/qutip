@@ -442,8 +442,7 @@ def _solver_deprecation(kwargs, options, solver="me"):
             'Use `options={"map": "serial" / "parallel" / "loky"}`',
             FutureWarning
         )
-        # 4.X pass the function, 5.X use a string
-        del kwargs["map_func"]
+        options=["map"] = kwargs.pop("map_func")
 
     if "map_kwargs" in kwargs and solver in ["mc", "stoc"]:
         warnings.warn(
