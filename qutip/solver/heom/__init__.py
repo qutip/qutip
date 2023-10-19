@@ -31,8 +31,8 @@ __all__ = [
     "HSolverDL",
     "HierarchyADOs",
     "HierarchyADOsState",
-    "FitBath",
-    "OhmicBath"
+    "FitSpectral",
+    "FitCorr",
 ]
 
 from .bofin_baths import (
@@ -45,8 +45,8 @@ from .bofin_baths import (
     FermionicBath,
     LorentzianBath,
     LorentzianPadeBath,
-    FitBath,
-    OhmicBath
+    FitSpectral,
+    FitCorr,
 )
 
 from .bofin_solvers import (
