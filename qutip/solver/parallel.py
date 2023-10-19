@@ -385,12 +385,9 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
 
 
 _get_map = {
-    parallel_map: parallel_map,
     "parallel_map": parallel_map,
     "parallel": parallel_map,
-    serial_map: serial_map,
     "serial_map": serial_map,
     "serial": serial_map,
-    loky_pmap: loky_pmap,
     "loky": loky_pmap,
 }
