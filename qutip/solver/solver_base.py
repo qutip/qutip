@@ -407,20 +407,23 @@ def _solver_deprecation(kwargs, options, solver="me"):
     # TODO remove by 5.1
     if "progress_bar" in kwargs:
         warnings.warn(
-            '"progress_bar" is now included in options:\n'
-            'Use `options={"progress_bar": False / True / "tqdm" / "enhanced"}`'
+            '"progress_bar" is now included in options:\n Use '
+            '`options={"progress_bar": False / True / "tqdm" / "enhanced"}`',
+            FutureWarning
         )
         options["progress_bar"] = kwargs.pop("progress_bar")
 
     if "_safe_mode" in kwargs:
         warnings.warn(
-            '"_safe_mode" is no longer supported.'
+            '"_safe_mode" is no longer supported.',
+            FutureWarning
         )
         del kwargs["_safe_mode"]
 
     if "verbose" in kwargs and solver == "br":
         warnings.warn(
-            '"verbose" is no longer supported.'
+            '"verbose" is no longer supported.',
+            FutureWarning
         )
         del kwargs["verbose"]
 
@@ -428,14 +431,16 @@ def _solver_deprecation(kwargs, options, solver="me"):
         warnings.warn(
             'The "tol" parameter is no longer used. '
             '`qutip.settings.core["auto_tidyup_atol"]` '
-            'is now used for rounding small values in sparse arrays.'
+            'is now used for rounding small values in sparse arrays.',
+            FutureWarning
         )
         del kwargs["tol"]
 
     if "map_func" in kwargs and solver in ["mc", "stoc"]:
         warnings.warn(
             '"map_func" is now included in options:\n'
-            'Use `options={"map": "serial" / "parallel" / "loky"}`'
+            'Use `options={"map": "serial" / "parallel" / "loky"}`',
+            FutureWarning
         )
         # 4.X pass the function, 5.X use a string
         del kwargs["map_func"]
@@ -443,7 +448,8 @@ def _solver_deprecation(kwargs, options, solver="me"):
     if "map_kwargs" in kwargs and solver in ["mc", "stoc"]:
         warnings.warn(
             '"map_kwargs" are now included in options:\n'
-            'Use `options={"num_cpus": N, "job_timeout": Nsec}`'
+            'Use `options={"num_cpus": N, "job_timeout": Nsec}`',
+            FutureWarning
         )
         del kwargs["map_kwargs"]
 
@@ -451,7 +457,8 @@ def _solver_deprecation(kwargs, options, solver="me"):
         warnings.warn(
             '"nsubsteps" is now replaced by "dt" in options:\n'
             'Use `options={"dt": 0.001}`\n'
-            'The given value of "nsubsteps" is ignored in this call.'
+            'The given value of "nsubsteps" is ignored in this call.',
+            FutureWarning
         )
         # Could be (tlist[1] - tlist[0]) / kwargs["nsubsteps"]
         del kwargs["nsubsteps"]
@@ -459,7 +466,8 @@ def _solver_deprecation(kwargs, options, solver="me"):
     if "tol" in kwargs and solver == "stoc":
         warnings.warn(
             'The "tol" parameter is now the "atol" options:\n'
-            'Use `options={"atol": tol}`'
+            'Use `options={"atol": tol}`',
+            FutureWarning
         )
         options["atol"] = kwargs.pop("tol")
 
@@ -467,14 +475,16 @@ def _solver_deprecation(kwargs, options, solver="me"):
         warnings.warn(
             'The "store_all_expect" parameter is now the '
             '"keep_runs_results" options:\n'
-            'Use `options={"keep_runs_results": False / True}`'
+            'Use `options={"keep_runs_results": False / True}`',
+            FutureWarning
         )
         options["keep_runs_results"] = kwargs.pop("store_all_expect")
 
     if "store_measurement" in kwargs and solver == "stoc":
         warnings.warn(
             'The "store_measurement" parameter is now an options:\n'
-            'Use `options={"store_measurement": False / True}`'
+            'Use `options={"store_measurement": False / True}`',
+            FutureWarning
         )
         options["store_measurement"] = kwargs.pop("store_measurement")
 
