@@ -28,6 +28,7 @@ from qutip import __version__
 from qutip.fastsparse import fast_csr_matrix, fast_identity
 from qutip.cy.ptrace import _ptrace
 from qutip.permute import _permute
+from qutip.dimensions import flatten
 from qutip.sparse import (
     sp_eigs, sp_expm, sp_fro_norm, sp_max_norm, sp_one_norm, sp_L2_norm,
 )
@@ -332,8 +333,8 @@ class Qobj(object):
         # use cases such as enr_fock and other enr_ functions.
         # This does leave open the possibility of data still being
         # misused such as Qobj(complex[n**2][1], dims = [[n],[n]])
-        if (self._data.shape[0] > np.prod(np.hstack(self.dims[0])) or
-           self._data.shape[1] > np.prod(np.hstack(self.dims[1]))) and \
+        if (self._data.shape[0] > np.prod(flatten(self.dims[0])) or
+           self._data.shape[1] > np.prod(flatten(self.dims[1]))) and \
            self.type != 'super':
 
             raise ValueError(f"Qobj has smaller dims {self.dims} " +
