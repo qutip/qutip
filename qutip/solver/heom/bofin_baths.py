@@ -32,6 +32,7 @@ __all__ = [
     "FitSpectral",
     "FirCorr",
     "OhmicBath",
+    "FitUtils",
 ]
 
 
@@ -1108,24 +1109,20 @@ class FitUtils:
         c = params[2 * N :]
         return a, b, c
 
-    def _leastsq(self, func, y, x, **kwargs):
+    def _leastsq(self, func, y, x, guesses=None, lower=None, upper=None, sigma=None):
         """Fit the spectral density with N underdamped oscillators."""
         try:
-            guesses = kwargs["guesses"]
-            lower_bounds = kwargs["lower"]
-            upper_bounds = kwargs["upper"]
-            sigma = kwargs["sigma"]
             sigma = [sigma] * len(x)
+            if None in [guesses, lower, upper, sigma]:
+                raise ValueError("Fit parameters cannot be None")
         except:
-            print(
-                "A dictionary containing guesses, bounds and uncertainty(sigma) must be provided"
-            )
+            pass
         params, _ = curve_fit(
             lambda x, *params: func(x, *self.unpack(params)),
             x,
             y,
             p0=guesses,
-            bounds=(lower_bounds, upper_bounds),
+            bounds=(lower, upper),
             sigma=sigma,
             maxfev=int(1e9),
             method="trf",
@@ -1133,7 +1130,7 @@ class FitUtils:
 
         return self.unpack(params)
 
-    def _rmse(self, func, x, y, lam, gamma, w0, N, label=None):
+    def _rmse(self, func, x, y, lam, gamma, w0, N):
         yhat = func(x, lam, gamma, w0)
         rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / (np.max(y) - np.min(y))
         print(
@@ -1141,13 +1138,20 @@ class FitUtils:
         )
         return rmse
 
-    def _fit(self, func, C, t, N=4, label="correlation", **kwargs):
+    def _fit(
+        self,
+        func,
+        C,
+        t,
+        N=4,
+        label="correlation",
+        guesses=None,
+        lower=None,
+        upper=None,
+        sigma=None,
+    ):
         """Fit the spectral density with N underdamped oscillators."""
         try:
-            guesses = kwargs["guesses"]
-            lower = kwargs["lower"]
-            upper = kwargs["upper"]
-            sigma = kwargs["sigma"]
             if None in [guesses, lower, upper, sigma]:
                 raise Exception(
                     "No parameters for the fit provided, using default ones"
@@ -1174,13 +1178,12 @@ class FitUtils:
             func,
             C,
             t,
-            N=N,
             sigma=sigma,
             guesses=guesses,
             lower=lower,
             upper=upper,
         )
-        rmse = self._rmse(func, t, C, lam=lam, gamma=gamma, w0=w0, N=N, label=label)
+        rmse = self._rmse(func, t, C, lam=lam, gamma=gamma, w0=w0, N=N)
         return rmse, [lam, gamma, w0]
 
 
@@ -1203,6 +1206,16 @@ class FitSpectral(BosonicBath, FitUtils):
                 / (((w + c[i]) ** 2 + b[i] ** 2) * ((w - c[i]) ** 2 + b[i] ** 2))
             )
         return tot
+
+    def spec_spectrum_approx(self, w):
+        """Calculates the approximate power spectrum from ck and vk."""
+        lam, gamma, w0 = self.params_spec
+        s_fit = (
+            self.spectral_density_approx(w, lam, gamma, w0)
+            * ((1 / (np.e ** (w / self.T) - 1)) + 1)
+            * 2
+        )
+        return s_fit
 
     def get_fit(self, J, w, N=None, final_rmse=5e-6):
         """
@@ -1243,16 +1256,6 @@ class FitSpectral(BosonicBath, FitUtils):
         self.params_spec = params
         self.spec_n = N
         self._matsubara_spectral_fit()
-
-    def spec_spectrum_approx(self, w):
-        """Calculates the approximate power spectrum from ck and vk."""
-        lam, gamma, w0 = self.params_spec
-        s_fit = (
-            self.spectral_density_approx(w, lam, gamma, w0)
-            * ((1 / (np.e ** (w / self.T) - 1)) + 1)
-            * 2
-        )
-        return s_fit
 
     def _matsubara_spectral_fit(self):
         lam, gamma, w0 = self.params_spec
@@ -1363,7 +1366,7 @@ class FitCorr(BosonicBath, FitUtils):
             Nr += 1
         print("Desired RMSE reached")
         print("\n")
-        print("Fitting the imaginary [art of the correlation function ..... ")
+        print("Fitting the imaginary Part of the correlation function ..... ")
         while rmse2 > final_rmse:
             rmse2, params_imag = self._fit(
                 lambda *args: np.imag(self.corr_approx(*args)),
@@ -1472,9 +1475,7 @@ class OhmicBath(FitCorr, FitSpectral):
         (and the bath parameters).
         """
         return (
-            w
-            * self.alpha
-            * np.e ** (-abs(w) / self.wc)
+            self.ohmic_spectral_density(w)
             * ((1 / (np.e ** (w * self.beta) - 1)) + 1)
             * 2
         )

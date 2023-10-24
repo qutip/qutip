@@ -17,8 +17,10 @@ from qutip.solver.heom.bofin_baths import (
     FermionicBath,
     LorentzianBath,
     LorentzianPadeBath,
-    FitBath,
+    FitCorr,
+    FitSpectral,
     OhmicBath,
+    FitUtils,
 )
 
 
@@ -663,11 +665,20 @@ class TestLorentzianPadeBath:
             )
 
 
-class TestFitBath:
-    alpha = 0.005
-    wc = 1
-    T = 1
-    bath = FitBath(alpha, T, wc, sigmax())
+class TestFitUtils:
+    bath = FitUtils()
+
+    def spectral_density(self, w, a, b, c):
+        tot = 0
+        for i in range(len(a)):
+            tot += (
+                2
+                * a[i]
+                * b[i]
+                * w
+                / (((w + c[i]) ** 2 + b[i] ** 2) * ((w - c[i]) ** 2 + b[i] ** 2))
+            )
+        return tot
 
     def test_pack(self):
         n = np.random.randint(100)
@@ -682,6 +693,55 @@ class TestFitBath:
         a, b, c = before
         assert (self.bath.unpack(self.bath.pack(a, b, c)) == before).all()
 
+    def test_rmse(self):
+        lam = 0.05
+        gamma = 4
+        w0 = 2
+        func = lambda x, lam, gamma, w0: np.exp(-lam * x) + gamma / w0
+        x = np.linspace(1, 100, 10)
+        y = func(x, lam, gamma * 4, w0 * 4)
+        N = 0
+        assert np.isclose(self.bath._rmse(func, x, y, lam, gamma, w0, N), 0)
+
+    def test_leastsq(self):
+        t = np.linspace(0.1, 10 * 5, 1000)
+        a, b, c = [list(range(2))] * 3
+        N = 2
+        C = self.spectral_density(t, a, b, c)
+        sigma = 1e-4
+        C_max = abs(max(C, key=abs))
+        wc = t[np.argmax(C)]
+        guesses = self.bath.pack([C_max] * N, [wc] * N, [wc] * N)
+        lower = self.bath.pack([-100 * C_max] * N, [0.1 * wc] * N, [0.1 * wc] * N)
+        upper = self.bath.pack([100 * C_max] * N, [100 * wc] * N, [100 * wc] * N)
+        a2, b2, c2 = self.bath._leastsq(
+            self.spectral_density,
+            C,
+            t,
+            guesses=guesses,
+            lower=lower,
+            upper=upper,
+            sigma=sigma,
+        )
+        C2 = self.spectral_density(t, a2, b2, c2)
+        assert np.isclose(C, C2).all()
+
+    def test_fit(self):
+        a, b, c = [list(range(2))] * 3
+        w = np.linspace(0.1, 10 * 5, 1000)
+        J = self.spectral_density(w, a, b, c)
+        rmse, [a2, b2, c2] = self.bath._fit(self.spectral_density, J, w, N=2)
+        J2 = self.spectral_density(w, a2, b2, c2)
+        assert np.isclose(J, J2).all()
+        assert rmse < 1e-15
+
+
+class TestFitSpectral:
+    alpha = 0.005
+    wc = 1
+    T = 1
+    bath = FitSpectral(T, sigmax(), nk=2)
+
     def test_spectral_density_approx(self):
         J = 0.4
         a, b, c = [list(range(2))] * 3
@@ -691,20 +751,14 @@ class TestFitBath:
         w = 2
         assert self.bath.spectral_density_approx(w, a, b, c) == J
 
-    def test_fit_spectral_density(self):
-        a, b, c = [list(range(2))] * 3
-        w = np.linspace(0.1, 10 * self.wc, 1000)
-        J = self.bath.spectral_density_approx(w, a, b, c)
-        a2, b2, c2 = self.bath.fit_spectral_density(J, w, N=2)
-        J2 = self.bath.spectral_density_approx(w, a2, b2, c2)
-        assert np.sum(J - J2) < (1e-12)
-
     def test_spec_spectrum_approx(self):
         a, b, c = [list(range(2))] * 3
         w = np.linspace(0.1, 10 * self.wc, 1000)
         J = self.bath.spectral_density_approx(w, a, b, c)
         pow = J * ((1 / (np.e ** (w / self.T) - 1)) + 1) * 2
-        self.bath.params_spec = self.bath.fit_spectral_density(J, w, N=2)
+        rmse, self.bath.params_spec = self.bath._fit(
+            self.bath.spectral_density_approx, J, w, N=2, label="spectral"
+        )
         pow2 = self.bath.spec_spectrum_approx(w)
         assert np.isclose(pow, pow2).all()
 
@@ -712,21 +766,13 @@ class TestFitBath:
         a, b, c = [list(range(5))] * 3
         w = np.linspace(0.1, 10 * self.wc, 1000)
         J = self.bath.spectral_density_approx(w, a, b, c)
-        self.bath.get_fit(J, w, plots=False)
+        self.bath.get_fit(J, w)
         a2, b2, c2 = self.bath.params_spec
         J2 = self.bath.spectral_density_approx(w, a2, b2, c2)
         assert np.sum(J - J2) < (1e-12)
         assert self.bath.spec_n <= 5
 
     def test_matsubara_coefficients_from_spectral_fit(self):
-        ans_terminator = np.array(
-            [
-                [0.00010175 - 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, -0.00010175 + 0.0j],
-                [0.0 + 0.0j, 0.00010175 - 0.0j, -0.00010175 + 0.0j, 0.0 + 0.0j],
-                [0.0 + 0.0j, -0.00010175 + 0.0j, 0.00010175 - 0.0j, 0.0 + 0.0j],
-                [-0.00010175 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j, 0.00010175 - 0.0j],
-            ]
-        )
         ckAR, vkAr, ckAI, vkAI = (
             [
                 (0.29298628613108785 - 0.2097848947562078j),
@@ -735,18 +781,23 @@ class TestFitBath:
                 (-0.002015397620259254 + 0j),
             ],
             [(1 - 1j), (1 + 1j), (6.283185307179586 + 0j), (12.566370614359172 + 0j)],
-            [(-0 - 0.25j), 0.25j],
-            [(1 + 1j), (1 - 1j)],
+            [(-0 + 0.25j), -0.25j],
+            [(1 - 1j), (1 + 1j)],
         )
-        self.bath.params_spec = [1], [1], [1]
-        self.bath.matsubara_coefficients_from_spectral_fit(Nk=2)
-        ckAR2, vkAr2, ckAI2, vkAI2 = self.bath.matsubara_coeff_spec[:-1]
-        test_terminator = self.bath.matsubara_coeff_spec[-1].full()
-        assert np.isclose(test_terminator, ans_terminator).all()
-        assert ckAR == ckAR2
-        assert vkAr == vkAr2
-        assert ckAI == ckAI2
-        assert vkAI == vkAI2
+        self.bath.params_spec = np.array([1]), np.array([1]), np.array([1])
+        self.bath._matsubara_spectral_fit()
+        ckAR2, vkAr2, ckAI2, vkAI2 = self.bath.cvars
+        assert np.isclose(ckAR, ckAR2).all()
+        assert np.isclose(vkAr, vkAr2).all()
+        assert np.isclose(ckAI, ckAI2).all()
+        assert np.isclose(vkAI, vkAI2).all()
+
+
+class TestFitCorr:
+    alpha = 0.005
+    wc = 1
+    T = 1
+    bath = FitCorr(T, sigmax())
 
     def test_corr_approx(self):
         t = np.array([1 / 10, 1 / 5, 1])
@@ -765,12 +816,13 @@ class TestFitBath:
         a, b, c = -np.array([list(range(2))] * 3)
         t = np.linspace(0.1, 10 / self.wc, 1000)
         C = self.bath.corr_approx(t, a, b, c)
-        self.bath.fit_correlation(t, C, plots=False)
-        a2, b2, c2, ai2, bi2, ci2 = self.bath.params_corr
-        C2 = self.bath.spectral_density_approx(
-            t, [a2 + 1j * ai2], [b2 + 1j * bi2], [c2 + 1j * ci2]
-        )
-        assert np.sum(C - C2) < (1e-12)
+        self.bath.fit_correlation(t, C, Nr=3, Ni=3)
+        a2, b2, c2 = self.bath.params_real
+        ai2, bi2, ci2 = self.bath.params_imag
+        C2re = self.bath.corr_approx(t, a2, b2, c2)
+        C2imag = self.bath.corr_approx(t, ai2, bi2, ci2)
+        assert np.isclose(np.real(C), np.real(C2re)).all()
+        assert np.isclose(np.imag(C), np.imag(C2imag)).all()
 
     def test_matsubara_coefficients(self):
         ans = np.array(
@@ -781,13 +833,15 @@ class TestFitBath:
                 [(-1 - 1j), (-1 - 1j), (-1 + 1j), (-1 + 1j)],
             ]
         )
-        self.bath.params_corr = [[1] * 2] * 6
-        self.bath.matsubara_coefficients()
+        self.bath.params_real = [[1] * 2] * 3
+        self.bath.params_imag = [[1] * 2] * 3
+        self.bath._matsubara_coefficients()
         assert np.isclose(np.array(self.bath.matsubara_coeff), ans).all()
 
     def test_corr_spectrum_approx(self):
-        self.bath.params_corr = [[1] * 2] * 6
-        self.bath.matsubara_coefficients()
+        self.bath.params_real = [[1] * 2] * 3
+        self.bath.params_imag = [[1] * 2] * 3
+        self.bath._matsubara_coefficients()
         S = self.bath.corr_spectrum_approx(np.array([1]))
         assert np.isclose(S, np.array([-0.8 + 0j]))
 
@@ -798,7 +852,7 @@ class TestOhmicBath:
     wc = 1
     T = 1
     Nk = 4
-    bath = OhmicBath(alpha, T, wc, s, sigmax(), Nk)
+    bath = OhmicBath(T, sigmax(), alpha, wc, s, Nk, method="spectral", rmse=1e-4)
 
     def test_ohmic_spectral_density(self):
         w = np.linspace(0, 50 * self.wc, 10000)

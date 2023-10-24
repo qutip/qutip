@@ -34,6 +34,7 @@ __all__ = [
     "FitSpectral",
     "FitCorr",
     "OhmicBath",
+    "FitUtils",
 ]
 
 from .bofin_baths import (
@@ -49,6 +50,7 @@ from .bofin_baths import (
     FitSpectral,
     FitCorr,
     OhmicBath,
+    FitUtils,
 )
 
 from .bofin_solvers import (
