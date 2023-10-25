@@ -32,7 +32,6 @@ __all__ = [
     "FitSpectral",
     "FirCorr",
     "OhmicBath",
-    "FitUtils",
 ]
 
 
@@ -369,6 +368,97 @@ class BosonicBath(Bath):
                 )
 
         return new_exponents
+
+    @classmethod
+    def pack(self, a, b, c):
+        """Pack parameter lists for fitting."""  # Maybe this can be substituted for flatten
+        return np.concatenate((a, b, c))
+
+    @classmethod
+    def unpack(self, params):
+        """Unpack parameter lists for fitting."""  # Maybe substitute for reshape
+        N = len(params) // 3
+        a = params[:N]
+        b = params[N : 2 * N]
+        c = params[2 * N :]
+        return a, b, c
+
+    @classmethod
+    def _leastsq(self, func, y, x, guesses=None, lower=None, upper=None, sigma=None):
+        """Fit the spectral density with N underdamped oscillators."""
+        try:
+            sigma = [sigma] * len(x)
+            if None in [guesses, lower, upper, sigma]:
+                raise ValueError("Fit parameters cannot be None")
+        except:
+            pass
+        params, _ = curve_fit(
+            lambda x, *params: func(x, *self.unpack(params)),
+            x,
+            y,
+            p0=guesses,
+            bounds=(lower, upper),
+            sigma=sigma,
+            maxfev=int(1e9),
+            method="trf",
+        )
+
+        return self.unpack(params)
+
+    @classmethod
+    def _rmse(self, func, x, y, lam, gamma, w0, N):
+        yhat = func(x, lam, gamma, w0)
+        rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / (np.max(y) - np.min(y))
+        return rmse
+
+    @classmethod
+    def _fit(
+        self,
+        func,
+        C,
+        t,
+        N=4,
+        label="correlation",
+        guesses=None,
+        lower=None,
+        upper=None,
+        sigma=None,
+    ):
+        """Fit the spectral density with N underdamped oscillators."""
+        try:
+            if None in [guesses, lower, upper, sigma]:
+                raise Exception(
+                    "No parameters for the fit provided, using default ones"
+                )
+        except:
+            sigma = 1e-4
+            C_max = abs(max(C, key=abs))
+            wc = t[np.argmax(C)]
+            if label == "correlation_real":
+                guesses = self.pack([C_max] * N, [-wc] * N, [wc] * N)
+                lower = self.pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
+                upper = self.pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
+            elif label == "correlation_imag":
+                guesses = self.pack([-C_max] * N, [-2] * N, [1] * N)
+                lower = self.pack([-5 * C_max] * N, [-100] * N, [0.0] * N)
+                upper = self.pack([5 * C_max] * N, [0.01] * N, [100] * N)
+
+            else:
+                guesses = self.pack([C_max] * N, [wc] * N, [wc] * N)
+                lower = self.pack([-100 * C_max] * N, [0.1 * wc] * N, [0.1 * wc] * N)
+                upper = self.pack([100 * C_max] * N, [100 * wc] * N, [100 * wc] * N)
+
+        lam, gamma, w0 = self._leastsq(
+            func,
+            C,
+            t,
+            sigma=sigma,
+            guesses=guesses,
+            lower=lower,
+            upper=upper,
+        )
+        rmse = self._rmse(func, t, C, lam=lam, gamma=gamma, w0=w0, N=N)
+        return rmse, [lam, gamma, w0]
 
 
 class DrudeLorentzBath(BosonicBath):
@@ -1096,103 +1186,29 @@ class LorentzianPadeBath(FermionicBath):
         return chi
 
 
-class FitUtils:
-    def pack(self, a, b, c):
-        """Pack parameter lists for fitting."""  # Maybe this can be substituted for flatten
-        return np.concatenate((a, b, c))
-
-    def unpack(self, params):
-        """Unpack parameter lists for fitting."""  # Maybe substitute for reshape
-        N = len(params) // 3
-        a = params[:N]
-        b = params[N : 2 * N]
-        c = params[2 * N :]
-        return a, b, c
-
-    def _leastsq(self, func, y, x, guesses=None, lower=None, upper=None, sigma=None):
-        """Fit the spectral density with N underdamped oscillators."""
-        try:
-            sigma = [sigma] * len(x)
-            if None in [guesses, lower, upper, sigma]:
-                raise ValueError("Fit parameters cannot be None")
-        except:
-            pass
-        params, _ = curve_fit(
-            lambda x, *params: func(x, *self.unpack(params)),
-            x,
-            y,
-            p0=guesses,
-            bounds=(lower, upper),
-            sigma=sigma,
-            maxfev=int(1e9),
-            method="trf",
-        )
-
-        return self.unpack(params)
-
-    def _rmse(self, func, x, y, lam, gamma, w0, N):
-        yhat = func(x, lam, gamma, w0)
-        rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / (np.max(y) - np.min(y))
-        print(
-            f"Parameters [k={N}]: \n \t lam={lam} \n \t gamma={gamma} \n \t w0={w0} \n Normalized RMSE = {rmse}"
-        )
-        return rmse
-
-    def _fit(
-        self,
-        func,
-        C,
-        t,
-        N=4,
-        label="correlation",
-        guesses=None,
-        lower=None,
-        upper=None,
-        sigma=None,
-    ):
-        """Fit the spectral density with N underdamped oscillators."""
-        try:
-            if None in [guesses, lower, upper, sigma]:
-                raise Exception(
-                    "No parameters for the fit provided, using default ones"
-                )
-        except:
-            sigma = 1e-4
-            C_max = abs(max(C, key=abs))
-            wc = t[np.argmax(C)]
-            if label == "correlation_real":
-                guesses = self.pack([C_max] * N, [-wc] * N, [wc] * N)
-                lower = self.pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
-                upper = self.pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
-            elif label == "correlation_imag":
-                guesses = self.pack([-C_max] * N, [-2] * N, [1] * N)
-                lower = self.pack([-5 * C_max] * N, [-100] * N, [0.0] * N)
-                upper = self.pack([5 * C_max] * N, [0.01] * N, [100] * N)
-
-            else:
-                guesses = self.pack([C_max] * N, [wc] * N, [wc] * N)
-                lower = self.pack([-100 * C_max] * N, [0.1 * wc] * N, [0.1 * wc] * N)
-                upper = self.pack([100 * C_max] * N, [100 * wc] * N, [100 * wc] * N)
-
-        lam, gamma, w0 = self._leastsq(
-            func,
-            C,
-            t,
-            sigma=sigma,
-            guesses=guesses,
-            lower=lower,
-            upper=upper,
-        )
-        rmse = self._rmse(func, t, C, lam=lam, gamma=gamma, w0=w0, N=N)
-        return rmse, [lam, gamma, w0]
-
-
-class FitSpectral(BosonicBath, FitUtils):
+class FitSpectral(BosonicBath):
     def __init__(self, T, Q, nk=14):
         self.Q = Q
         self.T = T
         self.beta = 1 / self.T
         self.Nk = nk
+
+    def __str__(self):
+        try:
+            lam, gamma, w0 = self.params_spec
+            summary = f"Fit Spectral instance: \n Results of the fitting: \n {'Parameters' : <10}{'lam' : ^10}{'gamma' : ^10}{'w0' : >5} \n "
+            for i in range(len(lam)):
+                summary += (
+                    f"{'' : <10}{lam[i]: ^10.2e}{gamma[i]:^10.2e}{w0[i]:>5.2e} \n"
+                )
+            summary += f"A  normalized RMSE of {self._rmse: 2e} was obtained for the real part \n"
+            return summary
+
+        except:
+            return "Fit correlation instance: \n No fit has been performed yet"
+
+    def summary(self):
+        print(self.__str__())
 
     def spectral_density_approx(self, w, a, b, c):
         """Calculate the fitted value of the function for the given parameters."""
@@ -1231,15 +1247,10 @@ class FitSpectral(BosonicBath, FitUtils):
 
         N : optional,int
             Number of underdamped oscillators to use, if set to False it is found automaticlly.
-
-        plots : bool
-            Tag to indicate if fitting plots should be displayed.
-
         final_rmse : float
             Desired normalized root mean squared error .
 
         """
-        print("Fitting the Spectral density with k  Underdamped Drude Lorentz .......")
         if N == None:
             N = 1
             rmse = 8
@@ -1252,9 +1263,9 @@ class FitSpectral(BosonicBath, FitUtils):
             rmse, params = self._fit(
                 self.spectral_density_approx, J, w, N, label="Spectral Density"
             )
-        print("Desired RMSE reached.")
         self.params_spec = params
         self.spec_n = N
+        self._rmse = rmse
         self._matsubara_spectral_fit()
 
     def _matsubara_spectral_fit(self):
@@ -1296,7 +1307,7 @@ class FitSpectral(BosonicBath, FitUtils):
         )
 
 
-class FitCorr(BosonicBath, FitUtils):
+class FitCorr(BosonicBath):
     def __init__(self, T, Q):
         self.Q = Q
         self.T = T
@@ -1311,6 +1322,30 @@ class FitCorr(BosonicBath, FitUtils):
             a[:, None] * np.exp(b[:, None] * t) * np.exp(1j * c[:, None] * t),
             axis=0,
         )
+
+    def __str__(self):
+        try:
+            lam, gamma, w0 = self.params_real
+            summary = f"Fit correlation instance: \n Results of the fitting the Real Part: \n {'Parameters' : <10}{'lam' : ^10}{'gamma' : ^10}{'w0' : >5} \n "
+            for i in range(len(lam)):
+                summary += (
+                    f"{'' : <10}{lam[i]: ^10.2e}{gamma[i]:^10.2e}{w0[i]:>5.2e} \n"
+                )
+            lam, gamma, w0 = self.params_imag
+            summary += f"A  normalized RMSE of {self.rmse_real: 2e} was obtained for the real part \n"
+            summary += f"Results of the fitting the Imaginary Part: \n {'Parameters' : <10}{'lam' : ^10}{'gamma' : ^10}{'w0' : >5} \n"
+            for i in range(len(lam)):
+                summary += (
+                    f"{'' : <10}{lam[i]: ^10.2e}{gamma[i]: ^10.2e}{w0[i] :>5.2e} \n"
+                )
+            summary += f"A  normalized RMSE of {self.rmse_imag :.2e} was obtained for the imaginary part \n"
+            return summary
+
+        except:
+            return "Fit correlation instance: \n No fit has been performed yet"
+
+    def summary(self):
+        print(self.__str__())
 
     def fit_correlation(
         self,
@@ -1338,9 +1373,6 @@ class FitCorr(BosonicBath, FitUtils):
             Number of underdamped oscillators to use for the real part, if set to False it is found automaticlly.
         Ni : optional,int
             Number of underdamped oscillators to use for the imaginary part, if set to False it is found automaticlly.
-        plots : bool
-            Tag to indicate if fitting plots should be displayed.
-
         final_rmse : float
             Desired normalized root mean squared error .
 
@@ -1350,7 +1382,6 @@ class FitCorr(BosonicBath, FitUtils):
             Nr = 1
         if Ni is None:
             Ni = 1
-        print("Fitting The real Part of the correlation function ..... ")
         while rmse1 > final_rmse:
             rmse1, params_real = self._fit(
                 lambda *args: np.real(self.corr_approx(*args)),
@@ -1364,9 +1395,6 @@ class FitCorr(BosonicBath, FitUtils):
                 label="correlation_real",
             )
             Nr += 1
-        print("Desired RMSE reached")
-        print("\n")
-        print("Fitting the imaginary Part of the correlation function ..... ")
         while rmse2 > final_rmse:
             rmse2, params_imag = self._fit(
                 lambda *args: np.imag(self.corr_approx(*args)),
@@ -1380,7 +1408,10 @@ class FitCorr(BosonicBath, FitUtils):
                 label="correlation_imag",
             )
             Ni += 1
-        print("Desired RMSE reached")
+        self.Nr = Nr
+        self.Ni = Ni
+        self.rmse_real = rmse1
+        self.rmse_imag = rmse2
         self.params_real = params_real
         self.params_imag = params_imag
         self._matsubara_coefficients()
@@ -1421,20 +1452,28 @@ class FitCorr(BosonicBath, FitUtils):
 
 
 class OhmicBath(FitCorr, FitSpectral):
-    def __init__(self, T, Q, alpha, wc, s, Nk=14, method="correlation", rmse=1e-6):
+    def __init__(self, T, Q, alpha, wc, s, Nk=4, method="correlation", rmse=1e-6):
         self.alpha = alpha
         self.wc = wc
         self.s = s
+        self.method = method
+        self.Q = Q
+        self.T = T
+        self.Nk = Nk
+        self.beta = 1 / T
         if method == "correlation":
-            FitCorr.__init__(self, T, Q)
-            t = np.linspace(0, 50 / self.wc, 10000)
+            self.fit = FitCorr(self.T, self.Q)
+            t = np.linspace(0, 50 / self.wc, 1000)
             C = self.ohmic_correlation(t, self.s)
-            self.fit_correlation(t, C, final_rmse=rmse)
+            self.fit.fit_correlation(t, C, final_rmse=rmse)
         else:
-            FitSpectral.__init__(self, T, Q, Nk)
-            w = np.linspace(0, 50 * self.wc, 10000)
+            self.fit = FitSpectral(self.T, self.Q, self.Nk)
+            w = np.linspace(0, 50 * self.wc, 1000)
             J = self.ohmic_spectral_density(w)
-            self.get_fit(J, w, final_rmse=rmse)
+            self.fit.get_fit(J, w, final_rmse=rmse)
+
+    def summary(self):
+        self.fit.summary()
 
     def ohmic_spectral_density(self, w):
         """The Ohmic bath spectral density as a function of w

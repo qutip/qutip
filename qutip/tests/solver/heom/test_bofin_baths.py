@@ -20,7 +20,6 @@ from qutip.solver.heom.bofin_baths import (
     FitCorr,
     FitSpectral,
     OhmicBath,
-    FitUtils,
 )
 
 
