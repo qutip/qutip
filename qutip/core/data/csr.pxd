@@ -67,7 +67,7 @@ cdef inline Accumulator acc_alloc(size_t size):
     acc._sorted = True
     return acc
 
-cdef inline void acc_scatter(Accumulator *acc, double complex value, base.idxint position) nogil:
+cdef inline void acc_scatter(Accumulator *acc, double complex value, base.idxint position) noexcept nogil:
     """
     Add a value to the accumulator for this row, in column `position`.  The
     value is added on to any value already scattered into this position.
@@ -85,7 +85,7 @@ cdef inline void acc_scatter(Accumulator *acc, double complex value, base.idxint
         acc._sorted &= acc.nnz == 0 or acc.nonzero[acc.nnz - 1] < position
         acc.nnz += 1
 
-cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, base.idxint *indices, double tol=0) nogil:
+cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, base.idxint *indices, double tol=0) noexcept nogil:
     """
     Copy all the accumulated values into this row into the output pointers.
     This will always output its values in sorted order.  The pointers should
@@ -115,7 +115,7 @@ cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, bas
             nnz += 1
     return nnz
 
-cdef inline void acc_reset(Accumulator *acc) nogil:
+cdef inline void acc_reset(Accumulator *acc) noexcept nogil:
     """Prepare the accumulator to accept the next row of input."""
     # We actually don't need to do anything to reset other than to change
     # our sentinel values; the sentinel `_cur_row` makes it easy to detect

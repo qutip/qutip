@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-cdef void _project_ket_csr(CSR ket, CSR out) nogil:
+cdef int _project_ket_csr(CSR ket, CSR out) except -1 nogil:
     """
     Calculate the projection of the given ket, and place the output in out.
     """
@@ -33,9 +33,10 @@ cdef void _project_ket_csr(CSR ket, CSR out) nogil:
         for ptr in range(nnz_in):
             out.data[offset + ptr] = ket.data[row] * conj(ket.data[ptr])
         offset += nnz_in
+    return 0
 
 
-cdef void _project_bra_csr(CSR bra, CSR out) nogil:
+cdef int _project_bra_csr(CSR bra, CSR out) except -1 nogil:
     """
     Calculate the projection of the given bra, and place the output in out.
     """
@@ -66,6 +67,7 @@ cdef void _project_bra_csr(CSR bra, CSR out) nogil:
     # Handle all zero rows after the last non-zero entry.
     for row_out in range(row_out, out.shape[0]):
         out.row_index[row_out + 1] = cur
+    return 0
 
 
 cpdef CSR project_csr(CSR state):

@@ -7,7 +7,7 @@ from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator
 import numpy as np
 from collections.abc import Iterable
 from functools import partial
-
+from .solver_base import _solver_deprecation
 
 class StochasticTrajResult(Result):
     def _post_init(self, m_ops=(), dw_factor=(), heterodyne=False):
@@ -270,7 +270,7 @@ class _StochasticRHS:
 def smesolve(
     H, rho0, tlist, c_ops=(), sc_ops=(), heterodyne=False, *,
     e_ops=(), args={}, ntraj=500, options=None,
-    seeds=None, target_tol=None, timeout=None,
+    seeds=None, target_tol=None, timeout=None, **kwargs
 ):
     """
     Solve stochastic master equation.
@@ -382,6 +382,7 @@ def smesolve(
 
         An instance of the class :class:`qutip.solver.Result`.
     """
+    options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
@@ -397,7 +398,7 @@ def smesolve(
 def ssesolve(
     H, psi0, tlist, sc_ops=(), heterodyne=False, *,
     e_ops=(), args={}, ntraj=500, options=None,
-    seeds=None, target_tol=None, timeout=None,
+    seeds=None, target_tol=None, timeout=None, **kwargs
 ):
     """
     Solve stochastic Schrodinger equation.
@@ -502,6 +503,7 @@ def ssesolve(
     output: :class:`qutip.solver.Result`
         An instance of the class :class:`qutip.solver.Result`.
     """
+    options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
     sol = SSESolver(H, sc_ops, options=options, heterodyne=heterodyne)

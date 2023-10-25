@@ -340,3 +340,27 @@ def test_feedback():
 
     assert np.all(results.expect[0] > 6.-1e-6)
     assert np.all(results.expect[0][-20:] < 6.7)
+
+
+def test_deprecation_warnings():
+    with pytest.warns(FutureWarning, match=r'map_func'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], map_func=None)
+
+    with pytest.warns(FutureWarning, match=r'progress_bar'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], progress_bar=None)
+
+    with pytest.warns(FutureWarning, match=r'nsubsteps'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], nsubsteps=None)
+
+    with pytest.warns(FutureWarning, match=r'map_func'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], map_func=None)
+
+    with pytest.warns(FutureWarning, match=r'store_all_expect'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], store_all_expect=1)
+
+    with pytest.warns(FutureWarning, match=r'store_measurement'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], store_measurement=1)
+
+    with pytest.raises(TypeError) as err:
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], m_ops=1)
+    assert '"m_ops" and "dW_factors"' in str(err.value)
