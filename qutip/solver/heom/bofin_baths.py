@@ -8,7 +8,7 @@ The implementation is derived from the BoFiN library (see
 https://github.com/tehruhn/bofin) which was itself derived from an earlier
 implementation in QuTiP itself.
 """
-
+from time import time
 import enum
 import matplotlib.pyplot as plt
 import numpy as np
@@ -1201,7 +1201,9 @@ class FitSpectral(BosonicBath):
                 summary += (
                     f"{'' : <10}{lam[i]: ^10.2e}{gamma[i]:^10.2e}{w0[i]:>5.2e} \n"
                 )
-            summary += f"A  normalized RMSE of {self._rmse: 2e} was obtained for the real part \n"
+            summary += f"A  normalized RMSE of {self._rmse: 2e} was obtained for the spectral density \n"
+            summary += f"A total of {self.spec_n} underdamped modes where used"
+            summary += f"The current fit took {self.fit_time} seconds"
             return summary
 
         except:
@@ -1251,6 +1253,7 @@ class FitSpectral(BosonicBath):
             Desired normalized root mean squared error .
 
         """
+        start = time()
         if N == None:
             N = 1
             rmse = 8
@@ -1267,6 +1270,8 @@ class FitSpectral(BosonicBath):
         self.spec_n = N
         self._rmse = rmse
         self._matsubara_spectral_fit()
+        end = time()
+        self.fit_time = end - start
 
     def _matsubara_spectral_fit(self):
         lam, gamma, w0 = self.params_spec
@@ -1308,10 +1313,8 @@ class FitSpectral(BosonicBath):
 
 
 class FitCorr(BosonicBath):
-    def __init__(self, T, Q):
+    def __init__(self, Q):
         self.Q = Q
-        self.T = T
-        self.beta = 1 / self.T
 
     def corr_approx(self, t, a, b, c):
         """Calculate the fitted value of the function for the given parameters."""
@@ -1339,6 +1342,7 @@ class FitCorr(BosonicBath):
                     f"{'' : <10}{lam[i]: ^10.2e}{gamma[i]: ^10.2e}{w0[i] :>5.2e} \n"
                 )
             summary += f"A  normalized RMSE of {self.rmse_imag :.2e} was obtained for the imaginary part \n"
+            summary += f"The current fit took {self.fit_time} seconds"
             return summary
 
         except:
@@ -1377,6 +1381,7 @@ class FitCorr(BosonicBath):
             Desired normalized root mean squared error .
 
         """
+        start = time()
         rmse1, rmse2 = [8, 8]
         if Nr is None:
             Nr = 1
@@ -1415,6 +1420,8 @@ class FitCorr(BosonicBath):
         self.params_real = params_real
         self.params_imag = params_imag
         self._matsubara_coefficients()
+        end = time()
+        self.fit_time = start - end
 
     def corr_spectrum_approx(self, w):
         """Calculates the approximate power spectrum from ck and vk."""
@@ -1462,7 +1469,7 @@ class OhmicBath(FitCorr, FitSpectral):
         self.Nk = Nk
         self.beta = 1 / T
         if method == "correlation":
-            self.fit = FitCorr(self.T, self.Q)
+            self.fit = FitCorr(self.Q)
             t = np.linspace(0, 50 / self.wc, 1000)
             C = self.ohmic_correlation(t, self.s)
             self.fit.fit_correlation(t, C, final_rmse=rmse)
