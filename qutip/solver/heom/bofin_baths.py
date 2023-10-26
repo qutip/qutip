@@ -371,12 +371,12 @@ class BosonicBath(Bath):
 
     @classmethod
     def pack(self, a, b, c):
-        """Pack parameter lists for fitting."""  # Maybe this can be substituted for flatten
+        """Pack parameter lists for fitting."""
         return np.concatenate((a, b, c))
 
     @classmethod
     def unpack(self, params):
-        """Unpack parameter lists for fitting."""  # Maybe substitute for reshape
+        """Unpack parameter lists for fitting."""
         N = len(params) // 3
         a = params[:N]
         b = params[N : 2 * N]
@@ -385,11 +385,36 @@ class BosonicBath(Bath):
 
     @classmethod
     def _leastsq(self, func, y, x, guesses=None, lower=None, upper=None, sigma=None):
-        """Fit the spectral density with N underdamped oscillators."""
+        """
+        Performs nonlinear least squares  to fit the function func to x and y
+
+        Parameters
+        ----------
+        func : function
+            The function we wish to fit.
+        x: np.array
+            a numpy array containing the independent variable we use for the fit
+        y: np.array
+            a numpy array containing the dependent variable we use for the fit
+        guesses : list
+            Initial guess for the parameters.
+        lower : list
+            lower bounds on the parameters for the fit.
+        upper: list
+            upper bounds on the parameters for the fit
+        sigma:
+            uncertainty in the data considered for the fit
+        Returns
+        -------
+        params: list
+            It returns the fitted parameters.
+        """
         try:
             sigma = [sigma] * len(x)
             if None in [guesses, lower, upper, sigma]:
-                raise ValueError("Fit parameters cannot be None")
+                raise ValueError(
+                    "Fit parameters were not provided"
+                )  # maybe unnecessary and can let it go to scipy defaults
         except:
             pass
         params, _ = curve_fit(
@@ -406,7 +431,29 @@ class BosonicBath(Bath):
         return self.unpack(params)
 
     @classmethod
-    def _rmse(self, func, x, y, lam, gamma, w0, N):
+    def _rmse(self, func, x, y, lam, gamma, w0):
+        """
+        Calculates the normalized root Mean squared error for fits, from the fitted parameters lam,gamma,w0
+
+        Parameters
+        ----------
+        func : function
+            The approximated function for which we want to compute the rmse.
+        x: np.array
+            a numpy array containing the independent variable we used for the fit
+        y: np.array
+            a numpy array containing the dependent variable we used for the fit
+        lam : list
+            a listed containing fitted couplings strength.
+        gamma : list
+            a list containing fitted cutoff frequencies.
+        w0s:
+            a list containing fitted resonance frequecies
+        Returns
+        -------
+        rmse: float
+            The normalized root mean squared error for the fit, the closer to zero the better the fit.
+        """
         yhat = func(x, lam, gamma, w0)
         rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / (np.max(y) - np.min(y))
         return rmse
@@ -418,13 +465,40 @@ class BosonicBath(Bath):
         C,
         t,
         N=4,
-        label="correlation",
+        label="correlation_real",
         guesses=None,
         lower=None,
         upper=None,
         sigma=None,
     ):
-        """Fit the spectral density with N underdamped oscillators."""
+        """
+        Performs a fit the function func to t and C, with N number of terms in func, the guesses,bounds and uncertainty can be determined by the user.
+        If none is provided it constructs default ones according to the label.
+
+        Parameters
+        ----------
+        func : function
+            The function we wish to fit.
+        x: np.array
+            a numpy array containing the independent variable we use for the fit
+        y: np.array
+            a numpy array containing the dependent variable we use for the fit
+        guesses : list
+            Initial guess for the parameters.
+        lower : list
+            lower bounds on the parameters for the fit.
+        upper: list
+            upper bounds on the parameters for the fit
+        sigma: float
+            uncertainty in the data considered for the fit
+
+        Returns
+        -------
+        params:
+            It returns the fitted parameters as a list.
+        rmse:
+            It returns the normalized mean squared error from the fit
+        """
         try:
             if None in [guesses, lower, upper, sigma]:
                 raise Exception(
@@ -457,8 +531,9 @@ class BosonicBath(Bath):
             lower=lower,
             upper=upper,
         )
-        rmse = self._rmse(func, t, C, lam=lam, gamma=gamma, w0=w0, N=N)
-        return rmse, [lam, gamma, w0]
+        rmse = self._rmse(func, t, C, lam=lam, gamma=gamma, w0=w0)
+        params = [lam, gamma, w0]
+        return rmse, params
 
 
 class DrudeLorentzBath(BosonicBath):
@@ -1187,25 +1262,39 @@ class LorentzianPadeBath(FermionicBath):
 
 
 class FitSpectral(BosonicBath):
-    def __init__(self, T, Q, nk=14):
+    """
+    A helper class for constructing a Bosonic bath from a spectral density fit.
+
+    Parameters
+    ----------
+    Q : Qobj
+        Operator describing the coupling between system and bath.
+
+    T : float
+        Bath temperature.
+
+    Nk : int
+        Number of exponential terms used to approximate the bath correlation
+        functions.
+    """
+
+    def __init__(self, T, Q, Nk=14):
         self.Q = Q
         self.T = T
         self.beta = 1 / self.T
-        self.Nk = nk
+        self.Nk = Nk
 
     def __str__(self):
         try:
             lam, gamma, w0 = self.params_spec
-            summary = f"Fit Spectral instance: \n Results of the fitting: \n {'Parameters' : <10}{'lam' : ^10}{'gamma' : ^10}{'w0' : >5} \n "
+            summary = f"Results of the fitting the Spectral density with {self.spec_n} terms: \n \n {'Parameters' : <10}|{'lam' : ^10}|{'gamma' : ^10}|{'w0' : >5} \n "
             for i in range(len(lam)):
                 summary += (
-                    f"{'' : <10}{lam[i]: ^10.2e}{gamma[i]:^10.2e}{w0[i]:>5.2e} \n"
+                    f"{ i+1 : <10}|{lam[i]: ^10.2e}|{gamma[i]:^10.2e}|{w0[i]:>5.2e} \n "
                 )
-            summary += f"A  normalized RMSE of {self._rmse: 2e} was obtained for the spectral density \n"
-            summary += f"A total of {self.spec_n} underdamped modes where used"
-            summary += f"The current fit took {self.fit_time} seconds"
+            summary += f"\nA  normalized RMSE of {self._rmse: .2e} was obtained for the Spectral density \n"
+            summary += f" The current fit took {self.fit_time : 2f} seconds"
             return summary
-
         except:
             return "Fit correlation instance: \n No fit has been performed yet"
 
@@ -1226,7 +1315,7 @@ class FitSpectral(BosonicBath):
         return tot
 
     def spec_spectrum_approx(self, w):
-        """Calculates the approximate power spectrum from ck and vk."""
+        """Calculates the approximate power spectrum w and the fitted parameters"""
         lam, gamma, w0 = self.params_spec
         s_fit = (
             self.spectral_density_approx(w, lam, gamma, w0)
@@ -1235,11 +1324,20 @@ class FitSpectral(BosonicBath):
         )
         return s_fit
 
-    def get_fit(self, J, w, N=None, final_rmse=5e-6):
+    def get_fit(
+        self,
+        J,
+        w,
+        N=None,
+        final_rmse=5e-6,
+        lower=None,
+        upper=None,
+        sigma=None,
+        guesses=None,
+    ):
         """
-        Provides a fit to the with N underdamped oscillators, This function gets the number of harmonic oscillators based
-        on reducing the normalized root mean squared error below a certain threshold. use plots, True to see how the fitting improves
-        the number of oscillators is increased
+        Provides a fit to the spectral density with N underdamped oscillators baths, This function gets the number of harmonic oscillators based
+        on reducing the normalized root mean squared error below a certain threshold
         Parameters
         ----------
         J : np.array
@@ -1251,7 +1349,14 @@ class FitSpectral(BosonicBath):
             Number of underdamped oscillators to use, if set to False it is found automaticlly.
         final_rmse : float
             Desired normalized root mean squared error .
-
+        lower : list
+            lower bounds on the parameters for the fit.
+        upper: list
+            upper bounds on the parameters for the fit
+        sigma: float
+            uncertainty in the data considered for the fit
+        guesses : list
+            Initial guess for the parameters.
         """
         start = time()
         if N == None:
@@ -1259,21 +1364,40 @@ class FitSpectral(BosonicBath):
             rmse = 8
             while rmse > final_rmse:
                 rmse, params = self._fit(
-                    self.spectral_density_approx, J, w, N, label="Spectral Density"
+                    self.spectral_density_approx,
+                    J,
+                    w,
+                    N,
+                    label="Spectral Density",
+                    sigma=sigma,
+                    guesses=guesses,
+                    lower=lower,
+                    upper=upper,
                 )
                 N += 1
         else:
             rmse, params = self._fit(
-                self.spectral_density_approx, J, w, N, label="Spectral Density"
+                self.spectral_density_approx,
+                J,
+                w,
+                N,
+                label="Spectral Density",
+                sigma=sigma,
+                guesses=guesses,
+                lower=lower,
+                upper=upper,
             )
         self.params_spec = params
-        self.spec_n = N
+        self.spec_n = N - 1
         self._rmse = rmse
         self._matsubara_spectral_fit()
         end = time()
         self.fit_time = end - start
 
     def _matsubara_spectral_fit(self):
+        """
+        Obtains the bath exponents from the list of fit parameters
+        """
         lam, gamma, w0 = self.params_spec
         w0 = np.array(
             [
@@ -1313,6 +1437,15 @@ class FitSpectral(BosonicBath):
 
 
 class FitCorr(BosonicBath):
+    """
+    A helper class for constructing a Bosonic bath from a Correlation function fit.
+
+    Parameters
+    ----------
+    Q : Qobj
+        Operator describing the coupling between system and bath.
+    """
+
     def __init__(self, Q):
         self.Q = Q
 
@@ -1329,27 +1462,37 @@ class FitCorr(BosonicBath):
     def __str__(self):
         try:
             lam, gamma, w0 = self.params_real
-            summary = f"Fit correlation instance: \n Results of the fitting the Real Part: \n {'Parameters' : <10}{'lam' : ^10}{'gamma' : ^10}{'w0' : >5} \n "
+            lam2, gamma2, w02 = self.params_imag
+            summary = f"Results of the fitting the Real Part with {self.Nr} terms: \n \n {'Parameters' : <10}|{'lam' : ^10}|{'gamma' : ^10}|{'w0' : >5} \n "
+            summary2 = f"\t Results of the fitting the Imaginary Part with {self.Ni} terms: \n \n \t {'Parameters' : <10}|{'lam' : ^10}|{'gamma' : ^10}|{'w0' : >5} \n"
             for i in range(len(lam)):
                 summary += (
-                    f"{'' : <10}{lam[i]: ^10.2e}{gamma[i]:^10.2e}{w0[i]:>5.2e} \n"
+                    f"{ i+1 : <10}|{lam[i]: ^10.2e}|{gamma[i]:^10.2e}|{w0[i]:>5.2e} \n "
                 )
-            lam, gamma, w0 = self.params_imag
-            summary += f"A  normalized RMSE of {self.rmse_real: 2e} was obtained for the real part \n"
-            summary += f"Results of the fitting the Imaginary Part: \n {'Parameters' : <10}{'lam' : ^10}{'gamma' : ^10}{'w0' : >5} \n"
-            for i in range(len(lam)):
-                summary += (
-                    f"{'' : <10}{lam[i]: ^10.2e}{gamma[i]: ^10.2e}{w0[i] :>5.2e} \n"
-                )
-            summary += f"A  normalized RMSE of {self.rmse_imag :.2e} was obtained for the imaginary part \n"
-            summary += f"The current fit took {self.fit_time} seconds"
-            return summary
+                summary2 += f"\t {i+1 : <10}|{lam2[i]: ^10.2e}|{gamma2[i]: ^10.2e}|{w02[i] :>5.2e} \n "
+            summary += f"\n  A  normalized RMSE of {self.rmse_real: .2e} was obtained for the real part \n"
+            summary2 += f"\n \t A  normalized RMSE of {self.rmse_imag :.2e} was obtained for the imaginary part \n"
+            time = f" The current fit took {self.fit_time : 2f} seconds"
+            return summary, summary2, time
 
         except:
             return "Fit correlation instance: \n No fit has been performed yet"
 
     def summary(self):
-        print(self.__str__())
+        print("Fit correlation class instance: \n \n")
+        string1, string2, time = self.__str__()
+        lines1 = string1.splitlines()
+        lines2 = string2.splitlines()
+        # Find the maximum line length in each column
+        max_length1 = max(len(line) for line in lines1)
+        max_length2 = max(len(line) for line in lines2)
+
+        # Print the strings side by side with a vertical bar separator
+        for line1, line2 in zip(lines1, lines2):
+            formatted_line1 = f"{line1:<{max_length1}} |"
+            formatted_line2 = f"{line2:<{max_length2}}"
+            print(formatted_line1 + formatted_line2)
+        print("\t " * 6 + time)
 
     def fit_correlation(
         self,
@@ -1363,8 +1506,8 @@ class FitCorr(BosonicBath):
         sigma=None,
         guesses=None,
     ):
-        """Fit the correlation function with N underdamped oscillators.
-        Provides a fit to the with N underdamped oscillators, This function gets the number of harmonic oscillators based
+        """Fit the correlation function with Ni underdamped oscillators baths for the imaginary part of the correlation function and Nr for the real.
+        Provides a fit to the with N underdamped oscillators. If no number of terms is provided This function gets the number of harmonic oscillators based
         on reducing the normalized root mean squared error below a certain threshold.
         Parameters
         ----------
@@ -1379,7 +1522,14 @@ class FitCorr(BosonicBath):
             Number of underdamped oscillators to use for the imaginary part, if set to False it is found automaticlly.
         final_rmse : float
             Desired normalized root mean squared error .
-
+        lower : list
+            lower bounds on the parameters for the fit.
+        upper: list
+            upper bounds on the parameters for the fit
+        sigma: float
+            uncertainty in the data considered for the fit
+        guesses : list
+            Initial guess for the parameters.
         """
         start = time()
         rmse1, rmse2 = [8, 8]
@@ -1413,8 +1563,8 @@ class FitCorr(BosonicBath):
                 label="correlation_imag",
             )
             Ni += 1
-        self.Nr = Nr
-        self.Ni = Ni
+        self.Nr = Nr - 1
+        self.Ni = Ni - 1
         self.rmse_real = rmse1
         self.rmse_imag = rmse2
         self.params_real = params_real
