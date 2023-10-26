@@ -72,7 +72,7 @@ class SIntegrator(Integrator):
                 t, self.options["dt"], generator,
                 (self.N_dw, num_collapse)
             )
-        self.rhs.register_feedback("wiener_process", self.wiener)
+        self.rhs.register_feedback(self.wiener)
         opt = [self.options[key] for key in self._stepper_options]
         self.step_func = self.stepper(self.rhs(self.options), *opt).run
         self._is_set = True

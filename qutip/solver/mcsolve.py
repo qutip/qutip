@@ -188,18 +188,18 @@ class _MCSystem:
             n_op.arguments(args)
 
     def add_feedback(self, key, type):
-        if type == "collapse":
-            self._collapse_key = key
-            return
-        self.rhs._add_feedback(key, type, True)
+        self.rhs._add_feedback(key, type)
         for c_op in self.c_ops:
-            c_op._add_feedback(key, type, True)
+            c_op._add_feedback(key, type)
         for n_op in self.n_ops:
-            n_op._add_feedback(key, type, True)
+            n_op._add_feedback(key, type)
 
-    def register_feedback(self, type, val):
-        if type == "collapse" and self._collapse_key:
-            self.arguments({self._collapse_key: val})
+    def register_feedback(self, key, val):
+        self.rhs._register_feedback({key: val}, solver="McSolver")
+        for c_op in self.c_ops:
+            c_op._register_feedback({key: val}, solver="McSolver")
+        for n_op in self.n_ops:
+            n_op._register_feedback({key: val}, solver="McSolver")
 
 
 class MCIntegrator:

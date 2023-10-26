@@ -106,6 +106,13 @@ cdef class QobjEvo:
         Refer to Scipy's documentation for further details:
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.make_interp_spline.html
 
+    feedback: dict
+        Set of arguments that update automatically when used in a solver. ie.
+        With  ``args={"psi": psi0}, feedback={"psi": "qobj"}`` the arguments
+        ``psi`` will take the value of the ket at the time the operator is used
+        during the evolution of ``sesolve`` allowing non-linear Hamiltonian,
+        etc. See :method:`QobjEvo.add_feedback` for more information.
+        Inserting an initial value in ``args`` is required.
 
     Attributes
     ----------
@@ -199,6 +206,7 @@ cdef class QobjEvo:
             self._isoper = (<QobjEvo> Q_object)._isoper
             self.elements = (<QobjEvo> Q_object).elements.copy()
             self._feedback_functions = Q_object._feedback_functions.copy()
+            self._solver_only_feedback = Q_object._solver_only_feedback.copy()
             if args:
                 self.arguments(args)
             if compress:
@@ -211,10 +219,11 @@ cdef class QobjEvo:
         self._issuper = -1
         self._isoper = -1
         self._feedback_functions = {}
+        self._solver_only_feedback = []
         args = args or {}
         if feedback is not None:
             for key, feed in feedback.items():
-                args = self._add_feedback(key, feed, args)
+                self.add_feedback(key, feed)
 
         if (
             isinstance(Q_object, list)
@@ -251,6 +260,10 @@ cdef class QobjEvo:
         repr_str = f'{cls}: dims = {self.dims}, shape = {self.shape}, '
         repr_str += f'type = {self.type}, superrep = {self.superrep}, '
         repr_str += f'isconstant = {self.isconstant}, num_elements = {self.num_elements}'
+        if self._feedback_functions:
+          repr_str += '\nQobjEvo depedent on the state when available.'
+        if self._solver_only_feedback:
+          repr_str += f'\nQobjEvo uses extra information from solver: {self._solver_only_feedback}'
         return repr_str
 
     def _read_element(self, op, copy, tlist, args, order, function_style,
@@ -446,7 +459,7 @@ cdef class QobjEvo:
             for element in self.elements
         ]
 
-    def _add_feedback(QobjEvo self, str key, feedback, args):
+    def add_feedback(QobjEvo self, str key, feedback):
         """
         Register an argument to be updated with the state during `matmul` and
         `expect`.
@@ -464,36 +477,43 @@ cdef class QobjEvo:
             - "qobj": As a Qobj, either a ket or dm.
             - "data": As a qutip data layer object. Density matrices will be
               square matrix.
-            - "raw": As a qutip data layer object. Density matrices will be
-              columns stacked: shape=(N**2, 1).
             - Qobj, QobjEvo: The value is updated with the expectation value of
               the given operator and the state.
-
-        args: dict
-            dictionary to add the initial / default value first.
+            - str: Other solver specific feedback. See corresponding solver
+              documentation for available values.
         """
-
-        if feedback == "data" and self.issuper:
-            self._feedback_functions[key] = \
-                _Column_Stacker(self.shape[1], normalize)
-        elif feedback == "data" and normalize:
-            self._feedback_functions[key] = _normalize
-        elif feedback in ["raw", "data"]:
+        if feedback == "data":
             self._feedback_functions[key] = _pass_through
         elif feedback in ["qobj", "Qobj"]:
             self._feedback_functions[key] = _To_Qobj(self)
         elif isinstance(feedback, (Qobj, QobjEvo)):
             if isinstance(feedback, Qobj):
                 feedback = QobjEvo(feedback)
-            if self.issuper and self.dims[1] == feedback.dims:
-                # tr(op @ dm) cases
-                self._feedback_functions[key] = \
-                    _Expect(feedback, True)
-            else:
-                self._feedback_functions[key] = \
-                    _Expect(feedback, False)
+            self._feedback_functions[key] = _Expect(feedback)
+        elif isinstance(feedback, str):
+            self._solver_only_feedback.append((key, feedback))
         else:
-            ValueError("Feedback type not understood.")
+            raise ValueError("feedback not understood.")
+
+    def _register_feedback(self, solvers_feeds, solver="solver"):
+        """
+        Function to receive feedback source from
+        """
+        if not self._solver_only_feedback:
+            return self
+        res = self.copy()
+        new_args = {}
+        for key, feed in self._solver_only_feedback:
+            if feed not in solvers_feeds:
+                raise ValueError(
+                    f"Desired feedback {key} is not available for the {solver}."
+                )
+            if callable(solvers_feeds[feed]):
+                res._feedback_functions[key] = solvers_feeds[feed]
+            else:
+                new_args[key] = solvers_feeds[feed]
+        res.arguments(**new_args)
+        return res
 
     ###########################################################################
     # Math function                                                           #
@@ -527,6 +547,7 @@ cdef class QobjEvo:
             for element in (<QobjEvo> other).elements:
                 self.elements.append(element)
             self._feedback_functions.update(other._feedback_functions)
+            self._solver_only_feedback += other._solver_only_feedback
         elif isinstance(other, Qobj):
             if other.dims != self.dims:
                 raise TypeError("incompatible dimensions" +
@@ -589,7 +610,16 @@ cdef class QobjEvo:
             res.elements = [left @ element for element in res.elements]
             res._issuper = -1
             res._isoper = -1
+
+            new_feed = {}
+            for key, func in right._feedback_functions.items():
+                if isinstance(func, _To_Qobj):
+                    new_feed[key] = _To_Qobj(res)
+                else:
+                    new_feed[key] = func
+            res._feedback_functions = new_feed
             return res
+
         else:
             return NotImplemented
 
@@ -616,6 +646,14 @@ cdef class QobjEvo:
             res.elements = [other @ element for element in res.elements]
             res._issuper = -1
             res._isoper = -1
+
+            new_feed = {}
+            for key, func in self._feedback_functions.items():
+                if isinstance(func, _To_Qobj):
+                    new_feed[key] = _To_Qobj(res)
+                else:
+                    new_feed[key] = func
+            res._feedback_functions = new_feed
             return res
         else:
             return NotImplemented
@@ -648,7 +686,18 @@ cdef class QobjEvo:
                     for left, right in itertools.product(
                         self.elements, (<QobjEvo> other).elements
                     )]
+
                 self._feedback_functions.update(other._feedback_functions)
+                self._solver_only_feedback += other._solver_only_feedback
+
+            new_feed = {}
+            for key, func in self._feedback_functions.items():
+                if isinstance(func, _To_Qobj):
+                    new_feed[key] = _To_Qobj(res)
+                else:
+                    new_feed[key] = func
+            self._feedback_functions = new_feed
+
         else:
             return NotImplemented
         return self
@@ -719,6 +768,7 @@ cdef class QobjEvo:
         cdef QobjEvo res = self.copy()
         res.elements = [element.linear_map(Qobj.trans)
                         for element in res.elements]
+        res.dims = [res.dims[1], res.dims[0]]
         return res
 
     def conj(self):
@@ -733,6 +783,7 @@ cdef class QobjEvo:
         cdef QobjEvo res = self.copy()
         res.elements = [element.linear_map(Qobj.dag, True)
                         for element in res.elements]
+        res.dims = [res.dims[1], res.dims[0]]
         return res
 
     def to(self, data_type):
@@ -801,6 +852,13 @@ cdef class QobjEvo:
         res.type = res.elements[0].qobj(0).type
         res._issuper = res.elements[0].qobj(0).issuper
         res._isoper = res.elements[0].qobj(0).isoper
+        res._feedback_functions = {}
+        for key, func in self._feedback_functions.items():
+            if isinstance(func, _To_Qobj):
+                res._feedback_functions[key] = _To_Qobj(res)
+            else:
+                res._feedback_functions[key] = func
+
         if not _skip_check:
             if res(0) != out:
                 raise ValueError("The mapping is not linear")
@@ -1083,20 +1141,21 @@ cdef class QobjEvo:
 
 cdef class _Expect:
     cdef QobjEvo oper
-    cdef bint normalize
     cdef bint stack
 
-    def __init__(self, oper, normalize, stack):
+    def __init__(self, oper):
         self.oper = oper
-        self.normalize = normalize
-        self.stack = stack
+        self.N2 = oper.shape[1]
 
     def __call__(self, t, state):
-        if self.stack:
-            state = _data.column_unstack(state, self.oper.shape[0])
-        if self.normalize:
-            state = _normalize(None, state)
-        return self.oper.expect_data(t, state)
+        if self.state[0] == self.N:
+            return self.oper.expect_data(t, state)
+        if self.state[0] == self.N**2 and self.state[1] == 1:
+            return self.oper.expect_data(t, _data.column_unstack(state, self.N))
+        raise ValueError(
+            f"Shape of the expect operator ({self.oper.shape}) "
+            f"does not match the state ({self.state.shape})."
+        )
 
 
 cdef class _To_Qobj:
@@ -1105,53 +1164,25 @@ cdef class _To_Qobj:
     cdef idxint N
     cdef bint normalize
 
-    def __init__(self, base, normalize):
+    def __init__(self, base):
         self.dims = base.dims
         if not base.issuper:
             self.dims_flat = [1 for _ in base.dims[0]]
         self.issuper = base.issuper
         self.N = int(base.shape[0]**0.5)
-        self.normalize = normalize
 
     def __call__(self, t, state):
         if state.shape[0] == state.shape[1]:
             out = Qobj(state, dims=self.dims)
         elif self.issuper and state.shape[1] == 1:
-            state = _data.column_unstack(state, self.N)
-            out = Qobj(state, dims=self.dims[1])
+            out = Qobj(_data.column_unstack(state, self.N), dims=self.dims[1])
         elif state.shape[1] == 1:
             out = Qobj(state, dims=[self.dims[1], self.dims_flat])
         else:
             # rectangular state dims are patially lost...
             out = Qobj(state, dims=[self.dims[1], [state.shape[1]]])
-        if self.normalize:
-            out = out.unit()
         return out
 
 
 def _pass_through(t, state):
     return state
-
-
-def _normalize(t, state):
-    if state.shape[0] == state.shape[1]:
-        norm = _data.trace(state)
-    else:
-        norm = _data.norm.frobenius(state)
-    return _data.mul(state, 1 / norm)
-
-
-cdef class _Column_Stacker:
-    cdef idxint N
-    cdef bint normalize
-
-    def __init__(self, shape, normalize):
-        self.N = int(shape**0.5)
-        self.normalize = normalize
-
-    def __call__(self, t, state):
-        if state.shape[1] == 1:
-            state = _data.column_unstack(state, self.N)
-        if self.normalize:
-            state = _normalize(None, state)
-        return state

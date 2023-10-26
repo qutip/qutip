@@ -278,6 +278,7 @@ class BRSolver(Solver):
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
+        self.rhs._register_feedback({}, solver=self.name)
 
 
     def _initialize_stats(self):

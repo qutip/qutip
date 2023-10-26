@@ -51,6 +51,7 @@ class Solver:
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
+        self.rhs._register_feedback({}, solver=self.name)
 
     def _initialize_stats(self):
         """ Return the initial values for the solver stats.
@@ -413,13 +414,11 @@ class Solver:
 
             - "qobj": As a Qobj, either a ket or dm.
             - "data": As a qutip data layer object. Density matrices will be
-              square matrix.
-            - "raw": As a qutip data layer object. Density matrices will be
               columns stacked: shape=(N**2, 1).
             - Qobj, QobjEvo: The value is updated with the expectation value of
               the given operator and the state.
         """
-        self.rhs._add_feedback(key, type)
+        self.rhs.add_feedback(key, type)
 
 
 def _solver_deprecation(kwargs, options, solver="me"):
