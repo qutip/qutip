@@ -1469,6 +1469,7 @@ class FitCorr(BosonicBath):
                 summary += (
                     f"{ i+1 : <10}|{lam[i]: ^10.2e}|{gamma[i]:^10.2e}|{w0[i]:>5.2e} \n "
                 )
+            for i in range(len(lam2)):
                 summary2 += f"\t {i+1 : <10}|{lam2[i]: ^10.2e}|{gamma2[i]: ^10.2e}|{w02[i] :>5.2e} \n "
             summary += f"\n  A  normalized RMSE of {self.rmse_real: .2e} was obtained for the real part \n"
             summary2 += f"\n \t A  normalized RMSE of {self.rmse_imag :.2e} was obtained for the imaginary part \n"
@@ -1534,10 +1535,11 @@ class FitCorr(BosonicBath):
         start = time()
         rmse1, rmse2 = [8, 8]
         if Nr is None:
-            Nr = 1
+            Nr = 0
         if Ni is None:
-            Ni = 1
+            Ni = 0
         while rmse1 > final_rmse:
+            Nr += 1
             rmse1, params_real = self._fit(
                 lambda *args: np.real(self.corr_approx(*args)),
                 np.real(C),
@@ -1549,8 +1551,8 @@ class FitCorr(BosonicBath):
                 upper=upper,
                 label="correlation_real",
             )
-            Nr += 1
         while rmse2 > final_rmse:
+            Ni += 1
             rmse2, params_imag = self._fit(
                 lambda *args: np.imag(self.corr_approx(*args)),
                 np.imag(C),
@@ -1562,16 +1564,15 @@ class FitCorr(BosonicBath):
                 upper=upper,
                 label="correlation_imag",
             )
-            Ni += 1
-        self.Nr = Nr - 1
-        self.Ni = Ni - 1
+        self.Nr = Nr
+        self.Ni = Ni
         self.rmse_real = rmse1
         self.rmse_imag = rmse2
         self.params_real = params_real
         self.params_imag = params_imag
         self._matsubara_coefficients()
         end = time()
-        self.fit_time = start - end
+        self.fit_time = end - start
 
     def corr_spectrum_approx(self, w):
         """Calculates the approximate power spectrum from ck and vk."""
