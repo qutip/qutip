@@ -113,3 +113,8 @@ def test_thermal_dm(dimensions, n_excitations, nbar_type):
     test_dm = qutip.enr_thermal_dm(dimensions, n_excitations, nbars)
     expect_dm = _reference_dm(dimensions, n_excitations, nbars)
     np.testing.assert_allclose(test_dm.full(), expect_dm.full(), atol=1e-12)
+
+
+def test_large_space():
+    # Check for #2249
+    qutip.enr_destroy([12]*12, 2)
