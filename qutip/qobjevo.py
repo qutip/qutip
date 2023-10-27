@@ -87,7 +87,7 @@ class _file_list:
         self.files = []
 
     def add(self, file_):
-        self.files += [file_ + ".pyx"]
+        self.files += [file_]
 
     def clean(self):
         to_del = []
