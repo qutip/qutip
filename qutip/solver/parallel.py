@@ -389,5 +389,5 @@ _get_map = {
     "parallel": parallel_map,
     "serial_map": serial_map,
     "serial": serial_map,
-    "loky": loky_pmap
+    "loky": loky_pmap,
 }

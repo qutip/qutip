@@ -296,7 +296,7 @@ cpdef CSR copy_structure(CSR matrix):
     return out
 
 
-cpdef inline base.idxint nnz(CSR matrix) nogil:
+cpdef inline base.idxint nnz(CSR matrix) noexcept nogil:
     """Get the number of non-zero elements of a CSR matrix."""
     return matrix.row_index[matrix.shape[0]]
 
@@ -311,7 +311,7 @@ ctypedef fused _swap_data:
     double complex
     base.idxint
 
-cdef inline void _sorter_swap(_swap_data *a, _swap_data *b) nogil:
+cdef inline void _sorter_swap(_swap_data *a, _swap_data *b) noexcept nogil:
     a[0], b[0] = b[0], a[0]
 
 cdef class Sorter:

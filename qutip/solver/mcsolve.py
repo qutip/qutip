@@ -3,7 +3,7 @@ __all__ = ['mcsolve', "MCSolver"]
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .multitraj import MultiTrajSolver
-from .solver_base import Solver, Integrator
+from .solver_base import Solver, Integrator, _solver_deprecation
 from .result import McResult, McTrajectoryResult, McResultImprovedSampling
 from .mesolve import mesolve, MESolver
 import qutip.core.data as _data
@@ -11,7 +11,8 @@ from time import time
 
 
 def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
-            args=None, options=None, seeds=None, target_tol=None, timeout=None):
+            args=None, options=None, seeds=None, target_tol=None, timeout=None,
+            **kwargs):
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -130,6 +131,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         The simulation will end when the first end condition is reached between
         ``ntraj``, ``timeout`` and ``target_tol``.
     """
+    options = _solver_deprecation(kwargs, options, "mc")
     H = QobjEvo(H, args=args, tlist=tlist)
     if not isinstance(c_ops, (list, tuple)):
         c_ops = [c_ops]

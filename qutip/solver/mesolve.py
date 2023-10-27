@@ -10,11 +10,12 @@ from time import time
 from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
-from .solver_base import Solver
+from .solver_base import Solver, _solver_deprecation
 from .sesolve import sesolve, SESolver
 
 
-def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
+def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
+            **kwargs):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
@@ -125,6 +126,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
         is an empty list of `store_states=True` in options].
 
     """
+    options = _solver_deprecation(kwargs, options)
     H = QobjEvo(H, args=args, tlist=tlist)
 
     c_ops = c_ops if c_ops is not None else []
