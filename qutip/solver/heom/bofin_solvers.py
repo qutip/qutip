@@ -575,6 +575,18 @@ class HEOMSolver(Solver):
 
         If multiple baths are given, they must all be either fermionic
         or bosonic baths.
+
+    odd_parity : Bool
+        For fermionic baths only.  Default is "False".  If set to "True",
+        the RHS construction differs slightly (it implies the RHS is acting on
+        an initial density operator which has odd parity in terms of its
+        representation in fermionic annhilation operators). In other words, a
+        state with a well defined number of excitations has even parity, but one
+        with superpositions of the number of excitations has odd parity.  This
+        is normally prohibited in 'normal' electronic systems, where charge is
+        conserved, but is useful for the construction of electron spectrum
+        (under linear response assumptions).
+
     max_depth : int
         The maximum depth of the heirarchy (i.e. the maximum number of bath
         exponent "excitations" to retain).
@@ -611,8 +623,9 @@ class HEOMSolver(Solver):
         "state_data_type": "dense",
     }
 
-    def __init__(self, H, bath, max_depth, *, options=None):
+    def __init__(self, H, bath, max_depth, odd_parity=False, *, options=None):
         _time_start = time()
+        self.odd_parity = odd_parity
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian (H) must be a Qobj or QobjEvo")
 
@@ -764,10 +777,13 @@ class HEOMSolver(Solver):
         ]
 
         n_excite = sum(he_fermionic_n)
-        sign1 = (-1) ** (n_excite + 1)
-
         n_excite_before_m = sum(he_fermionic_n[:k])
-        sign2 = (-1) ** (n_excite_before_m)
+        if self.odd_parity == True:
+            sign1 = (-1) ** (n_excite)
+            sign2 = (-1) ** (n_excite_before_m + 1)
+        else:
+            sign1 = (-1) ** (n_excite + 1)
+            sign2 = (-1) ** (n_excite_before_m)
 
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
 
@@ -809,10 +825,13 @@ class HEOMSolver(Solver):
             i * int(exp.fermionic) for i, exp in zip(he_n, self.ados.exponents)
         ]
         n_excite = sum(he_fermionic_n)
-        sign1 = (-1) ** (n_excite + 1)
-
         n_excite_before_m = sum(he_fermionic_n[:k])
-        sign2 = (-1) ** (n_excite_before_m)
+        if self.odd_parity == True:
+            sign1 = (-1) ** (n_excite)
+            sign2 = (-1) ** (n_excite_before_m + 1)
+        else:
+            sign1 = (-1) ** (n_excite + 1)
+            sign2 = (-1) ** (n_excite_before_m)
 
         if self.ados.exponents[k].type == BathExponent.types["+"]:
             if sign1 == -1:
