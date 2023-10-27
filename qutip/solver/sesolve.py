@@ -7,10 +7,10 @@ __all__ = ['sesolve', 'SESolver']
 import numpy as np
 from time import time
 from .. import Qobj, QobjEvo
-from .solver_base import Solver
+from .solver_base import Solver, _solver_deprecation
 
 
-def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
+def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None, **kwargs):
     """
     Schrodinger equation evolution of a state vector or unitary matrix
     for a given Hamiltonian.
@@ -98,6 +98,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
         or density matrices corresponding to the times in `tlist` [if `e_ops`
         is an empty list of `store_states=True` in options].
     """
+    options = _solver_deprecation(kwargs, options)
     H = QobjEvo(H, args=args, tlist=tlist)
     solver = SESolver(H, options=options)
     return solver.run(psi0, tlist, e_ops=e_ops)

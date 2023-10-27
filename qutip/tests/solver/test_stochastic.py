@@ -316,3 +316,27 @@ def test_m_ops(heterodyne):
     noise = res.expect[0][1:] - res.measurement[0][0]
     assert np.mean(noise) == pytest.approx(0., abs=std/50**0.5 * 4)
     assert np.std(noise) == pytest.approx(std, abs=std/50**0.5 * 4)
+
+
+def test_deprecation_warnings():
+    with pytest.warns(FutureWarning, match=r'map_func'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], map_func=None)
+
+    with pytest.warns(FutureWarning, match=r'progress_bar'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], progress_bar=None)
+
+    with pytest.warns(FutureWarning, match=r'nsubsteps'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], nsubsteps=None)
+
+    with pytest.warns(FutureWarning, match=r'map_func'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], map_func=None)
+
+    with pytest.warns(FutureWarning, match=r'store_all_expect'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], store_all_expect=1)
+
+    with pytest.warns(FutureWarning, match=r'store_measurement'):
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], store_measurement=1)
+
+    with pytest.raises(TypeError) as err:
+        ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], m_ops=1)
+    assert '"m_ops" and "dW_factors"' in str(err.value)
