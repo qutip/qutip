@@ -569,22 +569,21 @@ class DrudeLorentzBath(BosonicBath):
         bath an exponent is from.
     """
 
-    def __init__(
-        self,
-        Q,
-        lam,
-        gamma,
-        T,
-        Nk,
-        combine=True,
-        tag=None,
-    ):
-        ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
-            lam=lam,
-            gamma=gamma,
-            T=T,
-            Nk=Nk,
-        )
+    def __init__(self, Q, lam, gamma, T, Nk, combine=True, tag=None, rwa=False):
+        if rwa:
+            ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params2(
+                lam=lam,
+                gamma=gamma,
+                T=T,
+                Nk=Nk,
+            )
+        else:
+            ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
+                lam=lam,
+                gamma=gamma,
+                T=T,
+                Nk=Nk,
+            )
 
         super().__init__(
             Q,
@@ -628,6 +627,32 @@ class DrudeLorentzBath(BosonicBath):
         return delta, L
 
     def _matsubara_params(self, lam, gamma, T, Nk):
+        """Calculate the Matsubara coefficents and frequencies."""
+        ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
+        ck_real.extend(
+            [
+                (
+                    8
+                    * lam
+                    * gamma
+                    * T
+                    * np.pi
+                    * k
+                    * T
+                    / ((2 * np.pi * k * T) ** 2 - gamma**2)
+                )
+                for k in range(1, Nk + 1)
+            ]
+        )
+        vk_real = [gamma]
+        vk_real.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
+
+        ck_imag = [lam * gamma * (-1.0)]
+        vk_imag = [gamma]
+
+        return ck_real, vk_real, ck_imag, vk_imag
+
+    def _matsubara_params2(self, lam, gamma, T, Nk):
         """Calculate the Matsubara coefficents and frequencies."""
         ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
         ck_real.extend(
