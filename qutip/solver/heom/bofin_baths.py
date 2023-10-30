@@ -1509,6 +1509,10 @@ class FitCorr(BosonicBath):
         string1, string2, time = self.__str__()
         lines1 = string1.splitlines()
         lines2 = string2.splitlines()
+        max_lines = max(len(lines1), len(lines2))
+        # Fill the shorter string with blank lines
+        lines1 = lines1[:-1] + (max_lines - len(lines1)) * [""] + [lines1[-1]]
+        lines2 = lines2[:-1] + (max_lines - len(lines2)) * [""] + [lines2[-1]]
         # Find the maximum line length in each column
         max_length1 = max(len(line) for line in lines1)
         max_length2 = max(len(line) for line in lines2)
