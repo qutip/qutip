@@ -22,7 +22,7 @@ class _MTSystem:
         self.rhs.arguments(args)
 
     def add_feedback(self, key, type):
-        self.rhs._add_feedback(key, type)
+        self.rhs.add_feedback(key, type)
 
     def register_feedback(self, type, val):
         pass

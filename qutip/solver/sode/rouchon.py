@@ -91,7 +91,7 @@ class RouchonSODE(SIntegrator):
                 t, self.options["dt"], generator,
                 (1, self.num_collapses,)
             )
-        self.rhs.register_feedback("wiener_process", self.wiener)
+        self.rhs.register_feedback(self.wiener)
         self._make_operators()
         self._is_set = True
 

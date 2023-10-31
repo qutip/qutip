@@ -253,18 +253,18 @@ class _StochasticRHS:
               that return the wiener process value at the time t. The process
               is a step function with step of lenght ``options["dt"]``.
         """
-        self.H._add_feedback(key, type)
+        self.H.add_feedback(key, type)
         for c_op in self.c_ops:
-            c_op._add_feedback(key, type)
+            c_op.add_feedback(key, type)
         for sc_op in self.sc_ops:
-            sc_op._add_feedback(key, type)
+            sc_op.add_feedback(key, type)
 
     def register_feedback(self, val):
-        self.H._register_feedback("wiener_process", val)
+        self.H._register_feedback({"wiener_process": val})
         for c_op in self.c_ops:
-            c_op._register_feedback("wiener_process", val)
+            c_op._register_feedback({"wiener_process": val})
         for sc_op in self.sc_ops:
-            sc_op._register_feedback("wiener_process", val)
+            sc_op._register_feedback({"wiener_process": val})
 
 
 def smesolve(

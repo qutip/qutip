@@ -87,7 +87,10 @@ class FloquetBasis:
             # Default computation
             tlist = np.linspace(0, T, 101)
             memoize = 101
-        if H._feedback_functions or H._solver_only_feedback:
+        if (
+            isinstance(H, QobjEvo)
+            and (H._feedback_functions or H._solver_only_feedback)
+        ):
             raise NotImplementedError("FloquetBasis does not support feedback")
         self.U = Propagator(H, args=args, options=options, memoize=memoize)
         for t in tlist:

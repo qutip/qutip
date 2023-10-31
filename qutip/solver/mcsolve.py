@@ -188,13 +188,14 @@ class _MCSystem:
             n_op.arguments(args)
 
     def add_feedback(self, key, type):
-        self.rhs._add_feedback(key, type)
+        self.rhs.add_feedback(key, type)
         for c_op in self.c_ops:
-            c_op._add_feedback(key, type)
+            c_op.add_feedback(key, type)
         for n_op in self.n_ops:
-            n_op._add_feedback(key, type)
+            n_op.add_feedback(key, type)
 
     def register_feedback(self, key, val):
+        print("_MCSystem.register_feedback", val, id(val))
         self.rhs._register_feedback({key: val}, solver="McSolver")
         for c_op in self.c_ops:
             c_op._register_feedback({key: val}, solver="McSolver")
@@ -245,6 +246,7 @@ class MCIntegrator:
             a trajectory with jumps
         """
         self.collapses = []
+        print(id(self.collapses))
         self.system.register_feedback("collapse", self.collapses)
         self._generator = generator
         if no_jump:

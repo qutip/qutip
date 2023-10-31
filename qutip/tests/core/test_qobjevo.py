@@ -524,12 +524,15 @@ def test_QobjEvo_to_list(coeff_type, pseudo_qevo):
 
 
 class Feedback_Checker_Coefficient:
-    def __init__(self):
+    def __init__(self, stacked=True):
         self.state = None
+        self.stacked = stacked
 
     def __call__(self, t, data=None, qobj=None, e_val=None):
         if self.state is not None:
-            if data is not None:
+            if data is not None and self.stacked:
+                assert data == operator_to_vector(self.state).data
+            elif data is not None:
                 assert data == self.state.data
             if qobj is not None:
                 assert qobj == self.state
@@ -548,10 +551,12 @@ def test_feedback_oper():
 
     checker.state = rand_ket(2)
     qevo.expect(0, checker.state)
-    qevo.matmul_data(0, checker.state.data)
-
     checker.state = rand_ket(2)
     qevo.expect(0, checker.state)
+
+    checker.state = rand_ket(2)
+    qevo.matmul_data(0, checker.state.data)
+    checker.state = rand_ket(2)
     qevo.matmul_data(0, checker.state.data)
 
 
@@ -572,7 +577,7 @@ def test_feedback_super():
     qevo.expect(0, operator_to_vector(checker.state))
     qevo.matmul_data(0, operator_to_vector(checker.state).data)
 
-    checker = Feedback_Checker_Coefficient()
+    checker = Feedback_Checker_Coefficient(stacked=False)
     qevo = QobjEvo([spre(qeye(2)), checker])
     qevo.add_feedback("data", "data")
     qevo.add_feedback("qobj", "qobj")

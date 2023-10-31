@@ -499,21 +499,15 @@ cdef class QobjEvo:
         """
         Function to receive feedback source from
         """
-        if not self._solver_only_feedback:
-            return self
-        res = self.copy()
+        print(solvers_feeds, solver)
         new_args = {}
         for key, feed in self._solver_only_feedback:
             if feed not in solvers_feeds:
                 raise ValueError(
                     f"Desired feedback {key} is not available for the {solver}."
                 )
-            if callable(solvers_feeds[feed]):
-                res._feedback_functions[key] = solvers_feeds[feed]
-            else:
-                new_args[key] = solvers_feeds[feed]
-        res.arguments(**new_args)
-        return res
+            new_args[key] = solvers_feeds[feed]
+        self.arguments(**new_args)
 
     ###########################################################################
     # Math function                                                           #
@@ -1142,19 +1136,21 @@ cdef class QobjEvo:
 cdef class _Expect:
     cdef QobjEvo oper
     cdef bint stack
+    cdef int N, N2
 
     def __init__(self, oper):
         self.oper = oper
-        self.N2 = oper.shape[1]
+        self.N = oper.shape[1]
+        self.N2 = oper.shape[1]**2
 
     def __call__(self, t, state):
-        if self.state[0] == self.N:
+        if state.shape[0] == self.N:
             return self.oper.expect_data(t, state)
-        if self.state[0] == self.N**2 and self.state[1] == 1:
+        if state.shape[0] == self.N2 and state.shape[1] == 1:
             return self.oper.expect_data(t, _data.column_unstack(state, self.N))
         raise ValueError(
             f"Shape of the expect operator ({self.oper.shape}) "
-            f"does not match the state ({self.state.shape})."
+            f"does not match the state ({state.shape})."
         )
 
 
