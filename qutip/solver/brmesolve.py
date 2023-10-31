@@ -362,3 +362,28 @@ class BRSolver(Solver):
         else:
             self._integrator.options = self._options
             self._integrator.reset(hard=True)
+
+    def add_feedback(self, key, type):
+        """
+        Register an argument to be updated with the state during the evolution.
+
+        Equivalent to do:
+            `solver.argument(key=state_t)`
+
+        The state will not be in the lab basis, but in the evolution basis.
+
+        Parameters
+        ----------
+        key : str
+            Arguments key to update.
+
+        type : str, Qobj, QobjEvo
+            Format of the `state_t`.
+
+            - "qobj": As a Qobj, either a ket or dm.
+            - "data": As a qutip data layer object. Density matrices will be
+              columns stacked: shape=(N**2, 1).
+            - Qobj, QobjEvo: The value is updated with the expectation value of
+              the given operator and the state.
+        """
+        self.rhs.add_feedback(key, type)

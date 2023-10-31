@@ -316,7 +316,7 @@ def test_feedback():
     psi0 = qutip.basis(N, N-1)
     a = qutip.destroy(N)
     H = qutip.QobjEvo([qutip.num(N), [a+a.dag(), f]], args={"A": N-1})
+    H.add_feedback("A", qutip.num(N))
     solver = qutip.SESolver(H)
-    solver.add_feedback("A", qutip.num(N))
     result = solver.run(psi0, np.linspace(0, 30, 301), e_ops=[qutip.num(N)])
     assert np.all(result.expect[0] > 2 - tol)

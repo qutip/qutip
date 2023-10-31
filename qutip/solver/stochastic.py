@@ -743,17 +743,15 @@ class StochasticSolver(MultiTrajSolver):
 
             - "qobj": As a Qobj, either a ket or dm.
             - "data": As a qutip data layer object. Density matrices will be
-              square matrix.
-            - "raw": As a qutip data layer object. Density matrices will be
               columns stacked: shape=(N**2, 1).
             - Qobj, QobjEvo: The value is updated with the expectation value of
               the given operator and the state.
             - "wiener_process": The value is replaced by a function ``W(t)``
-              that return an array of wiener processes value at the time t. The
-              wiener process for the i-th sc_ops is the i-th element for
+              that return an array of wiener processes values at the time t.
+              The wiener process for the i-th sc_ops is the i-th element for
               homodyne detection and the (2i, 2i+1) pairs of process in
               heterodyne detection. The process is a step function with step of
-              lenght ``options["dt"]``.
+              length ``options["dt"]``.
         """
         self.system.add_feedback(key, type)
         self._integrator.reset(hard=True)

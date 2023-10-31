@@ -479,8 +479,8 @@ cdef class QobjEvo:
               square matrix.
             - Qobj, QobjEvo: The value is updated with the expectation value of
               the given operator and the state.
-            - str: Other solver specific feedback. See corresponding solver
-              documentation for available values.
+            - str: Other solver specific feedback. See corresponding solver's
+              ``add_feedback`` function's documentation for available values.
         """
         if feedback == "data":
             self._feedback_functions[key] = _pass_through
@@ -499,7 +499,6 @@ cdef class QobjEvo:
         """
         Function to receive feedback source from
         """
-        print(solvers_feeds, solver)
         new_args = {}
         for key, feed in self._solver_only_feedback:
             if feed not in solvers_feeds:

@@ -195,7 +195,6 @@ class _MCSystem:
             n_op.add_feedback(key, type)
 
     def register_feedback(self, key, val):
-        print("_MCSystem.register_feedback", val, id(val))
         self.rhs._register_feedback({key: val}, solver="McSolver")
         for c_op in self.c_ops:
             c_op._register_feedback({key: val}, solver="McSolver")
@@ -246,7 +245,6 @@ class MCIntegrator:
             a trajectory with jumps
         """
         self.collapses = []
-        print(id(self.collapses))
         self.system.register_feedback("collapse", self.collapses)
         self._generator = generator
         if no_jump:
@@ -663,12 +661,10 @@ class MCSolver(MultiTrajSolver):
             Arguments key to update.
 
         type : str, Qobj, QobjEvo
-            Format of the `state_t`.
+            Solver or evolution state.
 
             - "qobj": As a Qobj, either a ket or dm.
             - "data": As a qutip data layer object. Density matrices will be
-              square matrix.
-            - "raw": As a qutip data layer object. Density matrices will be
               columns stacked: shape=(N**2, 1).
             - Qobj, QobjEvo: The value is updated with the expectation value of
               the given operator and the state.
