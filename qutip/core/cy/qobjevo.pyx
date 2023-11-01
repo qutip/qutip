@@ -111,7 +111,7 @@ cdef class QobjEvo:
         With  ``args={"psi": psi0}, feedback={"psi": "qobj"}`` the arguments
         ``psi`` will take the value of the ket at the time the operator is used
         during the evolution of ``sesolve`` allowing non-linear Hamiltonian,
-        etc. See :method:`QobjEvo.add_feedback` for more information.
+        etc. See :meth:`QobjEvo.add_feedback` for more information.
         Inserting an initial value in ``args`` is required.
 
     Attributes
@@ -474,6 +474,7 @@ cdef class QobjEvo:
 
         feedback: str, Qobj, QobjEvo
             Format of the `state_t`.
+
             - "qobj": As a Qobj, either a ket or dm.
             - "data": As a qutip data layer object. Density matrices will be
               square matrix.
@@ -481,6 +482,7 @@ cdef class QobjEvo:
               the given operator and the state.
             - str: Other solver specific feedback. See corresponding solver's
               ``add_feedback`` function's documentation for available values.
+
         """
         if feedback == "data":
             self._feedback_functions[key] = _pass_through

@@ -134,8 +134,8 @@ class Solver:
             values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
 
-        Return
-        ------
+        Returns
+        -------
         results : :class:`qutip.solver.Result`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
