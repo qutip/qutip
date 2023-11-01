@@ -693,7 +693,7 @@ def test_feedback():
     a = qutip.QobjEvo(
         [qutip.destroy(N), f],
         args={"A": 0.},
-        feedback={"A": qutip.num(N)}
+        feedback={"A": qutip.spre(qutip.num(N))}
     )
     H = qutip.QobjEvo(qutip.num(N))
     solver = qutip.MESolver(H, c_ops=[a])

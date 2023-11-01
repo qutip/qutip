@@ -655,6 +655,11 @@ class MCSolver(MultiTrajSolver):
         Equivalent to do:
             `solver.argument(key=state_t)`
 
+        .. note::
+
+            The state passed by the monte-carlo solver are the unnormalized
+            states used internally.
+
         Parameters
         ----------
         key : str

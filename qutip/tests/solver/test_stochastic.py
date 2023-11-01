@@ -330,7 +330,7 @@ def test_feedback():
     sc_ops = [QobjEvo(
         [destroy(N), func],
         args={"A": 8, "W": lambda t: [0.]},
-        feedback={"W": "wiener_process", "A": spre(num(10))},
+        feedback={"W": "wiener_process", "A": num(10)},
     )]
     psi0 = basis(N, N-3)
 
