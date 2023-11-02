@@ -47,14 +47,11 @@ class BathExponent:
 
     Parameters
     ----------
-    type : {"R", "I", "RI", "+", "-","Ra","Re","Ia","Ie"} or BathExponent.ExponentType
+    type : {"R", "I", "RI", "+", "-"} or BathExponent.ExponentType
         The type of bath exponent.
 
         "R" and "I" are bosonic bath exponents that appear in the real and
         imaginary parts of the correlation expansion.
-
-        When the RWA approximation is performed "Ra","Ia" and "Re","Ie" are bosonic bath exponents that appear in the real and
-        imaginary parts of the correlation expansion, for the absorption and emission parts respectively.
 
         "RI" is combined bosonic bath exponent that appears in both the real
         and imaginary parts of the correlation expansion. The combined exponent
@@ -569,7 +566,7 @@ class DrudeLorentzBath(BosonicBath):
         bath an exponent is from.
     """
 
-    def __init__(self, Q, lam, gamma, T, Nk, combine=True, tag=None, rwa=False):
+    def __init__(self, Q, lam, gamma, T, Nk, combine=True, tag=None):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
             gamma=gamma,
@@ -1604,7 +1601,7 @@ class FitCorr(BosonicBath):
         self.Bath_corr = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
 
 
-class OhmicBath(FitCorr, FitSpectral):
+class OhmicBath(BosonicBath):
     def __init__(self, T, Q, alpha, wc, s, Nk=4, method="correlation", rmse=1e-6):
         self.alpha = alpha
         self.wc = wc
