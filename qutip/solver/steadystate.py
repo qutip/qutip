@@ -126,9 +126,10 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         raise TypeError('Cannot calculate the steady state for a ' +
                         'non-dissipative system.')
     if not A.issuper:
-        A = liouvillian(A)
-    for op in c_ops:
-        A += lindblad_dissipator(op)
+        A = liouvillian(A, c_ops)
+    else:
+        for op in c_ops:
+            A += lindblad_dissipator(op)
 
     if "-" in method:
         # to support v4's "power-gmres" method
@@ -202,10 +203,14 @@ def _steadystate_direct(A, weight, **kw):
     N = A.shape[0]
     n = int(N**0.5)
     dtype = type(A.data)
+    if dtype == _data.Dia:
+        # Dia is bad at vector, the following matmul is 10x slower with Dia
+        # than CSR and Dia is missing optimization such as `use_wbm`.
+        dtype = _data.CSR
     weight_vec = _data.column_stack(_data.diag([weight] * n, 0, dtype=dtype))
-    weight_mat = _data.kron(
-        weight_vec.transpose(),
-        _data.one_element[dtype]((N, 1), (0, 0), 1)
+    weight_mat = _data.matmul(
+        _data.one_element[dtype]((N, 1), (0, 0), 1),
+        weight_vec.transpose()
     )
     L = _data.add(weight_mat, A.data)
     b = _data.one_element[dtype]((N, 1), (0, 0), weight)
