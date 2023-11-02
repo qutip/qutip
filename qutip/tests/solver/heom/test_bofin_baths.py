@@ -665,7 +665,8 @@ class TestLorentzianPadeBath:
 
 
 class TestFitUtils:
-    bath = FitUtils()
+    cks = [1] * 5
+    bath = BosonicBath(sigmax(), cks, cks, cks, cks)
 
     def spectral_density(self, w, a, b, c):
         tot = 0
@@ -699,8 +700,7 @@ class TestFitUtils:
         func = lambda x, lam, gamma, w0: np.exp(-lam * x) + gamma / w0
         x = np.linspace(1, 100, 10)
         y = func(x, lam, gamma * 4, w0 * 4)
-        N = 0
-        assert np.isclose(self.bath._rmse(func, x, y, lam, gamma, w0, N), 0)
+        assert np.isclose(self.bath._rmse(func, x, y, lam, gamma, w0), 0)
 
     def test_leastsq(self):
         t = np.linspace(0.1, 10 * 5, 1000)
@@ -739,7 +739,7 @@ class TestFitSpectral:
     alpha = 0.005
     wc = 1
     T = 1
-    bath = FitSpectral(T, sigmax(), nk=2)
+    bath = FitSpectral(T, sigmax(), Nk=2)
 
     def test_spectral_density_approx(self):
         J = 0.4
@@ -796,7 +796,7 @@ class TestFitCorr:
     alpha = 0.005
     wc = 1
     T = 1
-    bath = FitCorr(T, sigmax())
+    bath = FitCorr(sigmax())
 
     def test_corr_approx(self):
         t = np.array([1 / 10, 1 / 5, 1])
