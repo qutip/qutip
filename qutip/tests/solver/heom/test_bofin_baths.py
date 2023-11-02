@@ -1,4 +1,4 @@
-""""
+"""
 Tests for qutip.nonmarkov.bofin_baths.
 """
 
