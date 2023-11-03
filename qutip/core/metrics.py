@@ -31,10 +31,10 @@ def fidelity(A, B):
 
     Notes
     -----
-    Use the definition from Nielsen & Chuang, "Quantum Computation and Quantum
-    Information". For the fidelity defined in A. Gilchrist, N.K. Langford,
-    M.A. Nielsen, Phys. Rev. A 71, 062310 (2005), please use
-    :func:`qutip.core.metrics.process_fidelity` instead.
+    Uses the definition from Nielsen & Chuang, "Quantum Computation and Quantum
+    Information". It is the square root of the fidelity defined in
+    R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994), used in
+    :func:`qutip.core.metrics.process_fidelity`.
 
     Parameters
     ----------
