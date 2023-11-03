@@ -34,7 +34,7 @@ def fidelity(A, B):
     Use the definition from Nielsen & Chuang, "Quantum Computation and Quantum
     Information". For the fidelity defined in A. Gilchrist, N.K. Langford,
     M.A. Nielsen, Phys. Rev. A 71, 062310 (2005), please use
-    :func:`process_fidelity` instead.
+    :func:`qutip.core.metrics.process_fidelity` instead.
 
     Parameters
     ----------
