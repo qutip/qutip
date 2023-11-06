@@ -220,14 +220,14 @@ def _steadystate_direct(A, weight, **kw):
         if isinstance(L, _data.CSR):
             L, b = _permute_wbm(L, b)
         else:
-            warn("Only CSR matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrices can be permuted.", RuntimeWarning)
     use_rcm = False
     if kw.pop("use_rcm", False):
         if isinstance(L, _data.CSR):
             L, b, perm = _permute_rcm(L, b)
             use_rcm = True
         else:
-            warn("Only CSR matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrices can be permuted.", RuntimeWarning)
     if kw.pop("use_precond", False):
         if isinstance(L, (_data.CSR, _data.Dia)):
             kw["M"] = _compute_precond(L, kw)
@@ -276,14 +276,14 @@ def _steadystate_power(A, **kw):
         if isinstance(L, _data.CSR):
             L, y = _permute_wbm(L, y)
         else:
-            warn("Only CSR matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrices can be permuted.", RuntimeWarning)
     use_rcm = False
     if kw.pop("use_rcm", False):
         if isinstance(L, _data.CSR):
             L, y, perm = _permute_rcm(L, y)
             use_rcm = True
         else:
-            warn("Only CSR matrice can be permuted.", RuntimeWarning)
+            warn("Only CSR matrices can be permuted.", RuntimeWarning)
     if kw.pop("use_precond", False):
         if isinstance(L, (_data.CSR, _data.Dia)):
             kw["M"] = _compute_precond(L, kw)
