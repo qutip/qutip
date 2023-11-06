@@ -433,7 +433,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     Calculates the diamond norm of the quantum map q_oper, using
     the simplified semidefinite program of [Wat13]_.
 
-    The diamond norm SDP is solved by using CVXPY_.
+    The diamond norm SDP is solved by using `CVXPY <https://www.cvxpy.org/>`_.
 
     Parameters
     ----------
@@ -463,7 +463,6 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     ImportError
         If CVXPY cannot be imported.
 
-    .. _cvxpy: https://www.cvxpy.org/en/latest/
     """
     if cvxpy is None:  # pragma: no cover
         raise ImportError("dnorm() requires CVXPY to be installed.")

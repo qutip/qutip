@@ -27,8 +27,8 @@ class MultiTrajSolver(Solver):
         Options for the solver.
     """
     name = "generic multi trajectory"
-    resultclass = MultiTrajResult
-    trajectory_resultclass = Result
+    _resultclass = MultiTrajResult
+    _trajectory_resultclass = Result
     _avail_integrators = {}
 
     # Class of option used by the solver
@@ -109,7 +109,7 @@ class MultiTrajSolver(Solver):
         stats = self._initialize_stats()
         seeds = self._read_seed(seed, ntraj)
 
-        result = self.resultclass(
+        result = self._resultclass(
             e_ops, self.options, solver=self.name, stats=stats
         )
         result.add_end_condition(ntraj, target_tol)
@@ -206,7 +206,7 @@ class MultiTrajSolver(Solver):
         return result
 
     def _initialize_run_one_traj(self, seed, state, tlist, e_ops):
-        result = self.trajectory_resultclass(e_ops, self.options)
+        result = self._trajectory_resultclass(e_ops, self.options)
         generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator)
         result.add(tlist[0], self._restore_state(state, copy=False))

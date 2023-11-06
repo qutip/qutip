@@ -18,7 +18,7 @@ class IntegratorVern7(Integrator):
     sparse, GPU or other data layer objects to be used efficiently by the
     solver in their native formats.
 
-    See http://people.math.sfu.ca/~jverner/ for a detailed description of the
+    See https://www.sfu.ca/~jverner/ for a detailed description of the
     methods.
 
     Usable with ``method="vern7"``
@@ -111,7 +111,7 @@ class IntegratorVern9(IntegratorVern7):
     sparse, GPU or other data layer objects to be used efficiently by the
     solver in their native formats.
 
-    See http://people.math.sfu.ca/~jverner/ for a detailed description of the
+    See https://www.sfu.ca/~jverner/ for a detailed description of the
     methods.
 
     Usable with ``method="vern9"``

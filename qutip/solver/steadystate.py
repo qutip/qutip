@@ -453,8 +453,7 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         cast the problem as an Ax=b type problem where the explicit calculation
         of the inverse is not required. See page 67 of "Electrons in
         nanostructures" C. Flindt, PhD Thesis available online:
-        https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/
-        file_4732600/content
+        https://orbit.dtu.dk/en/publications/electrons-in-nanostructures-coherent-manipulation-and-counting-st
 
         Note also that the definition of the pseudo-inverse herein is different
         from numpys pinv() alone, as it includes pre and post projection onto

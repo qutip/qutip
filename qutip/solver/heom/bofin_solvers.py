@@ -136,8 +136,8 @@ class HierarchyADOs:
         int
             The index of the label within the list of ADO labels.
 
-        Note
-        ----
+        .. note::
+
         This implementation of the ``.idx(...)`` method is just for
         reference and documentation. To avoid the cost of a Python
         function call, it is replaced with
@@ -589,7 +589,7 @@ class HEOMSolver(Solver):
     """
 
     name = "heomsolver"
-    resultclass = HEOMResult
+    _resultclass = HEOMResult
     _avail_integrators = {}
     solver_options = {
         "progress_bar": "text",
@@ -903,16 +903,10 @@ class HEOMSolver(Solver):
             Specifies the the maximum number of iterative refinement steps that
             the MKL PARDISO solver performs.
 
-            For a complete description, see iparm(8) in
-            http://cali2.unilim.fr/intel-xe/mkl/mklman/GUID-264E311E-ACED-4D56-AC31-E9D3B11D1CBF.htm.
-
         mkl_weighted_matching : bool
             MKL PARDISO can use a maximum weighted matching algorithm to
             permute large elements close the diagonal. This strategy adds an
             additional level of reliability to the factorization methods.
-
-            For a complete description, see iparm(13) in
-            http://cali2.unilim.fr/intel-xe/mkl/mklman/GUID-264E311E-ACED-4D56-AC31-E9D3B11D1CBF.htm.
 
         Returns
         -------

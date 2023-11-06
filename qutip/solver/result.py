@@ -363,7 +363,7 @@ class MultiTrajResult(_BaseResult):
     kw : dict
         Additional parameters specific to a result sub-class.
 
-    Properties
+    Attributes
     ----------
     times : list
         A list of the times at which the expectation values and states were
@@ -911,7 +911,7 @@ class McResult(MultiTrajResult):
     kw : dict
         Additional parameters specific to a result sub-class.
 
-    Properties
+    Attributes
     ----------
     collapse : list
         For each runs, a list of every collapse as a tuple of the time it
@@ -1204,7 +1204,7 @@ class NmmcResult(McResult):
     kw : dict
         Additional parameters specific to a result sub-class.
 
-    Properties
+    Attributes
     ----------
     average_trace : list
         The average trace (i.e., averaged over all trajectories) at each time.

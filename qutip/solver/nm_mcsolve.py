@@ -324,7 +324,7 @@ class NonMarkovianMCSolver(MCSolver):
             seeds=prev_result.seeds
     """
     name = "nm_mcsolve"
-    resultclass = NmmcResult
+    _resultclass = NmmcResult
     solver_options = {
         **MCSolver.solver_options,
         "completeness_rtol": 1e-5,
@@ -334,7 +334,7 @@ class NonMarkovianMCSolver(MCSolver):
     del solver_options["improved_sampling"]
 
     # both classes will be partially initialized in constructor
-    trajectory_resultclass = NmmcTrajectoryResult
+    _trajectory_resultclass = NmmcTrajectoryResult
     mc_integrator_class = NmMCIntegrator
 
     def __init__(
@@ -369,7 +369,7 @@ class NonMarkovianMCSolver(MCSolver):
             for op, sqrt_shifted_rate
             in zip(self.ops, self._sqrt_shifted_rates)
         ]
-        self.trajectory_resultclass = functools.partial(
+        self._trajectory_resultclass = functools.partial(
             NmmcTrajectoryResult, __nm_solver=self,
         )
         self.mc_integrator_class = functools.partial(

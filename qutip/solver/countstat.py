@@ -189,7 +189,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     .. note::
         The algoryth is described in page 67 of "Electrons in nanostructures"
         C. Flindt, PhD Thesis, available online:
-        https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/file_4732600/content
+        https://orbit.dtu.dk/en/publications/electrons-in-nanostructures-coherent-manipulation-and-counting-st
 
     Returns
     --------

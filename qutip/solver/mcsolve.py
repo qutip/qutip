@@ -364,8 +364,8 @@ class MCSolver(MultiTrajSolver):
         Options for the evolution.
     """
     name = "mcsolve"
-    trajectory_resultclass = McTrajectoryResult
-    mc_integrator_class = MCIntegrator
+    _trajectory_resultclass = McTrajectoryResult
+    _mc_integrator_class = MCIntegrator
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -444,7 +444,7 @@ class MCSolver(MultiTrajSolver):
 
     def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
                                  no_jump=False, jump_prob_floor=0.0):
-        result = self.trajectory_resultclass(e_ops, self.options)
+        result = self._trajectory_resultclass(e_ops, self.options)
         generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator,
                                    no_jump=no_jump,
@@ -520,14 +520,14 @@ class MCSolver(MultiTrajSolver):
         else:
             raise ValueError("Integrator method not supported.")
         integrator_instance = integrator(self.rhs, self.options)
-        mc_integrator = self.mc_integrator_class(
+        mc_integrator = self._mc_integrator_class(
             integrator_instance, self._c_ops, self._n_ops, self.options
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator
 
     @property
-    def resultclass(self):
+    def _resultclass(self):
         if self.options.get("improved_sampling", False):
             return McResultImprovedSampling
         else:

@@ -40,7 +40,7 @@ class Solver:
         "normalize_output": "ket",
         "method": "adams",
     }
-    resultclass = Result
+    _resultclass = Result
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
@@ -133,8 +133,8 @@ class Solver:
             values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
 
-        Return
-        ------
+        Returns
+        -------
         results : :class:`qutip.solver.Result`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
@@ -144,7 +144,7 @@ class Solver:
         self._integrator.set_state(tlist[0], _data0)
         self._argument(args)
         stats = self._initialize_stats()
-        results = self.resultclass(
+        results = self._resultclass(
             e_ops, self.options,
             solver=self.name, stats=stats,
         )

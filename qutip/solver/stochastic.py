@@ -472,7 +472,7 @@ class StochasticSolver(MultiTrajSolver):
     """
 
     name = "StochasticSolver"
-    resultclass = StochasticResult
+    _resultclass = StochasticResult
     _avail_integrators = {}
     system = None
     solver_options = {

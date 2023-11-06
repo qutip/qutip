@@ -21,7 +21,7 @@ class IntegratorScipyAdams(Integrator):
     """
     Integrator using Scipy `ode` with zvode integrator using adams method.
     Ordinary Differential Equation solver by netlib
-    (http://www.netlib.org/odepack).
+    (https://www.netlib.org/odepack).
 
     Usable with ``method="adams"``
     """
@@ -197,7 +197,7 @@ class IntegratorScipyBDF(IntegratorScipyAdams):
     """
     Integrator using Scipy `ode` with zvode integrator using bdf method.
     Ordinary Differential Equation solver by netlib
-    (http://www.netlib.org/odepack).
+    (https://www.netlib.org/odepack).
 
     Usable with ``method="bdf"``
     """
@@ -356,7 +356,7 @@ class IntegratorScipyDop853(Integrator):
 class IntegratorScipylsoda(IntegratorScipyDop853):
     """
     Integrator using Scipy `ode` with lsoda integrator. ODE solver by netlib
-    (http://www.netlib.org/odepack) Automatically choose between 'Adams' and
+    (https://www.netlib.org/odepack) Automatically choose between 'Adams' and
     'BDF' methods to solve both stiff and non-stiff systems.
 
     Usable with ``method="lsoda"``

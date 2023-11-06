@@ -90,7 +90,7 @@ def concurrence(rho):
     References
     ----------
 
-    .. [1] https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)
+    .. [1] `https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)`
 
     """
     if rho.isket and rho.dims != [[2, 2], [1, 1]]:

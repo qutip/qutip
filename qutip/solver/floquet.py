@@ -751,7 +751,7 @@ class FMESolver(MESolver):
 
     name = "fmmesolve"
     _avail_integrators = {}
-    resultclass = FloquetResult
+    _resultclass = FloquetResult
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -907,7 +907,7 @@ class FMESolver(MESolver):
         _data0 = self._prepare_state(state0)
         self._integrator.set_state(tlist[0], _data0)
         stats = self._initialize_stats()
-        results = self.resultclass(
+        results = self._resultclass(
             e_ops,
             self.options,
             solver=self.name,
