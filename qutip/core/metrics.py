@@ -9,13 +9,10 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
            'hellinger_dist', 'hilbert_dist', 'average_gate_fidelity',
            'process_fidelity', 'unitarity', 'dnorm']
 
-import warnings
-
 import numpy as np
 from scipy import linalg as la
 import scipy.sparse as sp
-from .superop_reps import (to_kraus, to_choi, _to_superpauli, to_super,
-                           kraus_to_choi)
+from .superop_reps import to_choi, _to_superpauli, to_super, kraus_to_choi
 from .superoperator import operator_to_vector, vector_to_operator
 from .operators import qeye, qeye_like
 from .states import ket2dm
@@ -31,7 +28,13 @@ except ImportError:
 def fidelity(A, B):
     """
     Calculates the fidelity (pseudo-metric) between two density matrices.
-    See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
+
+    Notes
+    -----
+    Uses the definition from Nielsen & Chuang, "Quantum Computation and Quantum
+    Information". It is the square root of the fidelity defined in
+    R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994), used in
+    :func:`qutip.core.metrics.process_fidelity`.
 
     Parameters
     ----------
@@ -196,7 +199,7 @@ def process_fidelity(oper, target=None):
         if isinstance(oper, list):  # oper is a list of Kraus operators
             return _process_fidelity_to_id([k * target.dag() for k in oper])
         elif oper.type == 'oper':
-            return _process_fidelity_to_id(oper*target.dag())
+            return _process_fidelity_to_id(oper * target.dag())
         elif oper.type == 'super':
             oper_super = to_super(oper)
             target_dag_super = to_super(target.dag())
