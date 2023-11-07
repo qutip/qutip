@@ -17,6 +17,7 @@ from scipy.optimize import curve_fit
 from qutip.core import data as _data
 from qutip.core.qobj import Qobj
 from qutip.core.superoperator import spre, spost
+from qutip.visualization import gen_spectral_plots, gen_corr_plots
 
 __all__ = [
     "BathExponent",
@@ -1287,6 +1288,21 @@ class FitSpectral(BosonicBath):
         end = time()
         self.fit_time = end - start
 
+    def correlation_approx_matsubara(self, t, real=True):
+        """ Calculate the approximate real or imaginary part of the
+            correlation function from the matsubara expansion co-efficients.
+        """
+        if real:
+            ck, vk = self.cvars[0], self.cvars[1]
+        else:
+            ck, vk = self.cvars[2], self.cvars[3]
+        ck = np.array(ck)
+        vk = np.array(vk)
+        return np.sum(ck[:, None] * np.exp(-vk[:, None] * t), axis=0)
+
+    def fit_plots(self, w, J, t, C, w2, S):
+        gen_spectral_plots(self, w, J, t, C, w2, S)
+
     def _matsubara_spectral_fit(self):
         """
         Obtains the bath exponents from the list of fit parameters
@@ -1306,6 +1322,10 @@ class FitSpectral(BosonicBath):
         ckAI = []
         vkAI = []
         UD = UnderDampedBath(self.Q, lam[0], gamma[0], w0[0], self.T, self.Nk)
+        terminator = 0. * spre(self.Q)
+        # the number of matsubara expansion terms to include in the terminator:
+        terminator_max_k = 1000
+
         for lamt, Gamma, Om in zip(lam, gamma, w0):
             ck_real, vk_real, ck_imag, vk_imag = UD._matsubara_params(
                 lamt, 2 * Gamma, Om + 0j, self.T, self.Nk
@@ -1314,12 +1334,29 @@ class FitSpectral(BosonicBath):
             vkAR.append(vk_real)
             vkAI.append(vk_imag)
             ckAI.append(ck_imag)
+            terminator_factor = 0
+            for k in range(self.Nk + 1, terminator_max_k):
+                ek = 2 * np.pi * k / self.beta
+                ck = (
+                    (-2 * lamt * 2 * Gamma / self.beta) * ek /
+                    (
+                        ((Om + 1.0j * Gamma)**2 + ek**2) *
+                        ((Om - 1.0j * Gamma)**2 + ek**2)
+                    )
+                )
+                terminator_factor += ck / ek
+            terminator += terminator_factor * (
+                2 * spre(self.Q) * spost(self.Q.dag())
+                - spre(self.Q.dag() * self.Q)
+                - spost(self.Q.dag() * self.Q)
+            )
         self.cvars = [
             np.array(ckAR).flatten(),
             np.array(vkAR).flatten(),
             np.array(ckAI).flatten(),
             np.array(vkAI).flatten(),
         ]
+        self.terminator = terminator
         self.Bath_spec = BosonicBath(
             self.Q,
             np.array(ckAR).flatten(),
@@ -1392,6 +1429,9 @@ class FitCorr(BosonicBath):
             print(formatted_line1 + formatted_line2)
         print("\t " * 6 + time)
 
+    def fit_plots(self, w, J, t, C, w2, S, beta):
+        gen_corr_plots(self, w, J, t, C, w2, S, beta)
+
     def fit_correlation(
         self,
         t,
@@ -1431,6 +1471,12 @@ class FitCorr(BosonicBath):
         """
         start = time()
         rmse1, rmse2 = [8, 8]
+        flag = False
+        if (Nr is not None) & (Ni is not None):
+            flag = True
+            Nr -= 1
+            Ni -= 1
+
         if Nr is None:
             Nr = 0
         if Ni is None:
@@ -1448,6 +1494,8 @@ class FitCorr(BosonicBath):
                 upper=upper,
                 label="correlation_real",
             )
+            if flag == True:
+                break
         while rmse2 > final_rmse:
             Ni += 1
             rmse2, params_imag = self._fit(
@@ -1461,6 +1509,8 @@ class FitCorr(BosonicBath):
                 upper=upper,
                 label="correlation_imag",
             )
+            if flag == True:
+                break
         self.Nr = Nr
         self.Ni = Ni
         self.rmse_real = rmse1
@@ -1489,6 +1539,13 @@ class FitCorr(BosonicBath):
             )
         return S
 
+    def corr_spectral_approx(self, w, beta):
+        J = np.real(
+            self.corr_spectrum_approx(w) /
+            (((1 / (np.e**(w * beta) - 1)) + 1) * 2)
+        )
+        return J
+
     def _matsubara_coefficients(self):
         lam, gamma, w0 = self.params_real
         lam2, gamma2, w02 = self.params_imag
@@ -1508,7 +1565,7 @@ class FitCorr(BosonicBath):
 
 
 class OhmicBath(BosonicBath):
-    def __init__(self, T, Q, alpha, wc, s, Nk=4, method="correlation", rmse=1e-6):
+    def __init__(self, T, Q, alpha, wc, s, Nk=4, method="spectral", rmse=7e-5):
         self.alpha = alpha
         self.wc = wc
         self.s = s
@@ -1519,14 +1576,17 @@ class OhmicBath(BosonicBath):
         self.beta = 1 / T
         if method == "correlation":
             self.fit = FitCorr(self.Q)
-            t = np.linspace(0, 50 / self.wc, 1000)
+            t = np.linspace(0, 15 / self.wc, 1000)
             C = self.ohmic_correlation(t, self.s)
             self.fit.fit_correlation(t, C, final_rmse=rmse)
+            self.bath = self.fit.Bath_corr
         else:
             self.fit = FitSpectral(self.T, self.Q, self.Nk)
-            w = np.linspace(0, 50 * self.wc, 1000)
+            w = np.linspace(0, 15 * self.wc, 20000)
             J = self.ohmic_spectral_density(w)
             self.fit.get_fit(J, w, final_rmse=rmse)
+            self.bath = self.fit.Bath_spec
+            self.terminator = self.fit.terminator
 
     def summary(self):
         self.fit.summary()

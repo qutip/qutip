@@ -1871,3 +1871,203 @@ def plot_schmidt(ket, theme='light', splitting=None,
     ax.set_ylabel("first particles")
 
     return fig, output
+
+
+# PLOTS FOR FITS (THIS BIT NEEDS REFACTORING)
+# SPECTRAL:
+
+def gen_spectral_plots(fs, w, J, t, C, w2, S):
+    def plot_cr_fit_vs_actual(t, C, func, axes):
+        """ Plot the C_R(t) fit. """
+        yR = func(t)
+
+        axes.plot(
+            t, np.real(C),
+            "r", linewidth=3, label="Original",
+        )
+        axes.plot(
+            t, np.real(yR),
+            "g", dashes=[3, 3], linewidth=2, label="Reconstructed",
+        )
+
+        axes.set_ylabel(r'$C_R(t)$', fontsize=28)
+        axes.set_xlabel(r'$t\;\omega_c$', fontsize=28)
+        axes.locator_params(axis='y', nbins=4)
+        axes.locator_params(axis='x', nbins=4)
+        axes.text(0.15, 0.85, "(a)", fontsize=28, transform=axes.transAxes)
+
+    def plot_ci_fit_vs_actual(t, C, func, axes):
+        """ Plot the C_I(t) fit. """
+        yI = func(t)
+
+        axes.plot(
+            t, np.imag(C),
+            "r", linewidth=3,
+        )
+        axes.plot(
+            t, np.real(yI),
+            "g", dashes=[3, 3], linewidth=2,
+        )
+
+        axes.set_ylabel(r'$C_I(t)$', fontsize=28)
+        axes.set_xlabel(r'$t\;\omega_c$', fontsize=28)
+        axes.locator_params(axis='y', nbins=4)
+        axes.locator_params(axis='x', nbins=4)
+        axes.text(0.80, 0.80, "(b)", fontsize=28, transform=axes.transAxes)
+
+    def plot_jw_fit_vs_actual(w, J, func, params, axes):
+        """ Plot the J(w) fit. """
+        a, b, c = params
+        J_fit = func(w, a, b, c)
+
+        axes.plot(
+            w, J,
+            "r", linewidth=3,
+        )
+        axes.plot(
+            w, J_fit,
+            "g", dashes=[3, 3], linewidth=2,
+        )
+
+        axes.set_ylabel(r'$J(\omega)$', fontsize=28)
+        axes.set_xlabel(r'$\omega/\omega_c$', fontsize=28)
+        axes.locator_params(axis='y', nbins=4)
+        axes.locator_params(axis='x', nbins=4)
+        axes.text(0.15, 0.85, "(c)", fontsize=28, transform=axes.transAxes)
+
+    def plot_sw_fit_vs_actual(func, axes):
+        """ Plot the S(w) fit. """
+
+        # avoid the pole in the fit around zero:
+        s_fit = func(w2)
+
+        axes.plot(w2, S, "r", linewidth=3)
+        axes.plot(w2, s_fit, "g", dashes=[3, 3], linewidth=2)
+
+        axes.set_ylabel(r'$S(\omega)$', fontsize=28)
+        axes.set_xlabel(r'$\omega/\omega_c$', fontsize=28)
+        axes.locator_params(axis='y', nbins=4)
+        axes.locator_params(axis='x', nbins=4)
+        axes.text(0.15, 0.85, "(d)", fontsize=28, transform=axes.transAxes)
+
+    def plot_matsubara_spectrum_fit_vs_actual(
+        t, C
+    ):
+        """ Plot the Matsubara fit of the spectrum . """
+        fig = plt.figure(figsize=(12, 10))
+        grid = plt.GridSpec(2, 2, wspace=0.4, hspace=0.3)
+
+        plot_cr_fit_vs_actual(
+            t, C, fs.correlation_approx_matsubara,
+            axes=fig.add_subplot(grid[0, 0]),
+        )
+        plot_ci_fit_vs_actual(
+            t, C, lambda t: fs.correlation_approx_matsubara(t, real=False),
+            axes=fig.add_subplot(grid[0, 1]),
+        )
+        plot_jw_fit_vs_actual(w, J, fs.spectral_density_approx, fs.params_spec,
+                              axes=fig.add_subplot(grid[1, 0]),
+                              )
+        plot_sw_fit_vs_actual(fs.spec_spectrum_approx,
+                              axes=fig.add_subplot(grid[1, 1]),
+                              )
+        fig.legend(loc='upper center', ncol=2, fancybox=True, shadow=True)
+        return fig
+    return plot_matsubara_spectrum_fit_vs_actual(t, C)
+
+
+def gen_corr_plots(fc, w, J, t, C, w2, S, beta):
+    def plot_cr_fit_vs_actual(t, C, axes):
+        """ Plot the C_R(t) fit. """
+        a, b, c = fc.params_real
+        yR = np.real(fc.corr_approx(t, a, b, c))
+
+        axes.plot(
+            t, np.real(C),
+            "r", linewidth=3, label="Original",
+        )
+        axes.plot(
+            t, np.real(yR),
+            "g", dashes=[3, 3], linewidth=2, label="Reconstructed",
+        )
+
+        axes.set_ylabel(r'$C_R(t)$', fontsize=28)
+        axes.set_xlabel(r'$t\;\omega_c$', fontsize=28)
+        axes.locator_params(axis='y', nbins=4)
+        axes.locator_params(axis='x', nbins=4)
+        axes.text(0.15, 0.85, "(a)", fontsize=28, transform=axes.transAxes)
+
+    def plot_ci_fit_vs_actual(t, C, axes):
+        """ Plot the C_I(t) fit. """
+        a, b, c = fc.params_imag
+        yI = np.imag(fc.corr_approx(t, a, b, c))
+        axes.plot(
+            t, np.imag(C),
+            "r", linewidth=3,
+        )
+        axes.plot(
+            t, np.real(yI),
+            "g", dashes=[3, 3], linewidth=2,
+        )
+
+        axes.set_ylabel(r'$C_I(t)$', fontsize=28)
+        axes.set_xlabel(r'$t\;\omega_c$', fontsize=28)
+        axes.locator_params(axis='y', nbins=4)
+        axes.locator_params(axis='x', nbins=4)
+        axes.text(0.80, 0.80, "(b)", fontsize=28, transform=axes.transAxes)
+
+    def plot_jw_fit_vs_actual(w, J, beta, axes):
+        """ Plot the J(w) fit. """
+        J_fit = fc.corr_spectral_approx(w, beta)
+        axes.plot(
+            w, J,
+            "r", linewidth=3,
+        )
+        axes.plot(
+            w, J_fit,
+            "g", dashes=[3, 3], linewidth=2,
+        )
+
+        axes.set_ylabel(r'$J(\omega)$', fontsize=28)
+        axes.set_xlabel(r'$\omega/\omega_c$', fontsize=28)
+        axes.locator_params(axis='y', nbins=4)
+        axes.locator_params(axis='x', nbins=4)
+        axes.text(0.15, 0.85, "(c)", fontsize=28, transform=axes.transAxes)
+
+    def plot_sw_fit_vs_actual(axes):
+        """ Plot the S(w) fit. """
+
+        # avoid the pole in the fit around zero:
+        s_fit = fc.corr_spectrum_approx(w2)
+
+        axes.plot(w2, S, "r", linewidth=3)
+        axes.plot(w2, s_fit, "g", dashes=[3, 3], linewidth=2)
+
+        axes.set_ylabel(r'$S(\omega)$', fontsize=28)
+        axes.set_xlabel(r'$\omega/\omega_c$', fontsize=28)
+        axes.locator_params(axis='y', nbins=4)
+        axes.locator_params(axis='x', nbins=4)
+        axes.text(0.15, 0.85, "(d)", fontsize=28, transform=axes.transAxes)
+
+    def plot_matsubara_spectrum_fit_vs_actual(
+        t, C
+    ):
+        """ Plot the Matsubara fit of the spectrum . """
+        fig = plt.figure(figsize=(12, 10))
+        grid = plt.GridSpec(2, 2, wspace=0.4, hspace=0.3)
+
+        plot_cr_fit_vs_actual(
+            t, C,
+            axes=fig.add_subplot(grid[0, 0]),
+        )
+        plot_ci_fit_vs_actual(
+            t, C,
+            axes=fig.add_subplot(grid[0, 1]),
+        )
+        plot_jw_fit_vs_actual(w, J, beta,
+                              axes=fig.add_subplot(grid[1, 0]),
+                              )
+        plot_sw_fit_vs_actual(axes=fig.add_subplot(grid[1, 1]),)
+        fig.legend(loc='upper center', ncol=2, fancybox=True, shadow=True)
+        return fig
+    return plot_matsubara_spectrum_fit_vs_actual(t, C)
