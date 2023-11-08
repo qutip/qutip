@@ -358,7 +358,10 @@ class BosonicBath(Bath):
         return a, b, c
 
     @classmethod
-    def _leastsq(self, func, y, x, guesses=None, lower=None, upper=None, sigma=None):
+    def _leastsq(
+        self, func, y, x, guesses=None,
+        lower=None, upper=None, sigma=None
+    ):
         """
         Performs nonlinear least squares  to fit the function func to x and y
 
@@ -367,7 +370,7 @@ class BosonicBath(Bath):
         func : function
             The function we wish to fit.
         x: np.array
-            a numpy array containing the independent variable we use for the fit
+            a numpy array containing the independent variable used for the fit
         y: np.array
             a numpy array containing the dependent variable we use for the fit
         guesses : list
@@ -386,10 +389,10 @@ class BosonicBath(Bath):
         try:
             sigma = [sigma] * len(x)
             if None in [guesses, lower, upper, sigma]:
-                raise ValueError(
+                raise Exception(
                     "Fit parameters were not provided"
                 )  # maybe unnecessary and can let it go to scipy defaults
-        except:
+        except Exception:
             pass
         params, _ = curve_fit(
             lambda x, *params: func(x, *self.unpack(params)),
@@ -407,16 +410,17 @@ class BosonicBath(Bath):
     @classmethod
     def _rmse(self, func, x, y, lam, gamma, w0):
         """
-        Calculates the normalized root Mean squared error for fits, from the fitted parameters lam,gamma,w0
+        Calculates the normalized root Mean squared error for fits
+        from the fitted parameters lam,gamma,w0
 
         Parameters
         ----------
         func : function
             The approximated function for which we want to compute the rmse.
         x: np.array
-            a numpy array containing the independent variable we used for the fit
+            a numpy array containing the independent variable used for the fit
         y: np.array
-            a numpy array containing the dependent variable we used for the fit
+            a numpy array containing the dependent variable used for the fit
         lam : list
             a listed containing fitted couplings strength.
         gamma : list
@@ -426,7 +430,8 @@ class BosonicBath(Bath):
         Returns
         -------
         rmse: float
-            The normalized root mean squared error for the fit, the closer to zero the better the fit.
+            The normalized root mean squared error for the fit, the closer
+            to zero the better the fit.
         """
         yhat = func(x, lam, gamma, w0)
         rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / \
@@ -439,17 +444,19 @@ class BosonicBath(Bath):
         guesses=None, lower=None, upper=None, sigma=None
     ):
         """
-        Performs a fit the function func to t and C, with N number of terms in func, the guesses,bounds and uncertainty can be determined by the user.
-        If none is provided it constructs default ones according to the label.
+        Performs a fit the function func to t and C, with N number of
+        terms in func, the guesses,bounds and uncertainty can be determined
+        by the user.If none is provided it constructs default ones according
+        to the label.
 
         Parameters
         ----------
         func : function
             The function we wish to fit.
         x: np.array
-            a numpy array containing the independent variable we use for the fit
+            a numpy array containing the independent variable used for the fit
         y: np.array
-            a numpy array containing the dependent variable we use for the fit
+            a numpy array containing the dependent variable used for the fit
         guesses : list
             Initial guess for the parameters.
         lower : list
@@ -471,7 +478,7 @@ class BosonicBath(Bath):
                 raise Exception(
                     "No parameters for the fit provided, using default ones"
                 )
-        except:
+        except Exception:
             sigma = 1e-4
             C_max = abs(max(C, key=abs))
             wc = t[np.argmax(C)]
@@ -1181,22 +1188,26 @@ class FitSpectral(BosonicBath):
     def __str__(self):
         try:
             lam, gamma, w0 = self.params_spec
-            summary = f"Results of the fitting the Spectral density with {self.spec_n} terms: \n \n {'Parameters' : <10}|{'lam' : ^10}|{'gamma' : ^10}|{'w0' : >5} \n "
+            summary = f"Result of fitting the Spectral density \
+                        with {self.spec_n} terms: \n \n {'Parameters': <10}| \
+                        {'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
             for i in range(len(lam)):
                 summary += (
-                    f"{ i+1 : <10}|{lam[i]: ^10.2e}|{gamma[i]:^10.2e}|{w0[i]:>5.2e} \n "
+                    f"{i+1: <10}|{lam[i]: ^10.2e}|{gamma[i]:^10.2e}|\
+                      {w0[i]:>5.2e}\n "
                 )
-            summary += f"\nA  normalized RMSE of {self._rmse: .2e} was obtained for the Spectral density \n"
-            summary += f" The current fit took {self.fit_time : 2f} seconds"
+            summary += f"\nA  normalized RMSE of {self._rmse: .2e} \
+                         was obtained for the Spectral density \n"
+            summary += f" The current fit took {self.fit_time: 2f} seconds"
             return summary
-        except:
+        except NameError:
             return "Fit correlation instance: \n No fit has been performed yet"
 
     def summary(self):
         print(self.__str__())
 
     def spectral_density_approx(self, w, a, b, c):
-        """Calculate the fitted value of the function for the given parameters."""
+        """Calculate the fitted value of the function for the parameters."""
         tot = 0
         for i in range(len(a)):
             tot += (
@@ -1204,12 +1215,13 @@ class FitSpectral(BosonicBath):
                 * a[i]
                 * b[i]
                 * w
-                / (((w + c[i]) ** 2 + b[i] ** 2) * ((w - c[i]) ** 2 + b[i] ** 2))
+                / (((w + c[i]) ** 2 + b[i] ** 2)
+                    * ((w - c[i]) ** 2 + b[i] ** 2))
             )
         return tot
 
     def spec_spectrum_approx(self, w):
-        """Calculates the approximate power spectrum w and the fitted parameters"""
+        """Calculates the power spectrum from w and the fitted parameters"""
         lam, gamma, w0 = self.params_spec
         s_fit = (
             self.spectral_density_approx(w, lam, gamma, w0)
@@ -1230,8 +1242,10 @@ class FitSpectral(BosonicBath):
         guesses=None,
     ):
         """
-        Provides a fit to the spectral density with N underdamped oscillators baths, This function gets the number of harmonic oscillators based
-        on reducing the normalized root mean squared error below a certain threshold
+        Provides a fit to the spectral density with N underdamped
+        oscillators baths, This function gets the number of harmonic
+        oscillators based on reducing the normalized root mean
+        squared error below a certain threshold
         Parameters
         ----------
         J : np.array
@@ -1240,7 +1254,8 @@ class FitSpectral(BosonicBath):
             range of frequencies for the fit.
 
         N : optional,int
-            Number of underdamped oscillators to use, if set to False it is found automaticlly.
+            Number of underdamped oscillators to use,
+            if set to False it is found automatically.
         final_rmse : float
             Desired normalized root mean squared error .
         lower : list
@@ -1253,7 +1268,7 @@ class FitSpectral(BosonicBath):
             Initial guess for the parameters.
         """
         start = time()
-        if N == None:
+        if N is None:
             N = 1
             rmse = 8
             while rmse > final_rmse:
@@ -1316,7 +1331,9 @@ class FitSpectral(BosonicBath):
         )
         lam = np.sqrt(
             lam + 0j
-        )  # both w0, and lam are needed to input the right value of the fit into the Underdamped bath
+        )
+        # both w0, and lam  modifications are needed to input the
+        # right value of the fit into the Underdamped bath
         ckAR = []
         vkAR = []
         ckAI = []
@@ -1368,7 +1385,8 @@ class FitSpectral(BosonicBath):
 
 class FitCorr(BosonicBath):
     """
-    A helper class for constructing a Bosonic bath from a Correlation function fit.
+    A helper class for constructing a Bosonic bath from the
+    correlation function fit.
 
     Parameters
     ----------
@@ -1380,7 +1398,7 @@ class FitCorr(BosonicBath):
         self.Q = Q
 
     def corr_approx(self, t, a, b, c):
-        """Calculate the fitted value of the function for the given parameters."""
+        """Calculate the fitted value of the function for the parameters."""
         a = np.array(a)
         b = np.array(b)
         c = np.array(c)
@@ -1393,20 +1411,28 @@ class FitCorr(BosonicBath):
         try:
             lam, gamma, w0 = self.params_real
             lam2, gamma2, w02 = self.params_imag
-            summary = f"Results of the fitting the Real Part with {self.Nr} terms: \n \n {'Parameters' : <10}|{'lam' : ^10}|{'gamma' : ^10}|{'w0' : >5} \n "
-            summary2 = f"\t Results of the fitting the Imaginary Part with {self.Ni} terms: \n \n \t {'Parameters' : <10}|{'lam' : ^10}|{'gamma' : ^10}|{'w0' : >5} \n"
+            summary = f"Result of fitting the Real Part with {self.Nr}\
+                        terms: \n \n {'Parameters': <10}|\
+                        {'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
+            summary2 = f"\tResult of fitting the Imaginary Part with {self.Ni}\
+                         terms: \n \n \t {'Parameters': <10}\
+                        |{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n"
             for i in range(len(lam)):
                 summary += (
-                    f"{ i+1 : <10}|{lam[i]: ^10.2e}|{gamma[i]:^10.2e}|{w0[i]:>5.2e} \n "
+                    f"{i+1: <10}|{lam[i]: ^10.2e}| \
+                      {gamma[i]:^10.2e}|{w0[i]:>5.2e} \n "
                 )
             for i in range(len(lam2)):
-                summary2 += f"\t {i+1 : <10}|{lam2[i]: ^10.2e}|{gamma2[i]: ^10.2e}|{w02[i] :>5.2e} \n "
-            summary += f"\n  A  normalized RMSE of {self.rmse_real: .2e} was obtained for the real part \n"
-            summary2 += f"\n \t A  normalized RMSE of {self.rmse_imag :.2e} was obtained for the imaginary part \n"
-            time = f" The current fit took {self.fit_time : 2f} seconds"
+                summary2 += f"\t {i+1: <10}|{lam2[i]: ^10.2e}\
+                              |{gamma2[i]: ^10.2e}|{w02[i]:>5.2e} \n "
+            summary += f"\n  A  normalized RMSE of {self.rmse_real: .2e}\
+                        was obtained for the real part \n"
+            summary2 += f"\n \t A  normalized RMSE of {self.rmse_imag:.2e}\
+                         was obtained for the imaginary part \n"
+            time = f" The current fit took {self.fit_time: 2f} seconds"
             return summary, summary2, time
 
-        except:
+        except NameError:
             return "Fit correlation instance: \n No fit has been performed yet"
 
     def summary(self):
@@ -1444,9 +1470,12 @@ class FitCorr(BosonicBath):
         sigma=None,
         guesses=None,
     ):
-        """Fit the correlation function with Ni underdamped oscillators baths for the imaginary part of the correlation function and Nr for the real.
-        Provides a fit to the with N underdamped oscillators. If no number of terms is provided This function gets the number of harmonic oscillators based
-        on reducing the normalized root mean squared error below a certain threshold.
+        """Fit the correlation function with Ni underdamped oscillators baths
+        for the imaginary part of the correlation function and Nr for the real.
+        Provides a fit to the with N underdamped oscillators. If no number of
+        terms is provided This function gets the number of harmonic oscillators
+        based on reducing the normalized root mean squared error below a
+        certain threshold.
         Parameters
         ----------
         t : np.array
@@ -1455,9 +1484,11 @@ class FitCorr(BosonicBath):
             Correlation function to be fit.
 
         Nr : optional,int
-            Number of underdamped oscillators to use for the real part, if set to False it is found automaticlly.
+            Number of underdamped oscillators to use for the real part,
+            if set to None it is found automatically.
         Ni : optional,int
-            Number of underdamped oscillators to use for the imaginary part, if set to False it is found automaticlly.
+            Number of underdamped oscillators to use for the imaginary part,
+            if set to None it is found automatically.
         final_rmse : float
             Desired normalized root mean squared error .
         lower : list
@@ -1494,7 +1525,7 @@ class FitCorr(BosonicBath):
                 upper=upper,
                 label="correlation_real",
             )
-            if flag == True:
+            if flag is True:
                 break
         while rmse2 > final_rmse:
             Ni += 1
@@ -1509,7 +1540,7 @@ class FitCorr(BosonicBath):
                 upper=upper,
                 label="correlation_imag",
             )
-            if flag == True:
+            if flag is True:
                 break
         self.Nr = Nr
         self.Ni = Ni
@@ -1616,7 +1647,8 @@ class OhmicBath(BosonicBath):
         z1_u = (1 + self.beta * self.wc - 1.0j *
                 self.wc * t) / (self.beta * self.wc)
         z2_u = (1 + 1.0j * self.wc * t) / (self.beta * self.wc)
-        # Note: the arguments to zeta should be in as high precision as possible.
+        # Note: the arguments to zeta should be in as high precision
+        # as possible.
         # See http://mpmath.org/doc/current/basics.html#providing-correct-input
         return np.array(
             [
