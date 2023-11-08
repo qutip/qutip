@@ -251,6 +251,10 @@ class BosonicBath(Bath):
             self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
             tag=None,
     ):
+        self.ckAR = ck_real
+        self.ckAI = ck_imag
+        self.vkAR = vk_real
+        self.vkAI = vk_imag
         self._check_cks_and_vks(ck_real, vk_real, ck_imag, vk_imag)
         self._check_coup_op(Q)
 
@@ -343,173 +347,54 @@ class BosonicBath(Bath):
 
         return new_exponents
 
-    @classmethod
-    def pack(self, a, b, c):
-        """Pack parameter lists for fitting."""
-        return np.concatenate((a, b, c))
+    def corr_spectrum_approx(self, w):
+        """Calculates the approximate power spectrum from ck and vk."""
+        S = np.zeros(len(w), dtype=np.complex128)
+        for ck, vk in zip(self.ckAR, self.vkAR):
+            S += 2 * ck * np.real(vk) / ((w - np.imag(vk))
+                                         ** 2 + (np.real(vk) ** 2))
+        for ck, vk in zip(self.ckAI, self.vkAI):
+            S += (
+                2
+                * 1.0j
+                * ck
+                * np.real(vk)
+                / ((w - np.imag(vk)) ** 2 + (np.real(vk) ** 2))
+            )
+        return S
 
-    @classmethod
-    def unpack(self, params):
-        """Unpack parameter lists for fitting."""
-        N = len(params) // 3
-        a = params[:N]
-        b = params[N: 2 * N]
-        c = params[2 * N:]
-        return a, b, c
-
-    @classmethod
-    def _leastsq(
-        self, func, y, x, guesses=None,
-        lower=None, upper=None, sigma=None
-    ):
-        """
-        Performs nonlinear least squares  to fit the function func to x and y
-
-        Parameters
-        ----------
-        func : function
-            The function we wish to fit.
-        x: np.array
-            a numpy array containing the independent variable used for the fit
-        y: np.array
-            a numpy array containing the dependent variable we use for the fit
-        guesses : list
-            Initial guess for the parameters.
-        lower : list
-            lower bounds on the parameters for the fit.
-        upper: list
-            upper bounds on the parameters for the fit
-        sigma:
-            uncertainty in the data considered for the fit
-        Returns
-        -------
-        params: list
-            It returns the fitted parameters.
-        """
-        try:
-            sigma = [sigma] * len(x)
-            if None in [guesses, lower, upper, sigma]:
-                raise Exception(
-                    "Fit parameters were not provided"
-                )  # maybe unnecessary and can let it go to scipy defaults
-        except Exception:
-            pass
-        params, _ = curve_fit(
-            lambda x, *params: func(x, *self.unpack(params)),
-            x,
-            y,
-            p0=guesses,
-            bounds=(lower, upper),
-            sigma=sigma,
-            maxfev=int(1e9),
-            method="trf",
+    def corr_spectral_approx(self, w, beta):
+        J = np.real(
+            self.corr_spectrum_approx(w) /
+            (((1 / (np.e**(w * beta) - 1)) + 1) * 2)
         )
+        return J
 
-        return self.unpack(params)
+    def power_spectrum(self, w, T):
+        beta = 1/T
+        S = self._spectral_density(w)*(((1 / (np.e**(w * beta) - 1)) + 1) * 2)
+        return S
 
-    @classmethod
-    def _rmse(self, func, x, y, lam, gamma, w0):
-        """
-        Calculates the normalized root Mean squared error for fits
-        from the fitted parameters lam,gamma,w0
+    def CR(self, t):
+        """ C_R, the real part of the correlation function. """
+        result = 0
+        for exp in self.exponents:
+            if (
+                exp.type == BathExponent.types['R'] or
+                exp.type == BathExponent.types['RI']
+            ):
+                result += exp.ck * np.exp(-exp.vk * t)
+        return result
 
-        Parameters
-        ----------
-        func : function
-            The approximated function for which we want to compute the rmse.
-        x: np.array
-            a numpy array containing the independent variable used for the fit
-        y: np.array
-            a numpy array containing the dependent variable used for the fit
-        lam : list
-            a listed containing fitted couplings strength.
-        gamma : list
-            a list containing fitted cutoff frequencies.
-        w0s:
-            a list containing fitted resonance frequecies
-        Returns
-        -------
-        rmse: float
-            The normalized root mean squared error for the fit, the closer
-            to zero the better the fit.
-        """
-        yhat = func(x, lam, gamma, w0)
-        rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / \
-            (np.max(y) - np.min(y))
-        return rmse
-
-    @classmethod
-    def _fit(
-        self, func, C, t, N=4, label="correlation_real",
-        guesses=None, lower=None, upper=None, sigma=None
-    ):
-        """
-        Performs a fit the function func to t and C, with N number of
-        terms in func, the guesses,bounds and uncertainty can be determined
-        by the user.If none is provided it constructs default ones according
-        to the label.
-
-        Parameters
-        ----------
-        func : function
-            The function we wish to fit.
-        x: np.array
-            a numpy array containing the independent variable used for the fit
-        y: np.array
-            a numpy array containing the dependent variable used for the fit
-        guesses : list
-            Initial guess for the parameters.
-        lower : list
-            lower bounds on the parameters for the fit.
-        upper: list
-            upper bounds on the parameters for the fit
-        sigma: float
-            uncertainty in the data considered for the fit
-
-        Returns
-        -------
-        params:
-            It returns the fitted parameters as a list.
-        rmse:
-            It returns the normalized mean squared error from the fit
-        """
-        try:
-            if None in [guesses, lower, upper, sigma]:
-                raise Exception(
-                    "No parameters for the fit provided, using default ones"
-                )
-        except Exception:
-            sigma = 1e-4
-            C_max = abs(max(C, key=abs))
-            wc = t[np.argmax(C)]
-            if label == "correlation_real":
-                guesses = self.pack([C_max] * N, [-wc] * N, [wc] * N)
-                lower = self.pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
-                upper = self.pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
-            elif label == "correlation_imag":
-                guesses = self.pack([-C_max] * N, [-2] * N, [1] * N)
-                lower = self.pack([-5 * C_max] * N, [-100] * N, [0.0] * N)
-                upper = self.pack([5 * C_max] * N, [0.01] * N, [100] * N)
-
-            else:
-                guesses = self.pack([C_max] * N, [wc] * N, [wc] * N)
-                lower = self.pack([-100 * C_max] * N,
-                                  [0.1 * wc] * N, [0.1 * wc] * N)
-                upper = self.pack([100 * C_max] * N,
-                                  [100 * wc] * N, [100 * wc] * N)
-
-        lam, gamma, w0 = self._leastsq(
-            func,
-            C,
-            t,
-            sigma=sigma,
-            guesses=guesses,
-            lower=lower,
-            upper=upper,
-        )
-        rmse = self._rmse(func, t, C, lam=lam, gamma=gamma, w0=w0)
-        params = [lam, gamma, w0]
-        return rmse, params
+    def CI(self, t):
+        """ C_I, the imaginary part of the correlation function. """
+        result = 0
+        for exp in self.exponents:
+            if exp.type == BathExponent.types['I']:
+                result += exp.ck * np.exp(-exp.vk * t)
+            if exp.type == BathExponent.types['RI']:
+                result += exp.ck2 * np.exp(-exp.vk * t)
+        return result
 
 
 class DrudeLorentzBath(BosonicBath):
@@ -548,6 +433,8 @@ class DrudeLorentzBath(BosonicBath):
     def __init__(
         self, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
+        self.lam = lam
+        self.gamma = gamma
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
             gamma=gamma,
@@ -603,6 +490,9 @@ class DrudeLorentzBath(BosonicBath):
 
         return ck_real, vk_real, ck_imag, vk_imag
 
+    def _spectral_density(self, w):
+        return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
+
 
 class DrudeLorentzPadeBath(BosonicBath):
     """
@@ -612,7 +502,7 @@ class DrudeLorentzPadeBath(BosonicBath):
     A Padé approximant is a sum-over-poles expansion (
     see https://en.wikipedia.org/wiki/Pad%C3%A9_approximant).
 
-    The application of the Padé method to spectrum decompoisitions is described
+    The application of the Padé method to spectrum decompositions is described
     in "Padé spectrum decompositions of quantum distribution functions and
     optimal hierarchical equations of motion construction for quantum open
     systems" [1].
@@ -881,6 +771,9 @@ class UnderDampedBath(BosonicBath):
         vk_imag = [-1.0j * Om + Gamma, 1.0j * Om + Gamma]
 
         return ck_real, vk_real, ck_imag, vk_imag
+
+    def _spectral_density(self, w):
+        return self.lam**2 * self.gamma * w / ((w**2 - self.w0**2)**2 + (self.gamma*w)**2)
 
 
 class FermionicBath(Bath):
@@ -1272,7 +1165,7 @@ class FitSpectral(BosonicBath):
             N = 1
             rmse = 8
             while rmse > final_rmse:
-                rmse, params = self._fit(
+                rmse, params = _fit(
                     self.spectral_density_approx,
                     J,
                     w,
@@ -1285,7 +1178,7 @@ class FitSpectral(BosonicBath):
                 )
                 N += 1
         else:
-            rmse, params = self._fit(
+            rmse, params = _fit(
                 self.spectral_density_approx,
                 J,
                 w,
@@ -1373,6 +1266,11 @@ class FitSpectral(BosonicBath):
             np.array(ckAI).flatten(),
             np.array(vkAI).flatten(),
         ]
+        self.ckAR = np.array(ckAR).flatten()
+        self.ckAI = np.array(ckAI).flatten()
+        self.vkAR = np.array(vkAR).flatten()
+        self.vkAI = np.array(vkAI).flatten()
+
         self.terminator = terminator
         self.Bath_spec = BosonicBath(
             self.Q,
@@ -1514,7 +1412,7 @@ class FitCorr(BosonicBath):
             Ni = 0
         while rmse1 > final_rmse:
             Nr += 1
-            rmse1, params_real = self._fit(
+            rmse1, params_real = _fit(
                 lambda *args: np.real(self.corr_approx(*args)),
                 np.real(C),
                 t,
@@ -1529,7 +1427,7 @@ class FitCorr(BosonicBath):
                 break
         while rmse2 > final_rmse:
             Ni += 1
-            rmse2, params_imag = self._fit(
+            rmse2, params_imag = _fit(
                 lambda *args: np.imag(self.corr_approx(*args)),
                 np.imag(C),
                 t,
@@ -1552,31 +1450,6 @@ class FitCorr(BosonicBath):
         end = time()
         self.fit_time = end - start
 
-    def corr_spectrum_approx(self, w):
-        """Calculates the approximate power spectrum from ck and vk."""
-        S = np.zeros(len(w), dtype=np.complex128)
-        self._matsubara_coefficients()
-        ckAR, vkAR, ckAI, vkAI = self.matsubara_coeff
-        for ck, vk in zip(ckAR, vkAR):
-            S += 2 * ck * np.real(vk) / ((w - np.imag(vk))
-                                         ** 2 + (np.real(vk) ** 2))
-        for ck, vk in zip(ckAI, vkAI):
-            S += (
-                2
-                * 1.0j
-                * ck
-                * np.real(vk)
-                / ((w - np.imag(vk)) ** 2 + (np.real(vk) ** 2))
-            )
-        return S
-
-    def corr_spectral_approx(self, w, beta):
-        J = np.real(
-            self.corr_spectrum_approx(w) /
-            (((1 / (np.e**(w * beta) - 1)) + 1) * 2)
-        )
-        return J
-
     def _matsubara_coefficients(self):
         lam, gamma, w0 = self.params_real
         lam2, gamma2, w02 = self.params_imag
@@ -1591,7 +1464,7 @@ class FitCorr(BosonicBath):
 
         vkAI = [-x - 1.0j * y for x, y in zip(gamma2, w02)]
         vkAI.extend([-x + 1.0j * y for x, y in zip(gamma2, w02)])
-        self.matsubara_coeff = [ckAR, vkAR, ckAI, vkAI]
+        self.ckAR, self.vkAR, self.ckAI, self.vkAI = [ckAR, vkAR, ckAI, vkAI]
         self.Bath_corr = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
 
 
@@ -1667,3 +1540,173 @@ class OhmicBath(BosonicBath):
             * ((1 / (np.e ** (w * self.beta) - 1)) + 1)
             * 2
         )
+
+
+# Fitting Functions
+
+def pack(a, b, c):
+    """Pack parameter lists for fitting."""
+    return np.concatenate((a, b, c))
+
+
+def unpack(params):
+    """Unpack parameter lists for fitting."""
+    N = len(params) // 3
+    a = params[:N]
+    b = params[N: 2 * N]
+    c = params[2 * N:]
+    return a, b, c
+
+
+def _leastsq(
+    func, y, x, guesses=None,
+    lower=None, upper=None, sigma=None
+):
+    """
+    Performs nonlinear least squares  to fit the function func to x and y
+
+    Parameters
+    ----------
+    func : function
+        The function we wish to fit.
+    x: np.array
+        a numpy array containing the independent variable used for the fit
+    y: np.array
+        a numpy array containing the dependent variable we use for the fit
+    guesses : list
+        Initial guess for the parameters.
+    lower : list
+        lower bounds on the parameters for the fit.
+    upper: list
+        upper bounds on the parameters for the fit
+    sigma:
+        uncertainty in the data considered for the fit
+    Returns
+    -------
+    params: list
+        It returns the fitted parameters.
+    """
+    try:
+        sigma = [sigma] * len(x)
+        if None in [guesses, lower, upper, sigma]:
+            raise Exception(
+                "Fit parameters were not provided"
+            )  # maybe unnecessary and can let it go to scipy defaults
+    except Exception:
+        pass
+    params, _ = curve_fit(
+        lambda x, *params: func(x, *unpack(params)),
+        x,
+        y,
+        p0=guesses,
+        bounds=(lower, upper),
+        sigma=sigma,
+        maxfev=int(1e9),
+        method="trf",
+    )
+
+    return unpack(params)
+
+
+def _rmse(func, x, y, lam, gamma, w0):
+    """
+    Calculates the normalized root Mean squared error for fits
+    from the fitted parameters lam,gamma,w0
+
+    Parameters
+    ----------
+    func : function
+        The approximated function for which we want to compute the rmse.
+    x: np.array
+        a numpy array containing the independent variable used for the fit
+    y: np.array
+        a numpy array containing the dependent variable used for the fit
+    lam : list
+        a listed containing fitted couplings strength.
+    gamma : list
+        a list containing fitted cutoff frequencies.
+    w0s:
+        a list containing fitted resonance frequecies
+    Returns
+    -------
+    rmse: float
+        The normalized root mean squared error for the fit, the closer
+        to zero the better the fit.
+    """
+    yhat = func(x, lam, gamma, w0)
+    rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / \
+        (np.max(y) - np.min(y))
+    return rmse
+
+
+def _fit(
+    func, C, t, N=4, label="correlation_real",
+    guesses=None, lower=None, upper=None, sigma=None
+):
+    """
+    Performs a fit the function func to t and C, with N number of
+    terms in func, the guesses,bounds and uncertainty can be determined
+    by the user.If none is provided it constructs default ones according
+    to the label.
+
+    Parameters
+    ----------
+    func : function
+        The function we wish to fit.
+    x: np.array
+        a numpy array containing the independent variable used for the fit
+    y: np.array
+        a numpy array containing the dependent variable used for the fit
+    guesses : list
+        Initial guess for the parameters.
+    lower : list
+        lower bounds on the parameters for the fit.
+    upper: list
+        upper bounds on the parameters for the fit
+    sigma: float
+        uncertainty in the data considered for the fit
+
+    Returns
+    -------
+    params:
+        It returns the fitted parameters as a list.
+    rmse:
+        It returns the normalized mean squared error from the fit
+    """
+    try:
+        if None in [guesses, lower, upper, sigma]:
+            raise Exception(
+                "No parameters for the fit provided, using default ones"
+            )
+    except Exception:
+        sigma = 1e-4
+        C_max = abs(max(C, key=abs))
+        wc = t[np.argmax(C)]
+        if label == "correlation_real":
+            guesses = pack([C_max] * N, [-wc] * N, [wc] * N)
+            lower = pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
+            upper = pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
+        elif label == "correlation_imag":
+            guesses = pack([-C_max] * N, [-2] * N, [1] * N)
+            lower = pack([-5 * C_max] * N, [-100] * N, [0.0] * N)
+            upper = pack([5 * C_max] * N, [0.01] * N, [100] * N)
+
+        else:
+            guesses = pack([C_max] * N, [wc] * N, [wc] * N)
+            lower = pack([-100 * C_max] * N,
+                         [0.1 * wc] * N, [0.1 * wc] * N)
+            upper = pack([100 * C_max] * N,
+                         [100 * wc] * N, [100 * wc] * N)
+
+    lam, gamma, w0 = _leastsq(
+        func,
+        C,
+        t,
+        sigma=sigma,
+        guesses=guesses,
+        lower=lower,
+        upper=upper,
+    )
+    rmse = _rmse(func, t, C, lam=lam, gamma=gamma, w0=w0)
+    params = [lam, gamma, w0]
+    return rmse, params
