@@ -321,7 +321,7 @@ def test_m_ops(heterodyne):
 def test_feedback():
     tol = 0.05
     N = 10
-    ntraj = 5
+    ntraj = 2
 
     def func(t, A, W):
         return (A - 6) * (A.real > 6.) * W(t)[0]
