@@ -107,12 +107,16 @@ cdef class QobjEvo:
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.make_interp_spline.html
 
     feedback: dict
-        Set of arguments that update automatically when used in a solver. ie.
-        With  ``args={"psi": psi0}, feedback={"psi": "qobj"}`` the arguments
-        ``psi`` will take the value of the ket at the time the operator is used
-        during the evolution of ``sesolve`` allowing non-linear Hamiltonian,
-        etc. See :meth:`QobjEvo.add_feedback` for more information.
-        Inserting an initial value in ``args`` is required.
+        A dictionary of arguments that update automatically when this
+        :obj:`QobjEvo` is used in a solver. For example, passing
+        `args={"psi": psi0}, feedback={"psi": "qobj"}` will result in the argument
+        `psi` being updated to the current value of the state each time the
+        operator is used during the evolution of `sesolve`. Feedback allows
+        implementing non-linear Hamiltonian and other exotic constructions.
+        See :meth:`QobjEvo.add_feedback` for more information on the kinds
+        of feedback supported.
+        If an argument is specified in `feedback`, an initial value for it is
+        required to be specified in `args`.
 
     Attributes
     ----------
@@ -461,28 +465,30 @@ cdef class QobjEvo:
 
     def add_feedback(QobjEvo self, str key, feedback):
         """
-        Register an argument to be updated with the state during `matmul` and
-        `expect`.
+        Register an argument to be updated with the state when solving for the evolution of
+        a quantum system with a solver.
 
-        Equivalent to do:
+        In simple cases where the feedback argument is the current system state,
+        feedback is equivalent to calling:
             `solver.argument(key=state_t)`
+        within the solver at each time `t` that the solver calls the `QobjEvo`.
 
         Parameters
         ----------
         key: str
-            Arguments key to update.
+            Name of the arguments to update with feedback.
 
         feedback: str, Qobj, QobjEvo
-            Format of the `state_t`.
+            The format of the feedback:
 
-            - "qobj": As a Qobj, either a ket or dm.
-            - "data": As a qutip data layer object. Density matrices will be
-              square matrix.
-            - Qobj, QobjEvo: The value is updated with the expectation value of
-              the given operator and the state.
-            - str: Other solver specific feedback. See corresponding solver's
+            - `"qobj"`: the `state` at time `t` as a `Qobj`. Either a ket or a density matrix, depending
+              on the solver.
+            - `"data"`: the `state` at time `t` as a QuTiP data layer object. Either a ket (column vector) or
+              density matrix (square matrix), depending on the solver. The type of the data layer object
+              depends on the solver and the system being solved.
+            - Qobj, QobjEvo: the expectation value of the given operator and the `state` at time `t`.
+            - Other `str` values: Solver specific feedback. See the corresponding solver's
               ``add_feedback`` function's documentation for available values.
-
         """
         if feedback == "data":
             self._feedback_functions[key] = _pass_through
