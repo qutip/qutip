@@ -1188,16 +1188,16 @@ class FitSpectral(BosonicBath):
     def __str__(self):
         try:
             lam, gamma, w0 = self.params_spec
-            summary = f"Result of fitting the Spectral density \
-                        with {self.spec_n} terms: \n \n {'Parameters': <10}| \
-                        {'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
+            summary = f"Result of fitting the Spectral density "\
+                f"with {self.spec_n} terms: \n \n {'Parameters': <10}|"\
+                f"{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
             for i in range(len(lam)):
                 summary += (
-                    f"{i+1: <10}|{lam[i]: ^10.2e}|{gamma[i]:^10.2e}|\
-                      {w0[i]:>5.2e}\n "
+                    f"{i+1: <10}|{lam[i]: ^10.2e}|{gamma[i]:^10.2e}|"
+                    f"{w0[i]:>5.2e}\n "
                 )
-            summary += f"\nA  normalized RMSE of {self._rmse: .2e} \
-                         was obtained for the Spectral density \n"
+            summary += f"\nA  normalized RMSE of {self._rmse: .2e}"\
+                " was obtained for the Spectral density \n"
             summary += f" The current fit took {self.fit_time: 2f} seconds"
             return summary
         except NameError:
@@ -1411,24 +1411,24 @@ class FitCorr(BosonicBath):
         try:
             lam, gamma, w0 = self.params_real
             lam2, gamma2, w02 = self.params_imag
-            summary = f"Result of fitting the Real Part with {self.Nr}\
-                        terms: \n \n {'Parameters': <10}|\
-                        {'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
-            summary2 = f"\tResult of fitting the Imaginary Part with {self.Ni}\
-                         terms: \n \n \t {'Parameters': <10}\
-                        |{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n"
+            summary = f"Result of fitting the Real Part with {self.Nr} "\
+                f"terms: \n \n {'Parameters': <10}|"\
+                f"{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
+            summary2 = f"\tResult of fitting the Imaginary Part with {self.Ni} "\
+                f"terms: \n \n \t {'Parameters': <10}"\
+                f"|{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n"
             for i in range(len(lam)):
                 summary += (
-                    f"{i+1: <10}|{lam[i]: ^10.2e}| \
-                      {gamma[i]:^10.2e}|{w0[i]:>5.2e} \n "
+                    f"{i+1: <10}|{lam[i]: ^10.2e}|"
+                    f"{gamma[i]:^10.2e}|{w0[i]:>5.2e} \n "
                 )
             for i in range(len(lam2)):
-                summary2 += f"\t {i+1: <10}|{lam2[i]: ^10.2e}\
-                              |{gamma2[i]: ^10.2e}|{w02[i]:>5.2e} \n "
-            summary += f"\n  A  normalized RMSE of {self.rmse_real: .2e}\
-                        was obtained for the real part \n"
-            summary2 += f"\n \t A  normalized RMSE of {self.rmse_imag:.2e}\
-                         was obtained for the imaginary part \n"
+                summary2 += f"\t {i+1: <10}|{lam2[i]: ^10.2e}"\
+                    f"|{gamma2[i]: ^10.2e}|{w02[i]:>5.2e} \n "
+            summary += f"\n  A  normalized RMSE of {self.rmse_real: .2e}"\
+                " was obtained for the real part \n"
+            summary2 += f"\n \t A  normalized RMSE of {self.rmse_imag:.2e}"\
+                " was obtained for the imaginary part \n"
             time = f" The current fit took {self.fit_time: 2f} seconds"
             return summary, summary2, time
 
