@@ -17,6 +17,9 @@ from qutip.solver.heom.bofin_baths import (
     FermionicBath,
     LorentzianBath,
     LorentzianPadeBath,
+    FitCorr,
+    FitSpectral,
+    OhmicBath
 )
 
 
@@ -477,7 +480,8 @@ class TestFitUtils:
                 * a[i]
                 * b[i]
                 * w
-                / (((w + c[i]) ** 2 + b[i] ** 2) * ((w - c[i]) ** 2 + b[i] ** 2))
+                / (((w + c[i]) ** 2 + b[i] ** 2)
+                   * ((w - c[i]) ** 2 + b[i] ** 2))
             )
         return tot
 
@@ -582,7 +586,8 @@ class TestFitSpectral:
                 (-0.01608448645347298 + 0j),
                 (-0.002015397620259254 + 0j),
             ],
-            [(1 - 1j), (1 + 1j), (6.283185307179586 + 0j), (12.566370614359172 + 0j)],
+            [(1 - 1j), (1 + 1j), (6.283185307179586 + 0j),
+             (12.566370614359172 + 0j)],
             [(-0 + 0.25j), -0.25j],
             [(1 - 1j), (1 + 1j)],
         )
