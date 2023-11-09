@@ -12,7 +12,6 @@ from time import time
 import enum
 import matplotlib.pyplot as plt
 import numpy as np
-from mpmath import mp
 from scipy.linalg import eigvalsh
 from scipy.optimize import curve_fit
 from qutip.core import data as _data
@@ -118,7 +117,8 @@ class BathExponent:
     def _check_sigma_bar_k_offset(self, type, offset):
         if type in (self.types["+"], self.types["-"]):
             if offset is None:
-                raise ValueError("+ and - bath exponents require sigma_bar_k_offset")
+                raise ValueError(
+                    "+ and - bath exponents require sigma_bar_k_offset")
         else:
             if offset is not None:
                 raise ValueError(
@@ -644,7 +644,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         )
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
-        chi = [-2.0 / val for val in evals[0 : Nk - 1]]
+        chi = [-2.0 / val for val in evals[0: Nk - 1]]
         return chi
 
 
@@ -676,7 +676,8 @@ class _DrudeLorentzTerminator:
             else:
                 delta -= 1j * exp.ck / exp.vk
 
-        op = -2 * spre(Q) * spost(Q.dag()) + spre(Q.dag() * Q) + spost(Q.dag() * Q)
+        op = -2 * spre(Q) * spost(Q.dag()) + \
+            spre(Q.dag() * Q) + spost(Q.dag() * Q)
         L_bnd = -delta * op
 
         return delta, L_bnd
@@ -1087,5 +1088,5 @@ class LorentzianPadeBath(FermionicBath):
         )
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
-        chi = [-2.0 / val for val in evals[0 : Nk - 1]]
+        chi = [-2.0 / val for val in evals[0: Nk - 1]]
         return chi
