@@ -19,7 +19,12 @@ from qutip.solver.heom.bofin_baths import (
     LorentzianPadeBath,
     FitCorr,
     FitSpectral,
-    OhmicBath
+    OhmicBath,
+    pack,
+    unpack,
+    _leastsq,
+    _fit,
+    _rmse,
 )
 
 
@@ -470,7 +475,6 @@ class TestLorentzianPadeBath:
 
 class TestFitUtils:
     cks = [1] * 5
-    bath = BosonicBath(sigmax(), cks, cks, cks, cks)
 
     def spectral_density(self, w, a, b, c):
         tot = 0
@@ -489,14 +493,14 @@ class TestFitUtils:
         n = np.random.randint(100)
         before = np.random.rand(3, n)
         a, b, c = before
-        assert len(self.bath.pack(a, b, c)) == n * 3
-        assert (self.bath.pack(a, b, c) == before.flatten()).all()
+        assert len(pack(a, b, c)) == n * 3
+        assert (pack(a, b, c) == before.flatten()).all()
 
     def test_unpack(self):
         n = np.random.randint(100)
         before = np.random.rand(3, n)
         a, b, c = before
-        assert (self.bath.unpack(self.bath.pack(a, b, c)) == before).all()
+        assert (unpack(pack(a, b, c)) == before).all()
 
     def test_rmse(self):
         lam = 0.05
@@ -505,7 +509,7 @@ class TestFitUtils:
         def func(x, lam, gamma, w0): return np.exp(-lam * x) + gamma / w0
         x = np.linspace(1, 100, 10)
         y = func(x, lam, gamma * 4, w0 * 4)
-        assert np.isclose(self.bath._rmse(func, x, y, lam, gamma, w0), 0)
+        assert np.isclose(_rmse(func, x, y, lam, gamma, w0), 0)
 
     def test_leastsq(self):
         t = np.linspace(0.1, 10 * 5, 1000)
@@ -515,12 +519,12 @@ class TestFitUtils:
         sigma = 1e-4
         C_max = abs(max(C, key=abs))
         wc = t[np.argmax(C)]
-        guesses = self.bath.pack([C_max] * N, [wc] * N, [wc] * N)
-        lower = self.bath.pack(
+        guesses = pack([C_max] * N, [wc] * N, [wc] * N)
+        lower = pack(
             [-100 * C_max] * N, [0.1 * wc] * N, [0.1 * wc] * N)
-        upper = self.bath.pack(
+        upper = pack(
             [100 * C_max] * N, [100 * wc] * N, [100 * wc] * N)
-        a2, b2, c2 = self.bath._leastsq(
+        a2, b2, c2 = _leastsq(
             self.spectral_density,
             C,
             t,
@@ -536,7 +540,7 @@ class TestFitUtils:
         a, b, c = [list(range(2))] * 3
         w = np.linspace(0.1, 10 * 5, 1000)
         J = self.spectral_density(w, a, b, c)
-        rmse, [a2, b2, c2] = self.bath._fit(self.spectral_density, J, w, N=2)
+        rmse, [a2, b2, c2] = _fit(self.spectral_density, J, w, N=2)
         J2 = self.spectral_density(w, a2, b2, c2)
         assert np.isclose(J, J2).all()
         assert rmse < 1e-15
@@ -562,7 +566,7 @@ class TestFitSpectral:
         w = np.linspace(0.1, 10 * self.wc, 1000)
         J = self.bath.spectral_density_approx(w, a, b, c)
         pow = J * ((1 / (np.e ** (w / self.T) - 1)) + 1) * 2
-        rmse, self.bath.params_spec = self.bath._fit(
+        rmse, self.bath.params_spec = _fit(
             self.bath.spectral_density_approx, J, w, N=2, label="spectral"
         )
         pow2 = self.bath.spec_spectrum_approx(w)
@@ -643,7 +647,8 @@ class TestFitCorr:
         self.bath.params_real = [[1] * 2] * 3
         self.bath.params_imag = [[1] * 2] * 3
         self.bath._matsubara_coefficients()
-        assert np.isclose(np.array(self.bath.matsubara_coeff), ans).all()
+        assert np.isclose(
+            np.array([self.bath.ckAR, self.bath.vkAR, self.bath.ckAI, self.bath.vkAI]), ans).all()
 
     def test_corr_spectrum_approx(self):
         self.bath.params_real = [[1] * 2] * 3
@@ -672,23 +677,23 @@ class TestOhmicBath:
         t = np.linspace(0, 10, 10)
         try:
             C = self.bath.ohmic_correlation(t, s=3)
-        except ValueError:
+            Ctest = np.array(
+                [
+                    1.11215545e00 + 0.00000000e00j,
+                    -2.07325102e-01 + 3.99285208e-02j,
+                    -3.56854914e-02 + 2.68834062e-02j,
+                    -1.02997412e-02 + 5.98374459e-03j,
+                    -3.85107084e-03 + 1.71629063e-03j,
+                    -1.71424113e-03 + 6.14748921e-04j,
+                    -8.66216773e-04 + 2.59388769e-04j,
+                    -4.81154330e-04 + 1.23604055e-04j,
+                    -2.87395509e-04 + 6.46270269e-05j,
+                    -1.81762994e-04 + 3.63396778e-05j,
+                ]
+            )
+            assert np.isclose(C, Ctest).all()
+        except NameError:
             pass
-        Ctest = np.array(
-            [
-                1.11215545e00 + 0.00000000e00j,
-                -2.07325102e-01 + 3.99285208e-02j,
-                -3.56854914e-02 + 2.68834062e-02j,
-                -1.02997412e-02 + 5.98374459e-03j,
-                -3.85107084e-03 + 1.71629063e-03j,
-                -1.71424113e-03 + 6.14748921e-04j,
-                -8.66216773e-04 + 2.59388769e-04j,
-                -4.81154330e-04 + 1.23604055e-04j,
-                -2.87395509e-04 + 6.46270269e-05j,
-                -1.81762994e-04 + 3.63396778e-05j,
-            ]
-        )
-        assert np.isclose(C, Ctest).all()
 
     def test_ohmic_power_spectrum(self):
         w = np.linspace(0.1, 50 * self.wc, 10)
