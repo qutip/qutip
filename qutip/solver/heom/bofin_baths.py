@@ -11,12 +11,11 @@ implementation in QuTiP itself.
 from time import time
 import enum
 import numpy as np
-import warnings
 
 try:
     from mpmath import mp
 except ModuleNotFoundError:
-    warnings.warn(
+    print(
         'The mpmath module is needed for the description of Ohmic baths')
 
 from scipy.linalg import eigvalsh
