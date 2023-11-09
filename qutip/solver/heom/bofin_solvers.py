@@ -115,7 +115,8 @@ class HierarchyADOs:
         self.vk = [exp.vk for exp in self.exponents]
         self.ck = [exp.ck for exp in self.exponents]
         self.ck2 = [exp.ck2 for exp in self.exponents]
-        self.sigma_bar_k_offset = [exp.sigma_bar_k_offset for exp in self.exponents]
+        self.sigma_bar_k_offset = [
+            exp.sigma_bar_k_offset for exp in self.exponents]
 
         self.labels = list(state_number_enumerate(self.dims, max_depth))
         self._label_idx = {s: i for i, s in enumerate(self.labels)}
@@ -167,7 +168,7 @@ class HierarchyADOs:
             return None
         if sum(label) >= self.max_depth:
             return None
-        return label[:k] + (label[k] + 1,) + label[k + 1 :]
+        return label[:k] + (label[k] + 1,) + label[k + 1:]
 
     def prev(self, label, k):
         """
@@ -189,7 +190,7 @@ class HierarchyADOs:
         """
         if label[k] <= 0:
             return None
-        return label[:k] + (label[k] - 1,) + label[k + 1 :]
+        return label[:k] + (label[k] - 1,) + label[k + 1:]
 
     def exps(self, label):
         """
@@ -851,7 +852,8 @@ class HEOMSolver(Solver):
 
     def _rhs(self):
         """Make the RHS for the HEOM."""
-        ops = _GatherHEOMRHS(self.ados.idx, block=self._sup_shape, nhe=self._n_ados)
+        ops = _GatherHEOMRHS(
+            self.ados.idx, block=self._sup_shape, nhe=self._n_ados)
 
         for he_n in self.ados.labels:
             op = self._grad_n(he_n)
@@ -871,7 +873,8 @@ class HEOMSolver(Solver):
     def _calculate_rhs(self):
         """Make the full RHS required by the solver."""
         rhs_mat = self._rhs()
-        rhs_dims = [self._sup_shape * self._n_ados, self._sup_shape * self._n_ados]
+        rhs_dims = [self._sup_shape * self._n_ados,
+                    self._sup_shape * self._n_ados]
         h_identity = _data.identity(self._n_ados, dtype="csr")
 
         if self.L_sys.isconstant:
@@ -957,7 +960,7 @@ class HEOMSolver(Solver):
 
         L = self.rhs(0).data.copy().as_scipy()
         L = L.tolil()
-        L[0, 0 : n**2 * self._n_ados] = 0.0
+        L[0, 0: n**2 * self._n_ados] = 0.0
         L = L.tocsr()
         L += sp.csr_matrix(
             (np.ones(n), (np.zeros(n), [num * (n + 1) for num in range(n)])),
