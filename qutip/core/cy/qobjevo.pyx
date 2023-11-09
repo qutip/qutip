@@ -109,12 +109,12 @@ cdef class QobjEvo:
     feedback: dict
         A dictionary of arguments that update automatically when this
         :obj:`QobjEvo` is used in a solver. For example, passing
-        `args={"psi": psi0}, feedback={"psi": "qobj"}` will result in the argument
-        `psi` being updated to the current value of the state each time the
-        operator is used during the evolution of `sesolve`. Feedback allows
-        implementing non-linear Hamiltonian and other exotic constructions.
-        See :meth:`QobjEvo.add_feedback` for more information on the kinds
-        of feedback supported.
+        `args={"psi": psi0}, feedback={"psi": "qobj"}` will result in the
+        argument `psi` being updated to the current value of the state each
+        time the operator is used during the evolution of `sesolve`. Feedback
+        allows implementing non-linear Hamiltonian and other exotic
+        constructions. See :meth:`QobjEvo.add_feedback` for more information on
+        the kinds of feedback supported.
         If an argument is specified in `feedback`, an initial value for it is
         required to be specified in `args`.
 
@@ -477,7 +477,9 @@ cdef class QobjEvo:
 
         In simple cases where the feedback argument is the current system
         state, feedback is equivalent to calling:
-            `solver.argument(key=state_t)`
+
+            ```solver.argument(key=state_t)``
+
         within the solver at each time `t` that the solver calls the `QobjEvo`.
 
         Parameters
