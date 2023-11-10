@@ -1958,17 +1958,17 @@ def gen_spectral_plots(fs, w, J, t, C, w2, S):
         grid = plt.GridSpec(2, 2, wspace=0.4, hspace=0.3)
 
         plot_cr_fit_vs_actual(
-            t, C, fs.correlation_approx_matsubara,
+            t, C, fs.CR,
             axes=fig.add_subplot(grid[0, 0]),
         )
         plot_ci_fit_vs_actual(
-            t, C, lambda t: fs.correlation_approx_matsubara(t, real=False),
+            t, C, fs.CI,
             axes=fig.add_subplot(grid[0, 1]),
         )
         plot_jw_fit_vs_actual(w, J, fs.spectral_density_approx, fs.params_spec,
                               axes=fig.add_subplot(grid[1, 0]),
                               )
-        plot_sw_fit_vs_actual(fs.spec_spectrum_approx,
+        plot_sw_fit_vs_actual(lambda w: fs.power_spectrum(w, fs.T),
                               axes=fig.add_subplot(grid[1, 1]),
                               )
         fig.legend(loc='upper center', ncol=2, fancybox=True, shadow=True)

@@ -378,7 +378,7 @@ class BosonicBath(Bath):
 
     def power_spectrum(self, w, T):
         beta = 1/T
-        S = self._spectral_density(w)*(((1 / (np.e**(w * beta) - 1)) + 1) * 2)
+        S = self.spectral_density(w)*(((1 / (np.e**(w * beta) - 1)) + 1) * 2)
         return S
 
     def CR(self, t):
@@ -496,7 +496,7 @@ class DrudeLorentzBath(BosonicBath):
 
         return ck_real, vk_real, ck_imag, vk_imag
 
-    def _spectral_density(self, w):
+    def spectral_density(self, w):
         return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
 
 
@@ -736,6 +736,10 @@ class UnderDampedBath(BosonicBath):
             T=T,
             Nk=Nk,
         )
+        self.lam = lam
+        self.gamma = gamma
+        self.w0 = w0
+        self.T = T
 
         super().__init__(
             Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
@@ -778,8 +782,9 @@ class UnderDampedBath(BosonicBath):
 
         return ck_real, vk_real, ck_imag, vk_imag
 
-    def _spectral_density(self, w):
-        return self.lam**2 * self.gamma * w / ((w**2 - self.w0**2)**2 + (self.gamma*w)**2)
+    def spectral_density(self, w):
+        return self.lam**2 * self.gamma * w / ((w**2 - self.w0**2)**2
+                                               + (self.gamma*w)**2)
 
 
 class FermionicBath(Bath):
@@ -1090,10 +1095,10 @@ class FitSpectral(BosonicBath):
             summary = f"Result of fitting the Spectral density "\
                 f"with {self.spec_n} terms: \n \n {'Parameters': <10}|"\
                 f"{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
-            for i in range(len(lam)):
+            for k in range(len(gamma)):
                 summary += (
-                    f"{i+1: <10}|{lam[i]: ^10.2e}|{gamma[i]:^10.2e}|"
-                    f"{w0[i]:>5.2e}\n "
+                    f"{k+1: <10}|{lam[k]: ^10.2e}|{gamma[k]:^10.2e}|"
+                    f"{w0[k]:>5.2e}\n "
                 )
             summary += f"\nA  normalized RMSE of {self._rmse: .2e}"\
                 " was obtained for the Spectral density \n"
@@ -1119,15 +1124,18 @@ class FitSpectral(BosonicBath):
             )
         return tot
 
-    def spec_spectrum_approx(self, w):
-        """Calculates the power spectrum from w and the fitted parameters"""
+    def spectral_density(self, w):
         lam, gamma, w0 = self.params_spec
-        s_fit = (
-            self.spectral_density_approx(w, lam, gamma, w0)
-            * ((1 / (np.e ** (w / self.T) - 1)) + 1)
-            * 2
-        )
-        return s_fit
+        return self.spectral_density_approx(w, lam, gamma, w0)
+
+    # def spec_spectrum_approx(self, w):
+    #     """Calculates the power spectrum from w and the fitted parameters"""
+    #     s_fit = (
+    #         self.spectral_density(w)
+    #         * ((1 / (np.e ** (w / self.T) - 1)) + 1)
+    #         * 2
+    #     )
+    #     return s_fit
 
     def get_fit(
         self,
@@ -1169,50 +1177,32 @@ class FitSpectral(BosonicBath):
         start = time()
         if N is None:
             N = 1
-            rmse = 8
-            while rmse > final_rmse:
-                rmse, params = _fit(
-                    self.spectral_density_approx,
-                    J,
-                    w,
-                    N,
-                    label="Spectral Density",
-                    sigma=sigma,
-                    guesses=guesses,
-                    lower=lower,
-                    upper=upper,
-                )
-                N += 1
+            flag = False
         else:
-            rmse, params = _fit(
-                self.spectral_density_approx,
-                J,
-                w,
-                N,
-                label="Spectral Density",
-                sigma=sigma,
-                guesses=guesses,
-                lower=lower,
-                upper=upper,
-            )
+            flag = True
+            N = N-1
+        rmse, params = _run_fit(self.spectral_density_approx, J, w,
+                                final_rmse, flag, N=N, sigma=sigma,
+                                label="Spectral Density", guesses=guesses,
+                                lower=lower, upper=upper)
         self.params_spec = params
-        self.spec_n = N - 1
+        self.spec_n = N
         self._rmse = rmse
         self._matsubara_spectral_fit()
         end = time()
         self.fit_time = end - start
 
-    def correlation_approx_matsubara(self, t, real=True):
-        """ Calculate the approximate real or imaginary part of the
-            correlation function from the matsubara expansion co-efficients.
-        """
-        if real:
-            ck, vk = self.cvars[0], self.cvars[1]
-        else:
-            ck, vk = self.cvars[2], self.cvars[3]
-        ck = np.array(ck)
-        vk = np.array(vk)
-        return np.sum(ck[:, None] * np.exp(-vk[:, None] * t), axis=0)
+    # def correlation_approx_matsubara(self, t, real=True):
+    #     """ Calculate the approximate real or imaginary part of the
+    #         correlation function from the matsubara expansion co-efficients.
+    #     """
+    #     if real:
+    #         ck, vk = self.cvars[0], self.cvars[1]
+    #     else:
+    #         ck, vk = self.cvars[2], self.cvars[3]
+    #     ck = np.array(ck)
+    #     vk = np.array(vk)
+    #     return np.sum(ck[:, None] * np.exp(-vk[:, None] * t), axis=0)
 
     def fit_plots(self, w, J, t, C, w2, S):
         gen_spectral_plots(self, w, J, t, C, w2, S)
@@ -1285,6 +1275,7 @@ class FitSpectral(BosonicBath):
             np.array(ckAI).flatten(),
             np.array(vkAI).flatten(),
         )
+        self.exponents = self.Bath_spec.exponents
 
 
 class FitCorr(BosonicBath):
@@ -1318,7 +1309,8 @@ class FitCorr(BosonicBath):
             summary = f"Result of fitting the Real Part with {self.Nr} "\
                 f"terms: \n \n {'Parameters': <10}|"\
                 f"{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
-            summary2 = f"\tResult of fitting the Imaginary Part with {self.Ni} "\
+            summary2 = f"\tResult of fitting "\
+                "the Imaginary Part with {self.Ni} "\
                 f"terms: \n \n \t {'Parameters': <10}"\
                 f"|{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n"
             for i in range(len(lam)):
@@ -1416,36 +1408,17 @@ class FitCorr(BosonicBath):
             Nr = 0
         if Ni is None:
             Ni = 0
-        while rmse1 > final_rmse:
-            Nr += 1
-            rmse1, params_real = _fit(
-                lambda *args: np.real(self.corr_approx(*args)),
-                np.real(C),
-                t,
-                N=Nr,
-                sigma=sigma,
-                guesses=guesses,
-                lower=lower,
-                upper=upper,
-                label="correlation_real",
-            )
-            if flag is True:
-                break
-        while rmse2 > final_rmse:
-            Ni += 1
-            rmse2, params_imag = _fit(
-                lambda *args: np.imag(self.corr_approx(*args)),
-                np.imag(C),
-                t,
-                N=Ni,
-                sigma=sigma,
-                guesses=guesses,
-                lower=lower,
-                upper=upper,
-                label="correlation_imag",
-            )
-            if flag is True:
-                break
+
+        rmse1, params_real = _run_fit(
+            lambda *args: np.real(self.corr_approx(*args)),
+            np.real(C), t, final_rmse, flag,
+            label="correlation_real", sigma=sigma, N=Nr,
+            guesses=guesses, lower=lower, upper=upper)
+        rmse2, params_imag = _run_fit(
+            lambda *args: np.imag(self.corr_approx(*args)),
+            np.imag(C), t, final_rmse, flag,
+            label="correlation_imag", sigma=sigma, N=Ni,
+            guesses=guesses, lower=lower, upper=upper)
         self.Nr = Nr
         self.Ni = Ni
         self.rmse_real = rmse1
@@ -1472,6 +1445,7 @@ class FitCorr(BosonicBath):
         vkAI.extend([-x + 1.0j * y for x, y in zip(gamma2, w02)])
         self.ckAR, self.vkAR, self.ckAI, self.vkAI = [ckAR, vkAR, ckAI, vkAI]
         self.Bath_corr = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
+        self.exponents = self.Bath_corr.exponents
 
 
 class OhmicBath(BosonicBath):
@@ -1716,3 +1690,24 @@ def _fit(
     rmse = _rmse(func, t, C, lam=lam, gamma=gamma, w0=w0)
     params = [lam, gamma, w0]
     return rmse, params
+
+
+def _run_fit(funcx, funcy, x, final_rmse, flag, label=None, N=None,
+             sigma=None, guesses=None, lower=None, upper=None):
+    rmse1 = 8
+    while rmse1 > final_rmse:
+        N += 1
+        rmse1, params = _fit(
+            funcx,
+            funcy,
+            x,
+            N=N,
+            sigma=sigma,
+            guesses=guesses,
+            lower=lower,
+            upper=upper,
+            label=label,
+        )
+        if flag is True:
+            break
+    return rmse1, params
