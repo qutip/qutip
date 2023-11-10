@@ -59,17 +59,20 @@ Solvers
     :inherited-members:
     :show-inheritance:
 
-
-.. autoclass:: qutip.solver.stochastic.SMESolver
+.. autoclass:: qutip.solver.floquet.FMESolver
     :members:
     :inherited-members:
     :show-inheritance:
 
-.. autoclass:: qutip.solver.stochastic.SSESolver
+.. autoclass:: qutip.solver.floquet.FloquetBasis
     :members:
     :inherited-members:
     :show-inheritance:
 
+.. autoclass:: qutip.solver.propagator.Propagator
+    :members:
+    :inherited-members:
+    :show-inheritance:
 
 
 .. _classes-monte-carlo-solver:
@@ -134,6 +137,22 @@ Non-Markovian HEOM Solver
 
 .. autoclass:: qutip.solver.heom.HEOMResult
     :members:
+
+
+.. _classes-stochastic:
+
+Stochastic Solver
+-----------------
+
+.. autoclass:: qutip.solver.stochastic.SMESolver
+    :members:
+    :inherited-members:
+    :show-inheritance:
+
+.. autoclass:: qutip.solver.stochastic.SSESolver
+    :members:
+    :inherited-members:
+    :show-inheritance:
 
 
 .. _classes-ode:
@@ -206,6 +225,19 @@ Solver Options and Results
 
 .. autoclass:: qutip.solver.result.Result
     :members:
+    :inherited-members:
+
+.. autoclass:: qutip.solver.result.MultiTrajResult
+    :members:
+    :inherited-members:
+
+.. autoclass:: qutip.solver.result.McResult
+    :members:
+    :show-inheritance:
+
+.. autoclass:: qutip.solver.result.NmmcResult
+    :members:
+    :show-inheritance:
 
 .. _classes-piqs:
 

@@ -20,13 +20,13 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
 
     Parameters
     ----------
-    H : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`, ``list``, callable.
+    H : :class:`.Qobj`, :class:`.QobjEvo`, ``list``, callable.
         System Hamiltonian as a Qobj, QobjEvo. It can also be any input type
-        that QobjEvo accepts (see :class:`qutip.QobjEvo`'s documentation).
+        that QobjEvo accepts (see :class:`.QobjEvo`'s documentation).
         ``H`` can also be a superoperator (liouvillian) if some collapse
         operators are to be treated deterministically.
 
-    state : :class:`qutip.Qobj`
+    state : :class:`.Qobj`
         Initial state vector.
 
     tlist : array_like
@@ -34,7 +34,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
 
     c_ops : list
         A ``list`` of collapse operators in any input type that QobjEvo accepts
-        (see :class:`qutip.QobjEvo`'s documentation). They must be operators
+        (see :class:`.QobjEvo`'s documentation). They must be operators
         even if ``H`` is a superoperator. If none are given, the solver will
         defer to ``sesolve`` or ``mesolve``.
 
@@ -349,15 +349,15 @@ class MCSolver(MultiTrajSolver):
 
     Parameters
     ----------
-    H : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`, ``list``, callable.
+    H : :class:`.Qobj`, :class:`.QobjEvo`, ``list``, callable.
         System Hamiltonian as a Qobj, QobjEvo. It can also be any input type
-        that QobjEvo accepts (see :class:`qutip.QobjEvo`'s documentation).
+        that QobjEvo accepts (see :class:`.QobjEvo`'s documentation).
         ``H`` can also be a superoperator (liouvillian) if some collapse
         operators are to be treated deterministically.
 
     c_ops : list
         A ``list`` of collapse operators in any input type that QobjEvo accepts
-        (see :class:`qutip.QobjEvo`'s documentation). They must be operators
+        (see :class:`.QobjEvo`'s documentation). They must be operators
         even if ``H`` is a superoperator.
 
     options : dict, [optional]

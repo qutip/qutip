@@ -20,7 +20,7 @@ class Integrator:
     """
     A wrapper around ODE solvers.
     It ensures a common interface for Solver usage.
-    It takes and return states as :class:`qutip.core.data.Data`, it may return
+    It takes and return states as :class:`.Data`, it may return
     a different data-type than the input type.
 
     Parameters

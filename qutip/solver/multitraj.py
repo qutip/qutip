@@ -11,7 +11,7 @@ class MultiTrajSolver(Solver):
     """
     Basic class for multi-trajectory evolutions.
 
-    As :class:`Solver` it can ``run`` or ``step`` evolution.
+    As :class:`.Solver` it can ``run`` or ``step`` evolution.
     It manages the random seed for each trajectory.
 
     The actual evolution is done by a single trajectory solver::
@@ -60,7 +60,7 @@ class MultiTrajSolver(Solver):
 
         Parameters
         ----------
-        state : :class:`Qobj`
+        state : :obj:`.Qobj`
             Initial state of the evolution.
 
         t0 : double
@@ -81,7 +81,7 @@ class MultiTrajSolver(Solver):
 
     def step(self, t, *, args=None, copy=True):
         """
-        Evolve the state to ``t`` and return the state as a :class:`Qobj`.
+        Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
 
         Parameters
         ----------
@@ -131,12 +131,12 @@ class MultiTrajSolver(Solver):
 
         For a ``state`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :class:`Result`. The evolution method and
+        expectation values in a :class:`.Result`. The evolution method and
         stored results are determined by ``options``.
 
         Parameters
         ----------
-        state : :class:`Qobj`
+        state : :obj:`.Qobj`
             Initial state of the evolution.
 
         tlist : list of double
@@ -177,7 +177,7 @@ class MultiTrajSolver(Solver):
 
         Returns
         -------
-        results : :class:`qutip.solver.MultiTrajResult`
+        results : :class:`.MultiTrajResult`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
 

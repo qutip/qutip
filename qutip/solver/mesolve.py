@@ -39,8 +39,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     **Time-dependent operators**
 
-    For time-dependent problems, `H` and `c_ops` can be a :class:`QobjEvo` or
-    object that can be interpreted as :class:`QobjEvo` such as a list of
+    For time-dependent problems, `H` and `c_ops` can be a :obj:`.QobjEvo` or
+    object that can be interpreted as :obj:`.QobjEvo` such as a list of
     (Qobj, Coefficient) pairs or a function.
 
     **Additional options**
@@ -50,30 +50,30 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     `store_final_state` options can be used to store states even though
     expectation values are requested via the `e_ops` argument.
 
-    .. note::
-
-        When no collapse operator are given and the `H` is not a superoperator,
-        it will defer to :func:`sesolve`.
+    Notes
+    -----
+    When no collapse operator are given and the `H` is not a superoperator,
+    it will defer to :func:`sesolve`.
 
     Parameters
     ----------
 
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. List of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
-    rho0 : :class:`Qobj`
+    rho0 : :obj:`.Qobj`
         initial density matrix or state vector (ket).
 
     tlist : *list* / *array*
         list of times for :math:`t`.
 
-    c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         Single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators. None is equivalent to an empty list.
 
-    e_ops : list of :class:`Qobj` / callback function
+    e_ops : list of :obj:`.Qobj` / callback function
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
@@ -117,9 +117,9 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     Returns
     -------
-    result: :class:`qutip.Result`
+    result: :obj:`qutip.Result`
 
-        An instance of the class :class:`qutip.Result`, which contains
+        An instance of the class :obj:`qutip.Result`, which contains
         a *list of array* `result.expect` of expectation values for the times
         specified by `tlist`, and/or a *list* `result.states` of state vectors
         or density matrices corresponding to the times in `tlist` [if `e_ops`
@@ -162,12 +162,12 @@ class MESolver(SESolver):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. List of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
-    c_ops : list of :class:`Qobj`, :class:`QobjEvo`
+    c_ops : list of :obj:`.Qobj`, :obj:`.QobjEvo`
         Single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators. None is equivalent to an empty list.
 
@@ -175,7 +175,7 @@ class MESolver(SESolver):
         Options for the solver, see :obj:`MESolver.options` and
         `Integrator <./classes.html#classes-ode>`_ for a list of all options.
 
-    attributes
+    Attributes
     ----------
     stats: dict
         Diverse diagnostic statistics of the evolution.
@@ -183,7 +183,7 @@ class MESolver(SESolver):
     name = "mesolve"
     _avail_integrators = {}
     solver_options = {
-        "progress_bar": "text",
+        "progress_bar": "",
         "progress_kwargs": {"chunk_size":10},
         "store_final_state": False,
         "store_states": None,

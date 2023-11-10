@@ -13,7 +13,7 @@ class _QobjExpectEop:
 
     Parameters
     ----------
-    op : :obj:`~Qobj`
+    op : :obj:`.Qobj`
         The expectation value operator.
     """
     def __init__(self, op):
@@ -120,10 +120,10 @@ class Result(_BaseResult):
 
     Parameters
     ----------
-    e_ops : :obj:`~Qobj`, :obj:`~QobjEvo`, function or list or dict of these
+    e_ops : :obj:`.Qobj`, :obj:`.QobjEvo`, function or list or dict of these
         The ``e_ops`` parameter defines the set of values to record at
-        each time step ``t``. If an element is a :obj:`~Qobj` or
-        :obj:`~QobjEvo` the value recorded is the expectation value of that
+        each time step ``t``. If an element is a :obj:`.Qobj` or
+        :obj:`.QobjEvo` the value recorded is the expectation value of that
         operator given the state at ``t``. If the element is a function, ``f``,
         the value recorded is ``f(t, state)``.
 
@@ -151,11 +151,11 @@ class Result(_BaseResult):
         A list of the times at which the expectation values and states were
         recorded.
 
-    states : list of :obj:`~Qobj`
+    states : list of :obj:`.Qobj`
         The state at each time ``t`` (if the recording of the state was
         requested).
 
-    final_state : :obj:`~Qobj`:
+    final_state : :obj:`.Qobj`:
         The final state (if the recording of the final state was requested).
 
     expect : list of arrays of expectation values
@@ -280,17 +280,17 @@ class Result(_BaseResult):
         t : float
             The time of the added state.
 
-        state : typically a :obj:`~Qobj`
-            The state a time ``t``. Usually this is a :obj:`~Qobj` with
+        state : typically a :obj:`.Qobj`
+            The state a time ``t``. Usually this is a :obj:`.Qobj` with
             suitable dimensions, but it sub-classes of result might support
             other forms of the state.
 
-        .. note::
+        Notes
+        -----
+        The expectation values, i.e. ``e_ops``, and states are recorded by
+        the state processors (see ``.add_processor``).
 
-           The expectation values, i.e. ``e_ops``, and states are recorded by
-           the state processors (see ``.add_processor``).
-
-           Additional processors may be added by sub-classes.
+        Additional processors may be added by sub-classes.
         """
         self.times.append(t)
 
@@ -337,10 +337,10 @@ class MultiTrajResult(_BaseResult):
 
     Parameters
     ----------
-    e_ops : :obj:`~Qobj`, :obj:`~QobjEvo`, function or list or dict of these
+    e_ops : :obj:`.Qobj`, :obj:`.QobjEvo`, function or list or dict of these
         The ``e_ops`` parameter defines the set of values to record at
-        each time step ``t``. If an element is a :obj:`~Qobj` or
-        :obj:`~QobjEvo` the value recorded is the expectation value of that
+        each time step ``t``. If an element is a :obj:`.Qobj` or
+        :obj:`.QobjEvo` the value recorded is the expectation value of that
         operator given the state at ``t``. If the element is a function, ``f``,
         the value recorded is ``f(t, state)``.
 
@@ -369,19 +369,19 @@ class MultiTrajResult(_BaseResult):
         A list of the times at which the expectation values and states were
         recorded.
 
-    average_states : list of :obj:`~Qobj`
+    average_states : list of :obj:`.Qobj`
         The state at each time ``t`` (if the recording of the state was
         requested) averaged over all trajectories as a density matrix.
 
-    runs_states : list of list of :obj:`~Qobj`
+    runs_states : list of list of :obj:`.Qobj`
         The state for each trajectory and each time ``t`` (if the recording of
         the states and trajectories was requested)
 
-    final_state : :obj:`~Qobj:
+    final_state : :obj:`.Qobj`:
         The final state (if the recording of the final state was requested)
         averaged over all trajectories as a density matrix.
 
-    runs_final_state : list of :obj:`~Qobj`
+    runs_final_state : list of :obj:`.Qobj`
         The final state for each trajectory (if the recording of the final
         state and trajectories was requested).
 
@@ -651,6 +651,7 @@ class MultiTrajResult(_BaseResult):
         Set the condition to stop the computing trajectories when the certain
         condition are fullfilled.
         Supported end condition for multi trajectories computation are:
+        
         - Reaching a number of trajectories.
         - Error bar on the expectation values reach smaller than a given
           tolerance.
@@ -872,7 +873,7 @@ class MultiTrajResult(_BaseResult):
 
 class McTrajectoryResult(Result):
     """
-    Result class used by the :class:`qutip.MCSolver` for single trajectories.
+    Result class used by the :class:`.MCSolver` for single trajectories.
     """
 
     def __init__(self, e_ops, options, *args, **kwargs):
@@ -886,10 +887,10 @@ class McResult(MultiTrajResult):
 
     Parameters
     ----------
-    e_ops : :obj:`~Qobj`, :obj:`~QobjEvo`, function or list or dict of these
+    e_ops : :obj:`.Qobj`, :obj:`.QobjEvo`, function or list or dict of these
         The ``e_ops`` parameter defines the set of values to record at
-        each time step ``t``. If an element is a :obj:`~Qobj` or
-        :obj:`~QobjEvo` the value recorded is the expectation value of that
+        each time step ``t``. If an element is a :obj:`.Qobj` or
+        :obj:`.QobjEvo` the value recorded is the expectation value of that
         operator given the state at ``t``. If the element is a function, ``f``,
         the value recorded is ``f(t, state)``.
 
@@ -1149,7 +1150,7 @@ class McResultImprovedSampling(McResult, MultiTrajResult):
 
 class NmmcTrajectoryResult(McTrajectoryResult):
     """
-    Result class used by the :class:`qutip.NonMarkovianMCSolver` for single
+    Result class used by the :class:`.NonMarkovianMCSolver` for single
     trajectories. Additionally stores the trace of the state along the
     trajectory.
     """
@@ -1179,10 +1180,10 @@ class NmmcResult(McResult):
 
     Parameters
     ----------
-    e_ops : :obj:`~Qobj`, :obj:`~QobjEvo`, function or list or dict of these
+    e_ops : :obj:`.Qobj`, :obj:`.QobjEvo`, function or list or dict of these
         The ``e_ops`` parameter defines the set of values to record at
-        each time step ``t``. If an element is a :obj:`~Qobj` or
-        :obj:`~QobjEvo` the value recorded is the expectation value of that
+        each time step ``t``. If an element is a :obj:`.Qobj` or
+        :obj:`.QobjEvo` the value recorded is the expectation value of that
         operator given the state at ``t``. If the element is a function, ``f``,
         the value recorded is ``f(t, state)``.
 

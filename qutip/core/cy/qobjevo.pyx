@@ -29,29 +29,29 @@ cdef class QobjEvo:
     A class for representing time-dependent quantum objects, such as quantum
     operators and states.
 
-    Importantly, :obj:`~QobjEvo` instances are used to represent such
+    Importantly, :obj:`.QobjEvo` instances are used to represent such
     time-dependent quantum objects when working with QuTiP solvers.
 
-    A :obj:`~QobjEvo` instance may be constructed from one of the following:
+    A :obj:`.QobjEvo` instance may be constructed from one of the following:
 
       * a callable ``f(t: double, args: dict) -> Qobj`` that returns the
         value of the quantum object at time ``t``.
 
-      * a ``[Qobj, Coefficient]`` pair, where :obj:`~Coefficient` may also be
+      * a ``[Qobj, Coefficient]`` pair, where :obj:`.Coefficient` may also be
         any item that can be used to construct a coefficient (e.g. a function,
         a numpy array of coefficient values, a string expression).
 
-      * a :obj:`~Qobj` (which creates a constant :obj:`~QobjEvo` term).
+      * a :obj:`.Qobj` (which creates a constant :obj:`.QobjEvo` term).
 
-      * a list of such callables, pairs or :obj:`~Qobj`\s.
+      * a list of such callables, pairs or :obj:`.Qobj`\s.
 
-      * a :obj:`~QobjEvo` (in which case a copy is created, all other arguments
+      * a :obj:`.QobjEvo` (in which case a copy is created, all other arguments
         are ignored except ``args`` which, if passed, replaces the existing
         arguments).
 
     Parameters
     ----------
-    Q_object : callable, list or Qobj
+    Q_object : callable, list or :obj:`.Qobj`
         A specification of the time-depedent quantum object. See the
         paragraph above for a full description and the examples section below
         for examples.
@@ -80,15 +80,15 @@ cdef class QobjEvo:
         ``0`` use previous or left value.
 
     copy : bool, default=True
-        Whether to make a copy of the :obj:`Qobj` instances supplied in
+        Whether to make a copy of the :obj:`.Qobj` instances supplied in
         the ``Q_object`` parameter.
 
     compress : bool, default=True
-        Whether to compress the :obj:`QobjEvo` instance terms after the
+        Whether to compress the :obj:`.QobjEvo` instance terms after the
         instance has been created.
 
         This sums the constant terms in a single term and combines
-        ``[Qobj, coefficient]`` pairs with the same :obj:`~Qobj` into a single
+        ``[Qobj, coefficient]`` pairs with the same :obj:`.Qobj` into a single
         pair containing the sum of the coefficients.
 
         See :meth:`compress`.
@@ -126,7 +126,7 @@ cdef class QobjEvo:
     Examples
     --------
 
-    A :obj:`~QobjEvo` constructed from a function:
+    A :obj:`.QobjEvo` constructed from a function:
 
     .. code-block::
 
@@ -136,14 +136,14 @@ cdef class QobjEvo:
         QobjEvo(f, args={'w': 1j})
 
 
-    For list based :obj:`~QobjEvo`, the list must consist of :obj`~Qobj` or
+    For list based :obj:`.QobjEvo`, the list must consist of :obj:`.Qobj` or
     ``[Qobj, Coefficient]`` pairs:
 
     .. code-block::
 
         QobjEvo([H0, [H1, coeff1], [H2, coeff2]], args=args)
 
-    The coefficients may be specified either using a :obj:`~Coefficient`
+    The coefficients may be specified either using a :obj:`.Coefficient`
     object or by a function, string, numpy array or any object that
     can be passed to the :func:`~coefficient` function. See the documentation
     of :func:`coefficient` for a full description.
@@ -179,8 +179,8 @@ cdef class QobjEvo:
 
     The coeffients array must have the same len as the tlist.
 
-    A :obj:`~QobjEvo` may also be built using simple arithmetic operations
-    combining :obj:`~Qobj` with :obj:`~Coefficient`, for example:
+    A :obj:`.QobjEvo` may also be built using simple arithmetic operations
+    combining :obj:`.Qobj` with :obj:`.Coefficient`, for example:
 
     .. code-block:: python
 
@@ -333,12 +333,12 @@ cdef class QobjEvo:
 
     def __call__(self, double t, dict _args=None, **kwargs):
         """
-        Get the :class:`~Qobj` at ``t``.
+        Get the :obj:`.Qobj` at ``t``.
 
         Parameters
         ----------
         t : float
-            Time at which the ``QobjEvo`` is to be evalued.
+            Time at which the :obj:`.QobjEvo` is to be evalued.
 
         _args : dict [optional]
             New arguments as a dict. Update args with ``arguments(new_args)``.
@@ -347,10 +347,11 @@ cdef class QobjEvo:
             New arguments as a keywors. Update args with
             ``arguments(**new_args)``.
 
-        .. note::
-            If both the positional ``_args`` and keywords are passed new values
-            from both will be used. If a key is present with both, the
-            ``_args`` dict value will take priority.
+        Notes
+        -----
+        If both the positional ``_args`` and keywords are passed new values
+        from both will be used. If a key is present with both, the
+        ``_args`` dict value will take priority.
         """
         if _args is not None or kwargs:
             if _args is not None:
@@ -405,7 +406,7 @@ cdef class QobjEvo:
         return t
 
     def copy(QobjEvo self):
-        """Return a copy of this `QobjEvo`"""
+        """Return a copy of this :obj:`.QobjEvo`"""
         return QobjEvo(self, compress=False)
 
     def arguments(QobjEvo self, dict _args=None, **kwargs):
@@ -421,10 +422,11 @@ cdef class QobjEvo:
             New arguments as a keywors. Update args with
             ``arguments(**new_args)``.
 
-        .. note::
-            If both the positional ``_args`` and keywords are passed new values
-            from both will be used. If a key is present with both, the ``_args``
-            dict value will take priority.
+        Notes
+        -----
+        If both the positional ``_args`` and keywords are passed new values
+        from both will be used. If a key is present with both, the ``_args``
+        dict value will take priority.
         """
         if _args is not None:
             kwargs.update(_args)
@@ -683,7 +685,7 @@ cdef class QobjEvo:
         which respectively construct a dense matrix store and a compressed
         sparse row one.
 
-        The `QobjEvo` is transformed inplace.
+        The :obj:`.QobjEvo` is transformed inplace.
 
         Parameters
         ----------
@@ -770,16 +772,16 @@ cdef class QobjEvo:
 
     def compress(self):
         """
-        Look for redundance in the :obj:`~QobjEvo` components:
+        Look for redundance in the :obj:`.QobjEvo` components:
 
-        Constant parts, (:class:`~Qobj` without :class:`~Coefficient`) will be
+        Constant parts, (:obj:`.Qobj` without :obj:`.Coefficient`) will be
         summed.
-        Pairs ``[Qobj, Coefficient]`` with the same :class:`~Qobj` are merged.
+        Pairs ``[Qobj, Coefficient]`` with the same :obj:`.Qobj` are merged.
 
         Example:
         ``[[sigmax(), f1], [sigmax(), f2]] -> [[sigmax(), f1+f2]]``
 
-        The :class:`~QobjEvo` is transformed inplace.
+        The :obj:`.QobjEvo` is transformed inplace.
 
         Returns
         -------
@@ -816,12 +818,12 @@ cdef class QobjEvo:
         Returns
         -------
         list_qevo: list
-            The QobjEvo as a list, element are either :class:`Qobj` for
+            The QobjEvo as a list, element are either :obj:`.Qobj` for
             constant parts, ``[Qobj, Coefficient]`` for coefficient based term.
-            The original format of the :class:`Coefficient` is not restored.
-            Lastly if the original `QobjEvo` is constructed with a function
-            returning a Qobj, the term is returned as a pair of the original
-            function and args (``dict``).
+            The original format of the :obj:`.Coefficient` is not restored.
+            Lastly if the original :obj:`.QobjEvo` is constructed with a
+            function returning a Qobj, the term is returned as a pair of the
+            original function and args (``dict``).
         """
         out = []
         for element in self.elements:

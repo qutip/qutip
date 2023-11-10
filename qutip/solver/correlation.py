@@ -38,9 +38,9 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     Parameters
     ----------
 
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -48,11 +48,11 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+    c_ops : list of {:obj:`.Qobj`, :obj:`.QobjEvo`}
         List of collapse operators
-    a_op : :class:`Qobj`, :class:`QobjEvo`
+    a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator A.
-    b_op : :class:`Qobj`, :class:`QobjEvo`
+    b_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator B.
     reverse : bool {False}
         If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
@@ -101,9 +101,9 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -116,11 +116,11 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+    c_ops : list of {:obj:`.Qobj`, :obj:`.QobjEvo`}
         List of collapse operators
-    a_op : :class:`Qobj`, :class:`QobjEvo`
+    a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator A.
-    b_op : :class:`Qobj`, :class:`QobjEvo`
+    b_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator B.
     reverse : bool {False}
         If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
@@ -175,9 +175,9 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -185,13 +185,13 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+    c_ops : list of {:obj:`.Qobj`, :obj:`.QobjEvo`}
         List of collapse operators
-    a_op : :class:`Qobj`, :class:`QobjEvo`
+    a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator A.
-    b_op : :class:`Qobj`, :class:`QobjEvo`
+    b_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator B.
-    c_op : :class:`Qobj`, :class:`QobjEvo`
+    c_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator C.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
@@ -234,9 +234,9 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -249,13 +249,13 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+    c_ops : list of {:obj:`.Qobj`, :obj:`.QobjEvo`}
         List of collapse operators
-    a_op : :class:`Qobj`, :class:`QobjEvo`
+    a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator A.
-    b_op : :class:`Qobj`, :class:`QobjEvo`
+    b_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator B.
-    c_op : :class:`Qobj`, :class:`QobjEvo`
+    c_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator C.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
@@ -310,9 +310,9 @@ def coherence_function_g1(
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -320,9 +320,9 @@ def coherence_function_g1(
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+    c_ops : list of {:obj:`.Qobj`, :obj:`.QobjEvo`}
         List of collapse operators
-    a_op : :class:`Qobj`, :class:`QobjEvo`
+    a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator A.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
@@ -369,9 +369,9 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -382,7 +382,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
     c_ops : list
         List of collapse operators, may be time-dependent for solver choice of
         `me`.
-    a_op : :class:`Qobj`
+    a_op : :obj:`.Qobj`
         Operator A.
     args : dict
         Dictionary of arguments to be passed to solver.
@@ -434,16 +434,16 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
 
         :math:`\left<A(t)B(t+\tau)C(t)\right>`.
 
-    from a open system :class:`Solver`.
+    from a open system :class:`.Solver`.
 
     Note: it is not possible to calculate a physically meaningful correlation
     where :math:`\tau<0`.
 
     Parameters
     ----------
-    solver : :class:`MESolver`, :class:`BRSolver`
+    solver : :class:`.MESolver`, :class:`.BRSolver`
         Qutip solver for an open system.
-    state0 : :class:`Qobj`
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`.
     tlist : array_like
@@ -452,7 +452,7 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    A, B, C: :class:`Qobj`, :class:`QobjEvo`, optional, default=None
+    A, B, C: :obj:`.Qobj`, :obj:`.QobjEvo`, optional, default=None
         Operators ``A``, ``B``, ``C`` from the equation ``<A(t)B(t+\tau)C(t)>``
         in the Schrodinger picture. They do not need to be all provided. For
         exemple, if ``A`` is not provided, ``<B(t+\tau)C(t)>`` is computed.

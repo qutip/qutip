@@ -42,7 +42,7 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
 
     Parameters
     ----------
-    A : :obj:`~Qobj`
+    A : :obj:`.Qobj`
         A Hamiltonian or Liouvillian operator.
 
     c_op_list : list
@@ -117,10 +117,9 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     info : dict, optional
         Dictionary containing solver-specific information about the solution.
 
-    .. note::
-
-        The SVD method works only for dense operators (i.e. small systems).
-
+    Notes
+    -----
+    The SVD method works only for dense operators (i.e. small systems).
     """
     if not A.issuper and not c_ops:
         raise TypeError('Cannot calculate the steady state for a ' +
@@ -321,13 +320,13 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
 
     Parameters
     ----------
-    H_0 : :obj:`~Qobj`
+    H_0 : :obj:`.Qobj`
         A Hamiltonian or Liouvillian operator.
 
     c_ops : list
         A list of collapse operators.
 
-    Op_t : :obj:`~Qobj`
+    Op_t : :obj:`.Qobj`
         The the interaction operator which is multiplied by the cosine
 
     w_d : float, default 1.0
@@ -364,11 +363,11 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     dm : qobj
         Steady state density matrix.
 
-    .. note::
-
-        See: Sze Meng Tan,
-        https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
-        Section (10.16)
+    Notes
+    -----
+    See: Sze Meng Tan,
+    https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
+    Section (10.16)
 
     """
 
@@ -446,18 +445,18 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     R : Qobj
         Returns a Qobj instance representing the pseudo inverse of L.
 
-    .. note::
+    Notes
+    -----
+    In general the inverse of a sparse matrix will be dense.  If you
+    are applying the inverse to a density matrix then it is better to
+    cast the problem as an Ax=b type problem where the explicit calculation
+    of the inverse is not required. See page 67 of "Electrons in
+    nanostructures" C. Flindt, PhD Thesis available online:
+    https://orbit.dtu.dk/en/publications/electrons-in-nanostructures-coherent-manipulation-and-counting-st
 
-        In general the inverse of a sparse matrix will be dense.  If you
-        are applying the inverse to a density matrix then it is better to
-        cast the problem as an Ax=b type problem where the explicit calculation
-        of the inverse is not required. See page 67 of "Electrons in
-        nanostructures" C. Flindt, PhD Thesis available online:
-        https://orbit.dtu.dk/en/publications/electrons-in-nanostructures-coherent-manipulation-and-counting-st
-
-        Note also that the definition of the pseudo-inverse herein is different
-        from numpys pinv() alone, as it includes pre and post projection onto
-        the subspace defined by the projector Q.
+    Note also that the definition of the pseudo-inverse herein is different
+    from numpys pinv() alone, as it includes pre and post projection onto
+    the subspace defined by the projector Q.
 
     """
     if rhoss is None:

@@ -1248,7 +1248,7 @@ def plot_expectation_values(results, ylabels=None, *,
     instances.
     Parameters
     ----------
-    results : (list of) :class:`qutip.solver.Result`
+    results : (list of) :class:`.Result`
         List of results objects returned by any of the QuTiP evolution solvers.
 
     ylabels : list of strings, optional

@@ -479,7 +479,7 @@ parsed_code = "{code}"
 @cython.auto_pickle(True)
 cdef class StrCoefficient(Coefficient):
     \"\"\"
-    String compiled as a :obj:`Coefficient` using cython.
+    String compiled as a :obj:`.Coefficient` using cython.
     \"\"\"
     cdef:
         str codeString
@@ -490,7 +490,7 @@ cdef class StrCoefficient(Coefficient):
 {init_cte}{init_var}{init_arg}
 
     cpdef Coefficient copy(self):
-        \"\"\"Return a copy of the :obj:`Coefficient`.\"\"\"
+        \"\"\"Return a copy of the :obj:`.Coefficient`.\"\"\"
         cdef StrCoefficient out = StrCoefficient.__new__(StrCoefficient)
         out.codeString = self.codeString
 {copy_cte}{copy_var}
@@ -498,9 +498,9 @@ cdef class StrCoefficient(Coefficient):
 
     def replace_arguments(self, _args=None, **kwargs):
         \"\"\"
-        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
-        built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` does not use arguments. New arguments
+        Return a :obj:`.Coefficient` with args changed for :obj:`.Coefficient`
+        built from 'str' or a python function. Or a the :obj:`.Coefficient`
+        itself if the :obj:`.Coefficient` does not use arguments. New arguments
         can be passed as a dict or as keywords.
 
         Parameters

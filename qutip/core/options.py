@@ -52,7 +52,7 @@ class QutipOptions:
 
 class CoreOptions(QutipOptions):
     """
-    Options used by the core of qutip such as the tolerance of :class:`Qobj`
+    Options used by the core of qutip such as the tolerance of :obj:`.Qobj`
     comparison or coefficient's format.
 
     Values can be changed in ``qutip.settings.core`` or by using context:
@@ -74,9 +74,9 @@ class CoreOptions(QutipOptions):
         Used to choose QobjEvo.expect output type
 
     auto_tidyup_atol : float {1e-14}
-        The absolute tolerance used in automatic tidyup (see the ``auto_tidyup``
-        parameter above) and the default value of ``atol`` used in
-        :method:`Qobj.tidyup`.
+        The absolute tolerance used in automatic tidyup (see the
+        ``auto_tidyup`` parameter above) and the default value of ``atol`` used
+        in :meth:`Qobj.tidyup`.
 
     function_coefficient_style : str {"auto"}
         The signature expected by function coefficients. The options are:
@@ -95,7 +95,7 @@ class CoreOptions(QutipOptions):
           ``pythonic`` is used.
 
     default_dtype : Nonetype, str, type {None}
-        When set, functions creating :class:`Qobj`, such as :func:"qeye" or
+        When set, functions creating :obj:`.Qobj`, such as :func:"qeye" or
         :func:"rand_herm", will use the specified data type. Any data-layer
         known to ``qutip.data.to`` is accepted. When ``None``, these functions
         will default to a sensible data type.

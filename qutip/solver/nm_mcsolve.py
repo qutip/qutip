@@ -38,13 +38,13 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
 
     Parameters
     ----------
-    H : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`, ``list``, callable.
+    H : :class:`.Qobj`, :class:`.QobjEvo`, ``list``, callable.
         System Hamiltonian as a Qobj, QobjEvo. It can also be any input type
-        that QobjEvo accepts (see :class:`qutip.QobjEvo`'s documentation).
+        that QobjEvo accepts (see :class:`.QobjEvo`'s documentation).
         ``H`` can also be a superoperator (liouvillian) if some collapse
         operators are to be treated deterministically.
 
-    state : :class:`qutip.Qobj`
+    state : :class:`.Qobj`
         Initial state vector.
 
     tlist : array_like
@@ -52,7 +52,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
 
     ops_and_rates : list
         A ``list`` of tuples ``(L, Gamma)``, where the Lindblad operator ``L``
-        is a :class:`qutip.Qobj` and ``Gamma`` represents the corresponding
+        is a :class:`.Qobj` and ``Gamma`` represents the corresponding
         rate, which is allowed to be negative. The Lindblad operators must be
         operators even if ``H`` is a superoperator. If none are given, the
         solver will defer to ``sesolve`` or ``mesolve``. Each rate ``Gamma``
@@ -149,7 +149,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
 
     Returns
     -------
-    results : :class:`qutip.solver.NmmcResult`
+    results : :class:`.NmmcResult`
         Object storing all results from the simulation. Compared to a result
         returned by ``mcsolve``, this result contains the additional field
         ``trace`` (and ``runs_trace`` if ``store_final_state`` is set). Note
@@ -290,21 +290,21 @@ class NmMCIntegrator(MCIntegrator):
 class NonMarkovianMCSolver(MCSolver):
     """
     Monte Carlo Solver for Lindblad equations with "rates" that may be
-    negative. The ``c_ops`` parameter of :class:`qutip.MCSolver` is replaced by
+    negative. The ``c_ops`` parameter of :class:`.MCSolver` is replaced by
     an ``ops_and_rates`` parameter to allow for negative rates. Options for the
     underlying ODE solver are given by the Options class.
 
     Parameters
     ----------
-    H : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`, ``list``, callable.
+    H : :class:`.Qobj`, :class:`.QobjEvo`, ``list``, callable.
         System Hamiltonian as a Qobj, QobjEvo. It can also be any input type
-        that QobjEvo accepts (see :class:`qutip.QobjEvo` documentation).
+        that QobjEvo accepts (see :class:`.QobjEvo` documentation).
         ``H`` can also be a superoperator (liouvillian) if some collapse
         operators are to be treated deterministically.
 
     ops_and_rates : list
         A ``list`` of tuples ``(L, Gamma)``, where the Lindblad operator ``L``
-        is a :class:`qutip.Qobj` and ``Gamma`` represents the corresponding
+        is a :class:`.Qobj` and ``Gamma`` represents the corresponding
         rate, which is allowed to be negative. The Lindblad operators must be
         operators even if ``H`` is a superoperator. Each rate ``Gamma`` may be
         just a number (in the case of a constant rate) or, otherwise, specified

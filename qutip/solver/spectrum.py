@@ -25,15 +25,15 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es"):
 
     Parameters
     ----------
-    H : :class:`qutip.qobj`
+    H : :class:`.qobj`
         system Hamiltonian.
     wlist : array_like
         List of frequencies for :math:`\omega`.
     c_ops : list
         List of collapse operators.
-    a_op : Qobj
+    a_op : :class:`.qobj`
         Operator A.
-    b_op : Qobj
+    b_op : :class:`.qobj`
         Operator B.
     solver : str
         Choice of solver (`es` for exponential series and

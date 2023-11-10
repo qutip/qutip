@@ -160,7 +160,7 @@ def dicke_blocks(rho):
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         A 2D block-diagonal matrix of ones with dimension (nds,nds),
         where nds is the number of Dicke states for N two-level
         systems.
@@ -199,7 +199,7 @@ def dicke_blocks_full(rho):
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         A 2D block-diagonal matrix of ones with dimension (nds,nds),
         where nds is the number of Dicke states for N two-level
         systems.
@@ -244,7 +244,7 @@ def dicke_function_trace(f, rho):
     f : function
         A Taylor-expandable function of `rho`.
 
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         A density matrix in the Dicke basis.
 
     Returns
@@ -280,7 +280,7 @@ def entropy_vn_dicke(rho):
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         A 2D block-diagonal matrix of ones with dimension (nds,nds),
         where nds is the number of Dicke states for N two-level
         systems.
@@ -300,7 +300,7 @@ def purity_dicke(rho):
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         Density matrix in the Dicke basis of qutip.piqs.jspin(N), for N spins.
 
     Returns
@@ -335,7 +335,7 @@ class Dicke(object):
     N: int
         The number of two-level systems.
 
-    hamiltonian : :class:`qutip.Qobj`
+    hamiltonian : :class:`.Qobj`
         A Hamiltonian in the Dicke basis.
 
         The matrix dimensions are (nds, nds),
@@ -372,7 +372,7 @@ class Dicke(object):
     N: int
         The number of two-level systems.
 
-    hamiltonian : :class:`qutip.Qobj`
+    hamiltonian : :class:`.Qobj`
         A Hamiltonian in the Dicke basis.
 
         The matrix dimensions are (nds, nds),
@@ -468,7 +468,7 @@ class Dicke(object):
 
         Returns
         -------
-        lindbladian : :class:`qutip.Qobj`
+        lindbladian : :class:`.Qobj`
             The Lindbladian matrix as a `qutip.Qobj`.
         """
         cythonized_dicke = _Dicke(
@@ -487,7 +487,7 @@ class Dicke(object):
 
         Returns
         -------
-        liouv : :class:`qutip.Qobj`
+        liouv : :class:`.Qobj`
             The Liouvillian matrix for the system.
         """
         lindblad = self.lindbladian()
@@ -508,7 +508,7 @@ class Dicke(object):
 
         Parameters
         ==========
-        initial_state : :class:`qutip.Qobj`
+        initial_state : :class:`.Qobj`
             An initial state specified as a density matrix of
             `qutip.Qbj` type.
 
@@ -745,7 +745,7 @@ def spin_algebra(N, op=None):
 
     Returns
     -------
-    spin_operators: list or :class: qutip.Qobj
+    spin_operators: list or :class:`.Qobj`
         A list of `qutip.Qobj` operators - [sx, sy, sz] or the
         requested operator.
     """
@@ -820,7 +820,7 @@ def _jspin_uncoupled(N, op=None):
 
     Returns
     -------
-    collective_operators: list or :class: qutip.Qobj
+    collective_operators: list or :class:`.Qobj`
         A list of `qutip.Qobj` representing all the operators in
         uncoupled" basis or a single operator requested.
     """
@@ -878,7 +878,7 @@ def jspin(N, op=None, basis="dicke"):
 
     Returns
     -------
-    j_alg: list or :class: qutip.Qobj
+    j_alg: list or :class:`.Qobj`
         A list of `qutip.Qobj` representing all the operators in
         the "dicke" or "uncoupled" basis or a single operator requested.
     """
@@ -1050,7 +1050,7 @@ def dicke_basis(N, jmm1=None):
 
     Returns
     -------
-    rho: :class: qutip.Qobj
+    rho: :class:`.Qobj`
         The density matrix in the Dicke basis.
     """
     if jmm1 is None:
@@ -1091,7 +1091,7 @@ def dicke(N, j, m):
 
     Returns
     -------
-    rho: :class: qutip.Qobj
+    rho: :class:`.Qobj`
         The density matrix.
     """
     nds = num_dicke_states(N)
@@ -1118,7 +1118,7 @@ def _uncoupled_excited(N):
 
     Returns
     -------
-    psi0: :class: qutip.Qobj
+    psi0: :class:`.Qobj`
         The density matrix for the excited state in the uncoupled basis.
     """
     N = int(N)
@@ -1140,7 +1140,7 @@ def _uncoupled_superradiant(N):
 
     Returns
     -------
-    psi0: :class: qutip.Qobj
+    psi0: :class:`.Qobj`
         The density matrix for the superradiant state in the full Hilbert
         space.
     """
@@ -1163,7 +1163,7 @@ def _uncoupled_ground(N):
 
     Returns
     -------
-    psi0: :class: qutip.Qobj
+    psi0: :class:`.Qobj`
         The density matrix for the ground state in the full Hilbert space.
     """
     N = int(N)
@@ -1185,7 +1185,7 @@ def _uncoupled_ghz(N):
 
     Returns
     -------
-    ghz: :class: qutip.Qobj
+    ghz: :class:`.Qobj`
         The density matrix for the GHZ state in the full Hilbert space.
     """
     N = int(N)
@@ -1221,7 +1221,7 @@ def _uncoupled_css(N, a, b):
 
     Returns
     -------
-    css: :class: qutip.Qobj
+    css: :class:`.Qobj`
         The density matrix for the CSS state in the full Hilbert space.
     """
     N = int(N)
@@ -1270,7 +1270,7 @@ def excited(N, basis="dicke"):
 
     Returns
     -------
-    state: :class: qutip.Qobj
+    state: :class:`.Qobj`
         The excited state density matrix in the requested basis.
     """
     if basis == "uncoupled":
@@ -1299,7 +1299,7 @@ def superradiant(N, basis="dicke"):
 
     Returns
     -------
-    state: :class: qutip.Qobj
+    state: :class:`.Qobj`
         The superradiant state density matrix in the requested basis.
     """
     if basis == "uncoupled":
@@ -1350,7 +1350,7 @@ def css(
 
     Returns
     -------
-    rho: :class: qutip.Qobj
+    rho: :class:`.Qobj`
         The CSS state density matrix.
     """
     if coordinates == "polar":
@@ -1406,7 +1406,7 @@ def ghz(N, basis="dicke"):
 
     Returns
     -------
-    state: :class: qutip.Qobj
+    state: :class:`.Qobj`
         The GHZ state density matrix in the requested basis.
     """
     if basis == "uncoupled":
@@ -1438,7 +1438,7 @@ def ground(N, basis="dicke"):
 
     Returns
     -------
-    state: :class: qutip.Qobj
+    state: :class:`.Qobj`
         The ground state density matrix in the requested basis.
     """
     if basis == "uncoupled":
@@ -1463,7 +1463,7 @@ def identity_uncoupled(N):
 
     Returns
     -------
-    identity: :class: qutip.Qobj
+    identity: :class:`.Qobj`
         The identity matrix.
     """
     N = int(N)

@@ -67,7 +67,9 @@ The following code demonstrates how to calculate the :math:`\left<x(t)x(0)\right
     corr3 = correlation_2op_1t(H, None, times, [np.sqrt(2.0) * a], x, x)
 
     plt.figure()
-    plt.plot(times, np.real(corr1), times, np.real(corr2), times, np.real(corr3))
+    plt.plot(times, np.real(corr1))
+    plt.plot(times, np.real(corr2))
+    plt.plot(times, np.real(corr3))
     plt.legend(['0.5','1.0','2.0'])
     plt.xlabel(r'Time $t$')
     plt.ylabel(r'Correlation $\left<x(t)x(0)\right>$')

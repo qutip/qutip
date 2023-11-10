@@ -158,7 +158,7 @@ Floquet States and Floquet-Markov Master Equation
 -------------------------------------------------
 
 .. automodule:: qutip.solver.floquet
-    :members: fmmesolve, fsesolve, FloquetBasis, FMESolver, floquet_tensor
+    :members: fmmesolve, fsesolve, floquet_tensor
 
 
 Stochastic Schrödinger Equation and Master Equation

@@ -22,10 +22,11 @@ def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
-        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. ``list`` of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`,
+        :obj:`.QobjEvo` compatible format. Possibly
+        time-dependent system Liouvillian or Hamiltonian as a Qobj or QobjEvo.
+        ``list`` of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+        that can be made into :obj:`.QobjEvo` are also accepted.
 
     t : float or array-like
         Time or list of times for which to evaluate the propagator.
@@ -41,12 +42,12 @@ def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
         Options for the solver.
 
     **kwargs :
-        Extra parameters to use when creating the :class:`QobjEvo` from a list
-        format ``H``.
+        Extra parameters to use when creating the
+        :obj:`.QobjEvo` from a list format ``H``.
 
     Returns
     -------
-    U : qobj, list
+    U : :obj:`.Qobj`, list
         Instance representing the propagator(s) :math:`U(t)`. Return a single
         Qobj when ``t`` is a number or a list when ``t`` is a list.
 
@@ -83,12 +84,12 @@ def propagator_steadystate(U):
 
     Parameters
     ----------
-    U : qobj
+    U : :obj:`.Qobj`
         Operator representing the propagator.
 
     Returns
     -------
-    a : qobj
+    a : :obj:`.Qobj`
         Instance representing the steady-state density matrix.
     """
     evals, estates = U.eigenstates()
@@ -116,14 +117,14 @@ class Propagator:
 
     Parameters
     ----------
-    system : :class:`Qobj`, :class:`QobjEvo`, :class:`Solver`
+    system : :obj:`.Qobj`, :obj:`.QobjEvo`, :class:`.Solver`
         Possibly time-dependent system driving the evolution, either already
-        packaged in a solver, such as :class:`SESolver` or :class:`BRSolver`,
-        or the Liouvillian or Hamiltonian as a :class:`Qobj`, :class:`QobjEvo`.
-        ``list`` of [:class:`Qobj`, :class:`Coefficient`] or callable that can
-        be made into :class:`QobjEvo` are also accepted.
+        packaged in a solver, such as :class:`.SESolver` or :class:`.BRSolver`,
+        or the Liouvillian or Hamiltonian as a :obj:`.Qobj`,
+        :obj:`.QobjEvo`. ``list`` of [:obj:`.Qobj`, :obj:`.Coefficient`]
+        or callable that can be made into :obj:`.QobjEvo` are also accepted.
 
-        Solvers that run non-deterministacilly, such as :class:`MCSolver`, are
+        Solvers that run non-deterministacilly, such as :class:`.MCSolver`, are
         not supported.
 
     c_ops : list, optional
@@ -143,11 +144,15 @@ class Propagator:
         Absolute tolerance for the time. If a previous propagator was computed
         at a time within tolerance, that propagator will be returned.
 
-    .. note::
-        The :class:`Propagator` is not a :class:`QobjEvo` so it cannot be used
-        for operations with :class:`Qobj` or :class:`QobjEvo`. It can be made
-        into a :class:`QobjEvo` with ::
-            U = QobjEvo(Propagator(H))
+    Notes
+    -----
+    The :class:`Propagator` is not a :obj:`.QobjEvo` so
+    it cannot be used for operations with :obj:`.Qobj` or
+    :obj:`.QobjEvo`. It can be made into a
+    :obj:`.QobjEvo` with ::
+
+        U = QobjEvo(Propagator(H))
+
     """
     def __init__(self, system, *, c_ops=(), args=None, options=None,
                  memoize=10, tol=1e-14):

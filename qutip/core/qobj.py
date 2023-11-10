@@ -755,12 +755,12 @@ class Qobj:
 
         Parameters
         ----------
-        Q : :class:`qutip.Qobj`
+        Q : :class:`.Qobj`
             Input bra or ket vector
 
         Returns
         -------
-        P : :class:`qutip.Qobj`
+        P : :class:`.Qobj`
             Projection operator.
         """
         if not (self.isket or self.isbra):
@@ -874,7 +874,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Exponentiated quantum operator.
 
         Raises
@@ -898,7 +898,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Logarithm of the quantum operator.
 
         Raises
@@ -941,7 +941,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Matrix square root of operator.
 
         Raises
@@ -985,7 +985,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Matrix cosine of operator.
 
         Raises
@@ -1009,7 +1009,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Matrix sine of operator.
 
         Raises
@@ -1032,7 +1032,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Matrix inverse of operator.
 
         Raises
@@ -1069,7 +1069,7 @@ class Qobj:
 
         Returns
         -------
-        obj : :class:`qutip.Qobj`
+        obj : :class:`.Qobj`
             Normalized quantum object.  Will be the `self` object if in place.
         """
         norm = self.norm(norm=norm, kwargs=kwargs)
@@ -1119,7 +1119,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Quantum object representing partial trace with selected components
             remaining.
         """
@@ -1239,7 +1239,7 @@ class Qobj:
 
         Returns
         -------
-        P : :class:`qutip.Qobj`
+        P : :class:`.Qobj`
             Permuted quantum object.
         """
         if self.type in ('bra', 'ket', 'oper'):
@@ -1294,7 +1294,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Quantum object with small elements removed.
         """
         atol = atol or settings.core['auto_tidyup_atol']
@@ -1316,7 +1316,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Operator in new basis.
 
         Notes
@@ -1377,7 +1377,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             A valid density operator.
         """
         if not self.isherm:
@@ -1429,10 +1429,10 @@ class Qobj:
 
         Parameters
         ----------
-        bra : :class:`qutip.Qobj`
+        bra : :class:`.Qobj`
             Quantum object of type 'bra' or 'ket'
 
-        ket : :class:`qutip.Qobj`
+        ket : :class:`.Qobj`
             Quantum object of type 'ket'.
 
         Returns
@@ -1466,7 +1466,7 @@ class Qobj:
 
         Parameters
         ----------
-        other : :class:`qutip.Qobj`
+        other : :class:`.Qobj`
             Quantum object for a state vector of type 'ket', 'bra' or density
             matrix.
 
@@ -1653,7 +1653,7 @@ class Qobj:
         -------
         eigval : float
             Eigenvalue for the ground state of quantum operator.
-        eigvec : :class:`qutip.Qobj`
+        eigvec : :class:`.Qobj`
             Eigenket for the ground state of quantum operator.
 
         Notes
@@ -1679,7 +1679,7 @@ class Qobj:
 
         Parameters
         ----------
-        B : :class:`qutip.Qobj` or None
+        B : :class:`.Qobj` or None
             If B is not None, the diamond distance d(A, B) = dnorm(A - B)
             between this operator and B is returned instead of the diamond norm.
 
@@ -1802,14 +1802,14 @@ def ptrace(Q, sel):
 
     Parameters
     ----------
-    Q : :class:`qutip.Qobj`
+    Q : :class:`.Qobj`
         Composite quantum object.
     sel : int/list
         An ``int`` or ``list`` of components to keep after partial trace.
 
     Returns
     -------
-    oper : :class:`qutip.Qobj`
+    oper : :class:`.Qobj`
         Quantum object representing partial trace with selected components
         remaining.
 

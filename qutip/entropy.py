@@ -195,10 +195,10 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         First density matrix (or ket which will be converted to a density
         matrix).
-    sigma : :class:`qutip.Qobj`
+    sigma : :class:`.Qobj`
         Second density matrix (or ket which will be converted to a density
         matrix).
     base : {e,2}

@@ -115,7 +115,7 @@ def _process_fidelity_to_id(oper):
     to the identity quantum channel.
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`/list
+    oper : :class:`.Qobj`/list
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
     Returns
@@ -154,10 +154,10 @@ def process_fidelity(oper, target=None):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`/list
+    oper : :class:`.Qobj`/list
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
-    target : :class:`qutip.Qobj`/list
+    target : :class:`.Qobj`/list
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
 
@@ -217,10 +217,10 @@ def average_gate_fidelity(oper, target=None):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`/list
+    oper : :class:`.Qobj`/list
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
-    target : :class:`qutip.Qobj`
+    target : :class:`.Qobj`
         A unitary operator
 
     Returns
@@ -387,9 +387,9 @@ def hellinger_dist(A, B, sparse=False, tol=0):
 
     Parameters
     ----------
-    A : :class:`qutip.Qobj`
+    A : :class:`.Qobj`
         Density matrix or state vector.
-    B : :class:`qutip.Qobj`
+    B : :class:`.Qobj`
         Density matrix or state vector with same dimensions as A.
     tol : float
         Tolerance used by sparse eigensolver, if used. (0=Machine precision)

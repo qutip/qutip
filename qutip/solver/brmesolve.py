@@ -26,10 +26,10 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
     psi0: Qobj
         Initial density matrix or state vector (ket).
@@ -41,10 +41,10 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         Nested list of system operators that couple to the environment,
         and the corresponding bath spectra.
 
-        a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
+        a_op : :obj:`qutip.Qobj`, :obj:`qutip.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :class:`Coefficient`, str, func
+        spectra : :obj:`.Coefficient`, str, func
             The corresponding bath spectral responce.
             Can be a `Coefficient` using an 'w' args, a function of the
             frequence or a string. Coefficient build from a numpy array are
@@ -52,7 +52,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             expected to be of the signature ``f(w)`` or ``f(t, w, **args)``.
 
             The spectra function can depend on ``t`` if the corresponding
-            ``a_op`` is a :class:`QobjEvo`.
+            ``a_op`` is a :obj:`.QobjEvo`.
 
         Example:
 
@@ -66,20 +66,20 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             ]
 
         .. note:
-            ``Cubic_Spline`` has been replaced by :class:`Coefficient`:
+            ``Cubic_Spline`` has been replaced by :obj:`.Coefficient`:
                 ``spline = qutip.coefficient(array, tlist=times)``
 
             Whether the ``a_ops`` is time dependent is decided by the type of
-            the operator: :class:`Qobj` vs :class:`QobjEvo` instead of the type
+            the operator: :obj:`.Qobj` vs :obj:`.QobjEvo` instead of the type
             of the spectra.
 
-    e_ops : list of :class:`Qobj` / callback function
+    e_ops : list of :obj:`.Qobj` / callback function
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`expect` for more detail of operator expectation
 
-    c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of collapse operators.
 
     args : dict
@@ -129,9 +129,9 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
 
     Returns
     -------
-    result: :class:`qutip.solver.Result`
+    result: :obj:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.Result`, which contains
+        An instance of the class :obj:`qutip.solver.Result`, which contains
         either an array of expectation values, for operators given in e_ops,
         or a list of states for the times specified by `tlist`.
 
@@ -182,22 +182,22 @@ class BRSolver(Solver):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
     a_ops : list of (a_op, spectra)
         Nested list of system operators that couple to the environment,
         and the corresponding bath spectra.
 
-        a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
+        a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :class:`Coefficient`
+        spectra : :obj:`.Coefficient`
             The corresponding bath spectra. As a `Coefficient` using an 'w'
-            args. Can depend on ``t`` only if a_op is a :class:`qutip.QobjEvo`.
-            :class:`SpectraCoefficient` can be used to conver a coefficient
+            args. Can depend on ``t`` only if a_op is a :obj:`qutip.QobjEvo`.
+            :obj:`SpectraCoefficient` can be used to conver a coefficient
             depending on ``t`` to one depending on ``w``.
 
         Example:
@@ -211,7 +211,7 @@ class BRSolver(Solver):
                 (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
             ]
 
-    c_ops : list of :class:`Qobj`, :class:`QobjEvo`
+    c_ops : list of :obj:`.Qobj`, :obj:`.QobjEvo`
         Single collapse operator, or list of collapse operators, or a list
         of Lindblad dissipator. None is equivalent to an empty list.
 
@@ -223,14 +223,14 @@ class BRSolver(Solver):
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
 
-    attributes
+    Attributes
     ----------
     stats: dict
         Diverse diagnostic statistics of the evolution.
     """
     name = "brmesolve"
     solver_options = {
-        "progress_bar": "text",
+        "progress_bar": "",
         "progress_kwargs": {"chunk_size":10},
         "store_final_state": False,
         "store_states": None,
@@ -319,7 +319,7 @@ class BRSolver(Solver):
         normalize_output: bool, default=False
             Normalize output state to hide ODE numerical errors.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default=""
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error if
             not installed. Empty string or False will disable the bar.

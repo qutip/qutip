@@ -21,6 +21,7 @@ from .operators import jmat, displace, qdiags
 from .tensor import tensor
 from .. import settings
 
+
 def _promote_to_zero_list(arg, length):
     """
     Ensure `arg` is a list of length `length`.  If `arg` is None it is promoted
@@ -68,7 +69,7 @@ def basis(dimensions, n=None, offset=None, *, dtype=None):
 
     Returns
     -------
-    state : :class:`qutip.Qobj`
+    state : :class:`.Qobj`
       Qobj representing the requested number state ``|n>``.
 
     Examples
@@ -152,6 +153,7 @@ def qutrit_basis(*, dtype=None):
         basis(3, 2, dtype=dtype),
     ]
     return out
+
 
 _COHERENT_METHODS = ('operator', 'analytic')
 
@@ -883,6 +885,9 @@ def state_number_qobj(dims, state, *, dtype=None):
     Return a Qobj representation of a quantum state specified by the state
     array `state`.
 
+    .. note::
+        Deprecated in QuTiP 5.0, use :func:`basis` instead.
+
     Example:
 
         >>> state_number_qobj([2, 2, 2], [1, 0, 1]) # doctest: +SKIP
@@ -912,11 +917,8 @@ shape = [8, 1], type = ket
 
     Returns
     -------
-    state : :class:`qutip.Qobj`
-        The state as a :class:`qutip.Qobj` instance.
-
-    .. note::
-        Deprecated in QuTiP 5.0, use :func:`basis` instead.
+    state : :class:`.Qobj`
+        The state as a :class:`.Qobj` instance.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
     warnings.warn("basis() is a drop-in replacement for this",
@@ -1308,7 +1310,7 @@ def w_state(N=3, *, dtype=None):
 
     Returns
     -------
-    W : :obj:`~Qobj`
+    W : :obj:`.Qobj`
         N-qubit W-state
     """
     inds = np.zeros(N, dtype=int)

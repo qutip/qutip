@@ -25,12 +25,12 @@ def krylovsolve(
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+        Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+        that can be made into :obj:`.QobjEvo` are also accepted.
 
-    psi0 : :class:`qutip.qobj`
+    psi0 : :class:`.Qobj`
         initial state vector (ket)
         or initial unitary operator `psi0 = U`
 
@@ -41,7 +41,7 @@ def krylovsolve(
         Dimension of Krylov approximation subspaces used for the time
         evolution approximation.
 
-    e_ops : :class:`qutip.qobj`, callable, or list.
+    e_ops : :class:`.Qobj`, callable, or list.
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
@@ -86,7 +86,7 @@ def krylovsolve(
 
     Returns
     -------
-    result: :class:`qutip.Result`
+    result: :class:`.Result`
 
         An instance of the class :class:`qutip.Result`, which contains
         a *list of array* `result.expect` of expectation values for the times

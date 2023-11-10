@@ -159,11 +159,11 @@ class Bloch:
         self.vector_default_color = ['g', '#CC6600', 'b', 'r']
         # List that stores the display colors for each vector
         self.vector_color = []
-        #: Width of Bloch vectors, default = 5
+        # Width of Bloch vectors, default = 5
         self.vector_width = 3
-        #: Style of Bloch vectors, default = '-\|>' (or 'simple')
+        # Style of Bloch vectors, default = '-\|>' (or 'simple')
         self.vector_style = '-|>'
-        #: Sets the width of the vectors arrowhead
+        # Sets the width of the vectors arrowhead
         self.vector_mutation = 20
 
         # ---point options---
@@ -331,12 +331,12 @@ class Bloch:
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
 
-        .. note::
-
-           When using ``meth=l`` in QuTiP 4.6, the line transparency defaulted
-           to ``0.75`` and there was no way to alter it.
-           When the ``alpha`` parameter was added in QuTiP 4.7, the default
-           became ``alpha=1.0`` for values of ``meth``.
+        Notes
+        -----
+        When using ``meth=l`` in QuTiP 4.6, the line transparency defaulted
+        to ``0.75`` and there was no way to alter it.
+        When the ``alpha`` parameter was added in QuTiP 4.7, the default
+        became ``alpha=1.0`` for values of ``meth``.
         """
 
         points = np.asarray(points)

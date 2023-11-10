@@ -136,8 +136,8 @@ class HierarchyADOs:
         int
             The index of the label within the list of ADO labels.
 
-        .. note::
-
+        Notes
+        -----
         This implementation of the ``.idx(...)`` method is just for
         reference and documentation. To avoid the cost of a Python
         function call, it is replaced with
@@ -326,7 +326,7 @@ class HierarchyADOsState:
 
     Parameters
     ----------
-    rho : :class:`~qutip.Qobj`
+    rho : :class:`.Qobj`
         The current state of the system (i.e. the 0th component of the
         hierarchy).
     ados : :class:`HierarchyADOs`
@@ -427,10 +427,10 @@ def heomsolve(
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
     bath : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the
@@ -444,9 +444,9 @@ def heomsolve(
         The maximum depth of the heirarchy (i.e. the maximum number of bath
         exponent "excitations" to retain).
 
-    state0 : :class:`~Qobj` or :class:`~HierarchyADOsState` or array-like
-        If ``rho0`` is a :class:`~Qobj` the it is the initial state
-        of the system (i.e. a :obj:`~Qobj` density matrix).
+    state0 : :obj:`.Qobj` or :class:`~HierarchyADOsState` or array-like
+        If ``rho0`` is a :obj:`.Qobj` the it is the initial state
+        of the system (i.e. a :obj:`.Qobj` density matrix).
 
         If it is a :class:`~HierarchyADOsState` or array-like, then
         ``rho0`` gives the initial state of all ADOs.
@@ -465,8 +465,8 @@ def heomsolve(
         An ordered list of times at which to return the value of the state.
 
     e_ops : Qobj / QobjEvo / callable / list / dict / None, optional
-        A list or dictionary of operators as :class:`~Qobj`,
-        :class:`~QobjEvo` and/or callable functions (they can be mixed) or
+        A list or dictionary of operators as :obj:`.Qobj`,
+        :obj:`.QobjEvo` and/or callable functions (they can be mixed) or
         a single operator or callable function. For an operator ``op``, the
         result will be computed using ``(state * op).tr()`` and the state
         at each time ``t``. For callable functions, ``f``, the result is
@@ -553,10 +553,10 @@ class HEOMSolver(Solver):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
     bath : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the
@@ -581,7 +581,7 @@ class HEOMSolver(Solver):
         The description of the hierarchy constructed from the given bath
         and maximum depth.
 
-    rhs : :obj:`QobjEvo`
+    rhs : :obj:`.QobjEvo`
         The right-hand side (RHS) of the hierarchy evolution ODE. Internally
         the system and bath coupling operators are converted to
         :class:`qutip.data.CSR` instances during construction of the RHS,
@@ -967,9 +967,9 @@ class HEOMSolver(Solver):
 
         Parameters
         ----------
-        state0 : :class:`~Qobj` or :class:`~HierarchyADOsState` or array-like
-            If ``rho0`` is a :class:`~Qobj` the it is the initial state
-            of the system (i.e. a :obj:`~Qobj` density matrix).
+        state0 : :obj:`.Qobj` or :class:`~HierarchyADOsState` or array-like
+            If ``rho0`` is a :obj:`.Qobj` the it is the initial state
+            of the system (i.e. a :obj:`.Qobj` density matrix).
 
             If it is a :class:`~HierarchyADOsState` or array-like, then
             ``rho0`` gives the initial state of all ADOs.
@@ -991,8 +991,8 @@ class HEOMSolver(Solver):
             Change the ``args`` of the RHS for the evolution.
 
         e_ops : Qobj / QobjEvo / callable / list / dict / None, optional
-            A list or dictionary of operators as :class:`~Qobj`,
-            :class:`~QobjEvo` and/or callable functions (they can be mixed) or
+            A list or dictionary of operators as :obj:`.Qobj`,
+            :obj:`.QobjEvo` and/or callable functions (they can be mixed) or
             a single operator or callable function. For an operator ``op``, the
             result will be computed using ``(state * op).tr()`` and the state
             at each time ``t``. For callable functions, ``f``, the result is
@@ -1092,7 +1092,7 @@ class HEOMSolver(Solver):
 
         Parameters
         ----------
-        state0 : :class:`Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution. This may provide either just the
             initial density matrix of the system, or the full set of ADOs
             for the hierarchy. See the documentation for ``rho0`` in the

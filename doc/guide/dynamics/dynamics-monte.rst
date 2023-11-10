@@ -184,8 +184,13 @@ For instance, consider the following T1 simulation of a qubit with a lifetime of
     omega = 2.0 * np.pi * 1.0
     H0 = -0.5 * omega * sigmaz()
     gamma = 1/10000
-    data = mcsolve([H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100)
-    data_imp = mcsolve([H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm],ntraj=100, options={"improved_sampling": True})
+    data = mcsolve(
+        [H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100
+    )
+    data_imp = mcsolve(
+        [H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100,
+        options={"improved_sampling": True}
+    )
 
     plt.figure()
     plt.plot(times, data.expect[0], label="original")
@@ -320,7 +325,6 @@ This is done by using a liouvillian including the dissipative interaction instea
     plt.xlabel('Time')
     plt.ylabel('Photon detections')
     plt.show()
-
 
 
 .. _monte-nonmarkov:

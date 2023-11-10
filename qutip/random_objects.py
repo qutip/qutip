@@ -250,7 +250,7 @@ def rand_herm(dimensions, density=0.30, distribution="fill", *,
 
     Returns
     -------
-    oper : :class:`qobj`
+    oper : :obj:`.Qobj`
         Hermitian quantum operator.
 
     Notes

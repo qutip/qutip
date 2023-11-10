@@ -230,25 +230,25 @@ def smesolve(
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+        Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+        that can be made into :obj:`.QobjEvo` are also accepted.
 
-    rho0 : :class:`qutip.Qobj`
+    rho0 : :class:`.Qobj`
         Initial density matrix or state vector (ket).
 
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         Deterministic collapse operator which will contribute with a standard
         Lindblad type of dissipation.
 
-    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    e_ops : : :class:`qutip.qobj`, callable, or list.
+    e_ops : : :class:`.qobj`, callable, or list.
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
@@ -331,9 +331,9 @@ def smesolve(
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
+    output: :class:`.Result`
 
-        An instance of the class :class:`qutip.solver.Result`.
+        An instance of the class :class:`.Result`.
     """
     options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
@@ -358,21 +358,21 @@ def ssesolve(
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+        Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+        that can be made into :obj:`.QobjEvo` are also accepted.
 
-    psi0 : :class:`qutip.Qobj`
+    psi0 : :class:`.Qobj`
         Initial state vector (ket).
 
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    e_ops : :class:`qutip.qobj`, callable, or list.
+    e_ops : :class:`.qobj`, callable, or list.
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
@@ -453,8 +453,8 @@ def ssesolve(
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
-        An instance of the class :class:`qutip.solver.Result`.
+    output: :class:`.Result`
+        An instance of the class :class:`.Result`.
     """
     options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
@@ -680,12 +680,12 @@ class SMESolver(StochasticSolver):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+        Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+        that can be made into :obj:`.QobjEvo` are also accepted.
 
-    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
     heterodyne : bool, [False]
@@ -720,16 +720,16 @@ class SSESolver(StochasticSolver):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+        Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+        that can be made into :obj:`.QobjEvo` are also accepted.
 
-    c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         Deterministic collapse operator which will contribute with a standard
         Lindblad type of dissipation.
 
-    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
     heterodyne : bool, [False]

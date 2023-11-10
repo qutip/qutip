@@ -23,7 +23,7 @@ def partial_transpose(rho, mask, method='dense'):
     Parameters
     ----------
 
-    rho : :class:`qutip.qobj`
+    rho : :class:`.Qobj`
         A density matrix.
 
     mask : *list* / *array*
@@ -37,7 +37,7 @@ def partial_transpose(rho, mask, method='dense'):
     Returns
     -------
 
-    rho_pr: :class:`qutip.qobj`
+    rho_pr: :class:`.Qobj`
 
         A density matrix with the selected subsystems transposed.
 

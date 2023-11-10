@@ -53,7 +53,7 @@ def photon_scattering_amplitude(propagator, c_ops, tlist, taus, psi, psit):
 
     Parameters
     ----------
-    propagator : :class:Propagator
+    propagator : :class:`.Propagator`
         Propagator
     c_ops : list
         list of collapse operators for each waveguide; these are assumed to
@@ -129,7 +129,7 @@ def temporal_basis_vector(waveguide_emission_indices, n_time_bins,
 
     Returns
     -------
-    temporal_basis_vector : :class: qutip.Qobj
+    temporal_basis_vector : :class:`.Qobj`
         A basis vector representing photon scattering at the specified indices.
         If there are W waveguides, T times, and N photon emissions, then the
         basis vector has dimensionality (W*T)^N.
@@ -189,12 +189,12 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
 
     Parameters
     ----------
-    H : :class: qutip.Qobj or list
+    H : :class:`.Qobj` or list
         System-waveguide(s) Hamiltonian or effective Hamiltonian in Qobj or
         list-callback format. If construct_effective_hamiltonian is not
         specified, an effective Hamiltonian is constructed from `H` and
         `c_ops`.
-    psi0 : :class: qutip.Qobj
+    psi0 : :class:`.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`.
     n_emissions : int
@@ -206,7 +206,7 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
     tlist : array_like
         List of times for :math:`\\tau_i`. tlist should contain 0 and exceed
         the pulse duration / temporal region of interest.
-    system_zero_state : :class: qutip.Qobj
+    system_zero_state : :class:`.Qobj`
         State representing zero excitations in the system. Defaults to
         :math:`\\psi(t_0)`
     construct_effective_hamiltonian : bool
@@ -217,7 +217,7 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
 
     Returns
     -------
-    phi_n : :class: qutip.Qobj
+    phi_n : :class:`.Qobj`
         The scattered bath state projected onto the temporal basis given by
         tlist. If there are W waveguides, T times, and N photon emissions, then
         the state is a tensor product state with dimensionality T^(W*N).
@@ -241,12 +241,12 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
 
     Parameters
     ----------
-    H : :class: qutip.Qobj or list
+    H : :class:`.Qobj` or list
         System-waveguide(s) Hamiltonian or effective Hamiltonian in Qobj or
         list-callback format. If construct_effective_hamiltonian is not
         specified, an effective Hamiltonian is constructed from H and
         `c_ops`.
-    psi0 : :class: qutip.Qobj
+    psi0 : :class:`.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`.
     n_emissions : int
@@ -260,7 +260,7 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         List of times for :math:`\\tau_i`. tlist should contain 0 and exceed
         the pulse duration / temporal region of interest; tlist need not be
         linearly spaced.
-    system_zero_state : :class: qutip.Qobj
+    system_zero_state : :class:`.Qobj`
         State representing zero excitations in the system. Defaults to
         `basis(systemDims, 0)`.
     construct_effective_hamiltonian : bool

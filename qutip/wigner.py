@@ -687,7 +687,7 @@ class QFunc:
     See Also
     --------
     :obj:`.qfunc` :
-        a single function version, which will involve computing several
+        A single function version, which will involve computing several
         quantities multiple times in order to use less memory.
     """
 
