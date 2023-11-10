@@ -1175,14 +1175,8 @@ class FitSpectral(BosonicBath):
             Initial guess for the parameters.
         """
         start = time()
-        if N is None:
-            N = 1
-            flag = False
-        else:
-            flag = True
-            N = N-1
         rmse, params = _run_fit(self.spectral_density_approx, J, w,
-                                final_rmse, flag, N=N, sigma=sigma,
+                                final_rmse, N=N, sigma=sigma,
                                 label="Spectral Density", guesses=guesses,
                                 lower=lower, upper=upper)
         self.params_spec = params
@@ -1398,17 +1392,6 @@ class FitCorr(BosonicBath):
         """
         start = time()
         rmse1, rmse2 = [8, 8]
-        flag = False
-        if (Nr is not None) & (Ni is not None):
-            flag = True
-            Nr -= 1
-            Ni -= 1
-
-        if Nr is None:
-            Nr = 0
-        if Ni is None:
-            Ni = 0
-
         rmse1, params_real = _run_fit(
             lambda *args: np.real(self.corr_approx(*args)),
             np.real(C), t, final_rmse, flag,
@@ -1692,8 +1675,14 @@ def _fit(
     return rmse, params
 
 
-def _run_fit(funcx, funcy, x, final_rmse, flag, label=None, N=None,
+def _run_fit(funcx, funcy, x, final_rmse, label=None, N=None,
              sigma=None, guesses=None, lower=None, upper=None):
+    if N is None:
+        N = 1
+        flag = False
+    else:
+        flag = True
+        N = N-1
     rmse1 = 8
     while rmse1 > final_rmse:
         N += 1

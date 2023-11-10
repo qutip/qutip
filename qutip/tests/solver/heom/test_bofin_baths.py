@@ -569,7 +569,7 @@ class TestFitSpectral:
         rmse, self.bath.params_spec = _fit(
             self.bath.spectral_density_approx, J, w, N=2, label="spectral"
         )
-        pow2 = self.bath.spec_spectrum_approx(w)
+        pow2 = self.bath.power_spectrum(w, self.bath.T)
         assert np.isclose(pow, pow2).all()
 
     def test_get_fit(self):
