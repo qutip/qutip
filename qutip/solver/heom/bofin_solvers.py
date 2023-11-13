@@ -582,11 +582,11 @@ class HEOMSolver(Solver):
         the RHS construction differs slightly (it implies the RHS is acting on
         an initial density operator which has odd parity in terms of its
         representation in fermionic annhilation operators). In other words, a
-        state with a well defined number of excitations has even parity, but one
-        with superpositions of the number of excitations has odd parity.  This
-        is normally prohibited in 'normal' electronic systems, where charge is
-        conserved, but is useful for the construction of electron spectrum
-        (under linear response assumptions).
+        state with a well defined number of excitations has even parity, but
+        one with superpositions of the number of excitations has odd parity.
+        This is normally prohibited in 'normal' electronic systems, where
+        charge is conserved, but is useful for the construction of
+        electron spectrum (under linear response assumptions).
 
     max_depth : int
         The maximum depth of the heirarchy (i.e. the maximum number of bath
@@ -657,12 +657,14 @@ class HEOMSolver(Solver):
         Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
         self._spreQ = [spre(op).data for op in Qs]
         self._spostQ = [spost(op).data for op in Qs]
-        self._s_pre_minus_post_Q = [
-            _data.sub(self._spreQ[k], self._spostQ[k]) for k in range(self._n_exponents)
-        ]
-        self._s_pre_plus_post_Q = [
-            _data.add(self._spreQ[k], self._spostQ[k]) for k in range(self._n_exponents)
-        ]
+        self._s_pre_minus_post_Q = [_data.sub(
+            self._spreQ[k],
+            self._spostQ[k])
+            for k in range(self._n_exponents)]
+        self._s_pre_plus_post_Q = [_data.add(
+            self._spreQ[k],
+            self._spostQ[k])
+            for k in range(self._n_exponents)]
         self._spreQdag = [spre(op.dag()).data for op in Qs]
         self._spostQdag = [spost(op.dag()).data for op in Qs]
         self._s_pre_minus_post_Qdag = [
@@ -767,9 +769,19 @@ class HEOMSolver(Solver):
             op = _data.add(term1, term2)
         else:
             raise ValueError(
-                f"Unsupported type {self.ados.exponents[k].type}" f" for exponent {k}"
-            )
+                f"Unsupported type {self.ados.exponents[k].type}"
+                f" for exponent {k}")
         return op
+
+    def _get_signs(self, n_excite, n_excite_before_m):
+        """gets the correct signs according to the parity"""
+        if self.odd_parity:
+            sign1 = (-1) ** (n_excite)
+            sign2 = (-1) ** (n_excite_before_m + 1)
+        else:
+            sign1 = (-1) ** (n_excite + 1)
+            sign2 = (-1) ** (n_excite_before_m)
+        return sign1, sign2
 
     def _grad_prev_fermionic(self, he_n, k):
         ck = self.ados.ck
@@ -779,13 +791,8 @@ class HEOMSolver(Solver):
 
         n_excite = sum(he_fermionic_n)
         n_excite_before_m = sum(he_fermionic_n[:k])
-        if self.odd_parity == True:
-            sign1 = (-1) ** (n_excite)
-            sign2 = (-1) ** (n_excite_before_m + 1)
-        else:
-            sign1 = (-1) ** (n_excite + 1)
-            sign2 = (-1) ** (n_excite_before_m)
-
+        sign1, sign2 = self._get_signs(
+            n_excite=n_excite, n_excite_before_m=n_excite_before_m)
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
 
         if self.ados.exponents[k].type == BathExponent.types["+"]:
@@ -806,8 +813,8 @@ class HEOMSolver(Solver):
             )
         else:
             raise ValueError(
-                f"Unsupported type {self.ados.exponents[k].type}" f" for exponent {k}"
-            )
+                f"Unsupported type {self.ados.exponents[k].type}"
+                f" for exponent {k}")
         return op
 
     def _grad_next(self, he_n, k):
@@ -827,13 +834,8 @@ class HEOMSolver(Solver):
         ]
         n_excite = sum(he_fermionic_n)
         n_excite_before_m = sum(he_fermionic_n[:k])
-        if self.odd_parity == True:
-            sign1 = (-1) ** (n_excite)
-            sign2 = (-1) ** (n_excite_before_m + 1)
-        else:
-            sign1 = (-1) ** (n_excite + 1)
-            sign2 = (-1) ** (n_excite_before_m)
-
+        sign1, sign2 = self._get_signs(
+            n_excite=n_excite, n_excite_before_m=n_excite_before_m)
         if self.ados.exponents[k].type == BathExponent.types["+"]:
             if sign1 == -1:
                 op = _data.mul(self._s_pre_minus_post_Q[k], -1j * sign2)
@@ -846,8 +848,8 @@ class HEOMSolver(Solver):
                 op = _data.mul(self._s_pre_plus_post_Qdag[k], -1j * sign2)
         else:
             raise ValueError(
-                f"Unsupported type {self.ados.exponents[k].type}" f" for exponent {k}"
-            )
+                f"Unsupported type {self.ados.exponents[k].type}"
+                f" for exponent {k}")
         return op
 
     def _rhs(self):
@@ -913,8 +915,8 @@ class HEOMSolver(Solver):
         return rhs
 
     def steady_state(
-        self, use_mkl=True, mkl_max_iter_refine=100, mkl_weighted_matching=False
-    ):
+            self, use_mkl=True, mkl_max_iter_refine=100,
+            mkl_weighted_matching=False):
         """
         Compute the steady state of the system.
 
@@ -951,8 +953,8 @@ class HEOMSolver(Solver):
         """
         if not self.L_sys.isconstant:
             raise ValueError(
-                "A steady state cannot be determined for a time-dependent" " system"
-            )
+                "A steady state cannot be determined for a time-dependent"
+                " system")
         n = self._sys_shape
 
         b_mat = np.zeros(n**2 * self._n_ados, dtype=complex)
