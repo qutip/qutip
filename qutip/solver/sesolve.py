@@ -159,28 +159,28 @@ class SESolver(Solver):
         """
         Solver's options:
 
-        store_final_state: bool, default=False
+        store_final_state: bool, default: False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, default=None
+        store_states: bool, default: None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        normalize_output: bool, default=True
+        normalize_output: bool, default: True
             Normalize output state to hide ODE numerical errors.
 
-        progress_bar: str {"text", "enhanced", "tqdm", ""}, default=""
+        progress_bar: str {"text", "enhanced", "tqdm", ""}, default: ""
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
             if not installed. Empty string or False will disable the bar.
 
-        progress_kwargs: dict, default={"chunk_size": 10}
+        progress_kwargs: dict, default: {"chunk_size": 10}
             Arguments to pass to the progress_bar. Qutip's bars use
             ``chunk_size``.
 
-        method: str, default="adams"
+        method: str, default: "adams"
             Which ordinary differential equation integration method to use.
         """
         return self._options

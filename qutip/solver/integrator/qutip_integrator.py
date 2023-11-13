@@ -71,27 +71,27 @@ class IntegratorVern7(Integrator):
         """
         Supported options by verner method:
 
-        atol : float, default=1e-8
+        atol : float, default: 1e-8
             Absolute tolerance.
 
-        rtol : float, default=1e-6
+        rtol : float, default: 1e-6
             Relative tolerance.
 
-        nsteps : int, default=1000
+        nsteps : int, default: 1000
             Max. number of internal steps/call.
 
-        first_step : float, default=0
+        first_step : float, default: 0
             Size of initial step (0 = automatic).
 
-        min_step : float, default=0
+        min_step : float, default: 0
             Minimum step size (0 = automatic).
 
-        max_step : float, default=0
+        max_step : float, default: 0
             Maximum step size (0 = automatic)
             When using pulses, change to half the thinest pulse otherwise it
             may be skipped.
 
-        interpolate : bool, default=True
+        interpolate : bool, default: True
             Whether to use interpolation step, faster most of the time.
         """
         return self._options
@@ -183,7 +183,7 @@ class IntegratorDiag(Integrator):
         """
         Supported options by "diag" method:
 
-        eigensolver_dtype : str, default="dense"
+        eigensolver_dtype : str, default: "dense"
             Qutip data type {"dense", "csr", etc.} to use when computing the
             eigenstates. The dense eigen solver is usually faster and more
             stable.

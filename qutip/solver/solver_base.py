@@ -135,7 +135,7 @@ class Solver:
 
         Returns
         -------
-        results : :obj:`qutip.solver.Result`
+        results : :obj:`.Result`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """

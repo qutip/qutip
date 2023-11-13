@@ -10,7 +10,6 @@ import qutip
 from .. import Qobj
 from .. import data as _data
 from ..coefficient import coefficient, CompilationOptions
-from .coefficient import Coefficient
 from ._element import *
 from ..dimensions import type_from_dims
 from qutip.settings import settings
@@ -38,9 +37,9 @@ cdef class QobjEvo:
       * a callable ``f(t: double, args: dict) -> Qobj`` that returns the
         value of the quantum object at time ``t``.
 
-      * a ``[Qobj, Coefficient]`` pair, where :obj:`.Coefficient` may also be
-        any item that can be used to construct a coefficient (e.g. a function,
-        a numpy array of coefficient values, a string expression).
+      * a ``[Qobj, Coefficient]`` pair, where the :obj:`Coefficient` may be any
+        item that :func:`.coefficient` can accept (e.g. a function, a numpy
+        array of coefficient values, a string expression).
 
       * a :obj:`.Qobj` (which creates a constant :obj:`.QobjEvo` term).
 
@@ -144,10 +143,10 @@ cdef class QobjEvo:
 
         QobjEvo([H0, [H1, coeff1], [H2, coeff2]], args=args)
 
-    The coefficients may be specified either using a :obj:`.Coefficient`
-    object or by a function, string, numpy array or any object that
-    can be passed to the :func:`~coefficient` function. See the documentation
-    of :func:`coefficient` for a full description.
+    The coefficients may be specified either using a :obj:`Coefficient` object
+    or by a function, string, numpy array or any object that can be passed to
+    the :func:`.coefficient` function. See the documentation of
+    :func:`.coefficient` for a full description.
 
     An example of a coefficient specified by a function:
 
@@ -181,7 +180,7 @@ cdef class QobjEvo:
     The coeffients array must have the same len as the tlist.
 
     A :obj:`.QobjEvo` may also be built using simple arithmetic operations
-    combining :obj:`.Qobj` with :obj:`.Coefficient`, for example:
+    combining :obj:`.Qobj` with :obj:`Coefficient`, for example:
 
     .. code-block:: python
 
@@ -682,16 +681,16 @@ cdef class QobjEvo:
         storage representation.
 
         The different storage representations available are the "data-layer
-        types".  By default, these are `qutip.data.Dense` and `qutip.data.CSR`,
-        which respectively construct a dense matrix store and a compressed
-        sparse row one.
+        types".  By default, these are :obj:`.Dense`, :obj:`.Dia` and
+        :obj:`.CSR`, which respectively construct a dense matrix, diagonal
+        sparse matrixand a compressed sparse row one.
 
         The :obj:`.QobjEvo` is transformed inplace.
 
         Parameters
         ----------
         data_type : type
-            The data-layer type that the data of this `Qobj` should be
+            The data-layer type that the data of this :obj:`.Qobj` should be
             converted to.
 
         Returns
@@ -716,9 +715,17 @@ cdef class QobjEvo:
         Apply mapping to each Qobj contribution.
 
         Example:
-        ``QobjEvo([sigmax(), coeff]).linear_map(spre)``
+
+          ``QobjEvo([sigmax(), coeff]).linear_map(spre)``
+
         gives the same result has
-        ``QobjEvo([spre(sigmax()), coeff])``
+
+          ``QobjEvo([spre(sigmax()), coeff])``
+
+        Parameters
+        ----------
+        op_mapping: callable
+            Funtion to apply to each elements.
 
         Returns
         -------
@@ -775,7 +782,7 @@ cdef class QobjEvo:
         """
         Look for redundance in the :obj:`.QobjEvo` components:
 
-        Constant parts, (:obj:`.Qobj` without :obj:`.Coefficient`) will be
+        Constant parts, (:obj:`.Qobj` without :obj:`Coefficient`) will be
         summed.
         Pairs ``[Qobj, Coefficient]`` with the same :obj:`.Qobj` are merged.
 
@@ -821,7 +828,7 @@ cdef class QobjEvo:
         list_qevo: list
             The QobjEvo as a list, element are either :obj:`.Qobj` for
             constant parts, ``[Qobj, Coefficient]`` for coefficient based term.
-            The original format of the :obj:`.Coefficient` is not restored.
+            The original format of the :obj:`Coefficient` is not restored.
             Lastly if the original :obj:`.QobjEvo` is constructed with a
             function returning a Qobj, the term is returned as a pair of the
             original function and args (``dict``).

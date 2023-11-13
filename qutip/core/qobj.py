@@ -364,11 +364,12 @@ class Qobj:
         storage representation.
 
         The different storage representations available are the "data-layer
-        types" which are known to `qutip.data.to`.  By default, these are
-        `qutip.data.Dense` and `qutip.data.CSR`, which respectively construct a
-        dense matrix store and a compressed sparse row one.  Certain algorithms
-        and operations may be faster or more accurate when using a more
-        appropriate data store.
+        types" which are known to :obj:`qutip.core.data.to`.  By default, these
+        are :class:`~qutip.core.data.CSR`, :class:`~qutip.core.data.Dense` and
+        :class:`~qutip.core.data.Dia`, which respectively construct a
+        compressed sparse row matrix, diagonal matrix and a dense one.  Certain
+        algorithms and operations may be faster or more accurate when using a
+        more appropriate data store.
 
         If the data store is already in the format requested, the function
         returns `self`.  Otherwise, it returns a copy of itself with the data
@@ -377,14 +378,14 @@ class Qobj:
         Parameters
         ----------
         data_type : type
-            The data-layer type that the data of this `Qobj` should be
+            The data-layer type that the data of this :class:`Qobj` should be
             converted to.
 
         Returns
         -------
         Qobj
-            A new `Qobj` if a type conversion took place with the data stored
-            in the requested format, or `self` if not.
+            A new :class:`Qobj` if a type conversion took place with the data
+            stored in the requested format, or `self` if not.
         """
         try:
             converter = _data.to[data_type]
@@ -1209,28 +1210,42 @@ class Qobj:
     def permute(self, order):
         """
         Permute the tensor structure of a quantum object.  For example,
-        ``qutip.tensor(x, y).permute([1, 0])``
+
+            ``qutip.tensor(x, y).permute([1, 0])``
+
         will give the same result as
-        ``qutip.tensor(y, x)``
+
+            ``qutip.tensor(y, x)``
+
         and
-        ``qutip.tensor(a, b, c).permute([1, 2, 0])``
+
+            ``qutip.tensor(a, b, c).permute([1, 2, 0])``
+
         will be the same as
-        ``qutip.tensor(b, c, a)``
+
+            ``qutip.tensor(b, c, a)``
 
         For regular objects (bras, kets and operators) we expect ``order`` to
         be a flat list of integers, which specifies the new order of the tensor
         product.
 
         For superoperators, we expect ``order`` to be something like
-        ``[[0, 2], [1, 3]]``
+
+            ``[[0, 2], [1, 3]]``
+
         which tells us to permute according to [0, 2, 1, 3], and then group
         indices according to the length of each sublist.  As another example,
         permuting a superoperator with dimensions of
-        ``[[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]]``
+
+            ``[[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]]``
+
         by an ``order``
-        ``[[0, 3], [1, 4], [2, 5]]``
+
+            ``[[0, 3], [1, 4], [2, 5]]``
+
         should give a new object with dimensions
-        ``[[[1, 1], [2, 2], [3, 3]], [[1, 1], [2, 2], [3, 3]]]``.
+
+            ``[[[1, 1], [2, 2], [3, 3]], [[1, 1], [2, 2], [3, 3]]]``.
 
         Parameters
         ----------

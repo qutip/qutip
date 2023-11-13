@@ -335,7 +335,7 @@ class NonMarkovianMCSolver(MCSolver):
 
     # both classes will be partially initialized in constructor
     _trajectory_resultclass = NmmcTrajectoryResult
-    mc_integrator_class = NmMCIntegrator
+    _mc_integrator_class = NmMCIntegrator
 
     def __init__(
         self, H, ops_and_rates, *_args, args=None, options=None, **kwargs,
@@ -372,7 +372,7 @@ class NonMarkovianMCSolver(MCSolver):
         self._trajectory_resultclass = functools.partial(
             NmmcTrajectoryResult, __nm_solver=self,
         )
-        self.mc_integrator_class = functools.partial(
+        self._mc_integrator_class = functools.partial(
             NmMCIntegrator, __martingale=self._martingale,
         )
         super().__init__(H, c_ops, *_args, options=options, **kwargs)
@@ -524,32 +524,32 @@ class NonMarkovianMCSolver(MCSolver):
         """
         Options for non-Markovian Monte Carlo solver:
 
-        store_final_state: bool, default=False
+        store_final_state: bool, default: False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, default=None
+        store_states: bool, default: None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default: "text"
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
             if not installed. Empty string or False will disable the bar.
 
-        progress_kwargs: dict, default={"chunk_size":10}
+        progress_kwargs: dict, default: {"chunk_size":10}
             Arguments to pass to the progress_bar. Qutip's bars use
             ``chunk_size``.
 
-        keep_runs_results: bool
+        keep_runs_results: bool, default: False
           Whether to store results from all trajectories or just store the
           averages.
 
-        method: str, default="adams"
+        method: str, default: "adams"
             Which ODE integrator methods are supported.
 
-        map: str {"serial", "parallel", "loky"}
+        map: str {"serial", "parallel", "loky"}, default: "serial"
             How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
@@ -565,30 +565,30 @@ class NonMarkovianMCSolver(MCSolver):
             Which of numpy.random's bitgenerator to use. With ``None``, your
             numpy version's default is used.
 
-        mc_corr_eps: float
+        mc_corr_eps: float, default: 1e-10
             Small number used to detect non-physical collapse caused by
             numerical imprecision.
 
-        norm_t_tol: float
+        norm_t_tol: float, default: 1e-6
             Tolerance in time used when finding the collapse.
 
-        norm_tol: float
+        norm_tol: float, default: 1e-4
             Tolerance in norm used when finding the collapse.
 
-        norm_steps: int
+        norm_steps: int, default: 5
             Maximum number of tries to find the collapse.
 
-        completeness_rtol: float, default=1e-5
+        completeness_rtol: float, default: 1e-5
             Used in determining whether the given Lindblad operators satisfy
             a certain completeness relation. If they do not, an additional
             Lindblad operator is added automatically (with zero rate).
 
-        completeness_atol: float, default=1e-8
+        completeness_atol: float, default: 1e-8
             Used in determining whether the given Lindblad operators satisfy
             a certain completeness relation. If they do not, an additional
             Lindblad operator is added automatically (with zero rate).
 
-        martingale_quad_limit: float or int, default=100
+        martingale_quad_limit: float or int, default: 100
             An upper bound on the number of subintervals used in the adaptive
             integration of the martingale.
 

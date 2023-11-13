@@ -8,6 +8,7 @@ __all__ = [
 
 import numpy as np
 from qutip.core import data as _data
+from qutip.core.data import Data
 from qutip import Qobj, QobjEvo
 from .propagator import Propagator
 from .mesolve import MESolver

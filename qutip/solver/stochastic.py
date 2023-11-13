@@ -621,49 +621,49 @@ class StochasticSolver(MultiTrajSolver):
         """
         Options for stochastic solver:
 
-        store_final_state: bool, default=False
+        store_final_state: bool, default: False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, default=None
+        store_states: None, bool, default: None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        store_measurement: bool, [False]
+        store_measurement: bool, default: False
             Whether to store the measurement for each trajectories.
             Storing measurements will also store the wiener process, or
             brownian noise for each trajectories.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default: "text"
             How to present the solver progress. 'tqdm' uses the python module
             of the same name and raise an error if not installed. Empty string
             or False will disable the bar.
 
-        progress_kwargs: dict, default={"chunk_size":10}
+        progress_kwargs: dict, default: {"chunk_size":10}
             Arguments to pass to the progress_bar. Qutip's bars use
             ``chunk_size``.
 
-        keep_runs_results: bool
+        keep_runs_results: bool, default: False
           Whether to store results from all trajectories or just store the
           averages.
 
-        method: str, default="rouchon"
+        method: str, default: "taylor1.5"
             Which ODE integrator methods are supported.
 
-        map: str {"serial", "parallel", "loky"}, default="serial"
+        map: str {"serial", "parallel", "loky"}, default: "serial"
             How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
 
-        job_timeout: None, int, default=None
+        job_timeout: None, int, default: None
             Maximum time to compute one trajectory.
 
-        num_cpus: None, int, default=None
+        num_cpus: None, int, default: None
             Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
 
-        bitgenerator: {None, "MT19937", "PCG64DXSM", ...}, default=None
+        bitgenerator: {None, "MT19937", "PCG64DXSM", ...}, default: None
             Which of numpy.random's bitgenerator to use. With ``None``, your
             numpy version's default is used.
         """
@@ -688,10 +688,10 @@ class SMESolver(StochasticSolver):
     sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    heterodyne : bool, [False]
+    heterodyne : bool, default: False
         Whether to use heterodyne or homodyne detection.
 
-    options : dict, [optional]
+    options : dict, optional
         Options for the solver, see :obj:`SMESolver.options` and
         `SIntegrator <./classes.html#classes-sode>`_ for a list of all options.
     """
@@ -732,10 +732,10 @@ class SSESolver(StochasticSolver):
     sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    heterodyne : bool, [False]
+    heterodyne : bool, default: False
         Whether to use heterodyne or homodyne detection.
 
-    options : dict, [optional]
+    options : dict, optional
         Options for the solver, see :obj:`SSESolver.options` and
         `SIntegrator <./classes.html#classes-sode>`_ for a list of all options.
     """
@@ -750,7 +750,7 @@ class SSESolver(StochasticSolver):
         "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "platen",
+        "method": "taylor1.5",
         "map": "serial",
         "job_timeout": None,
         "num_cpus": None,

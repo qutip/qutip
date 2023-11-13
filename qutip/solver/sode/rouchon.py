@@ -120,10 +120,10 @@ class RouchonSODE(SIntegrator):
         """
         Supported options by Rouchon Stochastic Integrators:
 
-        dt : float, default=0.001
+        dt : float, default: 0.001
             Internal time step.
 
-        tol : float, default=1e-7
+        tol : float, default: 1e-7
             Relative tolerance.
         """
         return self._options

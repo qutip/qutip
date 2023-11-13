@@ -483,7 +483,7 @@ class Bloch3d:
         ----------
         name : str
             Name of saved image. Must include path and format as well.
-            i.e. '/Users/Paul/Desktop/bloch.png'
+            i.e. '/Users/Me/Desktop/bloch.png'
             This overrides the 'format' and 'dirc' arguments.
         format : str
             Format of output image. Default is 'png'.

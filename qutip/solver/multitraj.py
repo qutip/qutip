@@ -66,7 +66,7 @@ class MultiTrajSolver(Solver):
         t0 : double
             Initial time of the evolution.
 
-        seed : int, SeedSequence, list, {None}
+        seed : int, SeedSequence, list, optional
             Seed for the random number generator. It can be a single seed used
             to spawn seeds for each trajectory or a list of seed, one for each
             trajectory.
@@ -88,12 +88,12 @@ class MultiTrajSolver(Solver):
         t : double
             Time to evolve to, must be higher than the last call.
 
-        args : dict, optional {None}
+        args : dict, optional
             Update the ``args`` of the system.
             The change is effective from the beginning of the interval.
             Changing ``args`` can slow the evolution.
 
-        copy : bool, optional {True}
+        copy : bool, default: True
             Whether to return a copy of the data or the data in the ODE solver.
         """
         if not self._integrator._is_set:
@@ -148,7 +148,7 @@ class MultiTrajSolver(Solver):
         ntraj : int
             Number of trajectories to add.
 
-        args : dict, optional {None}
+        args : dict, optional
             Change the ``args`` of the rhs for the evolution.
 
         e_ops : list
@@ -156,14 +156,14 @@ class MultiTrajSolver(Solver):
             Alternatively, function[s] with the signature f(t, state) -> expect
             can be used.
 
-        timeout : float, optional [1e8]
+        timeout : float, optional
             Maximum time in seconds for the trajectories to run. Once this time
             is reached, the simulation will end even if the number
             of trajectories is less than ``ntraj``. The map function, set in
             options, can interupt the running trajectory or wait for it to
             finish. Set to an arbitrary high number to disable.
 
-        target_tol : {float, tuple, list}, optional [None]
+        target_tol : {float, tuple, list}, optional
             Target tolerance of the evolution. The evolution will compute
             trajectories until the error on the expectation values is lower
             than this tolerance. The maximum number of trajectories employed is
@@ -172,7 +172,7 @@ class MultiTrajSolver(Solver):
             of absolute and relative tolerance, in that order. Lastly, it can
             be a list of pairs of (atol, rtol) for each e_ops.
 
-        seed : {int, SeedSequence, list} optional
+        seed : {int, SeedSequence, list}, optional
             Seed or list of seeds for each trajectories.
 
         Returns

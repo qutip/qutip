@@ -916,7 +916,7 @@ class HEOMSolver(Solver):
         steady_ados : :class:`HierarchyADOsState`
             The steady state of the full ADO hierarchy. A particular ADO may be
             extracted from the full state by calling
-            :meth:`HEOMSolver.extract`.
+            :meth:`extract`.
         """
         if not self.L_sys.isconstant:
             raise ValueError(
@@ -1025,7 +1025,7 @@ class HEOMSolver(Solver):
               at tme ``t``. The keys are those given by ``e_ops`` if it was
               a dict, otherwise they are the indexes of the supplied ``e_ops``.
 
-            See :class:`~HEOMResult` and :class:`~Result` for the complete
+            See :class:`~HEOMResult` and :class:`.Result` for the complete
             list of attributes.
         """
         return super().run(state0, tlist, args=args, e_ops=e_ops)
@@ -1108,36 +1108,36 @@ class HEOMSolver(Solver):
         """
         Options for HEOMSolver:
 
-        store_final_state: bool, default=False
+        store_final_state: bool, default: False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, default=None
+        store_states: bool, default: None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        normalize_output: bool, default=False
+        normalize_output: bool, default: False
             Normalize output state to hide ODE numerical errors.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default: "text"
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
             if not installed. Empty string or False will disable the bar.
 
-        progress_kwargs: dict, default={"chunk_size": 10}
+        progress_kwargs: dict, default: {"chunk_size": 10}
             Arguments to pass to the progress_bar. Qutip's bars use
             ``chunk_size``.
 
-        method: str, default="adams"
+        method: str, default: "adams"
             Which ordinary differential equation integration method to use.
 
-        state_data_type: str, default="dense"
+        state_data_type: str, default: "dense"
             Name of the data type of the state used during the ODE evolution.
             Use an empty string to keep the input state type. Many integrators
             support only work with `Dense`.
 
-        store_ados : bool, default=False
+        store_ados : bool, default: False
             Whether or not to store the HEOM ADOs. Only relevant when using
             the HEOM solver.
         """
@@ -1222,7 +1222,7 @@ class HSolverDL(HEOMSolver):
         If set to None the default options will be used. Keyword only.
         Default: None.
 
-    combine : bool, default True
+    combine : bool, default: True
         Whether to combine exponents with the same frequency (and coupling
         operator). See :meth:`BosonicBath.combine` for details.
         Keyword only. Default: True.

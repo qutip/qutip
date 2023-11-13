@@ -66,7 +66,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     For function based coefficients, the function signature must be either:
 
     * ``f(t, ...)`` where the other arguments are supplied as ordinary
-      "pythonic" arguments (e.g. ``f(t, w, a=5))
+      "pythonic" arguments (e.g. ``f(t, w, a=5)``)
     * ``f(t, args)`` where the arguments are supplied in a "dict" named
       ``args``
 
@@ -76,14 +76,14 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     or ``function_style="dict"``.
 
     *Examples*
-        # pythonic style function signature
+        - pythonic style function signature
 
         def f1_t(t, w):
             return np.exp(-1j * t * w)
 
         coeff1 = coefficient(f1_t, args={"w": 1.})
 
-        # dict style function signature
+        - dict style function signature
 
         def f2_t(t, args):
             return np.exp(-1j * t * args["w"])
@@ -92,16 +92,19 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
 
     For string based coeffients, the string must be a compilable python code
     resulting in a complex. The following symbols are defined:
-        sin cos tan asin acos atan pi
-        sinh cosh tanh asinh acosh atanh
-        exp log log10 erf zerf sqrt
-        real imag conj abs norm arg proj
+
+        sin, cos, tan, asin, acos, atan, pi,
+        sinh, cosh, tanh, asinh, acosh, atanh,
+        exp, log, log10, erf, zerf, sqrt,
+        real, imag, conj, abs, norm, arg, proj,
         numpy as np,
         scipy.special as spe (python interface)
         and cython_special (scipy cython interface)
 
     *Examples*
+
         coeff = coefficient('exp(-1j*w1*t)', args={"w1":1.})
+
     'args' is needed for string coefficient at compilation.
     It is a dict of (name:object). The keys must be a valid variables string.
 

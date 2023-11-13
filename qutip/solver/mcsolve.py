@@ -349,7 +349,7 @@ class MCSolver(MultiTrajSolver):
 
     Parameters
     ----------
-    H : :class:`.Qobj`, :class:`.QobjEvo`, ``list``, callable.
+    H : :class:`.Qobj`, :class:`.QobjEvo`, list, callable.
         System Hamiltonian as a Qobj, QobjEvo. It can also be any input type
         that QobjEvo accepts (see :class:`.QobjEvo`'s documentation).
         ``H`` can also be a superoperator (liouvillian) if some collapse
@@ -538,32 +538,32 @@ class MCSolver(MultiTrajSolver):
         """
         Options for monte carlo solver:
 
-        store_final_state: bool, default=False
+        store_final_state: bool, default: False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, default=None
+        store_states: bool, default: None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default: "text"
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error if
             not installed. Empty string or False will disable the bar.
 
-        progress_kwargs: dict, default={"chunk_size":10}
+        progress_kwargs: dict, default: {"chunk_size":10}
             Arguments to pass to the progress_bar. Qutip's bars use
             ``chunk_size``.
 
-        keep_runs_results: bool
+        keep_runs_results: bool, default: False
           Whether to store results from all trajectories or just store the
           averages.
 
-        method: str, default="adams"
+        method: str, default: "adams"
             Which ODE integrator methods are supported.
 
-        map: str {"serial", "parallel", "loky"}
+        map: str {"serial", "parallel", "loky"}, default: "serial"
             How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
@@ -579,20 +579,20 @@ class MCSolver(MultiTrajSolver):
             Which of numpy.random's bitgenerator to use. With ``None``, your
             numpy version's default is used.
 
-        mc_corr_eps: float
+        mc_corr_eps: float, default: 1e-10
             Small number used to detect non-physical collapse caused by
             numerical imprecision.
 
-        norm_t_tol: float
+        norm_t_tol: float, default: 1e-6
             Tolerance in time used when finding the collapse.
 
-        norm_tol: float
+        norm_tol: float, default: 1e-4
             Tolerance in norm used when finding the collapse.
 
-        norm_steps: int
+        norm_steps: int, default: 5
             Maximum number of tries to find the collapse.
 
-        improved_sampling: Bool
+        improved_sampling: Bool, default: False
             Whether to use the improved sampling algorithm
             of Abdelhafez et al. PRA (2019)
         """

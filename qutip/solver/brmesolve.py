@@ -196,7 +196,7 @@ class BRSolver(Solver):
 
         spectra : :obj:`.Coefficient`
             The corresponding bath spectra. As a `Coefficient` using an 'w'
-            args. Can depend on ``t`` only if a_op is a :obj:`qutip.QobjEvo`.
+            args. Can depend on ``t`` only if a_op is a :obj:`.QobjEvo`.
             :obj:`SpectraCoefficient` can be used to conver a coefficient
             depending on ``t`` to one depending on ``w``.
 
@@ -307,35 +307,35 @@ class BRSolver(Solver):
         """
         Options for bloch redfield solver:
 
-        store_final_state: bool, default=False
+        store_final_state: bool, default: False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, default=None
+        store_states: bool, default: None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        normalize_output: bool, default=False
+        normalize_output: bool, default: False
             Normalize output state to hide ODE numerical errors.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default=""
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default: ""
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error if
             not installed. Empty string or False will disable the bar.
 
-        progress_kwargs: dict, default={"chunk_size":10}
+        progress_kwargs: dict, default: {"chunk_size":10}
             Arguments to pass to the progress_bar. Qutip's bars use
             ``chunk_size``.
 
-        tensor_type: str ['sparse', 'dense', 'data'], default="sparse"
+        tensor_type: str ['sparse', 'dense', 'data'], default: "sparse"
             Which data type to use when computing the brtensor.
             With a cutoff 'sparse' is usually the most efficient.
 
-        sparse_eigensolver: bool, default=False
+        sparse_eigensolver: bool, default: False
             Whether to use the sparse eigensolver
 
-        method: str, default="adams"
+        method: str, default: "adams"
             Which ODE integrator methods are supported.
         """
         return self._options

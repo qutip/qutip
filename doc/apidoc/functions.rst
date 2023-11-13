@@ -168,6 +168,13 @@ Stochastic Schrödinger Equation and Master Equation
     :members: ssesolve, smesolve
 
 
+Constructing time dependent systems
+-----------------------------------
+
+.. automodule:: qutip.core.coefficient
+    :members: coefficient
+
+
 Hierarchical Equations of Motion
 --------------------------------
 

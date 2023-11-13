@@ -109,7 +109,9 @@ class Propagator:
     A generator of propagator for a system.
 
     Usage:
+
         U = Propagator(H, c_ops)
+
         psi_t = U(t) @ psi_0
 
     Save some previously computed propagator are stored to speed up subsequent
@@ -128,19 +130,19 @@ class Propagator:
         not supported.
 
     c_ops : list, optional
-        List of Qobj or QobjEvo collapse operators.
+        List of :obj:`.Qobj` or :obj:`.QobjEvo` collapse operators.
 
-    args : dictionary
+    args : dictionary, optional
         Parameters to callback functions for time-dependent Hamiltonians and
         collapse operators.
 
-    options : dict
+    options : dict, optional
         Options for the solver.
 
-    memoize : int [10]
+    memoize : int, default: 10
         Max number of propagator to save.
 
-    tol : float [1e-14]
+    tol : float, default: 1e-14
         Absolute tolerance for the time. If a previous propagator was computed
         at a time within tolerance, that propagator will be returned.
 

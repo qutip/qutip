@@ -367,7 +367,7 @@ class Bloch:
 
         Parameters
         ----------
-        state : Qobj
+        state : :obj:`.Qobj`
             Input state vector.
 
         kind : {'vector', 'point'}
@@ -450,7 +450,7 @@ class Bloch:
 
         Parameters
         ----------
-        state_or_vector : Qobj/array/list/tuple
+        state_or_vector : :obj:`.Qobj`/array/list/tuple
             Position for the annotaion.
             Qobj of a qubit or a vector of 3 elements.
 
@@ -489,11 +489,11 @@ class Bloch:
 
         Parameters
         ----------
-        start : Qobj or array-like
+        start : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the first point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
-        end : Qobj or array-like
+        end : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the second point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
@@ -563,11 +563,11 @@ class Bloch:
 
         Parameters
         ----------
-        start : Qobj or array-like
+        start : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the first point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
-        end : Qobj or array-like
+        end : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the second point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
@@ -881,7 +881,7 @@ class Bloch:
 
         name : str
             Name of saved image. Must include path and format as well.
-            i.e. '/Users/Paul/Desktop/bloch.png'
+            i.e. '/Users/Me/Desktop/bloch.png'
             This overrides the 'format' and 'dirc' arguments.
         format : str
             Format of output image.
