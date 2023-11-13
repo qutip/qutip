@@ -1092,17 +1092,8 @@ class FitSpectral(BosonicBath):
     def __str__(self):
         try:
             lam, gamma, w0 = self.params_spec
-            summary = f"Result of fitting the Spectral density "\
-                f"with {self.spec_n} terms: \n \n {'Parameters': <10}|"\
-                f"{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
-            for k in range(len(gamma)):
-                summary += (
-                    f"{k+1: <10}|{lam[k]: ^10.2e}|{gamma[k]:^10.2e}|"
-                    f"{w0[k]:>5.2e}\n "
-                )
-            summary += f"\nA  normalized RMSE of {self._rmse: .2e}"\
-                " was obtained for the Spectral density \n"
-            summary += f" The current fit took {self.fit_time: 2f} seconds"
+            summary = gen_summary(self.fit_time, self._rmse, self.spec_n,
+                                  "The Spectral Density", lam, gamma, w0)
             return summary
         except NameError:
             return "Fit correlation instance: \n No fit has been performed yet"
@@ -1127,15 +1118,6 @@ class FitSpectral(BosonicBath):
     def spectral_density(self, w):
         lam, gamma, w0 = self.params_spec
         return self.spectral_density_approx(w, lam, gamma, w0)
-
-    # def spec_spectrum_approx(self, w):
-    #     """Calculates the power spectrum from w and the fitted parameters"""
-    #     s_fit = (
-    #         self.spectral_density(w)
-    #         * ((1 / (np.e ** (w / self.T) - 1)) + 1)
-    #         * 2
-    #     )
-    #     return s_fit
 
     def get_fit(
         self,
@@ -1180,23 +1162,11 @@ class FitSpectral(BosonicBath):
                                 label="Spectral Density", guesses=guesses,
                                 lower=lower, upper=upper)
         self.params_spec = params
-        self.spec_n = N
+        self.spec_n = len(params[0])
         self._rmse = rmse
         self._matsubara_spectral_fit()
         end = time()
         self.fit_time = end - start
-
-    # def correlation_approx_matsubara(self, t, real=True):
-    #     """ Calculate the approximate real or imaginary part of the
-    #         correlation function from the matsubara expansion co-efficients.
-    #     """
-    #     if real:
-    #         ck, vk = self.cvars[0], self.cvars[1]
-    #     else:
-    #         ck, vk = self.cvars[2], self.cvars[3]
-    #     ck = np.array(ck)
-    #     vk = np.array(vk)
-    #     return np.sum(ck[:, None] * np.exp(-vk[:, None] * t), axis=0)
 
     def fit_plots(self, w, J, t, C, w2, S):
         gen_spectral_plots(self, w, J, t, C, w2, S)
@@ -1300,34 +1270,21 @@ class FitCorr(BosonicBath):
         try:
             lam, gamma, w0 = self.params_real
             lam2, gamma2, w02 = self.params_imag
-            summary = f"Result of fitting the Real Part with {self.Nr} "\
-                f"terms: \n \n {'Parameters': <10}|"\
-                f"{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
-            summary2 = f"\tResult of fitting "\
-                "the Imaginary Part with {self.Ni} "\
-                f"terms: \n \n \t {'Parameters': <10}"\
-                f"|{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n"
-            for i in range(len(lam)):
-                summary += (
-                    f"{i+1: <10}|{lam[i]: ^10.2e}|"
-                    f"{gamma[i]:^10.2e}|{w0[i]:>5.2e} \n "
-                )
-            for i in range(len(lam2)):
-                summary2 += f"\t {i+1: <10}|{lam2[i]: ^10.2e}"\
-                    f"|{gamma2[i]: ^10.2e}|{w02[i]:>5.2e} \n "
-            summary += f"\n  A  normalized RMSE of {self.rmse_real: .2e}"\
-                " was obtained for the real part \n"
-            summary2 += f"\n \t A  normalized RMSE of {self.rmse_imag:.2e}"\
-                " was obtained for the imaginary part \n"
-            time = f" The current fit took {self.fit_time: 2f} seconds"
-            return summary, summary2, time
+            summary = gen_summary(self.fit_time_real,self.rmse_real,self.Nr,
+                                  "The Real Part Of  \n the Correlation Function",
+                                  lam,gamma,w0)
+            summary2 =gen_summary(self.fit_time_imag,self.rmse_imag,self.Ni,
+                                  "The Imaginary Part \n Of the Correlation Function",
+                                  lam2,gamma2,w02)
+        
+            return summary, summary2
 
         except NameError:
             return "Fit correlation instance: \n No fit has been performed yet"
 
     def summary(self):
         print("Fit correlation class instance: \n \n")
-        string1, string2, time = self.__str__()
+        string1, string2 = self.__str__()
         lines1 = string1.splitlines()
         lines2 = string2.splitlines()
         max_lines = max(len(lines1), len(lines2))
@@ -1343,7 +1300,6 @@ class FitCorr(BosonicBath):
             formatted_line1 = f"{line1:<{max_length1}} |"
             formatted_line2 = f"{line2:<{max_length2}}"
             print(formatted_line1 + formatted_line2)
-        print("\t " * 6 + time)
 
     def fit_plots(self, w, J, t, C, w2, S, beta):
         gen_corr_plots(self, w, J, t, C, w2, S, beta)
@@ -1391,26 +1347,28 @@ class FitCorr(BosonicBath):
             Initial guess for the parameters.
         """
         start = time()
-        rmse1, rmse2 = [8, 8]
         rmse1, params_real = _run_fit(
             lambda *args: np.real(self.corr_approx(*args)),
-            np.real(C), t, final_rmse, flag,
+            np.real(C), t, final_rmse,
             label="correlation_real", sigma=sigma, N=Nr,
             guesses=guesses, lower=lower, upper=upper)
+        end=time()
+        self.fit_time_real = end - start
+        start = time()
         rmse2, params_imag = _run_fit(
             lambda *args: np.imag(self.corr_approx(*args)),
-            np.imag(C), t, final_rmse, flag,
+            np.imag(C), t, final_rmse,
             label="correlation_imag", sigma=sigma, N=Ni,
             guesses=guesses, lower=lower, upper=upper)
-        self.Nr = Nr
-        self.Ni = Ni
+        end = time()
+        self.Nr = len(params_real[0])
+        self.Ni = len(params_imag[0])
         self.rmse_real = rmse1
         self.rmse_imag = rmse2
         self.params_real = params_real
         self.params_imag = params_imag
         self._matsubara_coefficients()
-        end = time()
-        self.fit_time = end - start
+        self.fit_time_imag = end - start
 
     def _matsubara_coefficients(self):
         lam, gamma, w0 = self.params_real
@@ -1700,3 +1658,18 @@ def _run_fit(funcx, funcy, x, final_rmse, label=None, N=None,
         if flag is True:
             break
     return rmse1, params
+
+
+def gen_summary(time, rmse, N, label, lam, gamma, w0):
+    summary = f"Result of fitting {label} "\
+        f"with {N} terms: \n \n {'Parameters': <10}|"\
+        f"{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
+    for k in range(len(gamma)):
+        summary += (
+            f"{k+1: <10}|{lam[k]: ^10.2e}|{gamma[k]:^10.2e}|"
+            f"{w0[k]:>5.2e}\n "
+        )
+    summary += f"\nA  normalized RMSE of {rmse: .2e}"\
+        f" was obtained for the {label}\n"
+    summary += f" The current fit took {time: 2f} seconds"
+    return summary
