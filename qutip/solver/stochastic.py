@@ -648,7 +648,7 @@ class StochasticSolver(MultiTrajSolver):
           Whether to store results from all trajectories or just store the
           averages.
 
-        method: str, default: "taylor1.5"
+        method: str, default: "platen"
             Which ODE integrator methods are supported.
 
         map: str {"serial", "parallel", "loky"}, default: "serial"
@@ -706,7 +706,7 @@ class SMESolver(StochasticSolver):
         "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "taylor1.5",
+        "method": "platen",
         "map": "serial",
         "job_timeout": None,
         "num_cpus": None,
@@ -750,7 +750,7 @@ class SSESolver(StochasticSolver):
         "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "taylor1.5",
+        "method": "platen",
         "map": "serial",
         "job_timeout": None,
         "num_cpus": None,
