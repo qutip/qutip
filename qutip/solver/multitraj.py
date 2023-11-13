@@ -71,9 +71,9 @@ class MultiTrajSolver(Solver):
             to spawn seeds for each trajectory or a list of seed, one for each
             trajectory.
 
-        ..note ::
-            When using step evolution, only one trajectory can be computed at
-            once.
+        Notes
+        -----
+        When using step evolution, only one trajectory can be computed at once.
         """
         seeds = self._read_seed(seed, 1)
         generator = self._get_generator(seeds[0])

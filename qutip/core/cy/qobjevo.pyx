@@ -10,6 +10,7 @@ import qutip
 from .. import Qobj
 from .. import data as _data
 from ..coefficient import coefficient, CompilationOptions
+from .coefficient import Coefficient
 from ._element import *
 from ..dimensions import type_from_dims
 from qutip.settings import settings

@@ -253,22 +253,25 @@ Permutational Invariance
 .. _classes-distributions:
 
 Distribution functions
-----------------------------
+----------------------
 
 .. autoclass:: qutip.distributions.Distribution
     :members:
 
-.. autoclass:: qutip.distributions.WignerDistribution
-    :members:
+..
+  Docstrings are empty...
 
-.. autoclass:: qutip.distributions.QDistribution
-    :members:
+  .. autoclass:: qutip.distributions.WignerDistribution
+      :members:
 
-.. autoclass:: qutip.distributions.TwoModeQuadratureCorrelation
-    :members:
+  .. autoclass:: qutip.distributions.QDistribution
+      :members:
 
-.. autoclass:: qutip.distributions.HarmonicOscillatorWaveFunction
-    :members:
+  .. autoclass:: qutip.distributions.TwoModeQuadratureCorrelation
+      :members:
 
-.. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
-    :members:
+  .. autoclass:: qutip.distributions.HarmonicOscillatorWaveFunction
+      :members:
+
+  .. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
+      :members:

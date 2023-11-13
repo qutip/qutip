@@ -632,8 +632,8 @@ class MultiTrajResult(_BaseResult):
             - trajectory : :class:`Result`
               Run result for one evolution over the times.
 
-        Return
-        ------
+        Returns
+        -------
         remaing_traj : number
             Return the number of trajectories still needed to reach the target
             tolerance. If no tolerance is provided, return infinity.
@@ -651,7 +651,7 @@ class MultiTrajResult(_BaseResult):
         Set the condition to stop the computing trajectories when the certain
         condition are fullfilled.
         Supported end condition for multi trajectories computation are:
-        
+
         - Reaching a number of trajectories.
         - Error bar on the expectation values reach smaller than a given
           tolerance.

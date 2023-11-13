@@ -5,7 +5,7 @@ from . import Qobj, expect, sigmax, sigmay, sigmaz
 
 
 class Bloch3d:
-    r"""Class for plotting data on a 3D Bloch sphere using mayavi.
+    """Class for plotting data on a 3D Bloch sphere using mayavi.
     Valid data can be either points, vectors, or qobj objects
     corresponding to state vectors or density matrices. for
     a two-state system (or subsystem).
@@ -48,15 +48,15 @@ class Bloch3d:
         Width of displayed vectors.
     view : list {[45,65]}
         Azimuthal and Elevation viewing angles.
-    xlabel : list {['|x>', '']}
+    xlabel : list {['\|x>', '']}
         List of strings corresponding to +x and -x axes labels, respectively.
     xlpos : list {[1.07,-1.07]}
         Positions of +x and -x labels respectively.
-    ylabel : list {['|y>', '']}
+    ylabel : list {['\|y>', '']}
         List of strings corresponding to +y and -y axes labels, respectively.
     ylpos : list {[1.07,-1.07]}
         Positions of +y and -y labels respectively.
-    zlabel : list {['|0>', '|1>']}
+    zlabel : list {["\|0>", '\|1>']}
         List of strings corresponding to +z and -z axes labels, respectively.
     zlpos : list {[1.07,-1.07]}
         Positions of +z and -z labels respectively.
