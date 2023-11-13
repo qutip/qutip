@@ -1,0 +1,1 @@
+Added support for arbitrary spectral densities in HEOM by fitting underdamped modes, added an Ohmic Bath class
