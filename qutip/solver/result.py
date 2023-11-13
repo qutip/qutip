@@ -79,7 +79,10 @@ class _BaseResult:
         self._state_processors = []
         self._state_processors_require_copy = False
 
-        self.options = options
+        # do not store a reference to the solver
+        options_copy = options.copy()
+        options_copy._feedback = None
+        self.options = options_copy
 
     def _e_ops_to_dict(self, e_ops):
         """ Convert the supplied e_ops to a dictionary of Eop instances. """
