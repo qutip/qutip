@@ -1270,13 +1270,15 @@ class FitCorr(BosonicBath):
         try:
             lam, gamma, w0 = self.params_real
             lam2, gamma2, w02 = self.params_imag
-            summary = gen_summary(self.fit_time_real,self.rmse_real,self.Nr,
-                                  "The Real Part Of  \n the Correlation Function",
-                                  lam,gamma,w0)
-            summary2 =gen_summary(self.fit_time_imag,self.rmse_imag,self.Ni,
-                                  "The Imaginary Part \n Of the Correlation Function",
-                                  lam2,gamma2,w02)
-        
+            summary = gen_summary(
+                self.fit_time_real, self.rmse_real, self.Nr,
+                "The Real Part Of  \n the Correlation Function", lam, gamma,
+                w0)
+            summary2 = gen_summary(
+                self.fit_time_imag, self.rmse_imag, self.Ni,
+                "The Imaginary Part \n Of the Correlation Function", lam2,
+                gamma2, w02)
+
             return summary, summary2
 
         except NameError:
@@ -1352,7 +1354,7 @@ class FitCorr(BosonicBath):
             np.real(C), t, final_rmse,
             label="correlation_real", sigma=sigma, N=Nr,
             guesses=guesses, lower=lower, upper=upper)
-        end=time()
+        end = time()
         self.fit_time_real = end - start
         start = time()
         rmse2, params_imag = _run_fit(
