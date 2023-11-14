@@ -18,7 +18,7 @@ Quantum Operators
 -----------------
 
 .. automodule:: qutip.core.operators
-    :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
+    :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling, qeye_like, qzero_like
 
 
 .. _functions-rand:

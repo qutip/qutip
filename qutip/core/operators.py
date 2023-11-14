@@ -45,8 +45,8 @@ def qdiags(diagonals, offsets=None, dims=None, shape=None, *,
         Shape of operator.  If omitted, a square operator large enough
         to contain the diagonals is generated.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Examples
@@ -75,12 +75,12 @@ def jmat(j, which=None, *, dtype=None):
     j : float
         Spin of operator
 
-    which : str
+    which : str, optional
         Which operator to return 'x','y','z','+','-'.
-        If no args given, then output is ['x','y','z']
+        If not given, then output is ['x','y','z']
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -110,11 +110,6 @@ shape = [3, 3], type = oper, isHerm = True
     [[ 1.  0.  0.]
      [ 0.  0.  0.]
      [ 0.  0. -1.]]]
-
-    Notes
-    -----
-    If no 'args' input, then returns array of ['x','y','z'] operators.
-
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
     if int(2 * j) != 2 * j or j < 0:
@@ -179,8 +174,8 @@ def spin_Jx(j, *, dtype=None):
     j : float
         Spin of operator
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -200,8 +195,8 @@ def spin_Jy(j, *, dtype=None):
     j : float
         Spin of operator
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -221,8 +216,8 @@ def spin_Jz(j, *, dtype=None):
     j : float
         Spin of operator
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -242,8 +237,8 @@ def spin_Jm(j, *, dtype=None):
     j : float
         Spin of operator
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -263,8 +258,8 @@ def spin_Jp(j, *, dtype=None):
     j : float
         Spin of operator
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -284,8 +279,8 @@ def spin_J_set(j, *, dtype=None):
     j : float
         Spin of operators
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -398,12 +393,12 @@ def destroy(N, offset=0, *, dtype=None):
     N : int
         Dimension of Hilbert space.
 
-    offset : int (default 0)
+    offset : int, default: 0
         The lowest number state that is included in the finite number state
         representation of the operator.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -437,22 +432,18 @@ def create(N, offset=0, *, dtype=None):
     N : int
         Dimension of Hilbert space.
 
-    offset : int (default 0)
+    offset : int, default: 0
         The lowest number state that is included in the finite number state
         representation of the operator.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
     -------
     oper : qobj
         Qobj for raising operator.
-
-    offset : int (default 0)
-        The lowest number state that is included in the finite number state
-        representation of the operator.
 
     Examples
     --------
@@ -489,9 +480,13 @@ def fdestroy(n_sites, site, dtype=None):
     n_sites : int
         Number of sites in Fock space.
 
-    site : int (default 0)
+    site : int, default: 0
         The site in Fock space to add a fermion to.
         Corresponds to j in the above JW transform.
+
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
 
     Returns
     -------
@@ -522,7 +517,7 @@ def fcreate(n_sites, site, dtype=None):
     .. math::
 
         a_j = \\sigma_z^{\\otimes j}
-        \\otimes (frac{sigma_x - i sigma_y}{2})
+        \\otimes (\\frac{\\sigma_x - i \\sigma_y}{2})
         \\otimes I^{\\otimes N-j-1}
 
 
@@ -534,6 +529,10 @@ def fcreate(n_sites, site, dtype=None):
     site : int
         The site in Fock space to add a fermion to.
         Corresponds to j in the above JW transform.
+
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
 
     Returns
     -------
@@ -578,6 +577,10 @@ def _f_op(n_sites, site, action, dtype=None):
     site : int
         The site in Fock space to create/destroy a fermion on.
         Corresponds to j in the above JW transform.
+
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
 
     Returns
     -------
@@ -654,8 +657,8 @@ def qzero(dimensions, *, dtype=None):
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -708,8 +711,8 @@ def qeye(dimensions, *, dtype=None):
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -774,19 +777,19 @@ def qeye_like(qobj):
 
 def position(N, offset=0, *, dtype=None):
     """
-    Position operator x=1/sqrt(2)*(a+a.dag())
+    Position operator :math:`x = 1 / sqrt(2) * (a + a.dag())`
 
     Parameters
     ----------
     N : int
         Number of Fock states in Hilbert space.
 
-    offset : int (default 0)
+    offset : int, default: 0
         The lowest number state that is included in the finite number state
         representation of the operator.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -809,12 +812,12 @@ def momentum(N, offset=0, *, dtype=None):
     N : int
         Number of Fock states in Hilbert space.
 
-    offset : int (default 0)
+    offset : int, default: 0
         The lowest number state that is included in the finite number state
         representation of the operator.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -837,12 +840,12 @@ def num(N, offset=0, *, dtype=None):
     N : int
         The dimension of the Hilbert space.
 
-    offset : int (default 0)
+    offset : int, default: 0
         The lowest number state that is included in the finite number state
         representation of the operator.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -876,12 +879,12 @@ def squeeze(N, z, offset=0, *, dtype=None):
     z : float/complex
         Squeezing parameter.
 
-    offset : int (default 0)
+    offset : int, default: 0
         The lowest number state that is included in the finite number state
         representation of the operator.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -947,12 +950,12 @@ def displace(N, alpha, offset=0, *, dtype=None):
     alpha : float/complex
         Displacement amplitude.
 
-    offset : int (default 0)
+    offset : int, default: 0
         The lowest number state that is included in the finite number state
         representation of the operator.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -981,6 +984,14 @@ def commutator(A, B, kind="normal"):
     """
     Return the commutator of kind `kind` (normal, anti) of the
     two operators A and B.
+
+    Parameters
+    ----------
+    A, B : :obj:`Qobj`, :obj:`QobjEvo`
+        Operators to compute the commutator
+
+    kind: ste {"normal", "anti"}, default: "anti"
+        Which kind of commutator to compute.
     """
     if kind == 'normal':
         return A @ B - B @ A
@@ -998,8 +1009,8 @@ def qutrit_ops(*, dtype=None):
 
     Parameters
     ----------
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -1031,11 +1042,11 @@ def phase(N, phi0=0, *, dtype=None):
     N : int
         Number of basis states in Hilbert space.
 
-    phi0 : float
+    phi0 : float, default: 0
         Reference phase.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -1092,8 +1103,8 @@ def enr_destroy(dims, excitations, *, dtype=None):
         The maximum number of excitations that are to be included in the
         state space.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -1138,11 +1149,8 @@ def enr_identity(dims, excitations, *, dtype=None):
         The maximum number of excitations that are to be included in the
         state space.
 
-    state : list of integers
-        The state in the number basis representation.
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -1173,14 +1181,14 @@ def charge(Nmax, Nmin=None, frac=1, *, dtype=None):
     Nmax : int
         Maximum charge state to consider.
 
-    Nmin : int (default = -Nmax)
+    Nmin : int, default: -Nmax
         Lowest charge state to consider.
 
-    frac : float (default = 1)
+    frac : float, default: 1
         Specify fractional charge if needed.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -1212,22 +1220,17 @@ def tunneling(N, m=1, *, dtype=None):
     N : int
         Number of basis states in Hilbert space.
 
-    m : int (default = 1)
+    m : int, default: 1
         Number of excitations in tunneling event.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
     -------
     T : Qobj
         Tunneling operator.
-
-    Notes
-    -----
-    .. versionadded:: 3.2
-
     """
     diags = [np.ones(N-m, dtype=int), np.ones(N-m, dtype=int)]
     T = qdiags(diags, [m, -m], dtype=dtype)
@@ -1247,7 +1250,7 @@ def qft(dimensions, *, dtype="dense"):
         the new Qobj are set to this list.
 
     dtype : str or type, [keyword only] [optional]
-        Storage representation. Any data-layer known to `qutip.data.to` is
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
