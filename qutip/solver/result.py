@@ -1,6 +1,6 @@
 """ Class for solve function results"""
 import numpy as np
-from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero, qzero_like
+from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero_like
 
 __all__ = ["Result", "MultiTrajResult", "McResult", "NmmcResult",
            "McTrajectoryResult", "McResultImprovedSampling"]
@@ -79,7 +79,11 @@ class _BaseResult:
         self._state_processors = []
         self._state_processors_require_copy = False
 
-        self.options = options
+        # make sure not to store a reference to the solver
+        options_copy = options.copy()
+        if hasattr(options_copy, '_feedback'):
+            options_copy._feedback = None
+        self.options = options_copy
 
     def _e_ops_to_dict(self, e_ops):
         """ Convert the supplied e_ops to a dictionary of Eop instances. """
