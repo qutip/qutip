@@ -13,6 +13,11 @@ def is_scalar(dims):
     """
     Returns True if a dims specification is effectively
     a scalar (has dimension 1).
+
+    Parameters
+    ----------
+    dims : list
+        Dimension's list representation
     """
     return np.prod(flatten(dims)) == 1
 

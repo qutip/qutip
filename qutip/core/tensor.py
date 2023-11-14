@@ -291,6 +291,8 @@ def tensor_contract(qobj, *pairs):
 
     Parameters
     ----------
+    qobj: Qobj
+        Operator to contract subspaces on.
 
     pairs : tuple
         One or more tuples ``(i, j)`` indicating that the

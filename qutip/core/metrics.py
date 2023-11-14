@@ -157,7 +157,7 @@ def process_fidelity(oper, target=None):
     oper : :class:`.Qobj`/list
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
-    target : :class:`.Qobj`/list
+    target : :class:`.Qobj`/list, optional
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
 
@@ -171,8 +171,8 @@ def process_fidelity(oper, target=None):
     Since Qutip 5.0, this function computes the process fidelity as defined
     for example in: A. Gilchrist, N.K. Langford, M.A. Nielsen,
     Phys. Rev. A 71, 062310 (2005). Previously, it computed a function
-    that is now implemented in
-    :func:`control.fidcomp.FidCompUnitary.get_fidelity`.
+    that is now implemented as ``get_fidelity`` in qutip-qtrl.
+
     The definition of state fidelity that the process fidelity is based on
     is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
     It is the square of the one implemented in
@@ -260,9 +260,9 @@ def tracedist(A, B, sparse=False, tol=0):
         Density matrix or state vector.
     B : qobj
         Density matrix or state vector with same dimensions as A.
-    tol : float
-        Tolerance used by sparse eigensolver, if used. (0=Machine precision)
-    sparse : {False, True}
+    tol : float, default: 0
+        Tolerance used by sparse eigensolver, if used. (0 = Machine precision)
+    sparse : bool, default: False
         Use sparse eigensolver.
 
     Returns
@@ -379,7 +379,8 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     Calculates the quantum Hellinger distance between two density matrices.
 
     Formula:
-    hellinger_dist(A, B) = sqrt(2-2*Tr(sqrt(A)*sqrt(B)))
+
+        ``hellinger_dist(A, B) = sqrt(2 - 2 * tr(sqrt(A) * sqrt(B)))``
 
     See: D. Spehner, F. Illuminati, M. Orszag, and W. Roga, "Geometric
     measures of quantum correlations with Bures and Hellinger distances"
@@ -391,9 +392,9 @@ def hellinger_dist(A, B, sparse=False, tol=0):
         Density matrix or state vector.
     B : :class:`.Qobj`
         Density matrix or state vector with same dimensions as A.
-    tol : float
-        Tolerance used by sparse eigensolver, if used. (0=Machine precision)
-    sparse : {False, True}
+    tol : float, default: 0
+        Tolerance used by sparse eigensolver, if used. (0 = Machine precision)
+    sparse : bool, default: False
         Use sparse eigensolver.
 
     Returns
@@ -403,9 +404,10 @@ def hellinger_dist(A, B, sparse=False, tol=0):
 
     Examples
     --------
-    >>> x=fock_dm(5,3)
-    >>> y=coherent_dm(5,1)
-    >>> np.testing.assert_almost_equal(hellinger_dist(x,y), 1.3725145002591095)
+    >>> x = fock_dm(5,3)
+    >>> y = coherent_dm(5,1)
+    >>> np.allclose(hellinger_dist(x, y), 1.3725145002591095)
+        True
     """
     if A.isket or A.isbra:
         sqrtmA = ket2dm(A)
@@ -441,15 +443,15 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         Quantum map to take the diamond norm of.
     B : Qobj or None
         If provided, the diamond norm of :math:`A - B` is taken instead.
-    solver : str
-        Solver to use with CVXPY. One of "CVXOPT" (default) or "SCS". The
-        latter tends to be significantly faster, but somewhat less accurate.
-    verbose : bool
+    solver : str {"CVXOPT", "SCS"}, default: "CVXOPT"
+        Solver to use with CVXPY. "SCS" tends to be significantly faster, but
+        somewhat less accurate.
+    verbose : bool, default: False
         If True, prints additional information about the solution.
-    force_solve : bool
+    force_solve : bool, default: False
         If True, forces dnorm to solve the associated SDP, even if a special
         case is known for the argument.
-    sparse : bool
+    sparse : bool, default: True
         Whether to use sparse matrices in the convex optimisation problem.
         Default True.
 

@@ -29,16 +29,14 @@ def partial_transpose(rho, mask, method='dense'):
     mask : *list* / *array*
         A mask that selects which subsystems should be transposed.
 
-    method : str
-        choice of method, `dense` or `sparse`. The default method
-        is `dense`. The `sparse` implementation can be faster for
+    method : str {"dense", "sparse"}, default: "dense"
+        Choice of method. The "sparse" implementation can be faster for
         large and sparse systems (hundreds of quantum states).
 
     Returns
     -------
 
     rho_pr: :class:`.Qobj`
-
         A density matrix with the selected subsystems transposed.
 
     """
