@@ -448,11 +448,12 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0.0, kmax=5, nT=100):
 
     Parameters
     ----------
-    H : :obj:`.QobjEvo`
-        Periodic Hamiltonian
+    H : :obj:`.QobjEvo`, :obj:`.FloquetBasis`
+        Periodic Hamiltonian a floquet basis system.
 
-    T : float
-        The period of the time-dependence of the hamiltonian.
+    T : float, optional
+        The period of the time-dependence of the hamiltonian. Optional if ``H``
+        is a ``FloquetBasis`` object.
 
     c_ops : list of :class:`.Qobj`
         list of collapse operators.
@@ -461,11 +462,14 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0.0, kmax=5, nT=100):
         List of callback functions that compute the noise power spectrum as
         a function of frequency for the collapse operators in `c_ops`.
 
-    w_th : float
+    w_th : float, default: 0.0
         The temperature in units of frequency.
 
-    kmax : int
+    kmax : int, default: 5
         The truncation of the number of sidebands (default 5).
+
+    nT : int, default: 100
+        The number of integration steps (for calculating X) within one period.
 
     Returns
     -------
@@ -520,15 +524,15 @@ def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):
     options : dict, optional
         Options for the results.
 
-        - store_final_state : bool
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - normalize_output : bool
-          Normalize output state to hide ODE numerical errors.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
 
     Returns
     -------
@@ -588,23 +592,23 @@ def fmmesolve(
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    c_ops : list of :class:`.Qobj`
+    c_ops : list of :class:`.Qobj`, optional
         List of collapse operators. Time dependent collapse operators are not
-        supported.
+        supported. Fall back on :func:`fsesolve` if not provided.
 
-    e_ops : list of :class:`.Qobj` / callback function
+    e_ops : list of :class:`.Qobj` / callback function, optional
         List of operators for which to evaluate expectation values.
         The states are reverted to the lab basis before applying the
 
-    spectra_cb : list callback functions
+    spectra_cb : list callback functions, default: ``lambda w: (w > 0)``
         List of callback functions that compute the noise power spectrum as
         a function of frequency for the collapse operators in `c_ops`.
 
-    T : float
+    T : float, default=tlist[-1]
         The period of the time-dependence of the hamiltonian. The default value
-        'None' indicates that the 'tlist' spans a single period of the driving.
+        ``0`` indicates that the 'tlist' spans a single period of the driving.
 
-    w_th : float
+    w_th : float, default: 0.0
         The temperature of the environment in units of frequency.
         For example, if the Hamiltonian written in units of 2pi GHz, and the
         temperature is given in K, use the following conversion:
@@ -614,40 +618,40 @@ def fmmesolve(
             kB = 1.38e-23
             args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
 
-    args : *dictionary*
+    args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonian
 
-    options : None / dict
+    options : dict, optional
         Dictionary of options for the solver.
 
-        - store_final_state : bool
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - store_floquet_states : bool
-          Whether or not to store the density matrices in the floquet basis in
-          ``result.floquet_states``.
-        - normalize_output : bool
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
-          Which differential equation integration method to use.
-        - atol, rtol : float
-          Absolute and relative tolerance of the ODE integrator.
-        - nsteps :
-          Maximum number of (internally defined) steps allowed in one ``tlist``
-          step.
-        - max_step : float, 0
-          Maximum lenght of one internal step. When using pulses, it should be
-          less than half the width of the thinnest pulse.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | store_floquet_states : bool
+          | Whether or not to store the density matrices in the floquet basis
+            in ``result.floquet_states``.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          | Which differential equation integration method to use.
+        - | atol, rtol : float
+          | Absolute and relative tolerance of the ODE integrator.
+        - | nsteps : int
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
+        - | max_step : float
+          | Maximum lenght of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
@@ -657,7 +661,7 @@ def fmmesolve(
     result: :class:`.Result`
 
         An instance of the class :class:`.Result`, which contains
-        the expectation values for the times specified by `tlist`, and/or the
+        the expectation values for the times specified by ``tlist``, and/or the
         state density matrices corresponding to the times.
     """
     if c_ops is None and rho0.isket:

@@ -75,20 +75,21 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     may be overriden here by specifying either ``function_style="pythonic"``
     or ``function_style="dict"``.
 
-    *Examples*
-        - pythonic style function signature
+    *Examples*:
 
-        def f1_t(t, w):
-            return np.exp(-1j * t * w)
+        - pythonic style function signature::
 
-        coeff1 = coefficient(f1_t, args={"w": 1.})
+            def f1_t(t, w):
+                return np.exp(-1j * t * w)
 
-        - dict style function signature
+            coeff1 = coefficient(f1_t, args={"w": 1.})
 
-        def f2_t(t, args):
-            return np.exp(-1j * t * args["w"])
+        - dict style function signature::
 
-        coeff2 = coefficient(f2_t, args={"w": 1.})
+            def f2_t(t, args):
+                return np.exp(-1j * t * args["w"])
+
+            coeff2 = coefficient(f2_t, args={"w": 1.})
 
     For string based coeffients, the string must be a compilable python code
     resulting in a complex. The following symbols are defined:
@@ -101,7 +102,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         scipy.special as spe (python interface)
         and cython_special (scipy cython interface)
 
-    *Examples*
+    *Examples*::
 
         coeff = coefficient('exp(-1j*w1*t)', args={"w1":1.})
 
@@ -119,7 +120,8 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     interpolation. When ``order = 0``, the interpolation is step function that
     evaluates to the most recent value.
 
-    *Examples*
+    *Examples*::
+
         tlist = np.logspace(-5,0,100)
         H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)
 
@@ -143,7 +145,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     tlist : iterable, optional
         Times for each element of an array based coefficient.
 
-    function_style : str, ["dict", "pythonic", None]
+    function_style : str {"dict", "pythonic", None}, optional
         Function signature of function based coefficients.
 
     args_ctypes : dict, optional

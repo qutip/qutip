@@ -241,30 +241,30 @@ def smesolve(
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format), optional
         Deterministic collapse operator which will contribute with a standard
         Lindblad type of dissipation.
 
     sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    e_ops : : :class:`.qobj`, callable, or list.
+    e_ops : : :class:`.qobj`, callable, or list, optional
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`expect` for more detail of operator expectation.
+        See :func:`.expect` for more detail of operator expectation.
 
-    args : None / *dictionary*
+    args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    ntraj : int [500]
+    ntraj : int, default: 500
         Number of trajectories to compute.
 
-    heterodyne : bool [False]
+    heterodyne : bool, default: False
         Whether to use heterodyne or homodyne detection.
 
-    seeds : int, SeedSequence, list, [optional]
+    seeds : int, SeedSequence, list, optional
         Seed for the random number generator. It can be a single seed used to
         spawn seeds for each trajectory or a list of seeds, one for each
         trajectory. Seeds are saved in the result and they can be reused with::
@@ -282,48 +282,49 @@ def smesolve(
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         ``(atol, rtol)`` for each e_ops.
 
-    timeout : float [optional]
+    timeout : float, optional
         Maximum time for the evolution in second. When reached, no more
         trajectories will be computed. Overwrite the option of the same name.
 
-    options : None / dict
+    options : dict, optional
         Dictionary of options for the solver.
 
-        - store_final_state : bool, [False]
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None, [None]
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - store_measurement: bool, [False]
-          Whether to store the measurement and wiener process for each
-          trajectories.
-        - keep_runs_results : bool, [False]
-          Whether to store results from all trajectories or just store the
-          averages.
-        - normalize_output : bool, [False]
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}, ["text"]
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict, [{"chunk_size": 10}]
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - method : str, ["rouchon"]
-          Which stochastic differential equation integration method to use.
-          Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
-        - map : str {"serial", "parallel", "loky"}, ["serial"]
-          How to run the trajectories. "parallel" uses concurent module to run
-          in parallel while "loky" use the module of the same name to do so.
-        - job_timeout : NoneType, int, [None]
-          Maximum time to compute one trajectory.
-        - num_cpus : NoneType, int, [None]
-          Number of cpus to use when running in parallel. ``None`` detect the
-          number of available cpus.
-        - dt : float [0.001 ~ 0.0001]
-          The finite steps lenght for the Stochastic integration method.
-          Default change depending on the integrator.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | store_measurement: bool
+          | Whether to store the measurement and wiener process for each
+            trajectories.
+        - | keep_runs_results : bool
+          | Whether to store results from all trajectories or just store the
+            averages.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | method : str
+          | Which stochastic differential equation integration method to use.
+            Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
+        - | map : str {"serial", "parallel", "loky"}
+          | How to run the trajectories. "parallel" uses concurent module to
+            run in parallel while "loky" use the module of the same name to do
+            so.
+        - | job_timeout : NoneType, int
+          | Maximum time to compute one trajectory.
+        - | num_cpus : NoneType, int
+          | Number of cpus to use when running in parallel. ``None`` detect the
+            number of available cpus.
+        - | dt : float
+          | The finite steps lenght for the Stochastic integration method.
+            Default change depending on the integrator.
 
         Other options could be supported depending on the integration method,
         see `SIntegrator <./classes.html#classes-sode>`_.
@@ -332,7 +333,6 @@ def smesolve(
     -------
 
     output: :class:`.Result`
-
         An instance of the class :class:`.Result`.
     """
     options = _solver_deprecation(kwargs, options, "stoc")
@@ -372,23 +372,23 @@ def ssesolve(
     sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    e_ops : :class:`.qobj`, callable, or list.
+    e_ops : :class:`.qobj`, callable, or list, optional
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`expect` for more detail of operator expectation.
 
-    args : None / *dictionary*
+    args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    ntraj : int [500]
+    ntraj : int, default: 500
         Number of trajectories to compute.
 
-    heterodyne : bool [False]
+    heterodyne : bool, default: False
         Whether to use heterodyne or homodyne detection.
 
-    seeds : int, SeedSequence, list, [optional]
+    seeds : int, SeedSequence, list, optional
         Seed for the random number generator. It can be a single seed used to
         spawn seeds for each trajectory or a list of seeds, one for each
         trajectory. Seeds are saved in the result and they can be reused with::
@@ -404,48 +404,49 @@ def ssesolve(
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
 
-    timeout : float [optional]
+    timeout : float, optional
         Maximum time for the evolution in second. When reached, no more
         trajectories will be computed. Overwrite the option of the same name.
 
-    options : None / dict
+    options : dict, optional
         Dictionary of options for the solver.
 
-        - store_final_state : bool, [False]
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None, [None]
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - store_measurement: bool, [False]
-          Whether to store the measurement and wiener process, or brownian
-          noise for each trajectories.
-        - keep_runs_results : bool, [False]
-          Whether to store results from all trajectories or just store the
-          averages.
-        - normalize_output : bool, [False]
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}, ["text"]
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict, [{"chunk_size": 10}]
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - method : str, ["rouchon"]
-          Which stochastic differential equation integration method to use.
-          Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
-        - map : str {"serial", "parallel", "loky"}, ["serial"]
-          How to run the trajectories. "parallel" uses concurent module to run
-          in parallel while "loky" use the module of the same name to do so.
-        - job_timeout : NoneType, int, [None]
-          Maximum time to compute one trajectory.
-        - num_cpus : NoneType, int, [None]
-          Number of cpus to use when running in parallel. ``None`` detect the
-          number of available cpus.
-        - dt : float [0.001 ~ 0.0001]
-          The finite steps lenght for the Stochastic integration method.
-          Default change depending on the integrator.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | store_measurement: bool
+            Whether to store the measurement and wiener process, or brownian
+            noise for each trajectories.
+        - | keep_runs_results : bool
+          | Whether to store results from all trajectories or just store the
+            averages.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | method : str
+          | Which stochastic differential equation integration method to use.
+            Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
+        - | map : str {"serial", "parallel", "loky"}
+            How to run the trajectories. "parallel" uses concurent module to
+            run in parallel while "loky" use the module of the same name to do
+            so.
+        - | job_timeout : NoneType, int
+          | Maximum time to compute one trajectory.
+        - | num_cpus : NoneType, int
+          | Number of cpus to use when running in parallel. ``None`` detect the
+            number of available cpus.
+        - | dt : float
+          | The finite steps lenght for the Stochastic integration method.
+            Default change depending on the integrator.
 
         Other options could be supported depending on the integration method,
         see `SIntegrator <./classes.html#classes-sode>`_.

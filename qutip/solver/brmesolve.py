@@ -16,8 +16,8 @@ from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
 
 
-def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
-              args={}, sec_cutoff=0.1, options=None, **kwargs):
+def brmesolve(H, psi0, tlist, a_ops=(), e_ops=(), c_ops=(),
+              args=None, sec_cutoff=0.1, options=None, **kwargs):
     """
     Solves for the dynamics of a system using the Bloch-Redfield master
     equation, given an input Hamiltonian, Hermitian bath-coupling terms and
@@ -41,7 +41,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         Nested list of system operators that couple to the environment,
         and the corresponding bath spectra.
 
-        a_op : :obj:`qutip.Qobj`, :obj:`qutip.QobjEvo`
+        a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
         spectra : :obj:`.Coefficient`, str, func
@@ -73,76 +73,70 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             the operator: :obj:`.Qobj` vs :obj:`.QobjEvo` instead of the type
             of the spectra.
 
-    e_ops : list of :obj:`.Qobj` / callback function
+    e_ops : list of :obj:`.Qobj` / callback function, optional
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`expect` for more detail of operator expectation
 
-    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format), optional
         List of collapse operators.
 
-    args : dict
+    args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians and
         collapse operators. The key ``w`` is reserved for the spectra function.
 
-    sec_cutoff : float {0.1}
+    sec_cutoff : float, default: 0.1
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
 
-    options : None / dict
+    options : dict, optional
         Dictionary of options for the solver.
 
-        - store_final_state : bool
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - normalize_output : bool
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - tensor_type : str ['sparse', 'dense', 'data']
-          Which data type to use when computing the brtensor.
-          With a cutoff 'sparse' is usually the most efficient.
-        - sparse_eigensolver : bool {False}
-          Whether to use the sparse eigensolver
-        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
-          Which differential equation integration method to use.
-        - atol, rtol : float
-          Absolute and relative tolerance of the ODE integrator.
-        - nsteps :
-          Maximum number of (internally defined) steps allowed in one ``tlist``
-          step.
-        - max_step : float, 0
-          Maximum lenght of one internal step. When using pulses, it should be
-          less than half the width of the thinnest pulse.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | normalize_output : bool
+          |  Normalize output state to hide ODE numerical errors.
+        - |  progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          |  How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | tensor_type : str ['sparse', 'dense', 'data']
+          | Which data type to use when computing the brtensor.
+            With a cutoff 'sparse' is usually the most efficient.
+        - | sparse_eigensolver : bool {False}
+            Whether to use the sparse eigensolver
+        - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+            Which differential equation integration method to use.
+        - | atol, rtol : float
+          | Absolute and relative tolerance of the ODE integrator.
+        - | nsteps : int
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
+        - | max_step : float, 0
+          | Maximum lenght of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
 
     Returns
     -------
-    result: :obj:`qutip.solver.Result`
+    result: :obj:`.Result`
 
         An instance of the class :obj:`qutip.solver.Result`, which contains
         either an array of expectation values, for operators given in e_ops,
-        or a list of states for the times specified by `tlist`.
-
-    .. note:
-        The option ``operator_data_type`` is used to determine in which format
-        the bloch redfield tensor is computed. Use 'csr' for sparse and 'dense'
-        for dense array. With 'data', it will try to use the same data type as
-        the ``a_ops``, but it is usually less efficient than manually choosing
-        it.
+        or a list of states for the times specified by ``tlist``.
     """
     options = _solver_deprecation(kwargs, options, "br")
+    args = args or {}
     H = QobjEvo(H, args=args, tlist=tlist)
 
     c_ops = c_ops if c_ops is not None else []

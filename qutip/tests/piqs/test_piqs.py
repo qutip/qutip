@@ -854,7 +854,7 @@ class TestDicke:
         assert_equal(test_dicke_basis, true_dicke_basis)
 
         # error
-        assert_raises(AttributeError, dicke_basis, N)
+        assert_raises(AttributeError, dicke_basis, N, None)
 
     def test_dicke(self):
         """

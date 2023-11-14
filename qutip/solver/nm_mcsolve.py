@@ -57,84 +57,92 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         operators even if ``H`` is a superoperator. If none are given, the
         solver will defer to ``sesolve`` or ``mesolve``. Each rate ``Gamma``
         may be just a number (in the case of a constant rate) or, otherwise,
-        specified using any format accepted by :func:`qutip.coefficient`.
+        specified using any format accepted by
+        :func:`~qutip.core.coefficient.coefficient`.
 
-    e_ops : list, [optional]
+    e_ops : list, optional
         A ``list`` of operator as Qobj, QobjEvo or callable with signature of
         (t, state: Qobj) for calculating expectation values. When no ``e_ops``
         are given, the solver will default to save the states.
 
-    ntraj : int
+    ntraj : int, default: 500
         Maximum number of trajectories to run. Can be cut short if a time limit
         is passed with the ``timeout`` keyword or if the target tolerance is
         reached, see ``target_tol``.
 
-    args : None / dict
+    args : dict, optional
         Arguments for time-dependent Hamiltonian and collapse operator terms.
 
-    options : None / dict
+    options : dict, optional
         Dictionary of options for the solver.
 
-        - store_final_state : bool, [False]
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, NoneType, [None]
-          Whether or not to store the state density matrices.
-          On ``None`` the states will be saved if no expectation operators are
-          given.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}, ['text']
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict, [{"chunk_size": 10}]
-          kwargs to pass to the progress_bar. Qutip's bars use ``chunk_size``.
-        - method : str {"adams", "bdf", "dop853", "vern9", etc.}, ["adams"]
-          Which differential equation integration method to use.
-        - keep_runs_results : bool, [False]
-          Whether to store results from all trajectories or just store the
-          averages.
-        - map : str {"serial", "parallel", "loky"}, ["serial"]
-          How to run the trajectories. "parallel" uses concurrent module to run
-          in parallel while "loky" use the module of the same name to do so.
-        - job_timeout : NoneType, int, [None]
-          Maximum time to compute one trajectory.
-        - num_cpus : NoneType, int, [None]
-          Number of cpus to use when running in parallel. ``None`` detect the
-          number of available cpus.
-        - norm_t_tol, norm_tol, norm_steps : float, float, int, [1e-6, 1e-4, 5]
-          Parameters used to find the collapse location. ``norm_t_tol`` and
-          ``norm_tol`` are the tolerance in time and norm respectively.
-          An error will be raised if the collapse could not be found within
-          ``norm_steps`` tries.
-        - mc_corr_eps : float, [1e-10]
-          Small number used to detect non-physical collapse caused by numerical
-          imprecision.
-        - atol, rtol : float, [1e-8, 1e-6]
-          Absolute and relative tolerance of the ODE integrator.
-        - nsteps : int [2500]
-          Maximum number of (internally defined) steps allowed in one ``tlist``
-          step.
-        - max_step : float, [0]
-          Maximum length of one internal step. When using pulses, it should be
-          less than half the width of the thinnest pulse.
-        - completeness_rtol, completeness_atol : float, float, [1e-5, 1e-8]
-          Parameters used in determining whether the given Lindblad operators
-          satisfy a certain completeness relation. If they do not, an
-          additional Lindblad operator is added automatically (with zero rate).
-        - martingale_quad_limit : float or int, [100]
-          An upper bound on the number of subintervals used in the adaptive
-          integration of the martingale.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          | Which differential equation integration method to use.
+        - | atol, rtol : float
+          | Absolute and relative tolerance of the ODE integrator.
+        - | nsteps : int
+          | Maximum number of (internally defined) steps allowed in one ``tlist``
+            step.
+        - | max_step : float
+          | Maximum lenght of one internal step. When using pulses, it should be
+            less than half the width of the thinnest pulse.
+        - | keep_runs_results : bool, [False]
+          | Whether to store results from all trajectories or just store the
+            averages.
+        - | map : str {"serial", "parallel", "loky"}
+          | How to run the trajectories. "parallel" uses concurent module to
+            run in parallel while "loky" use the module of the same name to do
+            so.
+        - | job_timeout : int
+          | Maximum time to compute one trajectory.
+        - | num_cpus : int
+          | Number of cpus to use when running in parallel. ``None`` detect the
+            number of available cpus.
+        - | norm_t_tol, norm_tol, norm_steps : float, float, int
+          | Parameters used to find the collapse location. ``norm_t_tol`` and
+            ``norm_tol`` are the tolerance in time and norm respectively.
+            An error will be raised if the collapse could not be found within
+            ``norm_steps`` tries.
+        - | mc_corr_eps : float
+          | Small number used to detect non-physical collapse caused by
+            numerical imprecision.
+        - | improved_sampling : Bool
+          | Whether to use the improved sampling algorithm from Abdelhafez et
+            al. PRA (2019)
+        - | completeness_rtol, completeness_atol : float, float
+          | Parameters used in determining whether the given Lindblad operators
+            satisfy a certain completeness relation. If they do not, an
+            additional Lindblad operator is added automatically (with zero
+            rate).
+        - | martingale_quad_limit : float or int
+            An upper bound on the number of subintervals used in the adaptive
+            integration of the martingale.
 
         Note that the 'improved_sampling' option is not currently supported.
 
-    seeds : int, SeedSequence, list, [optional]
+    seeds : int, SeedSequence, list, optional
         Seed for the random number generator. It can be a single seed used to
         spawn seeds for each trajectory or a list of seeds, one for each
         trajectory. Seeds are saved in the result and they can be reused with::
 
             seeds=prev_result.seeds
 
-    target_tol : float, tuple, list, [optional]
+    target_tol : float, tuple, list, optional
         Target tolerance of the evolution. The evolution will compute
         trajectories until the error on the expectation values is lower than
         this tolerance. The maximum number of trajectories employed is
@@ -143,7 +151,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
 
-    timeout : float, [optional]
+    timeout : float, optional
         Maximum time for the evolution in seconds. When reached, no more
         trajectories will be computed.
 

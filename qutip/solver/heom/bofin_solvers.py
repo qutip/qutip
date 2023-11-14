@@ -474,43 +474,43 @@ def heomsolve(
         ``expect`` and ``e_data`` attributes of the result (see the return
         section below).
 
-    args : dict, optional {None}
+    args : dict, optional
         Change the ``args`` of the RHS for the evolution.
 
-    options : dict, optional {None}
+    options : dict, optional
         Generic solver options.
 
-        - store_final_state : bool
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - store_ados : bool {False, True}
-          Whether or not to store the HEOM ADOs.
-        - normalize_output : bool
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - state_data_type: str {'dense'}
-          Name of the data type of the state used during the ODE evolution.
-          Use an empty string to keep the input state type. Many integrator can
-          only work with `Dense`.
-        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
-          Which differential equation integration method to use.
-        - atol, rtol : float
-          Absolute and relative tolerance of the ODE integrator.
-        - nsteps :
-          Maximum number of (internally defined) steps allowed in one ``tlist``
-          step.
-        - max_step : float, 0
-          Maximum lenght of one internal step. When using pulses, it should be
-          less than half the width of the thinnest pulse.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | store_ados : bool
+          | Whether or not to store the HEOM ADOs.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | state_data_type: str {'dense', 'CSR', 'Dia', }
+          | Name of the data type of the state used during the ODE evolution.
+            Use an empty string to keep the input state type. Many integrator
+            can only work with `Dense`.
+        - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          | Which differential equation integration method to use.
+        - | atol, rtol : float
+          | Absolute and relative tolerance of the ODE integrator.
+        - | nsteps : int
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
+        - | max_step : float,
+          | Maximum lenght of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
 
     Returns
     -------
@@ -537,7 +537,7 @@ def heomsolve(
           at tme ``t``. The keys are those given by ``e_ops`` if it was
           a dict, otherwise they are the indexes of the supplied ``e_ops``.
 
-        See :class:`~HEOMResult` and :class:`~Result` for the complete
+        See :class:`~HEOMResult` and :class:`.Result` for the complete
         list of attributes.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
