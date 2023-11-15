@@ -34,17 +34,17 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], num_learning=0, options=None):
         List of times :math:`t_n` at which to compute results.
         Must be uniformily spaced.
 
-    e_ops : :class:`.qobj`, callable, or list.
+    e_ops : :class:`.Qobj`, callable, or list, optional
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`expect` for more detail of operator expectation.
 
-    num_learning : int
+    num_learning : int, default: 0
         Number of times used to construct the dynmaps operators when
         ``dynmaps`` is a callable.
 
-    options : dictionary
+    options : dictionary, optional
         Dictionary of options for the solver.
 
         - store_final_state : bool

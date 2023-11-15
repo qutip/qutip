@@ -16,17 +16,17 @@ def n_thermal(w, w_th):
     Parameters
     ----------
 
-    w : *float* or *array*
+    w : float or ndarray
         Frequency of the oscillator.
 
-    w_th : *float*
+    w_th : float
         The temperature in units of frequency (or the same units as `w`).
 
 
     Returns
     -------
 
-    n_avg : *float* or *array*
+    n_avg : float or array
 
         Return the number of average photons in thermal equilibrium for a
         an oscillator with the given frequency and temperature.
@@ -150,11 +150,11 @@ def convert_unit(value, orig="meV", to="GHz"):
     value : float / array
         The energy in the old unit.
 
-    orig : string
-        The name of the original unit ("J", "eV", "meV", "GHz", "mK")
+    orig : str, {"J", "eV", "meV", "GHz", "mK"}, default: "meV"
+        The name of the original unit.
 
-    to : string
-        The name of the new unit ("J", "eV", "meV", "GHz", "mK")
+    to : str, {"J", "eV", "meV", "GHz", "mK"}, default: "GHz"
+        The name of the new unit.
 
     Returns
     -------

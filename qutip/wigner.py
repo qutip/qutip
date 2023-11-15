@@ -161,7 +161,7 @@ def _angle_slice(slicearray, theta, phi):
     return theta, phi
 
 
-def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
+def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
            sparse=False, parfor=False):
     """Wigner function for a state vector or density matrix at points
     `xvec + i * yvec`.
@@ -179,13 +179,13 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
         y-coordinates at which to calculate the Wigner function.  Does not
         apply to the 'fft' method.
 
-    g : float
+    g : float, default: sqrt(2)
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
         The value of `g` is related to the value of `hbar` in the commutation
         relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default
         value `hbar=1`.
 
-    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
+    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}, default: 'clenshaw'
         Select method 'clenshaw' 'iterative', 'laguerre', or 'fft', where 'clenshaw'
         and 'iterative' use an iterative method to evaluate the Wigner functions for density
         matrices :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials
@@ -197,12 +197,12 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
         dealing with density matrices that have a large number of excitations
         (>~50). 'clenshaw' is a fast and numerically stable method.
 
-    sparse : bool {False, True}
+    sparse : bool, optional
         Tells the default solver whether or not to keep the input density
         matrix in sparse format.  As the dimensions of the density matrix
         grow, setthing this flag can result in increased performance.
 
-    parfor : bool {False, True}
+    parfor : bool, optional
         Flag for calculating the Laguerre polynomial based Wigner function
         method='laguerre' in parallel using the parfor function.
 
@@ -657,13 +657,13 @@ class QFunc:
     xvec, yvec : array_like
         x- and y-coordinates at which to calculate the Husimi-Q function.
 
-    g : float, default sqrt(2)
+    g : float, default: sqrt(2)
         Scaling factor for ``a = 0.5 * g * (x + iy)``.  The value of `g` is
         related to the value of `hbar` in the commutation relation
         :math:`[x,\,y] = i\hbar` via :math:`\hbar=2/g^2`, so the default
         corresponds to :math:`\hbar=1`.
 
-    memory : real, default 1024
+    memory : real, default: 1024
         Size in MB that may be used internally as workspace.  This class will
         raise ``MemoryError`` if subsequently passed a state of sufficiently
         large dimension that this bound would be exceeded.  In those cases, use
@@ -791,13 +791,13 @@ def qfunc(
     xvec, yvec : array_like
         x- and y-coordinates at which to calculate the Husimi-Q function.
 
-    g : float, default sqrt(2)
+    g : float, default: sqrt(2)
         Scaling factor for ``a = 0.5 * g * (x + iy)``.  The value of `g` is
         related to the value of :math:`\hbar` in the commutation relation
         :math:`[x,\,y] = i\hbar` via :math:`\hbar=2/g^2`, so the default
         corresponds to :math:`\hbar=1`.
 
-    precompute_memory : real, default 1024
+    precompute_memory : real, default: 1024
         Size in MB that may be used during calculations as working space when
         dealing with density-matrix inputs.  This is ignored for state-vector
         inputs.  The bound is not quite exact due to other, order-of-magnitude

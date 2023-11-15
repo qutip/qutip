@@ -47,18 +47,18 @@ def simdiag(ops, evals: bool = True, *,
 
     Parameters
     ----------
-    ops : list/array
+    ops : list, array
         ``list`` or ``array`` of qobjs representing commuting Hermitian
         operators.
 
-    evals : bool [True]
+    evals : bool, default: True
         Whether to return the eigenvalues for each ops and eigenvectors or just
         the eigenvectors.
 
-    tol : float [1e-14]
+    tol : float, default: 1e-14
         Tolerance for detecting degenerate eigenstates.
 
-    safe_mode : bool [True]
+    safe_mode : bool, default:  True
         Whether to check that all ops are Hermitian and commuting. If set to
         ``False`` and operators are not commuting, the eigenvectors returned
         will often be eigenvectors of only the first operator.

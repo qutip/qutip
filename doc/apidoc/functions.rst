@@ -290,26 +290,16 @@ Parallelization
 ---------------
 
 .. automodule:: qutip.solver.parallel
-    :members: parallel_map, serial_map
+    :members: parallel_map, serial_map, loky_pmap
 
 
 .. _functions-ipython:
-
-Semidefinite Programming
-------------------------
-
-.. Was this removed
-    .. automodule:: qutip.semidefinite
-        :members: complex_var, herm, pos_noherm, pos, dens, kron, conj, bmat, bmat, memoize, qudit_swap, dnorm_problem
-
-
-.. _functions-semidefinite:
 
 IPython Notebook Tools
 ----------------------
 
 .. automodule:: qutip.ipynbtools
-    :members: parallel_map, version_table
+    :members: version_table
 
 .. _functions-misc:
 
