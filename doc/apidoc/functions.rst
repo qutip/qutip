@@ -21,7 +21,7 @@ Quantum Operators
     :members: charge, commutator, create, destroy, displace, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
 
 
-Energy restricted Operators
+Energy Restricted Operators
 ---------------------------
 
 .. automodule:: qutip.core.energy_restricted

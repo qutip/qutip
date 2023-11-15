@@ -366,7 +366,7 @@ def _frozen(*args, **kwargs):
 class MetaSpace(type):
     def __call__(cls, *args, rep=None):
         """
-        Select which subclass is instanciated.
+        Select which subclass is instantiated.
         """
         if cls is Space and len(args) == 1 and isinstance(args[0], list):
             # From a list of int.
@@ -435,7 +435,8 @@ class MetaSpace(type):
             return spaces[0]
         elif len(spaces) >= 2:
             return Space(*spaces)
-        raise ValueError("Bad list format")
+        else:
+            raise ValueError(f'Format not understood {list_dims}')
 
 
 class Space(metaclass=MetaSpace):
@@ -582,10 +583,7 @@ class Compound(Space):
     def __eq__(self, other):
         return self is other or (
             type(other) is type(self)
-            and len(self.spaces) == len(other.spaces)
-            and all(self_space == other_space
-                    for self_space, other_space
-                    in zip(self.spaces, other.spaces))
+            self.spaces == other.spaces
         )
 
     def __hash__(self):
@@ -599,7 +597,8 @@ class Compound(Space):
         return sum([space.as_list() for space in self.spaces], [])
 
     def dims2idx(self, dims):
-        print('Compound', dims)
+        if len(dims) != len(self.spaces):
+            raise ValueError("Length of supplied dims does not match the number of subspaces.") 
         pos = 0
         step = 1
         for space, dim in zip(self.spaces[::-1], dims[::-1]):
@@ -680,7 +679,6 @@ class SuperSpace(Space):
         return self.oper.as_list()
 
     def dims2idx(self, dims):
-        print('SuperSpace', dims)
         posl, posr = self.oper.dims2idx(dims)
         return posl + posr * self.oper.shape[0]
 
@@ -701,21 +699,21 @@ class SuperSpace(Space):
         new_dims = self.oper.remove(idx)
         if new_dims.type == 'scalar':
             return Field()
-        return SuperSpace(self.oper.remove(idx), rep=self.superrep)
+        return SuperSpace(new_dims, rep=self.superrep)
 
     def replace(self, idx, new):
-        return SuperSpace(self.oper.swap(idx, new), rep=self.superrep)
+        return SuperSpace(self.oper.replace(idx, new), rep=self.superrep)
 
 
 class MetaDims(type):
     def __call__(cls, *args, rep=None):
-        if isinstance(args[0], list):
+        if len(args) == 1 and isinstance(args[0], Dimensions):
+            return args[0]
+        elif len(args) == 1 and isinstance(args[0], list):
             args = (
                 Space(args[0][1], rep=rep),
                 Space(args[0][0], rep=rep)
             )
-        elif len(args) == 1 and isinstance(args[0], Dimensions):
-            return args[0]
         elif len(args) != 2:
             raise NotImplementedError('No Dual, Ket, Bra...', args)
         elif (
@@ -793,6 +791,7 @@ class Dimensions(metaclass=MetaDims):
             return self.to_
         elif key == 1:
             return self.from_
+        raise IndexError("Dimensions index out of range")
 
     def dims2idx(self, dims):
         """
