@@ -22,10 +22,9 @@ def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
 
     Parameters
     ----------
-    H : :obj:`.Qobj`, :obj:`.QobjEvo`,
-        :obj:`.QobjEvo` compatible format. Possibly
-        time-dependent system Liouvillian or Hamiltonian as a Qobj or QobjEvo.
-        ``list`` of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
+        QobjEvo. ``list`` of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
         that can be made into :obj:`.QobjEvo` are also accepted.
 
     t : float or array-like
