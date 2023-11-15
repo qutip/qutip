@@ -101,9 +101,9 @@ def brmesolve(H, psi0, tlist, a_ops=(), e_ops=(), c_ops=(),
             On `None` the states will be saved if no expectation operators are
             given.
         - | normalize_output : bool
-          |  Normalize output state to hide ODE numerical errors.
-        - |  progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-          |  How to present the solver progress.
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
             if not installed. Empty string or False will disable the bar.
         - | progress_kwargs : dict
