@@ -988,9 +988,9 @@ def commutator(A, B, kind="normal"):
     Parameters
     ----------
     A, B : :obj:`Qobj`, :obj:`QobjEvo`
-        Operators to compute the commutator
+        The operators to compute the commutator of.
 
-    kind: ste {"normal", "anti"}, default: "anti"
+    kind: str {"normal", "anti"}, default: "anti"
         Which kind of commutator to compute.
     """
     if kind == 'normal':
