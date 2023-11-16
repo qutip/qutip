@@ -15,3 +15,14 @@ void _matmul_csr_vector(
         const std::complex<double> scale,
         std::complex<double> * _RESTRICT out,
         const IntT nrows);
+
+template <typename IntT>
+void _matmul_csr_vector_herm(
+        const std::complex<double> * _RESTRICT data,
+        const IntT * _RESTRICT col_index,
+        const IntT * _RESTRICT row_index,
+        const std::complex<double> * _RESTRICT vec,
+        const std::complex<double> scale,
+        std::complex<double> * _RESTRICT out,
+        const IntT nrows,
+        const IntT sub_size);

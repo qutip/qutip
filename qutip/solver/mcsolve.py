@@ -549,8 +549,8 @@ class MCSolver(MultiTrajSolver):
 
         progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
             How to present the solver progress.
-            'tqdm' uses the python module of the same name and raise an error if
-            not installed. Empty string or False will disable the bar.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
 
         progress_kwargs: dict, default={"chunk_size":10}
             Arguments to pass to the progress_bar. Qutip's bars use

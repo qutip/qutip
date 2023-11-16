@@ -115,7 +115,7 @@ class Implicit_Taylor1_5_SODE(_Implicit_Simple_Integrator):
         "tol": 1e-10,
         "solve_method": None,
         "solve_options": {},
-        "deff_dt": 1e-6
+        "deff_dt": 1e-6,
     }
     stepper = _sode.Taylor15_imp
     N_dw = 2

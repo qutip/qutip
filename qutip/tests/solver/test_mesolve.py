@@ -96,13 +96,18 @@ class TestMESolveDecay:
 
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
-    def testME_TDDecay(self, c_ops, method):
+    @pytest.mark.parametrize("use_herm_matmul", [True, False])
+    def testME_TDDecay(self, c_ops, method, use_herm_matmul):
         "mesolve: time-dependence as function list"
         me_error = 1e-5
         H = self.a.dag() * self.a
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
-        options = {"method": method, "progress_bar": None}
+        options = {
+            "method": method,
+            "progress_bar": None,
+            "use_herm_matmul": use_herm_matmul,
+        }
         medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]

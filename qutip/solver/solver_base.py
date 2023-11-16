@@ -40,12 +40,13 @@ class Solver:
         "normalize_output": "ket",
         "method": "adams",
     }
+    _reset_options = {"method"}
     resultclass = Result
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
             self.rhs = QobjEvo(rhs)
-        else:
+        elif rhs is not None:
             TypeError("The rhs must be a QobjEvo")
         self.options = options
         self._integrator = self._get_integrator()
@@ -211,6 +212,12 @@ class Solver:
         self.stats["run time"] += time() - _time_start
         return self._restore_state(state, copy=copy)
 
+    def _build_rhs(self):
+        """
+        Build the rhs QobjEvo.
+        """
+        return self.rhs
+
     def _get_integrator(self):
         """ Return the initialted integrator. """
         _time_start = time()
@@ -221,7 +228,7 @@ class Solver:
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs, self.options)
+        integrator_instance = integrator(self._build_rhs(), self.options)
         self._init_integrator_time = time() - _time_start
         return integrator_instance
 
@@ -347,11 +354,11 @@ class Solver:
 
         if self._integrator is None or not keys:
             pass
-        elif 'method' in keys and self._integrator._is_set:
+        elif self._reset_options & keys and self._integrator._is_set:
             state = self._integrator.get_state()
             self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
-        elif "method" in keys:
+        elif self._reset_options & keys in keys:
             self._integrator = self._get_integrator()
         elif keys & self._integrator.integrator_options.keys():
             # Some of the keys are used by the integrator.

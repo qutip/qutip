@@ -9,6 +9,7 @@ __all__ = [
 import numpy as np
 from qutip.core import data as _data
 from qutip import Qobj, QobjEvo
+from qutip.core.cy.qobjevo import QobjEvoHerm
 from .propagator import Propagator
 from .mesolve import MESolver
 from .solver_base import Solver
@@ -647,6 +648,10 @@ def fmmesolve(
         - max_step : float, 0
           Maximum lenght of one internal step. When using pulses, it should be
           less than half the width of the thinnest pulse.
+        - use_herm_matmul: bool, default=False
+          Whether to use a an algorithm that use the hermiticity of the density
+          matrix to speed up computations. While this is the most common case,
+          the default is ``False`` for robusteness.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
@@ -760,6 +765,7 @@ class FMESolver(MESolver):
         "normalize_output": True,
         "method": "adams",
         "store_floquet_states": False,
+        "use_herm_matmul": False,
     }
 
     def __init__(
@@ -773,26 +779,32 @@ class FMESolver(MESolver):
 
         nT = nT or max(100, 20 * kmax)
         self._num_collapse = len(a_ops)
+        self.a_ops = a_ops
+        self.param = {"w_th": w_th, "kmax": kmax, "nT": nT}
         c_ops, spectra_cb = zip(*a_ops)
         if not all(
             isinstance(c_op, Qobj) and callable(spectrum)
             for c_op, spectrum in a_ops
         ):
             raise TypeError("a_ops must be tuple of (Qobj, callable)")
+
+        self._integrator = self._get_integrator()
+        self._state_metadata = {}
+        self.stats = self._initialize_stats()
+
+    def _build_rhs(self):
+        c_ops, spectra_cb = zip(*self.a_ops)
         self.rhs = QobjEvo(
             floquet_tensor(
                 self.floquet_basis,
                 c_ops,
                 spectra_cb,
-                w_th=w_th,
-                kmax=kmax,
-                nT=nT,
+                **self.param
             )
         )
-
-        self._integrator = self._get_integrator()
-        self._state_metadata = {}
-        self.stats = self._initialize_stats()
+        if self.options["use_herm_matmul"]:
+            self.rhs = QobjEvoHerm(self.rhs)
+        return self.rhs
 
     def _initialize_stats(self):
         stats = Solver._initialize_stats(self)

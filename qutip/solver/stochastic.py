@@ -176,7 +176,9 @@ class _StochasticRHS:
     diffusion computation.
     """
 
-    def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
+    def __init__(
+        self, issuper, H, sc_ops, c_ops, heterodyne, herm_matmul=False
+    ):
 
         if not isinstance(H, (Qobj, QobjEvo)) or not H.isoper:
             raise TypeError("The Hamiltonian must be am operator")
@@ -198,6 +200,7 @@ class _StochasticRHS:
 
         self.issuper = issuper
         self.heterodyne = heterodyne
+        self.herm_matmul = herm_matmul
 
         if heterodyne:
             sc_ops = []
@@ -214,7 +217,9 @@ class _StochasticRHS:
     def __call__(self, options):
         if self.issuper:
             return StochasticOpenSystem(
-                self.H, self.sc_ops, self.c_ops, options.get("derr_dt", 1e-6)
+                self.H, self.sc_ops, self.c_ops,
+                options.get("derr_dt", 1e-6),
+                self.herm_matmul
             )
         else:
             return StochasticClosedSystem(self.H, self.sc_ops)
@@ -324,6 +329,10 @@ def smesolve(
         - dt : float [0.001 ~ 0.0001]
           The finite steps lenght for the Stochastic integration method.
           Default change depending on the integrator.
+        - use_herm_matmul: bool, default=False
+          Whether to use a an algorithm that use the hermiticity of the density
+          matrix to speed up computations. While this is the most common case,
+          the default is ``False`` for robusteness.
 
         Other options could be supported depending on the integration method,
         see `SIntegrator <./classes.html#classes-sode>`_.
@@ -496,7 +505,10 @@ class StochasticSolver(MultiTrajSolver):
         if self.name == "ssesolve" and c_ops:
             raise ValueError("c_ops are not supported by ssesolve.")
 
-        rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
+        rhs = _StochasticRHS(
+            self._open, H, sc_ops, c_ops, heterodyne,
+            self.options.get("use_herm_matmul", False)
+        )
         super().__init__(rhs, options=options)
 
         if heterodyne:
@@ -616,6 +628,161 @@ class StochasticSolver(MultiTrajSolver):
             **cls._avail_integrators,
         }
 
+
+class SMESolver(StochasticSolver):
+    r"""
+    Stochastic Master Equation Solver.
+
+    Parameters
+    ----------
+    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+        System Hamiltonian as a Qobj or QobjEvo for time-dependent
+        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
+        that can be made into :class:`QobjEvo` are also accepted.
+
+    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+        List of stochastic collapse operators.
+
+    heterodyne : bool, [False]
+        Whether to use heterodyne or homodyne detection.
+
+    options : dict, [optional]
+        Options for the solver, see :obj:`SMESolver.options` and
+        `SIntegrator <./classes.html#classes-sode>`_ for a list of all options.
+    """
+    name = "smesolve"
+    _avail_integrators = {}
+    _open = True
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "store_measurement": False,
+        "keep_runs_results": False,
+        "normalize_output": False,
+        "method": "taylor1.5",
+        "map": "serial",
+        "job_timeout": None,
+        "num_cpus": None,
+        "bitgenerator": None,
+        "use_herm_matmul": False,
+    }
+
+    @property
+    def options(self):
+        """
+        Options for stochastic solver:
+
+        store_final_state: bool, default=False
+            Whether or not to store the final state of the evolution in the
+            result class.
+
+        store_states: bool, default=None
+            Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+
+        store_measurement: bool, [False]
+            Whether to store the measurement for each trajectories.
+            Storing measurements will also store the wiener process, or
+            brownian noise for each trajectories.
+
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+            How to present the solver progress. 'tqdm' uses the python module
+            of the same name and raise an error if not installed. Empty string
+            or False will disable the bar.
+
+        progress_kwargs: dict, default={"chunk_size":10}
+            Arguments to pass to the progress_bar. Qutip's bars use
+            ``chunk_size``.
+
+        keep_runs_results: bool
+          Whether to store results from all trajectories or just store the
+          averages.
+
+        method: str, default="rouchon"
+            Which ODE integrator methods are supported.
+
+        map: str {"serial", "parallel", "loky"}, default="serial"
+            How to run the trajectories. "parallel" uses concurent module to
+            run in parallel while "loky" use the module of the same name to do
+            so.
+
+        job_timeout: None, int, default=None
+            Maximum time to compute one trajectory.
+
+        num_cpus: None, int, default=None
+            Number of cpus to use when running in parallel. ``None`` detect the
+            number of available cpus.
+
+        bitgenerator: {None, "MT19937", "PCG64DXSM", ...}, default=None
+            Which of numpy.random's bitgenerator to use. With ``None``, your
+            numpy version's default is used.
+
+        use_herm_matmul: bool, default=False
+            Whether to use a an algorithm that only compute the upper part of
+            of the density matrix in internal computation. Only valid when the
+            state is always Hermitian. While this is the most common case, the
+            default is ``False`` for robusteness.
+        """
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        MultiTrajSolver.options.fset(self, new_options)
+
+    def _apply_options(self, keys):
+        if hasattr(self, "_rhs") and "use_herm_matmul" in keys:
+            self._rhs.herm_matmul = self.options["use_herm_matmul"]
+            # Reseting the integrator will apply the change
+            keys.add('method')
+        super()._apply_options(keys)
+
+
+class SSESolver(StochasticSolver):
+    r"""
+    Stochastic Schrodinger Equation Solver.
+
+    Parameters
+    ----------
+    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+        System Hamiltonian as a Qobj or QobjEvo for time-dependent
+        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
+        that can be made into :class:`QobjEvo` are also accepted.
+
+    c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+        Deterministic collapse operator which will contribute with a standard
+        Lindblad type of dissipation.
+
+    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+        List of stochastic collapse operators.
+
+    heterodyne : bool, [False]
+        Whether to use heterodyne or homodyne detection.
+
+    options : dict, [optional]
+        Options for the solver, see :obj:`SSESolver.options` and
+        `SIntegrator <./classes.html#classes-sode>`_ for a list of all options.
+    """
+    name = "ssesolve"
+    _avail_integrators = {}
+    _open = False
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "store_measurement": False,
+        "keep_runs_results": False,
+        "normalize_output": False,
+        "method": "platen",
+        "map": "serial",
+        "job_timeout": None,
+        "num_cpus": None,
+        "bitgenerator": None,
+    }
+
     @property
     def options(self):
         """
@@ -672,87 +839,3 @@ class StochasticSolver(MultiTrajSolver):
     @options.setter
     def options(self, new_options):
         MultiTrajSolver.options.fset(self, new_options)
-
-
-class SMESolver(StochasticSolver):
-    r"""
-    Stochastic Master Equation Solver.
-
-    Parameters
-    ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
-        System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
-
-    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
-        List of stochastic collapse operators.
-
-    heterodyne : bool, [False]
-        Whether to use heterodyne or homodyne detection.
-
-    options : dict, [optional]
-        Options for the solver, see :obj:`SMESolver.options` and
-        `SIntegrator <./classes.html#classes-sode>`_ for a list of all options.
-    """
-    name = "smesolve"
-    _avail_integrators = {}
-    _open = True
-    solver_options = {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size": 10},
-        "store_final_state": False,
-        "store_states": None,
-        "store_measurement": False,
-        "keep_runs_results": False,
-        "normalize_output": False,
-        "method": "taylor1.5",
-        "map": "serial",
-        "job_timeout": None,
-        "num_cpus": None,
-        "bitgenerator": None,
-    }
-
-
-class SSESolver(StochasticSolver):
-    r"""
-    Stochastic Schrodinger Equation Solver.
-
-    Parameters
-    ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
-        System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
-
-    c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
-        Deterministic collapse operator which will contribute with a standard
-        Lindblad type of dissipation.
-
-    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
-        List of stochastic collapse operators.
-
-    heterodyne : bool, [False]
-        Whether to use heterodyne or homodyne detection.
-
-    options : dict, [optional]
-        Options for the solver, see :obj:`SSESolver.options` and
-        `SIntegrator <./classes.html#classes-sode>`_ for a list of all options.
-    """
-    name = "ssesolve"
-    _avail_integrators = {}
-    _open = False
-    solver_options = {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size": 10},
-        "store_final_state": False,
-        "store_states": None,
-        "store_measurement": False,
-        "keep_runs_results": False,
-        "normalize_output": False,
-        "method": "platen",
-        "map": "serial",
-        "job_timeout": None,
-        "num_cpus": None,
-        "bitgenerator": None,
-    }

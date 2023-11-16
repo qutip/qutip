@@ -297,6 +297,22 @@ cdef class _BlochRedfieldElement(_BaseElement):
             out = self.H.from_eigbasis(t, out)
         return out
 
+    cdef Data matmul_data_t_herm(self, t, Data state, idxint N, Data out=None):
+        cdef size_t i
+        cdef double cutoff = self.sec_cutoff * self._compute_spectrum(t)
+        cdef Data A_eig, BR_eig
+
+        if not self.eig_basis:
+            state = self.H.to_eigbasis(t, state)
+        if not self.eig_basis and out is not None:
+            out = self.H.to_eigbasis(t, out)
+        A_eig = self.H.to_eigbasis(t, self.a_op._call(t))
+        BR_eig = self._br_term(A_eig, cutoff)
+        out = _data.herm_matmul(BR_eig, state, N, 1., out)
+        if not self.eig_basis:
+            out = self.H.from_eigbasis(t, out)
+        return out
+
     def linear_map(self, f, anti=False):
         return _MapElement(self, [f])
 
