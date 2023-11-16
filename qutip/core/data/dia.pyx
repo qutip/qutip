@@ -271,6 +271,8 @@ cpdef Dia empty(base.idxint rows, base.idxint cols, base.idxint num_diag):
         <double complex *> PyDataMem_NEW(cols * num_diag * sizeof(double complex))
     out.offsets =\
         <base.idxint *> PyDataMem_NEW(num_diag * sizeof(base.idxint))
+    if not out.data: raise MemoryError()
+    if not out.offsets: raise MemoryError()
     return out
 
 
@@ -436,6 +438,7 @@ cdef Dia diags_(
         The shape of the output.  The result does not need to be square, but
         the diagonals must be of the correct length to fit in.
     """
+    cdef base.idxint i
     out = empty(n_rows, n_cols, len(offsets))
     out.num_diag = len(offsets)
     for i in range(len(offsets)):

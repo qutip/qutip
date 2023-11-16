@@ -59,7 +59,7 @@ __all__ = [
 ]
 
 
-cdef void _check_shape(Data left, Data right, Data out=None) nogil except *:
+cdef int _check_shape(Data left, Data right, Data out=None) except -1 nogil:
     if left.shape[1] != right.shape[0]:
         raise ValueError(
             "incompatible matrix shapes "
@@ -78,7 +78,7 @@ cdef void _check_shape(Data left, Data right, Data out=None) nogil except *:
             + " but needed "
             + str((left.shape[0], right.shape[1]))
         )
-
+    return 0
 
 cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
     """

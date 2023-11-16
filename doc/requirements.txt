@@ -21,7 +21,7 @@ packaging==23.0
 parso==0.8.3
 pexpect==4.8.0
 pickleshare==0.7.5
-Pillow==9.4.0
+Pillow==10.0.1
 prompt-toolkit==3.0.38
 ptyprocess==0.7.0
 Pygments==2.15.0
@@ -43,6 +43,6 @@ sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.5
 traitlets==5.9.0
-urllib3==1.26.14
+urllib3==1.26.18
 wcwidth==0.2.6
 wheel==0.38.4

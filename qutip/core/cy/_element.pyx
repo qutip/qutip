@@ -1,5 +1,9 @@
 #cython: language_level=3
-#cython: boundscheck=False, wraparound=False, initializedcheck=False, cdvision=True
+#cython: boundscheck=False
+#cython: wraparound=False
+#cython: initializedcheck=False
+#cython: cdvision=True
+#cython: c_api_binop_methods=True
 
 from .. import data as _data
 from qutip.core.cy.coefficient import coefficient_function_parameters

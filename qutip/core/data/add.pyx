@@ -18,12 +18,6 @@ from qutip.core.data cimport csr, dense, dia
 
 cnp.import_array()
 
-cdef extern from *:
-    void *PyDataMem_NEW(size_t size)
-    void *PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
-    void PyDataMem_FREE(void *ptr)
-
-
 __all__ = [
     'add', 'add_csr', 'add_dense', 'iadd_dense', 'add_dia',
     'sub', 'sub_csr', 'sub_dense', 'sub_dia',
@@ -33,7 +27,7 @@ __all__ = [
 cdef int _ONE=1
 
 
-cdef void _check_shape(Data left, Data right) nogil except *:
+cdef int _check_shape(Data left, Data right) except -1 nogil:
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
         raise ValueError(
             "incompatible matrix shapes "
@@ -41,6 +35,7 @@ cdef void _check_shape(Data left, Data right) nogil except *:
             + " and "
             + str(right.shape)
         )
+    return 0
 
 
 cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c, double tol) nogil:

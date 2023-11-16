@@ -21,7 +21,7 @@ __all__ = [
 ]
 
 
-cdef void _check_shape_inner(Data left, Data right) nogil except *:
+cdef int _check_shape_inner(Data left, Data right) except -1 nogil:
     if (
         (left.shape[0] != 1 and left.shape[1] != 1)
         or right.shape[1] != 1
@@ -32,8 +32,9 @@ cdef void _check_shape_inner(Data left, Data right) nogil except *:
             + " and "
             + str(right.shape)
         )
+    return 0
 
-cdef void _check_shape_inner_op(Data left, Data op, Data right) nogil except *:
+cdef int _check_shape_inner_op(Data left, Data op, Data right) except -1 nogil:
     cdef bint left_shape = left.shape[0] == 1 or left.shape[1] == 1
     cdef bint left_op = (
         (left.shape[0] == 1 and left.shape[1] == op.shape[0])
@@ -50,6 +51,7 @@ cdef void _check_shape_inner_op(Data left, Data op, Data right) nogil except *:
             " and ",
             str(right.shape),
         ]))
+    return 0
 
 cdef double complex _inner_csr_bra_ket(CSR left, CSR right) nogil:
     cdef size_t col, ptr_bra, ptr_ket
@@ -72,7 +74,7 @@ cdef double complex _inner_csr_ket_ket(CSR left, CSR right) nogil:
             out += conj(left.data[ptr_l]) * right.data[ptr_r]
     return out
 
-cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) nogil except *:
+cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) except *:
     """
     Compute the complex inner product <left|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
@@ -95,7 +97,7 @@ cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) no
         return _inner_csr_bra_ket(left, right)
     return _inner_csr_ket_ket(left, right)
 
-cpdef double complex inner_dia(Dia left, Dia right, bint scalar_is_ket=False) nogil except *:
+cpdef double complex inner_dia(Dia left, Dia right, bint scalar_is_ket=False) except * nogil:
     """
     Compute the complex inner product <left|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
@@ -134,7 +136,7 @@ cpdef double complex inner_dia(Dia left, Dia right, bint scalar_is_ket=False) no
 
     return inner
 
-cpdef double complex inner_dense(Dense left, Dense right, bint scalar_is_ket=False) nogil except *:
+cpdef double complex inner_dense(Dense left, Dense right, bint scalar_is_ket=False) except * nogil:
     """
     Compute the complex inner product <left|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
@@ -194,7 +196,7 @@ cdef double complex _inner_op_csr_ket_ket(CSR left, CSR op, CSR right) nogil:
     return out
 
 cpdef double complex inner_op_dia(Dia left, Dia op, Dia right,
-                                   bint scalar_is_ket=False) nogil except *:
+                                   bint scalar_is_ket=False) except * nogil:
     """
     Compute the complex inner product <left|op|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
@@ -238,7 +240,7 @@ cpdef double complex inner_op_dia(Dia left, Dia op, Dia right,
     return inner
 
 cpdef double complex inner_op_csr(CSR left, CSR op, CSR right,
-                                  bint scalar_is_ket=False) nogil except *:
+                                  bint scalar_is_ket=False) except *:
     """
     Compute the complex inner product <left|op|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
@@ -251,7 +253,7 @@ cpdef double complex inner_op_csr(CSR left, CSR op, CSR right,
     """
     _check_shape_inner_op(left, op, right)
     cdef double complex l
-    if left.shape[0] == left.shape[1] == op.shape[0] == op.shape[1] == right.shape[1] == 1:
+    if 1 == left.shape[1] == left.shape[0] == op.shape[0] == op.shape[1] == right.shape[1]:
         if not (csr.nnz(left) and csr.nnz(op) and csr.nnz(right)):
             return 0
         l = conj(left.data[0]) if scalar_is_ket else left.data[0]

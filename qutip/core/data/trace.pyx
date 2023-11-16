@@ -15,21 +15,23 @@ __all__ = [
 ]
 
 
-cdef void _check_shape(Data matrix) nogil except *:
+cdef int _check_shape(Data matrix) except -1 nogil:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("".join([
             "matrix shape ", str(matrix.shape), " is not square.",
         ]))
+    return 0
 
 
-cdef void _check_shape_oper_ket(int N, Data matrix) nogil except *:
+cdef int _check_shape_oper_ket(int N, Data matrix) except -1 nogil:
     if matrix.shape[0] != N * N or matrix.shape[1] != 1:
         raise ValueError("".join([
             "matrix ", str(matrix.shape), " is not a stacked square matrix."
         ]))
+    return 0
 
 
-cpdef double complex trace_csr(CSR matrix) nogil except *:
+cpdef double complex trace_csr(CSR matrix) except * nogil:
     _check_shape(matrix)
     cdef size_t row, ptr
     cdef double complex trace = 0
@@ -40,7 +42,7 @@ cpdef double complex trace_csr(CSR matrix) nogil except *:
                 break
     return trace
 
-cpdef double complex trace_dense(Dense matrix) nogil except *:
+cpdef double complex trace_dense(Dense matrix) except * nogil:
     _check_shape(matrix)
     cdef double complex trace = 0
     cdef size_t ptr = 0
@@ -62,7 +64,7 @@ cpdef double complex trace_dia(Dia matrix) except * nogil:
     return trace
 
 
-cpdef double complex trace_oper_ket_csr(CSR matrix) nogil except *:
+cpdef double complex trace_oper_ket_csr(CSR matrix) except * nogil:
     cdef size_t N = <size_t>sqrt(matrix.shape[0])
     _check_shape_oper_ket(N, matrix)
     cdef size_t row
@@ -73,7 +75,7 @@ cpdef double complex trace_oper_ket_csr(CSR matrix) nogil except *:
             trace += matrix.data[matrix.row_index[row * stride]]
     return trace
 
-cpdef double complex trace_oper_ket_dense(Dense matrix) nogil except *:
+cpdef double complex trace_oper_ket_dense(Dense matrix) except * nogil:
     cdef size_t N = <size_t>sqrt(matrix.shape[0])
     _check_shape_oper_ket(N, matrix)
     cdef double complex trace = 0

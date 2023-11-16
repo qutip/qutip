@@ -245,6 +245,9 @@ class CompilationOptions(QutipOptions):
 
     clean_on_error : bool [True]
         When writing a cython file that cannot be imported, erase it.
+
+    build_dir: str [None]
+        cythonize's build_dir.
     """
     _link_flags = ""
     _compiler_flags = ""
@@ -275,6 +278,7 @@ class CompilationOptions(QutipOptions):
         "link_flags": _link_flags,
         "extra_import": "",
         "clean_on_error": True,
+        "build_dir": None,
     }
     _settings_name = "compile"
 
@@ -554,7 +558,9 @@ def compile_code(code, file_name, parsed, c_opt):
                 include_dirs=[np.get_include()],
                 language='c++'
             )
-            ext_modules = cythonize(coeff_file, force=True)
+            ext_modules = cythonize(
+                coeff_file, force=True, build_dir=c_opt['build_dir']
+            )
             setup(ext_modules=ext_modules)
         except Exception as e:
             if c_opt['clean_on_error']:

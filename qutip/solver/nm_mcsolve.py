@@ -125,6 +125,8 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
           An upper bound on the number of subintervals used in the adaptive
           integration of the martingale.
 
+        Note that the 'improved_sampling' option is not currently supported.
+
     seeds : int, SeedSequence, list, [optional]
         Seed for the random number generator. It can be a single seed used to
         spawn seeds for each trajectory or a list of seeds, one for each
@@ -329,6 +331,7 @@ class NonMarkovianMCSolver(MCSolver):
         "completeness_atol": 1e-8,
         "martingale_quad_limit": 100,
     }
+    del solver_options["improved_sampling"]
 
     # both classes will be partially initialized in constructor
     trajectory_resultclass = NmmcTrajectoryResult
@@ -515,6 +518,87 @@ class NonMarkovianMCSolver(MCSolver):
         self._martingale.reset()
 
         return result
+
+    @property
+    def options(self):
+        """
+        Options for non-Markovian Monte Carlo solver:
+
+        store_final_state: bool, default=False
+            Whether or not to store the final state of the evolution in the
+            result class.
+
+        store_states: bool, default=None
+            Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+            How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+
+        progress_kwargs: dict, default={"chunk_size":10}
+            Arguments to pass to the progress_bar. Qutip's bars use
+            ``chunk_size``.
+
+        keep_runs_results: bool
+          Whether to store results from all trajectories or just store the
+          averages.
+
+        method: str, default="adams"
+            Which ODE integrator methods are supported.
+
+        map: str {"serial", "parallel", "loky"}
+            How to run the trajectories. "parallel" uses concurent module to
+            run in parallel while "loky" use the module of the same name to do
+            so.
+
+        job_timeout: None, int
+            Maximum time to compute one trajectory.
+
+        num_cpus: None, int
+            Number of cpus to use when running in parallel. ``None`` detect the
+            number of available cpus.
+
+        bitgenerator: {None, "MT19937", "PCG64", "PCG64DXSM", ...}
+            Which of numpy.random's bitgenerator to use. With ``None``, your
+            numpy version's default is used.
+
+        mc_corr_eps: float
+            Small number used to detect non-physical collapse caused by
+            numerical imprecision.
+
+        norm_t_tol: float
+            Tolerance in time used when finding the collapse.
+
+        norm_tol: float
+            Tolerance in norm used when finding the collapse.
+
+        norm_steps: int
+            Maximum number of tries to find the collapse.
+
+        completeness_rtol: float, default=1e-5
+            Used in determining whether the given Lindblad operators satisfy
+            a certain completeness relation. If they do not, an additional
+            Lindblad operator is added automatically (with zero rate).
+
+        completeness_atol: float, default=1e-8
+            Used in determining whether the given Lindblad operators satisfy
+            a certain completeness relation. If they do not, an additional
+            Lindblad operator is added automatically (with zero rate).
+
+        martingale_quad_limit: float or int, default=100
+            An upper bound on the number of subintervals used in the adaptive
+            integration of the martingale.
+
+        Note that the 'improved_sampling' option is not currently supported.
+        """
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        MCSolver.options.fset(self, new_options)
 
     start.__doc__ = MultiTrajSolver.start.__doc__
     step.__doc__ = MultiTrajSolver.step.__doc__

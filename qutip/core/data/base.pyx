@@ -1,4 +1,5 @@
 #cython: language_level=3
+#cython: c_api_binop_methods=True
 
 import numpy as np
 cimport numpy as cnp

@@ -99,7 +99,7 @@ class TestSolve():
 
 class TestSVD():
     def op_numpy(self, A):
-        return np.linalg.svd(A)
+        return scipy.linalg.svd(A)
 
     def _gen_dm(self, N, rank, dtype):
         return qutip.rand_dm(N, rank=rank, dtype=dtype).data

@@ -1,8 +1,9 @@
 """ Class for solve function results"""
 import numpy as np
-from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero, qzero_like
+from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero_like
 
-__all__ = ["Result", "MultiTrajResult", "McResult", "NmmcResult"]
+__all__ = ["Result", "MultiTrajResult", "McResult", "NmmcResult",
+           "McTrajectoryResult", "McResultImprovedSampling"]
 
 
 class _QobjExpectEop:
@@ -78,7 +79,11 @@ class _BaseResult:
         self._state_processors = []
         self._state_processors_require_copy = False
 
-        self.options = options
+        # make sure not to store a reference to the solver
+        options_copy = options.copy()
+        if hasattr(options_copy, '_feedback'):
+            options_copy._feedback = None
+        self.options = options_copy
 
     def _e_ops_to_dict(self, e_ops):
         """ Convert the supplied e_ops to a dictionary of Eop instances. """
@@ -485,7 +490,6 @@ class MultiTrajResult(_BaseResult):
         self.times = trajectory.times
 
         if trajectory.states:
-            state = trajectory.states[0]
             self._sum_states = [qzero_like(self._to_dm(state))
                                 for state in trajectory.states]
         if trajectory.final_state:
@@ -568,6 +572,11 @@ class MultiTrajResult(_BaseResult):
             self.stats['end_condition'] = 'ntraj reached'
         return ntraj_left
 
+    def _average_computer(self):
+        avg = np.array(self._sum_expect) / self.num_trajectories
+        avg2 = np.array(self._sum2_expect) / self.num_trajectories
+        return avg, avg2
+
     def _target_tolerance_end(self):
         """
         Compute the error on the expectation values using jackknife resampling.
@@ -576,14 +585,13 @@ class MultiTrajResult(_BaseResult):
         """
         if self.num_trajectories <= 1:
             return np.inf
-        avg = np.array(self._sum_expect) / self.num_trajectories
-        avg2 = np.array(self._sum2_expect) / self.num_trajectories
+        avg, avg2 = self._average_computer()
         target = np.array([
             atol + rtol * mean
             for mean, (atol, rtol)
             in zip(avg, self._target_tols)
         ])
-        target_ntraj = np.max((avg2 - abs(avg)**2) / target**2 + 1)
+        target_ntraj = np.max((avg2 - abs(avg) ** 2) / target**2 + 1)
 
         self._estimated_ntraj = min(target_ntraj, self._target_ntraj)
         if (self._estimated_ntraj - self.num_trajectories) <= 0:
@@ -980,6 +988,167 @@ class McResult(MultiTrajResult):
                 for i in range(self.num_c_ops)
             ])
         return measurements
+
+
+class McResultImprovedSampling(McResult, MultiTrajResult):
+    """
+    See docstring for McResult and MultiTrajResult for all relevant documentation.
+    This class computes expectation values and sums of states, etc
+    using the improved sampling algorithm, which samples the no-jump trajectory
+    first and then only samples jump trajectories afterwards.
+    """
+    def __init__(self, e_ops, options, **kw):
+        MultiTrajResult.__init__(self, e_ops=e_ops, options=options, **kw)
+        self._sum_expect_no_jump = None
+        self._sum_expect_jump = None
+        self._sum2_expect_no_jump = None
+        self._sum2_expect_jump = None
+
+        self._sum_states_no_jump = None
+        self._sum_states_jump = None
+        self._sum_final_states_no_jump = None
+        self._sum_final_states_jump = None
+
+        self.no_jump_prob = None
+
+    def _reduce_states(self, trajectory):
+        if self.num_trajectories == 1:
+            self._sum_states_no_jump = [
+                accu + self._to_dm(state)
+                for accu, state
+                in zip(self._sum_states_no_jump, trajectory.states)
+            ]
+        else:
+            self._sum_states_jump = [
+                accu + self._to_dm(state)
+                for accu, state
+                in zip(self._sum_states_jump, trajectory.states)
+            ]
+
+    def _reduce_final_state(self, trajectory):
+        dm_final_state = self._to_dm(trajectory.final_state)
+        if self.num_trajectories == 1:
+            self._sum_final_states_no_jump += dm_final_state
+        else:
+            self._sum_final_states_jump += dm_final_state
+
+    def _average_computer(self):
+        avg = np.array(self._sum_expect_jump) / (self.num_trajectories - 1)
+        avg2 = np.array(self._sum2_expect_jump) / (self.num_trajectories - 1)
+        return avg, avg2
+
+    def _add_first_traj(self, trajectory):
+        super()._add_first_traj(trajectory)
+        if trajectory.states:
+            del self._sum_states
+            self._sum_states_no_jump = [qzero_like(self._to_dm(state))
+                                        for state in trajectory.states]
+            self._sum_states_jump = [qzero_like(self._to_dm(state))
+                                     for state in trajectory.states]
+        if trajectory.final_state:
+            state = trajectory.final_state
+            del self._sum_final_states
+            self._sum_final_states_no_jump = qzero_like(self._to_dm(state))
+            self._sum_final_states_jump = qzero_like(self._to_dm(state))
+        self._sum_expect_jump = [
+            np.zeros_like(expect) for expect in trajectory.expect
+        ]
+        self._sum2_expect_jump = [
+            np.zeros_like(expect) for expect in trajectory.expect
+        ]
+        self._sum_expect_no_jump = [
+            np.zeros_like(expect) for expect in trajectory.expect
+        ]
+        self._sum2_expect_no_jump = [
+            np.zeros_like(expect) for expect in trajectory.expect
+        ]
+        self._sum_expect_jump = [np.zeros_like(expect)
+                                 for expect in trajectory.expect]
+        self._sum2_expect_jump = [np.zeros_like(expect)
+                                  for expect in trajectory.expect]
+        del self._sum_expect
+        del self._sum2_expect
+
+    def _reduce_expect(self, trajectory):
+        """
+        Compute the average of the expectation values appropriately
+        weighting the jump and no-jump trajectories
+        """
+        for i, k in enumerate(self._raw_ops):
+            expect_traj = trajectory.expect[i]
+            p = self.no_jump_prob
+            if self.num_trajectories == 1:
+                self._sum_expect_no_jump[i] += expect_traj * p
+                self._sum2_expect_no_jump[i] += expect_traj**2 * p
+                # no jump trajectory will always be the first one, no need
+                # to worry about including jump trajectories
+                avg = self._sum_expect_no_jump[i]
+                avg2 = self._sum2_expect_no_jump[i]
+            else:
+                self._sum_expect_jump[i] += expect_traj * (1 - p)
+                self._sum2_expect_jump[i] += expect_traj**2 * (1 - p)
+                avg = (self._sum_expect_no_jump[i]
+                       + self._sum_expect_jump[i]
+                       / (self.num_trajectories - 1))
+                avg2 = (self._sum2_expect_no_jump[i]
+                        + self._sum2_expect_jump[i]
+                        / (self.num_trajectories - 1))
+
+            self.average_e_data[k] = list(avg)
+
+            # mean(expect**2) - mean(expect)**2 can something be very small
+            # negative (-1e-15) which raise an error for float sqrt.
+            self.std_e_data[k] = list(np.sqrt(np.abs(avg2 - np.abs(avg**2))))
+
+            if self.runs_e_data:
+                self.runs_e_data[k].append(trajectory.e_data[k])
+
+    @property
+    def average_states(self):
+        """
+        States averages as density matrices.
+        """
+        if self._sum_states_no_jump is None:
+            return None
+        p = self.no_jump_prob
+        return [p * final_no_jump
+                + (1 - p) * final_jump / (self.num_trajectories - 1)
+                for final_no_jump, final_jump in
+                zip(self._sum_states_no_jump, self._sum_states_jump)]
+
+    @property
+    def average_final_state(self):
+        """
+        Last states of each trajectory averaged into a density matrix.
+        """
+        if self._sum_final_states_no_jump is None:
+            return None
+        p = self.no_jump_prob
+        return (
+            p * self._sum_final_states_no_jump
+            + (1 - p) * self._sum_final_states_jump
+            / (self.num_trajectories - 1)
+        )
+
+    def __add__(self, other):
+        raise NotImplemented
+
+    @property
+    def photocurrent(self):
+        """
+        Average photocurrent or measurement of the evolution.
+        """
+        cols = [[] for _ in range(self.num_c_ops)]
+        tlist = self.times
+        for collapses in self.collapse:
+            for t, which in collapses:
+                cols[which].append(t)
+        mesurement = [
+            (1 - self.no_jump_prob) / (self.num_trajectories - 1) *
+            np.histogram(cols[i], tlist)[0] / np.diff(tlist)
+            for i in range(self.num_c_ops)
+        ]
+        return mesurement
 
 
 class NmmcTrajectoryResult(McTrajectoryResult):

@@ -12,12 +12,12 @@ from .. import Qobj, QobjEvo, coefficient, Coefficient
 from ..core.blochredfield import bloch_redfield_tensor, SpectraCoefficient
 from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
-from .solver_base import Solver
+from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
 
 
 def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
-              args={}, sec_cutoff=0.1, options=None):
+              args={}, sec_cutoff=0.1, options=None, **kwargs):
     """
     Solves for the dynamics of a system using the Bloch-Redfield master
     equation, given an input Hamiltonian, Hermitian bath-coupling terms and
@@ -142,6 +142,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         the ``a_ops``, but it is usually less efficient than manually choosing
         it.
     """
+    options = _solver_deprecation(kwargs, options, "br")
     H = QobjEvo(H, args=args, tlist=tlist)
 
     c_ops = c_ops if c_ops is not None else []
