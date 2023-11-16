@@ -171,7 +171,7 @@ def kraus_to_super(kraus_list):
     Parameters
     ----------
     kraus_list : list of Qobj
-        Kraus super operator.
+        The list of Kraus super operators to convert.
     """
     return to_super(kraus_to_choi(kraus_list))
 
