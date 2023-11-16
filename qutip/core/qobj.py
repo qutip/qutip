@@ -1144,10 +1144,7 @@ class Qobj:
             raise ValueError("partial trace is not defined on non-square maps")
         dims = flatten(dims[0])
         new_data = _data.ptrace(data, dims, sel, dtype=dtype)
-        if sel:
-            new_dims = [[dims[x] for x in sel]] * 2
-        else:
-            new_dims = None
+        new_dims = [[dims[x] for x in sel]] * 2 if sel else None
         out = Qobj(new_data, dims=new_dims, type='oper', copy=False)
         if self.isoperket:
             return operator_to_vector(out)
