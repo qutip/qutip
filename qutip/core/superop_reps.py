@@ -484,7 +484,6 @@ def to_kraus(q_oper, tol=1e-9):
 
     tol : Float, default: 1e-9
         Optional threshold parameter for eigenvalues/Kraus ops to be discarded.
-        The default is to=1e-9.
 
     Returns
     -------
@@ -527,6 +526,7 @@ def to_stinespring(q_oper, threshold=1e-10):
         Superoperator to be converted to a Stinespring pair.
 
     threshold : float, default: 1e-10
+        Threshold parameter for eigenvalues/Kraus ops to be discarded.
 
     Returns
     -------
