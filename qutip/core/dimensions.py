@@ -10,32 +10,7 @@ from functools import partial
 from qutip.settings import settings
 
 
-__all__ = [
-    "is_scalar", "is_vector", "is_vectorized_oper",
-    "to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"
-]
-
-
-def is_scalar(dims):
-    """
-    Returns True if a dims specification is effectively
-    a scalar (has dimension 1).
-    """
-    return np.prod(flatten(dims)) == 1
-
-
-def is_vector(dims):
-    return (
-        isinstance(dims, list) and
-        isinstance(dims[0], (int, np.integer))
-    )
-
-
-def is_vectorized_oper(dims):
-    return (
-        isinstance(dims, list) and
-        isinstance(dims[0], list)
-    )
+__all__ = ["to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"]
 
 
 def type_from_dims(dims, enforce_square=False):
@@ -606,7 +581,7 @@ class Compound(Space):
 
     def dims2idx(self, dims):
         if len(dims) != len(self.spaces):
-            raise ValueError("Length of supplied dims does not match the number of subspaces.") 
+            raise ValueError("Length of supplied dims does not match the number of subspaces.")
         pos = 0
         step = 1
         for space, dim in zip(self.spaces[::-1], dims[::-1]):
