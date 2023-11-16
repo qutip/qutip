@@ -507,13 +507,13 @@ cdef class QobjEvo:
         if self._feedback_functions is None:
             self._feedback_functions = {}
         if feedback == "data":
-            self._feedback_functions[key] = _Pass_Through()
+            self._feedback_functions[key] = _DataFeedback()
         elif feedback in ["qobj", "Qobj"]:
-            self._feedback_functions[key] = _To_Qobj(self)
+            self._feedback_functions[key] = _QobjFeedback(self)
         elif isinstance(feedback, (Qobj, QobjEvo)):
             if isinstance(feedback, Qobj):
                 feedback = QobjEvo(feedback)
-            self._feedback_functions[key] = _Expect(feedback)
+            self._feedback_functions[key] = _ExpectFeedback(feedback)
         elif isinstance(feedback, str):
             self._solver_only_feedback.add((key, feedback))
         else:
@@ -554,9 +554,9 @@ cdef class QobjEvo:
 
         if self._feedback_functions is not None:
             for key, func in self._feedback_functions.items():
-                # Update dims in ``_To_Qobj``
-                if isinstance(func, _To_Qobj):
-                    self._feedback_functions[key] = _To_Qobj(self)
+                # Update dims in ``_QobjFeedback``
+                if isinstance(func, _QobjFeedback):
+                    self._feedback_functions[key] = _QobjFeedback(self)
 
 
     ###########################################################################
@@ -1156,7 +1156,7 @@ cdef class QobjEvo:
         return out
 
 
-cdef class _Expect:
+cdef class _ExpectFeedback:
     cdef QobjEvo oper
     cdef bint stack
     cdef int N, N2
@@ -1177,10 +1177,10 @@ cdef class _Expect:
         )
 
     def __repr__(self):
-        return "Expect"
+        return "ExpectFeedback"
 
 
-cdef class _To_Qobj:
+cdef class _QobjFeedback:
     cdef list dims, dims_flat
     cdef bint issuper
     cdef idxint N
@@ -1206,10 +1206,10 @@ cdef class _To_Qobj:
         return out
 
     def __repr__(self):
-        return "Qobj"
+        return "QobjFeedback"
 
 
-cdef class _Pass_Through:
+cdef class _DataFeedback:
     def __init__(self):
        pass
 
@@ -1217,4 +1217,4 @@ cdef class _Pass_Through:
         return state
 
     def __repr__(self):
-        return "data"
+        return "DataFeedback"
