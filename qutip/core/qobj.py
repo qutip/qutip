@@ -322,7 +322,8 @@ class Qobj:
             self.dims = [[[root_right]]*2, [[root_left]]*2]
 
         self.type = type
-        self.superrep = superrep
+        if superrep is not None:
+            self.superrep = superrep
 
     def copy(self):
         """Create identical copy"""
@@ -362,6 +363,7 @@ class Qobj:
 
     @property
     def superrep(self):
+        return self._dims.superrep
         if (
             self._dims
             and self._dims.type in ['super', 'operator-ket', 'operator-bra']
@@ -373,10 +375,11 @@ class Qobj:
     @superrep.setter
     def superrep(self, super_rep):
         if (
-            super_rep
-            and self._dims.type in ['super', 'operator-ket', 'operator-bra']
+            not self._dims.type in ['super', 'operator-ket', 'operator-bra']
+            and super_rep
         ):
-            self._dims = Dimensions(self._dims.as_list(), rep=super_rep)
+            raise TypeError("The Qobj does not ahve a superrep")
+        self._dims = Dimensions(self._dims.as_list(), rep=super_rep)
 
     @property
     def data(self):

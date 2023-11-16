@@ -256,7 +256,7 @@ def dims_to_tensor_perm(dims):
     Parameters
     ----------
 
-    dims : list
+    dims : list, Dimensions
         Dimensions specification for a Qobj.
 
     Returns
@@ -281,7 +281,7 @@ def dims_to_tensor_shape(dims):
     Parameters
     ----------
 
-    dims : list
+    dims : list, Dimensions
         Dimensions specification for a Qobj.
 
     Returns
@@ -306,7 +306,7 @@ def dims_idxs_to_tensor_idxs(dims, indices):
     Parameters
     ----------
 
-    dims : list
+    dims : list, Dimensions
         Dimensions specification for a Qobj.
 
     indices : int, list or tuple
@@ -449,7 +449,7 @@ class Space(metaclass=MetaSpace):
         self.size = dims
         self.issuper = False
         # Super representation, should be an empty string except for SuperSpace
-        self.superrep = ""
+        self.superrep = None
         # Does the size and dims match directly: size == prod(dims)
         self._pure_dims = True
         self.__setitem__ = _frozen
@@ -524,7 +524,7 @@ class Field(Space):
     def __init__(self):
         self.size = 1
         self.issuper = False
-        self.superrep = ""
+        self.superrep = None
         self._pure_dims = True
         self.__setitem__ = _frozen
 
@@ -562,6 +562,8 @@ class Compound(Space):
 
     def __init__(self, *spaces):
         self.spaces = []
+        if len(spaces) <= 1:
+            raise ValueError("Compound need multiple space to join.")
         for space in spaces:
             if isinstance(space, Compound):
                 self.spaces += space.spaces
@@ -569,14 +571,20 @@ class Compound(Space):
                 self.spaces += [space]
         self.spaces = tuple(self.spaces)
         self.size = np.prod([space.size for space in self.spaces])
-        self.issuper = any(space.issuper for space in self.spaces)
+        self.issuper = all(space.issuper for space in self.spaces)
+        if not self.issuper and any(space.issuper for space in self.spaces):
+            raise TypeError(
+                "Cannot create compound space of super and non super."
+            )
         self._pure_dims = all(space._pure_dims for space in self.spaces)
         superrep = [space.superrep for space in self.spaces]
         if all(superrep[0] == rep for rep in superrep):
             self.superrep = superrep[0]
         else:
-            # We could also raise an error
-            self.superrep = 'mixed'
+            raise TypeError(
+                "Cannot create compound space of of super operators "
+                "with different representation."
+            )
         self.__setitem__ = _frozen
 
     def __eq__(self, other):
