@@ -124,7 +124,6 @@ def basis(dimensions, n=None, offset=None, *, dtype=None):
     data = _data.one_element[dtype]((size, 1), (location, 0), 1)
     return Qobj(data,
                 dims=[dimensions, [1]*n_dimensions],
-                type='ket',
                 isherm=False,
                 isunitary=False,
                 copy=False)
@@ -234,10 +233,7 @@ def coherent(N, alpha, offset=0, method=None, *, dtype=None):
             s = np.prod(np.sqrt(np.arange(1, offset + 1)))  # sqrt factorial
             data[0] = np.exp(-abs(alpha)**2 * 0.5) * alpha**offset / s
         np.cumprod(data, out=sqrtn)  # Reuse sqrtn array
-        return Qobj(sqrtn,
-                    dims=[[N], [1]],
-                    type='ket',
-                    copy=False).to(dtype)
+        return Qobj(sqrtn, dims=[[N], [1]], copy=False).to(dtype)
     raise TypeError(
         "The method option can only take values in " + repr(_COHERENT_METHODS)
     )

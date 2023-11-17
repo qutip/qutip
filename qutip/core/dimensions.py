@@ -13,35 +13,6 @@ from qutip.settings import settings
 __all__ = ["to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"]
 
 
-def type_from_dims(dims, enforce_square=False):
-    bra_like, ket_like = map(is_scalar, dims)
-
-    if bra_like:
-        if is_vector(dims[1]):
-            return 'bra'
-        elif is_vectorized_oper(dims[1]):
-            return 'operator-bra'
-
-    if ket_like:
-        if is_vector(dims[0]):
-            return 'ket'
-        elif is_vectorized_oper(dims[0]):
-            return 'operator-ket'
-
-    elif is_vector(dims[0]) and (dims[0] == dims[1] or not enforce_square):
-        return 'oper'
-
-    elif (
-        is_vectorized_oper(dims[0])
-        and (
-            not enforce_square
-            or (dims[0] == dims[1] and dims[0][0] == dims[1][0])
-        )
-    ):
-        return 'super'
-    return 'other'
-
-
 def flatten(l):
     """Flattens a list of lists to the first level.
 
@@ -493,6 +464,9 @@ class Space(metaclass=MetaSpace):
             )
         return Space(new)
 
+    def replace_superrep(self, super_rep):
+        return self
+
 
 class Field(Space):
     field_instance = None
@@ -565,7 +539,7 @@ class Compound(Space):
 
     def __eq__(self, other):
         return self is other or (
-            type(other) is type(self)
+            type(other) is type(self) and
             self.spaces == other.spaces
         )
 
@@ -629,6 +603,11 @@ class Compound(Space):
             idx -= n_indices
         return Compound(*new_spaces)
 
+    def replace_superrep(self, super_rep):
+        return Compound(
+            *[space.replace_superrep(super_rep) for space in self.spaces]
+        )
+
 
 class SuperSpace(Space):
     _stored_dims = {}
@@ -687,17 +666,21 @@ class SuperSpace(Space):
     def replace(self, idx, new):
         return SuperSpace(self.oper.replace(idx, new), rep=self.superrep)
 
+    def replace_superrep(self, super_rep):
+        return SuperSpace(self.oper, rep=super_rep)
+
 
 class MetaDims(type):
     def __call__(cls, *args, rep=None):
         if len(args) == 1 and isinstance(args[0], Dimensions):
             return args[0]
-        elif len(args) == 1 and isinstance(args[0], list):
+        elif len(args) == 1 and len(args[0]) == 2:
             args = (
                 Space(args[0][1], rep=rep),
                 Space(args[0][0], rep=rep)
             )
         elif len(args) != 2:
+            print(args)
             raise NotImplementedError('No Dual, Ket, Bra...', args)
         elif (
             settings.core["auto_tidyup_dims"]
@@ -720,13 +703,19 @@ class Dimensions(metaclass=MetaDims):
         self.from_ = from_
         self.to_ = to_
         self.shape = to_.size, from_.size
-        self.issuper = from_.issuper or to_.issuper
+        if from_.issuper != to_.issuper:
+            raise NotImplementedError(
+                "Operator with both space and superspace dimensions are not "
+                "supported. Please open an issue if you have an use case for "
+                "these."
+            )
+        self.issuper = from_.issuper
         self._pure_dims = from_._pure_dims and to_._pure_dims
         self.issquare = False
         if self.from_.size == 1 and self.to_.size == 1:
             self.type = 'scalar'
             self.issquare = True
-            self.superrep = ""
+            self.superrep = None
         elif self.from_.size == 1:
             self.type = 'operator-ket' if self.issuper else 'ket'
             self.superrep = self.to_.superrep
@@ -864,3 +853,11 @@ class Dimensions(metaclass=MetaDims):
             new_from = self.from_.replace(idx-n_indices, new)
 
         return Dimensions(new_from, new_to)
+
+    def replace_superrep(self, super_rep):
+        if not self.issuper and super_rep is not None:
+            raise TypeError("Can't set a superrep of a non super object.")
+        return Dimensions(
+            self.from_.replace_superrep(super_rep),
+            self.to_.replace_superrep(super_rep)
+        )

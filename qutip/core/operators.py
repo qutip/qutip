@@ -65,7 +65,7 @@ shape = [4, 4], type = oper, isherm = False
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
     offsets = [0] if offsets is None else offsets
     data = _data.diag[dtype](diagonals, offsets, shape)
-    return Qobj(data, dims=dims, type='oper', copy=False)
+    return Qobj(data, dims=dims, copy=False)
 
 
 def jmat(j, which=None, *, dtype=None):
@@ -130,21 +130,21 @@ shape = [3, 3], type = oper, isHerm = True
 
     dims = [[int(2*j + 1)]]*2
     if which == '+':
-        return Qobj(_jplus(j, dtype=dtype), dims=dims, type='oper',
+        return Qobj(_jplus(j, dtype=dtype), dims=dims,
                     isherm=False, isunitary=False, copy=False)
     if which == '-':
-        return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims, type='oper',
+        return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims,
                     isherm=False, isunitary=False, copy=False)
     if which == 'x':
         A = _jplus(j, dtype=dtype)
-        return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
+        return Qobj(_data.add(A, A.adjoint()), dims=dims,
                     isherm=True, isunitary=False, copy=False) * 0.5
     if which == 'y':
         A = _data.mul(_jplus(j, dtype=dtype), -0.5j)
-        return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
+        return Qobj(_data.add(A, A.adjoint()), dims=dims,
                     isherm=True, isunitary=False, copy=False)
     if which == 'z':
-        return Qobj(_jz(j, dtype=dtype), dims=dims, type='oper',
+        return Qobj(_jz(j, dtype=dtype), dims=dims,
                     isherm=True, isunitary=False, copy=False)
     raise ValueError('Invalid spin operator: ' + which)
 
@@ -669,7 +669,7 @@ def qzero(dimensions, *, dtype=None):
     size, dimensions = _implicit_tensor_dimensions(dimensions)
     # A sparse matrix with no data is equal to a zero matrix.
     type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
-    return Qobj(_data.zeros[dtype](size, size), dims=dimensions, type=type_,
+    return Qobj(_data.zeros[dtype](size, size), dims=dimensions,
                 isherm=True, isunitary=False, copy=False)
 
 
@@ -692,7 +692,7 @@ def qzero_like(qobj):
     if isinstance(qobj, QobjEvo):
         qobj = qobj(0)
     return Qobj(
-        _data.zeros_like(qobj.data), dims=qobj.dims, type=qobj.type,
+        _data.zeros_like(qobj.data), dims=qobj.dims,
         superrep=qobj.superrep, isherm=True, isunitary=False, copy=False
     )
 
@@ -740,7 +740,7 @@ isherm = True
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
     size, dimensions = _implicit_tensor_dimensions(dimensions)
     type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
-    return Qobj(_data.identity[dtype](size), dims=dimensions, type=type_,
+    return Qobj(_data.identity[dtype](size), dims=dimensions,
                 isherm=True, isunitary=True, copy=False)
 
 
@@ -768,7 +768,7 @@ def qeye_like(qobj):
     if isinstance(qobj, QobjEvo):
         qobj = qobj(0)
     return Qobj(
-        _data.identity_like(qobj.data), dims=qobj.dims, type=qobj.type,
+        _data.identity_like(qobj.data), dims=qobj.dims,
         superrep=qobj.superrep, isherm=True, isunitary=True, copy=False
     )
 
@@ -1055,7 +1055,7 @@ def phase(N, phi0=0, *, dtype=None):
     states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1j * n * kk)
                        for kk in phim])
     ops = np.sum([np.outer(st, st.conj()) for st in states], axis=0)
-    return Qobj(ops, dims=[[N], [N]], type='oper', copy=False).to(dtype)
+    return Qobj(ops, dims=[[N], [N]], copy=False).to(dtype)
 
 
 def charge(Nmax, Nmin=None, frac=1, *, dtype=None):

@@ -299,13 +299,14 @@ class Qobj:
             raise ValueError('Provided dimensions do not match the data: ' +
                              f"{self._dims.shape} vs {self._data.shape}")
 
-    def __init__(self, arg=None, dims=None, type=None,
+    def __init__(self, arg=None, dims=None, # type=None,
                  copy=True, superrep=None, isherm=None, isunitary=None):
         self._isherm = isherm
         self._isunitary = isunitary
         self._initialize_data(arg, dims, copy)
 
         # Dims are guessed from the data and need to be changed to super.
+        """
         if (
             type in ['super', 'operator-ket', 'operator-bra']
             and self._dims.type in ['oper', 'ket', 'bra']
@@ -320,8 +321,9 @@ class Qobj:
                     "cannot build superoperator from nonsquare subspaces"
                 )
             self.dims = [[[root_right]]*2, [[root_left]]*2]
+        """
 
-        self.type = type
+        # self.type = type
         if superrep is not None:
             self.superrep = superrep
 
@@ -348,10 +350,11 @@ class Qobj:
 
     @property
     def type(self):
-        return self._type
+        return self._dims.type  # self._type
 
     @type.setter
     def type(self, val):
+        raise TypeError("Type does not match dimensions.")
         if not val:
             self._type = self._dims.type
         elif self._dims.type == "scalar":
@@ -364,22 +367,10 @@ class Qobj:
     @property
     def superrep(self):
         return self._dims.superrep
-        if (
-            self._dims
-            and self._dims.type in ['super', 'operator-ket', 'operator-bra']
-        ):
-            return self._dims.superrep
-        else:
-            return None
 
     @superrep.setter
     def superrep(self, super_rep):
-        if (
-            not self._dims.type in ['super', 'operator-ket', 'operator-bra']
-            and super_rep
-        ):
-            raise TypeError("The Qobj does not ahve a superrep")
-        self._dims = Dimensions(self._dims.as_list(), rep=super_rep)
+        self._dims = self._dims.replace_superrep(super_rep)
 
     @property
     def data(self):

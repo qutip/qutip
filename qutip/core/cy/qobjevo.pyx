@@ -488,7 +488,7 @@ cdef class QobjEvo:
                                  str(left.dims[1]) + ", " +
                                  str((<QobjEvo> right).dims[0]))
             res = right.copy()
-            res._dims = Dimensions((left._dims[0], right._dims[1]))
+            res._dims = Dimensions(left._dims[0], right._dims[1])
             res.shape = (left.shape[0], right.shape[1])
             left = _ConstantElement(left)
             res.elements = [left @ element for element in res.elements]
@@ -811,7 +811,7 @@ cdef class QobjEvo:
 
     @property
     def superrep(self):
-        return self._dims.superrep or None
+        return self._dims.superrep
 
     ###########################################################################
     # operation methods                                                       #

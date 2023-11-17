@@ -53,7 +53,7 @@ class EnrSpace(Space):
         enr_dicts = enr_state_dictionaries(dims, excitations)
         self.size, self.state2idx, self.idx2state = enr_dicts
         self.issuper = False
-        self.superrep = ""
+        self.superrep = None
         self._pure_dims = False
 
     def __eq__(self, other):
