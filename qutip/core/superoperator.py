@@ -116,7 +116,6 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
     else:
         return Qobj(data,
                     dims=sop_dims,
-                    type='super',
                     superrep='super',
                     copy=False)
 
@@ -201,7 +200,6 @@ def operator_to_vector(op):
                         "in super representation")
     return Qobj(stack_columns(op.data),
                 dims=[op.dims, [1]],
-                type='operator-ket',
                 superrep="super",
                 copy=False)
 
@@ -315,7 +313,6 @@ def spost(A):
     data = _data.kron_transpose(A.data, _data.identity_like(A.data))
     return Qobj(data,
                 dims=[A.dims, A.dims],
-                type='super',
                 superrep='super',
                 isherm=A._isherm,
                 copy=False)
@@ -339,8 +336,7 @@ def spre(A):
         raise TypeError('Input is not a quantum operator')
     data = _data.kron(_data.identity_like(A.data), A.data)
     return Qobj(data,
-                dims=[A.dims, A.dims],
-                type='super',
+                dims=[A._dims, A._dims],
                 superrep='super',
                 isherm=A._isherm,
                 copy=False)
@@ -382,7 +378,6 @@ def sprepost(A, B):
              _drop_projected_dims(B.dims[0])]]
     return Qobj(_data.kron_transpose(B.data, A.data),
                 dims=dims,
-                type='super',
                 superrep='super',
                 isherm=A._isherm and B._isherm,
                 copy=False)

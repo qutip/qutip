@@ -680,7 +680,6 @@ class MetaDims(type):
                 Space(args[0][0], rep=rep)
             )
         elif len(args) != 2:
-            print(args)
             raise NotImplementedError('No Dual, Ket, Bra...', args)
         elif (
             settings.core["auto_tidyup_dims"]
@@ -703,12 +702,6 @@ class Dimensions(metaclass=MetaDims):
         self.from_ = from_
         self.to_ = to_
         self.shape = to_.size, from_.size
-        if from_.issuper != to_.issuper:
-            raise NotImplementedError(
-                "Operator with both space and superspace dimensions are not "
-                "supported. Please open an issue if you have an use case for "
-                "these."
-            )
         self.issuper = from_.issuper
         self._pure_dims = from_._pure_dims and to_._pure_dims
         self.issquare = False
@@ -717,17 +710,26 @@ class Dimensions(metaclass=MetaDims):
             self.issquare = True
             self.superrep = None
         elif self.from_.size == 1:
+            self.issuper = self.to_.issuper
             self.type = 'operator-ket' if self.issuper else 'ket'
             self.superrep = self.to_.superrep
         elif self.to_.size == 1:
+            self.issuper = self.from_.issuper
             self.type = 'operator-bra' if self.issuper else 'bra'
             self.superrep = self.from_.superrep
         elif self.from_ == self.to_:
+            self.issuper = self.from_.issuper
             self.type = 'super' if self.issuper else 'oper'
             self.superrep = self.from_.superrep
             self.issquare = True
         else:
-            self.type = 'super' if self.issuper else 'oper'
+            if from_.issuper != to_.issuper:
+                raise NotImplementedError(
+                    "Operator with both space and superspace dimensions are not "
+                    "supported. Please open an issue if you have an use case for "
+                    f"these: {from_}, {to_}]"
+                )
+            self.type = 'super' if self.from_.issuper else 'oper'
             if self.from_.superrep == self.to_.superrep:
                 self.superrep = self.from_.superrep
             else:

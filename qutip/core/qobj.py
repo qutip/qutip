@@ -82,7 +82,7 @@ def _require_equal_type(method):
     @functools.wraps(method)
     def out(self, other):
         if other == 0:
-            return self.copy()
+            return method(self, other)
         if (
             self.type in ('oper', 'super')
             and self._dims[0] == self._dims[1]
@@ -97,7 +97,7 @@ def _require_equal_type(method):
                          copy=False)
         if not isinstance(other, Qobj):
             try:
-                other = Qobj(other, type=self.type)
+                other = Qobj(other, dims=self._dims)
             except TypeError:
                 return NotImplemented
         if self._dims != other._dims:
@@ -299,13 +299,17 @@ class Qobj:
             raise ValueError('Provided dimensions do not match the data: ' +
                              f"{self._dims.shape} vs {self._data.shape}")
 
-    def __init__(self, arg=None, dims=None, # type=None,
+    def __init__(self, arg=None, dims=None, type=None,
                  copy=True, superrep=None, isherm=None, isunitary=None):
         self._isherm = isherm
         self._isunitary = isunitary
         self._initialize_data(arg, dims, copy)
 
         # Dims are guessed from the data and need to be changed to super.
+
+        if type is not None:
+            raise Exception(type, self._dims.type)
+
         """
         if (
             type in ['super', 'operator-ket', 'operator-bra']
@@ -346,7 +350,7 @@ class Qobj:
             raise ValueError('Provided dimensions do not match the data: ' +
                              f"{dims.shape} vs {self._data.shape}")
         self._dims = dims
-        self.type = self._dims.type
+        # self.type = self._dims.type
 
     @property
     def type(self):
@@ -354,7 +358,9 @@ class Qobj:
 
     @type.setter
     def type(self, val):
-        raise TypeError("Type does not match dimensions.")
+        if self._dims.type != val:
+            raise TypeError(f"Tried to set type {self._dims.type} to {val}")
+        """
         if not val:
             self._type = self._dims.type
         elif self._dims.type == "scalar":
@@ -363,6 +369,7 @@ class Qobj:
             self._type = val
         else:
             raise TypeError("Type does not match dimensions.")
+        """
 
     @property
     def superrep(self):
@@ -428,11 +435,11 @@ class Qobj:
 
     @_require_equal_type
     def __add__(self, other):
-        isherm = (self._isherm and other._isherm) or None
+        if other == 0:
+            return self.copy()
         return Qobj(_data.add(self._data, other._data),
                     dims=self._dims,
-                    superrep=self.superrep,
-                    isherm=isherm,
+                    isherm=(self._isherm and other._isherm) or None,
                     copy=False)
 
     def __radd__(self, other):
@@ -440,11 +447,11 @@ class Qobj:
 
     @_require_equal_type
     def __sub__(self, other):
-        isherm = (self._isherm and other._isherm) or None
+        if other == 0:
+            return self.copy()
         return Qobj(_data.sub(self._data, other._data),
                     dims=self._dims,
-                    superrep=self.superrep,
-                    isherm=isherm,
+                    isherm=(self._isherm and other._isherm) or None,
                     copy=False)
 
     def __rsub__(self, other):
@@ -558,9 +565,7 @@ class Qobj:
         ):
             return NotImplemented
         return Qobj(_data.pow(self._data, n),
-                    dims=self.dims,
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
                     copy=False)
@@ -876,7 +881,7 @@ class Qobj:
         TypeError
             Quantum operator is not square.
         """
-        if self._dims[0] != self._dims[1]:
+        if not self._dims.issquare:
             raise TypeError("expm is only valid for square operators")
         return Qobj(_data.expm(self._data, dtype=dtype),
                     dims=self._dims,
@@ -898,12 +903,10 @@ class Qobj:
         TypeError
             Quantum operator is not square.
         """
-        if self.dims[0] != self.dims[1]:
+        if not self._dims.issquare:
             raise TypeError("expm is only valid for square operators")
         return Qobj(_data.logm(self._data),
-                    dims=self.dims,
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=self._isherm,
                     copy=False)
 
@@ -1136,7 +1139,7 @@ class Qobj:
         dims = flatten(dims[0])
         new_data = _data.ptrace(data, dims, sel, dtype=dtype)
         new_dims = [[dims[x] for x in sel]] * 2 if sel else None
-        out = Qobj(new_data, dims=new_dims, type='oper', copy=False)
+        out = Qobj(new_data, dims=new_dims, copy=False)
         if self.isoperket:
             return operator_to_vector(out)
         if self.isoperbra:
@@ -1192,7 +1195,7 @@ class Qobj:
         if inplace:
             self.dims = dims
             return self
-        return Qobj(self.data.copy(), dims=dims, type=self.type, copy=False)
+        return Qobj(self.data.copy(), dims=dims, copy=False)
 
     def permute(self, order):
         """
@@ -1548,12 +1551,10 @@ class Qobj:
 
         if self.type == 'super':
             new_dims = [self.dims[0], [1]]
-            new_type = 'operator-ket'
         else:
             new_dims = [self.dims[0], [1]*len(self.dims[0])]
-            new_type = 'ket'
         ekets = np.empty((evecs.shape[1],), dtype=object)
-        ekets[:] = [Qobj(vec, dims=new_dims, type=new_type, copy=False)
+        ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
                     for vec in _data.split_columns(evecs, False)]
         norms = np.array([ket.norm() for ket in ekets])
         if phase_fix is None:

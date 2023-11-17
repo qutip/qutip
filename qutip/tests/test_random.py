@@ -288,7 +288,7 @@ def test_kraus_map(dimensions, dtype):
         # Each element of a kraus map cannot be a super operators
         with pytest.raises(TypeError) as err:
             kmap = rand_kraus_map(dimensions, dtype=dtype)
-        assert "Type does not match dimensions" in str(err.value)
+        assert "super operator" in str(err.value)
     else:
         kmap = rand_kraus_map(dimensions, dtype=dtype)
         _assert_metadata(kmap[0], dimensions, dtype)

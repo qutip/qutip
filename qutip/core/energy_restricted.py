@@ -131,7 +131,7 @@ def enr_fock(dims, excitations, state, *, dtype=None):
         )
         raise ValueError(msg) from None
     return Qobj(data, dims=[EnrSpace(dims, excitations), [1]*len(dims)],
-                type='ket', copy=False)
+                copy=False)
 
 
 def enr_thermal_dm(dims, excitations, n, *, dtype=None):

@@ -355,7 +355,6 @@ cdef class QobjEvo:
 
         return Qobj(
             out, dims=self._dims, copy=False, isherm=isherm or None,
-            type=self.type, superrep=self.superrep
         )
 
     cpdef Data _call(QobjEvo self, double t):

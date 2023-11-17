@@ -24,7 +24,7 @@ def expected(qobj, sel):
             continue
         tmp_dims = (before, dim, after) * 2
         out = np.einsum('aibcid->abcd', out.reshape(tmp_dims))
-    return qutip.Qobj(out.reshape(new_shape), dims=dims, type='oper')
+    return qutip.Qobj(out.reshape(new_shape), dims=dims)
 
 
 @pytest.fixture(params=[_data.CSR, _data.Dense], ids=['CSR', 'Dense'])

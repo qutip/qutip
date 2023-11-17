@@ -59,7 +59,6 @@ def _superpauli_basis(nq=1):
     sci.indptr[-1] = nnz
     return Qobj(data.adjoint(),
                 dims=dims,
-                type='super',
                 superrep='super',
                 isherm=False,
                 isunitary=False,
@@ -132,7 +131,7 @@ def _choi_to_kraus(q_oper, tol=1e-9):
     dims = [q_oper.dims[0][1], q_oper.dims[0][0]]
     shape = (np.prod(q_oper.dims[0][1]), np.prod(q_oper.dims[0][0]))
     return [Qobj(_data.mul(unstack_columns(vec.data, shape=shape), np.sqrt(val)),
-                 dims=dims, type='oper', copy='False')
+                 dims=dims, copy='False')
             for val, vec in zip(vals, vecs) if abs(val) >= tol]
 
 
@@ -154,7 +153,6 @@ def kraus_to_choi(kraus_list):
     )
     return Qobj(np.hstack(np.hstack(choi_blocks)),
                 dims=[kraus_list[0].dims[::-1]]*2,
-                type='super',
                 superrep='choi',
                 copy=False)
 
@@ -186,7 +184,6 @@ def _super_tofrom_choi(q_oper):
     data = data.reshape([s0, s1, s0, s1]).transpose(3, 1, 2, 0).reshape(d0, d1)
     return Qobj(data,
                 dims=new_dims,
-                type='super',
                 superrep='super' if q_oper.superrep == 'choi' else 'choi',
                 copy=False)
 
@@ -202,7 +199,6 @@ def _choi_to_chi(q_oper):
     B = _superpauli_basis(nq).data
     return Qobj(_data.matmul(_data.matmul(B.adjoint(), q_oper.data), B),
                 dims=q_oper.dims,
-                type='super',
                 superrep='chi',
                 copy=False)
 
@@ -223,7 +219,6 @@ def _chi_to_choi(q_oper):
                     1 / q_oper.shape[0]
                 ),
                 dims=q_oper.dims,
-                type='super',
                 superrep='choi',
                 copy=False)
 
@@ -244,7 +239,6 @@ def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     return [
         Qobj(x,
              dims=[outdims, indims],
-             type='oper',
              copy=False)
         for x in data
     ]
@@ -308,13 +302,11 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
 
     A = Qobj(_data.zeros(dK * dL, dL),
              dims=[out_left + [dK], out_right + [1]],
-             type='oper',
              isherm=True,
              isunitary=False,
              copy=False)
     B = Qobj(_data.zeros(dK * dR, dR),
              dims=[in_left + [dK], in_right + [1]],
-             type='oper',
              isherm=True,
              isunitary=False,
              copy=False)

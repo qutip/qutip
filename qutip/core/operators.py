@@ -692,8 +692,8 @@ def qzero_like(qobj):
     if isinstance(qobj, QobjEvo):
         qobj = qobj(0)
     return Qobj(
-        _data.zeros_like(qobj.data), dims=qobj.dims,
-        superrep=qobj.superrep, isherm=True, isunitary=False, copy=False
+        _data.zeros_like(qobj.data), dims=qobj._dims,
+        isherm=True, isunitary=False, copy=False
     )
 
 
@@ -768,8 +768,8 @@ def qeye_like(qobj):
     if isinstance(qobj, QobjEvo):
         qobj = qobj(0)
     return Qobj(
-        _data.identity_like(qobj.data), dims=qobj.dims,
-        superrep=qobj.superrep, isherm=True, isunitary=True, copy=False
+        _data.identity_like(qobj.data), dims=qobj._dims,
+        isherm=True, isunitary=True, copy=False
     )
 
 
