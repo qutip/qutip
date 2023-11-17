@@ -486,7 +486,7 @@ def maximally_mixed_dm(N, *, dtype=None):
     if not isinstance(N, numbers.Integral) or N <= 0:
         raise ValueError("N must be integer N > 0")
     return Qobj(_data.identity[dtype](N, scale=1/N), dims=[[N], [N]],
-                type='oper', isherm=True, isunitary=(N == 1), copy=False)
+                isherm=True, isunitary=(N == 1), copy=False)
 
 
 def ket2dm(Q):
@@ -954,7 +954,7 @@ def phase_basis(N, m, phi0=0, *, dtype=None):
     phim = phi0 + (2.0 * np.pi * m) / N
     n = np.arange(N)[:, np.newaxis]
     data = np.exp(1.0j * n * phim) / np.sqrt(N)
-    return Qobj(data, dims=[[N], [1]], type='ket', copy=False).to(dtype)
+    return Qobj(data, dims=[[N], [1]], copy=False).to(dtype)
 
 
 def zero_ket(N, dims=None, *, dtype=None):
@@ -980,7 +980,7 @@ def zero_ket(N, dims=None, *, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
-    return Qobj(_data.zeros[dtype](N, 1), dims=dims, type='ket', copy=False)
+    return Qobj(_data.zeros[dtype](N, 1), dims=dims, copy=False)
 
 
 def spin_state(j, m, type='ket', *, dtype=None):
