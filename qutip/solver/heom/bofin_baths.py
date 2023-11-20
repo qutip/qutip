@@ -1424,8 +1424,9 @@ class OhmicBath(BosonicBath):
         self.Nk = Nk
         self.beta = 1 / T
         if _mpmath_available is False:
-            raise Exception("The mpmath module is needed for the description"
-                            "of Ohmic baths")
+            print(
+                "The mpmath module is needed for the description"
+                " of Ohmic baths")
         if method == "correlation":
             self.fit = FitCorr(self.Q)
             t = np.linspace(0, 15 / self.wc, 1000)
