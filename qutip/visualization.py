@@ -1915,9 +1915,9 @@ def gen_spectral_plots(fs, w, J, t, C, w2, S):
         axes.locator_params(axis='x', nbins=4)
         axes.text(0.80, 0.80, "(b)", fontsize=28, transform=axes.transAxes)
 
-    def plot_jw_fit_vs_actual(w, J, func, axes):
+    def plot_jw_fit_vs_actual(w, J, axes):
         """ Plot the J(w) fit. """
-        J_fit = func(w)
+        J_fit = fs.spectral_density(w)
 
         axes.plot(
             w, J,
@@ -1934,11 +1934,11 @@ def gen_spectral_plots(fs, w, J, t, C, w2, S):
         axes.locator_params(axis='x', nbins=4)
         axes.text(0.15, 0.85, "(c)", fontsize=28, transform=axes.transAxes)
 
-    def plot_sw_fit_vs_actual(func, axes):
+    def plot_sw_fit_vs_actual(axes):
         """ Plot the S(w) fit. """
 
         # avoid the pole in the fit around zero:
-        s_fit = func(w2)
+        s_fit = fs.power_spectrum(w2, fs.beta)
 
         axes.plot(w2, S, "r", linewidth=3)
         axes.plot(w2, s_fit, "g", dashes=[3, 3], linewidth=2)
@@ -1964,12 +1964,12 @@ def gen_spectral_plots(fs, w, J, t, C, w2, S):
             t, C, lambda t: fs.correlation_function(t, full=-1),
             axes=fig.add_subplot(grid[0, 1]),
         )
-        plot_jw_fit_vs_actual(w, J, fs.spectral_density,
+        plot_jw_fit_vs_actual(w, J,
                               axes=fig.add_subplot(grid[1, 0]),
                               )
-        plot_sw_fit_vs_actual(lambda w: fs.power_spectrum(w, 1/fs.T),
-                              axes=fig.add_subplot(grid[1, 1]),
-                              )
+        plot_sw_fit_vs_actual(
+            axes=fig.add_subplot(grid[1, 1]),
+        )
         fig.legend(loc='upper center', ncol=2, fancybox=True, shadow=True)
         return fig
     return plot_matsubara_spectrum_fit_vs_actual(t, C)

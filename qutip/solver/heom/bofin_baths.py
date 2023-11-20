@@ -368,25 +368,18 @@ class BosonicBath(Bath):
             # the expression that generates the power
             # spectrum from components needs to change
             S = np.zeros(len(w), dtype=np.complex128)
+            def s(x, y): return 2 * x * np.real(y) / (
+                (w - np.imag(y)) ** 2 + (np.real(y)) ** 2)
             for exp in self.exponents:
                 if (
                     exp.type == BathExponent.types['R'] or
                     exp.type == BathExponent.types['RI']
                 ):
-                    S += 2 * exp.ck * np.real(exp.vk) / (
-                        (w - np.imag(exp.vk)) ** 2 + (np.real(exp.vk) ** 2))
+                    S += s(exp.ck, exp.vk)
                 elif exp.type == BathExponent.types['RI']:
-                    S += (
-                        2
-                        * 1.0j
-                        * exp.ck2
-                        * np.real(exp.vk)
-                        / ((w - np.imag(exp.vk)) ** 2 + (np.real(exp.vk) ** 2))
-                    )
+                    S += s(1j*exp.ck2, exp.vk)
                 else:
-                    S += (2 * 1.0j * exp.ck * np.real(exp.vk) /
-                          ((w - np.imag(exp.vk)) ** 2 + (np.real(exp.vk) ** 2))
-                          )
+                    S += s(1j*exp.ck, exp.vk)
         return S
 
     def correlation_function(self, t, full=1):
