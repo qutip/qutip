@@ -286,7 +286,7 @@ def had_mixture(x):
 def swap_map(x):
     base = (1j * x * swap()).expm()
     dims = [[[2], [2]], [[2], [2]]]
-    return Qobj(base, dims=dims, type='super', superrep='super')
+    return Qobj(base, dims=dims, superrep='super')
 
 
 def adc_choi(x):

@@ -118,7 +118,7 @@ def test_QobjType():
     assert super_qobj.isoperket
     assert super_qobj.superrep == 'super'
 
-    super_data = np.random.random(N)
+    super_data = np.random.random((1, N))
     super_qobj = qutip.Qobj(super_data, dims=[[[1]], [[3], [3]]])
     assert super_qobj.type == 'operator-bra'
     assert super_qobj.isoperbra

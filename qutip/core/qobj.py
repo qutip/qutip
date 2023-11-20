@@ -283,51 +283,19 @@ class Qobj:
                 self._isunitary = arg._isunitary
         else:
             self._data = _data.create(arg, copy=copy)
-            dims = Dimensions(
+            self._dims = Dimensions(
                 dims or [[self._data.shape[0]], [self._data.shape[1]]]
             )
-            if (
-                dims
-                and self._data.shape[1] == 1
-                and self._data.shape != dims.shape
-                and self._data.shape == dims.shape[::-1]
-            ):
-                # 1D array are ket, convert to bra if bra dims are passed.
-                self._data = _data.transpose(self._data)
-            self._dims = dims
         if self._dims.shape != self._data.shape:
             raise ValueError('Provided dimensions do not match the data: ' +
                              f"{self._dims.shape} vs {self._data.shape}")
 
-    def __init__(self, arg=None, dims=None, type=None,
+    def __init__(self, arg=None, dims=None,
                  copy=True, superrep=None, isherm=None, isunitary=None):
         self._isherm = isherm
         self._isunitary = isunitary
         self._initialize_data(arg, dims, copy)
 
-        # Dims are guessed from the data and need to be changed to super.
-
-        if type is not None:
-            raise Exception(type, self._dims.type)
-
-        """
-        if (
-            type in ['super', 'operator-ket', 'operator-bra']
-            and self._dims.type in ['oper', 'ket', 'bra']
-        ):
-            root_right = int(np.sqrt(self._data.shape[0]))
-            root_left = int(np.sqrt(self._data.shape[1]))
-            if (
-                root_right * root_right != self._data.shape[0]
-                and root_left * root_left != self._data.shape[1]
-            ):
-                raise ValueError(
-                    "cannot build superoperator from nonsquare subspaces"
-                )
-            self.dims = [[[root_right]]*2, [[root_left]]*2]
-        """
-
-        # self.type = type
         if superrep is not None:
             self.superrep = superrep
 
