@@ -1915,10 +1915,9 @@ def gen_spectral_plots(fs, w, J, t, C, w2, S):
         axes.locator_params(axis='x', nbins=4)
         axes.text(0.80, 0.80, "(b)", fontsize=28, transform=axes.transAxes)
 
-    def plot_jw_fit_vs_actual(w, J, func, params, axes):
+    def plot_jw_fit_vs_actual(w, J, func, axes):
         """ Plot the J(w) fit. """
-        a, b, c = params
-        J_fit = func(w, a, b, c)
+        J_fit = func(w)
 
         axes.plot(
             w, J,
@@ -1958,17 +1957,17 @@ def gen_spectral_plots(fs, w, J, t, C, w2, S):
         grid = plt.GridSpec(2, 2, wspace=0.4, hspace=0.3)
 
         plot_cr_fit_vs_actual(
-            t, C, fs.CR,
+            t, C, lambda t: fs.correlation_function(t, full=0),
             axes=fig.add_subplot(grid[0, 0]),
         )
         plot_ci_fit_vs_actual(
-            t, C, fs.CI,
+            t, C, lambda t: fs.correlation_function(t, full=-1),
             axes=fig.add_subplot(grid[0, 1]),
         )
-        plot_jw_fit_vs_actual(w, J, fs.spectral_density_approx, fs.params_spec,
+        plot_jw_fit_vs_actual(w, J, fs.spectral_density,
                               axes=fig.add_subplot(grid[1, 0]),
                               )
-        plot_sw_fit_vs_actual(lambda w: fs.power_spectrum(w, fs.T),
+        plot_sw_fit_vs_actual(lambda w: fs.power_spectrum(w, 1/fs.T),
                               axes=fig.add_subplot(grid[1, 1]),
                               )
         fig.legend(loc='upper center', ncol=2, fancybox=True, shadow=True)
@@ -1980,7 +1979,7 @@ def gen_corr_plots(fc, w, J, t, C, w2, S, beta):
     def plot_cr_fit_vs_actual(t, C, axes):
         """ Plot the C_R(t) fit. """
         a, b, c = fc.params_real
-        yR = np.real(fc.corr_approx(t, a, b, c))
+        yR = np.real(fc._corr_approx(t, a, b, c))
 
         axes.plot(
             t, np.real(C),
@@ -2000,7 +1999,7 @@ def gen_corr_plots(fc, w, J, t, C, w2, S, beta):
     def plot_ci_fit_vs_actual(t, C, axes):
         """ Plot the C_I(t) fit. """
         a, b, c = fc.params_imag
-        yI = np.imag(fc.corr_approx(t, a, b, c))
+        yI = np.imag(fc._corr_approx(t, a, b, c))
         axes.plot(
             t, np.imag(C),
             "r", linewidth=3,
@@ -2018,7 +2017,7 @@ def gen_corr_plots(fc, w, J, t, C, w2, S, beta):
 
     def plot_jw_fit_vs_actual(w, J, beta, axes):
         """ Plot the J(w) fit. """
-        J_fit = fc.corr_spectral_approx(w, beta)
+        J_fit = fc.spectral_density_approx(w, beta)
         axes.plot(
             w, J,
             "r", linewidth=3,
@@ -2038,7 +2037,7 @@ def gen_corr_plots(fc, w, J, t, C, w2, S, beta):
         """ Plot the S(w) fit. """
 
         # avoid the pole in the fit around zero:
-        s_fit = fc.corr_spectrum_approx(w2)
+        s_fit = fc.power_spectrum(w2)
 
         axes.plot(w2, S, "r", linewidth=3)
         axes.plot(w2, s_fit, "g", dashes=[3, 3], linewidth=2)

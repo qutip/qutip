@@ -14,9 +14,9 @@ import numpy as np
 
 try:
     from mpmath import mp
+    _mpmath_available = True
 except ModuleNotFoundError:
-    print(
-        'The mpmath module is needed for the description of Ohmic baths')
+    _mpmath_available = False
 
 from scipy.linalg import eigvalsh
 from scipy.optimize import curve_fit
@@ -36,7 +36,7 @@ __all__ = [
     "LorentzianBath",
     "LorentzianPadeBath",
     "FitSpectral",
-    "FirCorr",
+    "FitCorr",
     "OhmicBath",
 ]
 
@@ -257,10 +257,6 @@ class BosonicBath(Bath):
             self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
             tag=None,
     ):
-        self.ckAR = ck_real
-        self.ckAI = ck_imag
-        self.vkAR = vk_real
-        self.vkAI = vk_imag
         self._check_cks_and_vks(ck_real, vk_real, ck_imag, vk_imag)
         self._check_coup_op(Q)
 
@@ -353,54 +349,70 @@ class BosonicBath(Bath):
 
         return new_exponents
 
-    def corr_spectrum_approx(self, w):
-        """Calculates the approximate power spectrum from ck and vk."""
-        S = np.zeros(len(w), dtype=np.complex128)
-        for ck, vk in zip(self.ckAR, self.vkAR):
-            S += 2 * ck * np.real(vk) / ((w - np.imag(vk))
-                                         ** 2 + (np.real(vk) ** 2))
-        for ck, vk in zip(self.ckAI, self.vkAI):
-            S += (
-                2
-                * 1.0j
-                * ck
-                * np.real(vk)
-                / ((w - np.imag(vk)) ** 2 + (np.real(vk) ** 2))
-            )
-        return S
-
-    def corr_spectral_approx(self, w, beta):
+    def spectral_density_approx(self, w, beta):
         J = np.real(
-            self.corr_spectrum_approx(w) /
+            self.power_spectrum(w) /
             (((1 / (np.e**(w * beta) - 1)) + 1) * 2)
         )
         return J
 
-    def power_spectrum(self, w, T):
-        beta = 1/T
-        S = self.spectral_density(w)*(((1 / (np.e**(w * beta) - 1)) + 1) * 2)
+    def power_spectrum(self, w, beta=None):
+        """Calculates the power spectrum from the spectral density
+        or exponents if the spectral density is not available"""
+        try:
+            S = self.spectral_density(
+                w)*(((1 / (np.e**(w * beta) - 1)) + 1) * 2)
+        except (NameError, AttributeError):
+            # the next couple lines fail in some cases
+            # like underdamped spectral densities, and
+            # the expression that generates the power
+            # spectrum from components needs to change
+            S = np.zeros(len(w), dtype=np.complex128)
+            for exp in self.exponents:
+                if (
+                    exp.type == BathExponent.types['R'] or
+                    exp.type == BathExponent.types['RI']
+                ):
+                    S += 2 * exp.ck * np.real(exp.vk) / (
+                        (w - np.imag(exp.vk)) ** 2 + (np.real(exp.vk) ** 2))
+                elif exp.type == BathExponent.types['RI']:
+                    S += (
+                        2
+                        * 1.0j
+                        * exp.ck2
+                        * np.real(exp.vk)
+                        / ((w - np.imag(exp.vk)) ** 2 + (np.real(exp.vk) ** 2))
+                    )
+                else:
+                    S += (2 * 1.0j * exp.ck * np.real(exp.vk) /
+                          ((w - np.imag(exp.vk)) ** 2 + (np.real(exp.vk) ** 2))
+                          )
         return S
 
-    def CR(self, t):
-        """ C_R, the real part of the correlation function. """
-        result = 0
+    def correlation_function(self, t, full=1):
+        """Computes the correlation function
+        complex can be (-1,0,1), -1 returns the imaginary part
+        ,0 returns the real part, 1 returns the full correlation
+        function"""
+
+        real = 0
+        imag = 0
         for exp in self.exponents:
             if (
                 exp.type == BathExponent.types['R'] or
                 exp.type == BathExponent.types['RI']
             ):
-                result += exp.ck * np.exp(-exp.vk * t)
-        return result
-
-    def CI(self, t):
-        """ C_I, the imaginary part of the correlation function. """
-        result = 0
-        for exp in self.exponents:
+                real += exp.ck * np.exp(-exp.vk * t)
             if exp.type == BathExponent.types['I']:
-                result += exp.ck * np.exp(-exp.vk * t)
+                imag += exp.ck * np.exp(-exp.vk * t)
             if exp.type == BathExponent.types['RI']:
-                result += exp.ck2 * np.exp(-exp.vk * t)
-        return result
+                imag += exp.ck2 * np.exp(-exp.vk * t)
+        if full == 1:
+            return real+1j*imag
+        elif full == 0:
+            return real
+        else:
+            return imag
 
 
 class DrudeLorentzBath(BosonicBath):
@@ -441,6 +453,7 @@ class DrudeLorentzBath(BosonicBath):
     ):
         self.lam = lam
         self.gamma = gamma
+        self.T = T
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
             gamma=gamma,
@@ -655,6 +668,9 @@ class DrudeLorentzPadeBath(BosonicBath):
         chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
 
+    def spectral_density(self, w):
+        return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
+
 
 class _DrudeLorentzTerminator:
     """ A class for calculating the terminator of a Drude-Lorentz bath
@@ -745,7 +761,8 @@ class UnderDampedBath(BosonicBath):
             Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
         )
 
-    def _matsubara_params(self, lam, gamma, w0, T, Nk):
+    @staticmethod
+    def _matsubara_params(lam, gamma, w0, T, Nk):
         """ Calculate the Matsubara coefficents and frequencies. """
         beta = 1/T
         Om = np.sqrt(w0**2 - (gamma/2)**2)
@@ -1101,7 +1118,7 @@ class FitSpectral(BosonicBath):
     def summary(self):
         print(self.__str__())
 
-    def spectral_density_approx(self, w, a, b, c):
+    def _spectral_density_approx(self, w, a, b, c):
         """Calculate the fitted value of the function for the parameters."""
         tot = 0
         for i in range(len(a)):
@@ -1117,7 +1134,7 @@ class FitSpectral(BosonicBath):
 
     def spectral_density(self, w):
         lam, gamma, w0 = self.params_spec
-        return self.spectral_density_approx(w, lam, gamma, w0)
+        return self._spectral_density_approx(w, lam, gamma, w0)
 
     def get_fit(
         self,
@@ -1156,8 +1173,12 @@ class FitSpectral(BosonicBath):
         guesses : list
             Initial guess for the parameters.
         """
+        # Check if input is function if it is turn into array
+        # on the range
+        if callable(J):
+            J = J(w)
         start = time()
-        rmse, params = _run_fit(self.spectral_density_approx, J, w,
+        rmse, params = _run_fit(self._spectral_density_approx, J, w,
                                 final_rmse, N=N, sigma=sigma,
                                 label="Spectral Density", guesses=guesses,
                                 lower=lower, upper=upper)
@@ -1191,19 +1212,17 @@ class FitSpectral(BosonicBath):
         vkAR = []
         ckAI = []
         vkAI = []
-        UD = UnderDampedBath(self.Q, lam[0], gamma[0], w0[0], self.T, self.Nk)
         terminator = 0. * spre(self.Q)
         # the number of matsubara expansion terms to include in the terminator:
         terminator_max_k = 1000
 
         for lamt, Gamma, Om in zip(lam, gamma, w0):
-            ck_real, vk_real, ck_imag, vk_imag = UD._matsubara_params(
-                lamt, 2 * Gamma, Om + 0j, self.T, self.Nk
-            )
-            ckAR.append(ck_real)
-            vkAR.append(vk_real)
-            vkAI.append(vk_imag)
-            ckAI.append(ck_imag)
+            coeffs = UnderDampedBath._matsubara_params(
+                lamt, 2 * Gamma, Om + 0j, self.T, self.Nk)
+            ckAR.append(coeffs[0])
+            vkAR.append(coeffs[1])
+            ckAI.append(coeffs[2])
+            vkAI.append(coeffs[3])
             terminator_factor = 0
             for k in range(self.Nk + 1, terminator_max_k):
                 ek = 2 * np.pi * k / self.beta
@@ -1220,26 +1239,23 @@ class FitSpectral(BosonicBath):
                 - spre(self.Q.dag() * self.Q)
                 - spost(self.Q.dag() * self.Q)
             )
-        self.cvars = [
-            np.array(ckAR).flatten(),
-            np.array(vkAR).flatten(),
-            np.array(ckAI).flatten(),
-            np.array(vkAI).flatten(),
-        ]
-        self.ckAR = np.array(ckAR).flatten()
-        self.ckAI = np.array(ckAI).flatten()
-        self.vkAR = np.array(vkAR).flatten()
-        self.vkAI = np.array(vkAI).flatten()
 
+        ckAR = np.array(ckAR).flatten()
+        ckAI = np.array(ckAI).flatten()
+        vkAR = np.array(vkAR).flatten()
+        vkAI = np.array(vkAI).flatten()
+        self.cvars = [np.array(ckAR).flatten(),
+                      np.array(vkAR).flatten(),
+                      np.array(ckAI).flatten(),
+                      np.array(vkAI).flatten()]
         self.terminator = terminator
-        self.Bath_spec = BosonicBath(
+        super().__init__(
             self.Q,
-            np.array(ckAR).flatten(),
-            np.array(vkAR).flatten(),
-            np.array(ckAI).flatten(),
-            np.array(vkAI).flatten(),
+            self.cvars[0],
+            self.cvars[1],
+            self.cvars[2],
+            self.cvars[3],
         )
-        self.exponents = self.Bath_spec.exponents
 
 
 class FitCorr(BosonicBath):
@@ -1256,7 +1272,7 @@ class FitCorr(BosonicBath):
     def __init__(self, Q):
         self.Q = Q
 
-    def corr_approx(self, t, a, b, c):
+    def _corr_approx(self, t, a, b, c):
         """Calculate the fitted value of the function for the parameters."""
         a = np.array(a)
         b = np.array(b)
@@ -1348,9 +1364,13 @@ class FitCorr(BosonicBath):
         guesses : list
             Initial guess for the parameters.
         """
+        # Check if input is function if it is turn into array
+        # on the range
+        if callable(C):
+            C = C(t)
         start = time()
         rmse1, params_real = _run_fit(
-            lambda *args: np.real(self.corr_approx(*args)),
+            lambda *args: np.real(self._corr_approx(*args)),
             np.real(C), t, final_rmse,
             label="correlation_real", sigma=sigma, N=Nr,
             guesses=guesses, lower=lower, upper=upper)
@@ -1358,7 +1378,7 @@ class FitCorr(BosonicBath):
         self.fit_time_real = end - start
         start = time()
         rmse2, params_imag = _run_fit(
-            lambda *args: np.imag(self.corr_approx(*args)),
+            lambda *args: np.imag(self._corr_approx(*args)),
             np.imag(C), t, final_rmse,
             label="correlation_imag", sigma=sigma, N=Ni,
             guesses=guesses, lower=lower, upper=upper)
@@ -1386,9 +1406,11 @@ class FitCorr(BosonicBath):
 
         vkAI = [-x - 1.0j * y for x, y in zip(gamma2, w02)]
         vkAI.extend([-x + 1.0j * y for x, y in zip(gamma2, w02)])
-        self.ckAR, self.vkAR, self.ckAI, self.vkAI = [ckAR, vkAR, ckAI, vkAI]
-        self.Bath_corr = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
-        self.exponents = self.Bath_corr.exponents
+        self.cvars = [np.array(ckAR).flatten(),
+                      np.array(vkAR).flatten(),
+                      np.array(ckAI).flatten(),
+                      np.array(vkAI).flatten()]
+        super().__init__(self.Q, ckAR, vkAR, ckAI, vkAI)
 
 
 class OhmicBath(BosonicBath):
@@ -1401,24 +1423,27 @@ class OhmicBath(BosonicBath):
         self.T = T
         self.Nk = Nk
         self.beta = 1 / T
+        if _mpmath_available is False:
+            raise Exception("The mpmath module is needed for the description"
+                            "of Ohmic baths")
         if method == "correlation":
             self.fit = FitCorr(self.Q)
             t = np.linspace(0, 15 / self.wc, 1000)
-            C = self.ohmic_correlation(t, self.s)
+            C = self.correlation(t, self.s)
             self.fit.fit_correlation(t, C, final_rmse=rmse)
-            self.bath = self.fit.Bath_corr
+            self.exponents = self.fit.exponents
         else:
             self.fit = FitSpectral(self.T, self.Q, self.Nk)
             w = np.linspace(0, 15 * self.wc, 20000)
-            J = self.ohmic_spectral_density(w)
+            J = self.spectral_density(w)
             self.fit.get_fit(J, w, final_rmse=rmse)
-            self.bath = self.fit.Bath_spec
             self.terminator = self.fit.terminator
+            self.exponents = self.fit.exponents
 
     def summary(self):
         self.fit.summary()
 
-    def ohmic_spectral_density(self, w):
+    def spectral_density(self, w):
         """The Ohmic bath spectral density as a function of w
         (and the bath parameters).
         """
@@ -1429,7 +1454,7 @@ class OhmicBath(BosonicBath):
             * np.e ** (-abs(w) / self.wc)
         )
 
-    def ohmic_correlation(self, t, s=1):
+    def correlation(self, t, s=1):
         """The Ohmic bath correlation function as a function of t
         (and the bath parameters).
         """
@@ -1454,12 +1479,12 @@ class OhmicBath(BosonicBath):
             dtype=np.complex128,
         )
 
-    def ohmic_power_spectrum(self, w):
+    def power_spectrum(self, w):
         """The Ohmic bath power spectrum as a function of w
         (and the bath parameters).
         """
         return (
-            self.ohmic_spectral_density(w)
+            self.spectral_density(w)
             * ((1 / (np.e ** (w * self.beta) - 1)) + 1)
             * 2
         )

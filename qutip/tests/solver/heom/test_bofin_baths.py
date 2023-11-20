@@ -556,29 +556,29 @@ class TestFitSpectral:
         J = 0.4
         a, b, c = [list(range(2))] * 3
         w = 1
-        assert self.bath.spectral_density_approx(w, a, b, c) == J
+        assert self.bath._spectral_density_approx(w, a, b, c) == J
         a, b, c = [list(range(3))] * 3
         w = 2
-        assert self.bath.spectral_density_approx(w, a, b, c) == J
+        assert self.bath._spectral_density_approx(w, a, b, c) == J
 
     def test_spec_spectrum_approx(self):
         a, b, c = [list(range(2))] * 3
         w = np.linspace(0.1, 10 * self.wc, 1000)
-        J = self.bath.spectral_density_approx(w, a, b, c)
+        J = self.bath._spectral_density_approx(w, a, b, c)
         pow = J * ((1 / (np.e ** (w / self.T) - 1)) + 1) * 2
         rmse, self.bath.params_spec = _fit(
-            self.bath.spectral_density_approx, J, w, N=2, label="spectral"
+            self.bath._spectral_density_approx, J, w, N=2, label="spectral"
         )
-        pow2 = self.bath.power_spectrum(w, self.bath.T)
+        pow2 = self.bath.power_spectrum(w, 1/self.bath.T)
         assert np.isclose(pow, pow2).all()
 
     def test_get_fit(self):
         a, b, c = [list(range(5))] * 3
         w = np.linspace(0.1, 10 * self.wc, 1000)
-        J = self.bath.spectral_density_approx(w, a, b, c)
+        J = self.bath._spectral_density_approx(w, a, b, c)
         self.bath.get_fit(J, w)
         a2, b2, c2 = self.bath.params_spec
-        J2 = self.bath.spectral_density_approx(w, a2, b2, c2)
+        J2 = self.bath._spectral_density_approx(w, a2, b2, c2)
         assert np.sum(J - J2) < (1e-12)
         assert self.bath.spec_n <= 5
 
@@ -620,18 +620,18 @@ class TestFitCorr:
             ]
         )
         a, b, c = -np.array([list(range(2))] * 3)
-        C2 = self.bath.corr_approx(t, a, b, c)
+        C2 = self.bath._corr_approx(t, a, b, c)
         assert np.isclose(C, C2).all()
 
     def test_fit_correlation(self):
         a, b, c = -np.array([list(range(2))] * 3)
         t = np.linspace(0.1, 10 / self.wc, 1000)
-        C = self.bath.corr_approx(t, a, b, c)
+        C = self.bath._corr_approx(t, a, b, c)
         self.bath.fit_correlation(t, C, Nr=3, Ni=3)
         a2, b2, c2 = self.bath.params_real
         ai2, bi2, ci2 = self.bath.params_imag
-        C2re = self.bath.corr_approx(t, a2, b2, c2)
-        C2imag = self.bath.corr_approx(t, ai2, bi2, ci2)
+        C2re = self.bath._corr_approx(t, a2, b2, c2)
+        C2imag = self.bath._corr_approx(t, ai2, bi2, ci2)
         assert np.isclose(np.real(C), np.real(C2re)).all()
         assert np.isclose(np.imag(C), np.imag(C2imag)).all()
 
@@ -647,15 +647,14 @@ class TestFitCorr:
         self.bath.params_real = [[1] * 2] * 3
         self.bath.params_imag = [[1] * 2] * 3
         self.bath._matsubara_coefficients()
-        assert np.isclose(
-            np.array([self.bath.ckAR, self.bath.vkAR, self.bath.ckAI, self.bath.vkAI]), ans).all()
+        assert np.isclose(np.array(self.bath.cvars), ans).all()
 
-    def test_corr_spectrum_approx(self):
+    def test_power_spectrum(self):
         self.bath.params_real = [[1] * 2] * 3
         self.bath.params_imag = [[1] * 2] * 3
         self.bath._matsubara_coefficients()
-        S = self.bath.corr_spectrum_approx(np.array([1]))
-        assert np.isclose(S, np.array([-0.8 + 0j]))
+        S = self.bath.power_spectrum(np.array([1]))
+        assert np.isclose(S, np.array([-2.4 + 0j]))
 
 
 class TestOhmicBath:
@@ -669,14 +668,14 @@ class TestOhmicBath:
 
     def test_ohmic_spectral_density(self):
         w = np.linspace(0, 50 * self.wc, 10000)
-        J = self.bath.ohmic_spectral_density(w)
+        J = self.bath.spectral_density(w)
         J2 = self.alpha * w * np.exp(-abs(w) / self.wc)
         assert np.isclose(J, J2).all()
 
     def test_ohmic_correlation(self):
         t = np.linspace(0, 10, 10)
         try:
-            C = self.bath.ohmic_correlation(t, s=3)
+            C = self.bath.correlation(t, s=3)
             Ctest = np.array(
                 [
                     1.11215545e00 + 0.00000000e00j,
@@ -698,7 +697,7 @@ class TestOhmicBath:
     def test_ohmic_power_spectrum(self):
         w = np.linspace(0.1, 50 * self.wc, 10)
         self.bath.s = 3
-        pow = self.bath.ohmic_power_spectrum(w)
+        pow = self.bath.power_spectrum(w)
         testpow = np.array(
             [
                 9.50833194e-03,
