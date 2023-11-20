@@ -151,3 +151,14 @@ class TestCollapseDims:
     ])
     def test_super(self, base, expected):
         assert collapse_dims_super(base) == expected
+
+
+@pytest.mark.parametrize("dims_list", [
+    pytest.param([0], id="zero"),
+    pytest.param([], id="empty"),
+    pytest.param([1, [2]], id="mixed depth"),
+    pytest.param([[2], [3], [4]], id="bay type"),
+])
+def test_bad_dims(dims_list):
+    with pytest.raises(ValueError):
+        Dimensions([dims_list, [1]])

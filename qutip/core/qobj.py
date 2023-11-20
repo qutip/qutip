@@ -318,26 +318,10 @@ class Qobj:
             raise ValueError('Provided dimensions do not match the data: ' +
                              f"{dims.shape} vs {self._data.shape}")
         self._dims = dims
-        # self.type = self._dims.type
 
     @property
     def type(self):
-        return self._dims.type  # self._type
-
-    @type.setter
-    def type(self, val):
-        if self._dims.type != val:
-            raise TypeError(f"Tried to set type {self._dims.type} to {val}")
-        """
-        if not val:
-            self._type = self._dims.type
-        elif self._dims.type == "scalar":
-            self._type = val
-        elif self._dims.type == val:
-            self._type = val
-        else:
-            raise TypeError("Type does not match dimensions.")
-        """
+        return self._dims.type
 
     @property
     def superrep(self):

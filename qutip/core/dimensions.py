@@ -350,7 +350,7 @@ class MetaSpace(type):
             return cls.field_instance
 
         if cls is SuperSpace:
-            args = *args, rep or 'super'
+            args = (*args, rep or 'super')
 
         if args not in cls._stored_dims:
             instance = cls.__new__(cls)
@@ -359,7 +359,14 @@ class MetaSpace(type):
         return cls._stored_dims[args]
 
     def from_list(cls, list_dims, rep=None):
-        if not isinstance(list_dims[0], list):
+        if len(list_dims) == 0:
+            raise ValueError("Empty list can't be used as dims.")
+        elif (
+            sum(isinstance(entry, list) for entry in list_dims)
+            not in [0, len(list_dims)]
+        ):
+            raise ValueError(f"Format dims not understood {list_dims}.")
+        elif not isinstance(list_dims[0], list):
             # Tensor
             spaces = [Space(size) for size in list_dims]
         elif len(list_dims) == 1:
@@ -725,9 +732,9 @@ class Dimensions(metaclass=MetaDims):
         else:
             if from_.issuper != to_.issuper:
                 raise NotImplementedError(
-                    "Operator with both space and superspace dimensions are not "
-                    "supported. Please open an issue if you have an use case for "
-                    f"these: {from_}, {to_}]"
+                    "Operator with both space and superspace dimensions are "
+                    "not supported. Please open an issue if you have an use "
+                    f"case for these: {from_}, {to_}]"
                 )
             self.type = 'super' if self.from_.issuper else 'oper'
             if self.from_.superrep == self.to_.superrep:
@@ -737,7 +744,8 @@ class Dimensions(metaclass=MetaDims):
         self.__setitem__ = _frozen
 
     def __eq__(self, other):
-        return (self is other
+        return (
+            self is other
             or (
                 type(self) is type(other)
                 and self.to_ == other.to_
