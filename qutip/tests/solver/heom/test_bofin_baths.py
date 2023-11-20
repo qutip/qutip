@@ -4,6 +4,7 @@ Tests for qutip.nonmarkov.bofin_baths.
 
 import numpy as np
 import pytest
+import sys
 
 from qutip import spre, spost, sigmax, sigmaz
 from qutip.core import data as _data
@@ -657,6 +658,8 @@ class TestFitCorr:
         assert np.isclose(S, np.array([-2.4 + 0j]))
 
 
+@pytest.mark.skipif('mpmath' not in sys.modules,
+                    reason="requires the mpmath library")
 class TestOhmicBath:
     alpha = 0.5
     s = 1
