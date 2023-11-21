@@ -903,10 +903,16 @@ class HEOMSolver(Solver):
             Specifies the the maximum number of iterative refinement steps that
             the MKL PARDISO solver performs.
 
+            For a complete description, see iparm(7) in
+            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
+
         mkl_weighted_matching : bool
             MKL PARDISO can use a maximum weighted matching algorithm to
             permute large elements close the diagonal. This strategy adds an
             additional level of reliability to the factorization methods.
+
+            For a complete description, see iparm(12) in
+            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
 
         Returns
         -------
