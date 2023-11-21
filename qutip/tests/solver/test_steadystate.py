@@ -29,10 +29,12 @@ import warnings
     pytest.param('iterative-bicgstab', {'atol': 1e-12, "tol": 1e-10},
                  id="iterative-bicgstab"),
 ])
-def test_qubit(method, kwargs):
+@pytest.mark.parametrize("dtype", ["dense", "dia", "csr"])
+@pytest.mark.filterwarnings("ignore:Only CSR matrices:RuntimeWarning")
+def test_qubit(method, kwargs, dtype):
     # thermal steadystate of a qubit: compare numerics with analytical formula
-    sz = qutip.sigmaz()
-    sm = qutip.destroy(2)
+    sz = qutip.sigmaz().to(dtype)
+    sm = qutip.destroy(2, dtype=dtype)
 
     H = 0.5 * 2 * np.pi * sz
     gamma1 = 0.05

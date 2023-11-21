@@ -75,6 +75,9 @@ def solve_csr_dense(matrix: Union[CSR, Dia], target: Dense, method=None,
         raise ValueError("mkl is not available")
     elif method == "mkl_spsolve":
         solver = mkl_spsolve
+        # mkl does not support dia.
+        if isinstance(matrix, Dia):
+            matrix = _data.to("CSR", matrix)
     else:
         raise ValueError(f"Unknown sparse solver {method}.")
 
