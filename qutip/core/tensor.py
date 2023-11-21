@@ -290,6 +290,8 @@ def tensor_contract(qobj, *pairs):
 
     Parameters
     ----------
+    qobj: Qobj
+        Operator to contract subspaces on.
 
     pairs : tuple
         One or more tuples ``(i, j)`` indicating that the
@@ -347,7 +349,7 @@ def _check_oper_dims(oper, dims=None, targets=None):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`
+    oper : :class:`.Qobj`
         The quantum object to be checked.
     dims : list, optional
         A list of integer for the dimension of each composite system.
@@ -378,8 +380,8 @@ def _targets_to_list(targets, oper=None, N=None):
     ----------
     targets : int or list of int
         The indices of subspace that are acted on.
-    oper : :class:`qutip.Qobj`, optional
-        An operator, the type of the :class:`qutip.Qobj`
+    oper : :class:`.Qobj`, optional
+        An operator, the type of the :class:`.Qobj`
         has to be an operator
         and the dimension matches the tensored qubit Hilbert space
         e.g. dims = ``[[2, 2, 2], [2, 2, 2]]``
@@ -424,7 +426,7 @@ def expand_operator(oper, dims, targets):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`
+    oper : :class:`.Qobj`
         An operator that act on the subsystem, has to be an operator and the
         dimension matches the tensored dims Hilbert space
         e.g. oper.dims = ``[[2, 3], [2, 3]]``
@@ -436,7 +438,7 @@ def expand_operator(oper, dims, targets):
 
     Returns
     -------
-    expanded_oper : :class:`qutip.Qobj`
+    expanded_oper : :class:`.Qobj`
         The expanded operator acting on a system with desired dimension.
     """
     from .operators import identity

@@ -28,7 +28,7 @@ def floquet_modes(H, T, args=None, sort=False, U=None, options=None):
     Calculate the initial Floquet modes Phi_alpha(0) for a driven system with
     period T.
 
-    Deprecated from qutip v5. Use :class:`FloquetBasis` instead:
+    Deprecated from qutip v5. Use :class:`.FloquetBasis` instead:
 
     fbasis = FloquetBasis(H, T, args=args, options=options, sort=sort)
     f_mode_0 = fbasis.mode(0)
@@ -48,7 +48,7 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None, options=None):
     Calculate the Floquet modes at times tlist Phi_alpha(tlist) propagting the
     initial Floquet modes Phi_alpha(0).
 
-    Deprecated from qutip v5. Use :class:`FloquetBasis` instead:
+    Deprecated from qutip v5. Use :class:`.FloquetBasis` instead:
 
     fbasis = FloquetBasis(H, T, args=args, options=options)
     f_mode_t = fbasis.mode(t)
@@ -68,7 +68,7 @@ def floquet_modes_table(
     period. Can later be used as a table to look up the floquet modes for
     any time.
 
-    Deprecated from qutip v5. Use :class:`FloquetBasis` instead:
+    Deprecated from qutip v5. Use :class:`.FloquetBasis` instead:
 
     fbasis = FloquetBasis(H, T, args=args, options=options, precompute=tlist)
     """
@@ -80,7 +80,7 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     Lookup the floquet mode at time t in the pre-calculated table of floquet
     modes in the first period of the time-dependence.
 
-    Deprecated from qutip v5. Use :class:`FloquetBasis` instead:
+    Deprecated from qutip v5. Use :class:`.FloquetBasis` instead:
 
     f_modes_table_t = fbasis = FloquetBasis(...)
     f_mode_t = f_modes_table_t.mode(t)
@@ -95,7 +95,7 @@ def floquet_states(f_modes_t, f_energies, t):
     """
     Evaluate the floquet states at time t given the Floquet modes at that time.
 
-    Deprecated from qutip v5. Use :class:`FloquetBasis` instead:
+    Deprecated from qutip v5. Use :class:`.FloquetBasis` instead:
 
     fbasis = FloquetBasis(H, T, args=args, options=options)
     f_state_t = fbasis.state(t)
@@ -114,7 +114,7 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None, options=None):
     """
     Evaluate the floquet states at time t given the initial Floquet modes.
 
-    Deprecated from qutip v5. Use :class:`FloquetBasis` instead:
+    Deprecated from qutip v5. Use :class:`.FloquetBasis` instead:
 
     fbasis = FloquetBasis(H, T, args=args, options=options)
     f_state_t = fbasis.state(t)
@@ -132,7 +132,7 @@ def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
     Evaluate the wavefunction for a time t using the Floquet state
     decompositon, given the Floquet modes at time `t`.
 
-    Deprecated from qutip v5. Use :class:`FloquetBasis` instead:
+    Deprecated from qutip v5. Use :class:`.FloquetBasis` instead:
 
     fbasis = FloquetBasis(H, T, args=args, options=options)
     psi_t = fbasis.from_floquet_basis(f_coeff, t)
@@ -150,7 +150,7 @@ def floquet_wavefunction_t(
     Evaluate the wavefunction for a time t using the Floquet state
     decompositon, given the initial Floquet modes.
 
-    Deprecated from qutip v5. Use :class:`FloquetBasis` instead:
+    Deprecated from qutip v5. Use :class:`.FloquetBasis` instead:
 
     fbasis = FloquetBasis(H, T, args=args, options=options)
     psi_t = fbasis.from_floquet_basis(f_coeff, t)
@@ -168,7 +168,7 @@ def floquet_state_decomposition(f_states, f_energies, psi):
     Decompose the wavefunction `psi` (typically an initial state) in terms of
     the Floquet states, :math:`\psi = \sum_\alpha c_\alpha \psi_\alpha(0)`.
 
-    Deprecated from qutip v5. Use :class:`FloquetBasis` instead:
+    Deprecated from qutip v5. Use :class:`.FloquetBasis` instead:
 
     fbasis = FloquetBasis(H, T, args=args, options=options)
     f_coeff = fbasis.to_floquet_basis(psi)
@@ -208,9 +208,9 @@ def floquet_master_equation_rates(
         No longer used.
     f_energies : Any
         No longer used.
-    c_op : :class:`qutip.qobj`
+    c_op : :class:`.Qobj`
         The collapse operators describing the dissipation.
-    H : :class:`qutip.qobj`
+    H : :class:`.Qobj`
         System Hamiltonian, time-dependent with period `T`.
     T : float
         The period of the time-dependence of the hamiltonian.

@@ -20,6 +20,7 @@ from .operators import jmat, displace, qdiags
 from .tensor import tensor
 from .. import settings
 
+
 def _promote_to_zero_list(arg, length):
     """
     Ensure `arg` is a list of length `length`.  If `arg` is None it is promoted
@@ -61,13 +62,13 @@ def basis(dimensions, n=None, offset=None, *, dtype=None):
         The lowest number state that is included in the finite number state
         representation of the state in the relevant dimension.
 
-    dtype : type or str
-        storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
     -------
-    state : :class:`qutip.Qobj`
+    state : :class:`.Qobj`
       Qobj representing the requested number state ``|n>``.
 
     Examples
@@ -132,8 +133,8 @@ def basis(dimensions, n=None, offset=None, *, dtype=None):
 def qutrit_basis(*, dtype=None):
     """Basis states for a three level system (qutrit)
 
-    dtype : type or str
-        storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -151,6 +152,7 @@ def qutrit_basis(*, dtype=None):
     ]
     return out
 
+
 _COHERENT_METHODS = ('operator', 'analytic')
 
 
@@ -167,16 +169,16 @@ def coherent(N, alpha, offset=0, method=None, *, dtype=None):
     alpha : float/complex
         Eigenvalue of coherent state.
 
-    offset : int (default 0)
+    offset : int, default: 0
         The lowest number state that is included in the finite number state
         representation of the state. Using a non-zero offset will make the
         default method 'analytic'.
 
-    method : string {'operator', 'analytic'}
+    method : string {'operator', 'analytic'}, optional
         Method for generating coherent state.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -242,7 +244,7 @@ def coherent(N, alpha, offset=0, method=None, *, dtype=None):
 def coherent_dm(N, alpha, offset=0, method='operator', *, dtype=None):
     """Density matrix representation of a coherent state.
 
-    Constructed via outer product of :func:`qutip.states.coherent`
+    Constructed via outer product of :func:`coherent`
 
     Parameters
     ----------
@@ -252,15 +254,15 @@ def coherent_dm(N, alpha, offset=0, method='operator', *, dtype=None):
     alpha : float/complex
         Eigenvalue for coherent state.
 
-    offset : int (default 0)
+    offset : int, default: 0
         The lowest number state that is included in the finite number state
         representation of the state.
 
-    method : string {'operator', 'analytic'}
+    method : string {'operator', 'analytic'}, optional
         Method for generating coherent density matrix.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -299,7 +301,7 @@ shape = [3, 3], type = oper, isHerm = True
 def fock_dm(dimensions, n=None, offset=None, *, dtype=None):
     """Density matrix representation of a Fock state
 
-    Constructed via outer product of :func:`qutip.states.fock`.
+    Constructed via outer product of :func:`basis`.
 
     Parameters
     ----------
@@ -307,18 +309,18 @@ def fock_dm(dimensions, n=None, offset=None, *, dtype=None):
         Number of Fock states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
-    n : int or list of ints, optional (default 0 for all dimensions)
+    n : int or list of ints, default: 0 for all dimensions
         Integer corresponding to desired number state, defaults to 0 for all
         dimensions if omitted.  The shape must match ``dimensions``, e.g. if
         ``dimensions`` is a list, then ``n`` must either be omitted or a list
         of equal length.
 
-    offset : int or list of ints, optional (default 0 for all dimensions)
+    offset : int or list of ints, default: 0 for all dimensions
         The lowest number state that is included in the finite number state
         representation of the state in the relevant dimension.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -344,7 +346,7 @@ shape = [3, 3], type = oper, isHerm = True
 def fock(dimensions, n=None, offset=None, *, dtype=None):
     """Bosonic Fock (number) state.
 
-    Same as :func:`qutip.states.basis`.
+    Same as :func:`basis`.
 
     Parameters
     ----------
@@ -352,18 +354,18 @@ def fock(dimensions, n=None, offset=None, *, dtype=None):
         Number of Fock states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
-    n : int or list of ints, optional (default 0 for all dimensions)
+    n : int or list of ints, default: 0 for all dimensions
         Integer corresponding to desired number state, defaults to 0 for all
         dimensions if omitted.  The shape must match ``dimensions``, e.g. if
         ``dimensions`` is a list, then ``n`` must either be omitted or a list
         of equal length.
 
-    offset : int or list of ints, optional (default 0 for all dimensions)
+    offset : int or list of ints, default: 0 for all dimensions
         The lowest number state that is included in the finite number state
         representation of the state in the relevant dimension.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -395,12 +397,12 @@ def thermal_dm(N, n, method='operator', *, dtype=None):
     n : float
         Expectation value for number of particles in thermal state.
 
-    method : string {'operator', 'analytic'}
+    method : string {'operator', 'analytic'}, default: 'operator'
         ``string`` that sets the method used to generate the
         thermal state probabilities
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -473,13 +475,13 @@ def maximally_mixed_dm(N, *, dtype=None):
     N : int
         Number of basis states in Hilbert space.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
     -------
-    dm : qobj
+    dm : :obj:`.Qobj`
         Thermal state density matrix.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
@@ -492,16 +494,16 @@ def maximally_mixed_dm(N, *, dtype=None):
 def ket2dm(Q):
     """
     Takes input ket or bra vector and returns density matrix formed by outer
-    product.  This is completely identical to calling `Q.proj()`.
+    product.  This is completely identical to calling ``Q.proj()``.
 
     Parameters
     ----------
-    Q : qobj
+    Q : :obj:`.Qobj`
         Ket or bra type quantum object.
 
     Returns
     -------
-    dm : qobj
+    dm : :obj:`.Qobj`
         Density matrix formed by outer product of `Q`.
 
     Examples
@@ -534,12 +536,12 @@ def projection(N, n, m, offset=None, *, dtype=None):
     n, m : float
         The number states in the projection.
 
-    offset : int (default 0)
+    offset : int, default: 0
         The lowest number state that is included in the finite number state
         representation of the projector.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -566,8 +568,8 @@ def qstate(string, *, dtype=None):
     qstate : qobj
         Qobj for tensor product corresponding to input string.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Notes
@@ -634,12 +636,12 @@ def ket(seq, dim=2, *, dtype=None):
         Note: for dimension > 9 you need to use a list.
 
 
-    dim : int (default: 2) / list of ints
+    dim : int or list of ints, default: 2
         Space dimension for each particle:
         int if there are the same, list if they are different.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -724,8 +726,8 @@ def bra(seq, dim=2, *, dtype=None):
         Space dimension for each particle:
         int if there are the same, list if they are different.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -778,7 +780,7 @@ def state_number_enumerate(dims, excitations=None):
     dims : list or array
         The quantum state dimensions array, as it would appear in a Qobj.
 
-    excitations : integer (None)
+    excitations : integer, optional
         Restrict state space to states with excitation numbers below or
         equal to this value.
 
@@ -878,6 +880,9 @@ def state_number_qobj(dims, state, *, dtype=None):
     Return a Qobj representation of a quantum state specified by the state
     array `state`.
 
+    .. note::
+        Deprecated in QuTiP 5.0, use :func:`basis` instead.
+
     Example:
 
         >>> state_number_qobj([2, 2, 2], [1, 0, 1]) # doctest: +SKIP
@@ -901,17 +906,14 @@ shape = [8, 1], type = ket
     state : list
         State number array.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
     -------
-    state : :class:`qutip.Qobj`
-        The state as a :class:`qutip.Qobj` instance.
-
-    .. note::
-        Deprecated in QuTiP 5.0, use :func:`basis` instead.
+    state : :class:`.Qobj`
+        The state as a :class:`.Qobj` instance.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
     warnings.warn("basis() is a drop-in replacement for this",
@@ -930,13 +932,13 @@ def phase_basis(N, m, phi0=0, *, dtype=None):
 
     m : int
         Integer corresponding to the mth discrete phase
-        phi_m = phi0 + 2 * pi * m / N
+        ``phi_m = phi0 + 2 * pi * m / N``
 
-    phi0 : float (default=0)
+    phi0 : float, default: 0
         Reference phase angle.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -965,12 +967,13 @@ def zero_ket(N, dims=None, *, dtype=None):
     ----------
     N : int
         Hilbert space dimensionality
-    dims : list
+
+    dims : list, optional
         Optional dimensions if ket corresponds to
         a composite Hilbert space.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -995,11 +998,11 @@ def spin_state(j, m, type='ket', *, dtype=None):
     m : int
         Eigenvalue of the spin-j Sz operator.
 
-    type : string {'ket', 'bra', 'dm'}
+    type : string {'ket', 'bra', 'dm'}, default: 'ket'
         Type of state to generate.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -1034,11 +1037,11 @@ def spin_coherent(j, theta, phi, type='ket', *, dtype=None):
     phi : float
         Angle from x axis.
 
-    type : string {'ket', 'bra', 'dm'}
+    type : string {'ket', 'bra', 'dm'}, default: 'ket'
         Type of state to generate.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -1089,11 +1092,11 @@ def bell_state(state='00', *, dtype=None):
 
     Parameters
     ----------
-    state : str ['00', '01', `10`, `11`]
+    state : str ['00', '01', '10', '11']
         Which bell state to return
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -1117,8 +1120,8 @@ def singlet_state(*, dtype=None):
 
     Parameters
     ----------
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -1142,8 +1145,8 @@ def triplet_states(*, dtype=None):
 
     Parameters
     ----------
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -1166,16 +1169,16 @@ def w_state(N=3, *, dtype=None):
 
     Parameters
     ----------
-    N : int (default=3)
+    N : int, default: 3
         Number of qubits in state
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
     -------
-    W : :obj:`~Qobj`
+    W : :obj:`.Qobj`
         N-qubit W-state
     """
     inds = np.zeros(N, dtype=int)
@@ -1193,11 +1196,11 @@ def ghz_state(N=3, *, dtype=None):
 
     Parameters
     ----------
-    N : int (default=3)
+    N : int, default: 3
         Number of qubits in state
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns

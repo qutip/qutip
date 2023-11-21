@@ -27,24 +27,24 @@ def wigner_cmap(W, levels=1024, shift=0, max_color='#09224F',
     ----------
     W : array
         Wigner function array, or any array.
-    levels : int
+    levels : int, default: 1024
         Number of color levels to create.
-    shift : float
+    shift : float, default: 0
         Shifts the value at which Wigner elements are emphasized.
         This parameter should typically be negative and small (i.e -1e-5).
-    max_color : str
+    max_color : str, default: '#09224F'
         String for color corresponding to maximum value of data.  Accepts
         any string format compatible with the Matplotlib.colors.ColorConverter.
-    mid_color : str
+    mid_color : str, default: '#FFFFFF'
         Color corresponding to zero values.  Accepts any string format
         compatible with the Matplotlib.colors.ColorConverter.
-    min_color : str
+    min_color : str, default: '#530017'
         Color corresponding to minimum data values.  Accepts any string format
         compatible with the Matplotlib.colors.ColorConverter.
-    neg_color : str
+    neg_color : str, default: '#FF97D4'
         Color that starts highlighting negative values.  Accepts any string
         format compatible with the Matplotlib.colors.ColorConverter.
-    invert : bool
+    invert : bool, default: False
         Invert the color scheme for negative values so that smaller negative
         values have darker color.
 

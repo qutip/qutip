@@ -42,20 +42,20 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
 
     Parameters
     ----------
-    A : :obj:`~Qobj`
+    A : :obj:`.Qobj`
         A Hamiltonian or Liouvillian operator.
 
     c_op_list : list
         A list of collapse operators.
 
-    method : str, default='direct'
+    method : str, {"direct", "eigen", "svd", "power"}, default: "direct"
         The allowed methods are composed of 2 parts, the steadystate method:
         - "direct": Solving ``L(rho_ss) = 0``
         - "eigen" : Eigenvalue problem
         - "svd" : Singular value decomposition
         - "power" : Inverse-power method
 
-    solver : str, default=None
+    solver : str, optional
         'direct' and 'power' methods only.
         Solver to use when solving the ``L(rho_ss) = 0`` equation.
         Default supported solver are:
@@ -73,12 +73,12 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
 
         Extra options for these solver can be passed in ``**kw``.
 
-    use_rcm : bool, default False
+    use_rcm : bool, default: False
         Use reverse Cuthill-Mckee reordering to minimize fill-in in the LU
         factorization of the Liouvillian.
         Used with 'direct' or 'power' method.
 
-    use_wbm : bool, default False
+    use_wbm : bool, default: False
         Use Weighted Bipartite Matching reordering to make the Liouvillian
         diagonally dominant.  This is useful for iterative preconditioners
         only. Used with 'direct' or 'power' method.
@@ -89,17 +89,17 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         Liouvillian elements if not specified by the user.
         Used with 'direct' method.
 
-    power_tol : float, default 1e-12
+    power_tol : float, default: 1e-12
         Tolerance for the solution when using the 'power' method.
 
-    power_maxiter : int, default 10
+    power_maxiter : int, default: 10
         Maximum number of iteration to use when looking for a solution when
         using the 'power' method.
 
-    power_eps: double, default 1e-15
+    power_eps: double, default: 1e-15
         Small weight used in the "power" method.
 
-    sparse: bool
+    sparse: bool, default: True
         Whether to use the sparse eigen solver with the "eigen" method
         (default sparse).  With "direct" and "power" method, when the solver is
         not specified, it is used to set whether "solve" or "spsolve" is
@@ -117,10 +117,9 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     info : dict, optional
         Dictionary containing solver-specific information about the solution.
 
-    .. note::
-
-        The SVD method works only for dense operators (i.e. small systems).
-
+    Notes
+    -----
+    The SVD method works only for dense operators (i.e. small systems).
     """
     if not A.issuper and not c_ops:
         raise TypeError('Cannot calculate the steady state for a ' +
@@ -326,25 +325,25 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
 
     Parameters
     ----------
-    H_0 : :obj:`~Qobj`
+    H_0 : :obj:`.Qobj`
         A Hamiltonian or Liouvillian operator.
 
     c_ops : list
         A list of collapse operators.
 
-    Op_t : :obj:`~Qobj`
+    Op_t : :obj:`.Qobj`
         The the interaction operator which is multiplied by the cosine
 
-    w_d : float, default 1.0
+    w_d : float, default: 1.0
         The frequency of the drive
 
-    n_it : int, default 3
+    n_it : int, default: 3
         The number of iterations for the solver
 
-    sparse : bool, default False
+    sparse : bool, default: False
         Solve for the steady state using sparse algorithms.
 
-    solver : str, default=None
+    solver : str, optional
         Solver to use when solving the linear system.
         Default supported solver are:
 
@@ -369,11 +368,11 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     dm : qobj
         Steady state density matrix.
 
-    .. note::
-
-        See: Sze Meng Tan,
-        https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
-        Section (10.16)
+    Notes
+    -----
+    See: Sze Meng Tan,
+    https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
+    Section (10.16)
 
     """
 
@@ -413,20 +412,20 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     L : Qobj
         A Liouvillian superoperator for which to compute the pseudo inverse.
 
-    rhoss : Qobj
+    rhoss : Qobj, optional
         A steadystate density matrix as Qobj instance, for the Liouvillian
         superoperator L.
 
-    w : double
+    w : double, optional
         frequency at which to evaluate pseudo-inverse.  Can be zero for dense
         systems and large sparse systems. Small sparse systems can fail for
         zero frequencies.
 
-    sparse : bool
+    sparse : bool, optional
         Flag that indicate whether to use sparse or dense matrix methods when
         computing the pseudo inverse.
 
-    method : string
+    method : str, optional
         Method used to compte matrix inverse.
         Choice are 'pinv' to use scipy's function of the same name, or a linear
         system solver.
@@ -443,6 +442,10 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         own solver. When ``L`` use these data backends, see the corresponding
         libraries ``linalg`` for available solver.
 
+    use_rcm : bool, default: False
+        Use reverse Cuthill-Mckee reordering to minimize fill-in in the LU
+        factorization of the Liouvillian.
+
     kwargs : dictionary
         Additional keyword arguments for setting parameters for solver methods.
 
@@ -451,19 +454,18 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     R : Qobj
         Returns a Qobj instance representing the pseudo inverse of L.
 
-    .. note::
+    Notes
+    -----
+    In general the inverse of a sparse matrix will be dense.  If you
+    are applying the inverse to a density matrix then it is better to
+    cast the problem as an Ax=b type problem where the explicit calculation
+    of the inverse is not required. See page 67 of "Electrons in
+    nanostructures" C. Flindt, PhD Thesis available online:
+    https://orbit.dtu.dk/en/publications/electrons-in-nanostructures-coherent-manipulation-and-counting-st
 
-        In general the inverse of a sparse matrix will be dense.  If you
-        are applying the inverse to a density matrix then it is better to
-        cast the problem as an Ax=b type problem where the explicit calculation
-        of the inverse is not required. See page 67 of "Electrons in
-        nanostructures" C. Flindt, PhD Thesis available online:
-        https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/
-        file_4732600/content
-
-        Note also that the definition of the pseudo-inverse herein is different
-        from numpys pinv() alone, as it includes pre and post projection onto
-        the subspace defined by the projector Q.
+    Note also that the definition of the pseudo-inverse herein is different
+    from numpys pinv() alone, as it includes pre and post projection onto
+    the subspace defined by the projector Q.
 
     """
     if rhoss is None:

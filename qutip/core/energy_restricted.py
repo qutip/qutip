@@ -30,7 +30,9 @@ def enr_state_dictionaries(dims, excitations):
     nstates, state2idx, idx2state: integer, dict, dict
         The number of states `nstates`, a dictionary for looking up state
         indices from a state tuple, and a dictionary for looking up state
-        state tuples from state indices.
+        state tuples from state indices. state2idx and idx2state are reverses
+        of each other, i.e., ``state2idx[idx2state[idx]] = idx`` and
+        ``idx2state[state2idx[state]] = state``.
     """
     nstates = 0
     state2idx = {}
@@ -105,7 +107,7 @@ def enr_fock(dims, excitations, state, *, dtype=None):
     state : list of integers
         The state in the number basis representation.
 
-    dtype : type or str
+    dtype : type or str, optional
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
 
@@ -158,7 +160,7 @@ def enr_thermal_dm(dims, excitations, n, *, dtype=None):
         length as dims, in which each element corresponds specifies the
         temperature of the corresponding mode.
 
-    dtype : type or str
+    dtype : type or str, optional
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
 
@@ -219,7 +221,7 @@ def enr_destroy(dims, excitations, *, dtype=None):
         The maximum number of excitations that are to be included in the
         state space.
 
-    dtype : type or str
+    dtype : type or str, optional
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
 
@@ -264,10 +266,7 @@ def enr_identity(dims, excitations, *, dtype=None):
         The maximum number of excitations that are to be included in the
         state space.
 
-    state : list of integers
-        The state in the number basis representation.
-
-    dtype : type or str
+    dtype : type or str, optional
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
 

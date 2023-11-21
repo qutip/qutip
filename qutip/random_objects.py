@@ -222,10 +222,10 @@ def rand_herm(dimensions, density=0.30, distribution="fill", *,
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    density : float, [0.30]
+    density : float, default: 0.30
         Density between [0,1] of output Hermitian operator.
 
-    distribution : str {"fill", "pos_def", "eigen"}
+    distribution : str {"fill", "pos_def", "eigen"}, default: "fill"
         Method used to obtain the density matrices.
 
         - "fill" : Uses :math:`H=0.5*(X+X^{+})` where :math:`X` is a randomly
@@ -244,13 +244,13 @@ def rand_herm(dimensions, density=0.30, distribution="fill", *,
         Seed to create the random number generator or a pre prepared
         generator. When none is suplied, a default generator is used.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
     -------
-    oper : :class:`qobj`
+    oper : :obj:`.Qobj`
         Hermitian quantum operator.
 
     Notes
@@ -347,10 +347,10 @@ def rand_unitary(dimensions, density=1, distribution="haar", *,
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    density : float, [1]
+    density : float, default: 1
         Density between [0,1] of output unitary operator.
 
-    distribution : ["haar", "exp"]
+    distribution : str {"haar", "exp"}, default: "haar"
         Method used to obtain the unitary matrices.
 
         - haar : Haar random unitary matrix using the algorithm of [Mez07]_.
@@ -361,8 +361,8 @@ def rand_unitary(dimensions, density=1, distribution="haar", *,
         Seed to create the random number generator or a pre prepared
         generator. When none is suplied, a default generator is used.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -450,11 +450,11 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    density : float, [1]
+    density : float, default: 1
         Density between [0,1] of output ket state when using the ``fill``
         method.
 
-    distribution : str {"haar", "fill"}
+    distribution : str {"haar", "fill"}, default: "haar"
         Method used to obtain the kets.
 
         - haar : Haar random pure state obtained by applying a Haar random
@@ -465,8 +465,8 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         Seed to create the random number generator or a pre prepared
         generator. When none is suplied, a default generator is used.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -514,11 +514,12 @@ def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
         the new Qobj are set to this list.  This can produce either ``oper`` or
         ``super`` depending on the passed ``dimensions``.
 
-    density : float
+    density : float, default: 0.75
         Density between [0,1] of output density matrix. Used by the "pure",
         "eigen" and "herm".
 
-    distribution : str {"ginibre", "hs", "pure", "eigen", "uniform"}
+    distribution : str {"ginibre", "hs", "pure", "eigen", "uniform"}, \
+default: "ginibre"
         Method used to obtain the density matrices.
 
         - "ginibre" : Ginibre random density operator of rank ``rank`` by using
@@ -541,8 +542,8 @@ def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
         Seed to create the random number generator or a pre prepared
         generator. When none is suplied, a default generator is used.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -630,8 +631,7 @@ def _rand_dm_ginibre(N, rank, generator):
     return rho
 
 
-def rand_kraus_map(dimensions, *, seed=None,
-                   dtype=None):
+def rand_kraus_map(dimensions, *, seed=None, dtype=None):
     """
     Creates a random CPTP map on an N-dimensional Hilbert space in Kraus
     form.
@@ -648,8 +648,8 @@ def rand_kraus_map(dimensions, *, seed=None,
         Seed to create the random number generator or a pre prepared
         generator. When none is suplied, a default generator is used.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -684,15 +684,15 @@ def rand_super(dimensions, *, superrep="super", seed=None, dtype=None):
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    superrop : str, optional, {"super"}
+    superrop : str, default: "super"
         Representation of the super operator
 
     seed : int, SeedSequence, Generator, optional
         Seed to create the random number generator or a pre prepared
         generator. When none is suplied, a default generator is used.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
@@ -732,11 +732,11 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
         density matrices this superoperator is applied to: ``dimensions=[2,2]``
         ``dims=[[[2,2],[2,2]], [[2,2],[2,2]]]``.
 
-    enforce_tp : bool
+    enforce_tp : bool, default: True
         If True, the trace-preserving condition of [BCSZ08]_ is enforced;
         otherwise only complete positivity is enforced.
 
-    rank : int or None
+    rank : int, optional
         Rank of the sampled superoperator. If None, a full-rank
         superoperator is generated.
 
@@ -744,11 +744,11 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
         Seed to create the random number generator or a pre prepared
         generator. When none is suplied, a default generator is used.
 
-    superrop : str, optional, {"super"}
+    superrop : str, default: "super"
         representation of the
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns
@@ -828,18 +828,18 @@ def rand_stochastic(dimensions, density=0.75, kind='left',
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    density : float, [0.75]
+    density : float, default: 0.75
         Density between [0,1] of output density matrix.
 
-    kind : str (Default = 'left')
+    kind : str {"left", "right"}, default: "left"
         Generate 'left' or 'right' stochastic matrix.
 
     seed : int, SeedSequence, Generator, optional
         Seed to create the random number generator or a pre prepared
         generator. When none is suplied, a default generator is used.
 
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
     Returns

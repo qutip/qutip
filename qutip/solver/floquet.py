@@ -8,6 +8,7 @@ __all__ = [
 
 import numpy as np
 from qutip.core import data as _data
+from qutip.core.data import Data
 from qutip import Qobj, QobjEvo
 from .propagator import Propagator
 from .mesolve import MESolver
@@ -24,10 +25,10 @@ class FloquetBasis:
 
     Attributes
     ----------
-    U : :class:`Propagator`
+    U : :class:`.Propagator`
         The propagator of the Hamiltonian over one period.
 
-    evecs : :class:`qutip.data.Data`
+    evecs : :class:`.Data`
         Matrix where each column is an initial Floquet mode.
 
     e_quasi : np.ndarray[float]
@@ -47,7 +48,7 @@ class FloquetBasis:
         """
         Parameters
         ----------
-        H : :class:`Qobj`, :class:`QobjEvo`, QobjEvo compatible format.
+        H : :obj:`.Qobj`, :obj:`.QobjEvo`, QobjEvo compatible format.
             System Hamiltonian, with period `T`.
 
         T : float
@@ -129,7 +130,7 @@ class FloquetBasis:
 
         Returns
         -------
-        output : list[:class:`Qobj`], :class:`qutip.data.Data`
+        output : list[:obj:`.Qobj`], :class:`.Data`
             A list of Floquet states for the time ``t`` or the states as column
             in a single matrix.
         """
@@ -160,7 +161,7 @@ class FloquetBasis:
 
         Returns
         -------
-        output : list[:class:`Qobj`], :class:`qutip.data.Data`
+        output : list[:obj:`.Qobj`], :class:`.Data`
             A list of Floquet states for the time ``t`` or the states as column
             in a single matrix.
         """
@@ -181,7 +182,7 @@ class FloquetBasis:
 
         Parameters
         ----------
-        floquet_basis : :class:`Qobj`, :class:`qutip.data.Data`
+        floquet_basis : :obj:`.Qobj`, :class:`.Data`
             Initial state in the Floquet basis at time ``t``. May be either a
             ket or density matrix.
 
@@ -190,7 +191,7 @@ class FloquetBasis:
 
         Returns
         -------
-        output : :class:`Qobj`, :class:`qutip.data.Data`
+        output : :obj:`.Qobj`, :class:`.Data`
             The state in the lab basis. The return type is the same as the type
             of the input state.
         """
@@ -219,7 +220,7 @@ class FloquetBasis:
 
         Parameters
         ----------
-        lab_basis : :class:`Qobj`, :class:`qutip.data.Data`
+        lab_basis : :obj:`.Qobj`, :class:`.Data`
             Initial state in the lab basis.
 
         t : float [0]
@@ -227,7 +228,7 @@ class FloquetBasis:
 
         Returns
         -------
-        output : :class:`Qobj`, :class:`qutip.data.Data`
+        output : :obj:`.Qobj`, :class:`.Data`
             The state in the Floquet basis. The return type is the same as the
             type of the input state.
         """
@@ -283,7 +284,7 @@ def _floquet_X_matrices(floquet_basis, c_ops, kmax, ntimes=100):
     floquet_basis : :class:`FloquetBasis`
         The system Hamiltonian wrapped in a FloquetBasis object.
 
-    c_ops : list of :class:`Qobj`
+    c_ops : list of :obj:`.Qobj`
         The collapse operators describing the dissipation.
 
     kmax : int
@@ -294,7 +295,7 @@ def _floquet_X_matrices(floquet_basis, c_ops, kmax, ntimes=100):
 
     Returns
     -------
-    X : list of dict of :class:`qutip.data.Data`
+    X : list of dict of :class:`.Data`
         A dict of the sidebands ``k`` for the X matrices of each c_ops
     """
     T = floquet_basis.T
@@ -321,7 +322,7 @@ def _floquet_gamma_matrices(X, delta, J_cb):
 
     Parameters
     ----------
-    X : list of dict of :class:`qutip.data.Data`
+    X : list of dict of :class:`.Data`
         Floquet X matrices created by :func:`_floquet_X_matrices`.
 
     delta : np.ndarray
@@ -336,7 +337,7 @@ def _floquet_gamma_matrices(X, delta, J_cb):
 
     Returns
     -------
-    gammas : dict of :class:`qutip.data.Data`
+    gammas : dict of :class:`.Data`
         A dict mapping the sidebands ``k`` to their gamma matrices.
     """
     N = delta.shape[0]
@@ -369,7 +370,7 @@ def _floquet_A_matrix(delta, gamma, w_th):
     delta : np.ndarray
         Floquet delta tensor created by :func:`_floquet_delta_tensor`.
 
-    gamma : dict of :class:`qutip.data.Data`
+    gamma : dict of :class:`.Data`
         Floquet gamma matrices created by :func:`_floquet_gamma_matrices`.
 
     w_th : float
@@ -411,7 +412,7 @@ def _floquet_master_equation_tensor(A):
 
     Parameters
     ----------
-    A : :class:`qutip.data.Data`
+    A : :class:`.Data`
         Floquet-Markov master equation rate matrix.
 
     Returns
@@ -447,24 +448,28 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0.0, kmax=5, nT=100):
 
     Parameters
     ----------
-    H : :class:`QobjEvo`
-        Periodic Hamiltonian
+    H : :obj:`.QobjEvo`, :obj:`.FloquetBasis`
+        Periodic Hamiltonian a floquet basis system.
 
-    T : float
-        The period of the time-dependence of the hamiltonian.
+    T : float, optional
+        The period of the time-dependence of the hamiltonian. Optional if ``H``
+        is a ``FloquetBasis`` object.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : list of :class:`.Qobj`
         list of collapse operators.
 
     spectra_cb : list callback functions
         List of callback functions that compute the noise power spectrum as
         a function of frequency for the collapse operators in `c_ops`.
 
-    w_th : float
+    w_th : float, default: 0.0
         The temperature in units of frequency.
 
-    kmax : int
+    kmax : int, default: 5
         The truncation of the number of sidebands (default 5).
+
+    nT : int, default: 100
+        The number of integration steps (for calculating X) within one period.
 
     Returns
     -------
@@ -492,18 +497,18 @@ def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
-        Periodic system Hamiltonian as :class:`QobjEvo`. List of
-        [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
+        Periodic system Hamiltonian as :obj:`.QobjEvo`. List of
+        [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
-    psi0 : :class:`qutip.qobj`
+    psi0 : :class:`.Qobj`
         Initial state vector (ket). If an operator is provided,
 
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    e_ops : list of :class:`qutip.qobj` / callback function, optional
+    e_ops : list of :class:`.Qobj` / callback function, optional
         List of operators for which to evaluate expectation values. If this
         list is empty, the state vectors for each time in `tlist` will be
         returned instead of expectation values.
@@ -517,20 +522,20 @@ def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):
     options : dict, optional
         Options for the results.
 
-        - store_final_state : bool
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - normalize_output : bool
-          Normalize output state to hide ODE numerical errors.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
 
     Returns
     -------
-    output : :class:`qutip.solver.Result`
-        An instance of the class :class:`qutip.solver.Result`, which
+    output : :class:`.Result`
+        An instance of the class :class:`.Result`, which
         contains either an *array* of expectation values or an array of
         state vectors, for the times specified by `tlist`.
     """
@@ -574,34 +579,34 @@ def fmmesolve(
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
-        Periodic system Hamiltonian as :class:`QobjEvo`. List of
-        [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
+        Periodic system Hamiltonian as :obj:`.QobjEvo`. List of
+        [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
-    rho0 / psi0 : :class:`qutip.Qobj`
+    rho0 / psi0 : :class:`.Qobj`
         Initial density matrix or state vector (ket).
 
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    c_ops : list of :class:`qutip.Qobj`
+    c_ops : list of :class:`.Qobj`, optional
         List of collapse operators. Time dependent collapse operators are not
-        supported.
+        supported. Fall back on :func:`fsesolve` if not provided.
 
-    e_ops : list of :class:`qutip.Qobj` / callback function
+    e_ops : list of :class:`.Qobj` / callback function, optional
         List of operators for which to evaluate expectation values.
         The states are reverted to the lab basis before applying the
 
-    spectra_cb : list callback functions
+    spectra_cb : list callback functions, default: ``lambda w: (w > 0)``
         List of callback functions that compute the noise power spectrum as
         a function of frequency for the collapse operators in `c_ops`.
 
-    T : float
+    T : float, default=tlist[-1]
         The period of the time-dependence of the hamiltonian. The default value
-        'None' indicates that the 'tlist' spans a single period of the driving.
+        ``0`` indicates that the 'tlist' spans a single period of the driving.
 
-    w_th : float
+    w_th : float, default: 0.0
         The temperature of the environment in units of frequency.
         For example, if the Hamiltonian written in units of 2pi GHz, and the
         temperature is given in K, use the following conversion:
@@ -611,50 +616,50 @@ def fmmesolve(
             kB = 1.38e-23
             args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
 
-    args : *dictionary*
+    args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonian
 
-    options : None / dict
+    options : dict, optional
         Dictionary of options for the solver.
 
-        - store_final_state : bool
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - store_floquet_states : bool
-          Whether or not to store the density matrices in the floquet basis in
-          ``result.floquet_states``.
-        - normalize_output : bool
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
-          Which differential equation integration method to use.
-        - atol, rtol : float
-          Absolute and relative tolerance of the ODE integrator.
-        - nsteps :
-          Maximum number of (internally defined) steps allowed in one ``tlist``
-          step.
-        - max_step : float, 0
-          Maximum lenght of one internal step. When using pulses, it should be
-          less than half the width of the thinnest pulse.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | store_floquet_states : bool
+          | Whether or not to store the density matrices in the floquet basis
+            in ``result.floquet_states``.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          | Which differential equation integration method to use.
+        - | atol, rtol : float
+          | Absolute and relative tolerance of the ODE integrator.
+        - | nsteps : int
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
+        - | max_step : float
+          | Maximum lenght of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
 
     Returns
     -------
-    result: :class:`qutip.Result`
+    result: :class:`.Result`
 
-        An instance of the class :class:`qutip.Result`, which contains
-        the expectation values for the times specified by `tlist`, and/or the
+        An instance of the class :class:`.Result`, which contains
+        the expectation values for the times specified by ``tlist``, and/or the
         state density matrices corresponding to the times.
     """
     if c_ops is None and rho0.isket:
@@ -722,14 +727,14 @@ class FMESolver(MESolver):
 
     Parameters
     ----------
-    floquet_basis : :class:`qutip.FloquetBasis`
+    floquet_basis : :class:`.FloquetBasis`
         The system Hamiltonian wrapped in a FloquetBasis object. Choosing a
         different integrator for the ``floquet_basis`` than for the evolution
         of the floquet state can improve the performance.
 
-    a_ops : list of tuple(:class:`qutip.Qobj`, callable)
+    a_ops : list of tuple(:class:`.Qobj`, callable)
         List of collapse operators and the corresponding function for the noise
-        power spectrum. The collapse operator must be a :class:`Qobj` and
+        power spectrum. The collapse operator must be a :obj:`.Qobj` and
         cannot be time dependent. The spectrum function must take and return
         an numpy array.
 
@@ -749,7 +754,7 @@ class FMESolver(MESolver):
 
     name = "fmmesolve"
     _avail_integrators = {}
-    resultclass = FloquetResult
+    _resultclass = FloquetResult
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -813,7 +818,7 @@ class FMESolver(MESolver):
 
         Parameters
         ----------
-        state0 : :class:`Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution.
 
         t0 : double
@@ -829,7 +834,7 @@ class FMESolver(MESolver):
 
     def step(self, t, *, args=None, copy=True, floquet=False):
         """
-        Evolve the state to ``t`` and return the state as a :class:`Qobj`.
+        Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
 
         Parameters
         ----------
@@ -846,10 +851,11 @@ class FMESolver(MESolver):
         args : dict, optional {None}
             Not supported
 
-        .. note::
-            The state must be initialized first by calling ``start`` or
-            ``run``. If ``run`` is called, ``step`` will continue from the last
-            time and state obtained.
+        Notes
+        -----
+        The state must be initialized first by calling ``start`` or
+        ``run``. If ``run`` is called, ``step`` will continue from the last
+        time and state obtained.
         """
         if args:
             raise ValueError("FMESolver cannot update arguments")
@@ -866,12 +872,12 @@ class FMESolver(MESolver):
 
         For a ``state0`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :class:`Result`. The evolution method and
+        expectation values in a :class:`.Result`. The evolution method and
         stored results are determined by ``options``.
 
         Parameters
         ----------
-        state0 : :class:`Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution.
 
         tlist : list of double
@@ -893,7 +899,7 @@ class FMESolver(MESolver):
 
         Returns
         -------
-        results : :class:`qutip.solver.FloquetResult`
+        results : :class:`FloquetResult`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """
@@ -905,7 +911,7 @@ class FMESolver(MESolver):
         _data0 = self._prepare_state(state0)
         self._integrator.set_state(tlist[0], _data0)
         stats = self._initialize_stats()
-        results = self.resultclass(
+        results = self._resultclass(
             e_ops,
             self.options,
             solver=self.name,

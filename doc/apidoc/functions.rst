@@ -18,7 +18,7 @@ Quantum Operators
 -----------------
 
 .. automodule:: qutip.core.operators
-    :members: charge, commutator, create, destroy, displace, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
+    :members: charge, commutator, create, destroy, displace, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling, qeye_like, qzero_like
 
 
 Energy Restricted Operators
@@ -61,7 +61,7 @@ Operators and Superoperator Dimensions
 --------------------------------------
 
 .. automodule:: qutip.core.dimensions
-    :members: flatten, deep_remove, unflatten, collapse_dims_oper, collapse_dims_super, enumerate_flat, deep_map, dims_to_tensor_perm, dims_to_tensor_shape, dims_idxs_to_tensor_idxs
+    :members: to_tensor_rep, from_tensor_rep
 
 
 Functions acting on states and operators
@@ -165,7 +165,7 @@ Floquet States and Floquet-Markov Master Equation
 -------------------------------------------------
 
 .. automodule:: qutip.solver.floquet
-    :members: fmmesolve, fsesolve, FloquetBasis, FMESolver, floquet_tensor
+    :members: fmmesolve, fsesolve, floquet_tensor
 
 
 Stochastic Schrödinger Equation and Master Equation
@@ -173,6 +173,13 @@ Stochastic Schrödinger Equation and Master Equation
 
 .. automodule:: qutip.solver.stochastic
     :members: ssesolve, smesolve
+
+
+Constructing time dependent systems
+-----------------------------------
+
+.. automodule:: qutip.core.coefficient
+    :members: coefficient
 
 
 Hierarchical Equations of Motion
@@ -290,26 +297,16 @@ Parallelization
 ---------------
 
 .. automodule:: qutip.solver.parallel
-    :members: parallel_map, serial_map
+    :members: parallel_map, serial_map, loky_pmap
 
 
 .. _functions-ipython:
-
-Semidefinite Programming
-------------------------
-
-.. Was this removed
-    .. automodule:: qutip.semidefinite
-        :members: complex_var, herm, pos_noherm, pos, dens, kron, conj, bmat, bmat, memoize, qudit_swap, dnorm_problem
-
-
-.. _functions-semidefinite:
 
 IPython Notebook Tools
 ----------------------
 
 .. automodule:: qutip.ipynbtools
-    :members: parallel_map, version_table
+    :members: version_table
 
 .. _functions-misc:
 

@@ -147,10 +147,10 @@ def collapse_dims_oper(dims):
 def collapse_dims_super(dims):
     """
     Given the dimensions specifications for an operator-ket-, operator-bra- or
-    super-type Qobj, returns a dimensions specification describing the same shape
-    by collapsing all composite systems. For instance, the super-type
-    dimensions specification ``[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]`` collapses to
-    ``[[[6], [6]], [[6], [6]]]``.
+    super-type Qobj, returns a dimensions specification describing the same
+    shape by collapsing all composite systems. For instance, the super-type
+    dimensions specification ``[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]`` collapses
+    to ``[[[6], [6]], [[6], [6]]]``.
 
     Parameters
     ----------
@@ -277,16 +277,32 @@ def to_tensor_rep(q_oper):
     Transform a ``Qobj`` to a numpy array whose shape is the flattened
     dimensions.
 
-    ```
-    ket.dims == [[2, 3], [1]]
-    to_tensor_rep(ket).shape == (2, 3, 1)
+    Parameters
+    ----------
+    q_oper: Qobj
+        Object to reshape
 
-    oper.dims == [[2, 3], [2, 3]]
-    to_tensor_rep(oper).shape == (2, 3, 2, 3)
+    Returns
+    -------
+    ndarray:
+        Numpy array with one dimension for each index in dims.
 
-    super.dims == [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
-    to_tensor_rep(super).shape == (2, 3, 2, 3, 2, 3, 2, 3)
-    ```
+    Examples
+    --------
+    >>> ket.dims
+    [[2, 3], [1]]
+    >>> to_tensor_rep(ket).shape
+    (2, 3, 1)
+
+    >>> oper.dims
+    [[2, 3], [2, 3]]
+    >>> to_tensor_rep(oper).shape
+    (2, 3, 2, 3)
+
+    >>> super_oper.dims
+    [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
+    >>> to_tensor_rep(super_oper).shape
+    (2, 3, 2, 3, 2, 3, 2, 3)
     """
     dims = q_oper._dims
     data = q_oper.full().reshape(dims._get_tensor_shape())
@@ -298,6 +314,19 @@ def from_tensor_rep(tensorrep, dims):
     Reverse operator of :func:`to_tensor_rep`.
     Create a Qobj From a N-dimensions numpy array and dimensions with N
     indices.
+
+    Parameters
+    ----------
+    tensorrep: ndarray
+        Numpy array with one dimension for each index in dims.
+
+    dims: list of list, Dimensions
+        Dimensions of the Qobj.
+
+    Returns
+    -------
+    Qobj
+        Re constructed Qobj
     """
     from . import Qobj
     dims = Dimensions(dims)

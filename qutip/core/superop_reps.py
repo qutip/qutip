@@ -141,7 +141,12 @@ def _choi_to_kraus(q_oper, tol=1e-9):
 def kraus_to_choi(kraus_list):
     """
     Take a list of Kraus operators and returns the Choi matrix for the channel
-    represented by the Kraus operators in `kraus_list`
+    represented by the Kraus operators in `kraus_list`.
+
+    Parameters
+    ----------
+    kraus_list : list of Qobj
+        The list of Kraus super operators to convert.
     """
     kraus_mat_list = [k.full() for k in kraus_list]
     op_rng = list(range(kraus_mat_list[0].shape[1]))
@@ -160,6 +165,11 @@ def kraus_to_choi(kraus_list):
 def kraus_to_super(kraus_list):
     """
     Convert a list of Kraus operators to a superoperator.
+
+    Parameters
+    ----------
+    kraus_list : list of Qobj
+        The list of Kraus super operators to convert.
     """
     return to_super(kraus_to_choi(kraus_list))
 
@@ -343,8 +353,9 @@ def to_choi(q_oper):
 
     Raises
     ------
-    TypeError: if the given quantum object is not a map, or cannot be converted
-        to Choi representation.
+    TypeError:
+        If the given quantum object is not a map, or cannot be converted to
+        Choi representation.
     """
     if q_oper.type == 'super':
         if q_oper.superrep == 'choi':
@@ -385,7 +396,8 @@ def to_chi(q_oper):
 
     Raises
     ------
-    TypeError: if the given quantum object is not a map, or cannot be converted
+    TypeError:
+        If the given quantum object is not a map, or cannot be converted
         to Chi representation.
     """
     if q_oper.type == 'super':
@@ -462,9 +474,8 @@ def to_kraus(q_oper, tol=1e-9):
         ``q_oper`` is ``type="oper"``, then it is taken to act by conjugation,
         such that ``to_kraus(A) == to_kraus(sprepost(A, A.dag())) == [A]``.
 
-    tol : Float
+    tol : Float, default: 1e-9
         Optional threshold parameter for eigenvalues/Kraus ops to be discarded.
-        The default is to=1e-9.
 
     Returns
     -------
@@ -492,18 +503,22 @@ def to_kraus(q_oper, tol=1e-9):
 
 def to_stinespring(q_oper, threshold=1e-10):
     r"""
-    Converts a Qobj representing a quantum map $\Lambda$ to a pair of partial
-    isometries $A$ and $B$ such that $\Lambda(X) = \Tr_2(A X B^\dagger)$ for
-    all inputs $X$, where the partial trace is taken over a a new index on the
-    output dimensions of $A$ and $B$.
+    Converts a Qobj representing a quantum map :math:`\Lambda` to a pair of
+    partial isometries ``A`` and ``B`` such that
+    :math:`\Lambda(X) = \Tr_2(A X B^\dagger)` for all inputs ``X``, where the
+    partial trace is taken over a a new index on the output dimensions of
+    ``A`` and ``B``.
 
-    For completely positive inputs, $A$ will always equal $B$ up to precision
-    errors.
+    For completely positive inputs, ``A`` will always equal ``B`` up to
+    precision errors.
 
     Parameters
     ----------
     q_oper : Qobj
         Superoperator to be converted to a Stinespring pair.
+
+    threshold : float, default: 1e-10
+        Threshold parameter for eigenvalues/Kraus ops to be discarded.
 
     Returns
     -------

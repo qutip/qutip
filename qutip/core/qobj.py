@@ -350,11 +350,12 @@ class Qobj:
         storage representation.
 
         The different storage representations available are the "data-layer
-        types" which are known to `qutip.data.to`.  By default, these are
-        `qutip.data.Dense` and `qutip.data.CSR`, which respectively construct a
-        dense matrix store and a compressed sparse row one.  Certain algorithms
-        and operations may be faster or more accurate when using a more
-        appropriate data store.
+        types" which are known to :obj:`qutip.core.data.to`.  By default, these
+        are :class:`~qutip.core.data.CSR`, :class:`~qutip.core.data.Dense` and
+        :class:`~qutip.core.data.Dia`, which respectively construct a
+        compressed sparse row matrix, diagonal matrix and a dense one.  Certain
+        algorithms and operations may be faster or more accurate when using a
+        more appropriate data store.
 
         If the data store is already in the format requested, the function
         returns `self`.  Otherwise, it returns a copy of itself with the data
@@ -363,14 +364,14 @@ class Qobj:
         Parameters
         ----------
         data_type : type
-            The data-layer type that the data of this `Qobj` should be
+            The data-layer type that the data of this :class:`Qobj` should be
             converted to.
 
         Returns
         -------
         Qobj
-            A new `Qobj` if a type conversion took place with the data stored
-            in the requested format, or `self` if not.
+            A new :class:`Qobj` if a type conversion took place with the data
+            stored in the requested format, or `self` if not.
         """
         try:
             converter = _data.to[data_type]
@@ -707,12 +708,12 @@ class Qobj:
 
         Parameters
         ----------
-        Q : :class:`qutip.Qobj`
+        Q : :class:`.Qobj`
             Input bra or ket vector
 
         Returns
         -------
-        P : :class:`qutip.Qobj`
+        P : :class:`.Qobj`
             Projection operator.
         """
         if not (self.isket or self.isbra):
@@ -825,7 +826,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Exponentiated quantum operator.
 
         Raises
@@ -847,7 +848,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Logarithm of the quantum operator.
 
         Raises
@@ -888,7 +889,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Matrix square root of operator.
 
         Raises
@@ -930,7 +931,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Matrix cosine of operator.
 
         Raises
@@ -954,7 +955,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Matrix sine of operator.
 
         Raises
@@ -977,7 +978,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Matrix inverse of operator.
 
         Raises
@@ -1012,7 +1013,7 @@ class Qobj:
 
         Returns
         -------
-        obj : :class:`qutip.Qobj`
+        obj : :class:`.Qobj`
             Normalized quantum object.  Will be the `self` object if in place.
         """
         norm = self.norm(norm=norm, kwargs=kwargs)
@@ -1062,7 +1063,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Quantum object representing partial trace with selected components
             remaining.
         """
@@ -1152,28 +1153,42 @@ class Qobj:
     def permute(self, order):
         """
         Permute the tensor structure of a quantum object.  For example,
-        ``qutip.tensor(x, y).permute([1, 0])``
+
+            ``qutip.tensor(x, y).permute([1, 0])``
+
         will give the same result as
-        ``qutip.tensor(y, x)``
+
+            ``qutip.tensor(y, x)``
+
         and
-        ``qutip.tensor(a, b, c).permute([1, 2, 0])``
+
+            ``qutip.tensor(a, b, c).permute([1, 2, 0])``
+
         will be the same as
-        ``qutip.tensor(b, c, a)``
+
+            ``qutip.tensor(b, c, a)``
 
         For regular objects (bras, kets and operators) we expect ``order`` to
         be a flat list of integers, which specifies the new order of the tensor
         product.
 
         For superoperators, we expect ``order`` to be something like
-        ``[[0, 2], [1, 3]]``
+
+            ``[[0, 2], [1, 3]]``
+
         which tells us to permute according to [0, 2, 1, 3], and then group
         indices according to the length of each sublist.  As another example,
         permuting a superoperator with dimensions of
-        ``[[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]]``
+
+            ``[[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]]``
+
         by an ``order``
-        ``[[0, 3], [1, 4], [2, 5]]``
+
+            ``[[0, 3], [1, 4], [2, 5]]``
+
         should give a new object with dimensions
-        ``[[[1, 1], [2, 2], [3, 3]], [[1, 1], [2, 2], [3, 3]]]``.
+
+            ``[[[1, 1], [2, 2], [3, 3]], [[1, 1], [2, 2], [3, 3]]]``.
 
         Parameters
         ----------
@@ -1182,7 +1197,7 @@ class Qobj:
 
         Returns
         -------
-        P : :class:`qutip.Qobj`
+        P : :class:`.Qobj`
             Permuted quantum object.
         """
         if self.type in ('bra', 'ket', 'oper'):
@@ -1235,7 +1250,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Quantum object with small elements removed.
         """
         atol = atol or settings.core['auto_tidyup_atol']
@@ -1257,7 +1272,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             Operator in new basis.
 
         Notes
@@ -1316,7 +1331,7 @@ class Qobj:
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`.Qobj`
             A valid density operator.
         """
         if not self.isherm:
@@ -1364,10 +1379,10 @@ class Qobj:
 
         Parameters
         ----------
-        bra : :class:`qutip.Qobj`
+        bra : :class:`.Qobj`
             Quantum object of type 'bra' or 'ket'
 
-        ket : :class:`qutip.Qobj`
+        ket : :class:`.Qobj`
             Quantum object of type 'ket'.
 
         Returns
@@ -1401,7 +1416,7 @@ class Qobj:
 
         Parameters
         ----------
-        other : :class:`qutip.Qobj`
+        other : :class:`.Qobj`
             Quantum object for a state vector of type 'ket', 'bra' or density
             matrix.
 
@@ -1586,7 +1601,7 @@ class Qobj:
         -------
         eigval : float
             Eigenvalue for the ground state of quantum operator.
-        eigvec : :class:`qutip.Qobj`
+        eigvec : :class:`.Qobj`
             Eigenket for the ground state of quantum operator.
 
         Notes
@@ -1612,7 +1627,7 @@ class Qobj:
 
         Parameters
         ----------
-        B : :class:`qutip.Qobj` or None
+        B : :class:`.Qobj` or None
             If B is not None, the diamond distance d(A, B) = dnorm(A - B)
             between this operator and B is returned instead of the diamond norm.
 
@@ -1734,14 +1749,14 @@ def ptrace(Q, sel):
 
     Parameters
     ----------
-    Q : :class:`qutip.Qobj`
+    Q : :class:`.Qobj`
         Composite quantum object.
     sel : int/list
         An ``int`` or ``list`` of components to keep after partial trace.
 
     Returns
     -------
-    oper : :class:`qutip.Qobj`
+    oper : :class:`.Qobj`
         Quantum object representing partial trace with selected components
         remaining.
 

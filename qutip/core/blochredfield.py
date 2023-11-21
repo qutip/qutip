@@ -33,13 +33,13 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
         a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :class:`Coefficient`, func, str
+        spectra : :obj:`.Coefficient`, func, str
             The corresponding bath spectra.
-            Can be a :class:`~Coefficient` using an 'w' args, a function of the
-            frequency or a string. The :class:`SpectraCoefficient` can be used for
-            array based coefficient.
+            Can be a :obj:`.Coefficient` using an 'w' args, a function of the
+            frequency or a string. The :class:`SpectraCoefficient` can be used
+            for array based coefficient.
             The spectra can depend on ``t`` if the corresponding
-            ``a_op`` is a :class:`QobjEvo`.
+            ``a_op`` is a :obj:`.QobjEvo`.
 
         Example:
 
@@ -117,13 +117,13 @@ def brterm(H, a_op, spectra, sec_cutoff=0.1,
     a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
         The operator coupling to the environment. Must be hermitian.
 
-    spectra : :class:`Coefficient`, func, str
+    spectra : :obj:`.Coefficient`, func, str
         The corresponding bath spectra.
-        Can be a :class:`~Coefficient` using an 'w' args, a function of the
+        Can be a :obj:`.Coefficient` using an 'w' args, a function of the
         frequency or a string. The :class:`SpectraCoefficient` can be used for
         array based coefficient.
         The spectra can depend on ``t`` if the corresponding
-        ``a_op`` is a :class:`QobjEvo`.
+        ``a_op`` is a :obj:`.QobjEvo`.
 
         Example:
 
@@ -147,12 +147,12 @@ def brterm(H, a_op, spectra, sec_cutoff=0.1,
 
     Returns
     -------
-    R, [evecs]: :class:`~Qobj`, :class:`~QobjEvo` or tuple
+    R, [evecs]: :obj:`.Qobj`, :obj:`.QobjEvo` or tuple
         If ``fock_basis``, return the Bloch Redfield tensor in the outside
         basis. Otherwise return the Bloch Redfield tensor in the diagonalized
         Hamiltonian basis and the eigenvectors of the Hamiltonian as hstacked
-        column. The tensors and, if given, evecs, will be :obj:`~QobjEvo` if
-        the ``H`` and ``a_op`` is time dependent, :obj:`Qobj` otherwise.
+        column. The tensors and, if given, evecs, will be :obj:`.QobjEvo` if
+        the ``H`` and ``a_op`` is time dependent, :obj:`.Qobj` otherwise.
     """
     if isinstance(H, _EigenBasisTransform):
         Hdiag = H
