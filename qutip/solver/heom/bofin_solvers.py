@@ -847,7 +847,7 @@ class HEOMSolver(Solver):
         """ Make the full RHS required by the solver. """
         rhs_mat = self._rhs()
         rhs_dims = [
-            self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
+            [self._sup_shape * self._n_ados], [self._sup_shape * self._n_ados]
         ]
         h_identity = _data.identity(self._n_ados, dtype="csr")
 

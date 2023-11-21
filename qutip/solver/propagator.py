@@ -98,7 +98,6 @@ def propagator_steadystate(U):
     rho_data = _data.mul(rho_data, 0.5 / _data.trace(rho_data))
     return Qobj(_data.add(rho_data, _data.adjoint(rho_data)),
                 dims=U.dims[0],
-                type='oper',
                 isherm=True,
                 copy=False)
 

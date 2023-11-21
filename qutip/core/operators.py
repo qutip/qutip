@@ -3,13 +3,14 @@ This module contains functions for generating Qobj representation of a variety
 of commonly occuring quantum operators.
 """
 
-__all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
-           'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
-           'destroy', 'create', 'fdestroy', 'fcreate', 'qeye', 'qeye_like',
-           'identity', 'position', 'momentum', 'num', 'squeeze', 'squeezing',
-           'swap', 'displace', 'commutator', 'qutrit_ops', 'qdiags', 'phase',
-           'qzero', 'qzero_like', 'enr_destroy', 'enr_identity', 'charge',
-           'tunneling', 'qft']
+__all__ = [
+    'jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
+    'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
+    'destroy', 'create', 'fdestroy', 'fcreate', 'qeye', 'identity',
+    'position', 'momentum', 'num', 'squeeze', 'squeezing', 'displace',
+    'commutator', 'qutrit_ops', 'qdiags', 'phase', 'qzero', 'charge',
+    'tunneling', 'qft', 'qzero_like', 'qeye_like', 'swap',
+]
 
 import numbers
 
@@ -64,7 +65,7 @@ shape = [4, 4], type = oper, isherm = False
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
     offsets = [0] if offsets is None else offsets
     data = _data.diag[dtype](diagonals, offsets, shape)
-    return Qobj(data, dims=dims, type='oper', copy=False)
+    return Qobj(data, dims=dims, copy=False)
 
 
 def jmat(j, which=None, *, dtype=None):
@@ -129,21 +130,21 @@ shape = [3, 3], type = oper, isHerm = True
 
     dims = [[int(2*j + 1)]]*2
     if which == '+':
-        return Qobj(_jplus(j, dtype=dtype), dims=dims, type='oper',
+        return Qobj(_jplus(j, dtype=dtype), dims=dims,
                     isherm=False, isunitary=False, copy=False)
     if which == '-':
-        return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims, type='oper',
+        return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims,
                     isherm=False, isunitary=False, copy=False)
     if which == 'x':
         A = _jplus(j, dtype=dtype)
-        return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
+        return Qobj(_data.add(A, A.adjoint()), dims=dims,
                     isherm=True, isunitary=False, copy=False) * 0.5
     if which == 'y':
         A = _data.mul(_jplus(j, dtype=dtype), -0.5j)
-        return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
+        return Qobj(_data.add(A, A.adjoint()), dims=dims,
                     isherm=True, isunitary=False, copy=False)
     if which == 'z':
-        return Qobj(_jz(j, dtype=dtype), dims=dims, type='oper',
+        return Qobj(_jz(j, dtype=dtype), dims=dims,
                     isherm=True, isunitary=False, copy=False)
     raise ValueError('Invalid spin operator: ' + which)
 
@@ -668,7 +669,7 @@ def qzero(dimensions, *, dtype=None):
     size, dimensions = _implicit_tensor_dimensions(dimensions)
     # A sparse matrix with no data is equal to a zero matrix.
     type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
-    return Qobj(_data.zeros[dtype](size, size), dims=dimensions, type=type_,
+    return Qobj(_data.zeros[dtype](size, size), dims=dimensions,
                 isherm=True, isunitary=False, copy=False)
 
 
@@ -691,8 +692,8 @@ def qzero_like(qobj):
     if isinstance(qobj, QobjEvo):
         qobj = qobj(0)
     return Qobj(
-        _data.zeros_like(qobj.data), dims=qobj.dims, type=qobj.type,
-        superrep=qobj.superrep, isherm=True, isunitary=False, copy=False
+        _data.zeros_like(qobj.data), dims=qobj._dims,
+        isherm=True, isunitary=False, copy=False
     )
 
 
@@ -739,7 +740,7 @@ isherm = True
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
     size, dimensions = _implicit_tensor_dimensions(dimensions)
     type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
-    return Qobj(_data.identity[dtype](size), dims=dimensions, type=type_,
+    return Qobj(_data.identity[dtype](size), dims=dimensions,
                 isherm=True, isunitary=True, copy=False)
 
 
@@ -767,8 +768,8 @@ def qeye_like(qobj):
     if isinstance(qobj, QobjEvo):
         qobj = qobj(0)
     return Qobj(
-        _data.identity_like(qobj.data), dims=qobj.dims, type=qobj.type,
-        superrep=qobj.superrep, isherm=True, isunitary=True, copy=False
+        _data.identity_like(qobj.data), dims=qobj._dims,
+        isherm=True, isunitary=True, copy=False
     )
 
 
@@ -1054,113 +1055,7 @@ def phase(N, phi0=0, *, dtype=None):
     states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1j * n * kk)
                        for kk in phim])
     ops = np.sum([np.outer(st, st.conj()) for st in states], axis=0)
-    return Qobj(ops, dims=[[N], [N]], type='oper', copy=False).to(dtype)
-
-
-def enr_destroy(dims, excitations, *, dtype=None):
-    """
-    Generate annilation operators for modes in a excitation-number-restricted
-    state space. For example, consider a system consisting of 4 modes, each
-    with 5 states. The total hilbert space size is 5**4 = 625. If we are
-    only interested in states that contain up to 2 excitations, we only need
-    to include states such as
-
-        (0, 0, 0, 0)
-        (0, 0, 0, 1)
-        (0, 0, 0, 2)
-        (0, 0, 1, 0)
-        (0, 0, 1, 1)
-        (0, 0, 2, 0)
-        ...
-
-    This function creates annihilation operators for the 4 modes that act
-    within this state space:
-
-        a1, a2, a3, a4 = enr_destroy([5, 5, 5, 5], excitations=2)
-
-    From this point onwards, the annihiltion operators a1, ..., a4 can be
-    used to setup a Hamiltonian, collapse operators and expectation-value
-    operators, etc., following the usual pattern.
-
-    Parameters
-    ----------
-    dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
-
-    excitations : integer
-        The maximum number of excitations that are to be included in the
-        state space.
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    a_ops : list of qobj
-        A list of annihilation operators for each mode in the composite
-        quantum system described by dims.
-    """
-    from .states import enr_state_dictionaries
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
-
-    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
-
-    a_ops = [scipy.sparse.lil_matrix((nstates, nstates), dtype=np.complex128)
-             for _ in dims]
-
-    for n1, state1 in enumerate(idx2state):
-        for idx, s in enumerate(state1):
-            # if s > 0, the annihilation operator of mode idx has a non-zero
-            # entry with one less excitation in mode idx in the final state
-            if s > 0:
-                state2 = state1[:idx] + (s-1,) + state1[idx+1:]
-                n2 = state2idx[state2]
-                a_ops[idx][n2, n1] = np.sqrt(s)
-
-    return [Qobj(a, dims=[dims, dims]).to(dtype) for a in a_ops]
-
-
-def enr_identity(dims, excitations, *, dtype=None):
-    """
-    Generate the identity operator for the excitation-number restricted
-    state space defined by the `dims` and `exciations` arguments. See the
-    docstring for enr_fock for a more detailed description of these arguments.
-
-    Parameters
-    ----------
-    dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
-
-    excitations : integer
-        The maximum number of excitations that are to be included in the
-        state space.
-
-    state : list of integers
-        The state in the number basis representation.
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    op : Qobj
-        A Qobj instance that represent the identity operator in the
-        exication-number-restricted state space defined by `dims` and
-        `exciations`.
-    """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
-    from .states import enr_state_dictionaries
-    nstates, _, _ = enr_state_dictionaries(dims, excitations)
-    return Qobj(_data.identity[dtype](nstates),
-                dims=[dims, dims],
-                type='oper',
-                isherm=True,
-                isunitary=True,
-                copy=False)
+    return Qobj(ops, dims=[[N], [N]], copy=False).to(dtype)
 
 
 def charge(Nmax, Nmin=None, frac=1, *, dtype=None):

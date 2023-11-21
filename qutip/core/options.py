@@ -63,8 +63,15 @@ class CoreOptions(QutipOptions):
     auto_tidyup : bool
         Whether to tidyup during sparse operations.
 
-    auto_tidyup_dims : bool [True]
-        Use auto tidyup dims on multiplication. (Not used yet)
+    auto_tidyup_dims : bool [False]
+        Use auto tidyup dims on multiplication, tensor, etc.
+        Without auto_tidyup_dims:
+            ``basis([2, 2]).dims == [[2, 2], [1, 1]]``
+        With auto_tidyup_dims:
+            ``basis([2, 2]).dims == [[2, 2], [1]]``
+
+    auto_herm : boolTrue
+        detect hermiticity
 
     atol : float {1e-12}
         General absolute tolerance
@@ -104,7 +111,9 @@ class CoreOptions(QutipOptions):
         # use auto tidyup
         "auto_tidyup": True,
         # use auto tidyup dims on multiplication
-        "auto_tidyup_dims": True,
+        "auto_tidyup_dims": False,
+        # detect hermiticity
+        "auto_herm": True,
         # general absolute tolerance
         "atol": 1e-12,
         # general relative tolerance

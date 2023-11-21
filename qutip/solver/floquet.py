@@ -110,7 +110,7 @@ class FloquetBasis:
         """
         dims = [self.U(0).dims[0], [1]]
         return [
-            Qobj(ket, dims=dims, type="ket")
+            Qobj(ket, dims=dims)
             for ket in _data.split_columns(kets_mat)
         ]
 
@@ -483,9 +483,7 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0.0, kmax=5, nT=100):
     a = _floquet_A_matrix(delta, gamma, w_th)
     r = _floquet_master_equation_tensor(a)
     dims = floquet_basis.U(0).dims
-    return Qobj(
-        r, dims=[dims, dims], type="super", superrep="super", copy=False
-    )
+    return Qobj(r, dims=[dims, dims], superrep="super", copy=False)
 
 
 def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):

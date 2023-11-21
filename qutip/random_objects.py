@@ -23,7 +23,7 @@ import scipy.sparse as sp
 from . import (Qobj, create, destroy, jmat, basis,
                to_super, to_choi, to_chi, to_kraus, to_stinespring)
 from .core import data as _data
-from .core.dimensions import flatten
+from .core.dimensions import flatten, Dimensions
 from . import settings
 
 
@@ -274,7 +274,7 @@ def rand_herm(dimensions, density=0.30, distribution="fill", *,
         out = _rand_jacobi_rotation(out, generator)
         while _data.csr.nnz(out) < 0.95 * nvals:
             out = _rand_jacobi_rotation(out, generator)
-        out = Qobj(out, type='oper', dims=dims, isherm=True, copy=False)
+        out = Qobj(out, dims=dims, isherm=True, copy=False)
         dtype = dtype or settings.core["default_dtype"] or _data.CSR
 
     else:
@@ -286,7 +286,7 @@ def rand_herm(dimensions, density=0.30, distribution="fill", *,
             M = _rand_herm_dense(N, density, pos_def, generator)
             dtype = dtype or settings.core["default_dtype"] or _data.Dense
 
-        out = Qobj(M, type='oper', dims=dims, isherm=True, copy=False)
+        out = Qobj(M, dims=dims, isherm=True, copy=False)
 
     return out.to(dtype)
 
@@ -390,7 +390,7 @@ def rand_unitary(dimensions, density=1, distribution="haar", *,
 
     merged = _merge_shuffle_blocks(blocks, generator)
 
-    mat = Qobj(merged, type='oper', dims=dims, isunitary=True, copy=False)
+    mat = Qobj(merged, dims=dims, isunitary=True, copy=False)
     return mat.to(dtype)
 
 
@@ -480,7 +480,9 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
     if distribution not in ["haar", "fill"]:
         raise ValueError("distribution must be one of {'haar', 'fill'}")
 
-    if distribution == "haar":
+    if N == 1:
+        ket = rand_unitary(1, seed=generator)
+    elif distribution == "haar":
         ket = rand_unitary(N, density, "haar", seed=generator) @ basis(N, 0)
     else:
         X = scipy.sparse.rand(N, 1, density, format='csr',
@@ -494,7 +496,7 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         Y.data = 1.0j * (generator.random(len(X.data)) - 0.5)
         X = _data.csr.CSR(X + Y)
         ket = Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
-                   copy=False, type="ket", isherm=False, isunitary=False)
+                   copy=False, isherm=False, isunitary=False)
     ket.dims = [dims[0], [1]]
     return ket.to(dtype)
 
@@ -591,7 +593,7 @@ def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
         H = _merge_shuffle_blocks(blocks, generator)
         H /= H.trace()
 
-    return Qobj(H, dims=dims, type='oper', isherm=True, copy=False).to(dtype)
+    return Qobj(H, dims=dims, isherm=True, copy=False).to(dtype)
 
 
 def _rand_dm_ginibre(N, rank, generator):
@@ -658,17 +660,18 @@ def rand_kraus_map(dimensions, *, seed=None,
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
     N, dims = _implicit_tensor_dimensions(dimensions)
+    dims = Dimensions(dims)
+    if dims.issuper:
+        raise TypeError("Each kraus operator cannot itself a super operator.")
 
     # Random unitary (Stinespring Dilation)
     big_unitary = rand_unitary(N ** 3, seed=seed, dtype=dtype).full()
     orthog_cols = np.array(big_unitary[:, :N])
     oper_list = np.reshape(orthog_cols, (N ** 2, N, N))
-    return [Qobj(x, dims=dims, type='oper', copy=False).to(dtype)
-            for x in oper_list]
+    return [Qobj(x, dims=dims, copy=False).to(dtype) for x in oper_list]
 
 
-def rand_super(dimensions, *, superrep="super", seed=None,
-               dtype=None):
+def rand_super(dimensions, *, superrep="super", seed=None, dtype=None):
     """
     Returns a randomly drawn superoperator acting on operators acting on
     N dimensions.
@@ -794,9 +797,9 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
         # marking the dimensions as that of a type=super (that is,
         # with left and right compound indices, each representing
         # left and right indices on the underlying Hilbert space).
-        D = Qobj(np.dot(Z, np.dot(XXdag, Z)), dims=tmp_dims, type='super')
+        D = Qobj(np.dot(Z, np.dot(XXdag, Z)), dims=tmp_dims)
     else:
-        D = N * Qobj(XXdag / np.trace(XXdag), dims=tmp_dims, type='super')
+        D = N * Qobj(XXdag / np.trace(XXdag), dims=tmp_dims)
 
     # Since [BCSZ08] gives a row-stacking Choi matrix, but QuTiP
     # expects a column-stacking Choi matrix, we must permute the indices.

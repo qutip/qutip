@@ -83,26 +83,25 @@ shape = [4, 4], type = oper, isHerm = True
             "In tensor products of superroperators,",
             " all must have the same representation"
         ]))
-    type = args[0].type
+
     isherm = args[0]._isherm
     isunitary = args[0]._isunitary
     out_data = args[0].data
-    dims_l = [d for arg in args for d in arg.dims[0]]
-    dims_r = [d for arg in args for d in arg.dims[1]]
+    dims_l = [args[0]._dims[0]]
+    dims_r = [args[0]._dims[1]]
     for arg in args[1:]:
         out_data = _data.kron(out_data, arg.data)
         # If both _are_ Hermitian and/or unitary, then so is the output, but if
         # both _aren't_, then output still can be.
         isherm = (isherm and arg._isherm) or None
         isunitary = (isunitary and arg._isunitary) or None
-        if arg.type != type:
-            type = None
+        dims_l.append(arg._dims[0])
+        dims_r.append(arg._dims[1])
+
     return Qobj(out_data,
                 dims=[dims_l, dims_r],
-                type=type,
                 isherm=isherm,
                 isunitary=isunitary,
-                superrep=args[0].superrep,
                 copy=False)
 
 
