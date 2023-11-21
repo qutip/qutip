@@ -435,7 +435,7 @@ HEOM revamp
 :tag: heom-revamp
 :status: completed
 :admin lead: `Neill <https://github.com/nwlambert>`_
-:main dev: `Simon Cross <https://github.com/hodgesstar>`_, `Tarun Raheja <https://github.com/tehruhn>`_
+:main dev: `Simon Cross <https://github.com/hodgestar>`_, `Tarun Raheja <https://github.com/tehruhn>`_
 
 An overhaul of the HEOM solver, to incorporate the improvements pioneered in BoFiN.
 

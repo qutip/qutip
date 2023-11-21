@@ -16,8 +16,8 @@ from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
 
 
-def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
-              args={}, sec_cutoff=0.1, options=None, **kwargs):
+def brmesolve(H, psi0, tlist, a_ops=(), e_ops=(), c_ops=(),
+              args=None, sec_cutoff=0.1, options=None, **kwargs):
     """
     Solves for the dynamics of a system using the Bloch-Redfield master
     equation, given an input Hamiltonian, Hermitian bath-coupling terms and
@@ -26,10 +26,10 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
     psi0: Qobj
         Initial density matrix or state vector (ket).
@@ -41,10 +41,10 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         Nested list of system operators that couple to the environment,
         and the corresponding bath spectra.
 
-        a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
+        a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :class:`Coefficient`, str, func
+        spectra : :obj:`.Coefficient`, str, func
             The corresponding bath spectral responce.
             Can be a `Coefficient` using an 'w' args, a function of the
             frequence or a string. Coefficient build from a numpy array are
@@ -52,7 +52,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             expected to be of the signature ``f(w)`` or ``f(t, w, **args)``.
 
             The spectra function can depend on ``t`` if the corresponding
-            ``a_op`` is a :class:`QobjEvo`.
+            ``a_op`` is a :obj:`.QobjEvo`.
 
         Example:
 
@@ -66,83 +66,77 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             ]
 
         .. note:
-            ``Cubic_Spline`` has been replaced by :class:`Coefficient`:
+            ``Cubic_Spline`` has been replaced by :obj:`.Coefficient`:
                 ``spline = qutip.coefficient(array, tlist=times)``
 
             Whether the ``a_ops`` is time dependent is decided by the type of
-            the operator: :class:`Qobj` vs :class:`QobjEvo` instead of the type
+            the operator: :obj:`.Qobj` vs :obj:`.QobjEvo` instead of the type
             of the spectra.
 
-    e_ops : list of :class:`Qobj` / callback function
+    e_ops : list of :obj:`.Qobj` / callback function, optional
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`expect` for more detail of operator expectation
 
-    c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format), optional
         List of collapse operators.
 
-    args : dict
+    args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians and
         collapse operators. The key ``w`` is reserved for the spectra function.
 
-    sec_cutoff : float {0.1}
+    sec_cutoff : float, default: 0.1
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
 
-    options : None / dict
+    options : dict, optional
         Dictionary of options for the solver.
 
-        - store_final_state : bool
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - normalize_output : bool
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - tensor_type : str ['sparse', 'dense', 'data']
-          Which data type to use when computing the brtensor.
-          With a cutoff 'sparse' is usually the most efficient.
-        - sparse_eigensolver : bool {False}
-          Whether to use the sparse eigensolver
-        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
-          Which differential equation integration method to use.
-        - atol, rtol : float
-          Absolute and relative tolerance of the ODE integrator.
-        - nsteps :
-          Maximum number of (internally defined) steps allowed in one ``tlist``
-          step.
-        - max_step : float, 0
-          Maximum lenght of one internal step. When using pulses, it should be
-          less than half the width of the thinnest pulse.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | tensor_type : str ['sparse', 'dense', 'data']
+          | Which data type to use when computing the brtensor.
+            With a cutoff 'sparse' is usually the most efficient.
+        - | sparse_eigensolver : bool {False}
+            Whether to use the sparse eigensolver
+        - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+            Which differential equation integration method to use.
+        - | atol, rtol : float
+          | Absolute and relative tolerance of the ODE integrator.
+        - | nsteps : int
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
+        - | max_step : float, 0
+          | Maximum lenght of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
 
     Returns
     -------
-    result: :class:`qutip.solver.Result`
+    result: :obj:`.Result`
 
-        An instance of the class :class:`qutip.solver.Result`, which contains
+        An instance of the class :obj:`qutip.solver.Result`, which contains
         either an array of expectation values, for operators given in e_ops,
-        or a list of states for the times specified by `tlist`.
-
-    .. note:
-        The option ``operator_data_type`` is used to determine in which format
-        the bloch redfield tensor is computed. Use 'csr' for sparse and 'dense'
-        for dense array. With 'data', it will try to use the same data type as
-        the ``a_ops``, but it is usually less efficient than manually choosing
-        it.
+        or a list of states for the times specified by ``tlist``.
     """
     options = _solver_deprecation(kwargs, options, "br")
+    args = args or {}
     H = QobjEvo(H, args=args, tlist=tlist)
 
     c_ops = c_ops if c_ops is not None else []
@@ -182,22 +176,22 @@ class BRSolver(Solver):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
     a_ops : list of (a_op, spectra)
         Nested list of system operators that couple to the environment,
         and the corresponding bath spectra.
 
-        a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
+        a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :class:`Coefficient`
+        spectra : :obj:`.Coefficient`
             The corresponding bath spectra. As a `Coefficient` using an 'w'
-            args. Can depend on ``t`` only if a_op is a :class:`qutip.QobjEvo`.
-            :class:`SpectraCoefficient` can be used to conver a coefficient
+            args. Can depend on ``t`` only if a_op is a :obj:`.QobjEvo`.
+            :obj:`SpectraCoefficient` can be used to conver a coefficient
             depending on ``t`` to one depending on ``w``.
 
         Example:
@@ -211,7 +205,7 @@ class BRSolver(Solver):
                 (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
             ]
 
-    c_ops : list of :class:`Qobj`, :class:`QobjEvo`
+    c_ops : list of :obj:`.Qobj`, :obj:`.QobjEvo`
         Single collapse operator, or list of collapse operators, or a list
         of Lindblad dissipator. None is equivalent to an empty list.
 
@@ -223,14 +217,14 @@ class BRSolver(Solver):
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
 
-    attributes
+    Attributes
     ----------
     stats: dict
         Diverse diagnostic statistics of the evolution.
     """
     name = "brmesolve"
     solver_options = {
-        "progress_bar": "text",
+        "progress_bar": "",
         "progress_kwargs": {"chunk_size":10},
         "store_final_state": False,
         "store_states": None,
@@ -308,35 +302,35 @@ class BRSolver(Solver):
         """
         Options for bloch redfield solver:
 
-        store_final_state: bool, default=False
+        store_final_state: bool, default: False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, default=None
+        store_states: bool, default: None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        normalize_output: bool, default=False
+        normalize_output: bool, default: False
             Normalize output state to hide ODE numerical errors.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default: ""
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error if
             not installed. Empty string or False will disable the bar.
 
-        progress_kwargs: dict, default={"chunk_size":10}
+        progress_kwargs: dict, default: {"chunk_size":10}
             Arguments to pass to the progress_bar. Qutip's bars use
             ``chunk_size``.
 
-        tensor_type: str ['sparse', 'dense', 'data'], default="sparse"
+        tensor_type: str ['sparse', 'dense', 'data'], default: "sparse"
             Which data type to use when computing the brtensor.
             With a cutoff 'sparse' is usually the most efficient.
 
-        sparse_eigensolver: bool, default=False
+        sparse_eigensolver: bool, default: False
             Whether to use the sparse eigensolver
 
-        method: str, default="adams"
+        method: str, default: "adams"
             Which ODE integrator methods are supported.
         """
         return self._options

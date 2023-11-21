@@ -23,11 +23,11 @@ cdef class _BaseElement:
     terms used by QobjEvo and solvers to describe operators.
 
     Conceptually each term is given by ``coeff(t) * qobj(t)`` where
-    ``coeff`` is a complex coefficient and ``qobj`` is a :obj:`~Qobj`. Both
+    ``coeff`` is a complex coefficient and ``qobj`` is a :obj:`.Qobj`. Both
     are functions of time. :meth:`~_BaseElement.coeff` returns the
-    coefficient at ``t``. :meth:`~_BaseElement.qobj` returns the :obj:`~Qobj`.
+    coefficient at ``t``. :meth:`~_BaseElement.qobj` returns the :obj:`.Qobj`.
 
-    For example, a :obj:`QobjEvo` instance created by::
+    For example, a :obj:`.QobjEvo` instance created by::
 
       QobjEvo([sigmax(), [sigmay(), 'cos(pi * t)']])
 
@@ -37,9 +37,9 @@ cdef class _BaseElement:
     :obj:`~_BaseElement` defines the interface to time-dependent terms.
     Sub-classes implement terms defined in different ways.
     For example, :obj:`~_ConstantElement` implements a term that
-    consists only of a constant :obj:`~Qobj` (i.e. where there is no dependence
+    consists only of a constant :obj:`.Qobj` (i.e. where there is no dependence
     on ``t``), :obj:`~_EvoElement` implements a term that consists of a
-    time-dependet :obj:`~Coefficient` times a constant :obj:`~Qobj`, and
+    time-dependet :obj:`.Coefficient` times a constant :obj:`.Qobj`, and
     so on.
 
     .. note::
@@ -61,7 +61,7 @@ cdef class _BaseElement:
     """
     cpdef Data data(self, t):
         """
-        Returns the underlying :obj:`~Data` of the :obj:`~Qobj` component
+        Returns the underlying :obj:`~Data` of the :obj:`.Qobj` component
         of the term at time ``t``.
 
         Parameters
@@ -72,7 +72,7 @@ cdef class _BaseElement:
         Returns
         -------
         :obj:`~Data`
-          The underlying data of the :obj:`~Qobj` component of the term
+          The underlying data of the :obj:`.Qobj` component of the term
           at time ``t``.
         """
         raise NotImplementedError(
@@ -81,7 +81,7 @@ cdef class _BaseElement:
 
     cpdef object qobj(self, t):
         """
-        Returns the :obj:`~Qobj` component of the term at time ``t``.
+        Returns the :obj:`.Qobj` component of the term at time ``t``.
 
         Parameters
         ----------
@@ -90,8 +90,8 @@ cdef class _BaseElement:
 
         Returns
         -------
-        :obj:`~Qobj`
-          The :obj:`~Qobj` component of the term at time ``t``.
+        :obj:`.Qobj`
+          The :obj:`.Qobj` component of the term at time ``t``.
         """
         raise NotImplementedError(
           "Sub-classes of _BaseElement should implement .qobj(t)."
@@ -175,7 +175,7 @@ cdef class _BaseElement:
     def linear_map(self, f, anti=False):
         """
         Return a new element representing a linear transformation ``f``
-        of the :obj:`~Qobj` portion of this element and possibly a
+        of the :obj:`.Qobj` portion of this element and possibly a
         complex conjucation of the coefficient portion (when ``f`` is an
         antilinear map).
 
@@ -186,7 +186,7 @@ cdef class _BaseElement:
         Parameters
         ----------
         f : function
-          The linear transformation to apply to the :obj:`~Qobj` of this
+          The linear transformation to apply to the :obj:`.Qobj` of this
           element.
         anti : bool
           Whether to take the complex conjugate of the coefficient. Default
@@ -206,7 +206,7 @@ cdef class _BaseElement:
         """
         Return a copy of the element with the (possible) additional arguments
         to any time-dependent functions updated to the given argument values.
-        The arguments of any contained :obj:`~Coefficient` instances are also
+        The arguments of any contained :obj:`.Coefficient` instances are also
         replaced.
 
         If the operation does not modify this element, the original element
@@ -270,8 +270,8 @@ cdef class _BaseElement:
 
 cdef class _ConstantElement(_BaseElement):
     """
-    Constant part of a list format :obj:`QobjEvo`.
-    A constant :obj:`QobjEvo` will contain one `_ConstantElement`::
+    Constant part of a list format :obj:`.QobjEvo`.
+    A constant :obj:`.QobjEvo` will contain one `_ConstantElement`::
 
       qevo = QobjEvo(H0)
       qevo.elements = [_ConstantElement(H0)]
@@ -316,7 +316,7 @@ cdef class _ConstantElement(_BaseElement):
 
 cdef class _EvoElement(_BaseElement):
     """
-    A pair of a :obj:`Qobj` and a :obj:`Coefficient` from the list format
+    A pair of a :obj:`.Qobj` and a :obj:`.Coefficient` from the list format
     time-dependent operator::
 
       qevo = QobjEvo([[H0, coeff0], [H1, coeff1]])
@@ -373,7 +373,7 @@ cdef class _EvoElement(_BaseElement):
 
 cdef class _FuncElement(_BaseElement):
     """
-    Used with :obj:`QobjEvo` to build an evolution term from a function with
+    Used with :obj:`.QobjEvo` to build an evolution term from a function with
     either the signature: ::
 
         func(t: float, ...) -> Qobj
@@ -385,7 +385,7 @@ cdef class _FuncElement(_BaseElement):
     In the new style, ``func`` may accept arbitrary named arguments and
     is called as ``func(t, **args)``.
 
-    A :obj:`QobjEvo` created from such a function contains one
+    A :obj:`.QobjEvo` created from such a function contains one
     :obj:`_FuncElement`: ::
 
         qevo = QobjEvo(func, args=args)
@@ -497,7 +497,7 @@ cdef class _MapElement(_BaseElement):
     """
     :obj:`_FuncElement` decorated with linear tranformations.
 
-    Linear tranformations available in :obj:`QobjEvo` include transpose,
+    Linear tranformations available in :obj:`.QobjEvo` include transpose,
     adjoint, conjugate, convertion and product with number::
     ```
         op = QobjEvo(f, args=args)

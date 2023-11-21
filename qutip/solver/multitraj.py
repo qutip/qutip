@@ -37,7 +37,7 @@ class MultiTrajSolver(Solver):
     """
     Basic class for multi-trajectory evolutions.
 
-    As :class:`Solver` it can ``run`` or ``step`` evolution.
+    As :class:`.Solver` it can ``run`` or ``step`` evolution.
     It manages the random seed for each trajectory.
 
     The actual evolution is done by a single trajectory solver::
@@ -53,8 +53,8 @@ class MultiTrajSolver(Solver):
         Options for the solver.
     """
     name = "generic multi trajectory"
-    resultclass = MultiTrajResult
-    trajectory_resultclass = Result
+    _resultclass = MultiTrajResult
+    _trajectory_resultclass = Result
     _avail_integrators = {}
 
     # Class of option used by the solver
@@ -90,20 +90,20 @@ class MultiTrajSolver(Solver):
 
         Parameters
         ----------
-        state : :class:`Qobj`
+        state : :obj:`.Qobj`
             Initial state of the evolution.
 
         t0 : double
             Initial time of the evolution.
 
-        seed : int, SeedSequence, list, {None}
+        seed : int, SeedSequence, list, optional
             Seed for the random number generator. It can be a single seed used
             to spawn seeds for each trajectory or a list of seed, one for each
             trajectory.
 
-        ..note ::
-            When using step evolution, only one trajectory can be computed at
-            once.
+        Notes
+        -----
+        When using step evolution, only one trajectory can be computed at once.
         """
         seeds = self._read_seed(seed, 1)
         generator = self._get_generator(seeds[0])
@@ -111,19 +111,19 @@ class MultiTrajSolver(Solver):
 
     def step(self, t, *, args=None, copy=True):
         """
-        Evolve the state to ``t`` and return the state as a :class:`Qobj`.
+        Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
 
         Parameters
         ----------
         t : double
             Time to evolve to, must be higher than the last call.
 
-        args : dict, optional {None}
+        args : dict, optional
             Update the ``args`` of the system.
             The change is effective from the beginning of the interval.
             Changing ``args`` can slow the evolution.
 
-        copy : bool, optional {True}
+        copy : bool, default: True
             Whether to return a copy of the data or the data in the ODE solver.
         """
         if not self._integrator._is_set:
@@ -139,7 +139,7 @@ class MultiTrajSolver(Solver):
         stats = self._initialize_stats()
         seeds = self._read_seed(seed, ntraj)
 
-        result = self.resultclass(
+        result = self._resultclass(
             e_ops, self.options, solver=self.name, stats=stats
         )
         result.add_end_condition(ntraj, target_tol)
@@ -161,12 +161,12 @@ class MultiTrajSolver(Solver):
 
         For a ``state`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :class:`Result`. The evolution method and
+        expectation values in a :class:`.Result`. The evolution method and
         stored results are determined by ``options``.
 
         Parameters
         ----------
-        state : :class:`Qobj`
+        state : :obj:`.Qobj`
             Initial state of the evolution.
 
         tlist : list of double
@@ -178,7 +178,7 @@ class MultiTrajSolver(Solver):
         ntraj : int
             Number of trajectories to add.
 
-        args : dict, optional {None}
+        args : dict, optional
             Change the ``args`` of the rhs for the evolution.
 
         e_ops : list
@@ -186,14 +186,14 @@ class MultiTrajSolver(Solver):
             Alternatively, function[s] with the signature f(t, state) -> expect
             can be used.
 
-        timeout : float, optional [1e8]
+        timeout : float, optional
             Maximum time in seconds for the trajectories to run. Once this time
             is reached, the simulation will end even if the number
             of trajectories is less than ``ntraj``. The map function, set in
             options, can interupt the running trajectory or wait for it to
             finish. Set to an arbitrary high number to disable.
 
-        target_tol : {float, tuple, list}, optional [None]
+        target_tol : {float, tuple, list}, optional
             Target tolerance of the evolution. The evolution will compute
             trajectories until the error on the expectation values is lower
             than this tolerance. The maximum number of trajectories employed is
@@ -202,12 +202,12 @@ class MultiTrajSolver(Solver):
             of absolute and relative tolerance, in that order. Lastly, it can
             be a list of pairs of (atol, rtol) for each e_ops.
 
-        seed : {int, SeedSequence, list} optional
+        seed : {int, SeedSequence, list}, optional
             Seed or list of seeds for each trajectories.
 
         Returns
         -------
-        results : :class:`qutip.solver.MultiTrajResult`
+        results : :class:`.MultiTrajResult`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
 
@@ -236,7 +236,7 @@ class MultiTrajSolver(Solver):
         return result
 
     def _initialize_run_one_traj(self, seed, state, tlist, e_ops):
-        result = self.trajectory_resultclass(e_ops, self.options)
+        result = self._trajectory_resultclass(e_ops, self.options)
         generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator)
         result.add(tlist[0], self._restore_state(state, copy=False))

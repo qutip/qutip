@@ -56,10 +56,14 @@ def version_table(verbose=False):
     different packages that were used to run the notebook. This should make it
     possible to reproduce the environment and the calculation later on.
 
+    Parameters
+    ----------
+    verbose : bool, default: False
+        Add extra information about install location.
 
     Returns
     -------
-    version_table: string
+    version_table: str
         Return an HTML-formatted string containing version information for
         QuTiP dependencies.
 

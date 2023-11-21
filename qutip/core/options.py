@@ -52,7 +52,7 @@ class QutipOptions:
 
 class CoreOptions(QutipOptions):
     """
-    Options used by the core of qutip such as the tolerance of :class:`Qobj`
+    Options used by the core of qutip such as the tolerance of :obj:`.Qobj`
     comparison or coefficient's format.
 
     Values can be changed in ``qutip.settings.core`` or by using context:
@@ -63,8 +63,15 @@ class CoreOptions(QutipOptions):
     auto_tidyup : bool
         Whether to tidyup during sparse operations.
 
-    auto_tidyup_dims : bool [True]
-        Use auto tidyup dims on multiplication. (Not used yet)
+    auto_tidyup_dims : bool [False]
+        Use auto tidyup dims on multiplication, tensor, etc.
+        Without auto_tidyup_dims:
+            ``basis([2, 2]).dims == [[2, 2], [1, 1]]``
+        With auto_tidyup_dims:
+            ``basis([2, 2]).dims == [[2, 2], [1]]``
+
+    auto_herm : boolTrue
+        detect hermiticity
 
     atol : float {1e-12}
         General absolute tolerance
@@ -74,9 +81,9 @@ class CoreOptions(QutipOptions):
         Used to choose QobjEvo.expect output type
 
     auto_tidyup_atol : float {1e-14}
-        The absolute tolerance used in automatic tidyup (see the ``auto_tidyup``
-        parameter above) and the default value of ``atol`` used in
-        :method:`Qobj.tidyup`.
+        The absolute tolerance used in automatic tidyup (see the
+        ``auto_tidyup`` parameter above) and the default value of ``atol`` used
+        in :meth:`Qobj.tidyup`.
 
     function_coefficient_style : str {"auto"}
         The signature expected by function coefficients. The options are:
@@ -95,7 +102,7 @@ class CoreOptions(QutipOptions):
           ``pythonic`` is used.
 
     default_dtype : Nonetype, str, type {None}
-        When set, functions creating :class:`Qobj`, such as :func:"qeye" or
+        When set, functions creating :obj:`.Qobj`, such as :func:"qeye" or
         :func:"rand_herm", will use the specified data type. Any data-layer
         known to ``qutip.data.to`` is accepted. When ``None``, these functions
         will default to a sensible data type.
@@ -104,7 +111,9 @@ class CoreOptions(QutipOptions):
         # use auto tidyup
         "auto_tidyup": True,
         # use auto tidyup dims on multiplication
-        "auto_tidyup_dims": True,
+        "auto_tidyup_dims": False,
+        # detect hermiticity
+        "auto_herm": True,
         # general absolute tolerance
         "atol": 1e-12,
         # general relative tolerance

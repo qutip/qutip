@@ -286,7 +286,7 @@ cdef class Dicke(object):
 
         Returns
         ----------
-        lindblad_qobj: :class: qutip.Qobj
+        lindblad_qobj: :class:`.Qobj`
             The matrix size is (nds**2, nds**2) where nds is the number of
             Dicke states.
         """

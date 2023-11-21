@@ -107,7 +107,7 @@ def test_QobjType():
 
     N = 9
     super_data = np.random.random((N, N))
-    super_qobj = qutip.Qobj(super_data, dims=[[[3]], [[3]]])
+    super_qobj = qutip.Qobj(super_data, dims=[[[3], [3]], [[3], [3]]])
     assert super_qobj.type == 'super'
     assert super_qobj.issuper
     assert super_qobj.superrep == 'super'
@@ -118,7 +118,7 @@ def test_QobjType():
     assert super_qobj.isoperket
     assert super_qobj.superrep == 'super'
 
-    super_data = np.random.random(N)
+    super_data = np.random.random((1, N))
     super_qobj = qutip.Qobj(super_data, dims=[[[1]], [[3], [3]]])
     assert super_qobj.type == 'operator-bra'
     assert super_qobj.isoperbra
@@ -260,11 +260,8 @@ def test_QobjAddition():
     q3 = qutip.Qobj(data3)
 
     q4 = q1 + q2
-    q4_type = q4.type
     q4_isherm = q4.isherm
-    q4._type = None
     q4._isherm = None  # clear cached values
-    assert q4_type == q4.type
     assert q4_isherm == q4.isherm
 
     # check elementwise addition/subtraction

@@ -29,7 +29,7 @@ Options supported by the ODE integration depend on the "method" options of the s
 
    help(MESolver.integrator("adams").options)
 
-See `Integrator <../../apidoc/classes.html#classes-ode>`_ for a list of supported methods.
+See `Integrator <classes-ode>`_ for a list of supported methods.
 
 
 As an example, let us consider changing the integrator, turn the GUI off, and strengthen the absolute tolerance.

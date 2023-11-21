@@ -39,7 +39,7 @@ class Bloch3d:
         Transparency of Bloch sphere itself.
     sphere_color : str {'#808080'}
         Color of Bloch sphere.
-    size : list {[500,500]}
+    size : list {[500, 500]}
         Size of Bloch sphere plot in pixels. Best to have both numbers the same
         otherwise you will have a Bloch sphere that looks like a football.
     vector_color : list {['r', 'g', 'b', 'y']}
@@ -48,15 +48,15 @@ class Bloch3d:
         Width of displayed vectors.
     view : list {[45,65]}
         Azimuthal and Elevation viewing angles.
-    xlabel : list {``['|x>', '']``}
+    xlabel : list {['\|x>', '']}
         List of strings corresponding to +x and -x axes labels, respectively.
     xlpos : list {[1.07,-1.07]}
         Positions of +x and -x labels respectively.
-    ylabel : list {``['|y>', '']``}
+    ylabel : list {['\|y>', '']}
         List of strings corresponding to +y and -y axes labels, respectively.
     ylpos : list {[1.07,-1.07]}
         Positions of +y and -y labels respectively.
-    zlabel : list {``['|0>', '|1>']``}
+    zlabel : list {["\|0>", '\|1>']}
         List of strings corresponding to +z and -z axes labels, respectively.
     zlpos : list {[1.07,-1.07]}
         Positions of +z and -z labels respectively.
@@ -69,7 +69,6 @@ class Bloch3d:
     mayavi rendering engine. Therefore all labels must be defined using
     standard text. Of course you can post-process the generated figures
     later to add LaTeX using other software if needed.
-
 
     """
     def __init__(self, fig=None):
@@ -484,7 +483,7 @@ class Bloch3d:
         ----------
         name : str
             Name of saved image. Must include path and format as well.
-            i.e. '/Users/Paul/Desktop/bloch.png'
+            i.e. '/Users/Me/Desktop/bloch.png'
             This overrides the 'format' and 'dirc' arguments.
         format : str
             Format of output image. Default is 'png'.

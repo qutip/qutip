@@ -13,12 +13,12 @@ import warnings
 class Solver:
     """
     Runner for an evolution.
-    Can run the evolution at once using :method:`run` or step by step using
-    :method:`start` and :method:`step`.
+    Can run the evolution at once using :meth:`run` or step by step using
+    :meth:`start` and :meth:`step`.
 
     Parameters
     ----------
-    rhs : Qobj, QobjEvo
+    rhs : :obj:`.Qobj`, :obj:`.QobjEvo`
         Right hand side of the evolution::
             d state / dt = rhs @ state
 
@@ -40,7 +40,7 @@ class Solver:
         "normalize_output": "ket",
         "method": "adams",
     }
-    resultclass = Result
+    _resultclass = Result
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
@@ -68,7 +68,7 @@ class Solver:
         Extract the data of the Qobj state.
 
         Is responsible for dims checks, preparing the data (stack columns, ...)
-        determining the dims of the output for :method:`_restore_state`.
+        determining the dims of the output for :meth:`_restore_state`.
 
         Should return the state's data such that it can be used by Integrators.
         """
@@ -84,7 +84,6 @@ class Solver:
 
         self._state_metadata = {
             'dims': state.dims,
-            'type': state.type,
             'isherm': state.isherm and not (self.rhs.dims == state.dims)
         }
         if self.rhs.dims[1] == state.dims:
@@ -112,12 +111,12 @@ class Solver:
 
         For a ``state0`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :class:`Result`. The evolution method and
+        expectation values in a :class:`.Result`. The evolution method and
         stored results are determined by ``options``.
 
         Parameters
         ----------
-        state0 : :class:`Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution.
 
         tlist : list of double
@@ -136,7 +135,7 @@ class Solver:
 
         Returns
         -------
-        results : :class:`qutip.solver.Result`
+        results : :obj:`.Result`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """
@@ -145,7 +144,7 @@ class Solver:
         self._integrator.set_state(tlist[0], _data0)
         self._argument(args)
         stats = self._initialize_stats()
-        results = self.resultclass(
+        results = self._resultclass(
             e_ops, self.options,
             solver=self.name, stats=stats,
         )
@@ -168,11 +167,10 @@ class Solver:
     def start(self, state0, t0):
         """
         Set the initial state and time for a step evolution.
-        ``options`` for the evolutions are read at this step.
 
         Parameters
         ----------
-        state0 : :class:`Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution.
 
         t0 : double
@@ -184,7 +182,7 @@ class Solver:
 
     def step(self, t, *, args=None, copy=True):
         """
-        Evolve the state to ``t`` and return the state as a :class:`Qobj`.
+        Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
 
         Parameters
         ----------
@@ -199,10 +197,12 @@ class Solver:
         copy : bool, optional {True}
             Whether to return a copy of the data or the data in the ODE solver.
 
-        .. note::
-            The state must be initialized first by calling ``start`` or
-            ``run``. If ``run`` is called, ``step`` will continue from the last
-            time and state obtained.
+        Notes
+        -----
+        The state must be initialized first by calling :meth:`start` or
+        :meth:`run`. If :meth:`run` is called, :meth:`step` will continue from
+        the last time and state obtained.
+
         """
         if not self._integrator._is_set:
             raise RuntimeError("The `start` method must called first")

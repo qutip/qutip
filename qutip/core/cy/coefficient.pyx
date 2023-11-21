@@ -79,9 +79,9 @@ def coefficient_function_parameters(func, style=None):
 cdef class Coefficient:
     """
     `Coefficient` are the time-dependant scalar of a `[Qobj, coeff]` pair
-    composing time-dependant operator in list format for :obj:`QobjEvo`.
+    composing time-dependant operator in list format for :obj:`.QobjEvo`.
 
-    :obj:`Coefficient` are immutable.
+    :obj:`.Coefficient` are immutable.
     """
     def __init__(self, args, **_):
         self.args = args
@@ -90,7 +90,7 @@ cdef class Coefficient:
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
         the original coefficient if it does not. Arguments to replace may be
         supplied either in a dictionary as the first position argument, or
         passed as keywords, or as a combination of the two. Arguments not
@@ -114,7 +114,7 @@ cdef class Coefficient:
         Parameters
         ----------
         t : float
-            Time at which to evaluate the :obj:`Coefficient`.
+            Time at which to evaluate the :obj:`.Coefficient`.
 
         _args : dict
             Dictionary of arguments to use instead of the stored ones.
@@ -128,7 +128,7 @@ cdef class Coefficient:
         return self._call(t)
 
     cdef double complex _call(self, double t) except *:
-        """Core computation of the :obj:`Coefficient`."""
+        """Core computation of the :obj:`.Coefficient`."""
         # All Coefficient sub-classes should overwrite this or __call__
         return complex(self(t))
 
@@ -152,22 +152,22 @@ cdef class Coefficient:
         return NotImplemented
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return pickle.loads(pickle.dumps(self))
 
     def conj(self):
-        """ Return a conjugate :obj:`Coefficient` of this"""
+        """ Return a conjugate :obj:`.Coefficient` of this"""
         return ConjCoefficient(self)
 
     def _cdc(self):
-        """ Return a :obj:`Coefficient` being the norm of this"""
+        """ Return a :obj:`.Coefficient` being the norm of this"""
         return NormCoefficient(self)
 
 
 @cython.auto_pickle(True)
 cdef class FunctionCoefficient(Coefficient):
     """
-    :obj:`Coefficient` wrapping a Python function.
+    :obj:`.Coefficient` wrapping a Python function.
 
     Parameters
     ----------
@@ -220,7 +220,7 @@ cdef class FunctionCoefficient(Coefficient):
         return self.func(t, self.args)
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return FunctionCoefficient(
             self.func,
             self.args.copy(),
@@ -232,7 +232,7 @@ cdef class FunctionCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
         the original coefficient if it does not. Arguments to replace may be
         supplied either in a dictionary as the first position argument, or
         passed as keywords, or as a combination of the two. Arguments not
@@ -269,7 +269,7 @@ def proj(x):
 
 cdef class StrFunctionCoefficient(Coefficient):
     """
-    A :obj:`Coefficient` defined by a string containing a simple Python
+    A :obj:`.Coefficient` defined by a string containing a simple Python
     expression.
 
     The string should contain a compilable Python expression that results in a
@@ -348,7 +348,7 @@ def coeff(t, args):
         return self.func(t, self.args)
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return StrFunctionCoefficient(self.base, self.args.copy())
 
     def __reduce__(self):
@@ -358,7 +358,7 @@ def coeff(t, args):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
         the original coefficient if it does not. Arguments to replace may be
         supplied either in a dictionary as the first position argument, or
         passed as keywords, or as a combination of the two. Arguments not
@@ -381,7 +381,7 @@ def coeff(t, args):
 
 cdef class InterCoefficient(Coefficient):
     """
-    A :obj:`Coefficient` built from an interpolation of a numpy array.
+    A :obj:`.Coefficient` built from an interpolation of a numpy array.
 
     Parameters
     ----------
@@ -532,7 +532,7 @@ cdef class InterCoefficient(Coefficient):
         return cls.restore(tlist, poly)
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return InterCoefficient.restore(*self.np_arrays, self.dt)
 
 
@@ -556,7 +556,7 @@ cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
 @cython.auto_pickle(True)
 cdef class SumCoefficient(Coefficient):
     """
-    A :obj:`Coefficient` built from the sum of two other coefficients.
+    A :obj:`.Coefficient` built from the sum of two other coefficients.
 
     A :obj:`SumCoefficient` is returned as the result of the addition of two
     coefficients, e.g. ::
@@ -574,14 +574,14 @@ cdef class SumCoefficient(Coefficient):
         return self.first._call(t) + self.second._call(t)
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return SumCoefficient(self.first.copy(), self.second.copy())
 
     def replace_arguments(self, _args=None, **kwargs):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
         the original coefficient if it does not. Arguments to replace may be
         supplied either in a dictionary as the first position argument, or
         passed as keywords, or as a combination of the two. Arguments not
@@ -604,7 +604,7 @@ cdef class SumCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class MulCoefficient(Coefficient):
     """
-    A :obj:`Coefficient` built from the product of two other coefficients.
+    A :obj:`.Coefficient` built from the product of two other coefficients.
 
     A :obj:`MulCoefficient` is returned as the result of the multiplication of
     two coefficients, e.g. ::
@@ -622,14 +622,14 @@ cdef class MulCoefficient(Coefficient):
         return self.first._call(t) * self.second._call(t)
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return MulCoefficient(self.first.copy(), self.second.copy())
 
     def replace_arguments(self, _args=None, **kwargs):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
         the original coefficient if it does not. Arguments to replace may be
         supplied either in a dictionary as the first position argument, or
         passed as keywords, or as a combination of the two. Arguments not
@@ -652,7 +652,7 @@ cdef class MulCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class ConjCoefficient(Coefficient):
     """
-    The conjugate of a :obj:`Coefficient`.
+    The conjugate of a :obj:`.Coefficient`.
 
     A :obj:`ConjCoefficient` is returned by ``Coefficient.conj()`` and
     ``qutip.coefficent.conj(Coefficient)``.
@@ -666,14 +666,14 @@ cdef class ConjCoefficient(Coefficient):
         return conj(self.base._call(t))
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return ConjCoefficient(self.base.copy())
 
     def replace_arguments(self, _args=None, **kwargs):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
         the original coefficient if it does not. Arguments to replace may be
         supplied either in a dictionary as the first position argument, or
         passed as keywords, or as a combination of the two. Arguments not
@@ -695,7 +695,7 @@ cdef class ConjCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class NormCoefficient(Coefficient):
     """
-    The L2 :func:`norm` of a :obj:`Coefficient`. A shortcut for
+    The L2 :func:`norm` of a :obj:`.Coefficient`. A shortcut for
     ``conj(coeff) * coeff``.
 
     :obj:`NormCoefficient` is returned by
@@ -710,7 +710,7 @@ cdef class NormCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
         the original coefficient if it does not. Arguments to replace may be
         supplied either in a dictionary as the first position argument, or
         passed as keywords, or as a combination of the two. Arguments not
@@ -732,7 +732,7 @@ cdef class NormCoefficient(Coefficient):
         return norm(self.base._call(t))
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return NormCoefficient(self.base.copy())
 
 
@@ -752,7 +752,7 @@ cdef class ConstantCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
         the original coefficient if it does not. Arguments to replace may be
         supplied either in a dictionary as the first position argument, or
         passed as keywords, or as a combination of the two. Arguments not
@@ -772,5 +772,5 @@ cdef class ConstantCoefficient(Coefficient):
         return self.value
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return self

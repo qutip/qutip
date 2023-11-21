@@ -65,7 +65,7 @@ cdef Data iadd_data(Data left, Data right, double complex factor):
 cdef class Explicit_RungeKutta:
     """
     Qutip implementation of Runge Kutta ODE.
-    Works in :class:`Data` allowing solving using sparse and gpu data.
+    Works in :class:`.Data` allowing solving using sparse and gpu data.
 
     Parameters
     ----------

@@ -61,7 +61,8 @@ If the user also requires the measurement output, the options entry ``{"store_me
 
 Per default, homodyne is used. Heterodyne detections can be easily simulated by passing the arguments ``'heterodyne=True'`` to :func:`qutip.solver.stochastic.ssesolve`.
 
-Examples of how to solve the stochastic Schrodinger equation using QuTiP can be found in this `development notebook <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/development/development-ssesolve-tests.ipynb>`_.
+..
+    Examples of how to solve the stochastic Schrodinger equation using QuTiP can be found in this `development notebook <...TODO-Merge 61...>`_.
 
 Stochastic Master Equation
 ==========================
@@ -168,8 +169,14 @@ where :math:`x` is the operator passed using ``m_ops``. The results are availabl
     ax.set_xlabel('Time')
     ax.legend()
 
-
-For other examples on :func:`qutip.solver.stochastic.smesolve`, see the `following notebook <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/development/development-smesolve-tests.ipynb>`_, as well as these notebooks available at `QuTiP Tutorials page <https://qutip.org/tutorials.html>`_: `heterodyne detection <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/smesolve-heterodyne.ipynb>`_, `inefficient detection <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/smesolve-inefficient-detection.ipynb>`_, and `feedback control <https://nbviewer.ipython.org/github/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_.
+..
+    TODO merge qutip-tutorials#61
+    For other examples on :func:`qutip.solver.stochastic.smesolve`, see the
+    `following notebook <...>`_, as well as these notebooks available at
+    `QuTiP Tutorials page <https://qutip.org/tutorials.html>`_:
+    `heterodyne detection <...>`_,
+    `inefficient detection <...>`_, and
+    `feedback control <https://github.com/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_.
 
 .. plot::
     :context: reset
