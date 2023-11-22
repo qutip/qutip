@@ -6,10 +6,8 @@ from qutip.core.data.base cimport idxint
 cdef class QobjEvo:
     cdef:
         list elements
-        readonly list dims
+        readonly object _dims
         readonly (idxint, idxint) shape
-        readonly str type
-        readonly str superrep
         int _issuper
         int _isoper
 

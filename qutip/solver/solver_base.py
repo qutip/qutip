@@ -83,7 +83,6 @@ class Solver:
 
         self._state_metadata = {
             'dims': state.dims,
-            'type': state.type,
             'isherm': state.isherm and not (self.rhs.dims == state.dims)
         }
         if self.rhs.dims[1] == state.dims:

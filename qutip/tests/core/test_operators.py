@@ -298,7 +298,7 @@ def test_qft(dims):
 
 
 @pytest.mark.parametrize('N', [1, 3, 5, 8])
-@pytest.mark.parametrize('M', [1, 3, 5, 8])
+@pytest.mark.parametrize('M', [2, 3, 5, 8])
 def test_swap(N, M):
     ket1 = qutip.rand_ket(N)
     ket2 = qutip.rand_ket(M)

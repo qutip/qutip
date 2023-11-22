@@ -1111,7 +1111,7 @@ class TestDicke:
         true_L.dims = [[[2], [2]], [[2], [2]]]
         true_H = [[1.0 + 0.0j, 1.0 + 0.0j], [1.0 + 0.0j, -1.0 + 0.0j]]
         true_H = Qobj(true_H)
-        true_H.dims = [[[2], [2]]]
+        true_H.dims = [[2], [2]]
         true_liouvillian = [
             [-4, -1.0j, 1.0j, 3],
             [-1.0j, -3.54999995 + 2.0j, 0, 1.0j],

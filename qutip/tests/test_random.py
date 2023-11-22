@@ -202,7 +202,10 @@ def test_rand_ket(dimensions, distribution, dtype):
     """
     random_qobj = rand_ket(dimensions, distribution=distribution, dtype=dtype)
 
-    assert random_qobj.type == 'ket'
+    target_type = "ket"
+    if isinstance(dimensions, list) and isinstance(dimensions[0], list):
+        target_type = "operator-ket"
+    assert random_qobj.type == target_type
     assert abs(random_qobj.norm() - 1) < 1e-14
 
     if isinstance(dimensions, int):
@@ -281,10 +284,16 @@ def test_random_seeds(function, seed):
 
 
 def test_kraus_map(dimensions, dtype):
-    kmap = rand_kraus_map(dimensions, dtype=dtype)
-    _assert_metadata(kmap[0], dimensions, dtype)
-    with CoreOptions(atol=1e-9):
-        assert kraus_to_choi(kmap).iscptp
+    if isinstance(dimensions, list) and isinstance(dimensions[0], list):
+        # Each element of a kraus map cannot be a super operators
+        with pytest.raises(TypeError) as err:
+            kmap = rand_kraus_map(dimensions, dtype=dtype)
+        assert "super operator" in str(err.value)
+    else:
+        kmap = rand_kraus_map(dimensions, dtype=dtype)
+        _assert_metadata(kmap[0], dimensions, dtype)
+        with CoreOptions(atol=1e-9):
+            assert kraus_to_choi(kmap).iscptp
 
 
 dtype_names = list(_data.to._str2type.keys()) + list(_data.to.dtypes)

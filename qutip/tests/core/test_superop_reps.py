@@ -185,10 +185,10 @@ class TestSuperopReps:
                             + to_super(tensor(qeye(2), sigmay()))),
                      True, True, True,
                      id="linear combination of bipartite unitaries"),
-        pytest.param(Qobj(swap(), type='super', superrep='choi'),
+        pytest.param(Qobj(swap(), dims=[[[2],[2]]]*2, superrep='choi'),
                      True, False, True,
                      id="partial transpose map"),
-        pytest.param(Qobj(qeye(4)*0.9, type='super'), True, True, False,
+        pytest.param(Qobj(qeye(4)*0.9, dims=[[[2],[2]]]*2), True, True, False,
                      id="subnormalized map"),
         pytest.param(basis(2, 0), False, False, False, id="ket"),
     ])
@@ -223,10 +223,11 @@ class TestSuperopReps:
     ) / 2
 
     # The partial transpose map, whose Choi matrix is SWAP
-    ptr_swap = Qobj(swap(), type='super', superrep='choi')
+    ptr_swap = Qobj(swap(), dims=[[[2], [2]]]*2, superrep='choi')
 
     # Subnormalized maps (representing erasure channels, for instance)
-    subnorm_map = Qobj(identity(4) * 0.9, type='super', superrep='super')
+    subnorm_map = Qobj(identity(4) * 0.9, dims=[[[2], [2]]]*2,
+                       superrep='super')
 
     @pytest.mark.parametrize(['qobj',  'shouldhp', 'shouldcp', 'shouldtp'], [
         pytest.param(S, True, True, False, id="conjugatio by create op"),
