@@ -16,7 +16,7 @@ quantum-jump approach to wave function evolution, allows for simulating an
 individual realization of the system dynamics.  Here, the environment is
 continuously monitored, resulting in a series of quantum jumps in the system
 wave function, conditioned on the increase in information gained about the
-state of the system via the environmental measurements.  In general, this 
+state of the system via the environmental measurements.  In general, this
 evolution is governed by the Schrödinger equation with a **non-Hermitian**
 effective Hamiltonian
 
@@ -61,7 +61,8 @@ is given by
     P_{i}(t)=\left<\psi(t)|C_{i}^{+}C_{i}|\psi(t)\right>/\delta p.
 
 Evaluating the MC evolution to first-order in time is quite tedious.  Instead,
-QuTiP uses the following algorithm to simulate a single realization of a quantum system.  Starting from a pure state :math:`\left|\psi(0)\right>`:
+QuTiP uses the following algorithm to simulate a single realization of a quantum system.
+Starting from a pure state :math:`\left|\psi(0)\right>`:
 
 - **Ia:** Choose a random number :math:`r_1` between zero and one, representing
   the probability that a quantum jump occurs.
@@ -180,8 +181,9 @@ The photocurrent, previously computed using the ``photocurrent_sesolve`` and
     psi0 = tensor(fock(2, 0), fock(10, 8))
     a  = tensor(qeye(2), destroy(10))
     sm = tensor(destroy(2), qeye(10))
+    e_ops = [a.dag() * a, sm.dag() * sm]
     H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm])
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops)
 
     plt.figure()
     plt.plot((times[:-1] + times[1:])/2, data.photocurrent[0])
@@ -206,7 +208,7 @@ the above example, we can simply modify the call to ``mcsolve`` like:
 .. plot::
     :context: close-figs
 
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1000)
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops, ntraj=1000)
 
 where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.
 Now, the Monte Carlo solver will calculate expectation values for both operators,
@@ -233,7 +235,7 @@ to ``mcsolve``:
 .. plot::
     :context: close-figs
 
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], options={"improved_sampling": True})
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], options={"improved_sampling": True})
 
 where in this case the first run samples the no-jump trajectory, and the
 remaining 499 trajectories are all guaranteed to include (at least) one jump.
@@ -339,9 +341,9 @@ identical conditions are merged into a single ``result`` object.
     data_merged = data1 + data2
 
     plt.figure()
-    plt.plot(times, data1.expect[0], times, data1.expect[1], lw=2)
-    plt.plot(times, data2.expect[0], '--', times, data2.expect[1], '--', lw=2)
-    plt.plot(times, data_merged.expect[0], ':', times, data_merged.expect[1], ':', lw=2)
+    plt.plot(times, data1.expect[0], 'b-', times, data1.expect[1], 'g-', lw=2)
+    plt.plot(times, data2.expect[0], 'b--', times, data2.expect[1], 'g--', lw=2)
+    plt.plot(times, data_merged.expect[0], 'b:', times, data_merged.expect[1], 'g:', lw=2)
     plt.title('Monte Carlo time evolution')
     plt.xlabel('Time', fontsize=14)
     plt.ylabel('Expectation values', fontsize=14)
@@ -432,7 +434,7 @@ relation of the form
 where :math:`\mathbb{I}` is the identity operator on the system Hilbert space
 and :math:`\alpha>0`.
 Note that when the collapse operators of a model don't satisfy such a relation,
-``.nm_mcsolve`` automatically adds an extra collapse operator such that
+``nm_mcsolve`` automatically adds an extra collapse operator such that
 :eq:`nmmcsolve_completeness` is satisfied.
 The rate corresponding to this extra collapse operator is set to zero.
 

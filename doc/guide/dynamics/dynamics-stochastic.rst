@@ -15,7 +15,7 @@ QuTiP by solving the general equation
 .. math::
     :label: general_form
 
-    d \rho (t) = d_1 \rho dt + \sum_n d_{2,n} \rho dW_n,
+    d \rho (t) = d_1 \rho \, dt + \sum_n d_{2,n} \rho \, dW_n,
 
 where :math:`dW_n` is a Wiener increment, which has the expectation values :math:`E[dW] = 0` and :math:`E[dW^2] = dt`.
 
@@ -41,7 +41,8 @@ where :math:`H` is the Hamiltonian, :math:`S_n` are the stochastic collapse oper
 
    e_n = \left<\psi(t)|S_n + S_n^\dagger|\psi(t)\right>
 
-In QuTiP, this equation can be solved using the function :func:`qutip.solver.stochastic.ssesolve`, which is implemented by defining :math:`d_1` and :math:`d_{2,n}` from Equation :eq:`general_form` as
+In QuTiP, this equation can be solved using the function :func:`~qutip.solver.stochastic.ssesolve`,
+which is implemented by defining :math:`d_1` and :math:`d_{2,n}` from Equation :eq:`general_form` as
 
 .. math::
     :label: d1_def
@@ -55,14 +56,19 @@ and
 
     d_{2, n} = S_n - \frac{e_n}{2}.
 
-The solver :func:`qutip.solver.stochastic.ssesolve` will construct the operators :math:`d_1` and :math:`d_{2,n}` once the user passes the Hamiltonian (``H``) and the stochastic operator list (``sc_ops``).
-As with the :func:`qutip.solver.mcsolve.mcsolve`, the number of trajectories and the seed for the noise realisation can be fixed using the arguments: ``ntraj`` and ``seeds``, respectively.
-If the user also requires the measurement output, the options entry ``{"store_measurement": True}`` should be included.
+The solver :func:`~qutip.solver.stochastic.ssesolve` will construct the operators
+:math:`d_1` and :math:`d_{2,n}` once the user passes the Hamiltonian (``H``) and
+the stochastic operator list (``sc_ops``). As with the :func:`~qutip.solver.mcsolve.mcsolve`,
+the number of trajectories and the seed for the noise realisation can be fixed using
+the arguments: ``ntraj`` and ``seeds``, respectively. If the user also requires the
+measurement output, the options entry ``{"store_measurement": True}`` should be included.
 
-Per default, homodyne is used. Heterodyne detections can be easily simulated by passing the arguments ``'heterodyne=True'`` to :func:`qutip.solver.stochastic.ssesolve`.
+Per default, homodyne is used. Heterodyne detections can be easily simulated by passing
+the arguments ``'heterodyne=True'`` to :func:`~qutip.solver.stochastic.ssesolve`.
 
 ..
-    Examples of how to solve the stochastic Schrodinger equation using QuTiP can be found in this `development notebook <...TODO-Merge 61...>`_.
+    Examples of how to solve the stochastic Schrodinger equation using QuTiP
+    can be found in this `development notebook <...TODO-Merge 61...>`_.
 
 Stochastic Master Equation
 ==========================
@@ -90,12 +96,15 @@ and
 .. math::
     :label: h_cal
 
-    \mathcal{H}[A]\rho = A\rho(t) + \rho(t) A^\dagger - \tr[A\rho(t) + \rho(t) A^\dagger].
+    \mathcal{H}[A]\rho = A\rho(t) + \rho(t) A^\dagger - \mathrm{tr}[A\rho(t) + \rho(t) A^\dagger].
 
 
-In QuTiP, solutions for the stochastic master equation are obtained using the solver :func:`qutip.solver.stochastic.smesolve`.
-The implementation takes into account 2 types of collapse operators. :math:`C_i` (``c_ops``) represent the dissipation in the environment, while :math:`S_n` (``sc_ops``) are monitored operators.
-The deterministic part of the evolution, described by the :math:`d_1` in Equation :eq:`general_form`, takes into account all operators :math:`C_i` and :math:`S_n`:
+In QuTiP, solutions for the stochastic master equation are obtained using the solver
+:func:`~qutip.solver.stochastic.smesolve`. The implementation takes into account 2
+types of collapse operators. :math:`C_i` (``c_ops``) represent the dissipation in
+the environment, while :math:`S_n` (``sc_ops``) are monitored operators.
+The deterministic part of the evolution, described by the :math:`d_1` in Equation
+:eq:`general_form`, takes into account all operators :math:`C_i` and :math:`S_n`:
 
 .. math::
     :label: liouvillian
@@ -110,31 +119,34 @@ The stochastic part, :math:`d_{2,n}`, is given solely by the operators :math:`S_
 .. math::
     :label: stochastic_smesolve
 
-    d_{2,n} = S_n \rho(t) + \rho(t) S_n^\dagger - \tr \left(S_n \rho (t)
-                     + \rho(t) S_n^\dagger \right)\rho(t).
+    d_{2,n} = S_n \rho(t) + \rho(t) S_n^\dagger - \mathrm{tr}\left(S_n \rho (t)
+                     + \rho(t) S_n^\dagger \right)\,\rho(t).
 
 As in the stochastic Schrodinger equation, heterodyne detection can be chosen by passing ``heterodyne=True``.
 
 Example
 -------
 
-Below, we solve the dynamics for an optical cavity at 0K whose output is monitored using homodyne detection.
-The cavity decay rate is given by :math:`\kappa` and the :math:`\Delta` is the cavity detuning with respect to the driving field.
-The measurement operators can be passed using the option ``m_ops``. The homodyne current :math:`J_x` is calculated using
+Below, we solve the dynamics for an optical cavity at 0K whose output is monitored
+using homodyne detection. The cavity decay rate is given by :math:`\kappa` and the
+:math:`\Delta` is the cavity detuning with respect to the driving field.
+The measurement operators can be passed using the option ``m_ops``. The homodyne
+current :math:`J_x` is calculated using
 
 .. math::
     :label: measurement_result
 
     J_x = \langle x \rangle + dW / dt,
 
-where :math:`x` is the operator passed using ``m_ops``. The results are available in ``result.measurements``.
+where :math:`x` is the operator passed using ``m_ops``. The results are available
+in ``result.measurements``.
 
 .. plot::
     :context: reset
 
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import qutip
+    #import numpy as np
+    #import matplotlib.pyplot as plt
+    #import qutip
 
     # parameters
     DIM = 20               # Hilbert space dimension
@@ -144,20 +156,20 @@ where :math:`x` is the operator passed using ``m_ops``. The results are availabl
     NUMBER_OF_TRAJECTORIES = 500
 
     # operators
-    a = qutip.destroy(DIM)
+    a = destroy(DIM)
     x = a + a.dag()
     H = DELTA * a.dag() * a
 
-    rho_0 = qutip.coherent(DIM, np.sqrt(INTENSITY))
+    rho_0 = coherent(DIM, np.sqrt(INTENSITY))
     times = np.arange(0, 1, 0.0025)
 
-    stoc_solution = qutip.smesolve(
+    stoc_solution = smesolve(
         H, rho_0, times,
         c_ops=[],
         sc_ops=[np.sqrt(KAPPA) * a],
         e_ops=[x],
         ntraj=NUMBER_OF_TRAJECTORIES,
-        options={"dt": 0.00125, "store_measurement":True,}
+        options={"dt": 0.00125, "store_measurement": True,}
     )
 
     fig, ax = plt.subplots()
