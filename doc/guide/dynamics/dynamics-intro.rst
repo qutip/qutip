@@ -30,7 +30,7 @@ quantum systems and indicates the type of object returned by the solver:
      - :func:`~qutip.solver.sesolve.sesolve`
      - :obj:`~qutip.solver.sesolve.SESolver`
      - :obj:`~qutip.solver.result.Result`
-   * - Periodic unitary evolution, Schrödinger equation.
+   * - Periodic Schrödinger equation.
      - :func:`~qutip.solver.floquet.fsesolve`
      - None
      - :obj:`~qutip.solver.result.Result`
@@ -42,11 +42,11 @@ quantum systems and indicates the type of object returned by the solver:
      - :func:`~qutip.solver.mesolve.mesolve`
      - :obj:`~qutip.solver.mesolve.MESolver`
      - :obj:`~qutip.solver.result.Result`
-   * - Monte Carlo with collapse operators
+   * - Monte Carlo evolution
      - :func:`~qutip.solver.mcsolve.mcsolve`
      - :obj:`~qutip.solver.mcsolve.MCSolver`
      - :obj:`~qutip.solver.result.McResult`
-   * - Non-Markovian Monte Carlo with collapse operators
+   * - Non-Markovian Monte Carlo
      - :func:`~qutip.solver.nm_mcsolve.nm_mcsolve`
      - :obj:`~qutip.solver.nm_mcsolve.NonMarkovianMCSolver`
      - :obj:`~qutip.solver.result.NmmcResult`
@@ -73,4 +73,4 @@ quantum systems and indicates the type of object returned by the solver:
    * - Hierarchical Equations of Motion evolution
      - :func:`~qutip.solver.heom.bofin_solvers.heomsolve`
      - :obj:`~qutip.solver.heom.bofin_solvers.HEOMSolver`
-     - :obj:`~qutip.solver.heom.bofin_solvers.HSolverDL`
+     - :obj:`~qutip.solver.heom.bofin_solvers.HEOMResult`

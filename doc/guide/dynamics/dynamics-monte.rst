@@ -215,6 +215,70 @@ Now, the Monte Carlo solver will calculate expectation values for both operators
 ``a.dag() * a, sm.dag() * sm`` averaging over 1000 trajectories.
 
 
+Other than a target number of trajectories, it is possible to use a computation
+time or errors bars as condition to stop computing trajectories.
+
+``timeout`` is quite simple as ``mcsolve`` will stop starting the computation of
+new trajectories when it is reached. Thus:
+
+
+.. code-block::
+
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops, ntraj=1000, timeout=60)
+
+Will compute 1 minute of trajectories or 1000, which ever is reached first.
+The solver will finish any trajectory started when the timeout is reached. Therefore
+if the computation time of a single trajectory is quite long, the overall computation
+time can be much longer that the provided timeout.
+
+Lastly, ``mcsolve`` can be instructed to stop when the statistical error of the
+expectation values get under a certain value. When computing the average over
+trajectories, the error on these are computed using
+:ref:`Jackknife resampling <https://en.wikipedia.org/wiki/Jackknife_resampling>`
+for each expect and each time and the computation will be stopped when all these values
+are under the tolerance passed to ``target_tol``. Therefore:
+
+.. code-block::
+
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops,
+                   ntraj=1000, target_tol=0.01, timeout=600)
+
+will stop either after all errors bars on expectation values are under ``0.01``, 1000
+trajectories are computed or 10 min have passed, whichever comes first. When a
+single values is passed, it is used as the absolute value of the tolerance.
+When a pair of values is passed, it is understood as an absolute and relative
+tolerance pair. For even finer control, one such pair can be passed for each ``e_ops``.
+For example:
+
+.. code-block::
+
+    data = mcsolve(H, psi0, times, c_ops, e_ops=e_ops,  target_tol=[
+        (1e-5, 0.1),
+        (0, 0),
+    ])
+
+will stop when the error bars on the expectation values of the first ``e_ops`` are
+under 10% of their average values.
+
+If after computation of some trajectories, it is determined that more are needed, it
+is possible to add trajectories to existing result by adding result together:
+
+.. code-block::
+
+    >>> run1 = mcsolve(H, psi, times, c_ops, e_ops=e_ops, ntraj=25)
+    >>> print(run1.num_trajectories)
+    25
+    >>> run2 = mcsolve(H, psi, times, c_ops, e_ops=e_ops, ntraj=25)
+    >>> print(run2.num_trajectories)
+    25
+    >>> merged = run1 + run2
+    >>> print(merged.num_trajectories)
+    50
+
+Note that this merging operation only check that the result are compatible:
+same e_ops and same tlist. It does not check that the same initial state or
+Hamiltonian where used.
+
 
 Using the Improved Sampling Algorithm
 -------------------------------------
@@ -277,106 +341,70 @@ The original sampling algorithm samples the no-jump trajectory on average 96.7%
 of the time, while the improved sampling algorithm only does so once.
 
 
-.. _monte-reuse:
+.. monte-seeds:
 
-Reusing Hamiltonian Data
-------------------------
+Reproducibility with Monte-Carlo
+--------------------------------
 
-.. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
+For reproducibility of Monte-Carlo computations it is possible to set the seed
 
+.. code-block::
 
-In order to solve a given simulation as fast as possible, the solvers in QuTiP
-take the given input operators and break them down into simpler components before
-passing them on to the ODE solvers. Although these operations are reasonably fast,
-the time spent organizing data can become appreciable when repeatedly solving a
-system over, for example, many different initial conditions. In cases such as
-this, the Monte Carlo Solver may be reused after the initial configuration, thus
-speeding up calculations.
+    >>> res1 = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, seeds=1, ntraj=1)
+    >>> res2 = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, seeds=1, ntraj=1)
+    >>> res3 = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, seeds=2, ntraj=1)
+    >>> np.allclose(res1, res2)
+    True
+    >>> np.allclose(res1, res3)
+    False
 
-
-Using the previous example, we will calculate the dynamics for two different
-initial states, with the Hamiltonian data being reused on the second call
-
-.. plot::
-    :context: close-figs
-
-    times = np.linspace(0.0, 10.0, 200)
-    psi0 = tensor(fock(2, 0), fock(10, 5))
-    a  = tensor(qeye(2), destroy(10))
-    sm = tensor(destroy(2), qeye(10))
-
-    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
-    solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
-    data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=100)
-    psi1 = tensor(fock(2, 0), coherent(10, 2 - 1j))
-    data2 = solver.run(psi1, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=100)
-
-    plt.figure()
-    plt.plot(times, data1.expect[0], "b", times, data1.expect[1], "r", lw=2)
-    plt.plot(times, data2.expect[0], 'b--', times, data2.expect[1], 'r--', lw=2)
-    plt.title('Monte Carlo time evolution')
-    plt.xlabel('Time', fontsize=14)
-    plt.ylabel('Expectation values', fontsize=14)
-    plt.legend(("cavity photon number", "atom excitation probability"))
-    plt.show()
-
-.. guide-dynamics-mc2:
-
-The ``MCSolver`` also allows adding new trajectories after the first computation.
-This is shown in the next example where the results of two separated runs with
-identical conditions are merged into a single ``result`` object.
-
-.. plot::
-    :context: close-figs
-
-    times = np.linspace(0.0, 10.0, 200)
-    psi0 = tensor(fock(2, 0), fock(10, 5))
-    a  = tensor(qeye(2), destroy(10))
-    sm = tensor(destroy(2), qeye(10))
-
-    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
-    solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
-    data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1, seed=1)
-    data2 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1, seed=3)
-    data_merged = data1 + data2
-
-    plt.figure()
-    plt.plot(times, data1.expect[0], 'b-', times, data1.expect[1], 'g-', lw=2)
-    plt.plot(times, data2.expect[0], 'b--', times, data2.expect[1], 'g--', lw=2)
-    plt.plot(times, data_merged.expect[0], 'b:', times, data_merged.expect[1], 'g:', lw=2)
-    plt.title('Monte Carlo time evolution')
-    plt.xlabel('Time', fontsize=14)
-    plt.ylabel('Expectation values', fontsize=14)
-    plt.legend(("cavity photon number", "atom excitation probability"))
-    plt.show()
+The ``seeds`` parameter can either be an integer or numpy SeedSequence, which
+will then be used to create seeds for each trajectories. Or a list of
+interger/SeedSequence with one seed for each trajectories. Seeds available in
+the result object can be used to redo the same evolution:
 
 
-This can be used to explore the convergence of the Monte Carlo solver.
-For example, the following code block plots expectation values for 1, 10 and 100
-trajectories:
+.. code-block::
 
-.. plot::
-    :context: close-figs
+    >>> res1 = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, ntraj=10)
+    >>> res2 = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, seeds=res1.seeds, ntraj=10)
+    >>> np.allclose(res1, res2)
+    True
 
-    solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
 
-    data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1)
-    data10 = data1 + solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=9)
-    data100 = data10 + solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=90)
+.. monte-parallel:
 
-    expt1 = data1.expect
-    expt10 = data10.expect
-    expt100 = data100.expect
+Running trajectories in parallel
+--------------------------------
 
-    plt.figure()
-    plt.plot(times, expt1[0], label="ntraj=1")
-    plt.plot(times, expt10[0], label="ntraj=10")
-    plt.plot(times, expt100[0], label="ntraj=100")
-    plt.title('Monte Carlo time evolution')
-    plt.xlabel('Time')
-    plt.ylabel('Expectation values')
-    plt.legend()
-    plt.show()
+Monte-Carlo evolutions often need hundreds of trajectories to obtain sufficient
+statistics. Since all trajectories are independent of each other, they can be computed
+in parallel. The option ``map`` can take ``"serial"``, ``"parallel"`` or ``"loky"``.
+Both ``"parallel"`` and ``"loky"`` compute trajectories on multiple cpus using
+respectively the multiprocessing and loky python modules.
+
+.. code-block::
+
+    >>> res_parallel = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, options={"map": "parallel"}, seeds=1)
+    >>> res_serial = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, options={"map": "serial"}, seeds=1)
+    >>> np.allclose(res_parallel.average_expect, res_serial.average_expect)
+    True
+
+Note the when running in parallel, the order in which the trajectories are added
+to the result can differ. Therefore
+
+.. code-block::
+
+    >>> print(res_parallel.seeds[:3])
+    [SeedSequence(entropy=1,spawn_key=(1,),),
+     SeedSequence(entropy=1,spawn_key=(0,),),
+     SeedSequence(entropy=1,spawn_key=(2,),)]
+
+    >>> print(res_serial.seeds[:3])
+    [SeedSequence(entropy=1,spawn_key=(0,),),
+     SeedSequence(entropy=1,spawn_key=(1,),),
+     SeedSequence(entropy=1,spawn_key=(2,),)]
+
 
 .. openmcsolve:
 
@@ -403,131 +431,6 @@ dissipative interaction instead of an Hamiltonian.
     plt.title('Monte Carlo Photocurrent')
     plt.xlabel('Time')
     plt.ylabel('Photon detections')
-    plt.show()
-
-
-.. _monte-nonmarkov:
-
-Monte Carlo for Non-Markovian Dynamics
---------------------------------------
-
-The Monte Carlo solver of QuTiP can also be used to solve the dynamics of
-time-local non-Markovian master equations, i.e., master equations of the Lindblad
-form
-
-.. math::
-    :label: lindblad_master_equation_with_rates
-
-    \dot\rho(t) = -\frac{i}{\hbar} [H, \rho(t)] + \sum_n \frac{\gamma_n(t)}{2} \left[2 A_n \rho(t) A_n^\dagger - \rho(t) A_n^\dagger A_n - A_n^\dagger A_n \rho(t)\right]
-
-with "rates" :math:`\gamma_n(t)` that can take negative values.
-This can be done with the :func:`.nm_mcsolve` function.
-The function is based on the influence martingale formalism [Donvil22]_ and
-formally requires that the collapse operators :math:`A_n` satisfy a completeness
-relation of the form
-
-.. math::
-    :label: nmmcsolve_completeness
-
-    \sum_n A_n^\dagger A_n = \alpha \mathbb{I} ,
-
-where :math:`\mathbb{I}` is the identity operator on the system Hilbert space
-and :math:`\alpha>0`.
-Note that when the collapse operators of a model don't satisfy such a relation,
-``nm_mcsolve`` automatically adds an extra collapse operator such that
-:eq:`nmmcsolve_completeness` is satisfied.
-The rate corresponding to this extra collapse operator is set to zero.
-
-Technically, the influence martingale formalism works as follows.
-We introduce an influence martingale :math:`\mu(t)`, which follows the evolution
-of the system state. When no jump happens, it evolves as
-
-.. math::
-    :label: influence_cont
-
-    \mu(t) = \exp\left( \alpha\int_0^t K(\tau) d\tau \right)
-
-where :math:`K(t)` is for now an arbitrary function.
-When a jump corresponding to the collapse operator :math:`A_n` happens, the
-influence martingale becomes
-
-.. math::
-    :label: influence_disc
-
-    \mu(t+\delta t) = \mu(t)\left(\frac{K(t)-\gamma_n(t)}{\gamma_n(t)}\right)
-
-Assuming that the state :math:`\bar\rho(t)` computed by the Monte Carlo average
-
-.. math::
-    :label: mc_paired_state
-
-    \bar\rho(t) = \frac{1}{N}\sum_{l=1}^N |\psi_l(t)\rangle\langle \psi_l(t)|
-
-solves a Lindblad master equation with collapse operators :math:`A_n` and rates
-:math:`\Gamma_n(t)`, the state :math:`\rho(t)` defined by
-
-.. math::
-    :label: mc_martingale_state
-
-    \rho(t) = \frac{1}{N}\sum_{l=1}^N \mu_l(t) |\psi_l(t)\rangle\langle \psi_l(t)|
-
-solves a Lindblad master equation with collapse operators :math:`A_n` and shifted
-rates :math:`\gamma_n(t)-K(t)`. Thus, while :math:`\Gamma_n(t) \geq 0`, the new
-"rates" :math:`\gamma_n(t) = \Gamma_n(t) - K(t)` satisfy no positivity requirement.
-
-The input of :func:`.nm_mcsolve` is almost the same as for :func:`.mcsolve`.
-The only difference is how the collapse operators and rate functions should be
-defined. ``nm_mcsolve`` requires collapse operators :math:`A_n` and target "rates"
-:math:`\gamma_n` (which are allowed to take negative values) to be given in list
-form ``[[C_1, gamma_1], [C_2, gamma_2], ...]``. Note that we give the actual
-rate and not its square root, and that ``nm_mcsolve`` automatically computes
-associated jump rates :math:`\Gamma_n(t)\geq0` appropriate for simulation.
-
-We conclude with a simple example demonstrating the usage of the ``nm_mcsolve``
-function. For more elaborate, physically motivated examples, we refer to the
-`accompanying tutorial notebook <https://github.com/qutip/qutip-tutorials/blob/main/tutorials-v5/time-evolution/013_nonmarkovian_monte_carlo.md>`_.
-
-
-.. plot::
-    :context: reset
-
-    times = np.linspace(0, 1, 201)
-    psi0 = basis(2, 1)
-    a0 = destroy(2)
-    H = a0.dag() * a0
-
-    # Rate functions
-    gamma1 = "kappa * nth"
-    gamma2 = "kappa * (nth+1) + 12 * np.exp(-2*t**3) * (-np.sin(15*t)**2)"
-    # gamma2 becomes negative during some time intervals
-
-    # nm_mcsolve integration
-    ops_and_rates = []
-    ops_and_rates.append([a0.dag(), gamma1])
-    ops_and_rates.append([a0,       gamma2])
-    MCSol = nm_mcsolve(H, psi0, times, ops_and_rates,
-                       args={'kappa': 1.0 / 0.129, 'nth': 0.063},
-                       e_ops=[a0.dag() * a0, a0 * a0.dag()],
-                       options={'map': 'parallel'}, ntraj=2500)
-
-    # mesolve integration for comparison
-    d_ops = [[lindblad_dissipator(a0.dag(), a0.dag()), gamma1],
-             [lindblad_dissipator(a0, a0),             gamma2]]
-    MESol = mesolve(H, psi0, times, d_ops, e_ops=[a0.dag() * a0, a0 * a0.dag()],
-                    args={'kappa': 1.0 / 0.129, 'nth': 0.063})
-
-    plt.figure()
-    plt.plot(times, MCSol.expect[0], 'g',
-             times, MCSol.expect[1], 'b',
-             times, MCSol.trace, 'r')
-    plt.plot(times, MESol.expect[0], 'g--',
-             times, MESol.expect[1], 'b--')
-    plt.title('Monte Carlo time evolution')
-    plt.xlabel('Time')
-    plt.ylabel('Expectation values')
-    plt.legend((r'$\langle 1 | \rho | 1 \rangle$',
-                r'$\langle 0 | \rho | 0 \rangle$',
-                r'$\operatorname{tr} \rho$'))
     plt.show()
 
 

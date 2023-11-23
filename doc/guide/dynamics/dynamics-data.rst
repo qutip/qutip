@@ -164,10 +164,28 @@ expectation values is also available:
 | ``std_e_data``          |                      | Dictionary of standard derivation of the expectation values.           |
 +-------------------------+----------------------+------------------------------------------------------------------------+
 
-Multiple trajectories results also keep the trajectories seeds to allows
+Multiple trajectories results also keep the trajectories ``seeds`` to allows
 recomputing the results.
 
 .. testcode::
   :skipif: True
 
   seeds = result.seeds
+
+One last feature specific to multi-trajectories results is the addition operation
+that can be used to merge sets of trajectories.
+
+
+.. code-block::
+
+    >>> run1 = smesolve(H, psi, np.linspace(0, 1, 11), c_ops, e_ops=[num(N)], ntraj=25)
+    >>> print(run1.num_trajectories)
+    25
+    >>> run2 = smesolve(H, psi, np.linspace(0, 1, 11), c_ops, e_ops=[num(N)], ntraj=25)
+    >>> print(run2.num_trajectories)
+    25
+    >>> merged = run1 + run2
+    >>> print(merged.num_trajectories)
+    50
+
+This allows to improve statistics while keeping previous computation.
