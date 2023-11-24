@@ -22,7 +22,7 @@ def _degen(tol, vecs, ops, i=0):
                               / (1 - np.abs(dot)**2)**0.5)
 
     subspace = vecs.conj().T @ ops[i].full() @ vecs
-    eigvals, eigvecs = la.eig(subspace)
+    eigvals, eigvecs = la.eigh(subspace)
 
     perm = np.argsort(eigvals)
     eigvals = eigvals[perm]
