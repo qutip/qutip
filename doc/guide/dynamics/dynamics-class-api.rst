@@ -1,11 +1,13 @@
+.. _solver_api:
 
 
-.. _monte-reuse:
+
+*******************************************
+Solver Class Interface
+*******************************************
 
 Reusing Hamiltonian Data
 ------------------------
-
-.. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
 
 
 In order to solve a given simulation as fast as possible, the solvers in QuTiP
@@ -59,8 +61,8 @@ identical conditions are merged into a single ``result`` object.
 
     H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
     solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
-    data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1, seed=1)
-    data2 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1, seed=3)
+    data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1, seeds=1)
+    data2 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1, seeds=3)
     data_merged = data1 + data2
 
     plt.figure()

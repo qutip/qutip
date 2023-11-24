@@ -190,6 +190,12 @@ in ``result.measurements``.
     `inefficient detection <...>`_, and
     `feedback control <https://github.com/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_.
 
+
+The stochastic solvers share many features with :func:`.mcsolve`, such as
+end conditions, seed control and running in parallel. See the sections
+:ref:`monte-ntraj`, :ref:`monte-seeds` and :ref:`monte-parallel` for detail.
+
+
 .. plot::
     :context: reset
     :include-source: false

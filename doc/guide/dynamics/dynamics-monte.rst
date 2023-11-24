@@ -166,33 +166,6 @@ the collapse. These can be obtained in  ``result.col_times`` and
 ``result.col_which`` respectively.
 
 
-Photocurrent
-------------
-
-The photocurrent, previously computed using the ``photocurrent_sesolve`` and
-``photocurrent_sesolve`` functions, are now included in the output of
-:func:`.mcsolve` as ``result.photocurrent``.
-
-
-.. plot::
-    :context: close-figs
-
-    times = np.linspace(0.0, 10.0, 200)
-    psi0 = tensor(fock(2, 0), fock(10, 8))
-    a  = tensor(qeye(2), destroy(10))
-    sm = tensor(destroy(2), qeye(10))
-    e_ops = [a.dag() * a, sm.dag() * sm]
-    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops)
-
-    plt.figure()
-    plt.plot((times[:-1] + times[1:])/2, data.photocurrent[0])
-    plt.title('Monte Carlo Photocurrent')
-    plt.xlabel('Time')
-    plt.ylabel('Photon detections')
-    plt.show()
-
-
 .. _monte-ntraj:
 
 Changing the Number of Trajectories
@@ -205,10 +178,9 @@ does not take an excessive amount of time to run. However, you can change the
 number of trajectories to fit your needs. In order to run 1000 trajectories in
 the above example, we can simply modify the call to ``mcsolve`` like:
 
-.. plot::
-    :context: close-figs
+.. code-block::
 
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops, ntraj=1000)
+    data = mcsolve(H, psi0, times, c_ops e_ops=e_ops, ntraj=1000)
 
 where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.
 Now, the Monte Carlo solver will calculate expectation values for both operators,
@@ -226,7 +198,7 @@ new trajectories when it is reached. Thus:
 
     data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops, ntraj=1000, timeout=60)
 
-Will compute 1 minute of trajectories or 1000, which ever is reached first.
+Will compute 60 seconds of trajectories or 1000, which ever is reached first.
 The solver will finish any trajectory started when the timeout is reached. Therefore
 if the computation time of a single trajectory is quite long, the overall computation
 time can be much longer that the provided timeout.
@@ -234,7 +206,7 @@ time can be much longer that the provided timeout.
 Lastly, ``mcsolve`` can be instructed to stop when the statistical error of the
 expectation values get under a certain value. When computing the average over
 trajectories, the error on these are computed using
-:ref:`Jackknife resampling <https://en.wikipedia.org/wiki/Jackknife_resampling>`
+`jackknife resampling <https://en.wikipedia.org/wiki/Jackknife_resampling>`_
 for each expect and each time and the computation will be stopped when all these values
 are under the tolerance passed to ``target_tol``. Therefore:
 
@@ -244,7 +216,7 @@ are under the tolerance passed to ``target_tol``. Therefore:
                    ntraj=1000, target_tol=0.01, timeout=600)
 
 will stop either after all errors bars on expectation values are under ``0.01``, 1000
-trajectories are computed or 10 min have passed, whichever comes first. When a
+trajectories are computed or 10 minutes have passed, whichever comes first. When a
 single values is passed, it is used as the absolute value of the tolerance.
 When a pair of values is passed, it is understood as an absolute and relative
 tolerance pair. For even finer control, one such pair can be passed for each ``e_ops``.
@@ -341,10 +313,10 @@ The original sampling algorithm samples the no-jump trajectory on average 96.7%
 of the time, while the improved sampling algorithm only does so once.
 
 
-.. monte-seeds:
+.. _monte-seeds:
 
-Reproducibility with Monte-Carlo
---------------------------------
+Reproducibility
+---------------
 
 For reproducibility of Monte-Carlo computations it is possible to set the seed
 
@@ -372,7 +344,7 @@ the result object can be used to redo the same evolution:
     True
 
 
-.. monte-parallel:
+.. _monte-parallel:
 
 Running trajectories in parallel
 --------------------------------
@@ -381,13 +353,14 @@ Monte-Carlo evolutions often need hundreds of trajectories to obtain sufficient
 statistics. Since all trajectories are independent of each other, they can be computed
 in parallel. The option ``map`` can take ``"serial"``, ``"parallel"`` or ``"loky"``.
 Both ``"parallel"`` and ``"loky"`` compute trajectories on multiple cpus using
-respectively the multiprocessing and loky python modules.
+respectively the `multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`_
+and `loky <https://loky.readthedocs.io/en/stable/index.html>`_ python modules.
 
 .. code-block::
 
-    >>> res_parallel = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, options={"map": "parallel"}, seeds=1)
-    >>> res_serial = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, options={"map": "serial"}, seeds=1)
-    >>> np.allclose(res_parallel.average_expect, res_serial.average_expect)
+    >>> res_par = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, options={"map": "parallel"}, seeds=1)
+    >>> res_ser = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, options={"map": "serial"}, seeds=1)
+    >>> np.allclose(res_par.average_expect, res_ser.average_expect)
     True
 
 Note the when running in parallel, the order in which the trajectories are added
@@ -395,15 +368,42 @@ to the result can differ. Therefore
 
 .. code-block::
 
-    >>> print(res_parallel.seeds[:3])
+    >>> print(res_par.seeds[:3])
     [SeedSequence(entropy=1,spawn_key=(1,),),
      SeedSequence(entropy=1,spawn_key=(0,),),
      SeedSequence(entropy=1,spawn_key=(2,),)]
 
-    >>> print(res_serial.seeds[:3])
+    >>> print(res_ser.seeds[:3])
     [SeedSequence(entropy=1,spawn_key=(0,),),
      SeedSequence(entropy=1,spawn_key=(1,),),
      SeedSequence(entropy=1,spawn_key=(2,),)]
+
+
+Photocurrent
+------------
+
+The photocurrent, previously computed using the ``photocurrent_sesolve`` and
+``photocurrent_sesolve`` functions, are now included in the output of
+:func:`.mcsolve` as ``result.photocurrent``.
+
+
+.. plot::
+    :context: close-figs
+
+    times = np.linspace(0.0, 10.0, 200)
+    psi0 = tensor(fock(2, 0), fock(10, 8))
+    a  = tensor(qeye(2), destroy(10))
+    sm = tensor(destroy(2), qeye(10))
+    e_ops = [a.dag() * a, sm.dag() * sm]
+    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops)
+
+    plt.figure()
+    plt.plot((times[:-1] + times[1:])/2, data.photocurrent[0])
+    plt.title('Monte Carlo Photocurrent')
+    plt.xlabel('Time')
+    plt.ylabel('Photon detections')
+    plt.show()
 
 
 .. openmcsolve:

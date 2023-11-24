@@ -20,6 +20,7 @@ Users Guide
    guide-control.rst
    guide-bloch.rst
    guide-visualization.rst
+   guide-parfor.rst
    guide-saving.rst
    guide-random.rst
    guide-settings.rst
