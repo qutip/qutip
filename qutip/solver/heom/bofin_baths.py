@@ -171,7 +171,6 @@ class Bath:
 
     All of the parameters are available as attributes.
     """
-
     def __init__(self, exponents):
         self.exponents = exponents
 
@@ -231,7 +230,6 @@ class BosonicBath(Bath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
         if len(ck_real) != len(vk_real) or len(ck_imag) != len(vk_imag):
             raise ValueError(
@@ -372,7 +370,6 @@ class DrudeLorentzBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def __init__(
         self, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
@@ -479,7 +476,6 @@ class DrudeLorentzPadeBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def __init__(
         self, Q, lam, gamma, T, Nk, combine=True, tag=None
     ):
@@ -569,8 +565,8 @@ class DrudeLorentzPadeBath(BosonicBath):
 
     def _calc_eps(self, Nk):
         alpha = np.diag([
-            1. / np.sqrt((2 * k + 5) * (2 * k + 3))
-            for k in range(2 * Nk - 1)
+                1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+                for k in range(2 * Nk - 1)
         ], k=1)
         alpha += alpha.transpose()
         evals = eigvalsh(alpha)
@@ -579,8 +575,8 @@ class DrudeLorentzPadeBath(BosonicBath):
 
     def _calc_chi(self, Nk):
         alpha_p = np.diag([
-            1. / np.sqrt((2 * k + 7) * (2 * k + 5))
-            for k in range(2 * Nk - 2)
+                1. / np.sqrt((2 * k + 7) * (2 * k + 5))
+                for k in range(2 * Nk - 2)
         ], k=1)
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
@@ -592,7 +588,6 @@ class _DrudeLorentzTerminator:
     """ A class for calculating the terminator of a Drude-Lorentz bath
         expansion.
     """
-
     def __init__(self, Q, lam, gamma, T):
         self.Q = Q
         self.lam = lam
@@ -657,7 +652,6 @@ class UnderDampedBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def __init__(
         self, Q, lam, gamma, w0, T, Nk, combine=True, tag=None,
     ):
@@ -834,7 +828,6 @@ class LorentzianBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
         ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
@@ -913,7 +906,6 @@ class LorentzianPadeBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
         ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
@@ -970,8 +962,8 @@ class LorentzianPadeBath(FermionicBath):
 
     def _calc_eps(self, Nk):
         alpha = np.diag([
-            1. / np.sqrt((2 * k + 3) * (2 * k + 1))
-            for k in range(2 * Nk - 1)
+                1. / np.sqrt((2 * k + 3) * (2 * k + 1))
+                for k in range(2 * Nk - 1)
         ], k=1)
         alpha += alpha.transpose()
 
@@ -981,8 +973,8 @@ class LorentzianPadeBath(FermionicBath):
 
     def _calc_chi(self, Nk):
         alpha_p = np.diag([
-            1. / np.sqrt((2 * k + 5) * (2 * k + 3))
-            for k in range(2 * Nk - 2)
+                1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+                for k in range(2 * Nk - 2)
         ], k=1)
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
