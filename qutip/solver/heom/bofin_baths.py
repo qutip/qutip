@@ -980,4 +980,3 @@ class LorentzianPadeBath(FermionicBath):
         evals = eigvalsh(alpha_p)
         chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
-    

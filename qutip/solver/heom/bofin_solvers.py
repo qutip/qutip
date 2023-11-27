@@ -816,7 +816,7 @@ class HEOMSolver(Solver):
 
     def _grad_next_fermionic(self, he_n, k):
         he_fermionic_n = [
-            i * int(exp.fermionic) 
+            i * int(exp.fermionic)
             for i, exp in zip(he_n, self.ados.exponents)
         ]
         n_excite = sum(he_fermionic_n)
@@ -1323,6 +1323,7 @@ class _GatherHEOMRHS:
                 block indices ``(N, M)`` is placed at position
                 ``[N * block: (N + 1) * block, M * block: (M + 1) * block]``
                 in the output matrix.
+
             Returns
             -------
             rhs : :obj:`Data`
