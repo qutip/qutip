@@ -73,6 +73,28 @@ def test_simdiag_degen_large():
                 atol=1e-13
             )
 
+def test_simdiag_orthonormal_eigenvectors():
+
+    # Special matrix that used to be problematic (see Issue #2268)
+    a = np.array([[1,  0, 1, -1, 0],
+                  [0,  4, 0,  0, 1],
+                  [1,  0, 4,  1, 0],
+                  [-1, 0, 1,  4, 0],
+                  [0,  1, 0,  0, 4]])
+
+    b = np.eye(5)
+
+    _, evecs = qutip.simdiag([qutip.Qobj(a), qutip.Qobj(b)])
+    evecs = np.array([evec.full() for evec in evecs]).squeeze()
+
+    # Check that eigenvectors form an othonormal basis
+    # (<=> matrix of eigenvectors is unitary)
+    np.testing.assert_allclose(
+        evecs@evecs.conj().T,
+        np.eye(len(evecs)),
+        atol=1e-13
+    )
+
 
 def test_simdiag_no_input():
     with pytest.raises(ValueError):
