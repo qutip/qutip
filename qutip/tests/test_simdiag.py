@@ -82,9 +82,7 @@ def test_simdiag_orthonormal_eigenvectors():
                   [-1, 0, 1,  4, 0],
                   [0,  1, 0,  0, 4]])
 
-    b = np.eye(5)
-
-    _, evecs = qutip.simdiag([qutip.Qobj(a), qutip.Qobj(b)])
+    _, evecs = qutip.simdiag([qutip.Qobj(a), qutip.qeye(5)])
     evecs = np.array([evec.full() for evec in evecs]).squeeze()
 
     # Check that eigenvectors form an othonormal basis
