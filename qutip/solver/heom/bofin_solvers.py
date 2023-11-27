@@ -304,7 +304,7 @@ class HierarchyADOs:
         filtered_dims = [1] * len(self.exponents)
         for lvl in range(n):
             level_filters = [
-                (attr, f[lvl]) for attr, f in filters 
+                (attr, f[lvl]) for attr, f in filters
                 if f[lvl] is not None
             ]
             for j, exp in enumerate(self.exponents):
@@ -628,6 +628,7 @@ class HEOMSolver(Solver):
         self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
         self._sup_shape = self.L_sys.shape[0]
         self._sys_dims = self.L_sys.dims[0]
+
         self.ados = HierarchyADOs(
             self._combine_bath_exponents(bath), max_depth,
         )
@@ -644,14 +645,14 @@ class HEOMSolver(Solver):
         Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
         self._spreQ = [spre(op).data for op in Qs]
         self._spostQ = [spost(op).data for op in Qs]
-        self._s_pre_minus_post_Q = [_data.sub(
-            self._spreQ[k],
-            self._spostQ[k])
-            for k in range(self._n_exponents)]
-        self._s_pre_plus_post_Q = [_data.add(
-            self._spreQ[k],
-            self._spostQ[k])
-            for k in range(self._n_exponents)]
+        self._s_pre_minus_post_Q = [
+            _data.sub(self._spreQ[k], self._spostQ[k])
+            for k in range(self._n_exponents)
+        ]
+        self._s_pre_plus_post_Q = [
+            _data.add(self._spreQ[k], self._spostQ[k])
+            for k in range(self._n_exponents)
+        ]
         self._spreQdag = [spre(op.dag()).data for op in Qs]
         self._spostQdag = [spost(op.dag()).data for op in Qs]
         self._s_pre_minus_post_Qdag = [
@@ -752,7 +753,7 @@ class HEOMSolver(Solver):
             raise ValueError(
                 f"Unsupported type {self.ados.exponents[k].type}"
                 f" for exponent {k}"
-                )
+            )
         return op
 
     def _get_signs(self, n_excite, n_excite_before_m):
@@ -799,7 +800,7 @@ class HEOMSolver(Solver):
             raise ValueError(
                 f"Unsupported type {self.ados.exponents[k].type}"
                 f" for exponent {k}"
-                )
+            )
         return op
 
     def _grad_next(self, he_n, k):
@@ -842,7 +843,7 @@ class HEOMSolver(Solver):
         """ Make the RHS for the HEOM. """
         ops = _GatherHEOMRHS(
             self.ados.idx, block=self._sup_shape, nhe=self._n_ados
-            )
+        )
 
         for he_n in self.ados.labels:
             op = self._grad_n(he_n)
@@ -864,7 +865,7 @@ class HEOMSolver(Solver):
         rhs_mat = self._rhs()
         rhs_dims = [
             self._sup_shape * self._n_ados,self._sup_shape * self._n_ados
-            ]
+        ]
         h_identity = _data.identity(self._n_ados, dtype="csr")
 
         if self.L_sys.isconstant:
@@ -903,9 +904,9 @@ class HEOMSolver(Solver):
         return rhs
 
     def steady_state(
-            self,
-            use_mkl=True, mkl_max_iter_refine=100,mkl_weighted_matching=False
-            ):
+        self,
+        use_mkl=True, mkl_max_iter_refine=100,mkl_weighted_matching=False
+    ):
         """
         Compute the steady state of the system.
 
@@ -944,7 +945,7 @@ class HEOMSolver(Solver):
             raise ValueError(
                 "A steady state cannot be determined for a time-dependent"
                 " system"
-                )
+            )
         n = self._sys_shape
 
         b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
@@ -955,9 +956,9 @@ class HEOMSolver(Solver):
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()
         L += sp.csr_matrix((
-            np.ones(n), 
+            np.ones(n),
             (np.zeros(n), [num * (n + 1) for num in range(n)])
-            ),shape=(n ** 2 * self._n_ados, n**2 * self._n_ados))
+            ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
 
         if mkl_spsolve is not None and use_mkl:
             L.sort_indices()
@@ -974,7 +975,7 @@ class HEOMSolver(Solver):
             L = L.tocsc()
             solution = spsolve(L, b_mat)
 
-        data = _data.Dense(solution[: n ** 2].reshape((n, n)))
+        data = _data.Dense(solution[:n ** 2].reshape((n, n)))
         data = _data.mul(_data.add(data, data.conj()), 0.5)
         steady_state = Qobj(data, dims=self._sys_dims)
 
@@ -1085,7 +1086,7 @@ class HEOMSolver(Solver):
                     f" but the system dims are {rho_dims}"
                 )
             rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
-            rho0_he[: n ** 2] = rho0.full().ravel('F')
+            rho0_he[:n ** 2] = rho0.full().ravel('F')
             rho0_he = _data.create(rho0_he)
 
         if self.options["state_data_type"]:
@@ -1285,7 +1286,7 @@ class HSolverDL(HEOMSolver):
 
 class _GatherHEOMRHS:
     """ A class for collecting elements of the right-hand side matrix
-    of the HEOM.
+        of the HEOM.
 
         Parameters
         ----------
@@ -1312,13 +1313,16 @@ class _GatherHEOMRHS:
     def gather(self):
         """ Create the HEOM liouvillian from a sorted list of smaller sparse
             matrices.
+
             .. note::
+
                 The list of operators contains tuples of the form
                 ``(row_idx, col_idx, op)``. The row_idx and col_idx give the
                 *block* row and column for each op. An operator with
                 block indices ``(N, M)`` is placed at position
                 ``[N * block: (N + 1) * block, M * block: (M + 1) * block]``
                 in the output matrix.
+                
             Returns
             -------
             rhs : :obj:`Data`
