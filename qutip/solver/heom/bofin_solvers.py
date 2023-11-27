@@ -816,7 +816,8 @@ class HEOMSolver(Solver):
 
     def _grad_next_fermionic(self, he_n, k):
         he_fermionic_n = [
-            i * int(exp.fermionic) for i, exp in zip(he_n, self.ados.exponents)
+            i * int(exp.fermionic) 
+            for i, exp in zip(he_n, self.ados.exponents)
         ]
         n_excite = sum(he_fermionic_n)
         n_excite_before_m = sum(he_fermionic_n[:k])
@@ -836,7 +837,7 @@ class HEOMSolver(Solver):
             raise ValueError(
                 f"Unsupported type {self.ados.exponents[k].type}"
                 f" for exponent {k}"
-                )
+            )
         return op
 
     def _rhs(self):
@@ -864,7 +865,7 @@ class HEOMSolver(Solver):
         """ Make the full RHS required by the solver. """
         rhs_mat = self._rhs()
         rhs_dims = [
-            self._sup_shape * self._n_ados,self._sup_shape * self._n_ados
+            self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
         ]
         h_identity = _data.identity(self._n_ados, dtype="csr")
 
@@ -905,7 +906,7 @@ class HEOMSolver(Solver):
 
     def steady_state(
         self,
-        use_mkl=True, mkl_max_iter_refine=100,mkl_weighted_matching=False
+        use_mkl=True, mkl_max_iter_refine=100, mkl_weighted_matching=False
     ):
         """
         Compute the steady state of the system.
@@ -958,7 +959,7 @@ class HEOMSolver(Solver):
         L += sp.csr_matrix((
             np.ones(n),
             (np.zeros(n), [num * (n + 1) for num in range(n)])
-            ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
+        ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
 
         if mkl_spsolve is not None and use_mkl:
             L.sort_indices()
@@ -1101,7 +1102,7 @@ class HEOMSolver(Solver):
         hierarchy_shape = (self._n_ados, n, n)
 
         rho = Qobj(
-            state.to_array()[: n ** 2].reshape(rho_shape, order='F'),
+            state.to_array()[:n ** 2].reshape(rho_shape, order='F'),
             dims=rho_dims,
         )
         ado_state = HierarchyADOsState(
@@ -1322,7 +1323,6 @@ class _GatherHEOMRHS:
                 block indices ``(N, M)`` is placed at position
                 ``[N * block: (N + 1) * block, M * block: (M + 1) * block]``
                 in the output matrix.
-                
             Returns
             -------
             rhs : :obj:`Data`
