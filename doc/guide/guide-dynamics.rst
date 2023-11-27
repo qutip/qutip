@@ -18,4 +18,4 @@ Time Evolution and Quantum System Dynamics
    dynamics/dynamics-floquet.rst
    dynamics/dynamics-nmmonte.rst
    dynamics/dynamics-options.rst
-   dynamics/dynamics-class-api.rst
+   dynamics/dynamics-class.rst

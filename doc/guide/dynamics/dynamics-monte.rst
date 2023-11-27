@@ -252,6 +252,36 @@ same e_ops and same tlist. It does not check that the same initial state or
 Hamiltonian where used.
 
 
+This can be used to explore the convergence of the Monte Carlo solver.
+For example, the following code block plots expectation values for 1, 10 and 100
+trajectories:
+
+.. plot::
+    :context: close-figs
+
+    solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
+    c_ops=[np.sqrt(0.1) * a]
+    e_ops = [a.dag() * a, sm.dag() * sm]
+
+    data1 = mcsolve(H, psi0, times, c_ops, e_ops=e_ops, ntraj=1)
+    data10 = data1 + mcsolve(H, psi0, times, c_ops, e_ops=e_ops, ntraj=9)
+    data100 = data10 + mcsolve(H, psi0, times, c_ops, e_ops=e_ops, ntraj=90)
+
+    expt1 = data1.expect
+    expt10 = data10.expect
+    expt100 = data100.expect
+
+    plt.figure()
+    plt.plot(times, expt1[0], label="ntraj=1")
+    plt.plot(times, expt10[0], label="ntraj=10")
+    plt.plot(times, expt100[0], label="ntraj=100")
+    plt.title('Monte Carlo time evolution')
+    plt.xlabel('Time')
+    plt.ylabel('Expectation values')
+    plt.legend()
+    plt.show()
+
+
 Using the Improved Sampling Algorithm
 -------------------------------------
 
