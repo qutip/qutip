@@ -66,36 +66,21 @@ def _floquet_rate_matrix(floquet_basis,
     tlist = np.linspace(0, timet - dt, Nt)
     omega = (2*np.pi)/floquet_basis.T  # Frequency dependence of Hamiltonian
 
+
     total_R_tensor = defaultdict(lambda: 0)
     for cdx, c_op in enumerate(c_ops):
+        #Doing this to bring FLiMESolve in line with MESolve as far as decay rates are concerned
+        c_op_rates[cdx] *= c_op_rates[cdx]
 
         # Transforming the lowering operator into the Floquet Basis
         #     and taking the FFT
-        c_op_Floquet_basis = np.array(
-            [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist])
+        modes_table = np.stack([np.stack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])[...,0]
+        c_op_Floquet_basis = modes_table @ c_op.full() @ np.transpose(modes_table.conj(),(0,2,1))
+        # c_op_Floquet_basis = np.array(
+        #     [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist])
 
         c_op_Fourier_amplitudes_list = np.fft.fft(c_op_Floquet_basis, axis=0) \
             / len(tlist)
-
-        # Next step is to form arrays of the rate products (rate_products)
-        #     and the frequency at which these components rotate (delta_array),
-        #     then dividing the arrays to form the rate quotient array.
-
-        # In quotient array, setting any undefined value, i.e. those for which
-        #     rate_products = 0, equal to time_sense+1 so that the mask
-        #     arrays mask out these values.
-        rate_products = np.einsum('lab,kcd->abcdlk',
-                                  c_op_Fourier_amplitudes_list,
-                                  np.conj(c_op_Fourier_amplitudes_list))
-
-        # delta_array = np.add.outer(
-        #     np.subtract.outer(
-        #         np.subtract.outer(floquet_basis.e_quasi,
-        #                           floquet_basis.e_quasi),
-        #         np.subtract.outer(floquet_basis.e_quasi, floquet_basis.e_quasi)
-        #     )/omega,
-        #     np.subtract.outer(np.arange(Nt), np.arange(Nt))
-        # )
         delta_m = np.add.outer(floquet_basis.e_quasi, -floquet_basis.e_quasi)
         delta_m = np.add.outer(delta_m, -delta_m)
         delta_m /= omega
@@ -116,10 +101,9 @@ def _floquet_rate_matrix(floquet_basis,
                     c_op_Fourier_amplitudes_list[l],
                     np.conj(c_op_Fourier_amplitudes_list)[k]
                 )
-                cmp_array = np.minimum(
-                    np.abs(rate_products) * time_sense, Nt/2)
 
-                included_deltas = np.abs(delta_shift) * omega <= cmp_array
+
+                included_deltas = np.abs(delta_shift) * omega <= (rate_products*c_op_rates) * time_sense
                 if not np.any(included_deltas):
                     continue
                 keys = np.unique(delta_shift[included_deltas])
@@ -149,10 +133,6 @@ def _floquet_rate_matrix(floquet_basis,
         )
         for key, RateMat in total_R_tensor.items()
     }
-    # total_R_tensor = {
-    #     key: RateMat
-    #     for key, RateMat in total_R_tensor.items()
-    # }
     return total_R_tensor
 
 
