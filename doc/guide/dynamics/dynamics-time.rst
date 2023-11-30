@@ -472,6 +472,39 @@ Of course, for small system sizes and evolution times, the difference will be mi
 Lastly the spline method is usually as fast the string method, but it cannot be modified once created.
 
 
+.. _time_max_step:
+
+Working with pulses
+===================
+
+Special care is needed when working with pulses. ODE solvers decide the step
+length automatically and can miss thin pulses when not properly warned.
+Integrations methods with variables step have the ``max_step`` options that
+control the maximum length of a single internal integration step. This value
+should be set to under half the pulse width to be certain they are not missed.
+
+For example, the following pulse is missed without fixing the maximum step length.
+
+.. plot::
+    :context: close-figs
+
+    def pulse(t):
+        return 10 * np.pi * (0.7 < t < 0.75)
+
+    tlist = np.linspace(0, 1, 201)
+    H = [sigmaz(), [sigmax(), pulse]]
+    psi0 = basis(2,1)
+
+    data1 = sesolve(H, psi0, tlist, e_ops=num(2)).expect[0]
+    data2 = sesolve(H, psi0, tlist, e_ops=num(2), options={"max_step": 0.01}).expect[0]
+
+    plt.plot(tlist, data1, label="no max_step")
+    plt.plot(tlist, data2, label="fixed max_step")
+    plt.fill_between(tlist, [pulse(t) for t in tlist], color="g", alpha=0.2, label="pulse")
+    plt.ylim([-0.1, 1.1])
+    plt.legend(loc="center left")
+
+
 .. _time-dynargs:
 
 Accessing the state from solver
