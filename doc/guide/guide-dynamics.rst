@@ -19,3 +19,4 @@ Time Evolution and Quantum System Dynamics
    dynamics/dynamics-nmmonte.rst
    dynamics/dynamics-options.rst
    dynamics/dynamics-class.rst
+   dynamics/dynamics-propagator.rst
