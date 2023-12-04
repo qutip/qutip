@@ -208,7 +208,7 @@ cdef class QobjEvo:
             if Q_object._feedback_functions:
                 self._feedback_functions = Q_object._feedback_functions.copy()
             else:
-                self._feedback_functions = None
+                self._feedback_functions = {}
             self._solver_only_feedback = Q_object._solver_only_feedback.copy()
             if args:
                 self.arguments(args)
@@ -219,7 +219,7 @@ cdef class QobjEvo:
         self.elements = []
         self._dims = None
         self.shape = (0, 0)
-        self._feedback_functions = None
+        self._feedback_functions = {}
         self._solver_only_feedback = set()
         args = args or {}
         if feedback is not None:
@@ -405,7 +405,7 @@ cdef class QobjEvo:
     cdef object _prepare(QobjEvo self, object t, Data state=None):
         """ Precomputation before computing getting the element at `t`"""
         # We keep the function for feedback eventually
-        if self._feedback_functions is not None and state is not None:
+        if self._feedback_functions and state is not None:
             new_args = {
                 key: func(t, state)
                 for key, func in self._feedback_functions.items()
@@ -479,8 +479,6 @@ cdef class QobjEvo:
               corresponding solver's ``add_feedback`` function's documentation
               for available values.
         """
-        if self._feedback_functions is None:
-            self._feedback_functions = {}
         if feedback == "data":
             self._feedback_functions[key] = _DataFeedback()
         elif feedback in ["qobj", "Qobj"]:
@@ -521,13 +519,13 @@ cdef class QobjEvo:
         Merge feedback from ``op`` into self.
         """
         if other is not None:
-            if self._feedback_functions is None and other._feedback_functions:
+            if not self._feedback_functions and other._feedback_functions:
                 self._feedback_functions = other._feedback_functions.copy()
             elif other._feedback_functions:
                 self._feedback_functions.update(other._feedback_functions)
             self._solver_only_feedback |= other._solver_only_feedback
 
-        if self._feedback_functions is not None:
+        if self._feedback_functions:
             for key, func in self._feedback_functions.items():
                 # Update dims in ``_QobjFeedback``
                 if isinstance(func, _QobjFeedback):
