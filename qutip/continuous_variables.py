@@ -24,7 +24,7 @@ def correlation_matrix(basis, rho=None):
     ----------
     basis : list
         List of operators that defines the basis for the correlation matrix.
-    rho : Qobj
+    rho : Qobj, optional
         Density matrix for which to calculate the correlation matrix. If
         `rho` is `None`, then a matrix of correlation matrix operators is
         returned instead of expectation values of those operators.
@@ -71,7 +71,7 @@ def covariance_matrix(basis, rho, symmetrized=True):
         List of operators that defines the basis for the covariance matrix.
     rho : Qobj
         Density matrix for which to calculate the covariance matrix.
-    symmetrized : bool {True, False}
+    symmetrized : bool, default: True
         Flag indicating whether the symmetrized (default) or non-symmetrized
         correlation matrix is to be calculated.
 
@@ -103,12 +103,12 @@ def correlation_matrix_field(a1, a2, rho=None):
         Field operator for mode 1.
     a2 : Qobj
         Field operator for mode 2.
-    rho : Qobj
+    rho : Qobj, optional
         Density matrix for which to calculate the covariance matrix.
 
     Returns
     -------
-    cov_mat : ndarray 
+    cov_mat : ndarray
         Array of complex numbers or Qobj's
         A 2-dimensional *array* of covariance values, or, if rho=0, a matrix
         of operators.
@@ -129,17 +129,17 @@ def correlation_matrix_quadrature(a1, a2, rho=None, g=np.sqrt(2)):
         Field operator for mode 1.
     a2 : Qobj
         Field operator for mode 2.
-    rho : Qobj
+    rho : Qobj, optional
         Density matrix for which to calculate the covariance matrix.
-    g : float
-        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
-        The value of `g` is related to the value of `hbar` in the commutation 
-        relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default
-        value `hbar=1`. 
+    g : float, default: sqrt(2)
+        Scaling factor for ``a = 0.5 * g * (x + iy)``, default ``g = sqrt(2)``.
+        The value of ``g`` is related to the value of ``hbar`` in the
+        commutation relation ``[x, y] = i * hbar`` via ``hbar=2/g ** 2`` giving
+        the default value ``hbar=1``.
 
     Returns
     -------
-    corr_mat : ndarray 
+    corr_mat : ndarray
         Array of complex numbers or Qobj's
         A 2-dimensional *array* of covariance values for the field quadratures,
         or, if rho=0, a matrix of operators.
@@ -163,31 +163,31 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None, g=np.sqrt(2)):
     :math:`R = (q_1, p_1, q_2, p_2)^T` is the vector with quadrature operators
     for the two modes.
 
-    Alternatively, if `R = None`, and if annihilation operators `a1` and `a2`
-    for the two modes are supplied instead, the quadrature correlation matrix
-    is constructed from the annihilation operators before then the covariance
-    matrix is calculated.
+    Alternatively, if ``R = None``, and if annihilation operators ``a1`` and
+    ``a2`` for the two modes are supplied instead, the quadrature correlation
+    matrix is constructed from the annihilation operators before then the
+    covariance matrix is calculated.
 
     Parameters
     ----------
 
-    a1 : Qobj
+    a1 : Qobj, optional
         Field operator for mode 1.
 
-    a2 : Qobj
+    a2 : Qobj, optional
         Field operator for mode 2.
 
-    R : ndarray
+    R : ndarray, optional
         The quadrature correlation matrix.
 
-    rho : Qobj
+    rho : Qobj, optional
         Density matrix for which to calculate the covariance matrix.
 
-    g : float
-        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
-        The value of `g` is related to the value of `hbar` in the commutation 
-        relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default 
-        value `hbar=1`. 
+    g : float, default: sqrt(2)
+        Scaling factor for ``a = 0.5 * g * (x + iy)``, default ``g = sqrt(2)``.
+        The value of ``g`` is related to the value of ``hbar`` in the
+        commutation relation ``[x, y] = i * hbar`` via ``hbar=2/g ** 2`` giving
+        the default value ``hbar=1``.
 
     Returns
     -------
@@ -229,19 +229,19 @@ def logarithmic_negativity(V, g=np.sqrt(2)):
     Parameters
     ----------
 
-    V : *2d array*
+    V : ndarray
         The covariance matrix.
 
-    g : float
-        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
-        The value of `g` is related to the value of `hbar` in the commutation 
-        relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default 
-        value `hbar=1`. 
+    g : float, default: sqrt(2)
+        Scaling factor for ``a = 0.5 * g * (x + iy)``, default ``g = sqrt(2)``.
+        The value of ``g`` is related to the value of ``hbar`` in the
+        commutation relation ``[x, y] = i * hbar`` via ``hbar=2/g ** 2`` giving
+        the default value ``hbar=1``.
 
     Returns
     -------
 
-    N : float 
+    N : float
         The logarithmic negativity for the two-mode Gaussian state
         that is described by the the Wigner covariance matrix V.
 

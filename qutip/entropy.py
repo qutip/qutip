@@ -17,9 +17,9 @@ def entropy_vn(rho, base=e, sparse=False):
     ----------
     rho : qobj
         Density matrix.
-    base : {e,2}
+    base : {e, 2}, default: e
         Base of logarithm.
-    sparse : {False,True}
+    sparse : bool, default: False
         Use sparse eigensolver.
 
     Returns
@@ -90,7 +90,7 @@ def concurrence(rho):
     References
     ----------
 
-    .. [1] https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)
+    .. [1] `https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)`
 
     """
     if rho.isket and rho.dims != [[2, 2], [1, 1]]:
@@ -159,9 +159,9 @@ def entropy_mutual(rho, selA, selB, base=e, sparse=False):
         `int` or `list` of first selected density matrix components.
     selB : int/list
         `int` or `list` of second selected density matrix components.
-    base : {e,2}
+    base : {e, 2}, default: e
         Base of logarithm.
-    sparse : {False,True}
+    sparse : bool, default: False
         Use sparse eigensolver.
 
     Returns
@@ -195,18 +195,18 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         First density matrix (or ket which will be converted to a density
         matrix).
-    sigma : :class:`qutip.Qobj`
+    sigma : :class:`.Qobj`
         Second density matrix (or ket which will be converted to a density
         matrix).
-    base : {e,2}
+    base : {e, 2}, default: e
         Base of logarithm. Defaults to e.
-    sparse : bool
+    sparse : bool, default: False
         Flag to use sparse solver when determining the eigenvectors
         of the density matrices. Defaults to False.
-    tol : float
+    tol : float, default: 1e-12
         Tolerance to use to detect 0 eigenvalues or dot producted between
         eigenvectors. Defaults to 1e-12.
 
@@ -295,9 +295,9 @@ def entropy_conditional(rho, selB, base=e, sparse=False):
         Density matrix of composite object
     selB : int/list
         Selected components for density matrix B
-    base : {e,2}
+    base : {e, 2}, default: e
         Base of logarithm.
-    sparse : {False,True}
+    sparse : bool, default: False
         Use sparse eigensolver.
 
     Returns

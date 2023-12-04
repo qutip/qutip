@@ -56,7 +56,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
-    This function work as a drop-in replacement of :func:`qutip.parallel_map`.
+    This function work as a drop-in replacement of :func:`parallel_map`.
 
     Parameters
     ----------
@@ -65,20 +65,20 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
     values : array / list
         The list or array of values for which the ``task`` function is to be
         evaluated.
-    task_args : list / dictionary
+    task_args : list, optional
         The optional additional argument to the ``task`` function.
-    task_kwargs : list / dictionary
+    task_kwargs : dictionary, optional
         The optional additional keyword argument to the ``task`` function.
-    reduce_func : func (optional)
+    reduce_func : func, optional
         If provided, it will be called with the output of each tasks instead of
         storing a them in a list. It should return None or a number.
         When returning a number, it represent the estimation of the number of
         task left. On a return <= 0, the map will end early.
-    progress_bar : string
+    progress_bar : str, optional
         Progress bar options's string for showing progress.
-    progress_bar_kwargs : dict
+    progress_bar_kwargs : dict, optional
         Options for the progress bar.
-    map_kw: dict (optional)
+    map_kw: dict, optional
         Dictionary containing:
         - timeout: float, Maximum time (sec) for the whole map.
         - fail_fast: bool, Raise an error at the first.
@@ -136,8 +136,8 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
                  reduce_func=None, map_kw=None,
                  progress_bar=None, progress_bar_kwargs={}):
     """
-    Parallel execution of a mapping of `values` to the function `task`. This
-    is functionally equivalent to::
+    Parallel execution of a mapping of ``values`` to the function ``task``.
+    This is functionally equivalent to::
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
@@ -148,21 +148,21 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     values : array / list
         The list or array of values for which the ``task`` function is to be
         evaluated.
-    task_args : list / dictionary
+    task_args : list, optional
         The optional additional argument to the ``task`` function.
-    task_kwargs : list / dictionary
+    task_kwargs : dictionary, optional
         The optional additional keyword argument to the ``task`` function.
-    reduce_func : func (optional)
+    reduce_func : func, optional
         If provided, it will be called with the output of each tasks instead of
         storing a them in a list. Note that the order in which results are
         passed to ``reduce_func`` is not defined. It should return None or a
         number. When returning a number, it represent the estimation of the
         number of task left. On a return <= 0, the map will end early.
-    progress_bar : string
+    progress_bar : str, optional
         Progress bar options's string for showing progress.
-    progress_bar_kwargs : dict
+    progress_bar_kwargs : dict, optional
         Options for the progress bar.
-    map_kw: dict (optional)
+    map_kw: dict, optional
         Dictionary containing entry for:
         - timeout: float, Maximum time (sec) for the whole map.
         - job_timeout: float, Maximum time (sec) for each job in the map.
@@ -279,8 +279,8 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
               reduce_func=None, map_kw=None,
               progress_bar=None, progress_bar_kwargs={}):
     """
-    Parallel execution of a mapping of `values` to the function `task`. This
-    is functionally equivalent to::
+    Parallel execution of a mapping of ``values`` to the function ``task``.
+    This is functionally equivalent to::
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
@@ -293,20 +293,20 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     values : array / list
         The list or array of values for which the ``task`` function is to be
         evaluated.
-    task_args : list / dictionary
+    task_args : list, optional
         The optional additional argument to the ``task`` function.
-    task_kwargs : list / dictionary
+    task_kwargs : dictionary, optional
         The optional additional keyword argument to the ``task`` function.
-    reduce_func : func (optional)
+    reduce_func : func, optional
         If provided, it will be called with the output of each tasks instead of
         storing a them in a list. It should return None or a number.  When
         returning a number, it represent the estimation of the number of task
         left. On a return <= 0, the map will end early.
-    progress_bar : string
+    progress_bar : str, optional
         Progress bar options's string for showing progress.
-    progress_bar_kwargs : dict
+    progress_bar_kwargs : dict, optional
         Options for the progress bar.
-    map_kw: dict (optional)
+    map_kw: dict, optional
         Dictionary containing entry for:
         - timeout: float, Maximum time (sec) for the whole map.
         - job_timeout: float, Maximum time (sec) for each job in the map.
@@ -314,7 +314,7 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         - fail_fast: bool, Raise an error at the first.
 
     Returns
-    --------
+    -------
     result : list
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for

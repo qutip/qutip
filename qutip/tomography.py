@@ -41,11 +41,11 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
         Input QPT chi matrix.
     lbls_list : list
         List of labels for QPT plot axes.
-    title : string
+    title : str, optional
         Plot title.
-    fig : figure instance
+    fig : figure instance, optional
         User defined figure instance used for generating QPT plot.
-    axes : list of figure axis instance
+    axes : list of figure axis instance, optional
         User defined figure axis instance (list of two axes) used for
         generating QPT plot.
 
@@ -99,17 +99,20 @@ def qpt_plot_combined(chi, lbls_list, title=None,
     lbls_list : list
         List of labels for QPT plot axes.
 
-    title : string
+    title : str, optional
         Plot title.
 
-    fig : figure instance
+    fig : figure instance, optional
         User defined figure instance used for generating QPT plot.
 
-    ax : figure axis instance
+    figsize : (int, int), default: (8, 6)
+        Size of the figure when the ``fig`` is not provided.
+
+    ax : figure axis instance, optional
         User defined figure axis instance used for generating QPT plot
         (alternative to the fig argument).
 
-    threshold: float (None)
+    threshold: float, optional
         Threshold for when bars of smaller height should be transparent. If
         not set, all bars are colored according to the color map.
 

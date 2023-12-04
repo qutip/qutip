@@ -13,11 +13,11 @@ we assumed that the systems under consideration were described by time-independe
 However, many systems have explicit time dependence in either the Hamiltonian,
 or the collapse operators describing coupling to the environment, and sometimes both components might depend on time.
 The time-evolutions solvers such as :func:`sesolve`, :func:`brmesolve`, etc. are all capable of handling time-dependent Hamiltonians and collapse terms.
-QuTiP use :class:`QobjEvo` to represent time-dependent quantum operators.
-There are three different ways to build a :class:`QobjEvo`: :
+QuTiP use :obj:`.QobjEvo` to represent time-dependent quantum operators.
+There are three different ways to build a :obj:`.QobjEvo`: :
 
 
-1. **Function based**: Build the time dependent operator from a function returning a :class:`Qobj`:
+1. **Function based**: Build the time dependent operator from a function returning a :obj:`.Qobj`:
 
 .. code-block:: python
 
@@ -32,7 +32,7 @@ There are three different ways to build a :class:`QobjEvo`: :
     H_t = QobjEvo([num(N), [create(N), lambda t: np.sin(t)], [destroy(N), lambda t: np.sin(t)]])
 
 
-3. **coefficent based**: The product of a :class:`Qobj` with a :class:`Coefficient` result in a :class:`QobjEvo`:
+3. **coefficent based**: The product of a :obj:`.Qobj` with a :obj:`.Coefficient` result in a :obj:`.QobjEvo`:
 
 .. code-block:: python
 
@@ -42,11 +42,11 @@ There are three different ways to build a :class:`QobjEvo`: :
 These 3 examples will create the same time dependent operator, however the function based method will usually be slower when used in solver.
 
 
-Solvers will accept a :class:`QobjEvo`: when an operator is expected: this include the Hamiltonian ``H``, collapse operators, expectation values operators, the operator of :func:`brmesolve`'s ``a_ops``, etc.
+Solvers will accept a :obj:`.QobjEvo`: when an operator is expected: this include the Hamiltonian ``H``, collapse operators, expectation values operators, the operator of :func:`brmesolve`'s ``a_ops``, etc.
 Exception are :func:`krylovsolve`'s Hamiltonian and HEOM's Bath operators.
 
 
-Most solvers will accept any format that could be made into a :class:`QobjEvo`: for the Hamiltonian.
+Most solvers will accept any format that could be made into a :obj:`.QobjEvo`: for the Hamiltonian.
 All of the following are equivalent:
 
 
@@ -57,7 +57,7 @@ All of the following are equivalent:
     result = mesolve(oper, ...)
 
 
-Collapse operator also accept a list of object that could be made into :class:`QobjEvo`:.
+Collapse operator also accept a list of object that could be made into :obj:`.QobjEvo`:.
 However one needs to be careful about not confusing the list nature of the `c_ops` parameter with list format quantum system.
 In the following call:
 
@@ -66,7 +66,7 @@ In the following call:
     result = mesolve(H_t, ..., c_ops=[num(N), [destroy(N) + create(N), lambda t: np.sin(t)]])
 
 :func:`mesolve` will see 2 collapses operators: ``num(N)`` and ``[destroy(N) + create(N), lambda t: np.sin(t)]``.
-It is therefore preferred to pass each collapse operator as either a :class:`Qobj`: or a :class:`QobjEvo`:.
+It is therefore preferred to pass each collapse operator as either a :obj:`.Qobj`: or a :obj:`.QobjEvo`:.
 
 
 As an example, we will look at a case with a time-dependent Hamiltonian of the form :math:`H=H_{0}+f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.
@@ -157,7 +157,7 @@ In addition, we can also consider the decay of a simple Harmonic oscillator with
 Qobjevo
 =======
 
-:class:`QobjEvo` as a time dependent quantum system, as it's main functionality create a :class:`Qobj` at a time:
+:obj:`.QobjEvo` as a time dependent quantum system, as it's main functionality create a :obj:`.Qobj` at a time:
 
 .. doctest:: [basics]
     :options: +NORMALIZE_WHITESPACE
@@ -169,7 +169,7 @@ Qobjevo
      [1. 1.]]
 
 
-:class:`QobjEvo` shares a lot of properties with the :class:`Qobj`.
+:obj:`.QobjEvo` shares a lot of properties with the :obj:`.Qobj`.
 
 +---------------+------------------+----------------------------------------+
 | Property      | Attribute        | Description                            |
@@ -188,7 +188,7 @@ Qobjevo
 +---------------+------------------+----------------------------------------+
 
 
-:class:`QobjEvo`'s follow the same mathematical operations rules than :class:`Qobj`.
+:obj:`.QobjEvo`'s follow the same mathematical operations rules than :obj:`.Qobj`.
 They can be added, subtracted and multiplied with scalar, ``Qobj`` and ``QobjEvo``.
 They also support the `dag` and `trans` and `conj` method and can be used for tensor operations and super operator transformation:
 
@@ -215,7 +215,7 @@ Until now, the coefficient were only functions of time.
 In the definition of ``H1_coeff``, the driving amplitude ``A`` and width ``sigma`` were hardcoded with their numerical values.
 This is fine for problems that are specialized, or that we only want to run once.
 However, in many cases, we would like study the same problem with a range of parameters and not have to worry about manually changing the values on each run.
-QuTiP allows you to accomplish this using by adding extra arguments to coefficients function that make the :class:`QobjEvo`.
+QuTiP allows you to accomplish this using by adding extra arguments to coefficients function that make the :obj:`.QobjEvo`.
 For instance, instead of explicitly writing 9 for the amplitude and 5 for the width of the gaussian driving term, we can add an `args` positional variable:
 
 
@@ -239,7 +239,7 @@ or, new from v5, add the extra parameter directly:
 When the second positional input of the coefficient function is named ``args``, the arguments are passed as a Python dictionary of ``key: value`` pairs.
 Otherwise the coefficient function is called as ``coeff(t, **args)``.
 In the last example, ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the two parameters for the amplitude and width, respectively.
-This ``args`` dictionary need to be given at creation of the :class:`QobjEvo` when function using then are included:
+This ``args`` dictionary need to be given at creation of the :obj:`.QobjEvo` when function using then are included:
 
 .. plot::
     :context: close-figs
@@ -248,7 +248,7 @@ This ``args`` dictionary need to be given at creation of the :class:`QobjEvo` wh
     args={'A': 9, 'sigma': 5}
     qevo = QobjEvo(system, args=args)
 
-But without ``args``, the :class:`QobjEvo` creation will fail:
+But without ``args``, the :obj:`.QobjEvo` creation will fail:
 
 .. plot::
     :context: close-figs
@@ -258,7 +258,7 @@ But without ``args``, the :class:`QobjEvo` creation will fail:
     except TypeError as err:
         print(err)
 
-When evaluation the :class:`QobjEvo` at a time, new arguments can be passed either with the ``args`` dictionary positional arguments, or with specific keywords arguments:
+When evaluation the :obj:`.QobjEvo` at a time, new arguments can be passed either with the ``args`` dictionary positional arguments, or with specific keywords arguments:
 
 .. plot::
     :context: close-figs
@@ -272,7 +272,7 @@ Whether the original coefficient used the ``args`` or specific input does not ma
 It is fine to mix the different signatures.
 
 Solver calls take an ``args`` input that is used to build the time dependent system.
-If the Hamiltonian or collapse operators are already :class:`QobjEvo`, their arguments will be overwritten.
+If the Hamiltonian or collapse operators are already :obj:`.QobjEvo`, their arguments will be overwritten.
 
 .. code-block:: python
 
@@ -282,7 +282,7 @@ If the Hamiltonian or collapse operators are already :class:`QobjEvo`, their arg
     mesolve(system, ..., args=args)
 
 
-To update arguments of an existing time dependent quantum system, you can pass the previous object as the input of a :class:`QobjEvo` with new ``args``:
+To update arguments of an existing time dependent quantum system, you can pass the previous object as the input of a :obj:`.QobjEvo` with new ``args``:
 
 
 .. plot::
@@ -294,7 +294,7 @@ To update arguments of an existing time dependent quantum system, you can pass t
     print(new_qevo(1))
 
 
-:class:`QobjEvo` created from a monolithic function can also use arguments:
+:obj:`.QobjEvo` created from a monolithic function can also use arguments:
 
 
 .. code-block:: python
@@ -305,7 +305,7 @@ To update arguments of an existing time dependent quantum system, you can pass t
     H_t = QobjEvo(oper, args={"w": np.pi})
 
 
-When merging two or more :class:`QobjEvo`, each will keep it arguments, but calling it with updated are will affect all parts:
+When merging two or more :obj:`.QobjEvo`, each will keep it arguments, but calling it with updated are will affect all parts:
 
 
 .. plot::
@@ -321,7 +321,7 @@ When merging two or more :class:`QobjEvo`, each will keep it arguments, but call
 Coefficients
 ============
 
-To build time dependent quantum system we often use a list of :class:`Qobj` and *coefficient*.
+To build time dependent quantum system we often use a list of :obj:`.Qobj` and *coefficient*.
 These *coefficients* represent the strength of the corresponding quantum object a function that of time.
 Up to now, we used functions for these, but QuTiP support multiple formats: ``callable``, ``strings``, ``array``.
 
@@ -417,7 +417,7 @@ It is therefore better to create the QobjEvo using an extended range prior to th
     )
 
 
-Different coefficient types can be mixed in a :class:`QobjEvo`.
+Different coefficient types can be mixed in a :obj:`.QobjEvo`.
 
 
 Given the multiple choices of input style, the first question that arises is which option to choose?
@@ -434,7 +434,7 @@ Lastly the spline method is usually as fast the string method, but it cannot be 
 Accessing the state from solver
 ===============================
 
-In QuTiP 4.4 to 4.7, it was possible to request that the solver pass the state, expectation values or collapse operators via arguments to :class:`QobjEvo`. Support for this is not yet available in QuTiP 5.
+In QuTiP 4.4 to 4.7, it was possible to request that the solver pass the state, expectation values or collapse operators via arguments to :obj:`.QobjEvo`. Support for this is not yet available in QuTiP 5.
 
 .. plot::
     :context: reset

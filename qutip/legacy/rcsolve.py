@@ -33,7 +33,7 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
         Initial state of the system.
     tlist: List.
         Time over which system evolves.
-    e_ops: list of :class:`qutip.Qobj` / callback function single
+    e_ops: list of :class:`.Qobj` / callback function single
         Single operator or list of operators for which to evaluate
         expectation values.
     Q: Qobj

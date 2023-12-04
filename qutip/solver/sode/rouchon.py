@@ -19,12 +19,12 @@ class RouchonSODE(SIntegrator):
 
     - Order: strong 1
 
-    .. note::
-
-        This method should be used with very small ``dt``. Unlike other
-        methods that will return unphysical state (negative eigenvalues, Nans)
-        when the time step is too large, this method will return state that
-        seems normal.
+    Notes
+    -----
+    This method should be used with very small ``dt``. Unlike other
+    methods that will return unphysical state (negative eigenvalues, Nans)
+    when the time step is too large, this method will return state that
+    seems normal.
     """
     integrator_options = {
         "dt": 0.0001,
@@ -120,10 +120,10 @@ class RouchonSODE(SIntegrator):
         """
         Supported options by Rouchon Stochastic Integrators:
 
-        dt : float, default=0.001
+        dt : float, default: 0.001
             Internal time step.
 
-        tol : float, default=1e-7
+        tol : float, default: 1e-7
             Relative tolerance.
         """
         return self._options

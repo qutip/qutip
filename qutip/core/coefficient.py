@@ -66,7 +66,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     For function based coefficients, the function signature must be either:
 
     * ``f(t, ...)`` where the other arguments are supplied as ordinary
-      "pythonic" arguments (e.g. ``f(t, w, a=5))
+      "pythonic" arguments (e.g. ``f(t, w, a=5)``)
     * ``f(t, args)`` where the arguments are supplied in a "dict" named
       ``args``
 
@@ -75,33 +75,37 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     may be overriden here by specifying either ``function_style="pythonic"``
     or ``function_style="dict"``.
 
-    *Examples*
-        # pythonic style function signature
+    *Examples*:
 
-        def f1_t(t, w):
-            return np.exp(-1j * t * w)
+        - pythonic style function signature::
 
-        coeff1 = coefficient(f1_t, args={"w": 1.})
+            def f1_t(t, w):
+                return np.exp(-1j * t * w)
 
-        # dict style function signature
+            coeff1 = coefficient(f1_t, args={"w": 1.})
 
-        def f2_t(t, args):
-            return np.exp(-1j * t * args["w"])
+        - dict style function signature::
 
-        coeff2 = coefficient(f2_t, args={"w": 1.})
+            def f2_t(t, args):
+                return np.exp(-1j * t * args["w"])
+
+            coeff2 = coefficient(f2_t, args={"w": 1.})
 
     For string based coeffients, the string must be a compilable python code
     resulting in a complex. The following symbols are defined:
-        sin cos tan asin acos atan pi
-        sinh cosh tanh asinh acosh atanh
-        exp log log10 erf zerf sqrt
-        real imag conj abs norm arg proj
+
+        sin, cos, tan, asin, acos, atan, pi,
+        sinh, cosh, tanh, asinh, acosh, atanh,
+        exp, log, log10, erf, zerf, sqrt,
+        real, imag, conj, abs, norm, arg, proj,
         numpy as np,
         scipy.special as spe (python interface)
         and cython_special (scipy cython interface)
 
-    *Examples*
+    *Examples*::
+
         coeff = coefficient('exp(-1j*w1*t)', args={"w1":1.})
+
     'args' is needed for string coefficient at compilation.
     It is a dict of (name:object). The keys must be a valid variables string.
 
@@ -116,7 +120,8 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     interpolation. When ``order = 0``, the interpolation is step function that
     evaluates to the most recent value.
 
-    *Examples*
+    *Examples*::
+
         tlist = np.logspace(-5,0,100)
         H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)
 
@@ -140,7 +145,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     tlist : iterable, optional
         Times for each element of an array based coefficient.
 
-    function_style : str, ["dict", "pythonic", None]
+    function_style : str {"dict", "pythonic", None}, optional
         Function signature of function based coefficients.
 
     args_ctypes : dict, optional
@@ -483,7 +488,7 @@ parsed_code = "{code}"
 @cython.auto_pickle(True)
 cdef class StrCoefficient(Coefficient):
     \"\"\"
-    String compiled as a :obj:`Coefficient` using cython.
+    String compiled as a :obj:`.Coefficient` using cython.
     \"\"\"
     cdef:
         str codeString
@@ -494,7 +499,7 @@ cdef class StrCoefficient(Coefficient):
 {init_cte}{init_var}{init_arg}
 
     cpdef Coefficient copy(self):
-        \"\"\"Return a copy of the :obj:`Coefficient`.\"\"\"
+        \"\"\"Return a copy of the :obj:`.Coefficient`.\"\"\"
         cdef StrCoefficient out = StrCoefficient.__new__(StrCoefficient)
         out.codeString = self.codeString
 {copy_cte}{copy_var}
@@ -502,9 +507,9 @@ cdef class StrCoefficient(Coefficient):
 
     def replace_arguments(self, _args=None, **kwargs):
         \"\"\"
-        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
-        built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` does not use arguments. New arguments
+        Return a :obj:`.Coefficient` with args changed for :obj:`.Coefficient`
+        built from 'str' or a python function. Or a the :obj:`.Coefficient`
+        itself if the :obj:`.Coefficient` does not use arguments. New arguments
         can be passed as a dict or as keywords.
 
         Parameters
