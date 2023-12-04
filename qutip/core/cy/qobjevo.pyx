@@ -198,7 +198,7 @@ cdef class QobjEvo:
         qevo = H0 + H1 * coeff
 
     """
-    def __init__(QobjEvo self, Q_object, args=None, copy=True, compress=True, *,
+    def __init__(QobjEvo self, Q_object, args=None, *, copy=True, compress=True,
                  function_style=None, feedback=None,
                  tlist=None, order=3, boundary_conditions=None):
         if isinstance(Q_object, QobjEvo):
@@ -490,7 +490,7 @@ cdef class QobjEvo:
         elif isinstance(feedback, str):
             self._solver_only_feedback.add((key, feedback))
         else:
-            raise ValueError("feedback not understood.")
+            raise ValueError(r"feedback {key!r} with value {feedback!r} not understood.")
 
     def _register_feedback(self, solvers_feeds, solver):
         """
