@@ -109,6 +109,11 @@ class SIntegrator(Integrator):
         if self._is_set:
             state = self.get_state()
             self.set_state(*state)
+        if hard:
+            raise NotImplementedError(
+                "Changing stochastic integrator "
+                "options is not supported."
+            )
 
 
 class _Explicit_Simple_Integrator(SIntegrator):

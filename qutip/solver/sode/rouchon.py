@@ -164,7 +164,10 @@ class RouchonSODE(SIntegrator):
         if self._is_set:
             state = self.get_state()
         if hard:
-            raise NotImplementedError
+            raise NotImplementedError(
+                "Changing stochastic integrator "
+                "options is not supported."
+            )
         if self._is_set:
             self.set_state(*state)
 

@@ -75,8 +75,10 @@ class MultiTrajSolver(Solver):
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, QobjEvo):
             self.system = _MTSystem(rhs)
-        else:
+        elif isinstance(rhs, _MTSystem):
             self.system = rhs
+        else:
+            raise TypeError("The system should be a QobjEvo")
         self.rhs = self.system()
         self.options = options
         self.seed_sequence = np.random.SeedSequence()

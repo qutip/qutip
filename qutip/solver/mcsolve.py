@@ -2,7 +2,7 @@ __all__ = ['mcsolve', "MCSolver"]
 
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
-from .multitraj import MultiTrajSolver
+from .multitraj import MultiTrajSolver, _MTSystem
 from .solver_base import Solver, Integrator, _solver_deprecation
 from .result import McResult, McTrajectoryResult, McResultImprovedSampling
 from .mesolve import mesolve, MESolver
@@ -164,7 +164,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     return result
 
 
-class _MCSystem:
+class _MCSystem(_MTSystem):
     """
     Container for the operators of the solver.
     """
