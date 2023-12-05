@@ -437,7 +437,7 @@ cdef class QobjEvo:
         Filter feedback args from normal args.
         """
         new_args = {}
-        for key, val in args.items:
+        for key, val in args.items():
             if isinstance(val, _Feedback):
                 new_args[key] = val.prepare(self._dims)
                 if callable(val):
@@ -448,7 +448,7 @@ cdef class QobjEvo:
                 new_args[key] = val
                 if key in self._feedback_functions:
                     del self._feedback_functions[key]
-                if key in self._solver_only_feedback
+                if key in self._solver_only_feedback:
                     del self._solver_only_feedback[key]
 
         return new_args

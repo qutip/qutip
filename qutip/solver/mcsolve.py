@@ -192,14 +192,7 @@ class _MCSystem(_MTSystem):
         for n_op in self.n_ops:
             n_op.arguments(args)
 
-    def add_feedback(self, key, type):
-        self.rhs.add_feedback(key, type)
-        for c_op in self.c_ops:
-            c_op.add_feedback(key, type)
-        for n_op in self.n_ops:
-            n_op.add_feedback(key, type)
-
-    def register_feedback(self, key, val):
+    def _register_feedback(self, key, val):
         self.rhs._register_feedback({key: val}, solver="McSolver")
         for c_op in self.c_ops:
             c_op._register_feedback({key: val}, solver="McSolver")
@@ -250,7 +243,7 @@ class MCIntegrator:
             a trajectory with jumps
         """
         self.collapses = []
-        self.system.register_feedback("CollapseFeedback", self.collapses)
+        self.system._register_feedback("CollapseFeedback", self.collapses)
         self._generator = generator
         if no_jump:
             self.target_norm = 0.0
@@ -653,39 +646,6 @@ class MCSolver(MultiTrajSolver):
             **cls._avail_integrators,
         }
 
-    def add_feedback(self, key, type):
-        """
-        Register an argument to be updated with the state during the evolution.
-
-        Equivalent to do:
-            `solver.argument(key=state_t)`
-
-        .. note::
-
-            The state passed by the monte-carlo solver are the unnormalized
-            states used internally.
-
-        Parameters
-        ----------
-        key : str
-            Arguments key to update.
-
-        type : str, Qobj, QobjEvo
-            Solver or evolution state.
-
-            - "qobj": As a Qobj, either a ket or dm.
-            - "data": As a qutip data layer object. Density matrices will be
-              columns stacked: shape=(N**2, 1).
-            - Qobj, QobjEvo: The value is updated with the expectation value of
-              the given operator and the state.
-            - "collapse": The value is replaced by a list of
-              ``(collapse time, collapse operator number)``. It start as an
-              empty list. This list is the same as the one returned in the
-              evolution result and thus should not be modified.
-        """
-        self.system.add_feedback(key, type)
-        self._integrator.reset(hard=True)
-
     @classmethod
     def CollapseFeedback(cls, default=None):
         """
@@ -703,6 +663,12 @@ class MCSolver(MultiTrajSolver):
         default : callable, optional
             Default function used outside the solver.
             When not passed, an empty list is passed.
+
+        .. note::
+
+            CollapseFeedback can't be added to a running solver when updating
+            arguments between steps: ``solver.step(..., args={})``.
+
         """
         return _CollapseFeedback(default)
 

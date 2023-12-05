@@ -21,10 +21,7 @@ class _MTSystem:
     def arguments(self, args):
         self.rhs.arguments(args)
 
-    def add_feedback(self, key, type):
-        self.rhs.add_feedback(key, type)
-
-    def register_feedback(self, type, val):
+    def _register_feedback(self, type, val):
         pass
 
     def __getattr__(self, attr):
@@ -283,10 +280,6 @@ class MultiTrajSolver(Solver):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
         if args:
             self.system.arguments(args)
-
-    def add_feedback(self, key, type):
-        self.system.add_feedback(key, type)
-        self._integrator.reset(hard=True)
 
     def _get_generator(self, seed):
         """

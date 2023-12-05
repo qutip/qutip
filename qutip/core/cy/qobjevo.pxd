@@ -11,7 +11,7 @@ cdef class QobjEvo:
         int _issuper
         int _isoper
         readonly dict _feedback_functions
-        readonly set _solver_only_feedback
+        readonly dict _solver_only_feedback
 
     cpdef Data _call(QobjEvo self, double t)
 

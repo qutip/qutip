@@ -228,38 +228,6 @@ class _StochasticRHS:
         for sc_op in self.sc_ops:
             sc_op.arguments(args)
 
-    def add_feedback(self, key, type):
-        """
-        Register an argument to be updated with the state during the evolution.
-
-        Equivalent to do:
-            `solver.argument(key=state_t)`
-
-        Parameters
-        ----------
-        key : str
-            Arguments key to update.
-
-        type : str, Qobj, QobjEvo
-            Format of the `state_t`.
-
-            - "qobj": As a Qobj, either a ket or dm.
-            - "data": As a qutip data layer object. Density matrices will be
-              square matrix.
-            - "raw": As a qutip data layer object. Density matrices will be
-              columns stacked: shape=(N**2, 1).
-            - Qobj, QobjEvo: The value is updated with the expectation value of
-              the given operator and the state.
-            - "wiener_process": The value is replaced by a function ``W(t)``
-              that return the wiener process value at the time t. The process
-              is a step function with step of lenght ``options["dt"]``.
-        """
-        self.H.add_feedback(key, type)
-        for c_op in self.c_ops:
-            c_op.add_feedback(key, type)
-        for sc_op in self.sc_ops:
-            sc_op.add_feedback(key, type)
-
     def _register_feedback(self, val):
         self.H._register_feedback({"wiener_process": val}, "stochatic solver")
         for c_op in self.c_ops:
@@ -753,6 +721,12 @@ class StochasticSolver(MultiTrajSolver):
         default : callable, optional
             Default function used outside the solver.
             When not passed, a function returning ``np.array([0])`` is used.
+
+        .. note::
+
+            WeinerFeedback can't be added to a running solver when updating
+            arguments between steps: ``solver.step(..., args={})``.
+
         """
         return _WeinerFeedback(default)
 
