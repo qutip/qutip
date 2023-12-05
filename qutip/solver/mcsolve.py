@@ -6,6 +6,7 @@ from .multitraj import MultiTrajSolver, _MTSystem
 from .solver_base import Solver, Integrator, _solver_deprecation
 from .result import McResult, McTrajectoryResult, McResultImprovedSampling
 from .mesolve import mesolve, MESolver
+from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
 import qutip.core.data as _data
 from time import time
 
@@ -249,7 +250,7 @@ class MCIntegrator:
             a trajectory with jumps
         """
         self.collapses = []
-        self.system.register_feedback("collapse", self.collapses)
+        self.system.register_feedback("CollapseFeedback", self.collapses)
         self._generator = generator
         if no_jump:
             self.target_norm = 0.0
@@ -684,3 +685,52 @@ class MCSolver(MultiTrajSolver):
         """
         self.system.add_feedback(key, type)
         self._integrator.reset(hard=True)
+
+    @classmethod
+    def CollapseFeedback(cls, default=None):
+        """
+        Collapse of the trajectory argument for time dependent systems.
+
+        When used as an args:
+
+            QobjEvo([op, func], args={"cols": MCSolver.CollapseFeedback()})
+
+        The ``func`` will receive a list of ``(time, operator number)`` for
+        each collapses of the trajectory as ``cols``.
+
+        Parameters
+        ----------
+        default : callable, optional
+            Default function used outside the solver.
+            When not passed, an empty list is passed.
+        """
+        return _CollapseFeedback(default)
+
+    @classmethod
+    def StateFeedback(cls, default=None, raw_data=False, open=False):
+        """
+        State of the evolution to be used in a time-dependent operator.
+
+        When used as an args:
+
+            H = QobjEvo([op, func], args={"state": MCSolver.StateFeedback()})
+
+        The ``func`` will receive the density matrix as ``state`` during the
+        evolution.
+
+        Parameters
+        ----------
+        default : Qobj or qutip.core.data.Data, optional
+            Initial value to be used at setup of the system.
+
+        open : bool, default False
+            Set to ``True`` when using the monte carlo solver for open systems.
+
+        raw_data : bool, default : False
+            If True, the raw matrix will be passed instead of a Qobj.
+            For density matrices, the matrices can be column stacked or square
+            depending on the integration method.
+        """
+        if raw_data:
+            return _DataFeedback(default, open=open)
+        return _QobjFeedback(default, open=open)

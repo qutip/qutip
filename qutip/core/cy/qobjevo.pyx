@@ -105,18 +105,6 @@ cdef class QobjEvo:
         Refer to Scipy's documentation for further details:
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.make_interp_spline.html
 
-    feedback: dict
-        A dictionary of arguments that update automatically when this
-        :obj:`QobjEvo` is used in a solver. For example, passing
-        `args={"psi": psi0}, feedback={"psi": "qobj"}` will result in the
-        argument `psi` being updated to the current value of the state each
-        time the operator is used during the evolution of `sesolve`. Feedback
-        allows implementing non-linear Hamiltonian and other exotic
-        constructions. See :meth:`QobjEvo.add_feedback` for more information on
-        the kinds of feedback supported.
-        If an argument is specified in `feedback`, an initial value for it is
-        required to be specified in `args`.
-
     Attributes
     ----------
     dims : list
@@ -199,7 +187,7 @@ cdef class QobjEvo:
 
     """
     def __init__(QobjEvo self, Q_object, args=None, *, copy=True, compress=True,
-                 function_style=None, feedback=None,
+                 function_style=None,
                  tlist=None, order=3, boundary_conditions=None):
         if isinstance(Q_object, QobjEvo):
             self._dims = Q_object._dims
@@ -220,11 +208,8 @@ cdef class QobjEvo:
         self._dims = None
         self.shape = (0, 0)
         self._feedback_functions = {}
-        self._solver_only_feedback = set()
-        args = args or {}
-        if feedback is not None:
-            for key, feed in feedback.items():
-                self.add_feedback(key, feed)
+        self._solver_only_feedback = {}
+        args = self._read_args(args or {})
 
         if (
             isinstance(Q_object, list)
@@ -262,10 +247,11 @@ cdef class QobjEvo:
         repr_str += f'type = {self.type}, superrep = {self.superrep}, '
         repr_str += f'isconstant = {self.isconstant}, '
         repr_str += f'num_elements = {self.num_elements}'
-        feedback_pairs = [pair for pair in self._solver_only_feedback]
-        if self._feedback_functions:
-            for key, val in self._feedback_functions:
-                feedback_pairs.append((key, val))
+        feedback_pairs = []
+        for key, val in self._feedback_functions.items():
+            feedback_pairs.append(key + ":" + repr(val))
+        for key, val in self._solver_only_feedback.items():
+            feedback_pairs.append(key + ":" + val)
         if feedback_pairs:
             repr_str += f', feedback = {feedback_pairs}'
 
@@ -440,57 +426,32 @@ cdef class QobjEvo:
         if _args is not None:
             kwargs.update(_args)
         cache = []
+        kwargs = self._read_args(kwargs)
         self.elements = [
             element.replace_arguments(kwargs, cache=cache)
             for element in self.elements
         ]
 
-    def add_feedback(QobjEvo self, str key, feedback):
+    def _read_args(self, args):
         """
-        Register an argument to be updated with the state when solving for the
-        evolution of a quantum system with a solver.
-
-        In simple cases where the feedback argument is the current system
-        state, feedback is equivalent to calling:
-
-            ```solver.argument(key=state_t)``
-
-        within the solver at each time `t` that the solver calls the `QobjEvo`.
-
-        Parameters
-        ----------
-        key: str
-            Name of the arguments to update with feedback.
-
-        feedback: str, Qobj, QobjEvo
-            The format of the feedback:
-
-            - `"qobj"`: the `state` at time `t` as a `Qobj`. Either a ket or a
-              density matrix, depending on the solver.
-            - `"data"`: the `state` at time `t` as a QuTiP data layer object.
-              Usually a ket or colunm-stacked density matrix (column vectors),
-              but can be a density matrix or operator (square matrices)
-              depending on the solver, integration method and initial state.
-              The type of the data layer object depends on the solver and the
-              system being solved.
-            - Qobj, QobjEvo: the expectation value of the given operator and
-              the `state` at time `t`.
-            - Other `str` values: Solver specific feedback. See the
-              corresponding solver's ``add_feedback`` function's documentation
-              for available values.
+        Filter feedback args from normal args.
         """
-        if feedback == "data":
-            self._feedback_functions[key] = _DataFeedback()
-        elif feedback in ["qobj", "Qobj"]:
-            self._feedback_functions[key] = _QobjFeedback(self)
-        elif isinstance(feedback, (Qobj, QobjEvo)):
-            if isinstance(feedback, Qobj):
-                feedback = QobjEvo(feedback)
-            self._feedback_functions[key] = _ExpectFeedback(feedback)
-        elif isinstance(feedback, str):
-            self._solver_only_feedback.add((key, feedback))
-        else:
-            raise ValueError(r"feedback {key!r} with value {feedback!r} not understood.")
+        new_args = {}
+        for key, val in args.items:
+            if isinstance(val, _Feedback):
+                new_args[key] = val.prepare(self._dims)
+                if callable(val):
+                    self._feedback_functions[key] = val
+                else:
+                    self._solver_only_feedback[key] = val.code
+            else:
+                new_args[key] = val
+                if key in self._feedback_functions:
+                    del self._feedback_functions[key]
+                if key in self._solver_only_feedback
+                    del self._solver_only_feedback[key]
+
+        return new_args
 
     def _register_feedback(self, solvers_feeds, solver):
         """
@@ -506,7 +467,7 @@ cdef class QobjEvo:
             Name of the solver for the error message.
         """
         new_args = {}
-        for key, feed in self._solver_only_feedback:
+        for key, feed in self._solver_only_feedback.items():
             if feed not in solvers_feeds:
                 raise ValueError(
                     f"Desired feedback {key} is not available for the {solver}."
@@ -523,14 +484,17 @@ cdef class QobjEvo:
                 self._feedback_functions = other._feedback_functions.copy()
             elif other._feedback_functions:
                 self._feedback_functions.update(other._feedback_functions)
-            self._solver_only_feedback |= other._solver_only_feedback
+
+            if not self._solver_only_feedback and other._solver_only_feedback:
+                self._solver_only_feedback = other._solver_only_feedback.copy()
+            elif other._solver_only_feedback:
+                self._solver_only_feedback.update(other._solver_only_feedback)
 
         if self._feedback_functions:
             for key, func in self._feedback_functions.items():
                 # Update dims in ``_QobjFeedback``
                 if isinstance(func, _QobjFeedback):
                     self._feedback_functions[key] = _QobjFeedback(self)
-
 
     ###########################################################################
     # Math function                                                           #
@@ -1106,65 +1070,13 @@ cdef class QobjEvo:
         return out
 
 
-cdef class _ExpectFeedback:
-    cdef QobjEvo oper
-    cdef bint stack
-    cdef int N, N2
-
-    def __init__(self, oper):
-        self.oper = oper
-        self.N = oper.shape[1]
-        self.N2 = oper.shape[1]**2
-
-    def __call__(self, t, state):
-        if state.shape[0] == self.N:
-            return self.oper.expect_data(t, state)
-        if state.shape[0] == self.N2 and state.shape[1] == 1:
-            return self.oper.expect_data(t, _data.column_unstack(state, self.N))
-        raise ValueError(
-            f"Shape of the expect operator ({self.oper.shape}) "
-            f"does not match the state ({state.shape})."
-        )
-
-    def __repr__(self):
-        return "ExpectFeedback"
-
-
-cdef class _QobjFeedback:
-    cdef list dims, dims_flat
-    cdef bint issuper
-    cdef idxint N
-    cdef bint normalize
-
-    def __init__(self, base):
-        self.dims = base.dims
-        if not base.issuper:
-            self.dims_flat = [1 for _ in base.dims[0]]
-        self.issuper = base.issuper
-        self.N = int(base.shape[0]**0.5)
-
-    def __call__(self, t, state):
-        if state.shape[0] == state.shape[1]:
-            out = Qobj(state, dims=self.dims)
-        elif self.issuper and state.shape[1] == 1:
-            out = Qobj(_data.column_unstack(state, self.N), dims=self.dims[1])
-        elif state.shape[1] == 1:
-            out = Qobj(state, dims=[self.dims[1], self.dims_flat])
-        else:
-            # rectangular state dims are patially lost...
-            out = Qobj(state, dims=[self.dims[1], [state.shape[1]]])
-        return out
-
-    def __repr__(self):
-        return "QobjFeedback"
-
-
-cdef class _DataFeedback:
+class _Feedback:
     def __init__(self):
-       pass
+        raise NotImplementedError("Use subclass")
 
-    def __call__(self, t, state):
-        return state
-
-    def __repr__(self):
-        return "DataFeedback"
+    def prepare(self, dims):
+        """
+        Connect the feedback to the QobjEvo.
+        Do the dims check.
+        Return the default value.
+        """

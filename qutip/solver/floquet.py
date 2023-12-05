@@ -816,11 +816,6 @@ class FMESolver(MESolver):
         if args:
             raise ValueError("FMESolver cannot update arguments")
 
-    def add_feedback(self, key, type):
-        raise NotImplementedError(
-            "The floquet solver does not support feedback currently."
-        )
-
     def start(self, state0, t0, *, floquet=False):
         """
         Set the initial state and time for a step evolution.
@@ -943,3 +938,22 @@ class FMESolver(MESolver):
         # TODO: It would be nice if integrator could give evolution statistics
         # stats.update(_integrator.stats)
         return results
+
+    @classmethod
+    def ExpectFeedback(cls):
+        """
+        Expect of the state of the evolution to be used in a time-dependent
+        operator.
+
+        Not not implemented for FMESolver
+        """
+        raise NotImplementedError("Feedback not implemented for floquet solver.")
+
+    @classmethod
+    def StateFeedback(cls):
+        """
+        State of the evolution to be used in a time-dependent operator.
+
+        Not not implemented for FMESolver
+        """
+        raise NotImplementedError("Feedback not implemented for floquet solver.")

@@ -14,6 +14,7 @@ from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
 from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
+from ._feedback import _QobjFeedback, _DataFeedback
 
 
 def brmesolve(H, psi0, tlist, a_ops=(), e_ops=(), c_ops=(),
@@ -357,27 +358,32 @@ class BRSolver(Solver):
             self._integrator.options = self._options
             self._integrator.reset(hard=True)
 
-    def add_feedback(self, key, type):
+    @classmethod
+    def StateFeedback(cls, default=None, raw_data=False):
         """
-        Register an argument to be updated with the state during the evolution.
+        State of the evolution to be used in a time-dependent operator.
 
-        Equivalent to do:
-            `solver.argument(key=state_t)`
+        When used as an args:
 
-        The state will not be in the lab basis, but in the evolution basis.
+            H = QobjEvo([op, func], args={"state": BRMESolver.StateFeedback()})
+
+        The ``func`` will receive the density matrix as ``state`` during the
+        evolution.
 
         Parameters
         ----------
-        key : str
-            Arguments key to update.
+        default : Qobj or qutip.core.data.Data, optional
+            Initial value to be used at setup of the system.
 
-        type : str, Qobj, QobjEvo
-            Format of the `state_t`.
+        raw_data : bool, default : False
+            If True, the raw matrix will be passed instead of a Qobj.
+            For density matrices, the matrices can be column stacked or square
+            depending on the integration method.
 
-            - "qobj": As a Qobj, either a ket or dm.
-            - "data": As a qutip data layer object. Density matrices will be
-              columns stacked: shape=(N**2, 1).
-            - Qobj, QobjEvo: The value is updated with the expectation value of
-              the given operator and the state.
+        .. note::
+
+            The state will not be in the lab basis, but in the evolution basis.
         """
-        self.rhs.add_feedback(key, type)
+        if raw_data:
+            return _DataFeedback(default, open=True)
+        return _QobjFeedback(default, open=True)

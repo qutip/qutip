@@ -6,6 +6,7 @@ from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
 from ..ui.progressbar import progress_bars
+from ._feedback import _ExpectFeedback
 from time import time
 import warnings
 
@@ -397,28 +398,28 @@ class Solver:
 
         cls._avail_integrators[key] = integrator
 
-    def add_feedback(self, key, type):
+    @classmethod
+    def ExpectFeedback(cls, operator, default=None):
         """
-        Register an argument to be updated with the state during the evolution.
+        Expectation value of the instantaneous state of the evolution to be
+        used by a time-dependent operator.
 
-        Equivalent to do:
-            `solver.argument(key=state_t)`
+        When used as an args:
+
+            H = QobjEvo([op, func], args={"E0": Solver.ExpectFeedback(oper)})
+
+        The ``func`` will receive ``expect(oper, state)`` as ``E0`` during the
+        evolution.
 
         Parameters
         ----------
-        key : str
-            Arguments key to update.
+        operator : Qobj, QobjEvo
+            Operator to compute the expectation values of.
 
-        type : str, Qobj, QobjEvo
-            Format of the `state_t`.
-
-            - "qobj": As a Qobj, either a ket or dm.
-            - "data": As a qutip data layer object. Density matrices will be
-              columns stacked: shape=(N**2, 1).
-            - Qobj, QobjEvo: The value is updated with the expectation value of
-              the given operator and the state.
+        default : float, default : 0.
+            Initial value to be used at setup.
         """
-        self.rhs.add_feedback(key, type)
+        return _ExpectFeedback(operator, default)
 
 
 def _solver_deprecation(kwargs, options, solver="me"):
