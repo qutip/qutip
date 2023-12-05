@@ -190,12 +190,13 @@ def choi_to_kraus(q_oper, tol=1e-9):
     TODO: Create a new class structure for quantum channels, perhaps as a
     strict sub-class of Qobj.
     """
-    vals, vecs = eig(q_oper.full())
-    vecs = [array(_) for _ in zip(*vecs)]
-    shape = [np.prod(q_oper.dims[0][i]) for i in range(2)][::-1]
-    return [Qobj(inpt=sqrt(val)*vec2mat(vec, shape=shape),
-            dims=q_oper.dims[0][::-1])
-            for val, vec in zip(vals, vecs) if abs(val) >= tol]
+    vals, vecs = q_oper.eigenstates()
+    shape = (np.prod(q_oper.dims[0][1]), np.prod(q_oper.dims[0][0]))
+    return [
+        Qobj(inpt=np.sqrt(val) * vec.data.reshape(shape, order="F"), dims=q_oper.dims[0][::-1])
+        for val, vec in zip(vals, vecs)
+        if abs(val) >= tol
+    ]
 
 
 def kraus_to_choi(kraus_list):
