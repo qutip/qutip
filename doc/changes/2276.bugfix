@@ -1,1 +1,1 @@
-Add your info here
+Rework `choi_to_kraus`, making it rely on an eigenstates solver that can choose `eigh` is the Choi matrix is Hermitian, as it is more numerically stable.
