@@ -947,7 +947,9 @@ class FMESolver(MESolver):
 
         Not not implemented for FMESolver
         """
-        raise NotImplementedError("Feedback not implemented for floquet solver.")
+        raise NotImplementedError(
+            "Feedback not implemented for floquet solver."
+        )
 
     @classmethod
     def StateFeedback(cls):
@@ -956,4 +958,6 @@ class FMESolver(MESolver):
 
         Not not implemented for FMESolver
         """
-        raise NotImplementedError("Feedback not implemented for floquet solver.")
+        raise NotImplementedError(
+            "Feedback not implemented for floquet solver."
+        )

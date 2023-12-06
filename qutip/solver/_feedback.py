@@ -4,6 +4,7 @@ import qutip.core.data as _data
 from qutip.core.qobj import Qobj
 import numpy as np
 
+
 class _ExpectFeedback(_Feedback):
     def __init__(self, oper, default=0.):
         self.oper = QobjEvo(oper)
@@ -14,8 +15,8 @@ class _ExpectFeedback(_Feedback):
     def check_consistancy(self, dims):
         if not (
             self.oper._dims == dims
-            or self.oper._dims[1] == dims # super e_op, oper QobjEvo
-            or self.oper._dims == dims[0] # oper e_op, super QobjEvo
+            or self.oper._dims[1] == dims  # super e_op, oper QobjEvo
+            or self.oper._dims == dims[0]  # oper e_op, super QobjEvo
         ):
             raise ValueError(
                 f"Dimensions of the expect operator ({self.oper.dims}) "
@@ -26,7 +27,9 @@ class _ExpectFeedback(_Feedback):
         if state.shape[0] == self.N:
             return self.oper.expect_data(t, state)
         if state.shape[0] == self.N2 and state.shape[1] == 1:
-            return self.oper.expect_data(t, _data.column_unstack(state, self.N))
+            return self.oper.expect_data(
+                t, _data.column_unstack(state, self.N)
+            )
         raise ValueError(
             f"Shape of the expect operator ({self.oper.shape}) "
             f"does not match the state ({state.shape})."
@@ -55,7 +58,9 @@ class _QobjFeedback(_Feedback):
         if self.prop and self.dims[1] == Field():
             self.dims = Dimensions(self.dims[0], self.dims[0])
         elif self.prop:
-            self.dims = Dimensions(SuperSpace(self.dims), SuperSpace(self.dims))
+            self.dims = Dimensions(
+                SuperSpace(self.dims), SuperSpace(self.dims)
+            )
 
         if self.default is None:
             pass
