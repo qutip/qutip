@@ -307,6 +307,8 @@ def test_feedback():
         qutip.coefficient("(A.real - 4)*(w > 0)", args={"A": 7.+0j, "w": 0.})
     )
     solver = qutip.BRSolver(H, [a_op])
-    solver.add_feedback("A", qutip.num(N))
-    result = solver.run(psi0, np.linspace(0, 3, 31), e_ops=[qutip.num(N)])
+    result = solver.run(
+        psi0, np.linspace(0, 3, 31), e_ops=[qutip.num(N)],
+        args={"A": qutip.BRSolver.ExpectFeedback(qutip.num(N))}
+    )
     assert np.all(result.expect[0] > 4. - tol)

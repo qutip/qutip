@@ -198,13 +198,13 @@ class SESolver(Solver):
 
         When used as an args:
 
-            H = QobjEvo([op, func], args={"state": SESolver.StateFeedback()})
+            ``QobjEvo([op, func], args={"state": SESolver.StateFeedback()})``
 
         The ``func`` will receive the ket as ``state`` during the evolution.
 
         Parameters
         ----------
-        default : Qobj or qutip.core.data.Data, optional
+        default : Qobj or qutip.core.data.Data, default : None
             Initial value to be used at setup of the system.
 
         prop : bool, default : False

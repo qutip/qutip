@@ -399,14 +399,14 @@ class Solver:
         cls._avail_integrators[key] = integrator
 
     @classmethod
-    def ExpectFeedback(cls, operator, default=None):
+    def ExpectFeedback(cls, operator, default=0.):
         """
         Expectation value of the instantaneous state of the evolution to be
         used by a time-dependent operator.
 
         When used as an args:
 
-            H = QobjEvo([op, func], args={"E0": Solver.ExpectFeedback(oper)})
+            ``QobjEvo([op, func], args={"E0": Solver.ExpectFeedback(oper)})``
 
         The ``func`` will receive ``expect(oper, state)`` as ``E0`` during the
         evolution.

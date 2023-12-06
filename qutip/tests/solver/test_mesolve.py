@@ -692,8 +692,7 @@ def test_feedback():
     psi0 = qutip.basis(N, 7)
     a = qutip.QobjEvo(
         [qutip.destroy(N), f],
-        args={"A": 0.},
-        feedback={"A": qutip.spre(qutip.num(N))}
+        args={"A": MESolver.ExpectFeedback(qutip.spre(qutip.num(N)))}
     )
     H = qutip.QobjEvo(qutip.num(N))
     solver = qutip.MESolver(H, c_ops=[a])

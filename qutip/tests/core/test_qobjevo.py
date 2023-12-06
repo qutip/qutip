@@ -2,9 +2,9 @@ import operator
 
 import pytest
 from qutip import (
-    Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, rand_stochastic,
+    Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, num, rand_stochastic,
     rand_herm, rand_ket, liouvillian, basis, spre, spost, to_choi, expect,
-    rand_ket, rand_dm, operator_to_vector
+    rand_ket, rand_dm, operator_to_vector, SESolver, MESolver
 )
 import numpy as np
 from numpy.testing import assert_allclose
@@ -543,13 +543,17 @@ class Feedback_Checker_Coefficient:
 
 
 def test_feedback_oper():
-    checker = Feedback_Checker_Coefficient()
+    checker = Feedback_Checker_Coefficient(stacked=False)
+    checker.state = basis(2, 1)
     qevo = QobjEvo(
         [qeye(2), checker],
-        args={"data":None, "e_val": 0.0},
-        feedback={"data": "data", "e_val": qeye(2)}
+        args={
+            "e_val": SESolver.ExpectFeedback(qeye(2), default=1.),
+            "data": SESolver.StateFeedback(default=checker.state.data,
+                                           raw_data=True),
+            "qobj": SESolver.StateFeedback(default=checker.state),
+        },
     )
-    qevo.add_feedback("qobj", "qobj")
 
     checker.state = rand_ket(2)
     qevo.expect(0, checker.state)
@@ -566,32 +570,32 @@ def test_feedback_super():
     checker = Feedback_Checker_Coefficient()
     qevo = QobjEvo(
         [spre(qeye(2)), checker],
-        args={"data":None, "e_val": 0.0},
-        feedback={"data": "data", "e_val": qeye(2)}
+        args={
+            "e_val": MESolver.ExpectFeedback(qeye(2)),
+            "data": MESolver.StateFeedback(raw_data=True),
+            "qobj": MESolver.StateFeedback(),
+        },
     )
-    qevo.add_feedback("qobj", "qobj")
 
     checker.state = rand_dm(2)
     qevo.expect(0, operator_to_vector(checker.state))
     qevo.matmul_data(0, operator_to_vector(checker.state).data)
 
-    qevo.add_feedback("e_val", spre(qeye(2)))
+    qevo.arguments(e_val=MESolver.ExpectFeedback(spre(qeye(2))))
 
     checker.state = rand_dm(2)
     qevo.expect(0, operator_to_vector(checker.state))
     qevo.matmul_data(0, operator_to_vector(checker.state).data)
 
     checker = Feedback_Checker_Coefficient(stacked=False)
-    qevo = QobjEvo([spre(qeye(2)), checker], feedback={"data": "data"})
-    qevo.add_feedback("qobj", "qobj")
+    qevo = QobjEvo(
+        [spre(qeye(2)), checker],
+        args={
+            "data": MESolver.StateFeedback(raw_data=True, prop=True),
+            "qobj": MESolver.StateFeedback(prop=True),
+        },
+    )
 
     checker.state = rand_dm(4)
     checker.state.dims = [[[2],[2]], [[2],[2]]]
-    qevo.matmul_data(0, checker.state.data)
-
-    checker = Feedback_Checker_Coefficient()
-    qevo = QobjEvo([spre(qeye(2)), checker])
-
-    checker.state = operator_to_vector(rand_dm(2))
-    qevo.expect(0, checker.state)
     qevo.matmul_data(0, checker.state.data)

@@ -365,14 +365,14 @@ class BRSolver(Solver):
 
         When used as an args:
 
-            H = QobjEvo([op, func], args={"state": BRMESolver.StateFeedback()})
+            ``QobjEvo([op, func], args={"state": BRMESolver.StateFeedback()})``
 
         The ``func`` will receive the density matrix as ``state`` during the
         evolution.
 
         Parameters
         ----------
-        default : Qobj or qutip.core.data.Data, optional
+        default : Qobj or qutip.core.data.Data, default : None
             Initial value to be used at setup of the system.
 
         raw_data : bool, default : False

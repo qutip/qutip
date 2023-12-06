@@ -653,16 +653,15 @@ class MCSolver(MultiTrajSolver):
 
         When used as an args:
 
-            QobjEvo([op, func], args={"cols": MCSolver.CollapseFeedback()})
+            ``QobjEvo([op, func], args={"cols": MCSolver.CollapseFeedback()})``
 
         The ``func`` will receive a list of ``(time, operator number)`` for
         each collapses of the trajectory as ``cols``.
 
         Parameters
         ----------
-        default : callable, optional
+        default : callable, default : []
             Default function used outside the solver.
-            When not passed, an empty list is passed.
 
         .. note::
 
@@ -679,14 +678,14 @@ class MCSolver(MultiTrajSolver):
 
         When used as an args:
 
-            H = QobjEvo([op, func], args={"state": MCSolver.StateFeedback()})
+            ``QobjEvo([op, func], args={"state": MCSolver.StateFeedback()})``
 
         The ``func`` will receive the density matrix as ``state`` during the
         evolution.
 
         Parameters
         ----------
-        default : Qobj or qutip.core.data.Data, optional
+        default : Qobj or qutip.core.data.Data, default : None
             Initial value to be used at setup of the system.
 
         open : bool, default False

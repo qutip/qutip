@@ -438,10 +438,12 @@ class Space(metaclass=MetaSpace):
         self.__setitem__ = _frozen
 
     def __eq__(self, other):
-        return self is other or (
-            type(other) is type(self)
-            and other.size == self.size
-        )
+        if isinstance(other, (Space, Dimensions)):
+            return self is other or (
+                type(other) is type(self)
+                and other.size == self.size
+            )
+        return NotImplemented
 
     def __hash__(self):
         return hash(self.size)
@@ -574,10 +576,12 @@ class Compound(Space):
         self.__setitem__ = _frozen
 
     def __eq__(self, other):
-        return self is other or (
-            type(other) is type(self) and
-            self.spaces == other.spaces
-        )
+        if isinstance(other, (Space, Dimensions)):
+            return self is other or (
+                type(other) is type(self) and
+                self.spaces == other.spaces
+            )
+        return NotImplemented
 
     def __hash__(self):
         return hash(self.spaces)
@@ -657,15 +661,17 @@ class SuperSpace(Space):
         self.__setitem__ = _frozen
 
     def __eq__(self, other):
-        return (
-            self is other
-            or self.oper == other
-            or (
-                type(other) is type(self)
-                and self.oper == other.oper
-                and self.superrep == other.superrep
+        if isinstance(other, (Space, Dimensions)):
+            return (
+                self is other
+                or self.oper == other
+                or (
+                    type(other) is type(self)
+                    and self.oper == other.oper
+                    and self.superrep == other.superrep
+                )
             )
-        )
+        return NotImplemented
 
     def __hash__(self):
         return hash((self.oper, self.superrep))
@@ -773,14 +779,16 @@ class Dimensions(metaclass=MetaDims):
         self.__setitem__ = _frozen
 
     def __eq__(self, other):
-        return (
-            self is other
-            or (
-                type(self) is type(other)
-                and self.to_ == other.to_
-                and self.from_ == other.from_
+        if isinstance(other, Dimensions):
+            return (
+                self is other
+                or (
+                    self.to_ == other.to_
+                    and self.from_ == other.from_
+                )
             )
-        )
+        return NotImplemented
+
 
     def __hash__(self):
         return hash((self.to_, self.from_))

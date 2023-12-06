@@ -708,7 +708,7 @@ class StochasticSolver(MultiTrajSolver):
 
         When used as an args:
 
-            QobjEvo([op, func], args={"W": SMESolver.WeinerFeedback()})
+            ``QobjEvo([op, func], args={"W": SMESolver.WeinerFeedback()})``
 
         The ``func`` will receive a function as ``W`` that return an array of
         wiener processes values at ``t``. The wiener process for the i-th
@@ -737,14 +737,14 @@ class StochasticSolver(MultiTrajSolver):
 
         When used as an args:
 
-            H = QobjEvo([op, func], args={"state": SMESolver.StateFeedback()})
+            ``QobjEvo([op, func], args={"state": SMESolver.StateFeedback()})``
 
         The ``func`` will receive the density matrix as ``state`` during the
         evolution.
 
         Parameters
         ----------
-        default : Qobj or qutip.core.data.Data, optional
+        default : Qobj or qutip.core.data.Data, default : None
             Initial value to be used at setup of the system.
 
         raw_data : bool, default : False
