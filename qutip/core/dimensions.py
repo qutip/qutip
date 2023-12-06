@@ -443,7 +443,6 @@ class Space(metaclass=MetaSpace):
             and other.size == self.size
         )
 
-
     def __hash__(self):
         return hash(self.size)
 
