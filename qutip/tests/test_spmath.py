@@ -1,6 +1,5 @@
 import numpy as np
-from numpy.testing import (run_module_suite, assert_,
-                        assert_equal, assert_almost_equal)
+from numpy.testing import (assert_, assert_equal, assert_almost_equal)
 import scipy.sparse as sp
 
 from qutip.fastsparse import fast_csr_matrix, fast_identity
@@ -312,5 +311,12 @@ def test_zcsr_isherm_compare_implicit_zero():
         assert not zcsr_isherm(base.T, tol=tol)
 
 
-if __name__ == "__main__":
-    run_module_suite()
+def test_issue_1998():
+    tol = 1e-12
+    base = sp.csr_matrix(np.array([[1,1,0],
+                                   [0,1,1],
+                                   [1,0,1]],
+                                  dtype=np.complex128))
+    base = fast_csr_matrix((base.data, base.indices, base.indptr), base.shape)
+    assert not zcsr_isherm(base, tol=tol)
+    assert not zcsr_isherm(base.T, tol=tol)

@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from numpy.testing import run_module_suite, assert_equal
+from numpy.testing import assert_equal
 import scipy.sparse as sp
 from scipy.sparse.csgraph import breadth_first_order as BFO
 import pytest
@@ -138,7 +138,3 @@ def test_column_permutation():
     B = sp_permute(A, [], perm)
     counts = np.diff(B.indptr)
     assert_equal(np.all(np.argsort(counts) == np.arange(5)), True)
-
-
-if __name__ == "__main__":
-    run_module_suite()

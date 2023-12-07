@@ -7,7 +7,7 @@ module. Tests are approximate with low resolution to minimize runtime.
 # Contact: benbartlett@stanford.edu
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_
 from qutip.operators import create, destroy
 from qutip.states import basis
 from qutip.scattering import *
@@ -93,7 +93,3 @@ class TestScattering:
         P1_split = scattering_probability(Htls, psi0, 1, c_ops_split, tlist)
         tolerance = 1e-7
         assert_(1 - tolerance < P1 / P1_split < 1 + tolerance)
-
-
-if __name__ == "__main__":
-    run_module_suite()

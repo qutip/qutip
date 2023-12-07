@@ -1,4 +1,4 @@
-from numpy.testing import assert_, assert_equal, assert_string_equal, run_module_suite
+from numpy.testing import assert_, assert_equal, assert_string_equal
 from qutip.qip.algorithms.qft import qft, qft_steps, qft_gate_sequence
 from qutip.qip.operations.gates import gate_sequence_product
 
@@ -49,6 +49,3 @@ class TestQFT:
 
             for i in range(phases, phases + swaps):
                 assert_string_equal(circuit.gates[i].name, "SWAP")
-
-if __name__ == "__main__":
-    run_module_suite()

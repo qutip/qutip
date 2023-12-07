@@ -1,7 +1,6 @@
 import os
 
-from numpy.testing import (
-    assert_, run_module_suite, assert_allclose, assert_equal)
+from numpy.testing import (assert_, assert_allclose, assert_equal)
 import numpy as np
 
 from qutip.qip.device import Processor, LinearSpinChain
@@ -353,7 +352,3 @@ class TestCircuitProcessor:
         final_state = processor.run_state(init_state).states[-1]
         expected_state = tensor([basis(2, 0), basis(2, 1)])
         assert pytest.approx(fidelity(final_state, expected_state), 0.001) == 1
-
-
-if __name__ == "__main__":
-    run_module_suite()

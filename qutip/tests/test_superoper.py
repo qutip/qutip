@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.random import rand
 import scipy.linalg as la
-from numpy.testing import assert_, assert_equal, run_module_suite
+from numpy.testing import assert_, assert_equal
 import scipy
 
 from qutip import (rand_dm, rand_unitary, spre, spost, vector_to_operator,
@@ -239,8 +239,3 @@ class TestSuper_td:
                 lindblad_dissipator(self.t2(.5), self.q1))
         assert_(lindblad_dissipator(self.q1, self.t2)(.5) ==
                 lindblad_dissipator(self.q1, self.t2(.5)))
-
-
-
-if __name__ == "__main__":
-    run_module_suite()

@@ -259,6 +259,13 @@ def test_QobjAddition():
     assert np.all(x3.full() == data)
     assert np.all(x4.full() == data)
 
+    ket = Qobj([[1j],[0.]])
+    with pytest.raises(TypeError):
+        out = ket + 1.
+
+    with pytest.raises(TypeError):
+        out = 1. + ket
+
 
 def test_QobjSubtraction():
     "Qobj subtraction"
@@ -1004,6 +1011,14 @@ def test_overlap():
         assert np.allclose(Ad.overlap(B), ans)
         assert np.allclose(Ad.overlap(Bd), ans)
         assert np.allclose(A.overlap(Bd), np.conj(ans))
+
+def test_extract_states_hermiticity():
+    """Test that hermiticity is preserved after extract_states."""
+
+    H_t = rand_herm(10, seed=0)
+    H_t_reduced = H_t.extract_states(range(3))
+
+    assert H_t_reduced._isherm == True
 
 
 def test_unit():

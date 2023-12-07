@@ -1,10 +1,11 @@
 import pytest
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_
 
 from qutip import (smesolve, mesolve, photocurrent_mesolve, liouvillian,
                    QobjEvo, spre, spost, destroy, coherent, parallel_map,
-                   qeye, fock_dm, general_stochastic, ket2dm, num)
+                   qeye, fock_dm, general_stochastic, ket2dm, num,
+                   basis, sigmax, sigmay, sigmaz, sigmam, Options)
 
 def f(t, args):
     return args["a"] * t
@@ -143,6 +144,7 @@ def test_smesolve_homodyne():
     psi0 = coherent(N, 0.5)
     sc_ops = [np.sqrt(gamma) * a, np.sqrt(gamma) * a * 0.5]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
+    options = Options(average_states=True, store_states=True)
 
     times = np.linspace(0, 1.0, 21)
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a":2})
@@ -160,12 +162,17 @@ def test_smesolve_homodyne():
         res = smesolve(H, psi0, times, [], sc_ops, e_ops,
                        ntraj=ntraj, nsubsteps=nsubsteps, args={"a":2},
                        method='homodyne', store_measurement=True,
-                       solver=solver, map_func=parallel_map)
+                       solver=solver, map_func=parallel_map,
+                       options=options)
         assert_(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
                      for idx in range(len(e_ops))]))
         assert_(len(res.measurement) == ntraj)
         assert_(all([m.shape == (len(times), len(sc_ops))
                      for m in res.measurement]))
+        assert_(
+            np.array([state.full() for state in res.states]).shape
+            == (len(times), N, N)
+        )
 
 
 @pytest.mark.slow
@@ -296,3 +303,66 @@ def test_smesolve_bad_e_ops():
         res = smesolve(H, psi0, times, sc_ops=sc_ops, e_ops=e_ops, noise=1,
                        ntraj=ntraj, nsubsteps=nsubsteps, method='homodyne',
                        map_func=parallel_map)
+
+
+def test_heterodyne_smesolve_custom_m_ops():
+    b = 1  # drive amplitude
+    gamma = 1  # spont.  emission rate
+    eta = 0.3  # coupling efficiency
+    n_steps = 1000
+    n_traj = 300
+    noise_seed = 0  # noise random seed
+
+    H = np.sqrt(eta * gamma) * b * sigmay()
+    c_ops = [np.sqrt(gamma) * sigmam()]
+    psi0 = basis(2, 0)
+    times = np.linspace(0, 2 * np.pi, n_steps)
+
+    sme_het = smesolve(
+        H,
+        psi0,
+        times,
+        [],
+        c_ops,
+        e_ops=[sigmax(), sigmay(), sigmaz()],
+        store_measurement=True,
+        dW_factors=[1e-5, 1e-5],
+        method="heterodyne",
+        m_ops=[np.sqrt(eta)*sigmax(), np.sqrt(eta)*sigmay()],
+        ntraj=n_traj,
+        noise=noise_seed,
+    )
+
+    assert np.array(sme_het.measurement).shape == (n_traj, n_steps, 1, 2)
+    np.testing.assert_allclose(
+        np.array(sme_het.measurement).mean(axis=0)[:, 0, 0].T,
+        np.sqrt(eta) * sme_het.expect[0],
+        atol=1e-2,
+    )
+
+
+def test_heterodyne_mesolve_incorrect_custom_m_ops():
+    eta = 0.3
+
+    with pytest.raises(ValueError) as err:
+        smesolve(
+            sigmax(),
+            basis(2),
+            np.linspace(0, 1, 10),
+            [],
+            [sigmam()],
+            e_ops=[],
+            store_measurement=True,
+            method="heterodyne",
+            # three m_ops, which is incorrect:
+            m_ops=[
+                np.sqrt(eta) * sigmax(),
+                np.sqrt(eta) * sigmay(),
+                np.sqrt(eta) * sigmaz(),
+            ],
+            ntraj=10,
+        )
+    assert str(err.value) == (
+        "When using the heterodyne method there should be two measurement"
+        " operators (m_ops) for each collapse operator (sc_ops)."
+    )

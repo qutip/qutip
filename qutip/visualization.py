@@ -480,7 +480,10 @@ def _update_yaxis(spacing, M, ax, ylabels):
     updates the y-axis
     """
     ytics = [x + (1 - (spacing / 2)) for x in range(M.shape[1])]
-    ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
+    if parse_version(mpl.__version__) >= parse_version("3.8"):
+        ax.axes.yaxis.set_major_locator(plt.FixedLocator(ytics))
+    else:
+        ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
         nylabels = len(ylabels)
         if nylabels != len(ytics):
@@ -498,7 +501,11 @@ def _update_xaxis(spacing, M, ax, xlabels):
     updates the x-axis
     """
     xtics = [x + (1 - (spacing / 2)) for x in range(M.shape[1])]
-    ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
+    if parse_version(mpl.__version__) >= parse_version("3.8"):
+        ax.axes.xaxis.set_major_locator(plt.FixedLocator(xtics))
+    else:
+        ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
+
     if xlabels:
         nxlabels = len(xlabels)
         if nxlabels != len(xtics):
@@ -515,7 +522,11 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     """
     updates the z-axis
     """
-    ax.axes.w_zaxis.set_major_locator(plt.IndexLocator(1, 0.5))
+    if parse_version(mpl.__version__) >= parse_version("3.8"):
+        ax.axes.zaxis.set_major_locator(plt.IndexLocator(1, 0.5))
+    else:
+        ax.axes.w_zaxis.set_major_locator(plt.IndexLocator(1, 0.5))
+
     if isinstance(zticks, list):
         ax.set_zticks(zticks)
     ax.set_zlim3d([min(z_min, 0), z_max])
@@ -817,7 +828,10 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     # x axis
     xtics = -0.5 + np.arange(M.shape[0])
-    ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
+    if parse_version(mpl.__version__) >= parse_version("3.8"):
+        ax.axes.xaxis.set_major_locator(plt.FixedLocator(xtics))
+    else:
+        ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
         nxlabels = len(xlabels)
         if nxlabels != len(xtics):
@@ -827,7 +841,10 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     # y axis
     ytics = -0.5 + np.arange(M.shape[1])
-    ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
+    if parse_version(mpl.__version__) >= parse_version("3.8"):
+        ax.axes.yaxis.set_major_locator(plt.FixedLocator(ytics))
+    else:
+        ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
         nylabels = len(ylabels)
         if nylabels != len(ytics):

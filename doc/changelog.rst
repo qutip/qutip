@@ -6,6 +6,44 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 4.7.3 (2023-08-22)
+========================
+
+Bug Fixes
+---------
+
+- Non-oper qobj + scalar raise an error. (#2208 reported by vikramkashyap)
+- Fixed issue where `extract_states` did not preserve hermiticity.
+  Fixed issue where `rand_herm` did not set the private attribute _isherm to True. (#2214 by AGaliciaMartinez)
+- ssesolve average states to density matrices (#2216 reported by BenjaminDAnjou)
+
+
+Miscellaneous
+-------------
+
+- Exclude cython 3.0.0 from requirement (#2204)
+- Run in no cython mode with cython >=3.0.0 (#2207)
+
+
+QuTiP 4.7.2 (2023-06-28)
+========================
+
+This is a bugfix release for QuTiP 4.7.X. It adds support for
+numpy 1.25 and scipy 1.11.
+
+Bug Fixes
+---------
+- Fix setting of sso.m_ops in heterodyne smesolver and passing through of sc_ops to photocurrent solver. (#2081 by Bogdan Reznychenko and Simon Cross)
+- Update calls to SciPy eigvalsh and eigsh to pass the range of eigenvalues to return using ``subset_by_index=``. (#2081 by Simon Cross)
+- Fixed bug where some matrices were wrongly found to be hermitian. (#2082 by AGaliciaMartinez)
+
+Miscellaneous
+-------------
+- Fixed typo in stochastic.py (#2049, by  eltociear)
+- `ptrace` always return density matrix (#2185, issue by udevd)
+- `mesolve` can support mixed callable and Qobj for `e_ops` (#2184 issue by balopat)
+
+
 Version 4.7.1 (December 11, 2022)
 +++++++++++++++++++++++++++++++++
 

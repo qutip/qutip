@@ -32,10 +32,11 @@ safePickle = [False]
 if sys.platform == 'win32':
     safePickle[0] = True
 
-try:
+
+if qset.has_cython:
     import cython
     use_cython = [True]
-except:
+else:
     use_cython = [False]
 
 
@@ -86,7 +87,7 @@ class _file_list:
         self.files = []
 
     def add(self, file_):
-        self.files += [file_ + ".pyx"]
+        self.files += [file_]
 
     def clean(self):
         to_del = []

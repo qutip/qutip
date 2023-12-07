@@ -1,7 +1,6 @@
 import os
 
-from numpy.testing import (assert_, run_module_suite, assert_allclose,
-                           assert_equal)
+from numpy.testing import (assert_, assert_allclose, assert_equal)
 import numpy as np
 
 from qutip.qip.device.optpulseprocessor import OptPulseProcessor
@@ -129,7 +128,3 @@ class TestOptPulseProcessor:
         rho1 = U * rho0
         result = test.run_state(rho0)
         assert_(fidelity(result.states[-1], rho1) > 1-1.0e-6)
-
-
-if __name__ == "__main__":
-    run_module_suite()

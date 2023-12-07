@@ -597,13 +597,20 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     elif sso.method == 'heterodyne':
         if sso.m_ops is None:
             m_ops = []
+        elif len(sso.m_ops) != 2 * len(sc_ops):
+            raise ValueError(
+                "When using the heterodyne method there should be two"
+                " measurement operators (m_ops) for each collapse operator"
+                " (sc_ops)."
+            )
         sso.sops = []
         for c in sso.sc_ops:
             if sso.m_ops is None:
                 m_ops += [c + c.dag(), -1j * (c - c.dag())]
             sso.sops += [(spre(c) + spost(c.dag())) / np.sqrt(2),
                          (spre(c) - spost(c.dag())) * -1j / np.sqrt(2)]
-        sso.m_ops = m_ops
+        if sso.m_ops is None:
+            sso.m_ops = m_ops
         if not isinstance(sso.dW_factors, list):
             sso.dW_factors = [np.sqrt(2)] * len(sso.sops)
         elif len(sso.dW_factors) == len(sso.m_ops):
@@ -689,7 +696,7 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     if "method" in kwargs and kwargs["method"] == "photocurrent":
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_sesolve")
-        return photocurrent_sesolve(H, psi0, times, c_ops=c_ops,
+        return photocurrent_sesolve(H, psi0, times, sc_ops=sc_ops,
                                     e_ops=e_ops, _safe_mode=_safe_mode,
                                     args=args, **kwargs)
 
@@ -1132,7 +1139,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
             raise ValueError("Safety check: d1 and d2 must return " +
                              "complex numpy array.")
         msg_e_ops = ("Safety check: The shape of the e_ops "
-                     "does not fit the intial state.")
+                     "does not fit the initial state.")
         for op in sso.e_ops:
             shape_op = op.shape
             if sso.me:
@@ -1193,17 +1200,17 @@ def _safety_checks(sso):
         shape_op = sso.H.cte.shape
         if shape_op[0] != l_vec or shape_op[1] != l_vec:
             raise Exception("The size of the hamiltonian does "
-                            "not fit the intial state")
+                            "not fit the initial state")
     else:
         shape_op = sso.H.cte.shape
         if sso.me:
             if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                 raise Exception("The size of the hamiltonian does "
-                                "not fit the intial state")
+                                "not fit the initial state")
         else:
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the hamiltonian does "
-                                "not fit the intial state")
+                                "not fit the initial state")
 
     for op in sso.sc_ops:
         if op.cte.issuper:
@@ -1214,17 +1221,17 @@ def _safety_checks(sso):
             shape_op = op.cte.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the sc_ops does "
-                                "not fit the intial state")
+                                "not fit the initial state")
         else:
             shape_op = op.cte.shape
             if sso.me:
                 if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                     raise Exception("The size of the sc_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
             else:
                 if shape_op[0] != l_vec or shape_op[1] != l_vec:
                     raise Exception("The size of the sc_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
 
     for op in sso.c_ops:
         if op.cte.issuper:
@@ -1235,28 +1242,28 @@ def _safety_checks(sso):
             shape_op = op.cte.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the c_ops does "
-                                "not fit the intial state")
+                                "not fit the initial state")
         else:
             shape_op = op.cte.shape
             if sso.me:
                 if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                     raise Exception("The size of the c_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
             else:
                 if shape_op[0] != l_vec or shape_op[1] != l_vec:
                     raise Exception("The size of the c_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
 
     for op in sso.e_ops:
         shape_op = op.shape
         if sso.me:
             if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                 raise Exception("The size of the e_ops does "
-                                "not fit the intial state")
+                                "not fit the initial state")
         else:
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the e_ops does "
-                                "not fit the intial state")
+                                "not fit the initial state")
 
     if sso.m_ops is not None:
         for op in sso.m_ops:
@@ -1264,11 +1271,11 @@ def _safety_checks(sso):
             if sso.me:
                 if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                     raise Exception("The size of the m_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
             else:
                 if shape_op[0] != l_vec or shape_op[1] != l_vec:
                     raise Exception("The size of the m_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
 
 
 def _sesolve_generic(sso, options, progress_bar):
@@ -1296,7 +1303,8 @@ def _sesolve_generic(sso, options, progress_bar):
     noise = []
     for result in results:
         states_list, dW, m, expect = result
-        res.states.append(states_list)
+        if options.average_states or options.store_states:
+            res.states.append(states_list)
         noise.append(dW)
         res.measurement.append(m)
         res.expect += expect
@@ -1313,15 +1321,24 @@ def _sesolve_generic(sso, options, progress_bar):
     # ajgpitch 2019-10-25: np.any(res.states) seems to error
     # I guess there may be a potential exception if there are no states?
     # store individual trajectory states
-    res.traj_states = res.states
+    if options.store_states:
+        res.traj_states = res.states
+    else:
+        res.traj_states = None
     res.avg_states = None
-    if options.average_states and options.store_states:
+    if options.average_states:
         avg_states_list = []
         for n in range(len(res.times)):
-            tslot_states = [res.states[mm][n].data for mm in range(nt)]
+            if res.states[0][n].shape[1] == 1:
+                tslot_states = [
+                    res.states[mm][n].proj().data
+                    for mm in range(nt)
+                ]
+            else:
+                tslot_states = [res.states[mm][n].data for mm in range(nt)]
             if len(tslot_states) > 0:
                 state = Qobj(np.sum(tslot_states),
-                             dims=res.states[0][n].dims).unit()
+                             dims=[res.states[0][n].dims[0]] * 2).unit()
                 avg_states_list.append(state)
         # store average states
         res.states = res.avg_states = avg_states_list

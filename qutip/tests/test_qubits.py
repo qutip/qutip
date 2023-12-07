@@ -1,4 +1,4 @@
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_
 from qutip.qip.qubits import qubit_states
 from qutip.tensor import tensor
 from qutip.states import basis
@@ -23,7 +23,3 @@ class TestQubits:
         psi01_a = tensor(psi0_a, psi1_a)
         psi01_b = qubit_states(N=2, states=[0, 1])
         assert_(psi01_a == psi01_b)
-
-
-if __name__ == "__main__":
-    run_module_suite()
