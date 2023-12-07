@@ -57,7 +57,7 @@ from .bofin_solvers import (
     HierarchyADOsState,
 )
 
-from .bonfin_fit import (
+from .bofin_fit import (
     CorrelationFitter,
     SpectralFitter,
     OhmicBath,
