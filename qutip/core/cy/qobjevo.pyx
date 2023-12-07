@@ -193,10 +193,7 @@ cdef class QobjEvo:
             self._dims = Q_object._dims
             self.shape = Q_object.shape
             self.elements = (<QobjEvo> Q_object).elements.copy()
-            if Q_object._feedback_functions:
-                self._feedback_functions = Q_object._feedback_functions.copy()
-            else:
-                self._feedback_functions = {}
+            self._feedback_functions = Q_object._feedback_functions.copy()
             self._solver_only_feedback = Q_object._solver_only_feedback.copy()
             if args:
                 self.arguments(args)
@@ -704,7 +701,7 @@ cdef class QobjEvo:
         cdef QobjEvo res = self.copy()
         res.elements = [element.linear_map(Qobj.trans)
                         for element in res.elements]
-        res._dims = Dimensions(res._dims[1], res._dims[0])
+        res._dims = Dimensions(res._dims[0], res._dims[1])
         return res
 
     def conj(self):
@@ -719,7 +716,7 @@ cdef class QobjEvo:
         cdef QobjEvo res = self.copy()
         res.elements = [element.linear_map(Qobj.dag, True)
                         for element in res.elements]
-        res._dims = Dimensions(res._dims[1], res._dims[0])
+        res._dims = Dimensions(res._dims[0], res._dims[1])
         return res
 
     def to(self, data_type):

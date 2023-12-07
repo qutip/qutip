@@ -49,6 +49,10 @@ class Pseudo_qevo:
     def __getitem__(self, which):
         return getattr(self, which)()
 
+    @property
+    def _dims(self):
+        return self.qobj._dims
+
 
 N = 3
 args = {'w1': 1, "w2": 2}
@@ -108,6 +112,8 @@ def other_qevo(all_qevo):
 
 
 def _assert_qobjevo_equivalent(obj1, obj2, tol=1e-8):
+    assert obj1._dims == obj1(0)._dims
+    assert obj2._dims == obj2(0)._dims
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj1(t), obj2(t), tol)
 
@@ -291,8 +297,26 @@ def test_unary(all_qevo, unary_op):
     "QobjEvo arithmetic"
     obj = all_qevo
     for t in TESTTIMES:
-        as_qevo = unary_op(obj)(t)
+        transformed = unary_op(obj)
+        as_qevo = transformed(t)
         as_qobj = unary_op(obj(t))
+        assert transformed._dims == as_qevo._dims
+        _assert_qobj_almost_eq(as_qevo, as_qobj)
+
+
+@pytest.mark.parametrize('unary_op', [
+    pytest.param(lambda a: a.conj(), id="conj"),
+    pytest.param(lambda a: a.dag(), id="dag"),
+    pytest.param(lambda a: a.trans(), id="trans"),
+    pytest.param(lambda a: -a, id="neg"),
+])
+def test_unary_ket(unary_op):
+    obj = QobjEvo(rand_ket(5))
+    for t in TESTTIMES:
+        transformed = unary_op(obj)
+        as_qevo = transformed(t)
+        as_qobj = unary_op(obj(t))
+        assert transformed._dims == as_qevo._dims
         _assert_qobj_almost_eq(as_qevo, as_qobj)
 
 
