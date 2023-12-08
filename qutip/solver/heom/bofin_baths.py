@@ -193,7 +193,7 @@ class BosonicBath(Bath):
 
     Note that the ``ck`` and ``vk`` may be complex, even through ``C_real(t)``
     and ``C_imag(t)`` (i.e. the sum) is real.
-
+F
     Parameters
     ----------
     Q : Qobj
