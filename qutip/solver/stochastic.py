@@ -716,16 +716,16 @@ class StochasticSolver(MultiTrajSolver):
         pairs of process in heterodyne detection. The process is a step
         function with step of length ``options["dt"]``.
 
+        .. note::
+
+            WeinerFeedback can't be added to a running solver when updating
+            arguments between steps: ``solver.step(..., args={})``.
+
         Parameters
         ----------
         default : callable, optional
             Default function used outside the solver.
             When not passed, a function returning ``np.array([0])`` is used.
-
-        .. note::
-
-            WeinerFeedback can't be added to a running solver when updating
-            arguments between steps: ``solver.step(..., args={})``.
 
         """
         return _WeinerFeedback(default)
@@ -742,6 +742,10 @@ class StochasticSolver(MultiTrajSolver):
         The ``func`` will receive the density matrix as ``state`` during the
         evolution.
 
+        .. note::
+
+            Not supported by the ``rouchon`` mehtod.
+
         Parameters
         ----------
         default : Qobj or qutip.core.data.Data, default : None
@@ -751,10 +755,6 @@ class StochasticSolver(MultiTrajSolver):
             If True, the raw matrix will be passed instead of a Qobj.
             For density matrices, the matrices can be column stacked or square
             depending on the integration method.
-
-        .. note::
-
-            Not supported by the ``rouchon`` mehtod.
 
         """
         if raw_data:

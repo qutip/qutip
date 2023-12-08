@@ -370,6 +370,10 @@ class BRSolver(Solver):
         The ``func`` will receive the density matrix as ``state`` during the
         evolution.
 
+        .. note::
+
+            The state will not be in the lab basis, but in the evolution basis.
+
         Parameters
         ----------
         default : Qobj or qutip.core.data.Data, default : None
@@ -379,10 +383,6 @@ class BRSolver(Solver):
             If True, the raw matrix will be passed instead of a Qobj.
             For density matrices, the matrices can be column stacked or square
             depending on the integration method.
-
-        .. note::
-
-            The state will not be in the lab basis, but in the evolution basis.
         """
         if raw_data:
             return _DataFeedback(default, open=True)

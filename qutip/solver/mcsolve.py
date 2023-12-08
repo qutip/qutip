@@ -658,15 +658,15 @@ class MCSolver(MultiTrajSolver):
         The ``func`` will receive a list of ``(time, operator number)`` for
         each collapses of the trajectory as ``cols``.
 
-        Parameters
-        ----------
-        default : callable, default : []
-            Default function used outside the solver.
-
         .. note::
 
             CollapseFeedback can't be added to a running solver when updating
             arguments between steps: ``solver.step(..., args={})``.
+
+        Parameters
+        ----------
+        default : callable, default : []
+            Default function used outside the solver.
 
         """
         return _CollapseFeedback(default)
