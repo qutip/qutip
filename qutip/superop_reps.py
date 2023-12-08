@@ -194,8 +194,9 @@ def choi_to_kraus(q_oper, tol=1e-9):
     elements_to_keep = abs(vals) >= tol
     sqrt_vals, vecs = np.sqrt(vals[elements_to_keep]), vecs[elements_to_keep]
     shape = (np.prod(q_oper.dims[0][1]), np.prod(q_oper.dims[0][0]))
+    dims = q_oper.dims[0][::-1]
     return [
-        Qobj(inpt=sqrt_val * vec.data.reshape(shape, order="F"), dims=q_oper.dims[0][::-1])
+        Qobj(inpt=sqrt_val * vec.data.reshape(shape, order="F"), dims=dims)
         for sqrt_val, vec in zip(sqrt_vals, vecs)
     ]
 
