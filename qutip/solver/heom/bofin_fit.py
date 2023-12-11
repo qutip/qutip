@@ -122,14 +122,14 @@ class SpectralFitter:
         fit_time = end - start
         self.fitInfo = {"fit_time": fit_time, "rmse": rmse,
                         "N": spec_n, "params": params_spec, "Nk": self.Nk}
-        bath = self._matsubara_spectral_fit()
+        bath = self._matsubara_coefficients()
         self.summary()
         return bath, self.fitInfo
 
     def fit_plots(self, w, J, t, C, w2, S):
         gen_spectral_plots(self, w, J, t, C, w2, S)
 
-    def _matsubara_spectral_fit(self):
+    def _matsubara_coefficients(self):
         """
         Obtains the bath exponents from the list of fit parameters
         """
@@ -182,7 +182,9 @@ class SpectralFitter:
         vkAR = np.array(vkAR).flatten()
         vkAI = np.array(vkAI).flatten()
         self.terminator = terminator
-        return BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
+        bath = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI, combine=True)
+        self.exponents = bath.exponents
+        return bath
 
     def correlation_function(self, t):
         """Computes the correlation function from 
