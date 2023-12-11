@@ -173,8 +173,18 @@ class TestSpectralFitter:
             assert np.isclose(fbath.exponents[i].vk, ud.exponents[i].vk)
 
 
-class CorrelationFitter:
+@pytest.fixture
+def correlation_fit():
+    Q = sigmax()
+    T = 1
+    t = np.linspace(0, 30, 20000)
+    ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=1, T=T, Nk=1)
+    fc = CorrelationFitter(Q)
+    fc.get_fit(t, ud.correlation_function, final_rmse=1e-6)
+    return fc, ud, t, T
 
+
+class TestCorrelationFitter:
     def test_corr_approx(self):
         t = np.array([1 / 10, 1 / 5, 1])
         C = np.array(
@@ -189,47 +199,57 @@ class CorrelationFitter:
         C2 = bath._corr_approx(t, a, b, c)
         assert np.isclose(C, C2).all()
 
-    def test_fit_correlation(self):
+    def test_fitted_correlation(self):
         a, b, c = -np.array([list(range(2))] * 3)
         wc = 1
         bath = CorrelationFitter(sigmax())
         t = np.linspace(0.1, 10 / wc, 1000)
-        C = self.bath._corr_approx(t, a, b, c)
-        self.bath.fit_correlation(t, C, Nr=3, Ni=3)
-        a2, b2, c2 = bath.fitInfo['params_real']
-        ai2, bi2, ci2 = bath.fitInfo['params_imag']
-        C2re = bath._corr_approx(t, a2, b2, c2)
-        C2imag = bath._corr_approx(t, ai2, bi2, ci2)
-        assert np.isclose(np.real(C), np.real(C2re)).all()
-        assert np.isclose(np.imag(C), np.imag(C2imag)).all()
+        C = bath._corr_approx(t, a, b, c)
+        bath.get_fit(t, C, Nr=3, Ni=3)
+        C2 = bath.fitted_correlation(t)
+        assert np.isclose(np.real(C), np.real(C2)).all()
+        assert np.isclose(np.imag(C), np.imag(C2)).all()
 
     def test_get_fit(self):
-        wc = 1
         bath = CorrelationFitter(sigmax())
-        a, b, c = [list(range(3))] * 3
-        t = np.linspace(0.1, 10 / wc, 1000)
+        a, b, c = [[1, 1, 1], [-1, -1, -1], [1, 1, 1]]
+        t = np.linspace(0, 10, 1000)
         C = bath._corr_approx(t, a, b, c)
-        bath.get_fit(C, t, Nr=3, Ni=3)
+        bath.get_fit(t, C, Nr=3, Ni=3)
         a2, b2, c2 = bath.fitInfo['params_real']
         a3, b3, c3 = bath.fitInfo['params_imag']
         C2 = np.real(bath._corr_approx(t, a2, b2, c2))
         C3 = np.imag(bath._corr_approx(t, a3, b3, c3))
-        assert np.isclose(np.real(C), np.real(C2)).all()
-        assert np.isclose(np.imag(C), np.imag(C3)).all()
+        assert np.isclose(np.real(C), C2).all()
+        assert np.isclose(np.imag(C), C3).all()
 
-    def test_matsubara_coefficients(self):
-        Q = sigmax()
-        T = 1
-        t = np.linspace(0, 15, 20000)
-        ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=1, T=T, Nk=1)
-        fs = CorrelationFitter(Q)
-        _, fitinfo = fs.get_fit(ud.correlation_function, t, Nr=1, Ni=1)
-        fbath = fs._matsubara_coefficients()
-        for i in range(len(fbath.exponents)):
-            assert np.isclose(fbath.exponents[i].ck, ud.exponents[i].ck)
-            if (fbath.exponents[i].ck2 != ud.exponents[i].ck2):
-                assert np.isclose(fbath.exponents[i].ck2, ud.exponents[i].ck2)
-            assert np.isclose(fbath.exponents[i].vk, ud.exponents[i].vk)
+    def test_matsubara_coefficients(self, correlation_fit):
+        fc, ud, t, T = correlation_fit
+        fbath = fc._matsubara_coefficients()
+        fittedbath = fbath.correlation_function(t)
+        udc = ud.correlation_function(t)
+        assert np.isclose(
+            np.real(udc),
+            np.real(fittedbath),
+            atol=1e-5).all()
+        assert np.isclose(
+            np.imag(udc),
+            np.imag(fittedbath),
+            atol=1e-5).all()  # one order below final_rmse
+
+    def test_power_spectrum_approx(self):
+        fc, ud, t, T = correlation_fit
+        w = np.linspace(0.1, 10, 1000)
+        S = fc.power_spectrum_approx(w)
+        S2 = ud.power_spectrum(w, 1/T)
+        np.isclose(S, S2, atol=1e-5).all()
+
+    def test_spectral_density_approx(self):
+        fc, ud, t, T = correlation_fit
+        w = np.linspace(0.1, 10, 1000)
+        J = fc.spectral_density_approx(w, 1/T)
+        J2 = ud.spectral_density(w)
+        np.isclose(J, J2, atol=1e-5).all()
 
 
 @pytest.fixture
