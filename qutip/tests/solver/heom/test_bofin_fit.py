@@ -237,14 +237,14 @@ class TestCorrelationFitter:
             np.imag(fittedbath),
             atol=1e-5).all()  # one order below final_rmse
 
-    def test_power_spectrum_approx(self):
+    def test_power_spectrum_approx(self, correlation_fit):
         fc, ud, t, T = correlation_fit
         w = np.linspace(0.1, 10, 1000)
         S = fc.power_spectrum_approx(w)
         S2 = ud.power_spectrum(w, 1/T)
         np.isclose(S, S2, atol=1e-5).all()
 
-    def test_spectral_density_approx(self):
+    def test_spectral_density_approx(self, correlation_fit):
         fc, ud, t, T = correlation_fit
         w = np.linspace(0.1, 10, 1000)
         J = fc.spectral_density_approx(w, 1/T)

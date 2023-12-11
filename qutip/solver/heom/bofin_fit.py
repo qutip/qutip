@@ -187,7 +187,7 @@ class SpectralFitter:
         return bath
 
     def correlation_function(self, t):
-        """Computes the correlation function from 
+        """Computes the correlation function from
          the exponents"""
         corr = 0+0j
         for exp in self.exponents:
