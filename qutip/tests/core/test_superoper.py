@@ -43,7 +43,7 @@ class TestMatVec:
 
         with pytest.raises(TypeError) as err:
             bad_vec = as_vec.copy()
-            bad_vec.superrep = ""
+            bad_vec.superrep = "bad"
             qutip.vector_to_operator(bad_vec)
         assert err.value.args[0] == ("only defined for operator-kets "
                                      "in super format")
@@ -156,7 +156,7 @@ class TestMatVec:
         U = qutip.tensor(U1, U2, U3)
         S = qutip.to_super(U)
         S_col = qutip.reshuffle(S)
-        assert S_col.dims[0] == [[2, 2], [3, 3], [4, 4]]
+        assert S_col.dims[0] == [[2], [2], [3], [3], [4], [4]]
         assert qutip.reshuffle(S_col) == S
 
     def test_sprepost(self):

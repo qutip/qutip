@@ -139,10 +139,10 @@ class _Explicit_Simple_Integrator(SIntegrator):
         """
         Supported options by Explicit Stochastic Integrators:
 
-        dt : float, default=0.001
+        dt : float, default: 0.001
             Internal time step.
 
-        tol : float, default=1e-10
+        tol : float, default: 1e-10
             Tolerance for the time steps.
         """
         return self._options
@@ -181,19 +181,19 @@ class _Implicit_Simple_Integrator(_Explicit_Simple_Integrator):
         """
         Supported options by Implicit Stochastic Integrators:
 
-        dt : float, default=0.001
+        dt : float, default: 0.001
             Internal time step.
 
-        tol : float, default=1e-10
+        tol : float, default: 1e-10
             Tolerance for the time steps.
 
-        solve_method : str, default=None
+        solve_method : str, default: None
             Method used for solver the ``Ax=b`` of the implicit step.
             Accept methods supported by :func:`qutip.core.data.solve`.
             When the system is constant, the inverse of the matrix ``A`` can be
             used by entering ``inv``.
 
-        solve_options : dict, default={}
+        solve_options : dict, default: {}
             Options to pass to the call to :func:`qutip.core.data.solve`.
         """
         return self._options
@@ -256,17 +256,17 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
         """
         Supported options by Explicit Stochastic Integrators:
 
-        dt : float, default=0.001
+        dt : float, default: 0.001
             Internal time step.
 
-        tol : float, default=1e-10
+        tol : float, default: 1e-10
             Tolerance for the time steps.
 
-        alpha : float, default=0.
+        alpha : float, default: 0.
             Implicit factor to the drift.
             eff_drift ~= drift(t) * (1-alpha) + drift(t+dt) * alpha
 
-        eta : float, default=0.5
+        eta : float, default: 0.5
             Implicit factor to the diffusion.
             eff_diffusion ~= diffusion(t) * (1-eta) + diffusion(t+dt) * eta
         """

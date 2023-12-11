@@ -49,7 +49,7 @@ def cy_gate(*, dtype="csr"):
 
     Returns
     -------
-    result : :class:`qutip.Qobj`
+    result : :class:`.Qobj`
         Quantum object for operator describing the rotation.
     """
     return Qobj(
@@ -69,7 +69,7 @@ def cz_gate(*, dtype="csr"):
 
     Returns
     -------
-    result : :class:`qutip.Qobj`
+    result : :class:`.Qobj`
         Quantum object for operator describing the rotation.
     """
     return qdiags([1, 1, 1, -1], dims=[[2, 2], [2, 2]], dtype=dtype)
@@ -86,7 +86,7 @@ def s_gate(*, dtype="csr"):
 
     Returns
     -------
-    result : :class:`qutip.Qobj`
+    result : :class:`.Qobj`
         Quantum object for operator describing
         a 90 degree rotation around the z-axis.
 
@@ -105,7 +105,7 @@ def cs_gate(*, dtype="csr"):
 
     Returns
     -------
-    result : :class:`qutip.Qobj`
+    result : :class:`.Qobj`
         Quantum object for operator describing the rotation.
 
     """
@@ -123,7 +123,7 @@ def t_gate(*, dtype="csr"):
 
     Returns
     -------
-    result : :class:`qutip.Qobj`
+    result : :class:`.Qobj`
         Quantum object for operator describing a phase shift of pi/4.
 
     """
@@ -141,7 +141,7 @@ def ct_gate(*, dtype="csr"):
 
     Returns
     -------
-    result : :class:`qutip.Qobj`
+    result : :class:`.Qobj`
         Quantum object for operator describing the rotation.
 
     """
@@ -289,7 +289,7 @@ def qrot(theta, phi, *, dtype="dense"):
 
     Returns
     -------
-    qrot_gate : :class:`qutip.Qobj`
+    qrot_gate : :class:`.Qobj`
         Quantum object representation of physical qubit rotation under
         a rabi pulse.
     """
@@ -537,7 +537,7 @@ def molmer_sorensen(theta, *, dtype="dense"):
 
     Returns
     -------
-    molmer_sorensen_gate: :class:`qutip.Qobj`
+    molmer_sorensen_gate: :class:`.Qobj`
         Quantum object representation of the Mølmer–Sørensen gate.
     """
     return Qobj(

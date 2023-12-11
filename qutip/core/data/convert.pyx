@@ -314,7 +314,7 @@ cdef class _to:
     def register_aliases(self, aliases, layer_type):
         """
         Register a user frendly name for a data-layer type to be recognized by
-        the :method:`parse` method.
+        the :meth:`parse` method.
 
         Parameters
         ----------
@@ -323,7 +323,7 @@ cdef class _to:
 
         layer_type : type
             Data-layer type, must have been registered with
-            :method:`add_conversions` first.
+            :meth:`add_conversions` first.
         """
         if layer_type not in self.dtypes:
             raise ValueError(
@@ -461,7 +461,7 @@ cdef class _create:
 
     def __call__(self, arg, shape=None, copy=True):
         """
-        Build a :class:`qutip.data.Data` object from arg.
+        Build a :class:`.Data` object from arg.
 
         Parameters
         ----------

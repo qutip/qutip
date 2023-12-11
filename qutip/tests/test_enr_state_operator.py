@@ -44,7 +44,7 @@ class TestOperator:
         iden = [qutip.qeye(n) for n in dimensions]
         for i, test in enumerate(test_operators):
             expected = qutip.tensor(iden[:i] + [a[i]] + iden[i+1:])
-            assert test == expected
+            assert test.data == expected.data
             assert test.dims == [dimensions, dimensions]
 
     def test_space_size_reduction(self, dimensions, n_excitations):
@@ -82,7 +82,7 @@ def test_fock_state(dimensions, n_excitations):
 def test_fock_state_error():
     with pytest.raises(ValueError) as e:
         state = qutip.enr_fock([2, 2, 2], 1, [1, 1, 1])
-    assert str(e.value).startswith("The state tuple ")
+    assert str(e.value).startswith("state tuple ")
 
 
 def _reference_dm(dimensions, n_excitations, nbars):

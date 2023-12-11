@@ -59,7 +59,6 @@ def _superpauli_basis(nq=1):
     sci.indptr[-1] = nnz
     return Qobj(data.adjoint(),
                 dims=dims,
-                type='super',
                 superrep='super',
                 isherm=False,
                 isunitary=False,
@@ -132,7 +131,7 @@ def _choi_to_kraus(q_oper, tol=1e-9):
     dims = [q_oper.dims[0][1], q_oper.dims[0][0]]
     shape = (np.prod(q_oper.dims[0][1]), np.prod(q_oper.dims[0][0]))
     return [Qobj(_data.mul(unstack_columns(vec.data, shape=shape), np.sqrt(val)),
-                 dims=dims, type='oper', copy='False')
+                 dims=dims, copy='False')
             for val, vec in zip(vals, vecs) if abs(val) >= tol]
 
 
@@ -142,7 +141,12 @@ def _choi_to_kraus(q_oper, tol=1e-9):
 def kraus_to_choi(kraus_list):
     """
     Take a list of Kraus operators and returns the Choi matrix for the channel
-    represented by the Kraus operators in `kraus_list`
+    represented by the Kraus operators in `kraus_list`.
+
+    Parameters
+    ----------
+    kraus_list : list of Qobj
+        The list of Kraus super operators to convert.
     """
     kraus_mat_list = [k.full() for k in kraus_list]
     op_rng = list(range(kraus_mat_list[0].shape[1]))
@@ -154,7 +158,6 @@ def kraus_to_choi(kraus_list):
     )
     return Qobj(np.hstack(np.hstack(choi_blocks)),
                 dims=[kraus_list[0].dims[::-1]]*2,
-                type='super',
                 superrep='choi',
                 copy=False)
 
@@ -162,6 +165,11 @@ def kraus_to_choi(kraus_list):
 def kraus_to_super(kraus_list):
     """
     Convert a list of Kraus operators to a superoperator.
+
+    Parameters
+    ----------
+    kraus_list : list of Qobj
+        The list of Kraus super operators to convert.
     """
     return to_super(kraus_to_choi(kraus_list))
 
@@ -186,7 +194,6 @@ def _super_tofrom_choi(q_oper):
     data = data.reshape([s0, s1, s0, s1]).transpose(3, 1, 2, 0).reshape(d0, d1)
     return Qobj(data,
                 dims=new_dims,
-                type='super',
                 superrep='super' if q_oper.superrep == 'choi' else 'choi',
                 copy=False)
 
@@ -202,7 +209,6 @@ def _choi_to_chi(q_oper):
     B = _superpauli_basis(nq).data
     return Qobj(_data.matmul(_data.matmul(B.adjoint(), q_oper.data), B),
                 dims=q_oper.dims,
-                type='super',
                 superrep='chi',
                 copy=False)
 
@@ -223,7 +229,6 @@ def _chi_to_choi(q_oper):
                     1 / q_oper.shape[0]
                 ),
                 dims=q_oper.dims,
-                type='super',
                 superrep='choi',
                 copy=False)
 
@@ -244,7 +249,6 @@ def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     return [
         Qobj(x,
              dims=[outdims, indims],
-             type='oper',
              copy=False)
         for x in data
     ]
@@ -308,13 +312,11 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
 
     A = Qobj(_data.zeros(dK * dL, dL),
              dims=[out_left + [dK], out_right + [1]],
-             type='oper',
              isherm=True,
              isunitary=False,
              copy=False)
     B = Qobj(_data.zeros(dK * dR, dR),
              dims=[in_left + [dK], in_right + [1]],
-             type='oper',
              isherm=True,
              isunitary=False,
              copy=False)
@@ -324,8 +326,8 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
         B += tensor(KR, basis(dK, idx_kraus))
 
     # There is no input (right) Kraus index, so strip that off.
-    del A.dims[1][-1]
-    del B.dims[1][-1]
+    A.dims = [out_left + [dK], out_right]
+    B.dims = [in_left + [dK], in_right]
 
     return A, B
 
@@ -351,8 +353,9 @@ def to_choi(q_oper):
 
     Raises
     ------
-    TypeError: if the given quantum object is not a map, or cannot be converted
-        to Choi representation.
+    TypeError:
+        If the given quantum object is not a map, or cannot be converted to
+        Choi representation.
     """
     if q_oper.type == 'super':
         if q_oper.superrep == 'choi':
@@ -393,7 +396,8 @@ def to_chi(q_oper):
 
     Raises
     ------
-    TypeError: if the given quantum object is not a map, or cannot be converted
+    TypeError:
+        If the given quantum object is not a map, or cannot be converted
         to Chi representation.
     """
     if q_oper.type == 'super':
@@ -470,9 +474,8 @@ def to_kraus(q_oper, tol=1e-9):
         ``q_oper`` is ``type="oper"``, then it is taken to act by conjugation,
         such that ``to_kraus(A) == to_kraus(sprepost(A, A.dag())) == [A]``.
 
-    tol : Float
+    tol : Float, default: 1e-9
         Optional threshold parameter for eigenvalues/Kraus ops to be discarded.
-        The default is to=1e-9.
 
     Returns
     -------
@@ -500,18 +503,22 @@ def to_kraus(q_oper, tol=1e-9):
 
 def to_stinespring(q_oper, threshold=1e-10):
     r"""
-    Converts a Qobj representing a quantum map $\Lambda$ to a pair of partial
-    isometries $A$ and $B$ such that $\Lambda(X) = \Tr_2(A X B^\dagger)$ for
-    all inputs $X$, where the partial trace is taken over a a new index on the
-    output dimensions of $A$ and $B$.
+    Converts a Qobj representing a quantum map :math:`\Lambda` to a pair of
+    partial isometries ``A`` and ``B`` such that
+    :math:`\Lambda(X) = \Tr_2(A X B^\dagger)` for all inputs ``X``, where the
+    partial trace is taken over a a new index on the output dimensions of
+    ``A`` and ``B``.
 
-    For completely positive inputs, $A$ will always equal $B$ up to precision
-    errors.
+    For completely positive inputs, ``A`` will always equal ``B`` up to
+    precision errors.
 
     Parameters
     ----------
     q_oper : Qobj
         Superoperator to be converted to a Stinespring pair.
+
+    threshold : float, default: 1e-10
+        Threshold parameter for eigenvalues/Kraus ops to be discarded.
 
     Returns
     -------

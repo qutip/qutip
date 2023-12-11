@@ -79,9 +79,6 @@ QuTiP will detect if it is being used within one of these richer environments, a
 Installing with conda
 =====================
 
-QuTiP is designed to work best when using the `Anaconda <https://www.anaconda.com/products/individual>`_ or `Intel <https://software.intel.com/en-us/python-distribution>`_ Python distributions that support the conda package management system.
-It is still possible to use ``pip`` to install QuTiP while using conda, but uniformly using conda will make complete dependency management easier.
-
 If you already have your conda environment set up, and have the ``conda-forge`` channel available, then you can install QuTiP using:
 
 .. code-block:: bash
@@ -267,7 +264,7 @@ At the end, the testing report should report a success; it is normal for some te
 Skips may be tests that do not run on your operating system, or tests of optional components that you have not installed the dependencies for.
 If any failures or errors occur, please check that you have installed all of the required modules.
 See the next section on how to check the installed versions of the QuTiP dependencies.
-If these tests still fail, then head on over to the `QuTiP Discussion Board <https://groups.google.com/group/qutip>`_ or `the GitHub issues page <https://github.com/qutip/qutip/issues>`_ and post a message detailing your particular issue.
+If these tests still fail, then head on over to the `QuTiP Discussion Board <https://groups.google.com/g/qutip>`_ or `the GitHub issues page <https://github.com/qutip/qutip/issues>`_ and post a message detailing your particular issue.
 
 .. _install-about:
 
