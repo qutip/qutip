@@ -512,6 +512,8 @@ class DrudeLorentzPadeBath(BosonicBath):
     def __init__(
         self, Q, lam, gamma, T, Nk, combine=True, tag=None
     ):
+        self.lam = lam
+        self.gamma = gamma
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
 
         ck_real = [np.real(eta) for eta in eta_p]
