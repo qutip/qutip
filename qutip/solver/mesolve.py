@@ -12,6 +12,7 @@ from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from .solver_base import Solver, _solver_deprecation
 from .sesolve import sesolve, SESolver
+from ._feedback import _QobjFeedback, _DataFeedback
 
 
 def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
@@ -217,3 +218,34 @@ class MESolver(SESolver):
             "num_collapse": self._num_collapse,
         })
         return stats
+
+    @classmethod
+    def StateFeedback(cls, default=None, raw_data=False, prop=False):
+        """
+        State of the evolution to be used in a time-dependent operator.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"state": MESolver.StateFeedback()})``
+
+        The ``func`` will receive the density matrix as ``state`` during the
+        evolution.
+
+        Parameters
+        ----------
+        default : Qobj or qutip.core.data.Data, default : None
+            Initial value to be used at setup of the system.
+
+        prop : bool, default : False
+            Set to True when computing propagators.
+            The default with take the shape of the propagator instead of a
+            state.
+
+        raw_data : bool, default : False
+            If True, the raw matrix will be passed instead of a Qobj.
+            For density matrices, the matrices can be column stacked or square
+            depending on the integration method.
+        """
+        if raw_data:
+            return _DataFeedback(default, open=True, prop=prop)
+        return _QobjFeedback(default, open=True, prop=prop)
