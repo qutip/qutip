@@ -239,7 +239,7 @@ cdef class QobjEvo:
             # During _read_args, the dims could not have been set yet.
             # To set the dims, for function QobjEvo, they need to be called.
             # But to be called, the feedback args need to be read...
-            self._feedback_functions[key].check_consistancy(self._dims)
+            self._feedback_functions[key].check_consistency(self._dims)
 
         if compress:
             self.compress()
@@ -448,7 +448,7 @@ cdef class QobjEvo:
             if isinstance(val, _Feedback):
                 new_args[key] = val.default
                 if self._dims is not None:
-                    val.check_consistancy(self._dims)
+                    val.check_consistency(self._dims)
                 if callable(val):
                     self._feedback_functions[key] = val
                 else:
@@ -501,7 +501,7 @@ cdef class QobjEvo:
 
         if self._feedback_functions:
             for key in self._feedback_functions:
-                self._feedback_functions[key].check_consistancy(self._dims)
+                self._feedback_functions[key].check_consistency(self._dims)
 
     ###########################################################################
     # Math function                                                           #
@@ -1083,7 +1083,7 @@ class _Feedback:
     def __init__(self):
         raise NotImplementedError("Use subclass")
 
-    def check_consistancy(self, dims):
+    def check_consistency(self, dims):
         """
         Raise an error when the dims of the e_ops / state don't match.
         Tell the dims to the feedback for reconstructing the Qobj.

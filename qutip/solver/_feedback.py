@@ -12,7 +12,7 @@ class _ExpectFeedback(_Feedback):
         self.N2 = oper.shape[1]**2
         self.default = default
 
-    def check_consistancy(self, dims):
+    def check_consistency(self, dims):
         if not (
             self.oper._dims == dims
             or self.oper._dims[1] == dims  # super e_op, oper QobjEvo
@@ -45,7 +45,7 @@ class _QobjFeedback(_Feedback):
         self.prop = prop
         self.default = default
 
-    def check_consistancy(self, dims):
+    def check_consistency(self, dims):
         if not self.open:
             # Ket
             self.dims = Dimensions(Field(), dims[1])
@@ -96,7 +96,7 @@ class _DataFeedback(_Feedback):
         self.default = default
         self.prop = prop
 
-    def check_consistancy(self, dims):
+    def check_consistency(self, dims):
         if self.default is None:
             return
         if not (
@@ -126,7 +126,7 @@ class _CollapseFeedback(_Feedback):
     def __init__(self, default=None):
         self.default = default or []
 
-    def check_consistancy(self, dims):
+    def check_consistency(self, dims):
         pass
 
     def __repr__(self):
@@ -143,7 +143,7 @@ class _WeinerFeedback(_Feedback):
     def __init__(self, default=None):
         self.default = default or _default_weiner
 
-    def check_consistancy(self, dims):
+    def check_consistency(self, dims):
         pass
 
     def __repr__(self):
