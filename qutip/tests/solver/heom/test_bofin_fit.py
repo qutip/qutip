@@ -171,6 +171,7 @@ class TestCorrelationFitter:
         assert np.isclose(np.real(C), C2).all()
         assert np.isclose(np.imag(C), C3).all()
 
+    @pytest.mark.filterwarnings('ignore::RuntimeWarning')
     def test_matsubara_coefficients(self):
         Q = sigmax()
         T = 1
