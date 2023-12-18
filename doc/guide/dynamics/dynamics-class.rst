@@ -118,3 +118,41 @@ args at each step:
   have one instance at a time. QuTiP will work with multiple solver instances
   using these ODE solvers at a cost to performance. In these situations, using
   ``dop853`` or ``vern9`` method are recommended.
+
+
+Accessing the state from solver
+===============================
+
+The state during the evolution is assessible to from properties of the solver classes.
+Each solver have the ``StateFeedback`` and ``ExpectFeedback`` class method that can
+be passed as arguments to time dependent systems. For example, ``ExpectFeedback``
+can be used to create a system which uncouple when there are 5 or less photon in the
+cavity.
+
+.. plot::
+    :context: close-figs
+
+    def f(t, e1):
+        ex = (e1.real - 5)
+        return (ex > 0) * ex * 10
+
+    times = np.linspace(0.0, 1.0, 301)
+    a  = tensor(qeye(2), destroy(10))
+    sm = tensor(destroy(2), qeye(10))
+    e_ops = [a.dag() * a, sm.dag() * sm]
+    psi0 = tensor(fock(2, 0), fock(10, 8))
+    e_ops = [a.dag() * a, sm.dag() * sm]
+
+    H = [a*a.dag(), [sm*a.dag() + sm.dag()*a, f]]
+    data = mesolve(H, psi0, times, c_ops=[a], e_ops=e_ops,
+        args={"e1": MESolver.ExpectFeedback(a.dag() * a)}
+    ).expect
+
+    plt.figure()
+    plt.plot(times, data[0])
+    plt.plot(times, data[1])
+    plt.title('Master Equation time evolution')
+    plt.xlabel('Time', fontsize=14)
+    plt.ylabel('Expectation values', fontsize=14)
+    plt.legend(("cavity photon number", "atom excitation probability"))
+    plt.show()
