@@ -214,7 +214,7 @@ class TestOhmicBath:
         Q = sigmax()
         t = np.linspace(0, 10, 10)
         bath = OhmicBath(s=3, alpha=alpha, Q=Q, T=T, wc=wc)
-        C = bath.correlation(t, s=3)
+        C = bath.correlation(t)
         Ctest = np.array(
             [
                 1.11215545e00 + 0.00000000e00j,

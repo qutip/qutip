@@ -384,6 +384,7 @@ class TestDrudeLorentzPadeBath:
             expected, bath.power_spectrum_approx(4),
             rtol=1e-2).all()
 
+
 class TestUnderDampedBath:
     def test_create(self):
         Q = sigmaz()
@@ -483,6 +484,7 @@ class TestUnderDampedBath:
 
         assert np.isclose(expected, bath.power_spectrum_approx(4))
 
+    @pytest.mark.filterwarnings('ignore::RuntimeWarning')
     @pytest.mark.parametrize("lam, gamma, T, expected",
                              [(0.05, 0.01, 1, (0.0027047086195915206-1.2499962298916986e-06j)),
                               (0.15, 0.25, 0.5, (0.01459787665425986-1.124919683812524e-05j)),
@@ -494,6 +496,7 @@ class TestUnderDampedBath:
             expected,
             bath.correlation_function(0.001)).all()
 
+    @pytest.mark.filterwarnings('ignore::RuntimeWarning')
     @pytest.mark.parametrize("lam, gamma,T",
                              [(0.05, 0.01, 1),
                               (0.15, 0.25, 0.5),

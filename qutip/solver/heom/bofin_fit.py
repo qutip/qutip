@@ -431,7 +431,7 @@ class OhmicBath:
         # See http://mpmath.org/doc/current/basics.html#providing-correct-input
         return np.array(
             [
-                complex(corr * (mp.zeta(s + 1, u1) + mp.zeta(s + 1, u2)))
+                complex(corr * (mp.zeta(self.s + 1, u1) + mp.zeta(self.s + 1, u2)))
                 for u1, u2 in zip(z1_u, z2_u)
             ],
             dtype=np.complex128,
