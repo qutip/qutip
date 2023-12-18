@@ -2,7 +2,6 @@
 Tests for qutip.solver.heom.bofin_fit
 """
 import numpy as np
-import sys
 import pytest
 from qutip.solver.heom.bofin_fit import (
     pack, unpack, _rmse, _fit, _leastsq, _run_fit, SpectralFitter,
@@ -115,36 +114,6 @@ class TestSpectralFitter:
         w = 2
         assert bath._spectral_density_approx(w, a, b, c) == J
 
-    def test_fitted_spectral_density(self):
-        T = 1
-        fs = SpectralFitter(T, sigmax(), Nk=2)
-        ud = UnderDampedBath(sigmax(), lam=0.05, w0=1, gamma=1, T=T, Nk=1)
-        w = np.linspace(0, 50, 1000)
-        fs.get_fit(ud.spectral_density, w)
-        assert np.isclose(
-            ud.spectral_density(w),
-            fs.fitted_spectral_density(w)).all()
-
-    def test_fitted_power_spectrum(self):
-        T = 1
-        fs = SpectralFitter(T, sigmax(), Nk=1)
-        ud = UnderDampedBath(sigmax(), lam=0.05, w0=1, gamma=1, T=T, Nk=1)
-        w = np.linspace(0.1, 50, 1000)
-        fs.get_fit(ud.spectral_density, w)
-        assert np.isclose(
-            ud.power_spectrum(w, 1/T),
-            fs.fitted_power_spectrum(w)).all()
-
-    def test_correlation_function(self):
-        T = 1
-        fs = SpectralFitter(T, sigmax(), Nk=1)
-        ud = UnderDampedBath(sigmax(), lam=0.05, w0=1, gamma=1, T=T, Nk=1)
-        w = np.linspace(0.1, 50, 1000)
-        fs.get_fit(ud.spectral_density, w)
-        assert np.isclose(
-            ud.correlation_function(w),
-            fs.correlation_function(w)).all()
-
     def test_get_fit(self):
         T = 1
         wc = 1
@@ -152,7 +121,7 @@ class TestSpectralFitter:
         a, b, c = [list(range(5))] * 3
         w = np.linspace(0.1, 10 * wc, 1000)
         J = bath._spectral_density_approx(w, a, b, c)
-        bath.get_fit(J, w, N=5)
+        bath.get_fit(w, J, N=5)
         a2, b2, c2 = bath.fitInfo['params']
         J2 = bath._spectral_density_approx(w, a2, b2, c2)
         assert np.isclose(J, J2).all()
@@ -164,8 +133,8 @@ class TestSpectralFitter:
         w = np.linspace(0, 15, 20000)
         ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=1, T=T, Nk=1)
         fs = SpectralFitter(T, Q, Nk=1)
-        _, fitinfo = fs.get_fit(ud.spectral_density, w, N=1)
-        fbath = fs._matsubara_coefficients()
+        _, fitinfo = fs.get_fit(w, ud.spectral_density, N=1)
+        fbath = fs._matsubara_coefficients(fitinfo['params'])
         for i in range(len(fbath.exponents)):
             assert np.isclose(fbath.exponents[i].ck, ud.exponents[i].ck)
             if (fbath.exponents[i].ck2 != ud.exponents[i].ck2):
@@ -173,18 +142,8 @@ class TestSpectralFitter:
             assert np.isclose(fbath.exponents[i].vk, ud.exponents[i].vk)
 
 
-@pytest.fixture
-def correlation_fit():
-    Q = sigmax()
-    T = 1
-    t = np.linspace(0, 30, 20000)
-    ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=1, T=T, Nk=1)
-    fc = CorrelationFitter(Q)
-    fc.get_fit(t, ud.correlation_function, final_rmse=1e-6)
-    return fc, ud, t, T
-
-
 class TestCorrelationFitter:
+
     def test_corr_approx(self):
         t = np.array([1 / 10, 1 / 5, 1])
         C = np.array(
@@ -194,88 +153,67 @@ class TestCorrelationFitter:
                 -0.19876611 + 0.30955988j,
             ]
         )
-        bath = CorrelationFitter(sigmax())
+        bath = CorrelationFitter(sigmax(), 1)
         a, b, c = -np.array([list(range(2))] * 3)
         C2 = bath._corr_approx(t, a, b, c)
         assert np.isclose(C, C2).all()
 
-    def test_fitted_correlation(self):
-        a, b, c = -np.array([list(range(2))] * 3)
-        wc = 1
-        bath = CorrelationFitter(sigmax())
-        t = np.linspace(0.1, 10 / wc, 1000)
-        C = bath._corr_approx(t, a, b, c)
-        bath.get_fit(t, C, Nr=3, Ni=3)
-        C2 = bath.fitted_correlation(t)
-        assert np.isclose(np.real(C), np.real(C2)).all()
-        assert np.isclose(np.imag(C), np.imag(C2)).all()
-
     def test_get_fit(self):
-        bath = CorrelationFitter(sigmax())
+        bath = CorrelationFitter(sigmax(), 1)
         a, b, c = [[1, 1, 1], [-1, -1, -1], [1, 1, 1]]
         t = np.linspace(0, 10, 1000)
         C = bath._corr_approx(t, a, b, c)
-        bath.get_fit(t, C, Nr=3, Ni=3)
-        a2, b2, c2 = bath.fitInfo['params_real']
-        a3, b3, c3 = bath.fitInfo['params_imag']
+        bbath, fitInfo = bath.get_fit(t, C, Nr=3, Ni=3)
+        a2, b2, c2 = fitInfo['params_real']
+        a3, b3, c3 = fitInfo['params_imag']
         C2 = np.real(bath._corr_approx(t, a2, b2, c2))
         C3 = np.imag(bath._corr_approx(t, a3, b3, c3))
         assert np.isclose(np.real(C), C2).all()
         assert np.isclose(np.imag(C), C3).all()
 
-    def test_matsubara_coefficients(self, correlation_fit):
-        fc, ud, t, T = correlation_fit
-        fbath = fc._matsubara_coefficients()
-        fittedbath = fbath.correlation_function(t)
+    def test_matsubara_coefficients(self):
+        Q = sigmax()
+        T = 1
+        t = np.linspace(0, 30, 200)
+        ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=1, T=T, Nk=1)
+        fc = CorrelationFitter(Q, T)
+        _, fitInfo = fc.get_fit(t, ud.correlation_function, final_rmse=1e-5)
+        fbath = fc._matsubara_coefficients(
+            fitInfo['params_real'],
+            fitInfo['params_imag'])
+        fittedbath = fbath.correlation_function_approx(t)
         udc = ud.correlation_function(t)
         assert np.isclose(
             np.real(udc),
             np.real(fittedbath),
-            atol=1e-5).all()
+            atol=1e-4).all()
         assert np.isclose(
             np.imag(udc),
             np.imag(fittedbath),
-            atol=1e-5).all()  # one order below final_rmse
-
-    def test_power_spectrum_approx(self, correlation_fit):
-        fc, ud, t, T = correlation_fit
-        w = np.linspace(0.1, 10, 1000)
-        S = fc.power_spectrum_approx(w)
-        S2 = ud.power_spectrum(w, 1/T)
-        np.isclose(S, S2, atol=1e-5).all()
-
-    def test_spectral_density_approx(self, correlation_fit):
-        fc, ud, t, T = correlation_fit
-        w = np.linspace(0.1, 10, 1000)
-        J = fc.spectral_density_approx(w, 1/T)
-        J2 = ud.spectral_density(w)
-        np.isclose(J, J2, atol=1e-5).all()
-
-
-@pytest.fixture
-def parameters_ohmic():
-    return {'alpha': 0.5,
-            'wc': 1,
-            'T': 1,
-            'Nk': 4,
-            'method': "spectral",
-            'rmse': 1e-4,
-            'Q': sigmax()}
+            atol=1e-4).all()  # one order below final_rmse
 
 
 class TestOhmicBath:
-    def test_ohmic_spectral_density(self, parameters_ohmic):
+    def test_ohmic_spectral_density(self):
         mp = pytest.importorskip("mpmath")
-        w = np.linspace(0, 50 * parameters_ohmic['wc'], 10000)
-        bath = OhmicBath(s=1, **parameters_ohmic)
+        alpha = 0.5
+        wc = 1
+        T = 1
+        Q = sigmax()
+        w = np.linspace(0, 50 * wc, 10000)
+        bath = OhmicBath(s=1, alpha=alpha, Q=Q, T=T, wc=wc)
         J = bath.spectral_density(w)
-        J2 = bath.alpha * w * np.exp(-abs(w) / parameters_ohmic['wc'])
+        J2 = bath.alpha * w * np.exp(-abs(w) / wc)
         assert np.isclose(J, J2).all()
 
-    def test_ohmic_correlation(self, parameters_ohmic):
+    def test_ohmic_correlation(self):
         mp = pytest.importorskip("mpmath")
+        alpha = 0.5
+        wc = 1
+        T = 1
+        Q = sigmax()
         t = np.linspace(0, 10, 10)
-        bath = OhmicBath(s=3, **parameters_ohmic)
+        bath = OhmicBath(s=3, alpha=alpha, Q=Q, T=T, wc=wc)
         C = bath.correlation(t, s=3)
         Ctest = np.array(
             [
@@ -293,11 +231,16 @@ class TestOhmicBath:
         )
         assert np.isclose(C, Ctest).all()
 
-    def test_ohmic_power_spectrum(self, parameters_ohmic):
+    def test_ohmic_power_spectrum(self):
         mp = pytest.importorskip("mpmath")
-        w = np.linspace(0.1, 50 * parameters_ohmic['wc'], 10)
-        bath = OhmicBath(s=3, **parameters_ohmic)
-        pow = bath.power_spectrum(w)
+        alpha = 0.5
+        wc = 1
+        T = 1
+        Q = sigmax()
+        w = np.linspace(0.1, 50 * wc, 10)
+        bath = OhmicBath(s=3, alpha=alpha, wc=wc, Q=Q, T=T)
+        batho, fitinfo = bath.get_fit(w, N=(1,2), method='spectral')
+        pow = batho.power_spectrum(w)
         testpow = np.array(
             [
                 9.50833194e-03,

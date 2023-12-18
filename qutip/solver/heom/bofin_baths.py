@@ -8,12 +8,16 @@ The implementation is derived from the BoFiN library (see
 https://github.com/tehruhn/bofin) which was itself derived from an earlier
 implementation in QuTiP itself.
 """
+
 import enum
+
 import numpy as np
 from scipy.linalg import eigvalsh
+
 from qutip.core import data as _data
 from qutip.core.qobj import Qobj
 from qutip.core.superoperator import spre, spost
+from scipy.integrate import quad_vec
 
 __all__ = [
     "BathExponent",
@@ -168,7 +172,6 @@ class Bath:
 
     All of the parameters are available as attributes.
     """
-
     def __init__(self, exponents):
         self.exponents = exponents
 
@@ -193,7 +196,7 @@ class BosonicBath(Bath):
 
     Note that the ``ck`` and ``vk`` may be complex, even through ``C_real(t)``
     and ``C_imag(t)`` (i.e. the sum) is real.
-F
+
     Parameters
     ----------
     Q : Qobj
@@ -228,7 +231,6 @@ F
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
         if len(ck_real) != len(vk_real) or len(ck_imag) != len(vk_imag):
             raise ValueError(
@@ -242,8 +244,9 @@ F
 
     def __init__(
             self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
-            tag=None,
+            tag=None, T=None
     ):
+        self.T = T
         self._check_cks_and_vks(ck_real, vk_real, ck_imag, vk_imag)
         self._check_coup_op(Q)
 
@@ -339,14 +342,46 @@ F
     def spectral_density(self, w):
         raise NotImplemented
 
-    def power_spectrum(self, w, beta=None):
+    def correlation_function(
+            self, t, epsabs=1e-6, epsrel=1e-6, method='gk15'):
+        """ Calculates the correlation function
+            by numerically computing the integral
+        Parameters
+        ----------
+        t : np.array or float
+            the time at which to evaluare the correlation function
+        epsabs : float
+            Absolute error tolerance
+        epsrel : float
+            Relative error tolerance
+        """
+        def c_i(w, t): return (1/np.pi)*self.spectral_density(w)*(
+            (1/np.tanh(w/(2*self.T)))*np.cos(w*t) - 1j*np.sin(w*t))
+
+        def c(t): return quad_vec(
+            lambda x: c_i(x, t),
+            0,
+            np.Inf,
+            epsabs=epsabs,
+            epsrel=epsrel,
+            quadrature=method,
+        )[0]
+        return c(t)
+
+    def bose_einstein(self, w):
+        try:
+            return (1 / (np.e**(w / self.T) - 1))
+        except ZeroDivisionError:
+            return 0
+
+    def power_spectrum(self, w):
         """Calculates the power spectrum from the spectral density
-        or exponents if the spectral density is not available"""
+        """
         S = self.spectral_density(
-            w)*(((1 / (np.e**(w * beta) - 1)) + 1) * 2)
+            w)*((self.bose_einstein(w) + 1) * 2)
         return S
 
-    def correlation_function(self, t):
+    def correlation_function_approx(self, t):
         """Computes the correlation function from
          the exponents"""
         corr = 0+0j
@@ -361,6 +396,27 @@ F
             if exp.type == BathExponent.types['RI']:
                 corr += 1j*exp.ck2 * np.exp(-exp.vk * t)
         return corr
+
+    def power_spectrum_approx(self, w):
+        S = 0+0j
+        for exp in self.exponents:
+            if exp.ck is None:
+                exp.ck = 0
+            if exp.ck2 is None:
+                exp.ck2 = 0
+            if exp.type == BathExponent.types['I']:
+                S += 2*np.real((1j*exp.ck-exp.ck2)/(exp.vk - 1j*w))
+            else:
+                S += 2*np.real((exp.ck+1j*exp.ck2)/(exp.vk - 1j*w))
+
+        return S
+
+    def spectral_density_approx(self, w):
+        J = np.real(
+            self.power_spectrum_approx(w) /
+            ((self.bose_einstein(w) + 1) * 2)
+        )
+        return J
 
 
 class DrudeLorentzBath(BosonicBath):
@@ -395,7 +451,6 @@ class DrudeLorentzBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def __init__(
         self, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
@@ -409,9 +464,8 @@ class DrudeLorentzBath(BosonicBath):
             Nk=Nk,
         )
 
-        super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
-        )
+        super().__init__(Q, ck_real, vk_real, ck_imag,
+                         vk_imag, combine=combine, tag=tag, T=T)
 
         self._dl_terminator = _DrudeLorentzTerminator(
             Q=Q, lam=lam, gamma=gamma, T=T,
@@ -456,7 +510,7 @@ class DrudeLorentzBath(BosonicBath):
         vk_imag = [gamma]
 
         return ck_real, vk_real, ck_imag, vk_imag
-
+    
     def spectral_density(self, w):
         return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
 
@@ -508,7 +562,6 @@ class DrudeLorentzPadeBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def __init__(
         self, Q, lam, gamma, T, Nk, combine=True, tag=None
     ):
@@ -523,9 +576,8 @@ class DrudeLorentzPadeBath(BosonicBath):
         ck_imag = [np.imag(eta_p[0])]
         vk_imag = [gamma_p[0]]
 
-        super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
-        )
+        super().__init__(Q, ck_real, vk_real, ck_imag,
+                         vk_imag, combine=combine, tag=tag, T=T)
 
         self._dl_terminator = _DrudeLorentzTerminator(
             Q=Q, lam=lam, gamma=gamma, T=T,
@@ -626,7 +678,6 @@ class _DrudeLorentzTerminator:
     """ A class for calculating the terminator of a Drude-Lorentz bath
         expansion.
     """
-
     def __init__(self, Q, lam, gamma, T):
         self.Q = Q
         self.lam = lam
@@ -691,7 +742,6 @@ class UnderDampedBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def __init__(
         self, Q, lam, gamma, w0, T, Nk, combine=True, tag=None,
     ):
@@ -707,9 +757,8 @@ class UnderDampedBath(BosonicBath):
         self.w0 = w0
         self.T = T
 
-        super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
-        )
+        super().__init__(Q, ck_real, vk_real, ck_imag,
+                         vk_imag, combine=combine, tag=tag, T=T)
 
     @staticmethod
     def _matsubara_params(lam, gamma, w0, T, Nk):
@@ -877,7 +926,6 @@ class LorentzianBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
         ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
@@ -956,7 +1004,6 @@ class LorentzianPadeBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-
     def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
         ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)

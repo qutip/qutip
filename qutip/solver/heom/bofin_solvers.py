@@ -105,7 +105,6 @@ class HierarchyADOs:
     labels: list of tuples
         A list of the ADO labels within the hierarchy.
     """
-
     def __init__(self, exponents, max_depth):
         self.exponents = exponents
         self.max_depth = max_depth
@@ -348,7 +347,6 @@ class HierarchyADOsState:
     See :class:`HierarchyADOs` for a full list of the available attributes
     and methods.
     """
-
     def __init__(self, rho, ados, ado_state):
         self.rho = rho
         self._ado_state = ado_state
@@ -1235,7 +1233,6 @@ class HSolverDL(HEOMSolver):
         operator). See :meth:`BosonicBath.combine` for details.
         Keyword only. Default: True.
     """
-
     def __init__(
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp, cut_freq, *, bnd_cut_approx=False, options=None,
@@ -1284,7 +1281,6 @@ class _GatherHEOMRHS:
         nhe : int
             The number of ADOs in the hierarchy.
     """
-
     def __init__(self, f_idx, block, nhe):
         self._block_size = block
         self._n_blocks = nhe

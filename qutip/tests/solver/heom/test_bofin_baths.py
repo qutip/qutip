@@ -4,7 +4,6 @@ Tests for qutip.nonmarkov.bofin_baths.
 
 import numpy as np
 import pytest
-import sys
 
 from qutip import spre, spost, sigmax, sigmaz
 from qutip.core import data as _data
@@ -235,6 +234,57 @@ class TestDrudeLorentzBath:
         assert np.abs(delta - (0.00031039 / 4.0)) < 1e-8
         assert isequal(terminator, - (0.00031039 / 4.0) * op, tol=1e-8)
 
+    @pytest.mark.parametrize("lam, gamma, expected",
+                             [(2, 3, 0.2983219390926041),
+                              (0, 1, 0),
+                              (1.5, 2.5, 0.1867704280155642)])
+    def test_spectral_density(self, lam, gamma, expected):
+        bath = DrudeLorentzBath(
+            Q=sigmax(), T=1, lam=lam, Nk=1, gamma=gamma
+        )
+
+        assert np.isclose(expected, bath.spectral_density(40)).all()
+
+    @pytest.mark.parametrize("lam, gamma, expected",
+                             [(0.05, 0.01, 0.0002499984375097656
+                               ),  # this is the actual spectral density expected result
+                              (0, 1, 0),
+                              (0.015, 0.045, 0.00033745729056166326)])
+    def test_spectral_density_approx(self, lam, gamma, expected):
+        bath = DrudeLorentzBath(
+            Q=sigmax(), T=1, lam=lam, Nk=800, gamma=gamma
+        )
+
+        assert np.isclose(
+            expected, bath.spectral_density_approx(4),
+            rtol=1e-2).all()
+
+    @pytest.mark.parametrize("lam, gamma, T ,expected",
+                             [(2, 3, 1, 3.7967440964863832),
+                              (0, 1, 1, 0),
+                              (1, 1, 1e-2, 2),
+                              (1.5, 2.5, 0.8, 2.8997609348131306)])
+    def test_power_spectrum(self, lam, gamma, T, expected):
+
+        bath = DrudeLorentzBath(
+            Q=sigmax(), lam=lam, T=T, Nk=1, gamma=gamma
+        )
+        assert np.isclose(expected, bath.power_spectrum(1)).all()
+
+    @pytest.mark.parametrize("lam, gamma, expected",
+                             [(0.05, 0.01, 0.0005093254968975315
+                               ),  # this is the actual spectral density expected result
+                              (0, 1, 0),
+                              (0.015, 0.045, 0.0006875067056781101)])
+    def test_power_spectrum_approx(self, lam, gamma, expected):
+        bath = DrudeLorentzBath(
+            Q=sigmax(), T=1, lam=lam, Nk=800, gamma=gamma
+        )
+
+        assert np.isclose(
+            expected, bath.power_spectrum_approx(4),
+            rtol=1e-2).all()
+
 
 class TestDrudeLorentzPadeBath:
     def test_create(self):
@@ -282,6 +332,57 @@ class TestDrudeLorentzPadeBath:
 
         assert np.abs(delta - (0.0 / 4.0)) < 1e-8
         assert isequal(terminator, - (0.0 / 4.0) * op, tol=1e-8)
+
+    @pytest.mark.parametrize("lam, gamma, expected",
+                             [(2, 3, 0.2983219390926041),
+                              (0, 1, 0),
+                              (1.5, 2.5, 0.1867704280155642)])
+    def test_spectral_density(self, lam, gamma, expected):
+        bath = DrudeLorentzPadeBath(
+            Q=sigmax(), T=1, lam=lam, Nk=1, gamma=gamma
+        )
+
+        assert np.isclose(expected, bath.spectral_density(40)).all()
+
+    @pytest.mark.parametrize("lam, gamma, expected",
+                             [(0.05, 0.01, 0.0002499984375097656
+                               ),  # this is the actual spectral density expected result
+                              (0, 1, 0),
+                              (0.015, 0.045, 0.00033745729056166326)])
+    def test_spectral_density_approx(self, lam, gamma, expected):
+        bath = DrudeLorentzPadeBath(
+            Q=sigmax(), T=1, lam=lam, Nk=800, gamma=gamma
+        )
+
+        assert np.isclose(
+            expected, bath.spectral_density_approx(4),
+            rtol=1e-2).all()
+
+    @pytest.mark.parametrize("lam, gamma, T ,expected",
+                             [(2, 3, 1, 3.7967440964863832),
+                              (0, 1, 1, 0),
+                              (1, 1, 1e-2, 2),
+                              (1.5, 2.5, 0.8, 2.8997609348131306)])
+    def test_power_spectrum(self, lam, gamma, T, expected):
+
+        bath = DrudeLorentzPadeBath(
+            Q=sigmax(), lam=lam, T=T, Nk=1, gamma=gamma
+        )
+        assert np.isclose(expected, bath.power_spectrum(1)).all()
+
+    @pytest.mark.parametrize("lam, gamma, expected",
+                             [(0.05, 0.01, 0.0005093254968975315
+                               ),  # this is the actual spectral density expected result
+                              (0, 1, 0),
+                              (0.015, 0.045, 0.0006875067056781101)])
+    def test_power_spectrum_approx(self, lam, gamma, expected):
+        bath = DrudeLorentzPadeBath(
+            Q=sigmax(), T=1, lam=lam, Nk=800, gamma=gamma
+        )
+
+        assert np.isclose(
+            expected, bath.power_spectrum_approx(4),
+            rtol=1e-2).all()
 
 
 class TestUnderDampedBath:
@@ -332,6 +433,79 @@ class TestUnderDampedBath:
         check_exponent(exp3, "R", dim=None, Q=Q, ck=ck_real[2], vk=vk_real[2])
         check_exponent(exp4, "I", dim=None, Q=Q, ck=ck_imag[0], vk=vk_imag[0])
         check_exponent(exp5, "I", dim=None, Q=Q, ck=ck_imag[1], vk=vk_imag[1])
+
+    @pytest.mark.parametrize("lam, gamma, expected",
+                             [(0.05, 0.01, 4.4444128397309185e-07),
+                              (0, 1, 0),
+                              (1, 0, 0),
+                              (0.15, 0.25, 9.95575221238938e-05)])
+    def test_spectral_density(self, lam, gamma, expected):
+        bath = UnderDampedBath(
+            Q=sigmax(), w0=1, T=1, lam=lam, Nk=1, gamma=gamma
+        )
+
+        assert np.isclose(expected, bath.spectral_density(4)).all()
+
+    @pytest.mark.parametrize("lam, gamma, expected",
+                             [(0.05, 0.01, 4.4444128397309185e-07),
+                              (0, 1, 0),
+                              (1, 0, 0),
+                              (0.15, 0.25, 9.95575221238938e-05)])
+    def test_spectral_density_approx(self, lam, gamma, expected):
+        bath = UnderDampedBath(
+            Q=sigmax(), T=1, lam=lam, Nk=10, gamma=gamma, w0=1
+        )
+
+        assert np.isclose(
+            expected, bath.spectral_density_approx(4),
+            rtol=1e-2).all()
+
+    @pytest.mark.parametrize("lam, gamma, expected",
+                             [(0.05, 0.01, 9.054667703374325e-07),
+                              (0, 1, 0),
+                              (1, 0, 0),
+                              (0.15, 0.25, 0.0002028300053821674)])
+    def test_power_spectrum(self, lam, gamma, expected):
+
+        bath = UnderDampedBath(
+            Q=sigmax(), lam=lam, T=1, Nk=2, gamma=gamma, w0=1
+        )
+        assert np.isclose(expected, bath.power_spectrum(4))
+
+    @pytest.mark.parametrize("lam, gamma, expected",
+                             [(0.05, 0.01, 9.054667703374325e-07),
+                              (0, 1, 0),
+                              (1, 0, 0),
+                              (0.15, 0.25, 0.0002028300053821674)])
+    def test_power_spectrum_approx(self, lam, gamma, expected):
+        bath = UnderDampedBath(
+            Q=sigmax(), T=1, lam=lam, Nk=8, gamma=gamma, w0=1
+        )
+
+        assert np.isclose(expected, bath.power_spectrum_approx(4))
+
+    @pytest.mark.parametrize("lam, gamma, T, expected",
+                             [(0.05, 0.01, 1, (0.0027047086195915206-1.2499962298916986e-06j)),
+                              (0.15, 0.25, 0.5, (0.01459787665425986-1.124919683812524e-05j)),
+                              (0.4, 0.03, 2, (0.3266274050619764-7.999930281387181e-05j))])
+    def test_correlation_function(self, lam, gamma, T, expected):
+        bath = UnderDampedBath(Q=sigmax(), T=T, lam=lam,
+                               gamma=gamma, Nk=2, w0=1)
+        assert np.isclose(
+            expected,
+            bath.correlation_function(0.001)).all()
+
+    @pytest.mark.parametrize("lam, gamma,T",
+                             [(0.05, 0.01, 1),
+                              (0.15, 0.25, 0.5),
+                              (0.4, 0.03, 2)])
+    def test_correlation_function_approx(self, lam, gamma, T):
+        bath = UnderDampedBath(Q=sigmax(), T=T, lam=lam,
+                               gamma=gamma, Nk=30, w0=1)
+        t = np.linspace(0, 10, 1000)
+        assert np.isclose(
+            bath.correlation_function_approx(t),
+            bath.correlation_function(t)).all()
 
 
 class TestFermionicBath:

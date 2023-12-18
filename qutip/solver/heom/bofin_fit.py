@@ -8,7 +8,7 @@ except ModuleNotFoundError:
 from scipy.optimize import curve_fit
 from qutip.visualization import gen_spectral_plots, gen_corr_plots
 from qutip.core.superoperator import spre, spost
-from qutip.solver.heom import UnderDampedBath, BosonicBath, BathExponent
+from qutip.solver.heom import UnderDampedBath, BosonicBath
 
 
 class SpectralFitter:
@@ -33,23 +33,20 @@ class SpectralFitter:
         self.T = T
         self.Nk = Nk
 
-    def __str__(self):
-        try:
-            lam, gamma, w0 = self.fitInfo['params']
-            summary = gen_summary(
-                self.fitInfo['fit_time'],
-                self.fitInfo['rmse'],
-                self.fitInfo['N'],
-                "The Spectral Density", lam, gamma, w0)
-            return summary
-        except NameError:
-            return "Fit correlation instance: \n No fit has been performed yet"
-
-    def summary(self):
-        print(self.__str__())
-
     def _spectral_density_approx(self, w, a, b, c):
-        """Calculate the fitted value of the function for the parameters."""
+        """Underdamped spectral density to be used for fitting
+        in Meier-Tannor form
+        Parameters
+        ----------
+        w : np.array
+            The frequency of the spectral density
+        a: np .array
+            Array of coupling constant
+        b :s np.array
+            Array of cutoff parameters
+        c : np.array
+            Array of is  resonant frequencies
+        """
         tot = 0
         for i in range(len(a)):
             tot += (
@@ -62,18 +59,10 @@ class SpectralFitter:
             )
         return tot
 
-    def fitted_spectral_density(self, w):
-        lam, gamma, w0 = self.fitInfo['params']
-        return self._spectral_density_approx(w, lam, gamma, w0)
-
-    def fitted_power_spectrum(self, w):
-        return self.fitted_spectral_density(w) * 2 * (
-            (1 / (np.e ** (w * (1/self.T)) - 1)) + 1)
-
     def get_fit(
         self,
-        J,
         w,
+        J,
         N=None,
         final_rmse=5e-6,
         lower=None,
@@ -86,6 +75,7 @@ class SpectralFitter:
         oscillators baths, This function gets the number of harmonic
         oscillators based on reducing the normalized root mean
         squared error below a certain threshold
+
         Parameters
         ----------
         J : np.array
@@ -116,24 +106,23 @@ class SpectralFitter:
                                 final_rmse, N=N, sigma=sigma,
                                 label="Spectral Density", guesses=guesses,
                                 lower=lower, upper=upper)
-        params_spec = params
         spec_n = len(params[0])
         end = time()
         fit_time = end - start
-        self.fitInfo = {"fit_time": fit_time, "rmse": rmse,
-                        "N": spec_n, "params": params_spec, "Nk": self.Nk}
-        bath = self._matsubara_coefficients()
-        self.summary()
+        bath = self._matsubara_coefficients(params)
+        summary = gen_summary(
+            fit_time, rmse, N, "The Spectral Density", *params)
+        self.fitInfo = {
+            "fit_time": fit_time, "rmse": rmse, "N": spec_n, "params": params,
+            "Nk": self.Nk, "terminator": self.terminator, "summary": summary}
+
         return bath, self.fitInfo
 
-    def fit_plots(self, w, J, t, C, w2, S):
-        gen_spectral_plots(self, w, J, t, C, w2, S)
-
-    def _matsubara_coefficients(self):
+    def _matsubara_coefficients(self, params):
         """
         Obtains the bath exponents from the list of fit parameters
         """
-        lam, gamma, w0 = self.fitInfo['params']
+        lam, gamma, w0 = params
         w0 = np.array(
             [
                 np.sqrt((w0[i] + 0j) ** 2 + (gamma[i] + 0j / 2) ** 2)
@@ -182,25 +171,8 @@ class SpectralFitter:
         vkAR = np.array(vkAR).flatten()
         vkAI = np.array(vkAI).flatten()
         self.terminator = terminator
-        bath = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI, combine=True)
-        self.exponents = bath.exponents
+        bath = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI, T=self.T)
         return bath
-
-    def correlation_function(self, t):
-        """Computes the correlation function from
-         the exponents"""
-        corr = 0+0j
-        for exp in self.exponents:
-            if (
-                exp.type == BathExponent.types['R'] or
-                exp.type == BathExponent.types['RI']
-            ):
-                corr += exp.ck * np.exp(-exp.vk * t)
-            if exp.type == BathExponent.types['I']:
-                corr += 1j*exp.ck * np.exp(-exp.vk * t)
-            if exp.type == BathExponent.types['RI']:
-                corr += 1j*exp.ck2 * np.exp(-exp.vk * t)
-        return corr
 
 
 class CorrelationFitter:
@@ -212,13 +184,29 @@ class CorrelationFitter:
     ----------
     Q : Qobj
         Operator describing the coupling between system and bath.
+    T: Float
+        Temperature of the bath
     """
 
-    def __init__(self, Q):
+    def __init__(self, Q, T):
         self.Q = Q
+        self.T = T
 
     def _corr_approx(self, t, a, b, c):
-        """Calculate the fitted value of the function for the parameters."""
+        """This is the form of the correlation function to be used for fitting
+
+         Parameters
+        ----------
+        t : np.array or float
+            Operator describing the coupling between system and bath.
+        a : list or np.array
+            A list describing the amplitude of the correlation approximation
+        b : list or np.array
+            A list describing the decay of the correlation approximation
+        c : list or np.array
+            A list describing the oscillations of the correlation approximation
+
+        """
         a = np.array(a)
         b = np.array(b)
         c = np.array(c)
@@ -226,58 +214,6 @@ class CorrelationFitter:
             a[:, None] * np.exp(b[:, None] * t) * np.exp(1j * c[:, None] * t),
             axis=0,
         )
-
-    def fitted_correlation(self, t):
-        """Calculate the fitted value of the function for the parameters."""
-        lam, gamma, w0 = self.fitInfo['params_real']
-        lam2, gamma2, w02 = self.fitInfo['params_imag']
-        return np.real(
-            self._corr_approx(t, lam, gamma, w0)) + 1j * np.imag(
-            self._corr_approx(t, lam2, gamma2, w02))
-
-    def __str__(self):
-        try:
-            lam, gamma, w0 = self.fitInfo['params_real']
-            lam2, gamma2, w02 = self.fitInfo['params_imag']
-            summary = gen_summary(
-                self.fitInfo['fit_time_real'],
-                self.fitInfo['rmse_real'],
-                self.fitInfo['Nr'],
-                "The Real Part Of  \n the Correlation Function", lam, gamma,
-                w0)
-            summary2 = gen_summary(
-                self.fitInfo['fit_time_imag'],
-                self.fitInfo['rmse_imag'],
-                self.fitInfo['Ni'],
-                "The Imaginary Part \n Of the Correlation Function", lam2,
-                gamma2, w02)
-
-            return summary, summary2
-
-        except NameError:
-            return "Fit correlation instance: \n No fit has been performed yet"
-
-    def summary(self):
-        print("Fit correlation class instance: \n \n")
-        string1, string2 = self.__str__()
-        lines1 = string1.splitlines()
-        lines2 = string2.splitlines()
-        max_lines = max(len(lines1), len(lines2))
-        # Fill the shorter string with blank lines
-        lines1 = lines1[:-1] + (max_lines - len(lines1)) * [""] + [lines1[-1]]
-        lines2 = lines2[:-1] + (max_lines - len(lines2)) * [""] + [lines2[-1]]
-        # Find the maximum line length in each column
-        max_length1 = max(len(line) for line in lines1)
-        max_length2 = max(len(line) for line in lines2)
-
-        # Print the strings side by side with a vertical bar separator
-        for line1, line2 in zip(lines1, lines2):
-            formatted_line1 = f"{line1:<{max_length1}} |"
-            formatted_line2 = f"{line2:<{max_length2}}"
-            print(formatted_line1 + formatted_line2)
-
-    def fit_plots(self, w, J, t, C, w2, S, beta):
-        gen_corr_plots(self, w, J, t, C, w2, S, beta)
 
     def get_fit(
         self,
@@ -297,6 +233,7 @@ class CorrelationFitter:
         terms is provided This function gets the number of harmonic oscillators
         based on reducing the normalized root mean squared error below a
         certain threshold.
+
         Parameters
         ----------
         t : np.array
@@ -314,9 +251,9 @@ class CorrelationFitter:
             Desired normalized root mean squared error .
         lower : list
             lower bounds on the parameters for the fit.
-        upper: list
+        upper : list
             upper bounds on the parameters for the fit
-        sigma: float
+        sigma : float
             uncertainty in the data considered for the fit
         guesses : list
             Initial guess for the parameters.
@@ -341,19 +278,65 @@ class CorrelationFitter:
             guesses=guesses, lower=lower, upper=upper)
         end = time()
         fit_time_imag = end - start
+        lam, gamma, w0 = params_real
+        lam2, gamma2, w02 = params_imag
+        summary = gen_summary(
+            fit_time_real,
+            rmse_real,
+            Nr,
+            "The Real Part Of  \n the Correlation Function", lam, gamma,
+            w0)
+        summary2 = gen_summary(
+            fit_time_imag,
+            rmse_imag,
+            Ni,
+            "The Imaginary Part \n Of the Correlation Function", lam2,
+            gamma2, w02)
+
+        full_summary = "Fit correlation class instance: \n \n"
+        lines1 = summary.splitlines()
+        lines2 = summary2.splitlines()
+        max_lines = max(len(lines1), len(lines2))
+        # Fill the shorter string with blank lines
+        lines1 = lines1[:-1] + (max_lines - len(lines1)
+                                ) * [""] + [lines1[-1]]
+        lines2 = lines2[:-1] + (max_lines - len(lines2)
+                                ) * [""] + [lines2[-1]]
+        # Find the maximum line length in each column
+        max_length1 = max(len(line) for line in lines1)
+        max_length2 = max(len(line) for line in lines2)
+
+        # Print the strings side by side with a vertical bar separator
+        for line1, line2 in zip(lines1, lines2):
+            formatted_line1 = f"{line1:<{max_length1}} |"
+            formatted_line2 = f"{line2:<{max_length2}}"
+            full_summary += formatted_line1 + formatted_line2 + "\n"
+
         self.fitInfo = {"Nr": len(params_real[0]), "Ni": len(params_imag[0]),
                         "fit_time_real": fit_time_real,
                         "fit_time_imag": fit_time_imag,
                         "rmse_real": rmse_real, "rmse_imag": rmse_imag,
                         "params_real": params_real,
-                        "params_imag": params_imag}
-        bath = self._matsubara_coefficients()
-        self.exponents = bath.exponents
+                        "params_imag": params_imag, "summary": full_summary}
+        bath = self._matsubara_coefficients(params_real, params_imag)
         return bath, self.fitInfo
 
-    def _matsubara_coefficients(self):
-        lam, gamma, w0 = self.fitInfo['params_real']
-        lam2, gamma2, w02 = self.fitInfo['params_imag']
+    def _matsubara_coefficients(self, params_real, params_imag):
+        """ Calculate the Matsubara coefficents and frequencies for the
+        fitted underdamped oscillators
+
+        Parameters
+        ----------
+        params_real : np.array
+            array of shape (N,3) where N is the number of fitted terms
+            for the real part
+        params_imag : np.imag
+            array of shape (N,3) where N is the number of fitted terms
+            for the imaginary part
+        """
+
+        lam, gamma, w0 = params_real
+        lam2, gamma2, w02 = params_imag
         ckAR = [0.5 * x + 0j for x in lam]  # the 0.5 is from the cosine
         # extend the list with the complex conjugates:
         ckAR.extend(np.conjugate(ckAR))
@@ -365,62 +348,21 @@ class CorrelationFitter:
 
         vkAI = [-x - 1.0j * y for x, y in zip(gamma2, w02)]
         vkAI.extend([-x + 1.0j * y for x, y in zip(gamma2, w02)])
-        return BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI)
-
-    def power_spectrum_approx(self, w):
-        S = np.zeros(len(w), dtype=np.complex128)
-
-        def s(x, y): return 2 * x * np.real(y) / (
-            (w - np.imag(y)) ** 2 + (np.real(y)) ** 2)
-        for exp in self.exponents:
-            if (
-                exp.type == BathExponent.types['R'] or
-                exp.type == BathExponent.types['RI']
-            ):
-                S += s(exp.ck, exp.vk)
-            elif exp.type == BathExponent.types['RI']:
-                S += s(1j*exp.ck2, exp.vk)
-            else:
-                S += s(1j*exp.ck, exp.vk)
-        return S
-
-    def spectral_density_approx(self, w, beta):
-        J = np.real(
-            self.power_spectrum_approx(w) /
-            (((1 / (np.e**(w * beta) - 1)) + 1) * 2)
-        )
-        return J
+        return BosonicBath(
+            self.Q, ckAR, vkAR, ckAI, vkAI, T=self.T)
 
 
-class OhmicBath(BosonicBath):
-    def __init__(self, T, Q, alpha, wc, s, Nk=4, method="spectral", rmse=7e-5):
+class OhmicBath:
+    def __init__(self, T, Q, alpha, wc, s):
         self.alpha = alpha
         self.wc = wc
         self.s = s
-        self.method = method
         self.Q = Q
         self.T = T
-        self.Nk = Nk
         if _mpmath_available is False:
             print(
                 "The mpmath module is needed for the description"
                 " of Ohmic baths")
-        if method == "correlation":
-            self.fit = CorrelationFitter(self.Q)
-            t = np.linspace(0, 15 / self.wc, 1000)
-            C = self.correlation(t, self.s)
-            bath, _ = self.fit.get_fit(t, C, final_rmse=rmse)
-            self.exponents = bath.exponents
-        else:
-            self.fit = SpectralFitter(self.T, self.Q, self.Nk)
-            w = np.linspace(0, 15 * self.wc, 20000)
-            J = self.spectral_density(w)
-            bath, _ = self.fit.get_fit(J, w, final_rmse=rmse)
-            self.terminator = self.fit.terminator
-            self.exponents = bath.exponents
-
-    def summary(self):
-        self.fit.summary()
 
     def spectral_density(self, w):
         """The Ohmic bath spectral density as a function of w
@@ -458,15 +400,62 @@ class OhmicBath(BosonicBath):
             dtype=np.complex128,
         )
 
-    def power_spectrum(self, w):
-        """The Ohmic bath power spectrum as a function of w
-        (and the bath parameters).
+    def get_fit(self, x, rmse=1e-5, method='correlation', lower=None,
+                upper=None,
+                sigma=None,
+                guesses=None,
+                N=None):
         """
-        return (
-            self.spectral_density(w)
-            * ((1 / (np.e ** (w * (1/self.T)) - 1)) + 1)
-            * 2
-        )
+        Provides a fit to the spectral density or corelation function
+        with N underdamped oscillators baths, This function gets the
+        number of harmonicoscillators based on reducing the normalized
+        root mean squared error below a certain threshold
+
+        Parameters
+        ----------
+        J : np.array
+            Spectral density to be fit.
+        w : np.array
+            range of frequencies for the fit.
+        N : optional,tuple
+            Number of underdamped oscillators and exponents to use
+            (N,Nk) if the the method is spectral
+            Number of underdamped oscillators for the real and imaginary
+            part if the method is correlation.
+            when set to None the number of oscillators is found according to
+            the rmse, and the Nk is set to 1
+        rmse : float
+            Desired normalized root mean squared error. Only used if N is
+            not provided
+        lower : list
+            lower bounds on the parameters for the fit.
+        upper: list
+            upper bounds on the parameters for the fit
+        sigma: float
+            uncertainty in the data considered for the fit
+        guesses : list
+            Initial guess for the parameters.
+        """
+        if method == "correlation":
+            Nr, Ni = N
+            self.fit = CorrelationFitter(self.Q, self.T)
+            C = self.correlation(x, self.s)
+            bath, fitInfo = self.fit.get_fit(x, C, final_rmse=rmse,
+                                             lower=lower, upper=upper,
+                                             sigma=sigma, guesses=guesses,
+                                             Nr=Nr, Ni=Ni)
+            return bath, fitInfo
+        else:
+            N, Nk = N
+            if Nk is None:
+                Nk = 1
+            fs = SpectralFitter(self.T, self.Q, Nk)
+            J = self.spectral_density(x)
+            bath, fitInfo = fs.get_fit(x, J, N=N, final_rmse=rmse, lower=lower,
+                                       upper=upper,
+                                       sigma=sigma, guesses=guesses)
+            bath.spectral_density = self.spectral_density
+            return bath, fitInfo
 
 # Utility functions
 
