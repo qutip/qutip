@@ -384,7 +384,6 @@ class TestDrudeLorentzPadeBath:
             expected, bath.power_spectrum_approx(4),
             rtol=1e-2).all()
 
-
 class TestUnderDampedBath:
     def test_create(self):
         Q = sigmaz()

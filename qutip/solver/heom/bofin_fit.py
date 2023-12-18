@@ -6,7 +6,6 @@ try:
 except ModuleNotFoundError:
     _mpmath_available = False
 from scipy.optimize import curve_fit
-from qutip.visualization import gen_spectral_plots, gen_corr_plots
 from qutip.core.superoperator import spre, spost
 from qutip.solver.heom import UnderDampedBath, BosonicBath
 
@@ -121,6 +120,13 @@ class SpectralFitter:
     def _matsubara_coefficients(self, params):
         """
         Obtains the bath exponents from the list of fit parameters
+        Parameters
+        ----------
+        params: list
+            The parameters obtained from the fit
+        Returns
+        ----------
+            A Bosonic Bath created with the fit parameters
         """
         lam, gamma, w0 = params
         w0 = np.array(
@@ -333,6 +339,9 @@ class CorrelationFitter:
         params_imag : np.imag
             array of shape (N,3) where N is the number of fitted terms
             for the imaginary part
+        Returns
+        ----------
+            A bosonic Bath constructed from the fitted exponents
         """
 
         lam, gamma, w0 = params_real
@@ -353,6 +362,23 @@ class CorrelationFitter:
 
 
 class OhmicBath:
+    """
+    A helper class for constructing a Bosonic bath from with Ohmic
+    spectrum.
+
+    Parameters
+    ----------
+    Q : Qobj
+        Operator describing the coupling between system and bath.
+    T : Float
+        Temperature of the bath
+    alpha : float
+        Coupling strenght
+    wc : float
+        Cutoff parameter
+    s : float
+        power of w in the spectral density
+    """
     def __init__(self, T, Q, alpha, wc, s):
         self.alpha = alpha
         self.wc = wc
@@ -365,9 +391,15 @@ class OhmicBath:
                 " of Ohmic baths")
 
     def spectral_density(self, w):
-        """The Ohmic bath spectral density as a function of w
-        (and the bath parameters).
-        """
+        """Calculates the Ohmic spectral density 
+        
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode
+        Returns
+        ----------
+            The spectral density of the mode with energy w"""
         return (
             self.alpha
             * w ** (self.s)
@@ -375,16 +407,22 @@ class OhmicBath:
             * np.e ** (-abs(w) / self.wc)
         )
 
-    def correlation(self, t, s=1):
-        """The Ohmic bath correlation function as a function of t
-        (and the bath parameters).
-        """
+    def correlation(self, t):
+        """Calculates the Ohmic spectral density 
+        
+        Parameters
+        ----------
+        t: float or array
+            time
+        Returns
+        ----------
+            The correlation function at time t"""
         corr = (
             (1 / np.pi)
             * self.alpha
-            * self.wc ** (1 - s)
-            * (1/self.T) ** (-(s + 1))
-            * mp.gamma(s + 1)
+            * self.wc ** (1 - self.s)
+            * (1/self.T) ** (-(self.s + 1))
+            * mp.gamma(self.s + 1)
         )
         z1_u = (1 + (1/self.T) * self.wc - 1.0j *
                 self.wc * t) / ((1/self.T) * self.wc)
@@ -408,7 +446,7 @@ class OhmicBath:
         """
         Provides a fit to the spectral density or corelation function
         with N underdamped oscillators baths, This function gets the
-        number of harmonicoscillators based on reducing the normalized
+        number of harmonic oscillators based on reducing the normalized
         root mean squared error below a certain threshold
 
         Parameters
@@ -630,6 +668,46 @@ def _fit(
 
 def _run_fit(funcx, funcy, x, final_rmse, label=None, N=None,
              sigma=None, guesses=None, lower=None, upper=None):
+    """
+    It iteratively tries to fit the fucx to funy on the interval x,
+    if the Ns are provided the fit is done with N modes, if they are
+    None then One automatically finds the smallest number of modes that
+    whose mean squared error is smaller than final_rmse
+
+    Parameters
+    ----------
+    funcx : function
+        The function we wish to fit.
+    funcy : function
+        The function used for the fitting
+    x : np.array
+        a numpy array containing the independent variable used for the fit
+    N : optional , int
+        The number of modes used for the fitting, if not provided starts at
+        1 and increases until a desired RMSE is satisfied
+    label : str
+        Denotes the options for the different default guesses and bounds if 
+        they are not provided it can be 
+        - correlation_real
+        - correlation_imag
+        Any other string will use guesses and bounds designed for spectral
+        densities  
+    guesses : list
+        Initial guess for the parameters.
+    lower : list
+        lower bounds on the parameters for the fit.
+    upper: list
+        upper bounds on the parameters for the fit
+    sigma: float
+        uncertainty in the data considered for the fit
+
+    Returns
+    -------
+    params:
+        It returns the fitted parameters as a list.
+    rmse:
+        It returns the normalized mean squared error from the fit
+    """
     if N is None:
         N = 1
         flag = False

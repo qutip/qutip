@@ -343,7 +343,7 @@ class BosonicBath(Bath):
         raise NotImplemented
 
     def correlation_function(
-            self, t, epsabs=1e-6, epsrel=1e-6, method='gk15'):
+            self, t, epsabs=1e-6, epsrel=1e-6, quadrature='gk15',limit=1e4,error=False):
         """ Calculates the correlation function
             by numerically computing the integral
         Parameters
@@ -354,9 +354,12 @@ class BosonicBath(Bath):
             Absolute error tolerance
         epsrel : float
             Relative error tolerance
+        Returns
+        ----------
+            The correlation function as an array or float at time t
         """
         def c_i(w, t): return (1/np.pi)*self.spectral_density(w)*(
-            (1/np.tanh(w/(2*self.T)))*np.cos(w*t) - 1j*np.sin(w*t))
+            (2*self._bose_einstein(w)+1)*np.cos(w*t) - 1j*np.sin(w*t))
 
         def c(t): return quad_vec(
             lambda x: c_i(x, t),
@@ -364,26 +367,59 @@ class BosonicBath(Bath):
             np.Inf,
             epsabs=epsabs,
             epsrel=epsrel,
-            quadrature=method,
-        )[0]
-        return c(t)
+            quadrature=quadrature,
+            limit=limit
+        ) 
+        if error:
+            return c(t)
+        else: 
+            return c(t)[0]
 
-    def bose_einstein(self, w):
+    def _bose_einstein(self, w):
+        """
+        Calculates the bose einstein distribution for the
+        temperature of the bath
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode
+        Returns
+        ----------
+            The population of the mode with energy w
+        """
         try:
-            return (1 / (np.e**(w / self.T) - 1))
+            return (1 / (np.exp(w / self.T) - 1))
         except ZeroDivisionError:
             return 0
 
     def power_spectrum(self, w):
         """Calculates the power spectrum from the spectral density
+           using the fluctuation dissipation theorem
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode
+        Returns
+        ----------
+            The power spectrum of the mode with energy w
         """
         S = self.spectral_density(
-            w)*((self.bose_einstein(w) + 1) * 2)
+            w)*((self._bose_einstein(w) + 1) * 2)
         return S
 
     def correlation_function_approx(self, t):
         """Computes the correlation function from
-         the exponents"""
+         the exponents, meaning it computes our approximation
+         for the correlation function
+        Parameters
+        ----------
+        t: float or array
+            time to compute correlations
+        Returns
+        ----------
+            The correlation function of the bath at time t
+         
+         """
         corr = 0+0j
         for exp in self.exponents:
             if (
@@ -398,6 +434,15 @@ class BosonicBath(Bath):
         return corr
 
     def power_spectrum_approx(self, w):
+        """Calculates the power spectrum from the exponents
+        of the bosonic bath
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode
+        Returns
+        ----------
+            The power spectrum of the mode with energy w"""
         S = 0+0j
         for exp in self.exponents:
             if exp.ck is None:
@@ -412,9 +457,18 @@ class BosonicBath(Bath):
         return S
 
     def spectral_density_approx(self, w):
+        """Calculates spectral density from the exponents
+        of the bosonic bath
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode
+        Returns
+        ----------
+            The spectral density of the mode with energy w"""
         J = np.real(
             self.power_spectrum_approx(w) /
-            ((self.bose_einstein(w) + 1) * 2)
+            ((self._bose_einstein(w) + 1) * 2)
         )
         return J
 
@@ -510,8 +564,16 @@ class DrudeLorentzBath(BosonicBath):
         vk_imag = [gamma]
 
         return ck_real, vk_real, ck_imag, vk_imag
-    
+
     def spectral_density(self, w):
+        """Calculates the DrudeLorentz spectral density 
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode
+        Returns
+        ----------
+            The spectral density of the mode with energy w"""
         return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
 
 
@@ -671,6 +733,15 @@ class DrudeLorentzPadeBath(BosonicBath):
         return chi
 
     def spectral_density(self, w):
+        """Calculates the DrudeLorentz spectral density 
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode
+        Returns
+        ----------
+            The spectral density of the mode with energy w
+        """
         return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
 
 
@@ -799,6 +870,14 @@ class UnderDampedBath(BosonicBath):
         return ck_real, vk_real, ck_imag, vk_imag
 
     def spectral_density(self, w):
+        """Calculates the Underdamped spectral density 
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode
+        Returns
+        ----------
+            The spectral density of the mode with energy w"""
         return self.lam**2 * self.gamma * w / ((w**2 - self.w0**2)**2
                                                + (self.gamma*w)**2)
 
