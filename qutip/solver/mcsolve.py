@@ -2,10 +2,11 @@ __all__ = ['mcsolve', "MCSolver"]
 
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
-from .multitraj import MultiTrajSolver
+from .multitraj import MultiTrajSolver, _MTSystem
 from .solver_base import Solver, Integrator, _solver_deprecation
 from .result import McResult, McTrajectoryResult, McResultImprovedSampling
 from .mesolve import mesolve, MESolver
+from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
 import qutip.core.data as _data
 from time import time
 
@@ -164,21 +165,57 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     return result
 
 
+class _MCSystem(_MTSystem):
+    """
+    Container for the operators of the solver.
+    """
+    def __init__(self, rhs, c_ops, n_ops):
+        self.rhs = rhs
+        self.c_ops = c_ops
+        self.n_ops = n_ops
+        self._collapse_key = ""
+
+    def __call__(self):
+        return self.rhs
+
+    def __getattr__(self, attr):
+        if attr == "rhs":
+            raise AttributeError
+        if hasattr(self.rhs, attr):
+            return getattr(self.rhs, attr)
+        raise AttributeError
+
+    def arguments(self, args):
+        self.rhs.arguments(args)
+        for c_op in self.c_ops:
+            c_op.arguments(args)
+        for n_op in self.n_ops:
+            n_op.arguments(args)
+
+    def _register_feedback(self, key, val):
+        self.rhs._register_feedback({key: val}, solver="McSolver")
+        for c_op in self.c_ops:
+            c_op._register_feedback({key: val}, solver="McSolver")
+        for n_op in self.n_ops:
+            n_op._register_feedback({key: val}, solver="McSolver")
+
+
 class MCIntegrator:
     """
     Integrator like object for mcsolve trajectory.
     """
     name = "mcsolve"
 
-    def __init__(self, integrator, c_ops, n_ops, options=None):
+    def __init__(self, integrator, system, options=None):
         self._integrator = integrator
-        self._c_ops = c_ops
-        self._n_ops = n_ops
+        self.system = system
+        self._c_ops = system.c_ops
+        self._n_ops = system.n_ops
         self.options = options
         self._generator = None
         self.method = f"{self.name} {self._integrator.method}"
         self._is_set = False
-        self.issuper = c_ops[0].issuper
+        self.issuper = self._c_ops[0].issuper
 
     def set_state(self, t, state0, generator,
                   no_jump=False, jump_prob_floor=0.0):
@@ -206,6 +243,7 @@ class MCIntegrator:
             a trajectory with jumps
         """
         self.collapses = []
+        self.system._register_feedback("CollapseFeedback", self.collapses)
         self._generator = generator
         if no_jump:
             self.target_norm = 0.0
@@ -415,7 +453,8 @@ class MCSolver(MultiTrajSolver):
         self._num_collapse = len(self._c_ops)
         self.options = options
 
-        super().__init__(rhs, options=options)
+        system = _MCSystem(rhs, self._c_ops, self._n_ops)
+        super().__init__(system, options=options)
 
     def _restore_state(self, data, *, copy=True):
         """
@@ -437,14 +476,6 @@ class MCSolver(MultiTrajSolver):
             "num_collapse": self._num_collapse,
         })
         return stats
-
-    def _argument(self, args):
-        self._integrator.arguments(args)
-        self.rhs.arguments(args)
-        for c_op in self._c_ops:
-            c_op.arguments(args)
-        for n_op in self._n_ops:
-            n_op.arguments(args)
 
     def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
                                  no_jump=False, jump_prob_floor=0.0):
@@ -523,9 +554,9 @@ class MCSolver(MultiTrajSolver):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs, self.options)
+        integrator_instance = integrator(self.system(), self.options)
         mc_integrator = self._mc_integrator_class(
-            integrator_instance, self._c_ops, self._n_ops, self.options
+            integrator_instance, self.system, self.options
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator
@@ -614,3 +645,57 @@ class MCSolver(MultiTrajSolver):
             **Solver.avail_integrators(),
             **cls._avail_integrators,
         }
+
+    @classmethod
+    def CollapseFeedback(cls, default=None):
+        """
+        Collapse of the trajectory argument for time dependent systems.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"cols": MCSolver.CollapseFeedback()})``
+
+        The ``func`` will receive a list of ``(time, operator number)`` for
+        each collapses of the trajectory as ``cols``.
+
+        .. note::
+
+            CollapseFeedback can't be added to a running solver when updating
+            arguments between steps: ``solver.step(..., args={})``.
+
+        Parameters
+        ----------
+        default : callable, default : []
+            Default function used outside the solver.
+
+        """
+        return _CollapseFeedback(default)
+
+    @classmethod
+    def StateFeedback(cls, default=None, raw_data=False, open=False):
+        """
+        State of the evolution to be used in a time-dependent operator.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"state": MCSolver.StateFeedback()})``
+
+        The ``func`` will receive the density matrix as ``state`` during the
+        evolution.
+
+        Parameters
+        ----------
+        default : Qobj or qutip.core.data.Data, default : None
+            Initial value to be used at setup of the system.
+
+        open : bool, default False
+            Set to ``True`` when using the monte carlo solver for open systems.
+
+        raw_data : bool, default : False
+            If True, the raw matrix will be passed instead of a Qobj.
+            For density matrices, the matrices can be column stacked or square
+            depending on the integration method.
+        """
+        if raw_data:
+            return _DataFeedback(default, open=open)
+        return _QobjFeedback(default, open=open)

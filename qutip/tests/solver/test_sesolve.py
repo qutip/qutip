@@ -304,3 +304,21 @@ def test_krylovsolve(always_compute_step):
     options = {"always_compute_step", always_compute_step}
     krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op]).expect[0]
     np.testing.assert_allclose(ref, krylov_sol)
+
+
+def test_feedback():
+
+    def f(t, A, qobj=None):
+        return (A-2.)
+
+    N = 4
+    tol = 1e-14
+    psi0 = qutip.basis(N, N-1)
+    a = qutip.destroy(N)
+    H = qutip.QobjEvo(
+        [qutip.num(N), [a+a.dag(), f]],
+        args={"A": SESolver.ExpectFeedback(qutip.num(N), default=3.)}
+    )
+    solver = qutip.SESolver(H)
+    result = solver.run(psi0, np.linspace(0, 30, 301), e_ops=[qutip.num(N)])
+    assert np.all(result.expect[0] > 2 - tol)

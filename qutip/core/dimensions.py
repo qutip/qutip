@@ -773,14 +773,15 @@ class Dimensions(metaclass=MetaDims):
         self.__setitem__ = _frozen
 
     def __eq__(self, other):
-        return (
-            self is other
-            or (
-                type(self) is type(other)
-                and self.to_ == other.to_
-                and self.from_ == other.from_
+        if isinstance(other, Dimensions):
+            return (
+                self is other
+                or (
+                    self.to_ == other.to_
+                    and self.from_ == other.from_
+                )
             )
-        )
+        return NotImplemented
 
     def __hash__(self):
         return hash((self.to_, self.from_))

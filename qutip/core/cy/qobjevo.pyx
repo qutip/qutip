@@ -105,7 +105,6 @@ cdef class QobjEvo:
         Refer to Scipy's documentation for further details:
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.make_interp_spline.html
 
-
     Attributes
     ----------
     dims : list
@@ -187,13 +186,15 @@ cdef class QobjEvo:
         qevo = H0 + H1 * coeff
 
     """
-    def __init__(QobjEvo self, Q_object, args=None, tlist=None,
-                 order=3, copy=True, compress=True,
-                 function_style=None, boundary_conditions=None):
+    def __init__(QobjEvo self, Q_object, args=None, *, copy=True, compress=True,
+                 function_style=None,
+                 tlist=None, order=3, boundary_conditions=None):
         if isinstance(Q_object, QobjEvo):
             self._dims = Q_object._dims
             self.shape = Q_object.shape
             self.elements = (<QobjEvo> Q_object).elements.copy()
+            self._feedback_functions = Q_object._feedback_functions.copy()
+            self._solver_only_feedback = Q_object._solver_only_feedback.copy()
             if args:
                 self.arguments(args)
             if compress:
@@ -203,7 +204,9 @@ cdef class QobjEvo:
         self.elements = []
         self._dims = None
         self.shape = (0, 0)
-        args = args or {}
+        self._feedback_functions = {}
+        self._solver_only_feedback = {}
+        args = self._read_args(args or {})
 
         if (
             isinstance(Q_object, list)
@@ -232,6 +235,12 @@ cdef class QobjEvo:
                 )
             )
 
+        for key in self._feedback_functions:
+            # During _read_args, the dims could not have been set yet.
+            # To set the dims, for function QobjEvo, they need to be called.
+            # But to be called, the feedback args need to be read...
+            self._feedback_functions[key].check_consistency(self._dims)
+
         if compress:
             self.compress()
 
@@ -239,7 +248,16 @@ cdef class QobjEvo:
         cls = self.__class__.__name__
         repr_str = f'{cls}: dims = {self.dims}, shape = {self.shape}, '
         repr_str += f'type = {self.type}, superrep = {self.superrep}, '
-        repr_str += f'isconstant = {self.isconstant}, num_elements = {self.num_elements}'
+        repr_str += f'isconstant = {self.isconstant}, '
+        repr_str += f'num_elements = {self.num_elements}'
+        feedback_pairs = []
+        for key, val in self._feedback_functions.items():
+            feedback_pairs.append(key + ":" + repr(val))
+        for key, val in self._solver_only_feedback.items():
+            feedback_pairs.append(key + ":" + val)
+        if feedback_pairs:
+            repr_str += f', feedback = {feedback_pairs}'
+
         return repr_str
 
     def _read_element(self, op, copy, tlist, args, order, function_style,
@@ -355,9 +373,7 @@ cdef class QobjEvo:
             isherm &= <bint> obj._isherm and coeff.imag == 0
             out = _data.add(out, obj.data, coeff)
 
-        return Qobj(
-            out, dims=self._dims, copy=False, isherm=isherm or None,
-        )
+        return Qobj(out, dims=self._dims, copy=False, isherm=isherm or None)
 
     cpdef Data _call(QobjEvo self, double t):
         t = self._prepare(t, None)
@@ -378,6 +394,17 @@ cdef class QobjEvo:
     cdef object _prepare(QobjEvo self, object t, Data state=None):
         """ Precomputation before computing getting the element at `t`"""
         # We keep the function for feedback eventually
+        if self._feedback_functions and state is not None:
+            new_args = {
+                key: func(t, state)
+                for key, func in self._feedback_functions.items()
+            }
+            cache = []
+            self.elements = [
+                element.replace_arguments(new_args, cache=cache)
+                for element in self.elements
+            ]
+
         return t
 
     def copy(QobjEvo self):
@@ -406,11 +433,75 @@ cdef class QobjEvo:
         if _args is not None:
             kwargs.update(_args)
         cache = []
+        kwargs = self._read_args(kwargs)
         self.elements = [
             element.replace_arguments(kwargs, cache=cache)
             for element in self.elements
         ]
 
+    def _read_args(self, args):
+        """
+        Filter feedback args from normal args.
+        """
+        new_args = {}
+        for key, val in args.items():
+            if isinstance(val, _Feedback):
+                new_args[key] = val.default
+                if self._dims is not None:
+                    val.check_consistency(self._dims)
+                if callable(val):
+                    self._feedback_functions[key] = val
+                else:
+                    self._solver_only_feedback[key] = val.code
+            else:
+                new_args[key] = val
+                if key in self._feedback_functions:
+                    del self._feedback_functions[key]
+                if key in self._solver_only_feedback:
+                    del self._solver_only_feedback[key]
+
+        return new_args
+
+    def _register_feedback(self, solvers_feeds, solver):
+        """
+        Receive feedback source from solver.
+
+        Parameters
+        ----------
+        solvers_feeds : dict[str]
+            When ``feedback={key: solver_specific}`` is used, update arguments
+            with ``args[key] = solvers_feeds[solver_specific]``.
+
+        solver: str
+            Name of the solver for the error message.
+        """
+        new_args = {}
+        for key, feed in self._solver_only_feedback.items():
+            if feed not in solvers_feeds:
+                raise ValueError(
+                    f"Desired feedback {key} is not available for the {solver}."
+                )
+            new_args[key] = solvers_feeds[feed]
+        self.arguments(**new_args)
+
+    def _update_feedback(QobjEvo self, QobjEvo other=None):
+        """
+        Merge feedback from ``op`` into self.
+        """
+        if other is not None:
+            if not self._feedback_functions and other._feedback_functions:
+                self._feedback_functions = other._feedback_functions.copy()
+            elif other._feedback_functions:
+                self._feedback_functions.update(other._feedback_functions)
+
+            if not self._solver_only_feedback and other._solver_only_feedback:
+                self._solver_only_feedback = other._solver_only_feedback.copy()
+            elif other._solver_only_feedback:
+                self._solver_only_feedback.update(other._solver_only_feedback)
+
+        if self._feedback_functions:
+            for key in self._feedback_functions:
+                self._feedback_functions[key].check_consistency(self._dims)
 
     ###########################################################################
     # Math function                                                           #
@@ -443,6 +534,8 @@ cdef class QobjEvo:
                                 str(self.dims) + ", " + str(other.dims))
             for element in (<QobjEvo> other).elements:
                 self.elements.append(element)
+            self._update_feedback(other)
+
         elif isinstance(other, Qobj):
             if other._dims != self._dims:
                 raise TypeError("incompatible dimensions" +
@@ -494,7 +587,10 @@ cdef class QobjEvo:
             res.shape = (left.shape[0], right.shape[1])
             left = _ConstantElement(left)
             res.elements = [left @ element for element in res.elements]
+            res._update_feedback()
+
             return res
+
         else:
             return NotImplemented
 
@@ -510,6 +606,7 @@ cdef class QobjEvo:
             res.shape = (other.shape[0], res.shape[1])
             other = _ConstantElement(other)
             res.elements = [other @ element for element in res.elements]
+            res._update_feedback()
             return res
         else:
             return NotImplemented
@@ -525,12 +622,15 @@ cdef class QobjEvo:
             if isinstance(other, Qobj):
                 other = _ConstantElement(other)
                 self.elements = [element @ other for element in self.elements]
+                self._update_feedback()
 
             elif isinstance(other, QobjEvo):
                 self.elements = [left @ right
                     for left, right in itertools.product(
                         self.elements, (<QobjEvo> other).elements
                     )]
+                self._update_feedback(other)
+
         else:
             return NotImplemented
         return self
@@ -601,6 +701,7 @@ cdef class QobjEvo:
         cdef QobjEvo res = self.copy()
         res.elements = [element.linear_map(Qobj.trans)
                         for element in res.elements]
+        res._dims = Dimensions(res._dims[0], res._dims[1])
         return res
 
     def conj(self):
@@ -615,6 +716,7 @@ cdef class QobjEvo:
         cdef QobjEvo res = self.copy()
         res.elements = [element.linear_map(Qobj.dag, True)
                         for element in res.elements]
+        res._dims = Dimensions(res._dims[0], res._dims[1])
         return res
 
     def to(self, data_type):
@@ -688,6 +790,8 @@ cdef class QobjEvo:
         res.elements = [element.linear_map(op_mapping) for element in res.elements]
         res._dims = res.elements[0].qobj(0)._dims
         res.shape = res.elements[0].qobj(0).shape
+        res._update_feedback()
+
         if not _skip_check:
             if res(0) != out:
                 raise ValueError("The mapping is not linear")
@@ -971,3 +1075,16 @@ cdef class QobjEvo:
             part = (<_BaseElement> element)
             out = part.matmul_data_t(t, state, out)
         return out
+
+
+class _Feedback:
+    default = None
+
+    def __init__(self):
+        raise NotImplementedError("Use subclass")
+
+    def check_consistency(self, dims):
+        """
+        Raise an error when the dims of the e_ops / state don't match.
+        Tell the dims to the feedback for reconstructing the Qobj.
+        """
