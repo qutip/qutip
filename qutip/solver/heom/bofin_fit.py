@@ -379,6 +379,7 @@ class OhmicBath:
     s : float
         power of w in the spectral density
     """
+
     def __init__(self, T, Q, alpha, wc, s):
         self.alpha = alpha
         self.wc = wc
@@ -391,8 +392,7 @@ class OhmicBath:
                 " of Ohmic baths")
 
     def spectral_density(self, w):
-        """Calculates the Ohmic spectral density 
-        
+        """Calculates the Ohmic spectral density
         Parameters
         ----------
         w: float or array
@@ -408,8 +408,7 @@ class OhmicBath:
         )
 
     def correlation(self, t):
-        """Calculates the Ohmic spectral density 
-        
+        """Calculates the Ohmic spectral density
         Parameters
         ----------
         t: float or array
@@ -686,12 +685,12 @@ def _run_fit(funcx, funcy, x, final_rmse, label=None, N=None,
         The number of modes used for the fitting, if not provided starts at
         1 and increases until a desired RMSE is satisfied
     label : str
-        Denotes the options for the different default guesses and bounds if 
-        they are not provided it can be 
+        Denotes the options for the different default guesses and bounds if
+        they are not provided it can be
         - correlation_real
         - correlation_imag
         Any other string will use guesses and bounds designed for spectral
-        densities  
+        densities
     guesses : list
         Initial guess for the parameters.
     lower : list
