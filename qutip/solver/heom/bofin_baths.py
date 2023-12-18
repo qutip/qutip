@@ -172,6 +172,7 @@ class Bath:
 
     All of the parameters are available as attributes.
     """
+
     def __init__(self, exponents):
         self.exponents = exponents
 
@@ -231,6 +232,7 @@ class BosonicBath(Bath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
         if len(ck_real) != len(vk_real) or len(ck_imag) != len(vk_imag):
             raise ValueError(
@@ -343,7 +345,8 @@ class BosonicBath(Bath):
         raise NotImplemented
 
     def correlation_function(
-            self, t, epsabs=1e-6, epsrel=1e-6, quadrature='gk15',limit=1e4,error=False):
+            self, t, epsabs=1e-6, epsrel=1e-6, quadrature='gk15', limit=1e4,
+            error=False):
         """ Calculates the correlation function
             by numerically computing the integral
         Parameters
@@ -369,10 +372,10 @@ class BosonicBath(Bath):
             epsrel=epsrel,
             quadrature=quadrature,
             limit=limit
-        ) 
+        )
         if error:
             return c(t)
-        else: 
+        else:
             return c(t)[0]
 
     def _bose_einstein(self, w):
@@ -418,7 +421,7 @@ class BosonicBath(Bath):
         Returns
         ----------
             The correlation function of the bath at time t
-         
+
          """
         corr = 0+0j
         for exp in self.exponents:
@@ -505,6 +508,7 @@ class DrudeLorentzBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(
         self, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
@@ -624,6 +628,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(
         self, Q, lam, gamma, T, Nk, combine=True, tag=None
     ):
@@ -749,6 +754,7 @@ class _DrudeLorentzTerminator:
     """ A class for calculating the terminator of a Drude-Lorentz bath
         expansion.
     """
+
     def __init__(self, Q, lam, gamma, T):
         self.Q = Q
         self.lam = lam
@@ -813,6 +819,7 @@ class UnderDampedBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(
         self, Q, lam, gamma, w0, T, Nk, combine=True, tag=None,
     ):
@@ -1005,6 +1012,7 @@ class LorentzianBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
         ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
@@ -1083,6 +1091,7 @@ class LorentzianPadeBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
         ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
