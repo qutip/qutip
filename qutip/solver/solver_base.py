@@ -6,6 +6,7 @@ from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
 from ..ui.progressbar import progress_bars
+from ._feedback import _ExpectFeedback
 from time import time
 import warnings
 
@@ -51,6 +52,7 @@ class Solver:
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
+        self.rhs._register_feedback({}, solver=self.name)
 
     def _initialize_stats(self):
         """ Return the initial values for the solver stats.
@@ -395,6 +397,29 @@ class Solver:
                             " of `qutip.solver.Integrator`")
 
         cls._avail_integrators[key] = integrator
+
+    @classmethod
+    def ExpectFeedback(cls, operator, default=0.):
+        """
+        Expectation value of the instantaneous state of the evolution to be
+        used by a time-dependent operator.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"E0": Solver.ExpectFeedback(oper)})``
+
+        The ``func`` will receive ``expect(oper, state)`` as ``E0`` during the
+        evolution.
+
+        Parameters
+        ----------
+        operator : Qobj, QobjEvo
+            Operator to compute the expectation values of.
+
+        default : float, default : 0.
+            Initial value to be used at setup.
+        """
+        return _ExpectFeedback(operator, default)
 
 
 def _solver_deprecation(kwargs, options, solver="me"):

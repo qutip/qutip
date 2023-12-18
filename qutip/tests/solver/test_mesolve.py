@@ -680,3 +680,21 @@ def test_mesolve_bad_state():
 def test_mesolve_bad_options():
     with pytest.raises(TypeError):
         MESolver(qutip.qeye(4), [], options=False)
+
+
+def test_feedback():
+
+    def f(t, A):
+        return (A-4.)
+
+    N = 10
+    tol = 1e-14
+    psi0 = qutip.basis(N, 7)
+    a = qutip.QobjEvo(
+        [qutip.destroy(N), f],
+        args={"A": MESolver.ExpectFeedback(qutip.spre(qutip.num(N)))}
+    )
+    H = qutip.QobjEvo(qutip.num(N))
+    solver = qutip.MESolver(H, c_ops=[a])
+    result = solver.run(psi0, np.linspace(0, 30, 301), e_ops=[qutip.num(N)])
+    assert np.all(result.expect[0] > 4. - tol)

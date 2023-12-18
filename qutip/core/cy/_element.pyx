@@ -263,7 +263,8 @@ cdef class _BaseElement:
     def __call__(self, t, args=None):
         if args:
             cache = []
-            self = self.replace_arguments(args, cache)
+            new = self.replace_arguments(args, cache)
+            return new.qobj(t) * new.coeff(t)
         return self.qobj(t) * self.coeff(t)
 
 
@@ -365,7 +366,7 @@ cdef class _EvoElement(_BaseElement):
 
     def replace_arguments(self, args, cache=None):
         return _EvoElement(
-            self._qobj.copy(),
+            self._qobj,
             self._coefficient.replace_arguments(args)
         )
 

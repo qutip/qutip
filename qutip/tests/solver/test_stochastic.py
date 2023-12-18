@@ -318,6 +318,34 @@ def test_m_ops(heterodyne):
     assert np.std(noise) == pytest.approx(std, abs=std/50**0.5 * 4)
 
 
+def test_feedback():
+    tol = 0.05
+    N = 10
+    ntraj = 2
+
+    def func(t, A, W):
+        return (A - 6) * (A.real > 6.) * W(t)[0]
+
+    H = num(10)
+    sc_ops = [QobjEvo(
+        [destroy(N), func],
+        args={
+            "A": SMESolver.ExpectFeedback(num(10)),
+            "W": SMESolver.WeinerFeedback()
+        }
+    )]
+    psi0 = basis(N, N-3)
+
+    times = np.linspace(0, 10, 101)
+    options = {"map": "serial", "dt": 0.001}
+
+    solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
+    results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
+
+    assert np.all(results.expect[0] > 6.-1e-6)
+    assert np.all(results.expect[0][-20:] < 6.7)
+
+
 def test_deprecation_warnings():
     with pytest.warns(FutureWarning, match=r'map_func'):
         ssesolve(qeye(2), basis(2), [0, 1e-5], [qeye(2)], map_func=None)

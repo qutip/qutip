@@ -1,9 +1,11 @@
 import operator
 
 import pytest
-from qutip import (Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz,
-                   rand_stochastic, rand_herm, rand_ket, liouvillian,
-                   basis, spre, spost, to_choi)
+from qutip import (
+    Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, num, rand_stochastic,
+    rand_herm, rand_ket, liouvillian, basis, spre, spost, to_choi, expect,
+    rand_ket, rand_dm, operator_to_vector, SESolver, MESolver
+)
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -46,6 +48,10 @@ class Pseudo_qevo:
 
     def __getitem__(self, which):
         return getattr(self, which)()
+
+    @property
+    def _dims(self):
+        return self.qobj._dims
 
 
 N = 3
@@ -95,7 +101,9 @@ def pseudo_qevo(request):
 
 @pytest.fixture
 def all_qevo(pseudo_qevo, coeff_type):
-    return QobjEvo(*pseudo_qevo[coeff_type])
+    base, args, *tlist = pseudo_qevo[coeff_type]
+    if tlist: tlist = tlist[0]
+    return QobjEvo(base, args, tlist=tlist)
 
 
 @pytest.fixture
@@ -104,6 +112,8 @@ def other_qevo(all_qevo):
 
 
 def _assert_qobjevo_equivalent(obj1, obj2, tol=1e-8):
+    assert obj1._dims == obj1(0)._dims
+    assert obj2._dims == obj2(0)._dims
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj1(t), obj2(t), tol)
 
@@ -125,7 +135,9 @@ def _div(a, b):
 
 def test_call(pseudo_qevo, coeff_type):
     # test creation of QobjEvo and call
-    qevo = QobjEvo(*pseudo_qevo[coeff_type])
+    base, args, *tlist = pseudo_qevo[coeff_type]
+    if tlist: tlist = tlist[0]
+    qevo = QobjEvo(base, args, tlist=tlist)
     assert isinstance(qevo(0), Qobj)
     assert qevo.isoper
     assert not qevo.isconstant
@@ -285,8 +297,26 @@ def test_unary(all_qevo, unary_op):
     "QobjEvo arithmetic"
     obj = all_qevo
     for t in TESTTIMES:
-        as_qevo = unary_op(obj)(t)
+        transformed = unary_op(obj)
+        as_qevo = transformed(t)
         as_qobj = unary_op(obj(t))
+        assert transformed._dims == as_qevo._dims
+        _assert_qobj_almost_eq(as_qevo, as_qobj)
+
+
+@pytest.mark.parametrize('unary_op', [
+    pytest.param(lambda a: a.conj(), id="conj"),
+    pytest.param(lambda a: a.dag(), id="dag"),
+    pytest.param(lambda a: a.trans(), id="trans"),
+    pytest.param(lambda a: -a, id="neg"),
+])
+def test_unary_ket(unary_op):
+    obj = QobjEvo(rand_ket(5))
+    for t in TESTTIMES:
+        transformed = unary_op(obj)
+        as_qevo = transformed(t)
+        as_qobj = unary_op(obj(t))
+        assert transformed._dims == as_qevo._dims
         _assert_qobj_almost_eq(as_qevo, as_qobj)
 
 
@@ -508,8 +538,88 @@ def test_QobjEvo_isherm_flag_knowcase():
     ['func_coeff', 'string', 'array', 'logarray']
 )
 def test_QobjEvo_to_list(coeff_type, pseudo_qevo):
-    qevo = QobjEvo(*pseudo_qevo[coeff_type])
+    base, args, *tlist = pseudo_qevo[coeff_type]
+    if tlist: tlist = tlist[0]
+    qevo = QobjEvo(base, args, tlist=tlist)
     as_list = qevo.to_list()
     assert len(as_list) == 2
     restored = QobjEvo(as_list)
     _assert_qobjevo_equivalent(qevo, restored)
+
+
+class Feedback_Checker_Coefficient:
+    def __init__(self, stacked=True):
+        self.state = None
+        self.stacked = stacked
+
+    def __call__(self, t, data=None, qobj=None, e_val=None):
+        if self.state is not None:
+            if data is not None and self.stacked:
+                assert data == operator_to_vector(self.state).data
+            elif data is not None:
+                assert data == self.state.data
+            if qobj is not None:
+                assert qobj == self.state
+            if e_val is not None:
+                expected = expect(qeye(self.state.dims[0]), self.state)
+                assert e_val == pytest.approx(expected, abs=1e-7)
+        return 1.
+
+
+def test_feedback_oper():
+    checker = Feedback_Checker_Coefficient(stacked=False)
+    checker.state = basis(2, 1)
+    qevo = QobjEvo(
+        [qeye(2), checker],
+        args={
+            "e_val": SESolver.ExpectFeedback(qeye(2), default=1.),
+            "data": SESolver.StateFeedback(default=checker.state.data,
+                                           raw_data=True),
+            "qobj": SESolver.StateFeedback(default=checker.state),
+        },
+    )
+
+    checker.state = rand_ket(2)
+    qevo.expect(0, checker.state)
+    checker.state = rand_ket(2)
+    qevo.expect(0, checker.state)
+
+    checker.state = rand_ket(2)
+    qevo.matmul_data(0, checker.state.data)
+    checker.state = rand_ket(2)
+    qevo.matmul_data(0, checker.state.data)
+
+
+def test_feedback_super():
+    checker = Feedback_Checker_Coefficient()
+    qevo = QobjEvo(
+        [spre(qeye(2)), checker],
+        args={
+            "e_val": MESolver.ExpectFeedback(qeye(2)),
+            "data": MESolver.StateFeedback(raw_data=True),
+            "qobj": MESolver.StateFeedback(),
+        },
+    )
+
+    checker.state = rand_dm(2)
+    qevo.expect(0, operator_to_vector(checker.state))
+    qevo.matmul_data(0, operator_to_vector(checker.state).data)
+
+    qevo.arguments(e_val=MESolver.ExpectFeedback(spre(qeye(2))))
+
+    checker.state = rand_dm(2)
+    qevo.expect(0, operator_to_vector(checker.state))
+    qevo.matmul_data(0, operator_to_vector(checker.state).data)
+
+    checker = Feedback_Checker_Coefficient(stacked=False)
+    qevo = QobjEvo(
+        [spre(qeye(2)), checker],
+        args={
+            "data": MESolver.StateFeedback(raw_data=True, prop=True),
+            "qobj": MESolver.StateFeedback(prop=True),
+        },
+    )
+
+    checker.state = rand_dm(4)
+    checker.state.dims = [[[2],[2]], [[2],[2]]]
+    qevo.matmul_data(0, checker.state.data)

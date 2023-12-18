@@ -423,6 +423,11 @@ class NonMarkovianMCSolver(MCSolver):
         ]
         super()._argument(args)
 
+    def add_feedback(self, key, type):
+        raise NotImplementedError(
+            "NM mcsolve does not support feedback currently."
+        )
+
     def rate_shift(self, t):
         """
         Return the rate shift at time ``t``.
