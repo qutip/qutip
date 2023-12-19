@@ -125,8 +125,10 @@ args at each step:
   ``dop853`` or ``vern9`` integration method is recommended instead.
 
 
+
+
 Feedback: Accessing the solver state from evolution operators
-===================================================
+=============================================================
 
 The state of the system during the evolution is accessible via properties of the solver classes.
 

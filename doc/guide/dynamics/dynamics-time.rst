@@ -505,8 +505,6 @@ For example, the following pulse is missed without fixing the maximum step lengt
     plt.legend(loc="center left")
 
 
-In QuTiP 4.4 to 4.7, it was possible to request that the solver pass the state, expectation values or collapse operators via arguments to :obj:`.QobjEvo`. Support for this is not yet available in QuTiP 5.
-
 .. plot::
     :context: reset
     :include-source: false

@@ -14,9 +14,9 @@ Time Evolution and Quantum System Dynamics
    dynamics/dynamics-krylov.rst
    dynamics/dynamics-stochastic.rst
    dynamics/dynamics-time.rst
+   dynamics/dynamics-class.rst
    dynamics/dynamics-bloch-redfield.rst
    dynamics/dynamics-floquet.rst
    dynamics/dynamics-nmmonte.rst
    dynamics/dynamics-options.rst
-   dynamics/dynamics-class.rst
    dynamics/dynamics-propagator.rst
