@@ -2,7 +2,7 @@ import numpy as np
 from . import _sode
 from ..integrator.integrator import Integrator
 from ..stochastic import StochasticSolver, SMESolver
-
+from ._noise import Wiener
 
 __all__ = ["SIntegrator", "PlatenSODE", "PredCorr_SODE"]
 
@@ -44,6 +44,8 @@ class SIntegrator(Integrator):
         keys, not the full options object passed to the solver. Options' keys
         included here will be supported by the :cls:SolverOdeOptions.
     """
+    _is_set = False
+    _stepper_options = []
 
     def set_state(self, t, state0, generator):
         """
@@ -62,10 +64,21 @@ class SIntegrator(Integrator):
         """
         self.t = t
         self.state = state0
-        self.generator = generator
+        if isinstance(generator, Wiener):
+            self.wiener = generator
+        else:
+            num_collapse = len(self.rhs.sc_ops)
+            self.wiener = Wiener(
+                t, self.options["dt"], generator,
+                (self.N_dw, num_collapse)
+            )
+        self.rhs._register_feedback(self.wiener)
+        opt = [self.options[key] for key in self._stepper_options]
+        self.step_func = self.stepper(self.rhs(self.options), *opt).run
+        self._is_set = True
 
     def get_state(self, copy=True):
-        return self.t, self.state, self.generator
+        return self.t, self.state, self.wiener
 
     def integrate(self, t, copy=True):
         """
@@ -92,6 +105,16 @@ class SIntegrator(Integrator):
     def mcstep(self, t, copy=True):
         raise NotImplementedError
 
+    def reset(self, hard=False):
+        if self._is_set:
+            state = self.get_state()
+            self.set_state(*state)
+        if hard:
+            raise NotImplementedError(
+                "Changing stochastic integrator "
+                "options is not supported."
+            )
+
 
 class _Explicit_Simple_Integrator(SIntegrator):
     """
@@ -108,8 +131,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
     def __init__(self, rhs, options):
         self._options = self.integrator_options.copy()
         self.options = options
-        self.system = rhs(self.options)
-        self.step_func = self.stepper(self.system).run
+        self.rhs = rhs
 
     def integrate(self, t, copy=True):
         delta_t = t - self.t
@@ -121,13 +143,10 @@ class _Explicit_Simple_Integrator(SIntegrator):
         dt = self.options["dt"]
         N, extra = np.divmod(delta_t, dt)
         N = int(N)
-        if extra > self.options["tol"]:
-            # Not a whole number of steps.
+        if extra > 0.5 * dt:
+            # Not a whole number of steps, round to higher
             N += 1
-            dt = delta_t / N
-        dW = self.generator.normal(
-            0, np.sqrt(dt), size=(N, self.N_dw, self.system.num_collapse)
-        )
+        dW = self.wiener.dW(self.t, N)
 
         self.state = self.step_func(self.t, self.state, dt, dW, N)
         self.t += dt * N
@@ -163,18 +182,9 @@ class _Implicit_Simple_Integrator(_Explicit_Simple_Integrator):
         "solve_method": None,
         "solve_options": {},
     }
+    _stepper_options = ["solve_method", "solve_options"]
     stepper = None
     N_dw = 0
-
-    def __init__(self, rhs, options):
-        self._options = self.integrator_options.copy()
-        self.options = options
-        self.system = rhs(self.options)
-        self.step_func = self.stepper(
-            self.system,
-            self.options["solve_method"],
-            self.options["solve_options"],
-        ).run
 
     @property
     def options(self):
@@ -242,14 +252,7 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.PredCorr
     N_dw = 1
-
-    def __init__(self, rhs, options):
-        self._options = self.integrator_options.copy()
-        self.options = options
-        self.system = rhs(self.options)
-        self.step_func = self.stepper(
-            self.system, self.options["alpha"], self.options["eta"]
-        ).run
+    _stepper_options = ["alpha", "eta"]
 
     @property
     def options(self):

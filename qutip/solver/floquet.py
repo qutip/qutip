@@ -88,6 +88,11 @@ class FloquetBasis:
             # Default computation
             tlist = np.linspace(0, T, 101)
             memoize = 101
+        if (
+            isinstance(H, QobjEvo)
+            and (H._feedback_functions or H._solver_only_feedback)
+        ):
+            raise NotImplementedError("FloquetBasis does not support feedback")
         self.U = Propagator(H, args=args, options=options, memoize=memoize)
         for t in tlist:
             # Do the evolution by steps to save the intermediate results.
@@ -933,3 +938,26 @@ class FMESolver(MESolver):
         # TODO: It would be nice if integrator could give evolution statistics
         # stats.update(_integrator.stats)
         return results
+
+    @classmethod
+    def ExpectFeedback(cls):
+        """
+        Expect of the state of the evolution to be used in a time-dependent
+        operator.
+
+        Not not implemented for FMESolver
+        """
+        raise NotImplementedError(
+            "Feedback not implemented for floquet solver."
+        )
+
+    @classmethod
+    def StateFeedback(cls):
+        """
+        State of the evolution to be used in a time-dependent operator.
+
+        Not not implemented for FMESolver
+        """
+        raise NotImplementedError(
+            "Feedback not implemented for floquet solver."
+        )

@@ -8,6 +8,7 @@ import numpy as np
 from collections.abc import Iterable
 from functools import partial
 from .solver_base import _solver_deprecation
+from ._feedback import _QobjFeedback, _DataFeedback, _WeinerFeedback
 
 class StochasticTrajResult(Result):
     def _post_init(self, m_ops=(), dw_factor=(), heterodyne=False):
@@ -198,6 +199,7 @@ class _StochasticRHS:
 
         self.issuper = issuper
         self.heterodyne = heterodyne
+        self._noise_key = None
 
         if heterodyne:
             sc_ops = []
@@ -218,6 +220,24 @@ class _StochasticRHS:
             )
         else:
             return StochasticClosedSystem(self.H, self.sc_ops)
+
+    def arguments(self, args):
+        self.H.arguments(args)
+        for c_op in self.c_ops:
+            c_op.arguments(args)
+        for sc_op in self.sc_ops:
+            sc_op.arguments(args)
+
+    def _register_feedback(self, val):
+        self.H._register_feedback({"wiener_process": val}, "stochatic solver")
+        for c_op in self.c_ops:
+            c_op._register_feedback(
+                {"WeinerFeedback": val}, "stochatic solver"
+            )
+        for sc_op in self.sc_ops:
+            sc_op._register_feedback(
+                {"WeinerFeedback": val}, "stochatic solver"
+            )
 
 
 def smesolve(
@@ -476,6 +496,7 @@ class StochasticSolver(MultiTrajSolver):
     _resultclass = StochasticResult
     _avail_integrators = {}
     system = None
+    _open = None
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -498,7 +519,13 @@ class StochasticSolver(MultiTrajSolver):
             raise ValueError("c_ops are not supported by ssesolve.")
 
         rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
-        super().__init__(rhs, options=options)
+        self.rhs = rhs
+        self.system = rhs
+        self.options = options
+        self.seed_sequence = np.random.SeedSequence()
+        self._integrator = self._get_integrator()
+        self._state_metadata = {}
+        self.stats = self._initialize_stats()
 
         if heterodyne:
             self._m_ops = []
@@ -673,6 +700,66 @@ class StochasticSolver(MultiTrajSolver):
     @options.setter
     def options(self, new_options):
         MultiTrajSolver.options.fset(self, new_options)
+
+    @classmethod
+    def WeinerFeedback(cls, default=None):
+        """
+        Weiner function of the trajectory argument for time dependent systems.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"W": SMESolver.WeinerFeedback()})``
+
+        The ``func`` will receive a function as ``W`` that return an array of
+        wiener processes values at ``t``. The wiener process for the i-th
+        sc_ops is the i-th element for homodyne detection and the (2i, 2i+1)
+        pairs of process in heterodyne detection. The process is a step
+        function with step of length ``options["dt"]``.
+
+        .. note::
+
+            WeinerFeedback can't be added to a running solver when updating
+            arguments between steps: ``solver.step(..., args={})``.
+
+        Parameters
+        ----------
+        default : callable, optional
+            Default function used outside the solver.
+            When not passed, a function returning ``np.array([0])`` is used.
+
+        """
+        return _WeinerFeedback(default)
+
+    @classmethod
+    def StateFeedback(cls, default=None, raw_data=False):
+        """
+        State of the evolution to be used in a time-dependent operator.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"state": SMESolver.StateFeedback()})``
+
+        The ``func`` will receive the density matrix as ``state`` during the
+        evolution.
+
+        .. note::
+
+            Not supported by the ``rouchon`` mehtod.
+
+        Parameters
+        ----------
+        default : Qobj or qutip.core.data.Data, default : None
+            Initial value to be used at setup of the system.
+
+        raw_data : bool, default : False
+            If True, the raw matrix will be passed instead of a Qobj.
+            For density matrices, the matrices can be column stacked or square
+            depending on the integration method.
+
+        """
+        if raw_data:
+            return _DataFeedback(default, open=cls._open)
+        return _QobjFeedback(default, open=cls._open)
 
 
 class SMESolver(StochasticSolver):

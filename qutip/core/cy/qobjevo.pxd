@@ -10,6 +10,8 @@ cdef class QobjEvo:
         readonly (idxint, idxint) shape
         int _issuper
         int _isoper
+        readonly dict _feedback_functions
+        readonly dict _solver_only_feedback
 
     cpdef Data _call(QobjEvo self, double t)
 

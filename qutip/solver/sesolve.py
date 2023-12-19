@@ -8,6 +8,7 @@ import numpy as np
 from time import time
 from .. import Qobj, QobjEvo
 from .solver_base import Solver, _solver_deprecation
+from ._feedback import _QobjFeedback, _DataFeedback
 
 
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None, **kwargs):
@@ -189,3 +190,31 @@ class SESolver(Solver):
     @options.setter
     def options(self, new_options):
         Solver.options.fset(self, new_options)
+
+    @classmethod
+    def StateFeedback(cls, default=None, raw_data=False, prop=False):
+        """
+        State of the evolution to be used in a time-dependent operator.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"state": SESolver.StateFeedback()})``
+
+        The ``func`` will receive the ket as ``state`` during the evolution.
+
+        Parameters
+        ----------
+        default : Qobj or qutip.core.data.Data, default : None
+            Initial value to be used at setup of the system.
+
+        prop : bool, default : False
+            Set to True when using sesolve for computing propagators.
+
+        raw_data : bool, default : False
+            If True, the raw matrix will be passed instead of a Qobj.
+            For density matrices, the matrices can be column stacked or square
+            depending on the integration method.
+        """
+        if raw_data:
+            return _DataFeedback(default, open=False, prop=prop)
+        return _QobjFeedback(default, open=False, prop=prop)
