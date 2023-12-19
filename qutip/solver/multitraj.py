@@ -132,11 +132,11 @@ class MultiTrajSolver(Solver):
         return self._restore_state(state, copy=copy)
 
     def _initialize_run(self, state, ntraj=1, args=None, e_ops=(),
-                        timeout=None, target_tol=None, seed=None):
+                        timeout=None, target_tol=None, seeds=None):
         start_time = time()
         self._argument(args)
         stats = self._initialize_stats()
-        seeds = self._read_seed(seed, ntraj)
+        seeds = self._read_seed(seeds, ntraj)
 
         result = self._resultclass(
             e_ops, self.options, solver=self.name, stats=stats
@@ -154,7 +154,7 @@ class MultiTrajSolver(Solver):
         return stats, seeds, result, map_func, map_kw, state0
 
     def run(self, state, tlist, ntraj=1, *,
-            args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
+            args=None, e_ops=(), timeout=None, target_tol=None, seeds=None):
         """
         Do the evolution of the Quantum system.
 
@@ -201,7 +201,7 @@ class MultiTrajSolver(Solver):
             of absolute and relative tolerance, in that order. Lastly, it can
             be a list of pairs of (atol, rtol) for each e_ops.
 
-        seed : {int, SeedSequence, list}, optional
+        seeds : {int, SeedSequence, list}, optional
             Seed or list of seeds for each trajectories.
 
         Returns
@@ -221,7 +221,7 @@ class MultiTrajSolver(Solver):
             e_ops=e_ops,
             timeout=timeout,
             target_tol=target_tol,
-            seed=seed,
+            seeds=seeds,
         )
         start_time = time()
         map_func(

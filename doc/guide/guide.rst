@@ -15,6 +15,7 @@ Users Guide
    guide-dynamics.rst
    guide-heom.rst
    guide-steady.rst
+   guide-piqs.rst
    guide-correlation.rst
    guide-control.rst
    guide-bloch.rst

@@ -364,7 +364,7 @@ def smesolve(
     )
     return sol.run(
         rho0, tlist, ntraj, e_ops=e_ops,
-        seed=seeds, target_tol=target_tol, timeout=timeout,
+        seeds=seeds, target_tol=target_tol, timeout=timeout,
     )
 
 
@@ -483,7 +483,7 @@ def ssesolve(
     sol = SSESolver(H, sc_ops, options=options, heterodyne=heterodyne)
     return sol.run(
         psi0, tlist, ntraj, e_ops=e_ops,
-        seed=seeds, target_tol=target_tol, timeout=timeout,
+        seeds=seeds, target_tol=target_tol, timeout=timeout,
     )
 
 
