@@ -247,8 +247,8 @@ is possible to add trajectories to existing result by adding result together:
     >>> print(merged.num_trajectories)
     50
 
-Note that this merging operation only check that the result are compatible:
-same e_ops and same tlist. It does not check that the same initial state or
+Note that this merging operation only checks that the result are compatible --
+i.e. that the ``e_ops`` and ``tlist`` are the same. It does not check that the same initial state or
 Hamiltonian where used.
 
 
@@ -348,7 +348,8 @@ of the time, while the improved sampling algorithm only does so once.
 Reproducibility
 ---------------
 
-For reproducibility of Monte-Carlo computations it is possible to set the seed
+For reproducibility of Monte-Carlo computations it is possible to set the seed of the random
+number generator:
 
 .. code-block::
 
@@ -360,9 +361,9 @@ For reproducibility of Monte-Carlo computations it is possible to set the seed
     >>> np.allclose(res1, res3)
     False
 
-The ``seeds`` parameter can either be an integer or numpy SeedSequence, which
-will then be used to create seeds for each trajectories. Or a list of
-interger/SeedSequence with one seed for each trajectories. Seeds available in
+The ``seeds`` parameter can either be an integer or a numpy ``SeedSequence``, which
+will then be used to create seeds for each trajectory. Alternatively it may be a list of
+intergers or ``SeedSequence``s with one seed for each trajectories. Seeds available in
 the result object can be used to redo the same evolution:
 
 
@@ -382,7 +383,7 @@ Running trajectories in parallel
 Monte-Carlo evolutions often need hundreds of trajectories to obtain sufficient
 statistics. Since all trajectories are independent of each other, they can be computed
 in parallel. The option ``map`` can take ``"serial"``, ``"parallel"`` or ``"loky"``.
-Both ``"parallel"`` and ``"loky"`` compute trajectories on multiple cpus using
+Both ``"parallel"`` and ``"loky"`` compute trajectories on multiple CPUs using
 respectively the `multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`_
 and `loky <https://loky.readthedocs.io/en/stable/index.html>`_ python modules.
 
@@ -393,7 +394,7 @@ and `loky <https://loky.readthedocs.io/en/stable/index.html>`_ python modules.
     >>> np.allclose(res_par.average_expect, res_ser.average_expect)
     True
 
-Note the when running in parallel, the order in which the trajectories are added
+Note that when running in parallel, the order in which the trajectories are added
 to the result can differ. Therefore
 
 .. code-block::
@@ -441,9 +442,9 @@ The photocurrent, previously computed using the ``photocurrent_sesolve`` and
 Open Systems
 ------------
 
-``mcsolve`` can be used to study system with have measured and dissipative
-interaction with the bath.  This is done by using a liouvillian including the
-dissipative interaction instead of an Hamiltonian.
+``mcsolve`` can be used to study systems which have measurement and dissipative
+interactions with their environment.  This is done by passing a Liouvillian including the
+dissipative interaction to the solver instead of a Hamiltonian.
 
 .. plot::
     :context: close-figs

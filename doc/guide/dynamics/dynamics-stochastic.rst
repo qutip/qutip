@@ -144,9 +144,6 @@ in ``result.measurements``.
 .. plot::
     :context: reset
 
-    #import numpy as np
-    #import matplotlib.pyplot as plt
-    #import qutip
 
     # parameters
     DIM = 20               # Hilbert space dimension
@@ -193,7 +190,7 @@ in ``result.measurements``.
 
 The stochastic solvers share many features with :func:`.mcsolve`, such as
 end conditions, seed control and running in parallel. See the sections
-:ref:`monte-ntraj`, :ref:`monte-seeds` and :ref:`monte-parallel` for detail.
+:ref:`monte-ntraj`, :ref:`monte-seeds` and :ref:`monte-parallel` for details.
 
 
 .. plot::

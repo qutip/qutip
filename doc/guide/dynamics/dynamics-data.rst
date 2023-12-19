@@ -188,4 +188,4 @@ that can be used to merge sets of trajectories.
     >>> print(merged.num_trajectories)
     50
 
-This allows to improve statistics while keeping previous computation.
+This allows one to improve statistics while keeping previous computations.

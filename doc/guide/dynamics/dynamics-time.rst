@@ -191,8 +191,8 @@ create a :obj:`.Qobj` at a time:
 +----------------+------------------+----------------------------------------+
 | Property       | Attribute        | Description                            |
 +================+==================+========================================+
-| Dimensions     | ``Q.dims``       | List keeping track of shapes           |
-|                |                  | the tensor structure.                  |
+| Dimensions     | ``Q.dims``       | Shapes the tensor structure.           |
+
 +----------------+------------------+----------------------------------------+
 | Shape          | ``Q.shape``      | Dimensions of underlying data matrix.  |
 +----------------+------------------+----------------------------------------+
@@ -230,7 +230,7 @@ Or equivalently:
 Using arguments
 ---------------
 
-Until now, the coefficient were only functions of time. In the definition of ``H1_coeff``,
+Until now, the coefficients were only functions of time. In the definition of ``H1_coeff``,
 the driving amplitude ``A`` and width ``sigma`` were hardcoded with their numerical values.
 This is fine for problems that are specialized, or that we only want to run once.
 However, in many cases, we would like study the same problem with a range of parameters and
@@ -477,9 +477,9 @@ Lastly the spline method is usually as fast the string method, but it cannot be 
 Working with pulses
 ===================
 
-Special care is needed when working with pulses. ODE solvers decide the step
+Special care is needed when working with pulses. ODE solvers select the step
 length automatically and can miss thin pulses when not properly warned.
-Integrations methods with variables step have the ``max_step`` options that
+Integrations methods with variable step sizes have the ``max_step`` option that
 control the maximum length of a single internal integration step. This value
 should be set to under half the pulse width to be certain they are not missed.
 

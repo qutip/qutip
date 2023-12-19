@@ -6,24 +6,29 @@
 Solver Class Interface
 *******************************************
 
-New from QuTiP version 5, solver such as :func:`.mesolve`, :func:`.mcsolve` has
-a class interface allowing reusing the Hamiltonian, finer tuning, etc.
+In QuTiP version 5 and later, solvers such as :func:`.mesolve`, :func:`.mcsolve` also have
+a class interface. The class interface allows reusing the Hamiltonian and fine tuning
+many details of how the solver is run.
+
+Examples of some of the solver class features are given below.
 
 Reusing Hamiltonian Data
 ------------------------
 
-There are many case where a quantum systems need to be studied with multiple
-evolution, whether it is changing the initial state or changing parameters.
-In order to solve a given simulation as fast as possible, the solvers in QuTiP
-take the given input operators and prepare them for the ODE solvers.
-Although these operations are usually reasonably fast, but for some solvers,
-such as :func:`.brmesolve` or :func:`.fmmesolve`, the overhead can be significative.
+There are many cases where one would like to study multiple evolutions of
+the same quantum system, whether by changing the initial state or other parameters.
+In order to evolve a given system as fast as possible, the solvers in QuTiP
+take the given input operators (Hamiltonian, collapse operators, etc) and prepare
+them for use with the selected ODE solver.
+
+These operations are usually reasonably fast, but for some solvers, such as
+:func:`.brmesolve` or :func:`.fmmesolve`, the overhead can be significant.
 Even for simpler solvers, the time spent organizing data can become appreciable
 when repeatedly solving a system.
 
-The class interface allows to setup the system once and reuse it with various
+The class interface allows us to setup the system once and reuse it with various
 parameters. Most ``...solve`` function have a paired ``...Solver`` class, with a
-:obj:`~.MESolver.run` to run the evolution. At class
+``..Solver.run`` method to run the evolution. At class
 instance creation, the physics (``H``, ``c_ops``, ``a_ops``, etc.) and options
 are passed. The initial state, times and expectation operators are only passed
 when calling ``run``:
@@ -84,7 +89,7 @@ operators, can be updated at the start of a run:
 Stepping through the run
 ------------------------
 
-The solver also allows to run through a simulation one step at a time, updating
+The solver class also allows to run through a simulation one step at a time, updating
 args at each step:
 
 
@@ -109,24 +114,25 @@ args at each step:
 .. note::
 
   This is an example only, updating a constant ``args`` parameter between step
-  should not replace using function as QobjEvo's coefficient.
+  should not replace using a function as QobjEvo's coefficient.
 
 .. note::
 
-  It is possible to hold have multiple solver to advance with ``step`` in
-  parallel, but many ODE solver, including the default ``adams`` method, can only
-  have one instance at a time. QuTiP will work with multiple solver instances
-  using these ODE solvers at a cost to performance. In these situations, using
-  ``dop853`` or ``vern9`` method are recommended.
+  It is possible to create multiple solvers and to advance them using ``step`` in
+  parallel. However, many ODE solver, including the default ``adams`` method, only
+  allow one instance at a time per process. QuTiP supports using multiple solver instances
+  of these ODE solvers but with a performance cost. In these situations, using
+  ``dop853`` or ``vern9`` integration method is recommended instead.
 
 
-Accessing the state from solver
-===============================
+Feedback: Accessing the solver state from evolution operators
+===================================================
 
-The state during the evolution is assessible to from properties of the solver classes.
-Each solver have the ``StateFeedback`` and ``ExpectFeedback`` class method that can
+The state of the system during the evolution is accessible via properties of the solver classes.
+
+Each solver has a ``StateFeedback`` and ``ExpectFeedback`` class method that can
 be passed as arguments to time dependent systems. For example, ``ExpectFeedback``
-can be used to create a system which uncouple when there are 5 or less photon in the
+can be used to create a system which uncouples when there are 5 or fewer photons in the
 cavity.
 
 .. plot::

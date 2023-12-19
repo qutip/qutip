@@ -21,8 +21,8 @@ is desired. QuTiP has the :func:`.propagator` function to compute them:
 
 
 The first argument is the Hamiltonian, any time dependent system format is
-accepted. The function also take an optional `c_ops` for collapse operator,
-when used, propagator for density matrices are computed
+accepted. The function also accepts an optional `c_ops` argument for collapse operators.
+When used, a propagator for density matrices is computed:
 :math:`\rho(t) = U(t)(\rho(0))`:
 
 .. code-block::
@@ -37,7 +37,7 @@ when used, propagator for density matrices are computed
     1.2666967766644768e-06
 
 
-The propagator is also available in class format:
+The propagator function is also available as a class:
 
 .. code-block::
 
@@ -57,12 +57,12 @@ The :obj:`.Propagator` can take ``options`` and ``args`` as a solver instance.
 .. _propagator_solver:
 
 
-Using solver to compute propagator
-==================================
+Using a solver to compute a propagator
+=================================
 
-Many solver accept an operator as initial state input, when an identity matrix is
-passed, the propagator is computed, this can be used to compute propagator of
-Bloch-Redfield or Floquet equations:
+Many solvers accept an operator as the initial state. When an identity matrix is
+passed as the initial state, the propagator is computed. This can be used to compute
+a propagator for Bloch-Redfield or Floquet equations:
 
 .. code-block::
 
