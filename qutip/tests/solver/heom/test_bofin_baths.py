@@ -245,6 +245,7 @@ class TestDrudeLorentzBath:
 
         assert np.isclose(expected, bath.spectral_density(40)).all()
 
+    @pytest.mark.slow
     @pytest.mark.parametrize("lam, gamma, expected",
                              [(0.05, 0.01, 0.0002499984375097656
                                ),  # this is the actual spectral density expected result
@@ -252,7 +253,7 @@ class TestDrudeLorentzBath:
                               (0.015, 0.045, 0.00033745729056166326)])
     def test_spectral_density_approx(self, lam, gamma, expected):
         bath = DrudeLorentzBath(
-            Q=sigmax(), T=1, lam=lam, Nk=800, gamma=gamma
+            Q=sigmax(), T=1, lam=lam, Nk=800, gamma=gamma #TODO reduce 800?
         )
 
         assert np.isclose(

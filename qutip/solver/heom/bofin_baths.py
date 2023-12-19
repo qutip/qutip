@@ -231,6 +231,11 @@ class BosonicBath(Bath):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+    
+    T : optional, float, default None
+        Temperature of the bath. This is only used for calculating the
+        power spectrum and the correlation function from the spectral
+        density and may be left unspecified (None).
     """
 
     def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
@@ -342,75 +347,86 @@ class BosonicBath(Bath):
         return new_exponents
 
     def spectral_density(self, w):
-        raise NotImplemented
+        """TODO (clarify prefactors / link equation definition, assumed to be odd function)"""
+
+        raise NotImplementedError(
+            "The spectral density of this bath has not ben specified")
 
     def correlation_function(
-            self, t, epsabs=1e-6, epsrel=1e-6, quadrature='gk15', limit=1e4,
-            error=False):
-        """ Calculates the correlation function
-            by numerically computing the integral
+            self, t, **kwargs):
+        """
+        Calculates the correlation function by numerically computing
+        the integral (see equation XX in TODO)
+
         Parameters
         ----------
         t : np.array or float
             the time at which to evaluare the correlation function
-        epsabs : float
-            Absolute error tolerance
-        epsrel : float
-            Relative error tolerance
+        kwargs : will be passed to scipy's `quad_vec` function
+
         Returns
         ----------
             The correlation function as an array or float at time t
         """
-        def c_i(w, t): return (1/np.pi)*self.spectral_density(w)*(
+        def integrand(w, t): return (1/np.pi)*self.spectral_density(w)*(
             (2*self._bose_einstein(w)+1)*np.cos(w*t) - 1j*np.sin(w*t))
 
-        def c(t): return quad_vec(
-            lambda x: c_i(x, t),
+        result = quad_vec(
+            lambda w: integrand(w, t),
             0,
             np.Inf,
-            epsabs=epsabs,
-            epsrel=epsrel,
-            quadrature=quadrature,
-            limit=limit
+            **kwargs
         )
-        if error:
-            return c(t)
-        else:
-            return c(t)[0]
+        return result[0]
 
     def _bose_einstein(self, w):
         """
         Calculates the bose einstein distribution for the
         temperature of the bath
+
         Parameters
         ----------
         w: float or array
             Energy of the mode
+
         Returns
         ----------
-            The population of the mode with energy w
+        The population of the mode with energy w
         """
-        try:
-            return (1 / (np.exp(w / self.T) - 1))
-        except ZeroDivisionError:
-            return 0
+
+        if self.T is None:
+            raise NotImplementedError(
+                "Bath temperature must be specified for this operation")
+        if self.T == 0:
+            return np.zeros_like(w)
+        
+        # Return large finite value for omega=0
+        # This will then be multiplied by spectral_density(0) which
+        # should normally be zero
+        w = np.array(w)
+        w[w == 0] += 1e-6
+        return (1 / (np.exp(w / self.T) - 1))
 
     def power_spectrum(self, w):
-        """Calculates the power spectrum from the spectral density
-           using the fluctuation dissipation theorem
+        """
+        Calculates the power spectrum from the spectral density
+        using the fluctuation dissipation theorem
+
         Parameters
         ----------
         w: float or array
             Energy of the mode
+
         Returns
         ----------
-            The power spectrum of the mode with energy w
+        The power spectrum of the mode with energy w
         """
         S = self.spectral_density(
             w)*((self._bose_einstein(w) + 1) * 2)
         return S
 
     def correlation_function_approx(self, t):
+        # TODO docstring formatting
         """Computes the correlation function from
          the exponents, meaning it computes our approximation
          for the correlation function
@@ -449,7 +465,7 @@ class BosonicBath(Bath):
         S = 0+0j
         for exp in self.exponents:
             if exp.ck is None:
-                exp.ck = 0
+                exp.ck = 0 # TODO don't change exp
             if exp.ck2 is None:
                 exp.ck2 = 0
             if exp.type == BathExponent.types['I']:
@@ -514,7 +530,6 @@ class DrudeLorentzBath(BosonicBath):
     ):
         self.lam = lam
         self.gamma = gamma
-        self.T = T
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
             gamma=gamma,
@@ -570,7 +585,7 @@ class DrudeLorentzBath(BosonicBath):
         return ck_real, vk_real, ck_imag, vk_imag
 
     def spectral_density(self, w):
-        """Calculates the DrudeLorentz spectral density
+        """Calculates the DrudeLorentz spectral density (TODO see Eq XX)
         Parameters
         ----------
         w: float or array
@@ -579,6 +594,9 @@ class DrudeLorentzBath(BosonicBath):
         ----------
             The spectral density of the mode with energy w"""
         return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
+    
+    def correlation_function(self, t, **kwargs):
+        return super().correlation_function(t, **kwargs) # TODO sum exponents
 
 
 class DrudeLorentzPadeBath(BosonicBath):
@@ -748,6 +766,9 @@ class DrudeLorentzPadeBath(BosonicBath):
             The spectral density of the mode with energy w
         """
         return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
+    
+    def correlation_function(self, t, **kwargs):
+        return super().correlation_function(t, **kwargs) # TODO sum exponents
 
 
 class _DrudeLorentzTerminator:
@@ -833,7 +854,6 @@ class UnderDampedBath(BosonicBath):
         self.lam = lam
         self.gamma = gamma
         self.w0 = w0
-        self.T = T
 
         super().__init__(Q, ck_real, vk_real, ck_imag,
                          vk_imag, combine=combine, tag=tag, T=T)
@@ -877,7 +897,7 @@ class UnderDampedBath(BosonicBath):
         return ck_real, vk_real, ck_imag, vk_imag
 
     def spectral_density(self, w):
-        """Calculates the Underdamped spectral density
+        """Calculates the Underdamped spectral density (TODO reference)
         Parameters
         ----------
         w: float or array

@@ -1,3 +1,7 @@
+"""
+This module does something TODO
+"""
+
 import numpy as np
 from time import time
 try:
@@ -25,16 +29,31 @@ class SpectralFitter:
     Nk : int
         Number of exponential terms used to approximate the bath correlation
         functions.
+    
+    TODO w, J
     """
 
-    def __init__(self, T, Q, Nk=14):
+    def __init__(self, T, Q, w, J, Nk=14):
         self.Q = Q
         self.T = T
         self.Nk = Nk
 
+        self.set_function(w, J)
+    
+    def set_function(self, w, J):
+        """TODO"""
+        if callable(J):
+            self._w = w
+            self._J_array = J(w)
+            self._J_fun = J
+        else
+            self._w = w
+            self._J_array = J
+            self._J_fun = 0# TODO
+
     def _spectral_density_approx(self, w, a, b, c):
         """Underdamped spectral density to be used for fitting
-        in Meier-Tannor form
+        in Meier-Tannor form (TODO a b c are not the same as w0 gamma lambda, link how they are related)
         Parameters
         ----------
         w : np.array
@@ -60,8 +79,6 @@ class SpectralFitter:
 
     def get_fit(
         self,
-        w,
-        J,
         N=None,
         final_rmse=5e-6,
         lower=None,
@@ -96,12 +113,9 @@ class SpectralFitter:
         guesses : list
             Initial guess for the parameters.
         """
-        # Check if input is function if it is turn into array
-        # on the range
-        if callable(J):
-            J = J(w)
+
         start = time()
-        rmse, params = _run_fit(self._spectral_density_approx, J, w,
+        rmse, params = _run_fit(self._spectral_density_approx, self._J_array, self._w,
                                 final_rmse, N=N, sigma=sigma,
                                 label="Spectral Density", guesses=guesses,
                                 lower=lower, upper=upper)
@@ -109,6 +123,7 @@ class SpectralFitter:
         end = time()
         fit_time = end - start
         bath = self._matsubara_coefficients(params)
+        bath.spectral_density = self._J_fun
         summary = gen_summary(
             fit_time, rmse, N, "The Spectral Density", *params)
         self.fitInfo = {
@@ -117,7 +132,7 @@ class SpectralFitter:
 
         return bath, self.fitInfo
 
-    def _matsubara_coefficients(self, params):
+    def _matsubara_coefficients(self, params): # TODO name?
         """
         Obtains the bath exponents from the list of fit parameters
         Parameters
@@ -144,39 +159,15 @@ class SpectralFitter:
         vkAR = []
         ckAI = []
         vkAI = []
-        terminator = 0. * spre(self.Q)
-        # the number of matsubara expansion terms to include in the terminator:
-        terminator_max_k = 1000
 
         for lamt, Gamma, Om in zip(lam, gamma, w0):
             coeffs = UnderDampedBath._matsubara_params(
                 lamt, 2 * Gamma, Om + 0j, self.T, self.Nk)
-            ckAR.append(coeffs[0])
-            vkAR.append(coeffs[1])
-            ckAI.append(coeffs[2])
-            vkAI.append(coeffs[3])
-            terminator_factor = 0
-            for k in range(self.Nk + 1, terminator_max_k):
-                ek = 2 * np.pi * k / (1/self.T)
-                ck = (
-                    (-2 * lamt * 2 * Gamma / (1/self.T)) * ek /
-                    (
-                        ((Om + 1.0j * Gamma)**2 + ek**2) *
-                        ((Om - 1.0j * Gamma)**2 + ek**2)
-                    )
-                )
-                terminator_factor += ck / ek
-            terminator += terminator_factor * (
-                2 * spre(self.Q) * spost(self.Q.dag())
-                - spre(self.Q.dag() * self.Q)
-                - spost(self.Q.dag() * self.Q)
-            )
+            ckAR.extend(coeffs[0])
+            vkAR.extend(coeffs[1])
+            ckAI.extend(coeffs[2])
+            vkAI.extend(coeffs[3])
 
-        ckAR = np.array(ckAR).flatten()
-        ckAI = np.array(ckAI).flatten()
-        vkAR = np.array(vkAR).flatten()
-        vkAI = np.array(vkAI).flatten()
-        self.terminator = terminator
         bath = BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI, T=self.T)
         return bath
 
@@ -197,6 +188,8 @@ class CorrelationFitter:
     def __init__(self, Q, T):
         self.Q = Q
         self.T = T
+
+        # TODO same set_function stuff
 
     def _corr_approx(self, t, a, b, c):
         """This is the form of the correlation function to be used for fitting
@@ -268,6 +261,8 @@ class CorrelationFitter:
         # on the range
         if callable(C):
             C = C(t)
+
+        # Fit real part
         start = time()
         rmse_real, params_real = _run_fit(
             lambda *args: np.real(self._corr_approx(*args)),
@@ -276,6 +271,8 @@ class CorrelationFitter:
             guesses=guesses, lower=lower, upper=upper)
         end = time()
         fit_time_real = end - start
+
+        # Fit imaginary part
         start = time()
         rmse_imag, params_imag = _run_fit(
             lambda *args: np.imag(self._corr_approx(*args)),
@@ -284,15 +281,18 @@ class CorrelationFitter:
             guesses=guesses, lower=lower, upper=upper)
         end = time()
         fit_time_imag = end - start
+
         lam, gamma, w0 = params_real
         lam2, gamma2, w02 = params_imag
+
+        # Generate nicely formatted summary
         summary = gen_summary(
             fit_time_real,
             rmse_real,
             Nr,
             "The Real Part Of  \n the Correlation Function", lam, gamma,
             w0)
-        summary2 = gen_summary(
+        summary2 = gen_summary( # TODO summary_imag
             fit_time_imag,
             rmse_imag,
             Ni,
@@ -325,6 +325,7 @@ class CorrelationFitter:
                         "params_real": params_real,
                         "params_imag": params_imag, "summary": full_summary}
         bath = self._matsubara_coefficients(params_real, params_imag)
+        bath.correlation_function = self._C_func
         return bath, self.fitInfo
 
     def _matsubara_coefficients(self, params_real, params_imag):
@@ -407,7 +408,7 @@ class OhmicBath:
             * np.e ** (-abs(w) / self.wc)
         )
 
-    def correlation(self, t):
+    def correlation_function(self, t):
         """Calculates the Ohmic spectral density
         Parameters
         ----------
@@ -436,6 +437,11 @@ class OhmicBath:
             ],
             dtype=np.complex128,
         )
+
+    # TODO
+    def make_correlation_fit(...):
+
+    def make_spectral_fit(...):
 
     def get_fit(self, x, rmse=1e-5, method='correlation', lower=None,
                 upper=None,
@@ -491,7 +497,6 @@ class OhmicBath:
             bath, fitInfo = fs.get_fit(x, J, N=N, final_rmse=rmse, lower=lower,
                                        upper=upper,
                                        sigma=sigma, guesses=guesses)
-            bath.spectral_density = self.spectral_density
             return bath, fitInfo
 
 # Utility functions
@@ -745,3 +750,5 @@ def gen_summary(time, rmse, N, label, lam, gamma, w0):
         f" was obtained for the {label}\n"
     summary += f" The current fit took {time: 2f} seconds"
     return summary
+
+def two_column_summary(...): # TODO (if it makes sense)
