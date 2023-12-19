@@ -363,7 +363,7 @@ number generator:
 
 The ``seeds`` parameter can either be an integer or a numpy ``SeedSequence``, which
 will then be used to create seeds for each trajectory. Alternatively it may be a list of
-intergers or ``SeedSequence``s with one seed for each trajectories. Seeds available in
+intergers or ``SeedSequence`` s with one seed for each trajectories. Seeds available in
 the result object can be used to redo the same evolution:
 
 

@@ -192,7 +192,6 @@ create a :obj:`.Qobj` at a time:
 | Property       | Attribute        | Description                            |
 +================+==================+========================================+
 | Dimensions     | ``Q.dims``       | Shapes the tensor structure.           |
-
 +----------------+------------------+----------------------------------------+
 | Shape          | ``Q.shape``      | Dimensions of underlying data matrix.  |
 +----------------+------------------+----------------------------------------+

@@ -58,7 +58,7 @@ The :obj:`.Propagator` can take ``options`` and ``args`` as a solver instance.
 
 
 Using a solver to compute a propagator
-=================================
+======================================
 
 Many solvers accept an operator as the initial state. When an identity matrix is
 passed as the initial state, the propagator is computed. This can be used to compute
