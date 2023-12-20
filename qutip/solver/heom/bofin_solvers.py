@@ -615,7 +615,7 @@ class HEOMSolver(Solver):
 
     def __init__(self, H, bath, max_depth, *, odd_parity=False, options=None):
         _time_start = time()
-        self.odd_parity = odd_parity
+        self.odd_parity = bool(odd_parity)  # we call bool here because odd_parity will be used in arithmetic
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian (H) must be a Qobj or QobjEvo")
 
