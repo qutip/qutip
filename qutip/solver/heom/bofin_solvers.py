@@ -613,7 +613,7 @@ class HEOMSolver(Solver):
         "state_data_type": "dense",
     }
 
-    def __init__(self, H, bath, max_depth, odd_parity=False, *, options=None):
+    def __init__(self, H, bath, max_depth, *, odd_parity=False, options=None):
         _time_start = time()
         self.odd_parity = odd_parity
         if not isinstance(H, (Qobj, QobjEvo)):
