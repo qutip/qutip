@@ -149,15 +149,15 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         The list or array of values for which the ``task`` function is to be
         evaluated.
     task_args : list, optional
-        The optional additional argument to the ``task`` function.
+        The optional additional arguments to the ``task`` function.
     task_kwargs : dictionary, optional
-        The optional additional keyword argument to the ``task`` function.
+        The optional additional keyword arguments to the ``task`` function.
     reduce_func : func, optional
-        If provided, it will be called with the output of each tasks instead of
-        storing a them in a list. Note that the order in which results are
+        If provided, it will be called with the output of each task instead of
+        storing them in a list. Note that the order in which results are
         passed to ``reduce_func`` is not defined. It should return None or a
-        number. When returning a number, it represent the estimation of the
-        number of task left. On a return <= 0, the map will end early.
+        number. When returning a number, it represents the estimation of the
+        number of tasks left. On a return <= 0, the map will end early.
     progress_bar : str, optional
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict, optional
@@ -166,8 +166,8 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         Dictionary containing entry for:
         - timeout: float, Maximum time (sec) for the whole map.
         - job_timeout: float, Maximum time (sec) for each job in the map.
-        - num_cpus: int, Number of job to run at once.
-        - fail_fast: bool, Raise an error at the first.
+        - num_cpus: int, Number of jobs to run at once.
+        - fail_fast: bool, Abort at the first error.
 
     Returns
     -------
@@ -294,14 +294,15 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         The list or array of values for which the ``task`` function is to be
         evaluated.
     task_args : list, optional
-        The optional additional argument to the ``task`` function.
+        The optional additional arguments to the ``task`` function.
     task_kwargs : dictionary, optional
-        The optional additional keyword argument to the ``task`` function.
+        The optional additional keyword arguments to the ``task`` function.
     reduce_func : func, optional
-        If provided, it will be called with the output of each tasks instead of
-        storing a them in a list. It should return None or a number.  When
-        returning a number, it represent the estimation of the number of task
-        left. On a return <= 0, the map will end early.
+        If provided, it will be called with the output of each task instead of
+        storing them in a list. Note that the order in which results are
+        passed to ``reduce_func`` is not defined. It should return None or a
+        number. When returning a number, it represents the estimation of the
+        number of tasks left. On a return <= 0, the map will end early.
     progress_bar : str, optional
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict, optional
@@ -310,8 +311,8 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         Dictionary containing entry for:
         - timeout: float, Maximum time (sec) for the whole map.
         - job_timeout: float, Maximum time (sec) for each job in the map.
-        - num_cpus: int, Number of job to run at once.
-        - fail_fast: bool, Raise an error at the first.
+        - num_cpus: int, Number of jobs to run at once.
+        - fail_fast: bool, Abort at the first error.
 
     Returns
     -------
@@ -327,23 +328,25 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     if task_kwargs is None:
         task_kwargs = {}
     map_kw = _read_map_kw(map_kw)
-    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
-    from loky import get_reusable_executor, TimeoutError
+    end_time = map_kw['timeout'] + time.time()
+    job_time = map_kw['job_timeout']
 
     progress_bar = progress_bars[progress_bar](
         len(values), **progress_bar_kwargs
     )
 
-    executor = get_reusable_executor(max_workers=map_kw['num_cpus'])
-    end_time = map_kw['timeout'] + time.time()
-    job_time = map_kw['job_timeout']
-    results = None
-    remaining_ntraj = None
     errors = {}
+    remaining_ntraj = None
     if reduce_func is None:
         results = [None] * len(values)
+    else:
+        results = None
 
+    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
+    from loky import get_reusable_executor, TimeoutError
     try:
+        executor = get_reusable_executor(max_workers=map_kw['num_cpus'])
+
         jobs = [executor.submit(task, value, *task_args, **task_kwargs)
                for value in values]
 
@@ -373,9 +376,9 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         [job.cancel() for job in jobs]
 
     finally:
+        os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
         executor.shutdown()
     progress_bar.finished()
-    os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
     if errors:
         raise MapExceptions(
             f"{len(errors)} iterations failed in loky_pmap",
