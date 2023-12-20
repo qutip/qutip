@@ -1,5 +1,11 @@
 """
-This module does something TODO
+This module provides utilities for fitting bosonic baths through 
+the correlation function or spectral density, the fit returns a
+HEOM bath object see the ``qutip.nonmarkov.bofin_baths``.
+
+The number of modes for the fit can be indicated by the user or
+determined by requiring a normalized root mean squared error for
+the fit. 
 """
 
 import numpy as np
@@ -46,7 +52,7 @@ class SpectralFitter:
             self._w = w
             self._J_array = J(w)
             self._J_fun = J
-        else
+        else:
             self._w = w
             self._J_array = J
             self._J_fun = 0# TODO
@@ -282,41 +288,10 @@ class CorrelationFitter:
         end = time()
         fit_time_imag = end - start
 
-        lam, gamma, w0 = params_real
-        lam2, gamma2, w02 = params_imag
-
-        # Generate nicely formatted summary
-        summary = gen_summary(
-            fit_time_real,
-            rmse_real,
-            Nr,
-            "The Real Part Of  \n the Correlation Function", lam, gamma,
-            w0)
-        summary2 = gen_summary( # TODO summary_imag
-            fit_time_imag,
-            rmse_imag,
-            Ni,
-            "The Imaginary Part \n Of the Correlation Function", lam2,
-            gamma2, w02)
-
-        full_summary = "Fit correlation class instance: \n \n"
-        lines1 = summary.splitlines()
-        lines2 = summary2.splitlines()
-        max_lines = max(len(lines1), len(lines2))
-        # Fill the shorter string with blank lines
-        lines1 = lines1[:-1] + (max_lines - len(lines1)
-                                ) * [""] + [lines1[-1]]
-        lines2 = lines2[:-1] + (max_lines - len(lines2)
-                                ) * [""] + [lines2[-1]]
-        # Find the maximum line length in each column
-        max_length1 = max(len(line) for line in lines1)
-        max_length2 = max(len(line) for line in lines2)
-
-        # Print the strings side by side with a vertical bar separator
-        for line1, line2 in zip(lines1, lines2):
-            formatted_line1 = f"{line1:<{max_length1}} |"
-            formatted_line2 = f"{line2:<{max_length2}}"
-            full_summary += formatted_line1 + formatted_line2 + "\n"
+        # Generate summary
+        full_summary=two_column_summary(params_real,params_imag,fit_time_real,
+                                        fit_time_imag,Nr,Ni,rmse_imag,rmse_real)
+        
 
         self.fitInfo = {"Nr": len(params_real[0]), "Ni": len(params_imag[0]),
                         "fit_time_real": fit_time_real,
@@ -439,9 +414,9 @@ class OhmicBath:
         )
 
     # TODO
-    def make_correlation_fit(...):
+    # def make_correlation_fit(...):
 
-    def make_spectral_fit(...):
+    # def make_spectral_fit(...):
 
     def get_fit(self, x, rmse=1e-5, method='correlation', lower=None,
                 upper=None,
@@ -751,4 +726,40 @@ def gen_summary(time, rmse, N, label, lam, gamma, w0):
     summary += f" The current fit took {time: 2f} seconds"
     return summary
 
-def two_column_summary(...): # TODO (if it makes sense)
+def two_column_summary(params_real,params_imag,fit_time_real,fit_time_imag,Nr,Ni,rmse_imag,rmse_real): # TODO (if it makes sense)
+        lam, gamma, w0 = params_real
+        lam2, gamma2, w02 = params_imag
+
+        # Generate nicely formatted summary
+        summary = gen_summary(
+            fit_time_real,
+            rmse_real,
+            Nr,
+            "The Real Part Of  \n the Correlation Function", lam, gamma,
+            w0)
+        summary2 = gen_summary( # TODO summary_imag
+            fit_time_imag,
+            rmse_imag,
+            Ni,
+            "The Imaginary Part \n Of the Correlation Function", lam2,
+            gamma2, w02)
+
+        full_summary = "Fit correlation class instance: \n \n"
+        lines1 = summary.splitlines()
+        lines2 = summary2.splitlines()
+        max_lines = max(len(lines1), len(lines2))
+        # Fill the shorter string with blank lines
+        lines1 = lines1[:-1] + (max_lines - len(lines1)
+                                ) * [""] + [lines1[-1]]
+        lines2 = lines2[:-1] + (max_lines - len(lines2)
+                                ) * [""] + [lines2[-1]]
+        # Find the maximum line length in each column
+        max_length1 = max(len(line) for line in lines1)
+        max_length2 = max(len(line) for line in lines2)
+
+        # Print the strings side by side with a vertical bar separator
+        for line1, line2 in zip(lines1, lines2):
+            formatted_line1 = f"{line1:<{max_length1}} |"
+            formatted_line2 = f"{line2:<{max_length2}}"
+            full_summary += formatted_line1 + formatted_line2 + "\n"
+        return full_summary
