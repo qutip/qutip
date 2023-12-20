@@ -179,6 +179,8 @@ Therefore, QuTiP includes predefined objects for a variety of states and operato
 +--------------------------+----------------------------+----------------------------------------+
 | Identity                 | ``qeye(N)``                | N = number of levels in Hilbert space. |
 +--------------------------+----------------------------+----------------------------------------+
+| Identity-like            | ``qeye_like(qobj)``        | qobj = Object to copy dimensions from. |
++--------------------------+----------------------------+----------------------------------------+
 | Lowering (destruction)   | ``destroy(N)``             | same as above                          |
 | operator                 |                            |                                        |
 +--------------------------+----------------------------+----------------------------------------+
@@ -326,7 +328,8 @@ For the destruction operator above:
 
 
 
-The data attribute returns a message stating that the data is a sparse matrix. All ``Qobj`` instances store their data as a sparse matrix to save memory. To access the underlying dense matrix one needs to use the :func:`qutip.Qobj.full` function as described below.
+The data attribute returns a message stating that the data is a sparse matrix. All ``Qobj`` instances store their data as a sparse matrix to save memory.
+To access the underlying dense matrix one needs to use the :meth:`.Qobj.full` function as described below.
 
 .. _basics-qobj-math:
 
@@ -429,6 +432,8 @@ Like attributes, the quantum object class has defined functions (methods) that o
 +-----------------+-------------------------------+----------------------------------------+
 | Groundstate     | ``Q.groundstate()``           | Eigenval & eigket of Qobj groundstate. |
 +-----------------+-------------------------------+----------------------------------------+
+| Matrix inverse  | ``Q.inv()``                   | Matrix inverse of the Qobj.            |
++-----------------+-------------------------------+----------------------------------------+
 | Matrix Element  | ``Q.matrix_element(bra,ket)`` | Matrix element <bra|Q|ket>             |
 +-----------------+-------------------------------+----------------------------------------+
 | Norm            | ``Q.norm()``                  | Returns L2 norm for states,            |
@@ -453,6 +458,8 @@ Like attributes, the quantum object class has defined functions (methods) that o
 | Tidyup          | ``Q.tidyup()``                | Removes small elements from Qobj.      |
 +-----------------+-------------------------------+----------------------------------------+
 | Trace           | ``Q.tr()``                    | Returns trace of quantum object.       |
++-----------------+-------------------------------+----------------------------------------+
+| Conversion      | ``Q.to(dtype)``               | Convert the matrix format CSR / Dense. |
 +-----------------+-------------------------------+----------------------------------------+
 | Transform       | ``Q.transform(inpt)``         | A basis transformation defined by      |
 |                 |                               | matrix or list of kets 'inpt' .        |
