@@ -203,11 +203,11 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         if not future.cancelled():
             try:
                 result = future.result()
+                remaining_ntraj = result_func(future._i, result)
+                if remaining_ntraj is not None and remaining_ntraj <= 0:
+                    finished.append(True)
             except Exception as e:
                 errors[future._i] = e
-        remaining_ntraj = result_func(future._i, result)
-        if remaining_ntraj is not None and remaining_ntraj <= 0:
-            finished.append(True)
         progress_bar.update()
 
     if sys.version_info >= (3, 7):
