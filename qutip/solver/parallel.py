@@ -208,6 +208,18 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
                     finished.append(True)
             except Exception as e:
                 errors[future._i] = e
+            except KeyboardInterrupt:
+                # When a keyboard interrupt happens, it is raised in the main
+                # thread and in all worker threads. The worker threads have
+                # already returned and the main thread is only waiting for the
+                # ProcessPoolExecutor to shutdown before exiting. If the call
+                # to `future.result()` in this callback function raises the
+                # KeyboardInterrupt again, it makes the system enter a kind of
+                # deadlock state, where the user has to press CTRL+C a second
+                # time to actually end the program. For that reason, we
+                # silently ignore the KeyboardInterrupt here, avoiding the
+                # deadlock and allowing the main thread to exit.
+                pass
         progress_bar.update()
 
     if sys.version_info >= (3, 7):
