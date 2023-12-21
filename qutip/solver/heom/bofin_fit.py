@@ -18,6 +18,7 @@ except ModuleNotFoundError:
 from scipy.optimize import curve_fit
 from qutip.core.superoperator import spre, spost
 from qutip.solver.heom import UnderDampedBath, BosonicBath
+from scipy.interpolate import InterpolatedUnivariateSpline
 
 
 class SpectralFitter:
@@ -35,7 +36,7 @@ class SpectralFitter:
     Nk : int
         Number of exponential terms used to approximate the bath correlation
         functions.
-    
+
     TODO w, J
     """
 
@@ -45,7 +46,7 @@ class SpectralFitter:
         self.Nk = Nk
 
         self.set_function(w, J)
-    
+
     def set_function(self, w, J):
         """TODO"""
         if callable(J):
@@ -55,7 +56,7 @@ class SpectralFitter:
         else:
             self._w = w
             self._J_array = J
-            self._J_fun = 0# TODO
+            self._J_fun = InterpolatedUnivariateSpline(w, J)  # TODO test this
 
     def _spectral_density_approx(self, w, a, b, c):
         """Underdamped spectral density to be used for fitting
@@ -121,24 +122,25 @@ class SpectralFitter:
         """
 
         start = time()
-        rmse, params = _run_fit(self._spectral_density_approx, self._J_array, self._w,
-                                final_rmse, N=N, sigma=sigma,
-                                label="Spectral Density", guesses=guesses,
-                                lower=lower, upper=upper)
+        rmse, params = _run_fit(
+            self._spectral_density_approx, self._J_array, self._w, final_rmse,
+            N=N, sigma=sigma, label="Spectral Density", guesses=guesses,
+            lower=lower, upper=upper)
         spec_n = len(params[0])
         end = time()
         fit_time = end - start
         bath = self._matsubara_coefficients(params)
         bath.spectral_density = self._J_fun
+        bath.spectral_density_approx = lambda w: self._spectral_density_approx(
+            w, *params)
         summary = gen_summary(
             fit_time, rmse, N, "The Spectral Density", *params)
         self.fitInfo = {
             "fit_time": fit_time, "rmse": rmse, "N": spec_n, "params": params,
-            "Nk": self.Nk, "terminator": self.terminator, "summary": summary}
-
+            "Nk": self.Nk, "summary": summary}
         return bath, self.fitInfo
 
-    def _matsubara_coefficients(self, params): # TODO name?
+    def _matsubara_coefficients(self, params):  # TODO name?
         """
         Obtains the bath exponents from the list of fit parameters
         Parameters
@@ -191,11 +193,22 @@ class CorrelationFitter:
         Temperature of the bath
     """
 
-    def __init__(self, Q, T):
+    def __init__(self, Q, T, t, C):
         self.Q = Q
         self.T = T
-
+        self.set_function(t, C)
         # TODO same set_function stuff
+
+    def set_function(self, t, C):
+        """TODO"""
+        if callable(C):
+            self._t = t
+            self._C_array = C(t)
+            self._C_fun = C
+        else:
+            self._t = t
+            self._C_array = C
+            self._C_fun = InterpolatedUnivariateSpline(t, C)  # TODO test this
 
     def _corr_approx(self, t, a, b, c):
         """This is the form of the correlation function to be used for fitting
@@ -289,9 +302,9 @@ class CorrelationFitter:
         fit_time_imag = end - start
 
         # Generate summary
-        full_summary=two_column_summary(params_real,params_imag,fit_time_real,
-                                        fit_time_imag,Nr,Ni,rmse_imag,rmse_real)
-        
+        full_summary = two_column_summary(
+            params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
+            rmse_imag, rmse_real)
 
         self.fitInfo = {"Nr": len(params_real[0]), "Ni": len(params_imag[0]),
                         "fit_time_real": fit_time_real,
@@ -301,6 +314,8 @@ class CorrelationFitter:
                         "params_imag": params_imag, "summary": full_summary}
         bath = self._matsubara_coefficients(params_real, params_imag)
         bath.correlation_function = self._C_func
+        bath.correlation_function_approx = lambda t: np.real(self._corr_approx(
+            t, *params_real))+1j*np.imag(self._corr_approx(t, *params_imag))
         return bath, self.fitInfo
 
     def _matsubara_coefficients(self, params_real, params_imag):
@@ -407,11 +422,10 @@ class OhmicBath:
         # See http://mpmath.org/doc/current/basics.html#providing-correct-input
         return np.array(
             [
-                complex(corr * (mp.zeta(self.s + 1, u1) + mp.zeta(self.s + 1, u2)))
-                for u1, u2 in zip(z1_u, z2_u)
-            ],
-            dtype=np.complex128,
-        )
+                complex(
+                    corr * (mp.zeta(self.s + 1, u1) + mp.zeta(self.s + 1, u2)))
+                for u1, u2 in zip(z1_u, z2_u)],
+            dtype=np.complex128,)
 
     # TODO
     # def make_correlation_fit(...):
@@ -726,40 +740,44 @@ def gen_summary(time, rmse, N, label, lam, gamma, w0):
     summary += f" The current fit took {time: 2f} seconds"
     return summary
 
-def two_column_summary(params_real,params_imag,fit_time_real,fit_time_imag,Nr,Ni,rmse_imag,rmse_real): # TODO (if it makes sense)
-        lam, gamma, w0 = params_real
-        lam2, gamma2, w02 = params_imag
 
-        # Generate nicely formatted summary
-        summary = gen_summary(
-            fit_time_real,
-            rmse_real,
-            Nr,
-            "The Real Part Of  \n the Correlation Function", lam, gamma,
-            w0)
-        summary2 = gen_summary( # TODO summary_imag
-            fit_time_imag,
-            rmse_imag,
-            Ni,
-            "The Imaginary Part \n Of the Correlation Function", lam2,
-            gamma2, w02)
+# TODO (if it makes sense)
+def two_column_summary(
+        params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
+        rmse_imag, rmse_real):
+    lam, gamma, w0 = params_real
+    lam2, gamma2, w02 = params_imag
 
-        full_summary = "Fit correlation class instance: \n \n"
-        lines1 = summary.splitlines()
-        lines2 = summary2.splitlines()
-        max_lines = max(len(lines1), len(lines2))
-        # Fill the shorter string with blank lines
-        lines1 = lines1[:-1] + (max_lines - len(lines1)
-                                ) * [""] + [lines1[-1]]
-        lines2 = lines2[:-1] + (max_lines - len(lines2)
-                                ) * [""] + [lines2[-1]]
-        # Find the maximum line length in each column
-        max_length1 = max(len(line) for line in lines1)
-        max_length2 = max(len(line) for line in lines2)
+    # Generate nicely formatted summary
+    summary = gen_summary(
+        fit_time_real,
+        rmse_real,
+        Nr,
+        "The Real Part Of  \n the Correlation Function", lam, gamma,
+        w0)
+    summary2 = gen_summary(  # TODO summary_imag
+        fit_time_imag,
+        rmse_imag,
+        Ni,
+        "The Imaginary Part \n Of the Correlation Function", lam2,
+        gamma2, w02)
 
-        # Print the strings side by side with a vertical bar separator
-        for line1, line2 in zip(lines1, lines2):
-            formatted_line1 = f"{line1:<{max_length1}} |"
-            formatted_line2 = f"{line2:<{max_length2}}"
-            full_summary += formatted_line1 + formatted_line2 + "\n"
-        return full_summary
+    full_summary = "Fit correlation class instance: \n \n"
+    lines1 = summary.splitlines()
+    lines2 = summary2.splitlines()
+    max_lines = max(len(lines1), len(lines2))
+    # Fill the shorter string with blank lines
+    lines1 = lines1[:-1] + (max_lines - len(lines1)
+                            ) * [""] + [lines1[-1]]
+    lines2 = lines2[:-1] + (max_lines - len(lines2)
+                            ) * [""] + [lines2[-1]]
+    # Find the maximum line length in each column
+    max_length1 = max(len(line) for line in lines1)
+    max_length2 = max(len(line) for line in lines2)
+
+    # Print the strings side by side with a vertical bar separator
+    for line1, line2 in zip(lines1, lines2):
+        formatted_line1 = f"{line1:<{max_length1}} |"
+        formatted_line2 = f"{line2:<{max_length2}}"
+        full_summary += formatted_line1 + formatted_line2 + "\n"
+    return full_summary

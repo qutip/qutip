@@ -231,7 +231,7 @@ class BosonicBath(Bath):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
-    
+
     T : optional, float, default None
         Temperature of the bath. This is only used for calculating the
         power spectrum and the correlation function from the spectral
@@ -408,12 +408,12 @@ class BosonicBath(Bath):
                 "Bath temperature must be specified for this operation")
         if self.T == 0:
             return np.zeros_like(w)
-        
+
         # Return large finite value for omega=0
         # This will then be multiplied by spectral_density(0) which
         # should normally be zero
-        w = np.array(w)
-        w[w == 0] += 1e-6
+        w = np.array(w, dtype=float)
+        w[w == 0.0] += 1e-6
         return (1 / (np.exp(w / self.T) - 1))
 
     def power_spectrum(self, w):
@@ -439,12 +439,12 @@ class BosonicBath(Bath):
         Computes the correlation function from
         the exponents, meaning it computes our approximation
         for the correlation function
-        
+
         Parameters
         ----------
         t: float or array
             time to compute correlations
-        
+
         Returns
         ----------
         The correlation function of the bath at time t
@@ -466,22 +466,22 @@ class BosonicBath(Bath):
         """
         Calculates the power spectrum from the exponents
         of the bosonic bath
-        
+
         Parameters
         ----------
         w: float or array
             Energy of the mode
-        
+
         Returns
         ----------
         The power spectrum of the mode with energy w
         """
         S = 0+0j
         for exp in self.exponents:
-            ck=exp.ck
-            ck2=exp.ck2
+            ck = exp.ck
+            ck2 = exp.ck2
             if ck is None:
-                ck = 0 
+                ck = 0
             if ck2 is None:
                 ck2 = 0
             if exp.type == BathExponent.types['I']:
@@ -495,12 +495,12 @@ class BosonicBath(Bath):
         """
         Calculates spectral density from the exponents
         of the bosonic bath
-        
+
         Parameters
         ----------
         w: float or array
             Energy of the mode
-        
+
         Returns
         ----------
         The spectral density of the mode with energy w
@@ -588,7 +588,7 @@ class DrudeLorentzBath(BosonicBath):
         delta, L = self._dl_terminator.terminator(self.exponents)
         return delta, L
 
-    def _matsubara_params(self, lam, gamma, T, Nk): # should this take only self now?
+    def _matsubara_params(self, lam, gamma, T, Nk):  # should this take only self now?
         """ Calculate the Matsubara coefficents and frequencies. """
         ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
         ck_real.extend([
@@ -608,23 +608,24 @@ class DrudeLorentzBath(BosonicBath):
         """
         Calculates the DrudeLorentz spectral density (Qutip BonFin 
         paper https://doi.org/10.1103/PhysRevResearch.5.013181  see Eq 15)
-        
+
         Parameters
         ----------
         w: float or array
             Energy of the mode
-        
+
         Returns
         ----------
         The spectral density of the mode with energy w
         """
         return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
-    
+
     def correlation_function(self, t, **kwargs):
         """
         Here we determine the correlation function by the sum of  large number
-        of exponents, as the numerical integration is noisy for this spectral density
-        
+        of exponents, as the numerical integration is noisy for this spectral
+        density
+
         Parameters
         ----------
         t : np.array or float
@@ -633,10 +634,16 @@ class DrudeLorentzBath(BosonicBath):
         kwargs : This may be the Number of exponents to use defaults to 1000
         and it should be denoted by Nk
         """
+        if 'Nk' in kwargs.keys():
+            Nk = kwargs['Nk']
+        else:
+            Nk = 1000
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
-            t, self.lam, self.gamma, self.T, **kwargs)
-        C_I=[ck_imag[i]*np.exp(-np.array(vk_imag[i]*t)) for i in range(len(ck_imag))]
-        C_R = [ck_real[i]*np.exp(-np.array(vk_real[i]*t)) for i in range(len(ck_real))]
+            self.lam, self.gamma, self.T, Nk=Nk)
+        C_I = np.sum([ck_imag[i]*np.exp(-np.array(vk_imag[i]*t))
+                     for i in range(len(ck_imag))], axis=0)
+        C_R = np.sum([ck_real[i]*np.exp(-np.array(vk_real[i]*t))
+                     for i in range(len(ck_real))], axis=0)
         return C_R+1j*C_I
 
 
@@ -800,45 +807,42 @@ class DrudeLorentzPadeBath(BosonicBath):
         """
         Calculates the DrudeLorentz spectral density (Qutip BonFin 
         paper https://doi.org/10.1103/PhysRevResearch.5.013181  see Eq 15)
-        
+
         Parameters
         ----------
         w: float or array
             Energy of the mode
-        
+
         Returns
         ----------
         The spectral density of the mode with energy w
         """
         return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
-    
+
     def correlation_function(self, t, **kwargs):
         """
         Here we determine the correlation function by the sum of  large number
-        of exponents, as the numerical integration is noisy for this spectral density
-        
+        of exponents, as the numerical integration is noisy for this spectral
+        density
+
         Parameters
         ----------
         t : np.array or float
             the time at which to evaluare the correlation function
 
-        kwargs : This may be the Number of exponents to use defaults to 1000
+        kwargs : This may be the Number of exponents to use, defaults to 1000
         and it should be denoted by Nk
         """
-        eta_p, gamma_p = self._corr(lam=self.lam, gamma=self.gamma, T=self.T,**kwargs)
-        # ck_real = [np.real(eta) for eta in eta_p]
-        # vk_real = [gam for gam in gamma_p]
-        # # There is only one term in the expansion of the imaginary part of the
-        # # Drude-Lorentz correlation function.
-        # ck_imag = [np.imag(eta_p[0])]
-        # vk_imag = [gamma_p[0]]
-
-        C = [
+        if 'Nk' in kwargs.keys():
+            Nk = kwargs['Nk']
+        else:
+            Nk = 1000
+        eta_p, gamma_p = self._corr(
+            lam=self.lam, gamma=self.gamma, T=self.T, Nk=Nk)
+ 
+        C = np.sum([
             eta_p[i] * np.exp(-np.array(gamma_p[i] * t))
-            for i in range(len(gamma_p))]
-        # C_R = [
-        #     ck_real[i] * np.exp(-np.array(vk_real[i] * t))
-        #     for i in range(len(ck_real))]
+            for i in range(len(gamma_p))],axis=0)
         return C
 
 
@@ -971,12 +975,12 @@ class UnderDampedBath(BosonicBath):
         """
         Calculates the Underdamped spectral density (Qutip BonFin 
         paper https://doi.org/10.1103/PhysRevResearch.5.013181  see Eq 16)
-        
+
         Parameters
         ----------
         w: float or array
             Energy of the mode
-        
+
         Returns
         ----------
             The spectral density of the mode with energy w
