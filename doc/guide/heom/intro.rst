@@ -40,4 +40,4 @@ In addition to support for bosonic environments, QuTiP also provides support for
 feriomic environments which is described in :doc:`fermionic`.
 
 Both bosonic and fermionic environments are supported via a single solver,
-:class:`~qutip.nonmarkov.heom.HEOMSolver`, that supports solving for both dynamics and steady-states.
+:class:`.HEOMSolver`, that supports solving for both dynamics and steady-states.

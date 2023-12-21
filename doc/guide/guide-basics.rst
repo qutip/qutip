@@ -1,8 +1,8 @@
 .. _basics:
 
-************************************
+***********************************
 Basic Operations on Quantum Objects
-************************************
+***********************************
 
 .. _basics-first:
 
@@ -323,13 +323,43 @@ For the destruction operator above:
     False
 
     >>> q.data
+    Dia(shape=(4, 4), num_diag=1)
+
+
+The ``data`` attribute returns a Qutip diagonal matrix.
+``Qobj`` instances store their data in Qutip matrix format.
+In the core qutip module, the ``Dense``, ``CSR`` and ``Dia`` formats are available, but other module can add other formats.
+For example, the qutip-jax module add ``Jax`` and ``JaxDia`` formats.
+One can always access the underlying matrix as a numpy array using :meth:`.Qobj.full`.
+It is also possible to access the underlying data as is in a common format using :meth:`.Qobj.data_as`.
+
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
+
+    >>> q.data_as("dia_matrix")
     <4x4 sparse matrix of type '<class 'numpy.complex128'>'
-	   with 3 stored elements in Compressed Sparse Row format>
+        with 3 stored elements (1 diagonals) in DIAgonal format>
 
 
+Conversion between storage type is done using the :meth:`.Qobj.to` method.
 
-The data attribute returns a message stating that the data is a sparse matrix. All ``Qobj`` instances store their data as a sparse matrix to save memory.
-To access the underlying dense matrix one needs to use the :meth:`.Qobj.full` function as described below.
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
+
+    >>> q.to("CSR").data
+    CSR(shape=(4, 4), nnz=3)
+
+    >>> q.to("CSR").data_as("CSR_matrix")
+    <4x4 sparse matrix of type '<class 'numpy.complex128'>'
+        with 3 stored elements in Compressed Sparse Row format>
+
+
+Note that :meth:`.Qobj.data_as` does not do the conversion.
+
+QuTiP will do conversion when needed to keep everything working in any format.
+However these conversions could slow down the computations and it is recomented to keep to one family of format.
+For example, core qutip ``Dense`` and ``CSR`` work well together and binary operation between these format is efficient.
+However binary operations between ``Dense`` and ``Jax`` should be avoided since it is not clear whether the operation will be executed by Jax, (possibly on GPU) or numpy.
 
 .. _basics-qobj-math:
 
@@ -400,7 +430,7 @@ In addition, the logic operators "is equal" `==` and "is not equal" `!=` are als
 .. _basics-functions:
 
 Functions operating on Qobj class
-==================================
+=================================
 
 Like attributes, the quantum object class has defined functions (methods) that operate on ``Qobj`` class instances. For a general quantum object ``Q``:
 
