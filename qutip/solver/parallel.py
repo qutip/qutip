@@ -184,7 +184,6 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         task_kwargs = {}
     map_kw = _read_map_kw(map_kw)
     end_time = map_kw['timeout'] + time.time()
-    job_time = map_kw['job_timeout']
 
     progress_bar = progress_bars[progress_bar](
         len(values), **progress_bar_kwargs
@@ -194,10 +193,11 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     finished = []
     if reduce_func is not None:
         results = None
-        result_func = lambda i, value: reduce_func(value)
+        def result_func(_, value):
+            return reduce_func(value)
     else:
         results = [None] * len(values)
-        result_func = lambda i, value: results.__setitem__(i, value)
+        result_func = results.__setitem__
 
     def _done_callback(future):
         if not future.cancelled():
