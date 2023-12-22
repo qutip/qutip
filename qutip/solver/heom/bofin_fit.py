@@ -67,7 +67,7 @@ class SpectralFitter:
         else:
             self._w = w
             self._J_array = J
-            self._J_fun = InterpolatedUnivariateSpline(w, J) 
+            self._J_fun = InterpolatedUnivariateSpline(w, J)
 
     def _spectral_density_approx(self, w, a, b, c):
         """
@@ -307,24 +307,26 @@ class CorrelationFitter:
         """
 
         # Fit real part
-        start = time()
+        start_real = time()
         rmse_real, params_real = _run_fit(
             lambda *args: np.real(self._corr_approx(*args)),
             np.real(self._C_array), self._t, final_rmse,
             label="correlation_real", sigma=sigma, N=Nr,
             guesses=guesses, lower=lower, upper=upper)
-        end = time()
-        fit_time_real = end - start
+        end_real = time()
 
         # Fit imaginary part
-        start = time()
+        start_imag = time()
         rmse_imag, params_imag = _run_fit(
             lambda *args: np.imag(self._corr_approx(*args)),
             np.imag(self._C_array), self._t, final_rmse,
             label="correlation_imag", sigma=sigma, N=Ni,
             guesses=guesses, lower=lower, upper=upper)
-        end = time()
-        fit_time_imag = end - start
+        end_imag = time()
+
+        # Calculate Fit Times
+        fit_time_real = end_real - start_real
+        fit_time_imag = end_imag - start_imag
 
         # Generate summary
         full_summary = two_column_summary(
@@ -337,13 +339,14 @@ class CorrelationFitter:
                         "rmse_real": rmse_real, "rmse_imag": rmse_imag,
                         "params_real": params_real,
                         "params_imag": params_imag, "summary": full_summary}
-        bath = self._matsubara_coefficients(params_real, params_imag)
+        bath = self._generate_bath(params_real, params_imag)
         bath.correlation_function = self._C_fun
         return bath, self.fitInfo
 
-    def _matsubara_coefficients(self, params_real, params_imag):
+    def _generate_bath(self, params_real, params_imag):
         """ Calculate the Matsubara coefficents and frequencies for the
-        fitted underdamped oscillators
+        fitted underdamped oscillators and generate the corresponding bosonic
+        bath
 
         Parameters
         ----------

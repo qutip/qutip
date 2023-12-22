@@ -194,14 +194,15 @@ class TestCorrelationFitter:
         assert np.isclose(np.real(corr), C2).all()
         assert np.isclose(np.imag(corr), C3).all()
 
-    def test_matsubara_coefficients(self):
+    @pytest.mark.filterwarnings('ignore::RuntimeWarning')
+    def test_generate_bath(self):
         Q = sigmax()
         T = 1
         t = np.linspace(0, 30, 200)
         ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=1, T=T, Nk=1)
         fc = CorrelationFitter(Q, T, t, ud.correlation_function)
         _, fitInfo = fc.get_fit(final_rmse=1e-5)
-        fbath = fc._matsubara_coefficients(
+        fbath = fc._generate_bath(
             fitInfo['params_real'],
             fitInfo['params_imag'])
         fittedbath = fbath.correlation_function_approx(t)
@@ -254,6 +255,7 @@ class TestOhmicBath:
         assert np.isclose(C, Ctest).all()
 
     def test_make_correlation_fit(self):
+        mp = pytest.importorskip("mpmath")
         w = np.linspace(0.1, 5, 2000)
         ob = OhmicBath(Q=sigmax(), T=1, alpha=0.05, wc=5, s=1)
         bath, fitinfo = ob.make_correlation_fit(w,Nr=3,Ni=3)

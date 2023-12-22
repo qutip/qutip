@@ -640,11 +640,11 @@ class DrudeLorentzBath(BosonicBath):
             Nk = 1000
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             self.lam, self.gamma, self.T, Nk=Nk)
-        C_I = np.sum([ck_imag[i]*np.exp(-np.array(vk_imag[i]*t))
-                     for i in range(len(ck_imag))], axis=0)
-        C_R = np.sum([ck_real[i]*np.exp(-np.array(vk_real[i]*t))
-                     for i in range(len(ck_real))], axis=0)
-        return C_R+1j*C_I
+
+        def C(c, v):
+            return np.sum([c[i] * np.exp(-np.array(v[i] * t))
+                           for i in range(len(c))], axis=0)
+        return C(ck_real, vk_real)+1j*C(ck_imag, vk_imag)
 
 
 class DrudeLorentzPadeBath(BosonicBath):
@@ -828,7 +828,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         Parameters
         ----------
         t : np.array or float
-            the time at which to evaluare the correlation function
+            the time at which to evaluate the correlation function
 
         kwargs : This may be the Number of exponents to use, defaults to 1000
         and it should be denoted by Nk
@@ -839,9 +839,9 @@ class DrudeLorentzPadeBath(BosonicBath):
             Nk = 1000
         eta_p, gamma_p = self._corr(
             lam=self.lam, gamma=self.gamma, T=self.T, Nk=Nk)
-
+        t = np.array(t)
         C = np.sum([
-            eta_p[i] * np.exp(-np.array(gamma_p[i] * t))
+            eta_p[i] * np.exp(-gamma_p[i] * t)
             for i in range(len(gamma_p))], axis=0)
         return C
 
