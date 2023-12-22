@@ -364,6 +364,9 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
             remaining_time = max(end_time - time.time(), 0)
             try:
                 result = job.result(remaining_time)
+            except TimeoutError:
+                [job.cancel() for job in jobs]
+                break
             except Exception as err:
                 if map_kw["fail_fast"]:
                     raise err
@@ -382,12 +385,10 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         [job.cancel() for job in jobs]
         raise e
 
-    except TimeoutError:
-        [job.cancel() for job in jobs]
-
     finally:
         os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
-        executor.shutdown()
+        executor.shutdown(kill_workers=True)
+
     progress_bar.finished()
     if errors:
         raise MapExceptions(
