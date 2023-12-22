@@ -348,12 +348,12 @@ class BosonicBath(Bath):
 
     def spectral_density(self, w):
         """
-        Spectral Density, a Factor pi needs to be considered with respect to the coupling constants
-        see (BoFin paper https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.5.013181 eq 7)
-        where the coupling contants correspond to the gks
+        Spectral Density, a Factor pi needs to be considered with respect to
+        the coupling constant see (BoFin paper 10.1103/PhysRevResearch.5.013181
+        eq 7) where the coupling constants correspond to the gks
 
-        The spectral density is usually assumed to be an odd function 
-        TODO (assumed to be odd function)
+        The spectral density is usually assumed to be an odd function, and here
+        we take this approach meaning J(w)=-J(-w)
         """
 
         raise NotImplementedError(
@@ -362,15 +362,14 @@ class BosonicBath(Bath):
     def correlation_function(
             self, t, **kwargs):
         """
-        Calculates the correlation function by numerically computing
-        the integral (see equation 6 in https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.5.013181)
+        Calculates the correlation function by numerically computing the
+        integral (see equation 6 in 10.1103/PhysRevResearch.5.013181)
         where 2n+1 was replaced by cotangent
 
         Parameters
         ----------
         t : np.array or float
-            the time at which to evaluare the correlation function
-
+            the time at which to evaluate the correlation function
         kwargs : will be passed to scipy's `quad_vec` function
 
         Returns
@@ -588,8 +587,9 @@ class DrudeLorentzBath(BosonicBath):
         delta, L = self._dl_terminator.terminator(self.exponents)
         return delta, L
 
-    def _matsubara_params(self, lam, gamma, T, Nk):  # should this take only self now?
-        """ Calculate the Matsubara coefficents and frequencies. """
+    def _matsubara_params(self, lam, gamma, T, Nk):
+        # should this take only self now?
+        """ Calculate the Matsubara coefficients and frequencies. """
         ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
         ck_real.extend([
             (8 * lam * gamma * T * np.pi * k * T /
@@ -606,7 +606,7 @@ class DrudeLorentzBath(BosonicBath):
 
     def spectral_density(self, w):
         """
-        Calculates the DrudeLorentz spectral density (Qutip BonFin 
+        Calculates the DrudeLorentz spectral density (Qutip BonFin
         paper https://doi.org/10.1103/PhysRevResearch.5.013181  see Eq 15)
 
         Parameters
@@ -629,7 +629,7 @@ class DrudeLorentzBath(BosonicBath):
         Parameters
         ----------
         t : np.array or float
-            the time at which to evaluare the correlation function
+            the time at which to evaluate the correlation function
 
         kwargs : This may be the Number of exponents to use defaults to 1000
         and it should be denoted by Nk
@@ -805,7 +805,7 @@ class DrudeLorentzPadeBath(BosonicBath):
 
     def spectral_density(self, w):
         """
-        Calculates the DrudeLorentz spectral density (Qutip BonFin 
+        Calculates the DrudeLorentz spectral density (Qutip BonFin
         paper https://doi.org/10.1103/PhysRevResearch.5.013181  see Eq 15)
 
         Parameters
@@ -839,10 +839,10 @@ class DrudeLorentzPadeBath(BosonicBath):
             Nk = 1000
         eta_p, gamma_p = self._corr(
             lam=self.lam, gamma=self.gamma, T=self.T, Nk=Nk)
- 
+
         C = np.sum([
             eta_p[i] * np.exp(-np.array(gamma_p[i] * t))
-            for i in range(len(gamma_p))],axis=0)
+            for i in range(len(gamma_p))], axis=0)
         return C
 
 
@@ -935,7 +935,7 @@ class UnderDampedBath(BosonicBath):
 
     @staticmethod
     def _matsubara_params(lam, gamma, w0, T, Nk):
-        """ Calculate the Matsubara coefficents and frequencies. """
+        """ Calculate the Matsubara coefficients and frequencies. """
         beta = 1/T
         Om = np.sqrt(w0**2 - (gamma/2)**2)
         Gamma = gamma/2.
@@ -973,7 +973,7 @@ class UnderDampedBath(BosonicBath):
 
     def spectral_density(self, w):
         """
-        Calculates the Underdamped spectral density (Qutip BonFin 
+        Calculates the Underdamped spectral density (Qutip BonFin
         paper https://doi.org/10.1103/PhysRevResearch.5.013181  see Eq 16)
 
         Parameters
@@ -1007,7 +1007,7 @@ class FermionicBath(Bath):
         C_plus(t) = sum(ck_plus * exp(- vk_plus * t))
         C_minus(t) = sum(ck_minus * exp(- vk_minus * t))
 
-    where the expansions above define the coeffiients ``ck`` and the
+    where the expansions above define the coefficients ``ck`` and the
     frequencies ``vk``.
 
     Parameters
@@ -1022,7 +1022,7 @@ class FermionicBath(Bath):
 
     vk_plus : list of complex
         The frequencies (exponents) of the expansion terms for the ``+`` part
-        of the correlation function. The corresponding ceofficients are passed
+        of the correlation function. The corresponding coefficients are passed
         as ck_plus.
 
     ck_minus : list of complex
@@ -1032,7 +1032,7 @@ class FermionicBath(Bath):
 
     vk_minus : list of complex
         The frequencies (exponents) of the expansion terms for the ``-`` part
-        of the correlation function. The corresponding ceofficients are passed
+        of the correlation function. The corresponding coefficients are passed
         as ck_minus.
 
     tag : optional, str, tuple or any other object
@@ -1152,7 +1152,7 @@ class LorentzianPadeBath(FermionicBath):
     A Padé approximant is a sum-over-poles expansion (
     see https://en.wikipedia.org/wiki/Pad%C3%A9_approximant).
 
-    The application of the Padé method to spectrum decompoisitions is described
+    The application of the Padé method to spectrum decompositions is described
     in "Padé spectrum decompositions of quantum distribution functions and
     optimal hierarchical equations of motion construction for quantum open
     systems" [1].
