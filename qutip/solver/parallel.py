@@ -311,8 +311,8 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         The optional additional keyword arguments to the ``task`` function.
     reduce_func : func, optional
         If provided, it will be called with the output of each task instead of
-        storing them in a list. Note that the order in which results are
-        passed to ``reduce_func`` is not defined. It should return None or a
+        storing them in a list. Note that the results are passed to
+        ``reduce_func`` in the original order. It should return None or a
         number. When returning a number, it represents the estimation of the
         number of tasks left. On a return <= 0, the map will end early.
     progress_bar : str, optional
