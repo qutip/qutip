@@ -322,7 +322,6 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     map_kw: dict, optional
         Dictionary containing entry for:
         - timeout: float, Maximum time (sec) for the whole map.
-        - job_timeout: float, Maximum time (sec) for each job in the map.
         - num_cpus: int, Number of jobs to run at once.
         - fail_fast: bool, Abort at the first error.
 
@@ -341,7 +340,6 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         task_kwargs = {}
     map_kw = _read_map_kw(map_kw)
     end_time = map_kw['timeout'] + time.time()
-    job_time = map_kw['job_timeout']
 
     progress_bar = progress_bars[progress_bar](
         len(values), **progress_bar_kwargs
@@ -363,7 +361,7 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
                for value in values]
 
         for n, job in enumerate(jobs):
-            remaining_time = min(end_time - time.time(), job_time)
+            remaining_time = max(end_time - time.time(), 0)
             try:
                 result = job.result(remaining_time)
             except Exception as err:
