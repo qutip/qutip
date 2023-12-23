@@ -64,7 +64,6 @@ class MultiTrajSolver(Solver):
         "normalize_output": False,
         "method": "",
         "map": "serial",
-        "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
     }
@@ -146,7 +145,6 @@ class MultiTrajSolver(Solver):
         map_func = _get_map[self.options['map']]
         map_kw = {
             'timeout': timeout,
-            'job_timeout': self.options['job_timeout'],
             'num_cpus': self.options['num_cpus'],
         }
         state0 = self._prepare_state(state)

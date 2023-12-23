@@ -25,7 +25,6 @@ else:
 
 
 default_map_kw = {
-    'job_timeout': threading.TIMEOUT_MAX,
     'timeout': threading.TIMEOUT_MAX,
     'num_cpus': available_cpu_count(),
     'fail_fast': True,
@@ -165,7 +164,6 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     map_kw: dict, optional
         Dictionary containing entry for:
         - timeout: float, Maximum time (sec) for the whole map.
-        - job_timeout: float, Maximum time (sec) for each job in the map.
         - num_cpus: int, Number of jobs to run at once.
         - fail_fast: bool, Abort at the first error.
 

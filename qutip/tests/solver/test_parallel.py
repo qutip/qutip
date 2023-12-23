@@ -34,7 +34,6 @@ def test_map(map, num_cpus):
     args = (1, 2, 3)
     kwargs = {'d': 4, 'e': 5, 'f': 6}
     map_kw = {
-        'job_timeout': threading.TIMEOUT_MAX,
         'timeout': threading.TIMEOUT_MAX,
         'num_cpus': num_cpus,
     }
@@ -60,7 +59,6 @@ def test_map_accumulator(map, num_cpus):
     args = (1, 2, 3)
     kwargs = {'d': 4, 'e': 5, 'f': 6}
     map_kw = {
-        'job_timeout': threading.TIMEOUT_MAX,
         'timeout': threading.TIMEOUT_MAX,
         'num_cpus': num_cpus,
     }
