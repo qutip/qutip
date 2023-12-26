@@ -131,6 +131,142 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
     return results
 
 
+def _generic_pmap(task, values, task_args, task_kwargs,
+                  reduce_func, timeout, fail_fast,
+                  progress_bar, progress_bar_kwargs,
+                  setup_executor, extract_result, shutdown_executor):
+    """
+    Common functionality for parallel_map, loky_pmap and mpi_pmap.
+    The parameters `setup_executor`, `extract_value` and `destroy_executor`
+    are callback functions with the following signatures:
+    
+    setup_executor: () -> ProcessPoolExecutor, int
+        The second return value specifies the number of workers
+
+    extract_result: (index: int, future: Future) -> Any
+        index: Corresponds to the indices of the `values` list
+        future: The Future that has finished running
+
+    shutdown_executor: (executor: ProcessPoolExecutor,
+                        active_tasks: set[Future]) -> None
+        executor: The ProcessPoolExecutor that was created in setup_executor
+        active_tasks: A set of Futures that are currently still being executed
+            (non-empty if: timeout, error, or reduce_func requesting exit)
+    """
+
+    if task_args is None:
+        task_args = ()
+    if task_kwargs is None:
+        task_kwargs = {}
+    end_time = timeout + time.time()
+
+    progress_bar = progress_bars[progress_bar](
+        len(values), **progress_bar_kwargs
+    )
+
+    errors = {}
+    finished = []
+    if reduce_func is not None:
+        results = None
+
+        def result_func(_, value):
+            return reduce_func(value)
+    else:
+        results = [None] * len(values)
+        result_func = results.__setitem__
+
+    def _done_callback(future):
+        if not future.cancelled():
+            try:
+                result = extract_result(future._i, future)
+                remaining_ntraj = result_func(future._i, result)
+                if remaining_ntraj is not None and remaining_ntraj <= 0:
+                    finished.append(True)
+            except Exception as e:
+                errors[future._i] = e
+            except KeyboardInterrupt:
+                # When a keyboard interrupt happens, it is raised in the main
+                # thread and in all worker threads. The worker threads have
+                # already returned and the main thread is only waiting for the
+                # ProcessPoolExecutor to shutdown before exiting. If the call
+                # to `future.result()` in this callback function raises the
+                # KeyboardInterrupt again, it makes the system enter a kind of
+                # deadlock state, where the user has to press CTRL+C a second
+                # time to actually end the program. For that reason, we
+                # silently ignore the KeyboardInterrupt here, avoiding the
+                # deadlock and allowing the main thread to exit.
+                pass
+        progress_bar.update()
+
+    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
+    try:
+        executor, num_workers = setup_executor()
+        with executor:
+            waiting = set()
+            i = 0
+            aborted = False
+
+            while i < len(values):
+                # feed values to the executor, ensuring that there is at
+                # most one task per worker at any moment in time so that
+                # we can shutdown without waiting for greater than the time
+                # taken by the longest task
+                if len(waiting) >= num_workers:
+                    # no space left, wait for a task to complete or
+                    # the time to run out
+                    timeout = max(0, end_time - time.time())
+                    _done, waiting = concurrent.futures.wait(
+                        waiting,
+                        timeout=timeout,
+                        return_when=concurrent.futures.FIRST_COMPLETED,
+                    )
+                if (
+                    time.time() >= end_time
+                    or (errors and fail_fast)
+                    or finished
+                ):
+                    # no time left, exit the loop
+                    aborted = True
+                    break
+                while len(waiting) < num_workers and i < len(values):
+                    # space and time available, add tasks
+                    value = values[i]
+                    future = executor.submit(
+                        task, *((value,) + task_args), **task_kwargs,
+                    )
+                    # small hack to avoid add_done_callback not supporting
+                    # extra arguments and closures inside loops retaining
+                    # a reference not a value:
+                    future._i = i
+                    future.add_done_callback(_done_callback)
+                    waiting.add(future)
+                    i += 1
+
+            if not aborted:
+                # all tasks have been submitted, timeout has not been reaches
+                # -> wait for all workers to finish before shutting down
+                timeout = max(0, end_time - time.time())
+                _done, waiting = concurrent.futures.wait(
+                    waiting,
+                    timeout=timeout,
+                    return_when=concurrent.futures.ALL_COMPLETED
+                )
+            shutdown_executor(executor, waiting)
+    finally:
+        os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
+
+    progress_bar.finished()
+    if errors and fail_fast:
+        raise list(errors.values())[0]
+    elif errors:
+        raise MapExceptions(
+            f"{len(errors)} iterations failed in parallel_map",
+            errors, results
+        )
+
+    return results
+
+
 def parallel_map(task, values, task_args=None, task_kwargs=None,
                  reduce_func=None, map_kw=None,
                  progress_bar=None, progress_bar_kwargs={}):
@@ -176,113 +312,33 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         list will be returned.
 
     """
-    if task_args is None:
-        task_args = ()
-    if task_kwargs is None:
-        task_kwargs = {}
+
     map_kw = _read_map_kw(map_kw)
-    end_time = map_kw['timeout'] + time.time()
-
-    progress_bar = progress_bars[progress_bar](
-        len(values), **progress_bar_kwargs
-    )
-
-    errors = {}
-    finished = []
-    if reduce_func is not None:
-        results = None
-        def result_func(_, value):
-            return reduce_func(value)
-    else:
-        results = [None] * len(values)
-        result_func = results.__setitem__
-
-    def _done_callback(future):
-        if not future.cancelled():
-            try:
-                result = future.result()
-                remaining_ntraj = result_func(future._i, result)
-                if remaining_ntraj is not None and remaining_ntraj <= 0:
-                    finished.append(True)
-            except Exception as e:
-                errors[future._i] = e
-            except KeyboardInterrupt:
-                # When a keyboard interrupt happens, it is raised in the main
-                # thread and in all worker threads. The worker threads have
-                # already returned and the main thread is only waiting for the
-                # ProcessPoolExecutor to shutdown before exiting. If the call
-                # to `future.result()` in this callback function raises the
-                # KeyboardInterrupt again, it makes the system enter a kind of
-                # deadlock state, where the user has to press CTRL+C a second
-                # time to actually end the program. For that reason, we
-                # silently ignore the KeyboardInterrupt here, avoiding the
-                # deadlock and allowing the main thread to exit.
-                pass
-        progress_bar.update()
-
     if sys.version_info >= (3, 7):
         # ProcessPoolExecutor only supports mp_context from 3.7 onwards
         ctx_kw = {"mp_context": mp_context}
     else:
         ctx_kw = {}
 
-    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
-    try:
-        with concurrent.futures.ProcessPoolExecutor(
-            max_workers=map_kw['num_cpus'], **ctx_kw,
-        ) as executor:
-            waiting = set()
-            i = 0
-            while i < len(values):
-                # feed values to the executor, ensuring that there is at
-                # most one task per worker at any moment in time so that
-                # we can shutdown without waiting for greater than the time
-                # taken by the longest task
-                if len(waiting) >= map_kw['num_cpus']:
-                    # no space left, wait for a task to complete or
-                    # the time to run out
-                    timeout = max(0, end_time - time.time())
-                    _done, waiting = concurrent.futures.wait(
-                        waiting,
-                        timeout=timeout,
-                        return_when=concurrent.futures.FIRST_COMPLETED,
-                    )
-                if (
-                    time.time() >= end_time
-                    or (errors and map_kw['fail_fast'])
-                    or finished
-                ):
-                    # no time left, exit the loop
-                    break
-                while len(waiting) < map_kw['num_cpus'] and i < len(values):
-                    # space and time available, add tasks
-                    value = values[i]
-                    future = executor.submit(
-                        task, *((value,) + task_args), **task_kwargs,
-                    )
-                    # small hack to avoid add_done_callback not supporting
-                    # extra arguments and closures inside loops retaining
-                    # a reference not a value:
-                    future._i = i
-                    future.add_done_callback(_done_callback)
-                    waiting.add(future)
-                    i += 1
-
-            timeout = max(0, end_time - time.time())
-            concurrent.futures.wait(waiting, timeout=timeout)
-    finally:
-        os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
-
-    progress_bar.finished()
-    if errors and map_kw["fail_fast"]:
-        raise list(errors.values())[0]
-    elif errors:
-        raise MapExceptions(
-            f"{len(errors)} iterations failed in parallel_map",
-            errors, results
+    def setup_executor():
+        num_workers = map_kw['num_cpus']
+        executor = concurrent.futures.ProcessPoolExecutor(
+            max_workers=num_workers, **ctx_kw,
         )
+        return executor, num_workers
+    
+    def extract_result (_, future):
+        return future.result()
 
-    return results
+    def shutdown_executor(executor, _):
+        # Since `ProcessPoolExecutor` leaves no other option,
+        # we wait for all worker processes to finish their current task
+        executor.shutdown()
+
+    return _generic_pmap(task, values, task_args, task_kwargs,
+                         reduce_func, map_kw['timeout'], map_kw['fail_fast'],
+                         progress_bar, progress_bar_kwargs,
+                         setup_executor, extract_result, shutdown_executor)
 
 
 def loky_pmap(task, values, task_args=None, task_kwargs=None,
@@ -309,8 +365,8 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         The optional additional keyword arguments to the ``task`` function.
     reduce_func : func, optional
         If provided, it will be called with the output of each task instead of
-        storing them in a list. Note that the results are passed to
-        ``reduce_func`` in the original order. It should return None or a
+        storing them in a list. Note that the order in which results are
+        passed to ``reduce_func`` is not defined. It should return None or a
         number. When returning a number, it represents the estimation of the
         number of tasks left. On a return <= 0, the map will end early.
     progress_bar : str, optional
@@ -332,68 +388,33 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         list will be returned.
 
     """
-    if task_args is None:
-        task_args = ()
-    if task_kwargs is None:
-        task_kwargs = {}
+
+    from loky import get_reusable_executor
+    from loky.process_executor import ShutdownExecutorError
     map_kw = _read_map_kw(map_kw)
-    end_time = map_kw['timeout'] + time.time()
 
-    progress_bar = progress_bars[progress_bar](
-        len(values), **progress_bar_kwargs
-    )
+    def setup_executor():
+        num_workers = map_kw['num_cpus']
+        executor = get_reusable_executor(max_workers=num_workers)
+        return executor, num_workers
+    
+    def extract_result (_, future: concurrent.futures.Future):
+        if isinstance(future.exception(), ShutdownExecutorError):
+            # Task was aborted due to timeout etc
+            return None
+        return future.result()
 
-    errors = {}
-    remaining_ntraj = None
-    if reduce_func is None:
-        results = [None] * len(values)
-    else:
-        results = None
+    def shutdown_executor(executor, active_tasks):
+        # If there are still tasks running, we kill all workers in  order to
+        # return immediately. Otherwise, `kill_workers` is set to False so
+        # that the worker threads can be reused in subsequent loky_pmap calls.
+        executor.shutdown(kill_workers=(len(active_tasks) > 0))
 
-    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
-    from loky import get_reusable_executor, TimeoutError
-    try:
-        executor = get_reusable_executor(max_workers=map_kw['num_cpus'])
+    return _generic_pmap(task, values, task_args, task_kwargs,
+                         reduce_func, map_kw['timeout'], map_kw['fail_fast'],
+                         progress_bar, progress_bar_kwargs,
+                         setup_executor, extract_result, shutdown_executor)
 
-        jobs = [executor.submit(task, value, *task_args, **task_kwargs)
-               for value in values]
-
-        for n, job in enumerate(jobs):
-            remaining_time = max(end_time - time.time(), 0)
-            try:
-                result = job.result(remaining_time)
-            except TimeoutError:
-                [job.cancel() for job in jobs]
-                break
-            except Exception as err:
-                if map_kw["fail_fast"]:
-                    raise err
-                else:
-                    errors[n] = err
-            else:
-                if reduce_func is not None:
-                    remaining_ntraj = reduce_func(result)
-                else:
-                    results[n] = result
-            progress_bar.update()
-            if remaining_ntraj is not None and remaining_ntraj <= 0:
-                break
-
-    except KeyboardInterrupt as e:
-        [job.cancel() for job in jobs]
-        raise e
-
-    finally:
-        os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
-        executor.shutdown(kill_workers=True)
-
-    progress_bar.finished()
-    if errors:
-        raise MapExceptions(
-            f"{len(errors)} iterations failed in loky_pmap",
-            errors, results
-        )
-    return results
 
 
 _get_map = {
