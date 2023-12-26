@@ -272,7 +272,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
                  progress_bar=None, progress_bar_kwargs={}):
     """
     Parallel execution of a mapping of ``values`` to the function ``task``.
-    This is functionally equivalent to::
+    This is functionally equivalent to:
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
@@ -346,7 +346,7 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
               progress_bar=None, progress_bar_kwargs={}):
     """
     Parallel execution of a mapping of ``values`` to the function ``task``.
-    This is functionally equivalent to::
+    This is functionally equivalent to:
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
@@ -416,6 +416,80 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
                          setup_executor, extract_result, shutdown_executor)
 
 
+def mpi_pmap(task, values, task_args=None, task_kwargs=None,
+             reduce_func=None, map_kw=None,
+             progress_bar=None, progress_bar_kwargs={}):
+    """
+    Parallel execution of a mapping of ``values`` to the function ``task``.
+    This is functionally equivalent to:
+
+        result = [task(value, *task_args, **task_kwargs) for value in values]
+
+    Uses the mpi4py module to execute the tasks asynchronously with MPI
+    processes. For more information, consult the documentation of mpi4py and
+    the mpi4py.MPIPoolExecutor class.
+
+    Parameters
+    ----------
+    task : a Python function
+        The function that is to be called for each value in ``task_vec``.
+    values : array / list
+        The list or array of values for which the ``task`` function is to be
+        evaluated.
+    task_args : list, optional
+        The optional additional arguments to the ``task`` function.
+    task_kwargs : dictionary, optional
+        The optional additional keyword arguments to the ``task`` function.
+    reduce_func : func, optional
+        If provided, it will be called with the output of each task instead of
+        storing them in a list. Note that the order in which results are
+        passed to ``reduce_func`` is not defined. It should return None or a
+        number. When returning a number, it represents the estimation of the
+        number of tasks left. On a return <= 0, the map will end early.
+    progress_bar : str, optional
+        Progress bar options's string for showing progress.
+    progress_bar_kwargs : dict, optional
+        Options for the progress bar.
+    map_kw: dict, optional
+        Dictionary containing entry for:
+        - timeout: float, Maximum time (sec) for the whole map.
+        - num_cpus: int, Number of jobs to run at once.
+        - fail_fast: bool, Abort at the first error.
+        All remaining entries of map_kw will be passed to the
+        mpi4py.MPIPoolExecutor constructor.
+
+    Returns
+    -------
+    result : list
+        The result list contains the value of
+        ``task(value, *task_args, **task_kwargs)`` for
+        each value in ``values``. If a ``reduce_func`` is provided, and empty
+        list will be returned.
+
+    """
+
+    from mpi4py.futures import MPIPoolExecutor
+    map_kw = _read_map_kw(map_kw)
+    timeout = map_kw.pop('timeout')
+    num_workers = map_kw.pop('num_cpus')
+    fail_fast = map_kw.pop('fail_fast')
+
+    def setup_executor():
+        executor = MPIPoolExecutor(max_workers=num_workers, **map_kw)
+        return executor, num_workers
+    
+    def extract_result (_, future):
+        return future.result()
+
+    def shutdown_executor(executor, _):
+        executor.shutdown()
+
+    return _generic_pmap(task, values, task_args, task_kwargs,
+                         reduce_func, timeout, fail_fast,
+                         progress_bar, progress_bar_kwargs,
+                         setup_executor, extract_result, shutdown_executor)
+
+
 
 _get_map = {
     "parallel_map": parallel_map,
@@ -423,4 +497,5 @@ _get_map = {
     "serial_map": serial_map,
     "serial": serial_map,
     "loky": loky_pmap,
+    "mpi": mpi_pmap
 }
