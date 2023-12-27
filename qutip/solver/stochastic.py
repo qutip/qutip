@@ -332,13 +332,21 @@ def smesolve(
         - | method : str
           | Which stochastic differential equation integration method to use.
             Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
-        - | map : str {"serial", "parallel", "loky"}
-          | How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
+        - | mpi_options : dict
+          | Only applies if map is "mpi". This dictionary will be passed as
+            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
+            constructor. Note that the `max_workers` argument is provided
+            separately through the `num_cpus` option.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
+        - | bitgenerator : {None, "MT19937", "PCG64", "PCG64DXSM", ...}
+            Which of numpy.random's bitgenerator to use. With `None`, your
+            numpy version's default is used.
         - | dt : float
           | The finite steps lenght for the Stochastic integration method.
             Default change depending on the integrator.
@@ -452,13 +460,21 @@ def ssesolve(
         - | method : str
           | Which stochastic differential equation integration method to use.
             Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
-        - | map : str {"serial", "parallel", "loky"}
-            How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
+        - | mpi_options : dict
+          | Only applies if map is "mpi". This dictionary will be passed as
+            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
+            constructor. Note that the `max_workers` argument is provided
+            separately through the `num_cpus` option.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
+        - | bitgenerator : {None, "MT19937", "PCG64", "PCG64DXSM", ...}
+            Which of numpy.random's bitgenerator to use. With `None`, your
+            numpy version's default is used.
         - | dt : float
           | The finite steps lenght for the Stochastic integration method.
             Default change depending on the integrator.
@@ -493,17 +509,9 @@ class StochasticSolver(MultiTrajSolver):
     system = None
     _open = None
     solver_options = {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size": 10},
-        "store_final_state": False,
-        "store_states": None,
+        **MultiTrajSolver.solver_options,
+        "method": "platen",
         "store_measurement": False,
-        "keep_runs_results": False,
-        "normalize_output": False,
-        "method": "taylor1.5",
-        "map": "serial",
-        "num_cpus": None,
-        "bitgenerator": None,
     }
 
     def __init__(self, H, sc_ops, heterodyne, *, c_ops=(), options=None):
@@ -670,13 +678,22 @@ class StochasticSolver(MultiTrajSolver):
           Whether to store results from all trajectories or just store the
           averages.
 
-        method: str, default: "platen"
-            Which ODE integrator methods are supported.
+        normalize_output: bool
+            Normalize output state to hide ODE numerical errors.
 
-        map: str {"serial", "parallel", "loky"}, default: "serial"
-            How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        method: str, default: "platen"
+            Which differential equation integration method to use.
+
+        map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
+            How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
+
+        mpi_options: dict, default: {}
+            Only applies if map is "mpi". This dictionary will be passed as
+            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
+            constructor. Note that the `max_workers` argument is provided
+            separately through the `num_cpus` option.
 
         num_cpus: None, int, default: None
             Number of cpus to use when running in parallel. ``None`` detect the
@@ -778,17 +795,7 @@ class SMESolver(StochasticSolver):
     _avail_integrators = {}
     _open = True
     solver_options = {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size": 10},
-        "store_final_state": False,
-        "store_states": None,
-        "store_measurement": False,
-        "keep_runs_results": False,
-        "normalize_output": False,
-        "method": "platen",
-        "map": "serial",
-        "num_cpus": None,
-        "bitgenerator": None,
+        **StochasticSolver.solver_options
     }
 
 
@@ -821,15 +828,5 @@ class SSESolver(StochasticSolver):
     _avail_integrators = {}
     _open = False
     solver_options = {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size": 10},
-        "store_final_state": False,
-        "store_states": None,
-        "store_measurement": False,
-        "keep_runs_results": False,
-        "normalize_output": False,
-        "method": "platen",
-        "map": "serial",
-        "num_cpus": None,
-        "bitgenerator": None,
+        **StochasticSolver.solver_options
     }

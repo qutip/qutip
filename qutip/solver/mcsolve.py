@@ -62,8 +62,6 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
           | Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
-        - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
@@ -78,18 +76,26 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
           | Maximum number of (internally defined) steps allowed in one ``tlist``
             step.
         - | max_step : float
-          | Maximum lenght of one internal step. When using pulses, it should be
+          | Maximum length of one internal step. When using pulses, it should be
             less than half the width of the thinnest pulse.
         - | keep_runs_results : bool, [False]
           | Whether to store results from all trajectories or just store the
             averages.
-        - | map : str {"serial", "parallel", "loky"}
-          | How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
+        - | mpi_options : dict
+          | Only applies if map is "mpi". This dictionary will be passed as
+            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
+            constructor. Note that the `max_workers` argument is provided
+            separately through the `num_cpus` option.
         - | num_cpus : int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
+        - | bitgenerator : {None, "MT19937", "PCG64", "PCG64DXSM", ...}
+            Which of numpy.random's bitgenerator to use. With `None`, your
+            numpy version's default is used.
         - | norm_t_tol, norm_tol, norm_steps : float, float, int
           | Parameters used to find the collapse location. ``norm_t_tol`` and
             ``norm_tol`` are the tolerance in time and norm respectively.
@@ -101,6 +107,10 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         - | improved_sampling : Bool
           | Whether to use the improved sampling algorithm from Abdelhafez et
             al. PRA (2019)
+
+        Additional options may be available depending on the selected
+        differential equation integration method, see
+        `Integrator <./classes.html#classes-ode>`_.
 
     seeds : int, SeedSequence, list, optional
         Seed for the random number generator. It can be a single seed used to
@@ -407,21 +417,15 @@ class MCSolver(MultiTrajSolver):
     _trajectory_resultclass = McTrajectoryResult
     _mc_integrator_class = MCIntegrator
     solver_options = {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size": 10},
-        "store_final_state": False,
-        "store_states": None,
-        "keep_runs_results": False,
+        **MultiTrajSolver.solver_options,
         "method": "adams",
-        "map": "serial",
-        "num_cpus": None,
-        "bitgenerator": None,
         "mc_corr_eps": 1e-10,
         "norm_steps": 5,
         "norm_t_tol": 1e-6,
         "norm_tol": 1e-4,
         "improved_sampling": False,
     }
+    del solver_options["normalize_output"]
 
     def __init__(self, H, c_ops, *, options=None):
         _time_start = time()
@@ -589,16 +593,22 @@ class MCSolver(MultiTrajSolver):
             ``chunk_size``.
 
         keep_runs_results: bool, default: False
-          Whether to store results from all trajectories or just store the
-          averages.
+            Whether to store results from all trajectories or just store the
+            averages.
 
         method: str, default: "adams"
-            Which ODE integrator methods are supported.
+            Which differential equation integration method to use.
 
-        map: str {"serial", "parallel", "loky"}, default: "serial"
-            How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
+            How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
+
+        mpi_options: dict, default: {}
+            Only applies if map is "mpi". This dictionary will be passed as
+            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
+            constructor. Note that the `max_workers` argument is provided
+            separately through the `num_cpus` option.
 
         num_cpus: None, int
             Number of cpus to use when running in parallel. ``None`` detect the

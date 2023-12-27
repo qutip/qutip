@@ -272,7 +272,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
                  progress_bar=None, progress_bar_kwargs={}):
     """
     Parallel execution of a mapping of ``values`` to the function ``task``.
-    This is functionally equivalent to:
+    This is functionally equivalent to::
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
@@ -346,7 +346,7 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
               progress_bar=None, progress_bar_kwargs={}):
     """
     Parallel execution of a mapping of ``values`` to the function ``task``.
-    This is functionally equivalent to:
+    This is functionally equivalent to::
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
@@ -421,7 +421,7 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
              progress_bar=None, progress_bar_kwargs={}):
     """
     Parallel execution of a mapping of ``values`` to the function ``task``.
-    This is functionally equivalent to:
+    This is functionally equivalent to::
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 

@@ -1,5 +1,5 @@
 from .result import Result, MultiTrajResult
-from .parallel import _get_map
+from .parallel import _get_map, mpi_pmap
 from time import time
 from .solver_base import Solver
 from ..core import QobjEvo
@@ -64,6 +64,7 @@ class MultiTrajSolver(Solver):
         "normalize_output": False,
         "method": "",
         "map": "serial",
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
     }
@@ -143,10 +144,11 @@ class MultiTrajSolver(Solver):
         result.add_end_condition(ntraj, target_tol)
 
         map_func = _get_map[self.options['map']]
-        map_kw = {
+        map_kw = self.options['mpi_options'] if map_func == mpi_pmap else {}
+        map_kw.update({
             'timeout': timeout,
             'num_cpus': self.options['num_cpus'],
-        }
+        })
         state0 = self._prepare_state(state)
         stats['preparation time'] += time() - start_time
         return stats, seeds, result, map_func, map_kw, state0
