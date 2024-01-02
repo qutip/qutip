@@ -87,8 +87,6 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
           | How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
-        - | job_timeout : int
-          | Maximum time to compute one trajectory.
         - | num_cpus : int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -416,7 +414,6 @@ class MCSolver(MultiTrajSolver):
         "keep_runs_results": False,
         "method": "adams",
         "map": "serial",
-        "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
         "mc_corr_eps": 1e-10,
@@ -602,9 +599,6 @@ class MCSolver(MultiTrajSolver):
             How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
-
-        job_timeout: None, int
-            Maximum time to compute one trajectory.
 
         num_cpus: None, int
             Number of cpus to use when running in parallel. ``None`` detect the
