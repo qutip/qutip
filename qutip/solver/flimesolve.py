@@ -70,7 +70,6 @@ def _floquet_rate_matrix(floquet_basis,
     total_R_tensor = defaultdict(lambda: 0)
     for cdx, c_op in enumerate(c_ops):
         #Doing this to bring FLiMESolve in line with MESolve as far as decay rates are concerned
-        c_op_rates[cdx] *= c_op_rates[cdx]
 
         # Transforming the lowering operator into the Floquet Basis
         #     and taking the FFT
@@ -378,7 +377,7 @@ class FLiMESolver(MESolver):
             if not isinstance(c_op, Qobj):
                 raise TypeError("c_ops must be type Qobj")
             c_ops.append(c_op)
-            c_op_rates.append(rate)
+            c_op_rates.append(rate**2)
 
         self._num_collapse = len(c_ops)
         if not all(
