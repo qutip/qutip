@@ -99,14 +99,13 @@ def _floquet_rate_matrix(floquet_basis,
                 rate_products = np.multiply.outer(
                     c_op_Fourier_amplitudes_list[l],
                     np.conj(c_op_Fourier_amplitudes_list)[k]
-                )
+                ) * c_op_rates[cdx]
 
 
-                included_deltas = np.abs(delta_shift) * omega <= (rate_products*c_op_rates) * time_sense
+                included_deltas = np.abs(delta_shift) * omega <= (rate_products) * time_sense
                 if not np.any(included_deltas):
                     continue
                 keys = np.unique(delta_shift[included_deltas])
-                rate_products *= c_op_rates[cdx]
                 for key in keys:
                     mask[key] = np.logical_and(
                         delta_shift == key, included_deltas)
