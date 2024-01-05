@@ -142,8 +142,10 @@ def kraus_to_choi(kraus_ops):
     r"""
     Convert a list of Kraus operators into Choi representation of the channel.
 
-    Essentially, kraus operators are a decomposition of a Choi matrix, and its reconstruction from them should go as
-    $E = \sum_{i} |K_i\rangle\rangle \langle\langle K_i|$, where we use vector representation of Kraus operators.
+    Essentially, kraus operators are a decomposition of a Choi matrix,
+    and its reconstruction from them should go as
+    $E = \sum_{i} |K_i\rangle\rangle \langle\langle K_i|$,
+    where we use vector representation of Kraus operators.
 
     Parameters
     ----------
@@ -157,14 +159,20 @@ def kraus_to_choi(kraus_ops):
         ``choi.superrep == "choi"``.
     """
     len_op = np.prod(kraus_ops[0].shape)
-    # If Kraus ops have dims [M, N] in qutip notation (act on [N, N] density matrix and produce [M, M] d.m.),
-    # Choi matrix Hilbert space will be [[M, N], [M, N]] because Choi Hilbert space is (output space) x (input space).
+    # If Kraus ops have dims [M, N] in qutip notation (act on [N, N] density
+    # matrix and produce [M, M] d.m.), Choi matrix Hilbert space will
+    # be [[M, N], [M, N]] because Choi Hilbert space
+    # is (output space) x (input space).
     choi_dims = [kraus_ops[0].dims] * 2
     # transform a list of Qobj matrices list[sum_ij k_ij |i><j|]
     # into an array of array vectors sum_ij k_ij |i, j>> = sum_I k_I |I>>
-    kraus_vectors = np.asarray([np.reshape(kraus_op.full(), len_op, "F") for kraus_op in kraus_ops])
+    kraus_vectors = np.asarray(
+        [np.reshape(kraus_op.full(), len_op, "F") for kraus_op in kraus_ops]
+    )
     # sum_{I} |k_I|^2 |I>><<I|
-    choi_array = np.tensordot(kraus_vectors, kraus_vectors.conj(), axes=([0], [0]))
+    choi_array = np.tensordot(
+        kraus_vectors, kraus_vectors.conj(), axes=([0], [0])
+    )
     return Qobj(choi_array, choi_dims, superrep="choi", copy=False)
 
 
