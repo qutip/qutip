@@ -144,7 +144,7 @@ def kraus_to_choi(kraus_ops):
 
     Essentially, kraus operators are a decomposition of a Choi matrix,
     and its reconstruction from them should go as
-    $E = \sum_{i} |K_i\rangle\rangle \langle\langle K_i|$,
+    :math:`E = \sum_{i} |K_i\rangle\rangle \langle\langle K_i|`,
     where we use vector representation of Kraus operators.
 
     Parameters
