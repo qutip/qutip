@@ -225,7 +225,7 @@ def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
     choi_dims = [kraus_ops[0].dims] * 2
     # transform a list of Qobj matrices list[sum_ij k_ij |i><j|]
     # into an array of array vectors sum_ij k_ij |i, j>> = sum_I k_I |I>>
-    kraus_vectors = np.reshape(np.asarray(kraus_ops), (num_ops, -1))
+    kraus_vectors = np.reshape(np.asarray(kraus_ops), (num_ops, -1), "F")
     # sum_{I} |k_I|^2 |I>><<I|
     choi_array = np.tensordot(kraus_vectors, kraus_vectors.conj(), axes=([0], [0]))
     return Qobj(choi_array, choi_dims, superrep="choi", copy=False)
