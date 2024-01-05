@@ -205,8 +205,8 @@ def kraus_to_choi(kraus_ops):
     r"""
     Convert a list of Kraus operators into Choi representation of the channel.
 
-    Essentially, kraus operators are a decomposition of a Choi matrix, and its reconstruction from them should go as
-    $E = \sum_{i} |K_i\rangle\rangle \langle\langle K_i|$, where we use vector representation of Kraus operators.
+    Essentially, kraus operators are a decomposition of a Choi matrix,
+    so in this function we build Choi matrix from vector representation of Kraus operators.
 
     Parameters
     ----------
