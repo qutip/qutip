@@ -138,7 +138,7 @@ def _choi_to_kraus(q_oper, tol=1e-9):
 # Individual conversions from Kraus operators are public because the output
 # list of Kraus operators is not itself a quantum object.
 
-def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
+def kraus_to_choi(kraus_ops):
     r"""
     Convert a list of Kraus operators into Choi representation of the channel.
 
