@@ -201,7 +201,7 @@ def choi_to_kraus(q_oper, tol=1e-9):
     ]
 
 
-def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
+def kraus_to_choi(kraus_ops):
     r"""
     Convert a list of Kraus operators into Choi representation of the channel.
 
