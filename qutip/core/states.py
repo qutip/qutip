@@ -18,6 +18,7 @@ from . import data as _data
 from .qobj import Qobj
 from .operators import jmat, displace, qdiags
 from .tensor import tensor
+from .dimensions import Space, Dimensions
 from .. import settings
 
 
@@ -43,12 +44,28 @@ def _promote_to_zero_list(arg, length):
     raise TypeError("Dimensions must be an integer or list of integers.")
 
 
+def _to_space(dimensions):
+    """
+    Convert `dimensions` to a :class:`.Space`.
+
+    Returns
+    -------
+    space : :class:`.Space`
+    """
+    if isinstance(dimensions, Space):
+        return dimensions
+    elif isinstance(dimensions, list):
+        return Space(dimensions)
+    else:
+        return Space([dimensions])
+
+
 def basis(dimensions, n=None, offset=None, *, dtype=None):
     """Generates the vector representation of a Fock state.
 
     Parameters
     ----------
-    dimensions : int or list of ints
+    dimensions : int or list of ints, Space
         Number of Fock states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
@@ -106,25 +123,37 @@ def basis(dimensions, n=None, offset=None, *, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
-    # Promote all parameters to lists to simplify later logic.
-    if not isinstance(dimensions, list):
-        dimensions = [dimensions]
-    n_dimensions = len(dimensions)
-    ns = [m-off for m, off in zip(_promote_to_zero_list(n, n_dimensions),
-                                  _promote_to_zero_list(offset, n_dimensions))]
-    if any((not isinstance(x, numbers.Integral)) or x < 0 for x in dimensions):
-        raise ValueError("All dimensions must be >= 0.")
-    if not all(0 <= n < dimension for n, dimension in zip(ns, dimensions)):
-        raise ValueError("All basis indices must be "
-                         "`offset <= n < dimension+offset`.")
-    location, size = 0, 1
-    for m, dimension in zip(reversed(ns), reversed(dimensions)):
-        location += m*size
-        size *= dimension
+    # Promote all parameters to Space to simplify later logic.
+    dimensions = _to_space(dimensions)
+
+    size = dimensions.size
+    if n is None:
+        location = 0
+    elif offset:
+        if not isinstance(offset, list): offset = [offset]
+        if not isinstance(n, list): n = [n]
+        if len(n) != len(dimensions.as_list()) or len(offset) != len(n):
+            raise ValueError("All list inputs must be the same length.")
+        
+        n_off = [m-off for m, off in zip(n, offset)]
+        try:
+            location = dimensions.dims2idx(n_off)
+        except IndexError:
+            raise ValueError("All basis indices must be integers in the range "
+                             "`offset <= n < dimension+offset`.")
+    else:
+        if not isinstance(n, list): n = [n]
+        if len(n) != len(dimensions.as_list()):
+            raise ValueError("All list inputs must be the same length.")
+        try:
+            location = dimensions.dims2idx(n)
+        except IndexError:
+            raise ValueError("All basis indices must be integers in the range "
+                             "`0 <= n < dimension`.")
 
     data = _data.one_element[dtype]((size, 1), (location, 0), 1)
     return Qobj(data,
-                dims=[dimensions, [1]*n_dimensions],
+                dims=Dimensions((dimensions, dimensions.scalar_like())),
                 isherm=False,
                 isunitary=False,
                 copy=False)
@@ -305,7 +334,7 @@ def fock_dm(dimensions, n=None, offset=None, *, dtype=None):
 
     Parameters
     ----------
-    dimensions : int or list of ints
+    dimensions : int or list of ints, Space
         Number of Fock states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
@@ -350,7 +379,7 @@ def fock(dimensions, n=None, offset=None, *, dtype=None):
 
     Parameters
     ----------
-    dimensions : int or list of ints
+    dimensions : int or list of ints, Space
         Number of Fock states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
@@ -465,15 +494,16 @@ shape = [5, 5], type = oper, isHerm = True
         return out
 
 
-def maximally_mixed_dm(N, *, dtype=None):
+def maximally_mixed_dm(dimensions, *, dtype=None):
     """
     Returns the maximally mixed density matrix for a Hilbert space of
     dimension N.
 
     Parameters
     ----------
-    N : int
-        Number of basis states in Hilbert space.
+    dimensions : int or list of ints, Space
+        Number of Fock states in Hilbert space.  If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -485,9 +515,10 @@ def maximally_mixed_dm(N, *, dtype=None):
         Thermal state density matrix.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
-    if not isinstance(N, numbers.Integral) or N <= 0:
-        raise ValueError("N must be integer N > 0")
-    return Qobj(_data.identity[dtype](N, scale=1/N), dims=[[N], [N]],
+    dimensions = _to_space(dimensions)
+    N = dimensions.size
+    
+    return Qobj(_data.identity[dtype](N, scale=1/N), dims=[dimensions, dimensions],
                 isherm=True, isunitary=(N == 1), copy=False)
 
 
@@ -523,15 +554,16 @@ shape = [3, 3], type = oper, isHerm = True
     raise TypeError("Input is not a ket or bra vector.")
 
 
-def projection(N, n, m, offset=None, *, dtype=None):
+def projection(dimensions, n, m, offset=None, *, dtype=None):
     r"""
     The projection operator that projects state :math:`\lvert m\rangle` on
     state :math:`\lvert n\rangle`.
 
     Parameters
     ----------
-    N : int
-        Number of basis states in Hilbert space.
+    dimensions : int or list of ints, Space
+        Number of Fock states in Hilbert space.  If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
     n, m : float
         The number states in the projection.
@@ -550,8 +582,8 @@ def projection(N, n, m, offset=None, *, dtype=None):
          Requested projection operator.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    return basis(N, n, offset=offset, dtype=dtype) @ \
-           basis(N, m, offset=offset, dtype=dtype).dag()
+    return basis(dimensions, n, offset=offset, dtype=dtype) @ \
+           basis(dimensions, m, offset=offset, dtype=dtype).dag()
 
 
 def qstate(string, *, dtype=None):
@@ -959,18 +991,15 @@ def phase_basis(N, m, phi0=0, *, dtype=None):
     return Qobj(data, dims=[[N], [1]], copy=False).to(dtype)
 
 
-def zero_ket(N, dims=None, *, dtype=None):
+def zero_ket(dimensions, *, dtype=None):
     """
     Creates the zero ket vector with shape Nx1 and dimensions `dims`.
 
     Parameters
     ----------
-    N : int
-        Hilbert space dimensionality
-
-    dims : list, optional
-        Optional dimensions if ket corresponds to
-        a composite Hilbert space.
+    dimensions : int or list of ints, Space
+        Number of Fock states in Hilbert space.  If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -983,7 +1012,10 @@ def zero_ket(N, dims=None, *, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
-    return Qobj(_data.zeros[dtype](N, 1), dims=dims, copy=False)
+    dimensions = _to_space(dimensions)
+    N = dimensions.size
+    return Qobj(_data.zeros[dtype](N, 1), 
+                dims=[dimensions, dimensions.scalar_like()], copy=False)
 
 
 def spin_state(j, m, type='ket', *, dtype=None):
@@ -1162,14 +1194,14 @@ def triplet_states(*, dtype=None):
     ]
 
 
-def w_state(N=3, *, dtype=None):
+def w_state(N, *, dtype=None):
     """
     Returns the N-qubit W-state:
         ``[ |100..0> + |010..0> + |001..0> + ... |000..1> ] / sqrt(n)``
 
     Parameters
     ----------
-    N : int, default: 3
+    N : int
         Number of qubits in state
 
     dtype : type or str, optional
@@ -1189,14 +1221,14 @@ def w_state(N=3, *, dtype=None):
     return np.sqrt(1 / N) * state
 
 
-def ghz_state(N=3, *, dtype=None):
+def ghz_state(N, *, dtype=None):
     """
     Returns the N-qubit GHZ-state:
         ``[ |00...00> + |11...11> ] / sqrt(2)``
 
     Parameters
     ----------
-    N : int, default: 3
+    N : int
         Number of qubits in state
 
     dtype : type or str, optional

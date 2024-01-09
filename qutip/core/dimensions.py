@@ -5,6 +5,7 @@ Internal use module for manipulating dims specifications.
 # Everything should be explicitly imported, not made available by default.
 
 import numpy as np
+import numbers
 from operator import getitem
 from functools import partial
 from qutip.settings import settings
@@ -459,12 +460,20 @@ class Space(metaclass=MetaSpace):
         """
         Transform dimensions indices to full array indices.
         """
-        return dims
+        if not isinstance(dims, list) or len(dims) != 1:
+            raise ValueError("Dimensions must be a list of one element")
+        if not (0 <= dims[0] < self.size):
+            raise IndexError("Dimensions out of range")
+        if not isinstance(dims[0], numbers.Integral):
+            raise TypeError("Dimensions must be integers")
+        return dims[0]
 
     def idx2dims(self, idx):
         """
         Transform full array indices to dimensions indices.
         """
+        if not (0 <= idx < self.size):
+            raise IndexError("Index out of range")
         return [idx]
 
     def step(self):
@@ -502,6 +511,9 @@ class Space(metaclass=MetaSpace):
 
     def replace_superrep(self, super_rep):
         return self
+    
+    def scalar_like(self):
+        return Field()
 
 
 class Field(Space):
@@ -595,7 +607,7 @@ class Compound(Space):
         pos = 0
         step = 1
         for space, dim in zip(self.spaces[::-1], dims[::-1]):
-            pos += space.dims2idx(dim) * step
+            pos += space.dims2idx([dim]) * step
             step *= space.size
         return pos
 
@@ -643,6 +655,9 @@ class Compound(Space):
         return Compound(
             *[space.replace_superrep(super_rep) for space in self.spaces]
         )
+    
+    def scalar_like(self):
+        return [space.scalar_like() for space in self.spaces]
 
 
 class SuperSpace(Space):
@@ -704,6 +719,9 @@ class SuperSpace(Space):
 
     def replace_superrep(self, super_rep):
         return SuperSpace(self.oper, rep=super_rep)
+    
+    def scalar_like(self):
+        return self.oper.scalar_like()
 
 
 class MetaDims(type):
@@ -901,3 +919,6 @@ class Dimensions(metaclass=MetaDims):
             self.from_.replace_superrep(super_rep),
             self.to_.replace_superrep(super_rep)
         )
+    
+    def scalar_like(self):
+        return [self.to_.scalar_like(), self.from_.scalar_like()]
