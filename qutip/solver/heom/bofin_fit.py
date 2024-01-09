@@ -433,25 +433,28 @@ class OhmicBath:
         Returns
         ----------
             The correlation function at time t"""
-        corr = (
-            (1 / np.pi)
-            * self.alpha
-            * self.wc ** (1 - self.s)
-            * (1/self.T) ** (-(self.s + 1))
-            * mp.gamma(self.s + 1)
-        )
-        z1_u = (1 + (1/self.T) * self.wc - 1.0j *
-                self.wc * t) / ((1/self.T) * self.wc)
-        z2_u = (1 + 1.0j * self.wc * t) / ((1/self.T) * self.wc)
-        # Note: the arguments to zeta should be in as high precision
-        # as possible.
-        # See http://mpmath.org/doc/current/basics.html#providing-correct-input
-        return np.array(
-            [
-                complex(
-                    corr * (mp.zeta(self.s + 1, u1) + mp.zeta(self.s + 1, u2)))
-                for u1, u2 in zip(z1_u, z2_u)],
-            dtype=np.complex128,)
+        if self.T != 0:
+            corr = (
+                (1 / np.pi)
+                * self.alpha
+                * self.wc ** (1 - self.s)
+                * (1/self.T) ** (-(self.s + 1))
+                * mp.gamma(self.s + 1)
+            )
+            z1_u = (1 + (1/self.T) * self.wc - 1.0j *
+                    self.wc * t) / ((1/self.T) * self.wc)
+            z2_u = (1 + 1.0j * self.wc * t) / ((1/self.T) * self.wc)
+            return np.array(
+                [
+                    complex(
+                        corr * (mp.zeta(self.s + 1, u1) +
+                                mp.zeta(self.s + 1, u2)))
+                    for u1, u2 in zip(z1_u, z2_u)],
+                dtype=np.complex128,)
+        else:
+            corr = (1 / np.pi)*self.alpha*self.wc**(self.s+1) * \
+                mp.gamma(self.s+1)*(1+1j*self.wc*t)**(-(self.s+1))
+            return np.array(corr, dtype=np.complex128)
 
     def make_correlation_fit(
             self, x, rmse=1e-5, lower=None, upper=None,
