@@ -133,6 +133,12 @@ def test_implicit_tensor_creation(to_test, dimensions):
     assert implicit.dims == [dimensions, dimensions]
 
 
+def test_qzero_rectangular():
+    assert qutip.qzero([2, 3], [3, 4]).dims == [[2, 3], [3, 4]]
+    assert qutip.qzero([2], [3]).dims == [[2], [3]]
+    assert qutip.qzero([2, 3], [3]).dims == [[2, 3], [3]]
+
+
 @pytest.mark.parametrize("to_test", [qutip.qzero, qutip.qeye, qutip.identity])
 def test_super_operator_creation(to_test):
     size = 2

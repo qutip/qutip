@@ -18,7 +18,7 @@ from . import data as _data
 from .qobj import Qobj
 from .operators import jmat, displace, qdiags
 from .tensor import tensor
-from .dimensions import Space, Dimensions
+from .dimensions import Space
 from .. import settings
 
 
@@ -153,7 +153,7 @@ def basis(dimensions, n=None, offset=None, *, dtype=None):
 
     data = _data.one_element[dtype]((size, 1), (location, 0), 1)
     return Qobj(data,
-                dims=Dimensions((dimensions, dimensions.scalar_like())),
+                dims=[dimensions, dimensions.scalar_like()],
                 isherm=False,
                 isunitary=False,
                 copy=False)

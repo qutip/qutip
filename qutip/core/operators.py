@@ -19,7 +19,7 @@ import scipy.sparse
 
 from . import data as _data
 from .qobj import Qobj
-from .dimensions import flatten
+from .dimensions import flatten, Space
 from .. import settings
 
 
@@ -638,7 +638,7 @@ def _implicit_tensor_dimensions(dimensions):
     dimensions : list
         Dimension list in the form required by ``Qobj`` creation.
     """
-    if not isinstance(dimensions, list):
+    if not isinstance(dimensions, (list, Space)):
         dimensions = [dimensions]
     flat = flatten(dimensions)
     if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
@@ -646,17 +646,20 @@ def _implicit_tensor_dimensions(dimensions):
     return np.prod(flat), [dimensions, dimensions]
 
 
-def qzero(dimensions, *, dtype=None):
+def qzero(dimensions, dims_right=None, *, dtype=None):
     """
     Zero operator.
 
     Parameters
     ----------
-    dimensions : (int) or (list of int) or (list of list of int)
+    dimensions : (int) or (list of int) or (list of list of int), Space
         Dimension of Hilbert space. If provided as a list of ints, then the
         dimension is the product over this list, but the ``dims`` property of
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
+        
+    dims_right : (int) or (list of int) or (list of list of int), Space, optional
+        Dimension of right Hilbert space when the operator is rectangular.
 
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -670,9 +673,14 @@ def qzero(dimensions, *, dtype=None):
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
     size, dimensions = _implicit_tensor_dimensions(dimensions)
+    if dims_right is not None:
+        size_right, dims_right = _implicit_tensor_dimensions(dims_right)
+        dimensions = [dimensions[0], dims_right[1]]
+    else:
+        size_right = size
     # A sparse matrix with no data is equal to a zero matrix.
     type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
-    return Qobj(_data.zeros[dtype](size, size), dims=dimensions,
+    return Qobj(_data.zeros[dtype](size, size_right), dims=dimensions,
                 isherm=True, isunitary=False, copy=False)
 
 
@@ -706,7 +714,7 @@ def qeye(dimensions, *, dtype=None):
 
     Parameters
     ----------
-    dimensions : (int) or (list of int) or (list of list of int)
+    dimensions : (int) or (list of int) or (list of list of int), Space
         Dimension of Hilbert space. If provided as a list of ints, then the
         dimension is the product over this list, but the ``dims`` property of
         the new Qobj are set to this list.  This can produce either `oper` or
