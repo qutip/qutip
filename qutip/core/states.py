@@ -130,11 +130,13 @@ def basis(dimensions, n=None, offset=None, *, dtype=None):
     if n is None:
         location = 0
     elif offset:
-        if not isinstance(offset, list): offset = [offset]
-        if not isinstance(n, list): n = [n]
+        if not isinstance(offset, list):
+            offset = [offset]
+        if not isinstance(n, list):
+            n = [n]
         if len(n) != len(dimensions.as_list()) or len(offset) != len(n):
             raise ValueError("All list inputs must be the same length.")
-        
+
         n_off = [m-off for m, off in zip(n, offset)]
         try:
             location = dimensions.dims2idx(n_off)
@@ -142,7 +144,8 @@ def basis(dimensions, n=None, offset=None, *, dtype=None):
             raise ValueError("All basis indices must be integers in the range "
                              "`offset <= n < dimension+offset`.")
     else:
-        if not isinstance(n, list): n = [n]
+        if not isinstance(n, list):
+            n = [n]
         if len(n) != len(dimensions.as_list()):
             raise ValueError("All list inputs must be the same length.")
         try:
@@ -517,8 +520,9 @@ def maximally_mixed_dm(dimensions, *, dtype=None):
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
     dimensions = _to_space(dimensions)
     N = dimensions.size
-    
-    return Qobj(_data.identity[dtype](N, scale=1/N), dims=[dimensions, dimensions],
+
+    return Qobj(_data.identity[dtype](N, scale=1/N),
+                dims=[dimensions, dimensions],
                 isherm=True, isunitary=(N == 1), copy=False)
 
 
@@ -1014,7 +1018,7 @@ def zero_ket(dimensions, *, dtype=None):
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
     dimensions = _to_space(dimensions)
     N = dimensions.size
-    return Qobj(_data.zeros[dtype](N, 1), 
+    return Qobj(_data.zeros[dtype](N, 1),
                 dims=[dimensions, dimensions.scalar_like()], copy=False)
 
 

@@ -652,14 +652,15 @@ def qzero(dimensions, dims_right=None, *, dtype=None):
 
     Parameters
     ----------
-    dimensions : (int) or (list of int) or (list of list of int), Space
-        Number of basis states in the Hilbert space. If provided as a list of 
-        ints, then the dimension is the product over this list, but the 
-        ``dims`` property of the new Qobj are set to this list.  This can 
+    dimensions : int, list of int, list of list of int, Space
+        Number of basis states in the Hilbert space. If provided as a list of
+        ints, then the dimension is the product over this list, but the
+        ``dims`` property of the new Qobj are set to this list.  This can
         produce either `oper` or `super` depending on the passed `dimensions`.
-        
-    dims_right : (int) or (list of int) or (list of list of int), Space, optional
-        Number of basis states in the right Hilbert space when the operator is rectangular.
+
+    dims_right : int, list of int, list of list of int, Space, optional
+        Number of basis states in the right Hilbert space when the operator is
+        rectangular.
 
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -715,8 +716,8 @@ def qeye(dimensions, *, dtype=None):
     ----------
     dimensions : (int) or (list of int) or (list of list of int), Space
         Number of basis states in the Hilbert space. If provided as a list of
-        ints, then the dimension is the product over this list, but the 
-        ``dims`` property of the new Qobj are set to this list.  This can 
+        ints, then the dimension is the product over this list, but the
+        ``dims`` property of the new Qobj are set to this list.  This can
         produce either `oper` or `super` depending on the passed `dimensions`.
 
     dtype : type or str, optional
@@ -1150,7 +1151,7 @@ def qft(dimensions, *, dtype="dense"):
     ----------
     dimensions : (int) or (list of int) or (list of list of int)
         Number of basis states in the Hilbert space. If provided as a list of
-        ints, then the dimension is the product over this list, but the 
+        ints, then the dimension is the product over this list, but the
         ``dims`` property of the new Qobj are set to this list.
 
     dtype : str or type, [keyword only] [optional]

@@ -513,7 +513,7 @@ class Space(metaclass=MetaSpace):
 
     def replace_superrep(self, super_rep):
         return self
-    
+
     def scalar_like(self):
         return Field()
 
@@ -657,7 +657,7 @@ class Compound(Space):
         return Compound(
             *[space.replace_superrep(super_rep) for space in self.spaces]
         )
-    
+
     def scalar_like(self):
         return [space.scalar_like() for space in self.spaces]
 
@@ -721,7 +721,7 @@ class SuperSpace(Space):
 
     def replace_superrep(self, super_rep):
         return SuperSpace(self.oper, rep=super_rep)
-    
+
     def scalar_like(self):
         return self.oper.scalar_like()
 
@@ -921,6 +921,6 @@ class Dimensions(metaclass=MetaDims):
             self.from_.replace_superrep(super_rep),
             self.to_.replace_superrep(super_rep)
         )
-    
+
     def scalar_like(self):
         return [self.to_.scalar_like(), self.from_.scalar_like()]
