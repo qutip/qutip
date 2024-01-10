@@ -66,7 +66,7 @@ def basis(dimensions, n=None, offset=None, *, dtype=None):
     Parameters
     ----------
     dimensions : int or list of ints, Space
-        Number of Fock states in Hilbert space.  If a list, then the resultant
+        Number of basis states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
     n : int or list of ints, optional (default 0 for all dimensions)
