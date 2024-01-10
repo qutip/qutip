@@ -1194,14 +1194,14 @@ def triplet_states(*, dtype=None):
     ]
 
 
-def w_state(N, *, dtype=None):
+def w_state(N_qubit, *, dtype=None):
     """
     Returns the N-qubit W-state:
         ``[ |100..0> + |010..0> + |001..0> + ... |000..1> ] / sqrt(n)``
 
     Parameters
     ----------
-    N : int
+    N_qubit : int
         Number of qubits in state
 
     dtype : type or str, optional
@@ -1213,22 +1213,22 @@ def w_state(N, *, dtype=None):
     W : :obj:`.Qobj`
         N-qubit W-state
     """
-    inds = np.zeros(N, dtype=int)
+    inds = np.zeros(N_qubit, dtype=int)
     inds[0] = 1
-    state = basis([2]*N, list(inds), dtype=dtype)
-    for kk in range(1, N):
-        state += basis([2]*N, list(np.roll(inds, kk)), dtype=dtype)
-    return np.sqrt(1 / N) * state
+    state = basis([2]*N_qubit, list(inds), dtype=dtype)
+    for kk in range(1, N_qubit):
+        state += basis([2]*N_qubit, list(np.roll(inds, kk)), dtype=dtype)
+    return np.sqrt(1 / N_qubit) * state
 
 
-def ghz_state(N, *, dtype=None):
+def ghz_state(N_qubit, *, dtype=None):
     """
     Returns the N-qubit GHZ-state:
         ``[ |00...00> + |11...11> ] / sqrt(2)``
 
     Parameters
     ----------
-    N : int
+    N_qubit : int
         Number of qubits in state
 
     dtype : type or str, optional
@@ -1240,5 +1240,5 @@ def ghz_state(N, *, dtype=None):
     G : qobj
         N-qubit GHZ-state
     """
-    return np.sqrt(0.5) * (basis([2]*N, [0]*N, dtype=dtype) +
-                           basis([2]*N, [1]*N, dtype=dtype))
+    return np.sqrt(0.5) * (basis([2]*N_qubit, [0]*N_qubit, dtype=dtype) +
+                           basis([2]*N_qubit, [1]*N_qubit, dtype=dtype))
