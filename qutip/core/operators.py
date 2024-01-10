@@ -392,7 +392,7 @@ def destroy(N, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Dimension of Hilbert space.
+        Number of basis states in the Hilbert space.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state
@@ -431,7 +431,7 @@ def create(N, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Dimension of Hilbert space.
+        Number of basis states in the Hilbert space.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state
@@ -653,13 +653,13 @@ def qzero(dimensions, dims_right=None, *, dtype=None):
     Parameters
     ----------
     dimensions : (int) or (list of int) or (list of list of int), Space
-        Dimension of Hilbert space. If provided as a list of ints, then the
-        dimension is the product over this list, but the ``dims`` property of
-        the new Qobj are set to this list.  This can produce either `oper` or
-        `super` depending on the passed `dimensions`.
+        Number of basis states in the Hilbert space. If provided as a list of 
+        ints, then the dimension is the product over this list, but the 
+        ``dims`` property of the new Qobj are set to this list.  This can 
+        produce either `oper` or `super` depending on the passed `dimensions`.
         
     dims_right : (int) or (list of int) or (list of list of int), Space, optional
-        Dimension of right Hilbert space when the operator is rectangular.
+        Number of basis states in the right Hilbert space when the operator is rectangular.
 
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -679,7 +679,6 @@ def qzero(dimensions, dims_right=None, *, dtype=None):
     else:
         size_right = size
     # A sparse matrix with no data is equal to a zero matrix.
-    type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
     return Qobj(_data.zeros[dtype](size, size_right), dims=dimensions,
                 isherm=True, isunitary=False, copy=False)
 
@@ -715,10 +714,10 @@ def qeye(dimensions, *, dtype=None):
     Parameters
     ----------
     dimensions : (int) or (list of int) or (list of list of int), Space
-        Dimension of Hilbert space. If provided as a list of ints, then the
-        dimension is the product over this list, but the ``dims`` property of
-        the new Qobj are set to this list.  This can produce either `oper` or
-        `super` depending on the passed `dimensions`.
+        Number of basis states in the Hilbert space. If provided as a list of
+        ints, then the dimension is the product over this list, but the 
+        ``dims`` property of the new Qobj are set to this list.  This can 
+        produce either `oper` or `super` depending on the passed `dimensions`.
 
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -750,7 +749,6 @@ isherm = True
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
     size, dimensions = _implicit_tensor_dimensions(dimensions)
-    type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
     return Qobj(_data.identity[dtype](size), dims=dimensions,
                 isherm=True, isunitary=True, copy=False)
 
@@ -791,7 +789,7 @@ def position(N, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of Fock states in Hilbert space.
+        Number of basis states in the Hilbert space.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state
@@ -819,7 +817,7 @@ def momentum(N, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of Fock states in Hilbert space.
+        Number of basis states in the Hilbert space.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state
@@ -847,7 +845,7 @@ def num(N, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        The dimension of the Hilbert space.
+        Number of basis states in the Hilbert space.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state
@@ -954,7 +952,7 @@ def displace(N, alpha, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Dimension of Hilbert space.
+        Number of basis states in the Hilbert space.
 
     alpha : float/complex
         Displacement amplitude.
@@ -1049,7 +1047,7 @@ def phase(N, phi0=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        Number of basis states in the Hilbert space.
 
     phi0 : float, default: 0
         Reference phase.
@@ -1124,7 +1122,7 @@ def tunneling(N, m=1, *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        Number of basis states in the Hilbert space.
 
     m : int, default: 1
         Number of excitations in tunneling event.
@@ -1151,9 +1149,9 @@ def qft(dimensions, *, dtype="dense"):
     Parameters
     ----------
     dimensions : (int) or (list of int) or (list of list of int)
-        Dimension of Hilbert space. If provided as a list of ints, then the
-        dimension is the product over this list, but the ``dims`` property of
-        the new Qobj are set to this list.
+        Number of basis states in the Hilbert space. If provided as a list of
+        ints, then the dimension is the product over this list, but the 
+        ``dims`` property of the new Qobj are set to this list.
 
     dtype : str or type, [keyword only] [optional]
         Storage representation. Any data-layer known to ``qutip.data.to`` is

@@ -278,7 +278,7 @@ def coherent_dm(N, alpha, offset=0, method='operator', *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of Fock states in Hilbert space.
+        Number of basis states in Hilbert space.
 
     alpha : float/complex
         Eigenvalue for coherent state.
@@ -335,7 +335,7 @@ def fock_dm(dimensions, n=None, offset=None, *, dtype=None):
     Parameters
     ----------
     dimensions : int or list of ints, Space
-        Number of Fock states in Hilbert space.  If a list, then the resultant
+        Number of basis states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
     n : int or list of ints, default: 0 for all dimensions
@@ -380,7 +380,7 @@ def fock(dimensions, n=None, offset=None, *, dtype=None):
     Parameters
     ----------
     dimensions : int or list of ints, Space
-        Number of Fock states in Hilbert space.  If a list, then the resultant
+        Number of basis states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
     n : int or list of ints, default: 0 for all dimensions
@@ -502,7 +502,7 @@ def maximally_mixed_dm(dimensions, *, dtype=None):
     Parameters
     ----------
     dimensions : int or list of ints, Space
-        Number of Fock states in Hilbert space.  If a list, then the resultant
+        Number of basis states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
     dtype : type or str, optional
@@ -562,7 +562,7 @@ def projection(dimensions, n, m, offset=None, *, dtype=None):
     Parameters
     ----------
     dimensions : int or list of ints, Space
-        Number of Fock states in Hilbert space.  If a list, then the resultant
+        Number of basis states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
     n, m : float
@@ -960,7 +960,7 @@ def phase_basis(N, m, phi0=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of basis vectors in Hilbert space.
+        Number of basis states in Hilbert space.
 
     m : int
         Integer corresponding to the mth discrete phase
@@ -998,7 +998,7 @@ def zero_ket(dimensions, *, dtype=None):
     Parameters
     ----------
     dimensions : int or list of ints, Space
-        Number of Fock states in Hilbert space.  If a list, then the resultant
+        Number of basis states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
     dtype : type or str, optional

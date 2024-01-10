@@ -28,6 +28,8 @@ def flatten(l):
     [0, 1, 2]
 
     """
+    if isinstance(l, (Space, Dimensions)):
+        l = l.as_list()
     if not isinstance(l, list):
         return [l]
     else:

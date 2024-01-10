@@ -315,3 +315,16 @@ def test_state_type(func, args, alias, dtype):
         else:
             for obj in object:
                 assert isinstance(obj.data, dtype)
+
+
+@pytest.mark.parametrize(['func', 'args'], [
+    (qutip.basis, (None,)),
+    (qutip.fock, (None,)),
+    (qutip.fock_dm, (None,)),
+    (qutip.maximally_mixed_dm, ()),
+    (qutip.projection, ([0, 1, 1], [1, 1, 0])),
+    (qutip.zero_ket, ()),
+], ids=_id_func)
+def test_state_space_input(func,  args):
+    dims = qutip.dimensions.Space([2, 2, 2])
+    assert func(dims, *args) == func([2, 2, 2], *args)
