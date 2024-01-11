@@ -201,22 +201,36 @@ def choi_to_kraus(q_oper, tol=1e-9):
     ]
 
 
-def kraus_to_choi(kraus_list):
+def kraus_to_choi(kraus_ops):
+    r"""
+    Convert a list of Kraus operators into Choi representation of the channel.
+
+    Essentially, kraus operators are a decomposition of a Choi matrix,
+    so in this function we build Choi matrix from vector representation of Kraus operators.
+
+    Parameters
+    ----------
+    kraus_ops : list[Qobj]
+        The list of Kraus operators to be converted to Choi representation.
+
+    Returns
+    -------
+    choi : Qobj
+        A quantum object representing the same map as ``kraus_ops``, such that
+        ``choi.superrep == "choi"``.
     """
-    Takes a list of Kraus operators and returns the Choi matrix for the channel
-    represented by the Kraus operators in `kraus_list`
-    """
-    kraus_mat_list = list(map(lambda x: x.data.toarray(), kraus_list))
-    op_rng = range(kraus_mat_list[0].shape[0])
-    choi_blocks = array([[sum([
-                              np.outer(op[:, c_ix],
-                                       np.transpose(np.conjugate(op))[r_ix, :])
-                              for op in kraus_mat_list])
-                          for r_ix in op_rng]
-                         for c_ix in op_rng])
-    return Qobj(inpt=hstack(hstack(choi_blocks)),
-                dims=[kraus_list[0].dims[::-1], kraus_list[0].dims[::-1]],
-                type='super', superrep='choi')
+    len_op = np.prod(kraus_ops[0].shape)
+    # If Kraus ops have dims [M, N] in qutip notation (act on [N, N] density matrix and produce [M, M] d.m.),
+    # Choi matrix Hilbert space will be [[M, N], [M, N]] because Choi Hilbert space is (output space) x (input space).
+    choi_dims = [kraus_ops[0].dims] * 2
+    # transform a list of Qobj matrices list[sum_ij k_ij |i><j|]
+    # into an array of array vectors sum_ij k_ij |i, j>> = sum_I k_I |I>>
+    kraus_vectors = np.asarray(
+        [np.reshape(kraus_op.full(), len_op, "F") for kraus_op in kraus_ops]
+    )
+    # sum_{I} |k_I|^2 |I>><<I|
+    choi_array = np.tensordot(kraus_vectors, kraus_vectors.conj(), axes=([0], [0]))
+    return Qobj(choi_array, choi_dims, superrep="choi", copy=False)
 
 
 def kraus_to_super(kraus_list):
