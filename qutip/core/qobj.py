@@ -377,12 +377,11 @@ class Qobj:
             converter = _data.to[data_type]
         except (KeyError, TypeError):
             raise ValueError("Unknown conversion type: " + str(data_type))
-        if type(self.data) is data_type:
+        if type(self._data) is data_type:
             return self
         return Qobj(converter(self._data),
                     dims=self._dims,
                     isherm=self._isherm,
-                    superrep=self.superrep,
                     isunitary=self._isunitary,
                     copy=False)
 
@@ -441,7 +440,6 @@ class Qobj:
         return Qobj(out,
                     dims=self._dims,
                     isherm=isherm,
-                    superrep=self.superrep,
                     isunitary=isunitary,
                     copy=False)
 
@@ -456,23 +454,16 @@ class Qobj:
                 other = Qobj(other)
             except TypeError:
                 return NotImplemented
-        if self._dims[1] != other._dims[0]:
-            raise TypeError("".join([
-                "incompatible dimensions ",
-                repr(self.dims),
-                " and ",
-                repr(other.dims),
-            ]))
-        if (
-            (self.isbra and other.isket)
-            or (self.isoperbra and other.isoperket)
-        ):
-            return _data.inner(self.data, other.data)
+        new_dims = self._dims @ other._dims
+        if new_dims.type == 'scalar':
+            return _data.inner(self._data, other._data)
 
-        return Qobj(_data.matmul(self.data, other.data),
-                    dims=Dimensions(other._dims[1], self._dims[0]),
-                    isunitary=self._isunitary and other._isunitary,
-                    copy=False)
+        return Qobj(
+            _data.matmul(self._data, other._data),
+            dims=new_dims,
+            isunitary=self._isunitary and other._isunitary,
+            copy=False
+        )
 
     def __truediv__(self, other):
         return self.__mul__(1 / other)
@@ -526,7 +517,7 @@ class Qobj:
     def _str_header(self):
         out = ", ".join([
             "Quantum object: dims=" + str(self.dims),
-            "shape=" + str(self.data.shape),
+            "shape=" + str(self._data.shape),
             "type=" + repr(self.type),
         ])
         if self.type in ('oper', 'super'):
@@ -701,7 +692,7 @@ class Qobj:
                     "vector norm must be in " + repr(_NORM_ALLOWED_VECTOR)
                 )
         kwargs = kwargs or {}
-        return _NORM_FUNCTION_LOOKUP[norm](self.data, **kwargs)
+        return _NORM_FUNCTION_LOOKUP[norm](self._data, **kwargs)
 
     def proj(self):
         """Form the projector from a given ket or bra vector.
@@ -755,8 +746,8 @@ class Qobj:
         if self.type in ("super", "operator-ket", "operator-bra"):
             raise TypeError('purity is only defined for states.')
         if self.isket or self.isbra:
-            return _data.norm.l2(self.data)**2
-        return _data.trace(_data.matmul(self.data, self.data)).real
+            return _data.norm.l2(self._data)**2
+        return _data.trace(_data.matmul(self._data, self._data)).real
 
     def full(self, order='C', squeeze=False):
         """Dense array from quantum object.
@@ -794,7 +785,7 @@ class Qobj:
         data : numpy.ndarray, scipy.sparse.matrix_csr, etc.
             Matrix in the type of the underlying libraries.
         """
-        return _data.extract(self.data, format, copy)
+        return _data.extract(self._data, format, copy)
 
     def diag(self):
         """Diagonal elements of quantum object.
@@ -1733,7 +1724,7 @@ class Qobj:
         return self._isunitary
 
     @property
-    def shape(self): return self.data.shape
+    def shape(self): return self._data.shape
 
     isbra = property(isbra)
     isket = property(isket)
