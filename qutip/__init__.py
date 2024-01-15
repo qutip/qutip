@@ -67,7 +67,7 @@ else:
             "The new version of Cython, (>= 3.0.0) is not supported."
             .format(_Cython.__version__)
         )
-    elif _version2int(_Cython.__version__.split()[0]) >= _version2int("3.12.0"):
+    elif _version2int(sys.version.split()[0]) >= _version2int("3.12.0"):
         warnings.warn(
             "Runtime cython compilation does not work on Python 3.12."
         )
