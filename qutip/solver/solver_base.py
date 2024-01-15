@@ -472,7 +472,7 @@ def _solver_deprecation(kwargs, options, solver="me"):
     if "map_kwargs" in kwargs and solver in ["mc", "stoc"]:
         warnings.warn(
             '"map_kwargs" are now included in options:\n'
-            'Use `options={"num_cpus": N, "job_timeout": Nsec}`',
+            'Use `options={"num_cpus": N}`',
             FutureWarning
         )
         del kwargs["map_kwargs"]

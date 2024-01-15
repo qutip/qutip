@@ -337,8 +337,6 @@ def smesolve(
           | How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
-        - | job_timeout : NoneType, int
-          | Maximum time to compute one trajectory.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -364,7 +362,7 @@ def smesolve(
     )
     return sol.run(
         rho0, tlist, ntraj, e_ops=e_ops,
-        seed=seeds, target_tol=target_tol, timeout=timeout,
+        seeds=seeds, target_tol=target_tol, timeout=timeout,
     )
 
 
@@ -459,8 +457,6 @@ def ssesolve(
             How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
-        - | job_timeout : NoneType, int
-          | Maximum time to compute one trajectory.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -483,7 +479,7 @@ def ssesolve(
     sol = SSESolver(H, sc_ops, options=options, heterodyne=heterodyne)
     return sol.run(
         psi0, tlist, ntraj, e_ops=e_ops,
-        seed=seeds, target_tol=target_tol, timeout=timeout,
+        seeds=seeds, target_tol=target_tol, timeout=timeout,
     )
 
 
@@ -507,7 +503,6 @@ class StochasticSolver(MultiTrajSolver):
         "normalize_output": False,
         "method": "taylor1.5",
         "map": "serial",
-        "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
     }
@@ -684,9 +679,6 @@ class StochasticSolver(MultiTrajSolver):
             run in parallel while "loky" use the module of the same name to do
             so.
 
-        job_timeout: None, int, default: None
-            Maximum time to compute one trajectory.
-
         num_cpus: None, int, default: None
             Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -796,7 +788,6 @@ class SMESolver(StochasticSolver):
         "normalize_output": False,
         "method": "platen",
         "map": "serial",
-        "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
     }
@@ -840,7 +831,6 @@ class SSESolver(StochasticSolver):
         "normalize_output": False,
         "method": "platen",
         "map": "serial",
-        "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
     }

@@ -87,8 +87,6 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
           | How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
-        - | job_timeout : int
-          | Maximum time to compute one trajectory.
         - | num_cpus : int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -161,7 +159,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     mc = MCSolver(H, c_ops, options=options)
 
     result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
-                    seed=seeds, target_tol=target_tol, timeout=timeout)
+                    seeds=seeds, target_tol=target_tol, timeout=timeout)
     return result
 
 
@@ -416,7 +414,6 @@ class MCSolver(MultiTrajSolver):
         "keep_runs_results": False,
         "method": "adams",
         "map": "serial",
-        "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
         "mc_corr_eps": 1e-10,
@@ -500,7 +497,7 @@ class MCSolver(MultiTrajSolver):
         return seed, result
 
     def run(self, state, tlist, ntraj=1, *,
-            args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
+            args=None, e_ops=(), timeout=None, target_tol=None, seeds=None):
         """
         Do the evolution of the Quantum system.
         See the overridden method for further details. The modification
@@ -511,7 +508,7 @@ class MCSolver(MultiTrajSolver):
         if not self.options.get("improved_sampling", False):
             return super().run(state, tlist, ntraj=ntraj, args=args,
                                e_ops=e_ops, timeout=timeout,
-                               target_tol=target_tol, seed=seed)
+                               target_tol=target_tol, seeds=seeds)
         stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
             state,
             ntraj,
@@ -519,7 +516,7 @@ class MCSolver(MultiTrajSolver):
             e_ops=e_ops,
             timeout=timeout,
             target_tol=target_tol,
-            seed=seed,
+            seeds=seeds,
         )
         # first run the no-jump trajectory
         start_time = time()
@@ -602,9 +599,6 @@ class MCSolver(MultiTrajSolver):
             How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
-
-        job_timeout: None, int
-            Maximum time to compute one trajectory.
 
         num_cpus: None, int
             Number of cpus to use when running in parallel. ``None`` detect the

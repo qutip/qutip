@@ -31,8 +31,7 @@ def krylovsolve(
         that can be made into :obj:`.QobjEvo` are also accepted.
 
     psi0 : :class:`.Qobj`
-        initial state vector (ket)
-        or initial unitary operator `psi0 = U`
+        Initial state vector (ket)
 
     tlist : *list* / *array*
         list of times for :math:`t`.

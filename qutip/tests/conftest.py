@@ -100,7 +100,7 @@ def _patched_build_err_msg(arrays, err_msg, header='Items are not equal:',
             except Exception as exc:
                 r = '[repr failed for <{}>: {}]'.format(type(a).__name__, exc)
             # [diff] The original truncates the output to 3 lines here.
-            msg.append(' %s: %s' % (names[i], r))
+            msg.append(f' {names[i]}: {r}')
     return '\n'.join(msg)
 
 
