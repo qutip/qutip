@@ -128,7 +128,7 @@ jobs:
           - case-name: Python 3.12
             os: ubuntu-latest
             python-version: "3.12"
-            pytest-extra-options: "-W ignore:Runtime cython:UserWarning"
+            pytest-extra-options: "-W ignore:Runtime cython:UserWarning -W ignore:datetime:DeprecationWarning"
 
     steps:
       - uses: actions/checkout@v3
