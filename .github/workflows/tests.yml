@@ -123,6 +123,12 @@ jobs:
             python-version: "3.10"
             pytest-extra-options: "-W ignore::ImportWarning -k 'not (test_correlation or test_interpolate or test_mcsolve)'"
 
+          # Builds without Cython at runtime.  This is a core feature;
+          # everything should be able to run this.
+          - case-name: Python 3.12
+            os: ubuntu-latest
+            python-version: "3.12"
+
     steps:
       - uses: actions/checkout@v3
 

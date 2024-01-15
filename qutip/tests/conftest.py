@@ -32,6 +32,10 @@ def _skip_cython_tests_if_unavailable(item):
         # importorskip does not have maxversion
         if _version2int(_Cython.__version__) >= _version2int("3.0.0"):
             pytest.skip("cython 3.0.0 not supported")
+            return
+        import qutip
+        if not qutip.settings.has_cython:
+            pytest.skip("Cython not available at runtime.")
 
 
 @pytest.hookimpl(trylast=True)
