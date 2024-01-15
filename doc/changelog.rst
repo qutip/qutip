@@ -6,6 +6,25 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 4.7.4 (2024-01-15)
+========================
+
+Bug Fixes
+---------
+
+- Adapt to deprecation from matplotlib 3.8 (#2243, reported by Bogdan Reznychenko)
+- Fix name of temp files for removal after use. (#2251, reported by Qile Su)
+- Avoid integer overflow in Qobj creation. (#2252, reported by KianHwee-Lim)
+- Ignore DeprecationWarning from pyximport (#2287)
+
+
+Miscellaneous
+-------------
+
+- Rework `choi_to_kraus`, making it rely on an eigenstates solver that can choose `eigh` is the Choi matrix is Hermitian, as it is more numerically stable. (#2276, by Bogdan Reznychenko)
+- Rework `kraus_to_choi`, making it faster (#2283, by Bogdan Reznychenko and Rafael Haenel)
+
+
 QuTiP 4.7.3 (2023-08-22)
 ========================
 
