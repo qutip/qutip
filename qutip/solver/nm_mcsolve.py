@@ -108,8 +108,6 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
           | How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
-        - | job_timeout : int
-          | Maximum time to compute one trajectory.
         - | num_cpus : int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -186,7 +184,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
 
     nmmc = NonMarkovianMCSolver(H, ops_and_rates, options=options)
     result = nmmc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
-                      seed=seeds, target_tol=target_tol, timeout=timeout)
+                      seeds=seeds, target_tol=target_tol, timeout=timeout)
     return result
 
 
@@ -323,13 +321,6 @@ class NonMarkovianMCSolver(MCSolver):
 
     options : SolverOptions, [optional]
         Options for the evolution.
-
-    seed : int, SeedSequence, list, [optional]
-        Seed for the random number generator. It can be a single seed used to
-        spawn seeds for each trajectory or a list of seed, one for each
-        trajectory. Seeds are saved in the result and can be reused with::
-
-            seeds=prev_result.seeds
     """
     name = "nm_mcsolve"
     _resultclass = NmmcResult
@@ -346,7 +337,7 @@ class NonMarkovianMCSolver(MCSolver):
     _mc_integrator_class = NmMCIntegrator
 
     def __init__(
-        self, H, ops_and_rates, *_args, args=None, options=None, **kwargs,
+        self, H, ops_and_rates, args=None, options=None,
     ):
         self.options = options
 
@@ -383,7 +374,7 @@ class NonMarkovianMCSolver(MCSolver):
         self._mc_integrator_class = functools.partial(
             NmMCIntegrator, __martingale=self._martingale,
         )
-        super().__init__(H, c_ops, *_args, options=options, **kwargs)
+        super().__init__(H, c_ops, options=options)
 
     def _check_completeness(self, ops_and_rates):
         """
@@ -521,13 +512,12 @@ class NonMarkovianMCSolver(MCSolver):
             state = ket2dm(state)
         return state * self.current_martingale()
 
-    def run(self, state, tlist, *args, **kwargs):
+    def run(self, state, tlist, ntraj=1, *, args=None, **kwargs):
         # update `args` dictionary before precomputing martingale
-        if 'args' in kwargs:
-            self._argument(kwargs.pop('args'))
+        self._argument(args)
 
         self._martingale.initialize(tlist[0], cache=tlist)
-        result = super().run(state, tlist, *args, **kwargs)
+        result = super().run(state, tlist, ntraj, **kwargs)
         self._martingale.reset()
 
         return result
@@ -566,9 +556,6 @@ class NonMarkovianMCSolver(MCSolver):
             How to run the trajectories. "parallel" uses concurent module to
             run in parallel while "loky" use the module of the same name to do
             so.
-
-        job_timeout: None, int
-            Maximum time to compute one trajectory.
 
         num_cpus: None, int
             Number of cpus to use when running in parallel. ``None`` detect the
