@@ -188,7 +188,7 @@ def _generic_pmap(task, values, task_args, task_kwargs,
             if isinstance(ex, Exception):
                 errors[future._i] = ex
             else:
-                result = future.result()
+                result = extract_result(future._i, future)
                 remaining_ntraj = result_func(future._i, result)
                 if remaining_ntraj is not None and remaining_ntraj <= 0:
                     finished.append(True)
