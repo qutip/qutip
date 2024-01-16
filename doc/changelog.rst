@@ -22,7 +22,7 @@ Bug Fixes
 Miscellaneous
 -------------
 
-- Rework `choi_to_kraus`, making it rely on an eigenstates solver that can choose `eigh` is the Choi matrix is Hermitian, as it is more numerically stable. (#2276, by Bogdan Reznychenko)
+- Rework `choi_to_kraus`, making it rely on an eigenstates solver that can choose `eigh` if the Choi matrix is Hermitian, as it is more numerically stable. (#2276, by Bogdan Reznychenko)
 - Rework `kraus_to_choi`, making it faster (#2283, by Bogdan Reznychenko and Rafael Haenel)
 
 
