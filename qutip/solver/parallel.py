@@ -177,25 +177,21 @@ def _generic_pmap(task, values, task_args, task_kwargs,
 
     def _done_callback(future):
         if not future.cancelled():
-            try:
-                result = extract_result(future._i, future)
+            ex = future.exception()
+            if isinstance(ex, KeyboardInterrupt):
+                # When a keyboard interrupt happens, it is raised in the main
+                # thread and in all worker threads. At this point in the code,
+                # the worker threads have already returned and the main thread
+                # is only waiting for the ProcessPoolExecutor to shutdown
+                # before exiting. We therefore return immediately.
+                return
+            if isinstance(ex, Exception):
+                errors[future._i] = ex
+            else:
+                result = future.result()
                 remaining_ntraj = result_func(future._i, result)
                 if remaining_ntraj is not None and remaining_ntraj <= 0:
                     finished.append(True)
-            except Exception as e:
-                errors[future._i] = e
-            except KeyboardInterrupt:
-                # When a keyboard interrupt happens, it is raised in the main
-                # thread and in all worker threads. The worker threads have
-                # already returned and the main thread is only waiting for the
-                # ProcessPoolExecutor to shutdown before exiting. If the call
-                # to `future.result()` in this callback function raises the
-                # KeyboardInterrupt again, it makes the system enter a kind of
-                # deadlock state, where the user has to press CTRL+C a second
-                # time to actually end the program. For that reason, we
-                # silently ignore the KeyboardInterrupt here, avoiding the
-                # deadlock and allowing the main thread to exit.
-                pass
         progress_bar.update()
 
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'

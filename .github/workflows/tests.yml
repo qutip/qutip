@@ -52,6 +52,7 @@ jobs:
             scipy-requirement: ">=1.5,<1.6"
             condaforge: 1
             oldcython: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
 
           # No MKL runs.  MKL is now the default for conda installations, but
           # not necessarily for pip.
@@ -75,6 +76,7 @@ jobs:
             python-version: "3.10"
             condaforge: 1
             oldcython: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
 
           # Python 3.11 and latest numpy
           # Use conda-forge to provide Python 3.11 and latest numpy
