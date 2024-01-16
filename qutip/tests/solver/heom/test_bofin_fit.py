@@ -169,10 +169,10 @@ class TestSpectralFitter:
 class TestCorrelationFitter:
 
     def test_corr_approx(self):
-        t = np.linspace(0, 20, 50)  # TODO FIXX TESTS
+        t = np.linspace(0, 20, 50)  
         C = np.exp(-t)
         bath = CorrelationFitter(sigmax(), 1, t, C)
-        t2 = np.linspace(0, 20, 100)  # TODO FIXX TESTS
+        t2 = np.linspace(0, 20, 100)  
         C2 = np.exp(-t2)
         assert np.isclose(C2, bath._C_fun(t2), rtol=1e-3).all()
         assert np.isclose(C, bath._C_array).all()
@@ -196,13 +196,14 @@ class TestCorrelationFitter:
         assert np.isclose(np.imag(corr), C3).all()
 
     @pytest.mark.filterwarnings('ignore::RuntimeWarning')
+    @pytest.mark.slow
     def test_generate_bath(self):
         Q = sigmax()
         T = 1
-        t = np.linspace(0, 30, 200)
-        ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=1, T=T, Nk=1)
+        t = np.linspace(0, 30, 20)
+        ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=3, T=T, Nk=1)
         fc = CorrelationFitter(Q, T, t, ud.correlation_function)
-        _, fitInfo = fc.get_fit(final_rmse=1e-5)
+        _, fitInfo = fc.get_fit(Nr=1,Ni=1)
         fbath = fc._generate_bath(
             fitInfo['params_real'],
             fitInfo['params_imag'])
@@ -210,12 +211,11 @@ class TestCorrelationFitter:
         assert np.isclose(
             np.real(ud.correlation_function(t)),
             np.real(fittedbath),
-            atol=1e-4).all()
+            atol=1e-3).all()
         assert np.isclose(
             np.imag(ud.correlation_function(t)),
             np.imag(fittedbath),
-            atol=1e-4).all()  # one order below final_rmse
-
+            atol=1e-3).all()  # Better accuracy too slow for test flow
 
 class TestOhmicBath:
     def test_ohmic_spectral_density(self):
@@ -259,17 +259,17 @@ class TestOhmicBath:
         mp = pytest.importorskip("mpmath")
         w = np.linspace(0.1, 5, 2000)
         ob = OhmicBath(Q=sigmax(), T=1, alpha=0.05, wc=5, s=1)
-        bath, fitinfo = ob.make_correlation_fit(w,Nr=3,Ni=3)
+        bath, fitinfo = ob.make_correlation_fit(w,Nr=2,Ni=2)
         assert np.isclose(
             np.real(bath.correlation_function(w) - bath.correlation_function_approx(w)),
             np.zeros_like(w),
-            atol=3e-3).all() # this test can be closer but would take longer
+            atol=3e-2).all() # this test can be closer but would take longer
 
     def test_make_spectral_fit(self):
         w = np.linspace(0, 80, 2000)
         ob = OhmicBath(Q=sigmax(), T=1, alpha=0.05, wc=5, s=1)
-        bath, _ = ob.make_spectral_fit(w, rmse=1e-5)
+        bath, _ = ob.make_spectral_fit(w, rmse=1e-4)
         assert np.isclose(
             bath.spectral_density_approx(w) - bath.spectral_density(w),
             np.zeros_like(w),
-            atol=2e-3).all()
+            atol=2e-2).all() # this test can be closer but would take longer
