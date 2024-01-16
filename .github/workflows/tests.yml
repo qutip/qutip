@@ -123,6 +123,13 @@ jobs:
             python-version: "3.10"
             pytest-extra-options: "-W ignore::ImportWarning -k 'not (test_correlation or test_interpolate or test_mcsolve)'"
 
+          # Cython 0.29 (pyximport) and python 3.12 do not play well together.
+          # Qutip will ignore cython in this case.
+          - case-name: Python 3.12
+            os: ubuntu-latest
+            python-version: "3.12"
+            pytest-extra-options: "-W ignore:Runtime:UserWarning -W ignore:datetime:DeprecationWarning"
+
     steps:
       - uses: actions/checkout@v3
 
