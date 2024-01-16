@@ -81,11 +81,18 @@ def _require_equal_type(method):
     """
     @functools.wraps(method)
     def out(self, other):
+        if isinstance(other, Qobj):
+            if self._dims != other._dims:
+                msg = (
+                    "incompatible dimensions "
+                    + repr(self.dims) + " and " + repr(other.dims)
+                )
+                raise ValueError(msg)
+            return method(self, other)
         if other == 0:
             return method(self, other)
         if (
-            self.type in ('oper', 'super')
-            and self._dims[0] == self._dims[1]
+            self._dims.issquare
             and isinstance(other, numbers.Number)
         ):
             scale = complex(other)
@@ -95,17 +102,13 @@ def _require_equal_type(method):
                          isherm=(scale.imag == 0),
                          isunitary=(abs(abs(scale)-1) < settings.core['atol']),
                          copy=False)
-        if not isinstance(other, Qobj):
+        else:
             try:
+                # This allow `Qobj + array` if the shape is good.
+                # Do we really want that?
                 other = Qobj(other, dims=self._dims)
             except TypeError:
                 return NotImplemented
-        if self._dims != other._dims:
-            msg = (
-                "incompatible dimensions "
-                + repr(self.dims) + " and " + repr(other.dims)
-            )
-            raise ValueError(msg)
         return method(self, other)
     return out
 
@@ -389,7 +392,8 @@ class Qobj:
     def __add__(self, other):
         if other == 0:
             return self.copy()
-        return Qobj(_data.add(self._data, other._data),
+        new_data = _data.add(self._data, other._data)
+        return Qobj(new_data,
                     dims=self._dims,
                     isherm=(self._isherm and other._isherm) or None,
                     copy=False)
