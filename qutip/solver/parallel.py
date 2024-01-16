@@ -3,7 +3,7 @@ This module provides functions for parallel execution of loops and function
 mappings, using the builtin Python module multiprocessing or the loky parallel
 execution library.
 """
-__all__ = ['parallel_map', 'serial_map', 'loky_pmap']
+__all__ = ['parallel_map', 'serial_map', 'loky_pmap', 'mpi_pmap']
 
 import multiprocessing
 import os
@@ -131,21 +131,20 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
     return results
 
 
-def _generic_pmap(task, values, task_args, task_kwargs,
-                  reduce_func, timeout, fail_fast,
+def _generic_pmap(task, values, task_args, task_kwargs, reduce_func,
+                  timeout, fail_fast, num_workers,
                   progress_bar, progress_bar_kwargs,
                   setup_executor, extract_result, shutdown_executor):
     """
     Common functionality for parallel_map, loky_pmap and mpi_pmap.
-    The parameters `setup_executor`, `extract_value` and `destroy_executor`
+    The parameters `setup_executor`, `extract_result` and `shutdown_executor`
     are callback functions with the following signatures:
     
-    setup_executor: () -> ProcessPoolExecutor, int
-        The second return value specifies the number of workers
+    setup_executor: () -> ProcessPoolExecutor
 
-    extract_result: (index: int, future: Future) -> Any
-        index: Corresponds to the indices of the `values` list
-        future: The Future that has finished running
+    extract_result: Future -> (Any, BaseException)
+        If there was an exception e, returns (None, e).
+        Otherwise returns (result, None).
 
     shutdown_executor: (executor: ProcessPoolExecutor,
                         active_tasks: set[Future]) -> None
@@ -177,18 +176,17 @@ def _generic_pmap(task, values, task_args, task_kwargs,
 
     def _done_callback(future):
         if not future.cancelled():
-            ex = future.exception()
-            if isinstance(ex, KeyboardInterrupt):
+            result, exception = extract_result(future)
+            if isinstance(exception, KeyboardInterrupt):
                 # When a keyboard interrupt happens, it is raised in the main
                 # thread and in all worker threads. At this point in the code,
                 # the worker threads have already returned and the main thread
                 # is only waiting for the ProcessPoolExecutor to shutdown
                 # before exiting. We therefore return immediately.
                 return
-            if isinstance(ex, Exception):
-                errors[future._i] = ex
+            if isinstance(exception, Exception):
+                errors[future._i] = exception
             else:
-                result = extract_result(future._i, future)
                 remaining_ntraj = result_func(future._i, result)
                 if remaining_ntraj is not None and remaining_ntraj <= 0:
                     finished.append(True)
@@ -196,8 +194,7 @@ def _generic_pmap(task, values, task_args, task_kwargs,
 
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     try:
-        executor, num_workers = setup_executor()
-        with executor:
+        with setup_executor() as executor:
             waiting = set()
             i = 0
             aborted = False
@@ -317,24 +314,27 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         ctx_kw = {}
 
     def setup_executor():
-        num_workers = map_kw['num_cpus']
-        executor = concurrent.futures.ProcessPoolExecutor(
-            max_workers=num_workers, **ctx_kw,
+        return concurrent.futures.ProcessPoolExecutor(
+            max_workers=map_kw['num_cpus'], **ctx_kw,
         )
-        return executor, num_workers
     
-    def extract_result (_, future):
-        return future.result()
+    def extract_result (future: concurrent.futures.Future):
+        exception = future.exception()
+        if exception is not None:
+            return None, exception
+        return future.result(), None
 
     def shutdown_executor(executor, _):
         # Since `ProcessPoolExecutor` leaves no other option,
         # we wait for all worker processes to finish their current task
         executor.shutdown()
 
-    return _generic_pmap(task, values, task_args, task_kwargs,
-                         reduce_func, map_kw['timeout'], map_kw['fail_fast'],
-                         progress_bar, progress_bar_kwargs,
-                         setup_executor, extract_result, shutdown_executor)
+    return _generic_pmap(
+        task, values, task_args, task_kwargs, reduce_func,
+        map_kw['timeout'], map_kw['fail_fast'], map_kw['num_cpus'],
+        progress_bar, progress_bar_kwargs,
+        setup_executor, extract_result, shutdown_executor
+    )
 
 
 def loky_pmap(task, values, task_args=None, task_kwargs=None,
@@ -390,26 +390,30 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     map_kw = _read_map_kw(map_kw)
 
     def setup_executor():
-        num_workers = map_kw['num_cpus']
-        executor = get_reusable_executor(max_workers=num_workers)
-        return executor, num_workers
+        return get_reusable_executor(max_workers=map_kw['num_cpus'])
     
-    def extract_result (_, future: concurrent.futures.Future):
-        if isinstance(future.exception(), ShutdownExecutorError):
+    def extract_result (future: concurrent.futures.Future):
+        exception = future.exception()
+        if isinstance(exception, ShutdownExecutorError):
             # Task was aborted due to timeout etc
-            return None
-        return future.result()
+            return None, None
+        if exception is not None:
+            return None, exception
+        return future.result(), None
 
     def shutdown_executor(executor, active_tasks):
         # If there are still tasks running, we kill all workers in  order to
         # return immediately. Otherwise, `kill_workers` is set to False so
         # that the worker threads can be reused in subsequent loky_pmap calls.
-        executor.shutdown(kill_workers=(len(active_tasks) > 0))
+        kill_workers = len(active_tasks) > 0
+        executor.shutdown(kill_workers=kill_workers)
 
-    return _generic_pmap(task, values, task_args, task_kwargs,
-                         reduce_func, map_kw['timeout'], map_kw['fail_fast'],
-                         progress_bar, progress_bar_kwargs,
-                         setup_executor, extract_result, shutdown_executor)
+    return _generic_pmap(
+        task, values, task_args, task_kwargs, reduce_func,
+        map_kw['timeout'], map_kw['fail_fast'], map_kw['num_cpus'],
+        progress_bar, progress_bar_kwargs,
+        setup_executor, extract_result, shutdown_executor
+    )
 
 
 def mpi_pmap(task, values, task_args=None, task_kwargs=None,
@@ -471,19 +475,23 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
     fail_fast = map_kw.pop('fail_fast')
 
     def setup_executor():
-        executor = MPIPoolExecutor(max_workers=num_workers, **map_kw)
-        return executor, num_workers
+        return MPIPoolExecutor(max_workers=num_workers, **map_kw)
     
-    def extract_result (_, future):
-        return future.result()
+    def extract_result (future):
+        exception = future.exception()
+        if exception is not None:
+            return None, exception
+        return future.result(), None
 
     def shutdown_executor(executor, _):
         executor.shutdown()
 
-    return _generic_pmap(task, values, task_args, task_kwargs,
-                         reduce_func, timeout, fail_fast,
-                         progress_bar, progress_bar_kwargs,
-                         setup_executor, extract_result, shutdown_executor)
+    return _generic_pmap(
+        task, values, task_args, task_kwargs, reduce_func,
+        timeout, fail_fast, num_workers,
+        progress_bar, progress_bar_kwargs,
+        setup_executor, extract_result, shutdown_executor
+    )
 
 
 
