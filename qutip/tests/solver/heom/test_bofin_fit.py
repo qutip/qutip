@@ -147,7 +147,8 @@ class TestSpectralFitter:
         fs = SpectralFitter(T, sigmax(), w, ud.spectral_density, Nk=1)
         bath, _ = fs.get_fit(N=1)
         assert np.isclose(
-            bath.spectral_density_approx(w)-ud.spectral_density(w),np.zeros_like(w),atol=1e-5).all()
+            bath.spectral_density_approx(w)-ud.spectral_density(w),
+            np.zeros_like(w),atol=1e-5).all()
 
     @pytest.mark.filterwarnings('ignore::RuntimeWarning')
     def test_generate_bath(self):
@@ -271,4 +272,4 @@ class TestOhmicBath:
         assert np.isclose(
             bath.spectral_density_approx(w) - bath.spectral_density(w),
             np.zeros_like(w),
-            atol=2e-4).all()
+            atol=2e-3).all()

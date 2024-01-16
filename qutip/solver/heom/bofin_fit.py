@@ -309,10 +309,10 @@ class CorrelationFitter:
         # Fit real part
         start_real = time()
         rmse_real, params_real = _run_fit(
-            lambda *args: np.real(self._corr_approx(*args)),
-            np.real(self._C_array), self._t, final_rmse,
-            label="correlation_real", sigma=sigma, N=Nr,
-            guesses=guesses, lower=lower, upper=upper)
+            funcx=lambda * args: np.real(self._corr_approx(*args)),
+            funcy=np.real(self._C_array),
+            x=self._t, final_rmse=final_rmse, label="correlation_real",
+            sigma=sigma, N=Nr, guesses=guesses, lower=lower, upper=upper)
         end_real = time()
 
         # Fit imaginary part
@@ -344,7 +344,7 @@ class CorrelationFitter:
         return bath, self.fitInfo
 
     def _generate_bath(self, params_real, params_imag):
-        """ Calculate the Matsubara coefficents and frequencies for the
+        """ Calculate the Matsubara coefficients and frequencies for the
         fitted underdamped oscillators and generate the corresponding bosonic
         bath
 
@@ -623,7 +623,7 @@ def _rmse(func, x, y, lam, gamma, w0):
     gamma : list
         a list containing fitted cutoff frequencies.
     w0s:
-        a list containing fitted resonance frequecies
+        a list containing fitted resonance frequencies
     Returns
     -------
     rmse: float
@@ -712,7 +712,7 @@ def _fit(
 def _run_fit(funcx, funcy, x, final_rmse, label=None, N=None,
              sigma=None, guesses=None, lower=None, upper=None):
     """
-    It iteratively tries to fit the fucx to funy on the interval x,
+    It iteratively tries to fit the fucx to funcy on the interval x,
     if the Ns are provided the fit is done with N modes, if they are
     None then One automatically finds the smallest number of modes that
     whose mean squared error is smaller than final_rmse
