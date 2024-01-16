@@ -16,6 +16,7 @@ Bug Fixes
 - Fix name of temp files for removal after use. (#2251, reported by Qile Su)
 - Avoid integer overflow in Qobj creation. (#2252, reported by KianHwee-Lim)
 - Ignore DeprecationWarning from pyximport (#2287)
+- Add partial support and tests for python 3.12. (#2294)
 
 
 Miscellaneous
