@@ -1,6 +1,7 @@
 import pytest
 import functools
 import os
+import sys
 import tempfile
 import numpy as np
 from qutip.utilities import _version2int
@@ -32,6 +33,9 @@ def _skip_cython_tests_if_unavailable(item):
         # importorskip does not have maxversion
         if _version2int(_Cython.__version__) >= _version2int("3.0.0"):
             pytest.skip("cython 3.0.0 not supported")
+            return
+        if _version2int(sys.version.split()[0]) >= _version2int("3.12.0"):
+            pytest.skip("Cython not available at runtime with python >=3.12.")
 
 
 @pytest.hookimpl(trylast=True)
