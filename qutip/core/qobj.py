@@ -1726,12 +1726,35 @@ class Qobj:
     @property
     def shape(self): return self._data.shape
 
-    isbra = property(isbra)
-    isket = property(isket)
-    isoper = property(isoper)
-    issuper = property(issuper)
-    isoperbra = property(isoperbra)
-    isoperket = property(isoperket)
+    @property
+    def isoper(self):
+        """Indicates if the Qobj represents an operator."""
+        return self._dims.type in ['oper', 'scalar']
+
+    @property
+    def isbra(self):
+        """Indicates if the Qobj represents a bra state."""
+        return self._dims.type in ['bra', 'scalar']
+
+    @property
+    def isket(self):
+        """Indicates if the Qobj represents a ket state."""
+        return self._dims.type in ['ket', 'scalar']
+
+    @property
+    def issuper(self):
+        """Indicates if the Qobj represents a superoperator."""
+        return self._dims.type == 'super'
+
+    @property
+    def isoperket(self):
+        """Indicates if the Qobj represents a operator-ket state."""
+        return self._dims.type == 'operator-ket'
+
+    @property
+    def isoperbra(self):
+        """Indicates if the Qobj represents a operator-bra state."""
+        return self._dims.type == 'operator-bra'
 
 
 def ptrace(Q, sel):
