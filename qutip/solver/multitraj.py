@@ -144,7 +144,9 @@ class MultiTrajSolver(Solver):
         result.add_end_condition(ntraj, target_tol)
 
         map_func = _get_map[self.options['map']]
-        map_kw = self.options['mpi_options'] if map_func == mpi_pmap else {}
+        map_kw = {}
+        if map_func == mpi_pmap:
+            map_kw.update(self.options['mpi_options'])
         map_kw.update({
             'timeout': timeout,
             'num_cpus': self.options['num_cpus'],
