@@ -139,7 +139,7 @@ def _generic_pmap(task, values, task_args, task_kwargs, reduce_func,
     Common functionality for parallel_map, loky_pmap and mpi_pmap.
     The parameters `setup_executor`, `extract_result` and `shutdown_executor`
     are callback functions with the following signatures:
-    
+
     setup_executor: () -> ProcessPoolExecutor
 
     extract_result: Future -> (Any, BaseException)
@@ -184,8 +184,11 @@ def _generic_pmap(task, values, task_args, task_kwargs, reduce_func,
                 # is only waiting for the ProcessPoolExecutor to shutdown
                 # before exiting. We therefore return immediately.
                 return
-            if isinstance(exception, Exception):
-                errors[future._i] = exception
+            if exception is not None:
+                if isinstance(exception, Exception):
+                    errors[future._i] = exception
+                else:
+                    raise exception
             else:
                 remaining_ntraj = result_func(future._i, result)
                 if remaining_ntraj is not None and remaining_ntraj <= 0:
@@ -317,8 +320,8 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         return concurrent.futures.ProcessPoolExecutor(
             max_workers=map_kw['num_cpus'], **ctx_kw,
         )
-    
-    def extract_result (future: concurrent.futures.Future):
+
+    def extract_result(future: concurrent.futures.Future):
         exception = future.exception()
         if exception is not None:
             return None, exception
@@ -391,8 +394,8 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
 
     def setup_executor():
         return get_reusable_executor(max_workers=map_kw['num_cpus'])
-    
-    def extract_result (future: concurrent.futures.Future):
+
+    def extract_result(future: concurrent.futures.Future):
         exception = future.exception()
         if isinstance(exception, ShutdownExecutorError):
             # Task was aborted due to timeout etc
@@ -476,8 +479,8 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
 
     def setup_executor():
         return MPIPoolExecutor(max_workers=num_workers, **map_kw)
-    
-    def extract_result (future):
+
+    def extract_result(future):
         exception = future.exception()
         if exception is not None:
             return None, exception
@@ -492,7 +495,6 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
         progress_bar, progress_bar_kwargs,
         setup_executor, extract_result, shutdown_executor
     )
-
 
 
 _get_map = {
