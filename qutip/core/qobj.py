@@ -1728,7 +1728,9 @@ class Qobj:
         return self._isunitary
 
     @property
-    def shape(self): return self._data.shape
+    def shape(self):
+        """Return the shape of the Qobj data."""
+        return self._data.shape
 
     @property
     def isoper(self):
