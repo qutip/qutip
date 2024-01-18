@@ -91,10 +91,7 @@ def _require_equal_type(method):
             return method(self, other)
         if other == 0:
             return method(self, other)
-        if (
-            self._dims.issquare
-            and isinstance(other, numbers.Number)
-        ):
+        if self._dims.issquare and isinstance(other, numbers.Number):
             scale = complex(other)
             other = Qobj(_data.identity(self.shape[0], scale,
                                         dtype=type(self.data)),
@@ -102,14 +99,9 @@ def _require_equal_type(method):
                          isherm=(scale.imag == 0),
                          isunitary=(abs(abs(scale)-1) < settings.core['atol']),
                          copy=False)
-        else:
-            try:
-                # This allow `Qobj + array` if the shape is good.
-                # Do we really want that?
-                other = Qobj(other, dims=self._dims)
-            except TypeError:
-                return NotImplemented
-        return method(self, other)
+            return method(self, other)
+        return NotImplemented
+
     return out
 
 
@@ -392,8 +384,7 @@ class Qobj:
     def __add__(self, other):
         if other == 0:
             return self.copy()
-        new_data = _data.add(self._data, other._data)
-        return Qobj(new_data,
+        return Qobj(_data.add(self._data, other._data),
                     dims=self._dims,
                     isherm=(self._isherm and other._isherm) or None,
                     copy=False)
