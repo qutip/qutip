@@ -509,7 +509,16 @@ class StochasticSolver(MultiTrajSolver):
     system = None
     _open = None
     solver_options = {
-        **MultiTrajSolver.solver_options,
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "keep_runs_results": False,
+        "normalize_output": False,
+        "map": "serial",
+        "mpi_options": {},
+        "num_cpus": None,
+        "bitgenerator": None,
         "method": "platen",
         "store_measurement": False,
     }
@@ -795,7 +804,18 @@ class SMESolver(StochasticSolver):
     _avail_integrators = {}
     _open = True
     solver_options = {
-        **StochasticSolver.solver_options
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "keep_runs_results": False,
+        "normalize_output": False,
+        "map": "serial",
+        "mpi_options": {},
+        "num_cpus": None,
+        "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": False,
     }
 
 
@@ -828,5 +848,16 @@ class SSESolver(StochasticSolver):
     _avail_integrators = {}
     _open = False
     solver_options = {
-        **StochasticSolver.solver_options
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "keep_runs_results": False,
+        "normalize_output": False,
+        "map": "serial",
+        "mpi_options": {},
+        "num_cpus": None,
+        "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": False,
     }

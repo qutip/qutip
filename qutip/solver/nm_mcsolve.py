@@ -331,12 +331,24 @@ class NonMarkovianMCSolver(MCSolver):
     name = "nm_mcsolve"
     _resultclass = NmmcResult
     solver_options = {
-        **MCSolver.solver_options,
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "keep_runs_results": False,
+        "map": "serial",
+        "mpi_options": {},
+        "num_cpus": None,
+        "bitgenerator": None,
+        "method": "adams",
+        "mc_corr_eps": 1e-10,
+        "norm_steps": 5,
+        "norm_t_tol": 1e-6,
+        "norm_tol": 1e-4,
         "completeness_rtol": 1e-5,
         "completeness_atol": 1e-8,
         "martingale_quad_limit": 100,
     }
-    del solver_options["improved_sampling"]
 
     # both classes will be partially initialized in constructor
     _trajectory_resultclass = NmmcTrajectoryResult

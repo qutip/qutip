@@ -417,7 +417,15 @@ class MCSolver(MultiTrajSolver):
     _trajectory_resultclass = McTrajectoryResult
     _mc_integrator_class = MCIntegrator
     solver_options = {
-        **MultiTrajSolver.solver_options,
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "keep_runs_results": False,
+        "map": "serial",
+        "mpi_options": {},
+        "num_cpus": None,
+        "bitgenerator": None,
         "method": "adams",
         "mc_corr_eps": 1e-10,
         "norm_steps": 5,
@@ -425,7 +433,6 @@ class MCSolver(MultiTrajSolver):
         "norm_tol": 1e-4,
         "improved_sampling": False,
     }
-    del solver_options["normalize_output"]
 
     def __init__(self, H, c_ops, *, options=None):
         _time_start = time()
