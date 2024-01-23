@@ -115,7 +115,7 @@ jobs:
         # rather than in the GitHub Actions file directly, because bash gives us
         # a proper programming language to use.
         run: |
-          QUTIP_TARGET="tests,graphics,semidefinite,ipython,extra"
+          QUTIP_TARGET="tests,graphics,semidefinite,ipython,extras"
           if [[ -z "${{ matrix.nocython }}" ]]; then
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
           fi
