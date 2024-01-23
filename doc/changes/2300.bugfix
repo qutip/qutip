@@ -1,1 +1,0 @@
-Remove use of scipy.<numpy-func> in parallel.py, incompatible with scipy==1.12
