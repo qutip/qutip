@@ -103,6 +103,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: mpi4py/setup-mpi@v1
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
