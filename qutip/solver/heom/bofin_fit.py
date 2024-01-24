@@ -10,8 +10,10 @@ the fit.
 
 import numpy as np
 from time import time
+
 try:
     from mpmath import mp
+
     _mpmath_available = True
 except ModuleNotFoundError:
     _mpmath_available = False
@@ -33,9 +35,6 @@ class SpectralFitter:
     T : float
         Bath temperature.
 
-    Nk : int
-        Number of exponential terms used to approximate the bath correlation
-        functions.
     w : np.array
         The range on which to perform the fit
 
@@ -43,10 +42,9 @@ class SpectralFitter:
         The spectral density to be fitted as an array or function
     """
 
-    def __init__(self, T, Q, w, J, Nk=14):
+    def __init__(self, T, Q, w, J):
         self.Q = Q
         self.T = T
-        self.Nk = Nk
 
         self.set_function(w, J)
 
@@ -92,13 +90,13 @@ class SpectralFitter:
                 * a[i]
                 * b[i]
                 * w
-                / (((w + c[i]) ** 2 + b[i] ** 2)
-                    * ((w - c[i]) ** 2 + b[i] ** 2))
+                / (((w + c[i]) ** 2 + b[i] ** 2) * ((w - c[i]) ** 2 + b[i] ** 2))
             )
         return tot
 
     def get_fit(
         self,
+        Nk=5,
         N=None,
         final_rmse=5e-6,
         lower=None,
@@ -121,6 +119,9 @@ class SpectralFitter:
         N : optional,int
             Number of underdamped oscillators to use,
             if set to False it is found automatically.
+        Nk: optional,int
+            Number of exponential terms used to approximate the bath correlation
+            functions. Defaults to 5
         final_rmse : float
             Desired normalized root mean squared error .
         lower : list
@@ -141,22 +142,34 @@ class SpectralFitter:
 
         start = time()
         rmse, params = _run_fit(
-            self._spectral_density_approx, self._J_array, self._w, final_rmse,
-            N=N, sigma=sigma, label="Spectral Density", guesses=guesses,
-            lower=lower, upper=upper)
+            self._spectral_density_approx,
+            self._J_array,
+            self._w,
+            final_rmse,
+            N=N,
+            sigma=sigma,
+            label="Spectral Density",
+            guesses=guesses,
+            lower=lower,
+            upper=upper,
+        )
         spec_n = len(params[0])
         end = time()
         fit_time = end - start
-        bath = self._generate_bath(params)
+        bath = self._generate_bath(params, Nk)
         bath.spectral_density = self._J_fun
-        summary = gen_summary(
-            fit_time, rmse, N, "The Spectral Density", *params)
+        summary = gen_summary(fit_time, rmse, N, "The Spectral Density", *params)
         self.fitInfo = {
-            "fit_time": fit_time, "rmse": rmse, "N": spec_n, "params": params,
-            "Nk": self.Nk, "summary": summary}
+            "fit_time": fit_time,
+            "rmse": rmse,
+            "N": spec_n,
+            "params": params,
+            "Nk": Nk,
+            "summary": summary,
+        }
         return bath, self.fitInfo
 
-    def _generate_bath(self, params):
+    def _generate_bath(self, params, Nk):
         """
         Obtains the bath exponents from the list of fit parameters some
         transformations are done, to reverse the ones in the UnderDampedBath
@@ -179,9 +192,7 @@ class SpectralFitter:
                 for i in range(len(w0))
             ]
         )
-        lam = np.sqrt(
-            lam + 0j
-        )
+        lam = np.sqrt(lam + 0j)
         # both w0, and lam  modifications are needed to input the
         # right value of the fit into the Underdamped bath
         ckAR = []
@@ -191,7 +202,8 @@ class SpectralFitter:
 
         for lamt, Gamma, Om in zip(lam, gamma, w0):
             coeffs = UnderDampedBath._matsubara_params(
-                lamt, 2 * Gamma, Om + 0j, self.T, self.Nk)
+                lamt, 2 * Gamma, Om + 0j, self.T, Nk
+            )
             ckAR.extend(coeffs[0])
             vkAR.extend(coeffs[1])
             ckAI.extend(coeffs[2])
@@ -236,10 +248,9 @@ class CorrelationFitter:
         else:
             self._t = t
             self._C_array = C
-            self._C_fun_r = InterpolatedUnivariateSpline(
-                t, np.real(C))
+            self._C_fun_r = InterpolatedUnivariateSpline(t, np.real(C))
             self._C_fun_i = InterpolatedUnivariateSpline(t, np.imag(C))
-            self._C_fun = lambda t: self._C_fun_r(t)+1j*self._C_fun_i(t)
+            self._C_fun = lambda t: self._C_fun_r(t) + 1j * self._C_fun_i(t)
 
     def _corr_approx(self, t, a, b, c):
         """This is the form of the correlation function to be used for fitting
@@ -309,19 +320,33 @@ class CorrelationFitter:
         # Fit real part
         start_real = time()
         rmse_real, params_real = _run_fit(
-            funcx=lambda * args: np.real(self._corr_approx(*args)),
+            funcx=lambda *args: np.real(self._corr_approx(*args)),
             funcy=np.real(self._C_array),
-            x=self._t, final_rmse=final_rmse, label="correlation_real",
-            sigma=sigma, N=Nr, guesses=guesses, lower=lower, upper=upper)
+            x=self._t,
+            final_rmse=final_rmse,
+            label="correlation_real",
+            sigma=sigma,
+            N=Nr,
+            guesses=guesses,
+            lower=lower,
+            upper=upper,
+        )
         end_real = time()
 
         # Fit imaginary part
         start_imag = time()
         rmse_imag, params_imag = _run_fit(
             lambda *args: np.imag(self._corr_approx(*args)),
-            np.imag(self._C_array), self._t, final_rmse,
-            label="correlation_imag", sigma=sigma, N=Ni,
-            guesses=guesses, lower=lower, upper=upper)
+            np.imag(self._C_array),
+            self._t,
+            final_rmse,
+            label="correlation_imag",
+            sigma=sigma,
+            N=Ni,
+            guesses=guesses,
+            lower=lower,
+            upper=upper,
+        )
         end_imag = time()
 
         # Calculate Fit Times
@@ -330,21 +355,33 @@ class CorrelationFitter:
 
         # Generate summary
         full_summary = two_column_summary(
-            params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
-            rmse_imag, rmse_real)
+            params_real,
+            params_imag,
+            fit_time_real,
+            fit_time_imag,
+            Nr,
+            Ni,
+            rmse_imag,
+            rmse_real,
+        )
 
-        self.fitInfo = {"Nr": len(params_real[0]), "Ni": len(params_imag[0]),
-                        "fit_time_real": fit_time_real,
-                        "fit_time_imag": fit_time_imag,
-                        "rmse_real": rmse_real, "rmse_imag": rmse_imag,
-                        "params_real": params_real,
-                        "params_imag": params_imag, "summary": full_summary}
+        self.fitInfo = {
+            "Nr": len(params_real[0]),
+            "Ni": len(params_imag[0]),
+            "fit_time_real": fit_time_real,
+            "fit_time_imag": fit_time_imag,
+            "rmse_real": rmse_real,
+            "rmse_imag": rmse_imag,
+            "params_real": params_real,
+            "params_imag": params_imag,
+            "summary": full_summary,
+        }
         bath = self._generate_bath(params_real, params_imag)
         bath.correlation_function = self._C_fun
         return bath, self.fitInfo
 
     def _generate_bath(self, params_real, params_imag):
-        """ Calculate the Matsubara coefficients and frequencies for the
+        """Calculate the Matsubara coefficients and frequencies for the
         fitted underdamped oscillators and generate the corresponding bosonic
         bath
 
@@ -374,8 +411,7 @@ class CorrelationFitter:
 
         vkAI = [-x - 1.0j * y for x, y in zip(gamma2, w02)]
         vkAI.extend([-x + 1.0j * y for x, y in zip(gamma2, w02)])
-        return BosonicBath(
-            self.Q, ckAR, vkAR, ckAI, vkAI, T=self.T)
+        return BosonicBath(self.Q, ckAR, vkAR, ckAI, vkAI, T=self.T)
 
 
 class OhmicBath:
@@ -404,9 +440,7 @@ class OhmicBath:
         self.Q = Q
         self.T = T
         if _mpmath_available is False:
-            print(
-                "The mpmath module is needed for the description"
-                " of Ohmic baths")
+            print("The mpmath module is needed for the description" " of Ohmic baths")
 
     def spectral_density(self, w):
         """Calculates the Ohmic spectral density
@@ -438,27 +472,41 @@ class OhmicBath:
                 (1 / np.pi)
                 * self.alpha
                 * self.wc ** (1 - self.s)
-                * (1/self.T) ** (-(self.s + 1))
+                * (1 / self.T) ** (-(self.s + 1))
                 * mp.gamma(self.s + 1)
             )
-            z1_u = (1 + (1/self.T) * self.wc - 1.0j *
-                    self.wc * t) / ((1/self.T) * self.wc)
-            z2_u = (1 + 1.0j * self.wc * t) / ((1/self.T) * self.wc)
+            z1_u = (1 + (1 / self.T) * self.wc - 1.0j * self.wc * t) / (
+                (1 / self.T) * self.wc
+            )
+            z2_u = (1 + 1.0j * self.wc * t) / ((1 / self.T) * self.wc)
             return np.array(
                 [
-                    complex(
-                        corr * (mp.zeta(self.s + 1, u1) +
-                                mp.zeta(self.s + 1, u2)))
-                    for u1, u2 in zip(z1_u, z2_u)],
-                dtype=np.complex128,)
+                    complex(corr * (mp.zeta(self.s + 1, u1) + mp.zeta(self.s + 1, u2)))
+                    for u1, u2 in zip(z1_u, z2_u)
+                ],
+                dtype=np.complex128,
+            )
         else:
-            corr = (1 / np.pi)*self.alpha*self.wc**(self.s+1) * \
-                mp.gamma(self.s+1)*(1+1j*self.wc*t)**(-(self.s+1))
+            corr = (
+                (1 / np.pi)
+                * self.alpha
+                * self.wc ** (self.s + 1)
+                * mp.gamma(self.s + 1)
+                * (1 + 1j * self.wc * t) ** (-(self.s + 1))
+            )
             return np.array(corr, dtype=np.complex128)
 
     def make_correlation_fit(
-            self, x, rmse=1e-5, lower=None, upper=None,
-            sigma=None, guesses=None, Nr=None, Ni=None):
+        self,
+        x,
+        rmse=1e-5,
+        lower=None,
+        upper=None,
+        sigma=None,
+        guesses=None,
+        Nr=None,
+        Ni=None,
+    ):
         """
         Provides a fit to the spectral density or corelation function
         with N underdamped oscillators baths, This function gets the
@@ -492,14 +540,28 @@ class OhmicBath:
         """
         C = self.correlation_function(x)
         fc = CorrelationFitter(self.Q, self.T, x, C)
-        bath, fitInfo = fc.get_fit(final_rmse=rmse,
-                                   lower=lower, upper=upper,
-                                   sigma=sigma, guesses=guesses,
-                                   Nr=Nr, Ni=Ni)
+        bath, fitInfo = fc.get_fit(
+            final_rmse=rmse,
+            lower=lower,
+            upper=upper,
+            sigma=sigma,
+            guesses=guesses,
+            Nr=Nr,
+            Ni=Ni,
+        )
         return bath, fitInfo
 
-    def make_spectral_fit(self, x, rmse=1e-5, lower=None, upper=None,
-                          sigma=None, guesses=None, N=None, Nk=5):
+    def make_spectral_fit(
+        self,
+        x,
+        rmse=1e-5,
+        lower=None,
+        upper=None,
+        sigma=None,
+        guesses=None,
+        N=None,
+        Nk=5,
+    ):
         """
         Provides a fit to the spectral density or corelation function
         with N underdamped oscillators baths, This function gets the
@@ -533,10 +595,11 @@ class OhmicBath:
         """
         J = self.spectral_density(x)
         fs = SpectralFitter(T=self.T, Q=self.Q, w=x, J=J, Nk=Nk)
-        bath, fitInfo = fs.get_fit(N=N, final_rmse=rmse, lower=lower,
-                                   upper=upper,
-                                   sigma=sigma, guesses=guesses)
+        bath, fitInfo = fs.get_fit(
+            N=N, final_rmse=rmse, lower=lower, upper=upper, sigma=sigma, guesses=guesses
+        )
         return bath, fitInfo
+
 
 # Utility functions
 
@@ -550,15 +613,12 @@ def unpack(params):
     """Unpack parameter lists for fitting."""
     N = len(params) // 3
     a = params[:N]
-    b = params[N: 2 * N]
-    c = params[2 * N:]
+    b = params[N : 2 * N]
+    c = params[2 * N :]
     return a, b, c
 
 
-def _leastsq(
-    func, y, x, guesses=None,
-    lower=None, upper=None, sigma=None
-):
+def _leastsq(func, y, x, guesses=None, lower=None, upper=None, sigma=None):
     """
     Performs nonlinear least squares  to fit the function func to x and y
 
@@ -631,14 +691,20 @@ def _rmse(func, x, y, lam, gamma, w0):
         to zero the better the fit.
     """
     yhat = func(x, lam, gamma, w0)
-    rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / \
-        (np.max(y) - np.min(y))
+    rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / (np.max(y) - np.min(y))
     return rmse
 
 
 def _fit(
-    func, C, t, N=4, label="correlation_real",
-    guesses=None, lower=None, upper=None, sigma=None
+    func,
+    C,
+    t,
+    N=4,
+    label="correlation_real",
+    guesses=None,
+    lower=None,
+    upper=None,
+    sigma=None,
 ):
     """
     Performs a fit the function func to t and C, with N number of
@@ -672,12 +738,12 @@ def _fit(
     """
     try:
         if None in [guesses, lower, upper, sigma]:
-            raise Exception(
-                "No parameters for the fit provided, using default ones"
-            )
+            raise Exception("No parameters for the fit provided, using default ones")
     except Exception:
         sigma = 1e-4
         C_max = abs(max(C, key=abs))
+        if C_max == 0:  ## When The correlation does not have imaginary or real part
+            C_max = 1e-12  # so no error on bounds
         wc = t[np.argmax(C)]
         if label == "correlation_real":
             guesses = pack([C_max] * N, [-wc] * N, [wc] * N)
@@ -690,10 +756,8 @@ def _fit(
 
         else:
             guesses = pack([C_max] * N, [wc] * N, [wc] * N)
-            lower = pack([-100 * C_max] * N,
-                         [0.1 * wc] * N, [0.1 * wc] * N)
-            upper = pack([100 * C_max] * N,
-                         [100 * wc] * N, [100 * wc] * N)
+            lower = pack([-100 * C_max] * N, [0.1 * wc] * N, [0.1 * wc] * N)
+            upper = pack([100 * C_max] * N, [100 * wc] * N, [100 * wc] * N)
 
     lam, gamma, w0 = _leastsq(
         func,
@@ -704,13 +768,27 @@ def _fit(
         lower=lower,
         upper=upper,
     )
-    rmse = _rmse(func, t, C, lam=lam, gamma=gamma, w0=w0)
-    params = [lam, gamma, w0]
+    if C_max == 0:
+        rmse = 0
+        params = [0, 0, 0]
+    else:
+        rmse = _rmse(func, t, C, lam=lam, gamma=gamma, w0=w0)
+        params = [lam, gamma, w0]
     return rmse, params
 
 
-def _run_fit(funcx, funcy, x, final_rmse, label=None, N=None,
-             sigma=None, guesses=None, lower=None, upper=None):
+def _run_fit(
+    funcx,
+    funcy,
+    x,
+    final_rmse,
+    label=None,
+    N=None,
+    sigma=None,
+    guesses=None,
+    lower=None,
+    upper=None,
+):
     """
     It iteratively tries to fit the fucx to funcy on the interval x,
     if the Ns are provided the fit is done with N modes, if they are
@@ -756,7 +834,7 @@ def _run_fit(funcx, funcy, x, final_rmse, label=None, N=None,
         flag = False
     else:
         flag = True
-        N = N-1
+        N = N - 1
     rmse1 = 8
     while rmse1 > final_rmse:
         N += 1
@@ -777,23 +855,21 @@ def _run_fit(funcx, funcy, x, final_rmse, label=None, N=None,
 
 
 def gen_summary(time, rmse, N, label, lam, gamma, w0):
-    summary = f"Result of fitting {label} "\
-        f"with {N} terms: \n \n {'Parameters': <10}|"\
+    summary = (
+        f"Result of fitting {label} "
+        f"with {N} terms: \n \n {'Parameters': <10}|"
         f"{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n "
+    )
     for k in range(len(gamma)):
-        summary += (
-            f"{k+1: <10}|{lam[k]: ^10.2e}|{gamma[k]:^10.2e}|"
-            f"{w0[k]:>5.2e}\n "
-        )
-    summary += f"\nA  normalized RMSE of {rmse: .2e}"\
-        f" was obtained for the {label}\n"
+        summary += f"{k+1: <10}|{lam[k]: ^10.2e}|{gamma[k]:^10.2e}|" f"{w0[k]:>5.2e}\n "
+    summary += f"\nA  normalized RMSE of {rmse: .2e}" f" was obtained for the {label}\n"
     summary += f" The current fit took {time: 2f} seconds"
     return summary
 
 
 def two_column_summary(
-        params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
-        rmse_imag, rmse_real):
+    params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni, rmse_imag, rmse_real
+):
     lam, gamma, w0 = params_real
     lam2, gamma2, w02 = params_imag
 
@@ -802,24 +878,32 @@ def two_column_summary(
         fit_time_real,
         rmse_real,
         Nr,
-        "The Real Part Of  \n the Correlation Function", lam, gamma,
-        w0)
+        "The Real Part Of  \n the Correlation Function",
+        lam,
+        gamma,
+        w0,
+    )
     summary_imag = gen_summary(
         fit_time_imag,
         rmse_imag,
         Ni,
-        "The Imaginary Part \n Of the Correlation Function", lam2,
-        gamma2, w02)
+        "The Imaginary Part \n Of the Correlation Function",
+        lam2,
+        gamma2,
+        w02,
+    )
 
     full_summary = "Fit correlation class instance: \n \n"
     lines_real = summary_real.splitlines()
     lines_imag = summary_imag.splitlines()
     max_lines = max(len(lines_real), len(lines_imag))
     # Fill the shorter string with blank lines
-    lines_real = lines_real[:-1] + (max_lines - len(lines_real)
-                                    ) * [""] + [lines_real[-1]]
-    lines_imag = lines_imag[:-1] + (max_lines - len(lines_imag)
-                                    ) * [""] + [lines_imag[-1]]
+    lines_real = (
+        lines_real[:-1] + (max_lines - len(lines_real)) * [""] + [lines_real[-1]]
+    )
+    lines_imag = (
+        lines_imag[:-1] + (max_lines - len(lines_imag)) * [""] + [lines_imag[-1]]
+    )
     # Find the maximum line length in each column
     max_length1 = max(len(line) for line in lines_real)
     max_length2 = max(len(line) for line in lines_imag)
