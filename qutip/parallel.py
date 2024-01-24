@@ -2,7 +2,7 @@
 This function provides functions for parallel execution of loops and function
 mappings, using the builtin Python module multiprocessing.
 """
-__all__ = ["parfor", "parallel_map", "serial_map"]
+__all__ = ['parfor', 'parallel_map', 'serial_map']
 
 from numpy import array
 import multiprocessing
@@ -14,8 +14,8 @@ import qutip.settings as qset
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 
-if sys.platform == "darwin":
-    Pool = multiprocessing.get_context("fork").Pool
+if sys.platform == 'darwin':
+    Pool = multiprocessing.get_context('fork').Pool
 else:
     Pool = multiprocessing.Pool
 
@@ -71,46 +71,43 @@ def parfor(func, *args, **kwargs):
         containing the output from `func`.
 
     """
-    os.environ["QUTIP_IN_PARALLEL"] = "TRUE"
+    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     kw = _default_kwargs()
-    if "num_cpus" in kwargs.keys():
-        kw["num_cpus"] = kwargs["num_cpus"]
-        del kwargs["num_cpus"]
+    if 'num_cpus' in kwargs.keys():
+        kw['num_cpus'] = kwargs['num_cpus']
+        del kwargs['num_cpus']
     if len(kwargs) != 0:
         task_func = partial(_task_wrapper_with_args, user_args=kwargs)
     else:
         task_func = _task_wrapper
 
-    if kw["num_cpus"] > qset.num_cpus:
-        print(
-            "Requested number of CPUs (%s) " % kw["num_cpus"]
-            + "is larger than physical number (%s)." % qset.num_cpus
-        )
+    if kw['num_cpus'] > qset.num_cpus:
+        print("Requested number of CPUs (%s) " % kw['num_cpus'] +
+              "is larger than physical number (%s)." % qset.num_cpus)
         print("Reduce 'num_cpus' for greater performance.")
 
-    pool = Pool(processes=kw["num_cpus"])
+    pool = Pool(processes=kw['num_cpus'])
     args = [list(arg) for arg in args]
-    var = [[args[j][i] for j in range(len(args))] for i in range(len(list(args[0])))]
+    var = [[args[j][i] for j in range(len(args))]
+           for i in range(len(list(args[0])))]
     try:
         map_args = ((func, v, os.getpid()) for v in var)
         par_return = list(pool.map(task_func, map_args))
 
         pool.terminate()
         pool.join()
-        os.environ["QUTIP_IN_PARALLEL"] = "FALSE"
+        os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
         if isinstance(par_return[0], tuple):
             par_return = [elem for elem in par_return]
             num_elems = len(par_return[0])
             dt = [type(ii) for ii in par_return[0]]
-            return [
-                array([elem[ii] for elem in par_return], dtype=dt[ii])
-                for ii in range(num_elems)
-            ]
+            return [array([elem[ii] for elem in par_return], dtype=dt[ii])
+                    for ii in range(num_elems)]
         else:
             return par_return
 
     except KeyboardInterrupt:
-        os.environ["QUTIP_IN_PARALLEL"] = "FALSE"
+        os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
         pool.terminate()
 
 
@@ -148,7 +145,7 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
 
     """
     try:
-        progress_bar = kwargs["progress_bar"]
+        progress_bar = kwargs['progress_bar']
         if progress_bar is True:
             progress_bar = TextProgressBar()
     except:
@@ -194,13 +191,13 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         each value in ``values``.
 
     """
-    os.environ["QUTIP_IN_PARALLEL"] = "TRUE"
+    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     kw = _default_kwargs()
-    if "num_cpus" in kwargs:
-        kw["num_cpus"] = kwargs["num_cpus"]
+    if 'num_cpus' in kwargs:
+        kw['num_cpus'] = kwargs['num_cpus']
 
     try:
-        progress_bar = kwargs["progress_bar"]
+        progress_bar = kwargs['progress_bar']
         if progress_bar is True:
             progress_bar = TextProgressBar()
     except:
@@ -214,14 +211,11 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         progress_bar.update(nfinished[0])
 
     try:
-        pool = Pool(processes=kw["num_cpus"])
+        pool = Pool(processes=kw['num_cpus'])
 
-        async_res = [
-            pool.apply_async(
-                task, (value,) + task_args, task_kwargs, _update_progress_bar
-            )
-            for value in values
-        ]
+        async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
+                                      _update_progress_bar)
+                     for value in values]
 
         while not all([ar.ready() for ar in async_res]):
             for ar in async_res:
@@ -231,16 +225,16 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         pool.join()
 
     except KeyboardInterrupt as e:
-        os.environ["QUTIP_IN_PARALLEL"] = "FALSE"
+        os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
         pool.terminate()
         pool.join()
         raise e
 
     progress_bar.finished()
-    os.environ["QUTIP_IN_PARALLEL"] = "FALSE"
+    os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
     return [ar.get() for ar in async_res]
 
 
 def _default_kwargs():
-    settings = {"num_cpus": qset.num_cpus}
+    settings = {'num_cpus': qset.num_cpus}
     return settings
