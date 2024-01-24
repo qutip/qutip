@@ -115,7 +115,8 @@ class BathExponent:
     def _check_sigma_bar_k_offset(self, type, offset):
         if type in (self.types["+"], self.types["-"]):
             if offset is None:
-                raise ValueError("+ and - bath exponents require sigma_bar_k_offset")
+                raise ValueError(
+                    "+ and - bath exponents require sigma_bar_k_offset")
         else:
             if offset is not None:
                 raise ValueError(
@@ -416,7 +417,8 @@ class BosonicBath(Bath):
                     * ((self._bose_einstein(w) + 1) * np.exp(1j * w * t))
                 )
 
-            result = quad_vec(lambda w: integrand(w, t), -np.Inf, np.Inf, **kwargs)
+            result = quad_vec(lambda w: integrand(
+                w, t), -np.Inf, np.Inf, **kwargs)
             return result[0]
 
     def _bose_einstein(self, w):
@@ -536,7 +538,8 @@ class BosonicBath(Bath):
         ----------
         The spectral density of the mode with energy w
         """
-        J = np.real(self.power_spectrum_approx(w) / ((self._bose_einstein(w) + 1) * 2))
+        J = np.real(self.power_spectrum_approx(w) /
+                    ((self._bose_einstein(w) + 1) * 2))
         return J
 
 
@@ -856,7 +859,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         )
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
-        chi = [-2.0 / val for val in evals[0 : Nk - 1]]
+        chi = [-2.0 / val for val in evals[0: Nk - 1]]
         return chi
 
     def spectral_density(self, w):
@@ -893,7 +896,8 @@ class DrudeLorentzPadeBath(BosonicBath):
             Nk = kwargs["Nk"]
         else:
             Nk = 1000
-        eta_p, gamma_p = self._corr(lam=self.lam, gamma=self.gamma, T=self.T, Nk=Nk)
+        eta_p, gamma_p = self._corr(
+            lam=self.lam, gamma=self.gamma, T=self.T, Nk=Nk)
         t = np.array(t)
         C = np.sum(
             [eta_p[i] * np.exp(-gamma_p[i] * t) for i in range(len(gamma_p))], axis=0
@@ -929,7 +933,8 @@ class _DrudeLorentzTerminator:
             else:
                 delta -= 1j * exp.ck / exp.vk
 
-        op = -2 * spre(Q) * spost(Q.dag()) + spre(Q.dag() * Q) + spost(Q.dag() * Q)
+        op = -2 * spre(Q) * spost(Q.dag()) + \
+            spre(Q.dag() * Q) + spost(Q.dag() * Q)
         L_bnd = -delta * op
 
         return delta, L_bnd
@@ -1359,5 +1364,5 @@ class LorentzianPadeBath(FermionicBath):
         )
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
-        chi = [-2.0 / val for val in evals[0 : Nk - 1]]
+        chi = [-2.0 / val for val in evals[0: Nk - 1]]
         return chi
