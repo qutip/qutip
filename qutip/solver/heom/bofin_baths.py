@@ -393,7 +393,7 @@ class BosonicBath(Bath):
         ----------
             The correlation function as an array or float at time t
         """
-        if self.spectral_density(1) == -self.spectral_density(-1):
+        if np.isclose(self.spectral_density(t), -self.spectral_density(-t)):
 
             def integrand(w, t):
                 return (
