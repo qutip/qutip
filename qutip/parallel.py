@@ -4,7 +4,7 @@ mappings, using the builtin Python module multiprocessing.
 """
 __all__ = ['parfor', 'parallel_map', 'serial_map']
 
-from scipy import array
+from numpy import array
 import multiprocessing
 from functools import partial
 import os
