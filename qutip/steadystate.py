@@ -53,6 +53,20 @@ def _eat_kwargs(function, names):
     return out
 
 
+def _rename_kwargs(function, names_pairs):
+    """
+    Return a wrapped version of `function` that rename any keyword
+    arguments from the first value of the pair, to the second.
+    """
+    @functools.wraps(function)
+    def out(*args, **kwargs):
+        for old, new in names_pairs:
+            if old in kwargs:
+                kwargs[new] = kwargs.pop(old)
+        return function(*args, **kwargs)
+    return out
+
+
 # From SciPy 1.4 onwards we need to pass the `callback_type='legacy'` argument
 # to gmres to maintain the same behaviour we used to have.  Since this should
 # be the default behaviour, we use that in the main code and just "eat" the
@@ -67,6 +81,14 @@ if _parse_version(scipy.__version__) < _parse_version("1.1"):
     bicgstab = _eat_kwargs(bicgstab, ['atol'])
 elif _parse_version(scipy.__version__) < _parse_version("1.4"):
     gmres = _eat_kwargs(gmres, ['callback_type'])
+
+
+# From SciPy 1.12, the `tol` keyword argument to iterative solvers was renamed
+# to `rtol`.
+if _parse_version(scipy.__version__) >= _parse_version("1.12"):
+    gmres = _rename_kwargs(gmres, [('tol', 'rtol')])
+    lgmres = _rename_kwargs(lgmres, [('tol', 'rtol')])
+    bicgstab = _rename_kwargs(bicgstab, [('tol', 'rtol')])
 
 
 def _empty_info_dict():

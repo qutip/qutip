@@ -15,6 +15,12 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.linalg.cython_blas cimport zaxpy, zdotu, zdotc, zcopy, zdscal, zscal
 from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
+import scipy
+from packaging.version import parse as _parse_version
+
+
+NEW_SCIPY = _parse_version(scipy.__version__) >= _parse_version("1.12")
+
 
 cdef int ZERO=0
 cdef double DZERO=0
@@ -1214,6 +1220,7 @@ cdef class SSESolver(StochasticSolver):
     cdef object cpcd_ops
     cdef object imp
     cdef double tol, imp_t
+    cdef dict imp_options
 
     def set_data(self, sso):
         L = sso.LH
@@ -1230,6 +1237,9 @@ cdef class SSESolver(StochasticSolver):
             self.tol = sso.tol
             self.imp = LinearOperator( (self.l_vec,self.l_vec),
                                       matvec=self.implicit_op, dtype=complex)
+            self.imp_options = {"tol": sso.tol, "atol": 1e-12}
+            if NEW_SCIPY:
+                self.imp_options["rtol"] = self.imp_options.pop("tol")
 
     def implicit_op(self, vec):
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.l_vec, dtype=complex)
@@ -1610,7 +1620,7 @@ cdef class SSESolver(StochasticSolver):
         # scipy function only take np array, not memoryview
         self.imp_t = t
         spout, check = sp.linalg.bicgstab(self.imp, dvec, x0=guess,
-                                          tol=self.tol, atol=1e-12)
+                                          **self.imp_options)
         cdef int i
         copy(spout, out)
 
@@ -1622,6 +1632,7 @@ cdef class SMESolver(StochasticSolver):
     cdef object c_ops
     cdef int N_root
     cdef double tol
+    cdef dict imp_options
 
     def set_data(self, sso):
         L = sso.LH
@@ -1636,6 +1647,9 @@ cdef class SMESolver(StochasticSolver):
         if sso.solver_code in [MILSTEIN_IMP_SOLVER, TAYLOR1_5_IMP_SOLVER]:
             self.tol = sso.tol
             self.imp = sso.imp
+            self.imp_options = {"tol": sso.tol, "atol": 1e-12}
+            if NEW_SCIPY:
+                self.imp_options["rtol"] = self.imp_options.pop("tol")
 
     cdef void _normalize_inplace(self, complex[::1] vec):
         _normalize_rho(vec)
@@ -1878,7 +1892,7 @@ cdef class SMESolver(StochasticSolver):
         # np.ndarray to memoryview is OK but not the reverse
         # scipy function only take np array, not memoryview
         spout, check = sp.linalg.bicgstab(self.imp(t, data=1), dvec, x0=guess,
-                                          tol=self.tol, atol=1e-12)
+                                          **self.imp_options)
         cdef int i
         copy(spout,out)
 
