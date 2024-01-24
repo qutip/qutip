@@ -282,7 +282,7 @@ structure and relative importance of various elements.
 QuTiP offers a few functions for quickly visualizing matrix data in the
 form of histograms, :func:`qutip.visualization.matrix_histogram` and
 as Hinton diagram of weighted squares, :func:`qutip.visualization.hinton`.
-These functions takes a :class:`qutip.Qobj` as first argument, and optional arguments to,
+These functions takes a :class:`.Qobj` as first argument, and optional arguments to,
 for example, set the axis labels and figure title (see the function's documentation
 for details).
 
@@ -390,7 +390,8 @@ Note that to obtain :math:`\chi` with this method we have to construct a matrix 
 Implementation in QuTiP
 -----------------------
 
-In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the SWAP gate for two qubits. In QuTiP the function :func:`qutip.core.operators.swap` generates the unitary transformation for the state kets:
+In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator.
+To illustrate how to use this function, let's consider the SWAP gate for two qubits. In QuTiP the function :func:`.swap` generates the unitary transformation for the state kets:
 
 
 .. plot::
@@ -430,4 +431,4 @@ We are now ready to compute :math:`\chi` using :func:`qutip.tomography.qpt`, and
 
 
 
-For a slightly more advanced example, where the density matrix propagator is calculated from the dynamics of a system defined by its Hamiltonian and collapse operators using the function :func:`qutip.propagator.propagator`, see notebook "Time-dependent master equation: Landau-Zener transitions" on the tutorials section on the QuTiP web site.
+For a slightly more advanced example, where the density matrix propagator is calculated from the dynamics of a system defined by its Hamiltonian and collapse operators using the function :func:`.propagator`, see notebook "Time-dependent master equation: Landau-Zener transitions" on the tutorials section on the QuTiP web site.
