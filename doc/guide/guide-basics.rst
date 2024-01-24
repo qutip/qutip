@@ -328,10 +328,10 @@ For the destruction operator above:
 
 The ``data`` attribute returns a Qutip diagonal matrix.
 ``Qobj`` instances store their data in Qutip matrix format.
-In the core qutip module, the ``Dense``, ``CSR`` and ``Dia`` formats are available, but other module can add other formats.
-For example, the qutip-jax module add ``Jax`` and ``JaxDia`` formats.
+In the core qutip module, the ``Dense``, ``CSR`` and ``Dia`` formats are available, but other packages can add other formats.
+For example, the ``qutip-jax`` module adds the ``Jax`` and ``JaxDia`` formats.
 One can always access the underlying matrix as a numpy array using :meth:`.Qobj.full`.
-It is also possible to access the underlying data as is in a common format using :meth:`.Qobj.data_as`.
+It is also possible to access the underlying data in a common format using :meth:`.Qobj.data_as`.
 
 .. doctest:: [basics]
   :options: +NORMALIZE_WHITESPACE
@@ -357,9 +357,9 @@ Conversion between storage type is done using the :meth:`.Qobj.to` method.
 Note that :meth:`.Qobj.data_as` does not do the conversion.
 
 QuTiP will do conversion when needed to keep everything working in any format.
-However these conversions could slow down the computations and it is recomented to keep to one family of format.
-For example, core qutip ``Dense`` and ``CSR`` work well together and binary operation between these format is efficient.
-However binary operations between ``Dense`` and ``Jax`` should be avoided since it is not clear whether the operation will be executed by Jax, (possibly on GPU) or numpy.
+However these conversions could slow down computation and it is recommended to keep to one format family where possible.
+For example, core QuTiP  ``Dense`` and ``CSR`` work well together and binary operations between these formats is efficient.
+However binary operations between ``Dense`` and ``Jax`` should be avoided since it is not always clear whether the operation will be executed by Jax (possibly on a GPU if present) or numpy.
 
 .. _basics-qobj-math:
 

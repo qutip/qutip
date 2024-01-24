@@ -191,7 +191,10 @@ algorithm.
 Optimal Quantum Control in QuTiP
 ================================
 
-The Quantum Control part of qutip has been moved to it's own project.
-Previously available implementation is now located in the `qutip-qtrl <https://qutip-qtrl.readthedocs.io/en/stable/>`_ module.
-A newer interface with upgraded capacities is also being developped in `qutip-qoc <https://github.com/flowerthrower/qutip-qoc/tree/packaging>`_.
-Please give these module a look.
+The Quantum Control part of qutip has been moved to its own project.
+
+The previously available implementation is now located in the `qutip-qtrl <https://qutip-qtrl.readthedocs.io/en/stable/>`_ module. If the ``qutip-qtrl`` package is installed, it can also be imported under the name ``qutip.control`` to ease porting code developed for QuTiP 4 to QuTiP 5.
+
+A newer interface with upgraded capacities is being developped in `qutip-qoc <https://github.com/flowerthrower/qutip-qoc/tree/packaging>`_.
+
+Please give these modules a try.

@@ -9,7 +9,7 @@ Plotting on the Bloch Sphere
 Introduction
 ============
 
-When studying the dynamics of a two-level system, it is often convenient to visualize the state of the system by plotting the state-vector or density matrix on the Bloch sphere.  In QuTiP, we have created two different classes to allow for easy creation and manipulation of data sets, both vectors and data points, on the Bloch sphere.
+When studying the dynamics of a two-level system, it is often convenient to visualize the state of the system by plotting the state-vector or density matrix on the Bloch sphere.  In QuTiP, there is a class to allow for easy creation and manipulation of data sets, both vectors and data points, on the Bloch sphere.
 
 .. _bloch-class:
 
