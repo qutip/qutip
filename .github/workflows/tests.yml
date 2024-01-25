@@ -36,47 +36,43 @@ jobs:
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
+          # Python 3.10, Scipy 1.8, numpy 1.23
+          # Oldest version we have to support according to SPEC 0
+          # https://scientific-python.org/specs/spec-0000/
+          - case-name: Old setup
+            os: ubuntu-latest
+            python-version: "3.10"
+            numpy-requirement: ">=1.23,<1.24"
+            scipy-requirement: ">=1.8,<1.9"
+            condaforge: 1
+            oldcython: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
+
+          # Python 3.10, no mkl, no cython
+          - case-name: Python 3.10, no mkl
+            os: ubuntu-latest
+            python-version: "3.10"
+            condaforge: 1
+            nomkl: 1
+            nocython: 1
+
           # Mac
           # Mac has issues with MKL since september 2022.
           - case-name: macos
             os: macos-latest
-            python-version: "3.10"
+            python-version: "3.11"
             condaforge: 1
             nomkl: 1
 
-          # Scipy 1.5
-          - case-name: old SciPy
-            os: ubuntu-latest
-            python-version: "3.8"
-            numpy-requirement: ">=1.20,<1.21"
-            scipy-requirement: ">=1.5,<1.6"
-            condaforge: 1
-            oldcython: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
-
-          # No MKL runs.  MKL is now the default for conda installations, but
-          # not necessarily for pip.
-          - case-name: no MKL
-            os: ubuntu-latest
-            python-version: "3.9"
-            numpy-requirement: ">=1.20,<1.21"
-            nomkl: 1
-
-          # Builds without Cython at runtime.  This is a core feature;
-          # everything should be able to run this.
-          - case-name: no Cython
-            os: ubuntu-latest
-            python-version: "3.8"
-            nocython: 1
-
-          # Python 3.10 and numpy 1.22
-          # Use conda-forge to provide numpy 1.22
-          - case-name: Python 3.10
-            os: ubuntu-latest
-            python-version: "3.10"
-            condaforge: 1
-            oldcython: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
+          # Windows. Once all tests pass without special options needed, this
+          # can be moved to the main os list in the test matrix. All the tests
+          # that fail currently seem to do so because mcsolve uses
+          # multiprocessing under the hood. Windows does not support fork()
+          # well, which makes transfering objects to the child processes
+          # error prone. See, e.g., https://github.com/qutip/qutip/issues/1202
+          - case-name: Windows
+            os: windows-latest
+            python-version: "3.11"
 
           # Python 3.11 and latest numpy
           # Use conda-forge to provide Python 3.11 and latest numpy
@@ -91,15 +87,13 @@ jobs:
             conda-extra-pkgs: "suitesparse"  # for compiling cvxopt
             pytest-extra-options: "-W ignore::DeprecationWarning:Cython.Tempita"
 
-          # Windows. Once all tests pass without special options needed, this
-          # can be moved to the main os list in the test matrix. All the tests
-          # that fail currently seem to do so because mcsolve uses
-          # multiprocessing under the hood. Windows does not support fork()
-          # well, which makes transfering objects to the child processes
-          # error prone. See, e.g., https://github.com/qutip/qutip/issues/1202
-          - case-name: Windows Latest
-            os: windows-latest
-            python-version: "3.10"
+          # Python 3.12 and latest numpy
+          # Use conda-forge to provide Python 3.11 and latest numpy
+          - case-name: Python 3.12
+            os: ubuntu-latest
+            python-version: "3.12"
+            condaforge: 1
+
 
     steps:
       - uses: actions/checkout@v3
