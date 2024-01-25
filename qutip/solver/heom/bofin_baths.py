@@ -420,7 +420,9 @@ class BosonicBath(Bath):
         if self.T == 0:
             return np.zeros_like(w)
 
-        return (1 / (np.exp(w / self.T) - 1))
+        w = np.array(w, dtype=float)
+        with np.errstate(divide='ignore'):  # return inf if w=0
+            return (1 / (np.exp(w / self.T) - 1))
 
     def power_spectrum(self, w):
         """
@@ -558,15 +560,11 @@ class DrudeLorentzBath(BosonicBath):
     ):
         self.lam = lam
         self.gamma = gamma
-        ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
-            lam=lam,
-            gamma=gamma,
-            T=T,
-            Nk=Nk,
-        )
+        ck_real, vk_real, ck_imag, vk_imag =\
+            DrudeLorentzBath._matsubara_params(lam, gamma, T, Nk)
 
-        super().__init__(Q, ck_real, vk_real, ck_imag,
-                         vk_imag, combine=combine, tag=tag, T=T)
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag,
+                         combine=combine, tag=tag, T=T)
 
         self._dl_terminator = _DrudeLorentzTerminator(
             Q=Q, lam=lam, gamma=gamma, T=T,
@@ -596,8 +594,8 @@ class DrudeLorentzBath(BosonicBath):
         delta, L = self._dl_terminator.terminator(self.exponents)
         return delta, L
 
-    def _matsubara_params(self, lam, gamma, T, Nk):
-        # should this take only self now?
+    @staticmethod
+    def _matsubara_params(lam, gamma, T, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
         ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
         ck_real.extend([
@@ -615,8 +613,8 @@ class DrudeLorentzBath(BosonicBath):
 
     def spectral_density(self, w):
         """
-        Calculates the DrudeLorentz spectral density (Qutip BonFin
-        paper https://doi.org/10.1103/PhysRevResearch.5.013181  see Eq 15)
+        Calculates the DrudeLorentz spectral density, see Eq. 15 in the BoFiN
+        paper (DOI: 10.1103/PhysRevResearch.5.013181).
 
         Parameters
         ----------
@@ -624,36 +622,34 @@ class DrudeLorentzBath(BosonicBath):
             Energy of the mode
 
         Returns
-        ----------
+        -------
         The spectral density of the mode with energy w
         """
-        return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
 
-    def correlation_function(self, t, **kwargs):
+        return 2 * self.lam * self.gamma * w / (self.gamma**2 + w**2)
+
+    def correlation_function(self, t, *, Nk=1000, **kwargs):
         """
-        Here we determine the correlation function by the sum of  large number
+        Here we determine the correlation function by summing a large number
         of exponents, as the numerical integration is noisy for this spectral
-        density
+        density.
 
         Parameters
         ----------
         t : np.array or float
-            the time at which to evaluate the correlation function
-
-        kwargs : This may be the Number of exponents to use defaults to 1000
-        and it should be denoted by Nk
+            The time at which to evaluate the correlation function
+        Nk : int, default 1000
+            The number of exponents to use
         """
-        if 'Nk' in kwargs.keys():
-            Nk = kwargs['Nk']
-        else:
-            Nk = 1000
-        ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
-            self.lam, self.gamma, self.T, Nk=Nk)
+
+        ck_real, vk_real, ck_imag, vk_imag =\
+             DrudeLorentzBath._matsubara_params(
+                 self.lam, self.gamma, self.T, Nk)
 
         def C(c, v):
-            return np.sum([c[i] * np.exp(-np.array(v[i] * t))
-                           for i in range(len(c))], axis=0)
-        return C(ck_real, vk_real)+1j*C(ck_imag, vk_imag)
+            return np.sum([ck * np.exp(-np.array(vk * t))
+                           for ck, vk in zip(c, v)], axis=0)
+        return C(ck_real, vk_real) + 1j * C(ck_imag, vk_imag)
 
 
 class DrudeLorentzPadeBath(BosonicBath):
@@ -812,47 +808,8 @@ class DrudeLorentzPadeBath(BosonicBath):
         chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
 
-    def spectral_density(self, w):
-        """
-        Calculates the DrudeLorentz spectral density (Qutip BonFin
-        paper https://doi.org/10.1103/PhysRevResearch.5.013181  see Eq 15)
-
-        Parameters
-        ----------
-        w: float or array
-            Energy of the mode
-
-        Returns
-        ----------
-        The spectral density of the mode with energy w
-        """
-        return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
-
-    def correlation_function(self, t, **kwargs):
-        """
-        Here we determine the correlation function by the sum of  large number
-        of exponents, as the numerical integration is noisy for this spectral
-        density
-
-        Parameters
-        ----------
-        t : np.array or float
-            the time at which to evaluate the correlation function
-
-        kwargs : This may be the Number of exponents to use, defaults to 1000
-        and it should be denoted by Nk
-        """
-        if 'Nk' in kwargs.keys():
-            Nk = kwargs['Nk']
-        else:
-            Nk = 1000
-        eta_p, gamma_p = self._corr(
-            lam=self.lam, gamma=self.gamma, T=self.T, Nk=Nk)
-        t = np.array(t)
-        C = np.sum([
-            eta_p[i] * np.exp(-gamma_p[i] * t)
-            for i in range(len(gamma_p))], axis=0)
-        return C
+    spectral_density = DrudeLorentzBath.spectral_density
+    correlation_function = DrudeLorentzBath.correlation_function
 
 
 class _DrudeLorentzTerminator:
