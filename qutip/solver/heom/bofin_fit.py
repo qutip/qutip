@@ -33,9 +33,6 @@ class SpectralFitter:
     T : float
         Bath temperature.
 
-    Nk : int
-        Number of exponential terms used to approximate the bath correlation
-        functions.
     w : np.array
         The range on which to perform the fit
 
@@ -43,11 +40,9 @@ class SpectralFitter:
         The spectral density to be fitted as an array or function
     """
 
-    def __init__(self, T, Q, w, J, Nk=14):
+    def __init__(self, T, Q, w, J):
         self.Q = Q
         self.T = T
-        self.Nk = Nk
-
         self.set_function(w, J)
 
     def set_function(self, w, J):
@@ -100,6 +95,7 @@ class SpectralFitter:
     def get_fit(
         self,
         N=None,
+        Nk=5,
         final_rmse=5e-6,
         lower=None,
         upper=None,
@@ -121,6 +117,9 @@ class SpectralFitter:
         N : optional,int
             Number of underdamped oscillators to use,
             if set to False it is found automatically.
+        Nk : optional,int
+            Number of exponential terms used to approximate the bath
+            correlation functions. Defaults to 5
         final_rmse : float
             Desired normalized root mean squared error .
         lower : list
@@ -147,16 +146,16 @@ class SpectralFitter:
         spec_n = len(params[0])
         end = time()
         fit_time = end - start
-        bath = self._generate_bath(params)
+        bath = self._generate_bath(params, Nk)
         bath.spectral_density = self._J_fun
         summary = gen_summary(
             fit_time, rmse, N, "The Spectral Density", *params)
         self.fitInfo = {
             "fit_time": fit_time, "rmse": rmse, "N": spec_n, "params": params,
-            "Nk": self.Nk, "summary": summary}
+            "Nk": Nk, "summary": summary}
         return bath, self.fitInfo
 
-    def _generate_bath(self, params):
+    def _generate_bath(self, params, Nk):
         """
         Obtains the bath exponents from the list of fit parameters some
         transformations are done, to reverse the ones in the UnderDampedBath
@@ -191,7 +190,7 @@ class SpectralFitter:
 
         for lamt, Gamma, Om in zip(lam, gamma, w0):
             coeffs = UnderDampedBath._matsubara_params(
-                lamt, 2 * Gamma, Om + 0j, self.T, self.Nk)
+                lamt, 2 * Gamma, Om + 0j, self.T, Nk)
             ckAR.extend(coeffs[0])
             vkAR.extend(coeffs[1])
             ckAI.extend(coeffs[2])
@@ -532,9 +531,9 @@ class OhmicBath:
             Initial guess for the parameters.
         """
         J = self.spectral_density(x)
-        fs = SpectralFitter(T=self.T, Q=self.Q, w=x, J=J, Nk=Nk)
+        fs = SpectralFitter(T=self.T, Q=self.Q, w=x, J=J)
         bath, fitInfo = fs.get_fit(N=N, final_rmse=rmse, lower=lower,
-                                   upper=upper,
+                                   upper=upper, Nk=Nk,
                                    sigma=sigma, guesses=guesses)
         return bath, fitInfo
 
@@ -678,6 +677,11 @@ def _fit(
     except Exception:
         sigma = 1e-4
         C_max = abs(max(C, key=abs))
+        if C_max == 0:
+            # When The correlation does not have imaginary or real part
+            rmse = 0
+            params = [0, 0, 0]
+            return rmse, params
         wc = t[np.argmax(C)]
         if label == "correlation_real":
             guesses = pack([C_max] * N, [-wc] * N, [wc] * N)

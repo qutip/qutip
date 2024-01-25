@@ -133,7 +133,7 @@ class TestSpectralFitter:
         a, b, c = [list(range(2))] * 3
         w = 1
         T = 1
-        bath = SpectralFitter(T, sigmax(), 0, np.sin, Nk=2)
+        bath = SpectralFitter(T, sigmax(), 0, np.sin)
         assert bath._spectral_density_approx(w, a, b, c) == J
         a, b, c = [list(range(3))] * 3
         w = 2
@@ -143,9 +143,9 @@ class TestSpectralFitter:
         T = 1
         wc = 1
         w = np.linspace(0.1, 10 * wc, 1000)
-        ud = UnderDampedBath(sigmax(), lam=0.05, w0=1, gamma=1, T=T, Nk=1)
-        fs = SpectralFitter(T, sigmax(), w, ud.spectral_density, Nk=1)
-        bath, _ = fs.get_fit(N=1)
+        ud = UnderDampedBath(sigmax(), lam=0.05, w0=1, gamma=1, T=T,Nk=1)
+        fs = SpectralFitter(T, sigmax(), w, ud.spectral_density)
+        bath, _ = fs.get_fit(N=1,Nk=1)
         assert np.isclose(
             bath.spectral_density_approx(w)-ud.spectral_density(w),
             np.zeros_like(w),atol=1e-5).all()
@@ -156,9 +156,9 @@ class TestSpectralFitter:
         T = 1
         w = np.linspace(0, 15, 20000)
         ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=1, T=T, Nk=1)
-        fs = SpectralFitter(T, Q, w, ud.spectral_density, Nk=1)
-        _, fitinfo = fs.get_fit(N=1)
-        fbath = fs._generate_bath(fitinfo['params'])
+        fs = SpectralFitter(T, Q, w, ud.spectral_density)
+        _, fitinfo = fs.get_fit(N=1,Nk=1)
+        fbath = fs._generate_bath(fitinfo['params'],Nk=1)
         for i in range(len(fbath.exponents)):
             assert np.isclose(fbath.exponents[i].ck, ud.exponents[i].ck)
             if (fbath.exponents[i].ck2 != ud.exponents[i].ck2):

@@ -371,14 +371,13 @@ class BosonicBath(Bath):
         raise NotImplementedError(
             "The spectral density of this bath has not been specified")
 
-    def correlation_function(
-            self, t, **kwargs):
+    def correlation_function(self, t, **kwargs):
         """
         Calculates the correlation function from the spectral density by
         numeric integration, see Eq. 6 in the BoFiN paper
         (DOI: 10.1103/PhysRevResearch.5.013181). This calculation requires that
         the temperature of the bath (`self.T`) is specified.
-
+    
         Parameters
         ----------
         t : np.array or float
@@ -389,20 +388,33 @@ class BosonicBath(Bath):
         -------
             The correlation function at time t as an array or float
         """
+        
+        if np.isclose(self.spectral_density(t), -self.spectral_density(-t)).all():
 
-        def integrand(w, t):
-            # note that 2n+1 = coth(beta*omega/2)
-            return (1/np.pi) * self.spectral_density(w) * (
-                (2*self._bose_einstein(w)+1) * np.cos(w*t) - 1j * np.sin(w*t)
-            )
+            def integrand(w, t):
+                return (
+                    (1 / np.pi)
+                    * self.spectral_density(w)
+                    * (
+                        (2 * self._bose_einstein(w) + 1) * np.cos(w * t)
+                        - 1j * np.sin(w * t)
+                    )
+                )
 
-        result = quad_vec(
-            lambda w: integrand(w, t),
-            0,
-            np.Inf,
-            **kwargs
-        )
-        return result[0]
+            result = quad_vec(lambda w: integrand(w, t), 0, np.Inf, **kwargs)
+            return result[0]
+        else:
+
+            def integrand(w, t):
+                return (
+                    (1 / np.pi)
+                    * self.spectral_density(w)
+                    * ((self._bose_einstein(w) + 1) * np.exp(1j * w * t))
+                )
+
+            result = quad_vec(lambda w: integrand(
+                w, t), -np.Inf, np.Inf, **kwargs)
+            return result[0]
 
     def _bose_einstein(self, w):
         """
