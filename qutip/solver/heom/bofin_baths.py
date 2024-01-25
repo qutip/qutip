@@ -348,36 +348,53 @@ class BosonicBath(Bath):
 
     def spectral_density(self, w):
         """
-        Spectral Density, a Factor pi needs to be considered with respect to
-        the coupling constant see (BoFin paper 10.1103/PhysRevResearch.5.013181
-        eq 7) where the coupling constants correspond to the gks
+        Spectral density of this bath.
+        
+        The BosonicBath class mainly represents a list of expansion
+        coefficients of the bath auto-correlation function. However, subclasses
+        may additionally override this `spectral_density` function to calculate
+        the bath spectral density from a known analytic expression.
+        Implementing this function does not affect the HEOM simulation, but it
+        can be useful for illustration purposes. For example, the
+        `correlation_function` numerically computes the correlation function
+        based on the provided `spectral_density` function. It can be compared
+        to `correlation_function_approx`, which returns the correlation
+        function according to the list of expansion coefficients that is used
+        for the HEOM construction.
 
-        The spectral density is usually assumed to be an odd function, and here
-        we take this approach meaning J(w)=-J(-w)
+        Note that various conventions for the definition of the spectral
+        exist. We follow the convention described in Eq. 7 of the BoFiN paper
+        (DOI: 10.1103/PhysRevResearch.5.013181). We also assume that the
+        spectral density is an odd function, meaning J(w) = -J(-w).
         """
 
         raise NotImplementedError(
-            "The spectral density of this bath has not ben specified")
+            "The spectral density of this bath has not been specified")
 
     def correlation_function(
             self, t, **kwargs):
         """
-        Calculates the correlation function by numerically computing the
-        integral (see equation 6 in 10.1103/PhysRevResearch.5.013181)
-        where 2n+1 was replaced by cotangent
+        Calculates the correlation function from the spectral density by
+        numeric integration, see Eq. 6 in the BoFiN paper
+        (DOI: 10.1103/PhysRevResearch.5.013181). This calculation requires that
+        the temperature of the bath (`self.T`) is specified.
 
         Parameters
         ----------
         t : np.array or float
-            the time at which to evaluate the correlation function
+            the time(s) at which to evaluate the correlation function
         kwargs : will be passed to scipy's `quad_vec` function
 
         Returns
-        ----------
-            The correlation function as an array or float at time t
+        -------
+            The correlation function at time t as an array or float
         """
-        def integrand(w, t): return (1/np.pi)*self.spectral_density(w)*(
-            (2*self._bose_einstein(w)+1)*np.cos(w*t) - 1j*np.sin(w*t))
+
+        def integrand(w, t):
+            # note that 2n+1 = coth(beta*omega/2)
+            return (1/np.pi) * self.spectral_density(w) * (
+                (2*self._bose_einstein(w)+1) * np.cos(w*t) - 1j * np.sin(w*t)
+            )
 
         result = quad_vec(
             lambda w: integrand(w, t),
@@ -390,7 +407,7 @@ class BosonicBath(Bath):
     def _bose_einstein(self, w):
         """
         Calculates the bose einstein distribution for the
-        temperature of the bath
+        temperature of the bath.
 
         Parameters
         ----------
@@ -398,7 +415,7 @@ class BosonicBath(Bath):
             Energy of the mode
 
         Returns
-        ----------
+        -------
         The population of the mode with energy w
         """
 
@@ -408,18 +425,15 @@ class BosonicBath(Bath):
         if self.T == 0:
             return np.zeros_like(w)
 
-        # Return large finite value for omega=0
-        # This will then be multiplied by spectral_density(0) which
-        # should normally be zero
         w = np.array(w, dtype=float)
-        w[w == 0.0] += 1e-6
         return (1 / (np.exp(w / self.T) - 1))
 
     def power_spectrum(self, w):
         """
         Calculates the power spectrum from the spectral density
-        using the fluctuation dissipation theorem
-        (see text after equation 2 in https://arxiv.org/pdf/2202.04059.pdf )
+        using the fluctuation dissipation theorem. This calculation requires
+        that the temperature of the bath (`self.T`) is specified.
+
         Parameters
         ----------
         w: float or array
