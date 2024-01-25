@@ -118,7 +118,7 @@ class SpectralFitter:
             Number of underdamped oscillators to use,
             if set to False it is found automatically.
         Nk : optional,int
-            Number of exponential terms used to approximate the bath 
+            Number of exponential terms used to approximate the bath
             correlation functions. Defaults to 5
         final_rmse : float
             Desired normalized root mean squared error .
@@ -531,9 +531,9 @@ class OhmicBath:
             Initial guess for the parameters.
         """
         J = self.spectral_density(x)
-        fs = SpectralFitter(T=self.T, Q=self.Q, w=x, J=J, Nk=Nk)
+        fs = SpectralFitter(T=self.T, Q=self.Q, w=x, J=J)
         bath, fitInfo = fs.get_fit(N=N, final_rmse=rmse, lower=lower,
-                                   upper=upper,
+                                   upper=upper, Nk=Nk,
                                    sigma=sigma, guesses=guesses)
         return bath, fitInfo
 
@@ -677,7 +677,7 @@ def _fit(
     except Exception:
         sigma = 1e-4
         C_max = abs(max(C, key=abs))
-        if C_max == 0:  
+        if C_max == 0:
             # When The correlation does not have imaginary or real part
             rmse = 0
             params = [0, 0, 0]
