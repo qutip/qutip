@@ -33,7 +33,7 @@ __all__ = [
 
 
 def _isequal(Q1, Q2, tol):
-    """Return true if Q1 and Q2 are equal to within the given tolerance."""
+    """ Return true if Q1 and Q2 are equal to within the given tolerance. """
     return _data.iszero(_data.sub(Q1.data, Q2.data), tol=tol)
 
 
@@ -98,7 +98,6 @@ class BathExponent:
 
     All of the parameters are also available as attributes.
     """
-
     types = enum.Enum("ExponentType", ["R", "I", "RI", "+", "-"])
 
     def _check_ck2(self, type, ck2):
@@ -116,7 +115,8 @@ class BathExponent:
         if type in (self.types["+"], self.types["-"]):
             if offset is None:
                 raise ValueError(
-                    "+ and - bath exponents require sigma_bar_k_offset")
+                    "+ and - bath exponents require sigma_bar_k_offset"
+                )
         else:
             if offset is not None:
                 raise ValueError(
@@ -128,15 +128,8 @@ class BathExponent:
         return type in (self.types["+"], self.types["-"])
 
     def __init__(
-        self,
-        type,
-        dim,
-        Q,
-        ck,
-        vk,
-        ck2=None,
-        sigma_bar_k_offset=None,
-        tag=None,
+            self, type, dim, Q, ck, vk, ck2=None,
+            sigma_bar_k_offset=None, tag=None,
     ):
         if not isinstance(type, self.types):
             type = self.types[type]
@@ -257,7 +250,8 @@ class BosonicBath(Bath):
             raise ValueError("The coupling operator Q must be a Qobj.")
 
     def __init__(
-        self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True, tag=None, T=None
+            self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
+            tag=None, T=None
     ):
         self.T = T
         self._check_cks_and_vks(ck_real, vk_real, ck_imag, vk_imag)
@@ -316,8 +310,9 @@ class BosonicBath(Bath):
             e1 = remaining.pop(0)
             group = [e1]
             for e2 in remaining[:]:
-                if np.isclose(e1.vk, e2.vk, rtol=rtol, atol=atol) and _isequal(
-                    e1.Q, e2.Q, tol=atol
+                if (
+                    np.isclose(e1.vk, e2.vk, rtol=rtol, atol=atol) and
+                    _isequal(e1.Q, e2.Q, tol=atol)
                 ):
                     group.append(e2)
                     remaining.remove(e2)
@@ -331,35 +326,23 @@ class BosonicBath(Bath):
             ):
                 # the group is either type I or R
                 ck = sum(exp.ck for exp in combine)
-                new_exponents.append(
-                    BathExponent(
-                        exp1.type,
-                        None,
-                        exp1.Q,
-                        ck,
-                        exp1.vk,
-                        tag=exp1.tag,
-                    )
-                )
+                new_exponents.append(BathExponent(
+                    exp1.type, None, exp1.Q, ck, exp1.vk, tag=exp1.tag,
+                ))
             else:
                 # the group includes both type I and R exponents
-                ck_R = sum(exp.ck for exp in combine if exp.type == exp.types.R) + sum(
-                    exp.ck for exp in combine if exp.type == exp.types.RI
+                ck_R = (
+                    sum(exp.ck for exp in combine if exp.type == exp.types.R) +
+                    sum(exp.ck for exp in combine if exp.type == exp.types.RI)
                 )
-                ck_I = sum(exp.ck for exp in combine if exp.type == exp.types.I) + sum(
-                    exp.ck2 for exp in combine if exp.type == exp.types.RI
+                ck_I = (
+                    sum(exp.ck for exp in combine if exp.type == exp.types.I) +
+                    sum(exp.ck2 for exp in combine if exp.type == exp.types.RI)
                 )
-                new_exponents.append(
-                    BathExponent(
-                        "RI",
-                        None,
-                        exp1.Q,
-                        ck_R,
-                        exp1.vk,
-                        ck2=ck_I,
-                        tag=exp1.tag,
-                    )
-                )
+                new_exponents.append(BathExponent(
+                    "RI", None, exp1.Q, ck_R, exp1.vk, ck2=ck_I,
+                    tag=exp1.tag,
+                ))
 
         return new_exponents
 
@@ -374,8 +357,7 @@ class BosonicBath(Bath):
         """
 
         raise NotImplementedError(
-            "The spectral density of this bath has not ben specified"
-        )
+            "The spectral density of this bath has not ben specified")
 
     def correlation_function(self, t, **kwargs):
         """
@@ -438,8 +420,7 @@ class BosonicBath(Bath):
 
         if self.T is None:
             raise NotImplementedError(
-                "Bath temperature must be specified for this operation"
-            )
+                "Bath temperature must be specified for this operation")
         if self.T == 0:
             return np.zeros_like(w)
 
@@ -448,7 +429,7 @@ class BosonicBath(Bath):
         # should normally be zero
         w = np.array(w, dtype=float)
         w[w == 0.0] += 1e-6
-        return 1 / (np.exp(w / self.T) - 1)
+        return (1 / (np.exp(w / self.T) - 1))
 
     def power_spectrum(self, w):
         """
@@ -464,7 +445,8 @@ class BosonicBath(Bath):
         ----------
         The power spectrum of the mode with energy w
         """
-        S = self.spectral_density(w) * ((self._bose_einstein(w) + 1) * 2)
+        S = self.spectral_density(
+            w)*((self._bose_einstein(w) + 1) * 2)
         return S
 
     def correlation_function_approx(self, t):
@@ -482,17 +464,17 @@ class BosonicBath(Bath):
         ----------
         The correlation function of the bath at time t
         """
-        corr = 0 + 0j
+        corr = 0+0j
         for exp in self.exponents:
             if (
-                exp.type == BathExponent.types["R"]
-                or exp.type == BathExponent.types["RI"]
+                exp.type == BathExponent.types['R'] or
+                exp.type == BathExponent.types['RI']
             ):
                 corr += exp.ck * np.exp(-exp.vk * t)
-            if exp.type == BathExponent.types["I"]:
-                corr += 1j * exp.ck * np.exp(-exp.vk * t)
-            if exp.type == BathExponent.types["RI"]:
-                corr += 1j * exp.ck2 * np.exp(-exp.vk * t)
+            if exp.type == BathExponent.types['I']:
+                corr += 1j*exp.ck * np.exp(-exp.vk * t)
+            if exp.type == BathExponent.types['RI']:
+                corr += 1j*exp.ck2 * np.exp(-exp.vk * t)
         return corr
 
     def power_spectrum_approx(self, w):
@@ -509,7 +491,7 @@ class BosonicBath(Bath):
         ----------
         The power spectrum of the mode with energy w
         """
-        S = 0 + 0j
+        S = 0+0j
         for exp in self.exponents:
             ck = exp.ck
             ck2 = exp.ck2
@@ -517,10 +499,10 @@ class BosonicBath(Bath):
                 ck = 0
             if ck2 is None:
                 ck2 = 0
-            if exp.type == BathExponent.types["I"]:
-                S += 2 * np.real((1j * ck - ck2) / (exp.vk - 1j * w))
+            if exp.type == BathExponent.types['I']:
+                S += 2*np.real((1j*ck-ck2)/(exp.vk - 1j*w))
             else:
-                S += 2 * np.real((ck + 1j * ck2) / (exp.vk - 1j * w))
+                S += 2*np.real((ck+1j*ck2)/(exp.vk - 1j*w))
 
         return S
 
@@ -538,8 +520,10 @@ class BosonicBath(Bath):
         ----------
         The spectral density of the mode with energy w
         """
-        J = np.real(self.power_spectrum_approx(w) /
-                    ((self._bose_einstein(w) + 1) * 2))
+        J = np.real(
+            self.power_spectrum_approx(w) /
+            ((self._bose_einstein(w) + 1) * 2)
+        )
         return J
 
 
@@ -577,14 +561,7 @@ class DrudeLorentzBath(BosonicBath):
     """
 
     def __init__(
-        self,
-        Q,
-        lam,
-        gamma,
-        T,
-        Nk,
-        combine=True,
-        tag=None,
+        self, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
         self.lam = lam
         self.gamma = gamma
@@ -595,15 +572,11 @@ class DrudeLorentzBath(BosonicBath):
             Nk=Nk,
         )
 
-        super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag, T=T
-        )
+        super().__init__(Q, ck_real, vk_real, ck_imag,
+                         vk_imag, combine=combine, tag=tag, T=T)
 
         self._dl_terminator = _DrudeLorentzTerminator(
-            Q=Q,
-            lam=lam,
-            gamma=gamma,
-            T=T,
+            Q=Q, lam=lam, gamma=gamma, T=T,
         )
 
     def terminator(self):
@@ -632,23 +605,13 @@ class DrudeLorentzBath(BosonicBath):
 
     def _matsubara_params(self, lam, gamma, T, Nk):
         # should this take only self now?
-        """Calculate the Matsubara coefficients and frequencies."""
+        """ Calculate the Matsubara coefficients and frequencies. """
         ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
-        ck_real.extend(
-            [
-                (
-                    8
-                    * lam
-                    * gamma
-                    * T
-                    * np.pi
-                    * k
-                    * T
-                    / ((2 * np.pi * k * T) ** 2 - gamma**2)
-                )
-                for k in range(1, Nk + 1)
-            ]
-        )
+        ck_real.extend([
+            (8 * lam * gamma * T * np.pi * k * T /
+                ((2 * np.pi * k * T)**2 - gamma**2))
+            for k in range(1, Nk + 1)
+        ])
         vk_real = [gamma]
         vk_real.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
 
@@ -671,7 +634,7 @@ class DrudeLorentzBath(BosonicBath):
         ----------
         The spectral density of the mode with energy w
         """
-        return 2 * self.lam * self.gamma * w / (self.gamma**2 + w**2)
+        return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
 
     def correlation_function(self, t, **kwargs):
         """
@@ -687,20 +650,17 @@ class DrudeLorentzBath(BosonicBath):
         kwargs : This may be the Number of exponents to use defaults to 1000
         and it should be denoted by Nk
         """
-        if "Nk" in kwargs.keys():
-            Nk = kwargs["Nk"]
+        if 'Nk' in kwargs.keys():
+            Nk = kwargs['Nk']
         else:
             Nk = 1000
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
-            self.lam, self.gamma, self.T, Nk=Nk
-        )
+            self.lam, self.gamma, self.T, Nk=Nk)
 
         def C(c, v):
-            return np.sum(
-                [c[i] * np.exp(-np.array(v[i] * t)) for i in range(len(c))], axis=0
-            )
-
-        return C(ck_real, vk_real) + 1j * C(ck_imag, vk_imag)
+            return np.sum([c[i] * np.exp(-np.array(v[i] * t))
+                           for i in range(len(c))], axis=0)
+        return C(ck_real, vk_real)+1j*C(ck_imag, vk_imag)
 
 
 class DrudeLorentzPadeBath(BosonicBath):
@@ -751,7 +711,9 @@ class DrudeLorentzPadeBath(BosonicBath):
         bath an exponent is from.
     """
 
-    def __init__(self, Q, lam, gamma, T, Nk, combine=True, tag=None):
+    def __init__(
+        self, Q, lam, gamma, T, Nk, combine=True, tag=None
+    ):
         self.lam = lam
         self.gamma = gamma
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
@@ -763,15 +725,11 @@ class DrudeLorentzPadeBath(BosonicBath):
         ck_imag = [np.imag(eta_p[0])]
         vk_imag = [gamma_p[0]]
 
-        super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag, T=T
-        )
+        super().__init__(Q, ck_real, vk_real, ck_imag,
+                         vk_imag, combine=combine, tag=tag, T=T)
 
         self._dl_terminator = _DrudeLorentzTerminator(
-            Q=Q,
-            lam=lam,
-            gamma=gamma,
-            T=T,
+            Q=Q, lam=lam, gamma=gamma, T=T,
         )
 
     def terminator(self):
@@ -799,7 +757,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         return delta, L
 
     def _corr(self, lam, gamma, T, Nk):
-        beta = 1.0 / T
+        beta = 1. / T
         kappa, epsilon = self._kappa_epsilon(Nk)
 
         eta_p = [lam * gamma * (self._cot(gamma * beta / 2.0) - 1.0j)]
@@ -807,19 +765,15 @@ class DrudeLorentzPadeBath(BosonicBath):
 
         for ll in range(1, Nk + 1):
             eta_p.append(
-                (kappa[ll] / beta)
-                * 4
-                * lam
-                * gamma
-                * (epsilon[ll] / beta)
-                / ((epsilon[ll] ** 2 / beta**2) - gamma**2)
+                (kappa[ll] / beta) * 4 * lam * gamma * (epsilon[ll] / beta)
+                / ((epsilon[ll]**2 / beta**2) - gamma**2)
             )
             gamma_p.append(epsilon[ll] / beta)
 
         return eta_p, gamma_p
 
     def _cot(self, x):
-        return 1.0 / np.tan(x)
+        return 1. / np.tan(x)
 
     def _kappa_epsilon(self, Nk):
         eps = self._calc_eps(Nk)
@@ -830,11 +784,12 @@ class DrudeLorentzPadeBath(BosonicBath):
         for j in range(Nk):
             term = prefactor
             for k in range(Nk - 1):
-                term *= (chi[k] ** 2 - eps[j] ** 2) / (
-                    eps[k] ** 2 - eps[j] ** 2 + self._delta(j, k)
+                term *= (
+                    (chi[k]**2 - eps[j]**2) /
+                    (eps[k]**2 - eps[j]**2 + self._delta(j, k))
                 )
             for k in [Nk - 1]:
-                term /= eps[k] ** 2 - eps[j] ** 2 + self._delta(j, k)
+                term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
             kappa.append(term)
 
         epsilon = [0] + eps
@@ -845,21 +800,23 @@ class DrudeLorentzPadeBath(BosonicBath):
         return 1.0 if i == j else 0.0
 
     def _calc_eps(self, Nk):
-        alpha = np.diag(
-            [1.0 / np.sqrt((2 * k + 5) * (2 * k + 3)) for k in range(2 * Nk - 1)], k=1
-        )
+        alpha = np.diag([
+            1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+            for k in range(2 * Nk - 1)
+        ], k=1)
         alpha += alpha.transpose()
         evals = eigvalsh(alpha)
-        eps = [-2.0 / val for val in evals[0:Nk]]
+        eps = [-2. / val for val in evals[0: Nk]]
         return eps
 
     def _calc_chi(self, Nk):
-        alpha_p = np.diag(
-            [1.0 / np.sqrt((2 * k + 7) * (2 * k + 5)) for k in range(2 * Nk - 2)], k=1
-        )
+        alpha_p = np.diag([
+            1. / np.sqrt((2 * k + 7) * (2 * k + 5))
+            for k in range(2 * Nk - 2)
+        ], k=1)
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
-        chi = [-2.0 / val for val in evals[0: Nk - 1]]
+        chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
 
     def spectral_density(self, w):
@@ -876,7 +833,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         ----------
         The spectral density of the mode with energy w
         """
-        return 2 * self.lam * self.gamma * w / (self.gamma**2 + w**2)
+        return 2*self.lam*self.gamma*w/(self.gamma**2 + w**2)
 
     def correlation_function(self, t, **kwargs):
         """
@@ -892,22 +849,22 @@ class DrudeLorentzPadeBath(BosonicBath):
         kwargs : This may be the Number of exponents to use, defaults to 1000
         and it should be denoted by Nk
         """
-        if "Nk" in kwargs.keys():
-            Nk = kwargs["Nk"]
+        if 'Nk' in kwargs.keys():
+            Nk = kwargs['Nk']
         else:
             Nk = 1000
         eta_p, gamma_p = self._corr(
             lam=self.lam, gamma=self.gamma, T=self.T, Nk=Nk)
         t = np.array(t)
-        C = np.sum(
-            [eta_p[i] * np.exp(-gamma_p[i] * t) for i in range(len(gamma_p))], axis=0
-        )
+        C = np.sum([
+            eta_p[i] * np.exp(-gamma_p[i] * t)
+            for i in range(len(gamma_p))], axis=0)
         return C
 
 
 class _DrudeLorentzTerminator:
-    """A class for calculating the terminator of a Drude-Lorentz bath
-    expansion.
+    """ A class for calculating the terminator of a Drude-Lorentz bath
+        expansion.
     """
 
     def __init__(self, Q, lam, gamma, T):
@@ -917,7 +874,7 @@ class _DrudeLorentzTerminator:
         self.T = T
 
     def terminator(self, exponents):
-        """Calculate the terminator for a Drude-Lorentz bath."""
+        """ Calculate the terminator for a Drude-Lorentz bath. """
         Q = self.Q
         lam = self.lam
         gamma = self.gamma
@@ -933,8 +890,7 @@ class _DrudeLorentzTerminator:
             else:
                 delta -= 1j * exp.ck / exp.vk
 
-        op = -2 * spre(Q) * spost(Q.dag()) + \
-            spre(Q.dag() * Q) + spost(Q.dag() * Q)
+        op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
         L_bnd = -delta * op
 
         return delta, L_bnd
@@ -977,15 +933,7 @@ class UnderDampedBath(BosonicBath):
     """
 
     def __init__(
-        self,
-        Q,
-        lam,
-        gamma,
-        w0,
-        T,
-        Nk,
-        combine=True,
-        tag=None,
+        self, Q, lam, gamma, w0, T, Nk, combine=True, tag=None,
     ):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
@@ -998,36 +946,37 @@ class UnderDampedBath(BosonicBath):
         self.gamma = gamma
         self.w0 = w0
 
-        super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag, T=T
-        )
+        super().__init__(Q, ck_real, vk_real, ck_imag,
+                         vk_imag, combine=combine, tag=tag, T=T)
 
     @staticmethod
     def _matsubara_params(lam, gamma, w0, T, Nk):
-        """Calculate the Matsubara coefficients and frequencies."""
-        beta = 1 / T
-        Om = np.sqrt(w0**2 - (gamma / 2) ** 2)
-        Gamma = gamma / 2.0
+        """ Calculate the Matsubara coefficients and frequencies. """
+        beta = 1/T
+        Om = np.sqrt(w0**2 - (gamma/2)**2)
+        Gamma = gamma/2.
 
-        ck_real = [
-            (lam**2 / (4 * Om)) * (1 / np.tanh(beta * (Om + 1.0j * Gamma) / 2)),
-            (lam**2 / (4 * Om)) * (1 / np.tanh(beta * (Om - 1.0j * Gamma) / 2)),
-        ]
+        ck_real = ([
+            (lam**2 / (4 * Om))
+            * (1 / np.tanh(beta * (Om + 1.0j * Gamma) / 2)),
+            (lam**2 / (4*Om))
+            * (1 / np.tanh(beta * (Om - 1.0j * Gamma) / 2)),
+        ])
 
-        ck_real.extend(
-            [
-                (-2 * lam**2 * gamma / beta)
-                * (2 * np.pi * k / beta)
-                / (
-                    ((Om + 1.0j * Gamma) ** 2 + (2 * np.pi * k / beta) ** 2)
-                    * ((Om - 1.0j * Gamma) ** 2 + (2 * np.pi * k / beta) ** 2)
-                )
-                for k in range(1, Nk + 1)
-            ]
-        )
+        ck_real.extend([
+            (-2 * lam**2 * gamma / beta) * (2 * np.pi * k / beta)
+            / (
+                ((Om + 1.0j * Gamma)**2 + (2 * np.pi * k/beta)**2)
+                * ((Om - 1.0j * Gamma)**2 + (2 * np.pi * k / beta)**2)
+            )
+            for k in range(1, Nk + 1)
+        ])
 
         vk_real = [-1.0j * Om + Gamma, 1.0j * Om + Gamma]
-        vk_real.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
+        vk_real.extend([
+            2 * np.pi * k * T
+            for k in range(1, Nk + 1)
+        ])
 
         ck_imag = [
             1.0j * lam**2 / (4 * Om),
@@ -1052,12 +1001,8 @@ class UnderDampedBath(BosonicBath):
         ----------
             The spectral density of the mode with energy w
         """
-        return (
-            self.lam**2
-            * self.gamma
-            * w
-            / ((w**2 - self.w0**2) ** 2 + (self.gamma * w) ** 2)
-        )
+        return self.lam**2 * self.gamma * w / ((w**2 - self.w0**2)**2
+                                               + (self.gamma*w)**2)
 
 
 class FermionicBath(Bath):
@@ -1136,28 +1081,12 @@ class FermionicBath(Bath):
 
         exponents = []
         for ckp, vkp, ckm, vkm in zip(ck_plus, vk_plus, ck_minus, vk_minus):
-            exponents.append(
-                BathExponent(
-                    "+",
-                    2,
-                    Q,
-                    ckp,
-                    vkp,
-                    sigma_bar_k_offset=1,
-                    tag=tag,
-                )
-            )
-            exponents.append(
-                BathExponent(
-                    "-",
-                    2,
-                    Q,
-                    ckm,
-                    vkm,
-                    sigma_bar_k_offset=-1,
-                    tag=tag,
-                )
-            )
+            exponents.append(BathExponent(
+                "+", 2, Q, ckp, vkp, sigma_bar_k_offset=1, tag=tag,
+            ))
+            exponents.append(BathExponent(
+                "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1, tag=tag,
+            ))
         super().__init__(exponents)
 
 
@@ -1205,18 +1134,13 @@ class LorentzianBath(FermionicBath):
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
 
         super().__init__(
-            Q,
-            ck_plus,
-            vk_plus,
-            ck_minus,
-            vk_minus,
-            tag=tag,
+            Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
         )
 
     def _corr(self, gamma, w, mu, T, Nk, sigma):
-        beta = 1.0 / T
-        kappa = [0.0]
-        kappa.extend([1.0 for _ in range(1, Nk + 1)])
+        beta = 1. / T
+        kappa = [0.]
+        kappa.extend([1. for _ in range(1, Nk + 1)])
         epsilon = [0]
         epsilon.extend([(2 * ll - 1) * np.pi for ll in range(1, Nk + 1)])
 
@@ -1228,11 +1152,8 @@ class LorentzianBath(FermionicBath):
 
         for ll in range(1, Nk + 1):
             eta_list.append(
-                -1.0j
-                * (kappa[ll] / beta)
-                * gamma
-                * w**2
-                / (-(epsilon[ll] ** 2 / beta**2) + w**2)
+                -1.0j * (kappa[ll] / beta) * gamma * w**2 /
+                (-(epsilon[ll]**2 / beta**2) + w**2)
             )
             gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * mu)
 
@@ -1292,22 +1213,17 @@ class LorentzianPadeBath(FermionicBath):
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
 
         super().__init__(
-            Q,
-            ck_plus,
-            vk_plus,
-            ck_minus,
-            vk_minus,
-            tag=tag,
+            Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
         )
 
     def _corr(self, gamma, w, mu, T, Nk, sigma):
-        beta = 1.0 / T
+        beta = 1. / T
         kappa, epsilon = self._kappa_epsilon(Nk)
 
         def f_approx(x):
             f = 0.5
             for ll in range(1, Nk + 1):
-                f = f - 2 * kappa[ll] * x / (x**2 + epsilon[ll] ** 2)
+                f = f - 2 * kappa[ll] * x / (x**2 + epsilon[ll]**2)
             return f
 
         eta_list = [0.5 * gamma * w * f_approx(1.0j * beta * w)]
@@ -1315,11 +1231,8 @@ class LorentzianPadeBath(FermionicBath):
 
         for ll in range(1, Nk + 1):
             eta_list.append(
-                -1.0j
-                * (kappa[ll] / beta)
-                * gamma
-                * w**2
-                / (-(epsilon[ll] ** 2 / beta**2) + w**2)
+                -1.0j * (kappa[ll] / beta) * gamma * w**2
+                / (-(epsilon[ll]**2 / beta**2) + w**2)
             )
             gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * mu)
 
@@ -1334,11 +1247,12 @@ class LorentzianPadeBath(FermionicBath):
         for j in range(Nk):
             term = prefactor
             for k in range(Nk - 1):
-                term *= (chi[k] ** 2 - eps[j] ** 2) / (
-                    eps[k] ** 2 - eps[j] ** 2 + self._delta(j, k)
+                term *= (
+                    (chi[k]**2 - eps[j]**2) /
+                    (eps[k]**2 - eps[j]**2 + self._delta(j, k))
                 )
             for k in [Nk - 1]:
-                term /= eps[k] ** 2 - eps[j] ** 2 + self._delta(j, k)
+                term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
             kappa.append(term)
 
         epsilon = [0] + eps
@@ -1349,20 +1263,22 @@ class LorentzianPadeBath(FermionicBath):
         return 1.0 if i == j else 0.0
 
     def _calc_eps(self, Nk):
-        alpha = np.diag(
-            [1.0 / np.sqrt((2 * k + 3) * (2 * k + 1)) for k in range(2 * Nk - 1)], k=1
-        )
+        alpha = np.diag([
+            1. / np.sqrt((2 * k + 3) * (2 * k + 1))
+            for k in range(2 * Nk - 1)
+        ], k=1)
         alpha += alpha.transpose()
 
         evals = eigvalsh(alpha)
-        eps = [-2.0 / val for val in evals[0:Nk]]
+        eps = [-2. / val for val in evals[0: Nk]]
         return eps
 
     def _calc_chi(self, Nk):
-        alpha_p = np.diag(
-            [1.0 / np.sqrt((2 * k + 5) * (2 * k + 3)) for k in range(2 * Nk - 2)], k=1
-        )
+        alpha_p = np.diag([
+            1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+            for k in range(2 * Nk - 2)
+        ], k=1)
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
-        chi = [-2.0 / val for val in evals[0: Nk - 1]]
+        chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
