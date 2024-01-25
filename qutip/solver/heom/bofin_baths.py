@@ -349,7 +349,7 @@ class BosonicBath(Bath):
     def spectral_density(self, w):
         """
         Spectral density of this bath.
-        
+    
         The BosonicBath class mainly represents a list of expansion
         coefficients of the bath auto-correlation function. However, subclasses
         may additionally override this `spectral_density` function to calculate
@@ -363,9 +363,10 @@ class BosonicBath(Bath):
         for the HEOM construction.
 
         Note that various conventions for the definition of the spectral
-        exist. We follow the convention described in Eq. 7 of the BoFiN paper
-        (DOI: 10.1103/PhysRevResearch.5.013181). We also assume that the
-        spectral density is an odd function, meaning J(w) = -J(-w).
+        density exist. We follow the convention described in Eq. 7 of the BoFiN
+        paper (DOI: 10.1103/PhysRevResearch.5.013181). We also assume that
+        the spectral density is zero at negative frequencies (otherwise, no
+        thermal state exists).
         """
 
         raise NotImplementedError(
@@ -377,7 +378,7 @@ class BosonicBath(Bath):
         numeric integration, see Eq. 6 in the BoFiN paper
         (DOI: 10.1103/PhysRevResearch.5.013181). This calculation requires that
         the temperature of the bath (`self.T`) is specified.
-    
+
         Parameters
         ----------
         t : np.array or float
@@ -388,33 +389,15 @@ class BosonicBath(Bath):
         -------
             The correlation function at time t as an array or float
         """
-        
-        if np.isclose(self.spectral_density(t), -self.spectral_density(-t)).all():
+    
+        def integrand(w, t):
+            return self.spectral_density(w) / np.pi * (
+                (2 * self._bose_einstein(w) + 1) * np.cos(w * t)
+                - 1j * np.sin(w * t)
+            )
 
-            def integrand(w, t):
-                return (
-                    (1 / np.pi)
-                    * self.spectral_density(w)
-                    * (
-                        (2 * self._bose_einstein(w) + 1) * np.cos(w * t)
-                        - 1j * np.sin(w * t)
-                    )
-                )
-
-            result = quad_vec(lambda w: integrand(w, t), 0, np.Inf, **kwargs)
-            return result[0]
-        else:
-
-            def integrand(w, t):
-                return (
-                    (1 / np.pi)
-                    * self.spectral_density(w)
-                    * ((self._bose_einstein(w) + 1) * np.exp(1j * w * t))
-                )
-
-            result = quad_vec(lambda w: integrand(
-                w, t), -np.Inf, np.Inf, **kwargs)
-            return result[0]
+        result = quad_vec(lambda w: integrand(w, t), 0, np.Inf, **kwargs)
+        return result[0]
 
     def _bose_einstein(self, w):
         """
@@ -437,14 +420,13 @@ class BosonicBath(Bath):
         if self.T == 0:
             return np.zeros_like(w)
 
-        w = np.array(w, dtype=float)
         return (1 / (np.exp(w / self.T) - 1))
 
     def power_spectrum(self, w):
         """
-        Calculates the power spectrum from the spectral density
-        using the fluctuation dissipation theorem. This calculation requires
-        that the temperature of the bath (`self.T`) is specified.
+        Calculates the power spectrum from the spectral density using the
+        fluctuation dissipation theorem. This calculation requires that the
+        temperature of the bath (`self.T`) is specified.
 
         Parameters
         ----------
@@ -455,15 +437,21 @@ class BosonicBath(Bath):
         ----------
         The power spectrum of the mode with energy w
         """
-        S = self.spectral_density(
-            w)*((self._bose_einstein(w) + 1) * 2)
+
+        # For w=0, the result would have the form 0 * inf
+        # We shift w by an epsilon to get the value in the limit w->0
+        w = np.array(w, dtype=float)
+        w[w == 0.0] += 1e-6
+
+        S = (2 * np.sign(w) * self.spectral_density(np.abs(w)) *
+             (self._bose_einstein(w) + 1))
         return S
 
     def correlation_function_approx(self, t):
         """
-        Computes the correlation function from
-        the exponents, meaning it computes our approximation
-        for the correlation function
+        Computes the correlation function from the exponents. This is the
+        approximation for the correlation function that is used in the HEOM
+        construction.
 
         Parameters
         ----------
@@ -474,7 +462,8 @@ class BosonicBath(Bath):
         ----------
         The correlation function of the bath at time t
         """
-        corr = 0+0j
+
+        corr = np.zeros_like(t, dtype=complex)
         for exp in self.exponents:
             if (
                 exp.type == BathExponent.types['R'] or
@@ -490,7 +479,7 @@ class BosonicBath(Bath):
     def power_spectrum_approx(self, w):
         """
         Calculates the power spectrum from the exponents
-        of the bosonic bath
+        of the bosonic bath.
 
         Parameters
         ----------
@@ -501,25 +490,22 @@ class BosonicBath(Bath):
         ----------
         The power spectrum of the mode with energy w
         """
-        S = 0+0j
+
+        S = np.zeros_like(w, dtype=float)
         for exp in self.exponents:
-            ck = exp.ck
-            ck2 = exp.ck2
-            if ck is None:
-                ck = 0
-            if ck2 is None:
-                ck2 = 0
+            ck = exp.ck or 0
+            ck2 = exp.ck2 or 0
             if exp.type == BathExponent.types['I']:
-                S += 2*np.real((1j*ck-ck2)/(exp.vk - 1j*w))
+                S += 2 * np.real((1j*ck) / (exp.vk - 1j*w))
             else:
-                S += 2*np.real((ck+1j*ck2)/(exp.vk - 1j*w))
+                S += 2 * np.real((ck + 1j*ck2) / (exp.vk - 1j*w))
 
         return S
 
     def spectral_density_approx(self, w):
         """
-        Calculates spectral density from the exponents
-        of the bosonic bath
+        Calculates the spectral density from the exponents
+        of the bosonic bath.
 
         Parameters
         ----------
@@ -530,10 +516,7 @@ class BosonicBath(Bath):
         ----------
         The spectral density of the mode with energy w
         """
-        J = np.real(
-            self.power_spectrum_approx(w) /
-            ((self._bose_einstein(w) + 1) * 2)
-        )
+        J = self.power_spectrum_approx(w) / (self._bose_einstein(w) + 1) / 2
         return J
 
 
