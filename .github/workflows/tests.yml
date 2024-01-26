@@ -50,7 +50,8 @@ jobs:
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
 
           # Python 3.10, no mkl, scipy 1.9, numpy 1.23
-          # Scipy 1.10 did not support cython 3.0 yet.
+          # Scipy 1.9 did not support cython 3.0 yet.
+          # cython#17234
           - case-name: no mkl
             os: ubuntu-latest
             python-version: "3.10"
@@ -59,9 +60,10 @@ jobs:
             condaforge: 1
             oldcython: 1
             nomkl: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
 
           # Python 3.10, no cython, scipy 1.10, numpy 1.24
-          - case-name: no mkl
+          - case-name: no cython
             os: ubuntu-latest
             python-version: "3.10"
             scipy-requirement: ">=1.10,<1.11"
