@@ -19,7 +19,7 @@ import scipy
 from packaging.version import parse as _parse_version
 
 
-NEW_SCIPY = _parse_version(scipy.__version__) >= _parse_version("1.12")
+SCIPY_GT_1_12 = _parse_version(scipy.__version__) >= _parse_version("1.12")
 
 
 cdef int ZERO=0
@@ -1238,7 +1238,7 @@ cdef class SSESolver(StochasticSolver):
             self.imp = LinearOperator( (self.l_vec,self.l_vec),
                                       matvec=self.implicit_op, dtype=complex)
             self.imp_options = {"tol": sso.tol, "atol": 1e-12}
-            if NEW_SCIPY:
+            if SCIPY_GT_1_12:
                 self.imp_options["rtol"] = self.imp_options.pop("tol")
 
     def implicit_op(self, vec):
@@ -1648,7 +1648,7 @@ cdef class SMESolver(StochasticSolver):
             self.tol = sso.tol
             self.imp = sso.imp
             self.imp_options = {"tol": sso.tol, "atol": 1e-12}
-            if NEW_SCIPY:
+            if SCIPY_GT_1_12:
                 self.imp_options["rtol"] = self.imp_options.pop("tol")
 
     cdef void _normalize_inplace(self, complex[::1] vec):
