@@ -349,7 +349,7 @@ class BosonicBath(Bath):
     def spectral_density(self, w):
         """
         Spectral density of this bath.
-    
+
         The BosonicBath class mainly represents a list of expansion
         coefficients of the bath auto-correlation function. However, subclasses
         may additionally override this `spectral_density` function to calculate
@@ -389,7 +389,7 @@ class BosonicBath(Bath):
         -------
             The correlation function at time t as an array or float
         """
-    
+
         def integrand(w, t):
             return self.spectral_density(w) / np.pi * (
                 (2 * self._bose_einstein(w) + 1) * np.cos(w * t)
@@ -628,7 +628,7 @@ class DrudeLorentzBath(BosonicBath):
 
         return 2 * self.lam * self.gamma * w / (self.gamma**2 + w**2)
 
-    def correlation_function(self, t, *, Nk=1000, **kwargs):
+    def correlation_function(self, t, *, Nk=15000, **kwargs):
         """
         Here we determine the correlation function by summing a large number
         of exponents, as the numerical integration is noisy for this spectral
@@ -643,8 +643,8 @@ class DrudeLorentzBath(BosonicBath):
         """
 
         ck_real, vk_real, ck_imag, vk_imag =\
-             DrudeLorentzBath._matsubara_params(
-                 self.lam, self.gamma, self.T, Nk)
+            DrudeLorentzBath._matsubara_params(
+                self.lam, self.gamma, self.T, Nk)
 
         def C(c, v):
             return np.sum([ck * np.exp(-np.array(vk * t))
@@ -896,8 +896,8 @@ class UnderDampedBath(BosonicBath):
         self.gamma = gamma
         self.w0 = w0
 
-        super().__init__(Q, ck_real, vk_real, ck_imag,
-                         vk_imag, combine=combine, tag=tag, T=T)
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag,
+                         combine=combine, tag=tag, T=T)
 
     @staticmethod
     def _matsubara_params(lam, gamma, w0, T, Nk):
@@ -938,9 +938,9 @@ class UnderDampedBath(BosonicBath):
         return ck_real, vk_real, ck_imag, vk_imag
 
     def spectral_density(self, w):
-        """
-        Calculates the Underdamped spectral density (Qutip BonFin
-        paper https://doi.org/10.1103/PhysRevResearch.5.013181  see Eq 16)
+        """ 
+        Calculates the Underdamped spectral density, see Eq. 16 in the BoFiN
+        paper (DOI: 10.1103/PhysRevResearch.5.013181).
 
         Parameters
         ----------
@@ -948,9 +948,10 @@ class UnderDampedBath(BosonicBath):
             Energy of the mode
 
         Returns
-        ----------
+        -------
             The spectral density of the mode with energy w
         """
+
         return self.lam**2 * self.gamma * w / ((w**2 - self.w0**2)**2
                                                + (self.gamma*w)**2)
 
