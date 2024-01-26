@@ -186,14 +186,12 @@ class TestCorrelationFitter:
         corr = np.sum(
             a[:, None] * np.exp(b[:, None] * t) * np.exp(1j * c[:, None] * t),
             axis=0)
-        bath = CorrelationFitter(Q=sigmax(), T=1, t=t, C=corr)
-        bbath, fitInfo = bath.get_fit(Nr=3, Ni=3)
-        a2, b2, c2 = fitInfo['params_real']
-        a3, b3, c3 = fitInfo['params_imag']
-        C2 = np.real(bath._corr_approx(t, a2, b2, c2))
-        C3 = np.imag(bath._corr_approx(t, a3, b3, c3))
-        assert np.isclose(np.real(corr), C2).all()
-        assert np.isclose(np.imag(corr), C3).all()
+        fitter = CorrelationFitter(Q=sigmax(), T=1, t=t, C=corr)
+        bath, _ = fitter.get_fit(Nr=3, Ni=3)
+        C2 = np.real(bath.correlation_function_approx(t))
+        C3 = np.imag(bath.correlation_function_approx(t))
+        np.testing.assert_allclose(np.real(corr), C2, atol=1e-5)
+        np.testing.assert_allclose(np.imag(corr), C3, atol=1e-5)
 
     @pytest.mark.filterwarnings('ignore::RuntimeWarning')
     @pytest.mark.slow

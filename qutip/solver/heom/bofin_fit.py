@@ -642,7 +642,7 @@ def _rmse(func, x, y, a, b, c):
     return rmse
 
 
-def _fit(func, C, t, N, default_guess_scenario,
+def _fit(func, C, t, N, default_guess_scenario='',
          guesses=None, lower=None, upper=None, sigma=None):
     """
     Performs a fit the function func to t and C, with N number of
