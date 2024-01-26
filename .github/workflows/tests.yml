@@ -43,29 +43,30 @@ jobs:
           - case-name: Old setup
             os: ubuntu-latest
             python-version: "3.9"
-            numpy-requirement: ">=1.22,<1.23"
             scipy-requirement: ">=1.8,<1.9"
+            numpy-requirement: ">=1.22,<1.23"
             condaforge: 1
             oldcython: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
 
-          # Python 3.10, no cython, oldist dependencies
-          - case-name: no cython
+          # Python 3.10, no mkl, scipy 1.9, numpy 1.23
+          # Scipy 1.10 did not support cython 3.0 yet.
+          - case-name: no mkl
             os: ubuntu-latest
             python-version: "3.10"
             scipy-requirement: ">=1.9,<1.10"
             numpy-requirement: ">=1.23,<1.24"
             condaforge: 1
-            nocython: 1
+            oldcython: 1
+            nomkl: 1
 
-          # Python 3.10, no mkl
+          # Python 3.10, no cython, scipy 1.10, numpy 1.24
           - case-name: no mkl
             os: ubuntu-latest
             python-version: "3.10"
             scipy-requirement: ">=1.10,<1.11"
             numpy-requirement: ">=1.24,<1.25"
-            condaforge: 1
-            nomkl: 1
+            nocython: 1
 
           # Mac
           # Mac has issues with MKL since september 2022.
