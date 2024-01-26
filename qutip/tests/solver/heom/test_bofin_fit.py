@@ -4,7 +4,7 @@ Tests for qutip.solver.heom.bofin_fit
 import numpy as np
 import pytest
 from qutip.solver.heom.bofin_fit import (
-    pack, unpack, _rmse, _fit, _leastsq, _run_fit, SpectralFitter,
+    _pack, _unpack, _rmse, _fit, _leastsq, _run_fit, SpectralFitter,
     CorrelationFitter, OhmicBath
 
 )
@@ -18,15 +18,15 @@ def test_pack():
     n = np.random.randint(100)
     before = np.random.rand(3, n)
     a, b, c = before
-    assert len(pack(a, b, c)) == n * 3
-    assert (pack(a, b, c) == before.flatten()).all()
+    assert len(_pack(a, b, c)) == n * 3
+    assert (_pack(a, b, c) == before.flatten()).all()
 
 
 def test_unpack():
     n = np.random.randint(100)
     before = np.random.rand(3, n)
     a, b, c = before
-    assert (unpack(pack(a, b, c)) == before).all()
+    assert (_unpack(_pack(a, b, c)) == before).all()
 
 
 def test_rmse():
@@ -62,10 +62,10 @@ def test_leastsq():
     sigma = 1e-4
     J_max = abs(max(J, key=abs))
     wc = w[np.argmax(J)]
-    guesses = pack([J_max] * N, [wc] * N, [wc] * N)
-    lower = pack(
+    guesses = _pack([J_max] * N, [wc] * N, [wc] * N)
+    lower = _pack(
         [-100 * J_max] * N, [0.1 * wc] * N, [0.1 * wc] * N)
-    upper = pack(
+    upper = _pack(
         [100 * J_max] * N, [100 * wc] * N, [100 * wc] * N)
     a2, b2, c2 = _leastsq(
         spectral,
@@ -143,12 +143,12 @@ class TestSpectralFitter:
         T = 1
         wc = 1
         w = np.linspace(0.1, 10 * wc, 1000)
-        ud = UnderDampedBath(sigmax(), lam=0.05, w0=1, gamma=1, T=T,Nk=1)
+        ud = UnderDampedBath(sigmax(), lam=0.05, w0=1, gamma=1, T=T, Nk=1)
         fs = SpectralFitter(T, sigmax(), w, ud.spectral_density)
-        bath, _ = fs.get_fit(N=1,Nk=1)
+        bath, _ = fs.get_fit(N=1, Nk=1)
         assert np.isclose(
             bath.spectral_density_approx(w)-ud.spectral_density(w),
-            np.zeros_like(w),atol=1e-5).all()
+            np.zeros_like(w), atol=1e-5).all()
 
     @pytest.mark.filterwarnings('ignore::RuntimeWarning')
     def test_generate_bath(self):
@@ -157,8 +157,8 @@ class TestSpectralFitter:
         w = np.linspace(0, 15, 20000)
         ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=1, T=T, Nk=1)
         fs = SpectralFitter(T, Q, w, ud.spectral_density)
-        _, fitinfo = fs.get_fit(N=1,Nk=1)
-        fbath = fs._generate_bath(fitinfo['params'],Nk=1)
+        _, fitinfo = fs.get_fit(N=1, Nk=1)
+        fbath = fs._generate_bath(fitinfo['params'], Nk=1)
         for i in range(len(fbath.exponents)):
             assert np.isclose(fbath.exponents[i].ck, ud.exponents[i].ck)
             if (fbath.exponents[i].ck2 != ud.exponents[i].ck2):
@@ -169,10 +169,10 @@ class TestSpectralFitter:
 class TestCorrelationFitter:
 
     def test_corr_approx(self):
-        t = np.linspace(0, 20, 50)  
+        t = np.linspace(0, 20, 50)
         C = np.exp(-t)
         bath = CorrelationFitter(sigmax(), 1, t, C)
-        t2 = np.linspace(0, 20, 100)  
+        t2 = np.linspace(0, 20, 100)
         C2 = np.exp(-t2)
         assert np.isclose(C2, bath._C_fun(t2), rtol=1e-3).all()
         assert np.isclose(C, bath._C_array).all()
@@ -203,7 +203,7 @@ class TestCorrelationFitter:
         t = np.linspace(0, 30, 20)
         ud = UnderDampedBath(Q, lam=0.05, w0=1, gamma=3, T=T, Nk=1)
         fc = CorrelationFitter(Q, T, t, ud.correlation_function)
-        _, fitInfo = fc.get_fit(Nr=1,Ni=1)
+        _, fitInfo = fc.get_fit(Nr=1, Ni=1)
         fbath = fc._generate_bath(
             fitInfo['params_real'],
             fitInfo['params_imag'])
@@ -217,9 +217,10 @@ class TestCorrelationFitter:
             np.imag(fittedbath),
             atol=1e-3).all()  # Better accuracy too slow for test flow
 
+
 class TestOhmicBath:
     def test_ohmic_spectral_density(self):
-        mp = pytest.importorskip("mpmath")
+        pytest.importorskip("mpmath")
         alpha = 0.5
         wc = 1
         T = 1
@@ -231,7 +232,7 @@ class TestOhmicBath:
         assert np.isclose(J, J2).all()
 
     def test_ohmic_correlation(self):
-        mp = pytest.importorskip("mpmath")
+        pytest.importorskip("mpmath")
         alpha = 0.5
         wc = 1
         T = 1
@@ -256,14 +257,15 @@ class TestOhmicBath:
         assert np.isclose(C, Ctest).all()
 
     def test_make_correlation_fit(self):
-        mp = pytest.importorskip("mpmath")
+        pytest.importorskip("mpmath")
         w = np.linspace(0.1, 5, 2000)
         ob = OhmicBath(Q=sigmax(), T=1, alpha=0.05, wc=5, s=1)
-        bath, fitinfo = ob.make_correlation_fit(w,Nr=2,Ni=2)
+        bath, fitinfo = ob.make_correlation_fit(w, Nr=2, Ni=2)
         assert np.isclose(
-            np.real(bath.correlation_function(w) - bath.correlation_function_approx(w)),
+            np.real(bath.correlation_function(w)
+                    - bath.correlation_function_approx(w)),
             np.zeros_like(w),
-            atol=3e-2).all() # this test can be closer but would take longer
+            atol=3e-2).all()  # this test can be closer but would take longer
 
     def test_make_spectral_fit(self):
         w = np.linspace(0, 80, 2000)
@@ -272,4 +274,4 @@ class TestOhmicBath:
         assert np.isclose(
             bath.spectral_density_approx(w) - bath.spectral_density(w),
             np.zeros_like(w),
-            atol=2e-2).all() # this test can be closer but would take longer
+            atol=2e-2).all()  # this test can be closer but would take longer

@@ -938,7 +938,7 @@ class UnderDampedBath(BosonicBath):
         return ck_real, vk_real, ck_imag, vk_imag
 
     def spectral_density(self, w):
-        """ 
+        """
         Calculates the Underdamped spectral density, see Eq. 16 in the BoFiN
         paper (DOI: 10.1103/PhysRevResearch.5.013181).
 
