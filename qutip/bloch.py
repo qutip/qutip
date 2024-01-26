@@ -794,7 +794,6 @@ class Bloch:
             dist = np.linalg.norm(points, axis=0)
             if not np.allclose(dist, dist[0], rtol=1e-12):
                 indperm = np.argsort(dist)
-                points = points[:, indperm]
             else:
                 indperm = np.arange(num_points)
 
@@ -817,9 +816,9 @@ class Bloch:
                 color = list(color)
 
             if self.point_style[k] in ['s', 'm']:
-                self.axes.scatter(np.real(points[1]),
-                                  -np.real(points[0]),
-                                  np.real(points[2]),
+                self.axes.scatter(np.real(points[1][indperm]),
+                                  -np.real(points[0][indperm]),
+                                  np.real(points[2][indperm]),
                                   s=s,
                                   marker=marker,
                                   color=color,
