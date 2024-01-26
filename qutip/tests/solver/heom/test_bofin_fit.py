@@ -134,10 +134,10 @@ class TestSpectralFitter:
         w = 1
         T = 1
         bath = SpectralFitter(T, sigmax(), 0, np.sin)
-        assert bath._spectral_density_approx(w, a, b, c) == J
+        assert bath._meier_tannor_SD(w, a, b, c) == J
         a, b, c = [list(range(3))] * 3
         w = 2
-        assert bath._spectral_density_approx(w, a, b, c) == J
+        assert bath._meier_tannor_SD(w, a, b, c) == J
 
     def test_get_fit(self):
         T = 1

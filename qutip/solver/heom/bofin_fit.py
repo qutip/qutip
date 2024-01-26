@@ -64,7 +64,8 @@ class SpectralFitter:
             self._J_array = J
             self._J_fun = InterpolatedUnivariateSpline(w, J)
 
-    def _spectral_density_approx(self, w, a, b, c):
+    @staticmethod
+    def _meier_tannor_SD(w, a, b, c):
         """
         Underdamped spectral density used for fitting in Meier-Tannor form
         (see Eq. 38 in the BoFiN paper, DOI: 10.1103/PhysRevResearch.5.013181)
@@ -134,8 +135,8 @@ class SpectralFitter:
 
         start = time()
         rmse, params = _run_fit(
-            self._spectral_density_approx, self._J_array, self._w, final_rmse,
-            default_guess_scenario="Spectral Density", N=N,
+            SpectralFitter._meier_tannor_SD, self._J_array, self._w,
+            final_rmse, default_guess_scenario="Spectral Density", N=N,
             sigma=sigma, guesses=guesses, lower=lower, upper=upper)
         end = time()
 
@@ -758,18 +759,20 @@ def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None,
     """
 
     if N is None:
-        N = 1
-        flag = False
+        N = 2
+        iterate = True
     else:
-        flag = True
+        iterate = False
     rmse1 = np.inf
+
     while rmse1 > final_rmse:
-        N += 1
         rmse1, params = _fit(
             funcx, y, x, N, default_guess_scenario,
             sigma=sigma, guesses=guesses, lower=lower, upper=upper)
-        if flag is True:
+        N += 1
+        if not iterate:
             break
+
     return rmse1, params
 
 
@@ -794,6 +797,7 @@ def _two_column_summary(
     lam2, gamma2, w02 = params_imag
 
     # Generate nicely formatted summary
+    # TODO can we make the column something other than lam, gamma, w0?
     summary_real = _gen_summary(
         fit_time_real,
         rmse_real,
