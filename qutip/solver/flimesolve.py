@@ -75,15 +75,14 @@ def _floquet_rate_matrix(floquet_basis,
         #     and taking the FFT
         modes_table = np.stack([np.stack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])[...,0]
         c_op_Floquet_basis = modes_table @ c_op.full() @ np.transpose(modes_table.conj(),(0,2,1))
-        # c_op_Floquet_basis = np.array(
-        #     [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist])
+        c_op_Floquet_basis = np.array(
+            [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist])
 
         c_op_Fourier_amplitudes_list = np.fft.fft(c_op_Floquet_basis, axis=0) \
             / len(tlist)
         delta_m = np.add.outer(floquet_basis.e_quasi, -floquet_basis.e_quasi)
         delta_m = np.add.outer(delta_m, -delta_m)
         delta_m /= omega
-
         for l, k in product(np.arange(Nt), repeat=2):
             delta_shift = delta_m + (l - k)
             mask = {}
@@ -98,22 +97,20 @@ def _floquet_rate_matrix(floquet_basis,
             else:
                 rate_products = np.multiply.outer(
                     c_op_Fourier_amplitudes_list[l],
-                    np.conj(c_op_Fourier_amplitudes_list)[k]
+                    np.conj(c_op_Fourier_amplitudes_list[k])
                 ) * c_op_rates[cdx]
 
-
-                included_deltas = np.abs(delta_shift) * omega <= (rate_products) * time_sense
-                if not np.any(included_deltas):
-                    continue
-                keys = np.unique(delta_shift[included_deltas])
-                for key in keys:
-                    mask[key] = np.logical_and(
-                        delta_shift == key, included_deltas)
+            included_deltas = np.abs(delta_shift) * omega <= np.abs((rate_products) * time_sense)
+            if not np.any(included_deltas):
+                continue
+            keys = np.unique(delta_shift[included_deltas])
+            for key in keys:
+                mask[key] = np.logical_and(
+                    delta_shift == key, included_deltas)
 
             for key in mask.keys():
                 valid_c_op_products = rate_products * mask[key]
                 I_ = np.eye(Hdim, Hdim)
-
                 # using c = ap,d = bp,k=lp
                 flime_FirstTerm = np.transpose(
                     valid_c_op_products, [0, 2, 1, 3]).reshape(Hdim**2, Hdim**2)
