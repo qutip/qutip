@@ -134,6 +134,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
         self.rhs = rhs
 
     def integrate(self, t, copy=True):
+        print(t, self.t)
         delta_t = t - self.t
         if delta_t < 0:
             raise ValueError("Stochastic integration time")
