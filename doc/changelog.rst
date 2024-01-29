@@ -6,6 +6,17 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 4.7.5 (2024-01-29)
+========================
+
+Patch release for QuTiP 4.7. It adds support for SciPy 1.12.
+
+Bug Fixes
+---------
+
+- Remove use of scipy.<numpy-func> in parallel.py, incompatible with scipy==1.12 (#2305 by Evan McKinney)
+
+
 QuTiP 4.7.4 (2024-01-15)
 ========================
 
