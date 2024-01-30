@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 from . import _sode
 from ..integrator.integrator import Integrator
 from ..stochastic import StochasticSolver, SMESolver
@@ -135,12 +136,16 @@ class _Explicit_Simple_Integrator(SIntegrator):
 
     def integrate(self, t, copy=True):
         delta_t = t - self.t
+        dt = self.options["dt"]
         if delta_t < 0:
-            raise ValueError("Stochastic integration time")
-        elif delta_t == 0:
+            raise ValueError("Integration time, can't be negative.")
+        elif delta_t < 0.5 * dt:
+            warnings.warn(
+                f"Step under minimum step ({dt}), skipped.",
+                RuntimeWarning
+            )
             return self.t, self.state, np.zeros(self.N_dw)
 
-        dt = self.options["dt"]
         N, extra = np.divmod(delta_t, dt)
         N = int(N)
         if extra > 0.5 * dt:
