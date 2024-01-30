@@ -592,7 +592,7 @@ class StochasticSolver(MultiTrajSolver):
 
     def run_from_experiment(
             self, state, tlist, noise, *,
-            args=None, e_ops=(), type="dW",
+            args=None, e_ops=(), measurement=False,
         ):
         """
         Run a single trajectory from a given state and noise.
@@ -603,10 +603,15 @@ class StochasticSolver(MultiTrajSolver):
             Initial state of the system.
 
         tlist : array_like
-            List of times for which to evaluate the state.
+            List of times for which to evaluate the state. The tlist must
+            increase uniformly.
 
         noise : array_like
-            List of noise for each stochastic collapse operators.
+            Noise for each time step and each stochastic collapse operators.
+            ``noise[i, j]`` is the Wiener increments between ``tlist[t]`` and
+            ``tlist[i+1]`` for the j-th sc_ops (homodyne detection).
+            For heterodyne detection, the sc_ops are doubled and the i-th
+            operators correspond to the (2*i, 2*i+1) noise entries.
 
         args : dict, optional
             Arguments to pass to the Hamiltonian and collapse operators.
@@ -614,9 +619,12 @@ class StochasticSolver(MultiTrajSolver):
         e_ops : list, optional
             List of operators for which to evaluate expectation values.
 
-        type : str, default : "dW"
-            Type of noise, either Wiener increment "dW", or measurement "J".
-            (Measurement is nor implemented yet!)
+        measurement : bool, default : False
+            Whether the passed noise is the Wiener increments (gaussian noise
+            with standard derivation of dt**0.5), or the measurement:
+
+                noise[t...t+dt, i] = dW[t...t+dt, i] +
+                    expect(sc_ops[i] + sc_ops[i].dag, state_t) * dt
 
         Returns
         -------
@@ -639,10 +647,12 @@ class StochasticSolver(MultiTrajSolver):
             if "dt" in self._integrator.options:
                 old_dt = self._integrator.options["dt"]
                 self._integrator.options["dt"] = dt
+                self._integrator.options["_measurement_noise"] = measurement
             result = self._run_inner_traj_loop(generator, state, tlist, e_ops)
         except Exception as err:
             if old_dt is not None:
                 self._integrator.options["dt"] = old_dt
+            self._integrator.options["_measurement_noise"] = dt
             raise
 
         return result
@@ -684,14 +694,14 @@ class StochasticSolver(MultiTrajSolver):
             t, state, noise = self._integrator.integrate(t, copy=False)
             state_t = self._restore_state(state, copy=False)
             result.add(t, state_t, noise)
-        return seed, result
+        return result
 
     def _run_one_traj(self, seed, state, tlist, e_ops):
         """
         Run one trajectory and return the result.
         """
         generator = self._get_generator(seed)
-        return self._run_inner_traj_loop(generator, state, tlist, e_ops)
+        return seed, self._run_inner_traj_loop(generator, state, tlist, e_ops)
 
     @classmethod
     def avail_integrators(cls):

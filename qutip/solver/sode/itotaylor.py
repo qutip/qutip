@@ -17,8 +17,14 @@ class EulerSODE(_Explicit_Simple_Integrator):
 
     - Order: 0.5
     """
+    integrator_options = {
+        "dt": 0.001,
+        "tol": 1e-10,
+        "_measurement_noise": False,
+    }
     stepper = _sode.Euler
     N_dw = 1
+    _stepper_options = ["_measurement_noise"]
 
 
 class Milstein_SODE(_Explicit_Simple_Integrator):
@@ -30,8 +36,14 @@ class Milstein_SODE(_Explicit_Simple_Integrator):
 
     - Order strong 1.0
     """
+    integrator_options = {
+        "dt": 0.001,
+        "tol": 1e-10,
+        "__measurement_noise": False,
+    }
     stepper = _sode.Milstein
     N_dw = 1
+    _stepper_options = ["_measurement_noise"]
 
 
 class Taylor1_5_SODE(_Explicit_Simple_Integrator):

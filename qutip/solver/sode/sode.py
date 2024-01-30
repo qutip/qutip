@@ -223,9 +223,14 @@ class PlatenSODE(_Explicit_Simple_Integrator):
 
     - Order: strong 1, weak 2
     """
-
+    integrator_options = {
+        "dt": 0.001,
+        "tol": 1e-10,
+        "_measurement_noise": False,
+    }
     stepper = _sode.Platen
     N_dw = 1
+    _stepper_options = ["_measurement_noise"]
 
 
 class PredCorr_SODE(_Explicit_Simple_Integrator):
@@ -249,10 +254,11 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
         "tol": 1e-10,
         "alpha": 0.0,
         "eta": 0.5,
+        "_measurement_noise": False,
     }
     stepper = _sode.PredCorr
     N_dw = 1
-    _stepper_options = ["alpha", "eta"]
+    _stepper_options = ["alpha", "eta", "_measurement_noise"]
 
     @property
     def options(self):
