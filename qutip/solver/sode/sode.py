@@ -146,7 +146,6 @@ class _Explicit_Simple_Integrator(SIntegrator):
             )
             return self.t, self.state, np.zeros(self.N_dw)
 
-
         N, extra = np.divmod(delta_t, dt)
         N = int(N)
         if extra > 0.5 * dt:

@@ -369,6 +369,11 @@ def test_deprecation_warnings():
         ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], m_ops=1)
     assert '"m_ops" and "dW_factors"' in str(err.value)
 
-def test_small_step_warnings():
+
+@pytest.mark.parametrize("method", ["euler", "rouchon"])
+def test_small_step_warnings(method):
     with pytest.warns(RuntimeWarning, match=r'under minimum'):
-        ssesolve(qeye(2), basis(2), [0, 0.0000001], [qeye(2)])
+        smesolve(
+            qeye(2), basis(2), [0, 0.0000001], [qeye(2)],
+            options={"method": method}
+        )
