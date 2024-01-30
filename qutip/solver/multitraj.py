@@ -285,11 +285,6 @@ class MultiTrajSolver(Solver):
         If the ``seed`` has a ``random`` method, it will be used as the
         generator.
         """
-        if hasattr(seed, 'random'):
-            # We check for the method, not the type to accept pseudo non-random
-            # generator for debug/testing purpose.
-            return seed
-
         if self.options['bitgenerator']:
             bit_gen = getattr(np.random, self.options['bitgenerator'])
             generator = np.random.Generator(bit_gen(seed))

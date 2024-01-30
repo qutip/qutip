@@ -590,6 +590,63 @@ class StochasticSolver(MultiTrajSolver):
     def dW_factors(self):
         return self._dW_factors
 
+    def run_from_experiment(
+            self, state, tlist, noise, *,
+            args=None, e_ops=(), type="dW",
+        ):
+        """
+        Run a single trajectory from a given state and noise.
+
+        Parameters
+        ----------
+        state : Qobj
+            Initial state of the system.
+
+        tlist : array_like
+            List of times for which to evaluate the state.
+
+        noise : array_like
+            List of noise for each stochastic collapse operators.
+
+        args : dict, optional
+            Arguments to pass to the Hamiltonian and collapse operators.
+
+        e_ops : list, optional
+            List of operators for which to evaluate expectation values.
+
+        type : str, default : "dW"
+            Type of noise, either Wiener increment "dW", or measurement "J".
+            (Measurement is nor implemented yet!)
+
+        Returns
+        -------
+        result : StochasticTrajResult
+            Result of the trajectory.
+        """
+        result = self._resultclass(
+            e_ops,
+            self.options,
+            m_ops=self.m_ops,
+            dw_factor=self.dW_factors,
+            heterodyne=self.heterodyne,
+        )
+        dt = tlist[1] - tlist[0]
+        if not np.allclose(dt, np.diff(tlist)):
+            raise ValueError("tlist must be evenly spaced.")
+        generator = self.PreSetWiener(noise, tlist, len(self.rhs.sc_ops))
+        try:
+            old_dt = None
+            if "dt" in self._integrator.options:
+                old_dt = self._integrator.options["dt"]
+                self._integrator.options["dt"] = dt
+            result = self._run_inner_traj_loop(generator, state, tlist, e_ops)
+        except Exception as err:
+            if old_dt is not None:
+                self._integrator.options["dt"] = old_dt
+            raise
+
+        return result
+
     @dW_factors.setter
     def dW_factors(self, new_dW_factors):
         """
@@ -609,18 +666,17 @@ class StochasticSolver(MultiTrajSolver):
                 )
         self._dW_factors = new_dW_factors
 
-    def _run_one_traj(self, seed, state, tlist, e_ops):
+    def _run_inner_traj_loop(self, generator, state, tlist, e_ops):
         """
-        Run one trajectory and return the result.
+        Run the main loop of a trajectory and return the result.
         """
-        result = StochasticTrajResult(
+        result = self._resultclass(
             e_ops,
             self.options,
             m_ops=self.m_ops,
             dw_factor=self.dW_factors,
             heterodyne=self.heterodyne,
         )
-        generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator)
         state_t = self._restore_state(state, copy=False)
         result.add(tlist[0], state_t, None)
@@ -629,6 +685,13 @@ class StochasticSolver(MultiTrajSolver):
             state_t = self._restore_state(state, copy=False)
             result.add(t, state_t, noise)
         return seed, result
+
+    def _run_one_traj(self, seed, state, tlist, e_ops):
+        """
+        Run one trajectory and return the result.
+        """
+        generator = self._get_generator(seed)
+        return self._run_inner_traj_loop(generator, state, tlist, e_ops)
 
     @classmethod
     def avail_integrators(cls):

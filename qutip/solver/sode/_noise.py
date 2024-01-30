@@ -1,6 +1,6 @@
 import numpy as np
 
-__all__ = ["Wiener"]
+__all__ = ["Wiener", "PreSetWiener"]
 
 
 class Wiener:
@@ -35,6 +35,35 @@ class Wiener:
             self._extend(t)
         idx = int((t - self.t0 + self.dt * 0.01) // self.dt)
         return self.process[idx, 0, :]
+
+
+class PreSetWiener(Wiener):
+    def __init__(self, noise, tlist, n_sc_ops):
+        if noise.shape != (len(tlist)-1, n_sc_ops):
+            raise ValueError(
+                "Noise shape must be (len(tlist)-1, nu,sc_ops)"
+            )
+
+        self.noise = noise
+        self.t0 = tlist[0]
+        self.t_last = tlist[-1]
+        self.dt = tlist[1] - tlist[0]
+
+    def dW(self, t, N):
+        if t + N * self.dt > self.t_last:
+            raise ValueError(
+                "Requested time is outside the integration range."
+            )
+        idx0 = int((t - self.t0) // self.dt)
+        return self.noise[idx0:idx0 + N, :]
+
+    def __call__(self, t):
+        if t + N * self.dt > self.t_last:
+            raise ValueError(
+                "Requested time is outside the integration range."
+            )
+        idx0 = int((t - self.t0) // self.dt)
+        return np.cumsum(self.noise[idx0, :], axis=0)
 
 
 class _Noise:
