@@ -75,7 +75,15 @@ class StochasticTrajResult(Result):
         for heterodyne detection.
         """
         dts = np.diff(self.times)
-        m_expect = np.array(self.m_expect)[:, 1:]
+        if self.options["store_measurement"] == "start":
+            m_expect = np.array(self.m_expect)[:, :-1]
+        elif self.options["store_measurement"] == "middle":
+            m_expect = np.apply_along_axis(
+                lambda m: np.convolve(m, [0.5, 0.5], "valid"),
+                axis=0, arr=self.m_expect,
+            )
+        elif self.options["store_measurement"] in ["start", True]:
+            m_expect = np.array(self.m_expect)[:, 1:]
         noise = np.einsum(
             "i,ij,j->ij", self.dW_factor, np.diff(self.W, axis=1), (1 / dts)
         )
@@ -316,9 +324,10 @@ def smesolve(
           | Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
-        - | store_measurement: bool
-          | Whether to store the measurement and wiener process for each
-            trajectories.
+        - | store_measurement: str, {'start', 'middle', 'end', ''}
+          | Whether and how to store the measurement for each trajectories.
+            'start', 'middle', 'end' indicate when in the interval the
+            expectation value of the ``m_ops`` is taken.
         - | keep_runs_results : bool
           | Whether to store results from all trajectories or just store the
             averages.
@@ -436,9 +445,10 @@ def ssesolve(
           | Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
-        - | store_measurement: bool
-            Whether to store the measurement and wiener process, or brownian
-            noise for each trajectories.
+        - | store_measurement: str, {'start', 'middle', 'end', ''}
+          | Whether and how to store the measurement for each trajectories.
+            'start', 'middle', 'end' indicate when in the interval the
+            expectation value of the ``m_ops`` is taken.
         - | keep_runs_results : bool
           | Whether to store results from all trajectories or just store the
             averages.
@@ -498,7 +508,7 @@ class StochasticSolver(MultiTrajSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": False,
+        "store_measurement": "",
         "keep_runs_results": False,
         "normalize_output": False,
         "method": "taylor1.5",
@@ -590,73 +600,6 @@ class StochasticSolver(MultiTrajSolver):
     def dW_factors(self):
         return self._dW_factors
 
-    def run_from_experiment(
-            self, state, tlist, noise, *,
-            args=None, e_ops=(), measurement=False,
-        ):
-        """
-        Run a single trajectory from a given state and noise.
-
-        Parameters
-        ----------
-        state : Qobj
-            Initial state of the system.
-
-        tlist : array_like
-            List of times for which to evaluate the state. The tlist must
-            increase uniformly.
-
-        noise : array_like
-            Noise for each time step and each stochastic collapse operators.
-            ``noise[i, j]`` is the Wiener increments between ``tlist[t]`` and
-            ``tlist[i+1]`` for the j-th sc_ops (homodyne detection).
-            For heterodyne detection, the sc_ops are doubled and the i-th
-            operators correspond to the (2*i, 2*i+1) noise entries.
-
-        args : dict, optional
-            Arguments to pass to the Hamiltonian and collapse operators.
-
-        e_ops : list, optional
-            List of operators for which to evaluate expectation values.
-
-        measurement : bool, default : False
-            Whether the passed noise is the Wiener increments (gaussian noise
-            with standard derivation of dt**0.5), or the measurement:
-
-                noise[t...t+dt, i] = dW[t...t+dt, i] +
-                    expect(sc_ops[i] + sc_ops[i].dag, state_t) * dt
-
-        Returns
-        -------
-        result : StochasticTrajResult
-            Result of the trajectory.
-        """
-        result = self._resultclass(
-            e_ops,
-            self.options,
-            m_ops=self.m_ops,
-            dw_factor=self.dW_factors,
-            heterodyne=self.heterodyne,
-        )
-        dt = tlist[1] - tlist[0]
-        if not np.allclose(dt, np.diff(tlist)):
-            raise ValueError("tlist must be evenly spaced.")
-        generator = self.PreSetWiener(noise, tlist, len(self.rhs.sc_ops))
-        try:
-            old_dt = None
-            if "dt" in self._integrator.options:
-                old_dt = self._integrator.options["dt"]
-                self._integrator.options["dt"] = dt
-                self._integrator.options["_measurement_noise"] = measurement
-            result = self._run_inner_traj_loop(generator, state, tlist, e_ops)
-        except Exception as err:
-            if old_dt is not None:
-                self._integrator.options["dt"] = old_dt
-            self._integrator.options["_measurement_noise"] = dt
-            raise
-
-        return result
-
     @dW_factors.setter
     def dW_factors(self, new_dW_factors):
         """
@@ -703,6 +646,76 @@ class StochasticSolver(MultiTrajSolver):
         generator = self._get_generator(seed)
         return seed, self._run_inner_traj_loop(generator, state, tlist, e_ops)
 
+    def run_from_experiment(
+            self, state, tlist, noise, *,
+            args=None, e_ops=(), measurement=False,
+        ):
+        """
+        Run a single trajectory from a given state and noise.
+
+        Parameters
+        ----------
+        state : Qobj
+            Initial state of the system.
+
+        tlist : array_like
+            List of times for which to evaluate the state. The tlist must
+            increase uniformly.
+
+        noise : array_like
+            Noise for each time step and each stochastic collapse operators.
+            For homodyne detection, ``noise[i, t_idx]`` is the Wiener
+            increments between ``tlist[t_idx]`` and ``tlist[t_idx+1]`` for the
+            i-th sc_ops.
+            For heterodyne detection, an extra dimension is added for the pair
+            of measurement: ``noise[i, j, t_idx]``with ``j`` in ``{0,1}``.
+
+        args : dict, optional
+            Arguments to pass to the Hamiltonian and collapse operators.
+
+        e_ops : list, optional
+            List of operators for which to evaluate expectation values.
+
+        measurement : bool, default : False
+            Whether the passed noise is the Wiener increments ``dW`` (gaussian
+            noise with standard derivation of dt**0.5), or the measurement:
+
+                noise = dW/dt + expect(sc_ops[i] + sc_ops[i].dag, state_t)
+
+            Note that the expectation value is usally computed at the start of
+            the step. Only available for limited integration methods.
+
+        Returns
+        -------
+        result : StochasticTrajResult
+            Result of the trajectory.
+        """
+        result = self._resultclass(
+            e_ops,
+            self.options,
+            m_ops=self.m_ops,
+            dw_factor=self.dW_factors,
+            heterodyne=self.heterodyne,
+        )
+        dt = tlist[1] - tlist[0]
+        if not np.allclose(dt, np.diff(tlist)):
+            raise ValueError("tlist must be evenly spaced.")
+        generator = self.PreSetWiener(
+            noise, tlist, len(self.rhs.sc_ops), self.heterodyne, measurement
+        )
+        try:
+            old_dt = None
+            if "dt" in self._integrator.options:
+                old_dt = self._integrator.options["dt"]
+                self._integrator.options["dt"] = dt
+            result = self._run_inner_traj_loop(generator, state, tlist, e_ops)
+        except Exception as err:
+            if old_dt is not None:
+                self._integrator.options["dt"] = old_dt
+            raise
+
+        return result
+
     @classmethod
     def avail_integrators(cls):
         if cls is StochasticSolver:
@@ -726,8 +739,10 @@ class StochasticSolver(MultiTrajSolver):
             On `None` the states will be saved if no expectation operators are
             given.
 
-        store_measurement: bool, default: False
-            Whether to store the measurement for each trajectories.
+        store_measurement: str, {'start', 'middle', 'end', ''}, default: ""
+            Whether and how to store the measurement for each trajectories.
+            'start', 'middle', 'end' indicate when in the interval the
+            expectation value of the ``m_ops`` is taken.
             Storing measurements will also store the wiener process, or
             brownian noise for each trajectories.
 
@@ -856,7 +871,7 @@ class SMESolver(StochasticSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": False,
+        "store_measurement": "",
         "keep_runs_results": False,
         "normalize_output": False,
         "method": "platen",
@@ -899,7 +914,7 @@ class SSESolver(StochasticSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": False,
+        "store_measurement": "",
         "keep_runs_results": False,
         "normalize_output": False,
         "method": "platen",
