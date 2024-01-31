@@ -500,6 +500,7 @@ class StochasticSolver(MultiTrajSolver):
 
     name = "StochasticSolver"
     _resultclass = StochasticResult
+    _trajectory_resultclass = StochasticTrajResult
     _avail_integrators = {}
     system = None
     _open = None
@@ -623,7 +624,7 @@ class StochasticSolver(MultiTrajSolver):
         """
         Run the main loop of a trajectory and return the result.
         """
-        result = self._resultclass(
+        result = self._trajectory_resultclass(
             e_ops,
             self.options,
             m_ops=self.m_ops,

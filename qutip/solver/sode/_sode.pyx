@@ -47,7 +47,7 @@ cdef class Euler:
         if self.measurement_noise:
             expect = system.expect(t, state)
             for i in range(system.num_collapse):
-                dW[0, i] -= except[i].real * dt
+                dW[0, i] -= expect[i].real * dt
 
         cdef Data new_state = _data.add(state, a, dt)
         for i in range(system.num_collapse):
@@ -86,7 +86,7 @@ cdef class Platen(Euler):
         if self.measurement_noise:
             expect = system.expect(t, state)
             for i in range(system.num_collapse):
-                dW[i] -= expect[i].real * dt
+                dW[0, i] -= expect[i].real * dt
 
         out = _data.mul(d1, 0.5)
         Vt = d1.copy()
@@ -296,7 +296,7 @@ cdef class Milstein:
         if self.measurement_noise:
             expect = system.expect(t, state)
             for i in range(system.num_collapse):
-                dW[i] -= system.expect_i(i).real * dt
+                dW[0, i] -= system.expect_i(i).real * dt
 
         for i in range(num_ops):
             iadd_dense(out, system.bi(i), dW[0, i])
@@ -358,7 +358,7 @@ cdef class PredCorr:
         if self.measurement_noise:
             expect = system.expect(t, state)
             for i in range(system.num_collapse):
-                dW[i] -= system.expect_i(i).real * dt
+                dW[0, i] -= system.expect_i(i).real * dt
 
         imul_dense(out, 0.)
         iadd_dense(out, state, 1)
@@ -438,17 +438,17 @@ cdef class Milstein_imp:
     cdef double prev_dt
     cdef dict imp_opt
 
-    def __init__(self, _StochasticSystem system, imp_method=None, imp_options={}):
+    def __init__(self, _StochasticSystem system, solve_method=None, solve_options={}):
         self.system = system
         self.prev_dt = 0
-        if imp_method == "inv":
+        if solve_method == "inv":
             if not self.system.L.isconstant:
                 raise TypeError("The 'inv' integration method requires that the system Hamiltonian or Liouvillian be constant.")
             self.use_inv = True
             self.imp_opt = {}
         else:
             self.use_inv = False
-            self.imp_opt = {"method": imp_method, "options": imp_options}
+            self.imp_opt = {"method": solve_method, "options": solve_options}
 
 
     @cython.wraparound(False)

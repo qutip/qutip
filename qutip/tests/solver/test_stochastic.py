@@ -319,7 +319,6 @@ def test_m_ops(heterodyne):
 
 
 def test_feedback():
-    tol = 0.05
     N = 10
     ntraj = 2
 
@@ -342,7 +341,9 @@ def test_feedback():
     solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
     results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
 
-    assert np.all(results.expect[0] > 6.-1e-6)
+    # If this was deterministic, it should never go under `6`.
+    # We add a tolerance ~dt due to the stochatic part.
+    assert np.all(results.expect[0] > 6. - 0.001)
     assert np.all(results.expect[0][-20:] < 6.7)
 
 

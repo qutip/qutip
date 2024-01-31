@@ -239,7 +239,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             out.append(_data.add(vec, state, -expect))
         return out
 
-    cpdef list expect(self, t, Data, state):
+    cpdef list expect(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
         cdef list expect = []

@@ -10,29 +10,25 @@ class Wiener:
     def __init__(self, t0, dt, generator, shape):
         self.t0 = t0
         self.dt = dt
-        self.t_end = t0
         self.shape = shape
         self.generator = generator
         self.noise = np.zeros((0,) + shape, dtype=float)
         self.last_W = np.zeros(shape[-1], dtype=float)
         self.idx_last_0 = 0
 
-    def _extend(self, t):
-        N_new_vals = int((t - self.t_end + self.dt*0.01) // self.dt)
+    def _extend(self, idx):
+        N_new_vals = idx - self.noise.shape[0]
         dW = self.generator.normal(
             0, np.sqrt(self.dt), size=(N_new_vals,) + self.shape
         )
         self.noise = np.concatenate((self.noise, dW), axis=0)
-        W = self.process[-1, :, :] + np.cumsum(dW, axis=0)
-        self.process = np.concatenate((self.process, W), axis=0)
-        self.t_end = self.t0 + (self.process.shape[0] - 1) * self.dt
 
     def dW(self, t, N):
         # Find the index of t.
         # Rounded to the closest step, but only multiple of dt are expected.
         idx0 = int((t - self.t0 + self.dt * 0.4999) // self.dt)
         if idx0 + N >= self.noise.shape[0]:
-            self._extend(idx0 + N - 1)
+            self._extend(idx0 + N)
         return self.noise[idx0:idx0 + N, :, :]
 
     def __call__(self, t):
@@ -44,9 +40,9 @@ class Wiener:
 
         # Find the index of t.
         # Rounded to the closest step, but only multiple of dt are expected.
-        idx0 = int((t - self.t0 + self.dt * 0.4999) // self.dt)
-        if idx0 >= self.noise.shape[0]:
-            self._extend(idx0)
+        idx = int((t - self.t0 + self.dt * 0.4999) // self.dt)
+        if idx >= self.noise.shape[0]:
+            self._extend(idx + 1)
 
         if self.idx_last_0 > idx:
             # Before last call, reseting
@@ -67,18 +63,17 @@ class PreSetWiener(Wiener):
             if noise.shape != (n_sc_ops/2, 2, len(tlist)-1):
                 raise ValueError(
                     "Noise is not of the expected shape: "
-                    f"{(n_sc_ops/2, 2, len(tlist)-1))}"
+                    f"{(n_sc_ops/2, 2, len(tlist)-1)}"
                 )
             noise = np.reshape(noise, (n_sc_ops, len(tlist)-1), "C")
         else:
             if noise.shape != (n_sc_ops, len(tlist)-1):
                 raise ValueError(
                     "Noise is not of the expected shape: "
-                    f"{(n_sc_ops, len(tlist)-1))}"
+                    f"{(n_sc_ops, len(tlist)-1)}"
                 )
 
         self.t0 = tlist[0]
-        self.t_end = tlist[-1]
         self.dt = tlist[1] - tlist[0]
         self.shape = noise.shape[1:]
         self.noise = noise.T[:, np.newaxis, :]
