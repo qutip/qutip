@@ -95,13 +95,16 @@ def func(i):
     pytest.param(serial_map, id='serial_map'),
 ])
 def test_map_pass_error(map):
+    kwargs = {}
     if map is loky_pmap:
         pytest.importorskip("loky")
     if map is mpi_pmap:
         pytest.importorskip("mpi4py")
+        # do not use default value for num_cpus for mpi_pmap
+        kwargs = {'map_kw': {'num_cpus': 1}}
 
     with pytest.raises(CustomException) as err:
-        map(func, range(10))
+        map(func, range(10), **kwargs)
     assert "Error in subprocess" in str(err.value)
 
 
@@ -112,13 +115,16 @@ def test_map_pass_error(map):
     pytest.param(serial_map, id='serial_map'),
 ])
 def test_map_store_error(map):
+    map_kw = {"fail_fast": False}
     if map is loky_pmap:
         pytest.importorskip("loky")
     if map is mpi_pmap:
         pytest.importorskip("mpi4py")
+        # do not use default value for num_cpus for mpi_pmap
+        map_kw.update({'num_cpus': 1})
 
     with pytest.raises(MapExceptions) as err:
-        map(func, range(10), map_kw={"fail_fast": False})
+        map(func, range(10), map_kw=map_kw)
     map_error = err.value
     assert "iterations failed" in str(map_error)
     for iter, error in map_error.errors.items():
@@ -139,10 +145,13 @@ def test_map_store_error(map):
     pytest.param(serial_map, id='serial_map'),
 ])
 def test_map_early_end(map):
+    kwargs = {}
     if map is loky_pmap:
         pytest.importorskip("loky")
     if map is mpi_pmap:
         pytest.importorskip("mpi4py")
+        # do not use default value for num_cpus for mpi_pmap
+        kwargs = {'map_kw': {'num_cpus': 1}}
 
     results = []
 
@@ -150,6 +159,6 @@ def test_map_early_end(map):
         results.append(result)
         return 5 - len(results)
 
-    map(_func1, range(100), reduce_func=reduce_func)
+    map(_func1, range(100), reduce_func=reduce_func, **kwargs)
 
     assert len(results) < 100

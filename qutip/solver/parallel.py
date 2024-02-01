@@ -11,6 +11,7 @@ import sys
 import time
 import threading
 import concurrent.futures
+import warnings
 from qutip.ui.progressbar import progress_bars
 from qutip.settings import available_cpu_count
 
@@ -432,6 +433,12 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
     processes. For more information, consult the documentation of mpi4py and
     the mpi4py.MPIPoolExecutor class.
 
+    Note: in keeping consistent with the API of `parallel_map`, the parameter
+    determining the number of requested worker processes is called `num_cpus`.
+    The value of `map_kw['num_cpus']` is passed to the MPIPoolExecutor as its
+    `max_workers` argument. Its default value is the number of logical CPUs
+    (i.e., threads), which might be unsuitable for MPI applications.
+
     Parameters
     ----------
     task : a Python function
@@ -472,10 +479,24 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
     """
 
     from mpi4py.futures import MPIPoolExecutor
+
+    # If the provided num_cpus is None, we use the default value instead (and
+    # emit a warning). We thus intentionally make it impossible to call
+    #   MPIPoolExecutor(max_workers=None, ...)
+    # in which case mpi4py would determine a default value.
+    # The default value provided by mpi4py would be better suited, but mpi4py
+    # provides no public API to access the actual number of workers that is
+    # used in this case, which we need.
+    worker_number_provided = (map_kw is not None) and ('num_cpus' in map_kw)
+
     map_kw = _read_map_kw(map_kw)
     timeout = map_kw.pop('timeout')
     num_workers = map_kw.pop('num_cpus')
     fail_fast = map_kw.pop('fail_fast')
+
+    if not worker_number_provided:
+        warnings.warn(f'mpi_pmap was called without specifying the number of '
+                      f'worker processes, using the default {num_workers}')
 
     def setup_executor():
         return MPIPoolExecutor(max_workers=num_workers, **map_kw)
