@@ -94,6 +94,10 @@ jobs:
             numpy-requirement: ">=1.26,<1.27"
             condaforge: 1
             pytest-extra-options: "-W ignore:datetime:DeprecationWarning"
+            conda-extra-pkgs: "mpi4py"
+            # Enough to include mpi4py in one of the test runs
+            # Install it with conda (uses openmpi) instead of pip (uses mpich)
+            # because of issues with mpich
 
           # Mac
           # Mac has issues with MKL since september 2022.
@@ -115,8 +119,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: mpi4py/setup-mpi@v1
-
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
