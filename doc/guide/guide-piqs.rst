@@ -32,7 +32,7 @@ where :math:`J_{\alpha,n}=\frac{1}{2}\sigma_{\alpha,n}` are SU(2) Pauli spin ope
 The inclusion of local processes in the dynamics lead to using a Liouvillian space of dimension :math:`4^N`. By exploiting the permutational invariance of identical particles [2-8], the Liouvillian :math:`\mathcal{D}_\text{TLS}(\rho)` can be built as a block-diagonal matrix in the basis of Dicke states :math:`|j, m \rangle`.
 
 The system under study is defined by creating an object of the
-:code:`Dicke` class, e.g. simply named
+:class:`~qutip.piqs.piqs.Dicke` class, e.g. simply named
 :code:`system`, whose first attribute is
 
 - :code:`system.N`, the number of TLSs of the system :math:`N`.
@@ -48,8 +48,10 @@ The rates for collective and local processes are simply defined as
 
 Then the :code:`system.lindbladian()` creates the total TLS Lindbladian superoperator matrix. Similarly, :code:`system.hamiltonian` defines the TLS hamiltonian of the system :math:`H_\text{TLS}`.
 
-The system's Liouvillian can be built using :code:`system.liouvillian()`. The properties of a Piqs object can be visualized by simply calling
-:code:`system`. We give two basic examples on the use of *PIQS*. In the first example the incoherent emission of N driven TLSs is considered.
+The system's Liouvillian can be built using :code:`system.liouvillian()`.
+The properties of a Piqs object can be visualized by simply calling :code:`system`.
+We give two basic examples on the use of *PIQS*.
+In the first example the incoherent emission of N driven TLSs is considered.
 
 .. code-block:: python
 

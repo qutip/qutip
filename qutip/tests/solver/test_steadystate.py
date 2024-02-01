@@ -1,7 +1,9 @@
 import numpy as np
+import scipy
 import pytest
 import qutip
 import warnings
+from packaging import version as pac_version
 
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
@@ -35,6 +37,13 @@ def test_qubit(method, kwargs, dtype):
     # thermal steadystate of a qubit: compare numerics with analytical formula
     sz = qutip.sigmaz().to(dtype)
     sm = qutip.destroy(2, dtype=dtype)
+
+    if (
+        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
+        and "tol" in kwargs
+    ):
+        # From scipy 1.12, the tol keyword is renamed to rtol
+        kwargs["rtol"] = kwargs.pop("tol")
 
     H = 0.5 * 2 * np.pi * sz
     gamma1 = 0.05
@@ -94,6 +103,13 @@ def test_exact_solution_for_simple_methods(method, kwargs):
 def test_ho(method, kwargs):
     # thermal steadystate of an oscillator: compare numerics with analytical
     # formula
+    if (
+        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
+        and "tol" in kwargs
+    ):
+        # From scipy 1.12, the tol keyword is renamed to rtol
+        kwargs["rtol"] = kwargs.pop("tol")
+
     a = qutip.destroy(30)
     H = 0.5 * 2 * np.pi * a.dag() * a
     gamma1 = 0.05
@@ -130,6 +146,13 @@ def test_ho(method, kwargs):
     pytest.param('iterative-bicgstab', {"atol": 1e-10, "tol": 1e-10}, id="iterative-bicgstab"),
 ])
 def test_driven_cavity(method, kwargs):
+    if (
+        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
+        and "tol" in kwargs
+    ):
+        # From scipy 1.12, the tol keyword is renamed to rtol
+        kwargs["rtol"] = kwargs.pop("tol")
+
     N = 30
     Omega = 0.01 * 2 * np.pi
     Gamma = 0.05

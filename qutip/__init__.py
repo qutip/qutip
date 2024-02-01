@@ -39,7 +39,6 @@ import qutip.piqs.piqs as piqs
 from .bloch import *
 from .visualization import *
 from .animation import *
-from .bloch3d import *
 from .matplotlib_utilities import *
 
 # library functions

@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 from qutip import unstack_columns, stack_columns
 from qutip.core import data as _data
 from ..stochastic import StochasticSolver
@@ -97,12 +98,16 @@ class RouchonSODE(SIntegrator):
 
     def integrate(self, t, copy=True):
         delta_t = (t - self.t)
+        dt = self.options["dt"]
         if delta_t < 0:
             raise ValueError("Stochastic integration need increasing times")
-        elif delta_t == 0:
-            return self.t, self.state, np.zeros()
+        elif delta_t < 0.5 * dt:
+            warnings.warn(
+                f"Step under minimum step ({dt}), skipped.",
+                RuntimeWarning
+            )
+            return self.t, self.state, np.zeros(len(self.sc_ops))
 
-        dt = self.options["dt"]
         N, extra = np.divmod(delta_t, dt)
         N = int(N)
         if extra > 0.5 * dt:

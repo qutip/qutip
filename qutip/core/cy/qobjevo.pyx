@@ -908,12 +908,12 @@ cdef class QobjEvo:
     @property
     def isoper(self):
         """Indicates if the system represents an operator."""
-        return self._dims.type == "oper"
+        return self._dims.type in ['oper', 'scalar']
 
     @property
     def issuper(self):
         """Indicates if the system represents a superoperator."""
-        return self._dims.issuper
+        return self._dims.type == 'super'
 
     @property
     def dims(self):
@@ -926,6 +926,26 @@ cdef class QobjEvo:
     @property
     def superrep(self):
         return self._dims.superrep
+
+    @property
+    def isbra(self):
+        """Indicates if the system represents a bra state."""
+        return self._dims.type in ['bra', 'scalar']
+
+    @property
+    def isket(self):
+        """Indicates if the system represents a ket state."""
+        return self._dims.type in ['ket', 'scalar']
+
+    @property
+    def isoperket(self):
+        """Indicates if the system represents a operator-ket state."""
+        return self._dims.type == 'operator-ket'
+
+    @property
+    def isoperbra(self):
+        """Indicates if the system represents a operator-bra state."""
+        return self._dims.type == 'operator-bra'
 
     ###########################################################################
     # operation methods                                                       #

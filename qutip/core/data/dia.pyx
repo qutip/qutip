@@ -271,8 +271,16 @@ cpdef Dia empty(base.idxint rows, base.idxint cols, base.idxint num_diag):
         <double complex *> PyDataMem_NEW(cols * num_diag * sizeof(double complex))
     out.offsets =\
         <base.idxint *> PyDataMem_NEW(num_diag * sizeof(base.idxint))
-    if not out.data: raise MemoryError()
-    if not out.offsets: raise MemoryError()
+    if not out.data:
+        raise MemoryError(
+            f"Failed to allocate the `data` of a ({rows}, {cols}) "
+            f"Dia array of {num_diag} diagonals."
+        )
+    if not out.offsets:
+        raise MemoryError(
+            f"Failed to allocate the `offsets` of a ({rows}, {cols}) "
+            f"Dia array of {num_diag} diagonals."
+        )
     return out
 
 

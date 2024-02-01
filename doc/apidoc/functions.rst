@@ -41,7 +41,7 @@ Random Operators and States
 ---------------------------
 
 .. automodule:: qutip.random_objects
-    :members: rand_dm, rand_herm, rand_ket, rand_stochastic, rand_unitary, rand_super, rand_super_bcsz
+    :members: rand_dm, rand_herm, rand_ket, rand_stochastic, rand_unitary, rand_super, rand_super_bcsz, rand_kraus_map
 
 
 Superoperators and Liouvillians
