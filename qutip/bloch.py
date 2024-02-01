@@ -172,7 +172,7 @@ class Bloch:
         # Old variable used in V4 to customise the color of the points
         self.point_color = None
         # List that stores the display colors for each set of points
-        self.inner_point_color = []
+        self._inner_point_color = []
         # Size of point markers, default = 25
         self.point_size = [25, 32, 35, 45]
         # Shape of point markers, default = ['o','^','d','s']
@@ -362,7 +362,7 @@ class Bloch:
         self.point_style.append(meth)
         self.points.append(points)
         self.point_alpha.append(alpha)
-        self.inner_point_color.append(colors)
+        self._inner_point_color.append(colors)
 
     def add_states(self, state, kind='vector', colors=None, alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
@@ -801,8 +801,8 @@ class Bloch:
             marker = self.point_marker[np.mod(k, len(self.point_marker))]
             style = self.point_style[k]
 
-            if self.inner_point_color[k] is not None:
-                color = self.inner_point_color[k]
+            if self._inner_point_color[k] is not None:
+                color = self._inner_point_color[k]
             elif self.point_color is not None:
                 color = self.point_color
             elif self.point_style[k] in ['s', 'l']:
