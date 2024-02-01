@@ -281,9 +281,42 @@ def test_reuse_seeds():
 
 
 @pytest.mark.parametrize("heterodyne", [True, False])
-def test_m_ops(heterodyne):
+def test_measurements(heterodyne):
     N = 10
     ntraj = 1
+
+    H = num(N)
+    sc_ops = [destroy(N)]
+    psi0 = basis(N, N-1)
+
+    times = np.linspace(0, 1.0, 11)
+
+    solver = SMESolver(H, sc_ops, heterodyne=heterodyne)
+
+    solver.options["store_measurement"] = "start"
+    res_start = solver.run(psi0, times, ntraj=ntraj, seeds=1)
+
+    solver.options["store_measurement"] = "middle"
+    res_middle = solver.run(psi0, times, ntraj=ntraj, seeds=1)
+
+    solver.options["store_measurement"] = "end"
+    res_end = solver.run(psi0, times, ntraj=ntraj, seeds=1)
+
+    diff = np.sum(np.abs(res_end.measurement[0] - res_start.measurement[0]))
+    assert diff > 0.1 # Each measurement should be different by ~dt
+    np.testing.assert_allclose(
+        res_middle.measurement[0] * 2,
+        res_start.measurement[0] + res_end.measurement[0],
+    )
+
+    np.testing.assert_allclose(
+        np.diff(res_start.wiener_process[0][0]), res_start.dW[0][0]
+    )
+
+
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_m_ops(heterodyne):
+    N = 10
 
     H = num(N)
     sc_ops = [destroy(N), qeye(N)]

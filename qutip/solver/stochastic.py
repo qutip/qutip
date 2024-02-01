@@ -13,23 +13,22 @@ from ._feedback import _QobjFeedback, _DataFeedback, _WeinerFeedback
 class StochasticTrajResult(Result):
     def _post_init(self, m_ops=(), dw_factor=(), heterodyne=False):
         super()._post_init()
-        self.W = []
-        self.m_ops = []
-        self.m_expect = []
-        self.dW_factor = dw_factor
+        self.noise = []
         self.heterodyne = heterodyne
-        for op in m_ops:
-            f = self._e_op_func(op)
-            self.W.append([0.0])
-            self.m_expect.append([])
-            self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
-            self.add_processor(self.m_ops[-1]._store)
+        if self.options["store_measurement"]:
+            self.m_ops = []
+            self.m_expect = []
+            self.dW_factor = dw_factor
+            for op in m_ops:
+                f = self._e_op_func(op)
+                self.m_expect.append([])
+                self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
+                self.add_processor(self.m_ops[-1]._store)
 
     def add(self, t, state, noise):
         super().add(t, state)
-        if noise is not None and self.options["store_measurement"]:
-            for i, dW in enumerate(noise):
-                self.W[i].append(self.W[i][-1] + dW)
+        if noise is not None:
+            self.noise.append(noise)
 
     @property
     def wiener_process(self):
@@ -42,7 +41,11 @@ class StochasticTrajResult(Result):
             (len(sc_ops), 2, len(tlist))
         for heterodyne detection.
         """
-        W = np.array(self.W)
+        W = np.zeros(
+            (self.noise[0].shape[0], len(self.times)),
+            dtype=np.float64
+        )
+        np.cumsum(np.array(self.noise).T, axis=1, out=W[:, 1:])
         if self.heterodyne:
             W = W.reshape(-1, 2, W.shape[1])
         return W
@@ -58,10 +61,10 @@ class StochasticTrajResult(Result):
             (len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
         """
-        dw = np.diff(self.W, axis=1)
+        noise = np.array(self.noise).T
         if self.heterodyne:
-            dw = dw.reshape(-1, 2, dw.shape[1])
-        return dw
+            return noise.reshape(-1, 2, noise.shape[1])
+        return noise
 
     @property
     def measurement(self):
@@ -74,23 +77,30 @@ class StochasticTrajResult(Result):
             (len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
         """
-        dts = np.diff(self.times)
-        if self.options["store_measurement"] == "start":
+        if not self.options["store_measurement"]:
+            return None
+        elif self.options["store_measurement"] == "end":
             m_expect = np.array(self.m_expect)[:, :-1]
         elif self.options["store_measurement"] == "middle":
             m_expect = np.apply_along_axis(
                 lambda m: np.convolve(m, [0.5, 0.5], "valid"),
-                axis=0, arr=self.m_expect,
+                axis=1, arr=self.m_expect,
             )
         elif self.options["store_measurement"] in ["start", True]:
             m_expect = np.array(self.m_expect)[:, 1:]
-        noise = np.einsum(
-            "i,ij,j->ij", self.dW_factor, np.diff(self.W, axis=1), (1 / dts)
+        else:
+            raise ValueError(
+                "store_measurement must be in {'start', 'middle', 'end', ''}, "
+                f"not {self.options['store_measurement']}"
+            )
+        noise = np.array(self.noise).T
+        noise_scaled = np.einsum(
+            "i,ij,j->ij", self.dW_factor, noise, (1 / np.diff(self.times))
         )
         if self.heterodyne:
             m_expect = m_expect.reshape(-1, 2, m_expect.shape[1])
-            noise = noise.reshape(-1, 2, noise.shape[1])
-        return m_expect + noise
+            noise_scaled = noise_scaled.reshape(-1, 2, noise_scaled.shape[1])
+        return m_expect + noise_scaled
 
 
 class StochasticResult(MultiTrajResult):
@@ -681,7 +691,8 @@ class StochasticSolver(MultiTrajSolver):
             Whether the passed noise is the Wiener increments ``dW`` (gaussian
             noise with standard derivation of dt**0.5), or the measurement:
 
-                noise = dW/dt + expect(sc_ops[i] + sc_ops[i].dag, state_t)
+                noise = dW/dt * dW_factors
+                        + expect(sc_ops[i] + sc_ops[i].dag, state_t)
 
             Note that the expectation value is usally computed at the start of
             the step. Only available for limited integration methods.
@@ -690,6 +701,10 @@ class StochasticSolver(MultiTrajSolver):
         -------
         result : StochasticTrajResult
             Result of the trajectory.
+
+        Notes
+        -----
+        Only default values of `m_ops` and `dW_factors` are supported.
         """
         result = self._resultclass(
             e_ops,

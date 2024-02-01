@@ -65,7 +65,7 @@ class PreSetWiener(Wiener):
                     "Noise is not of the expected shape: "
                     f"{(n_sc_ops/2, 2, len(tlist)-1)}"
                 )
-            noise = np.reshape(noise, (n_sc_ops, len(tlist)-1), "C")
+            noise = np.reshape(noise, (n_sc_ops, len(tlist)-1), "C") / 2**0.5
         else:
             if noise.shape != (n_sc_ops, len(tlist)-1):
                 raise ValueError(
