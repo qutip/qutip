@@ -94,10 +94,9 @@ jobs:
             numpy-requirement: ">=1.26,<1.27"
             condaforge: 1
             pytest-extra-options: "-W ignore:datetime:DeprecationWarning"
-            conda-extra-pkgs: "mpi4py"
-            # Enough to include mpi4py in one of the test runs
-            # Install it with conda (uses openmpi) instead of pip (uses mpich)
-            # because of issues with mpich
+            # Install mpi4py to test mpi_pmap
+            # Should be enough to include this in one of the runs
+            includempi: 1
 
           # Mac
           # Mac has issues with MKL since september 2022.
@@ -150,6 +149,10 @@ jobs:
           if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install "${{ matrix.conda-extra-pkgs }}"
           fi
+          if [[ "${{ matrix.includempi }}" ]]; then
+            # Use openmpi because mpich causes problems. Note, environment variable names change in v5
+            conda install "openmpi<5" mpi4py
+          fi
           python -m pip install -e .[$QUTIP_TARGET]
           python -m pip install "coverage${{ matrix.coverage-requirement }}"
           python -m pip install pytest-cov coveralls pytest-fail-slow
@@ -180,6 +183,12 @@ jobs:
             # actually that many CPUs.  We have to check any dispatch code is
             # truly being executed.
             export QUTIP_NUM_PROCESSES=2
+          fi
+          if [[ "${{ matrix.includempi }}" ]]; then
+            # By default, the max. number of allowed worker processes in openmpi is
+            # (number of physical cpu cores) - 1.
+            # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
+            export OMPI_MCA_rmaps_base_oversubscribe=true
           fi
           pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
           # Above flags are:
