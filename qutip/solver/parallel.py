@@ -436,8 +436,11 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
     Note: in keeping consistent with the API of `parallel_map`, the parameter
     determining the number of requested worker processes is called `num_cpus`.
     The value of `map_kw['num_cpus']` is passed to the MPIPoolExecutor as its
-    `max_workers` argument. Its default value is the number of logical CPUs
-    (i.e., threads), which might be unsuitable for MPI applications.
+    `max_workers` argument.
+    If this parameter is not provided, the environment variable
+    `QUTIP_NUM_PROCESSES` is used instead. If this environment variable is not
+    set either, QuTiP will use default values that might be unsuitable for MPI
+    applications.
 
     Parameters
     ----------
@@ -480,14 +483,15 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
 
     from mpi4py.futures import MPIPoolExecutor
 
-    # If the provided num_cpus is None, we use the default value instead (and
-    # emit a warning). We thus intentionally make it impossible to call
+    # If the provided num_cpus is None, we use the default value instead.
+    # We thus intentionally make it impossible to call
     #   MPIPoolExecutor(max_workers=None, ...)
-    # in which case mpi4py would determine a default value.
-    # The default value provided by mpi4py would be better suited, but mpi4py
-    # provides no public API to access the actual number of workers that is
-    # used in this case, which we need.
-    worker_number_provided = (map_kw is not None) and ('num_cpus' in map_kw)
+    # in which case mpi4py would determine a default value. That would be
+    # useful, but unfortunately mpi4py provides no public API to access the
+    # actual number of workers that is used in that case, which we would need.
+    worker_number_provided = (
+        ((map_kw is not None) and ('num_cpus' in map_kw))
+        or 'QUTIP_NUM_PROCESSES' in os.environ)
 
     map_kw = _read_map_kw(map_kw)
     timeout = map_kw.pop('timeout')
