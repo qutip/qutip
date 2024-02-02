@@ -3,17 +3,43 @@
 
 cimport cython
 
-from qutip.core.data cimport csr, dense, dia
+from qutip.core.data cimport coo, csr, dense, dia
+from qutip.core.data.coo cimport COO
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.dia cimport Dia
-from qutip.core.data.matmul cimport matmul_csr, matmul_dia
+from qutip.core.data.matmul cimport matmul_coo, matmul_csr, matmul_dia
 import numpy as np
 
 __all__ = [
     'pow', 'pow_csr', 'pow_dense', 'pow_dia',
 ]
 
+@cython.nonecheck(False)
+@cython.cdivision(True)
+cpdef COO pow_coo(COO matrix, unsigned long long n):
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("matrix power only works with square matrices")
+    if n == 0:
+        return coo.identity(matrix.shape[0])
+    if n == 1:
+        return matrix.copy()
+    # We do the matrix power in terms of powers of two, so we can do it
+    # ceil(lg(n)) + bits(n) - 1 matrix mulitplications, where `bits` is the
+    # number of set bits in the input.
+    #
+    # We don't have to do matrix.copy() or pow.copy() here, because we've
+    # guaranteed that we won't be returning without at least one matrix
+    # multiplcation, which will allocate a new matrix.
+    cdef COO pow = matrix
+    cdef COO out = pow if n & 1 else None
+    n >>= 1
+    while n:
+        pow = matmul_coo(pow, pow)
+        if n & 1:
+            out = pow if out is None else matmul_coo(out, pow)
+        n >>= 1
+    return out
 
 @cython.nonecheck(False)
 @cython.cdivision(True)
@@ -107,6 +133,7 @@ pow.__doc__ =\
         The power to which to raise the matrix.
     """
 pow.add_specialisations([
+    (COO, COO, pow_coo),
     (CSR, CSR, pow_csr),
     (Dense, Dense, pow_dense),
     (Dia, Dia, pow_dia),

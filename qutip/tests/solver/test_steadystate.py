@@ -19,14 +19,14 @@ import warnings
     pytest.param('power', {'power_tol':1e-5, 'solver':'mkl'}, id="power_mkl",
                  marks=pytest.mark.skipif(not qutip.settings.has_mkl,
                                           reason='MKL extensions not found.')),
-    pytest.param('power-gmres', {'tol':1e-1, 'atol': 1e-12}, id="power-gmres"),
-    pytest.param('power-gmres', {'tol':1e-1, 'use_rcm':True, 'use_wbm':True, 'atol': 1e-12},
+    pytest.param('power-gmres', {'rtol':1e-1, 'atol': 1e-12}, id="power-gmres"),
+    pytest.param('power-gmres', {'rtol':1e-1, 'use_rcm':True, 'use_wbm':True, 'atol': 1e-12},
                  id="power-gmres_perm"),
-    pytest.param('power-bicgstab', {"atol": 1e-10, "tol": 1e-10, 'use_precond':1}, id="power-bicgstab"),
-    pytest.param('iterative-gmres', {'tol': 1e-12, 'atol': 1e-12}, id="iterative-gmres"),
-    pytest.param('iterative-gmres', {'use_rcm':True, 'use_wbm':True, 'tol': 1e-12, 'atol': 1e-12},
+    pytest.param('power-bicgstab', {"atol": 1e-10, "rtol": 1e-10, 'use_precond':1}, id="power-bicgstab"),
+    pytest.param('iterative-gmres', {'rtol': 1e-12, 'atol': 1e-12}, id="iterative-gmres"),
+    pytest.param('iterative-gmres', {'use_rcm':True, 'use_wbm':True, 'rtol': 1e-12, 'atol': 1e-12},
                  id="iterative-gmres_perm"),
-    pytest.param('iterative-bicgstab', {'atol': 1e-12, "tol": 1e-10},
+    pytest.param('iterative-bicgstab', {'atol': 1e-12, "rtol": 1e-10},
                  id="iterative-bicgstab"),
 ])
 @pytest.mark.parametrize("dtype", ["dense", "dia", "csr"])
@@ -87,9 +87,9 @@ def test_exact_solution_for_simple_methods(method, kwargs):
     pytest.param('direct', {'sparse':False}, id="direct_dense"),
     pytest.param('eigen', {'sparse':False}, id="eigen"),
     pytest.param('power', {'power_tol':1e-5}, id="power"),
-    pytest.param('iterative-lgmres', {'tol': 1e-7, 'atol': 1e-7}, id="iterative-lgmres"),
-    pytest.param('iterative-gmres', {'tol': 1e-7, 'atol': 1e-7}, id="iterative-gmres"),
-    pytest.param('iterative-bicgstab', {'tol': 1e-7, 'atol': 1e-7}, id="iterative-bicgstab"),
+    pytest.param('iterative-lgmres', {'rtol': 1e-7, 'atol': 1e-7}, id="iterative-lgmres"),
+    pytest.param('iterative-gmres', {'rtol': 1e-7, 'atol': 1e-7}, id="iterative-gmres"),
+    pytest.param('iterative-bicgstab', {'rtol': 1e-7, 'atol': 1e-7}, id="iterative-bicgstab"),
 ])
 def test_ho(method, kwargs):
     # thermal steadystate of an oscillator: compare numerics with analytical
@@ -122,12 +122,12 @@ def test_ho(method, kwargs):
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('svd', {}, id="svd"),
     pytest.param('power', {}, id="power"),
-    pytest.param('power-gmres', {"atol": 1e-5, 'tol':1e-1, 'use_precond':1},
+    pytest.param('power-gmres', {"atol": 1e-5, 'rtol':1e-1, 'use_precond':1},
                  id="power-gmres"),
-    pytest.param('power', {"solver": "bicgstab", "atol": 1e-6, "tol": 1e-6, 'use_precond':1},
+    pytest.param('power', {"solver": "bicgstab", "atol": 1e-6, "rtol": 1e-6, 'use_precond':1},
                  id="power-bicgstab"),
-    pytest.param('iterative-gmres', {"atol": 1e-10, "tol": 1e-10}, id="iterative-gmres"),
-    pytest.param('iterative-bicgstab', {"atol": 1e-10, "tol": 1e-10}, id="iterative-bicgstab"),
+    pytest.param('iterative-gmres', {"atol": 1e-10, "rtol": 1e-10}, id="iterative-gmres"),
+    pytest.param('iterative-bicgstab', {"atol": 1e-10, "rtol": 1e-10}, id="iterative-bicgstab"),
 ])
 def test_driven_cavity(method, kwargs):
     N = 30

@@ -3,7 +3,8 @@
 # (e.g. `create`) should not be here, but should be defined within the
 # higher-level components of QuTiP instead.
 
-from . import csr, dense, dia
+from . import csr, dense, dia, coo
+from .coo import COO
 from .csr import CSR
 from .dia import Dia
 from .dense import Dense
@@ -40,6 +41,7 @@ zeros.__doc__ =\
         The number of rows and columns in the output matrix.
     """
 zeros.add_specialisations([
+    (COO, coo.zeros),
     (CSR, csr.zeros),
     (Dia, dia.zeros),
     (Dense, dense.zeros),
@@ -71,6 +73,7 @@ identity.__doc__ =\
         The element which should be placed on the diagonal.
     """
 identity.add_specialisations([
+    (COO, coo.identity),
     (CSR, csr.identity),
     (Dia, dia.identity),
     (Dense, dense.identity),

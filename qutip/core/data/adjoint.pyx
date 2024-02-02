@@ -3,23 +3,59 @@
 
 from libc.string cimport memset
 
-cimport cython
-
 from qutip.core.data.base cimport idxint
+from qutip.core.data.coo cimport COO
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.dia cimport Dia
-from qutip.core.data cimport csr, dense, dia
+from qutip.core.data cimport csr, dense, dia, coo
 
 # Import std::conj as `_conj` to avoid clashing with our 'conj' dispatcher.
 cdef extern from "<complex>" namespace "std" nogil:
     double complex _conj "conj"(double complex x)
 
 __all__ = [
-    'adjoint', 'adjoint_csr', 'adjoint_dense', 'adjoint_dia',
-    'conj', 'conj_csr', 'conj_dense', 'conj_dia',
-    'transpose', 'transpose_csr', 'transpose_dense', 'transpose_dia',
+    'adjoint', 'adjoint_coo','adjoint_csr', 'adjoint_dense', 'adjoint_dia',
+    'conj', 'conj_coo', 'conj_csr', 'conj_dense', 'conj_dia',
+    'transpose', 'transpose_coo', 'transpose_csr', 'transpose_dense', 'transpose_dia',
 ]
+
+cpdef COO transpose_coo(COO matrix):
+    """Transpose the COO matrix, and return a new object."""
+    cdef idxint ptr, nnz = coo.nnz(matrix)
+    cdef COO out = coo.empty(matrix.shape[1], matrix.shape[0], nnz)
+    
+    with nogil:
+        for ptr in range(coo.nnz(matrix)):
+            out.data[ptr] = matrix.data[ptr]
+            out.col_index[ptr] = matrix.row_index[ptr]
+            out.row_index[ptr] = matrix.col_index[ptr]
+    out._nnz = nnz
+    return out
+
+
+cpdef COO adjoint_coo(COO matrix):
+    """Conjugate-transpose the COO matrix, and return a new object."""
+    cdef idxint ptr, nnz = coo.nnz(matrix)
+    cdef COO out = coo.empty(matrix.shape[1], matrix.shape[0], nnz)
+
+    with nogil:
+        for ptr in range(nnz):
+            out.data[ptr] = _conj(matrix.data[ptr])
+            out.col_index[ptr] = matrix.row_index[ptr]
+            out.row_index[ptr] = matrix.col_index[ptr]
+    out._nnz = nnz
+    return out
+
+
+cpdef COO conj_coo(COO matrix):
+    """Conjugate the COO matrix, and return a new object."""
+    cdef COO out = coo.copy_structure(matrix)
+    cdef idxint ptr
+    with nogil:
+        for ptr in range(coo.nnz(matrix)):
+            out.data[ptr] = _conj(matrix.data[ptr])
+    return out
 
 
 cpdef CSR transpose_csr(CSR matrix):
@@ -171,6 +207,7 @@ adjoint = _Dispatcher(
 adjoint.__doc__ = """Hermitian adjoint (matrix conjugate transpose)."""
 adjoint.add_specialisations([
     (Dense, Dense, adjoint_dense),
+    (COO, COO, adjoint_coo),
     (CSR, CSR, adjoint_csr),
     (Dia, Dia, adjoint_dia),
 ], _defer=True)
@@ -187,6 +224,7 @@ transpose = _Dispatcher(
 transpose.__doc__ = """Transpose of a matrix."""
 transpose.add_specialisations([
     (Dense, Dense, transpose_dense),
+    (COO, COO, transpose_coo),
     (CSR, CSR, transpose_csr),
     (Dia, Dia, transpose_dia),
 ], _defer=True)
@@ -203,6 +241,7 @@ conj = _Dispatcher(
 conj.__doc__ = """Element-wise conjugation of a matrix."""
 conj.add_specialisations([
     (Dense, Dense, conj_dense),
+    (COO, COO, conj_coo),
     (CSR, CSR, conj_csr),
     (Dia, Dia, conj_dia),
 ], _defer=True)

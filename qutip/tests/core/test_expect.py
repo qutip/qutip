@@ -3,7 +3,7 @@ import collections
 import functools
 import numpy as np
 import qutip
-from qutip.core.data import CSR, Dense
+from qutip.core.data import CSR, Dense, COO
 import qutip.core.data as _data
 
 # We want to test the broadcasting rules for `qutip.expect` for a whole bunch
@@ -117,12 +117,12 @@ class TestKnownExpectation:
 
 @pytest.mark.repeat(5)
 @pytest.mark.parametrize("hermitian", [False, True], ids=['complex', 'real'])
-@pytest.mark.parametrize("op_type", [CSR, Dense], ids=['csr', 'dense'])
-@pytest.mark.parametrize("state_type", [CSR, Dense], ids=['csr', 'dense'])
+@pytest.mark.parametrize("op_type", [COO, CSR, Dense], ids=['coo', 'csr', 'dense'])
+@pytest.mark.parametrize("state_type", [Dense, CSR, Dense], ids=['dense', 'csr', 'dense'])
 def test_equivalent_to_matrix_element(hermitian, op_type, state_type):
     dimension = 20
-    state = qutip.rand_ket(dimension, 0.3).to(op_type)
-    op = qutip.rand_herm(dimension, 0.2).to(state_type)
+    state = qutip.rand_ket(dimension, 0.3).to(state_type)
+    op = qutip.rand_herm(dimension, 0.2).to(op_type)
     if not hermitian:
         op = op + 1j*qutip.rand_herm(dimension, 0.1).to(state_type)
     expected = state.dag() * op * state

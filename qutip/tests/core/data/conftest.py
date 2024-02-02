@@ -54,10 +54,9 @@ def random_scipy_dia(shape, density, sort=False):
         data = [data[i] for i in order]
     return scipy.sparse.diags(data, offsets, shape=shape).todia()
 
-
-def random_scipy_csr(shape, density, sorted_):
+def random_scipy_coo(shape, density):
     """
-    Generate a random scipy CSR matrix with the given shape, nnz density, and
+    Generate a random scipy COO matrix with the given shape, nnz density, and
     with indices that are either sorted or unsorted.  The nnz elements will
     always be at least one.
     """
@@ -65,7 +64,15 @@ def random_scipy_csr(shape, density, sorted_):
     data = np.random.rand(nnz) + 1j*np.random.rand(nnz)
     rows = np.random.choice(np.arange(shape[0]), nnz)
     cols = np.random.choice(np.arange(shape[1]), nnz)
-    sci = scipy.sparse.coo_matrix((data, (rows, cols)), shape=shape).tocsr()
+    return scipy.sparse.coo_matrix((data, (rows, cols)), shape=shape)
+
+def random_scipy_csr(shape, density, sorted_):
+    """
+    Generate a random scipy CSR matrix with the given shape, nnz density, and
+    with indices that are either sorted or unsorted.  The nnz elements will
+    always be at least one.
+    """
+    sci = random_scipy_coo(shape=shape, density=density).tocsr()
     if not sorted_:
         shuffle_indices_scipy_csr(sci)
     return sci
@@ -77,6 +84,14 @@ def random_numpy_dense(shape, fortran):
     if fortran:
         out = np.asfortranarray(out)
     return out
+
+def random_coo(shape, density):
+    """
+    Generate a random qutip CSR matrix with the given shape, nnz density, and
+    with indices that are either sorted or unsorted.  The nnz elements will
+    always be at least one (use data.csr.zeros otherwise).
+    """
+    return qutip.core.data.COO(random_scipy_coo(shape, density))
 
 
 def random_csr(shape, density, sorted_):

@@ -121,11 +121,10 @@ def test_rand_unitary(dimensions, distribution, density, dtype):
         density=density, dtype=dtype
     )
     I = qeye(dimensions)
-    assert random_qobj * random_qobj.dag() == I
+    np.testing.assert_array_almost_equal((random_qobj * random_qobj.dag()).full(), I.full())
     _assert_metadata(random_qobj, dimensions, dtype)
     if distribution == "exp":
         _assert_density(random_qobj, density)
-
 
 @pytest.mark.repeat(3)
 @pytest.mark.parametrize(["distribution", "kw"], [

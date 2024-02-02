@@ -6,15 +6,38 @@ from libc.math cimport fabs
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport csr, dense, CSR, Dense, dia, Dia, base
+from qutip.core.data cimport coo, csr, dense, COO, CSR, Dense, dia, Dia, base
 
 cdef extern from "<complex>" namespace "std" nogil:
     # abs is templated such that Cython treats std::abs as complex->complex
     double abs(double complex x)
 
 __all__ = [
-    'tidyup', 'tidyup_csr', 'tidyup_dense', 'tidyup_dia',
+    'tidyup', 'tidyup_coo', 'tidyup_csr', 'tidyup_dense', 'tidyup_dia',
 ]
+
+cpdef COO tidyup_coo(COO matrix, double tol, bint inplace=True):
+    cdef bint re, im
+    cdef base.idxint ptr, nnz = 0
+    cdef double complex value
+    cdef COO out = matrix if inplace else matrix.copy()
+
+    for ptr in range(coo.nnz(matrix)):
+        value = matrix.data[ptr]
+        re = im = False
+        if fabs(value.real) < tol:
+            re = True
+            value.real = 0
+        if fabs(value.imag) < tol:
+            im = True
+            value.imag = 0
+        if not (re & im):
+            out.data[nnz] = value
+            out.col_index[nnz] = matrix.col_index[ptr]
+            out.row_index[nnz] = matrix.row_index[ptr]
+            nnz += 1
+    out._nnz = nnz
+    return out
 
 
 cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=True):
@@ -141,6 +164,7 @@ tidyup.__doc__ =\
         Python object as was input.
     """
 tidyup.add_specialisations([
+    (COO, tidyup_coo),
     (CSR, tidyup_csr),
     (Dense, tidyup_dense),
     (Dia, tidyup_dia),

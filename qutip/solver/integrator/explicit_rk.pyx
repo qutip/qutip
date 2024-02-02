@@ -3,8 +3,8 @@
 """
 Provide a cython implimentation for a general Explicit runge-Kutta method.
 """
-from qutip.core.data cimport Data, Dense, CSR, dense
-from qutip.core.data.add cimport iadd_dense
+from qutip.core.data cimport Data, Dense, CSR
+from qutip.core.data.add import iadd_dense
 from qutip.core.data.add import add
 from qutip.core.data.mul import imul_data
 from qutip.core.data.tidyup import tidyup_csr
@@ -56,8 +56,7 @@ cdef Data iadd_data(Data left, Data right, double complex factor):
     if factor == 0:
         return left
     if type(left) is Dense:
-        iadd_dense(left, right, factor)
-        return left
+        return iadd_dense(left, right, factor)
     else:
         return add(left, right, factor)
 

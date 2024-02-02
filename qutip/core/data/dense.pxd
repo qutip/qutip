@@ -3,6 +3,7 @@
 cimport numpy as cnp
 
 from . cimport base
+from qutip.core.data.coo cimport COO
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dia cimport Dia
 
@@ -29,4 +30,5 @@ cpdef Dense zeros(base.idxint rows, base.idxint cols, bint fortran=*)
 cpdef Dense identity(base.idxint dimension, double complex scale=*,
                      bint fortran=*)
 cpdef Dense from_csr(CSR matrix, bint fortran=*)
+cpdef Dense from_coo(COO matrix, bint fortran=*)
 cpdef Dense from_dia(Dia matrix)

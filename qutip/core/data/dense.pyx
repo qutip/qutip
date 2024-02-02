@@ -11,7 +11,7 @@ cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
 
 from .base import EfficiencyWarning
-from qutip.core.data cimport base, CSR, Dia
+from qutip.core.data cimport base, CSR, Dia, COO, coo
 from qutip.core.data.adjoint cimport adjoint_dense, transpose_dense, conj_dense
 from qutip.core.data.trace cimport trace_dense
 
@@ -287,6 +287,26 @@ cpdef Dense identity(base.idxint dimension, double complex scale=1,
     return out
 
 
+cpdef Dense from_coo(COO matrix, bint fortran=False):
+    cdef Dense out = Dense.__new__(Dense)
+    out.shape = matrix.shape
+    out.data = (
+        <double complex *>
+        PyDataMem_NEW_ZEROED(out.shape[0] * out.shape[1], sizeof(double complex))
+    )
+    if not out.data: raise MemoryError()
+    out.fortran = fortran
+    out._deallocate = True
+    cdef size_t ptr_in, ptr_out, row_stride, col_stride
+    row_stride = 1 if fortran else out.shape[1]
+    col_stride = out.shape[0] if fortran else 1
+   
+    for ptr_in in range(coo.nnz(matrix)):
+        ptr_out = matrix.row_index[ptr_in] * row_stride + matrix.col_index[ptr_in] * col_stride
+        # Note in the COO format repeated elements are implicitly summed
+        out.data[ptr_out] += matrix.data[ptr_in]
+    return out
+
 cpdef Dense from_csr(CSR matrix, bint fortran=False):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = matrix.shape
@@ -306,7 +326,6 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
             out.data[ptr_out + matrix.col_index[ptr_in]*col_stride] = matrix.data[ptr_in]
         ptr_out += row_stride
     return out
-
 
 cpdef Dense from_dia(Dia matrix):
     return Dense(matrix.to_array(), copy=False)

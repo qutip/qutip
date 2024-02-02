@@ -10,11 +10,11 @@ import qutip
 from .. import Qobj
 from .. import data as _data
 from ..dimensions import Dimensions
-from ..coefficient import coefficient, CompilationOptions
-from ._element import *
+from ..coefficient import coefficient
 from qutip.settings import settings
 
-from qutip.core.cy._element cimport _BaseElement
+from qutip.core.cy._element cimport (_BaseElement, _ConstantElement, _EvoElement,
+        _FuncElement)
 from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.expect cimport *
 from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
@@ -1045,11 +1045,12 @@ cdef class QobjEvo:
                     # `state` was reshaped inplace, restore it's original shape
                     column_unstack_dense(state, nrow, inplace=state.fortran)
         else:
+            expect_func = expect_data_dense_ket if state.shape[1] == 1 else expect_data_dense_dm
             for element in self.elements:
                 part = (<_BaseElement> element)
                 coeff = part.coeff(t)
                 part_data = part.data(t)
-                out += coeff * expect_data_dense(part_data, state)
+                out += coeff * expect_func(part_data, state)
         return out
 
     def matmul(self, t, state):
@@ -1083,14 +1084,17 @@ cdef class QobjEvo:
 
     cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None):
         """Compute ``out += self(t) @ state``"""
-        cdef _BaseElement part
         t = self._prepare(t, state)
+        if len(self.elements) == 0:
+            return self.elements[0].matmul_data_t(t, state, out=out)
+
         if out is None and type(state) is Dense:
             out = dense.zeros(self.shape[0], state.shape[1],
                               (<Dense> state).fortran)
         elif out is None:
             out = _data.zeros[type(state)](self.shape[0], state.shape[1])
 
+        cdef _BaseElement part
         for element in self.elements:
             part = (<_BaseElement> element)
             out = part.matmul_data_t(t, state, out)

@@ -8,9 +8,7 @@ from libcpp.algorithm cimport lower_bound
 
 import warnings
 from qutip.settings import settings
-
 cimport cython
-
 from cpython cimport mem
 
 import numpy as np
@@ -20,11 +18,12 @@ from scipy.linalg cimport cython_blas as blas
 from qutip.core.data.base import idxint_dtype
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
+from qutip.core.data.coo cimport COO
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dia cimport Dia
 from qutip.core.data.tidyup cimport tidyup_dia
-from qutip.core.data cimport csr, dense, dia
-from qutip.core.data.add cimport iadd_dense, add_csr
+from qutip.core.data cimport coo, csr, dense, dia
+from qutip.core.data.add cimport iadd_dense_dense, add_csr
 from qutip.core.data.mul cimport imul_dense
 from qutip.core.data.dense import OrderEfficiencyWarning
 
@@ -53,8 +52,9 @@ cdef extern from "src/matmul_diag_vector.hpp" nogil:
 
 
 __all__ = [
-    'matmul', 'matmul_csr', 'matmul_dense', 'matmul_dia',
-    'matmul_csr_dense_dense', 'matmul_dia_dense_dense', 'matmul_dense_dia_dense',
+    'matmul', 'matmul_coo', 'matmul_csr', 'matmul_dense', 'matmul_dia',
+    'matmul_coo_dense_dense','matmul_csr_dense_dense', 'matmul_dia_dense_dense',
+    'matmul_dense_dia_dense',
     'multiply', 'multiply_csr', 'multiply_dense', 'multiply_dia',
 ]
 
@@ -192,6 +192,58 @@ cpdef CSR matmul_csr(CSR left, CSR right, double complex scale=1, CSR out=None):
     mem.PyMem_Free(nxt)
     return out
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.profile(False)
+@cython.linetrace(False)
+cdef void _imatmul_coo_dense_dense(COO left, Dense right,
+                                   double complex scale, Dense out) nogil:
+    cdef idxint ptr_l, ptr_r, ptr_out, col
+    cdef idxint right_row_stride = 1 if right.fortran else right.shape[1]
+    cdef idxint right_col_stride = right.shape[0] if right.fortran else 1
+
+    cdef idxint out_row_stride = 1 if out.fortran else out.shape[1]
+    cdef idxint out_col_stride = out.shape[0] if out.fortran else 1
+
+    for ptr_l in range(coo.nnz(left)):
+        for col in range(right.shape[1]):
+            ptr_out = left.row_index[ptr_l] * out_row_stride + col * out_col_stride
+            ptr_r = left.col_index[ptr_l] * right_row_stride + col * right_col_stride
+            out.data[ptr_out] += scale *  left.data[ptr_l] * right.data[ptr_r]
+
+cpdef Dense matmul_coo_dense_dense(COO left, Dense right,
+                                   double complex scale=1, Dense out=None):
+    """
+    Perform the operation
+        ``out := scale * (left @ right) + out``
+    where `left`, `right` and `out` are matrices.  `scale` is a complex scalar,
+    defaulting to 1.
+
+    If `out` is not given, it will be allocated as if it were a zero matrix.
+    """
+    _check_shape(left, right, out)
+    if out is None:
+        out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
+        
+    _imatmul_coo_dense_dense(left, right, scale, out)
+    return out
+
+
+cpdef COO matmul_coo(COO left, COO right,
+                                   double complex scale=1):
+    _check_shape(left, right)
+    cdef COO out = coo.empty(left.shape[0], right.shape[1], 1)
+    cdef idxint ptr_l, ptr_r
+    for ptr_l in range(coo.nnz(left)):
+        for ptr_r in range(coo.nnz(right)):
+            if left.col_index[ptr_l] == right.row_index[ptr_r]:
+                if out._nnz >= out.size:
+                    out = coo.expand(out, 2 * out.size)
+                out.data[out._nnz] = scale * left.data[ptr_l] * right.data[ptr_r]
+                out.row_index[out._nnz] = left.row_index[ptr_l]
+                out.col_index[out._nnz] = right.col_index[ptr_r]
+                out._nnz += 1
+    return out
 
 cpdef Dense matmul_csr_dense_dense(CSR left, Dense right,
                                    double complex scale=1, Dense out=None):
@@ -436,7 +488,7 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
         imul_dense(tmp, scale)
         out = tmp
     else:
-        iadd_dense(out, tmp, scale)
+        iadd_dense_dense(out, tmp, scale)
 
     return out
 
@@ -511,7 +563,7 @@ cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1
         imul_dense(tmp, scale)
         out = tmp
     else:
-        iadd_dense(out, tmp, scale)
+        iadd_dense_dense(out, tmp, scale)
 
     return out
 
@@ -698,6 +750,8 @@ matmul.__doc__ =\
         The scalar to multiply the output by.
     """
 matmul.add_specialisations([
+    (COO, COO, COO, matmul_coo),
+    (COO, Dense, Dense, matmul_coo_dense_dense),
     (CSR, CSR, CSR, matmul_csr),
     (CSR, Dense, Dense, matmul_csr_dense_dense),
     (Dense, Dense, Dense, matmul_dense),
@@ -731,7 +785,9 @@ del _inspect, _Dispatcher
 
 cdef Dense matmul_data_dense(Data left, Dense right):
     cdef Dense out
-    if type(left) is CSR:
+    if type(left) is COO:
+        out = matmul_coo_dense_dense(left, right)
+    elif type(left) is CSR:
         out = matmul_csr_dense_dense(left, right)
     elif type(left) is Dense:
         out = matmul_dense(left, right)
@@ -743,11 +799,13 @@ cdef Dense matmul_data_dense(Data left, Dense right):
 
 
 cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense out):
-    if type(left) is CSR:
+    if type(left) is COO:
+        matmul_coo_dense_dense(left, right, scale, out)
+    elif type(left) is CSR:
         matmul_csr_dense_dense(left, right, scale, out)
     elif type(left) is Dia:
         matmul_dia_dense_dense(left, right, scale, out)
     elif type(left) is Dense:
         matmul_dense(left, right, scale, out)
     else:
-        iadd_dense(out, matmul(left, right, dtype=Dense), scale)
+        iadd_dense_dense(out, matmul(left, right, dtype=Dense), scale)

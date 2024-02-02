@@ -10,7 +10,6 @@ cimport cython
 
 from cpython cimport mem
 
-import numbers
 import warnings
 
 import numpy as np
@@ -24,7 +23,7 @@ except ImportError:
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport base, Dense, Dia
+from qutip.core.data cimport base, Dense, Dia, COO, coo
 from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
 from qutip.core.data.trace cimport trace_csr
 from qutip.core.data.tidyup cimport tidyup_csr
@@ -664,6 +663,11 @@ cpdef CSR from_dia(Dia matrix):
     return from_coo_pointers(&rows[0], &cols[0], &data[0], matrix.shape[0],
                              matrix.shape[1], nnz)
 
+cpdef CSR from_coo(COO matrix):
+    
+    cdef base.idxint nnz = coo.nnz(matrix)
+    return from_coo_pointers(&matrix.row_index[0], &matrix.col_index[0], &matrix.data[0], matrix.shape[0],
+                             matrix.shape[1], nnz)
 
 cdef inline base.idxint _diagonal_length(
     base.idxint offset, base.idxint n_rows, base.idxint n_cols,

@@ -4,7 +4,7 @@ import pytest
 from qutip import data as _data
 from qutip import CoreOptions
 
-@pytest.fixture(params=[_data.CSR, _data.Dense, _data.Dia], ids=["CSR", "Dense", "Dia"])
+@pytest.fixture(params=[_data.COO, _data.CSR, _data.Dense, _data.Dia], ids=["COO", "CSR", "Dense", "Dia"])
 def datatype(request):
     return request.param
 

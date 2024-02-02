@@ -14,19 +14,24 @@ def test_init_empty_data():
 
 @pytest.mark.parametrize(['base', 'dtype'], [
     pytest.param(data.dense.zeros(2, 2), data.Dense, id='data.Dense'),
+    pytest.param(data.coo.zeros(2, 2), data.COO, id='data.COO'),
     pytest.param(data.csr.zeros(2, 2), data.CSR, id='data.CSR'),
     pytest.param(data.dia.zeros(2, 2), data.Dia, id='data.Dia'),
     pytest.param(np.zeros((10, 10), dtype=np.complex128), data.Dense,
                  id='array'),
+    pytest.param(sparse.eye(10, dtype=np.complex128, format='coo'), data.COO,
+                id='coo'),
     pytest.param(sparse.eye(10, dtype=np.complex128, format='csr'), data.CSR,
-                 id='sparse'),
+                 id='csr'),
     pytest.param(sparse.eye(10, dtype=np.complex128, format='dia'), data.Dia,
                  id='diag'),
     pytest.param(np.zeros((10, 10), dtype=np.int32), data.Dense, id='array'),
     pytest.param(sparse.eye(10, dtype=float, format='dia'), data.Dia,
                  id='diag'),
     pytest.param(sparse.eye(10, dtype=float, format='csr'), data.CSR,
-                 id='sparse'),
+                 id='csr'),    
+    pytest.param(sparse.eye(10, dtype=float, format='coo'), data.COO,
+                 id='coo'),
 ])
 def test_create(base, dtype):
     # The test of exactitude is done in test_csr, test_dense.
@@ -41,6 +46,9 @@ def test_create(base, dtype):
     pytest.param('csr', data.csr.zeros(2, 2), id='from CSR str'),
     pytest.param('CSR', data.csr.zeros(2, 2), id='from CSR STR'),
     pytest.param(data.CSR, data.csr.zeros(2, 2), id='from CSR type'),
+    pytest.param('coo', data.coo.zeros(2, 2), id='from COO str'),
+    pytest.param('COO', data.coo.zeros(2, 2), id='from COO STR'),
+    pytest.param(data.COO, data.coo.zeros(2, 2), id='from COO type'),
     pytest.param('Dia', data.dia.zeros(2, 2), id='from Dia STR'),
     pytest.param('dia', data.dia.zeros(2, 2), id='from Dia str'),
     pytest.param(data.Dia, data.dia.zeros(2, 2), id='from Dia type'),
@@ -49,6 +57,9 @@ def test_create(base, dtype):
     pytest.param('dense', data.Dense, id='to Dense str'),
     pytest.param('Dense', data.Dense, id='to Dense STR'),
     pytest.param(data.Dense, data.Dense, id='to Dense type'),
+    pytest.param('coo', data.COO, id='to COO str'),
+    pytest.param('COO', data.COO, id='to COO STR'),
+    pytest.param(data.COO, data.COO, id='to COO type'),
     pytest.param('csr', data.CSR, id='to CSR str'),
     pytest.param('CSR', data.CSR, id='to CSR STR'),
     pytest.param(data.CSR, data.CSR, id='to CSR type'),
@@ -95,10 +106,12 @@ class TestConvert(UnaryOpMixin):
         return mat
 
     specialisations = [
+        pytest.param(data.dense.from_coo, data.COO, data.Dense),
         pytest.param(data.dense.from_csr, data.CSR, data.Dense),
         pytest.param(data.dense.from_dia, data.Dia, data.Dense),
         pytest.param(data.csr.from_dense, data.Dense, data.CSR),
         pytest.param(data.csr.from_dia, data.Dia, data.CSR),
+        pytest.param(data.coo.from_dense, data.Dense, data.COO),
         pytest.param(data.dia.from_dense, data.Dense, data.Dia),
         pytest.param(data.dia.from_csr, data.CSR, data.Dia),
     ]

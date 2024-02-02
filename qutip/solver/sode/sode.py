@@ -147,7 +147,6 @@ class _Explicit_Simple_Integrator(SIntegrator):
             # Not a whole number of steps, round to higher
             N += 1
         dW = self.wiener.dW(self.t, N)
-
         self.state = self.step_func(self.t, self.state, dt, dW, N)
         self.t += dt * N
 
