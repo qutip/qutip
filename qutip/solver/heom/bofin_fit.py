@@ -1,7 +1,7 @@
 """
 This module provides utilities for fitting bosonic baths through
 the correlation function or spectral density, the fit returns a
-HEOM bath object see the ``qutip.nonmarkov.bofin_baths``.
+HEOM bath object see the ``qutip.solver.heom.bofin_baths``.
 
 The number of modes for the fit can be indicated by the user or
 determined by requiring a normalized root mean squared error for
@@ -37,7 +37,8 @@ class SpectralFitter:
         Bath temperature.
 
     w : np.array
-        The range on which to perform the fit
+        The range on which to perform the fit, it is recommended that it covers
+        at least twice the cutoff frequency of the desired spectral density.
 
     J : np.array or callable
         The spectral density to be fitted as an array or function
@@ -69,6 +70,13 @@ class SpectralFitter:
         """
         Underdamped spectral density used for fitting in Meier-Tannor form
         (see Eq. 38 in the BoFiN paper, DOI: 10.1103/PhysRevResearch.5.013181)
+        
+        .. math::
+
+        J(\\omega) = \sum_{i=1}^{k} \\frac{2 \\alpha_{i}^{2} \Gamma_{i} \omega
+        }{\\left( \\left( \omega + \Omega_{i}\\right)^{2} + \Gamma_{i}^{2}
+        \\right)+\\left( \omega - \Omega_{i}\\right)^{2} + \Gamma_{i}^{2}
+        \\right)}
 
         Parameters
         ----------
@@ -90,7 +98,7 @@ class SpectralFitter:
     def get_fit(
         self,
         N=None,
-        Nk=5,
+        Nk=1,
         final_rmse=5e-6,
         lower=None,
         upper=None,
@@ -113,23 +121,45 @@ class SpectralFitter:
         final_rmse : float
             Desired normalized root mean squared error.
         lower : list
-            lower bounds on the parameters for the fit.
+            lower bounds on the parameters for the fit. A list of size 3,
+            each containing the N lower bounds, The order of the parameters is
+            the same as for the function to be fitted (_meier_tannor_SD). The
+            first term describes the coupling, the second the cutoff frequency,
+            and the last one the central frequency.
         upper : list
-            upper bounds on the parameters for the fit
+            upper bounds on the parameters for the fit, the structure is the
+            same as the lower keyword.
         sigma : float
-            uncertainty in the data considered for the fit
+            uncertainty in the data considered for the fit, all data points are
+            considered to have the same uncertainty.
         guesses : list
-            Initial guesses for the parameters.
+            Initial guesses for the parameters. Same structure as lower and 
+            upper.
 
-        TODO: describe structure of lower, upper, sigma, guesses
-        Note: If one of lower, upper, sigma, guesses is None, all are discarded
+        Note: If one of lower, upper, sigma, guesses is None, 
+        all are discarded.
 
         Returns
         -------
-        * A Bosonic Bath created with the fit parameters with the original
+        * A Bosonic Bath created with the fit parameters for the original
           spectral density function (that was provided or interpolated)
         * A dictionary containing the following information about the fit:
-            fit_time : TODO
+            fit_time: 
+                The time the fit took in seconds.
+            rsme:
+                Normalized mean squared error obtained in the fit.
+            N:
+                The number of terms used for the fit.
+            params:
+                The fitted parameters (3*N parameters), it contains three lists one for 
+                each parameter, each list containing N terms. 
+            Nk:
+                The number of exponents used to construct the bosonic bath,
+                defaults to 1. To approximate the correlation function the 
+                number of exponents grow as the temperature decreases, so Nk
+                needs to be adjusted accordingly.
+            summary:
+                A string that summarizes the information of the fit.
             ...
         """
 
@@ -161,11 +191,11 @@ class SpectralFitter:
         Parameters
         ----------
         params: list
-            The parameters obtained from the fit
+            The parameters obtained from the fit.
 
         Returns
         -------
-            A Bosonic Bath created with the fit parameters
+            A Bosonic Bath created with the fit parameters.
         """
 
         lam, gamma, w0 = params
@@ -207,11 +237,11 @@ class CorrelationFitter:
     Q : Qobj
         Operator describing the coupling between system and bath.
     T : float
-        Temperature of the bath
+        Temperature of the bath.
     t : np.array
-        The range which to perform the fit
+        The range which to perform the fit.
     C : np.array or callable
-        The correlation function to be fitted as an array or function
+        The correlation function to be fitted as an array or function.
     """
 
     def __init__(self, Q, T, t, C):
@@ -227,7 +257,7 @@ class CorrelationFitter:
 
         The array is needed to run the least squares algorithm, while the
         the function is used to assign a correlation function to the bosonic
-        bath object
+        bath object.
         """
         if callable(C):
             self._t = t
@@ -242,18 +272,19 @@ class CorrelationFitter:
 
     def _corr_approx(self, t, a, b, c):
         """
-        This is the form of the correlation function to be used for fitting
+        This is the form of the correlation function to be used for fitting.
 
         Parameters
         ----------
         t : np.array or float
-            Operator describing the coupling between system and bath.
+            The times at which to evaluates the correlation function.
         a : list or np.array
-            A list describing the amplitude of the correlation approximation
+            A list describing the amplitude of the correlation approximation.
         b : list or np.array
-            A list describing the decay of the correlation approximation
+            A list describing the decay of the correlation approximation.
         c : list or np.array
-            A list describing the oscillations of the correlation approximation
+            A list describing the oscillations of the correlation
+            approximation.
         """
 
         a = np.array(a)
@@ -290,18 +321,60 @@ class CorrelationFitter:
             Number of exponential terms to use for the imaginary part.
             If set to None it is found automatically.
         final_rmse : float
-            Desired normalized root mean squared error .
+            Desired normalized root mean squared error. Only used if Ni or Nr
+            are not specified.
         lower : list
-            lower bounds on the parameters for the fit.
+            lower bounds on the parameters for the fit. A list of size 3,
+            each containing the N lower bounds, The order of the parameters is
+            the same as for the function to be fitted (_corr_approx). The
+            first term describes the amplitude, the second the rate of decay,
+            and the last one the oscillation frequency.
         upper : list
-            upper bounds on the parameters for the fit
+            upper bounds on the parameters for the fit, the structure is the
+            same as the lower keyword.
         sigma : float
-            uncertainty in the data considered for the fit
+            uncertainty in the data considered for the fit, all data points are
+            considered to have the same uncertainty.
         guesses : list
-            Initial guess for the parameters.
+            Initial guesses for the parameters. Same structure as lower and 
+            upper.
 
-        TODO: as in SpectralFitter
-        TODO: Returns
+        Note: If one of lower, upper, sigma, guesses is None, all are discarded
+
+        Returns
+        -------
+        * A Bosonic Bath created with the fit parameters with the original
+          correlation function (that was provided or interpolated)
+        * A dictionary containing the following information about the fit:
+            Nr:
+                The number of terms used to fit the real part of the 
+                correlation function.
+            Ni:
+                The number of terms used to fit the imaginary part of the 
+                correlation function.
+            fit_time_real: 
+                The time the fit of the real part of the correlation function
+                took in seconds.
+            fit_time_imag: 
+                The time the fit of the imaginary part of the correlation 
+                function took in seconds.
+            rsme_real:
+                Normalized mean squared error obtained in the fit of the real
+                part of the correlation function.
+            rsme_imag:
+                Normalized mean squared error obtained in the fit of the 
+                imaginary part of the correlation function.            
+            params_real:
+                The fitted parameters (3*N parameters) for the real part of the
+                correlation function, it contains three lists one for each 
+                parameter, each list containing N terms.
+            params_imag:
+                The fitted parameters (3*N parameters) for the imaginary part 
+                of the correlation function, it contains three lists one for
+                each parameter, each list containing N terms. 
+            summary:
+                A string that summarizes the information about the fit.
+            ...
         """
 
         # Fit real part
@@ -342,7 +415,8 @@ class CorrelationFitter:
         return bath, fitInfo
 
     def _generate_bath(self, params_real, params_imag):
-        """ Calculate the Matsubara coefficients and frequencies for the
+        """ 
+        Calculate the Matsubara coefficients and frequencies for the
         fitted underdamped oscillators and generate the corresponding bosonic
         bath
 
@@ -466,40 +540,78 @@ class OhmicBath:
             return np.array(corr, dtype=np.complex128)
 
     def make_correlation_fit(
-            self, x, rmse=1e-5, lower=None, upper=None,
+            self, x, rmse=1e-4, lower=None, upper=None,
             sigma=None, guesses=None, Nr=None, Ni=None):
         """
         Provides a fit to the spectral density or corelation function
         with N underdamped oscillators baths, This function gets the
         number of harmonic oscillators based on reducing the normalized
         root mean squared error below a certain threshold
-
-        TODO please make parameters below like actual parameters
-
+        
         Parameters
         ----------
-        J : np.array
-            Spectral density to be fit.
-        w : np.array
-            range of frequencies for the fit.
-        N : optional,tuple
-            Number of underdamped oscillators and exponents to use
-            (N,Nk) if the the method is spectral
-            Number of underdamped oscillators for the real and imaginary
-            part if the method is correlation.
-            when set to None the number of oscillators is found according to
-            the rmse, and the Nk is set to 1
+        x : np.array
+            Interval to use to fit the function, it is recomended that is large
+            enough to cover the decay of the correlation function.
         rmse : float
-            Desired normalized root mean squared error. Only used if N is
-            not provided
+            Desired normalized root mean squared error. Only used if Nr and Ni
+            are not provided, defaults to 1e-4. The default is not good
+            when working with numbers much smaller than 0.1
         lower : list
-            lower bounds on the parameters for the fit.
-        upper: list
-            upper bounds on the parameters for the fit
-        sigma: float
-            uncertainty in the data considered for the fit
+            lower bounds on the parameters for the fit. A list of size 3,
+            each containing the N lower bounds, The order of the parameters is
+            the same as for the function to be fitted (correlation_function).
+            The first term describes the amplitude, the second the rate of 
+            decay, and the last one the oscillation frequency.
+        upper : list
+            upper bounds on the parameters for the fit, the structure is the
+            same as the lower keyword.
+        sigma : float
+            uncertainty in the data considered for the fit, all data points are
+            considered to have the same uncertainty.
         guesses : list
-            Initial guess for the parameters.
+            Initial guesses for the parameters. Same structure as lower and 
+            upper.
+        Nr: int
+            The number of terms to use for the real part of the correlation 
+            function
+        Ni: int
+            The number of terms to use for the imaginary part of the 
+            correlation function
+        Returns
+        -------
+        * A Bosonic Bath created with the fit parameters with the original
+          correlation function (that was provided or interpolated)
+        * A dictionary containing the following information about the fit:
+            Nr:
+                The number of terms used to fit the real part of the 
+                correlation function.
+            Ni:
+                The number of terms used to fit the imaginary part of the 
+                correlation function.
+            fit_time_real: 
+                The time the fit of the real part of the correlation function
+                took in seconds.
+            fit_time_imag: 
+                The time the fit of the imaginary part of the correlation 
+                function took in seconds.
+            rsme_real:
+                Normalized mean squared error obtained in the fit of the real
+                part of the correlation function.
+            rsme_imag:
+                Normalized mean squared error obtained in the fit of the 
+                imaginary part of the correlation function.            
+            params_real:
+                The fitted parameters (3*N parameters) for the real part of the
+                correlation function, it contains three lists one for each 
+                parameter, each list containing N terms.
+            params_imag:
+                The fitted parameters (3*N parameters) for the imaginary part 
+                of the correlation function, it contains three lists one for
+                each parameter, each list containing N terms. 
+            summary:
+                A string that summarizes the information about the fit.
+            ...
         """
         fc = CorrelationFitter(self.Q, self.T, x, self.correlation_function)
         bath, fitInfo = fc.get_fit(final_rmse=rmse,
@@ -509,19 +621,19 @@ class OhmicBath:
         return bath, fitInfo
 
     def make_spectral_fit(self, x, rmse=1e-5, lower=None, upper=None,
-                          sigma=None, guesses=None, N=None, Nk=5):
+                          sigma=None, guesses=None, N=None, Nk=1):
         """
         Provides a fit to the spectral density or corelation function
         with N underdamped oscillators baths, This function gets the
         number of harmonic oscillators based on reducing the normalized
         root mean squared error below a certain threshold
 
-        TODO please make parameters below like actual parameters
-
         Parameters
         ----------
-        J : np.array
-            Spectral density to be fit.
+        x : np.array
+            Interval to use for the fit of the spectral density, it is 
+            recommended that its end is at least 2 times the cutoff frequency 
+            of the spectral density.
         w : np.array
             range of frequencies for the fit.
         N : optional,tuple
@@ -683,7 +795,7 @@ def _fit(func, C, t, N, default_guess_scenario='',
         It returns the normalized mean squared error from the fit
     """
 
-    C_max = abs(max(C, key=abs))
+    C_max = abs(max(C, key=np.abs))
     if C_max == 0:
         # When the target function is zero
         rmse = 0
@@ -692,16 +804,17 @@ def _fit(func, C, t, N, default_guess_scenario='',
 
     if None in [guesses, lower, upper, sigma]:
         # No parameters for the fit provided, using default ones
-        sigma = 1e-4
+        sigma = 1e-2
         wc = t[np.argmax(C)]
         if default_guess_scenario == "correlation_real":
             guesses = _pack([C_max] * N, [-wc] * N, [wc] * N)
             lower = _pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
             upper = _pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
         elif default_guess_scenario == "correlation_imag":
-            guesses = _pack([-C_max] * N, [-2] * N, [1] * N)
-            lower = _pack([-5 * C_max] * N, [-100] * N, [0.0] * N)
-            upper = _pack([5 * C_max] * N, [0.01] * N, [100] * N)
+            print(C_max)
+            guesses = _pack([C[0]] * N, [-wc]* N, [wc] * N)
+            lower = _pack([-10 * C_max] * N, [-np.inf] * N, [C[0]] * N)
+            upper = _pack([10 * C_max] * N, [0] * N, [np.inf] * N)
         else:
             guesses = _pack([C_max] * N, [wc] * N, [wc] * N)
             lower = _pack([-100 * C_max] * N,

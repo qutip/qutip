@@ -2,7 +2,7 @@
 This module provides utilities for describing baths when using the
 HEOM (hierarchy equations of motion) to model system-bath interactions.
 
-See the ``qutip.nonmarkov.bofin_solvers`` module for the associated solver.
+See the ``qutip.solver.heom.bofin_solvers`` module for the associated solver.
 
 The implementation is derived from the BoFiN library (see
 https://github.com/tehruhn/bofin) which was itself derived from an earlier
@@ -369,7 +369,7 @@ class BosonicBath(Bath):
         thermal state exists).
         """
 
-        raise NotImplementedError(
+        raise ValueError(
             "The spectral density of this bath has not been specified")
 
     def correlation_function(self, t, **kwargs):
@@ -496,7 +496,8 @@ class BosonicBath(Bath):
         S = np.zeros_like(w, dtype=float)
         for exp in self.exponents:
             ck = exp.ck or 0
-            ck2 = exp.ck2 or 0
+            ck2 = exp.ck2 or 0   # The problem is that these are None and for 
+            #this particula calculation 0 is needed 
             if exp.type == BathExponent.types['I']:
                 S += 2 * np.real((1j*ck) / (exp.vk - 1j*w))
             else:
@@ -628,7 +629,7 @@ class DrudeLorentzBath(BosonicBath):
 
         return 2 * self.lam * self.gamma * w / (self.gamma**2 + w**2)
 
-    def correlation_function(self, t, *, Nk=15000, **kwargs):
+    def correlation_function(self, t, Nk=15000, **kwargs):
         """
         Here we determine the correlation function by summing a large number
         of exponents, as the numerical integration is noisy for this spectral
@@ -638,7 +639,7 @@ class DrudeLorentzBath(BosonicBath):
         ----------
         t : np.array or float
             The time at which to evaluate the correlation function
-        Nk : int, default 1000
+        Nk : int, default 15000
             The number of exponents to use
         """
 
