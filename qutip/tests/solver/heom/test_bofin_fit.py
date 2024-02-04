@@ -181,8 +181,8 @@ class TestCorrelationFitter:
         a, b, c, d = [
             np.array([1, 1, 1]),
             np.array([-1, -1, -1]),
-            np.array([1, 1, 1]),
-            np.array([1, 1, 1])]
+            np.array([0.1, 0.1, 0.1]),
+            np.array([0.1, 0.1, 0.1])]
         t = np.linspace(0, 10, 1000)
         corr = np.sum(
             (a[:, None]+1j*d[:,None]) * np.exp(b[:, None] * t) * np.exp(1j * c[:, None] * t),

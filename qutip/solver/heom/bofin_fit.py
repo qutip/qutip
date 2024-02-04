@@ -834,22 +834,20 @@ def _fit(func, C, t, N, default_guess_scenario='',
         wc = t[np.argmax(C)]
         if default_guess_scenario == "correlation_real":
             wc = np.inf
-            ini = 1
             tempguesses = _pack([C_max] * N, [-100*C_max]
                                 * N, [0] * N, [0] * N)
-            templower = _pack([-100*C_max] * N, [-wc] * N, [-ini]
+            templower = _pack([-100*C_max] * N, [-wc] * N, [-1]
                               * N, [-100*C_max] * N)
             tempupper = _pack([100*C_max] * N, [0] * N,
-                              [ini] * N, [100*C_max] * N)
+                              [1] * N, [100*C_max] * N)
             n = 4
         elif default_guess_scenario == "correlation_imag":
             wc = np.inf
-            ini = 2
             tempguesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
-            templower = _pack([-100*C_max] * N, [-wc] * N, [-ini] * N,
+            templower = _pack([-100*C_max] * N, [-wc] * N, [-2] * N,
                               [-100*C_max] * N)
             tempupper = _pack([100*C_max] * N, [0] * N,
-                              [ini] * N, [100*C_max] * N)
+                              [2] * N, [100*C_max] * N)
             n = 4
         else:
             tempguesses = _pack([C_max] * N, [wc] * N, [wc] * N)
@@ -858,36 +856,34 @@ def _fit(func, C, t, N, default_guess_scenario='',
             tempupper = _pack([100 * C_max] * N,
                               [100 * wc] * N, [100 * wc] * N)
             n = 3
-    if guesses is not None:
-        n = len(guesses)
-        guesses = [[i]*N for i in guesses]
-        guesses = [x for xs in guesses for x in xs]
-        guesses = _pack(guesses)
-    else:
-        guesses = tempguesses
-    if lower is not None:
-        n = len(lower)
-        lower = [[i]*N for i in lower]
-        lower = [x for xs in lower for x in xs]
-        lower = _pack(lower)
-    else:
-        lower = templower
-    if upper is not None:
-        n = len(upper)
-        upper = [[i]*N for i in upper]
-        upper = [x for xs in upper for x in xs]
-        upper = _pack(upper)
-    else:
-        upper = tempupper
+    guesses = _reformat(guesses, tempguesses, N)
+    lower = _reformat(lower, templower, N)
+    upper = _reformat(upper, tempupper, N)
+
     if tempsigma is not None:
         sigma = tempsigma
-    if not ((len(guesses) == len(lower)) and (len(guesses) == len(lower))):
+    if not ((len(guesses) == len(lower)) and (len(guesses) == len(upper))):
         raise ValueError("The shape of the provided fit parameters is \
                          not consistent")
     args = _leastsq(func, C, t, sigma=sigma, guesses=guesses,
                     lower=lower, upper=upper, n=n)
     rmse = _rmse(func, t, C, *args)
     return rmse, args
+
+
+def _reformat(guess, temp, N):
+    """
+    This function reformats the user provided guesses into the format
+    appropiate for fitting, if the user did not provide it the defaults are
+    assigned
+    """
+    if guess is not None:
+        guesses = [[i]*N for i in guess]
+        guesses = [x for xs in guesses for x in xs]
+        guesses = _pack(guesses)
+    else:
+        guesses = temp
+    return guesses
 
 
 def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None,
