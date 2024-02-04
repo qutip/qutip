@@ -415,7 +415,7 @@ class BosonicBath(Bath):
         """
 
         if self.T is None:
-            raise NotImplementedError(
+            raise ValueError(
                 "Bath temperature must be specified for this operation")
         if self.T == 0:
             return np.zeros_like(w)
