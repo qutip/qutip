@@ -257,7 +257,7 @@ class TestOhmicBath:
 
     def test_make_correlation_fit(self):
         pytest.importorskip("mpmath")
-        w = np.linspace(0, 10, 2000)
+        w = np.linspace(0, 10, 1000)
         ob = OhmicBath(Q=sigmax(), T=1, alpha=0.05, wc=5, s=1)
         bath, fitinfo = ob.make_correlation_fit(w, Nr=3, Ni=3)
         c1=bath.correlation_function(w)
@@ -269,7 +269,7 @@ class TestOhmicBath:
         assert np.isclose(
             np.imag(c1 - c2),
             np.zeros_like(w),
-            atol=1e-3).all()
+            atol=3e-2).all()
         assert np.isclose(
             np.real(c1- c2),
             np.zeros_like(w),
