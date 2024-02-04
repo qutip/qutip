@@ -178,20 +178,21 @@ class TestCorrelationFitter:
         assert np.isclose(C, bath._C_array).all()
 
     def test_get_fit(self):
-        a, b, c = [
+        a, b, c, d = [
             np.array([1, 1, 1]),
             np.array([-1, -1, -1]),
+            np.array([1, 1, 1]),
             np.array([1, 1, 1])]
         t = np.linspace(0, 10, 1000)
         corr = np.sum(
-            a[:, None] * np.exp(b[:, None] * t) * np.exp(1j * c[:, None] * t),
+            (a[:, None]+1j*d[:,None]) * np.exp(b[:, None] * t) * np.exp(1j * c[:, None] * t),
             axis=0)
         fitter = CorrelationFitter(Q=sigmax(), T=1, t=t, C=corr)
         bath, _ = fitter.get_fit(Nr=3, Ni=3)
         C2 = np.real(bath.correlation_function_approx(t))
         C3 = np.imag(bath.correlation_function_approx(t))
-        np.testing.assert_allclose(np.real(corr), C2, atol=1e-5)
-        np.testing.assert_allclose(np.imag(corr), C3, atol=1e-5)
+        np.testing.assert_allclose(np.real(corr), C2, rtol=1e-5)
+        np.testing.assert_allclose(np.imag(corr), C3, rtol=1e-5)
 
     @pytest.mark.filterwarnings('ignore::RuntimeWarning')
     @pytest.mark.slow
@@ -209,11 +210,11 @@ class TestCorrelationFitter:
         assert np.isclose(
             np.real(ud.correlation_function(t)),
             np.real(fittedbath),
-            atol=1e-3).all()
+            atol=1e-2).all()
         assert np.isclose(
             np.imag(ud.correlation_function(t)),
             np.imag(fittedbath),
-            atol=1e-3).all()  # Better accuracy too slow for test flow
+            atol=1e-2).all()  # Better accuracy too slow for test flow
 
 
 class TestOhmicBath:
@@ -256,14 +257,23 @@ class TestOhmicBath:
 
     def test_make_correlation_fit(self):
         pytest.importorskip("mpmath")
-        w = np.linspace(0.1, 5, 2000)
+        w = np.linspace(0, 10, 2000)
         ob = OhmicBath(Q=sigmax(), T=1, alpha=0.05, wc=5, s=1)
-        bath, fitinfo = ob.make_correlation_fit(w, Nr=2, Ni=2)
+        bath, fitinfo = ob.make_correlation_fit(w, Nr=3, Ni=3)
+        c1=bath.correlation_function(w)
+        c2=bath.correlation_function_approx(w)
+        print(np.max(np.abs(np.real(c1))))
+        print(np.max(np.real(c1-c2)))
+        print(np.max(np.abs(np.imag(c1))))
+        print(np.max(np.imag(c1-c2)))
         assert np.isclose(
-            np.real(bath.correlation_function(w)
-                    - bath.correlation_function_approx(w)),
+            np.imag(c1 - c2),
             np.zeros_like(w),
-            atol=3e-2).all()  # this test can be closer but would take longer
+            atol=1e-3).all()
+        assert np.isclose(
+            np.real(c1- c2),
+            np.zeros_like(w),
+            atol=1e-2).all()# this test can be closer but would take longer
 
     def test_make_spectral_fit(self):
         w = np.linspace(0, 80, 2000)

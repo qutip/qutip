@@ -270,7 +270,7 @@ class CorrelationFitter:
             _C_fun_i = InterpolatedUnivariateSpline(t, np.imag(C))
             self._C_fun = lambda t: _C_fun_r(t) + 1j * _C_fun_i(t)
 
-    def _corr_approx(self, t, a, b, c):
+    def _corr_approx(self, t, a, b, c, d):
         """
         This is the form of the correlation function to be used for fitting.
 
@@ -290,8 +290,11 @@ class CorrelationFitter:
         a = np.array(a)
         b = np.array(b)
         c = np.array(c)
+        d = np.array(d)
+
         return np.sum(
-            a[:, None] * np.exp(b[:, None] * t) * np.exp(1j * c[:, None] * t),
+            (a[:, None]+1j*d[:, None]) * np.exp(b[:, None] * t[None, :]) *
+            np.exp(1j*c[:, None] * t[None, :]),
             axis=0,
         )
 
@@ -434,16 +437,18 @@ class CorrelationFitter:
         A bosonic Bath constructed from the fitted exponents
         """
 
-        a, b, c = params_real
-        a2, b2, c2 = params_imag
+        a, b, c, d = params_real
+        a2, b2, c2, d2 = params_imag
 
-        ckAR = [0.5 * x + 0j for x in a]  # the 0.5 is from the cosine
+        ckAR = [(x + 1j*y)*0.5 for x,y in zip(a,d)]  # the 0.5 is from the cosine
         # extend the list with the complex conjugates:
         ckAR.extend(np.conjugate(ckAR))
         vkAR = [-x - 1.0j * y for x, y in zip(b, c)]
         vkAR.extend([-x + 1.0j * y for x, y in zip(b, c)])
 
-        ckAI = [-0.5j * x for x in a2]  # the 0.5 is from the sine
+        # the 0.5 is from the sine
+        ckAI = [-1j*(x + 1j*y)*0.5 for x, y in zip(a2,d2)]
+
         # extend the list with the complex conjugates:
         ckAI.extend(np.conjugate(ckAI))
         vkAI = [-x - 1.0j * y for x, y in zip(b2, c2)]
@@ -665,27 +670,27 @@ class OhmicBath:
 # Utility functions
 
 
-def _pack(a, b, c):
+def _pack(*args):
     """
     Pack parameter lists for fitting. In both use cases (spectral fit,
     correlation fit), the fit parameters are three arrays of equal length.
     """
-    return np.concatenate((a, b, c))
+    return np.concatenate(tuple(args))
 
 
-def _unpack(params):
+def _unpack(params, n=3):
     """
     Unpack parameter lists for fitting. In both use cases (spectral fit,
     correlation fit), the fit parameters are three arrays of equal length.
     """
-    N = len(params) // 3
-    a = params[:N]
-    b = params[N: 2 * N]
-    c = params[2 * N:]
-    return a, b, c
+    N = len(params) // n
+    zz = []
+    for i in range(n):
+        zz.append(params[i*N:(i+1)*N])
+    return zz
 
 
-def _leastsq(func, y, x, guesses=None, lower=None, upper=None, sigma=None):
+def _leastsq(func, y, x, guesses=None, lower=None, upper=None, sigma=None,n=3):
     """
     Performs nonlinear least squares to fit the function func to x and y
 
@@ -714,7 +719,7 @@ def _leastsq(func, y, x, guesses=None, lower=None, upper=None, sigma=None):
 
     sigma = [sigma] * len(x)
     params, _ = curve_fit(
-        lambda x, *params: func(x, *_unpack(params)),
+        lambda x, *params: func(x, *_unpack(params,n)),
         x,
         y,
         p0=guesses,
@@ -724,10 +729,10 @@ def _leastsq(func, y, x, guesses=None, lower=None, upper=None, sigma=None):
         method="trf",
     )
 
-    return _unpack(params)
+    return _unpack(params,n)
 
 
-def _rmse(func, x, y, a, b, c):
+def _rmse(func, x, y, *args):
     """
     Calculates the normalized root mean squared error for fits
     from the fitted parameters a, b, c
@@ -749,7 +754,7 @@ def _rmse(func, x, y, a, b, c):
         The normalized root mean squared error for the fit, the closer
         to zero the better the fit.
     """
-    yhat = func(x, a, b, c)
+    yhat = func(x, *args)
     rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / \
         (np.max(y) - np.min(y))
     return rmse
@@ -805,27 +810,31 @@ def _fit(func, C, t, N, default_guess_scenario='',
     if None in [guesses, lower, upper, sigma]:
         # No parameters for the fit provided, using default ones
         sigma = 1e-2
-        wc = t[np.argmax(C)]
+        wc = t[np.argmax(C)]   
+        if wc==0:
+            wc=1       
         if default_guess_scenario == "correlation_real":
-            guesses = _pack([C_max] * N, [-wc] * N, [wc] * N)
-            lower = _pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
-            upper = _pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
+            guesses =_pack( [C_max] * N, [-10*C_max]* N, [10*C_max] * N,[0] * N)
+            lower = _pack([- C_max] * N, [-10*wc] * N, [-10*wc] * N, [-C_max] * N)
+            upper = _pack([C_max] * N, [-1e-5*wc] * N, [10*C_max] * N, [10*C_max] * N)
+            n=4
         elif default_guess_scenario == "correlation_imag":
-            print(C_max)
-            guesses = _pack([C[0]] * N, [-wc]* N, [wc] * N)
-            lower = _pack([-10 * C_max] * N, [-np.inf] * N, [C[0]] * N)
-            upper = _pack([10 * C_max] * N, [0] * N, [np.inf] * N)
+            guesses = _pack([C_max] * N, [-10*C_max]* N, [10*C_max] * N,[0] * N)
+            lower = _pack([-C_max] * N, [-10*wc] * N, [-10*wc] * N, [-C_max] * N)
+            upper = _pack([C_max] * N, [0] * N, [100*C_max] * N, [100*C_max] * N)
+            n=4
         else:
             guesses = _pack([C_max] * N, [wc] * N, [wc] * N)
             lower = _pack([-100 * C_max] * N,
                           [0.1 * wc] * N, [0.1 * wc] * N)
             upper = _pack([100 * C_max] * N,
                           [100 * wc] * N, [100 * wc] * N)
+            n=3
 
-    a, b, c = _leastsq(func, C, t,
-                       sigma=sigma, guesses=guesses, lower=lower, upper=upper)
-    rmse = _rmse(func, t, C, a, b, c)
-    return rmse, [a, b, c]
+    args = _leastsq(func, C, t,
+                    sigma=sigma, guesses=guesses, lower=lower, upper=upper,n=n)
+    rmse = _rmse(func, t, C, *args)
+    return rmse, args
 
 
 def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None,
@@ -889,10 +898,11 @@ def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None,
     return rmse1, params
 
 
-def _gen_summary(time, rmse, N, label, lam, gamma, w0):
+def _gen_summary(time, rmse, N, label, lam, gamma, w0,
+                 columns=['lam','gamma','w0']):
     summary = (f"Result of fitting {label} "
                f"with {N} terms: \n \n {'Parameters': <10}|"
-               f"{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n ")
+               f"{columns[0]: ^10}|{columns[1]: ^10}|{columns[2]: >5} \n ")
     for k in range(len(gamma)):
         summary += (
             f"{k+1: <10}|{lam[k]: ^10.2e}|{gamma[k]:^10.2e}|"
@@ -906,23 +916,22 @@ def _gen_summary(time, rmse, N, label, lam, gamma, w0):
 def _two_column_summary(
         params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
         rmse_imag, rmse_real):
-    lam, gamma, w0 = params_real
-    lam2, gamma2, w02 = params_imag
+    lam, gamma, w0,d = params_real
+    lam2, gamma2, w02,d = params_imag
 
     # Generate nicely formatted summary
-    # TODO can we make the column something other than lam, gamma, w0?
     summary_real = _gen_summary(
         fit_time_real,
         rmse_real,
         Nr,
         "The Real Part Of  \n the Correlation Function", lam, gamma,
-        w0)
+        w0,columns=["a","b","c"])
     summary_imag = _gen_summary(
         fit_time_imag,
         rmse_imag,
         Ni,
         "The Imaginary Part \n Of the Correlation Function", lam2,
-        gamma2, w02)
+        gamma2, w02,columns=["a","b","c"])
 
     full_summary = "Fit correlation class instance: \n \n"
     lines_real = summary_real.splitlines()
