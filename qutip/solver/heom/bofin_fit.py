@@ -906,8 +906,8 @@ def _gen_summary(time, rmse, N, label, lam, gamma, w0,
 def _two_column_summary(
         params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
         rmse_imag, rmse_real):
-    lam, gamma, w0, d = params_real
-    lam2, gamma2, w02, d = params_imag
+    lam, gamma, w0 = params_real
+    lam2, gamma2, w02 = params_imag
 
     # Generate nicely formatted summary
     summary_real = _gen_summary(
