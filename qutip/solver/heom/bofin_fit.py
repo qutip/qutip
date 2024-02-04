@@ -180,7 +180,7 @@ class SpectralFitter:
         bath = self._generate_bath(params, Nk)
         bath.spectral_density = self._J_fun
         summary = _gen_summary(
-            fit_time, rmse, N, "The Spectral Density", *params)
+            fit_time, rmse, N, "The Spectral Density", params)
         fitInfo = {
             "fit_time": fit_time, "rmse": rmse, "N": spec_n, "params": params,
             "Nk": Nk, "summary": summary}
@@ -417,11 +417,13 @@ class CorrelationFitter:
         fit_time_imag = end_imag - start_imag
 
         # Generate summary
+        Nr = len(params_real[0])
+        Ni = len(params_imag[0])
         full_summary = _two_column_summary(
             params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
             rmse_imag, rmse_real)
 
-        fitInfo = {"Nr": len(params_real[0]), "Ni": len(params_imag[0]),
+        fitInfo = {"Nr": Nr, "Ni": Ni,
                    "fit_time_real": fit_time_real,
                    "fit_time_imag": fit_time_imag,
                    "rmse_real": rmse_real, "rmse_imag": rmse_imag,
@@ -817,7 +819,7 @@ def _fit(func, C, t, N, default_guess_scenario='',
     rmse:
         It returns the normalized mean squared error from the fit
     """
-
+    tempsigma = sigma
     C_max = abs(max(C, key=np.abs))
     if C_max == 0:
         # When the target function is zero
@@ -832,38 +834,55 @@ def _fit(func, C, t, N, default_guess_scenario='',
         if default_guess_scenario == "correlation_real":
             wc = np.inf
             ini = 1
-            guesses = _pack([C_max] * N, [-100*C_max] * N, [0] * N, [0] * N)
-            lower = _pack([-100*C_max] * N, [-wc] * N, [-ini]
-                          * N, [-100*C_max] * N)
-            upper = _pack([100*C_max] * N, [0] * N, [ini] * N, [100*C_max] * N)
+            tempguesses = _pack([C_max] * N, [-100*C_max]
+                                * N, [0] * N, [0] * N)
+            templower = _pack([-100*C_max] * N, [-wc] * N, [-ini]
+                              * N, [-100*C_max] * N)
+            tempupper = _pack([100*C_max] * N, [0] * N,
+                              [ini] * N, [100*C_max] * N)
             n = 4
         elif default_guess_scenario == "correlation_imag":
             wc = np.inf
             ini = 2
-            guesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
-            lower = _pack([-100*C_max] * N, [-wc] * N, [-ini] * N,
-                          [-100*C_max] * N)
-            upper = _pack([100*C_max] * N, [0] * N, [ini] * N, [100*C_max] * N)
+            tempguesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
+            templower = _pack([-100*C_max] * N, [-wc] * N, [-ini] * N,
+                              [-100*C_max] * N)
+            tempupper = _pack([100*C_max] * N, [0] * N,
+                              [ini] * N, [100*C_max] * N)
             n = 4
         else:
-            guesses = _pack([C_max] * N, [wc] * N, [wc] * N)
-            lower = _pack([-100 * C_max] * N,
-                          [0.1 * wc] * N, [0.1 * wc] * N)
-            upper = _pack([100 * C_max] * N,
-                          [100 * wc] * N, [100 * wc] * N)
+            tempguesses = _pack([C_max] * N, [wc] * N, [wc] * N)
+            templower = _pack([-100 * C_max] * N,
+                              [0.1 * wc] * N, [0.1 * wc] * N)
+            tempupper = _pack([100 * C_max] * N,
+                              [100 * wc] * N, [100 * wc] * N)
             n = 3
-    else:
+    if guesses is not None:
         n = len(guesses)
         guesses = [[i]*N for i in guesses]
         guesses = [x for xs in guesses for x in xs]
         guesses = _pack(guesses)
+    else:
+        guesses = tempguesses
+    if lower is not None:
+        n = len(lower)
         lower = [[i]*N for i in lower]
         lower = [x for xs in lower for x in xs]
         lower = _pack(lower)
+    else:
+        lower = templower
+    if upper is not None:
+        n = len(upper)
         upper = [[i]*N for i in upper]
         upper = [x for xs in upper for x in xs]
         upper = _pack(upper)
-
+    else:
+        upper = tempupper
+    if tempsigma is not None:
+        sigma = tempsigma
+    if not ((len(guesses) == len(lower)) and (len(guesses) == len(lower))):
+        raise ValueError("The shape of the provided fit parameters is \
+                         not consistent")
     args = _leastsq(func, C, t, sigma=sigma, guesses=guesses,
                     lower=lower, upper=upper, n=n)
     rmse = _rmse(func, t, C, *args)
@@ -931,15 +950,26 @@ def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None,
     return rmse1, params
 
 
-def _gen_summary(time, rmse, N, label, lam, gamma, w0,
+def _gen_summary(time, rmse, N, label, params,
                  columns=['lam', 'gamma', 'w0']):
-    summary = (f"Result of fitting {label} "
-               f"with {N} terms: \n \n {'Parameters': <10}|"
-               f"{columns[0]: ^10}|{columns[1]: ^10}|{columns[2]: >5} \n ")
-    for k in range(len(gamma)):
-        summary += (
-            f"{k+1: <10}|{lam[k]: ^10.2e}|{gamma[k]:^10.2e}|"
-            f"{w0[k]:>5.2e}\n ")
+    if len(columns) == 3:
+        summary = (f"Result of fitting {label} "
+                   f"with {N} terms: \n \n {'Parameters': <10}|"
+                   f"{columns[0]: ^10}|{columns[1]: ^10}|{columns[2]: >5} \n ")
+        for k in range(len(params[0])):
+            summary += (
+                f"{k+1: <10}|{params[0][k]: ^10.2e}|{params[1][k]:^10.2e}|"
+                f"{params[2][k]:>5.2e}\n ")
+    else:
+        summary = (
+            f"Result of fitting {label} "
+            f"with {N} terms: \n \n {'Parameters': <10}|"
+            f"{columns[0]: ^10}|{columns[1]: ^10}|{columns[2]: ^10}"
+            f"|{columns[3]: >5} \n ")
+        for k in range(len(params[0])):
+            summary += (
+                f"{k+1: <10}|{params[0][k]: ^10.2e}|{params[1][k]:^10.2e}"
+                f"|{params[2][k]:^10.2e}|{params[3][k]:>5.2e}\n ")
     summary += (f"\nA  normalized RMSE of {rmse: .2e}"
                 f" was obtained for the {label}\n")
     summary += f" The current fit took {time: 2f} seconds"
@@ -949,22 +979,19 @@ def _gen_summary(time, rmse, N, label, lam, gamma, w0,
 def _two_column_summary(
         params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
         rmse_imag, rmse_real):
-    lam, gamma, w0, d = params_real
-    lam2, gamma2, w02, d = params_imag
-
     # Generate nicely formatted summary
     summary_real = _gen_summary(
         fit_time_real,
         rmse_real,
         Nr,
-        "The Real Part Of  \n the Correlation Function", lam, gamma,
-        w0, columns=["a", "b", "c"])
+        "The Real Part Of  \n the Correlation Function", params_real,
+        columns=["a", "b", "c", "d"])
     summary_imag = _gen_summary(
         fit_time_imag,
         rmse_imag,
         Ni,
-        "The Imaginary Part \n Of the Correlation Function", lam2,
-        gamma2, w02, columns=["a", "b", "c"])
+        "The Imaginary Part \n Of the Correlation Function", params_imag,
+        columns=["a", "b", "c", "d"])
 
     full_summary = "Fit correlation class instance: \n \n"
     lines_real = summary_real.splitlines()
