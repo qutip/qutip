@@ -496,8 +496,7 @@ class BosonicBath(Bath):
         S = np.zeros_like(w, dtype=float)
         for exp in self.exponents:
             ck = exp.ck or 0
-            ck2 = exp.ck2 or 0   # The problem is that these are None and for 
-            #this particula calculation 0 is needed 
+            ck2 = exp.ck2 or 0
             if exp.type == BathExponent.types['I']:
                 S += 2 * np.real((1j*ck) / (exp.vk - 1j*w))
             else:

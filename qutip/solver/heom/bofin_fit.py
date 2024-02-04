@@ -887,10 +887,11 @@ def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None,
     return rmse1, params
 
 
-def _gen_summary(time, rmse, N, label, lam, gamma, w0):
+def _gen_summary(time, rmse, N, label, lam, gamma, w0,
+                 columns=['lam', 'gamma', 'w0']):
     summary = (f"Result of fitting {label} "
                f"with {N} terms: \n \n {'Parameters': <10}|"
-               f"{'lam': ^10}|{'gamma': ^10}|{'w0': >5} \n ")
+               f"{columns[0]: ^10}|{columns[1]: ^10}|{columns[2]: >5} \n ")
     for k in range(len(gamma)):
         summary += (
             f"{k+1: <10}|{lam[k]: ^10.2e}|{gamma[k]:^10.2e}|"
@@ -904,23 +905,22 @@ def _gen_summary(time, rmse, N, label, lam, gamma, w0):
 def _two_column_summary(
         params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
         rmse_imag, rmse_real):
-    lam, gamma, w0 = params_real
-    lam2, gamma2, w02 = params_imag
+    lam, gamma, w0, d = params_real
+    lam2, gamma2, w02, d = params_imag
 
     # Generate nicely formatted summary
-    # TODO can we make the column something other than lam, gamma, w0?
     summary_real = _gen_summary(
         fit_time_real,
         rmse_real,
         Nr,
         "The Real Part Of  \n the Correlation Function", lam, gamma,
-        w0)
+        w0, columns=["a", "b", "c"])
     summary_imag = _gen_summary(
         fit_time_imag,
         rmse_imag,
         Ni,
         "The Imaginary Part \n Of the Correlation Function", lam2,
-        gamma2, w02)
+        gamma2, w02, columns=["a", "b", "c"])
 
     full_summary = "Fit correlation class instance: \n \n"
     lines_real = summary_real.splitlines()
