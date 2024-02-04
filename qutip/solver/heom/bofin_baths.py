@@ -387,7 +387,7 @@ class BosonicBath(Bath):
 
         Returns
         -------
-            The correlation function at time t as an array or float
+            The correlation function at time t as an array or float.
         """
 
         def integrand(w, t):
@@ -407,11 +407,11 @@ class BosonicBath(Bath):
         Parameters
         ----------
         w: float or array
-            Energy of the mode
+            Energy of the mode.
 
         Returns
         -------
-        The population of the mode with energy w
+        The population of the mode with energy w.
         """
 
         if self.T is None:
@@ -433,11 +433,11 @@ class BosonicBath(Bath):
         Parameters
         ----------
         w: float or array
-            Energy of the mode
+            Energy of the mode.
 
         Returns
         ----------
-        The power spectrum of the mode with energy w
+        The power spectrum of the mode with energy w.
         """
 
         # For w=0, the result would have the form 0 * inf
@@ -458,11 +458,11 @@ class BosonicBath(Bath):
         Parameters
         ----------
         t: float or array
-            time to compute correlations
+            time to compute correlations.
 
         Returns
         ----------
-        The correlation function of the bath at time t
+        The correlation function of the bath at time t.
         """
 
         corr = np.zeros_like(t, dtype=complex)
@@ -486,11 +486,11 @@ class BosonicBath(Bath):
         Parameters
         ----------
         w: float or array
-            Energy of the mode
+            Energy of the mode.
 
         Returns
         ----------
-        The power spectrum of the mode with energy w
+        The power spectrum of the mode with energy w.
         """
 
         S = np.zeros_like(w, dtype=float)
@@ -512,11 +512,11 @@ class BosonicBath(Bath):
         Parameters
         ----------
         w: float or array
-            Energy of the mode
+            Energy of the mode.
 
         Returns
         ----------
-        The spectral density of the mode with energy w
+        The spectral density of the mode with energy w.
         """
         J = self.power_spectrum_approx(w) / (self._bose_einstein(w) + 1) / 2
         return J
@@ -619,11 +619,11 @@ class DrudeLorentzBath(BosonicBath):
         Parameters
         ----------
         w: float or array
-            Energy of the mode
+            Energy of the mode.
 
         Returns
         -------
-        The spectral density of the mode with energy w
+        The spectral density of the mode with energy w.
         """
 
         return 2 * self.lam * self.gamma * w / (self.gamma**2 + w**2)
@@ -945,11 +945,11 @@ class UnderDampedBath(BosonicBath):
         Parameters
         ----------
         w: float or array
-            Energy of the mode
+            Energy of the mode.
 
         Returns
         -------
-            The spectral density of the mode with energy w
+            The spectral density of the mode with energy w.
         """
 
         return self.lam**2 * self.gamma * w / ((w**2 - self.w0**2)**2

@@ -41,7 +41,7 @@ class SpectralFitter:
         at least twice the cutoff frequency of the desired spectral density.
 
     J : np.array or callable
-        The spectral density to be fitted as an array or function
+        The spectral density to be fitted as an array or function.
     """
 
     def __init__(self, T, Q, w, J):
@@ -69,7 +69,7 @@ class SpectralFitter:
     def _meier_tannor_SD(w, a, b, c):
         r"""
         Underdamped spectral density used for fitting in Meier-Tannor form
-        (see Eq. 38 in the BoFiN paper, DOI: 10.1103/PhysRevResearch.5.013181)
+        (see Eq. 38 in the BoFiN paper, DOI: 10.1103/PhysRevResearch.5.013181).
 
         $J(\omega) = \sum_{i=1}^{k} \\frac{2 \alpha_{i}^{2} \Gamma_{i} \omega
         }{\left( \left( \omega + \Omega_{i}\right)^{2} + \Gamma_{i}^{2}
@@ -337,12 +337,13 @@ class CorrelationFitter:
             Initial guesses for the parameters. Same structure as lower and
             upper.
 
-        Note: If one of lower, upper, sigma, guesses is None, all are discarded
+        Note: If one of lower, upper, sigma, guesses is None,
+        all are discarded.
 
         Returns
         -------
         * A Bosonic Bath created with the fit parameters with the original
-          correlation function (that was provided or interpolated)
+          correlation function (that was provided or interpolated).
         * A dictionary containing the following information about the fit:
             Nr:
                 The number of terms used to fit the real part of the
@@ -416,20 +417,20 @@ class CorrelationFitter:
         """
         Calculate the Matsubara coefficients and frequencies for the
         fitted underdamped oscillators and generate the corresponding bosonic
-        bath
+        bath.
 
         Parameters
         ----------
         params_real : np.array
             array of shape (N,3) where N is the number of fitted terms
-            for the real part
+            for the real part.
         params_imag : np.imag
             array of shape (N,3) where N is the number of fitted terms
-            for the imaginary part
+            for the imaginary part.
 
         Returns
         -------
-        A bosonic Bath constructed from the fitted exponents
+        A bosonic Bath constructed from the fitted exponents.
         """
 
         a, b, c = params_real
@@ -461,13 +462,13 @@ class OhmicBath:
     Q : Qobj
         Operator describing the coupling between system and bath.
     T : Float
-        Temperature of the bath
+        Temperature of the bath.
     alpha : float
-        Coupling strength
+        Coupling strength.
     wc : float
         Cutoff parameter
     s : float
-        Power of w in the spectral density
+        Power of w in the spectral density.
     """
 
     def __init__(self, T, Q, alpha, wc, s):
@@ -489,11 +490,11 @@ class OhmicBath:
         Parameters
         ----------
         w : float or array
-            Energy of the mode
+            Energy of the mode.
 
         Returns
         -------
-        The spectral density of the mode with energy w
+        The spectral density of the mode with energy w.
         """
 
         return (self.alpha * w ** (self.s)
@@ -507,11 +508,11 @@ class OhmicBath:
         Parameters
         ----------
         t : float or array
-            time
+            time.
 
         Returns
         -------
-        The correlation function at time t
+        The correlation function at time t.
         """
 
         if self.T != 0:
@@ -544,7 +545,7 @@ class OhmicBath:
         Provides a fit to the spectral density or corelation function
         with N underdamped oscillators baths, This function gets the
         number of harmonic oscillators based on reducing the normalized
-        root mean squared error below a certain threshold
+        root mean squared error below a certain threshold.
 
         Parameters
         ----------
@@ -554,7 +555,7 @@ class OhmicBath:
         rmse : float
             Desired normalized root mean squared error. Only used if Nr and Ni
             are not provided, defaults to 1e-4. The default is not good
-            when working with numbers much smaller than 0.1
+            when working with numbers much smaller than 0.1.
         lower : list
             lower bounds on the parameters for the fit. A list of size 3,
             each containing the N lower bounds, The order of the parameters is
@@ -572,10 +573,10 @@ class OhmicBath:
             upper.
         Nr: int
             The number of terms to use for the real part of the correlation
-            function
+            function.
         Ni: int
             The number of terms to use for the imaginary part of the
-            correlation function
+            correlation function.
         Returns
         -------
         * A Bosonic Bath created with the fit parameters with the original
@@ -624,7 +625,7 @@ class OhmicBath:
         Provides a fit to the spectral density or corelation function
         with N underdamped oscillators baths, This function gets the
         number of harmonic oscillators based on reducing the normalized
-        root mean squared error below a certain threshold
+        root mean squared error below a certain threshold.
 
         Parameters
         ----------
@@ -640,16 +641,16 @@ class OhmicBath:
             Number of underdamped oscillators for the real and imaginary
             part if the method is correlation.
             when set to None the number of oscillators is found according to
-            the rmse, and the Nk is set to 1
+            the rmse, and the Nk is set to 1.
         rmse : float
             Desired normalized root mean squared error. Only used if N is
-            not provided
+            not provided.
         lower : list
             lower bounds on the parameters for the fit.
         upper: list
-            upper bounds on the parameters for the fit
+            upper bounds on the parameters for the fit.
         sigma: float
-            uncertainty in the data considered for the fit
+            uncertainty in the data considered for the fit.
         guesses : list
             Initial guess for the parameters.
         """
@@ -685,24 +686,24 @@ def _unpack(params):
 
 def _leastsq(func, y, x, guesses=None, lower=None, upper=None, sigma=None):
     """
-    Performs nonlinear least squares to fit the function func to x and y
+    Performs nonlinear least squares to fit the function func to x and y.
 
     Parameters
     ----------
     func : function
         The function we wish to fit.
     x : np.array
-        a numpy array containing the independent variable used for the fit
+        a numpy array containing the independent variable used for the fit.
     y : np.array
-        a numpy array containing the dependent variable we use for the fit
+        a numpy array containing the dependent variable we use for the fit.
     guesses : list
         Initial guess for the parameters.
     lower : list
         lower bounds on the parameters for the fit.
     upper : list
-        upper bounds on the parameters for the fit
+        upper bounds on the parameters for the fit.
     sigma : float
-        uncertainty in the data considered for the fit
+        uncertainty in the data considered for the fit.
 
     Returns
     -------
@@ -728,18 +729,18 @@ def _leastsq(func, y, x, guesses=None, lower=None, upper=None, sigma=None):
 def _rmse(func, x, y, a, b, c):
     """
     Calculates the normalized root mean squared error for fits
-    from the fitted parameters a, b, c
+    from the fitted parameters a, b, c.
 
     Parameters
     ----------
     func : function
         The approximated function for which we want to compute the rmse.
     x: np.array
-        a numpy array containing the independent variable used for the fit
+        a numpy array containing the independent variable used for the fit.
     y: np.array
-        a numpy array containing the dependent variable used for the fit
+        a numpy array containing the dependent variable used for the fit.
     a, b, c : list
-        fitted parameters
+        fitted parameters.
 
     Returns
     -------
@@ -766,9 +767,9 @@ def _fit(func, C, t, N, default_guess_scenario='',
     func : function
         The function we wish to fit.
     C : np.array
-        a numpy array containing the dependent variable used for the fit
+        a numpy array containing the dependent variable used for the fit.
     t : np.array
-        a numpy array containing the independent variable used for the fit
+        a numpy array containing the independent variable used for the fit.
     N : int
         The number of modes / baths used for the fitting.
     default_guess_scenario : str
@@ -781,9 +782,9 @@ def _fit(func, C, t, N, default_guess_scenario='',
     lower : list
         lower bounds on the parameters for the fit.
     upper: list
-        upper bounds on the parameters for the fit
+        upper bounds on the parameters for the fit.
     sigma: float
-        uncertainty in the data considered for the fit
+        uncertainty in the data considered for the fit.
 
     Returns
     -------
@@ -832,18 +833,18 @@ def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None,
     It iteratively tries to fit the funcx to y on the interval x.
     If N is provided the fit is done with N modes, if it is
     None then this automatically finds the smallest number of modes that
-    whose mean squared error is smaller than final_rmse
+    whose mean squared error is smaller than final_rmse.
 
     Parameters
     ----------
     funcx : function
         The function we wish to fit.
     y : np.array
-        The function used for the fitting
+        The function used for the fitting.
     x : np.array
-        a numpy array containing the independent variable used for the fit
+        a numpy array containing the independent variable used for the fit.
     final_rmse : float
-        Desired normalized root mean squared error
+        Desired normalized root mean squared error.
     default_guess_scenario : str
         Determines how the default guesses and bounds are chosen (in the case
         guesses or bounds are not specified). May be 'correlation_real',
@@ -851,15 +852,15 @@ def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None,
         guesses and bounds designed for the fitting of spectral densities.
     N : optional , int
         The number of modes used for the fitting, if not provided starts at
-        1 and increases until a desired RMSE is satisfied
+        1 and increases until a desired RMSE is satisfied.
     sigma: float
-        uncertainty in the data considered for the fit
+        uncertainty in the data considered for the fit.
     guesses : list
         Initial guess for the parameters.
     lower : list
         lower bounds on the parameters for the fit.
     upper: list
-        upper bounds on the parameters for the fit
+        upper bounds on the parameters for the fit.
 
     Returns
     -------
