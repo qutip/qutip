@@ -1,6 +1,7 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
+from .sode._noise import PreSetWiener
 from .result import MultiTrajResult, Result, ExpectOp
 from .multitraj import MultiTrajSolver
 from .. import Qobj, QobjEvo
@@ -8,6 +9,7 @@ import numpy as np
 from functools import partial
 from .solver_base import _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback, _WeinerFeedback
+from time import time
 
 
 class StochasticTrajResult(Result):
@@ -79,14 +81,14 @@ class StochasticTrajResult(Result):
         """
         if not self.options["store_measurement"]:
             return None
-        elif self.options["store_measurement"] == "end":
+        elif self.options["store_measurement"] == "start":
             m_expect = np.array(self.m_expect)[:, :-1]
         elif self.options["store_measurement"] == "middle":
             m_expect = np.apply_along_axis(
                 lambda m: np.convolve(m, [0.5, 0.5], "valid"),
                 axis=1, arr=self.m_expect,
             )
-        elif self.options["store_measurement"] in ["start", True]:
+        elif self.options["store_measurement"] in ["end", True]:
             m_expect = np.array(self.m_expect)[:, 1:]
         else:
             raise ValueError(
@@ -713,30 +715,31 @@ class StochasticSolver(MultiTrajSolver):
         -----
         Only default values of `m_ops` and `dW_factors` are supported.
         """
-        result = self._resultclass(
-            e_ops,
-            self.options,
-            m_ops=self.m_ops,
-            dw_factor=self.dW_factors,
-            heterodyne=self.heterodyne,
-        )
+        start_time = time()
+        self._argument(args)
+        stats = self._initialize_stats()
         dt = tlist[1] - tlist[0]
         if not np.allclose(dt, np.diff(tlist)):
             raise ValueError("tlist must be evenly spaced.")
-        generator = self.PreSetWiener(
+        generator = PreSetWiener(
             noise, tlist, len(self.rhs.sc_ops), self.heterodyne, measurement
         )
+        state0 = self._prepare_state(state)
         try:
             old_dt = None
             if "dt" in self._integrator.options:
                 old_dt = self._integrator.options["dt"]
                 self._integrator.options["dt"] = dt
-            result = self._run_inner_traj_loop(generator, state, tlist, e_ops)
+            mid_time = time()
+            result = self._run_inner_traj_loop(generator, state0, tlist, e_ops)
         except Exception as err:
             if old_dt is not None:
                 self._integrator.options["dt"] = old_dt
             raise
 
+        stats['preparation time'] += mid_time - start_time
+        stats['run time'] = time() - mid_time
+        result.stats.update(stats)
         return result
 
     @classmethod

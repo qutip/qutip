@@ -39,7 +39,7 @@ cdef class Euler:
         """
         cdef int i
         cdef _StochasticSystem system = self.system
-        cdef double[:] expect
+        cdef list expect
 
         cdef Data a = system.drift(t, state)
         b = system.diffusion(t, state)
@@ -81,7 +81,7 @@ cdef class Platen(Euler):
         cdef list d2 = system.diffusion(t, state)
         cdef Data Vt, out
         cdef list Vp, Vm
-        cdef double[:] expect
+        cdef list expect
 
         if self.measurement_noise:
             expect = system.expect(t, state)

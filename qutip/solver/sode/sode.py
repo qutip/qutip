@@ -74,14 +74,14 @@ class SIntegrator(Integrator):
         if isinstance(generator, PreSetWiener):
             self.wiener = generator
             if (
-                generator.is_measurements
+                generator.is_measurement
                 and "measurement_noise" not in self._stepper_options
             ):
                 raise NotImplementedError(
                     f"{type(self).__name__} does not support running"
                     " the evolution from measurements."
                 )
-            stepper_opt["measurement_noise"] = generator.has_measurements
+            stepper_opt["measurement_noise"] = generator.is_measurement
         elif isinstance(generator, Wiener):
             self.wiener = generator
         else:

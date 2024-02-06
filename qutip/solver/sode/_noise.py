@@ -27,7 +27,7 @@ class Wiener:
         # Find the index of t.
         # Rounded to the closest step, but only multiple of dt are expected.
         idx0 = int((t - self.t0 + self.dt * 0.4999) // self.dt)
-        if idx0 + N >= self.noise.shape[0]:
+        if idx0 + N - 1 >= self.noise.shape[0]:
             self._extend(idx0 + N)
         return self.noise[idx0:idx0 + N, :, :]
 
@@ -65,7 +65,7 @@ class PreSetWiener(Wiener):
                     "Noise is not of the expected shape: "
                     f"{(n_sc_ops/2, 2, len(tlist)-1)}"
                 )
-            noise = np.reshape(noise, (n_sc_ops, len(tlist)-1), "C") / 2**0.5
+            noise = np.reshape(noise, (n_sc_ops, len(tlist)-1), "C")
         else:
             if noise.shape != (n_sc_ops, len(tlist)-1):
                 raise ValueError(
@@ -76,14 +76,19 @@ class PreSetWiener(Wiener):
         self.t0 = tlist[0]
         self.dt = tlist[1] - tlist[0]
         self.shape = noise.shape[1:]
-        self.noise = noise.T[:, np.newaxis, :]
+        self.noise = noise.T[:, np.newaxis, :].copy()
         self.last_W = np.zeros(self.shape[-1], dtype=float)
         self.idx_last_0 = 0
         self.is_measurement = is_measurement
+        if self.is_measurement:
+            # Measurements is scaled as <M> + dW / dt
+            self.noise *= self.dt
+            if heterodyne:
+                self.noise /= 2**0.5
 
-    def _extend(self, t):
+    def _extend(self, N):
         raise ValueError(
-            "Requested time is outside the integration range."
+            f"Requested time is outside the integration range. {N} > {self.noise.shape[0]}"
         )
 
 
