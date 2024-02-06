@@ -94,11 +94,11 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         - | atol, rtol : float
           | Absolute and relative tolerance of the ODE integrator.
         - | nsteps : int
-          | Maximum number of (internally defined) steps allowed in one ``tlist``
-            step.
+          | Maximum number of (internally defined) steps allowed in one
+          ``tlist`` step.
         - | max_step : float
-          | Maximum length of one internal step. When using pulses, it should be
-            less than half the width of the thinnest pulse.
+          | Maximum length of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
         - | keep_runs_results : bool, [False]
           | Whether to store results from all trajectories or just store the
             averages.
@@ -106,17 +106,9 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
             "mpi4py" modules to do so.
-        - | mpi_options : dict
-          | Only applies if map is "mpi". This dictionary will be passed as
-            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
-            constructor. Note that the `max_workers` argument is provided
-            separately through the `num_cpus` option.
         - | num_cpus : int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
-        - | bitgenerator : {None, "MT19937", "PCG64", "PCG64DXSM", ...}
-            Which of numpy.random's bitgenerator to use. With `None`, your
-            numpy version's default is used.
         - | norm_t_tol, norm_tol, norm_steps : float, float, int
           | Parameters used to find the collapse location. ``norm_t_tol`` and
             ``norm_tol`` are the tolerance in time and norm respectively.
@@ -135,7 +127,9 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
             integration of the martingale.
 
         Note that the 'improved_sampling' option is not currently supported.
-        Additional options may be available depending on the selected
+        Additional options are listed under `options
+        <./classes.html#qutip.solver.nm_mcsolve.NonMarkovianMCSolver.options>`__.
+        More options may be available depending on the selected
         differential equation integration method, see
         `Integrator <./classes.html#classes-ode>`_.
 

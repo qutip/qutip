@@ -9,6 +9,7 @@ from functools import partial
 from .solver_base import _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback, _WeinerFeedback
 
+
 class StochasticTrajResult(Result):
     def _post_init(self, m_ops=(), dw_factor=(), heterodyne=False):
         super()._post_init()
@@ -336,23 +337,18 @@ def smesolve(
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
             "mpi4py" modules to do so.
-        - | mpi_options : dict
-          | Only applies if map is "mpi". This dictionary will be passed as
-            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
-            constructor. Note that the `max_workers` argument is provided
-            separately through the `num_cpus` option.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
-        - | bitgenerator : {None, "MT19937", "PCG64", "PCG64DXSM", ...}
-            Which of numpy.random's bitgenerator to use. With `None`, your
-            numpy version's default is used.
         - | dt : float
           | The finite steps lenght for the Stochastic integration method.
             Default change depending on the integrator.
 
-        Other options could be supported depending on the integration method,
-        see `SIntegrator <./classes.html#classes-sode>`_.
+        Additional options are listed under
+        `options <./classes.html#qutip.solver.stochastic.SMESolver.options>`__.
+        More options may be available depending on the selected
+        differential equation integration method, see
+        `SIntegrator <./classes.html#classes-sode>`_.
 
     Returns
     -------
@@ -464,23 +460,18 @@ def ssesolve(
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
             "mpi4py" modules to do so.
-        - | mpi_options : dict
-          | Only applies if map is "mpi". This dictionary will be passed as
-            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
-            constructor. Note that the `max_workers` argument is provided
-            separately through the `num_cpus` option.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
-        - | bitgenerator : {None, "MT19937", "PCG64", "PCG64DXSM", ...}
-            Which of numpy.random's bitgenerator to use. With `None`, your
-            numpy version's default is used.
         - | dt : float
           | The finite steps lenght for the Stochastic integration method.
             Default change depending on the integrator.
 
-        Other options could be supported depending on the integration method,
-        see `SIntegrator <./classes.html#classes-sode>`_.
+        Additional options are listed under
+        `options <./classes.html#qutip.solver.stochastic.SSESolver.options>`__.
+        More options may be available depending on the selected
+        differential equation integration method, see
+        `SIntegrator <./classes.html#classes-sode>`_.
 
     Returns
     -------

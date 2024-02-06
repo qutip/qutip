@@ -73,11 +73,11 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         - | atol, rtol : float
           | Absolute and relative tolerance of the ODE integrator.
         - | nsteps : int
-          | Maximum number of (internally defined) steps allowed in one ``tlist``
-            step.
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
         - | max_step : float
-          | Maximum length of one internal step. When using pulses, it should be
-            less than half the width of the thinnest pulse.
+          | Maximum length of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
         - | keep_runs_results : bool, [False]
           | Whether to store results from all trajectories or just store the
             averages.
@@ -85,17 +85,9 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
             "mpi4py" modules to do so.
-        - | mpi_options : dict
-          | Only applies if map is "mpi". This dictionary will be passed as
-            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
-            constructor. Note that the `max_workers` argument is provided
-            separately through the `num_cpus` option.
         - | num_cpus : int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
-        - | bitgenerator : {None, "MT19937", "PCG64", "PCG64DXSM", ...}
-            Which of numpy.random's bitgenerator to use. With `None`, your
-            numpy version's default is used.
         - | norm_t_tol, norm_tol, norm_steps : float, float, int
           | Parameters used to find the collapse location. ``norm_t_tol`` and
             ``norm_tol`` are the tolerance in time and norm respectively.
@@ -108,7 +100,9 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
           | Whether to use the improved sampling algorithm from Abdelhafez et
             al. PRA (2019)
 
-        Additional options may be available depending on the selected
+        Additional options are listed under
+        `options <./classes.html#qutip.solver.mcsolve.MCSolver.options>`__.
+        More options may be available depending on the selected
         differential equation integration method, see
         `Integrator <./classes.html#classes-ode>`_.
 
@@ -592,8 +586,8 @@ class MCSolver(MultiTrajSolver):
 
         progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default: "text"
             How to present the solver progress.
-            'tqdm' uses the python module of the same name and raise an error if
-            not installed. Empty string or False will disable the bar.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
 
         progress_kwargs: dict, default: {"chunk_size":10}
             Arguments to pass to the progress_bar. Qutip's bars use
