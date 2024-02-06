@@ -436,7 +436,7 @@ class BosonicBath(Bath):
             Energy of the mode.
 
         Returns
-        ----------
+        -------
         The power spectrum of the mode with energy w.
         """
 
@@ -461,7 +461,7 @@ class BosonicBath(Bath):
             time to compute correlations.
 
         Returns
-        ----------
+        -------
         The correlation function of the bath at time t.
         """
 
@@ -489,7 +489,7 @@ class BosonicBath(Bath):
             Energy of the mode.
 
         Returns
-        ----------
+        -------
         The power spectrum of the mode with energy w.
         """
 
@@ -515,7 +515,7 @@ class BosonicBath(Bath):
             Energy of the mode.
 
         Returns
-        ----------
+        -------
         The spectral density of the mode with energy w.
         """
         J = self.power_spectrum_approx(w) / (self._bose_einstein(w) + 1) / 2

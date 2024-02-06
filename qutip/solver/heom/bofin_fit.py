@@ -133,10 +133,10 @@ class SpectralFitter:
             to be higher than 1, and the central frequency to be bigger than 2
 
         upper : list
-            upper bounds on the parameters for the fit, the structure is the
+            Upper bounds on the parameters for the fit, the structure is the
             same as the lower keyword.
         sigma : float
-            uncertainty in the data considered for the fit, all data points are
+            Uncertainty in the data considered for the fit, all data points are
             considered to have the same uncertainty.
         guesses : list
             Initial guesses for the parameters. Same structure as lower and
@@ -332,19 +332,18 @@ class CorrelationFitter:
             Desired normalized root mean squared error. Only used if Ni or Nr
             are not specified.
         lower : list
-            lower bounds on the parameters for the fit. A list of size 3,
+            lower bounds on the parameters for the fit. A list of size 4,
             each value represents the lower bound for each parameter.
-            The order of the parameters is the same as for the function to be
-            fitted (_corr_approx). The first and last terms describe the
-            coupling, the second the decay rate,and the third one the
+            The first and last terms describe the real and imaginary parts of
+            the amplitude, the second the decay rate, and the third one the
             oscillation frequency. The lower bounds are considered to be
             the same for all Nr and Ni exponents. for example
 
             lower=[0,-1,1,1]
 
-            would bound the real part of the coupling to be bigger than 0,
+            would bound the real part of the amplitude to be bigger than 0,
             the decay rate to be higher than -1, and the oscillation frequency
-            to be bigger than 1, and the imaginary part of the coupling to
+            to be bigger than 1, and the imaginary part of the amplitude to
             be greater than 1
         upper : list
             upper bounds on the parameters for the fit, the structure is the
@@ -392,7 +391,6 @@ class CorrelationFitter:
                 each parameter, each list containing N terms.
             summary:
                 A string that summarizes the information about the fit.
-            ...
         """
 
         # Fit real part
@@ -581,16 +579,14 @@ class OhmicBath:
             are not provided, defaults to 1e-4. The default is not good
             when working with numbers much smaller than 0.1.
         lower : list
-            lower bounds on the parameters for the fit. A list of size 3,
-            each containing the N lower bounds, The order of the parameters is
-            the same as for the function to be fitted (correlation_function).
-            The first term describes the amplitude, the second the rate of
-            decay, and the last one the oscillation frequency.
+            Lower bounds on the parameters for the fit. A list of size 4,
+            having the same structure as in `CorrelationFitter.get_fit
+            <./classes.html#qutip.solver.heom.CorrelationFitter.get_fit>`_.
         upper : list
-            upper bounds on the parameters for the fit, the structure is the
+            Upper bounds on the parameters for the fit, the structure is the
             same as the lower keyword.
         sigma : float
-            uncertainty in the data considered for the fit, all data points are
+            Uncertainty in the data considered for the fit, all data points are
             considered to have the same uncertainty.
         guesses : list
             Initial guesses for the parameters. Same structure as lower and
@@ -601,6 +597,7 @@ class OhmicBath:
         Ni: int
             The number of terms to use for the imaginary part of the
             correlation function
+
         Returns
         -------
         * A Bosonic Bath created with the fit parameters with the original
@@ -634,8 +631,8 @@ class OhmicBath:
                 each parameter, each list containing N terms.
             summary:
                 A string that summarizes the information about the fit.
-            ...
         """
+
         fc = CorrelationFitter(self.Q, self.T, x, self.correlation_function)
         bath, fitInfo = fc.get_fit(final_rmse=rmse,
                                    lower=lower, upper=upper,
@@ -670,14 +667,20 @@ class OhmicBath:
             Desired normalized root mean squared error. Only used if N is
             not provided.
         lower : list
-            lower bounds on the parameters for the fit.
-        upper: list
-            upper bounds on the parameters for the fit.
-        sigma: float
-            uncertainty in the data considered for the fit.
+            Lower bounds on the parameters for the fit. A list of size 4,
+            having the same structure as in `SpectralFitter.get_fit
+            <./classes.html#qutip.solver.heom.SpectralFitter.get_fit>`_.
+        upper : list
+            Upper bounds on the parameters for the fit, the structure is the
+            same as the lower keyword.
+        sigma : float
+            Uncertainty in the data considered for the fit, all data points are
+            considered to have the same uncertainty.
         guesses : list
-            Initial guess for the parameters.
+            Initial guesses for the parameters. Same structure as lower and
+            upper.
         """
+
         fs = SpectralFitter(T=self.T, Q=self.Q, w=x, J=self.spectral_density)
         bath, fitInfo = fs.get_fit(N=N, final_rmse=rmse, lower=lower,
                                    upper=upper, Nk=Nk,

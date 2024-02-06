@@ -144,6 +144,15 @@ Non-Markovian HEOM Solver
 .. autoclass:: qutip.solver.heom.HEOMResult
     :members:
 
+.. autoclass:: qutip.solver.heom.CorrelationFitter
+    :members:
+
+.. autoclass:: qutip.solver.heom.SpectralFitter
+    :members:
+
+.. autoclass:: qutip.solver.heom.OhmicBath
+    :members:
+
 
 .. _classes-stochastic:
 
