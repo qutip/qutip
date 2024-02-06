@@ -95,7 +95,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
           | Absolute and relative tolerance of the ODE integrator.
         - | nsteps : int
           | Maximum number of (internally defined) steps allowed in one
-          ``tlist`` step.
+            ``tlist`` step.
         - | max_step : float
           | Maximum length of one internal step. When using pulses, it should
             be less than half the width of the thinnest pulse.
@@ -123,7 +123,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
             additional Lindblad operator is added automatically (with zero
             rate).
         - | martingale_quad_limit : float or int
-            An upper bound on the number of subintervals used in the adaptive
+          | An upper bound on the number of subintervals used in the adaptive
             integration of the martingale.
 
         Note that the 'improved_sampling' option is not currently supported.
