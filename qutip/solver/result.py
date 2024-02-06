@@ -899,9 +899,12 @@ class MultiTrajResult(_BaseResult):
             raise ValueError("Shared `e_ops` is required to merge results")
         if self.times != other.times:
             raise ValueError("Shared `times` are is required to merge results")
+
         new = self.__class__(
             self._raw_ops, self.options, solver=self.solver, stats=self.stats
         )
+        new.e_ops = self.e_ops
+
         if self.trajectories and other.trajectories:
             new.trajectories = self.trajectories + other.trajectories
         new.num_trajectories = self.num_trajectories + other.num_trajectories
@@ -912,9 +915,11 @@ class MultiTrajResult(_BaseResult):
             self._sum_states is not None
             and other._sum_states is not None
         ):
-            new._sum_states = (
-                self._sum_states + other._sum_states
-            )
+            new._sum_states = [
+                state1 + state2 for state1, state2 in zip(
+                    self._sum_states, other._sum_states
+                )
+            ]
 
         if (
             self._sum_final_states is not None
