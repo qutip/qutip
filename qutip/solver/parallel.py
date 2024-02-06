@@ -522,7 +522,7 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
     )
 
 
-_get_map = {
+_maps = {
     "parallel_map": parallel_map,
     "parallel": parallel_map,
     "serial_map": serial_map,
@@ -530,3 +530,14 @@ _get_map = {
     "loky": loky_pmap,
     "mpi": mpi_pmap
 }
+
+
+def _get_map(options):
+    map_func = _get_map[options['map']]
+
+    if map_func == mpi_pmap:
+        map_kw = options['mpi_options']
+    else:
+        map_kw = {}
+
+    return map_func, map_kw
