@@ -533,7 +533,7 @@ _maps = {
 
 
 def _get_map(options):
-    map_func = _get_map[options['map']]
+    map_func = _maps[options['map']]
 
     if map_func == mpi_pmap:
         map_kw = options['mpi_options']
