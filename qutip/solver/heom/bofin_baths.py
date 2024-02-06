@@ -594,8 +594,8 @@ class DrudeLorentzBath(BosonicBath):
         delta, L = self._dl_terminator.terminator(self.exponents)
         return delta, L
 
-    @staticmethod
-    def _matsubara_params(lam, gamma, T, Nk):
+    @classmethod
+    def _matsubara_params(cls, lam, gamma, T, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
         ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
         ck_real.extend([
@@ -899,8 +899,8 @@ class UnderDampedBath(BosonicBath):
         super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag,
                          combine=combine, tag=tag, T=T)
 
-    @staticmethod
-    def _matsubara_params(lam, gamma, w0, T, Nk):
+    @classmethod
+    def _matsubara_params(cls, lam, gamma, w0, T, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
         beta = 1/T
         Om = np.sqrt(w0**2 - (gamma/2)**2)
