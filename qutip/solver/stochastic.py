@@ -698,10 +698,10 @@ class StochasticSolver(MultiTrajSolver):
 
         measurement : bool, default : False
             Whether the passed noise is the Wiener increments ``dW`` (gaussian
-            noise with standard derivation of dt**0.5), or the measurement:
+            noise with standard derivation of dt**0.5), or the measurement::
 
                 noise = dW/dt * dW_factors
-                        + expect(sc_ops[i] + sc_ops[i].dag, state_t)
+                    + expect(sc_ops[i] + sc_ops[i].dag, state_t)
 
             Note that the expectation value is usally computed at the start of
             the step. Only available for limited integration methods.
