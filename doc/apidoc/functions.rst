@@ -297,7 +297,7 @@ Parallelization
 ---------------
 
 .. automodule:: qutip.solver.parallel
-    :members: parallel_map, serial_map, loky_pmap
+    :members: parallel_map, serial_map, loky_pmap, mpi_pmap
 
 
 .. _functions-ipython:

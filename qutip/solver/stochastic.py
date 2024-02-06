@@ -1,14 +1,14 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
-from .sode.ssystem import *
+from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .result import MultiTrajResult, Result, ExpectOp
 from .multitraj import MultiTrajSolver
-from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator
+from .. import Qobj, QobjEvo
 import numpy as np
-from collections.abc import Iterable
 from functools import partial
 from .solver_base import _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback, _WeinerFeedback
+
 
 class StochasticTrajResult(Result):
     def _post_init(self, m_ops=(), dw_factor=(), heterodyne=False):
@@ -352,10 +352,10 @@ def smesolve(
         - | method : str
           | Which stochastic differential equation integration method to use.
             Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
-        - | map : str {"serial", "parallel", "loky"}
-          | How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -363,8 +363,11 @@ def smesolve(
           | The finite steps lenght for the Stochastic integration method.
             Default change depending on the integrator.
 
-        Other options could be supported depending on the integration method,
-        see `SIntegrator <./classes.html#classes-sode>`_.
+        Additional options are listed under
+        `options <./classes.html#qutip.solver.stochastic.SMESolver.options>`__.
+        More options may be available depending on the selected
+        differential equation integration method, see
+        `SIntegrator <./classes.html#classes-sode>`_.
 
     Returns
     -------
@@ -473,10 +476,10 @@ def ssesolve(
         - | method : str
           | Which stochastic differential equation integration method to use.
             Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
-        - | map : str {"serial", "parallel", "loky"}
-            How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -484,8 +487,11 @@ def ssesolve(
           | The finite steps lenght for the Stochastic integration method.
             Default change depending on the integrator.
 
-        Other options could be supported depending on the integration method,
-        see `SIntegrator <./classes.html#classes-sode>`_.
+        Additional options are listed under
+        `options <./classes.html#qutip.solver.stochastic.SSESolver.options>`__.
+        More options may be available depending on the selected
+        differential equation integration method, see
+        `SIntegrator <./classes.html#classes-sode>`_.
 
     Returns
     -------
@@ -519,13 +525,14 @@ class StochasticSolver(MultiTrajSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": "",
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "taylor1.5",
         "map": "serial",
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": "",
     }
 
     def __init__(self, H, sc_ops, heterodyne, *, c_ops=(), options=None):
@@ -775,13 +782,22 @@ class StochasticSolver(MultiTrajSolver):
           Whether to store results from all trajectories or just store the
           averages.
 
-        method: str, default: "platen"
-            Which ODE integrator methods are supported.
+        normalize_output: bool
+            Normalize output state to hide ODE numerical errors.
 
-        map: str {"serial", "parallel", "loky"}, default: "serial"
-            How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        method: str, default: "platen"
+            Which differential equation integration method to use.
+
+        map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
+            How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
+
+        mpi_options: dict, default: {}
+            Only applies if map is "mpi". This dictionary will be passed as
+            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
+            constructor. Note that the `max_workers` argument is provided
+            separately through the `num_cpus` option.
 
         num_cpus: None, int, default: None
             Number of cpus to use when running in parallel. ``None`` detect the
@@ -887,13 +903,14 @@ class SMESolver(StochasticSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": "",
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "platen",
         "map": "serial",
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": "",
     }
 
 
@@ -930,11 +947,12 @@ class SSESolver(StochasticSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": "",
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "platen",
         "map": "serial",
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": "",
     }

@@ -64,6 +64,7 @@ class MultiTrajSolver(Solver):
         "normalize_output": False,
         "method": "",
         "map": "serial",
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
     }
@@ -142,11 +143,11 @@ class MultiTrajSolver(Solver):
         )
         result.add_end_condition(ntraj, target_tol)
 
-        map_func = _get_map[self.options['map']]
-        map_kw = {
+        map_func, map_kw = _get_map(self.options)
+        map_kw.update({
             'timeout': timeout,
             'num_cpus': self.options['num_cpus'],
-        }
+        })
         state0 = self._prepare_state(state)
         stats['preparation time'] += time() - start_time
         return stats, seeds, result, map_func, map_kw, state0
