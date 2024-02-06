@@ -667,9 +667,9 @@ class StochasticSolver(MultiTrajSolver):
         return seed, self._run_inner_traj_loop(generator, state, tlist, e_ops)
 
     def run_from_experiment(
-            self, state, tlist, noise, *,
-            args=None, e_ops=(), measurement=False,
-        ):
+        self, state, tlist, noise, *,
+        args=None, e_ops=(), measurement=False,
+    ):
         """
         Run a single trajectory from a given state and noise.
 

@@ -87,9 +87,7 @@ class PreSetWiener(Wiener):
                 self.noise /= 2**0.5
 
     def _extend(self, N):
-        raise ValueError(
-            f"Requested time is outside the integration range. {N} > {self.noise.shape[0]}"
-        )
+        raise ValueError("Requested time is outside the integration range.")
 
 
 class _Noise:
