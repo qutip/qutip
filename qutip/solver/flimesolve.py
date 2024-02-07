@@ -430,24 +430,21 @@ class FLiMESolver(MESolver):
                     rate_matrix_dictionary):
         _time_start = time()
 
-        Rate_Qobj_list = [Qobj(
-            RateMat,
+        Rate_Qobj_list = {key:Qobj(
+            rate_matrix_dictionary[key],
             dims=[self.floquet_basis.U(0).dims,
                   self.floquet_basis.U(0).dims],
             type="super",
             superrep="super",
             copy=False
-        ).to("csr") for RateMat in rate_matrix_dictionary.values()]
-        R0 = Rate_Qobj_list[0]
-
+        ).to("csr") for key in rate_matrix_dictionary}
+        
         Rt_timedep_pairs = [
-            [Rate_Qobj_list[idx], 'exp(1j*' + str(list(
-                rate_matrix_dictionary.keys())[idx]
-                * self.floquet_basis.T) + '*t)']
-            for idx in range(0, len(Rate_Qobj_list))]
-        Rate_matrix_timedep_list = [R0, *Rt_timedep_pairs[1::]]
+            [Rate_Qobj_list[key], 'exp(1j*' + str(
+                key * (2*np.pi)/self.floquet_basis.T) + '*t)']
+            for key in Rate_Qobj_list]
 
-        rhs = QobjEvo(Rate_matrix_timedep_list)
+        rhs = QobjEvo(Rt_timedep_pairs)
 
         self._init_rhs_time = time() - _time_start
         return rhs
