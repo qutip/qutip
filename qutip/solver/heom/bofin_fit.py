@@ -71,9 +71,9 @@ class SpectralFitter:
         Underdamped spectral density used for fitting in Meier-Tannor form
         (see Eq. 38 in the BoFiN paper, DOI: 10.1103/PhysRevResearch.5.013181)
 
-        $J(\omega) = \sum_{i=1}^{k} \frac{2 \alpha_{i}^{2} \Gamma_{i} \omega
-        }{\left( \left( \omega + \Omega_{i}\right)^{2} + \Gamma_{i}^{2}
-        \right)+\left( \omega - \Omega_{i}\right)^{2} + \Gamma_{i}^{2}
+        $J(\omega) = \sum_{i=1}^{k} \frac{2 \a_{i}^{2} b_{i} \omega
+        }{\left( \left( \omega + c_{i}\right)^{2} + b_{i}^{2}
+        \right)+\left( \omega - c_{i}\right)^{2} + b_{i}^{2}
         \right)}$
 
         Parameters
@@ -81,7 +81,7 @@ class SpectralFitter:
         w : np.array
             The frequency of the spectral density
         a : np.array
-            Array of coupling constant
+            Array of coupling constants
         b : np.array
             Array of cutoff parameters
         c : np.array
@@ -122,7 +122,14 @@ class SpectralFitter:
             lower bounds on the parameters for the fit. A list of size 3,
             each value represents the lower bound for each parameter.
             The order of the parameters is the same as for the function to be
-            fitted (_meier_tannor_SD). The first term describes the coupling,
+            fitted. 
+
+            $J(\omega) = \sum_{i=1}^{k} \frac{2 \a_{i}^{2} b_{i} \omega
+            }{\left( \left( \omega + c_{i}\right)^{2} + b_{i}^{2}
+            \right)+\left( \omega - c_{i}\right)^{2} + b_{i}^{2}
+            \right)}$
+
+            The first term describes the coupling,
             the second the cutoff frequency,and the last one the central
             frequency. The lower bounds are considered to be the same for all
             N modes. for example
@@ -284,12 +291,15 @@ class CorrelationFitter:
         t : np.array or float
             The times at which to evaluates the correlation function.
         a : list or np.array
-            A list describing the amplitude of the correlation approximation.
+            A list describing the  real part amplitude of the correlation 
+            approximation.
         b : list or np.array
             A list describing the decay of the correlation approximation.
         c : list or np.array
             A list describing the oscillations of the correlation
             approximation.
+        d:  A list describing the imaginary part amplitude of the correlation 
+            approximation, only used if $Im(C(0))\neq 0$.
         """
 
         a = np.array(a)
@@ -679,6 +689,23 @@ class OhmicBath:
         guesses : list
             Initial guesses for the parameters. Same structure as lower and
             upper.
+        Returns
+        -------
+        * A Bosonic Bath created with the fit parameters with the original
+          correlation function (that was provided or interpolated)
+        * A dictionary containing the following information about the fit:
+            N:
+                The number of terms used to fit the spectral density.
+            fit_time:
+                The time the fit of the spectral density took in seconds.
+            rsme:
+                Normalized mean squared error obtained in the fit.
+            params:
+                The fitted parameters (3*N parameters), it contains three lists
+                one for each parameter, each list containing N terms.
+            summary:
+                A string that summarizes the information about the fit.
+
         """
 
         fs = SpectralFitter(T=self.T, Q=self.Q, w=x, J=self.spectral_density)

@@ -142,7 +142,7 @@ class TestSpectralFitter:
     def test_get_fit(self):
         T = 1
         wc = 1
-        w = np.linspace(0.1, 10 * wc, 1000)
+        w = np.linspace(0, 10 * wc, 1000)
         ud = UnderDampedBath(sigmax(), lam=0.05, w0=1, gamma=1, T=T, Nk=1)
         fs = SpectralFitter(T, sigmax(), w, ud.spectral_density)
         bath, _ = fs.get_fit(N=1, Nk=1)
@@ -179,16 +179,15 @@ class TestCorrelationFitter:
 
     def test_get_fit(self):
         a, b, c, d = [
-            np.array([1, 1, 1]),
-            np.array([-1, -1, -1]),
-            np.array([0.1, 0.1, 0.1]),
-            np.array([0.1, 0.1, 0.1])]
+            np.array([1, 1]),
+            np.array([-1, -1]),
+            np.array([0.1, 0.1]),
+            np.array([0.1, 0.1])]
         t = np.linspace(0, 10, 1000)
-        corr = np.sum(
-            (a[:, None]+1j*d[:,None]) * np.exp(b[:, None] * t) * np.exp(1j * c[:, None] * t),
-            axis=0)
+        corr = np.sum((a[:, None]+1j*d[:, None]) * np.exp(b[:, None]
+                      * t) * np.exp(1j * c[:, None] * t), axis=0)
         fitter = CorrelationFitter(Q=sigmax(), T=1, t=t, C=corr)
-        bath, _ = fitter.get_fit(Nr=3, Ni=3)
+        bath, _ = fitter.get_fit(Nr=2, Ni=2)
         C2 = np.real(bath.correlation_function_approx(t))
         C3 = np.imag(bath.correlation_function_approx(t))
         np.testing.assert_allclose(np.real(corr), C2, rtol=1e-5)
@@ -260,8 +259,8 @@ class TestOhmicBath:
         w = np.linspace(0, 10, 1000)
         ob = OhmicBath(Q=sigmax(), T=1, alpha=0.05, wc=5, s=1)
         bath, fitinfo = ob.make_correlation_fit(w, Nr=3, Ni=3)
-        c1=bath.correlation_function(w)
-        c2=bath.correlation_function_approx(w)
+        c1 = bath.correlation_function(w)
+        c2 = bath.correlation_function_approx(w)
         print(np.max(np.abs(np.real(c1))))
         print(np.max(np.real(c1-c2)))
         print(np.max(np.abs(np.imag(c1))))
@@ -271,9 +270,9 @@ class TestOhmicBath:
             np.zeros_like(w),
             atol=3e-2).all()
         assert np.isclose(
-            np.real(c1- c2),
+            np.real(c1 - c2),
             np.zeros_like(w),
-            atol=1e-2).all()# this test can be closer but would take longer
+            atol=1e-2).all()  # this test can be closer but would take longer
 
     def test_make_spectral_fit(self):
         w = np.linspace(0, 80, 2000)
