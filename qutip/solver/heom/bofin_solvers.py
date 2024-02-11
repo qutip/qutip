@@ -105,6 +105,7 @@ class HierarchyADOs:
     labels: list of tuples
         A list of the ADO labels within the hierarchy.
     """
+
     def __init__(self, exponents, max_depth):
         self.exponents = exponents
         self.max_depth = max_depth
@@ -347,6 +348,7 @@ class HierarchyADOsState:
     See :class:`HierarchyADOs` for a full list of the available attributes
     and methods.
     """
+
     def __init__(self, rho, ados, ado_state):
         self.rho = rho
         self._ado_state = ado_state
@@ -615,7 +617,8 @@ class HEOMSolver(Solver):
 
     def __init__(self, H, bath, max_depth, *, odd_parity=False, options=None):
         _time_start = time()
-        self.odd_parity = bool(odd_parity)  # we call bool here because odd_parity will be used in arithmetic
+        # we call bool here because odd_parity will be used in arithmetic
+        self.odd_parity = bool(odd_parity)
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian (H) must be a Qobj or QobjEvo")
 
@@ -756,16 +759,6 @@ class HEOMSolver(Solver):
             )
         return op
 
-    def _get_signs(self, n_excite, n_excite_before_m):
-        """gets the correct signs according to the parity"""
-        if self.odd_parity:
-            sign1 = (-1) ** (n_excite)
-            sign2 = (-1) ** (n_excite_before_m + 1)
-        else:
-            sign1 = (-1) ** (n_excite + 1)
-            sign2 = (-1) ** (n_excite_before_m)
-        return sign1, sign2
-
     def _grad_prev_fermionic(self, he_n, k):
         ck = self.ados.ck
         he_fermionic_n = [
@@ -775,9 +768,8 @@ class HEOMSolver(Solver):
 
         n_excite = sum(he_fermionic_n)
         n_excite_before_m = sum(he_fermionic_n[:k])
-        sign1, sign2 = self._get_signs(
-            n_excite=n_excite, n_excite_before_m=n_excite_before_m
-            )
+        sign1 = (-1) ** (n_excite + 1 - self.odd_parity)
+        sign2 = (-1)**(n_excite_before_m + self.odd_parity)
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
 
         if self.ados.exponents[k].type == BathExponent.types["+"]:
@@ -821,8 +813,9 @@ class HEOMSolver(Solver):
         ]
         n_excite = sum(he_fermionic_n)
         n_excite_before_m = sum(he_fermionic_n[:k])
-        sign1, sign2 = self._get_signs(
-            n_excite=n_excite, n_excite_before_m=n_excite_before_m)
+        sign1 = (-1) ** (n_excite + 1 - self.odd_parity)
+        sign2 = (-1)**(n_excite_before_m + self.odd_parity)
+
         if self.ados.exponents[k].type == BathExponent.types["+"]:
             if sign1 == -1:
                 op = _data.mul(self._s_pre_minus_post_Q[k], -1j * sign2)
@@ -1251,6 +1244,7 @@ class HSolverDL(HEOMSolver):
         operator). See :meth:`BosonicBath.combine` for details.
         Keyword only. Default: True.
     """
+
     def __init__(
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp, cut_freq, *, bnd_cut_approx=False, options=None,
@@ -1299,6 +1293,7 @@ class _GatherHEOMRHS:
         nhe : int
             The number of ADOs in the hierarchy.
     """
+
     def __init__(self, f_idx, block, nhe):
         self._block_size = block
         self._n_blocks = nhe
