@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 import scipy
 import scipy.interpolate
 import os
@@ -10,6 +11,7 @@ import glob
 import importlib
 import warnings
 import numbers
+from typing import Union, Callable, Any
 from collections import defaultdict
 from setuptools import setup, Extension
 try:
@@ -39,6 +41,17 @@ def _return(base, **kwargs):
     return base
 
 
+CoefficientLike = Union[
+    Coefficient,
+    str,
+    Callable[[float, ...], complex],
+    np.ndarray,
+    scipy.interpolate.PPoly,
+    scipy.interpolate.BSpline,
+    Any,
+]
+
+
 # The `coefficient` function is dispatcher for the type of the `base` to the
 # function that created the `Coefficient` object. `coefficient_builders` stores
 # the map `type -> function(base, **kw)`. Optional module can add their
@@ -51,9 +64,18 @@ coefficient_builders = {
 }
 
 
-def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                order=3, compile_opt=None, function_style=None,
-                boundary_conditions=None, **kwargs):
+def coefficient(
+    base: CoefficientLike,
+    *,
+    tlist: ArrayLike = None,
+    args: dict = {},
+    args_ctypes: dict = {},
+    order: int = 3,
+    compile_opt: dict = None,
+    function_style: str = None,
+    boundary_conditions: tuple | str = None,
+    **kwargs
+):
     """Build ``Coefficient`` for time dependent systems:
 
     ```

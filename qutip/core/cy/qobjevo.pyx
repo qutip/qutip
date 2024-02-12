@@ -5,12 +5,12 @@ import numpy as np
 import numbers
 import itertools
 from functools import partial
-
+from typing import Union, Callable, Tuple, List
 import qutip
 from .. import Qobj
 from .. import data as _data
 from ..dimensions import Dimensions
-from ..coefficient import coefficient, CompilationOptions
+from ..coefficient import coefficient, CompilationOptions, CoefficientLike
 from ._element import *
 from qutip.settings import settings
 
@@ -186,9 +186,18 @@ cdef class QobjEvo:
         qevo = H0 + H1 * coeff
 
     """
-    def __init__(QobjEvo self, Q_object, args=None, *, copy=True, compress=True,
-                 function_style=None,
-                 tlist=None, order=3, boundary_conditions=None):
+    def __init__(
+        QobjEvo self,
+        Q_object: QobjEvoLike,
+        args: dict = None,
+        *,
+        copy: bool = True,
+        compress: bool = True,
+        function_style: str = None,
+        tlist: ArrayLike = None,
+        order: int = 3,
+        boundary_conditions: tuple | str = None,
+    ):
         if isinstance(Q_object, QobjEvo):
             self._dims = Q_object._dims
             self.shape = Q_object.shape
@@ -1108,3 +1117,6 @@ class _Feedback:
         Raise an error when the dims of the e_ops / state don't match.
         Tell the dims to the feedback for reconstructing the Qobj.
         """
+
+Element = Union[Callable[[float, ...], Qobj], Qobj, Tuple[Qobj, CoefficientLike]]
+QobjEvoLike = Union[Qobj, QobjEvo, Element, List[Element]]

@@ -6,8 +6,11 @@ equation.
 __all__ = ['mesolve', 'MESolver']
 
 import numpy as np
+from numpy.typing import ArrayLike
+from typing import Any, Iterable, Mapping
 from time import time
 from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
+from ..core.cy.qobjevo import QobjEvoLike
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from .solver_base import Solver, _solver_deprecation
@@ -15,8 +18,16 @@ from .sesolve import sesolve, SESolver
 from ._feedback import _QobjFeedback, _DataFeedback
 
 
-def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
-            **kwargs):
+def mesolve(
+    H: QobjEvoLike,
+    rho0: Qobj,
+    tlist: ArrayLike,
+    c_ops: QobjEvoLike | Iterable[QobjEvoLike] = None,
+    e_ops: QobjEvoLike | Mapping[Any, QobjEvoLike] = None,
+    args: dict[str, Any] = None,
+    options: dict = None,
+    **kwargs
+):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
@@ -192,7 +203,7 @@ class MESolver(SESolver):
         'method': 'adams',
     }
 
-    def __init__(self, H, c_ops=None, *, options=None):
+    def __init__(self, H: Qobj | QobjEvo, c_ops: list[Qobj | QobjEvo] = None, *, options: dict=None):
         _time_start = time()
 
         if not isinstance(H, (Qobj, QobjEvo)):
