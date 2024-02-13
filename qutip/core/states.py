@@ -295,7 +295,9 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
-    return coherent(N, alpha, offset=offset, method=method, dtype=dtype).proj()
+    return coherent(
+        N, alpha, offset=offset, method=method, dtype=dtype
+    ).proj().to(dtype)
 
 
 def fock_dm(dimensions, n=None, offset=None, *, dtype=None):
@@ -340,7 +342,7 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
-    return basis(dimensions, n, offset=offset, dtype=dtype).proj()
+    return basis(dimensions, n, offset=offset, dtype=dtype).proj().to(dtype)
 
 
 def fock(dimensions, n=None, offset=None, *, dtype=None):
@@ -550,8 +552,10 @@ def projection(N, n, m, offset=None, *, dtype=None):
          Requested projection operator.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    return basis(N, n, offset=offset, dtype=dtype) @ \
-           basis(N, m, offset=offset, dtype=dtype).dag()
+    return (
+        basis(N, n, offset=offset, dtype=dtype) @ \
+        basis(N, m, offset=offset, dtype=dtype).dag()
+    ).to(dtype)
 
 
 def qstate(string, *, dtype=None):
@@ -1154,10 +1158,15 @@ def triplet_states(*, dtype=None):
     trip_states : list
         2 particle triplet states
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     return [
         basis([2, 2], [1, 1], dtype=dtype),
-        np.sqrt(0.5) * (basis([2, 2], [0, 1], dtype=dtype) +
-                        basis([2, 2], [1, 0], dtype=dtype)),
+        (
+            np.sqrt(0.5) * (
+                basis([2, 2], [0, 1], dtype=dtype) +
+                basis([2, 2], [1, 0], dtype=dtype)
+            )
+        ).to(dtype),
         basis([2, 2], [0, 0], dtype=dtype),
     ]
 
@@ -1181,12 +1190,13 @@ def w_state(N=3, *, dtype=None):
     W : :obj:`.Qobj`
         N-qubit W-state
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     inds = np.zeros(N, dtype=int)
     inds[0] = 1
     state = basis([2]*N, list(inds), dtype=dtype)
     for kk in range(1, N):
         state += basis([2]*N, list(np.roll(inds, kk)), dtype=dtype)
-    return np.sqrt(1 / N) * state
+    return (np.sqrt(1 / N) * state).to(dtype)
 
 
 def ghz_state(N=3, *, dtype=None):
@@ -1208,5 +1218,10 @@ def ghz_state(N=3, *, dtype=None):
     G : qobj
         N-qubit GHZ-state
     """
-    return np.sqrt(0.5) * (basis([2]*N, [0]*N, dtype=dtype) +
-                           basis([2]*N, [1]*N, dtype=dtype))
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    return (
+        np.sqrt(0.5) * (
+            basis([2]*N, [0]*N, dtype=dtype) +
+            basis([2]*N, [1]*N, dtype=dtype)
+        )
+    ).to(dtype)
