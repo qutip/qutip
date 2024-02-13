@@ -52,7 +52,7 @@ We are proud to be affiliated with [Unitary Fund](https://unitary.fund) and [num
 We are grateful for [Nori's lab](https://dml.riken.jp/) at RIKEN and [Blais' lab](https://www.physique.usherbrooke.ca/blais/) at the Institut Quantique
 for providing developer positions to work on QuTiP.
 
-We also thank Google for supporting us by financing GSoC student to work on the QuTiP as well as [other supporting organizations](https://qutip.org/#supporting-organizations) that have been supporting QuTiP over the years.
+We also thank Google for supporting us by financing GSoC students to work on the QuTiP as well as [other supporting organizations](https://qutip.org/#supporting-organizations) that have been supporting QuTiP over the years.
 
 
 Installation
