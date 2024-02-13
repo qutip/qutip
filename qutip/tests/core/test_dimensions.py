@@ -162,3 +162,30 @@ class TestCollapseDims:
 def test_bad_dims(dims_list):
     with pytest.raises(ValueError):
         Dimensions([dims_list, [1]])
+
+
+@pytest.mark.parametrize("space_l", [[1], [2], [2, 3]])
+@pytest.mark.parametrize("space_m", [[1], [2], [2, 3]])
+@pytest.mark.parametrize("space_r", [[1], [2], [2, 3]])
+def test_dims_matmul(space_l, space_m, space_r):
+    dims_l = Dimensions([space_l, space_m])
+    dims_r = Dimensions([space_m, space_r])
+    assert dims_l @ dims_r == Dimensions([space_l, space_r])
+
+
+def test_dims_matmul_bad():
+    dims_l = Dimensions([[1], [3]])
+    dims_r = Dimensions([[2], [2]])
+    with pytest.raises(TypeError):
+        dims_l @ dims_r
+
+
+def test_dims_comparison():
+    assert Dimensions([[1], [2]]) == Dimensions([[1], [2]])
+    assert not Dimensions([[1], [2]]) != Dimensions([[1], [2]])
+    assert Dimensions([[1], [2]]) != Dimensions([[2], [1]])
+    assert not Dimensions([[1], [2]]) == Dimensions([[2], [1]])
+    assert Dimensions([[1], [2]])[1] == Dimensions([[1], [2]])[1]
+    assert Dimensions([[1], [2]])[0] != Dimensions([[1], [2]])[1]
+    assert not Dimensions([[1], [2]])[1] != Dimensions([[1], [2]])[1]
+    assert not Dimensions([[1], [2]])[0] != Dimensions([[1], [2]])[0]

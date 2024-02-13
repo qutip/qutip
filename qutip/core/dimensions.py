@@ -803,6 +803,25 @@ class Dimensions(metaclass=MetaDims):
             )
         return NotImplemented
 
+    def __ne__(self, other):
+        if isinstance(other, Dimensions):
+            return not (
+                self is other
+                or (
+                    self.to_ == other.to_
+                    and self.from_ == other.from_
+                )
+            )
+        return NotImplemented
+
+    def __matmul__(self, other):
+        if self.from_ != other.to_:
+            raise TypeError(f"incompatible dimensions {self} and {other}")
+        args = other.from_, self.to_
+        if args in Dimensions._stored_dims:
+            return Dimensions._stored_dims[args]
+        return Dimensions(*args)
+
     def __hash__(self):
         return hash((self.to_, self.from_))
 

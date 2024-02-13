@@ -41,7 +41,7 @@ Random Operators and States
 ---------------------------
 
 .. automodule:: qutip.random_objects
-    :members: rand_dm, rand_herm, rand_ket, rand_stochastic, rand_unitary, rand_super, rand_super_bcsz
+    :members: rand_dm, rand_herm, rand_ket, rand_stochastic, rand_unitary, rand_super, rand_super_bcsz, rand_kraus_map
 
 
 Superoperators and Liouvillians
@@ -297,7 +297,7 @@ Parallelization
 ---------------
 
 .. automodule:: qutip.solver.parallel
-    :members: parallel_map, serial_map, loky_pmap
+    :members: parallel_map, serial_map, loky_pmap, mpi_pmap
 
 
 .. _functions-ipython:
