@@ -70,7 +70,7 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
     return I
 
 
-def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None, 
+def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                             sparse=True, method='direct'):
     """
     Compute the cross-current noise spectrum for a list of collapse operators
@@ -79,21 +79,21 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     of the dissipative processes in `L`, but the `c_ops` given here does not
     necessarily need to be all collapse operators contributing to dissipation
     in the Liouvillian. Optionally, the steadystate density matrix `rhoss`
-    and the current operators `J_ops` correpsonding to the current collapse 
+    and the current operators `J_ops` correpsonding to the current collapse
     operators `c_ops` can also be specified. If either of
     `rhoss` and `J_ops` are omitted, they will be computed internally.
-    'wlist' is an optional list of frequencies at which to evaluate the noise 
-    spectrum.  
-    
+    'wlist' is an optional list of frequencies at which to evaluate the noise
+    spectrum.
+
     Note:
-    The default method is a direct solution using dense matrices, as sparse 
+    The default method is a direct solution using dense matrices, as sparse
     matrix methods fail for some examples of small systems.
     For larger systems it is reccomended to use the sparse solver
     with the direct method, as it avoids explicit calculation of the
     pseudo-inverse, as described in page 67 of "Electrons in nanostructures"
     C. Flindt, PhD Thesis, available online:
     https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/file_4732600/content
-    
+
     Parameters
     ----------
 
@@ -106,9 +106,9 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     rhoss : :class:`qutip.Qobj` (optional)
         The steadystate density matrix corresponding the system Liouvillian
         `L`.
-        
+
     wlist : array / list (optional)
-        List of frequencies at which to evaluate (if none are given, evaluates 
+        List of frequencies at which to evaluate (if none are given, evaluates
         at zero frequency)
 
     J_ops : array / list (optional)
@@ -118,9 +118,9 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
         Flag that indicates whether to use sparse or dense matrix methods when
         computing the pseudo inverse. Default is false, as sparse solvers
         can fail for small systems. For larger systems the sparse solvers
-        are reccomended. 
-        
-        
+        are reccomended.
+
+
     Returns
     --------
     I, S : tuple of arrays
@@ -135,18 +135,18 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     if J_ops is None:
         J_ops = [sprepost(c, c.dag()) for c in c_ops]
 
-    
+
 
     N = len(J_ops)
     I = np.zeros(N)
-    
+
     if wlist is None:
         S = np.zeros((N, N,1))
         wlist=[0.]
     else:
         S = np.zeros((N, N,len(wlist)))
-        
-    if sparse == False: 
+
+    if sparse == False:
         rhoss_vec = mat2vec(rhoss.full()).ravel()
         for k,w in enumerate(wlist):
             R = pseudo_inverse(L, rhoss=rhoss, w= w, sparse = sparse, method=method)
@@ -155,44 +155,46 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                     if i == j:
                         I[i] = expect_rho_vec(Ji.data, rhoss_vec, 1)
                         S[i, j,k] = I[i]
-                    S[i, j,k] -= expect_rho_vec((Ji * R * Jj 
+                    S[i, j,k] -= expect_rho_vec((Ji * R * Jj
                                                 + Jj * R * Ji).data,
                                                 rhoss_vec, 1)
     else:
         if method == "direct":
             N = np.prod(L.dims[0][0])
-            
+
             rhoss_vec = operator_to_vector(rhoss)
-            
+
             tr_op = tensor([identity(n) for n in L.dims[0][0]])
             tr_op_vec = operator_to_vector(tr_op)
-            
+
             Pop = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csr')
             Iop = sp.eye(N*N, N*N, format='csr')
             Q = Iop - Pop
-            
+
             for k,w in enumerate(wlist):
-                
-                if w != 0.0:    
+
+                if w != 0.0:
                     L_temp = 1.0j*w*spre(tr_op) + L
-                else: #At zero frequency some solvers fail for small systems.
-                      #Adding a small finite frequency of order 1e-15
-                      #helps prevent the solvers from throwing an exception.
-                    L_temp =  1.0j*(1e-15)*spre(tr_op) + L
-                    
+                else:
+                    # At zero frequency some solvers fail for small systems.
+                    # Adding a small finite frequency of order 1e-12
+                    # helps prevent the solvers from returning wrong results.
+                    # Anything under 1e-12 is removed by the auto_tidyup.
+                    L_temp =  1.0j*(1e-12)*spre(tr_op) + L
+
                 if not settings.has_mkl:
                     A = L_temp.data.tocsc()
                 else:
                     A = L_temp.data.tocsr()
-                    A.sort_indices()                      
-                      
-                rhoss_vec = mat2vec(rhoss.full()).ravel()               
-                
+                    A.sort_indices()
+
+                rhoss_vec = mat2vec(rhoss.full()).ravel()
+
                 for j, Jj in enumerate(J_ops):
                     Qj = Q.dot( Jj.data.dot( rhoss_vec))
                     try:
                         if settings.has_mkl:
-                            X_rho_vec_j = mkl_spsolve(A,Qj)                            
+                            X_rho_vec_j = mkl_spsolve(A,Qj)
                         else:
                             X_rho_vec_j = sp.linalg.splu(A, permc_spec
                                                  ='COLAMD').solve(Qj)
@@ -201,36 +203,36 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                     for i, Ji in enumerate(J_ops):
                         Qi = Q.dot( Ji.data.dot(rhoss_vec))
                         try:
-                            if settings.has_mkl:                              
-                                X_rho_vec_i = mkl_spsolve(A,Qi)  
+                            if settings.has_mkl:
+                                X_rho_vec_i = mkl_spsolve(A,Qi)
                             else:
                                 X_rho_vec_i = sp.linalg.splu(A, permc_spec
                                                      ='COLAMD').solve(Qi)
                         except:
                              X_rho_vec_i = sp.linalg.lsqr(A,Qi)[0]
                         if i == j:
-                            I[i] = expect_rho_vec(Ji.data, 
+                            I[i] = expect_rho_vec(Ji.data,
                                                  rhoss_vec, 1)
                             S[j, i, k] = I[i]
-                        
-                        S[j, i, k] -= (expect_rho_vec(Jj.data * Q, 
-                                        X_rho_vec_i, 1) 
-                                        + expect_rho_vec(Ji.data * Q, 
+
+                        S[j, i, k] -= (expect_rho_vec(Jj.data * Q,
+                                        X_rho_vec_i, 1)
+                                        + expect_rho_vec(Ji.data * Q,
                                         X_rho_vec_j, 1))
 
         else:
             rhoss_vec = mat2vec(rhoss.full()).ravel()
             for k,w in enumerate(wlist):
 
-                R = pseudo_inverse(L,rhoss=rhoss, w= w, sparse = sparse, 
+                R = pseudo_inverse(L,rhoss=rhoss, w= w, sparse = sparse,
                                    method=method)
-                                   
+
                 for i, Ji in enumerate(J_ops):
                     for j, Jj in enumerate(J_ops):
                         if i == j:
                             I[i] = expect_rho_vec(Ji.data, rhoss_vec, 1)
                             S[i, j, k] = I[i]
-                        S[i, j, k] -= expect_rho_vec((Ji * R * Jj 
+                        S[i, j, k] -= expect_rho_vec((Ji * R * Jj
                                                      + Jj * R * Ji).data,
                                                      rhoss_vec, 1)
     return I, S
