@@ -320,10 +320,12 @@ def test_qeye_like(dims, superrep, dtype):
     expected = qutip.qeye(dims, dtype=dtype)
     expected.superrep = superrep
     assert new == expected
+    assert new.dtype is qutip.data.to.parse(dtype)
 
     opevo = qutip.QobjEvo(op)
     new = qutip.qeye_like(op)
     assert new == expected
+    assert new.dtype is qutip.data.to.parse(dtype)
 
 
 @pytest.mark.parametrize(["dims", "superrep"], [
@@ -340,10 +342,12 @@ def test_qzero_like(dims, superrep, dtype):
     expected = qutip.qzero(dims, dtype=dtype)
     expected.superrep = superrep
     assert new == expected
+    assert new.dtype is qutip.data.to.parse(dtype)
 
     opevo = qutip.QobjEvo(op)
     new = qutip.qzero_like(op)
     assert new == expected
+    assert new.dtype is qutip.data.to.parse(dtype)
 
 
 @pytest.mark.parametrize('n_sites', [2, 3, 4, 5])
