@@ -1,7 +1,9 @@
 """ Class for solve function results"""
 
-from typing import TypedDict
+from typing import TypedDict, Any
 import numpy as np
+from numbers import Number
+from numpy.typing import ArrayLike
 from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero_like
 
 __all__ = [
@@ -130,7 +132,7 @@ class _BaseResult:
 
 
 class ResultOptions(TypedDict):
-    store_states: bool
+    store_states: bool | None
     store_final_state: bool
 
 
@@ -218,19 +220,18 @@ class Result(_BaseResult):
 
     times: list[float]
     states: list[Qobj]
-    final_state : Qobj
     options: ResultOptions
+    e_data : dict[Any, list[Any]]
 
     def __init__(
         self,
         e_ops,
         options: ResultOptions,
         *,
-        solver=None,
-        stats=None,
+        solver: str = None,
+        stats: dict[str, Any] = None,
         **kw,
     ):
-
         super().__init__(options, solver=solver, stats=stats)
         raw_ops = self._e_ops_to_dict(e_ops)
         self.e_data = {k: [] for k in raw_ops}
@@ -359,11 +360,11 @@ class Result(_BaseResult):
         return "\n".join(lines)
 
     @property
-    def expect(self):
+    def expect(self) -> list[ArrayLike]:
         return [np.array(e_op) for e_op in self.e_data.values()]
 
     @property
-    def final_state(self):
+    def final_state(self) -> Qobj:
         if self._final_state is not None:
             return self._final_state
         if self.states:
@@ -372,7 +373,7 @@ class Result(_BaseResult):
 
 
 class MultiTrajResultOptions(TypedDict):
-    store_states: bool
+    store_states: bool | None
     store_final_state: bool
     keep_runs_results: bool
 
@@ -499,6 +500,12 @@ class MultiTrajResult(_BaseResult):
     """
 
     options: MultiTrajResultOptions
+    trajectories: list[Result]
+    num_trajectories: int
+    seeds: list
+    runs_e_data: dict[Any, Number]
+    std_e_data: dict[Any, Number]
+    average_e_data: dict[Any, Number]
 
     def __init__(
         self,
@@ -766,7 +773,7 @@ class MultiTrajResult(_BaseResult):
         self._early_finish_check = self._target_tolerance_end
 
     @property
-    def runs_states(self):
+    def runs_states(self) -> list[list[Qobj]]:
         """
         States of every runs as ``states[run][t]``.
         """
@@ -776,7 +783,7 @@ class MultiTrajResult(_BaseResult):
             return None
 
     @property
-    def average_states(self):
+    def average_states(self) -> list[Qobj]:
         """
         States averages as density matrices.
         """
@@ -802,7 +809,7 @@ class MultiTrajResult(_BaseResult):
         return self.runs_states or self.average_states
 
     @property
-    def runs_final_states(self):
+    def runs_final_states(self) -> list[Qobj]:
         """
         Last states of each trajectories.
         """
@@ -812,7 +819,7 @@ class MultiTrajResult(_BaseResult):
             return None
 
     @property
-    def average_final_state(self):
+    def average_final_state(self) -> Qobj:
         """
         Last states of each trajectories averaged into a density matrix.
         """
@@ -830,26 +837,26 @@ class MultiTrajResult(_BaseResult):
         return self.runs_final_states or self.average_final_state
 
     @property
-    def average_expect(self):
+    def average_expect(self) -> list[ArrayLike]:
         return [np.array(val) for val in self.average_e_data.values()]
 
     @property
-    def std_expect(self):
+    def std_expect(self) -> list[ArrayLike]:
         return [np.array(val) for val in self.std_e_data.values()]
 
     @property
-    def runs_expect(self):
+    def runs_expect(self) -> list[ArrayLike]:
         return [np.array(val) for val in self.runs_e_data.values()]
 
     @property
-    def expect(self):
+    def expect(self) -> list[ArrayLike]:
         return [np.array(val) for val in self.e_data.values()]
 
     @property
-    def e_data(self):
+    def e_data(self) -> list[ArrayLike]:
         return self.runs_e_data or self.average_e_data
 
-    def steady_state(self, N=0):
+    def steady_state(self, N=0) -> Qobj:
         """
         Average the states of the last ``N`` times of every runs as a density
         matrix. Should converge to the steady state in the right circumstances.
@@ -1022,7 +1029,7 @@ class McResult(MultiTrajResult):
         self.add_processor(self._add_collapse)
 
     @property
-    def col_times(self):
+    def col_times(self) -> list[list[float]]:
         """
         List of the times of the collapses for each runs.
         """
@@ -1034,7 +1041,7 @@ class McResult(MultiTrajResult):
         return out
 
     @property
-    def col_which(self):
+    def col_which(self) -> list[list[int]]:
         """
         List of the indexes of the collapses for each runs.
         """
@@ -1046,7 +1053,7 @@ class McResult(MultiTrajResult):
         return out
 
     @property
-    def photocurrent(self):
+    def photocurrent(self) -> list[ArrayLike]:
         """
         Average photocurrent or measurement of the evolution.
         """
@@ -1064,7 +1071,7 @@ class McResult(MultiTrajResult):
         return mesurement
 
     @property
-    def runs_photocurrent(self):
+    def runs_photocurrent(self) -> list[list[ArrayLike]]:
         """
         Photocurrent or measurement of each runs.
         """
