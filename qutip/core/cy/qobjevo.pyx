@@ -5,7 +5,7 @@ import numpy as np
 import numbers
 import itertools
 from functools import partial
-from typing import Union, Callable, Tuple, List
+from typing import Union, Callable, Tuple, List, Dict
 import qutip
 from .. import Qobj
 from .. import data as _data
@@ -189,14 +189,14 @@ cdef class QobjEvo:
     def __init__(
         QobjEvo self,
         Q_object: QobjEvoLike,
-        args: dict = None,
+        args: Dict[str, Any] = None,
         *,
         copy: bool = True,
         compress: bool = True,
         function_style: str = None,
         tlist: ArrayLike = None,
         order: int = 3,
-        boundary_conditions: tuple | str = None,
+        boundary_conditions: Union[tuple, str] = None,
     ):
         if isinstance(Q_object, QobjEvo):
             self._dims = Q_object._dims

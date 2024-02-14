@@ -7,7 +7,7 @@ __all__ = ['mesolve', 'MESolver']
 
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, Sequence
 from time import time
 from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
 from ..core.cy.qobjevo import QobjEvoLike
@@ -142,7 +142,7 @@ def mesolve(
     H = QobjEvo(H, args=args, tlist=tlist)
 
     c_ops = c_ops if c_ops is not None else []
-    if not isinstance(c_ops, (list, tuple)):
+    if not isinstance(c_ops, Iterable):
         c_ops = [c_ops]
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
@@ -193,7 +193,7 @@ class MESolver(SESolver):
         Diverse diagnostic statistics of the evolution.
     """
     name = "mesolve"
-    _avail_integrators = {}
+    _avail_integrators: dict[str, object] = {}
     solver_options = {
         "progress_bar": "",
         "progress_kwargs": {"chunk_size":10},
@@ -203,7 +203,7 @@ class MESolver(SESolver):
         'method': 'adams',
     }
 
-    def __init__(self, H: Qobj | QobjEvo, c_ops: list[Qobj | QobjEvo] = None, *, options: dict=None):
+    def __init__(self, H: Qobj | QobjEvo, c_ops: Qobj | QobjEvo | Sequence[Qobj | QobjEvo] = None, *, options: dict=None):
         _time_start = time()
 
         if not isinstance(H, (Qobj, QobjEvo)):
