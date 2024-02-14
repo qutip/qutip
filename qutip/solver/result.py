@@ -2,8 +2,8 @@
 
 from typing import TypedDict, Any
 import numpy as np
-from numbers import Number
 from numpy.typing import ArrayLike
+from numbers import Number
 from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero_like
 
 __all__ = [

@@ -6,6 +6,7 @@ import numbers
 import itertools
 from functools import partial
 from typing import Union, Callable, Tuple, List, Dict
+from typing_extensions import Protocol
 import qutip
 from .. import Qobj
 from .. import data as _data
@@ -1118,5 +1119,10 @@ class _Feedback:
         Tell the dims to the feedback for reconstructing the Qobj.
         """
 
-Element = Union[Callable[[float, ...], Qobj], Qobj, Tuple[Qobj, CoefficientLike]]
+
+class QEvoFunction(Protocol):
+    def __call__(self, t: Number, **kwargs) -> Qobj:
+        ...
+
+Element = Union[QEvoFunction, Qobj, Sequence[Qobj, CoefficientLike]]
 QobjEvoLike = Union[Qobj, QobjEvo, Element, List[Element]]

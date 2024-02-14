@@ -39,37 +39,37 @@ _CALL_ALLOWED = {
 }
 
 
-def isbra(x):
+def isbra(x: Qobj | "QobjEvo"):
     from .cy.qobjevo import QobjEvo
     return isinstance(x, (Qobj, QobjEvo)) and x.type in ['bra', 'scalar']
 
 
-def isket(x):
+def isket(x: Qobj | "QobjEvo"):
     from .cy.qobjevo import QobjEvo
     return isinstance(x, (Qobj, QobjEvo)) and x.type in ['ket', 'scalar']
 
 
-def isoper(x):
+def isoper(x: Qobj | "QobjEvo"):
     from .cy.qobjevo import QobjEvo
     return isinstance(x, (Qobj, QobjEvo)) and x.type in ['oper', 'scalar']
 
 
-def isoperbra(x):
+def isoperbra(x: Qobj | "QobjEvo"):
     from .cy.qobjevo import QobjEvo
     return isinstance(x, (Qobj, QobjEvo)) and x.type in ['operator-bra']
 
 
-def isoperket(x):
+def isoperket(x: Qobj | "QobjEvo"):
     from .cy.qobjevo import QobjEvo
     return isinstance(x, (Qobj, QobjEvo)) and x.type in ['operator-ket']
 
 
-def issuper(x):
+def issuper(x: Qobj | "QobjEvo"):
     from .cy.qobjevo import QobjEvo
     return isinstance(x, (Qobj, QobjEvo)) and x.type in ['super']
 
 
-def isherm(x):
+def isherm(x: Qobj | "QobjEvo"):
     return isinstance(x, Qobj) and x.isherm
 
 

@@ -1,12 +1,19 @@
 from qutip.typing import LayerType
 from qutip.core.qobj import Qobj
 from qutip.core.data import Data
-from qutip.core.dimensions import Dimensions
-from qutip.core.coeffient import Coefficient
-from typing import Any, ClassVar, overload, Callable, Dict, Tuple, List, Union
+from qutip.core.coefficient import Coefficient, CoefficientLike
+from numbers import Number
+from typing import Any, overload, Callable, Dict, Tuple, List, Union, Sequence
+from typing_extensions import Protocol
 
-Element = Union[Callable[[float, ...], Qobj], Qobj, Tuple[Qobj, CoefficientLike]]
-QobjEvoLike = Union[Qobj, QobjEvo, Element, List[Element]]
+
+class QEvoFunction(Protocol):
+    def __call__(self, t: Number, **kwargs) -> Qobj:
+        ...
+
+
+Element = Union[QEvoFunction, Qobj, Sequence[Qobj, CoefficientLike]]
+QobjEvoLike = Union[Qobj, QobjEvo, Element, Sequence[Element]]
 
 class QobjEvo:
     dims: list

@@ -16,9 +16,6 @@ from ._feedback import _QobjFeedback, _DataFeedback
 from . import Result
 
 
-E_opType = Qobj | QobjEvo | Callable[[float, Qobj], Any]
-
-
 def sesolve(
     H: QobjEvoLike,
     psi0: Qobj,

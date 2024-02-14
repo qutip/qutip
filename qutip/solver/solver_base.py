@@ -116,7 +116,7 @@ class Solver:
         *,
         e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
         args: dict[str, Any] = None,
-    ) -> _resultclass:
+    ) -> Result:
         """
         Do the evolution of the Quantum system.
 
