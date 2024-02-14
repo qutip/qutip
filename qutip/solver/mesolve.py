@@ -7,27 +7,28 @@ __all__ = ['mesolve', 'MESolver']
 
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Callable
 from time import time
 from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
 from ..core.cy.qobjevo import QobjEvoLike
 from ..core import stack_columns, unstack_columns
-from ..core.data import to
+from ..core import data as _data
 from .solver_base import Solver, _solver_deprecation
 from .sesolve import sesolve, SESolver
 from ._feedback import _QobjFeedback, _DataFeedback
+from . import Result
 
 
 def mesolve(
     H: QobjEvoLike,
     rho0: Qobj,
     tlist: ArrayLike,
-    c_ops: QobjEvoLike | Iterable[QobjEvoLike] = None,
-    e_ops: QobjEvoLike | Mapping[Any, QobjEvoLike] = None,
+    c_ops: QobjEvoLike | list[QobjEvoLike] = None,
+    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
     args: dict[str, Any] = None,
-    options: dict = None,
+    options: dict[str, Any] = None,
     **kwargs
-):
+) -> Result:
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
@@ -142,7 +143,7 @@ def mesolve(
     H = QobjEvo(H, args=args, tlist=tlist)
 
     c_ops = c_ops if c_ops is not None else []
-    if not isinstance(c_ops, Iterable):
+    if not isinstance(c_ops, (list, tuple)):
         c_ops = [c_ops]
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
@@ -203,7 +204,13 @@ class MESolver(SESolver):
         'method': 'adams',
     }
 
-    def __init__(self, H: Qobj | QobjEvo, c_ops: Qobj | QobjEvo | Sequence[Qobj | QobjEvo] = None, *, options: dict=None):
+    def __init__(
+        self,
+        H: Qobj | QobjEvo,
+        c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo] = None,
+        *,
+        options: dict=None
+    ):
         _time_start = time()
 
         if not isinstance(H, (Qobj, QobjEvo)):
@@ -231,7 +238,12 @@ class MESolver(SESolver):
         return stats
 
     @classmethod
-    def StateFeedback(cls, default=None, raw_data=False, prop=False):
+    def StateFeedback(
+        cls,
+        default: Qobj | _data.Data = None,
+        raw_data: bool = False,
+        prop: bool = False
+    ):
         """
         State of the evolution to be used in a time-dependent operator.
 

@@ -199,6 +199,12 @@ class Result(_BaseResult):
     options : dict
         The options for this result class.
     """
+
+    times: list[float]
+    states: list[Qobj]
+    final_state : Qobj
+
+
     def __init__(self, e_ops, options, *, solver=None, stats=None, **kw):
         super().__init__(options, solver=solver, stats=stats)
         raw_ops = self._e_ops_to_dict(e_ops)
