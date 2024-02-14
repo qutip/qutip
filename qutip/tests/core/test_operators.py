@@ -328,6 +328,13 @@ def test_qeye_like(dims, superrep, dtype):
     assert new.dtype is qutip.data.to.parse(dtype)
 
 
+def test_qeye_like_error():
+    with pytest.raises(ValueError) as err:
+        qutip.qeye_like(qutip.basis(3))
+
+    assert "non square matrix" in str(err.value)
+
+
 @pytest.mark.parametrize(["dims", "superrep"], [
     pytest.param([2], None, id="simple"),
     pytest.param([2, 3], None, id="tensor"),

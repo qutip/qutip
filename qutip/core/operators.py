@@ -766,7 +766,9 @@ def qeye_like(qobj):
 
     """
     if qobj.shape[0] != qobj.shape[1]:
-        raise ValueError(f"Cannot build a {qobj.shape} identity matrix.")
+        raise ValueError(
+            "Can't create an identity matrix like a non square matrix."
+        )
     return Qobj(
         _data.identity[qobj.dtype](qobj.shape[0]), dims=qobj._dims,
         isherm=True, isunitary=False, copy=False
