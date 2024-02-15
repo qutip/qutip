@@ -1152,15 +1152,16 @@ class TestHEOMSolver:
                   * d_2) + U * d_1.dag() * d_1 * d_2.dag() * d_2
 
         L = liouvillian(H)
-        bath1 = LorentzianPadeBath(
+        bath1 = LorentzianBath(
             Q=d_1, gamma=2 * Gamma, w=W, mu=mu, T=1 / beta, Nk=Nk,
             tag="Lead 1")
-        bath2 = LorentzianPadeBath(
+        bath2 = LorentzianBath(
             Q=d_2, gamma=2 * Gamma, w=W, mu=mu, T=1 / beta, Nk=Nk,
             tag="Lead 2")
         resultHEOMPade = HEOMSolver(L, [bath1, bath2], depth, odd_parity=True)
         rhoss, _ = resultHEOMPade.steady_state()
         rhoss = rhoss.full()
+        print(rhoss)
         expected_odd = np.diag(
             [0.68472977, -0.18472977, -0.18472977, 0.68472977])
         expected = np.diag([0.39376747, 0.10623253, 0.10623253, 0.39376747])
@@ -1168,6 +1169,7 @@ class TestHEOMSolver:
         resultHEOMPade = HEOMSolver(L, [bath1, bath2], depth, odd_parity=False)
         rhoss, _ = resultHEOMPade.steady_state()
         rhoss = rhoss.full()
+        print(rhoss)
         assert np.isclose(rhoss, expected).all()
 
 
