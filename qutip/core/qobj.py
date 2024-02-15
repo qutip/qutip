@@ -19,7 +19,7 @@ from .dimensions import (
     enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions
 )
 
-__all__ = ['Qobj', 'ptrace',]
+__all__ = ['Qobj', 'ptrace']
 
 
 _NORM_FUNCTION_LOOKUP = {
@@ -1621,7 +1621,7 @@ class Qobj:
                 warnings.warn("Ground state may be degenerate.", UserWarning)
         return evals[0], evecs[0]
 
-    def dnorm(self, B: Qobj = None) -> float:
+    def dnorm(self, B: Qobj = None) -> numbers.Number:
         """Calculates the diamond norm, or the diamond distance to another
         operator.
 

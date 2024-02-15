@@ -11,7 +11,6 @@ import glob
 import importlib
 import warnings
 import numbers
-from typing import Union, Callable, Any
 from collections import defaultdict
 from setuptools import setup, Extension
 try:

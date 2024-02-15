@@ -1,9 +1,8 @@
-from typing import Sequence, Union, Any, Callable
+from typing import Sequence, Union, Any, Callable, Protocol
 
 # from .core.cy.qobjEvo import QobjEvoLike, Element
 # from .core.coeffients import CoefficientLike
 from numbers import Number
-from typing_extensions import Protocol
 import numpy as np
 import scipy.interpolate
 

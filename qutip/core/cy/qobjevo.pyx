@@ -5,7 +5,7 @@ import numpy as np
 import numbers
 import itertools
 from functools import partial
-from typing import Union
+
 import qutip
 from .. import Qobj
 from .. import data as _data
@@ -13,7 +13,6 @@ from ..dimensions import Dimensions
 from ..coefficient import coefficient, CompilationOptions
 from ._element import *
 from qutip.settings import settings
-from qutip.typing import QobjEvoLike
 
 from qutip.core.cy._element cimport _BaseElement
 from qutip.core.data cimport Dense, Data, dense
@@ -187,18 +186,9 @@ cdef class QobjEvo:
         qevo = H0 + H1 * coeff
 
     """
-    def __init__(
-        QobjEvo self,
-        object Q_object,
-        dict args = None,
-        *,
-        bint copy = True,
-        bint compress = True,
-        str function_style = None,
-        tlist = None,
-        int order = 3,
-        object boundary_conditions = None,
-    ):
+    def __init__(QobjEvo self, Q_object, args=None, *, copy=True, compress=True,
+                 function_style=None,
+                 tlist=None, order=3, boundary_conditions=None):
         if isinstance(Q_object, QobjEvo):
             self._dims = Q_object._dims
             self.shape = Q_object.shape
