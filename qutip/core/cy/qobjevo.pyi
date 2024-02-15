@@ -1,19 +1,11 @@
-from qutip.typing import LayerType
+from qutip.typing import LayerType, ElementType, QobjEvoLike
 from qutip.core.qobj import Qobj
 from qutip.core.data import Data
-from qutip.core.coefficient import Coefficient, CoefficientLike
+from qutip.core.coefficient import Coefficient
 from numbers import Number
-from typing import Any, overload, Callable, Dict, Tuple, List, Union, Sequence
-from typing_extensions import Protocol
+from numpy.typing import ArrayLike
+from typing import Any, overload, Callable, Dict, Tuple, List, Union
 
-
-class QEvoFunction(Protocol):
-    def __call__(self, t: Number, **kwargs) -> Qobj:
-        ...
-
-
-Element = Union[QEvoFunction, Qobj, Sequence[Qobj, CoefficientLike]]
-QobjEvoLike = Union[Qobj, QobjEvo, Element, Sequence[Element]]
 
 class QobjEvo:
     dims: list
@@ -56,7 +48,7 @@ class QobjEvo:
     def expect_data(self, t: Number, state: Data) -> Number: ...
     def matmul(self, t: Number, state: Qobj) -> Qobj: ...
     def matmul_data(self, t: Number, state: Data, out: Data = None) -> Data: ...
-    def to_list(self) -> List[Element]: ...
+    def to_list(self) -> List[ElementType]: ...
     def __add__(self, other: Union[QobjEvo, Qobj, Number]) -> QobjEvo: ...
     def __iadd__(self, other: Union[QobjEvo, Qobj, Number]) -> QobjEvo: ...
     def __radd__(self, other: Union[QobjEvo, Qobj, Number]) -> QobjEvo: ...

@@ -27,6 +27,7 @@ from .cy.coefficient import (
     Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
     ConjCoefficient, NormCoefficient, ConstantCoefficient
 )
+from qutip.typing import CoefficientLike
 
 
 __all__ = ["coefficient", "CompilationOptions", "Coefficient",
@@ -39,17 +40,6 @@ class StringParsingWarning(Warning):
 
 def _return(base, **kwargs):
     return base
-
-
-CoefficientLike = Union[
-    Coefficient,
-    str,
-    Callable[[float, ...], complex],
-    np.ndarray,
-    scipy.interpolate.PPoly,
-    scipy.interpolate.BSpline,
-    Any,
-]
 
 
 # The `coefficient` function is dispatcher for the type of the `base` to the

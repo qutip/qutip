@@ -5,15 +5,15 @@ import numpy as np
 import numbers
 import itertools
 from functools import partial
-from typing import Union, Callable, Tuple, List, Dict
-from typing_extensions import Protocol
+from typing import Union
 import qutip
 from .. import Qobj
 from .. import data as _data
 from ..dimensions import Dimensions
-from ..coefficient import coefficient, CompilationOptions, CoefficientLike
+from ..coefficient import coefficient, CompilationOptions
 from ._element import *
 from qutip.settings import settings
+from qutip.typing import QobjEvoLike
 
 from qutip.core.cy._element cimport _BaseElement
 from qutip.core.data cimport Dense, Data, dense
@@ -189,15 +189,15 @@ cdef class QobjEvo:
     """
     def __init__(
         QobjEvo self,
-        Q_object: QobjEvoLike,
-        args: Dict[str, Any] = None,
+        object Q_object,
+        dict args = None,
         *,
-        copy: bool = True,
-        compress: bool = True,
-        function_style: str = None,
-        tlist: ArrayLike = None,
-        order: int = 3,
-        boundary_conditions: Union[tuple, str] = None,
+        bint copy = True,
+        bint compress = True,
+        str function_style = None,
+        tlist = None,
+        int order = 3,
+        object boundary_conditions = None,
     ):
         if isinstance(Q_object, QobjEvo):
             self._dims = Q_object._dims
@@ -1118,11 +1118,3 @@ class _Feedback:
         Raise an error when the dims of the e_ops / state don't match.
         Tell the dims to the feedback for reconstructing the Qobj.
         """
-
-
-class QEvoFunction(Protocol):
-    def __call__(self, t: Number, **kwargs) -> Qobj:
-        ...
-
-Element = Union[QEvoFunction, Qobj, Sequence[Qobj, CoefficientLike]]
-QobjEvoLike = Union[Qobj, QobjEvo, Element, List[Element]]

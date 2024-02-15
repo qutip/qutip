@@ -10,7 +10,7 @@ from numpy.typing import ArrayLike
 from typing import Any, Callable
 from time import time
 from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
-from ..core.cy.qobjevo import QobjEvoLike
+from ..typing import QobjEvoLike
 from ..core import stack_columns, unstack_columns
 from ..core import data as _data
 from .solver_base import Solver, _solver_deprecation

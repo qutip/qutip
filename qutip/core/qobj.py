@@ -1,8 +1,7 @@
 """The Quantum Object (Qobj) class, for representing quantum states and
 operators, and related functions.
 """
-
-__all__ = ['Qobj', 'ptrace',]
+from __future__ import annotations
 
 import functools
 import numbers
@@ -19,6 +18,8 @@ from qutip.typing import LayerType
 from .dimensions import (
     enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions
 )
+
+__all__ = ['Qobj', 'ptrace',]
 
 
 _NORM_FUNCTION_LOOKUP = {
@@ -311,7 +312,7 @@ class Qobj:
                              f"{dims.shape} vs {self._data.shape}")
         self._data = data
 
-    def to(self, LayerType) -> Qobj:
+    def to(self, data_type: LayerType) -> Qobj:
         """
         Convert the underlying data store of this `Qobj` into a different
         storage representation.

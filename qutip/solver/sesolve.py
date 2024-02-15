@@ -10,7 +10,7 @@ from time import time
 from typing import Any, Callable
 from .. import Qobj, QobjEvo
 from ..core import data as _data
-from ..core.cy.qobjevo import QobjEvoLike
+from ..typing import QobjEvoLike
 from .solver_base import Solver, _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback
 from . import Result
