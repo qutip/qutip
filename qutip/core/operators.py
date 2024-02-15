@@ -771,7 +771,7 @@ def qeye_like(qobj):
         )
     return Qobj(
         _data.identity[qobj.dtype](qobj.shape[0]), dims=qobj._dims,
-        isherm=True, isunitary=False, copy=False
+        isherm=True, isunitary=True, copy=False
     )
 
 
