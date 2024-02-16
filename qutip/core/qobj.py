@@ -330,6 +330,10 @@ class Qobj:
     def data(self):
         return self._data
 
+    @property
+    def dtype(self):
+        return type(self._data)
+
     @data.setter
     def data(self, data):
         if not isinstance(data, _data.Data):

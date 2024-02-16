@@ -692,11 +692,9 @@ def qzero_like(qobj):
         Zero operator Qobj.
 
     """
-    from .cy.qobjevo import QobjEvo
-    if isinstance(qobj, QobjEvo):
-        qobj = qobj(0)
+
     return Qobj(
-        _data.zeros_like(qobj.data), dims=qobj._dims,
+        _data.zeros[qobj.dtype](*qobj.shape), dims=qobj._dims,
         isherm=True, isunitary=False, copy=False
     )
 
@@ -768,11 +766,12 @@ def qeye_like(qobj):
         Identity operator Qobj.
 
     """
-    from .cy.qobjevo import QobjEvo
-    if isinstance(qobj, QobjEvo):
-        qobj = qobj(0)
+    if qobj.shape[0] != qobj.shape[1]:
+        raise ValueError(
+            "Can't create an identity matrix like a non square matrix."
+        )
     return Qobj(
-        _data.identity_like(qobj.data), dims=qobj._dims,
+        _data.identity[qobj.dtype](qobj.shape[0]), dims=qobj._dims,
         isherm=True, isunitary=True, copy=False
     )
 
