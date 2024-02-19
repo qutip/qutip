@@ -19,7 +19,7 @@ Although the requirement for time-independence seems quite resitrictive, one can
 Steady State solvers in QuTiP
 =============================
 
-In QuTiP, the steady-state solution for a system Hamiltonian or Liouvillian is given by :func:`qutip.steadystate.steadystate`.  This function implements a number of different methods for finding the steady state, each with their own pros and cons, where the method used can be chosen using the ``method`` keyword argument.
+In QuTiP, the steady-state solution for a system Hamiltonian or Liouvillian is given by :func:`.steadystate`.  This function implements a number of different methods for finding the steady state, each with their own pros and cons, where the method used can be chosen using the ``method`` keyword argument.
 
 .. cssclass:: table-striped
 
@@ -44,7 +44,7 @@ In QuTiP, the steady-state solution for a system Hamiltonian or Liouvillian is g
      - Steady-state solution via the **dense** SVD of the Liouvillian.
 
 
-The function :func:`qutip.steadystate` can take either a Hamiltonian and a list
+The function :func:`.steadystate` can take either a Hamiltonian and a list
 of collapse operators as input, generating internally the corresponding
 Liouvillian super operator in Lindblad form, or alternatively, a Liouvillian
 passed by the user.
@@ -89,7 +89,7 @@ Kernel library that comes with the Anacoda (2.5+) and Intel Python
 distributions.  This gives a substantial increase in performance compared with
 the standard SuperLU method used by SciPy.  To verify that QuTiP can find the
 necessary libraries, one can check for ``INTEL MKL Ext: True`` in the QuTiP
-about box (:func:`qutip.about`).
+about box (:func:`.about`).
 
 
 .. _steady-usage:
@@ -98,7 +98,7 @@ Using the Steadystate Solver
 =============================
 
 Solving for the steady state solution to the Lindblad master equation for a
-general system with :func:`qutip.steadystate` can be accomplished
+general system with :func:`.steadystate` can be accomplished
 using::
 
 >>> rho_ss = steadystate(H, c_ops)
@@ -122,7 +122,7 @@ method, and ``solver="spsolve"`` indicate to use the sparse solver.
 
 Sparse solvers may still use quite a large amount of memory when they factorize the
 matrix since the Liouvillian usually has a large bandwidth.
-To address this, :func:`qutip.steadystate` allows one to use the bandwidth minimization algorithms
+To address this, :func:`.steadystate` allows one to use the bandwidth minimization algorithms
 listed in :ref:`steady-args`. For example:
 
 .. code-block:: python
@@ -211,7 +211,7 @@ The following additional solver arguments are available for the steady-state sol
        See the corresponding documentation from scipy for a full list.
 
 
-Further information can be found in the :func:`qutip.steadystate` docstrings.
+Further information can be found in the :func:`.steadystate` docstrings.
 
 
 .. _steady-example:

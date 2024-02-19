@@ -6,6 +6,7 @@ from qutip import (
     rand_herm, rand_ket, liouvillian, basis, spre, spost, to_choi, expect,
     rand_ket, rand_dm, operator_to_vector, SESolver, MESolver
 )
+import qutip.core.data as _data
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -623,3 +624,18 @@ def test_feedback_super():
     checker.state = rand_dm(4)
     checker.state.dims = [[[2],[2]], [[2],[2]]]
     qevo.matmul_data(0, checker.state.data)
+
+
+@pytest.mark.parametrize('dtype', ["CSR", "Dense"])
+def test_qobjevo_dtype(dtype):
+    obj = QobjEvo([qeye(2, dtype=dtype), [num(2, dtype=dtype), lambda t: t]])
+    assert obj.dtype == _data.to.parse(dtype)
+
+    obj = QobjEvo(lambda t: qeye(2, dtype=dtype))
+    assert obj.dtype == _data.to.parse(dtype)
+
+
+def test_qobjevo_mixed():
+    obj = QobjEvo([qeye(2, dtype="CSR"), [num(2, dtype="Dense"), lambda t: t]])
+    # We test that the output dtype is a know type: accepted by `to.parse`.
+    _data.to.parse(obj.dtype)

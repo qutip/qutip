@@ -588,6 +588,7 @@ def _f_op(n_sites, site, action, dtype=None):
     oper : qobj
         Qobj for destruction operator.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     # get `tensor` and sigma z objects
     from .tensor import tensor
     s_z = 2 * jmat(0.5, 'z', dtype=dtype)
@@ -614,7 +615,7 @@ def _f_op(n_sites, site, action, dtype=None):
 
     eye = identity(2, dtype=dtype)
     opers = [s_z] * site + [operator] + [eye] * (n_sites - site - 1)
-    return tensor(opers)
+    return tensor(opers).to(dtype)
 
 
 def _implicit_tensor_dimensions(dimensions):
@@ -691,11 +692,9 @@ def qzero_like(qobj):
         Zero operator Qobj.
 
     """
-    from .cy.qobjevo import QobjEvo
-    if isinstance(qobj, QobjEvo):
-        qobj = qobj(0)
+
     return Qobj(
-        _data.zeros_like(qobj.data), dims=qobj._dims,
+        _data.zeros[qobj.dtype](*qobj.shape), dims=qobj._dims,
         isherm=True, isunitary=False, copy=False
     )
 
@@ -767,11 +766,12 @@ def qeye_like(qobj):
         Identity operator Qobj.
 
     """
-    from .cy.qobjevo import QobjEvo
-    if isinstance(qobj, QobjEvo):
-        qobj = qobj(0)
+    if qobj.shape[0] != qobj.shape[1]:
+        raise ValueError(
+            "Can't create an identity matrix like a non square matrix."
+        )
     return Qobj(
-        _data.identity_like(qobj.data), dims=qobj._dims,
+        _data.identity[qobj.dtype](qobj.shape[0]), dims=qobj._dims,
         isherm=True, isunitary=True, copy=False
     )
 
@@ -798,10 +798,11 @@ def position(N, offset=0, *, dtype=None):
     oper : qobj
         Position operator as Qobj.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     a = destroy(N, offset=offset, dtype=dtype)
     position = np.sqrt(0.5) * (a + a.dag())
     position.isherm = True
-    return position
+    return position.to(dtype)
 
 
 def momentum(N, offset=0, *, dtype=None):
@@ -826,10 +827,11 @@ def momentum(N, offset=0, *, dtype=None):
     oper : qobj
         Momentum operator as Qobj.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     a = destroy(N, offset=offset, dtype=dtype)
     momentum = -1j * np.sqrt(0.5) * (a - a.dag())
     momentum.isherm = True
-    return momentum
+    return momentum.to(dtype)
 
 
 def num(N, offset=0, *, dtype=None):

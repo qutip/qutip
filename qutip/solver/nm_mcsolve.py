@@ -83,8 +83,6 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
           | Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
-        - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
@@ -96,18 +94,18 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         - | atol, rtol : float
           | Absolute and relative tolerance of the ODE integrator.
         - | nsteps : int
-          | Maximum number of (internally defined) steps allowed in one ``tlist``
-            step.
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
         - | max_step : float
-          | Maximum lenght of one internal step. When using pulses, it should be
-            less than half the width of the thinnest pulse.
+          | Maximum length of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
         - | keep_runs_results : bool, [False]
           | Whether to store results from all trajectories or just store the
             averages.
-        - | map : str {"serial", "parallel", "loky"}
-          | How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
         - | num_cpus : int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -119,19 +117,21 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         - | mc_corr_eps : float
           | Small number used to detect non-physical collapse caused by
             numerical imprecision.
-        - | improved_sampling : Bool
-          | Whether to use the improved sampling algorithm from Abdelhafez et
-            al. PRA (2019)
         - | completeness_rtol, completeness_atol : float, float
           | Parameters used in determining whether the given Lindblad operators
             satisfy a certain completeness relation. If they do not, an
             additional Lindblad operator is added automatically (with zero
             rate).
         - | martingale_quad_limit : float or int
-            An upper bound on the number of subintervals used in the adaptive
+          | An upper bound on the number of subintervals used in the adaptive
             integration of the martingale.
 
         Note that the 'improved_sampling' option is not currently supported.
+        Additional options are listed under `options
+        <./classes.html#qutip.solver.nm_mcsolve.NonMarkovianMCSolver.options>`__.
+        More options may be available depending on the selected
+        differential equation integration method, see
+        `Integrator <./classes.html#classes-ode>`_.
 
     seeds : int, SeedSequence, list, optional
         Seed for the random number generator. It can be a single seed used to
@@ -325,12 +325,24 @@ class NonMarkovianMCSolver(MCSolver):
     name = "nm_mcsolve"
     _resultclass = NmmcResult
     solver_options = {
-        **MCSolver.solver_options,
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "keep_runs_results": False,
+        "map": "serial",
+        "mpi_options": {},
+        "num_cpus": None,
+        "bitgenerator": None,
+        "method": "adams",
+        "mc_corr_eps": 1e-10,
+        "norm_steps": 5,
+        "norm_t_tol": 1e-6,
+        "norm_tol": 1e-4,
         "completeness_rtol": 1e-5,
         "completeness_atol": 1e-8,
         "martingale_quad_limit": 100,
     }
-    del solver_options["improved_sampling"]
 
     # both classes will be partially initialized in constructor
     _trajectory_resultclass = NmmcTrajectoryResult
@@ -546,16 +558,22 @@ class NonMarkovianMCSolver(MCSolver):
             ``chunk_size``.
 
         keep_runs_results: bool, default: False
-          Whether to store results from all trajectories or just store the
-          averages.
+            Whether to store results from all trajectories or just store the
+            averages.
 
         method: str, default: "adams"
-            Which ODE integrator methods are supported.
+            Which differential equation integration method to use.
 
-        map: str {"serial", "parallel", "loky"}, default: "serial"
-            How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
+            How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
+
+        mpi_options: dict, default: {}
+            Only applies if map is "mpi". This dictionary will be passed as
+            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
+            constructor. Note that the `max_workers` argument is provided
+            separately through the `num_cpus` option.
 
         num_cpus: None, int
             Number of cpus to use when running in parallel. ``None`` detect the

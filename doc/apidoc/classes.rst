@@ -31,9 +31,6 @@ Bloch sphere
 .. autoclass:: qutip.bloch.Bloch
     :members:
 
-.. autoclass:: qutip.bloch3d.Bloch3d
-    :members:
-
 Distributions
 -------------
 

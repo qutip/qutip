@@ -1,9 +1,10 @@
 import pytest
 import qutip
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 from scipy.special import sph_harm
+
+mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
 def test_result_state():
     H = qutip.rand_dm(2)
