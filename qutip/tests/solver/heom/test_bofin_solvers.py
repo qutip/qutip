@@ -1159,17 +1159,17 @@ class TestHEOMSolver:
             Q=d_2, gamma=2 * Gamma, w=W, mu=mu, T=1 / beta, Nk=Nk,
             tag="Lead 2")
         resultHEOMPade = HEOMSolver(L, [bath1, bath2], depth, odd_parity=True)
-        rhoss, _ = resultHEOMPade.steady_state()
+        rhoss, _ = resultHEOMPade.steady_state(use_mkl=False)
         rhoss = rhoss.full()
-        print(rhoss)
         expected_odd = np.diag([-0.18472, 0.68472, 0.68472, -0.18472])
         expected = np.diag([0.10623, 0.39376, 0.39376, 0.10623])
         assert np.isclose(rhoss, expected_odd,atol=1e-5).all()
         resultHEOMPade = HEOMSolver(L, [bath1, bath2], depth, odd_parity=False)
-        rhoss, _ = resultHEOMPade.steady_state()
+        rhoss, _ = resultHEOMPade.steady_state(use_mkl=False)
         rhoss = rhoss.full()
-        print(rhoss)
         assert np.isclose(rhoss, expected,atol=1e-5).all()
+
+
 
 
 class TestHeomsolveFunction:
