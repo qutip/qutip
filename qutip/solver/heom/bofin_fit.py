@@ -257,7 +257,7 @@ class CorrelationFitter:
             _C_fun_i = InterpolatedUnivariateSpline(t, np.imag(C))
             self._C_fun = lambda t: _C_fun_r(t) + 1j * _C_fun_i(t)
 
-    def _corr_approx(self, t, a, b, c, d):
+    def _corr_approx(self, t, a, b, c, d=0):
         r"""
         This is the form of the correlation function to be used for fitting.
 
@@ -281,7 +281,9 @@ class CorrelationFitter:
         a = np.array(a)
         b = np.array(b)
         c = np.array(c)
-        d = np.array(d)
+        d=np.array(d)
+        if (d==0).all():
+            d = np.zeros(a.shape)
 
         return np.sum(
             (a[:, None]+1j*d[:, None]) * np.exp(b[:, None] * t[None, :]) *
@@ -344,6 +346,13 @@ class CorrelationFitter:
         Note: If one of lower, upper, sigma, guesses is None,
         all are discarded.
         """
+        
+        if np.isclose(np.imag(self._C_array[0]),0):
+            numparams = 3
+        else:
+            numparams = 4
+        
+        print(numparams)
 
         # Fit real part
         start_real = time()
@@ -351,7 +360,7 @@ class CorrelationFitter:
             lambda *args: np.real(self._corr_approx(*args)),
             y=np.real(self._C_array), x=self._t, final_rmse=final_rmse,
             default_guess_scenario="correlation_real", N=Nr,
-            sigma=sigma, guesses=guesses, lower=lower, upper=upper)
+            sigma=sigma, guesses=guesses, lower=lower, upper=upper,n=numparams)
         end_real = time()
 
         # Fit imaginary part
@@ -360,7 +369,7 @@ class CorrelationFitter:
             lambda *args: np.imag(self._corr_approx(*args)),
             y=np.imag(self._C_array), x=self._t, final_rmse=final_rmse,
             default_guess_scenario="correlation_imag", N=Ni,
-            sigma=sigma, guesses=guesses, lower=lower, upper=upper)
+            sigma=sigma, guesses=guesses, lower=lower, upper=upper,n=numparams)
         end_imag = time()
 
         # Calculate Fit Times
@@ -372,7 +381,7 @@ class CorrelationFitter:
         Ni = len(params_imag[0])
         full_summary = _two_column_summary(
             params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
-            rmse_imag, rmse_real)
+            rmse_imag, rmse_real,n=numparams)
 
         fitInfo = {"Nr": Nr, "Ni": Ni,
                    "fit_time_real": fit_time_real,
@@ -380,11 +389,11 @@ class CorrelationFitter:
                    "rmse_real": rmse_real, "rmse_imag": rmse_imag,
                    "params_real": params_real,
                    "params_imag": params_imag, "summary": full_summary}
-        bath = self._generate_bath(params_real, params_imag)
+        bath = self._generate_bath(params_real, params_imag,n=numparams)
         bath.correlation_function = self._C_fun
         return bath, fitInfo
 
-    def _generate_bath(self, params_real, params_imag):
+    def _generate_bath(self, params_real, params_imag,n=3):
         """
         Calculate the Matsubara coefficients and frequencies for the
         fitted underdamped oscillators and generate the corresponding bosonic
@@ -403,9 +412,14 @@ class CorrelationFitter:
         -------
         A bosonic Bath constructed from the fitted exponents.
         """
-
-        a, b, c, d = params_real
-        a2, b2, c2, d2 = params_imag
+        if n==4:
+            a, b, c, d = params_real
+            a2, b2, c2, d2 = params_imag
+        else:
+            a, b, c= params_real
+            a2, b2, c2= params_imag
+            d=np.zeros(a.shape)
+            d2=np.zeros(a2.shape)
 
         # the 0.5 is from the cosine
         ckAR = [(x + 1j*y)*0.5 for x, y in zip(a, d)]
@@ -703,7 +717,7 @@ def _rmse(func, x, y, *args):
 
 
 def _fit(func, C, t, N, default_guess_scenario='',
-         guesses=None, lower=None, upper=None, sigma=None):
+         guesses=None, lower=None, upper=None, sigma=None,n=3):
     """
     Performs a fit the function func to t and C, with N number of
     terms in func, the guesses,bounds and uncertainty can be determined
@@ -754,29 +768,37 @@ def _fit(func, C, t, N, default_guess_scenario='',
         sigma = 1e-2
         wc = t[np.argmax(C)]
         if default_guess_scenario == "correlation_real":
-            wc = np.inf
-            tempguesses = _pack([C_max] * N, [-100*C_max]
-                                * N, [0] * N, [0] * N)
-            templower = _pack([-100*C_max] * N, [-wc] * N, [-1]
-                              * N, [-100*C_max] * N)
-            tempupper = _pack([100*C_max] * N, [0] * N,
-                              [1] * N, [100*C_max] * N)
-            n = 4
+  
+            if n==4:
+                wc = np.inf
+                tempguesses = _pack([C_max] * N, [-100*C_max]
+                                    * N, [0] * N, [0] * N)
+                templower = _pack([-100*C_max] * N, [-wc] * N, [-1]
+                                * N, [-100*C_max] * N)
+                tempupper = _pack([100*C_max] * N, [0] * N,
+                                [1] * N, [100*C_max] * N)
+            else:
+                tempguesses = _pack([C_max] * N, [-wc] * N, [wc] * N)
+                templower = _pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
+                tempupper = _pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
         elif default_guess_scenario == "correlation_imag":
-            wc = np.inf
-            tempguesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
-            templower = _pack([-100*C_max] * N, [-wc] * N, [-2] * N,
-                              [-100*C_max] * N)
-            tempupper = _pack([100*C_max] * N, [0] * N,
-                              [2] * N, [100*C_max] * N)
-            n = 4
+            if n==4:
+                wc = np.inf
+                tempguesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
+                templower = _pack([-100*C_max] * N, [-wc] * N, [-2] * N,
+                                [-100*C_max] * N)
+                tempupper = _pack([100*C_max] * N, [0] * N,
+                                [2] * N, [100*C_max] * N)
+            else:
+                tempguesses = _pack([C[0]] * N, [-wc]* N, [wc] * N)
+                templower = _pack([-10 * C_max] * N, [-np.inf] * N, [C[0]] * N)
+                tempupper = _pack([10 * C_max] * N, [0] * N, [np.inf] * N)
         else:
             tempguesses = _pack([C_max] * N, [wc] * N, [wc] * N)
             templower = _pack([-100 * C_max] * N,
                               [0.1 * wc] * N, [0.1 * wc] * N)
             tempupper = _pack([100 * C_max] * N,
                               [100 * wc] * N, [100 * wc] * N)
-            n = 3
     guesses = _reformat(guesses, tempguesses, N)
     lower = _reformat(lower, templower, N)
     upper = _reformat(upper, tempupper, N)
@@ -808,7 +830,7 @@ def _reformat(guess, temp, N):
 
 
 def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None,
-             sigma=None, guesses=None, lower=None, upper=None):
+             sigma=None, guesses=None, lower=None, upper=None,n=3):
     """
     It iteratively tries to fit the funcx to y on the interval x.
     If N is provided the fit is done with N modes, if it is
@@ -860,7 +882,7 @@ def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None,
     while rmse1 > final_rmse:
         rmse1, params = _fit(
             funcx, y, x, N, default_guess_scenario,
-            sigma=sigma, guesses=guesses, lower=lower, upper=upper)
+            sigma=sigma, guesses=guesses, lower=lower, upper=upper,n=n)
         N += 1
         if not iterate:
             break
@@ -896,20 +918,23 @@ def _gen_summary(time, rmse, N, label, params,
 
 def _two_column_summary(
         params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
-        rmse_imag, rmse_real):
+        rmse_imag, rmse_real,n=3):
     # Generate nicely formatted summary
+    columns=["a", "b", "c"]
+    if n==4:
+        columns.append("d")
     summary_real = _gen_summary(
         fit_time_real,
         rmse_real,
         Nr,
         "The Real Part Of  \n the Correlation Function", params_real,
-        columns=["a", "b", "c", "d"])
+        columns=columns)
     summary_imag = _gen_summary(
         fit_time_imag,
         rmse_imag,
         Ni,
         "The Imaginary Part \n Of the Correlation Function", params_imag,
-        columns=["a", "b", "c", "d"])
+        columns=columns)
 
     full_summary = "Fit correlation class instance: \n \n"
     lines_real = summary_real.splitlines()
