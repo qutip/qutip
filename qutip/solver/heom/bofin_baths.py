@@ -615,9 +615,9 @@ class DrudeLorentzBath(BosonicBath):
         r"""
         Calculates the DrudeLorentz spectral density, Eq. 15 in the BoFiN
         paper (DOI: 10.1103/PhysRevResearch.5.013181) given by
-        
+
         .. math::
-        
+
             J(\omega) = \frac{2 \lambda \gamma \omega}{\gamma^{2}+\omega^{2}}
 
         Parameters
@@ -945,9 +945,9 @@ class UnderDampedBath(BosonicBath):
         r"""
         Calculates the Underdamped spectral density, see Eq. 16 in the BoFiN
         paper (DOI: 10.1103/PhysRevResearch.5.013181)
-        
+
         .. math::
-            J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_{c}^{2}- 
+            J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_{c}^{2}-
             \omega^{2})^{2}+ \Gamma^{2} \omega^{2}}
 
         Parameters

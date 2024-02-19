@@ -71,7 +71,7 @@ class SpectralFitter:
         Underdamped spectral density used for fitting in Meier-Tannor form
         (see Eq. 38 in the BoFiN paper, DOI: 10.1103/PhysRevResearch.5.013181)
         or the get_fit method.
-        
+
         Parameters
         ----------
         w : np.array
@@ -119,7 +119,7 @@ class SpectralFitter:
             each value represents the lower bound for each parameter.
             The order of the parameters is the same as for the function to be
             fitted.
-            
+
             .. math::
                 J(\omega) = \sum_{i=1}^{k} \frac{2 a_{i} b_{i} \omega
                 }{\left(\left( \omega + c_{i}\right)^{2} + b_{i}^{2}\right)
@@ -148,27 +148,6 @@ class SpectralFitter:
         Note: If one of lower, upper, sigma, guesses is None,
         all are discarded.
 
-        Returns
-        -------
-        * A Bosonic Bath created with the fit parameters for the original
-          spectral density function (that was provided or interpolated)
-        * A dictionary containing the following information about the fit:
-            fit_time:
-                The time the fit took in seconds.
-            rsme:
-                Normalized mean squared error obtained in the fit.
-            N:
-                The number of terms used for the fit.
-            params:
-                The fitted parameters (3*N parameters), it contains three lists
-                one for each parameter, each list containing N terms.
-            Nk:
-                The number of exponents used to construct the bosonic bath,
-                defaults to 1. To approximate the correlation function the
-                number of exponents grow as the temperature decreases, so Nk
-                needs to be adjusted accordingly.
-            summary:
-                A string that summarizes the information of the fit.
         """
 
         start = time()
@@ -295,7 +274,7 @@ class CorrelationFitter:
             A list describing the oscillations of the correlation
             approximation.
         d:  A list describing the imaginary part amplitude of the correlation
-            approximation, only used if the imaginary part of the correlation 
+            approximation, only used if the imaginary part of the correlation
             function at time 0 is different from 0.
         """
 
@@ -364,40 +343,6 @@ class CorrelationFitter:
 
         Note: If one of lower, upper, sigma, guesses is None,
         all are discarded.
-
-        Returns
-        -------
-        * A Bosonic Bath created with the fit parameters from the original
-          correlation function (that was provided or interpolated).
-        * A dictionary containing the following information about the fit:
-            Nr:
-                The number of terms used to fit the real part of the
-                correlation function.
-            Ni:
-                The number of terms used to fit the imaginary part of the
-                correlation function.
-            fit_time_real:
-                The time the fit of the real part of the correlation function
-                took in seconds.
-            fit_time_imag:
-                The time the fit of the imaginary part of the correlation
-                function took in seconds.
-            rsme_real:
-                Normalized mean squared error obtained in the fit of the real
-                part of the correlation function.
-            rsme_imag:
-                Normalized mean squared error obtained in the fit of the
-                imaginary part of the correlation function.
-            params_real:
-                The fitted parameters (3N parameters) for the real part of the
-                correlation function, it contains three lists one for each
-                parameter, each list containing N terms.
-            params_imag:
-                The fitted parameters (3N parameters) for the imaginary part
-                of the correlation function, it contains three lists one for
-                each parameter, each list containing N terms.
-            summary:
-                A string that summarizes the information about the fit.
         """
 
         # Fit real part
@@ -604,40 +549,6 @@ class OhmicBath:
         Ni: int
             The number of terms to use for the imaginary part of the
             correlation function
-
-        Returns
-        -------
-        * A Bosonic Bath created with the fit parameters with the original
-          correlation function (that was provided or interpolated)
-        * A dictionary containing the following information about the fit:
-            Nr:
-                The number of terms used to fit the real part of the
-                correlation function.
-            Ni:
-                The number of terms used to fit the imaginary part of the
-                correlation function.
-            fit_time_real:
-                The time the fit of the real part of the correlation function
-                took in seconds.
-            fit_time_imag:
-                The time the fit of the imaginary part of the correlation
-                function took in seconds.
-            rsme_real:
-                Normalized mean squared error obtained in the fit of the real
-                part of the correlation function.
-            rsme_imag:
-                Normalized mean squared error obtained in the fit of the
-                imaginary part of the correlation function.
-            params_real:
-                The fitted parameters (3*N parameters) for the real part of the
-                correlation function, it contains three lists one for each
-                parameter, each list containing N terms.
-            params_imag:
-                The fitted parameters (3*N parameters) for the imaginary part
-                of the correlation function, it contains three lists one for
-                each parameter, each list containing N terms.
-            summary:
-                A string that summarizes the information about the fit.
         """
 
         fc = CorrelationFitter(self.Q, self.T, x, self.correlation_function)
@@ -686,23 +597,6 @@ class OhmicBath:
         guesses : list
             Initial guesses for the parameters. Same structure as lower and
             upper.
-        Returns
-        -------
-        * A Bosonic Bath created with the fit parameters with the original
-          correlation function (that was provided or interpolated)
-        * A dictionary containing the following information about the fit:
-            N:
-                The number of terms used to fit the spectral density.
-            fit_time:
-                The time the fit of the spectral density took in seconds.
-            rsme:
-                Normalized mean squared error obtained in the fit.
-            params:
-                The fitted parameters (3*N parameters), it contains three lists
-                one for each parameter, each list containing N terms.
-            summary:
-                A string that summarizes the information about the fit.
-
         """
 
         fs = SpectralFitter(T=self.T, Q=self.Q, w=x, J=self.spectral_density)
@@ -861,21 +755,24 @@ def _fit(func, C, t, N, default_guess_scenario='',
         wc = t[np.argmax(C)]
         if default_guess_scenario == "correlation_real":
             wc = np.inf
-            tempguesses = _pack([C_max] * N, [-100*C_max]
-                                * N, [0] * N, [0] * N)
-            templower = _pack([-100*C_max] * N, [-wc] * N, [-1]
-                              * N, [-100*C_max] * N)
-            tempupper = _pack([100*C_max] * N, [0] * N,
-                              [1] * N, [100*C_max] * N)
-            n = 4
+            tempguesses = _pack([C_max] * N, [-100*C_max]* N, [0] * N)
+            templower = _pack([-100*C_max] * N, [-wc] * N, [-1]* N)
+            tempupper = _pack([100*C_max] * N, [0] * N,[1] * N)
+            n = 3
         elif default_guess_scenario == "correlation_imag":
             wc = np.inf
-            tempguesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
-            templower = _pack([-100*C_max] * N, [-wc] * N, [-2] * N,
-                              [-100*C_max] * N)
-            tempupper = _pack([100*C_max] * N, [0] * N,
-                              [2] * N, [100*C_max] * N)
-            n = 4
+            if C[0]!=0:
+                tempguesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
+                templower = _pack([-100*C_max] * N, [-wc] * N, [-2] * N,
+                                [-100*C_max] * N)
+                tempupper = _pack([100*C_max] * N, [0] * N,
+                                [2] * N, [100*C_max] * N)
+                n = 4
+            else:
+                tempguesses = _pack([0] * N, [-10*C_max] * N, [0] )
+                templower = _pack([-100*C_max] * N, [-wc] * N, [-2] * N)
+                tempupper = _pack([100*C_max] * N, [0] * N,[2] * N)
+                n = 3
         else:
             tempguesses = _pack([C_max] * N, [wc] * N, [wc] * N)
             templower = _pack([-100 * C_max] * N,
