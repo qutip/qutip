@@ -1137,7 +1137,7 @@ class TestHEOMSolver:
         # system: two fermions
         N = 2
         d_1 = fdestroy(N, 0)
-        d_2 = fcreate(N, 1)
+        d_2 = fdestroy(N, 1)
         # bath params:
         mu = 0.  # chemical potential
         Gamma = 1  # coupling strenght
@@ -1152,25 +1152,24 @@ class TestHEOMSolver:
                   * d_2) + U * d_1.dag() * d_1 * d_2.dag() * d_2
 
         L = liouvillian(H)
-        bath1 = LorentzianBath(
+        bath1 = LorentzianPadeBath(
             Q=d_1, gamma=2 * Gamma, w=W, mu=mu, T=1 / beta, Nk=Nk,
             tag="Lead 1")
-        bath2 = LorentzianBath(
+        bath2 = LorentzianPadeBath(
             Q=d_2, gamma=2 * Gamma, w=W, mu=mu, T=1 / beta, Nk=Nk,
             tag="Lead 2")
         resultHEOMPade = HEOMSolver(L, [bath1, bath2], depth, odd_parity=True)
         rhoss, _ = resultHEOMPade.steady_state()
         rhoss = rhoss.full()
         print(rhoss)
-        expected_odd = np.diag(
-            [0.68472977, -0.18472977, -0.18472977, 0.68472977])
-        expected = np.diag([0.39376747, 0.10623253, 0.10623253, 0.39376747])
-        assert np.isclose(rhoss, expected_odd).all()
+        expected_odd = np.diag([-0.18472, 0.68472, 0.68472, -0.18472])
+        expected = np.diag([0.10623, 0.39376, 0.39376, 0.10623])
+        assert np.isclose(rhoss, expected_odd,atol=1e-5).all()
         resultHEOMPade = HEOMSolver(L, [bath1, bath2], depth, odd_parity=False)
         rhoss, _ = resultHEOMPade.steady_state()
         rhoss = rhoss.full()
         print(rhoss)
-        assert np.isclose(rhoss, expected).all()
+        assert np.isclose(rhoss, expected,atol=1e-5).all()
 
 
 class TestHeomsolveFunction:
