@@ -103,7 +103,7 @@ class SpectralFitter:
         sigma=None,
         guesses=None,
     ):
-        """
+        r"""
         Provides a fit to the spectral density with N underdamped oscillator
         baths. N can be determined automatically based on reducing the
         normalized root mean squared error below a certain threshold.
@@ -122,7 +122,7 @@ class SpectralFitter:
             lower bounds on the parameters for the fit. A list of size 3,
             each value represents the lower bound for each parameter.
             The order of the parameters is the same as for the function to be
-            fitted. 
+            fitted.
 
             $J(\omega) = \sum_{i=1}^{k} \frac{2 \a_{i}^{2} b_{i} \omega
             }{\left( \left( \omega + c_{i}\right)^{2} + b_{i}^{2}
@@ -291,14 +291,14 @@ class CorrelationFitter:
         t : np.array or float
             The times at which to evaluates the correlation function.
         a : list or np.array
-            A list describing the  real part amplitude of the correlation 
+            A list describing the  real part amplitude of the correlation
             approximation.
         b : list or np.array
             A list describing the decay of the correlation approximation.
         c : list or np.array
             A list describing the oscillations of the correlation
             approximation.
-        d:  A list describing the imaginary part amplitude of the correlation 
+        d:  A list describing the imaginary part amplitude of the correlation
             approximation, only used if $Im(C(0))\neq 0$.
         """
 
