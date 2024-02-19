@@ -70,12 +70,8 @@ class SpectralFitter:
         r"""
         Underdamped spectral density used for fitting in Meier-Tannor form
         (see Eq. 38 in the BoFiN paper, DOI: 10.1103/PhysRevResearch.5.013181)
-
-        $J(\omega) = \sum_{i=1}^{k} \frac{2 \a_{i}^{2} b_{i} \omega
-        }{\left( \left( \omega + c_{i}\right)^{2} + b_{i}^{2}
-        \right)+\left( \omega - c_{i}\right)^{2} + b_{i}^{2}
-        \right)}$
-
+        or the get_fit method.
+        
         Parameters
         ----------
         w : np.array
@@ -123,11 +119,11 @@ class SpectralFitter:
             each value represents the lower bound for each parameter.
             The order of the parameters is the same as for the function to be
             fitted.
-
-            $J(\omega) = \sum_{i=1}^{k} \frac{2 \a_{i}^{2} b_{i} \omega
-            }{\left( \left( \omega + c_{i}\right)^{2} + b_{i}^{2}
-            \right)+\left( \omega - c_{i}\right)^{2} + b_{i}^{2}
-            \right)}$
+            
+            .. math::
+                J(\omega) = \sum_{i=1}^{k} \frac{2 a_{i} b_{i} \omega
+                }{\left(\left( \omega + c_{i}\right)^{2} + b_{i}^{2}\right)
+                \left(\left( \omega - c_{i}\right)^{2} + b_{i}^{2} \right)}
 
             The first term describes the coupling,
             the second the cutoff frequency,and the last one the central
@@ -283,7 +279,7 @@ class CorrelationFitter:
             self._C_fun = lambda t: _C_fun_r(t) + 1j * _C_fun_i(t)
 
     def _corr_approx(self, t, a, b, c, d):
-        """
+        r"""
         This is the form of the correlation function to be used for fitting.
 
         Parameters
@@ -299,7 +295,8 @@ class CorrelationFitter:
             A list describing the oscillations of the correlation
             approximation.
         d:  A list describing the imaginary part amplitude of the correlation
-            approximation, only used if $Im(C(0))\neq 0$.
+            approximation, only used if the imaginary part of the correlation 
+            function at time 0 is different from 0.
         """
 
         a = np.array(a)
@@ -370,7 +367,7 @@ class CorrelationFitter:
 
         Returns
         -------
-        * A Bosonic Bath created with the fit parameters with the original
+        * A Bosonic Bath created with the fit parameters from the original
           correlation function (that was provided or interpolated).
         * A dictionary containing the following information about the fit:
             Nr:
@@ -392,11 +389,11 @@ class CorrelationFitter:
                 Normalized mean squared error obtained in the fit of the
                 imaginary part of the correlation function.
             params_real:
-                The fitted parameters (3*N parameters) for the real part of the
+                The fitted parameters (3N parameters) for the real part of the
                 correlation function, it contains three lists one for each
                 parameter, each list containing N terms.
             params_imag:
-                The fitted parameters (3*N parameters) for the imaginary part
+                The fitted parameters (3N parameters) for the imaginary part
                 of the correlation function, it contains three lists one for
                 each parameter, each list containing N terms.
             summary:
