@@ -352,8 +352,6 @@ class CorrelationFitter:
         else:
             numparams = 4
         
-        print(numparams)
-
         # Fit real part
         start_real = time()
         rmse_real, params_real = _run_fit(
@@ -418,8 +416,8 @@ class CorrelationFitter:
         else:
             a, b, c= params_real
             a2, b2, c2= params_imag
-            d=np.zeros(a.shape)
-            d2=np.zeros(a2.shape)
+            d=np.zeros(a.shape,dtype=int)
+            d2=np.zeros(a2.shape,dtype=int)
 
         # the 0.5 is from the cosine
         ckAR = [(x + 1j*y)*0.5 for x, y in zip(a, d)]
@@ -755,7 +753,10 @@ def _fit(func, C, t, N, default_guess_scenario='',
     rmse:
         It returns the normalized mean squared error from the fit
     """
+    if sigma is None:
+        sigma=1e-2
     tempsigma = sigma
+
     C_max = abs(max(C, key=np.abs))
     if C_max == 0:
         # When the target function is zero
@@ -763,42 +764,38 @@ def _fit(func, C, t, N, default_guess_scenario='',
         params = [0, 0, 0]
         return rmse, params
 
-    if None in [guesses, lower, upper, sigma]:
-        # No parameters for the fit provided, using default ones
-        sigma = 1e-2
-        wc = t[np.argmax(C)]
-        if default_guess_scenario == "correlation_real":
-  
-            if n==4:
-                wc = np.inf
-                tempguesses = _pack([C_max] * N, [-100*C_max]
-                                    * N, [0] * N, [0] * N)
-                templower = _pack([-100*C_max] * N, [-wc] * N, [-1]
-                                * N, [-100*C_max] * N)
-                tempupper = _pack([100*C_max] * N, [0] * N,
-                                [1] * N, [100*C_max] * N)
-            else:
-                tempguesses = _pack([C_max] * N, [-wc] * N, [wc] * N)
-                templower = _pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
-                tempupper = _pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
-        elif default_guess_scenario == "correlation_imag":
-            if n==4:
-                wc = np.inf
-                tempguesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
-                templower = _pack([-100*C_max] * N, [-wc] * N, [-2] * N,
-                                [-100*C_max] * N)
-                tempupper = _pack([100*C_max] * N, [0] * N,
-                                [2] * N, [100*C_max] * N)
-            else:
-                tempguesses = _pack([C[0]] * N, [-wc]* N, [wc] * N)
-                templower = _pack([-10 * C_max] * N, [-np.inf] * N, [C[0]] * N)
-                tempupper = _pack([10 * C_max] * N, [0] * N, [np.inf] * N)
+    wc = t[np.argmax(C)]
+    if default_guess_scenario == "correlation_real":
+        if n==4:
+            wc = np.inf
+            tempguesses = _pack([C_max] * N, [-100*C_max]
+                                * N, [0] * N, [0] * N)
+            templower = _pack([-100*C_max] * N, [-wc] * N, [-1]
+                            * N, [-100*C_max] * N)
+            tempupper = _pack([100*C_max] * N, [0] * N,
+                            [1] * N, [100*C_max] * N)
         else:
-            tempguesses = _pack([C_max] * N, [wc] * N, [wc] * N)
-            templower = _pack([-100 * C_max] * N,
-                              [0.1 * wc] * N, [0.1 * wc] * N)
-            tempupper = _pack([100 * C_max] * N,
-                              [100 * wc] * N, [100 * wc] * N)
+            tempguesses = _pack([C_max] * N, [-wc] * N, [wc] * N)
+            templower = _pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
+            tempupper = _pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
+    elif default_guess_scenario == "correlation_imag":
+        if n==4:
+            wc = np.inf
+            tempguesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
+            templower = _pack([-100*C_max] * N, [-wc] * N, [-2] * N,
+                            [-100*C_max] * N)
+            tempupper = _pack([100*C_max] * N, [0] * N,
+                            [2] * N, [100*C_max] * N)
+        else:
+            tempguesses = _pack([-C_max] * N, [-10*C_max]* N, [1] * N)
+            templower = _pack([-10 * C_max] * N, [-np.inf] * N, [0] * N)
+            tempupper = _pack([10 * C_max] * N, [0] * N, [np.inf] * N)
+    else:
+        tempguesses = _pack([C_max] * N, [wc] * N, [wc] * N)
+        templower = _pack([-100 * C_max] * N,
+                            [0.1 * wc] * N, [0.1 * wc] * N)
+        tempupper = _pack([100 * C_max] * N,
+                            [100 * wc] * N, [100 * wc] * N)
     guesses = _reformat(guesses, tempguesses, N)
     lower = _reformat(lower, templower, N)
     upper = _reformat(upper, tempupper, N)
