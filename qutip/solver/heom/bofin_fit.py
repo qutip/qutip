@@ -882,30 +882,32 @@ def _fit(func, C, t, N, default_guess_scenario='',
 
     wc = t[np.argmax(C)]
     tempsigma = 1e-2
+
+    if "correlation" in default_guess_scenario:
+        if n == 4:
+            templower = _pack([-100*C_max] * N, [-np.inf] * N, [-1]
+                              * N, [-100*C_max] * N)
+        else:
+            templower = _pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
+
     if default_guess_scenario == "correlation_real":
         if n == 4:
             wc = np.inf
             tempguesses = _pack([C_max] * N, [-100*C_max]
                                 * N, [0] * N, [0] * N)
-            templower = _pack([-100*C_max] * N, [-wc] * N, [-1]
-                              * N, [-100*C_max] * N)
             tempupper = _pack([100*C_max] * N, [0] * N,
                               [1] * N, [100*C_max] * N)
         else:
             tempguesses = _pack([C_max] * N, [-wc] * N, [wc] * N)
-            templower = _pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
             tempupper = _pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
     elif default_guess_scenario == "correlation_imag":
         if n == 4:
             wc = np.inf
             tempguesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
-            templower = _pack([-100*C_max] * N, [-wc] * N, [-2] * N,
-                              [-100*C_max] * N)
             tempupper = _pack([100*C_max] * N, [0] * N,
                               [2] * N, [100*C_max] * N)
         else:
             tempguesses = _pack([-C_max] * N, [-10*C_max] * N, [1] * N)
-            templower = _pack([-10 * C_max] * N, [-np.inf] * N, [0] * N)
             tempupper = _pack([10 * C_max] * N, [0] * N, [np.inf] * N)
     else:
         tempguesses = _pack([C_max] * N, [wc] * N, [wc] * N)
@@ -943,7 +945,7 @@ def _reformat(guess, N):
     return guesses
 
 
-def _run_fit(funcx, y, x, final_rmse, default_guess_scenario=None, N=None, n=3,
+def _run_fit(funcx, y, x, final_rmse, default_guess_scenario='', N=None, n=3,
              **kwargs):
     """
     It iteratively tries to fit the funcx to y on the interval x.
