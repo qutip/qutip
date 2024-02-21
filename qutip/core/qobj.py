@@ -147,12 +147,10 @@ class Qobj:
 
     Parameters
     ----------
-    inpt: array_like
+    inpt: array_like, data object or :obj:`.Qobj`
         Data for vector/matrix representation of the quantum object.
     dims: list
         Dimensions of object used for tensor products.
-    type: {'bra', 'ket', 'oper', 'operator-ket', 'operator-bra', 'super'}
-        The type of quantum object to be represented.
     shape: list
         Shape of underlying data structure (matrix shape).
     copy: bool
@@ -162,8 +160,12 @@ class Qobj:
 
     Attributes
     ----------
-    data : array_like
-        Sparse matrix characterizing the quantum object.
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
     dims : list
         List of dimensions keeping track of the tensor structure.
     shape : list
@@ -173,7 +175,8 @@ class Qobj:
         'operator-bra', or 'super'.
     superrep : str
         Representation used if `type` is 'super'. One of 'super'
-        (Liouville form) or 'choi' (Choi matrix with tr = dimension).
+        (Liouville form), 'choi' (Choi matrix with tr = dimension),
+        or 'chi' (chi-matrix representation).
     isherm : bool
         Indicates if quantum object represents Hermitian operator.
     isunitary : bool
@@ -211,10 +214,16 @@ class Qobj:
         Create copy of Qobj
     conj()
         Conjugate of quantum object.
+    contract()
+        Contract subspaces of the tensor structure which are 1D.
     cosm()
         Cosine of quantum object.
     dag()
         Adjoint (dagger) of quantum object.
+    data_as(format, copy)
+        Vector / matrix representation of quantum object.
+    diag()
+        Diagonal elements of quantum object.
     dnorm()
         Diamond norm of quantum operator.
     dual_chan()
@@ -232,10 +241,14 @@ class Qobj:
         object.
     inv()
         Return a Qobj corresponding to the matrix inverse of the operator.
+    logm()
+        Matrix logarithm of quantum operator.
     matrix_element(bra, ket)
         Returns the matrix element of operator between `bra` and `ket` vectors.
     norm(norm='tr', sparse=False, tol=0, maxiter=100000)
         Returns norm of a ket or an operator.
+    overlap(other)
+        Overlap between two state vectors or two operators.
     permute(order)
         Returns composite qobj with indices reordered.
     proj()
@@ -243,6 +256,8 @@ class Qobj:
     ptrace(sel)
         Returns quantum object for selected dimensions after performing
         partial trace.
+    purity()
+        Calculates the purity of a quantum object.
     sinm()
         Sine of quantum object.
     sqrtm()
@@ -340,7 +355,7 @@ class Qobj:
             raise TypeError('Qobj data must be a data-layer format.')
         if self._dims.shape != data.shape:
             raise ValueError('Provided data do not match the dimensions: ' +
-                             f"{dims.shape} vs {self._data.shape}")
+                             f"{self._dims.shape} vs {data.shape}")
         self._data = data
 
     def to(self, data_type):
@@ -904,7 +919,6 @@ class Qobj:
         else:
             evals, evecs = _data.eigs(self.data, isherm=self._isherm)
 
-        numevals = len(evals)
         dV = _data.diag([np.sqrt(evals, dtype=complex)], 0)
         if self.isherm:
             spDv = _data.matmul(dV, evecs.conj().transpose())
