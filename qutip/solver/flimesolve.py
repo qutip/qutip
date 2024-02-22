@@ -66,20 +66,19 @@ def _floquet_rate_matrix(floquet_basis,
     tlist = np.linspace(0, timet - dt, Nt)
     omega = (2*np.pi)/floquet_basis.T  # Frequency dependence of Hamiltonian
 
-
     total_R_tensor = defaultdict(lambda: 0)
     for cdx, c_op in enumerate(c_ops):
         #Doing this to bring FLiMESolve in line with MESolve as far as decay rates are concerned
 
         # Transforming the lowering operator into the Floquet Basis
         #     and taking the FFT
-        modes_table = np.stack([np.stack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])[...,0]
-        c_op_Floquet_basis = modes_table @ c_op.full() @ np.transpose(modes_table.conj(),(0,2,1))
-        c_op_Floquet_basis = np.array(
-            [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist])
-
+        modes_table = _floquet_mode_table(floquet_basis,tlist)
+        
+        c_op_Floquet_basis = np.transpose(modes_table.conj(),(0,2,1)) @ c_op.full() @ modes_table
+        
         c_op_Fourier_amplitudes_list = np.fft.fft(c_op_Floquet_basis, axis=0) \
             / len(tlist)
+
         delta_m = np.add.outer(floquet_basis.e_quasi, -floquet_basis.e_quasi)
         delta_m = np.add.outer(delta_m, -delta_m)
         delta_m /= omega
@@ -99,8 +98,7 @@ def _floquet_rate_matrix(floquet_basis,
                     c_op_Fourier_amplitudes_list[l],
                     np.conj(c_op_Fourier_amplitudes_list[k])
                 ) * c_op_rates[cdx]
-
-            included_deltas = np.abs(delta_shift) * omega <= np.abs((rate_products) * time_sense)
+            included_deltas = abs(delta_shift * omega) <= abs(rate_products) * time_sense
             if not np.any(included_deltas):
                 continue
             keys = np.unique(delta_shift[included_deltas])
@@ -128,6 +126,7 @@ def _floquet_rate_matrix(floquet_basis,
         )
         for key, RateMat in total_R_tensor.items()
     }
+    
     return total_R_tensor
 
 
@@ -252,9 +251,10 @@ def flimesolve(
                          options=options)
     return solver.run(rho0, tlist, e_ops=e_ops)
 
-
-def flimesolve_floquet_state_table(floquet_basis, tlist):
-
+def _floquet_mode_table(floquet_basis,tlist):
+    return np.stack([np.hstack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])
+def _floquet_state_table(floquet_basis, tlist):
+ 
     dims = len(floquet_basis.e_quasi)
 
     taulist_test = np.array(tlist) % floquet_basis.T
@@ -273,17 +273,16 @@ def flimesolve_floquet_state_table(floquet_basis, tlist):
         return ((key, locs) for key, locs in tally.items())
     sorted_time_args = {key: val for key, val in
                         sorted(list_duplicates(taulist_test_new))}
-
-    fmodes_core_dict = {t: np.stack([floquet_basis.mode(t)[i].full()
-                                    for i in range(dims)])[..., 0]
+    
+    fmodes_core_dict = {t: np.hstack([i.full() for i in floquet_basis.mode(t)])
                         for t in (sorted_time_args.keys())}
 
     tiled_modes = np.zeros((len(tlist), dims, dims), dtype=complex)
     for key in fmodes_core_dict:
         tiled_modes[sorted_time_args[key]] = fmodes_core_dict[key]
-    quasi_e_table = np.exp(np.einsum('i,k -> ki', -1j
-                                     * floquet_basis.e_quasi, tlist))
-    fstates_table = np.einsum('ijk,ij->ikj', tiled_modes, quasi_e_table)
+    quasi_e_table = np.exp(np.einsum('i,k -> ik', -1j
+                                      * tlist, floquet_basis.e_quasi))
+    fstates_table = np.einsum('ijk,ik->ijk', tiled_modes, quasi_e_table)
     return fstates_table
 
 
@@ -345,7 +344,7 @@ class FLiMESolver(MESolver):
         "store_states": None,
         "normalize_output": True,
         "method": "adams",
-        "store_floquet_states": False,
+        "store_floquet_states": True,
 
     }
 
@@ -440,7 +439,7 @@ class FLiMESolver(MESolver):
         ).to("csr") for key in rate_matrix_dictionary}
         
         Rt_timedep_pairs = [
-            [Rate_Qobj_list[key], 'exp(1j*' + str(
+            [Rate_Qobj_list[key], 'exp(-1j*' + str(
                 key * (2*np.pi)/self.floquet_basis.T) + '*t)']
             for key in Rate_Qobj_list]
 
@@ -566,7 +565,7 @@ class FLiMESolver(MESolver):
         else:
             raise ValueError('You need to supply a valid ket or operator')
 
-        fstates_table = flimesolve_floquet_state_table(
+        fstates_table = _floquet_state_table(
             self.floquet_basis, tlist)
 
         stats["preparation time"] += time() - _time_start
@@ -579,8 +578,8 @@ class FLiMESolver(MESolver):
             progress_bar.update()
             sols.append(self._restore_state(state, copy=False).full())
         progress_bar.finished()
-        sols = np.array(sols)
-
+        sols= np.array(sols)
+             
         sols_comp_arr = np.einsum(
             'xij,xjk,xkl->xil',
             fstates_table,
