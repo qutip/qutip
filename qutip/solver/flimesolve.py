@@ -41,15 +41,14 @@ def _floquet_rate_matrix(floquet_basis,
         List of collapse operator rates/magnitudes.
     args : *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and
-        collapse operators. ***FIX THIS NEXT BIT*** Currently, the first
-        element MUST be the frequency-dependence of the Hamiltonian
+        collapse operators. 
     time_sense : float 0-1,optional
         the time sensitivity or secular approximation restriction of 
         FLiMESolve. Decides "acceptable" values of (frequency/rate) for rate 
         matrix entries. Lower values imply rate occurs much faster than
         rotation frtequency, i.e. more important matrix entries. Higher
         values meaning rates cause changes slower than the Hamiltonian rotates,
-        i.e. the changes average out on longer time scales.
+        i.e. the changes average out on "longer" time scales.
 
     Returns
     -------
@@ -68,17 +67,23 @@ def _floquet_rate_matrix(floquet_basis,
 
     total_R_tensor = defaultdict(lambda: 0)
     for cdx, c_op in enumerate(c_ops):
-        #Doing this to bring FLiMESolve in line with MESolve as far as decay rates are concerned
-
         # Transforming the lowering operator into the Floquet Basis
         #     and taking the FFT
-        modes_table = _floquet_mode_table(floquet_basis,tlist)
-        
-        c_op_Floquet_basis = np.transpose(modes_table.conj(),(0,2,1)) @ c_op.full() @ modes_table
-        
-        c_op_Fourier_amplitudes_list = np.fft.fft(c_op_Floquet_basis, axis=0) \
-            / len(tlist)
+        modes_table = _floquet_mode_table(floquet_basis, tlist)
+        modes_fft = np.fft.fft(modes_table, axis=0)
 
+        c_op_Floquet_basis = np.einsum(
+            'xij,jk,xkl->xil',
+            modes_table,
+            c_op.full(),
+            np.transpose(modes_table.conj(), (0, 2, 1))
+        )
+        c_op_Fourier_amplitudes_list = np.fft.fftshift(
+            np.fft.fft(
+                c_op_Floquet_basis, axis=0)
+        ) / len(tlist)
+
+        # Building the Rate matrix
         delta_m = np.add.outer(floquet_basis.e_quasi, -floquet_basis.e_quasi)
         delta_m = np.add.outer(delta_m, -delta_m)
         delta_m /= omega
@@ -98,7 +103,8 @@ def _floquet_rate_matrix(floquet_basis,
                     c_op_Fourier_amplitudes_list[l],
                     np.conj(c_op_Fourier_amplitudes_list[k])
                 ) * c_op_rates[cdx]
-            included_deltas = abs(delta_shift * omega) <= abs(rate_products) * time_sense
+            included_deltas = abs(
+                delta_shift * omega) <= abs(rate_products * time_sense)
             if not np.any(included_deltas):
                 continue
             keys = np.unique(delta_shift[included_deltas])
@@ -109,7 +115,6 @@ def _floquet_rate_matrix(floquet_basis,
             for key in mask.keys():
                 valid_c_op_products = rate_products * mask[key]
                 I_ = np.eye(Hdim, Hdim)
-                # using c = ap,d = bp,k=lp
                 flime_FirstTerm = np.transpose(
                     valid_c_op_products, [0, 2, 1, 3]).reshape(Hdim**2, Hdim**2)
                 tmp = np.trace(valid_c_op_products, axis1=0, axis2=2)
@@ -119,6 +124,7 @@ def _floquet_rate_matrix(floquet_basis,
                 total_R_tensor[key] += flime_FirstTerm - \
                     (0.5) * (flime_SecondTerm + flime_ThirdTerm)
 
+    # Turning the Rate Matrix into a super operator
     dims = [floquet_basis.U(0).dims] * 2
     total_R_tensor = {
         key: Qobj(
@@ -126,7 +132,7 @@ def _floquet_rate_matrix(floquet_basis,
         )
         for key, RateMat in total_R_tensor.items()
     }
-    
+
     return total_R_tensor
 
 
@@ -175,10 +181,9 @@ def flimesolve(
         Dictionary of parameters for time-dependent Hamiltonian
 
     time_sense : float
-        Experimental. Value of the secular approximation (in terms of system
-        frequency 2*np.pi/T) to use when constructing the rate matrix R(t).
-        Default value of zero uses the fully time-independent/most strict
-        secular approximation.
+        Value of the secular approximation to use when constructing the rate 
+        matrix R(t).Default value of zero uses the fully time-independent/most 
+        strict secular approximation.
 
     options : None / dict
         Dictionary of options for the solver.
@@ -236,7 +241,6 @@ def flimesolve(
             options=options,
         )
 
-    # With the tlists sorted,the floquet_basis object can be prepared
     if isinstance(H, FloquetBasis):
         floquet_basis = H
     else:
@@ -251,10 +255,52 @@ def flimesolve(
                          options=options)
     return solver.run(rho0, tlist, e_ops=e_ops)
 
-def _floquet_mode_table(floquet_basis,tlist):
-    return np.stack([np.hstack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])
+
+def _floquet_mode_table(floquet_basis, tlist):
+    """
+    Parameters
+    ----------
+
+    floquet_basis : Floquet Basis object for the solver/Hamiltonian of interest.
+
+    tlist : tlist : *list* / *array*
+        List of times for :math:`t`.
+
+    Returns
+    -------
+    result: :class:`np.array`
+
+        An array, indexed by (i,j,k), for the jth row, kth column, and
+            ith time point of the Floquet modes used to transform into the
+            FLoquet Basis
+    NOTE: Technically speaking, these are the dagger of the modes, s.t.
+            mode @ state @ mode.conj().T will transform INTO the Floquet basis.
+            I just think the name works better this way?
+    """
+    return np.stack([np.stack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])[..., 0]
+
+
 def _floquet_state_table(floquet_basis, tlist):
- 
+    """
+    Parameters
+    ----------
+
+    floquet_basis : Floquet Basis object for the solver/Hamiltonian of interest.
+
+    tlist : tlist : *list* / *array*
+        List of times for :math:`t`.
+
+    Returns
+    -------
+    result: :class:`np.array`
+
+        An array, indexed by (i,j,k), for the jth row, kth column, and
+            ith time point of the Floquet States, specifically found
+            to hit every t%tau in the system evolution, even if a 
+            certain time point doesn't happen every period'
+
+    """
+
     dims = len(floquet_basis.e_quasi)
 
     taulist_test = np.array(tlist) % floquet_basis.T
@@ -273,15 +319,15 @@ def _floquet_state_table(floquet_basis, tlist):
         return ((key, locs) for key, locs in tally.items())
     sorted_time_args = {key: val for key, val in
                         sorted(list_duplicates(taulist_test_new))}
-    
+
     fmodes_core_dict = {t: np.hstack([i.full() for i in floquet_basis.mode(t)])
                         for t in (sorted_time_args.keys())}
 
     tiled_modes = np.zeros((len(tlist), dims, dims), dtype=complex)
     for key in fmodes_core_dict:
         tiled_modes[sorted_time_args[key]] = fmodes_core_dict[key]
-    quasi_e_table = np.exp(np.einsum('i,k -> ik', -1j
-                                      * tlist, floquet_basis.e_quasi))
+    quasi_e_table = np.exp(np.einsum('j,k -> jk', -1j
+                                     * np.array(tlist), floquet_basis.e_quasi))
     fstates_table = np.einsum('ijk,ik->ijk', tiled_modes, quasi_e_table)
     return fstates_table
 
@@ -429,7 +475,7 @@ class FLiMESolver(MESolver):
                     rate_matrix_dictionary):
         _time_start = time()
 
-        Rate_Qobj_list = {key:Qobj(
+        Rate_Qobj_list = {key: Qobj(
             rate_matrix_dictionary[key],
             dims=[self.floquet_basis.U(0).dims,
                   self.floquet_basis.U(0).dims],
@@ -437,7 +483,7 @@ class FLiMESolver(MESolver):
             superrep="super",
             copy=False
         ).to("csr") for key in rate_matrix_dictionary}
-        
+
         Rt_timedep_pairs = [
             [Rate_Qobj_list[key], 'exp(-1j*' + str(
                 key * (2*np.pi)/self.floquet_basis.T) + '*t)']
@@ -578,8 +624,8 @@ class FLiMESolver(MESolver):
             progress_bar.update()
             sols.append(self._restore_state(state, copy=False).full())
         progress_bar.finished()
-        sols= np.array(sols)
-             
+        sols = np.array(sols)
+
         sols_comp_arr = np.einsum(
             'xij,xjk,xkl->xil',
             fstates_table,
