@@ -965,10 +965,9 @@ class HEOMSolver(Solver):
         else:
             L = L.tocsc()
             solution = spsolve(L, b_mat)
- 
-        data = _data.Dense(solution[:n ** 2].reshape((n, n), order = 'F'))                
+
+        data = _data.Dense(solution[:n ** 2].reshape((n, n), order='F'))
         data = _data.mul(_data.add(data, data.adjoint()), 0.5)
-        
         steady_state = Qobj(data, dims=self._sys_dims)
 
         solution = solution.reshape((self._n_ados, n, n))

@@ -740,14 +740,14 @@ class TestHEOMSolver:
             assert rho_final == ado_state.extract(0)
         else:
             assert_raises_steady_state_time_dependent(hsolver)
-    
-    
+
     def test_steady_state_bosonic_bath(
         self, atol=1e-3
     ):
-        H_sys =  0.25 * sigmaz() + 0.5 * sigmay()
+        H_sys = 0.25 * sigmaz() + 0.5 * sigmay()
 
-        bath = DrudeLorentzBath(sigmaz(), lam=0.025, gamma=0.05, T=1/0.95, Nk=2)
+        bath = DrudeLorentzBath(sigmaz(), lam=0.025,
+                                gamma=0.05, T=1/0.95, Nk=2)
         options = {"nsteps": 15000, "store_states": True}
         hsolver = HEOMSolver(H_sys, bath, 5, options=options)
 
@@ -758,8 +758,6 @@ class TestHEOMSolver:
         rho_final, ado_state = hsolver.steady_state()
         fid = fidelity(rho_final, result.states[-1])
         np.testing.assert_allclose(fid, 1.0, atol=atol)
-        
-        
 
     @pytest.mark.parametrize(['terminator'], [
         pytest.param(True, id="terminator"),
