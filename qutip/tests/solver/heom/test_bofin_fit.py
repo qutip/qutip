@@ -187,7 +187,7 @@ class TestCorrelationFitter:
         corr = np.sum((a[:, None]+1j*d[:, None]) * np.exp(b[:, None]
                       * t) * np.exp(1j * c[:, None] * t), axis=0)
         fitter = CorrelationFitter(Q=sigmax(), T=1, t=t, C=corr)
-        bath, _ = fitter.get_fit(Nr=2, Ni=2)
+        bath, _ = fitter.get_fit(Nr=2, Ni=2, full_ansatz=True)
         C2 = np.real(bath.correlation_function_approx(t))
         C3 = np.imag(bath.correlation_function_approx(t))
         np.testing.assert_allclose(np.real(corr), C2, rtol=1e-5)
@@ -259,7 +259,8 @@ class TestOhmicBath:
         pytest.importorskip("mpmath")
         w = np.linspace(0, 10, 1000)
         ob = OhmicBath(Q=sigmax(), T=1, alpha=0.05, wc=5, s=1)
-        bath, fitinfo = ob.make_correlation_fit(w, Nr=3, Ni=3)
+        bath, fitinfo = ob.make_correlation_fit(
+            w, Nr=3, Ni=3, full_ansatz=True)
         c1 = bath.correlation_function(w)
         c2 = bath.correlation_function_approx(w)
         print(np.max(np.abs(np.real(c1))))

@@ -111,9 +111,10 @@ class SpectralFitter:
             If set to None, it is determined automatically.
         Nk : optional, int
             Number of exponential terms used to approximate the bath
-            correlation functions, per bath. Defaults to 5.
+            correlation functions, per bath. Defaults to 1.
         final_rmse : float
-            Desired normalized root mean squared error.
+            Desired normalized root mean squared error. Defaults to
+            $5\times10^{-6}$
         lower : list
             lower bounds on the parameters for the fit. A list of size 3,
             each value represents the lower bound for each parameter.
@@ -145,8 +146,7 @@ class SpectralFitter:
             Initial guesses for the parameters. Same structure as lower and
             upper.
 
-        Note: If one of lower, upper, sigma, guesses is None,
-        all are discarded.
+        Note: If one of lower, upper, sigma, guesses is None, all are discarded
 
         Returns
         -------
@@ -295,8 +295,8 @@ class CorrelationFitter:
             A list describing the oscillations of the correlation
             approximation.
         d:  A list describing the imaginary part amplitude of the correlation
-            approximation, only used if the imaginary part of the correlation
-            function at time 0 is different from 0.
+            approximation, only used if the user selects if the full_ansatz
+            flag from get_fit is True.
         """
 
         a = np.array(a)
@@ -321,21 +321,22 @@ class CorrelationFitter:
         upper=None,
         sigma=None,
         guesses=None,
+        full_ansatz=False
     ):
         r"""
         Fit the correlation function with Ni exponential terms
         for the imaginary part of the correlation function and Nr for the real.
         If no number of terms is provided, this function determines the number
-        of exponentials based on reducing the normalized root mean squared
+        of exponents based on reducing the normalized root mean squared
         error below a certain threshold.
 
         Parameters
         ----------
         Nr : optional, int
-            Number of exponential terms to use for the real part.
+            Number of exponents to use for the real part.
             If set to None it is determined automatically.
         Ni : optional, int
-            Number of exponential terms to use for the imaginary part.
+            Number of exponents terms to use for the imaginary part.
             If set to None it is found automatically.
         final_rmse : float
             Desired normalized root mean squared error. Only used if Ni or Nr
@@ -343,7 +344,7 @@ class CorrelationFitter:
         lower : list
             lower bounds on the parameters for the fit. A list of size 4,
             each value represents the lower bound for each parameter. The last
-            parameter is ignored if the correlation function is zero at $t=0$.
+            parameter is ignored if full_ansatz is False.
 
             The first and last terms describe the real and imaginary parts of
             the amplitude, the second the decay rate, and the third one the
@@ -365,9 +366,31 @@ class CorrelationFitter:
         guesses : list
             Initial guesses for the parameters. Same structure as lower and
             upper.
+        full_ansatz: bool
+            Indicates whether to use the function
 
-        Note: If one of lower, upper, sigma, guesses is None,
-        all are discarded.
+            .. math::
+                C(t)= \sum_{k}a_{k}e^{-b_{k} t}e^{i c_{k} t}
+            for the fitting of the correlation function (when False, the
+            default value)  this function gives us
+            faster fits,usually it is not needed to tweek
+            guesses, sigma, upper and lower as defaults work for most
+            situations.  When set to True one uses the function
+
+            .. math::
+                C(t)= \sum_{k}(a_{k}+i d_{k})e^{-b_{k} t}e^{i c_{k} t}
+            Unfortunately this gives us significantly slower fits and some
+            tweeking of the guesses,sigma, upper and lower is usually needed.
+            On the other hand, it can lead to better fits with lesser exponents
+            specially for anomalous spectral densities such that
+            $Im(C(0))\neq 0$. When using this with default values if the fit
+            takes too long you should input guesses, lower and upper bounds,
+            if you are not sure what to set them to it is useful to use the
+            output of fitting with the other option as guesses for the fit.
+
+
+
+        Note: If one of lower, upper, sigma, guesses is None, all are discarded
 
         Returns
         -------
@@ -402,26 +425,18 @@ class CorrelationFitter:
             each parameter, each list containing N terms.
         summary:
             A string that summarizes the information about the fit.
-
-
         """
-
-        if np.isclose(np.imag(self._C_array[0]), 0):
-            numparams = 3
-            if None not in (lower, upper, guesses):
-                lower.pop()
-                upper.pop()
-                guesses.pop()
+        if full_ansatz:
+            num_params = 4
         else:
-            numparams = 4
-
+            num_params = 3
         # Fit real part
         start_real = time()
         rmse_real, params_real = _run_fit(
             lambda *args: np.real(self._corr_approx(*args)),
             y=np.real(self._C_array), x=self._t, final_rmse=final_rmse,
             default_guess_scenario="correlation_real", N=Nr, sigma=sigma,
-            guesses=guesses, lower=lower, upper=upper, n=numparams)
+            guesses=guesses, lower=lower, upper=upper, n=num_params)
         end_real = time()
 
         # Fit imaginary part
@@ -430,7 +445,7 @@ class CorrelationFitter:
             lambda *args: np.imag(self._corr_approx(*args)),
             y=np.imag(self._C_array), x=self._t, final_rmse=final_rmse,
             default_guess_scenario="correlation_imag", N=Ni, sigma=sigma,
-            guesses=guesses, lower=lower, upper=upper, n=numparams)
+            guesses=guesses, lower=lower, upper=upper, n=num_params)
         end_imag = time()
 
         # Calculate Fit Times
@@ -442,7 +457,7 @@ class CorrelationFitter:
         Ni = len(params_imag[0])
         full_summary = _two_column_summary(
             params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
-            rmse_imag, rmse_real, n=numparams)
+            rmse_imag, rmse_real, n=num_params)
 
         fitInfo = {"Nr": Nr, "Ni": Ni,
                    "fit_time_real": fit_time_real,
@@ -450,7 +465,7 @@ class CorrelationFitter:
                    "rmse_real": rmse_real, "rmse_imag": rmse_imag,
                    "params_real": params_real,
                    "params_imag": params_imag, "summary": full_summary}
-        bath = self._generate_bath(params_real, params_imag, n=numparams)
+        bath = self._generate_bath(params_real, params_imag, n=num_params)
         bath.correlation_function = self._C_fun
         return bath, fitInfo
 
@@ -589,7 +604,7 @@ class OhmicBath:
 
     def make_correlation_fit(
             self, x, rmse=1e-4, lower=None, upper=None,
-            sigma=None, guesses=None, Nr=None, Ni=None):
+            sigma=None, guesses=None, Nr=None, Ni=None, full_ansatz=False):
         """
         Provides a fit to the spectral density or corelation function
         with N underdamped oscillators baths, This function gets the
@@ -624,6 +639,12 @@ class OhmicBath:
         Ni: int
             The number of terms to use for the imaginary part of the
             correlation function
+        full_ansatz: bool
+            Indicates which function to use for the fit, for further
+            clarification see `CorrelationFitter.get_fit
+            <./classes.html#qutip.solver.heom.CorrelationFitter.get_fit>`_.
+
+        Note: If one of lower, upper, sigma, guesses is None, all are discarded
 
         Returns
         -------
@@ -664,7 +685,7 @@ class OhmicBath:
         bath, fitInfo = fc.get_fit(final_rmse=rmse,
                                    lower=lower, upper=upper,
                                    sigma=sigma, guesses=guesses,
-                                   Nr=Nr, Ni=Ni)
+                                   Nr=Nr, Ni=Ni, full_ansatz=full_ansatz)
         return bath, fitInfo
 
     def make_spectral_fit(self, x, rmse=1e-5, lower=None, upper=None,
@@ -706,7 +727,7 @@ class OhmicBath:
         guesses : list
             Initial guesses for the parameters. Same structure as lower and
             upper.
-
+        Note: If one of lower, upper, sigma, guesses is None, all are discarded
         Returns
         -------
         - A Bosonic Bath created with the fit parameters for the original
