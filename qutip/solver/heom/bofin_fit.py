@@ -371,7 +371,7 @@ class CorrelationFitter:
 
             .. math::
                 C(t)= \sum_{k}a_{k}e^{-b_{k} t}e^{i c_{k} t}
-                
+
             for the fitting of the correlation function (when False, the
             default value)  this function gives us
             faster fits,usually it is not needed to tweek
@@ -380,7 +380,7 @@ class CorrelationFitter:
 
             .. math::
                 C(t)= \sum_{k}(a_{k}+i d_{k})e^{-b_{k} t}e^{i c_{k} t}
-                
+
             Unfortunately this gives us significantly slower fits and some
             tweeking of the guesses,sigma, upper and lower is usually needed.
             On the other hand, it can lead to better fits with lesser exponents
