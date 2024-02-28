@@ -74,9 +74,9 @@ def _floquet_rate_matrix(floquet_basis,
 
         c_op_Floquet_basis = np.einsum(
             'xij,jk,xkl->xil',
-            modes_table,
+            np.transpose(modes_table.conj(), (0, 2, 1)),
             c_op.full(),
-            np.transpose(modes_table.conj(), (0, 2, 1))
+            modes_table
         )
         c_op_Fourier_amplitudes_list = np.fft.fftshift(
             np.fft.fft(
@@ -84,7 +84,7 @@ def _floquet_rate_matrix(floquet_basis,
         ) / len(tlist)
 
         # Building the Rate matrix
-        delta_m = np.add.outer(floquet_basis.e_quasi, -floquet_basis.e_quasi)
+        delta_m = np.add.outer(-floquet_basis.e_quasi, floquet_basis.e_quasi)
         delta_m = np.add.outer(delta_m, -delta_m)
         delta_m /= omega
         for l, k in product(np.arange(Nt), repeat=2):
@@ -277,7 +277,7 @@ def _floquet_mode_table(floquet_basis, tlist):
             mode @ state @ mode.conj().T will transform INTO the Floquet basis.
             I just think the name works better this way?
     """
-    return np.stack([np.stack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])[..., 0]
+    return np.stack([np.hstack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])
 
 
 def _floquet_state_table(floquet_basis, tlist):
@@ -326,7 +326,7 @@ def _floquet_state_table(floquet_basis, tlist):
     tiled_modes = np.zeros((len(tlist), dims, dims), dtype=complex)
     for key in fmodes_core_dict:
         tiled_modes[sorted_time_args[key]] = fmodes_core_dict[key]
-    quasi_e_table = np.exp(np.einsum('j,k -> jk', -1j
+    quasi_e_table = np.exp(np.einsum('i,k -> ik', -1j
                                      * np.array(tlist), floquet_basis.e_quasi))
     fstates_table = np.einsum('ijk,ik->ijk', tiled_modes, quasi_e_table)
     return fstates_table
@@ -405,6 +405,9 @@ class FLiMESolver(MESolver):
         time_sense=0,
         options=None
     ):
+        if time_sense == 0:
+            self.solver_options["method"] = "diag"
+
         if isinstance(floquet_basis, FloquetBasis):
             self.floquet_basis = floquet_basis
         else:
@@ -453,8 +456,6 @@ class FLiMESolver(MESolver):
             c_op_rates,
             time_sense=time_sense)
 
-        if time_sense == 0:
-            self.solver_options["method"] = "diag"
         self.rhs = self._create_rhs(RateDic)
         self._integrator = self._get_integrator()
         self._state_metadata = {}
@@ -485,9 +486,10 @@ class FLiMESolver(MESolver):
         ).to("csr") for key in rate_matrix_dictionary}
 
         Rt_timedep_pairs = [
-            [Rate_Qobj_list[key], 'exp(-1j*' + str(
-                key * (2*np.pi)/self.floquet_basis.T) + '*t)']
-            for key in Rate_Qobj_list]
+            Rate_Qobj_list[0], *[
+                [Rate_Qobj_list[key], 'exp(1j*' + str(
+                    key * (2*np.pi)/self.floquet_basis.T) + '*t)']
+                for key in set(Rate_Qobj_list)-{0}]]
 
         rhs = QobjEvo(Rt_timedep_pairs)
 
