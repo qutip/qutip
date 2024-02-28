@@ -271,6 +271,7 @@ latex_elements = {
     'babel': '\\usepackage[english]{babel}',
     'fncychap': '',
     'figure_align': 'H',
+    'maxlistdepth': '10',
     # This preamble is inserted into the build tools for the latex make targets
     # but not any others.  Be sure to change mathjax_config too if you need to
     # define more commands.

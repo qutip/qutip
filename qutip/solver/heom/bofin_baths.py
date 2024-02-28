@@ -495,12 +495,19 @@ class BosonicBath(Bath):
 
         S = np.zeros_like(w, dtype=float)
         for exp in self.exponents:
-            ck = exp.ck or 0
-            ck2 = exp.ck2 or 0
+            if (
+                exp.type == BathExponent.types['R'] or
+                exp.type == BathExponent.types['RI']
+            ):
+                coeff = exp.ck
             if exp.type == BathExponent.types['I']:
-                S += 2 * np.real((1j*ck) / (exp.vk - 1j*w))
+                coeff = 1j * exp.ck
+            if exp.type == BathExponent.types['RI']:
+                coeff += 1j * exp.ck2
+            if exp.type == BathExponent.types['I']:
+                S += 2 * np.real((coeff) / (exp.vk - 1j*w))
             else:
-                S += 2 * np.real((ck + 1j*ck2) / (exp.vk - 1j*w))
+                S += 2 * np.real((coeff) / (exp.vk - 1j*w))
 
         return S
 

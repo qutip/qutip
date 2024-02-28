@@ -150,7 +150,7 @@ class TestSpectralFitter:
             bath.spectral_density_approx(w)-ud.spectral_density(w),
             np.zeros_like(w), atol=1e-5).all()
 
-    @pytest.mark.filterwarnings('ignore::RuntimeWarning')
+   # @pytest.mark.filterwarnings('ignore::RuntimeWarning')
     def test_generate_bath(self):
         Q = sigmax()
         T = 1
@@ -192,7 +192,11 @@ class TestCorrelationFitter:
         C3 = np.imag(bath.correlation_function_approx(t))
         np.testing.assert_allclose(np.real(corr), C2, rtol=1e-5)
         np.testing.assert_allclose(np.imag(corr), C3, rtol=1e-5)
-
+    # Runtimewarning is ignored as it comes our of scipy integration evaluating
+    # the bose einstein distribution and overflowing
+    # An alternative is to redefine bose_einstein to
+    # np.exp(-ν / self.T) / (1-np.exp(-ν / self.T)) which is a bit more robust
+    # to overflows
     @pytest.mark.filterwarnings('ignore::RuntimeWarning')
     @pytest.mark.slow
     def test_generate_bath(self):

@@ -65,8 +65,8 @@ class SpectralFitter:
             self._J_array = J
             self._J_fun = InterpolatedUnivariateSpline(w, J)
 
-    @staticmethod
-    def _meier_tannor_SD(w, a, b, c):
+    @classmethod
+    def _meier_tannor_SD(cls, w, a, b, c):
         r"""
         Underdamped spectral density used for fitting in Meier-Tannor form
         (see Eq. 38 in the BoFiN paper, DOI: 10.1103/PhysRevResearch.5.013181)
@@ -77,11 +77,11 @@ class SpectralFitter:
         w : np.array
             The frequency of the spectral density
         a : np.array
-            Array of coupling constants
+            Array of coupling constants ($\alpha_i^2$)
         b : np.array
-            Array of cutoff parameters
+            Array of cutoff parameters ($\Gamma'_i$)
         c : np.array
-            Array of resonant frequencies
+            Array of resonant frequencies ($\Omega_i$)
         """
 
         return sum((2 * ai * bi * w
@@ -111,25 +111,23 @@ class SpectralFitter:
             If set to None, it is determined automatically.
         Nk : optional, int
             Number of exponential terms used to approximate the bath
-            correlation functions, per bath. Defaults to 1.
-        final_rmse : float
+            correlation functions, defaults to 1. To approximate the 
+            correlation function the number of exponents grow as the 
             Desired normalized root mean squared error. Defaults to
-            $5\times10^{-6}$
-        lower : list
-            lower bounds on the parameters for the fit. A list of size 3,
-            each value represents the lower bound for each parameter.
-            The order of the parameters is the same as for the function to be
-            fitted.
+            :math:`5\times10^{-6}`. Only used if N is set to None.
+            Desired normalized root mean squared error. Defaults to
+            Lower bounds on the parameters for the fit. A list of size 3,
+            containing the lower bounds for :math:`a_i` (coupling constants),
+            :math:`b_i` (cutoff frequencies) and :math:`c_i`
+            (resonant frequencies) in the following fit function:
 
             .. math::
                 J(\omega) = \sum_{i=1}^{k} \frac{2 a_{i} b_{i} \omega
                 }{\left(\left( \omega + c_{i}\right)^{2} + b_{i}^{2}\right)
                 \left(\left( \omega - c_{i}\right)^{2} + b_{i}^{2} \right)}
 
-            The first term describes the coupling,
-            the second the cutoff frequency,and the last one the central
-            frequency. The lower bounds are considered to be the same for all
-            N modes. for example
+            The lower bounds are considered to be the same for all N modes.
+            For example,
 
             lower=[0,-1,2]
 
@@ -150,25 +148,22 @@ class SpectralFitter:
 
         Returns
         -------
-        - A Bosonic Bath created with the fit parameters for the original
+        1. A Bosonic Bath created with the fit parameters for the original
           spectral density function (that was provided or interpolated)
-        - A dictionary containing the following information about the fit:
-        fit_time:
-            The time the fit took in seconds.
-        rsme:
-            Normalized mean squared error obtained in the fit.
-        N:
-            The number of terms used for the fit.
-        params:
-            The fitted parameters (3*N parameters), it contains three lists
-            one for each parameter, each list containing N terms.
-        Nk:
-            The number of exponents used to construct the bosonic bath,
-            defaults to 1. To approximate the correlation function the
-            number of exponents grow as the temperature decreases, so Nk
-            needs to be adjusted accordingly.
-        summary:
-            A string that summarizes the information of the fit.
+        2. A dictionary containing the following information about the fit:
+            * fit_time:
+                The time the fit took in seconds.
+            * rsme:
+                Normalized mean squared error obtained in the fit.
+            * N:
+                The number of terms used for the fit.
+            * params:
+                The fitted parameters (3N parameters), it contains three lists
+                one for each parameter, each list containing N terms.
+            * Nk:
+                The number of exponents used to construct the bosonic bath.
+            * summary:
+                A string that summarizes the information of the fit.
         """
 
         start = time()
@@ -342,9 +337,9 @@ class CorrelationFitter:
             Desired normalized root mean squared error. Only used if Ni or Nr
             are not specified.
         lower : list
-            lower bounds on the parameters for the fit. A list of size 4,
-            each value represents the lower bound for each parameter. The last
-            parameter is ignored if full_ansatz is False.
+            lower bounds on the parameters for the fit. A list of size 4 when
+            full_ansatz is True and of size 3 when it is false,each value 
+            represents the lower bound for each parameter.
 
             The first and last terms describe the real and imaginary parts of
             the amplitude, the second the decay rate, and the third one the
@@ -672,11 +667,11 @@ class OhmicBath:
             Normalized mean squared error obtained in the fit of the
             imaginary part of the correlation function.
         params_real:
-            The fitted parameters (3*N parameters) for the real part of the
+            The fitted parameters (3N parameters) for the real part of the
             correlation function, it contains three lists one for each
             parameter, each list containing N terms.
         params_imag:
-            The fitted parameters (3*N parameters) for the imaginary part
+            The fitted parameters (3N parameters) for the imaginary part
             of the correlation function, it contains three lists one for
             each parameter, each list containing N terms.
         summary:
@@ -742,7 +737,7 @@ class OhmicBath:
         N:
             The number of terms used for the fit.
         params:
-            The fitted parameters (3*N parameters), it contains three lists
+            The fitted parameters (3N parameters), it contains three lists
             one for each parameter, each list containing N terms.
         Nk:
             The number of exponents used to construct the bosonic bath,
