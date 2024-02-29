@@ -4,57 +4,93 @@
 Monte Carlo Solver
 *******************************************
 
+
 .. _monte-intro:
 
 Introduction
 =============
 
-Where as the density matrix formalism describes the ensemble average over many identical realizations of a quantum system, the Monte Carlo (MC), or quantum-jump approach to wave function evolution, allows for simulating an individual realization of the system dynamics.  Here, the environment is continuously monitored, resulting in a series of quantum jumps in the system wave function, conditioned on the increase in information gained about the state of the system via the environmental measurements.  In general, this evolution is governed by the Schrödinger equation with a **non-Hermitian** effective Hamiltonian
+Where as the density matrix formalism describes the ensemble average over many
+identical realizations of a quantum system, the Monte Carlo (MC), or
+quantum-jump approach to wave function evolution, allows for simulating an
+individual realization of the system dynamics.  Here, the environment is
+continuously monitored, resulting in a series of quantum jumps in the system
+wave function, conditioned on the increase in information gained about the
+state of the system via the environmental measurements.  In general, this
+evolution is governed by the Schrödinger equation with a **non-Hermitian**
+effective Hamiltonian
 
 .. math::
-	:label: heff
+    :label: heff
 
-	H_{\rm eff}=H_{\rm sys}-\frac{i\hbar}{2}\sum_{i}C^{+}_{n}C_{n},
+    H_{\rm eff}=H_{\rm sys}-\frac{i\hbar}{2}\sum_{i}C^{+}_{n}C_{n},
 
-where again, the :math:`C_{n}` are collapse operators, each corresponding to a separate irreversible process with rate :math:`\gamma_{n}`.  Here, the strictly negative non-Hermitian portion of Eq. :eq:`heff` gives rise to a reduction in the norm of the wave function, that to first-order in a small time :math:`\delta t`, is given by :math:`\left<\psi(t+\delta t)|\psi(t+\delta t)\right>=1-\delta p` where
-
-.. math::
-	:label: jump
-
-	\delta p =\delta t \sum_{n}\left<\psi(t)|C^{+}_{n}C_{n}|\psi(t)\right>,
-
-and :math:`\delta t` is such that :math:`\delta p \ll 1`.  With a probability of remaining in the state :math:`\left|\psi(t+\delta t)\right>` given by :math:`1-\delta p`, the corresponding quantum jump probability is thus Eq. :eq:`jump`.  If the environmental measurements register a quantum jump, say via the emission of a photon into the environment, or a change in the spin of a quantum dot, the wave function undergoes a jump into a state defined by projecting :math:`\left|\psi(t)\right>` using the collapse operator :math:`C_{n}` corresponding to the measurement
+where again, the :math:`C_{n}` are collapse operators, each corresponding to a
+separate irreversible process with rate :math:`\gamma_{n}`.  Here, the strictly
+negative non-Hermitian portion of Eq. :eq:`heff` gives rise to a reduction in
+the norm of the wave function, that to first-order in a small time
+:math:`\delta t`, is given by
+:math:`\left<\psi(t+\delta t)|\psi(t+\delta t)\right>=1-\delta p` where
 
 .. math::
-	:label: project
+    :label: jump
 
-	\left|\psi(t+\delta t)\right>=C_{n}\left|\psi(t)\right>/\left<\psi(t)|C_{n}^{+}C_{n}|\psi(t)\right>^{1/2}.
+    \delta p =\delta t \sum_{n}\left<\psi(t)|C^{+}_{n}C_{n}|\psi(t)\right>,
 
-If more than a single collapse operator is present in Eq. :eq:`heff`, the probability of collapse due to the :math:`i\mathrm{th}`-operator :math:`C_{i}` is given by
+and :math:`\delta t` is such that :math:`\delta p \ll 1`.  With a probability
+of remaining in the state :math:`\left|\psi(t+\delta t)\right>` given by
+:math:`1-\delta p`, the corresponding quantum jump probability is thus Eq.
+:eq:`jump`.  If the environmental measurements register a quantum jump, say via
+the emission of a photon into the environment, or a change in the spin of a
+quantum dot, the wave function undergoes a jump into a state defined by
+projecting :math:`\left|\psi(t)\right>` using the collapse operator
+:math:`C_{n}` corresponding to the measurement
 
 .. math::
-	:label: pcn
+    :label: project
 
-	P_{i}(t)=\left<\psi(t)|C_{i}^{+}C_{i}|\psi(t)\right>/\delta p.
+    \left|\psi(t+\delta t)\right>=C_{n}\left|\psi(t)\right>/\left<\psi(t)|C_{n}^{+}C_{n}|\psi(t)\right>^{1/2}.
 
-Evaluating the MC evolution to first-order in time is quite tedious.  Instead, QuTiP uses the following algorithm to simulate a single realization of a quantum system.  Starting from a pure state :math:`\left|\psi(0)\right>`:
+If more than a single collapse operator is present in Eq. :eq:`heff`, the
+probability of collapse due to the :math:`i\mathrm{th}`-operator :math:`C_{i}`
+is given by
 
-- **Ia:** Choose a random number :math:`r_1` between zero and one, representing the probability that a quantum jump occurs.
+.. math::
+    :label: pcn
 
-- **Ib:** Choose a random number :math:`r_2` between zero and one, used to select which collapse operator was responsible for the jump.
+    P_{i}(t)=\left<\psi(t)|C_{i}^{+}C_{i}|\psi(t)\right>/\delta p.
 
-- **II:** Integrate the Schrödinger equation, using the effective Hamiltonian :eq:`heff` until a time :math:`\tau` such that the norm of the wave function satisfies :math:`\left<\psi(\tau)\right.\left|\psi(\tau)\right> = r_1`, at which point a jump occurs.
+Evaluating the MC evolution to first-order in time is quite tedious.  Instead,
+QuTiP uses the following algorithm to simulate a single realization of a quantum system.
+Starting from a pure state :math:`\left|\psi(0)\right>`:
 
-- **III:** The resultant jump projects the system at time :math:`\tau` into one of the renormalized states given by Eq. :eq:`project`.  The corresponding collapse operator :math:`C_{n}` is chosen such that :math:`n` is the smallest integer satisfying:
+- **Ia:** Choose a random number :math:`r_1` between zero and one, representing
+  the probability that a quantum jump occurs.
+
+- **Ib:** Choose a random number :math:`r_2` between zero and one, used to
+  select which collapse operator was responsible for the jump.
+
+- **II:** Integrate the Schrödinger equation, using the effective Hamiltonian
+  :eq:`heff` until a time :math:`\tau` such that the norm of the wave function
+  satisfies :math:`\left<\psi(\tau)\right.\left|\psi(\tau)\right> = r_1`, at
+  which point a jump occurs.
+
+- **III:** The resultant jump projects the system at time :math:`\tau` into one
+  of the renormalized states given by Eq. :eq:`project`.  The corresponding
+  collapse operator :math:`C_{n}` is chosen such that :math:`n` is the smallest
+  integer satisfying:
 
 .. math::
     :label: mc3
 
     \sum_{i=1}^{n} P_{n}(\tau) \ge r_2
 
-where the individual :math:`P_{n}` are given by Eq. :eq:`pcn`.  Note that the left hand side of Eq. :eq:`mc3` is, by definition, normalized to unity.
+where the individual :math:`P_{n}` are given by Eq. :eq:`pcn`.  Note that the
+left hand side of Eq. :eq:`mc3` is, by definition, normalized to unity.
 
-- **IV:** Using the renormalized state from step III as the new initial condition at time :math:`\tau`, draw a new random number, and repeat the above procedure until the final simulation time is reached.
+- **IV:** Using the renormalized state from step III as the new initial
+  condition at time :math:`\tau`, draw a new random number, and repeat the
+  above procedure until the final simulation time is reached.
 
 
 .. _monte-qutip:
@@ -62,20 +98,28 @@ where the individual :math:`P_{n}` are given by Eq. :eq:`pcn`.  Note that the le
 Monte Carlo in QuTiP
 ====================
 
-In QuTiP, Monte Carlo evolution is implemented with the :func:`qutip.mcsolve` function. It takes nearly the same arguments as the :func:`qutip.mesolve`
-function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and there is an optional keyword parameter ``ntraj`` that defines the number of stochastic trajectories to be simulated.  By default, ``ntraj=500`` indicating that 500 Monte Carlo trajectories will be performed.
+In QuTiP, Monte Carlo evolution is implemented with the :func:`.mcsolve`
+function. It takes nearly the same arguments as the :func:`.mesolve`
+function for master-equation evolution, except that the initial state must be a
+ket vector, as oppose to a density matrix, and there is an optional keyword
+parameter ``ntraj`` that defines the number of stochastic trajectories to be
+simulated.  By default, ``ntraj=500`` indicating that 500 Monte Carlo
+trajectories will be performed.
 
-To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, let's again consider the case of a two-level atom coupled to a leaky cavity. The only differences to the master-equation treatment is that in this case we invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.mesolve`
+To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP,
+let's again consider the case of a two-level atom coupled to a leaky cavity.
+The only differences to the master-equation treatment is that in this case we
+invoke the :func:`.mcsolve` function instead of :func:`.mesolve`
 
 .. plot::
-    :context:
+    :context: reset
 
     times = np.linspace(0.0, 10.0, 200)
-    psi0 = tensor(fock(2, 0), fock(10, 5))
+    psi0 = tensor(fock(2, 0), fock(10, 8))
     a  = tensor(qeye(2), destroy(10))
     sm = tensor(destroy(2), qeye(10))
     H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm])
 
     plt.figure()
     plt.plot(times, data.expect[0], times, data.expect[1])
@@ -87,9 +131,39 @@ To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, 
 
 .. guide-dynamics-mc1:
 
-The advantage of the Monte Carlo method over the master equation approach is that only the state vector is required to be kept in the computers memory, as opposed to the entire density matrix. For large quantum system this becomes a significant advantage, and the Monte Carlo solver is therefore generally recommended for such systems. For example, simulating a Heisenberg spin-chain consisting of 10 spins with random parameters and initial states takes almost 7 times longer using the master equation rather than Monte Carlo approach with the default number of trajectories running on a quad-CPU machine.  Furthermore, it takes about 7 times the memory as well. However, for small systems, the added overhead of averaging a large number of stochastic trajectories to obtain the open system dynamics, as well as starting the multiprocessing functionality, outweighs the benefit of the minor (in this case) memory saving. Master equation methods are therefore generally more efficient when Hilbert space sizes are on the order of a couple of hundred states or smaller.
+The advantage of the Monte Carlo method over the master equation approach is that
+only the state vector is required to be kept in the computers memory, as opposed
+to the entire density matrix. For large quantum system this becomes a significant
+advantage, and the Monte Carlo solver is therefore generally recommended for such
+systems. For example, simulating a Heisenberg spin-chain consisting of 10 spins
+with random parameters and initial states takes almost 7 times longer using the
+master equation rather than Monte Carlo approach with the default number of
+trajectories running on a quad-CPU machine.  Furthermore, it takes about 7 times
+the memory as well. However, for small systems, the added overhead of averaging
+a large number of stochastic trajectories to obtain the open system dynamics, as
+well as starting the multiprocessing functionality, outweighs the benefit of the
+minor (in this case) memory saving. Master equation methods are therefore
+generally more efficient when Hilbert space sizes are on the order of a couple
+of hundred states or smaller.
 
-Like the master equation solver :func:`qutip.mesolve`, the Monte Carlo solver returns a :class:`qutip.solver.Result` object consisting of expectation values, if the user has defined expectation value operators in the 5th argument to ``mcsolve``, or state vectors if no expectation value operators are given.  If state vectors are returned, then the :class:`qutip.solver.Result` returned by :func:`qutip.mcsolve` will be an array of length ``ntraj``, with each element containing an array of ket-type qobjs with the same number of elements as ``times``.  Furthermore, the output :class:`qutip.solver.Result` object will also contain a list of times at which collapse occurred, and which collapse operators did the collapse, in the ``col_times`` and ``col_which`` properties, respectively.
+
+Monte Carlo Solver Result
+-------------------------
+
+The Monte Carlo solver returns a :class:`.McResult` object consisting of
+expectation values and/or states. The main difference with :func:`.mesolve`'s
+:class:`.Result` is that it optionally stores the result of each trajectory
+together with their averages. When trajectories are stored, ``result.runs_expect``
+is a list over the expectation operators, trajectories and times in that order.
+The averages are stored in ``result.average_expect`` and the standard derivation
+of the expectation values in ``result.std_expect``. When the states are returned,
+``result.runs_states`` will be an array of length ``ntraj``. Each element
+contains an array of "Qobj" type ket with the same number of elements as ``times``.
+``result.average_states`` is a list of density matrices computed as the average
+of the states at each time step. Furthermore, the output will also contain a
+list of times at which the collapse occurred, and which collapse operators did
+the collapse. These can be obtained in  ``result.col_times`` and
+``result.col_which`` respectively.
 
 
 .. _monte-ntraj:
@@ -97,81 +171,301 @@ Like the master equation solver :func:`qutip.mesolve`, the Monte Carlo solver re
 Changing the Number of Trajectories
 -----------------------------------
 
-As mentioned earlier, by default, the ``mcsolve`` function runs 500 trajectories.  This value was chosen because it gives good accuracy, Monte Carlo errors scale as :math:`1/n` where :math:`n` is the number of trajectories, and simultaneously does not take an excessive amount of time to run.  However, like many other options in QuTiP you are free to change the number of trajectories to fit your needs.  If we want to run 1000 trajectories in the above example, we can simply modify the call to ``mcsolve`` like:
+By default, the ``mcsolve`` function runs 500 trajectories.
+This value was chosen because it gives good accuracy, Monte Carlo errors scale
+as :math:`1/n` where :math:`n` is the number of trajectories, and simultaneously
+does not take an excessive amount of time to run. However, you can change the
+number of trajectories to fit your needs. In order to run 1000 trajectories in
+the above example, we can simply modify the call to ``mcsolve`` like:
+
+.. code-block::
+
+    data = mcsolve(H, psi0, times, c_ops e_ops=e_ops, ntraj=1000)
+
+where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.
+Now, the Monte Carlo solver will calculate expectation values for both operators,
+``a.dag() * a, sm.dag() * sm`` averaging over 1000 trajectories.
+
+
+Other than a target number of trajectories, it is possible to use a computation
+time or errors bars as condition to stop computing trajectories.
+
+``timeout`` is quite simple as ``mcsolve`` will stop starting the computation of
+new trajectories when it is reached. Thus:
+
+
+.. code-block::
+
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops, ntraj=1000, timeout=60)
+
+Will compute 60 seconds of trajectories or 1000, which ever is reached first.
+The solver will finish any trajectory started when the timeout is reached. Therefore
+if the computation time of a single trajectory is quite long, the overall computation
+time can be much longer that the provided timeout.
+
+Lastly, ``mcsolve`` can be instructed to stop when the statistical error of the
+expectation values get under a certain value. When computing the average over
+trajectories, the error on these are computed using
+`jackknife resampling <https://en.wikipedia.org/wiki/Jackknife_resampling>`_
+for each expect and each time and the computation will be stopped when all these values
+are under the tolerance passed to ``target_tol``. Therefore:
+
+.. code-block::
+
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops,
+                   ntraj=1000, target_tol=0.01, timeout=600)
+
+will stop either after all errors bars on expectation values are under ``0.01``, 1000
+trajectories are computed or 10 minutes have passed, whichever comes first. When a
+single values is passed, it is used as the absolute value of the tolerance.
+When a pair of values is passed, it is understood as an absolute and relative
+tolerance pair. For even finer control, one such pair can be passed for each ``e_ops``.
+For example:
+
+.. code-block::
+
+    data = mcsolve(H, psi0, times, c_ops, e_ops=e_ops,  target_tol=[
+        (1e-5, 0.1),
+        (0, 0),
+    ])
+
+will stop when the error bars on the expectation values of the first ``e_ops`` are
+under 10% of their average values.
+
+If after computation of some trajectories, it is determined that more are needed, it
+is possible to add trajectories to existing result by adding result together:
+
+.. code-block::
+
+    >>> run1 = mcsolve(H, psi, times, c_ops, e_ops=e_ops, ntraj=25)
+    >>> print(run1.num_trajectories)
+    25
+    >>> run2 = mcsolve(H, psi, times, c_ops, e_ops=e_ops, ntraj=25)
+    >>> print(run2.num_trajectories)
+    25
+    >>> merged = run1 + run2
+    >>> print(merged.num_trajectories)
+    50
+
+Note that this merging operation only checks that the result are compatible --
+i.e. that the ``e_ops`` and ``tlist`` are the same. It does not check that the same initial state or
+Hamiltonian where used.
+
+
+This can be used to explore the convergence of the Monte Carlo solver.
+For example, the following code block plots expectation values for 1, 10 and 100
+trajectories:
 
 .. plot::
     :context: close-figs
 
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm], ntraj=1000)
+    solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
+    c_ops=[np.sqrt(0.1) * a]
+    e_ops = [a.dag() * a, sm.dag() * sm]
 
-where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.  Now, the Monte Carlo solver will calculate expectation values for both operators, ``a.dag() * a, sm.dag() * sm`` averaging over 1000 trajectories.  Sometimes one is also interested in seeing how the Monte Carlo trajectories converge to the master equation solution by calculating expectation values over a range of trajectory numbers.  If, for example, we want to average over 1, 10, 100, and 1000 trajectories, then we can input this into the solver using:
+    data1 = mcsolve(H, psi0, times, c_ops, e_ops=e_ops, ntraj=1)
+    data10 = data1 + mcsolve(H, psi0, times, c_ops, e_ops=e_ops, ntraj=9)
+    data100 = data10 + mcsolve(H, psi0, times, c_ops, e_ops=e_ops, ntraj=90)
 
-.. plot::
-    :context:
-
-    ntraj = [1, 10, 100, 1000]
-
-Keep in mind that the input list must be in ascending order since the total number of trajectories run by ``mcsolve`` will be calculated using the last element of ``ntraj``.  In this case, we need to use an extra index when getting the expectation values from the :class:`qutip.solver.Result` object returned by ``mcsolve``.  In the above example using:
-
-.. plot::
-    :context:
-
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm], ntraj=[1, 10, 100, 1000])
-
-we can extract the relevant expectation values using:
-
-.. plot::
-    :context:
-
-    expt1 = data.expect[0]
-    expt10 = data.expect[1]
-    expt100 = data.expect[2]
-    expt1000 = data.expect[3]
-
-The Monte Carlo solver also has many available options that can be set using the :func:`qutip.solver.Options` class as discussed in :ref:`options`.
-
-
-.. _monte-reuse:
-
-Reusing Hamiltonian Data
-------------------------
-
-.. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
-
-In order to solve a given simulation as fast as possible, the solvers in QuTiP take the given input operators and break them down into simpler components before passing them on to the ODE solvers.  Although these operations are reasonably fast, the time spent organizing data can become appreciable when repeatedly solving a system over, for example, many different initial conditions. In cases such as this, the Hamiltonian and other operators may be reused after the initial configuration, thus speeding up calculations.  Note that, unless you are planning to reuse the data many times, this functionality will not be very useful.
-
-To turn on the "reuse" functionality we must set the ``rhs_reuse=True`` flag in the :func:`qutip.solver.Options`:
-
-.. plot::
-    :context:
-
-    options = Options(rhs_reuse=True)
-
-A full account of this feature is given in :ref:`options`.  Using the previous example, we will calculate the dynamics for two different initial states, with the Hamiltonian data being reused on the second call
-
-.. plot::
-    :context:
-
-    times = np.linspace(0.0, 10.0, 200)
-    psi0 = tensor(fock(2, 0), fock(10, 5))
-    a  = tensor(qeye(2), destroy(10))
-    sm = tensor(destroy(2), qeye(10))
-
-    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
-    data1 = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
-    psi1 = tensor(fock(2, 0), coherent(10, 2 - 1j))
-    opts = Options(rhs_reuse=True) # Run a second time, reusing RHS
-    data2 = mcsolve(H, psi1, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm], options=opts)
+    expt1 = data1.expect
+    expt10 = data10.expect
+    expt100 = data100.expect
 
     plt.figure()
-    plt.plot(times, data1.expect[0], times, data1.expect[1], lw=2)
-    plt.plot(times, data2.expect[0], '--', times, data2.expect[1], '--', lw=2)
+    plt.plot(times, expt1[0], label="ntraj=1")
+    plt.plot(times, expt10[0], label="ntraj=10")
+    plt.plot(times, expt100[0], label="ntraj=100")
     plt.title('Monte Carlo time evolution')
-    plt.xlabel('Time', fontsize=14)
-    plt.ylabel('Expectation values', fontsize=14)
-    plt.legend(("cavity photon number", "atom excitation probability"))
+    plt.xlabel('Time')
+    plt.ylabel('Expectation values')
+    plt.legend()
     plt.show()
 
-.. guide-dynamics-mc2:
 
-In addition to the initial state, one may reuse the Hamiltonian data when changing the number of trajectories ``ntraj`` or simulation times ``times``.  The reusing of Hamiltonian data is also supported for time-dependent Hamiltonians.  See :ref:`time` for further details.
+Using the Improved Sampling Algorithm
+-------------------------------------
+
+Oftentimes, quantum jumps are rare. This is especially true in the context of
+simulating gates for quantum information purposes, where typical gate times are
+orders of magnitude smaller than typical timescales for decoherence. In this case,
+using the standard monte-carlo sampling algorithm, we often repeatedly sample the
+no-jump trajectory. We can thus reduce the number of required runs by only
+sampling the no-jump trajectory once. We then extract the no-jump probability
+:math:`p`, and for all future runs we only sample random numbers :math:`r_1`
+where :math:`r_1>p`, thus ensuring that a jump will occur. When it comes time to
+compute expectation values, we weight the no-jump trajectory by :math:`p` and
+the jump trajectories by :math:`1-p`. This algorithm is described in [Abd19]_
+and can be utilized by setting the option ``"improved_sampling"`` in the call
+to ``mcsolve``:
+
+.. plot::
+    :context: close-figs
+
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], options={"improved_sampling": True})
+
+where in this case the first run samples the no-jump trajectory, and the
+remaining 499 trajectories are all guaranteed to include (at least) one jump.
+
+The power of this algorithm is most obvious when considering systems that rarely
+undergo jumps. For instance, consider the following T1 simulation of a qubit with
+a lifetime of 10 microseconds (assuming time is in units of nanoseconds)
+
+
+.. plot::
+    :context: close-figs
+
+    times = np.linspace(0.0, 300.0, 100)
+    psi0 = fock(2, 1)
+    sm = fock(2, 0) * fock(2, 1).dag()
+    omega = 2.0 * np.pi * 1.0
+    H0 = -0.5 * omega * sigmaz()
+    gamma = 1/10000
+    data = mcsolve(
+        [H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100
+    )
+    data_imp = mcsolve(
+        [H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100,
+        options={"improved_sampling": True}
+    )
+
+    plt.figure()
+    plt.plot(times, data.expect[0], label="original")
+    plt.plot(times, data_imp.expect[0], label="improved sampling")
+    plt.plot(times, np.exp(-gamma * times), label=r"$\exp(-\gamma t)$")
+    plt.title('Monte Carlo: improved sampling algorithm')
+    plt.xlabel("time [ns]")
+    plt.ylabel(r"$p_{1}$")
+    plt.legend()
+    plt.show()
+
+
+The original sampling algorithm samples the no-jump trajectory on average 96.7%
+of the time, while the improved sampling algorithm only does so once.
+
+
+.. _monte-seeds:
+
+Reproducibility
+---------------
+
+For reproducibility of Monte-Carlo computations it is possible to set the seed of the random
+number generator:
+
+.. code-block::
+
+    >>> res1 = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, seeds=1, ntraj=1)
+    >>> res2 = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, seeds=1, ntraj=1)
+    >>> res3 = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, seeds=2, ntraj=1)
+    >>> np.allclose(res1, res2)
+    True
+    >>> np.allclose(res1, res3)
+    False
+
+The ``seeds`` parameter can either be an integer or a numpy ``SeedSequence``, which
+will then be used to create seeds for each trajectory. Alternatively it may be a list of
+intergers or ``SeedSequence`` s with one seed for each trajectories. Seeds available in
+the result object can be used to redo the same evolution:
+
+
+.. code-block::
+
+    >>> res1 = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, ntraj=10)
+    >>> res2 = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, seeds=res1.seeds, ntraj=10)
+    >>> np.allclose(res1, res2)
+    True
+
+
+.. _monte-parallel:
+
+Running trajectories in parallel
+--------------------------------
+
+Monte-Carlo evolutions often need hundreds of trajectories to obtain sufficient
+statistics. Since all trajectories are independent of each other, they can be computed
+in parallel. The option ``map`` can take ``"serial"``, ``"parallel"`` or ``"loky"``.
+Both ``"parallel"`` and ``"loky"`` compute trajectories on multiple CPUs using
+respectively the `multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`_
+and `loky <https://loky.readthedocs.io/en/stable/index.html>`_ python modules.
+
+.. code-block::
+
+    >>> res_par = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, options={"map": "parallel"}, seeds=1)
+    >>> res_ser = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, options={"map": "serial"}, seeds=1)
+    >>> np.allclose(res_par.average_expect, res_ser.average_expect)
+    True
+
+Note that when running in parallel, the order in which the trajectories are added
+to the result can differ. Therefore
+
+.. code-block::
+
+    >>> print(res_par.seeds[:3])
+    [SeedSequence(entropy=1,spawn_key=(1,),),
+     SeedSequence(entropy=1,spawn_key=(0,),),
+     SeedSequence(entropy=1,spawn_key=(2,),)]
+
+    >>> print(res_ser.seeds[:3])
+    [SeedSequence(entropy=1,spawn_key=(0,),),
+     SeedSequence(entropy=1,spawn_key=(1,),),
+     SeedSequence(entropy=1,spawn_key=(2,),)]
+
+
+Photocurrent
+------------
+
+The photocurrent, previously computed using the ``photocurrent_sesolve`` and
+``photocurrent_sesolve`` functions, are now included in the output of
+:func:`.mcsolve` as ``result.photocurrent``.
+
+
+.. plot::
+    :context: close-figs
+
+    times = np.linspace(0.0, 10.0, 200)
+    psi0 = tensor(fock(2, 0), fock(10, 8))
+    a  = tensor(qeye(2), destroy(10))
+    sm = tensor(destroy(2), qeye(10))
+    e_ops = [a.dag() * a, sm.dag() * sm]
+    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=e_ops)
+
+    plt.figure()
+    plt.plot((times[:-1] + times[1:])/2, data.photocurrent[0])
+    plt.title('Monte Carlo Photocurrent')
+    plt.xlabel('Time')
+    plt.ylabel('Photon detections')
+    plt.show()
+
+
+.. openmcsolve:
+
+Open Systems
+------------
+
+``mcsolve`` can be used to study systems which have measurement and dissipative
+interactions with their environment.  This is done by passing a Liouvillian including the
+dissipative interaction to the solver instead of a Hamiltonian.
+
+.. plot::
+    :context: close-figs
+
+    times = np.linspace(0.0, 10.0, 200)
+    psi0 = tensor(fock(2, 0), fock(10, 8))
+    a  = tensor(qeye(2), destroy(10))
+    sm = tensor(destroy(2), qeye(10))
+    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
+    L = liouvillian(H, [0.01 * sm, np.sqrt(0.1) * a])
+    data = mcsolve(L, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm])
+
+    plt.figure()
+    plt.plot((times[:-1] + times[1:])/2, data.photocurrent[0])
+    plt.title('Monte Carlo Photocurrent')
+    plt.xlabel('Time')
+    plt.ylabel('Photon detections')
+    plt.show()
+
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:

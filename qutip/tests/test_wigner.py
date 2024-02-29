@@ -3,11 +3,10 @@ import numpy as np
 import itertools
 from scipy.special import laguerre
 from numpy.random import rand
-from numpy.testing import assert_, run_module_suite, assert_equal, \
-    assert_almost_equal, assert_allclose
+from numpy.testing import assert_equal, assert_almost_equal, assert_allclose
 
 import qutip
-from qutip.states import coherent, fock, ket, bell_state
+from qutip.core.states import coherent, fock, ket, bell_state
 from qutip.wigner import wigner, wigner_transform, _parity
 from qutip.random_objects import rand_dm, rand_ket
 
@@ -51,9 +50,9 @@ class TestHusimiQ:
     @pytest.mark.parametrize('dm', [True, False], ids=['dm', 'ket'])
     def test_failure_if_tensor_hilbert_space(self, dm):
         if dm:
-            state = qutip.rand_dm(4, dims=[[2, 2], [2, 2]])
+            state = qutip.rand_dm([2, 2])
         else:
-            state = qutip.rand_ket(4, dims=[[2, 2], [1, 1]])
+            state = qutip.rand_ket([2, 2])
         xs = np.linspace(-1, 1, 5)
         with pytest.raises(ValueError) as e:
             qutip.qfunc(state, xs, xs)
@@ -226,7 +225,7 @@ class TestHusimiQ:
         naive = np.empty(alphas.shape, dtype=np.float64)
         for i, alpha in enumerate(alphas.flat):
             coh = qutip.coherent(size, alpha, method='analytic').full()
-            naive.flat[i] = (coh.conj().T @ state_np @ coh).real
+            naive.flat[i] = (coh.conj().T @ state_np @ coh).real[0, 0]
         naive *= (0.5*g)**2 / np.pi
         np.testing.assert_allclose(naive, qutip.qfunc(state, xs, ys, g))
         np.testing.assert_allclose(naive, qutip.QFunc(xs, ys, g)(state))
@@ -264,7 +263,7 @@ def test_wigner_bell1_su2parity():
 
     wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
 
-    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+    assert (np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
 @pytest.mark.slow
@@ -283,7 +282,7 @@ def test_wigner_bell4_su2parity():
 
     wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
 
-    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+    assert (np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
 @pytest.mark.slow
@@ -301,21 +300,18 @@ def test_wigner_bell4_fullparity():
         for p in range(steps):
             wigner_analyt[t, p] = -0.30901699
 
-    print("wigner anal: ", wigner_analyt)
     wigner_theo = wigner_transform(psi, 0.5, True, steps, slicearray)
-
-    print("wigner theo: ", wigner_theo)
-    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-4)
+    assert (np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-4)
 
 
 def test_parity():
     """wigner: testing the parity function.
     """
     j = 0.5
-    assert_(_parity(2, j)[0, 0] - (1 - np.sqrt(3)) / 2. < 1e-11)
-    assert_(_parity(2, j)[0, 1] < 1e-11)
-    assert_(_parity(2, j)[1, 1] - (1 + np.sqrt(3)) / 2. < 1e-11)
-    assert_(_parity(2, j)[1, 0] < 1e-11)
+    assert (_parity(2, j)[0, 0] - (1 - np.sqrt(3)) / 2. < 1e-11)
+    assert (_parity(2, j)[0, 1] < 1e-11)
+    assert (_parity(2, j)[1, 1] - (1 + np.sqrt(3)) / 2. < 1e-11)
+    assert (_parity(2, j)[1, 0] < 1e-11)
 
 
 @pytest.mark.slow
@@ -337,7 +333,7 @@ def test_wigner_pure_su2():
 
     wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
 
-    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+    assert (np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
 @pytest.mark.slow
@@ -381,7 +377,7 @@ def test_wigner_ghz_su2parity():
 
     wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
 
-    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+    assert (np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
 @pytest.mark.slow
@@ -401,10 +397,10 @@ def test_angle_slicing():
     wigner3 = wigner_transform(psi3, j, False, steps, ['l', 'x'])
     wigner4 = wigner_transform(psi4, j, False, steps, ['l', 'y'])
 
-    assert_(np.sum(np.abs(wigner2 - wigner1)) < 1e-11)
-    assert_(np.sum(np.abs(wigner3 - wigner2)) < 1e-11)
-    assert_(np.sum(np.abs(wigner4 - wigner3)) < 1e-11)
-    assert_(np.sum(np.abs(wigner4 - wigner1)) < 1e-11)
+    assert (np.sum(np.abs(wigner2 - wigner1)) < 1e-11)
+    assert (np.sum(np.abs(wigner3 - wigner2)) < 1e-11)
+    assert (np.sum(np.abs(wigner4 - wigner3)) < 1e-11)
+    assert (np.sum(np.abs(wigner4 - wigner1)) < 1e-11)
 
 
 def test_wigner_coherent():
@@ -429,13 +425,13 @@ def test_wigner_coherent():
     W_analytic = 2 / np.pi * np.exp(-2 * abs(a - beta) ** 2)
 
     # check difference
-    assert_(np.sum(abs(W_qutip - W_analytic) ** 2) < 1e-4)
-    assert_(np.sum(abs(W_qutip_cl - W_analytic) ** 2) < 1e-4)
+    assert (np.sum(abs(W_qutip - W_analytic) ** 2) < 1e-4)
+    assert (np.sum(abs(W_qutip_cl - W_analytic) ** 2) < 1e-4)
 
     # check normalization
-    assert_(np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
-    assert_(np.sum(W_qutip_cl) * dx * dy - 1.0 < 1e-8)
-    assert_(np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
+    assert (np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
+    assert (np.sum(W_qutip_cl) * dx * dy - 1.0 < 1e-8)
+    assert (np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_fock():
@@ -465,15 +461,15 @@ def test_wigner_fock():
             np.exp(-2 * abs(a) ** 2) * np.polyval(laguerre(n), 4 * abs(a) ** 2)
 
         # check difference
-        assert_(np.sum(abs(W_qutip - W_analytic)) < 1e-4)
-        assert_(np.sum(abs(W_qutip_cl - W_analytic)) < 1e-4)
-        assert_(np.sum(abs(W_qutip_sparse - W_analytic)) < 1e-4)
+        assert (np.sum(abs(W_qutip - W_analytic)) < 1e-4)
+        assert (np.sum(abs(W_qutip_cl - W_analytic)) < 1e-4)
+        assert (np.sum(abs(W_qutip_sparse - W_analytic)) < 1e-4)
 
         # check normalization
-        assert_(np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
-        assert_(np.sum(W_qutip_cl) * dx * dy - 1.0 < 1e-8)
-        assert_(np.sum(W_qutip_sparse) * dx * dy - 1.0 < 1e-8)
-        assert_(np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip_cl) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip_sparse) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_compare_methods_dm():
@@ -494,18 +490,18 @@ def test_wigner_compare_methods_dm():
     for n in range(10):
         # try ten different random density matrices
 
-        rho = rand_dm(N, 0.5 + rand() / 2)
+        rho = rand_dm(N, density=0.5 + rand() / 2)
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip1 = wigner(rho, xvec, yvec, g=2)
         W_qutip2 = wigner(rho, xvec, yvec, g=2, method='laguerre')
 
         # check difference
-        assert_(np.sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
+        assert (np.sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
 
         # check normalization
-        assert_(np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
-        assert_(np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_compare_methods_ket():
@@ -526,18 +522,18 @@ def test_wigner_compare_methods_ket():
     for n in range(10):
         # try ten different random density matrices
 
-        psi = rand_ket(N, 0.5 + rand() / 2)
+        psi = rand_ket(N, density=0.5 + rand() / 2)
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip1 = wigner(psi, xvec, yvec, g=2)
         W_qutip2 = wigner(psi, xvec, yvec, g=2, sparse=True)
 
         # check difference
-        assert_(np.sum(abs(W_qutip1 - W_qutip2)) < 1e-4)
+        assert (np.sum(abs(W_qutip1 - W_qutip2)) < 1e-4)
 
         # check normalization
-        assert_(np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
-        assert_(np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_fft_comparse_ket():
@@ -602,12 +598,12 @@ def test_wigner_clenshaw_sp_iter_dm():
     pytest.param(7, id="spin-seven")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_q_function(spin, pure):
     d = int(2*spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Q function
     theta = np.linspace(0, np.pi, 16, endpoint=True)
@@ -616,7 +612,7 @@ def test_spin_q_function(spin, pure):
 
     for k, (phi_prime, theta_prime) in enumerate(itertools.product(phi, theta)):
         state = qutip.spin_coherent(spin, theta_prime, phi_prime)
-        direct_Q = (state.dag() * rho * state).norm()
+        direct_Q = abs(state.dag() * rho * state)
         assert_almost_equal(Q.flat[k], direct_Q, decimal=9)
 
 @pytest.mark.parametrize(['spin'], [
@@ -626,12 +622,12 @@ def test_spin_q_function(spin, pure):
     pytest.param(7, id="spin-seven")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_q_function_normalized(spin, pure):
     d = int(2 * spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Q function
     theta = np.linspace(0, np.pi, 128, endpoint=True)
@@ -649,12 +645,12 @@ def test_spin_q_function_normalized(spin, pure):
     pytest.param(2, id="spin-two")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_wigner_normalized(spin, pure):
     d = int(2*spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Wigner function
     theta = np.linspace(0, np.pi, 256, endpoint=True)
@@ -671,12 +667,12 @@ def test_spin_wigner_normalized(spin, pure):
     pytest.param(2, id="spin-two")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_wigner_overlap(spin, pure, n=5):
     d = int(2*spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Wigner function
     theta = np.linspace(0, np.pi, 256, endpoint=True)
@@ -691,6 +687,3 @@ def test_spin_wigner_overlap(spin, pure, n=5):
         W_overlap = np.trapz(
             np.trapz(W_state * W * np.sin(THETA), theta), phi).real
         assert_almost_equal(W_overlap, state_overlap, decimal=4)
-
-if __name__ == "__main__":
-    run_module_suite()

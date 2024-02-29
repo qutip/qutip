@@ -28,7 +28,7 @@ def process_options():
             Is this a release build (True) or a local development build (False)
         'openmp': bool
             Should we build our OpenMP extensions and attempt to link in OpenMP
-            libraries?
+            libraries? (Not supported in this version.)
         'cflags': list of str
             Flags to be passed to the C++ compiler.
         'ldflags': list of str
@@ -44,6 +44,7 @@ def process_options():
     options = _determine_user_arguments(options)
     options = _determine_version(options)
     options = _determine_compilation_options(options)
+    options = _determine_cythonize_options(options)
     return options
 
 
@@ -60,6 +61,21 @@ def _get_environment_bool(var, default=False):
     return from_env.lower() not in {'0', 'false', 'none', ''}
 
 
+def _parse_bool_user_argument(options, name):
+    """
+    Parse a single boolean option from the commandline or environment.
+    """
+    cmd_flag = "--with-" + name.lower().replace("_", "-")
+    env_var = "CI_QUTIP_WITH_" + name.upper()
+    options[name] = (
+        cmd_flag in sys.argv
+        or _get_environment_bool(env_var)
+    )
+    if cmd_flag in sys.argv:
+        sys.argv.remove(cmd_flag)
+    return options
+
+
 def _determine_user_arguments(options):
     """
     Add the 'openmp' option to the collection, based on the passed command-line
@@ -72,12 +88,9 @@ def _determine_user_arguments(options):
             --wheel \
             --config-setting="--global-option=--with-openmp"
     """
-    options['openmp'] = (
-        '--with-openmp' in sys.argv
-        or _get_environment_bool('CI_QUTIP_WITH_OPENMP')
-    )
-    if "--with-openmp" in sys.argv:
-        sys.argv.remove("--with-openmp")
+    # options = _parse_bool_user_argument(options, 'openmp')
+    options['openmp'] = False  # Not supported yet
+    options = _parse_bool_user_argument(options, 'idxint_64')
     return options
 
 
@@ -113,6 +126,20 @@ def _determine_compilation_options(options):
         # These are needed for compiling on OSX 10.14+
         options['cflags'].append('-mmacosx-version-min=10.9')
         options['ldflags'].append('-mmacosx-version-min=10.9')
+        if options['openmp']:
+            options['cflags'].append('-fopenmp')
+            options['ldflags'].append('-fopenmp')
+    return options
+
+
+def _determine_cythonize_options(options):
+    options["annotate"] = False
+    if "--annotate" in sys.argv:
+        options["annotate"] = True
+        sys.argv.remove("--annotate")
+    if "-a" in sys.argv:
+        options["annotate"] = True
+        sys.argv.remove("-a")
     return options
 
 
@@ -185,14 +212,38 @@ def _extension_extra_sources():
     # For typing brevity we specify sources in Unix-style string form, then
     # normalise them into the OS-specific form later.
     extra_sources = {
-        'qutip.cy.spmatfuncs': ['qutip/cy/src/zspmv.cpp'],
-        'qutip.cy.openmp.parfuncs': ['qutip/cy/openmp/src/zspmv_openmp.cpp'],
+        'qutip.core.data.matmul': [
+            'qutip/core/data/src/matmul_csr_vector.cpp',
+            'qutip/core/data/src/matmul_diag_vector.cpp',
+        ],
     }
     out = collections.defaultdict(list)
     for module, sources in extra_sources.items():
         # Normalise the sources into OS-specific form.
         out[module] = [str(pathlib.Path(source)) for source in sources]
     return out
+
+
+def _create_int_type_file(options):
+    """
+    Create the `data/src/intdtype.h` file.
+    """
+    if options['idxint_64']:
+        typedef = "typedef int64_t idxint;\n"
+        typedef += "int _idxint_size=64;\n"
+    else:
+        typedef = "typedef int32_t idxint;\n"
+        typedef += "int _idxint_size=32;\n"
+    path = os.path.join(options['rootdir'], 'qutip', 'core', 'data', 'src')
+    file = os.path.join(path, 'intdtype.h')
+    if os.path.exists(file):
+        with open(file, 'r') as source:
+            if source.read() == typedef:
+                # The file is already existing and the same, nothing to do.
+                return
+
+    with open(file, 'w') as source:
+        source.write(typedef)
 
 
 def create_extension_modules(options):
@@ -202,6 +253,7 @@ def create_extension_modules(options):
     """
     out = []
     root = pathlib.Path(options['rootdir'])
+    _create_int_type_file(options)
     pyx_files = set(root.glob('qutip/**/*.pyx'))
     if not options['openmp']:
         pyx_files -= set(root.glob('qutip/**/openmp/**/*.pyx'))
@@ -230,7 +282,7 @@ def create_extension_modules(options):
                              extra_compile_args=options['cflags'],
                              extra_link_args=options['ldflags'],
                              language='c++'))
-    return cythonize(out)
+    return cythonize(out, annotate=options["annotate"])
 
 
 def print_epilogue():

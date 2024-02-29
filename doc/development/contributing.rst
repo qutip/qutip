@@ -8,7 +8,7 @@ Quick Start
 ===========
 
 QuTiP is developed through wide collaboration using the ``git`` version-control system, with the main repositories hosted in the `qutip organisation on GitHub <https://github.com/qutip>`_.
-You will need to be familiar with ``git`` as a tool, and the `GitHub Flow <https://guides.github.com/introduction/flow/>`_ workflow for branching and making pull requests.
+You will need to be familiar with ``git`` as a tool, and the `GitHub Flow <https://docs.github.com/en/get-started/quickstart/github-flow>`_ workflow for branching and making pull requests.
 The exact details of environment set-up, build process and testing vary by repository and are discussed below, however in overview, the steps to contribute are:
 
 #. Consider creating an issue on the GitHub page of the relevant repository, describing the change you think should be made and why, so we can discuss details with you and make sure it is appropriate.
@@ -56,7 +56,7 @@ You will also need the requirements for any optional features you want to test a
 
 Refer to the main instructions for the most up-to-date version, however as of version 4.6 the requirements can be installed into a conda environment with ::
 
-   conda install setuptools wheel 'numpy>=1.16.6,<1.20' 'scipy>=1.0' 'cython>=0.29.20' packaging 'pytest>=5.2' pytest-rerunfailures
+   conda install setuptools wheel numpy scipy cython packaging pytest pytest-rerunfailures
 
 Note that ``qutip`` should *not* be installed with ``conda install``.
 
@@ -85,12 +85,24 @@ Cython will detect and compile only the files that have been changed, so this co
    When undertaking Cython development, the reason we use ``python setup.py develop`` instead of ``pip install -e .`` is because Cython's changed-file detection does not reliably work in the latter.
    ``pip`` tends to build in temporary virtual environments, which often makes Cython think its core library files have been updated, triggering a complete, slow rebuild of everything.
 
+.. note::
+
+    QuTiP follows `NEP29`_ when selecting the supported version of its dependencies.
+    To see which versions are planned to be supported in the next release, please refer to the :ref:`release roadmap`.
+    These coincide with the versions employed for testing in continuous integration.
+
+    In the event of a feature requiring a version upgrade of python or a dependency, it will be considered appropriately in the pull request.
+    In any case, python and dependency upgrades will only happen in mayor or minor versions of QuTiP, not in a patch.
+
+.. _NEP29: https://numpy.org/neps/nep-0029-deprecation_policy.html
+
+
 Code Style
 ----------
 
 The biggest concern you should always have is to make it easy for your code to be read and understood by the person who comes next.
 
-All new contributions must follow `PEP 8 style <https://www.python.org/dev/peps/pep-0008/>`_; all pull requests will be passed through a linter that will complain if you violate it.
+All new contributions must follow `PEP 8 style <https://peps.python.org/pep-0008/>`_; all pull requests will be passed through a linter that will complain if you violate it.
 You should use the ``pycodestyle`` package locally (available on ``pip``) to test you satisfy the requirements before you push your commits, since this is rather faster than pushing 10 different commits trying to fix minor niggles.
 Keep in mind that there is quite a lot of freedom in this style, especially when it comes to line breaks.
 If a line is too long, consider the *best* way to split it up with the aim of making the code readable, not just the first thing that doesn't generate a warning.
@@ -140,7 +152,7 @@ When making a pull request, we require that you add a towncrier entry along with
 You should create a file named ``<PR number>.<change type>`` in the ``doc/changes`` directory, where the PR number should be substituted for ``<PR number>``, and ``<change type>`` is either ``feature``, ``bugfix``, ``doc``, ``removal``, ``misc``, or ``deprecation``,
 depending on the type of change included in the PR.
 
-You can also create this file by installing ``towncrier`` and running 
+You can also create this file by installing ``towncrier`` and running
 
    towncrier create <PR number>.<change type>
 

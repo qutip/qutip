@@ -2,7 +2,8 @@ __all__ = ['simdiag']
 
 import numpy as np
 import scipy.linalg as la
-from qutip.qobj import Qobj
+from . import Qobj
+from .core import data as _data
 
 
 def _degen(tol, vecs, ops, i=0):
@@ -20,8 +21,8 @@ def _degen(tol, vecs, ops, i=0):
                 vecs[:, j] = ((vecs[:, j] - dot * vecs[:, k])
                               / (1 - np.abs(dot)**2)**0.5)
 
-    subspace = vecs.conj().T @ ops[i].data @ vecs
-    eigvals, eigvecs = la.eig(subspace)
+    subspace = vecs.conj().T @ ops[i].full() @ vecs
+    eigvals, eigvecs = la.eigh(subspace)
 
     perm = np.argsort(eigvals)
     eigvals = eigvals[perm]
@@ -46,24 +47,24 @@ def simdiag(ops, evals: bool = True, *,
 
     Parameters
     ----------
-    ops : list/array
+    ops : list, array
         ``list`` or ``array`` of qobjs representing commuting Hermitian
         operators.
 
-    evals : bool [True]
+    evals : bool, default: True
         Whether to return the eigenvalues for each ops and eigenvectors or just
         the eigenvectors.
 
-    tol : float [1e-14]
+    tol : float, default: 1e-14
         Tolerance for detecting degenerate eigenstates.
 
-    safe_mode : bool [True]
+    safe_mode : bool, default:  True
         Whether to check that all ops are Hermitian and commuting. If set to
         ``False`` and operators are not commuting, the eigenvectors returned
         will often be eigenvectors of only the first operator.
 
     Returns
-    --------
+    -------
     eigs : tuple
         Tuple of arrays representing eigvecs and eigvals of quantum objects
         corresponding to simultaneous eigenvectors and eigenvalues for each
@@ -88,10 +89,9 @@ def simdiag(ops, evals: bool = True, *,
             if (A * B - B * A).norm() / (A * B).norm() > tol:
                 raise TypeError('Matricies must commute.')
 
-    eigvals, eigvecs = la.eigh(ops[0].full())
-    perm = np.argsort(eigvals)
-    eigvecs = eigvecs[:, perm]
-    eigvals = eigvals[perm]
+    # TODO: rewrite using Data object
+    eigvals, eigvecs = _data.eigs(ops[0].data, True, True)
+    eigvecs = eigvecs.to_array()
 
     k = 0
     while k < N:
@@ -106,8 +106,7 @@ def simdiag(ops, evals: bool = True, *,
         eigvecs[:, k] = eigvecs[:, k] / la.norm(eigvecs[:, k])
 
     kets_out = [
-        Qobj(eigvecs[:, j],
-             dims=[ops[0].dims[0], [1]], shape=[ops[0].shape[0], 1])
+        Qobj(eigvecs[:, j], dims=[ops[0].dims[0], [1]])
         for j in range(N)
     ]
     eigvals_out = np.zeros((len(ops), N), dtype=np.float64)

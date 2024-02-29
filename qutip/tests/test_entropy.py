@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 import qutip
-from qutip.sparse import sp_eigs
 
 
 class TestVonNeumannEntropy:
@@ -37,7 +36,7 @@ class TestConcurrence:
 
     @pytest.mark.repeat(10)
     def test_nonzero(self):
-        dm = qutip.rand_dm(4, dims=[[2, 2], [2, 2]])
+        dm = qutip.rand_dm([2, 2])
         assert qutip.concurrence(dm) >= 0
 
 
@@ -45,13 +44,13 @@ class TestConcurrence:
 class TestMutualInformation:
     def test_pure_state_additive(self):
         # Verify mutual information = S(A) + S(B) for pure states.
-        dm = qutip.rand_dm(25, dims=[[5, 5], [5, 5]], pure=True)
+        dm = qutip.rand_dm([5, 5], distribution="pure")
         expect = (qutip.entropy_vn(dm.ptrace(0))
                   + qutip.entropy_vn(dm.ptrace(1)))
         assert abs(qutip.entropy_mutual(dm, [0], [1]) - expect) < 1e-13
 
     def test_component_selection(self):
-        dm = qutip.rand_dm(8, dims=[[2, 2, 2], [2, 2, 2]], pure=True)
+        dm = qutip.rand_dm([2, 2, 2], distribution="pure")
         expect = (qutip.entropy_vn(dm.ptrace([0, 2]))
                   + qutip.entropy_vn(dm.ptrace(1)))
         assert abs(qutip.entropy_mutual(dm, [0, 2], [1]) - expect) < 1e-13
@@ -65,8 +64,10 @@ class TestRelativeEntropy:
             QuTiP itself.
         """
         # S(rho || sigma) = sum_i(p_i log p_i) - sum_ij(p_i P_ij log q_i)
-        rvals, rvecs = sp_eigs(rho.data, rho.isherm, vecs=True)
-        svals, svecs = sp_eigs(sigma.data, sigma.isherm, vecs=True)
+        rvals, rvecs = rho.eigenstates()
+        svals, svecs = sigma.eigenstates()
+        rvecs = np.hstack([vec.full() for vec in rvecs]).T
+        svecs = np.hstack([vec.full() for vec in svecs]).T
         # Calculate S
         S = 0
         for i in range(len(rvals)):
@@ -162,14 +163,14 @@ class TestRelativeEntropy:
 
     @pytest.mark.repeat(20)
     def test_random_dm_with_self(self):
-        rho = qutip.rand_dm(8, pure=False)
+        rho = qutip.rand_dm(8)
         rel = qutip.entropy_relative(rho, rho)
         assert abs(rel) < 1e-13
 
     @pytest.mark.repeat(20)
     def test_random_rho_sigma(self):
-        rho = qutip.rand_dm(8, pure=False)
-        sigma = qutip.rand_dm(8, pure=False)
+        rho = qutip.rand_dm(8)
+        sigma = qutip.rand_dm(8)
         rel = qutip.entropy_relative(rho, sigma)
         assert rel >= 0
         assert rel == pytest.approx(
@@ -181,14 +182,14 @@ class TestRelativeEntropy:
 class TestConditionalEntropy:
     def test_inequality_3_qubits(self):
         # S(A | B,C) <= S(A|B)
-        full = qutip.rand_dm(8, dims=[[2]*3]*2, pure=True)
+        full = qutip.rand_dm([2]*3, distribution="pure")
         ab = full.ptrace([0, 1])
         assert (qutip.entropy_conditional(full, [1, 2])
                 <= qutip.entropy_conditional(ab, 1))
 
     def test_triangle_inequality_4_qubits(self):
         # S(A,B | C,D) <= S(A|C) + S(B|D)
-        full = qutip.rand_dm(16, dims=[[2]*4]*2, pure=True)
+        full = qutip.rand_dm([2]*4, distribution="pure")
         ac, bd = full.ptrace([0, 2]), full.ptrace([1, 3])
         assert (qutip.entropy_conditional(full, [2, 3])
                 <= (qutip.entropy_conditional(ac, 1)
@@ -199,12 +200,12 @@ _alpha = 2*np.pi * np.random.rand()
 
 
 @pytest.mark.parametrize(["gate", "expected"], [
-    pytest.param(qutip.qip.operations.gates.cnot(), 2/9, id="CNOT"),
-    pytest.param(qutip.qip.operations.gates.iswap(), 2/9, id="ISWAP"),
-    pytest.param(qutip.qip.operations.gates.berkeley(), 2/9, id="Berkeley"),
-    pytest.param(qutip.qip.operations.gates.swap(), 0, id="SWAP"),
-    pytest.param(qutip.qip.operations.gates.sqrtswap(), 1/6, id="sqrt(SWAP)"),
-    pytest.param(qutip.qip.operations.gates.swapalpha(_alpha),
+    pytest.param(qutip.gates.cnot(), 2/9, id="CNOT"),
+    pytest.param(qutip.gates.iswap(), 2/9, id="ISWAP"),
+    pytest.param(qutip.gates.berkeley(), 2/9, id="Berkeley"),
+    pytest.param(qutip.gates.swap(), 0, id="SWAP"),
+    pytest.param(qutip.gates.sqrtswap(), 1/6, id="sqrt(SWAP)"),
+    pytest.param(qutip.gates.swapalpha(_alpha),
                  np.sin(np.pi*_alpha)**2 / 6, id="SWAP(alpha)"),
 ])
 def test_entangling_power(gate, expected):

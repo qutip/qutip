@@ -28,10 +28,15 @@ qutip/__config__.py
 rhs*.pyx
 
 qutip/cy/*.c
-qutip/cy/*.cpp
-qutip/control/*.cpp
-qutip/cy/openmp/*.cpp
+*.cpp
+!qutip/core/data/src/*.cpp
 *.dat
+qutip/core/*.h
+
+
+qutip/**/*.html
+qutip/solver/ode/*.c
+
 
 *.qo
 

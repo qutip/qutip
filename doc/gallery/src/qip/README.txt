@@ -1,2 +1,0 @@
-Quantum Information Processing
-------------------------------

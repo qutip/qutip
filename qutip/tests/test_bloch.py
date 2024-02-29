@@ -9,14 +9,11 @@ from qutip import ket, ket2dm
 try:
     import matplotlib.pyplot as plt
     from matplotlib.testing.decorators import check_figures_equal
+    import IPython
+    check_pngs_equal = check_figures_equal(extensions=["png"])
 except ImportError:
-    def check_figures_equal(*args, **kw):
-        def _error(*args, **kw):
-            raise RuntimeError("matplotlib is not installed")
     plt = None
-
-
-check_pngs_equal = check_figures_equal(extensions=["png"])
+    check_pngs_equal = pytest.mark.skip(reason="matplotlib not installed")
 
 
 class RefBloch(Bloch):
@@ -200,22 +197,29 @@ class TestBloch:
         point_colors = ['b', 'r', 'g', '#CC6600']
         point_sizes = [25, 32, 35, 45]
         point_markers = ["o", "s", "d", "^"]
-        idx = 0
 
-        for kw in point_kws:
+        for idx, kw in enumerate(point_kws):
             points = kw.pop("points")
             if not isinstance(points[0], (list, tuple, np.ndarray)):
                 points = [[points[0]], [points[1]], [points[2]]]
             points = np.array(points)
-            if len(points[0]) == 1:
-                points = np.append(points, points, axis=1)
 
             point_style = kw.pop("meth", "s")
-            point_color = point_colors[idx % len(point_colors)]
+            colors = kw.pop("colors", None)
+            if colors is None and point_style in ['s', 'l']:
+                colors = point_colors[idx % len(point_colors)]
+            elif colors is None and point_style == 'm':
+                colors = np.tile(point_colors,
+                                 np.ceil(points.shape[1]/len(point_colors)
+                                         ).astype(int))
+                colors = colors[:points.shape[1]]
+                colors = list(colors)
             point_size = point_sizes[idx % len(point_sizes)]
             point_marker = point_markers[idx % len(point_markers)]
             point_alpha = kw.get("alpha", 1.0)
-            idx += 1
+
+            if len(points[0]) == 1 and point_style == "s":
+                points = np.append(points, points, axis=1)
 
             if point_style == 's':
                 b.axes.scatter(
@@ -226,7 +230,7 @@ class TestBloch:
                     alpha=point_alpha,
                     edgecolor=None,
                     zdir='z',
-                    color=point_color,
+                    color=colors,
                     marker=point_marker)
             elif point_style == 'l':
                 b.axes.plot(
@@ -235,7 +239,19 @@ class TestBloch:
                     np.real(points[2]),
                     alpha=point_alpha,
                     zdir='z',
-                    color=point_color,
+                    color=colors,
+                )
+            elif point_style == 'm':
+                b.axes.scatter(
+                    np.real(points[1]),
+                    -np.real(points[0]),
+                    np.real(points[2]),
+                    s=point_size,
+                    marker=point_marker,
+                    color=colors,
+                    alpha=point_alpha,
+                    edgecolor=None,
+                    zdir='z',
                 )
             else:
                 raise ValueError(
@@ -243,6 +259,10 @@ class TestBloch:
                 )
         b.render_front()
 
+    @pytest.mark.parametrize("meth", ["", "s", "l", "m"], ids=["default",
+                                                               "scatter",
+                                                               "line",
+                                                               "multicolored"])
     @pytest.mark.parametrize([
         "point_kws"
     ], [
@@ -254,16 +274,7 @@ class TestBloch:
                     np.sin(t),
                 ]
                 for t in np.linspace(0, 2 * np.pi, 20)
-            ]).T, alpha=0.5), id="circle-of-points-scatter"),
-        pytest.param(
-            dict(points=np.array([
-                [
-                    np.cos(np.pi / 4) * np.cos(t),
-                    np.sin(np.pi / 4) * np.cos(t),
-                    np.sin(t),
-                ]
-                for t in np.linspace(0, 2 * np.pi, 20)
-            ]).T, meth="l"), id="circle-of-points-line"),
+            ]).T, alpha=0.5), id="circle-of-points"),
         pytest.param(
             dict(points=(0, 0, 1), alpha=1), id="alpha-opaque"),
         pytest.param(
@@ -272,17 +283,62 @@ class TestBloch:
             dict(points=(0, 0, 1), alpha=0), id="alpha-invisible"),
         pytest.param(
             dict(points=(0, 0, 1)), id="alpha-default"),
+        pytest.param(
+            dict(points=[(0, 0), (0, 1), (1, 0)], colors='g'),
+            id="color-green"),
         pytest.param([
             dict(points=[(0, 0), (0, 1), (1, 0)], alpha=1.0),
             dict(points=[(1, 1), (0, 1), (1, 0)], alpha=0.5),
         ], id="alpha-multiple-point-sets"),
+        pytest.param([
+            dict(points=[(0), (0), (1)], alpha=1.0),
+            dict(points=[(0), (1), (0)], alpha=1.0),
+            dict(points=[(1), (0), (0)], alpha=1.0),
+            dict(points=[(1), (1), (1)], alpha=1.0),
+        ], id="alpha-multiple-point-sets-all_sizes_markers"),
     ])
     @check_pngs_equal
-    def test_point(self, point_kws, fig_test, fig_ref):
+    def test_point(self, point_kws, meth, fig_test, fig_ref):
+        if meth and isinstance(point_kws, dict):
+            point_kws["meth"] = meth
+
+        elif meth and isinstance(point_kws, list):
+            for point_kw in point_kws:
+                point_kw["meth"] = meth
+
         if isinstance(point_kws, dict):
             point_kws = [point_kws]
+
         self.plot_point_test(fig_test, copy.deepcopy(point_kws))
         self.plot_point_ref(fig_ref, copy.deepcopy(point_kws))
+
+    def test_point_errors_meth(self):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_points((0, 0, 1), meth='k')
+            b.render()
+
+        err_msg = ("The value for meth = k is not valid."
+                   " Please use 's', 'l' or 'm'.")
+        assert str(err.value) == err_msg
+
+    @pytest.mark.parametrize("points",
+                             [(0, 1, 0, 1), (0, 1), [0, 1], np.array((0, 1)),
+                              np.arange(12).reshape((3, 2, 2))],
+                             ids=["long_tuple", "short_tuple", "short_list",
+                                  "short_numpy", "wrong_shape_numpy"]
+                             )
+    def test_point_errors_wrong_points(self, points):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_points(points)
+            b.render()
+
+        err_msg = ("The included points are not valid. Points must "
+                   "be equivalent to a 2D array where the first "
+                   "index represents the x,y,z values and the "
+                   "second index iterates over the points.")
+        assert str(err.value) == err_msg
 
     def plot_vector_test(self, fig, vector_kws):
         b = Bloch(fig=fig)
@@ -304,10 +360,16 @@ class TestBloch:
             if not isinstance(vectors[0], (list, tuple, np.ndarray)):
                 vectors = [vectors]
 
-            for v in vectors:
-                color = vector_colors[idx % len(vector_colors)]
+            colors = kw.pop("colors", None)
+            for k, v in enumerate(vectors):
+                if colors is None:
+                    color = vector_colors[idx % len(vector_colors)]
+                else:
+                    color = colors[k]
+
                 alpha = kw.get("alpha", 1.0)
                 idx += 1
+
                 xs3d = v[1] * np.array([0, 1])
                 ys3d = -v[0] * np.array([0, 1])
                 zs3d = v[2] * np.array([0, 1])
@@ -354,6 +416,15 @@ class TestBloch:
             dict(vectors=[(0, 0, 1), (0, 1, 0)], alpha=1.0),
             dict(vectors=[(1, 0, 1), (1, 1, 0)], alpha=0.5),
         ], id="alpha-multiple-vector-sets"),
+        pytest.param(
+            dict(vectors=(0, 0, 1), colors=['y']), id="color-y"),
+        pytest.param(
+            dict(vectors=[(0, 0, 1), (0, 1, 0)], colors=['y', 'y']),
+            id="color-two-y"),
+        pytest.param([
+            dict(vectors=[(0, 0, 1)], colors=['y']),
+            dict(vectors=[(1, 0, 1)], colors=['g']),
+        ], id="color-yg"),
     ])
     @check_pngs_equal
     def test_vector(self, vector_kws, fig_test, fig_ref):
@@ -362,8 +433,47 @@ class TestBloch:
         self.plot_vector_test(fig_test, copy.deepcopy(vector_kws))
         self.plot_vector_ref(fig_ref, copy.deepcopy(vector_kws))
 
+    @pytest.mark.parametrize("vectors",
+                             [(0, 1, 0, 1), (0, 1), [0, 1], np.array((0, 1)),
+                              np.arange(12).reshape((3, 2, 2))],
+                             ids=["long_tuple", "short_tuple", "short_list",
+                                  "short_numpy", "wrong_shape_numpy"]
+                             )
+    def test_vector_errors_wrong_vectors(self, vectors):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_vectors(vectors)
+            b.render()
+
+        err_msg = ("The included vectors are not valid. Vectors must "
+                   "be equivalent to a 2D array where the first "
+                   "index represents the iteration over the vectors and the "
+                   "second index represents the position in 3D of vector "
+                   "head.")
+        assert str(err.value) == err_msg
+
+    @pytest.mark.parametrize("vectors, colors",
+                             [([0, 0, 1], ['g', 'y']),
+                              ([[0, 0, 1], [0, 1, 0]], ['y']),
+                              ([0, 0, 1], [['g', 'y']])],
+                             ids=["one-vec-two-colors", "two-vec-one-color",
+                                  "wrong-dimension-list"]
+                             )
+    def test_vector_errors_color_length(self, vectors, colors):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_vectors(vectors, colors=colors)
+            b.render()
+
+        err_msg = ("The included colors are not valid. colors must "
+                   "be equivalent to a 1D array with the same "
+                   "size as the number of vectors. ")
+        assert str(err.value) == err_msg
+
 
 def test_repr_svg():
+    pytest.importorskip("matplotlib")
+    pytest.importorskip("ipython")
     svg = Bloch()._repr_svg_()
     assert isinstance(svg, str)
     assert svg.startswith("<?xml")

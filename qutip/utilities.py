@@ -16,17 +16,17 @@ def n_thermal(w, w_th):
     Parameters
     ----------
 
-    w : *float* or *array*
+    w : float or ndarray
         Frequency of the oscillator.
 
-    w_th : *float*
+    w_th : float
         The temperature in units of frequency (or the same units as `w`).
 
 
     Returns
     -------
 
-    n_avg : *float* or *array*
+    n_avg : float or array
 
         Return the number of average photons in thermal equilibrium for a
         an oscillator with the given frequency and temperature.
@@ -150,11 +150,11 @@ def convert_unit(value, orig="meV", to="GHz"):
     value : float / array
         The energy in the old unit.
 
-    orig : string
-        The name of the original unit ("J", "eV", "meV", "GHz", "mK")
+    orig : str, {"J", "eV", "meV", "GHz", "mK"}, default: "meV"
+        The name of the original unit.
 
-    to : string
-        The name of the new unit ("J", "eV", "meV", "GHz", "mK")
+    to : str, {"J", "eV", "meV", "GHz", "mK"}, default: "GHz"
+        The name of the new unit.
 
     Returns
     -------
@@ -330,65 +330,3 @@ def _version2int(version_string):
         "post")[0].split('.')
     return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
                 for n, d in enumerate(str_list[:3])])
-
-
-def _blas_info():
-    config = np.__config__
-    if hasattr(config, 'blas_ilp64_opt_info'):
-        blas_info = config.blas_ilp64_opt_info
-    elif hasattr(config, 'blas_opt_info'):
-        blas_info = config.blas_opt_info
-    else:
-        blas_info = {}
-    _has_lib_key = 'libraries' in blas_info.keys()
-    blas = None
-    if hasattr(config,'mkl_info') or \
-            (_has_lib_key and any('mkl' in lib for lib in blas_info['libraries'])):
-        blas = 'INTEL MKL'
-    elif hasattr(config,'openblas_info') or \
-            (_has_lib_key and any('openblas' in lib for lib in blas_info['libraries'])):
-        blas = 'OPENBLAS'
-    elif 'extra_link_args' in blas_info.keys() and ('-Wl,Accelerate' in blas_info['extra_link_args']):
-        blas = 'Accelerate'
-    else:
-        blas = 'Generic'
-    return blas
-
-
-def available_cpu_count():
-    """
-    Get the number of cpus.
-    It tries to only get the number available to qutip.
-    """
-    import os
-    import multiprocessing
-    try:
-        import psutil
-    except ImportError:
-        psutil = None
-    num_cpu = 0
-
-    if 'QUTIP_NUM_PROCESSES' in os.environ:
-        # We consider QUTIP_NUM_PROCESSES=0 as unset.
-        num_cpu = int(os.environ['QUTIP_NUM_PROCESSES'])
-
-    if num_cpu == 0 and 'SLURM_CPUS_PER_TASK' in os.environ:
-        num_cpu = int(os.environ['SLURM_CPUS_PER_TASK'])
-
-    if num_cpu == 0 and hasattr(os, 'sched_getaffinity'):
-        num_cpu = len(os.sched_getaffinity(0))
-
-    if (
-        num_cpu == 0
-        and psutil is not None
-        and hasattr(psutil.Process(), "cpu_affinity")
-    ):
-        num_cpu = len(psutil.Process().cpu_affinity())
-
-    if num_cpu == 0:
-        try:
-            num_cpu = multiprocessing.cpu_count()
-        except NotImplementedError:
-            pass
-
-    return num_cpu or 1

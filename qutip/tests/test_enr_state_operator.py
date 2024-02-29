@@ -44,7 +44,7 @@ class TestOperator:
         iden = [qutip.qeye(n) for n in dimensions]
         for i, test in enumerate(test_operators):
             expected = qutip.tensor(iden[:i] + [a[i]] + iden[i+1:])
-            assert test == expected
+            assert test.data == expected.data
             assert test.dims == [dimensions, dimensions]
 
     def test_space_size_reduction(self, dimensions, n_excitations):
@@ -82,22 +82,23 @@ def test_fock_state(dimensions, n_excitations):
 def test_fock_state_error():
     with pytest.raises(ValueError) as e:
         state = qutip.enr_fock([2, 2, 2], 1, [1, 1, 1])
-    assert str(e.value).startswith("The state tuple ")
+    assert str(e.value).startswith("state tuple ")
 
 
 def _reference_dm(dimensions, n_excitations, nbars):
     """
-    Get the reference density matrix using `Qobj.eliminate_states` explicitly,
-    to compare to the direct ENR construction.
+    Get the reference density matrix explicitly, to compare to the direct ENR
+    construction.
     """
     if np.isscalar(nbars):
         nbars = [nbars] * len(dimensions)
-    out = qutip.tensor([qutip.thermal_dm(dimension, nbar)
-                        for dimension, nbar in zip(dimensions, nbars)])
-    eliminate = [
+    keep = np.array([
         i for i, state in enumerate(qutip.state_number_enumerate(dimensions))
-        if sum(state) > n_excitations]
-    out = out.eliminate_states(eliminate)
+        if sum(state) <= n_excitations
+    ])
+    dm = qutip.tensor([qutip.thermal_dm(dimension, nbar)
+                       for dimension, nbar in zip(dimensions, nbars)])
+    out = qutip.Qobj(dm.full()[keep[:, None], keep[None, :]])
     return out / out.tr()
 
 

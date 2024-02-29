@@ -37,7 +37,7 @@ module_groups = [
     ("#043c6b", {"settings", "configrc", "solver"}),
     # Visualisation
     ("#3f8fd2", {
-        "bloch", "bloch3d", "sphereplot", "orbital", "visualization", "wigner",
+        "bloch", "sphereplot", "orbital", "visualization", "wigner",
         "distributions", "tomography", "topology",
     }),
     # Operators
@@ -47,10 +47,9 @@ module_groups = [
     # States
     ("#007143", {
         "states", "continuous_variables", "qstate", "random_objects",
-        "three_level_atom",
     }),
     # QIP
-    ("#36d695", {"qip", "measurement"}),
+    ("#36d695", {"measurement"}),
     # Metrics and distance measures
     ("#ff4500", {"entropy", "metrics", "countstat", "semidefinite"}),
     # Core
@@ -62,7 +61,7 @@ module_groups = [
     ("#bf5730", {
         "fileio", "utilities", "ipynbtools", "sparse", "graph", "simdiag",
         "permute", "demos", "about", "parallel", "version", "testing",
-        "parfor", "hardware_info", "ui", "cite", "lattice",
+        "hardware_info", "ui", "cite",
     }),
 ]
 
@@ -132,12 +131,6 @@ def python_object_tree(module, tree=None, seen=None, root=None, nobjects=0):
         {
             "mesolve" : {
                 "mesolve": <function qutip.mesolve.mesolve(...)>,
-            },
-            "qip": {
-                "operations": {
-                    ...
-                },
-                ...
             },
             ...
         }

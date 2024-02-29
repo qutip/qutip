@@ -18,8 +18,8 @@ a Padé expansion), how to evolve the system in time, and how to calculate
 the steady state.
 
 First we will do this in the simplest way, using the built-in implementations of
-the two bath expansions, :class:`~qutip.nonmarkov.heom.DrudeLorentzBath` and
-:class:`~qutip.nonmarkov.heom.DrudeLorentzPadeBath`. We will do this both with a
+the two bath expansions, :class:`~qutip.solver.heom.DrudeLorentzBath` and
+:class:`~qutip.solver.heom.DrudeLorentzPadeBath`. We will do this both with a
 truncated expansion and show how to include an approximation to all of the
 remaining terms in the bath expansion.
 
@@ -74,16 +74,16 @@ the parameters of a Drude-Lorentz bath, and ``Q`` is the coupling operator
 between the system and the bath.
 
 We may the pass these parameters to either
-:class:`~qutip.nonmarkov.heom.DrudeLorentzBath` or
-:class:`~qutip.nonmarkov.heom.DrudeLorentzPadeBath` to construct an expansion of
+:class:`~qutip.solver.heom.DrudeLorentzBath` or
+:class:`~qutip.solver.heom.DrudeLorentzPadeBath` to construct an expansion of
 the bath correlations:
 
 .. plot::
     :context:
     :nofigs:
 
-    from qutip.nonmarkov.heom import DrudeLorentzBath
-    from qutip.nonmarkov.heom import DrudeLorentzPadeBath
+    from qutip.solver.heom import DrudeLorentzBath
+    from qutip.solver.heom import DrudeLorentzPadeBath
 
     # Number of expansion terms to retain:
     Nk = 2
@@ -109,11 +109,10 @@ Now we are ready to construct a solver:
     :context:
     :nofigs:
 
-    from qutip.nonmarkov.heom import HEOMSolver
-    from qutip import Options
+    from qutip.solver.heom import HEOMSolver
 
     max_depth = 5  # maximum hierarchy depth to retain
-    options = Options(nsteps=15_000)
+    options = {"nsteps": 15_000}
 
     solver = HEOMSolver(H_sys, bath, max_depth=max_depth, options=options)
 
@@ -133,9 +132,10 @@ The ``result`` is a standard QuTiP results object with the attributes:
 
 - ``times``: the times at which the state was evaluated (i.e. ``tlist``)
 - ``states``: the system states at each time
-- ``expect``: the values of each ``e_ops`` at each time
+- ``expect``: a list with the values of each ``e_ops`` at each time
+- ``e_data``: a dictionary with the values of each ``e_op`` at each time
 - ``ado_states``: see below (an instance of
-  :class:`~qutip.nonmarkov.heom.HierarchyADOsState`)
+  :class:`~qutip.solver.heom.HierarchyADOsState`)
 
 If ``ado_return=True`` is passed to ``.run(...)`` the full set of auxilliary
 density operators (ADOs) that make up the hierarchy at each time will be
@@ -149,7 +149,7 @@ supply it as the initial state of the solver by calling
 
 As with other QuTiP solvers, if expectation operators or functions are supplied
 using ``.run(..., e_ops=[...])`` the expectation values are available in
-``result.expect``.
+``result.expect`` and ``result.e_data``.
 
 Below we run the solver again, but use ``e_ops`` to store the expectation
 values of the population of the system states and the coherence:
@@ -172,8 +172,8 @@ values of the population of the system states and the coherence:
 
     # Plot the results:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    axes.plot(result.times, result.expect["11"], 'b', linewidth=2, label="P11")
-    axes.plot(result.times, result.expect["12"], 'r', linewidth=2, label="P12")
+    axes.plot(result.times, result.e_data["11"], 'b', linewidth=2, label="P11")
+    axes.plot(result.times, result.e_data["12"], 'r', linewidth=2, label="P12")
     axes.set_xlabel(r't', fontsize=28)
     axes.legend(loc=0, fontsize=12)
 
@@ -193,7 +193,7 @@ combined system and bath using:
 where ``steady_state`` is the steady state of the system and ``steady_ados``
 if the steady state of the full hierarchy. The ADO states are
 described more fully in :ref:`heom-determining-currents` and
-:class:`~qutip.nonmarkov.heom.HierarchyADOsState`.
+:class:`~qutip.solver.heom.HierarchyADOsState`.
 
 
 Matsubara Terminator
@@ -210,8 +210,8 @@ the lower order terms in the expansion.
 This additional term is called the ``terminator`` because it terminates the
 expansion.
 
-The :class:`~qutip.nonmarkov.heom.DrudeLorentzBath` and
-:class:`~qutip.nonmarkov.heom.DrudeLorentzPadeBath` both provide a means of
+The :class:`~qutip.solver.heom.DrudeLorentzBath` and
+:class:`~qutip.solver.heom.DrudeLorentzPadeBath` both provide a means of
 calculating the terminator for a given expansion:
 
 .. plot::
@@ -243,10 +243,10 @@ Matsubara expansion coefficients
 --------------------------------
 
 So far we have relied on the built-in
-:class:`~qutip.nonmarkov.heom.DrudeLorentzBath` to construct the Drude-Lorentz
+:class:`~qutip.solver.heom.DrudeLorentzBath` to construct the Drude-Lorentz
 bath expansion for us. Now we will calculate the coefficients ourselves and
-construct a :class:`~qutip.nonmarkov.heom.BosonicBath` directly. A similar
-procedure can be used to apply :class:`~qutip.nonmarkov.heom.HEOMSolver` to any
+construct a :class:`~qutip.solver.heom.BosonicBath` directly. A similar
+procedure can be used to apply :class:`~qutip.solver.heom.HEOMSolver` to any
 bosonic bath for which we can calculate the expansion coefficients.
 
 The real and imaginary parts of the correlation function, :math:`C(t)`, for the
@@ -325,21 +325,21 @@ After all that, constructing the bath is very straight forward:
     :context:
     :nofigs:
 
-    from qutip.nonmarkov.heom import BosonicBath
+    from qutip.solver.heom import BosonicBath
 
     bath = BosonicBath(Q, ck_real, vk_real, ck_imag, vk_imag)
 
 And we're done!
 
-The :class:`~qutip.nonmarkov.heom.BosonicBath` can be used with the
-:class:`~qutip.nonmarkov.heom.HEOMSolver` in exactly the same way as the baths
+The :class:`~qutip.solver.heom.BosonicBath` can be used with the
+:class:`~qutip.solver.heom.HEOMSolver` in exactly the same way as the baths
 we constructed previously using the built-in Drude-Lorentz bath expansions.
 
 
 Multiple baths
 --------------
 
-The :class:`~qutip.nonmarkov.heom.HEOMSolver` supports having a system interact
+The :class:`~qutip.solver.heom.HEOMSolver` supports having a system interact
 with multiple environments. All that is needed is to supply a list of baths
 instead of a single bath.
 
@@ -398,7 +398,7 @@ occurs:
 
     # Plot populations:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    for label, values in result.expect.items():
+    for label, values in result.e_data.items():
         axes.plot(result.times, values, label=label)
     axes.set_xlabel(r't', fontsize=28)
     axes.set_ylabel(r"Population", fontsize=28)

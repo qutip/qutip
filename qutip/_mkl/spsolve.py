@@ -4,12 +4,12 @@ import scipy.sparse as sp
 from ctypes import c_int, byref
 from numpy.ctypeslib import ndpointer
 import time
-import qutip.settings as qset
+from qutip.settings import settings as qset
 
 # Load solver functions from mkl_lib
 pardiso = qset.mkl_lib.pardiso
 pardiso_delete = qset.mkl_lib.pardiso_handle_delete
-if sys.maxsize > 2**32:  # Running 64-bit
+if sys.maxsize > 2**32: #Running 64-bit
     pardiso_64 = qset.mkl_lib.pardiso_64
     pardiso_delete_64 = qset.mkl_lib.pardiso_handle_delete_64
 

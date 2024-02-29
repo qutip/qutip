@@ -1,8 +1,8 @@
 .. _basics:
 
-************************************
+***********************************
 Basic Operations on Quantum Objects
-************************************
+***********************************
 
 .. _basics-first:
 
@@ -114,8 +114,8 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
      [0.60111501 0.70807258 0.02058449 0.96990985]
      [0.83244264 0.21233911 0.18182497 0.18340451]]
 
-Notice how both the dims and shape change according to the input data.  Although dims and shape appear to be the same, 
-dims keep track of the shapes for individual components of a multipartite system, while shape does not. We refer the reader to the section 
+Notice how both the dims and shape change according to the input data.  Although dims and shape appear to be the same,
+dims keep track of the shapes for individual components of a multipartite system, while shape does not. We refer the reader to the section
 :ref:`tensor products and partial traces <tensor>` for more information.
 
 .. note:: If you are running QuTiP from a python script you must use the :func:`print` function to view the Qobj attributes.
@@ -125,9 +125,9 @@ dims keep track of the shapes for individual components of a multipartite system
 States and operators
 ---------------------
 
-Manually specifying the data for each quantum object is inefficient. Even more so when most objects correspond to commonly used 
-types such as the 
-ladder operators of a harmonic oscillator, the Pauli spin operators for a two-level system, or state vectors such as Fock states. 
+Manually specifying the data for each quantum object is inefficient. Even more so when most objects correspond to commonly used
+types such as the
+ladder operators of a harmonic oscillator, the Pauli spin operators for a two-level system, or state vectors such as Fock states.
 Therefore, QuTiP includes predefined objects for a variety of states and operators:
 
 .. cssclass:: table-striped
@@ -138,6 +138,8 @@ Therefore, QuTiP includes predefined objects for a variety of states and operato
 | Fock state ket vector    | ``basis(N,#m)``/``fock(N,#m)``   | N = number of levels in Hilbert space, |
 |                          |                                  | m = level containing excitation        |
 |                          |                                  | (0 if no m given)                      |
++--------------------------+----------------------------------+----------------------------------------+
+| Empty ket vector         | ``zero_ket(N)``                  | N = number of levels in Hilbert space, |
 +--------------------------+----------------------------------+----------------------------------------+
 | Fock density matrix      | ``fock_dm(N,#p)``                | same as basis(N,m) / fock(N,m)         |
 | (outer product of basis) |                                  |                                        |
@@ -150,6 +152,9 @@ Therefore, QuTiP includes predefined objects for a variety of states and operato
 +--------------------------+----------------------------------+----------------------------------------+
 | Thermal density matrix   | ``thermal_dm(N,n)``              | n = particle number expectation value  |
 | (for n particles)        |                                  |                                        |
++--------------------------+----------------------------------+----------------------------------------+
+| Maximally mixed density  | ``maximally_mixed_dm(N)``        | N = number of levels in Hilbert space  |
+| matrix                   |                                  |                                        |
 +--------------------------+----------------------------------+----------------------------------------+
 
 .. cssclass:: table-striped
@@ -173,6 +178,8 @@ Therefore, QuTiP includes predefined objects for a variety of states and operato
 |                          |                            | '+', or '-'                            |
 +--------------------------+----------------------------+----------------------------------------+
 | Identity                 | ``qeye(N)``                | N = number of levels in Hilbert space. |
++--------------------------+----------------------------+----------------------------------------+
+| Identity-like            | ``qeye_like(qobj)``        | qobj = Object to copy dimensions from. |
 +--------------------------+----------------------------+----------------------------------------+
 | Lowering (destruction)   | ``destroy(N)``             | same as above                          |
 | operator                 |                            |                                        |
@@ -274,7 +281,7 @@ We have seen that a quantum object has several internal attributes, such as data
    >>> q.shape
    (4, 4)
 
-In general, the attributes (properties) of a ``Qobj`` object (or any Python object) can be retrieved using the `Q.attribute` notation.  
+In general, the attributes (properties) of a ``Qobj`` object (or any Python object) can be retrieved using the `Q.attribute` notation.
 In addition to the those shown with the ``print`` function, an instance of the ``Qobj`` class also has the following attributes:
 
 .. cssclass:: table-striped
@@ -316,12 +323,43 @@ For the destruction operator above:
     False
 
     >>> q.data
+    Dia(shape=(4, 4), num_diag=1)
+
+
+The ``data`` attribute returns a Qutip diagonal matrix.
+``Qobj`` instances store their data in Qutip matrix format.
+In the core qutip module, the ``Dense``, ``CSR`` and ``Dia`` formats are available, but other packages can add other formats.
+For example, the ``qutip-jax`` module adds the ``Jax`` and ``JaxDia`` formats.
+One can always access the underlying matrix as a numpy array using :meth:`.Qobj.full`.
+It is also possible to access the underlying data in a common format using :meth:`.Qobj.data_as`.
+
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
+
+    >>> q.data_as("dia_matrix")
     <4x4 sparse matrix of type '<class 'numpy.complex128'>'
-	   with 3 stored elements in Compressed Sparse Row format>
+        with 3 stored elements (1 diagonals) in DIAgonal format>
 
 
+Conversion between storage type is done using the :meth:`.Qobj.to` method.
 
-The data attribute returns a message stating that the data is a sparse matrix. All ``Qobj`` instances store their data as a sparse matrix to save memory. To access the underlying dense matrix one needs to use the :func:`qutip.Qobj.full` function as described below.
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
+
+    >>> q.to("CSR").data
+    CSR(shape=(4, 4), nnz=3)
+
+    >>> q.to("CSR").data_as("CSR_matrix")
+    <4x4 sparse matrix of type '<class 'numpy.complex128'>'
+        with 3 stored elements in Compressed Sparse Row format>
+
+
+Note that :meth:`.Qobj.data_as` does not do the conversion.
+
+QuTiP will do conversion when needed to keep everything working in any format.
+However these conversions could slow down computation and it is recommended to keep to one format family where possible.
+For example, core QuTiP  ``Dense`` and ``CSR`` work well together and binary operations between these formats is efficient.
+However binary operations between ``Dense`` and ``Jax`` should be avoided since it is not always clear whether the operation will be executed by Jax (possibly on a GPU if present) or numpy.
 
 .. _basics-qobj-math:
 
@@ -392,7 +430,7 @@ In addition, the logic operators "is equal" `==` and "is not equal" `!=` are als
 .. _basics-functions:
 
 Functions operating on Qobj class
-==================================
+=================================
 
 Like attributes, the quantum object class has defined functions (methods) that operate on ``Qobj`` class instances. For a general quantum object ``Q``:
 
@@ -417,17 +455,14 @@ Like attributes, the quantum object class has defined functions (methods) that o
 +-----------------+-------------------------------+----------------------------------------+
 | Eigenstates     | ``Q.eigenstates()``           | Returns eigenvalues and eigenvectors.  |
 +-----------------+-------------------------------+----------------------------------------+
-| Eliminate States| ``Q.eliminate_states(inds)``  | Returns quantum object with states in  |
-|                 |                               | list inds removed.                     |
-+-----------------+-------------------------------+----------------------------------------+
 | Exponential     | ``Q.expm()``                  | Matrix exponential of operator.        |
-+-----------------+-------------------------------+----------------------------------------+
-| Extract States  | ``Q.extract_states(inds)``    | Qobj with states listed in inds only.  |
 +-----------------+-------------------------------+----------------------------------------+
 | Full            | ``Q.full()``                  | Returns full (not sparse) array of     |
 |                 |                               | Q's data.                              |
 +-----------------+-------------------------------+----------------------------------------+
 | Groundstate     | ``Q.groundstate()``           | Eigenval & eigket of Qobj groundstate. |
++-----------------+-------------------------------+----------------------------------------+
+| Matrix inverse  | ``Q.inv()``                   | Matrix inverse of the Qobj.            |
 +-----------------+-------------------------------+----------------------------------------+
 | Matrix Element  | ``Q.matrix_element(bra,ket)`` | Matrix element <bra|Q|ket>             |
 +-----------------+-------------------------------+----------------------------------------+
@@ -453,6 +488,8 @@ Like attributes, the quantum object class has defined functions (methods) that o
 | Tidyup          | ``Q.tidyup()``                | Removes small elements from Qobj.      |
 +-----------------+-------------------------------+----------------------------------------+
 | Trace           | ``Q.tr()``                    | Returns trace of quantum object.       |
++-----------------+-------------------------------+----------------------------------------+
+| Conversion      | ``Q.to(dtype)``               | Convert the matrix format CSR / Dense. |
 +-----------------+-------------------------------+----------------------------------------+
 | Transform       | ``Q.transform(inpt)``         | A basis transformation defined by      |
 |                 |                               | matrix or list of kets 'inpt' .        |

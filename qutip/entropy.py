@@ -4,12 +4,9 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
 
 from numpy import conj, e, inf, imag, inner, real, sort, sqrt
 from numpy.lib.scimath import log, log2
-from qutip.qobj import ptrace
-from qutip.states import ket2dm
-from qutip.tensor import tensor
-from qutip.operators import sigmay
-from qutip.sparse import sp_eigs
-from qutip.partial_transpose import partial_transpose
+from . import (ptrace, ket2dm, tensor, sigmay, partial_transpose,
+               expand_operator)
+from .core import data as _data
 
 
 def entropy_vn(rho, base=e, sparse=False):
@@ -20,9 +17,9 @@ def entropy_vn(rho, base=e, sparse=False):
     ----------
     rho : qobj
         Density matrix.
-    base : {e,2}
+    base : {e, 2}, default: e
         Base of logarithm.
-    sparse : {False,True}
+    sparse : bool, default: False
         Use sparse eigensolver.
 
     Returns
@@ -39,7 +36,7 @@ def entropy_vn(rho, base=e, sparse=False):
     """
     if rho.type == 'ket' or rho.type == 'bra':
         rho = ket2dm(rho)
-    vals = sp_eigs(rho.data, rho.isherm, vecs=False, sparse=sparse)
+    vals = rho.eigenenergies(sparse=sparse)
     nzvals = vals[vals != 0]
     if base == 2:
         logvals = log2(nzvals)
@@ -93,7 +90,7 @@ def concurrence(rho):
     References
     ----------
 
-    .. [1] https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)
+    .. [1] `https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)`
 
     """
     if rho.isket and rho.dims != [[2, 2], [1, 1]]:
@@ -162,9 +159,9 @@ def entropy_mutual(rho, selA, selB, base=e, sparse=False):
         `int` or `list` of first selected density matrix components.
     selB : int/list
         `int` or `list` of second selected density matrix components.
-    base : {e,2}
+    base : {e, 2}, default: e
         Base of logarithm.
-    sparse : {False,True}
+    sparse : bool, default: False
         Use sparse eigensolver.
 
     Returns
@@ -198,18 +195,18 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         First density matrix (or ket which will be converted to a density
         matrix).
-    sigma : :class:`qutip.Qobj`
+    sigma : :class:`.Qobj`
         Second density matrix (or ket which will be converted to a density
         matrix).
-    base : {e,2}
+    base : {e, 2}, default: e
         Base of logarithm. Defaults to e.
-    sparse : bool
+    sparse : bool, default: False
         Flag to use sparse solver when determining the eigenvectors
         of the density matrices. Defaults to False.
-    tol : float
+    tol : float, default: 1e-12
         Tolerance to use to detect 0 eigenvalues or dot producted between
         eigenvectors. Defaults to 1e-12.
 
@@ -261,11 +258,13 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     #
     # S is +inf if the kernel of sigma (i.e. svecs[svals == 0]) has non-trivial
     # intersection with the support of rho (i.e. rvecs[rvals != 0]).
-    rvals, rvecs = sp_eigs(rho.data, rho.isherm, vecs=True, sparse=sparse)
+    rvals, rvecs = _data.eigs(rho.data, rho.isherm, True)
+    rvecs = rvecs.to_array().T
     if any(abs(imag(rvals)) >= tol):
         raise ValueError("Input rho has non-real eigenvalues.")
     rvals = real(rvals)
-    svals, svecs = sp_eigs(sigma.data, sigma.isherm, vecs=True, sparse=sparse)
+    svals, svecs = _data.eigs(sigma.data, sigma.isherm, True)
+    svecs = svecs.to_array().T
     if any(abs(imag(svals)) >= tol):
         raise ValueError("Input sigma has non-real eigenvalues.")
     svals = real(svals)
@@ -296,9 +295,9 @@ def entropy_conditional(rho, selB, base=e, sparse=False):
         Density matrix of composite object
     selB : int/list
         Selected components for density matrix B
-    base : {e,2}
+    base : {e, 2}, default: e
         Base of logarithm.
-    sparse : {False,True}
+    sparse : bool, default: False
         Use sparse eigensolver.
 
     Returns
@@ -345,8 +344,7 @@ def participation_ratio(rho):
 def entangling_power(U):
     """
     Calculate the entangling power of a two-qubit gate U, which
-    is zero of nonentangling gates and 1 and 2/9 for maximally
-    entangling gates.
+    is zero of nonentangling gates and 2/9 for maximally entangling gates.
 
     Parameters
     ----------
@@ -356,7 +354,7 @@ def entangling_power(U):
     Returns
     -------
     ep : float
-        The entanglement power of U (real number between 0 and 1)
+        The entanglement power of U (real number between 0 and 2/9)
 
     References:
 
@@ -369,10 +367,10 @@ def entangling_power(U):
     if U.dims != [[2, 2], [2, 2]]:
         raise Exception("U must be a two-qubit gate.")
 
-    from qutip.qip.operations.gates import swap
-    a = (tensor(U, U).dag() * swap(N=4, targets=[1, 3]) *
-         tensor(U, U) * swap(N=4, targets=[1, 3]))
-    b = (tensor(swap() * U, swap() * U).dag() * swap(N=4, targets=[1, 3]) *
-         tensor(swap() * U, swap() * U) * swap(N=4, targets=[1, 3]))
+    from qutip.core.gates import swap
+    swap13 =  expand_operator(swap(), [2, 2, 2, 2], [1, 3])
+    a = tensor(U, U).dag() * swap13 * tensor(U, U) * swap13
+    Uswap = swap() * U
+    b = tensor(Uswap, Uswap).dag() * swap13 * tensor(Uswap, Uswap) * swap13
 
     return 5.0/9 - 1.0/36 * (a.tr() + b.tr()).real

@@ -64,7 +64,7 @@ In addition, there are several optional packages that provide additional functio
 | ``pytest``,              | 5.3+         | For running the test suite.                         |
 | ``pytest-rerunfailures`` |              |                                                     |
 +--------------------------+--------------+-----------------------------------------------------+
-| LaTeX                    | TeXLive 2009+| Needed if using LaTeX in matplotlib figures, or for |    
+| LaTeX                    | TeXLive 2009+| Needed if using LaTeX in matplotlib figures, or for |
 |                          |              | nice circuit drawings in IPython.                   |
 +--------------------------+--------------+-----------------------------------------------------+
 
@@ -78,9 +78,6 @@ QuTiP will detect if it is being used within one of these richer environments, a
 
 Installing with conda
 =====================
-
-QuTiP is designed to work best when using the `Anaconda <https://www.anaconda.com/products/individual>`_ or `Intel <https://software.intel.com/en-us/python-distribution>`_ Python distributions that support the conda package management system.
-It is still possible to use ``pip`` to install QuTiP while using conda, but uniformly using conda will make complete dependency management easier.
 
 If you already have your conda environment set up, and have the ``conda-forge`` channel available, then you can install QuTiP using:
 
@@ -127,6 +124,24 @@ You activate the new environment by running
    conda activate qutip-env
 
 You can also install any more optional packages you want with ``conda install``, for example ``matplotlib``, ``ipython`` or ``jupyter``.
+
+
+Installation of the pre-release of version 5
+============================================
+
+QuTiP version 5 has been in development for some time and brings many new features, heavily reworks the core functionalities of QuTiP.
+It is available as a pre-release on PyPI. Anyone wanting to try the new features can install it with:
+
+.. code-block:: bash
+
+   pip install --pre qutip
+
+We expect the pre-release to fully work.
+If you find any bugs, confusing documentation or missing features, please tell create an issue on `github <https://github.com/qutip/qutip/issues>`_.
+
+This version breaks compatibility with QuTiP 4.7 in many small ways.
+Please see the :doc:`changelog` for a list of changes, new features and deprecations.
+
 
 .. _install-from-source:
 
@@ -192,7 +207,7 @@ To install OpenMP support, if available, run:
 This will attempt to load up OpenMP libraries during the compilation process, which depends on you having suitable C++ compiler and library support.
 If you are on Linux this is probably already done, but the compiler macOS ships with does not have OpenMP support.
 You will likely need to refer to external operating-system-specific guides for more detail here, as it may be very non-trivial to correctly configure.
-   
+
 If you wish to contribute to the QuTiP project, then you will want to create your own fork of `the QuTiP git repository <https://github.com/qutip/qutip>`_, clone this to a local folder, and install it into your Python environment using:
 
 .. code-block:: bash
@@ -249,7 +264,7 @@ At the end, the testing report should report a success; it is normal for some te
 Skips may be tests that do not run on your operating system, or tests of optional components that you have not installed the dependencies for.
 If any failures or errors occur, please check that you have installed all of the required modules.
 See the next section on how to check the installed versions of the QuTiP dependencies.
-If these tests still fail, then head on over to the `QuTiP Discussion Board <https://groups.google.com/group/qutip>`_ or `the GitHub issues page <https://github.com/qutip/qutip/issues>`_ and post a message detailing your particular issue.
+If these tests still fail, then head on over to the `QuTiP Discussion Board <https://groups.google.com/g/qutip>`_ or `the GitHub issues page <https://github.com/qutip/qutip/issues>`_ and post a message detailing your particular issue.
 
 .. _install-about:
 

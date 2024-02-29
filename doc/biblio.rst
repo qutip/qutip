@@ -1,5 +1,5 @@
 .. _biblo:
-    
+
 Bibliography
 ============
 
@@ -14,7 +14,7 @@ Bibliography
 
 ..  The trick with |text|_ is to get an italic link, and is described in the
     Docutils FAQ at https://docutils.sourceforge.net/FAQ.html#is-nested-inline-markup-possible.
-    
+
 .. |theory-qi| replace:: *Theory of Quantum Information*
 .. _theory-qi: https://cs.uwaterloo.ca/~watrous/TQI-notes/
 
@@ -39,10 +39,10 @@ Bibliography
 .. [WBC11]
     C. Wood, J. Biamonte, D. G. Cory, *Tensor networks and graphical calculus for
     open quantum systems*. :arxiv:`1111.6950`
-    
+
 .. [dAless08]
     D. d’Alessandro, *Introduction to Quantum Control and Dynamics*, (Chapman & Hall/CRC, 2008).
-    
+
 .. [Byrd95]
     R. H. Byrd, P. Lu, J. Nocedal, and C. Zhu, *A Limited Memory Algorithm for Bound Constrained Optimization*, SIAM J. Sci. Comput. **16**, 1190 (1995). :doi:`10.1137/0916069`
 
@@ -51,18 +51,15 @@ Bibliography
 
 .. [Lloyd14]
     S. Lloyd and S. Montangero, *Information theoretical analysis of quantum optimal control*, Phys. Rev. Lett. **113**, 010502 (2014). :doi:`10.1103/PhysRevLett.113.010502`
-    
+
 .. [Doria11]
     P. Doria, T. Calarco & S. Montangero, *Optimal Control Technique for Many-Body Quantum Dynamics*, Phys. Rev. Lett. **106**, 190501 (2011). :doi:`10.1103/PhysRevLett.106.190501`
-    
+
 .. [Caneva11]
     T. Caneva, T. Calarco, & S. Montangero, *Chopped random-basis quantum optimization*, Phys. Rev. A **84**, 022326 (2011). :doi:`10.1103/PhysRevA.84.022326`
-    
+
 .. [Rach15]
     N. Rach, M. M. Müller, T. Calarco, and S. Montangero, *Dressing the chopped-random-basis optimization: A bandwidth-limited access to the trap-free landscape*, Phys. Rev. A. **92**, 062343 (2015). :doi:`10.1103/PhysRevA.92.062343`
-
-.. [DYNAMO]
-    S. Machnes, U. Sander, S. J. Glaser, P. De Fouquieres, A. Gruslys, S. Schirmer, and T. Schulte-Herbrueggen, *Comparing, Optimising and Benchmarking Quantum Control Algorithms in a Unifying Programming Framework*, Phys. Rev. A. **84**, 022305 (2010). :arxiv:`1011.4874`
 
 .. [Wis09]
 
@@ -71,3 +68,9 @@ Bibliography
 .. [NKanej]
 
     N Khaneja et. al. *Optimal control of coupled spin dynamics: Design of NMR pulse sequences by gradient ascent algorithms.* J. Magn. Reson. **172**, 296–305 (2005). :doi:`10.1016/j.jmr.2004.11.004`
+
+.. [Donvil22]
+    B. Donvil, P. Muratore-Ginanneschi, *Quantum trajectory framework for general time-local master equations*, Nat Commun **13**, 4140 (2022). :doi:`10.1038/s41467-022-31533-8`.
+
+.. [Abd19]
+    M. Abdelhafez, D. I. Schuster, J. Koch, *Gradient-based optimal control of open quantum systems using quantumtrajectories and automatic differentiation*, Phys. Rev. A **99**, 052327 (2019). :doi:`10.1103/PhysRevA.99.052327`.

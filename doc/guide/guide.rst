@@ -11,16 +11,16 @@ Users Guide
    guide-basics.rst
    guide-states.rst
    guide-tensor.rst
+   guide-super.rst
    guide-dynamics.rst
    guide-heom.rst
    guide-steady.rst
+   guide-piqs.rst
    guide-correlation.rst
-   guide-control.rst
    guide-bloch.rst
    guide-visualization.rst
-   guide-parfor.rst
    guide-saving.rst
    guide-random.rst
    guide-settings.rst
-   guide-qip.rst
    guide-measurement.rst
+   guide-control.rst
