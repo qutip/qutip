@@ -1161,7 +1161,7 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     parfor : bool {False, True}
         Flag for parallel calculation.
         See the documentation for qutip.wigner for details.
-        
+
     projection: str {'2d', '3d'}, default: '2d'
         Specify whether the Wigner function is to be plotted as a
         contour graph ('2d') or surface plot ('3d').
@@ -1175,7 +1175,7 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
 
     fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
-        
+
     ax : a matplotlib axes instance, optional
         The axes context in which the plot will be drawn.
 
@@ -1193,7 +1193,6 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
 
     if not isinstance(rho, list):
         rhos = [rho]
-
     else:
         rhos = rho
 
