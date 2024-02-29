@@ -111,8 +111,8 @@ class SpectralFitter:
             If set to None, it is determined automatically.
         Nk : optional, int
             Number of exponential terms used to approximate the bath
-            correlation functions, defaults to 1. To approximate the 
-            correlation function the number of exponents grow as the 
+            correlation functions, defaults to 1. To approximate the
+            correlation function the number of exponents grow as the
             Desired normalized root mean squared error. Defaults to
             :math:`5\times10^{-6}`. Only used if N is set to None.
             Desired normalized root mean squared error. Defaults to
@@ -338,7 +338,7 @@ class CorrelationFitter:
             are not specified.
         lower : list
             lower bounds on the parameters for the fit. A list of size 4 when
-            full_ansatz is True and of size 3 when it is false,each value 
+            full_ansatz is True and of size 3 when it is false,each value
             represents the lower bound for each parameter.
 
             The first and last terms describe the real and imaginary parts of
@@ -361,7 +361,7 @@ class CorrelationFitter:
         guesses : list
             Initial guesses for the parameters. Same structure as lower and
             upper.
-        full_ansatz: bool
+        full_ansatz : bool
             Indicates whether to use the function
 
             .. math::
@@ -394,33 +394,33 @@ class CorrelationFitter:
         - A Bosonic Bath created with the fit parameters from the original
           correlation function (that was provided or interpolated).
         - A dictionary containing the following information about the fit:
-        Nr:
+        Nr :
             The number of terms used to fit the real part of the
             correlation function.
-        Ni:
+        Ni :
             The number of terms used to fit the imaginary part of the
             correlation function.
-        fit_time_real:
+        fit_time_real :
             The time the fit of the real part of the correlation function
             took in seconds.
-        fit_time_imag:
+        fit_time_imag :
             The time the fit of the imaginary part of the correlation
             function took in seconds.
-        rsme_real:
+        rsme_real :
             Normalized mean squared error obtained in the fit of the real
             part of the correlation function.
-        rsme_imag:
+        rsme_imag :
             Normalized mean squared error obtained in the fit of the
             imaginary part of the correlation function.
-        params_real:
+        params_real :
             The fitted parameters (3N parameters) for the real part of the
             correlation function, it contains three lists one for each
             parameter, each list containing N terms.
-        params_imag:
+        params_imag :
             The fitted parameters (3N parameters) for the imaginary part
             of the correlation function, it contains three lists one for
             each parameter, each list containing N terms.
-        summary:
+        summary :
             A string that summarizes the information about the fit.
         """
         if full_ansatz:
@@ -520,9 +520,9 @@ class OhmicBath:
 
     Parameters
     ----------
-    Q : Qobj
+    Q : :obj:`.Qobj`
         Operator describing the coupling between system and bath.
-    T : Float
+    T : float
         Temperature of the bath.
     alpha : float
         Coupling strength.
@@ -550,7 +550,7 @@ class OhmicBath:
 
         Parameters
         ----------
-        w : float or array
+        w : float or :obj:`np.array.`
             Energy of the mode.
 
         Returns
@@ -602,15 +602,15 @@ class OhmicBath:
     def make_correlation_fit(
             self, x, rmse=1e-4, lower=None, upper=None,
             sigma=None, guesses=None, Nr=None, Ni=None, full_ansatz=False):
-        """
+        r"""
         Provides a fit to the spectral density or corelation function
         with N underdamped oscillators baths, This function gets the
         number of harmonic oscillators based on reducing the normalized
-        root mean squared error below a certain threshold
+        root mean squared error below a certain threshold.
 
         Parameters
         ----------
-        x : np.array
+        x : float
             Interval to use to fit the function, it is recomended that is large
             enough to cover the decay of the correlation function.
         rmse : float
@@ -687,7 +687,7 @@ class OhmicBath:
 
     def make_spectral_fit(self, x, rmse=1e-5, lower=None, upper=None,
                           sigma=None, guesses=None, N=None, Nk=1):
-        """
+        r"""
         Provides a fit to the spectral density or corelation function
         with N underdamped oscillators baths, This function gets the
         number of harmonic oscillators based on reducing the normalized
@@ -695,13 +695,13 @@ class OhmicBath:
 
         Parameters
         ----------
-        x : np.array
+        x : :obj:`np.array`
             Interval to use for the fit of the spectral density, it is
             recommended that its end is at least 2 times the cutoff frequency
             of the spectral density.
-        w : np.array
+        w : :obj:`np.array`
             range of frequencies for the fit.
-        N : optional,tuple
+        N : optional, tuple
             Number of underdamped oscillators and exponents to use
             (N,Nk) if the the method is spectral
             Number of underdamped oscillators for the real and imaginary
@@ -725,27 +725,28 @@ class OhmicBath:
             Initial guesses for the parameters. Same structure as lower and
             upper.
         Note: If one of lower, upper, sigma, guesses is None, all are discarded
+
         Returns
         -------
         - A Bosonic Bath created with the fit parameters for the original
-          spectral density function (that was provided or interpolated)
+        spectral density function (that was provided or interpolated)
         - A dictionary containing the following information about the fit:
-        fit_time:
-            The time the fit took in seconds.
-        rsme:
-            Normalized mean squared error obtained in the fit.
-        N:
-            The number of terms used for the fit.
-        params:
-            The fitted parameters (3N parameters), it contains three lists
-            one for each parameter, each list containing N terms.
-        Nk:
-            The number of exponents used to construct the bosonic bath,
-            defaults to 1. To approximate the correlation function the
-            number of exponents grow as the temperature decreases, so Nk
-            needs to be adjusted accordingly.
-        summary:
-            A string that summarizes the information of the fit.
+            1. fit_time:
+                The time the fit took in seconds.
+            2. rsme:
+                Normalized mean squared error obtained in the fit.
+            3. N:
+                The number of terms used for the fit.
+            4. params:
+                The fitted parameters (3N parameters), it contains three lists
+                one for each parameter, each list containing N terms.
+            5. Nk:
+                The number of exponents used to construct the bosonic bath,
+                defaults to 1. To approximate the correlation function the
+                number of exponents grow as the temperature decreases, so Nk
+                needs to be adjusted accordingly.
+            6. summary:
+                A string that summarizes the information of the fit.
         """
 
         fs = SpectralFitter(T=self.T, Q=self.Q, w=x, J=self.spectral_density)
