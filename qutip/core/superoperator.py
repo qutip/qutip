@@ -96,28 +96,26 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
                  for c_op, chi_ in zip(c_ops, chi))
         return L
 
-    op_dims = H.dims
-    op_shape = H.shape
-    sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
-    sop_shape = [np.prod(op_dims), np.prod(op_dims)]
-    spI = _data.identity(op_shape[0], dtype=type(H.data))
-
-    data = _data.mul(_data.kron(spI, H.data), -1j)
-    data = _data.add(data, _data.kron_transpose(H.data, spI), scale=1j)
+    data = _data.mul(_data.kron(_data.identity_like(H.data), H.data), 
+                     -1j)
+    data = _data.add(data, _data.kron_transpose(H.data,
+                     _data.identity_like(H.data)), scale=1j)
 
     for c_op, chi_ in zip(c_ops, chi):
         c = c_op.data
         cd = c.adjoint()
         cdc = _data.matmul(cd, c)
         data = _data.add(data, _data.kron(c.conj(), c), np.exp(1j*chi_))
-        data = _data.add(data, _data.kron(spI, cdc), -0.5)
-        data = _data.add(data, _data.kron_transpose(cdc, spI), -0.5)
+        data = _data.add(data, _data.kron(
+                         _data.identity_like(H.data), cdc), -0.5)
+        data = _data.add(data, _data.kron_transpose(cdc,
+                         _data.identity_like(H.data)), -0.5)
 
     if data_only:
         return data
     else:
         return Qobj(data,
-                    dims=sop_dims,
+                    dims=[H._dims, H._dims],
                     superrep='super',
                     copy=False)
 
@@ -316,10 +314,9 @@ def spost(A):
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
-    Id = _data.identity(A.shape[0], dtype=type(A.data))
     data = _data.kron_transpose(A.data, _data.identity_like(A.data))
     return Qobj(data,
-                dims=[A.dims, A.dims],
+                dims=[A._dims, A._dims],
                 superrep='super',
                 isherm=A._isherm,
                 copy=False)

@@ -312,7 +312,7 @@ class Qobj:
     def copy(self):
         """Create identical copy"""
         return Qobj(arg=self._data,
-                    dims=self.dims,
+                    dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
                     copy=True)
