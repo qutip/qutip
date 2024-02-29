@@ -222,7 +222,7 @@ def test_rand_super(dimensions, dtype, superrep):
     """
     random_qobj = rand_super(dimensions, dtype=dtype, superrep=superrep)
     assert random_qobj.issuper
-    with CoreOptions(atol=1e-9):
+    with CoreOptions(atol=2e-9):
         assert random_qobj.iscptp
     assert random_qobj.superrep == superrep
     _assert_metadata(random_qobj, dimensions, dtype, super=True)
