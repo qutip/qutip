@@ -310,7 +310,7 @@ class Bloch:
         self.vector_alpha = []
         self.annotations = []
         self.vector_color = []
-        self.point_color = []
+        self.point_color = None
         self._lines = []
         self._arcs = []
 
@@ -803,7 +803,7 @@ class Bloch:
 
             if self._inner_point_color[k] is not None:
                 color = self._inner_point_color[k]
-            elif self.point_color not in [None, []]:
+            elif self.point_color is not None:
                 color = self.point_color
             elif self.point_style[k] in ['s', 'l']:
                 color = [self.point_default_color[
