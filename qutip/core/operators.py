@@ -646,8 +646,8 @@ def qzero(dimensions, dims_right=None, *, dtype=None):
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
     dims_left = Space(dimensions)
-    size_left = dimensions.size
-    if dims_right is None:         
+    size_left = dims_left.size
+    if dims_right is None:
         dims_right = dims_left
         size_right = size_left
     else:
