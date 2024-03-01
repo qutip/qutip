@@ -9,6 +9,7 @@ from . import (plot_wigner_sphere, hinton, sphereplot, matrix_histogram,
                plot_fock_distribution, plot_wigner, plot_spin_distribution,
                plot_qubism, plot_schmidt)
 from .solver import Result
+from numpy import sqrt
 
 
 def _result_state(obj):
@@ -346,9 +347,9 @@ def anim_fock_distribution(rhos, fock_numbers=None, color="green",
     return fig, ani
 
 
-def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw',
-                projection='2d', *, cmap=None, colorbar=False,
-                fig=None, ax=None):
+def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw', projection='2d',
+                g=sqrt(2), sparse=False, parfor=False, *,
+                cmap=None, colorbar=False, fig=None, ax=None):
     """
     Animation of the Wigner function for a density matrix (or ket)
     that describes an oscillator mode.
@@ -373,6 +374,18 @@ def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw',
         Specify whether the Wigner function is to be plotted as a
         contour graph ('2d') or surface plot ('3d').
 
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+        See the documentation for qutip.wigner for details.
+
+    sparse : bool {False, True}
+        Flag for sparse format.
+        See the documentation for qutip.wigner for details.
+
+    parfor : bool {False, True}
+        Flag for parallel calculation.
+        See the documentation for qutip.wigner for details.
+
     cmap : a matplotlib cmap instance, optional
         The colormap.
 
@@ -395,7 +408,8 @@ def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw',
 
     rhos = _result_state(rhos)
 
-    fig, ani = plot_wigner(rhos, xvec, yvec, method, projection,
+    fig, ani = plot_wigner(rhos, xvec, yvec, method=method, g=g, sparse=sparse,
+                           parfor=parfor, projection=projection,
                            cmap=cmap, colorbar=colorbar, fig=fig, ax=ax)
 
     return fig, ani
