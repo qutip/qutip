@@ -229,7 +229,7 @@ cdef class CSR(base.Data):
             sort.inplace(self, ptr, diff)
         return self
 
-    cpdef double complex trace(self):
+    cpdef double complex trace(self) except *:
         return trace_csr(self)
 
     cpdef CSR adjoint(self):
