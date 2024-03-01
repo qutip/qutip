@@ -1126,10 +1126,9 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
     return fig, output
 
 
-def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
-                g=sqrt(2), sparse=False, parfor=False,
-                projection='2d', *, cmap=None, colorbar=False,
-                fig=None, ax=None):
+def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
+                g=sqrt(2), sparse=False, parfor=False, *,
+                cmap=None, colorbar=False, fig=None, ax=None):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1150,6 +1149,10 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
 
+    projection: str {'2d', '3d'}, default: '2d'
+        Specify whether the Wigner function is to be plotted as a
+        contour graph ('2d') or surface plot ('3d').
+
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
         See the documentation for qutip.wigner for details.
@@ -1161,10 +1164,6 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     parfor : bool {False, True}
         Flag for parallel calculation.
         See the documentation for qutip.wigner for details.
-
-    projection: str {'2d', '3d'}, default: '2d'
-        Specify whether the Wigner function is to be plotted as a
-        contour graph ('2d') or surface plot ('3d').
 
     cmap : a matplotlib cmap instance, optional
         The colormap.
