@@ -618,35 +618,6 @@ def _f_op(n_sites, site, action, dtype=None):
     return tensor(opers).to(dtype)
 
 
-def _implicit_tensor_dimensions(dimensions):
-    """
-    Total flattened size and operator dimensions for operator creation routines
-    that automatically perform tensor products.
-
-    Parameters
-    ----------
-    dimensions : (int) or (list of int) or (list of list of int)
-        First dimension of an operator which can create an implicit tensor
-        product.  If the type is `int`, it is promoted first to `[dimensions]`.
-        From there, it should be one of the two-elements `dims` parameter of a
-        `qutip.Qobj` representing an `oper` or `super`, with possible tensor
-        products.
-
-    Returns
-    -------
-    size : int
-        Dimension of backing matrix required to represent operator.
-    dimensions : list
-        Dimension list in the form required by ``Qobj`` creation.
-    """
-    if not isinstance(dimensions, (list, Space)):
-        dimensions = [dimensions]
-    flat = flatten(dimensions)
-    if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
-        raise ValueError("All dimensions must be integers >= 0")
-    return np.prod(flat), [dimensions, dimensions]
-
-
 def qzero(dimensions, dims_right=None, *, dtype=None):
     """
     Zero operator.
@@ -674,14 +645,17 @@ def qzero(dimensions, dims_right=None, *, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    size, dimensions = _implicit_tensor_dimensions(dimensions)
+    dimensions = Space(dimensions)
+    size = dimensions.size
+    dims = [dimensions, dimensions]
     if dims_right is not None:
-        size_right, dims_right = _implicit_tensor_dimensions(dims_right)
-        dimensions = [dimensions[0], dims_right[1]]
+        dims_right = Space(dims_right)
+        dims = [dims[0], dims_right]
+        size_right = dims_right.size
     else:
         size_right = size
     # A sparse matrix with no data is equal to a zero matrix.
-    return Qobj(_data.zeros[dtype](size, size_right), dims=dimensions,
+    return Qobj(_data.zeros[dtype](size, size_right), dims=dims,
                 isherm=True, isunitary=False, copy=False)
 
 
@@ -750,8 +724,8 @@ isherm = True
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
-    size, dimensions = _implicit_tensor_dimensions(dimensions)
-    return Qobj(_data.identity[dtype](size), dims=dimensions,
+    dimensions = Space(dimensions)
+    return Qobj(_data.identity[dtype](dimensions.size), dims=[dimensions]*2,
                 isherm=True, isunitary=True, copy=False)
 
 
@@ -1167,13 +1141,14 @@ def qft(dimensions, *, dtype="dense"):
         Quantum Fourier transform operator.
 
     """
-    N2, dimensions = _implicit_tensor_dimensions(dimensions)
+    dimensions = Space(dimensions)
+    N2 = dimensions.size
 
     phase = 2.0j * np.pi / N2
     arr = np.arange(N2)
     L, M = np.meshgrid(arr, arr)
     data = np.exp(phase * (L * M)) / np.sqrt(N2)
-    return Qobj(data, dims=dimensions).to(dtype)
+    return Qobj(data, dims=[dimensions]*2).to(dtype)
 
 
 def swap(N, M, *, dtype=None):

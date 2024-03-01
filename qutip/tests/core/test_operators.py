@@ -107,7 +107,7 @@ def test_diagonal_operators(oper_func, diag, offset, args):
 
 
 @pytest.mark.parametrize(['function', 'message'], [
-    (qutip.qeye, "All dimensions must be integers >= 0"),
+    (qutip.qeye, "Dimensions must be integers > 0"),
     (qutip.destroy, "Hilbert space dimension must be integer value"),
     (qutip.create, "Hilbert space dimension must be integer value"),
 ], ids=["qeye", "destroy", "create"])
