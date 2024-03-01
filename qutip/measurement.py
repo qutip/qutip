@@ -223,11 +223,11 @@ def measurement_statistics_observable(state, op, tol=None):
 
     eigenvalues, eigenstates = op.eigenstates()
     # Detect groups of eigenvalues within atol of each other.
-    # A group will be [True] + [False] * N
-    groups = np.append(True, np.diff(eigenvalues) >= tol)
+    # A group will be [False] * N + [True]
+    groups = np.append(np.diff(eigenvalues) >= tol, True)
 
     present_group = []
-    for i in range(len(eigenvalues)-1, -1, -1):
+    for i in range(len(eigenvalues)):
         present_group.append(i)
         if not groups[i]:
             continue
@@ -244,7 +244,7 @@ def measurement_statistics_observable(state, op, tol=None):
 
         present_group = []
 
-    return values[::-1], projectors[::-1], probabilities[::-1]
+    return values, projectors, probabilities
 
 
 def measure_observable(state, op, tol=None):
