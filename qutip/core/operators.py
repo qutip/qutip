@@ -645,17 +645,17 @@ def qzero(dimensions, dims_right=None, *, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    dimensions = Space(dimensions)
-    size = dimensions.size
-    dims = [dimensions, dimensions]
-    if dims_right is not None:
-        dims_right = Space(dims_right)
-        dims = [dims[0], dims_right]
-        size_right = dims_right.size
+    dims_left = Space(dimensions)
+    size_left = dimensions.size
+    if dims_right is None:         
+        dims_right = dims_left
+        size_right = size_left
     else:
-        size_right = size
+        dims_right = Space(dims_right)
+        size_right = dims_right.size
+    dims = [dims_left, dims_right]
     # A sparse matrix with no data is equal to a zero matrix.
-    return Qobj(_data.zeros[dtype](size, size_right), dims=dims,
+    return Qobj(_data.zeros[dtype](size_left, size_right), dims=dims,
                 isherm=True, isunitary=False, copy=False)
 
 

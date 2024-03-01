@@ -34,8 +34,8 @@ def flatten(l):
     Notes
     -----
     Any scalar will be returned wrapped in a list: ``flaten(1) == [1]``.
-    Interable are not seen as list, a tuple is a scalar for the purpose of this
-    function.
+    A non-list iterable will not be treated as a list by flatten. For example, flatten would treat a tuple
+    as a scalar.
     """
     if isinstance(l, (Space, Dimensions)):
         l = l.as_list()
