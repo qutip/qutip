@@ -17,9 +17,13 @@ __all__ = ["to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"]
 def flatten(l):
     """Flattens a list of lists to the first level.
 
-    Given a list containing a mix of scalars and lists,
-    flattens down to a list of the scalars within the original
-    list.
+    Given a list containing a mix of scalars and lists or a dimension object,
+    flattens it down to a list of the scalars within the original list.
+
+    Parameters
+    ----------
+    l : scalar, list, Space, Dimension
+        Object to flatten.
 
     Examples
     --------
@@ -27,6 +31,11 @@ def flatten(l):
     >>> flatten([[[0], 1], 2]) # doctest: +SKIP
     [0, 1, 2]
 
+    Notes
+    -----
+    Any scalar will be returned wrapped in a list: ``flaten(1) == [1]``.
+    Interable are not seen as list, a tuple is a scalar for the purpose of this
+    function.
     """
     if isinstance(l, (Space, Dimensions)):
         l = l.as_list()
