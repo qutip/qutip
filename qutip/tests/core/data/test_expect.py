@@ -5,7 +5,7 @@ from .test_mathematics import BinaryOpMixin
 import pytest
 import numpy as np
 from qutip import data
-from qutip.core.data import CSR, Dense, Dia
+from qutip.core.data import COO, CSR, Dense, Dia
 from itertools import product
 
 
@@ -36,9 +36,10 @@ class TestExpect(BinaryOpMixin):
     ]  # Bad ket/dm
 
     specialisations = [
+        pytest.param(data.expect_coo_dense, COO, Dense, complex),
         pytest.param(data.expect_csr, CSR, CSR, complex),
-        pytest.param(data.expect_dense, Dense, Dense, complex),
         pytest.param(data.expect_csr_dense, CSR, Dense, complex),
+        pytest.param(data.expect_dense, Dense, Dense, complex),
         pytest.param(data.expect_dia, Dia, Dia, complex),
         pytest.param(data.expect_dia_dense, Dia, Dense, complex),
         pytest.param(data.expect_data, Dense, CSR, complex),

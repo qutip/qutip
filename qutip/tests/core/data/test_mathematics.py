@@ -4,7 +4,7 @@ import scipy
 import pytest
 
 from qutip.core import data
-from qutip.core.data import Data, Dense, CSR, Dia
+from qutip.core.data import Data, Dense, COO, CSR, Dia
 
 from . import conftest
 
@@ -127,6 +127,22 @@ def shapes_not_square(dim=100):
 #      each repeat, rather than re-using the same set.  This is somewhat
 #      "defeating" pytest fixtures, but here we're not worried about re-usable
 #      inputs, we just want the managed parametrisation.
+def cases_coo(shape):
+    """
+    Return a list of generators of the different special cases for CSR
+    matrices of a given shape.
+    """
+    def factory(density, sort):
+        return lambda: conftest.random_coo(shape, density)
+
+    def zero_factory():
+        return lambda: data.coo.zeros(shape[0], shape[1])
+    return [
+        pytest.param(factory(0.001, True), id="sparse"),
+        pytest.param(factory(0.8, True), id="filled,sorted"),
+        pytest.param(factory(0.8, False), id="filled,unsorted"),
+        pytest.param(zero_factory(), id="zero"),
+    ]
 
 def cases_csr(shape):
     """
@@ -182,11 +198,13 @@ def cases_diag(shape):
 # _ALL_CASES is for getting all the special cases to test, _RANDOM is for
 # getting just a single case from each.
 _ALL_CASES = {
+    COO: cases_coo,
     CSR: cases_csr,
     Dia: cases_diag,
     Dense: cases_dense,
 }
 _RANDOM = {
+    COO: lambda shape: [lambda: conftest.random_coo(shape, 0.5)],
     CSR: lambda shape: [lambda: conftest.random_csr(shape, 0.5, True)],
     Dense: lambda shape: [lambda: conftest.random_dense(shape, False)],
     Dia: lambda shape: [lambda: conftest.random_diag(shape, 0.5)],
@@ -588,6 +606,7 @@ class TestAdjoint(UnaryOpMixin):
         return np.conj(matrix.T)
 
     specialisations = [
+        pytest.param(data.adjoint_coo, COO, COO),
         pytest.param(data.adjoint_csr, CSR, CSR),
         pytest.param(data.adjoint_dense, Dense, Dense),
         pytest.param(data.adjoint_dia, Dia, Dia),
@@ -599,9 +618,21 @@ class TestConj(UnaryOpMixin):
         return np.conj(matrix)
 
     specialisations = [
+        pytest.param(data.conj_coo, COO, COO),
         pytest.param(data.conj_csr, CSR, CSR),
         pytest.param(data.conj_dense, Dense, Dense),
         pytest.param(data.conj_dia, Dia, Dia),
+    ]
+
+class TestTranspose(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.transpose(matrix)
+
+    specialisations = [
+        pytest.param(data.transpose_coo, COO, COO),
+        pytest.param(data.transpose_csr, CSR, CSR),
+        pytest.param(data.transpose_dense, Dense, Dense),
+        pytest.param(data.transpose_dia, Dia, Dia),
     ]
 
 

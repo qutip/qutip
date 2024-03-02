@@ -5,7 +5,8 @@ Class to represent a stochastic differential equation system.
 
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
-from qutip.core.data cimport Data, dense, Dense, imul_dense, iadd_dense
+from qutip.core.data.add import iadd_dense
+from qutip.core.data cimport Data, dense, Dense, imul_dense, iadd_dense_dense
 from qutip.core.data.trace cimport trace_oper_ket_dense
 cimport cython
 import numpy as np
@@ -117,28 +118,33 @@ cdef class StochasticClosedSystem(_StochasticSystem):
     """
     cdef readonly list cpcd_ops
 
-    def __init__(self, H, sc_ops):
+    def __init__(self, H, sc_ops, *, bint tidyup=True):
         self.L = -1j * H
         self.c_ops = sc_ops
-        self.cpcd_ops = [op + op.dag() for op in sc_ops]
+        self.cpcd_ops = [(op + op.dag()) for op in sc_ops]
 
         self.num_collapse = len(self.c_ops)
         for c_op in self.c_ops:
             self.L += -0.5 * c_op.dag() * c_op
 
+        if tidyup:
+            self.L.compress()
+            self.L.tidyup()
+
+            for cpcd_op in self.cpcd_ops:
+                cpcd_op.compress()
+                cpcd_op.tidyup()
+
     cpdef Data drift(self, t, Data state):
         cdef int i
-        cdef QobjEvo c_op
         cdef Data temp, out
 
         out = self.L.matmul_data(t, state)
         for i in range(self.num_collapse):
-            c_op = self.cpcd_ops[i]
-            e = c_op.expect_data(t, state)
-            c_op = self.c_ops[i]
-            temp = c_op.matmul_data(t, state)
-            out = _data.add(out, state,  -0.125 * e * e)
-            out = _data.add(out, temp, 0.5 * e)
+            e = self.cpcd_ops[i].expect_data(t, state)
+            temp = self.c_ops[i].matmul_data(t, state)
+            out = iadd_dense(out, state,  -0.125 * e * e)
+            out = iadd_dense(out, temp, 0.5 * e)
         return out
 
     cpdef list diffusion(self, t, Data state):
@@ -294,7 +300,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             imul_dense(b_vec, 0)
             c_op.matmul_data(self.t, state, b_vec)
             self.expect_Cv[i] = trace_oper_ket_dense(b_vec)
-            iadd_dense(b_vec, state, -self.expect_Cv[i])
+            iadd_dense_dense(b_vec, state, -self.expect_Cv[i])
         self._b_set = True
 
     cpdef Data Libj(self, int i, int j):
@@ -328,8 +334,8 @@ cdef class StochasticOpenSystem(_StochasticSystem):
                 imul_dense(Lb_vec, 0)
                 c_op.matmul_data(self.t, b_vec, Lb_vec)
                 self.expect_Cb[i,j] = trace_oper_ket_dense(Lb_vec)
-                iadd_dense(Lb_vec, b_vec, -self.expect_Cv[i])
-                iadd_dense(Lb_vec, state, -self.expect_Cb[i,j])
+                iadd_dense_dense(Lb_vec, b_vec, -self.expect_Cv[i])
+                iadd_dense_dense(Lb_vec, state, -self.expect_Cb[i,j])
         self._Lb_set = True
 
     cpdef Data Lia(self, int i):
@@ -380,25 +386,25 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             if not c_op.isconstant:
                 c_op.matmul_data(self.t + self.dt, self.state, L0b_vec)
                 expect = trace_oper_ket_dense(L0b_vec)
-                iadd_dense(L0b_vec, self.state, -expect)
-                iadd_dense(L0b_vec, b_vec, -1)
+                iadd_dense_dense(L0b_vec, self.state, -expect)
+                iadd_dense_dense(L0b_vec, b_vec, -1)
                 imul_dense(L0b_vec, 1/self.dt)
 
             # ab'
             imul_dense(self.temp, 0)
             c_op.matmul_data(self.t, self._a, self.temp)
             expect = trace_oper_ket_dense(self.temp)
-            iadd_dense(L0b_vec, self.temp, 1)
-            iadd_dense(L0b_vec, self._a, -self.expect_Cv[i])
-            iadd_dense(L0b_vec, self.state, -expect)
+            iadd_dense_dense(L0b_vec, self.temp, 1)
+            iadd_dense_dense(L0b_vec, self._a, -self.expect_Cv[i])
+            iadd_dense_dense(L0b_vec, self.state, -expect)
 
             # bbb" : expect_Cb[i,j] only defined for j>=i
             for j in range(i):
                 b_vec = <Dense> _dense_wrap(self._b[j, :])
-                iadd_dense(L0b_vec, b_vec, -self.expect_Cb[j,i])
+                iadd_dense_dense(L0b_vec, b_vec, -self.expect_Cb[j,i])
             for j in range(i, self.num_collapse):
                 b_vec = <Dense> _dense_wrap(self._b[j, :])
-                iadd_dense(L0b_vec, b_vec, -self.expect_Cb[i,j])
+                iadd_dense_dense(L0b_vec, b_vec, -self.expect_Cb[i,j])
         self._L0b_set = True
 
     cpdef Data LiLjbk(self, int i, int j, int k):
@@ -439,10 +445,10 @@ cdef class StochasticOpenSystem(_StochasticSystem):
                 c_op.matmul_data(self.t, Lb_vec, LLb_vec)
                 expect = trace_oper_ket_dense(LLb_vec)
 
-                iadd_dense(LLb_vec, Lb_vec, -self.expect_Cv[i])
-                iadd_dense(LLb_vec, self.state, -expect)
-                iadd_dense(LLb_vec, bj_vec, -self.expect_Cb[i,k])
-                iadd_dense(LLb_vec, bk_vec, -self.expect_Cb[i,j])
+                iadd_dense_dense(LLb_vec, Lb_vec, -self.expect_Cv[i])
+                iadd_dense_dense(LLb_vec, self.state, -expect)
+                iadd_dense_dense(LLb_vec, bj_vec, -self.expect_Cb[i,k])
+                iadd_dense_dense(LLb_vec, bk_vec, -self.expect_Cb[i,j])
 
         self._LLb_set = True
 

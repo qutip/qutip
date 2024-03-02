@@ -7,7 +7,7 @@ from cpython cimport mem
 from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr, dense, CSR, Dense, Dia
+from qutip.core.data cimport coo, csr, COO, CSR, Dense, Dia
 from qutip.core.data.adjoint cimport transpose_csr
 
 cdef extern from *:
@@ -107,7 +107,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
     resort to a complete adjoint calculation.
     """
     tol = tol if tol >= 0 else settings.core["atol"]
-    cdef size_t row, col, ptr, ptr_t, nrows=matrix.shape[0]
+    cdef idxint row, col, ptr, ptr_t, nrows=matrix.shape[0]
     if matrix.shape[0] != matrix.shape[1]:
         return False
     cdef idxint *out_row_index = <idxint *>PyMem_Calloc(nrows + 1, sizeof(idxint))
@@ -147,7 +147,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
 
 cpdef bint isherm_dia(Dia matrix, double tol=-1) nogil:
     cdef double complex val, valT
-    cdef size_t diag, other_diag, col, start, end, other_start
+    cdef idxint diag, other_diag, col, start, end, other_start
     if tol < 0:
         with gil:
             tol = settings.core["atol"]
@@ -210,7 +210,7 @@ cpdef bint isherm_dense(Dense matrix, double tol=-1):
     if matrix.shape[0] != matrix.shape[1]:
         return False
     tol = tol if tol >= 0 else settings.core["atol"]
-    cdef size_t row, col, size=matrix.shape[0]
+    cdef idxint row, col, size=matrix.shape[0]
     for row in range(size):
         for col in range(row + 1):
             if not _conj_feq(
@@ -223,7 +223,7 @@ cpdef bint isherm_dense(Dense matrix, double tol=-1):
 
 
 cpdef bint isdiag_dia(Dia matrix, double tol=-1) nogil:
-    cdef size_t diag, start, end, col
+    cdef idxint diag, start, end, col
     if tol < 0:
         with gil:
             tol = settings.core["atol"]
@@ -240,7 +240,7 @@ cpdef bint isdiag_dia(Dia matrix, double tol=-1) nogil:
 
 
 cpdef bint isdiag_csr(CSR matrix) nogil:
-    cdef size_t row, ptr_start, ptr_end=matrix.row_index[0]
+    cdef idxint row, ptr_start, ptr_end=matrix.row_index[0]
     for row in range(matrix.shape[0]):
         ptr_start, ptr_end = ptr_end, matrix.row_index[row + 1]
         if ptr_end - ptr_start > 1:
@@ -252,8 +252,8 @@ cpdef bint isdiag_csr(CSR matrix) nogil:
 
 
 cpdef bint isdiag_dense(Dense matrix) nogil:
-    cdef size_t row, row_stride = 1 if matrix.fortran else matrix.shape[1]
-    cdef size_t col, col_stride = matrix.shape[0] if matrix.fortran else 1
+    cdef idxint row, row_stride = 1 if matrix.fortran else matrix.shape[1]
+    cdef idxint col, col_stride = matrix.shape[0] if matrix.fortran else 1
     for row in range(matrix.shape[0]):
         for col in range(matrix.shape[1]):
             if (col != row) and matrix.data[col * col_stride + row * row_stride] != 0.:
@@ -261,23 +261,8 @@ cpdef bint isdiag_dense(Dense matrix) nogil:
     return True
 
 
-cpdef bint iszero_dia(Dia matrix, double tol=-1) nogil:
-    cdef size_t diag, start, end, col
-    if tol < 0:
-        with gil:
-            tol = settings.core["atol"]
-    cdef double tolsq = tol*tol
-    for diag in range(matrix.num_diag):
-        start = max(0, matrix.offsets[diag])
-        end = min(matrix.shape[1], matrix.shape[0] + matrix.offsets[diag])
-        for col in range(start, end):
-            if _abssq(matrix.data[diag * matrix.shape[1] + col]) > tolsq:
-                return False
-    return True
-
-
 cpdef bint iszero_csr(CSR matrix, double tol=-1) nogil:
-    cdef size_t ptr
+    cdef idxint ptr
     if tol < 0:
         with gil:
             tol = settings.core["atol"]
@@ -289,7 +274,7 @@ cpdef bint iszero_csr(CSR matrix, double tol=-1) nogil:
 
 
 cpdef bint iszero_dense(Dense matrix, double tol=-1) nogil:
-    cdef size_t ptr
+    cdef idxint ptr
     if tol < 0:
         with gil:
             tol = settings.core["atol"]
@@ -299,6 +284,19 @@ cpdef bint iszero_dense(Dense matrix, double tol=-1) nogil:
             return False
     return True
 
+cpdef bint iszero_dia(Dia matrix, double tol=-1) nogil:
+    cdef idxint diag, start, end, col
+    if tol < 0:
+        with gil:
+            tol = settings.core["atol"]
+    cdef double tolsq = tol*tol
+    for diag in range(matrix.num_diag):
+        start = max(0, matrix.offsets[diag])
+        end = min(matrix.shape[1], matrix.shape[0] + matrix.offsets[diag])
+        for col in range(start, end):
+            if _abssq(matrix.data[diag * matrix.shape[1] + col]) > tolsq:
+                return False
+    return True
 
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
@@ -333,9 +331,9 @@ isherm.__doc__ =\
         `qutip.settings.atol` is used instead.
     """
 isherm.add_specialisations([
+    (CSR, isherm_csr),
     (Dense, isherm_dense),
     (Dia, isherm_dia),
-    (CSR, isherm_csr),
 ], _defer=True)
 
 isdiag = _Dispatcher(
@@ -357,9 +355,9 @@ isdiag.__doc__ =\
         The matrix to test for diagonality.
     """
 isdiag.add_specialisations([
+    (CSR, isdiag_csr),
     (Dense, isdiag_dense),
     (Dia, isdiag_dia),
-    (CSR, isdiag_csr),
 ], _defer=True)
 
 iszero = _Dispatcher(

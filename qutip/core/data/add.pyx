@@ -2,24 +2,26 @@
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 cimport cython
-import numpy as np
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
 from qutip.settings import settings
+from libc.string cimport memcpy
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
+from qutip.core.data.coo cimport COO
 from qutip.core.data.dia cimport Dia
 from qutip.core.data.tidyup cimport tidyup_dia
 from qutip.core.data.csr cimport (
     CSR, Accumulator, acc_alloc, acc_free, acc_scatter, acc_gather, acc_reset,
 )
-from qutip.core.data cimport csr, dense, dia
+from qutip.core.data cimport coo, csr, dia
 
 cnp.import_array()
 
 __all__ = [
-    'add', 'add_csr', 'add_dense', 'iadd_dense', 'add_dia',
+    'add', 'add_coo', 'add_csr', 'add_dense', 'add_dia',
+    'iadd_dense', 'iadd_dense_coo', 'iadd_dense_dense', 
     'sub', 'sub_csr', 'sub_dense', 'sub_dia',
 ]
 
@@ -115,6 +117,106 @@ cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c,
         c.row_index[row + 1] = nnz
     return nnz
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.profile(False)
+@cython.linetrace(False)   
+cpdef COO add_coo(COO left, COO right, double complex scale=1):
+    """
+    Matrix addition of `left` and `right` for COO inputs and output.  If given,
+    `right` is multiplied by `scale`, so the full operation is
+        ``out := left + scale*right``
+    The two matrices must be of exactly the same shape.
+
+    Parameters
+    ----------
+    left : COO
+        Matrix to be added.
+    right : COO
+        Matrix to be added.  If `scale` is given, this matrix will be
+        multiplied by `scale` before addition.
+    scale : optional double complex (1)
+        The scalar value to multiply `right` by before addition.
+
+    Returns
+    -------
+    out : COO
+        The result `left + scale*right`.
+    """
+    _check_shape(left, right)
+    cdef idxint left_nnz = coo.nnz(left)
+    cdef idxint right_nnz = coo.nnz(right)
+    cdef idxint nnz = left_nnz + right_nnz
+    cdef idxint i
+    cdef COO out
+
+    # Fast paths for zero matrices.
+    if right_nnz == 0 or scale == 0:
+        return left.copy()
+    if left_nnz == 0:
+        out = right.copy()
+        # Fast path if the multiplication is a no-op.
+        if scale != 1:
+            for i in range(right_nnz):
+                out.data[i] *= scale
+        return out
+
+    # Main path.
+    out = coo.empty(left.shape[0], left.shape[1], nnz)
+
+    for ptr in range(left_nnz):
+        out.data[ptr] = left.data[ptr]
+        out.col_index[ptr] = left.col_index[ptr]
+        out.row_index[ptr] = left.row_index[ptr]
+    
+    for ptr in range(right_nnz):
+        out.data[ptr + left_nnz] = scale * right.data[ptr]
+        out.col_index[ptr + left_nnz] = right.col_index[ptr]
+        out.row_index[ptr + left_nnz] = right.row_index[ptr]
+    out._nnz = nnz
+    return out
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.profile(False)
+@cython.linetrace(False)   
+cpdef Dense iadd_dense_coo(Dense left, COO right, double complex scale=1):
+    """
+    Matrix addition of `left` and `right` for COO inputs and output.  If given,
+    `right` is multiplied by `scale`, so the full operation is
+        ``out := left + scale*right``
+    The two matrices must be of exactly the same shape.
+
+    Parameters
+    ----------
+    left : COO
+        Matrix to be added.
+    right : COO
+        Matrix to be added.  If `scale` is given, this matrix will be
+        multiplied by `scale` before addition.
+    scale : optional double complex (1)
+        The scalar value to multiply `right` by before addition.
+
+    Returns
+    -------
+    out : COO
+        The result `left + scale*right`.
+    """
+    _check_shape(left, right)
+
+    cdef idxint ptr, row, col, row_stride, col_stride
+    row_stride = 1 if left.fortran else left.shape[1]
+    col_stride = left.shape[0] if left.fortran else 1
+    # Fast paths for zero matrices.
+    if coo.nnz(right) == 0 or scale == 0:
+        return left
+
+    for ptr in range(coo.nnz(right)):
+        row = right.row_index[ptr]
+        col = right.col_index[ptr]
+        left.data[row_stride * row + col_stride * col] = right.data[ptr]
+    return left
 
 cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     """
@@ -198,7 +300,7 @@ cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
     return out
 
 
-cpdef Dense iadd_dense(Dense left, Dense right, double complex scale=1):
+cpdef Dense iadd_dense_dense(Dense left, Dense right, double complex scale=1):
     _check_shape(left, right)
     cdef int size = left.shape[0] * left.shape[1]
     cdef int dim1, dim2
@@ -286,6 +388,8 @@ cpdef Dia add_dia(Dia left, Dia right, double complex scale=1):
         tidyup_dia(out, settings.core['auto_tidyup_atol'], True)
     return out
 
+cpdef COO sub_coo(COO left, COO right):
+    return add_coo(left, right, -1)
 
 cpdef CSR sub_csr(CSR left, CSR right):
     return add_csr(left, right, -1)
@@ -322,10 +426,28 @@ add.__doc__ =\
     scalar.
     """
 add.add_specialisations([
-    (Dense, Dense, Dense, add_dense),
+    (COO, COO, COO, add_coo),
     (CSR, CSR, CSR, add_csr),
+    (Dense, Dense, Dense, add_dense),
     (Dia, Dia, Dia, add_dia),
 ], _defer=True)
+
+from .convert import to as _to
+
+cpdef Dense iadd_dense_data(Dense left, Data right, double complex scale=1):
+    cdef Data out = add(left, right)
+    cdef idxint size = left.shape[0]* left.shape[1]
+    cdef Dense out_dense = _to(Dense, out)
+    memcpy(left.data, out_dense.data, size*sizeof(double complex))
+    return left
+
+cpdef Dense iadd_dense(Dense left, Data right, double complex scale=1):
+    if type(right) == Dense:
+        return iadd_dense_dense(left, right, scale)
+    elif type(right) == COO:
+        return iadd_dense_coo(left, right, scale)
+    else:
+        return iadd_dense_data(left, right, scale)
 
 sub = _Dispatcher(
     _inspect.Signature([
@@ -344,8 +466,9 @@ sub.__doc__ =\
     where `left` and `right` are matrices.
     """
 sub.add_specialisations([
-    (Dense, Dense, Dense, sub_dense),
+    (COO, COO, COO, sub_coo),
     (CSR, CSR, CSR, sub_csr),
+    (Dense, Dense, Dense, sub_dense),
     (Dia, Dia, Dia, sub_dia),
 ], _defer=True)
 

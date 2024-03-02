@@ -2,19 +2,25 @@
 Define functions to use as Data creator for `create` in `convert.py`.
 """
 
-from scipy.sparse import isspmatrix_csr, issparse, isspmatrix_dia
+from scipy.sparse import (
+    isspmatrix_coo,
+    isspmatrix_csr,
+    issparse,
+    isspmatrix_dia,
+)
 import numpy as np
 from .csr import CSR
 from .base import Data
 from .dense import Dense
 
 __all__ = [
-    'data_copy',
-    'is_data',
-    'is_nparray',
-    'isspmatrix_csr',
-    'isspmatrix_dia',
-    'issparse'
+    "data_copy",
+    "is_data",
+    "is_nparray",
+    "isspmatrix_coo",
+    "isspmatrix_csr",
+    "isspmatrix_dia",
+    "issparse",
 ]
 
 
@@ -32,7 +38,7 @@ def true(arg):
 
 def data_copy(arg, shape, copy=True):
     if shape is not None and shape != arg.shape:
-        raise ValueError("".join([
-            "shapes do not match: ", str(shape), " and ", str(arg.shape),
-        ]))
+        raise ValueError(
+            f"shapes do not match: {str(shape)} and {str(arg.shape)}"
+        )
     return arg.copy() if copy else arg

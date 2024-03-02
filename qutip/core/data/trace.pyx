@@ -5,11 +5,11 @@ cimport cython
 from libc.math cimport sqrt
 
 from qutip.core.data cimport Data, CSR, Dense, Dia
-from qutip.core.data cimport base
+from qutip.core.data cimport base, coo
 from .reshape import column_unstack
 
 __all__ = [
-    'trace', 'trace_csr', 'trace_dense', 'trace_dia',
+    'trace', 'trace_coo', 'trace_csr', 'trace_dense', 'trace_dia',
     'trace_oper_ket', 'trace_oper_ket_csr', 'trace_oper_ket_dense',
     'trace_oper_ket_dia', 'trace_oper_ket_data',
 ]
@@ -30,10 +30,18 @@ cdef int _check_shape_oper_ket(int N, Data matrix) except -1 nogil:
         ]))
     return 0
 
+cpdef double complex trace_coo(COO matrix) except * nogil:
+    _check_shape(matrix)
+    cdef base.idxint ptr
+    cdef double complex trace = 0
+    for ptr in range(coo.nnz(matrix)):
+        if matrix.col_index[ptr] == matrix.row_index[ptr]:
+            trace += matrix.data[ptr]
+    return trace
 
 cpdef double complex trace_csr(CSR matrix) except * nogil:
     _check_shape(matrix)
-    cdef size_t row, ptr
+    cdef base.idxint row, ptr
     cdef double complex trace = 0
     for row in range(matrix.shape[0]):
         for ptr in range(matrix.row_index[row], matrix.row_index[row + 1]):
@@ -45,8 +53,8 @@ cpdef double complex trace_csr(CSR matrix) except * nogil:
 cpdef double complex trace_dense(Dense matrix) except * nogil:
     _check_shape(matrix)
     cdef double complex trace = 0
-    cdef size_t ptr = 0
-    cdef size_t stride = matrix.shape[0] + 1
+    cdef base.idxint ptr = 0
+    cdef base.idxint stride = matrix.shape[0] + 1
     for _ in range(matrix.shape[0]):
         trace += matrix.data[ptr]
         ptr += stride
@@ -55,7 +63,7 @@ cpdef double complex trace_dense(Dense matrix) except * nogil:
 cpdef double complex trace_dia(Dia matrix) except * nogil:
     _check_shape(matrix)
     cdef double complex trace = 0
-    cdef size_t diag, j
+    cdef base.idxint diag, j
     for diag in range(matrix.num_diag):
         if matrix.offsets[diag] == 0:
             for j in range(matrix.shape[1]):
@@ -67,9 +75,9 @@ cpdef double complex trace_dia(Dia matrix) except * nogil:
 cpdef double complex trace_oper_ket_csr(CSR matrix) except * nogil:
     cdef size_t N = <size_t>sqrt(matrix.shape[0])
     _check_shape_oper_ket(N, matrix)
-    cdef size_t row
+    cdef base.idxint row
     cdef double complex trace = 0
-    cdef size_t stride = N + 1
+    cdef base.idxint stride = N + 1
     for row in range(N):
         if matrix.row_index[row * stride] != matrix.row_index[row * stride + 1]:
             trace += matrix.data[matrix.row_index[row * stride]]
@@ -79,8 +87,8 @@ cpdef double complex trace_oper_ket_dense(Dense matrix) except * nogil:
     cdef size_t N = <size_t>sqrt(matrix.shape[0])
     _check_shape_oper_ket(N, matrix)
     cdef double complex trace = 0
-    cdef size_t ptr = 0
-    cdef size_t stride = N + 1
+    cdef base.idxint ptr = 0
+    cdef base.idxint stride = N + 1
     for ptr in range(N):
         trace += matrix.data[ptr * stride]
     return trace
@@ -90,8 +98,8 @@ cpdef double complex trace_oper_ket_dia(Dia matrix) except * nogil:
     cdef size_t N = <size_t>sqrt(matrix.shape[0])
     _check_shape_oper_ket(N, matrix)
     cdef double complex trace = 0
-    cdef size_t diag = 0
-    cdef size_t stride = N + 1
+    cdef base.idxint diag = 0
+    cdef base.idxint stride = N + 1
     for diag in range(matrix.num_diag):
         if -matrix.offsets[diag] % stride == 0:
             trace += matrix.data[diag * matrix.shape[1]]
@@ -119,6 +127,7 @@ trace = _Dispatcher(
 trace.__doc__ =\
     """Compute the trace (sum of digaonal elements) of a square matrix."""
 trace.add_specialisations([
+    (COO, trace_coo),
     (CSR, trace_csr),
     (Dia, trace_dia),
     (Dense, trace_dense),

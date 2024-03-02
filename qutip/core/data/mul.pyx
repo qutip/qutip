@@ -1,15 +1,36 @@
 #cython: language_level=3
 #cython: boundscheck=False, wrapround=False, initializedcheck=False
 
-from qutip.core.data cimport idxint, csr, CSR, dense, Dense, Data, Dia, dia
+from qutip.core.data cimport idxint, coo, COO, csr, CSR, dense, Dense, Data, Dia, dia
 from scipy.linalg.cython_blas cimport zscal
 
 __all__ = [
-    'mul', 'mul_csr', 'mul_dense', 'mul_dia',
-    'imul', 'imul_csr', 'imul_dense', 'imul_dia', 'imul_data',
-    'neg', 'neg_csr', 'neg_dense', 'neg_dia',
+    'mul', 'mul_coo', 'mul_csr', 'mul_dense', 'mul_dia',
+    'imul', 'imul_coo', 'imul_csr', 'imul_dense', 'imul_dia', 'imul_data',
+    'neg', 'neg_coo', 'neg_csr', 'neg_dense', 'neg_dia',
 ]
 
+cpdef COO imul_coo(COO matrix, double complex value):
+    """Multiply this COO `matrix` by a complex scalar `value`."""
+    cdef idxint l = coo.nnz(matrix)
+    cdef int ONE=1
+    zscal(&l, &value, matrix.data, &ONE)
+    return matrix
+
+cpdef COO mul_coo(COO matrix, double complex value):
+    """Multiply this COO `matrix` by a complex scalar `value`."""
+    if value == 0:
+        return coo.zeros(matrix.shape[0], matrix.shape[1])
+    cdef COO out = coo.copy_structure(matrix)
+    cdef idxint ptr
+    with nogil:
+        for ptr in range(coo.nnz(matrix)):
+            out.data[ptr] = value * matrix.data[ptr]
+    return out
+
+cpdef COO neg_coo(COO matrix):
+    """Unary negation of this COO `matrix`.  Return a new object."""
+    return mul_coo(matrix, -1)
 
 cpdef CSR imul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
@@ -113,6 +134,7 @@ mul = _Dispatcher(
 mul.__doc__ =\
     """Multiply a matrix element-wise by a scalar."""
 mul.add_specialisations([
+    (COO, COO, mul_coo),
     (CSR, CSR, mul_csr),
     (Dia, Dia, mul_dia),
     (Dense, Dense, mul_dense),
@@ -134,6 +156,7 @@ imul = _Dispatcher(
 imul.__doc__ =\
     """Multiply inplace a matrix element-wise by a scalar."""
 imul.add_specialisations([
+    (COO, COO, imul_coo),
     (CSR, CSR, imul_csr),
     (Dia, Dia, imul_dia),
     (Dense, Dense, imul_dense),
@@ -151,6 +174,7 @@ neg = _Dispatcher(
 neg.__doc__ =\
     """Unary element-wise negation of a matrix."""
 neg.add_specialisations([
+    (COO, COO, neg_coo),
     (CSR, CSR, neg_csr),
     (Dia, Dia, neg_dia),
     (Dense, Dense, neg_dense),
@@ -160,7 +184,9 @@ del _inspect, _Dispatcher
 
 
 cpdef Data imul_data(Data matrix, double complex value):
-    if type(matrix) is CSR:
+    if type(matrix) is COO:
+        return imul_coo(matrix, value)
+    elif type(matrix) is CSR:
         return imul_csr(matrix, value)
     elif type(matrix) is Dense:
         return imul_dense(matrix, value)

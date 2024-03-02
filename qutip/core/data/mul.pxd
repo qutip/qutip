@@ -1,6 +1,10 @@
 #cython: language_level=3
 
-from qutip.core.data cimport CSR, Dense, Data, Dia
+from qutip.core.data cimport COO, CSR, Dense, Data, Dia
+
+cpdef COO imul_coo(COO matrix, double complex value)
+cpdef COO mul_coo(COO matrix, double complex value)
+cpdef COO neg_coo(COO matrix)
 
 cpdef CSR imul_csr(CSR matrix, double complex value)
 cpdef CSR mul_csr(CSR matrix, double complex value)
