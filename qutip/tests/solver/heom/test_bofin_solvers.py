@@ -8,8 +8,8 @@ from numpy.linalg import eigvalsh
 from scipy.integrate import quad
 
 from qutip import (
-    basis, destroy, expect, liouvillian, qeye, sigmax, sigmaz,
-    tensor, Qobj, QobjEvo, fdestroy
+    basis, destroy, expect, liouvillian, qeye, sigmax, sigmaz, sigmay
+    tensor, Qobj, QobjEvo, fidelity, fdestroy
 )
 from qutip.core import data as _data
 from qutip.solver.heom.bofin_baths import (
