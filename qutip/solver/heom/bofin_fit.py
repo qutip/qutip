@@ -30,17 +30,17 @@ class SpectralFitter:
 
     Parameters
     ----------
-    Q : Qobj
+    Q : :obj:`.Qobj`
         Operator describing the coupling between system and bath.
 
     T : float
         Bath temperature.
 
-    w : np.array
+    w : :obj:`np.array.`
         The range on which to perform the fit, it is recommended that it covers
         at least twice the cutoff frequency of the desired spectral density.
 
-    J : np.array or callable
+    J : :obj:`np.array.` or callable
         The spectral density to be fitted as an array or function.
     """
 
@@ -74,13 +74,13 @@ class SpectralFitter:
 
         Parameters
         ----------
-        w : np.array
+        w : :obj:`np.array.`
             The frequency of the spectral density
-        a : np.array
+        a : :obj:`np.array.`
             Array of coupling constants ($\alpha_i^2$)
-        b : np.array
+        b : :obj:`np.array.`
             Array of cutoff parameters ($\Gamma'_i$)
-        c : np.array
+        c : :obj:`np.array.`
             Array of resonant frequencies ($\Omega_i$)
         """
 
@@ -237,13 +237,13 @@ class CorrelationFitter:
 
     Parameters
     ----------
-    Q : Qobj
+    Q : :obj:`.Qobj`
         Operator describing the coupling between system and bath.
     T : float
         Temperature of the bath.
-    t : np.array
+    t : :obj:`np.array.`
         The range which to perform the fit.
-    C : np.array or callable
+    C : :obj:`np.array.` or callable
         The correlation function to be fitted as an array or function.
     """
 
@@ -279,14 +279,14 @@ class CorrelationFitter:
 
         Parameters
         ----------
-        t : np.array or float
+        t : :obj:`np.array.` or float
             The times at which to evaluates the correlation function.
-        a : list or np.array
+        a : list or :obj:`np.array.`
             A list describing the  real part amplitude of the correlation
             approximation.
-        b : list or np.array
+        b : list or :obj:`np.array.`
             A list describing the decay of the correlation approximation.
-        c : list or np.array
+        c : list or :obj:`np.array.`
             A list describing the oscillations of the correlation
             approximation.
         d:  A list describing the imaginary part amplitude of the correlation
@@ -377,7 +377,7 @@ class CorrelationFitter:
                 C(t)= \sum_{k}(a_{k}+i d_{k})e^{-b_{k} t}e^{i c_{k} t}
 
             Unfortunately this gives us significantly slower fits and some
-            tweeking of the guesses,sigma, upper and lower is usually needed.
+            tunning of the guesses,sigma, upper and lower are usually needed.
             On the other hand, it can lead to better fits with lesser exponents
             specially for anomalous spectral densities such that
             $Im(C(0))\neq 0$. When using this with default values if the fit
@@ -391,38 +391,38 @@ class CorrelationFitter:
 
         Returns
         -------
-        - A Bosonic Bath created with the fit parameters from the original
+        1. A Bosonic Bath created with the fit parameters from the original
           correlation function (that was provided or interpolated).
-        - A dictionary containing the following information about the fit:
-        Nr :
-            The number of terms used to fit the real part of the
-            correlation function.
-        Ni :
-            The number of terms used to fit the imaginary part of the
-            correlation function.
-        fit_time_real :
-            The time the fit of the real part of the correlation function
-            took in seconds.
-        fit_time_imag :
-            The time the fit of the imaginary part of the correlation
-            function took in seconds.
-        rsme_real :
-            Normalized mean squared error obtained in the fit of the real
-            part of the correlation function.
-        rsme_imag :
-            Normalized mean squared error obtained in the fit of the
-            imaginary part of the correlation function.
-        params_real :
-            The fitted parameters (3N parameters) for the real part of the
-            correlation function, it contains three lists one for each
-            parameter, each list containing N terms.
-        params_imag :
-            The fitted parameters (3N parameters) for the imaginary part
-            of the correlation function, it contains three lists one for
-            each parameter, each list containing N terms.
-        summary :
-            A string that summarizes the information about the fit.
-        """
+        2. A dictionary containing the following information about the fit:
+            * Nr :
+                The number of terms used to fit the real part of the
+                correlation function.
+            * Ni :
+                The number of terms used to fit the imaginary part of the
+                correlation function.
+            * fit_time_real :
+                The time the fit of the real part of the correlation function
+                took in seconds.
+            * fit_time_imag :
+                The time the fit of the imaginary part of the correlation
+                function took in seconds.
+            * rsme_real :
+                Normalized mean squared error obtained in the fit of the real
+                part of the correlation function.
+            * rsme_imag :
+                Normalized mean squared error obtained in the fit of the
+                imaginary part of the correlation function.
+            * params_real :
+                The fitted parameters (3N parameters) for the real part of the
+                correlation function, it contains three lists one for each
+                parameter, each list containing N terms.
+            * params_imag :
+                The fitted parameters (3N parameters) for the imaginary part
+                of the correlation function, it contains three lists one for
+                each parameter, each list containing N terms.
+            * summary :
+                A string that summarizes the information about the fit.
+            """
         if full_ansatz:
             num_params = 4
         else:
@@ -474,7 +474,7 @@ class CorrelationFitter:
 
         Parameters
         ----------
-        params_real : np.array
+        params_real : :obj:`np.array.`
             array of shape (N,3) where N is the number of fitted terms
             for the real part.
         params_imag : np.imag
@@ -544,9 +544,12 @@ class OhmicBath:
                 " of Ohmic baths")
 
     def spectral_density(self, w):
-        """
-        Calculates the Ohmic spectral density, see Eq. 36 in the BoFiN
-        paper (DOI: 10.1103/PhysRevResearch.5.013181).
+        r"""
+        Calculates the spectral density of an Ohmic Bath (sub and super-Ohmic
+        included according to the choice of s).
+
+        .. math::
+            J(w)= \alpha \frac{w^{s}}{w_{c}^{1-s}} e^{-\frac{|w|}{w_{c}}}
 
         Parameters
         ----------
@@ -563,12 +566,22 @@ class OhmicBath:
                 * np.e ** (-abs(w) / self.wc))
 
     def correlation_function(self, t):
-        """
-        Calculates the correlation function of an Ohmic bath.
+        r"""
+        Calculates the correlation function of an Ohmic bath
+        (sub and super-Ohmic included according to the choice of s).
+
+        .. math::
+            C(t)= \frac{1}{\pi} \alpha w_{c}^{1-s} \beta^{-(s+1)} \Gamma(s+1)
+            \left[ \zeta\left(s+1,\frac{1+\beta w_{c} -i w_{c} t}{\beta w_{c}}
+            \right) +\zeta\left(s+1,\frac{1+ i w_{c} t}{\beta w_{c}}\right)
+            \right]
+
+        where :math:`\Gamma` is the gamma function, and :math:`\zeta` the
+        Riemann zeta function
 
         Parameters
         ----------
-        t : float or array
+        t : float or :obj:`np.array.`
             time.
 
         Returns
@@ -645,37 +658,37 @@ class OhmicBath:
 
         Returns
         -------
-        - A Bosonic Bath created with the fit parameters with the original
+        1. A Bosonic Bath created with the fit parameters with the original
           correlation function (that was provided or interpolated)
-        - A dictionary containing the following information about the fit:
-        Nr:
-            The number of terms used to fit the real part of the
-            correlation function.
-        Ni:
-            The number of terms used to fit the imaginary part of the
-            correlation function.
-        fit_time_real:
-            The time the fit of the real part of the correlation function
-            took in seconds.
-        fit_time_imag:
-            The time the fit of the imaginary part of the correlation
-            function took in seconds.
-        rsme_real:
-            Normalized mean squared error obtained in the fit of the real
-            part of the correlation function.
-        rsme_imag:
-            Normalized mean squared error obtained in the fit of the
-            imaginary part of the correlation function.
-        params_real:
-            The fitted parameters (3N parameters) for the real part of the
-            correlation function, it contains three lists one for each
-            parameter, each list containing N terms.
-        params_imag:
-            The fitted parameters (3N parameters) for the imaginary part
-            of the correlation function, it contains three lists one for
-            each parameter, each list containing N terms.
-        summary:
-            A string that summarizes the information about the fit.
+        2. A dictionary containing the following information about the fit:
+            * Nr:
+                The number of terms used to fit the real part of the
+                correlation function.
+            * Ni:
+                The number of terms used to fit the imaginary part of the
+                correlation function.
+            * fit_time_real:
+                The time the fit of the real part of the correlation function
+                took in seconds.
+            * fit_time_imag:
+                The time the fit of the imaginary part of the correlation
+                function took in seconds.
+            * rsme_real:
+                Normalized mean squared error obtained in the fit of the real
+                part of the correlation function.
+            * rsme_imag:
+                Normalized mean squared error obtained in the fit of the
+                imaginary part of the correlation function.
+            * params_real:
+                The fitted parameters (3N parameters) for the real part of the
+                correlation function, it contains three lists one for each
+                parameter, each list containing N terms.
+            * params_imag:
+                The fitted parameters (3N parameters) for the imaginary part
+                of the correlation function, it contains three lists one for
+                each parameter, each list containing N terms.
+            * summary:
+                A string that summarizes the information about the fit.
         """
 
         fc = CorrelationFitter(self.Q, self.T, x, self.correlation_function)
@@ -728,24 +741,24 @@ class OhmicBath:
 
         Returns
         -------
-        - A Bosonic Bath created with the fit parameters for the original
+        1. A Bosonic Bath created with the fit parameters for the original
         spectral density function (that was provided or interpolated)
-        - A dictionary containing the following information about the fit:
-            1. fit_time:
+        2. A dictionary containing the following information about the fit:
+            * fit_time:
                 The time the fit took in seconds.
-            2. rsme:
+            * rsme:
                 Normalized mean squared error obtained in the fit.
-            3. N:
+            * N:
                 The number of terms used for the fit.
-            4. params:
+            * params:
                 The fitted parameters (3N parameters), it contains three lists
                 one for each parameter, each list containing N terms.
-            5. Nk:
+            * Nk:
                 The number of exponents used to construct the bosonic bath,
                 defaults to 1. To approximate the correlation function the
                 number of exponents grow as the temperature decreases, so Nk
                 needs to be adjusted accordingly.
-            6. summary:
+            * summary:
                 A string that summarizes the information of the fit.
         """
 
@@ -790,7 +803,7 @@ def _leastsq(func, y, x, guesses=None, lower=None,
         The function we wish to fit.
     x : np.array
         a numpy array containing the independent variable used for the fit.
-    y : np.array
+    y : :obj:`np.array.`
         a numpy array containing the dependent variable we use for the fit.
     guesses : list
         Initial guess for the parameters.
@@ -833,9 +846,9 @@ def _rmse(func, x, y, *args):
     ----------
     func : function
         The approximated function for which we want to compute the rmse.
-    x: np.array
+    x: :obj:`np.array.`
         a numpy array containing the independent variable used for the fit.
-    y: np.array
+    y: :obj:`np.array.`
         a numpy array containing the dependent variable used for the fit.
     a, b, c : list
         fitted parameters.
@@ -864,9 +877,9 @@ def _fit(func, C, t, N, default_guess_scenario='',
     ----------
     func : function
         The function we wish to fit.
-    C : np.array
+    C : :obj:`np.array.`
         a numpy array containing the dependent variable used for the fit.
-    t : np.array
+    t : :obj:`np.array.`
         a numpy array containing the independent variable used for the fit.
     N : int
         The number of modes / baths used for the fitting.
@@ -883,7 +896,8 @@ def _fit(func, C, t, N, default_guess_scenario='',
         upper bounds on the parameters for the fit.
     sigma: float
         uncertainty in the data considered for the fit.
-
+    n: int
+        The Number of variables used in the fit
     Returns
     -------
     params:
@@ -892,6 +906,27 @@ def _fit(func, C, t, N, default_guess_scenario='',
         It returns the normalized mean squared error from the fit
     """
 
+    if None not in (guesses, lower, upper, sigma):
+        guesses = _reformat(guesses, N)
+        lower = _reformat(lower, N)
+        upper = _reformat(upper, N)
+    else:
+        tempguess, templower, tempupper, tempsigma = _default_guess_scenarios(
+            C, t, default_guess_scenario, N, n)
+        guesses = tempguess
+        lower = templower
+        upper = tempupper
+        sigma = tempsigma
+    if not ((len(guesses) == len(lower)) and (len(guesses) == len(upper))):
+        raise ValueError("The shape of the provided fit parameters is \
+                         not consistent")
+    args = _leastsq(func, C, t, sigma=sigma, guesses=guesses,
+                    lower=lower, upper=upper, n=n)
+    rmse = _rmse(func, t, C, *args)
+    return rmse, args
+
+
+def _default_guess_scenarios(C, t, default_guess_scenario, N, n):
     C_max = abs(max(C, key=np.abs))
     if C_max == 0:
         # When the target function is zero
@@ -934,22 +969,7 @@ def _fit(func, C, t, N, default_guess_scenario='',
                           [0.1 * wc] * N, [0.1 * wc] * N)
         tempupper = _pack([100 * C_max] * N,
                           [100 * wc] * N, [100 * wc] * N)
-    if None not in (guesses, lower, upper, sigma):
-        guesses = _reformat(guesses, N)
-        lower = _reformat(lower, N)
-        upper = _reformat(upper, N)
-    else:
-        guesses = tempguesses
-        lower = templower
-        upper = tempupper
-        sigma = tempsigma
-    if not ((len(guesses) == len(lower)) and (len(guesses) == len(upper))):
-        raise ValueError("The shape of the provided fit parameters is \
-                         not consistent")
-    args = _leastsq(func, C, t, sigma=sigma, guesses=guesses,
-                    lower=lower, upper=upper, n=n)
-    rmse = _rmse(func, t, C, *args)
-    return rmse, args
+    return tempguesses, templower, tempupper, tempsigma
 
 
 def _reformat(guess, N):
@@ -976,9 +996,9 @@ def _run_fit(funcx, y, x, final_rmse, default_guess_scenario='', N=None, n=3,
     ----------
     funcx : function
         The function we wish to fit.
-    y : np.array
+    y : :obj:`np.array.`
         The function used for the fitting.
-    x : np.array
+    x : :obj:`np.array.`
         a numpy array containing the independent variable used for the fit.
     final_rmse : float
         Desired normalized root mean squared error.
