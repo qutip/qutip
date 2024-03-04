@@ -1,1 +1,0 @@
-Improved behavior of `parallel_map` and `loky_pmap` in the case of timeouts, errors or keyboard interrupts

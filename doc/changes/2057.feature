@@ -1,1 +1,0 @@
-Add arguments of plot_wigner() and plot_wigner_fock_distribution() to specify parameters for wigner(). (#2057)

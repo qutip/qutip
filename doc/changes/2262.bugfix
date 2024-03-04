@@ -1,1 +1,0 @@
-Fixed result objects storing a reference to the solver through options._feedback.
