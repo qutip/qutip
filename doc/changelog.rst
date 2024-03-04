@@ -16,7 +16,7 @@ Features
 - Add arguments of plot_wigner() and plot_wigner_fock_distribution() to specify parameters for wigner(). (#2057, by Kosuke Mizuno)
 - Restore feedback to solvers (#2210)
 - Added mpi_pmap, which uses the mpi4py module to run computations in parallel through the MPI interface. (#2296, by Paul)
-- Only pre-compute density matricies if keep_runs_results is False (#2303, by Matt Ord)
+- Only pre-compute density matrices if keep_runs_results is False (#2303, by Matt Ord)
 
 
 Bug Fixes
