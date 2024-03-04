@@ -6,6 +6,46 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.0.0b1 (2024-03-04)
+==========================
+
+Features
+--------
+
+- Create a Dimension class (#1996)
+- Add arguments of plot_wigner() and plot_wigner_fock_distribution() to specify parameters for wigner(). (#2057, by Kosuke Mizuno)
+- Restore feedback to solvers (#2210)
+- Added mpi_pmap, which uses the mpi4py module to run computations in parallel through the MPI interface. (#2296, by Paul)
+- Only pre-compute density matricies if keep_runs_results is False (#2303, by Matt Ord)
+
+
+Bug Fixes
+---------
+
+- Add the possibility to customize point colors as in V4 and fix point plot behavior for 'l' style (#1974, by Daniel Moreno Galán)
+- Disabled broken "improved sampling" for `nm_mcsolve`. (#2234, by Paul)
+- Fixed result objects storing a reference to the solver through options._feedback. (#2262, by Paul)
+- Fixed simdiag not returning orthonormal eigenvectors. (#2269, by Sola85)
+- Fix LaTeX display of Qobj state in Jupyter cell outputs (#2272, by Edward Thomas)
+- Improved behavior of `parallel_map` and `loky_pmap` in the case of timeouts, errors or keyboard interrupts (#2280, by Paul)
+- Ignore deprecation warnings from cython 0.29.X in tests. (#2288)
+- Fixed two problems with the steady_state() solver in the HEOM method. (#2333)
+
+
+Miscellaneous
+-------------
+
+- Improve fidelity doc-string (#2257)
+- Improve documentation in guide/dynamics (#2271)
+- Rework `kraus_to_choi` making it faster (#2284, by Bogdan Reznychenko)
+- Remove Bloch3D: redundant to Bloch (#2306)
+- Allow tests to run without matplotlib and ipython. (#2311)
+- Add too small step warnings in fixed dt SODE solver (#2313)
+- Add `dtype` to `Qobj` and `QobjEvo` (#2325)
+- Fix typos in `expect` documentation (#2331, by gabbence95)
+- Allow measurement functions to support degenerate operators. (#2342)
+
+
 QuTiP 5.0.0a2 (2023-09-06)
 ==========================
 
@@ -433,6 +473,75 @@ Feature removals
 - ``qutip.graph`` has been removed and replaced by SciPy's graph functions.
 - ``qutip.topology`` has been removed. It contained only one function ``berry_curvature``.
 - The ``~/.qutip/qutiprc`` config file is no longer supported. It contained settings for the OpenMP support.
+
+
+QuTiP 4.7.5 (2024-01-29)
+========================
+
+Patch release for QuTiP 4.7. It adds support for SciPy 1.12.
+
+Bug Fixes
+---------
+
+- Remove use of scipy.<numpy-func> in parallel.py, incompatible with scipy==1.12 (#2305 by Evan McKinney)
+
+
+QuTiP 4.7.4 (2024-01-15)
+========================
+
+Bug Fixes
+---------
+
+- Adapt to deprecation from matplotlib 3.8 (#2243, reported by Bogdan Reznychenko)
+- Fix name of temp files for removal after use. (#2251, reported by Qile Su)
+- Avoid integer overflow in Qobj creation. (#2252, reported by KianHwee-Lim)
+- Ignore DeprecationWarning from pyximport (#2287)
+- Add partial support and tests for python 3.12. (#2294)
+
+
+Miscellaneous
+-------------
+
+- Rework `choi_to_kraus`, making it rely on an eigenstates solver that can choose `eigh` if the Choi matrix is Hermitian, as it is more numerically stable. (#2276, by Bogdan Reznychenko)
+- Rework `kraus_to_choi`, making it faster (#2283, by Bogdan Reznychenko and Rafael Haenel)
+
+
+QuTiP 4.7.3 (2023-08-22)
+========================
+
+Bug Fixes
+---------
+
+- Non-oper qobj + scalar raise an error. (#2208 reported by vikramkashyap)
+- Fixed issue where `extract_states` did not preserve hermiticity.
+  Fixed issue where `rand_herm` did not set the private attribute _isherm to True. (#2214 by AGaliciaMartinez)
+- ssesolve average states to density matrices (#2216 reported by BenjaminDAnjou)
+
+
+Miscellaneous
+-------------
+
+- Exclude cython 3.0.0 from requirement (#2204)
+- Run in no cython mode with cython >=3.0.0 (#2207)
+
+
+QuTiP 4.7.2 (2023-06-28)
+========================
+
+This is a bugfix release for QuTiP 4.7.X. It adds support for
+numpy 1.25 and scipy 1.11.
+
+Bug Fixes
+---------
+- Fix setting of sso.m_ops in heterodyne smesolver and passing through of sc_ops to photocurrent solver. (#2081 by Bogdan Reznychenko and Simon Cross)
+- Update calls to SciPy eigvalsh and eigsh to pass the range of eigenvalues to return using ``subset_by_index=``. (#2081 by Simon Cross)
+- Fixed bug where some matrices were wrongly found to be hermitian. (#2082 by AGaliciaMartinez)
+
+Miscellaneous
+-------------
+- Fixed typo in stochastic.py (#2049, by  eltociear)
+- `ptrace` always return density matrix (#2185, issue by udevd)
+- `mesolve` can support mixed callable and Qobj for `e_ops` (#2184 issue by balopat)
 
 
 Version 4.7.1 (December 11, 2022)
