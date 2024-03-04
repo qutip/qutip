@@ -9,7 +9,7 @@ from scipy.integrate import quad
 
 from qutip import (
     basis, destroy, expect, liouvillian, qeye, sigmax, sigmaz,
-    tensor, Qobj, QobjEvo, fcreate, fdestroy
+    tensor, Qobj, QobjEvo, fdestroy
 )
 from qutip.core import data as _data
 from qutip.solver.heom.bofin_baths import (
@@ -232,7 +232,6 @@ class DrudeLorentzPureDephasingModel:
     """ Analytic Drude-Lorentz pure-dephasing model for testing the HEOM
         solver.
     """
-
     def __init__(self, lam, gamma, T, Nk):
         self.lam = lam
         self.gamma = gamma
@@ -290,7 +289,6 @@ class UnderdampedPureDephasingModel:
     """ Analytic Drude-Lorentz pure-dephasing model for testing the HEOM
         solver.
     """
-
     def __init__(self, lam,  gamma, w0, T, Nk):
         self.lam = lam
         self.gamma = gamma
@@ -333,7 +331,6 @@ class BosonicMode:
     """ A description of a bosonic mode for inclusion in a
         DiscreteLevelCurrentModel.
     """
-
     def __init__(self, N, Lambda, Omega, gamma_b):
         self.N = N
         self.Lambda = Lambda
@@ -359,7 +356,6 @@ class DiscreteLevelCurrentModel:
     """ Analytic discrete level current model for testing the HEOM solver
         with a fermionic bath (and optionally a bosonic mode).
     """
-
     def __init__(self, gamma, W, T, lmax, theta=2., e1=1., bosonic_mode=None):
         # single fermion
         self.e1 = e1  # energy
@@ -1158,20 +1154,17 @@ class TestHEOMSolver:
         bath2 = LorentzianPadeBath(
             Q=d_2, gamma=2 * Gamma, w=W, mu=mu, T=1 / beta, Nk=Nk,
             tag="Lead 2")
-        resultHEOMPade = HEOMSolver(L, [bath1, bath2], depth, odd_parity=True)
-        rhoss, _ = resultHEOMPade.steady_state(use_mkl=False)
+        solver = HEOMSolver(L, [bath1, bath2], depth, odd_parity=True)
+        rhoss, _ = solver.steady_state(use_mkl=False)
         rhoss = rhoss.full()
         expected_odd = np.diag([-0.18472, 0.68472, 0.68472, -0.18472])
-        expected = np.diag([0.10623, 0.39376, 0.39376, 0.10623])
-        assert np.isclose(rhoss, expected_odd,atol=1e-5).all()
-        resultHEOMPade = HEOMSolver(L, [bath1, bath2], depth, odd_parity=False)
-        rhoss, _ = resultHEOMPade.steady_state(use_mkl=False)
+        np.testing.assert_allclose(rhoss, expected_odd, atol=1e-5)
+
+        solver = HEOMSolver(L, [bath1, bath2], depth, odd_parity=False)
+        rhoss, _ = solver.steady_state(use_mkl=False)
         rhoss = rhoss.full()
-        assert np.isclose(rhoss, expected,atol=1e-5).all()
-
-
-
-
+        expected = np.diag([0.10623, 0.39376, 0.39376, 0.10623])
+        np.testing.assert_allclose(rhoss, expected, atol=1e-5)
 class TestHeomsolveFunction:
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj", id="qobj"),
