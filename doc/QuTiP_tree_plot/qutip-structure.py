@@ -37,7 +37,7 @@ module_groups = [
     ("#043c6b", {"settings", "configrc", "solver"}),
     # Visualisation
     ("#3f8fd2", {
-        "bloch", "bloch3d", "sphereplot", "orbital", "visualization", "wigner",
+        "bloch", "sphereplot", "orbital", "visualization", "wigner",
         "distributions", "tomography", "topology",
     }),
     # Operators

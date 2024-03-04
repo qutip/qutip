@@ -3,8 +3,8 @@ import scipy
 import pytest
 from math import sqrt
 from qutip import (
-    Qobj, basis, ket2dm, sigmax, sigmay, sigmaz, identity, tensor,
-    rand_ket,
+    Qobj, basis, ket2dm, sigmax, sigmay, sigmaz, identity, num, tensor,
+    rand_ket
 )
 from qutip.measurement import (
     measure_povm, measurement_statistics_povm, measure_observable,
@@ -70,8 +70,6 @@ def _equivalent(left, right, tol=1e-8):
 
 
 @pytest.mark.parametrize(["op", "state", "pairs", "probabilities"], [
-    pytest.param(sigmaz(), basis(2, 0), SIGMAZ, [0, 1], id="sigmaz_ket"),
-    pytest.param(sigmaz(), basis(2, 0).proj(), SIGMAZ, [0, 1], id="sigmaz_dm"),
     pytest.param(sigmax(), basis(2, 0), SIGMAX, [0.5, 0.5], id="sigmax_ket"),
     pytest.param(sigmax(), basis(2, 0).proj(), SIGMAX, [0.5, 0.5],
                  id="sigmax_dm"),
@@ -82,19 +80,24 @@ def _equivalent(left, right, tol=1e-8):
 def test_measurement_statistics_observable(op, state, pairs, probabilities):
     """ measurement_statistics_observable: observables on basis states. """
 
-    evs, ess_or_projs, probs = measurement_statistics_observable(state, op)
-    np.testing.assert_almost_equal(evs, pairs.eigenvalues)
-    if state.isket:
-        ess = ess_or_projs
-        assert len(ess) == len(pairs.eigenstates)
-        for a, b in zip(ess, pairs.eigenstates):
-            assert _equivalent(a, b)
-    else:
-        projs = ess_or_projs
-        assert len(projs) == len(pairs.projectors)
-        for a, b in zip(projs, pairs.projectors):
-            assert _equivalent(a, b)
+    evs, projs, probs = measurement_statistics_observable(state, op)
+    assert len(projs) == len(probabilities)
     np.testing.assert_almost_equal(probs, probabilities)
+    for a, b in zip(projs, pairs.projectors):
+        assert _equivalent(a, b)
+
+
+def test_measurement_statistics_observable_degenerate():
+    """ measurement_statistics_observable: observables on basis states. """
+
+    state = basis(2, 1) & (basis(2, 0) + basis(2, 1)).unit()
+    op = sigmaz() & identity(2)
+    expected_projector = num(2) & identity(2)
+    evs, projs, probs = measurement_statistics_observable(state, op)
+    assert len(probs) == 1
+    np.testing.assert_almost_equal(probs, [1.])
+    np.testing.assert_almost_equal(evs, [-1.])
+    assert _equivalent(projs[0], expected_projector)
 
 
 @pytest.mark.parametrize(["ops", "state", "final_states", "probabilities"], [

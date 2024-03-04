@@ -81,13 +81,17 @@ def _require_equal_type(method):
     """
     @functools.wraps(method)
     def out(self, other):
+        if isinstance(other, Qobj):
+            if self._dims != other._dims:
+                msg = (
+                    "incompatible dimensions "
+                    + repr(self.dims) + " and " + repr(other.dims)
+                )
+                raise ValueError(msg)
+            return method(self, other)
         if other == 0:
             return method(self, other)
-        if (
-            self.type in ('oper', 'super')
-            and self._dims[0] == self._dims[1]
-            and isinstance(other, numbers.Number)
-        ):
+        if self._dims.issquare and isinstance(other, numbers.Number):
             scale = complex(other)
             other = Qobj(_data.identity(self.shape[0], scale,
                                         dtype=type(self.data)),
@@ -95,18 +99,9 @@ def _require_equal_type(method):
                          isherm=(scale.imag == 0),
                          isunitary=(abs(abs(scale)-1) < settings.core['atol']),
                          copy=False)
-        if not isinstance(other, Qobj):
-            try:
-                other = Qobj(other, dims=self._dims)
-            except TypeError:
-                return NotImplemented
-        if self._dims != other._dims:
-            msg = (
-                "incompatible dimensions "
-                + repr(self.dims) + " and " + repr(other.dims)
-            )
-            raise ValueError(msg)
-        return method(self, other)
+            return method(self, other)
+        return NotImplemented
+
     return out
 
 
@@ -152,12 +147,10 @@ class Qobj:
 
     Parameters
     ----------
-    inpt: array_like
+    inpt: array_like, data object or :obj:`.Qobj`
         Data for vector/matrix representation of the quantum object.
     dims: list
         Dimensions of object used for tensor products.
-    type: {'bra', 'ket', 'oper', 'operator-ket', 'operator-bra', 'super'}
-        The type of quantum object to be represented.
     shape: list
         Shape of underlying data structure (matrix shape).
     copy: bool
@@ -167,8 +160,12 @@ class Qobj:
 
     Attributes
     ----------
-    data : array_like
-        Sparse matrix characterizing the quantum object.
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
     dims : list
         List of dimensions keeping track of the tensor structure.
     shape : list
@@ -178,7 +175,8 @@ class Qobj:
         'operator-bra', or 'super'.
     superrep : str
         Representation used if `type` is 'super'. One of 'super'
-        (Liouville form) or 'choi' (Choi matrix with tr = dimension).
+        (Liouville form), 'choi' (Choi matrix with tr = dimension),
+        or 'chi' (chi-matrix representation).
     isherm : bool
         Indicates if quantum object represents Hermitian operator.
     isunitary : bool
@@ -216,10 +214,16 @@ class Qobj:
         Create copy of Qobj
     conj()
         Conjugate of quantum object.
+    contract()
+        Contract subspaces of the tensor structure which are 1D.
     cosm()
         Cosine of quantum object.
     dag()
         Adjoint (dagger) of quantum object.
+    data_as(format, copy)
+        Vector / matrix representation of quantum object.
+    diag()
+        Diagonal elements of quantum object.
     dnorm()
         Diamond norm of quantum operator.
     dual_chan()
@@ -237,10 +241,14 @@ class Qobj:
         object.
     inv()
         Return a Qobj corresponding to the matrix inverse of the operator.
+    logm()
+        Matrix logarithm of quantum operator.
     matrix_element(bra, ket)
         Returns the matrix element of operator between `bra` and `ket` vectors.
     norm(norm='tr', sparse=False, tol=0, maxiter=100000)
         Returns norm of a ket or an operator.
+    overlap(other)
+        Overlap between two state vectors or two operators.
     permute(order)
         Returns composite qobj with indices reordered.
     proj()
@@ -248,6 +256,8 @@ class Qobj:
     ptrace(sel)
         Returns quantum object for selected dimensions after performing
         partial trace.
+    purity()
+        Calculates the purity of a quantum object.
     sinm()
         Sine of quantum object.
     sqrtm()
@@ -335,13 +345,17 @@ class Qobj:
     def data(self):
         return self._data
 
+    @property
+    def dtype(self):
+        return type(self._data)
+
     @data.setter
     def data(self, data):
         if not isinstance(data, _data.Data):
             raise TypeError('Qobj data must be a data-layer format.')
         if self._dims.shape != data.shape:
             raise ValueError('Provided data do not match the dimensions: ' +
-                             f"{dims.shape} vs {self._data.shape}")
+                             f"{self._dims.shape} vs {data.shape}")
         self._data = data
 
     def to(self, data_type):
@@ -377,12 +391,11 @@ class Qobj:
             converter = _data.to[data_type]
         except (KeyError, TypeError):
             raise ValueError("Unknown conversion type: " + str(data_type))
-        if type(self.data) is data_type:
+        if type(self._data) is data_type:
             return self
         return Qobj(converter(self._data),
                     dims=self._dims,
                     isherm=self._isherm,
-                    superrep=self.superrep,
                     isunitary=self._isunitary,
                     copy=False)
 
@@ -441,7 +454,6 @@ class Qobj:
         return Qobj(out,
                     dims=self._dims,
                     isherm=isherm,
-                    superrep=self.superrep,
                     isunitary=isunitary,
                     copy=False)
 
@@ -456,23 +468,16 @@ class Qobj:
                 other = Qobj(other)
             except TypeError:
                 return NotImplemented
-        if self._dims[1] != other._dims[0]:
-            raise TypeError("".join([
-                "incompatible dimensions ",
-                repr(self.dims),
-                " and ",
-                repr(other.dims),
-            ]))
-        if (
-            (self.isbra and other.isket)
-            or (self.isoperbra and other.isoperket)
-        ):
-            return _data.inner(self.data, other.data)
+        new_dims = self._dims @ other._dims
+        if new_dims.type == 'scalar':
+            return _data.inner(self._data, other._data)
 
-        return Qobj(_data.matmul(self.data, other.data),
-                    dims=Dimensions(other._dims[1], self._dims[0]),
-                    isunitary=self._isunitary and other._isunitary,
-                    copy=False)
+        return Qobj(
+            _data.matmul(self._data, other._data),
+            dims=new_dims,
+            isunitary=self._isunitary and other._isunitary,
+            copy=False
+        )
 
     def __truediv__(self, other):
         return self.__mul__(1 / other)
@@ -526,7 +531,7 @@ class Qobj:
     def _str_header(self):
         out = ", ".join([
             "Quantum object: dims=" + str(self.dims),
-            "shape=" + str(self.data.shape),
+            "shape=" + str(self._data.shape),
             "type=" + repr(self.type),
         ])
         if self.type in ('oper', 'super'):
@@ -701,7 +706,7 @@ class Qobj:
                     "vector norm must be in " + repr(_NORM_ALLOWED_VECTOR)
                 )
         kwargs = kwargs or {}
-        return _NORM_FUNCTION_LOOKUP[norm](self.data, **kwargs)
+        return _NORM_FUNCTION_LOOKUP[norm](self._data, **kwargs)
 
     def proj(self):
         """Form the projector from a given ket or bra vector.
@@ -755,8 +760,8 @@ class Qobj:
         if self.type in ("super", "operator-ket", "operator-bra"):
             raise TypeError('purity is only defined for states.')
         if self.isket or self.isbra:
-            return _data.norm.l2(self.data)**2
-        return _data.trace(_data.matmul(self.data, self.data)).real
+            return _data.norm.l2(self._data)**2
+        return _data.trace(_data.matmul(self._data, self._data)).real
 
     def full(self, order='C', squeeze=False):
         """Dense array from quantum object.
@@ -794,7 +799,7 @@ class Qobj:
         data : numpy.ndarray, scipy.sparse.matrix_csr, etc.
             Matrix in the type of the underlying libraries.
         """
-        return _data.extract(self.data, format, copy)
+        return _data.extract(self._data, format, copy)
 
     def diag(self):
         """Diagonal elements of quantum object.
@@ -914,7 +919,6 @@ class Qobj:
         else:
             evals, evecs = _data.eigs(self.data, isherm=self._isherm)
 
-        numevals = len(evals)
         dV = _data.diag([np.sqrt(evals, dtype=complex)], 0)
         if self.isherm:
             spDv = _data.matmul(dV, evecs.conj().transpose())
@@ -1733,14 +1737,39 @@ class Qobj:
         return self._isunitary
 
     @property
-    def shape(self): return self.data.shape
+    def shape(self):
+        """Return the shape of the Qobj data."""
+        return self._data.shape
 
-    isbra = property(isbra)
-    isket = property(isket)
-    isoper = property(isoper)
-    issuper = property(issuper)
-    isoperbra = property(isoperbra)
-    isoperket = property(isoperket)
+    @property
+    def isoper(self):
+        """Indicates if the Qobj represents an operator."""
+        return self._dims.type in ['oper', 'scalar']
+
+    @property
+    def isbra(self):
+        """Indicates if the Qobj represents a bra state."""
+        return self._dims.type in ['bra', 'scalar']
+
+    @property
+    def isket(self):
+        """Indicates if the Qobj represents a ket state."""
+        return self._dims.type in ['ket', 'scalar']
+
+    @property
+    def issuper(self):
+        """Indicates if the Qobj represents a superoperator."""
+        return self._dims.type == 'super'
+
+    @property
+    def isoperket(self):
+        """Indicates if the Qobj represents a operator-ket state."""
+        return self._dims.type == 'operator-ket'
+
+    @property
+    def isoperbra(self):
+        """Indicates if the Qobj represents a operator-bra state."""
+        return self._dims.type == 'operator-bra'
 
 
 def ptrace(Q, sel):

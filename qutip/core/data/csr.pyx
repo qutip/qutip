@@ -530,9 +530,21 @@ cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
         <base.idxint *> PyDataMem_NEW(size * sizeof(base.idxint))
     out.row_index =\
         <base.idxint *> PyDataMem_NEW(row_size * sizeof(base.idxint))
-    if not out.data: raise MemoryError()
-    if not out.col_index: raise MemoryError()
-    if not out.row_index: raise MemoryError()
+    if not out.data:
+        raise MemoryError(
+            f"Failed to allocate the `data` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
+    if not out.col_index:
+        raise MemoryError(
+            f"Failed to allocate the `col_index` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
+    if not out.row_index:
+        raise MemoryError(
+            f"Failed to allocate the `row_index` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
     # Set the number of non-zero elements to 0.
     out.row_index[rows] = 0
     return out
@@ -604,7 +616,10 @@ cdef CSR from_coo_pointers(
     data_tmp = <double complex *> mem.PyMem_Malloc(nnz * sizeof(double complex))
     cols_tmp = <base.idxint *> mem.PyMem_Malloc(nnz * sizeof(base.idxint))
     if data_tmp == NULL or cols_tmp == NULL:
-        raise MemoryError
+        raise MemoryError(
+            f"Failed to allocate the memory needed for a ({n_rows}, {n_cols}) "
+            f"CSR array with {nnz} elements."
+        )
     with nogil:
         memset(out.row_index, 0, (n_rows + 1) * sizeof(base.idxint))
         for ptr_in in range(nnz):

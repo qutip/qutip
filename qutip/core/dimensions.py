@@ -5,6 +5,7 @@ Internal use module for manipulating dims specifications.
 # Everything should be explicitly imported, not made available by default.
 
 import numpy as np
+import numbers
 from operator import getitem
 from functools import partial
 from qutip.settings import settings
@@ -16,9 +17,13 @@ __all__ = ["to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"]
 def flatten(l):
     """Flattens a list of lists to the first level.
 
-    Given a list containing a mix of scalars and lists,
-    flattens down to a list of the scalars within the original
-    list.
+    Given a list containing a mix of scalars and lists or a dimension object,
+    flattens it down to a list of the scalars within the original list.
+
+    Parameters
+    ----------
+    l : scalar, list, Space, Dimension
+        Object to flatten.
 
     Examples
     --------
@@ -26,7 +31,14 @@ def flatten(l):
     >>> flatten([[[0], 1], 2]) # doctest: +SKIP
     [0, 1, 2]
 
+    Notes
+    -----
+    Any scalar will be returned wrapped in a list: ``flaten(1) == [1]``.
+    A non-list iterable will not be treated as a list by flatten. For example, flatten would treat a tuple
+    as a scalar.
     """
+    if isinstance(l, (Space, Dimensions)):
+        l = l.as_list()
     if not isinstance(l, list):
         return [l]
     else:
@@ -459,12 +471,20 @@ class Space(metaclass=MetaSpace):
         """
         Transform dimensions indices to full array indices.
         """
-        return dims
+        if not isinstance(dims, list) or len(dims) != 1:
+            raise ValueError("Dimensions must be a list of one element")
+        if not (0 <= dims[0] < self.size):
+            raise IndexError("Dimensions out of range")
+        if not isinstance(dims[0], numbers.Integral):
+            raise TypeError("Dimensions must be integers")
+        return dims[0]
 
     def idx2dims(self, idx):
         """
         Transform full array indices to dimensions indices.
         """
+        if not (0 <= idx < self.size):
+            raise IndexError("Index out of range")
         return [idx]
 
     def step(self):
@@ -502,6 +522,9 @@ class Space(metaclass=MetaSpace):
 
     def replace_superrep(self, super_rep):
         return self
+
+    def scalar_like(self):
+        return Field()
 
 
 class Field(Space):
@@ -595,7 +618,7 @@ class Compound(Space):
         pos = 0
         step = 1
         for space, dim in zip(self.spaces[::-1], dims[::-1]):
-            pos += space.dims2idx(dim) * step
+            pos += space.dims2idx([dim]) * step
             step *= space.size
         return pos
 
@@ -643,6 +666,9 @@ class Compound(Space):
         return Compound(
             *[space.replace_superrep(super_rep) for space in self.spaces]
         )
+
+    def scalar_like(self):
+        return [space.scalar_like() for space in self.spaces]
 
 
 class SuperSpace(Space):
@@ -704,6 +730,9 @@ class SuperSpace(Space):
 
     def replace_superrep(self, super_rep):
         return SuperSpace(self.oper, rep=super_rep)
+
+    def scalar_like(self):
+        return self.oper.scalar_like()
 
 
 class MetaDims(type):
@@ -782,6 +811,25 @@ class Dimensions(metaclass=MetaDims):
                 )
             )
         return NotImplemented
+
+    def __ne__(self, other):
+        if isinstance(other, Dimensions):
+            return not (
+                self is other
+                or (
+                    self.to_ == other.to_
+                    and self.from_ == other.from_
+                )
+            )
+        return NotImplemented
+
+    def __matmul__(self, other):
+        if self.from_ != other.to_:
+            raise TypeError(f"incompatible dimensions {self} and {other}")
+        args = other.from_, self.to_
+        if args in Dimensions._stored_dims:
+            return Dimensions._stored_dims[args]
+        return Dimensions(*args)
 
     def __hash__(self):
         return hash((self.to_, self.from_))
@@ -901,3 +949,6 @@ class Dimensions(metaclass=MetaDims):
             self.from_.replace_superrep(super_rep),
             self.to_.replace_superrep(super_rep)
         )
+
+    def scalar_like(self):
+        return [self.to_.scalar_like(), self.from_.scalar_like()]

@@ -386,7 +386,7 @@ class HEOMResult(Result):
 
         self.store_ados = self.options["store_ados"]
         if self.store_ados:
-            self.final_ado_state = None
+            self._final_ado_state = None
             self.ado_states = []
 
     def _e_op_func(self, e_op):
@@ -408,9 +408,17 @@ class HEOMResult(Result):
             self.ado_states.append(ado_state)
 
     def _store_final_state(self, t, ado_state):
-        self.final_state = ado_state.rho
+        self._final_state = ado_state.rho
         if self.store_ados:
-            self.final_ado_state = ado_state
+            self._final_ado_state = ado_state
+
+    @property
+    def final_ado_state(self):
+        if self._final_ado_state is not None:
+            return self._final_state
+        if self.ado_states:
+            return self.ado_states[-1]
+        return None
 
 
 def heomsolve(
@@ -972,8 +980,8 @@ class HEOMSolver(Solver):
             L = L.tocsc()
             solution = spsolve(L, b_mat)
 
-        data = _data.Dense(solution[:n ** 2].reshape((n, n)))
-        data = _data.mul(_data.add(data, data.conj()), 0.5)
+        data = _data.Dense(solution[:n ** 2].reshape((n, n), order='F'))
+        data = _data.mul(_data.add(data, data.adjoint()), 0.5)
         steady_state = Qobj(data, dims=self._sys_dims)
 
         solution = solution.reshape((self._n_ados, n, n))

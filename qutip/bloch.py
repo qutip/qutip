@@ -169,8 +169,10 @@ class Bloch:
         # ---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_default_color = ['b', 'r', 'g', '#CC6600']
+        # Old variable used in V4 to customise the color of the points
+        self.point_color = None
         # List that stores the display colors for each set of points
-        self.point_color = []
+        self._inner_point_color = []
         # Size of point markers, default = 25
         self.point_size = [25, 32, 35, 45]
         # Shape of point markers, default = ['o','^','d','s']
@@ -308,7 +310,7 @@ class Bloch:
         self.vector_alpha = []
         self.annotations = []
         self.vector_color = []
-        self.point_color = []
+        self.point_color = None
         self._lines = []
         self._arcs = []
 
@@ -360,7 +362,7 @@ class Bloch:
         self.point_style.append(meth)
         self.points.append(points)
         self.point_alpha.append(alpha)
-        self.point_color.append(colors)
+        self._inner_point_color.append(colors)
 
     def add_states(self, state, kind='vector', colors=None, alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
@@ -792,19 +794,21 @@ class Bloch:
             dist = np.linalg.norm(points, axis=0)
             if not np.allclose(dist, dist[0], rtol=1e-12):
                 indperm = np.argsort(dist)
-                points = points[:, indperm]
             else:
                 indperm = np.arange(num_points)
 
             s = self.point_size[np.mod(k, len(self.point_size))]
             marker = self.point_marker[np.mod(k, len(self.point_marker))]
             style = self.point_style[k]
-            if self.point_color[k] is not None:
-                color = self.point_color[k]
+
+            if self._inner_point_color[k] is not None:
+                color = self._inner_point_color[k]
+            elif self.point_color is not None:
+                color = self.point_color
             elif self.point_style[k] in ['s', 'l']:
-                color = self.point_default_color[
+                color = [self.point_default_color[
                     k % len(self.point_default_color)
-                ]
+                ]]
             elif self.point_style[k] == 'm':
                 length = np.ceil(num_points/len(self.point_default_color))
                 color = np.tile(self.point_default_color, length.astype(int))
@@ -812,9 +816,9 @@ class Bloch:
                 color = list(color)
 
             if self.point_style[k] in ['s', 'm']:
-                self.axes.scatter(np.real(points[1]),
-                                  -np.real(points[0]),
-                                  np.real(points[2]),
+                self.axes.scatter(np.real(points[1][indperm]),
+                                  -np.real(points[0][indperm]),
+                                  np.real(points[2][indperm]),
                                   s=s,
                                   marker=marker,
                                   color=color,
@@ -824,6 +828,7 @@ class Bloch:
                                   )
 
             elif self.point_style[k] == 'l':
+                color = color[k % len(color)]
                 self.axes.plot(np.real(points[1]),
                                -np.real(points[0]),
                                np.real(points[2]),

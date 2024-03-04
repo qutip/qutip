@@ -908,12 +908,12 @@ cdef class QobjEvo:
     @property
     def isoper(self):
         """Indicates if the system represents an operator."""
-        return self._dims.type == "oper"
+        return self._dims.type in ['oper', 'scalar']
 
     @property
     def issuper(self):
         """Indicates if the system represents a superoperator."""
-        return self._dims.issuper
+        return self._dims.type == 'super'
 
     @property
     def dims(self):
@@ -926,6 +926,41 @@ cdef class QobjEvo:
     @property
     def superrep(self):
         return self._dims.superrep
+
+    @property
+    def isbra(self):
+        """Indicates if the system represents a bra state."""
+        return self._dims.type in ['bra', 'scalar']
+
+    @property
+    def isket(self):
+        """Indicates if the system represents a ket state."""
+        return self._dims.type in ['ket', 'scalar']
+
+    @property
+    def isoperket(self):
+        """Indicates if the system represents a operator-ket state."""
+        return self._dims.type == 'operator-ket'
+
+    @property
+    def isoperbra(self):
+        """Indicates if the system represents a operator-bra state."""
+        return self._dims.type == 'operator-bra'
+
+    @property
+    def dtype(self):
+        """
+        Type of the data layers of the QobjEvo.
+        When different data layers are used, we return the type of the sum of
+        the parts.
+        """
+        part_types = [part.dtype for part in self.elements]
+        if (
+            part_types[0] is not None
+            and all(part == part_types[0] for part in part_types)
+        ):
+            return part_types[0]
+        return self(0).dtype
 
     ###########################################################################
     # operation methods                                                       #
