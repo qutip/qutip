@@ -781,26 +781,31 @@ class FMESolver(MESolver):
 
         nT = nT or max(100, 20 * kmax)
         self._num_collapse = len(a_ops)
+        self.a_ops = a_ops
         c_ops, spectra_cb = zip(*a_ops)
+        self._floquet_param = {"w_th": w_th, "kmax": kmax, "nT": nT}
         if not all(
             isinstance(c_op, Qobj) and callable(spectrum)
             for c_op, spectrum in a_ops
         ):
             raise TypeError("a_ops must be tuple of (Qobj, callable)")
-        self.rhs = QobjEvo(
-            floquet_tensor(
-                self.floquet_basis,
-                c_ops,
-                spectra_cb,
-                w_th=w_th,
-                kmax=kmax,
-                nT=nT,
-            )
-        )
 
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
+
+    def _build_rhs(self):
+        c_ops, spectra_cb = zip(*self.a_ops)
+        rhs = QobjEvo(
+            floquet_tensor(
+                self.floquet_basis,
+                c_ops,
+                spectra_cb,
+                **self._floquet_param
+            )
+        )
+        rhs._register_feedback({}, solver=self.name)
+        return rhs
 
     def _initialize_stats(self):
         stats = Solver._initialize_stats(self)

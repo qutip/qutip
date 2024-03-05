@@ -269,12 +269,9 @@ class BRSolver(Solver):
         self._system = H, a_ops, c_ops
         self._num_collapse = len(c_ops)
         self._num_a_ops = len(a_ops)
-        self.rhs = self._prepare_rhs()
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
-        self.rhs._register_feedback({}, solver=self.name)
-
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
@@ -286,7 +283,7 @@ class BRSolver(Solver):
         })
         return stats
 
-    def _prepare_rhs(self):
+    def _build_rhs(self):
         _time_start = time()
         rhs = bloch_redfield_tensor(
             *self._system,
@@ -295,6 +292,7 @@ class BRSolver(Solver):
             sparse_eigensolver=self.options['sparse_eigensolver'],
             br_dtype=self.options['tensor_type']
         )
+        rhs._register_feedback({}, solver=self.name)
         self._init_rhs_time = time() - _time_start
         return rhs
 

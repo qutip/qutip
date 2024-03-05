@@ -46,13 +46,20 @@ class Solver:
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
             self.rhs = QobjEvo(rhs)
-        else:
+            self._dims = rhs._dims
+        elif rhs is not None:
             TypeError("The rhs must be a QobjEvo")
         self.options = options
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
+
+    def _build_rhs(self):
+        """
+        Build the rhs QobjEvo.
+        """
         self.rhs._register_feedback({}, solver=self.name)
+        return self.rhs
 
     def _initialize_stats(self):
         """ Return the initial values for the solver stats.
@@ -73,19 +80,19 @@ class Solver:
 
         Should return the state's data such that it can be used by Integrators.
         """
-        if self.rhs.issuper and state.isket:
+        if self._dims.issuper and state.isket:
             state = ket2dm(state)
 
         if (
-            self.rhs.dims[1] != state.dims[0]
-            and self.rhs.dims[1] != state.dims
+            self._dims[1] != state._dims[0]
+            and self._dims[1] != state._dims
         ):
             raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
 
         self._state_metadata = {
             'dims': state.dims,
-            'isherm': state.isherm and not (self.rhs.dims == state.dims)
+            'isherm': state.isherm and not (self._dims == state._dims)
         }
         if self.rhs.dims[1] == state.dims:
             return stack_columns(state.data)
@@ -223,7 +230,7 @@ class Solver:
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs, self.options)
+        integrator_instance = integrator(self._build_rhs(), self.options)
         self._init_integrator_time = time() - _time_start
         return integrator_instance
 

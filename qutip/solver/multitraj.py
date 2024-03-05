@@ -77,6 +77,7 @@ class MultiTrajSolver(Solver):
         else:
             raise TypeError("The system should be a QobjEvo")
         self.rhs = self.system()
+        self._dims = self.rhs._dims
         self.options = options
         self.seed_sequence = np.random.SeedSequence()
         self._integrator = self._get_integrator()

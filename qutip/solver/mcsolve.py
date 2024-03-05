@@ -434,7 +434,8 @@ class MCSolver(MultiTrajSolver):
 
         if isinstance(c_ops, (Qobj, QobjEvo)):
             c_ops = [c_ops]
-        c_ops = [QobjEvo(c_op) for c_op in c_ops]
+        self.c_ops = [QobjEvo(c_op) for c_op in c_ops]
+        self.LH = QobjEvo(H)
 
         if H.issuper:
             self._c_ops = [

@@ -205,11 +205,38 @@ class MESolver(SESolver):
 
         self._num_collapse = len(c_ops)
 
-        rhs = H if H.issuper else liouvillian(H)
-        rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
-                   for c_op in c_ops)
+        self.H = QobjEvo(H) if not H.issuper else 0.
+        self.L0 = [QobjEvo(H)] if H.issuper else []
+        self.c_ops = []
+        for c_op in c_ops:
+            if c_op.issuper:
+                self.L0 += [c_op]
+            else:
+                self.c_ops.append(QobjEvo(c_op))
 
-        Solver.__init__(self, rhs, options=options)
+        super().__init__(None, options=options)
+
+    def _build_rhs(self):
+        """
+        Build the rhs QobjEvo.
+        """
+        rhs = sum(self.L0)
+        if self.H != 0.:
+            rhs += liouvillian(self.H)
+        rhs += sum(lindblad_dissipator(c_op) for c_op in self.c_ops)
+        rhs._register_feedback({}, solver=self.name)
+        return rhs
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and other operators."""
+        if args:
+            if self.H != 0.:
+                self.H.arguments(args)
+            if self.L0 != 0.:
+                self.L0.arguments(args)
+            for c_op in self.c_ops:
+                c_op.arguments(args)
+            self._integrator.arguments(args)
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
