@@ -37,6 +37,7 @@ Miscellaneous
 
 - Improve fidelity doc-string (#2257)
 - Improve documentation in guide/dynamics (#2271)
+- Improve states and operator parameters documentation. (#2289)
 - Rework `kraus_to_choi` making it faster (#2284, by Bogdan Reznychenko)
 - Remove Bloch3D: redundant to Bloch (#2306)
 - Allow tests to run without matplotlib and ipython. (#2311)
