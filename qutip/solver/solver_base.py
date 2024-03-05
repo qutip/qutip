@@ -85,7 +85,7 @@ class Solver:
 
         self._state_metadata = {
             'dims': state.dims,
-            'isherm': state.isherm and not (self.rhs.dims == state.dims)
+            'isherm': state._isherm if self.rhs.dims != state.dims else False
         }
         if self.rhs.dims[1] == state.dims:
             return stack_columns(state.data)
