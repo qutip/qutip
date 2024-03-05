@@ -95,21 +95,18 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         L += sum(lindblad_dissipator(c_op, chi=chi_)
                  for c_op, chi_ in zip(c_ops, chi))
         return L
-
-    data = _data.mul(_data.kron(_data.identity_like(H.data), H.data), 
-                     -1j)
-    data = _data.add(data, _data.kron_transpose(H.data,
-                     _data.identity_like(H.data)), scale=1j)
+    spI = _data.identity_like(H.data)
+    data = _data.mul(_data.kron(spI, H.data), -1j)
+    data = _data.add(data, _data.kron_transpose(H.data, spI),
+                     scale=1j)
 
     for c_op, chi_ in zip(c_ops, chi):
         c = c_op.data
         cd = c.adjoint()
         cdc = _data.matmul(cd, c)
         data = _data.add(data, _data.kron(c.conj(), c), np.exp(1j*chi_))
-        data = _data.add(data, _data.kron(
-                         _data.identity_like(H.data), cdc), -0.5)
-        data = _data.add(data, _data.kron_transpose(cdc,
-                         _data.identity_like(H.data)), -0.5)
+        data = _data.add(data, _data.kron(spI, cdc), -0.5)
+        data = _data.add(data, _data.kron_transpose(cdc,spI), -0.5)
 
     if data_only:
         return data
