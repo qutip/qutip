@@ -6,12 +6,12 @@ from qutip.core.data.base cimport idxint
 cdef class QobjEvo:
     cdef:
         list elements
-        readonly list dims
+        readonly object _dims
         readonly (idxint, idxint) shape
-        readonly str type
-        readonly str superrep
         int _issuper
         int _isoper
+        readonly dict _feedback_functions
+        readonly dict _solver_only_feedback
 
     cpdef Data _call(QobjEvo self, double t)
 

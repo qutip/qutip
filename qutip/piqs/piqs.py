@@ -156,18 +156,19 @@ def isdiagonal(mat):
 
 # nonlinear functions of the density matrix
 def dicke_blocks(rho):
-    """Create the list of blocks for block-diagonal density matrix in the Dicke basis.
+    """Create the list of blocks for block-diagonal density matrix in the Dicke
+    basis.
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         A 2D block-diagonal matrix of ones with dimension (nds,nds),
         where nds is the number of Dicke states for N two-level
         systems.
 
     Returns
     -------
-    square_blocks: list of np.array
+    square_blocks: list of np.ndarray
         Give back the blocks list.
 
     """
@@ -199,7 +200,7 @@ def dicke_blocks_full(rho):
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         A 2D block-diagonal matrix of ones with dimension (nds,nds),
         where nds is the number of Dicke states for N two-level
         systems.
@@ -244,7 +245,7 @@ def dicke_function_trace(f, rho):
     f : function
         A Taylor-expandable function of `rho`.
 
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         A density matrix in the Dicke basis.
 
     Returns
@@ -280,8 +281,8 @@ def entropy_vn_dicke(rho):
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
-        A 2D block-diagonal matrix of ones with dimension (nds,nds),
+    rho : :class:`.Qobj`
+        A 2D block-diagonal matrix of ones with dimension (nds, nds),
         where nds is the number of Dicke states for N two-level
         systems.
 
@@ -300,7 +301,7 @@ def purity_dicke(rho):
 
     Parameters
     ----------
-    rho : :class:`qutip.Qobj`
+    rho : :class:`.Qobj`
         Density matrix in the Dicke basis of qutip.piqs.jspin(N), for N spins.
 
     Returns
@@ -335,7 +336,7 @@ class Dicke(object):
     N: int
         The number of two-level systems.
 
-    hamiltonian : :class:`qutip.Qobj`
+    hamiltonian : :class:`.Qobj`
         A Hamiltonian in the Dicke basis.
 
         The matrix dimensions are (nds, nds),
@@ -372,7 +373,7 @@ class Dicke(object):
     N: int
         The number of two-level systems.
 
-    hamiltonian : :class:`qutip.Qobj`
+    hamiltonian : :class:`.Qobj`
         A Hamiltonian in the Dicke basis.
 
         The matrix dimensions are (nds, nds),
@@ -468,7 +469,7 @@ class Dicke(object):
 
         Returns
         -------
-        lindbladian : :class:`qutip.Qobj`
+        lindbladian : :class:`.Qobj`
             The Lindbladian matrix as a `qutip.Qobj`.
         """
         cythonized_dicke = _Dicke(
@@ -487,7 +488,7 @@ class Dicke(object):
 
         Returns
         -------
-        liouv : :class:`qutip.Qobj`
+        liouv : :class:`.Qobj`
             The Liouvillian matrix for the system.
         """
         lindblad = self.lindbladian()
@@ -508,7 +509,7 @@ class Dicke(object):
 
         Parameters
         ==========
-        initial_state : :class:`qutip.Qobj`
+        initial_state : :class:`.Qobj`
             An initial state specified as a density matrix of
             `qutip.Qbj` type.
 
@@ -598,8 +599,8 @@ class Dicke(object):
 def energy_degeneracy(N, m):
     """Calculate the number of Dicke states with same energy.
 
-    The use of the `Decimals` class allows to explore N > 1000,
-    unlike the built-in function `scipy.special.binom`
+    The use of the ``Decimals`` class allows to explore N > 1000,
+    unlike the built-in function ``scipy.special.binom``.
 
     Parameters
     ----------
@@ -745,7 +746,7 @@ def spin_algebra(N, op=None):
 
     Returns
     -------
-    spin_operators: list or :class: qutip.Qobj
+    spin_operators: list or :class:`.Qobj`
         A list of `qutip.Qobj` operators - [sx, sy, sz] or the
         requested operator.
     """
@@ -820,7 +821,7 @@ def _jspin_uncoupled(N, op=None):
 
     Returns
     -------
-    collective_operators: list or :class: qutip.Qobj
+    collective_operators: list or :class:`.Qobj`
         A list of `qutip.Qobj` representing all the operators in
         uncoupled" basis or a single operator requested.
     """
@@ -867,18 +868,17 @@ def jspin(N, op=None, basis="dicke"):
     N: int
         Number of two-level systems.
 
-    op: str
+    op: str {'x', 'y', 'z', '+', '-'}, optional
         The operator to return 'x','y','z','+','-'.
         If no operator given, then output is the list of operators
         for ['x','y','z'].
 
-    basis: str
-        The basis of the operators - "dicke" or "uncoupled"
-        default: "dicke".
+    basis: str {"dicke", "uncoupled"}, default: "dicke"
+        The basis of the operators.
 
     Returns
     -------
-    j_alg: list or :class: qutip.Qobj
+    j_alg: list or :class:`.Qobj`
         A list of `qutip.Qobj` representing all the operators in
         the "dicke" or "uncoupled" basis or a single operator requested.
     """
@@ -956,34 +956,29 @@ def collapse_uncoupled(
     N: int
         The number of two-level systems.
 
-    emission: float
+    emission: float, default: 0.0
         Incoherent emission coefficient (also nonradiative emission).
-        default: 0.0
 
-    dephasing: float
+
+    dephasing: float, default: 0.0
         Local dephasing coefficient.
-        default: 0.0
 
-    pumping: float
+    pumping: float, default: 0.0
         Incoherent pumping coefficient.
-        default: 0.0
 
-    collective_emission: float
+    collective_emission: float, default: 0.0
         Collective (superradiant) emmission coefficient.
-        default: 0.0
 
-    collective_pumping: float
+    collective_pumping: float, default: 0.0
         Collective pumping coefficient.
-        default: 0.0
 
-    collective_dephasing: float
+    collective_dephasing: float, default: 0.0
         Collective dephasing coefficient.
-        default: 0.0
 
     Returns
     -------
     c_ops: list
-        The list of collapse operators as `qutip.Qobj` for the system.
+        The list of collapse operators as :obj:`.Qobj` for the system.
     """
     N = int(N)
 
@@ -1028,7 +1023,7 @@ def collapse_uncoupled(
 
 
 # State definitions in the Dicke basis with an option for basis transformation
-def dicke_basis(N, jmm1=None):
+def dicke_basis(N, jmm1):
     r"""
     Initialize the density matrix of a Dicke state for several (j, m, m1).
 
@@ -1050,10 +1045,10 @@ def dicke_basis(N, jmm1=None):
 
     Returns
     -------
-    rho: :class: qutip.Qobj
+    rho: :class:`.Qobj`
         The density matrix in the Dicke basis.
     """
-    if jmm1 is None:
+    if not isinstance(jmm1, dict):
         msg = "Please specify the jmm1 values as a dictionary"
         msg += "or use the `excited(N)` function to create an"
         msg += "excited state where jmm1 = {(N/2, N/2, N/2): 1}"
@@ -1091,7 +1086,7 @@ def dicke(N, j, m):
 
     Returns
     -------
-    rho: :class: qutip.Qobj
+    rho: :class:`.Qobj`
         The density matrix.
     """
     nds = num_dicke_states(N)
@@ -1118,7 +1113,7 @@ def _uncoupled_excited(N):
 
     Returns
     -------
-    psi0: :class: qutip.Qobj
+    psi0: :class:`.Qobj`
         The density matrix for the excited state in the uncoupled basis.
     """
     N = int(N)
@@ -1140,7 +1135,7 @@ def _uncoupled_superradiant(N):
 
     Returns
     -------
-    psi0: :class: qutip.Qobj
+    psi0: :class:`.Qobj`
         The density matrix for the superradiant state in the full Hilbert
         space.
     """
@@ -1163,7 +1158,7 @@ def _uncoupled_ground(N):
 
     Returns
     -------
-    psi0: :class: qutip.Qobj
+    psi0: :class:`.Qobj`
         The density matrix for the ground state in the full Hilbert space.
     """
     N = int(N)
@@ -1185,7 +1180,7 @@ def _uncoupled_ghz(N):
 
     Returns
     -------
-    ghz: :class: qutip.Qobj
+    ghz: :class:`.Qobj`
         The density matrix for the GHZ state in the full Hilbert space.
     """
     N = int(N)
@@ -1221,7 +1216,7 @@ def _uncoupled_css(N, a, b):
 
     Returns
     -------
-    css: :class: qutip.Qobj
+    css: :class:`.Qobj`
         The density matrix for the CSS state in the full Hilbert space.
     """
     N = int(N)
@@ -1257,7 +1252,7 @@ def excited(N, basis="dicke"):
     Generate the density matrix for the excited state.
 
     This state is given by (N/2, N/2) in the default Dicke basis. If the
-    argument `basis` is "uncoupled" then it generates the state in a
+    argument ``basis`` is "uncoupled" then it generates the state in a
     2**N dim Hilbert space.
 
     Parameters
@@ -1265,12 +1260,12 @@ def excited(N, basis="dicke"):
     N: int
         The number of two-level systems.
 
-    basis: str
-        The basis to use. Either "dicke" or "uncoupled".
+    basis: str, {"dicke", "uncoupled"}, default: "dicke"
+        The basis to use.
 
     Returns
     -------
-    state: :class: qutip.Qobj
+    state: :class:`.Qobj`
         The excited state density matrix in the requested basis.
     """
     if basis == "uncoupled":
@@ -1294,12 +1289,12 @@ def superradiant(N, basis="dicke"):
     N: int
         The number of two-level systems.
 
-    basis: str
-        The basis to use. Either "dicke" or "uncoupled".
+    basis: str, {"dicke", "uncoupled"}, default: "dicke"
+        The basis to use.
 
     Returns
     -------
-    state: :class: qutip.Qobj
+    state: :class:`.Qobj`
         The superradiant state density matrix in the requested basis.
     """
     if basis == "uncoupled":
@@ -1338,19 +1333,19 @@ def css(
     N: int
         The number of two-level systems.
 
-    x, y: float
+    x, y: float, default: sqrt(1/2)
         The coefficients of the CSS state.
 
-    basis: str
-        The basis to use. Either "dicke" or "uncoupled".
+    basis: str {"dicke", "uncoupled"}, default: "dicke"
+        The basis to use.
 
-    coordinates: str
-        Either "cartesian" or "polar". If polar then the coefficients
-        are constructed as sin(x/2), cos(x/2)e^(iy).
+    coordinates: str {"cartesian", "polar"}, default: "cartesian"
+        If polar then the coefficients are constructed as
+        :math:`sin(x/2), cos(x/2)e^(iy)``.
 
     Returns
     -------
-    rho: :class: qutip.Qobj
+    rho: :class:`.Qobj`
         The CSS state density matrix.
     """
     if coordinates == "polar":
@@ -1393,7 +1388,7 @@ def ghz(N, basis="dicke"):
     """
     Generate the density matrix of the GHZ state.
 
-    If the argument `basis` is "uncoupled" then it generates the state
+    If the argument ``basis`` is "uncoupled" then it generates the state
     in a :math:`2^N`-dimensional Hilbert space.
 
     Parameters
@@ -1401,12 +1396,12 @@ def ghz(N, basis="dicke"):
     N: int
         The number of two-level systems.
 
-    basis: str
-        The basis to use. Either "dicke" or "uncoupled".
+    basis: str, {"dicke", "uncoupled"}, default: "dicke"
+        The basis to use.
 
     Returns
     -------
-    state: :class: qutip.Qobj
+    state: :class:`.Qobj`
         The GHZ state density matrix in the requested basis.
     """
     if basis == "uncoupled":
@@ -1425,7 +1420,7 @@ def ground(N, basis="dicke"):
     Generate the density matrix of the ground state.
 
     This state is given by (N/2, -N/2) in the Dicke basis. If the argument
-    `basis` is "uncoupled" then it generates the state in a
+    ``basis`` is "uncoupled" then it generates the state in a
     :math:`2^N`-dimensional Hilbert space.
 
     Parameters
@@ -1433,12 +1428,12 @@ def ground(N, basis="dicke"):
     N: int
         The number of two-level systems.
 
-    basis: str
-        The basis to use. Either "dicke" or "uncoupled"
+    basis: str, {"dicke", "uncoupled"}, default: "dicke"
+        The basis to use.
 
     Returns
     -------
-    state: :class: qutip.Qobj
+    state: :class:`.Qobj`
         The ground state density matrix in the requested basis.
     """
     if basis == "uncoupled":
@@ -1463,7 +1458,7 @@ def identity_uncoupled(N):
 
     Returns
     -------
-    identity: :class: qutip.Qobj
+    identity: :class:`.Qobj`
         The identity matrix.
     """
     N = int(N)
@@ -1483,7 +1478,7 @@ def block_matrix(N, elements="ones"):
     ----------
     N : int
         Number of two-level systems.
-    elements : str {'ones' (default),'degeneracy'}
+    elements : str {'ones', 'degeneracy'}, default: 'ones'
 
     Returns
     -------

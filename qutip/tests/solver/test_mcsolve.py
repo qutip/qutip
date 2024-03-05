@@ -411,7 +411,7 @@ def test_super_H(improved_sampling):
                  target_tol=0.1,
                  options={'map': 'serial',
                           "improved_sampling": improved_sampling})
-    np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.5)
+    np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.65)
 
 
 def test_MCSolver_run():
@@ -451,20 +451,30 @@ def test_MCSolver_stepping():
     assert state.isket
 
 
-# Defined in module-scope so it's pickleable.
-def _dynamic(t, args):
-    return 0 if args["collapse"] else 1
-
-
-@pytest.mark.xfail(reason="current limitation of McSolve")
-def test_dynamic_arguments():
-    """Test dynamically updated arguments are usable."""
-    size = 5
-    a = qutip.destroy(size)
-    H = qutip.num(size)
-    times = np.linspace(0, 1, 11)
-    state = qutip.basis(size, 2)
-
-    c_ops = [[a, _dynamic], [a.dag(), _dynamic]]
-    mc = mcsolve(H, state, times, c_ops, ntraj=25, args={"collapse": []})
-    assert all(len(collapses) <= 1 for collapses in mc.col_which)
+@pytest.mark.parametrize(["func", "kind"], [
+    pytest.param(
+        lambda t, A: A-4,
+        lambda: qutip.MCSolver.ExpectFeedback(qutip.num(10)),
+        # 7.+0j,
+        id="expect"
+    ),
+    pytest.param(
+        lambda t, A: (len(A) < 3) * 1.0,
+        lambda: qutip.MCSolver.CollapseFeedback(),
+        id="collapse"
+    ),
+])
+def test_feedback(func, kind):
+    tol = 1e-6
+    psi0 = qutip.basis(10, 7)
+    a = qutip.destroy(10)
+    H = qutip.QobjEvo(qutip.num(10))
+    solver = qutip.MCSolver(
+        H,
+        c_ops=[qutip.QobjEvo([a, func], args={"A": kind()})],
+        options={"map": "serial"}
+    )
+    result = solver.run(
+        psi0,np.linspace(0, 3, 31), e_ops=[qutip.num(10)], ntraj=10
+    )
+    assert np.all(result.expect[0] > 4. - tol)

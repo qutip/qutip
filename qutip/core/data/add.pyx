@@ -27,7 +27,7 @@ __all__ = [
 cdef int _ONE=1
 
 
-cdef void _check_shape(Data left, Data right) except * nogil:
+cdef int _check_shape(Data left, Data right) except -1 nogil:
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
         raise ValueError(
             "incompatible matrix shapes "
@@ -35,6 +35,7 @@ cdef void _check_shape(Data left, Data right) except * nogil:
             + " and "
             + str(right.shape)
         )
+    return 0
 
 
 cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c, double tol) nogil:

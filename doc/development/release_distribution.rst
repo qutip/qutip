@@ -324,7 +324,7 @@ HTML File Updates
 Conda Forge
 +++++++++++
 
-If not done previously then fork the `qutip-feedstock <https://github.com/conda-forge/qutip-feedstock_>`_.
+If not done previously then fork the `qutip-feedstock <https://github.com/conda-forge/qutip-feedstock>`_.
 
 Checkout a new branch on your fork, e.g. ::
 

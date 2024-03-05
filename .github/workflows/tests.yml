@@ -27,56 +27,51 @@ jobs:
         os: [ubuntu-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
-        python-version: ["3.9"]
+        python-version: ["3.11"]
         case-name: [defaults]
-        numpy-requirement: [">=1.20,<1.21"]
+        numpy-requirement: [">=1.22"]
+        scipy-requirement: [">=1.8"]
         coverage-requirement: ["==6.5"]
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
-          # Mac
-          # Mac has issues with MKL since september 2022.
-          - case-name: macos
-            os: macos-latest
-            python-version: "3.10"
-            condaforge: 1
-            nomkl: 1
-
-          # Scipy 1.5
-          - case-name: old SciPy
-            os: ubuntu-latest
-            python-version: "3.8"
-            numpy-requirement: ">=1.20,<1.21"
-            scipy-requirement: ">=1.5,<1.6"
-            condaforge: 1
-            oldcython: 1
-
-          # No MKL runs.  MKL is now the default for conda installations, but
-          # not necessarily for pip.
-          - case-name: no MKL
+          # Python 3.9, Scipy 1.7, numpy 1.22
+          # On more version than suggested by SPEC 0
+          # https://scientific-python.org/specs/spec-0000/
+          # There are deprecation warnings when using cython 0.29.X
+          - case-name: Old setup
             os: ubuntu-latest
             python-version: "3.9"
-            numpy-requirement: ">=1.20,<1.21"
-            nomkl: 1
-
-          # Builds without Cython at runtime.  This is a core feature;
-          # everything should be able to run this.
-          - case-name: no Cython
-            os: ubuntu-latest
-            python-version: "3.8"
-            nocython: 1
-
-          # Python 3.10 and numpy 1.22
-          # Use conda-forge to provide numpy 1.22
-          - case-name: Python 3.10
-            os: ubuntu-latest
-            python-version: "3.10"
+            scipy-requirement: ">=1.8,<1.9"
+            numpy-requirement: ">=1.22,<1.23"
             condaforge: 1
             oldcython: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
 
-          # Python 3.11 and latest numpy
+          # Python 3.10, no mkl, scipy 1.9, numpy 1.23
+          # Scipy 1.9 did not support cython 3.0 yet.
+          # cython#17234
+          - case-name: no mkl
+            os: ubuntu-latest
+            python-version: "3.10"
+            scipy-requirement: ">=1.9,<1.10"
+            numpy-requirement: ">=1.23,<1.24"
+            condaforge: 1
+            oldcython: 1
+            nomkl: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
+
+          # Python 3.10, no cython, scipy 1.10, numpy 1.24
+          - case-name: no cython
+            os: ubuntu-latest
+            python-version: "3.10"
+            scipy-requirement: ">=1.10,<1.11"
+            numpy-requirement: ">=1.24,<1.25"
+            nocython: 1
+
+          # Python 3.11 and recent numpy
           # Use conda-forge to provide Python 3.11 and latest numpy
           # Ignore deprecation of the cgi module in Python 3.11 that is
           # still imported by Cython.Tempita. This was addressed in
@@ -86,8 +81,30 @@ jobs:
             os: ubuntu-latest
             python-version: "3.11"
             condaforge: 1
+            scipy-requirement: ">=1.11,<1.12"
+            numpy-requirement: ">=1.25,<1.26"
             conda-extra-pkgs: "suitesparse"  # for compiling cvxopt
-            pytest-extra-options: "-W ignore::DeprecationWarning:Cython.Tempita"
+
+          # Python 3.12 and latest numpy
+          # Use conda-forge to provide Python 3.11 and latest numpy
+          - case-name: Python 3.12
+            os: ubuntu-latest
+            python-version: "3.12"
+            scipy-requirement: ">=1.12,<1.13"
+            numpy-requirement: ">=1.26,<1.27"
+            condaforge: 1
+            pytest-extra-options: "-W ignore:datetime:DeprecationWarning"
+            # Install mpi4py to test mpi_pmap
+            # Should be enough to include this in one of the runs
+            includempi: 1
+
+          # Mac
+          # Mac has issues with MKL since september 2022.
+          - case-name: macos
+            os: macos-latest
+            python-version: "3.11"
+            condaforge: 1
+            nomkl: 1
 
           # Windows. Once all tests pass without special options needed, this
           # can be moved to the main os list in the test matrix. All the tests
@@ -95,13 +112,12 @@ jobs:
           # multiprocessing under the hood. Windows does not support fork()
           # well, which makes transfering objects to the child processes
           # error prone. See, e.g., https://github.com/qutip/qutip/issues/1202
-          - case-name: Windows Latest
+          - case-name: Windows
             os: windows-latest
-            python-version: "3.10"
+            python-version: "3.11"
 
     steps:
       - uses: actions/checkout@v3
-
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
@@ -113,7 +129,7 @@ jobs:
         # rather than in the GitHub Actions file directly, because bash gives us
         # a proper programming language to use.
         run: |
-          QUTIP_TARGET="tests,graphics,semidefinite,ipython"
+          QUTIP_TARGET="tests,graphics,semidefinite,ipython,extras"
           if [[ -z "${{ matrix.nocython }}" ]]; then
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
           fi
@@ -132,6 +148,10 @@ jobs:
           fi
           if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install "${{ matrix.conda-extra-pkgs }}"
+          fi
+          if [[ "${{ matrix.includempi }}" ]]; then
+            # Use openmpi because mpich causes problems. Note, environment variable names change in v5
+            conda install "openmpi<5" mpi4py
           fi
           python -m pip install -e .[$QUTIP_TARGET]
           python -m pip install "coverage${{ matrix.coverage-requirement }}"
@@ -163,6 +183,12 @@ jobs:
             # actually that many CPUs.  We have to check any dispatch code is
             # truly being executed.
             export QUTIP_NUM_PROCESSES=2
+          fi
+          if [[ "${{ matrix.includempi }}" ]]; then
+            # By default, the max. number of allowed worker processes in openmpi is
+            # (number of physical cpu cores) - 1.
+            # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
+            export OMPI_MCA_rmaps_base_oversubscribe=true
           fi
           pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
           # Above flags are:

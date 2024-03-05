@@ -296,7 +296,7 @@ cpdef CSR copy_structure(CSR matrix):
     return out
 
 
-cpdef inline base.idxint nnz(CSR matrix) nogil:
+cpdef inline base.idxint nnz(CSR matrix) noexcept nogil:
     """Get the number of non-zero elements of a CSR matrix."""
     return matrix.row_index[matrix.shape[0]]
 
@@ -311,7 +311,7 @@ ctypedef fused _swap_data:
     double complex
     base.idxint
 
-cdef inline void _sorter_swap(_swap_data *a, _swap_data *b) nogil:
+cdef inline void _sorter_swap(_swap_data *a, _swap_data *b) noexcept nogil:
     a[0], b[0] = b[0], a[0]
 
 cdef class Sorter:
@@ -530,9 +530,21 @@ cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
         <base.idxint *> PyDataMem_NEW(size * sizeof(base.idxint))
     out.row_index =\
         <base.idxint *> PyDataMem_NEW(row_size * sizeof(base.idxint))
-    if not out.data: raise MemoryError()
-    if not out.col_index: raise MemoryError()
-    if not out.row_index: raise MemoryError()
+    if not out.data:
+        raise MemoryError(
+            f"Failed to allocate the `data` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
+    if not out.col_index:
+        raise MemoryError(
+            f"Failed to allocate the `col_index` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
+    if not out.row_index:
+        raise MemoryError(
+            f"Failed to allocate the `row_index` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
     # Set the number of non-zero elements to 0.
     out.row_index[rows] = 0
     return out
@@ -604,7 +616,10 @@ cdef CSR from_coo_pointers(
     data_tmp = <double complex *> mem.PyMem_Malloc(nnz * sizeof(double complex))
     cols_tmp = <base.idxint *> mem.PyMem_Malloc(nnz * sizeof(base.idxint))
     if data_tmp == NULL or cols_tmp == NULL:
-        raise MemoryError
+        raise MemoryError(
+            f"Failed to allocate the memory needed for a ({n_rows}, {n_cols}) "
+            f"CSR array with {nnz} elements."
+        )
     with nogil:
         memset(out.row_index, 0, (n_rows + 1) * sizeof(base.idxint))
         for ptr_in in range(nnz):
@@ -643,29 +658,26 @@ cdef CSR from_coo_pointers(
 
 
 cpdef CSR from_dia(Dia matrix):
-    if matrix.num_diag == 0:
-        return zeros(*matrix.shape)
-    mat = matrix.as_scipy()
-    ordered = np.argsort(mat.offsets)
-    nnz = len(mat.offsets) * max(mat.shape)
-    ptrs = np.zeros(mat.shape[0]+1, dtype=idxint_dtype)
-    indices = np.zeros(nnz, dtype=idxint_dtype)
-    data = np.zeros(nnz, dtype=complex)
+    cdef base.idxint col, diag, i, ptr=0
+    cdef base.idxint nrows=matrix.shape[0], ncols=matrix.shape[1]
+    cdef base.idxint nnz = matrix.num_diag * min(matrix.shape)
+    cdef double complex[:] data = np.zeros(nnz, dtype=complex)
+    cdef base.idxint[:] cols = np.zeros(nnz, dtype=idxint_dtype)
+    cdef base.idxint[:] rows = np.zeros(nnz, dtype=idxint_dtype)
 
-    ptr = 0
-    for row in range(mat.shape[0]):
-        for idx in ordered:
-            off = mat.offsets[idx]
-            if off + row < 0:
+    for i in range(matrix.num_diag):
+        diag = matrix.offsets[i]
+
+        for col in range(ncols):
+            if col - diag < 0 or col - diag >= nrows:
                 continue
-            elif off + row >= mat.shape[1]:
-                break
-            indices[ptr] = off + row
-            data[ptr] = mat.data[idx, off + row]
+            data[ptr] = matrix.data[i * ncols + col]
+            rows[ptr] = col - diag
+            cols[ptr] = col
             ptr += 1
-        ptrs[row + 1] = ptr
 
-    return CSR((data, indices, ptrs), matrix.shape, copy=False)
+    return from_coo_pointers(&rows[0], &cols[0], &data[0], matrix.shape[0],
+                             matrix.shape[1], nnz)
 
 
 cdef inline base.idxint _diagonal_length(

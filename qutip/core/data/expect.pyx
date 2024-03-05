@@ -24,7 +24,7 @@ __all__ = [
     'expect_super_csr_dense', 'expect_super_dia_dense', 'expect_super_data',
 ]
 
-cdef void _check_shape_ket(Data op, Data state) except * nogil:
+cdef int _check_shape_ket(Data op, Data state) except -1 nogil:
     if (
         op.shape[1] != state.shape[0]  # Matrix multiplication
         or state.shape[1] != 1  # State is ket
@@ -32,8 +32,9 @@ cdef void _check_shape_ket(Data op, Data state) except * nogil:
     ):
         raise ValueError("incorrect input shapes "
                          + str(op.shape) + " and " + str(state.shape))
+    return 0
 
-cdef void _check_shape_dm(Data op, Data state) except * nogil:
+cdef int _check_shape_dm(Data op, Data state) except -1 nogil:
     if (
         op.shape[1] != state.shape[0]  # Matrix multiplication
         or state.shape[0] != state.shape[1]  # State is square
@@ -41,15 +42,18 @@ cdef void _check_shape_dm(Data op, Data state) except * nogil:
     ):
         raise ValueError("incorrect input shapes "
                          + str(op.shape) + " and " + str(state.shape))
+    return 0
 
-cdef void _check_shape_super(Data op, Data state) except * nogil:
+cdef int _check_shape_super(Data op, Data state) except -1 nogil:
     if state.shape[1] != 1:
         raise ValueError("expected a column-stacked matrix")
     if (
         op.shape[1] != state.shape[0]  # Matrix multiplication
         or op.shape[0] != op.shape[1]  # Square matrix
     ):
-        raise ValueError("incompatible shapes " + str(op.shape) + ", " + str(state.shape))
+        raise ValueError("incompatible shapes "
+                         + str(op.shape) + ", " + str(state.shape))
+    return 0
 
 
 cdef double complex _expect_csr_ket(CSR op, CSR state) except * nogil:
@@ -94,7 +98,7 @@ cdef double complex _expect_csr_dm(CSR op, CSR state) except * nogil:
     return out
 
 
-cpdef double complex expect_super_csr(CSR op, CSR state) except * nogil:
+cpdef double complex expect_super_csr(CSR op, CSR state) except *:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -112,7 +116,7 @@ cpdef double complex expect_super_csr(CSR op, CSR state) except * nogil:
     return out
 
 
-cpdef double complex expect_csr(CSR op, CSR state) except * nogil:
+cpdef double complex expect_csr(CSR op, CSR state) except *:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -186,7 +190,7 @@ cdef double complex _expect_dense_dense_dm(Dense op, Dense state) except * nogil
     return out
 
 
-cpdef double complex expect_csr_dense(CSR op, Dense state) except * nogil:
+cpdef double complex expect_csr_dense(CSR op, Dense state) except *:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -201,7 +205,7 @@ cpdef double complex expect_csr_dense(CSR op, Dense state) except * nogil:
     return _expect_csr_dense_dm(op, state)
 
 
-cpdef double complex expect_dense(Dense op, Dense state) except * nogil:
+cpdef double complex expect_dense(Dense op, Dense state) except *:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.

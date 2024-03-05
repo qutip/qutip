@@ -12,7 +12,7 @@ __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
 import warnings
 import itertools as it
 import numpy as np
-from numpy import pi, array, sin, cos, angle, log2
+from numpy import pi, array, sin, cos, angle, log2, sqrt
 
 from packaging.version import parse as parse_version
 
@@ -119,13 +119,13 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
     wigner : a wigner transformation
         The wigner transformation at `steps` different theta and phi.
 
-    reflections : bool, default=False
+    reflections : bool, default: False
         If the reflections of the sphere should be plotted as well.
 
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
 
-    colorbar : bool, default=True
+    colorbar : bool, default: True
         Whether (True) or not (False) a colorbar should be attached.
 
     fig : a matplotlib Figure instance, optional
@@ -296,7 +296,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     y_basis : list of strings, optional
         list of y ticklabels to represent y basis of the input.
 
-    color_style : string, default="scaled"
+    color_style : str, {"scaled", "threshold", "phase"}, default: "scaled"
 
         Determines how colors are assigned to each square:
 
@@ -310,14 +310,14 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
         -  If set to ``"phase"``, each color is chosen according to
            the angle of the corresponding matrix element.
 
-    label_top : bool, default=True
+    label_top : bool, default: True
         If True, x ticklabels will be placed on top, otherwise
         they will appear below the plot.
 
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
 
-    colorbar : bool, default=True
+    colorbar : bool, default: True
         Whether (True) or not (False) a colorbar should be attached.
 
     fig : a matplotlib Figure instance, optional
@@ -340,16 +340,16 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     Examples
     --------
     >>> import qutip
-    >>>
+
     >>> dm = qutip.rand_dm(4)
     >>> fig, ax = qutip.hinton(dm)
     >>> fig.show()
-    >>>
+
     >>> qutip.settings.colorblind_safe = True
     >>> fig, ax = qutip.hinton(dm, color_style="threshold")
     >>> fig.show()
     >>> qutip.settings.colorblind_safe = False
-    >>>
+
     >>> fig, ax = qutip.hinton(dm, color_style="phase")
     >>> fig.show()
     """
@@ -502,7 +502,7 @@ def sphereplot(values, theta, phi, *,
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
 
-    colorbar : bool, default=True
+    colorbar : bool, default: True
         Whether (True) or not (False) a colorbar should be attached.
 
     fig : a matplotlib Figure instance, optional
@@ -691,7 +691,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     limits : list/array with two float numbers, optional
         The z-axis limits [min, max]
 
-    bar_style : string, default="real"
+    bar_style : str, {"real", "img", "abs", "phase"}, default: "real"
 
         -  If set to ``"real"`` (default), each bar is plotted
            as the real part of the corresponding matrix element
@@ -705,7 +705,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     color_limits : list/array with two float numbers, optional
         The limits of colorbar [min, max]
 
-    color_style : string, default="real"
+    color_style : str, {"real", "img", "abs", "phase"}, default: "real"
         Determines how colors are assigned to each square:
 
         -  If set to ``"real"`` (default), each color is chosen
@@ -720,7 +720,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     cmap : a matplotlib colormap instance, optional
         Color map to use when plotting.
 
-    colorbar : bool, default=True
+    colorbar : bool, default: True
         show colorbar
 
     fig : a matplotlib Figure instance, optional
@@ -737,40 +737,40 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         'zticks' : list of numbers, optional
             A list of z-axis tick locations.
 
-        'bars_spacing' : float, default=0.1
+        'bars_spacing' : float, default: 0.1
             spacing between bars.
 
-        'bars_alpha' : float, default=1.
+        'bars_alpha' : float, default: 1.
             transparency of bars, should be in range 0 - 1
 
-        'bars_lw' : float, default=0.5
+        'bars_lw' : float, default: 0.5
             linewidth of bars' edges.
 
-        'bars_edgecolor' : color, default='k'
+        'bars_edgecolor' : color, default: 'k'
             The colors of the bars' edges.
             Examples: 'k', (0.1, 0.2, 0.5) or '#0f0f0f80'.
 
-        'shade' : bool, default=True
+        'shade' : bool, default: True
             Whether to shade the dark sides of the bars (True) or not (False).
             The shading is relative to plot's source of light.
 
-        'azim' : float, default=-35
+        'azim' : float, default: -35
             The azimuthal viewing angle.
 
-        'elev' : float, default=35
+        'elev' : float, default: 35
             The elevation viewing angle.
 
-        'stick' : bool, default=False
+        'stick' : bool, default: False
             Changes xlim and ylim in such a way that bars next to
             XZ and YZ planes will stick to those planes.
             This option has no effect if ``ax`` is passed as a parameter.
 
-        'cbar_pad' : float, default=0.04
+        'cbar_pad' : float, default: 0.04
             The fraction of the original axes between the colorbar
             and the new image axes.
             (i.e. the padding between the 3D figure and the colorbar).
 
-        'cbar_to_z' : bool, default=False
+        'cbar_to_z' : bool, default: False
             Whether to set the color of maximum and minimum z-values to the
             maximum and minimum colors in the colorbar (True) or not (False).
 
@@ -977,7 +977,7 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
             A list of  yticklabels to the left of energy levels of the initial
             Hamiltonian.
 
-        N : int, default=0
+        N : int, default: 0
             The number of energy levels to plot
 
         fig : a matplotlib Figure instance, optional
@@ -1062,16 +1062,16 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
     Parameters
     ----------
-    rho : `qutip.Qobj`
+    rho : :obj:`.Qobj`
         The density matrix (or ket) of the state to visualize.
 
     fock_numbers : list of strings, optional
         list of x ticklabels to represent fock numbers
 
-    color : color or list of colors, default="green"
+    color : color or list of colors, default: "green"
         The colors of the bar faces.
 
-    unit_y_range : bool, default=True
+    unit_y_range : bool, default: True
         Set y-axis limits [0, 1] or not
 
     fig : a matplotlib Figure instance, optional
@@ -1126,16 +1126,16 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
     return fig, output
 
 
-def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
-                projection='2d', *, cmap=None, colorbar=False,
-                fig=None, ax=None):
+def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
+                g=sqrt(2), sparse=False, parfor=False, *,
+                cmap=None, colorbar=False, fig=None, ax=None):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
 
     Parameters
     ----------
-    rho : `qutip.Qobj`
+    rho : :obj:`.Qobj`
         The density matrix (or ket) of the state to visualize.
 
     xvec : array_like, optional
@@ -1145,19 +1145,30 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
         y-coordinates at which to calculate the Wigner function.  Does not
         apply to the 'fft' method.
 
-    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'},
-        default='clenshaw'
+    method : str {'clenshaw', 'iterative', 'laguerre', 'fft'}, default: 'clenshaw'
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
 
-    projection: string {'2d', '3d'}, default='2d'
+    projection: str {'2d', '3d'}, default: '2d'
         Specify whether the Wigner function is to be plotted as a
         contour graph ('2d') or surface plot ('3d').
+
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+        See the documentation for qutip.wigner for details.
+
+    sparse : bool {False, True}
+        Flag for sparse format.
+        See the documentation for qutip.wigner for details.
+
+    parfor : bool {False, True}
+        Flag for parallel calculation.
+        See the documentation for qutip.wigner for details.
 
     cmap : a matplotlib cmap instance, optional
         The colormap.
 
-    colorbar : bool, default=False
+    colorbar : bool, default: False
         Whether (True) or not (False) a colorbar should be attached to the
         Wigner function graph.
 
@@ -1194,7 +1205,10 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
         if isket(rho):
             rho = ket2dm(rho)
 
-        W0 = wigner(rho, xvec, yvec, method=method)
+        W0 = wigner(
+            rho, xvec, yvec, method=method,
+            g=g, sparse=sparse, parfor=parfor
+        )
 
         W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)
         Ws.append(W)
@@ -1209,8 +1223,11 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     artist_list = list()
     for W in Ws:
         if projection == '2d':
-            cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
-                             cmap=cmap).collections
+            if parse_version(mpl.__version__) >= parse_version('3.8'):
+                cf = [ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)]
+            else:
+                cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
+                                 cmap=cmap).collections
         else:
             X, Y = np.meshgrid(xvec, yvec)
             cf = [ax.plot_surface(X, Y, W, rstride=5, cstride=5, linewidth=0.5,
@@ -1243,9 +1260,10 @@ def plot_expectation_values(results, ylabels=None, *,
     Visualize the results (expectation values) for an evolution solver.
     `results` is assumed to be an instance of Result, or a list of Result
     instances.
+
     Parameters
     ----------
-    results : (list of) :class:`qutip.solver.Result`
+    results : (list of) :class:`.Result`
         List of results objects returned by any of the QuTiP evolution solvers.
 
     ylabels : list of strings, optional
@@ -1309,7 +1327,7 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
     PHI : matrix
         Meshgrid matrix for the phi coordinate. Its range is between 0 and 2*pi
 
-    projection: string {'2d', '3d'}, default='2d'
+    projection: str {'2d', '3d'}, default: '2d'
         Specify whether the spin distribution function is to be plotted as a 2D
         projection where the surface of the unit sphere is mapped on
         the unit disk ('2d') or surface plot ('3d').
@@ -1317,7 +1335,7 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
     cmap : a matplotlib cmap instance, optional
         The colormap.
 
-    colorbar : bool, default=False
+    colorbar : bool, default: False
         Whether (True) or not (False) a colorbar should be attached to the
         Wigner function graph.
 
@@ -1416,7 +1434,7 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
     X : array
         Array (of any dimension) of complex numbers.
 
-    theme : 'light' or 'dark', default='light'
+    theme : str {'light', 'dark'}, default: 'light'
         Set coloring theme for mapping complex values into colors.
 
     rmax : float, optional
@@ -1587,22 +1605,22 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
     ket : Qobj
         Pure state for plotting.
 
-    theme : 'light' or 'dark', default='light'
+    theme : str {'light', 'dark'}, default: 'light'
         Set coloring theme for mapping complex values into colors.
         See: complex_array_to_rgb.
 
-    how : 'pairs', 'pairs_skewed' or 'before_after', default='pairs'
+    how : str {'pairs', 'pairs_skewed' or 'before_after'}, default: 'pairs'
         Type of Qubism plotting.  Options:
 
         - 'pairs' - typical coordinates,
         - 'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
         - 'before_after' - related to Schmidt plot (see also: plot_schmidt).
 
-    grid_iteration : int, default=1
+    grid_iteration : int, default: 1
         Helper lines to be drawn on plot.
         Show tiles for 2*grid_iteration particles vs all others.
 
-    legend_iteration : int or 'grid_iteration' or 'all', default=0
+    legend_iteration : int or 'grid_iteration' or 'all', default: 0
         Show labels for first ``2*legend_iteration`` particles.  Option
         'grid_iteration' sets the same number of particles as for
         grid_iteration.  Option 'all' makes label for all particles.  Typically
@@ -1771,7 +1789,7 @@ def plot_schmidt(ket, theme='light', splitting=None,
     ket : Qobj
         Pure state for plotting.
 
-    theme : 'light' or 'dark', default='light'
+    theme : str {'light', 'dark'}, default: 'light'
         Set coloring theme for mapping complex values into colors.
         See: complex_array_to_rgb.
 
@@ -1779,7 +1797,7 @@ def plot_schmidt(ket, theme='light', splitting=None,
         Plot for a number of first particles versus the rest.
         If not given, it is (number of particles + 1) // 2.
 
-    labels_iteration : int or pair of ints, default=(3,2)
+    labels_iteration : int or pair of ints, default: (3, 2)
         Number of particles to be shown as tick labels,
         for first (vertical) and last (horizontal) particles, respectively.
 

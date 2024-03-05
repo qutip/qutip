@@ -12,7 +12,7 @@ Tensor products
 
 To describe the states of multipartite quantum systems - such as two coupled qubits, a qubit coupled to an oscillator, etc. - we need to expand the Hilbert space by taking the tensor product of the state vectors for each of the system components. Similarly, the operators acting on the state vectors in the combined Hilbert space (describing the coupled system) are formed by taking the tensor product of the individual operators.
 
-In QuTiP the function :func:`qutip.core.tensor.tensor` is used to accomplish this task. This function takes as argument a collection::
+In QuTiP the function :func:`~qutip.core.tensor.tensor` is used to accomplish this task. This function takes as argument a collection::
 
 >>> tensor(op1, op2, op3) # doctest: +SKIP
 
@@ -58,7 +58,7 @@ or equivalently using the ``list`` format:
      [0.]
      [0.]]
 
-This is straightforward to generalize to more qubits by adding more component state vectors in the argument list to the :func:`qutip.core.tensor.tensor` function, as illustrated in the following example:
+This is straightforward to generalize to more qubits by adding more component state vectors in the argument list to the :func:`~qutip.core.tensor.tensor` function, as illustrated in the following example:
 
 .. testcode:: [tensor]
 
@@ -83,7 +83,7 @@ This is straightforward to generalize to more qubits by adding more component st
 
 This state is slightly more complicated, describing two qubits in a superposition between the up and down states, while the third qubit is in its ground state.
 
-To construct operators that act on an extended Hilbert space of a combined system, we similarly pass a list of operators for each component system to the :func:`qutip.core.tensor.tensor` function. For example, to form the operator that represents the simultaneous action of the :math:`\sigma_x` operator on two qubits:
+To construct operators that act on an extended Hilbert space of a combined system, we similarly pass a list of operators for each component system to the :func:`~qutip.core.tensor.tensor` function. For example, to form the operator that represents the simultaneous action of the :math:`\sigma_x` operator on two qubits:
 
 .. testcode:: [tensor]
 
@@ -125,7 +125,7 @@ To create operators in a combined Hilbert space that only act on a single compon
 Example: Constructing composite Hamiltonians
 ============================================
 
-The :func:`qutip.core.tensor.tensor` function is extensively used when constructing Hamiltonians for composite systems. Here we'll look at some simple examples.
+The :func:`~qutip.core.tensor.tensor` function is extensively used when constructing Hamiltonians for composite systems. Here we'll look at some simple examples.
 
 .. _tensor-product-example-2qubits:
 
@@ -189,15 +189,16 @@ A two-level system coupled to a cavity: The Jaynes-Cummings model
 
 The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electromagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity ``omega_a`` and ``omega_c``, respectively, and the atom-cavity interaction strength ``g``, the Jaynes-Cummings Hamiltonian can be constructed as:
 
-.. testcode:: [tensor]
+.. plot::
+    :context: reset
 
-    N = 10
+    N = 6
 
     omega_a = 1.0
 
     omega_c = 1.25
 
-    g = 0.05
+    g = 0.75
 
     a = tensor(identity(2), destroy(N))
 
@@ -207,95 +208,7 @@ The simplest possible quantum mechanical description for light-matter interactio
 
     H = 0.5 * omega_a * sz + omega_c * a.dag() * a + g * (a.dag() * sm + a * sm.dag())
 
-    print(H)
-
-**Output**:
-
-.. testoutput:: [tensor]
-    :options: +NORMALIZE_WHITESPACE
-
-    Quantum object: dims = [[2, 10], [2, 10]], shape = (20, 20), type = oper, isherm = True
-    Qobj data =
-    [[ 0.5         0.          0.          0.          0.          0.
-       0.          0.          0.          0.          0.          0.
-       0.          0.          0.          0.          0.          0.
-       0.          0.        ]
-     [ 0.          1.75        0.          0.          0.          0.
-       0.          0.          0.          0.          0.05        0.
-       0.          0.          0.          0.          0.          0.
-       0.          0.        ]
-     [ 0.          0.          3.          0.          0.          0.
-       0.          0.          0.          0.          0.          0.07071068
-       0.          0.          0.          0.          0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          4.25        0.          0.
-       0.          0.          0.          0.          0.          0.
-       0.08660254  0.          0.          0.          0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.          5.5         0.
-       0.          0.          0.          0.          0.          0.
-       0.          0.1         0.          0.          0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.          6.75
-       0.          0.          0.          0.          0.          0.
-       0.          0.          0.1118034   0.          0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.          0.
-       8.          0.          0.          0.          0.          0.
-       0.          0.          0.          0.12247449  0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.          0.
-       0.          9.25        0.          0.          0.          0.
-       0.          0.          0.          0.          0.13228757  0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.          0.
-       0.          0.         10.5         0.          0.          0.
-       0.          0.          0.          0.          0.          0.14142136
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.          0.
-       0.          0.          0.         11.75        0.          0.
-       0.          0.          0.          0.          0.          0.
-       0.15        0.        ]
-     [ 0.          0.05        0.          0.          0.          0.
-       0.          0.          0.          0.         -0.5         0.
-       0.          0.          0.          0.          0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.07071068  0.          0.          0.
-       0.          0.          0.          0.          0.          0.75
-       0.          0.          0.          0.          0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.08660254  0.          0.
-       0.          0.          0.          0.          0.          0.
-       2.          0.          0.          0.          0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.1         0.
-       0.          0.          0.          0.          0.          0.
-       0.          3.25        0.          0.          0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.          0.1118034
-       0.          0.          0.          0.          0.          0.
-       0.          0.          4.5         0.          0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.          0.
-       0.12247449  0.          0.          0.          0.          0.
-       0.          0.          0.          5.75        0.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.          0.
-       0.          0.13228757  0.          0.          0.          0.
-       0.          0.          0.          0.          7.          0.
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.          0.
-       0.          0.          0.14142136  0.          0.          0.
-       0.          0.          0.          0.          0.          8.25
-       0.          0.        ]
-     [ 0.          0.          0.          0.          0.          0.
-       0.          0.          0.          0.15        0.          0.
-       0.          0.          0.          0.          0.          0.
-       9.5         0.        ]
-     [ 0.          0.          0.          0.          0.          0.
-       0.          0.          0.          0.          0.          0.
-       0.          0.          0.          0.          0.          0.
-       0.         10.75      ]]
+    hinton(H, fig=plt.figure(figsize=(12, 12)))
 
 
 Here ``N`` is the number of Fock states included in the cavity mode.
@@ -305,7 +218,12 @@ Here ``N`` is the number of Fock states included in the cavity mode.
 Partial trace
 =============
 
-The partial trace is an operation that reduces the dimension of a Hilbert space by eliminating some degrees of freedom by averaging (tracing). In this sense it is therefore the converse of the tensor product. It is useful when one is interested in only a part of a coupled quantum system.  For open quantum systems, this typically involves tracing over the environment leaving only the system of interest.  In QuTiP the class method  :func:`qutip.Qobj.ptrace` is used to take partial traces. :func:`qutip.Qobj.ptrace` acts on the :class:`qutip.Qobj` instance for which it is called, and it takes one argument ``sel``, which is a ``list`` of integers that mark the component systems that should be **kept**. All other components are traced out.
+The partial trace is an operation that reduces the dimension of a Hilbert space by eliminating some degrees of freedom by averaging (tracing).
+In this sense it is therefore the converse of the tensor product.
+It is useful when one is interested in only a part of a coupled quantum system.
+For open quantum systems, this typically involves tracing over the environment leaving only the system of interest.
+In QuTiP the class method  :meth:`~qutip.core.qobj.Qobj.ptrace` is used to take partial traces. :meth:`~qutip.core.qobj.Qobj.ptrace` acts on the :class:`~qutip.core.qobj.Qobj` instance for which it is called, and it takes one argument ``sel``, which is a ``list`` of integers that mark the component systems that should be **kept**.
+All other components are traced out.
 
 For example, the density matrix describing a single qubit obtained from a coupled two-qubit system is obtained via:
 
@@ -374,8 +292,8 @@ using the isomorphism
 To represent superoperators acting on :math:`\mathcal{L}(\mathcal{H}_1 \otimes \mathcal{H}_2)` thus takes some tensor rearrangement to get the desired ordering
 :math:`\mathcal{H}_1 \otimes \mathcal{H}_2 \otimes \mathcal{H}_1 \otimes \mathcal{H}_2`.
 
-In particular, this means that :func:`qutip.tensor` does not act as
-one might expect on the results of :func:`qutip.superop_reps.to_super`:
+In particular, this means that :func:`.tensor` does not act as
+one might expect on the results of :func:`.to_super`:
 
 .. doctest:: [tensor]
 
@@ -394,8 +312,8 @@ of the compound index with dims ``[2, 3]``. In the latter
 case, however, each of the Hilbert space indices is listed
 independently and in the wrong order.
 
-The :func:`qutip.tensor.super_tensor` function performs the needed
-rearrangement, providing the most direct analog to :func:`qutip.tensor` on
+The :func:`.super_tensor` function performs the needed
+rearrangement, providing the most direct analog to :func:`.tensor` on
 the underlying Hilbert space. In particular, for any two ``type="oper"``
 Qobjs ``A`` and ``B``, ``to_super(tensor(A, B)) == super_tensor(to_super(A), to_super(B))`` and
 ``operator_to_vector(tensor(A, B)) == super_tensor(operator_to_vector(A), operator_to_vector(B))``. Returning to the previous example:
@@ -405,8 +323,8 @@ Qobjs ``A`` and ``B``, ``to_super(tensor(A, B)) == super_tensor(to_super(A), to_
   >>> super_tensor(to_super(A), to_super(B)).dims
   [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
 
-The :func:`qutip.tensor.composite` function automatically switches between
-:func:`qutip.tensor` and :func:`qutip.tensor.super_tensor` based on the ``type``
+The :func:`.composite` function automatically switches between
+:func:`.tensor` and :func:`.super_tensor` based on the ``type``
 of its arguments, such that ``composite(A, B)`` returns an appropriate Qobj to
 represent the composition of two systems.
 
@@ -421,9 +339,8 @@ represent the composition of two systems.
 QuTiP also allows more general tensor manipulations that are
 useful for converting between superoperator representations [WBC11]_.
 In particular, the :func:`~qutip.core.tensor.tensor_contract` function allows for
-contracting one or more pairs of indices. As detailed in
-the `channel contraction tutorial`_, this can be used to find
-superoperators that represent partial trace maps.
+contracting one or more pairs of indices.
+This can be used to find superoperators that represent partial trace maps.
 Using this functionality, we can construct some quite exotic maps,
 such as a map from :math:`3 \times 3` operators to :math:`2 \times 2`
 operators:
@@ -434,5 +351,6 @@ operators:
   [[[2], [2]], [[3], [3]]]
 
 
-
-.. _channel contraction tutorial: https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/superop-contract.ipynb
+..
+    TODO: remake from notebook to tutorials
+    .. _channel contraction tutorial: github/qutip/qutip-notebooks/blob/master/examples/superop-contract.ipynb

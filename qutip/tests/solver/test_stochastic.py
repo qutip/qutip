@@ -316,3 +316,64 @@ def test_m_ops(heterodyne):
     noise = res.expect[0][1:] - res.measurement[0][0]
     assert np.mean(noise) == pytest.approx(0., abs=std/50**0.5 * 4)
     assert np.std(noise) == pytest.approx(std, abs=std/50**0.5 * 4)
+
+
+def test_feedback():
+    tol = 0.05
+    N = 10
+    ntraj = 2
+
+    def func(t, A, W):
+        return (A - 6) * (A.real > 6.) * W(t)[0]
+
+    H = num(10)
+    sc_ops = [QobjEvo(
+        [destroy(N), func],
+        args={
+            "A": SMESolver.ExpectFeedback(num(10)),
+            "W": SMESolver.WeinerFeedback()
+        }
+    )]
+    psi0 = basis(N, N-3)
+
+    times = np.linspace(0, 10, 101)
+    options = {"map": "serial", "dt": 0.001}
+
+    solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
+    results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
+
+    assert np.all(results.expect[0] > 6.-1e-6)
+    assert np.all(results.expect[0][-20:] < 6.7)
+
+
+def test_deprecation_warnings():
+    with pytest.warns(FutureWarning, match=r'map_func'):
+        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], map_func=None)
+
+    with pytest.warns(FutureWarning, match=r'progress_bar'):
+        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], progress_bar=None)
+
+    with pytest.warns(FutureWarning, match=r'nsubsteps'):
+        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], nsubsteps=None)
+
+    with pytest.warns(FutureWarning, match=r'map_func'):
+        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], map_func=None)
+
+    with pytest.warns(FutureWarning, match=r'store_all_expect'):
+        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], store_all_expect=1)
+
+    with pytest.warns(FutureWarning, match=r'store_measurement'):
+        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], store_measurement=1)
+
+    with pytest.raises(TypeError) as err:
+        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], m_ops=1)
+    assert '"m_ops" and "dW_factors"' in str(err.value)
+
+
+@pytest.mark.parametrize("method", ["euler", "rouchon"])
+def test_small_step_warnings(method):
+    with pytest.warns(RuntimeWarning, match=r'under minimum'):
+        smesolve(
+            qeye(2), basis(2), [0, 0.0000001], [qeye(2)],
+            options={"method": method}
+        )

@@ -15,18 +15,20 @@ __all__ = [
 ]
 
 
-cdef void _check_shape(Data matrix) except * nogil:
+cdef int _check_shape(Data matrix) except -1 nogil:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("".join([
             "matrix shape ", str(matrix.shape), " is not square.",
         ]))
+    return 0
 
 
-cdef void _check_shape_oper_ket(int N, Data matrix) except * nogil:
+cdef int _check_shape_oper_ket(int N, Data matrix) except -1 nogil:
     if matrix.shape[0] != N * N or matrix.shape[1] != 1:
         raise ValueError("".join([
             "matrix ", str(matrix.shape), " is not a stacked square matrix."
         ]))
+    return 0
 
 
 cpdef double complex trace_csr(CSR matrix) except * nogil:

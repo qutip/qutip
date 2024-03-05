@@ -20,7 +20,7 @@ class Integrator:
     """
     A wrapper around ODE solvers.
     It ensures a common interface for Solver usage.
-    It takes and return states as :class:`qutip.core.data.Data`, it may return
+    It takes and return states as :class:`.Data`, it may return
     a different data-type than the input type.
 
     Parameters
@@ -111,7 +111,7 @@ class Integrator:
         t : float
             Time to integrate to, should be larger than the previous time.
 
-        copy : bool [True]
+        copy : bool, default: True
             Whether to return a copy of the state or the state itself.
 
         Returns
@@ -142,7 +142,7 @@ class Integrator:
             the last integrate call was use with ``step=True``, the time can be
             between the time at the start of the last call and now.
 
-        copy : bool [True]
+        copy : bool, default: True
             Whether to return a copy of the state or the state itself.
 
         Returns
@@ -173,7 +173,7 @@ class Integrator:
 
         Parameters
         ----------
-        copy : bool (True)
+        copy : bool, default: True
             Whether to return the data stored in the Integrator or a copy.
 
         Returns

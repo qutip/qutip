@@ -55,13 +55,13 @@ class Taylor1_5_SODE(_Explicit_Simple_Integrator):
         """
         Supported options by Order 1.5 strong Taylor Stochastic Integrators:
 
-        dt : float, default=0.001
+        dt : float, default: 0.001
             Internal time step.
 
-        tol : float, default=1e-10
+        tol : float, default: 1e-10
             Relative tolerance.
 
-        derr_dt : float, default=1e-6
+        derr_dt : float, default: 1e-6
             Finite time difference used to compute the derrivative of the
             hamiltonian and ``sc_ops``.
         """
@@ -126,22 +126,22 @@ class Implicit_Taylor1_5_SODE(_Implicit_Simple_Integrator):
         Supported options by Implicit Order 1.5 strong Taylor Stochastic
         Integrators:
 
-        dt : float, default=0.001
+        dt : float, default: 0.001
             Internal time step.
 
-        tol : float, default=1e-10
+        tol : float, default: 1e-10
             Tolerance for the time steps.
 
-        solve_method : str, default=None
+        solve_method : str, default: None
             Method used for solver the ``Ax=b`` of the implicit step.
             Accept methods supported by :func:`qutip.core.data.solve`.
             When the system is constant, the inverse of the matrix ``A`` can be
             used by entering ``inv``.
 
-        solve_options : dict, default={}
+        solve_options : dict, default: {}
             Options to pass to the call to :func:`qutip.core.data.solve`.
 
-        derr_dt : float, default=1e-6
+        derr_dt : float, default: 1e-6
             Finite time difference used to compute the derrivative of the
             hamiltonian and ``sc_ops``.
         """

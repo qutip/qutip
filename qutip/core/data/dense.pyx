@@ -120,7 +120,11 @@ cdef class Dense(base.Data):
         cdef Dense out = Dense.__new__(Dense)
         cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
-        if not ptr: raise MemoryError()
+        if not ptr:
+            raise MemoryError(
+                "Could not allocate memory to copy a "
+                f"({self.shape[0]}, {self.shape[1]}) Dense matrix."
+            )
         memcpy(ptr, self.data, size)
         out.shape = self.shape
         out.data = ptr
@@ -163,7 +167,11 @@ cdef class Dense(base.Data):
         """
         cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
-        if not ptr: raise MemoryError()
+        if not ptr:
+            raise MemoryError(
+                "Could not allocate memory to convert to a numpy array a "
+                f"({self.shape[0]}, {self.shape[1]}) Dense matrix."
+            )
         memcpy(ptr, self.data, size)
         cdef object out =\
             cnp.PyArray_SimpleNewFromData(2, [self.shape[0], self.shape[1]],
@@ -246,7 +254,11 @@ cpdef Dense empty(base.idxint rows, base.idxint cols, bint fortran=True):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
     out.data = <double complex *> PyDataMem_NEW(rows * cols * sizeof(double complex))
-    if not out.data: raise MemoryError()
+    if not out.data:
+        raise MemoryError(
+            "Could not allocate memory to create an empty "
+            f"({rows}, {cols}) Dense matrix."
+        )
     out._deallocate = True
     out.fortran = fortran
     return out
@@ -267,7 +279,11 @@ cpdef Dense zeros(base.idxint rows, base.idxint cols, bint fortran=True):
     out.shape = (rows, cols)
     out.data =\
         <double complex *> PyDataMem_NEW_ZEROED(rows * cols, sizeof(double complex))
-    if not out.data: raise MemoryError()
+    if not out.data:
+        raise MemoryError(
+            "Could not allocate memory to create a zero "
+            f"({rows}, {cols}) Dense matrix."
+        )
     out.fortran = fortran
     out._deallocate = True
     return out
@@ -294,7 +310,11 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
         <double complex *>
         PyDataMem_NEW_ZEROED(out.shape[0]*out.shape[1], sizeof(double complex))
     )
-    if not out.data: raise MemoryError()
+    if not out.data:
+        raise MemoryError(
+            "Could not allocate memory to create a "
+            f"({out.shape[0]}, {out.shape[1]}) Dense matrix from a CSR."
+        )
     out.fortran = fortran
     out._deallocate = True
     cdef size_t row, ptr_in, ptr_out, row_stride, col_stride

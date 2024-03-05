@@ -41,14 +41,14 @@ class MemoryCascade:
 
     Attributes
     ----------
-    H_S : :class:`qutip.Qobj`
+    H_S : :class:`.Qobj`
         System Hamiltonian (can also be a Liouvillian)
 
-    L1 : :class:`qutip.Qobj` / list of :class:`qutip.Qobj`
+    L1 : :class:`.Qobj` / list of :class:`.Qobj`
         System operators coupling into the feedback loop. Can be a single
         operator or a list of operators.
 
-    L2 : :class:`qutip.Qobj` / list of :class:`qutip.Qobj`
+    L2 : :class:`.Qobj` / list of :class:`.Qobj`
         System operators coupling out of the feedback loop. Can be a single
         operator or a list of operators. L2 must have the same length as L1.
 
@@ -57,7 +57,7 @@ class MemoryCascade:
         operators in L2 by the feedback channel. Defaults to an n by n identity
         matrix where n is the number of elements in L1/L2.
 
-    c_ops_markov : :class:`qutip.Qobj` / list of :class:`qutip.Qobj`
+    c_ops_markov : :class:`.Qobj` / list of :class:`.Qobj`
         Decay operators describing conventional Markovian decay channels.
         Can be a single operator or a list of operators.
 
@@ -140,7 +140,7 @@ class MemoryCascade:
             and a propagator for a single system is returned.
         Returns
         -------
-        : :class:`qutip.Qobj`
+        : :class:`.Qobj`
             time-propagator for reduced system dynamics
         """
         k = int(t / tau) + 1
@@ -186,12 +186,12 @@ class MemoryCascade:
         tau : float
             time-delay
 
-        c1 : :class:`qutip.Qobj`
+        c1 : :class:`.Qobj`
             system collapse operator that couples to the in-loop field in
             question (only needs to be specified if self.L1 has more than one
             element)
 
-        c2 : :class:`qutip.Qobj`
+        c2 : :class:`.Qobj`
             system collapse operator that couples to the output field in
             question (only needs to be specified if self.L2 has more than one
             element)
@@ -204,7 +204,7 @@ class MemoryCascade:
 
         Returns
         -------
-        : :class:`qutip.Qobj`
+        : :class:`.Qobj`
             time-propagator for computing field correlation function
         """
         if c1 is None and len(self.L1) == 1:
@@ -278,7 +278,7 @@ class MemoryCascade:
 
         Parameters
         ----------
-        rho0 : :class:`qutip.Qobj`
+        rho0 : :class:`.Qobj`
             initial density matrix or state vector (ket)
 
         t : float
@@ -289,7 +289,7 @@ class MemoryCascade:
 
         Returns
         -------
-        : :class:`qutip.Qobj`
+        : :class:`.Qobj`
             density matrix at time :math:`t`
         """
         if isket(rho0):
@@ -307,7 +307,7 @@ class MemoryCascade:
 
         Parameters
         ----------
-        rho0 : :class:`qutip.Qobj`
+        rho0 : :class:`.Qobj`
             initial density matrix or state vector (ket).
 
         blist : array_like
@@ -325,12 +325,12 @@ class MemoryCascade:
         tau : float
             time-delay
 
-        c1 : :class:`qutip.Qobj`
+        c1 : :class:`.Qobj`
             system collapse operator that couples to the in-loop field in
             question (only needs to be specified if self.L1 has more than one
             element)
 
-        c2 : :class:`qutip.Qobj`
+        c2 : :class:`.Qobj`
             system collapse operator that couples to the output field in
             question (only needs to be specified if self.L2 has more than one
             element)

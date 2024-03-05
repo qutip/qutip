@@ -32,7 +32,7 @@ where :math:`J_{\alpha,n}=\frac{1}{2}\sigma_{\alpha,n}` are SU(2) Pauli spin ope
 The inclusion of local processes in the dynamics lead to using a Liouvillian space of dimension :math:`4^N`. By exploiting the permutational invariance of identical particles [2-8], the Liouvillian :math:`\mathcal{D}_\text{TLS}(\rho)` can be built as a block-diagonal matrix in the basis of Dicke states :math:`|j, m \rangle`.
 
 The system under study is defined by creating an object of the
-:code:`Dicke` class, e.g. simply named
+:class:`~qutip.piqs.piqs.Dicke` class, e.g. simply named
 :code:`system`, whose first attribute is
 
 - :code:`system.N`, the number of TLSs of the system :math:`N`.
@@ -48,15 +48,16 @@ The rates for collective and local processes are simply defined as
 
 Then the :code:`system.lindbladian()` creates the total TLS Lindbladian superoperator matrix. Similarly, :code:`system.hamiltonian` defines the TLS hamiltonian of the system :math:`H_\text{TLS}`.
 
-The system's Liouvillian can be built using :code:`system.liouvillian()`. The properties of a Piqs object can be visualized by simply calling
-:code:`system`. We give two basic examples on the use of *PIQS*. In the first example the incoherent emission of N driven TLSs is considered.
+The system's Liouvillian can be built using :code:`system.liouvillian()`.
+The properties of a Piqs object can be visualized by simply calling :code:`system`.
+We give two basic examples on the use of *PIQS*.
+In the first example the incoherent emission of N driven TLSs is considered.
 
 .. code-block:: python
 
-    from piqs import Dicke
-    from qutip import steadystate
+    from qutip import piqs
     N = 10
-    system = Dicke(N, emission = 1, pumping = 2)
+    system = piqs.Dicke(N, emission = 1, pumping = 2)
     L = system.liouvillian()
     steady = steadystate(L)
 
@@ -109,6 +110,22 @@ For more example of use, see the "Permutational Invariant Lindblad Dynamics" sec
      - ``Dicke.c_ops()``
      - The collapse operators for the ensemble can be called by the `c_ops` method of the Dicke class.
 
-Note that the mathematical object representing the density matrix of the full system that is manipulated (or obtained from `steadystate`) in the Dicke-basis formalism used here is a *representative of the density matrix*. This *representative object* is of linear size N^2, whereas the full density matrix is defined over a 2^N Hilbert space. In order to calculate nonlinear functions of such density matrix, such as the Von Neumann entropy or the purity, it is necessary to take into account the degeneracy of each block of such block-diagonal density matrix. Note that as long as one calculates expected values of operators, being Tr[A*rho] a *linear* function of `rho`, the *representative density matrix* give straightforwardly the correct result. When a *nonlinear* function of the density matrix needs to be calculated, one needs to weigh each degenerate block correctly; this is taken care by the `dicke_function_trace` in `qutip.piqs`, and the user can use it to define general nonlinear functions that can be described as the trace of a Taylor expandable function. Two nonlinear functions that use `dicke_function_trace` and are already implemented are `purity_dicke`, to calculate the purity of a density matrix in the Dicke basis, and `entropy_vn_dicke`, which can be used to calculate the Von Neumann entropy.
+Note that the mathematical object representing the density matrix of the full system
+that is manipulated (or obtained from `steadystate`) in the Dicke-basis formalism
+used here is a *representative of the density matrix*. This *representative object*
+is of linear size N^2, whereas the full density matrix is defined over a 2^N Hilbert
+space. In order to calculate nonlinear functions of such density matrix, such as the
+Von Neumann entropy or the purity, it is necessary to take into account the degeneracy
+of each block of such block-diagonal density matrix. Note that as long as one calculates
+expected values of operators, being Tr[A*rho] a *linear* function of `rho`, the
+*representative density matrix* give straightforwardly the correct result. When a
+*nonlinear* function of the density matrix needs to be calculated, one needs to
+weigh each degenerate block correctly; this is taken care by the `dicke_function_trace`
+in :obj:`.piqs`, and the user can use it to define general nonlinear functions that
+can be described as the trace of a Taylor expandable function. Two nonlinear functions
+that use `dicke_function_trace` and are already implemented are `purity_dicke`, to
+calculate the purity of a density matrix in the Dicke basis, and `entropy_vn_dicke`,
+which can be used to calculate the Von Neumann entropy.
 
-More functions relative to the `qutip.piqs` module can be found at :ref:`apidoc`. Attributes to the :class:`qutip.piqs.Dicke` and :class:`qutip.piqs.Pim` class can also be found there.
+More functions relative to the :obj:`qutip.piqs` module can be found at :ref:`apidoc`.
+Attributes to the :class:`.piqs.Dicke` and :class:`.piqs.Pim` class can also be found there.
