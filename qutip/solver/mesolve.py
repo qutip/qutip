@@ -214,7 +214,7 @@ class MESolver(SESolver):
             else:
                 self.c_ops.append(QobjEvo(c_op))
 
-        super().__init__(None, options=options)
+        Solver.__init__(self, None, options=options)
 
     def _build_rhs(self):
         """
@@ -232,8 +232,8 @@ class MESolver(SESolver):
         if args:
             if self.H != 0.:
                 self.H.arguments(args)
-            if self.L0 != 0.:
-                self.L0.arguments(args)
+            for L in self.L0:
+                L.arguments(args)
             for c_op in self.c_ops:
                 c_op.arguments(args)
             self._integrator.arguments(args)

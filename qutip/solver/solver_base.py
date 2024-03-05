@@ -87,14 +87,14 @@ class Solver:
             self._dims[1] != state._dims[0]
             and self._dims[1] != state._dims
         ):
-            raise TypeError(f"incompatible dimensions {self.rhs.dims}"
+            raise TypeError(f"incompatible dimensions {self._dims.as_list()}"
                             f" and {state.dims}")
 
         self._state_metadata = {
-            'dims': state.dims,
+            'dims': state._dims,
             'isherm': state.isherm and not (self._dims == state._dims)
         }
-        if self.rhs.dims[1] == state.dims:
+        if self._dims[1] == state._dims:
             return stack_columns(state.data)
         return state.data
 
@@ -102,7 +102,7 @@ class Solver:
         """
         Retore the Qobj state from its data.
         """
-        if self._state_metadata['dims'] == self.rhs.dims[1]:
+        if self._state_metadata['dims'] == self._dims[1]:
             state = Qobj(unstack_columns(data),
                          **self._state_metadata, copy=False)
         else:
@@ -230,7 +230,9 @@ class Solver:
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self._build_rhs(), self.options)
+        rhs = self._build_rhs()
+        self._dims = rhs._dims
+        integrator_instance = integrator(rhs, self.options)
         self._init_integrator_time = time() - _time_start
         return integrator_instance
 

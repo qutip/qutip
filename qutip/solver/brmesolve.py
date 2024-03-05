@@ -296,6 +296,21 @@ class BRSolver(Solver):
         self._init_rhs_time = time() - _time_start
         return rhs
 
+    def _argument(self, args):
+        """Update the args, for the `rhs` and other operators."""
+        if args:
+            H, a_ops, c_ops = self._system
+            H.arguments(args)
+            for c_op in c_ops:
+                c_op.arguments(args)
+            new_a_ops = []
+            for a_op, spectra in a_ops:
+                if isinstance(a_op, QobjEvo):
+                    a_op.arguments(args)
+                new_a_ops.append((a_op, spectra))
+            self._integrator.arguments(args)
+            self._system = H, new_a_ops, c_ops
+
     @property
     def options(self):
         """
