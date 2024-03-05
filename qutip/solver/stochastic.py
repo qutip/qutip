@@ -4,6 +4,7 @@ from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .result import MultiTrajResult, Result, ExpectOp
 from .multitraj import MultiTrajSolver
 from .. import Qobj, QobjEvo
+from ..core.dimensions import Dimensions
 import numpy as np
 from functools import partial
 from .solver_base import _solver_deprecation
@@ -210,8 +211,10 @@ class _StochasticRHS:
 
         if self.issuper and not self.H.issuper:
             self.dims = [self.H.dims, self.H.dims]
+            self._dims = Dimensions([self.H._dims, self.H._dims])
         else:
             self.dims = self.H.dims
+            self._dims = self.H._dims
 
     def __call__(self, options):
         if self.issuper:
