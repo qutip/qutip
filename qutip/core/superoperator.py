@@ -12,6 +12,7 @@ from .qobj import Qobj
 from . import data as _data
 from .dimensions import Compound, SuperSpace, Space
 
+
 def _map_over_compound_operators(f):
     """
     Convert a function which takes Qobj into one that can also take compound
@@ -49,7 +50,7 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         In some systems it is possible to determine the statistical moments
         (mean, variance, etc) of the probability distributions of occupation of
         various states by numerically evaluating the derivatives of the steady
-        state occupation probability as a function of artificial phase 
+        state occupation probability as a function of artificial phase
         parameters ``chi`` which are included in the
         :func:`lindblad_dissipator` for each collapse operator. See the
         documentation of :func:`lindblad_dissipator` for references and further
@@ -106,7 +107,7 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         cdc = _data.matmul(cd, c)
         data = _data.add(data, _data.kron(c.conj(), c), np.exp(1j*chi_))
         data = _data.add(data, _data.kron(spI, cdc), -0.5)
-        data = _data.add(data, _data.kron_transpose(cdc,spI), -0.5)
+        data = _data.add(data, _data.kron_transpose(cdc, spI), -0.5)
 
     if data_only:
         return data
