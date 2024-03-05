@@ -111,7 +111,7 @@ jobs:
       CIBW_BUILD: "cp3{9,10,11,12}-*"
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
-      CIBW_SKIP: "*-musllinux* cp3{10,11,12}-manylinux_i686 cp3{10,11,12}-win32"
+      CIBW_SKIP: "*-musllinux* *-manylinux_i686 *-win32"
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
