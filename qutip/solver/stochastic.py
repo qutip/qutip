@@ -8,6 +8,7 @@ import numpy as np
 from functools import partial
 from .solver_base import _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback, _WeinerFeedback
+from ..core.dimensions import Dimensions
 
 
 class StochasticTrajResult(Result):
@@ -210,8 +211,10 @@ class _StochasticRHS:
 
         if self.issuper and not self.H.issuper:
             self.dims = [self.H.dims, self.H.dims]
+            self._dims = Dimensions([self.H._dims, self.H._dims])
         else:
             self.dims = self.H.dims
+            self._dims = self.H._dims
 
     def __call__(self, options):
         if self.issuper:
@@ -522,6 +525,7 @@ class StochasticSolver(MultiTrajSolver):
 
         rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
         self.rhs = rhs
+        self._dims = rhs._dims
         self.system = rhs
         self.options = options
         self.seed_sequence = np.random.SeedSequence()
@@ -537,6 +541,9 @@ class StochasticSolver(MultiTrajSolver):
         else:
             self._m_ops = [op + op.dag() for op in sc_ops]
             self._dW_factors = np.ones(len(sc_ops))
+
+    def _build_rhs(self):
+        return self.rhs
 
     @property
     def heterodyne(self):

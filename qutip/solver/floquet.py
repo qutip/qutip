@@ -796,7 +796,7 @@ class FMESolver(MESolver):
 
     def _build_rhs(self):
         c_ops, spectra_cb = zip(*self.a_ops)
-        rhs = QobjEvo(
+        self.rhs = QobjEvo(
             floquet_tensor(
                 self.floquet_basis,
                 c_ops,
@@ -804,8 +804,8 @@ class FMESolver(MESolver):
                 **self._floquet_param
             )
         )
-        rhs._register_feedback({}, solver=self.name)
-        return rhs
+        self.rhs._register_feedback({}, solver=self.name)
+        return self.rhs
 
     def _initialize_stats(self):
         stats = Solver._initialize_stats(self)

@@ -153,9 +153,9 @@ class SESolver(Solver):
         """
         Build the rhs QobjEvo.
         """
-        rhs = -1j * self.H
-        rhs._register_feedback({}, solver=self.name)
-        return rhs
+        self.rhs = -1j * self.H
+        self.rhs._register_feedback({}, solver=self.name)
+        return self.rhs
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""

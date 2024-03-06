@@ -285,16 +285,16 @@ class BRSolver(Solver):
 
     def _build_rhs(self):
         _time_start = time()
-        rhs = bloch_redfield_tensor(
+        self.rhs = bloch_redfield_tensor(
             *self._system,
             fock_basis=True,
             sec_cutoff=self.sec_cutoff,
             sparse_eigensolver=self.options['sparse_eigensolver'],
             br_dtype=self.options['tensor_type']
         )
-        rhs._register_feedback({}, solver=self.name)
+        self.rhs._register_feedback({}, solver=self.name)
         self._init_rhs_time = time() - _time_start
-        return rhs
+        return self.rhs
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""

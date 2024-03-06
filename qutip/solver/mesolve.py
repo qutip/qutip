@@ -220,12 +220,12 @@ class MESolver(SESolver):
         """
         Build the rhs QobjEvo.
         """
-        rhs = sum(self.L0)
+        self.rhs = sum(self.L0)
         if self.H != 0.:
-            rhs += liouvillian(self.H)
-        rhs += sum(lindblad_dissipator(c_op) for c_op in self.c_ops)
-        rhs._register_feedback({}, solver=self.name)
-        return rhs
+            self.rhs += liouvillian(self.H)
+        self.rhs += sum(lindblad_dissipator(c_op) for c_op in self.c_ops)
+        self.rhs._register_feedback({}, solver=self.name)
+        return self.rhs
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""
