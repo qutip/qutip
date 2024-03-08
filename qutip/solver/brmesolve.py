@@ -12,6 +12,7 @@ from .. import Qobj, QobjEvo, coefficient, Coefficient
 from ..core.blochredfield import bloch_redfield_tensor, SpectraCoefficient
 from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
+from ..core.dimensions import Dimensions
 from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
 from ._feedback import _QobjFeedback, _DataFeedback
@@ -239,19 +240,20 @@ class BRSolver(Solver):
     def __init__(self, H, a_ops, c_ops=None, sec_cutoff=0.1, *, options=None):
         _time_start = time()
 
-        self.rhs = None
         self.sec_cutoff = sec_cutoff
-        self.options = options
+        # self.options = options
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
-        H = QobjEvo(H)
+        self.H = QobjEvo(H)
+        self._dims = Dimensions.to_super(self.H._dims)
 
         c_ops = c_ops or []
         c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
         for c_op in c_ops:
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+        c_ops = [QobjEvo(c_op) for c_op in c_ops]
 
         a_ops = a_ops or []
         if not hasattr(a_ops, "__iter__"):
@@ -266,12 +268,17 @@ class BRSolver(Solver):
                 raise TypeError("All `a_ops` spectra "
                                 "must be a Coefficient.")
 
+        self.isconstant = self.H.isconstant
+        self.isconstant &= all(c_op.isconstant for c_op in c_ops)
+        self.isconstant &= all(isinstance(a_op, Qobj) for a_op, _ in a_ops)
+
         self._system = H, a_ops, c_ops
         self._num_collapse = len(c_ops)
         self._num_a_ops = len(a_ops)
-        self._integrator = self._get_integrator()
-        self._state_metadata = {}
-        self.stats = self._initialize_stats()
+        self._post_init(options)
+        # self._integrator = self._get_integrator()
+        # self._state_metadata = {}
+        # self.stats = self._initialize_stats()
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
@@ -285,16 +292,17 @@ class BRSolver(Solver):
 
     def _build_rhs(self):
         _time_start = time()
-        self.rhs = bloch_redfield_tensor(
+        rhs = bloch_redfield_tensor(
             *self._system,
             fock_basis=True,
             sec_cutoff=self.sec_cutoff,
             sparse_eigensolver=self.options['sparse_eigensolver'],
             br_dtype=self.options['tensor_type']
         )
-        self.rhs._register_feedback({}, solver=self.name)
+        rhs = QobjEvo(rhs)
+        rhs._register_feedback({}, solver=self.name)
         self._init_rhs_time = time() - _time_start
-        return self.rhs
+        return rhs
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""
@@ -354,12 +362,10 @@ class BRSolver(Solver):
         Solver.options.fset(self, new_options)
 
     def _apply_options(self, keys):
-        need_new_rhs = self.rhs is not None and not self.rhs.isconstant
+        need_new_rhs = not self.isconstant
         need_new_rhs &= (
             'sparse_eigensolver' in keys or 'tensor_type' in keys
         )
-        if need_new_rhs:
-            self.rhs = self._prepare_rhs()
 
         if self._integrator is None or not keys:
             pass

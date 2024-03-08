@@ -17,6 +17,7 @@ from .integrator import Integrator
 from .result import Result
 from time import time
 from ..ui.progressbar import progress_bars
+from ..core.dimensions import Dimensions
 
 
 class FloquetBasis:
@@ -94,6 +95,7 @@ class FloquetBasis:
         ):
             raise NotImplementedError("FloquetBasis does not support feedback")
         self.U = Propagator(H, args=args, options=options, memoize=memoize)
+        self._dims = self.U._dims
         for t in tlist:
             # Do the evolution by steps to save the intermediate results.
             self.U(t)
@@ -769,11 +771,12 @@ class FMESolver(MESolver):
         "method": "adams",
         "store_floquet_states": False,
     }
+    isconstant = False
 
     def __init__(
         self, floquet_basis, a_ops, w_th=0.0, *, kmax=5, nT=None, options=None
     ):
-        self.options = options
+        # self.options = options
         if isinstance(floquet_basis, FloquetBasis):
             self.floquet_basis = floquet_basis
         else:
@@ -784,19 +787,21 @@ class FMESolver(MESolver):
         self.a_ops = a_ops
         c_ops, spectra_cb = zip(*a_ops)
         self._floquet_param = {"w_th": w_th, "kmax": kmax, "nT": nT}
+        self._dims = Dimensions.to_super(self.floquet_basis._dims)
         if not all(
             isinstance(c_op, Qobj) and callable(spectrum)
             for c_op, spectrum in a_ops
         ):
             raise TypeError("a_ops must be tuple of (Qobj, callable)")
 
-        self._integrator = self._get_integrator()
-        self._state_metadata = {}
-        self.stats = self._initialize_stats()
+        self._post_init(options)
+        # self._integrator = self._get_integrator()
+        # self._state_metadata = {}
+        # self.stats = self._initialize_stats()
 
     def _build_rhs(self):
         c_ops, spectra_cb = zip(*self.a_ops)
-        self.rhs = QobjEvo(
+        rhs = QobjEvo(
             floquet_tensor(
                 self.floquet_basis,
                 c_ops,
@@ -804,8 +809,8 @@ class FMESolver(MESolver):
                 **self._floquet_param
             )
         )
-        self.rhs._register_feedback({}, solver=self.name)
-        return self.rhs
+        rhs._register_feedback({}, solver=self.name)
+        return rhs
 
     def _initialize_stats(self):
         stats = Solver._initialize_stats(self)

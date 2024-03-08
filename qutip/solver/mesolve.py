@@ -10,6 +10,7 @@ from time import time
 from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
+from ..core.dimensions import Dimensions
 from .solver_base import Solver, _solver_deprecation
 from .sesolve import sesolve, SESolver
 from ._feedback import _QobjFeedback, _DataFeedback
@@ -210,22 +211,31 @@ class MESolver(SESolver):
         self.c_ops = []
         for c_op in c_ops:
             if c_op.issuper:
-                self.L0 += [c_op]
+                self.L0 += [QobjEvo(c_op)]
             else:
                 self.c_ops.append(QobjEvo(c_op))
 
-        Solver.__init__(self, None, options=options)
+        self.isconstant = self.H.isconstant if self.H else True
+        self.isconstant &= all(c_op.isconstant for c_op in self.c_ops)
+        self.isconstant &= all(L_part.isconstant for L_part in self.L0)
+
+        if self.H:
+            self._dims = Dimensions.to_super(self.H._dims)
+        else:
+            self._dims = self.L0[0]._dims
+
+        self._post_init(options)
 
     def _build_rhs(self):
         """
         Build the rhs QobjEvo.
         """
-        self.rhs = sum(self.L0)
+        rhs = sum(self.L0)
         if self.H != 0.:
-            self.rhs += liouvillian(self.H)
-        self.rhs += sum(lindblad_dissipator(c_op) for c_op in self.c_ops)
-        self.rhs._register_feedback({}, solver=self.name)
-        return self.rhs
+            rhs += liouvillian(self.H)
+        rhs += sum(lindblad_dissipator(c_op) for c_op in self.c_ops)
+        rhs._register_feedback({}, solver=self.name)
+        return rhs
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""

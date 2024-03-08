@@ -146,17 +146,18 @@ class SESolver(Solver):
 
         self.H = QobjEvo(H)
         self._dims = self.H._dims
+        self.isconstant = self.H.isconstant
         if not self.H.isoper:
             raise ValueError("The hamiltonian must be an operator")
-        super().__init__(None, options=options)
+        self._post_init(options)
 
     def _build_rhs(self):
         """
         Build the rhs QobjEvo.
         """
-        self.rhs = -1j * self.H
-        self.rhs._register_feedback({}, solver=self.name)
-        return self.rhs
+        rhs = -1j * self.H
+        rhs._register_feedback({}, solver=self.name)
+        return rhs
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""

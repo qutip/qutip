@@ -233,7 +233,6 @@ class Solver:
         else:
             raise ValueError("Integrator method not supported.")
         rhs = self._build_rhs()
-        self._dims = rhs._dims
         integrator_instance = integrator(rhs, self.options)
         self._init_integrator_time = time() - _time_start
         return integrator_instance
@@ -246,7 +245,7 @@ class Solver:
         ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
         for this solver.
         """
-        return self.rhs.dims[0]
+        return self._dims[0]
 
     @property
     def options(self):

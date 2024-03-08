@@ -158,6 +158,7 @@ def _temporal_scattered_matrix(H, psi0, n_emissions, c_ops, tlist,
         Heff = H
 
     evolver = Propagator(Heff, memoize=len(tlist))
+    evolver.unitary = False
 
     all_emission_indices = combinations_with_replacement(range(T), n_emissions)
 
