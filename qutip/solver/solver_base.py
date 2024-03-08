@@ -44,11 +44,13 @@ class Solver:
     _resultclass = Result
 
     def __init__(self, rhs, *, options=None):
-        if isinstance(rhs, (QobjEvo, Qobj)):
-            self.rhs = QobjEvo(rhs)
-            self._dims = rhs._dims
-        elif rhs is not None:
+        if not isinstance(rhs, (QobjEvo, Qobj)):
             TypeError("The rhs must be a QobjEvo")
+        self.rhs = QobjEvo(rhs)
+        self._dims = rhs._dims
+        self._post_init(options)
+
+    def _post_init(self, options):
         self.options = options
         self._integrator = self._get_integrator()
         self._state_metadata = {}

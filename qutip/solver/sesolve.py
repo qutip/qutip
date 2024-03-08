@@ -145,6 +145,7 @@ class SESolver(Solver):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
 
         self.H = QobjEvo(H)
+        self._dims = self.H._dims
         if not self.H.isoper:
             raise ValueError("The hamiltonian must be an operator")
         super().__init__(None, options=options)

@@ -12,6 +12,7 @@ from .qobj import Qobj
 from . import data as _data
 from .dimensions import Compound, SuperSpace, Space
 
+
 def _map_over_compound_operators(f):
     """
     Convert a function which takes Qobj into one that can also take compound
@@ -49,7 +50,7 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         In some systems it is possible to determine the statistical moments
         (mean, variance, etc) of the probability distributions of occupation of
         various states by numerically evaluating the derivatives of the steady
-        state occupation probability as a function of artificial phase 
+        state occupation probability as a function of artificial phase
         parameters ``chi`` which are included in the
         :func:`lindblad_dissipator` for each collapse operator. See the
         documentation of :func:`lindblad_dissipator` for references and further
@@ -95,15 +96,10 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         L += sum(lindblad_dissipator(c_op, chi=chi_)
                  for c_op, chi_ in zip(c_ops, chi))
         return L
-
-    op_dims = H.dims
-    op_shape = H.shape
-    sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
-    sop_shape = [np.prod(op_dims), np.prod(op_dims)]
-    spI = _data.identity(op_shape[0], dtype=type(H.data))
-
+    spI = _data.identity_like(H.data)
     data = _data.mul(_data.kron(spI, H.data), -1j)
-    data = _data.add(data, _data.kron_transpose(H.data, spI), scale=1j)
+    data = _data.add(data, _data.kron_transpose(H.data, spI),
+                     scale=1j)
 
     for c_op, chi_ in zip(c_ops, chi):
         c = c_op.data
@@ -117,7 +113,7 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         return data
     else:
         return Qobj(data,
-                    dims=sop_dims,
+                    dims=[H._dims, H._dims],
                     superrep='super',
                     copy=False)
 
@@ -316,10 +312,9 @@ def spost(A):
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
-    Id = _data.identity(A.shape[0], dtype=type(A.data))
     data = _data.kron_transpose(A.data, _data.identity_like(A.data))
     return Qobj(data,
-                dims=[A.dims, A.dims],
+                dims=[A._dims, A._dims],
                 superrep='super',
                 isherm=A._isherm,
                 copy=False)

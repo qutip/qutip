@@ -4,6 +4,7 @@ from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .result import MultiTrajResult, Result, ExpectOp
 from .multitraj import MultiTrajSolver
 from .. import Qobj, QobjEvo
+from ..core.dimensions import Dimensions
 import numpy as np
 from functools import partial
 from .solver_base import _solver_deprecation
