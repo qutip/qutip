@@ -69,8 +69,10 @@ cdef int _check_shape(Data left, Data right, Data out=None) except -1 nogil:
         )
     if (
         out is not None
-        and out.shape[0] != left.shape[0]
-        and out.shape[1] != right.shape[1]
+        and (
+            out.shape[0] != left.shape[0]
+            or out.shape[1] != right.shape[1]
+        )
     ):
         raise ValueError(
             "incompatible output shape, got "
