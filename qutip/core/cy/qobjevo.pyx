@@ -613,11 +613,11 @@ cdef class QobjEvo:
 
     def __imatmul__(QobjEvo self, other):
         if isinstance(other, (Qobj, QobjEvo)):
-            if self.dims[1] != other.dims[0]:
+            if self._dims[1] != other._dims[0]:
                 raise TypeError("incompatible dimensions" +
                                 str(self.dims[1]) + ", " +
                                 str(other.dims[0]))
-            self._dims = Dimensions([self.dims[0], other.dims[1]])
+            self._dims = Dimensions([self._dims[0], other._dims[1]])
             self.shape = (self.shape[0], other.shape[1])
             if isinstance(other, Qobj):
                 other = _ConstantElement(other)

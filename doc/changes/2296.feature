@@ -1,1 +1,0 @@
-Added mpi_pmap, which uses the mpi4py module to run computations in parallel through the MPI interface.

@@ -19,7 +19,7 @@ import scipy.sparse
 
 from . import data as _data
 from .qobj import Qobj
-from .dimensions import flatten
+from .dimensions import flatten, Space
 from .. import settings
 
 
@@ -392,7 +392,7 @@ def destroy(N, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Dimension of Hilbert space.
+        Number of basis states in the Hilbert space.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state
@@ -431,7 +431,7 @@ def create(N, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Dimension of Hilbert space.
+        Number of basis states in the Hilbert space.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state
@@ -618,46 +618,21 @@ def _f_op(n_sites, site, action, dtype=None):
     return tensor(opers).to(dtype)
 
 
-def _implicit_tensor_dimensions(dimensions):
-    """
-    Total flattened size and operator dimensions for operator creation routines
-    that automatically perform tensor products.
-
-    Parameters
-    ----------
-    dimensions : (int) or (list of int) or (list of list of int)
-        First dimension of an operator which can create an implicit tensor
-        product.  If the type is `int`, it is promoted first to `[dimensions]`.
-        From there, it should be one of the two-elements `dims` parameter of a
-        `qutip.Qobj` representing an `oper` or `super`, with possible tensor
-        products.
-
-    Returns
-    -------
-    size : int
-        Dimension of backing matrix required to represent operator.
-    dimensions : list
-        Dimension list in the form required by ``Qobj`` creation.
-    """
-    if not isinstance(dimensions, list):
-        dimensions = [dimensions]
-    flat = flatten(dimensions)
-    if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
-        raise ValueError("All dimensions must be integers >= 0")
-    return np.prod(flat), [dimensions, dimensions]
-
-
-def qzero(dimensions, *, dtype=None):
+def qzero(dimensions, dims_right=None, *, dtype=None):
     """
     Zero operator.
 
     Parameters
     ----------
-    dimensions : (int) or (list of int) or (list of list of int)
-        Dimension of Hilbert space. If provided as a list of ints, then the
-        dimension is the product over this list, but the ``dims`` property of
-        the new Qobj are set to this list.  This can produce either `oper` or
-        `super` depending on the passed `dimensions`.
+    dimensions : int, list of int, list of list of int, Space
+        Number of basis states in the Hilbert space. If provided as a list of
+        ints, then the dimension is the product over this list, but the
+        ``dims`` property of the new Qobj are set to this list.  This can
+        produce either `oper` or `super` depending on the passed `dimensions`.
+
+    dims_right : int, list of int, list of list of int, Space, optional
+        Number of basis states in the right Hilbert space when the operator is
+        rectangular.
 
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -670,10 +645,17 @@ def qzero(dimensions, *, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    size, dimensions = _implicit_tensor_dimensions(dimensions)
+    dims_left = Space(dimensions)
+    size_left = dims_left.size
+    if dims_right is None:
+        dims_right = dims_left
+        size_right = size_left
+    else:
+        dims_right = Space(dims_right)
+        size_right = dims_right.size
+    dims = [dims_left, dims_right]
     # A sparse matrix with no data is equal to a zero matrix.
-    type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
-    return Qobj(_data.zeros[dtype](size, size), dims=dimensions,
+    return Qobj(_data.zeros[dtype](size_left, size_right), dims=dims,
                 isherm=True, isunitary=False, copy=False)
 
 
@@ -705,11 +687,11 @@ def qeye(dimensions, *, dtype=None):
 
     Parameters
     ----------
-    dimensions : (int) or (list of int) or (list of list of int)
-        Dimension of Hilbert space. If provided as a list of ints, then the
-        dimension is the product over this list, but the ``dims`` property of
-        the new Qobj are set to this list.  This can produce either `oper` or
-        `super` depending on the passed `dimensions`.
+    dimensions : (int) or (list of int) or (list of list of int), Space
+        Number of basis states in the Hilbert space. If provided as a list of
+        ints, then the dimension is the product over this list, but the
+        ``dims`` property of the new Qobj are set to this list.  This can
+        produce either `oper` or `super` depending on the passed `dimensions`.
 
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -740,9 +722,8 @@ isherm = True
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
-    size, dimensions = _implicit_tensor_dimensions(dimensions)
-    type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
-    return Qobj(_data.identity[dtype](size), dims=dimensions,
+    dimensions = Space(dimensions)
+    return Qobj(_data.identity[dtype](dimensions.size), dims=[dimensions]*2,
                 isherm=True, isunitary=True, copy=False)
 
 
@@ -783,7 +764,7 @@ def position(N, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of Fock states in Hilbert space.
+        Number of basis states in the Hilbert space.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state
@@ -812,7 +793,7 @@ def momentum(N, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of Fock states in Hilbert space.
+        Number of basis states in the Hilbert space.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state
@@ -841,7 +822,7 @@ def num(N, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        The dimension of the Hilbert space.
+        Number of basis states in the Hilbert space.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state
@@ -948,7 +929,7 @@ def displace(N, alpha, offset=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Dimension of Hilbert space.
+        Number of basis states in the Hilbert space.
 
     alpha : float/complex
         Displacement amplitude.
@@ -1043,7 +1024,7 @@ def phase(N, phi0=0, *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        Number of basis states in the Hilbert space.
 
     phi0 : float, default: 0
         Reference phase.
@@ -1118,7 +1099,7 @@ def tunneling(N, m=1, *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        Number of basis states in the Hilbert space.
 
     m : int, default: 1
         Number of excitations in tunneling event.
@@ -1145,9 +1126,9 @@ def qft(dimensions, *, dtype="dense"):
     Parameters
     ----------
     dimensions : (int) or (list of int) or (list of list of int)
-        Dimension of Hilbert space. If provided as a list of ints, then the
-        dimension is the product over this list, but the ``dims`` property of
-        the new Qobj are set to this list.
+        Number of basis states in the Hilbert space. If provided as a list of
+        ints, then the dimension is the product over this list, but the
+        ``dims`` property of the new Qobj are set to this list.
 
     dtype : str or type, [keyword only] [optional]
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -1159,13 +1140,14 @@ def qft(dimensions, *, dtype="dense"):
         Quantum Fourier transform operator.
 
     """
-    N2, dimensions = _implicit_tensor_dimensions(dimensions)
+    dimensions = Space(dimensions)
+    N2 = dimensions.size
 
     phase = 2.0j * np.pi / N2
     arr = np.arange(N2)
     L, M = np.meshgrid(arr, arr)
     data = np.exp(phase * (L * M)) / np.sqrt(N2)
-    return Qobj(data, dims=dimensions).to(dtype)
+    return Qobj(data, dims=[dimensions]*2).to(dtype)
 
 
 def swap(N, M, *, dtype=None):

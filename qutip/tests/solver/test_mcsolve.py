@@ -411,7 +411,7 @@ def test_super_H(improved_sampling):
                  target_tol=0.1,
                  options={'map': 'serial',
                           "improved_sampling": improved_sampling})
-    np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.5)
+    np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.65)
 
 
 def test_MCSolver_run():

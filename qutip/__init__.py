@@ -50,7 +50,7 @@ from .entropy import *
 from .partial_transpose import *
 from .continuous_variables import *
 from .distributions import *
-
+from . import measurement
 
 # utilities
 from .utilities import *

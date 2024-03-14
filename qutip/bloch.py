@@ -310,7 +310,7 @@ class Bloch:
         self.vector_alpha = []
         self.annotations = []
         self.vector_color = []
-        self.point_color = []
+        self.point_color = None
         self._lines = []
         self._arcs = []
 
