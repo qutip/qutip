@@ -1464,7 +1464,7 @@ class Qobj:
         return out
 
     def eigenstates(self, sparse=False, sort='low', eigvals=0,
-                    tol=0, maxiter=100000, phase_fix=None):
+                    tol=0, maxiter=100000, phase_fix=None, output_type='kets'):
         """Eigenstates and eigenenergies.
 
         Eigenstates and eigenenergies are defined for operators and
@@ -1491,6 +1491,9 @@ class Qobj:
         phase_fix : int, None
             If not None, set the phase of each kets so that ket[phase_fix,0]
             is real positive.
+
+        output_type : str
+            Output is list of 'kets' or 'operators'
 
         Returns
         -------
@@ -1524,17 +1527,32 @@ class Qobj:
             new_dims = [self.dims[0], [1]]
         else:
             new_dims = [self.dims[0], [1]*len(self.dims[0])]
-        ekets = np.empty((evecs.shape[1],), dtype=object)
-        ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
-                    for vec in _data.split_columns(evecs, False)]
-        norms = np.array([ket.norm() for ket in ekets])
-        if phase_fix is None:
-            phase = np.array([1] * len(ekets))
+
+        if output_type == 'kets':
+            ekets = np.empty((evecs.shape[1],), dtype=object)
+            ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
+                        for vec in _data.split_columns(evecs, False)]
+            norms = np.array([ket.norm() for ket in ekets])
+            if phase_fix is None:
+                phase = np.array([1] * len(ekets))
+            else:
+                phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
+                                if ket[phase_fix, 0] else 1
+                                for ket in ekets])
+            return evals, ekets / norms * phase
+        
         else:
-            phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
-                              if ket[phase_fix, 0] else 1
-                              for ket in ekets])
-        return evals, ekets / norms * phase
+            evecs = np.empty((evecs.shape[1],), dtype=object)
+            evecs[:] = [Qobj(vec, dims=new_dims, copy=False)
+                        for vec in evecs]
+            norms = np.array([vec.norm() for vec in evecs])
+            if phase_fix is None:
+                phase = np.array([1] * len(evecs))
+            else:
+                phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
+                                if ket[phase_fix, 0] else 1
+                                for ket in evecs])
+            return evals, evecs / norms * phase
 
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):
