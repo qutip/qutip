@@ -533,6 +533,7 @@ class Qobj:
             "Quantum object: dims=" + str(self.dims),
             "shape=" + str(self._data.shape),
             "type=" + repr(self.type),
+            "dtype=" + str(type(self.type)),
         ])
         if self.type in ('oper', 'super'):
             out += ", isherm=" + str(self.isherm)
