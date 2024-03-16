@@ -579,7 +579,9 @@ def test_QobjEigenStates():
     kets = [qutip.basis(5, k) for k in range(5)]
     for k in range(5):
         assert c[k] == kets[k]
-
+    d, e = A.eigenstates(output_type='operator')
+    assert np.all(d == np.ones(5))
+    assert e == A/5
 
 def test_QobjExpm():
     "qutip.Qobj expm (dense)"

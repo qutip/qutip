@@ -1539,12 +1539,14 @@ class Qobj:
                 phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
                                 if ket[phase_fix, 0] else 1
                                 for ket in ekets])
+
             return evals, ekets / norms * phase
         elif output_type == 'operator':
             ekets = Qobj(evecs)
             norm = ekets.norm()
+
             return evals, ekets/norm
-        
+ 
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):
         """Eigenenergies of a quantum object.
