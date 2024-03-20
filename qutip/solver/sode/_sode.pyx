@@ -11,9 +11,11 @@ import numpy as np
 
 cdef class Euler:
     cdef _StochasticSystem system
+    cdef bint measurement_noise
 
-    def __init__(self, _StochasticSystem system):
+    def __init__(self, _StochasticSystem system, measurement_noise=False):
         self.system = system
+        self.measurement_noise = measurement_noise
 
     @cython.wraparound(False)
     def run(
@@ -37,9 +39,16 @@ cdef class Euler:
         """
         cdef int i
         cdef _StochasticSystem system = self.system
+        cdef list expect
 
         cdef Data a = system.drift(t, state)
         b = system.diffusion(t, state)
+
+        if self.measurement_noise:
+            expect = system.expect(t, state)
+            for i in range(system.num_collapse):
+                dW[0, i] -= expect[i].real * dt
+
         cdef Data new_state = _data.add(state, a, dt)
         for i in range(system.num_collapse):
             new_state = _data.add(new_state, b[i], dW[0, i])
@@ -72,6 +81,12 @@ cdef class Platen(Euler):
         cdef list d2 = system.diffusion(t, state)
         cdef Data Vt, out
         cdef list Vp, Vm
+        cdef list expect
+
+        if self.measurement_noise:
+            expect = system.expect(t, state)
+            for i in range(system.num_collapse):
+                dW[0, i] -= expect[i].real * dt
 
         out = _data.mul(d1, 0.5)
         Vt = d1.copy()
@@ -106,6 +121,9 @@ cdef class Platen(Euler):
 
 
 cdef class Explicit15(Euler):
+    def __init__(self, _StochasticSystem system):
+        self.system = system
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -235,9 +253,11 @@ cdef class Explicit15(Euler):
 
 cdef class Milstein:
     cdef _StochasticSystem system
+    cdef bint measurement_noise
 
-    def __init__(self, _StochasticSystem system):
-        self.system = system
+    def __init__(self, _StochasticSystem system, measurement_noise=False):
+            self.system = system
+            self.measurement_noise = measurement_noise
 
     @cython.wraparound(False)
     def run(self, double t, Data state, double dt, double[:, :, ::1] dW, int ntraj):
@@ -273,6 +293,11 @@ cdef class Milstein:
         iadd_dense(out, state, 1)
         iadd_dense(out, system.a(), dt)
 
+        if self.measurement_noise:
+            expect = system.expect(t, state)
+            for i in range(system.num_collapse):
+                dW[0, i] -= system.expect_i(i).real * dt
+
         for i in range(num_ops):
             iadd_dense(out, system.bi(i), dW[0, i])
 
@@ -289,11 +314,17 @@ cdef class PredCorr:
     cdef Dense euler
     cdef double alpha, eta
     cdef _StochasticSystem system
+    cdef bint measurement_noise
 
-    def __init__(self, _StochasticSystem system, double alpha=0., double eta=0.5):
+    def __init__(
+        self, _StochasticSystem system,
+        double alpha=0., double eta=0.5,
+        measurement_noise=False
+    ):
         self.system = system
         self.alpha = alpha
         self.eta = eta
+        self.measurement_noise = measurement_noise
 
     @cython.wraparound(False)
     def run(self, double t, Data state, double dt, double[:, :, ::1] dW, int ntraj):
@@ -324,6 +355,11 @@ cdef class PredCorr:
 
         system.set_state(t, state)
 
+        if self.measurement_noise:
+            expect = system.expect(t, state)
+            for i in range(system.num_collapse):
+                dW[0, i] -= system.expect_i(i).real * dt
+
         imul_dense(out, 0.)
         iadd_dense(out, state, 1)
         iadd_dense(out, system.a(), dt * (1-alpha))
@@ -350,6 +386,10 @@ cdef class PredCorr:
 
 
 cdef class Taylor15(Milstein):
+    def __init__(self, _StochasticSystem system):
+        self.system = system
+        self.measurement_noise = False
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
@@ -398,17 +438,17 @@ cdef class Milstein_imp:
     cdef double prev_dt
     cdef dict imp_opt
 
-    def __init__(self, _StochasticSystem system, imp_method=None, imp_options={}):
+    def __init__(self, _StochasticSystem system, solve_method=None, solve_options={}):
         self.system = system
         self.prev_dt = 0
-        if imp_method == "inv":
+        if solve_method == "inv":
             if not self.system.L.isconstant:
                 raise TypeError("The 'inv' integration method requires that the system Hamiltonian or Liouvillian be constant.")
             self.use_inv = True
             self.imp_opt = {}
         else:
             self.use_inv = False
-            self.imp_opt = {"method": imp_method, "options": imp_options}
+            self.imp_opt = {"method": solve_method, "options": solve_options}
 
 
     @cython.wraparound(False)

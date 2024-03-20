@@ -13,10 +13,13 @@ cdef class _StochasticSystem:
 
     cpdef list diffusion(self, t, Data state)
 
+    cpdef list expect(self, t, Data state)
+
     cpdef void set_state(self, double t, Dense state) except *
 
     cpdef Data a(self)
     cpdef Data bi(self, int i)
+    cpdef complex expect_i(self, int i)
     cpdef Data Libj(self, int i, int j)
     cpdef Data Lia(self, int i)
     cpdef Data L0bi(self, int i)

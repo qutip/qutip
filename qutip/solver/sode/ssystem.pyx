@@ -51,6 +51,12 @@ cdef class _StochasticSystem:
         """
         raise NotImplementedError
 
+    cpdef list expect(self, t, Data state):
+        """
+            Compute the expectation terms for the ``state`` at time ``t``.
+        """
+        raise NotImplementedError
+
     cpdef void set_state(self, double t, Dense state) except *:
         """
             Initialize the set of derrivatives.
@@ -66,6 +72,12 @@ cdef class _StochasticSystem:
     cpdef Data bi(self, int i):
         """
           Diffusion term for the ``i``th operator.
+        """
+        raise NotImplementedError
+
+    cpdef complex expect_i(self, int i):
+        """
+          Expectation value of the ``i``th operator.
         """
         raise NotImplementedError
 
@@ -144,7 +156,7 @@ cdef class StochasticClosedSystem(_StochasticSystem):
     cpdef list diffusion(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
-        out = []
+        cdef list out = []
         for i in range(self.num_collapse):
             c_op = self.c_ops[i]
             _out = c_op.matmul_data(t, state)
@@ -152,6 +164,15 @@ cdef class StochasticClosedSystem(_StochasticSystem):
             expect = c_op.expect_data(t, state)
             out.append(_data.add(_out, state, -0.5 * expect))
         return out
+
+    cpdef list expect(self, t, Data state):
+        cdef int i
+        cdef QobjEvo c_op
+        cdef list expect = []
+        for i in range(self.num_collapse):
+            c_op = self.cpcd_ops[i]
+            expect.append(c_op.expect_data(t, state))
+        return expect
 
     def __reduce__(self):
         return (
@@ -210,13 +231,23 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         cdef int i
         cdef QobjEvo c_op
         cdef complex expect
-        cdef out = []
+        cdef list out = []
         for i in range(self.num_collapse):
             c_op = self.c_ops[i]
             vec = c_op.matmul_data(t, state)
             expect = _data.trace_oper_ket(vec)
             out.append(_data.add(vec, state, -expect))
         return out
+
+    cpdef list expect(self, t, Data state):
+        cdef int i
+        cdef QobjEvo c_op
+        cdef list expect = []
+        for i in range(self.num_collapse):
+            c_op = self.c_ops[i]
+            vec = c_op.matmul_data(t, state)
+            expect.append(_data.trace_oper_ket(vec))
+        return expect
 
     cpdef void set_state(self, double t, Dense state) except *:
         cdef n, l
@@ -276,6 +307,16 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         if not self._b_set:
             self._compute_b()
         return _dense_wrap(self._b[i, :])
+
+    cpdef complex expect_i(self, int i):
+        if not self._is_set:
+            raise RuntimeError(
+                "Derrivatives set for ito taylor expansion need "
+                "to receive the state with `set_state`."
+            )
+        if not self._b_set:
+            self._compute_b()
+        return self.expect_Cv[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -510,6 +551,13 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
             out.append(self.c_ops[i].matmul_data(t, state))
         return out
 
+    cpdef list expect(self, t, Data state):
+        cdef int i
+        cdef list expect = []
+        for i in range(self.num_collapse):
+            expect.append(0j)
+        return expect
+
     cpdef void set_state(self, double t, Dense state) except *:
         self.t = t
         self.state = state
@@ -519,6 +567,9 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
 
     cpdef Data bi(self, int i):
         return self.c_ops[i].matmul_data(self.t, self.state)
+
+    cpdef complex expect_i(self, int i):
+        return 0j
 
     cpdef Data Libj(self, int i, int j):
         bj = self.c_ops[i].matmul_data(self.t, self.state)
