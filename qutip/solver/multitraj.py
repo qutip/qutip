@@ -8,28 +8,6 @@ import numpy as np
 __all__ = ["MultiTrajSolver"]
 
 
-class _MTSystem:
-    """
-    Container for the operators of the solver.
-    """
-    def __init__(self, rhs):
-        self.rhs = rhs
-
-    def __call__(self):
-        return self.rhs
-
-    def arguments(self, args):
-        self.rhs.arguments(args)
-
-    def _register_feedback(self, type, val):
-        pass
-
-    def __getattr__(self, attr):
-        if hasattr(self.rhs, attr):
-            return getattr(self.rhs, attr)
-        raise AttributeError
-
-
 class MultiTrajSolver(Solver):
     """
     Basic class for multi-trajectory evolutions.
@@ -70,19 +48,14 @@ class MultiTrajSolver(Solver):
     }
 
     def __init__(self, rhs, *, options=None):
-        if isinstance(rhs, QobjEvo):
-            self.system = _MTSystem(rhs)
-        elif isinstance(rhs, _MTSystem):
-            self.system = rhs
+        if isinstance(rhs, (Qobj, QobjEvo)):
+            self.rhs = QobjEvo(rhs)
         else:
             raise TypeError("The system should be a QobjEvo")
         self.rhs = self.system()
         self._dims = self.rhs._dims
-        self.options = options
         self.seed_sequence = np.random.SeedSequence()
-        self._integrator = self._get_integrator()
-        self._state_metadata = {}
-        self.stats = self._initialize_stats()
+        self._post_init(options)
 
     def start(self, state, t0, seed=None):
         """
@@ -279,7 +252,7 @@ class MultiTrajSolver(Solver):
     def _argument(self, args):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
         if args:
-            self.system.arguments(args)
+            self.rhs.arguments(args)
 
     def _get_generator(self, seed):
         """
