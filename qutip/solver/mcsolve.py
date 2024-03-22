@@ -459,6 +459,8 @@ class MCSolver(MultiTrajSolver):
         """
         Retore the Qobj state from its data.
         """
+        # Duplicated from the Solver class, but removed the check for the
+        # normalize_output option, since MCSolver doesn't have that option.
         if self._state_metadata['dims'] == self.rhs._dims[1]:
             state = Qobj(unstack_columns(data),
                          **self._state_metadata, copy=False)
