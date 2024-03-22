@@ -489,13 +489,9 @@ class MCSolver(MultiTrajSolver):
 
     def run(self, state, tlist, ntraj=1, *,
             args=None, e_ops=(), timeout=None, target_tol=None, seeds=None):
-        """
-        Do the evolution of the Quantum system.
-        See the overridden method for further details. The modification
-        here is to sample the no-jump trajectory first. Then, the no-jump
-        probability is used as a lower-bound for random numbers in future
-        monte carlo runs
-        """
+        # Overridden to sample the no-jump trajectory first. Then, the no-jump
+        # probability is used as a lower-bound for random numbers in future
+        # monte carlo runs
         if not self.options.get("improved_sampling", False):
             return super().run(state, tlist, ntraj=ntraj, args=args,
                                e_ops=e_ops, timeout=timeout,
