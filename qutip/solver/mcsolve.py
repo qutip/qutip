@@ -478,25 +478,12 @@ class MCSolver(MultiTrajSolver):
         })
         return stats
 
-    def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
-                                 no_jump=False, jump_prob_floor=0.0):
-        result = self._trajectory_resultclass(e_ops, self.options)
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator,
-                                   no_jump=no_jump,
-                                   jump_prob_floor=jump_prob_floor)
-        result.add(tlist[0], self._restore_state(state, copy=False))
-        return result
-
-    def _run_one_traj(self, seed, state, tlist, e_ops, no_jump=False,
-                      jump_prob_floor=0.0):
+    def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
         """
         Run one trajectory and return the result.
         """
-        result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
-                                               no_jump=no_jump,
-                                               jump_prob_floor=jump_prob_floor)
-        seed, result = self._integrate_one_traj(seed, tlist, result)
+        seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
+                                             **integrator_kwargs)
         result.collapse = self._integrator.collapses
         return seed, result
 
@@ -538,7 +525,8 @@ class MCSolver(MultiTrajSolver):
         start_time = time()
         map_func(
             self._run_one_traj, seeds[1:],
-            (state0, tlist, e_ops, False, no_jump_prob),
+            task_args=(state0, tlist, e_ops),
+            task_kwargs={'no_jump': False, 'jump_prob_floor': no_jump_prob},
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"]
