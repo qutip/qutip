@@ -278,6 +278,7 @@ class MultiTrajSolver(Solver):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
         if args:
             self.system.arguments(args)
+            self._integrator.arguments(args)
 
     def _get_generator(self, seed):
         """

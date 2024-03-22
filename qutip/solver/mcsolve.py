@@ -373,10 +373,6 @@ class MCIntegrator:
     def arguments(self, args):
         if args:
             self._integrator.arguments(args)
-            for c_op in self._c_ops:
-                c_op.arguments(args)
-            for n_op in self._n_ops:
-                n_op.arguments(args)
 
     @property
     def integrator_options(self):
