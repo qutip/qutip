@@ -334,7 +334,7 @@ def test_feedback():
         [destroy(N), func],
         args={
             "A": SMESolver.ExpectFeedback(num(10)),
-            "W": SMESolver.WeinerFeedback()
+            "W": SMESolver.WienerFeedback()
         }
     )]
     psi0 = basis(N, N-3)
