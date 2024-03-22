@@ -248,8 +248,7 @@ class MultiTrajSolver(Solver):
         return self._integrate_one_traj(seed, tlist, result)
 
     def _integrate_one_traj(self, seed, tlist, result):
-        for t in tlist[1:]:
-            t, state = self._integrator.integrate(t, copy=False)
+        for t, state in self._integrator.run(tlist):
             result.add(t, self._restore_state(state, copy=False))
         return seed, result
 
