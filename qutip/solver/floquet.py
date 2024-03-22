@@ -795,9 +795,6 @@ class FMESolver(MESolver):
             raise TypeError("a_ops must be tuple of (Qobj, callable)")
 
         self._post_init(options)
-        # self._integrator = self._get_integrator()
-        # self._state_metadata = {}
-        # self.stats = self._initialize_stats()
 
     def _build_rhs(self):
         c_ops, spectra_cb = zip(*self.a_ops)

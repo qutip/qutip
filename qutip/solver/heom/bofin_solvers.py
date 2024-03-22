@@ -611,8 +611,6 @@ class HEOMSolver(Solver):
     }
 
     def __init__(self, H, bath, max_depth, *, options=None):
-        _time_start = time()
-
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian (H) must be a Qobj or QobjEvo")
 
@@ -621,11 +619,19 @@ class HEOMSolver(Solver):
             liouvillian(H) if H.type == "oper"  # hamiltonian
             else H  # already a liouvillian
         )
+        self.bath = bath
+        self.max_depth = max_depth
 
         self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
         self._sup_shape = self.L_sys.shape[0]
         self._sys_dims = self.L_sys.dims[0]
 
+        self._post_init(options)
+
+    def _build_rhs(self):
+        _time_start = time()
+        bath = self.bath
+        max_depth = self.max_depth
         self.ados = HierarchyADOs(
             self._combine_bath_exponents(bath), max_depth,
         )
@@ -664,11 +670,10 @@ class HEOMSolver(Solver):
         self._init_superop_cache_time = time() - _time_start
         _time_start = time()
 
-        rhs = self._calculate_rhs()
+        self.rhs = self._calculate_rhs()
 
         self._init_rhs_time = time() - _time_start
-
-        super().__init__(rhs, options=options)
+        return self.rhs
 
     @property
     def sys_dims(self):
