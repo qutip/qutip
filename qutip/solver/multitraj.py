@@ -8,7 +8,7 @@ import numpy as np
 __all__ = ["MultiTrajSolver"]
 
 
-class _MTSystem:
+class _MultiTrajRHS:
     """
     Container for the operators of the solver.
     """
@@ -70,8 +70,8 @@ class MultiTrajSolver(Solver):
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, QobjEvo):
-            self.rhs = _MTSystem(rhs)
-        elif isinstance(rhs, _MTSystem):
+            self.rhs = _MultiTrajRHS(rhs)
+        elif isinstance(rhs, _MultiTrajRHS):
             self.rhs = rhs
         else:
             raise TypeError("The system should be a QobjEvo")

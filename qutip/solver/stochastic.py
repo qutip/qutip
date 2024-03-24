@@ -2,7 +2,7 @@ __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .result import MultiTrajResult, Result, ExpectOp
-from .multitraj import _MTSystem, MultiTrajSolver
+from .multitraj import _MultiTrajRHS, MultiTrajSolver
 from .. import Qobj, QobjEvo
 from ..core.dimensions import Dimensions
 import numpy as np
@@ -166,7 +166,7 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("wiener_process")
 
 
-class _StochasticRHS(_MTSystem):
+class _StochasticRHS(_MultiTrajRHS):
     """
     In between object to store the stochastic system.
 

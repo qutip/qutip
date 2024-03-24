@@ -2,7 +2,7 @@ __all__ = ['mcsolve', "MCSolver"]
 
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
-from .multitraj import MultiTrajSolver, _MTSystem
+from .multitraj import MultiTrajSolver, _MultiTrajRHS
 from .solver_base import Solver, Integrator, _solver_deprecation
 from .result import McResult, McTrajectoryResult, McResultImprovedSampling
 from .mesolve import mesolve, MESolver
@@ -167,16 +167,17 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     return result
 
 
-class _MCSystem(_MTSystem):
+class _MCRHS(_MultiTrajRHS):
     """
     Container for the operators of the solver.
     """
 
-    def __init__(self, rhs, c_ops, n_ops):
-        self.rhs = rhs
+    def __init__(self, H, c_ops, n_ops):
+        self.rhs = H
+
+        self.H = H
         self.c_ops = c_ops
         self.n_ops = n_ops
-        self._collapse_key = ""
 
     def __call__(self):
         return self.rhs
@@ -445,7 +446,7 @@ class MCSolver(MultiTrajSolver):
         self._num_collapse = len(self._c_ops)
         self.options = options
 
-        system = _MCSystem(rhs, self._c_ops, self._n_ops)
+        system = _MCRHS(rhs, self._c_ops, self._n_ops)
         super().__init__(system, options=options)
 
     def _restore_state(self, data, *, copy=True):
