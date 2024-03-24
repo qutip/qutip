@@ -180,17 +180,17 @@ class _MCRHS(_MultiTrajRHS):
         self.n_ops = n_ops
 
     def __call__(self):
-        return self.rhs
+        return self.H
 
     def arguments(self, args):
-        self.rhs.arguments(args)
+        self.H.arguments(args)
         for c_op in self.c_ops:
             c_op.arguments(args)
         for n_op in self.n_ops:
             n_op.arguments(args)
 
     def _register_feedback(self, key, val):
-        self.rhs._register_feedback({key: val}, solver="McSolver")
+        self.H._register_feedback({key: val}, solver="McSolver")
         for c_op in self.c_ops:
             c_op._register_feedback({key: val}, solver="McSolver")
         for n_op in self.n_ops:
