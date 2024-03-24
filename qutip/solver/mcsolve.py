@@ -181,13 +181,6 @@ class _MCSystem(_MTSystem):
     def __call__(self):
         return self.rhs
 
-    def __getattr__(self, attr):
-        if attr == "rhs":
-            raise AttributeError
-        if hasattr(self.rhs, attr):
-            return getattr(self.rhs, attr)
-        raise AttributeError
-
     def arguments(self, args):
         self.rhs.arguments(args)
         for c_op in self.c_ops:
@@ -539,9 +532,9 @@ class MCSolver(MultiTrajSolver):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.system(), self.options)
+        integrator_instance = integrator(self.rhs(), self.options)
         mc_integrator = self._mc_integrator_class(
-            integrator_instance, self.system, self.options
+            integrator_instance, self.rhs, self.options
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator
