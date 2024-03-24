@@ -7,7 +7,7 @@ from .. import Qobj, QobjEvo
 from ..core.dimensions import Dimensions
 import numpy as np
 from functools import partial
-from .solver_base import _solver_deprecation
+from .solver_base import _solver_deprecation, _format_oper, _format_list_oper
 from ._feedback import _QobjFeedback, _DataFeedback, _WeinerFeedback
 from ..core.dimensions import Dimensions
 
@@ -524,7 +524,14 @@ class StochasticSolver(MultiTrajSolver):
         if self.name == "ssesolve" and c_ops:
             raise ValueError("c_ops are not supported by ssesolve.")
 
+        H = _format_oper(H=H)
+        c_ops = _format_list_oper(c_ops=c_ops)
+        sc_ops = _format_list_oper(sc_ops=sc_ops)
+
         rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
+        self.H = H
+        self.sc_ops = sc_ops
+        self.c_ops = c_ops
         self.rhs = rhs
         self._dims = rhs._dims
         self.system = rhs
