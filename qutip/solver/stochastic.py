@@ -232,14 +232,14 @@ class _StochasticRHS:
             sc_op.arguments(args)
 
     def _register_feedback(self, val):
-        self.H._register_feedback({"wiener_process": val}, "stochatic solver")
+        self.H._register_feedback({"wiener_process": val}, "stochastic solver")
         for c_op in self.c_ops:
             c_op._register_feedback(
-                {"WienerFeedback": val}, "stochatic solver"
+                {"WienerFeedback": val}, "stochastic solver"
             )
         for sc_op in self.sc_ops:
             sc_op._register_feedback(
-                {"WienerFeedback": val}, "stochatic solver"
+                {"WienerFeedback": val}, "stochastic solver"
             )
 
 
