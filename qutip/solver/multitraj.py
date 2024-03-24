@@ -1,4 +1,4 @@
-from .result import Result, MultiTrajResult
+from .result import TrajectoryResult, MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver
@@ -51,7 +51,7 @@ class MultiTrajSolver(Solver):
     """
     name = "generic multi trajectory"
     _resultclass = MultiTrajResult
-    _trajectory_resultclass = Result
+    _trajectory_resultclass = TrajectoryResult
     _avail_integrators = {}
 
     # Class of option used by the solver
@@ -131,7 +131,7 @@ class MultiTrajSolver(Solver):
         _, state = self._integrator.integrate(t, copy=False)
         return self._restore_state(state, copy=copy)
 
-    def _initialize_run(self, state, ntraj=1, args=None, e_ops=(),
+    def _initialize_run(self, state, ntraj=1, args=None,
                         timeout=None, target_tol=None, seeds=None):
         start_time = time()
         self._argument(args)
@@ -139,7 +139,7 @@ class MultiTrajSolver(Solver):
         seeds = self._read_seed(seeds, ntraj)
 
         result = self._resultclass(
-            e_ops, self.options, solver=self.name, stats=stats
+            self.options, solver=self.name, stats=stats
         )
         result.add_end_condition(ntraj, target_tol)
 
@@ -217,7 +217,6 @@ class MultiTrajSolver(Solver):
             state,
             ntraj,
             args=args,
-            e_ops=e_ops,
             timeout=timeout,
             target_tol=target_tol,
             seeds=seeds,

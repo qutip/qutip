@@ -4,7 +4,7 @@ import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .multitraj import MultiTrajSolver, _MTSystem
 from .solver_base import Solver, Integrator, _solver_deprecation
-from .result import McResult, McTrajectoryResult, McResultImprovedSampling
+from .result import McResult
 from .mesolve import mesolve, MESolver
 from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
 import qutip.core.data as _data
@@ -405,7 +405,7 @@ class MCSolver(MultiTrajSolver):
         Options for the evolution.
     """
     name = "mcsolve"
-    _trajectory_resultclass = McTrajectoryResult
+    _resultclass = McResult
     _mc_integrator_class = MCIntegrator
     solver_options = {
         "progress_bar": "text",
@@ -484,6 +484,9 @@ class MCSolver(MultiTrajSolver):
         """
         seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
                                              **integrator_kwargs)
+        jump_prob_floor = integrator_kwargs.get('jump_prob_floor', 0)
+        if jump_prob_floor > 0:
+            result.add_relative_weight(1 - jump_prob_floor)
         result.collapse = self._integrator.collapses
         return seed, result
 
@@ -492,26 +495,23 @@ class MCSolver(MultiTrajSolver):
         # Overridden to sample the no-jump trajectory first. Then, the no-jump
         # probability is used as a lower-bound for random numbers in future
         # monte carlo runs
-        if not self.options.get("improved_sampling", False):
+        if not self.options["improved_sampling"]:
             return super().run(state, tlist, ntraj=ntraj, args=args,
                                e_ops=e_ops, timeout=timeout,
                                target_tol=target_tol, seeds=seeds)
+
         stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
-            state,
-            ntraj,
-            args=args,
-            e_ops=e_ops,
-            timeout=timeout,
-            target_tol=target_tol,
-            seeds=seeds,
+            state, ntraj, args=args, timeout=timeout,
+            target_tol=target_tol, seeds=seeds,
         )
+
         # first run the no-jump trajectory
         start_time = time()
         seed0, no_jump_result = self._run_one_traj(seeds[0], state0, tlist,
                                                    e_ops, no_jump=True)
         _, state, _ = self._integrator.get_state(copy=False)
         no_jump_prob = self._integrator._prob_func(state)
-        result.no_jump_prob = no_jump_prob
+        no_jump_result.add_absolute_weight(no_jump_prob)
         result.add((seed0, no_jump_result))
         result.stats['no jump run time'] = time() - start_time
 
@@ -545,13 +545,6 @@ class MCSolver(MultiTrajSolver):
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator
-
-    @property
-    def _resultclass(self):
-        if self.options.get("improved_sampling", False):
-            return McResultImprovedSampling
-        else:
-            return McResult
 
     @property
     def options(self):
