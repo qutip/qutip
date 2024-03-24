@@ -816,7 +816,7 @@ class MultiTrajResult(_BaseResult):
         """
         States averages as density matrices.
         """
-        if self._sum_states is None:
+        if self._sum_states_rel is None:
             if not (self.trajectories and self.trajectories[0].states):
                 return None
             self._sum_states_rel = [
@@ -860,7 +860,7 @@ class MultiTrajResult(_BaseResult):
         """
         Last states of each trajectories averaged into a density matrix.
         """
-        if self._sum_final_states is None:
+        if self._sum_final_states_rel is None:
             if self.average_states is not None:
                 return self.average_states[-1]
             return None
@@ -946,7 +946,7 @@ class MultiTrajResult(_BaseResult):
 
     def __add__(self, other):
         if not isinstance(other, MultiTrajResult):
-            return NotImplemented
+            raise NotImplementedError("Can only add two multi traj results")
         if self.e_ops != other.e_ops:
             raise ValueError("Shared `e_ops` is required to merge results")
         if self.times != other.times:
@@ -955,44 +955,64 @@ class MultiTrajResult(_BaseResult):
         new = self.__class__(
             self.options, solver=self.solver, stats=self.stats
         )
+        new.times = self.times
+        new.e_ops = self.e_ops
 
         if self.trajectories and other.trajectories:
             new.trajectories = self.trajectories + other.trajectories
         new.num_trajectories = self.num_trajectories + other.num_trajectories
         new.seeds = self.seeds + other.seeds
 
-        new.times = self.times
-        new.e_ops = self.e_ops
+        new._num_rel_trajectories = (self._num_rel_trajectories +
+                                     other._num_rel_trajectories)
+        new._abs_weights_present = (self._abs_weights_present or
+                                    other._abs_weights_present)
+        if new._abs_weights_present:
+            new._first_abs_trajectory() # initialize abs fields
+            #TODO shit this only works after all the "_rel" are initialized...
 
         if (
-            self._sum_states is not None
-            and other._sum_states is not None
+            self._sum_states_rel is not None
+            and other._sum_states_rel is not None
         ):
-            new._sum_states = [
+            new._sum_states_rel = [
                 state1 + state2 for state1, state2 in zip(
-                    self._sum_states, other._sum_states
+                    self._sum_states_rel, other._sum_states_rel
                 )
             ]
+            if self._abs_weights_present:
+                new._sum_states_abs = list(self._sum_states_abs)
+            if other._abs_weights_present:
+                new._sum_states_abs = [
+                    state1 + state2 for state1, state2 in zip(
+                        new._sum_states_abs, other._sum_states_abs
+                    )
+                ]
 
         if (
-            self._sum_final_states is not None
-            and other._sum_final_states is not None
+            self._sum_final_states_rel is not None
+            and other._sum_final_states_rel is not None
         ):
-            new._sum_final_states = (
-                self._sum_final_states
-                + other._sum_final_states
-            )
-        new._target_tols = None
+            new._sum_final_states_rel = (self._sum_final_states_rel
+                                         + other._sum_final_states_rel)
+            if self._abs_weights_present:
+                new._sum_final_states_abs = self._sum_final_states_abs
+            if other._abs_weights_present:
+                new._sum_final_states_abs += other._sum_final_states_abs
 
-        new._sum_expect = []
-        new._sum2_expect = []
-        new.average_e_data = {}
-        new.std_e_data = {}
+        new._sum_expect_rel = []
+        new._sum2_expect_rel = []
+        if self._abs_weights_present:
+            new._sum_expect_abs = []
+            new._sum2_expect_abs = []
+        if self.runs_e_data and other.runs_e_data:
+            new.runs_e_data = {}
 
         for i, k in enumerate(self.e_ops):
-            new._sum_expect.append(self._sum_expect[i] + other._sum_expect[i])
-            new._sum2_expect.append(
-                self._sum2_expect[i] + other._sum2_expect[i]
+            new._sum_expect_rel.append(
+                self._sum_expect_rel[i] + other._sum_expect_rel[i])
+            new._sum2_expect_rel.append(
+                self._sum2_expect_rel[i] + other._sum2_expect_rel[i]
             )
 
             avg = new._sum_expect[i] / new.num_trajectories
