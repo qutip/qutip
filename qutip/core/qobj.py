@@ -312,7 +312,7 @@ class Qobj:
     def copy(self):
         """Create identical copy"""
         return Qobj(arg=self._data,
-                    dims=self.dims,
+                    dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
                     copy=True)
@@ -533,6 +533,7 @@ class Qobj:
             "Quantum object: dims=" + str(self.dims),
             "shape=" + str(self._data.shape),
             "type=" + repr(self.type),
+            "dtype=" + self.dtype.__name__,
         ])
         if self.type in ('oper', 'super'):
             out += ", isherm=" + str(self.isherm)

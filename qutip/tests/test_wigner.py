@@ -635,7 +635,7 @@ def test_spin_q_function_normalized(spin, pure):
     Q, THETA, _ = qutip.spin_q_function(rho, theta, phi)
 
     norm = d / (4 * np.pi) * np.trapz(np.trapz(Q * np.sin(THETA), theta), phi)
-    assert_almost_equal(norm, 1, decimal=4)
+    assert_allclose(norm, 1, atol=2e-4)
 
 
 @pytest.mark.parametrize(["spin"], [

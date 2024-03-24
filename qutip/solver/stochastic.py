@@ -4,10 +4,11 @@ from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .result import MultiTrajResult, Result, ExpectOp
 from .multitraj import MultiTrajSolver
 from .. import Qobj, QobjEvo
+from ..core.dimensions import Dimensions
 import numpy as np
 from functools import partial
 from .solver_base import _solver_deprecation
-from ._feedback import _QobjFeedback, _DataFeedback, _WeinerFeedback
+from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
 
 
 class StochasticTrajResult(Result):
@@ -210,8 +211,10 @@ class _StochasticRHS:
 
         if self.issuper and not self.H.issuper:
             self.dims = [self.H.dims, self.H.dims]
+            self._dims = Dimensions([self.H._dims, self.H._dims])
         else:
             self.dims = self.H.dims
+            self._dims = self.H._dims
 
     def __call__(self, options):
         if self.issuper:
@@ -229,14 +232,14 @@ class _StochasticRHS:
             sc_op.arguments(args)
 
     def _register_feedback(self, val):
-        self.H._register_feedback({"wiener_process": val}, "stochatic solver")
+        self.H._register_feedback({"wiener_process": val}, "stochastic solver")
         for c_op in self.c_ops:
             c_op._register_feedback(
-                {"WeinerFeedback": val}, "stochatic solver"
+                {"WienerFeedback": val}, "stochastic solver"
             )
         for sc_op in self.sc_ops:
             sc_op._register_feedback(
-                {"WeinerFeedback": val}, "stochatic solver"
+                {"WienerFeedback": val}, "stochastic solver"
             )
 
 
@@ -710,13 +713,13 @@ class StochasticSolver(MultiTrajSolver):
         MultiTrajSolver.options.fset(self, new_options)
 
     @classmethod
-    def WeinerFeedback(cls, default=None):
+    def WienerFeedback(cls, default=None):
         """
-        Weiner function of the trajectory argument for time dependent systems.
+        Wiener function of the trajectory argument for time dependent systems.
 
         When used as an args:
 
-            ``QobjEvo([op, func], args={"W": SMESolver.WeinerFeedback()})``
+            ``QobjEvo([op, func], args={"W": SMESolver.WienerFeedback()})``
 
         The ``func`` will receive a function as ``W`` that return an array of
         wiener processes values at ``t``. The wiener process for the i-th
@@ -726,7 +729,7 @@ class StochasticSolver(MultiTrajSolver):
 
         .. note::
 
-            WeinerFeedback can't be added to a running solver when updating
+            WienerFeedback can't be added to a running solver when updating
             arguments between steps: ``solver.step(..., args={})``.
 
         Parameters
@@ -736,7 +739,7 @@ class StochasticSolver(MultiTrajSolver):
             When not passed, a function returning ``np.array([0])`` is used.
 
         """
-        return _WeinerFeedback(default)
+        return _WienerFeedback(default)
 
     @classmethod
     def StateFeedback(cls, default=None, raw_data=False):
