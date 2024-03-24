@@ -2,7 +2,7 @@
 
 from typing import TypedDict
 import numpy as np
-from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero_like
+from ..core import Qobj, QobjEvo, expect, ket2dm, qzero_like
 
 __all__ = [
     "Result",
@@ -528,7 +528,7 @@ class MultiTrajResult(_BaseResult):
         self._post_init(**kw)
 
     @property
-    def _store_average_density_matricies(self) -> bool:
+    def _store_average_density_matrices(self) -> bool:
         return (
             self.options["store_states"]
             or (self.options["store_states"] is None and self.e_ops == {})
@@ -538,7 +538,7 @@ class MultiTrajResult(_BaseResult):
     def _store_final_density_matrix(self) -> bool:
         return (
             self.options["store_final_state"]
-            and not self._store_average_density_matricies
+            and not self._store_average_density_matrices
             and not self.options["keep_runs_results"]
         )
 
@@ -549,7 +549,7 @@ class MultiTrajResult(_BaseResult):
         self.times = trajectory.times
         self.e_ops = trajectory.e_ops
 
-        if trajectory.states and self._store_average_density_matricies:
+        if trajectory.states and self._store_average_density_matrices:
             self._sum_states_rel = [
                 qzero_like(ket2dm(state)) for state in trajectory.states
             ]
@@ -709,7 +709,7 @@ class MultiTrajResult(_BaseResult):
         store_trajectory = self.options["keep_runs_results"]
         if store_trajectory:
             self.add_processor(self._store_trajectory)
-        if self._store_average_density_matricies:
+        if self._store_average_density_matrices:
             self.add_processor(self._reduce_states)
         if self._store_final_density_matrix:
             self.add_processor(self._reduce_final_state)

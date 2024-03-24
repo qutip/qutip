@@ -38,7 +38,7 @@ class Solver:
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": "ket",
+        "normalize_output": True,
         "method": "adams",
     }
     _resultclass = Result

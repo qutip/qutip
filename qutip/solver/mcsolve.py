@@ -2,7 +2,7 @@ __all__ = ['mcsolve', "MCSolver"]
 
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
-from .multitraj import MultiTrajSolver, _MTSystem
+from .multitraj import MultiTrajSolver, _MultiTrajRHS
 from .solver_base import Solver, Integrator, _solver_deprecation
 from .result import McResult
 from .mesolve import mesolve, MESolver
@@ -167,36 +167,30 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     return result
 
 
-class _MCSystem(_MTSystem):
+class _MCRHS(_MultiTrajRHS):
     """
     Container for the operators of the solver.
     """
 
-    def __init__(self, rhs, c_ops, n_ops):
-        self.rhs = rhs
+    def __init__(self, H, c_ops, n_ops):
+        self.rhs = H
+
+        self.H = H
         self.c_ops = c_ops
         self.n_ops = n_ops
-        self._collapse_key = ""
 
     def __call__(self):
-        return self.rhs
-
-    def __getattr__(self, attr):
-        if attr == "rhs":
-            raise AttributeError
-        if hasattr(self.rhs, attr):
-            return getattr(self.rhs, attr)
-        raise AttributeError
+        return self.H
 
     def arguments(self, args):
-        self.rhs.arguments(args)
+        self.H.arguments(args)
         for c_op in self.c_ops:
             c_op.arguments(args)
         for n_op in self.n_ops:
             n_op.arguments(args)
 
     def _register_feedback(self, key, val):
-        self.rhs._register_feedback({key: val}, solver="McSolver")
+        self.H._register_feedback({key: val}, solver="McSolver")
         for c_op in self.c_ops:
             c_op._register_feedback({key: val}, solver="McSolver")
         for n_op in self.n_ops:
@@ -452,7 +446,7 @@ class MCSolver(MultiTrajSolver):
         self._num_collapse = len(self._c_ops)
         self.options = options
 
-        system = _MCSystem(rhs, self._c_ops, self._n_ops)
+        system = _MCRHS(rhs, self._c_ops, self._n_ops)
         super().__init__(system, options=options)
 
     def _restore_state(self, data, *, copy=True):
@@ -539,9 +533,9 @@ class MCSolver(MultiTrajSolver):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.system(), self.options)
+        integrator_instance = integrator(self.rhs(), self.options)
         mc_integrator = self._mc_integrator_class(
-            integrator_instance, self.system, self.options
+            integrator_instance, self.rhs, self.options
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator

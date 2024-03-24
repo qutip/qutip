@@ -8,15 +8,12 @@ import numpy as np
 __all__ = ["MultiTrajSolver"]
 
 
-class _MTSystem:
+class _MultiTrajRHS:
     """
     Container for the operators of the solver.
     """
     def __init__(self, rhs):
         self.rhs = rhs
-
-    def __call__(self):
-        return self.rhs
 
     def arguments(self, args):
         self.rhs.arguments(args)
@@ -25,6 +22,8 @@ class _MTSystem:
         pass
 
     def __getattr__(self, attr):
+        if attr == "rhs":
+            raise AttributeError
         if hasattr(self.rhs, attr):
             return getattr(self.rhs, attr)
         raise AttributeError
@@ -71,12 +70,11 @@ class MultiTrajSolver(Solver):
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, QobjEvo):
-            self.system = _MTSystem(rhs)
-        elif isinstance(rhs, _MTSystem):
-            self.system = rhs
+            self.rhs = _MultiTrajRHS(rhs)
+        elif isinstance(rhs, _MultiTrajRHS):
+            self.rhs = rhs
         else:
             raise TypeError("The system should be a QobjEvo")
-        self.rhs = self.system()
         self.options = options
         self.seed_sequence = np.random.SeedSequence()
         self._integrator = self._get_integrator()
@@ -279,7 +277,7 @@ class MultiTrajSolver(Solver):
     def _argument(self, args):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
         if args:
-            self.system.arguments(args)
+            self.rhs.arguments(args)
             self._integrator.arguments(args)
 
     def _get_generator(self, seed):
