@@ -174,23 +174,21 @@ class _MCRHS(_MultiTrajRHS):
 
     def __init__(self, H, c_ops, n_ops):
         self.rhs = H
-
-        self.H = H
         self.c_ops = c_ops
         self.n_ops = n_ops
 
     def __call__(self):
-        return self.H
+        return self.rhs
 
     def arguments(self, args):
-        self.H.arguments(args)
+        self.rhs.arguments(args)
         for c_op in self.c_ops:
             c_op.arguments(args)
         for n_op in self.n_ops:
             n_op.arguments(args)
 
     def _register_feedback(self, key, val):
-        self.H._register_feedback({key: val}, solver="McSolver")
+        self.rhs._register_feedback({key: val}, solver="McSolver")
         for c_op in self.c_ops:
             c_op._register_feedback({key: val}, solver="McSolver")
         for n_op in self.n_ops:
@@ -367,6 +365,10 @@ class MCIntegrator:
     def arguments(self, args):
         if args:
             self._integrator.arguments(args)
+            for c_op in self._c_ops:
+                c_op.arguments(args)
+            for n_op in self._n_ops:
+                n_op.arguments(args)
 
     @property
     def integrator_options(self):
