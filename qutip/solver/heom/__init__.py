@@ -31,6 +31,9 @@ __all__ = [
     "HSolverDL",
     "HierarchyADOs",
     "HierarchyADOsState",
+    "SpectralFitter",
+    "CorrelationFitter",
+    "OhmicBath",
 ]
 
 from .bofin_baths import (
@@ -52,4 +55,10 @@ from .bofin_solvers import (
     HSolverDL,
     HierarchyADOs,
     HierarchyADOsState,
+)
+
+from .bofin_fit import (
+    CorrelationFitter,
+    SpectralFitter,
+    OhmicBath,
 )
