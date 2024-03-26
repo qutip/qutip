@@ -111,7 +111,7 @@ detailed below:
 - Rushiraj Gadhvi (qutip.ipynbtools.version_table() can now be called without Cython installed, `#2110 <https://github.com/qutip/qutip/pull/2110>`)
 - Harsh Khilawala (Moved HTMLProgressBar from qutip/ipynbtools.py to qutip/ui/progressbar.py, `#2112 <https://github.com/qutip/qutip/pull/2112>`)
 - Avatar Srinidhi P V (Added new argument bc_type to take boundary conditions when creating QobjEvo, `#2114 <https://github.com/qutip/qutip/pull/2114>`)
-- NAME (DESCRIPTION, `#0000 <https://github.com/qutip/qutip/pull/0000>`)
+- Andrey Rakhubovsky (Fix types in docstring of projection(), `#2363 <https://github.com/qutip/qutip/pull/2363>`)
 
 
 Qobj changes
