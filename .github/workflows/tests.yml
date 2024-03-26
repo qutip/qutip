@@ -130,7 +130,7 @@ jobs:
         # rather than in the GitHub Actions file directly, because bash gives us
         # a proper programming language to use.
         # We install without build isolation so qutip is compiled with the
-        # version of cython, scipy, numpy in the test matrix, no a temporary
+        # version of cython, scipy, numpy in the test matrix, not a temporary
         # version use in the installation virtual environment.
         run: |
           # Install the extra requirement
