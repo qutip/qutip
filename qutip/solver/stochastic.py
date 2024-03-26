@@ -2,7 +2,7 @@ __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .result import MultiTrajResult, Result, ExpectOp
-from .multitraj import MultiTrajSolver
+from .multitraj import _MultiTrajRHS, MultiTrajSolver
 from .. import Qobj, QobjEvo
 from ..core.dimensions import Dimensions
 import numpy as np
@@ -26,7 +26,7 @@ class StochasticTrajResult(Result):
             self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
             self.add_processor(self.m_ops[-1]._store)
 
-    def add(self, t, state, noise):
+    def add(self, t, state, noise=None):
         super().add(t, state)
         if noise is not None and self.options["store_measurement"]:
             for i, dW in enumerate(noise):
@@ -166,7 +166,7 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("wiener_process")
 
 
-class _StochasticRHS:
+class _StochasticRHS(_MultiTrajRHS):
     """
     In between object to store the stochastic system.
 
@@ -181,7 +181,7 @@ class _StochasticRHS:
     def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
 
         if not isinstance(H, (Qobj, QobjEvo)) or not H.isoper:
-            raise TypeError("The Hamiltonian must be am operator")
+            raise TypeError("The Hamiltonian must be an operator")
         self.H = QobjEvo(H)
 
         if isinstance(sc_ops, (Qobj, QobjEvo)):
@@ -500,8 +500,8 @@ class StochasticSolver(MultiTrajSolver):
     name = "StochasticSolver"
     _resultclass = StochasticResult
     _avail_integrators = {}
-    system = None
     _open = None
+
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -517,20 +517,22 @@ class StochasticSolver(MultiTrajSolver):
         "store_measurement": False,
     }
 
+    def _trajectory_resultclass(self, e_ops, options):
+        return StochasticTrajResult(
+            e_ops,
+            options,
+            m_ops=self.m_ops,
+            dw_factor=self.dW_factors,
+            heterodyne=self.heterodyne,
+        )
+
     def __init__(self, H, sc_ops, heterodyne, *, c_ops=(), options=None):
-        self.options = options
         self._heterodyne = heterodyne
         if self.name == "ssesolve" and c_ops:
             raise ValueError("c_ops are not supported by ssesolve.")
 
         rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
-        self.rhs = rhs
-        self.system = rhs
-        self.options = options
-        self.seed_sequence = np.random.SeedSequence()
-        self._integrator = self._get_integrator()
-        self._state_metadata = {}
-        self.stats = self._initialize_stats()
+        super().__init__(rhs, options=options)
 
         if heterodyne:
             self._m_ops = []
@@ -619,25 +621,9 @@ class StochasticSolver(MultiTrajSolver):
                 )
         self._dW_factors = new_dW_factors
 
-    def _run_one_traj(self, seed, state, tlist, e_ops):
-        """
-        Run one trajectory and return the result.
-        """
-        result = StochasticTrajResult(
-            e_ops,
-            self.options,
-            m_ops=self.m_ops,
-            dw_factor=self.dW_factors,
-            heterodyne=self.heterodyne,
-        )
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator)
-        state_t = self._restore_state(state, copy=False)
-        result.add(tlist[0], state_t, None)
-        for t in tlist[1:]:
-            t, state, noise = self._integrator.integrate(t, copy=False)
-            state_t = self._restore_state(state, copy=False)
-            result.add(t, state_t, noise)
+    def _integrate_one_traj(self, seed, tlist, result):
+        for t, state, noise in self._integrator.run(tlist):
+            result.add(t, self._restore_state(state, copy=False), noise)
         return seed, result
 
     @classmethod
