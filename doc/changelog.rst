@@ -29,7 +29,7 @@ Much of the user-facing API of QuTiP remains familiar, but there have
 had to be many small breaking changes. If we can make changes to
 easy migrating code from QuTiP 4 to QuTiP 5, please let us know.
 
-Any extensive list of changes follows.
+An extensive list of changes follows.
 
 Contributors
 ------------
@@ -59,13 +59,13 @@ QuTiP 5:
 - Christian Staufenbiel updated many of the tutorials (`<https://github.com/qutip/qutip-tutorials/>`).
 - Xavier Sproken update the benchmarks (`<https://github.com/qutip/qutip-benchmark/>`).
 
-During an internship at RIKEN, Patrick Hopf created new quantum control method and
+During an internship at RIKEN, Patrick Hopf created a new quantum control method and
 improved the existing methods interface:
 
 - Patrick Hopf created new quantum control package (`<https://github.com/qutip/qutip-qoc/>`).
 
 Four experimental data layers backends were written either as part of Google Summer
-of Code or as separate projects. While these are still alpha quality, the helped
+of Code or as separate projects. While these are still alpha quality, they helped
 significantly to test the data layer API:
 
 - ``qutip-tensorflow``: a TensorFlow backend by Asier Galicia (`<https://github.com/qutip/qutip-tensorflow>`)
@@ -348,10 +348,11 @@ Correlation spectra (spectrum module):
 
 Hierarchical Equation of Motion Solver (HEOM)
 
+- Updated the solver to use the new QuTiP integrators and data layer.
+- Updated all the HEOM tutorials to QuTiP 5.
 - Added support for combining bosonic and fermionic baths.
-- ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-- Simon, there is a lot more than you and other have done for HEOM, please brag a little
-- ????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+- Sped up the construction of the RHS of the HEOM solver by a factor of 4x.
+- As in QuTiP 4, the HEOM supports arbitrary spectral densities, bosonic and fermionic baths, Páde and Matsubara expansions of the correlation functions, calculating the Matsubara terminator and inspection of the ADOs (auxiliary density operators).
 
 
 QuTiP core
@@ -411,18 +412,18 @@ modifiable at runtime.
 Visualization
 -------------
 
-- Add arguments of plot_wigner() and plot_wigner_fock_distribution() to specify parameters for wigner().
-- Removed Bloch3D: redundant to Bloch.
-- Improved the function calls, all visualization functions take ``fig``, ``ax`` and ``cmap`` keyword arguments.
-- Most visualization functions respect the ``colorblind_safe`` setting.
-- Added new functions to create animations from a list of Qobj or directly from solver results (if states are saved.)
--
+- Added arguments to ``plot_wigner`` and ``plot_wigner_fock_distribution`` to specify parameters for ``wigner``.
+- Removed ``Bloch3D``. The same functionality is provided by ``Bloch``.
+- Added ``fig``, ``ax`` and ``cmap`` keyword arguments to all visualization functions.
+- Most visualization functions now respect the ``colorblind_safe`` setting.
+- Added new functions to create animations from a list of ``Qobj`` or directly from solver results with saved states.
 
 
 Package reorganization
 ----------------------
 
 - ``qutip.qip`` has been moved into its own package, qutip-qip. Once installed, qutip-qip is available as either ``qutip.qip`` or ``qutip_qip``. Some widely useful gates have been retained in ``qutip.gates``.
+- ``qutip.control`` has been moved to qutip-qtrl and once installed qutip-qtrl is available as either ``qutip.control`` or ``qutip_qtrl``. Note that ``quitp_qtrl`` is provided primarily for backwards compatibility. Improvements to optimal control will take place in the new ``qutip_qoc`` package.
 - ``qutip.lattice`` has been moved into its own package, qutip-lattice. It is available from `<https://github.com/qutip/qutip-lattice>`.
 - ``qutip.sparse`` has been removed. It contained the old sparse matrix representation and is replaced by the new implementation in ``qutip.data``.
 - ``qutip.piqs`` functions are no longer available from the ``qutip`` namespace. They are accessible from ``qutip.piqs`` instead.
