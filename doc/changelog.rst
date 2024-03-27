@@ -444,6 +444,8 @@ Feature removals
 - ``qutip.graph`` has been removed and replaced by SciPy's graph functions.
 - ``qutip.topology`` has been removed. It contained only one function ``berry_curvature``.
 - The ``~/.qutip/qutiprc`` config file is no longer supported. It contained settings for the OpenMP support.
+- Deprecate ``three_level_atom``
+- Deprecate ``orbital``
 
 
 Changes from QuTiP 5.0.0b1:
