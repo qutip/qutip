@@ -212,7 +212,7 @@ All solvers:
 - Dynamic arguments, where the value of an operator depends on
   the current state of the evolution interface reworked. Now a property of the
   solver is to be used as an arguments:
-    ``args={"state": MESolver.StateFeedback(default=rho0)}``
+  ``args={"state": MESolver.StateFeedback(default=rho0)}``
 
 Integrators:
 
@@ -449,7 +449,7 @@ Feature removals
 
 
 Changes from QuTiP 5.0.0b1:
---------------------------
+---------------------------
 
 Features
 --------
