@@ -129,7 +129,7 @@ class MultiTrajSolver(Solver):
         _, state = self._integrator.integrate(t, copy=False)
         return self._restore_state(state, copy=copy)
 
-    def _initialize_run(self, state, ntraj=1, args=None,
+    def _initialize_run(self, state, ntraj=1, args=None, e_ops=(),
                         timeout=None, target_tol=None, seeds=None):
         start_time = time()
         self._argument(args)
@@ -137,7 +137,7 @@ class MultiTrajSolver(Solver):
         seeds = self._read_seed(seeds, ntraj)
 
         result = self._resultclass(
-            self.options, solver=self.name, stats=stats
+            e_ops, self.options, solver=self.name, stats=stats
         )
         result.add_end_condition(ntraj, target_tol)
 
@@ -148,7 +148,7 @@ class MultiTrajSolver(Solver):
         })
         state0 = self._prepare_state(state)
         stats['preparation time'] += time() - start_time
-        return stats, seeds, result, map_func, map_kw, state0
+        return seeds, result, map_func, map_kw, state0
 
     def run(self, state, tlist, ntraj=1, *,
             args=None, e_ops=(), timeout=None, target_tol=None, seeds=None):
@@ -211,10 +211,11 @@ class MultiTrajSolver(Solver):
             The simulation will end when the first end condition is reached
             between ``ntraj``, ``timeout`` and ``target_tol``.
         """
-        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
+        seeds, result, map_func, map_kw, state0 = self._initialize_run(
             state,
             ntraj,
             args=args,
+            e_ops=e_ops,
             timeout=timeout,
             target_tol=target_tol,
             seeds=seeds,

@@ -372,12 +372,12 @@ def test_states_outputs(keep_runs_results):
         assert len(data.runs_states[0]) == len(times)
         assert isinstance(data.runs_states[0][0], qutip.Qobj)
         assert data.runs_states[0][0].norm() == pytest.approx(1.)
-        assert data.runs_states[0][0].isoper
+        assert data.runs_states[0][0].isket
 
         assert len(data.runs_final_states) == ntraj
         assert isinstance(data.runs_final_states[0], qutip.Qobj)
         assert data.runs_final_states[0].norm() == pytest.approx(1.)
-        assert data.runs_final_states[0].isoper
+        assert data.runs_final_states[0].isket
 
     assert isinstance(data.steady_state(), qutip.Qobj)
     assert data.steady_state().norm() == pytest.approx(1.)

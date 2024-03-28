@@ -496,9 +496,9 @@ class MCSolver(MultiTrajSolver):
                                e_ops=e_ops, timeout=timeout,
                                target_tol=target_tol, seeds=seeds)
 
-        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
-            state, ntraj, args=args, timeout=timeout,
-            target_tol=target_tol, seeds=seeds,
+        seeds, result, map_func, map_kw, state0 = self._initialize_run(
+            state, ntraj, args=args, e_ops=e_ops,
+            timeout=timeout, target_tol=target_tol, seeds=seeds
         )
 
         # first run the no-jump trajectory

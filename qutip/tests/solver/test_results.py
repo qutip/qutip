@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 import qutip
-from qutip.solver.result import Result, MultiTrajResult, McResult
+from qutip.solver.result import (
+    Result, MultiTrajResult, McResult, TrajectoryResult
+)
 
 
 def fill_options(**kwargs):
@@ -173,7 +175,7 @@ class TestMultiTrajResult:
         # Fix the seed to avoid failing due to bad luck
         np.random.seed(1)
         for _ in range(ntraj):
-            result = Result(multiresult._raw_ops, multiresult.options)
+            result = TrajectoryResult(multiresult._raw_ops, multiresult.options)
             result.collapse = []
             for t in range(N):
                 delta = 1 + noise * np.random.randn()

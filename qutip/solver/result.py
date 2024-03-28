@@ -1,8 +1,9 @@
 """ Class for solve function results"""
 
+from copy import copy
 from typing import TypedDict
 import numpy as np
-from ..core import Qobj, QobjEvo, expect, ket2dm, qzero_like
+from ..core import Qobj, QobjEvo, expect, qzero_like
 
 __all__ = [
     "Result",
@@ -491,10 +492,12 @@ class MultiTrajResult(_BaseResult):
     options: MultiTrajResultOptions
 
     def __init__(
-        self, options: MultiTrajResultOptions, *,
+        self, e_ops, options: MultiTrajResultOptions, *,
         solver=None, stats=None, **kw,
     ):
         super().__init__(options, solver=solver, stats=stats)
+        self.e_ops = e_ops or []
+        self._raw_ops = self._e_ops_to_dict(e_ops)
 
         self.trajectories = []
         self.num_trajectories = 0
@@ -502,26 +505,16 @@ class MultiTrajResult(_BaseResult):
 
         self.average_e_data = {}
         self.std_e_data = {}
-        self.runs_e_data = None
+        self.runs_e_data = {}
 
-        # Will be initialized at the first trajectory:
-        self.e_ops = None
+        # Will be initialized at the first trajectory
         self.times = None
 
         # We separate all sums into terms of trajectories with specified
-        # absolute weight (`_abs`) or without (`_rel`). The `_rel` will be
-        # initialized at the first trajectory, the `_abs` when needed
-        self._sum_states_abs = None
-        self._sum_states_rel = None
-        self._sum_final_states_abs = None
-        self._sum_final_states_rel = None
-        self._sum_expect_abs = None
-        self._sum_expect_rel = None
-        self._sum2_expect_abs = None
-        self._sum2_expect_rel = None
-
-        # Whether we have seen any trajectories with specified absolute weight
-        self._abs_weights_present = False
+        # absolute weight (`_abs`) or without (`_rel`). They will be initialized
+        # when the first trajectory of the respective type is added.
+        self._sum_rel = None
+        self._sum_abs = None
         # Number of trajectories without specified absolute weight
         self._num_rel_trajectories = 0
 
@@ -530,8 +523,8 @@ class MultiTrajResult(_BaseResult):
     @property
     def _store_average_density_matrices(self) -> bool:
         return (
-            self.options["store_states"]
-            or (self.options["store_states"] is None and self.e_ops == {})
+            self.options["store_states"] or
+            (self.options["store_states"] is None and len(self._raw_ops) == 0)
         ) and not self.options["keep_runs_results"]
 
     @property
@@ -547,114 +540,79 @@ class MultiTrajResult(_BaseResult):
         Read the first trajectory, intitializing needed data.
         """
         self.times = trajectory.times
-        self.e_ops = trajectory.e_ops
-
-        if trajectory.states and self._store_average_density_matrices:
-            self._sum_states_rel = [
-                qzero_like(ket2dm(state)) for state in trajectory.states
-            ]
-
-        if trajectory.final_state and self._store_final_density_matrix:
-            state = trajectory.final_state
-            self._sum_final_states_rel = qzero_like(ket2dm(state))
-
-        self._sum_expect_rel = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
-        self._sum2_expect_rel = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
 
         if self.options["keep_runs_results"]:
-            self.runs_e_data = {k: [] for k in self.e_ops}
-
-    def _first_abs_trajectory(self):
-        if self._sum_states_rel:
-            self._sum_states_abs = [
-                qzero_like(state) for state in self._sum_states_rel
-            ]
-        if self._sum_final_states_rel:
-            self._sum_final_states_abs = qzero_like(self._sum_final_states_rel)
-        self._sum_expect_abs = [
-            np.zeros_like(expect) for expect in self._sum_expect_rel
-        ]
-        self._sum2_expect_abs = [
-            np.zeros_like(expect) for expect in self._sum2_expect_rel
-        ]
-        self._abs_weights_present = True
+            self.runs_e_data = {k: [] for k in self._raw_ops}
 
     def _store_trajectory(self, trajectory):
         self.trajectories.append(trajectory)
 
     def _reduce_states(self, trajectory):
         if trajectory.has_absolute_weight():
-            self._sum_states_abs = [
-                accu + weight * ket2dm(state)
-                for accu, state, weight in zip(self._sum_states_abs,
-                                               trajectory.states,
-                                               trajectory._weight_array())
-            ]
-        elif trajectory.has_weight():
-            self._sum_states_rel = [
-                accu + weight * ket2dm(state)
-                for accu, state, weight in zip(self._sum_states_rel,
-                                               trajectory.states,
-                                               trajectory._weight_array())
-            ]
+            self._sum_abs.reduce_states(trajectory)
         else:
-            self._sum_states_rel = [
-                accu + ket2dm(state)
-                for accu, state in zip(self._sum_states_rel, trajectory.states)
-            ]
+            self._sum_rel.reduce_states(trajectory)
 
     def _reduce_final_state(self, trajectory):
         if trajectory.has_absolute_weight():
-            self._sum_final_states_abs += (trajectory._final_weight() *
-                                           ket2dm(trajectory.final_state))
-        elif trajectory.has_weight():
-            self._sum_final_states_rel += (trajectory._final_weight() *
-                                           ket2dm(trajectory.final_state))
+            self._sum_abs.reduce_final_state(trajectory)
         else:
-            self._sum_final_states_rel += ket2dm(trajectory.final_state)
+            self._sum_rel.reduce_final_state(trajectory)
 
     def _reduce_expect(self, trajectory):
         """
         Compute the average of the expectation values and store it in it's
         multiple formats.
         """
-        weight = trajectory.rel_weight
         if trajectory.has_absolute_weight():
-            weight = weight * trajectory.abs_weight
+            self._sum_abs.reduce_expect(trajectory)
+        else:
+            self._sum_rel.reduce_expect(trajectory)
 
-        for i, k in enumerate(self.e_ops):
-            expect_traj = trajectory.expect[i]
+        self._create_e_data()
 
-            if trajectory.has_absolute_weight():
-                self._sum_expect_abs[i] += weight * expect_traj
-                self._sum2_expect_abs[i] += weight * expect_traj**2
-            else:
-                self._sum_expect_rel[i] += weight * expect_traj
-                self._sum2_expect_rel[i] += weight * expect_traj**2
+        if self.runs_e_data:
+            for k in self._raw_ops:
+                self.runs_e_data[k].append(trajectory.e_data[k])
 
-            avg = (self._sum_expect_abs[i] +
-                   self._sum_expect_rel[i] / self._num_rel_trajectories)
-            avg2 = (self._sum2_expect_abs[i] +
-                   self._sum2_expect_rel[i] / self._num_rel_trajectories)
+    def _create_e_data(self):
+        for i, k in enumerate(self._raw_ops):
+            avg = 0
+            avg2 = 0
+            if self._sum_abs:
+                avg += self._sum_abs.sum_expect[i]
+                avg2 += self._sum_abs.sum2_expect[i]
+            if self._sum_rel:
+                avg += (
+                    self._sum_rel.sum_expect[i] / self._num_rel_trajectories
+                )
+                avg2 += (
+                    self._sum_rel.sum2_expect[i] / self._num_rel_trajectories
+                )
 
             self.average_e_data[k] = list(avg)
-
             # mean(expect**2) - mean(expect)**2 can something be very small
             # negative (-1e-15) which raise an error for float sqrt.
             self.std_e_data[k] = list(np.sqrt(np.abs(avg2 - np.abs(avg**2))))
 
-            if self.runs_e_data:
-                self.runs_e_data[k].append(trajectory.e_data[k])
-
     def _increment_traj(self, trajectory):
         if self.num_trajectories == 0:
             self._add_first_traj(trajectory)
-        if trajectory.has_absolute_weight() and not self._abs_weights_present:
-            self._first_abs_trajectory()
+
+        if trajectory.has_absolute_weight():
+            if self._sum_abs is None:
+                self._sum_abs = _TrajectorySum(
+                    trajectory,
+                    self._store_average_density_matrices,
+                    self._store_final_density_matrix)
+        else:
+            self._num_rel_trajectories += 1
+            if self._sum_rel is None:
+                self._sum_rel = _TrajectorySum(
+                    trajectory,
+                    self._store_average_density_matrices,
+                    self._store_final_density_matrix)
+
         self.num_trajectories += 1
 
     def _no_end(self):
@@ -674,8 +632,8 @@ class MultiTrajResult(_BaseResult):
         return ntraj_left
 
     def _average_computer(self):
-        avg = np.array(self._sum_expect_rel) / self._num_rel_trajectories
-        avg2 = np.array(self._sum2_expect_rel) / self._num_rel_trajectories
+        avg = np.array(self._sum_rel.sum_expect) / self._num_rel_trajectories
+        avg2 = np.array(self._sum_rel.sum2_expect) / self._num_rel_trajectories
         return avg, avg2
 
     def _target_tolerance_end(self):
@@ -816,27 +774,33 @@ class MultiTrajResult(_BaseResult):
         """
         States averages as density matrices.
         """
-        if self._sum_states_rel is None:
-            if not (self.trajectories and self.trajectories[0].states):
+
+        trajectory_states_available = (self.trajectories and
+                                       self.trajectories[0].states)
+        need_to_reduce_states = False
+        if self._sum_abs and not self._sum_abs.sum_states:
+            if not trajectory_states_available:
                 return None
-            self._sum_states_rel = [
-                qzero_like(ket2dm(state))
-                for state in self.trajectories[0].states
-            ]
-            if self._abs_weights_present:
-                self._sum_states_abs = [
-                    qzero_like(ket2dm(state))
-                    for state in self.trajectories[0].states
-                ]
+            self._sum_abs._initialize_sum_states(self.trajectories[0])
+            need_to_reduce_states = True
+        if self._sum_rel and not self._sum_rel.sum_states:
+            if not trajectory_states_available:
+                return None
+            self._sum_rel._initialize_sum_states(self.trajectories[0])
+            need_to_reduce_states = True
+        if need_to_reduce_states:
             for trajectory in self.trajectories:
                 self._reduce_states(trajectory)
 
-        result = [sum_rel / self._num_rel_trajectories
-                  for sum_rel in self._sum_states_rel]
-        if self._abs_weights_present:
-            result = [res + sum_abs
-                      for res, sum_abs in zip(result, self._sum_states_abs)]
-        return result
+        if self._sum_abs and self._sum_rel:
+            return [a + r / self._num_rel_trajectories for a, r in zip(
+                self._sum_abs.sum_states, self._sum_rel.sum_states)
+            ]
+        if self._sum_rel:
+            return [r / self._num_rel_trajectories
+                    for r in self._sum_rel.sum_states
+            ]
+        return self._sum_abs.sum_states
 
     @property
     def states(self):
@@ -860,15 +824,19 @@ class MultiTrajResult(_BaseResult):
         """
         Last states of each trajectories averaged into a density matrix.
         """
-        if self._sum_final_states_rel is None:
-            if self.average_states is not None:
-                return self.average_states[-1]
+        if ((self._sum_abs and not self._sum_abs.sum_final_state)
+            or (self._sum_rel and not self._sum_rel.sum_final_state)):
+
+            if (average_states := self.average_states) is not None:
+                return average_states[-1]
             return None
 
-        result = self._sum_final_states_rel / self._num_rel_trajectories
-        if self._abs_weights_present:
-            result += self._sum_final_states_abs
-        return result
+        if self._sum_rel:
+            result = self._sum_rel.sum_final_state / self._num_rel_trajectories
+            if self._sum_abs:
+                result += self._sum_abs.sum_final_state
+            return result
+        return self._sum_abs.sum_final_state
 
     @property
     def final_state(self):
@@ -953,79 +921,118 @@ class MultiTrajResult(_BaseResult):
             raise ValueError("Shared `times` are is required to merge results")
 
         new = self.__class__(
-            self.options, solver=self.solver, stats=self.stats
+            self.e_ops, self.options, solver=self.solver, stats=self.stats
         )
         new.times = self.times
-        new.e_ops = self.e_ops
 
         if self.trajectories and other.trajectories:
             new.trajectories = self.trajectories + other.trajectories
         new.num_trajectories = self.num_trajectories + other.num_trajectories
-        new.seeds = self.seeds + other.seeds
-
         new._num_rel_trajectories = (self._num_rel_trajectories +
                                      other._num_rel_trajectories)
-        new._abs_weights_present = (self._abs_weights_present or
-                                    other._abs_weights_present)
-        if new._abs_weights_present:
-            new._first_abs_trajectory() # initialize abs fields
-            #TODO shit this only works after all the "_rel" are initialized...
+        new.seeds = self.seeds + other.seeds
 
-        if (
-            self._sum_states_rel is not None
-            and other._sum_states_rel is not None
-        ):
-            new._sum_states_rel = [
-                state1 + state2 for state1, state2 in zip(
-                    self._sum_states_rel, other._sum_states_rel
-                )
-            ]
-            if self._abs_weights_present:
-                new._sum_states_abs = list(self._sum_states_abs)
-            if other._abs_weights_present:
-                new._sum_states_abs = [
-                    state1 + state2 for state1, state2 in zip(
-                        new._sum_states_abs, other._sum_states_abs
-                    )
-                ]
+        if self._sum_abs:
+            new._sum_abs = self._sum_abs + other._sum_abs
+        if self._sum_rel:
+            new._sum_rel = self._sum_rel + other._sum_rel
 
-        if (
-            self._sum_final_states_rel is not None
-            and other._sum_final_states_rel is not None
-        ):
-            new._sum_final_states_rel = (self._sum_final_states_rel
-                                         + other._sum_final_states_rel)
-            if self._abs_weights_present:
-                new._sum_final_states_abs = self._sum_final_states_abs
-            if other._abs_weights_present:
-                new._sum_final_states_abs += other._sum_final_states_abs
+        new._create_e_data()
 
-        new._sum_expect_rel = []
-        new._sum2_expect_rel = []
-        if self._abs_weights_present:
-            new._sum_expect_abs = []
-            new._sum2_expect_abs = []
         if self.runs_e_data and other.runs_e_data:
             new.runs_e_data = {}
-
-        for i, k in enumerate(self.e_ops):
-            new._sum_expect_rel.append(
-                self._sum_expect_rel[i] + other._sum_expect_rel[i])
-            new._sum2_expect_rel.append(
-                self._sum2_expect_rel[i] + other._sum2_expect_rel[i]
-            )
-
-            avg = new._sum_expect[i] / new.num_trajectories
-            avg2 = new._sum2_expect[i] / new.num_trajectories
-
-            new.average_e_data[k] = list(avg)
-            new.std_e_data[k] = np.sqrt(np.abs(avg2 - np.abs(avg**2)))
-
-            if self.runs_e_data and other.runs_e_data:
+            for k in self._raw_ops:
                 new.runs_e_data[k] = self.runs_e_data[k] + other.runs_e_data[k]
 
         new.stats["run time"] += other.stats["run time"]
         new.stats["end_condition"] = "Merged results"
+
+        return new
+
+
+class _TrajectorySum:
+    def __init__(self, example_trajectory, store_states, store_final_state):
+        if example_trajectory.states and store_states:
+            self._initialize_sum_states(example_trajectory)
+        else:
+            self.sum_states = None
+
+        if (fstate := example_trajectory.final_state) and store_final_state:
+            self.sum_final_state = qzero_like(_to_dm(fstate))
+        else:
+            self.sum_final_state = None
+
+        self.sum_expect = [
+            np.zeros_like(expect) for expect in example_trajectory.expect
+        ]
+        self.sum2_expect = [
+            np.zeros_like(expect) for expect in example_trajectory.expect
+        ]
+
+    def _initialize_sum_states(self, example_trajectory):
+        self.sum_states = [
+                qzero_like(_to_dm(state)) for state in example_trajectory.states
+            ]
+
+    def reduce_states(self, trajectory):
+        if trajectory.has_weight():
+            self.sum_states = [
+                accu + weight * _to_dm(state)
+                for accu, state, weight in zip(self.sum_states,
+                                               trajectory.states,
+                                               trajectory._total_weight())
+            ]
+        else:
+            self.sum_states = [
+                accu + _to_dm(state)
+                for accu, state in zip(self.sum_states, trajectory.states)
+            ]
+
+    def reduce_final_state(self, trajectory):
+        if trajectory.has_weight():
+            self.sum_final_state += (trajectory._final_weight() *
+                                     _to_dm(trajectory.final_state))
+        else:
+            self.sum_final_state += _to_dm(trajectory.final_state)
+
+    def reduce_expect(self, trajectory):
+        if trajectory.has_weight():
+            weight = trajectory._total_weight()
+        else:
+            weight = 1
+
+        for i, expect_traj in enumerate(trajectory.expect):
+            self.sum_expect[i] += weight * expect_traj
+            self.sum2_expect[i] += weight * expect_traj**2
+
+    def __add__(self, other):
+        if other is None:
+            return self
+        if not isinstance(other, _TrajectorySum):
+            raise NotImplementedError("Can only add two trajectory sums")
+
+        new = copy(self)
+
+        if self.sum_states and other.sum_states:
+            new.sum_states = [
+                state1 + state2 for state1, state2 in zip(
+                    self.sum_states, other.sum_states
+                )
+            ]
+        else:
+            new.sum_states = None
+
+        if self.sum_final_state and other.sum_final_state:
+            new.sum_final_state += other.sum_final_state
+        else:
+            new.sum_final_state = None
+
+        new.sum_expect = [sum1 + sum2 for sum1, sum2 in zip(
+            self.sum_expect, other.sum_expect)
+        ]
+        new.sum2_expect = [sum1 + sum2 for sum1, sum2 in zip(
+            self.sum2_expect, other.sum2_expect)
+        ]
 
         return new
 
@@ -1094,7 +1101,7 @@ class TrajectoryResult(Result):
         """Whether an absolute weight has been set."""
         return (self.abs_weight is not None)
 
-    def _weight_array(self):
+    def _total_weight(self):
         """
         Returns an array containing the weight as a function of time. If no
         absolute weight was set, this is only the relative weight. If an
@@ -1107,7 +1114,8 @@ class TrajectoryResult(Result):
         return weights
 
     def _final_weight(self):
-        return self._weight_array()[-1]
+        return self._total_weight()[-1]
+
 
 class McResult(MultiTrajResult):
     """
@@ -1187,6 +1195,8 @@ class McResult(MultiTrajResult):
         """
         Average photocurrent or measurement of the evolution.
         """
+        # TODO this is wrong if trajectories have weights
+        # unclear how to implement in case of time-dependent weights
         cols = [[] for _ in range(self.num_c_ops)]
         tlist = self.times
         for collapses in self.collapse:
@@ -1205,6 +1215,8 @@ class McResult(MultiTrajResult):
         """
         Photocurrent or measurement of each runs.
         """
+        # TODO this is wrong if trajectories have weights
+        # unclear how to implement in case of time-dependent weights
         tlist = self.times
         measurements = []
         for collapses in self.collapse:
@@ -1267,31 +1279,42 @@ class NmmcResult(McResult):
     def _post_init(self):
         super()._post_init()
 
-        self._sum_trace = None
-        self._sum2_trace = None
-        self.average_trace = []
-        self.std_trace = []
+        self._sum_trace_abs = None
+        self._sum_trace_rel = None
+        self._sum2_trace_abs = None
+        self._sum2_trace_rel = None
+
+        self.average_trace = None
+        self.std_trace = None
         self.runs_trace = []
 
         self.add_processor(self._add_trace)
 
     def _add_first_traj(self, trajectory):
         super()._add_first_traj(trajectory)
-        self._sum_trace = np.zeros_like(trajectory.times)
-        self._sum2_trace = np.zeros_like(trajectory.times)
+        self._sum_trace_abs = np.zeros_like(trajectory.times)
+        self._sum_trace_rel = np.zeros_like(trajectory.times)
+        self._sum2_trace_abs = np.zeros_like(trajectory.times)
+        self._sum2_trace_rel = np.zeros_like(trajectory.times)
 
     def _add_trace(self, trajectory):
-        new_trace = np.array(trajectory.trace)
-        self._sum_trace += new_trace
-        self._sum2_trace += np.abs(new_trace) ** 2
+        if trajectory.has_absolute_weight():
+            self._sum_trace_abs += trajectory._total_weight()
+            self._sum2_trace_abs += np.abs(trajectory._total_weight()) ** 2
+        else:
+            self._sum_trace_rel += trajectory._total_weight()
+            self._sum2_trace_rel += np.abs(trajectory._total_weight()) ** 2
 
-        avg = self._sum_trace / self.num_trajectories
-        avg2 = self._sum2_trace / self.num_trajectories
+        avg = (self._sum_trace_abs +
+               self._sum_trace_rel / self._num_rel_trajectories)
+        avg2 = (self._sum2_trace_abs +
+                self._sum2_trace_rel / self._num_rel_trajectories)
 
         self.average_trace = avg
         self.std_trace = np.sqrt(np.abs(avg2 - np.abs(avg) ** 2))
 
         if self.options["keep_runs_results"]:
+            # TODO rename this to runs_martingales?
             self.runs_trace.append(trajectory.trace)
 
     @property
@@ -1303,206 +1326,7 @@ class NmmcResult(McResult):
         return self.runs_trace or self.average_trace
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class McResultImprovedSampling(McResult, MultiTrajResult):
-    """
-    See docstring for McResult and MultiTrajResult for all relevant documentation.
-    This class computes expectation values and sums of states, etc
-    using the improved sampling algorithm, which samples the no-jump trajectory
-    first and then only samples jump trajectories afterwards.
-    """
-
-    def __init__(self, e_ops, options, **kw):
-        MultiTrajResult.__init__(self, e_ops=e_ops, options=options, **kw)
-        self._sum_expect_no_jump = None
-        self._sum_expect_jump = None
-        self._sum2_expect_no_jump = None
-        self._sum2_expect_jump = None
-
-        self._sum_states_no_jump = None
-        self._sum_states_jump = None
-        self._sum_final_states_no_jump = None
-        self._sum_final_states_jump = None
-
-        self.no_jump_prob = None
-
-    def _reduce_states(self, trajectory):
-        if self.num_trajectories == 1:
-            self._sum_states_no_jump = [
-                accu + ket2dm(state)
-                for accu, state in zip(
-                    self._sum_states_no_jump, trajectory.states
-                )
-            ]
-        else:
-            self._sum_states_jump = [
-                accu + ket2dm(state)
-                for accu, state in zip(
-                    self._sum_states_jump, trajectory.states
-                )
-            ]
-
-    def _reduce_final_state(self, trajectory):
-        dm_final_state = ket2dm(trajectory.final_state)
-        if self.num_trajectories == 1:
-            self._sum_final_states_no_jump += dm_final_state
-        else:
-            self._sum_final_states_jump += dm_final_state
-
-    def _average_computer(self):
-        avg = np.array(self._sum_expect_jump) / (self.num_trajectories - 1)
-        avg2 = np.array(self._sum2_expect_jump) / (self.num_trajectories - 1)
-        return avg, avg2
-
-    def _add_first_traj(self, trajectory):
-        super()._add_first_traj(trajectory)
-        if trajectory.states and self._store_average_density_matricies:
-            del self._sum_states
-            self._sum_states_no_jump = [
-                qzero_like(ket2dm(state)) for state in trajectory.states
-            ]
-            self._sum_states_jump = [
-                qzero_like(ket2dm(state)) for state in trajectory.states
-            ]
-        if trajectory.final_state and self._store_final_density_matrix:
-            state = trajectory.final_state
-            del self._sum_final_states
-            self._sum_final_states_no_jump = qzero_like(ket2dm(state))
-            self._sum_final_states_jump = qzero_like(ket2dm(state))
-        self._sum_expect_jump = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
-        self._sum2_expect_jump = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
-        self._sum_expect_no_jump = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
-        self._sum2_expect_no_jump = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
-        self._sum_expect_jump = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
-        self._sum2_expect_jump = [
-            np.zeros_like(expect) for expect in trajectory.expect
-        ]
-        del self._sum_expect
-        del self._sum2_expect
-
-    def _reduce_expect(self, trajectory):
-        """
-        Compute the average of the expectation values appropriately
-        weighting the jump and no-jump trajectories
-        """
-        for i, k in enumerate(self._raw_ops):
-            expect_traj = trajectory.expect[i]
-            p = self.no_jump_prob
-            if self.num_trajectories == 1:
-                self._sum_expect_no_jump[i] += expect_traj * p
-                self._sum2_expect_no_jump[i] += expect_traj**2 * p
-                # no jump trajectory will always be the first one, no need
-                # to worry about including jump trajectories
-                avg = self._sum_expect_no_jump[i]
-                avg2 = self._sum2_expect_no_jump[i]
-            else:
-                self._sum_expect_jump[i] += expect_traj * (1 - p)
-                self._sum2_expect_jump[i] += expect_traj**2 * (1 - p)
-                avg = self._sum_expect_no_jump[i] + (
-                    self._sum_expect_jump[i] / (self.num_trajectories - 1)
-                )
-                avg2 = self._sum2_expect_no_jump[i] + (
-                    self._sum2_expect_jump[i] / (self.num_trajectories - 1)
-                )
-
-            self.average_e_data[k] = list(avg)
-
-            # mean(expect**2) - mean(expect)**2 can something be very small
-            # negative (-1e-15) which raise an error for float sqrt.
-            self.std_e_data[k] = list(np.sqrt(np.abs(avg2 - np.abs(avg**2))))
-
-            if self.runs_e_data:
-                self.runs_e_data[k].append(trajectory.e_data[k])
-
-    @property
-    def average_states(self):
-        """
-        States averages as density matrices.
-        """
-        if self._sum_states_no_jump is None:
-            if not (self.trajectories and self.trajectories[0].states):
-                return None
-            self._sum_states_no_jump = [
-                qzero_like(ket2dm(state))
-                for state in self.trajectories[0].states
-            ]
-            self._sum_states_jump = [
-                qzero_like(ket2dm(state))
-                for state in self.trajectories[0].states
-            ]
-            self.num_trajectories = 0
-            for trajectory in self.trajectories:
-                self.num_trajectories += 1
-                self._reduce_states(trajectory)
-        p = self.no_jump_prob
-        return [
-            p * final_no_jump
-            + (1 - p) * final_jump / (self.num_trajectories - 1)
-            for final_no_jump, final_jump in zip(
-                self._sum_states_no_jump, self._sum_states_jump
-            )
-        ]
-
-    @property
-    def average_final_state(self):
-        """
-        Last states of each trajectory averaged into a density matrix.
-        """
-        if self._sum_final_states_no_jump is None:
-            if self.average_states is not None:
-                return self.average_states[-1]
-        p = self.no_jump_prob
-        return p * self._sum_final_states_no_jump + (
-            ((1 - p) * self._sum_final_states_jump)
-            / (self.num_trajectories - 1)
-        )
-
-    def __add__(self, other):
-        raise NotImplemented
-
-    @property
-    def photocurrent(self):
-        """
-        Average photocurrent or measurement of the evolution.
-        """
-        cols = [[] for _ in range(self.num_c_ops)]
-        tlist = self.times
-        for collapses in self.collapse:
-            for t, which in collapses:
-                cols[which].append(t)
-        mesurement = [
-            (1 - self.no_jump_prob)
-            / (self.num_trajectories - 1)
-            * np.histogram(cols[i], tlist)[0]
-            / np.diff(tlist)
-            for i in range(self.num_c_ops)
-        ]
-        return mesurement
+def _to_dm(state):
+    if state.type == "ket":
+        state = state.proj()
+    return state

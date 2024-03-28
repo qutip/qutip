@@ -5,6 +5,7 @@ import numbers
 import numpy as np
 import scipy
 
+from .result import NmmcResult
 from .multitraj import MultiTrajSolver
 from .mcsolve import MCSolver, MCIntegrator
 from .mesolve import MESolver, mesolve
@@ -333,6 +334,7 @@ class NonMarkovianMCSolver(MCSolver):
         Options for the evolution.
     """
     name = "nm_mcsolve"
+    _resultclass = NmmcResult
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -388,7 +390,6 @@ class NonMarkovianMCSolver(MCSolver):
         ]
         super().__init__(H, c_ops, options=options)
 
-    @property
     def _mc_integrator_class(self, *args):
         return NmMCIntegrator(*args, __martingale=self._martingale)
 
@@ -535,6 +536,7 @@ class NonMarkovianMCSolver(MCSolver):
                                              **integrator_kwargs)
         martingales = [self._martingale.value(t) for t in tlist]
         result.add_relative_weight(martingales)
+        result.trace = martingales
         return seed, result
 
     def run(self, state, tlist, ntraj=1, *, args=None, **kwargs):
