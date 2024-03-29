@@ -130,10 +130,8 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
 
         Experimental.
     """
-    
     if rho.isket:
         rho = ket2dm(rho)
-    
     mask = [idx == subsys for idx, n in enumerate(rho.dims[0])]
     rho_pt = partial_transpose(rho, mask)
 
