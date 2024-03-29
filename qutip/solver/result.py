@@ -519,7 +519,7 @@ class MultiTrajResult(_BaseResult):
         self.times = None
 
         # We separate all sums into terms of trajectories with specified
-        # absolute weight (`_abs`) or without (`_rel`). They will be initialized
+        # absolute weight (_abs) or without (_rel). They will be initialized
         # when the first trajectory of the respective type is added.
         self._sum_rel = None
         self._sum_abs = None
@@ -804,8 +804,7 @@ class MultiTrajResult(_BaseResult):
             ]
         if self._sum_rel:
             return [r / self._num_rel_trajectories
-                    for r in self._sum_rel.sum_states
-            ]
+                    for r in self._sum_rel.sum_states]
         return self._sum_abs.sum_states
 
     @property
@@ -830,13 +829,12 @@ class MultiTrajResult(_BaseResult):
         """
         Last states of each trajectories averaged into a density matrix.
         """
-        if ((self._sum_abs and not self._sum_abs.sum_final_state)
-            or (self._sum_rel and not self._sum_rel.sum_final_state)):
+        if ((self._sum_abs and not self._sum_abs.sum_final_state) or
+            (self._sum_rel and not self._sum_rel.sum_final_state)):
 
             if (average_states := self.average_states) is not None:
                 return average_states[-1]
             return None
-
 
         if self._sum_abs and self._sum_rel:
             return (self._sum_abs.sum_final_state +
@@ -980,8 +978,7 @@ class _TrajectorySum:
 
     def _initialize_sum_states(self, example_trajectory):
         self.sum_states = [
-                qzero_like(_to_dm(state)) for state in example_trajectory.states
-            ]
+            qzero_like(_to_dm(state)) for state in example_trajectory.states]
 
     def reduce_states(self, trajectory):
         if trajectory.has_weight():
