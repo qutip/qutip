@@ -379,6 +379,19 @@ class MultiTrajResult(_BaseResult):
 
     Parameters
     ----------
+    e_ops : :obj:`.Qobj`, :obj:`.QobjEvo`, function or list or dict of these
+        The ``e_ops`` parameter defines the set of values to record at
+        each time step ``t``. If an element is a :obj:`.Qobj` or
+        :obj:`.QobjEvo` the value recorded is the expectation value of that
+        operator given the state at ``t``. If the element is a function, ``f``,
+        the value recorded is ``f(t, state)``.
+
+        The values are recorded in the ``.expect`` attribute of this result
+        object. ``.expect`` is a list, where each item contains the values
+        of the corresponding ``e_op``.
+
+        Function ``e_ops`` must return a number so the average can be computed.
+
     options : dict
         The options for this result class.
 
@@ -642,6 +655,7 @@ class MultiTrajResult(_BaseResult):
         Return the approximate number of trajectories needed to have this
         error within the tolerance fot all e_ops and times.
         """
+        # TODO this might be wrong now
         if self.num_trajectories <= 1:
             return np.inf
         avg, avg2 = self._average_computer()
@@ -1314,7 +1328,6 @@ class NmmcResult(McResult):
         self.std_trace = np.sqrt(np.abs(avg2 - np.abs(avg) ** 2))
 
         if self.options["keep_runs_results"]:
-            # TODO rename this to runs_martingales?
             self.runs_trace.append(trajectory.trace)
 
     @property

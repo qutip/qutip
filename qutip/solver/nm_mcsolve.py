@@ -527,7 +527,7 @@ class NonMarkovianMCSolver(MCSolver):
         if isket(state):
             state = ket2dm(state)
         return state * self.current_martingale()
-    
+
     def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
         """
         Run one trajectory and return the result.

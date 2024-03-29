@@ -237,11 +237,15 @@ Solver Options and Results
     :exclude-members: add_processor, add, add_end_condition
 
 .. autoclass:: qutip.solver.result.TrajectoryResult
+    :show-inheritance:
+    :members:
 
 .. autoclass:: qutip.solver.result.McResult
+    :show-inheritance:
     :members:
-    :inherited-members:
-    :exclude-members: add_processor, add, add_end_condition
+
+.. autoclass:: qutip.solver.result.NmmcResult
+    :show-inheritance:
     :members:
 
 .. _classes-piqs:
