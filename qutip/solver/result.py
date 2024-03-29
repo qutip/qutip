@@ -411,14 +411,6 @@ class MultiTrajResult(_BaseResult):
         A list of the times at which the expectation values and states were
         recorded.
 
-    e_ops : dict
-        A dictionary containing the supplied e_ops as ``ExpectOp`` instances.
-        The keys of the dictionary are the same as for ``.e_data``.
-        Each value is object where ``.e_ops[k](t, state)`` calculates the
-        value of ``e_op`` ``k`` at time ``t`` and the given ``state``, and
-        ``.e_ops[k].op`` is the original object supplied to create the
-        ``e_op``.
-
     average_states : list of :obj:`.Qobj`
         The state at each time ``t`` (if the recording of the state was
         requested) averaged over all trajectories as a density matrix.
@@ -518,7 +510,10 @@ class MultiTrajResult(_BaseResult):
 
         self.average_e_data = {}
         self.std_e_data = {}
-        self.runs_e_data = {}
+        if self.options["keep_runs_results"]:
+            self.runs_e_data = {k: [] for k in self._raw_ops}
+        else:
+            self.runs_e_data = {}
 
         # Will be initialized at the first trajectory
         self.times = None
@@ -536,8 +531,8 @@ class MultiTrajResult(_BaseResult):
     @property
     def _store_average_density_matrices(self) -> bool:
         return (
-            self.options["store_states"] or
-            (self.options["store_states"] is None and len(self._raw_ops) == 0)
+            self.options["store_states"]
+            or (self.options["store_states"] is None and self._raw_ops == {})
         ) and not self.options["keep_runs_results"]
 
     @property
@@ -553,9 +548,6 @@ class MultiTrajResult(_BaseResult):
         Read the first trajectory, intitializing needed data.
         """
         self.times = trajectory.times
-
-        if self.options["keep_runs_results"]:
-            self.runs_e_data = {k: [] for k in self._raw_ops}
 
     def _store_trajectory(self, trajectory):
         self.trajectories.append(trajectory)
@@ -655,7 +647,7 @@ class MultiTrajResult(_BaseResult):
         Return the approximate number of trajectories needed to have this
         error within the tolerance fot all e_ops and times.
         """
-        # TODO this might be wrong now
+        # TODO update this function for weighted trajectories
         if self.num_trajectories <= 1:
             return np.inf
         avg, avg2 = self._average_computer()
@@ -685,7 +677,7 @@ class MultiTrajResult(_BaseResult):
             self.add_processor(self._reduce_states)
         if self._store_final_density_matrix:
             self.add_processor(self._reduce_final_state)
-        if self.e_ops:
+        if self._raw_ops:
             self.add_processor(self._reduce_expect)
 
         self.stats["end_condition"] = "unknown"
@@ -751,7 +743,7 @@ class MultiTrajResult(_BaseResult):
             self._early_finish_check = self._fixed_end
             return
 
-        num_e_ops = len(self.e_ops)
+        num_e_ops = len(self._raw_ops)
 
         if not num_e_ops:
             raise ValueError("Cannot target a tolerance without e_ops")
@@ -845,11 +837,12 @@ class MultiTrajResult(_BaseResult):
                 return average_states[-1]
             return None
 
+
+        if self._sum_abs and self._sum_rel:
+            return (self._sum_abs.sum_final_state +
+                    self._sum_rel.sum_final_state / self._num_rel_trajectories)
         if self._sum_rel:
-            result = self._sum_rel.sum_final_state / self._num_rel_trajectories
-            if self._sum_abs:
-                result += self._sum_abs.sum_final_state
-            return result
+            return self._sum_rel.sum_final_state / self._num_rel_trajectories
         return self._sum_abs.sum_final_state
 
     @property
@@ -929,7 +922,7 @@ class MultiTrajResult(_BaseResult):
     def __add__(self, other):
         if not isinstance(other, MultiTrajResult):
             raise NotImplementedError("Can only add two multi traj results")
-        if self.e_ops != other.e_ops:
+        if self._raw_ops != other._raw_ops:
             raise ValueError("Shared `e_ops` is required to merge results")
         if self.times != other.times:
             raise ValueError("Shared `times` are is required to merge results")
@@ -947,6 +940,8 @@ class MultiTrajResult(_BaseResult):
         new.seeds = self.seeds + other.seeds
 
         if self._sum_abs:
+            # TODO this does not work for two results,
+            # each containing a no-jump trajectory
             new._sum_abs = self._sum_abs + other._sum_abs
         if self._sum_rel:
             new._sum_rel = self._sum_rel + other._sum_rel
@@ -1298,8 +1293,8 @@ class NmmcResult(McResult):
         self._sum2_trace_abs = None
         self._sum2_trace_rel = None
 
-        self.average_trace = None
-        self.std_trace = None
+        self.average_trace = []
+        self.std_trace = []
         self.runs_trace = []
 
         self.add_processor(self._add_trace)
