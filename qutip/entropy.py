@@ -4,7 +4,8 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
 
 from numpy import conj, e, inf, imag, inner, real, sort, sqrt
 from numpy.lib.scimath import log, log2
-from . import (ptrace, ket2dm, tensor, sigmay, partial_transpose,
+from qutip import partial_transpose, ket2dm
+from . import (ptrace, tensor, sigmay,
                expand_operator)
 from .core import data as _data
 
@@ -129,6 +130,10 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
 
         Experimental.
     """
+    
+    if rho.isket:
+        rho = ket2dm(rho)
+    
     mask = [idx == subsys for idx, n in enumerate(rho.dims[0])]
     rho_pt = partial_transpose(rho, mask)
 
