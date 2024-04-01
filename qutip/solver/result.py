@@ -501,7 +501,6 @@ class MultiTrajResult(_BaseResult):
         solver=None, stats=None, **kw,
     ):
         super().__init__(options, solver=solver, stats=stats)
-        self.e_ops = e_ops or []
         self._raw_ops = self._e_ops_to_dict(e_ops)
 
         self.trajectories = []
@@ -517,6 +516,7 @@ class MultiTrajResult(_BaseResult):
 
         # Will be initialized at the first trajectory
         self.times = None
+        self.e_ops = None
 
         # We separate all sums into terms of trajectories with specified
         # absolute weight (_abs) or without (_rel). They will be initialized
@@ -548,6 +548,7 @@ class MultiTrajResult(_BaseResult):
         Read the first trajectory, intitializing needed data.
         """
         self.times = trajectory.times
+        self.e_ops = trajectory.e_ops
 
     def _store_trajectory(self, trajectory):
         self.trajectories.append(trajectory)
@@ -919,16 +920,17 @@ class MultiTrajResult(_BaseResult):
 
     def __add__(self, other):
         if not isinstance(other, MultiTrajResult):
-            raise NotImplementedError("Can only add two multi traj results")
+            return NotImplemented
         if self._raw_ops != other._raw_ops:
             raise ValueError("Shared `e_ops` is required to merge results")
         if self.times != other.times:
             raise ValueError("Shared `times` are is required to merge results")
 
         new = self.__class__(
-            self.e_ops, self.options, solver=self.solver, stats=self.stats
+            self._raw_ops, self.options, solver=self.solver, stats=self.stats
         )
         new.times = self.times
+        new.e_ops = self.e_ops
 
         if self.trajectories and other.trajectories:
             new.trajectories = self.trajectories + other.trajectories
@@ -1015,7 +1017,7 @@ class _TrajectorySum:
         if other is None:
             return self
         if not isinstance(other, _TrajectorySum):
-            raise NotImplementedError("Can only add two trajectory sums")
+            return NotImplemented
 
         new = copy(self)
 
