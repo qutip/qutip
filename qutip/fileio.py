@@ -20,11 +20,11 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal",
         Name of data file to be stored, including extension.
     data: array_like
         Data to be written to file.
-    numtype : str {'complex, 'real'}
+    numtype : str {'complex, 'real'}, default: 'complex'
         Type of numerical data.
-    numformat : str {'decimal','exp'}
+    numformat : str {'decimal','exp'}, default: 'decimal'
         Format for written data.
-    sep : str
+    sep : str, default: ','
         Single-character field seperator.  Usually a tab, space, comma,
         or semicolon.
 
@@ -114,7 +114,7 @@ def file_data_read(filename, sep=None):
     ----------
     filename : str or pathlib.Path
         Name of file containing reqested data.
-    sep : str
+    sep : str, optional
         Seperator used to store data.
 
     Returns
@@ -217,7 +217,7 @@ def qsave(data, name='qutip_data'):
     ----------
     data : instance/array_like
         Input Python object to be stored.
-    filename : str or pathlib.Path
+    filename : str or pathlib.Path, default: "qutip_data"
         Name of output data file.
 
     """
@@ -230,13 +230,13 @@ def qsave(data, name='qutip_data'):
         pickle.dump(data, fileObject)
 
 
-def qload(name):
+def qload(filename):
     """
-    Loads data file from file named 'filename.qu' in current directory.
+    Loads data file from file ``filename`` in current directory.
 
     Parameters
     ----------
-    name : str or pathlib.Path
+    filename : str or pathlib.Path
         Name of data file to be loaded.
 
     Returns
@@ -245,7 +245,7 @@ def qload(name):
         Object retrieved from requested file.
 
     """
-    path = Path(name)
+    path = Path(filename)
     path = path.with_suffix(path.suffix + ".qu")
 
     with open(path, "rb") as fileObject:

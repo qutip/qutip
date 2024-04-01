@@ -5,7 +5,6 @@ import qutip.settings
 from qutip.settings import settings
 import qutip.version
 from qutip.version import version as __version__
-
 # -----------------------------------------------------------------------------
 # Look to see if we are running with OPENMP
 #
@@ -33,14 +32,13 @@ else:
 
 from .core import *
 from .solver import *
-from .solve import nonmarkov
-import qutip.solve.piqs as piqs
+from .solver import nonmarkov
+import qutip.piqs.piqs as piqs
 
 # graphics
 from .bloch import *
 from .visualization import *
-from .orbital import *
-from .bloch3d import *
+from .animation import *
 from .matplotlib_utilities import *
 
 # library functions
@@ -52,8 +50,7 @@ from .entropy import *
 from .partial_transpose import *
 from .continuous_variables import *
 from .distributions import *
-from .three_level_atom import *
-
+from . import measurement
 
 # utilities
 from .utilities import *

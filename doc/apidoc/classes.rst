@@ -11,6 +11,7 @@ Qobj
 
 .. autoclass:: qutip.core.qobj.Qobj
     :members:
+    :special-members: __call__
 
 .. _classes-qobjevo:
 
@@ -19,6 +20,7 @@ QobjEvo
 
 .. autoclass:: qutip.core.cy.qobjevo.QobjEvo
     :members:
+    :special-members: __call__
 
 
 .. _classes-bloch:
@@ -27,9 +29,6 @@ Bloch sphere
 ---------------
 
 .. autoclass:: qutip.bloch.Bloch
-    :members:
-
-.. autoclass:: qutip.bloch3d.Bloch3d
     :members:
 
 Distributions
@@ -48,28 +47,33 @@ Solvers
     :members:
     :inherited-members:
     :show-inheritance:
-    
+    :exclude-members: add_integrator
+
 .. autoclass:: qutip.solver.mesolve.MESolver
     :members:
     :inherited-members:
     :show-inheritance:
-      
+    :exclude-members: add_integrator
+
 .. autoclass:: qutip.solver.brmesolve.BRSolver
     :members:
     :inherited-members:
     :show-inheritance:
+    :exclude-members: add_integrator
 
-
-.. autoclass:: qutip.solver.stochastic.SMESolver
+.. autoclass:: qutip.solver.floquet.FMESolver
     :members:
     :inherited-members:
     :show-inheritance:
+    :exclude-members: add_integrator
 
-.. autoclass:: qutip.solver.stochastic.SSESolver
+.. autoclass:: qutip.solver.floquet.FloquetBasis
+    :members:
+
+.. autoclass:: qutip.solver.propagator.Propagator
     :members:
     :inherited-members:
-    :show-inheritance:
-
+    :special-members: __call__
 
 
 .. _classes-monte-carlo-solver:
@@ -81,11 +85,13 @@ Monte Carlo Solvers
     :members:
     :inherited-members:
     :show-inheritance:
+    :exclude-members: add_integrator
 
 .. autoclass:: qutip.solver.nm_mcsolve.NonMarkovianMCSolver
     :members:
     :inherited-members:
     :show-inheritance:
+    :exclude-members: add_integrator
 
 
 .. _classes-non_markov_heom:
@@ -134,6 +140,22 @@ Non-Markovian HEOM Solver
 
 .. autoclass:: qutip.solver.heom.HEOMResult
     :members:
+
+
+.. _classes-stochastic:
+
+Stochastic Solver
+-----------------
+
+.. autoclass:: qutip.solver.stochastic.SMESolver
+    :members:
+    :inherited-members:
+    :exclude-members: add_integrator
+
+.. autoclass:: qutip.solver.stochastic.SSESolver
+    :members:
+    :inherited-members:
+    :exclude-members: add_integrator
 
 
 .. _classes-ode:
@@ -199,15 +221,6 @@ Stochastic Integrator
     :members: options
 
 
-.. _classes-non_markov_mc_and_tt:
-
-Non-Markovian Memory Cascade and Transfer Tensor Solvers
---------------------------------------------------------
-
-.. autoclass:: qutip.solve.nonmarkov.memorycascade.MemoryCascade
-    :members:
-
-
 .. _classes-odeoptions:
 
 Solver Options and Results
@@ -215,37 +228,57 @@ Solver Options and Results
 
 .. autoclass:: qutip.solver.result.Result
     :members:
+    :inherited-members:
+    :exclude-members: add_processor, add
+
+.. autoclass:: qutip.solver.result.MultiTrajResult
+    :members:
+    :inherited-members:
+    :exclude-members: add_processor, add, add_end_condition
+
+.. autoclass:: qutip.solver.result.McResult
+    :members:
+    :inherited-members:
+    :exclude-members: add_processor, add, add_end_condition
+
+.. autoclass:: qutip.solver.result.NmmcResult
+    :members:
+    :inherited-members:
+    :exclude-members: add_processor, add, add_end_condition
 
 .. _classes-piqs:
 
 Permutational Invariance
 ------------------------
 
-.. autoclass:: qutip.solve.piqs.Dicke
+.. autoclass:: qutip.piqs.piqs.Dicke
     :members:
 
-.. autoclass:: qutip.solve.piqs.Pim
+.. autoclass:: qutip.piqs.piqs.Pim
     :members:
 
 .. _classes-distributions:
 
 Distribution functions
-----------------------------
+----------------------
 
 .. autoclass:: qutip.distributions.Distribution
     :members:
 
-.. autoclass:: qutip.distributions.WignerDistribution
-    :members:
+..
+  Docstrings are empty...
 
-.. autoclass:: qutip.distributions.QDistribution
-    :members:
+  .. autoclass:: qutip.distributions.WignerDistribution
+      :members:
 
-.. autoclass:: qutip.distributions.TwoModeQuadratureCorrelation
-    :members:
+  .. autoclass:: qutip.distributions.QDistribution
+      :members:
 
-.. autoclass:: qutip.distributions.HarmonicOscillatorWaveFunction
-    :members:
+  .. autoclass:: qutip.distributions.TwoModeQuadratureCorrelation
+      :members:
 
-.. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
-    :members:
+  .. autoclass:: qutip.distributions.HarmonicOscillatorWaveFunction
+      :members:
+
+  .. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
+      :members:

@@ -15,36 +15,36 @@ import time
 from qutip import spre, vector_to_operator, operator_to_vector, Result
 
 
-def ttmsolve(dynmaps, state0, times, e_ops=[], num_learning=0, options=None):
+def ttmsolve(dynmaps, state0, times, e_ops=(), num_learning=0, options=None):
     """
     Expand time-evolution using the Transfer Tensor Method [1]_, based on a set
     of precomputed dynamical maps.
 
     Parameters
     ----------
-    dynmaps : list of :class:`qutip.Qobj`, callable
+    dynmaps : list of :class:`.Qobj`, callable
         List of precomputed dynamical maps (superoperators) for the first times
         of ``times`` or a callback function that returns the superoperator at a
         given time.
 
-    state0 : :class:`qutip.Qobj`
+    state0 : :class:`.Qobj`
         Initial density matrix or state vector (ket).
 
     times : array_like
         List of times :math:`t_n` at which to compute results.
         Must be uniformily spaced.
 
-    e_ops : :class:`qutip.qobj`, callable, or list.
+    e_ops : :class:`.Qobj`, callable, or list, optional
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`expect` for more detail of operator expectation.
 
-    num_learning : int
+    num_learning : int, default: 0
         Number of times used to construct the dynmaps operators when
         ``dynmaps`` is a callable.
 
-    options : dictionary
+    options : dictionary, optional
         Dictionary of options for the solver.
 
         - store_final_state : bool
@@ -62,8 +62,8 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], num_learning=0, options=None):
 
     Returns
     -------
-    output: :class:`qutip.solver.Result`
-        An instance of the class :class:`qutip.solver.Result`.
+    output: :class:`.Result`
+        An instance of the class :class:`.Result`.
 
     .. [1] Javier Cerrillo and Jianshu Cao, Phys. Rev. Lett 112, 110401 (2014)
     """
@@ -71,7 +71,7 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], num_learning=0, options=None):
     opt = {
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": "ket",
+        "normalize_output": True,
         "threshold": 0.0,
         "num_learning": 0,
     }
@@ -148,7 +148,7 @@ def _generatetensors(dynmaps, threshold):
 
     Parameters
     ----------
-    dynmaps : list of :class:`qutip.Qobj`
+    dynmaps : list of :class:`.Qobj`
         List of precomputed dynamical maps (superoperators) at the times
         specified in `learningtimes`.
 
@@ -158,7 +158,7 @@ def _generatetensors(dynmaps, threshold):
 
     Returns
     -------
-    Tensors, diffs: list of :class:`qutip.Qobj.`
+    Tensors, diffs: list of :class:`.Qobj.`
         A list of transfer tensors :math:`T_1,\dots,T_K`
     """
     Tensors = []

@@ -37,7 +37,7 @@ cdef class SpectraCoefficient(Coefficient):
         return self.coeff_t(t) * self.coeff_w(self.w)
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return SpectraCoefficient(self.coeff_t, self.coeff_w, self.w)
 
     def replace_arguments(self, _args=None, *, w=None, **kwargs):
@@ -52,11 +52,6 @@ cdef class SpectraCoefficient(Coefficient):
         if w is not None:
             return SpectraCoefficient(self.coeff_w, self.coeff_t, w)
         return self
-
-
-@cython.overflowcheck(True)
-cdef size_t _mul_checked(size_t a, size_t b) except? -1:
-    return a * b
 
 
 cdef Data _apply_trans(Data original, int trans):
@@ -201,7 +196,7 @@ cdef class _EigenBasisTransform:
     def __init__(self, QobjEvo oper, bint sparse=False):
         if oper.dims[0] != oper.dims[1]:
             raise ValueError
-        if type(oper(0).data) is _data.CSR and not sparse:
+        if type(oper(0).data) in (_data.CSR, _data.Dia) and not sparse:
             oper = oper.to(Dense)
         self.oper = oper
         self.isconstant = oper.isconstant

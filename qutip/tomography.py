@@ -3,7 +3,7 @@ __all__ = ['qpt_plot', 'qpt_plot_combined', 'qpt']
 from numpy import hstack, real, imag
 import scipy.linalg as la
 from . import tensor, spre, spost, stack_columns, unstack_columns
-from .visualization import matrix_histogram, matrix_histogram_complex
+from .visualization import matrix_histogram
 import itertools
 
 try:
@@ -41,11 +41,11 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
         Input QPT chi matrix.
     lbls_list : list
         List of labels for QPT plot axes.
-    title : string
+    title : str, optional
         Plot title.
-    fig : figure instance
+    fig : figure instance, optional
         User defined figure instance used for generating QPT plot.
-    axes : list of figure axis instance
+    axes : list of figure axis instance, optional
         User defined figure axis instance (list of two axes) used for
         generating QPT plot.
 
@@ -71,10 +71,11 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
         xlabels.append("".join([lbls_list[k][inds[k]]
                                 for k in range(len(lbls_list))]))
 
-    matrix_histogram(real(chi), xlabels, xlabels,
-                     title=r"real($\chi$)", limits=[-1, 1], ax=axes[0])
-    matrix_histogram(imag(chi), xlabels, xlabels,
-                     title=r"imag($\chi$)", limits=[-1, 1], ax=axes[1])
+    matrix_histogram(real(chi), xlabels, xlabels, limits=[-1, 1], ax=axes[0])
+    axes[0].set_title(r"real($\chi$)")
+
+    matrix_histogram(imag(chi), xlabels, xlabels, limits=[-1, 1], ax=axes[1])
+    axes[1].set_title(r"imag($\chi$)")
 
     if title and fig:
         fig.suptitle(title)
@@ -98,17 +99,20 @@ def qpt_plot_combined(chi, lbls_list, title=None,
     lbls_list : list
         List of labels for QPT plot axes.
 
-    title : string
+    title : str, optional
         Plot title.
 
-    fig : figure instance
+    fig : figure instance, optional
         User defined figure instance used for generating QPT plot.
 
-    ax : figure axis instance
+    figsize : (int, int), default: (8, 6)
+        Size of the figure when the ``fig`` is not provided.
+
+    ax : figure axis instance, optional
         User defined figure axis instance used for generating QPT plot
         (alternative to the fig argument).
 
-    threshold: float (None)
+    threshold: float, optional
         Threshold for when bars of smaller height should be transparent. If
         not set, all bars are colored according to the color map.
 
@@ -132,8 +136,10 @@ def qpt_plot_combined(chi, lbls_list, title=None,
     if not title:
         title = r"$\chi$"
 
-    matrix_histogram_complex(chi, xlabels, xlabels, title=title, ax=ax,
-                             threshold=threshold)
+    matrix_histogram(chi, xlabels, xlabels, bar_style='abs',
+                     color_style='phase',
+                     options={'threshold': threshold}, ax=ax)
+    ax.set_title(title)
 
     return fig, ax
 

@@ -44,7 +44,7 @@ class TestOperator:
         iden = [qutip.qeye(n) for n in dimensions]
         for i, test in enumerate(test_operators):
             expected = qutip.tensor(iden[:i] + [a[i]] + iden[i+1:])
-            assert test == expected
+            assert test.data == expected.data
             assert test.dims == [dimensions, dimensions]
 
     def test_space_size_reduction(self, dimensions, n_excitations):
@@ -82,7 +82,7 @@ def test_fock_state(dimensions, n_excitations):
 def test_fock_state_error():
     with pytest.raises(ValueError) as e:
         state = qutip.enr_fock([2, 2, 2], 1, [1, 1, 1])
-    assert str(e.value).startswith("The state tuple ")
+    assert str(e.value).startswith("state tuple ")
 
 
 def _reference_dm(dimensions, n_excitations, nbars):
@@ -114,3 +114,41 @@ def test_thermal_dm(dimensions, n_excitations, nbar_type):
     test_dm = qutip.enr_thermal_dm(dimensions, n_excitations, nbars)
     expect_dm = _reference_dm(dimensions, n_excitations, nbars)
     np.testing.assert_allclose(test_dm.full(), expect_dm.full(), atol=1e-12)
+
+
+def test_mesolve_ENR():
+    # Ensure ENR states work with mesolve
+    # We compare the output to an exact truncation of the
+    # single-excitation Jaynes-Cummings model
+    eps = 2 * np.pi
+    omega_c = 2 * np.pi
+    g = 0.1 * omega_c
+    gam = 0.01 * omega_c
+    tlist = np.linspace(0, 20, 100)
+    N_cut = 2
+
+    sz = qutip.sigmaz() & qutip.qeye(N_cut)
+    sm = qutip.destroy(2).dag() & qutip.qeye(N_cut)
+    a = qutip.qeye(2) & qutip.destroy(N_cut)
+    H_JC = (0.5 * eps * sz + omega_c * a.dag()*a +
+            g * (a * sm.dag() + a.dag() * sm))
+    psi0 = qutip.basis(2, 0) & qutip.basis(N_cut, 0)
+    c_ops = [np.sqrt(gam) * a]
+
+    result_JC = qutip.mesolve(H_JC, psi0, tlist, c_ops, e_ops=[sz])
+
+    N_exc = 1
+    dims = [2, N_cut]
+    d = qutip.enr_destroy(dims, N_exc)
+    sz = 2*d[0].dag()*d[0]-1
+    b = d[0]
+    a = d[1]
+    psi0 = qutip.enr_fock(dims, N_exc, [1, 0])
+    H_enr = (eps * b.dag()*b + omega_c * a.dag() * a +
+             g * (b.dag() * a + a.dag() * b))
+    c_ops = [np.sqrt(gam) * a]
+
+    result_enr = qutip.mesolve(H_enr, psi0, tlist, c_ops, e_ops=[sz])
+
+    np.testing.assert_allclose(result_JC.expect[0],
+                               result_enr.expect[0], atol=1e-2)

@@ -37,7 +37,7 @@ module_groups = [
     ("#043c6b", {"settings", "configrc", "solver"}),
     # Visualisation
     ("#3f8fd2", {
-        "bloch", "bloch3d", "sphereplot", "orbital", "visualization", "wigner",
+        "bloch", "sphereplot", "orbital", "visualization", "wigner",
         "distributions", "tomography", "topology",
     }),
     # Operators
@@ -47,7 +47,6 @@ module_groups = [
     # States
     ("#007143", {
         "states", "continuous_variables", "qstate", "random_objects",
-        "three_level_atom",
     }),
     # QIP
     ("#36d695", {"measurement"}),

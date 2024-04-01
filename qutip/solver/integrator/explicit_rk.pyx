@@ -11,6 +11,7 @@ from qutip.core.data.tidyup import tidyup_csr
 from qutip.core.data.norm import frobenius_data
 from .verner7efficient import vern7_coeff
 from .verner9efficient import vern9_coeff
+from cpython.exc cimport PyErr_CheckSignals
 cimport cython
 import numpy as np
 
@@ -64,7 +65,7 @@ cdef Data iadd_data(Data left, Data right, double complex factor):
 cdef class Explicit_RungeKutta:
     """
     Qutip implementation of Runge Kutta ODE.
-    Works in :class:`Data` allowing solving using sparse and gpu data.
+    Works in :class:`.Data` allowing solving using sparse and gpu data.
 
     Parameters
     ----------
@@ -198,7 +199,7 @@ cdef class Explicit_RungeKutta:
         self.b_factor_np = np.empty(self.rk_extra_step, dtype=np.float64)
         self.b_factor = self.b_factor_np
 
-    cpdef void set_initial_value(self, Data y0, double t):
+    cpdef void set_initial_value(self, Data y0, double t) except *:
         """
         Set the initial state and time of the integration.
         """
@@ -222,7 +223,7 @@ cdef class Explicit_RungeKutta:
         else:
             self._dt_safe = self.first_step
 
-    cdef double _estimate_first_step(self, double t, Data y0):
+    cdef double _estimate_first_step(self, double t, Data y0) except -1:
         if not self.adaptative_step:
             return 0.
 
@@ -265,7 +266,7 @@ cdef class Explicit_RungeKutta:
             dt = max(self.min_step, dt)
         return dt
 
-    cpdef integrate(Explicit_RungeKutta self, double t, bint step=False):
+    cpdef void integrate(Explicit_RungeKutta self, double t, bint step=False) except *:
         """
         Do the integration to t.
         If ``step`` is True, it will make a maximum 1 step and may not reach
@@ -300,6 +301,7 @@ cdef class Explicit_RungeKutta:
             self._t_prev = self._t_front
             self._norm_prev = self._norm_front
             nsteps_left -= self._step_in_err(t, nsteps_left)
+            PyErr_CheckSignals()
             if step:
                 break
 
@@ -316,7 +318,7 @@ cdef class Explicit_RungeKutta:
             self._t = self._t_front
             self._y = copy_to(self._y_front, self._y)
 
-    cdef int _step_in_err(self, double t, int max_step):
+    cdef int _step_in_err(self, double t, int max_step) except -1:
         """
         Do compute one step, repeating until the error is within tolerance.
         """
@@ -338,7 +340,7 @@ cdef class Explicit_RungeKutta:
                 break
         return nsteps
 
-    cdef double _compute_step(self, double dt):
+    cdef double _compute_step(self, double dt) except -1:
         """
         Do compute one step with fixed ``dt``, return the error.
         Use (_t_prev, _y_prev) to create (_t_front, _y_front)
@@ -368,7 +370,7 @@ cdef class Explicit_RungeKutta:
 
         return self._error(self._y_front, dt)
 
-    cdef double _error(self, Data y_new, double dt):
+    cdef double _error(self, Data y_new, double dt) except -1:
         """ Compute the normalized error. (error/tol) """
         if not self.adaptative_step:
             return 0.
@@ -378,7 +380,7 @@ cdef class Explicit_RungeKutta:
         return frobenius_data(self._y_temp) / (self.atol +
                 max(self._norm_prev, self._norm_front) * self.rtol)
 
-    cdef void _prep_dense_out(self):
+    cdef void _prep_dense_out(self) except *:
         """
         Compute derivative for the interpolation step.
         """

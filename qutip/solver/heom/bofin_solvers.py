@@ -136,8 +136,8 @@ class HierarchyADOs:
         int
             The index of the label within the list of ADO labels.
 
-        Note
-        ----
+        Notes
+        -----
         This implementation of the ``.idx(...)`` method is just for
         reference and documentation. To avoid the cost of a Python
         function call, it is replaced with
@@ -326,7 +326,7 @@ class HierarchyADOsState:
 
     Parameters
     ----------
-    rho : :class:`~qutip.Qobj`
+    rho : :class:`.Qobj`
         The current state of the system (i.e. the 0th component of the
         hierarchy).
     ados : :class:`HierarchyADOs`
@@ -385,7 +385,7 @@ class HEOMResult(Result):
 
         self.store_ados = self.options["store_ados"]
         if self.store_ados:
-            self.final_ado_state = None
+            self._final_ado_state = None
             self.ado_states = []
 
     def _e_op_func(self, e_op):
@@ -407,9 +407,17 @@ class HEOMResult(Result):
             self.ado_states.append(ado_state)
 
     def _store_final_state(self, t, ado_state):
-        self.final_state = ado_state.rho
+        self._final_state = ado_state.rho
         if self.store_ados:
-            self.final_ado_state = ado_state
+            self._final_ado_state = ado_state
+
+    @property
+    def final_ado_state(self):
+        if self._final_ado_state is not None:
+            return self._final_state
+        if self.ado_states:
+            return self.ado_states[-1]
+        return None
 
 
 def heomsolve(
@@ -427,10 +435,10 @@ def heomsolve(
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
     bath : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the
@@ -444,9 +452,9 @@ def heomsolve(
         The maximum depth of the heirarchy (i.e. the maximum number of bath
         exponent "excitations" to retain).
 
-    state0 : :class:`~Qobj` or :class:`~HierarchyADOsState` or array-like
-        If ``rho0`` is a :class:`~Qobj` the it is the initial state
-        of the system (i.e. a :obj:`~Qobj` density matrix).
+    state0 : :obj:`.Qobj` or :class:`~HierarchyADOsState` or array-like
+        If ``rho0`` is a :obj:`.Qobj` the it is the initial state
+        of the system (i.e. a :obj:`.Qobj` density matrix).
 
         If it is a :class:`~HierarchyADOsState` or array-like, then
         ``rho0`` gives the initial state of all ADOs.
@@ -465,8 +473,8 @@ def heomsolve(
         An ordered list of times at which to return the value of the state.
 
     e_ops : Qobj / QobjEvo / callable / list / dict / None, optional
-        A list or dictionary of operators as :class:`~Qobj`,
-        :class:`~QobjEvo` and/or callable functions (they can be mixed) or
+        A list or dictionary of operators as :obj:`.Qobj`,
+        :obj:`.QobjEvo` and/or callable functions (they can be mixed) or
         a single operator or callable function. For an operator ``op``, the
         result will be computed using ``(state * op).tr()`` and the state
         at each time ``t``. For callable functions, ``f``, the result is
@@ -474,43 +482,43 @@ def heomsolve(
         ``expect`` and ``e_data`` attributes of the result (see the return
         section below).
 
-    args : dict, optional {None}
+    args : dict, optional
         Change the ``args`` of the RHS for the evolution.
 
-    options : dict, optional {None}
+    options : dict, optional
         Generic solver options.
 
-        - store_final_state : bool
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - store_ados : bool {False, True}
-          Whether or not to store the HEOM ADOs.
-        - normalize_output : bool
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - state_data_type: str {'dense'}
-          Name of the data type of the state used during the ODE evolution.
-          Use an empty string to keep the input state type. Many integrator can
-          only work with `Dense`.
-        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
-          Which differential equation integration method to use.
-        - atol, rtol : float
-          Absolute and relative tolerance of the ODE integrator.
-        - nsteps :
-          Maximum number of (internally defined) steps allowed in one ``tlist``
-          step.
-        - max_step : float, 0
-          Maximum lenght of one internal step. When using pulses, it should be
-          less than half the width of the thinnest pulse.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | store_ados : bool
+          | Whether or not to store the HEOM ADOs.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | state_data_type: str {'dense', 'CSR', 'Dia', }
+          | Name of the data type of the state used during the ODE evolution.
+            Use an empty string to keep the input state type. Many integrator
+            can only work with `Dense`.
+        - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          | Which differential equation integration method to use.
+        - | atol, rtol : float
+          | Absolute and relative tolerance of the ODE integrator.
+        - | nsteps : int
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
+        - | max_step : float,
+          | Maximum lenght of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
 
     Returns
     -------
@@ -537,7 +545,7 @@ def heomsolve(
           at tme ``t``. The keys are those given by ``e_ops`` if it was
           a dict, otherwise they are the indexes of the supplied ``e_ops``.
 
-        See :class:`~HEOMResult` and :class:`~Result` for the complete
+        See :class:`~HEOMResult` and :class:`.Result` for the complete
         list of attributes.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
@@ -553,10 +561,10 @@ class HEOMSolver(Solver):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
     bath : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the
@@ -581,7 +589,7 @@ class HEOMSolver(Solver):
         The description of the hierarchy constructed from the given bath
         and maximum depth.
 
-    rhs : :obj:`QobjEvo`
+    rhs : :obj:`.QobjEvo`
         The right-hand side (RHS) of the hierarchy evolution ODE. Internally
         the system and bath coupling operators are converted to
         :class:`qutip.data.CSR` instances during construction of the RHS,
@@ -589,7 +597,7 @@ class HEOMSolver(Solver):
     """
 
     name = "heomsolver"
-    resultclass = HEOMResult
+    _resultclass = HEOMResult
     _avail_integrators = {}
     solver_options = {
         "progress_bar": "text",
@@ -847,7 +855,7 @@ class HEOMSolver(Solver):
         """ Make the full RHS required by the solver. """
         rhs_mat = self._rhs()
         rhs_dims = [
-            self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
+            [self._sup_shape * self._n_ados], [self._sup_shape * self._n_ados]
         ]
         h_identity = _data.identity(self._n_ados, dtype="csr")
 
@@ -903,16 +911,16 @@ class HEOMSolver(Solver):
             Specifies the the maximum number of iterative refinement steps that
             the MKL PARDISO solver performs.
 
-            For a complete description, see iparm(8) in
-            http://cali2.unilim.fr/intel-xe/mkl/mklman/GUID-264E311E-ACED-4D56-AC31-E9D3B11D1CBF.htm.
+            For a complete description, see iparm(7) in
+            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
 
         mkl_weighted_matching : bool
             MKL PARDISO can use a maximum weighted matching algorithm to
             permute large elements close the diagonal. This strategy adds an
             additional level of reliability to the factorization methods.
 
-            For a complete description, see iparm(13) in
-            http://cali2.unilim.fr/intel-xe/mkl/mklman/GUID-264E311E-ACED-4D56-AC31-E9D3B11D1CBF.htm.
+            For a complete description, see iparm(12) in
+            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
 
         Returns
         -------
@@ -922,7 +930,7 @@ class HEOMSolver(Solver):
         steady_ados : :class:`HierarchyADOsState`
             The steady state of the full ADO hierarchy. A particular ADO may be
             extracted from the full state by calling
-            :meth:`HEOMSolver.extract`.
+            :meth:`extract`.
         """
         if not self.L_sys.isconstant:
             raise ValueError(
@@ -958,8 +966,8 @@ class HEOMSolver(Solver):
             L = L.tocsc()
             solution = spsolve(L, b_mat)
 
-        data = _data.Dense(solution[:n ** 2].reshape((n, n)))
-        data = _data.mul(_data.add(data, data.conj()), 0.5)
+        data = _data.Dense(solution[:n ** 2].reshape((n, n), order='F'))
+        data = _data.mul(_data.add(data, data.adjoint()), 0.5)
         steady_state = Qobj(data, dims=self._sys_dims)
 
         solution = solution.reshape((self._n_ados, n, n))
@@ -973,9 +981,9 @@ class HEOMSolver(Solver):
 
         Parameters
         ----------
-        state0 : :class:`~Qobj` or :class:`~HierarchyADOsState` or array-like
-            If ``rho0`` is a :class:`~Qobj` the it is the initial state
-            of the system (i.e. a :obj:`~Qobj` density matrix).
+        state0 : :obj:`.Qobj` or :class:`~HierarchyADOsState` or array-like
+            If ``rho0`` is a :obj:`.Qobj` the it is the initial state
+            of the system (i.e. a :obj:`.Qobj` density matrix).
 
             If it is a :class:`~HierarchyADOsState` or array-like, then
             ``rho0`` gives the initial state of all ADOs.
@@ -997,8 +1005,8 @@ class HEOMSolver(Solver):
             Change the ``args`` of the RHS for the evolution.
 
         e_ops : Qobj / QobjEvo / callable / list / dict / None, optional
-            A list or dictionary of operators as :class:`~Qobj`,
-            :class:`~QobjEvo` and/or callable functions (they can be mixed) or
+            A list or dictionary of operators as :obj:`.Qobj`,
+            :obj:`.QobjEvo` and/or callable functions (they can be mixed) or
             a single operator or callable function. For an operator ``op``, the
             result will be computed using ``(state * op).tr()`` and the state
             at each time ``t``. For callable functions, ``f``, the result is
@@ -1031,7 +1039,7 @@ class HEOMSolver(Solver):
               at tme ``t``. The keys are those given by ``e_ops`` if it was
               a dict, otherwise they are the indexes of the supplied ``e_ops``.
 
-            See :class:`~HEOMResult` and :class:`~Result` for the complete
+            See :class:`~HEOMResult` and :class:`.Result` for the complete
             list of attributes.
         """
         return super().run(state0, tlist, args=args, e_ops=e_ops)
@@ -1098,7 +1106,7 @@ class HEOMSolver(Solver):
 
         Parameters
         ----------
-        state0 : :class:`Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution. This may provide either just the
             initial density matrix of the system, or the full set of ADOs
             for the hierarchy. See the documentation for ``rho0`` in the
@@ -1114,36 +1122,36 @@ class HEOMSolver(Solver):
         """
         Options for HEOMSolver:
 
-        store_final_state: bool, default=False
+        store_final_state: bool, default: False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, default=None
+        store_states: bool, default: None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        normalize_output: bool, default=False
+        normalize_output: bool, default: False
             Normalize output state to hide ODE numerical errors.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default: "text"
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
             if not installed. Empty string or False will disable the bar.
 
-        progress_kwargs: dict, default={"chunk_size": 10}
+        progress_kwargs: dict, default: {"chunk_size": 10}
             Arguments to pass to the progress_bar. Qutip's bars use
             ``chunk_size``.
 
-        method: str, default="adams"
+        method: str, default: "adams"
             Which ordinary differential equation integration method to use.
 
-        state_data_type: str, default="dense"
+        state_data_type: str, default: "dense"
             Name of the data type of the state used during the ODE evolution.
             Use an empty string to keep the input state type. Many integrators
             support only work with `Dense`.
 
-        store_ados : bool, default=False
+        store_ados : bool, default: False
             Whether or not to store the HEOM ADOs. Only relevant when using
             the HEOM solver.
         """
@@ -1228,7 +1236,7 @@ class HSolverDL(HEOMSolver):
         If set to None the default options will be used. Keyword only.
         Default: None.
 
-    combine : bool, default True
+    combine : bool, default: True
         Whether to combine exponents with the same frequency (and coupling
         operator). See :meth:`BosonicBath.combine` for details.
         Keyword only. Default: True.

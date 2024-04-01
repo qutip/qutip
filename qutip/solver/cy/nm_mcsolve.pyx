@@ -21,7 +21,7 @@ cdef class RateShiftCoefficient(Coefficient):
 
     Parameters
     ----------
-    coeffs : list of :class:`Coefficient`
+    coeffs : list of :obj:`.Coefficient`
         The list of coefficients to determine the rate shift of.
     """
     def __init__(self, list coeffs):
@@ -34,7 +34,7 @@ cdef class RateShiftCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
         the original coefficient if it does not. Arguments to replace may be
         supplied either in a dictionary as the first position argument, or
         passed as keywords, or as a combination of the two. Arguments not
@@ -70,7 +70,7 @@ cdef class RateShiftCoefficient(Coefficient):
         return real(self._call(t))
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return RateShiftCoefficient(
             [coeff.copy() for coeff in self.coeffs],
         )
@@ -89,7 +89,7 @@ cdef class SqrtRealCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
         the original coefficient if it does not. Arguments to replace may be
         supplied either in a dictionary as the first position argument, or
         passed as keywords, or as a combination of the two. Arguments not
@@ -112,5 +112,5 @@ cdef class SqrtRealCoefficient(Coefficient):
         return sqrt(real(self.base._call(t)))
 
     cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
+        """Return a copy of the :obj:`.Coefficient`."""
         return SqrtRealCoefficient(self.base.copy())

@@ -1,6 +1,7 @@
-from qutip.ipynbtools import version_table
 import pytest
+pytest.importorskip("IPython")
 
+from qutip.ipynbtools import version_table
 
 @pytest.mark.parametrize('verbose', [False, True])
 def test_version_table(verbose):

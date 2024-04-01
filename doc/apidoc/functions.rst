@@ -11,14 +11,21 @@ Quantum States
 --------------
 
 .. automodule:: qutip.core.states
-    :members: basis, bell_state, bra, coherent, coherent_dm, enr_state_dictionaries, enr_thermal_dm, enr_fock, fock, fock_dm, ghz_state, maximally_mixed_dm, ket, ket2dm, phase_basis, projection, qutrit_basis, singlet_state, spin_state, spin_coherent, state_number_enumerate, state_number_index, state_index_number, state_number_qobj, thermal_dm, triplet_states, w_state, zero_ket
+    :members: basis, bell_state, bra, coherent, coherent_dm, fock, fock_dm, ghz_state, maximally_mixed_dm, ket, ket2dm, phase_basis, projection, qutrit_basis, singlet_state, spin_state, spin_coherent, state_number_enumerate, state_number_index, state_index_number, state_number_qobj, thermal_dm, triplet_states, w_state, zero_ket
 
 
 Quantum Operators
 -----------------
 
 .. automodule:: qutip.core.operators
-    :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
+    :members: charge, commutator, create, destroy, displace, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling, qeye_like, qzero_like
+
+
+Energy Restricted Operators
+---------------------------
+
+.. automodule:: qutip.core.energy_restricted
+    :members: enr_state_dictionaries, enr_thermal_dm, enr_fock, enr_destroy, enr_identity
 
 
 .. _functions-rand:
@@ -34,15 +41,7 @@ Random Operators and States
 ---------------------------
 
 .. automodule:: qutip.random_objects
-    :members: rand_dm, rand_herm, rand_ket, rand_stochastic, rand_unitary, rand_super, rand_super_bcsz
-
-
-Three-Level Atoms
------------------
-
-.. automodule:: qutip.three_level_atom
-    :members: three_level_basis, three_level_ops
-    :undoc-members:
+    :members: rand_dm, rand_herm, rand_ket, rand_stochastic, rand_unitary, rand_super, rand_super_bcsz, rand_kraus_map
 
 
 Superoperators and Liouvillians
@@ -62,7 +61,7 @@ Operators and Superoperator Dimensions
 --------------------------------------
 
 .. automodule:: qutip.core.dimensions
-    :members: is_scalar, is_vector, is_vectorized_oper, type_from_dims, flatten, deep_remove, unflatten, collapse_dims_oper, collapse_dims_super, enumerate_flat, deep_map, dims_to_tensor_perm, dims_to_tensor_shape, dims_idxs_to_tensor_idxs
+    :members: to_tensor_rep, from_tensor_rep
 
 
 Functions acting on states and operators
@@ -166,7 +165,7 @@ Floquet States and Floquet-Markov Master Equation
 -------------------------------------------------
 
 .. automodule:: qutip.solver.floquet
-    :members: fmmesolve, fsesolve, FloquetBasis, FMESolver, floquet_tensor
+    :members: fmmesolve, fsesolve, floquet_tensor
 
 
 Stochastic Schrödinger Equation and Master Equation
@@ -174,6 +173,13 @@ Stochastic Schrödinger Equation and Master Equation
 
 .. automodule:: qutip.solver.stochastic
     :members: ssesolve, smesolve
+
+
+Constructing time dependent systems
+-----------------------------------
+
+.. automodule:: qutip.core.coefficient
+    :members: coefficient
 
 
 Hierarchical Equations of Motion
@@ -217,7 +223,7 @@ Scattering in Quantum Optical Systems
 Permutational Invariance
 ------------------------
 
-.. automodule:: qutip.solve.piqs
+.. automodule:: qutip.piqs.piqs
     :members: num_dicke_states, num_dicke_ladders, num_tls, isdiagonal, dicke_blocks, dicke_blocks_full, dicke_function_trace, purity_dicke, entropy_vn_dicke, state_degeneracy, m_degeneracy, energy_degeneracy, ap, am, spin_algebra, jspin, collapse_uncoupled, dicke_basis, dicke, excited, superradiant, css, ghz, ground, identity_uncoupled, block_matrix, tau_column,
 
 
@@ -235,11 +241,12 @@ Graphs and Visualization
 ------------------------
 
 .. automodule:: qutip.visualization
-    :members: hinton, matrix_histogram, matrix_histogram_complex, plot_energy_levels, plot_fock_distribution, plot_wigner_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_spin_distribution_2d, plot_spin_distribution_3d, plot_wigner_sphere
+    :members: hinton, matrix_histogram, plot_energy_levels, plot_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_wigner_sphere, plot_spin_distribution
     :undoc-members:
 
-.. automodule:: qutip.orbital
-    :members: orbital
+.. automodule:: qutip.animation
+    :members: anim_hinton, anim_matrix_histogram, anim_fock_distribution, anim_wigner, anim_sphereplot, anim_schmidt, anim_qubism, anim_wigner_sphere, anim_spin_distribution
+
 
 .. automodule:: qutip.matplotlib_utilities
    :members: wigner_cmap, complex_phase_cmap
@@ -290,26 +297,16 @@ Parallelization
 ---------------
 
 .. automodule:: qutip.solver.parallel
-    :members: parallel_map, serial_map
+    :members: parallel_map, serial_map, loky_pmap, mpi_pmap
 
 
 .. _functions-ipython:
-
-Semidefinite Programming
-------------------------
-
-.. Was this removed
-    .. automodule:: qutip.semidefinite
-        :members: complex_var, herm, pos_noherm, pos, dens, kron, conj, bmat, bmat, memoize, qudit_swap, dnorm_problem
-
-
-.. _functions-semidefinite:
 
 IPython Notebook Tools
 ----------------------
 
 .. automodule:: qutip.ipynbtools
-    :members: parallel_map, version_table
+    :members: version_table
 
 .. _functions-misc:
 

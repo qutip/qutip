@@ -1,1 +1,0 @@
-Increase missing colorbar padding for matrix_histogram_complex() from 0 to 0.05.

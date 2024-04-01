@@ -266,8 +266,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
         raise ValueError('Invalid tensortype')
 
     cpdef object qobj(self, t):
-        return Qobj(self.data(t), dims=self.dims, type="super",
-                    copy=False, superrep="super")
+        return Qobj(self.data(t), dims=self.dims, copy=False, superrep="super")
 
     cpdef object coeff(self, t):
         return 1.

@@ -1,12 +1,14 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
-from .sode.ssystem import *
+from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .result import MultiTrajResult, Result, ExpectOp
-from .multitraj import MultiTrajSolver
-from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator
+from .multitraj import _MultiTrajRHS, MultiTrajSolver
+from .. import Qobj, QobjEvo
+from ..core.dimensions import Dimensions
 import numpy as np
-from collections.abc import Iterable
 from functools import partial
+from .solver_base import _solver_deprecation
+from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
 
 
 class StochasticTrajResult(Result):
@@ -24,7 +26,7 @@ class StochasticTrajResult(Result):
             self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
             self.add_processor(self.m_ops[-1]._store)
 
-    def add(self, t, state, noise):
+    def add(self, t, state, noise=None):
         super().add(t, state)
         if noise is not None and self.options["store_measurement"]:
             for i, dW in enumerate(noise):
@@ -164,7 +166,7 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("wiener_process")
 
 
-class _StochasticRHS:
+class _StochasticRHS(_MultiTrajRHS):
     """
     In between object to store the stochastic system.
 
@@ -179,7 +181,7 @@ class _StochasticRHS:
     def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
 
         if not isinstance(H, (Qobj, QobjEvo)) or not H.isoper:
-            raise TypeError("The Hamiltonian must be am operator")
+            raise TypeError("The Hamiltonian must be an operator")
         self.H = QobjEvo(H)
 
         if isinstance(sc_ops, (Qobj, QobjEvo)):
@@ -198,6 +200,7 @@ class _StochasticRHS:
 
         self.issuper = issuper
         self.heterodyne = heterodyne
+        self._noise_key = None
 
         if heterodyne:
             sc_ops = []
@@ -208,8 +211,10 @@ class _StochasticRHS:
 
         if self.issuper and not self.H.issuper:
             self.dims = [self.H.dims, self.H.dims]
+            self._dims = Dimensions([self.H._dims, self.H._dims])
         else:
             self.dims = self.H.dims
+            self._dims = self.H._dims
 
     def __call__(self, options):
         if self.issuper:
@@ -219,52 +224,70 @@ class _StochasticRHS:
         else:
             return StochasticClosedSystem(self.H, self.sc_ops)
 
+    def arguments(self, args):
+        self.H.arguments(args)
+        for c_op in self.c_ops:
+            c_op.arguments(args)
+        for sc_op in self.sc_ops:
+            sc_op.arguments(args)
+
+    def _register_feedback(self, val):
+        self.H._register_feedback({"wiener_process": val}, "stochastic solver")
+        for c_op in self.c_ops:
+            c_op._register_feedback(
+                {"WienerFeedback": val}, "stochastic solver"
+            )
+        for sc_op in self.sc_ops:
+            sc_op._register_feedback(
+                {"WienerFeedback": val}, "stochastic solver"
+            )
+
 
 def smesolve(
     H, rho0, tlist, c_ops=(), sc_ops=(), heterodyne=False, *,
     e_ops=(), args={}, ntraj=500, options=None,
-    seeds=None, target_tol=None, timeout=None,
+    seeds=None, target_tol=None, timeout=None, **kwargs
 ):
     """
     Solve stochastic master equation.
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+        Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+        that can be made into :obj:`.QobjEvo` are also accepted.
 
-    rho0 : :class:`qutip.Qobj`
+    rho0 : :class:`.Qobj`
         Initial density matrix or state vector (ket).
 
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format), optional
         Deterministic collapse operator which will contribute with a standard
         Lindblad type of dissipation.
 
-    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    e_ops : : :class:`qutip.qobj`, callable, or list.
+    e_ops : : :class:`.qobj`, callable, or list, optional
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`expect` for more detail of operator expectation.
+        See :func:`.expect` for more detail of operator expectation.
 
-    args : None / *dictionary*
+    args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    ntraj : int [500]
+    ntraj : int, default: 500
         Number of trajectories to compute.
 
-    heterodyne : bool [False]
+    heterodyne : bool, default: False
         Whether to use heterodyne or homodyne detection.
 
-    seeds : int, SeedSequence, list, [optional]
+    seeds : int, SeedSequence, list, optional
         Seed for the random number generator. It can be a single seed used to
         spawn seeds for each trajectory or a list of seeds, one for each
         trajectory. Seeds are saved in the result and they can be reused with::
@@ -282,59 +305,61 @@ def smesolve(
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         ``(atol, rtol)`` for each e_ops.
 
-    timeout : float [optional]
+    timeout : float, optional
         Maximum time for the evolution in second. When reached, no more
         trajectories will be computed. Overwrite the option of the same name.
 
-    options : None / dict
+    options : dict, optional
         Dictionary of options for the solver.
 
-        - store_final_state : bool, [False]
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None, [None]
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - store_measurement: bool, [False]
-          Whether to store the measurement and wiener process for each
-          trajectories.
-        - keep_runs_results : bool, [False]
-          Whether to store results from all trajectories or just store the
-          averages.
-        - normalize_output : bool, [False]
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}, ["text"]
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict, [{"chunk_size": 10}]
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - method : str, ["rouchon"]
-          Which stochastic differential equation integration method to use.
-          Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
-        - map : str {"serial", "parallel", "loky"}, ["serial"]
-          How to run the trajectories. "parallel" uses concurent module to run
-          in parallel while "loky" use the module of the same name to do so.
-        - job_timeout : NoneType, int, [None]
-          Maximum time to compute one trajectory.
-        - num_cpus : NoneType, int, [None]
-          Number of cpus to use when running in parallel. ``None`` detect the
-          number of available cpus.
-        - dt : float [0.001 ~ 0.0001]
-          The finite steps lenght for the Stochastic integration method.
-          Default change depending on the integrator.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | store_measurement: bool
+          | Whether to store the measurement and wiener process for each
+            trajectories.
+        - | keep_runs_results : bool
+          | Whether to store results from all trajectories or just store the
+            averages.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | method : str
+          | Which stochastic differential equation integration method to use.
+            Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
+        - | num_cpus : NoneType, int
+          | Number of cpus to use when running in parallel. ``None`` detect the
+            number of available cpus.
+        - | dt : float
+          | The finite steps lenght for the Stochastic integration method.
+            Default change depending on the integrator.
 
-        Other options could be supported depending on the integration method,
-        see `SIntegrator <./classes.html#classes-sode>`_.
+        Additional options are listed under
+        `options <./classes.html#qutip.solver.stochastic.SMESolver.options>`__.
+        More options may be available depending on the selected
+        differential equation integration method, see
+        `SIntegrator <./classes.html#classes-sode>`_.
 
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
-
-        An instance of the class :class:`qutip.solver.Result`.
+    output: :class:`.Result`
+        An instance of the class :class:`.Result`.
     """
+    options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
@@ -343,51 +368,51 @@ def smesolve(
     )
     return sol.run(
         rho0, tlist, ntraj, e_ops=e_ops,
-        seed=seeds, target_tol=target_tol, timeout=timeout,
+        seeds=seeds, target_tol=target_tol, timeout=timeout,
     )
 
 
 def ssesolve(
     H, psi0, tlist, sc_ops=(), heterodyne=False, *,
     e_ops=(), args={}, ntraj=500, options=None,
-    seeds=None, target_tol=None, timeout=None,
+    seeds=None, target_tol=None, timeout=None, **kwargs
 ):
     """
     Solve stochastic Schrodinger equation.
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+        Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+        that can be made into :obj:`.QobjEvo` are also accepted.
 
-    psi0 : :class:`qutip.Qobj`
+    psi0 : :class:`.Qobj`
         Initial state vector (ket).
 
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    e_ops : :class:`qutip.qobj`, callable, or list.
+    e_ops : :class:`.qobj`, callable, or list, optional
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`expect` for more detail of operator expectation.
 
-    args : None / *dictionary*
+    args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    ntraj : int [500]
+    ntraj : int, default: 500
         Number of trajectories to compute.
 
-    heterodyne : bool [False]
+    heterodyne : bool, default: False
         Whether to use heterodyne or homodyne detection.
 
-    seeds : int, SeedSequence, list, [optional]
+    seeds : int, SeedSequence, list, optional
         Seed for the random number generator. It can be a single seed used to
         spawn seeds for each trajectory or a list of seeds, one for each
         trajectory. Seeds are saved in the result and they can be reused with::
@@ -403,64 +428,67 @@ def ssesolve(
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
 
-    timeout : float [optional]
+    timeout : float, optional
         Maximum time for the evolution in second. When reached, no more
         trajectories will be computed. Overwrite the option of the same name.
 
-    options : None / dict
+    options : dict, optional
         Dictionary of options for the solver.
 
-        - store_final_state : bool, [False]
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None, [None]
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - store_measurement: bool, [False]
-          Whether to store the measurement and wiener process, or brownian
-          noise for each trajectories.
-        - keep_runs_results : bool, [False]
-          Whether to store results from all trajectories or just store the
-          averages.
-        - normalize_output : bool, [False]
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}, ["text"]
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict, [{"chunk_size": 10}]
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - method : str, ["rouchon"]
-          Which stochastic differential equation integration method to use.
-          Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
-        - map : str {"serial", "parallel", "loky"}, ["serial"]
-          How to run the trajectories. "parallel" uses concurent module to run
-          in parallel while "loky" use the module of the same name to do so.
-        - job_timeout : NoneType, int, [None]
-          Maximum time to compute one trajectory.
-        - num_cpus : NoneType, int, [None]
-          Number of cpus to use when running in parallel. ``None`` detect the
-          number of available cpus.
-        - dt : float [0.001 ~ 0.0001]
-          The finite steps lenght for the Stochastic integration method.
-          Default change depending on the integrator.
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | store_measurement: bool
+            Whether to store the measurement and wiener process, or brownian
+            noise for each trajectories.
+        - | keep_runs_results : bool
+          | Whether to store results from all trajectories or just store the
+            averages.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | method : str
+          | Which stochastic differential equation integration method to use.
+            Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
+        - | num_cpus : NoneType, int
+          | Number of cpus to use when running in parallel. ``None`` detect the
+            number of available cpus.
+        - | dt : float
+          | The finite steps lenght for the Stochastic integration method.
+            Default change depending on the integrator.
 
-        Other options could be supported depending on the integration method,
-        see `SIntegrator <./classes.html#classes-sode>`_.
+        Additional options are listed under
+        `options <./classes.html#qutip.solver.stochastic.SSESolver.options>`__.
+        More options may be available depending on the selected
+        differential equation integration method, see
+        `SIntegrator <./classes.html#classes-sode>`_.
 
     Returns
     -------
 
-    output: :class:`qutip.solver.Result`
-        An instance of the class :class:`qutip.solver.Result`.
+    output: :class:`.Result`
+        An instance of the class :class:`.Result`.
     """
+    options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
     sol = SSESolver(H, sc_ops, options=options, heterodyne=heterodyne)
     return sol.run(
         psi0, tlist, ntraj, e_ops=e_ops,
-        seed=seeds, target_tol=target_tol, timeout=timeout,
+        seeds=seeds, target_tol=target_tol, timeout=timeout,
     )
 
 
@@ -470,26 +498,35 @@ class StochasticSolver(MultiTrajSolver):
     """
 
     name = "StochasticSolver"
-    resultclass = StochasticResult
+    _resultclass = StochasticResult
     _avail_integrators = {}
-    system = None
+    _open = None
+
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "taylor1.5",
         "map": "serial",
-        "job_timeout": None,
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": False,
     }
 
+    def _trajectory_resultclass(self, e_ops, options):
+        return StochasticTrajResult(
+            e_ops,
+            options,
+            m_ops=self.m_ops,
+            dw_factor=self.dW_factors,
+            heterodyne=self.heterodyne,
+        )
+
     def __init__(self, H, sc_ops, heterodyne, *, c_ops=(), options=None):
-        self.options = options
         self._heterodyne = heterodyne
         if self.name == "ssesolve" and c_ops:
             raise ValueError("c_ops are not supported by ssesolve.")
@@ -584,25 +621,9 @@ class StochasticSolver(MultiTrajSolver):
                 )
         self._dW_factors = new_dW_factors
 
-    def _run_one_traj(self, seed, state, tlist, e_ops):
-        """
-        Run one trajectory and return the result.
-        """
-        result = StochasticTrajResult(
-            e_ops,
-            self.options,
-            m_ops=self.m_ops,
-            dw_factor=self.dW_factors,
-            heterodyne=self.heterodyne,
-        )
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator)
-        state_t = self._restore_state(state, copy=False)
-        result.add(tlist[0], state_t, None)
-        for t in tlist[1:]:
-            t, state, noise = self._integrator.integrate(t, copy=False)
-            state_t = self._restore_state(state, copy=False)
-            result.add(t, state_t, noise)
+    def _integrate_one_traj(self, seed, tlist, result):
+        for t, state, noise in self._integrator.run(tlist):
+            result.add(t, self._restore_state(state, copy=False), noise)
         return seed, result
 
     @classmethod
@@ -619,49 +640,55 @@ class StochasticSolver(MultiTrajSolver):
         """
         Options for stochastic solver:
 
-        store_final_state: bool, default=False
+        store_final_state: bool, default: False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, default=None
+        store_states: None, bool, default: None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        store_measurement: bool, [False]
+        store_measurement: bool, default: False
             Whether to store the measurement for each trajectories.
             Storing measurements will also store the wiener process, or
             brownian noise for each trajectories.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default: "text"
             How to present the solver progress. 'tqdm' uses the python module
             of the same name and raise an error if not installed. Empty string
             or False will disable the bar.
 
-        progress_kwargs: dict, default={"chunk_size":10}
+        progress_kwargs: dict, default: {"chunk_size":10}
             Arguments to pass to the progress_bar. Qutip's bars use
             ``chunk_size``.
 
-        keep_runs_results: bool
+        keep_runs_results: bool, default: False
           Whether to store results from all trajectories or just store the
           averages.
 
-        method: str, default="rouchon"
-            Which ODE integrator methods are supported.
+        normalize_output: bool
+            Normalize output state to hide ODE numerical errors.
 
-        map: str {"serial", "parallel", "loky"}, default="serial"
-            How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        method: str, default: "platen"
+            Which differential equation integration method to use.
 
-        job_timeout: None, int, default=None
-            Maximum time to compute one trajectory.
+        map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
+            How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
 
-        num_cpus: None, int, default=None
+        mpi_options: dict, default: {}
+            Only applies if map is "mpi". This dictionary will be passed as
+            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
+            constructor. Note that the `max_workers` argument is provided
+            separately through the `num_cpus` option.
+
+        num_cpus: None, int, default: None
             Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
 
-        bitgenerator: {None, "MT19937", "PCG64DXSM", ...}, default=None
+        bitgenerator: {None, "MT19937", "PCG64DXSM", ...}, default: None
             Which of numpy.random's bitgenerator to use. With ``None``, your
             numpy version's default is used.
         """
@@ -671,6 +698,66 @@ class StochasticSolver(MultiTrajSolver):
     def options(self, new_options):
         MultiTrajSolver.options.fset(self, new_options)
 
+    @classmethod
+    def WienerFeedback(cls, default=None):
+        """
+        Wiener function of the trajectory argument for time dependent systems.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"W": SMESolver.WienerFeedback()})``
+
+        The ``func`` will receive a function as ``W`` that return an array of
+        wiener processes values at ``t``. The wiener process for the i-th
+        sc_ops is the i-th element for homodyne detection and the (2i, 2i+1)
+        pairs of process in heterodyne detection. The process is a step
+        function with step of length ``options["dt"]``.
+
+        .. note::
+
+            WienerFeedback can't be added to a running solver when updating
+            arguments between steps: ``solver.step(..., args={})``.
+
+        Parameters
+        ----------
+        default : callable, optional
+            Default function used outside the solver.
+            When not passed, a function returning ``np.array([0])`` is used.
+
+        """
+        return _WienerFeedback(default)
+
+    @classmethod
+    def StateFeedback(cls, default=None, raw_data=False):
+        """
+        State of the evolution to be used in a time-dependent operator.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"state": SMESolver.StateFeedback()})``
+
+        The ``func`` will receive the density matrix as ``state`` during the
+        evolution.
+
+        .. note::
+
+            Not supported by the ``rouchon`` mehtod.
+
+        Parameters
+        ----------
+        default : Qobj or qutip.core.data.Data, default : None
+            Initial value to be used at setup of the system.
+
+        raw_data : bool, default : False
+            If True, the raw matrix will be passed instead of a Qobj.
+            For density matrices, the matrices can be column stacked or square
+            depending on the integration method.
+
+        """
+        if raw_data:
+            return _DataFeedback(default, open=cls._open)
+        return _QobjFeedback(default, open=cls._open)
+
 
 class SMESolver(StochasticSolver):
     r"""
@@ -678,18 +765,18 @@ class SMESolver(StochasticSolver):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+        Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+        that can be made into :obj:`.QobjEvo` are also accepted.
 
-    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    heterodyne : bool, [False]
+    heterodyne : bool, default: False
         Whether to use heterodyne or homodyne detection.
 
-    options : dict, [optional]
+    options : dict, optional
         Options for the solver, see :obj:`SMESolver.options` and
         `SIntegrator <./classes.html#classes-sode>`_ for a list of all options.
     """
@@ -701,14 +788,14 @@ class SMESolver(StochasticSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "taylor1.5",
         "map": "serial",
-        "job_timeout": None,
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": False,
     }
 
 
@@ -718,22 +805,22 @@ class SSESolver(StochasticSolver):
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+        Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
+        that can be made into :obj:`.QobjEvo` are also accepted.
 
-    c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         Deterministic collapse operator which will contribute with a standard
         Lindblad type of dissipation.
 
-    sc_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
+    sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    heterodyne : bool, [False]
+    heterodyne : bool, default: False
         Whether to use heterodyne or homodyne detection.
 
-    options : dict, [optional]
+    options : dict, optional
         Options for the solver, see :obj:`SSESolver.options` and
         `SIntegrator <./classes.html#classes-sode>`_ for a list of all options.
     """
@@ -745,12 +832,12 @@ class SSESolver(StochasticSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "platen",
         "map": "serial",
-        "job_timeout": None,
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": False,
     }

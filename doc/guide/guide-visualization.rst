@@ -105,11 +105,14 @@ above, so QuTiP provides a convenience function for doing this, see
 
     fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
-    plot_fock_distribution(rho_coherent, fig=fig, ax=axes[0], title="Coherent state");
+    fig, axes[0] = plot_fock_distribution(rho_coherent, fig=fig, ax=axes[0]);
+    axes[0].set_title('Coherent state')
 
-    plot_fock_distribution(rho_thermal, fig=fig, ax=axes[1], title="Thermal state");
+    fig, axes[1] = plot_fock_distribution(rho_thermal, fig=fig, ax=axes[1]);
+    axes[1].set_title('Thermal state')
 
-    plot_fock_distribution(rho_fock, fig=fig, ax=axes[2], title="Fock state");
+    fig, axes[2] = plot_fock_distribution(rho_fock, fig=fig, ax=axes[2]);
+    axes[2].set_title('Fock state')
 
     fig.tight_layout()
 
@@ -278,10 +281,9 @@ structure and relative importance of various elements.
 
 QuTiP offers a few functions for quickly visualizing matrix data in the
 form of histograms, :func:`qutip.visualization.matrix_histogram` and
-:func:`qutip.visualization.matrix_histogram_complex`, and as Hinton diagram of weighted
-squares, :func:`qutip.visualization.hinton`. These functions takes a
-:class:`qutip.Qobj` as first argument, and optional arguments to, for
-example, set the axis labels and figure title (see the function's documentation
+as Hinton diagram of weighted squares, :func:`qutip.visualization.hinton`.
+These functions takes a :class:`.Qobj` as first argument, and optional arguments to,
+for example, set the axis labels and figure title (see the function's documentation
 for details).
 
 For example, to illustrate the use of :func:`qutip.visualization.matrix_histogram`,
@@ -388,7 +390,8 @@ Note that to obtain :math:`\chi` with this method we have to construct a matrix 
 Implementation in QuTiP
 -----------------------
 
-In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the SWAP gate for two qubits. In QuTiP the function :func:`qutip.core.operators.swap` generates the unitary transformation for the state kets:
+In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator.
+To illustrate how to use this function, let's consider the SWAP gate for two qubits. In QuTiP the function :func:`.swap` generates the unitary transformation for the state kets:
 
 
 .. plot::
@@ -428,4 +431,4 @@ We are now ready to compute :math:`\chi` using :func:`qutip.tomography.qpt`, and
 
 
 
-For a slightly more advanced example, where the density matrix propagator is calculated from the dynamics of a system defined by its Hamiltonian and collapse operators using the function :func:`qutip.propagator.propagator`, see notebook "Time-dependent master equation: Landau-Zener transitions" on the tutorials section on the QuTiP web site.
+For a slightly more advanced example, where the density matrix propagator is calculated from the dynamics of a system defined by its Hamiltonian and collapse operators using the function :func:`.propagator`, see notebook "Time-dependent master equation: Landau-Zener transitions" on the tutorials section on the QuTiP web site.

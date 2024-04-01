@@ -21,10 +21,10 @@ def subsystem_apply(state, channel, mask, reference=False):
 
     Parameters
     ----------
-    state : :class:`qutip.qobj`
+    state : :class:`.Qobj`
         A density matrix or ket.
 
-    channel : :class:`qutip.qobj`
+    channel : :class:`.Qobj`
         A propagator, either an `oper` or `super`.
 
     mask : *list* / *array*
@@ -37,7 +37,7 @@ def subsystem_apply(state, channel, mask, reference=False):
 
     Returns
     -------
-    rho_out: :class:`qutip.qobj`
+    rho_out: :class:`.Qobj`
         A density matrix with the selected subsystems transformed
         according to the specified channel.
     """

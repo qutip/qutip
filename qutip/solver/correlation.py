@@ -29,8 +29,8 @@ from ..ui.progressbar import progress_bars
 
 
 def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
-                       solver="me", reverse=False, args={},
-                       options={}):
+                       solver="me", reverse=False, args=None,
+                       options=None):
     r"""
     Calculate the two-operator one-time correlation function:
     :math:`\left<A(\tau)B(0)\right>`
@@ -40,9 +40,9 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     Parameters
     ----------
 
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -50,25 +50,26 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+    c_ops : list of {:obj:`.Qobj`, :obj:`.QobjEvo`}
         List of collapse operators
-    a_op : :class:`Qobj`, :class:`QobjEvo`
+    a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator A.
-    b_op : :class:`Qobj`, :class:`QobjEvo`
+    b_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator B.
-    reverse : bool {False}
-        If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
+    reverse : bool, default: False
+        If ``True``, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
         :math:`\left<A(t+\tau)B(t)\right>`.
-    solver : str {'me', 'es'}
-        Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
+    solver : str {'me', 'es'}, default: 'me'
+        Choice of solver, ``me`` for master-equation, and ``es`` for
+        exponential series. ``es`` is equivalent to `me` with
+        ``options={"method": "diag"}``.
     options : dict, optional
-        Options for the solver. Only used with `me` solver.
+        Options for the solver.
 
     Returns
     -------
     corr_vec : ndarray
-        An array of correlation values for the times specified by `taulist`.
+        An array of correlation values for the times specified by ``taulist``.
 
     See Also
     --------
@@ -93,8 +94,8 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
 
 
 def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
-                       solver="me", reverse=False, args={},
-                       options={}):
+                       solver="me", reverse=False, args=None,
+                       options=None):
     r"""
     Calculate the two-operator two-time correlation function:
     :math:`\left<A(t+\tau)B(t)\right>`
@@ -103,9 +104,9 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -118,26 +119,27 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+    c_ops : list of {:obj:`.Qobj`, :obj:`.QobjEvo`}
         List of collapse operators
-    a_op : :class:`Qobj`, :class:`QobjEvo`
+    a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator A.
-    b_op : :class:`Qobj`, :class:`QobjEvo`
+    b_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator B.
-    reverse : bool {False}
-        If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
+    reverse : bool, default: False
+        If ``True``, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
         :math:`\left<A(t+\tau)B(t)\right>`.
-    solver : str {'me', 'es'}
-        Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
+    solver : str {'me', 'es'}, default: 'me'
+        Choice of solver, ``me`` for master-equation, and ``es`` for
+        exponential series. ``es`` is equivalent to `me` with
+        ``options={"method": "diag"}``.
     options : dict, optional
-        Options for the solver. Only used with `me` solver.
+        Options for the solver.
 
     Returns
     -------
     corr_mat : ndarray
         An 2-dimensional array (matrix) of correlation values for the times
-        specified by `tlist` (first index) and `taulist` (second index).
+        specified by ``tlist`` (first index) and ``taulist`` (second index).
 
     See Also
     --------
@@ -164,8 +166,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
 
 def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
-                       solver="me", args={},
-                       options={}):
+                       solver="me", args=None, options=None):
     r"""
     Calculate the three-operator two-time correlation function:
     :math:`\left<A(0)B(\tau)C(0)\right>` along one time axis using the
@@ -177,9 +178,9 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
-        System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of ``me``.
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -187,24 +188,25 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+    c_ops : list of {:obj:`.Qobj`, :obj:`.QobjEvo`}
         List of collapse operators
-    a_op : :class:`Qobj`, :class:`QobjEvo`
+    a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator A.
-    b_op : :class:`Qobj`, :class:`QobjEvo`
+    b_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator B.
-    c_op : :class:`Qobj`, :class:`QobjEvo`
+    c_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator C.
-    solver : str {'me', 'es'}
-        Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
+    solver : str {'me', 'es'}, default: 'me'
+        Choice of solver, ``me`` for master-equation, and ``es`` for
+        exponential series. ``es`` is equivalent to `me` with
+        ``options={"method": "diag"}``.
     options : dict, optional
-        Options for the solver. Only used with `me` solver.
+        Options for the solver.
 
     Returns
     -------
     corr_vec : array
-        An array of correlation values for the times specified by `taulist`.
+        An array of correlation values for the times specified by ``taulist``.
 
     See Also
     --------
@@ -223,8 +225,7 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
 
 
 def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       solver="me", args={},
-                       options={}):
+                       solver="me", args=None, options=None):
     r"""
     Calculate the three-operator two-time correlation function:
     :math:`\left<A(t)B(t+\tau)C(t)\right>` along two time axes using the
@@ -236,9 +237,9 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
-        System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of ``me``.
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -251,25 +252,26 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+    c_ops : list of {:obj:`.Qobj`, :obj:`.QobjEvo`}
         List of collapse operators
-    a_op : :class:`Qobj`, :class:`QobjEvo`
+    a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator A.
-    b_op : :class:`Qobj`, :class:`QobjEvo`
+    b_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator B.
-    c_op : :class:`Qobj`, :class:`QobjEvo`
+    c_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator C.
-    solver : str {'me', 'es'}
-        Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
+    solver : str {'me', 'es'}, default: 'me'
+        Choice of solver, ``me`` for master-equation, and ``es`` for
+        exponential series. ``es`` is equivalent to `me` with
+        ``options={"method": "diag"}``.
     options : dict, optional
-        Options for the solver. Only used with `me` solver.
+        Options for the solver. Only used with ``me`` solver.
 
     Returns
     -------
     corr_mat : array
         An 2-dimensional array (matrix) of correlation values for the times
-        specified by `tlist` (first index) and `taulist` (second index).
+        specified by ``tlist`` (first index) and ``taulist`` (second index).
 
     See Also
     --------
@@ -295,7 +297,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 # high level correlation
 
 def coherence_function_g1(
-    H, state0, taulist, c_ops, a_op, solver="me", args={}, options={}
+    H, state0, taulist, c_ops, a_op, solver="me", args=None, options=None
 ):
     r"""
     Calculate the normalized first-order quantum coherence function:
@@ -312,9 +314,9 @@ def coherence_function_g1(
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
-        System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of ``me``.
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -322,15 +324,18 @@ def coherence_function_g1(
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
+    c_ops : list of {:obj:`.Qobj`, :obj:`.QobjEvo`}
         List of collapse operators
-    a_op : :class:`Qobj`, :class:`QobjEvo`
+    a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
         Operator A.
-    solver : str {'me', 'es'}
-        Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
+    solver : str {'me', 'es'}, default: 'me'
+        Choice of solver, ``me`` for master-equation, and ``es`` for
+        exponential series. ``es`` is equivalent to `me` with
+        ``options={"method": "diag"}``.
+    args : dict, optional
+        dictionary of parameters for time-dependent Hamiltonians
     options : dict, optional
-        Options for the solver. Only used with `me` solver.
+        Options for the solver.
 
     Returns
     -------
@@ -355,7 +360,7 @@ def coherence_function_g1(
 
 
 def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
-                          args={}, options={}):
+                          args=None, options=None):
     r"""
     Calculate the normalized second-order quantum coherence function:
 
@@ -371,9 +376,9 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
-        System Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : :class:`Qobj`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of ``me``.
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
@@ -383,16 +388,17 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         the element `0`.
     c_ops : list
         List of collapse operators, may be time-dependent for solver choice of
-        `me`.
-    a_op : :class:`Qobj`
+        ``me``.
+    a_op : :obj:`.Qobj`
         Operator A.
-    args : dict
+    args : dict, optional
         Dictionary of arguments to be passed to solver.
-    solver : str {'me', 'es'}
-        Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
+    solver : str {'me', 'es'}, default: 'me'
+        Choice of solver, ``me`` for master-equation, and ``es`` for
+        exponential series. ``es`` is equivalent to ``me`` with
+        ``options={"method": "diag"}``.
     options : dict, optional
-        Options for the solver. Only used with `me` solver.
+        Options for the solver.
 
     Returns
     -------
@@ -452,16 +458,16 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
 
         :math:`\left<A(t)B(t+\tau)C(t)\right>`.
 
-    from a open system :class:`Solver`.
+    from a open system :class:`.Solver`.
 
     Note: it is not possible to calculate a physically meaningful correlation
     where :math:`\tau<0`.
 
     Parameters
     ----------
-    solver : :class:`MESolver`, :class:`BRSolver`
+    solver : :class:`.MESolver`, :class:`.BRSolver`
         Qutip solver for an open system.
-    state0 : :class:`Qobj`
+    state0 : :obj:`.Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`.
     tlist : array_like
@@ -470,7 +476,7 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    A, B, C: :class:`Qobj`, :class:`QobjEvo`, optional, default=None
+    A, B, C : :class:`.Qobj`, :class:`.QobjEvo`, optional, default=None
         Operators ``A``, ``B``, ``C`` from the equation ``<A(t)B(t+\tau)C(t)>``
         in the Schrodinger picture. They do not need to be all provided. For
         exemple, if ``A`` is not provided, ``<B(t+\tau)C(t)>`` is computed.
@@ -479,8 +485,8 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     -------
     corr_mat : array
         An 2-dimensional array (matrix) of correlation values for the times
-        specified by `tlist` (first index) and `taulist` (second index). If
-        `tlist` is `None`, then a 1-dimensional array of correlation values
+        specified by ``tlist`` (first index) and `taulist` (second index). If
+        ``tlist`` is ``None``, then a 1-dimensional array of correlation values
         is returned instead.
     """
     taulist = np.asarray(taulist)
