@@ -445,7 +445,7 @@ Open Systems
 ``mcsolve`` can be used to study systems which have measurement and dissipative
 interactions with their environment.  This is done by passing a Liouvillian including the
 dissipative interaction to the solver instead of a Hamiltonian.
-In that cases the effective Liouvillian becomes:
+In this case the effective Liouvillian becomes:
 
 .. math::
     :label: Leff
@@ -459,7 +459,7 @@ With the collapse probability becoming:
 
     \delta p =\delta t \sum_{n}\mathrm{tr}\left(\rho(t)C^{+}_{n}C_{n}\right),
 
-And a jump with the collapse ``n`` changing the state as:
+And a jump with the collapse operator ``n`` changing the state as:
 
 .. math::
     :label: L_project
