@@ -554,13 +554,13 @@ class MultiTrajResult(_BaseResult):
         self.trajectories.append(trajectory)
 
     def _reduce_states(self, trajectory):
-        if trajectory.has_absolute_weight():
+        if trajectory.has_absolute_weight:
             self._sum_abs.reduce_states(trajectory)
         else:
             self._sum_rel.reduce_states(trajectory)
 
     def _reduce_final_state(self, trajectory):
-        if trajectory.has_absolute_weight():
+        if trajectory.has_absolute_weight:
             self._sum_abs.reduce_final_state(trajectory)
         else:
             self._sum_rel.reduce_final_state(trajectory)
@@ -570,7 +570,7 @@ class MultiTrajResult(_BaseResult):
         Compute the average of the expectation values and store it in it's
         multiple formats.
         """
-        if trajectory.has_absolute_weight():
+        if trajectory.has_absolute_weight:
             self._sum_abs.reduce_expect(trajectory)
         else:
             self._sum_rel.reduce_expect(trajectory)
@@ -605,7 +605,7 @@ class MultiTrajResult(_BaseResult):
         if self.num_trajectories == 0:
             self._add_first_traj(trajectory)
 
-        if trajectory.has_absolute_weight():
+        if trajectory.has_absolute_weight:
             if self._sum_abs is None:
                 self._sum_abs = _TrajectorySum(
                     trajectory,
@@ -983,12 +983,12 @@ class _TrajectorySum:
             qzero_like(_to_dm(state)) for state in example_trajectory.states]
 
     def reduce_states(self, trajectory):
-        if trajectory.has_weight():
+        if trajectory.has_weight:
             self.sum_states = [
                 accu + weight * _to_dm(state)
                 for accu, state, weight in zip(self.sum_states,
                                                trajectory.states,
-                                               trajectory._total_weight())
+                                               trajectory._total_weight_tlist)
             ]
         else:
             self.sum_states = [
@@ -997,18 +997,14 @@ class _TrajectorySum:
             ]
 
     def reduce_final_state(self, trajectory):
-        if trajectory.has_weight():
-            self.sum_final_state += (trajectory._final_weight() *
+        if trajectory.has_weight:
+            self.sum_final_state += (trajectory._final_weight *
                                      _to_dm(trajectory.final_state))
         else:
             self.sum_final_state += _to_dm(trajectory.final_state)
 
     def reduce_expect(self, trajectory):
-        if trajectory.has_weight():
-            weight = trajectory._total_weight()
-        else:
-            weight = 1
-
+        weight = trajectory.total_weight
         for i, expect_traj in enumerate(trajectory.expect):
             self.sum_expect[i] += weight * expect_traj
             self.sum2_expect[i] += weight * expect_traj**2
@@ -1101,28 +1097,51 @@ class TrajectoryResult(Result):
         self.rel_weight = self.rel_weight * new_weight
         self._has_weight = True
 
+    @property
     def has_weight(self):
         """Whether any weight has been set."""
         return self._has_weight
 
+    @property
     def has_absolute_weight(self):
         """Whether an absolute weight has been set."""
         return (self.abs_weight is not None)
 
-    def _total_weight(self):
-        """
-        Returns an array containing the weight as a function of time. If no
-        absolute weight was set, this is only the relative weight. If an
-        absolute weight was set, this is the product of abs and rel.
-        """
-        weights = np.ones_like(self.times)
-        weights = weights * self.rel_weight
-        if self.abs_weight:
-            weights = weights * self.abs_weight
-        return weights
+    @property
+    def has_time_dependent_weight(self):
+        """Whether the total weight is time-dependent."""
+        # np.ndim(None) returns zero, which is what we want
+        return np.ndim(self.rel_weight) > 0 or np.ndim(self.abs_weight) > 0
 
+    @property
+    def total_weight(self):
+        """
+        Returns the total weight, either a single number or an array in case of
+        a time-dependent weight. If no absolute weight was set, this is only
+        the relative weight. If an absolute weight was set, this is the product
+        of the absolute and the relative weights.
+        """
+        if self.has_absolute_weight:
+            return self.abs_weight * self.rel_weight
+        return self.rel_weight
+
+    @property
+    def _total_weight_tlist(self):
+        """
+        Returns the total weight as a function of time (i.e., as an array with
+        the same shape as the `tlist`)
+        """
+        total_weight = self.total_weight
+        if self.has_time_dependent_weight:
+            return total_weight
+        return np.ones_like(self.times) * total_weight
+
+    @property
     def _final_weight(self):
-        return self._total_weight()[-1]
+        total_weight = self.total_weight
+        if self.has_time_dependent_weight:
+            return total_weight[-1]
+        return total_weight
 
 
 class McResult(MultiTrajResult):
@@ -1164,15 +1183,25 @@ class McResult(MultiTrajResult):
     """
 
     # Collapse are only produced by mcsolve.
-
     def _add_collapse(self, trajectory):
         self.collapse.append(trajectory.collapse)
+
+    # Need to store weights of trajectories to compute photocurrent
+    def _store_weight(self, trajectory):
+        self.runs_weights.append(trajectory.total_weight)
+        if trajectory.has_time_dependent_weight:
+            self._time_dependent_weights = True
 
     def _post_init(self):
         super()._post_init()
         self.num_c_ops = self.stats["num_collapse"]
+
         self.collapse = []
         self.add_processor(self._add_collapse)
+
+        self.runs_weights = []
+        self._time_dependent_weights = False
+        self.add_processor(self._store_weight)
 
     @property
     def col_times(self):
@@ -1203,18 +1232,23 @@ class McResult(MultiTrajResult):
         """
         Average photocurrent or measurement of the evolution.
         """
-        # TODO this is wrong if trajectories have weights
-        # unclear how to implement in case of time-dependent weights
-        cols = [[] for _ in range(self.num_c_ops)]
+        if self._time_dependent_weights:
+            raise NotImplementedError("photocurrent is not implemented "
+                                      "for this solver.")
+
+        collapse_times = [[] for _ in range(self.num_c_ops)]
+        collapse_weights = [[] for _ in range(self.num_c_ops)]
         tlist = self.times
-        for collapses in self.collapse:
+        for collapses, weight in zip(self.collapse, self.runs_weights):
             for t, which in collapses:
-                cols[which].append(t)
+                collapse_times[which].append(t)
+                collapse_weights[which].append(weight)
+
         mesurement = [
-            np.histogram(cols[i], tlist)[0]
+            np.histogram(times, bins=tlist, weights=weights)[0]
             / np.diff(tlist)
             / self.num_trajectories
-            for i in range(self.num_c_ops)
+            for times, weights in zip(collapse_times, collapse_weights)
         ]
         return mesurement
 
@@ -1223,18 +1257,20 @@ class McResult(MultiTrajResult):
         """
         Photocurrent or measurement of each runs.
         """
-        # TODO this is wrong if trajectories have weights
-        # unclear how to implement in case of time-dependent weights
+        if self._time_dependent_weights:
+            raise NotImplementedError("runs_photocurrent is not implemented "
+                                      "for this solver.")
+
         tlist = self.times
         measurements = []
         for collapses in self.collapse:
-            cols = [[] for _ in range(self.num_c_ops)]
+            collapse_times = [[] for _ in range(self.num_c_ops)]
             for t, which in collapses:
-                cols[which].append(t)
+                collapse_times[which].append(t)
             measurements.append(
                 [
-                    np.histogram(cols[i], tlist)[0] / np.diff(tlist)
-                    for i in range(self.num_c_ops)
+                    np.histogram(times, tlist)[0] / np.diff(tlist)
+                    for times in collapse_times
                 ]
             )
         return measurements
@@ -1306,12 +1342,12 @@ class NmmcResult(McResult):
         self._sum2_trace_rel = np.zeros_like(trajectory.times)
 
     def _add_trace(self, trajectory):
-        if trajectory.has_absolute_weight():
-            self._sum_trace_abs += trajectory._total_weight()
-            self._sum2_trace_abs += np.abs(trajectory._total_weight()) ** 2
+        if trajectory.has_absolute_weight:
+            self._sum_trace_abs += trajectory._total_weight_tlist
+            self._sum2_trace_abs += np.abs(trajectory._total_weight_tlist) ** 2
         else:
-            self._sum_trace_rel += trajectory._total_weight()
-            self._sum2_trace_rel += np.abs(trajectory._total_weight()) ** 2
+            self._sum_trace_rel += trajectory._total_weight_tlist
+            self._sum2_trace_rel += np.abs(trajectory._total_weight_tlist) ** 2
 
         avg = (self._sum_trace_abs +
                self._sum_trace_rel / self._num_rel_trajectories)
