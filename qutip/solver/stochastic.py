@@ -165,6 +165,12 @@ class StochasticResult(MultiTrajResult):
         """
         return self._trajectories_attr("wiener_process")
 
+    def merge(self, other, p=None):
+        raise NotImplementedError("Merging results of the stochastic solvers "
+                                  "is currently not supported. Please raise "
+                                  "an issue on GitHub if you would like to "
+                                  "see this feature.")
+
 
 class _StochasticRHS(_MultiTrajRHS):
     """
