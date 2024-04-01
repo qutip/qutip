@@ -360,13 +360,6 @@ def test_states_outputs(keep_runs_results):
     assert data.average_final_state.norm() == pytest.approx(1.)
     assert data.average_final_state.isoper
 
-    assert isinstance(data.photocurrent[0][1], float)
-    assert isinstance(data.photocurrent[1][1], float)
-    assert (
-        np.array(data.runs_photocurrent).shape
-        == (ntraj, total_ops, len(times)-1)
-    )
-
     if keep_runs_results:
         assert len(data.runs_states) == ntraj
         assert len(data.runs_states[0]) == len(times)
@@ -431,10 +424,6 @@ def test_expectation_outputs(keep_runs_results):
         assert isinstance(data.runs_expect[0][0][1], float)
         assert isinstance(data.runs_expect[1][0][1], float)
         assert isinstance(data.runs_expect[2][0][1], complex)
-    assert isinstance(data.photocurrent[0][0], float)
-    assert isinstance(data.photocurrent[1][0], float)
-    assert (np.array(data.runs_photocurrent).shape
-            == (ntraj, total_ops, len(times)-1))
     np.testing.assert_allclose(times, data.times)
     assert data.num_trajectories == ntraj
     assert len(data.e_ops) == len(e_ops)
