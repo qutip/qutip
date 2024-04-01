@@ -23,12 +23,8 @@ from ..ui.progressbar import progress_bars
 from qutip.solver.floquet import fsesolve, FloquetBasis
 
 
-def _floquet_rate_matrix(floquet_basis,
-                         Nt,
-                         c_ops,
-                         c_op_rates,
-                         time_sense=0):
-    '''
+def _floquet_rate_matrix(floquet_basis, Nt, c_ops, c_op_rates, time_sense=0):
+    """
     Parameters
     ----------
     floquet_basis : FloquetBasis Object
@@ -41,10 +37,10 @@ def _floquet_rate_matrix(floquet_basis,
         List of collapse operator rates/magnitudes.
     args : *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and
-        collapse operators. 
+        collapse operators.
     time_sense : float 0-1,optional
-        the time sensitivity or secular approximation restriction of 
-        FLiMESolve. Decides "acceptable" values of (frequency/rate) for rate 
+        the time sensitivity or secular approximation restriction of
+        FLiMESolve. Decides "acceptable" values of (frequency/rate) for rate
         matrix entries. Lower values imply rate occurs much faster than
         rotation frtequency, i.e. more important matrix entries. Higher
         values meaning rates cause changes slower than the Hamiltonian rotates,
@@ -56,31 +52,29 @@ def _floquet_rate_matrix(floquet_basis,
         This is the 2D rate matrix for the system,created by summing the
             Rate matrix of each individual collapse operator. Something
             something Rate Matrix something something linear Operator.
-    '''
+    """
     Hdim = len(floquet_basis.e_quasi)  # Dimensionality of the Hamiltonian
 
     # Forming tlist to take FFT of collapse operators
     timet = floquet_basis.T
     dt = timet / Nt
     tlist = np.linspace(0, timet - dt, Nt)
-    omega = (2*np.pi)/floquet_basis.T  # Frequency dependence of Hamiltonian
+    omega = (2 * np.pi) / floquet_basis.T  # Frequency dependence of Hamiltonian
 
     total_R_tensor = defaultdict(lambda: 0)
     for cdx, c_op in enumerate(c_ops):
         # Transforming the lowering operator into the Floquet Basis
         #     and taking the FFT
         modes_table = _floquet_mode_table(floquet_basis, tlist)
-        modes_fft = np.fft.fft(modes_table, axis=0)
 
         c_op_Floquet_basis = np.einsum(
-            'xij,jk,xkl->xil',
+            "xij,jk,xkl->xil",
             np.transpose(modes_table.conj(), (0, 2, 1)),
             c_op.full(),
-            modes_table
+            modes_table,
         )
         c_op_Fourier_amplitudes_list = np.fft.fftshift(
-            np.fft.fft(
-                c_op_Floquet_basis, axis=0)
+            np.fft.fft(c_op_Floquet_basis, axis=0)
         ) / len(tlist)
 
         # Building the Rate matrix
@@ -90,46 +84,52 @@ def _floquet_rate_matrix(floquet_basis,
         for l, k in product(np.arange(Nt), repeat=2):
             delta_shift = delta_m + (l - k)
             mask = {}
-            if time_sense <= 0.:
+            if time_sense <= 0.0:
                 mask[0] = delta_shift == 0
                 if not np.any(mask):
                     continue
-                rate_products = np.multiply.outer(
-                    c_op_Fourier_amplitudes_list[l],
-                    np.conj(c_op_Fourier_amplitudes_list)[k]
-                ) * c_op_rates[cdx]
+                rate_products = (
+                    np.multiply.outer(
+                        c_op_Fourier_amplitudes_list[l],
+                        np.conj(c_op_Fourier_amplitudes_list)[k],
+                    )
+                    * c_op_rates[cdx]
+                )
             else:
-                rate_products = np.multiply.outer(
-                    c_op_Fourier_amplitudes_list[l],
-                    np.conj(c_op_Fourier_amplitudes_list[k])
-                ) * c_op_rates[cdx]
-            included_deltas = abs(
-                delta_shift * omega) <= abs(rate_products * time_sense)
+                rate_products = (
+                    np.multiply.outer(
+                        c_op_Fourier_amplitudes_list[l],
+                        np.conj(c_op_Fourier_amplitudes_list[k]),
+                    )
+                    * c_op_rates[cdx]
+                )
+            included_deltas = abs(delta_shift * omega) <= abs(
+                rate_products * time_sense
+            )
             if not np.any(included_deltas):
                 continue
             keys = np.unique(delta_shift[included_deltas])
             for key in keys:
-                mask[key] = np.logical_and(
-                    delta_shift == key, included_deltas)
+                mask[key] = np.logical_and(delta_shift == key, included_deltas)
 
             for key in mask.keys():
                 valid_c_op_products = rate_products * mask[key]
                 I_ = np.eye(Hdim, Hdim)
                 flime_FirstTerm = np.transpose(
-                    valid_c_op_products, [0, 2, 1, 3]).reshape(Hdim**2, Hdim**2)
+                    valid_c_op_products, [0, 2, 1, 3]
+                ).reshape(Hdim**2, Hdim**2)
                 tmp = np.trace(valid_c_op_products, axis1=0, axis2=2)
                 flime_SecondTerm = np.kron(tmp.T, I_)
                 flime_ThirdTerm = np.kron(I_, tmp)
 
-                total_R_tensor[key] += flime_FirstTerm - \
-                    (0.5) * (flime_SecondTerm + flime_ThirdTerm)
+                total_R_tensor[key] += flime_FirstTerm - (0.5) * (
+                    flime_SecondTerm + flime_ThirdTerm
+                )
 
     # Turning the Rate Matrix into a super operator
     dims = [floquet_basis.U(0).dims] * 2
     total_R_tensor = {
-        key: Qobj(
-            RateMat, dims=dims, type="super", superrep="super", copy=False
-        )
+        key: Qobj(RateMat, dims=dims, type="super", superrep="super", copy=False)
         for key, RateMat in total_R_tensor.items()
     }
 
@@ -137,16 +137,17 @@ def _floquet_rate_matrix(floquet_basis,
 
 
 def flimesolve(
-        H,
-        rho0,
-        tlist,
-        T,
-        Nt=None,
-        c_ops_and_rates=None,
-        e_ops=None,
-        args=None,
-        time_sense=0,
-        options=None):
+    H,
+    rho0,
+    tlist,
+    T,
+    Nt=None,
+    c_ops=None,
+    e_ops=None,
+    args=None,
+    time_sense=0,
+    options=None,
+):
     """
     Parameters
     ----------
@@ -170,7 +171,7 @@ def flimesolve(
         forming the rate matrix. If none is supplied, flimesolve will try to
         pull Nt from tlist.
 
-    c_ops_and_rates : list of :class:`qutip.Qobj`.
+    c_ops : list of :class:`qutip.Qobj`.
         List of lists of [collapse operator,collapse operator rate] pairs
 
     e_ops : list of :class:`qutip.Qobj` / callback function
@@ -181,8 +182,8 @@ def flimesolve(
         Dictionary of parameters for time-dependent Hamiltonian
 
     time_sense : float
-        Value of the secular approximation to use when constructing the rate 
-        matrix R(t).Default value of zero uses the fully time-independent/most 
+        Value of the secular approximation to use when constructing the rate
+        matrix R(t).Default value of zero uses the fully time-independent/most
         strict secular approximation.
 
     options : None / dict
@@ -229,7 +230,7 @@ def flimesolve(
         state density matrices corresponding to the times.
 
     """
-    if c_ops_and_rates is None:
+    if c_ops is None:
         return fsesolve(
             H,
             rho0,
@@ -246,13 +247,26 @@ def flimesolve(
     else:
         floquet_basis = FloquetBasis(H, T, args, precompute=None)
 
-    solver = FLiMESolver(floquet_basis,
-                         c_ops_and_rates,
-                         args,
-                         tlist=tlist,
-                         Nt=Nt,
-                         time_sense=time_sense,
-                         options=options)
+        if Nt != None:
+            Nt = Nt
+        elif Nt == None:
+            if tlist is not None:
+                if tlist[1] - tlist[0] >= floquet_basis.T:
+                    Nt = 2**4
+                elif tlist[1] - tlist[0] < floquet_basis.T:
+                    dt = tlist[1] - tlist[0]
+                    tlist_zeroed = tlist - tlist[0]
+                    Nt_finder = abs(tlist_zeroed + dt - floquet_basis.T)
+                    NtNt = list(np.where(Nt_finder == np.amin(Nt_finder)))[0][0] + 1
+            else:
+                Nt = 2**4
+    options["Nt"] = Nt
+    solver = FLiMESolver(
+        floquet_basis,
+        c_ops,
+        time_sense=time_sense,
+        options=options,
+    )
     return solver.run(rho0, tlist, e_ops=e_ops)
 
 
@@ -277,7 +291,9 @@ def _floquet_mode_table(floquet_basis, tlist):
             mode @ state @ mode.conj().T will transform INTO the Floquet basis.
             I just think the name works better this way?
     """
-    return np.stack([np.hstack([i.full() for i in floquet_basis.mode(t)]) for t in tlist])
+    return np.stack(
+        [np.hstack([i.full() for i in floquet_basis.mode(t)]) for t in tlist]
+    )
 
 
 def _floquet_state_table(floquet_basis, tlist):
@@ -296,7 +312,7 @@ def _floquet_state_table(floquet_basis, tlist):
 
         An array, indexed by (i,j,k), for the jth row, kth column, and
             ith time point of the Floquet States, specifically found
-            to hit every t%tau in the system evolution, even if a 
+            to hit every t%tau in the system evolution, even if a
             certain time point doesn't happen every period'
 
     """
@@ -304,8 +320,7 @@ def _floquet_state_table(floquet_basis, tlist):
     dims = len(floquet_basis.e_quasi)
 
     taulist_test = np.array(tlist) % floquet_basis.T
-    taulist_correction = np.argwhere(abs(
-        taulist_test - floquet_basis.T) < 1e-10)
+    taulist_correction = np.argwhere(abs(taulist_test - floquet_basis.T) < 1e-10)
     taulist_test_new = np.round(taulist_test, 10)
     taulist_test_new[taulist_correction] = 0
 
@@ -317,18 +332,23 @@ def _floquet_state_table(floquet_basis, tlist):
             except KeyError:
                 tally[item] = [i]
         return ((key, locs) for key, locs in tally.items())
-    sorted_time_args = {key: val for key, val in
-                        sorted(list_duplicates(taulist_test_new))}
 
-    fmodes_core_dict = {t: np.hstack([i.full() for i in floquet_basis.mode(t)])
-                        for t in (sorted_time_args.keys())}
+    sorted_time_args = {
+        key: val for key, val in sorted(list_duplicates(taulist_test_new))
+    }
+
+    fmodes_core_dict = {
+        t: np.hstack([i.full() for i in floquet_basis.mode(t)])
+        for t in (sorted_time_args.keys())
+    }
 
     tiled_modes = np.zeros((len(tlist), dims, dims), dtype=complex)
     for key in fmodes_core_dict:
         tiled_modes[sorted_time_args[key]] = fmodes_core_dict[key]
-    quasi_e_table = np.exp(np.einsum('i,k -> ik', -1j
-                                     * np.array(tlist), floquet_basis.e_quasi))
-    fstates_table = np.einsum('ijk,ik->ijk', tiled_modes, quasi_e_table)
+    quasi_e_table = np.exp(
+        np.einsum("i,k -> ik", -1j * np.array(tlist), floquet_basis.e_quasi)
+    )
+    fstates_table = np.einsum("ijk,ik->ijk", tiled_modes, quasi_e_table)
     return fstates_table
 
 
@@ -341,43 +361,36 @@ class FloquetResult(Result):
             self.floquet_states = None
         super()._post_init()
 
-    def add(self, t, state):
+    def add(self, t, state, floquet_state):
         if self.options["store_floquet_states"]:
-            self.floquet_states.append(state)
+            self.floquet_states.append(floquet_state)
         super().add(t, state)
 
 
 class FLiMESolver(MESolver):
     """
-    Solver for the Floquet-Markov master equation.
+     Solver for the Floquet-Markov master equation.
 
-    .. note ::
-        Operators (``c_ops`` and ``e_ops``) are in the laboratory basis.
+     .. note ::
+         Operators (``c_ops`` and ``e_ops``) are in the laboratory basis.
 
-    Parameters
-    ----------
-    floquet_basis : :class:`qutip.FloquetBasis`
-        The system Hamiltonian wrapped in a FloquetBasis object. Choosing a
-        different integrator for the ``floquet_basis`` than for the evolution
-        of the floquet state can improve the performance.
+     Parameters
+     ----------
+     floquet_basis : :class:`qutip.FloquetBasis`
+         The system Hamiltonian wrapped in a FloquetBasis object. Choosing a
+         different integrator for the ``floquet_basis`` than for the evolution
+         of the floquet state can improve the performance.
 
-    tlist : np.ndarray
-        List of 2**n times distributed evenly over one period of the
-            Hamiltonian
+     tlist : np.ndarray
+         List of 2**n times distributed evenly over one period of the
+             Hamiltonian
 
-    taulist: np.ndarray
-        List of number_of_periods*2**n times distributed evenly over the
-            entire duration of Hamiltonian driving
+    c_ops : list of :class:`qutip.Qobj`.
+        List of lists of [collapse operator, collapse operator rate] pairs
 
-    Hargs : list
-        The time dependence of the Hamiltonian
-
-   c_ops_and_rates : list of :class:`qutip.Qobj`.
-       List of lists of [collapse operator, collapse operator rate] pairs
-
-    options : dict,optional
-        Options for the solver,see :obj:`FMESolver.options` and
-        `Integrator <./classes.html#classes-ode>`_ for a list of all options.
+     options : dict,optional
+         Options for the solver,see :obj:`FMESolver.options` and
+         `Integrator <./classes.html#classes-ode>`_ for a list of all options.
     """
 
     name = "flimesolve"
@@ -391,70 +404,52 @@ class FLiMESolver(MESolver):
         "normalize_output": True,
         "method": "adams",
         "store_floquet_states": True,
-
+        "Nt": 2**4,
     }
 
     def __init__(
         self,
         floquet_basis,
-        c_ops_and_rates,
-        Hargs,
+        c_ops,
+        time_sense,
         *,
-        tlist=None,
-        Nt=None,
-        time_sense=0,
-        options=None
+        options=None,
     ):
         if time_sense == 0:
             self.solver_options["method"] = "diag"
+        else:
+            self.solver_options["method"] = "adams"
 
         if isinstance(floquet_basis, FloquetBasis):
             self.floquet_basis = floquet_basis
         else:
             raise TypeError("The ``floquet_basis`` must be a FloquetBasis")
+
         self.options = options
+
+        self.Nt = self.options["Nt"]
+
         self.Hdim = np.shape(self.floquet_basis.e_quasi)[0]
 
-        c_ops = []
-        c_op_rates = []
-        for c_op, rate in c_ops_and_rates:
+        c_op_list = []
+        c_op_rate_list = []
+        for c_op, rate in c_ops:
             if not isinstance(c_op, Qobj):
                 raise TypeError("c_ops must be type Qobj")
-            c_ops.append(c_op)
-            c_op_rates.append(rate**2)
+            c_op_list.append(c_op)
+            c_op_rate_list.append(rate**2)
 
         self._num_collapse = len(c_ops)
-        if not all(
-            isinstance(c_op, Qobj)
-            for c_op in c_ops
-        ):
+        if not all(isinstance(c_op, Qobj) for c_op in c_op_list):
             raise TypeError("c_ops must be type Qobj")
 
         self.dims = len(self.floquet_basis.e_quasi)
 
-        if Nt != None:
-            self.Nt = Nt
-        elif Nt == None:
-            if tlist is not None:
-                if tlist[1] - tlist[0] >= self.floquet_basis.T:
-                    self.Nt = 2**4
-                elif tlist[1] - tlist[0] < self.floquet_basis.T:
-                    dt = tlist[1] - tlist[0]
-                    tlist_zeroed = tlist - tlist[0]
-                    Nt_finder = abs(tlist_zeroed + dt - self.floquet_basis.T)
-                    self.Nt = list(np.where(
-                        Nt_finder == np.amin(Nt_finder))
-                    )[0][0] + 1
-            else:
-                self.Nt = 2**4
         self.time_sense = time_sense
 
         RateDic = _floquet_rate_matrix(
-            floquet_basis,
-            self.Nt,
-            c_ops,
-            c_op_rates,
-            time_sense=time_sense)
+            floquet_basis, self.Nt, c_op_list, c_op_rate_list, time_sense=time_sense
+        )
 
         self.rhs = self._create_rhs(RateDic)
         self._integrator = self._get_integrator()
@@ -472,24 +467,32 @@ class FLiMESolver(MESolver):
         )
         return stats
 
-    def _create_rhs(self,
-                    rate_matrix_dictionary):
+    def _create_rhs(self, rate_matrix_dictionary):
         _time_start = time()
 
-        Rate_Qobj_list = {key: Qobj(
-            rate_matrix_dictionary[key],
-            dims=[self.floquet_basis.U(0).dims,
-                  self.floquet_basis.U(0).dims],
-            type="super",
-            superrep="super",
-            copy=False
-        ).to("csr") for key in rate_matrix_dictionary}
+        Rate_Qobj_list = {
+            key: Qobj(
+                rate_matrix_dictionary[key],
+                dims=[self.floquet_basis.U(0).dims, self.floquet_basis.U(0).dims],
+                type="super",
+                superrep="super",
+                copy=False,
+            ).to("csr")
+            for key in rate_matrix_dictionary
+        }
 
         Rt_timedep_pairs = [
-            Rate_Qobj_list[0], *[
-                [Rate_Qobj_list[key], 'exp(1j*' + str(
-                    key * (2*np.pi)/self.floquet_basis.T) + '*t)']
-                for key in set(Rate_Qobj_list)-{0}]]
+            Rate_Qobj_list[0],
+            *[
+                [
+                    Rate_Qobj_list[key],
+                    lambda t, key=key: np.exp(
+                        (1j * key * 2 * np.pi * t) / self.floquet_basis.T
+                    ),
+                ]
+                for key in set(Rate_Qobj_list) - {0}
+            ],
+        ]
 
         rhs = QobjEvo(Rt_timedep_pairs)
 
@@ -550,7 +553,15 @@ class FLiMESolver(MESolver):
             state = state.copy()
         return state
 
-    def run(self, state0, tlist, *, floquet=False, args=None, e_ops=None,):
+    def run(
+        self,
+        state0,
+        tlist,
+        *,
+        floquet=False,
+        args=None,
+        e_ops=None,
+    ):
         """
         Calculate the evolution of the quantum system.
 
@@ -605,22 +616,20 @@ class FLiMESolver(MESolver):
             floquet_basis=self.floquet_basis,
         )
 
-        if state0.type == 'ket':
-            state0 = operator_to_vector(
-                state0 * state0.dag())
-        elif state0.type == 'oper':
+        if state0.type == "ket":
+            state0 = operator_to_vector(state0 * state0.dag())
+        elif state0.type == "oper":
             state0 = operator_to_vector(state0)
         else:
-            raise ValueError('You need to supply a valid ket or operator')
+            raise ValueError("You need to supply a valid ket or operator")
 
-        fstates_table = _floquet_state_table(
-            self.floquet_basis, tlist)
+        fstates_table = _floquet_state_table(self.floquet_basis, tlist)
 
         stats["preparation time"] += time() - _time_start
 
         sols = [self._restore_state(_data0, copy=False).full()]
-        progress_bar = progress_bars[self.options['progress_bar']](
-            len(tlist)-1, **self.options['progress_kwargs']
+        progress_bar = progress_bars[self.options["progress_bar"]](
+            len(tlist) - 1, **self.options["progress_kwargs"]
         )
         for t, state in self._integrator.run(tlist):
             progress_bar.update()
@@ -629,22 +638,24 @@ class FLiMESolver(MESolver):
         sols = np.array(sols)
 
         sols_comp_arr = np.einsum(
-            'xij,xjk,xkl->xil',
+            "xij,xjk,xkl->xil",
             fstates_table,
             sols,
-            np.transpose(fstates_table.conj(), axes=(0, 2, 1))
+            np.transpose(fstates_table.conj(), axes=(0, 2, 1)),
         )
 
-        sols_comp = [Qobj(
-            _data.Dense(state),
-            dims=[self.floquet_basis.U(0).dims[0],
-                  self.floquet_basis.U(0).dims[0]],
-            type="oper",
-            copy=False)
-            for state in sols_comp_arr]
+        sols_comp = [
+            Qobj(
+                _data.Dense(state),
+                dims=[self.floquet_basis.U(0).dims[0], self.floquet_basis.U(0).dims[0]],
+                type="oper",
+                copy=False,
+            )
+            for state in sols_comp_arr
+        ]
 
         for idx, state in enumerate(sols_comp):
-            results.add(tlist[idx], state)
+            results.add(tlist[idx], state, fstates_table[idx])
 
         stats["run time"] = time() - _time_start
         return results
