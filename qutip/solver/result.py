@@ -707,6 +707,14 @@ class MultiTrajResult(_BaseResult):
         seed, trajectory = trajectory_info
         self.seeds.append(seed)
 
+        if not isinstance(trajectory, TrajectoryResult):
+            trajectory.has_weight = False
+            trajectory.has_absolute_weight = False
+            trajectory.has_time_dependent_weight = False
+            trajectory.total_weight = 1
+            trajectory._total_weight_tlist = np.ones_like(trajectory.times)
+            trajectory._final_weight = 1
+
         for op in self._state_processors:
             op(trajectory)
 

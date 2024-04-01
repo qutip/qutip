@@ -1,7 +1,7 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
-from .result import MultiTrajResult, ExpectOp, TrajectoryResult
+from .result import MultiTrajResult, Result, ExpectOp
 from .multitraj import _MultiTrajRHS, MultiTrajSolver
 from .. import Qobj, QobjEvo
 from ..core.dimensions import Dimensions
@@ -11,8 +11,7 @@ from .solver_base import _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
 
 
-class StochasticTrajResult(TrajectoryResult):
-    # TODO double check this
+class StochasticTrajResult(Result):
     def _post_init(self, m_ops=(), dw_factor=(), heterodyne=False):
         super()._post_init()
         self.W = []
