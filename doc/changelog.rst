@@ -7,6 +7,19 @@ Change Log
 .. towncrier release notes start
 
 
+QuTiP 5.0.1 (2024-04-03)
+========================
+
+
+Patch update fixing small issues with v5.0.0 release
+
+- Fix broken links in the documentation when migrating to readthedocs
+- Fix readthedocs search feature
+- Add setuptools to runtime compilation requirements
+- Fix mcsolve documentation for open systems
+- Fix OverFlowError in progress bars
+
+
 QuTiP 5.0.0 (2024-03-26)
 ========================
 
