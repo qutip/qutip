@@ -257,8 +257,11 @@ class Test_expand_operator:
             np.testing.assert_allclose(test.full(), expected.full())
 
     def test_dtype(self):
-        expanded_qobj = expand_operator(qutip.gates.cnot(), dims=[2, 2, 2]).data
+        expanded_qobj = expand_operator(
+            qutip.gates.cnot(), dims=[2, 2, 2], targets=[0, 1]
+        ).data
         assert isinstance(expanded_qobj, qutip.data.CSR)
         expanded_qobj = expand_operator(
-            qutip.gates.cnot(), dims=[2, 2, 2], dtype="dense").data
+            qutip.gates.cnot(), dims=[2, 2, 2], targets=[0, 1], dtype="dense"
+        ).data
         assert isinstance(expanded_qobj, qutip.data.Dense)
