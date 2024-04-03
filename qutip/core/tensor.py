@@ -17,7 +17,7 @@ from .dimensions import (
     dims_idxs_to_tensor_idxs
 )
 from . import data as _data
-from . import settings
+from .. import settings
 
 
 class _reverse_partial_tensor:
