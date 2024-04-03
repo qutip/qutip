@@ -712,8 +712,6 @@ class MultiTrajResult(_BaseResult):
             trajectory.has_absolute_weight = False
             trajectory.has_time_dependent_weight = False
             trajectory.total_weight = 1
-            trajectory._total_weight_tlist = np.ones_like(trajectory.times)
-            trajectory._final_weight = 1
 
         for op in self._state_processors:
             op(trajectory)
@@ -839,8 +837,7 @@ class MultiTrajResult(_BaseResult):
         Last states of each trajectories averaged into a density matrix.
         """
         if ((self._sum_abs and not self._sum_abs.sum_final_state) or
-            (self._sum_rel and not self._sum_rel.sum_final_state)):
-
+                (self._sum_rel and not self._sum_rel.sum_final_state)):
             if (average_states := self.average_states) is not None:
                 return average_states[-1]
             return None
@@ -1004,8 +1001,8 @@ class MultiTrajResult(_BaseResult):
         # and there are no absolute weights present, we do not have to do any
         # extra work
         if (p_is_default and
-            self.num_trajectories == self._num_rel_trajectories and
-            other.num_trajectories == other._num_rel_trajectories):
+                self.num_trajectories == self._num_rel_trajectories and
+                other.num_trajectories == other._num_rel_trajectories):
             return self.trajectories + other.trajectories
 
         result = []
