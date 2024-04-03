@@ -484,6 +484,10 @@ class MultiTrajResult(_BaseResult):
         The lists of expectation values returned are the *same* lists as
         those returned by ``.expect``.
 
+    runs_weights : list
+        For each trajectory, the weight with which that trajectory enters
+        averages.
+
     solver : str or None
         The name of the solver generating these results.
 
@@ -506,6 +510,7 @@ class MultiTrajResult(_BaseResult):
         self.trajectories = []
         self.num_trajectories = 0
         self.seeds = []
+        self._weight_info = []
 
         self.average_e_data = {}
         self.std_e_data = {}
@@ -552,6 +557,10 @@ class MultiTrajResult(_BaseResult):
 
     def _store_trajectory(self, trajectory):
         self.trajectories.append(trajectory)
+
+    def _store_weight_info(self, trajectory):
+        self._weight_info.append(
+            (trajectory.total_weight, trajectory.has_absolute_weight))
 
     def _reduce_states(self, trajectory):
         if trajectory.has_absolute_weight:
@@ -674,6 +683,8 @@ class MultiTrajResult(_BaseResult):
         store_trajectory = self.options["keep_runs_results"]
         if store_trajectory:
             self.add_processor(self._store_trajectory)
+        else:
+            self.add_processor(self._store_weight_info)
         if self._store_average_density_matrices:
             self.add_processor(self._reduce_states)
         if self._store_final_density_matrix:
@@ -876,6 +887,19 @@ class MultiTrajResult(_BaseResult):
     def e_data(self):
         return self.runs_e_data or self.average_e_data
 
+    @property
+    def runs_weights(self):
+        result = []
+        if self._weight_info:
+            for w, isabs in self._weight_info:
+                result.append(w if isabs else w / self._num_rel_trajectories)
+        else:
+            for traj in self.trajectories:
+                w = traj.total_weight
+                isabs = traj.has_absolute_weight
+                result.append(w if isabs else w / self._num_rel_trajectories)
+        return result
+
     def steady_state(self, N=0):
         """
         Average the states of the last ``N`` times of every runs as a density
@@ -966,22 +990,20 @@ class MultiTrajResult(_BaseResult):
                                      other._num_rel_trajectories)
         new.seeds = self.seeds + other.seeds
 
-        p_default = self._num_rel_trajectories / new._num_rel_trajectories
+        p_equal = self._num_rel_trajectories / new._num_rel_trajectories
         if p is None:
-            p_is_default = True
-            p = p_default
-        else:
-            p_is_default = False
+            p = p_equal
 
         if self.trajectories and other.trajectories:
-            new.trajectories = self._merge_trajectories(
-                other, p, p_default, p_is_default)
+            new.trajectories = self._merge_trajectories(other, p, p_equal)
+        else:
+            new._weight_info = self._merge_weight_info(other, p, p_equal)
 
         new._sum_abs = _TrajectorySum.merge(
             self._sum_abs, p, other._sum_abs, 1 - p)
         new._sum_rel = _TrajectorySum.merge(
-            self._sum_rel, p / p_default,
-            other._sum_rel, (1 - p) / (1 - p_default))
+            self._sum_rel, p / p_equal,
+            other._sum_rel, (1 - p) / (1 - p_equal))
 
         new._create_e_data()
 
@@ -995,32 +1017,67 @@ class MultiTrajResult(_BaseResult):
 
         return new
 
-    def _merge_trajectories(self, other, p, p_default, p_is_default):
-        # Due to how the weights work, we may have to add weights to the
-        # trajectories of the merged result. Only if p has the default value
-        # and there are no absolute weights present, we do not have to do any
-        # extra work
-        if (p_is_default and
+    def _merge_weight(self, p, p_equal, isabs):
+        """
+        Merging two result objects can make the trajectories pick up
+        merge weights. In order to have
+            rho_merge = p * rho1 + (1-p) * rho2,
+        the merge weights must be as defined here. The merge weight depends on
+        whether that trajectory has an absolute weight (`isabs`). The parameter
+        `p_equal` is the value of p where all trajectories contribute equally.
+        """
+        if isabs:
+            return p
+        return p / p_equal
+
+    def _merge_weight_info(self, other, p, p_equal):
+        new_weight_info = []
+
+        if self._weight_info:
+            for w, isabs in self._weight_info:
+                new_weight_info.append(
+                    (w * self._merge_weight(p, p_equal, isabs), isabs)
+                )
+        else:
+            for traj in self.trajectories:
+                w = traj.total_weight
+                isabs = traj.has_absolute_weight
+                new_weight_info.append(
+                    (w * self._merge_weight(p, p_equal, isabs), isabs)
+                )
+
+        if other._weight_info:
+            for w, isabs in other._weight_info:
+                new_weight_info.append(
+                    (w * self._merge_weight(1 - p, 1 - p_equal, isabs), isabs)
+                )
+        else:
+            for traj in other.trajectories:
+                w = traj.total_weight
+                isabs = traj.has_absolute_weight
+                new_weight_info.append(
+                    (w * self._merge_weight(1 - p, 1 - p_equal, isabs), isabs)
+                )
+
+        return new_weight_info
+
+    def _merge_trajectories(self, other, p, p_equal):
+        if (p == p_equal and
                 self.num_trajectories == self._num_rel_trajectories and
                 other.num_trajectories == other._num_rel_trajectories):
             return self.trajectories + other.trajectories
 
         result = []
         for traj in self.trajectories:
-            if traj.has_absolute_weight:
+            if (mweight := self._merge_weight(p, p_equal, traj.isabs)) != 1:
                 traj = copy(traj)
-                traj.add_absolute_weight(p)
-            elif not p_is_default:
-                traj = copy(traj)
-                traj.add_relative_weight(p / p_default)
+                traj.add_relative_weight(mweight)
             result.append(traj)
         for traj in other.trajectories:
-            if traj.has_absolute_weight:
+            if (mweight := self._merge_weight(
+                    1 - p, 1 - p_equal, traj.isabs)) != 1:
                 traj = copy(traj)
-                traj.add_absolute_weight(1 - p)
-            elif not p_is_default:
-                traj = copy(traj)
-                traj.add_relative_weight((1 - p) / (1 - p_default))
+                traj.add_relative_weight(mweight)
             result.append(traj)
         return result
 
@@ -1261,32 +1318,22 @@ class McResult(MultiTrajResult):
     Attributes
     ----------
     collapse : list
-        For each runs, a list of every collapse as a tuple of the time it
+        For each run, a list of every collapse as a tuple of the time it
         happened and the corresponding ``c_ops`` index.
     """
 
     # Collapse are only produced by mcsolve.
     def _add_collapse(self, trajectory):
         self.collapse.append(trajectory.collapse)
-
-    # Need to store weights of trajectories to compute photocurrent
-    def _store_weight(self, trajectory):
-        self.runs_weights.append(trajectory.total_weight)
-        self._weights_absolute.append(trajectory.has_absolute_weight)
         if trajectory.has_time_dependent_weight:
             self._time_dependent_weights = True
 
     def _post_init(self):
         super()._post_init()
         self.num_c_ops = self.stats["num_collapse"]
-
+        self._time_dependent_weights = False
         self.collapse = []
         self.add_processor(self._add_collapse)
-
-        self.runs_weights = []
-        self._weights_absolute = []
-        self._time_dependent_weights = False
-        self.add_processor(self._store_weight)
 
     @property
     def col_times(self):
@@ -1332,7 +1379,6 @@ class McResult(MultiTrajResult):
         mesurement = [
             np.histogram(times, bins=tlist, weights=weights)[0]
             / np.diff(tlist)
-            / self.num_trajectories
             for times, weights in zip(collapse_times, collapse_weights)
         ]
         return mesurement
@@ -1365,24 +1411,6 @@ class McResult(MultiTrajResult):
         new.collapse = self.collapse + other.collapse
         new._time_dependent_weights = (
             self._time_dependent_weights or other._time_dependent_weights)
-        new._weights_absolute = (
-            self._weights_absolute + other._weights_absolute)
-
-        p_default = self._num_rel_trajectories / new._num_rel_trajectories
-        if p is None:
-            p = p_default
-
-        for weight, isabs in zip(self.runs_weights, self._weights_absolute):
-            if isabs:
-                new.runs_weights.append(p * weight)
-            else:
-                new.runs_weights.append((p / p_default) * weight)
-        for weight, isabs in zip(other.runs_weights, other._weights_absolute):
-            if isabs:
-                new.runs_weights.append((1 - p) * weight)
-            else:
-                new.runs_weights.append(((1 - p) / (1 - p_default)) * weight)
-
         return new
 
 
@@ -1483,21 +1511,25 @@ class NmmcResult(McResult):
     def merge(self, other, p=None):
         new = super().merge(other, p)
 
-        p_default = self._num_rel_trajectories / new._num_rel_trajectories
+        p_eq = self._num_rel_trajectories / new._num_rel_trajectories
         if p is None:
-            p = p_default
+            p = p_eq
 
-        new._sum_trace_abs = (p * self._sum_trace_abs +
-                              (1 - p) * other._sum_trace_abs)
-        new._sum2_trace_abs = (p * self._sum2_trace_abs +
-                               (1 - p) * other._sum2_trace_abs)
+        new._sum_trace_abs = (
+            self._merge_weight(p, p_eq, True) * self._sum_trace_abs +
+            self._merge_weight(1 - p, 1 - p_eq, True) * other._sum_trace_abs
+        )
+        new._sum2_trace_abs = (
+            self._merge_weight(p, p_eq, True) * self._sum2_trace_abs +
+            self._merge_weight(1 - p, 1 - p_eq, True) * other._sum2_trace_abs
+        )
         new._sum_trace_rel = (
-            (p / p_default) * self._sum_trace_rel +
-            ((1 - p) / (1 - p_default)) * other._sum_trace_abs
+            self._merge_weight(p, p_eq, False) * self._sum_trace_rel +
+            self._merge_weight(1 - p, 1 - p_eq, False) * other._sum_trace_rel
         )
         new._sum2_trace_rel = (
-            (p / p_default) * self._sum2_trace_rel +
-            ((1 - p) / (1 - p_default)) * other._sum2_trace_abs
+            self._merge_weight(p, p_eq, False) * self._sum2_trace_rel +
+            self._merge_weight(1 - p, 1 - p_eq, False) * other._sum2_trace_rel
         )
         new._compute_avg_trace()
 
