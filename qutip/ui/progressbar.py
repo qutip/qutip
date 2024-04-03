@@ -44,7 +44,7 @@ class BaseProgressBar(object):
         return "%6.2fs" % (time.time() - self.t_start)
 
     def time_remaining_est(self, p):
-        if p > 0.0:
+        if 100 >= p > 0.0:
             t_r_est = (time.time() - self.t_start) * (100.0 - p) / p
         else:
             t_r_est = 0
