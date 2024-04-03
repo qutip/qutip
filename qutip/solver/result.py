@@ -657,8 +657,7 @@ class MultiTrajResult(_BaseResult):
         Return the approximate number of trajectories needed to have this
         error within the tolerance fot all e_ops and times.
         """
-        # TODO update this function for weighted trajectories
-        if self.num_trajectories <= 1:
+        if self._num_rel_trajectories <= 1:
             return np.inf
         avg, avg2 = self._average_computer()
         target = np.array(
@@ -670,9 +669,9 @@ class MultiTrajResult(_BaseResult):
         target_ntraj = np.max((avg2 - abs(avg) ** 2) / target**2 + 1)
 
         self._estimated_ntraj = min(target_ntraj, self._target_ntraj)
-        if (self._estimated_ntraj - self.num_trajectories) <= 0:
+        if (self._estimated_ntraj - self._num_rel_trajectories) <= 0:
             self.stats["end_condition"] = "target tolerance reached"
-        return self._estimated_ntraj - self.num_trajectories
+        return self._estimated_ntraj - self._num_rel_trajectories
 
     def _post_init(self):
         self._target_ntraj = None
