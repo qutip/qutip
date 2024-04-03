@@ -414,7 +414,7 @@ def _targets_to_list(targets, oper=None, N=None):
     return targets
 
 
-def expand_operator(oper, dims, targets):
+def expand_operator(oper, dims, targets, dtype=None):
     """
     Expand an operator to one that acts on a system with desired dimensions.
     e.g.
