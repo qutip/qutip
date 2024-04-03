@@ -255,3 +255,10 @@ class Test_expand_operator:
             test = expand_operator(base_test, dims=dimensions, targets=targets)
             assert test.dims == expected.dims
             np.testing.assert_allclose(test.full(), expected.full())
+
+    def test_dtype(self):
+        expanded_qobj = expand_operator(qutip.gates.cnot(), dims=[2, 2, 2]).data
+        assert isinstance(expanded_qobj, qutip.data.CSR)
+        expanded_qobj = expand_operator(
+            qutip.gates.cnot(), dims=[2, 2, 2], dtype="dense").data
+        assert isinstance(expanded_qobj, qutip.data.Dense)
