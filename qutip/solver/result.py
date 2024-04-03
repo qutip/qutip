@@ -666,7 +666,25 @@ class MultiTrajResult(_BaseResult):
                 for mean, (atol, rtol) in zip(avg, self._target_tols)
             ]
         )
-        target_ntraj = np.max((avg2 - abs(avg) ** 2) / target**2 + 1)
+
+        one = np.array(1)
+        if self._num_rel_trajectories < self.num_trajectories:
+            # We only include traj. without abs. weights in this calculation.
+            # Since there are traj. with abs. weights., the weights don't add
+            # up to one. We have to consider that as follows:
+            #   <(x - <x>)^2> / <1> = <x^2> / <1> - <x>^2 / <1>^2
+            # and "<1>" is one minus the sum of all absolute weights
+            if self._weight_info:
+                for weight, isabs in self._weight_info:
+                    if isabs:
+                        one = one - weight
+            else:
+                for traj in self.trajectories:
+                    if traj.has_absolute_weight:
+                        one = one - traj.total_weight
+
+        target_ntraj = np.max((avg2 / one - (abs(avg) ** 2) / (one ** 2)) /
+                              target**2 + 1)
 
         self._estimated_ntraj = min(target_ntraj, self._target_ntraj)
         if (self._estimated_ntraj - self._num_rel_trajectories) <= 0:
@@ -1473,10 +1491,10 @@ class NmmcResult(McResult):
 
     def _add_first_traj(self, trajectory):
         super()._add_first_traj(trajectory)
-        self._sum_trace_abs = np.zeros_like(trajectory.times)
-        self._sum_trace_rel = np.zeros_like(trajectory.times)
-        self._sum2_trace_abs = np.zeros_like(trajectory.times)
-        self._sum2_trace_rel = np.zeros_like(trajectory.times)
+        self._sum_trace_abs = np.zeros_like(trajectory.trace)
+        self._sum_trace_rel = np.zeros_like(trajectory.trace)
+        self._sum2_trace_abs = np.zeros_like(trajectory.trace)
+        self._sum2_trace_rel = np.zeros_like(trajectory.trace)
 
     def _add_trace(self, trajectory):
         if trajectory.has_absolute_weight:
@@ -1491,10 +1509,12 @@ class NmmcResult(McResult):
             self.runs_trace.append(trajectory.trace)
 
     def _compute_avg_trace(self):
-        avg = (self._sum_trace_abs +
-               self._sum_trace_rel / self._num_rel_trajectories)
-        avg2 = (self._sum2_trace_abs +
-                self._sum2_trace_rel / self._num_rel_trajectories)
+        avg = self._sum_trace_abs
+        if self._num_rel_trajectories > 0:
+            avg = avg + self._sum_trace_rel / self._num_rel_trajectories
+        avg2 = self._sum2_trace_abs
+        if self._num_rel_trajectories > 0:
+            avg2 = avg2 + self._sum2_trace_rel / self._num_rel_trajectories
 
         self.average_trace = avg
         self.std_trace = np.sqrt(np.abs(avg2 - np.abs(avg) ** 2))
