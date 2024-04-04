@@ -446,6 +446,10 @@ class TestMultiTrajResult:
 
         merged_res = m_res1 + m_res2
         assert merged_res.num_trajectories == 40
+        assert len(merged_res.seeds) == 40
+        assert len(merged_res.times) == 10
+        assert len(merged_res.e_ops) == 1
+        self._check_types(merged_res)
         np.testing.assert_allclose(merged_res.average_expect[0],
                                    np.arange(10), rtol=0.1)
         np.testing.assert_allclose(
@@ -455,3 +459,115 @@ class TestMultiTrajResult:
         )
         assert bool(merged_res.trajectories) == keep_runs_results
         assert merged_res.stats["run time"] == 3
+
+    @pytest.fixture(scope='session')
+    def fix_seed(self):
+        np.random.seed(1)
+
+    def _random_ensemble(self, abs_weights=True, collapse=False, trace=False,
+                         time_dep_weights=False, cls=MultiTrajResult):
+        dim = 10
+        ntraj = 10
+        tlist = [1, 2, 3]
+
+        opt = fill_options(
+            keep_runs_results=False, store_states=True, store_final_state=True
+        )
+        res = cls([qutip.num(dim)], opt, stats={"run time": 0,
+                                                "num_collapse": 2})
+
+        for _ in range(ntraj):
+            traj = TrajectoryResult(res._raw_ops, res.options)
+            seeds = np.random.randint(10_000, size=len(tlist))
+            for t, seed in zip(tlist, seeds):
+                random_state = qutip.rand_ket(dim, seed=seed)
+                traj.add(t, random_state)
+
+            if time_dep_weights and np.random.randint(2):
+                weights = np.random.rand(len(tlist))
+            else:
+                weights = np.random.rand()
+            if abs_weights and np.random.randint(2):
+                traj.add_absolute_weight(weights)
+            else:
+                traj.add_relative_weight(weights)
+
+            if collapse:
+                traj.collapse = []
+                for _ in range(np.random.randint(5)):
+                    traj.collapse.append(
+                        (np.random.uniform(tlist[0], tlist[-1]),
+                         np.random.randint(2)))
+            if trace:
+                traj.trace = np.random.rand(len(tlist))
+            res.add((0, traj))
+
+        return res
+
+    @pytest.mark.usefixtures('fix_seed')
+    @pytest.mark.parametrize('abs_weights1', [True, False])
+    @pytest.mark.parametrize('abs_weights2', [True, False])
+    @pytest.mark.parametrize('p', [0, 0.1, 1, None])
+    def test_merge_weights(self, abs_weights1, abs_weights2, p):
+        ensemble1 = self._random_ensemble(abs_weights1)
+        ensemble2 = self._random_ensemble(abs_weights2)
+        merged = ensemble1.merge(ensemble2, p=p)
+
+        if p is None:
+            p = ensemble1._num_rel_trajectories / (
+                ensemble1._num_rel_trajectories +
+                ensemble2._num_rel_trajectories
+            )
+
+        np.testing.assert_almost_equal(
+            merged.expect[0],
+            p * ensemble1.expect[0] + (1 - p) * ensemble2.expect[0]
+        )
+
+        assert merged.final_state == (
+            p * ensemble1.final_state + (1 - p) * ensemble2.final_state
+        )
+
+        for state1, state2, state in zip(
+                ensemble1.states, ensemble2.states, merged.states):
+            assert state == p * state1 + (1 - p) * state2
+
+    @pytest.mark.usefixtures('fix_seed')
+    @pytest.mark.parametrize('p', [0, 0.1, 1, None])
+    def test_merge_mcresult(self, p):
+        ensemble1 = self._random_ensemble(collapse=True,
+                                          time_dep_weights=False, cls=McResult)
+        ensemble2 = self._random_ensemble(collapse=True,
+                                          time_dep_weights=False, cls=McResult)
+        merged = ensemble1.merge(ensemble2, p=p)
+
+        if p is None:
+            p = ensemble1._num_rel_trajectories / (
+                ensemble1._num_rel_trajectories +
+                ensemble2._num_rel_trajectories
+            )
+
+        assert merged.num_trajectories == len(merged.collapse)
+
+        for c1, c2, c in zip(ensemble1.photocurrent,
+                             ensemble2.photocurrent,
+                             merged.photocurrent):
+            np.testing.assert_almost_equal(c, p * c1 + (1 - p) * c2)
+
+    @pytest.mark.usefixtures('fix_seed')
+    @pytest.mark.parametrize('p', [0, 0.1, 1, None])
+    def test_merge_nmmcresult(self, p):
+        ensemble1 = self._random_ensemble(
+            collapse=True, trace=True, time_dep_weights=True, cls=NmmcResult)
+        ensemble2 = self._random_ensemble(
+            collapse=True, trace=True, time_dep_weights=True, cls=NmmcResult)
+        merged = ensemble1.merge(ensemble2, p=p)
+
+        if p is None:
+            p = ensemble1._num_rel_trajectories / (
+                ensemble1._num_rel_trajectories +
+                ensemble2._num_rel_trajectories
+            )
+
+        np.testing.assert_almost_equal(
+            merged.trace, p * ensemble1.trace + (1 - p) * ensemble2.trace)

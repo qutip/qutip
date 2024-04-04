@@ -1086,13 +1086,14 @@ class MultiTrajResult(_BaseResult):
 
         result = []
         for traj in self.trajectories:
-            if (mweight := self._merge_weight(p, p_equal, traj.isabs)) != 1:
+            if (mweight := self._merge_weight(
+                    p, p_equal, traj.has_absolute_weight)) != 1:
                 traj = copy(traj)
                 traj.add_relative_weight(mweight)
             result.append(traj)
         for traj in other.trajectories:
             if (mweight := self._merge_weight(
-                    1 - p, 1 - p_equal, traj.isabs)) != 1:
+                    1 - p, 1 - p_equal, traj.has_absolute_weight)) != 1:
                 traj = copy(traj)
                 traj.add_relative_weight(mweight)
             result.append(traj)
