@@ -437,12 +437,14 @@ def expand_operator(oper, dims, targets, dtype=None):
     targets : int or list of int
         The indices of subspace that are acted on.
     dtype : str, optional
-        Data type of the output `Qobj`.
+        Data type of the output :class:`.Qobj`. By default it uses the data type
+        specified in settings. If no data type is specified in settings
+        it uses the ``CSR`` data type.
 
     Returns
     -------
     expanded_oper : :class:`.Qobj`
-        The expanded operator acting on a system with desired dimension.
+        The expanded operator acting on a system with the desired dimension.
     """
     from .operators import identity
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
