@@ -510,7 +510,6 @@ class MultiTrajResult(_BaseResult):
         self.trajectories = []
         self.num_trajectories = 0
         self.seeds = []
-        self._weight_info = []
 
         self.average_e_data = {}
         self.std_e_data = {}
@@ -530,6 +529,10 @@ class MultiTrajResult(_BaseResult):
         self._sum_abs = None
         # Number of trajectories without specified absolute weight
         self._num_rel_trajectories = 0
+        # Needed for merging results
+        self._weight_info = []
+        # Needed for target tolerance computation
+        self._total_abs_weight = np.array(0)
 
         self._post_init(**kw)
 
@@ -559,8 +562,13 @@ class MultiTrajResult(_BaseResult):
         self.trajectories.append(trajectory)
 
     def _store_weight_info(self, trajectory):
-        self._weight_info.append(
-            (trajectory.total_weight, trajectory.has_absolute_weight))
+        if trajectory.has_absolute_weight:
+            self._total_abs_weight = (
+                self._total_abs_weight + trajectory.total_weight)
+        if len(self.trajectories) == 0:
+            # store weight info only if trajectories are not stored
+            self._weight_info.append(
+                (trajectory.total_weight, trajectory.has_absolute_weight))
 
     def _reduce_states(self, trajectory):
         if trajectory.has_absolute_weight:
@@ -674,14 +682,7 @@ class MultiTrajResult(_BaseResult):
             # up to one. We have to consider that as follows:
             #   <(x - <x>)^2> / <1> = <x^2> / <1> - <x>^2 / <1>^2
             # and "<1>" is one minus the sum of all absolute weights
-            if self._weight_info:
-                for weight, isabs in self._weight_info:
-                    if isabs:
-                        one = one - weight
-            else:
-                for traj in self.trajectories:
-                    if traj.has_absolute_weight:
-                        one = one - traj.total_weight
+            one = one - self._total_abs_weight
 
         target_ntraj = np.max((avg2 / one - (abs(avg) ** 2) / (one ** 2)) /
                               target**2 + 1)
@@ -700,14 +701,13 @@ class MultiTrajResult(_BaseResult):
         store_trajectory = self.options["keep_runs_results"]
         if store_trajectory:
             self.add_processor(self._store_trajectory)
-        else:
-            self.add_processor(self._store_weight_info)
         if self._store_average_density_matrices:
             self.add_processor(self._reduce_states)
         if self._store_final_density_matrix:
             self.add_processor(self._reduce_final_state)
         if self._raw_ops:
             self.add_processor(self._reduce_expect)
+        self.add_processor(self._store_weight_info)
 
         self.stats["end_condition"] = "unknown"
 
