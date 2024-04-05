@@ -6,6 +6,21 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 4.7.6 (2024-04-05)
+========================
+
+Bug Fixes
+---------
+
+- Increase countstat stability. (#2323)
+
+
+Miscellaneous
+-------------
+
+- Exclude scipy 1.13 from in the requirements (#2383)
+
+
 QuTiP 4.7.5 (2024-01-29)
 ========================
 
