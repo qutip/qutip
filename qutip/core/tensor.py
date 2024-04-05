@@ -17,6 +17,7 @@ from .dimensions import (
     dims_idxs_to_tensor_idxs
 )
 from . import data as _data
+from .. import settings
 
 
 class _reverse_partial_tensor:
@@ -413,7 +414,7 @@ def _targets_to_list(targets, oper=None, N=None):
     return targets
 
 
-def expand_operator(oper, dims, targets):
+def expand_operator(oper, dims, targets, dtype=None):
     """
     Expand an operator to one that acts on a system with desired dimensions.
     e.g.
@@ -435,13 +436,19 @@ def expand_operator(oper, dims, targets):
         E.g ``[2, 3, 2, 3, 4]``.
     targets : int or list of int
         The indices of subspace that are acted on.
+    dtype : str, optional
+        Data type of the output :class:`.Qobj`. By default it uses the data
+        type specified in settings. If no data type is specified
+        in settings it uses the ``CSR`` data type.
 
     Returns
     -------
     expanded_oper : :class:`.Qobj`
-        The expanded operator acting on a system with desired dimension.
+        The expanded operator acting on a system with the desired dimension.
     """
     from .operators import identity
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    oper = oper.to(dtype)
     N = len(dims)
     targets = _targets_to_list(targets, oper=oper, N=N)
     _check_oper_dims(oper, dims=dims, targets=targets)
