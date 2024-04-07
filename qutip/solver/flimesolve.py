@@ -23,7 +23,7 @@ from ..ui.progressbar import progress_bars
 from qutip.solver.floquet import fsesolve, FloquetBasis
 
 
-def _floquet_rate_matrix(floquet_basis, Nt, c_ops, c_op_rates, time_sense=0):
+def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
     """
     Parameters
     ----------
@@ -88,20 +88,14 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, c_op_rates, time_sense=0):
                 mask[0] = delta_shift == 0
                 if not np.any(mask):
                     continue
-                rate_products = (
-                    np.multiply.outer(
-                        c_op_Fourier_amplitudes_list[l],
-                        np.conj(c_op_Fourier_amplitudes_list)[k],
-                    )
-                    * c_op_rates[cdx]
+                rate_products = np.multiply.outer(
+                    c_op_Fourier_amplitudes_list[l],
+                    np.conj(c_op_Fourier_amplitudes_list)[k],
                 )
             else:
-                rate_products = (
-                    np.multiply.outer(
-                        c_op_Fourier_amplitudes_list[l],
-                        np.conj(c_op_Fourier_amplitudes_list[k]),
-                    )
-                    * c_op_rates[cdx]
+                rate_products = np.multiply.outer(
+                    c_op_Fourier_amplitudes_list[l],
+                    np.conj(c_op_Fourier_amplitudes_list[k]),
                 )
             included_deltas = abs(delta_shift * omega) <= abs(
                 rate_products * time_sense
@@ -146,7 +140,7 @@ def flimesolve(
     e_ops=None,
     args=None,
     time_sense=0,
-    options=None,
+    options={},
 ):
     """
     Parameters
@@ -257,7 +251,7 @@ def flimesolve(
                     dt = tlist[1] - tlist[0]
                     tlist_zeroed = tlist - tlist[0]
                     Nt_finder = abs(tlist_zeroed + dt - floquet_basis.T)
-                    NtNt = list(np.where(Nt_finder == np.amin(Nt_finder)))[0][0] + 1
+                    Nt = list(np.where(Nt_finder == np.amin(Nt_finder)))[0][0] + 1
             else:
                 Nt = 2**4
     options["Nt"] = Nt
@@ -403,7 +397,7 @@ class FLiMESolver(MESolver):
         "store_states": None,
         "normalize_output": True,
         "method": "adams",
-        "store_floquet_states": True,
+        "store_floquet_states": False,
         "Nt": 2**4,
     }
 
@@ -431,16 +425,8 @@ class FLiMESolver(MESolver):
 
         self.Hdim = np.shape(self.floquet_basis.e_quasi)[0]
 
-        c_op_list = []
-        c_op_rate_list = []
-        for c_op, rate in c_ops:
-            if not isinstance(c_op, Qobj):
-                raise TypeError("c_ops must be type Qobj")
-            c_op_list.append(c_op)
-            c_op_rate_list.append(rate**2)
-
         self._num_collapse = len(c_ops)
-        if not all(isinstance(c_op, Qobj) for c_op in c_op_list):
+        if not all(isinstance(c_op, Qobj) for c_op in c_ops):
             raise TypeError("c_ops must be type Qobj")
 
         self.dims = len(self.floquet_basis.e_quasi)
@@ -448,7 +434,7 @@ class FLiMESolver(MESolver):
         self.time_sense = time_sense
 
         RateDic = _floquet_rate_matrix(
-            floquet_basis, self.Nt, c_op_list, c_op_rate_list, time_sense=time_sense
+            floquet_basis, self.Nt, c_ops, time_sense=time_sense
         )
 
         self.rhs = self._create_rhs(RateDic)
