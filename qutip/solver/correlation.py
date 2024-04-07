@@ -435,7 +435,6 @@ def _make_solver(H, c_ops, args, options, solver):
         solver_instance = FLiMESolver(
             floquet_basis,
             c_ops,
-            args,
             time_sense=time_sense,
             options=options,
         )
