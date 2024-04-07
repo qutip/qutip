@@ -123,7 +123,7 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
     # Turning the Rate Matrix into a super operator
     dims = [floquet_basis.U(0).dims] * 2
     total_R_tensor = {
-        key: Qobj(RateMat, copy=False)
+        key: Qobj(RateMat, dims=dims, copy=False)
         for key, RateMat in total_R_tensor.items()
     }
 
@@ -460,8 +460,6 @@ class FLiMESolver(MESolver):
             key: Qobj(
                 rate_matrix_dictionary[key],
                 dims=[self.floquet_basis.U(0).dims, self.floquet_basis.U(0).dims],
-                type="super",
-                superrep="super",
                 copy=False,
             ).to("csr")
             for key in rate_matrix_dictionary
@@ -634,7 +632,6 @@ class FLiMESolver(MESolver):
             Qobj(
                 _data.Dense(state),
                 dims=[self.floquet_basis.U(0).dims[0], self.floquet_basis.U(0).dims[0]],
-                type="oper",
                 copy=False,
             )
             for state in sols_comp_arr
