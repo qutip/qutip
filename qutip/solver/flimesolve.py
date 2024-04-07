@@ -123,7 +123,7 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
     # Turning the Rate Matrix into a super operator
     dims = [floquet_basis.U(0).dims] * 2
     total_R_tensor = {
-        key: Qobj(RateMat, dims=dims, type="super", superrep="super", copy=False)
+        key: Qobj(RateMat, copy=False)
         for key, RateMat in total_R_tensor.items()
     }
 
