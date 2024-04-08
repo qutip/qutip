@@ -233,7 +233,6 @@ def _steadystate_direct(A, weight, **kw):
         else:
             warn("Only sparse solver use preconditioners.", RuntimeWarning)
 
-
     method = kw.pop("method", None)
     steadystate = _data.solve(L, b, method, options=kw)
 
@@ -243,7 +242,7 @@ def _steadystate_direct(A, weight, **kw):
     rho_ss = _data.column_unstack(steadystate, n)
     rho_ss = _data.add(rho_ss, rho_ss.adjoint()) * 0.5
 
-    return Qobj(rho_ss, dims=A.dims[0], isherm=True)
+    return Qobj(rho_ss, dims=A._dims[0].oper, isherm=True)
 
 
 def _steadystate_eigen(L, **kw):
@@ -258,9 +257,12 @@ def _steadystate_eigen(L, **kw):
 
 
 def _steadystate_svd(L, **kw):
+    N = L.shape[0]
+    n = int(N**0.5)
     u, s, vh = _data.svd(L.data, True)
-    vec = Qobj(_data.split_columns(vh.adjoint())[-1], dims=[L.dims[0],[1]])
-    rho = vector_to_operator(vec)
+    vec = _data.split_columns(vh.adjoint())[-1]
+    rho = _data.column_unstack(vec, n)
+    rho = Qobj(rho, dims=L._dims[0].oper, isherm=True)
     return rho / rho.tr()
 
 
@@ -305,7 +307,7 @@ def _steadystate_power(A, **kw):
     if use_rcm:
         y = _reverse_rcm(y, perm)
 
-    rho_ss = Qobj(_data.column_unstack(y, N**0.5), dims=A.dims[0])
+    rho_ss = Qobj(_data.column_unstack(y, N**0.5), dims=A._dims[0].oper)
     rho_ss = rho_ss + rho_ss.dag()
     rho_ss = rho_ss / rho_ss.tr()
     rho_ss.isherm = True

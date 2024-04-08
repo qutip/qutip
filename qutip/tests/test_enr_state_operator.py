@@ -152,3 +152,40 @@ def test_mesolve_ENR():
 
     np.testing.assert_allclose(result_JC.expect[0],
                                result_enr.expect[0], atol=1e-2)
+
+
+def test_steadystate_ENR():
+    # Ensure ENR states work with steadystate functions
+    # We compare the output to an exact truncation of the
+    # single-excitation Jaynes-Cummings model
+    eps = 2 * np.pi
+    omega_c = 2 * np.pi
+    g = 0.1 * omega_c
+    gam = 0.01 * omega_c
+    N_cut = 2
+
+    sz = qutip.sigmaz() & qutip.qeye(N_cut)
+    sm = qutip.destroy(2).dag() & qutip.qeye(N_cut)
+    a = qutip.qeye(2) & qutip.destroy(N_cut)
+    H_JC = (0.5 * eps * sz + omega_c * a.dag()*a +
+            g * (a * sm.dag() + a.dag() * sm))
+    c_ops = [np.sqrt(gam) * a]
+
+    result_JC = qutip.steadystate(H_JC, c_ops)
+    exp_sz_JC = qutip.expect(sz, result_JC)
+
+    N_exc = 1
+    dims = [2, N_cut]
+    d = qutip.enr_destroy(dims, N_exc)
+    sz = 2*d[0].dag()*d[0]-1
+    b = d[0]
+    a = d[1]
+    H_enr = (eps * b.dag()*b + omega_c * a.dag() * a +
+             g * (b.dag() * a + a.dag() * b))
+    c_ops = [np.sqrt(gam) * a]
+
+    result_enr = qutip.steadystate(H_enr, c_ops)
+    exp_sz_enr = qutip.expect(sz, result_enr)
+
+    np.testing.assert_allclose(exp_sz_JC,
+                               exp_sz_enr, atol=1e-2)
