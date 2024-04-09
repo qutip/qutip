@@ -12,14 +12,10 @@ __all__ = [
     'tunneling', 'qft', 'qzero_like', 'qeye_like', 'swap',
 ]
 
-import numbers
-
 import numpy as np
-import scipy.sparse
-
 from . import data as _data
 from .qobj import Qobj
-from .dimensions import flatten, Space
+from .dimensions import Space
 from .. import settings
 
 
@@ -64,8 +60,16 @@ shape = [4, 4], type = oper, isherm = False
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
     offsets = [0] if offsets is None else offsets
+    if not isinstance(offsets, list):
+        offsets = [offsets]
+    if len(offsets) == 1 and offsets[0] != 0:
+        isherm = False
+    elif offsets == [0]:
+        isherm = np.all(np.imag(diagonals) <= settings.core["atol"])
+    else:
+        isherm = None
     data = _data.diag[dtype](diagonals, offsets, shape)
-    return Qobj(data, dims=dims, copy=False)
+    return Qobj(data, dims=dims, copy=False, isherm=isherm)
 
 
 def jmat(j, which=None, *, dtype=None):
@@ -305,7 +309,7 @@ _SIGMAY = 2 * jmat(0.5, 'y')
 _SIGMAZ = 2 * jmat(0.5, 'z')
 
 
-def sigmap():
+def sigmap(*, dtype=None):
     """Creation operator for Pauli spins.
 
     Examples
@@ -318,10 +322,11 @@ shape = [2, 2], type = oper, isHerm = False
      [ 0.  0.]]
 
     """
-    return _SIGMAP.copy()
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    return _SIGMAP.to(dtype, True)
 
 
-def sigmam():
+def sigmam(*, dtype=None):
     """Annihilation operator for Pauli spins.
 
     Examples
@@ -334,10 +339,11 @@ shape = [2, 2], type = oper, isHerm = False
      [ 1.  0.]]
 
     """
-    return _SIGMAM.copy()
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    return _SIGMAM.to(dtype, True)
 
 
-def sigmax():
+def sigmax(*, dtype=None):
     """Pauli spin 1/2 sigma-x operator
 
     Examples
@@ -350,10 +356,11 @@ shape = [2, 2], type = oper, isHerm = False
      [ 1.  0.]]
 
     """
-    return _SIGMAX.copy()
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    return _SIGMAX.to(dtype, True)
 
 
-def sigmay():
+def sigmay(*, dtype=None):
     """Pauli spin 1/2 sigma-y operator.
 
     Examples
@@ -366,10 +373,11 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0.+1.j  0.+0.j]]
 
     """
-    return _SIGMAY.copy()
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    return _SIGMAY.to(dtype, True)
 
 
-def sigmaz():
+def sigmaz(*, dtype=None):
     """Pauli spin 1/2 sigma-z operator.
 
     Examples
@@ -382,7 +390,8 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0. -1.]]
 
     """
-    return _SIGMAZ.copy()
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    return _SIGMAZ.to(dtype, True)
 
 
 def destroy(N, offset=0, *, dtype=None):
@@ -891,7 +900,9 @@ shape = [4, 4], type = oper, isHerm = False
     """
     asq = destroy(N, offset=offset, dtype=dtype) ** 2
     op = 0.5*np.conj(z)*asq - 0.5*z*asq.dag()
-    return op.expm(dtype=dtype)
+    out = op.expm(dtype=dtype)
+    out.isherm = (N == 2) or (z == 0.)
+    return out
 
 
 def squeezing(a1, a2, z):
@@ -961,7 +972,9 @@ shape = [4, 4], type = oper, isHerm = False
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
     a = destroy(N, offset=offset)
-    return (alpha * a.dag() - np.conj(alpha) * a).expm(dtype=dtype)
+    out = (alpha * a.dag() - np.conj(alpha) * a).expm(dtype=dtype)
+    out.isherm = (alpha == 0.)
+    return out
 
 
 def commutator(A, B, kind="normal"):
@@ -1049,7 +1062,7 @@ def phase(N, phi0=0, *, dtype=None):
     states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1j * n * kk)
                        for kk in phim])
     ops = np.sum([np.outer(st, st.conj()) for st in states], axis=0)
-    return Qobj(ops, dims=[[N], [N]], copy=False).to(dtype)
+    return Qobj(ops, isherm=True, dims=[[N], [N]], copy=False).to(dtype)
 
 
 def charge(Nmax, Nmin=None, frac=1, *, dtype=None):
@@ -1147,7 +1160,7 @@ def qft(dimensions, *, dtype="dense"):
     arr = np.arange(N2)
     L, M = np.meshgrid(arr, arr)
     data = np.exp(phase * (L * M)) / np.sqrt(N2)
-    return Qobj(data, dims=[dimensions]*2).to(dtype)
+    return Qobj(data, isherm=False, dims=[dimensions]*2).to(dtype)
 
 
 def swap(N, M, *, dtype=None):
@@ -1174,5 +1187,6 @@ def swap(N, M, *, dtype=None):
     cols = np.ravel(M * np.arange(N)[None, :] + np.arange(M)[:, None])
     return Qobj(
         _data.CSR((data, cols, rows), (N * M, N * M)),
-        dims=[[M, N], [N, M]]
+        dims=[[M, N], [N, M]],
+        isherm=(N == M),
     ).to(dtype)

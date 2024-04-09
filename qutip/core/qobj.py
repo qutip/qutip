@@ -358,7 +358,7 @@ class Qobj:
                              f"{self._dims.shape} vs {data.shape}")
         self._data = data
 
-    def to(self, data_type):
+    def to(self, data_type, copy=False):
         """
         Convert the underlying data store of this `Qobj` into a different
         storage representation.
@@ -381,6 +381,9 @@ class Qobj:
             The data-layer type that the data of this :class:`Qobj` should be
             converted to.
 
+        copy : Bool
+            Whether to return a copy if the data is not changed.
+
         Returns
         -------
         Qobj
@@ -391,7 +394,9 @@ class Qobj:
             converter = _data.to[data_type]
         except (KeyError, TypeError):
             raise ValueError("Unknown conversion type: " + str(data_type))
-        if type(self._data) is data_type:
+        if type(self._data) is data_type and copy:
+            return self.copy()
+        elif type(self._data) is data_type:
             return self
         return Qobj(converter(self._data),
                     dims=self._dims,
