@@ -252,11 +252,12 @@ def _check_meta(object, dtype):
         return
     assert isinstance(object.data, dtype)
     assert object._isherm == qutip.data.isherm(object.data)
+    assert object._isunitary == object._calculate_isunitary()
 
 
 # random object accept `str` and base.Data
 # Obtain all valid dtype from `to`
-dtype_names = list(qutip.data.to._str2type.keys()) + list(qutip.data.to.dtypes)
+dtype_names = ["dense", "csr"] + list(qutip.data.to.dtypes)
 @pytest.mark.parametrize('alias', dtype_names,
                          ids=[str(dtype) for dtype in dtype_names])
 @pytest.mark.parametrize(['func', 'args'], [
@@ -286,8 +287,11 @@ dtype_names = list(qutip.data.to._str2type.keys()) + list(qutip.data.to.dtypes)
     (qutip.qutrit_ops, ()),
     (qutip.phase, (5,)),
     (qutip.charge, (5,)),
+    (qutip.charge, (0.5, -0.5, 2.)),
     (qutip.tunneling, (5,)),
+    (qutip.tunneling, (4, 2)),
     (qutip.qft, (5,)),
+    (qutip.swap, (2, 2)),
     (qutip.swap, (3, 2)),
     (qutip.enr_destroy, ([3, 3, 3], 4)),
     (qutip.enr_identity, ([3, 3, 3], 4)),

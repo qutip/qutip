@@ -192,7 +192,7 @@ def test_metadata(gate_func, args, dtype):
     gate = gate_func(*args, dtype=dtype)
     assert isinstance(gate.data, dtype)
     assert gate._isherm == qutip.data.isherm(gate.data)
-    assert gate.isunitary
+    assert gate._isunitary == gate._calculate_isunitary()
     with qutip.CoreOptions(default_dtype=dtype):
         gate = gate_func(*args)
         assert isinstance(gate.data, dtype)

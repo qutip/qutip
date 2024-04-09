@@ -61,6 +61,7 @@ def cy_gate(*, dtype=None):
         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, -1j], [0, 0, 1j, 0]],
         dims=dims_2_qb,
         isherm=True,
+        isunitary=True,
     ).to(dtype)
 
 
@@ -188,6 +189,7 @@ def rx(phi, *, dtype=None):
             [-1j * np.sin(phi / 2), np.cos(phi / 2)],
         ],
         isherm=(phi % (2 * np.pi) <= settings.core["atol"]),
+        isunitary=True,
     ).to(dtype)
 
 
@@ -216,6 +218,7 @@ def ry(phi, *, dtype=None):
             [np.sin(phi / 2), np.cos(phi / 2)],
         ],
         isherm=(phi % (2 * np.pi) <= settings.core["atol"]),
+        isunitary=True,
     ).to(dtype)
 
 
@@ -257,9 +260,11 @@ def sqrtnot(*, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
-    return Qobj([[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]], isherm=False).to(
-        dtype
-    )
+    return Qobj(
+        [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]],
+        isherm=False,
+        isunitary=True,
+    ).to(dtype)
 
 
 def snot(*, dtype=None):
@@ -278,7 +283,11 @@ def snot(*, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    return Qobj([[1, 1], [1, -1]], isherm=True).to(dtype) / np.sqrt(2.0)
+    return Qobj(
+        [[np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), -np.sqrt(0.5)]],
+        isherm=True,
+        isunitary=True,
+    ).to(dtype)
 
 
 def phasegate(theta, *, dtype=None):
@@ -330,6 +339,7 @@ def qrot(theta, phi, *, dtype=None):
             [-1j * np.exp(1j * phi) * np.sin(theta / 2), np.cos(theta / 2)],
         ],
         isherm=(theta % (2 * np.pi) <= settings.core["atol"]),
+        isunitary=True,
     ).to(dtype)
 
 
@@ -383,6 +393,7 @@ def cnot(*, dtype=None):
         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]],
         dims=dims_2_qb,
         isherm=True,
+        isunitary=True,
     ).to(dtype)
 
 
@@ -431,6 +442,7 @@ def berkeley(*, dtype=None):
         ],
         dims=dims_2_qb,
         isherm=False,
+        isunitary=True,
     ).to(dtype)
 
 
@@ -460,6 +472,7 @@ def swapalpha(alpha, *, dtype=None):
         ],
         dims=dims_2_qb,
         isherm=(phase.imag <= settings.core["atol"]),
+        isunitary=True,
     ).to(dtype)
 
 
@@ -483,6 +496,7 @@ def swap(*, dtype=None):
         [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
         dims=dims_2_qb,
         isherm=True,
+        isunitary=True,
     ).to(dtype)
 
 
@@ -505,6 +519,7 @@ def iswap(*, dtype=None):
         [[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]],
         dims=dims_2_qb,
         isherm=False,
+        isunitary=True,
     ).to(dtype)
 
 
@@ -535,6 +550,7 @@ def sqrtswap(*, dtype=None):
         ),
         dims=dims_2_qb,
         isherm=False,
+        isunitary=True,
     ).to(dtype)
 
 
@@ -564,6 +580,7 @@ def sqrtiswap(*, dtype=None):
         ),
         dims=dims_2_qb,
         isherm=False,
+        isunitary=True,
     ).to(dtype)
 
 
@@ -598,6 +615,7 @@ def molmer_sorensen(theta, *, dtype=None):
         ],
         dims=dims_2_qb,
         isherm=(theta % (2 * np.pi) <= settings.core["atol"]),
+        isunitary=True,
     ).to(dtype)
 
 
@@ -638,6 +656,7 @@ def fredkin(*, dtype=None):
         ],
         dims=dims_3_qb,
         isherm=True,
+        isunitary=True,
     ).to(dtype)
 
 
@@ -670,6 +689,7 @@ def toffoli(*, dtype=None):
         ],
         dims=dims_3_qb,
         isherm=True,
+        isunitary=True,
     ).to(dtype)
 
 
@@ -738,7 +758,7 @@ def hadamard_transform(N=1, *, dtype=None):
         [[(-1) ** _hamming_distance(i & j) for i in range(2**N)] for j in range(2**N)]
     )
 
-    return Qobj(data, dims=[[2] * N, [2] * N], isherm=True).to(dtype)
+    return Qobj(data, dims=[[2] * N, [2] * N], isherm=True, isunitary=True).to(dtype)
 
 
 def _powers(op, N):
@@ -804,4 +824,5 @@ def qubit_clifford_group(*, dtype=None):
     ]
     for gate in gates:
         gate.isherm
+        gate._isunitary = True
     return gates

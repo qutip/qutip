@@ -64,12 +64,15 @@ shape = [4, 4], type = oper, isherm = False
         offsets = [offsets]
     if len(offsets) == 1 and offsets[0] != 0:
         isherm = False
+        isunitary = False
     elif offsets == [0]:
         isherm = np.all(np.imag(diagonals) <= settings.core["atol"])
+        isunitary = np.all(np.abs(diagonals) - 1 <= settings.core["atol"])
     else:
         isherm = None
+        isunitary = None
     data = _data.diag[dtype](diagonals, offsets, shape)
-    return Qobj(data, dims=dims, copy=False, isherm=isherm)
+    return Qobj(data, dims=dims, copy=False, isherm=isherm, isunitary=isunitary)
 
 
 def jmat(j, which=None, *, dtype=None):
@@ -136,8 +139,8 @@ shape = [3, 3], type = oper, isHerm = True
                     isherm=False, isunitary=False, copy=False)
     if which == 'x':
         A = _jplus(j, dtype=dtype)
-        return Qobj(_data.add(A, A.adjoint()), dims=dims,
-                    isherm=True, isunitary=False, copy=False) * 0.5
+        return Qobj(_data.add(A, A.adjoint()) * 0.5, dims=dims,
+                    isherm=True, isunitary=False, copy=False)
     if which == 'y':
         A = _data.mul(_jplus(j, dtype=dtype), -0.5j)
         return Qobj(_data.add(A, A.adjoint()), dims=dims,
@@ -305,8 +308,11 @@ def spin_J_set(j, *, dtype=None):
 _SIGMAP = jmat(0.5, '+')
 _SIGMAM = jmat(0.5, '-')
 _SIGMAX = 2 * jmat(0.5, 'x')
+_SIGMAX._isunitary = True
 _SIGMAY = 2 * jmat(0.5, 'y')
+_SIGMAY._isunitary = True
 _SIGMAZ = 2 * jmat(0.5, 'z')
+_SIGMAZ._isunitary = True
 
 
 def sigmap(*, dtype=None):
@@ -626,6 +632,7 @@ def _f_op(n_sites, site, action, dtype=None):
     opers = [s_z] * site + [operator] + [eye] * (n_sites - site - 1)
     out = tensor(opers).to(dtype)
     out.isherm = False
+    out._isunitary = False
     return out
 
 
@@ -794,6 +801,7 @@ def position(N, offset=0, *, dtype=None):
     a = destroy(N, offset=offset, dtype=dtype)
     position = np.sqrt(0.5) * (a + a.dag())
     position.isherm = True
+    position._isunitary = False
     return position.to(dtype)
 
 
@@ -823,6 +831,7 @@ def momentum(N, offset=0, *, dtype=None):
     a = destroy(N, offset=offset, dtype=dtype)
     momentum = -1j * np.sqrt(0.5) * (a - a.dag())
     momentum.isherm = True
+    momentum._isunitary = False
     return momentum.to(dtype)
 
 
@@ -904,6 +913,7 @@ shape = [4, 4], type = oper, isHerm = False
     op = 0.5*np.conj(z)*asq - 0.5*z*asq.dag()
     out = op.expm(dtype=dtype)
     out.isherm = (N == 2) or (z == 0.)
+    out._isunitary = True
     return out
 
 
@@ -976,6 +986,7 @@ shape = [4, 4], type = oper, isHerm = False
     a = destroy(N, offset=offset)
     out = (alpha * a.dag() - np.conj(alpha) * a).expm(dtype=dtype)
     out.isherm = (alpha == 0.)
+    out._isunitary = True
     return out
 
 
@@ -1022,19 +1033,14 @@ def qutrit_ops(*, dtype=None):
 
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
     out = np.empty((6,), dtype=object)
-    one, two, three = qutrit_basis(dtype=dtype)
-    out[0] = one * one.dag()
-    out[1] = two * two.dag()
-    out[2] = three * three.dag()
-    out[3] = one * two.dag()
-    out[4] = two * three.dag()
-    out[5] = three * one.dag()
-    out[0]._isherm = True
-    out[1]._isherm = True
-    out[2]._isherm = True
-    out[3]._isherm = False
-    out[4]._isherm = False
-    out[5]._isherm = False
+    basis = qutrit_basis(dtype=dtype)
+    for i in range(3):
+        out[i] = basis[i] @ basis[i].dag()
+        out[i].isherm = True
+        out[i]._isunitary = False
+        out[i+3] = basis[i] @ basis[(i+1)%3].dag()
+        out[i+3].isherm = False
+        out[i+3]._isunitary = False
     return out
 
 
@@ -1070,7 +1076,13 @@ def phase(N, phi0=0, *, dtype=None):
     states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1j * n * kk)
                        for kk in phim])
     ops = np.sum([np.outer(st, st.conj()) for st in states], axis=0)
-    return Qobj(ops, isherm=True, dims=[[N], [N]], copy=False).to(dtype)
+    return Qobj(
+        ops,
+        isherm=True,
+        isunitary=False,
+        dims=[[N], [N]],
+        copy=False
+    ).to(dtype)
 
 
 def charge(Nmax, Nmin=None, frac=1, *, dtype=None):
@@ -1108,7 +1120,7 @@ def charge(Nmax, Nmin=None, frac=1, *, dtype=None):
         Nmin = -Nmax
     diag = frac * np.arange(Nmin, Nmax+1, dtype=float)
     out = qdiags(diag, 0, dtype=dtype)
-    out.isherm = True
+    out._isunitary = (len(diag) <= 2) and np.all(np.abs(diag) == 1.)
     return out
 
 
@@ -1137,6 +1149,7 @@ def tunneling(N, m=1, *, dtype=None):
     diags = [np.ones(N-m, dtype=int), np.ones(N-m, dtype=int)]
     T = qdiags(diags, [m, -m], dtype=dtype)
     T.isherm = True
+    T._isunitary = (m * 2 == N)
     return T
 
 
@@ -1163,13 +1176,14 @@ def qft(dimensions, *, dtype=None):
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
     dimensions = Space(dimensions)
+    dims = [dimensions]*2
     N2 = dimensions.size
 
     phase = 2.0j * np.pi / N2
     arr = np.arange(N2)
     L, M = np.meshgrid(arr, arr)
     data = np.exp(phase * (L * M)) / np.sqrt(N2)
-    return Qobj(data, isherm=False, dims=[dimensions]*2).to(dtype)
+    return Qobj(data, isherm=False, isunitary=True, dims=dims).to(dtype)
 
 
 def swap(N, M, *, dtype=None):
@@ -1198,4 +1212,5 @@ def swap(N, M, *, dtype=None):
         _data.CSR((data, cols, rows), (N * M, N * M)),
         dims=[[M, N], [N, M]],
         isherm=(N == M),
+        isunitary=True,
     ).to(dtype)
