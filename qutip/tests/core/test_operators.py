@@ -256,7 +256,6 @@ def _check_meta(object, dtype):
 
 
 # random object accept `str` and base.Data
-# Obtain all valid dtype from `to`
 dtype_names = ["dense", "csr"] + list(qutip.data.to.dtypes)
 @pytest.mark.parametrize('alias', dtype_names,
                          ids=[str(dtype) for dtype in dtype_names])
