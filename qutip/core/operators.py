@@ -624,7 +624,9 @@ def _f_op(n_sites, site, action, dtype=None):
 
     eye = identity(2, dtype=dtype)
     opers = [s_z] * site + [operator] + [eye] * (n_sites - site - 1)
-    return tensor(opers).to(dtype)
+    out = tensor(opers).to(dtype)
+    out.isherm = False
+    return out
 
 
 def qzero(dimensions, dims_right=None, *, dtype=None):
@@ -1027,6 +1029,12 @@ def qutrit_ops(*, dtype=None):
     out[3] = one * two.dag()
     out[4] = two * three.dag()
     out[5] = three * one.dag()
+    out[0]._isherm = True
+    out[1]._isherm = True
+    out[2]._isherm = True
+    out[3]._isherm = False
+    out[4]._isherm = False
+    out[5]._isherm = False
     return out
 
 
@@ -1132,7 +1140,7 @@ def tunneling(N, m=1, *, dtype=None):
     return T
 
 
-def qft(dimensions, *, dtype="dense"):
+def qft(dimensions, *, dtype=None):
     """
     Quantum Fourier Transform operator.
 
@@ -1153,6 +1161,7 @@ def qft(dimensions, *, dtype="dense"):
         Quantum Fourier transform operator.
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     dimensions = Space(dimensions)
     N2 = dimensions.size
 
