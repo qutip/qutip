@@ -4,7 +4,6 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
 
 from numpy import conj, e, inf, imag, inner, real, sort, sqrt
 from numpy.lib.scimath import log, log2
-from numpy import np
 from .partial_transpose import partial_transpose
 from . import (ptrace, tensor, sigmay, ket2dm,
                expand_operator)
