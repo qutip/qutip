@@ -107,7 +107,7 @@ def test_diagonal_operators(oper_func, diag, offset, args):
 
 
 @pytest.mark.parametrize(['function', 'message'], [
-    (qutip.qeye, "All dimensions must be integers >= 0"),
+    (qutip.qeye, "Dimensions must be integers > 0"),
     (qutip.destroy, "Hilbert space dimension must be integer value"),
     (qutip.create, "Hilbert space dimension must be integer value"),
 ], ids=["qeye", "destroy", "create"])
@@ -125,12 +125,22 @@ def test_diagonal_raise(function, message):
         1,
         [1],
         [1, 1],
+        qutip.dimensions.Space([2, 3, 4]),
     ])
 def test_implicit_tensor_creation(to_test, dimensions):
     implicit = to_test(dimensions)
     if isinstance(dimensions, numbers.Integral):
         dimensions = [dimensions]
+    if isinstance(dimensions, qutip.dimensions.Space):
+        dimensions = dimensions.as_list()
     assert implicit.dims == [dimensions, dimensions]
+
+
+def test_qzero_rectangular():
+    assert qutip.qzero([2, 3], [3, 4]).dims == [[2, 3], [3, 4]]
+    assert qutip.qzero([2], [3]).dims == [[2], [3]]
+    assert qutip.qzero([2, 3], [3]).dims == [[2, 3], [3]]
+    assert qutip.qzero(qutip.dimensions.Space([2, 3]), qutip.dimensions.Space([3])).dims == [[2, 3], [3]]
 
 
 @pytest.mark.parametrize("to_test", [qutip.qzero, qutip.qeye, qutip.identity])
@@ -320,10 +330,19 @@ def test_qeye_like(dims, superrep, dtype):
     expected = qutip.qeye(dims, dtype=dtype)
     expected.superrep = superrep
     assert new == expected
+    assert new.dtype is qutip.data.to.parse(dtype)
 
     opevo = qutip.QobjEvo(op)
     new = qutip.qeye_like(op)
     assert new == expected
+    assert new.dtype is qutip.data.to.parse(dtype)
+
+
+def test_qeye_like_error():
+    with pytest.raises(ValueError) as err:
+        qutip.qeye_like(qutip.basis(3))
+
+    assert "non square matrix" in str(err.value)
 
 
 @pytest.mark.parametrize(["dims", "superrep"], [
@@ -340,10 +359,12 @@ def test_qzero_like(dims, superrep, dtype):
     expected = qutip.qzero(dims, dtype=dtype)
     expected.superrep = superrep
     assert new == expected
+    assert new.dtype is qutip.data.to.parse(dtype)
 
     opevo = qutip.QobjEvo(op)
     new = qutip.qzero_like(op)
     assert new == expected
+    assert new.dtype is qutip.data.to.parse(dtype)
 
 
 @pytest.mark.parametrize('n_sites', [2, 3, 4, 5])
@@ -365,3 +386,15 @@ def test_fcreate_fdestroy(n_sites):
                 assert qutip.commutator(c_0, d_1, 'anti') == zero_tensor
                 assert qutip.commutator(c_1, d_0, 'anti') == zero_tensor
     assert qutip.commutator(identity, c_0) == zero_tensor
+
+@pytest.mark.parametrize(['func', 'args'], [
+    (qutip.qzero, (None,)),
+    (qutip.fock, (None,)),
+    (qutip.fock_dm, (None,)),
+    (qutip.maximally_mixed_dm, ()),
+    (qutip.projection, ([0, 1, 1], [1, 1, 0])),
+    (qutip.zero_ket, ()),
+], ids=_id_func)
+def test_state_space_input(func,  args):
+    dims = qutip.dimensions.Space([2, 2, 2])
+    assert func(dims, *args) == func([2, 2, 2], *args)

@@ -16,7 +16,7 @@ def expect(oper, state):
     Parameters
     ----------
     oper : qobj/array-like
-        A single or a `list` or operators for expectation value.
+        A single or a `list` of operators for expectation value.
 
     state : qobj/array-like
         A single or a `list` of quantum states or density matrices.
@@ -25,8 +25,8 @@ def expect(oper, state):
     -------
     expt : float/complex/array-like
         Expectation value.  ``real`` if ``oper`` is Hermitian, ``complex``
-        otherwise. A (nested) array of expectaction values of state or operator
-        are arrays.
+        otherwise. A (nested) array of expectaction values if ``state`` or
+        ``oper`` are arrays.
 
     Examples
     --------

@@ -3,12 +3,13 @@ __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .sode._noise import PreSetWiener
 from .result import MultiTrajResult, Result, ExpectOp
-from .multitraj import MultiTrajSolver
+from .multitraj import _MultiTrajRHS, MultiTrajSolver
 from .. import Qobj, QobjEvo
+from ..core.dimensions import Dimensions
 import numpy as np
 from functools import partial
 from .solver_base import _solver_deprecation
-from ._feedback import _QobjFeedback, _DataFeedback, _WeinerFeedback
+from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
 from time import time
 
 
@@ -27,7 +28,7 @@ class StochasticTrajResult(Result):
                 self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
                 self.add_processor(self.m_ops[-1]._store)
 
-    def add(self, t, state, noise):
+    def add(self, t, state, noise=None):
         super().add(t, state)
         if noise is not None:
             self.noise.append(noise)
@@ -185,7 +186,7 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("wiener_process")
 
 
-class _StochasticRHS:
+class _StochasticRHS(_MultiTrajRHS):
     """
     In between object to store the stochastic system.
 
@@ -200,7 +201,7 @@ class _StochasticRHS:
     def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
 
         if not isinstance(H, (Qobj, QobjEvo)) or not H.isoper:
-            raise TypeError("The Hamiltonian must be am operator")
+            raise TypeError("The Hamiltonian must be an operator")
         self.H = QobjEvo(H)
 
         if isinstance(sc_ops, (Qobj, QobjEvo)):
@@ -230,8 +231,10 @@ class _StochasticRHS:
 
         if self.issuper and not self.H.issuper:
             self.dims = [self.H.dims, self.H.dims]
+            self._dims = Dimensions([self.H._dims, self.H._dims])
         else:
             self.dims = self.H.dims
+            self._dims = self.H._dims
 
     def __call__(self, options):
         if self.issuper:
@@ -249,14 +252,14 @@ class _StochasticRHS:
             sc_op.arguments(args)
 
     def _register_feedback(self, val):
-        self.H._register_feedback({"wiener_process": val}, "stochatic solver")
+        self.H._register_feedback({"wiener_process": val}, "stochastic solver")
         for c_op in self.c_ops:
             c_op._register_feedback(
-                {"WeinerFeedback": val}, "stochatic solver"
+                {"WienerFeedback": val}, "stochastic solver"
             )
         for sc_op in self.sc_ops:
             sc_op._register_feedback(
-                {"WeinerFeedback": val}, "stochatic solver"
+                {"WienerFeedback": val}, "stochastic solver"
             )
 
 
@@ -518,10 +521,9 @@ class StochasticSolver(MultiTrajSolver):
 
     name = "StochasticSolver"
     _resultclass = StochasticResult
-    _trajectory_resultclass = StochasticTrajResult
     _avail_integrators = {}
-    system = None
     _open = None
+
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -537,20 +539,22 @@ class StochasticSolver(MultiTrajSolver):
         "store_measurement": "",
     }
 
+    def _trajectory_resultclass(self, e_ops, options):
+        return StochasticTrajResult(
+            e_ops,
+            options,
+            m_ops=self.m_ops,
+            dw_factor=self.dW_factors,
+            heterodyne=self.heterodyne,
+        )
+
     def __init__(self, H, sc_ops, heterodyne, *, c_ops=(), options=None):
-        self.options = options
         self._heterodyne = heterodyne
         if self.name == "ssesolve" and c_ops:
             raise ValueError("c_ops are not supported by ssesolve.")
 
         rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
-        self.rhs = rhs
-        self.system = rhs
-        self.options = options
-        self.seed_sequence = np.random.SeedSequence()
-        self._integrator = self._get_integrator()
-        self._state_metadata = {}
-        self.stats = self._initialize_stats()
+        super().__init__(rhs, options=options)
 
         if heterodyne:
             self._m_ops = []
@@ -639,32 +643,10 @@ class StochasticSolver(MultiTrajSolver):
                 )
         self._dW_factors = new_dW_factors
 
-    def _run_inner_traj_loop(self, generator, state, tlist, e_ops):
-        """
-        Run the main loop of a trajectory and return the result.
-        """
-        result = self._trajectory_resultclass(
-            e_ops,
-            self.options,
-            m_ops=self.m_ops,
-            dw_factor=self.dW_factors,
-            heterodyne=self.heterodyne,
-        )
-        self._integrator.set_state(tlist[0], state, generator)
-        state_t = self._restore_state(state, copy=False)
-        result.add(tlist[0], state_t, None)
-        for t in tlist[1:]:
-            t, state, noise = self._integrator.integrate(t, copy=False)
-            state_t = self._restore_state(state, copy=False)
-            result.add(t, state_t, noise)
-        return result
-
-    def _run_one_traj(self, seed, state, tlist, e_ops):
-        """
-        Run one trajectory and return the result.
-        """
-        generator = self._get_generator(seed)
-        return seed, self._run_inner_traj_loop(generator, state, tlist, e_ops)
+    def _integrate_one_traj(self, seed, tlist, result):
+        for t, state, noise in self._integrator.run(tlist):
+            result.add(t, self._restore_state(state, copy=False), noise)
+        return seed, result
 
     def run_from_experiment(
         self, state, tlist, noise, *,
@@ -731,7 +713,10 @@ class StochasticSolver(MultiTrajSolver):
                 old_dt = self._integrator.options["dt"]
                 self._integrator.options["dt"] = dt
             mid_time = time()
-            result = self._run_inner_traj_loop(generator, state0, tlist, e_ops)
+            result = self._initialize_run_one_traj(
+                None, state0, tlist, e_ops, generator=generator
+            )
+            _, result = self._integrate_one_traj(None, tlist, result)
         except Exception as err:
             if old_dt is not None:
                 self._integrator.options["dt"] = old_dt
@@ -817,13 +802,13 @@ class StochasticSolver(MultiTrajSolver):
         MultiTrajSolver.options.fset(self, new_options)
 
     @classmethod
-    def WeinerFeedback(cls, default=None):
+    def WienerFeedback(cls, default=None):
         """
-        Weiner function of the trajectory argument for time dependent systems.
+        Wiener function of the trajectory argument for time dependent systems.
 
         When used as an args:
 
-            ``QobjEvo([op, func], args={"W": SMESolver.WeinerFeedback()})``
+            ``QobjEvo([op, func], args={"W": SMESolver.WienerFeedback()})``
 
         The ``func`` will receive a function as ``W`` that return an array of
         wiener processes values at ``t``. The wiener process for the i-th
@@ -833,7 +818,7 @@ class StochasticSolver(MultiTrajSolver):
 
         .. note::
 
-            WeinerFeedback can't be added to a running solver when updating
+            WienerFeedback can't be added to a running solver when updating
             arguments between steps: ``solver.step(..., args={})``.
 
         Parameters
@@ -843,7 +828,7 @@ class StochasticSolver(MultiTrajSolver):
             When not passed, a function returning ``np.array([0])`` is used.
 
         """
-        return _WeinerFeedback(default)
+        return _WienerFeedback(default)
 
     @classmethod
     def StateFeedback(cls, default=None, raw_data=False):

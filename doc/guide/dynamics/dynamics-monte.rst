@@ -445,6 +445,29 @@ Open Systems
 ``mcsolve`` can be used to study systems which have measurement and dissipative
 interactions with their environment.  This is done by passing a Liouvillian including the
 dissipative interaction to the solver instead of a Hamiltonian.
+In this case the effective Liouvillian becomes:
+
+.. math::
+    :label: Leff
+
+    L_{\rm eff}\rho = L_{\rm sys}\rho -\frac{1}{2}\sum_{i}\left( C^{+}_{n}C_{n}\rho + \rho C^{+}_{n}C_{n}\right),
+
+With the collapse probability becoming:
+
+.. math::
+    :label: L_jump
+
+    \delta p =\delta t \sum_{n}\mathrm{tr}\left(\rho(t)C^{+}_{n}C_{n}\right),
+
+And a jump with the collapse operator ``n`` changing the state as:
+
+.. math::
+    :label: L_project
+
+    \rho(t+\delta t) = C_{n} \rho(t) C^{+}_{n} / \mathrm{tr}\left( C_{n} \rho(t) C^{+}_{n} \right),
+
+
+We can redo the previous example for a situation where only half the emitted photons are detected.
 
 .. plot::
     :context: close-figs
@@ -454,8 +477,8 @@ dissipative interaction to the solver instead of a Hamiltonian.
     a  = tensor(qeye(2), destroy(10))
     sm = tensor(destroy(2), qeye(10))
     H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
-    L = liouvillian(H, [0.01 * sm, np.sqrt(0.1) * a])
-    data = mcsolve(L, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm])
+    L = liouvillian(H, [np.sqrt(0.05) * a])
+    data = mcsolve(L, psi0, times, [np.sqrt(0.05) * a], e_ops=[a.dag() * a, sm.dag() * sm])
 
     plt.figure()
     plt.plot((times[:-1] + times[1:])/2, data.photocurrent[0])

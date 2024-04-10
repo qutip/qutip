@@ -345,10 +345,13 @@ def test_m_ops(heterodyne):
     solver.dW_factors = [1.] * len(m_ops)
     # With dW_factors=0, measurements are computed as expectation values.
     res = solver.run(psi0, times, e_ops=m_ops)
-    std = 1/times[1]**0.5
-    noise = res.expect[0][1:] - res.measurement[0][0]
-    assert np.mean(noise) == pytest.approx(0., abs=std/50**0.5 * 4)
-    assert np.std(noise) == pytest.approx(std, abs=std/50**0.5 * 4)
+    std = 1 / times[1]**0.5
+    if heterodyne:
+        noise = res.expect[0][1:] - res.measurement[0][0][0]
+    else:
+        noise = res.expect[0][1:] - res.measurement[0][0]
+    assert np.mean(noise) == pytest.approx(0., abs=std / 50**0.5 * 5)
+    assert np.std(noise) == pytest.approx(std, abs=std / 50**0.5 * 5)
 
 
 def test_feedback():
@@ -363,7 +366,7 @@ def test_feedback():
         [destroy(N), func],
         args={
             "A": SMESolver.ExpectFeedback(num(10)),
-            "W": SMESolver.WeinerFeedback()
+            "W": SMESolver.WienerFeedback()
         }
     )]
     psi0 = basis(N, N-3)

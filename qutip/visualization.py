@@ -12,7 +12,7 @@ __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
 import warnings
 import itertools as it
 import numpy as np
-from numpy import pi, array, sin, cos, angle, log2
+from numpy import pi, array, sin, cos, angle, log2, sqrt
 
 from packaging.version import parse as parse_version
 
@@ -1126,9 +1126,9 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
     return fig, output
 
 
-def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
-                projection='2d', *, cmap=None, colorbar=False,
-                fig=None, ax=None):
+def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
+                g=sqrt(2), sparse=False, parfor=False, *,
+                cmap=None, colorbar=False, fig=None, ax=None):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1152,6 +1152,18 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
     projection: str {'2d', '3d'}, default: '2d'
         Specify whether the Wigner function is to be plotted as a
         contour graph ('2d') or surface plot ('3d').
+
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+        See the documentation for qutip.wigner for details.
+
+    sparse : bool {False, True}
+        Flag for sparse format.
+        See the documentation for qutip.wigner for details.
+
+    parfor : bool {False, True}
+        Flag for parallel calculation.
+        See the documentation for qutip.wigner for details.
 
     cmap : a matplotlib cmap instance, optional
         The colormap.
@@ -1193,7 +1205,10 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw',
         if isket(rho):
             rho = ket2dm(rho)
 
-        W0 = wigner(rho, xvec, yvec, method=method)
+        W0 = wigner(
+            rho, xvec, yvec, method=method,
+            g=g, sparse=sparse, parfor=parfor
+        )
 
         W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)
         Ws.append(W)

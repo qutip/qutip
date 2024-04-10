@@ -96,7 +96,9 @@ def identity_like_data(data, /):
     Create an identity matrix of the same type and shape.
     """
     if not data.shape[0] == data.shape[1]:
-        raise ValueError("Can't create and identity like a non square matrix.")
+        raise ValueError(
+            "Can't create an identity matrix like a non square matrix."
+        )
     return identity[type(data)](data.shape[0])
 
 
@@ -105,7 +107,9 @@ def identity_like_dense(data, /):
     Create an identity matrix of the same type and shape.
     """
     if not data.shape[0] == data.shape[1]:
-        raise ValueError("Can't create and identity like a non square matrix.")
+        raise ValueError(
+            "Can't create an identity matrix like a non square matrix."
+        )
     return dense.identity(data.shape[0], fortran=data.fortran)
 
 

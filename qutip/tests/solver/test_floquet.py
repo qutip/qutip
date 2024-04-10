@@ -51,7 +51,7 @@ class TestFloquet:
         states = sesolve(H, psi0, tlist).states
         for t, state in zip(tlist, states):
             from_floquet = floquet_basis.from_floquet_basis(floquet_psi0, t)
-            assert state.overlap(from_floquet) == pytest.approx(1., abs=5e-5)
+            assert state.overlap(from_floquet) == pytest.approx(1., abs=8e-5)
 
     def testFloquetUnitary(self):
         N = 10

@@ -1262,3 +1262,15 @@ def test_data_as():
     with pytest.raises(ValueError) as err:
         qobj.data_as("ndarray")
     assert "dia_matrix" in str(err.value)
+
+
+@pytest.mark.parametrize('dtype', ["CSR", "Dense", "Dia"])
+def test_qobj_dtype(dtype):
+    obj = qutip.qeye(2, dtype=dtype)
+    assert obj.dtype == qutip.data.to.parse(dtype)
+
+
+@pytest.mark.parametrize('dtype', ["CSR", "Dense", "Dia"])
+def test_dtype_in_info_string(dtype):
+    obj = qutip.qeye(2, dtype=dtype)
+    assert dtype.lower() in str(obj).lower()

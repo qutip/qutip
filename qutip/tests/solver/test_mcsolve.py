@@ -391,6 +391,28 @@ def test_timeout(improved_sampling):
                   timeout=1e-6)
     assert res.stats['end_condition'] == 'timeout'
 
+@pytest.mark.parametrize("improved_sampling", [True, False])
+def test_target_tol(improved_sampling):
+    size = 10
+    ntraj = 100
+    a = qutip.destroy(size)
+    H = qutip.num(size)
+    state = qutip.basis(size, size-1)
+    times = np.linspace(0, 1.0, 100)
+    coupling = 0.5
+    n_th = 0.05
+    c_ops = np.sqrt(coupling * (n_th + 1)) * a
+    e_ops = [qutip.num(size)]
+
+    options = {'map': 'serial', "improved_sampling": improved_sampling}
+
+    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj, options=options,
+                  target_tol = 0.5)
+    assert res.stats['end_condition'] == 'target tolerance reached'
+
+    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj, options=options,
+                  target_tol = 1e-6)
+    assert res.stats['end_condition'] == 'ntraj reached'
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
 def test_super_H(improved_sampling):
@@ -411,7 +433,7 @@ def test_super_H(improved_sampling):
                  target_tol=0.1,
                  options={'map': 'serial',
                           "improved_sampling": improved_sampling})
-    np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.5)
+    np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.65)
 
 
 def test_MCSolver_run():

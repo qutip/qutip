@@ -133,18 +133,18 @@ class _CollapseFeedback(_Feedback):
         return "CollapseFeedback"
 
 
-def _default_weiner(t):
+def _default_wiener(t):
     return np.zeros(1)
 
 
-class _WeinerFeedback(_Feedback):
-    code = "WeinerFeedback"
+class _WienerFeedback(_Feedback):
+    code = "WienerFeedback"
 
     def __init__(self, default=None):
-        self.default = default or _default_weiner
+        self.default = default or _default_wiener
 
     def check_consistency(self, dims):
         pass
 
     def __repr__(self):
-        return "WeinerFeedback"
+        return "WienerFeedback"
