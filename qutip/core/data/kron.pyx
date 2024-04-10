@@ -16,6 +16,7 @@ import numpy
 __all__ = [
     'kron', 'kron_csr', 'kron_dense', 'kron_dia',
     'kron_csr_dense_csr', 'kron_dense_csr_csr',
+    'kron_dia_dense_dia', 'kron_dense_dia_dia',
     'kron_transpose', 'kron_transpose_dense', 'kron_transpose_data',
 ]
 
@@ -176,6 +177,22 @@ cpdef Dia kron_dia(Dia left, Dia right):
     return out
 
 
+cpdef Dia kron_dia_dense_dia(Dia left, Dense right):
+    # The dispatcher would use kron_dense, but the output is at least as sparse
+    # as the sparse input. Since the dispatcher does not have precise control
+    # on which function to use when the signature is missing. We add
+    # then like this.
+    return kron_dia(left, _to(Dia, right))
+
+
+cpdef Dia kron_dense_dia_dia(Dense left, Dia right):
+    # The dispatcher would use kron_dense, but the output is at least as sparse
+    # as the sparse input. Since the dispatcher does not have precise control
+    # on which function to use when the signature is missing. We add
+    # then like this.
+    return kron_dia(_to(Dia, left), right)
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -200,6 +217,8 @@ kron.add_specialisations([
     (Dia, Dia, Dia, kron_dia),
     (CSR, Dense, CSR, kron_csr_dense_csr),
     (Dense, CSR, CSR, kron_dense_csr_csr),
+    (Dia, Dense, Dia, kron_dia_dense_dia),
+    (Dense, Dia, Dia, kron_dense_dia_dia),
 ], _defer=True)
 
 

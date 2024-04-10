@@ -467,4 +467,4 @@ def expand_operator(oper, dims, targets, dtype=None):
     for i, ind in enumerate(rest_pos):
         new_order[ind] = rest_qubits[i]
     id_list = [identity(dims[i]) for i in rest_pos]
-    return tensor([oper] + id_list).permute(new_order)
+    return tensor([oper] + id_list).permute(new_order).to(dtype)
