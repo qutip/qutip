@@ -72,7 +72,10 @@ shape = [4, 4], type = oper, isherm = False
         isherm = None
         isunitary = None
     data = _data.diag[dtype](diagonals, offsets, shape)
-    return Qobj(data, dims=dims, copy=False, isherm=isherm, isunitary=isunitary)
+    return Qobj(
+        data, copy=False,
+        dims=dims, isherm=isherm, isunitary=isunitary
+    )
 
 
 def jmat(j, which=None, *, dtype=None):

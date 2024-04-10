@@ -370,7 +370,9 @@ def cphase(theta, *, dtype=None):
         Quantum object representation of controlled phase gate.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    return qdiags([1, 1, 1, np.exp(1.0j * theta)], dims=_DIMS_2_QB, dtype=dtype)
+    return qdiags(
+        [1, 1, 1, np.exp(1.0j * theta)], dims=_DIMS_2_QB, dtype=dtype
+    )
 
 
 def cnot(*, dtype=None):
@@ -756,10 +758,15 @@ def hadamard_transform(N=1, *, dtype=None):
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
     data = 2 ** (-N / 2) * np.array(
-        [[(-1) ** _hamming_distance(i & j) for i in range(2**N)] for j in range(2**N)]
+        [
+            [(-1) ** _hamming_distance(i & j) for i in range(2**N)]
+            for j in range(2**N)
+        ]
     )
 
-    return Qobj(data, dims=[[2] * N, [2] * N], isherm=True, isunitary=True).to(dtype)
+    return Qobj(data, dims=[[2] * N, [2] * N], isherm=True, isunitary=True).to(
+        dtype
+    )
 
 
 def _powers(op, N):
