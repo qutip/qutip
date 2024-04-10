@@ -42,6 +42,10 @@ __all__ = [
 ]
 
 
+_DIMS_2_QB = Dimensions([[2, 2], [2, 2]])
+_DIMS_3_QB = Dimensions([[2, 2, 2], [2, 2, 2]])
+
+
 def cy_gate(*, dtype=None):
     """Controlled Y gate.
 
@@ -59,7 +63,7 @@ def cy_gate(*, dtype=None):
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
     return Qobj(
         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, -1j], [0, 0, 1j, 0]],
-        dims=dims_2_qb,
+        dims=_DIMS_2_QB,
         isherm=True,
         isunitary=True,
     ).to(dtype)
@@ -80,7 +84,7 @@ def cz_gate(*, dtype=None):
         Quantum object for operator describing the rotation.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    return qdiags([1, 1, 1, -1], dims=dims_2_qb, dtype=dtype)
+    return qdiags([1, 1, 1, -1], dims=_DIMS_2_QB, dtype=dtype)
 
 
 def s_gate(*, dtype=None):
@@ -119,7 +123,7 @@ def cs_gate(*, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    return qdiags([1, 1, 1, 1j], dims=dims_2_qb, dtype=dtype)
+    return qdiags([1, 1, 1, 1j], dims=_DIMS_2_QB, dtype=dtype)
 
 
 def t_gate(*, dtype=None):
@@ -159,7 +163,7 @@ def ct_gate(*, dtype=None):
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
     return qdiags(
         [1, 1, 1, np.exp(1j * np.pi / 4)],
-        dims=dims_2_qb,
+        dims=_DIMS_2_QB,
         dtype=dtype,
     )
 
@@ -348,9 +352,6 @@ def qrot(theta, phi, *, dtype=None):
 #
 
 
-dims_2_qb = Dimensions([[2, 2], [2, 2]])
-
-
 def cphase(theta, *, dtype=None):
     """
     Returns quantum object representing the controlled phase shift gate.
@@ -369,7 +370,7 @@ def cphase(theta, *, dtype=None):
         Quantum object representation of controlled phase gate.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    return qdiags([1, 1, 1, np.exp(1.0j * theta)], dims=dims_2_qb, dtype=dtype)
+    return qdiags([1, 1, 1, np.exp(1.0j * theta)], dims=_DIMS_2_QB, dtype=dtype)
 
 
 def cnot(*, dtype=None):
@@ -391,7 +392,7 @@ def cnot(*, dtype=None):
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
     return Qobj(
         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]],
-        dims=dims_2_qb,
+        dims=_DIMS_2_QB,
         isherm=True,
         isunitary=True,
     ).to(dtype)
@@ -440,7 +441,7 @@ def berkeley(*, dtype=None):
             [0, 1.0j * np.sin(3 * np.pi / 8), np.cos(3 * np.pi / 8), 0],
             [1.0j * np.sin(np.pi / 8), 0, 0, np.cos(np.pi / 8)],
         ],
-        dims=dims_2_qb,
+        dims=_DIMS_2_QB,
         isherm=False,
         isunitary=True,
     ).to(dtype)
@@ -452,6 +453,9 @@ def swapalpha(alpha, *, dtype=None):
 
     Parameters
     ----------
+    alpha : float
+        Angle of the SWAPalpha gate.
+
     dtype : str or type, [keyword only] [optional]
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
@@ -470,8 +474,8 @@ def swapalpha(alpha, *, dtype=None):
             [0, 0.5 * (1 - phase), 0.5 * (1 + phase), 0],
             [0, 0, 0, 1],
         ],
-        dims=dims_2_qb,
-        isherm=(phase.imag <= settings.core["atol"]),
+        dims=_DIMS_2_QB,
+        isherm=(np.abs(phase.imag) <= settings.core["atol"]),
         isunitary=True,
     ).to(dtype)
 
@@ -494,7 +498,7 @@ def swap(*, dtype=None):
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
     return Qobj(
         [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
-        dims=dims_2_qb,
+        dims=_DIMS_2_QB,
         isherm=True,
         isunitary=True,
     ).to(dtype)
@@ -517,7 +521,7 @@ def iswap(*, dtype=None):
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
     return Qobj(
         [[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]],
-        dims=dims_2_qb,
+        dims=_DIMS_2_QB,
         isherm=False,
         isunitary=True,
     ).to(dtype)
@@ -548,7 +552,7 @@ def sqrtswap(*, dtype=None):
                 [0, 0, 0, 1],
             ]
         ),
-        dims=dims_2_qb,
+        dims=_DIMS_2_QB,
         isherm=False,
         isunitary=True,
     ).to(dtype)
@@ -578,7 +582,7 @@ def sqrtiswap(*, dtype=None):
                 [0, 0, 0, 1],
             ]
         ),
-        dims=dims_2_qb,
+        dims=_DIMS_2_QB,
         isherm=False,
         isunitary=True,
     ).to(dtype)
@@ -613,7 +617,7 @@ def molmer_sorensen(theta, *, dtype=None):
             [0, -1.0j * np.sin(theta / 2.0), np.cos(theta / 2.0), 0],
             [-1.0j * np.sin(theta / 2.0), 0, 0, np.cos(theta / 2.0)],
         ],
-        dims=dims_2_qb,
+        dims=_DIMS_2_QB,
         isherm=(theta % (2 * np.pi) <= settings.core["atol"]),
         isunitary=True,
     ).to(dtype)
@@ -622,9 +626,6 @@ def molmer_sorensen(theta, *, dtype=None):
 #
 # 3 Qubit Gates
 #
-
-
-dims_3_qb = Dimensions([[2, 2, 2], [2, 2, 2]])
 
 
 def fredkin(*, dtype=None):
@@ -654,7 +655,7 @@ def fredkin(*, dtype=None):
             [0, 0, 0, 0, 0, 1, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 1],
         ],
-        dims=dims_3_qb,
+        dims=_DIMS_3_QB,
         isherm=True,
         isunitary=True,
     ).to(dtype)
@@ -687,7 +688,7 @@ def toffoli(*, dtype=None):
             [0, 0, 0, 0, 0, 0, 0, 1],
             [0, 0, 0, 0, 0, 0, 1, 0],
         ],
-        dims=dims_3_qb,
+        dims=_DIMS_3_QB,
         isherm=True,
         isunitary=True,
     ).to(dtype)

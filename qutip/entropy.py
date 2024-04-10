@@ -372,5 +372,6 @@ def entangling_power(U):
     a = tensor(U, U).dag() * swap13 * tensor(U, U) * swap13
     Uswap = swap() * U
     b = tensor(Uswap, Uswap).dag() * swap13 * tensor(Uswap, Uswap) * swap13
+    print(a.tr(), b.tr())
 
     return 5.0/9 - 1.0/36 * (a.tr() + b.tr()).real

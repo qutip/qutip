@@ -318,6 +318,12 @@ _SIGMAZ._isunitary = True
 def sigmap(*, dtype=None):
     """Creation operator for Pauli spins.
 
+    Parameters
+    ----------
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
+
     Examples
     --------
     >>> sigmap() # doctest: +SKIP
@@ -334,6 +340,12 @@ shape = [2, 2], type = oper, isHerm = False
 
 def sigmam(*, dtype=None):
     """Annihilation operator for Pauli spins.
+
+    Parameters
+    ----------
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
 
     Examples
     --------
@@ -352,6 +364,12 @@ shape = [2, 2], type = oper, isHerm = False
 def sigmax(*, dtype=None):
     """Pauli spin 1/2 sigma-x operator
 
+    Parameters
+    ----------
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
+
     Examples
     --------
     >>> sigmax() # doctest: +SKIP
@@ -369,6 +387,12 @@ shape = [2, 2], type = oper, isHerm = False
 def sigmay(*, dtype=None):
     """Pauli spin 1/2 sigma-y operator.
 
+    Parameters
+    ----------
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
+
     Examples
     --------
     >>> sigmay() # doctest: +SKIP
@@ -385,6 +409,12 @@ shape = [2, 2], type = oper, isHerm = True
 
 def sigmaz(*, dtype=None):
     """Pauli spin 1/2 sigma-z operator.
+
+    Parameters
+    ----------
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
 
     Examples
     --------

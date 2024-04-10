@@ -209,4 +209,6 @@ _alpha = 2*np.pi * np.random.rand()
                  np.sin(np.pi*_alpha)**2 / 6, id="SWAP(alpha)"),
 ])
 def test_entangling_power(gate, expected):
+    print("_alpha", _alpha)
+    print("gate", gate)
     assert abs(qutip.entangling_power(gate) - expected) < 1e-12
