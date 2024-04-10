@@ -762,6 +762,8 @@ class TestKron(BinaryOpMixin):
         pytest.param(data.kron_csr, CSR, CSR, CSR),
         pytest.param(data.kron_dense, Dense, Dense, Dense),
         pytest.param(data.kron_dia, Dia, Dia, Dia),
+        pytest.param(data.kron_dense_csr_csr, Dense, CSR, CSR),
+        pytest.param(data.kron_csr_dense_csr, CSR, Dense, CSR),
     ]
 
 

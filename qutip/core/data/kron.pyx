@@ -15,6 +15,7 @@ import numpy
 
 __all__ = [
     'kron', 'kron_csr', 'kron_dense', 'kron_dia',
+    'kron_csr_dense_csr', 'kron_dense_csr_csr',
     'kron_transpose', 'kron_transpose_dense', 'kron_transpose_data',
 ]
 
@@ -68,6 +69,22 @@ cpdef CSR kron_csr(CSR left, CSR right):
                     ptr_start_out += dist_r
                     ptr_end_out += dist_r
     return out
+
+
+cpdef CSR kron_csr_dense_csr(CSR left, Dense right):
+    # The dispatcher would use kron_dense, but the output is at least as sparse
+    # as the sparse input. Since the dispatcher does not have precise control
+    # on which function to use when the signature is missing. We add
+    # then like this.
+    return kron_csr(left, _to(CSR, right))
+
+
+cpdef CSR kron_dense_csr_csr(Dense left, CSR right):
+    # The dispatcher would use kron_dense, but the output is at least as sparse
+    # as the sparse input. Since the dispatcher does not have precise control
+    # on which function to use when the signature is missing. We add
+    # then like this.
+    return kron_csr(_to(CSR, left), right)
 
 
 cdef inline void _vec_kron(
@@ -181,6 +198,8 @@ kron.add_specialisations([
     (CSR, CSR, CSR, kron_csr),
     (Dense, Dense, Dense, kron_dense),
     (Dia, Dia, Dia, kron_dia),
+    (CSR, Dense, CSR, kron_csr_dense_csr),
+    (Dense, CSR, CSR, kron_dense_csr_csr),
 ], _defer=True)
 
 
