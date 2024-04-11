@@ -143,6 +143,7 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
     else:
         raise ValueError("Unknown method %s" % method)
 
+# Return the negativity value (or its logarithm if specified)
     if logarithmic:
         return log2(2 * N + 1)
     else:
