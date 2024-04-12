@@ -7,7 +7,7 @@ cycler==0.10.0
 Cython==0.29.33
 decorator==5.1.1
 docutils==0.18.1
-idna==3.4
+idna==3.7
 imagesize==1.4.1
 ipython==8.11.0
 jedi==0.18.2
