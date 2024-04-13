@@ -356,9 +356,10 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
         - "mkl_spsolve"
           sparse solver by mkl.
 
-        Extensions to qutip, such as qutip-tensorflow, may provide their own solvers.
-        When ``H_0`` and ``c_ops`` use these data backends, see their documentation
-        for the names and details of additional solvers they may provide.
+        Extensions to qutip, such as qutip-tensorflow, may provide their own
+        solvers. When ``H_0`` and ``c_ops`` use these data backends, see their
+        documentation for the names and details of additional solvers they may
+        provide.
 
     **kwargs:
         Extra options to pass to the linear system solver. See the
@@ -387,7 +388,6 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     Id = qeye_like(L_0)
     S = qzero_like(L_0)
     T = qzero_like(L_0)
-
 
     if isinstance(H_0.data, _data.CSR) and not sparse:
         L_0 = L_0.to("Dense")

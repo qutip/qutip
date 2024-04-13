@@ -194,39 +194,40 @@ def test_steadystate_floquet(sparse):
     Test the steadystate solution for a periodically
     driven system.
     """
-    N_c = 20
-
-    a = qutip.destroy(N_c)
-    a_d = a.dag()
-    X_c = a + a_d
+    sz = qutip.sigmaz()
+    sx = qutip.sigmax()
 
     w_c = 1
-
-    A_l = 0.001
+    A_l = 0.5
     w_l = w_c
     gam = 0.01
 
-    H = w_c * a_d * a
+    H = w_c * sz
 
-    H_t = [H, [X_c, lambda t, args: args["A_l"] * np.cos(args["w_l"] * t)]]
+    H_t = [H, [sx, lambda t, args: args["A_l"] * np.cos(args["w_l"] * t)]]
 
-    psi0 = qutip.fock(N_c, 0)
+    psi0 = qutip.basis(2, 0)
 
     args = {"A_l": A_l, "w_l": w_l}
 
     c_ops = []
-    c_ops.append(np.sqrt(gam) * a)
+    c_ops.append(np.sqrt(gam) * qutip.destroy(2).dag())
 
     t_l = np.linspace(0, 20 / gam, 2000)
 
     expect_me = qutip.mesolve(H_t, psi0, t_l,
-                        c_ops, [a_d * a], args=args).expect[0]
+                              c_ops, [sz], args=args).expect[0]
 
     rho_ss = qutip.steadystate_floquet(H, c_ops,
-                                       A_l * X_c, w_l, n_it=3, sparse=sparse)
-    expect_ss = qutip.expect(a_d * a, rho_ss)
+                                       A_l * sx, w_l, n_it=3, sparse=sparse)
+    expect_ss = qutip.expect(sz, rho_ss)
 
-    np.testing.assert_allclose(expect_me[-20:], expect_ss, atol=1e-3)
+    dt = (20 / gam) / len(t_l)
+    one_period = int(1/(w_l/(2*np.pi)) / dt)
+
+    average_ex = sum(expect_me[-one_period:]) / float(one_period)
+
+    np.testing.assert_allclose(average_ex, expect_ss, atol=1e-2)
     assert rho_ss.tr() == pytest.approx(1, abs=1e-15)
 
 
