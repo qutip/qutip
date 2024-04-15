@@ -270,9 +270,6 @@ class BRSolver(Solver):
         self._num_collapse = len(c_ops)
         self._num_a_ops = len(a_ops)
         self._post_init(options)
-        # self._integrator = self._get_integrator()
-        # self._state_metadata = {}
-        # self.stats = self._initialize_stats()
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()

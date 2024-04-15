@@ -254,8 +254,7 @@ class Solver:
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        rhs = self._build_rhs()
-        integrator_instance = integrator(rhs, self.options)
+        integrator_instance = integrator(self)
         self._init_integrator_time = time() - _time_start
         return integrator_instance
 

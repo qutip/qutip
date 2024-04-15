@@ -176,12 +176,13 @@ class MCIntegrator:
     """
     name = "mcsolve"
 
-    def __init__(self, integrator, rhs, c_ops, n_ops, options=None):
+    def __init__(self, integrator, solver):
         self._integrator = integrator
+        rhs, c_ops, n_ops = solver._sys
         self.system = rhs
         self._c_ops = c_ops
         self._n_ops = n_ops
-        self.options = options
+        self.options = solver.options
         self._generator = None
         self.method = f"{self.name} {self._integrator.method}"
         self._is_set = False
@@ -431,10 +432,8 @@ class MCSolver(MultiTrajSolver):
             rhs = -1j * QobjEvo(self.LH)
             for n_op in n_ops:
                 rhs -= 0.5 * n_op
-        # rhs._register_feedback({}, solver=self.name)
-        # for op in c_ops + n_ops:
-        #     op._register_feedback({}, solver=self.name)
-        return rhs, c_ops, n_ops
+        self._sys = rhs, c_ops, n_ops
+        return rhs
 
     def _restore_state(self, data, *, copy=True):
         """
@@ -534,11 +533,8 @@ class MCSolver(MultiTrajSolver):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        rhs, c_ops, n_ops = self._build_rhs()
-        integrator_instance = integrator(rhs, self.options)
-        mc_integrator = self._mc_integrator_class(
-            integrator_instance, rhs, c_ops, n_ops, self.options
-        )
+        integrator_instance = integrator(self)
+        mc_integrator = self._mc_integrator_class(integrator_instance, self)
         self._init_integrator_time = time() - _time_start
         return mc_integrator
 
