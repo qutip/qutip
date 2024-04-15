@@ -12,6 +12,15 @@ from qutip.solver.sode._noise import _Noise
 from qutip.solver.stochastic import SMESolver, _StochasticRHS
 
 
+class PSEUDOSOLVER:
+    def __init__(self, rhs, options):
+        self.options = options
+        self.rhs = rhs
+
+    def _build_rhs(self):
+        return self.rhs
+
+
 def get_error_order(system, state, method, plot=False, **kw):
     stepper = getattr(_sode, method)(system, **kw)
     num_runs = 10
@@ -145,9 +154,12 @@ def test_open_integrator(method, order, H, c_ops, sc_ops):
     c_ops = [_make_oper(op, N) for op in c_ops]
     sc_ops = [_make_oper(op, N) for op in sc_ops]
 
-    rhs = _StochasticRHS(StochasticOpenSystem, H, sc_ops, c_ops, False)
-    ref_sode = SMESolver.avail_integrators()["taylor1.5"](rhs, {"dt": 0.01})
-    sode = SMESolver.avail_integrators()[method](rhs, {"dt": 0.01})
+    rhs = PSEUDOSOLVER(
+        _StochasticRHS(StochasticOpenSystem, H, sc_ops, c_ops, False),
+        {"dt": 0.01}
+    )
+    ref_sode = SMESolver.avail_integrators()["taylor1.5"](rhs)
+    sode = SMESolver.avail_integrators()[method](rhs)
     state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
 
     error_order = get_error_order_integrator(sode, ref_sode, state)
@@ -171,9 +183,13 @@ def test_closed_integrator(method, order, H, sc_ops):
     H = _make_oper(H, N)
     sc_ops = [_make_oper(op, N) for op in sc_ops]
 
-    rhs = _StochasticRHS(StochasticClosedSystem, H, sc_ops, (), False)
-    ref_sode = SMESolver.avail_integrators()["explicit1.5"](rhs, {"dt": 0.01})
-    sode = SMESolver.avail_integrators()[method](rhs, {"dt": 0.01})
+    rhs = PSEUDOSOLVER(
+        _StochasticRHS(StochasticClosedSystem, H, sc_ops, (), False),
+        {"dt": 0.01}
+    )
+
+    ref_sode = SMESolver.avail_integrators()["explicit1.5"](rhs)
+    sode = SMESolver.avail_integrators()[method](rhs)
     state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
 
     error_order = get_error_order_integrator(sode, ref_sode, state)

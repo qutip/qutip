@@ -33,10 +33,10 @@ class RouchonSODE(SIntegrator):
         "tol": 1e-7,
     }
 
-    def __init__(self, rhs, options):
+    def __init__(self, solver):
         self._options = self.integrator_options.copy()
-        self.options = options
-        self.rhs = rhs
+        self.options = solver.options
+        self.rhs = solver._build_rhs()
         self._make_operators()
 
     def _make_operators(self):

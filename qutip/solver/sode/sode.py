@@ -129,10 +129,10 @@ class _Explicit_Simple_Integrator(SIntegrator):
     stepper = None
     N_dw = 0
 
-    def __init__(self, rhs, options):
+    def __init__(self, solver):
         self._options = self.integrator_options.copy()
-        self.options = options
-        self.rhs = rhs
+        self.options = solver.options
+        self.rhs = solver._build_rhs()
 
     def integrate(self, t, copy=True):
         delta_t = t - self.t
