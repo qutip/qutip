@@ -202,7 +202,7 @@ def test_steadystate_floquet(sparse):
     w_l = w_c
     gam = 0.01
 
-    H = w_c * sz
+    H = 0.5 * w_c * sz
 
     H_t = [H, [sx, lambda t, args: args["A_l"] * np.cos(args["w_l"] * t)]]
 
@@ -212,8 +212,8 @@ def test_steadystate_floquet(sparse):
 
     c_ops = []
     c_ops.append(np.sqrt(gam) * qutip.destroy(2).dag())
-
-    t_l = np.linspace(0, 20 / gam, 2000)
+    T_max = 20 * 2 * np.pi / gam
+    t_l = np.linspace(0, T_max, 20000)
 
     expect_me = qutip.mesolve(H_t, psi0, t_l,
                               c_ops, [sz], args=args).expect[0]
@@ -222,7 +222,7 @@ def test_steadystate_floquet(sparse):
                                        A_l * sx, w_l, n_it=3, sparse=sparse)
     expect_ss = qutip.expect(sz, rho_ss)
 
-    dt = (20 / gam) / len(t_l)
+    dt = T_max / len(t_l)
     one_period = int(1/(w_l/(2*np.pi)) / dt)
 
     average_ex = sum(expect_me[-one_period:]) / float(one_period)
