@@ -7,7 +7,7 @@ __all__ = ['sesolve', 'SESolver']
 import numpy as np
 from time import time
 from .. import Qobj, QobjEvo
-from .solver_base import Solver, _solver_deprecation
+from .solver_base import Solver, _solver_deprecation, _format_oper
 from ._feedback import _QobjFeedback, _DataFeedback
 
 
@@ -141,10 +141,7 @@ class SESolver(Solver):
     def __init__(self, H, *, options=None):
         _time_start = time()
 
-        if not isinstance(H, (Qobj, QobjEvo)):
-            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
-
-        self.H = QobjEvo(H)
+        self.H = _format_oper(H=H)
         self._dims = self.H._dims
         self.isconstant = self.H.isconstant
         if not self.H.isoper:

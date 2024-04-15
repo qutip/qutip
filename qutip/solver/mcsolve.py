@@ -3,7 +3,10 @@ __all__ = ['mcsolve', "MCSolver"]
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .multitraj import MultiTrajSolver
-from .solver_base import Solver, Integrator, _solver_deprecation
+from .solver_base import (
+    Solver, Integrator, _solver_deprecation,
+    _format_oper, _format_list_oper
+)
 from .result import McResult, McTrajectoryResult, McResultImprovedSampling
 from .mesolve import mesolve, MESolver
 from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
@@ -402,10 +405,8 @@ class MCSolver(MultiTrajSolver):
     def __init__(self, H, c_ops, *, options=None):
         _time_start = time()
 
-        if isinstance(c_ops, (Qobj, QobjEvo)):
-            c_ops = [c_ops]
-        self.c_ops = [QobjEvo(c_op) for c_op in c_ops]
-        self.LH = QobjEvo(H)
+        self.c_ops = _format_list_oper(c_ops=c_ops)
+        self.LH = _format_oper(H=H)
 
         self._num_collapse = len(self.c_ops)
         self._dims = self.LH._dims

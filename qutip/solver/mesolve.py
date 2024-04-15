@@ -11,7 +11,10 @@ from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from ..core.dimensions import Dimensions
-from .solver_base import Solver, _solver_deprecation
+from .solver_base import (
+    Solver, _solver_deprecation,
+    _format_oper, _format_list_oper
+)
 from .sesolve import sesolve, SESolver
 from ._feedback import _QobjFeedback, _DataFeedback
 
@@ -198,11 +201,8 @@ class MESolver(SESolver):
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
-        c_ops = c_ops or []
-        c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
-        for c_op in c_ops:
-            if not isinstance(c_op, (Qobj, QobjEvo)):
-                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+        H = _format_oper(H=H)
+        c_ops = _format_list_oper(c_ops=c_ops)
 
         self._num_collapse = len(c_ops)
 

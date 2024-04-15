@@ -13,7 +13,10 @@ from ..core.blochredfield import bloch_redfield_tensor, SpectraCoefficient
 from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
 from ..core.dimensions import Dimensions
-from .solver_base import Solver, _solver_deprecation
+from .solver_base import (
+    Solver, _solver_deprecation,
+    _format_oper, _format_list_oper
+)
 from .options import _SolverOptions
 from ._feedback import _QobjFeedback, _DataFeedback
 
@@ -241,19 +244,10 @@ class BRSolver(Solver):
         _time_start = time()
 
         self.sec_cutoff = sec_cutoff
-        # self.options = options
-
-        if not isinstance(H, (Qobj, QobjEvo)):
-            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
-        self.H = QobjEvo(H)
+        self.H = _format_oper(H=H)
         self._dims = Dimensions.to_super(self.H._dims)
 
-        c_ops = c_ops or []
-        c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
-        for c_op in c_ops:
-            if not isinstance(c_op, (Qobj, QobjEvo)):
-                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
-        c_ops = [QobjEvo(c_op) for c_op in c_ops]
+        c_ops = _format_list_oper(c_ops=c_ops)
 
         a_ops = a_ops or []
         if not hasattr(a_ops, "__iter__"):
