@@ -327,3 +327,34 @@ def test_G2():
     expected = np.ones(11)
     np.testing.assert_allclose(g1, expected, rtol=2e-5)
     np.testing.assert_allclose(G1, expected * scale**4, rtol=2e-5)
+
+@pytest.mark.parameterize("parallel", [True, False], ids=["parallel", "sequential"])
+def test_correlation_2op_1t_parallel(parallel):
+    """
+    Test that the parallel and sequential versions of correlation_2op_1t
+    give the same results"""
+    
+    # System setup
+    dimension = 5
+    H = qutip.num(dimension)
+    psi0 = qutip.basis(dimension, 0)
+    a = qutip.destroy(dimension)
+    times = np.linspace(0,10,50)
+    c_ops = [np.sqrt(0.1) * a]
+
+    #Choose the function based on whether we are testing parallel computation or not
+    if parallel: 
+        original_func = qutip.correlation_2op_1t
+        qutip.correlation_2op_1t = functools.partial(correlation_2op_1t, parallel=True)
+    try:
+        # Compute correlation
+        result_parallel = qutip.correlation_2op_1t(H, psi0, times, c_ops, a.dag(), a)
+    finally: 
+        if parallel:
+            qutip.correlation_2op_1t = original_func
+
+    # Compute corrleation using the original sequential function for comparison
+    result_sequential = original_func(H, psi0, times, c_ops, a.dag(), a)
+
+    #assert that both results are close enough
+    np.testing.assert_allclose(result_parallel, result_sequential, atol=1e-3)

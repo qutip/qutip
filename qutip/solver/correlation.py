@@ -18,6 +18,8 @@ from .heom.bofin_solvers import HEOMSolver
 
 from .steadystate import steadystate
 from ..ui.progressbar import progress_bars
+from concurrent.futures import ProcessPoolExecutor
+from os import cpu_count
 
 # -----------------------------------------------------------------------------
 # PUBLIC API
@@ -523,3 +525,29 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
         solver.options = old_opt
 
     return corr_mat
+
+def compute_single_tau_correlation(tau, H, state0, c_ops, a_op, b_op, solver="me", reverse=False, args=None, options=None):
+    """Compute the correlation for a signle tau value with error handling."""
+    try:
+        solver_instance = _make_solver(H, c_ops, args, options, solver)
+        if state0 is None:
+            state0 = steadystate(H, c_ops)
+        if reverse:
+            A_op, B_op = a_op, b_op
+        else: 
+            A_op, B_op = b_op, a_op
+        result = correlation_3op(solver_instance, state0, [0], [tau], 1, A_op, B_op)[0]
+        return result
+    except Exception as e:
+        print(f"Error processing tau={tau}: {str(e)}")
+        return np.nan # Indicates failure in computation
+
+def correlation_2op_1t_p(H, state0, taulist, c_ops, a_op, b_op, solver="me", reverse=False, args=None, options=None):
+    """Calculate the two operator one-time correlation fucntion along one time axis in parallel.""" 
+    num_workers = min(len(taulist), cpu_count() - 1) # Reserve one core
+    tasks = [(tau, H, state0, c_ops, a_op, b_op, solver, reverse, args, options) for tau in taulist]
+
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        results = list(executor.map(lambda args: compute_single_tau_correlation(*args), tasks))
+
+    return np.array(results)    
