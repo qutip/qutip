@@ -356,9 +356,10 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
         - "mkl_spsolve"
           sparse solver by mkl.
 
-        Extensions to qutip, such as qutip-tensorflow, may provide their own solvers.
-        When ``H_0`` and ``c_ops`` use these data backends, see their documentation
-        for the names and details of additional solvers they may provide.
+        Extensions to qutip, such as qutip-tensorflow, may provide their own
+        solvers. When ``H_0`` and ``c_ops`` use these data backends, see their
+        documentation for the names and details of additional solvers they may
+        provide.
 
     **kwargs:
         Extra options to pass to the linear system solver. See the
@@ -373,18 +374,20 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     Notes
     -----
     See: Sze Meng Tan,
-    https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
-    Section (10.16)
+    https://painterlab.caltech.edu/wp-content/uploads/2019/06/qe_quantum_optics_toolbox.pdf,
+    Section (16)
 
     """
 
     L_0 = liouvillian(H_0, c_ops)
-    L_m = L_p = 0.5 * liouvillian(Op_t)
+    L_m = 0.5 * liouvillian(Op_t)
+    L_p = 0.5 * liouvillian(Op_t)
     # L_p and L_m correspond to the positive and negative
     # frequency terms respectively.
     # They are independent in the model, so we keep both names.
     Id = qeye_like(L_0)
-    S = T = qzero_like(L_0)
+    S = qzero_like(L_0)
+    T = qzero_like(L_0)
 
     if isinstance(H_0.data, _data.CSR) and not sparse:
         L_0 = L_0.to("Dense")
@@ -395,7 +398,7 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     for n_i in np.arange(n_it, 0, -1):
         L = L_0 - 1j * n_i * w_d * Id + L_m @ S
         S.data = - _data.solve(L.data, L_p.data, solver, kwargs)
-        L = L_0 - 1j * n_i * w_d * Id + L_p @ T
+        L = L_0 + 1j * n_i * w_d * Id + L_p @ T
         T.data = - _data.solve(L.data, L_m.data, solver, kwargs)
 
     M_subs = L_0 + L_m @ S + L_p @ T
