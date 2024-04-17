@@ -167,83 +167,6 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("wiener_process")
 
 
-class _StochasticRHS:
-    """
-    In between object to store the stochastic system.
-
-    It store the Hamiltonian (not Liouvillian when possible), and sc_ops.
-    dims and flags are provided to be usable the the base ``Solver`` class.
-
-    We don't want to use the cython rhs (``StochasticOpenSystem``, etc.) since
-    the rouchon integrator need the part but does not use the usual drift and
-    diffusion computation.
-    """
-
-    def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
-
-        if not isinstance(H, (Qobj, QobjEvo)) or not H.isoper:
-            raise TypeError("The Hamiltonian must be am operator")
-        self.H = QobjEvo(H)
-
-        if isinstance(sc_ops, (Qobj, QobjEvo)):
-            sc_ops = [sc_ops]
-        self.sc_ops = [QobjEvo(c_op) for c_op in sc_ops]
-
-        if isinstance(c_ops, (Qobj, QobjEvo)):
-            c_ops = [c_ops]
-        self.c_ops = [QobjEvo(c_op) for c_op in c_ops]
-
-        if any(not c_op.isoper for c_op in c_ops):
-            raise TypeError("c_ops must be operators")
-
-        if any(not c_op.isoper for c_op in sc_ops):
-            raise TypeError("sc_ops must be operators")
-
-        self.issuper = issuper
-        self.heterodyne = heterodyne
-        self._noise_key = None
-
-        if heterodyne:
-            sc_ops = []
-            for c_op in self.sc_ops:
-                sc_ops.append(c_op / np.sqrt(2))
-                sc_ops.append(c_op * (-1j / np.sqrt(2)))
-            self.sc_ops = sc_ops
-
-        if self.issuper and not self.H.issuper:
-            self.dims = [self.H.dims, self.H.dims]
-            self._dims = Dimensions([self.H._dims, self.H._dims])
-        else:
-            self.dims = self.H.dims
-            self._dims = self.H._dims
-
-    def __call__(self, options):
-        if self.issuper:
-            return StochasticOpenSystem(
-                self.H, self.sc_ops, self.c_ops, options.get("derr_dt", 1e-6)
-            )
-        else:
-            return StochasticClosedSystem(self.H, self.sc_ops)
-
-    def arguments(self, args):
-        self.H.arguments(args)
-        for c_op in self.c_ops:
-            c_op.arguments(args)
-        for sc_op in self.sc_ops:
-            sc_op.arguments(args)
-
-    def _register_feedback(self, val):
-        self.H._register_feedback({"wiener_process": val}, "stochatic solver")
-        for c_op in self.c_ops:
-            c_op._register_feedback(
-                {"WeinerFeedback": val}, "stochatic solver"
-            )
-        for sc_op in self.sc_ops:
-            sc_op._register_feedback(
-                {"WeinerFeedback": val}, "stochatic solver"
-            )
-
-
 def smesolve(
     H, rho0, tlist, c_ops=(), sc_ops=(), heterodyne=False, *,
     e_ops=(), args={}, ntraj=500, options=None,
@@ -528,14 +451,22 @@ class StochasticSolver(MultiTrajSolver):
         c_ops = _format_list_oper(c_ops=c_ops)
         sc_ops = _format_list_oper(sc_ops=sc_ops)
 
-        rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
         self.H = H
-        self.sc_ops = sc_ops
         self.c_ops = c_ops
-        self.rhs = rhs
-        self._dims = rhs._dims
-        self.system = rhs
-        self.options = options
+        if heterodyne:
+            new_sc_ops = []
+            for c_op in sc_ops:
+                new_sc_ops.append(c_op / np.sqrt(2))
+                new_sc_ops.append(c_op * (-1j / np.sqrt(2)))
+            self.sc_ops = new_sc_ops
+        else:
+            self.sc_ops = sc_ops
+
+        if self._open and not self.H.issuper:
+            self._dims = Dimensions([self.H._dims, self.H._dims])
+        else:
+            self._dims = self.H._dims
+
         self.seed_sequence = np.random.SeedSequence()
         self._integrator = self._get_integrator()
         self._state_metadata = {}
@@ -551,7 +482,13 @@ class StochasticSolver(MultiTrajSolver):
             self._dW_factors = np.ones(len(sc_ops))
 
     def _build_rhs(self):
-        return self.rhs
+        if self._open:
+            return StochasticOpenSystem(
+                self.H, self.sc_ops, self.c_ops,
+                self.options.get("derr_dt", 1e-6)
+            )
+        else:
+            return StochasticClosedSystem(self.H, self.sc_ops)
 
     @property
     def heterodyne(self):
@@ -723,6 +660,15 @@ class StochasticSolver(MultiTrajSolver):
     @options.setter
     def options(self, new_options):
         MultiTrajSolver.options.fset(self, new_options)
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and `c_ops` and other operators."""
+        if args:
+            self.H.arguments(args)
+            for op in self.c_ops:
+                op.arguments(args)
+            for op in self.sc_ops:
+                op.arguments(args)
 
     @classmethod
     def WeinerFeedback(cls, default=None):
