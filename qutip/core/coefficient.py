@@ -11,8 +11,8 @@ import importlib
 import warnings
 import numbers
 from collections import defaultdict
-from setuptools import setup, Extension
 try:
+    from setuptools import setup, Extension
     from Cython.Build import cythonize
     import filelock
 except ImportError:

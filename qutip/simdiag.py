@@ -79,15 +79,15 @@ def simdiag(ops, evals: bool = True, *,
         A = ops[jj]
         shape = A.shape
         if shape[0] != shape[1]:
-            raise TypeError('Matricies must be square.')
+            raise TypeError('Matrices must be square.')
         if shape[0] != N:
             raise TypeError('All matrices. must be the same shape')
         if not A.isherm:
-            raise TypeError('Matricies must be Hermitian')
+            raise TypeError('Matrices must be Hermitian')
         for kk in range(jj):
             B = ops[kk]
             if (A * B - B * A).norm() / (A * B).norm() > tol:
-                raise TypeError('Matricies must commute.')
+                raise TypeError('Matrices must commute.')
 
     # TODO: rewrite using Data object
     eigvals, eigvecs = _data.eigs(ops[0].data, True, True)

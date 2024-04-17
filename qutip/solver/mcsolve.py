@@ -439,6 +439,8 @@ class MCSolver(MultiTrajSolver):
         """
         Retore the Qobj state from its data.
         """
+        # Duplicated from the Solver class, but removed the check for the
+        # normalize_output option, since MCSolver doesn't have that option.
         if self._state_metadata['dims'] == self._dims[1]:
             state = Qobj(unstack_columns(data),
                          **self._state_metadata, copy=False)
@@ -456,37 +458,20 @@ class MCSolver(MultiTrajSolver):
         })
         return stats
 
-    def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
-                                 no_jump=False, jump_prob_floor=0.0):
-        result = self._trajectory_resultclass(e_ops, self.options)
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator,
-                                   no_jump=no_jump,
-                                   jump_prob_floor=jump_prob_floor)
-        result.add(tlist[0], self._restore_state(state, copy=False))
-        return result
-
-    def _run_one_traj(self, seed, state, tlist, e_ops, no_jump=False,
-                      jump_prob_floor=0.0):
+    def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
         """
         Run one trajectory and return the result.
         """
-        result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
-                                               no_jump=no_jump,
-                                               jump_prob_floor=jump_prob_floor)
-        seed, result = self._integrate_one_traj(seed, tlist, result)
+        seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
+                                             **integrator_kwargs)
         result.collapse = self._integrator.collapses
         return seed, result
 
     def run(self, state, tlist, ntraj=1, *,
             args=None, e_ops=(), timeout=None, target_tol=None, seeds=None):
-        """
-        Do the evolution of the Quantum system.
-        See the overridden method for further details. The modification
-        here is to sample the no-jump trajectory first. Then, the no-jump
-        probability is used as a lower-bound for random numbers in future
-        monte carlo runs
-        """
+        # Overridden to sample the no-jump trajectory first. Then, the no-jump
+        # probability is used as a lower-bound for random numbers in future
+        # monte carlo runs
         if not self.options.get("improved_sampling", False):
             return super().run(state, tlist, ntraj=ntraj, args=args,
                                e_ops=e_ops, timeout=timeout,
@@ -516,7 +501,8 @@ class MCSolver(MultiTrajSolver):
         start_time = time()
         map_func(
             self._run_one_traj, seeds[1:],
-            (state0, tlist, e_ops, False, no_jump_prob),
+            task_args=(state0, tlist, e_ops),
+            task_kwargs={'no_jump': False, 'jump_prob_floor': no_jump_prob},
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"]

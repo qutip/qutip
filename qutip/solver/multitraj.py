@@ -207,23 +207,25 @@ class MultiTrajSolver(Solver):
         result.stats['run time'] = time() - start_time
         return result
 
-    def _initialize_run_one_traj(self, seed, state, tlist, e_ops):
+    def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
+                                 **integrator_kwargs):
         result = self._trajectory_resultclass(e_ops, self.options)
         generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator)
+        self._integrator.set_state(tlist[0], state, generator,
+                                   **integrator_kwargs)
         result.add(tlist[0], self._restore_state(state, copy=False))
         return result
 
-    def _run_one_traj(self, seed, state, tlist, e_ops):
+    def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
         """
         Run one trajectory and return the result.
         """
-        result = self._initialize_run_one_traj(seed, state, tlist, e_ops)
+        result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
+                                               **integrator_kwargs)
         return self._integrate_one_traj(seed, tlist, result)
 
     def _integrate_one_traj(self, seed, tlist, result):
-        for t in tlist[1:]:
-            t, state = self._integrator.integrate(t, copy=False)
+        for t, state in self._integrator.run(tlist):
             result.add(t, self._restore_state(state, copy=False))
         return seed, result
 
@@ -253,6 +255,7 @@ class MultiTrajSolver(Solver):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
         if args:
             self.rhs.arguments(args)
+            self._integrator.arguments(args)
 
     def _get_generator(self, seed):
         """

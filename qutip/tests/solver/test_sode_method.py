@@ -9,7 +9,7 @@ from qutip.solver.sode.ssystem import (
     SimpleStochasticSystem, StochasticOpenSystem, StochasticClosedSystem
 )
 from qutip.solver.sode._noise import _Noise
-from qutip.solver.stochastic import SMESolver, _StochasticRHS
+from qutip.solver.stochastic import SMESolver
 
 
 class PSEUDOSOLVER:
@@ -154,10 +154,7 @@ def test_open_integrator(method, order, H, c_ops, sc_ops):
     c_ops = [_make_oper(op, N) for op in c_ops]
     sc_ops = [_make_oper(op, N) for op in sc_ops]
 
-    rhs = PSEUDOSOLVER(
-        _StochasticRHS(StochasticOpenSystem, H, sc_ops, c_ops, False),
-        {"dt": 0.01}
-    )
+    rhs = PSEUDOSOLVER(StochasticOpenSystem(H, sc_ops, c_ops), {"dt": 0.01})
     ref_sode = SMESolver.avail_integrators()["taylor1.5"](rhs)
     sode = SMESolver.avail_integrators()[method](rhs)
     state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
@@ -183,10 +180,7 @@ def test_closed_integrator(method, order, H, sc_ops):
     H = _make_oper(H, N)
     sc_ops = [_make_oper(op, N) for op in sc_ops]
 
-    rhs = PSEUDOSOLVER(
-        _StochasticRHS(StochasticClosedSystem, H, sc_ops, (), False),
-        {"dt": 0.01}
-    )
+    rhs = PSEUDOSOLVER(StochasticClosedSystem(H, sc_ops), {"dt": 0.01})
 
     ref_sode = SMESolver.avail_integrators()["explicit1.5"](rhs)
     sode = SMESolver.avail_integrators()[method](rhs)

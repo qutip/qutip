@@ -8,7 +8,7 @@ from ..core.dimensions import Dimensions
 import numpy as np
 from functools import partial
 from .solver_base import _solver_deprecation, _format_oper, _format_list_oper
-from ._feedback import _QobjFeedback, _DataFeedback, _WeinerFeedback
+from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
 from ..core.dimensions import Dimensions
 
 
@@ -27,7 +27,7 @@ class StochasticTrajResult(Result):
             self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
             self.add_processor(self.m_ops[-1]._store)
 
-    def add(self, t, state, noise):
+    def add(self, t, state, noise=None):
         super().add(t, state)
         if noise is not None and self.options["store_measurement"]:
             for i, dW in enumerate(noise):
@@ -424,8 +424,8 @@ class StochasticSolver(MultiTrajSolver):
     name = "StochasticSolver"
     _resultclass = StochasticResult
     _avail_integrators = {}
-    system = None
     _open = None
+
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -441,9 +441,18 @@ class StochasticSolver(MultiTrajSolver):
         "store_measurement": False,
     }
 
+    def _trajectory_resultclass(self, e_ops, options):
+        return StochasticTrajResult(
+            e_ops,
+            options,
+            m_ops=self.m_ops,
+            dw_factor=self.dW_factors,
+            heterodyne=self.heterodyne,
+        )
+
     def __init__(self, H, sc_ops, heterodyne, *, c_ops=(), options=None):
-        self.options = options
         self._heterodyne = heterodyne
+        self.options = options
         if self.name == "ssesolve" and c_ops:
             raise ValueError("c_ops are not supported by ssesolve.")
 
@@ -568,25 +577,9 @@ class StochasticSolver(MultiTrajSolver):
                 )
         self._dW_factors = new_dW_factors
 
-    def _run_one_traj(self, seed, state, tlist, e_ops):
-        """
-        Run one trajectory and return the result.
-        """
-        result = StochasticTrajResult(
-            e_ops,
-            self.options,
-            m_ops=self.m_ops,
-            dw_factor=self.dW_factors,
-            heterodyne=self.heterodyne,
-        )
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator)
-        state_t = self._restore_state(state, copy=False)
-        result.add(tlist[0], state_t, None)
-        for t in tlist[1:]:
-            t, state, noise = self._integrator.integrate(t, copy=False)
-            state_t = self._restore_state(state, copy=False)
-            result.add(t, state_t, noise)
+    def _integrate_one_traj(self, seed, tlist, result):
+        for t, state, noise in self._integrator.run(tlist):
+            result.add(t, self._restore_state(state, copy=False), noise)
         return seed, result
 
     @classmethod
@@ -671,13 +664,13 @@ class StochasticSolver(MultiTrajSolver):
                 op.arguments(args)
 
     @classmethod
-    def WeinerFeedback(cls, default=None):
+    def WienerFeedback(cls, default=None):
         """
-        Weiner function of the trajectory argument for time dependent systems.
+        Wiener function of the trajectory argument for time dependent systems.
 
         When used as an args:
 
-            ``QobjEvo([op, func], args={"W": SMESolver.WeinerFeedback()})``
+            ``QobjEvo([op, func], args={"W": SMESolver.WienerFeedback()})``
 
         The ``func`` will receive a function as ``W`` that return an array of
         wiener processes values at ``t``. The wiener process for the i-th
@@ -687,7 +680,7 @@ class StochasticSolver(MultiTrajSolver):
 
         .. note::
 
-            WeinerFeedback can't be added to a running solver when updating
+            WienerFeedback can't be added to a running solver when updating
             arguments between steps: ``solver.step(..., args={})``.
 
         Parameters
@@ -697,7 +690,7 @@ class StochasticSolver(MultiTrajSolver):
             When not passed, a function returning ``np.array([0])`` is used.
 
         """
-        return _WeinerFeedback(default)
+        return _WienerFeedback(default)
 
     @classmethod
     def StateFeedback(cls, default=None, raw_data=False):

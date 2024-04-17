@@ -69,6 +69,7 @@ jobs:
             python-version: "3.10"
             scipy-requirement: ">=1.10,<1.11"
             numpy-requirement: ">=1.24,<1.25"
+            oldcython: 1
             nocython: 1
 
           # Python 3.11 and recent numpy
@@ -128,15 +129,19 @@ jobs:
         # In the run, first we handle any special cases.  We do this in bash
         # rather than in the GitHub Actions file directly, because bash gives us
         # a proper programming language to use.
+        # We install without build isolation so qutip is compiled with the
+        # version of cython, scipy, numpy in the test matrix, not a temporary
+        # version use in the installation virtual environment.
         run: |
-          QUTIP_TARGET="tests,graphics,semidefinite,ipython,extras"
-          if [[ -z "${{ matrix.nocython }}" ]]; then
-            QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
-          fi
-          if [[ "${{ matrix.oldcython }}" ]]; then
-            pip install cython==0.29.36
-          fi
-          export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
+          # Install the extra requirement
+          python -m pip install pytest>=5.2 pytest-rerunfailures  # tests
+          python -m pip install matplotlib>=1.2.1  # graphics
+          python -m pip install cvxpy>=1.0 cvxopt  # semidefinite
+          python -m pip install ipython  # ipython
+          python -m pip install loky tqdm  # extras
+          python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
+          python -m pip install pytest-cov coveralls pytest-fail-slow
+
           if [[ -z "${{ matrix.nomkl }}" ]]; then
             conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
@@ -153,9 +158,17 @@ jobs:
             # Use openmpi because mpich causes problems. Note, environment variable names change in v5
             conda install "openmpi<5" mpi4py
           fi
-          python -m pip install -e .[$QUTIP_TARGET]
-          python -m pip install "coverage${{ matrix.coverage-requirement }}"
-          python -m pip install pytest-cov coveralls pytest-fail-slow
+          if [[ "${{ matrix.oldcython }}" ]]; then
+            python -m pip install cython==0.29.36 filelock
+          else
+            python -m pip install cython filelock
+          fi
+
+          python -m pip install -e . -v --no-build-isolation
+
+          if [[ "${{ matrix.nocython }}" ]]; then
+            python -m pip uninstall cython -y
+          fi
 
       - name: Package information
         run: |

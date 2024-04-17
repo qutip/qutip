@@ -526,7 +526,7 @@ class MultiTrajResult(_BaseResult):
         self._post_init(**kw)
 
     @property
-    def _store_average_density_matricies(self) -> bool:
+    def _store_average_density_matrices(self) -> bool:
         return (
             self.options["store_states"]
             or (self.options["store_states"] is None and self._raw_ops == {})
@@ -536,7 +536,7 @@ class MultiTrajResult(_BaseResult):
     def _store_final_density_matrix(self) -> bool:
         return (
             self.options["store_final_state"]
-            and not self._store_average_density_matricies
+            and not self._store_average_density_matrices
             and not self.options["keep_runs_results"]
         )
 
@@ -552,7 +552,7 @@ class MultiTrajResult(_BaseResult):
         """
         self.times = trajectory.times
 
-        if trajectory.states and self._store_average_density_matricies:
+        if trajectory.states and self._store_average_density_matrices:
             self._sum_states = [
                 qzero_like(self._to_dm(state)) for state in trajectory.states
             ]
@@ -657,7 +657,10 @@ class MultiTrajResult(_BaseResult):
 
         self._estimated_ntraj = min(target_ntraj, self._target_ntraj)
         if (self._estimated_ntraj - self.num_trajectories) <= 0:
-            self.stats["end_condition"] = "target tolerance reached"
+            if (self._estimated_ntraj - self._target_ntraj) < 0:
+                self.stats["end_condition"] = "target tolerance reached"
+            else:
+                self.stats["end_condition"] = "ntraj reached"
         return self._estimated_ntraj - self.num_trajectories
 
     def _post_init(self):
@@ -668,7 +671,7 @@ class MultiTrajResult(_BaseResult):
         store_trajectory = self.options["keep_runs_results"]
         if store_trajectory:
             self.add_processor(self._store_trajectory)
-        if self._store_average_density_matricies:
+        if self._store_average_density_matrices:
             self.add_processor(self._reduce_states)
         if self._store_final_density_matrix:
             self.add_processor(self._reduce_final_state)
@@ -1131,7 +1134,7 @@ class McResultImprovedSampling(McResult, MultiTrajResult):
 
     def _add_first_traj(self, trajectory):
         super()._add_first_traj(trajectory)
-        if trajectory.states and self._store_average_density_matricies:
+        if trajectory.states and self._store_average_density_matrices:
             del self._sum_states
             self._sum_states_no_jump = [
                 qzero_like(self._to_dm(state)) for state in trajectory.states

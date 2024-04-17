@@ -571,7 +571,7 @@ def projection(dimensions, n, m, offset=None, *, dtype=None):
         Number of basis states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
-    n, m : float
+    n, m : int
         The number states in the projection.
 
     offset : int, default: 0

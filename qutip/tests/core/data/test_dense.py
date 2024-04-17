@@ -305,3 +305,12 @@ def test_like_keep_order(func, fortran):
     old = dense.zeros(3, 3, fortran=fortran)
     new = func(old)
     assert new.fortran == old.fortran
+
+
+@pytest.mark.parametrize("shape", [(4, 3), (3, 3), (2, 8)])
+def test_inplace_matmul_error(shape):
+    op = dense.zeros(4, 4)
+    out = dense.zeros(*shape)
+    with pytest.raises(ValueError) as err:
+        data.matmul_dense(op, op, 1., out=out)
+    assert str(err.value).startswith("incompatible output shape")
