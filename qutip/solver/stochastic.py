@@ -680,10 +680,19 @@ class StochasticSolver(MultiTrajSolver):
 
         measurement : bool, default : False
             Whether the passed noise is the Wiener increments ``dW`` (gaussian
-            noise with standard derivation of dt**0.5), or the measurement::
+            noise with standard derivation of dt**0.5), or the measurement.
 
-                noise = dW/dt * dW_factors
-                    + expect(sc_ops[i] + sc_ops[i].dag, state_t)
+            Homodyne measurement is::
+
+              noise[i][t] = dW/dt + expect(sc_ops[i] + sc_ops[i].dag, state[t])
+
+            Heterodyne measurement is::
+
+              noise[i][0][t] = dW/dt * 2**0.5
+                + expect(sc_ops[i] + sc_ops[i].dag, state[t])
+
+              noise[i][1][t] = dW/dt * 2**0.5
+                -1j * expect(sc_ops[i] - sc_ops[i].dag, state[t])
 
             Note that the expectation value is usally computed at the start of
             the step. Only available for limited integration methods.
