@@ -689,7 +689,10 @@ class MultiTrajResult(_BaseResult):
 
         self._estimated_ntraj = min(target_ntraj, self._target_ntraj)
         if (self._estimated_ntraj - self._num_rel_trajectories) <= 0:
-            self.stats["end_condition"] = "target tolerance reached"
+            if (self._estimated_ntraj - self._target_ntraj) < 0:
+                self.stats["end_condition"] = "target tolerance reached"
+            else:
+                self.stats["end_condition"] = "ntraj reached"
         return self._estimated_ntraj - self._num_rel_trajectories
 
     def _post_init(self):

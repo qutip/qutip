@@ -34,6 +34,30 @@ def test_progressbar(pbar):
     assert bar.total_time() > 0
 
 
+@pytest.mark.parametrize("pbar", bars)
+def test_progressbar_too_few_update(pbar):
+    N = 5
+    bar = progress_bars[pbar](N)
+    assert bar.total_time() < 0
+    for _ in range(N-2):
+        time.sleep(0.01)
+        bar.update()
+    bar.finished()
+    assert bar.total_time() > 0
+
+
+@pytest.mark.parametrize("pbar", bars)
+def test_progressbar_too_many_update(pbar):
+    N = 5
+    bar = progress_bars[pbar](N)
+    assert bar.total_time() < 0
+    for _ in range(N+2):
+        time.sleep(0.01)
+        bar.update()
+    bar.finished()
+    assert bar.total_time() > 0
+
+
 @pytest.mark.parametrize("pbar", bars[1:])
 def test_progressbar_has_print(pbar, capsys):
     N = 2
