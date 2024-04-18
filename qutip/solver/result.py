@@ -665,6 +665,11 @@ class MultiTrajResult(_BaseResult):
         Return the approximate number of trajectories needed to have this
         error within the tolerance fot all e_ops and times.
         """
+        if self.num_trajectories >= self._target_ntraj:
+            # First make sure that "ntraj" setting is always respected
+            self.stats["end_condition"] = "ntraj reached"
+            return 0
+
         if self._num_rel_trajectories <= 1:
             return np.inf
         avg, avg2 = self._average_computer()
@@ -687,13 +692,11 @@ class MultiTrajResult(_BaseResult):
         target_ntraj = np.max((avg2 / one - (abs(avg) ** 2) / (one ** 2)) /
                               target**2 + 1)
 
-        self._estimated_ntraj = min(target_ntraj, self._target_ntraj)
-        if (self._estimated_ntraj - self._num_rel_trajectories) <= 0:
-            if (self._estimated_ntraj - self._target_ntraj) < 0:
-                self.stats["end_condition"] = "target tolerance reached"
-            else:
-                self.stats["end_condition"] = "ntraj reached"
-        return self._estimated_ntraj - self._num_rel_trajectories
+        self._estimated_ntraj = min(target_ntraj - self._num_rel_trajectories,
+                                    self._target_ntraj - self.num_trajectories)
+        if self._estimated_ntraj <= 0:
+            self.stats["end_condition"] = "target tolerance reached"
+        return self._estimated_ntraj
 
     def _post_init(self):
         self._target_ntraj = None
