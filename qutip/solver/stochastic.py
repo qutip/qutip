@@ -685,8 +685,9 @@ class StochasticSolver(MultiTrajSolver):
                 noise = dW/dt * dW_factors
                     + expect(sc_ops[i] + sc_ops[i].dag, state_t)
 
-            Note that the expectation value is usally computed at the start of
-            the step. Only available for limited integration methods.
+            Note that this function expects the expectation values to be taken at the start of
+            the time step, corresponding to the "start" setting for the "store_measurements" option.
+            Only available for limited integration methods.
 
         Returns
         -------
