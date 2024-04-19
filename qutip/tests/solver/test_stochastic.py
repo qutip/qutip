@@ -423,7 +423,7 @@ def test_run_from_experiment_close(method, heterodyne):
 
     H = num(N)
     a = destroy(N)
-    sc_ops = [a, a.dag() * 0.1]
+    sc_ops = [a, a @ a + (a @ a).dag()]
     psi0 = basis(N, N-1)
     tlist = np.linspace(0, 0.1, 101)
     options = {
