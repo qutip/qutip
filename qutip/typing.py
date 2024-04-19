@@ -1,7 +1,4 @@
 from typing import Sequence, Union, Any, Callable, Protocol
-
-# from .core.cy.qobjEvo import QobjEvoLike, Element
-# from .core.coeffients import CoefficientLike
 from numbers import Number, Real
 import numpy as np
 import scipy.interpolate
@@ -30,8 +27,11 @@ CoefficientLike = Union[
     Any,
 ]
 
+
 ElementType = Union[QEvoProtocol, "Qobj", tuple["Qobj", CoefficientLike]]
 
+
 QobjEvoLike = Union["Qobj", "QobjEvo", ElementType, Sequence[ElementType]]
+
 
 LayerType = Union[str, type]

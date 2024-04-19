@@ -1,6 +1,8 @@
 __all__ = ['mcsolve', "MCSolver"]
 
 import numpy as np
+from numpy.typing import ArrayLike
+from numpy.random import SeedSequence
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .multitraj import MultiTrajSolver, _MTSystem
 from .solver_base import Solver, Integrator, _solver_deprecation
@@ -11,9 +13,21 @@ import qutip.core.data as _data
 from time import time
 
 
-def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
-            args=None, options=None, seeds=None, target_tol=None, timeout=None,
-            **kwargs):
+def mcsolve(
+    H: QobjEvoLike,
+    state: Qobj,
+    tlist: ArrayLike,
+    c_ops: QobjEvoLike | list[QobjEvoLike] = (),
+    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+    ntraj: int = 500,
+    *,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+    seeds: int | SeedSequence | list[int | SeedSequence] = None,
+    target_tol: float = None,
+    timeout: float = None,
+    **kwargs,
+) -> Result:
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -429,7 +443,13 @@ class MCSolver(MultiTrajSolver):
         "improved_sampling": False,
     }
 
-    def __init__(self, H, c_ops, *, options=None):
+    def __init__(
+        self,
+        H: QobjEvoLike,
+        c_ops: QobjEvoLike | list[QobjEvoLike],
+        *,
+        options: dict[str, Any] = None,
+    ):
         _time_start = time()
 
         if isinstance(c_ops, (Qobj, QobjEvo)):
@@ -502,8 +522,18 @@ class MCSolver(MultiTrajSolver):
         result.collapse = self._integrator.collapses
         return seed, result
 
-    def run(self, state, tlist, ntraj=1, *,
-            args=None, e_ops=(), timeout=None, target_tol=None, seeds=None):
+    def run(
+        self,
+        state: Qobj,
+        tlist: ArrayLike,
+        ntraj: int = 1,
+        *,
+        args: dict[str, Any] = None,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+        target_tol: float = None,
+        timeout: float = None,
+        seeds: int | SeedSequence | list[int | SeedSequence] = None,
+    ) -> Result:
         """
         Do the evolution of the Quantum system.
         See the overridden method for further details. The modification
@@ -572,7 +602,7 @@ class MCSolver(MultiTrajSolver):
             return McResult
 
     @property
-    def options(self):
+    def options(self) -> dict:
         """
         Options for monte carlo solver:
 
@@ -640,7 +670,7 @@ class MCSolver(MultiTrajSolver):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict[str, Any]):
         MultiTrajSolver.options.fset(self, new_options)
 
     @classmethod
@@ -653,7 +683,7 @@ class MCSolver(MultiTrajSolver):
         }
 
     @classmethod
-    def CollapseFeedback(cls, default=None):
+    def CollapseFeedback(cls, default: list = None):
         """
         Collapse of the trajectory argument for time dependent systems.
 
@@ -671,14 +701,19 @@ class MCSolver(MultiTrajSolver):
 
         Parameters
         ----------
-        default : callable, default : []
-            Default function used outside the solver.
+        default : list, default : []
+            Argument value to use outside of solver.
 
         """
         return _CollapseFeedback(default)
 
     @classmethod
-    def StateFeedback(cls, default=None, raw_data=False, open=False):
+    def StateFeedback(
+        cls,
+        default: Qobj | _data.Data = None,
+        raw_data: bool = False,
+        prop: bool = False
+    ):
         """
         State of the evolution to be used in a time-dependent operator.
 

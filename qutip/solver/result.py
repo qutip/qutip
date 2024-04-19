@@ -225,7 +225,7 @@ class Result(_BaseResult):
 
     def __init__(
         self,
-        e_ops,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
         options: ResultOptions,
         *,
         solver: str = None,

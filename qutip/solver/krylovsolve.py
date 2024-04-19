@@ -1,12 +1,19 @@
 __all__ = ['krylovsolve']
 
-from .. import QobjEvo
+from .. import QobjEvo, Qobj
 from .sesolve import SESolver
+from numpy.typing import ArrayLike
 
 
 def krylovsolve(
-    H, psi0, tlist, krylov_dim, e_ops=None, args=None, options=None
-):
+    H: Qobj,
+    psi0: Qobj,
+    tlist: ArrayLike,
+    krylov_dim: int,
+    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+) -> Result:
     """
     Schrodinger equation evolution of a state vector for time independent
     Hamiltonians using Krylov method.
