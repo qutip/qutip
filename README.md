@@ -22,19 +22,6 @@ and [J. R. Johansson](https://github.com/jrjohansson)
 [![PyPi Downloads](https://img.shields.io/pypi/dm/qutip?label=downloads%20%7C%20pip&logo=PyPI)](https://pypi.org/project/qutip)
 [![Conda-Forge Downloads](https://img.shields.io/conda/dn/conda-forge/qutip?label=downloads%20%7C%20conda&logo=Conda-Forge)](https://anaconda.org/conda-forge/qutip)
 
-> **Note**
->
-> The master branch now contains the alpha version of QuTiP 5. This is major
-> revision that breaks compatibility in many small ways withh QuTiP 4.7.
->
-> If you need to track QuTiP 4.7 changes or submit pull requests for 4.7,
-> please use the `qutip-4.7.X` branch.
->
-> If you need to track QuTiP 5 changes or submit  pull request for 5,
-> please use the `master` branch (and not the `dev.major` branch).
->
-> The change to master happened on 16 January 2023 in commit @fccec5d.
-
 QuTiP is open-source software for simulating the dynamics of closed and open quantum systems.
 It uses the excellent Numpy, Scipy, and Cython packages as numerical backends, and graphical output is provided by Matplotlib.
 QuTiP aims to provide user-friendly and efficient numerical simulations of a wide variety of quantum mechanical problems, including those with Hamiltonians and/or collapse operators with arbitrary time-dependence, commonly found in a wide range of physics applications.
@@ -70,10 +57,10 @@ pip install qutip
 
 to get the minimal installation.
 You can instead use the target `qutip[full]` to install QuTiP with all its optional dependencies.
-For more details, including instructions on how to build from source, see [the detailed installation guide in the documentation](https://qutip.org/docs/latest/installation.html).
+For more details, including instructions on how to build from source, see [the detailed installation guide in the documentation](https://qutip.readthedocs.io/en/stable/installation.html).
 
 All back releases are also available for download in the [releases section of this repository](https://github.com/qutip/qutip/releases), where you can also find per-version changelogs.
-For the most complete set of release notes and changelogs for historic versions, see the [changelog](https://qutip.org/docs/latest/changelog.html) section in the documentation.
+For the most complete set of release notes and changelogs for historic versions, see the [changelog](https://qutip.readthedocs.io/en/stable/changelog.html) section in the documentation.
 
 
 The pre-release of QuTiP 5.0 is available on PyPI and can be installed using pip:
@@ -107,9 +94,9 @@ Contribute
 
 You are most welcome to contribute to QuTiP development by forking this repository and sending pull requests, or filing bug reports at the [issues page](https://github.com/qutip/qutip/issues).
 You can also help out with users' questions, or discuss proposed changes in the [QuTiP discussion group](https://groups.google.com/g/qutip).
-All code contributions are acknowledged in the [contributors](https://qutip.org/docs/latest/contributors.html) section in the documentation.
+All code contributions are acknowledged in the [contributors](https://qutip.readthedocs.io/en/stable/contributors.html) section in the documentation.
 
-For more information, including technical advice, please see the ["contributing to QuTiP development" section of the documentation](https://qutip.org/docs/latest/development/contributing.html).
+For more information, including technical advice, please see the ["contributing to QuTiP development" section of the documentation](https://qutip.readthedocs.io/en/stable/development/contributing.html).
 
 
 Citing QuTiP

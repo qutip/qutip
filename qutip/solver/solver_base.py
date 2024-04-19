@@ -41,7 +41,7 @@ class Solver:
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": "ket",
+        "normalize_output": True,
         "method": "adams",
     }
     _resultclass = Result
@@ -87,7 +87,7 @@ class Solver:
                             f" and {state.dims}")
 
         self._state_metadata = {
-            'dims': state.dims,
+            'dims': state._dims,
             'isherm': state.isherm and not (self.rhs.dims == state.dims)
         }
         if self.rhs.dims[1] == state.dims:
@@ -98,7 +98,7 @@ class Solver:
         """
         Retore the Qobj state from its data.
         """
-        if self._state_metadata['dims'] == self.rhs.dims[1]:
+        if self._state_metadata['dims'] == self.rhs._dims[1]:
             state = Qobj(unstack_columns(data),
                          **self._state_metadata, copy=False)
         else:

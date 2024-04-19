@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from numpy.random import SeedSequence
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
-from .multitraj import MultiTrajSolver, _MTSystem
+from .multitraj import MultiTrajSolver, _MultiTrajRHS
 from .solver_base import Solver, Integrator, _solver_deprecation
 from .result import McResult, McTrajectoryResult, McResultImprovedSampling
 from .mesolve import mesolve, MESolver
@@ -181,26 +181,18 @@ def mcsolve(
     return result
 
 
-class _MCSystem(_MTSystem):
+class _MCRHS(_MultiTrajRHS):
     """
     Container for the operators of the solver.
     """
 
-    def __init__(self, rhs, c_ops, n_ops):
-        self.rhs = rhs
+    def __init__(self, H, c_ops, n_ops):
+        self.rhs = H
         self.c_ops = c_ops
         self.n_ops = n_ops
-        self._collapse_key = ""
 
     def __call__(self):
         return self.rhs
-
-    def __getattr__(self, attr):
-        if attr == "rhs":
-            raise AttributeError
-        if hasattr(self.rhs, attr):
-            return getattr(self.rhs, attr)
-        raise AttributeError
 
     def arguments(self, args):
         self.rhs.arguments(args)
@@ -476,14 +468,16 @@ class MCSolver(MultiTrajSolver):
         self._num_collapse = len(self._c_ops)
         self.options = options
 
-        system = _MCSystem(rhs, self._c_ops, self._n_ops)
+        system = _MCRHS(rhs, self._c_ops, self._n_ops)
         super().__init__(system, options=options)
 
     def _restore_state(self, data, *, copy=True):
         """
         Retore the Qobj state from its data.
         """
-        if self._state_metadata['dims'] == self.rhs.dims[1]:
+        # Duplicated from the Solver class, but removed the check for the
+        # normalize_output option, since MCSolver doesn't have that option.
+        if self._state_metadata['dims'] == self.rhs._dims[1]:
             state = Qobj(unstack_columns(data),
                          **self._state_metadata, copy=False)
         else:
@@ -500,25 +494,12 @@ class MCSolver(MultiTrajSolver):
         })
         return stats
 
-    def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
-                                 no_jump=False, jump_prob_floor=0.0):
-        result = self._trajectory_resultclass(e_ops, self.options)
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator,
-                                   no_jump=no_jump,
-                                   jump_prob_floor=jump_prob_floor)
-        result.add(tlist[0], self._restore_state(state, copy=False))
-        return result
-
-    def _run_one_traj(self, seed, state, tlist, e_ops, no_jump=False,
-                      jump_prob_floor=0.0):
+    def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
         """
         Run one trajectory and return the result.
         """
-        result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
-                                               no_jump=no_jump,
-                                               jump_prob_floor=jump_prob_floor)
-        seed, result = self._integrate_one_traj(seed, tlist, result)
+        seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
+                                             **integrator_kwargs)
         result.collapse = self._integrator.collapses
         return seed, result
 
@@ -534,13 +515,9 @@ class MCSolver(MultiTrajSolver):
         timeout: float = None,
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> Result:
-        """
-        Do the evolution of the Quantum system.
-        See the overridden method for further details. The modification
-        here is to sample the no-jump trajectory first. Then, the no-jump
-        probability is used as a lower-bound for random numbers in future
-        monte carlo runs
-        """
+        # Overridden to sample the no-jump trajectory first. Then, the no-jump
+        # probability is used as a lower-bound for random numbers in future
+        # monte carlo runs
         if not self.options.get("improved_sampling", False):
             return super().run(state, tlist, ntraj=ntraj, args=args,
                                e_ops=e_ops, timeout=timeout,
@@ -570,7 +547,8 @@ class MCSolver(MultiTrajSolver):
         start_time = time()
         map_func(
             self._run_one_traj, seeds[1:],
-            (state0, tlist, e_ops, False, no_jump_prob),
+            task_args=(state0, tlist, e_ops),
+            task_kwargs={'no_jump': False, 'jump_prob_floor': no_jump_prob},
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"]
@@ -587,9 +565,9 @@ class MCSolver(MultiTrajSolver):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.system(), self.options)
+        integrator_instance = integrator(self.rhs(), self.options)
         mc_integrator = self._mc_integrator_class(
-            integrator_instance, self.system, self.options
+            integrator_instance, self.rhs, self.options
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator

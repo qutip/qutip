@@ -613,11 +613,11 @@ cdef class QobjEvo:
 
     def __imatmul__(QobjEvo self, other):
         if isinstance(other, (Qobj, QobjEvo)):
-            if self.dims[1] != other.dims[0]:
+            if self._dims[1] != other._dims[0]:
                 raise TypeError("incompatible dimensions" +
                                 str(self.dims[1]) + ", " +
                                 str(other.dims[0]))
-            self._dims = Dimensions([self.dims[0], other.dims[1]])
+            self._dims = Dimensions([self._dims[0], other._dims[1]])
             self.shape = (self.shape[0], other.shape[1])
             if isinstance(other, Qobj):
                 other = _ConstantElement(other)
@@ -946,6 +946,21 @@ cdef class QobjEvo:
     def isoperbra(self):
         """Indicates if the system represents a operator-bra state."""
         return self._dims.type == 'operator-bra'
+
+    @property
+    def dtype(self):
+        """
+        Type of the data layers of the QobjEvo.
+        When different data layers are used, we return the type of the sum of
+        the parts.
+        """
+        part_types = [part.dtype for part in self.elements]
+        if (
+            part_types[0] is not None
+            and all(part == part_types[0] for part in part_types)
+        ):
+            return part_types[0]
+        return self(0).dtype
 
     ###########################################################################
     # operation methods                                                       #

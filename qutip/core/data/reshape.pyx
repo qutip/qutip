@@ -2,7 +2,7 @@
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 
 from libc.string cimport memcpy, memset
-
+from scipy.linalg cimport cython_blas as blas
 cimport cython
 
 import warnings
@@ -52,7 +52,7 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
     return out
 
 
-cdef inline idxint _reshape_dense_reindex(idxint idx, idxint size):
+cdef inline size_t _reshape_dense_reindex(size_t idx, size_t size):
     return (idx // size) + (idx % size)
 
 
@@ -66,8 +66,9 @@ cpdef Dense reshape_dense(Dense matrix, idxint n_rows_out, idxint n_cols_out):
     out = dense.zeros(n_rows_out, n_cols_out)
     cdef size_t idx_in=0, idx_out=0
     cdef size_t size = n_rows_out * n_cols_out
+    cdef size_t tmp = (<size_t> matrix.shape[1]) * (<size_t> n_rows_out)
     # TODO: improve the algorithm here.
-    cdef size_t stride = _reshape_dense_reindex(matrix.shape[1]*n_rows_out, size)
+    cdef size_t stride = _reshape_dense_reindex(tmp, size)
     for idx_in in range(size):
         out.data[idx_out] = matrix.data[idx_in]
         idx_out = _reshape_dense_reindex(idx_out + stride, size)
@@ -99,7 +100,16 @@ cpdef Dense column_stack_dense(Dense matrix, bint inplace=False):
         return out
     if inplace:
         warnings.warn("cannot stack columns inplace for C-ordered matrix")
-    return reshape_dense(matrix.transpose(), matrix.shape[0]*matrix.shape[1], 1)
+    out = dense.zeros(matrix.shape[0] * matrix.shape[1], 1)
+    cdef idxint col
+    cdef int ONE=1
+    for col in range(matrix.shape[1]):
+        blas.zcopy(
+            &matrix.shape[0],
+            &matrix.data[col], &matrix.shape[1],
+            &out.data[col * matrix.shape[0]], &ONE
+        )
+    return out
 
 
 cpdef Dia column_stack_dia(Dia matrix):
