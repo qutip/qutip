@@ -276,8 +276,8 @@ HTML File Updates
 
 - Edit ``_includes/sidebar.html``
 
-    * The 'Latest release' version should be updated. The gztar and zip file links will need the micro release number updating in the traceEvent and file name.
-    * The link to the documentation folder and PDF file (if created) should be updated.
+    * Add the new version and release date. Only actively developed version should be listed. Micro replace the previous entry but the last major can be kept.
+    * Link to the installation instruction, documentation, source code and changelog should be updated.
 
 - Edit ``documentation.html``
 
