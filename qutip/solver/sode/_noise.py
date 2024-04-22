@@ -26,7 +26,7 @@ class Wiener:
     def dW(self, t, N):
         # Find the index of t.
         # Rounded to the closest step, but only multiple of dt are expected.
-        idx0 = round((t- self.t0) / self.dt)
+        idx0 = round((t - self.t0) / self.dt)
         if idx0 + N - 1 >= self.noise.shape[0]:
             self._extend(idx0 + N)
         return self.noise[idx0:idx0 + N, :, :]
@@ -40,7 +40,7 @@ class Wiener:
 
         # Find the index of t.
         # Rounded to the closest step, but only multiple of dt are expected.
-        idx = round((t- self.t0) / self.dt)
+        idx = round((t - self.t0) / self.dt)
         if idx >= self.noise.shape[0]:
             self._extend(idx + 1)
 
