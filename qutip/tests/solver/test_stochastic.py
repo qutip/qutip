@@ -425,7 +425,7 @@ def test_run_from_experiment_close(method, heterodyne):
     a = destroy(N)
     sc_ops = [a, a @ a + (a @ a).dag()]
     psi0 = basis(N, N-1)
-    tlist = np.linspace(0, 0.1, 101)
+    tlist = np.linspace(0, 0.1, 251)
     options = {
         "store_measurement": "start",
         "dt": tlist[1],
@@ -470,10 +470,10 @@ def test_run_from_experiment_open(method, heterodyne):
     a = destroy(N)
     sc_ops = [a, a.dag() * 0.1]
     psi0 = basis(N, N-1)
-    tlist = np.linspace(0, 1, 101)
+    tlist = np.linspace(0, 1, 251)
     options = {
         "store_measurement": "start",
-        "dt": 0.01,
+        "dt": tlist[1],
         "store_states": True,
         "method": method,
     }
