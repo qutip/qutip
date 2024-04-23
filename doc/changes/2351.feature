@@ -1,0 +1,1 @@
+Add output_type to qobj.eigenstate() to add return type as both operator as well as kets
