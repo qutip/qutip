@@ -102,9 +102,9 @@ jobs:
           # Mac
           # Mac has issues with MKL since september 2022.
           - case-name: macos
-            # setup-miniconda not compatible with macos-latest yet.
+            # setup-miniconda not compatible with macos-latest presently.
             # https://github.com/conda-incubator/setup-miniconda/issues/344
-            os: macos-13
+            os: macos-12
             python-version: "3.11"
             condaforge: 1
             nomkl: 1
