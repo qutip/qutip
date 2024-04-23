@@ -70,9 +70,6 @@ class CoreOptions(QutipOptions):
         With auto_tidyup_dims:
             ``basis([2, 2]).dims == [[2, 2], [1]]``
 
-    auto_herm : boolTrue
-        detect hermiticity
-
     atol : float {1e-12}
         General absolute tolerance
 
@@ -112,8 +109,6 @@ class CoreOptions(QutipOptions):
         "auto_tidyup": True,
         # use auto tidyup dims on multiplication
         "auto_tidyup_dims": False,
-        # detect hermiticity
-        "auto_herm": True,
         # general absolute tolerance
         "atol": 1e-12,
         # general relative tolerance

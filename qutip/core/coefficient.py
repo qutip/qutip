@@ -267,6 +267,7 @@ class CompilationOptions(QutipOptions):
     try:
         import cython
         import filelock
+        import setuptools
         _use_cython = True
     except ImportError:
         _use_cython = False
@@ -277,7 +278,7 @@ class CompilationOptions(QutipOptions):
         "try_parse": True,
         "static_types": True,
         "accept_int": None,
-        "accept_float": True,
+        "accept_float": None,
         "recompile": False,
         "compiler_flags": _compiler_flags,
         "link_flags": _link_flags,
@@ -293,7 +294,7 @@ qset.compile = CompilationOptions()
 
 
 # Version number of the Coefficient
-COEFF_VERSION = "1.1"
+COEFF_VERSION = "1.2"
 
 try:
     root = os.path.join(qset.tmproot, f"qutip_coeffs_{COEFF_VERSION}")
@@ -309,15 +310,17 @@ def clean_compiled_coefficient(all=False):
     Parameter:
     ----------
     all: bool
-        If not `all` will remove only previous version.
+        If not `all`, it will remove only previous version.
     """
     import glob
     import shutil
     tmproot = qset.tmproot
-    root = os.path.join(tmproot, f'qutip_coeffs_{COEFF_VERSION}')
+    active = qset.coeffroot
     folders = glob.glob(os.path.join(tmproot, 'qutip_coeffs_') + "*")
+    if all:
+        shutil.rmtree(active)
     for folder in folders:
-        if all or folder != root:
+        if folder != active:
             shutil.rmtree(folder)
     # Recreate the empty folder.
     qset.coeffroot = qset.coeffroot
@@ -384,8 +387,8 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None, **_):
     if not compile_opt['use_cython']:
         if WARN_MISSING_MODULE[0]:
             warnings.warn(
-                "Both `cython` and `filelock` are required for compilation of "
-                "string coefficents. Falling back on `eval`.")
+                "`cython` `setuptools` and `filelock` are required for "
+                "compilation of string coefficents. Falling back on `eval`.")
             # Only warns once.
             WARN_MISSING_MODULE[0] = 0
         return StrFunctionCoefficient(base, args)
@@ -711,8 +714,17 @@ def parse(code, args, compile_opt):
     accept_float = compile_opt['accept_float']
     if accept_int is None:
         # If there is a subscript: a[b] int are always accepted to be safe
-        # with TypeError
-        accept_int = "SUBSCR" in dis.Bytecode(code).dis()
+        # with TypeError.
+        # Also comparison is not supported for complex.
+        accept_int = (
+            "SUBSCR" in dis.Bytecode(code).dis()
+            or "COMPARE_OP" in dis.Bytecode(code).dis()
+        )
+    if accept_float is None:
+        accept_float = (
+            "SUBSCR" in dis.Bytecode(code).dis()
+            or "COMPARE_OP" in dis.Bytecode(code).dis()
+        )
     for word in code.split():
         if word not in names:
             # syntax

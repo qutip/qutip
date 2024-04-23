@@ -7,7 +7,7 @@ Classes
 .. _classes-qobj:
 
 Qobj
---------------
+----
 
 .. autoclass:: qutip.core.qobj.Qobj
     :members:
@@ -16,17 +16,24 @@ Qobj
 .. _classes-qobjevo:
 
 QobjEvo
---------------
+-------
 
 .. autoclass:: qutip.core.cy.qobjevo.QobjEvo
     :members:
     :special-members: __call__
 
+.. _classes-coreoptions:
+
+CoreOptions
+-----------
+
+.. autoclass:: qutip.core.options.CoreOptions
+
 
 .. _classes-bloch:
 
 Bloch sphere
----------------
+------------
 
 .. autoclass:: qutip.bloch.Bloch
     :members:
@@ -264,6 +271,12 @@ Distribution functions
 
 .. autoclass:: qutip.distributions.Distribution
     :members:
+
+CompilationOptions
+------------------
+
+.. autoclass:: qutip.core.coefficient.CompilationOptions
+
 
 ..
   Docstrings are empty...
