@@ -28,6 +28,7 @@ CoreOptions
 -----------
 
 .. autoclass:: qutip.core.options.CoreOptions
+    :members:
 
 
 .. _classes-bloch:

@@ -230,7 +230,7 @@ def test_CoeffOptions():
     base = "1 + 1. + 1j"
     options = []
     options.append(CompilationOptions(accept_int=True))
-    options.append(CompilationOptions(accept_float=False))
+    options.append(CompilationOptions(accept_float=True))
     options.append(CompilationOptions(static_types=True))
     options.append(CompilationOptions(try_parse=False))
     options.append(CompilationOptions(use_cython=False))
@@ -244,10 +244,12 @@ def test_CoeffOptions():
 def test_warn_no_cython():
     option = CompilationOptions(use_cython=False)
     WARN_MISSING_MODULE[0] = 1
-    with pytest.warns(
-        UserWarning, match="`cython` and `filelock` are required"
-    ):
+    with pytest.warns(UserWarning) as warning:
         coefficient("t", compile_opt=option)
+    assert all(
+        module in warning[0].message.args[0]
+        for module in ["cython", "filelock", "setuptools"]
+    )
 
 @pytest.mark.requires_cython
 @pytest.mark.parametrize(['codestring', 'args', 'reference'], [

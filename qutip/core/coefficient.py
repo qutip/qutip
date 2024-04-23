@@ -209,10 +209,29 @@ WARN_MISSING_MODULE = [0]
 
 class CompilationOptions(QutipOptions):
     """
+    Options that control compilation of string based coefficient to Cython.
+
+    These options can be set globaly:
+
+        ``settings.compile["compiler_flags"] = "-O1"``
+
+    In a ``with`` block:
+
+        ``with CompilationOptions(use_cython=False):``
+
+    Or as an instance:
+
+        ``coefficient(coeff, compile_opt=CompilationOptions(recompile=True))``
+
+    ********************
     Compilation options:
+    ********************
 
     use_cython: bool
         Whether to compile strings as cython code or use python's ``exec``.
+
+    recompile : bool
+        Do not use previously made files but build a new one.
 
     try_parse: bool [True]
         Whether to try parsing the string for reuse and static typing.
@@ -228,9 +247,6 @@ class CompilationOptions(QutipOptions):
 
     accept_float : bool
         Whether to use the type ``float`` or upgrade them to ``complex``.
-
-    recompile : bool
-        Do not use previously made files but build a new one.
 
     compiler_flags : str
         Flags to pass to the compiler, ex: "-Wall -O3"...
@@ -716,15 +732,9 @@ def parse(code, args, compile_opt):
         # If there is a subscript: a[b] int are always accepted to be safe
         # with TypeError.
         # Also comparison is not supported for complex.
-        accept_int = (
-            "SUBSCR" in dis.Bytecode(code).dis()
-            or "COMPARE_OP" in dis.Bytecode(code).dis()
-        )
+        accept_int = "SUBSCR" in dis.Bytecode(code).dis()
     if accept_float is None:
-        accept_float = (
-            "SUBSCR" in dis.Bytecode(code).dis()
-            or "COMPARE_OP" in dis.Bytecode(code).dis()
-        )
+        accept_float = "COMPARE_OP" in dis.Bytecode(code).dis()
     for word in code.split():
         if word not in names:
             # syntax

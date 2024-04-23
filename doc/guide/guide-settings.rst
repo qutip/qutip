@@ -77,26 +77,26 @@ The settings that can be modified are given in the following table:
 
 .. cssclass:: table-striped
 
-+------------------------------+----------------------------------------------+------------------------------+
-| Setting                      | Description                                  | Options                      |
-+==============================+==============================================+==============================+
-| `auto_tidyup`                | Automatically tidyup sparse quantum objects. | bool {True}                  |
-+------------------------------+----------------------------------------------+------------------------------+
-| `auto_tidyup_atol`           | Tolerance used by tidyup. (sparse only)      | float {1e-14}                |
-+------------------------------+----------------------------------------------+------------------------------+
-| `auto_tidyup_dims`           | Whether the scalar dimension are contracted  | bool {False}                 |
-+------------------------------+----------------------------------------------+------------------------------+
-| `atol`                       | General absolute tolerance.                  | float {1e-12}                |
-+------------------------------+----------------------------------------------+------------------------------+
-| `rtol`                       | General relative tolerance.                  | float {1e-12}                |
-+------------------------------+----------------------------------------------+------------------------------+
-| `function_coefficient_style` | Signature expected by function coefficients. | {"auto", "pythonic", "dict"} |
-+------------------------------+----------------------------------------------+------------------------------+
-| `default_dtype`              | Data format used when creating Qobj from     | {None, "CSR", "Dense",       |
-|                              | QuTiP functions, such as ``qeye``.           | "Dia"} + other from plugins  |
-+------------------------------+----------------------------------------------+------------------------------+
++------------------------------+----------------------------------------------+--------------------------------+
+| Options                      | Description                                  | type [default]                 |
++==============================+==============================================+================================+
+| `auto_tidyup`                | Automatically tidyup sparse quantum objects. | bool [True]                    |
++------------------------------+----------------------------------------------+--------------------------------+
+| `auto_tidyup_atol`           | Tolerance used by tidyup. (sparse only)      | float [1e-14]                  |
++------------------------------+----------------------------------------------+--------------------------------+
+| `auto_tidyup_dims`           | Whether the scalar dimension are contracted  | bool [False]                   |
++------------------------------+----------------------------------------------+--------------------------------+
+| `atol`                       | General absolute tolerance.                  | float [1e-12]                  |
++------------------------------+----------------------------------------------+--------------------------------+
+| `rtol`                       | General relative tolerance.                  | float [1e-12]                  |
++------------------------------+----------------------------------------------+--------------------------------+
+| `function_coefficient_style` | Signature expected by function coefficients. | {["auto"], "pythonic", "dict"} |
++------------------------------+----------------------------------------------+--------------------------------+
+| `default_dtype`              | Data format used when creating Qobj from     | {[None], "CSR", "Dense",       |
+|                              | QuTiP functions, such as ``qeye``.           | "Dia"} + other from plugins    |
++------------------------------+----------------------------------------------+--------------------------------+
 
-See :class:`.CoreOptions`.
+See also :class:`.CoreOptions`.
 
 .. _settings-usage:
 
@@ -128,42 +128,68 @@ Speeding the simulations, it tries to set c types to passed variables.
 
 There are options are about to whether to compile.
 
-- | use_cython: bool
-  | Whether to compile string using cython or using ``eval``.
-- | recompile: bool [False]
-  | Whether to force recompilation or use a previously constructed coefficient if available.
+.. tabularcolumns:: | p{3cm} | p{10cm} |
+
+.. cssclass:: table-striped
+
++--------------------------+-----------------------------------------------------------+
+| Options                  | Description                                               |
++==========================+===========================================================+
+| `use_cython`             | Whether to compile string using cython or using ``eval``. |
++--------------------------+-----------------------------------------------------------+
+| `recompile`              | Whether to force recompilation or use a previously        |
+|                          | constructed coefficient if available.                     |
++--------------------------+-----------------------------------------------------------+
 
 
 Some options passed to cython and the compiler (for advanced user).
 
-- | compiler_flags: str
-  | C++ compiler flags.
-- | link_flags: str
-  | C++ link flags.
-- | build_dir: str
-  | cythonize's build_dir.
-- | extra_import: str
-  | import or cimport line of code to add to the cython file.
-- | clean_on_error: bool [True]
-  | Whether to erase the created file if compilation failed.
+.. tabularcolumns:: | p{3cm} | p{10cm} |
+
+.. cssclass:: table-striped
+
++--------------------------+-----------------------------------------------------------+
+| Options                  | Description                                               |
++==========================+===========================================================+
+| `compiler_flags`         | C++ compiler flags.                                       |
++--------------------------+-----------------------------------------------------------+
+| `link_flags`             | C++ linker flags.                                         |
++--------------------------+-----------------------------------------------------------+
+| `build_dir`              | cythonize's build_dir.                                    |
++--------------------------+-----------------------------------------------------------+
+| `extra_import`           | import or cimport line of code to add to the cython file. |
++--------------------------+-----------------------------------------------------------+
+| `clean_on_error`         | Whether to erase the created file if compilation failed.  |
++--------------------------+-----------------------------------------------------------+
 
 
 Lastly some options control how qutip tries to detect C types (for advanced user).
 
-- | try_parse: bool [True]
-  | Whether qutip parse the string to detect common patterns.
-  | When True, "cos(w * t)" and "cos(a * t)" will use the same compiled coefficient.
-- | static_types: bool [True]
-  | If False, every variable will be typed as ``object``, (except ``t`` which is double).
-  | If True, scalar (int, float, complex), string and Data types are detected.
-- | accept_int: bool [None]
-  | Whether to type ``args`` values which are python int as int or float/complex.
-  | Per default it is True when subscription (``a[i]``) or comparison (``a > b``) are used.
-- | accept_float: bool [None]
-  | Whether to type ``args`` values which are python float as float or complex.
-  | Per default it is True when subscription (``a[i]``) or comparison (``a > b``) are used.
+.. tabularcolumns:: | p{3cm} | p{10cm} |
+
+.. cssclass:: table-striped
+
++--------------------------+-----------------------------------------------------------------------------------------+
+| Options                  | Description                                                                             |
++==========================+=========================================================================================+
+| `try_parse`              | Whether qutip parse the string to detect common patterns.                               |
+|                          |                                                                                         |
+|                          | When True, "cos(w * t)" and "cos(a * t)" will use the same compiled coefficient.        |
++--------------------------+-----------------------------------------------------------------------------------------+
+| `static_types`           | If False, every variable will be typed as ``object``, (except ``t`` which is double).   |
+|                          |                                                                                         |
+|                          | If True, scalar (int, float, complex), string and Data types are detected.              |
++--------------------------+-----------------------------------------------------------------------------------------+
+| `accept_int`             | Whether to type ``args`` values which are python int as int or float/complex.           |
+|                          |                                                                                         |
+|                          | Per default it is True when subscription (``a[i]``) is used.                            |
++--------------------------+-----------------------------------------------------------------------------------------+
+| `accept_float`           | Whether to type ``args`` values which are python float as int or float/complex.         |
+|                          |                                                                                         |
+|                          | Per default it is True when comparison (``a > b``) is used.                             |
++--------------------------+-----------------------------------------------------------------------------------------+
 
 
-These options can be set at a global level in ``qutip.settings.compile`` or by passing a :class:`.CompilationOptions` instance to the <func>`.coefficient` functions.
+These options can be set at a global level in ``qutip.settings.compile`` or by passing a :class:`.CompilationOptions` instance to the :func:`.coefficient` functions.
 
 >>> qutip.coefficient("cos(t)", compile_opt=CompilationOptions(recompile=True))

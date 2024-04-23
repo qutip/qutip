@@ -56,18 +56,24 @@ class CoreOptions(QutipOptions):
     comparison or coefficient's format.
 
     Values can be changed in ``qutip.settings.core`` or by using context:
-    ``with CoreOptions(atol=1e-6): ...``.
 
-    Options
-    -------
+        ``with CoreOptions(atol=1e-6): ...``
+
+    ********
+    Options:
+    ********
+
     auto_tidyup : bool
         Whether to tidyup during sparse operations.
 
     auto_tidyup_dims : bool [False]
         Use auto tidyup dims on multiplication, tensor, etc.
         Without auto_tidyup_dims:
+
             ``basis([2, 2]).dims == [[2, 2], [1, 1]]``
+
         With auto_tidyup_dims:
+
             ``basis([2, 2]).dims == [[2, 2], [1]]``
 
     atol : float {1e-12}
