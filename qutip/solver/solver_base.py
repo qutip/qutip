@@ -102,7 +102,10 @@ class Solver:
             state = Qobj(data, **self._state_metadata, copy=copy)
 
         if data.shape[1] == 1 and self._options['normalize_output']:
-            state = state * (1 / state.norm())
+            if state._isherm:
+                state = state * (1 / state.tr())
+            else:
+                state = state * (1 / state.norm())
 
         return state
 
