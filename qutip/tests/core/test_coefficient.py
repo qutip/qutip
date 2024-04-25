@@ -381,9 +381,13 @@ def test_CoeffArray(order):
         assert derrs[i] == pytest.approx(0.0,  abs=0.0001)
 
 
-def test_CoeffFromScipy():
+@pytest.mark.parametrize('imag', [True, False])
+def test_CoeffFromScipyPPoly(imag):
     tlist = np.linspace(0, 1.01, 101)
-    y = np.exp((-1 + 1j) * tlist)
+    if imag:
+        y = np.exp(-1j * tlist)
+    else:
+        y = np.exp(-1 * tlist)
 
     coeff = coefficient(y, tlist=tlist, order=3)
     from_scipy = coefficient(interp.CubicSpline(tlist, y))
@@ -396,6 +400,24 @@ def test_CoeffFromScipy():
     coeff = coefficient(y, tlist=tlist, order=3, boundary_conditions="natural")
     from_scipy = coefficient(interp.make_interp_spline(tlist, y, k=3, bc_type="natural"))
     _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)
+
+
+@pytest.mark.parametrize('imag', [True, False])
+def test_CoeffFromScipyBSpline(imag):
+    tlist = np.linspace(-0.1, 1.1, 121)
+    if imag:
+        y = np.exp(-1j * tlist)
+    else:
+        y = np.exp(-1 * tlist)
+
+    spline = interp.BSpline(tlist, y, 2)
+
+    def func(t):
+        return complex(spline(t))
+
+    coverted = coefficient(spline)
+    raw_scipy = coefficient(func)
+    _assert_eq_over_interval(coverted, raw_scipy, rtol=1e-8, inside=True)
 
 
 @pytest.mark.parametrize('map_func', [

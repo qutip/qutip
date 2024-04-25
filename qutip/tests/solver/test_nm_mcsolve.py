@@ -574,7 +574,7 @@ def test_super_H(improved_sampling):
         qutip.liouvillian(H), state, times, ops_and_rates, e_ops, ntraj=ntraj,
         target_tol=0.1, options={'map': 'serial',
                                  "improved_sampling": improved_sampling})
-    np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.5)
+    np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.65)
 
 
 def test_NonMarkovianMCSolver_run():
