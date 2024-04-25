@@ -85,6 +85,9 @@ class Solver:
 
         self._state_metadata = {
             'dims': state._dims,
+            # This is herm flag take for granted that the liouvillian keep
+            # hermiticity.  But we do not check user passed super operator for
+            # anything other than dimensions.
             'isherm': state.isherm and not (self.rhs.dims == state.dims)
         }
         if self.rhs.dims[1] == state.dims:
