@@ -116,7 +116,10 @@ class Solver:
 
         self._state_metadata = {
             'dims': state._dims,
-            'isherm': state.isherm and not (self._dims == state._dims)
+            # This is herm flag take for granted that the liouvillian keep
+            # hermiticity.  But we do not check user passed super operator for
+            # anything other than dimensions.
+            'isherm': state.isherm and not (self._dims == state.dims)
         }
         if self._dims[1] == state._dims:
             return stack_columns(state.data)
@@ -133,7 +136,10 @@ class Solver:
             state = Qobj(data, **self._state_metadata, copy=copy)
 
         if data.shape[1] == 1 and self._options['normalize_output']:
-            state = state * (1 / state.norm())
+            if state.isoper:
+                state = state * (1 / state.tr())
+            else:
+                state = state * (1 / state.norm())
 
         return state
 
