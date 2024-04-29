@@ -59,7 +59,9 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
     timet = floquet_basis.T
     dt = timet / Nt
     tlist = np.linspace(0, timet - dt, Nt)
-    omega = (2 * np.pi) / floquet_basis.T  # Frequency dependence of Hamiltonian
+    omega = (
+        2 * np.pi
+    ) / floquet_basis.T  # Frequency dependence of Hamiltonian
 
     total_R_tensor = defaultdict(lambda: 0)
     for cdx, c_op in enumerate(c_ops):
@@ -251,7 +253,10 @@ def flimesolve(
                     dt = tlist[1] - tlist[0]
                     tlist_zeroed = tlist - tlist[0]
                     Nt_finder = abs(tlist_zeroed + dt - floquet_basis.T)
-                    Nt = list(np.where(Nt_finder == np.amin(Nt_finder)))[0][0] + 1
+                    Nt = (
+                        list(np.where(Nt_finder == np.amin(Nt_finder)))[0][0]
+                        + 1
+                    )
             else:
                 Nt = 2**4
     options["Nt"] = Nt
@@ -314,7 +319,9 @@ def _floquet_state_table(floquet_basis, tlist):
     dims = len(floquet_basis.e_quasi)
 
     taulist_test = np.array(tlist) % floquet_basis.T
-    taulist_correction = np.argwhere(abs(taulist_test - floquet_basis.T) < 1e-10)
+    taulist_correction = np.argwhere(
+        abs(taulist_test - floquet_basis.T) < 1e-10
+    )
     taulist_test_new = np.round(taulist_test, 10)
     taulist_test_new[taulist_correction] = 0
 
@@ -459,7 +466,10 @@ class FLiMESolver(MESolver):
         Rate_Qobj_list = {
             key: Qobj(
                 rate_matrix_dictionary[key],
-                dims=[self.floquet_basis.U(0).dims, self.floquet_basis.U(0).dims],
+                dims=[
+                    self.floquet_basis.U(0).dims,
+                    self.floquet_basis.U(0).dims,
+                ],
                 copy=False,
             ).to("csr")
             for key in rate_matrix_dictionary
@@ -631,14 +641,17 @@ class FLiMESolver(MESolver):
         sols_comp = [
             Qobj(
                 _data.Dense(state),
-                dims=[self.floquet_basis.U(0).dims[0], self.floquet_basis.U(0).dims[0]],
+                dims=[
+                    self.floquet_basis.U(0).dims[0],
+                    self.floquet_basis.U(0).dims[0],
+                ],
                 copy=False,
             )
             for state in sols_comp_arr
         ]
 
         for idx, state in enumerate(sols_comp):
-            results.add(tlist[idx], state, fstates_table[idx])
+            results.add(tlist[idx], state, Qobj(fstates_table[idx]))
 
         stats["run time"] = time() - _time_start
         return results
