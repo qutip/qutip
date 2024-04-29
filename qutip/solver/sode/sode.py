@@ -85,7 +85,7 @@ class SIntegrator(Integrator):
         elif isinstance(generator, Wiener):
             self.wiener = generator
         else:
-            num_collapse = len(self.rhs.sc_ops)
+            num_collapse = len(self.rhs.c_ops)
             self.wiener = Wiener(
                 t, self.options["dt"], generator,
                 (self.N_dw, num_collapse)

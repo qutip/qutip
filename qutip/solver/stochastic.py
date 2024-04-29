@@ -558,16 +558,16 @@ class StochasticSolver(MultiTrajSolver):
         if len(new_m_ops) != len(self.m_ops):
             if self.heterodyne:
                 raise ValueError(
-                    f"2 `m_ops` per `sc_ops`, {len(self.rhs.sc_ops)} operators"
+                    f"2 `m_ops` per `sc_ops`, {len(self.sc_ops)} operators"
                     " are expected for heterodyne measurement."
                 )
             else:
                 raise ValueError(
-                    f"{len(self.rhs.sc_ops)} measurements "
+                    f"{len(self.sc_ops)} measurements "
                     "operators are expected."
                 )
         if not all(
-            isinstance(op, Qobj) and op.dims == self.rhs.sc_ops[0].dims
+            isinstance(op, Qobj) and op.dims == self.sc_ops[0].dims
             for op in new_m_ops
         ):
             raise ValueError(
@@ -590,12 +590,12 @@ class StochasticSolver(MultiTrajSolver):
         if len(new_dW_factors) != len(self._dW_factors):
             if self.heterodyne:
                 raise ValueError(
-                    f"2 `dW_factors` per `sc_ops`, {len(self.rhs.sc_ops)} "
+                    f"2 `dW_factors` per `sc_ops`, {len(self.sc_ops)} "
                     "values are expected for heterodyne measurement."
                 )
             else:
                 raise ValueError(
-                    f"{len(self.rhs.sc_ops)} dW_factors are expected."
+                    f"{len(self.sc_ops)} dW_factors are expected."
                 )
         self._dW_factors = new_dW_factors
 
@@ -672,7 +672,7 @@ class StochasticSolver(MultiTrajSolver):
         if not np.allclose(dt, np.diff(tlist)):
             raise ValueError("tlist must be evenly spaced.")
         generator = PreSetWiener(
-            noise, tlist, len(self.rhs.sc_ops), self.heterodyne, measurement
+            noise, tlist, len(self.sc_ops), self.heterodyne, measurement
         )
         state0 = self._prepare_state(state)
         try:
