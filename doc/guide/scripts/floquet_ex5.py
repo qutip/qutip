@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr 29 11:52:21 2024
+
+@author: frc00
+"""
+
 import numpy as np
 from matplotlib import pyplot
 import qutip
@@ -17,6 +24,8 @@ args = {"w": omega}
 H = [H0, [H1, lambda t, w: np.sin(w * t)]]
 gamma1 = 0.1
 
+# setting the value of the time_sense argument arbitrarily high
+t_sensitivity = 1e10
 
 # solve the floquet-lindblad master equation
 output = qutip.flimesolve.flimesolve(
@@ -27,6 +36,7 @@ output = qutip.flimesolve.flimesolve(
     c_ops=[np.sqrt(gamma1) * qutip.sigmax()],
     args=args,
     options={"store_floquet_states": True},
+    time_sense=t_sensitivity,
 )
 
 

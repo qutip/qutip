@@ -337,23 +337,44 @@ expectation values using:
     :nofigs:
 
 The Floquet-Lindblad master equation in QuTiP
--------------------------------------------
-The QuTiP function :func:`qutip.floquet.flimesolve` implements the Floquet-Lindblad master equation. It calculates the dynamics of a system given its initial state, a time-dependent Hamiltonian, a list of operators through which the system couples to its environment and a list of corresponding time-independent decay rates for the associated operators. Flimesolve is much like the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, in how the system couples to the environment.
+---------------------------------------------
+The QuTiP function :func:`qutip.floquet.flimesolve` implements the 
+Floquet-Lindblad master equation. It calculates the dynamics of a system given 
+its initial state, a time-dependent Hamiltonian, and a list of operators 
+through which the system couples to its environment. 
 
-Flimesolve expects the collapse operators and rates to be provided as a list of [c_op, rate] pairs. For example:
-
-.. code-block:: python
-
-    gamma1 = 0.1
-    c_ops_and_rates = [[sigmax(), gamma1]]
-
-The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the same format for the return value is used :class:`qutip.solve.solver.Result`. The following example extends the example studied above, and uses :func:`qutip.floquet.flimesolve` to introduce dissipation into the calculation
+The following example extends the example studied above, and uses 
+:func:`qutip.floquet.flimesolve` to introduce dissipation into the calculation.
 
 .. plot:: guide/scripts/floquet_ex4.py
    :width: 4.0in
    :include-source:
+   
+FLiMESolve does have one additional input, relative to MESolve. This property 
+is called "time_sense," for time sensitivity, which allows for the secular 
+approximation used in the Lindblad equation to be relaxed. This is in contrast 
+to FMMESolve, which uses the most restrictive form of the secular 
+approximation. The value of time sensitivity goes as
 
-Finally, :func:`qutip.solver.floquet.fmmesolve`, similar to :func:`qutip.solver.floquet.flimesolve`, always expects the ``e_ops`` to be specified in the laboratory basis:
+.. math::
+    time sensitivity = (\omega_{1}-\omega_{2})/(S_{1}\S_{2})
+    
+where :math:'\omega_{n},S_{n}' are the rotation frequency and rate of the 
+:math:'n^th' index of the Fourier-decomposed system operators in the Lindblad
+equation. Essentially, this value compares the rotation rate of a term in the
+master equation to how quickly that component affects the system. Large values
+mean that the component rotates quickly, relative to its contribution to the 
+system motion, so that overall the movement averages out on larger timescales.
+Smaller values have the converse meaning, such that overall the quotient can be
+understood to be a sort of "negligibility factor," with higher values being
+more negligible. The value of "time_sense" sets the value above which terms
+will be ignored. The default value of this input is zero, but if it can be
+to arbitrary limits to more accurately recover the behavior of MESolve.
+
+
+Finally, for the sake of clarity, :func:`qutip.solver.floquet.fmmesolve`, 
+similar to :func:`qutip.solver.floquet.flimesolve`, always expects the 
+``e_ops`` to be specified in the laboratory basis:
 
     output = flimesolve(H, psi0, tlist, [[sigmax(),gamma1]], e_ops=[num(2)], T=T, args=args)
     p_ex = output.expect[0]
