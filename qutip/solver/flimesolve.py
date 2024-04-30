@@ -243,7 +243,7 @@ def flimesolve(
 
         if Nt != None:
             Nt = Nt
-        elif Nt == None:
+        else:
             if tlist is not None:
                 if tlist[1] - tlist[0] >= floquet_basis.T:
                     Nt = 2**4
@@ -323,18 +323,14 @@ def _floquet_state_table(floquet_basis, tlist):
     taulist_test_new = np.round(taulist_test, 10)
     taulist_test_new[taulist_correction] = 0
 
-    def list_duplicates(seq):
-        tally = {}
-        for i, item in enumerate(taulist_test_new):
-            try:
-                tally[item].append(i)
-            except KeyError:
-                tally[item] = [i]
-        return ((key, locs) for key, locs in tally.items())
+    tally = {}
+    for i, item in enumerate(taulist_test_new):
+        try:
+            tally[item].append(i)
+        except KeyError:
+            tally[item] = [i]
 
-    sorted_time_args = {
-        key: val for key, val in sorted(list_duplicates(taulist_test_new))
-    }
+    sorted_time_args = {key: tally[key] for key in np.sort(list(tally.keys()))}
 
     fmodes_core_dict = {
         t: np.hstack([i.full() for i in floquet_basis.mode(t)])
