@@ -346,15 +346,20 @@ through which the system couples to its environment.
 The following example extends the example studied above, and uses 
 :func:`qutip.floquet.flimesolve` to introduce dissipation into the calculation.
 
+
 .. plot:: guide/scripts/floquet_ex4.py
    :width: 4.0in
    :include-source:
    
-FLiMESolve does have one additional input, relative to MESolve. This property 
-is called "time_sense," for time sensitivity, which allows for the secular 
-approximation used in the Lindblad equation to be relaxed. This is in contrast 
-to FMMESolve, which uses the most restrictive form of the secular 
-approximation. The value of time sensitivity goes as
+Importantly, the default solution method used by FLiMESolve will change, depending
+on the physical parameters of the system and the user inputs. A system
+with no time dependence can be solved in the full secular approximation, 
+whereas a system with complicated time-dependence will need a more relaxed 
+secular approximation. To adress this, FLiMESolve does have one additional input, 
+relative to MESolve. This property is called "time_sense," for time sensitivity,
+which allows for the secular approximation used in the Lindblad equation to 
+be relaxed. This is in contrast to FMMESolve, which uses the most restrictive 
+form of the secular approximation. The value of time sensitivity goes as
 
 .. math::
     time sensitivity = (\omega_{1}-\omega_{2})/(S_{1}\S_{2})
@@ -371,6 +376,9 @@ more negligible. The value of "time_sense" sets the value above which terms
 will be ignored. The default value of this input is zero, but if it can be
 to arbitrary limits to more accurately recover the behavior of MESolve.
 
+.. plot:: guide/scripts/floquet_ex5.py
+   :width: 4.0in
+   :include-source:
 
 Finally, for the sake of clarity, :func:`qutip.solver.floquet.fmmesolve`, 
 similar to :func:`qutip.solver.floquet.flimesolve`, always expects the 
