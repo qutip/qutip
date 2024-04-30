@@ -31,10 +31,8 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
         The FloquetBasis object formed from qutip.floquet.FloquetBasis
     Nt : Int
         Number of points in one period of the Hamiltonian
-    c_ops : list
-        list of collapse operator matrices as Qobjs
-    c_op_rates : list
-        List of collapse operator rates/magnitudes.
+    c_ops : list of :obj:`.Qobj`, :obj:`.QobjEvo`
+        Single collapse operator, or list of collapse operators
     args : *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
@@ -48,10 +46,10 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
 
     Returns
     -------
-    total_R_tensor : 2D Numpy matrix
-        This is the 2D rate matrix for the system,created by summing the
-            Rate matrix of each individual collapse operator. Something
-            something Rate Matrix something something linear Operator.
+    total_R_tensor : Dictionary of {frequency: 2D rate matrix} pairs
+        This function returns a list of dictionaries whose keys are the
+        frequency of a specific rate matrix term, and whose values are the
+        rate matrices for the associated frequency.
     """
     Hdim = len(floquet_basis.e_quasi)  # Dimensionality of the Hamiltonian
 
@@ -390,7 +388,7 @@ class FLiMESolver(MESolver):
         List of lists of [collapse operator, collapse operator rate] pairs
 
      options : dict,optional
-         Options for the solver,see :obj:`FMESolver.options` and
+         Options for the solver,see :obj:`FLiMESolver.options` and
          `Integrator <./classes.html#classes-ode>`_ for a list of all options.
     """
 
@@ -403,7 +401,7 @@ class FLiMESolver(MESolver):
         "store_final_state": False,
         "store_states": None,
         "normalize_output": True,
-        "method": "adams",
+        "method": None,
         "store_floquet_states": False,
         "Nt": 2**4,
     }
@@ -539,7 +537,7 @@ class FLiMESolver(MESolver):
             time and state obtained.
         """
         if args:
-            raise ValueError("FMESolver cannot update arguments")
+            raise ValueError("FLiMESolver cannot update arguments")
         state = super().step(t)
         if not floquet:
             state = self.floquet_basis.from_floquet_basis(state, t)
