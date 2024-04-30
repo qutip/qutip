@@ -384,5 +384,5 @@ Finally, for the sake of clarity, :func:`qutip.solver.floquet.fmmesolve`,
 similar to :func:`qutip.solver.floquet.flimesolve`, always expects the 
 ``e_ops`` to be specified in the laboratory basis:
 
-    output = flimesolve(H, psi0, tlist, [[sigmax(),gamma1]], e_ops=[num(2)], T=T, args=args)
+    output = flimesolve(H, psi0, tlist, [[sigmax() * gamma1**0.5 ]], e_ops=[num(2)], T=T, args=args)
     p_ex = output.expect[0]
