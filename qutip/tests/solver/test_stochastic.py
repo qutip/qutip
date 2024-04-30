@@ -281,9 +281,42 @@ def test_reuse_seeds():
 
 
 @pytest.mark.parametrize("heterodyne", [True, False])
-def test_m_ops(heterodyne):
+def test_measurements(heterodyne):
     N = 10
     ntraj = 1
+
+    H = num(N)
+    sc_ops = [destroy(N)]
+    psi0 = basis(N, N-1)
+
+    times = np.linspace(0, 1.0, 11)
+
+    solver = SMESolver(H, sc_ops, heterodyne=heterodyne)
+
+    solver.options["store_measurement"] = "start"
+    res_start = solver.run(psi0, times, ntraj=ntraj, seeds=1)
+
+    solver.options["store_measurement"] = "middle"
+    res_middle = solver.run(psi0, times, ntraj=ntraj, seeds=1)
+
+    solver.options["store_measurement"] = "end"
+    res_end = solver.run(psi0, times, ntraj=ntraj, seeds=1)
+
+    diff = np.sum(np.abs(res_end.measurement[0] - res_start.measurement[0]))
+    assert diff > 0.1 # Each measurement should be different by ~dt
+    np.testing.assert_allclose(
+        res_middle.measurement[0] * 2,
+        res_start.measurement[0] + res_end.measurement[0],
+    )
+
+    np.testing.assert_allclose(
+        np.diff(res_start.wiener_process[0][0]), res_start.dW[0][0]
+    )
+
+
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_m_ops(heterodyne):
+    N = 10
 
     H = num(N)
     sc_ops = [destroy(N), qeye(N)]
@@ -294,7 +327,7 @@ def test_m_ops(heterodyne):
 
     times = np.linspace(0, 1.0, 51)
 
-    options = {"store_measurement": True,}
+    options = {"store_measurement": "end",}
 
     solver = SMESolver(H, sc_ops, heterodyne=heterodyne, options=options)
     solver.m_ops = m_ops
@@ -322,7 +355,6 @@ def test_m_ops(heterodyne):
 
 
 def test_feedback():
-    tol = 0.05
     N = 10
     ntraj = 2
 
@@ -345,7 +377,9 @@ def test_feedback():
     solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
     results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
 
-    assert np.all(results.expect[0] > 6.-1e-6)
+    # If this was deterministic, it should never go under `6`.
+    # We add a tolerance ~dt due to the stochatic part.
+    assert np.all(results.expect[0] > 6. - 0.001)
     assert np.all(results.expect[0][-20:] < 6.7)
 
 
@@ -380,3 +414,91 @@ def test_small_step_warnings(method):
             qeye(2), basis(2), [0, 0.0000001], [qeye(2)],
             options={"method": method}
         )
+
+
+@pytest.mark.parametrize("method", ["euler", "platen"])
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_run_from_experiment_close(method, heterodyne):
+    N = 10
+
+    H = num(N)
+    a = destroy(N)
+    sc_ops = [a, a @ a + (a @ a).dag()]
+    psi0 = basis(N, N-1)
+    tlist = np.linspace(0, 0.1, 251)
+    options = {
+        "store_measurement": "start",
+        "dt": tlist[1],
+        "store_states": True,
+        "method": method,
+    }
+    solver = SSESolver(H, sc_ops, heterodyne, options=options)
+    res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
+    res_backward = solver.run_from_experiment(
+        psi0, tlist, res_forward.dW[0], e_ops=[H]
+    )
+    res_measure = solver.run_from_experiment(
+        psi0, tlist, res_forward.measurement[0], e_ops=[H], measurement=True
+    )
+
+    np.testing.assert_allclose(
+        res_backward.measurement, res_forward.measurement[0], atol=1e-10
+    )
+    np.testing.assert_allclose(
+        res_measure.measurement, res_forward.measurement[0], atol=1e-10
+    )
+
+    np.testing.assert_allclose(res_backward.dW, res_forward.dW[0], atol=1e-10)
+    np.testing.assert_allclose(res_measure.dW, res_forward.dW[0], atol=1e-10)
+
+    np.testing.assert_allclose(
+        res_backward.expect, res_forward.expect, atol=1e-10
+    )
+    np.testing.assert_allclose(
+        res_measure.expect, res_forward.expect, atol=1e-10
+    )
+
+
+@pytest.mark.parametrize(
+    "method", ["euler", "milstein", "platen", "pred_corr"]
+)
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_run_from_experiment_open(method, heterodyne):
+    N = 10
+
+    H = num(N)
+    a = destroy(N)
+    sc_ops = [a, a.dag() * 0.1]
+    psi0 = basis(N, N-1)
+    tlist = np.linspace(0, 1, 251)
+    options = {
+        "store_measurement": "start",
+        "dt": tlist[1],
+        "store_states": True,
+        "method": method,
+    }
+    solver = SMESolver(H, sc_ops, heterodyne, options=options)
+    res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
+    res_backward = solver.run_from_experiment(
+        psi0, tlist, res_forward.dW[0], e_ops=[H]
+    )
+    res_measure = solver.run_from_experiment(
+        psi0, tlist, res_forward.measurement[0], e_ops=[H], measurement=True
+    )
+
+    np.testing.assert_allclose(
+        res_backward.measurement, res_forward.measurement[0], atol=1e-10
+    )
+    np.testing.assert_allclose(
+        res_measure.measurement, res_forward.measurement[0], atol=1e-10
+    )
+
+    np.testing.assert_allclose(res_backward.dW, res_forward.dW[0], atol=1e-10)
+    np.testing.assert_allclose(res_measure.dW, res_forward.dW[0], atol=1e-10)
+
+    np.testing.assert_allclose(
+        res_backward.expect, res_forward.expect, atol=1e-10
+    )
+    np.testing.assert_allclose(
+        res_measure.expect, res_forward.expect, atol=1e-10
+    )

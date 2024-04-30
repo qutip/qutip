@@ -206,7 +206,7 @@ class TestMESolveDecay:
     def test_mesolve_normalization(self, state_type):
         # non-hermitean H causes state to evolve non-unitarily
         H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
-        H = qutip.sprepost(H, H) # ensure use of MeSolve
+        H = qutip.spre(H) + qutip.spost(H.dag()) # ensure use of MeSolve
         psi0 = qutip.basis(2, 0)
         options = {"normalize_output": True, "progress_bar": None}
 

@@ -349,7 +349,7 @@ Conversion between storage type is done using the :meth:`.Qobj.to` method.
     >>> q.to("CSR").data
     CSR(shape=(4, 4), nnz=3)
 
-    >>> q.to("CSR").data_as("CSR_matrix")
+    >>> q.to("CSR").data_as("csr_matrix")
     <4x4 sparse matrix of type '<class 'numpy.complex128'>'
         with 3 stored elements in Compressed Sparse Row format>
 
