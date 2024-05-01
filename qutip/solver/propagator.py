@@ -36,7 +36,11 @@ def propagator(
         that can be made into :obj:`.QobjEvo` are also accepted.
 
     t : float or array-like
-        Time or list of times for which to evaluate the propagator.
+        Time or list of times for which to evaluate the propagator. If a single
+        time ``t`` is passed, the propagator from ``0`` to ``t`` is computed.
+        When ``t`` is a list, the propagators from the first time in the list
+        to each elements in ``t`` is returned. In that case, the first output
+        will always be the identity matrix.
 
     c_ops : list, optional
         List of Qobj or QobjEvo collapse operators.
