@@ -11,6 +11,8 @@ from .sesolve import sesolve, SESolver
 from .heom.bofin_solvers import HEOMSolver
 from .solver_base import Solver
 from .multitraj import MultiTrajSolver
+from numbers import Number
+from typing import Any
 
 
 def propagator(

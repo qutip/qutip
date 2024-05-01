@@ -4,6 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from numpy.random import SeedSequence
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
+from ..typing import QobjEvoLike
 from .multitraj import MultiTrajSolver, _MultiTrajRHS
 from .solver_base import Solver, Integrator, _solver_deprecation
 from .result import McResult, McTrajectoryResult, McResultImprovedSampling
@@ -11,6 +12,7 @@ from .mesolve import mesolve, MESolver
 from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
 import qutip.core.data as _data
 from time import time
+from typing import Any, Callable
 
 
 def mcsolve(
@@ -27,7 +29,7 @@ def mcsolve(
     target_tol: float = None,
     timeout: float = None,
     **kwargs,
-) -> Result:
+) -> McResult:
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -514,7 +516,7 @@ class MCSolver(MultiTrajSolver):
         target_tol: float = None,
         timeout: float = None,
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
-    ) -> Result:
+    ) -> McResult:
         # Overridden to sample the no-jump trajectory first. Then, the no-jump
         # probability is used as a lower-bound for random numbers in future
         # monte carlo runs

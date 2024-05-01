@@ -2,8 +2,13 @@ from .result import Result, MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver
-from ..core import QobjEvo
+from ..core import QobjEvo, Qobj
 import numpy as np
+from numpy.typing import ArrayLike
+from numpy.random import SeedSequence
+from numbers import Number
+from typing import Any, Callable
+
 
 __all__ = ["MultiTrajSolver"]
 
@@ -107,7 +112,7 @@ class MultiTrajSolver(Solver):
         self._integrator.set_state(t0, self._prepare_state(state), generator)
 
     def step(
-        self, t | Number, *, args: dict[str, Any] = None, copy: bool = True
+        self, t: Number, *, args: dict[str, Any] = None, copy: bool = True
     ) -> Qobj:
         """
         Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.

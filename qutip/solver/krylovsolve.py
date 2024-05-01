@@ -2,7 +2,9 @@ __all__ = ['krylovsolve']
 
 from .. import QobjEvo, Qobj
 from .sesolve import SESolver
+from .result import Result
 from numpy.typing import ArrayLike
+from typing import Any, Callable
 
 
 def krylovsolve(

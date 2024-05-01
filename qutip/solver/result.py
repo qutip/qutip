@@ -1,6 +1,6 @@
 """ Class for solve function results"""
 
-from typing import TypedDict, Any
+from typing import TypedDict, Any, Callable
 import numpy as np
 from numpy.typing import ArrayLike
 from numbers import Number
@@ -225,7 +225,7 @@ class Result(_BaseResult):
 
     def __init__(
         self,
-        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]],
         options: ResultOptions,
         *,
         solver: str = None,
