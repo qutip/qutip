@@ -37,19 +37,6 @@ jobs:
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
-          # Python 3.9, Scipy 1.7, numpy 1.22
-          # On more version than suggested by SPEC 0
-          # https://scientific-python.org/specs/spec-0000/
-          # There are deprecation warnings when using cython 0.29.X
-          - case-name: Old setup
-            os: ubuntu-latest
-            python-version: "3.9"
-            scipy-requirement: ">=1.8,<1.9"
-            numpy-requirement: ">=1.22,<1.23"
-            condaforge: 1
-            oldcython: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
-
           # Python 3.10, no mkl, scipy 1.9, numpy 1.23
           # Scipy 1.9 did not support cython 3.0 yet.
           # cython#17234

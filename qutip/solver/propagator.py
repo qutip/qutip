@@ -190,6 +190,7 @@ class Propagator:
             self.solver = system
         else:
             Hevo = QobjEvo(system, args=args)
+            c_ops = c_ops if c_ops is not None else []
             c_ops = [QobjEvo(op, args=args) for op in c_ops]
             if Hevo.issuper or c_ops:
                 self.solver = MESolver(Hevo, c_ops=c_ops, options=options)

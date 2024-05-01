@@ -109,7 +109,7 @@ class MultiTrajSolver(Solver):
         """
         seeds = self._read_seed(seed, 1)
         generator = self._get_generator(seeds[0])
-        self._integrator.set_state(t0, self._prepare_state(state), generator)
+        self._integrator.set_state(t0, self._prepare_state(state0), generator)
 
     def step(
         self, t: Number, *, args: dict[str, Any] = None, copy: bool = True
