@@ -209,7 +209,7 @@ class MESolver(SESolver):
         H: Qobj | QobjEvo,
         c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo] = None,
         *,
-        options: dict=None
+        options: dict = None,
     ):
         _time_start = time()
 

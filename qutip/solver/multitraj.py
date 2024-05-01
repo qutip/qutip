@@ -81,7 +81,7 @@ class MultiTrajSolver(Solver):
         self._state_metadata = {}
         self.stats = self._initialize_stats()
 
-    def start(self, state0: Qobj, t0: Number, seed: int | SeedSequence=None):
+    def start(self, state0: Qobj, t0: Number, seed: int | SeedSequence = None):
         """
         Set the initial state and time for a step evolution.
 

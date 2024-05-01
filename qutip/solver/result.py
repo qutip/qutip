@@ -221,7 +221,7 @@ class Result(_BaseResult):
     times: list[float]
     states: list[Qobj]
     options: ResultOptions
-    e_data : dict[Any, list[Any]]
+    e_data: dict[Any, list[Any]]
 
     def __init__(
         self,

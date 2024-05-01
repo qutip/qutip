@@ -268,7 +268,7 @@ class Qobj:
 
     def __init__(
         self,
-        arg: ArrayLike | Any =None,
+        arg: ArrayLike | Any = None,
         dims: list[list[int]] | list[list[list[int]]] | Dimensions = None,
         copy: bool = True,
         superrep: str = None,
