@@ -10,6 +10,8 @@ from qutip import (
     expect,
     Qobj,
     QobjEvo,
+    basis,
+    correlation,
 )
 
 from qutip.solver.floquet import FloquetBasis
@@ -188,3 +190,116 @@ class TestFlimesolve:
         p_ex_ref = output2.expect[0]
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-5)
+
+    def testFLiMEtimesense(self):
+        """
+        Test Floquet-Lindblad Master Equation with nonzero timesense values.
+
+        """
+        delta = 0.0 * 2 * np.pi
+        eps0 = 10.0 * 2 * np.pi
+        A = 1 * 2 * np.pi
+        omega = 10.0 * 2 * np.pi
+        T = 2 * np.pi / omega
+
+        tlist = np.linspace(0.0, 50 * T, 2**8)
+        psi0 = basis(2, 0)
+
+        H0 = -delta / 2.0 * sigmax() - eps0 / 2.0 * sigmaz()
+        H1 = A / 2.0 * sigmax()
+        args = {"w": omega}
+        H = [H0, [H1, lambda t, w: np.sin(w * t)]]
+        gamma1 = 0.1
+
+        # setting the value of the time_sense argument arbitrarily high
+        t_sensitivity = 1e10
+
+        # solve the floquet-lindblad master equation
+        output = flimesolve(
+            H,
+            psi0,
+            tlist,
+            T,
+            c_ops=[np.sqrt(gamma1) * sigmax()],
+            args=args,
+            options={"store_floquet_states": True},
+            time_sense=t_sensitivity,
+            e_ops=num(2),
+        )
+        p_ex = output.expect[0]
+
+        output = mesolve(
+            H, psi0, tlist, [np.sqrt(gamma1) * sigmax()], [num(2)], args
+        )
+        p_ex_ref = output.expect[0]
+
+        np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
+
+    def testFLiMECorrelation(self):
+        """
+        Test Floquet-Lindblad Master Equation with nonzero timesense values.
+
+        """
+        E1mag = 2 * np.pi * 0.072992700729927
+        E1pol = np.sqrt(1 / 2) * np.array([1, 1, 0])
+        E1 = E1mag * E1pol
+
+        dmag = 1
+        d = dmag * np.sqrt(1 / 2) * np.array([1, 1, 0])
+
+        Om1 = np.dot(d, E1)
+        Om1t = np.dot(d, np.conj(E1))
+
+        wlas = 2 * np.pi * 280
+        wres = 2 * np.pi * 280
+
+        T = 2 * np.pi / abs(1)  # period of the Hamiltonian
+        Hargs = {"l": (wlas)}
+        w = Hargs["l"]
+        Gamma = 2 * np.pi * 0.0025  # in THz, roughly equivalent to 1 micro eV
+
+        Nt = 1600  # 50 times the number of points of tlist
+        # taulist goes over 50 periods of the system so that 50 periods can be simulated
+        timef = 10 * T
+        dt = timef / Nt  # time spacing in taulist - same as tlist!
+        tlist = np.linspace(0, timef - dt, Nt)
+
+        H_atom = ((wres - wlas) / 2) * np.array([[-1, 0], [0, 1]])
+        Hf1 = -(1 / 2) * np.array([[0, Om1], [np.conj(Om1), 0]])
+
+        H0 = Qobj(H_atom)  # Time independant Term
+        Hf1 = Qobj(Hf1)  # Forward Rotating Term
+
+        H = [
+            H0 + Hf1
+        ]  # Full Hamiltonian in string format, a form acceptable to QuTiP
+
+        rho0 = Qobj([[0.5001, 0], [0, 0.4999]])
+        kwargs = {"T": T, "time_sense": 1e5}
+        testg1F = correlation.correlation_2op_1t(
+            H,
+            rho0,
+            taulist=tlist,
+            c_ops=[np.sqrt(Gamma) * destroy(2)],
+            a_op=destroy(2).dag(),
+            b_op=destroy(2),
+            solver="fme",
+            reverse=True,
+            args=Hargs,
+            **kwargs,
+        )
+
+        testg1M = correlation.correlation_2op_1t(
+            H,
+            rho0,
+            taulist=tlist,
+            c_ops=[np.sqrt(Gamma) * destroy(2)],
+            a_op=destroy(2).dag(),
+            b_op=destroy(2),
+            solver="me",
+            reverse=True,
+            args=Hargs,
+            **kwargs,
+        )
+
+        np.testing.assert_allclose(testg1F, testg1M, atol=1e-4)

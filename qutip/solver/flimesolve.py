@@ -143,6 +143,8 @@ def flimesolve(
     options={},
 ):
     """
+    Solve system dynamics using the Floquet-Lindblad Master Equation
+
     Parameters
     ----------
 
@@ -364,7 +366,7 @@ class FloquetResult(Result):
 
 class FLiMESolver(MESolver):
     """
-     Solver for the Floquet-Markov master equation.
+     Solver for the Floquet-Lindblad master equation.
 
      .. note ::
          Operators (``c_ops`` and ``e_ops``) are in the laboratory basis.
