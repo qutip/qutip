@@ -262,9 +262,9 @@ class BRSolver(Solver):
                 raise TypeError("All `a_ops` spectra "
                                 "must be a Coefficient.")
 
-        self.isconstant = self.H.isconstant
-        self.isconstant &= all(c_op.isconstant for c_op in c_ops)
-        self.isconstant &= all(isinstance(a_op, Qobj) for a_op, _ in a_ops)
+        self.constant_system = self.H.isconstant
+        self.constant_system &= all(c_op.isconstant for c_op in c_ops)
+        self.constant_system &= all(isinstance(op, Qobj) for op, _ in a_ops)
 
         self._system = H, a_ops, c_ops
         self._num_collapse = len(c_ops)
@@ -275,25 +275,25 @@ class BRSolver(Solver):
         stats = super()._initialize_stats()
         stats.update({
             "solver": "Bloch Redfield Equation Evolution",
-            "init time": stats["init time"] + self._init_rhs_time,
+            "Build rhs time": 0,
             "num_collapse": self._num_collapse,
             "num_a_ops": self._num_a_ops,
         })
         return stats
 
     def _build_rhs(self):
-        _time_start = time()
-        rhs = bloch_redfield_tensor(
-            *self._system,
-            fock_basis=True,
-            sec_cutoff=self.sec_cutoff,
-            sparse_eigensolver=self.options['sparse_eigensolver'],
-            br_dtype=self.options['tensor_type']
-        )
-        rhs = QobjEvo(rhs)
-        rhs._register_feedback({}, solver=self.name)
-        self._init_rhs_time = time() - _time_start
-        return rhs
+        if not self._rhs:
+            _time_start = time()
+            rhs = bloch_redfield_tensor(
+                *self._system,
+                fock_basis=True,
+                sec_cutoff=self.sec_cutoff,
+                sparse_eigensolver=self.options['sparse_eigensolver'],
+                br_dtype=self.options['tensor_type']
+            )
+            self._rhs = QobjEvo(rhs)
+            self.stats["Build rhs time"] += time() - _time_start
+        return self._rhs
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""

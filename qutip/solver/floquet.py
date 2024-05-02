@@ -788,26 +788,30 @@ class FMESolver(MESolver):
         c_ops, spectra_cb = zip(*a_ops)
         self._floquet_param = {"w_th": w_th, "kmax": kmax, "nT": nT}
         self._dims = Dimensions.to_super(self.floquet_basis._dims)
+        self.constant_system = self.floquet_basis.H.isconstant
         if not all(
             isinstance(c_op, Qobj) and callable(spectrum)
             for c_op, spectrum in a_ops
         ):
             raise TypeError("a_ops must be tuple of (Qobj, callable)")
+        self.constant_system &= all(op.isconstant for op, _ in a_ops)
 
         self._post_init(options)
 
     def _build_rhs(self):
-        c_ops, spectra_cb = zip(*self.a_ops)
-        rhs = QobjEvo(
-            floquet_tensor(
-                self.floquet_basis,
-                c_ops,
-                spectra_cb,
-                **self._floquet_param
+        if not self._rhs:
+            _time_start = time()
+            c_ops, spectra_cb = zip(*self.a_ops)
+            self._rhs = QobjEvo(
+                floquet_tensor(
+                    self.floquet_basis,
+                    c_ops,
+                    spectra_cb,
+                    **self._floquet_param
+                )
             )
-        )
-        rhs._register_feedback({}, solver=self.name)
-        return rhs
+            self.stats["Build rhs time"] += time() - _time_start
+        return self._rhs
 
     def _initialize_stats(self):
         stats = Solver._initialize_stats(self)
@@ -815,6 +819,7 @@ class FMESolver(MESolver):
             {
                 "solver": "Floquet-Markov master equation",
                 "num_collapse": self._num_collapse,
+                "Build rhs time": 0,
             }
         )
         return stats

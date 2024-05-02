@@ -70,27 +70,28 @@ class Solver:
             TypeError("The rhs must be a QobjEvo")
         self.rhs = QobjEvo(rhs)
         self._dims = rhs._dims
+        self.constant_system = self.rhs.isconstant
         self._post_init(options)
 
     def _post_init(self, options):
         self.options = options
-        self._integrator = self._get_integrator()
+        self._integrator_instance = None
         self._state_metadata = {}
+        self._rhs = None
         self.stats = self._initialize_stats()
 
     def _build_rhs(self):
         """
         Build the rhs QobjEvo.
         """
-        self.rhs._register_feedback({}, solver=self.name)
         return self.rhs
 
     def _initialize_stats(self):
         """ Return the initial values for the solver stats.
         """
         return {
-            "method": self._integrator.name,
-            "init time": self._init_integrator_time,
+            "method": self.options["method"],
+            "ODE init time": 0.0,
             "preparation time": 0.0,
             "run time": 0.0,
         }
@@ -252,7 +253,6 @@ class Solver:
 
     def _get_integrator(self):
         """ Return the initialted integrator. """
-        _time_start = time()
         method = self._options["method"]
         if method in self.avail_integrators():
             integrator = self.avail_integrators()[method]
@@ -261,8 +261,17 @@ class Solver:
         else:
             raise ValueError("Integrator method not supported.")
         integrator_instance = integrator(self)
-        self._init_integrator_time = time() - _time_start
+
         return integrator_instance
+
+    @property
+    def _integrator(self):
+        if not self._integrator_instance:
+        _time_start = time()
+            self._integrator_instance = self._get_integrator()
+            self.stats["method"] = self._integrator_instance.name
+            self.stats["ODE init time"] += time() - _time_start
+        return self._integrator_instance
 
     @property
     def sys_dims(self):

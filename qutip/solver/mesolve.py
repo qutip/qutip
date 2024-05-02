@@ -206,18 +206,18 @@ class MESolver(SESolver):
 
         self._num_collapse = len(c_ops)
 
-        self.H = QobjEvo(H) if not H.issuper else 0.
-        self.L0 = [QobjEvo(H)] if H.issuper else []
+        self.H = H if not H.issuper else 0.
+        self.L0 = [H] if H.issuper else []
         self.c_ops = []
         for c_op in c_ops:
             if c_op.issuper:
-                self.L0 += [QobjEvo(c_op)]
+                self.L0 += [c_op]
             else:
-                self.c_ops.append(QobjEvo(c_op))
+                self.c_ops.append(c_op)
 
-        self.isconstant = self.H.isconstant if self.H else True
-        self.isconstant &= all(c_op.isconstant for c_op in self.c_ops)
-        self.isconstant &= all(L_part.isconstant for L_part in self.L0)
+        self.constant_system = self.H.isconstant if self.H else True
+        self.constant_system &= all(c_op.isconstant for c_op in self.c_ops)
+        self.constant_system &= all(L_part.isconstant for L_part in self.L0)
 
         if self.H:
             self._dims = Dimensions.to_super(self.H._dims)
@@ -230,12 +230,12 @@ class MESolver(SESolver):
         """
         Build the rhs QobjEvo.
         """
-        rhs = sum(self.L0)
-        if self.H != 0.:
-            rhs += liouvillian(self.H)
-        rhs += sum(lindblad_dissipator(c_op) for c_op in self.c_ops)
-        rhs._register_feedback({}, solver=self.name)
-        return rhs
+        if not self._rhs:
+            self._rhs = sum(self.L0)
+            if self.H != 0.:
+                self._rhs += liouvillian(self.H)
+            self._rhs += sum(lindblad_dissipator(c_op) for c_op in self.c_ops)
+        return self._rhs
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""
