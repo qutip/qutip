@@ -3,7 +3,7 @@ import warnings
 from . import _sode
 from ..integrator.integrator import Integrator
 from ..stochastic import StochasticSolver, SMESolver
-from ._noise import Wiener
+from ._noise import Wiener, PreSetWiener
 
 __all__ = ["SIntegrator", "PlatenSODE", "PredCorr_SODE"]
 
@@ -65,7 +65,24 @@ class SIntegrator(Integrator):
         """
         self.t = t
         self.state = state0
-        if isinstance(generator, Wiener):
+        stepper_opt = {
+            key: self.options[key]
+            for key in self._stepper_options
+            if key in self.options
+        }
+
+        if isinstance(generator, PreSetWiener):
+            self.wiener = generator
+            if (
+                generator.is_measurement
+                and "measurement_noise" not in self._stepper_options
+            ):
+                raise NotImplementedError(
+                    f"{type(self).__name__} does not support running"
+                    " the evolution from measurements."
+                )
+            stepper_opt["measurement_noise"] = generator.is_measurement
+        elif isinstance(generator, Wiener):
             self.wiener = generator
         else:
             num_collapse = len(self.rhs.sc_ops)
@@ -74,8 +91,8 @@ class SIntegrator(Integrator):
                 (self.N_dw, num_collapse)
             )
         self.rhs._register_feedback(self.wiener)
-        opt = [self.options[key] for key in self._stepper_options]
-        self.step_func = self.stepper(self.rhs(self.options), *opt).run
+        rhs = self.rhs(self.options)
+        self.step_func = self.stepper(rhs, **stepper_opt).run
         self._is_set = True
 
     def get_state(self, copy=True):
@@ -228,9 +245,13 @@ class PlatenSODE(_Explicit_Simple_Integrator):
 
     - Order: strong 1, weak 2
     """
-
+    integrator_options = {
+        "dt": 0.001,
+        "tol": 1e-10,
+    }
     stepper = _sode.Platen
     N_dw = 1
+    _stepper_options = ["measurement_noise"]
 
 
 class PredCorr_SODE(_Explicit_Simple_Integrator):
@@ -257,7 +278,7 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.PredCorr
     N_dw = 1
-    _stepper_options = ["alpha", "eta"]
+    _stepper_options = ["alpha", "eta", "measurement_noise"]
 
     @property
     def options(self):

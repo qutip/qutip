@@ -234,7 +234,10 @@ class MultiTrajSolver(Solver):
     def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
                                  **integrator_kwargs):
         result = self._trajectory_resultclass(e_ops, self.options)
-        generator = self._get_generator(seed)
+        if "generator" in integrator_kwargs:
+            generator = integrator_kwargs.pop("generator")
+        else:
+            generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator,
                                    **integrator_kwargs)
         result.add(tlist[0], self._restore_state(state, copy=False))
@@ -287,11 +290,6 @@ class MultiTrajSolver(Solver):
         If the ``seed`` has a ``random`` method, it will be used as the
         generator.
         """
-        if hasattr(seed, 'random'):
-            # We check for the method, not the type to accept pseudo non-random
-            # generator for debug/testing purpose.
-            return seed
-
         if self.options['bitgenerator']:
             bit_gen = getattr(np.random, self.options['bitgenerator'])
             generator = np.random.Generator(bit_gen(seed))
