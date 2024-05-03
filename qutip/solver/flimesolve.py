@@ -167,8 +167,8 @@ def flimesolve(
         forming the rate matrix. If none is supplied, flimesolve will try to
         pull Nt from tlist.
 
-    c_ops : list of :class:`qutip.Qobj`.
-        List of lists of [collapse operator,collapse operator rate] pairs
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
+        Single collapse operator, or list of collapse operators
 
     e_ops : list of :class:`qutip.Qobj` / callback function
         List of operators for which to evaluate expectation values.
@@ -180,7 +180,9 @@ def flimesolve(
     time_sense : float
         Value of the secular approximation to use when constructing the rate
         matrix R(t).Default value of zero uses the fully time-independent/most
-        strict secular approximation.
+        strict secular approximation, and will utilize the "diag" solver method.
+        Values greater than zero have time dependence, and will subsequently
+        use the "Adams" method for the ODE solver.
 
     options : None / dict
         Dictionary of options for the solver.
@@ -366,26 +368,33 @@ class FloquetResult(Result):
 
 class FLiMESolver(MESolver):
     """
-     Solver for the Floquet-Lindblad master equation.
-
+    Solver for the Floquet-Lindblad master equation.
+    
      .. note ::
          Operators (``c_ops`` and ``e_ops``) are in the laboratory basis.
-
+    
      Parameters
      ----------
-     floquet_basis : :class:`qutip.FloquetBasis`
+    floquet_basis : :class:`qutip.FloquetBasis`
          The system Hamiltonian wrapped in a FloquetBasis object. Choosing a
          different integrator for the ``floquet_basis`` than for the evolution
          of the floquet state can improve the performance.
-
-     tlist : np.ndarray
+    
+    tlist : np.ndarray
          List of 2**n times distributed evenly over one period of the
              Hamiltonian
-
-    c_ops : list of :class:`qutip.Qobj`.
-        List of lists of [collapse operator, collapse operator rate] pairs
-
-     options : dict,optional
+    
+    c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
+        Single collapse operator, or list of collapse operators
+    
+    time_sense : float
+        Value of the secular approximation to use when constructing the rate
+        matrix R(t).Default value of zero uses the fully time-independent/most
+        strict secular approximation, and will utilize the "diag" solver method.
+        Values greater than zero have time dependence, and will subsequently
+        use the "Adams" method for the ODE solver.
+    
+    options : dict,optional
          Options for the solver,see :obj:`FLiMESolver.options` and
          `Integrator <./classes.html#classes-ode>`_ for a list of all options.
     """
