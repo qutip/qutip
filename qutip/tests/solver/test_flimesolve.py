@@ -237,42 +237,31 @@ class TestFlimesolve:
 
     def testFLiMECorrelation(self):
         """
-        Test Floquet-Lindblad Master Equation with nonzero timesense values.
+        Test Floquet-Lindblad Master Equation with correlation functions.
 
         """
         E1mag = 2 * np.pi * 0.072992700729927
-        E1pol = np.sqrt(1 / 2) * np.array([1, 1, 0])
-        E1 = E1mag * E1pol
+        E1 = E1mag
+        d = 1
 
-        dmag = 1
-        d = dmag * np.sqrt(1 / 2) * np.array([1, 1, 0])
-
-        Om1 = np.dot(d, E1)
-        Om1t = np.dot(d, np.conj(E1))
+        Om1 = d * E1
 
         wlas = 2 * np.pi * 280
         wres = 2 * np.pi * 280
 
-        T = 2 * np.pi / abs(1)  # period of the Hamiltonian
+        T = 2 * np.pi / wlas
         Hargs = {"l": (wlas)}
-        w = Hargs["l"]
-        Gamma = 2 * np.pi * 0.0025  # in THz, roughly equivalent to 1 micro eV
+        Gamma = 2 * np.pi * 0.00025
 
-        Nt = 1600  # 50 times the number of points of tlist
-        # taulist goes over 50 periods of the system so that 50 periods can be simulated
+        Nt = 1600
         timef = 10 * T
-        dt = timef / Nt  # time spacing in taulist - same as tlist!
+        dt = timef / Nt
         tlist = np.linspace(0, timef - dt, Nt)
 
-        H_atom = ((wres - wlas) / 2) * np.array([[-1, 0], [0, 1]])
-        Hf1 = -(1 / 2) * np.array([[0, Om1], [np.conj(Om1), 0]])
+        H_atom = ((wres - wlas) / 2) * Qobj([[-1, 0], [0, 1]])
+        Hf1 = -(1 / 2) * Qobj([[0, Om1], [np.conj(Om1), 0]])
 
-        H0 = Qobj(H_atom)  # Time independant Term
-        Hf1 = Qobj(Hf1)  # Forward Rotating Term
-
-        H = [
-            H0 + Hf1
-        ]  # Full Hamiltonian in string format, a form acceptable to QuTiP
+        H = [H_atom + Hf1]
 
         rho0 = Qobj([[0.5001, 0], [0, 0.4999]])
         kwargs = {"T": T, "time_sense": 1e5}
@@ -299,7 +288,6 @@ class TestFlimesolve:
             solver="me",
             reverse=True,
             args=Hargs,
-            **kwargs,
         )
 
-        np.testing.assert_allclose(testg1F, testg1M, atol=1e-4)
+        np.testing.assert_allclose(testg1F, testg1M, atol=1e-5)
