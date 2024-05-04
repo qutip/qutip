@@ -242,8 +242,6 @@ class TestFlimesolve:
         """
         Om1 = 2 * np.pi * 0.072992700729927
 
-        wlas = 2 * np.pi * 280
-        wres = 2 * np.pi * 280
 
         T = 2 * np.pi / wlas
         Gamma = 2 * np.pi * 0.00025
