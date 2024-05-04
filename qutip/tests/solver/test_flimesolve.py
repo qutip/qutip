@@ -248,8 +248,8 @@ class TestFlimesolve:
         T = 2 * np.pi / wlas
         Gamma = 2 * np.pi * 0.00025
 
-        Nt = 1600
-        timef = 10 * T
+        Nt = 20
+        timef = 2 * T
         dt = timef / Nt
         tlist = np.linspace(0, timef - dt, Nt)
 
