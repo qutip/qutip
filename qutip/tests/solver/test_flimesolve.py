@@ -246,7 +246,6 @@ class TestFlimesolve:
         wres = 2 * np.pi * 280
 
         T = 2 * np.pi / wlas
-        Hargs = {"l": (wlas)}
         Gamma = 2 * np.pi * 0.00025
 
         Nt = 1600
