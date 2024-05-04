@@ -240,11 +240,7 @@ class TestFlimesolve:
         Test Floquet-Lindblad Master Equation with correlation functions.
 
         """
-        E1mag = 2 * np.pi * 0.072992700729927
-        E1 = E1mag
-        d = 1
-
-        Om1 = d * E1
+        Om1 = 2 * np.pi * 0.072992700729927
 
         wlas = 2 * np.pi * 280
         wres = 2 * np.pi * 280
