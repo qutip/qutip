@@ -28,7 +28,7 @@ gamma1 = 0.1
 t_sensitivity = 1e10
 
 # solve the floquet-lindblad master equation
-output = qutip.flimesolve.flimesolve(
+output = qutip.flimesolve(
     H,
     psi0,
     tlist,

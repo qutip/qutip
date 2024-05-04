@@ -19,7 +19,7 @@ gamma1 = 0.1
 
 
 # solve the floquet-lindblad master equation
-output = qutip.flimesolve.flimesolve(
+output = qutip.flimesolve(
     H,
     psi0,
     tlist,
