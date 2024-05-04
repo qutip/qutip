@@ -253,10 +253,7 @@ class TestFlimesolve:
         dt = timef / Nt
         tlist = np.linspace(0, timef - dt, Nt)
 
-        H_atom = ((wres - wlas) / 2) * Qobj([[-1, 0], [0, 1]])
-        Hf1 = -(1 / 2) * Qobj([[0, Om1], [np.conj(Om1), 0]])
-
-        H = [H_atom + Hf1]
+        H = -(Om1 / 2) * qt.sigmax()
 
         rho0 = Qobj([[0.5001, 0], [0, 0.4999]])
         kwargs = {"T": T, "time_sense": 1e5}
