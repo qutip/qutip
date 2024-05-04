@@ -369,31 +369,31 @@ class FloquetResult(Result):
 class FLiMESolver(MESolver):
     """
     Solver for the Floquet-Lindblad master equation.
-    
+
      .. note ::
          Operators (``c_ops`` and ``e_ops``) are in the laboratory basis.
-    
+
      Parameters
      ----------
     floquet_basis : :class:`qutip.FloquetBasis`
          The system Hamiltonian wrapped in a FloquetBasis object. Choosing a
          different integrator for the ``floquet_basis`` than for the evolution
          of the floquet state can improve the performance.
-    
+
     tlist : np.ndarray
          List of 2**n times distributed evenly over one period of the
              Hamiltonian
-    
+
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         Single collapse operator, or list of collapse operators
-    
+
     time_sense : float
         Value of the secular approximation to use when constructing the rate
         matrix R(t).Default value of zero uses the fully time-independent/most
         strict secular approximation, and will utilize the "diag" solver method.
         Values greater than zero have time dependence, and will subsequently
         use the "Adams" method for the ODE solver.
-    
+
     options : dict,optional
          Options for the solver,see :obj:`FLiMESolver.options` and
          `Integrator <./classes.html#classes-ode>`_ for a list of all options.
@@ -445,11 +445,11 @@ class FLiMESolver(MESolver):
 
         self.time_sense = time_sense
 
-        RateDic = _floquet_rate_matrix(
+        self.RateDic = _floquet_rate_matrix(
             floquet_basis, self.Nt, c_ops, time_sense=time_sense
         )
 
-        self.rhs = self._create_rhs(RateDic)
+        self.rhs = self._create_rhs(self.RateDic)
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
@@ -660,6 +660,19 @@ class FLiMESolver(MESolver):
 
         stats["run time"] = time() - _time_start
         return results
+
+    def steadystate(self):
+        """
+        Uses the time-independent part of the Rate matrix to find the
+            steady state of the system. Note: This only uses the full secular
+            approximation.
+        """
+        monomat = self.RateDic[0].full()
+        val, vec = np.linalg.eig(monomat)
+
+        idx = np.where(np.amin(abs(val)))
+
+        return Qobj(np.reshape(vec[:, idx], (self.Hdim, self.Hdim)))
 
     def _argument(self, args):
         if args:
