@@ -440,6 +440,9 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
 
     The diamond norm SDP is solved by using `CVXPY <https://www.cvxpy.org/>`_.
 
+    If B is provided and both A and B are unitaries, a special optimised
+    case of the diamond norm is used.
+
     Parameters
     ----------
     A : Qobj
@@ -477,24 +480,16 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # for instance, by both pyGSTi and SchattenNorms.jl. (By contrast,
     # QETLAB uses the dual problem.)
 
-    # Check if A and B are both unitaries. If so, then we can without
-    # loss of generality choose B to be the identity by using the
-    # unitary invariance of the diamond norm,
-    #     || A - B ||_♢ = || A B⁺ - I ||_♢.
-    # Then, using the technique mentioned by each of Johnston and
-    # da Silva,
-    #     || A B⁺ - I ||_♢ = max_{i, j} | \lambda_i(A B⁺) - \lambda_j(A B⁺) |,
-    # where \lambda_i(U) is the ith eigenvalue of U.
+    # Check if A and B are both unitaries. If so we can use a trick
+    # discussed in D. Aharonov, A. Kitaev, and N. Nisan. (1998).
+    # In general we can find the eigenvalues of AB⁺ and the distance
+    # d between the origin and compelx hull of these. Plugging
+    # this into 2√1-d² gives the diamond norm.
 
-    # There's a lot of conditions to check for this path.  Only check if they
-    # aren't superoperators.  The difference of unitaries optimization is
-    # currently only implemented for d == 2. Much of the code below is more
-    # general, though, in anticipation of generalizing the optimization.
     if (
         not force_solve
         and B is not None
         and A.isoper and B.isoper
-        and A.shape[0] == 2
     ):
         # Make an identity the same size as A and B to
         # compare against.
@@ -507,17 +502,11 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
             (A * A.dag() - I).norm() < 1e-6
         ):
             # Now we are on the fast path, so let's compute the
-            # eigenvalues, then find the diameter of the smallest circle
-            # containing all of them.
-            #
-            # For now, this is only implemented for dim = 2, such that
-            # generalizing here will allow for generalizing the optimization.
-            # A reasonable approach would probably be to use Welzl's algorithm
-            # (https://en.wikipedia.org/wiki/Smallest-circle_problem).
+            # eigenvalues, then find the distance between origin and hull
             U = A * B.dag()
             eigs = U.eigenenergies()
-            eig_distances = np.abs(eigs[:, None] - eigs[None, :])
-            return np.max(eig_distances)
+            d = _find_poly_distance(eigs)
+            return 2 * np.sqrt(1 - d**2)  # plug into formula
 
     # Force the input superoperator to be a Choi matrix.
     J = to_choi(A)
@@ -583,3 +572,29 @@ def unitarity(oper):
     """
     Eu = _to_superpauli(oper).full()[1:, 1:]
     return np.linalg.norm(Eu, 'fro')**2 / len(Eu)
+
+
+def _find_poly_distance(eigenvals: np.ndarray) -> float:
+    """Function to find the distance between origin and the
+    convex hull of eigenvalues."""
+    phases = np.angle(eigenvals)
+    pos_max = phases.max()
+    neg_min = phases.min()
+    pos_min = np.where(phases > 0, phases, np.inf).min()
+    neg_max = np.where(phases <= 0, phases, -np.inf).max()
+
+    if neg_min > 0:  # all eigenvals have positive phase, hull is above x axis
+        return np.cos((pos_max - pos_min) / 2)
+
+    if pos_max <= 0:  # all eigenvals have negative phase, hull is below x axis
+        return np.cos((np.abs(neg_min) - np.abs(neg_max)) / 2)
+
+    big_angle = pos_max - neg_min
+    small_angle = pos_min - neg_max
+    if big_angle >= np.pi:
+        if small_angle <= np.pi:  # hull contains the origin
+            return 0
+        else:  # hull is left of y axis
+            return np.cos((2 * np.pi - small_angle) / 2)
+    else:  # hull is right of y axis
+        return np.cos(big_angle / 2)
