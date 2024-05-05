@@ -441,7 +441,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     The diamond norm SDP is solved by using `CVXPY <https://www.cvxpy.org/>`_.
 
     If B is provided and both A and B are unitaries, a special optimised
-    case of the diamond norm is used.
+    case of the diamond norm is used. See [AKN98]_.
 
     Parameters
     ----------
