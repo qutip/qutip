@@ -293,7 +293,7 @@ class TestMultiTrajResult:
                      [(-0.25 + 1.5 * 0.75) * np.sin(i) for i in range(10)],
                      [(-0.25 + 1.5 * 0.75) * np.sin(i) * qutip.fock_dm(10, i)
                       for i in range(10)],
-                     id='timedep-marting'),
+                     id='timedep-marting-no-jump'),
     ])
     def test_NmmcResult(self, include_no_jump, martingale,
                         result_trace, result_states):
@@ -459,10 +459,6 @@ class TestMultiTrajResult:
         assert bool(merged_res.trajectories) == keep_runs_results
         assert merged_res.stats["run time"] == 3
 
-    @pytest.fixture(scope='session')
-    def fix_seed(self):
-        np.random.seed(1)
-
     def _random_ensemble(self, abs_weights=True, collapse=False, trace=False,
                          time_dep_weights=False, cls=MultiTrajResult):
         dim = 10
@@ -503,7 +499,6 @@ class TestMultiTrajResult:
 
         return res
 
-    @pytest.mark.usefixtures('fix_seed')
     @pytest.mark.parametrize('abs_weights1', [True, False])
     @pytest.mark.parametrize('abs_weights2', [True, False])
     @pytest.mark.parametrize('p', [0, 0.1, 1, None])
@@ -531,7 +526,6 @@ class TestMultiTrajResult:
                 ensemble1.states, ensemble2.states, merged.states):
             assert state == p * state1 + (1 - p) * state2
 
-    @pytest.mark.usefixtures('fix_seed')
     @pytest.mark.parametrize('p', [0, 0.1, 1, None])
     def test_merge_mcresult(self, p):
         ensemble1 = self._random_ensemble(collapse=True,
@@ -553,7 +547,6 @@ class TestMultiTrajResult:
                              merged.photocurrent):
             np.testing.assert_almost_equal(c, p * c1 + (1 - p) * c2)
 
-    @pytest.mark.usefixtures('fix_seed')
     @pytest.mark.parametrize('p', [0, 0.1, 1, None])
     def test_merge_nmmcresult(self, p):
         ensemble1 = self._random_ensemble(
