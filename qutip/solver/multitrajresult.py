@@ -762,6 +762,26 @@ class MultiTrajResult(_BaseResult):
 
 
 class _TrajectorySum:
+    """
+    Keeps running sums of expectation values, and (if requested) states and
+    final states, over a set of trajectories as they are added one-by-one.
+    This is used in the `MultiTrajResult` class, which needs to keep track of
+    several sums of this type.
+
+    Parameters
+    ----------
+    example_trajectory : :obj:`.Result`
+        An example trajectory with expectation values and states of the same
+        shape like for the trajectories that will be added later. The data is
+        only used for initializing arrays in the correct shape and otherwise
+        ignored.
+
+    store_states : bool
+        Whether the states of the trajectories will be summed.
+
+    store_final_state : bool
+        Whether the final states of the trajectories will be summed.
+    """
     def __init__(self, example_trajectory, store_states, store_final_state):
         if example_trajectory.states and store_states:
             self._initialize_sum_states(example_trajectory)
@@ -785,6 +805,11 @@ class _TrajectorySum:
             qzero_like(_to_dm(state)) for state in example_trajectory.states]
 
     def reduce_states(self, trajectory):
+        """
+        Adds the states stored in the given trajectory to the running sum
+        `sum_states`. Takes account of the trajectory's total weight if
+        present.
+        """
         if trajectory.has_weight:
             self.sum_states = [
                 accu + weight * _to_dm(state)
@@ -799,6 +824,11 @@ class _TrajectorySum:
             ]
 
     def reduce_final_state(self, trajectory):
+        """
+        Adds the final state stored in the given trajectory to the running sum
+        `sum_final_state`. Takes account of the trajectory's total weight if
+        present.
+        """
         if trajectory.has_weight:
             self.sum_final_state += (trajectory._final_weight *
                                      _to_dm(trajectory.final_state))
@@ -806,6 +836,11 @@ class _TrajectorySum:
             self.sum_final_state += _to_dm(trajectory.final_state)
 
     def reduce_expect(self, trajectory):
+        """
+        Adds the expectation values, and their squares, that are stored in the
+        given trajectory to the running sums `sum_expect` and `sum2_expect`.
+        Takes account of the trajectory's total weight if present.
+        """
         weight = trajectory.total_weight
         for i, expect_traj in enumerate(trajectory.expect):
             self.sum_expect[i] += weight * expect_traj
@@ -813,6 +848,10 @@ class _TrajectorySum:
 
     @staticmethod
     def merge(sum1, weight1, sum2, weight2):
+        """
+        Merges the sums of expectation values, states and final states with
+        the given weights, i.e., `result = weight1 * sum1 + weight2 * sum2`.
+        """
         if sum1 is None and sum2 is None:
             return None
         if sum1 is None:
