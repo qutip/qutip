@@ -1,4 +1,5 @@
-from .result import TrajectoryResult, MultiTrajResult
+from .result import TrajectoryResult
+from .multitrajresult import MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver

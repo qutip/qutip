@@ -3,7 +3,6 @@ import numpy as np
 import qutip
 from copy import copy
 from qutip.solver.mcsolve import mcsolve, MCSolver
-from qutip.solver.solver_base import Solver
 
 
 def _return_constant(t, args):

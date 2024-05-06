@@ -5,8 +5,8 @@ import numbers
 import numpy as np
 import scipy
 
-from .result import NmmcResult
 from .multitraj import MultiTrajSolver
+from .multitrajresult import NmmcResult
 from .mcsolve import MCSolver, MCIntegrator
 from .mesolve import MESolver, mesolve
 from .cy.nm_mcsolve import RateShiftCoefficient, SqrtRealCoefficient

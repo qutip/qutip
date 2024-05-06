@@ -1,8 +1,9 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
+from .multitrajresult import MultiTrajResult
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .sode._noise import PreSetWiener
-from .result import MultiTrajResult, Result, ExpectOp
+from .result import Result, ExpectOp
 from .multitraj import _MultiTrajRHS, MultiTrajSolver
 from .. import Qobj, QobjEvo
 from ..core.dimensions import Dimensions

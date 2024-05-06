@@ -2,9 +2,8 @@ import numpy as np
 import pytest
 
 import qutip
-from qutip.solver.result import (
-    Result, MultiTrajResult, McResult, NmmcResult, TrajectoryResult
-)
+from qutip.solver.result import Result, TrajectoryResult
+from qutip.solver.multitrajresult import MultiTrajResult, McResult, NmmcResult
 
 
 def fill_options(**kwargs):

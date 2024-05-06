@@ -4,7 +4,7 @@ import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .multitraj import MultiTrajSolver, _MultiTrajRHS
 from .solver_base import Solver, Integrator, _solver_deprecation
-from .result import McResult
+from .multitrajresult import McResult
 from .mesolve import mesolve, MESolver
 from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
 import qutip.core.data as _data
