@@ -180,7 +180,7 @@ def flimesolve(
     time_sense : float
         Value of the secular approximation to use when constructing the rate
         matrix R(t). Default value of zero uses the fully time-independent/most
-        strict secular approximation, values greater than zero have time 
+        strict secular approximation, values greater than zero have time
         dependence. The default integration method change depending
         on this value, "diag" for `0`, "adams" otherwise.
 
@@ -660,19 +660,6 @@ class FLiMESolver(MESolver):
 
         stats["run time"] = time() - _time_start
         return results
-
-    def steadystate(self):
-        """
-        Uses the time-independent part of the Rate matrix to find the
-            steady state of the system. Note: This only uses the full secular
-            approximation.
-        """
-        monomat = self.RateDic[0].full()
-        val, vec = np.linalg.eig(monomat)
-
-        idx = np.where(np.amin(abs(val)))
-
-        return Qobj(np.reshape(vec[:, idx], (self.Hdim, self.Hdim)))
 
     def _argument(self, args):
         if args:
