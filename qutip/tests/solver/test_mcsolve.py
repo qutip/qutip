@@ -3,7 +3,6 @@ import numpy as np
 import qutip
 from copy import copy
 from qutip.solver.mcsolve import mcsolve, MCSolver
-from qutip.solver.solver_base import Solver
 
 
 def _return_constant(t, args):
@@ -428,7 +427,9 @@ def test_super_H(improved_sampling):
     c_ops = np.sqrt(coupling * (n_th + 1)) * a
     e_ops = [qutip.num(size)]
     mc_expected = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
-                          target_tol=0.1, options={'map': 'serial'})
+                          target_tol=0.1,
+                          options={'map': 'serial',
+                                   "improved_sampling": improved_sampling})
     mc = mcsolve(qutip.liouvillian(H), state, times, c_ops, e_ops, ntraj=ntraj,
                  target_tol=0.1,
                  options={'map': 'serial',
