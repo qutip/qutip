@@ -489,17 +489,11 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # d between the origin and compelx hull of these. Plugging
     # this into 2√1-d² gives the diamond norm.
 
-    def check_unitary(op):
-        # Helper function to check not None and is unitary.
-        if op is None or not op.isoper:
-            return False
-        else:
-            return (op * op.dag() - qeye_like(op)).norm() < 1e-6
-
     if (
         not force_solve
-        and check_unitary(A)
-        and check_unitary(B)
+        and A.isunitary
+        and B is not None
+        and B.isunitary
     ):  # Special optimisation fo a difference of unitaries.
         U = A * B.dag()
         eigs = U.eigenenergies()
