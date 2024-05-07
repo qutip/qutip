@@ -240,10 +240,9 @@ class TestFlimesolve:
         Test Floquet-Lindblad Master Equation with correlation functions.
 
         """
-        Om1 = 2 * np.pi * 0.072992700729927
+        Om1 = 2 * np.pi * 0.0072992700729927
 
-
-        T = 2 * np.pi / wlas
+        T = 1 / 280
         Gamma = 2 * np.pi * 0.00025
 
         Nt = 20
@@ -251,7 +250,7 @@ class TestFlimesolve:
         dt = timef / Nt
         tlist = np.linspace(0, timef - dt, Nt)
 
-        H = -(Om1 / 2) * qt.sigmax()
+        H = -(Om1 / 2) * sigmax()
 
         rho0 = Qobj([[0.5001, 0], [0, 0.4999]])
         kwargs = {"T": T, "time_sense": 1e5}
@@ -264,7 +263,6 @@ class TestFlimesolve:
             b_op=destroy(2),
             solver="fme",
             reverse=True,
-            args=Hargs,
             **kwargs,
         )
 
@@ -277,7 +275,6 @@ class TestFlimesolve:
             b_op=destroy(2),
             solver="me",
             reverse=True,
-            args=Hargs,
         )
 
         np.testing.assert_allclose(testg1F, testg1M, atol=1e-5)
