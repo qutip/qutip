@@ -419,13 +419,13 @@ def test_small_step_warnings(method):
 @pytest.mark.parametrize("method", ["euler", "platen"])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_run_from_experiment_close(method, heterodyne):
-    N = 10
+    N = 5
 
     H = num(N)
     a = destroy(N)
     sc_ops = [a, a @ a + (a @ a).dag()]
     psi0 = basis(N, N-1)
-    tlist = np.linspace(0, 0.1, 251)
+    tlist = np.linspace(0, 0.1, 501)
     options = {
         "store_measurement": "start",
         "dt": tlist[1],
