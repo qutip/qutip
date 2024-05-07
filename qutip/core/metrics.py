@@ -475,6 +475,9 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     if cvxpy is None:  # pragma: no cover
         raise ImportError("dnorm() requires CVXPY to be installed.")
 
+    if B is not None and A.dims != B.dims:
+        raise TypeError("A and B do not have the same dimensions.")
+
     # We follow the strategy of using Watrous' simpler semidefinite
     # program in its primal form. This is the same strategy used,
     # for instance, by both pyGSTi and SchattenNorms.jl. (By contrast,
@@ -486,73 +489,70 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # d between the origin and compelx hull of these. Plugging
     # this into 2√1-d² gives the diamond norm.
 
+    def check_unitary(op):
+        # Helper function to check not None and is unitary.
+        if op is None or not op.isoper:
+            return False
+        else:
+            return (op * op.dag() - qeye_like(op)).norm() < 1e-6
+
     if (
         not force_solve
-        and B is not None
-        and A.isoper and B.isoper
-    ):
-        # Make an identity the same size as A and B to
-        # compare against.
-        I = qeye_like(A)
-        # Compare to B first, so that an error is raised
-        # as soon as possible.
-        Bd = B.dag()
-        if (
-            (B * Bd - I).norm() < 1e-6 and
-            (A * A.dag() - I).norm() < 1e-6
-        ):
-            # Now we are on the fast path, so let's compute the
-            # eigenvalues, then find the distance between origin and hull
-            U = A * B.dag()
-            eigs = U.eigenenergies()
-            d = _find_poly_distance(eigs)
-            return 2 * np.sqrt(1 - d**2)  # plug into formula
+        and check_unitary(A)
+        and check_unitary(B)
+    ):  # Special optimisation fo a difference of unitaries.
+        U = A * B.dag()
+        eigs = U.eigenenergies()
+        d = _find_poly_distance(eigs)
+        value = 2 * np.sqrt(1 - d**2)  # plug d into formula
+    else:  # Force the input superoperator to be a Choi matrix.
+        J = to_choi(A)
+        if B is not None:
+            J -= to_choi(B)
 
-    # Force the input superoperator to be a Choi matrix.
-    J = to_choi(A)
+        # Watrous 2012 also points out that the diamond norm of Lambda
+        # is the same as the completely-bounded operator-norm (∞-norm)
+        # of the dual map of Lambda. We can evaluate that norm much more
+        # easily if Lambda is completely positive, since then the largest
+        # eigenvalue is the same as the largest singular value.
 
-    if B is not None:
-        J -= to_choi(B)
+        if not force_solve and J.iscp:
+            S_dual = to_super(J.dual_chan())
+            vec_eye = operator_to_vector(qeye(S_dual.dims[1][1]))
+            op = vector_to_operator(S_dual * vec_eye)
+            # The 2-norm was not implemented for sparse matrices as of the time
+            # of this writing. Thus, we must yet again go dense.
+            value = la.norm(op.full(), 2)
+        elif not force_solve and J.iscptp:
+            # diamond norm of a CPTP map is 1 (Prop 3.44 Watrous 2018)
+            value = 1.0
+        else:
+            # If we're still here, we need to actually solve the problem.
 
-    # Watrous 2012 also points out that the diamond norm of Lambda
-    # is the same as the completely-bounded operator-norm (∞-norm)
-    # of the dual map of Lambda. We can evaluate that norm much more
-    # easily if Lambda is completely positive, since then the largest
-    # eigenvalue is the same as the largest singular value.
+            # Assume square...
+            dim = int(np.prod(J.dims[0][0]))
 
-    if not force_solve and J.iscp:
-        S_dual = to_super(J.dual_chan())
-        vec_eye = operator_to_vector(qeye(S_dual.dims[1][1]))
-        op = vector_to_operator(S_dual * vec_eye)
-        # The 2-norm was not implemented for sparse matrices as of the time
-        # of this writing. Thus, we must yet again go dense.
-        return la.norm(op.full(), 2)
+            # Load the parameters with the Choi matrix passed in.
+            J_dat = _data.to('csr', J.data).as_scipy()
 
-    # If we're still here, we need to actually solve the problem.
+            if not sparse:
+                problem, Jr, Ji = dnorm_problem(dim)
 
-    # Assume square...
-    dim = int(np.prod(J.dims[0][0]))
+                # Load the parameters with the Choi matrix passed in.
+                Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
+                                          J_dat.indptr),
+                                         shape=J_dat.shape).toarray()
 
-    # Load the parameters with the Choi matrix passed in.
-    J_dat = _data.to('csr', J.data).as_scipy()
+                Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
+                                          J_dat.indptr),
+                                         shape=J_dat.shape).toarray()
+            else:
+                problem = dnorm_sparse_problem(dim, J_dat)
 
-    if not sparse:
-        problem, Jr, Ji = dnorm_problem(dim)
+            problem.solve(solver=solver, verbose=verbose)
 
-        # Load the parameters with the Choi matrix passed in.
-        Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
-                                  J_dat.indptr),
-                                 shape=J_dat.shape).toarray()
-
-        Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
-                                  J_dat.indptr),
-                                 shape=J_dat.shape).toarray()
-    else:
-        problem = dnorm_sparse_problem(dim, J_dat)
-
-    problem.solve(solver=solver, verbose=verbose)
-
-    return problem.value
+            value = problem.value
+    return value
 
 
 def unitarity(oper):

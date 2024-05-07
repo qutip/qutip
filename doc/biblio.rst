@@ -41,9 +41,8 @@ Bibliography
     open quantum systems*. :arxiv:`1111.6950`
 
 .. [AKN98]
-    D. Aharonov, A. Kitaev, and N. Nisan, *Quantum circuits with mixed states*, 
-    in Proceedings of the thirtieth annual ACM symposium on Theory of computing, 
-    20–30 (1998). :arxiv:`quant-ph/9806029`
+    D. Aharonov, A. Kitaev, and N. Nisan, *Quantum circuits with mixed states*, in Proceedings of the 
+    thirtieth annual ACM symposium on Theory of computing, 20-30 (1998). :arxiv:`quant-ph/9806029`
 
 .. [dAless08]
     D. d’Alessandro, *Introduction to Quantum Control and Dynamics*, (Chapman & Hall/CRC, 2008).
