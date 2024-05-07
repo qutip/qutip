@@ -371,8 +371,8 @@ def test_feedback():
     )]
     psi0 = basis(N, N-3)
 
-    times = np.linspace(0, 10, 101)
-    options = {"map": "serial", "dt": 0.001}
+    times = np.linspace(0, 2, 101)
+    options = {"map": "serial", "dt": 0.0005}
 
     solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
     results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
