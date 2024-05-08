@@ -434,14 +434,20 @@ def hellinger_dist(A, B, sparse=False, tol=0):
 
 def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
           sparse=True):
-    """
+    r"""
     Calculates the diamond norm of the quantum map q_oper, using
     the simplified semidefinite program of [Wat13]_.
 
     The diamond norm SDP is solved by using `CVXPY <https://www.cvxpy.org/>`_.
 
-    If B is provided and both A and B are unitaries, a special optimised
-    case of the diamond norm is used. See [AKN98]_.
+    If B is provided and both A and B are unitary, then the diamond norm
+    of the difference is calculated more efficiently using the following
+    geometric interpretation:
+    :math:`\|A - B\|_{\diamond}` equals :math:`2 \sqrt(1 - d^2)`, where
+    :math:`d`is the distance between the origin and the convex hull of the
+    eigenvalues of :math:`A B^{\dagger}`.
+    See [AKN98]_ page 18, in the paragraph immediately below the proof of 12.6,
+    as a reference.
 
     Parameters
     ----------
@@ -483,11 +489,11 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # for instance, by both pyGSTi and SchattenNorms.jl. (By contrast,
     # QETLAB uses the dual problem.)
 
-    # Check if A and B are both unitaries. If so we can use a trick
-    # discussed in D. Aharonov, A. Kitaev, and N. Nisan. (1998).
-    # In general we can find the eigenvalues of AB⁺ and the distance
-    # d between the origin and compelx hull of these. Plugging
-    # this into 2√1-d² gives the diamond norm.
+    # Check if A and B are both unitaries. If so we can use the geometric
+    # interpretation mentioned in D. Aharonov, A. Kitaev, and N. Nisan. (1998).
+    # We find the eigenvalues of AB⁺ and the distance d between the origin
+    # and the complex hull of these. Plugging this into 2√1-d² gives the
+    # diamond norm.
 
     if (
         not force_solve
@@ -498,55 +504,53 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         U = A * B.dag()
         eigs = U.eigenenergies()
         d = _find_poly_distance(eigs)
-        value = 2 * np.sqrt(1 - d**2)  # plug d into formula
-    else:  # Force the input superoperator to be a Choi matrix.
-        J = to_choi(A)
-        if B is not None:
-            J -= to_choi(B)
+        return 2 * np.sqrt(1 - d**2)  # plug d into formula
+    J = to_choi(A)
+    if B is not None:
+        J -= to_choi(B)
 
-        # Watrous 2012 also points out that the diamond norm of Lambda
-        # is the same as the completely-bounded operator-norm (∞-norm)
-        # of the dual map of Lambda. We can evaluate that norm much more
-        # easily if Lambda is completely positive, since then the largest
-        # eigenvalue is the same as the largest singular value.
+    # Watrous 2012 also points out that the diamond norm of Lambda
+    # is the same as the completely-bounded operator-norm (∞-norm)
+    # of the dual map of Lambda. We can evaluate that norm much more
+    # easily if Lambda is completely positive, since then the largest
+    # eigenvalue is the same as the largest singular value.
 
-        if not force_solve and J.iscp:
-            S_dual = to_super(J.dual_chan())
-            vec_eye = operator_to_vector(qeye(S_dual.dims[1][1]))
-            op = vector_to_operator(S_dual * vec_eye)
-            # The 2-norm was not implemented for sparse matrices as of the time
-            # of this writing. Thus, we must yet again go dense.
-            value = la.norm(op.full(), 2)
-        elif not force_solve and J.iscptp:
-            # diamond norm of a CPTP map is 1 (Prop 3.44 Watrous 2018)
-            value = 1.0
-        else:
-            # If we're still here, we need to actually solve the problem.
+    if not force_solve and J.iscp:
+        S_dual = to_super(J.dual_chan())
+        vec_eye = operator_to_vector(qeye(S_dual.dims[1][1]))
+        op = vector_to_operator(S_dual * vec_eye)
+        # The 2-norm was not implemented for sparse matrices as of the time
+        # of this writing. Thus, we must yet again go dense.
+        return la.norm(op.full(), 2)
+    if not force_solve and J.iscptp:
+        # diamond norm of a CPTP map is 1 (Prop 3.44 Watrous 2018)
+        return 1.0
 
-            # Assume square...
-            dim = int(np.prod(J.dims[0][0]))
+    # If we're still here, we need to actually solve the problem.
 
-            # Load the parameters with the Choi matrix passed in.
-            J_dat = _data.to('csr', J.data).as_scipy()
+    # Assume square...
+    dim = int(np.prod(J.dims[0][0]))
 
-            if not sparse:
-                problem, Jr, Ji = dnorm_problem(dim)
+    # Load the parameters with the Choi matrix passed in.
+    J_dat = _data.to('csr', J.data).as_scipy()
 
-                # Load the parameters with the Choi matrix passed in.
-                Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
-                                          J_dat.indptr),
-                                         shape=J_dat.shape).toarray()
+    if not sparse:
+        problem, Jr, Ji = dnorm_problem(dim)
 
-                Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
-                                          J_dat.indptr),
-                                         shape=J_dat.shape).toarray()
-            else:
-                problem = dnorm_sparse_problem(dim, J_dat)
+        # Load the parameters with the Choi matrix passed in.
+        Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
+                                  J_dat.indptr),
+                                 shape=J_dat.shape).toarray()
 
-            problem.solve(solver=solver, verbose=verbose)
+        Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
+                                  J_dat.indptr),
+                                 shape=J_dat.shape).toarray()
+    else:
+        problem = dnorm_sparse_problem(dim, J_dat)
 
-            value = problem.value
-    return value
+    problem.solve(solver=solver, verbose=verbose)
+
+    return problem.value
 
 
 def unitarity(oper):
@@ -569,22 +573,27 @@ def unitarity(oper):
 
 
 def _find_poly_distance(eigenvals: np.ndarray) -> float:
-    """Function to find the distance between origin and the
-    convex hull of eigenvalues."""
+    """
+    Returns the distance between the origin and the convex hull of eigenvalues.
+
+    The complex eigenvalues must have unit length (i.e. lie on the circle
+    about the origin).
+    """
     phases = np.angle(eigenvals)
-    pos_max = phases.max()
-    neg_min = phases.min()
-    pos_min = np.where(phases > 0, phases, np.inf).min()
-    neg_max = np.where(phases <= 0, phases, -np.inf).max()
+    phase_max = phases.max()
+    phase_min = phases.min()
 
-    if neg_min > 0:  # all eigenvals have positive phase, hull is above x axis
-        return np.cos((pos_max - pos_min) / 2)
+    if phase_min > 0:  # all eigenvals have pos phase: hull is above x axis
+        return np.cos((phase_max - phase_min) / 2)
 
-    if pos_max <= 0:  # all eigenvals have negative phase, hull is below x axis
-        return np.cos((np.abs(neg_min) - np.abs(neg_max)) / 2)
+    if phase_max <= 0:  # all eigenvals have neg phase: hull is below x axis
+        return np.cos((np.abs(phase_min) - np.abs(phase_max)) / 2)
 
-    big_angle = pos_max - neg_min
-    small_angle = pos_min - neg_max
+    pos_phase_min = np.where(phases > 0, phases, np.inf).min()
+    neg_phase_max = np.where(phases <= 0, phases, -np.inf).max()
+
+    big_angle = phase_max - phase_min
+    small_angle = pos_phase_min - neg_phase_max
     if big_angle >= np.pi:
         if small_angle <= np.pi:  # hull contains the origin
             return 0
