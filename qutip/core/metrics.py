@@ -500,7 +500,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         and A.isunitary
         and B is not None
         and B.isunitary
-    ):  # Special optimisation fo a difference of unitaries.
+    ):  # Special optimisation for a difference of unitaries.
         U = A * B.dag()
         eigs = U.eigenenergies()
         d = _find_poly_distance(eigs)
