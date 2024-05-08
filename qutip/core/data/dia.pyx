@@ -69,7 +69,7 @@ cdef class Dia(base.Data):
     def __cinit__(self, *args, **kwargs):
         self._deallocate = True
 
-    def __init__(self, arg=None, shape=None, bint copy=True, bint tidyup=False):
+    def __init__(self, arg=None, shape=None, copy=True, bint tidyup=False):
         cdef size_t ptr
         cdef base.idxint col
         cdef object data, offsets
@@ -87,8 +87,8 @@ cdef class Dia(base.Data):
             raise TypeError("arg must be a scipy matrix or tuple")
         if len(arg) != 2:
             raise ValueError("arg must be a (data, offsets) tuple")
-        data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
-        offsets = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
+        data = np.asarray(arg[0], dtype=np.complex128, copy=copy, order='C')
+        offsets = np.asarray(arg[1], dtype=idxint_dtype, copy=copy, order='C')
 
         self.num_diag = offsets.shape[0]
         self._max_diag = self.num_diag

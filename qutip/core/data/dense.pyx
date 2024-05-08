@@ -40,7 +40,7 @@ class OrderEfficiencyWarning(EfficiencyWarning):
 
 cdef class Dense(base.Data):
     def __init__(self, data, shape=None, copy=True):
-        base = np.array(data, dtype=np.complex128, order='K', copy=copy)
+        base = np.asarray(data, dtype=np.complex128, order='K', copy=copy)
         # Ensure that the array is contiguous.
         # Non contiguous array with copy=False would otherwise slip through
         if not (cnp.PyArray_IS_C_CONTIGUOUS(base) or
@@ -135,8 +135,8 @@ cdef class Dense(base.Data):
     cdef void _fix_flags(self, object array, bint make_owner=False):
         cdef int enable = cnp.NPY_ARRAY_OWNDATA if make_owner else 0
         cdef int disable = 0
-        cdef cnp.Py_intptr_t *dims = cnp.PyArray_DIMS(array)
-        cdef cnp.Py_intptr_t *strides = cnp.PyArray_STRIDES(array)
+        cdef cnp.npy_intp *dims = cnp.PyArray_DIMS(array)
+        cdef cnp.npy_intp *strides = cnp.PyArray_STRIDES(array)
         # Not necessary when creating a new array because this will already
         # have been done, but needed for as_ndarray() if we have been mutated.
         dims[0] = self.shape[0]
