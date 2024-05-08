@@ -267,7 +267,7 @@ class Solver:
     @property
     def _integrator(self):
         if not self._integrator_instance:
-        _time_start = time()
+            _time_start = time()
             self._integrator_instance = self._get_integrator()
             self.stats["method"] = self._integrator_instance.name
             self.stats["ODE init time"] += time() - _time_start
