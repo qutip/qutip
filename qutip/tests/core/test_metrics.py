@@ -454,6 +454,15 @@ class Test_dnorm:
         )
 
     @pytest.mark.repeat(3)
+    def test_unitary_case(self, dimension):
+        """Check that the diamond norm is one for unitary maps."""
+        A, B = rand_unitary(dimension), rand_unitary(dimension)
+        assert (
+            dnorm(A, B)
+            == pytest.approx(dnorm(A, B, force_solve=True), abs=1e-5)
+        )
+
+    @pytest.mark.repeat(3)
     def test_cptp(self, dimension, sparse):
         """Check that the diamond norm is one for CPTP maps."""
         A = rand_super_bcsz(dimension)
