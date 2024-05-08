@@ -56,8 +56,9 @@ jobs:
             python-version: "3.12"
             scipy-requirement: ""
             numpy-requirement: "==2.0.0rc1"
+            pypi: 1
 
-          # Binaries compiled with numpy 2 should be compatible when using 
+          # Binaries compiled with numpy 2 should be compatible when using
           # numpy 1.X at runtime.
           - case-name: numpy2_to_1
             os: ubuntu-latest
@@ -65,6 +66,7 @@ jobs:
             scipy-requirement: ""
             numpy-requirement: "==2.0.0rc1"
             roll_back_numpy: 1
+            pypi: 1  # numpy 2 not yet available on conda
 
           # Python 3.10, no mkl, scipy 1.9, numpy 1.23
           # Scipy 1.9 did not support cython 3.0 yet.
@@ -160,7 +162,9 @@ jobs:
           python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
           python -m pip install pytest-cov coveralls pytest-fail-slow
 
-          if [[ -z "${{ matrix.nomkl }}" ]]; then
+          if [[ "${{ matrix.pypi }}" ]]; then
+            pip install "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
+          elif [[ -z "${{ matrix.nomkl }}" ]]; then
             conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
             # Conda doesn't supply forced nomkl builds on Windows, so we rely on
