@@ -517,7 +517,7 @@ cdef class InterCoefficient(Coefficient):
 
     @classmethod
     def from_PPoly(cls, ppoly, **_):
-        return cls.restore(ppoly.x, np.asarray(ppoly.c, complex, copy=None))
+        return cls.restore(ppoly.x, np.asarray(ppoly.c, complex))
 
     @classmethod
     def from_Bspline(cls, spline, **_):

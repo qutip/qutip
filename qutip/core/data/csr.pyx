@@ -100,9 +100,9 @@ cdef class CSR(base.Data):
             raise TypeError("arg must be a scipy matrix or tuple")
         if len(arg) != 3:
             raise ValueError("arg must be a (data, col_index, row_index) tuple")
-        data = np.asarray(arg[0], dtype=np.complex128, copy=copy, order='C')
-        col_index = np.asarray(arg[1], dtype=idxint_dtype, copy=copy, order='C')
-        row_index = np.asarray(arg[2], dtype=idxint_dtype, copy=copy, order='C')
+        data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
+        col_index = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
+        row_index = np.array(arg[2], dtype=idxint_dtype, copy=copy, order='C')
         # This flag must be set at the same time as data, col_index and
         # row_index are assigned.  These assignments cannot raise an exception
         # in user code due to the above three lines, but further code may.

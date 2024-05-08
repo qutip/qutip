@@ -87,8 +87,8 @@ cdef class Dia(base.Data):
             raise TypeError("arg must be a scipy matrix or tuple")
         if len(arg) != 2:
             raise ValueError("arg must be a (data, offsets) tuple")
-        data = np.asarray(arg[0], dtype=np.complex128, copy=copy, order='C')
-        offsets = np.asarray(arg[1], dtype=idxint_dtype, copy=copy, order='C')
+        data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
+        offsets = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
 
         self.num_diag = offsets.shape[0]
         self._max_diag = self.num_diag

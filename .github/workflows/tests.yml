@@ -50,6 +50,22 @@ jobs:
             oldcython: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
 
+          # Test with the version 2 of numpy comming soon.
+          - case-name: numpy2
+            os: ubuntu-latest
+            python-version: "3.12"
+            scipy-requirement: ""
+            numpy-requirement: "==2.0.0rc1"
+
+          # Binaries compiled with numpy 2 should be compatible when using 
+          # numpy 1.X at runtime.
+          - case-name: numpy2_to_1
+            os: ubuntu-latest
+            python-version: "3.9"
+            scipy-requirement: ""
+            numpy-requirement: "==2.0.0rc1"
+            roll_back_numpy: 1
+
           # Python 3.10, no mkl, scipy 1.9, numpy 1.23
           # Scipy 1.9 did not support cython 3.0 yet.
           # cython#17234
@@ -171,6 +187,13 @@ jobs:
           if [[ "${{ matrix.nocython }}" ]]; then
             python -m pip uninstall cython -y
           fi
+
+          if [[ "${{ matrix.roll_back_numpy }}" ]]; then
+            # Binary compiled with numpy 2.X should be compatible with numpy 1.X
+            python -m pip install "numpy<=1.23"
+          fi
+
+
 
       - name: Package information
         run: |
