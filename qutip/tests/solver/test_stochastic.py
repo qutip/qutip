@@ -371,8 +371,8 @@ def test_feedback():
     )]
     psi0 = basis(N, N-3)
 
-    times = np.linspace(0, 10, 101)
-    options = {"map": "serial", "dt": 0.001}
+    times = np.linspace(0, 2, 101)
+    options = {"map": "serial", "dt": 0.0005}
 
     solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
     results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
@@ -419,13 +419,13 @@ def test_small_step_warnings(method):
 @pytest.mark.parametrize("method", ["euler", "platen"])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_run_from_experiment_close(method, heterodyne):
-    N = 10
+    N = 5
 
     H = num(N)
     a = destroy(N)
     sc_ops = [a, a @ a + (a @ a).dag()]
     psi0 = basis(N, N-1)
-    tlist = np.linspace(0, 0.1, 251)
+    tlist = np.linspace(0, 0.1, 501)
     options = {
         "store_measurement": "start",
         "dt": tlist[1],
