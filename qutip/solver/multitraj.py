@@ -1,4 +1,5 @@
-from .result import Result, MultiTrajResult
+from .result import TrajectoryResult
+from .multitrajresult import MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver
@@ -29,7 +30,7 @@ class MultiTrajSolver(Solver):
     """
     name = "generic multi trajectory"
     _resultclass = MultiTrajResult
-    _trajectory_resultclass = Result
+    _trajectory_resultclass = TrajectoryResult
     _avail_integrators = {}
 
     # Class of option used by the solver
@@ -124,7 +125,7 @@ class MultiTrajSolver(Solver):
         })
         state0 = self._prepare_state(state)
         stats['preparation time'] += time() - start_time
-        return stats, seeds, result, map_func, map_kw, state0
+        return seeds, result, map_func, map_kw, state0
 
     def run(self, state, tlist, ntraj=1, *,
             args=None, e_ops=(), timeout=None, target_tol=None, seeds=None):
@@ -187,7 +188,7 @@ class MultiTrajSolver(Solver):
             The simulation will end when the first end condition is reached
             between ``ntraj``, ``timeout`` and ``target_tol``.
         """
-        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
+        seeds, result, map_func, map_kw, state0 = self._initialize_run(
             state,
             ntraj,
             args=args,
