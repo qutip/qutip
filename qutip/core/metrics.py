@@ -505,9 +505,15 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         eigs = U.eigenenergies()
         d = _find_poly_distance(eigs)
         return 2 * np.sqrt(1 - d**2)  # plug d into formula
+
     J = to_choi(A)
-    if B is not None:
+
+    if B is not None:  # If B is provided, calculate difference
         J -= to_choi(B)
+
+    if not force_solve and J.iscptp:
+        # diamond norm of a CPTP map is 1 (Prop 3.44 Watrous 2018)
+        return 1.0
 
     # Watrous 2012 also points out that the diamond norm of Lambda
     # is the same as the completely-bounded operator-norm (∞-norm)
@@ -522,9 +528,6 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         # The 2-norm was not implemented for sparse matrices as of the time
         # of this writing. Thus, we must yet again go dense.
         return la.norm(op.full(), 2)
-    if not force_solve and J.iscptp:
-        # diamond norm of a CPTP map is 1 (Prop 3.44 Watrous 2018)
-        return 1.0
 
     # If we're still here, we need to actually solve the problem.
 
