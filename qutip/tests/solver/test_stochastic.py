@@ -15,6 +15,10 @@ def _make_system(N, system):
     gamma = 0.25
     a = destroy(N)
 
+    if system == "no sc_ops":
+        H = a.dag() * a
+        sc_ops = []
+
     if system == "simple":
         H = a.dag() * a
         sc_ops = [np.sqrt(gamma) * a]
@@ -39,7 +43,7 @@ def _make_system(N, system):
 
 
 @pytest.mark.parametrize("system", [
-    "simple", "2 c_ops", "H td", "complex", "c_ops td",
+    "no sc_ops", "simple", "2 c_ops", "H td", "complex", "c_ops td",
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_smesolve(heterodyne, system):
@@ -138,7 +142,7 @@ def test_smesolve_methods(method, heterodyne):
 
 
 @pytest.mark.parametrize("system", [
-    "simple", "2 c_ops", "H td", "complex", "c_ops td",
+    "no sc_ops", "simple", "2 c_ops", "H td", "complex", "c_ops td",
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_ssesolve(heterodyne, system):
