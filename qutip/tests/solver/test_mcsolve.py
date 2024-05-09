@@ -474,6 +474,11 @@ def test_MCSolver_stepping():
     assert state.isket
 
 
+def _coeff_collapse(t, A):
+    if t == 0:
+        assert len(A) == 0
+    return (len(A) < 3) * 1.0
+
 @pytest.mark.parametrize(["func", "kind"], [
     pytest.param(
         lambda t, A: A-4,
@@ -482,7 +487,7 @@ def test_MCSolver_stepping():
         id="expect"
     ),
     pytest.param(
-        lambda t, A: (len(A) < 3) * 1.0,
+        _coeff_collapse,
         lambda: qutip.MCSolver.CollapseFeedback(),
         id="collapse"
     ),
