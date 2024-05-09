@@ -9,6 +9,7 @@ from qutip.settings import settings
 from qutip.core.data.base cimport idxint
 from qutip.core.data cimport csr, dense, CSR, Dense, Dia
 from qutip.core.data.adjoint cimport transpose_csr
+import numpy as np
 
 cdef extern from *:
     # Not defined in cpython.mem for some reason, but is in pymem.h.
@@ -35,6 +36,29 @@ cdef inline bint _feq_zero(double complex a, double tol) nogil:
 
 cdef inline double _abssq(double complex x) nogil:
     return x.real*x.real + x.imag*x.imag
+
+cdef inline bint _feq(double complex a, double complex b, double atol, double rtol) nogil:
+    """
+    Follow numpy.allclose tolerance equation:
+        |a - b| <= (atol + rtol * |b|)
+    Avoid slow sqrt.
+    """
+    cdef double diff = (a.real - b.real)**2 + (a.imag - b.imag)**2 - atol * atol
+    if diff_sq <= 0:
+        # Early exit if under atol.
+        # |a - b|**2 <= atol**2
+        return True
+    cdef double normb_sq = a.real * a.real + b.imag * b.imag
+    if normb_sq == 0. or rtol == 0.:
+        # No rtol term, the previous computation was final.
+        return False
+    diff_sq -= rtol * rtol * normb_sq
+    if diff_sq <= 0:
+        # Early exit if under atol + rtol without cross term.
+        # |a - b|**2 <= atol**2 + (rtol * |b|)**2
+        return True
+    # Full computation
+    return diff_sq**2 <= 4 * atol * rtol * normb_sq
 
 
 cdef bint _isherm_csr_full(CSR matrix, double tol) except 2:
@@ -300,6 +324,102 @@ cpdef bint iszero_dense(Dense matrix, double tol=-1) nogil:
     return True
 
 
+cpdef bint isequal_dia(Dia A, Dia B, double atol=-1, double rtol=-1) nogil:
+    if A.shape[0] != B.shape[0] or A.shape[1] != B.shape[1]:
+        return False
+    if atol < 0 or rtol < 0:
+        # Claim the gil only once
+        with gil:
+            if atol < 0:
+                atol = settings.core["atol"]
+            if rtol < 0:
+                rtol = settings.core["rtol"]
+
+    cdef idxint diag_a=0, diag_b=0
+    cdef double complex *ptr_a
+    cdef double complex *ptr_b
+    cdef bint sorted=True
+    cdef int length, size=A.shape[1]
+
+    ptr_a = A.data
+    ptr_b = B.data
+
+    while diag_a < A.num_diag and diag_b < B.num_diag:
+        if A.offsets[diag_a] == B.offsets[diag_b]:
+            for i in range(size):
+                if not _feq(ptr_a[i], ptr_b[i], atol, rtol):
+                    return False
+            ptr_a += size
+            diag_a += 1
+            ptr_b += size
+            diag_b += 1
+        elif A.offsets[diag_a] <= B.offsets[diag_b]:
+            for i in range(size):
+                if not _feq(ptr_a[i], 0., atol, rtol):
+                    return False
+            ptr_a += size
+            diag_a += 1
+        else:
+            for i in range(size):
+                if not _feq(0., ptr_b[i], atol, rtol):
+                    return False
+            ptr_b += size
+            diag_b += 1
+    return True
+
+
+cpdef bint isequal_dense(Dense A, Dense B, double atol=-1, double rtol=-1):
+      if atol < 0:
+          atol = settings.core["atol"]
+      if rtol < 0:
+          rtol = settings.core["rtol"]
+      return np.allclose(A.as_ndarray(), B.as_ndarray(), rtol, atol)
+
+
+cpdef bint isequal_csr(CSR A, CSR B, double atol=-1, double rtol=-1) nogil:
+    if A.shape[0] != B.shape[0] or A.shape[1] != B.shape[1]:
+        return False
+    if atol < 0 or rtol < 0:
+        # Claim the gil only once
+        with gil:
+            if atol < 0:
+                atol = settings.core["atol"]
+            if rtol < 0:
+                rtol = settings.core["rtol"]
+
+    cdef idxint row, ptr_a, ptr_b, ptr_a_max, ptr_b_max, col_a, col_b
+
+    ptr_a_max = ptr_b_max = 0
+    for row in range(a.shape[0]):
+        ptr_a = ptr_a_max
+        ptr_a_max = a.row_index[row + 1]
+        ptr_b = ptr_b_max
+        ptr_b_max = b.row_index[row + 1]
+        col_a = a.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+        col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+        while ptr_a < ptr_a_max or ptr_b < ptr_b_max:
+            if col_a == col_b:
+                if not _feq(A.data[ptr_a], B.data[ptr_b], atol, rtol):
+                    return False
+                ptr_a += 1
+                ptr_b += 1
+                col_a = a.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+                col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+            elif col_a < col_b:
+                if not _feq(A.data[ptr_a], 0., atol, rtol):
+                    return False
+                ptr_a += 1
+                col_a = a.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+            else:
+                if not _feq(0., B.data[ptr_b], atol, rtol):
+                    return False
+                acc_scatter(acc, b.data[ptr_b], col_b)
+                ptr_b += 1
+                col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+
+    return True
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -395,6 +515,50 @@ iszero.add_specialisations([
     (CSR, iszero_csr),
     (Dia, iszero_dia),
     (Dense, iszero_dense),
+], _defer=True)
+
+isequal = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('A', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('B', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('atol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=-1),
+        _inspect.Parameter('rtol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=-1),
+    ]),
+    name='isequal',
+    module=__name__,
+    inputs=('A', 'B',),
+    out=False,
+)
+isequal.__doc__ =\
+    """
+    Test if two matrices are equal up to absolute and relative tolerance:
+
+        |A - B| <= atol +  rtol * |b|
+
+    Similar to ``numpy.allclose``.
+
+    Parameters
+    ----------
+    A, B : Data
+        Matrices to compare.
+    atol : real, optional
+        The absolute tolerance to use. If not given, or
+        less than 0, use the core setting `atol`.
+    rtol : real, optional
+        The relative tolerance to use. If not given, or
+        less than 0, use the core setting `atol`.
+
+    Returns
+    -------
+    bool
+        Whether the matrix are equal.
+    """
+iszero.add_specialisations([
+    (CSR, isequal_csr),
+    (Dia, isequal_dia),
+    (Dense, isequal_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher
