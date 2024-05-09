@@ -490,8 +490,6 @@ cdef class QobjEvo:
                 for element in self.elements
             ]
 
-
-
     def _update_feedback(QobjEvo self, QobjEvo other=None):
         """
         Merge feedback from ``op`` into self.
