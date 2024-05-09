@@ -482,7 +482,6 @@ cdef class QobjEvo:
                     f"Desired feedback {key} is not available for the {solver}."
                 )
             new_args[key] = solvers_feeds[feed]
-        # self.arguments(new_args)
 
         if new_args:
             cache = []
