@@ -19,6 +19,7 @@ __all__ = [
     'isherm', 'isherm_csr', 'isherm_dense', 'isherm_dia',
     'isdiag', 'isdiag_csr', 'isdiag_dense', 'isdiag_dia',
     'iszero', 'iszero_csr', 'iszero_dense', 'iszero_dia',
+    'isequal', 'isequal_csr', 'isequal_dense', 'isequal_dia',
 ]
 
 cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil:
@@ -44,21 +45,22 @@ cdef inline bint _feq(double complex a, double complex b, double atol, double rt
     Avoid slow sqrt.
     """
     cdef double diff = (a.real - b.real)**2 + (a.imag - b.imag)**2 - atol * atol
-    if diff_sq <= 0:
+    if diff <= 0:
         # Early exit if under atol.
         # |a - b|**2 <= atol**2
         return True
-    cdef double normb_sq = a.real * a.real + b.imag * b.imag
+    cdef double normb_sq = b.real * b.real + b.imag * b.imag
     if normb_sq == 0. or rtol == 0.:
         # No rtol term, the previous computation was final.
         return False
-    diff_sq -= rtol * rtol * normb_sq
-    if diff_sq <= 0:
+    diff -= rtol * rtol * normb_sq
+    if diff <= 0:
         # Early exit if under atol + rtol without cross term.
         # |a - b|**2 <= atol**2 + (rtol * |b|)**2
         return True
     # Full computation
-    return diff_sq**2 <= 4 * atol * rtol * normb_sq
+    # (|a - b|**2 - atol**2 * (rtol * |b|)**2)**2 <= (2* atol * rtol * |b|)**2
+    return diff**2 <= 4 * atol * atol * rtol * rtol * normb_sq
 
 
 cdef bint _isherm_csr_full(CSR matrix, double tol) except 2:
@@ -338,8 +340,7 @@ cpdef bint isequal_dia(Dia A, Dia B, double atol=-1, double rtol=-1) nogil:
     cdef idxint diag_a=0, diag_b=0
     cdef double complex *ptr_a
     cdef double complex *ptr_b
-    cdef bint sorted=True
-    cdef int length, size=A.shape[1]
+    cdef idxint size=A.shape[1]
 
     ptr_a = A.data
     ptr_b = B.data
@@ -369,11 +370,13 @@ cpdef bint isequal_dia(Dia A, Dia B, double atol=-1, double rtol=-1) nogil:
 
 
 cpdef bint isequal_dense(Dense A, Dense B, double atol=-1, double rtol=-1):
-      if atol < 0:
-          atol = settings.core["atol"]
-      if rtol < 0:
-          rtol = settings.core["rtol"]
-      return np.allclose(A.as_ndarray(), B.as_ndarray(), rtol, atol)
+    if A.shape[0] != B.shape[0] or A.shape[1] != B.shape[1]:
+        return False
+    if atol < 0:
+        atol = settings.core["atol"]
+    if rtol < 0:
+        rtol = settings.core["rtol"]
+    return np.allclose(A.as_ndarray(), B.as_ndarray(), rtol, atol)
 
 
 cpdef bint isequal_csr(CSR A, CSR B, double atol=-1, double rtol=-1) nogil:
@@ -388,34 +391,34 @@ cpdef bint isequal_csr(CSR A, CSR B, double atol=-1, double rtol=-1) nogil:
                 rtol = settings.core["rtol"]
 
     cdef idxint row, ptr_a, ptr_b, ptr_a_max, ptr_b_max, col_a, col_b
+    cdef idxint ncols = A.shape[1]
 
     ptr_a_max = ptr_b_max = 0
-    for row in range(a.shape[0]):
+    for row in range(A.shape[0]):
         ptr_a = ptr_a_max
-        ptr_a_max = a.row_index[row + 1]
+        ptr_a_max = A.row_index[row + 1]
         ptr_b = ptr_b_max
-        ptr_b_max = b.row_index[row + 1]
-        col_a = a.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
-        col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+        ptr_b_max = B.row_index[row + 1]
+        col_a = A.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+        col_b = B.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
         while ptr_a < ptr_a_max or ptr_b < ptr_b_max:
             if col_a == col_b:
                 if not _feq(A.data[ptr_a], B.data[ptr_b], atol, rtol):
                     return False
                 ptr_a += 1
                 ptr_b += 1
-                col_a = a.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
-                col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+                col_a = A.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+                col_b = B.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
             elif col_a < col_b:
                 if not _feq(A.data[ptr_a], 0., atol, rtol):
                     return False
                 ptr_a += 1
-                col_a = a.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+                col_a = A.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
             else:
                 if not _feq(0., B.data[ptr_b], atol, rtol):
                     return False
-                acc_scatter(acc, b.data[ptr_b], col_b)
                 ptr_b += 1
-                col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+                col_b = B.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
 
     return True
 
@@ -555,10 +558,10 @@ isequal.__doc__ =\
     bool
         Whether the matrix are equal.
     """
-iszero.add_specialisations([
-    (CSR, isequal_csr),
-    (Dia, isequal_dia),
-    (Dense, isequal_dense),
+isequal.add_specialisations([
+    (CSR, CSR, isequal_csr),
+    (Dia, Dia, isequal_dia),
+    (Dense, Dense, isequal_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher
