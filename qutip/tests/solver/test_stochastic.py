@@ -15,6 +15,10 @@ def _make_system(N, system):
     gamma = 0.25
     a = destroy(N)
 
+    if system == "no sc_ops":
+        H = a.dag() * a
+        sc_ops = []
+
     if system == "simple":
         H = a.dag() * a
         sc_ops = [np.sqrt(gamma) * a]
@@ -39,7 +43,7 @@ def _make_system(N, system):
 
 
 @pytest.mark.parametrize("system", [
-    "simple", "2 c_ops", "H td", "complex", "c_ops td",
+    "no sc_ops", "simple", "2 c_ops", "H td", "complex", "c_ops td",
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_smesolve(heterodyne, system):
@@ -73,13 +77,15 @@ def test_smesolve(heterodyne, system):
         )
 
 
+@pytest.mark.parametrize("system", [
+    "no sc_ops", "simple"
+])
 @pytest.mark.parametrize("heterodyne", [True, False])
 @pytest.mark.parametrize("method", SMESolver.avail_integrators().keys())
-def test_smesolve_methods(method, heterodyne):
+def test_smesolve_methods(method, heterodyne, system):
     tol = 0.05
     N = 4
     ntraj = 20
-    system = "simple"
 
     H, sc_ops = _make_system(N, system)
     c_ops = [destroy(N)]
@@ -138,7 +144,7 @@ def test_smesolve_methods(method, heterodyne):
 
 
 @pytest.mark.parametrize("system", [
-    "simple", "2 c_ops", "H td", "complex", "c_ops td",
+    "no sc_ops", "simple", "2 c_ops", "H td", "complex", "c_ops td",
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_ssesolve(heterodyne, system):
@@ -174,14 +180,16 @@ def test_ssesolve(heterodyne, system):
     assert res.dW is None
 
 
+@pytest.mark.parametrize("system", [
+    "no sc_ops", "simple"
+])
 @pytest.mark.parametrize("heterodyne", [True, False])
 @pytest.mark.parametrize("method", SSESolver.avail_integrators().keys())
-def test_ssesolve_method(method, heterodyne):
+def test_ssesolve_method(method, heterodyne, system):
     "Stochastic: smesolve: homodyne, time-dependent H"
     tol = 0.1
     N = 4
     ntraj = 20
-    system = "simple"
 
     H, sc_ops = _make_system(N, system)
     psi0 = coherent(N, 0.5)
