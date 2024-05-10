@@ -452,7 +452,6 @@ class MCSolver(MultiTrajSolver):
     def _initialize_stats(self):
         stats = super()._initialize_stats()
         stats.update({
-            "method": self.options["method"],
             "solver": "Master Equation Evolution",
             "num_collapse": self._num_collapse,
         })

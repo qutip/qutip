@@ -183,7 +183,7 @@ class Propagator:
         self.props = [qeye(self.solver.sys_dims)]
         self.solver.start(self.props[0], self.times[0])
         self._dims = self.solver._dims
-        self.cte = self.solver.isconstant
+        self.cte = self.solver.constant_system
         self.unitary = not self._dims.issuper
         self.args = args
         self.memoize = max(3, int(memoize))

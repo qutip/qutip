@@ -63,7 +63,10 @@ class Solver:
         "normalize_output": True,
         "method": "adams",
     }
+    _rhs_reset_options = set()
     _resultclass = Result
+    _integrator_instance = None
+    _rhs = None
 
     def __init__(self, rhs, *, options=None):
         if not isinstance(rhs, (QobjEvo, Qobj)):
@@ -74,11 +77,9 @@ class Solver:
         self._post_init(options)
 
     def _post_init(self, options):
-        self.options = options
-        self._integrator_instance = None
         self._state_metadata = {}
-        self._rhs = None
         self.stats = self._initialize_stats()
+        self.options = options
 
     def _build_rhs(self):
         """
@@ -90,7 +91,7 @@ class Solver:
         """ Return the initial values for the solver stats.
         """
         return {
-            "method": self.options["method"],
+            "method": "",
             "ODE init time": 0.0,
             "preparation time": 0.0,
             "run time": 0.0,
@@ -330,28 +331,30 @@ class Solver:
         if new_options is None:
             new_options = {}
         if not isinstance(new_options, dict):
-            raise TypeError("options most to be a dictionary.")
-        new_solver_options, new_ode_options = self._parse_options(
-            new_options, self.solver_options, self.options
-        )
-        method = new_solver_options.get(
-            "method", self.options.get("method", self.solver_options["method"])
-        )
-        integrator = self.avail_integrators()[method]
+            raise TypeError("options must to be a dictionary.")
 
-        if method == self.options.get("method", None):
-            # If method changed, drop old ode options
-            old_ode_options = self.options
-            old_options = self._options
-        else:
-            old_ode_options = {}
+        new_solver_options, new_ode_options = self._parse_options(
+            new_options, self.solver_options, self._options
+        )
+
+        method = (
+            new_solver_options.get("method", None)
+            or self._options.get("method", None)
+            or self.solver_options.get("method")
+        )
+        if new_solver_options.get("method", False):
+            # Method changed! Drop old ode options
             old_options, _ = self._parse_options(
                 self._options, self.solver_options, {}
             )
+        else:
+            old_options = self._options
 
+        integrator = self.avail_integrators()[method]
         new_ode_options, extra_options = self._parse_options(
-            new_ode_options, integrator.integrator_options, self.options
+            new_ode_options, integrator.integrator_options, self._options
         )
+
         if extra_options:
             raise KeyError(f"Options {extra_options.keys()} are not supported")
         if self._options and not (new_solver_options or new_ode_options):
@@ -377,34 +380,41 @@ class Solver:
         if not from_setter:
             keys = set([keys])
 
+        method = self.options["method"]
+        integrator = self.avail_integrators()[method]
+
         if not from_setter and "method" in keys:
             # Drop the ode's options.
-            old_solver_options, _ = self._parse_options(
+            old_solver_options, old_ode_options = self._parse_options(
                 self.options, self.solver_options, {}
             )
-            method = self.options["method"]
-            integrator = self.avail_integrators()[method]
+            overlap_solver_options, _ = self._parse_options(
+                old_solver_options, integrator.integrator_options, {}
+            )
 
             self._options = _SolverOptions(
                 {**self.solver_options, **integrator.integrator_options},
                 self._apply_options,
                 self.name + " with " + integrator.method + " integrator",
                 self.__class__.options.__doc__ + integrator.options.__doc__,
-                **old_solver_options
+                **{**old_solver_options, **overlap_solver_options}
             )
+            self._integrator_instance = None
+            return
 
-        if self._integrator is None or not keys:
-            pass
-        elif 'method' in keys and self._integrator._is_set:
+        state = None
+        if self._integrator_instance is not None and self._integrator._is_set:
             state = self._integrator.get_state()
-            self._integrator = self._get_integrator()
+
+        if method in keys or keys & integrator._ode_reset_options:
+            self._integrator_instance = None
+
+        if keys & self._rhs_reset_options:
+            self._rhs = None
+            self._integrator_instance = None
+
+        if self._integrator_instance is None and state is not None:
             self._integrator.set_state(*state)
-        elif "method" in keys:
-            self._integrator = self._get_integrator()
-        elif keys & self._integrator.integrator_options.keys():
-            # Some of the keys are used by the integrator.
-            self._integrator.options = self._options
-            self._integrator.reset(hard=True)
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""

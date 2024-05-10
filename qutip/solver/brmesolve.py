@@ -265,6 +265,8 @@ class BRSolver(Solver):
         self.constant_system = self.H.isconstant
         self.constant_system &= all(c_op.isconstant for c_op in c_ops)
         self.constant_system &= all(isinstance(op, Qobj) for op, _ in a_ops)
+        if not self.constant_system:
+            self._rhs_reset_options = {"sparse_eigensolver", "tensor_type"}
 
         self._system = H, a_ops, c_ops
         self._num_collapse = len(c_ops)
@@ -351,22 +353,6 @@ class BRSolver(Solver):
     @options.setter
     def options(self, new_options):
         Solver.options.fset(self, new_options)
-
-    def _apply_options(self, keys):
-        need_new_rhs = not self.isconstant
-        need_new_rhs &= (
-            'sparse_eigensolver' in keys or 'tensor_type' in keys
-        )
-
-        if self._integrator is None or not keys:
-            pass
-        elif 'method' in keys or need_new_rhs:
-            state = self._integrator.get_state()
-            self._integrator = self._get_integrator()
-            self._integrator.set_state(*state)
-        else:
-            self._integrator.options = self._options
-            self._integrator.reset(hard=True)
 
     @classmethod
     def StateFeedback(cls, default=None, raw_data=False):

@@ -55,9 +55,13 @@ class Integrator:
         values. Once initiated, ``self.options`` will be a dict with the same
         keys, not the full options object passed to the solver. Options' keys
         included here will be supported by the :cls:SolverOdeOptions.
+
+    _ode_reset_options : set
+        Options that when changed require resetting the integrator.
     """
     # Dict of used options and their default values
     integrator_options = {}
+    _ode_reset_options = set()
     _options = None
     # Can evolve time dependent system
     support_time_dependant = None

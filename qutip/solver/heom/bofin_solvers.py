@@ -689,7 +689,7 @@ class HEOMSolver(Solver):
         stats = super()._initialize_stats()
         stats.update({
             "init time": sum([
-                stats["init time"], self._init_ados_time,
+                stats["ODE init time"], self._init_ados_time,
                 self._init_superop_cache_time, self._init_rhs_time,
             ]),
             "init ados time": self._init_ados_time,

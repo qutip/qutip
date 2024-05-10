@@ -788,13 +788,12 @@ class FMESolver(MESolver):
         c_ops, spectra_cb = zip(*a_ops)
         self._floquet_param = {"w_th": w_th, "kmax": kmax, "nT": nT}
         self._dims = Dimensions.to_super(self.floquet_basis._dims)
-        self.constant_system = self.floquet_basis.H.isconstant
+        self.constant_system = self.floquet_basis.U.cte
         if not all(
             isinstance(c_op, Qobj) and callable(spectrum)
             for c_op, spectrum in a_ops
         ):
             raise TypeError("a_ops must be tuple of (Qobj, callable)")
-        self.constant_system &= all(op.isconstant for op, _ in a_ops)
 
         self._post_init(options)
 
