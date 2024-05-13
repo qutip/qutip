@@ -374,7 +374,7 @@ class Qobj:
         Parameters
         ----------
         data_type : type, str
-            The data-layer type or it's string alias that the data of this
+            The data-layer type or its string alias that the data of this
             :class:`Qobj` should be converted to.
 
         copy : Bool
