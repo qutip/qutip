@@ -87,6 +87,8 @@ cdef class Dia(base.Data):
             raise TypeError("arg must be a scipy matrix or tuple")
         if len(arg) != 2:
             raise ValueError("arg must be a (data, offsets) tuple")
+        if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
+            copy = bool(copy)
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
         offsets = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
 

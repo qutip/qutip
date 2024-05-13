@@ -40,6 +40,8 @@ class OrderEfficiencyWarning(EfficiencyWarning):
 
 cdef class Dense(base.Data):
     def __init__(self, data, shape=None, copy=True):
+        if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
+            copy = bool(copy)
         base = np.array(data, dtype=np.complex128, order='K', copy=copy)
         # Ensure that the array is contiguous.
         # Non contiguous array with copy=False would otherwise slip through
