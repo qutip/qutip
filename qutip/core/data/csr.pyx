@@ -12,7 +12,7 @@ from cpython cimport mem
 
 import numbers
 import warnings
-
+import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
@@ -101,7 +101,8 @@ cdef class CSR(base.Data):
         if len(arg) != 3:
             raise ValueError("arg must be a (data, col_index, row_index) tuple")
         if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
-            copy = bool(copy)
+            # np2 accept None which act as np1's False
+            copy = builtins.bool(copy)
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
         col_index = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
         row_index = np.array(arg[2], dtype=idxint_dtype, copy=copy, order='C')
