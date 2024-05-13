@@ -3,8 +3,13 @@ from .multitrajresult import MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver
-from ..core import QobjEvo
+from ..core import QobjEvo, Qobj
 import numpy as np
+from numpy.typing import ArrayLike
+from numpy.random import SeedSequence
+from numbers import Number
+from typing import Any, Callable
+
 
 __all__ = ["MultiTrajSolver"]
 
@@ -82,7 +87,7 @@ class MultiTrajSolver(Solver):
         self._state_metadata = {}
         self.stats = self._initialize_stats()
 
-    def start(self, state, t0, seed=None):
+    def start(self, state0: Qobj, t0: Number, seed: int | SeedSequence = None):
         """
         Set the initial state and time for a step evolution.
 
@@ -105,9 +110,11 @@ class MultiTrajSolver(Solver):
         """
         seeds = self._read_seed(seed, 1)
         generator = self._get_generator(seeds[0])
-        self._integrator.set_state(t0, self._prepare_state(state), generator)
+        self._integrator.set_state(t0, self._prepare_state(state0), generator)
 
-    def step(self, t, *, args=None, copy=True):
+    def step(
+        self, t: Number, *, args: dict[str, Any] = None, copy: bool = True
+    ) -> Qobj:
         """
         Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
 
@@ -151,8 +158,18 @@ class MultiTrajSolver(Solver):
         stats['preparation time'] += time() - start_time
         return seeds, result, map_func, map_kw, state0
 
-    def run(self, state, tlist, ntraj=1, *,
-            args=None, e_ops=(), timeout=None, target_tol=None, seeds=None):
+    def run(
+        self,
+        state: Qobj,
+        tlist: ArrayLike,
+        ntraj: int = 1,
+        *,
+        args: dict[str, Any] = None,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+        target_tol: float = None,
+        timeout: float = None,
+        seeds: int | SeedSequence | list[int | SeedSequence] = None,
+    ) -> MultiTrajResult:
         """
         Do the evolution of the Quantum system.
 

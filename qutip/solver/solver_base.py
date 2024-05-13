@@ -1,5 +1,8 @@
 __all__ = ['Solver']
 
+from numpy.typing import ArrayLike
+from numbers import Number
+from typing import Any, Callable
 from .. import Qobj, QobjEvo, ket2dm
 from .options import _SolverOptions
 from ..core import stack_columns, unstack_columns
@@ -112,7 +115,14 @@ class Solver:
 
         return state
 
-    def run(self, state0, tlist, *, args=None, e_ops=None):
+    def run(
+        self,
+        state0: Qobj,
+        tlist: ArrayLike,
+        *,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+        args: dict[str, Any] = None,
+    ) -> Result:
         """
         Do the evolution of the Quantum system.
 
@@ -132,10 +142,10 @@ class Solver:
             evolution. Each times of the list must be increasing, but does not
             need to be uniformy distributed.
 
-        args : dict, optional {None}
+        args : dict, optional
             Change the ``args`` of the rhs for the evolution.
 
-        e_ops : list {None}
+        e_ops : list, optional
             List of Qobj, QobjEvo or callable to compute the expectation
             values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
@@ -171,7 +181,7 @@ class Solver:
         # stats.update(_integrator.stats)
         return results
 
-    def start(self, state0, t0):
+    def start(self, state0: Qobj, t0: Number) -> None:
         """
         Set the initial state and time for a step evolution.
 
@@ -187,7 +197,13 @@ class Solver:
         self._integrator.set_state(t0, self._prepare_state(state0))
         self.stats["preparation time"] += time() - _time_start
 
-    def step(self, t, *, args=None, copy=True):
+    def step(
+        self,
+        t: Number,
+        *,
+        args: dict[str, Any] = None,
+        copy: bool = True
+    ) -> Qobj:
         """
         Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
 
@@ -244,7 +260,7 @@ class Solver:
         return self.rhs.dims[0]
 
     @property
-    def options(self):
+    def options(self) -> dict[str, Any]:
         """
         method: str
             Which ordinary differential equation integration method to use.
@@ -284,7 +300,7 @@ class Solver:
         return included_options, extra_options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict[str, Any]):
         if not hasattr(self, "_options"):
             self._options = {}
         if new_options is None:
@@ -405,7 +421,7 @@ class Solver:
         cls._avail_integrators[key] = integrator
 
     @classmethod
-    def ExpectFeedback(cls, operator, default=0.):
+    def ExpectFeedback(cls, operator: Qobj | QobjEvo, default: Any = 0.):
         """
         Expectation value of the instantaneous state of the evolution to be
         used by a time-dependent operator.
