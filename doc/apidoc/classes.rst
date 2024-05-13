@@ -231,20 +231,22 @@ Solver Options and Results
     :inherited-members:
     :exclude-members: add_processor, add
 
-.. autoclass:: qutip.solver.result.MultiTrajResult
+.. autoclass:: qutip.solver.multitrajresult.MultiTrajResult
     :members:
     :inherited-members:
     :exclude-members: add_processor, add, add_end_condition
 
-.. autoclass:: qutip.solver.result.McResult
+.. autoclass:: qutip.solver.result.TrajectoryResult
+    :show-inheritance:
     :members:
-    :inherited-members:
-    :exclude-members: add_processor, add, add_end_condition
 
-.. autoclass:: qutip.solver.result.NmmcResult
+.. autoclass:: qutip.solver.multitrajresult.McResult
+    :show-inheritance:
     :members:
-    :inherited-members:
-    :exclude-members: add_processor, add, add_end_condition
+
+.. autoclass:: qutip.solver.multitrajresult.NmmcResult
+    :show-inheritance:
+    :members:
 
 .. _classes-piqs:
 

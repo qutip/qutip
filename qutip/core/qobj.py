@@ -331,7 +331,7 @@ class Qobj:
                              f"{self._dims.shape} vs {data.shape}")
         self._data = data
 
-    def to(self, data_type: LayerType) -> Qobj:
+    def to(self, data_type: LayerType, copy: bool=False) -> Qobj:
         """
         Convert the underlying data store of this `Qobj` into a different
         storage representation.
@@ -344,33 +344,33 @@ class Qobj:
         algorithms and operations may be faster or more accurate when using a
         more appropriate data store.
 
-        If the data store is already in the format requested, the function
-        returns `self`.  Otherwise, it returns a copy of itself with the data
-        store in the new type.
-
         Parameters
         ----------
-        data_type : type
-            The data-layer type that the data of this :class:`Qobj` should be
-            converted to.
+        data_type : type, str
+            The data-layer type or its string alias that the data of this
+            :class:`Qobj` should be converted to.
+
+        copy : Bool
+            If the data store is already in the format requested, whether the
+            function should return returns `self` or a copy.
 
         Returns
         -------
         Qobj
-            A new :class:`Qobj` if a type conversion took place with the data
-            stored in the requested format, or `self` if not.
+            A :class:`Qobj` with the data stored in the requested format.
         """
-        try:
-            converter = _data.to[data_type]
-        except (KeyError, TypeError):
-            raise ValueError("Unknown conversion type: " + str(data_type))
-        if type(self._data) is data_type:
+        data_type = _data.to.parse(data_type)
+        if type(self._data) is data_type and copy:
+            return self.copy()
+        elif type(self._data) is data_type:
             return self
-        return Qobj(converter(self._data),
-                    dims=self._dims,
-                    isherm=self._isherm,
-                    isunitary=self._isunitary,
-                    copy=False)
+        return Qobj(
+            _data.to(data_type, self._data),
+            dims=self._dims,
+            isherm=self._isherm,
+            isunitary=self._isunitary,
+            copy=False
+        )
 
     @_require_equal_type
     def __add__(self, other: Qobj | numbers.Number) -> Qobj:

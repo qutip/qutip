@@ -1,8 +1,9 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
+from .multitrajresult import MultiTrajResult
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .sode._noise import PreSetWiener
-from .result import MultiTrajResult, Result, ExpectOp
+from .result import Result, ExpectOp
 from .multitraj import _MultiTrajRHS, MultiTrajSolver
 from .. import Qobj, QobjEvo
 from ..core.dimensions import Dimensions
@@ -82,6 +83,11 @@ class StochasticTrajResult(Result):
         """
         if not self.options["store_measurement"]:
             return None
+        elif len(self.m_ops) == 0:
+            if self.heterodyne:
+                return np.empty(shape=(0, 2, len(self.times) - 1))
+            else:
+                return np.empty(shape=(0, len(self.times) - 1))
         elif self.options["store_measurement"] == "start":
             m_expect = np.array(self.m_expect)[:, :-1]
         elif self.options["store_measurement"] == "middle":
@@ -184,6 +190,12 @@ class StochasticResult(MultiTrajResult):
         for heterodyne detection.
         """
         return self._trajectories_attr("wiener_process")
+
+    def merge(self, other, p=None):
+        raise NotImplementedError("Merging results of the stochastic solvers "
+                                  "is currently not supported. Please raise "
+                                  "an issue on GitHub if you would like to "
+                                  "see this feature.")
 
 
 class _StochasticRHS(_MultiTrajRHS):
