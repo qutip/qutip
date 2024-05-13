@@ -7,7 +7,7 @@ from cpython cimport mem
 from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr, dense, CSR, Dense, Dia
+from qutip.core.data cimport csr, dense, dia, CSR, Dense, Dia
 from qutip.core.data.adjoint cimport transpose_csr
 import numpy as np
 
@@ -326,46 +326,51 @@ cpdef bint iszero_dense(Dense matrix, double tol=-1) nogil:
     return True
 
 
-cpdef bint isequal_dia(Dia A, Dia B, double atol=-1, double rtol=-1) nogil:
+cpdef bint isequal_dia(Dia A, Dia B, double atol=-1, double rtol=-1):
     if A.shape[0] != B.shape[0] or A.shape[1] != B.shape[1]:
         return False
-    if atol < 0 or rtol < 0:
-        # Claim the gil only once
-        with gil:
-            if atol < 0:
-                atol = settings.core["atol"]
-            if rtol < 0:
-                rtol = settings.core["rtol"]
+    if atol < 0:
+        atol = settings.core["atol"]
+    if rtol < 0:
+        rtol = settings.core["rtol"]
 
     cdef idxint diag_a=0, diag_b=0
     cdef double complex *ptr_a
     cdef double complex *ptr_b
     cdef idxint size=A.shape[1]
 
+    # TODO:
+    # Works only for a sorted offsets list.
+    # We don't have a check for whether it's already sorted, but it should be
+    # in most cases. Could be improved by tracking whether it is or not.
+    A = dia.clean_dia(A)
+    B = dia.clean_dia(B)
+
     ptr_a = A.data
     ptr_b = B.data
 
-    while diag_a < A.num_diag and diag_b < B.num_diag:
-        if A.offsets[diag_a] == B.offsets[diag_b]:
-            for i in range(size):
-                if not _feq(ptr_a[i], ptr_b[i], atol, rtol):
-                    return False
-            ptr_a += size
-            diag_a += 1
-            ptr_b += size
-            diag_b += 1
-        elif A.offsets[diag_a] <= B.offsets[diag_b]:
-            for i in range(size):
-                if not _feq(ptr_a[i], 0., atol, rtol):
-                    return False
-            ptr_a += size
-            diag_a += 1
-        else:
-            for i in range(size):
-                if not _feq(0., ptr_b[i], atol, rtol):
-                    return False
-            ptr_b += size
-            diag_b += 1
+    with nogil:
+        while diag_a < A.num_diag and diag_b < B.num_diag:
+            if A.offsets[diag_a] == B.offsets[diag_b]:
+                for i in range(size):
+                    if not _feq(ptr_a[i], ptr_b[i], atol, rtol):
+                        return False
+                ptr_a += size
+                diag_a += 1
+                ptr_b += size
+                diag_b += 1
+            elif A.offsets[diag_a] <= B.offsets[diag_b]:
+                for i in range(size):
+                    if not _feq(ptr_a[i], 0., atol, rtol):
+                        return False
+                ptr_a += size
+                diag_a += 1
+            else:
+                for i in range(size):
+                    if not _feq(0., ptr_b[i], atol, rtol):
+                        return False
+                ptr_b += size
+                diag_b += 1
     return True
 
 
@@ -379,46 +384,54 @@ cpdef bint isequal_dense(Dense A, Dense B, double atol=-1, double rtol=-1):
     return np.allclose(A.as_ndarray(), B.as_ndarray(), rtol, atol)
 
 
-cpdef bint isequal_csr(CSR A, CSR B, double atol=-1, double rtol=-1) nogil:
+cpdef bint isequal_csr(CSR A, CSR B, double atol=-1, double rtol=-1):
     if A.shape[0] != B.shape[0] or A.shape[1] != B.shape[1]:
         return False
-    if atol < 0 or rtol < 0:
-        # Claim the gil only once
-        with gil:
-            if atol < 0:
-                atol = settings.core["atol"]
-            if rtol < 0:
-                rtol = settings.core["rtol"]
+    if atol < 0:
+        atol = settings.core["atol"]
+    if rtol < 0:
+        rtol = settings.core["rtol"]
 
     cdef idxint row, ptr_a, ptr_b, ptr_a_max, ptr_b_max, col_a, col_b
-    cdef idxint ncols = A.shape[1]
+    cdef idxint ncols = A.shape[1], prev_col_a, prev_col_b
 
-    ptr_a_max = ptr_b_max = 0
-    for row in range(A.shape[0]):
-        ptr_a = ptr_a_max
-        ptr_a_max = A.row_index[row + 1]
-        ptr_b = ptr_b_max
-        ptr_b_max = B.row_index[row + 1]
-        col_a = A.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
-        col_b = B.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
-        while ptr_a < ptr_a_max or ptr_b < ptr_b_max:
-            if col_a == col_b:
-                if not _feq(A.data[ptr_a], B.data[ptr_b], atol, rtol):
-                    return False
-                ptr_a += 1
-                ptr_b += 1
-                col_a = A.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
-                col_b = B.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
-            elif col_a < col_b:
-                if not _feq(A.data[ptr_a], 0., atol, rtol):
-                    return False
-                ptr_a += 1
-                col_a = A.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
-            else:
-                if not _feq(0., B.data[ptr_b], atol, rtol):
-                    return False
-                ptr_b += 1
-                col_b = B.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+    # TODO:
+    # Works only for sorted indices.
+    # We don't have a check for whether it's already sorted, but it should be
+    # in most cases.
+    A = A.sort_indices()
+    B = B.sort_indices()
+
+    with nogil:
+        ptr_a_max = ptr_b_max = 0
+        for row in range(A.shape[0]):
+            ptr_a = ptr_a_max
+            ptr_a_max = A.row_index[row + 1]
+            ptr_b = ptr_b_max
+            ptr_b_max = B.row_index[row + 1]
+            col_a = A.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+            col_b = B.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+            prev_col_a = -1
+            prev_col_b = -1
+            while ptr_a < ptr_a_max or ptr_b < ptr_b_max:
+
+                if col_a == col_b:
+                    if not _feq(A.data[ptr_a], B.data[ptr_b], atol, rtol):
+                        return False
+                    ptr_a += 1
+                    ptr_b += 1
+                    col_a = A.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+                    col_b = B.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+                elif col_a < col_b:
+                    if not _feq(A.data[ptr_a], 0., atol, rtol):
+                        return False
+                    ptr_a += 1
+                    col_a = A.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+                else:
+                    if not _feq(0., B.data[ptr_b], atol, rtol):
+                        return False
+                    ptr_b += 1
+                    col_b = B.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
 
     return True
 
