@@ -49,7 +49,7 @@ jobs:
           # numpy 1.X at runtime.
           - case-name: numpy2_to_1
             os: ubuntu-latest
-            python-version: "3.9"
+            python-version: "3.10"
             scipy-requirement: ""
             numpy-requirement: "==2.0.0rc1"
             roll_back_numpy: 1
