@@ -1,0 +1,1 @@
+Qobj.__eq__ uses core's settings rtol.
