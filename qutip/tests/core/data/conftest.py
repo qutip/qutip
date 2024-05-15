@@ -67,7 +67,7 @@ def random_scipy_csr(shape, density, sorted_):
     cols = np.random.choice(np.arange(shape[1]), nnz)
     sci = scipy.sparse.coo_matrix((data, (rows, cols)), shape=shape).tocsr()
     if not sorted_:
-        shuffle_indices_scipy_csr(sci)
+        sci = shuffle_indices_scipy_csr(sci)
     return sci
 
 

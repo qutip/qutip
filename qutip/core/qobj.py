@@ -483,8 +483,8 @@ class Qobj:
             return True
         if not isinstance(other, Qobj) or self._dims != other._dims:
             return False
-        return _data.iszero(_data.sub(self._data, other._data),
-                            tol=settings.core['atol'])
+        # isequal uses both atol and rtol from settings.core
+        return _data.isequal(self._data, other._data)
 
     def __pow__(self, n: int, m=None) -> Qobj:  # calculates powers of Qobj
         if (
