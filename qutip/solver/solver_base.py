@@ -99,7 +99,9 @@ class Solver:
             norm = state.tr()
         else:
             norm = state.norm()
-        self._normalized = np.abs( - 1) <= settings.core["atol"]
+        # Use the settings atol instead of the solver one since the second
+        # refer to the ODE tolerance and some integrator do not use it.
+        self._normalized = np.abs(norm - 1) <= settings.core["atol"]
         if self.rhs.dims[1] == state.dims:
             return stack_columns(state.data)
         return state.data
