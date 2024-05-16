@@ -1,0 +1,1 @@
+Only normalize solver states when the initial state is already normalized.

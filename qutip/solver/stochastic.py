@@ -326,7 +326,8 @@ def smesolve(
           | Whether to store results from all trajectories or just store the
             averages.
         - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
+          | Normalize output state to hide ODE numerical errors. Only normalize
+            the state if the initial state is already normalized.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
@@ -449,7 +450,8 @@ def ssesolve(
           | Whether to store results from all trajectories or just store the
             averages.
         - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
+          | Normalize output state to hide ODE numerical errors. Only normalize
+            the state if the initial state is already normalized.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error

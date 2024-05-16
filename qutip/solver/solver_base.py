@@ -3,12 +3,14 @@ __all__ = ['Solver']
 from .. import Qobj, QobjEvo, ket2dm
 from .options import _SolverOptions
 from ..core import stack_columns, unstack_columns
+from .. import settings
 from .result import Result
 from .integrator import Integrator
 from ..ui.progressbar import progress_bars
 from ._feedback import _ExpectFeedback
 from time import time
 import warnings
+import numpy as np
 
 
 class Solver:
@@ -90,6 +92,13 @@ class Solver:
             # anything other than dimensions.
             'isherm': state.isherm and not (self.rhs.dims == state.dims)
         }
+        if state.isoper:
+            norm = state.tr()
+        else:
+            norm = state.norm()
+        # Use the settings atol instead of the solver one since the second
+        # refer to the ODE tolerance and some integrator do not use it.
+        self._normalized = np.abs(norm - 1) <= settings.core["atol"]
         if self.rhs.dims[1] == state.dims:
             return stack_columns(state.data)
         return state.data
@@ -104,7 +113,11 @@ class Solver:
         else:
             state = Qobj(data, **self._state_metadata, copy=copy)
 
-        if data.shape[1] == 1 and self._options['normalize_output']:
+        if (
+            data.shape[1] == 1
+            and self._options['normalize_output']
+            and self._normalized
+        ):
             if state.isoper:
                 state = state * (1 / state.tr())
             else:
