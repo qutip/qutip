@@ -12,20 +12,18 @@ QuTiP 5.0.2 (2024-05-16)
 Bug Fixes
 ---------
 
-- Use CSR as the default for expand_operator (#2280)
-- The import statement was added to import the partial_transpose function directly from the qutip module. This was done to fix the TypeError: 'module' object is not callable error.
-
-  Added a condition that check if the input rho is a ket (a type of quantum state) and it also ensures that the negativity function can handle both kets and density operators as input. (#2371)
-- Ensure that end_condition of mcsolve result doesn't say target tolerance reached when it hasn't (#2382)
-- Fix two bugs in steadystate floquet solver, and adjust tests to be sensitive to this issue. (#2393)
+- Use CSR as the default for expand_operator (#2380, by BoxiLi)
+- Fix import of the partial_transpose function.
+  Ensures that the negativity function can handle both kets and density operators as input. (#2371, by vikas-chaudhary-2802)
+- Ensure that end_condition of mcsolve result doesn't say target tolerance reached when it hasn't (#2382, by magzpavz)
+- Fix two bugs in steadystate floquet solver, and adjust tests to be sensitive to this issue. (#2393, by Neill Lambert)
 
 
 Documentation
 -------------
 
-- Correct a mistake in the doc (#2401)
-- Fix #2156
-  Correct a sample of code in the doc (#2409)
+- Correct a mistake in the doc (#2401, by PositroniumJS)
+- Fix #2156: Correct a sample of code in the doc (#2409, by PositroniumJS)
 
 
 Miscellaneous
