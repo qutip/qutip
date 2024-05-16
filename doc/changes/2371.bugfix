@@ -1,3 +1,0 @@
-The import statement was added to import the partial_transpose function directly from the qutip module. This was done to fix the TypeError: 'module' object is not callable error.
-
-Added a condition that check if the input rho is a ket (a type of quantum state) and it also ensures that the negativity function can handle both kets and density operators as input.
