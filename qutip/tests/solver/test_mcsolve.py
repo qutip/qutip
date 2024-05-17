@@ -391,6 +391,28 @@ def test_timeout(improved_sampling):
                   timeout=1e-6)
     assert res.stats['end_condition'] == 'timeout'
 
+@pytest.mark.parametrize("improved_sampling", [True, False])
+def test_target_tol(improved_sampling):
+    size = 10
+    ntraj = 100
+    a = qutip.destroy(size)
+    H = qutip.num(size)
+    state = qutip.basis(size, size-1)
+    times = np.linspace(0, 1.0, 100)
+    coupling = 0.5
+    n_th = 0.05
+    c_ops = np.sqrt(coupling * (n_th + 1)) * a
+    e_ops = [qutip.num(size)]
+
+    options = {'map': 'serial', "improved_sampling": improved_sampling}
+
+    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj, options=options,
+                  target_tol = 0.5)
+    assert res.stats['end_condition'] == 'target tolerance reached'
+
+    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj, options=options,
+                  target_tol = 1e-6)
+    assert res.stats['end_condition'] == 'ntraj reached'
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
 def test_super_H(improved_sampling):
@@ -451,15 +473,24 @@ def test_MCSolver_stepping():
     assert state.isket
 
 
+def _coeff_collapse(t, A):
+    if t == 0:
+        # New trajectory, was collapse list reset?
+        assert len(A) == 0
+    if t > 2.75:
+        # End of the trajectory, was collapse list was filled?
+        assert len(A) != 0
+    return (len(A) < 3) * 1.0
+
+
 @pytest.mark.parametrize(["func", "kind"], [
     pytest.param(
         lambda t, A: A-4,
         lambda: qutip.MCSolver.ExpectFeedback(qutip.num(10)),
-        # 7.+0j,
         id="expect"
     ),
     pytest.param(
-        lambda t, A: (len(A) < 3) * 1.0,
+        _coeff_collapse,
         lambda: qutip.MCSolver.CollapseFeedback(),
         id="collapse"
     ),
@@ -472,9 +503,9 @@ def test_feedback(func, kind):
     solver = qutip.MCSolver(
         H,
         c_ops=[qutip.QobjEvo([a, func], args={"A": kind()})],
-        options={"map": "serial"}
+        options={"map": "serial", "max_step": 0.2}
     )
     result = solver.run(
-        psi0,np.linspace(0, 3, 31), e_ops=[qutip.num(10)], ntraj=10
+        psi0, np.linspace(0, 3, 31), e_ops=[qutip.num(10)], ntraj=10
     )
     assert np.all(result.expect[0] > 4. - tol)

@@ -442,6 +442,15 @@ def test_QobjEquals():
     q2 = qutip.Qobj(-data)
     assert q1 != q2
 
+    # data's entry are of order 1,
+    with qutip.CoreOptions(atol=10):
+        assert q1 == q2
+        assert q1 != q2 * 100
+
+    with qutip.CoreOptions(rtol=10):
+        assert q1 == q2
+        assert q1 == q2 * 100
+
 
 def test_QobjGetItem():
     "qutip.Qobj getitem"

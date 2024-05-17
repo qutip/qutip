@@ -95,7 +95,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
             On `None` the states will be saved if no expectation operators are
             given.
         - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
+          | Normalize output state to hide ODE numerical errors. Only normalize
+            the state if the initial state is already normalized.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
