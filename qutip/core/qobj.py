@@ -1541,11 +1541,17 @@ class Qobj:
                                 for ket in ekets])
 
             return evals, ekets / norms * phase
+        
         elif output_type == 'operator':
-            ekets = Qobj(evecs)
-            norm = ekets.norm()
-
-            return evals, ekets/norm
+            ekets = Qobj(evecs, dims=[new_dims[0], [evecs.shape[1]]])
+            norms = np.sqrt(np.sum(np.abs(ekets.data)**2, axis=0))
+            ekets = ekets / norms
+            if phase_fix is not None:
+                phases = np.array([np.abs(ekets[phase_fix, i]) / ekets[phase_fix, i]
+                                if ekets[phase_fix, i] else 1
+                                for i in range(evecs.shape[1])])
+                ekets = ekets * phases
+            return evals, ekets
  
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):
