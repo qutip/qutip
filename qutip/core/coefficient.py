@@ -1,3 +1,6 @@
+from __future__ import annotations  # Required for Sphinx to follow
+                                    # autodoc_type_aliases
+
 import numpy as np
 from numpy.typing import ArrayLike
 import scipy

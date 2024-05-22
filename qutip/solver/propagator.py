@@ -1,3 +1,6 @@
+from __future__ import annotations  # Required for Sphinx to follow
+                                    # autodoc_type_aliases
+
 __all__ = ['Propagator', 'propagator', 'propagator_steadystate']
 
 import numbers

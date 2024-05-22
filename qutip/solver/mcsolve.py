@@ -1,3 +1,6 @@
+from __future__ import annotations  # Required for Sphinx to follow
+                                    # autodoc_type_aliases
+
 __all__ = ['mcsolve', "MCSolver"]
 
 import numpy as np

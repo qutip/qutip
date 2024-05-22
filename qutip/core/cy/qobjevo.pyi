@@ -1,3 +1,6 @@
+from __future__ import annotations  # Required for Sphinx to follow
+                                    # autodoc_type_aliases
+
 from qutip.typing import LayerType, ElementType, QobjEvoLike
 from qutip.core.qobj import Qobj
 from qutip.core.data import Data
