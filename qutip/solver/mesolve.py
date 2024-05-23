@@ -3,15 +3,16 @@ This module provides solvers for the Lindblad master equation and von Neumann
 equation.
 """
 
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['mesolve', 'MESolver']
 
-import numpy as np
 from numpy.typing import ArrayLike
 from typing import Any, Callable
 from time import time
-from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
+from .. import (Qobj, QobjEvo, liouvillian, lindblad_dissipator)
 from ..typing import QobjEvoLike
-from ..core import stack_columns, unstack_columns
 from ..core import data as _data
 from .solver_base import Solver, _solver_deprecation
 from .sesolve import sesolve, SESolver

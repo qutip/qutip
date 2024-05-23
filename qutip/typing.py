@@ -1,4 +1,4 @@
-from typing import Sequence, Union, Any, Callable, Protocol
+from typing import Sequence, Union, Any, Protocol
 from numbers import Number, Real
 import numpy as np
 import scipy.interpolate

@@ -2,9 +2,11 @@
 This module provides solvers for the unitary Schrodinger equation.
 """
 
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['sesolve', 'SESolver']
 
-import numpy as np
 from numpy.typing import ArrayLike
 from time import time
 from typing import Any, Callable

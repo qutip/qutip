@@ -1,10 +1,12 @@
 """ Class for solve function results"""
 
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 from typing import TypedDict, Any, Callable
 import numpy as np
 from numpy.typing import ArrayLike
-from numbers import Number
-from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero_like
+from ..core import Qobj, QobjEvo, expect
 
 __all__ = [
     "Result",

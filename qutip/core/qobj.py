@@ -646,7 +646,7 @@ class Qobj:
 
     def norm(
         self,
-        norm: Litteral["l2", "max", "fro", "tr", "one"] = None,
+        norm: Literal["l2", "max", "fro", "tr", "one"] = None,
         kwargs: dict[str, Any] = None
     ) -> numbers.Number:
         """
@@ -991,7 +991,7 @@ class Qobj:
     def unit(
         self,
         inplace: bool = False,
-        norm: Litteral["l2", "max", "fro", "tr", "one"] = None,
+        norm: Literal["l2", "max", "fro", "tr", "one"] = None,
         kwargs: dict[str, Any] = None
     ) -> Qobj:
         """
