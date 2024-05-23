@@ -9,6 +9,8 @@ from numpy.typing import ArrayLike
 from numpy.random import SeedSequence
 from numbers import Number
 from typing import Any, Callable
+import bisect
+from operator import itemgetter
 
 
 __all__ = ["MultiTrajSolver"]
@@ -154,7 +156,10 @@ class MultiTrajSolver(Solver):
             'timeout': timeout,
             'num_cpus': self.options['num_cpus'],
         })
-        state0 = self._prepare_state(state)
+        if isinstance(state, (list, tuple)):  # mixed initial conditions
+            state0 = [(self._prepare_state(psi), p) for psi, p in state]
+        else:
+            state0 = self._prepare_state(state)
         stats['preparation time'] += time() - start_time
         return seeds, result, map_func, map_kw, state0
 
@@ -274,6 +279,45 @@ class MultiTrajSolver(Solver):
             result.add(t, self._restore_state(state, copy=False))
         return seed, result
 
+    def run_mixed(
+        self,
+        initial_conditions: list[tuple[Qobj, float]],
+        tlist: ArrayLike,
+        ntraj: int | list[int] = None,
+        *,
+        args: dict[str, Any] = None,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+        timeout: float = None,
+        seeds: int | SeedSequence | list[int | SeedSequence] = None,
+    ) -> MultiTrajResult:
+        seeds, result, map_func, map_kw, prepared_ics = self._initialize_run(
+            initial_conditions,
+            np.sum(ntraj),
+            args=args,
+            e_ops=e_ops,
+            timeout=timeout,
+            seeds=seeds,
+        )
+        start_time = time()
+        map_func(
+            self._run_one_traj_mixed, enumerate(seeds),
+            (_InitialConditions(prepared_ics), tlist, e_ops),
+            reduce_func=result.add, map_kw=map_kw,
+            progress_bar=self.options["progress_bar"],
+            progress_bar_kwargs=self.options["progress_kwargs"]
+        )
+        result.stats['run time'] = time() - start_time
+        return result
+
+    def _run_one_traj_mixed(self, info, ics, *args, **kwargs):
+        id, seed = info
+        state, weight = ics.get_state_and_weight(id)
+
+        seed, result = self._run_one_traj(seed, state, *args, **kwargs)
+        if weight != 1:
+            result.add_relative_weight(weight)
+        return seed, result
+
     def _read_seed(self, seed, ntraj):
         """
         Read user provided seed(s) and produce one for each trajectory.
@@ -314,3 +358,68 @@ class MultiTrajSolver(Solver):
         else:
             generator = np.random.default_rng(seed)
         return generator
+
+
+
+class _InitialConditions:
+    def __init__(self, state_list, ntraj):
+        if not isinstance(ntraj, (list, tuple)):
+            ntraj = self._minimum_roundoff_ensemble(state_list, ntraj)
+
+        self._state_list = state_list
+        self._ntraj = ntraj
+        self._state_selector = np.cumsum(ntraj)
+        self.ntraj_total = self._state_selector[-1]
+
+    def _minimum_roundoff_ensemble(self, state_list, ntraj):
+        filtered_states = [(index, weight)
+                           for index, (_, weight) in enumerate(state_list)
+                           if weight > 0]
+        if len(filtered_states) > ntraj:
+            raise ValueError(f'{ntraj} trajectories is not enough for initial'
+                             f'mixture of {len(filtered_states)} states')
+
+        final_traj_counts = []
+        under_consideration = []
+        current_total = 0
+        for index, weight in filtered_states:
+            guess = int(np.ceil(weight * ntraj))
+            current_total += guess
+            if guess == 1:
+                final_traj_counts.append((index, guess))
+            else:
+                ratio = guess / (weight * ntraj)
+                bisect.insort(under_consideration,
+                              (index, weight, guess, ratio),
+                              key=itemgetter(3))
+
+        while current_total > ntraj:
+            index, weight, guess, ratio = under_consideration.pop()
+            guess -= 1
+            current_total -= 1
+            if guess == 1:
+                final_traj_counts.append((index, guess))
+            else:
+                ratio = guess / (weight * ntraj)
+                bisect.insort(under_consideration,
+                              (index, weight, guess, ratio),
+                              key=itemgetter(3))
+
+        result = [0] * len(state_list)
+        for index, count in final_traj_counts:
+            result[index] = count
+        for index, _, count, _ in under_consideration:
+            result[index] = count
+        return result
+
+    def get_state_and_weight(self, id):
+        state_index = bisect.bisect(self._state_selector, id)
+        if id < 0 or state_index >= len(self._state_list):
+            raise IndexError(f'State id {id} must be smaller than number of '
+                             f'trajectories {self.ntraj_total}')
+
+        state, target_weight = self._state_list[state_index]
+        state_frequency = self._ntraj[state_index] / self.ntraj_total
+        correction_weight = target_weight / state_frequency
+
+        return state, correction_weight
