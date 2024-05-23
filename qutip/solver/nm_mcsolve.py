@@ -185,8 +185,13 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
     ]
 
     nmmc = NonMarkovianMCSolver(H, ops_and_rates, options=options)
-    result = nmmc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
-                      seeds=seeds, target_tol=target_tol, timeout=timeout)
+
+    if state.isket:
+        result = nmmc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
+                          seeds=seeds, target_tol=target_tol, timeout=timeout)
+    else:
+        result = nmmc.run_mixed(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
+                                timeout=timeout, seeds=seeds)
     return result
 
 
@@ -545,6 +550,17 @@ class NonMarkovianMCSolver(MCSolver):
 
         self._martingale.initialize(tlist[0], cache=tlist)
         result = super().run(state, tlist, ntraj, **kwargs)
+        self._martingale.reset()
+
+        return result
+    
+    def run_mixed(self, initial_conditions, tlist, ntraj, *,
+                  args=None, **kwargs):
+        # update `args` dictionary before precomputing martingale
+        self._argument(args)
+
+        self._martingale.initialize(tlist[0], cache=tlist)
+        result = super().run_mixed(initial_conditions, tlist, ntraj, **kwargs)
         self._martingale.reset()
 
         return result

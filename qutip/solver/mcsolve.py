@@ -13,6 +13,7 @@ from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
 import qutip.core.data as _data
 from time import time
 from typing import Any, Callable
+import warnings
 
 
 def mcsolve(
@@ -178,8 +179,15 @@ def mcsolve(
         )
     mc = MCSolver(H, c_ops, options=options)
 
-    result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
-                    seeds=seeds, target_tol=target_tol, timeout=timeout)
+    if state.isket:
+        result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
+                        seeds=seeds, target_tol=target_tol, timeout=timeout)
+    else:
+        if target_tol is not None:
+            warnings.warn('mcsolve does not support target tolerance '
+                          'for mixed initial conditions')
+        result = mc.run_mixed(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
+                              timeout=timeout, seeds=seeds)
     return result
 
 
@@ -557,6 +565,27 @@ class MCSolver(MultiTrajSolver):
         )
         result.stats['run time'] = time() - start_time
         return result
+
+    def run_mixed(
+        self,
+        initial_conditions: Qobj | list[tuple[Qobj, float]],
+        tlist: ArrayLike,
+        ntraj: int | list[int],
+        *,
+        args: dict[str, Any] = None,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+        timeout: float = None,
+        seeds: int | SeedSequence | list[int | SeedSequence] = None,
+    ) -> McResult:
+        if isinstance(initial_conditions, Qobj):  # decompose initial dm
+            eigenvalues, eigenstates = initial_conditions.eigenstates()
+            initial_conditions = [(state, weight) for state, weight
+                                  in zip(eigenstates, eigenvalues)]
+        if not self.options["improved_sampling"]:
+            return super().run_mixed(initial_conditions, tlist, ntraj=ntraj,
+                                     args=args, e_ops=e_ops, timeout=timeout,
+                                     seeds=seeds)
+        pass  # TODO
 
     def _get_integrator(self):
         _time_start = time()

@@ -283,7 +283,7 @@ class MultiTrajSolver(Solver):
         self,
         initial_conditions: list[tuple[Qobj, float]],
         tlist: ArrayLike,
-        ntraj: int | list[int] = None,
+        ntraj: int | list[int],
         *,
         args: dict[str, Any] = None,
         e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
