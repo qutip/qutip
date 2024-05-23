@@ -291,17 +291,12 @@ class MultiTrajSolver(Solver):
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> MultiTrajResult:
         seeds, result, map_func, map_kw, prepared_ics = self._initialize_run(
-            initial_conditions,
-            np.sum(ntraj),
-            args=args,
-            e_ops=e_ops,
-            timeout=timeout,
-            seeds=seeds,
-        )
+            initial_conditions, np.sum(ntraj), args=args, e_ops=e_ops,
+            timeout=timeout, seeds=seeds)
         start_time = time()
         map_func(
             self._run_one_traj_mixed, enumerate(seeds),
-            (_InitialConditions(prepared_ics), tlist, e_ops),
+            (_InitialConditions(prepared_ics, ntraj), tlist, e_ops),
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"]
@@ -412,14 +407,16 @@ class _InitialConditions:
             result[index] = count
         return result
 
-    def get_state_and_weight(self, id):
+    def get_state_index(self, id):
         state_index = bisect.bisect(self._state_selector, id)
         if id < 0 or state_index >= len(self._state_list):
             raise IndexError(f'State id {id} must be smaller than number of '
                              f'trajectories {self.ntraj_total}')
+        return state_index
 
+    def get_state_and_weight(self, id):
+        state_index = self.get_state_index(id)
         state, target_weight = self._state_list[state_index]
         state_frequency = self._ntraj[state_index] / self.ntraj_total
         correction_weight = target_weight / state_frequency
-
         return state, correction_weight

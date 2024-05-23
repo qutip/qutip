@@ -5,7 +5,7 @@ from numpy.typing import ArrayLike
 from numpy.random import SeedSequence
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from ..typing import QobjEvoLike
-from .multitraj import MultiTrajSolver, _MultiTrajRHS
+from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
 from .solver_base import Solver, Integrator, _solver_deprecation
 from .multitrajresult import McResult
 from .mesolve import mesolve, MESolver
@@ -516,6 +516,14 @@ class MCSolver(MultiTrajSolver):
         result.collapse = self._integrator.collapses
         return seed, result
 
+    def _no_jump_simulation(self, seed, state0, tlist, e_ops):
+        _, no_jump_result = self._run_one_traj(seed, state0, tlist,
+                                               e_ops, no_jump=True)
+        _, state, _ = self._integrator.get_state(copy=False)
+        no_jump_prob = self._integrator._prob_func(state)
+        no_jump_result.add_absolute_weight(no_jump_prob)
+        return no_jump_result, no_jump_prob
+
     def run(
         self,
         state: Qobj,
@@ -543,12 +551,9 @@ class MCSolver(MultiTrajSolver):
 
         # first run the no-jump trajectory
         start_time = time()
-        seed0, no_jump_result = self._run_one_traj(seeds[0], state0, tlist,
-                                                   e_ops, no_jump=True)
-        _, state, _ = self._integrator.get_state(copy=False)
-        no_jump_prob = self._integrator._prob_func(state)
-        no_jump_result.add_absolute_weight(no_jump_prob)
-        result.add((seed0, no_jump_result))
+        no_jump_result, no_jump_prob = self._no_jump_simulation(
+            seeds[0], state0, tlist, e_ops)
+        result.add((seeds[0], no_jump_result))
         result.stats['no jump run time'] = time() - start_time
 
         # run the remaining trajectories with the random number floor
@@ -580,12 +585,80 @@ class MCSolver(MultiTrajSolver):
         if isinstance(initial_conditions, Qobj):  # decompose initial dm
             eigenvalues, eigenstates = initial_conditions.eigenstates()
             initial_conditions = [(state, weight) for state, weight
-                                  in zip(eigenstates, eigenvalues)]
+                                  in zip(eigenstates, eigenvalues)
+                                  if weight > 0]
         if not self.options["improved_sampling"]:
             return super().run_mixed(initial_conditions, tlist, ntraj=ntraj,
                                      args=args, e_ops=e_ops, timeout=timeout,
                                      seeds=seeds)
-        pass  # TODO
+
+        seeds, result, map_func, map_kw, prepared_ics = self._initialize_run(
+            initial_conditions, np.sum(ntraj), args=args, e_ops=e_ops,
+            timeout=timeout, seeds=seeds)
+
+        # we need at least 2 trajectories per initial state
+        num_states = len(prepared_ics)
+        if isinstance(ntraj, (list, tuple)):
+            if len(ntraj) != num_states:
+                raise ValueError('The length of the `ntraj` list must equal '
+                                 'the number of states in the initial mixture')
+            if np.any(np.less(ntraj, 2)):
+                raise ValueError('For the improved sampling algorithm, at '
+                                 'least 2 trajectories for each member of the '
+                                 'initial mixture are required')
+            ntraj = [n - 1 for n in ntraj]
+        else:
+            if ntraj < 2 * num_states:
+                raise ValueError('For the improved sampling algorithm, at '
+                                    'least 2 trajectories for each member of the '
+                                    'initial mixture are required')
+            ntraj -= num_states
+
+        # first run the no-jump trajectory
+        start_time = time()
+        no_jump_probs = map_func(
+            self._no_jump_simulation, zip(seeds, prepared_ics),
+            task_args=(tlist, e_ops, result), map_kw=map_kw,
+            progress_bar=self.options["progress_bar"],
+            progress_bar_kwargs=self.options["progress_kwargs"])
+        result.stats['no jump run time'] = time() - start_time
+
+        # run the remaining trajectories with the random number floor
+        # set to the no jump probability such that we only sample
+        # trajectories with jumps
+        start_time = time()
+        map_func(
+            self._run_one_traj_mixed_improved_sampling,
+            enumerate(seeds[num_states:]),
+            task_args=(_InitialConditions(prepared_ics, ntraj), no_jump_probs, tlist, e_ops),
+            task_kwargs={'no_jump': False},
+            reduce_func=result.add, map_kw=map_kw,
+            progress_bar=self.options["progress_bar"],
+            progress_bar_kwargs=self.options["progress_kwargs"]
+        )
+        result.stats['run time'] = time() - start_time
+        return result
+
+    def _no_jump_simulation_mixed(self, info, tlist, e_ops, result):
+        seed, (state0, weight) = info
+        no_jump_result, no_jump_prob = self._no_jump_simulation(
+            seed, state0, tlist, e_ops)
+        no_jump_result.add_relative_weight(weight)
+        result.add((seed, no_jump_result))
+        return no_jump_prob
+
+    def _run_one_traj_mixed_improved_sampling(self, info, ics, no_jump_probs,
+                                              *args, **kwargs):
+        id, seed = info
+        state, weight = ics.get_state_and_weight(id)
+        kwargs.update(
+            {'jump_prob_floor': no_jump_probs[ics.get_state_index(id)]}
+        )
+
+        seed, result = self._run_one_traj(seed, state, *args, **kwargs)
+        if weight != 1:
+            result.add_relative_weight(weight)
+        return seed, result
 
     def _get_integrator(self):
         _time_start = time()
