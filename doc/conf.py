@@ -365,7 +365,8 @@ autodoc_type_aliases = {
     'CoefficientLike': 'CoefficientLike',
     'ElementType': 'ElementType',
     'QobjEvoLike': 'QobjEvoLike',
-    'LayerType': 'LayerType'
+    'LayerType': 'LayerType',
+    'ArrayLike': 'ArrayLike'
 }
 
 ## EXTLINKS CONFIGURATION ######################################################

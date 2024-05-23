@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['Solver']
 
 from numpy.typing import ArrayLike
