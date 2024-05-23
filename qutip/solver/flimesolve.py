@@ -73,9 +73,10 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
             c_op.full(),
             modes_table,
         )
-        c_op_Fourier_amplitudes_list = np.fft.fftshift(
-            np.fft.fft(c_op_Floquet_basis, axis=0)
-        ) / len(tlist)
+        c_op_Fourier_amplitudes_list = np.flip(
+            np.fft.fftshift(np.fft.fft(c_op_Floquet_basis, axis=0))
+            / len(tlist)
+        )
 
         # Building the Rate matrix
         delta_m = np.add.outer(-floquet_basis.e_quasi, floquet_basis.e_quasi)
