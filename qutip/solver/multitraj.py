@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 from .result import TrajectoryResult
 from .multitrajresult import MultiTrajResult
 from .parallel import _get_map

@@ -359,6 +359,16 @@ texinfo_documents = [
 
 autodoc_member_order = 'alphabetical'
 
+# Makes the following types appear as their alias in the apidoc
+# instead of expanding the alias
+autodoc_type_aliases = {
+    'CoefficientLike': 'CoefficientLike',
+    'ElementType': 'ElementType',
+    'QobjEvoLike': 'QobjEvoLike',
+    'LayerType': 'LayerType',
+    'ArrayLike': 'ArrayLike'
+}
+
 ## EXTLINKS CONFIGURATION ######################################################
 
 extlinks = {
