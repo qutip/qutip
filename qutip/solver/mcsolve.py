@@ -542,19 +542,6 @@ class MCSolver(MultiTrajSolver):
         result.collapse = self._integrator.collapses
         return seed, result
 
-    def _run_one_traj_mixed_improved_sampling(self, info, ics, no_jump_probs,
-                                              *args, **kwargs):
-        id, seed = info
-        state, weight = ics.get_state_and_weight(id)
-        kwargs.update(
-            {'jump_prob_floor': no_jump_probs[ics.get_state_index(id)]}
-        )
-
-        seed, result = self._run_one_traj(seed, state, *args, **kwargs)
-        if weight != 1:
-            result.add_relative_weight(weight)
-        return seed, result
-
     def run(
         self,
         state: Qobj,
@@ -612,11 +599,80 @@ class MCSolver(MultiTrajSolver):
         timeout: float = None,
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> McResult:
-        if isinstance(initial_conditions, Qobj):  # decompose initial dm
+        """
+        Do the evolution of the Quantum system with a mixed initial state.
+
+        The evolution is done as directed by ``rhs``. For each time in
+        ``tlist``, stores the state and/or expectation values in a
+        :class:`.MultiTrajResult`. The evolution method and stored results are
+        determined by ``options``.
+
+        Parameters
+        ----------
+        initial_conditions : {:obj:`.Qobj`, list of (:obj:`.Qobj`, float)}
+            Statistical ensemble at the beginning of the evolution. May be
+            provided either as a density matrix, or as a list of tuples. In the
+            latter case, the first element of each tuple is a pure state, and
+            the second element is its weight, i.e., a number between 0 and 1
+            describing the fraction of the ensemble in that state. The sum of
+            all weights is assumed to be one.
+
+        tlist : list of double
+            Time for which to save the results (state and/or expect) of the
+            evolution. The first element of the list is the initial time of the
+            evolution. Time in the list must be in increasing order, but does
+            not need to be uniformly distributed.
+
+        ntraj : {int, list of int}
+            Number of trajectories to add. If a single number is provided, this
+            will be the total number of trajectories, which are distributed
+            over the initial ensemble automatically.
+            If `inditial_conditions` was specified as a list of pure states,
+            this parameter may also be a list of numbers with the same number
+            of entries, specifying manually the number of trajectories for each
+            pure state.
+
+        args : dict, optional
+            Change the ``args`` of the rhs for the evolution.
+
+        e_ops : list
+            list of Qobj or QobjEvo to compute the expectation values.
+            Alternatively, function[s] with the signature f(t, state) -> expect
+            can be used.
+
+        timeout : float, optional
+            Maximum time in seconds for the trajectories to run. Once this time
+            is reached, the simulation will end even if the number
+            of trajectories is less than ``ntraj``. In this case, the results
+            returned by this function will generally be invalid.
+
+        seeds : {int, SeedSequence, list}, optional
+            Seed or list of seeds for each trajectories.
+
+        Returns
+        -------
+        results : :class:`.MultiTrajResult`
+            Results of the evolution. States and/or expect will be saved. You
+            can control the saved data in the options.
+
+        .. note:
+            The simulation will end when the first end condition is reached
+            between ``ntraj`` and ``timeout``. Setting a target tolerance is
+            not supported with mixed initial conditions.
+        """
+        if isinstance(initial_conditions, Qobj):
+            # Decompose initial density matrix into eigenstates and eigenvalues
+            # In this case, we do not allow `ntraj` to be a list, since the
+            # order of the eigenstates is undefined
+            if isinstance(ntraj, (list, tuple)):
+                raise ValueError(
+                    'The `ntraj` parameter cannot be a list if the initial '
+                    'conditions are given in the form of a density matrix')
             eigenvalues, eigenstates = initial_conditions.eigenstates()
             initial_conditions = [(state, weight) for state, weight
                                   in zip(eigenstates, eigenvalues)
                                   if weight > 0]
+
         if not self.options["improved_sampling"]:
             return super().run_mixed(initial_conditions, tlist, ntraj=ntraj,
                                      args=args, e_ops=e_ops, timeout=timeout,
@@ -626,7 +682,10 @@ class MCSolver(MultiTrajSolver):
             initial_conditions, np.sum(ntraj), args=args, e_ops=e_ops,
             timeout=timeout, seeds=seeds)
 
-        # we need at least 2 trajectories per initial state
+        # For improved sampling, we need to run at least 2 trajectories
+        # per initial state (the no-jump trajectory and one other).
+        # We reduce `ntraj` by one for each initial state to account for the
+        # no-jump trajectories
         num_states = len(prepared_ics)
         if isinstance(ntraj, (list, tuple)):
             if len(ntraj) != num_states:
@@ -640,28 +699,32 @@ class MCSolver(MultiTrajSolver):
         else:
             if ntraj < 2 * num_states:
                 raise ValueError('For the improved sampling algorithm, at '
-                                    'least 2 trajectories for each member of the '
-                                    'initial mixture are required')
+                                 'least 2 trajectories for each member of the '
+                                 'initial mixture are required')
             ntraj -= num_states
 
-        # first run the no-jump trajectory
+        # Run the no-jump trajectories
         start_time = time()
         no_jump_probs = map_func(
-            self._no_jump_simulation, zip(seeds, prepared_ics),
-            task_args=(tlist, e_ops, result), map_kw=map_kw,
-            progress_bar=self.options["progress_bar"],
+            _unpack_arguments(self._no_jump_probability,
+                              ('state0', 'seed', 'extra_weight')),
+            [(st, seed, w) for seed, (st, w) in zip(seeds, prepared_ics)],
+            task_kwargs={'tlist': tlist, 'e_ops': e_ops, 'result': result},
+            map_kw=map_kw, progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"])
         result.stats['no jump run time'] = time() - start_time
 
-        # run the remaining trajectories with the random number floor
-        # set to the no jump probability such that we only sample
-        # trajectories with jumps
+        # Run the remaining trajectories
         start_time = time()
+        ics_info = _InitialConditions(prepared_ics, ntraj)
+        arguments = [(id, no_jump_probs[ics_info.get_state_index(id)])
+                     for id in range(ics_info.ntraj_total)]
         map_func(
-            self._run_one_traj_mixed_improved_sampling,
-            enumerate(seeds[num_states:]),
-            task_args=(_InitialConditions(prepared_ics, ntraj), no_jump_probs, tlist, e_ops),
-            task_kwargs={'no_jump': False},
+            _unpack_arguments(self._run_one_traj_mixed,
+                              ('id', 'jump_prob_floor')),
+            arguments,
+            task_kwargs={'seeds': seeds[num_states:], 'ics': ics_info,
+                         'tlist': tlist, 'e_ops': e_ops, 'no_jump': False},
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"]

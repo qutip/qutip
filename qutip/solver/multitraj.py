@@ -426,68 +426,122 @@ class MultiTrajSolver(Solver):
 
 
 class _InitialConditions:
-    def __init__(self, state_list, ntraj):
+    """
+    Information about mixed initial conditions, and the number of trajectories
+    to be used for for each state in the mixed ensemble.
+
+    Parameters
+    ----------
+    state_list : list of (:obj:`.Qobj`, float)
+        A list of tuples (state, weight). We assume that all weights add up to
+        one.
+    ntraj : {int, list of int}
+        This parameter may be either the total number of trajectories, or a
+        list specifying the number of trajectories to be used per state. In the
+        former case, a list of trajectory numbers is generated such that the
+        fraction of trajectories for a given state approximates its weight as
+        well as possible, under the following constraints:
+        1. the total number of trajectories is exactly `ntraj`
+        2. there is at least one trajectory per initial state
+
+    Attributes
+    ----------
+    state_list : list of (:obj:`.Qobj`, float)
+        The provided list of states
+    ntraj : list of int
+        The number of trajectories to be used per state
+    ntraj_total : int
+        The total number of trajectories
+    """
+    def __init__(self,
+                 state_list: list[tuple[Qobj, float]],
+                 ntraj: int | list[int]):
         if not isinstance(ntraj, (list, tuple)):
             ntraj = self._minimum_roundoff_ensemble(state_list, ntraj)
 
-        self._state_list = state_list
-        self._ntraj = ntraj
+        self.state_list = state_list
+        self.ntraj = ntraj
         self._state_selector = np.cumsum(ntraj)
         self.ntraj_total = self._state_selector[-1]
 
-    def _minimum_roundoff_ensemble(self, state_list, ntraj):
-        # https://stackoverflow.com/questions/792460/how-to-round-floats-to-integers-while-preserving-their-sum/792490#792490
-        # Tests: https://github.com/pmenczel/Pseudomode-Examples/blob/main/tests/test_ic_generator.py
+    def _minimum_roundoff_ensemble(self, state_list, ntraj_total):
+        """
+        Calculate a list ntraj from the given total number, under contraints
+        explained above. Algorithm based on https://stackoverflow.com/a/792490
+        """
+        # First we through out zero-weight states
         filtered_states = [(index, weight)
                            for index, (_, weight) in enumerate(state_list)
                            if weight > 0]
-        if len(filtered_states) > ntraj:
-            raise ValueError(f'{ntraj} trajectories is not enough for initial'
-                             f'mixture of {len(filtered_states)} states')
+        if len(filtered_states) > ntraj_total:
+            raise ValueError(f'{ntraj_total} trajectories is not enough for '
+                             f'initial mixture of {len(filtered_states)} '
+                             'states')
 
-        final_traj_counts = []
+        # If the trajectory count of a state reaches one, that is final.
+        # Here we store the indices of the states with only one trajectory.
+        one_traj_states = []
+
+        # All other states are kept here. This is a list of
+        # (state index, target weight = w,
+        #  current traj number = n, n / (w * ntraj_total) = r)
+        # sorted by the last entry. We first make a too large guess for n,
+        # then take away trajectories from the states with largest r
         under_consideration = []
+
         current_total = 0
         for index, weight in filtered_states:
-            guess = int(np.ceil(weight * ntraj))
+            guess = int(np.ceil(weight * ntraj_total))
             current_total += guess
             if guess == 1:
-                final_traj_counts.append((index, guess))
+                one_traj_states.append(index)
             else:
-                ratio = guess / (weight * ntraj)
+                ratio = guess / (weight * ntraj_total)
                 bisect.insort(under_consideration,
                               (index, weight, guess, ratio),
                               key=itemgetter(3))
 
-        while current_total > ntraj:
+        while current_total > ntraj_total:
             index, weight, guess, ratio = under_consideration.pop()
             guess -= 1
             current_total -= 1
             if guess == 1:
-                final_traj_counts.append((index, guess))
+                one_traj_states.append(index)
             else:
-                ratio = guess / (weight * ntraj)
+                ratio = guess / (weight * ntraj_total)
                 bisect.insort(under_consideration,
                               (index, weight, guess, ratio),
                               key=itemgetter(3))
 
-        result = [0] * len(state_list)
-        for index, count in final_traj_counts:
-            result[index] = count
+        # Finally we arrange the results in a list of ntraj
+        ntraj = [0] * len(state_list)
+        for index in one_traj_states:
+            ntraj[index] = 1
         for index, _, count, _ in under_consideration:
-            result[index] = count
-        return result
+            ntraj[index] = count
+        return ntraj
 
     def get_state_index(self, id):
+        """
+        For the trajectory id (0 <= id < total_ntraj), returns the index of the
+        corresponding initial state in the `state_list`.
+        """
         state_index = bisect.bisect(self._state_selector, id)
-        if id < 0 or state_index >= len(self._state_list):
+        if id < 0 or state_index >= len(self.state_list):
             raise IndexError(f'State id {id} must be smaller than number of '
                              f'trajectories {self.ntraj_total}')
         return state_index
 
     def get_state_and_weight(self, id):
+        """
+        For the trajectory id (0 <= id < total_ntraj), returns the
+        corresponding initial state and a correction weight such that
+            correction_weight * (ntraj / ntraj_total) = weight
+        where ntraj is the number of trajectories used with this initial state
+        and weight the initially provided weight of the state in the ensemble.
+        """
         state_index = self.get_state_index(id)
-        state, target_weight = self._state_list[state_index]
+        state, target_weight = self.state_list[state_index]
         state_frequency = self._ntraj[state_index] / self.ntraj_total
         correction_weight = target_weight / state_frequency
         return state, correction_weight
