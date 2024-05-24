@@ -503,6 +503,29 @@ class MCSolver(MultiTrajSolver):
             "num_collapse": self._num_collapse,
         })
         return stats
+    
+    def _no_jump_probability(self, state0, tlist, seed=None, *,
+                             result=None, e_ops=None, extra_weight=1):
+        """
+        Simulates the no-jump trajectory from the initial state `state0`.
+        From the result, extracts and returns the probability of finding no
+        jumps until the time `tlist[-1]`.
+        If a MultiTrajResult `result` is provided, the simulated trajectory
+        will be added to that result with the given (relative) extra weight.
+        A seed may be provided, but is expected to be ignored by the integrator
+        for the no-jump simulation.
+        """
+        _, no_jump_result = self._run_one_traj(
+            seed, state0, tlist, e_ops, no_jump=True)
+        _, state, _ = self._integrator.get_state(copy=False)
+        no_jump_prob = self._integrator._prob_func(state)
+
+        if result is not None:
+            no_jump_result.add_absolute_weight(no_jump_prob)
+            no_jump_result.add_relative_weight(extra_weight)
+            result.add((seed, no_jump_result))
+
+        return no_jump_prob
 
     def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
         """
@@ -516,13 +539,18 @@ class MCSolver(MultiTrajSolver):
         result.collapse = self._integrator.collapses
         return seed, result
 
-    def _no_jump_simulation(self, seed, state0, tlist, e_ops):
-        _, no_jump_result = self._run_one_traj(seed, state0, tlist,
-                                               e_ops, no_jump=True)
-        _, state, _ = self._integrator.get_state(copy=False)
-        no_jump_prob = self._integrator._prob_func(state)
-        no_jump_result.add_absolute_weight(no_jump_prob)
-        return no_jump_result, no_jump_prob
+    def _run_one_traj_mixed_improved_sampling(self, info, ics, no_jump_probs,
+                                              *args, **kwargs):
+        id, seed = info
+        state, weight = ics.get_state_and_weight(id)
+        kwargs.update(
+            {'jump_prob_floor': no_jump_probs[ics.get_state_index(id)]}
+        )
+
+        seed, result = self._run_one_traj(seed, state, *args, **kwargs)
+        if weight != 1:
+            result.add_relative_weight(weight)
+        return seed, result
 
     def run(
         self,
@@ -551,9 +579,8 @@ class MCSolver(MultiTrajSolver):
 
         # first run the no-jump trajectory
         start_time = time()
-        no_jump_result, no_jump_prob = self._no_jump_simulation(
-            seeds[0], state0, tlist, e_ops)
-        result.add((seeds[0], no_jump_result))
+        no_jump_prob = self._no_jump_probability(state0, tlist, seeds[0],
+                                                 result=result, e_ops=e_ops)
         result.stats['no jump run time'] = time() - start_time
 
         # run the remaining trajectories with the random number floor
@@ -638,27 +665,6 @@ class MCSolver(MultiTrajSolver):
         )
         result.stats['run time'] = time() - start_time
         return result
-
-    def _no_jump_simulation_mixed(self, info, tlist, e_ops, result):
-        seed, (state0, weight) = info
-        no_jump_result, no_jump_prob = self._no_jump_simulation(
-            seed, state0, tlist, e_ops)
-        no_jump_result.add_relative_weight(weight)
-        result.add((seed, no_jump_result))
-        return no_jump_prob
-
-    def _run_one_traj_mixed_improved_sampling(self, info, ics, no_jump_probs,
-                                              *args, **kwargs):
-        id, seed = info
-        state, weight = ics.get_state_and_weight(id)
-        kwargs.update(
-            {'jump_prob_floor': no_jump_probs[ics.get_state_index(id)]}
-        )
-
-        seed, result = self._run_one_traj(seed, state, *args, **kwargs)
-        if weight != 1:
-            result.add_relative_weight(weight)
-        return seed, result
 
     def _get_integrator(self):
         _time_start = time()
@@ -815,3 +821,21 @@ class MCSolver(MultiTrajSolver):
         if raw_data:
             return _DataFeedback(default, open=open)
         return _QobjFeedback(default, open=open)
+
+
+
+class _unpack_arguments:
+    """
+    If `f = _unpack_arguments(func, ('a', 'b'))`
+    then calling `f((3, 4), ...)` is equivalent to `func(a=3, b=4, ...)`.
+
+    Useful since the map functions in `qutip.parallel` only allow one
+    of the parameters of the task to be variable.
+    """
+    def __init__(self, func, argument_names):
+        self.func = func
+        self.argument_names = argument_names
+
+    def __call__(self, args, **kwargs):
+        rearranged = dict(zip(self.argument_names, args))
+        self.func(**rearranged, **kwargs)

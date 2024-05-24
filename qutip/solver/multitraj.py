@@ -180,8 +180,8 @@ class MultiTrajSolver(Solver):
 
         For a ``state`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :class:`.Result`. The evolution method and
-        stored results are determined by ``options``.
+        expectation values in a :class:`.MultiTrajResult`. The evolution method
+        and stored results are determined by ``options``.
 
         Parameters
         ----------
@@ -254,6 +254,14 @@ class MultiTrajSolver(Solver):
         result.stats['run time'] = time() - start_time
         return result
 
+    def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
+        """
+        Run one trajectory and return the result.
+        """
+        result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
+                                               **integrator_kwargs)
+        return self._integrate_one_traj(seed, tlist, result)
+
     def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
                                  **integrator_kwargs):
         result = self._trajectory_resultclass(e_ops, self.options)
@@ -266,17 +274,25 @@ class MultiTrajSolver(Solver):
         result.add(tlist[0], self._restore_state(state, copy=False))
         return result
 
-    def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
-        """
-        Run one trajectory and return the result.
-        """
-        result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
-                                               **integrator_kwargs)
-        return self._integrate_one_traj(seed, tlist, result)
-
     def _integrate_one_traj(self, seed, tlist, result):
         for t, state in self._integrator.run(tlist):
             result.add(t, self._restore_state(state, copy=False))
+        return seed, result
+
+    def _run_one_traj_mixed(self, id, seeds, ics,
+                            tlist, e_ops, **integrator_kwargs):
+        """
+        The serial number `id` identifies which seed and which initial state to
+        use for running one trajectory.
+        """
+        seed = seeds[id]
+        state, weight = ics.get_state_and_weight(id)
+
+        seed, result = self._run_one_traj(seed, state, tlist, e_ops,
+                                          **integrator_kwargs)
+
+        if weight != 1:
+            result.add_relative_weight(weight)
         return seed, result
 
     def run_mixed(
@@ -290,28 +306,78 @@ class MultiTrajSolver(Solver):
         timeout: float = None,
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> MultiTrajResult:
+        """
+        Do the evolution of the Quantum system with a mixed initial state.
+
+        The evolution is done as directed by ``rhs``. For each time in
+        ``tlist``, stores the state and/or expectation values in a
+        :class:`.MultiTrajResult`. The evolution method and stored results are
+        determined by ``options``.
+
+        Parameters
+        ----------
+        initial_conditions : list of (:obj:`.Qobj`, float)
+            Statistical ensemble at the beginning of the evolution. The first
+            element of each tuple is a state contributing to the mixture, and
+            the second element is its weight, i.e., a number between 0 and 1
+            describing the fraction of the ensemble in that state. The sum of
+            all weights is assumed to be one.
+
+        tlist : list of double
+            Time for which to save the results (state and/or expect) of the
+            evolution. The first element of the list is the initial time of the
+            evolution. Time in the list must be in increasing order, but does
+            not need to be uniformly distributed.
+
+        ntraj : {int, list of int}
+            Number of trajectories to add. If a single number is provided, this
+            will be the total number of trajectories, which are distributed
+            over the initial ensemble automatically. This parameter may also be
+            a list of numbers with the same number of entries as in
+            `initial_conditions`, specifying the number of trajectories for
+            each initial state explicitly.
+
+        args : dict, optional
+            Change the ``args`` of the rhs for the evolution.
+
+        e_ops : list
+            list of Qobj or QobjEvo to compute the expectation values.
+            Alternatively, function[s] with the signature f(t, state) -> expect
+            can be used.
+
+        timeout : float, optional
+            Maximum time in seconds for the trajectories to run. Once this time
+            is reached, the simulation will end even if the number
+            of trajectories is less than ``ntraj``. In this case, the results
+            returned by this function will generally be invalid.
+
+        seeds : {int, SeedSequence, list}, optional
+            Seed or list of seeds for each trajectories.
+
+        Returns
+        -------
+        results : :class:`.MultiTrajResult`
+            Results of the evolution. States and/or expect will be saved. You
+            can control the saved data in the options.
+
+        .. note:
+            The simulation will end when the first end condition is reached
+            between ``ntraj`` and ``timeout``. Setting a target tolerance is
+            not supported with mixed initial conditions.
+        """
         seeds, result, map_func, map_kw, prepared_ics = self._initialize_run(
             initial_conditions, np.sum(ntraj), args=args, e_ops=e_ops,
             timeout=timeout, seeds=seeds)
         start_time = time()
         map_func(
-            self._run_one_traj_mixed, enumerate(seeds),
-            (_InitialConditions(prepared_ics, ntraj), tlist, e_ops),
+            self._run_one_traj_mixed, range(len(seeds)),
+            (seeds, _InitialConditions(prepared_ics, ntraj), tlist, e_ops),
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"]
         )
         result.stats['run time'] = time() - start_time
         return result
-
-    def _run_one_traj_mixed(self, info, ics, *args, **kwargs):
-        id, seed = info
-        state, weight = ics.get_state_and_weight(id)
-
-        seed, result = self._run_one_traj(seed, state, *args, **kwargs)
-        if weight != 1:
-            result.add_relative_weight(weight)
-        return seed, result
 
     def _read_seed(self, seed, ntraj):
         """
@@ -367,6 +433,8 @@ class _InitialConditions:
         self.ntraj_total = self._state_selector[-1]
 
     def _minimum_roundoff_ensemble(self, state_list, ntraj):
+        # https://stackoverflow.com/questions/792460/how-to-round-floats-to-integers-while-preserving-their-sum/792490#792490
+        # Tests: https://github.com/pmenczel/Pseudomode-Examples/blob/main/tests/test_ic_generator.py
         filtered_states = [(index, weight)
                            for index, (_, weight) in enumerate(state_list)
                            if weight > 0]
