@@ -553,7 +553,7 @@ class NonMarkovianMCSolver(MCSolver):
         self._martingale.reset()
 
         return result
-    
+
     def run_mixed(self, initial_conditions, tlist, ntraj, *,
                   args=None, **kwargs):
         # update `args` dictionary before precomputing martingale

@@ -537,8 +537,7 @@ class MCSolver(MultiTrajSolver):
             # Our best option is to return a trajectory result containing only
             # zeroes. This also ensures # that the final multi-trajectory
             # result will contain the requested number of trajectories.
-            state_qobj = self._restore_state(state, copy=True)
-            zero = qzero_like(state_qobj)
+            zero = qzero_like(self._restore_state(state, copy=True))
             result = self._trajectory_resultclass(e_ops, self.options)
             result.collapse = []
             for t in tlist:
@@ -906,7 +905,6 @@ class MCSolver(MultiTrajSolver):
         if raw_data:
             return _DataFeedback(default, open=open)
         return _QobjFeedback(default, open=open)
-
 
 
 class _unpack_arguments:
