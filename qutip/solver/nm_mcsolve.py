@@ -44,7 +44,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         operators are to be treated deterministically.
 
     state : :class:`.Qobj`
-        Initial state vector.
+        Initial state vector or density matrix.
 
     tlist : array_like
         Times at which results are recorded.

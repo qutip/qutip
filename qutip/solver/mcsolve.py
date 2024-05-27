@@ -48,7 +48,7 @@ def mcsolve(
         operators are to be treated deterministically.
 
     state : :class:`.Qobj`
-        Initial state vector.
+        Initial state vector or density matrix.
 
     tlist : array_like
         Times at which results are recorded.
@@ -506,29 +506,23 @@ class MCSolver(MultiTrajSolver):
             "num_collapse": self._num_collapse,
         })
         return stats
-    
-    def _no_jump_probability(self, state0, tlist, seed=None, *,
-                             result=None, e_ops=None, extra_weight=1):
+
+    def _no_jump_simulation(self, state, tlist, e_ops, seed=None):
         """
         Simulates the no-jump trajectory from the initial state `state0`.
-        From the result, extracts and returns the probability of finding no
-        jumps until the time `tlist[-1]`.
-        If a MultiTrajResult `result` is provided, the simulated trajectory
-        will be added to that result with the given (relative) extra weight.
-        A seed may be provided, but is expected to be ignored by the integrator
-        for the no-jump simulation.
+        Returns a tuple of the `TrajectoryResult` describing this trajectory,
+        and its probability.
+        Note that a seed for the integrator may be provided, but is expected to
+        be ignored in the no-jump simulation.
         """
-        _, no_jump_result = self._run_one_traj(
-            seed, state0, tlist, e_ops, no_jump=True)
+        seed, no_jump_result = self._run_one_traj(
+            seed, state, tlist, e_ops, no_jump=True)
         _, state, _ = self._integrator.get_state(copy=False)
         no_jump_prob = self._integrator._prob_func(state)
 
-        if result is not None:
-            no_jump_result.add_absolute_weight(no_jump_prob)
-            no_jump_result.add_relative_weight(extra_weight)
-            result.add((seed, no_jump_result))
+        no_jump_result.add_absolute_weight(no_jump_prob)
 
-        return no_jump_prob
+        return seed, no_jump_result, no_jump_prob
 
     def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
         """
@@ -705,13 +699,19 @@ class MCSolver(MultiTrajSolver):
 
         # Run the no-jump trajectories
         start_time = time()
-        no_jump_probs = map_func(
-            _unpack_arguments(self._no_jump_probability,
-                              ('state0', 'seed', 'extra_weight')),
-            [(st, seed, w) for seed, (st, w) in zip(seeds, prepared_ics)],
-            task_kwargs={'tlist': tlist, 'e_ops': e_ops, 'result': result},
+        no_jump_results = map_func(
+            _unpack_arguments(self._no_jump_simulation, ('state', 'seed')),
+            [(state, seed) for seed, (state, _) in zip(seeds, prepared_ics)],
+            task_kwargs={'tlist': tlist, 'e_ops': e_ops},
             map_kw=map_kw, progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"])
+
+        no_jump_probs = []
+        for (seed, res, prob), (_, weight) in (
+                zip(no_jump_results, prepared_ics)):
+            res.add_relative_weight(weight)
+            result.add((seed, res))
+            no_jump_probs.append(prob)
         result.stats['no jump run time'] = time() - start_time
 
         # Run the remaining trajectories
@@ -904,4 +904,4 @@ class _unpack_arguments:
 
     def __call__(self, args, **kwargs):
         rearranged = dict(zip(self.argument_names, args))
-        self.func(**rearranged, **kwargs)
+        return self.func(**rearranged, **kwargs)

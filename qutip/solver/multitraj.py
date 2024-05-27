@@ -469,7 +469,7 @@ class _InitialConditions:
         Calculate a list ntraj from the given total number, under contraints
         explained above. Algorithm based on https://stackoverflow.com/a/792490
         """
-        # First we through out zero-weight states
+        # First we throw out zero-weight states
         filtered_states = [(index, weight)
                            for index, (_, weight) in enumerate(state_list)
                            if weight > 0]
@@ -542,6 +542,6 @@ class _InitialConditions:
         """
         state_index = self.get_state_index(id)
         state, target_weight = self.state_list[state_index]
-        state_frequency = self._ntraj[state_index] / self.ntraj_total
+        state_frequency = self.ntraj[state_index] / self.ntraj_total
         correction_weight = target_weight / state_frequency
         return state, correction_weight
