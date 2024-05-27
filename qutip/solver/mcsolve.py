@@ -6,7 +6,7 @@ __all__ = ['mcsolve', "MCSolver"]
 import numpy as np
 from numpy.typing import ArrayLike
 from numpy.random import SeedSequence
-from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
+from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
 from ..typing import QobjEvoLike
 from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
 from .solver_base import Solver, Integrator, _solver_deprecation
@@ -528,9 +528,25 @@ class MCSolver(MultiTrajSolver):
         """
         Run one trajectory and return the result.
         """
+        jump_prob_floor = integrator_kwargs.get('jump_prob_floor', 0)
+        if jump_prob_floor == 1:
+            # The no-jump probability is one, but we are asked to generate
+            # a trajectory with at least one jump.
+            # This can happen when a user uses "improved sampling" with a dark
+            # initial state, or a mixed initial state containing a dark state.
+            # Our best option is to return a trajectory result containing only
+            # zeroes. This also ensures # that the final multi-trajectory
+            # result will contain the requested number of trajectories.
+            state_qobj = self._restore_state(state, copy=True)
+            zero = qzero_like(state_qobj)
+            result = self._trajectory_resultclass(e_ops, self.options)
+            result.collapse = []
+            for t in tlist:
+                result.add(t, zero)
+            return seed, result
+
         seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
                                              **integrator_kwargs)
-        jump_prob_floor = integrator_kwargs.get('jump_prob_floor', 0)
         if jump_prob_floor > 0:
             result.add_relative_weight(1 - jump_prob_floor)
         result.collapse = self._integrator.collapses
@@ -563,8 +579,9 @@ class MCSolver(MultiTrajSolver):
 
         # first run the no-jump trajectory
         start_time = time()
-        no_jump_prob = self._no_jump_probability(state0, tlist, seeds[0],
-                                                 result=result, e_ops=e_ops)
+        seed0, no_jump_traj, no_jump_prob = (
+            self._no_jump_simulation(state0, tlist, e_ops, seeds[0]))
+        result.add((seed0, no_jump_traj))
         result.stats['no jump run time'] = time() - start_time
 
         # run the remaining trajectories with the random number floor
@@ -705,6 +722,8 @@ class MCSolver(MultiTrajSolver):
             task_kwargs={'tlist': tlist, 'e_ops': e_ops},
             map_kw=map_kw, progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"])
+        if None in no_jump_results:  # timeout reached
+            return result
 
         no_jump_probs = []
         for (seed, res, prob), (_, weight) in (

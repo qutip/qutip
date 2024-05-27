@@ -31,10 +31,11 @@ class StatesAndExpectOutputCase:
     """
     size = 10
     h = qutip.num(size)
-    state = qutip.basis(size, size-1)
+    pure_state = qutip.basis(size, size-1)
+    mixed_state = qutip.maximally_mixed_dm(size)
     times = np.linspace(0, 1, 101)
     e_ops = [qutip.num(size)]
-    ntraj = 2000
+    ntraj = 500
 
     def _assert_states(self, result, expected, tol):
         assert hasattr(result, 'states')
@@ -52,13 +53,15 @@ class StatesAndExpectOutputCase:
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 
     @pytest.mark.parametrize("improved_sampling", [True, False])
-    def test_states_and_expect(self, hamiltonian, args, c_ops, expected, tol,
-                               improved_sampling):
+    def test_states_and_expect(self, hamiltonian, state, args, c_ops,
+                               expected, tol, improved_sampling):
         options = {"store_states": True, "map": "serial",
                    "improved_sampling": improved_sampling}
-        result = mcsolve(hamiltonian, self.state, self.times, args=args,
+        result = mcsolve(hamiltonian, state, self.times, args=args,
                          c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
-                         options=options, target_tol=0.05)
+                         options=options,
+                         # target_tol not supported for mixed initial state
+                         target_tol=(0.05 if state.isket else None))
         self._assert_expect(result, expected, tol)
         self._assert_states(result, expected, tol)
 
@@ -70,8 +73,6 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     """
     def pytest_generate_tests(self, metafunc):
         tol = 1e-8
-        expect = (qutip.expect(self.e_ops[0], self.state)
-                  * np.ones_like(self.times))
         hamiltonian_types = [
             (self.h, "Qobj"),
             ([self.h], "list"),
@@ -79,11 +80,21 @@ class TestNoCollapse(StatesAndExpectOutputCase):
                            args={'constant': 0}), "QobjEvo"),
             (callable_qobj(self.h), "callable"),
         ]
-        cases = [pytest.param(hamiltonian, {}, [], [expect], tol, id=id)
+        cases = [pytest.param(hamiltonian, {}, [], tol, id=id)
                  for hamiltonian, id in hamiltonian_types]
         metafunc.parametrize(
-            ['hamiltonian', 'args', 'c_ops', 'expected', 'tol'],
+            ['hamiltonian', 'args', 'c_ops', 'tol'],
             cases)
+
+        initial_state_types = [
+            (self.pure_state, "pure"),
+            (self.mixed_state, "mixed"),
+        ]
+        expect = [qutip.expect(self.e_ops[0], state) * np.ones_like(self.times)
+                  for state, _ in initial_state_types]
+        cases = [pytest.param(state, [exp], id=id)
+                 for (state, id), exp in zip(initial_state_types, expect)]
+        metafunc.parametrize(['state', 'expected'], cases)
 
     # Previously the "states_only" and "expect_only" tests were mixed in to
     # every other test case.  We move them out into the simplest set so that
@@ -92,20 +103,20 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     # test cases, this is just testing the single-output behaviour.
 
     @pytest.mark.parametrize("improved_sampling", [True, False])
-    def test_states_only(self, hamiltonian, args, c_ops, expected, tol,
-                         improved_sampling):
+    def test_states_only(self, hamiltonian, state, args, c_ops,
+                         expected, tol, improved_sampling):
         options = {"store_states": True, "map": "serial",
                    "improved_sampling": improved_sampling}
-        result = mcsolve(hamiltonian, self.state, self.times, args=args,
+        result = mcsolve(hamiltonian, state, self.times, args=args,
                          c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
                          options=options)
         self._assert_states(result, expected, tol)
 
     @pytest.mark.parametrize("improved_sampling", [True, False])
-    def test_expect_only(self, hamiltonian, args, c_ops, expected, tol,
-                         improved_sampling):
+    def test_expect_only(self, hamiltonian, state, args, c_ops,
+                         expected, tol, improved_sampling):
         options = {'map': 'serial', "improved_sampling": improved_sampling}
-        result = mcsolve(hamiltonian, self.state, self.times, args=args,
+        result = mcsolve(hamiltonian, state, self.times, args=args,
                          c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
                          options=options)
         self._assert_expect(result, expected, tol)
@@ -119,8 +130,6 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
     def pytest_generate_tests(self, metafunc):
         tol = 0.25
         coupling = 0.2
-        expect = (qutip.expect(self.e_ops[0], self.state)
-                  * np.exp(-coupling * self.times))
         collapse_op = qutip.destroy(self.size)
         c_op_types = [
             (np.sqrt(coupling)*collapse_op, {}, "constant"),
@@ -128,11 +137,22 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
             (callable_qobj(collapse_op, _return_constant),
              {'constant': np.sqrt(coupling)}, "function"),
         ]
-        cases = [pytest.param(self.h, args, [c_op], [expect], tol, id=id)
+        cases = [pytest.param(self.h, args, [c_op], tol, id=id)
                  for c_op, args, id in c_op_types]
         metafunc.parametrize(
-            ['hamiltonian', 'args', 'c_ops', 'expected', 'tol'],
+            ['hamiltonian', 'args', 'c_ops', 'tol'],
             cases)
+
+        initial_state_types = [
+            (self.pure_state, "pure"),
+            (self.mixed_state, "mixed"),
+        ]
+        expect = [(qutip.expect(self.e_ops[0], state)
+                   * np.exp(-coupling * self.times))
+                  for state, _ in initial_state_types]
+        cases = [pytest.param(state, [exp], id=id)
+                 for (state, id), exp in zip(initial_state_types, expect)]
+        metafunc.parametrize(['state', 'expected'], cases)
 
 
 class TestTimeDependentCollapse(StatesAndExpectOutputCase):
@@ -143,8 +163,6 @@ class TestTimeDependentCollapse(StatesAndExpectOutputCase):
     def pytest_generate_tests(self, metafunc):
         tol = 0.25
         coupling = 0.2
-        expect = (qutip.expect(self.e_ops[0], self.state)
-                  * np.exp(-coupling * (1 - np.exp(-self.times))))
         collapse_op = qutip.destroy(self.size)
         collapse_args = {'constant': np.sqrt(coupling), 'rate': 0.5}
         collapse_string = 'sqrt({} * exp(-t))'.format(coupling)
@@ -152,11 +170,22 @@ class TestTimeDependentCollapse(StatesAndExpectOutputCase):
             ([collapse_op, _return_decay], collapse_args, "function"),
             ([collapse_op, collapse_string], {}, "string"),
         ]
-        cases = [pytest.param(self.h, args, [c_op], [expect], tol, id=id)
+        cases = [pytest.param(self.h, args, [c_op], tol, id=id)
                  for c_op, args, id in c_op_types]
         metafunc.parametrize(
-            ['hamiltonian', 'args', 'c_ops', 'expected', 'tol'],
+            ['hamiltonian', 'args', 'c_ops', 'tol'],
             cases)
+
+        initial_state_types = [
+            (self.pure_state, "pure"),
+            (self.mixed_state, "mixed"),
+        ]
+        expect = [(qutip.expect(self.e_ops[0], state)
+                   * np.exp(-coupling * (1 - np.exp(-self.times))))
+                  for state, _ in initial_state_types]
+        cases = [pytest.param(state, [exp], id=id)
+                 for (state, id), exp in zip(initial_state_types, expect)]
+        metafunc.parametrize(['state', 'expected'], cases)
 
 
 def test_stored_collapse_operators_and_times():
@@ -179,16 +208,21 @@ def test_stored_collapse_operators_and_times():
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
 @pytest.mark.parametrize("keep_runs_results", [True, False])
-def test_states_outputs(keep_runs_results, improved_sampling):
+@pytest.mark.parametrize("mixed_initial_state", [True, False])
+def test_states_outputs(keep_runs_results, improved_sampling,
+                        mixed_initial_state):
     # We're just testing the output value, so it's important whether certain
     # things are complex or real, but not what the magnitudes of constants are.
     focks = 5
-    ntraj = 5
-    a = qutip.tensor(qutip.destroy(focks), qutip.qeye(2))
-    sm = qutip.tensor(qutip.qeye(focks), qutip.sigmam())
+    ntraj = 13
+    a = qutip.destroy(focks) & qutip.qeye(2)
+    sm = qutip.qeye(focks) & qutip.sigmam()
     H = 1j*a.dag()*sm + a
     H = H + H.dag()
-    state = qutip.basis([focks, 2], [0, 1])
+    if mixed_initial_state:
+        state = qutip.maximally_mixed_dm(focks) & qutip.fock_dm(2, 1)
+    else:
+        state = qutip.basis([focks, 2], [0, 1])
     times = np.linspace(0, 10, 21)
     c_ops = [a, sm]
     data = mcsolve(H, state, times, c_ops, ntraj=ntraj,
@@ -200,6 +234,10 @@ def test_states_outputs(keep_runs_results, improved_sampling):
     assert isinstance(data.average_states[0], qutip.Qobj)
     assert data.average_states[0].norm() == pytest.approx(1.)
     assert data.average_states[0].isoper
+    if state.isket:
+        assert data.average_states[0] == qutip.ket2dm(state)
+    else:
+        assert data.average_states[0] == state
 
     assert isinstance(data.average_final_state, qutip.Qobj)
     assert data.average_final_state.norm() == pytest.approx(1.)
@@ -222,9 +260,10 @@ def test_states_outputs(keep_runs_results, improved_sampling):
         assert data.runs_final_states[0].norm() == pytest.approx(1.)
         assert data.runs_final_states[0].isket
 
-    assert isinstance(data.steady_state(), qutip.Qobj)
-    assert data.steady_state().norm() == pytest.approx(1.)
-    assert data.steady_state().isoper
+    steady_state = data.steady_state()
+    assert isinstance(steady_state, qutip.Qobj)
+    assert steady_state.norm() == pytest.approx(1.)
+    assert steady_state.isoper
 
     np.testing.assert_allclose(times, data.times)
     assert data.num_trajectories == ntraj
@@ -237,16 +276,21 @@ def test_states_outputs(keep_runs_results, improved_sampling):
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
 @pytest.mark.parametrize("keep_runs_results", [True, False])
-def test_expectation_outputs(keep_runs_results, improved_sampling):
+@pytest.mark.parametrize("mixed_initial_state", [True, False])
+def test_expectation_outputs(keep_runs_results, improved_sampling,
+                             mixed_initial_state):
     # We're just testing the output value, so it's important whether certain
     # things are complex or real, but not what the magnitudes of constants are.
     focks = 5
-    ntraj = 5
-    a = qutip.tensor(qutip.destroy(focks), qutip.qeye(2))
-    sm = qutip.tensor(qutip.qeye(focks), qutip.sigmam())
+    ntraj = 13
+    a = qutip.destroy(focks) & qutip.qeye(2)
+    sm = qutip.qeye(focks) & qutip.sigmam()
     H = 1j*a.dag()*sm + a
     H = H + H.dag()
-    state = qutip.basis([focks, 2], [0, 1])
+    if mixed_initial_state:
+        state = qutip.maximally_mixed_dm(focks) & qutip.fock_dm(2, 1)
+    else:
+        state = qutip.basis([focks, 2], [0, 1])
     times = np.linspace(0, 10, 5)
     c_ops = [a, sm]
     e_ops = [a.dag()*a, sm.dag()*sm, a]
@@ -339,7 +383,7 @@ class TestSeeds:
         kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj,
                   "options": {"improved_sampling": improved_sampling}}
         with pytest.raises(ValueError):
-            first = mcsolve(*args, seeds=[1], **kwargs)
+            mcsolve(*args, seeds=[1], **kwargs)
 
     @pytest.mark.parametrize("improved_sampling", [True, False])
     def test_generator(self, improved_sampling):
@@ -373,12 +417,16 @@ class TestSeeds:
 
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
-def test_timeout(improved_sampling):
+@pytest.mark.parametrize("mixed_initial_state", [True, False])
+def test_timeout(improved_sampling, mixed_initial_state):
     size = 10
     ntraj = 1000
     a = qutip.destroy(size)
     H = qutip.num(size)
-    state = qutip.basis(size, size-1)
+    if mixed_initial_state:
+        state = qutip.maximally_mixed_dm(size)
+    else:
+        state = qutip.basis(size, size-1)
     times = np.linspace(0, 1.0, 100)
     coupling = 0.5
     n_th = 0.05
@@ -414,12 +462,16 @@ def test_target_tol(improved_sampling):
     assert res.stats['end_condition'] == 'ntraj reached'
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
-def test_super_H(improved_sampling):
+@pytest.mark.parametrize("mixed_initial_state", [True, False])
+def test_super_H(improved_sampling, mixed_initial_state):
     size = 10
-    ntraj = 1000
+    ntraj = 250
     a = qutip.destroy(size)
     H = qutip.num(size)
-    state = qutip.basis(size, size-1)
+    if mixed_initial_state:
+        state = qutip.maximally_mixed_dm(size)
+    else:
+        state = qutip.basis(size, size-1)
     times = np.linspace(0, 1.0, 100)
     # Arbitrary coupling and bath temperature.
     coupling = 0.5
@@ -427,11 +479,11 @@ def test_super_H(improved_sampling):
     c_ops = np.sqrt(coupling * (n_th + 1)) * a
     e_ops = [qutip.num(size)]
     mc_expected = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
-                          target_tol=0.1,
+                          target_tol=(0.1 if state.isket else None),
                           options={'map': 'serial',
                                    "improved_sampling": improved_sampling})
     mc = mcsolve(qutip.liouvillian(H), state, times, c_ops, e_ops, ntraj=ntraj,
-                 target_tol=0.1,
+                 target_tol=(0.1 if state.isket else None),
                  options={'map': 'serial',
                           "improved_sampling": improved_sampling})
     np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.65)
@@ -510,3 +562,34 @@ def test_feedback(func, kind):
         psi0, np.linspace(0, 3, 31), e_ops=[qutip.num(10)], ntraj=10
     )
     assert np.all(result.expect[0] > 4. - tol)
+
+
+@pytest.mark.parametrize(["initial_state", "ntraj"], [
+    pytest.param(qutip.maximally_mixed_dm(2), 5, id="dm"),
+    pytest.param([(qutip.basis(2, 0), 0.3), (qutip.basis(2, 1), 0.7)],
+                 5, id="statelist"),
+    pytest.param([(qutip.basis(2, 0), 0.3), (qutip.basis(2, 1), 0.7)],
+                 [4, 2], id="ntraj-spec"),
+    pytest.param([(qutip.basis(2, 0), 0.3),
+                  ((qutip.basis(2, 0) + qutip.basis(2, 1)).unit(), 0.7)],
+                 [4, 2], id="non-orthogonals"),
+])
+@pytest.mark.parametrize("improved_sampling", [True, False])
+def test_mixed_averaging(improved_sampling, initial_state, ntraj):
+    # we will only check that the initial state of the result equals the
+    # intended initial state exactly
+    H = qutip.sigmax()
+    tlist = [0, 1]
+    L = qutip.sigmam()
+
+    solver = qutip.MCSolver(
+        H, [L], options={'improved_sampling': improved_sampling})
+    result = solver.run_mixed(initial_state, tlist, ntraj)
+
+    if isinstance(initial_state, qutip.Qobj):
+        reference = initial_state
+    else:
+        reference = sum(p * psi.proj() for psi, p in initial_state)
+
+    assert result.states[0] == reference
+    assert result.num_trajectories == np.sum(ntraj)
