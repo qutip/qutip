@@ -40,6 +40,10 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Simon Cross
 
+:Author: Asier Galicia
+
+:Author: Paul Menczel
+
 :release: |release|
 
 :copyright:
