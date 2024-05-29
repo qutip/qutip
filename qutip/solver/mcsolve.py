@@ -182,15 +182,8 @@ def mcsolve(
         )
     mc = MCSolver(H, c_ops, options=options)
 
-    if state.isket:
-        result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
-                        seeds=seeds, target_tol=target_tol, timeout=timeout)
-    else:
-        if target_tol is not None:
-            warnings.warn('mcsolve does not support target tolerance '
-                          'for mixed initial conditions')
-        result = mc.run_mixed(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
-                              timeout=timeout, seeds=seeds)
+    result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
+                    seeds=seeds, target_tol=target_tol, timeout=timeout)
     return result
 
 
@@ -535,9 +528,9 @@ class MCSolver(MultiTrajSolver):
             # This can happen when a user uses "improved sampling" with a dark
             # initial state, or a mixed initial state containing a dark state.
             # Our best option is to return a trajectory result containing only
-            # zeroes. This also ensures # that the final multi-trajectory
+            # zeroes. This also ensures that the final multi-trajectory
             # result will contain the requested number of trajectories.
-            zero = qzero_like(self._restore_state(state, copy=True))
+            zero = qzero_like(self._restore_state(state, copy=False))
             result = self._trajectory_resultclass(e_ops, self.options)
             result.collapse = []
             for t in tlist:
@@ -553,9 +546,9 @@ class MCSolver(MultiTrajSolver):
 
     def run(
         self,
-        state: Qobj,
+        state: Qobj | list[tuple[Qobj, float]],
         tlist: ArrayLike,
-        ntraj: int = 1,
+        ntraj: int | list[int] = None,
         *,
         args: dict[str, Any] = None,
         e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
@@ -563,14 +556,135 @@ class MCSolver(MultiTrajSolver):
         timeout: float = None,
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> McResult:
-        # Overridden to sample the no-jump trajectory first. Then, the no-jump
-        # probability is used as a lower-bound for random numbers in future
-        # monte carlo runs
-        if not self.options["improved_sampling"]:
-            return super().run(state, tlist, ntraj=ntraj, args=args,
-                               e_ops=e_ops, timeout=timeout,
-                               target_tol=target_tol, seeds=seeds)
+        """
+        Do the evolution of the Quantum system.
 
+        For a ``state`` at time ``tlist[0]`` do the evolution as directed by
+        ``rhs`` and for each time in ``tlist`` store the state and/or
+        expectation values in a :class:`.MultiTrajResult`. The evolution method
+        and stored results are determined by ``options``.
+
+        Parameters
+        ----------
+        state : {:obj:`.Qobj`, list of (:obj:`.Qobj`, float)}
+            Initial state of the evolution. May be either a pure state or a
+            statistical ensemble. An ensemble can be provided either as a
+            density matrix, or as a list of tuples. In the latter case, the
+            first element of each tuple is a pure state, and the second element
+            is its weight, i.e., a number between 0 and 1 describing the
+            fraction of the ensemble in that state. The sum of all weights must
+            be one.
+
+        tlist : list of double
+            Time for which to save the results (state and/or expect) of the
+            evolution. The first element of the list is the initial time of the
+            evolution. Time in the list must be in increasing order, but does
+            not need to be uniformly distributed.
+
+        ntraj : {int, list of int}
+            Number of trajectories to add. If the initial state is pure, this
+            must be single number. If the initial state is a mixed ensemble,
+            specified as a list of pure states, this parameter may also be a
+            list of numbers with the same number of entries. It then specifies
+            the number of trajectories for each pure state. If the initial
+            state is mixed and this parameter is a single number, it specifies
+            the total number of trajectories, which are distributed over the
+            initial ensemble automatically.
+
+        args : dict, optional
+            Change the ``args`` of the rhs for the evolution.
+
+        e_ops : list
+            list of Qobj or QobjEvo to compute the expectation values.
+            Alternatively, function[s] with the signature f(t, state) -> expect
+            can be used.
+
+        timeout : float, optional
+            Maximum time in seconds for the trajectories to run. Once this time
+            is reached, the simulation will end even if the number
+            of trajectories is less than ``ntraj``. The map function, set in
+            options, can interupt the running trajectory or wait for it to
+            finish. Set to an arbitrary high number to disable.
+
+        target_tol : {float, tuple, list}, optional
+            Target tolerance of the evolution. The evolution will compute
+            trajectories until the error on the expectation values is lower
+            than this tolerance. The maximum number of trajectories employed is
+            given by ``ntraj``. The error is computed using jackknife
+            resampling. ``target_tol`` can be an absolute tolerance or a pair
+            of absolute and relative tolerance, in that order. Lastly, it can
+            be a list of pairs of (atol, rtol) for each e_ops.
+
+        seeds : {int, SeedSequence, list}, optional
+            Seed or list of seeds for each trajectories.
+
+        Returns
+        -------
+        results : :class:`.MultiTrajResult`
+            Results of the evolution. States and/or expect will be saved. You
+            can control the saved data in the options.
+
+        .. note:
+            The simulation will end when the first end condition is reached
+            between ``ntraj``, ``timeout`` and ``target_tol``. If the initial
+            condition is mixed, ``target_tol`` is not supported. If the initial
+            condition is mixed, and the end condition is not ``ntraj``, the
+            results returned by this functions will generally be invalid.
+        """
+        # We process the arguments and pass on to other functions depending on
+        # whether "improved sampling" is turned on, and whether the initial
+        # state is mixed.
+        if isinstance(state, (list, tuple)):
+            is_mixed = True
+        elif isinstance(state, Qobj):
+            if isinstance(ntraj, (list, tuple)):
+                raise ValueError('The ntraj parameter can only be a list if '
+                                 'the initial conditions are mixed and given '
+                                 'in the form of a list of pure states')
+            is_mixed = not state.isket
+            if is_mixed:
+                # Mixed state given as density matrix. Decompose into list
+                # format, i.e., into eigenstates and eigenvalues
+                eigenvalues, eigenstates = state.eigenstates()
+                state = [(psi, p) for psi, p
+                         in zip(eigenstates, eigenvalues) if p > 0]
+
+        if is_mixed and target_tol is not None:
+            warnings.warn('Monte Carlo simulations with mixed initial '
+                          'do not support target tolerance')
+
+        # Default value for ntraj: as small as possible
+        # (2 per init. state for improved sampling, 1 per state otherwise)
+        if ntraj is None:
+            if is_mixed:
+                ntraj = len(state)
+            else:
+                ntraj = 1
+            if self.options["improved_sampling"]:
+                ntraj *= 2
+
+        if not self.options["improved_sampling"]:
+            if is_mixed:
+                return super()._run_mixed(
+                    state, tlist, ntraj, args=args, e_ops=e_ops,
+                    timeout=timeout, seeds=seeds)
+            else:
+                return super().run(
+                    state, tlist, ntraj, args=args, e_ops=e_ops,
+                    target_tol=target_tol, timeout=timeout, seeds=seeds)
+        if is_mixed:
+            return self._run_improved_sampling_mixed(
+                state, tlist, ntraj, args=args, e_ops=e_ops,
+                timeout=timeout, seeds=seeds)
+        return self._run_improved_sampling(
+            state, tlist, ntraj, args=args, e_ops=e_ops,
+            target_tol=target_tol, timeout=timeout, seeds=seeds)
+
+    def _run_improved_sampling(
+            self, state, tlist, ntraj, *,
+            args, e_ops, target_tol, timeout, seeds):
+        # Sample the no-jump trajectory first. Then, the no-jump probability
+        # is used as a lower-bound for random numbers in future MC runs
         seeds, result, map_func, map_kw, state0 = self._initialize_run(
             state, ntraj, args=args, e_ops=e_ops,
             timeout=timeout, target_tol=target_tol, seeds=seeds
@@ -598,96 +712,9 @@ class MCSolver(MultiTrajSolver):
         result.stats['run time'] = time() - start_time
         return result
 
-    def run_mixed(
-        self,
-        initial_conditions: Qobj | list[tuple[Qobj, float]],
-        tlist: ArrayLike,
-        ntraj: int | list[int],
-        *,
-        args: dict[str, Any] = None,
-        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
-        timeout: float = None,
-        seeds: int | SeedSequence | list[int | SeedSequence] = None,
-    ) -> McResult:
-        """
-        Do the evolution of the Quantum system with a mixed initial state.
-
-        The evolution is done as directed by ``rhs``. For each time in
-        ``tlist``, stores the state and/or expectation values in a
-        :class:`.MultiTrajResult`. The evolution method and stored results are
-        determined by ``options``.
-
-        Parameters
-        ----------
-        initial_conditions : {:obj:`.Qobj`, list of (:obj:`.Qobj`, float)}
-            Statistical ensemble at the beginning of the evolution. May be
-            provided either as a density matrix, or as a list of tuples. In the
-            latter case, the first element of each tuple is a pure state, and
-            the second element is its weight, i.e., a number between 0 and 1
-            describing the fraction of the ensemble in that state. The sum of
-            all weights is assumed to be one.
-
-        tlist : list of double
-            Time for which to save the results (state and/or expect) of the
-            evolution. The first element of the list is the initial time of the
-            evolution. Time in the list must be in increasing order, but does
-            not need to be uniformly distributed.
-
-        ntraj : {int, list of int}
-            Number of trajectories to add. If a single number is provided, this
-            will be the total number of trajectories, which are distributed
-            over the initial ensemble automatically.
-            If `inditial_conditions` was specified as a list of pure states,
-            this parameter may also be a list of numbers with the same number
-            of entries, specifying manually the number of trajectories for each
-            pure state.
-
-        args : dict, optional
-            Change the ``args`` of the rhs for the evolution.
-
-        e_ops : list
-            list of Qobj or QobjEvo to compute the expectation values.
-            Alternatively, function[s] with the signature f(t, state) -> expect
-            can be used.
-
-        timeout : float, optional
-            Maximum time in seconds for the trajectories to run. Once this time
-            is reached, the simulation will end even if the number
-            of trajectories is less than ``ntraj``. In this case, the results
-            returned by this function will generally be invalid.
-
-        seeds : {int, SeedSequence, list}, optional
-            Seed or list of seeds for each trajectories.
-
-        Returns
-        -------
-        results : :class:`.MultiTrajResult`
-            Results of the evolution. States and/or expect will be saved. You
-            can control the saved data in the options.
-
-        .. note:
-            The simulation will end when the first end condition is reached
-            between ``ntraj`` and ``timeout``. Setting a target tolerance is
-            not supported with mixed initial conditions.
-        """
-        if isinstance(initial_conditions, Qobj):
-            # Decompose initial density matrix into eigenstates and eigenvalues
-            # In this case, we do not allow `ntraj` to be a list, since the
-            # order of the eigenstates is undefined
-            if isinstance(ntraj, (list, tuple)):
-                raise ValueError(
-                    'The `ntraj` parameter cannot be a list if the initial '
-                    'conditions are given in the form of a density matrix')
-            eigenvalues, eigenstates = initial_conditions.eigenstates()
-            initial_conditions = [(state, weight) for state, weight
-                                  in zip(eigenstates, eigenvalues)
-                                  if weight > 0]
-
-        if not self.options["improved_sampling"]:
-            return super().run_mixed(initial_conditions, tlist, ntraj=ntraj,
-                                     args=args, e_ops=e_ops, timeout=timeout,
-                                     seeds=seeds)
-
+    def _run_improved_sampling_mixed(
+            self, initial_conditions, tlist, ntraj, *,
+            args, e_ops, timeout, seeds):
         seeds, result, map_func, map_kw, prepared_ics = self._initialize_run(
             initial_conditions, np.sum(ntraj), args=args, e_ops=e_ops,
             timeout=timeout, seeds=seeds)

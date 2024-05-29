@@ -298,7 +298,7 @@ class MultiTrajSolver(Solver):
             result.add_relative_weight(weight)
         return seed, result
 
-    def run_mixed(
+    def _run_mixed(
         self,
         initial_conditions: list[tuple[Qobj, float]],
         tlist: ArrayLike,
@@ -310,12 +310,8 @@ class MultiTrajSolver(Solver):
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> MultiTrajResult:
         """
-        Do the evolution of the Quantum system with a mixed initial state.
-
-        The evolution is done as directed by ``rhs``. For each time in
-        ``tlist``, stores the state and/or expectation values in a
-        :class:`.MultiTrajResult`. The evolution method and stored results are
-        determined by ``options``.
+        Subclasses can use this method to allow simulations with a mixed
+        initial state. The following parameters differ from the `run` method:
 
         Parameters
         ----------
@@ -326,12 +322,6 @@ class MultiTrajSolver(Solver):
             describing the fraction of the ensemble in that state. The sum of
             all weights is assumed to be one.
 
-        tlist : list of double
-            Time for which to save the results (state and/or expect) of the
-            evolution. The first element of the list is the initial time of the
-            evolution. Time in the list must be in increasing order, but does
-            not need to be uniformly distributed.
-
         ntraj : {int, list of int}
             Number of trajectories to add. If a single number is provided, this
             will be the total number of trajectories, which are distributed
@@ -339,29 +329,6 @@ class MultiTrajSolver(Solver):
             a list of numbers with the same number of entries as in
             `initial_conditions`, specifying the number of trajectories for
             each initial state explicitly.
-
-        args : dict, optional
-            Change the ``args`` of the rhs for the evolution.
-
-        e_ops : list
-            list of Qobj or QobjEvo to compute the expectation values.
-            Alternatively, function[s] with the signature f(t, state) -> expect
-            can be used.
-
-        timeout : float, optional
-            Maximum time in seconds for the trajectories to run. Once this time
-            is reached, the simulation will end even if the number
-            of trajectories is less than ``ntraj``. In this case, the results
-            returned by this function will generally be invalid.
-
-        seeds : {int, SeedSequence, list}, optional
-            Seed or list of seeds for each trajectories.
-
-        Returns
-        -------
-        results : :class:`.MultiTrajResult`
-            Results of the evolution. States and/or expect will be saved. You
-            can control the saved data in the options.
 
         .. note:
             The simulation will end when the first end condition is reached

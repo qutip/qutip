@@ -718,7 +718,7 @@ def test_mixed_averaging(improved_sampling, initial_state, ntraj):
 
     solver = qutip.NonMarkovianMCSolver(
         H, [(L, rate)], options={'improved_sampling': improved_sampling})
-    result = solver.run_mixed(initial_state, tlist, ntraj)
+    result = solver.run(initial_state, tlist, ntraj)
 
     if isinstance(initial_state, qutip.Qobj):
         reference = initial_state
