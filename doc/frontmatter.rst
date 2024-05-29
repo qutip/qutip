@@ -44,6 +44,8 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Paul Menczel
 
+:Author: Patrick Hopf
+
 :release: |release|
 
 :copyright:

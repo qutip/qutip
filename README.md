@@ -13,6 +13,7 @@ QuTiP: Quantum Toolbox in Python
 [S. Cross](https://github.com/hodgestar),
 [A. Galicia](https://github.com/AGaliciaMartinez),
 [P. Menczel](https://github.com/pmenczel),
+[P. Hopf](https://github.com/flowerthrower/),
 [P. D. Nation](https://github.com/nonhermitian),
 and [J. R. Johansson](https://github.com/jrjohansson)
 
