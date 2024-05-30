@@ -593,3 +593,40 @@ def test_mixed_averaging(improved_sampling, initial_state, ntraj):
 
     assert result.states[0] == reference
     assert result.num_trajectories == np.sum(ntraj)
+
+
+@pytest.mark.parametrize("improved_sampling", [True, False])
+@pytest.mark.parametrize("p", [0, 0.25, 0.5])
+def test_mixed_equals_merged(improved_sampling, p):
+    # Running mcsolve with mixed ICs should be the same as running mcsolve
+    # multiple times and merging the results afterwards
+    initial_state1 = qutip.basis(2, 1)
+    initial_state2 = (qutip.basis(2, 1) + qutip.basis(2, 0)).unit()
+    H = qutip.sigmax()
+    L = qutip.sigmam()
+    tlist = [0, 1, 2]
+    ntraj = [3, 9]
+
+    solver = qutip.MCSolver(
+        H, [L], options={'improved_sampling': improved_sampling})
+    mixed_result = solver.run(
+        [(initial_state1, p), (initial_state2, 1 - p)], tlist, ntraj)
+
+    # Reuse seeds, then results should be identical
+    seeds = mixed_result.seeds
+    if improved_sampling:
+        # For improved sampling, first two seeds are no-jump trajectories
+        seeds1 = seeds[0:1] + seeds[2:(ntraj[0]+1)]
+        seeds2 = seeds[1:2] + seeds[(ntraj[0]+1):]
+    else:
+        seeds1 = seeds[:ntraj[0]]
+        seeds2 = seeds[ntraj[0]:]
+
+    pure_result1 = solver.run(initial_state1, tlist, ntraj[0], seeds=seeds1)
+    pure_result2 = solver.run(initial_state2, tlist, ntraj[1], seeds=seeds2)
+    merged_result = pure_result1.merge(pure_result2, p)
+
+    assert mixed_result.num_trajectories == sum(ntraj)
+    assert merged_result.num_trajectories == sum(ntraj)
+    for state1, state2 in zip(mixed_result.states, merged_result.states):
+        assert state1 == state2

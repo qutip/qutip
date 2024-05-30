@@ -156,7 +156,10 @@ def mcsolve(
     Notes
     -----
     The simulation will end when the first end condition is reached between
-    ``ntraj``, ``timeout`` and ``target_tol``.
+    ``ntraj``, ``timeout`` and ``target_tol``. If the initial condition is
+    mixed, ``target_tol`` is not supported. If the initial condition is mixed,
+    and the end condition is not ``ntraj``, the results returned by this
+    function should be considered invalid.
     """
     options = _solver_deprecation(kwargs, options, "mc")
     H = QobjEvo(H, args=args, tlist=tlist)
@@ -503,8 +506,8 @@ class MCSolver(MultiTrajSolver):
     def _no_jump_simulation(self, state, tlist, e_ops, seed=None):
         """
         Simulates the no-jump trajectory from the initial state `state0`.
-        Returns a tuple of the `TrajectoryResult` describing this trajectory,
-        and its probability.
+        Returns a tuple containing the seed, the `TrajectoryResult` describing
+        this trajectory, and the trajectory's probability.
         Note that a seed for the integrator may be provided, but is expected to
         be ignored in the no-jump simulation.
         """
@@ -629,14 +632,14 @@ class MCSolver(MultiTrajSolver):
             between ``ntraj``, ``timeout`` and ``target_tol``. If the initial
             condition is mixed, ``target_tol`` is not supported. If the initial
             condition is mixed, and the end condition is not ``ntraj``, the
-            results returned by this functions will generally be invalid.
+            results returned by this function should be considered invalid.
         """
         # We process the arguments and pass on to other functions depending on
         # whether "improved sampling" is turned on, and whether the initial
         # state is mixed.
         if isinstance(state, (list, tuple)):
             is_mixed = True
-        elif isinstance(state, Qobj):
+        else:  # state is Qobj, either pure state or dm
             if isinstance(ntraj, (list, tuple)):
                 raise ValueError('The ntraj parameter can only be a list if '
                                  'the initial conditions are mixed and given '
@@ -651,7 +654,7 @@ class MCSolver(MultiTrajSolver):
 
         if is_mixed and target_tol is not None:
             warnings.warn('Monte Carlo simulations with mixed initial '
-                          'do not support target tolerance')
+                          'state do not support target tolerance')
 
         # Default value for ntraj: as small as possible
         # (2 per init. state for improved sampling, 1 per state otherwise)
@@ -751,6 +754,7 @@ class MCSolver(MultiTrajSolver):
         if None in no_jump_results:  # timeout reached
             return result
 
+        # Process results of no-traj runs
         no_jump_probs = []
         for (seed, res, prob), (_, weight) in (
                 zip(no_jump_results, prepared_ics)):
