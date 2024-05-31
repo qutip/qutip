@@ -858,7 +858,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                 c_max = pi
             else:
                 c_min = min(color_M) if i == 0 else min(min(color_M), c_min)
-                c_max = min(color_M) if i == 0 else max(max(color_M), c_max)
+                c_max = max(color_M) if i == 0 else max(max(color_M), c_max)
 
             if c_min == c_max:
                 c_min -= 0.1
@@ -901,7 +901,8 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         artist = ax.bar3d(xpos, ypos, zpos, dx, dy, bar_M, color=colors,
                           edgecolors=options['bars_edgecolor'],
                           linewidths=options['bars_lw'],
-                          shade=options['shade'])
+                          shade=options['shade'],
+                            zsort='max')
         artist_list.append([artist])
 
     if len(Ms) == 1:
