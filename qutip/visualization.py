@@ -902,7 +902,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                           edgecolors=options['bars_edgecolor'],
                           linewidths=options['bars_lw'],
                           shade=options['shade'],
-                            zsort='max')
+                          zsort='max')
         artist_list.append([artist])
 
     if len(Ms) == 1:
