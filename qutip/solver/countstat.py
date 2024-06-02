@@ -2,7 +2,7 @@
 This module contains functions for calculating current and current noise using
 the counting statistics formalism.
 """
-__all__ = ['countstat_current', 'countstat_current_noise', 'third_cumulant']
+__all__ = ['countstat_current', 'countstat_current_noise']
 
 import numpy as np
 import scipy.sparse as sp
@@ -121,29 +121,15 @@ def _noise_direct(L, wlist, rhoss, J_ops):
     return current, noise
 
 
-def _noise_pseudoinv(L, wlist, rhoss, J_ops, sparse, method):
+def _noise_pseudoinv(L, wlist, rhoss, J_ops, I_ops, sparse, method):
     N_j_ops = len(J_ops)
     current = np.zeros(N_j_ops)
     noise = np.zeros((N_j_ops, N_j_ops, len(wlist)))
-    rhoss_vec = operator_to_vector(rhoss)
-    for k, w in enumerate(wlist):
-        R = pseudo_inverse(L, rhoss=rhoss, w=w, sparse=sparse, method=method)
-        for i, j in product(range(N_j_ops), repeat=2):
-            if i == j:
-                current[i] = J_ops[i](rhoss).tr().real
-                noise[i, j, k] = current[i]
-            op = J_ops[i] @ R @ J_ops[j] + J_ops[j] @ R @ J_ops[i]
-            noise[i, j, k] -= op(rhoss).tr().real
-    return current, noise
-
-def third_cumulant(L, rhoss, J_ops, I_ops, sparse, method, wlist=[0.]):
-    N_j_ops = len(J_ops)
-    current = np.zeros(N_j_ops)
-    noise = np.zeros((N_j_ops, len(wlist)))
     skewnes = np.zeros((N_j_ops, len(wlist)))
 
-    dtype = type(L.data)
     rhoss_vec = operator_to_vector(rhoss)
+
+    dtype = type(L.data)
 
     tr_op = qeye(L.dims[0][0])
     tr_op_vec = operator_to_vector(tr_op)
@@ -151,17 +137,20 @@ def third_cumulant(L, rhoss, J_ops, I_ops, sparse, method, wlist=[0.]):
     P = _data.kron(rhoss_vec.data, tr_op_vec.data.transpose(), dtype=dtype)
 
     Pop_new = Qobj(P, dims=L.dims)
-
     for k, w in enumerate(wlist):
         R = pseudo_inverse(L, rhoss=rhoss, w=w, sparse=sparse, method=method)
-        for i in range(N_j_ops):  
-            current[i] = I_ops[i](rhoss).tr().real
-            noise[i, k] = J_ops[i](rhoss).tr().real -2*(I_ops[i] @ R @ I_ops[i])(rhoss).tr().real
-            skewnes[i, k] = I_ops[i](rhoss).tr().real -3*((I_ops[i] @ R @ J_ops[i])(rhoss).tr().real+(J_ops[i] @ R @ I_ops[i])(rhoss).tr().real) 
-            skewnes[i, k] -= 6*((I_ops[i] @ R @ (R @ I_ops[i] @ Pop_new -  I_ops[i] @ R) @ I_ops[i])(rhoss).tr().real)
+        for i, j in product(range(N_j_ops), repeat=2):
+            if i == j:
+                current[i] = I_ops[i](rhoss).tr().real
+                noise[i, j, k] = J_ops[i](rhoss).tr().real
+                skewnes[i, k] = I_ops[i](rhoss).tr().real -3*((I_ops[i] @ R @ J_ops[i])(rhoss).tr().real+(J_ops[i] @ R @ I_ops[i])(rhoss).tr().real) 
+                skewnes[i, k] -= 6*((I_ops[i] @ R @ (R @ I_ops[i] @ Pop_new -  I_ops[i] @ R) @ I_ops[i])(rhoss).tr().real)
+            op = I_ops[i] @ R @ I_ops[j] + I_ops[j] @ R @ I_ops[i]
+            noise[i, j, k] -= op(rhoss).tr().real
+
     return current, noise, skewnes
 
-def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
+def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None, I_ops=None,
                             sparse=True, method='direct'):
     """
     Compute the cross-current noise spectrum for a list of collapse operators
@@ -228,6 +217,9 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     if J_ops is None:
         J_ops = [sprepost(c, c.dag()) for c in c_ops]
 
+    if I_ops is None:
+        I_ops = J_ops
+
     if wlist is None:
         wlist = [0.]
 
@@ -235,7 +227,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
         # rhoss_vec = operator_to_vector(rhoss).data
         current, noise = _noise_direct(L, wlist, rhoss, J_ops)
     else:
-        current, noise = _noise_pseudoinv(L, wlist, rhoss, J_ops,
+        current, noise, skewnes = _noise_pseudoinv(L, wlist, rhoss, J_ops, I_ops,
                                           sparse, method)
 
-    return current, noise
+    return current, noise, skewnes
