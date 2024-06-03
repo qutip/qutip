@@ -393,12 +393,12 @@ class Bloch:
 
             if kind == 'vector':
                 if colors is not None:
-                    self.add_vectors(vec, colors=colors[k], alpha=alpha)
+                    self.add_vectors(vec, colors=[colors[k]], alpha=alpha)
                 else:
                     self.add_vectors(vec)
             elif kind == 'point':
                 if colors is not None:
-                    self.add_points(vec, colors=colors[k], alpha=alpha)
+                    self.add_points(vec, colors=[colors[k]], alpha=alpha)
                 else:
                     self.add_points(vec)
 
