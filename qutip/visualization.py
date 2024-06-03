@@ -669,6 +669,25 @@ def _get_matrix_components(option, M, argument):
         raise ValueError("got an unexpected argument, "
                          f"{option} for {argument}")
 
+def sph2cart(r, theta, phi):
+    '''spherical to cartesian transformation.'''
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+    return x, y, z
+
+def sphview(ax):
+    '''
+    returns the camera position for 3D axes in spherical coordinates.'''
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    zlim = ax.get_zlim()
+    # Compute a more straightforward radius based on plot limits.
+    r = 0.5 * np.sqrt((xlim[1] - xlim[0])**2 + (ylim[1] - ylim[0])**2 + (zlim[1] - zlim[0])**2)
+    theta, phi = np.radians((90 - ax.elev, ax.azim))
+    return r, theta, phi
+
+
 
 def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                      bar_style='real', color_limits=None, color_style='real',
@@ -791,10 +810,9 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     """
 
-    # default options
-    default_opts = {'zticks': None, 'bars_spacing': 0.2,
-                    'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
-                    'shade': True, 'azim': -35, 'elev': 35, 'stick': False,
+    default_opts = {'zticks': None, 'bars_spacing': 0.3,
+                    'bars_alpha': 1., 'bars_lw': 0.7, 'bars_edgecolor': 'k',
+                    'shade': True, 'azim': -60, 'elev': 30, 'stick': False,
                     'cbar_pad': 0.04, 'cbar_to_z': False, 'threshold': None}
 
     # update default_opts from input options
@@ -822,8 +840,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     _equal_shape(Ms)
 
-    for i in range(len(Ms)):
-        M = Ms[i]
+    for i, M in enumerate(Ms):
         if isinstance(M, Qobj):
             if x_basis is None:
                 x_basis = list(_cb_labels([M.shape[0]])[0])
@@ -873,7 +890,10 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         else:
             cmap = _sequential_cmap()
 
+
     artist_list = list()
+    camera = np.array(sph2cart(*sphview(ax)), ndmin=3).T
+    bars = []
     for M in Ms:
 
         if isinstance(M, Qobj):
@@ -897,13 +917,22 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
             idx, = np.where(bar_M < options['threshold'])
             bar_M[idx] = 0
+        
+        temp_xpos = xpos.reshape(M.shape)
+        temp_ypos = ypos.reshape(M.shape)
+        temp_zpos = zpos.reshape(M.shape)
+        z_order = np.multiply([temp_xpos,temp_ypos, temp_zpos],camera).sum(0).flatten()
 
-        artist = ax.bar3d(xpos, ypos, zpos, dx, dy, bar_M, color=colors,
-                          edgecolors=options['bars_edgecolor'],
-                          linewidths=options['bars_lw'],
-                          shade=options['shade'],
-                          zsort='max')
-        artist_list.append([artist])
+        for i in range(len(xpos)):
+            bars.append([xpos[i], ypos[i], zpos[i], dx[i], dy[i], bar_M[i], colors[i],z_order[i]])
+
+        for bar in bars:
+            artist = ax.bar3d(bar[0], bar[1], bar[2], bar[3], bar[4], bar[5], color=bar[6],
+                                    edgecolors=options['bars_edgecolor'],
+                                    linewidths=options['bars_lw'],
+                                    shade=options['shade'])
+            artist._sort_zpos = bar[7]
+            artist_list.append([artist])
 
     if len(Ms) == 1:
         output = ax
@@ -928,8 +957,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     _stick_to_planes(options['stick'],
                      options['azim'], ax, M,
                      options['bars_spacing'])
-    ax.view_init(azim=options['azim'], elev=options['elev'])
-
+    
     # removing margins
     _remove_margins(ax.xaxis)
     _remove_margins(ax.yaxis)
