@@ -684,9 +684,9 @@ def sphview(ax):
     zlim = ax.get_zlim()
     # Compute  based on the plots xyz limits.
     r = 0.5 * np.sqrt(
-    (xlim[1] - xlim[0]) ** 2 +
-    (ylim[1] - ylim[0]) ** 2 +
-    (zlim[1] - zlim[0]) ** 2
+        (xlim[1] - xlim[0]) ** 2 +
+        (ylim[1] - ylim[0]) ** 2 +
+        (zlim[1] - zlim[0]) ** 2
     )
     theta, phi = np.radians((90 - ax.elev, ax.azim))
     return r, theta, phi
