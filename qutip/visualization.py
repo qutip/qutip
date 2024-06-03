@@ -9,7 +9,6 @@ __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
            'plot_spin_distribution', 'complex_array_to_rgb',
            'plot_qubism', 'plot_schmidt']
 
-import warnings
 import itertools as it
 import numpy as np
 from numpy import pi, array, sin, cos, angle, log2, sqrt
@@ -17,9 +16,8 @@ from numpy import pi, array, sin, cos, angle, log2, sqrt
 from packaging.version import parse as parse_version
 
 from . import (
-    Qobj, isket, ket2dm, tensor, vector_to_operator, to_super, settings
+    Qobj, isket, ket2dm, tensor, vector_to_operator, settings
 )
-from .core.dimensions import flatten
 from .core.superop_reps import _to_superpauli, isqubitdims
 from .wigner import wigner
 from .matplotlib_utilities import complex_phase_cmap
@@ -669,6 +667,7 @@ def _get_matrix_components(option, M, argument):
         raise ValueError("got an unexpected argument, "
                          f"{option} for {argument}")
 
+
 def sph2cart(r, theta, phi):
     '''spherical to cartesian transformation.'''
     x = r * np.sin(theta) * np.cos(phi)
@@ -676,17 +675,17 @@ def sph2cart(r, theta, phi):
     z = r * np.cos(theta)
     return x, y, z
 
+
 def sphview(ax):
     '''
     returns the camera position for 3D axes in spherical coordinates.'''
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
     zlim = ax.get_zlim()
-    # Compute a more straightforward radius based on plot limits.
+    # Compute  based on plot limits rather and x and y limits squared and summed
     r = 0.5 * np.sqrt((xlim[1] - xlim[0])**2 + (ylim[1] - ylim[0])**2 + (zlim[1] - zlim[0])**2)
     theta, phi = np.radians((90 - ax.elev, ax.azim))
     return r, theta, phi
-
 
 
 def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
@@ -890,8 +889,8 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         else:
             cmap = _sequential_cmap()
 
-
     artist_list = list()
+    # camera position relative to the plot
     camera = np.array(sph2cart(*sphview(ax)), ndmin=3).T
     bars = []
     for M in Ms:
@@ -921,18 +920,30 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
         temp_xpos = xpos.reshape(M.shape)
         temp_ypos = ypos.reshape(M.shape)
         temp_zpos = zpos.reshape(M.shape)
-        z_order = np.multiply([temp_xpos,temp_ypos, temp_zpos],camera).sum(0).flatten()
 
-        for i in range(len(xpos)):
-            bars.append([xpos[i], ypos[i], zpos[i], dx[i], dy[i], bar_M[i], colors[i],z_order[i]])
+        # calculating z_order for each bar based on its position
+        z_order = np.multiply(
+            [temp_xpos, temp_ypos, temp_zpos],camera
+            ).sum(0).flatten()
 
+        for i, uxpos in enumerate(xpos):
+            bars.append([
+                uxpos, ypos[i], zpos[i], dx[i], dy[i], bar_M[i], colors[i],z_order[i]
+                ])
+
+        # Adding bars individually to the plot
         for bar in bars:
-            artist = ax.bar3d(bar[0], bar[1], bar[2], bar[3], bar[4], bar[5], color=bar[6],
-                                    edgecolors=options['bars_edgecolor'],
-                                    linewidths=options['bars_lw'],
-                                    shade=options['shade'])
+            artist = ax.bar3d(bar[0], bar[1], bar[2], bar[3], bar[4], bar[5],
+                                color=bar[6],
+                                edgecolors=options['bars_edgecolor'],
+                                linewidths=options['bars_lw'],
+                                shade=options['shade'])
+            # sorting the bars based on our calculated z_order
             artist._sort_zpos = bar[7]
             artist_list.append([artist])
+        # The sorting issue was fixed by making minor change to the recommendations from
+        # https://stackoverflow.com/questions/18602660/matplotlib-bar3d-clipping-problems
+
 
     if len(Ms) == 1:
         output = ax
