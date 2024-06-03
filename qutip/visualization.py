@@ -684,7 +684,9 @@ def sphview(ax):
     zlim = ax.get_zlim()
     # Compute  based on the plots xyz limits.
     r = 0.5 * np.sqrt(
-        (xlim[1] - xlim[0]) ** 2 + (ylim[1] - ylim[0]) ** 2 + (zlim[1] - zlim[0]) ** 2
+    (xlim[1] - xlim[0]) ** 2 +
+    (ylim[1] - ylim[0]) ** 2 +
+    (zlim[1] - zlim[0]) ** 2
     )
     theta, phi = np.radians((90 - ax.elev, ax.azim))
     return r, theta, phi
@@ -946,12 +948,24 @@ def matrix_histogram(
 
         # calculating z_order for each bar based on its position
         z_order = (
-            np.multiply([temp_xpos, temp_ypos, temp_zpos], camera).sum(0).flatten()
+            np.multiply(
+                [
+                    temp_xpos, temp_ypos, temp_zpos], camera
+                    ).sum(0).flatten()
         )
 
         for i, uxpos in enumerate(xpos):
             bars.append(
-                [uxpos, ypos[i], zpos[i], dx[i], dy[i], bar_M[i], colors[i], z_order[i]]
+                [
+                    uxpos,
+                    ypos[i],
+                    zpos[i],
+                    dx[i],
+                    dy[i],
+                    bar_M[i],
+                    colors[i],
+                    z_order[i]
+                ]
             )
 
         # Adding bars individually to the plot
@@ -971,7 +985,7 @@ def matrix_histogram(
             # sorting the bars based on our calculated z_order
             artist._sort_zpos = bar[7]
             artist_list.append([artist])
-        # The sorting issue was fixed by making minor change to the recommendations from
+        # The sorting issue was fixed by making minor change to
         # https://stackoverflow.com/questions/18602660/matplotlib-bar3d-clipping-problems
 
     if len(Ms) == 1:
@@ -1004,7 +1018,8 @@ def matrix_histogram(
 
     # color axis
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=options["cbar_pad"])
+        cax, kw = mpl.colorbar.make_axes(
+            ax, shrink=0.75, pad=options["cbar_pad"])
         cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
         if color_style == "real":
@@ -1022,7 +1037,6 @@ def matrix_histogram(
                 )
 
     return fig, output
-
 
 
 def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
