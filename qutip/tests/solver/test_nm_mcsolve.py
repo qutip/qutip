@@ -740,7 +740,7 @@ def test_mixed_equals_merged(improved_sampling, p):
     L = qutip.sigmam()
     def rate_function(t):
         return -1 + t
-    tlist = [0, 1, 2]
+    tlist = np.linspace(0, 2, 20)
     ntraj = [3, 9]
 
     solver = qutip.NonMarkovianMCSolver(

@@ -604,7 +604,7 @@ def test_mixed_equals_merged(improved_sampling, p):
     initial_state2 = (qutip.basis(2, 1) + qutip.basis(2, 0)).unit()
     H = qutip.sigmax()
     L = qutip.sigmam()
-    tlist = [0, 1, 2]
+    tlist = np.linspace(0, 2, 20)
     ntraj = [3, 9]
 
     solver = qutip.MCSolver(
