@@ -12,14 +12,16 @@ __all__ = ["steadystate", "steadystate_floquet", "pseudo_inverse"]
 
 
 def _permute_wbm(L, b):
-    perm = scipy.sparse.csgraph.maximum_bipartite_matching(L.as_scipy())
+    perm = np.argsort(
+        scipy.sparse.csgraph.maximum_bipartite_matching(L.as_scipy())
+    )
     L = _data.permute.indices(L, perm, None)
     b = _data.permute.indices(b, perm, None)
     return L, b
 
 
 def _permute_rcm(L, b):
-    perm = scipy.sparse.csgraph.reverse_cuthill_mckee(L.as_scipy())
+    perm = np.argsort(scipy.sparse.csgraph.reverse_cuthill_mckee(L.as_scipy()))
     L = _data.permute.indices(L, perm, perm)
     b = _data.permute.indices(b, perm, None)
     return L, b, perm
