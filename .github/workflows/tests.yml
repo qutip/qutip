@@ -42,7 +42,7 @@ jobs:
             os: ubuntu-latest
             python-version: "3.12"
             scipy-requirement: ""
-            numpy-requirement: "==2.0.0rc1"
+            numpy-requirement: "==2.0.0rc2"
             pypi: 1
 
           # Binaries compiled with numpy 2 should be compatible when using
@@ -51,7 +51,7 @@ jobs:
             os: ubuntu-latest
             python-version: "3.10"
             scipy-requirement: ""
-            numpy-requirement: "==2.0.0rc1"
+            numpy-requirement: "==2.0.0rc2"
             roll_back_numpy: 1
             pypi: 1  # numpy 2 not yet available on conda
 
