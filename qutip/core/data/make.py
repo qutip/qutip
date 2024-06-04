@@ -119,11 +119,7 @@ def one_element_dia(shape, position, value=1.0):
     data = np.zeros((1, shape[1]), dtype=complex)
     data[0, position[1]] = value
     offsets = np.array([position[1]-position[0]])
-    if np.lib.NumpyVersion(np.__version__) >= '2.0.0b1':
-        copy_if_needed = None
-    else:
-        copy_if_needed = False
-    return Dia((data, offsets), copy=copy_if_needed, shape=shape)
+    return Dia((data, offsets), copy=None, shape=shape)
 
 
 one_element = _Dispatcher(one_element_dense, name='one_element',

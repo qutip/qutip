@@ -1,9 +1,10 @@
 """ Class for solve function results"""
 
-from typing import TypedDict
+from typing import TypedDict, Any, Callable
 import numpy as np
-
-from ..core import Qobj, QobjEvo, expect
+from numpy.typing import ArrayLike
+from numbers import Number
+from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero_like
 
 __all__ = [
     "Result",
@@ -127,7 +128,7 @@ class _BaseResult:
 
 
 class ResultOptions(TypedDict):
-    store_states: bool
+    store_states: bool | None
     store_final_state: bool
 
 
@@ -213,15 +214,18 @@ class Result(_BaseResult):
         The options for this result class.
     """
 
+    times: list[float]
+    states: list[Qobj]
     options: ResultOptions
+    e_data: dict[Any, list[Any]]
 
     def __init__(
         self,
-        e_ops,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]],
         options: ResultOptions,
         *,
-        solver=None,
-        stats=None,
+        solver: str = None,
+        stats: dict[str, Any] = None,
         **kw,
     ):
         super().__init__(options, solver=solver, stats=stats)
@@ -352,11 +356,11 @@ class Result(_BaseResult):
         return "\n".join(lines)
 
     @property
-    def expect(self):
+    def expect(self) -> list[ArrayLike]:
         return [np.array(e_op) for e_op in self.e_data.values()]
 
     @property
-    def final_state(self):
+    def final_state(self) -> Qobj:
         if self._final_state is not None:
             return self._final_state
         if self.states:

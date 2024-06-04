@@ -5,7 +5,7 @@ from libc.string cimport memcpy
 cimport cython
 
 import numbers
-
+import builtins
 import numpy as np
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
@@ -40,6 +40,9 @@ class OrderEfficiencyWarning(EfficiencyWarning):
 
 cdef class Dense(base.Data):
     def __init__(self, data, shape=None, copy=True):
+        if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
+            # np2 accept None which act as np1's False
+            copy = builtins.bool(copy)
         base = np.array(data, dtype=np.complex128, order='K', copy=copy)
         # Ensure that the array is contiguous.
         # Non contiguous array with copy=False would otherwise slip through

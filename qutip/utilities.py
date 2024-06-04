@@ -108,6 +108,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
 
     s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
+    # `S` and `C` are large integer,s if `sign` is a np.int32 it could oveflow
     sign = int((-1) ** (vmin + j2 + m2))
     for i,v in enumerate(range(vmin, vmax + 1)):
         factor = s_factors[i,:]
