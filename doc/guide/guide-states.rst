@@ -696,6 +696,99 @@ the non-zero component is the zeroth-element of the underlying matrix (remember 
 
 If one wants to create spin operators for higher spin systems, then the :func:`.jmat` function comes in handy.
 
+.. _quantum_gates:
+
+Gates
+=====
+
+The pre-defined gates are shown in the table below:
+
+.. cssclass:: table-striped
+
++-----------------------+--------------------------------------------------------+
+| Gate function         | Description                                            |
++=======================+===========+============================================+
+|"rx"                   | Rotation around x axis                                 |
++-----------------------+--------------------------------------------------------+
+|"ry"                   | Rotation around y axis                                 |
++-----------------------+--------------------------------------------------------+
+|"rz"                   | Rotation around z axis                                 |
++-----------------------+--------------------------------------------------------+
+|"sqrtnot"              | Square root of not gate                                |
++-----------------------+--------------------------------------------------------+
+|"snot"                 | Hardmard gate                                          |
++-----------------------+--------------------------------------------------------+
+|"phasegate"            | Phase shift gate                                       |
++-----------------------+--------------------------------------------------------+
+|"qrot"                 | A qubit rotation under a Rabi pulse                    |
++-----------------------+--------------------------------------------------------+
+|"cy"                   | Controlled y gate                                      |
++-----------------------+--------------------------------------------------------+
+|"cz"                   | Controlled z gate                                      |
++-----------------------+--------------------------------------------------------+
+|"s"                    | Single-qubit rotation                                  |
++-----------------------+--------------------------------------------------------+
+|"t"                    | Square root of s gate                                  |
++-----------------------+--------------------------------------------------------+
+|"cs"                   | Controlled s gate                                      |
++-----------------------+--------------------------------------------------------+
+|"ct"                   | Controlled t gate                                      |
++-----------------------+--------------------------------------------------------+
+|"cphase"               | Controlled phase gate                                  |
++-----------------------+--------------------------------------------------------+
+|"cnot"                 | Controlled not gate                                    |
++-----------------------+--------------------------------------------------------+
+|"csign"                | Same as cphase                                         |
++-----------------------+--------------------------------------------------------+
+|"berkeley"             | Berkeley gate                                          |
++-----------------------+--------------------------------------------------------+
+|"swapalpha"            | Swapalpha gate                                         |
++-----------------------+--------------------------------------------------------+
+|"swap"                 | Swap the states of two qubits                          |
++-----------------------+--------------------------------------------------------+
+|"iswap"                | Swap gate with additional phase for 01 and 10 states   |
++-----------------------+--------------------------------------------------------+
+|"sqrtswap"             | Square root of the swap gate                           |
++-----------------------+--------------------------------------------------------+
+|"sqrtiswap"            | Square root of the iswap gate                          |
++-----------------------+--------------------------------------------------------+
+|"fredkin"              | Fredkin gate                                           |
++-----------------------+--------------------------------------------------------+
+|"molmer_sorensen"      | Molmer Sorensen gate                                   |
++-----------------------+--------------------------------------------------------+
+|"toffoli"              | Toffoli gate                                           | 
++-----------------------+--------------------------------------------------------+
+|"hadamard transform"   | Hadamard gate                                          |
++-----------------------+--------------------------------------------------------+
+|"qubit clifford group" | Generates the Clifford group on a single qubit         |
++-----------------------+--------------------------------------------------------+
+|"globalphase"          | Global phase gate                                      |
++-----------------------+--------------------------------------------------------+
+
+
+To load this qutip module, first you have to import gates:
+
+.. code-block:: Python
+
+   from qutip import gates
+
+For example to use the Hadamard Gate:
+
+.. testcode:: [basics]
+
+    H = gates.hadamard_transform()
+    print(H)
+
+**Output**:
+
+.. testoutput:: [basics]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims=[[2], [2]], shape=(2, 2), type='oper', dtype=Dense, isherm=True
+    Qobj data =
+    [[ 0.70710678  0.70710678]
+     [0.70710678 -0.70710678]]
+
 .. _states-expect:
 
 Expectation values
@@ -787,6 +880,7 @@ as well as the composite objects discussed in the next section :ref:`tensor`:
     np.testing.assert_almost_equal(expect(sz1, two_spins), 1)
 
     np.testing.assert_almost_equal(expect(sz2, two_spins), -1)
+
 
 .. _states-super:
 

@@ -21,6 +21,47 @@ Quantum Operators
     :members: charge, commutator, create, destroy, displace, fcreate, fdestroy, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling, qeye_like, qzero_like
 
 
+Quantum Gates
+-----------------
+
+.. automodule:: qutip.core.gates
+    :members:
+    :show-inheritance:
+    :imported-members:
+
+   .. autosummary::
+
+      rx
+      ry
+      rz
+      sqrtnot
+      s_gate
+      snot
+      phasegate
+      qrot
+      cy_gate
+      cz_gate
+      s_gate
+      t_gate
+      cs_gate
+      ct_gate
+      cphase
+      cnot
+      csign
+      berkeley
+      swapalpha
+      swap
+      iswap
+      sqrtswap
+      sqrtiswap
+      fredkin
+      molmer_sorensen
+      toffoli
+      hadamard_transform
+      qubit_clifford_group
+      globalphase
+
+
 Energy Restricted Operators
 ---------------------------
 
