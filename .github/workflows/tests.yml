@@ -194,7 +194,7 @@ jobs:
 
           if [[ "${{ matrix.roll_back_numpy }}" ]]; then
             # Binary compiled with numpy 2.X should be compatible with numpy 1.X
-            python -m pip install "numpy<1.23"
+            python -m pip install "numpy<1.24"
           fi
 
 
