@@ -25,7 +25,7 @@ Quantum Gates
 -----------------
 
 .. automodule:: qutip.core.gates
-    :members: rx, ry, rz, sqrtnot, s_gate, snot, phasegate, qrot, cy_gate, cz_gate, s_gate, t_gate, cs_gate, ct_gate, cphase, cnot, csign, berkeley, swapalpha, swap, iswap, sqrtswap, sqrtiswap, fredkin, molmer_sorensen, toffoli, hadamard_transform, qubit_clifford_group, globalphase
+    :members: rx, ry, rz, sqrtnot, snot, phasegate, qrot, cy_gate, cz_gate, s_gate, t_gate, cs_gate, ct_gate, cphase, cnot, csign, berkeley, swapalpha, swap, iswap, sqrtswap, sqrtiswap, fredkin, molmer_sorensen, toffoli, hadamard_transform, qubit_clifford_group, globalphase
     
 
 Energy Restricted Operators
