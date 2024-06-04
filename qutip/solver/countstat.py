@@ -81,13 +81,15 @@ def _solve(A, V):
         return _data.solve(A, V, "lstsq")
 
 
-def _noise_direct(L, wlist, rhoss, J_ops):
+def _noise_direct(L, wlist, rhoss, J_ops, I_ops):
     J_ops = [op.data for op in J_ops]
+    I_ops = [op.data for op in I_ops]
     rhoss_vec = operator_to_vector(rhoss).data
 
     N_j_ops = len(J_ops)
     current = np.zeros(N_j_ops)
     noise = np.zeros((N_j_ops, N_j_ops, len(wlist)))
+    skewnes = np.zeros((N_j_ops, len(wlist)))
 
     tr_op = qeye(L.dims[0][0])
     tr_op_vec = operator_to_vector(tr_op)
@@ -95,7 +97,11 @@ def _noise_direct(L, wlist, rhoss, J_ops):
     Pop = _data.kron(rhoss_vec, tr_op_vec.data.transpose())
     Iop = _data.identity(np.prod(L.dims[0][0])**2)
     Q = _data.sub(Iop, Pop)
-    Q_ops = [_data.matmul(Q, _data.matmul(op, rhoss_vec)) for op in J_ops]
+
+    QJ_ops = [_data.matmul(Q, _data.matmul(op, rhoss_vec)) for op in J_ops]
+    QI_ops = [_data.matmul(Q, _data.matmul(op, rhoss_vec)) for op in I_ops]
+
+    QIPI_ops = [_data.matmul(Q, _data.matmul(op, _data.matmul(Pop, _data.matmul(op, rhoss_vec)))) for op in I_ops]
 
     for k, w in enumerate(wlist):
         if w != 0.0:
@@ -107,18 +113,32 @@ def _noise_direct(L, wlist, rhoss, J_ops):
             with CoreOptions(auto_tidyup=False):
                 L_temp = 1e-15j * spre(tr_op) + L
 
-        X_rho = [_solve(L_temp.data, op) for op in Q_ops]
+        XI_rho = [_solve(L_temp.data, op) for op in QI_ops]
+        XJ_rho = [_solve(L_temp.data, op) for op in QJ_ops]
+
+        RIRI = [_solve(L_temp.data, _data.matmul(Q, _data.matmul(opI, _data.matmul(Q, op)))) for op, opI in zip(XI_rho, I_ops)]
+        RRIPI = [_solve(L_temp.data, _data.matmul(Q, _data.matmul(Q, _solve(L_temp.data, op)))) for op in QIPI_ops]
 
         for i, j in product(range(N_j_ops), repeat=2):
             if i == j:
-                current[i] = _data.expect_super(J_ops[i], rhoss_vec).real
-                noise[j, i, k] = current[i]
+                current[i] = _data.expect_super(I_ops[i], rhoss_vec).real
+                noise[j, i, k] = _data.expect_super(J_ops[i], rhoss_vec).real
+                skewnes[i, k] = _data.expect_super(I_ops[i], rhoss_vec).real
+                skewnes[i, k] -= 3*((
+                _data.expect_super(_data.matmul(J_ops[i], Q), XI_rho[i]) +
+                _data.expect_super(_data.matmul(I_ops[i], Q), XJ_rho[i])
+                ).real) 
+                skewnes[i, k] -= 6*(
+                    (_data.expect_super(_data.matmul(I_ops[i], Q), RRIPI[i])
+                     - _data.expect_super(_data.matmul(I_ops[i], Q),RIRI[i])
+                     ).real)
+
             noise[j, i, k] -= (
-                _data.expect_super(_data.matmul(J_ops[j], Q), X_rho[i]) +
-                _data.expect_super(_data.matmul(J_ops[i], Q), X_rho[j])
+                _data.expect_super(_data.matmul(I_ops[j], Q), XI_rho[i]) +
+                _data.expect_super(_data.matmul(I_ops[i], Q), XI_rho[j])
             ).real
 
-    return current, noise
+    return current, noise, skewnes
 
 
 def _noise_pseudoinv(L, wlist, rhoss, J_ops, I_ops, sparse, method):
@@ -143,7 +163,8 @@ def _noise_pseudoinv(L, wlist, rhoss, J_ops, I_ops, sparse, method):
             if i == j:
                 current[i] = I_ops[i](rhoss).tr().real
                 noise[i, j, k] = J_ops[i](rhoss).tr().real
-                skewnes[i, k] = I_ops[i](rhoss).tr().real -3*((I_ops[i] @ R @ J_ops[i])(rhoss).tr().real+(J_ops[i] @ R @ I_ops[i])(rhoss).tr().real) 
+                skewnes[i, k] = I_ops[i](rhoss).tr().real 
+                skewnes[i, k] -= 3*((I_ops[i] @ R @ J_ops[i])(rhoss).tr().real+(J_ops[i] @ R @ I_ops[i])(rhoss).tr().real) 
                 skewnes[i, k] -= 6*((I_ops[i] @ R @ (R @ I_ops[i] @ Pop_new -  I_ops[i] @ R) @ I_ops[i])(rhoss).tr().real)
             op = I_ops[i] @ R @ I_ops[j] + I_ops[j] @ R @ I_ops[i]
             noise[i, j, k] -= op(rhoss).tr().real
@@ -225,7 +246,8 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None, I_ops=
 
     if sparse and method == 'direct':
         # rhoss_vec = operator_to_vector(rhoss).data
-        current, noise = _noise_direct(L, wlist, rhoss, J_ops)
+        print("A")
+        current, noise, skewnes = _noise_direct(L, wlist, rhoss, J_ops, I_ops)
     else:
         current, noise, skewnes = _noise_pseudoinv(L, wlist, rhoss, J_ops, I_ops,
                                           sparse, method)
