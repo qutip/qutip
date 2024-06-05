@@ -594,6 +594,17 @@ def test_mixed_averaging(improved_sampling, initial_state, ntraj):
     assert result.states[0] == reference
     assert result.num_trajectories == np.sum(ntraj)
 
+    assert hasattr(result, 'initial_states')
+    assert isinstance(result.initial_states, list)
+    assert all(isinstance(st, qutip.Qobj) for st in result.initial_states)
+    assert hasattr(result, 'ntraj_per_initial_state')
+    assert isinstance(result.ntraj_per_initial_state, list)
+    assert len(result.ntraj_per_initial_state) == len(result.initial_states)
+    if isinstance(ntraj, list):
+        assert result.ntraj_per_initial_state == ntraj
+    else:
+        assert sum(result.ntraj_per_initial_state) == ntraj
+
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
 @pytest.mark.parametrize("p", [0, 0.25, 0.5])
@@ -630,3 +641,10 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert merged_result.num_trajectories == sum(ntraj)
     for state1, state2 in zip(mixed_result.states, merged_result.states):
         assert state1 == state2
+
+    assert hasattr(mixed_result, 'initial_states')
+    assert isinstance(mixed_result.initial_states, list)
+    assert mixed_result.initial_states == [initial_state1, initial_state2]
+    assert hasattr(mixed_result, 'ntraj_per_initial_state')
+    assert isinstance(mixed_result.ntraj_per_initial_state, list)
+    assert mixed_result.ntraj_per_initial_state == ntraj

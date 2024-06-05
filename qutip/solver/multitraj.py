@@ -338,15 +338,19 @@ class MultiTrajSolver(Solver):
         seeds, result, map_func, map_kw, prepared_ics = self._initialize_run(
             initial_conditions, np.sum(ntraj), args=args, e_ops=e_ops,
             timeout=timeout, seeds=seeds)
+        ics_info = _InitialConditions(prepared_ics, ntraj)
         start_time = time()
         map_func(
             self._run_one_traj_mixed, range(len(seeds)),
-            (seeds, _InitialConditions(prepared_ics, ntraj), tlist, e_ops),
+            (seeds, ics_info, tlist, e_ops),
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"]
         )
         result.stats['run time'] = time() - start_time
+        result.initial_states = [self._restore_state(state, copy=False)
+                                 for state, _ in ics_info.state_list]
+        result.ntraj_per_initial_state = list(ics_info.ntraj)
         return result
 
     def _read_seed(self, seed, ntraj):

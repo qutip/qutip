@@ -152,6 +152,8 @@ def mcsolve(
         Object storing all results from the simulation. Which results is saved
         depends on the presence of ``e_ops`` and the options used. ``collapse``
         and ``photocurrent`` is available to Monte Carlo simulation results.
+        If the initial condition is mixed, the result has additional attributes
+        ``initial_states`` and ``ntraj_per_initial_state``.
 
     Notes
     -----
@@ -628,9 +630,11 @@ class MCSolver(MultiTrajSolver):
 
         Returns
         -------
-        results : :class:`.MultiTrajResult`
+        results : :class:`.McResult`
             Results of the evolution. States and/or expect will be saved. You
-            can control the saved data in the options.
+            can control the saved data in the options. If the initial condition
+            is mixed, the result has additional attributes ``initial_states``
+            and ``ntraj_per_initial_state``.
 
         .. note:
             The simulation will end when the first end condition is reached
@@ -782,6 +786,10 @@ class MCSolver(MultiTrajSolver):
             progress_bar_kwargs=self.options["progress_kwargs"]
         )
         result.stats['run time'] = time() - start_time
+        result.initial_states = [self._restore_state(state, copy=False)
+                                 for state, _ in ics_info.state_list]
+        # add back +1 for the no-jump trajectories:
+        result.ntraj_per_initial_state = [(n+1) for n in ics_info.ntraj]
         return result
 
     def _get_integrator(self):
