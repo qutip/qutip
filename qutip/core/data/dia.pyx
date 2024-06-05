@@ -12,7 +12,7 @@ from cpython cimport mem
 
 import numbers
 import warnings
-
+import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
@@ -69,7 +69,7 @@ cdef class Dia(base.Data):
     def __cinit__(self, *args, **kwargs):
         self._deallocate = True
 
-    def __init__(self, arg=None, shape=None, bint copy=True, bint tidyup=False):
+    def __init__(self, arg=None, shape=None, copy=True, bint tidyup=False):
         cdef size_t ptr
         cdef base.idxint col
         cdef object data, offsets
@@ -81,12 +81,14 @@ cdef class Dia(base.Data):
                     "shapes do not match: ", str(shape), " and ", str(arg.shape),
                 ]))
             shape = arg.shape
-            #
             arg = (arg.data, arg.offsets)
         if not isinstance(arg, tuple):
             raise TypeError("arg must be a scipy matrix or tuple")
         if len(arg) != 2:
             raise ValueError("arg must be a (data, offsets) tuple")
+        if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
+            # np2 accept None which act as np1's False
+            copy = builtins.bool(copy)
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
         offsets = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
 
