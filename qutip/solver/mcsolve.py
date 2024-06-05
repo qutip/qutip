@@ -178,6 +178,11 @@ def mcsolve(
         return mesolve(H, state, tlist, e_ops=e_ops, args=args,
                        options=options)
 
+    if not isinstance(state, Qobj):
+        raise TypeError(
+            "The initial state for mcsolve must be a Qobj. Use the MCSolver "
+            "class for more options of specifying mixed initial states."
+        )
     if isinstance(ntraj, (list, tuple)):
         raise TypeError(
             "ntraj must be an integer. "
@@ -562,10 +567,10 @@ class MCSolver(MultiTrajSolver):
         """
         Do the evolution of the Quantum system.
 
-        For a ``state`` at time ``tlist[0]`` do the evolution as directed by
-        ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :class:`.MultiTrajResult`. The evolution method
-        and stored results are determined by ``options``.
+        For a ``state`` at time ``tlist[0]``, do up to ``ntraj`` simulations of
+        the  Monte-Carlo evolution. For each time in ``tlist`` store the state
+        and/or expectation values in a :class:`.MultiTrajResult`. The evolution
+        method and stored results are determined by ``options``.
 
         Parameters
         ----------
@@ -644,7 +649,7 @@ class MCSolver(MultiTrajSolver):
                 raise ValueError('The ntraj parameter can only be a list if '
                                  'the initial conditions are mixed and given '
                                  'in the form of a list of pure states')
-            is_mixed = not state.isket
+            is_mixed = state.isoper and not self.rhs.issuper
             if is_mixed:
                 # Mixed state given as density matrix. Decompose into list
                 # format, i.e., into eigenstates and eigenvalues
@@ -748,9 +753,7 @@ class MCSolver(MultiTrajSolver):
         no_jump_results = map_func(
             _unpack_arguments(self._no_jump_simulation, ('state', 'seed')),
             [(state, seed) for seed, (state, _) in zip(seeds, prepared_ics)],
-            task_kwargs={'tlist': tlist, 'e_ops': e_ops},
-            map_kw=map_kw, progress_bar=self.options["progress_bar"],
-            progress_bar_kwargs=self.options["progress_kwargs"])
+            task_kwargs={'tlist': tlist, 'e_ops': e_ops}, map_kw=map_kw)
         if None in no_jump_results:  # timeout reached
             return result
 
