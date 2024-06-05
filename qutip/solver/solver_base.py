@@ -98,13 +98,23 @@ class Solver:
             # anything other than dimensions.
             'isherm': state.isherm and not (self.rhs.dims == state.dims)
         }
-        if state.isoper:
+        if state.isket:
+            norm = state.norm()
+        elif state._dims.issquare:
+            # Qobj.isoper does not differientiate between rectangular operators
+            # and normal ones.
             norm = state.tr()
         else:
-            norm = state.norm()
-        # Use the settings atol instead of the solver one since the second
-        # refer to the ODE tolerance and some integrator do not use it.
-        self._normalized = np.abs(norm - 1) <= settings.core["atol"]
+            norm = -1
+        self._normalize_output = (
+            self._options.get("normalize_output", False)
+            # Don't normalize output if input is not normalized.
+            # Use the settings atol instead of the solver one since the second
+            # refer to the ODE tolerance and some integrator do not use it.
+            and np.abs(norm - 1) <= settings.core["atol"]
+            # Only ket and dm can be normalized
+            and (self.rhs.dims[1] == state.dims or state.shape[1] == 1)
+        )
         if self.rhs.dims[1] == state.dims:
             return stack_columns(state.data)
         return state.data
@@ -119,11 +129,7 @@ class Solver:
         else:
             state = Qobj(data, **self._state_metadata, copy=copy)
 
-        if (
-            data.shape[1] == 1
-            and self._options['normalize_output']
-            and self._normalized
-        ):
+        if self._normalize_output:
             if state.isoper:
                 state = state * (1 / state.tr())
             else:
