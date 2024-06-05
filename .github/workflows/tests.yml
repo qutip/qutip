@@ -37,19 +37,23 @@ jobs:
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
-          # Python 3.9, Scipy 1.7, numpy 1.22
-          # On more version than suggested by SPEC 0
-          # https://scientific-python.org/specs/spec-0000/
-          # There are deprecation warnings when using cython 0.29.X
-          - case-name: Old setup
+          # Test with the version 2 of numpy comming soon.
+          - case-name: numpy2
             os: ubuntu-latest
-            python-version: "3.9"
-            scipy-requirement: ">=1.8,<1.9"
-            numpy-requirement: ">=1.22,<1.23"
-            condaforge: 1
-            oldcython: 1
-            oldmpl: 1   # Matplotlib 3.9 is not imported properly with python 3.9
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning"
+            python-version: "3.12"
+            scipy-requirement: ""
+            numpy-requirement: "==2.0.0rc2"
+            pypi: 1
+
+          # Binaries compiled with numpy 2 should be compatible when using
+          # numpy 1.X at runtime.
+          - case-name: numpy2_to_1
+            os: ubuntu-latest
+            python-version: "3.10"
+            scipy-requirement: ""
+            numpy-requirement: "==2.0.0rc2"
+            roll_back_numpy: 1
+            pypi: 1  # numpy 2 not yet available on conda
 
           # Python 3.10, no mkl, scipy 1.9, numpy 1.23
           # Scipy 1.9 did not support cython 3.0 yet.
@@ -149,7 +153,9 @@ jobs:
           python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
           python -m pip install pytest-cov coveralls pytest-fail-slow
 
-          if [[ -z "${{ matrix.nomkl }}" ]]; then
+          if [[ "${{ matrix.pypi }}" ]]; then
+            pip install "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
+          elif [[ -z "${{ matrix.nomkl }}" ]]; then
             conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
             # Conda doesn't supply forced nomkl builds on Windows, so we rely on
@@ -176,6 +182,13 @@ jobs:
           if [[ "${{ matrix.nocython }}" ]]; then
             python -m pip uninstall cython -y
           fi
+
+          if [[ "${{ matrix.roll_back_numpy }}" ]]; then
+            # Binary compiled with numpy 2.X should be compatible with numpy 1.X
+            python -m pip install "numpy<1.24"
+          fi
+
+
 
       - name: Package information
         run: |

@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.integrate import trapezoid
 from qutip import (destroy, propagator, Propagator, propagator_steadystate,
                    steadystate, tensor, qeye, basis, QobjEvo, sesolve,
                    liouvillian)
@@ -44,7 +45,7 @@ def testPropHOTd():
     Htd = [H, [H, func]]
     U = propagator(Htd, 1)
     ts = np.linspace(0, 1, 101)
-    U2 = (-1j * H * np.trapz(1 + func(ts), ts)).expm()
+    U2 = (-1j * H * trapezoid(1 + func(ts), ts)).expm()
     assert (U - U2).norm('max') < 1e-4
 
 
