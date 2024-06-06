@@ -282,6 +282,77 @@ trajectories:
     plt.show()
 
 
+Mixed Initial states
+--------------------
+
+The Monte-Carlo solver can be used for mixed initial states. For example, if a
+qubit can initially be in the excited state :math:`|+\rangle` with probability
+:math:`p` or in the ground state :math:`|-\rangle` with probability
+:math:`(1-p)`, the initial state is described by the density matrix
+:math:`\rho_0 = p | + \rangle\langle + | + (1-p) | - \rangle\langle - |`.
+
+In QuTiP, this initial density matrix can be created as follows:
+
+.. code-block::
+
+    ground = qutip.basis(2, 0)
+    excited = qutip.basis(2, 1)
+    density_matrix = p * excited.proj() + (1 - p) * ground.proj()
+
+One can then pass this density matrix directly to ``mcsolve``, as in
+
+.. code-block::
+
+    mcsolve(H, density_matrix, ...)
+
+Alternatively, using the class interface, if ``solver`` is an
+:class:`.MCSolver` object, one can either call
+``solver.run(density_matrix, ...)`` or pass the list of initial states like
+
+.. code-block::
+
+    solver.run([(excited, p), (ground, 1-p)], ...)
+
+The number of trajectories can still be specified as a single number ``ntraj``.
+In that case, QuTiP will automatically decide how many trajectories to use for
+each of the initial states, guaranteeing that the total number of trajectories
+is exactly the specified number. When using the class interface and providing
+the initial state as a list, the `ntraj` parameter may also be a list
+specifying the number of trajectories to use for each state manually. In either
+case, the resulting :class:`McResult` will have attributes ``initial_states``
+and ``ntraj_per_initial_state`` listing the initial states and the
+corresponding numbers of trajectories that were actually used.
+
+Note that in general, the fraction of trajectories starting in a given initial
+state will (and can) not exactly match the probability :math:`p` of that state
+in the initial ensemble. In this case, QuTiP will automatically apply a
+correction to the averages, weighting for example the initial states with
+"too few" trajectories more strongly. Therefore, the initial state returned in
+the result object will always match the provided one up to numerical
+inaccuracies. Furthermore, the result returned by the `mcsolve` call above is
+equivalent to the following:
+
+.. code-block::
+
+    result1 = qutip.mcsolve(H, excited, ...)
+    result2 = qutip.mcsolve(H, ground, ...)
+    result1.merge(result2, p)
+
+However, the single ``mcsolve`` call allows for more parallelization (see
+below).
+
+The Monte-Carlo solver with a mixed initial state currently does not support
+specifying a target tolerance. Also, in case the simulation ends early due to
+timeout, it is not guaranteed that all initial states have been sampled. If
+not all initial states have been sampled, the resulting states will not be
+normalized, and the result should be discarded.
+
+Finally note that what we just discussed concerns the case of mixed initial
+states where the provided Hamiltonian is an operator. If it is a superoperator
+(i.e., a Liouvillian), ``mcsolve`` will generate trajectories of mixed states
+(see below) and the present discussion does not apply.
+
+
 Using the Improved Sampling Algorithm
 -------------------------------------
 
