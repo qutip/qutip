@@ -96,7 +96,7 @@ class Solver:
             # This is herm flag take for granted that the liouvillian keep
             # hermiticity.  But we do not check user passed super operator for
             # anything other than dimensions.
-            'isherm': state.isherm and not (self.rhs.dims == state.dims)
+            'isherm': not (self.rhs.dims == state.dims) and state._isherm,
         }
         if state.isket:
             norm = state.norm()

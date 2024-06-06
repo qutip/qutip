@@ -720,9 +720,9 @@ class Qobj:
         out = _data.trace(self._data)
         # This ensures that trace can return something that is not a number such
         # as a `tensorflow.Tensor` in qutip-tensorflow.
-        return out.real if (self.isherm
-                        and hasattr(out, "real")
-                        ) else out
+        if settings.core["auto_real_casting"] and self.isherm:
+            out = out.real
+        return out
 
     def purity(self) -> numbers.Number:
         """Calculate purity of a quantum object.
@@ -794,10 +794,9 @@ class Qobj:
         """
         # TODO: add a `diagonal` method to the data layer?
         out = _data.to(_data.CSR, self.data).as_scipy().diagonal()
-        if np.any(np.imag(out) > settings.core['atol']) or not self.isherm:
-            return out
-        else:
-            return np.real(out)
+        if settings.core["auto_real_casting"] and self.isherm:
+            out = np.real(out)
+        return out
 
     def expm(self, dtype: LayerType = _data.Dense) -> Qobj:
         """Matrix exponential of quantum operator.

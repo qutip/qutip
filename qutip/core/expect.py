@@ -4,6 +4,7 @@ import numpy as np
 
 from .qobj import Qobj
 from . import data as _data
+from ..settings import settings
 
 
 def expect(oper, state):
@@ -71,10 +72,13 @@ def _single_qobj_expect(oper, state):
 
     # This ensures that expect can return something that is not a number such
     # as a `tensorflow.Tensor` in qutip-tensorflow.
-    return out.real if (oper.isherm
-                        and (state.isket or state.isherm)
-                        and hasattr(out, "real")
-                        ) else out
+    if (
+        settings.core["auto_real_casting"]
+        and oper.isherm
+        and (state.isket or state.isherm)
+    ):
+        out = out.real
+    return out
 
 
 def variance(oper, state):
