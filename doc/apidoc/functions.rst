@@ -34,7 +34,10 @@ Quantum Objects
 ---------------
 
 .. automodule:: qutip.core.qobj
-    :members: ptrace, issuper, isoper, isoperket, isoperbra, isket, isbra, isherm
+    :members: ptrace
+
+.. automodule:: qutip.core.properties
+    :members: issuper, isoper, isoperket, isoperbra, isket, isbra, isherm
 
 
 Random Operators and States

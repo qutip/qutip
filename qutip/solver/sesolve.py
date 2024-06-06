@@ -2,16 +2,31 @@
 This module provides solvers for the unitary Schrodinger equation.
 """
 
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['sesolve', 'SESolver']
 
-import numpy as np
+from numpy.typing import ArrayLike
 from time import time
+from typing import Any, Callable
 from .. import Qobj, QobjEvo
+from ..core import data as _data
+from ..typing import QobjEvoLike
 from .solver_base import Solver, _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback
+from . import Result
 
 
-def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None, **kwargs):
+def sesolve(
+    H: QobjEvoLike,
+    psi0: Qobj,
+    tlist: ArrayLike,
+    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+    **kwargs
+) -> Result:
     """
     Schrodinger equation evolution of a state vector or unitary matrix
     for a given Hamiltonian.
@@ -69,7 +84,8 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None, **kwargs):
             On `None` the states will be saved if no expectation operators are
             given.
         - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
+          | Normalize output state to hide ODE numerical errors. Only normalize
+            the state if the initial state is already normalized.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
@@ -138,7 +154,7 @@ class SESolver(Solver):
         'method': 'adams',
     }
 
-    def __init__(self, H, *, options=None):
+    def __init__(self, H: Qobj | QobjEvo, *, options: dict[str, Any] = None):
         _time_start = time()
 
         if not isinstance(H, (Qobj, QobjEvo)):
@@ -157,7 +173,7 @@ class SESolver(Solver):
         return stats
 
     @property
-    def options(self):
+    def options(self) -> dict:
         """
         Solver's options:
 
@@ -188,11 +204,16 @@ class SESolver(Solver):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict[str, Any]):
         Solver.options.fset(self, new_options)
 
     @classmethod
-    def StateFeedback(cls, default=None, raw_data=False, prop=False):
+    def StateFeedback(
+        cls,
+        default: Qobj | _data.Data = None,
+        raw_data: bool = False,
+        prop: bool = False
+    ):
         """
         State of the evolution to be used in a time-dependent operator.
 

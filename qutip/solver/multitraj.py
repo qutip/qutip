@@ -1,22 +1,28 @@
-from .result import Result, MultiTrajResult
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
+from .result import TrajectoryResult
+from .multitrajresult import MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver
-from ..core import QobjEvo
+from ..core import QobjEvo, Qobj
 import numpy as np
+from numpy.typing import ArrayLike
+from numpy.random import SeedSequence
+from numbers import Number
+from typing import Any, Callable
+
 
 __all__ = ["MultiTrajSolver"]
 
 
-class _MTSystem:
+class _MultiTrajRHS:
     """
     Container for the operators of the solver.
     """
     def __init__(self, rhs):
         self.rhs = rhs
-
-    def __call__(self):
-        return self.rhs
 
     def arguments(self, args):
         self.rhs.arguments(args)
@@ -25,6 +31,8 @@ class _MTSystem:
         pass
 
     def __getattr__(self, attr):
+        if attr == "rhs":
+            raise AttributeError
         if hasattr(self.rhs, attr):
             return getattr(self.rhs, attr)
         raise AttributeError
@@ -51,7 +59,7 @@ class MultiTrajSolver(Solver):
     """
     name = "generic multi trajectory"
     _resultclass = MultiTrajResult
-    _trajectory_resultclass = Result
+    _trajectory_resultclass = TrajectoryResult
     _avail_integrators = {}
 
     # Class of option used by the solver
@@ -71,19 +79,18 @@ class MultiTrajSolver(Solver):
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, QobjEvo):
-            self.system = _MTSystem(rhs)
-        elif isinstance(rhs, _MTSystem):
-            self.system = rhs
+            self.rhs = _MultiTrajRHS(rhs)
+        elif isinstance(rhs, _MultiTrajRHS):
+            self.rhs = rhs
         else:
             raise TypeError("The system should be a QobjEvo")
-        self.rhs = self.system()
         self.options = options
         self.seed_sequence = np.random.SeedSequence()
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
 
-    def start(self, state, t0, seed=None):
+    def start(self, state0: Qobj, t0: Number, seed: int | SeedSequence = None):
         """
         Set the initial state and time for a step evolution.
 
@@ -106,9 +113,11 @@ class MultiTrajSolver(Solver):
         """
         seeds = self._read_seed(seed, 1)
         generator = self._get_generator(seeds[0])
-        self._integrator.set_state(t0, self._prepare_state(state), generator)
+        self._integrator.set_state(t0, self._prepare_state(state0), generator)
 
-    def step(self, t, *, args=None, copy=True):
+    def step(
+        self, t: Number, *, args: dict[str, Any] = None, copy: bool = True
+    ) -> Qobj:
         """
         Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
 
@@ -150,10 +159,20 @@ class MultiTrajSolver(Solver):
         })
         state0 = self._prepare_state(state)
         stats['preparation time'] += time() - start_time
-        return stats, seeds, result, map_func, map_kw, state0
+        return seeds, result, map_func, map_kw, state0
 
-    def run(self, state, tlist, ntraj=1, *,
-            args=None, e_ops=(), timeout=None, target_tol=None, seeds=None):
+    def run(
+        self,
+        state: Qobj,
+        tlist: ArrayLike,
+        ntraj: int = 1,
+        *,
+        args: dict[str, Any] = None,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+        target_tol: float = None,
+        timeout: float = None,
+        seeds: int | SeedSequence | list[int | SeedSequence] = None,
+    ) -> MultiTrajResult:
         """
         Do the evolution of the Quantum system.
 
@@ -213,7 +232,7 @@ class MultiTrajSolver(Solver):
             The simulation will end when the first end condition is reached
             between ``ntraj``, ``timeout`` and ``target_tol``.
         """
-        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
+        seeds, result, map_func, map_kw, state0 = self._initialize_run(
             state,
             ntraj,
             args=args,
@@ -233,23 +252,28 @@ class MultiTrajSolver(Solver):
         result.stats['run time'] = time() - start_time
         return result
 
-    def _initialize_run_one_traj(self, seed, state, tlist, e_ops):
+    def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
+                                 **integrator_kwargs):
         result = self._trajectory_resultclass(e_ops, self.options)
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator)
+        if "generator" in integrator_kwargs:
+            generator = integrator_kwargs.pop("generator")
+        else:
+            generator = self._get_generator(seed)
+        self._integrator.set_state(tlist[0], state, generator,
+                                   **integrator_kwargs)
         result.add(tlist[0], self._restore_state(state, copy=False))
         return result
 
-    def _run_one_traj(self, seed, state, tlist, e_ops):
+    def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
         """
         Run one trajectory and return the result.
         """
-        result = self._initialize_run_one_traj(seed, state, tlist, e_ops)
+        result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
+                                               **integrator_kwargs)
         return self._integrate_one_traj(seed, tlist, result)
 
     def _integrate_one_traj(self, seed, tlist, result):
-        for t in tlist[1:]:
-            t, state = self._integrator.integrate(t, copy=False)
+        for t, state in self._integrator.run(tlist):
             result.add(t, self._restore_state(state, copy=False))
         return seed, result
 
@@ -278,7 +302,8 @@ class MultiTrajSolver(Solver):
     def _argument(self, args):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
         if args:
-            self.system.arguments(args)
+            self.rhs.arguments(args)
+            self._integrator.arguments(args)
 
     def _get_generator(self, seed):
         """
@@ -286,11 +311,6 @@ class MultiTrajSolver(Solver):
         If the ``seed`` has a ``random`` method, it will be used as the
         generator.
         """
-        if hasattr(seed, 'random'):
-            # We check for the method, not the type to accept pseudo non-random
-            # generator for debug/testing purpose.
-            return seed
-
         if self.options['bitgenerator']:
             bit_gen = getattr(np.random, self.options['bitgenerator'])
             generator = np.random.Generator(bit_gen(seed))

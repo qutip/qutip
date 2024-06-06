@@ -1,12 +1,24 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['krylovsolve']
 
-from .. import QobjEvo
+from .. import QobjEvo, Qobj
 from .sesolve import SESolver
+from .result import Result
+from numpy.typing import ArrayLike
+from typing import Any, Callable
 
 
 def krylovsolve(
-    H, psi0, tlist, krylov_dim, e_ops=None, args=None, options=None
-):
+    H: Qobj,
+    psi0: Qobj,
+    tlist: ArrayLike,
+    krylov_dim: int,
+    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+) -> Result:
     """
     Schrodinger equation evolution of a state vector for time independent
     Hamiltonians using Krylov method.
@@ -61,7 +73,8 @@ def krylovsolve(
             On `None` the states will be saved if no expectation operators are
             given.
         - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
+          | Normalize output state to hide ODE numerical errors. Only normalize
+            the state if the initial state is already normalized.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error

@@ -1,19 +1,38 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['mcsolve', "MCSolver"]
 
 import numpy as np
+from numpy.typing import ArrayLike
+from numpy.random import SeedSequence
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
-from .multitraj import MultiTrajSolver, _MTSystem
+from ..typing import QobjEvoLike
+from .multitraj import MultiTrajSolver, _MultiTrajRHS
 from .solver_base import Solver, Integrator, _solver_deprecation
-from .result import McResult, McTrajectoryResult, McResultImprovedSampling
+from .multitrajresult import McResult
 from .mesolve import mesolve, MESolver
 from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
 import qutip.core.data as _data
 from time import time
+from typing import Any, Callable
 
 
-def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
-            args=None, options=None, seeds=None, target_tol=None, timeout=None,
-            **kwargs):
+def mcsolve(
+    H: QobjEvoLike,
+    state: Qobj,
+    tlist: ArrayLike,
+    c_ops: QobjEvoLike | list[QobjEvoLike] = (),
+    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+    ntraj: int = 500,
+    *,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+    seeds: int | SeedSequence | list[int | SeedSequence] = None,
+    target_tol: float = None,
+    timeout: float = None,
+    **kwargs,
+) -> McResult:
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -167,26 +186,18 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     return result
 
 
-class _MCSystem(_MTSystem):
+class _MCRHS(_MultiTrajRHS):
     """
     Container for the operators of the solver.
     """
 
-    def __init__(self, rhs, c_ops, n_ops):
-        self.rhs = rhs
+    def __init__(self, H, c_ops, n_ops):
+        self.rhs = H
         self.c_ops = c_ops
         self.n_ops = n_ops
-        self._collapse_key = ""
 
     def __call__(self):
         return self.rhs
-
-    def __getattr__(self, attr):
-        if attr == "rhs":
-            raise AttributeError
-        if hasattr(self.rhs, attr):
-            return getattr(self.rhs, attr)
-        raise AttributeError
 
     def arguments(self, args):
         self.rhs.arguments(args)
@@ -409,7 +420,7 @@ class MCSolver(MultiTrajSolver):
         Options for the evolution.
     """
     name = "mcsolve"
-    _trajectory_resultclass = McTrajectoryResult
+    _resultclass = McResult
     _mc_integrator_class = MCIntegrator
     solver_options = {
         "progress_bar": "text",
@@ -429,7 +440,13 @@ class MCSolver(MultiTrajSolver):
         "improved_sampling": False,
     }
 
-    def __init__(self, H, c_ops, *, options=None):
+    def __init__(
+        self,
+        H: QobjEvoLike,
+        c_ops: QobjEvoLike | list[QobjEvoLike],
+        *,
+        options: dict[str, Any] = None,
+    ):
         _time_start = time()
 
         if isinstance(c_ops, (Qobj, QobjEvo)):
@@ -456,14 +473,16 @@ class MCSolver(MultiTrajSolver):
         self._num_collapse = len(self._c_ops)
         self.options = options
 
-        system = _MCSystem(rhs, self._c_ops, self._n_ops)
+        system = _MCRHS(rhs, self._c_ops, self._n_ops)
         super().__init__(system, options=options)
 
     def _restore_state(self, data, *, copy=True):
         """
         Retore the Qobj state from its data.
         """
-        if self._state_metadata['dims'] == self.rhs.dims[1]:
+        # Duplicated from the Solver class, but removed the check for the
+        # normalize_output option, since MCSolver doesn't have that option.
+        if self._state_metadata['dims'] == self.rhs._dims[1]:
             state = Qobj(unstack_columns(data),
                          **self._state_metadata, copy=False)
         else:
@@ -480,57 +499,50 @@ class MCSolver(MultiTrajSolver):
         })
         return stats
 
-    def _initialize_run_one_traj(self, seed, state, tlist, e_ops,
-                                 no_jump=False, jump_prob_floor=0.0):
-        result = self._trajectory_resultclass(e_ops, self.options)
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator,
-                                   no_jump=no_jump,
-                                   jump_prob_floor=jump_prob_floor)
-        result.add(tlist[0], self._restore_state(state, copy=False))
-        return result
-
-    def _run_one_traj(self, seed, state, tlist, e_ops, no_jump=False,
-                      jump_prob_floor=0.0):
+    def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
         """
         Run one trajectory and return the result.
         """
-        result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
-                                               no_jump=no_jump,
-                                               jump_prob_floor=jump_prob_floor)
-        seed, result = self._integrate_one_traj(seed, tlist, result)
+        seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
+                                             **integrator_kwargs)
+        jump_prob_floor = integrator_kwargs.get('jump_prob_floor', 0)
+        if jump_prob_floor > 0:
+            result.add_relative_weight(1 - jump_prob_floor)
         result.collapse = self._integrator.collapses
         return seed, result
 
-    def run(self, state, tlist, ntraj=1, *,
-            args=None, e_ops=(), timeout=None, target_tol=None, seeds=None):
-        """
-        Do the evolution of the Quantum system.
-        See the overridden method for further details. The modification
-        here is to sample the no-jump trajectory first. Then, the no-jump
-        probability is used as a lower-bound for random numbers in future
-        monte carlo runs
-        """
-        if not self.options.get("improved_sampling", False):
+    def run(
+        self,
+        state: Qobj,
+        tlist: ArrayLike,
+        ntraj: int = 1,
+        *,
+        args: dict[str, Any] = None,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+        target_tol: float = None,
+        timeout: float = None,
+        seeds: int | SeedSequence | list[int | SeedSequence] = None,
+    ) -> McResult:
+        # Overridden to sample the no-jump trajectory first. Then, the no-jump
+        # probability is used as a lower-bound for random numbers in future
+        # monte carlo runs
+        if not self.options["improved_sampling"]:
             return super().run(state, tlist, ntraj=ntraj, args=args,
                                e_ops=e_ops, timeout=timeout,
                                target_tol=target_tol, seeds=seeds)
-        stats, seeds, result, map_func, map_kw, state0 = self._initialize_run(
-            state,
-            ntraj,
-            args=args,
-            e_ops=e_ops,
-            timeout=timeout,
-            target_tol=target_tol,
-            seeds=seeds,
+
+        seeds, result, map_func, map_kw, state0 = self._initialize_run(
+            state, ntraj, args=args, e_ops=e_ops,
+            timeout=timeout, target_tol=target_tol, seeds=seeds
         )
+
         # first run the no-jump trajectory
         start_time = time()
         seed0, no_jump_result = self._run_one_traj(seeds[0], state0, tlist,
                                                    e_ops, no_jump=True)
         _, state, _ = self._integrator.get_state(copy=False)
         no_jump_prob = self._integrator._prob_func(state)
-        result.no_jump_prob = no_jump_prob
+        no_jump_result.add_absolute_weight(no_jump_prob)
         result.add((seed0, no_jump_result))
         result.stats['no jump run time'] = time() - start_time
 
@@ -540,7 +552,8 @@ class MCSolver(MultiTrajSolver):
         start_time = time()
         map_func(
             self._run_one_traj, seeds[1:],
-            (state0, tlist, e_ops, False, no_jump_prob),
+            task_args=(state0, tlist, e_ops),
+            task_kwargs={'no_jump': False, 'jump_prob_floor': no_jump_prob},
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"]
@@ -557,22 +570,15 @@ class MCSolver(MultiTrajSolver):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.system(), self.options)
+        integrator_instance = integrator(self.rhs(), self.options)
         mc_integrator = self._mc_integrator_class(
-            integrator_instance, self.system, self.options
+            integrator_instance, self.rhs, self.options
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator
 
     @property
-    def _resultclass(self):
-        if self.options.get("improved_sampling", False):
-            return McResultImprovedSampling
-        else:
-            return McResult
-
-    @property
-    def options(self):
+    def options(self) -> dict:
         """
         Options for monte carlo solver:
 
@@ -640,7 +646,7 @@ class MCSolver(MultiTrajSolver):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict[str, Any]):
         MultiTrajSolver.options.fset(self, new_options)
 
     @classmethod
@@ -653,7 +659,7 @@ class MCSolver(MultiTrajSolver):
         }
 
     @classmethod
-    def CollapseFeedback(cls, default=None):
+    def CollapseFeedback(cls, default: list = None):
         """
         Collapse of the trajectory argument for time dependent systems.
 
@@ -671,14 +677,19 @@ class MCSolver(MultiTrajSolver):
 
         Parameters
         ----------
-        default : callable, default : []
-            Default function used outside the solver.
+        default : list, default : []
+            Argument value to use outside of solver.
 
         """
         return _CollapseFeedback(default)
 
     @classmethod
-    def StateFeedback(cls, default=None, raw_data=False, open=False):
+    def StateFeedback(
+        cls,
+        default: Qobj | _data.Data = None,
+        raw_data: bool = False,
+        prop: bool = False
+    ):
         """
         State of the evolution to be used in a time-dependent operator.
 

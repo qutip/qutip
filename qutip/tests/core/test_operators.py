@@ -107,7 +107,7 @@ def test_diagonal_operators(oper_func, diag, offset, args):
 
 
 @pytest.mark.parametrize(['function', 'message'], [
-    (qutip.qeye, "All dimensions must be integers >= 0"),
+    (qutip.qeye, "Dimensions must be integers > 0"),
     (qutip.destroy, "Hilbert space dimension must be integer value"),
     (qutip.create, "Hilbert space dimension must be integer value"),
 ], ids=["qeye", "destroy", "create"])
@@ -125,12 +125,22 @@ def test_diagonal_raise(function, message):
         1,
         [1],
         [1, 1],
+        qutip.dimensions.Space([2, 3, 4]),
     ])
 def test_implicit_tensor_creation(to_test, dimensions):
     implicit = to_test(dimensions)
     if isinstance(dimensions, numbers.Integral):
         dimensions = [dimensions]
+    if isinstance(dimensions, qutip.dimensions.Space):
+        dimensions = dimensions.as_list()
     assert implicit.dims == [dimensions, dimensions]
+
+
+def test_qzero_rectangular():
+    assert qutip.qzero([2, 3], [3, 4]).dims == [[2, 3], [3, 4]]
+    assert qutip.qzero([2], [3]).dims == [[2], [3]]
+    assert qutip.qzero([2, 3], [3]).dims == [[2, 3], [3]]
+    assert qutip.qzero(qutip.dimensions.Space([2, 3]), qutip.dimensions.Space([3])).dims == [[2, 3], [3]]
 
 
 @pytest.mark.parametrize("to_test", [qutip.qzero, qutip.qeye, qutip.identity])
@@ -236,11 +246,18 @@ def _id_func(val):
         return ""
 
 
+def _check_meta(object, dtype):
+    if not isinstance(object, qutip.Qobj):
+        [_check_meta(qobj, dtype) for qobj in object]
+        return
+    assert isinstance(object.data, dtype)
+    assert object._isherm == qutip.data.isherm(object.data)
+    assert object._isunitary == object._calculate_isunitary()
+
+
 # random object accept `str` and base.Data
-# Obtain all valid dtype from `to`
-dtype_names = list(qutip.data.to._str2type.keys()) + list(qutip.data.to.dtypes)
-dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes)
-@pytest.mark.parametrize(['alias', 'dtype'], zip(dtype_names, dtype_types),
+dtype_names = ["dense", "csr"] + list(qutip.data.to.dtypes)
+@pytest.mark.parametrize('alias', dtype_names,
                          ids=[str(dtype) for dtype in dtype_names])
 @pytest.mark.parametrize(['func', 'args'], [
     (qutip.qdiags, ([0, 1, 2], 1)),
@@ -248,7 +265,13 @@ dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes
     (qutip.spin_Jx, (1,)),
     (qutip.spin_Jy, (1,)),
     (qutip.spin_Jz, (1,)),
+    (qutip.spin_Jm, (1,)),
     (qutip.spin_Jp, (1,)),
+    (qutip.sigmax, ()),
+    (qutip.sigmay, ()),
+    (qutip.sigmaz, ()),
+    (qutip.sigmap, ()),
+    (qutip.sigmam, ()),
     (qutip.destroy, (5,)),
     (qutip.create, (5,)),
     (qutip.fdestroy, (5, 0)),
@@ -263,25 +286,23 @@ dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes
     (qutip.qutrit_ops, ()),
     (qutip.phase, (5,)),
     (qutip.charge, (5,)),
+    (qutip.charge, (0.5, -0.5, 2.)),
     (qutip.tunneling, (5,)),
+    (qutip.tunneling, (4, 2)),
+    (qutip.qft, (5,)),
+    (qutip.swap, (2, 2)),
+    (qutip.swap, (3, 2)),
     (qutip.enr_destroy, ([3, 3, 3], 4)),
     (qutip.enr_identity, ([3, 3, 3], 4)),
 ], ids=_id_func)
-def test_operator_type(func, args, alias, dtype):
+def test_operator_type(func, args, alias):
     object = func(*args, dtype=alias)
-    if isinstance(object, qutip.Qobj):
-        assert isinstance(object.data, dtype)
-    else:
-        for obj in object:
-            assert isinstance(obj.data, dtype)
+    dtype = qutip.data.to.parse(alias)
+    _check_meta(object, dtype)
 
     with qutip.CoreOptions(default_dtype=alias):
         object = func(*args)
-        if isinstance(object, qutip.Qobj):
-            assert isinstance(object.data, dtype)
-        else:
-            for obj in object:
-                assert isinstance(obj.data, dtype)
+        _check_meta(object, dtype)
 
 
 @pytest.mark.parametrize('dims', [8, 15, [2] * 4])
@@ -321,6 +342,7 @@ def test_qeye_like(dims, superrep, dtype):
     expected.superrep = superrep
     assert new == expected
     assert new.dtype is qutip.data.to.parse(dtype)
+    assert new._isherm
 
     opevo = qutip.QobjEvo(op)
     new = qutip.qeye_like(op)
@@ -350,6 +372,7 @@ def test_qzero_like(dims, superrep, dtype):
     expected.superrep = superrep
     assert new == expected
     assert new.dtype is qutip.data.to.parse(dtype)
+    assert new._isherm
 
     opevo = qutip.QobjEvo(op)
     new = qutip.qzero_like(op)
@@ -376,3 +399,16 @@ def test_fcreate_fdestroy(n_sites):
                 assert qutip.commutator(c_0, d_1, 'anti') == zero_tensor
                 assert qutip.commutator(c_1, d_0, 'anti') == zero_tensor
     assert qutip.commutator(identity, c_0) == zero_tensor
+
+
+@pytest.mark.parametrize(['func', 'args'], [
+    (qutip.qzero, (None,)),
+    (qutip.fock, (None,)),
+    (qutip.fock_dm, (None,)),
+    (qutip.maximally_mixed_dm, ()),
+    (qutip.projection, ([0, 1, 1], [1, 1, 0])),
+    (qutip.zero_ket, ()),
+], ids=_id_func)
+def test_state_space_input(func,  args):
+    dims = qutip.dimensions.Space([2, 2, 2])
+    assert func(dims, *args) == func([2, 2, 2], *args)
