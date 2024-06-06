@@ -691,6 +691,7 @@ def sphview(ax):
     theta, phi = np.radians((90 - ax.elev, ax.azim))
     return r, theta, phi
 
+
 def get_camera_position(ax):
     """
     returns the camera position for 3D axes in cartesian coordinates
@@ -698,6 +699,7 @@ def get_camera_position(ax):
     """
     r, theta, phi = sphview(ax)
     return np.array(sph2cart(r, theta, phi), ndmin=3).T
+
 
 def matrix_histogram(
     M,
@@ -980,7 +982,6 @@ def matrix_histogram(
             # Setting the z-order for rendering
             artist._sort_zpos = z_order[i]
             artist_list.append([artist])
-
 
     if len(Ms) == 1:
         output = ax
