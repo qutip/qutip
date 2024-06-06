@@ -11,6 +11,7 @@ Pulses from Quantum Optical Systems (2017, arXiv:1710.02875).
 # Contact: benbartlett@stanford.edu
 
 import numpy as np
+from scipy.integrate import trapezoid
 from itertools import product, combinations_with_replacement
 from ..core import basis, tensor, zero_ket, Qobj, QobjEvo
 from .propagator import propagator, Propagator
@@ -297,5 +298,5 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
 
     # Iteratively integrate to obtain single value
     while probs.shape != ():
-        probs = np.trapz(probs, x=tlist)
+        probs = trapezoid(probs, x=tlist)
     return np.abs(probs)
