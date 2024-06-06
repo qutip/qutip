@@ -691,6 +691,13 @@ def sphview(ax):
     theta, phi = np.radians((90 - ax.elev, ax.azim))
     return r, theta, phi
 
+def get_camera_position(ax):
+    """
+    returns the camera position for 3D axes in cartesian coordinates
+    as a 3d numpy array.
+    """
+    r, theta, phi = sphview(ax)
+    return np.array(sph2cart(r, theta, phi), ndmin=3).T
 
 def matrix_histogram(
     M,
@@ -915,9 +922,10 @@ def matrix_histogram(
             cmap = _sequential_cmap()
 
     artist_list = list()
-    # camera position relative to the plot
-    camera = np.array(sph2cart(*sphview(ax)), ndmin=3).T
-    bars = []
+
+    ax.view_init(azim=options['azim'], elev=options['elev'])
+
+    camera = get_camera_position(ax)
     for M in Ms:
 
         if isinstance(M, Qobj):
@@ -947,6 +955,8 @@ def matrix_histogram(
         temp_zpos = zpos.reshape(M.shape)
 
         # calculating z_order for each bar based on its position
+        # The sorting issue was fixed by making minor change to
+        # https://stackoverflow.com/questions/18602660/matplotlib-bar3d-clipping-problems
         z_order = (
             np.multiply(
                 [
@@ -955,38 +965,22 @@ def matrix_histogram(
         )
 
         for i, uxpos in enumerate(xpos):
-            bars.append(
-                [
-                    uxpos,
-                    ypos[i],
-                    zpos[i],
-                    dx[i],
-                    dy[i],
-                    bar_M[i],
-                    colors[i],
-                    z_order[i]
-                ]
-            )
-
-        # Adding bars individually to the plot
-        for bar in bars:
             artist = ax.bar3d(
-                bar[0],
-                bar[1],
-                bar[2],
-                bar[3],
-                bar[4],
-                bar[5],
-                color=bar[6],
+                uxpos,
+                ypos[i],
+                zpos[i],
+                dx[i],
+                dy[i],
+                bar_M[i],
+                color=colors[i],
                 edgecolors=options["bars_edgecolor"],
                 linewidths=options["bars_lw"],
                 shade=options["shade"],
             )
-            # sorting the bars based on our calculated z_order
-            artist._sort_zpos = bar[7]
+            # Setting the z-order for rendering
+            artist._sort_zpos = z_order[i]
             artist_list.append([artist])
-        # The sorting issue was fixed by making minor change to
-        # https://stackoverflow.com/questions/18602660/matplotlib-bar3d-clipping-problems
+
 
     if len(Ms) == 1:
         output = ax
@@ -1012,9 +1006,9 @@ def matrix_histogram(
     _stick_to_planes(options["stick"], options["azim"], ax, M, options["bars_spacing"])
 
     # removing margins
-    _remove_margins(ax.xaxis)
-    _remove_margins(ax.yaxis)
-    _remove_margins(ax.zaxis)
+    # _remove_margins(ax.xaxis)
+    # _remove_margins(ax.yaxis)
+    # _remove_margins(ax.zaxis)
 
     # color axis
     if colorbar:
