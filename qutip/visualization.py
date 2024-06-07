@@ -1007,9 +1007,9 @@ def matrix_histogram(
     _stick_to_planes(options["stick"], options["azim"], ax, M, options["bars_spacing"])
 
     # removing margins
-    # _remove_margins(ax.xaxis)
-    # _remove_margins(ax.yaxis)
-    # _remove_margins(ax.zaxis)
+    _remove_margins(ax.xaxis)
+    _remove_margins(ax.yaxis)
+    _remove_margins(ax.zaxis)
 
     # color axis
     if colorbar:
