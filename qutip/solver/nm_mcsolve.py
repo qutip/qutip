@@ -44,7 +44,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         operators are to be treated deterministically.
 
     state : :class:`.Qobj`
-        Initial state vector.
+        Initial state vector or density matrix.
 
     tlist : array_like
         Times at which results are recorded.
@@ -163,7 +163,9 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         ``trace`` (and ``runs_trace`` if ``store_final_state`` is set). Note
         that the states on the individual trajectories are not normalized. This
         field contains the average of their trace, which will converge to one
-        in the limit of sufficiently many trajectories.
+        in the limit of sufficiently many trajectories. If the initial
+        condition is mixed, the result has additional attributes
+        ``initial_states`` and ``ntraj_per_initial_state``.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
 
