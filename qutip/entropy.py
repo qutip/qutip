@@ -2,8 +2,8 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
            'concurrence', 'entropy_conditional', 'entangling_power',
            'entropy_relative']
 
-from numpy import conj, e, inf, imag, inner, real, sort, sqrt
-from numpy.lib.scimath import log, log2
+from jax.numpy import conj, e, inf, imag, inner, real, sort, sqrt, float64
+from jax.numpy import log, log2
 from .partial_transpose import partial_transpose
 from . import (ptrace, tensor, sigmay, ket2dm,
                expand_operator)
@@ -45,7 +45,7 @@ def entropy_vn(rho, base=e, sparse=False):
         logvals = log(nzvals)
     else:
         raise ValueError("Base must be 2 or e.")
-    return float(real(-sum(nzvals * logvals)))
+    return float64(real(-sum(nzvals * logvals)))
 
 
 def entropy_linear(rho):
@@ -71,7 +71,7 @@ def entropy_linear(rho):
     """
     if rho.type == 'ket' or rho.type == 'bra':
         rho = ket2dm(rho)
-    return float(real(1.0 - (rho ** 2).tr()))
+    return float64(real(1.0 - (rho ** 2).tr()))
 
 
 def concurrence(rho):

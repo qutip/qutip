@@ -9,7 +9,7 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
            'hellinger_dist', 'hilbert_dist', 'average_gate_fidelity',
            'process_fidelity', 'unitarity', 'dnorm']
 
-import numpy as np
+import jax.numpy as np
 from scipy import linalg as la
 import scipy.sparse as sp
 from .superop_reps import to_choi, _to_superpauli, to_super, kraus_to_choi
@@ -80,7 +80,7 @@ def fidelity(A, B):
     # even for positive semidefinite matrices, small negative eigenvalues
     # can be reported.
     eig_vals = (sqrtmA * B * sqrtmA).eigenenergies()
-    return float(np.real(np.sqrt(eig_vals[eig_vals > 0]).sum()))
+    return np.float64(np.real(np.sqrt(eig_vals[eig_vals > 0]).sum()))
 
 
 def _hilbert_space_dims(oper):
@@ -288,7 +288,7 @@ def tracedist(A, B, sparse=False, tol=0):
     diff = A - B
     diff = diff.dag() * diff
     vals = diff.eigenenergies(sparse=sparse, tol=tol)
-    return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
+    return np.float64(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
 
 
 def hilbert_dist(A, B):
