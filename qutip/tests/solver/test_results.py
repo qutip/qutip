@@ -208,6 +208,11 @@ class TestMultiTrajResult:
     def _fill_trajectories(self, multiresult, N, ntraj,
                            collapse=False, noise=0, dm=False,
                            include_no_jump=False, rel_weights=None):
+
+        if include_no_jump:
+            # The no jump traj in not counted
+            ntraj += 1
+
         if rel_weights is None:
             rel_weights = [None] * ntraj
 
@@ -227,13 +232,16 @@ class TestMultiTrajResult:
                     result.collapse.append((t+0.1, 0))
                     result.collapse.append((t+0.2, 1))
                     result.collapse.append((t+0.3, 1))
-            if include_no_jump and k == 0:
-                result.add_absolute_weight(0.25)
-            elif include_no_jump and k > 0:
-                result.add_relative_weight(0.75)
             if w is not None:
-                result.add_relative_weight(w)
+                result.add_time_weight(w)
                 result.trace = w
+            if include_no_jump and k == 0:
+
+                result.add_absolute_weight(0.25)
+                multiresult.add_deterministic(result)
+                continue
+            elif include_no_jump:
+                result.add_relative_weight(0.75)
             if multiresult.add((0, result)) <= 0:
                 break
 
@@ -272,15 +280,17 @@ class TestMultiTrajResult:
         assert np.all(np.array(m_res.col_which) < 2)
         assert isinstance(m_res.collapse, list)
         assert len(m_res.col_which[0]) == len(m_res.col_times[0])
-        np.testing.assert_allclose(m_res.photocurrent[0], np.ones(N-1))
-        np.testing.assert_allclose(m_res.photocurrent[1], 2 * np.ones(N-1))
+        # no_jump traj have no collapse
+        expected = np.ones(N-1) + include_no_jump * -0.25
+        np.testing.assert_allclose(m_res.photocurrent[0], expected)
+        np.testing.assert_allclose(m_res.photocurrent[1], 2 * expected)
 
     @pytest.mark.parametrize(['include_no_jump', 'martingale',
                               'result_trace', 'result_states'], [
         pytest.param(False, [[1.] * 10] * 5, [1.] * 10,
                      [qutip.fock_dm(10, i) for i in range(10)],
                      id='constant-martingale'),
-        pytest.param(True, [[1.] * 10] * 5, [1.] * 10,
+        pytest.param(True, [[1.] * 10] * 6, [1.] * 10,
                      [qutip.fock_dm(10, i) for i in range(10)],
                      id='constant-marting-no-jump'),
         pytest.param(False, [[(j - 1) * np.sin(i) for i in range(10)]
@@ -289,9 +299,9 @@ class TestMultiTrajResult:
                      [np.sin(i) * qutip.fock_dm(10, i) for i in range(10)],
                      id='timedep-marting'),
         pytest.param(True, [[(j - 1) * np.sin(i) for i in range(10)]
-                             for j in range(5)],
-                     [(-0.25 + 1.5 * 0.75) * np.sin(i) for i in range(10)],
-                     [(-0.25 + 1.5 * 0.75) * np.sin(i) * qutip.fock_dm(10, i)
+                             for j in range(6)],
+                     [(-0.25 + 2 * 0.75) * np.sin(i) for i in range(10)],
+                     [(-0.25 + 2 * 0.75) * np.sin(i) * qutip.fock_dm(10, i)
                       for i in range(10)],
                      id='timedep-marting-no-jump'),
     ])
@@ -463,7 +473,7 @@ class TestMultiTrajResult:
         )
         assert (
             bool(merged_res.trajectories)
-            == keep_runs_results1 and keep_runs_results2
+            == (keep_runs_results1 and keep_runs_results2)
         )
         assert merged_res.stats["run time"] == 3
 
@@ -486,14 +496,13 @@ class TestMultiTrajResult:
                 random_state = qutip.rand_ket(dim, seed=seed)
                 traj.add(t, random_state)
 
-            if time_dep_weights and np.random.randint(2):
-                weights = np.random.rand(len(tlist))
-            else:
-                weights = np.random.rand()
+            if time_dep_weights:
+                traj.add_time_weight(np.random.rand(len(tlist)))
+
             if abs_weights and np.random.randint(2):
-                traj.add_absolute_weight(weights)
+                traj.add_absolute_weight(np.random.rand())
             else:
-                traj.add_relative_weight(weights)
+                traj.add_relative_weight(np.random.rand())
 
             if collapse:
                 traj.collapse = []
@@ -503,7 +512,10 @@ class TestMultiTrajResult:
                          np.random.randint(2)))
             if trace:
                 traj.trace = np.random.rand(len(tlist))
-            res.add((0, traj))
+            if not traj.has_absolute_weight:
+                res.add((0, traj))
+            else:
+                res.add_deterministic(traj)
 
         return res
 
@@ -516,9 +528,9 @@ class TestMultiTrajResult:
         merged = ensemble1.merge(ensemble2, p=p)
 
         if p is None:
-            p = ensemble1._num_rel_trajectories / (
-                ensemble1._num_rel_trajectories +
-                ensemble2._num_rel_trajectories
+            p = ensemble1.num_trajectories / (
+                ensemble1.num_trajectories +
+                ensemble2.num_trajectories
             )
 
         np.testing.assert_almost_equal(
@@ -543,9 +555,9 @@ class TestMultiTrajResult:
         merged = ensemble1.merge(ensemble2, p=p)
 
         if p is None:
-            p = ensemble1._num_rel_trajectories / (
-                ensemble1._num_rel_trajectories +
-                ensemble2._num_rel_trajectories
+            p = ensemble1.num_trajectories / (
+                ensemble1.num_trajectories +
+                ensemble2.num_trajectories
             )
 
         assert merged.num_trajectories == len(merged.collapse)
@@ -564,9 +576,9 @@ class TestMultiTrajResult:
         merged = ensemble1.merge(ensemble2, p=p)
 
         if p is None:
-            p = ensemble1._num_rel_trajectories / (
-                ensemble1._num_rel_trajectories +
-                ensemble2._num_rel_trajectories
+            p = ensemble1.num_trajectories / (
+                ensemble1.num_trajectories +
+                ensemble2.num_trajectories
             )
 
         np.testing.assert_almost_equal(

@@ -474,7 +474,7 @@ class TrajectoryResult(Result):
         """
         if not self.has_time_dependent_weight:
             raise RuntimeError(
-                "This result does not have time-dependent wieght"
+                "This result does not have time-dependent weight"
             )
         return [
             state * w
@@ -488,7 +488,7 @@ class TrajectoryResult(Result):
         """
         if not self.has_time_dependent_weight:
             raise RuntimeError(
-                "This result does not have time-dependent wieght"
+                "This result does not have time-dependent weight"
             )
         return self.final_state * self._time_weight[-1]
 
@@ -499,6 +499,6 @@ class TrajectoryResult(Result):
         """
         if not self.has_time_dependent_weight:
             raise RuntimeError(
-                "This result does not have time-dependent wieght"
+                "This result does not have time-dependent weight"
             )
         return [e_val * self._time_weight for e_val in self.expect]

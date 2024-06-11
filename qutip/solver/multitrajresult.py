@@ -96,7 +96,6 @@ class _Acc_Average:
         if self._rel_traj:
             for avg, rel in zip(out, self._sum_rel):
                 avg += 1 / self._rel_traj * rel
-        #        out += (1 - self._total_abs_weight) / self._rel_traj * rel
         return out
 
     def average(self):
@@ -110,7 +109,6 @@ class _Acc_Average:
         if self._sum2_rel:
             for avg, rel in zip(out2, self._sum2_rel):
                 avg += 1 / self._rel_traj * rel
-        #        out2 += (1 - self._total_abs_weight) / self._rel_traj * rel
 
         return out2
 
@@ -150,6 +148,9 @@ class _Acc_Average:
             ]
         out._total_abs_weight = 1.
         return out
+
+    def __repr__(self):
+        return f"Accumulator({self.attribute}, {self._rel_traj})"
 
 
 class MultiTrajResultOptions(TypedDict):
@@ -612,19 +613,19 @@ class MultiTrajResult(_BaseResult):
     @property
     def average_expect(self):
         if not self._raw_ops:
-            return None
+            return []
         return self._expect_acc.average()
 
     @property
     def std_expect(self):
         if not self._raw_ops:
-            return None
+            return []
         return self._expect_acc.std()
 
     @property
     def runs_expect(self):
         if not self._raw_ops or not self.trajectories:
-            return None
+            return []
         return list(zip(*[traj.expect for traj in self.trajectories]))
 
     @property
@@ -634,7 +635,7 @@ class MultiTrajResult(_BaseResult):
     @property
     def average_e_data(self):
         if not self._raw_ops:
-            return None
+            return {}
         return {
             key: values
             for key, values in zip(self.e_ops.keys(), self.average_expect)
@@ -643,7 +644,7 @@ class MultiTrajResult(_BaseResult):
     @property
     def std_e_data(self):
         if not self._raw_ops:
-            return None
+            return {}
         return {
             key: values
             for key, values in zip(self.e_ops.keys(), self.std_expect)
@@ -652,7 +653,7 @@ class MultiTrajResult(_BaseResult):
     @property
     def runs_e_data(self):
         if not self._raw_ops:
-            return None
+            return {}
         return {
             key: values
             for key, values in zip(self.e_ops.keys(), self.runs_expect)
@@ -762,7 +763,7 @@ class MultiTrajResult(_BaseResult):
             raise ValueError("Shared `e_ops` is required to merge results")
         if self.times != other.times:
             raise ValueError("Shared `times` are is required to merge results")
-        if self.stats["solver"] != other.stats["solver"]:
+        if self.stats.get("solver", None) != other.stats.get("solver", None):
             raise ValueError("Can't merge results of different solver")
 
         new = self.__class__(
@@ -823,7 +824,7 @@ class MultiTrajResult(_BaseResult):
         )
         if no_jump_run_time:
             new.stats["no jump run time"] = no_jump_run_time
-        if other.stats["method"] != new.stats["method"]:
+        if other.stats.get("method", "") != new.stats.get("method", ""):
             new.stats["method"] = "various"
         if (
             other.stats.get("num_collapse", 0)
