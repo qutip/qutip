@@ -1,6 +1,6 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
-from .multitrajresult import MultiTrajResult
+from .multitrajresult import MultiTrajResult, _TrajectorySum
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .sode._noise import PreSetWiener
 from .result import Result, ExpectOp
@@ -113,8 +113,9 @@ class StochasticTrajResult(Result):
 
 
 class StochasticResult(MultiTrajResult):
-    def _post_init(self):
+    def _post_init(self, heterodyne=False):
         super()._post_init()
+        self.heterodyne = heterodyne
 
         store_measurement = self.options["store_measurement"]
         keep_runs = self.options["keep_runs_results"]
@@ -127,7 +128,6 @@ class StochasticResult(MultiTrajResult):
             self.add_processor(partial(self._reduce_attr, attr="dW"))
             self._dW = []
 
-        if not keep_runs and store_measurement:
             self.add_processor(partial(self._reduce_attr, attr="measurement"))
             self._measurement = []
 
@@ -192,10 +192,65 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("wiener_process")
 
     def merge(self, other, p=None):
-        raise NotImplementedError("Merging results of the stochastic solvers "
-                                  "is currently not supported. Please raise "
-                                  "an issue on GitHub if you would like to "
-                                  "see this feature.")
+        if not isinstance(other, StochasticResult):
+            return NotImplemented
+        if self._raw_ops != other._raw_ops:
+            raise ValueError("Shared `e_ops` is required to merge results")
+        if self.times != other.times:
+            raise ValueError("Shared `times` are is required to merge results")
+        if p is not None:
+            raise ValueError(
+                "Stochastic solvers does not support custom weights"
+            )
+        if self.heterodyne != other.heterodyne:
+            raise ValueError("Can't merge heterodyne and homodyne results")
+
+        new = self.__class__(
+            self._raw_ops,
+            self.options,
+            solver=self.solver,
+            stats=self.stats.copy()
+        )
+        new.times = self.times
+        new.e_ops = self.e_ops
+
+        new.num_trajectories = self.num_trajectories + other.num_trajectories
+        new._num_rel_trajectories = new.num_trajectories
+        new.seeds = self.seeds + other.seeds
+
+        if self.trajectories and other.trajectories:
+            new.trajectories = self.trajectories + other.trajectories
+        else:
+            new.options["keep_runs_results"] = False
+
+        if (
+            self.options["store_measurement"]
+            and other.options["store_measurement"]
+            and not new.trajectories
+        ):
+            new._measurement = np.concatenate(
+                (self.measurement, other.measurement), axis=0
+            )
+            new._wiener_process = np.concatenate(
+                (self.wiener_process, other.wiener_process), axis=0
+            )
+            new._dW = np.concatenate((self.dW, other.dW), axis=0)
+
+        new._sum_rel = _TrajectorySum.merge(
+            self._sum_rel, 1, other._sum_rel, 1
+        )
+
+        new._create_e_data()
+
+        if self.runs_e_data and other.runs_e_data:
+            new.runs_e_data = {}
+            for k in self._raw_ops:
+                new.runs_e_data[k] = self.runs_e_data[k] + other.runs_e_data[k]
+
+        new.stats["run time"] += other.stats["run time"]
+        new.stats["end_condition"] = "Merged results"
+
+        return new
 
 
 class _StochasticRHS(_MultiTrajRHS):
@@ -534,7 +589,6 @@ class StochasticSolver(MultiTrajSolver):
     """
 
     name = "StochasticSolver"
-    _resultclass = StochasticResult
     _avail_integrators = {}
     _open = None
 
@@ -552,6 +606,15 @@ class StochasticSolver(MultiTrajSolver):
         "method": "platen",
         "store_measurement": "",
     }
+
+    def _resultclass(self, e_ops, options, solver, stats):
+        return StochasticResult(
+            e_ops,
+            options,
+            solver=solver,
+            stats=stats,
+            heterodyne=self.heterodyne,
+        )
 
     def _trajectory_resultclass(self, e_ops, options):
         return StochasticTrajResult(

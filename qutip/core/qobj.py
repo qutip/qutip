@@ -384,6 +384,11 @@ class Qobj:
     def __radd__(self, other: Qobj | numbers.Number) -> Qobj:
         return self.__add__(other)
 
+    def __iadd__(self, other: Qobj | numbers.Number) -> Qobj:
+        self.data = (self + other).data
+        self._isherm = (self._isherm and other._isherm) or None
+        return self
+
     @_require_equal_type
     def __sub__(self, other: Qobj | numbers.Number) -> Qobj:
         if other == 0:

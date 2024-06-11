@@ -510,3 +510,54 @@ def test_run_from_experiment_open(method, heterodyne):
     np.testing.assert_allclose(
         res_measure.expect, res_forward.expect, atol=1e-10
     )
+
+
+@pytest.mark.parametrize("store_measurement", [True, False])
+@pytest.mark.parametrize("keep_runs_results", [True, False])
+def test_merge_results(store_measurement, keep_runs_results):
+    # Running mcsolve with mixed ICs should be the same as running mcsolve
+    # multiple times and merging the results afterwards
+    initial_state1 = basis([2, 2], [1, 0])
+    initial_state2 = basis([2, 2], [1, 1])
+    H = qeye([2, 2])
+    L = destroy(2) & qeye(2)
+    tlist = np.linspace(0, 1, 11)
+    e_ops = [num(2) & qeye(2), qeye(2) & num(2)]
+
+    options = {
+        "store_measurement": True,
+        "keep_runs_results": True,
+        "store_states": True,
+    }
+    solver = SMESolver(H, [L], True, options=options)
+    result1 = solver.run(initial_state1, tlist, 5, e_ops=e_ops)
+
+    options = {
+        "store_measurement": store_measurement,
+        "keep_runs_results": keep_runs_results,
+        "store_states": True,
+    }
+    solver = SMESolver(H, [L], True, options=options)
+    result2 = solver.run(initial_state2, tlist, 10, e_ops=e_ops)
+
+    result_merged = result1 + result2
+    assert len(result_merged.seeds) == 15
+    assert (
+        result_merged.average_states[0] ==
+        (initial_state1.proj() + 2*initial_state2.proj()).unit()
+    )
+    np.testing.assert_allclose(result_merged.average_expect[0][0], 1)
+    np.testing.assert_allclose(result_merged.average_expect[1], 2/3)
+
+    if store_measurement:
+        assert len(result_merged.measurement) == 15
+        assert len(result_merged.dW) == 15
+        assert all(
+            dw.shape == result_merged.dW[0].shape
+            for dw in result_merged.dW
+        )
+        assert len(result_merged.wiener_process) == 15
+        assert all(
+            w.shape == result_merged.wiener_process[0].shape
+            for w in result_merged.wiener_process
+        )
