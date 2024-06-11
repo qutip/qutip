@@ -1,6 +1,6 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
-from .multitrajresult import MultiTrajResult, _TrajectorySum
+from .multitrajresult import MultiTrajResult
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .sode._noise import PreSetWiener
 from .result import Result, ExpectOp
@@ -194,34 +194,13 @@ class StochasticResult(MultiTrajResult):
     def merge(self, other, p=None):
         if not isinstance(other, StochasticResult):
             return NotImplemented
-        if self._raw_ops != other._raw_ops:
-            raise ValueError("Shared `e_ops` is required to merge results")
-        if self.times != other.times:
-            raise ValueError("Shared `times` are is required to merge results")
+        if self.heterodyne != other.heterodyne:
+            raise ValueError("Can't merge heterodyne and homodyne results")
         if p is not None:
             raise ValueError(
                 "Stochastic solvers does not support custom weights"
             )
-        if self.heterodyne != other.heterodyne:
-            raise ValueError("Can't merge heterodyne and homodyne results")
-
-        new = self.__class__(
-            self._raw_ops,
-            self.options,
-            solver=self.solver,
-            stats=self.stats.copy()
-        )
-        new.times = self.times
-        new.e_ops = self.e_ops
-
-        new.num_trajectories = self.num_trajectories + other.num_trajectories
-        new._num_rel_trajectories = new.num_trajectories
-        new.seeds = self.seeds + other.seeds
-
-        if self.trajectories and other.trajectories:
-            new.trajectories = self.trajectories + other.trajectories
-        else:
-            new.options["keep_runs_results"] = False
+        new = super().merge(other, p)
 
         if (
             self.options["store_measurement"]
@@ -235,20 +214,6 @@ class StochasticResult(MultiTrajResult):
                 (self.wiener_process, other.wiener_process), axis=0
             )
             new._dW = np.concatenate((self.dW, other.dW), axis=0)
-
-        new._sum_rel = _TrajectorySum.merge(
-            self._sum_rel, 1, other._sum_rel, 1
-        )
-
-        new._create_e_data()
-
-        if self.runs_e_data and other.runs_e_data:
-            new.runs_e_data = {}
-            for k in self._raw_ops:
-                new.runs_e_data[k] = self.runs_e_data[k] + other.runs_e_data[k]
-
-        new.stats["run time"] += other.stats["run time"]
-        new.stats["end_condition"] = "Merged results"
 
         return new
 
@@ -624,6 +589,14 @@ class StochasticSolver(MultiTrajSolver):
             dw_factor=self.dW_factors,
             heterodyne=self.heterodyne,
         )
+
+    def _initialize_stats(self):
+        stats = super()._initialize_stats()
+        if self._open:
+            stats["solver"] = "Stochastic Master Equation Evolution"
+        else:
+            stats["solver"] = "Stochastic Schrodinger Equation Evolution"
+        return stats
 
     def __init__(self, H, sc_ops, heterodyne, *, c_ops=(), options=None):
         self._heterodyne = heterodyne

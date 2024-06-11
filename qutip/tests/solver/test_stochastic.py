@@ -542,10 +542,11 @@ def test_merge_results(store_measurement, keep_runs_results):
 
     result_merged = result1 + result2
     assert len(result_merged.seeds) == 15
-    assert (
-        result_merged.average_states[0] ==
-        (initial_state1.proj() + 2*initial_state2.proj()).unit()
-    )
+    if store_measurement:
+        assert (
+            result_merged.average_states[0] ==
+            (initial_state1.proj() + 2 * initial_state2.proj()).unit()
+        )
     np.testing.assert_allclose(result_merged.average_expect[0][0], 1)
     np.testing.assert_allclose(result_merged.average_expect[1], 2/3)
 

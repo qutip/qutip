@@ -401,8 +401,9 @@ class TrajectoryResult(Result):
     def _post_init(self):
         super()._post_init()
 
-        self.rel_weight = np.array(1)
+        self.rel_weight = 1
         self.abs_weight = None
+        self._time_weight = None
         self._has_weight = False
 
     def add_absolute_weight(self, new_weight):
@@ -410,7 +411,7 @@ class TrajectoryResult(Result):
         Adds the given weight (which may be either a number or an array of the
         same length as the list of times) as an absolute weight.
         """
-        new_weight = np.array(new_weight)
+        new_weight = new_weight
         if self.abs_weight is None:
             self.abs_weight = new_weight
         else:
@@ -422,8 +423,22 @@ class TrajectoryResult(Result):
         Adds the given weight (which may be either a number or an array of the
         same length as the list of times) as a relative weight.
         """
-        new_weight = np.array(new_weight)
+        new_weight = new_weight
         self.rel_weight = self.rel_weight * new_weight
+        self._has_weight = True
+
+    def add_time_weight(self, new_weight):
+        """
+        Adds the given weight (which may be either a number or an array of the
+        same length as the list of times) as a relative weight.
+        """
+        new_weight = np.array(new_weight)
+        if len(new_weight) != len(self.times):
+            raise RuntimeError("Marginal lenght does not match evolution.")
+        if self._time_weight is None:
+            self._time_weight = new_weight
+        else:
+            self._time_weight = self._time_weight * new_weight
         self._has_weight = True
 
     @property
@@ -439,35 +454,51 @@ class TrajectoryResult(Result):
     @property
     def has_time_dependent_weight(self):
         """Whether the total weight is time-dependent."""
-        # np.ndim(None) returns zero, which is what we want
-        return np.ndim(self.rel_weight) > 0 or np.ndim(self.abs_weight) > 0
+        return self._time_weight is not None
 
     @property
     def total_weight(self):
         """
-        Returns the total weight, either a single number or an array in case of
-        a time-dependent weight. If no absolute weight was set, this is only
-        the relative weight. If an absolute weight was set, this is the product
-        of the absolute and the relative weights.
+        Returns the total weight as a single number. If no absolute weight was
+        set, this is only the relative weight. If an absolute weight was
+        set, this is the product of the absolute and the relative weights.
         """
         if self.has_absolute_weight:
             return self.abs_weight * self.rel_weight
         return self.rel_weight
 
     @property
-    def _total_weight_tlist(self):
+    def _scaled_states(self):
         """
-        Returns the total weight as a function of time (i.e., as an array with
-        the same shape as the `tlist`)
+        states of the evolution after being scaled by the marginal.
         """
-        total_weight = self.total_weight
-        if self.has_time_dependent_weight:
-            return total_weight
-        return np.ones_like(self.times) * total_weight
+        if not self.has_time_dependent_weight:
+            raise RuntimeError(
+                "This result does not have time-dependent wieght"
+            )
+        return [
+            state * w
+            for state, w in zip(self.states, self._time_weight)
+        ]
 
     @property
-    def _final_weight(self):
-        total_weight = self.total_weight
-        if self.has_time_dependent_weight:
-            return total_weight[-1]
-        return total_weight
+    def _scaled_final_state(self):
+        """
+        final_state of the evolution after being scaled by the marginal.
+        """
+        if not self.has_time_dependent_weight:
+            raise RuntimeError(
+                "This result does not have time-dependent wieght"
+            )
+        return self.final_state * self._time_weight[-1]
+
+    @property
+    def _scaled_expect(self):
+        """
+        expect of the evolution after being scaled by the marginal.
+        """
+        if not self.has_time_dependent_weight:
+            raise RuntimeError(
+                "This result does not have time-dependent wieght"
+            )
+        return [e_val * self._time_weight for e_val in self.expect]

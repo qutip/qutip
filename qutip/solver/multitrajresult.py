@@ -293,8 +293,8 @@ class MultiTrajResult(_BaseResult):
         self._raw_ops = self._e_ops_to_dict(e_ops)
 
         self.trajectories = []
+        self.deterministic_trajectories = []
         self.num_trajectories = 0
-        self._has_absolute_weight = False
         self.seeds = []
         self._final_state_acc = None
         self._states_acc = None
@@ -304,7 +304,8 @@ class MultiTrajResult(_BaseResult):
         self.times = None
         self.e_ops = None
 
-        self._weight_info = []
+        self._trajectories_weight_info = []
+        self._deterministic_weight_info = []
 
         self._post_init(**kw)
 
@@ -327,26 +328,17 @@ class MultiTrajResult(_BaseResult):
         """
         Read the first trajectory, intitializing needed data.
         """
-        self.times = trajectory.times
-        self.e_ops = trajectory.e_ops
-        for acc in self._acc:
-            acc.init(trajectory)
+        if self.times is None:
+            self.times = trajectory.times
+            self.e_ops = trajectory.e_ops
+            for acc in self._acc:
+                acc.init(trajectory)
 
     def _store_trajectory(self, trajectory):
         self.trajectories.append(trajectory)
 
     def _store_weight_info(self, trajectory):
-        if len(self.trajectories) == 0:
-            # store weight info only if trajectories are not stored
-            self._weight_info.append(
-                (trajectory.total_weight, trajectory.has_absolute_weight))
-
-    def _increment_traj(self, trajectory):
-        if self.num_trajectories == 0:
-            self._add_first_traj(trajectory)
-        self.num_trajectories += 1
-        if trajectory.has_absolute_weight:
-            self._has_absolute_weight = True
+        self._trajectories_weight_info.append(trajectory.total_weight)
 
     def _no_end(self):
         """
@@ -417,10 +409,12 @@ class MultiTrajResult(_BaseResult):
         self._early_finish_check = self._no_end
         self._acc = []
 
-        self.add_processor(self._increment_traj)
+        self.add_processor(self._add_first_traj)
         store_trajectory = self.options["keep_runs_results"]
         if store_trajectory:
             self.add_processor(self._store_trajectory)
+        else:
+            self.add_processor(self._store_weight_info)
         if self._store_average_density_matrices:
             self._states_acc = _Acc_Average("states")
             self._acc.append(self._states_acc)
@@ -433,7 +427,6 @@ class MultiTrajResult(_BaseResult):
             self._expect_acc = _Acc_Average("expect", std=True)
             self._acc.append(self._expect_acc)
             self.add_processor(self._expect_acc.add)
-        self.add_processor(self._store_weight_info)
 
         self.stats["end_condition"] = "unknown"
 
@@ -460,6 +453,7 @@ class MultiTrajResult(_BaseResult):
         """
         seed, trajectory = trajectory_info
         self.seeds.append(seed)
+        self.num_trajectories += 1
 
         if not isinstance(trajectory, TrajectoryResult):
             trajectory.has_weight = False
@@ -471,6 +465,16 @@ class MultiTrajResult(_BaseResult):
             op(trajectory)
 
         return self._early_finish_check()
+
+    def add_deterministic(self, trajectory):
+        for op in self._state_processors:
+            op(trajectory)
+        if self.options["keep_runs_results"]:
+            self.deterministic_trajectories.append(self.trajectories.pop())
+        else:
+            self._deterministic_weight_info.append(
+                self._trajectories_weight_info.pop()
+            )
 
     def add_end_condition(self, ntraj, target_tol=None):
         """
@@ -547,6 +551,8 @@ class MultiTrajResult(_BaseResult):
         if not self._states_acc and trajectory_states_available:
             self._states_acc = _Acc_Average("states")
             self._states_acc.init(self.trajectories[0])
+            for trajectory in self.deterministic_trajectories:
+                self._states_acc.add(trajectory)
             for trajectory in self.trajectories:
                 self._states_acc.add(trajectory)
 
@@ -584,6 +590,8 @@ class MultiTrajResult(_BaseResult):
         ):
             self._final_state_acc = _Acc_Average("final_state")
             self._final_state_acc.init(self.trajectories[0])
+            for trajectory in self.deterministic_trajectories:
+                self._final_state_acc.add(trajectory)
             for trajectory in self.trajectories:
                 self._final_state_acc.add(trajectory)
 
@@ -655,17 +663,25 @@ class MultiTrajResult(_BaseResult):
         return self.runs_e_data or self.average_e_data
 
     @property
-    def runs_weights(self):
-        # TODO: not proper abs_weight staking
+    def fixed_weights(self):
         result = []
-        if self._weight_info:
-            for w, isabs in self._weight_info:
-                result.append(w if isabs else w / self.num_trajectories)
+        if self._deterministic_weight_info:
+            result = self._deterministic_weight_info.copy()
+        else:
+            for traj in self.deterministic_trajectories:
+                result.append(traj.total_weight)
+        return result
+
+    @property
+    def runs_weights(self):
+        result = []
+        if self._trajectories_weight_info:
+            for w in self._trajectories_weight_info:
+                result.append(w / self.num_trajectories)
         else:
             for traj in self.trajectories:
                 w = traj.total_weight
-                isabs = traj.has_absolute_weight
-                result.append(w if isabs else w / self.num_trajectories)
+                result.append(w / self.num_trajectories)
         return result
 
     def steady_state(self, N=0):
@@ -767,7 +783,7 @@ class MultiTrajResult(_BaseResult):
             # Only one result as trajectories stored
             # Merged will not have them stored, therefore we need to reduce
             # data to merge. Computing the averages once will do it for us.
-            if not self.trajectories:
+            if self.trajectories:
                 self.average_states
                 self.average_final_state
             else:
@@ -775,10 +791,14 @@ class MultiTrajResult(_BaseResult):
                 other.average_final_state
 
         if self.trajectories and other.trajectories:
-            new.trajectories = self._merge_trajectories(other, p, p_equal)
+            new.trajectories, new.deterministic_trajectories = (
+                self._merge_trajectories(other, p, p_equal)
+            )
         else:
             new.options["keep_runs_results"] = False
-            new._weight_info = self._merge_weight_info(other, p, p_equal)
+            new._trajectories_weight_info, new._deterministic_weight_info = (
+                self._merge_weight_info(other, p, new.num_trajectories)
+            )
 
         if self._states_acc and other._states_acc:
             new._states_acc = self._states_acc.merge(other._states_acc, p)
@@ -813,210 +833,59 @@ class MultiTrajResult(_BaseResult):
 
         return new
 
-    def _merge_weight(self, p, p_equal, isabs):
-        """
-        Merging two result objects can make the trajectories pick up
-        merge weights. In order to have
-            rho_merge = p * rho1 + (1-p) * rho2,
-        the merge weights must be as defined here. The merge weight depends on
-        whether that trajectory has an absolute weight (`isabs`). The parameter
-        `p_equal` is the value of p where all trajectories contribute equally.
-        """
-        if isabs:
-            return p
-        return p / p_equal
+    def _merge_weight_info(self, other, p, ntraj):
+        new_traj_weight_info = [
+            weight * p * ntraj
+            for weight in self.runs_weights
+        ] + [
+            weight * (1 - p) * ntraj
+            for weight in other.runs_weights
+        ]
 
-    def _merge_weight_info(self, other, p, p_equal):
-        new_weight_info = []
+        new_fixed_weight_info = [
+            weight * p
+            for weight in self.fixed_weights
+        ] + [
+            weight * (1 - p)
+            for weight in other.fixed_weights
+        ]
 
-        if self._weight_info:
-            for w, isabs in self._weight_info:
-                new_weight_info.append(
-                    (w * self._merge_weight(p, p_equal, isabs), isabs)
-                )
-        else:
-            for traj in self.trajectories:
-                w = traj.total_weight
-                isabs = traj.has_absolute_weight
-                new_weight_info.append(
-                    (w * self._merge_weight(p, p_equal, isabs), isabs)
-                )
-
-        if other._weight_info:
-            for w, isabs in other._weight_info:
-                new_weight_info.append(
-                    (w * self._merge_weight(1 - p, 1 - p_equal, isabs), isabs)
-                )
-        else:
-            for traj in other.trajectories:
-                w = traj.total_weight
-                isabs = traj.has_absolute_weight
-                new_weight_info.append(
-                    (w * self._merge_weight(1 - p, 1 - p_equal, isabs), isabs)
-                )
-
-        return new_weight_info
+        return new_traj_weight_info, new_fixed_weight_info
 
     def _merge_trajectories(self, other, p, p_equal):
         if (
             p == p_equal
-            and not self._has_absolute_weight
-            and not other._has_absolute_weight
+            and not self.deterministic_trajectories
+            and not other.deterministic_trajectories
         ):
-            return self.trajectories + other.trajectories
+            return self.trajectories + other.trajectories, []
 
-        result = []
+        new_trajs = []
         for traj in self.trajectories:
-            if (mweight := self._merge_weight(
-                    p, p_equal, traj.has_absolute_weight)) != 1:
+            if (mweight := p / p_equal) != 1:
                 traj = copy(traj)
                 traj.add_relative_weight(mweight)
-            result.append(traj)
+            new_trajs.append(traj)
         for traj in other.trajectories:
-            if (mweight := self._merge_weight(
-                    1 - p, 1 - p_equal, traj.has_absolute_weight)) != 1:
+            if (mweight := (1 - p) / (1 - p_equal)) != 1:
                 traj = copy(traj)
                 traj.add_relative_weight(mweight)
-            result.append(traj)
-        return result
+            new_trajs.append(traj)
+
+        new_d_trajs = []
+        for traj in self.deterministic_trajectories:
+            traj = copy(traj)
+            traj.add_relative_weight(p)
+            new_d_trajs.append(traj)
+        for traj in other.deterministic_trajectories:
+            traj = copy(traj)
+            traj.add_relative_weight(1 - p)
+            new_d_trajs.append(traj)
+
+        return new_trajs, new_d_trajs
 
     def __add__(self, other):
         return self.merge(other, p=None)
-
-
-class _TrajectorySum:
-    """
-    Keeps running sums of expectation values, and (if requested) states and
-    final states, over a set of trajectories as they are added one-by-one.
-    This is used in the `MultiTrajResult` class, which needs to keep track of
-    several sums of this type.
-
-    Parameters
-    ----------
-    example_trajectory : :obj:`.Result`
-        An example trajectory with expectation values and states of the same
-        shape like for the trajectories that will be added later. The data is
-        only used for initializing arrays in the correct shape and otherwise
-        ignored.
-
-    store_states : bool
-        Whether the states of the trajectories will be summed.
-
-    store_final_state : bool
-        Whether the final states of the trajectories will be summed.
-    """
-    def __init__(self, example_trajectory, store_states, store_final_state):
-        if example_trajectory.states and store_states:
-            self._initialize_sum_states(example_trajectory)
-        else:
-            self.sum_states = None
-
-        if (fstate := example_trajectory.final_state) and store_final_state:
-            self.sum_final_state = qzero_like(_to_dm(fstate))
-        else:
-            self.sum_final_state = None
-
-        self.sum_expect = [
-            np.zeros_like(expect) for expect in example_trajectory.expect
-        ]
-        self.sum2_expect = [
-            np.zeros_like(expect) for expect in example_trajectory.expect
-        ]
-
-    def _initialize_sum_states(self, example_trajectory):
-        self.sum_states = [
-            qzero_like(_to_dm(state)) for state in example_trajectory.states]
-
-    def reduce_states(self, trajectory):
-        """
-        Adds the states stored in the given trajectory to the running sum
-        `sum_states`. Takes account of the trajectory's total weight if
-        present.
-        """
-        if trajectory.has_weight:
-            self.sum_states = [
-                accu + weight * _to_dm(state)
-                for accu, state, weight in zip(self.sum_states,
-                                               trajectory.states,
-                                               trajectory._total_weight_tlist)
-            ]
-        else:
-            self.sum_states = [
-                accu + _to_dm(state)
-                for accu, state in zip(self.sum_states, trajectory.states)
-            ]
-
-    def reduce_final_state(self, trajectory):
-        """
-        Adds the final state stored in the given trajectory to the running sum
-        `sum_final_state`. Takes account of the trajectory's total weight if
-        present.
-        """
-        if trajectory.has_weight:
-            self.sum_final_state += (trajectory._final_weight *
-                                     _to_dm(trajectory.final_state))
-        else:
-            self.sum_final_state += _to_dm(trajectory.final_state)
-
-    def reduce_expect(self, trajectory):
-        """
-        Adds the expectation values, and their squares, that are stored in the
-        given trajectory to the running sums `sum_expect` and `sum2_expect`.
-        Takes account of the trajectory's total weight if present.
-        """
-        weight = trajectory.total_weight
-        for i, expect_traj in enumerate(trajectory.expect):
-            self.sum_expect[i] += weight * expect_traj
-            self.sum2_expect[i] += weight * expect_traj**2
-
-    @staticmethod
-    def merge(sum1, weight1, sum2, weight2):
-        """
-        Merges the sums of expectation values, states and final states with
-        the given weights, i.e., `result = weight1 * sum1 + weight2 * sum2`.
-        """
-        if sum1 is None and sum2 is None:
-            return None
-        if sum1 is None:
-            return _TrajectorySum.merge(sum2, weight2, sum1, weight1)
-
-        new = copy(sum1)
-
-        if sum2 is None:
-            if sum1.sum_states:
-                new.sum_states = [
-                    weight1 * state1 for state1 in sum1.sum_states
-                ]
-            if sum1.sum_final_state:
-                new.sum_final_state = weight1 * sum1.sum_final_state
-            new.sum_expect = [weight1 * e1 for e1 in sum1.sum_expect]
-            new.sum2_expect = [weight1 * e1 for e1 in sum1.sum2_expect]
-            return new
-
-        if sum1.sum_states and sum2.sum_states:
-            new.sum_states = [
-                weight1 * state1 + weight2 * state2 for state1, state2 in zip(
-                    sum1.sum_states, sum2.sum_states
-                )
-            ]
-        else:
-            new.sum_states = None
-
-        if sum1.sum_final_state and sum2.sum_final_state:
-            new.sum_final_state = (
-                weight1 * sum1.sum_final_state +
-                weight2 * sum2.sum_final_state)
-        else:
-            new.sum_final_state = None
-
-        new.sum_expect = [weight1 * e1 + weight2 * e2 for e1, e2 in zip(
-            sum1.sum_expect, sum2.sum_expect)
-        ]
-        new.sum2_expect = [weight1 * e1 + weight2 * e2 for e1, e2 in zip(
-            sum1.sum2_expect, sum2.sum2_expect)
-        ]
-
-        return new
 
 
 class McResult(MultiTrajResult):
@@ -1059,9 +928,8 @@ class McResult(MultiTrajResult):
 
     # Collapse are only produced by mcsolve.
     def _add_collapse(self, trajectory):
-        self.collapse.append(trajectory.collapse)
-        if trajectory.has_time_dependent_weight:
-            self._time_dependent_weights = True
+        if not trajectory.has_absolute_weight:
+            self.collapse.append(trajectory.collapse)
 
     def _post_init(self):
         super()._post_init()
@@ -1195,6 +1063,10 @@ class NmmcResult(McResult):
 
     def _post_init(self):
         super()._post_init()
+        self._time_dependent_weights = True
+        # Use marginal scaled versions
+        for acc in self._acc:
+            acc.attribute = "_scaled_" + acc.attribute
         self._trace_acc = _Acc_Average("trace")
         self._acc.append(self._trace_acc)
         self.add_processor(self._trace_acc.add)

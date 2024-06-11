@@ -431,15 +431,20 @@ class TestMultiTrajResult:
         if keep_runs_results:
             assert "Trajectories saved." in repr
 
-    @pytest.mark.parametrize('keep_runs_results', [True, False])
-    def test_merge_result(self, keep_runs_results):
+    @pytest.mark.parametrize('keep_runs_results1', [True, False])
+    @pytest.mark.parametrize('keep_runs_results2', [True, False])
+    def test_merge_result(self, keep_runs_results1, keep_runs_results2):
         N = 10
+
         opt = fill_options(
-            keep_runs_results=keep_runs_results, store_states=True
+            keep_runs_results=keep_runs_results1, store_states=True
         )
         m_res1 = MultiTrajResult([qutip.num(10)], opt, stats={"run time": 1})
         self._fill_trajectories(m_res1, N, 10, noise=0.1)
 
+        opt = fill_options(
+            keep_runs_results=keep_runs_results2, store_states=True
+        )
         m_res2 = MultiTrajResult([qutip.num(10)], opt, stats={"run time": 2})
         self._fill_trajectories(m_res2, N, 30, noise=0.1)
 
@@ -456,7 +461,10 @@ class TestMultiTrajResult:
             np.ones(N),
             rtol=0.1
         )
-        assert bool(merged_res.trajectories) == keep_runs_results
+        assert (
+            bool(merged_res.trajectories)
+            == keep_runs_results1 and keep_runs_results2
+        )
         assert merged_res.stats["run time"] == 3
 
     def _random_ensemble(self, abs_weights=True, collapse=False, trace=False,
