@@ -373,10 +373,7 @@ class MultiTrajResult(_BaseResult):
             self.stats["end_condition"] = "ntraj reached"
             return 0
 
-        num_rel_traj =self._expect_acc._rel_traj
-        total_abs_weight = self._expect_acc._total_abs_weight
-
-        if num_rel_traj <= 1:
+        if self.num_trajectories <= 1:
             return np.inf
         avg, avg2 = self._average_computer()
         target = np.array(
@@ -386,19 +383,16 @@ class MultiTrajResult(_BaseResult):
             ]
         )
 
-        one = np.array(1)
-        if num_rel_traj < self.num_trajectories:
-            # We only include traj. without abs. weights in this calculation.
-            # Since there are traj. with abs. weights., the weights don't add
-            # up to one. We have to consider that as follows:
-            #   <(x - <x>)^2> / <1> = <x^2> / <1> - <x>^2 / <1>^2
-            # and "<1>" is one minus the sum of all absolute weights
-            one = one - total_abs_weight
+        # We only include traj. without abs. weights in this calculation.
+        # Since there are traj. with abs. weights., the weights don't add
+        # up to one. We have to consider that as follows:
+        #   <(x - <x>)^2> * <1>**2
+        # and "<1>" is one minus the sum of all absolute weights
+        one = 1 - self._expect_acc._total_abs_weight
+        std = avg2 - abs(avg)**2
+        target_ntraj = np.max(std / target**2) * one**2 + 1
 
-        target_ntraj = np.max((avg2 / one - (abs(avg) ** 2) / (one ** 2)) /
-                              target**2 + 1)
-
-        self._estimated_ntraj = min(target_ntraj - num_rel_traj,
+        self._estimated_ntraj = min(target_ntraj - self.num_trajectories,
                                     self._target_ntraj - self.num_trajectories)
         if self._estimated_ntraj <= 0:
             self.stats["end_condition"] = "target tolerance reached"
