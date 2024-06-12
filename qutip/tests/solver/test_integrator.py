@@ -182,6 +182,7 @@ def test_pickling_vern_methods(integrator):
     import pickle
     pickled = pickle.dumps(inter, -1)
     recreated = pickle.loads(pickled)
+    recreated.set_state(0, qutip.basis(1,0).data)
 
     for t in np.linspace(0,1,6):
         expected = pytest.approx(np.exp(t/2), abs=1e-5)
