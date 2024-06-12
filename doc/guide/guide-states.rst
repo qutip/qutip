@@ -696,6 +696,101 @@ the non-zero component is the zeroth-element of the underlying matrix (remember 
 
 If one wants to create spin operators for higher spin systems, then the :func:`.jmat` function comes in handy.
 
+.. _quantum_gates:
+
+Gates
+=====
+
+The pre-defined gates are shown in the table below:
+
+
+.. cssclass:: table-striped
+
++------------------------------------------------+-------------------------------------------------------+
+| Gate function                                  | Description                                           |
++================================================+=======================================================+
+| :func:`~qutip.core.gates.rx`                   | Rotation around x axis                                |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.ry`                   | Rotation around y axis                                |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.rz`                   | Rotation around z axis                                |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.sqrtnot`              | Square root of not gate                               |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.sqrtnot`              | Square root of not gate                               |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.snot`                 | Hardmard gate                                         |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.phasegate`            | Phase shift gate                                      |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.qrot`                 | A qubit rotation under a Rabi pulse                   |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.cy_gate`              | Controlled y gate                                     |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.cz_gate`              | Controlled z gate                                     |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.s_gate`               | Single-qubit rotation                                 |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.t_gate`               | Square root of s gate                                 |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.cs_gate`              | Controlled s gate                                     |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.ct_gate`              | Controlled t gate                                     |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.cphase`               | Controlled phase gate                                 |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.cnot`                 | Controlled not gate                                   |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.csign`                | Same as cphase                                        |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.berkeley`             | Berkeley gate                                         |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.swapalpha`            | Swapalpha gate                                        |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.swap`                 | Swap the states of two qubits                         |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.iswap`                | Swap gate with additional phase for 01 and 10 states  |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.sqrtswap`             | Square root of the swap gate                          |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.sqrtiswap`            | Square root of the iswap gate                         |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.fredkin`              | Fredkin gate                                          |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.molmer_sorensen`      | Molmer Sorensen gate                                  |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.toffoli`              | Toffoli gate                                          |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.hadamard_transform`   | Hadamard gate                                         |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.qubit_clifford_group` | Generates the Clifford group on a single qubit        |
++------------------------------------------------+-------------------------------------------------------+
+| :func:`~qutip.core.gates.globalphase`          | Global phase gate                                     |
++------------------------------------------------+-------------------------------------------------------+
+
+To load this qutip module, first you have to import gates:
+
+.. code-block:: Python
+
+   from qutip import gates
+
+For example to use the Hadamard Gate:
+
+.. testcode:: [basics]
+
+    H = gates.hadamard_transform()
+    print(H)
+
+**Output**:
+
+.. testoutput:: [basics]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims=[[2], [2]], shape=(2, 2), type='oper', dtype=Dense, isherm=True
+    Qobj data =
+    [[ 0.70710678  0.70710678]
+     [0.70710678 -0.70710678]]
+
 .. _states-expect:
 
 Expectation values
@@ -787,6 +882,7 @@ as well as the composite objects discussed in the next section :ref:`tensor`:
     np.testing.assert_almost_equal(expect(sz1, two_spins), 1)
 
     np.testing.assert_almost_equal(expect(sz2, two_spins), -1)
+
 
 .. _states-super:
 
