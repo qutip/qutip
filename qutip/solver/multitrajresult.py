@@ -286,6 +286,11 @@ class MultiTrajResult(_BaseResult):
 
     options: MultiTrajResultOptions
 
+    # Name of the attributes of the TrajectoryResult to average
+    _traj_states = "states"
+    _traj_fstate = "final_state"
+    _traj_expect = "expect"
+
     def __init__(
         self, e_ops, options: MultiTrajResultOptions, *,
         solver=None, stats=None, **kw,
@@ -411,15 +416,15 @@ class MultiTrajResult(_BaseResult):
         else:
             self.add_processor(self._store_weight_info)
         if self._store_average_density_matrices:
-            self._states_acc = _Acc_Average("states")
+            self._states_acc = _Acc_Average(self._traj_states)
             self._acc.append(self._states_acc)
             self.add_processor(self._states_acc.add)
         if self._store_final_density_matrix:
-            self._final_state_acc = _Acc_Average("final_state")
+            self._final_state_acc = _Acc_Average(self._traj_fstate)
             self._acc.append(self._final_state_acc)
             self.add_processor(self._final_state_acc.add)
         if self._raw_ops:
-            self._expect_acc = _Acc_Average("expect", std=True)
+            self._expect_acc = _Acc_Average(self._traj_expect, std=True)
             self._acc.append(self._expect_acc)
             self.add_processor(self._expect_acc.add)
 
@@ -544,7 +549,7 @@ class MultiTrajResult(_BaseResult):
                                        self.trajectories[0].states)
 
         if not self._states_acc and trajectory_states_available:
-            self._states_acc = _Acc_Average("states")
+            self._states_acc = _Acc_Average(self._traj_states)
             self._states_acc.init(self.trajectories[0])
             for trajectory in self.deterministic_trajectories:
                 self._states_acc.add(trajectory)
@@ -583,7 +588,7 @@ class MultiTrajResult(_BaseResult):
             not (self._final_state_acc or self._states_acc)
             and trajectory_final_states_available
         ):
-            self._final_state_acc = _Acc_Average("final_state")
+            self._final_state_acc = _Acc_Average(self._traj_fstate)
             self._final_state_acc.init(self.trajectories[0])
             for trajectory in self.deterministic_trajectories:
                 self._final_state_acc.add(trajectory)
@@ -1055,13 +1060,14 @@ class NmmcResult(McResult):
         For each recorded trajectory, the trace at each time.
         Only present if ``keep_runs_results`` is set in the options.
     """
+    # Average over marginal scaled versions
+    _traj_states = "_scaled_states"
+    _traj_fstate = "_scaled_final_state"
+    _traj_expect = "_scaled_expect"
 
     def _post_init(self):
         super()._post_init()
         self._time_dependent_weights = True
-        # Use marginal scaled versions
-        for acc in self._acc:
-            acc.attribute = "_scaled_" + acc.attribute
         self._trace_acc = _Acc_Average("trace")
         self._acc.append(self._trace_acc)
         self.add_processor(self._trace_acc.add)

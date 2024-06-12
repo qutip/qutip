@@ -476,8 +476,15 @@ class TrajectoryResult(Result):
             raise RuntimeError(
                 "This result does not have time-dependent weight"
             )
+
+        def _to_dm(qobj):
+            # TODO: Paul: Can nmmcsolve support open systems?
+            if qobj.isket:
+                return qobj.proj()
+            return qobj
+
         return [
-            state * w
+            _to_dm(state) * w
             for state, w in zip(self.states, self._time_weight)
         ]
 
