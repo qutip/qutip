@@ -895,22 +895,7 @@ class Qobj:
         """
         if self._dims[0] != self._dims[1]:
             raise TypeError('sqrt only valid on square matrices')
-        if isinstance(self.data, _data.CSR) and sparse:
-            evals, evecs = _data.eigs_csr(self.data,
-                                          isherm=self._isherm,
-                                          tol=tol, maxiter=maxiter)
-        elif isinstance(self.data, _data.CSR):
-            evals, evecs = _data.eigs(_data.to(_data.Dense, self.data),
-                                      isherm=self._isherm)
-        else:
-            evals, evecs = _data.eigs(self.data, isherm=self._isherm)
-
-        dV = _data.diag([np.sqrt(evals, dtype=complex)], 0)
-        if self.isherm:
-            spDv = _data.matmul(dV, evecs.conj().transpose())
-        else:
-            spDv = _data.matmul(dV, _data.inv(evecs))
-        return Qobj(_data.matmul(evecs, spDv),
+        return Qobj(_data.sqrtm(self._data),
                     dims=self._dims,
                     copy=False)
 
