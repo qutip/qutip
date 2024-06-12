@@ -404,7 +404,6 @@ class TrajectoryResult(Result):
         self.rel_weight = 1
         self.abs_weight = None
         self._time_weight = None
-        self._has_weight = False
 
     def add_absolute_weight(self, new_weight):
         """
@@ -416,7 +415,6 @@ class TrajectoryResult(Result):
             self.abs_weight = new_weight
         else:
             self.abs_weight = self.abs_weight * new_weight
-        self._has_weight = True
 
     def add_relative_weight(self, new_weight):
         """
@@ -425,7 +423,6 @@ class TrajectoryResult(Result):
         """
         new_weight = new_weight
         self.rel_weight = self.rel_weight * new_weight
-        self._has_weight = True
 
     def add_time_weight(self, new_weight):
         """
@@ -439,12 +436,6 @@ class TrajectoryResult(Result):
             self._time_weight = new_weight
         else:
             self._time_weight = self._time_weight * new_weight
-        self._has_weight = True
-
-    @property
-    def has_weight(self):
-        """Whether any weight has been set."""
-        return self._has_weight
 
     @property
     def has_absolute_weight(self):

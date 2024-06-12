@@ -169,19 +169,18 @@ class TestResult:
         for i in range(5):
             res.add(i, qutip.basis(5, i))
 
-        assert not res.has_weight
         assert not res.has_absolute_weight
         assert not res.has_time_dependent_weight
         assert res.total_weight == 1
 
         res.add_absolute_weight(2)
         res.add_absolute_weight(2)
-        assert res.has_weight and res.has_absolute_weight
+        assert res.has_absolute_weight
         assert not res.has_time_dependent_weight
         assert res.total_weight == 4
 
         res.add_time_weight([1j ** i for i in range(5)])
-        assert res.has_weight and res.has_absolute_weight
+        assert res.has_absolute_weight
         assert res.has_time_dependent_weight
         np.testing.assert_array_equal(res.total_weight, 4)
 
@@ -193,7 +192,6 @@ class TestResult:
         res = TrajectoryResult(e_ops=[], options=fill_options())
         res.add(0, qutip.fock_dm(2, 0))
         res.add_relative_weight(10)
-        assert res.has_weight
         assert not (res.has_absolute_weight or res.has_time_dependent_weight)
         assert res.total_weight == 10
 

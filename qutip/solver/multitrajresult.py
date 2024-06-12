@@ -456,7 +456,6 @@ class MultiTrajResult(_BaseResult):
         self.num_trajectories += 1
 
         if not isinstance(trajectory, TrajectoryResult):
-            trajectory.has_weight = False
             trajectory.has_absolute_weight = False
             trajectory.has_time_dependent_weight = False
             trajectory.total_weight = 1
