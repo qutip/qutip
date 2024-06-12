@@ -341,8 +341,8 @@ class MultiTrajResult(_BaseResult):
             # and "<1>" is one minus the sum of all absolute weights
             one = one - self._total_abs_weight
 
-        target_ntraj = np.max((avg2 / one - (abs(avg) ** 2) / (one ** 2)) /
-                              target**2 + 1)
+        std = avg2 - abs(avg)**2
+        target_ntraj = np.max(std / target**2) * one**2 + 1
 
         self._estimated_ntraj = min(target_ntraj - self._num_rel_trajectories,
                                     self._target_ntraj - self.num_trajectories)
@@ -635,8 +635,7 @@ class MultiTrajResult(_BaseResult):
 
         where p is a parameter between 0 and 1. Its default value is
         :math:`p_{\textrm{def}} = N / (N + N')`, N and N' being the number of
-        trajectories in the two result objects. (In the case of weighted
-        trajectories, only trajectories without absolute weights are counted.)
+        trajectories in the two result objects.
 
         Parameters
         ----------
@@ -665,7 +664,7 @@ class MultiTrajResult(_BaseResult):
                                      other._num_rel_trajectories)
         new.seeds = self.seeds + other.seeds
 
-        p_equal = self._num_rel_trajectories / new._num_rel_trajectories
+        p_equal = self.num_trajectories / new.num_trajectories
         if p is None:
             p = p_equal
 
@@ -1125,7 +1124,7 @@ class NmmcResult(McResult):
     def merge(self, other, p=None):
         new = super().merge(other, p)
 
-        p_eq = self._num_rel_trajectories / new._num_rel_trajectories
+        p_eq = self.num_trajectories / new.num_trajectories
         if p is None:
             p = p_eq
 
