@@ -743,9 +743,7 @@ class MultiTrajResult(_BaseResult):
 
         where p is a parameter between 0 and 1. Its default value is
         :math:`p_{\textrm{def}} = N / (N + N')`, N and N' being the number of
-        trajectories in the two result objects. (In the case of weighted
-        trajectories, only trajectories without absolute weights are counted.)
-
+        trajectories in the two result objects.
         Parameters
         ----------
         other : MultiTrajResult
