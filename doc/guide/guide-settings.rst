@@ -6,7 +6,7 @@ QuTiP settings
 
 QuTiP has multiple settings that control it's behaviour:
 
-* ``qutip.settings`` contain installation and runtime information.
+* ``qutip.settings`` contains installation and runtime information.
   Most of these parameters are readonly. But systems paths used by QuTiP are
   also included here and could need updating in none standard environment.
 * ``qutip.settings.core`` contains options for operations with ``Qobj`` and
@@ -34,18 +34,18 @@ Environment settings
 +-------------------+-----------+----------------------------------------------------------+
 | `mkl_lib`         | True      | Path of the mkl libraries found.                         |
 +-------------------+-----------+----------------------------------------------------------+
-| `ipython`         | True      | Whether running in ipython.                              |
+| `ipython`         | True      | Whether running in IPython.                              |
 +-------------------+-----------+----------------------------------------------------------+
-| `eigh_unsafe`     | True      | Whether to use eig for hermitian matrix since it can     |
-|                   |           | segfault in some conditions.                             |
+| `eigh_unsafe`     | True      | When true, SciPy's `eigh` and `eigvalsh` are replaced with custom implementations that call `eig` and `eigvals` instead.     |
+|                   | This setting exists because in some environments SciPy's `eigh` segfaults or gives invalid results.          |                             |
 +-------------------+-----------+----------------------------------------------------------+
-| `coeffroot`       | False     | Directory in which QuTiP creates cython module for       |
+| `coeffroot`       | False     | Directory in which QuTiP creates cython modules for       |
 |                   |           | string coefficient.                                      |
 +-------------------+-----------+----------------------------------------------------------+
 | `coeff_write_ok`  | True      | Whether QuTiP has write permission for `coeffroot`.      |
 +-------------------+-----------+----------------------------------------------------------+
 | `idxint_size`     | True      | Whether QuTiP's sparse matrix indices use 32 or 64 bits. |
-|                   |           | Sparse matrices' size are limited to 2**(idxint_size-1). |
+|                   |           | Sparse matrices' size are limited to 2**(idxint_size-1) rows and columns. |
 +-------------------+-----------+----------------------------------------------------------+
 | `num_cpus`        | True      | Detected number of cpus.                                 |
 +-------------------+-----------+----------------------------------------------------------+
@@ -57,7 +57,7 @@ It may be needed to update ``coeffroot`` if the default HOME is not writable. It
 
 >>> qutip.settings.coeffroot = "path/to/string/coeff/directory"
 
-New to version 5, string compiled in a session are kept for future sessions.
+In QuTiP version 5 and later, strings compiled in a session are kept for future sessions.
 As long as the same ``coeffroot`` is used, each string will only be compiled once.
 
 
@@ -172,7 +172,7 @@ Lastly some options control how qutip tries to detect C types (for advanced user
 +--------------------------+-----------------------------------------------------------------------------------------+
 | Options                  | Description                                                                             |
 +==========================+=========================================================================================+
-| `try_parse`              | Whether qutip parse the string to detect common patterns.                               |
+| `try_parse`              | Whether QuTiP parses the string to detect common patterns.                               |
 |                          |                                                                                         |
 |                          | When True, "cos(w * t)" and "cos(a * t)" will use the same compiled coefficient.        |
 +--------------------------+-----------------------------------------------------------------------------------------+
@@ -180,11 +180,11 @@ Lastly some options control how qutip tries to detect C types (for advanced user
 |                          |                                                                                         |
 |                          | If True, scalar (int, float, complex), string and Data types are detected.              |
 +--------------------------+-----------------------------------------------------------------------------------------+
-| `accept_int`             | Whether to type ``args`` values which are python int as int or float/complex.           |
+| `accept_int`             | Whether to type ``args`` values which are Python ints as int or float/complex.           |
 |                          |                                                                                         |
 |                          | Per default it is True when subscription (``a[i]``) is used.                            |
 +--------------------------+-----------------------------------------------------------------------------------------+
-| `accept_float`           | Whether to type ``args`` values which are python float as int or float/complex.         |
+| `accept_float`           | Whether to type ``args`` values which are Python floats as int or float/complex.         |
 |                          |                                                                                         |
 |                          | Per default it is True when comparison (``a > b``) is used.                             |
 +--------------------------+-----------------------------------------------------------------------------------------+

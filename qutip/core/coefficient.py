@@ -403,7 +403,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None, **_):
     if not compile_opt['use_cython']:
         if WARN_MISSING_MODULE[0]:
             warnings.warn(
-                "`cython` `setuptools` and `filelock` are required for "
+                "`cython`, `setuptools` and `filelock` are required for "
                 "compilation of string coefficents. Falling back on `eval`.")
             # Only warns once.
             WARN_MISSING_MODULE[0] = 0
