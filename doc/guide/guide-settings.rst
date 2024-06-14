@@ -36,16 +36,20 @@ Environment settings
 +-------------------+-----------+----------------------------------------------------------+
 | `ipython`         | True      | Whether running in IPython.                              |
 +-------------------+-----------+----------------------------------------------------------+
-| `eigh_unsafe`     | True      | When true, SciPy's `eigh` and `eigvalsh` are replaced with custom implementations that call `eig` and `eigvals` instead.     |
-|                   | This setting exists because in some environments SciPy's `eigh` segfaults or gives invalid results.          |                             |
+| `eigh_unsafe`     | True      | When true, SciPy's `eigh` and `eigvalsh` are replaced    |
+|                   |           | with custom implementations that call `eig` and          |
+|                   |           | `eigvals` instead. This setting exists because in some   |
+|                   |           | environments SciPy's `eigh` segfaults or gives invalid   |
+|                   |           | results.                                                 |
 +-------------------+-----------+----------------------------------------------------------+
-| `coeffroot`       | False     | Directory in which QuTiP creates cython modules for       |
+| `coeffroot`       | False     | Directory in which QuTiP creates cython modules for      |
 |                   |           | string coefficient.                                      |
 +-------------------+-----------+----------------------------------------------------------+
 | `coeff_write_ok`  | True      | Whether QuTiP has write permission for `coeffroot`.      |
 +-------------------+-----------+----------------------------------------------------------+
 | `idxint_size`     | True      | Whether QuTiP's sparse matrix indices use 32 or 64 bits. |
-|                   |           | Sparse matrices' size are limited to 2**(idxint_size-1) rows and columns. |
+|                   |           | Sparse matrices' size are limited to 2**(idxint_size-1)  |
+|                   |           | rows and columns.                                        |
 +-------------------+-----------+----------------------------------------------------------+
 | `num_cpus`        | True      | Detected number of cpus.                                 |
 +-------------------+-----------+----------------------------------------------------------+
@@ -172,7 +176,7 @@ Lastly some options control how qutip tries to detect C types (for advanced user
 +--------------------------+-----------------------------------------------------------------------------------------+
 | Options                  | Description                                                                             |
 +==========================+=========================================================================================+
-| `try_parse`              | Whether QuTiP parses the string to detect common patterns.                               |
+| `try_parse`              | Whether QuTiP parses the string to detect common patterns.                              |
 |                          |                                                                                         |
 |                          | When True, "cos(w * t)" and "cos(a * t)" will use the same compiled coefficient.        |
 +--------------------------+-----------------------------------------------------------------------------------------+
@@ -180,11 +184,11 @@ Lastly some options control how qutip tries to detect C types (for advanced user
 |                          |                                                                                         |
 |                          | If True, scalar (int, float, complex), string and Data types are detected.              |
 +--------------------------+-----------------------------------------------------------------------------------------+
-| `accept_int`             | Whether to type ``args`` values which are Python ints as int or float/complex.           |
+| `accept_int`             | Whether to type ``args`` values which are Python ints as int or float/complex.          |
 |                          |                                                                                         |
 |                          | Per default it is True when subscription (``a[i]``) is used.                            |
 +--------------------------+-----------------------------------------------------------------------------------------+
-| `accept_float`           | Whether to type ``args`` values which are Python floats as int or float/complex.         |
+| `accept_float`           | Whether to type ``args`` values which are Python floats as int or float/complex.        |
 |                          |                                                                                         |
 |                          | Per default it is True when comparison (``a > b``) is used.                             |
 +--------------------------+-----------------------------------------------------------------------------------------+
