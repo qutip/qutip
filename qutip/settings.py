@@ -212,7 +212,7 @@ class Settings:
         return os.access(self.coeffroot, os.W_OK)
 
     @property
-    def has_openmp(self):
+    def _has_openmp(self):
         return False
         # We keep this as a reminder for when openmp is restored: see Pull #652
         # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -239,32 +239,6 @@ class Settings:
             num_cpus = available_cpu_count()
             os.environ['QUTIP_NUM_PROCESSES'] = str(num_cpus)
         return num_cpus
-
-    @property
-    def debug(self):
-        """
-        Debug mode for development.
-        """
-        return self._debug
-
-    @debug.setter
-    def debug(self, value):
-        self._debug = value
-
-    @property
-    def log_handler(self):
-        """
-        Define whether log handler should be:
-        - default: switch based on IPython detection
-        - stream: set up non-propagating StreamHandler
-        - basic: call basicConfig
-        - null: leave logging to the user
-        """
-        return self._log_handler
-
-    @log_handler.setter
-    def log_handler(self, value):
-        self._log_handler = value
 
     @property
     def colorblind_safe(self):
