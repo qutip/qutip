@@ -301,9 +301,19 @@ def test_krylovsolve(always_compute_step):
     e_op.dims = H.dims
     tlist = np.linspace(0, 1, 11)
     ref = sesolve(H, psi0, tlist, e_ops=[e_op]).expect[0]
-    options = {"always_compute_step", always_compute_step}
-    krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op]).expect[0]
-    np.testing.assert_allclose(ref, krylov_sol)
+    options = {"always_compute_step": always_compute_step}
+    krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op], options=options)
+    np.testing.assert_allclose(ref, krylov_sol.expect[0])
+
+
+def test_krylovsolve_error():
+    H = qutip.rand_herm(256, density=0.2)
+    psi0 = qutip.basis([256], [255])
+    tlist = np.linspace(0, 1, 11)
+    options = {"min_step": 1e10}
+    with pytest.raises(ValueError) as err:
+        krylovsolve(H, psi0, tlist, 20, options=options)
+    assert "error with the minimum step" in str(err.value)
 
 
 def test_feedback():

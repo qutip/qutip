@@ -60,7 +60,7 @@ def _make_oper(kind, N):
     pytest.param("Euler", 0.5, {}, id="Euler"),
     pytest.param("Milstein", 1.0, {}, id="Milstein"),
     pytest.param("Milstein_imp", 1.0, {}, id="Milstein implicit"),
-    pytest.param("Milstein_imp", 1.0, {"imp_method": "inv"},
+    pytest.param("Milstein_imp", 1.0, {"solve_method": "inv"},
                  id="Milstein implicit inv"),
     pytest.param("Platen", 1.0, {}, id="Platen"),
     pytest.param("PredCorr", 1.0, {}, id="PredCorr"),
@@ -68,7 +68,7 @@ def _make_oper(kind, N):
     pytest.param("Taylor15", 1.5, {}, id="Taylor15"),
     pytest.param("Explicit15", 1.5, {}, id="Explicit15"),
     pytest.param("Taylor15_imp", 1.5, {}, id="Taylor15 implicit"),
-    pytest.param("Taylor15_imp", 1.5, {"imp_method": "inv"},
+    pytest.param("Taylor15_imp", 1.5, {"solve_method": "inv"},
                  id="Taylor15 implicit inv"),
 ])
 @pytest.mark.parametrize(['H', 'sc_ops'], [
@@ -79,7 +79,7 @@ def _make_oper(kind, N):
     pytest.param("qeye", ["qeye", "destroy", "destroy2"], id='3 sc_ops'),
 ])
 def test_methods(H, sc_ops, method, order, kw):
-    if kw == {"imp_method": "inv"} and ("td" in H or "td" in sc_ops[0]):
+    if kw == {"solve_method": "inv"} and ("td" in H or "td" in sc_ops[0]):
         pytest.skip("inverse method only available for constant cases.")
     N = 5
     H = _make_oper(H, N)

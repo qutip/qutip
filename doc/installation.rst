@@ -36,11 +36,11 @@ The following packages are currently required:
 +----------------+--------------+-----------------------------------------------------+
 | Package        | Version      | Details                                             |
 +================+==============+=====================================================+
-| **Python**     | 3.6+         |                                                     |
+| **Python**     | 3.9+         | 3.6+ for version 4.7                                |
 +----------------+--------------+-----------------------------------------------------+
-| **NumPy**      | 1.16+        |                                                     |
+| **NumPy**      | 1.22+ <2.0   | 1.16+ for version 4.7                               |
 +----------------+--------------+-----------------------------------------------------+
-| **SciPy**      | 1.0+         | Lower versions may have missing features.           |
+| **SciPy**      | 1.8+         | 1.0+ for version 4.7                                |
 +----------------+--------------+-----------------------------------------------------+
 
 
@@ -54,18 +54,20 @@ In addition, there are several optional packages that provide additional functio
 | ``matplotlib``           | 1.2.1+       | Needed for all visualisation tasks.                 |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``cython``               | 0.29.20+     | Needed for compiling some time-dependent            |
-|                          |              | Hamiltonians.                                       |
+| ``setuptools``           |              | Hamiltonians. Cython needs a working C++ compiler.  |
+| ``filelock``             |              |                                                     |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``cvxpy``                | 1.0+         | Needed to calculate diamond norms.                  |
-+--------------------------+--------------+-----------------------------------------------------+
-| C++                      | GCC 4.7+,    | Needed for compiling Cython files, made when        |
-| Compiler                 | MS VS 2015   | using string-format time-dependence.                |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``pytest``,              | 5.3+         | For running the test suite.                         |
 | ``pytest-rerunfailures`` |              |                                                     |
 +--------------------------+--------------+-----------------------------------------------------+
 | LaTeX                    | TeXLive 2009+| Needed if using LaTeX in matplotlib figures, or for |
 |                          |              | nice circuit drawings in IPython.                   |
++--------------------------+--------------+-----------------------------------------------------+
+| ``loky``, ``mpi4py``     |              | Extra parallel map back-ends.                       |
++--------------------------+--------------+-----------------------------------------------------+
+| ``tqdm``                 |              | Extra progress bars back-end.                       |
 +--------------------------+--------------+-----------------------------------------------------+
 
 In addition, there are several additional packages that are not dependencies, but may give you a better programming experience.
@@ -126,23 +128,6 @@ You activate the new environment by running
 You can also install any more optional packages you want with ``conda install``, for example ``matplotlib``, ``ipython`` or ``jupyter``.
 
 
-Installation of the pre-release of version 5
-============================================
-
-QuTiP version 5 has been in development for some time and brings many new features, heavily reworks the core functionalities of QuTiP.
-It is available as a pre-release on PyPI. Anyone wanting to try the new features can install it with:
-
-.. code-block:: bash
-
-   pip install --pre qutip
-
-We expect the pre-release to fully work.
-If you find any bugs, confusing documentation or missing features, please tell create an issue on `github <https://github.com/qutip/qutip/issues>`_.
-
-This version breaks compatibility with QuTiP 4.7 in many small ways.
-Please see the :doc:`changelog` for a list of changes, new features and deprecations.
-
-
 .. _install-from-source:
 
 Installing from Source
@@ -182,11 +167,11 @@ Direct Setuptools Source Builds
 This is the method to have the greatest amount of control over the installation, but it the most error-prone and not recommended unless you know what you are doing.
 You first need to have all the runtime dependencies installed.
 The most up-to-date requirements will be listed in ``pyproject.toml`` file, in the ``build-system.requires`` key.
-As of the 4.6.0 release, the build requirements can be installed with
+As of the 5.0.0 release, the build requirements can be installed with
 
 .. code-block:: bash
 
-   pip install setuptools wheel packaging 'cython>=0.29.20' 'numpy>=1.16.6,<1.20' 'scipy>=1.0'
+   pip install setuptools wheel packaging cython 'numpy<2.0.0' scipy
 
 or similar with ``conda`` if you prefer.
 You will also need to have a functional C++ compiler installed on your system.
@@ -196,17 +181,7 @@ To install QuTiP from the source code run:
 
 .. code-block:: bash
 
-   python setup.py install
-
-To install OpenMP support, if available, run:
-
-.. code-block:: bash
-
-   python setup.py install --with-openmp
-
-This will attempt to load up OpenMP libraries during the compilation process, which depends on you having suitable C++ compiler and library support.
-If you are on Linux this is probably already done, but the compiler macOS ships with does not have OpenMP support.
-You will likely need to refer to external operating-system-specific guides for more detail here, as it may be very non-trivial to correctly configure.
+   pip install .
 
 If you wish to contribute to the QuTiP project, then you will want to create your own fork of `the QuTiP git repository <https://github.com/qutip/qutip>`_, clone this to a local folder, and install it into your Python environment using:
 
@@ -252,12 +227,11 @@ Verifying the Installation
 
 QuTiP includes a collection of built-in test scripts to verify that an installation was successful.
 To run the suite of tests scripts you must also have the ``pytest`` testing library.
-After installing QuTiP, leave the installation directory, run Python (or IPython), and call:
+After installing QuTiP, leave the installation directory and call:
 
-.. code-block:: python
+.. code-block:: bash
 
-   import qutip.testing
-   qutip.testing.run()
+   pytest qutip/qutip/tests
 
 This will take between 10 and 30 minutes, depending on your computer.
 At the end, the testing report should report a success; it is normal for some tests to be skipped, and for some to be marked "xfail" in yellow.

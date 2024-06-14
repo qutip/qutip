@@ -1,4 +1,8 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 import numpy as np
+from numpy.typing import ArrayLike
 import scipy
 import scipy.interpolate
 import os
@@ -25,6 +29,7 @@ from .cy.coefficient import (
     Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
     ConjCoefficient, NormCoefficient, ConstantCoefficient
 )
+from qutip.typing import CoefficientLike
 
 
 __all__ = ["coefficient", "CompilationOptions", "Coefficient",
@@ -51,9 +56,18 @@ coefficient_builders = {
 }
 
 
-def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                order=3, compile_opt=None, function_style=None,
-                boundary_conditions=None, **kwargs):
+def coefficient(
+    base: CoefficientLike,
+    *,
+    tlist: ArrayLike = None,
+    args: dict = {},
+    args_ctypes: dict = {},
+    order: int = 3,
+    compile_opt: dict = None,
+    function_style: str = None,
+    boundary_conditions: tuple | str = None,
+    **kwargs
+):
     """Build ``Coefficient`` for time dependent systems:
 
     ```

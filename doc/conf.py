@@ -62,10 +62,13 @@ author = ', '.join([
     'B. Li',
     'J. Lishman',
     'S. Cross',
+    'A. Galicia',
+    'P. Menczel',
+    'P. Hopf',
     'and E. Giguère'
 ])
 
-copyright = '2011 to 2021 inclusive, QuTiP developers and contributors'
+copyright = '2011 to 2024 inclusive, QuTiP developers and contributors'
 
 
 def _check_source_folder_and_imported_qutip_match():
@@ -358,6 +361,16 @@ texinfo_documents = [
 ]
 
 autodoc_member_order = 'alphabetical'
+
+# Makes the following types appear as their alias in the apidoc
+# instead of expanding the alias
+autodoc_type_aliases = {
+    'CoefficientLike': 'CoefficientLike',
+    'ElementType': 'ElementType',
+    'QobjEvoLike': 'QobjEvoLike',
+    'LayerType': 'LayerType',
+    'ArrayLike': 'ArrayLike'
+}
 
 ## EXTLINKS CONFIGURATION ######################################################
 

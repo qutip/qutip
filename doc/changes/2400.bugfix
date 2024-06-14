@@ -1,0 +1,3 @@
+Bug Fix in Process Matrix Rendering
+
+Resolved a rendering issue in the process matrix visualization. Previously, the code did not utilize matplotlib's built-in z-sorting mechanism. Experiments with various z-sort configurations (min, max, average) yielded inconsistent results across different charts. The solution was inspired by a Stack Overflow discussion (https://stackoverflow.com/questions/18602660/matplotlib-bar3d-clipping-problems). By adjusting the calculation of camera coordinates and incorporating minor modifications from the suggested approach, the rendering issue has been successfully addressed.

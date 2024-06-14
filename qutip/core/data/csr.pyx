@@ -12,7 +12,7 @@ from cpython cimport mem
 
 import numbers
 import warnings
-
+import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
@@ -78,7 +78,7 @@ cdef class CSR(base.Data):
         # single flag that is set as soon as the pointers are assigned.
         self._deallocate = True
 
-    def __init__(self, arg=None, shape=None, bint copy=True, bint tidyup=False):
+    def __init__(self, arg=None, shape=None, copy=True, bint tidyup=False):
         # This is the Python __init__ method, so we do not care that it is not
         # super-fast C access.  Typically Cython code will not call this, but
         # will use a factory method in this module or at worst, call
@@ -100,6 +100,9 @@ cdef class CSR(base.Data):
             raise TypeError("arg must be a scipy matrix or tuple")
         if len(arg) != 3:
             raise ValueError("arg must be a (data, col_index, row_index) tuple")
+        if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
+            # np2 accept None which act as np1's False
+            copy = builtins.bool(copy)
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
         col_index = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
         row_index = np.array(arg[2], dtype=idxint_dtype, copy=copy, order='C')
