@@ -29,11 +29,10 @@ jobs:
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.11"]
         case-name: [defaults]
-        numpy-build: [""]  # On conda, the prerelease is tagged as 2.0
+        numpy-build: [""]
         numpy-requirement: [""]
         scipy-requirement: [">=1.9"]
         coverage-requirement: ["==6.5"]
-        # pypi: 1  # numpy 2 not yet available on conda
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
@@ -43,7 +42,7 @@ jobs:
           - case-name: python 3.12
             os: ubuntu-latest
             python-version: "3.12"
-            numpy-build: ">=2.0.0rc2"
+            numpy-build: ">=2.0.0"
             pypi: 1
 
           # Binaries compiled with numpy 2 should be compatible when using
@@ -134,7 +133,6 @@ jobs:
         # version of cython, scipy, numpy in the test matrix, not a temporary
         # version use in the installation virtual environment.
         run: |
-          conda config --add channels conda-forge/label/numpy_rc
           # Install the extra requirement
           python -m pip install pytest>=5.2 pytest-rerunfailures  # tests
           python -m pip install matplotlib>=1.2.1  # graphics
