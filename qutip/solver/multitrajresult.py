@@ -337,13 +337,16 @@ class MultiTrajResult(_BaseResult):
             # We only include traj. without abs. weights in this calculation.
             # Since there are traj. with abs. weights., the weights don't add
             # up to one. We have to consider that as follows:
-            #   <(x - <x>)^2> / <1> = <x^2> / <1> - <x>^2 / <1>^2
+            # err = (std * <w>**2 / (N-1)) ** 0.5
+            # avg = <x * w>
+            # avg2 = <x**2 * w>
+            # std * <w>**2 = (<x**2> - <x>**2) * <w>**2
+            #              = avg2 * <w> - avg**2
             # and "<1>" is one minus the sum of all absolute weights
             one = one - self._total_abs_weight
 
-        std = avg2 - abs(avg)**2
-        target_ntraj = np.max(std / target**2) * one**2 + 1
-
+        std = avg2 * one - abs(avg)**2
+        target_ntraj = np.max(std / target**2) + 1
         self._estimated_ntraj = min(target_ntraj - self._num_rel_trajectories,
                                     self._target_ntraj - self.num_trajectories)
         if self._estimated_ntraj <= 0:
@@ -522,11 +525,29 @@ class MultiTrajResult(_BaseResult):
         """
         Last states of each trajectories averaged into a density matrix.
         """
-        if ((self._sum_abs and not self._sum_abs.sum_final_state) or
-                (self._sum_rel and not self._sum_rel.sum_final_state)):
-            if (average_states := self.average_states) is not None:
-                return average_states[-1]
-            return None
+        trajectory_states_available = (self.trajectories and
+                                       self.trajectories[0].final_state)
+        states = self.average_states
+        need_to_reduce_states = False
+        if self._sum_abs and not self._sum_abs.sum_final_state:
+            if not (trajectory_states_available or states):
+                return None
+            need_to_reduce_states = True
+
+        if self._sum_rel and not self._sum_rel.sum_final_state:
+            if not (trajectory_states_available or states):
+                return None
+            need_to_reduce_states = True
+
+        if need_to_reduce_states and states:
+            return states[-1]
+        elif need_to_reduce_states:
+            if self._sum_abs:
+                self._sum_abs._initialize_sum_finalstate(self.trajectories[0])
+            if self._sum_rel:
+                self._sum_rel._initialize_sum_finalstate(self.trajectories[0])
+            for trajectory in self.trajectories:
+                self._reduce_final_state(trajectory)
 
         if self._sum_abs and self._sum_rel:
             return (self._sum_abs.sum_final_state +
@@ -659,19 +680,42 @@ class MultiTrajResult(_BaseResult):
         new.times = self.times
         new.e_ops = self.e_ops
 
+        if bool(self.trajectories) != bool(other.trajectories):
+            # ensure the states are reduced.
+            if self.trajectories:
+                self.average_states
+                self.average_final_state
+            else:
+                other.average_states
+                other.average_final_state
+
         new.num_trajectories = self.num_trajectories + other.num_trajectories
         new._num_rel_trajectories = (self._num_rel_trajectories +
                                      other._num_rel_trajectories)
         new.seeds = self.seeds + other.seeds
 
-        p_equal = self.num_trajectories / new.num_trajectories
+        p_equal = self._num_rel_trajectories / new._num_rel_trajectories
         if p is None:
-            p = p_equal
+            p = self.num_trajectories / new.num_trajectories
 
         if self.trajectories and other.trajectories:
             new.trajectories = self._merge_trajectories(other, p, p_equal)
         else:
             new._weight_info = self._merge_weight_info(other, p, p_equal)
+            new.trajectories = []
+            new.options["keep_runs_results"] = False
+            new.runs_e_data = {}
+
+        self_states = self.options["store_states"]
+        self_fstate = self.options["store_final_state"]
+        other_states = other.options["store_states"]
+        other_fstate = other.options["store_final_state"]
+
+        new.options["store_states"] = self_states and other_states
+
+        new.options["store_final_state"] = (
+            (self_fstate or self_states) and (other_fstate or other_states)
+        )
 
         new._sum_abs = _TrajectorySum.merge(
             self._sum_abs, p, other._sum_abs, 1 - p)
@@ -682,7 +726,6 @@ class MultiTrajResult(_BaseResult):
         new._create_e_data()
 
         if self.runs_e_data and other.runs_e_data:
-            new.runs_e_data = {}
             for k in self._raw_ops:
                 new.runs_e_data[k] = self.runs_e_data[k] + other.runs_e_data[k]
 
@@ -802,6 +845,11 @@ class _TrajectorySum:
     def _initialize_sum_states(self, example_trajectory):
         self.sum_states = [
             qzero_like(_to_dm(state)) for state in example_trajectory.states]
+
+    def _initialize_sum_finalstate(self, example_trajectory):
+        self.sum_final_state = qzero_like(
+            _to_dm(example_trajectory.final_state)
+        )
 
     def reduce_states(self, trajectory):
         """
@@ -1124,9 +1172,9 @@ class NmmcResult(McResult):
     def merge(self, other, p=None):
         new = super().merge(other, p)
 
-        p_eq = self.num_trajectories / new.num_trajectories
+        p_eq = self._num_rel_trajectories / new._num_rel_trajectories
         if p is None:
-            p = p_eq
+            p = self.num_trajectories / new.num_trajectories
 
         new._sum_trace_abs = (
             self._merge_weight(p, p_eq, True) * self._sum_trace_abs +
