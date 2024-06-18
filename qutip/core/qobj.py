@@ -385,6 +385,12 @@ class Qobj:
         return self.__add__(other)
 
     @_require_equal_type
+    def __iadd__(self, other: Qobj | numbers.Number) -> Qobj:
+        self.data = (self + other).data
+        self._isherm = (self._isherm and other._isherm) or None
+        return self
+
+    @_require_equal_type
     def __sub__(self, other: Qobj | numbers.Number) -> Qobj:
         if other == 0:
             return self.copy()
@@ -395,6 +401,12 @@ class Qobj:
 
     def __rsub__(self, other: Qobj | numbers.Number) -> Qobj:
         return self.__neg__().__add__(other)
+
+    @_require_equal_type
+    def __isub__(self, other: Qobj | numbers.Number) -> Qobj:
+        self.data = (self - other).data
+        self._isherm = (self._isherm and other._isherm) or None
+        return self
 
     def __mul__(self, other: numbers.Number) -> Qobj:
         """
@@ -435,6 +447,16 @@ class Qobj:
         # we _shouldn't_ check that `other` is `Qobj`.
         return self.__mul__(other)
 
+    def __imul__(self, other: numbers.Number) -> Qobj:
+        if isinstance(other, Qobj):
+            self @= other
+        else:
+            out = self * other
+            self.data = out.data
+            self._isherm = out._isherm
+            self._isunitary = out._isunitary
+        return self
+
     def __matmul__(self, other: Qobj) -> Qobj:
         if not isinstance(other, Qobj):
             try:
@@ -452,8 +474,22 @@ class Qobj:
             copy=False
         )
 
+    def __imatmul__(self, other: Qobj) -> Qobj:
+        out = self @ other
+        self.data = out.data
+        self._dims = out._dims
+        self._isunitary = out._isunitary
+        return self
+
     def __truediv__(self, other: numbers.Number) -> Qobj:
         return self.__mul__(1 / other)
+
+    def __itruediv__(self, other: numbers.Number) -> Qobj:
+        out = self * (1 / other)
+        self.data = out.data
+        self._isherm = out._isherm
+        self._isunitary = out._isunitary
+        return self
 
     def __neg__(self) -> Qobj:
         return Qobj(_data.neg(self._data),

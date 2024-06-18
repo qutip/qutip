@@ -130,7 +130,7 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         A = liouvillian(A, c_ops)
     else:
         for op in c_ops:
-            A += lindblad_dissipator(op)
+            A = A + lindblad_dissipator(op)
 
     if "-" in method:
         # to support v4's "power-gmres" method
@@ -500,9 +500,9 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     Q = _data.sub(I, P)
 
     if w in [None, 0.0]:
-        L += 1e-15j
+        L = L + 1e-15j
     else:
-        L += 1.0j * w
+        L = L + 1.0j * w
 
     use_rcm = use_rcm and isinstance(L.data, _data.CSR)
 

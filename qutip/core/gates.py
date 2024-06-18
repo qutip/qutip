@@ -778,7 +778,7 @@ def _powers(op, N):
     yield acc
 
     for _ in range(N - 1):
-        acc *= op
+        acc = acc * op
         yield acc
 
 
