@@ -6,6 +6,7 @@ import pytest
 
 from qutip import qeye, num, to_kraus, kraus_to_choi, CoreOptions, Qobj
 from qutip import data as _data
+from qutip.dimensions import Space
 from qutip.random_objects import (
     rand_herm,
     rand_unitary,
@@ -22,8 +23,9 @@ from qutip.random_objects import (
     12,
     [8],
     [2, 2, 3],
-    [[2], [2]]
-], ids=["int", "list", "tensor", "super"])
+    [[2], [2]],
+    Space(3),
+], ids=["int", "list", "tensor", "super", "Space"])
 def dimensions(request):
     return request.param
 
