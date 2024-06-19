@@ -268,7 +268,7 @@ def dicke_function_trace(f, rho):
         normalized_block = block / dj
         eigenvals_block = eigvalsh(normalized_block)
         for val in eigenvals_block:
-            eigenvals_degeneracy.append(val)
+            eigenvals_degeneracy.append(abs(val))
             deg.append(dj)
 
     eigenvalue = np.array(eigenvals_degeneracy)
