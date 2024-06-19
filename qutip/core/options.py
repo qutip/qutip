@@ -1,5 +1,5 @@
 from ..settings import settings
-
+import numpy as np
 __all__ = ["CoreOptions"]
 
 
@@ -127,6 +127,8 @@ class CoreOptions(QutipOptions):
         # Expect, trace, etc. will return real for hermitian matrices.
         # Hermiticity checks can be slow, stop jitting, etc.
         "auto_real_casting": True,
+        # Default backend is numpy
+        "backend": np,
     }
     _settings_name = "core"
 
