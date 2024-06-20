@@ -819,7 +819,7 @@ def qubit_clifford_group(*, dtype: LayerType = None) -> list[Qobj]:
 
     X = sigmax()
     S = phasegate(np.pi / 2)
-    E = H @ (S**3) @ w**3
+    E = H @ (S**3) * w**3
 
     # partial(reduce, mul) returns a function that takes products
     # of its argument, by analogy to sum. Note that by analogy,

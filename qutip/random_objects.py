@@ -55,9 +55,9 @@ def _implicit_tensor_dimensions(dimensions, superoper=False):
         Dimension list in the form required by ``Qobj`` creation.
     """
     if isinstance(dimensions, Space):
-        pass
+        dimensions = dimensions.as_list()
     if not isinstance(dimensions, list):
-        dimensions = Space(dimensions)
+        dimensions = [dimensions]
     flat = flatten(dimensions)
     if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
         raise ValueError("All dimensions must be integers >= 0")
