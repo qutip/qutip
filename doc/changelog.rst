@@ -6,6 +6,32 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.0.3 (2024-06-20)
+========================
+
+Bug Fixes
+---------
+
+- Bug Fix in Process Matrix Rendering
+
+  Resolved a rendering issue in the process matrix visualization. Previously, the code did not utilize matplotlib's built-in z-sorting mechanism. Experiments with various z-sort configurations (min, max, average) yielded inconsistent results across different charts. The solution was inspired by a Stack Overflow discussion (https://stackoverflow.com/questions/18602660/matplotlib-bar3d-clipping-problems). By adjusting the calculation of camera coordinates and incorporating minor modifications from the suggested approach, the rendering issue has been successfully addressed. (#2400)
+- Fix steadystate permutation being reversed. (#2443)
+- Add parallelizing support for `vernN` methods with `mcsolve`. (#2454)
+
+
+Documentation
+-------------
+
+- Added `qutip.core.gates` to apidoc/functions.rst and a Gates section to guide-states.rst. (#2441)
+
+
+Miscellaneous
+-------------
+
+- Add support for numpy 2 (#2421)
+- Add numpy 2 support (#2457)
+
+
 QuTiP 5.0.2 (2024-05-16)
 ========================
 
