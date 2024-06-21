@@ -140,7 +140,6 @@ jobs:
         run: |
           # Install the extra requirement
           python -m pip install pytest>=5.2 pytest-rerunfailures  # tests
-          python -m pip install matplotlib>=1.2.1  # graphics
           python -m pip install ipython  # ipython
           python -m pip install loky tqdm  # extras
           python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
@@ -157,9 +156,6 @@ jobs:
             pip install "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
           else
             conda install nomkl "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
-          fi
-          if [[ -n "${{ matrix.semidefinite }}" ]]; then
-            python -m pip install cvxpy>=1.0 cvxopt
           fi
           if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install "${{ matrix.conda-extra-pkgs }}"
@@ -189,7 +185,10 @@ jobs:
           else
             conda install nomkl "numpy${{ matrix.numpy-requirement }}"
           fi
-
+          if [[ -n "${{ matrix.semidefinite }}" ]]; then
+            python -m pip install cvxpy>=1.0 cvxopt
+          fi
+          python -m pip install matplotlib>=1.2.1  # graphics
 
       - name: Package information
         run: |
