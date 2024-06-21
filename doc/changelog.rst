@@ -9,6 +9,8 @@ Change Log
 QuTiP 5.0.3 (2024-06-20)
 ========================
 
+Micro release to add support for numpy 2.
+
 Bug Fixes
 ---------
 
