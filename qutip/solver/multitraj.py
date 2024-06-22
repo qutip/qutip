@@ -434,6 +434,13 @@ class _InitialConditions:
         self._state_selector = np.cumsum(ntraj)
         self.ntraj_total = self._state_selector[-1]
 
+        if len(ntraj) != len(state_list):
+            raise ValueError('The length of the `ntraj` list must equal '
+                             'the number of states in the initial mixture')
+        if not all(n > 0 for n in ntraj):
+            raise ValueError('Each initial state must be use for at least '
+                             'one trajectory')
+
     def _minimum_roundoff_ensemble(self, state_list, ntraj_total):
         """
         Calculate a list ntraj from the given total number, under contraints

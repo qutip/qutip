@@ -537,8 +537,8 @@ class NonMarkovianMCSolver(MCSolver):
         seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
                                              **integrator_kwargs)
         martingales = [self._martingale.value(t) for t in tlist]
-        result.add_relative_weight(martingales)
-        result.trace = martingales
+        result.add_time_weight(martingales)
+        result.trace = np.array(martingales)
         return seed, result
 
     def run(self, state, tlist, ntraj=1, *, args=None, **kwargs):
