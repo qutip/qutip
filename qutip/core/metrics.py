@@ -54,7 +54,7 @@ def fidelity(A, B):
     >>> y = coherent_dm(5,1)
     >>> np.testing.assert_almost_equal(fidelity(x,y), 0.24104350624628332)
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
     if A.isket or A.isbra:
         if B.isket or B.isbra:
             # The fidelity for pure states reduces to the modulus of their
@@ -127,7 +127,7 @@ def _process_fidelity_to_id(oper):
     -------
     fid : float
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     dims_out, dims_in = _hilbert_space_dims(oper)
     if dims_out != dims_in:
@@ -187,7 +187,7 @@ def process_fidelity(oper, target=None):
     "Quantum Computation and Quantum Information"
 
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     if target is None:
         return _process_fidelity_to_id(oper)
@@ -249,7 +249,7 @@ def average_gate_fidelity(oper, target=None):
     "Quantum Computation and Quantum Information"
 
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     dims_out, dims_in = _hilbert_space_dims(oper)
     if not (target is None or target.type == 'oper'):
@@ -287,7 +287,7 @@ def tracedist(A, B, sparse=False, tol=0):
     >>> y=coherent_dm(5,1)
     >>> np.testing.assert_almost_equal(tracedist(x,y), 0.9705143161472971)
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     if A.isket or A.isbra:
         A = A.proj()
@@ -350,7 +350,7 @@ def bures_dist(A, B):
     dist : float
         Bures distance between density matrices.
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     if A.isket or A.isbra:
         A = A.proj()
@@ -380,7 +380,7 @@ def bures_angle(A, B):
     angle : float
         Bures angle between density matrices.
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     if A.isket or A.isbra:
         A = A.proj()
@@ -426,7 +426,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     >>> np.allclose(hellinger_dist(x, y), 1.3725145002591095)
         True
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     if A.isket or A.isbra:
         sqrtmA = ket2dm(A)
@@ -494,7 +494,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         If CVXPY cannot be imported.
 
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
     if cvxpy is None:  # pragma: no cover
         raise ImportError("dnorm() requires CVXPY to be installed.")
 
@@ -537,7 +537,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # of the dual map of Lambda. We can evaluate that norm much more
     # easily if Lambda is completely positive, since then the largest
     # eigenvalue is the same as the largest singular value.
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     if not force_solve and J.iscp:
         S_dual = to_super(J.dual_chan())
@@ -589,7 +589,7 @@ def unitarity(oper):
     u : float
         Unitarity of ``oper``.
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     Eu = _to_superpauli(oper).full()[1:, 1:]
     return np.linalg.norm(Eu, 'fro')**2 / len(Eu)
@@ -602,7 +602,7 @@ def _find_poly_distance(eigenvals) -> float:
     The complex eigenvalues must have unit length (i.e. lie on the circle
     about the origin).
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     phases = np.angle(eigenvals)
     phase_max = phases.max()
