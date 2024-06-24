@@ -569,8 +569,29 @@ class Bloch:
         line = pt1[:, np.newaxis] * t + pt2[:, np.newaxis] * (1 - t)
         # Normalize all the points in the line so that are distance len1 from
         # the origin.
-        arc = line * len1 / np.linalg.norm(line, axis=0)
-        self._arcs.append([arc, fmt, kwargs])
+        arc = (line * len1 / np.linalg.norm(line, axis=0)).T
+
+        # We separate the arc between what is in front and what is in back
+        front = arc[0][0] >= 0  # is it a front point?
+        part = []
+        for point in arc:
+            if (point[0] >= 0) == front:
+                part.append(point)
+            else:
+                if point[0] != 0:
+                    t_edge = 1 / (1 - part[-1][0] / point[0])
+                    edge_point = part[-1] * t_edge + point * (1 - t_edge)
+                    edge_point = edge_point * len1 / np.linalg.norm(edge_point)
+                    part.append(edge_point)
+                else:
+                    part.append(point)
+                self._arcs.append([np.array(part), front, fmt, kwargs])
+                if point[0] != 0:
+                    part = [edge_point, point]
+                else:
+                    part = [point]
+                front = not front
+        self._arcs.append([np.array(part), front, fmt, kwargs])
 
     def add_line(self, start, end, fmt="k", **kwargs):
         """Adds a line segment connecting two points on the bloch sphere.
@@ -685,15 +706,16 @@ class Bloch:
         # Matplotlib did this stretching for < 3.3.0, but not above.
         if parse_version(matplotlib.__version__) >= parse_version('3.3'):
             self.axes.set_box_aspect((1, 1, 1))
-        if not self.background:
-            self.plot_axes()
 
         self.plot_back()
         self.plot_points()
         self.plot_vectors()
         self.plot_lines()
-        self.plot_arcs()
+        self.plot_arcs(False)
+        if not self.background:
+            self.plot_axes()
         self.plot_front()
+        self.plot_arcs(True)
         self.plot_axes_labels()
         self.plot_annotations()
         # Trigger an update of the Bloch sphere if it is already shown:
@@ -716,8 +738,8 @@ class Bloch:
         # equator
         self.axes.plot(1.0 * cos(u), 1.0 * sin(u), zs=0, zdir='z',
                        lw=self.frame_width, color=self.frame_color)
-        self.axes.plot(1.0 * cos(u), 1.0 * sin(u), zs=0, zdir='x',
-                       lw=self.frame_width, color=self.frame_color)
+        self.axes.plot(1.0 * cos(u-np.pi/2), 1.0 * sin(u-np.pi/2), zs=0,
+                       zdir='x', lw=self.frame_width, color=self.frame_color)
 
     def plot_front(self):
         # front half of sphere
@@ -737,7 +759,7 @@ class Bloch:
         self.axes.plot(1.0 * cos(u), 1.0 * sin(u),
                        zs=0, zdir='z', lw=self.frame_width,
                        color=self.frame_color)
-        self.axes.plot(1.0 * cos(u), 1.0 * sin(u),
+        self.axes.plot(1.0 * cos(u-np.pi/2), 1.0 * sin(u-np.pi/2),
                        zs=0, zdir='x', lw=self.frame_width,
                        color=self.frame_color)
 
@@ -867,9 +889,10 @@ class Bloch:
         for line, fmt, kw in self._lines:
             self.axes.plot(line[0], line[1], line[2], fmt, **kw)
 
-    def plot_arcs(self):
-        for arc, fmt, kw in self._arcs:
-            self.axes.plot(arc[1, :], -arc[0, :], arc[2, :], fmt, **kw)
+    def plot_arcs(self, plot_front):
+        for arc, front, fmt, kw in self._arcs:
+            if plot_front == front:
+                self.axes.plot(arc[:, 1], -arc[:, 0], arc[:, 2], fmt, **kw)
 
     def show(self):
         """

@@ -50,12 +50,40 @@ class TestBloch:
 
         t = np.linspace(0, 1, steps)
         line = start[:, np.newaxis] * t + end[:, np.newaxis] * (1 - t)
-        arc = line * np.linalg.norm(start) / np.linalg.norm(line, axis=0)
-
+        len1 = np.linalg.norm(start)
+        arc = (line * len1 / np.linalg.norm(line, axis=0)).T
+        pos_arc, neg_arc = [], []
+        front = arc[0][0] >= 0
+        if front:
+            part = pos_arc
+        else:
+            part = neg_arc
+        for point in arc:
+            if (point[0] >= 0) == front:
+                part.append(point)
+            else:
+                if point[0] != 0:
+                    t_edge = 1 / (1 - part[-1][0] / point[0])
+                    edge_point = part[-1] * t_edge + point * (1 - t_edge)
+                    edge_point = edge_point * len1 / np.linalg.norm(edge_point)
+                    part.append(edge_point)
+                else:
+                    part.append(point)
+                front = not front
+                if front:
+                    part = pos_arc
+                else:
+                    part = neg_arc
+                if point[0] != 0:
+                    part.append(edge_point)
+                    part.append(point)
+                else:
+                    part.append(point)
         b = RefBloch(fig=fig)
         b.render_back()
-        b.axes.plot(arc[1, :], -arc[0, :], arc[2, :], fmt, **kw)
+        b.axes.plot(neg_arc[:, 1], -neg_arc[:, 0], neg_arc[:, 2], fmt, **kw)
         b.render_front()
+        b.axes.plot(pos_arc[:, 1], -pos_arc[:, 0], pos_arc[:, 2], fmt, **kw)
 
     @pytest.mark.parametrize([
         "start_test", "start_ref", "end_test", "end_ref", "kwargs",
@@ -89,6 +117,18 @@ class TestBloch:
             ket2dm(ket("0")) * 0.5, (0, 0, 0.5),
             ket2dm(ket("0") + ket("1")).unit() * 0.5, (0.5, 0, 0),
             {}, id="non-unit-dms",
+        ),
+        pytest.param(
+            (-1, 0, 0), (-1, 0, 0),
+            (np.cos(-11*np.pi/6), np.sin(-11*np.pi/6), 0),
+            (np.cos(-11*np.pi/6), np.sin(-11*np.pi/6), 0),
+            {}, id="crossing-plus-y",
+        ),
+        pytest.param(
+            (-1, 0, 0), (-1, 0, 0),
+            (np.cos(11*np.pi/6), np.sin(11*np.pi/6), 0),
+            (np.cos(11*np.pi/6), np.sin(11*np.pi/6), 0),
+            {}, id="crossing-minus-y",
         ),
     ])
     @check_pngs_equal
