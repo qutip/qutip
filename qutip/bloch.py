@@ -678,8 +678,8 @@ class Bloch:
         self.plot_points()
         self.plot_vectors()
         self.plot_lines()
-        self.plot_arcs()
         self.plot_front()
+        self.plot_arcs()
         self.plot_axes_labels()
         self.plot_annotations()
         # Trigger an update of the Bloch sphere if it is already shown:

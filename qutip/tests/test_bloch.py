@@ -54,8 +54,8 @@ class TestBloch:
 
         b = RefBloch(fig=fig)
         b.render_back()
-        b.axes.plot(arc[1, :], -arc[0, :], arc[2, :], fmt, **kw)
         b.render_front()
+        b.axes.plot(arc[1, :], -arc[0, :], arc[2, :], fmt, **kw)
 
     @pytest.mark.parametrize([
         "start_test", "start_ref", "end_test", "end_ref", "kwargs",
