@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         name: Install Python
@@ -43,7 +43,7 @@ jobs:
           #   -T : display a full traceback if a Python exception occurs
 
       - name: Upload built PDF files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qutip_pdf_docs
           path: doc/_build/latex/*
@@ -59,7 +59,7 @@ jobs:
           #   -T : display a full traceback if a Python exception occurs
 
       - name: Upload built HTML files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qutip_html_docs
           path: doc/_build/html/*

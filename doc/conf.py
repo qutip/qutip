@@ -62,10 +62,13 @@ author = ', '.join([
     'B. Li',
     'J. Lishman',
     'S. Cross',
+    'A. Galicia',
+    'P. Menczel',
+    'P. Hopf',
     'and E. Giguère'
 ])
 
-copyright = '2011 to 2021 inclusive, QuTiP developers and contributors'
+copyright = '2011 to 2024 inclusive, QuTiP developers and contributors'
 
 
 def _check_source_folder_and_imported_qutip_match():

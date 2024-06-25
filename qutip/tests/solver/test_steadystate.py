@@ -4,6 +4,8 @@ import pytest
 import qutip
 import warnings
 from packaging import version as pac_version
+from qutip.solver.steadystate import _permute_rcm, _permute_wbm
+import qutip.core.data as _data
 
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
@@ -229,6 +231,46 @@ def test_steadystate_floquet(sparse):
 
     np.testing.assert_allclose(average_ex, expect_ss, atol=1e-2)
     assert rho_ss.tr() == pytest.approx(1, abs=1e-15)
+
+
+def test_rcm():
+    N = 5
+    a = qutip.destroy(N, dtype="CSR")
+    I = qutip.qeye(N, dtype="CSR")
+    H = (a + a.dag() & I) + (I & a * a.dag())
+    c_ops = [a & I, I & a]
+    L = qutip.liouvillian(H, c_ops).data
+    b = qutip.basis(N**4).data
+
+    def bandwidth(mat):
+        return sum(scipy.linalg.bandwidth(mat.to_array()))
+
+    # rcm should reduce bandwidth
+    assert bandwidth(L) > bandwidth(_permute_rcm(L, b)[0])
+
+
+def test_wbm():
+    N = 5
+    a = qutip.destroy(N, dtype="CSR")
+    I = qutip.qeye(N, dtype="CSR")
+    H = (a + a.dag() & I) + (I & a * a.dag())
+    c_ops = [a & I, I & a]
+    L = qutip.liouvillian(H, c_ops).data
+    b = qutip.basis(N**4).data
+
+    # shuffling the Liouvillian to ensure the diag is almost empty
+    perm = np.arange(N**4)
+    np.random.shuffle(perm)
+    L = _data.permute.indices(L, None, perm)
+
+    def dia_dominance(mat):
+        mat = mat.to_array()
+        norm = np.sum(np.abs(mat))
+        diag = np.sum(np.abs(np.diagonal(mat)))
+        return diag / norm
+
+    # wbm increase diagonal dominance
+    assert dia_dominance(L) < dia_dominance(_permute_wbm(L, b)[0])
 
 
 def test_bad_options_steadystate():

@@ -6,6 +6,31 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.0.3 (2024-06-20)
+========================
+
+Micro release to add support for numpy 2.
+
+Bug Fixes
+---------
+
+- Bug Fix in Process Matrix Rendering. (#2400, by Anush Venkatakrishnan)
+- Fix steadystate permutation being reversed. (#2443)
+- Add parallelizing support for `vernN` methods with `mcsolve`. (#2454 by Utkarsh)
+
+
+Documentation
+-------------
+
+- Added `qutip.core.gates` to apidoc/functions.rst and a Gates section to guide-states.rst. (#2441, by alan-nala)
+
+
+Miscellaneous
+-------------
+
+- Add support for numpy 2 (#2421, #2457)
+
+
 QuTiP 5.0.2 (2024-05-16)
 ========================
 

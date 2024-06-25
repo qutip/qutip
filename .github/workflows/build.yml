@@ -49,7 +49,7 @@ jobs:
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         name: Install Python
@@ -90,7 +90,7 @@ jobs:
           zip "$zipfile" -r "$stem"
           rm -r "$stem"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: |
@@ -115,7 +115,7 @@ jobs:
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         name: Install Python
@@ -137,7 +137,7 @@ jobs:
           if [[ ! -z "$OVERRIDE_VERSION" ]]; then echo "$OVERRIDE_VERSION" > VERSION; fi
           python -m cibuildwheel --output-dir wheelhouse
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -160,7 +160,7 @@ jobs:
 
     steps:
       - name: Download build artifacts to local runner
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - uses: actions/setup-python@v4
         name: Install Python
@@ -193,7 +193,7 @@ jobs:
 
     steps:
       - name: Download build artifacts to local runner
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - uses: actions/setup-python@v4
         name: Install Python

@@ -28,7 +28,7 @@ Pygments==2.15.0
 pyparsing==3.0.9
 python-dateutil==2.8.2
 pytz==2023.3
-requests==2.31.0
+requests==2.32.0
 scipy==1.11.4
 six==1.16.0
 snowballstemmer==2.2.0
@@ -43,6 +43,6 @@ sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.5
 traitlets==5.9.0
-urllib3==1.26.18
+urllib3==1.26.19
 wcwidth==0.2.6
 wheel==0.38.4
