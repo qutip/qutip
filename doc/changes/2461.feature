@@ -1,0 +1,1 @@
+Add support for `jit` and `grad` in qutip.core.metrics

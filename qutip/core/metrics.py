@@ -9,7 +9,7 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
            'hellinger_dist', 'hilbert_dist', 'average_gate_fidelity',
            'process_fidelity', 'unitarity', 'dnorm']
 
-import numpy as np
+from ..settings import settings
 from scipy import linalg as la
 import scipy.sparse as sp
 from .superop_reps import to_choi, _to_superpauli, to_super, kraus_to_choi
@@ -54,6 +54,7 @@ def fidelity(A, B):
     >>> y = coherent_dm(5,1)
     >>> np.testing.assert_almost_equal(fidelity(x,y), 0.24104350624628332)
     """
+    np = settings.core["numpy_backend"]
     if A.isket or A.isbra:
         if B.isket or B.isbra:
             # The fidelity for pure states reduces to the modulus of their
@@ -80,7 +81,8 @@ def fidelity(A, B):
     # even for positive semidefinite matrices, small negative eigenvalues
     # can be reported.
     eig_vals = (sqrtmA * B * sqrtmA).eigenenergies()
-    return float(np.real(np.sqrt(eig_vals[eig_vals > 0]).sum()))
+    eig_vals_non_neg = np.where(eig_vals > 0, eig_vals, 0)
+    return np.real(np.sqrt(eig_vals_non_neg).sum())
 
 
 def _hilbert_space_dims(oper):
@@ -125,6 +127,8 @@ def _process_fidelity_to_id(oper):
     -------
     fid : float
     """
+    np = settings.core["numpy_backend"]
+
     dims_out, dims_in = _hilbert_space_dims(oper)
     if dims_out != dims_in:
         raise TypeError('The process fidelity to identity is only defined '
@@ -183,6 +187,8 @@ def process_fidelity(oper, target=None):
     "Quantum Computation and Quantum Information"
 
     """
+    np = settings.core["numpy_backend"]
+
     if target is None:
         return _process_fidelity_to_id(oper)
 
@@ -243,6 +249,8 @@ def average_gate_fidelity(oper, target=None):
     "Quantum Computation and Quantum Information"
 
     """
+    np = settings.core["numpy_backend"]
+
     dims_out, dims_in = _hilbert_space_dims(oper)
     if not (target is None or target.type == 'oper'):
         raise TypeError(
@@ -279,6 +287,8 @@ def tracedist(A, B, sparse=False, tol=0):
     >>> y=coherent_dm(5,1)
     >>> np.testing.assert_almost_equal(tracedist(x,y), 0.9705143161472971)
     """
+    np = settings.core["numpy_backend"]
+
     if A.isket or A.isbra:
         A = A.proj()
     if B.isket or B.isbra:
@@ -288,7 +298,7 @@ def tracedist(A, B, sparse=False, tol=0):
     diff = A - B
     diff = diff.dag() * diff
     vals = diff.eigenenergies(sparse=sparse, tol=tol)
-    return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
+    return np.real(0.5 * np.sum(np.sqrt(np.abs(vals))))
 
 
 def hilbert_dist(A, B):
@@ -340,6 +350,8 @@ def bures_dist(A, B):
     dist : float
         Bures distance between density matrices.
     """
+    np = settings.core["numpy_backend"]
+
     if A.isket or A.isbra:
         A = A.proj()
     if B.isket or B.isbra:
@@ -368,6 +380,8 @@ def bures_angle(A, B):
     angle : float
         Bures angle between density matrices.
     """
+    np = settings.core["numpy_backend"]
+
     if A.isket or A.isbra:
         A = A.proj()
     if B.isket or B.isbra:
@@ -412,6 +426,8 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     >>> np.allclose(hellinger_dist(x, y), 1.3725145002591095)
         True
     """
+    np = settings.core["numpy_backend"]
+
     if A.isket or A.isbra:
         sqrtmA = ket2dm(A)
     else:
@@ -478,6 +494,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         If CVXPY cannot be imported.
 
     """
+    np = settings.core["numpy_backend"]
     if cvxpy is None:  # pragma: no cover
         raise ImportError("dnorm() requires CVXPY to be installed.")
 
@@ -520,6 +537,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # of the dual map of Lambda. We can evaluate that norm much more
     # easily if Lambda is completely positive, since then the largest
     # eigenvalue is the same as the largest singular value.
+    np = settings.core["numpy_backend"]
 
     if not force_solve and J.iscp:
         S_dual = to_super(J.dual_chan())
@@ -571,17 +589,21 @@ def unitarity(oper):
     u : float
         Unitarity of ``oper``.
     """
+    np = settings.core["numpy_backend"]
+
     Eu = _to_superpauli(oper).full()[1:, 1:]
     return np.linalg.norm(Eu, 'fro')**2 / len(Eu)
 
 
-def _find_poly_distance(eigenvals: np.ndarray) -> float:
+def _find_poly_distance(eigenvals) -> float:
     """
     Returns the distance between the origin and the convex hull of eigenvalues.
 
     The complex eigenvalues must have unit length (i.e. lie on the circle
     about the origin).
     """
+    np = settings.core["numpy_backend"]
+
     phases = np.angle(eigenvals)
     phase_max = phases.max()
     phase_min = phases.min()
