@@ -342,7 +342,7 @@ class MultiTrajResult(_BaseResult):
             # avg2 = <x**2 * w>
             # std * <w>**2 = (<x**2> - <x>**2) * <w>**2
             #              = avg2 * <w> - avg**2
-            # and "<1>" is one minus the sum of all absolute weights
+            # and "<w>" is one minus the sum of all absolute weights
             one = one - self._total_abs_weight
 
         std = avg2 * one - abs(avg)**2
@@ -830,8 +830,8 @@ class _TrajectorySum:
         else:
             self.sum_states = None
 
-        if (fstate := example_trajectory.final_state) and store_final_state:
-            self.sum_final_state = qzero_like(_to_dm(fstate))
+        if example_trajectory.final_state and store_final_state:
+            self._initialize_sum_finalstate(example_trajectory)
         else:
             self.sum_final_state = None
 
