@@ -29,6 +29,7 @@ Miscellaneous
 -------------
 
 - Add support for numpy 2 (#2421, #2457)
+- Add support for scipy 1.14 (#2469)
 
 
 QuTiP 5.0.2 (2024-05-16)
