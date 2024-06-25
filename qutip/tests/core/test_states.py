@@ -25,12 +25,12 @@ def test_implicit_tensor_basis_like(to_test, size, n):
 
 @pytest.mark.parametrize("size, n, offset, msg", [
     ([2, 2], [0, 1, 1], [0, 0], "All list inputs must be the same length."),
-    ([2, 2], [0, 1], 0, "All list inputs must be the same length."),
-    (-1, 0, 0, "All dimensions must be >= 0."),
-    (1.5, 0, 0, "All dimensions must be >= 0."),
-    (5, 5, 0, "All basis indices must be `offset <= n < dimension+offset`."),
-    (5, 0, 2, "All basis indices must be `offset <= n < dimension+offset`."),
-], ids=["n too long", "offset too long", "neg dims",
+    ([2, 2], [1, 1], 1, "All list inputs must be the same length."),
+    (-1, 0, 0, "Dimensions must be integers > 0"),
+    (1.5, 0, 0, "Dimensions must be integers > 0"),
+    (5, 5, 0, "All basis indices must be integers in the range `0 <= n < dimension`."),
+    (5, 0, 2, "All basis indices must be integers in the range `offset <= n < dimension+offset`."),
+], ids=["n too long", "offset too short", "neg dims",
         "fraction dims", "n too large", "n too small"]
 )
 def test_basis_error(size, n, offset, msg):
@@ -42,8 +42,7 @@ def test_basis_error(size, n, offset, msg):
 def test_basis_error_type():
     with pytest.raises(TypeError) as e:
         qutip.basis(5, 3.5)
-    assert str(e.value) == ("Dimensions must be an integer "
-                            "or list of integers.")
+    assert str(e.value) == ("Dimensions must be integers")
 
 
 @pytest.mark.parametrize("size, n, m", [
@@ -183,7 +182,7 @@ def test_spin_output(func):
 def test_maximally_mixed_dm_error(N):
     with pytest.raises(ValueError) as e:
         qutip.maximally_mixed_dm(N)
-    assert str(e.value) == "N must be integer N > 0"
+    assert str(e.value) == "Dimensions must be integers > 0"
 
 
 def test_TripletStateNorm():
@@ -308,3 +307,24 @@ def test_state_type(func, args, alias, dtype):
     else:
         for obj in object:
             assert isinstance(obj.data, dtype)
+
+    with qutip.CoreOptions(default_dtype=alias):
+        object = func(*args)
+        if isinstance(object, qutip.Qobj):
+            assert isinstance(object.data, dtype)
+        else:
+            for obj in object:
+                assert isinstance(obj.data, dtype)
+
+
+@pytest.mark.parametrize(['func', 'args'], [
+    (qutip.basis, (None,)),
+    (qutip.fock, (None,)),
+    (qutip.fock_dm, (None,)),
+    (qutip.maximally_mixed_dm, ()),
+    (qutip.projection, ([0, 1, 1], [1, 1, 0])),
+    (qutip.zero_ket, ()),
+], ids=_id_func)
+def test_state_space_input(func,  args):
+    dims = qutip.dimensions.Space([2, 2, 2])
+    assert func(dims, *args) == func([2, 2, 2], *args)

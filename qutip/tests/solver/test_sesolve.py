@@ -6,6 +6,11 @@ from qutip.solver.sesolve import sesolve, SESolver
 from qutip.solver.krylovsolve import krylovsolve
 from qutip.solver.solver_base import Solver
 
+# Deactivate warning for test without cython
+from qutip.core.coefficient import WARN_MISSING_MODULE
+WARN_MISSING_MODULE[0] = 0
+
+
 all_ode_method = [
     method for method, integrator in SESolver.avail_integrators().items()
     if integrator.support_time_dependant
@@ -296,6 +301,34 @@ def test_krylovsolve(always_compute_step):
     e_op.dims = H.dims
     tlist = np.linspace(0, 1, 11)
     ref = sesolve(H, psi0, tlist, e_ops=[e_op]).expect[0]
-    options = {"always_compute_step", always_compute_step}
-    krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op]).expect[0]
-    np.testing.assert_allclose(ref, krylov_sol)
+    options = {"always_compute_step": always_compute_step}
+    krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op], options=options)
+    np.testing.assert_allclose(ref, krylov_sol.expect[0])
+
+
+def test_krylovsolve_error():
+    H = qutip.rand_herm(256, density=0.2)
+    psi0 = qutip.basis([256], [255])
+    tlist = np.linspace(0, 1, 11)
+    options = {"min_step": 1e10}
+    with pytest.raises(ValueError) as err:
+        krylovsolve(H, psi0, tlist, 20, options=options)
+    assert "error with the minimum step" in str(err.value)
+
+
+def test_feedback():
+
+    def f(t, A, qobj=None):
+        return (A-2.)
+
+    N = 4
+    tol = 1e-14
+    psi0 = qutip.basis(N, N-1)
+    a = qutip.destroy(N)
+    H = qutip.QobjEvo(
+        [qutip.num(N), [a+a.dag(), f]],
+        args={"A": SESolver.ExpectFeedback(qutip.num(N), default=3.)}
+    )
+    solver = qutip.SESolver(H)
+    result = solver.run(psi0, np.linspace(0, 30, 301), e_ops=[qutip.num(N)])
+    assert np.all(result.expect[0] > 2 - tol)

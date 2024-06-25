@@ -51,7 +51,7 @@ class IntegratorKrylov(Integrator):
             krylov_tridiag, krylov_basis = \
                 self._lanczos_algorithm(rand_ket(N).data)
             if (
-                krylov_tridiag.shape[0] < self.options["krylov_dim"]
+                krylov_tridiag.shape[0] < krylov_dim
                 or krylov_tridiag.shape[0] == N
             ):
                 self._max_step = np.inf
@@ -138,20 +138,22 @@ class IntegratorKrylov(Integrator):
                 self._compute_psi(t, *reduced_state)
             ) / self.options["atol"])
 
-        dt = self.options["min_step"]
+        # Under 0 will cause an infinite loop in the while loop bellow.
+        dt = max(self.options["min_step"], 1e-14)
+        max_step = max(self.options["max_step"], dt)
         err = krylov_error(dt)
         if err > 0:
-            ValueError(
+            raise ValueError(
                 f"With the krylov dim of {self.options['krylov_dim']}, the "
                 f"error with the minimum step {dt} is {err}, higher than the "
                 f"desired tolerance of {self.options['atol']}."
             )
 
-        while krylov_error(dt * 10) < 0 and dt < self.options["max_step"]:
+        while krylov_error(dt * 10) < 0 and dt < max_step:
             dt *= 10
 
-        if dt > self.options["max_step"]:
-            return self.options["max_step"]
+        if dt > max_step:
+            return max_step
 
         sol = root_scalar(f=krylov_error, bracket=[dt, dt * 10],
                           method="brentq", xtol=self.options['atol'])
@@ -204,26 +206,26 @@ class IntegratorKrylov(Integrator):
         """
         Supported options by krylov method:
 
-        atol : float, default=1e-7
+        atol : float, default: 1e-7
             Absolute tolerance.
 
-        nsteps : int, default=100
+        nsteps : int, default: 100
             Max. number of internal steps/call.
 
-        min_step, max_step : float, default=(1e-5, 1e5)
+        min_step, max_step : float, default: (1e-5, 1e5)
             Minimum and maximum step size.
 
-        krylov_dim: int, default=0
+        krylov_dim: int, default: 0
             Dimension of Krylov approximation subspaces used for the time
             evolution approximation. If the defaut 0 is given, the dimension is calculated
             from the system size N, using `min(int((N + 100)**0.5), N-1)`.
 
-        sub_system_tol: float, default=1e-7
+        sub_system_tol: float, default: 1e-7
             Tolerance to detect a happy breakdown. A happy breakdown occurs
             when the initial ket is in a subspace of the Hamiltonian smaller
             than ``krylov_dim``.
 
-        always_compute_step: bool, default=False
+        always_compute_step: bool, default: False
             If True, the step length is computed each time a new Krylov
             subspace is computed. Otherwise it is computed only once when
             creating the integrator.

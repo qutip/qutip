@@ -8,6 +8,10 @@ import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 
+# Deactivate warning for test without cython
+from qutip.core.coefficient import WARN_MISSING_MODULE
+WARN_MISSING_MODULE[0] = 0
+
 
 class TestIntegratorCte():
     _analytical_se = lambda _, t: np.cos(t * np.pi)
@@ -162,3 +166,26 @@ def test_concurent_usage(integrator):
         assert inter1.integrate(t)[1].to_array()[0, 0] == expected1
         expected2 = pytest.approx(np.exp(-t/2), abs=1e-5)
         assert inter2.integrate(t)[1].to_array()[0, 0] == expected2
+
+@pytest.mark.parametrize('integrator',
+    [IntegratorVern7, IntegratorVern9],
+    ids=["vern7", 'vern9']
+)
+def test_pickling_vern_methods(integrator):
+    """Test whether VernN methods can be pickled and hence used in multiprocessing"""
+    opt = {'atol':1e-10, 'rtol':1e-7}
+
+    sys = qutip.QobjEvo(0.5*qutip.qeye(1))
+    inter = integrator(sys, opt)
+    inter.set_state(0, qutip.basis(1,0).data)
+
+    import pickle
+    pickled = pickle.dumps(inter, -1)
+    recreated = pickle.loads(pickled)
+    recreated.set_state(0, qutip.basis(1,0).data)
+
+    for t in np.linspace(0,1,6):
+        expected = pytest.approx(np.exp(t/2), abs=1e-5)
+        result1 = inter.integrate(t)[1].to_array()[0, 0]
+        result2 = recreated.integrate(t)[1].to_array()[0, 0]
+        assert result1 == result2 == expected

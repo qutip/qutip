@@ -3,11 +3,12 @@ requires = [
     "setuptools",
     "packaging",
     "wheel",
-    "cython>=0.29.20",
+    "cython>=0.29.20; python_version>='3.10'",
+    "cython>=0.29.20,<3.0.0; python_version<='3.9'",
     # See https://numpy.org/doc/stable/user/depending_on_numpy.html for
     # the recommended way to build against numpy's C API:
-    "oldest-supported-numpy",
-    "scipy>=1.0",
+    "numpy>=2.0.0",
+    "scipy>=1.9",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -16,12 +17,6 @@ manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 # Change in future version to "build"
 build-frontend = "pip"
-
-[[tool.cibuildwheel.overrides]]
-# NumPy and SciPy support manylinux2010 on CPython 3.6 and 3.7
-select = "cp3{6,7}-*"
-manylinux-x86_64-image = "manylinux2010"
-manylinux-i686-image = "manylinux2010"
 
 [tool.towncrier]
 directory = "doc/changes"

@@ -62,10 +62,13 @@ author = ', '.join([
     'B. Li',
     'J. Lishman',
     'S. Cross',
+    'A. Galicia',
+    'P. Menczel',
+    'P. Hopf',
     'and E. Giguère'
 ])
 
-copyright = '2011 to 2021 inclusive, QuTiP developers and contributors'
+copyright = '2011 to 2024 inclusive, QuTiP developers and contributors'
 
 
 def _check_source_folder_and_imported_qutip_match():
@@ -117,7 +120,7 @@ version = ".".join(release.split(".")[:2])
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -252,7 +255,7 @@ htmlhelp_basename = 'QuTiPdoc'
 #
 # See:
 # - https://docs.mathjax.org/en/v3.0-latest/input/tex/extensions/physics.html
-mathjax_config = {
+mathjax3_config = {
     'TeX': {
         'Macros': {
             'bra': [r'\left\langle{#1}\right\rvert', 1],
@@ -359,11 +362,21 @@ texinfo_documents = [
 
 autodoc_member_order = 'alphabetical'
 
+# Makes the following types appear as their alias in the apidoc
+# instead of expanding the alias
+autodoc_type_aliases = {
+    'CoefficientLike': 'CoefficientLike',
+    'ElementType': 'ElementType',
+    'QobjEvoLike': 'QobjEvoLike',
+    'LayerType': 'LayerType',
+    'ArrayLike': 'ArrayLike'
+}
+
 ## EXTLINKS CONFIGURATION ######################################################
 
 extlinks = {
-    'arxiv': ('https://arxiv.org/abs/%s', 'arXiv:'),
-    'doi': ('https://dx.doi.org/%s', 'doi:'),
+    'arxiv': ('https://arxiv.org/abs/%s', 'arXiv:%s'),
+    'doi': ('https://dx.doi.org/%s', 'doi:%s'),
 }
 
 # configuration declares the location of the examples directory for

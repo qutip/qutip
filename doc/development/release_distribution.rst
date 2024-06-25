@@ -16,10 +16,9 @@ In short, the steps you need to take are:
 
 1. Prepare the release branch (see git_).
 2. Run the "Build wheels, optionally deploy to PyPI" GitHub action to build binary and source packages and upload them to PyPI (see deploy_).
-3. Retrieve the built documentation from GitHub (see docbuild_).
-4. Create a GitHub release and uploaded the built files to it (see github_).
-5. Update `qutip.org <https://qutip.org/>`_ with the new links and documentation (web_).
-6. Update the conda feedstock, deploying the package to ``conda`` (cforge_).
+3. Create a GitHub release and uploaded the built files to it (see github_).
+4. Update `qutip.org <https://qutip.org/>`_ with the new links and documentation (web_).
+5. Update the conda feedstock, deploying the package to ``conda`` (cforge_).
 
 
 
@@ -120,6 +119,8 @@ You should now have a branch that you can see on the GitHub website that is call
 If you notice you have made a mistake, you can make additional pull requests to the release branch to fix it.
 ``master`` should look pretty similar, except the ``VERSION`` will be higher and have a ``.dev`` suffix, and the "Development Status" in ``setup.cfg`` will be different.
 
+* Activate the readthedocs build for the newly created version branch and set it as the latest.
+
 You are now ready to actually perform the release.
 Go to deploy_.
 
@@ -189,7 +190,7 @@ Go to the `"Actions" tab at the top of the QuTiP code repository <https://github
 Click on the "Build wheels, optionally deploy to PyPI" action in the left-hand sidebar.
 Click the "Run workflow" dropdown in the header notification; it should look like the image below.
 
-.. image:: /figures/release_guide_run_build_workflow.png
+.. image:: ../figures/release_guide_run_build_workflow.png
 
 - Use the drop-down menu to choose the branch or tag you want to release from.
   This should be called ``qutip-4.5.X`` or similar, depending on what you made earlier.
@@ -212,7 +213,7 @@ Download Built Files
 When the build is complete, click into its summary screen.
 This is the main screen used to both monitor the build and see its output, and should look like the below image on a success.
 
-.. image:: /figures/release_guide_after_workflow.png
+.. image:: ../figures/release_guide_after_workflow.png
 
 The built binary wheels and the source distribution are the "build artifacts" at the bottom.
 You need to download both the wheels and the source distribution.
@@ -231,20 +232,6 @@ If it fails, you have forgotten to choose the correct branch in the drop-down me
 You can check that the deployment instruction has been understood by clicking the "Verify PyPI deployment confirmation" job, and opening the "Compare confirmation to current reference" subjob.
 You will see a message saying "Built wheels will be deployed" if you typed in the confirmation, or "Only building wheels" if you did not.
 If you see "Only building wheels" but you meant to deploy the release to PyPI, you can cancel the workflow and re-run it after typing the confirmation.
-
-
-.. _docbuild:
-
-Getting the Built Documentation
-+++++++++++++++++++++++++++++++
-
-The documentation will have been built automatically for you by a GitHub Action when you merged the final pull request into the release branch before building the wheels.
-You do not need to re-release the documentation on either GitHub or the website if this is a patch release, unless there were changes within it.
-
-Go to the "Actions" tab at the top of the ``qutip/qutip`` repository, and click the "Build HTML documentation" heading in the left column.
-You should see a list of times this action has run; click the most recent one whose name is exactly "Build HTML documentation", with the release branch name next to it (e.g. ``qutip-4.6.X``).
-Download the ``qutip_html_docs`` artifact to your local machine and unzip it somewhere safe.
-These are all the HTML files for the built documentation; you should be able to open ``index.html`` in your own web browser and check that everything is working.
 
 
 .. _github:
@@ -276,29 +263,6 @@ Website
 This assumes that qutip.github.io has already been forked and familiarity with the website updating workflow.
 The documentation need not be updated for every patch release.
 
-Copying New Files
------------------
-
-You only need to copy in new documentation to the website repository.
-Do not copy the ``.whl``, ``.tar.gz`` or ``.zip`` files into the git repository, because we can access the public links from the GitHub release stage, and this keeps the website ``.git`` folder a reasonable size.
-
-For all releases move (no new docs) or copy (for new docs) the ``qutip-doc-<MAJOR>.<MINOR>.pdf`` into the folder ``downloads/<MAJOR>.<MINOR>.<MICRO>``.
-
-The legacy html documentation should be in a subfolder like ::
-
-    docs/<MAJOR>.<MINOR>
-
-For a major or minor release the previous version documentation should be moved into this folder.
-
-The latest version HTML documentation should be the folder ::
-
-    docs/latest
-
-For any release which new documentation is included
-- copy the contents ``qutip/doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in the ``docs`` folder for this.
-https://github.com/qutip/qutip.github.io/blob/master/docs/remove_leading_underscores.py
-
-
 HTML File Updates
 -----------------
 
@@ -312,19 +276,19 @@ HTML File Updates
 
 - Edit ``_includes/sidebar.html``
 
-    * The 'Latest release' version should be updated. The gztar and zip file links will need the micro release number updating in the traceEvent and file name.
-    * The link to the documentation folder and PDF file (if created) should be updated.
+    * Add the new version and release date. Only actively developed version should be listed. Micro replace the previous entry but the last major can be kept.
+    * Link to the installation instruction, documentation, source code and changelog should be updated.
 
 - Edit ``documentation.html``
 
-    * The previous release tags should be moved (copied) to the 'Previous releases' section.
+    * For major and minor release, the previous release tags should be moved (copied) to the 'Previous releases' section and the links to the readthedocs of the new version added the to 'Latest releases' section.
 
 .. _cforge:
 
 Conda Forge
 +++++++++++
 
-If not done previously then fork the `qutip-feedstock <https://github.com/conda-forge/qutip-feedstock_>`_.
+If not done previously then fork the `qutip-feedstock <https://github.com/conda-forge/qutip-feedstock>`_.
 
 Checkout a new branch on your fork, e.g. ::
 

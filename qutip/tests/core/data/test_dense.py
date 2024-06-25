@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from qutip.core import data
-from qutip.core.data import dense
+from qutip.core.data import dense, csr
 
 from . import conftest
 
@@ -286,3 +286,31 @@ class TestFactoryMethods:
             base = data.one_element_dense(shape, position, value)
         assert str(exc.value).startswith("Position of the elements"
                                          " out of bound: ")
+
+
+def test_OrderEfficiencyWarning():
+    N = 5
+    M = csr.identity(N)
+    C_ordered = dense.zeros(N, 1, fortran=False)
+    fortran_ordered = dense.zeros(N, 1, fortran=True)
+    with pytest.warns(dense.OrderEfficiencyWarning):
+        data.matmul_csr_dense_dense(M, C_ordered, out=fortran_ordered)
+
+
+@pytest.mark.parametrize("fortran", [True, False])
+@pytest.mark.parametrize("func",
+    [data.zeros_like_dense, data.identity_like_dense]
+)
+def test_like_keep_order(func, fortran):
+    old = dense.zeros(3, 3, fortran=fortran)
+    new = func(old)
+    assert new.fortran == old.fortran
+
+
+@pytest.mark.parametrize("shape", [(4, 3), (3, 3), (2, 8)])
+def test_inplace_matmul_error(shape):
+    op = dense.zeros(4, 4)
+    out = dense.zeros(*shape)
+    with pytest.raises(ValueError) as err:
+        data.matmul_dense(op, op, 1., out=out)
+    assert str(err.value).startswith("incompatible output shape")

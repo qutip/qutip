@@ -191,65 +191,10 @@ algorithm.
 Optimal Quantum Control in QuTiP
 ================================
 
-There are two separate implementations of optimal control inside QuTiP. The
-first is an implementation of first order GRAPE, and is not further described
-here, but there are the example notebooks. The second is referred to as Qtrl
-(when a distinction needs to be made) as this was its name before it was
-integrated into QuTiP. Qtrl uses the Scipy optimize functions to perform the
-multi-variable optimisation, typically the L-BFGS-B method for GRAPE and
-Nelder-Mead for CRAB. The GRAPE implementation in Qtrl was initially based on
-the open-source package  DYNAMO, which is a MATLAB implementation, and is
-described in [DYNAMO]_. It has since been restructured and extended for
-flexibility and compatibility within QuTiP.
+The Quantum Control part of qutip has been moved to its own project.
 
-The rest of this section describes the Qtrl implementation and how to use it.
+The previously available implementation is now located in the `qutip-qtrl <https://qutip-qtrl.readthedocs.io/en/stable/>`_ module. If the ``qutip-qtrl`` package is installed, it can also be imported under the name ``qutip.control`` to ease porting code developed for QuTiP 4 to QuTiP 5.
 
-Object Model
-  The Qtrl code is organised in a hierarchical object model in order to try and maximise configurability whilst maintaining some clarity. It is not necessary to understand the model in order to use the pulse optimisation functions, but it is the most flexible method of using Qtrl. If you just want to use a simple single function call interface, then jump to :ref:`pulseoptim-functions`
+A newer interface with upgraded capacities is being developped in `qutip-qoc <https://github.com/flowerthrower/qutip-qoc/tree/packaging>`_.
 
-.. figure:: figures/qtrl-code_object_model.png
-   :align: center
-   :width: 3.5in
-
-   Qtrl code object model.
-
-The object's properties and methods are described in detail in the documentation, so that will not be repeated here.
-
-OptimConfig
-  The OptimConfig object is used simply to hold configuration parameters used by all the objects. Typically this is the subclass types for the other objects and parameters for the users specific requirements. The ``loadparams`` module can be used read parameter values from a configuration file.
-
-Optimizer
-  This acts as a wrapper to the ``Scipy.optimize`` functions that perform the work of the pulse optimisation algorithms. Using the main classes the user can specify which of the optimisation methods are to be used. There are subclasses specifically for the BFGS and L-BFGS-B methods. There is another subclass for using the CRAB algorithm.
-
-Dynamics
-  This is mainly a container for the lists that hold the dynamics generators, propagators, and time evolution operators in each timeslot. The combining of dynamics generators is also complete by this object. Different subclasses support a range of types of quantum systems, including closed systems with unitary dynamics, systems with quadratic Hamiltonians that have Gaussian states and symplectic transforms, and a general subclass that can be used for open system dynamics with Lindbladian operators.
-
-PulseGen
-  There are many subclasses of pulse generators that generate different types of pulses as the initial amplitudes for the optimisation. Often the goal cannot be achieved from all starting conditions, and then typically some kind of random pulse is used and repeated optimisations are performed until the desired infidelity is reached or the minimum infidelity found is reported.
-  There is a specific subclass that is used by the CRAB algorithm to generate the pulses based on the basis coefficients that are being optimised.
-
-TerminationConditions
-  This is simply a convenient place to hold all the properties that will determine when the single optimisation run terminates. Limits can be set for number of iterations, time, and of course the target infidelity.
-
-Stats
-  Performance data are optionally collected during the optimisation. This object is shared to a single location to store, calculate and report run statistics.
-
-FidelityComputer
-  The subclass of the fidelity computer determines the type of fidelity measure. These are closely linked to the type of dynamics in use. These are also the most commonly user customised subclasses.
-
-PropagatorComputer
-  This object computes propagators from one timeslot to the next and also the propagator gradient. The options are using the spectral decomposition or Frechet derivative, as discussed above.
-
-TimeslotComputer
-  Here the time evolution is computed by calling the methods of the other computer objects.
-
-OptimResult
-  The result of a pulse optimisation run is returned as an object with properties for the outcome in terms of the infidelity, reason for termination, performance statistics, final evolution, and more.
-
-.. _pulseoptim-functions:
-
-Using the pulseoptim functions
-==============================
-The simplest method for optimising a control pulse is to call one of the functions in the ``pulseoptim`` module. This automates the creation and configuration of the necessary objects, generation of initial pulses, running the optimisation and returning the result. There are functions specifically for unitary dynamics, and also specifically for the CRAB algorithm (GRAPE is the default). The ``optimise_pulse`` function can in fact be used for unitary dynamics and / or the CRAB algorithm, the more specific functions simply have parameter names that are more familiar in that application.
-
-A semi-automated method is to use the ``create_optimizer_objects`` function to generate and configure all the objects, then manually set the initial pulse and call the optimisation. This would be more efficient when repeating runs with different starting conditions.
+Please give these modules a try.

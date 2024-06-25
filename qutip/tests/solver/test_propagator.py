@@ -1,6 +1,8 @@
 import numpy as np
+from scipy.integrate import trapezoid
 from qutip import (destroy, propagator, Propagator, propagator_steadystate,
-                   steadystate, tensor, qeye, basis, QobjEvo, sesolve)
+                   steadystate, tensor, qeye, basis, QobjEvo, sesolve,
+                   liouvillian)
 import qutip
 import pytest
 from qutip.solver.brmesolve import BRSolver
@@ -43,7 +45,7 @@ def testPropHOTd():
     Htd = [H, [H, func]]
     U = propagator(Htd, 1)
     ts = np.linspace(0, 1, 101)
-    U2 = (-1j * H * np.trapz(1 + func(ts), ts)).expm()
+    U2 = (-1j * H * trapezoid(1 + func(ts), ts)).expm()
     assert (U - U2).norm('max') < 1e-4
 
 
@@ -85,6 +87,13 @@ def testPropHDims():
     H = tensor([qeye(2), qeye(2)])
     U = propagator(H, 1)
     assert U.dims == H.dims
+
+
+def testPropHSuper():
+    "Propagator: preserve super_oper dims"
+    L = liouvillian(qeye(2) & qeye(2), [destroy(2) & destroy(2)])
+    U = propagator(L, 1)
+    assert U.dims == L.dims
 
 
 def testPropEvo():

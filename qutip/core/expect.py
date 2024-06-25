@@ -4,18 +4,20 @@ import numpy as np
 
 from .qobj import Qobj
 from . import data as _data
+from ..settings import settings
 
 
 def expect(oper, state):
     """
     Calculate the expectation value for operator(s) and state(s).  The
-    expectation of state `k` on operator `A` is defined as `k.dag() @ A @ k`,
-    and for density matrix `R` on operator `A` it is `trace(A @ R)`.
+    expectation of state ``k`` on operator ``A`` is defined as
+    ``k.dag() @ A @ k``, and for density matrix ``R`` on operator ``A`` it is
+    ``trace(A @ R)``.
 
     Parameters
     ----------
     oper : qobj/array-like
-        A single or a `list` or operators for expectation value.
+        A single or a `list` of operators for expectation value.
 
     state : qobj/array-like
         A single or a `list` of quantum states or density matrices.
@@ -23,9 +25,9 @@ def expect(oper, state):
     Returns
     -------
     expt : float/complex/array-like
-        Expectation value.  ``real`` if `oper` is Hermitian, ``complex``
-        otherwise. A (nested) array of expectaction values of state or operator
-        are arrays.
+        Expectation value.  ``real`` if ``oper`` is Hermitian, ``complex``
+        otherwise. A (nested) array of expectaction values if ``state`` or
+        ``oper`` are arrays.
 
     Examples
     --------
@@ -70,10 +72,13 @@ def _single_qobj_expect(oper, state):
 
     # This ensures that expect can return something that is not a number such
     # as a `tensorflow.Tensor` in qutip-tensorflow.
-    return out.real if (oper.isherm
-                        and (state.isket or state.isherm)
-                        and hasattr(out, "real")
-                        ) else out
+    if (
+        settings.core["auto_real_casting"]
+        and oper.isherm
+        and (state.isket or state.isherm)
+    ):
+        out = out.real
+    return out
 
 
 def variance(oper, state):
@@ -86,7 +91,7 @@ def variance(oper, state):
         Operator for expectation value.
 
     state : qobj/list
-        A single or `list` of quantum states or density matrices..
+        A single or ``list`` of quantum states or density matrices..
 
     Returns
     -------

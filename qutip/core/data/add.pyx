@@ -9,29 +9,25 @@ from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
+from qutip.core.data.dia cimport Dia
+from qutip.core.data.tidyup cimport tidyup_dia
 from qutip.core.data.csr cimport (
     CSR, Accumulator, acc_alloc, acc_free, acc_scatter, acc_gather, acc_reset,
 )
-from qutip.core.data cimport csr, dense
+from qutip.core.data cimport csr, dense, dia
 
 cnp.import_array()
 
-cdef extern from *:
-    void *PyDataMem_NEW(size_t size)
-    void *PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
-    void PyDataMem_FREE(void *ptr)
-
-
 __all__ = [
-    'add', 'add_csr', 'add_dense', 'iadd_dense',
-    'sub', 'sub_csr', 'sub_dense',
+    'add', 'add_csr', 'add_dense', 'iadd_dense', 'add_dia',
+    'sub', 'sub_csr', 'sub_dense', 'sub_dia',
 ]
 
 
 cdef int _ONE=1
 
 
-cdef void _check_shape(Data left, Data right) nogil except *:
+cdef int _check_shape(Data left, Data right) except -1 nogil:
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
         raise ValueError(
             "incompatible matrix shapes "
@@ -39,6 +35,7 @@ cdef void _check_shape(Data left, Data right) nogil except *:
             + " and "
             + str(right.shape)
         )
+    return 0
 
 
 cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c, double tol) nogil:
@@ -217,6 +214,79 @@ cpdef Dense iadd_dense(Dense left, Dense right, double complex scale=1):
     return left
 
 
+cpdef Dia add_dia(Dia left, Dia right, double complex scale=1):
+    _check_shape(left, right)
+    cdef idxint diag_left=0, diag_right=0, out_diag=0, i
+    cdef double complex *ptr_out,
+    cdef double complex *ptr_left
+    cdef double complex *ptr_right
+    cdef bint sorted=True
+    cdef Dia out = dia.empty(left.shape[0], left.shape[1], left.num_diag + right.num_diag)
+    cdef int length, size=left.shape[1]
+
+    ptr_out = out.data
+    ptr_left = left.data
+    ptr_right = right.data
+
+    with nogil:
+        while diag_left < left.num_diag and diag_right < right.num_diag:
+            if left.offsets[diag_left] == right.offsets[diag_right]:
+                out.offsets[out_diag] = left.offsets[diag_left]
+                blas.zcopy(&size, ptr_left, &_ONE, ptr_out, &_ONE)
+                blas.zaxpy(&size, &scale, ptr_right, &_ONE, ptr_out, &_ONE)
+                ptr_left += size
+                diag_left += 1
+                ptr_right += size
+                diag_right += 1
+            elif left.offsets[diag_left] <= right.offsets[diag_right]:
+                out.offsets[out_diag] = left.offsets[diag_left]
+                blas.zcopy(&size, ptr_left, &_ONE, ptr_out, &_ONE)
+                ptr_left += size
+                diag_left += 1
+            else:
+                out.offsets[out_diag] = right.offsets[diag_right]
+                blas.zcopy(&size, ptr_right, &_ONE, ptr_out, &_ONE)
+                if scale != 1:
+                    blas.zscal(&size, &scale, ptr_out, &_ONE)
+                ptr_right += size
+                diag_right += 1
+            if out_diag != 0 and out.offsets[out_diag-1] >= out.offsets[out_diag]:
+                sorted=False
+            ptr_out += size
+            out_diag += 1
+
+        if diag_left < left.num_diag:
+            for i in range(left.num_diag - diag_left):
+                out.offsets[out_diag] = left.offsets[diag_left + i]
+                if out_diag != 0 and out.offsets[out_diag-1] >= out.offsets[out_diag]:
+                    sorted=False
+                out_diag += 1
+
+            length = size * (left.num_diag - diag_left)
+            blas.zcopy(&length, ptr_left, &_ONE, ptr_out, &_ONE)
+
+
+        if diag_right < right.num_diag:
+            for i in range(right.num_diag - diag_right):
+                out.offsets[out_diag] = right.offsets[diag_right + i]
+                if out_diag != 0 and out.offsets[out_diag-1] >= out.offsets[out_diag]:
+                    sorted=False
+                out_diag += 1
+
+            length = size * (right.num_diag - diag_right)
+            blas.zcopy(&length, ptr_right, &_ONE, ptr_out, &_ONE)
+            if scale != 1:
+                blas.zscal(&length, &scale, ptr_out, &_ONE)
+
+        out.num_diag = out_diag
+
+    if not sorted:
+        dia.clean_dia(out, True)
+    if settings.core['auto_tidyup']:
+        tidyup_dia(out, settings.core['auto_tidyup_atol'], True)
+    return out
+
+
 cpdef CSR sub_csr(CSR left, CSR right):
     return add_csr(left, right, -1)
 
@@ -225,13 +295,17 @@ cpdef Dense sub_dense(Dense left, Dense right):
     return add_dense(left, right, -1)
 
 
+cpdef Dia sub_dia(Dia left, Dia right):
+    return add_dia(left, right, -1)
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
 add = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=1),
     ]),
@@ -250,12 +324,13 @@ add.__doc__ =\
 add.add_specialisations([
     (Dense, Dense, Dense, add_dense),
     (CSR, CSR, CSR, add_csr),
+    (Dia, Dia, Dia, add_dia),
 ], _defer=True)
 
 sub = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='sub',
     module=__name__,
@@ -271,6 +346,7 @@ sub.__doc__ =\
 sub.add_specialisations([
     (Dense, Dense, Dense, sub_dense),
     (CSR, CSR, CSR, sub_csr),
+    (Dia, Dia, Dia, sub_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher

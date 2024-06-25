@@ -8,7 +8,7 @@ Quick Start
 ===========
 
 QuTiP is developed through wide collaboration using the ``git`` version-control system, with the main repositories hosted in the `qutip organisation on GitHub <https://github.com/qutip>`_.
-You will need to be familiar with ``git`` as a tool, and the `GitHub Flow <https://guides.github.com/introduction/flow/>`_ workflow for branching and making pull requests.
+You will need to be familiar with ``git`` as a tool, and the `GitHub Flow <https://docs.github.com/en/get-started/quickstart/github-flow>`_ workflow for branching and making pull requests.
 The exact details of environment set-up, build process and testing vary by repository and are discussed below, however in overview, the steps to contribute are:
 
 #. Consider creating an issue on the GitHub page of the relevant repository, describing the change you think should be made and why, so we can discuss details with you and make sure it is appropriate.
@@ -102,7 +102,7 @@ Code Style
 
 The biggest concern you should always have is to make it easy for your code to be read and understood by the person who comes next.
 
-All new contributions must follow `PEP 8 style <https://www.python.org/dev/peps/pep-0008/>`_; all pull requests will be passed through a linter that will complain if you violate it.
+All new contributions must follow `PEP 8 style <https://peps.python.org/pep-0008/>`_; all pull requests will be passed through a linter that will complain if you violate it.
 You should use the ``pycodestyle`` package locally (available on ``pip``) to test you satisfy the requirements before you push your commits, since this is rather faster than pushing 10 different commits trying to fix minor niggles.
 Keep in mind that there is quite a lot of freedom in this style, especially when it comes to line breaks.
 If a line is too long, consider the *best* way to split it up with the aim of making the code readable, not just the first thing that doesn't generate a warning.
@@ -112,6 +112,20 @@ This includes using the same variable names, especially if they are function arg
 *Do not* change existing parameter, attribute or method names to "match" PEP 8; these are breaking user-facing changes, and cannot be made except in a new major release of QuTiP.
 
 Other than this, general "good-practice" Python standards apply: try not to duplicate code; try to keep functions short, descriptively-named and side-effect free; provide a docstring for every new function; and so on.
+
+Type Hints
+----------
+
+Adding type hints to users facing functions is recommended.
+QuTiP's approach is such:
+
+- Type hints are *hints* for the users.
+- Type hints can show the preferred usage over real implementation, for example:
+  - ``Qobj.__mul__`` is typed to support product with scalar, not other ``Qobj``, for which ``__matmul__`` should is preferred.
+  - ``solver.options`` claims it return a dict not ``_SolverOptions`` (which is a subclass of dict).
+- Type alias are added to ``qutip.typing``.
+- `Any` can be used for input which type can be extended by plugin modules, (``qutip-cupy``, ``qutip-jax``, etc.)
+
 
 Documenting
 -----------
@@ -152,7 +166,7 @@ When making a pull request, we require that you add a towncrier entry along with
 You should create a file named ``<PR number>.<change type>`` in the ``doc/changes`` directory, where the PR number should be substituted for ``<PR number>``, and ``<change type>`` is either ``feature``, ``bugfix``, ``doc``, ``removal``, ``misc``, or ``deprecation``,
 depending on the type of change included in the PR.
 
-You can also create this file by installing ``towncrier`` and running 
+You can also create this file by installing ``towncrier`` and running
 
    towncrier create <PR number>.<change type>
 

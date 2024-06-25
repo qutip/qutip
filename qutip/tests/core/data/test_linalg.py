@@ -3,9 +3,15 @@ import numpy as np
 import scipy
 import pytest
 import qutip
+import warnings
 
 from qutip.core import data as _data
-from qutip.core.data import Data, Dense, CSR
+from qutip.core.data import Data, Dense, CSR, Dia
+
+
+skip_no_mkl = pytest.mark.skipif(
+    not settings.has_mkl, reason="mkl not available"
+)
 
 
 class TestSolve():
@@ -23,19 +29,23 @@ class TestSolve():
         ("splu", {"csc": True}),
         ("gmres", {"atol": 1e-8}),
         ("lsqr", {}),
-        pytest.param(
-            "mkl_spsolve", {},
-            marks=pytest.mark.skipif(not settings.has_mkl, reason="mkl not available")
-        ),
+        ("solve", {}),
+        ("lstsq", {}),
+        pytest.param("mkl_spsolve", {}, marks=skip_no_mkl),
     ],
-        ids=["spsolve", "splu", "gmres", "lsqr", "mkl_spsolve"]
+        ids=[
+            "spsolve", "splu", "gmres", "lsqr", "solve", "lstsq", "mkl_spsolve"
+        ]
     )
-    def test_mathematically_correct_CSR(self, method, opt):
+    @pytest.mark.parametrize('dtype', [CSR, Dia])
+    def test_mathematically_correct_sparse(self, method, opt, dtype):
         """
         Test that the binary operation is mathematically correct for all the
         known type specialisations.
         """
-        A = self._gen_op(10, CSR)
+        if dtype is Dia and method == "mkl_spsolve":
+            pytest.skip("mkl is not supported for dia matrix")
+        A = self._gen_op(10, dtype)
         b = self._gen_ket(10, Dense)
         expected = self.op_numpy(A.to_array(), b.to_array())
         test = _data.solve_csr_dense(A, b, method, opt)
@@ -65,6 +75,14 @@ class TestSolve():
                                    atol=1e-7, rtol=1e-7)
 
 
+    def test_singular(self):
+        A = qutip.num(2).data
+        b = qutip.basis(2, 1).data
+        with pytest.raises(ValueError) as err:
+            test1 = _data.solve(A, b)
+        assert "singular" in str(err.value).lower()
+
+
     def test_incorrect_shape_non_square(self):
         A = qutip.Qobj(np.random.rand(5, 10)).data
         b = qutip.Qobj(np.random.rand(10, 1)).data
@@ -81,7 +99,7 @@ class TestSolve():
 
 class TestSVD():
     def op_numpy(self, A):
-        return np.linalg.svd(A)
+        return scipy.linalg.svd(A)
 
     def _gen_dm(self, N, rank, dtype):
         return qutip.rand_dm(N, rank=rank, dtype=dtype).data
@@ -104,8 +122,14 @@ class TestSVD():
         only_S = _data.svd(matrix, False)
 
         assert sum(test_S > 1e-10) == 6
-        np.testing.assert_allclose(test_U.to_array(), u, atol=1e-7, rtol=1e-7)
-        np.testing.assert_allclose(test_V.to_array(), v, atol=1e-7, rtol=1e-7)
+        # columns are definied up to a sign
+        np.testing.assert_allclose(
+            np.abs(test_U.to_array()), np.abs(u), atol=1e-7, rtol=1e-7
+        )
+        # rows are definied up to a sign
+        np.testing.assert_allclose(
+            np.abs(test_V.to_array()), np.abs(v), atol=1e-7, rtol=1e-7
+        )
         np.testing.assert_allclose(test_S, s, atol=1e-7, rtol=1e-7)
         np.testing.assert_allclose(only_S, s, atol=1e-7, rtol=1e-7)
 

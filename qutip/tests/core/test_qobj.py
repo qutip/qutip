@@ -107,7 +107,7 @@ def test_QobjType():
 
     N = 9
     super_data = np.random.random((N, N))
-    super_qobj = qutip.Qobj(super_data, dims=[[[3]], [[3]]])
+    super_qobj = qutip.Qobj(super_data, dims=[[[3], [3]], [[3], [3]]])
     assert super_qobj.type == 'super'
     assert super_qobj.issuper
     assert super_qobj.superrep == 'super'
@@ -118,7 +118,7 @@ def test_QobjType():
     assert super_qobj.isoperket
     assert super_qobj.superrep == 'super'
 
-    super_data = np.random.random(N)
+    super_data = np.random.random((1, N))
     super_qobj = qutip.Qobj(super_data, dims=[[[1]], [[3], [3]]])
     assert super_qobj.type == 'operator-bra'
     assert super_qobj.isoperbra
@@ -260,11 +260,8 @@ def test_QobjAddition():
     q3 = qutip.Qobj(data3)
 
     q4 = q1 + q2
-    q4_type = q4.type
     q4_isherm = q4.isherm
-    q4._type = None
     q4._isherm = None  # clear cached values
-    assert q4_type == q4.type
     assert q4_isherm == q4.isherm
 
     # check elementwise addition/subtraction
@@ -317,11 +314,10 @@ def test_QobjMultiplication():
 
 # Allowed mul operations (scalar)
 @pytest.mark.parametrize("scalar",
-                         [2+2j,  np.array(2+2j), np.array([2+2j])],
+                         [2+2j,  np.array(2+2j)],
                          ids=[
                              "python_number",
                              "scalar_like_array_shape_0",
-                             "scalar_like_array_shape_1",
                          ])
 def test_QobjMulValidScalar(scalar):
     "Tests multiplication of Qobj times scalar."
@@ -359,11 +355,10 @@ def test_QobjMulNotValidScalar(not_scalar):
 
 # Allowed division operations (scalar)
 @pytest.mark.parametrize("scalar",
-                         [2+2j,  np.array(2+2j), np.array([2+2j])],
+                         [2+2j,  np.array(2+2j)],
                          ids=[
                              "python_number",
                              "scalar_like_array_shape_0",
-                             "scalar_like_array_shape_1",
                          ])
 def test_QobjDivisionValidScalar(scalar):
     "Tests multiplication of Qobj times scalar."
@@ -446,6 +441,15 @@ def test_QobjEquals():
     q1 = qutip.Qobj(data)
     q2 = qutip.Qobj(-data)
     assert q1 != q2
+
+    # data's entry are of order 1,
+    with qutip.CoreOptions(atol=10):
+        assert q1 == q2
+        assert q1 != q2 * 100
+
+    with qutip.CoreOptions(rtol=10):
+        assert q1 == q2
+        assert q1 == q2 * 100
 
 
 def test_QobjGetItem():
@@ -556,6 +560,12 @@ def test_QobjDiagonals():
     b = A.diag()
     assert np.all(b == np.diag(data))
 
+
+def test_diag_type():
+    assert qutip.sigmaz().diag().dtype == np.float64
+    assert (1j * qutip.sigmaz()).diag().dtype == np.complex128
+    with qutip.CoreOptions(auto_real_casting=False):
+        assert qutip.sigmaz().diag().dtype == np.complex128
 
 def test_QobjEigenEnergies():
     "qutip.Qobj eigenenergies"
@@ -1128,21 +1138,11 @@ def test_trace():
     assert sz.tr() == 0
 
 
-def test_no_real_attribute(monkeypatch):
-    """This tests ensures that trace still works even if the output of a
-    specialisation does not have the ``real`` attribute. This is the case for
-    the tensorflow and cupy data layers."""
-
-    def mocker_trace_return(oper):
-        """
-        We simply return a string which does not have the `real` attribute.
-        """
-        return "object without .real"
-
-    monkeypatch.setattr(_data, "trace", mocker_trace_return)
-
-    sz = qutip.sigmaz() # the choice of the matrix does not matter
-    assert "object without .real" == sz.tr()
+def test_no_real_casting():
+    sz = qutip.sigmaz()
+    assert isinstance(sz.tr(), float)
+    with qutip.CoreOptions(auto_real_casting=False):
+        assert isinstance(sz.tr(), complex)
 
 
 @pytest.mark.parametrize('inplace', [True, False], ids=['inplace', 'new'])
@@ -1226,3 +1226,56 @@ def test_groundstate():
     with pytest.warns(UserWarning) as warning:
         qutip.qeye(5).groundstate()
     assert "degenerate" in warning[0].message.args[0]
+
+
+@pytest.mark.filterwarnings(
+    "ignore::scipy.sparse.SparseEfficiencyWarning"
+)
+def test_data_as():
+    qobj = qutip.qeye(2, dtype="CSR")
+
+    assert scipy.sparse.isspmatrix_csr(qobj.data_as("csr_matrix"))
+    assert scipy.sparse.isspmatrix_csr(qobj.data_as(copy=False))
+    with pytest.raises(ValueError) as err:
+        qobj.data_as("ndarray")
+    assert "csr_matrix" in str(err.value)
+
+    qobj.data_as(copy=False)[0, 0] = 0
+    qobj.data_as(copy=True)[0, 1] = 2
+    assert qobj == qutip.num(2, dtype="CSR")
+
+    qobj = qutip.qeye(2, dtype="Dense")
+
+    assert isinstance(qobj.data_as("ndarray"), np.ndarray)
+    assert isinstance(qobj.data_as(copy=False), np.ndarray)
+
+    qobj.data_as(copy=False)[0, 0] = 0
+    qobj.data_as(copy=True)[0, 1] = 2
+    assert qobj == qutip.num(2, dtype="Dense")
+    with pytest.raises(ValueError) as err:
+        qobj.data_as("csr_matrix")
+    assert "ndarray" in str(err.value)
+
+    qobj = qutip.qeye(2, dtype="Dia")
+
+    assert scipy.sparse.isspmatrix_dia(qobj.data_as("dia_matrix"))
+    assert scipy.sparse.isspmatrix_dia(qobj.data_as(copy=False))
+
+    qobj.data_as(copy=False).data[:, 0] = 0
+    qobj.data_as(copy=True).data[:, 0] = 2
+    assert qobj == qutip.num(2, dtype="Dia")
+    with pytest.raises(ValueError) as err:
+        qobj.data_as("ndarray")
+    assert "dia_matrix" in str(err.value)
+
+
+@pytest.mark.parametrize('dtype', ["CSR", "Dense", "Dia"])
+def test_qobj_dtype(dtype):
+    obj = qutip.qeye(2, dtype=dtype)
+    assert obj.dtype == qutip.data.to.parse(dtype)
+
+
+@pytest.mark.parametrize('dtype', ["CSR", "Dense", "Dia"])
+def test_dtype_in_info_string(dtype):
+    obj = qutip.qeye(2, dtype=dtype)
+    assert dtype.lower() in str(obj).lower()

@@ -13,6 +13,8 @@ def expected(qobj, sel):
     sel = sorted(sel)
     dims = [[x for i, x in enumerate(qobj.dims[0]) if i in sel]]*2
     new_shape = (np.prod(dims[0], dtype=int),) * 2
+    if not dims[0]:
+        dims = None
     out = qobj.full()
     before, after = 1, qobj.shape[0]
     for i, dim in enumerate(qobj.dims[0]):
@@ -22,7 +24,7 @@ def expected(qobj, sel):
             continue
         tmp_dims = (before, dim, after) * 2
         out = np.einsum('aibcid->abcd', out.reshape(tmp_dims))
-    return qutip.Qobj(out.reshape(new_shape), dims=dims, type='oper')
+    return qutip.Qobj(out.reshape(new_shape), dims=dims)
 
 
 @pytest.fixture(params=[_data.CSR, _data.Dense], ids=['CSR', 'Dense'])

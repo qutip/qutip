@@ -35,7 +35,7 @@ cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
     cdef Data S, I, AS, AST, out, C
     cdef type cls = type(A)
 
-    S = _data.to(cls, _data.mul(_data.Dense(spectrum, copy=False), 0.5))
+    S = _data.to(cls, _data.mul(_data.Dense(spectrum), 0.5))
     I = _data.identity[cls](nrows)
     AS = _data.multiply(A, S)
     AST = _data.multiply(A, _data.transpose(S))
@@ -265,14 +265,13 @@ cdef class _BlochRedfieldElement(_BaseElement):
             return _br_term_data(A_eig, self.spectrum, self.skew, cutoff)
         raise ValueError('Invalid tensortype')
 
-    cpdef object qobj(self, double t):
-        return Qobj(self.data(t), dims=self.dims, type="super",
-                    copy=False, superrep="super")
+    cpdef object qobj(self, t):
+        return Qobj(self.data(t), dims=self.dims, copy=False, superrep="super")
 
-    cpdef double complex coeff(self, double t) except *:
+    cpdef object coeff(self, t):
         return 1.
 
-    cpdef Data data(self, double t):
+    cpdef Data data(self, t):
         cdef size_t i
         cdef double cutoff = self.sec_cutoff * self._compute_spectrum(t)
         A_eig = self.H.to_eigbasis(t, self.a_op._call(t))
@@ -281,7 +280,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
             return BR_eig
         return self.H.from_eigbasis(t, BR_eig)
 
-    cdef Data matmul_data_t(self, double t, Data state, Data out=None):
+    cdef Data matmul_data_t(self, t, Data state, Data out=None):
         cdef size_t i
         cdef double cutoff = self.sec_cutoff * self._compute_spectrum(t)
         cdef Data A_eig, BR_eig

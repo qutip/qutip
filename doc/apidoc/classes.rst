@@ -7,29 +7,36 @@ Classes
 .. _classes-qobj:
 
 Qobj
---------------
+----
 
 .. autoclass:: qutip.core.qobj.Qobj
     :members:
+    :special-members: __call__
 
 .. _classes-qobjevo:
 
 QobjEvo
---------------
+-------
 
 .. autoclass:: qutip.core.cy.qobjevo.QobjEvo
+    :members:
+    :special-members: __call__
+
+.. _classes-coreoptions:
+
+CoreOptions
+-----------
+
+.. autoclass:: qutip.core.options.CoreOptions
     :members:
 
 
 .. _classes-bloch:
 
 Bloch sphere
----------------
+------------
 
 .. autoclass:: qutip.bloch.Bloch
-    :members:
-
-.. autoclass:: qutip.bloch3d.Bloch3d
     :members:
 
 Distributions
@@ -41,17 +48,58 @@ Distributions
 
 .. _classes-solver:
 
-Solver
-------
+Solvers
+-------
 
 .. autoclass:: qutip.solver.sesolve.SESolver
     :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: add_integrator
 
 .. autoclass:: qutip.solver.mesolve.MESolver
     :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: add_integrator
 
 .. autoclass:: qutip.solver.brmesolve.BRSolver
     :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: add_integrator
+
+.. autoclass:: qutip.solver.floquet.FMESolver
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: add_integrator
+
+.. autoclass:: qutip.solver.floquet.FloquetBasis
+    :members:
+
+.. autoclass:: qutip.solver.propagator.Propagator
+    :members:
+    :inherited-members:
+    :special-members: __call__
+
+
+.. _classes-monte-carlo-solver:
+
+Monte Carlo Solvers
+-------------------
+
+.. autoclass:: qutip.solver.mcsolve.MCSolver
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: add_integrator
+
+.. autoclass:: qutip.solver.nm_mcsolve.NonMarkovianMCSolver
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: add_integrator
 
 
 .. _classes-non_markov_heom:
@@ -102,6 +150,22 @@ Non-Markovian HEOM Solver
     :members:
 
 
+.. _classes-stochastic:
+
+Stochastic Solver
+-----------------
+
+.. autoclass:: qutip.solver.stochastic.SMESolver
+    :members:
+    :inherited-members:
+    :exclude-members: add_integrator
+
+.. autoclass:: qutip.solver.stochastic.SSESolver
+    :members:
+    :inherited-members:
+    :exclude-members: add_integrator
+
+
 .. _classes-ode:
 
 Integrator
@@ -132,16 +196,37 @@ Integrator
     :members: options
 
 
-.. _classes-non_markov_mc_and_tt:
+.. _classes-sode:
 
-Non-Markovian Memory Cascade and Transfer Tensor Solvers
---------------------------------------------------------
+Stochastic Integrator
+---------------------
 
-.. autoclass:: qutip.solve.nonmarkov.memorycascade.MemoryCascade
-    :members:
+.. autoclass:: qutip.solver.sode.rouchon.RouchonSODE
+    :members: options
 
-.. autoclass:: qutip.solve.nonmarkov.transfertensor.TTMSolverOptions
-    :members:
+.. autoclass:: qutip.solver.sode.itotaylor.EulerSODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Milstein_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Taylor1_5_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Implicit_Milstein_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Implicit_Taylor1_5_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.sode.PlatenSODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.itotaylor.Explicit1_5_SODE
+    :members: options
+
+.. autoclass:: qutip.solver.sode.sode.PredCorr_SODE
+    :members: options
 
 
 .. _classes-odeoptions:
@@ -151,169 +236,65 @@ Solver Options and Results
 
 .. autoclass:: qutip.solver.result.Result
     :members:
+    :inherited-members:
+    :exclude-members: add_processor, add
+
+.. autoclass:: qutip.solver.multitrajresult.MultiTrajResult
+    :members:
+    :inherited-members:
+    :exclude-members: add_processor, add, add_end_condition
+
+.. autoclass:: qutip.solver.result.TrajectoryResult
+    :show-inheritance:
+    :members:
+
+.. autoclass:: qutip.solver.multitrajresult.McResult
+    :show-inheritance:
+    :members:
+
+.. autoclass:: qutip.solver.multitrajresult.NmmcResult
+    :show-inheritance:
+    :members:
 
 .. _classes-piqs:
 
 Permutational Invariance
 ------------------------
 
-.. autoclass:: qutip.solve.piqs.Dicke
+.. autoclass:: qutip.piqs.piqs.Dicke
     :members:
 
-.. autoclass:: qutip.solve.piqs.Pim
+.. autoclass:: qutip.piqs.piqs.Pim
     :members:
 
 .. _classes-distributions:
 
 Distribution functions
-----------------------------
+----------------------
 
 .. autoclass:: qutip.distributions.Distribution
     :members:
 
-.. autoclass:: qutip.distributions.WignerDistribution
-    :members:
+CompilationOptions
+------------------
 
-.. autoclass:: qutip.distributions.QDistribution
-    :members:
-
-.. autoclass:: qutip.distributions.TwoModeQuadratureCorrelation
-    :members:
-
-.. autoclass:: qutip.distributions.HarmonicOscillatorWaveFunction
-    :members:
-
-.. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
-    :members:
+.. autoclass:: qutip.core.coefficient.CompilationOptions
 
 
-.. _classes-control:
+..
+  Docstrings are empty...
 
-Optimal control
----------------
+  .. autoclass:: qutip.distributions.WignerDistribution
+      :members:
 
-.. autoclass:: qutip.control.optimizer.Optimizer
-    :members:
+  .. autoclass:: qutip.distributions.QDistribution
+      :members:
 
-.. autoclass:: qutip.control.optimizer.OptimizerBFGS
-    :members:
+  .. autoclass:: qutip.distributions.TwoModeQuadratureCorrelation
+      :members:
 
-.. autoclass:: qutip.control.optimizer.OptimizerLBFGSB
-    :members:
+  .. autoclass:: qutip.distributions.HarmonicOscillatorWaveFunction
+      :members:
 
-.. autoclass:: qutip.control.optimizer.OptimizerCrab
-    :members:
-
-.. autoclass:: qutip.control.optimizer.OptimizerCrabFmin
-    :members:
-
-.. autoclass:: qutip.control.optimizer.OptimIterSummary
-    :members:
-
-.. autoclass:: qutip.control.termcond.TerminationConditions
-    :members:
-
-.. autoclass:: qutip.control.optimresult.OptimResult
-    :members:
-
-.. autoclass:: qutip.control.dynamics.Dynamics
-    :members:
-
-.. autoclass:: qutip.control.dynamics.DynamicsGenMat
-    :members:
-
-.. autoclass:: qutip.control.dynamics.DynamicsUnitary
-    :members:
-
-.. autoclass:: qutip.control.dynamics.DynamicsSymplectic
-    :members:
-
-.. autoclass:: qutip.control.propcomp.PropagatorComputer
-    :members:
-
-.. autoclass:: qutip.control.propcomp.PropCompApproxGrad
-    :members:
-
-.. autoclass:: qutip.control.propcomp.PropCompDiag
-    :members:
-
-.. autoclass:: qutip.control.propcomp.PropCompFrechet
-    :members:
-
-.. autoclass:: qutip.control.fidcomp.FidelityComputer
-    :members:
-
-.. autoclass:: qutip.control.fidcomp.FidCompUnitary
-    :members:
-
-.. autoclass:: qutip.control.fidcomp.FidCompTraceDiff
-    :members:
-
-.. autoclass:: qutip.control.fidcomp.FidCompTraceDiffApprox
-    :members:
-
-.. autoclass:: qutip.control.tslotcomp.TimeslotComputer
-    :members:
-
-.. autoclass:: qutip.control.tslotcomp.TSlotCompUpdateAll
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGen
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenRandom
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenZero
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenLinear
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenPeriodic
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenSine
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenSquare
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenSaw
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenTriangle
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenGaussian
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenGaussianEdge
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenCrab
-    :members:
-
-.. autoclass:: qutip.control.pulsegen.PulseGenCrabFourier
-    :members:
-
-.. autoclass:: qutip.control.stats.Stats
-    :members:
-
-.. autoclass:: qutip.control.dump.Dump
-    :members:
-
-.. autoclass:: qutip.control.dump.OptimDump
-    :members:
-
-.. autoclass:: qutip.control.dump.DynamicsDump
-    :members:
-
-.. autoclass:: qutip.control.dump.DumpItem
-    :members:
-
-.. autoclass:: qutip.control.dump.EvoCompDumpItem
-    :members:
-
-.. autoclass:: qutip.control.dump.DumpSummaryItem
-    :members:
+  .. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
+      :members:

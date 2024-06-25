@@ -18,10 +18,48 @@ import numbers
 
 import numpy as np
 from scipy.sparse import dok_matrix, csgraph
-
 cimport cython
+from qutip.core.data.base cimport Data
 
 __all__ = ['to', 'create']
+
+
+class _Epsilon:
+    """
+    Constant for an small weight non-null weight.
+    Use to set `Data` specialisation just over direct specialisation.
+    """
+    def __repr__(self):
+        return "EPSILON"
+
+    def __eq__(self, other):
+        if isinstance(other, _Epsilon):
+            return True
+        return NotImplemented
+
+    def __add__(self, other):
+        if isinstance(other, _Epsilon):
+            return self
+        return other
+
+    def __radd__(self, other):
+        if isinstance(other, _Epsilon):
+            return self
+        return other
+
+    def __lt__(self, other):
+        """ positive number > _Epsilon > 0 """
+        if isinstance(other, _Epsilon):
+            return False
+        return other > 0.
+
+    def __gt__(self, other):
+        if isinstance(other, _Epsilon):
+            return False
+        return other <= 0.
+
+
+EPSILON = _Epsilon()
 
 
 def _raise_if_unconnected(dtype_list, weights):
@@ -70,19 +108,23 @@ cdef class _converter:
                 + ">")
 
 
+def identity_converter(arg):
+    return arg
+
+
 cdef class _partial_converter:
     """Convert from any known data-layer type into the type `x.to`."""
 
-    cdef dict converters
+    cdef object converter
     cdef readonly type to
 
-    def __init__(self, converters, to_type):
-        self.converters = dict(converters)
+    def __init__(self, converter, to_type):
+        self.converter = converter
         self.to = to_type
 
     def __call__(self, arg):
         try:
-            return self.converters[type(arg)](arg)
+            return self.converter[self.to, type(arg)](arg)
         except KeyError:
             raise TypeError("unknown type of input: " + str(arg)) from None
 
@@ -201,6 +243,8 @@ cdef class _to:
                 safe just to leave this blank; it is always at best an
                 approximation.  The currently defined weights are accessible in
                 the `weights` attribute of this object.
+                Weight of ~0.001 are should be used in case when no conversion
+                is needed or ``converter = lambda mat : mat``.
         """
         for arg in converters:
             if len(arg) == 3:
@@ -259,13 +303,18 @@ cdef class _to:
                 self.weight[(to_t, from_t)] = weight
                 self._convert[(to_t, from_t)] =\
                     _converter(convert[::-1], to_t, from_t)
+        for dtype in self.dtypes:
+            self.weight[(dtype, Data)] = 1.
+            self.weight[(Data, dtype)] = EPSILON
+            self._convert[(dtype, Data)] = _partial_converter(self, dtype)
+            self._convert[(Data, dtype)] = identity_converter
         for dispatcher in self.dispatchers:
             dispatcher.rebuild_lookup()
 
     def register_aliases(self, aliases, layer_type):
         """
         Register a user frendly name for a data-layer type to be recognized by
-        the :method:`parse` method.
+        the :meth:`parse` method.
 
         Parameters
         ----------
@@ -274,7 +323,7 @@ cdef class _to:
 
         layer_type : type
             Data-layer type, must have been registered with
-            :method:`add_conversions` first.
+            :meth:`add_conversions` first.
         """
         if layer_type not in self.dtypes:
             raise ValueError(
@@ -310,7 +359,7 @@ cdef class _to:
             type.
         """
         if type(dtype) is type:
-            if dtype not in self.dtypes:
+            if dtype not in self.dtypes and dtype is not Data:
                 raise ValueError(
                     "Type is not a data-layer type: " + repr(dtype))
             return dtype
@@ -334,10 +383,7 @@ cdef class _to:
             raise KeyError(arg)
         to_t = self.parse(arg[0])
         if len(arg) == 1:
-            converters = {
-                from_t: self._convert[to_t, from_t] for from_t in self.dtypes
-            }
-            return _partial_converter(converters, to_t)
+            return _partial_converter(self, to_t)
         from_t = self.parse(arg[1])
         return self._convert[to_t, from_t]
 
@@ -415,7 +461,7 @@ cdef class _create:
 
     def __call__(self, arg, shape=None, copy=True):
         """
-        Build a :class:`qutip.data.Data` object from arg.
+        Build a :class:`.Data` object from arg.
 
         Parameters
         ----------

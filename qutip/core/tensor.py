@@ -17,6 +17,7 @@ from .dimensions import (
     dims_idxs_to_tensor_idxs
 )
 from . import data as _data
+from .. import settings
 
 
 class _reverse_partial_tensor:
@@ -83,26 +84,25 @@ shape = [4, 4], type = oper, isHerm = True
             "In tensor products of superroperators,",
             " all must have the same representation"
         ]))
-    type = args[0].type
+
     isherm = args[0]._isherm
     isunitary = args[0]._isunitary
     out_data = args[0].data
-    dims_l = [d for arg in args for d in arg.dims[0]]
-    dims_r = [d for arg in args for d in arg.dims[1]]
+    dims_l = [args[0]._dims[0]]
+    dims_r = [args[0]._dims[1]]
     for arg in args[1:]:
         out_data = _data.kron(out_data, arg.data)
         # If both _are_ Hermitian and/or unitary, then so is the output, but if
         # both _aren't_, then output still can be.
         isherm = (isherm and arg._isherm) or None
         isunitary = (isunitary and arg._isunitary) or None
-        if arg.type != type:
-            type = None
+        dims_l.append(arg._dims[0])
+        dims_r.append(arg._dims[1])
+
     return Qobj(out_data,
                 dims=[dims_l, dims_r],
-                type=type,
                 isherm=isherm,
                 isunitary=isunitary,
-                superrep=args[0].superrep,
                 copy=False)
 
 
@@ -291,6 +291,8 @@ def tensor_contract(qobj, *pairs):
 
     Parameters
     ----------
+    qobj: Qobj
+        Operator to contract subspaces on.
 
     pairs : tuple
         One or more tuples ``(i, j)`` indicating that the
@@ -333,7 +335,7 @@ def tensor_contract(qobj, *pairs):
     # We don't need to check for tensor idxs versus dims idxs here,
     # as column- versus row-stacking will never move an index for the
     # vectorized operator spaces all the way from the left to the right.
-    l_mtx_dims, r_mtx_dims = map(np.product, map(flatten, contracted_dims))
+    l_mtx_dims, r_mtx_dims = map(np.prod, map(flatten, contracted_dims))
 
     # Reshape back into a 2D matrix.
     qmtx = qtens.reshape((l_mtx_dims, r_mtx_dims))
@@ -348,7 +350,7 @@ def _check_oper_dims(oper, dims=None, targets=None):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`
+    oper : :class:`.Qobj`
         The quantum object to be checked.
     dims : list, optional
         A list of integer for the dimension of each composite system.
@@ -379,8 +381,8 @@ def _targets_to_list(targets, oper=None, N=None):
     ----------
     targets : int or list of int
         The indices of subspace that are acted on.
-    oper : :class:`qutip.Qobj`, optional
-        An operator, the type of the :class:`qutip.Qobj`
+    oper : :class:`.Qobj`, optional
+        An operator, the type of the :class:`.Qobj`
         has to be an operator
         and the dimension matches the tensored qubit Hilbert space
         e.g. dims = ``[[2, 2, 2], [2, 2, 2]]``
@@ -412,7 +414,7 @@ def _targets_to_list(targets, oper=None, N=None):
     return targets
 
 
-def expand_operator(oper, dims, targets):
+def expand_operator(oper, dims, targets, dtype=None):
     """
     Expand an operator to one that acts on a system with desired dimensions.
     e.g.
@@ -425,7 +427,7 @@ def expand_operator(oper, dims, targets):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`
+    oper : :class:`.Qobj`
         An operator that act on the subsystem, has to be an operator and the
         dimension matches the tensored dims Hilbert space
         e.g. oper.dims = ``[[2, 3], [2, 3]]``
@@ -434,13 +436,19 @@ def expand_operator(oper, dims, targets):
         E.g ``[2, 3, 2, 3, 4]``.
     targets : int or list of int
         The indices of subspace that are acted on.
+    dtype : str, optional
+        Data type of the output :class:`.Qobj`. By default it uses the data
+        type specified in settings. If no data type is specified
+        in settings it uses the ``CSR`` data type.
 
     Returns
     -------
-    expanded_oper : :class:`qutip.Qobj`
-        The expanded operator acting on a system with desired dimension.
+    expanded_oper : :class:`.Qobj`
+        The expanded operator acting on a system with the desired dimension.
     """
     from .operators import identity
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    oper = oper.to(dtype)
     N = len(dims)
     targets = _targets_to_list(targets, oper=oper, N=N)
     _check_oper_dims(oper, dims=dims, targets=targets)

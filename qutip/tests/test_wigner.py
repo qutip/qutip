@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
+from scipy.integrate import trapezoid
 import itertools
 from scipy.special import laguerre
 from numpy.random import rand
-from numpy.testing import assert_, run_module_suite, assert_equal, \
-    assert_almost_equal, assert_allclose
+from numpy.testing import assert_equal, assert_almost_equal, assert_allclose
 
 import qutip
 from qutip.core.states import coherent, fock, ket, bell_state
@@ -226,7 +226,7 @@ class TestHusimiQ:
         naive = np.empty(alphas.shape, dtype=np.float64)
         for i, alpha in enumerate(alphas.flat):
             coh = qutip.coherent(size, alpha, method='analytic').full()
-            naive.flat[i] = (coh.conj().T @ state_np @ coh).real
+            naive.flat[i] = (coh.conj().T @ state_np @ coh).real[0, 0]
         naive *= (0.5*g)**2 / np.pi
         np.testing.assert_allclose(naive, qutip.qfunc(state, xs, ys, g))
         np.testing.assert_allclose(naive, qutip.QFunc(xs, ys, g)(state))
@@ -264,7 +264,7 @@ def test_wigner_bell1_su2parity():
 
     wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
 
-    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+    assert (np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
 @pytest.mark.slow
@@ -283,7 +283,7 @@ def test_wigner_bell4_su2parity():
 
     wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
 
-    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+    assert (np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
 @pytest.mark.slow
@@ -302,17 +302,17 @@ def test_wigner_bell4_fullparity():
             wigner_analyt[t, p] = -0.30901699
 
     wigner_theo = wigner_transform(psi, 0.5, True, steps, slicearray)
-    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-4)
+    assert (np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-4)
 
 
 def test_parity():
     """wigner: testing the parity function.
     """
     j = 0.5
-    assert_(_parity(2, j)[0, 0] - (1 - np.sqrt(3)) / 2. < 1e-11)
-    assert_(_parity(2, j)[0, 1] < 1e-11)
-    assert_(_parity(2, j)[1, 1] - (1 + np.sqrt(3)) / 2. < 1e-11)
-    assert_(_parity(2, j)[1, 0] < 1e-11)
+    assert (_parity(2, j)[0, 0] - (1 - np.sqrt(3)) / 2. < 1e-11)
+    assert (_parity(2, j)[0, 1] < 1e-11)
+    assert (_parity(2, j)[1, 1] - (1 + np.sqrt(3)) / 2. < 1e-11)
+    assert (_parity(2, j)[1, 0] < 1e-11)
 
 
 @pytest.mark.slow
@@ -334,7 +334,7 @@ def test_wigner_pure_su2():
 
     wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
 
-    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+    assert (np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
 @pytest.mark.slow
@@ -378,7 +378,7 @@ def test_wigner_ghz_su2parity():
 
     wigner_theo = wigner_transform(psi, 0.5, False, steps, slicearray)
 
-    assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
+    assert (np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-11)
 
 
 @pytest.mark.slow
@@ -398,10 +398,10 @@ def test_angle_slicing():
     wigner3 = wigner_transform(psi3, j, False, steps, ['l', 'x'])
     wigner4 = wigner_transform(psi4, j, False, steps, ['l', 'y'])
 
-    assert_(np.sum(np.abs(wigner2 - wigner1)) < 1e-11)
-    assert_(np.sum(np.abs(wigner3 - wigner2)) < 1e-11)
-    assert_(np.sum(np.abs(wigner4 - wigner3)) < 1e-11)
-    assert_(np.sum(np.abs(wigner4 - wigner1)) < 1e-11)
+    assert (np.sum(np.abs(wigner2 - wigner1)) < 1e-11)
+    assert (np.sum(np.abs(wigner3 - wigner2)) < 1e-11)
+    assert (np.sum(np.abs(wigner4 - wigner3)) < 1e-11)
+    assert (np.sum(np.abs(wigner4 - wigner1)) < 1e-11)
 
 
 def test_wigner_coherent():
@@ -426,13 +426,13 @@ def test_wigner_coherent():
     W_analytic = 2 / np.pi * np.exp(-2 * abs(a - beta) ** 2)
 
     # check difference
-    assert_(np.sum(abs(W_qutip - W_analytic) ** 2) < 1e-4)
-    assert_(np.sum(abs(W_qutip_cl - W_analytic) ** 2) < 1e-4)
+    assert (np.sum(abs(W_qutip - W_analytic) ** 2) < 1e-4)
+    assert (np.sum(abs(W_qutip_cl - W_analytic) ** 2) < 1e-4)
 
     # check normalization
-    assert_(np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
-    assert_(np.sum(W_qutip_cl) * dx * dy - 1.0 < 1e-8)
-    assert_(np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
+    assert (np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
+    assert (np.sum(W_qutip_cl) * dx * dy - 1.0 < 1e-8)
+    assert (np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_fock():
@@ -462,15 +462,15 @@ def test_wigner_fock():
             np.exp(-2 * abs(a) ** 2) * np.polyval(laguerre(n), 4 * abs(a) ** 2)
 
         # check difference
-        assert_(np.sum(abs(W_qutip - W_analytic)) < 1e-4)
-        assert_(np.sum(abs(W_qutip_cl - W_analytic)) < 1e-4)
-        assert_(np.sum(abs(W_qutip_sparse - W_analytic)) < 1e-4)
+        assert (np.sum(abs(W_qutip - W_analytic)) < 1e-4)
+        assert (np.sum(abs(W_qutip_cl - W_analytic)) < 1e-4)
+        assert (np.sum(abs(W_qutip_sparse - W_analytic)) < 1e-4)
 
         # check normalization
-        assert_(np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
-        assert_(np.sum(W_qutip_cl) * dx * dy - 1.0 < 1e-8)
-        assert_(np.sum(W_qutip_sparse) * dx * dy - 1.0 < 1e-8)
-        assert_(np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip_cl) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip_sparse) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_compare_methods_dm():
@@ -498,11 +498,11 @@ def test_wigner_compare_methods_dm():
         W_qutip2 = wigner(rho, xvec, yvec, g=2, method='laguerre')
 
         # check difference
-        assert_(np.sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
+        assert (np.sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
 
         # check normalization
-        assert_(np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
-        assert_(np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_compare_methods_ket():
@@ -530,11 +530,11 @@ def test_wigner_compare_methods_ket():
         W_qutip2 = wigner(psi, xvec, yvec, g=2, sparse=True)
 
         # check difference
-        assert_(np.sum(abs(W_qutip1 - W_qutip2)) < 1e-4)
+        assert (np.sum(abs(W_qutip1 - W_qutip2)) < 1e-4)
 
         # check normalization
-        assert_(np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
-        assert_(np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
+        assert (np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_fft_comparse_ket():
@@ -635,8 +635,10 @@ def test_spin_q_function_normalized(spin, pure):
     phi = np.linspace(-np.pi, np.pi, 256, endpoint=True)
     Q, THETA, _ = qutip.spin_q_function(rho, theta, phi)
 
-    norm = d / (4 * np.pi) * np.trapz(np.trapz(Q * np.sin(THETA), theta), phi)
-    assert_almost_equal(norm, 1, decimal=4)
+    norm = d / (4 * np.pi) * trapezoid(
+        trapezoid(Q * np.sin(THETA), theta), phi
+    )
+    assert_allclose(norm, 1, atol=2e-4)
 
 
 @pytest.mark.parametrize(["spin"], [
@@ -658,7 +660,9 @@ def test_spin_wigner_normalized(spin, pure):
     phi = np.linspace(-np.pi, np.pi, 512, endpoint=True)
     W, THETA, PHI = qutip.spin_wigner(rho, theta, phi)
 
-    norm = np.trapz(np.trapz(W * np.sin(THETA) * np.sqrt(d / (4*np.pi)), theta), phi)
+    norm = trapezoid(
+        trapezoid(W * np.sin(THETA) * np.sqrt(d / (4*np.pi)), theta), phi
+    )
     assert_almost_equal(norm, 1, decimal=4)
 
 @pytest.mark.parametrize(['spin'], [
@@ -685,9 +689,6 @@ def test_spin_wigner_overlap(spin, pure, n=5):
         state_overlap = (test_state*rho).tr().real
 
         W_state, _, _ = qutip.spin_wigner(test_state, theta, phi)
-        W_overlap = np.trapz(
-            np.trapz(W_state * W * np.sin(THETA), theta), phi).real
+        W_overlap = trapezoid(
+            trapezoid(W_state * W * np.sin(THETA), theta), phi).real
         assert_almost_equal(W_overlap, state_overlap, decimal=4)
-
-if __name__ == "__main__":
-    run_module_suite()

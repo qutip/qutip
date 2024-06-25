@@ -3,13 +3,17 @@
 # (e.g. `create`) should not be here, but should be defined within the
 # higher-level components of QuTiP instead.
 
-from . import csr, dense
+from . import csr, dense, dia
 from .csr import CSR
+from .dia import Dia
 from .dense import Dense
+from .base import Data
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
-__all__ = ['zeros', 'identity']
+__all__ = ['zeros', 'identity', 'zeros_like', 'identity_like',
+           'zeros_like_dense', 'identity_like_dense',
+           'zeros_like_data', 'identity_like_data']
 
 zeros = _Dispatcher(
     _inspect.Signature([
@@ -37,6 +41,7 @@ zeros.__doc__ =\
     """
 zeros.add_specialisations([
     (CSR, csr.zeros),
+    (Dia, dia.zeros),
     (Dense, dense.zeros),
 ], _defer=True)
 
@@ -67,7 +72,65 @@ identity.__doc__ =\
     """
 identity.add_specialisations([
     (CSR, csr.identity),
+    (Dia, dia.identity),
     (Dense, dense.identity),
 ], _defer=True)
+
+
+def zeros_like_data(data, /):
+    """
+    Create an zeros matrix of the same type and shape.
+    """
+    return zeros[type(data)](*data.shape)
+
+
+def zeros_like_dense(data, /):
+    """
+    Create an zeros matrix of the same type and shape.
+    """
+    return dense.zeros(*data.shape, fortran=data.fortran)
+
+
+def identity_like_data(data, /):
+    """
+    Create an identity matrix of the same type and shape.
+    """
+    if not data.shape[0] == data.shape[1]:
+        raise ValueError(
+            "Can't create an identity matrix like a non square matrix."
+        )
+    return identity[type(data)](data.shape[0])
+
+
+def identity_like_dense(data, /):
+    """
+    Create an identity matrix of the same type and shape.
+    """
+    if not data.shape[0] == data.shape[1]:
+        raise ValueError(
+            "Can't create an identity matrix like a non square matrix."
+        )
+    return dense.identity(data.shape[0], fortran=data.fortran)
+
+
+identity_like = _Dispatcher(
+    identity_like_data, name='identity_like',
+    module=__name__, inputs=("data",), out=False,
+)
+identity_like.add_specialisations([
+    (Data, identity_like_data),
+    (Dense, identity_like_dense),
+], _defer=True)
+
+
+zeros_like = _Dispatcher(
+    zeros_like_data, name='zeros_like',
+    module=__name__, inputs=("data",), out=False,
+)
+zeros_like.add_specialisations([
+    (Data, zeros_like_data),
+    (Dense, zeros_like_dense),
+], _defer=True)
+
 
 del _Dispatcher, _inspect

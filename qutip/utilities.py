@@ -16,17 +16,17 @@ def n_thermal(w, w_th):
     Parameters
     ----------
 
-    w : *float* or *array*
+    w : float or ndarray
         Frequency of the oscillator.
 
-    w_th : *float*
+    w_th : float
         The temperature in units of frequency (or the same units as `w`).
 
 
     Returns
     -------
 
-    n_avg : *float* or *array*
+    n_avg : float or array
 
         Return the number of average photons in thermal equilibrium for a
         an oscillator with the given frequency and temperature.
@@ -108,7 +108,8 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
 
     s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
-    sign = (-1) ** (vmin + j2 + m2)
+    # `S` and `C` are large integer,s if `sign` is a np.int32 it could oveflow
+    sign = int((-1) ** (vmin + j2 + m2))
     for i,v in enumerate(range(vmin, vmax + 1)):
         factor = s_factors[i,:]
         _factorial_prod(j2 + j3 + m1 - v, factor)
@@ -150,11 +151,11 @@ def convert_unit(value, orig="meV", to="GHz"):
     value : float / array
         The energy in the old unit.
 
-    orig : string
-        The name of the original unit ("J", "eV", "meV", "GHz", "mK")
+    orig : str, {"J", "eV", "meV", "GHz", "mK"}, default: "meV"
+        The name of the original unit.
 
-    to : string
-        The name of the new unit ("J", "eV", "meV", "GHz", "mK")
+    to : str, {"J", "eV", "meV", "GHz", "mK"}, default: "GHz"
+        The name of the new unit.
 
     Returns
     -------

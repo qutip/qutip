@@ -9,11 +9,11 @@ Frontmatter
 About This Documentation
 ==========================
 
-This document contains a user guide and automatically generated API documentation for QuTiP. A PDF version of this text is available at the `documentation page <https://www.qutip.org/documentation.html>`_.
+This document contains a user guide and automatically generated API documentation for QuTiP. A PDF version of this text is available at the `documentation page <https://qutip.org/documentation.html>`_.
 
 **For more information see the** `QuTiP project web page`_.
 
-.. _QuTiP project web page: https://www.qutip.org
+.. _QuTiP project web page: https://qutip.org/
 
 
 :Author: J.R. Johansson
@@ -39,6 +39,12 @@ This document contains a user guide and automatically generated API documentatio
 :Author: Jake Lishman
 
 :Author: Simon Cross
+
+:Author: Asier Galicia
+
+:Author: Paul Menczel
+
+:Author: Patrick Hopf
 
 :release: |release|
 
@@ -165,7 +171,7 @@ Several libraries rely on QuTiP for quantum physics or quantum information proce
 
 :QPtomographer: `QPtomographer <https://qptomographer.readthedocs.io/en/latest/>`_ derive quantum error bars for quantum processes in terms of the diamond norm to a reference quantum channel
 
-:QuNetSim: `QuNetSim <https://tqsd.github.io/QuNetSim/_build/intro.html>`_ is a quantum networking simulation framework to develop and test protocols for quantum networks
+:QuNetSim: `QuNetSim <https://tqsd.github.io/QuNetSim/intro.html>`_ is a quantum networking simulation framework to develop and test protocols for quantum networks
 
 :qupulse: `qupulse <https://qupulse.readthedocs.io/en/latest/>`_ is a toolkit to facilitate experiments involving pulse driven state manipulation of physical qubits
 

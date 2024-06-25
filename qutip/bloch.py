@@ -159,18 +159,20 @@ class Bloch:
         self.vector_default_color = ['g', '#CC6600', 'b', 'r']
         # List that stores the display colors for each vector
         self.vector_color = []
-        #: Width of Bloch vectors, default = 5
+        # Width of Bloch vectors, default = 5
         self.vector_width = 3
-        #: Style of Bloch vectors, default = '-\|>' (or 'simple')
+        # Style of Bloch vectors, default = '-\|>' (or 'simple')
         self.vector_style = '-|>'
-        #: Sets the width of the vectors arrowhead
+        # Sets the width of the vectors arrowhead
         self.vector_mutation = 20
 
         # ---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_default_color = ['b', 'r', 'g', '#CC6600']
+        # Old variable used in V4 to customise the color of the points
+        self.point_color = None
         # List that stores the display colors for each set of points
-        self.point_color = []
+        self._inner_point_color = []
         # Size of point markers, default = 25
         self.point_size = [25, 32, 35, 45]
         # Shape of point markers, default = ['o','^','d','s']
@@ -308,7 +310,7 @@ class Bloch:
         self.vector_alpha = []
         self.annotations = []
         self.vector_color = []
-        self.point_color = []
+        self.point_color = None
         self._lines = []
         self._arcs = []
 
@@ -331,12 +333,12 @@ class Bloch:
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
 
-        .. note::
-
-           When using ``meth=l`` in QuTiP 4.6, the line transparency defaulted
-           to ``0.75`` and there was no way to alter it.
-           When the ``alpha`` parameter was added in QuTiP 4.7, the default
-           became ``alpha=1.0`` for values of ``meth``.
+        Notes
+        -----
+        When using ``meth=l`` in QuTiP 4.6, the line transparency defaulted
+        to ``0.75`` and there was no way to alter it.
+        When the ``alpha`` parameter was added in QuTiP 4.7, the default
+        became ``alpha=1.0`` for values of ``meth``.
         """
 
         points = np.asarray(points)
@@ -360,14 +362,14 @@ class Bloch:
         self.point_style.append(meth)
         self.points.append(points)
         self.point_alpha.append(alpha)
-        self.point_color.append(colors)
+        self._inner_point_color.append(colors)
 
     def add_states(self, state, kind='vector', colors=None, alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
 
         Parameters
         ----------
-        state : Qobj
+        state : :obj:`.Qobj`
             Input state vector.
 
         kind : {'vector', 'point'}
@@ -450,7 +452,7 @@ class Bloch:
 
         Parameters
         ----------
-        state_or_vector : Qobj/array/list/tuple
+        state_or_vector : :obj:`.Qobj`/array/list/tuple
             Position for the annotaion.
             Qobj of a qubit or a vector of 3 elements.
 
@@ -489,11 +491,11 @@ class Bloch:
 
         Parameters
         ----------
-        start : Qobj or array-like
+        start : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the first point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
-        end : Qobj or array-like
+        end : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the second point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
@@ -563,11 +565,11 @@ class Bloch:
 
         Parameters
         ----------
-        start : Qobj or array-like
+        start : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the first point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
-        end : Qobj or array-like
+        end : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the second point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
@@ -792,28 +794,31 @@ class Bloch:
             dist = np.linalg.norm(points, axis=0)
             if not np.allclose(dist, dist[0], rtol=1e-12):
                 indperm = np.argsort(dist)
-                points = points[:, indperm]
             else:
                 indperm = np.arange(num_points)
 
             s = self.point_size[np.mod(k, len(self.point_size))]
             marker = self.point_marker[np.mod(k, len(self.point_marker))]
             style = self.point_style[k]
-            if self.point_color[k] is not None:
-                color = self.point_color[k]
+
+            if self._inner_point_color[k] is not None:
+                color = self._inner_point_color[k]
+            elif self.point_color is not None:
+                color = self.point_color
             elif self.point_style[k] in ['s', 'l']:
-                color = self.point_default_color[
+                color = [self.point_default_color[
                     k % len(self.point_default_color)
-                ]
+                ]]
             elif self.point_style[k] == 'm':
                 length = np.ceil(num_points/len(self.point_default_color))
                 color = np.tile(self.point_default_color, length.astype(int))
                 color = color[indperm]
+                color = list(color)
 
             if self.point_style[k] in ['s', 'm']:
-                self.axes.scatter(np.real(points[1]),
-                                  -np.real(points[0]),
-                                  np.real(points[2]),
+                self.axes.scatter(np.real(points[1][indperm]),
+                                  -np.real(points[0][indperm]),
+                                  np.real(points[2][indperm]),
                                   s=s,
                                   marker=marker,
                                   color=color,
@@ -823,6 +828,7 @@ class Bloch:
                                   )
 
             elif self.point_style[k] == 'l':
+                color = color[k % len(color)]
                 self.axes.plot(np.real(points[1]),
                                -np.real(points[0]),
                                np.real(points[2]),
@@ -880,7 +886,7 @@ class Bloch:
 
         name : str
             Name of saved image. Must include path and format as well.
-            i.e. '/Users/Paul/Desktop/bloch.png'
+            i.e. '/Users/Me/Desktop/bloch.png'
             This overrides the 'format' and 'dirc' arguments.
         format : str
             Format of output image.
