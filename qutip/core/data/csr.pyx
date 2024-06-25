@@ -17,11 +17,18 @@ import numpy as np
 cimport numpy as cnp
 import scipy.sparse
 from scipy.sparse import csr_matrix as scipy_csr_matrix
-try:
-    from scipy.sparse.data import _data_matrix as scipy_data_matrix
-except ImportError:
+from functools import partial
+from packaging.version import parse as parse_version
+if parse_version(scipy.version.version) >= parse_version("1.14.0"):
+    from scipy.sparse._data import _data_matrix as scipy_data_matrix
+    # From scipy 1.14.0, a check that the input is not scalar was added for
+    # sparse arrays.
+    scipy_data_matrix = partial(scipy_data_matrix, arg1=(0,))
+elif parse_version(scipy.version.version) >= parse_version("1.8.0"):
     # The file data was renamed to _data from scipy 1.8.0
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
+else:
+    from scipy.sparse.data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, Dia
