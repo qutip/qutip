@@ -41,8 +41,6 @@ SpaceLike = Union[int, list[int], list[list[int]], "Space"]
 
 
 DimensionLike = Union[
-    list[list[int], list[int]],
-    list[list[list[int]], list[list[int]]],
-    list["Space", "Space"],
+    list[SpaceLike, SpaceLike],
     "Dimensions",
 ]
