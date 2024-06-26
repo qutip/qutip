@@ -604,6 +604,7 @@ def test_mixed_averaging(improved_sampling, initial_state, ntraj):
         assert result.ntraj_per_initial_state == ntraj
     else:
         assert sum(result.ntraj_per_initial_state) == ntraj
+    assert sum(result.runs_weights) == pytest.approx(1.)
 
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
@@ -648,3 +649,5 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert hasattr(mixed_result, 'ntraj_per_initial_state')
     assert isinstance(mixed_result.ntraj_per_initial_state, list)
     assert mixed_result.ntraj_per_initial_state == ntraj
+    assert sum(mixed_result.runs_weights) == pytest.approx(1.)
+    assert sum(merged_result.runs_weights) == pytest.approx(1.)
