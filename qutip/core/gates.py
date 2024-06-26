@@ -169,7 +169,7 @@ def ct_gate(*, dtype: LayerType = None) -> Qobj:
     )
 
 
-def rx(phi, *, dtype: LayerType = None) -> Qobj:
+def rx(phi: float, *, dtype: LayerType = None) -> Qobj:
     """Single-qubit rotation for operator sigmax with angle phi.
 
     Parameters
