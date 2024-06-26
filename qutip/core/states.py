@@ -455,7 +455,7 @@ def fock(
 def thermal_dm(
     N: int,
     n: float,
-    method: str = 'operator',
+    method: Literal['operator', 'analytic'] = 'operator',
     *,
     dtype: LayerType = None,
 ) -> Qobj:
