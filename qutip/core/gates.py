@@ -198,7 +198,7 @@ def rx(phi: float, *, dtype: LayerType = None) -> Qobj:
     ).to(dtype)
 
 
-def ry(phi, *, dtype: LayerType = None) -> Qobj:
+def ry(phi: float, *, dtype: LayerType = None) -> Qobj:
     """Single-qubit rotation for operator sigmay with angle phi.
 
     Parameters
@@ -227,7 +227,7 @@ def ry(phi, *, dtype: LayerType = None) -> Qobj:
     ).to(dtype)
 
 
-def rz(phi, *, dtype: LayerType = None) -> Qobj:
+def rz(phi: float, *, dtype: LayerType = None) -> Qobj:
     """Single-qubit rotation for operator sigmaz with angle phi.
 
     Parameters
