@@ -532,7 +532,7 @@ class MCSolver(MultiTrajSolver):
         Run one trajectory and return the result.
         """
         jump_prob_floor = integrator_kwargs.get('jump_prob_floor', 0)
-        if jump_prob_floor == 1:
+        if jump_prob_floor >= 1 - self.options["norm_tol"]:
             # The no-jump probability is one, but we are asked to generate
             # a trajectory with at least one jump.
             # This can happen when a user uses "improved sampling" with a dark
@@ -543,6 +543,7 @@ class MCSolver(MultiTrajSolver):
             zero = qzero_like(self._restore_state(state, copy=False))
             result = self._trajectory_resultclass(e_ops, self.options)
             result.collapse = []
+            result.add_relative_weight(0)
             for t in tlist:
                 result.add(t, zero)
             return seed, result

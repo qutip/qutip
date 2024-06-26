@@ -338,7 +338,9 @@ class TestMultiTrajResult:
                               e_ops, results):
         N = 5
         ntraj = 25
-        opt = fill_options(keep_runs_results=keep_runs_results)
+        opt = fill_options(
+            keep_runs_results=keep_runs_results, store_final_state=True
+        )
         m_res = MultiTrajResult(e_ops, opt, stats={})
         self._fill_trajectories(m_res, N, ntraj, noise=0.01,
                                 include_no_jump=include_no_jump)
@@ -358,7 +360,7 @@ class TestMultiTrajResult:
                                                atol=1e-14, rtol=0.1)
 
         self._check_types(m_res)
-
+        assert m_res.average_final_state is not None
         assert m_res.stats['end_condition'] == "unknown"
 
     @pytest.mark.parametrize('keep_runs_results', [True, False])
@@ -407,7 +409,7 @@ class TestMultiTrajResult:
                                 include_no_jump=include_no_jump)
 
         assert m_res.stats['end_condition'] == "target tolerance reached"
-        assert m_res.num_trajectories <= 1000
+        assert m_res.num_trajectories <= 500
 
     def test_multitraj_steadystate(self):
         N = 5
@@ -431,15 +433,19 @@ class TestMultiTrajResult:
         if keep_runs_results:
             assert "Trajectories saved." in repr
 
-    @pytest.mark.parametrize('keep_runs_results', [True, False])
-    def test_merge_result(self, keep_runs_results):
+    @pytest.mark.parametrize('keep_runs_results1', [True, False])
+    @pytest.mark.parametrize('keep_runs_results2', [True, False])
+    def test_merge_result(self, keep_runs_results1, keep_runs_results2):
         N = 10
         opt = fill_options(
-            keep_runs_results=keep_runs_results, store_states=True
+            keep_runs_results=keep_runs_results1, store_states=True
         )
         m_res1 = MultiTrajResult([qutip.num(10)], opt, stats={"run time": 1})
         self._fill_trajectories(m_res1, N, 10, noise=0.1)
 
+        opt = fill_options(
+            keep_runs_results=keep_runs_results2, store_states=True
+        )
         m_res2 = MultiTrajResult([qutip.num(10)], opt, stats={"run time": 2})
         self._fill_trajectories(m_res2, N, 30, noise=0.1)
 
@@ -456,7 +462,9 @@ class TestMultiTrajResult:
             np.ones(N),
             rtol=0.1
         )
-        assert bool(merged_res.trajectories) == keep_runs_results
+        assert bool(merged_res.trajectories) == (
+            keep_runs_results1 and keep_runs_results2
+        )
         assert merged_res.stats["run time"] == 3
 
     def _random_ensemble(self, abs_weights=True, collapse=False, trace=False,
@@ -508,10 +516,7 @@ class TestMultiTrajResult:
         merged = ensemble1.merge(ensemble2, p=p)
 
         if p is None:
-            p = ensemble1._num_rel_trajectories / (
-                ensemble1._num_rel_trajectories +
-                ensemble2._num_rel_trajectories
-            )
+            p = 0.5
 
         np.testing.assert_almost_equal(
             merged.expect[0],
@@ -535,10 +540,7 @@ class TestMultiTrajResult:
         merged = ensemble1.merge(ensemble2, p=p)
 
         if p is None:
-            p = ensemble1._num_rel_trajectories / (
-                ensemble1._num_rel_trajectories +
-                ensemble2._num_rel_trajectories
-            )
+            p = 0.5
 
         assert merged.num_trajectories == len(merged.collapse)
 
@@ -556,10 +558,7 @@ class TestMultiTrajResult:
         merged = ensemble1.merge(ensemble2, p=p)
 
         if p is None:
-            p = ensemble1._num_rel_trajectories / (
-                ensemble1._num_rel_trajectories +
-                ensemble2._num_rel_trajectories
-            )
+            p = 0.5
 
         np.testing.assert_almost_equal(
             merged.trace, p * ensemble1.trace + (1 - p) * ensemble2.trace)
