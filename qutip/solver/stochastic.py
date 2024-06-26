@@ -218,6 +218,7 @@ class StochasticResult(MultiTrajResult):
 
         return new
 
+
 class _StochasticRHS(_MultiTrajRHS):
     """
     In between object to store the stochastic system.
