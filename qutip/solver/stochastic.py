@@ -195,6 +195,8 @@ class StochasticResult(MultiTrajResult):
     def merge(self, other, p=None):
         if not isinstance(other, StochasticResult):
             return NotImplemented
+        if self.stats["solver"] != other.stats["solver"]:
+            raise ValueError("Can't merge smesolve and ssesolve results")
         if self.heterodyne != other.heterodyne:
             raise ValueError("Can't merge heterodyne and homodyne results")
         if p is not None:
