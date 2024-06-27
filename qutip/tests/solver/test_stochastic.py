@@ -515,7 +515,7 @@ def test_run_from_experiment_open(method, heterodyne):
 @pytest.mark.parametrize("store_measurement", [True, False])
 @pytest.mark.parametrize("keep_runs_results", [True, False])
 def test_merge_results(store_measurement, keep_runs_results):
-    # Running mcsolve with mixed ICs should be the same as running mcsolve
+    # Running smesolve with mixed ICs should be the same as running smesolve
     # multiple times and merging the results afterwards
     initial_state1 = basis([2, 2], [1, 0])
     initial_state2 = basis([2, 2], [1, 1])
