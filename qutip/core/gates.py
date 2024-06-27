@@ -8,6 +8,7 @@ from . import Qobj, qeye, sigmax, fock_dm, qdiags, qeye_like
 from .dimensions import Dimensions
 from .. import settings
 from . import data as _data
+from ..typing import LayerType
 
 
 __all__ = [
@@ -46,7 +47,7 @@ _DIMS_2_QB = Dimensions([[2, 2], [2, 2]])
 _DIMS_3_QB = Dimensions([[2, 2, 2], [2, 2, 2]])
 
 
-def cy_gate(*, dtype=None):
+def cy_gate(*, dtype: LayerType = None) -> Qobj:
     """Controlled Y gate.
 
     Parameters
@@ -69,7 +70,7 @@ def cy_gate(*, dtype=None):
     ).to(dtype)
 
 
-def cz_gate(*, dtype=None):
+def cz_gate(*, dtype: LayerType = None) -> Qobj:
     """Controlled Z gate.
 
     Parameters
@@ -87,7 +88,7 @@ def cz_gate(*, dtype=None):
     return qdiags([1, 1, 1, -1], dims=_DIMS_2_QB, dtype=dtype)
 
 
-def s_gate(*, dtype=None):
+def s_gate(*, dtype: LayerType = None) -> Qobj:
     """Single-qubit rotation also called Phase gate or the Z90 gate.
 
     Parameters
@@ -107,7 +108,7 @@ def s_gate(*, dtype=None):
     return qdiags([1, 1j], dtype=dtype)
 
 
-def cs_gate(*, dtype=None):
+def cs_gate(*, dtype: LayerType = None) -> Qobj:
     """Controlled S gate.
 
     Parameters
@@ -126,7 +127,7 @@ def cs_gate(*, dtype=None):
     return qdiags([1, 1, 1, 1j], dims=_DIMS_2_QB, dtype=dtype)
 
 
-def t_gate(*, dtype=None):
+def t_gate(*, dtype: LayerType = None) -> Qobj:
     """Single-qubit rotation related to the S gate by the relationship S=T*T.
 
     Parameters
@@ -145,7 +146,7 @@ def t_gate(*, dtype=None):
     return qdiags([1, np.exp(1j * np.pi / 4)], dtype=dtype)
 
 
-def ct_gate(*, dtype=None):
+def ct_gate(*, dtype: LayerType = None) -> Qobj:
     """Controlled T gate.
 
     Parameters
@@ -168,7 +169,7 @@ def ct_gate(*, dtype=None):
     )
 
 
-def rx(phi, *, dtype=None):
+def rx(phi: float, *, dtype: LayerType = None) -> Qobj:
     """Single-qubit rotation for operator sigmax with angle phi.
 
     Parameters
@@ -197,7 +198,7 @@ def rx(phi, *, dtype=None):
     ).to(dtype)
 
 
-def ry(phi, *, dtype=None):
+def ry(phi: float, *, dtype: LayerType = None) -> Qobj:
     """Single-qubit rotation for operator sigmay with angle phi.
 
     Parameters
@@ -226,7 +227,7 @@ def ry(phi, *, dtype=None):
     ).to(dtype)
 
 
-def rz(phi, *, dtype=None):
+def rz(phi: float, *, dtype: LayerType = None) -> Qobj:
     """Single-qubit rotation for operator sigmaz with angle phi.
 
     Parameters
@@ -248,7 +249,7 @@ def rz(phi, *, dtype=None):
     return qdiags([np.exp(-1j * phi / 2), np.exp(1j * phi / 2)], dtype=dtype)
 
 
-def sqrtnot(*, dtype=None):
+def sqrtnot(*, dtype: LayerType = None) -> Qobj:
     """Single-qubit square root NOT gate.
 
     Parameters
@@ -271,7 +272,7 @@ def sqrtnot(*, dtype=None):
     ).to(dtype)
 
 
-def snot(*, dtype=None):
+def snot(*, dtype: LayerType = None) -> Qobj:
     """Quantum object representing the SNOT (Hadamard) gate.
 
     Parameters
@@ -294,7 +295,7 @@ def snot(*, dtype=None):
     ).to(dtype)
 
 
-def phasegate(theta, *, dtype=None):
+def phasegate(theta: float, *, dtype: LayerType = None) -> Qobj:
     """
     Returns quantum object representing the phase shift gate.
 
@@ -316,7 +317,7 @@ def phasegate(theta, *, dtype=None):
     return qdiags([1, np.exp(1.0j * theta)], dtype=dtype)
 
 
-def qrot(theta, phi, *, dtype=None):
+def qrot(theta: float, phi: float, *, dtype: LayerType = None) -> Qobj:
     """
     Single qubit rotation driving by Rabi oscillation with 0 detune.
 
@@ -352,7 +353,7 @@ def qrot(theta, phi, *, dtype=None):
 #
 
 
-def cphase(theta, *, dtype=None):
+def cphase(theta: float, *, dtype: LayerType = None) -> Qobj:
     """
     Returns quantum object representing the controlled phase shift gate.
 
@@ -375,7 +376,7 @@ def cphase(theta, *, dtype=None):
     )
 
 
-def cnot(*, dtype=None):
+def cnot(*, dtype: LayerType = None) -> Qobj:
     """
     Quantum object representing the CNOT gate.
 
@@ -400,7 +401,7 @@ def cnot(*, dtype=None):
     ).to(dtype)
 
 
-def csign(*, dtype=None):
+def csign(*, dtype: LayerType = None) -> Qobj:
     """
     Quantum object representing the CSIGN gate.
 
@@ -419,7 +420,7 @@ def csign(*, dtype=None):
     return cz_gate(dtype=dtype)
 
 
-def berkeley(*, dtype=None):
+def berkeley(*, dtype: LayerType = None) -> Qobj:
     """
     Quantum object representing the Berkeley gate.
 
@@ -449,7 +450,7 @@ def berkeley(*, dtype=None):
     ).to(dtype)
 
 
-def swapalpha(alpha, *, dtype=None):
+def swapalpha(alpha: float, *, dtype: LayerType = None) -> Qobj:
     """
     Quantum object representing the SWAPalpha gate.
 
@@ -482,7 +483,7 @@ def swapalpha(alpha, *, dtype=None):
     ).to(dtype)
 
 
-def swap(*, dtype=None):
+def swap(*, dtype: LayerType = None) -> Qobj:
     """Quantum object representing the SWAP gate.
 
     Parameters
@@ -506,7 +507,7 @@ def swap(*, dtype=None):
     ).to(dtype)
 
 
-def iswap(*, dtype=None):
+def iswap(*, dtype: LayerType = None) -> Qobj:
     """Quantum object representing the iSWAP gate.
 
     Parameters
@@ -529,7 +530,7 @@ def iswap(*, dtype=None):
     ).to(dtype)
 
 
-def sqrtswap(*, dtype=None):
+def sqrtswap(*, dtype: LayerType = None) -> Qobj:
     """Quantum object representing the square root SWAP gate.
 
     Parameters
@@ -560,7 +561,7 @@ def sqrtswap(*, dtype=None):
     ).to(dtype)
 
 
-def sqrtiswap(*, dtype=None):
+def sqrtiswap(*, dtype: LayerType = None) -> Qobj:
     """Quantum object representing the square root iSWAP gate.
 
     Parameters
@@ -590,7 +591,7 @@ def sqrtiswap(*, dtype=None):
     ).to(dtype)
 
 
-def molmer_sorensen(theta, *, dtype=None):
+def molmer_sorensen(theta: float, *, dtype: LayerType = None) -> Qobj:
     """
     Quantum object of a Mølmer–Sørensen gate.
 
@@ -598,8 +599,6 @@ def molmer_sorensen(theta, *, dtype=None):
     ----------
     theta: float
         The duration of the interaction pulse.
-    N: int
-        Number of qubits in the system.
     target: int
         The indices of the target qubits.
     dtype : str or type, [keyword only] [optional]
@@ -630,7 +629,7 @@ def molmer_sorensen(theta, *, dtype=None):
 #
 
 
-def fredkin(*, dtype=None):
+def fredkin(*, dtype: LayerType = None) -> Qobj:
     """Quantum object representing the Fredkin gate.
 
     Parameters
@@ -663,7 +662,7 @@ def fredkin(*, dtype=None):
     ).to(dtype)
 
 
-def toffoli(*, dtype=None):
+def toffoli(*, dtype: LayerType = None) -> Qobj:
     """Quantum object representing the Toffoli gate.
 
     Parameters
@@ -701,7 +700,7 @@ def toffoli(*, dtype=None):
 #
 
 
-def globalphase(theta, N=1, *, dtype=None):
+def globalphase(theta: float, N: int = 1, *, dtype: LayerType = None) -> Qobj:
     """
     Returns quantum object representing the global phase shift gate.
 
@@ -709,6 +708,9 @@ def globalphase(theta, N=1, *, dtype=None):
     ----------
     theta : float
         Phase rotation angle.
+
+    N : int:
+        Number of qubits
 
     dtype : str or type, [keyword only] [optional]
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -741,11 +743,14 @@ def _hamming_distance(x):
     return tot
 
 
-def hadamard_transform(N=1, *, dtype=None):
+def hadamard_transform(N: int = 1, *, dtype: LayerType = None) -> Qobj:
     """Quantum object representing the N-qubit Hadamard gate.
 
     Parameters
     ----------
+    N : int:
+        Number of qubits
+
     dtype : str or type, [keyword only] [optional]
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
@@ -782,7 +787,7 @@ def _powers(op, N):
         yield acc
 
 
-def qubit_clifford_group(*, dtype=None):
+def qubit_clifford_group(*, dtype: LayerType = None) -> list[Qobj]:
     """
     Generates the Clifford group on a single qubit,
     using the presentation of the group given by Ross and Selinger
@@ -814,7 +819,7 @@ def qubit_clifford_group(*, dtype=None):
 
     X = sigmax()
     S = phasegate(np.pi / 2)
-    E = H * (S**3) * w**3
+    E = H @ (S**3) * w**3
 
     # partial(reduce, mul) returns a function that takes products
     # of its argument, by analogy to sum. Note that by analogy,
