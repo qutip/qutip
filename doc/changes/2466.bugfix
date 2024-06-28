@@ -1,4 +1,1 @@
-Fixed issue #1919
-Dicke density state matrix should only have positive eigenvalues, but rounding errors causes eigenvalues of 0 to instead be represented as a very small negative number.
-This causes dicke_trace_function to return -Inf, since scipy.special.entr returns -Inf for any values < 0.
-This issue was fixed by simply taking the absolute value of the eigenvalues in dicke_trace_function.
+Fixed rounding error in dicke_trace_function that resulted in negative eigenvalues.
