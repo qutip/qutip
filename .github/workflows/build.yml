@@ -139,7 +139,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
 
 
@@ -161,6 +161,9 @@ jobs:
     steps:
       - name: Download build artifacts to local runner
         uses: actions/download-artifact@v4
+        with:
+          path: wheels
+          merge-multiple: true
 
       - uses: actions/setup-python@v4
         name: Install Python
@@ -177,6 +180,10 @@ jobs:
       # our end, but PyPI only needs the tarball.
       - name: Upload sdist and wheels to PyPI
         run: |
+          ls -R wheels
+          if ! [[ $(ls wheels/*.whl | wc -l) == 12 ]]; then exit 1; fi
+          if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
+          if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
           python -m pip install "twine"
           python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
 
@@ -194,6 +201,9 @@ jobs:
     steps:
       - name: Download build artifacts to local runner
         uses: actions/download-artifact@v4
+        with:
+          path: wheels
+          merge-multiple: true
 
       - uses: actions/setup-python@v4
         name: Install Python
@@ -210,5 +220,32 @@ jobs:
       # our end, but PyPI only needs the tarball.
       - name: Upload sdist and wheels to TestPyPI
         run: |
+          ls -R wheels
+          if ! [[ $(ls wheels/*.whl | wc -l) == 12 ]]; then exit 1; fi
+          if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
+          if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
           python -m pip install "twine"
           python -m twine upload --repository testpypi --verbose wheels/*.whl sdist/*.tar.gz
+
+
+  check_wheels_availble:
+    name: "Check built wheels"
+    if: ${{ github.event.inputs.confirm_ref == '' }}
+    needs: [deploy_test, build_sdist, build_wheels]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts to local runner
+        uses: actions/download-artifact@v4
+        with:
+          path: wheels
+          merge-multiple: true
+
+      - name: List wheels
+        shell: bash
+        run: |
+          ls -R wheels
+          if ! [[ $(ls wheels/*.whl | wc -l) == 12 ]]; then exit 1; fi
+          if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
+          if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
+          echo "All artifacts available!"
