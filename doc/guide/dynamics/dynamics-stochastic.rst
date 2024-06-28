@@ -178,19 +178,44 @@ in ``result.measurements``.
     ax.set_xlabel('Time')
     ax.legend()
 
-..
-    TODO merge qutip-tutorials#61
-    For other examples on :func:`qutip.solver.stochastic.smesolve`, see the
-    `following notebook <...>`_, as well as these notebooks available at
-    `QuTiP Tutorials page <https://qutip.org/tutorials.html>`_:
-    `heterodyne detection <...>`_,
-    `inefficient detection <...>`_, and
-    `feedback control <https://github.com/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_.
+For other examples on :func:`qutip.solver.stochastic.smesolve`, see the
+notebooks available at `QuTiP Tutorials page <https://qutip.org/tutorials.html>`_:
+
+`heterodyne detection <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/015_smesolve-heterodyne.ipynb>`_,
+`inefficient detection <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/016_smesolve-inefficient-detection.ipynb>`_, and
+`feedback control <https://github.com/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_.
 
 
 The stochastic solvers share many features with :func:`.mcsolve`, such as
 end conditions, seed control and running in parallel. See the sections
 :ref:`monte-ntraj`, :ref:`monte-seeds` and :ref:`monte-parallel` for details.
+
+
+Run with known noise
+====================
+
+In situations where instead of running multiple trajectories, we want to reproduce a single trajectory from known measurements or noise.
+In these cases, we can use :method:`~qutip.solver.stochastic.SMESolver.run_from_experiment`.
+We can rerun the first trajectory of the previous simulation with:
+
+.. code-block::
+
+    # Use the class
+    solver = SMESolver(
+        H, sc_ops=[np.sqrt(KAPPA) * a],
+        options={"dt": 0.00125, "store_measurement": True,}
+    )
+
+    recreated_solution = solver.run_from_experiment(
+        rho_0,
+        e_ops=[H],
+        noise=stoc_solution.measurements[0]
+        measurement=True,
+    )
+
+This will recompute the wiener increment and expectation values for that trajectory.
+
+When using this mode of evolution, the measurement use the state at the beginning of the time step, instead of the end as per normal evolutions' default.
 
 
 .. plot::
