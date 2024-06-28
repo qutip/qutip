@@ -185,7 +185,7 @@ jobs:
           if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
           if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
           python -m pip install "twine"
-          python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
+          python -m twine upload --verbose wheels/*.whl wheels/*.tar.gz
 
 
   deploy_testpypi:
