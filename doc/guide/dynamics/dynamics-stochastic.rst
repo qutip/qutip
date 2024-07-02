@@ -188,7 +188,7 @@ Run from known measurements
 ===========================
 
 In situations where instead of running multiple trajectories, we want to reproduce a single trajectory from known noise or measurements obtained in lab.
-In these cases, we can use :method:`~qutip.solver.stochastic.SMESolver.run_from_experiment`.
+In these cases, we can use :meth:`~qutip.solver.stochastic.SMESolver.run_from_experiment`.
 
 Let use the measurement output ``J_x`` of the first trajectory of the previous simulation as the input to recompute a trajectory:
 
