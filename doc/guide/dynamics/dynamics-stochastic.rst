@@ -194,17 +194,19 @@ Let use the measurement output ``J_x`` of the first trajectory of the previous s
 
 .. code-block::
 
-    # Only available from the class interface.
+    # Create a stochastic solver instance with the some Hamiltonian as the
+    # previous evolution.
     solver = SMESolver(
         H, sc_ops=[np.sqrt(KAPPA) * a],
         options={"dt": 0.00125, "store_measurement": True,}
     )
 
+    # Run the evolution, noise
     recreated_solution = solver.run_from_experiment(
-        rho_0, tlist,
-        noise=stoc_solution.measurements[0],
+        rho_0, tlist, stoc_solution.measurements[0],
         e_ops=[H],
-        measurement=True, # The ``noise`` input is a measurement.
+        # The third parameter is a measurement, not Gaussian noise
+        measurement=True,
     )
 
 This will recompute the states, expectation values and wiener increments for that trajectory.
