@@ -14,7 +14,7 @@ import scipy.sparse
 from .. import __version__
 from ..settings import settings
 from . import data as _data
-from qutip.typing import LayerType
+from qutip.typing import LayerType, DimensionLike
 from .dimensions import (
     enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions
 )
@@ -269,7 +269,7 @@ class Qobj:
     def __init__(
         self,
         arg: ArrayLike | Any = None,
-        dims: list[list[int]] | list[list[list[int]]] | Dimensions = None,
+        dims: DimensionLike = None,
         copy: bool = True,
         superrep: str = None,
         isherm: bool = None,
