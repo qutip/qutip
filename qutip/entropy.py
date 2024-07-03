@@ -35,7 +35,7 @@ def entropy_vn(rho, base=e, sparse=False):
     1.0
 
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
     if rho.type == 'ket' or rho.type == 'bra':
         rho = ket2dm(rho)
     vals = rho.eigenenergies(sparse=sparse)
@@ -70,7 +70,7 @@ def entropy_linear(rho):
     0.5
 
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
     if rho.type == 'ket' or rho.type == 'bra':
         rho = ket2dm(rho)
     return np.real(1.0 - (rho ** 2).tr())
@@ -96,7 +96,7 @@ def concurrence(rho):
     .. [1] `https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)`
 
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
     if rho.isket and rho.dims != [[2, 2], [1, 1]]:
         raise Exception("Ket must be tensor product of two qubits.")
 
@@ -133,7 +133,7 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
 
         Experimental.
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
     if rho.isket or rho.isbra:
         rho = ket2dm(rho)
     mask = [idx == subsys for idx, n in enumerate(rho.dims[0])]
@@ -248,7 +248,7 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     Section 11.3.1, pg. 511 for a detailed explanation of quantum relative
     entropy.
     """
-    np = settings.core["backend"]
+    np = settings.core["numpy_backend"]
 
     if rho.isket:
         rho = ket2dm(rho)
