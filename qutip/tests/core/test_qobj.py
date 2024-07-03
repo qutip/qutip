@@ -1279,3 +1279,30 @@ def test_qobj_dtype(dtype):
 def test_dtype_in_info_string(dtype):
     obj = qutip.qeye(2, dtype=dtype)
     assert dtype.lower() in str(obj).lower()
+
+
+def test_inplace():
+    ops = [qutip.qeye(2)]
+    for op in ops:
+        op += 1
+    assert op.tr() == 4
+
+    ops = [qutip.qeye(2)]
+    for op in ops:
+        op -= 1
+    assert op.tr() == 0
+
+    ops = [qutip.qeye(2)]
+    for op in ops:
+        op *= 1
+    assert op.tr() == 2
+
+    ops = [qutip.qeye(2)]
+    for op in ops:
+        op /= 2
+    assert op.tr() == 1
+
+    ops = [qutip.qeye(2)]
+    for op in ops:
+        op @= qutip.destroy(2)
+    assert op.tr() == 0

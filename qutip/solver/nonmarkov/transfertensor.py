@@ -166,7 +166,7 @@ def _generatetensors(dynmaps, threshold):
     for n in range(len(dynmaps)):
         T = dynmaps[n]
         for m in range(1, n):
-            T -= Tensors[n - m] @ dynmaps[m]
+            T = T - Tensors[n - m] @ dynmaps[m]
         Tensors.append(T)
         if n > 1:
             diff.append((Tensors[-1] - Tensors[-2]).norm())
