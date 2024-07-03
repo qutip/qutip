@@ -1,6 +1,7 @@
 __all__ = ['Bloch']
 
 import os
+from typing import Literal
 
 import numpy as np
 from numpy import (outer, cos, sin, ones)
@@ -314,7 +315,8 @@ class Bloch:
         self._lines = []
         self._arcs = []
 
-    def add_points(self, points, meth='s', colors=None, alpha=1.0):
+    def add_points(self, points, meth: Literal['s', 'm', 'l'] = 's',
+                   colors=None, alpha=1.0):
         """Add a list of data points to bloch sphere.
 
         Parameters
@@ -364,13 +366,14 @@ class Bloch:
         self.point_alpha.append(alpha)
         self._inner_point_color.append(colors)
 
-    def add_states(self, state, kind='vector', colors=None, alpha=1.0):
+    def add_states(self, state, kind: Literal['vector', 'point'] = 'vector',
+                   colors=None, alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
 
         Parameters
         ----------
-        state : :obj:`.Qobj`
-            Input state vector.
+        state : :obj:`.Qobj` or array_like
+            Input state vector or list.
 
         kind : {'vector', 'point'}
             Type of object to plot.
@@ -381,10 +384,27 @@ class Bloch:
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
         """
-        if isinstance(state, Qobj):
-            state = [state]
-        if not isinstance(colors, (list, np.ndarray)) and colors is not None:
-            colors = [colors]
+        state = np.asarray(state)
+
+        if state.ndim == 0:
+            state = state[np.newaxis]
+
+        if state.ndim != 1:
+            raise ValueError("The included states are not valid. "
+                             "State should be a Qobj or a list of Qobj.")
+
+        if colors is not None:
+            colors = np.asarray(colors)
+
+            if colors.ndim == 0:
+                colors = colors[np.newaxis]
+
+            if colors.shape != state.shape:
+                raise ValueError("The included colors are not valid. "
+                                 "colors must be equivalent to a 1D array "
+                                 "with the same size as the number of states.")
+        else:
+            colors = np.array([None] * state.size)
 
         for k, st in enumerate(state):
             vec = [expect(sigmax(), st),
@@ -392,15 +412,9 @@ class Bloch:
                    expect(sigmaz(), st)]
 
             if kind == 'vector':
-                if colors is not None:
-                    self.add_vectors(vec, colors=colors[k], alpha=alpha)
-                else:
-                    self.add_vectors(vec)
+                self.add_vectors(vec, colors=[colors[k]], alpha=alpha)
             elif kind == 'point':
-                if colors is not None:
-                    self.add_points(vec, colors=colors[k], alpha=alpha)
-                else:
-                    self.add_points(vec)
+                self.add_points(vec, colors=[colors[k]], alpha=alpha)
 
     def add_vectors(self, vectors, colors=None, alpha=1.0):
         """Add a list of vectors to Bloch sphere.
