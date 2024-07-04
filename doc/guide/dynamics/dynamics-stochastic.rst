@@ -144,7 +144,7 @@ where :math:`x` is the operator build from the ``sc_ops`` as
     x_n = S_n + S_n^\dagger
 
 
-The results are available in ``result.measurements``.
+The results are available in ``result.measurement``.
 
 .. plot::
     :context: reset
@@ -205,7 +205,7 @@ Let use the measurement output ``J_x`` of the first trajectory of the previous s
     recreated_solution = solver.run_from_experiment(
         rho_0, tlist, stoc_solution.measurements[0],
         e_ops=[H],
-        # The third parameter is a measurement, not Gaussian noise
+        # The third parameter is the measurement, not the Wiener increment
         measurement=True,
     )
 
@@ -213,16 +213,17 @@ This will recompute the states, expectation values and wiener increments for tha
 
 .. note::
 
-  The measurements in the result is computed from the state at the end of the time step.
+  The measurement in the result is by default computed from the state at the end of the time step.
   However, when using ``run_from_experiment`` with measurement input, the state at the start of the time step is used.
+  To obtain the measurement at the start of the time step in the output of ``smesolve``, one may use the option ``{'store_measurement': 'start'}``.
 
 
 For other examples on :func:`qutip.solver.stochastic.smesolve`, see the
-notebooks available at `QuTiP Tutorials page <https://qutip.org/tutorials.html>`_:
+notebooks available on the `QuTiP Tutorials page <https://qutip.org/tutorials.html>`_:
 
-`heterodyne detection <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/015_smesolve-heterodyne.ipynb>`_,
-`inefficient detection <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/016_smesolve-inefficient-detection.ipynb>`_, and
-`feedback control <https://github.com/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_.
+* `Heterodyne detection <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/015_smesolve-heterodyne.ipynb>`_
+* `Inefficient detection <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/016_smesolve-inefficient-detection.ipynb>`_
+* `Feedback control <https://github.com/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_
 
 
 The stochastic solvers share many features with :func:`.mcsolve`, such as
