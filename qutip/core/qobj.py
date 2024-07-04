@@ -15,6 +15,7 @@ from .. import __version__
 from ..settings import settings
 from . import data as _data
 from qutip.typing import LayerType, DimensionLike
+import qutip
 from .dimensions import (
     enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions
 )
@@ -316,10 +317,6 @@ class Qobj:
     def data(self) -> _data.Data:
         return self._data
 
-    @property
-    def dtype(self):
-        return type(self._data)
-
     @data.setter
     def data(self, data: _data.Data):
         if not isinstance(data, _data.Data):
@@ -328,6 +325,10 @@ class Qobj:
             raise ValueError('Provided data do not match the dimensions: ' +
                              f"{self._dims.shape} vs {data.shape}")
         self._data = data
+
+    @property
+    def dtype(self):
+        return type(self._data)
 
     def to(self, data_type: LayerType, copy: bool=False) -> Qobj:
         """
@@ -544,7 +545,7 @@ class Qobj:
         if self.issuper:
             if other.isket:
                 other = other.proj()
-            return vector_to_operator(self @ operator_to_vector(other))
+            return qutip.vector_to_operator(self @ qutip.operator_to_vector(other))
         return self.__matmul__(other)
 
     def __getstate__(self):
@@ -591,7 +592,7 @@ class Qobj:
         Syntax shortcut for tensor:
         A & B ==> tensor(A, B)
         """
-        return tensor(self, other)
+        return qutip.tensor(self, other)
 
     def dag(self) -> Qobj:
         """Get the Hermitian adjoint of the quantum object."""
@@ -633,9 +634,9 @@ class Qobj:
         # is only valid for completely positive maps.
         if not self.iscp:
             raise ValueError("Dual channels are only implemented for CP maps.")
-        J = to_choi(self)
+        J = qutip.to_choi(self)
         tensor_idxs = enumerate_flat(J.dims)
-        J_dual = tensor_swap(J, *(
+        J_dual = qutip.tensor_swap(J, *(
                 list(zip(tensor_idxs[0][1], tensor_idxs[0][0])) +
                 list(zip(tensor_idxs[1][1], tensor_idxs[1][0]))
         )).trans()
@@ -994,16 +995,16 @@ class Qobj:
         obj : :class:`.Qobj`
             Normalized quantum object.  Will be the `self` object if in place.
         """
-        norm = self.norm(norm=norm, kwargs=kwargs)
+        norm_ = self.norm(norm=norm, kwargs=kwargs)
         if inplace:
-            self.data = _data.mul(self.data, 1 / norm)
-            self._isherm = self._isherm if norm.imag == 0 else None
+            self.data = _data.mul(self.data, 1 / norm_)
+            self._isherm = self._isherm if norm_.imag == 0 else None
             self._isunitary = (self._isunitary
-                               if abs(norm) - 1 < settings.core['atol']
+                               if abs(norm_) - 1 < settings.core['atol']
                                else None)
             out = self
         else:
-            out = self / norm
+            out = self / norm_
         return out
 
     def ptrace(self, sel: int | list[int], dtype: LayerType = None) -> Qobj:
@@ -1055,10 +1056,10 @@ class Qobj:
             sel = [sel]
         if self.isoperket:
             dims = self.dims[0]
-            data = vector_to_operator(self).data
+            data = qutip.vector_to_operator(self).data
         elif self.isoperbra:
             dims = self.dims[1]
-            data = vector_to_operator(self.dag()).data
+            data = qutip.vector_to_operator(self.dag()).data
         elif self.issuper or self.isoper:
             dims = self.dims
             data = self.data
@@ -1072,9 +1073,9 @@ class Qobj:
         new_dims = [[dims[x] for x in sel]] * 2 if sel else None
         out = Qobj(new_data, dims=new_dims, copy=False)
         if self.isoperket:
-            return operator_to_vector(out)
+            return qutip.operator_to_vector(out)
         if self.isoperbra:
-            return operator_to_vector(out).dag()
+            return qutip.operator_to_vector(out).dag()
         return out
 
     def contract(self, inplace: bool = False) -> Qobj:
@@ -1639,14 +1640,14 @@ class Qobj:
             from this operator to B.
 
         """
-        return mts.dnorm(self, B)
+        return qutip.dnorm(self, B)
 
     @property
     def ishp(self) -> bool:
         # FIXME: this needs to be cached in the same ways as isherm.
         if self.type in ["super", "oper"]:
             try:
-                J = to_choi(self)
+                J = qutip.to_choi(self)
                 return J.isherm
             except:
                 return False
@@ -1661,7 +1662,7 @@ class Qobj:
         # We can test with either Choi or chi, since the basis
         # transformation between them is unitary and hence preserves
         # the CP and TP conditions.
-        J = self if self.superrep in ('choi', 'chi') else to_choi(self)
+        J = self if self.superrep in ('choi', 'chi') else qutip.to_choi(self)
         # If J isn't hermitian, then that could indicate either that J is not
         # normal, or is normal, but has complex eigenvalues.  In either case,
         # it makes no sense to then demand that the eigenvalues be
@@ -1679,7 +1680,7 @@ class Qobj:
         if self.issuper and self.superrep in ('choi', 'chi'):
             qobj = self
         else:
-            qobj = to_choi(self)
+            qobj = qutip.to_choi(self)
         # Possibly collapse dims.
         if any([len(index) > 1
                 for super_index in qobj.dims
@@ -1701,7 +1702,7 @@ class Qobj:
         if not (self.issuper or self.isoper):
             return False
         reps = ('choi', 'chi')
-        q_oper = to_choi(self) if self.superrep not in reps else self
+        q_oper = qutip.to_choi(self) if self.superrep not in reps else self
         return q_oper.iscp and q_oper.istp
 
     @property
@@ -1794,11 +1795,3 @@ def ptrace(Q: Qobj, sel: int | list[int]) -> Qobj:
     if not isinstance(Q, Qobj):
         raise TypeError("Input is not a quantum object")
     return Q.ptrace(sel)
-
-
-# TRAILING IMPORTS
-# We do a few imports here to avoid circular dependencies.
-from qutip.core.superop_reps import to_choi
-from qutip.core.superoperator import vector_to_operator, operator_to_vector
-from qutip.core.tensor import tensor_swap, tensor
-from qutip.core import metrics as mts

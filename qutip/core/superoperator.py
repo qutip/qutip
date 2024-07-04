@@ -9,6 +9,7 @@ from typing import TypeVar, overload
 import numpy as np
 
 from .qobj import Qobj
+from .cy.qobjevo import QobjEvo
 from . import data as _data
 from .dimensions import Compound, SuperSpace, Space
 
@@ -40,18 +41,18 @@ def liouvillian(
 
 @overload
 def liouvillian(
-    H: Qobj | "QobjEvo",
-    c_ops: list[Qobj | "QobjEvo"],
+    H: Qobj | QobjEvo,
+    c_ops: list[Qobj | QobjEvo],
     data_only: bool,
     chi: list[float]
-) -> "QobjEvo": ...
+) -> QobjEvo: ...
 
 def liouvillian(
-    H: Qobj | "QobjEvo" = None,
-    c_ops: list[Qobj | "QobjEvo"] = None,
+    H: Qobj | QobjEvo = None,
+    c_ops: list[Qobj | QobjEvo] = None,
     data_only: bool = False,
     chi: list[float] = None,
-) -> Qobj | "QobjEvo":
+) -> Qobj | QobjEvo:
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
 
@@ -149,18 +150,18 @@ def lindblad_dissipator(
 
 @overload
 def lindblad_dissipator(
-    a: Qobj | "QobjEvo",
-    b: Qobj | "QobjEvo",
+    a: Qobj | QobjEvo,
+    b: Qobj | QobjEvo,
     data_only: bool,
     chi: list[float]
-) -> "QobjEvo": ...
+) -> QobjEvo: ...
 
 def lindblad_dissipator(
-    a: Qobj | "QobjEvo",
-    b: Qobj | "QobjEvo" = None,
+    a: Qobj | QobjEvo,
+    b: Qobj | QobjEvo = None,
     data_only: bool = False,
     chi: list[float] = None,
-) -> Qobj | "QobjEvo":
+) -> Qobj | QobjEvo:
     """
     Lindblad dissipator (generalized) for a single pair of collapse operators
     (a, b), or for a single collapse operator (a) when b is not specified:
@@ -297,7 +298,7 @@ def stack_columns(matrix: QobjOrArray) -> QobjOrArray:
 
 def unstack_columns(
     vector: QobjOrArray,
-    shape: typle[int, int] = None,
+    shape: tuple[int, int] = None,
 ) -> QobjOrArray:
     """
     Unstack the columns in a data-layer type back into a 2D shape, useful for
@@ -343,7 +344,7 @@ def stacked_index(size, row, col):
     return row + size*col
 
 
-AnyQobj = TypeVar("AnyQobj", Qobj, "QobjEvo")
+AnyQobj = TypeVar("AnyQobj", Qobj, QobjEvo)
 
 
 @_map_over_compound_operators
@@ -404,10 +405,10 @@ def _drop_projected_dims(dims):
 
 
 @overload
-sprepost(A: Qobj, B: Qobj) -> Qobj: ...
+def sprepost(A: Qobj, B: Qobj) -> Qobj: ...
 
 @overload
-sprepost(A: Qobj | "QobjEvo", B: Qobj | "QobjEvo") -> "QobjEvo": ...
+def sprepost(A: Qobj | QobjEvo, B: Qobj | QobjEvo) -> QobjEvo: ...
 
 def sprepost(A, B):
     """

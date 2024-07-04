@@ -29,7 +29,7 @@ def issuper(x: Qobj | QobjEvo) -> bool:
     return isinstance(x, (Qobj, QobjEvo)) and x.type in ['super']
 
 
-def isherm(x: Qobj):
-    if not isinstance(x, Qobj) -> bool:
+def isherm(x: Qobj) -> bool:
+    if not isinstance(x, Qobj):
         raise TypeError(f"Invalid input type, got {type(x)}, exected Qobj")
     return x.isherm

@@ -88,7 +88,7 @@ shape = [4, 4], type = oper, isherm = False
 @overload
 def jmat(
     j: float,
-    which: NoneType,
+    which: Literal[None],
     *,
     dtype: LayerType = None
 ) -> tuple[Qobj]: ...
