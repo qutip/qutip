@@ -223,7 +223,10 @@ notebooks available on the `QuTiP Tutorials page <https://qutip.org/tutorials.ht
 
 * `Heterodyne detection <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/015_smesolve-heterodyne.ipynb>`_
 * `Inefficient detection <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/016_smesolve-inefficient-detection.ipynb>`_
-* `Feedback control <https://github.com/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_
+
+..
+  TODO: Add back when the notebook is migrated
+  * `Feedback control <https://github.com/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_
 
 
 The stochastic solvers share many features with :func:`.mcsolve`, such as
