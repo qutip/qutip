@@ -113,12 +113,10 @@ class Qobj:
 
     Parameters
     ----------
-    inpt: array_like, data object or :obj:`.Qobj`
+    arg: array_like, data object or :obj:`.Qobj`
         Data for vector/matrix representation of the quantum object.
     dims: list
         Dimensions of object used for tensor products.
-    shape: list
-        Shape of underlying data structure (matrix shape).
     copy: bool
         Flag specifying whether Qobj should get a copy of the
         input data, or use the original.
@@ -373,7 +371,7 @@ class Qobj:
         )
 
     @_require_equal_type
-    def __add__(self, other: Qobj | numbers.Number) -> Qobj:
+    def __add__(self, other: Qobj | complex) -> Qobj:
         if other == 0:
             return self.copy()
         return Qobj(_data.add(self._data, other._data),
@@ -381,11 +379,11 @@ class Qobj:
                     isherm=(self._isherm and other._isherm) or None,
                     copy=False)
 
-    def __radd__(self, other: Qobj | numbers.Number) -> Qobj:
+    def __radd__(self, other: Qobj | complex) -> Qobj:
         return self.__add__(other)
 
     @_require_equal_type
-    def __sub__(self, other: Qobj | numbers.Number) -> Qobj:
+    def __sub__(self, other: Qobj | complex) -> Qobj:
         if other == 0:
             return self.copy()
         return Qobj(_data.sub(self._data, other._data),
@@ -393,10 +391,10 @@ class Qobj:
                     isherm=(self._isherm and other._isherm) or None,
                     copy=False)
 
-    def __rsub__(self, other: Qobj | numbers.Number) -> Qobj:
+    def __rsub__(self, other: Qobj | complex) -> Qobj:
         return self.__neg__().__add__(other)
 
-    def __mul__(self, other: numbers.Number) -> Qobj:
+    def __mul__(self, other: complex) -> Qobj:
         """
         If other is a Qobj, we dispatch to __matmul__. If not, we
         check that other is a valid complex scalar, i.e., we can do
@@ -430,7 +428,7 @@ class Qobj:
                     isunitary=isunitary,
                     copy=False)
 
-    def __rmul__(self, other: numbers.Number) -> Qobj:
+    def __rmul__(self, other: complex) -> Qobj:
         # Shouldn't be here unless `other.__mul__` has already been tried, so
         # we _shouldn't_ check that `other` is `Qobj`.
         return self.__mul__(other)
@@ -452,7 +450,7 @@ class Qobj:
             copy=False
         )
 
-    def __truediv__(self, other: numbers.Number) -> Qobj:
+    def __truediv__(self, other: complex) -> Qobj:
         return self.__mul__(1 / other)
 
     def __neg__(self) -> Qobj:
@@ -648,7 +646,7 @@ class Qobj:
         self,
         norm: Literal["l2", "max", "fro", "tr", "one"] = None,
         kwargs: dict[str, Any] = None
-    ) -> numbers.Number:
+    ) -> float:
         """
         Norm of a quantum object.
 
@@ -708,7 +706,7 @@ class Qobj:
                     isherm=True,
                     copy=False)
 
-    def tr(self) -> numbers.Number:
+    def tr(self) -> complex:
         """Trace of a quantum object.
 
         Returns
@@ -724,7 +722,7 @@ class Qobj:
             out = out.real
         return out
 
-    def purity(self) -> numbers.Number:
+    def purity(self) -> complex:
         """Calculate purity of a quantum object.
 
         Returns
@@ -1390,7 +1388,7 @@ class Qobj:
             right = right.adjoint()
         return _data.inner_op(left, op, right, bra.isket)
 
-    def overlap(self, other: Qobj) -> numbers.Number:
+    def overlap(self, other: Qobj) -> complex:
         """
         Overlap between two state vectors or two operators.
 
@@ -1624,7 +1622,7 @@ class Qobj:
                 warnings.warn("Ground state may be degenerate.", UserWarning)
         return evals[0], evecs[0]
 
-    def dnorm(self, B: Qobj = None) -> numbers.Number:
+    def dnorm(self, B: Qobj = None) -> float:
         """Calculates the diamond norm, or the diamond distance to another
         operator.
 

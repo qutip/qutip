@@ -29,7 +29,13 @@ class _reverse_partial_tensor:
         return tensor(op, self.right)
 
 
-def tensor(*args):
+@overload
+def tensor(*args: Qobj) -> Qobj: ...
+
+@overload
+def tensor(*args: Qobj | "QobjEvo") -> "QobjEvo": ...
+
+def tensor(*args: Qobj | "QobjEvo") -> Qobj | "QobjEvo":
     """Calculates the tensor product of input operators.
 
     Parameters
