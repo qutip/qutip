@@ -13,7 +13,12 @@ from . import Qobj, qeye, to_kraus, tensor
 from . import data as _data
 
 
-def subsystem_apply(state, channel, mask, reference=False):
+def subsystem_apply(
+    state: Qobj,
+    channel: Qobj,
+    mask: list[bool],
+    reference: bool=False
+)-> Qobj:
     """
     Returns the result of applying the propagator `channel` to the
     subsystems indicated in `mask`, which comprise the density operator

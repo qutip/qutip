@@ -7,14 +7,20 @@ from . import Qobj, QobjEvo, liouvillian, coefficient, sprepost
 from ._brtools import SpectraCoefficient, _EigenBasisTransform
 from .cy.coefficient import InterCoefficient, Coefficient
 from ._brtensor import _BlochRedfieldElement
-
+from ..typing import CoeffProtocol
 
 __all__ = ['bloch_redfield_tensor', 'brterm']
 
 
-def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
-                          fock_basis=False, sparse_eigensolver=False,
-                          br_dtype='sparse'):
+def bloch_redfield_tensor(
+    H: Qobj | QobjEvo,
+    a_ops: list[tuple[Qobj | QobjEvo, Coefficient | str | CoeffProtocol]],
+    c_ops: list[Qobj | QobjEvo] = None,
+    sec_cutoff: float = 0.1,
+    fock_basis: bool = False,
+    sparse_eigensolver: bool = False,
+    br_dtype: str = 'sparse',
+):
     """
     Calculates the Bloch-Redfield tensor for a system given
     a set of operators and corresponding spectral functions that describes the
@@ -46,10 +52,10 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
         .. code-block::
 
             a_ops = [
-                (a+a.dag(), ('w>0', args={"w": 0})),
+                (a+a.dag(), coefficient('w>0', args={"w": 0})),
                 (QobjEvo(a+a.dag()), 'w > exp(-t)'),
                 (QobjEvo([b+b.dag(), lambda t: ...]), lambda w: ...)),
-                (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
+                (c+c.dag(), SpectraCoefficient(coefficient(ws, tlist=ts))),
             ]
 
 
@@ -102,8 +108,15 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
         return R, H_transform.as_Qobj()
 
 
-def brterm(H, a_op, spectra, sec_cutoff=0.1,
-           fock_basis=False, sparse_eigensolver=False, br_dtype='sparse'):
+def brterm(
+    H: Qobj | QobjEvo,
+    a_op: Qobj | QobjEvo,
+    spectra: Coefficient | CoeffProtocol | str,
+    sec_cutoff: float = 0.1,
+    fock_basis: bool = False,
+    sparse_eigensolver: bool = False,
+    br_dtype: str = 'sparse',
+):
     """
     Calculates the contribution of one coupling operator to the Bloch-Redfield
     tensor.

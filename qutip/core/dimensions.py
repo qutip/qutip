@@ -353,13 +353,13 @@ def _frozen(*args, **kwargs):
 
 
 class MetaSpace(type):
-    def __call__(cls, *args: SpaceLike, rep: str = None) -> Space:
+    def __call__(cls, *args: SpaceLike, rep: str = None) -> "Space":
         """
         Select which subclass is instantiated.
         """
         if cls is Space and len(args) == 1 and isinstance(args[0], list):
             # From a list of int.
-            return cls.from_list(*args, rep=rep)
+            return cls.from_list(args[0], rep=rep)
         elif len(args) == 1 and isinstance(args[0], Space):
             # Already a Space
             return args[0]
@@ -405,7 +405,7 @@ class MetaSpace(type):
         cls,
         list_dims: list[int] | list[list[int]],
         rep: str = None
-    ) -> Space:
+    ) -> "Space":
         if len(list_dims) == 0:
             raise ValueError("Empty list can't be used as dims.")
         elif (
@@ -514,7 +514,7 @@ class Space(metaclass=MetaSpace):
         """
         raise RuntimeError("Cannot delete a flat space.")
 
-    def replace(self, idx: int, new: int) -> Space:
+    def replace(self, idx: int, new: int) -> "Space":
         """
         Reshape a Space from a Dimensons or complex Space.
 
@@ -526,10 +526,10 @@ class Space(metaclass=MetaSpace):
             )
         return Space(new)
 
-    def replace_superrep(self, super_rep: str) -> Space:
+    def replace_superrep(self, super_rep: str) -> "Space":
         return self
 
-    def scalar_like(self) -> SpaceLike:
+    def scalar_like(self) -> "Space":
         return Field()
 
 
@@ -575,7 +575,7 @@ Field.field_instance.__init__()
 class Compound(Space):
     _stored_dims = {}
 
-    def __init__(self, *spaces):
+    def __init__(self, *spaces: Space):
         spaces_ = []
         if len(spaces) <= 1:
             raise ValueError("Compound need multiple space to join.")
@@ -618,7 +618,7 @@ class Compound(Space):
     def as_list(self) -> list[int]:
         return sum([space.as_list() for space in self.spaces], [])
 
-    def dims2idx(self, dims-> list[int]) -> int:
+    def dims2idx(self, dims: list[int]) -> int:
         if len(dims) != len(self.spaces):
             raise ValueError("Length of supplied dims does not match the number of subspaces.")
         pos = 0
@@ -674,13 +674,13 @@ class Compound(Space):
         )
 
     def scalar_like(self) -> Space:
-        return Compound([space.scalar_like() for space in self.spaces])
+        return Space([space.scalar_like() for space in self.spaces])
 
 
 class SuperSpace(Space):
     _stored_dims = {}
 
-    def __init__(self, oper: Dimensions, rep: str = 'super'):
+    def __init__(self, oper: "Dimensions", rep: str = 'super'):
         self.oper = oper
         self.superrep = rep
         self.size = oper.shape[0] * oper.shape[1]
@@ -742,7 +742,7 @@ class SuperSpace(Space):
 
 
 class MetaDims(type):
-    def __call__(cls, *args: DimensionLike, rep: str = None) -> Dimensions:
+    def __call__(cls, *args: DimensionLike, rep: str = None) -> "Dimensions":
         if len(args) == 1 and isinstance(args[0], Dimensions):
             return args[0]
         elif len(args) == 1 and len(args[0]) == 2:
@@ -807,7 +807,7 @@ class Dimensions(metaclass=MetaDims):
                 self.superrep = 'mixed'
         self.__setitem__ = _frozen
 
-    def __eq__(self, other: Dimensions) -> bool:
+    def __eq__(self, other: "Dimensions") -> bool:
         if isinstance(other, Dimensions):
             return (
                 self is other
@@ -818,7 +818,7 @@ class Dimensions(metaclass=MetaDims):
             )
         return NotImplemented
 
-    def __ne__(self, other: Dimensions) -> bool:
+    def __ne__(self, other: "Dimensions") -> bool:
         if isinstance(other, Dimensions):
             return not (
                 self is other
@@ -829,7 +829,7 @@ class Dimensions(metaclass=MetaDims):
             )
         return NotImplemented
 
-    def __matmul__(self, other: Dimensions) -> Dimensions:
+    def __matmul__(self, other: "Dimensions") -> "Dimensions":
         if self.from_ != other.to_:
             raise TypeError(f"incompatible dimensions {self} and {other}")
         args = other.from_, self.to_
@@ -913,7 +913,7 @@ class Dimensions(metaclass=MetaDims):
             np.argsort(stepr)[::-1] + len(stepl)
         ]))
 
-    def remove(self, idx: int | list[int]) -> Dimensions:
+    def remove(self, idx: int | list[int]) -> "Dimensions":
         """
         Remove a Space from a Dimensons or complex Space.
 
@@ -932,7 +932,7 @@ class Dimensions(metaclass=MetaDims):
             self.to_.remove(idx_to),
         )
 
-    def replace(self, idx: int, new: int) -> Dimensions:
+    def replace(self, idx: int, new: int) -> "Dimensions":
         """
         Reshape a Space from a Dimensons or complex Space.
 
@@ -948,7 +948,7 @@ class Dimensions(metaclass=MetaDims):
 
         return Dimensions(new_from, new_to)
 
-    def replace_superrep(self, super_rep: str) -> Dimensions:
+    def replace_superrep(self, super_rep: str) -> "Dimensions":
         if not self.issuper and super_rep is not None:
             raise TypeError("Can't set a superrep of a non super object.")
         return Dimensions(
@@ -956,5 +956,5 @@ class Dimensions(metaclass=MetaDims):
             self.to_.replace_superrep(super_rep)
         )
 
-    def scalar_like(self) -> Dimensions:
+    def scalar_like(self) -> "Dimensions":
         return Dimensions([self.to_.scalar_like(), self.from_.scalar_like()])
