@@ -1,8 +1,9 @@
 import os
 import inspect
 import numpy as np
-from qutip.settings import settings as qset
+from typing import overload
 
+from qutip.settings import settings as qset
 from . import Qobj, QobjEvo, liouvillian, coefficient, sprepost
 from ._brtools import SpectraCoefficient, _EigenBasisTransform
 from .cy.coefficient import InterCoefficient, Coefficient
@@ -12,6 +13,18 @@ from ..typing import CoeffProtocol
 __all__ = ['bloch_redfield_tensor', 'brterm']
 
 
+@overload
+def bloch_redfield_tensor(
+    H: Qobj,
+    a_ops: list[tuple[Qobj, Coefficient | str | CoeffProtocol]],
+    c_ops: list[Qobj | QobjEvo] = None,
+    sec_cutoff: float = 0.1,
+    fock_basis: bool = False,
+    sparse_eigensolver: bool = False,
+    br_dtype: str = 'sparse',
+) -> Qobj: ...
+
+@overload
 def bloch_redfield_tensor(
     H: Qobj | QobjEvo,
     a_ops: list[tuple[Qobj | QobjEvo, Coefficient | str | CoeffProtocol]],
@@ -20,7 +33,17 @@ def bloch_redfield_tensor(
     fock_basis: bool = False,
     sparse_eigensolver: bool = False,
     br_dtype: str = 'sparse',
-):
+) -> QobjEvo: ...
+
+def bloch_redfield_tensor(
+    H: Qobj | QobjEvo,
+    a_ops: list[tuple[Qobj | QobjEvo, Coefficient | str | CoeffProtocol]],
+    c_ops: list[Qobj | QobjEvo] = None,
+    sec_cutoff: float = 0.1,
+    fock_basis: bool = False,
+    sparse_eigensolver: bool = False,
+    br_dtype: str = 'sparse',
+) -> Qobj | QobjEvo:
     """
     Calculates the Bloch-Redfield tensor for a system given
     a set of operators and corresponding spectral functions that describes the
@@ -107,6 +130,27 @@ def bloch_redfield_tensor(
                         False, br_dtype=br_dtype)[0]
         return R, H_transform.as_Qobj()
 
+@overload
+def brterm(
+    H: Qobj,
+    a_op: Qobj,
+    spectra: Coefficient | CoeffProtocol | str,
+    sec_cutoff: float = 0.1,
+    fock_basis: bool = False,
+    sparse_eigensolver: bool = False,
+    br_dtype: str = 'sparse',
+) -> Qobj: ...
+
+@overload
+def brterm(
+    H: Qobj | QobjEvo,
+    a_op: Qobj | QobjEvo,
+    spectra: Coefficient | CoeffProtocol | str,
+    sec_cutoff: float = 0.1,
+    fock_basis: bool = False,
+    sparse_eigensolver: bool = False,
+    br_dtype: str = 'sparse',
+) -> QobjEvo: ...
 
 def brterm(
     H: Qobj | QobjEvo,
@@ -116,7 +160,7 @@ def brterm(
     fock_basis: bool = False,
     sparse_eigensolver: bool = False,
     br_dtype: str = 'sparse',
-):
+) -> Qobj | QobjEvo:
     """
     Calculates the contribution of one coupling operator to the Bloch-Redfield
     tensor.
