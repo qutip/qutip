@@ -99,10 +99,10 @@ def _single_qobj_expect(oper, state):
 
 
 @overload
-def variance(oper: Qobj, state: Qobj) -> complex:
+def variance(oper: Qobj, state: Qobj) -> complex: ...
 
 @overload
-def variance(oper: Qobj, state: list[Qobj]) -> np.typing.NDArray[complex]:
+def variance(oper: Qobj, state: list[Qobj]) -> np.typing.NDArray[complex]: ...
 
 def variance(oper, state):
     """
