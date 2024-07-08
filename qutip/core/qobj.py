@@ -822,7 +822,7 @@ class Qobj:
         """
         if not self._dims.issquare:
             raise TypeError("expm is only valid for square operators")
-        return Qobj(_data.expm(self._data, dtype=dtype),
+        return Qobj(_data.expm(self._data, dtype=self.dtype),
                     dims=self._dims,
                     isherm=self._isherm,
                     copy=False)
