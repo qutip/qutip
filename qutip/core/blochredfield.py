@@ -17,7 +17,7 @@ __all__ = ['bloch_redfield_tensor', 'brterm']
 def bloch_redfield_tensor(
     H: Qobj,
     a_ops: list[tuple[Qobj, Coefficient | str | CoeffProtocol]],
-    c_ops: list[Qobj | QobjEvo] = None,
+    c_ops: list[Qobj] = None,
     sec_cutoff: float = 0.1,
     fock_basis: bool = False,
     sparse_eigensolver: bool = False,
