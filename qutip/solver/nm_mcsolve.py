@@ -1,8 +1,11 @@
 __all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
 import numbers
-
+from typing import Any
+from collections.abc import Sequence
 import numpy as np
+from numpy.typing import ArrayLike
+from numpy.random import SeedSequence
 import scipy
 
 from .multitraj import MultiTrajSolver
@@ -10,10 +13,11 @@ from .multitrajresult import NmmcResult
 from .mcsolve import MCSolver, MCIntegrator
 from .mesolve import MESolver, mesolve
 from .cy.nm_mcsolve import RateShiftCoefficient, SqrtRealCoefficient
-from ..core.coefficient import ConstantCoefficient
+from ..core.coefficient import ConstantCoefficient, Coefficient
 from ..core import (
     CoreOptions, Qobj, QobjEvo, isket, ket2dm, qeye, coefficient,
 )
+from ..typing import QobjEvoLike, EopsLike, CoefficientLike
 
 
 # The algorithm implemented here is based on the influence martingale approach
@@ -25,9 +29,21 @@ from ..core import (
 #     https://arxiv.org/abs/2209.08958
 
 
-def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
-               args=None, options=None, seeds=None, target_tol=None,
-               timeout=None):
+def nm_mcsolve(
+    H: QobjEvoLike,
+    state: Qobj,
+    tlist: ArrayLike,
+    ops_and_rates: list[tuple[Qobj, float | CoefficientLike]] = (),
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    ntraj: int = 500,
+    *,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+    seeds: int | SeedSequence | list[int | SeedSequence] = None,
+    target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
+    timeout: float = None,
+    **kwargs,
+) -> NmmcResult:
     """
     Monte-Carlo evolution corresponding to a Lindblad equation with "rates"
     that may be negative. Usage of this function is analogous to ``mcsolve``,
@@ -59,10 +75,10 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         specified using any format accepted by
         :func:`~qutip.core.coefficient.coefficient`.
 
-    e_ops : list, optional
-        A ``list`` of operator as Qobj, QobjEvo or callable with signature of
-        (t, state: Qobj) for calculating expectation values. When no ``e_ops``
-        are given, the solver will default to save the states.
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single, list or dict of operators for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
 
     ntraj : int, default: 500
         Maximum number of trajectories to run. Can be cut short if a time limit
@@ -326,8 +342,8 @@ class NonMarkovianMCSolver(MCSolver):
         is a :class:`.Qobj` and ``Gamma`` represents the corresponding
         rate, which is allowed to be negative. The Lindblad operators must be
         operators even if ``H`` is a superoperator. Each rate ``Gamma`` may be
-        just a number (in the case of a constant rate) or, otherwise, specified
-        using any format accepted by :func:`qutip.coefficient`.
+        just a number (in the case of a constant rate) or, otherwise, a
+        :class:`~qutip.core.cy.Coefficient`.
 
     args : None / dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
@@ -359,12 +375,16 @@ class NonMarkovianMCSolver(MCSolver):
     }
 
     def __init__(
-        self, H, ops_and_rates, args=None, options=None,
+        self,
+        H: Qobj | QobjEvo,
+        ops_and_rates = Sequence[tuple[Qobj, float | Coefficient]],
+        *,
+        options: dict[str, Any] = None,
     ):
         self.options = options
 
         ops_and_rates = [
-            _parse_op_and_rate(op, rate, args=args or {})
+            _parse_op_and_rate(op, rate)
             for op, rate in ops_and_rates
         ]
         a_parameter, L = self._check_completeness(ops_and_rates)
@@ -519,12 +539,14 @@ class NonMarkovianMCSolver(MCSolver):
     # in the step method. In the run-interface, the martingale is added as a
     # relative weight to the trajectory result at the end of `_run_one_traj`.
 
-    def start(self, state, t0, seed=None):
+    def start(self, state: Qobj, t0: float, seed: int | SeedSequence = None):
         self._martingale.initialize(t0, cache='clear')
         return super().start(state, t0, seed=seed)
 
     # The returned state will be a density matrix with trace=mu the martingale
-    def step(self, t, *, args=None, copy=True):
+    def step(
+        self, t: float, *, args: dict[str, Any] = None, copy: bool = True
+    ) -> Qobj:
         state = super().step(t, args=args, copy=copy)
         if isket(state):
             state = ket2dm(state)
@@ -541,7 +563,15 @@ class NonMarkovianMCSolver(MCSolver):
         result.trace = martingales
         return seed, result
 
-    def run(self, state, tlist, ntraj=1, *, args=None, **kwargs):
+    def run(
+        self,
+        state: Qobj,
+        tlist: Sequence[float],
+        ntraj: int = 1,
+        *,
+        args: dict[str, Any] = None,
+        **kwargs
+    ):
         # update `args` dictionary before precomputing martingale
         self._argument(args)
 
@@ -552,7 +582,7 @@ class NonMarkovianMCSolver(MCSolver):
         return result
 
     @property
-    def options(self):
+    def options(self) -> dict[str, Any]:
         """
         Options for non-Markovian Monte Carlo solver:
 
@@ -636,7 +666,7 @@ class NonMarkovianMCSolver(MCSolver):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict[str, Any]):
         MCSolver.options.fset(self, new_options)
 
     start.__doc__ = MultiTrajSolver.start.__doc__

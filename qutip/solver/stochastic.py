@@ -1,5 +1,13 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
+import numpy as np
+from numpy.typing import ArrayLike
+from numpy.random import SeedSequence
+from typing import Any, Callable
+from functools import partial
+from time import time
+from collections.abc import Sequence
+
 from .multitrajresult import MultiTrajResult
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .sode._noise import PreSetWiener
@@ -7,11 +15,10 @@ from .result import Result, ExpectOp
 from .multitraj import _MultiTrajRHS, MultiTrajSolver
 from .. import Qobj, QobjEvo
 from ..core.dimensions import Dimensions
-import numpy as np
-from functools import partial
+from ..core import data as _data
 from .solver_base import _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
-from time import time
+from ..typing import QobjEvoLike, EopsLike
 
 
 class StochasticTrajResult(Result):
@@ -35,7 +42,7 @@ class StochasticTrajResult(Result):
             self.noise.append(noise)
 
     @property
-    def wiener_process(self):
+    def wiener_process(self) -> np.typing.NDArray[float]:
         """
         Wiener processes for each stochastic collapse operators.
 
@@ -55,7 +62,7 @@ class StochasticTrajResult(Result):
         return W
 
     @property
-    def dW(self):
+    def dW(self) -> np.typing.NDArray[float]:
         """
         Wiener increment for each stochastic collapse operators.
 
@@ -71,7 +78,7 @@ class StochasticTrajResult(Result):
         return noise
 
     @property
-    def measurement(self):
+    def measurement(self) -> np.typing.NDArray[float]:
         """
         Measurements for each stochastic collapse operators.
 
@@ -152,7 +159,7 @@ class StochasticResult(MultiTrajResult):
         return None
 
     @property
-    def measurement(self):
+    def measurement(self) -> np.typing.NDArray[float]:
         """
         Measurements for each trajectories and stochastic collapse operators.
 
@@ -165,7 +172,7 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("measurement")
 
     @property
-    def dW(self):
+    def dW(self) -> np.typing.NDArray[float]:
         """
         Wiener increment for each trajectories and stochastic collapse
         operators.
@@ -179,7 +186,7 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("dW")
 
     @property
-    def wiener_process(self):
+    def wiener_process(self) -> np.typing.NDArray[float]:
         """
         Wiener processes for each trajectories and stochastic collapse
         operators.
@@ -192,7 +199,7 @@ class StochasticResult(MultiTrajResult):
         """
         return self._trajectories_attr("wiener_process")
 
-    def merge(self, other, p=None):
+    def merge(self, other: "StochasticResult", p=None) -> "StochasticResult":
         if not isinstance(other, StochasticResult):
             return NotImplemented
         if self.stats["solver"] != other.stats["solver"]:
@@ -299,10 +306,22 @@ class _StochasticRHS(_MultiTrajRHS):
 
 
 def smesolve(
-    H, rho0, tlist, c_ops=(), sc_ops=(), heterodyne=False, *,
-    e_ops=(), args={}, ntraj=500, options=None,
-    seeds=None, target_tol=None, timeout=None, **kwargs
-):
+    H: QobjEvoLike,
+    rho0: Qobj,
+    tlist: np.typing.ArrayLike,
+    c_ops: Qobj | QobjEvo | Sequence[QobjEvoLike] = (),
+    sc_ops: Qobj | QobjEvo | Sequence[QobjEvoLike] = (),
+    heterodyne: bool = False,
+    *,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    args: dict[str, Any] = None,
+    ntraj: int = 500,
+    options: dict[str, Any] = None,
+    seeds: int | SeedSequence | Sequence[int | SeedSequence] = None,
+    target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
+    timeout: float = None,
+    **kwargs
+) -> StochasticResult:
     """
     Solve stochastic master equation.
 
@@ -326,11 +345,10 @@ def smesolve(
     sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    e_ops : : :class:`.qobj`, callable, or list, optional
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
-        Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`.expect` for more detail of operator expectation.
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single, list or dict of operators for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
 
     args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians and
@@ -418,6 +436,10 @@ def smesolve(
     """
     options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
+    if not isinstance(sc_ops, Sequence):
+        sc_ops = [sc_ops]
+    if not isinstance(c_ops, Sequence):
+        c_ops = [c_ops]
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
     sol = SMESolver(
@@ -430,10 +452,21 @@ def smesolve(
 
 
 def ssesolve(
-    H, psi0, tlist, sc_ops=(), heterodyne=False, *,
-    e_ops=(), args={}, ntraj=500, options=None,
-    seeds=None, target_tol=None, timeout=None, **kwargs
-):
+    H: QobjEvoLike,
+    psi0: Qobj,
+    tlist: np.typing.ArrayLike,
+    sc_ops: QobjEvoLike | Sequence[QobjEvoLike] = (),
+    heterodyne: bool = False,
+    *,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    args: dict[str, Any] = None,
+    ntraj: int = 500,
+    options: dict[str, Any] = None,
+    seeds: int | SeedSequence | Sequence[int | SeedSequence] = None,
+    target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
+    timeout: float = None,
+    **kwargs
+) -> StochasticResult:
     """
     Solve stochastic Schrodinger equation.
 
@@ -453,11 +486,10 @@ def ssesolve(
     sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    e_ops : :class:`.qobj`, callable, or list, optional
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
-        Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`expect` for more detail of operator expectation.
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single, list or dict of operators for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
 
     args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians and
@@ -543,6 +575,8 @@ def ssesolve(
     """
     options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
+    if not isinstance(sc_ops, Sequence):
+        sc_ops = [sc_ops]
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
     sol = SSESolver(H, sc_ops, options=options, heterodyne=heterodyne)
     return sol.run(
@@ -601,7 +635,15 @@ class StochasticSolver(MultiTrajSolver):
             stats["solver"] = "Stochastic Schrodinger Equation Evolution"
         return stats
 
-    def __init__(self, H, sc_ops, heterodyne, *, c_ops=(), options=None):
+    def __init__(
+        self,
+        H: Qobj | QobjEvo,
+        sc_ops: Sequence[Qobj | QobjEvo],
+        heterodyne: bool,
+        *,
+        c_ops: Sequence[Qobj | QobjEvo] = (),
+        options: dict[str, Any] = None,
+    ):
         self._heterodyne = heterodyne
         if self.name == "ssesolve" and c_ops:
             raise ValueError("c_ops are not supported by ssesolve.")
@@ -619,15 +661,15 @@ class StochasticSolver(MultiTrajSolver):
             self._dW_factors = np.ones(len(sc_ops))
 
     @property
-    def heterodyne(self):
+    def heterodyne(self) -> bool:
         return self._heterodyne
 
     @property
-    def m_ops(self):
+    def m_ops(self) -> list[QobjEvo | Qobj]:
         return self._m_ops
 
     @m_ops.setter
-    def m_ops(self, new_m_ops):
+    def m_ops(self, new_m_ops: list[QobjEvo | Qobj]):
         """
         Measurements operators.
 
@@ -674,11 +716,11 @@ class StochasticSolver(MultiTrajSolver):
         self._m_ops = new_m_ops
 
     @property
-    def dW_factors(self):
+    def dW_factors(self) -> np.typing.NDArray[float]:
         return self._dW_factors
 
     @dW_factors.setter
-    def dW_factors(self, new_dW_factors):
+    def dW_factors(self, new_dW_factors: np.typing.NDArray[float]):
         """
         Scaling of the noise on the measurements.
         Default are ``1`` for homodyne and ``sqrt(1/2)`` for heterodyne.
@@ -702,8 +744,14 @@ class StochasticSolver(MultiTrajSolver):
         return seed, result
 
     def run_from_experiment(
-        self, state, tlist, noise, *,
-        args=None, e_ops=(), measurement=False,
+        self,
+        state: Qobj,
+        tlist: np.typing.ArrayLike,
+        noise: Sequence[float],
+        *,
+        args: dict[str, Any] = None,
+        e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+        measurement: bool = False,
     ):
         """
         Run a single trajectory from a given state and noise.
@@ -728,8 +776,10 @@ class StochasticSolver(MultiTrajSolver):
         args : dict, optional
             Arguments to pass to the Hamiltonian and collapse operators.
 
-        e_ops : list, optional
-            List of operators for which to evaluate expectation values.
+        e_ops : :obj:`.Qobj`, callable, list or dict, optional
+            Single, list or dict of operators for which to evaluate
+            expectation values. Operator can be Qobj, QobjEvo or callables with the
+            signature `f(t: float, state: Qobj) -> Any`.
 
         measurement : bool, default : False
             Whether the passed noise is the Wiener increments ``dW`` (gaussian
@@ -802,7 +852,7 @@ class StochasticSolver(MultiTrajSolver):
         }
 
     @property
-    def options(self):
+    def options(self) -> dict[str, Any]:
         """
         Options for stochastic solver:
 
@@ -863,11 +913,14 @@ class StochasticSolver(MultiTrajSolver):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict[str, Any]):
         MultiTrajSolver.options.fset(self, new_options)
 
     @classmethod
-    def WienerFeedback(cls, default=None):
+    def WienerFeedback(
+        cls,
+        default: Callable[[float], np.typing.NDArray[float]] = None,
+    ):
         """
         Wiener function of the trajectory argument for time dependent systems.
 
@@ -896,7 +949,11 @@ class StochasticSolver(MultiTrajSolver):
         return _WienerFeedback(default)
 
     @classmethod
-    def StateFeedback(cls, default=None, raw_data=False):
+    def StateFeedback(
+        cls,
+        default: Qobj | _data.Data = None,
+        raw_data: bool = False
+    ):
         """
         State of the evolution to be used in a time-dependent operator.
 

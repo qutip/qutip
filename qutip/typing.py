@@ -1,4 +1,4 @@
-from typing import Sequence, Union, Any, Protocol
+from typing import Sequence, Union, Any, Protocol, Callable
 from numbers import Number, Real
 import numpy as np
 import scipy.interpolate
@@ -26,6 +26,9 @@ CoefficientLike = Union[
     scipy.interpolate.BSpline,
     Any,
 ]
+
+
+EopsLike = Union["Qobj", "QobjEvo", Callable[[float, "Qobj"], Any]]
 
 
 ElementType = Union[QEvoProtocol, "Qobj", tuple["Qobj", CoefficientLike]]

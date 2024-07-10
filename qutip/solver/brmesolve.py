@@ -5,7 +5,9 @@ equation.
 
 __all__ = ['brmesolve', 'BRSolver']
 
+from typing import Any
 import numpy as np
+from numpy.typing import ArrayLike
 import inspect
 from time import time
 from .. import Qobj, QobjEvo, coefficient, Coefficient
@@ -15,10 +17,21 @@ from ..core import data as _data
 from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
 from ._feedback import _QobjFeedback, _DataFeedback
+from ..typing import EopsLike, QobjEvoLike, CoefficientLike
 
 
-def brmesolve(H, psi0, tlist, a_ops=(), e_ops=(), c_ops=(),
-              args=None, sec_cutoff=0.1, options=None, **kwargs):
+def brmesolve(
+    H: QobjEvoLike,
+    psi0: Qobj,
+    tlist: ArrayLike,
+    a_ops: list[tuple[Qobj | QobjEvo, CoefficientLike]] = None,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    c_ops: list[QobjEvoLike] = None,
+    args: dict[str, Any] = None,
+    sec_cutoff: float = 0.1,
+    options: dict[str, Any] = None,
+    **kwargs
+):
     """
     Solves for the dynamics of a system using the Bloch-Redfield master
     equation, given an input Hamiltonian, Hermitian bath-coupling terms and
@@ -74,11 +87,11 @@ def brmesolve(H, psi0, tlist, a_ops=(), e_ops=(), c_ops=(),
             the operator: :obj:`.Qobj` vs :obj:`.QobjEvo` instead of the type
             of the spectra.
 
-    e_ops : list of :obj:`.Qobj` / callback function, optional
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
+    e_ops : list, dict, :obj:`.Qobj` or callback function, optional
+        Single, list or dict of operators for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
         Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`expect` for more detail of operator expectation
 
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format), optional
         List of collapse operators.
@@ -147,6 +160,7 @@ def brmesolve(H, psi0, tlist, a_ops=(), e_ops=(), c_ops=(),
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
     new_a_ops = []
+    a_ops = a_ops if a_ops is not None else []
     for (a_op, spectra) in a_ops:
         aop = QobjEvo(a_op, args=args, tlist=tlist)
         if isinstance(spectra, str):
@@ -237,7 +251,15 @@ class BRSolver(Solver):
     }
     _avail_integrators = {}
 
-    def __init__(self, H, a_ops, c_ops=None, sec_cutoff=0.1, *, options=None):
+    def __init__(
+        self,
+        H: QobjEvoLike,
+        a_ops: list[tuple[Qobj | QobjEvo, Coefficient]],
+        c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
+        sec_cutoff: float = 0.1,
+        *,
+        options: dict[str, Any] = None,
+    ):
         _time_start = time()
 
         self.rhs = None

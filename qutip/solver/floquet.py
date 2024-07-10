@@ -6,7 +6,9 @@ __all__ = [
     "FMESolver",
 ]
 
+from typing import Any, overload, TypeVar, Literal, Callable
 import numpy as np
+from numpy.typing import ArrayLike
 from qutip.core import data as _data
 from qutip.core.data import Data
 from qutip import Qobj, QobjEvo
@@ -17,6 +19,7 @@ from .integrator import Integrator
 from .result import Result
 from time import time
 from ..ui.progressbar import progress_bars
+from ..typing import EopsLike, QobjEvoLike
 
 
 class FloquetBasis:
@@ -37,13 +40,13 @@ class FloquetBasis:
 
     def __init__(
         self,
-        H,
-        T,
-        args=None,
-        options=None,
-        sparse=False,
-        sort=True,
-        precompute=None,
+        H: QobjEvoLike,
+        T: float,
+        args: dict[str, Any] = None,
+        options: dict[str, Any] = None,
+        sparse: bool = False,
+        sort: bool = True,
+        precompute: ArrayLike = None,
     ):
         """
         Parameters
@@ -120,7 +123,13 @@ class FloquetBasis:
             for ket in _data.split_columns(kets_mat)
         ]
 
-    def mode(self, t, data=False):
+    @overload
+    def mode(self, t: float, data: Literal[False]) -> Qobj: ...
+
+    @overload
+    def mode(self, t: float, data: Literal[True]) -> Data: ...
+
+    def mode(self, t: float, data: bool = False):
         """
         Calculate the Floquet modes at time ``t``.
 
@@ -151,7 +160,13 @@ class FloquetBasis:
         else:
             return self._as_ketlist(kets_mat)
 
-    def state(self, t, data=False):
+    @overload
+    def state(self, t: float, data: Literal[False]) -> Qobj: ...
+
+    @overload
+    def state(self, t: float, data: Literal[True]) -> Data: ...
+
+    def state(self, t: float, data: bool = False):
         """
         Evaluate the floquet states at time t.
 
@@ -180,7 +195,13 @@ class FloquetBasis:
         else:
             return self._as_ketlist(states_mat)
 
-    def from_floquet_basis(self, floquet_basis, t=0):
+    QobjOrData = TypeVar("QobjOrData", Qobj, Data)
+
+    def from_floquet_basis(
+        self,
+        floquet_basis: QobjOrData,
+        t: float = 0
+    ) -> QobjOrData:
         """
         Transform a ket or density matrix from the Floquet basis at time ``t``
         to the lab basis.
@@ -218,7 +239,11 @@ class FloquetBasis:
             return Qobj(lab_basis, dims=dims)
         return lab_basis
 
-    def to_floquet_basis(self, lab_basis, t=0):
+    def to_floquet_basis(
+        self,
+        lab_basis: QobjOrData,
+        t: float = 0
+    ) -> QobjOrData:
         """
         Transform a ket or density matrix in the lab basis
         to the Floquet basis at time ``t``.
@@ -444,7 +469,15 @@ def _floquet_master_equation_tensor(A):
     return _data.add(R, S)
 
 
-def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0.0, kmax=5, nT=100):
+def floquet_tensor(
+    H: QobjEvo | FloquetBasis,
+    c_ops: list[Qobj],
+    spectra_cb: list[Callable[[float], complex]],
+    T: float = 0,
+    w_th: float = 0.0,
+    kmax: int = 5,
+    nT: int = 100,
+) -> Qobj:
     """
     Construct a tensor that represents the master equation in the floquet
     basis.
@@ -456,16 +489,16 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0.0, kmax=5, nT=100):
     H : :obj:`.QobjEvo`, :obj:`.FloquetBasis`
         Periodic Hamiltonian a floquet basis system.
 
-    T : float, optional
-        The period of the time-dependence of the hamiltonian. Optional if ``H``
-        is a ``FloquetBasis`` object.
-
     c_ops : list of :class:`.Qobj`
         list of collapse operators.
 
     spectra_cb : list callback functions
         List of callback functions that compute the noise power spectrum as
         a function of frequency for the collapse operators in `c_ops`.
+
+    T : float, optional
+        The period of the time-dependence of the hamiltonian. Optional if ``H``
+        is a ``FloquetBasis`` object.
 
     w_th : float, default: 0.0
         The temperature in units of frequency.
@@ -496,7 +529,15 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0.0, kmax=5, nT=100):
     return Qobj(r, dims=[dims, dims], superrep="super", copy=False)
 
 
-def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):
+def fsesolve(
+    H: QobjEvoLike,
+    psi0: Qobj,
+    tlist: ArrayLike,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    T: float = 0.0,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+) -> Result:
     """
     Solve the Schrodinger equation using the Floquet formalism.
 
@@ -513,10 +554,12 @@ def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    e_ops : list of :class:`.Qobj` / callback function, optional
-        List of operators for which to evaluate expectation values. If this
-        list is empty, the state vectors for each time in `tlist` will be
-        returned instead of expectation values.
+    e_ops : list or dict of :class:`.Qobj` / callback function, optional
+        Single, list or dict of operators for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
+        See :func:`~qutip.core.expect.expect` for more detail of operator
+        expectation.
 
     T : float, default=tlist[-1]
         The period of the time-dependence of the hamiltonian.
@@ -569,17 +612,17 @@ def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):
 
 
 def fmmesolve(
-    H,
-    rho0,
-    tlist,
-    c_ops=None,
-    e_ops=None,
-    spectra_cb=None,
-    T=0,
-    w_th=0.0,
-    args=None,
-    options=None,
-):
+    H: QobjEvoLike,
+    rho0: Qobj,
+    tlist: ArrayLike,
+    c_ops: list[Qobj] = None,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    spectra_cb: list[Callable[[float], complex]]= None,
+    T: float = 0.0,
+    w_th: float = 0.0,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+ ) -> "FloquetResult":
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
@@ -601,8 +644,13 @@ def fmmesolve(
         supported. Fall back on :func:`fsesolve` if not provided.
 
     e_ops : list of :class:`.Qobj` / callback function, optional
-        List of operators for which to evaluate expectation values.
-        The states are reverted to the lab basis before applying the
+        Single, list or dict of operators for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
+        See :func:`~qutip.core.expect.expect` for more detail of operator
+        expectation.
+        The states are reverted to the lab basis before computing the
+        expectation values.
 
     spectra_cb : list callback functions, default: ``lambda w: (w > 0)``
         List of callback functions that compute the noise power spectrum as
@@ -773,7 +821,14 @@ class FMESolver(MESolver):
     }
 
     def __init__(
-        self, floquet_basis, a_ops, w_th=0.0, *, kmax=5, nT=None, options=None
+        self,
+        floquet_basis: FloquetBasis,
+        a_ops: list[tuple[Qobj, Callable[[float], float]]],
+        w_th: float = 0.0,
+        *,
+        kmax: int = 5,
+        nT: int = None,
+        options: dict[str, Any] = None,
     ):
         self.options = options
         if isinstance(floquet_basis, FloquetBasis):
@@ -818,7 +873,7 @@ class FMESolver(MESolver):
         if args:
             raise ValueError("FMESolver cannot update arguments")
 
-    def start(self, state0, t0, *, floquet=False):
+    def start(self, state0: Qobj, t0: float, *, floquet: bool=False) -> None:
         """
         Set the initial state and time for a step evolution.
         ``options`` for the evolutions are read at this step.
@@ -839,7 +894,14 @@ class FMESolver(MESolver):
             state0 = self.floquet_basis.to_floquet_basis(state0, t0)
         super().start(state0, t0)
 
-    def step(self, t, *, args=None, copy=True, floquet=False):
+    def step(
+        self,
+        t: float,
+        *,
+        args: dict[str, Any] = None,
+        copy: bool = True,
+        floquet: bool = False,
+    ) -> Qobj:
         """
         Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
 
@@ -873,7 +935,15 @@ class FMESolver(MESolver):
             state = state.copy()
         return state
 
-    def run(self, state0, tlist, *, floquet=False, args=None, e_ops=None):
+    def run(
+        self,
+        state0: Qobj,
+        tlist: ArrayLike,
+        *,
+        floquet: bool = False,
+        args: dict[str, Any] = None,
+        e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    ) -> FloquetResult:
         """
         Calculate the evolution of the quantum system.
 
@@ -896,13 +966,13 @@ class FMESolver(MESolver):
         floquet : bool, optional {False}
             Whether the initial state in the floquet basis or laboratory basis.
 
-        args : dict, optional {None}
+        args : dict, optional
             Not supported
 
-        e_ops : list {None}
-            List of Qobj, QobjEvo or callable to compute the expectation
-            values. Function[s] must have the signature
-            f(t : float, state : Qobj) -> expect.
+        e_ops : list or dict, optional
+            List or dict of Qobj, QobjEvo or callable to compute the
+            expectation values. Function[s] must have the signature
+            ``f(t : float, state : Qobj) -> expect``.
 
         Returns
         -------

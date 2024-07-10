@@ -12,7 +12,7 @@ from time import time
 from typing import Any, Callable
 from .. import Qobj, QobjEvo
 from ..core import data as _data
-from ..typing import QobjEvoLike
+from ..typing import QobjEvoLike, EopsLike
 from .solver_base import Solver, _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback
 from . import Result
@@ -22,7 +22,7 @@ def sesolve(
     H: QobjEvoLike,
     psi0: Qobj,
     tlist: ArrayLike,
-    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
     **kwargs
@@ -63,12 +63,10 @@ def sesolve(
     tlist : *list* / *array*
         list of times for :math:`t`.
 
-    e_ops : :obj:`.Qobj`, callable, or list, optional
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
-        Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`~qutip.core.expect.expect` for more detail of operator
-        expectation.
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single, list or dict of operators for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
 
     args : dict, optional
         dictionary of parameters for time-dependent Hamiltonians
