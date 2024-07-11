@@ -345,9 +345,6 @@ class NonMarkovianMCSolver(MCSolver):
         just a number (in the case of a constant rate) or, otherwise, a
         :class:`~qutip.core.cy.Coefficient`.
 
-    args : None / dict
-        Arguments for time-dependent Hamiltonian and collapse operator terms.
-
     options : SolverOptions, [optional]
         Options for the evolution.
     """
