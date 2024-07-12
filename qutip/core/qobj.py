@@ -798,7 +798,7 @@ class Qobj:
             out = np.real(out)
         return out
 
-    def expm(self, dtype) -> Qobj:
+    def expm(self, dtype: LayerType = _data.Dense) -> Qobj:
         """Matrix exponential of quantum operator.
 
         Input operator must be square.
