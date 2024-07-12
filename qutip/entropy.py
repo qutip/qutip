@@ -2,15 +2,14 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
            'concurrence', 'entropy_conditional', 'entangling_power',
            'entropy_relative']
 
-from .settings import settings
-from math import e
+from .numpy_backend import np
 from .partial_transpose import partial_transpose
 from . import (ptrace, tensor, sigmay, ket2dm,
                expand_operator)
 from .core import data as _data
 
 
-def entropy_vn(rho, base=e, sparse=False):
+def entropy_vn(rho, base=np.e, sparse=False):
     """
     Von-Neumann entropy of density matrix
 
@@ -35,11 +34,10 @@ def entropy_vn(rho, base=e, sparse=False):
     1.0
 
     """
-    np = settings.core["backend"]
     if rho.type == 'ket' or rho.type == 'bra':
         rho = ket2dm(rho)
     vals = rho.eigenenergies(sparse=sparse)
-    nzvals = np.clip(vals, 1e-12, None)
+    nzvals = np.clip(vals, 1e-17, None)
     if base == 2:
         logvals = np.log2(nzvals)
     elif base == np.e:
@@ -70,7 +68,6 @@ def entropy_linear(rho):
     0.5
 
     """
-    np = settings.core["backend"]
     if rho.type == 'ket' or rho.type == 'bra':
         rho = ket2dm(rho)
     return np.real(1.0 - (rho ** 2).tr())
@@ -96,7 +93,6 @@ def concurrence(rho):
     .. [1] `https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)`
 
     """
-    np = settings.core["backend"]
     if rho.isket and rho.dims != [[2, 2], [1, 1]]:
         raise Exception("Ket must be tensor product of two qubits.")
 
@@ -133,7 +129,6 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
 
         Experimental.
     """
-    np = settings.core["backend"]
     if rho.isket or rho.isbra:
         rho = ket2dm(rho)
     mask = [idx == subsys for idx, n in enumerate(rho.dims[0])]
@@ -154,7 +149,7 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
         return N
 
 
-def entropy_mutual(rho, selA, selB, base=e, sparse=False):
+def entropy_mutual(rho, selA, selB, base=np.e, sparse=False):
     """
     Calculates the mutual information S(A:B) between selection
     components of a system density matrix.
@@ -196,7 +191,7 @@ def entropy_mutual(rho, selA, selB, base=e, sparse=False):
     return out
 
 
-def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
+def entropy_relative(rho, sigma, base=np.e, sparse=False, tol=1e-12):
     """
     Calculates the relative entropy S(rho||sigma) between two density
     matrices.
@@ -248,8 +243,6 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     Section 11.3.1, pg. 511 for a detailed explanation of quantum relative
     entropy.
     """
-    np = settings.core["backend"]
-
     if rho.isket:
         rho = ket2dm(rho)
     if sigma.isket:
@@ -294,7 +287,7 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     return np.maximum(0, S)
 
 
-def entropy_conditional(rho, selB, base=e, sparse=False):
+def entropy_conditional(rho, selB, base=np.e, sparse=False):
     """
     Calculates the conditional entropy :math:`S(A|B)=S(A,B)-S(B)`
     of a selected density matrix component.
