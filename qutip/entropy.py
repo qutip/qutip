@@ -39,9 +39,9 @@ def entropy_vn(rho, base=np.e, sparse=False):
     vals = rho.eigenenergies(sparse=sparse)
     nzvals = np.clip(vals, 1e-17, None)
     if base == 2:
-        logvals = np.log2(nzvals)
+        logvals = np.lib.scimath.log2(nzvals)
     elif base == np.e:
-        logvals = np.log(nzvals)
+        logvals = np.lib.scimath.log(nzvals)
     else:
         raise ValueError("Base must be 2 or e.")
     return np.real(-sum(nzvals * logvals))
@@ -144,7 +144,7 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
 
 # Return the negativity value (or its logarithm if specified)
     if logarithmic:
-        return np.log2(2 * N + 1)
+        return np.lib.scimath.log2(2 * N + 1)
     else:
         return N
 
@@ -252,9 +252,9 @@ def entropy_relative(rho, sigma, base=np.e, sparse=False, tol=1e-12):
     if rho.dims != sigma.dims:
         raise ValueError("Inputs must have the same shape and dims.")
     if base == 2:
-        log_base = np.log2
+        log_base = np.lib.scimath.log2
     elif base == np.e:
-        log_base = np.log
+        log_base = np.lib.scimath.log
     else:
         raise ValueError("Base must be 2 or e.")
     # S(rho || sigma) = sum_i(p_i log p_i) - sum_ij(p_i P_ij log q_i)
