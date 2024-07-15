@@ -48,7 +48,7 @@ def expect(oper, state):
     -------
     expt : float / complex / list / array
         Expectation value(s).  ``real`` if ``oper`` is Hermitian, ``complex``
-        otherwise. If multiple ``oper`` are passed, a list of array
+        otherwise. If multiple ``oper`` are passed, a list of array.
         A (nested) array of expectaction values if ``state`` or
         ``oper`` are arrays.
 
