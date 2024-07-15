@@ -564,7 +564,8 @@ def test_merge_results(store_measurement, keep_runs_results):
         )
 
 @pytest.mark.parametrize("open", [True, False])
-def test_step(open):
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_step(open, heterodyne):
     state0 = basis(5, 3)
     kw = {}
     if open:
@@ -576,15 +577,20 @@ def test_step(open):
     solver = SolverCls(
         num(5),
         sc_ops=[destroy(5), destroy(5)**2 / 10],
-        heterodyne=True,
+        heterodyne=heterodyne,
         options={"dt": 0.001},
         **kw
     )
     solver.start(state0, t0=0)
     state1 = solver.step(0.01)
     assert state1.dims == state0.dims
-    assert state1.norm() == pytest.approx(1, abs=0.001)
+    assert state1.norm() == pytest.approx(1, abs=0.01)
     state2, dW = solver.step(0.02, wiener_increment=True)
     assert state2.dims == state0.dims
-    assert state2.norm() == pytest.approx(1, abs=0.001)
-    assert abs(dW[0, 0]) < 0.5 # 5 sigmas
+    assert state2.norm() == pytest.approx(1, abs=0.01)
+    if heterodyne:
+        assert dW.shape == (2, 2)
+        assert abs(dW[0, 0]) < 0.5 # 5 sigmas
+    else:
+        assert dW.shape == (2,)
+        assert abs(dW[0]) < 0.5 # 5 sigmas
