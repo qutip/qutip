@@ -584,3 +584,7 @@ def test_step(open):
     state1 = solver.step(0.01)
     assert state1.dims == state0.dims
     assert state1.norm() == pytest.approx(1, abs=0.001)
+    state2, dW = solver.step(0.02, wiener_increment=True)
+    assert state2.dims == state0.dims
+    assert state2.norm() == pytest.approx(1, abs=0.001)
+    assert abs(dW) < 0.5 # 5 sigmas
