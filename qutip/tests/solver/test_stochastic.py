@@ -562,3 +562,25 @@ def test_merge_results(store_measurement, keep_runs_results):
             w.shape == result_merged.wiener_process[0].shape
             for w in result_merged.wiener_process
         )
+
+@pytest.mark.parametrize("open", [True, False])
+def test_step(open):
+    state0 = basis(5, 3)
+    kw = {}
+    if open:
+        SolverCls = SMESolver
+        state0 = state0.proj()
+    else:
+        SolverCls = SSESolver
+
+    solver = SolverCls(
+        num(5),
+        sc_ops=[destroy(5)],
+        heterodyne=False,
+        options={"dt": 0.001},
+        **kw
+    )
+    solver.start(state0, t0=0)
+    state1 = solver.step(0.01)
+    assert state1.dims == state0.dims
+    assert state1.norm() == pytest.approx(1, abs=0.001)

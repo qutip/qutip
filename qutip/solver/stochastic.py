@@ -1,5 +1,6 @@
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
+from typing import Any
 from .multitrajresult import MultiTrajResult
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .sode._noise import PreSetWiener
@@ -791,6 +792,22 @@ class StochasticSolver(MultiTrajSolver):
         stats['run time'] = time() - mid_time
         result.stats.update(stats)
         return result
+
+    def step(
+        self, t: float,
+        *,
+        args: dict[str, Any] = None,
+        copy: bool = True,
+        wiener_increment = False,
+    ) -> Qobj:
+        if not self._integrator._is_set:
+            raise RuntimeError("The `start` method must called first.")
+        self._argument(args)
+        _, state, dW = self._integrator.integrate(t, copy=False)
+        state = self._restore_state(state, copy=copy)
+        if wiener_increment:
+            return state, dW
+        return state
 
     @classmethod
     def avail_integrators(cls):
