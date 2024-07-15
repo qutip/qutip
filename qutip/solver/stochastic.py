@@ -829,7 +829,7 @@ class StochasticSolver(MultiTrajSolver):
             Whether to return a copy of the data or the data in the ODE solver.
 
         wiener_increment: bool, default: False
-            Whether to return ``dW`` with for the step with the state.
+            Whether to return ``dW`` in addition to the state.
         """
         if not self._integrator._is_set:
             raise RuntimeError("The `start` method must called first.")
