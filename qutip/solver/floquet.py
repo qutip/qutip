@@ -19,7 +19,7 @@ from .integrator import Integrator
 from .result import Result
 from time import time
 from ..ui.progressbar import progress_bars
-from ..typing import EopsLike, QobjEvoLike
+from ..typing import EopsLike, QobjEvoLike, QobjOrData
 
 
 class FloquetBasis:
@@ -194,8 +194,6 @@ class FloquetBasis:
             return states_mat
         else:
             return self._as_ketlist(states_mat)
-
-    QobjOrData = TypeVar("QobjOrData", Qobj, Data)
 
     def from_floquet_basis(
         self,
