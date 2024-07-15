@@ -575,8 +575,8 @@ def test_step(open):
 
     solver = SolverCls(
         num(5),
-        sc_ops=[destroy(5)],
-        heterodyne=False,
+        sc_ops=[destroy(5), destroy(5)**2 / 10],
+        heterodyne=True,
         options={"dt": 0.001},
         **kw
     )
@@ -587,4 +587,4 @@ def test_step(open):
     state2, dW = solver.step(0.02, wiener_increment=True)
     assert state2.dims == state0.dims
     assert state2.norm() == pytest.approx(1, abs=0.001)
-    assert abs(dW) < 0.5 # 5 sigmas
+    assert abs(dW[0, 0]) < 0.5 # 5 sigmas
