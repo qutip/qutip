@@ -253,7 +253,7 @@ class BRSolver(Solver):
 
     def __init__(
         self,
-        H: QobjEvoLike,
+        H: Qobj | QobjEvo,
         a_ops: list[tuple[Qobj | QobjEvo, Coefficient]],
         c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
         sec_cutoff: float = 0.1,

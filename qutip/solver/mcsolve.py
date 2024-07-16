@@ -454,8 +454,8 @@ class MCSolver(MultiTrajSolver):
 
     def __init__(
         self,
-        H: QobjEvoLike,
-        c_ops: QobjEvoLike | list[QobjEvoLike],
+        H: Qobj | QobjEvo,
+        c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo],
         *,
         options: dict[str, Any] = None,
     ):

@@ -380,22 +380,32 @@ class NonMarkovianMCSolver(MCSolver):
     ):
         self.options = options
 
-        ops_and_rates = [
-            _parse_op_and_rate(op, rate)
-            for op, rate in ops_and_rates
-        ]
-        a_parameter, L = self._check_completeness(ops_and_rates)
-        if L is not None:
-            ops_and_rates.append((L, ConstantCoefficient(0)))
+        self.ops = []
+        self._rates = []
 
-        self.ops = [op for op, _ in ops_and_rates]
+        for op, rate in ops_and_rates:
+            if not isinstance(op, Qobj):
+                raise ValueError("ops_and_rates' ops must be Qobj")
+            if isinstance(rate, numbers.Number):
+                rate = ConstantCoefficient(rate)
+            if not isinstance(rate, Coefficient):
+                raise ValueError(
+                    "ops_and_rates' rates must be scalar or Coefficient"
+                )
+            self.ops.append(op)
+            self._rates.append(rate)
+
+        a_parameter, L = self._check_completeness(self.ops)
+        if L is not None:
+            self.ops.append(L)
+            self._rates.append(ConstantCoefficient(0))
+
         self._martingale = InfluenceMartingale(
             self, a_parameter, self.options["martingale_quad_limit"]
         )
 
         # Many coefficients. These should not be publicly exposed
         # and will all need to be updated in _arguments():
-        self._rates = [rate for _, rate in ops_and_rates]
         self._rate_shift = RateShiftCoefficient(self._rates)
         self._sqrt_shifted_rates = [
             SqrtRealCoefficient(rate + self._rate_shift)
@@ -412,7 +422,7 @@ class NonMarkovianMCSolver(MCSolver):
     def _mc_integrator_class(self, *args):
         return NmMCIntegrator(*args, __martingale=self._martingale)
 
-    def _check_completeness(self, ops_and_rates):
+    def _check_completeness(self, ops):
         """
         Checks whether ``sum(Li.dag() * Li)`` is proportional to the identity
         operator. If not, creates an extra Lindblad operator so that it is.
@@ -420,7 +430,7 @@ class NonMarkovianMCSolver(MCSolver):
         Returns the proportionality factor a, and the extra Lindblad operator
         (or None if no extra Lindblad operator is necessary).
         """
-        op = sum((L.dag() * L) for L, _ in ops_and_rates)
+        op = sum((L.dag() * L) for L in ops)
 
         a_candidate = op.tr() / op.shape[0]
         with CoreOptions(rtol=self.options["completeness_rtol"],

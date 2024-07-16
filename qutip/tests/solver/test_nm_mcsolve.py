@@ -756,7 +756,7 @@ def test_mixed_equals_merged(improved_sampling, p):
     ntraj = [3, 9]
 
     solver = qutip.NonMarkovianMCSolver(
-        H, [(L, rate_function)],
+        H, [(L, qutip.coefficient(rate_function))],
         options={'improved_sampling': improved_sampling})
     mixed_result = solver.run(
         [(initial_state1, p), (initial_state2, 1 - p)], tlist, ntraj)
