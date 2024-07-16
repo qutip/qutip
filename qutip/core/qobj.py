@@ -822,13 +822,11 @@ class Qobj:
         """
         if not self._dims.issquare:
             raise TypeError("expm is only valid for square operators")
-        if isinstance(self.data, _data.CSR) or isinstance(
-            self.data, _data.Dia):
-            return Qobj(_data.expm(self._data, dtype=_data.Dense),
-                        dims=self._dims,
-                        isherm=self._isherm,
-                        copy=False)
-        return Qobj(_data.expm(self._data, dtype=self.dtype),
+        if isinstance(self.data, (_data.CSR, _data.Dia)):
+            dtype = self.dtype
+        else:
+            dtype = None
+        return Qobj(_data.expm(self._data, dtype=dtype),
                     dims=self._dims,
                     isherm=self._isherm,
                     copy=False)
