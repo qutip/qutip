@@ -15,6 +15,10 @@ def _make_system(N, system):
     gamma = 0.25
     a = destroy(N)
 
+    if system == "no sc_ops":
+        H = a.dag() * a
+        sc_ops = []
+
     if system == "simple":
         H = a.dag() * a
         sc_ops = [np.sqrt(gamma) * a]
@@ -39,7 +43,7 @@ def _make_system(N, system):
 
 
 @pytest.mark.parametrize("system", [
-    "simple", "2 c_ops", "H td", "complex", "c_ops td",
+    "no sc_ops", "simple", "2 c_ops", "H td", "complex", "c_ops td",
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_smesolve(heterodyne, system):
@@ -73,13 +77,15 @@ def test_smesolve(heterodyne, system):
         )
 
 
+@pytest.mark.parametrize("system", [
+    "no sc_ops", "simple"
+])
 @pytest.mark.parametrize("heterodyne", [True, False])
 @pytest.mark.parametrize("method", SMESolver.avail_integrators().keys())
-def test_smesolve_methods(method, heterodyne):
+def test_smesolve_methods(method, heterodyne, system):
     tol = 0.05
     N = 4
     ntraj = 20
-    system = "simple"
 
     H, sc_ops = _make_system(N, system)
     c_ops = [destroy(N)]
@@ -138,7 +144,7 @@ def test_smesolve_methods(method, heterodyne):
 
 
 @pytest.mark.parametrize("system", [
-    "simple", "2 c_ops", "H td", "complex", "c_ops td",
+    "no sc_ops", "simple", "2 c_ops", "H td", "complex", "c_ops td",
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_ssesolve(heterodyne, system):
@@ -174,14 +180,16 @@ def test_ssesolve(heterodyne, system):
     assert res.dW is None
 
 
+@pytest.mark.parametrize("system", [
+    "no sc_ops", "simple"
+])
 @pytest.mark.parametrize("heterodyne", [True, False])
 @pytest.mark.parametrize("method", SSESolver.avail_integrators().keys())
-def test_ssesolve_method(method, heterodyne):
+def test_ssesolve_method(method, heterodyne, system):
     "Stochastic: smesolve: homodyne, time-dependent H"
     tol = 0.1
     N = 4
     ntraj = 20
-    system = "simple"
 
     H, sc_ops = _make_system(N, system)
     psi0 = coherent(N, 0.5)
@@ -371,8 +379,8 @@ def test_feedback():
     )]
     psi0 = basis(N, N-3)
 
-    times = np.linspace(0, 10, 101)
-    options = {"map": "serial", "dt": 0.001}
+    times = np.linspace(0, 2, 101)
+    options = {"map": "serial", "dt": 0.0005}
 
     solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
     results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
@@ -419,13 +427,13 @@ def test_small_step_warnings(method):
 @pytest.mark.parametrize("method", ["euler", "platen"])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_run_from_experiment_close(method, heterodyne):
-    N = 10
+    N = 5
 
     H = num(N)
     a = destroy(N)
     sc_ops = [a, a @ a + (a @ a).dag()]
     psi0 = basis(N, N-1)
-    tlist = np.linspace(0, 0.1, 251)
+    tlist = np.linspace(0, 0.1, 501)
     options = {
         "store_measurement": "start",
         "dt": tlist[1],
@@ -502,3 +510,55 @@ def test_run_from_experiment_open(method, heterodyne):
     np.testing.assert_allclose(
         res_measure.expect, res_forward.expect, atol=1e-10
     )
+
+
+@pytest.mark.parametrize("store_measurement", [True, False])
+@pytest.mark.parametrize("keep_runs_results", [True, False])
+def test_merge_results(store_measurement, keep_runs_results):
+    # Running smesolve with mixed ICs should be the same as running smesolve
+    # multiple times and merging the results afterwards
+    initial_state1 = basis([2, 2], [1, 0])
+    initial_state2 = basis([2, 2], [1, 1])
+    H = qeye([2, 2])
+    L = destroy(2) & qeye(2)
+    tlist = np.linspace(0, 1, 11)
+    e_ops = [num(2) & qeye(2), qeye(2) & num(2)]
+
+    options = {
+        "store_measurement": True,
+        "keep_runs_results": True,
+        "store_states": True,
+    }
+    solver = SMESolver(H, [L], True, options=options)
+    result1 = solver.run(initial_state1, tlist, 5, e_ops=e_ops)
+
+    options = {
+        "store_measurement": store_measurement,
+        "keep_runs_results": keep_runs_results,
+        "store_states": True,
+    }
+    solver = SMESolver(H, [L], True, options=options)
+    result2 = solver.run(initial_state2, tlist, 10, e_ops=e_ops)
+
+    result_merged = result1 + result2
+    assert len(result_merged.seeds) == 15
+    if store_measurement:
+        assert (
+            result_merged.average_states[0] ==
+            (initial_state1.proj() + 2 * initial_state2.proj()).unit()
+        )
+    np.testing.assert_allclose(result_merged.average_expect[0][0], 1)
+    np.testing.assert_allclose(result_merged.average_expect[1], 2/3)
+
+    if store_measurement:
+        assert len(result_merged.measurement) == 15
+        assert len(result_merged.dW) == 15
+        assert all(
+            dw.shape == result_merged.dW[0].shape
+            for dw in result_merged.dW
+        )
+        assert len(result_merged.wiener_process) == 15
+        assert all(
+            w.shape == result_merged.wiener_process[0].shape
+            for w in result_merged.wiener_process
+        )

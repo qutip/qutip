@@ -162,18 +162,8 @@ def test_compatibility_with_solver(solve):
         np.testing.assert_allclose(np.array(direct_), indirect_, atol=1e-12)
 
 
-def test_no_real_attribute(monkeypatch):
-    """This tests ensures that expect still works even if the output of a
-    specialisation does not have the ``real`` attribute. This is the case for
-    the tensorflow and cupy data layers."""
-
-    def mocker_expect_return(oper, state):
-        """
-        We simply return None which does not have the `real` attribute.
-        """
-        return "object without .real"
-
-    monkeypatch.setattr(_data, "expect", mocker_expect_return)
-
+def test_no_real_casting(monkeypatch):
     sz = qutip.sigmaz() # the choice of the matrix does not matter
-    assert "object without .real" == qutip.expect(sz, sz)
+    assert isinstance(qutip.expect(sz, sz), float)
+    with qutip.CoreOptions(auto_real_casting=False):
+        assert isinstance(qutip.expect(sz, sz), complex)

@@ -3,20 +3,33 @@ This module provides solvers for the Lindblad master equation and von Neumann
 equation.
 """
 
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['mesolve', 'MESolver']
 
-import numpy as np
+from numpy.typing import ArrayLike
+from typing import Any, Callable
 from time import time
-from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
-from ..core import stack_columns, unstack_columns
-from ..core.data import to
+from .. import (Qobj, QobjEvo, liouvillian, lindblad_dissipator)
+from ..typing import QobjEvoLike
+from ..core import data as _data
 from .solver_base import Solver, _solver_deprecation
 from .sesolve import sesolve, SESolver
 from ._feedback import _QobjFeedback, _DataFeedback
+from . import Result
 
 
-def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
-            **kwargs):
+def mesolve(
+    H: QobjEvoLike,
+    rho0: Qobj,
+    tlist: ArrayLike,
+    c_ops: QobjEvoLike | list[QobjEvoLike] = None,
+    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+    **kwargs
+) -> Result:
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
@@ -95,7 +108,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
             On `None` the states will be saved if no expectation operators are
             given.
         - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
+          | Normalize output state to hide ODE numerical errors. Only normalize
+            the state if the initial state is already normalized.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
@@ -182,7 +196,7 @@ class MESolver(SESolver):
         Diverse diagnostic statistics of the evolution.
     """
     name = "mesolve"
-    _avail_integrators = {}
+    _avail_integrators: dict[str, object] = {}
     solver_options = {
         "progress_bar": "",
         "progress_kwargs": {"chunk_size":10},
@@ -192,7 +206,13 @@ class MESolver(SESolver):
         'method': 'adams',
     }
 
-    def __init__(self, H, c_ops=None, *, options=None):
+    def __init__(
+        self,
+        H: Qobj | QobjEvo,
+        c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo] = None,
+        *,
+        options: dict = None,
+    ):
         _time_start = time()
 
         if not isinstance(H, (Qobj, QobjEvo)):
@@ -220,7 +240,12 @@ class MESolver(SESolver):
         return stats
 
     @classmethod
-    def StateFeedback(cls, default=None, raw_data=False, prop=False):
+    def StateFeedback(
+        cls,
+        default: Qobj | _data.Data = None,
+        raw_data: bool = False,
+        prop: bool = False
+    ):
         """
         State of the evolution to be used in a time-dependent operator.
 

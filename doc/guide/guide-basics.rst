@@ -427,6 +427,7 @@ Of course, like matrices, multiplying two objects of incompatible shape throws a
 
 In addition, the logic operators "is equal" `==` and "is not equal" `!=` are also supported.
 
+
 .. _basics-functions:
 
 Functions operating on Qobj class

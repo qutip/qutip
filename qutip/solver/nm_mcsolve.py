@@ -1,15 +1,14 @@
 __all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
-import functools
 import numbers
 
 import numpy as np
 import scipy
 
 from .multitraj import MultiTrajSolver
+from .multitrajresult import NmmcResult
 from .mcsolve import MCSolver, MCIntegrator
 from .mesolve import MESolver, mesolve
-from .result import NmmcResult, NmmcTrajectoryResult
 from .cy.nm_mcsolve import RateShiftCoefficient, SqrtRealCoefficient
 from ..core.coefficient import ConstantCoefficient
 from ..core import (
@@ -45,7 +44,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         operators are to be treated deterministically.
 
     state : :class:`.Qobj`
-        Initial state vector.
+        Initial state vector or density matrix.
 
     tlist : array_like
         Times at which results are recorded.
@@ -114,6 +113,9 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
             ``norm_tol`` are the tolerance in time and norm respectively.
             An error will be raised if the collapse could not be found within
             ``norm_steps`` tries.
+        - | improved_sampling : Bool
+          | Whether to use the improved sampling algorithm from Abdelhafez et
+            al. PRA (2019)
         - | mc_corr_eps : float
           | Small number used to detect non-physical collapse caused by
             numerical imprecision.
@@ -161,7 +163,9 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         ``trace`` (and ``runs_trace`` if ``store_final_state`` is set). Note
         that the states on the individual trajectories are not normalized. This
         field contains the average of their trace, which will converge to one
-        in the limit of sufficiently many trajectories.
+        in the limit of sufficiently many trajectories. If the initial
+        condition is mixed, the result has additional attributes
+        ``initial_states`` and ``ntraj_per_initial_state``.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
 
@@ -217,7 +221,10 @@ class InfluenceMartingale:
         #  to pre-compute the continuous contribution to the martingale
         self._t_prev = t0
         self._continuous_martingale_at_t_prev = 1
-        self._discrete_martingale = 1
+
+        # _discrete_martingale is a list of (time, factor) such that
+        # mu_d(t) is the product of all factors with time < t
+        self._discrete_martingale = []
 
         if np.array_equal(cache, 'clear'):
             self._precomputed_continuous_martingale = {}
@@ -239,7 +246,7 @@ class InfluenceMartingale:
         rate = self._nm_solver.rate(collapse_time, collapse_channel)
         shift = self._nm_solver.rate_shift(collapse_time)
         factor = rate / (rate + shift)
-        self._discrete_martingale *= factor
+        self._discrete_martingale.append((collapse_time, factor))
 
     def value(self, t):
         if self._t_prev is None:
@@ -256,7 +263,13 @@ class InfluenceMartingale:
         self._t_prev = t
         self._continuous_martingale_at_t_prev = mu_c
 
-        return self._discrete_martingale * mu_c
+        # find value of discrete martingale at given time
+        mu_d = 1
+        for time, factor in self._discrete_martingale:
+            if t > time:
+                mu_d *= factor
+
+        return mu_d * mu_c
 
     def _compute_continuous_martingale(self, t1, t2):
         if t1 == t2:
@@ -339,14 +352,11 @@ class NonMarkovianMCSolver(MCSolver):
         "norm_steps": 5,
         "norm_t_tol": 1e-6,
         "norm_tol": 1e-4,
+        "improved_sampling": False,
         "completeness_rtol": 1e-5,
         "completeness_atol": 1e-8,
         "martingale_quad_limit": 100,
     }
-
-    # both classes will be partially initialized in constructor
-    _trajectory_resultclass = NmmcTrajectoryResult
-    _mc_integrator_class = NmMCIntegrator
 
     def __init__(
         self, H, ops_and_rates, args=None, options=None,
@@ -380,13 +390,10 @@ class NonMarkovianMCSolver(MCSolver):
             for op, sqrt_shifted_rate
             in zip(self.ops, self._sqrt_shifted_rates)
         ]
-        self._trajectory_resultclass = functools.partial(
-            NmmcTrajectoryResult, __nm_solver=self,
-        )
-        self._mc_integrator_class = functools.partial(
-            NmMCIntegrator, __martingale=self._martingale,
-        )
         super().__init__(H, c_ops, options=options)
+
+    def _mc_integrator_class(self, *args):
+        return NmMCIntegrator(*args, __martingale=self._martingale)
 
     def _check_completeness(self, ops_and_rates):
         """
@@ -509,9 +516,8 @@ class NonMarkovianMCSolver(MCSolver):
     # the run.
     #
     # Regarding (b), in the start/step-interface we just include the martingale
-    # in the step method. In order to include the martingale in the
-    # run-interface, we use a custom trajectory-resultclass that grabs the
-    # martingale value from the NonMarkovianMCSolver whenever a state is added.
+    # in the step method. In the run-interface, the martingale is added as a
+    # relative weight to the trajectory result at the end of `_run_one_traj`.
 
     def start(self, state, t0, seed=None):
         self._martingale.initialize(t0, cache='clear')
@@ -523,6 +529,17 @@ class NonMarkovianMCSolver(MCSolver):
         if isket(state):
             state = ket2dm(state)
         return state * self.current_martingale()
+
+    def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
+        """
+        Run one trajectory and return the result.
+        """
+        seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
+                                             **integrator_kwargs)
+        martingales = [self._martingale.value(t) for t in tlist]
+        result.add_relative_weight(martingales)
+        result.trace = martingales
+        return seed, result
 
     def run(self, state, tlist, ntraj=1, *, args=None, **kwargs):
         # update `args` dictionary before precomputing martingale
@@ -595,6 +612,10 @@ class NonMarkovianMCSolver(MCSolver):
 
         norm_steps: int, default: 5
             Maximum number of tries to find the collapse.
+
+        improved_sampling: Bool, default: False
+            Whether to use the improved sampling algorithm
+            of Abdelhafez et al. PRA (2019)
 
         completeness_rtol: float, default: 1e-5
             Used in determining whether the given Lindblad operators satisfy

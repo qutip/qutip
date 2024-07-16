@@ -35,7 +35,7 @@ cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
     cdef Data S, I, AS, AST, out, C
     cdef type cls = type(A)
 
-    S = _data.to(cls, _data.mul(_data.Dense(spectrum, copy=False), 0.5))
+    S = _data.to(cls, _data.mul(_data.Dense(spectrum), 0.5))
     I = _data.identity[cls](nrows)
     AS = _data.multiply(A, S)
     AST = _data.multiply(A, _data.transpose(S))

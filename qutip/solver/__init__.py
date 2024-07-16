@@ -1,4 +1,5 @@
 from .result import *
+from .multitrajresult import *
 from .options import *
 import qutip.solver.integrator as integrator
 from .integrator import IntegratorException

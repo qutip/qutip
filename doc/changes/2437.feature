@@ -1,0 +1,1 @@
+Allow mixed initial conditions for mcsolve and nm_mcsolve.

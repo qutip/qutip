@@ -113,6 +113,20 @@ This includes using the same variable names, especially if they are function arg
 
 Other than this, general "good-practice" Python standards apply: try not to duplicate code; try to keep functions short, descriptively-named and side-effect free; provide a docstring for every new function; and so on.
 
+Type Hints
+----------
+
+Adding type hints to users facing functions is recommended.
+QuTiP's approach is such:
+
+- Type hints are *hints* for the users.
+- Type hints can show the preferred usage over real implementation, for example:
+  - ``Qobj.__mul__`` is typed to support product with scalar, not other ``Qobj``, for which ``__matmul__`` should is preferred.
+  - ``solver.options`` claims it return a dict not ``_SolverOptions`` (which is a subclass of dict).
+- Type alias are added to ``qutip.typing``.
+- `Any` can be used for input which type can be extended by plugin modules, (``qutip-cupy``, ``qutip-jax``, etc.)
+
+
 Documenting
 -----------
 
