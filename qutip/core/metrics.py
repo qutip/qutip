@@ -9,7 +9,7 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
            'hellinger_dist', 'hilbert_dist', 'average_gate_fidelity',
            'process_fidelity', 'unitarity', 'dnorm']
 
-from ..numpy_backend import np
+from .numpy_backend import np
 from scipy import linalg as la
 import scipy.sparse as sp
 from .superop_reps import to_choi, _to_superpauli, to_super, kraus_to_choi
