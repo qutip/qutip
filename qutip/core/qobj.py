@@ -798,7 +798,7 @@ class Qobj:
             out = np.real(out)
         return out
 
-    def expm(self, dtype: LayerType = _data.Dense) -> Qobj:
+    def expm(self, dtype: LayerType = None) -> Qobj:
         """Matrix exponential of quantum operator.
 
         Input operator must be square.
@@ -806,9 +806,7 @@ class Qobj:
         Parameters
         ----------
         dtype : type
-            The data-layer type that should be output.  As the matrix
-            exponential is almost dense, this defaults to outputting dense
-            matrices.
+            The data-layer type that should be output.
 
         Returns
         -------
@@ -822,8 +820,8 @@ class Qobj:
         """
         if not self._dims.issquare:
             raise TypeError("expm is only valid for square operators")
-        if not isinstance(self.data, (_data.CSR, _data.Dia)):
-            dtype = None
+        if dtype is None and isinstance(self.data, (_data.CSR, _data.Dia)):
+            dtype = _data.Dense
         return Qobj(_data.expm(self._data, dtype=dtype),
                     dims=self._dims,
                     isherm=self._isherm,
