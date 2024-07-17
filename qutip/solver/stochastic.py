@@ -3,11 +3,10 @@ __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 import numpy as np
 from numpy.typing import ArrayLike
 from numpy.random import SeedSequence
-from typing import Any, Callable
+from typing import Any, Callable, Literal, overload
 from functools import partial
 from time import time
 from collections.abc import Sequence
-
 from .multitrajresult import MultiTrajResult
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .sode._noise import PreSetWiener
@@ -841,6 +840,55 @@ class StochasticSolver(MultiTrajSolver):
         stats['run time'] = time() - mid_time
         result.stats.update(stats)
         return result
+
+    @overload
+    def step(
+        self, t: float,
+        *,
+        args: dict[str, Any],
+        copy: bool,
+        wiener_increment: Literal[False],
+    ) -> Qobj: ...
+
+    @overload
+    def step(
+        self, t: float,
+        *,
+        args: dict[str, Any],
+        copy: bool,
+        wiener_increment: Literal[True],
+    ) -> tuple[Qobj, np.typing.NDArray[float]]: ...
+
+    def step(self, t, *, args=None, copy=True, wiener_increment=False):
+        """
+        Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
+
+        Parameters
+        ----------
+        t : double
+            Time to evolve to, must be higher than the last call.
+
+        args : dict, optional
+            Update the ``args`` of the system.
+            The change is effective from the beginning of the interval.
+            Changing ``args`` can slow the evolution.
+
+        copy : bool, default: True
+            Whether to return a copy of the data or the data in the ODE solver.
+
+        wiener_increment: bool, default: False
+            Whether to return ``dW`` in addition to the state.
+        """
+        if not self._integrator._is_set:
+            raise RuntimeError("The `start` method must called first.")
+        self._argument(args)
+        _, state, dW = self._integrator.integrate(t, copy=False)
+        state = self._restore_state(state, copy=copy)
+        if wiener_increment:
+            if self.heterodyne:
+                dW = dW.reshape(-1, 2)
+            return state, dW
+        return state
 
     @classmethod
     def avail_integrators(cls):
