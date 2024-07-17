@@ -24,7 +24,7 @@ def brmesolve(
     H: QobjEvoLike,
     psi0: Qobj,
     tlist: ArrayLike,
-    a_ops: list[tuple[Qobj | QobjEvo, CoefficientLike]] = None,
+    a_ops: list[tuple[QobjEvoLike, CoefficientLike]] = None,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     c_ops: list[QobjEvoLike] = None,
     args: dict[str, Any] = None,
@@ -160,7 +160,7 @@ def brmesolve(
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
     new_a_ops = []
-    a_ops = a_ops if a_ops is not None else []
+    a_ops = a_ops or []
     for (a_op, spectra) in a_ops:
         aop = QobjEvo(a_op, args=args, tlist=tlist)
         if isinstance(spectra, str):
@@ -255,7 +255,7 @@ class BRSolver(Solver):
         self,
         H: Qobj | QobjEvo,
         a_ops: list[tuple[Qobj | QobjEvo, Coefficient]],
-        c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
+        c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo] = None,
         sec_cutoff: float = 0.1,
         *,
         options: dict[str, Any] = None,
