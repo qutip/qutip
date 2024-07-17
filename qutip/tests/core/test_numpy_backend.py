@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from ..settings import settings
-from ..numpy_backend import NumpyBackend
+from ...settings import settings
+from ...core.numpy_backend import NumpyBackend
 
 # Mocking JAX and NumPy to demonstrate backend switching
 mock_jax = MagicMock()
