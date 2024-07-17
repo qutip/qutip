@@ -573,7 +573,7 @@ class NonMarkovianMCSolver(MCSolver):
     def run(
         self,
         state: Qobj,
-        tlist: Sequence[float],
+        tlist: ArrayLike,
         ntraj: int = 1,
         *,
         args: dict[str, Any] = None,
