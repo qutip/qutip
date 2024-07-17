@@ -199,7 +199,7 @@ class StochasticResult(MultiTrajResult):
         """
         return self._trajectories_attr("wiener_process")
 
-    def merge(self, other: "StochasticResult", p=None) -> "StochasticResult":
+    def merge(self, other: "StochasticResult", p: float = None) -> "StochasticResult":
         if not isinstance(other, StochasticResult):
             return NotImplemented
         if self.stats["solver"] != other.stats["solver"]:

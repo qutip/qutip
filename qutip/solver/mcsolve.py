@@ -7,7 +7,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from numpy.random import SeedSequence
 from time import time
-from typing import Any, Callable
+from typing import Any
 import warnings
 
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
