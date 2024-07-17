@@ -174,7 +174,7 @@ class MultiTrajSolver(Solver):
         *,
         args: dict[str, Any] = None,
         e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
-        target_tol: float = None,
+        target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
         timeout: float = None,
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> MultiTrajResult:

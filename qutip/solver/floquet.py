@@ -47,6 +47,7 @@ class FloquetBasis:
         sparse: bool = False,
         sort: bool = True,
         precompute: ArrayLike = None,
+        tlist: ArrayLike = None,
     ):
         """
         Parameters
@@ -76,10 +77,14 @@ class FloquetBasis:
             for later use when computing modes and states. Default is
             ``linspace(0, T, 101)`` corresponding to the default integration
             steps used for the floquet tensor computation.
+
+        times : ArrayLike [None]
+            Time for array
         """
         if not T > 0:
             raise ValueError("The period need to be a positive number.")
         self.T = T
+        H = QobjEvo(H, args=args, tlist=times)
         if precompute is not None:
             tlist = np.unique(np.atleast_1d(precompute) % self.T)
             memoize = len(tlist)
@@ -91,12 +96,9 @@ class FloquetBasis:
             # Default computation
             tlist = np.linspace(0, T, 101)
             memoize = 101
-        if (
-            isinstance(H, QobjEvo)
-            and (H._feedback_functions or H._solver_only_feedback)
-        ):
+        if H._feedback_functions or H._solver_only_feedback:
             raise NotImplementedError("FloquetBasis does not support feedback")
-        self.U = Propagator(H, args=args, options=options, memoize=memoize)
+        self.U = Propagator(H, options=options, memoize=memoize)
         for t in tlist:
             # Do the evolution by steps to save the intermediate results.
             self.U(t)
@@ -553,7 +555,7 @@ def fsesolve(
         List of times for :math:`t`.
 
     e_ops : list or dict of :class:`.Qobj` / callback function, optional
-        Single, list or dict of operators for which to evaluate
+        Single operator, or list or dict of operators, for which to evaluate
         expectation values. Operator can be Qobj, QobjEvo or callables with the
         signature `f(t: float, state: Qobj) -> Any`.
         See :func:`~qutip.core.expect.expect` for more detail of operator
@@ -592,7 +594,8 @@ def fsesolve(
         T = T or tlist[-1]
         # `fsesolve` is a fallback from `fmmesolve`, for the later, options
         # are for the open system evolution.
-        floquet_basis = FloquetBasis(H, T, args, precompute=tlist)
+        H = QobjEvo(H, args=args, tlist=tlist, copy=False)
+        floquet_basis = FloquetBasis(H, T, precompute=tlist)
 
     f_coeff = floquet_basis.to_floquet_basis(psi0)
     result_options = {
@@ -642,7 +645,7 @@ def fmmesolve(
         supported. Fall back on :func:`fsesolve` if not provided.
 
     e_ops : list of :class:`.Qobj` / callback function, optional
-        Single, list or dict of operators for which to evaluate
+        Single operator, or list or dict of operators, for which to evaluate
         expectation values. Operator can be Qobj, QobjEvo or callables with the
         signature `f(t: float, state: Qobj) -> Any`.
         See :func:`~qutip.core.expect.expect` for more detail of operator
@@ -733,7 +736,8 @@ def fmmesolve(
         t_precompute = np.concatenate([tlist, np.linspace(0, T, 101)])
         # `fsesolve` is a fallback from `fmmesolve`, for the later, options
         # are for the open system evolution.
-        floquet_basis = FloquetBasis(H, T, args, precompute=t_precompute)
+        H = QobjEvo(H, args=args, tlist=tlist, copy=False)
+        floquet_basis = FloquetBasis(H, T, precompute=t_precompute)
 
     if not w_th and args:
         w_th = args.get("w_th", 0.0)

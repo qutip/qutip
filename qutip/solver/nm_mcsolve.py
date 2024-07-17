@@ -76,7 +76,7 @@ def nm_mcsolve(
         :func:`~qutip.core.coefficient.coefficient`.
 
     e_ops : :obj:`.Qobj`, callable, list or dict, optional
-        Single, list or dict of operators for which to evaluate
+        Single operator, or list or dict of operators, for which to evaluate
         expectation values. Operator can be Qobj, QobjEvo or callables with the
         signature `f(t: float, state: Qobj) -> Any`.
 

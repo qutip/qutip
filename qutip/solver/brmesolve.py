@@ -55,7 +55,7 @@ def brmesolve(
         Nested list of system operators that couple to the environment,
         and the corresponding bath spectra.
 
-        a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
+        a_op : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format
             The operator coupling to the environment. Must be hermitian.
 
         spectra : :obj:`.Coefficient`, str, func
@@ -75,7 +75,7 @@ def brmesolve(
             a_ops = [
                 (a+a.dag(), ('w>0', args={"w": 0})),
                 (QobjEvo(a+a.dag()), 'w > exp(-t)'),
-                (QobjEvo([b+b.dag(), lambda t: ...]), lambda w: ...)),
+                ([[b+b.dag(), lambda t: ...]], lambda w: ...)),
                 (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
             ]
 
@@ -88,7 +88,7 @@ def brmesolve(
             of the spectra.
 
     e_ops : list, dict, :obj:`.Qobj` or callback function, optional
-        Single, list or dict of operators for which to evaluate
+        Single operator, or list or dict of operators, for which to evaluate
         expectation values. Operator can be Qobj, QobjEvo or callables with the
         signature `f(t: float, state: Qobj) -> Any`.
         Callable signature must be, `f(t: float, state: Qobj)`.

@@ -61,7 +61,7 @@ def mcsolve(
         defer to ``sesolve`` or ``mesolve``.
 
     e_ops : :obj:`.Qobj`, callable, list or dict, optional
-        Single, list or dict of operators for which to evaluate
+        Single operator, or list or dict of operators, for which to evaluate
         expectation values. Operator can be Qobj, QobjEvo or callables with the
         signature `f(t: float, state: Qobj) -> Any`.
 
@@ -607,9 +607,9 @@ class MCSolver(MultiTrajSolver):
             Change the ``args`` of the rhs for the evolution.
 
         e_ops : :obj:`.Qobj`, callable, list or dict, optional
-            Single, list or dict of operators for which to evaluate
-            expectation values. Operator can be Qobj, QobjEvo or callables with
-            the signature `f(t: float, state: Qobj) -> Any`.
+            Single operator, or list or dict of operators, for which to
+            evaluate expectation values. Operator can be Qobj, QobjEvo or
+            callables with the signature `f(t: float, state: Qobj) -> Any`.
 
         timeout : float, optional
             Maximum time in seconds for the trajectories to run. Once this time

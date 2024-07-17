@@ -308,7 +308,7 @@ class _StochasticRHS(_MultiTrajRHS):
 def smesolve(
     H: QobjEvoLike,
     rho0: Qobj,
-    tlist: np.typing.ArrayLike,
+    tlist: ArrayLike,
     c_ops: Qobj | QobjEvo | Sequence[QobjEvoLike] = (),
     sc_ops: Qobj | QobjEvo | Sequence[QobjEvoLike] = (),
     heterodyne: bool = False,
@@ -346,7 +346,7 @@ def smesolve(
         List of stochastic collapse operators.
 
     e_ops : :obj:`.Qobj`, callable, list or dict, optional
-        Single, list or dict of operators for which to evaluate
+        Single operator, or list or dict of operators, for which to evaluate
         expectation values. Operator can be Qobj, QobjEvo or callables with the
         signature `f(t: float, state: Qobj) -> Any`.
 
@@ -454,7 +454,7 @@ def smesolve(
 def ssesolve(
     H: QobjEvoLike,
     psi0: Qobj,
-    tlist: np.typing.ArrayLike,
+    tlist: ArrayLike,
     sc_ops: QobjEvoLike | Sequence[QobjEvoLike] = (),
     heterodyne: bool = False,
     *,
@@ -487,7 +487,7 @@ def ssesolve(
         List of stochastic collapse operators.
 
     e_ops : :obj:`.Qobj`, callable, list or dict, optional
-        Single, list or dict of operators for which to evaluate
+        Single operator, or list or dict of operators, for which to evaluate
         expectation values. Operator can be Qobj, QobjEvo or callables with the
         signature `f(t: float, state: Qobj) -> Any`.
 
@@ -746,7 +746,7 @@ class StochasticSolver(MultiTrajSolver):
     def run_from_experiment(
         self,
         state: Qobj,
-        tlist: np.typing.ArrayLike,
+        tlist: ArrayLike,
         noise: Sequence[float],
         *,
         args: dict[str, Any] = None,
@@ -777,9 +777,9 @@ class StochasticSolver(MultiTrajSolver):
             Arguments to pass to the Hamiltonian and collapse operators.
 
         e_ops : :obj:`.Qobj`, callable, list or dict, optional
-            Single, list or dict of operators for which to evaluate
-            expectation values. Operator can be Qobj, QobjEvo or callables with the
-            signature `f(t: float, state: Qobj) -> Any`.
+            Single operator, or list or dict of operators, for which to
+            evaluate expectation values. Operator can be Qobj, QobjEvo or
+            callables with the signature `f(t: float, state: Qobj) -> Any`.
 
         measurement : bool, default : False
             Whether the passed noise is the Wiener increments ``dW`` (gaussian
