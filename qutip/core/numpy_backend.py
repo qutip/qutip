@@ -1,5 +1,6 @@
 from .settings import settings
 
+
 class NumpyBackend:
     @property
     def backend(self):
@@ -8,6 +9,7 @@ class NumpyBackend:
     def __getattr__(self, name):
         backend = object.__getattribute__(self, 'backend')
         return getattr(backend, name)
+
 
 # Initialize the numpy backend
 np = NumpyBackend()
