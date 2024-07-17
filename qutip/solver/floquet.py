@@ -47,7 +47,7 @@ class FloquetBasis:
         sparse: bool = False,
         sort: bool = True,
         precompute: ArrayLike = None,
-        tlist: ArrayLike = None,
+        times: ArrayLike = None,
     ):
         """
         Parameters
