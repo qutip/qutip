@@ -132,11 +132,12 @@ class StochasticResult(MultiTrajResult):
             self.add_processor(partial(self._reduce_attr, attr="measurement"))
             self._measurement = []
 
-    def _reduce_attr(self, trajectory, attr):
+    def _reduce_attr(self, trajectory, attr, *, rel=None, abs=None):
         """
         Add a result attribute to a list when the trajectories are not stored.
         """
-        getattr(self, "_" + attr).append(getattr(trajectory, attr))
+        if abs is None:
+            getattr(self, "_" + attr).append(getattr(trajectory, attr))
 
     def _trajectories_attr(self, attr):
         """
