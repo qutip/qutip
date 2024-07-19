@@ -19,6 +19,7 @@ class CoeffProtocol(Protocol):
 
 CoefficientLike = Union[
     "Coefficient",
+    float,
     str,
     CoeffProtocol,
     np.ndarray,

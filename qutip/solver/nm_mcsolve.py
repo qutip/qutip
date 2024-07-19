@@ -33,7 +33,7 @@ def nm_mcsolve(
     H: QobjEvoLike,
     state: Qobj,
     tlist: ArrayLike,
-    ops_and_rates: list[tuple[Qobj, float | CoefficientLike]] = (),
+    ops_and_rates: list[tuple[Qobj, CoefficientLike]] = (),
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     ntraj: int = 500,
     *,
