@@ -245,9 +245,9 @@ class MultiTrajResult(_BaseResult):
         else:
             self._sum_rel.reduce_expect(trajectory, rel)
 
-        if self.runs_e_data:
-            for k in self._raw_ops:
-                self.runs_e_data[k].append(trajectory.e_data[k])
+            if self.runs_e_data:
+                for k in self._raw_ops:
+                    self.runs_e_data[k].append(trajectory.e_data[k])
 
     def _create_e_data(self):
         for i, k in enumerate(self._raw_ops):
@@ -715,12 +715,12 @@ class MultiTrajResult(_BaseResult):
         new._deterministic_weight_info = [
             w * p for w in self._deterministic_weight_info
         ] + [
-            w * p for w in other._deterministic_weight_info
+            w * p_equal for w in other._deterministic_weight_info
         ]
         new._trajectories_weight_info = [
             w * p / p_equal for w in self._trajectories_weight_info
         ] + [
-            w * p / p_equal for w in other._trajectories_weight_info
+            w * (1 - p) / (1 - p_equal) for w in other._trajectories_weight_info
         ]
 
         if self.trajectories and other.trajectories:
@@ -1157,8 +1157,8 @@ class NmmcResult(McResult):
         self._sum2_trace_abs = None
         self._sum2_trace_rel = None
 
-        self._average_trace = []
-        self._std_trace = []
+        self._average_trace = None
+        self._std_trace = None
         self.runs_trace = []
 
         self.add_processor(self._add_trace)
@@ -1198,7 +1198,7 @@ class NmmcResult(McResult):
         Refers to ``average_trace`` or ``runs_trace``, depending on whether
         ``keep_runs_results`` is set in the options.
         """
-        if not self._average_trace:
+        if self._average_trace is None:
             self._compute_avg_trace()
         return self._average_trace
 
@@ -1208,7 +1208,7 @@ class NmmcResult(McResult):
         Refers to ``average_trace`` or ``runs_trace``, depending on whether
         ``keep_runs_results`` is set in the options.
         """
-        if not self._std_trace:
+        if self._std_trace is None:
             self._compute_avg_trace()
         return self._std_trace
 

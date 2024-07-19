@@ -227,15 +227,17 @@ class TestMultiTrajResult:
                     result.collapse.append((t+0.1, 0))
                     result.collapse.append((t+0.2, 1))
                     result.collapse.append((t+0.3, 1))
-            if include_no_jump and k == 0:
-                result.add_absolute_weight(0.25)
-            elif include_no_jump and k > 0:
-                result.add_relative_weight(0.75)
+
             if w is not None:
                 result.add_relative_weight(w)
                 result.trace = w
-            if multiresult.add((0, result)) <= 0:
-                break
+
+            if include_no_jump and k == 0:
+                multiresult.add_deterministic(result, 0.25)
+            elif include_no_jump and k > 0:
+                if multiresult.add((0, result, 0.75)) <= 0:
+                    break
+
 
     def _check_types(self, multiresult):
         assert isinstance(multiresult.std_expect, list)
@@ -487,13 +489,8 @@ class TestMultiTrajResult:
                 traj.add(t, random_state)
 
             if time_dep_weights and np.random.randint(2):
-                weights = np.random.rand(len(tlist))
-            else:
-                weights = np.random.rand()
-            if abs_weights and np.random.randint(2):
-                traj.add_absolute_weight(weights)
-            else:
-                traj.add_relative_weight(weights)
+                traj.add_relative_weight(np.random.rand(len(tlist)))
+            weights = np.random.rand()
 
             if collapse:
                 traj.collapse = []
@@ -503,7 +500,12 @@ class TestMultiTrajResult:
                          np.random.randint(2)))
             if trace:
                 traj.trace = np.random.rand(len(tlist))
-            res.add((0, traj))
+
+            if abs_weights and np.random.randint(2):
+                res.add_deterministic(traj, weights)
+            else:
+                res.add((0, traj, weights))
+
 
         return res
 
