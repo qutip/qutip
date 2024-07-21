@@ -965,6 +965,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     asq = destroy(N, offset=offset, dtype=dtype) ** 2
     op = 0.5*np.conj(z)*asq - 0.5*z*asq.dag()
     out = op.expm(dtype=dtype)
