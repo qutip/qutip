@@ -4,8 +4,9 @@ tidyup functionality, etc.
 """
 import os
 import sys
-from ctypes import cdll
+from ctypes import cdll, CDLL
 import platform
+from glob import glob
 import numpy as np
 
 __all__ = ['settings']
@@ -75,47 +76,47 @@ def available_cpu_count() -> int:
 
 def _find_mkl():
     """
-    Finds the MKL runtime library for the Anaconda and Intel Python
+    Finds the MKL library for the Anaconda and Intel Python
     distributions.
     """
-    mkl_lib = None
-    if _blas_info() == 'INTEL MKL':
-        plat = sys.platform
-        python_dir = os.path.dirname(sys.executable)
-        if plat in ['darwin', 'linux2', 'linux']:
-            python_dir = os.path.dirname(python_dir)
+    plat = sys.platform
+    python_dir = os.path.dirname(sys.executable)
+    if plat in ['darwin', 'linux2', 'linux']:
+        python_dir = os.path.dirname(python_dir)
 
         if plat == 'darwin':
-            lib = '/libmkl_rt.dylib'
+            ext = ".dylib"
         elif plat == 'win32':
-            lib = r'\mkl_rt.dll'
+            ext = ".dll"
         elif plat in ['linux2', 'linux']:
-            lib = '/libmkl_rt.so'
+            ext = ".so"
         else:
             raise Exception('Unknown platfrom.')
 
-        if plat in ['darwin', 'linux2', 'linux']:
-            lib_dir = '/lib'
-        else:
-            lib_dir = r'\Library\bin'
         # Try in default Anaconda location first
-        try:
-            mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-        except Exception:
-            pass
+        if plat in ['darwin', 'linux2', 'linux']:
+            lib_dir = '/lib/*'
+        else:
+            lib_dir = r'\Library\bin\*'
 
-        # Look in Intel Python distro location
-        if mkl_lib is None:
+        libraries = glob(python_dir + lib_dir)
+        mkl_libs = [lib for lib in libraries if "mkl_rt" in lib]
+
+        if not mkl_libs:
+            # Look in Intel Python distro location
             if plat in ['darwin', 'linux2', 'linux']:
                 lib_dir = '/ext/lib'
             else:
                 lib_dir = r'\ext\lib'
-            try:
-                mkl_lib = \
-                    cdll.LoadLibrary(python_dir + lib_dir + lib)
-            except Exception:
-                pass
-    return mkl_lib
+            libraries = glob(python_dir + lib_dir)
+            mkl_libs = [
+                lib for lib in libraries
+                if "mkl_rt." in lib and ext in lib
+            ]
+
+        if mkl_libs:
+            return mkl_libs[-1]
+        return None
 
 
 class Settings:
@@ -124,6 +125,7 @@ class Settings:
     """
     def __init__(self):
         self._mkl_lib = ""
+        self._mkl_lib_loc = ""
         try:
             self.tmproot = os.path.join(os.path.expanduser("~"), '.qutip')
         except OSError:
@@ -140,11 +142,39 @@ class Settings:
         return self.mkl_lib is not None
 
     @property
-    def mkl_lib(self) -> str | None:
-        """ Location of the mkl installation. """
+    def mkl_lib_location(self) -> str | None:
+        """ Location of the mkl library file. The file is usually called:
+
+        - `libmkl_rt.so` (Linux)
+        - `libmkl_rt.dylib` (Mac)
+        - `mkl_rt.dll` (Windows)
+
+        It search for the library in the python lib path per default.
+        If the library is in other location, update this variable as needed.
+        """
+        if self._mkl_lib_loc == "":
+            self._mkl_lib_loc = _find_mkl()
+        return self._mkl_lib_loc
+
+    @mkl_lib_location.setter
+    def mkl_lib_location(self, new: str):
+        _mkl_lib = cdll.LoadLibrary(new)
+        if not hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv"):
+            raise ValueError(
+                "mkl sparse function not available in the provided library"
+            )
+        self._mkl_lib_loc = new
+        self._mkl_lib == _mkl_lib
+
+    @property
+    def mkl_lib(self) -> CDLL | None:
+        """ Mkl library """
         if self._mkl_lib == "":
-            self._mkl_lib = _find_mkl()
-        return _find_mkl()
+            try:
+                self._mkl_lib = cdll.LoadLibrary(self.mkl_lib_location)
+            except OSError:
+                self._mkl_lib = None
+        return self._mkl_lib
 
     @property
     def ipython(self) -> bool:
