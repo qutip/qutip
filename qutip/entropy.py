@@ -371,9 +371,9 @@ def entangling_power(U):
         raise Exception("U must be a two-qubit gate.")
 
     from qutip.core.gates import swap
-    swap13 =  expand_operator(swap(), [2, 2, 2, 2], [1, 3])
+    swap13 =  expand_operator(swap(dtype=U.dtype), [2, 2, 2, 2], [1, 3])
     a = tensor(U, U).dag() * swap13 * tensor(U, U) * swap13
-    Uswap = swap() * U
+    Uswap = swap(dtype=U.dtype) * U
     b = tensor(Uswap, Uswap).dag() * swap13 * tensor(Uswap, Uswap) * swap13
 
     return 5.0/9 - 1.0/36 * (a.tr() + b.tr()).real
