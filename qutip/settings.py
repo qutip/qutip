@@ -153,27 +153,40 @@ class Settings:
         If the library is in other location, update this variable as needed.
         """
         if self._mkl_lib_loc == "":
-            self._mkl_lib_loc = _find_mkl()
+            _mkl_lib_loc = _find_mkl()
+            try:
+                _mkl_lib = cdll.LoadLibrary(_mkl_lib_loc)
+            except OSError:
+                _mkl_lib = None
+            if not (
+                hasattr(_mkl_lib, "pardiso")
+                and hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv")
+            ):
+                self._mkl_lib_loc = None
+                self._mkl_lib = None
+            else:
+                self._mkl_lib = _mkl_lib
+                self._mkl_lib_loc = _mkl_lib_loc
         return self._mkl_lib_loc
 
     @mkl_lib_location.setter
     def mkl_lib_location(self, new: str):
         _mkl_lib = cdll.LoadLibrary(new)
-        if not hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv"):
+        if not (
+            hasattr(_mkl_lib, "pardiso")
+            and hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv")
+        ):
             raise ValueError(
-                "mkl sparse function not available in the provided library"
+                "mkl sparse functions not available in the provided library"
             )
         self._mkl_lib_loc = new
-        self._mkl_lib == _mkl_lib
+        self._mkl_lib = _mkl_lib
 
     @property
     def mkl_lib(self) -> CDLL | None:
         """ Mkl library """
         if self._mkl_lib == "":
-            try:
-                self._mkl_lib = cdll.LoadLibrary(self.mkl_lib_location)
-            except OSError:
-                self._mkl_lib = None
+            self.mkl_lib_location
         return self._mkl_lib
 
     @property
