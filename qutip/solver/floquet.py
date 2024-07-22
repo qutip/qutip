@@ -530,7 +530,7 @@ def floquet_tensor(
 
 
 def fsesolve(
-    H: QobjEvoLike,
+    H: QobjEvoLike | FloquetBasis,
     psi0: Qobj,
     tlist: ArrayLike,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
@@ -613,12 +613,12 @@ def fsesolve(
 
 
 def fmmesolve(
-    H: QobjEvoLike,
+    H: QobjEvoLike | FloquetBasis,
     rho0: Qobj,
     tlist: ArrayLike,
     c_ops: list[Qobj] = None,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
-    spectra_cb: list[Callable[[float], complex]]= None,
+    spectra_cb: list[Callable[[float], complex]] = None,
     T: float = 0.0,
     w_th: float = 0.0,
     args: dict[str, Any] = None,
@@ -875,7 +875,7 @@ class FMESolver(MESolver):
         if args:
             raise ValueError("FMESolver cannot update arguments")
 
-    def start(self, state0: Qobj, t0: float, *, floquet: bool=False) -> None:
+    def start(self, state0: Qobj, t0: float, *, floquet: bool = False) -> None:
         """
         Set the initial state and time for a step evolution.
         ``options`` for the evolutions are read at this step.

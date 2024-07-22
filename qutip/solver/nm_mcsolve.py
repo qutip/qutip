@@ -212,10 +212,7 @@ def _parse_op_and_rate(op, rate, **kw):
     """ Sanity check the op and convert rates to coefficients. """
     if not isinstance(op, Qobj):
         raise ValueError("NonMarkovianMCSolver ops must be of type Qobj")
-    if isinstance(rate, numbers.Number):
-        rate = ConstantCoefficient(rate)
-    else:
-        rate = coefficient(rate, **kw)
+    rate = coefficient(rate, **kw)
     return op, rate
 
 
@@ -374,7 +371,7 @@ class NonMarkovianMCSolver(MCSolver):
     def __init__(
         self,
         H: Qobj | QobjEvo,
-        ops_and_rates = Sequence[tuple[Qobj, float | Coefficient]],
+        ops_and_rates: Sequence[tuple[Qobj, float | Coefficient]],
         *,
         options: dict[str, Any] = None,
     ):
