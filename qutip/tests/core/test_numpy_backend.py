@@ -14,6 +14,7 @@ class TestNumpyBackend:
     def test_getattr_numpy(self):
         with CoreOptions(numpy_backend=mock_np):
             assert np.sum([1, 2, 3]) == numpy.sum([1, 2, 3])
+            assert np.sum is numpy.sum
 
     def test_getattr_jax(self):
         with CoreOptions(numpy_backend=mock_jax):

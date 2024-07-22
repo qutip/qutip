@@ -79,7 +79,7 @@ def fidelity(A, B):
     # We also truncate negative eigenvalues to avoid nan propagation;
     # even for positive semidefinite matrices, small negative eigenvalues
     # can be reported.
-    eig_vals = (sqrtmA * B * sqrtmA).eigenenergies() 
+    eig_vals = (sqrtmA * B * sqrtmA).eigenenergies()
     eig_vals_non_neg = np.where(eig_vals > 0, eig_vals, 0)
     return np.real(np.sqrt(eig_vals_non_neg).sum())
 
