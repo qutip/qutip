@@ -84,40 +84,40 @@ def _find_mkl():
     if plat in ['darwin', 'linux2', 'linux']:
         python_dir = os.path.dirname(python_dir)
 
-        if plat == 'darwin':
-            ext = ".dylib"
-        elif plat == 'win32':
-            ext = ".dll"
-        elif plat in ['linux2', 'linux']:
-            ext = ".so"
-        else:
-            raise Exception('Unknown platfrom.')
+    if plat == 'darwin':
+        ext = ".dylib"
+    elif plat == 'win32':
+        ext = ".dll"
+    elif plat in ['linux2', 'linux']:
+        ext = ".so"
+    else:
+        raise Exception('Unknown platfrom.')
 
-        # Try in default Anaconda location first
+    # Try in default Anaconda location first
+    if plat in ['darwin', 'linux2', 'linux']:
+        lib_dir = '/lib/*'
+    else:
+        lib_dir = r'\Library\bin\*'
+
+    libraries = glob(python_dir + lib_dir)
+    mkl_libs = [lib for lib in libraries if "mkl_rt" in lib]
+
+    if not mkl_libs:
+        # Look in Intel Python distro location
         if plat in ['darwin', 'linux2', 'linux']:
-            lib_dir = '/lib/*'
+            lib_dir = '/ext/lib'
         else:
-            lib_dir = r'\Library\bin\*'
-
+            lib_dir = r'\ext\lib'
         libraries = glob(python_dir + lib_dir)
-        mkl_libs = [lib for lib in libraries if "mkl_rt" in lib]
+        mkl_libs = [
+            lib for lib in libraries
+            if "mkl_rt." in lib and ext in lib
+        ]
 
-        if not mkl_libs:
-            # Look in Intel Python distro location
-            if plat in ['darwin', 'linux2', 'linux']:
-                lib_dir = '/ext/lib'
-            else:
-                lib_dir = r'\ext\lib'
-            libraries = glob(python_dir + lib_dir)
-            mkl_libs = [
-                lib for lib in libraries
-                if "mkl_rt." in lib and ext in lib
-            ]
-
-        if mkl_libs:
-            # If multiple libs are found, they should all be the same.
-            return mkl_libs[-1]
-        return ""
+    if mkl_libs:
+        # If multiple libs are found, they should all be the same.
+        return mkl_libs[-1]
+    return ""
 
 
 class Settings:
