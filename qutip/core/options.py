@@ -129,7 +129,7 @@ class CoreOptions(QutipOptions):
         # Hermiticity checks can be slow, stop jitting, etc.
         "auto_real_casting": True,
         # Default backend is numpy
-        "numpy_backend": np,
+        "numpy_backend": np
     }
     _settings_name = "core"
 
