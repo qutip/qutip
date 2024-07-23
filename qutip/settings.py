@@ -115,8 +115,9 @@ def _find_mkl():
             ]
 
         if mkl_libs:
+            # If multiple libs are found, they should all be the same.
             return mkl_libs[-1]
-        return None
+        return ""
 
 
 class Settings:
