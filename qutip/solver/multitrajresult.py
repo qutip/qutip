@@ -208,39 +208,30 @@ class MultiTrajResult(_BaseResult):
         self.times = trajectory.times
         self.e_ops = trajectory.e_ops
 
-    def _store_trajectory(self, trajectory, abs=0, rel=1):
-        if abs:
+    def _store_trajectory(self, trajectory, *, abs=None, rel=None):
+        if abs is not None:
             self.deterministic_trajectories.append(trajectory)
         else:
             self.trajectories.append(trajectory)
 
-    #def _store_weight_info(self, trajectory):
-    #    if trajectory.has_absolute_weight:
-    #        self._total_abs_weight = (
-    #            self._total_abs_weight + trajectory.total_weight)
-    #    if len(self.trajectories) == 0:
-    #        # store weight info only if trajectories are not stored
-    #        self._weight_info.append(
-    #            (trajectory.total_weight, trajectory.has_absolute_weight))
-
-    def _reduce_states(self, trajectory, abs=0, rel=1):
-        if abs:
+    def _reduce_states(self, trajectory, *, abs=None, rel=None):
+        if abs is not None:
             self._sum_abs.reduce_states(trajectory, abs)
         else:
             self._sum_rel.reduce_states(trajectory, rel)
 
-    def _reduce_final_state(self, trajectory, abs=0, rel=1):
-        if abs:
+    def _reduce_final_state(self, trajectory, *, abs=None, rel=None):
+        if abs is not None:
             self._sum_abs.reduce_final_state(trajectory, abs)
         else:
             self._sum_rel.reduce_final_state(trajectory, rel)
 
-    def _reduce_expect(self, trajectory, abs=0, rel=1):
+    def _reduce_expect(self, trajectory, *, abs=None, rel=None):
         """
         Compute the average of the expectation values and store it in it's
         multiple formats.
         """
-        if abs:
+        if abs is not None:
             self._sum_abs.reduce_expect(trajectory, abs)
         else:
             self._sum_rel.reduce_expect(trajectory, rel)
@@ -269,11 +260,11 @@ class MultiTrajResult(_BaseResult):
             # negative (-1e-15) which raise an error for float sqrt.
             self._std_e_data[k] = list(np.sqrt(np.abs(avg2 - np.abs(avg**2))))
 
-    def _increment_traj(self, trajectory, abs=0, rel=1):
+    def _increment_traj(self, trajectory, *, abs=None, rel=None):
         if self.num_trajectories == 0:
             self._add_first_traj(trajectory)
 
-        if abs:
+        if abs is not None:
             if self._sum_abs is None:
                 self._sum_abs = _TrajectorySum(
                     trajectory,
@@ -715,7 +706,7 @@ class MultiTrajResult(_BaseResult):
         new._deterministic_weight_info = [
             w * p for w in self._deterministic_weight_info
         ] + [
-            w * p_equal for w in other._deterministic_weight_info
+            w * (1 - p) for w in other._deterministic_weight_info
         ]
         new._trajectories_weight_info = [
             w * p / p_equal for w in self._trajectories_weight_info

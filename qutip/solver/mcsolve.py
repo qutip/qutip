@@ -670,8 +670,6 @@ class MCSolver(MultiTrajSolver):
                 ntraj = len(state)
             else:
                 ntraj = 1
-            if self.options["improved_sampling"]:
-                ntraj *= 2
 
         if not self.options["improved_sampling"]:
             if is_mixed:
@@ -728,12 +726,6 @@ class MCSolver(MultiTrajSolver):
         seeds, result, map_func, map_kw, prepared_ics = self._initialize_run(
             initial_conditions, np.sum(ntraj), args=args, e_ops=e_ops,
             timeout=timeout, seeds=seeds)
-
-        # For improved sampling, we need to run at least 2 trajectories
-        # per initial state (the no-jump trajectory and one other).
-        # We reduce `ntraj` by one for each initial state to account for the
-        # no-jump trajectories
-        num_states = len(prepared_ics)
 
         # Run the no-jump trajectories
         start_time = time()
