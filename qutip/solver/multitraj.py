@@ -92,7 +92,7 @@ class MultiTrajSolver(Solver):
         self._state_metadata = {}
         self.stats = self._initialize_stats()
 
-    def start(self, state0: Qobj, t0: Number, seed: int | SeedSequence = None):
+    def start(self, state0: Qobj, t0: float, seed: int | SeedSequence = None):
         """
         Set the initial state and time for a step evolution.
 
@@ -118,7 +118,7 @@ class MultiTrajSolver(Solver):
         self._integrator.set_state(t0, self._prepare_state(state0), generator)
 
     def step(
-        self, t: Number, *, args: dict[str, Any] = None, copy: bool = True
+        self, t: float, *, args: dict[str, Any] = None, copy: bool = True
     ) -> Qobj:
         """
         Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
@@ -174,7 +174,7 @@ class MultiTrajSolver(Solver):
         *,
         args: dict[str, Any] = None,
         e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
-        target_tol: float = None,
+        target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
         timeout: float = None,
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> MultiTrajResult:
