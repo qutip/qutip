@@ -32,7 +32,9 @@ Environment settings
 | `has_mkl`         | True      | Whether qutip can find mkl libraries.                    |
 |                   |           | mkl sparse linear equation solver can be used when True. |
 +-------------------+-----------+----------------------------------------------------------+
-| `mkl_lib`         | True      | Path of the mkl libraries found.                         |
+| `mkl_lib_location`| False     | Path of the mkl library.                                 |
++-------------------+-----------+----------------------------------------------------------+
+| `mkl_lib`         | True      | Mkl libraries loaded with ctypes.                        |
 +-------------------+-----------+----------------------------------------------------------+
 | `ipython`         | True      | Whether running in IPython.                              |
 +-------------------+-----------+----------------------------------------------------------+

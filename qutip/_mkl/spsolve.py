@@ -388,7 +388,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         row_segs = []
         col_segs = []
         for j in range(nrhs):
-            bj = b[:, j].A.ravel()
+            bj = b[:, j].toarray().ravel()
             xj = lu.solve(bj)
             w = np.flatnonzero(xj)
             segment_length = w.shape[0]
