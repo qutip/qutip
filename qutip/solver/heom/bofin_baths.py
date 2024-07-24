@@ -2,7 +2,7 @@
 This module provides utilities for describing baths when using the
 HEOM (hierarchy equations of motion) to model system-bath interactions.
 
-See the ``qutip.nonmarkov.bofin_solvers`` module for the associated solver.
+See the ``qutip.solver.heom.bofin_solvers`` module for the associated solver.
 
 The implementation is derived from the BoFiN library (see
 https://github.com/tehruhn/bofin) which was itself derived from an earlier
@@ -17,6 +17,7 @@ from scipy.linalg import eigvalsh
 from qutip.core import data as _data
 from qutip.core.qobj import Qobj
 from qutip.core.superoperator import spre, spost
+from scipy.integrate import quad_vec
 
 __all__ = [
     "BathExponent",
@@ -171,6 +172,7 @@ class Bath:
 
     All of the parameters are available as attributes.
     """
+
     def __init__(self, exponents):
         self.exponents = exponents
 
@@ -229,7 +231,13 @@ class BosonicBath(Bath):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+
+    T : optional, float, default None
+        Temperature of the bath. This is only used for calculating the
+        power spectrum and the correlation function from the spectral
+        density and may be left unspecified (None).
     """
+
     def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
         if len(ck_real) != len(vk_real) or len(ck_imag) != len(vk_imag):
             raise ValueError(
@@ -243,8 +251,9 @@ class BosonicBath(Bath):
 
     def __init__(
             self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
-            tag=None,
+            tag=None, T=None
     ):
+        self.T = T
         self._check_cks_and_vks(ck_real, vk_real, ck_imag, vk_imag)
         self._check_coup_op(Q)
 
@@ -337,6 +346,188 @@ class BosonicBath(Bath):
 
         return new_exponents
 
+    def spectral_density(self, w):
+        """
+        Spectral density of this bath.
+
+        The BosonicBath class mainly represents a list of expansion
+        coefficients of the bath auto-correlation function. However, subclasses
+        may additionally override this `spectral_density` function to calculate
+        the bath spectral density from a known analytic expression.
+        Implementing this function does not affect the HEOM simulation, but it
+        can be useful for illustration purposes. For example, the
+        `correlation_function` numerically computes the correlation function
+        based on the provided `spectral_density` function. It can be compared
+        to `correlation_function_approx`, which returns the correlation
+        function according to the list of expansion coefficients that is used
+        for the HEOM construction.
+
+        Note that various conventions for the definition of the spectral
+        density exist. We follow the convention described in Eq. 7 of the BoFiN
+        paper (DOI: 10.1103/PhysRevResearch.5.013181). We also assume that
+        the spectral density is zero at negative frequencies (otherwise, no
+        thermal state exists).
+        """
+
+        raise ValueError(
+            "The spectral density of this bath has not been specified")
+
+    def correlation_function(self, t, **kwargs):
+        """
+        Calculates the correlation function from the spectral density by
+        numeric integration, see Eq. 6 in the BoFiN paper
+        (DOI: 10.1103/PhysRevResearch.5.013181). This calculation requires that
+        the temperature of the bath (`self.T`) is specified.
+
+        Parameters
+        ----------
+        t : np.array or float
+            the time(s) at which to evaluate the correlation function
+        kwargs : will be passed to scipy's `quad_vec` function
+
+        Returns
+        -------
+            The correlation function at time t as an array or float.
+        """
+
+        def integrand(w, t):
+            return self.spectral_density(w) / np.pi * (
+                (2 * self._bose_einstein(w) + 1) * np.cos(w * t)
+                - 1j * np.sin(w * t)
+            )
+
+        result = quad_vec(lambda w: integrand(w, t), 0, np.Inf, **kwargs)
+        return result[0]
+
+    def _bose_einstein(self, w):
+        """
+        Calculates the bose einstein distribution for the
+        temperature of the bath.
+
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode.
+
+        Returns
+        -------
+        The population of the mode with energy w.
+        """
+
+        if self.T is None:
+            raise ValueError(
+                "Bath temperature must be specified for this operation")
+        if self.T == 0:
+            return np.zeros_like(w)
+
+        w = np.array(w, dtype=float)
+        with np.errstate(divide='ignore'):  # return inf if w=0
+            return (1 / (np.exp(w / self.T) - 1))
+
+    def power_spectrum(self, w):
+        """
+        Calculates the power spectrum from the spectral density using the
+        fluctuation dissipation theorem. This calculation requires that the
+        temperature of the bath (`self.T`) is specified.
+
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode.
+
+        Returns
+        -------
+        The power spectrum of the mode with energy w.
+        """
+
+        # For w=0, the result would have the form 0 * inf
+        # We shift w by an epsilon to get the value in the limit w->0
+        w = np.array(w, dtype=float)
+        w[w == 0.0] += 1e-6
+
+        S = (2 * np.sign(w) * self.spectral_density(np.abs(w)) *
+             (self._bose_einstein(w) + 1))
+        return S
+
+    def correlation_function_approx(self, t):
+        """
+        Computes the correlation function from the exponents. This is the
+        approximation for the correlation function that is used in the HEOM
+        construction.
+
+        Parameters
+        ----------
+        t: float or array
+            time to compute correlations.
+
+        Returns
+        -------
+        The correlation function of the bath at time t.
+        """
+
+        corr = np.zeros_like(t, dtype=complex)
+        for exp in self.exponents:
+            if (
+                exp.type == BathExponent.types['R'] or
+                exp.type == BathExponent.types['RI']
+            ):
+                corr += exp.ck * np.exp(-exp.vk * t)
+            if exp.type == BathExponent.types['I']:
+                corr += 1j*exp.ck * np.exp(-exp.vk * t)
+            if exp.type == BathExponent.types['RI']:
+                corr += 1j*exp.ck2 * np.exp(-exp.vk * t)
+        return corr
+
+    def power_spectrum_approx(self, w):
+        """
+        Calculates the power spectrum from the exponents
+        of the bosonic bath.
+
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode.
+
+        Returns
+        -------
+        The power spectrum of the mode with energy w.
+        """
+
+        S = np.zeros_like(w, dtype=float)
+        for exp in self.exponents:
+            if (
+                exp.type == BathExponent.types['R'] or
+                exp.type == BathExponent.types['RI']
+            ):
+                coeff = exp.ck
+            if exp.type == BathExponent.types['I']:
+                coeff = 1j * exp.ck
+            if exp.type == BathExponent.types['RI']:
+                coeff += 1j * exp.ck2
+            if exp.type == BathExponent.types['I']:
+                S += 2 * np.real((coeff) / (exp.vk - 1j*w))
+            else:
+                S += 2 * np.real((coeff) / (exp.vk - 1j*w))
+
+        return S
+
+    def spectral_density_approx(self, w):
+        """
+        Calculates the spectral density from the exponents
+        of the bosonic bath.
+
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode.
+
+        Returns
+        -------
+        The spectral density of the mode with energy w.
+        """
+        J = self.power_spectrum_approx(w) / (self._bose_einstein(w) + 1) / 2
+        return J
+
 
 class DrudeLorentzBath(BosonicBath):
     """
@@ -370,19 +561,17 @@ class DrudeLorentzBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(
         self, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
-        ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
-            lam=lam,
-            gamma=gamma,
-            T=T,
-            Nk=Nk,
-        )
+        self.lam = lam
+        self.gamma = gamma
+        ck_real, vk_real, ck_imag, vk_imag =\
+            DrudeLorentzBath._matsubara_params(lam, gamma, T, Nk)
 
-        super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
-        )
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag,
+                         combine=combine, tag=tag, T=T)
 
         self._dl_terminator = _DrudeLorentzTerminator(
             Q=Q, lam=lam, gamma=gamma, T=T,
@@ -412,8 +601,9 @@ class DrudeLorentzBath(BosonicBath):
         delta, L = self._dl_terminator.terminator(self.exponents)
         return delta, L
 
-    def _matsubara_params(self, lam, gamma, T, Nk):
-        """ Calculate the Matsubara coefficents and frequencies. """
+    @classmethod
+    def _matsubara_params(cls, lam, gamma, T, Nk):
+        """ Calculate the Matsubara coefficients and frequencies. """
         ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
         ck_real.extend([
             (8 * lam * gamma * T * np.pi * k * T /
@@ -428,6 +618,50 @@ class DrudeLorentzBath(BosonicBath):
 
         return ck_real, vk_real, ck_imag, vk_imag
 
+    def spectral_density(self, w):
+        r"""
+        Calculates the DrudeLorentz spectral density, Eq. 15 in the BoFiN
+        paper (DOI: 10.1103/PhysRevResearch.5.013181) given by
+
+        .. math::
+
+            J(\omega) = \frac{2 \lambda \gamma \omega}{\gamma^{2}+\omega^{2}}
+
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode.
+
+        Returns
+        -------
+        The spectral density of the mode with energy w.
+        """
+
+        return 2 * self.lam * self.gamma * w / (self.gamma**2 + w**2)
+
+    def correlation_function(self, t, Nk=15000, **kwargs):
+        """
+        Here we determine the correlation function by summing a large number
+        of exponents, as the numerical integration is noisy for this spectral
+        density.
+
+        Parameters
+        ----------
+        t : np.array or float
+            The time at which to evaluate the correlation function
+        Nk : int, default 15000
+            The number of exponents to use
+        """
+
+        ck_real, vk_real, ck_imag, vk_imag =\
+            DrudeLorentzBath._matsubara_params(
+                self.lam, self.gamma, self.T, Nk)
+
+        def C(c, v):
+            return np.sum([ck * np.exp(-np.array(vk * t))
+                           for ck, vk in zip(c, v)], axis=0)
+        return C(ck_real, vk_real) + 1j * C(ck_imag, vk_imag)
+
 
 class DrudeLorentzPadeBath(BosonicBath):
     """
@@ -437,7 +671,7 @@ class DrudeLorentzPadeBath(BosonicBath):
     A Padé approximant is a sum-over-poles expansion (
     see https://en.wikipedia.org/wiki/Pad%C3%A9_approximant).
 
-    The application of the Padé method to spectrum decompoisitions is described
+    The application of the Padé method to spectrum decompositions is described
     in "Padé spectrum decompositions of quantum distribution functions and
     optimal hierarchical equations of motion construction for quantum open
     systems" [1].
@@ -476,9 +710,12 @@ class DrudeLorentzPadeBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(
         self, Q, lam, gamma, T, Nk, combine=True, tag=None
     ):
+        self.lam = lam
+        self.gamma = gamma
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
 
         ck_real = [np.real(eta) for eta in eta_p]
@@ -488,9 +725,8 @@ class DrudeLorentzPadeBath(BosonicBath):
         ck_imag = [np.imag(eta_p[0])]
         vk_imag = [gamma_p[0]]
 
-        super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
-        )
+        super().__init__(Q, ck_real, vk_real, ck_imag,
+                         vk_imag, combine=combine, tag=tag, T=T)
 
         self._dl_terminator = _DrudeLorentzTerminator(
             Q=Q, lam=lam, gamma=gamma, T=T,
@@ -565,8 +801,8 @@ class DrudeLorentzPadeBath(BosonicBath):
 
     def _calc_eps(self, Nk):
         alpha = np.diag([
-                1. / np.sqrt((2 * k + 5) * (2 * k + 3))
-                for k in range(2 * Nk - 1)
+            1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+            for k in range(2 * Nk - 1)
         ], k=1)
         alpha += alpha.transpose()
         evals = eigvalsh(alpha)
@@ -575,19 +811,23 @@ class DrudeLorentzPadeBath(BosonicBath):
 
     def _calc_chi(self, Nk):
         alpha_p = np.diag([
-                1. / np.sqrt((2 * k + 7) * (2 * k + 5))
-                for k in range(2 * Nk - 2)
+            1. / np.sqrt((2 * k + 7) * (2 * k + 5))
+            for k in range(2 * Nk - 2)
         ], k=1)
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
         chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
 
+    spectral_density = DrudeLorentzBath.spectral_density
+    correlation_function = DrudeLorentzBath.correlation_function
+
 
 class _DrudeLorentzTerminator:
     """ A class for calculating the terminator of a Drude-Lorentz bath
         expansion.
     """
+
     def __init__(self, Q, lam, gamma, T):
         self.Q = Q
         self.lam = lam
@@ -652,6 +892,7 @@ class UnderDampedBath(BosonicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(
         self, Q, lam, gamma, w0, T, Nk, combine=True, tag=None,
     ):
@@ -662,13 +903,16 @@ class UnderDampedBath(BosonicBath):
             T=T,
             Nk=Nk,
         )
+        self.lam = lam
+        self.gamma = gamma
+        self.w0 = w0
 
-        super().__init__(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
-        )
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag,
+                         combine=combine, tag=tag, T=T)
 
-    def _matsubara_params(self, lam, gamma, w0, T, Nk):
-        """ Calculate the Matsubara coefficents and frequencies. """
+    @classmethod
+    def _matsubara_params(cls, lam, gamma, w0, T, Nk):
+        """ Calculate the Matsubara coefficients and frequencies. """
         beta = 1/T
         Om = np.sqrt(w0**2 - (gamma/2)**2)
         Gamma = gamma/2.
@@ -704,6 +948,28 @@ class UnderDampedBath(BosonicBath):
 
         return ck_real, vk_real, ck_imag, vk_imag
 
+    def spectral_density(self, w):
+        r"""
+        Calculates the Underdamped spectral density, see Eq. 16 in the BoFiN
+        paper (DOI: 10.1103/PhysRevResearch.5.013181)
+
+        .. math::
+            J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_{c}^{2}-
+            \omega^{2})^{2}+ \Gamma^{2} \omega^{2}}
+
+        Parameters
+        ----------
+        w: float or array
+            Energy of the mode.
+
+        Returns
+        -------
+            The spectral density of the mode with energy w.
+        """
+
+        return self.lam**2 * self.gamma * w / ((w**2 - self.w0**2)**2
+                                               + (self.gamma*w)**2)
+
 
 class FermionicBath(Bath):
     """
@@ -723,7 +989,7 @@ class FermionicBath(Bath):
         C_plus(t) = sum(ck_plus * exp(- vk_plus * t))
         C_minus(t) = sum(ck_minus * exp(- vk_minus * t))
 
-    where the expansions above define the coeffiients ``ck`` and the
+    where the expansions above define the coefficients ``ck`` and the
     frequencies ``vk``.
 
     Parameters
@@ -738,7 +1004,7 @@ class FermionicBath(Bath):
 
     vk_plus : list of complex
         The frequencies (exponents) of the expansion terms for the ``+`` part
-        of the correlation function. The corresponding ceofficients are passed
+        of the correlation function. The corresponding coefficients are passed
         as ck_plus.
 
     ck_minus : list of complex
@@ -748,7 +1014,7 @@ class FermionicBath(Bath):
 
     vk_minus : list of complex
         The frequencies (exponents) of the expansion terms for the ``-`` part
-        of the correlation function. The corresponding ceofficients are passed
+        of the correlation function. The corresponding coefficients are passed
         as ck_minus.
 
     tag : optional, str, tuple or any other object
@@ -828,6 +1094,7 @@ class LorentzianBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
         ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
@@ -867,7 +1134,7 @@ class LorentzianPadeBath(FermionicBath):
     A Padé approximant is a sum-over-poles expansion (
     see https://en.wikipedia.org/wiki/Pad%C3%A9_approximant).
 
-    The application of the Padé method to spectrum decompoisitions is described
+    The application of the Padé method to spectrum decompositions is described
     in "Padé spectrum decompositions of quantum distribution functions and
     optimal hierarchical equations of motion construction for quantum open
     systems" [1].
@@ -906,6 +1173,7 @@ class LorentzianPadeBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
+
     def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
         ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
         ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
@@ -962,8 +1230,8 @@ class LorentzianPadeBath(FermionicBath):
 
     def _calc_eps(self, Nk):
         alpha = np.diag([
-                1. / np.sqrt((2 * k + 3) * (2 * k + 1))
-                for k in range(2 * Nk - 1)
+            1. / np.sqrt((2 * k + 3) * (2 * k + 1))
+            for k in range(2 * Nk - 1)
         ], k=1)
         alpha += alpha.transpose()
 
@@ -973,8 +1241,8 @@ class LorentzianPadeBath(FermionicBath):
 
     def _calc_chi(self, Nk):
         alpha_p = np.diag([
-                1. / np.sqrt((2 * k + 5) * (2 * k + 3))
-                for k in range(2 * Nk - 2)
+            1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+            for k in range(2 * Nk - 2)
         ], k=1)
         alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
