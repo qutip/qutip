@@ -12,14 +12,16 @@ __all__ = ["steadystate", "steadystate_floquet", "pseudo_inverse"]
 
 
 def _permute_wbm(L, b):
-    perm = scipy.sparse.csgraph.maximum_bipartite_matching(L.as_scipy())
+    perm = np.argsort(
+        scipy.sparse.csgraph.maximum_bipartite_matching(L.as_scipy())
+    )
     L = _data.permute.indices(L, perm, None)
     b = _data.permute.indices(b, perm, None)
     return L, b
 
 
 def _permute_rcm(L, b):
-    perm = scipy.sparse.csgraph.reverse_cuthill_mckee(L.as_scipy())
+    perm = np.argsort(scipy.sparse.csgraph.reverse_cuthill_mckee(L.as_scipy()))
     L = _data.permute.indices(L, perm, perm)
     b = _data.permute.indices(b, perm, None)
     return L, b, perm
@@ -233,7 +235,6 @@ def _steadystate_direct(A, weight, **kw):
         else:
             warn("Only sparse solver use preconditioners.", RuntimeWarning)
 
-
     method = kw.pop("method", None)
     steadystate = _data.solve(L, b, method, options=kw)
 
@@ -243,7 +244,7 @@ def _steadystate_direct(A, weight, **kw):
     rho_ss = _data.column_unstack(steadystate, n)
     rho_ss = _data.add(rho_ss, rho_ss.adjoint()) * 0.5
 
-    return Qobj(rho_ss, dims=A.dims[0], isherm=True)
+    return Qobj(rho_ss, dims=A._dims[0].oper, isherm=True)
 
 
 def _steadystate_eigen(L, **kw):
@@ -258,9 +259,12 @@ def _steadystate_eigen(L, **kw):
 
 
 def _steadystate_svd(L, **kw):
+    N = L.shape[0]
+    n = int(N**0.5)
     u, s, vh = _data.svd(L.data, True)
-    vec = Qobj(_data.split_columns(vh.adjoint())[-1], dims=[L.dims[0],[1]])
-    rho = vector_to_operator(vec)
+    vec = _data.split_columns(vh.adjoint())[-1]
+    rho = _data.column_unstack(vec, n)
+    rho = Qobj(rho, dims=L._dims[0].oper, isherm=True)
     return rho / rho.tr()
 
 
@@ -305,7 +309,7 @@ def _steadystate_power(A, **kw):
     if use_rcm:
         y = _reverse_rcm(y, perm)
 
-    rho_ss = Qobj(_data.column_unstack(y, N**0.5), dims=A.dims[0])
+    rho_ss = Qobj(_data.column_unstack(y, N**0.5), dims=A._dims[0].oper)
     rho_ss = rho_ss + rho_ss.dag()
     rho_ss = rho_ss / rho_ss.tr()
     rho_ss.isherm = True
@@ -354,9 +358,10 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
         - "mkl_spsolve"
           sparse solver by mkl.
 
-        Extensions to qutip, such as qutip-tensorflow, may provide their own solvers.
-        When ``H_0`` and ``c_ops`` use these data backends, see their documentation
-        for the names and details of additional solvers they may provide.
+        Extensions to qutip, such as qutip-tensorflow, may provide their own
+        solvers. When ``H_0`` and ``c_ops`` use these data backends, see their
+        documentation for the names and details of additional solvers they may
+        provide.
 
     **kwargs:
         Extra options to pass to the linear system solver. See the
@@ -371,18 +376,20 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     Notes
     -----
     See: Sze Meng Tan,
-    https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
-    Section (10.16)
+    https://painterlab.caltech.edu/wp-content/uploads/2019/06/qe_quantum_optics_toolbox.pdf,
+    Section (16)
 
     """
 
     L_0 = liouvillian(H_0, c_ops)
-    L_m = L_p = 0.5 * liouvillian(Op_t)
+    L_m = 0.5 * liouvillian(Op_t)
+    L_p = 0.5 * liouvillian(Op_t)
     # L_p and L_m correspond to the positive and negative
     # frequency terms respectively.
     # They are independent in the model, so we keep both names.
     Id = qeye_like(L_0)
-    S = T = qzero_like(L_0)
+    S = qzero_like(L_0)
+    T = qzero_like(L_0)
 
     if isinstance(H_0.data, _data.CSR) and not sparse:
         L_0 = L_0.to("Dense")
@@ -393,7 +400,7 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     for n_i in np.arange(n_it, 0, -1):
         L = L_0 - 1j * n_i * w_d * Id + L_m @ S
         S.data = - _data.solve(L.data, L_p.data, solver, kwargs)
-        L = L_0 - 1j * n_i * w_d * Id + L_p @ T
+        L = L_0 + 1j * n_i * w_d * Id + L_p @ T
         T.data = - _data.solve(L.data, L_m.data, solver, kwargs)
 
     M_subs = L_0 + L_m @ S + L_p @ T

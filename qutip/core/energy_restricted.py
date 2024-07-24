@@ -247,7 +247,10 @@ def enr_destroy(dims, excitations, *, dtype=None):
                 n2 = state2idx[state2]
                 a_ops[idx][n2, n1] = np.sqrt(s)
 
-    return [Qobj(a, dims=enr_dims).to(dtype) for a in a_ops]
+    return [
+        Qobj(a, dims=enr_dims, isunitary=False, isherm=False).to(dtype)
+        for a in a_ops
+    ]
 
 
 def enr_identity(dims, excitations, *, dtype=None):

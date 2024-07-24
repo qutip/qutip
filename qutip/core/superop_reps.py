@@ -81,7 +81,7 @@ def _nq(dims):
     return nq
 
 
-def isqubitdims(dims):
+def isqubitdims(dims: list[list[int]] | list[list[list[int]]]) -> bool:
     """
     Checks whether all entries in a dims list are integer powers of 2.
 
@@ -138,7 +138,7 @@ def _choi_to_kraus(q_oper, tol=1e-9):
 # Individual conversions from Kraus operators are public because the output
 # list of Kraus operators is not itself a quantum object.
 
-def kraus_to_choi(kraus_ops):
+def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
     r"""
     Convert a list of Kraus operators into Choi representation of the channel.
 
@@ -176,7 +176,7 @@ def kraus_to_choi(kraus_ops):
     return Qobj(choi_array, choi_dims, superrep="choi", copy=False)
 
 
-def kraus_to_super(kraus_list):
+def kraus_to_super(kraus_list: list[Qobj]) -> Qobj:
     """
     Convert a list of Kraus operators to a superoperator.
 
@@ -346,7 +346,7 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
     return A, B
 
 
-def to_choi(q_oper):
+def to_choi(q_oper: Qobj) -> Qobj:
     """
     Converts a Qobj representing a quantum map to the Choi representation,
     such that the trace of the returned operator is equal to the dimension
@@ -389,7 +389,7 @@ def to_choi(q_oper):
         )
 
 
-def to_chi(q_oper):
+def to_chi(q_oper: Qobj) -> Qobj:
     """
     Converts a Qobj representing a quantum map to a representation as a chi
     (process) matrix in the Pauli basis, such that the trace of the returned
@@ -432,7 +432,7 @@ def to_chi(q_oper):
         )
 
 
-def to_super(q_oper):
+def to_super(q_oper: Qobj) -> Qobj:
     """
     Converts a Qobj representing a quantum map to the supermatrix (Liouville)
     representation.
@@ -476,7 +476,7 @@ def to_super(q_oper):
         )
 
 
-def to_kraus(q_oper, tol=1e-9):
+def to_kraus(q_oper: Qobj, tol: float=1e-9) -> list[Qobj]:
     """
     Converts a Qobj representing a quantum map to a list of quantum objects,
     each representing an operator in the Kraus decomposition of the given map.
@@ -515,7 +515,7 @@ def to_kraus(q_oper, tol=1e-9):
     )
 
 
-def to_stinespring(q_oper, threshold=1e-10):
+def to_stinespring(q_oper: Qobj, threshold: float=1e-10) -> tuple[Qobj, Qobj]:
     r"""
     Converts a Qobj representing a quantum map :math:`\Lambda` to a pair of
     partial isometries ``A`` and ``B`` such that

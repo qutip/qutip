@@ -517,7 +517,7 @@ cdef class InterCoefficient(Coefficient):
 
     @classmethod
     def from_PPoly(cls, ppoly, **_):
-        return cls.restore(ppoly.x, ppoly.c)
+        return cls.restore(ppoly.x, np.asarray(ppoly.c, complex))
 
     @classmethod
     def from_Bspline(cls, spline, **_):
@@ -528,7 +528,7 @@ cdef class InterCoefficient(Coefficient):
         poly = np.concatenate([
             spline(tlist, i) / fact[i]
             for i in range(spline.k, -1, -1)
-        ]).reshape((spline.k+1, -1))
+        ]).reshape((spline.k+1, -1)).astype(complex, copy=False)
         return cls.restore(tlist, poly)
 
     cpdef Coefficient copy(self):
@@ -745,7 +745,7 @@ cdef class ConstantCoefficient(Coefficient):
     """
     cdef complex value
 
-    def __init__(self, complex value):
+    def __init__(self, complex value, **_):
         self.value = value
 
     def replace_arguments(self, _args=None, **kwargs):

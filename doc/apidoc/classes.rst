@@ -7,7 +7,7 @@ Classes
 .. _classes-qobj:
 
 Qobj
---------------
+----
 
 .. autoclass:: qutip.core.qobj.Qobj
     :members:
@@ -16,17 +16,25 @@ Qobj
 .. _classes-qobjevo:
 
 QobjEvo
---------------
+-------
 
 .. autoclass:: qutip.core.cy.qobjevo.QobjEvo
     :members:
     :special-members: __call__
 
+.. _classes-coreoptions:
+
+CoreOptions
+-----------
+
+.. autoclass:: qutip.core.options.CoreOptions
+    :members:
+
 
 .. _classes-bloch:
 
 Bloch sphere
----------------
+------------
 
 .. autoclass:: qutip.bloch.Bloch
     :members:
@@ -240,20 +248,22 @@ Solver Options and Results
     :inherited-members:
     :exclude-members: add_processor, add
 
-.. autoclass:: qutip.solver.result.MultiTrajResult
+.. autoclass:: qutip.solver.multitrajresult.MultiTrajResult
     :members:
     :inherited-members:
     :exclude-members: add_processor, add, add_end_condition
 
-.. autoclass:: qutip.solver.result.McResult
+.. autoclass:: qutip.solver.result.TrajectoryResult
+    :show-inheritance:
     :members:
-    :inherited-members:
-    :exclude-members: add_processor, add, add_end_condition
 
-.. autoclass:: qutip.solver.result.NmmcResult
+.. autoclass:: qutip.solver.multitrajresult.McResult
+    :show-inheritance:
     :members:
-    :inherited-members:
-    :exclude-members: add_processor, add, add_end_condition
+
+.. autoclass:: qutip.solver.multitrajresult.NmmcResult
+    :show-inheritance:
+    :members:
 
 .. _classes-piqs:
 
@@ -273,6 +283,12 @@ Distribution functions
 
 .. autoclass:: qutip.distributions.Distribution
     :members:
+
+CompilationOptions
+------------------
+
+.. autoclass:: qutip.core.coefficient.CompilationOptions
+
 
 ..
   Docstrings are empty...

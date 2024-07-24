@@ -206,7 +206,7 @@ class TestMESolveDecay:
     def test_mesolve_normalization(self, state_type):
         # non-hermitean H causes state to evolve non-unitarily
         H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
-        H = qutip.sprepost(H, H) # ensure use of MeSolve
+        H = qutip.spre(H) + qutip.spost(H.dag()) # ensure use of MeSolve
         psi0 = qutip.basis(2, 0)
         options = {"normalize_output": True, "progress_bar": None}
 
@@ -698,3 +698,15 @@ def test_feedback():
     solver = qutip.MESolver(H, c_ops=[a])
     result = solver.run(psi0, np.linspace(0, 30, 301), e_ops=[qutip.num(N)])
     assert np.all(result.expect[0] > 4. - tol)
+
+
+@pytest.mark.parametrize(
+    'rho0',
+    [qutip.sigmax(), qutip.sigmaz(), qutip.qeye(2)],
+    ids=["sigmax", "sigmaz", "tr=2"]
+)
+def test_non_normalized_dm(rho0):
+    H = qutip.QobjEvo(qutip.num(2))
+    solver = qutip.MESolver(H, c_ops=[qutip.sigmaz()])
+    result = solver.run(rho0, np.linspace(0, 1, 10), e_ops=[qutip.qeye(2)])
+    np.testing.assert_allclose(result.expect[0], rho0.tr(), atol=1e-7)
