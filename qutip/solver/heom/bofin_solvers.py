@@ -779,7 +779,7 @@ class HEOMSolver(Solver):
         sign1 = (-1) ** (n_excite + 1 - self.odd_parity)
 
         n_excite_before_m = sum(he_fermionic_n[:k])
-        sign2 = (-1)**(n_excite_before_m + self.odd_parity)
+        sign2 = (-1) ** (n_excite_before_m + self.odd_parity)
 
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
 
@@ -826,7 +826,7 @@ class HEOMSolver(Solver):
         sign1 = (-1) ** (n_excite + 1 - self.odd_parity)
 
         n_excite_before_m = sum(he_fermionic_n[:k])
-        sign2 = (-1)**(n_excite_before_m + self.odd_parity)
+        sign2 = (-1) ** (n_excite_before_m + self.odd_parity)
 
         if self.ados.exponents[k].type == BathExponent.types["+"]:
             if sign1 == -1:

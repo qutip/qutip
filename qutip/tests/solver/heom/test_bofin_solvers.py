@@ -1183,6 +1183,7 @@ class TestHEOMSolver:
         rhoss = rhoss.full()
         expected = np.diag([0.10623, 0.39376, 0.39376, 0.10623])
         np.testing.assert_allclose(rhoss, expected, atol=1e-5)
+        
 class TestHeomsolveFunction:
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj", id="qobj"),
