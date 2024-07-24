@@ -51,7 +51,7 @@ class IntegratorKrylov(Integrator):
             krylov_tridiag, krylov_basis = \
                 self._lanczos_algorithm(rand_ket(N).data)
             if (
-                krylov_tridiag.shape[0] < self.options["krylov_dim"]
+                krylov_tridiag.shape[0] < krylov_dim
                 or krylov_tridiag.shape[0] == N
             ):
                 self._max_step = np.inf
@@ -138,20 +138,22 @@ class IntegratorKrylov(Integrator):
                 self._compute_psi(t, *reduced_state)
             ) / self.options["atol"])
 
-        dt = self.options["min_step"]
+        # Under 0 will cause an infinite loop in the while loop bellow.
+        dt = max(self.options["min_step"], 1e-14)
+        max_step = max(self.options["max_step"], dt)
         err = krylov_error(dt)
         if err > 0:
-            ValueError(
+            raise ValueError(
                 f"With the krylov dim of {self.options['krylov_dim']}, the "
                 f"error with the minimum step {dt} is {err}, higher than the "
                 f"desired tolerance of {self.options['atol']}."
             )
 
-        while krylov_error(dt * 10) < 0 and dt < self.options["max_step"]:
+        while krylov_error(dt * 10) < 0 and dt < max_step:
             dt *= 10
 
-        if dt > self.options["max_step"]:
-            return self.options["max_step"]
+        if dt > max_step:
+            return max_step
 
         sol = root_scalar(f=krylov_error, bracket=[dt, dt * 10],
                           method="brentq", xtol=self.options['atol'])

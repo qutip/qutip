@@ -71,7 +71,7 @@ def ttmsolve(dynmaps, state0, times, e_ops=(), num_learning=0, options=None):
     opt = {
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": "ket",
+        "normalize_output": True,
         "threshold": 0.0,
         "num_learning": 0,
     }

@@ -69,8 +69,10 @@ cdef int _check_shape(Data left, Data right, Data out=None) except -1 nogil:
         )
     if (
         out is not None
-        and out.shape[0] != left.shape[0]
-        and out.shape[1] != right.shape[1]
+        and (
+            out.shape[0] != left.shape[0]
+            or out.shape[1] != right.shape[1]
+        )
     ):
         raise ValueError(
             "incompatible output shape, got "
@@ -525,6 +527,10 @@ cpdef CSR multiply_csr(CSR left, CSR right):
             + " and "
             + str(right.shape)
         )
+
+    left = left.sort_indices()
+    right = right.sort_indices()
+
     cdef idxint col_left, left_nnz = csr.nnz(left)
     cdef idxint col_right, right_nnz = csr.nnz(right)
     cdef idxint ptr_left, ptr_right, ptr_left_max, ptr_right_max

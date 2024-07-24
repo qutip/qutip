@@ -175,39 +175,6 @@ class TestSuperopReps:
             assert superoperator.iscptp
             assert superoperator.ishp
 
-    @pytest.mark.parametrize(['qobj', 'hp', 'cp', 'tp'], [
-        pytest.param(sprepost(destroy(2), create(2)), True, True, False),
-        pytest.param(sprepost(destroy(2), destroy(2)), False, False, False),
-        pytest.param(qeye(2), True, True, True),
-        pytest.param(sigmax(), True, True, True),
-        pytest.param(tensor(sigmax(), qeye(2)), True, True, True),
-        pytest.param(0.5 * (to_super(tensor(sigmax(), qeye(2)))
-                            + to_super(tensor(qeye(2), sigmay()))),
-                     True, True, True,
-                     id="linear combination of bipartite unitaries"),
-        pytest.param(Qobj(swap(), dims=[[[2],[2]]]*2, superrep='choi'),
-                     True, False, True,
-                     id="partial transpose map"),
-        pytest.param(Qobj(qeye(4)*0.9, dims=[[[2],[2]]]*2), True, True, False,
-                     id="subnormalized map"),
-        pytest.param(basis(2, 0), False, False, False, id="ket"),
-    ])
-    def test_known_iscptp(self, qobj, hp, cp, tp):
-        """
-        Superoperator: ishp, iscp, istp and iscptp known cases.
-        """
-        assert qobj.ishp == hp
-        assert qobj.iscp == cp
-        assert qobj.istp == tp
-        assert qobj.iscptp == (cp and tp)
-
-    def test_choi_tr(self):
-        """
-        Superoperator: Trace returned by to_choi matches docstring.
-        """
-        for dims in range(2, 5):
-            assert abs(to_choi(identity(dims)).tr() - dims) < tol
-
 
     # Conjugation by a creation operator
     a = create(2).dag()
@@ -244,7 +211,6 @@ class TestSuperopReps:
         pytest.param(ptr_swap,  True, False, True, id="partial transpose map"),
         pytest.param(subnorm_map, True, True, False, id="subnorm map"),
         pytest.param(basis(2), False, False, False, id="not an operator"),
-
     ])
     def test_known_iscptp(self, qobj, shouldhp, shouldcp, shouldtp):
         """

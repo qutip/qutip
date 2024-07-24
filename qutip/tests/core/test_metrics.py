@@ -439,22 +439,25 @@ class Test_dnorm:
         assert dnorm(A + B) <= dnorm(A) + dnorm(B) + 1e-7
 
     @pytest.mark.repeat(3)
-    @pytest.mark.parametrize("generator", [
-        pytest.param(rand_super_bcsz, id="super"),
-        pytest.param(rand_unitary, id="unitary"),
-    ])
-    def test_force_solve(self, dimension, generator):
-        """
-        Metrics: checks that special cases for dnorm agree with SDP solutions.
-        """
-        A, B = generator(dimension), generator(dimension)
+    def test_unitary_case(self, dimension):
+        """Check that the diamond norm is one for unitary maps."""
+        A, B = rand_unitary(dimension), rand_unitary(dimension)
         assert (
-            dnorm(A, B, force_solve=False)
+            dnorm(A, B)
             == pytest.approx(dnorm(A, B, force_solve=True), abs=1e-5)
         )
 
     @pytest.mark.repeat(3)
-    def test_cptp(self, dimension, sparse):
+    def test_cp_case(self, dimension):
+        """Check that the diamond norm is one for unitary maps."""
+        A = rand_super_bcsz(dimension, enforce_tp=False)
+        assert (
+            dnorm(A)
+            == pytest.approx(dnorm(A, force_solve=True), abs=1e-5)
+        )
+
+    @pytest.mark.repeat(3)
+    def test_cptp_case(self, dimension, sparse):
         """Check that the diamond norm is one for CPTP maps."""
         A = rand_super_bcsz(dimension)
         assert A.iscptp
