@@ -256,6 +256,9 @@ class TestMultiTrajResult:
         assert np.all(np.array(m_res.col_which) < 2)
         assert isinstance(m_res.collapse, list)
         assert len(m_res.col_which[0]) == len(m_res.col_times[0])
+        if include_no_jump and keep_runs_results:
+            assert len(result.deterministic_trajectories) == 1
+
         expected = 0.75 * np.ones(N-1) if include_no_jump else np.ones(N-1)
         np.testing.assert_allclose(m_res.photocurrent[0], expected)
         np.testing.assert_allclose(m_res.photocurrent[1], 2 * expected)
@@ -341,7 +344,8 @@ class TestMultiTrajResult:
                 for expect in runs_expect:
                     np.testing.assert_allclose(expect, expected,
                                                atol=1e-14, rtol=0.1)
-
+            if include_no_jump:
+                assert len(result.deterministic_trajectories) == 1
         self._check_types(m_res)
         assert m_res.average_final_state is not None
         assert m_res.stats['end_condition'] == "unknown"
