@@ -261,7 +261,7 @@ class MultiTrajResult(_BaseResult):
             self._std_e_data[k] = list(np.sqrt(np.abs(avg2 - np.abs(avg**2))))
 
     def _increment_traj(self, trajectory, *, abs=None, rel=None):
-        if self.num_trajectories == 0:
+        if self.num_trajectories == 0 and not self._deterministic_weight_info:
             self._add_first_traj(trajectory)
 
         if abs is not None:
@@ -361,10 +361,10 @@ class MultiTrajResult(_BaseResult):
         self.stats["end_condition"] = "unknown"
 
     def add_deterministic(self, trajectory, weight):
-        self._deterministic_weight_info.append(weight)
-
         for op in self._state_processors:
             op(trajectory, abs=weight)
+
+        self._deterministic_weight_info.append(weight)
 
     def add(self, trajectory_info):
         """
@@ -764,55 +764,6 @@ class MultiTrajResult(_BaseResult):
             return p
         return p / p_equal
 
-    def _merge_weight_info(self, other, p, p_equal):
-        new_weight_info = []
-
-        if self._weight_info:
-            for w, isabs in self._weight_info:
-                new_weight_info.append(
-                    (w * self._merge_weight(p, p_equal, isabs), isabs)
-                )
-        else:
-            for traj in self.trajectories:
-                w = traj.total_weight
-                isabs = traj.has_absolute_weight
-                new_weight_info.append(
-                    (w * self._merge_weight(p, p_equal, isabs), isabs)
-                )
-
-        if other._weight_info:
-            for w, isabs in other._weight_info:
-                new_weight_info.append(
-                    (w * self._merge_weight(1 - p, 1 - p_equal, isabs), isabs)
-                )
-        else:
-            for traj in other.trajectories:
-                w = traj.total_weight
-                isabs = traj.has_absolute_weight
-                new_weight_info.append(
-                    (w * self._merge_weight(1 - p, 1 - p_equal, isabs), isabs)
-                )
-
-        return new_weight_info
-
-    def _merge_trajectories(self, other, p, p_equal):
-        if (p == p_equal):
-            return self.trajectories + other.trajectories
-
-        result = []
-        for traj in self.trajectories:
-            if (mweight := self._merge_weight(
-                    p, p_equal, traj.has_absolute_weight)) != 1:
-                traj = copy(traj)
-                traj.add_relative_weight(mweight)
-            result.append(traj)
-        for traj in other.trajectories:
-            if (mweight := self._merge_weight(
-                    1 - p, 1 - p_equal, traj.has_absolute_weight)) != 1:
-                traj = copy(traj)
-                traj.add_relative_weight(mweight)
-            result.append(traj)
-        return result
 
     def __add__(self, other):
         return self.merge(other, p=None)
@@ -878,7 +829,7 @@ class _TrajectorySum:
                 for accu, state, weight_t in zip(
                     self.sum_states,
                     trajectory.states,
-                    trajectory._total_weight_tlist
+                    trajectory.total_weight
                 )
             ]
         else:
@@ -1163,11 +1114,11 @@ class NmmcResult(McResult):
 
     def _add_trace(self, trajectory, *, abs=None, rel=None):
         if abs is not None:
-            self._sum_trace_abs += trajectory._total_weight_tlist
-            self._sum2_trace_abs += np.abs(trajectory._total_weight_tlist) ** 2
+            self._sum_trace_abs += np.array(trajectory.trace) * abs
+            self._sum2_trace_abs += np.abs(trajectory.trace) ** 2 * abs
         else:
-            self._sum_trace_rel += trajectory._total_weight_tlist
-            self._sum2_trace_rel += np.abs(trajectory._total_weight_tlist) ** 2
+            self._sum_trace_rel += np.array(trajectory.trace) * rel
+            self._sum2_trace_rel += np.abs(trajectory.trace) ** 2 * rel
 
         if self.options["keep_runs_results"]:
             self.runs_trace.append(trajectory.trace)
@@ -1216,7 +1167,7 @@ class NmmcResult(McResult):
 
         p_eq = self.num_trajectories / new.num_trajectories
         if p is None:
-            p = self.num_trajectories / new.num_trajectories
+            p = p_eq
 
         new._sum_trace_abs = (
             self._merge_weight(p, p_eq, True) * self._sum_trace_abs +

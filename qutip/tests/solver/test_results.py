@@ -166,37 +166,19 @@ class TestResult:
         res = TrajectoryResult(
             e_ops=qutip.num(5),
             options=fill_options(store_states=True, store_final_state=True))
+
         for i in range(5):
             res.add(i, qutip.basis(5, i))
 
-        assert not res.has_weight
-        assert not res.has_absolute_weight
-        assert not res.has_time_dependent_weight
-        assert res.total_weight == 1
-
-        res.add_absolute_weight(2)
-        res.add_absolute_weight(2)
-        assert res.has_weight and res.has_absolute_weight
-        assert not res.has_time_dependent_weight
-        assert res.total_weight == 4
-
-        res.add_relative_weight([1j ** i for i in range(5)])
-        assert res.has_weight and res.has_absolute_weight
+        res.add_time_dependent_weight([1j ** i for i in range(5)])
         assert res.has_time_dependent_weight
         np.testing.assert_array_equal(res.total_weight,
-                                      [4 * (1j ** i) for i in range(5)])
+                                      [1j ** i for i in range(5)])
 
         # weights do not modify states etc
         assert res.states == [qutip.basis(5, i) for i in range(5)]
         assert res.final_state == qutip.basis(5, 4)
         np.testing.assert_array_equal(res.expect[0], range(5))
-
-        res = TrajectoryResult(e_ops=[], options=fill_options())
-        res.add(0, qutip.fock_dm(2, 0))
-        res.add_relative_weight(10)
-        assert res.has_weight
-        assert not (res.has_absolute_weight or res.has_time_dependent_weight)
-        assert res.total_weight == 10
 
 
 def e_op_num(t, state):
@@ -208,12 +190,9 @@ class TestMultiTrajResult:
     def _fill_trajectories(self, multiresult, N, ntraj,
                            collapse=False, noise=0, dm=False,
                            include_no_jump=False, rel_weights=None):
-        if rel_weights is None:
-            rel_weights = [None] * ntraj
 
-        # Fix the seed to avoid failing due to bad luck
-        np.random.seed(1)
-        for k, w in enumerate(rel_weights):
+        for k in range(ntraj + include_no_jump):
+            # The fixed weight trajectory is not counted
             result = TrajectoryResult(multiresult._raw_ops,
                                       multiresult.options)
             result.collapse = []
@@ -228,16 +207,18 @@ class TestMultiTrajResult:
                     result.collapse.append((t+0.2, 1))
                     result.collapse.append((t+0.3, 1))
 
-            if w is not None:
-                result.add_relative_weight(w)
-                result.trace = w
+            if rel_weights is not None:
+                result.add_time_dependent_weight(rel_weights[k])
+                result.trace = rel_weights[k]
 
             if include_no_jump and k == 0:
                 multiresult.add_deterministic(result, 0.25)
-            elif include_no_jump and k > 0:
+            elif include_no_jump:
                 if multiresult.add((0, result, 0.75)) <= 0:
                     break
-
+            else:
+                if multiresult.add((0, result, 1.)) <= 0:
+                    break
 
     def _check_types(self, multiresult):
         assert isinstance(multiresult.std_expect, list)
@@ -245,6 +226,7 @@ class TestMultiTrajResult:
         assert isinstance(multiresult.std_expect, list)
         assert isinstance(multiresult.average_e_data, dict)
         assert isinstance(multiresult.runs_weights, list)
+        assert isinstance(multiresult.fixed_weights, list)
 
         if multiresult.trajectories:
             assert isinstance(multiresult.runs_expect, list)
@@ -274,31 +256,30 @@ class TestMultiTrajResult:
         assert np.all(np.array(m_res.col_which) < 2)
         assert isinstance(m_res.collapse, list)
         assert len(m_res.col_which[0]) == len(m_res.col_times[0])
-        np.testing.assert_allclose(m_res.photocurrent[0], np.ones(N-1))
-        np.testing.assert_allclose(m_res.photocurrent[1], 2 * np.ones(N-1))
+        expected = 0.75 * np.ones(N-1) if include_no_jump else np.ones(N-1)
+        np.testing.assert_allclose(m_res.photocurrent[0], expected)
+        np.testing.assert_allclose(m_res.photocurrent[1], 2 * expected)
 
     @pytest.mark.parametrize(['include_no_jump', 'martingale',
-                              'result_trace', 'result_states'], [
+                              'result_trace'], [
         pytest.param(False, [[1.] * 10] * 5, [1.] * 10,
-                     [qutip.fock_dm(10, i) for i in range(10)],
                      id='constant-martingale'),
-        pytest.param(True, [[1.] * 10] * 5, [1.] * 10,
-                     [qutip.fock_dm(10, i) for i in range(10)],
+        pytest.param(True, [[1.] * 10] * 6, [1.] * 10,
                      id='constant-marting-no-jump'),
-        pytest.param(False, [[(j - 1) * np.sin(i) for i in range(10)]
-                             for j in range(5)],
-                     [np.sin(i) for i in range(10)],
-                     [np.sin(i) * qutip.fock_dm(10, i) for i in range(10)],
-                     id='timedep-marting'),
-        pytest.param(True, [[(j - 1) * np.sin(i) for i in range(10)]
-                             for j in range(5)],
-                     [(-0.25 + 1.5 * 0.75) * np.sin(i) for i in range(10)],
-                     [(-0.25 + 1.5 * 0.75) * np.sin(i) * qutip.fock_dm(10, i)
-                      for i in range(10)],
-                     id='timedep-marting-no-jump'),
+        pytest.param(
+            False,
+            [[(j - 1) * np.sin(i) for i in range(10)] for j in range(5)],
+            [np.sin(i) for i in range(10)],
+            id='timedep-marting'
+        ),
+        pytest.param(
+            True,
+            [[(j - 1) * np.sin(i) for i in range(10)] for j in range(6)],
+            [(-0.25 + 2.0 * 0.75) * np.sin(i) for i in range(10)],
+            id='timedep-marting-no-jump'
+        ),
     ])
-    def test_NmmcResult(self, include_no_jump, martingale,
-                        result_trace, result_states):
+    def test_NmmcResult(self, include_no_jump, martingale, result_trace):
         N = 10
         ntraj = 5
         m_res = NmmcResult([], fill_options(), stats={"num_collapse": 2})
@@ -316,8 +297,8 @@ class TestMultiTrajResult:
         assert len(m_res.col_which[0]) == len(m_res.col_times[0])
 
         np.testing.assert_almost_equal(m_res.average_trace, result_trace)
-        for s1, s2 in zip(m_res.average_states, result_states):
-            assert s1 == s2
+        for i, (s1, s2) in enumerate(zip(m_res.average_states, result_trace)):
+            assert s1 == s2 * qutip.fock_dm(10, i)
 
     @pytest.mark.parametrize('keep_runs_results', [True, False])
     @pytest.mark.parametrize('include_no_jump', [True, False])
@@ -474,6 +455,9 @@ class TestMultiTrajResult:
         dim = 10
         ntraj = 10
         tlist = [1, 2, 3]
+        if abs_weights:
+            # The trajectory with fixed weight is not counted.
+            ntraj += 1
 
         opt = fill_options(
             keep_runs_results=False, store_states=True, store_final_state=True
@@ -481,7 +465,7 @@ class TestMultiTrajResult:
         res = cls([qutip.num(dim)], opt, stats={"run time": 0,
                                                 "num_collapse": 2})
 
-        for _ in range(ntraj):
+        for j in range(ntraj):
             traj = TrajectoryResult(res._raw_ops, res.options)
             seeds = np.random.randint(10_000, size=len(tlist))
             for t, seed in zip(tlist, seeds):
@@ -489,8 +473,7 @@ class TestMultiTrajResult:
                 traj.add(t, random_state)
 
             if time_dep_weights and np.random.randint(2):
-                traj.add_relative_weight(np.random.rand(len(tlist)))
-            weights = np.random.rand()
+                traj.add_time_dependent_weight(np.random.rand(len(tlist)))
 
             if collapse:
                 traj.collapse = []
@@ -501,10 +484,10 @@ class TestMultiTrajResult:
             if trace:
                 traj.trace = np.random.rand(len(tlist))
 
-            if abs_weights and np.random.randint(2):
-                res.add_deterministic(traj, weights)
+            if abs_weights and j==0:
+                res.add_deterministic(traj, np.random.rand())
             else:
-                res.add((0, traj, weights))
+                res.add((0, traj, np.random.rand()))
 
 
         return res
