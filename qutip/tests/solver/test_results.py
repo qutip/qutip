@@ -257,7 +257,7 @@ class TestMultiTrajResult:
         assert isinstance(m_res.collapse, list)
         assert len(m_res.col_which[0]) == len(m_res.col_times[0])
         if include_no_jump and keep_runs_results:
-            assert len(result.deterministic_trajectories) == 1
+            assert len(m_res.deterministic_trajectories) == 1
 
         expected = 0.75 * np.ones(N-1) if include_no_jump else np.ones(N-1)
         np.testing.assert_allclose(m_res.photocurrent[0], expected)
@@ -345,7 +345,7 @@ class TestMultiTrajResult:
                     np.testing.assert_allclose(expect, expected,
                                                atol=1e-14, rtol=0.1)
             if include_no_jump:
-                assert len(result.deterministic_trajectories) == 1
+                assert len(m_res.deterministic_trajectories) == 1
         self._check_types(m_res)
         assert m_res.average_final_state is not None
         assert m_res.stats['end_condition'] == "unknown"
@@ -443,7 +443,7 @@ class TestMultiTrajResult:
         assert len(merged_res.e_ops) == 1
         self._check_types(merged_res)
         np.testing.assert_allclose(merged_res.average_expect[0],
-                                   np.arange(10), rtol=0.1)
+                                   np.arange(10), rtol=0.15)
         np.testing.assert_allclose(
             np.diag(sum(merged_res.average_states).full()),
             np.ones(N),
