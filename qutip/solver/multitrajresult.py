@@ -484,9 +484,15 @@ class MultiTrajResult(_BaseResult):
             self._sum_rel._initialize_sum_states(self.trajectories[0])
             need_to_reduce_states = True
         if need_to_reduce_states:
-            for trajectory, weight in zip(self.deterministic_trajectories, self._deterministic_weight_info):
+            for trajectory, weight in zip(
+                self.deterministic_trajectories,
+                self._deterministic_weight_info
+            ):
                 self._reduce_states(trajectory, abs=weight)
-            for trajectory, weight in zip(self.trajectories, self._trajectories_weight_info):
+            for trajectory, weight in zip(
+                self.trajectories,
+                self._trajectories_weight_info
+            ):
                 self._reduce_states(trajectory, rel=weight)
 
         if self._sum_abs and self._sum_rel:
@@ -541,9 +547,15 @@ class MultiTrajResult(_BaseResult):
                 self._sum_abs._initialize_sum_finalstate(self.trajectories[0])
             if self._sum_rel:
                 self._sum_rel._initialize_sum_finalstate(self.trajectories[0])
-            for trajectory, weight in zip(self.deterministic_trajectories, self._deterministic_weight_info):
+            for trajectory, weight in zip(
+                self.deterministic_trajectories,
+                self._deterministic_weight_info
+            ):
                 self._reduce_final_state(trajectory, abs=weight)
-            for trajectory, weight in zip(self.trajectories, self._trajectories_weight_info):
+            for trajectory, weight in zip(
+                self.trajectories,
+                self._trajectories_weight_info
+            ):
                 self._reduce_final_state(trajectory, rel=weight)
 
         if self._sum_abs and self._sum_rel:
@@ -711,7 +723,8 @@ class MultiTrajResult(_BaseResult):
         new._trajectories_weight_info = [
             w * p / p_equal for w in self._trajectories_weight_info
         ] + [
-            w * (1 - p) / (1 - p_equal) for w in other._trajectories_weight_info
+            w * (1 - p) / (1 - p_equal)
+            for w in other._trajectories_weight_info
         ]
 
         if self.trajectories and other.trajectories:
@@ -763,7 +776,6 @@ class MultiTrajResult(_BaseResult):
         if isabs:
             return p
         return p / p_equal
-
 
     def __add__(self, other):
         return self.merge(other, p=None)
