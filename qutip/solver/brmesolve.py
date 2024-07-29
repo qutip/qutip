@@ -6,6 +6,7 @@ equation.
 __all__ = ['brmesolve', 'BRSolver']
 
 from typing import Any
+import warnings
 import numpy as np
 from numpy.typing import ArrayLike
 import inspect
@@ -25,10 +26,11 @@ def brmesolve(
     psi0: Qobj,
     tlist: ArrayLike,
     a_ops: list[tuple[QobjEvoLike, CoefficientLike]] = None,
-    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
-    c_ops: list[QobjEvoLike] = None,
-    args: dict[str, Any] = None,
     sec_cutoff: float = 0.1,
+    *pos_args,
+    c_ops: list[QobjEvoLike] = None,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    args: dict[str, Any] = None,
     options: dict[str, Any] = None,
     **kwargs
 ):
@@ -87,11 +89,9 @@ def brmesolve(
             the operator: :obj:`.Qobj` vs :obj:`.QobjEvo` instead of the type
             of the spectra.
 
-    e_ops : list, dict, :obj:`.Qobj` or callback function, optional
-        Single operator, or list or dict of operators, for which to evaluate
-        expectation values. Operator can be Qobj, QobjEvo or callables with the
-        signature `f(t: float, state: Qobj) -> Any`.
-        Callable signature must be, `f(t: float, state: Qobj)`.
+    sec_cutoff : float, default: 0.1
+        Cutoff for secular approximation. Use ``-1`` if secular approximation
+        is not used when evaluating bath-coupling terms.
 
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format), optional
         List of collapse operators.
@@ -100,9 +100,11 @@ def brmesolve(
         Dictionary of parameters for time-dependent Hamiltonians and
         collapse operators. The key ``w`` is reserved for the spectra function.
 
-    sec_cutoff : float, default: 0.1
-        Cutoff for secular approximation. Use ``-1`` if secular approximation
-        is not used when evaluating bath-coupling terms.
+    e_ops : list, dict, :obj:`.Qobj` or callback function, optional
+        Single operator, or list or dict of operators, for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
+        Callable signature must be, `f(t: float, state: Qobj)`.
 
     options : dict, optional
         Dictionary of options for the solver.
@@ -150,6 +152,25 @@ def brmesolve(
         either an array of expectation values, for operators given in e_ops,
         or a list of states for the times specified by ``tlist``.
     """
+    if pos_args or not isinstance(sec_cutoff, (int, float)):
+        # Old signature used
+        warnings.warn(
+            "e_ops, c_ops, and args will be positional only"
+            " for all solver from qutip 5.3",
+            FutureWarning
+        )
+        # Re order for previous signature
+        e_ops = sec_cutoff
+        sec_cutoff = 0.1
+        if len(pos_args) >= 1:
+            c_ops = pos_args[0]
+        if len(pos_args) >= 2:
+            args = pos_args[1]
+        if len(pos_args) >= 3:
+            sec_cutoff = pos_args[2]
+        if len(pos_args) >= 4:
+            options = pos_args[3]
+
     options = _solver_deprecation(kwargs, options, "br")
     args = args or {}
     H = QobjEvo(H, args=args, tlist=tlist)

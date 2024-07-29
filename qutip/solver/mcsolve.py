@@ -13,7 +13,9 @@ import warnings
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
 from ..typing import QobjEvoLike, EopsLike
 from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
-from .solver_base import Solver, Integrator, _solver_deprecation
+from .solver_base import (
+    Solver, Integrator, _solver_deprecation, _kwargs_migration
+)
 from .multitrajresult import McResult
 from .mesolve import mesolve, MESolver
 from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
@@ -25,9 +27,11 @@ def mcsolve(
     state: Qobj,
     tlist: ArrayLike,
     c_ops: QobjEvoLike | list[QobjEvoLike] = (),
+    _e_ops = None,
+    _ntraj = None,
+    *,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     ntraj: int = 500,
-    *,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
     seeds: int | SeedSequence | list[int | SeedSequence] = None,
@@ -165,6 +169,9 @@ def mcsolve(
     function should be considered invalid.
     """
     options = _solver_deprecation(kwargs, options, "mc")
+    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
+    ntraj = _kwargs_migration(_ntraj, ntraj, "ntraj")
+
     H = QobjEvo(H, args=args, tlist=tlist)
     if not isinstance(c_ops, (list, tuple)):
         c_ops = [c_ops]
