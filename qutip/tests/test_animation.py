@@ -9,7 +9,7 @@ plt = pytest.importorskip("matplotlib.pyplot")
 def test_result_state():
     H = qutip.rand_dm(2)
     tlist = np.linspace(0, 3*np.pi, 2)
-    results = qutip.mesolve(H, H, tlist, [], [])
+    results = qutip.mesolve(H, H, tlist)
 
     fig, ani = qutip.anim_fock_distribution(results)
     plt.close()
@@ -21,8 +21,7 @@ def test_result_state():
 def test_result_state_ValueError():
     H = qutip.rand_dm(2)
     tlist = np.linspace(0, 3*np.pi, 2)
-    results = qutip.mesolve(H, H, tlist, [], [],
-                            options={"store_states": False})
+    results = qutip.mesolve(H, H, tlist, options={"store_states": False})
 
     text = 'Nothing to visualize. You might have forgotten ' +\
            'to set options={"store_states": True}.'

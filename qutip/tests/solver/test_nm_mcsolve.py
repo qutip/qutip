@@ -457,7 +457,7 @@ def test_expectation_outputs(keep_runs_results, improved_sampling,
     total_ops = len(ops_and_rates) + 1
     e_ops = [a.dag()*a, sm.dag()*sm, a]
     data = nm_mcsolve(
-        H, state, times, ops_and_rates, e_ops, ntraj=ntraj,
+        H, state, times, ops_and_rates, e_ops=e_ops, ntraj=ntraj,
         options={
             "keep_runs_results": keep_runs_results,
             "map": "serial",
@@ -591,7 +591,7 @@ def test_timeout(improved_sampling, mixed_initial_state):
     ]
     e_ops = [qutip.num(size)]
     res = nm_mcsolve(
-        H, state, times, ops_and_rates, e_ops, ntraj=ntraj,
+        H, state, times, ops_and_rates, e_ops=e_ops, ntraj=ntraj,
         options={'map': 'serial', "improved_sampling": improved_sampling},
         timeout=1e-6,
     )
@@ -618,13 +618,13 @@ def test_super_H(improved_sampling, mixed_initial_state):
     ]
     e_ops = [qutip.num(size)]
     mc_expected = nm_mcsolve(
-        H, state, times, ops_and_rates, e_ops, ntraj=ntraj,
+        H, state, times, ops_and_rates, e_ops=e_ops, ntraj=ntraj,
         target_tol=(0.1 if state.isket else None),
         options={'map': 'serial', "improved_sampling": improved_sampling},
     )
     mc = nm_mcsolve(
-        qutip.liouvillian(H), state, times, ops_and_rates, e_ops, ntraj=ntraj,
-        target_tol=(0.1 if state.isket else None),
+        qutip.liouvillian(H), state, times, ops_and_rates, e_ops=e_ops,
+        ntraj=ntraj, target_tol=(0.1 if state.isket else None),
         options={'map': 'serial', "improved_sampling": improved_sampling})
     np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.65)
 
