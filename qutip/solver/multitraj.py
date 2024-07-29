@@ -275,7 +275,7 @@ class MultiTrajSolver(Solver):
         """
         result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
                                                **integrator_kwargs)
-        return self._integrate_one_traj(seed, tlist, result)
+        return *self._integrate_one_traj(seed, tlist, result), 1
 
     def _integrate_one_traj(self, seed, tlist, result):
         for t, state in self._integrator.run(tlist):
@@ -291,12 +291,10 @@ class MultiTrajSolver(Solver):
         seed = seeds[id]
         state, weight = ics.get_state_and_weight(id)
 
-        seed, result = self._run_one_traj(seed, state, tlist, e_ops,
-                                          **integrator_kwargs)
+        seed, result, w = self._run_one_traj(seed, state, tlist, e_ops,
+                                             **integrator_kwargs)
 
-        if weight != 1:
-            result.add_relative_weight(weight)
-        return seed, result
+        return seed, result, weight * w
 
     def _run_mixed(
         self,
@@ -433,6 +431,13 @@ class _InitialConditions:
         self.ntraj = ntraj
         self._state_selector = np.cumsum(ntraj)
         self.ntraj_total = self._state_selector[-1]
+
+        if len(ntraj) != len(state_list):
+            raise ValueError('The length of the `ntraj` list must equal '
+                             'the number of states in the initial mixture')
+        if not all(n > 0 for n in ntraj):
+            raise ValueError('Each initial state must be use for at least '
+                             'one trajectory')
 
     def _minimum_roundoff_ensemble(self, state_list, ntraj_total):
         """

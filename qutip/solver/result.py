@@ -402,45 +402,24 @@ class TrajectoryResult(Result):
         super()._post_init()
 
         self.rel_weight = np.array(1)
-        self.abs_weight = None
-        self._has_weight = False
+        self._has_td_weight = False
 
-    def add_absolute_weight(self, new_weight):
+    def add_time_dependent_weight(self, new_weight):
         """
-        Adds the given weight (which may be either a number or an array of the
-        same length as the list of times) as an absolute weight.
+        Adds the given weights.
+        The weights should be an array the same length as the ``tlist``.
+
         """
         new_weight = np.array(new_weight)
-        if self.abs_weight is None:
-            self.abs_weight = new_weight
-        else:
-            self.abs_weight = self.abs_weight * new_weight
-        self._has_weight = True
-
-    def add_relative_weight(self, new_weight):
-        """
-        Adds the given weight (which may be either a number or an array of the
-        same length as the list of times) as a relative weight.
-        """
-        new_weight = np.array(new_weight)
+        assert len(new_weight) == len(self.times)
         self.rel_weight = self.rel_weight * new_weight
-        self._has_weight = True
-
-    @property
-    def has_weight(self):
-        """Whether any weight has been set."""
-        return self._has_weight
-
-    @property
-    def has_absolute_weight(self):
-        """Whether an absolute weight has been set."""
-        return (self.abs_weight is not None)
+        self._has_td_weight = True
 
     @property
     def has_time_dependent_weight(self):
         """Whether the total weight is time-dependent."""
         # np.ndim(None) returns zero, which is what we want
-        return np.ndim(self.rel_weight) > 0 or np.ndim(self.abs_weight) > 0
+        return self._has_td_weight
 
     @property
     def total_weight(self):
@@ -450,24 +429,8 @@ class TrajectoryResult(Result):
         the relative weight. If an absolute weight was set, this is the product
         of the absolute and the relative weights.
         """
-        if self.has_absolute_weight:
-            return self.abs_weight * self.rel_weight
         return self.rel_weight
 
     @property
-    def _total_weight_tlist(self):
-        """
-        Returns the total weight as a function of time (i.e., as an array with
-        the same shape as the `tlist`)
-        """
-        total_weight = self.total_weight
-        if self.has_time_dependent_weight:
-            return total_weight
-        return np.ones_like(self.times) * total_weight
-
-    @property
     def _final_weight(self):
-        total_weight = self.total_weight
-        if self.has_time_dependent_weight:
-            return total_weight[-1]
-        return total_weight
+        return self.rel_weight[-1]
