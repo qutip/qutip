@@ -1,7 +1,13 @@
 name: Tests familly project
 
 on:
-    [pull_request]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Which version, empty for development, `release` for latest released version'
+        default: ""
+
+  pull_request:
 
 defaults:
   run:
@@ -11,13 +17,12 @@ defaults:
 
 jobs:
   tests:
-    name: ${{ matrix.repo }}-${{ matrix.version }}
+    name: ${{ matrix.repo }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         repo: [qutip-qip, qutip-jax, qutip-qoc]
-        version: [dev, release]
 
     steps:
       - uses: actions/checkout@v4
@@ -39,10 +44,12 @@ jobs:
           cd ..
           git clone https://github.com/qutip/${{ matrix.repo }}.git
           cd ${{ matrix.repo }}
-          if [[ $matrix.version == "release" ]]; then
+          if [[ $inputs.version == "release" ]]; then
             # Checkout the latest tag as the latest release
             git fetch --tags
             git checkout $(git describe --tags "$(git rev-list --tags --max-count=1)")
+          elif [[ "${{ inputs.version }}" ]]; then
+            git checkout ${{ inputs.version }}
           fi
           python -m pip install .[full]
       - name: Print python environment
