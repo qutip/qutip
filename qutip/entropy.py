@@ -37,7 +37,8 @@ def entropy_vn(rho, base=np.e, sparse=False):
     if rho.type == 'ket' or rho.type == 'bra':
         rho = ket2dm(rho)
     vals = rho.eigenenergies(sparse=sparse)
-    nzvals = np.clip(vals, 1e-17, None)
+    threshold = 1e-17
+    nzvals = np.where(vals < threshold, threshold, vals)
     if base == 2:
         logvals = np.log2(nzvals)
     elif base == np.e:
