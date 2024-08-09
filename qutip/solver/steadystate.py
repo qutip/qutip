@@ -1,5 +1,5 @@
 from qutip import liouvillian, lindblad_dissipator, Qobj, qzero_like, qeye_like
-from qutip import vector_to_operator, operator_to_vector
+from qutip import vector_to_operator, operator_to_vector, hilbert_dist
 from qutip import settings
 import qutip.core.data as _data
 import numpy as np
@@ -56,6 +56,7 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         - "eigen" : Eigenvalue problem
         - "svd" : Singular value decomposition
         - "power" : Inverse-power method
+        - "propagator" : Apply the propagator in repetition
 
     solver : str, optional
         'direct' and 'power' methods only.
@@ -106,6 +107,12 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         (default sparse).  With "direct" and "power" method, when the solver is
         not specified, it is used to set whether "solve" or "spsolve" is
         used as default solver.
+
+    rho: Qobj, default: None
+        Initial state of the propagator method.
+
+    propagator_tol: float, default: 1e-5
+        Tolerance for propagator method convergance.
 
     **kwargs :
         Extra options to pass to the linear system solver. See the
@@ -184,6 +191,9 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         kwargs.pop("weight", 0)
         kwargs.pop("sparse", 0)
         return _steadystate_power(A, method=solver, **kwargs)
+
+    elif method == "propagator":
+        return _steadystate_expm(A, **kwargs)
     else:
         raise ValueError(f"method {method} not supported.")
 
@@ -266,6 +276,28 @@ def _steadystate_svd(L, **kw):
     rho = _data.column_unstack(vec, n)
     rho = Qobj(rho, dims=L._dims[0].oper, isherm=True)
     return rho / rho.tr()
+
+
+def _steadystate_expm(L, rho=None, propagator_tol=1e-5, **kw):
+    if rho is None:
+        from qutip import rand_dm
+        rho = rand_dm(L.dims[0][0])
+    # Propagator at an arbitrary long time
+    prop = (100 * L).expm()
+
+    rho_prev = qzero_like(rho)
+    niter = 0
+    while hilbert_dist(rho, rho_prev) > propagator_tol and niter < 30:
+        rho_prev = rho
+        rho = prop(rho)
+        prop = prop @ prop
+        rho = (rho + rho.dag()) / (2 * rho.tr())
+        niter += 1
+
+    if niter == 30:
+        raise Exception("Did not converge to a steadystate.")
+
+    return rho
 
 
 def _steadystate_power(A, **kw):

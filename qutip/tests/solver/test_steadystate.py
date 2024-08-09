@@ -19,6 +19,7 @@ import qutip.core.data as _data
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('eigen', {'use_rcm':True},  id="eigen_rcm"),
     pytest.param('svd', {}, id="svd"),
+    pytest.param('propagator', {}, id="propagator"),
     pytest.param('power', {'power_tol':1e-5}, id="power"),
     pytest.param('power', {'power_tol':1e-5, 'solver':'mkl'}, id="power_mkl",
                  marks=pytest.mark.skipif(not qutip.settings.has_mkl,
@@ -78,6 +79,7 @@ def test_qubit(method, kwargs, dtype):
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('eigen', {'use_rcm': True},  id="eigen_rcm"),
     pytest.param('svd', {}, id="svd"),
+    pytest.param('propagator', {}, id="propagator"),
 ])
 def test_exact_solution_for_simple_methods(method, kwargs):
     # this tests that simple methods correctly determine the steadystate
@@ -97,6 +99,7 @@ def test_exact_solution_for_simple_methods(method, kwargs):
     pytest.param('direct', {}, id="direct"),
     pytest.param('direct', {'sparse':False}, id="direct_dense"),
     pytest.param('eigen', {'sparse':False}, id="eigen"),
+    pytest.param('propagator', {}, id="propagator"),
     pytest.param('power', {'power_tol':1e-5}, id="power"),
     pytest.param('iterative-lgmres', {'tol': 1e-7, 'atol': 1e-7}, id="iterative-lgmres"),
     pytest.param('iterative-gmres', {'tol': 1e-7, 'atol': 1e-7}, id="iterative-gmres"),
@@ -139,6 +142,7 @@ def test_ho(method, kwargs):
     pytest.param('direct', {'sparse':False}, id="direct_dense"),
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('svd', {}, id="svd"),
+    pytest.param('propagator', {}, id="propagator"),
     pytest.param('power', {}, id="power"),
     pytest.param('power-gmres', {"atol": 1e-5, 'tol':1e-1, 'use_precond':1},
                  id="power-gmres"),
@@ -169,6 +173,18 @@ def test_driven_cavity(method, kwargs):
         rho_ss, rho_ss_analytic, atol=1e-4
     )
     assert rho_ss.trace() == pytest.approx(1, abs=1e-10)
+
+
+def test_prop_ss_degen():
+    N = 5
+    H = qutip.qeye(2) & qutip.num(N)
+    a = qutip.qeye(2) & qutip.destroy(N)
+    rho_l = qutip.rand_dm(2)
+    rho_r = qutip.rand_dm(N)
+    rho_ss = qutip.steadystate(H, [a], method="propagator", rho=rho_l & rho_r)
+    with qutip.CoreOptions(atol=1e-5):
+        assert rho_ss.ptrace([0]) == rho_l
+        assert rho_ss.ptrace([1]) == qutip.fock_dm(N, 0)
 
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
