@@ -5,7 +5,7 @@ Note that single trajectories are described by regular `Result` objects from the
 """
 
 from typing import TypedDict
-import numpy as np
+from ..core.numpy_backend import np
 
 from copy import copy
 

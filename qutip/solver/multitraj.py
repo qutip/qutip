@@ -7,9 +7,9 @@ from .parallel import _get_map
 from time import time
 from .solver_base import Solver
 from ..core import QobjEvo, Qobj
-import numpy as np
+from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
-from numpy.random import SeedSequence
+from numpy.random import SeedSequence, default_rng
 from numbers import Number
 from typing import Any, Callable
 import bisect
@@ -87,7 +87,7 @@ class MultiTrajSolver(Solver):
         else:
             raise TypeError("The system should be a QobjEvo")
         self.options = options
-        self.seed_sequence = np.random.SeedSequence()
+        self.seed_sequence = SeedSequence()
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
@@ -360,15 +360,15 @@ class MultiTrajSolver(Solver):
         """
         if seed is None:
             seeds = self.seed_sequence.spawn(ntraj)
-        elif isinstance(seed, np.random.SeedSequence):
+        elif isinstance(seed, SeedSequence):
             seeds = seed.spawn(ntraj)
         elif not isinstance(seed, list):
-            seeds = np.random.SeedSequence(seed).spawn(ntraj)
+            seeds = SeedSequence(seed).spawn(ntraj)
         elif len(seed) >= ntraj:
             seeds = [
-                seed_ if (isinstance(seed_, np.random.SeedSequence)
+                seed_ if (isinstance(seed_, SeedSequence)
                           or hasattr(seed_, 'random'))
-                else np.random.SeedSequence(seed_)
+                else SeedSequence(seed_)
                 for seed_ in seed[:ntraj]
             ]
         else:
@@ -391,7 +391,7 @@ class MultiTrajSolver(Solver):
             bit_gen = getattr(np.random, self.options['bitgenerator'])
             generator = np.random.Generator(bit_gen(seed))
         else:
-            generator = np.random.default_rng(seed)
+            generator = default_rng(seed)
         return generator
 
 
