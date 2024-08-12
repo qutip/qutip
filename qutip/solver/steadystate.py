@@ -311,7 +311,6 @@ def _steadystate_expm(L, rho=None, propagator_tol=1e-5, propagator_T=10, **kw):
     raise RuntimeError("Did not converge to a steadystate.")
 
 
-
 def _steadystate_power(A, **kw):
     A += kw.pop("power_eps", 1e-15)
     L = A.data
