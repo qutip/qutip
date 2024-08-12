@@ -79,7 +79,7 @@ def test_qubit(method, kwargs, dtype):
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('eigen', {'use_rcm': True},  id="eigen_rcm"),
     pytest.param('svd', {}, id="svd"),
-    pytest.param('propagator', {}, id="propagator"),
+    pytest.param('propagator', {'propagator_tol': 1e-14}, id="propagator"),
 ])
 def test_exact_solution_for_simple_methods(method, kwargs):
     # this tests that simple methods correctly determine the steadystate
