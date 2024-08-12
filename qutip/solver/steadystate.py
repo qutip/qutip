@@ -111,8 +111,18 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     rho: Qobj, default: None
         Initial state of the propagator method.
 
+    propagator_T: float, default: 10
+        Initial time step of the propagator method. The time step double each
+        iteration.
+
     propagator_tol: float, default: 1e-5
-        Tolerance for propagator method convergance.
+        Tolerance for propagator method convergance. If the hilbert distance
+        between the states of a step is less than this tolerance. The states is
+        considered to have converged to the steady state.
+
+    propagator_max_iter: int, default: 30
+        Maximum number of iterations until convergence. A RuntimeError is
+        raised if the state did not converge.
 
     **kwargs :
         Extra options to pass to the linear system solver. See the
@@ -183,19 +193,21 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         kwargs.pop("power_maxiter", 0)
         kwargs.pop("power_eps", 0)
         kwargs.pop("sparse", 0)
-        return _steadystate_direct(A, kwargs.pop("weight", 0),
-                                   method=solver, **kwargs)
+        rho_ss = _steadystate_direct(A, kwargs.pop("weight", 0),
+                                     method=solver, **kwargs)
 
     elif method == "power":
         # Remove unused kwargs, so only used and pass-through ones are included
         kwargs.pop("weight", 0)
         kwargs.pop("sparse", 0)
-        return _steadystate_power(A, method=solver, **kwargs)
+        rho_ss = _steadystate_power(A, method=solver, **kwargs)
 
     elif method == "propagator":
-        return _steadystate_expm(A, **kwargs)
+        rho_ss = _steadystate_expm(A, **kwargs)
     else:
         raise ValueError(f"method {method} not supported.")
+
+    return rho_ss
 
 
 def _steadystate_direct(A, weight, **kw):
@@ -278,26 +290,26 @@ def _steadystate_svd(L, **kw):
     return rho / rho.tr()
 
 
-def _steadystate_expm(L, rho=None, propagator_tol=1e-5, **kw):
+def _steadystate_expm(L, rho=None, propagator_tol=1e-5, propagator_T=10, **kw):
     if rho is None:
         from qutip import rand_dm
         rho = rand_dm(L.dims[0][0])
     # Propagator at an arbitrary long time
-    prop = (100 * L).expm()
+    prop = (propagator_T * L).expm()
 
-    rho_prev = qzero_like(rho)
     niter = 0
-    while hilbert_dist(rho, rho_prev) > propagator_tol and niter < 30:
-        rho_prev = rho
-        rho = prop(rho)
+    max_iter = kw.get("propagator_max_iter", 30)
+    while niter < max_iter:
+        rho_next = prop(rho)
+        rho_next = (rho_next + rho_next.dag()) / (2 * rho_next.tr())
+        if hilbert_dist(rho_next, rho) <= propagator_tol:
+            return rho_next
+        rho = rho_next
         prop = prop @ prop
-        rho = (rho + rho.dag()) / (2 * rho.tr())
         niter += 1
 
-    if niter == 30:
-        raise Exception("Did not converge to a steadystate.")
+    raise RuntimeError("Did not converge to a steadystate.")
 
-    return rho
 
 
 def _steadystate_power(A, **kw):
