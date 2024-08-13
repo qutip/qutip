@@ -27,7 +27,7 @@ def brmesolve(
     tlist: ArrayLike,
     a_ops: list[tuple[QobjEvoLike, CoefficientLike]] = None,
     sec_cutoff: float = 0.1,
-    *pos_args,
+    *_pos_args,
     c_ops: list[QobjEvoLike] = None,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
@@ -93,6 +93,13 @@ def brmesolve(
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
 
+    *_pos_args
+        Temporary shim to update the signature from
+        (..., a_ops, e_ops, c_ops, args, sec_cutoff, options)
+        to (..., a_ops, sec_cutoff, *, e_ops, c_ops, args, options)
+        making e_ops, c_ops, args and options keyword only parameter from
+        qutip 5.3.
+
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format), optional
         List of collapse operators.
 
@@ -152,24 +159,24 @@ def brmesolve(
         either an array of expectation values, for operators given in e_ops,
         or a list of states for the times specified by ``tlist``.
     """
-    if pos_args or not isinstance(sec_cutoff, (int, float)):
+    if _pos_args or not isinstance(sec_cutoff, (int, float)):
         # Old signature used
         warnings.warn(
-            "e_ops, c_ops, and args will be positional only"
-            " for all solver from qutip 5.3",
+            "c_ops, e_ops, args and options will be keyword only"
+            " from qutip 5.3",
             FutureWarning
         )
         # Re order for previous signature
         e_ops = sec_cutoff
         sec_cutoff = 0.1
-        if len(pos_args) >= 1:
-            c_ops = pos_args[0]
-        if len(pos_args) >= 2:
-            args = pos_args[1]
-        if len(pos_args) >= 3:
-            sec_cutoff = pos_args[2]
-        if len(pos_args) >= 4:
-            options = pos_args[3]
+        if len(_pos_args) >= 1:
+            c_ops = _pos_args[0]
+        if len(_pos_args) >= 2:
+            args = _pos_args[1]
+        if len(_pos_args) >= 3:
+            sec_cutoff = _pos_args[2]
+        if len(_pos_args) >= 4:
+            options = _pos_args[3]
 
     options = _solver_deprecation(kwargs, options, "br")
     args = args or {}
