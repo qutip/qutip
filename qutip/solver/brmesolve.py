@@ -82,7 +82,7 @@ def brmesolve(
             ]
 
         .. note:
-            ``Cubic_Spline`` has been replaced by :obj:`.Coefficient`:
+            ``Cubic_Spline`` has been replaced by :obj:`.Coefficient`\:
                 ``spline = qutip.coefficient(array, tlist=times)``
 
             Whether the ``a_ops`` is time dependent is decided by the type of

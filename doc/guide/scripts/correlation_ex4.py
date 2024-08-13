@@ -23,7 +23,7 @@ for state in states:
     rho0 = state['state']
 
     # first calculate the occupation number as a function of time
-    n = qutip.mesolve(H, rho0, taus, c_ops, [a.dag() * a]).expect[0]
+    n = qutip.mesolve(H, rho0, taus, c_ops, e_ops=[a.dag() * a]).expect[0]
 
     # calculate the correlation function G2 and normalize with n(0)n(t) to
     # obtain g2
