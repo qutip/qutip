@@ -56,7 +56,8 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         - "eigen" : Eigenvalue problem
         - "svd" : Singular value decomposition
         - "power" : Inverse-power method
-        - "propagator" : Find the steady state by repeatedly applying the propagator
+        - "propagator" : Find the steady state by repeatedly applying the
+          propagator
 
     solver : str, optional
         'direct' and 'power' methods only.
@@ -112,8 +113,8 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         Initial state for the "propagator" method.
 
     propagator_T: float, default: 10
-        Initial time step for the propagator method. The time step is doubled each
-        iteration.
+        Initial time step for the propagator method. The time step is doubled
+        each iteration.
 
     propagator_tol: float, default: 1e-5
         Tolerance for propagator method convergence. If the Hilbert distance
@@ -308,7 +309,9 @@ def _steadystate_expm(L, rho=None, propagator_tol=1e-5, propagator_T=10, **kw):
         prop = prop @ prop
         niter += 1
 
-    raise RuntimeError(f"Did not converge to a steadystate after {max_iter} iterations.")
+    raise RuntimeError(
+        f"Did not converge to a steadystate after {max_iter} iterations."
+    )
 
 
 def _steadystate_power(A, **kw):
