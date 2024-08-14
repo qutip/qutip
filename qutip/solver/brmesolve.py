@@ -34,7 +34,7 @@ def brmesolve(
     options: dict[str, Any] = None,
     **kwargs
 ):
-    """
+    r"""
     Solves for the dynamics of a system using the Bloch-Redfield master
     equation, given an input Hamiltonian, Hermitian bath-coupling terms and
     their associated spectral functions, as well as possible Lindblad collapse
@@ -47,7 +47,7 @@ def brmesolve(
         QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
         can be made into :obj:`.QobjEvo` are also accepted.
 
-    psi0: Qobj
+    psi0: :obj:`.Qobj`
         Initial density matrix or state vector (ket).
 
     tlist : array_like
@@ -81,24 +81,26 @@ def brmesolve(
                 (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
             ]
 
-        .. note:
-            ``Cubic_Spline`` has been replaced by :obj:`.Coefficient`\:
+        .. note::
+
+            ``Cubic_Spline`` has been replaced by:
                 ``spline = qutip.coefficient(array, tlist=times)``
 
-            Whether the ``a_ops`` is time dependent is decided by the type of
-            the operator: :obj:`.Qobj` vs :obj:`.QobjEvo` instead of the type
-            of the spectra.
+        Whether the ``a_ops`` is time dependent is decided by the type of
+        the operator: :obj:`.Qobj` vs :obj:`.QobjEvo` instead of the type
+        of the spectra.
 
     sec_cutoff : float, default: 0.1
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
 
-    *_pos_args
-        Temporary shim to update the signature from
-        (..., a_ops, e_ops, c_ops, args, sec_cutoff, options)
-        to (..., a_ops, sec_cutoff, *, e_ops, c_ops, args, options)
-        making e_ops, c_ops, args and options keyword only parameter from
-        qutip 5.3.
+    *_pos_args :
+        | Temporary shim to update the signature from
+        | ``(..., a_ops, e_ops, c_ops, args, sec_cutoff, options)``
+        | to
+        | ``(..., a_ops, sec_cutoff, *, e_ops, c_ops, args, options)``
+        | making ``e_ops``, ``c_ops``, ``args`` and ``options`` keyword only
+          parameter from qutip 5.3.
 
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format), optional
         List of collapse operators.
