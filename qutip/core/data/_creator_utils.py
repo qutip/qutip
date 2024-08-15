@@ -7,6 +7,8 @@ import numpy as np
 from .csr import CSR
 from .base import Data
 from .dense import Dense
+from qutip.settings import settings
+
 
 __all__ = [
     'data_copy',

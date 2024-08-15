@@ -15,7 +15,7 @@ initialisation of the `data` module.
 # even in a simple interactive QuTiP session, and it all adds up.
 
 import numbers
-
+from collections import namedtuple
 import numpy as np
 from scipy.sparse import dok_matrix, csgraph
 cimport cython
@@ -116,7 +116,7 @@ cdef class _partial_converter:
     """Convert from any known data-layer type into the type `x.to`."""
 
     cdef object converter
-    cdef readonly type to
+    cdef readonly object to
 
     def __init__(self, converter, to_type):
         self.converter = converter
@@ -130,6 +130,9 @@ cdef class _partial_converter:
 
     def __repr__(self):
         return "<converter to " + self.to.__name__ + ">"
+
+
+_DataGroup = namedtuple("_DataGroup", ["dense", "sparse", "diagonal"])
 
 
 # While `_to` and `_create` are defined as objects here, they are actually
@@ -185,6 +188,7 @@ cdef class _to:
     """
 
     cdef readonly set dtypes
+    cdef readonly set groups
     cdef readonly list dispatchers
     cdef dict _direct_convert
     cdef dict _convert
@@ -195,6 +199,7 @@ cdef class _to:
         self._direct_convert = {}
         self._convert = {}
         self.dtypes = set()
+        self.groups = set()
         self.weight = {}
         self.dispatchers = []
         self._str2type = {}
@@ -310,6 +315,11 @@ cdef class _to:
             self._convert[(Data, dtype)] = identity_converter
         for dispatcher in self.dispatchers:
             dispatcher.rebuild_lookup()
+        for group in self.groups:
+            for dtype in self.dtypes:
+                to_t = getattr(group, dtype.sparcity())
+                self._convert[(group, dtype)] = self._convert[(to_t, dtype)]
+
 
     def register_aliases(self, aliases, layer_type):
         """
@@ -319,7 +329,7 @@ cdef class _to:
         Parameters
         ----------
         aliases : str or list of str
-            Name of list of names to be understood to represent the layer_type.
+            Name or list of names to be understood to represent the layer_type.
 
         layer_type : type
             Data-layer type, must have been registered with
@@ -334,6 +344,48 @@ cdef class _to:
             if type(alias) is not str:
                 raise TypeError("The alias must be a str : " + repr(alias))
             self._str2type[alias] = layer_type
+
+    def register_group(self, names, *, dense=None, sparse=None, diagonal=None):
+        """
+        Register a set of Data layers under a single name to allow conversion
+        to that general group:
+
+        For example:
+
+          ``JaxArray`` to "cython" -> Dense
+          ``Dia`` to "jax" -> JaxDiag
+
+        Parameters
+        ----------
+        names : str or list of str
+            Names of the layer group.
+
+        dense : type
+            Layer type of a dense representation in that group.
+
+        sparse : type
+            Layer type of a sparse representation in that group.
+
+        diagonal : type
+            Layer type of a diagonal representation in that group.
+        """
+        group = _DataGroup(
+            dense=(dense or sparse or diagonal),
+            sparse=(sparse or dense or diagonal),
+            diagonal=(diagonal or sparse or dense),
+        )
+        self.groups.add(group)
+
+        if isinstance(names, str):
+            names = [names]
+        for name in names:
+            self._str2type[name] = group
+
+        for dtype in self.dtypes:
+            to_t = getattr(group, dtype.sparcity())
+            self._convert[(group, dtype)] = self._convert[(to_t, dtype)]
+
+        self._convert[(group, Data)] = _partial_converter(self, group)
 
     def parse(self, dtype):
         """
@@ -370,6 +422,8 @@ cdef class _to:
                 raise ValueError(
                     "Type name is not known to the data-layer: " + repr(dtype)
                     ) from None
+        elif type(dtype) is _DataGroup:
+            return dtype
 
         raise TypeError(
             "Invalid dtype is neither a type nor a type name: " + repr(dtype))

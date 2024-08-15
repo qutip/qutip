@@ -25,6 +25,10 @@ cdef class Data:
     def __init__(self, shape):
         self.shape = shape
 
+    @classmethod
+    def sparcity(self):
+        return "dense"
+
     cpdef object to_array(self):
         raise NotImplementedError
 

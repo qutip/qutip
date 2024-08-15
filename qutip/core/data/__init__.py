@@ -46,6 +46,7 @@ to.add_conversions([
 to.register_aliases(['csr', 'CSR'], CSR)
 to.register_aliases(['Dense', 'dense'], Dense)
 to.register_aliases(['DIA', 'Dia', 'dia', 'diag'], Dia)
+to.register_group(['core', 'cython'], dense=Dense, sparse=CSR, diagonal=Dia)
 
 
 from . import _creator_utils
