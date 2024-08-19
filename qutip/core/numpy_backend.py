@@ -2,13 +2,11 @@ from ..settings import settings
 
 
 class NumpyBackend:
-    @property
-    def backend(self):
-        return settings.core["numpy_backend"]
+    def _qutip_setting_backend(self, np):
+        self._qt_np = np
 
     def __getattr__(self, name):
-        backend = object.__getattribute__(self, 'backend')
-        return getattr(backend, name)
+        return getattr(self._qt_np, name)
 
 
 # Initialize the numpy backend

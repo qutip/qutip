@@ -1,5 +1,6 @@
 from ..settings import settings
-import numpy as np
+from .numpy_backend import np as qt_np
+import numpy
 __all__ = ["CoreOptions"]
 
 
@@ -9,8 +10,12 @@ class QutipOptions:
 
     Define basic method to wrap an ``options`` dict.
     Default options are in a class _options dict.
+
+    Options can also act as properties. The ``_properties`` map options keys to
+    a function to call when the ``QutipOptions`` become the default.
     """
     _options = {}
+    _properties = {}
     _settings_name = None  # Where the default is in settings
 
     def __init__(self, **options):
@@ -24,12 +29,17 @@ class QutipOptions:
         return key in self.options
 
     def __getitem__(self, key):
-        # Let the dict catch the KeyError
+        # Let the dict catch the
         return self.options[key]
 
     def __setitem__(self, key, value):
         # Let the dict catch the KeyError
         self.options[key] = value
+        if (
+            key in self._properties
+            and self is getattr(settings, self._settings_name)
+        ):
+            self._properties[key](value)
 
     def __repr__(self, full=True):
         out = [f"<{self.__class__.__name__}("]
@@ -44,10 +54,15 @@ class QutipOptions:
 
     def __enter__(self):
         self._backup = getattr(settings, self._settings_name)
-        setattr(settings, self._settings_name, self)
+        self._set_as_global_default()
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        setattr(settings, self._settings_name, self._backup)
+        self._backup._set_as_global_default()
+
+    def _set_as_global_default(self):
+        setattr(settings, self._settings_name, self)
+        for key in self._properties:
+            self._properties[key](self.options[key])
 
 
 class CoreOptions(QutipOptions):
@@ -129,10 +144,14 @@ class CoreOptions(QutipOptions):
         # Hermiticity checks can be slow, stop jitting, etc.
         "auto_real_casting": True,
         # Default backend is numpy
-        "numpy_backend": np
+        "numpy_backend": numpy
     }
     _settings_name = "core"
+    _properties = {
+        "numpy_backend": qt_np._qutip_setting_backend,
+    }
 
 
 # Creating the instance of core options to use everywhere.
-settings.core = CoreOptions()
+# settings.core = CoreOptions()
+CoreOptions()._set_as_global_default()
