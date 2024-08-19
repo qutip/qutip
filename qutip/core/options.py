@@ -135,8 +135,9 @@ class CoreOptions(QutipOptions):
         # Default Qobj dtype for Qobj create function
         "default_dtype": None,
         # Where the default_dtype apply:
-        # - "creation": Used in functions creating Qobj
-        # - ""
+        # - "creation": Used in functions creating Qobj.
+        # - "missing": Missing specialisation output use default.
+        # - "full": All data layer operation output that type.
         "dtype_dtype_range": "creation",
         # Expect, trace, etc. will return real for hermitian matrices.
         # Hermiticity checks can be slow, stop jitting, etc.
