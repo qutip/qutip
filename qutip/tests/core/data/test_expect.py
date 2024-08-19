@@ -49,7 +49,7 @@ class TestExpectSuper(BinaryOpMixin):
     def op_numpy(self, op, state):
         n = np.sqrt(state.shape[0]).astype(int)
         out_shape = (n, n)
-        return np.trace(np.reshape(op@state, newshape=out_shape))
+        return np.trace(np.reshape(op@state, out_shape))
 
     _dim = 100
     _super_ket = pytest.param((_dim, 1), id="super_ket")

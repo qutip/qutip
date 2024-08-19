@@ -1,0 +1,1 @@
+It adds odd parity support to HEOM's fermionic solver

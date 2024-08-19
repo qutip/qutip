@@ -14,6 +14,7 @@ from .result import Result
 from .integrator import Integrator
 from ..ui.progressbar import progress_bars
 from ._feedback import _ExpectFeedback
+from ..typing import EopsLike
 from time import time
 import warnings
 import numpy as np
@@ -142,7 +143,7 @@ class Solver:
         state0: Qobj,
         tlist: ArrayLike,
         *,
-        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+        e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
         args: dict[str, Any] = None,
     ) -> Result:
         """
@@ -167,9 +168,9 @@ class Solver:
         args : dict, optional
             Change the ``args`` of the rhs for the evolution.
 
-        e_ops : list, optional
-            List of Qobj, QobjEvo or callable to compute the expectation
-            values. Function[s] must have the signature
+        e_ops : Qobj, QobjEvo, callable, list, or dict optional
+            Single, list or dict of Qobj, QobjEvo or callable to compute the
+            expectation values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
 
         Returns
