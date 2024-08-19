@@ -368,6 +368,7 @@ autodoc_type_aliases = {
     'CoefficientLike': 'CoefficientLike',
     'ElementType': 'ElementType',
     'QobjEvoLike': 'QobjEvoLike',
+    'EopsLike': 'EopsLike',
     'LayerType': 'LayerType',
     'ArrayLike': 'ArrayLike'
 }

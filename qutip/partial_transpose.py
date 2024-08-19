@@ -55,7 +55,7 @@ def _partial_transpose_dense(rho, mask):
     Very fast for dense problems.
     """
     nsys = len(mask)
-    pt_dims = np.arange(2 * nsys).reshape(2, nsys).T
+    pt_dims = np.arange(2 * nsys).reshape([2, nsys]).T
     pt_idx = np.concatenate([[pt_dims[n, mask[n]] for n in range(nsys)],
                             [pt_dims[n, 1 - mask[n]] for n in range(nsys)]])
 

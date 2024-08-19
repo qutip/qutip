@@ -6,17 +6,18 @@ __all__ = ['mcsolve', "MCSolver"]
 from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
 from numpy.random import SeedSequence
+from time import time
+from typing import Any
+import warnings
+
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
-from ..typing import QobjEvoLike
+from ..typing import QobjEvoLike, EopsLike
 from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
 from .solver_base import Solver, Integrator, _solver_deprecation
 from .multitrajresult import McResult
 from .mesolve import mesolve, MESolver
 from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
 import qutip.core.data as _data
-from time import time
-from typing import Any, Callable
-import warnings
 
 
 def mcsolve(
@@ -24,13 +25,13 @@ def mcsolve(
     state: Qobj,
     tlist: ArrayLike,
     c_ops: QobjEvoLike | list[QobjEvoLike] = (),
-    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     ntraj: int = 500,
     *,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
     seeds: int | SeedSequence | list[int | SeedSequence] = None,
-    target_tol: float = None,
+    target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
     timeout: float = None,
     **kwargs,
 ) -> McResult:
@@ -59,10 +60,10 @@ def mcsolve(
         even if ``H`` is a superoperator. If none are given, the solver will
         defer to ``sesolve`` or ``mesolve``.
 
-    e_ops : list, optional
-        A ``list`` of operator as Qobj, QobjEvo or callable with signature of
-        (t, state: Qobj) for calculating expectation values. When no ``e_ops``
-        are given, the solver will default to save the states.
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single operator, or list or dict of operators, for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
 
     ntraj : int, default: 500
         Maximum number of trajectories to run. Can be cut short if a time limit
@@ -453,8 +454,8 @@ class MCSolver(MultiTrajSolver):
 
     def __init__(
         self,
-        H: QobjEvoLike,
-        c_ops: QobjEvoLike | list[QobjEvoLike],
+        H: Qobj | QobjEvo,
+        c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo],
         *,
         options: dict[str, Any] = None,
     ):
@@ -562,8 +563,8 @@ class MCSolver(MultiTrajSolver):
         ntraj: int | list[int] = None,
         *,
         args: dict[str, Any] = None,
-        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
-        target_tol: float = None,
+        e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+        target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
         timeout: float = None,
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> McResult:
@@ -605,10 +606,10 @@ class MCSolver(MultiTrajSolver):
         args : dict, optional
             Change the ``args`` of the rhs for the evolution.
 
-        e_ops : list
-            list of Qobj or QobjEvo to compute the expectation values.
-            Alternatively, function[s] with the signature f(t, state) -> expect
-            can be used.
+        e_ops : :obj:`.Qobj`, callable, list or dict, optional
+            Single operator, or list or dict of operators, for which to
+            evaluate expectation values. Operator can be Qobj, QobjEvo or
+            callables with the signature `f(t: float, state: Qobj) -> Any`.
 
         timeout : float, optional
             Maximum time in seconds for the trajectories to run. Once this time

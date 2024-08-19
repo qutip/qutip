@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 import numpy as np
-from typing import Literal
+from typing import Literal, overload
 from . import data as _data
 from .qobj import Qobj
 from .dimensions import Space
@@ -85,9 +85,25 @@ shape = [4, 4], type = oper, isherm = False
     )
 
 
+@overload
 def jmat(
     j: float,
-    which: Literal["x", "y", "z", "+", "-"] = None,
+    which: Literal[None],
+    *,
+    dtype: LayerType = None
+) -> tuple[Qobj]: ...
+
+@overload
+def jmat(
+    j: float,
+    which: Literal["x", "y", "z", "+", "-"],
+    *,
+    dtype: LayerType = None
+) -> Qobj: ...
+
+def jmat(
+    j: float,
+    which: Literal["x", "y", "z", "+", "-", None] = None,
     *,
     dtype: LayerType = None
 ) -> Qobj | tuple[Qobj]:
@@ -965,6 +981,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     asq = destroy(N, offset=offset, dtype=dtype) ** 2
     op = 0.5*np.conj(z)*asq - 0.5*z*asq.dag()
     out = op.expm(dtype=dtype)

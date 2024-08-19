@@ -34,7 +34,7 @@ def _blas_info():
     return blas
 
 
-def available_cpu_count():
+def available_cpu_count() -> int:
     """
     Get the number of cpus.
     It tries to only get the number available to qutip.
@@ -135,19 +135,19 @@ class Settings:
         self._colorblind_safe = False
 
     @property
-    def has_mkl(self):
+    def has_mkl(self) -> bool:
         """ Whether qutip found an mkl installation. """
         return self.mkl_lib is not None
 
     @property
-    def mkl_lib(self):
+    def mkl_lib(self) -> str | None:
         """ Location of the mkl installation. """
         if self._mkl_lib == "":
             self._mkl_lib = _find_mkl()
         return _find_mkl()
 
     @property
-    def ipython(self):
+    def ipython(self) -> bool:
         """ Whether qutip is running in ipython. """
         try:
             __IPYTHON__
@@ -156,7 +156,7 @@ class Settings:
             return False
 
     @property
-    def eigh_unsafe(self):
+    def eigh_unsafe(self) -> bool:
         """
         Whether `eigh` call is reliable.
         Some implementation of blas have some issues on some OS.
@@ -175,7 +175,7 @@ class Settings:
         )
 
     @property
-    def tmproot(self):
+    def tmproot(self) -> str:
         """
         Location in which qutip place cython string coefficient folders.
         The default is "$HOME/.qutip".
@@ -184,13 +184,13 @@ class Settings:
         return self._tmproot
 
     @tmproot.setter
-    def tmproot(self, root):
+    def tmproot(self, root: str) -> None:
         if not os.path.exists(root):
             os.mkdir(root)
         self._tmproot = root
 
     @property
-    def coeffroot(self):
+    def coeffroot(self) -> str:
         """
         Location in which qutip save cython string coefficient files.
         Usually "{qutip.settings.tmproot}/qutip_coeffs_X.X".
@@ -199,7 +199,7 @@ class Settings:
         return self._coeffroot
 
     @coeffroot.setter
-    def coeffroot(self, root):
+    def coeffroot(self, root: str) -> None:
         if not os.path.exists(root):
             os.mkdir(root)
         if root not in sys.path:
@@ -207,18 +207,18 @@ class Settings:
         self._coeffroot = root
 
     @property
-    def coeff_write_ok(self):
+    def coeff_write_ok(self) -> bool:
         """ Whether qutip has write acces to ``qutip.settings.coeffroot``."""
         return os.access(self.coeffroot, os.W_OK)
 
     @property
-    def _has_openmp(self):
+    def _has_openmp(self) -> bool:
         return False
         # We keep this as a reminder for when openmp is restored: see Pull #652
         # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
     @property
-    def idxint_size(self):
+    def idxint_size(self) -> int:
         """
         Integer type used by ``CSR`` data.
         Sparse ``CSR`` matrices can contain at most ``2**idxint_size``
@@ -228,7 +228,7 @@ class Settings:
         return data.base.idxint_size
 
     @property
-    def num_cpus(self):
+    def num_cpus(self) -> int:
         """
         Number of cpu detected.
         Use the solver options to control the number of cpus used.
@@ -241,7 +241,7 @@ class Settings:
         return num_cpus
 
     @property
-    def colorblind_safe(self):
+    def colorblind_safe(self) -> bool:
         """
         Allow for a colorblind mode that uses different colormaps
         and plotting options by default.
@@ -249,10 +249,10 @@ class Settings:
         return self._colorblind_safe
 
     @colorblind_safe.setter
-    def colorblind_safe(self, value):
+    def colorblind_safe(self, value: bool) -> None:
         self._colorblind_safe = value
 
-    def __str__(self):
+    def __str__(self) -> str:
         lines = ["Qutip settings:"]
         for attr in self.__dir__():
             if not attr.startswith('_') and attr not in ["core", "compile"]:
@@ -260,7 +260,7 @@ class Settings:
         lines.append(f"    compile: {self.compile.__repr__(full=False)}")
         return '\n'.join(lines)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
 

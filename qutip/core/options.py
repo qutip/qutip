@@ -1,6 +1,9 @@
 from ..settings import settings
 from .numpy_backend import np as qt_np
 import numpy
+from typing import overload, Literal, Any
+import types
+
 __all__ = ["CoreOptions"]
 
 
@@ -14,7 +17,8 @@ class QutipOptions:
     Options can also act as properties. The ``_properties`` map options keys to
     a function to call when the ``QutipOptions`` become the default.
     """
-    _options = {}
+
+    _options: dict[str, Any] = {}
     _properties = {}
     _settings_name = None  # Where the default is in settings
 
@@ -25,14 +29,14 @@ class QutipOptions:
         if options:
             raise KeyError(f"Options {set(options)} are not supported.")
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> bool:
         return key in self.options
 
-    def __getitem__(self, key):
-        # Let the dict catch the
+    def __getitem__(self, key: str) -> Any:
+        # Let the dict catch the KeyError
         return self.options[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         # Let the dict catch the KeyError
         self.options[key] = value
         if (
@@ -41,13 +45,13 @@ class QutipOptions:
         ):
             self._properties[key](value)
 
-    def __repr__(self, full=True):
+    def __repr__(self, full: bool = True) -> str:
         out = [f"<{self.__class__.__name__}("]
         for key, value in self.options.items():
             if full or value != self._options[key]:
                 out += [f"    '{key}': {repr(value)},"]
         out += [")>"]
-        if len(out)-2:
+        if len(out) - 2:
             return "\n".join(out)
         else:
             return "".join(out)
@@ -56,7 +60,12 @@ class QutipOptions:
         self._backup = getattr(settings, self._settings_name)
         self._set_as_global_default()
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: types.TracebackType | None,
+    ) -> None:
         self._backup._set_as_global_default()
 
     def _set_as_global_default(self):
@@ -125,6 +134,7 @@ class CoreOptions(QutipOptions):
         known to ``qutip.data.to`` is accepted. When ``None``, these functions
         will default to a sensible data type.
     """
+
     _options = {
         # use auto tidyup
         "auto_tidyup": True,
@@ -150,6 +160,55 @@ class CoreOptions(QutipOptions):
     _properties = {
         "numpy_backend": qt_np._qutip_setting_backend,
     }
+
+    @overload
+    def __getitem__(
+        self,
+        key: Literal["auto_tidyup", "auto_tidyup_dims", "auto_real_casting"],
+    ) -> bool: ...
+
+    @overload
+    def __getitem__(
+        self, key: Literal["atol", "rtol", "auto_tidyup_atol"]
+    ) -> float: ...
+
+    @overload
+    def __getitem__(
+        self, key: Literal["function_coefficient_style"]
+    ) -> str: ...
+
+    @overload
+    def __getitem__(self, key: Literal["default_dtype"]) -> str | None: ...
+
+    def __getitem__(self, key: str) -> Any:
+        # Let the dict catch the KeyError
+        return self.options[key]
+
+    @overload
+    def __setitem__(
+        self,
+        key: Literal["auto_tidyup", "auto_tidyup_dims", "auto_real_casting"],
+        value: bool,
+    ) -> None: ...
+
+    @overload
+    def __setitem__(
+        self, key: Literal["atol", "rtol", "auto_tidyup_atol"], value: float
+    ) -> None: ...
+
+    @overload
+    def __setitem__(
+        self, key: Literal["function_coefficient_style"], value: str
+    ) -> None: ...
+
+    @overload
+    def __setitem__(
+        self, key: Literal["default_dtype"], value: str | None
+    ) -> None: ...
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        # Let the dict catch the KeyError
+        self.options[key] = value
 
 
 # Creating the instance of core options to use everywhere.
