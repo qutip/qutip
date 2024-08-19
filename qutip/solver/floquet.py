@@ -593,7 +593,7 @@ def fsesolve(
     if pos_args or not isinstance(T, (int, float)):
         # Old signature used
         warnings.warn(
-            f"e_ops, args and options will be positional only"
+            f"e_ops, args and options will be keyword only"
             " for all solver from qutip 5.3",
             FutureWarning
         )
@@ -751,7 +751,7 @@ def fmmesolve(
     if pos_args:
         # Old signature used
         warnings.warn(
-            "e_ops, args and options will be positional only"
+            "e_ops, args and options will be keyword only"
             " for all solver from qutip 5.3",
             FutureWarning
         )
@@ -766,7 +766,7 @@ def fmmesolve(
         # After the `c_ops` we could have the e_ops (old) or spectra_cb (new)
         # If old signature is used, the spectra_cb will overflow to `T`
         warnings.warn(
-            "e_ops will be positional only from qutip 5.3 for all solver",
+            "e_ops will be keyword only from qutip 5.3 for all solver",
             FutureWarning
         )
         e_ops = spectra_cb
