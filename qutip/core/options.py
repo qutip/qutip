@@ -134,6 +134,10 @@ class CoreOptions(QutipOptions):
         "function_coefficient_style": "auto",
         # Default Qobj dtype for Qobj create function
         "default_dtype": None,
+        # Where the default_dtype apply:
+        # - "creation": Used in functions creating Qobj
+        # - ""
+        "dtype_dtype_range": "creation",
         # Expect, trace, etc. will return real for hermitian matrices.
         # Hermiticity checks can be slow, stop jitting, etc.
         "auto_real_casting": True,
