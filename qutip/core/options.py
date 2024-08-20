@@ -74,6 +74,26 @@ class QutipOptions:
             self._properties[key](self.options[key])
 
 
+def _set_default_dtype(new_dtype):
+    import qutip
+    # Catch non existing alias and unsuported types
+    if new_dtype is not None:
+        qutip.core.data.to.parse(new_dtype)
+    for dispatcher in qutip.core.data.to.dispatchers:
+        dispatcher.rebuild_lookup()
+
+
+def _set_default_dtype_range(new_range):
+    import qutip
+    if new_range not in ["creation", "missing", "full"]:
+        raise ValueError(
+            "'default_dtype_range' must be one of "
+            "'creation', 'missing', 'full'"
+        )
+    for dispatcher in qutip.core.data.to.dispatchers:
+        dispatcher.rebuild_lookup()
+
+
 class CoreOptions(QutipOptions):
     """
     Options used by the core of qutip such as the tolerance of :obj:`.Qobj`
@@ -129,10 +149,26 @@ class CoreOptions(QutipOptions):
           ``pythonic`` is used.
 
     default_dtype : Nonetype, str, type {None}
-        When set, functions creating :obj:`.Qobj`, such as :func:"qeye" or
-        :func:"rand_herm", will use the specified data type. Any data-layer
-        known to ``qutip.data.to`` is accepted. When ``None``, these functions
-        will default to a sensible data type.
+        The specified data type will be used as output for different qutip
+        functions determined by the "default_dtype_range" options. Any
+        data-layer known to ``qutip.data.to`` is accepted. When ``None``, these
+        functions will default to a sensible data type.
+
+    default_dtype_range : str {"creation"}
+        Control where the default_dtype apply.
+
+        - "creation": Used in function creating :obj:`.Qobj`, such as
+          :func:"qeye" or :func:"rand_herm". Also used when creating `Qobj`
+          from list.
+
+        - "missing": "default_dtype" is also used in operations between data
+          layers where no exact operation match. For example ``Dense + Dense``
+          will return a ``Dense``, but ``Dense + CSR`` will use the default
+          type.
+
+        - "full": "default_dtype" is used for the output of Qobj operations and
+          forced when creating any Qobj. Be careful as it can affect the speed
+          of operation greatly.
     """
 
     _options = {
@@ -154,7 +190,7 @@ class CoreOptions(QutipOptions):
         # - "creation": Used in functions creating Qobj.
         # - "missing": Missing specialisation output use default.
         # - "full": All data layer operation output that type.
-        "dtype_dtype_range": "creation",
+        "default_dtype_range": "creation",
         # Expect, trace, etc. will return real for hermitian matrices.
         # Hermiticity checks can be slow, stop jitting, etc.
         "auto_real_casting": True,
@@ -179,7 +215,7 @@ class CoreOptions(QutipOptions):
 
     @overload
     def __getitem__(
-        self, key: Literal["function_coefficient_style"]
+        self, key: Literal["function_coefficient_style", "default_dtype_range"]
     ) -> str: ...
 
     @overload
@@ -203,7 +239,7 @@ class CoreOptions(QutipOptions):
 
     @overload
     def __setitem__(
-        self, key: Literal["function_coefficient_style"], value: str
+        self, key: Literal["function_coefficient_style", "default_dtype_range"], value: str
     ) -> None: ...
 
     @overload
@@ -217,5 +253,7 @@ class CoreOptions(QutipOptions):
 
 
 # Creating the instance of core options to use everywhere.
-# settings.core = CoreOptions()
 CoreOptions()._set_as_global_default()
+# Add properties after initial setup to not trigger the lookup rebuild
+CoreOptions._properties["default_dtype"] = _set_default_dtype
+CoreOptions._properties["default_dtype_range"] = _set_default_dtype_range
