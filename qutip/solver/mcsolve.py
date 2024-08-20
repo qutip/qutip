@@ -3,7 +3,7 @@ from __future__ import annotations
 
 __all__ = ['mcsolve', "MCSolver"]
 
-import numpy as np
+from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
 from numpy.random import SeedSequence
 from time import time
