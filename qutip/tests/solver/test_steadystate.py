@@ -323,3 +323,15 @@ def test_bad_system():
         qutip.steadystate(H, [], method='direct')
     with pytest.raises(TypeError):
         qutip.steadystate(qutip.basis(N, N-1), [], method='direct')
+
+
+def test_np_convergence_prop():
+    N = 4
+    a = qutip.destroy(N)
+    H = (a.dag() + a)
+    with pytest.raises(RuntimeError) as err:
+        qutip.steadystate(
+            H, [a], method='propagator',
+            propagator_max_iter=1, propagator_T=0.1
+        )
+    assert "Did not converge" in str(err.value)
