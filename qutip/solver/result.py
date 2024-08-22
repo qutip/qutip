@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from typing import TypedDict, Any, Callable
-import numpy as np
+from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
 from ..core import Qobj, QobjEvo, expect
 

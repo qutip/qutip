@@ -5,10 +5,11 @@ __all__ = [
 ]
 
 import functools
-
+from typing import TypeVar, overload
 import numpy as np
 
 from .qobj import Qobj
+from .cy.qobjevo import QobjEvo
 from . import data as _data
 from .dimensions import Compound, SuperSpace, Space
 
@@ -30,7 +31,28 @@ def _map_over_compound_operators(f):
     return out
 
 
-def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
+@overload
+def liouvillian(
+    H: Qobj,
+    c_ops: list[Qobj],
+    data_only: bool,
+    chi: list[float]
+) -> Qobj: ...
+
+@overload
+def liouvillian(
+    H: Qobj | QobjEvo,
+    c_ops: list[Qobj | QobjEvo],
+    data_only: bool,
+    chi: list[float]
+) -> QobjEvo: ...
+
+def liouvillian(
+    H: Qobj | QobjEvo = None,
+    c_ops: list[Qobj | QobjEvo] = None,
+    data_only: bool = False,
+    chi: list[float] = None,
+) -> Qobj | QobjEvo:
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
 
@@ -118,7 +140,28 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
                     copy=False)
 
 
-def lindblad_dissipator(a, b=None, data_only=False, chi=None):
+@overload
+def lindblad_dissipator(
+    a: Qobj,
+    b: Qobj,
+    data_only: bool,
+    chi: list[float]
+) -> Qobj: ...
+
+@overload
+def lindblad_dissipator(
+    a: Qobj | QobjEvo,
+    b: Qobj | QobjEvo,
+    data_only: bool,
+    chi: list[float]
+) -> QobjEvo: ...
+
+def lindblad_dissipator(
+    a: Qobj | QobjEvo,
+    b: Qobj | QobjEvo = None,
+    data_only: bool = False,
+    chi: list[float] = None,
+) -> Qobj | QobjEvo:
     """
     Lindblad dissipator (generalized) for a single pair of collapse operators
     (a, b), or for a single collapse operator (a) when b is not specified:
@@ -180,7 +223,7 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
 
 
 @_map_over_compound_operators
-def operator_to_vector(op):
+def operator_to_vector(op: Qobj) -> Qobj:
     """
     Create a vector representation given a quantum operator in matrix form.
     The passed object should have a ``Qobj.type`` of 'oper' or 'super'; this
@@ -208,7 +251,7 @@ def operator_to_vector(op):
 
 
 @_map_over_compound_operators
-def vector_to_operator(op):
+def vector_to_operator(op: Qobj) -> Qobj:
     """
     Create a matrix representation given a quantum operator in vector form.
     The passed object should have a ``Qobj.type`` of 'operator-ket'; this
@@ -236,7 +279,10 @@ def vector_to_operator(op):
                 copy=False)
 
 
-def stack_columns(matrix):
+QobjOrArray = TypeVar("QobjOrArray", Qobj, np.ndarray)
+
+
+def stack_columns(matrix: QobjOrArray) -> QobjOrArray:
     """
     Stack the columns in a data-layer type, useful for converting an operator
     into a superoperator representation.
@@ -250,7 +296,10 @@ def stack_columns(matrix):
     return _data.column_stack(matrix)
 
 
-def unstack_columns(vector, shape=None):
+def unstack_columns(
+    vector: QobjOrArray,
+    shape: tuple[int, int] = None,
+) -> QobjOrArray:
     """
     Unstack the columns in a data-layer type back into a 2D shape, useful for
     converting an operator in vector form back into a regular operator.  If
@@ -295,8 +344,11 @@ def stacked_index(size, row, col):
     return row + size*col
 
 
+AnyQobj = TypeVar("AnyQobj", Qobj, QobjEvo)
+
+
 @_map_over_compound_operators
-def spost(A):
+def spost(A: AnyQobj) -> AnyQobj:
     """
     Superoperator formed from post-multiplication by operator A
 
@@ -321,7 +373,7 @@ def spost(A):
 
 
 @_map_over_compound_operators
-def spre(A):
+def spre(A: AnyQobj) -> AnyQobj:
     """Superoperator formed from pre-multiplication by operator A.
 
     Parameters
@@ -351,6 +403,12 @@ def _drop_projected_dims(dims):
     """
     return [d for d in dims if d != 1]
 
+
+@overload
+def sprepost(A: Qobj, B: Qobj) -> Qobj: ...
+
+@overload
+def sprepost(A: Qobj | QobjEvo, B: Qobj | QobjEvo) -> QobjEvo: ...
 
 def sprepost(A, B):
     """
@@ -468,7 +526,7 @@ def _to_tensor_of_super(q_oper):
     return q_oper.permute(perm_idxs)
 
 
-def reshuffle(q_oper):
+def reshuffle(q_oper: Qobj) -> Qobj:
     """
     Column-reshuffles a super operator or a operator-ket Qobj.
     """

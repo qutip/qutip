@@ -9,7 +9,7 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
            'hellinger_dist', 'hilbert_dist', 'average_gate_fidelity',
            'process_fidelity', 'unitarity', 'dnorm']
 
-import numpy as np
+from .numpy_backend import np
 from scipy import linalg as la
 import scipy.sparse as sp
 from .superop_reps import to_choi, _to_superpauli, to_super, kraus_to_choi
@@ -80,7 +80,8 @@ def fidelity(A, B):
     # even for positive semidefinite matrices, small negative eigenvalues
     # can be reported.
     eig_vals = (sqrtmA * B * sqrtmA).eigenenergies()
-    return float(np.real(np.sqrt(eig_vals[eig_vals > 0]).sum()))
+    eig_vals_non_neg = np.where(eig_vals > 0, eig_vals, 0)
+    return np.real(np.sqrt(eig_vals_non_neg).sum())
 
 
 def _hilbert_space_dims(oper):
@@ -288,7 +289,7 @@ def tracedist(A, B, sparse=False, tol=0):
     diff = A - B
     diff = diff.dag() * diff
     vals = diff.eigenenergies(sparse=sparse, tol=tol)
-    return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
+    return np.real(0.5 * np.sum(np.sqrt(np.abs(vals))))
 
 
 def hilbert_dist(A, B):
@@ -520,7 +521,6 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # of the dual map of Lambda. We can evaluate that norm much more
     # easily if Lambda is completely positive, since then the largest
     # eigenvalue is the same as the largest singular value.
-
     if not force_solve and J.iscp:
         S_dual = to_super(J.dual_chan())
         vec_eye = operator_to_vector(qeye(S_dual.dims[1][1]))
@@ -575,7 +575,7 @@ def unitarity(oper):
     return np.linalg.norm(Eu, 'fro')**2 / len(Eu)
 
 
-def _find_poly_distance(eigenvals: np.ndarray) -> float:
+def _find_poly_distance(eigenvals) -> float:
     """
     Returns the distance between the origin and the convex hull of eigenvalues.
 

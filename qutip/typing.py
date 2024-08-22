@@ -1,4 +1,4 @@
-from typing import Sequence, Union, Any, Protocol
+from typing import Sequence, Union, Any, Protocol, Callable, TypeVar
 from numbers import Number, Real
 import numpy as np
 import scipy.interpolate
@@ -19,6 +19,7 @@ class CoeffProtocol(Protocol):
 
 CoefficientLike = Union[
     "Coefficient",
+    float,
     str,
     CoeffProtocol,
     np.ndarray,
@@ -26,6 +27,12 @@ CoefficientLike = Union[
     scipy.interpolate.BSpline,
     Any,
 ]
+
+
+QobjOrData = TypeVar("QobjOrData", "Qobj", "Data")
+
+
+EopsLike = Union["Qobj", "QobjEvo", Callable[[float, "Qobj"], Any]]
 
 
 ElementType = Union[QEvoProtocol, "Qobj", tuple["Qobj", CoefficientLike]]

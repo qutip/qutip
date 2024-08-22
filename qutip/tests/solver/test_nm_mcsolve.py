@@ -110,12 +110,13 @@ def test_solver_pickleable():
         "sin(t)",
     ]
     args = [
-        None,
+        {},
         {'constant': 1},
-        None,
+        {},
     ]
     for rate, arg in zip(rates, args):
-        solver = NonMarkovianMCSolver(H, [(L, rate)], args=arg)
+        op_and_rate = (L, qutip.coefficient(rate, args=arg))
+        solver = NonMarkovianMCSolver(H, [op_and_rate])
         jar = pickle.dumps(solver)
 
         loaded_solver = pickle.loads(jar)
@@ -559,9 +560,9 @@ class TestSeeds:
         size = 10
         a = qutip.destroy(size)
         H = qutip.num(size)
-        ops_and_rates = [(a, 'alpha')]
+        ops_and_rates = [(a, qutip.coefficient('alpha', args={'alpha': 0}))]
         mcsolver = NonMarkovianMCSolver(
-            H, ops_and_rates, args={'alpha': 0}, options={'map': 'serial'},
+            H, ops_and_rates, options={'map': 'serial'},
         )
         mcsolver.start(qutip.basis(size, size-1), 0, seed=5)
         state_1 = mcsolver.step(1, args={'alpha': 1})
@@ -630,12 +631,12 @@ def test_super_H(improved_sampling, mixed_initial_state):
 
 def test_NonMarkovianMCSolver_run():
     size = 10
-    ops_and_rates = [
-        (qutip.destroy(size), 'coupling')
-    ]
     args = {'coupling': 0}
+    ops_and_rates = [
+        (qutip.destroy(size), qutip.coefficient('coupling', args=args))
+    ]
     H = qutip.num(size)
-    solver = NonMarkovianMCSolver(H, ops_and_rates, args=args)
+    solver = NonMarkovianMCSolver(H, ops_and_rates)
     solver.options = {'store_final_state': True}
     res = solver.run(qutip.basis(size, size-1), np.linspace(0, 5.0, 11),
                      e_ops=[qutip.qeye(size)], args={'coupling': 1})
@@ -653,12 +654,12 @@ def test_NonMarkovianMCSolver_run():
 
 def test_NonMarkovianMCSolver_stepping():
     size = 10
-    ops_and_rates = [
-        (qutip.destroy(size), 'coupling')
-    ]
     args = {'coupling': 0}
+    ops_and_rates = [
+        (qutip.destroy(size), qutip.coefficient('coupling', args=args))
+    ]
     H = qutip.num(size)
-    solver = NonMarkovianMCSolver(H, ops_and_rates, args=args)
+    solver = NonMarkovianMCSolver(H, ops_and_rates)
     solver.start(qutip.basis(size, size-1), 0, seed=0)
     state = solver.step(1)
     assert qutip.expect(qutip.qeye(size), state) == pytest.approx(1)
@@ -756,7 +757,7 @@ def test_mixed_equals_merged(improved_sampling, p):
     ntraj = [3, 9]
 
     solver = qutip.NonMarkovianMCSolver(
-        H, [(L, rate_function)],
+        H, [(L, qutip.coefficient(rate_function))],
         options={'improved_sampling': improved_sampling})
     mixed_result = solver.run(
         [(initial_state1, p), (initial_state2, 1 - p)], tlist, ntraj)

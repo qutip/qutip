@@ -745,7 +745,7 @@ cdef class ConstantCoefficient(Coefficient):
     """
     cdef complex value
 
-    def __init__(self, complex value):
+    def __init__(self, complex value, **_):
         self.value = value
 
     def replace_arguments(self, _args=None, **kwargs):
