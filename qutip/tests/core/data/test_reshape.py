@@ -20,7 +20,7 @@ class TestSplitColumns(UnaryOpMixin):
 class TestColumnStack(UnaryOpMixin):
     def op_numpy(self, matrix):
         out_shape = (matrix.shape[0]*matrix.shape[1], 1)
-        return np.reshape(matrix, newshape=out_shape, order='F')
+        return np.reshape(matrix, out_shape, order='F')
 
     specialisations = [
         pytest.param(data.column_stack_csr, CSR, CSR),
@@ -32,7 +32,7 @@ class TestColumnStack(UnaryOpMixin):
 class TestColumnUnstack(UnaryOpMixin):
     def op_numpy(self, matrix, rows):
         out_shape = (rows, matrix.shape[0]*matrix.shape[1]//rows)
-        return np.reshape(matrix, newshape=out_shape, order='F')
+        return np.reshape(matrix, out_shape, order='F')
 
     shapes = [
         (pytest.param((10, 1), id="ket"), ),
@@ -83,7 +83,7 @@ class TestColumnUnstack(UnaryOpMixin):
 class TestReshape(UnaryOpMixin):
     def op_numpy(self, matrix, rows, columns):
         out_shape = (rows, columns)
-        return np.reshape(matrix, newshape=out_shape, order='C')
+        return np.reshape(matrix, out_shape, order='C')
 
     # All matrices should have the same number of elements in total, so we can
     # use the same (rows, columns) parametrisation for each input.
