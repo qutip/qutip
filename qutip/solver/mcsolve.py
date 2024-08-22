@@ -514,7 +514,7 @@ class MCSolver(MultiTrajSolver):
     def _no_jump_simulation(self, state, tlist, e_ops, seed=None):
         """
         Simulates the no-jump trajectory from the initial state `state0`.
-        Returns a tuple containing the seed, the `TrajectoryResult` describing
+        Returns a tuple containing the seed, the `Result` describing
         this trajectory, and the trajectory's probability.
         Note that a seed for the integrator may be provided, but will
         be ignored in the no-jump simulation.

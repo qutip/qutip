@@ -9,7 +9,7 @@ from ..core.numpy_backend import np
 
 from copy import copy
 
-from .result import _BaseResult, TrajectoryResult
+from .result import _BaseResult, Result
 from ..core import qzero_like
 
 __all__ = [
@@ -829,19 +829,17 @@ class _TrajectorySum:
             _to_dm(example_trajectory.final_state)
         )
 
-    def reduce_states(self, trajectory, weight=1.):
+    def reduce_states(self, trajectory, weight=1., td_weight=None):
         """
         Adds the states stored in the given trajectory to the running sum
         `sum_states`. Takes account of the trajectory's total weight if
         present.
         """
-        if getattr(trajectory, "has_time_dependent_weight", False):
+        if td_weight is not None:
             self.sum_states = [
                 accu + weight * weight_t * _to_dm(state)
                 for accu, state, weight_t in zip(
-                    self.sum_states,
-                    trajectory.states,
-                    trajectory.total_weight
+                    self.sum_states, trajectory.states, td_weight
                 )
             ]
         else:
@@ -856,11 +854,7 @@ class _TrajectorySum:
         `sum_final_state`. Takes account of the trajectory's total weight if
         present.
         """
-        if getattr(trajectory, "has_time_dependent_weight", False):
-            self.sum_final_state += (weight * trajectory._final_weight *
-                                     _to_dm(trajectory.final_state))
-        else:
-            self.sum_final_state += weight * _to_dm(trajectory.final_state)
+        self.sum_final_state += weight * _to_dm(trajectory.final_state)
 
     def reduce_expect(self, trajectory, weight=1.):
         """
@@ -868,15 +862,9 @@ class _TrajectorySum:
         given trajectory to the running sums `sum_expect` and `sum2_expect`.
         Takes account of the trajectory's total weight if present.
         """
-        if getattr(trajectory, "has_time_dependent_weight", False):
-            weight_t = trajectory.total_weight
-            for i, expect_traj in enumerate(trajectory.expect):
-                self.sum_expect[i] += weight * weight_t * expect_traj
-                self.sum2_expect[i] += weight * weight_t * expect_traj**2
-        else:
-            for i, expect_traj in enumerate(trajectory.expect):
-                self.sum_expect[i] += weight * expect_traj
-                self.sum2_expect[i] += weight * expect_traj**2
+        for i, expect_traj in enumerate(trajectory.expect):
+            self.sum_expect[i] += weight * expect_traj
+            self.sum2_expect[i] += weight * expect_traj**2
 
     @staticmethod
     def merge(sum1, weight1, sum2, weight2):
@@ -928,7 +916,49 @@ class _TrajectorySum:
         return new
 
 
-class McResult(MultiTrajResult):
+class _McBaseResult(MultiTrajResult):
+    # Collapse are only produced by mcsolve.
+    def _add_collapse(self, trajectory, *, rel=None, abs=None):
+        if rel is not None:
+            self.collapse.append(trajectory.collapse)
+
+    def _post_init(self):
+        super()._post_init()
+        self.num_c_ops = self.stats["num_collapse"]
+        self.collapse = []
+        self.add_processor(self._add_collapse)
+
+    @property
+    def col_times(self):
+        """
+        List of the times of the collapses for each runs.
+        """
+        out = []
+        for col_ in self.collapse:
+            col = list(zip(*col_))
+            col = [] if len(col) == 0 else col[0]
+            out.append(col)
+        return out
+
+    @property
+    def col_which(self):
+        """
+        List of the indexes of the collapses for each runs.
+        """
+        out = []
+        for col_ in self.collapse:
+            col = list(zip(*col_))
+            col = [] if len(col) == 0 else col[1]
+            out.append(col)
+        return out
+
+    def merge(self, other, p=None):
+        new = super().merge(other, p)
+        new.collapse = self.collapse + other.collapse
+        return new
+
+
+class McResult(_McBaseResult):
     """
     Class for storing Monte-Carlo solver results.
 
@@ -966,53 +996,11 @@ class McResult(MultiTrajResult):
         happened and the corresponding ``c_ops`` index.
     """
 
-    # Collapse are only produced by mcsolve.
-    def _add_collapse(self, trajectory, *, rel=None, abs=None):
-        if rel is not None:
-            self.collapse.append(trajectory.collapse)
-            if trajectory.has_time_dependent_weight:
-                self._time_dependent_weights = True
-
-    def _post_init(self):
-        super()._post_init()
-        self.num_c_ops = self.stats["num_collapse"]
-        self._time_dependent_weights = False
-        self.collapse = []
-        self.add_processor(self._add_collapse)
-
-    @property
-    def col_times(self):
-        """
-        List of the times of the collapses for each runs.
-        """
-        out = []
-        for col_ in self.collapse:
-            col = list(zip(*col_))
-            col = [] if len(col) == 0 else col[0]
-            out.append(col)
-        return out
-
-    @property
-    def col_which(self):
-        """
-        List of the indexes of the collapses for each runs.
-        """
-        out = []
-        for col_ in self.collapse:
-            col = list(zip(*col_))
-            col = [] if len(col) == 0 else col[1]
-            out.append(col)
-        return out
-
     @property
     def photocurrent(self):
         """
         Average photocurrent or measurement of the evolution.
         """
-        if self._time_dependent_weights:
-            raise NotImplementedError("photocurrent is not implemented "
-                                      "for this solver.")
-
         collapse_times = [[] for _ in range(self.num_c_ops)]
         collapse_weights = [[] for _ in range(self.num_c_ops)]
         tlist = self.times
@@ -1033,10 +1021,6 @@ class McResult(MultiTrajResult):
         """
         Photocurrent or measurement of each runs.
         """
-        if self._time_dependent_weights:
-            raise NotImplementedError("runs_photocurrent is not implemented "
-                                      "for this solver.")
-
         tlist = self.times
         measurements = []
         for collapses in self.collapse:
@@ -1051,15 +1035,8 @@ class McResult(MultiTrajResult):
             )
         return measurements
 
-    def merge(self, other, p=None):
-        new = super().merge(other, p)
-        new.collapse = self.collapse + other.collapse
-        new._time_dependent_weights = (
-            self._time_dependent_weights or other._time_dependent_weights)
-        return new
 
-
-class NmmcResult(McResult):
+class NmmcResult(_McBaseResult):
     """
     Class for storing the results of the non-Markovian Monte-Carlo solver.
 
@@ -1116,6 +1093,32 @@ class NmmcResult(McResult):
         self.runs_trace = []
 
         self.add_processor(self._add_trace)
+
+    def _reduce_states(self, trajectory, *, abs=None, rel=None):
+        if abs is not None:
+            self._sum_abs.reduce_states(trajectory, abs, trajectory.trace)
+        else:
+            self._sum_rel.reduce_states(trajectory, rel, trajectory.trace)
+
+    def _reduce_final_state(self, trajectory, *, abs=None, rel=None):
+        if abs is not None:
+            self._sum_abs.reduce_final_state(trajectory, abs * trajectory.trace[-1])
+        else:
+            self._sum_rel.reduce_final_state(trajectory, rel * trajectory.trace[-1])
+
+    def _reduce_expect(self, trajectory, *, abs=None, rel=None):
+        """
+        Compute the average of the expectation values and store it in it's
+        multiple formats.
+        """
+        if abs is not None:
+            self._sum_abs.reduce_expect(trajectory, abs * np.array(trajectory.trace))
+        else:
+            self._sum_rel.reduce_expect(trajectory, rel * np.array(trajectory.trace))
+
+            if self.runs_e_data:
+                for k in self._raw_ops:
+                    self.runs_e_data[k].append(trajectory.e_data[k])
 
     def _add_first_traj(self, trajectory):
         super()._add_first_traj(trajectory)

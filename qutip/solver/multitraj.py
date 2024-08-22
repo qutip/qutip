@@ -1,7 +1,7 @@
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
-from .result import TrajectoryResult
+from .result import Result
 from .multitrajresult import MultiTrajResult
 from .parallel import _get_map
 from time import time
@@ -61,7 +61,7 @@ class MultiTrajSolver(Solver):
     """
     name = "generic multi trajectory"
     _resultclass = MultiTrajResult
-    _trajectory_resultclass = TrajectoryResult
+    _trajectory_resultclass = Result
     _avail_integrators = {}
 
     # Class of option used by the solver

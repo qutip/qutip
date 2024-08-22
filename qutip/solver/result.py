@@ -8,10 +8,7 @@ from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
 from ..core import Qobj, QobjEvo, expect
 
-__all__ = [
-    "Result",
-    "TrajectoryResult",
-]
+__all__ = ["Result"]
 
 
 class _QobjExpectEop:
@@ -368,69 +365,3 @@ class Result(_BaseResult):
         if self.states:
             return self.states[-1]
         return None
-
-
-class TrajectoryResult(Result):
-    r"""
-    Result class used for single trajectories in multi-trajectory simulations.
-
-    A trajectory may come with a weight. The trajectory average of an
-    observable O is then performed as
-
-    .. math::
-        \langle O \rangle = \sum_k w(k) O(k) ,
-
-    where O is an observable, w(k) the weight of the k-th trajectory, and O(k)
-    the observable on the k-th trajectory. The weight may be time-dependent.
-
-    There may be an absolute weight `wa` and / or a relative weight `wr`.
-    The total weight is `w = wa * wr` if the absolute weight is set, and
-    `w = wr / N` otherwise (where N is the number of trajectories with no
-    absolute weight specified).
-
-    Attributes
-    ----------
-    rel_weight: float or list
-        The relative weight, constant or time-dependent.
-
-    abs_weight: float or list or None
-        The absolute weight, constant or time-dependent.
-        None if no absolute weight has been set.
-    """
-
-    def _post_init(self):
-        super()._post_init()
-
-        self.rel_weight = np.array(1)
-        self._has_td_weight = False
-
-    def add_time_dependent_weight(self, new_weight):
-        """
-        Adds the given weights.
-        The weights should be an array the same length as the ``tlist``.
-
-        """
-        new_weight = np.array(new_weight)
-        assert len(new_weight) == len(self.times)
-        self.rel_weight = self.rel_weight * new_weight
-        self._has_td_weight = True
-
-    @property
-    def has_time_dependent_weight(self):
-        """Whether the total weight is time-dependent."""
-        # np.ndim(None) returns zero, which is what we want
-        return self._has_td_weight
-
-    @property
-    def total_weight(self):
-        """
-        Returns the total weight, either a single number or an array in case of
-        a time-dependent weight. If no absolute weight was set, this is only
-        the relative weight. If an absolute weight was set, this is the product
-        of the absolute and the relative weights.
-        """
-        return self.rel_weight
-
-    @property
-    def _final_weight(self):
-        return self.rel_weight[-1]

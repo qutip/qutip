@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import qutip
-from qutip.solver.result import Result, TrajectoryResult
+from qutip.solver.result import Result
 from qutip.solver.multitrajresult import MultiTrajResult, McResult, NmmcResult
 
 
@@ -13,6 +13,9 @@ def fill_options(**kwargs):
         "keep_runs_results": False,
         **kwargs
     }
+
+
+TrajectoryResult = Result
 
 
 def e_op_state_by_time(t, state):
