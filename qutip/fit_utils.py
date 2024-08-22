@@ -1,7 +1,11 @@
+"""
+Set of utility functions to obtain a decaying exponential representation of
+correlation functions via fitting
+"""
+import scipy.linalg as sp
 import scipy as sp
 import numpy as np
 from scipy.optimize import curve_fit
-
 
 
 def _pack(*args):
@@ -17,10 +21,10 @@ def _unpack(params, n=3):
     Unpack parameter lists for fitting. In the use cases (spectral fit/
     correlation fit), the fit parameters are three/four arrays of equal length.
     """
-    N = len(params) // n
+    num_params = len(params) // n
     zz = []
     for i in range(n):
-        zz.append(params[i*N:(i+1)*N])
+        zz.append(params[i*num_params:(i+1)*num_params])
     return zz
 
 
@@ -97,10 +101,10 @@ def _rmse(func, x, y, *args):
     return rmse
 
 
-def _fit(func, C, t, N, default_guess_scenario='',
+def _fit(func, corr, t, N, default_guess_scenario='',
          guesses=None, lower=None, upper=None, sigma=None, n=3):
     """
-    Performs a fit the function func to t and C, with N number of
+    Performs a fit the function func to t and corr, with N number of
     terms in func, the guesses,bounds and uncertainty can be determined
     by the user.If none is provided it constructs default ones according
     to the label.
@@ -109,7 +113,7 @@ def _fit(func, C, t, N, default_guess_scenario='',
     ----------
     func : function
         The function we wish to fit.
-    C : :obj:`np.array.`
+    corr : :obj:`np.array.`
         a numpy array containing the dependent variable used for the fit.
     t : :obj:`np.array.`
         a numpy array containing the independent variable used for the fit.
@@ -144,7 +148,7 @@ def _fit(func, C, t, N, default_guess_scenario='',
         upper = _reformat(upper, N)
     else:
         tempguess, templower, tempupper, tempsigma = _default_guess_scenarios(
-            C, t, default_guess_scenario, N, n)
+            corr, t, default_guess_scenario, N, n)
         guesses = tempguess
         lower = templower
         upper = tempupper
@@ -154,56 +158,56 @@ def _fit(func, C, t, N, default_guess_scenario='',
     if not ((len(guesses) == len(lower)) and (len(guesses) == len(upper))):
         raise ValueError("The shape of the provided fit parameters is \
                          not consistent")
-    args = _leastsq(func, C, t, sigma=sigma, guesses=guesses,
+    args = _leastsq(func, corr, t, sigma=sigma, guesses=guesses,
                     lower=lower, upper=upper, n=n)
-    rmse = _rmse(func, t, C, *args)
+    rmse = _rmse(func, t, corr, *args)
     return rmse, args
 
 
-def _default_guess_scenarios(C, t, default_guess_scenario, N, n):
-    C_max = abs(max(C, key=np.abs))
+def _default_guess_scenarios(corr, t, default_guess_scenario, N, n):
+    corr_max = abs(max(corr, key=np.abs))
     tempsigma = 1e-2
 
-    if C_max == 0:
+    if corr_max == 0:
         # When the target function is zero
         tempguesses = _pack(
             [0] * N, [0] * N, [0] * N, [0] * N)
         templower = tempguesses
         tempupper = tempguesses
         return tempguesses, templower, tempupper, tempsigma
-    wc = t[np.argmax(C)]
+    wc = t[np.argmax(corr)]
 
     if "correlation" in default_guess_scenario:
         if n == 4:
-            templower = _pack([-100*C_max] * N, [-np.inf] * N, [-1]
-                              * N, [-100*C_max] * N)
+            templower = _pack([-100*corr_max] * N, [-np.inf] * N, [-1]
+                              * N, [-100*corr_max] * N)
         else:
-            templower = _pack([-20 * C_max] * N, [-np.inf] * N, [0.0] * N)
+            templower = _pack([-20 * corr_max] * N, [-np.inf] * N, [0.0] * N)
 
     if default_guess_scenario == "correlation_real":
         if n == 4:
             wc = np.inf
-            tempguesses = _pack([C_max] * N, [-100*C_max]
+            tempguesses = _pack([corr_max] * N, [-100*corr_max]
                                 * N, [0] * N, [0] * N)
-            tempupper = _pack([100*C_max] * N, [0] * N,
-                              [1] * N, [100*C_max] * N)
+            tempupper = _pack([100*corr_max] * N, [0] * N,
+                              [1] * N, [100*corr_max] * N)
         else:
-            tempguesses = _pack([C_max] * N, [-wc] * N, [wc] * N)
-            tempupper = _pack([20 * C_max] * N, [0.1] * N, [np.inf] * N)
+            tempguesses = _pack([corr_max] * N, [-wc] * N, [wc] * N)
+            tempupper = _pack([20 * corr_max] * N, [0.1] * N, [np.inf] * N)
     elif default_guess_scenario == "correlation_imag":
         if n == 4:
             wc = np.inf
-            tempguesses = _pack([0] * N, [-10*C_max] * N, [0] * N, [0] * N)
-            tempupper = _pack([100*C_max] * N, [0] * N,
-                              [2] * N, [100*C_max] * N)
+            tempguesses = _pack([0] * N, [-10*corr_max] * N, [0] * N, [0] * N)
+            tempupper = _pack([100*corr_max] * N, [0] * N,
+                              [2] * N, [100*corr_max] * N)
         else:
-            tempguesses = _pack([-C_max] * N, [-10*C_max] * N, [1] * N)
-            tempupper = _pack([10 * C_max] * N, [0] * N, [np.inf] * N)
+            tempguesses = _pack([-corr_max] * N, [-10*corr_max] * N, [1] * N)
+            tempupper = _pack([10 * corr_max] * N, [0] * N, [np.inf] * N)
     else:
-        tempguesses = _pack([C_max] * N, [wc] * N, [wc] * N)
-        templower = _pack([-100 * C_max] * N,
+        tempguesses = _pack([corr_max] * N, [wc] * N, [wc] * N)
+        templower = _pack([-100 * corr_max] * N,
                           [0.1 * wc] * N, [0.1 * wc] * N)
-        tempupper = _pack([100 * C_max] * N,
+        tempupper = _pack([100 * corr_max] * N,
                           [100 * wc] * N, [100 * wc] * N)
     return tempguesses, templower, tempupper, tempsigma
 
@@ -282,6 +286,7 @@ def _run_fit(funcx, y, x, final_rmse, default_guess_scenario='', N=None, n=3,
 
 def _gen_summary(time, rmse, N, label, params,
                  columns=['lam', 'gamma', 'w0']):
+    """Generates a summary of fits by nonlinear least squares"""
     if len(columns) == 3:
         summary = (f"Result of fitting {label} "
                    f"with {N} terms: \n \n {'Parameters': <10}|"
@@ -309,7 +314,7 @@ def _gen_summary(time, rmse, N, label, params,
 def _two_column_summary(
         params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
         rmse_imag, rmse_real, n=3):
-    # Generate nicely formatted summary
+    # Generate nicely formatted summary with two columns for correlations
     columns = ["a", "b", "c"]
     if n == 4:
         columns.append("d")
@@ -347,104 +352,235 @@ def _two_column_summary(
     return full_summary
 
 
-def aaa(F, Z, tol=1e-13, mmax=100):
+def aaa(func, z, tol=1e-13, max_iter=100):
+    """
+    Computes a rational approximation of the function according to the AAA 
+    algorithm as explained in https://doi.org/10.1137/16M1106122 . This
+    implementation is a python translation of the one in that paper
 
-    if ~ (type(F) == np.array):
-        F = F(Z)
-    M = len(Z)
-    J = list(range(0, M))
-    z = np.empty(0)
-    f = np.empty(0)
-    C = []
-    errors = []
-    R = np.mean(F) * np.ones_like(F)
-    for m in range(mmax):
-        # find largest residual
-        j = np.argmax(abs(F - R))
-        z = np.append(z, Z[j])
-        f = np.append(f, F[j])
-        try:
-            J.remove(j)
-        except:
-            pass
+    Parameters:
+    -----------
+    func : callable or np.ndarray
 
-        # Cauchy matrix containing the basis functions as columns
-        C = 1.0 / (Z[J, None] - z[None, :])
-        # Loewner matrix
-        A = (F[J, None] - f[None, :]) * C
+    z : np.ndarray
+        The sampling points on which to perform the rational approximation. 
+        Even though linearly spaced sample points will yield good 
+        approximations, logarithmicly spaced points will usually give better
+        exponent approximations
 
-        # compute weights as right singular vector for smallest singular value
-        _, _, Vh = np.linalg.svd(A)
-        wj = Vh[-1, :].conj()
+    tol : float, optional
+        Relative tolerance of the approximation
+    max_iter : int, optional
+        Maximum number of support points ~2*n where n is the number of bath 
+        exponents
 
-        # approximation: numerator / denominator
-        N = C.dot(wj * f)
-        D = C.dot(wj)
+    Returns:
+    --------
+    r : callable
+        rational approximation of the function
+    pol : np.ndarray
+        poles of the approximant function
+    res : np.ndarray
+        residues of the approximant function
+    zer : np.ndarray
+        zeros of the approximant function
+    errors : np.ndarray
+        Error by iteration
+    """
+    func = func(z) if callable(func) else func
+    indices = np.arange(len(z))
+    support_points = np.empty(0, dtype=z.dtype)
+    values = np.empty(0, dtype=func.dtype)
+    errors = np.zeros(max_iter)
+    rational_approx = np.full_like(func, np.mean(func))
 
-        # update residual
-        R = F.copy()
-        R[J] = N / D
+    for k in range(max_iter):
+        j = np.argmax(np.abs(func - rational_approx))  # next support time
+        support_points = np.append(support_points, z[j])
+        values = np.append(values, func[j])
+        indices = indices[indices != j]
 
-        # check for convergence
-        errors.append(np.linalg.norm(F - R, np.inf))
-        if errors[-1] <= tol * np.linalg.norm(F, np.inf):
+        cauchy = compute_cauchy_matrix(z[indices], support_points)
+        loewner = np.subtract.outer(func[indices], values) * cauchy
+        _, _, vh = np.linalg.svd(loewner)
+        weights = vh[-1, :].conj()
+        rational_approx = get_rational_approx(
+            cauchy, weights, values, indices, func)
+        errors[k] = np.linalg.norm(
+            func - rational_approx, np.inf)  # compute error
+        if errors[k] <= tol * np.linalg.norm(func, np.inf):
             break
 
-    def r(x): return approximated_function(x, z, f, wj)
-    # return z,f,wj
-    pol, res, zer = prz(z, f, wj)
-    return r, pol, res, zer
+    def r(x):
+        return approximated_function(x, support_points, values, weights)
+    pol, res, zer = prz(support_points, values, weights)
+    return r, pol, res, zer, errors[:k+1]
 
 
-def approximated_function(zz, z, f, w, need=False):
-    # evaluate r at zz
-    zv = np.ravel(zz)  # vectorize zz
+def compute_cauchy_matrix(z, support_points):
+    r"""
+    Computes the `Cauchy matrix <https://en.wikipedia.org/wiki/Cauchy_matrix>`
+    for the AAA rational approximation
 
-    # Cauchy matrix
-    CC = 1 / (np.subtract.outer(zv, z))
+    ..math::
+    a_{ij}={\frac {1}{x_{i}-y_{j}}};\quad x_{i}-y_{j}\neq 0
+    ,\quad 1\leq i\leq m,\quad 1\leq j\leq n}
 
-    # AAA approximation as vector
-    r = np.dot(CC, w * f) / np.dot(CC, w)
-    if need is True:
-        return np.dot(CC, w * f), np.dot(CC, w * f)
-    # Find values NaN = Inf/Inf if any
-    ii = np.isnan(r)
+    Parameters:
+    -----------
+    z : np.ndarray
+        sample points x
+    support_points : np.ndarray
+        suuport points y 
 
-    # Force interpolation at NaN points
-    for j in np.where(ii)[0]:
-        r[j] = f[np.where(zv[j] == z)[0][0]]
+    Returns:
+    --------
+    cauchy : np.ndarray
+        The cauchy matrix from the sample and support points
+    """
+    return 1 / np.subtract.outer(z, support_points)
 
-    # Reshape the result to match the shape of zz
-    r = r.reshape(zz.shape)
-    return r
+
+def get_rational_approx(cauchy, weights, values, indices=None, func=None):
+    """
+    Gets the rational approximation of the function. The approximation is of 
+    the form 
+
+    ..math::
+        r(z) = \frac{w_{j} f_{j}}{z-z_{j}}/\frac{w_{j}}{z-z_{j}}
+    Parameters:
+    -----------
+    cauchy : np.ndarray
+        The cauchy matrix
+    values : np.ndarray
+        The data used for the approximation
+    weights : np.ndarray
+        The weights used for the approximation
+
+    Returns:
+    --------
+    r : np.ndarray
+        The rational approximation of the function
+    """
+
+    numerator = cauchy @ (weights * values)
+    denominator = cauchy @ weights
+    if func is None:
+        rational_approx = numerator / denominator
+    else:
+        rational_approx = func.copy()
+        rational_approx[indices] = numerator / denominator
+    return rational_approx
 
 
-def prz(z, f, w):
-    m = len(w)
-    B = np.eye(m+1)
-    B[0, 0] = 0
-    E = np.block([[0, w], [np.ones((m, 1)), np.diag(z)]])
-    eigvals = sp.linalg.eig(E, B)[0]
-    # eigvals[~np.isinf(eigvals)] #remove singularities
+def approximated_function(z, support_points, values, weights):
+    """
+    It computes the rational approximation 
+    ..math::
+        r(z) = \frac{w_{j} f_{j}}{z-z_{j}}/\frac{w_{j}}{z-z_{j}}
+    and interpolates its poles naively
+    Parameters:
+    -----------
+    z : np.ndarray
+        sample points for the approximation
+    support_points : np.ndarray
+        the support points for the cauchy matrix
+    values : np.ndarray
+        the data use for the approximation
+    weights : np.ndarray
+        the weight vector w
+
+    Returns:
+    --------
+    r : np.ndarray
+        The rational approximation of the function smoothed out
+    """
+    zv = np.ravel(z)  # flatten with c order
+    cauchy = compute_cauchy_matrix(z, support_points)
+    r = get_rational_approx(cauchy, weights, values)
+    mask = np.isnan(r)  # removing the nans in the poles
+    if np.any(mask):
+        closest_indices = np.argmin(
+            np.abs(zv[mask, None] - support_points), axis=1)
+        r[mask] = values[closest_indices]
+
+    return r.reshape(z.shape)
+
+
+def prz(support_points, values, weights):
+    r"""
+    prz stands for poles, residues and zeros. It calculates and returns the
+    poles, residue and zeros of the rational approximation. Using the
+    generalized eigenvalue problem
+
+    ..math::
+       geig = \begin{pmatrix}0 & \omega_{2} & \dots& \omega_{m} \\
+           1& z_{1} & 0 & \dots \\
+           1 & 0 & z_{2} & \dots \\
+            \vdots   & \vdots & \vdots & \vdots \\
+             1   & \dots  & \dots &z_{m}\end{pmatrix} = \lambda L
+
+    where B is like a mxm identity matrix, except its first element is 0
+
+    Parameters:
+    -----------
+    support_points : np.ndarray
+        The support points of the rational approximation
+    values : np.ndarray
+        Data values on which the approximation is performed
+    weights :np.ndarray
+        The weight vector
+
+    Returns:
+    --------
+    pol : np.ndarray
+        The poles of the rational approximation
+    res : np.ndarray
+        The residues of the rational approximation
+    zer : np.ndarray
+        The zeros of the rational approximation
+    """
+    m = len(weights)
+    geye = np.eye(m+1)
+    geye[0, 0] = 0
+    geig = np.block([[0, weights], [np.ones((m, 1)), np.diag(support_points)]])
+    eigvals = sp.linalg.eig(geig, geye)[0]
+    # removing spurious values
     pol = np.real_if_close(eigvals[np.isfinite(eigvals)])
-    # Get residues from quotients, in the paper they use a little shift
-    # but I coudn't broadcast it correctly
-    C = 1.0/(pol[:, None]-z[None, :])
-    N = C.dot(f*w)
-    # Derivative, formula for simple poles see Zill complex analysis
-    D = (-C**2).dot(w)
-    res = N/D
-    ez = np.block([[0, w], [f[:, None], np.diag(z)]])
-    eigvals_zeros = sp.linalg.eig(ez, B)[0]
-    zer = eigvals_zeros[~np.isinf(eigvals_zeros)]
-    return pol, res, zer
+
+    cauchy = compute_cauchy_matrix(pol, support_points)
+    # this is not the same formula they use, instead of a
+    # phase perturbation I use  1/cauchy' weights (simple quotient formula)
+    # for the residue
+
+    numerator = cauchy @ (values * weights)
+    denominator = (-cauchy**2) @ weights
+    res = numerator / denominator
+    ez = np.block([[0, weights], [values[:, None], np.diag(support_points)]])
+    zeros = sp.linalg.eig(ez, geye)[0]
+    zeros = zeros[~np.isinf(zeros)]
+    return pol, res, zeros
 
 
 def filter_poles(pol, res):
-    pols = []
-    ress = []
-    for i in range(len(pol)):
-        if (np.imag(pol[i]) < 0):
-            pols.append(pol[i])
-            ress.append(res[i])
-    return np.array(pols), np.array(ress)
+    """
+    The rational approximation gives poles both in the upper and lower 
+    plane, which translates into poles describing :math:`C(t)` and
+    :math:`C(-t)`. We filter the poles to get the ones for :math:`C(t)`
+
+    Parameters:
+    -----------
+    pol : np.ndarray
+        poles obtained from calling aaa
+    res : np.ndarray
+        residues obtained from calling aaa
+
+    Returns:
+    --------
+    filtered_pol : np.ndarray
+        The poles in the lower half plane
+    filtered_res : np.ndarray
+        The residues in the lower half plane
+    """
+    mask = np.imag(pol) < 0
+    return pol[mask], res[mask]

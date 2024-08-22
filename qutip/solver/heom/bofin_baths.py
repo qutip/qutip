@@ -230,6 +230,8 @@ class BosonicBath(Bath):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+    T: optional, float
+        The temperature of the bath.
     """
 
     def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):

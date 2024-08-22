@@ -2,34 +2,40 @@
 Classes to create baths (reservoirs) for the simulation of open systems,
 compatible with the mesolve,bremesolve, HEOMSolver
 """
-from qutip.core import data as _data
+from time import time
 import numpy as np
 from scipy.integrate import quad_vec
 from scipy.interpolate import interp1d
+from scipy.interpolate import InterpolatedUnivariateSpline
+from qutip.core import data as _data
 from .solver.heom.bofin_baths import (
     UnderDampedBath, DrudeLorentzBath, DrudeLorentzPadeBath, BosonicBath,
     BathExponent)
-from scipy.interpolate import InterpolatedUnivariateSpline
-from time import time
 from .fit_utils import (_run_fit, _gen_summary,
                         _two_column_summary, aaa, filter_poles)
 
 
 class Reservoir:
+    """
+    Class that contains the quantities one needs to describe a bath or 
+    reservoir
+
+    Parameters
+    ----------
+
+    T : float
+        Bath temperature.
+
+    x : :obj:`np.array.` (optional)
+        The points on which the correlation function is sampled. Does not need
+        to be provided if the correlation is passed as function
+
+    J : :obj:`np.array.` or callable
+       Rhe function used to create the reservoir
+
+    """
+
     def __init__(self, T: float, J: callable, x=None):
-        """
-        Initialize a Bath instance.
-
-        Args:
-            fermionic (bool): True if the bath is fermionic, False if bosonic.
-            T (float): Temperature of the bath.
-            label (str): Specified  function {"SD", "PS", "CF"} where "SD"
-            stands for Spectral Density, "PS" for Power Spectrum, and "CF"
-            for Correlation Function.
-
-        Raises:
-            ValueError: If an invalid label is provided.
-        """
         self.T = T
         self.set_func(x, J)
 
@@ -42,7 +48,6 @@ class Reservoir:
 
         if callable(J):
             self._w = w
-            # self._func_array = J(w) # no use for now
             self._func = J
         else:
             if w is None:
@@ -63,10 +68,24 @@ class Reservoir:
 
             # Create a complex-valued interpolation function
             self._func = lambda x: real_interp(x) + 1j * imag_interp(x)
-            # TODO: Ask if one should interpolate the correlation function for
-            # speed -> About interpolation warnings
 
     def _fft(self, t0=10, dt=1e-5):
+        """
+        Calculates the Fast Fourier transform of the correlation function. This
+        is an alternative to numerical integration which is often noisy in the 
+        settings we are interested on
+
+        Parameters
+        ----------
+        t0: float or obj:`np.array.`
+            Range to use for the fast fourier transform, the range is [-t0,t0].
+        dt: float
+            The timestep to be used.
+
+        Returns
+        -------
+        TThe fourier transform of the correlation function
+        """
         t = np.arange(-t0, t0, dt)
         # Define function
         f = self.correlation_function(t)
@@ -89,7 +108,7 @@ class Reservoir:
 
         Parameters
         ----------
-        w: float or array
+        w: float or obj:`np.array.`
             Energy of the mode.
 
         Returns
@@ -104,20 +123,34 @@ class Reservoir:
             return np.zeros_like(w)
 
         w = np.array(w, dtype=float)
-
-        # with np.errstate(divide='ignore'):  # return inf if w=0
-        #     return (1 / (np.exp(w / self.T) - 1))
         result = np.zeros_like(w)
         non_zero = w != 0
         result[non_zero] = 1 / (np.exp(w[non_zero] / self.T) - 1)
         return result
 
-# TODO: Ask how to incorporate to solvers, Maybe multiple dispatch
-
 
 class _BosonicReservoir_fromCF(Reservoir):
-    def __init__(self, T: float, J: callable, x=None):
-        super().__init__(T, J, x)
+    """
+    Hiden class that constructs a bosonic reservoir if the correlation function
+    and Temperature are provided 
+
+    Parameters
+    ----------
+
+    T : float
+        Bath temperature.
+
+    x : :obj:`np.array.` (optional)
+        The points on which the correlation function is sampled. Does not need
+        to be provided if the correlation is passed as function
+
+    C : :obj:`np.array.` or callable
+        The correlation function
+
+    """
+
+    def __init__(self, T: float, C: callable, x=None):
+        super().__init__(T, C, x)
 
     def correlation_function(self, t, **kwargs):
         """
@@ -158,12 +191,32 @@ class _BosonicReservoir_fromCF(Reservoir):
 
 
 class _BosonicReservoir_fromPS(Reservoir):
-    def __init__(self, T: float, J: callable, x=None):
-        super().__init__(T, J, x)
+    """
+    Hiden class that constructs a bosonic reservoir if the power spectrum
+    and Temperature are provided
+    Parameters
+    ----------
+
+    T : float
+        Bath temperature.
+
+    x : :obj:`np.array.` (optional)
+        The points on which the power spectrum is sampled. Does not need
+        to be provided if the power spectrum is passed as function
+
+    S: :obj:`np.array.` or callable
+        The power spectrum
+
+    """
+
+    def __init__(self, T: float, S: callable, x=None):
+        super().__init__(T, S, x)
 
     def correlation_function(self, t, **kwargs):
         """
         Calculate the correlation function of the bath.
+        
+        kwargs are the parameters that can be passed to scipy's quad_vec
 
         Returns:
             The correlation function (return type to be determined).
@@ -198,6 +251,25 @@ class _BosonicReservoir_fromPS(Reservoir):
 
 
 class _BosonicReservoir_fromSD(Reservoir):
+    """
+    Hiden class that constructs a bosonic reservoir if the spectral density
+    and Temperature are provided
+
+    Parameters
+    ----------
+
+    T : float
+        Bath temperature.
+
+    x : :obj:`np.array.` (optional)
+        The points on which the spectral density is sampled. Does not need
+        to be provided if the spectral density is passed as function
+
+    J: :obj:`np.array.` or callable
+        The spectral density
+
+    """
+
     def __init__(self, T: float, J: callable, x=None):
         super().__init__(T, J, x)
 
@@ -244,6 +316,11 @@ class _BosonicReservoir_fromSD(Reservoir):
 
 
 class BosonicReservoir(Reservoir):
+    """
+    Class that constructs a bosonic reservoir from class methods, temperature 
+    and either the spectral density, power spectrum, or correlation function 
+    need to be provided
+    """
     @classmethod
     def from_SD(self, T, J, w=None):
         return _BosonicReservoir_fromSD(T, J, w)
@@ -258,6 +335,52 @@ class BosonicReservoir(Reservoir):
 
 
 class ExponentialBosonicBath(BosonicBath):
+    """
+    Hiden class that constructs a bosonic reservoir, from the coefficients and
+    exponents
+
+    Parameters
+    ----------
+    Q : Qobj
+        The coupling operator for the bath.
+
+    ck_real : list of complex
+        The coefficients of the expansion terms for the real part of the
+        correlation function. The corresponding frequencies are passed as
+        vk_real.
+
+    vk_real : list of complex
+        The frequencies (exponents) of the expansion terms for the real part of
+        the correlation function. The corresponding ceofficients are passed as
+        ck_real.
+
+    ck_imag : list of complex
+        The coefficients of the expansion terms in the imaginary part of the
+        correlation function. The corresponding frequencies are passed as
+        vk_imag.
+
+    vk_imag : list of complex
+        The frequencies (exponents) of the expansion terms for the imaginary
+        part of the correlation function. The corresponding ceofficients are
+        passed as ck_imag.
+
+    combine : bool, default True
+        Whether to combine exponents with the same frequency (and coupling
+        operator). See :meth:`combine` for details.
+
+    tag : optional, str, tuple or any other object
+        A label for the bath exponents (for example, the name of the
+        bath). It defaults to None but can be set to help identify which
+        bath an exponent is from.
+    T: optional, float
+        The temperature of the bath.
+    """
+
+    def __init__(self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
+                 tag=None, T=None):
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag, combine,
+                         tag, T)
+
     def _bose_einstein(self, w):
         """
         Calculates the bose einstein distribution for the
@@ -265,7 +388,7 @@ class ExponentialBosonicBath(BosonicBath):
 
         Parameters
         ----------
-        w: float or array
+        w: float or obj:`np.array.`
             Energy of the mode.
 
         Returns
@@ -280,9 +403,6 @@ class ExponentialBosonicBath(BosonicBath):
             return np.zeros_like(w)
 
         w = np.array(w, dtype=float)
-
-        # with np.errstate(divide='ignore'):  # return inf if w=0
-        #     return (1 / (np.exp(w / self.T) - 1))
         result = np.zeros_like(w)
         non_zero = w != 0
         result[non_zero] = 1 / (np.exp(w[non_zero] / self.T) - 1)
@@ -296,7 +416,7 @@ class ExponentialBosonicBath(BosonicBath):
 
         Parameters
         ----------
-        t: float or array
+        t: float or obj:`np.array.`
             time to compute correlations.
 
         Returns
@@ -324,7 +444,7 @@ class ExponentialBosonicBath(BosonicBath):
 
         Parameters
         ----------
-        w: float or array
+        w: float or obj:`np.array.`
             Energy of the mode.
 
         Returns
@@ -355,7 +475,7 @@ class ExponentialBosonicBath(BosonicBath):
 
         Parameters
         ----------
-        w: float or array
+        w: float or obj:`np.array.`
             Energy of the mode.
 
         Returns
@@ -367,17 +487,61 @@ class ExponentialBosonicBath(BosonicBath):
 
 
 class ApproximatedBosonicBath(ExponentialBosonicBath):
+    """
+    This class allows to construct a reservoir from the correlation function,
+    power spectrum or spectral density.
+    """
     @classmethod
     def from_sd(self, bath, N, Nk, x, Q):
+        """
+        Generates a reservoir from the spectral density
+
+        Parameters
+        ----------
+        bath: obj:`BosonicReservoir`
+            The reservoir we want to approximate
+        N: int
+            The number of modes to use for the fit
+        Nk: int
+            The number of exponents to use in each mode
+        x: obj:`np.ndarray`
+            The range on which to perform the fit
+        Q: obj:`Qobj`
+            The coupling operator to the bath
+
+        Returns
+        -------
+        A bosonic reservoir
+        """
         cls = SpectralFitter(bath.T, Q, x, bath.spectral_density)
         cls.get_fit(N=N, Nk=Nk)
         return cls
 
     @classmethod
     def from_ps(self, bath, x, tol, max_exponents, Q):
-        r, pol, res, zer = aaa(bath.power_spectrum, x,
-                               tol=tol,
-                               mmax=max_exponents*2)
+        """
+        Generates a reservoir from the power spectrum
+
+        Parameters
+        ----------
+        bath: obj:`BosonicReservoir`
+            The reservoir we want to approximate
+        tol: float
+            The desired error tolerance
+        max_exponents: int
+            The maximum number of exponents allowed
+        x: obj:`np.ndarray`
+            The range on which to perform the fit
+        Q: obj:`Qobj`
+            The coupling operator to the bath
+
+        Returns
+        -------
+        A bosonic reservoir
+        """
+        r, pol, res, zer, _ = aaa(bath.power_spectrum, x,
+                                  tol=tol,
+                                  max_iter=max_exponents*2)
         new_pols, new_res = filter_poles(pol, res)
         ckAR, ckAI = np.real(-1j*new_res), np.imag(-1j*new_res)
         vkAR, vkAI = np.real(1j*new_pols), np.imag(1j*new_pols)
@@ -387,7 +551,29 @@ class ApproximatedBosonicBath(ExponentialBosonicBath):
         return cls
 
     @classmethod
-    def from_cf(self, Q, x, bath, Nr, Ni, full_ansatz):
+    def from_cf(self, Q, x, bath, Nr, Ni, full_ansatz=False):
+        """
+        Generates a reservoir from the correlation function
+
+        Parameters
+        ----------
+        bath: obj:`BosonicReservoir`
+            The reservoir we want to approximate
+        Nr: int
+            The number of modes to use for the fit of the real part 
+        Ni: int
+            The number of modes to use for the fit of the real part 
+        x: obj:`np.ndarray`
+            The range on which to perform the fit
+        Q: obj:`Qobj`
+            The coupling operator to the bath
+        full_ansatz: bool
+            Whether to use a fit of the imaginary and real parts that is 
+            complex
+        Returns
+        -------
+        A bosonic reservoir
+        """
         cls = CorrelationFitter(Q, bath.T, x, bath.correlation_function)
         cls.get_fit(
             Nr=Nr,
@@ -402,12 +588,11 @@ class ApproximatedBosonicBath(ExponentialBosonicBath):
 
         ck_real = [np.real(eta) for eta in eta_p]
         vk_real = [gam for gam in gamma_p]
-        # There is only one term in the expansion of the imaginary part of the
-        # Drude-Lorentz correlation function.
+
         ck_imag = [np.imag(eta_p[0])]
         vk_imag = [gamma_p[0]]
 
-        cls = DrudeLorentzPadeBath(
+        cls = _drudepade(
             Q, ck_real, vk_real, ck_imag, vk_imag,
             combine=combine, tag=tag, T=T
         )
@@ -423,13 +608,40 @@ class ApproximatedBosonicBath(ExponentialBosonicBath):
 
     @classmethod
     def from_matsubara_OD(self, lam, gamma, Nk, Q, T, combine=True, tag=None):
-        return DrudeLorentzBath(lam=lam, gamma=gamma, T=T, Q=Q, Nk=Nk)
+        return _drude(
+            lam=lam, gamma=gamma, T=T, Q=Q, Nk=Nk, combine=combine, tag=tag)
+
+
+class _drudepade(DrudeLorentzPadeBath, ExponentialBosonicBath):
+    """
+    Hidden class to have DrudeLorentzPadeBath inherit from 
+    ExponentialBosonicBath
+    """
+    def __init__(
+            self, Q, ck_real, vk_real, ck_imag, vk_imag, T, combine=True,
+            tag=None):
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag,
+                         combine=combine, tag=tag, T=T)
+
+
+class _drude(DrudeLorentzBath, ExponentialBosonicBath):
+    """
+    Hidden class to have DrudeLorentzBath inherit from
+    ExponentialBosonicBath
+    """
+    def __init__(self, Q, lam, gamma, T, Nk, combine=True, tag=None):
+        super().__init__(Q=Q, lam=lam, gamma=gamma, T=T, Nk=Nk,
+                         combine=combine, tag=tag)
 
 
 class _underdamped(UnderDampedBath, ExponentialBosonicBath):
+    """
+    Hidden class to have UnderDampedBath inherit from
+    ExponentialBosonicBath
+    """
     def __init__(self, Q, lam, gamma, w0, T, Nk, combine=True, tag=None):
-        super().__init__(Q=Q, lam=lam,gamma=gamma, w0=w0, T=T, Nk=Nk,
-                                              combine=combine, tag=tag)
+        super().__init__(Q=Q, lam=lam, gamma=gamma, w0=w0, T=T, Nk=Nk,
+                         combine=combine, tag=tag)
 
 
 class SpectralFitter(ExponentialBosonicBath):
@@ -456,6 +668,7 @@ class SpectralFitter(ExponentialBosonicBath):
     def __init__(self, T, Q, w, J):
         self.Q = Q
         self.T = T
+        self.fitinfo = None
         self.set_spectral_density(w, J)
 
     def set_spectral_density(self, w, J):
@@ -657,6 +870,7 @@ class CorrelationFitter(ExponentialBosonicBath):
     def __init__(self, Q, T, t, C):
         self.Q = Q
         self.T = T
+        self.fitinfo = None
         self.set_correlation_function(t, C)
 
     def set_correlation_function(self, t, C):
