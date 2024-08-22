@@ -176,10 +176,11 @@ class MultiTrajResult(_BaseResult):
         self.e_ops = None
 
         # We separate all sums into terms of trajectories with specified
-        # absolute weight (_abs) or without (_rel). They will be initialized
-        # when the first trajectory of the respective type is added.
+        # deterministic trajectories weight (_det) or without (_rel). They will
+        # be initialized when the first trajectory of the respective type is
+        # added.
         self._sum_rel = None
-        self._sum_abs = None
+        self._sum_det = None
         # Needed for merging results
         self._trajectories_weight_info = []
         self._deterministic_weight_info = []
@@ -216,13 +217,13 @@ class MultiTrajResult(_BaseResult):
 
     def _reduce_states(self, trajectory, *, abs=None, rel=None):
         if abs is not None:
-            self._sum_abs.reduce_states(trajectory, abs)
+            self._sum_det.reduce_states(trajectory, abs)
         else:
             self._sum_rel.reduce_states(trajectory, rel)
 
     def _reduce_final_state(self, trajectory, *, abs=None, rel=None):
         if abs is not None:
-            self._sum_abs.reduce_final_state(trajectory, abs)
+            self._sum_det.reduce_final_state(trajectory, abs)
         else:
             self._sum_rel.reduce_final_state(trajectory, rel)
 
@@ -232,7 +233,7 @@ class MultiTrajResult(_BaseResult):
         multiple formats.
         """
         if abs is not None:
-            self._sum_abs.reduce_expect(trajectory, abs)
+            self._sum_det.reduce_expect(trajectory, abs)
         else:
             self._sum_rel.reduce_expect(trajectory, rel)
 
@@ -244,9 +245,9 @@ class MultiTrajResult(_BaseResult):
         for i, k in enumerate(self._raw_ops):
             avg = 0
             avg2 = 0
-            if self._sum_abs:
-                avg += self._sum_abs.sum_expect[i]
-                avg2 += self._sum_abs.sum2_expect[i]
+            if self._sum_det:
+                avg += self._sum_det.sum_expect[i]
+                avg2 += self._sum_det.sum2_expect[i]
             if self._sum_rel:
                 avg += (
                     self._sum_rel.sum_expect[i] / self.num_trajectories
@@ -265,8 +266,8 @@ class MultiTrajResult(_BaseResult):
             self._add_first_traj(trajectory)
 
         if abs is not None:
-            if self._sum_abs is None:
-                self._sum_abs = _TrajectorySum(
+            if self._sum_det is None:
+                self._sum_det = _TrajectorySum(
                     trajectory,
                     self._store_average_density_matrices,
                     self._store_final_density_matrix)
@@ -322,15 +323,16 @@ class MultiTrajResult(_BaseResult):
 
         one = np.array(1)
         if sum(self._deterministic_weight_info):
-            # We only include traj. without abs. weights in this calculation.
-            # Since there are traj. with abs. weights., the weights don't add
+            # We do not include deterministic traj. in this calculation.
+            # When there is a deterministic trajectory, the weights don't add
             # up to one. We have to consider that as follows:
             # err = (std * <w>**2 / (N-1)) ** 0.5
             # avg = <x * w>
             # avg2 = <x**2 * w>
             # std * <w>**2 = (<x**2> - <x>**2) * <w>**2
             #              = avg2 * <w> - avg**2
-            # and "<w>" is one minus the sum of all absolute weights
+            # and "<w>" is one minus the sum of all deterministic trajectories
+            # weights
             one = one - sum(self._deterministic_weight_info)
 
         std = avg2 * one - abs(avg)**2
@@ -473,10 +475,10 @@ class MultiTrajResult(_BaseResult):
         trajectory_states_available = (self.trajectories and
                                        self.trajectories[0].states)
         need_to_reduce_states = False
-        if self._sum_abs and not self._sum_abs.sum_states:
+        if self._sum_det and not self._sum_det.sum_states:
             if not trajectory_states_available:
                 return None
-            self._sum_abs._initialize_sum_states(self.trajectories[0])
+            self._sum_det._initialize_sum_states(self.trajectories[0])
             need_to_reduce_states = True
         if self._sum_rel and not self._sum_rel.sum_states:
             if not trajectory_states_available:
@@ -495,14 +497,14 @@ class MultiTrajResult(_BaseResult):
             ):
                 self._reduce_states(trajectory, rel=weight)
 
-        if self._sum_abs and self._sum_rel:
+        if self._sum_det and self._sum_rel:
             return [a + r / self.num_trajectories for a, r in zip(
-                self._sum_abs.sum_states, self._sum_rel.sum_states)
+                self._sum_det.sum_states, self._sum_rel.sum_states)
             ]
         if self._sum_rel:
             return [r / self.num_trajectories
                     for r in self._sum_rel.sum_states]
-        return self._sum_abs.sum_states
+        return self._sum_det.sum_states
 
     @property
     def states(self):
@@ -530,7 +532,7 @@ class MultiTrajResult(_BaseResult):
                                        self.trajectories[0].final_state)
         states = self.average_states
         need_to_reduce_states = False
-        if self._sum_abs and not self._sum_abs.sum_final_state:
+        if self._sum_det and not self._sum_det.sum_final_state:
             if not (trajectory_states_available or states):
                 return None
             need_to_reduce_states = True
@@ -543,8 +545,8 @@ class MultiTrajResult(_BaseResult):
         if need_to_reduce_states and states:
             return states[-1]
         elif need_to_reduce_states:
-            if self._sum_abs:
-                self._sum_abs._initialize_sum_finalstate(self.trajectories[0])
+            if self._sum_det:
+                self._sum_det._initialize_sum_finalstate(self.trajectories[0])
             if self._sum_rel:
                 self._sum_rel._initialize_sum_finalstate(self.trajectories[0])
             for trajectory, weight in zip(
@@ -558,12 +560,12 @@ class MultiTrajResult(_BaseResult):
             ):
                 self._reduce_final_state(trajectory, rel=weight)
 
-        if self._sum_abs and self._sum_rel:
-            return (self._sum_abs.sum_final_state +
+        if self._sum_det and self._sum_rel:
+            return (self._sum_det.sum_final_state +
                     self._sum_rel.sum_final_state / self.num_trajectories)
         if self._sum_rel:
             return self._sum_rel.sum_final_state / self.num_trajectories
-        return self._sum_abs.sum_final_state
+        return self._sum_det.sum_final_state
 
     @property
     def final_state(self):
@@ -749,8 +751,8 @@ class MultiTrajResult(_BaseResult):
             (self_fstate or self_states) and (other_fstate or other_states)
         )
 
-        new._sum_abs = _TrajectorySum.merge(
-            self._sum_abs, p, other._sum_abs, 1 - p)
+        new._sum_det = _TrajectorySum.merge(
+            self._sum_det, p, other._sum_det, 1 - p)
         new._sum_rel = _TrajectorySum.merge(
             self._sum_rel, p / p_equal,
             other._sum_rel, (1 - p) / (1 - p_equal))
@@ -764,16 +766,16 @@ class MultiTrajResult(_BaseResult):
 
         return new
 
-    def _merge_weight(self, p, p_equal, isabs):
+    def _merge_weight(self, p, p_equal, is_det):
         """
         Merging two result objects can make the trajectories pick up
         merge weights. In order to have
             rho_merge = p * rho1 + (1-p) * rho2,
         the merge weights must be as defined here. The merge weight depends on
-        whether that trajectory has an absolute weight (`isabs`). The parameter
+        whether that trajectory is deterministic (`is_det`). The parameter
         `p_equal` is the value of p where all trajectories contribute equally.
         """
-        if isabs:
+        if is_det:
             return p
         return p / p_equal
 
@@ -1083,9 +1085,9 @@ class NmmcResult(_McBaseResult):
     def _post_init(self):
         super()._post_init()
 
-        self._sum_trace_abs = None
+        self._sum_trace_det = None
         self._sum_trace_rel = None
-        self._sum2_trace_abs = None
+        self._sum2_trace_det = None
         self._sum2_trace_rel = None
 
         self._average_trace = None
@@ -1096,13 +1098,13 @@ class NmmcResult(_McBaseResult):
 
     def _reduce_states(self, trajectory, *, abs=None, rel=None):
         if abs is not None:
-            self._sum_abs.reduce_states(trajectory, abs, trajectory.trace)
+            self._sum_det.reduce_states(trajectory, abs, trajectory.trace)
         else:
             self._sum_rel.reduce_states(trajectory, rel, trajectory.trace)
 
     def _reduce_final_state(self, trajectory, *, abs=None, rel=None):
         if abs is not None:
-            self._sum_abs.reduce_final_state(trajectory, abs * trajectory.trace[-1])
+            self._sum_det.reduce_final_state(trajectory, abs * trajectory.trace[-1])
         else:
             self._sum_rel.reduce_final_state(trajectory, rel * trajectory.trace[-1])
 
@@ -1112,7 +1114,7 @@ class NmmcResult(_McBaseResult):
         multiple formats.
         """
         if abs is not None:
-            self._sum_abs.reduce_expect(trajectory, abs * np.array(trajectory.trace))
+            self._sum_det.reduce_expect(trajectory, abs * np.array(trajectory.trace))
         else:
             self._sum_rel.reduce_expect(trajectory, rel * np.array(trajectory.trace))
 
@@ -1122,15 +1124,15 @@ class NmmcResult(_McBaseResult):
 
     def _add_first_traj(self, trajectory):
         super()._add_first_traj(trajectory)
-        self._sum_trace_abs = np.zeros_like(trajectory.trace)
+        self._sum_trace_det = np.zeros_like(trajectory.trace)
         self._sum_trace_rel = np.zeros_like(trajectory.trace)
-        self._sum2_trace_abs = np.zeros_like(trajectory.trace)
+        self._sum2_trace_det = np.zeros_like(trajectory.trace)
         self._sum2_trace_rel = np.zeros_like(trajectory.trace)
 
     def _add_trace(self, trajectory, *, abs=None, rel=None):
         if abs is not None:
-            self._sum_trace_abs += np.array(trajectory.trace) * abs
-            self._sum2_trace_abs += np.abs(trajectory.trace) ** 2 * abs
+            self._sum_trace_det += np.array(trajectory.trace) * abs
+            self._sum2_trace_det += np.abs(trajectory.trace) ** 2 * abs
         else:
             self._sum_trace_rel += np.array(trajectory.trace) * rel
             self._sum2_trace_rel += np.abs(trajectory.trace) ** 2 * rel
@@ -1139,10 +1141,10 @@ class NmmcResult(_McBaseResult):
             self.runs_trace.append(trajectory.trace)
 
     def _compute_avg_trace(self):
-        avg = self._sum_trace_abs
+        avg = self._sum_trace_det
         if self.num_trajectories > 0:
             avg = avg + self._sum_trace_rel / self.num_trajectories
-        avg2 = self._sum2_trace_abs
+        avg2 = self._sum2_trace_det
         if self.num_trajectories > 0:
             avg2 = avg2 + self._sum2_trace_rel / self.num_trajectories
 
@@ -1184,13 +1186,13 @@ class NmmcResult(_McBaseResult):
         if p is None:
             p = p_eq
 
-        new._sum_trace_abs = (
-            self._merge_weight(p, p_eq, True) * self._sum_trace_abs +
-            self._merge_weight(1 - p, 1 - p_eq, True) * other._sum_trace_abs
+        new._sum_trace_det = (
+            self._merge_weight(p, p_eq, True) * self._sum_trace_det +
+            self._merge_weight(1 - p, 1 - p_eq, True) * other._sum_trace_det
         )
-        new._sum2_trace_abs = (
-            self._merge_weight(p, p_eq, True) * self._sum2_trace_abs +
-            self._merge_weight(1 - p, 1 - p_eq, True) * other._sum2_trace_abs
+        new._sum2_trace_det = (
+            self._merge_weight(p, p_eq, True) * self._sum2_trace_det +
+            self._merge_weight(1 - p, 1 - p_eq, True) * other._sum2_trace_det
         )
         new._sum_trace_rel = (
             self._merge_weight(p, p_eq, False) * self._sum_trace_rel +
