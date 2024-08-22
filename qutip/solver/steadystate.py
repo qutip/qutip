@@ -52,12 +52,12 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
 
     method : str, {"direct", "eigen", "svd", "power"}, default: "direct"
         The allowed methods are composed of 2 parts, the steadystate method:
+
         - "direct": Solving ``L(rho_ss) = 0``
         - "eigen" : Eigenvalue problem
         - "svd" : Singular value decomposition
         - "power" : Inverse-power method
-        - "propagator" : Find the steady state by repeatedly applying the
-          propagator
+        - "propagator" : Repeatedly applying the propagator
 
     solver : str, optional
         'direct' and 'power' methods only.
