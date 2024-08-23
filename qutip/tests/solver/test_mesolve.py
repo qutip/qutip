@@ -204,7 +204,12 @@ class TestMESolveDecay:
         H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
         H = qutip.spre(H) + qutip.spost(H.dag()) # ensure use of MeSolve
         psi0 = qutip.basis(2, 0)
-        options = {"normalize_output": True, "progress_bar": None}
+        options = {
+            "normalize_output": True,
+            "progress_bar": None,
+            "atol": 1e-5,
+            "nsteps": 1e5,
+        }
 
         if state_type in {"ket", "dm"}:
             if state_type == "dm":

@@ -9,7 +9,7 @@ from scipy.integrate import quad
 
 from qutip import (
     basis, destroy, expect, liouvillian, qeye, sigmax, sigmaz, sigmay,
-    tensor, Qobj, QobjEvo, fidelity
+    tensor, Qobj, QobjEvo, fidelity, fdestroy
 )
 from qutip.core import data as _data
 from qutip.solver.heom.bofin_baths import (
@@ -54,8 +54,8 @@ def assert_raises_steady_state_time_dependent(hsolver):
     with pytest.raises(ValueError) as err:
         hsolver.steady_state()
     assert str(err.value) == (
-       "A steady state cannot be determined for a time-dependent"
-       " system"
+        "A steady state cannot be determined for a time-dependent"
+        " system"
     )
 
 
@@ -1145,7 +1145,45 @@ class TestHEOMSolver:
 
         assert states[-1] == ado_state.extract(0)
 
+    def test_parity(self):
+        depth = 2
+        Nk = 2
+        # system: two fermions
+        N = 2
+        d_1 = fdestroy(N, 0)
+        d_2 = fdestroy(N, 1)
+        # bath params:
+        mu = 0.  # chemical potential
+        Gamma = 1  # coupling strenght
+        W = 2.5  # bath width
+        # system params:
+        # coulomb repulsion
+        U = 3 * np.pi * Gamma
+        # impurity energy
+        w0 = - U / 2.
+        beta = 1 / (0.2 * Gamma)  # Inverse Temperature
+        H = w0 * (d_1.dag() * d_1 + d_2.dag()
+                  * d_2) + U * d_1.dag() * d_1 * d_2.dag() * d_2
 
+        L = liouvillian(H)
+        bath1 = LorentzianPadeBath(
+            Q=d_1, gamma=2 * Gamma, w=W, mu=mu, T=1 / beta, Nk=Nk,
+            tag="Lead 1")
+        bath2 = LorentzianPadeBath(
+            Q=d_2, gamma=2 * Gamma, w=W, mu=mu, T=1 / beta, Nk=Nk,
+            tag="Lead 2")
+        solver = HEOMSolver(L, [bath1, bath2], depth, odd_parity=True)
+        rhoss, _ = solver.steady_state(use_mkl=False)
+        rhoss = rhoss.full()
+        expected_odd = np.diag([-0.18472, 0.68472, 0.68472, -0.18472])
+        np.testing.assert_allclose(rhoss, expected_odd, atol=1e-5)
+
+        solver = HEOMSolver(L, [bath1, bath2], depth, odd_parity=False)
+        rhoss, _ = solver.steady_state(use_mkl=False)
+        rhoss = rhoss.full()
+        expected = np.diag([0.10623, 0.39376, 0.39376, 0.10623])
+        np.testing.assert_allclose(rhoss, expected, atol=1e-5)
+        
 class TestHeomsolveFunction:
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj", id="qobj"),

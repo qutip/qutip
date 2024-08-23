@@ -565,6 +565,7 @@ def test_merge_results(store_measurement, keep_runs_results):
             for w in result_merged.wiener_process
         )
 
+
 @pytest.mark.parametrize("open", [True, False])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_step(open, heterodyne):
