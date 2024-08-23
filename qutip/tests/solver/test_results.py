@@ -15,9 +15,6 @@ def fill_options(**kwargs):
     }
 
 
-TrajectoryResult = Result
-
-
 def e_op_state_by_time(t, state):
     """ An e_ops function that returns the state multiplied by the time. """
     return t * state
@@ -165,24 +162,6 @@ class TestResult:
             ">",
         ])
 
-    def test_trajectory_result(self):
-        res = TrajectoryResult(
-            e_ops=qutip.num(5),
-            options=fill_options(store_states=True, store_final_state=True))
-
-        for i in range(5):
-            res.add(i, qutip.basis(5, i))
-
-        res.add_time_dependent_weight([1j ** i for i in range(5)])
-        assert res.has_time_dependent_weight
-        np.testing.assert_array_equal(res.total_weight,
-                                      [1j ** i for i in range(5)])
-
-        # weights do not modify states etc
-        assert res.states == [qutip.basis(5, i) for i in range(5)]
-        assert res.final_state == qutip.basis(5, 4)
-        np.testing.assert_array_equal(res.expect[0], range(5))
-
 
 def e_op_num(t, state):
     """ An e_ops function that returns the ground state occupation. """
@@ -196,8 +175,7 @@ class TestMultiTrajResult:
 
         for k in range(ntraj + include_no_jump):
             # The fixed weight trajectory is not counted
-            result = TrajectoryResult(multiresult._raw_ops,
-                                      multiresult.options)
+            result = Result(multiresult._raw_ops, multiresult.options)
             result.collapse = []
             for t in range(N):
                 delta = 1 + noise * np.random.randn()
@@ -211,7 +189,6 @@ class TestMultiTrajResult:
                     result.collapse.append((t+0.3, 1))
 
             if rel_weights is not None:
-                result.add_time_dependent_weight(rel_weights[k])
                 result.trace = rel_weights[k]
 
             if include_no_jump and k == 0:
@@ -473,14 +450,11 @@ class TestMultiTrajResult:
                                                 "num_collapse": 2})
 
         for j in range(ntraj):
-            traj = TrajectoryResult(res._raw_ops, res.options)
+            traj = Result(res._raw_ops, res.options)
             seeds = np.random.randint(10_000, size=len(tlist))
             for t, seed in zip(tlist, seeds):
                 random_state = qutip.rand_ket(dim, seed=seed)
                 traj.add(t, random_state)
-
-            if time_dep_weights and np.random.randint(2):
-                traj.add_time_dependent_weight(np.random.rand(len(tlist)))
 
             if collapse:
                 traj.collapse = []
@@ -525,10 +499,8 @@ class TestMultiTrajResult:
 
     @pytest.mark.parametrize('p', [0, 0.1, 1, None])
     def test_merge_mcresult(self, p):
-        ensemble1 = self._random_ensemble(collapse=True,
-                                          time_dep_weights=False, cls=McResult)
-        ensemble2 = self._random_ensemble(collapse=True,
-                                          time_dep_weights=False, cls=McResult)
+        ensemble1 = self._random_ensemble(collapse=True, cls=McResult)
+        ensemble2 = self._random_ensemble(collapse=True, cls=McResult)
         merged = ensemble1.merge(ensemble2, p=p)
 
         if p is None:
@@ -544,9 +516,9 @@ class TestMultiTrajResult:
     @pytest.mark.parametrize('p', [0, 0.1, 1, None])
     def test_merge_nmmcresult(self, p):
         ensemble1 = self._random_ensemble(
-            collapse=True, trace=True, time_dep_weights=True, cls=NmmcResult)
+            collapse=True, trace=True, cls=NmmcResult)
         ensemble2 = self._random_ensemble(
-            collapse=True, trace=True, time_dep_weights=True, cls=NmmcResult)
+            collapse=True, trace=True, cls=NmmcResult)
         merged = ensemble1.merge(ensemble2, p=p)
 
         if p is None:
