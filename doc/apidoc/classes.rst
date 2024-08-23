@@ -244,10 +244,6 @@ Solver Options and Results
     :inherited-members:
     :exclude-members: add_processor, add, add_end_condition
 
-.. autoclass:: qutip.solver.result.TrajectoryResult
-    :show-inheritance:
-    :members:
-
 .. autoclass:: qutip.solver.multitrajresult.McResult
     :show-inheritance:
     :members:
