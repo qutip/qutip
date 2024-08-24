@@ -34,14 +34,14 @@ def n_thermal(w, w_th):
 
     """
 
-    if isinstance(w, np.ndarray):
-        return 1.0 / (np.exp(w / w_th) - 1.0)
+    if w_th <= 0:
+        return np.zeros_like(w)
 
-    else:
-        if (w_th > 0) and np.exp(w / w_th) != 1.0:
-            return 1.0 / (np.exp(w / w_th) - 1.0)
-        else:
-            return 0.0
+    w = np.array(w, dtype=float)
+    result = np.zeros_like(w)
+    non_zero = w != 0
+    result[non_zero] = 1 / (np.exp(w[non_zero] / w_th) - 1)
+    return result
 
 
 def _factorial_prod(N, arr):

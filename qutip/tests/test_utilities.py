@@ -10,8 +10,10 @@ import pytest
     pytest.param(np.log(2)*5, 5, 1, id='5*log(2)'),
     pytest.param(0, 1, 0, id="0_energy"),
     pytest.param(1, -1, 0, id="neg_temp"),
-    pytest.param(np.array([np.log(2), np.log(3), np.log(4)]), 1,
-                 np.array([1, 1/2, 1/3]), id="array"),
+    pytest.param(np.array([0, np.log(2), np.log(3), np.log(4)]), 1,
+                 np.array([0, 1, 1/2, 1/3]), id="array"),
+    pytest.param(np.array([0, np.log(2), np.log(3), np.log(4)]), 0,
+                 np.array([0, 0, 0, 0]), id="array_0temp")
 ])
 def test_n_thermal(w, w_th, expected):
     np.testing.assert_allclose(n_thermal(w, w_th), expected)

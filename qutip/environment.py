@@ -101,7 +101,7 @@ class Reservoir:
         zz = interp1d(w[sorted_indices], g[sorted_indices])
         return zz
 
-    def _bose_einstein(self, w):
+    def _bose_einstein(self, w):  # TODO: remove
         """
         Calculates the bose einstein distribution for the
         temperature of the bath.
