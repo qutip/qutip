@@ -51,7 +51,7 @@ from .partial_transpose import *
 from .continuous_variables import *
 from .distributions import *
 from . import measurement
-from .baths import *
+from .environment import *
 
 # utilities
 from .utilities import *
