@@ -7,8 +7,7 @@ import numpy as np
 from scipy.integrate import quad_vec
 from scipy.interpolate import interp1d
 from scipy.interpolate import InterpolatedUnivariateSpline
-from qutip.core import data as _data
-from .solver.heom.bofin_baths import (
+from ..solver.heom.bofin_baths import (
     UnderDampedBath, DrudeLorentzBath, DrudeLorentzPadeBath, BosonicBath,
     BathExponent)
 from .fit_utils import (_run_fit, _gen_summary,
@@ -55,7 +54,7 @@ class Reservoir:
                                  "as a discrete set of points, the points on"
                                  "which it is evaluated must be provided")
             elif len(w) != len(J):
-                raise ValueError(f"The spectra o and discrete set of points"
+                raise ValueError("The spectra o and discrete set of points"
                                  "provided must have the same lenght")
             self._w = w
             self._func_array = J
