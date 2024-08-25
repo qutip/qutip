@@ -1,12 +1,23 @@
 """
-Classes to create baths (reservoirs) for the simulation of open systems,
-compatible with the mesolve,bremesolve, HEOMSolver
+Classes that describe environments of open quantum systems
 """
+
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
+__all__ = ['BosonicEnvironment']
+
 from time import time
+import abc
+from typing import Callable
+
 import numpy as np
+from numpy.typing import ArrayLike
 from scipy.integrate import quad_vec
 from scipy.interpolate import interp1d
 from scipy.interpolate import InterpolatedUnivariateSpline
+
+from ..utilities import n_thermal
 from ..solver.heom.bofin_baths import (
     UnderDampedBath, DrudeLorentzBath, DrudeLorentzPadeBath, BosonicBath,
     BathExponent)
@@ -14,263 +25,167 @@ from .fit_utils import (_run_fit, _gen_summary,
                         _two_column_summary, aaa, filter_poles)
 
 
-class Reservoir:
+class BosonicEnvironment(abc.ABC):
     """
-    Class that contains the quantities one needs to describe a bath or 
-    reservoir
+    The bosonic environment of an open quantum system. It is characterized by
+    its spectral density or, equivalently, its power spectrum or its two-time
+    auto-correlation functions.
 
-    Parameters
-    ----------
-
-    T : float
-        Bath temperature.
-
-    x : :obj:`np.array.` (optional)
-        The points on which the correlation function is sampled. Does not need
-        to be provided if the correlation is passed as function
-
-    J : :obj:`np.array.` or callable
-       Rhe function used to create the reservoir
-
+    Use one of the functions `BosonicEnvironment.from_spectral_density`,
+    `BosonicEnvironment.from_power_spectrum` or
+    `BosonicEnvironment.from_correlation_function` to contruct an environment
+    manually from one of these characteristic functions, or use a predefined
+    sub-class such as the `DrudeLorentzEnvironment` or the
+    `UnderdampedEnvironment`.
     """
+    # TODO: proper links in docstring
+    # TODO: properly document all our definitions of these functions in the users guide
+    # especially how we handle negative frequencies and all that stuff
 
-    def __init__(self, T: float, J: callable, x=None):
+    def __init__(self, T: float = None):
         self.T = T
-        self.set_func(x, J)
 
-    def set_func(self, w, J):
+    @abc.abstractmethod
+    def correlation_function(self, t: float | ArrayLike, **kwargs):
+        ...
+
+    @abc.abstractmethod
+    def spectral_density(self, w: float | ArrayLike):
+        ...
+
+    @abc.abstractmethod
+    def power_spectrum(self, w: float | ArrayLike, dt: float = 1e-5):
+        ...
+
+    # TODO: I thought these temperatures can be `None`. In what cases is that ok?
+    @classmethod
+    def from_correlation_function(
+        cls,
+        T: float,
+        C: Callable[[float], complex] | ArrayLike,
+        tlist: ArrayLike = None
+    ) -> BosonicEnvironment:
         """
-        Sets the function providec. It may be provided either as an
-        array of function values or as a python function. For internal reasons,
-        it will then be interpolated or discretized as necessary.
-        """
-
-        if callable(J):
-            self._w = w
-            self._func = J
-        else:
-            if w is None:
-                raise ValueError("If the spectra of the bath is provided"
-                                 "as a discrete set of points, the points on"
-                                 "which it is evaluated must be provided")
-            elif len(w) != len(J):
-                raise ValueError("The spectra o and discrete set of points"
-                                 "provided must have the same lenght")
-            self._w = w
-            self._func_array = J
-            real_interp = interp1d(
-                w, np.real(J),
-                kind='cubic', fill_value='extrapolate')
-            imag_interp = interp1d(
-                w, np.imag(J),
-                kind='cubic', fill_value='extrapolate')
-
-            # Create a complex-valued interpolation function
-            self._func = lambda x: real_interp(x) + 1j * imag_interp(x)
-
-    def _fft(self, t0=10, dt=1e-5):
-        """
-        Calculates the Fast Fourier transform of the correlation function. This
-        is an alternative to numerical integration which is often noisy in the 
-        settings we are interested on
+        Constructs a bosonic environment with the provided correlation
+        function and temperature
 
         Parameters
         ----------
-        t0: float or obj:`np.array.`
-            Range to use for the fast fourier transform, the range is [-t0,t0].
-        dt: float
-            The timestep to be used.
+        T : float
+            Bath temperature.
 
-        Returns
-        -------
-        TThe fourier transform of the correlation function
+        C: callable or :obj:`np.array.`
+            The correlation function
+
+        tlist : :obj:`np.array.` (optional)
+            The times where the correlation function is sampled (if it is
+            provided as an array)
         """
-        t = np.arange(-t0, t0, dt)
-        # Define function
-        f = self.correlation_function(t)
+        return _BosonicEnvironment_fromCF(T, C, tlist)
 
-        # Compute Fourier transform by numpy's FFT function
-        g = np.fft.fft(f)
-        # frequency normalization factor is 2*np.pi/dt
-        w = np.fft.fftfreq(f.size)*2*np.pi/dt
-        # In order to get a discretisation of the continuous Fourier transform
-        # we need to multiply g by a phase factor
-        g *= dt*2.5*np.exp(-1j*w*t0)/(np.sqrt(2*np.pi))
-        sorted_indices = np.argsort(w)
-        zz = interp1d(w[sorted_indices], g[sorted_indices])
-        return zz
-
-    def _bose_einstein(self, w):  # TODO: remove
+    @classmethod
+    def from_power_spectrum(
+        cls,
+        T: float,
+        S: Callable[[float], float] | ArrayLike,
+        wlist: ArrayLike = None
+    ) -> BosonicEnvironment:
         """
-        Calculates the bose einstein distribution for the
-        temperature of the bath.
+        Constructs a bosonic environment with the provided power spectrum
+        and temperature
 
         Parameters
         ----------
-        w: float or obj:`np.array.`
-            Energy of the mode.
+        T : float
+            Bath temperature.
 
-        Returns
-        -------
-        The population of the mode with energy w.
+        S: callable or :obj:`np.array.`
+            The power spectrum
+
+        wlist : :obj:`np.array.` (optional)
+            The frequencies where the power spectrum is sampled (if it is
+            provided as an array)
         """
+        return _BosonicEnvironment_fromPS(T, S, wlist)
 
-        if self.T is None:
-            raise ValueError(
-                "Bath temperature must be specified for this operation")
-        if self.T == 0:
-            return np.zeros_like(w)
+    @classmethod
+    def from_spectral_density(
+        cls,
+        T: float,
+        J: Callable[[float], float] | ArrayLike,
+        wlist: ArrayLike = None
+    ) -> BosonicEnvironment:
+        """
+        Constructs a bosonic environment with the provided spectral density
+        and temperature
 
-        w = np.array(w, dtype=float)
-        result = np.zeros_like(w)
-        non_zero = w != 0
-        result[non_zero] = 1 / (np.exp(w[non_zero] / self.T) - 1)
-        return result
+        Parameters
+        ----------
+        T : float
+            Bath temperature.
+
+        J : callable or :obj:`np.array.`
+            The spectral density
+
+        wlist : :obj:`np.array.` (optional)
+            The frequencies where the spectral density is sampled (if it is
+            provided as an array)
+        """
+        return _BosonicEnvironment_fromSD(T, J, wlist)
 
 
-class _BosonicReservoir_fromCF(Reservoir):
-    """
-    Hiden class that constructs a bosonic reservoir if the correlation function
-    and Temperature are provided 
-
-    Parameters
-    ----------
-
-    T : float
-        Bath temperature.
-
-    x : :obj:`np.array.` (optional)
-        The points on which the correlation function is sampled. Does not need
-        to be provided if the correlation is passed as function
-
-    C : :obj:`np.array.` or callable
-        The correlation function
-
-    """
-
-    def __init__(self, T: float, C: callable, x=None):
-        super().__init__(T, C, x)
+class _BosonicEnvironment_fromCF(BosonicEnvironment):
+    def __init__(self, T, C, tlist=None):
+        super().__init__(T)
+        self._cf = _complex_interpolation(C, tlist, 'correlation function')
 
     def correlation_function(self, t, **kwargs):
-        """
-        Calculate the correlation function of the bath.
-
-        Returns:
-            The correlation function (return type to be determined).
-        """
+        # TODO document that this does this weird thing (or remove)?
         result = np.zeros_like(t, dtype=complex)
         positive_mask = t > 0
         non_positive_mask = ~positive_mask
 
-        result[positive_mask] = self._func(t[positive_mask])
+        result[positive_mask] = self._cf(t[positive_mask])
         result[non_positive_mask] = np.conj(
-            self._func(np.abs(t[non_positive_mask])))
+            self._cf(np.abs(t[non_positive_mask]))
+        )
         return result
 
     def spectral_density(self, w):
-        """
-        Calculate the spectral density of the bath.
-
-        Returns:
-            The spectral density (return type to be determined).
-        """
-        return self.power_spectrum(
-            w) / (self._bose_einstein(w) + 1) / 2
+        return self.power_spectrum(w) / (n_thermal(w, self.T) + 1) / 2
 
     def power_spectrum(self, w, dt=1e-5):
-        """
-        Calculate the power spectrum of the bath.
-
-        Returns:
-            The power spectrum (return type to be determined).
-        """
-        # Implementation for power_spectrum
-        negative = self._fft(w[-1], dt)
+        negative = _fft(self.correlation_function, w[-1], dt)
         return negative(-w)
 
 
-class _BosonicReservoir_fromPS(Reservoir):
-    """
-    Hiden class that constructs a bosonic reservoir if the power spectrum
-    and Temperature are provided
-    Parameters
-    ----------
-
-    T : float
-        Bath temperature.
-
-    x : :obj:`np.array.` (optional)
-        The points on which the power spectrum is sampled. Does not need
-        to be provided if the power spectrum is passed as function
-
-    S: :obj:`np.array.` or callable
-        The power spectrum
-
-    """
-
-    def __init__(self, T: float, S: callable, x=None):
-        super().__init__(T, S, x)
+class _BosonicEnvironment_fromPS(BosonicEnvironment):
+    def __init__(self, T, S, wlist=None):
+        super().__init__(T)
+        self._ps = _real_interpolation(S, wlist, 'power spectrum')
 
     def correlation_function(self, t, **kwargs):
-        """
-        Calculate the correlation function of the bath.
-        
-        kwargs are the parameters that can be passed to scipy's quad_vec
-
-        Returns:
-            The correlation function (return type to be determined).
-        """
         def integrand(w, t):
             return self.spectral_density(w) / np.pi * (
-                (2 * self._bose_einstein(w) + 1) * np.cos(w * t)
+                (2 * n_thermal(w, self.T) + 1) * np.cos(w * t)
                 - 1j * np.sin(w * t)
             )
 
-        result = quad_vec(lambda w: integrand(w, t), 0, np.Inf, **kwargs)
+        result = quad_vec(lambda w: integrand(w, t), 0, np.inf, **kwargs)
         return result[0]
 
     def spectral_density(self, w):
-        """
-        Calculate the spectral density of the bath.
-
-        Returns:
-            The spectral density (return type to be determined).
-        """
-        return self.power_spectrum(
-            w) / (self._bose_einstein(w) + 1) / 2
+        # TODO is this okay at w=0 or do we have to do something like in _fromSD?
+        return self.power_spectrum(w) / (n_thermal(w, self.T) + 1) / 2
 
     def power_spectrum(self, w, dt=1e-5):
-        """
-        Calculate the power spectrum of the bath.
-
-        Returns:
-            The power spectrum (return type to be determined).
-        """
-        return self._func(w)
+        return self._ps(w)
 
 
-class _BosonicReservoir_fromSD(Reservoir):
-    """
-    Hiden class that constructs a bosonic reservoir if the spectral density
-    and Temperature are provided
-
-    Parameters
-    ----------
-
-    T : float
-        Bath temperature.
-
-    x : :obj:`np.array.` (optional)
-        The points on which the spectral density is sampled. Does not need
-        to be provided if the spectral density is passed as function
-
-    J: :obj:`np.array.` or callable
-        The spectral density
-
-    """
-
-    def __init__(self, T: float, J: callable, x=None):
-        super().__init__(T, J, x)
+class _BosonicEnvironment_fromSD(BosonicEnvironment):
+    def __init__(self, T, J, wlist=None):
+        super().__init__(T)
+        self._sd = _real_interpolation(J, wlist, 'spectral density')
 
     def correlation_function(self, t, **kwargs):
         """
@@ -281,56 +196,92 @@ class _BosonicReservoir_fromSD(Reservoir):
         """
         def integrand(w, t):
             return self.spectral_density(w) / np.pi * (
-                (2 * self._bose_einstein(w) + 1) * np.cos(w * t)
+                (2 * n_thermal(w, self.T) + 1) * np.cos(w * t)
                 - 1j * np.sin(w * t)
             )
 
-        result = quad_vec(lambda w: integrand(w, t), 0, np.Inf, **kwargs)
+        result = quad_vec(lambda w: integrand(w, t), 0, np.inf, **kwargs)
         return result[0]
 
     def spectral_density(self, w):
-        """
-        Calculate the spectral density of the bath.
-
-        Returns:
-            The spectral density (return type to be determined).
-        """
-        return self._func(w)
+        return self._sd(w)
 
     def power_spectrum(self, w, dt=1e-5):
-        """
-        Calculate the power spectrum of the bath.
-
-        Returns:
-            The power spectrum (return type to be determined).
-        """
         w = np.array(w, dtype=float)
+
+        # at omega=0, typically SD is zero and n_thermal is undefined
+        # set omega to small positive value to capture limit as omega -> 0
         w[w == 0.0] += 1e-6
         if self.T != 0:
             S = (2 * np.sign(w) * self.spectral_density(np.abs(w)) *
-                 (self._bose_einstein(w) + 1))
+                 (n_thermal(w, self.T) + 1))
         else:
             S = 2 * np.heaviside(w, 0) * self.spectral_density(w)
         return S
 
 
-class BosonicReservoir(Reservoir):
-    """
-    Class that constructs a bosonic reservoir from class methods, temperature 
-    and either the spectral density, power spectrum, or correlation function 
-    need to be provided
-    """
-    @classmethod
-    def from_SD(self, T, J, w=None):
-        return _BosonicReservoir_fromSD(T, J, w)
 
-    @classmethod
-    def from_PS(self, T, S, w=None):
-        return _BosonicReservoir_fromPS(T, S, w)
 
-    @classmethod
-    def from_CF(self, T, C, t=None):
-        return _BosonicReservoir_fromCF(T, C, t)
+
+
+# --- utility functions ---
+
+def _real_interpolation(fun, xlist, name):
+    if callable(fun):
+        return fun
+    else:
+        if xlist is None or len(xlist) != len(fun):
+            raise ValueError("A list of x-values with the same length must be "
+                             f"provided for the discretized function ({name})")
+        return interp1d(
+            xlist, fun, kind='cubic', fill_value='extrapolate'
+        )
+
+def _complex_interpolation(fun, xlist, name):
+    if callable(fun):
+        return fun
+    else:
+        real_interp = _real_interpolation(np.real(fun), xlist, name)
+        imag_interp = _real_interpolation(np.imag(fun), xlist, name)
+        return lambda x: real_interp(x) + 1j * imag_interp(x)
+
+def _fft(fun, t0=10, dt=1e-5):
+    """
+    Calculates the Fast Fourier transform of the given function. This
+    is an alternative to numerical integration which is often noisy in the 
+    settings we are interested on
+
+    Parameters
+    ----------
+    t0: float or obj:`np.array.`
+        Range to use for the fast fourier transform, the range is [-t0,t0].
+    dt: float
+        The timestep to be used.
+
+    Returns
+    -------
+    TThe fourier transform of the correlation function
+    """
+    t = np.arange(-t0, t0, dt)
+    # Define function
+    f = fun(t)
+
+    # Compute Fourier transform by numpy's FFT function
+    g = np.fft.fft(f)
+    # frequency normalization factor is 2*np.pi/dt
+    w = np.fft.fftfreq(f.size)*2*np.pi/dt
+    # In order to get a discretisation of the continuous Fourier transform
+    # we need to multiply g by a phase factor
+    g *= dt*2.5*np.exp(-1j*w*t0)/(np.sqrt(2*np.pi))
+    sorted_indices = np.argsort(w)
+    zz = interp1d(w[sorted_indices], g[sorted_indices])
+    return zz
+
+
+
+
+
+# --- old code ---
 
 
 class ExponentialBosonicBath(BosonicBath):
