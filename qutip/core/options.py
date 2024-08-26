@@ -249,7 +249,7 @@ class CoreOptions(QutipOptions):
 
     def __setitem__(self, key: str, value: Any) -> None:
         # Let the dict catch the KeyError
-        self.options[key] = value
+        super().__setitem__(key, value)
 
 
 # Creating the instance of core options to use everywhere.
