@@ -1104,9 +1104,11 @@ class NmmcResult(_McBaseResult):
 
     def _reduce_final_state(self, trajectory, *, abs=None, rel=None):
         if abs is not None:
-            self._sum_det.reduce_final_state(trajectory, abs * trajectory.trace[-1])
+            self._sum_det.reduce_final_state(
+                trajectory, abs * trajectory.trace[-1])
         else:
-            self._sum_rel.reduce_final_state(trajectory, rel * trajectory.trace[-1])
+            self._sum_rel.reduce_final_state(
+                trajectory, rel * trajectory.trace[-1])
 
     def _reduce_expect(self, trajectory, *, abs=None, rel=None):
         """
@@ -1114,9 +1116,11 @@ class NmmcResult(_McBaseResult):
         multiple formats.
         """
         if abs is not None:
-            self._sum_det.reduce_expect(trajectory, abs * np.array(trajectory.trace))
+            self._sum_det.reduce_expect(
+                trajectory, abs * np.array(trajectory.trace))
         else:
-            self._sum_rel.reduce_expect(trajectory, rel * np.array(trajectory.trace))
+            self._sum_rel.reduce_expect(
+                trajectory, rel * np.array(trajectory.trace))
 
             if self.runs_e_data:
                 for k in self._raw_ops:
