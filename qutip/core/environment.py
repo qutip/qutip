@@ -28,12 +28,12 @@ except ModuleNotFoundError:
     _mpmath_available = False
 
 from ..utilities import n_thermal
-from ..solver.heom.bofin_baths import (
-    UnderDampedBath, DrudeLorentzBath, DrudeLorentzPadeBath, BosonicBath,
-    BathExponent)
 from .fit_utils import (_run_fit, _gen_summary,
                         _two_column_summary, aaa, filter_poles)
 
+
+# TODO fermionic environment
+# TODO environment, bath, or reservoir?
 
 class BosonicEnvironment(abc.ABC):
     """
@@ -46,7 +46,7 @@ class BosonicEnvironment(abc.ABC):
     `BosonicEnvironment.from_correlation_function` to contruct an environment
     manually from one of these characteristic functions, or use a predefined
     sub-class such as the `DrudeLorentzEnvironment` or the
-    `UnderdampedEnvironment`.
+    `UnderDampedEnvironment`.
     """
     # TODO: proper links in docstring
     # TODO: properly document all our definitions of these functions in the users guide
@@ -58,11 +58,14 @@ class BosonicEnvironment(abc.ABC):
 
     @abc.abstractmethod
     def spectral_density(self, w: float | ArrayLike):
+        # TODO docstring
         ...
 
     @abc.abstractmethod
     def correlation_function(self, t: float | ArrayLike, **kwargs):
-        # Default implementation: calculate from SD by numerical integration
+        # TODO docstring explaining kwargs
+        # Default implementation: calculate CF from SD by numerical integration
+        # TODO could this also be done via FFT?
         def integrand(w, t):
             return self.spectral_density(w) / np.pi * (
                 (2 * n_thermal(w, self.T) + 1) * np.cos(w * t)
@@ -74,7 +77,8 @@ class BosonicEnvironment(abc.ABC):
 
     @abc.abstractmethod
     def power_spectrum(self, w: float | ArrayLike, dt: float = 1e-5):
-        # Default implementation: calculate from SD directly
+        # TODO docstring explaining dt
+        # Default implementation: calculate PS from SD directly
         w = np.array(w, dtype=float)
 
         # at omega=0, typically SD is zero and n_thermal is undefined
@@ -185,7 +189,8 @@ class _BosonicEnvironment_fromCF(BosonicEnvironment):
         self._cf = _complex_interpolation(C, tlist, 'correlation function')
 
     def correlation_function(self, t, **kwargs):
-        # TODO document that this does this weird thing (or remove)?
+        # TODO document that the provided CF is only used for t>0
+        # (or change this?)
         result = np.zeros_like(t, dtype=complex)
         positive_mask = t > 0
         non_positive_mask = ~positive_mask
@@ -197,10 +202,13 @@ class _BosonicEnvironment_fromCF(BosonicEnvironment):
         return result
 
     def spectral_density(self, w):
+        # TODO do we have to worry about w=0 or T=0 special cases?
+        # TODO add tests including these cases
         return self.power_spectrum(w) / (n_thermal(w, self.T) + 1) / 2
 
     def power_spectrum(self, w, dt=1e-5):
-        negative = _fft(self.correlation_function, w[-1], dt)
+        wMax = max(np.abs(w[0]), np.abs(w[-1]))
+        negative = _fft(self.correlation_function, wMax, dt)
         return negative(-w)
 
 
@@ -210,14 +218,7 @@ class _BosonicEnvironment_fromPS(BosonicEnvironment):
         self._ps = _real_interpolation(S, wlist, 'power spectrum')
 
     def correlation_function(self, t, **kwargs):
-        def integrand(w, t):
-            return self.spectral_density(w) / np.pi * (
-                (2 * n_thermal(w, self.T) + 1) * np.cos(w * t)
-                - 1j * np.sin(w * t)
-            )
-
-        result = quad_vec(lambda w: integrand(w, t), 0, np.inf, **kwargs)
-        return result[0]
+        return super().correlation_function(t, **kwargs)
 
     def spectral_density(self, w):
         # TODO is this okay at w=0 or do we have to do something like in _fromSD?
@@ -271,12 +272,13 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
     def spectral_density(self, w: float | ArrayLike):
         r"""
-        Calculates the Drude-Lorentz spectral density, Eq. 15 in the BoFiN
-        paper (DOI: 10.1103/PhysRevResearch.5.013181) given by
+        Calculates the Drude-Lorentz spectral density,
 
         .. math::
 
             J(\omega) = \frac{2 \lambda \gamma \omega}{\gamma^{2}+\omega^{2}}
+
+        (see Eq. 15 in DOI: 10.1103/PhysRevResearch.5.013181)
 
         Parameters
         ----------
@@ -364,12 +366,13 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
     def spectral_density(self, w: float | ArrayLike):
         r"""
-        Calculates the underdamped spectral density, see Eq. 16 in the BoFiN
-        paper (DOI: 10.1103/PhysRevResearch.5.013181)
+        Calculates the underdamped spectral density,
 
         .. math::
             J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_{c}^{2}-
             \omega^{2})^{2}+ \Gamma^{2} \omega^{2}}
+
+        (see Eq. 16 in DOI: 10.1103/PhysRevResearch.5.013181)
 
         Parameters
         ----------
@@ -430,8 +433,9 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
 class OhmicEnvironment(BosonicEnvironment):
     """
-    Describes an Ohmic environment. This class requires the `mpmath` module
-    to be installed.
+    Describes Ohmic environments as well as sub- or super-Ohmic environments
+    (depending on the choice of the parameter `s`). This class requires the
+    `mpmath` module to be installed.
 
     Parameters
     ----------
@@ -462,12 +466,11 @@ class OhmicEnvironment(BosonicEnvironment):
         if _mpmath_available is False:
             warnings.warn(
                 "The mpmath module is required for some operations on "
-                "Ohmic environments, but it is not available.")
+                "Ohmic environments, but it is not installed.")
 
     def spectral_density(self, w: float | ArrayLike):
         r"""
-        Calculates the spectral density of an Ohmic Bath (sub and super-Ohmic
-        included according to the choice of s).
+        Calculates the spectral density of an Ohmic Bath,
 
         .. math::
             J(w) = \alpha \frac{w^{s}}{w_{c}^{1-s}} e^{-\frac{|w|}{w_{c}}}
@@ -490,8 +493,7 @@ class OhmicEnvironment(BosonicEnvironment):
 
     def correlation_function(self, t: float | ArrayLike, **kwargs):
         r"""
-        Calculates the correlation function of an Ohmic bath
-        (sub and super-Ohmic included according to the choice of s).
+        Calculates the correlation function of an Ohmic bath,
 
         .. math::
             C(t)= \frac{1}{\pi} \alpha w_{c}^{1-s} \beta^{-(s+1)} \Gamma(s+1)
@@ -573,8 +575,10 @@ def _fft(fun, t0=10, dt=1e-5):
 
     Returns
     -------
-    TThe fourier transform of the correlation function
+    The fourier transform of the correlation function
     """
+    # Code adapted from https://stackoverflow.com/a/24077914
+
     t = np.arange(-t0, t0, dt)
     # Define function
     f = fun(t)
@@ -582,10 +586,10 @@ def _fft(fun, t0=10, dt=1e-5):
     # Compute Fourier transform by numpy's FFT function
     g = np.fft.fft(f)
     # frequency normalization factor is 2*np.pi/dt
-    w = np.fft.fftfreq(f.size)*2*np.pi/dt
+    w = np.fft.fftfreq(f.size) * 2 * np.pi / dt
     # In order to get a discretisation of the continuous Fourier transform
     # we need to multiply g by a phase factor
-    g *= dt*2.5*np.exp(-1j*w*t0)/(np.sqrt(2*np.pi))
+    g *= dt * np.exp(-1j * w * t0)
     sorted_indices = np.argsort(w)
     zz = interp1d(w[sorted_indices], g[sorted_indices])
     return zz
@@ -597,7 +601,7 @@ def _fft(fun, t0=10, dt=1e-5):
 # --- old code ---
 
 
-class ExponentialBosonicBath(BosonicBath):
+class ExponentialBosonicEnvironment(BosonicEnvironment):
     """
     Hiden class that constructs a bosonic reservoir, from the coefficients and
     exponents
@@ -749,7 +753,7 @@ class ExponentialBosonicBath(BosonicBath):
         return J
 
 
-class ApproximatedBosonicBath(ExponentialBosonicBath):
+class ApproximatedBosonicBath:
     """
     This class allows to construct a reservoir from the correlation function,
     power spectrum or spectral density.
@@ -843,68 +847,6 @@ class ApproximatedBosonicBath(ExponentialBosonicBath):
             Ni=Ni,
             full_ansatz=full_ansatz)
         return cls
-
-    @classmethod
-    def from_pade_OD(self, Q, T, lam, gamma, Nk, combine=True, tag=None):
-
-        eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
-
-        ck_real = [np.real(eta) for eta in eta_p]
-        vk_real = [gam for gam in gamma_p]
-
-        ck_imag = [np.imag(eta_p[0])]
-        vk_imag = [gamma_p[0]]
-
-        cls = _drudepade(
-            Q, ck_real, vk_real, ck_imag, vk_imag,
-            combine=combine, tag=tag, T=T
-        )
-        return cls
-
-    @classmethod
-    def from_matsubara_UD(
-            self, Q, T, lam, gamma, w0, Nk, combine=True, tag=None):
-
-        return _underdamped(
-            Q=Q, T=T, lam=lam, gamma=gamma, w0=w0, Nk=Nk,
-            combine=combine, tag=tag)
-
-    @classmethod
-    def from_matsubara_OD(self, lam, gamma, Nk, Q, T, combine=True, tag=None):
-        return _drude(
-            lam=lam, gamma=gamma, T=T, Q=Q, Nk=Nk, combine=combine, tag=tag)
-
-
-class _drudepade(DrudeLorentzPadeBath, ExponentialBosonicBath):
-    """
-    Hidden class to have DrudeLorentzPadeBath inherit from 
-    ExponentialBosonicBath
-    """
-    def __init__(
-            self, Q, ck_real, vk_real, ck_imag, vk_imag, T, combine=True,
-            tag=None):
-        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag,
-                         combine=combine, tag=tag, T=T)
-
-
-class _drude(DrudeLorentzBath, ExponentialBosonicBath):
-    """
-    Hidden class to have DrudeLorentzBath inherit from
-    ExponentialBosonicBath
-    """
-    def __init__(self, Q, lam, gamma, T, Nk, combine=True, tag=None):
-        super().__init__(Q=Q, lam=lam, gamma=gamma, T=T, Nk=Nk,
-                         combine=combine, tag=tag)
-
-
-class _underdamped(UnderDampedBath, ExponentialBosonicBath):
-    """
-    Hidden class to have UnderDampedBath inherit from
-    ExponentialBosonicBath
-    """
-    def __init__(self, Q, lam, gamma, w0, T, Nk, combine=True, tag=None):
-        super().__init__(Q=Q, lam=lam, gamma=gamma, w0=w0, T=T, Nk=Nk,
-                         combine=combine, tag=tag)
 
 
 class SpectralFitter(ExponentialBosonicBath):
@@ -1103,12 +1045,13 @@ class SpectralFitter(ExponentialBosonicBath):
         vkAI = []
 
         for lamt, Gamma, Om in zip(lam, gamma, w0):
-            coeffs = UnderDampedBath._matsubara_params(
-                lamt, 2 * Gamma, Om + 0j, self.T, Nk)
-            ckAR.extend(coeffs[0])
-            vkAR.extend(coeffs[1])
-            ckAI.extend(coeffs[2])
-            vkAI.extend(coeffs[3])
+#            coeffs = UnderDampedBath._matsubara_params(
+#                lamt, 2 * Gamma, Om + 0j, self.T, Nk)
+#            ckAR.extend(coeffs[0])
+#            vkAR.extend(coeffs[1])
+#            ckAI.extend(coeffs[2])
+#            vkAI.extend(coeffs[3])
+            ... # TODO
 
         super().__init__(self.Q, ckAR, vkAR, ckAI, vkAI, T=self.T)
 
