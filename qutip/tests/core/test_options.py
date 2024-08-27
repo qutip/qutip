@@ -18,28 +18,29 @@ class TestDefaultDType:
             from_list = qutip.Qobj([[1, 0], [1,0]])
             from_array = qutip.Qobj(np.array([[1, 0], [1,0]]))
             assert from_list.dtype is qutip.core.data.CSR
-            assert from_list.dtype is qutip.core.data.Dense
+            assert from_array.dtype is qutip.core.data.Dense
 
         with CoreOptions(default_dtype="CSR", default_dtype_range="full"):
             from_list = qutip.Qobj([[1, 0], [1,0]])
             from_array = qutip.Qobj(np.array([[1, 0], [1,0]]))
             assert from_list.dtype is qutip.core.data.CSR
-            assert from_list.dtype is qutip.core.data.CSR
+            assert from_array.dtype is qutip.core.data.CSR
 
     def test_dtype_dispatch(self):
+        # CSR + Dense not implemented
+        sparse = qutip.qeye(2, dtype="CSR")
+        dense = qutip.qeye(2, dtype="Dense")
         with CoreOptions(default_dtype="CSR", default_dtype_range="creation"):
-            sparse = qutip.qeye(2, dtype="CSR")
-            dense = qutip.Qobj(2, dtype="Dense")
+            # sparse to dense is cheaper than the reverse.
             assert (sparse + dense).dtype is qutip.core.data.Dense
+            assert (dense + dense).dtype is qutip.core.data.Dense
 
         with CoreOptions(default_dtype="CSR", default_dtype_range="missing"):
-            # CSR + Dense not implemented
-            sparse = qutip.qeye(2, dtype="CSR")
-            dense = qutip.Qobj(2, dtype="Dense")
             assert (sparse + dense).dtype is qutip.core.data.CSR
+            assert (dense + dense).dtype is qutip.core.data.Dense
 
         with CoreOptions(default_dtype="CSR", default_dtype_range="full"):
-            dense = qutip.Qobj(2, dtype="Dense")
+            assert (sparse + dense).dtype is qutip.core.data.CSR
             assert (dense + dense).dtype is qutip.core.data.CSR
 
 
