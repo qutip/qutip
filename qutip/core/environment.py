@@ -60,11 +60,12 @@ class BosonicEnvironment(abc.ABC):
         self.T = T
         self.tag = tag
 
+        # TODO unsure about names
         # TODO should these be available always?
         # TODO what if T is not set?
         # TODO add AAA fitting in later PR
         self._avail_approximators = {
-            'correlation_function_fit': self._fit_correlation_function,
+            'correlation_fit': self._fit_correlation_function,
             'underdamped_fit': self._fit_spectral_density,
         }
 
@@ -824,7 +825,7 @@ class CFExponent:
     @property
     def exponent(self):
         # TODO docstring, fermionic coefficients
-        return self.exponent
+        return self.vk
 
 
 class ExponentialBosonicEnvironment(BosonicEnvironment):

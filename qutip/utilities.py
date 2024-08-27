@@ -12,8 +12,6 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.optimize import curve_fit
 
-from .core.environment import ExponentialBosonicEnvironment
-
 
 def n_thermal(w, w_th):
     """
@@ -611,6 +609,7 @@ class CorrelationFitter:
         vkAI = [-x - 1.0j * y for x, y in zip(b2, c2)]
         vkAI.extend([-x + 1.0j * y for x, y in zip(b2, c2)])
 
+        from .core.environment import ExponentialBosonicEnvironment # TODO
         return ExponentialBosonicEnvironment(ckAR, vkAR, ckAI, vkAI, T=self.T)
 
 
@@ -810,14 +809,17 @@ class SpectralFitter:
         ckAI = []
         vkAI = []
 
+        from .core.environment import (
+            ExponentialBosonicEnvironment,
+            UnderDampedEnvironment
+         ) # TODO
         for lamt, Gamma, Om in zip(lam, gamma, w0):
-#            coeffs = UnderDampedBath._matsubara_params(
-#                lamt, 2 * Gamma, Om + 0j, self.T, Nk)
-#            ckAR.extend(coeffs[0])
-#            vkAR.extend(coeffs[1])
-#            ckAI.extend(coeffs[2])
-#            vkAI.extend(coeffs[3])
-            ... # TODO
+            env = UnderDampedEnvironment(self.T, lamt, 2 * Gamma, Om)
+            coeffs = env._matsubara_params(Nk)
+            ckAR.extend(coeffs[0])
+            vkAR.extend(coeffs[1])
+            ckAI.extend(coeffs[2])
+            vkAI.extend(coeffs[3])
 
         return ExponentialBosonicEnvironment(ckAR, vkAR, ckAI, vkAI, T=self.T)
 
