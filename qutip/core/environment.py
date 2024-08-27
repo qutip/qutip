@@ -430,17 +430,17 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
     # --- Pade approx calculation ---
 
-    def _corr(self, lam, gamma, T, Nk):
-        beta = 1. / T
+    def _corr(self, Nk):
+        beta = 1. / self.T
         kappa, epsilon = self._kappa_epsilon(Nk)
 
-        eta_p = [lam * gamma * (self._cot(gamma * beta / 2.0) - 1.0j)]
-        gamma_p = [gamma]
+        eta_p = [self.lam * self.gamma * (self._cot(self.gamma * beta / 2.0) - 1.0j)]
+        gamma_p = [self.gamma]
 
         for ll in range(1, Nk + 1):
             eta_p.append(
-                (kappa[ll] / beta) * 4 * lam * gamma * (epsilon[ll] / beta)
-                / ((epsilon[ll]**2 / beta**2) - gamma**2)
+                (kappa[ll] / beta) * 4 * self.lam * self.gamma * (epsilon[ll] / beta)
+                / ((epsilon[ll]**2 / beta**2) - self.gamma**2)
             )
             gamma_p.append(epsilon[ll] / beta)
 
@@ -773,13 +773,13 @@ class CFExponent:
         if type in (self.types["+"], self.types["-"]):
             if offset is None:
                 raise ValueError(
-                    "+ and - exponents require sigma_bar_k_offset"
+                    "+ and - type exponents require sigma_bar_k_offset"
                 )
         else:
             if offset is not None:
                 raise ValueError(
                     "Offset of sigma bar (sigma_bar_k_offset) should only be"
-                    " specified for + and - bath exponents"
+                    " specified for + and - type exponents"
                 )
 
     def _type_is_fermionic(self, type):
@@ -807,7 +807,6 @@ class CFExponent:
             f" ck={self.ck!r} vk={self.vk!r} ck2={self.ck2!r}"
             f" sigma_bar_k_offset={self.sigma_bar_k_offset!r}"
             f" fermionic={self.fermionic!r}"
-            f" tag={self.tag!r}>"
         )
 
     @property
@@ -826,6 +825,40 @@ class CFExponent:
     def exponent(self):
         # TODO docstring, fermionic coefficients
         return self.vk
+
+    def _can_combine(self, other, rtol, atol):
+        if type(self) is not type(other):
+            return False
+        if self.fermionic or other.fermionic:
+            return False
+        if not np.isclose(self.vk, other.vk, rtol=rtol, atol=atol):
+            return False
+        return True
+
+    def _combine(self, other):
+        # Assumes can combine was checked
+        if self.type == self.types['RI'] or self.type != other.type:
+            # Result will be RI
+            real_part_coefficient = 0
+            imag_part_coefficient = 0
+            if self.type == self.types['RI'] or self.type == self.types['R']:
+                real_part_coefficient += self.ck
+            if other.type == self.types['RI'] or other.type == self.types['R']:
+                real_part_coefficient += other.ck
+            if self.type == self.types['I']:
+                imag_part_coefficient += self.ck
+            if other.type == self.types['I']:
+                imag_part_coefficient += other.ck
+            if self.type == self.types['RI']:
+                imag_part_coefficient += self.ck2
+            if other.type == self.types['RI']:
+                imag_part_coefficient += other.ck2
+            
+            return CFExponent(self.types['RI'], real_part_coefficient,
+                              self.vk, imag_part_coefficient)
+        else:
+            # Both R or both I
+            return CFExponent(self.type, self.ck + other.ck, self.vk)
 
 
 class ExponentialBosonicEnvironment(BosonicEnvironment):
@@ -909,19 +942,20 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
             )
 
         exponents = exponents or []
-        exponents.extend(
-            CFExponent("R", ck, vk) for ck, vk in zip(ck_real, vk_real)
-        )
-        exponents.extend(
-            CFExponent("I", ck, vk) for ck, vk in zip(ck_imag, vk_imag)
-        )
+        if lists_provided:
+            exponents.extend(
+                CFExponent("R", ck, vk) for ck, vk in zip(ck_real, vk_real)
+            )
+            exponents.extend(
+                CFExponent("I", ck, vk) for ck, vk in zip(ck_imag, vk_imag)
+            )
 
         if combine:
-            exponents = self._combine(exponents)
+            exponents = self.combine(exponents)
         self.exponents = exponents
 
     @classmethod
-    def _combine(cls, exponents, rtol=1e-5, atol=1e-7):
+    def combine(cls, exponents, rtol=1e-5, atol=1e-7):
         """
         Group bosonic exponents with the same frequency and return a
         single exponent for each frequency present.
@@ -942,38 +976,16 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         list of CFExponent
             The new reduced list of exponents.
         """
-        groups = []
         remaining = exponents[:]
+        new_exponents = []
 
         while remaining:
-            e1 = remaining.pop(0)
-            group = [e1]
-            for e2 in remaining[:]:
-                if np.isclose(e1.vk, e2.vk, rtol=rtol, atol=atol):
-                    group.append(e2)
-                    remaining.remove(e2)
-            groups.append(group)
-
-        new_exponents = []
-        for combine in groups:
-            exp1 = combine[0]
-            if (exp1.type != exp1.types.RI) and all(
-                exp2.type == exp1.type for exp2 in combine
-            ):
-                # the group is either type I or R
-                ck = sum(exp.ck for exp in combine)
-                new_exponents.append(CFExponent(exp1.type, ck, exp1.vk))
-            else:
-                # the group includes both type I and R exponents
-                ck_R = (
-                    sum(exp.ck for exp in combine if exp.type == exp.types.R) +
-                    sum(exp.ck for exp in combine if exp.type == exp.types.RI)
-                )
-                ck_I = (
-                    sum(exp.ck for exp in combine if exp.type == exp.types.I) +
-                    sum(exp.ck2 for exp in combine if exp.type == exp.types.RI)
-                )
-                new_exponents.append(CFExponent("RI", ck_R, exp1.vk, ck2=ck_I))
+            new_exponent = remaining.pop(0)
+            for other_exp in remaining[:]:
+                if new_exponent._can_combine(other_exp, rtol, atol):
+                    new_exponent = new_exponent._combine(other_exp)
+                    remaining.remove(other_exp)
+            new_exponents.append(new_exponent)
 
         return new_exponents
 
