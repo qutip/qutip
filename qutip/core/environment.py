@@ -19,6 +19,7 @@ import warnings
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.linalg import eigvalsh
 from scipy.integrate import quad_vec
 from scipy.interpolate import interp1d
 
@@ -329,8 +330,14 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         self, T: float, lam: float, gamma: float, *, tag: Any = None
     ):
         super().__init__(T, tag=tag)
+
         self.lam = lam
         self.gamma = gamma
+
+        self._avail_approximators.update({
+            'matsubara': self._matsubara_approx,
+            'pade': self._pade_approx,
+        })
 
     def spectral_density(self, w: float | ArrayLike):
         r"""
@@ -380,6 +387,14 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
     def power_spectrum(self, w: float | ArrayLike, dt: float = 1e-5):
         return super().power_spectrum(w, dt)
 
+    def _matsubara_approx(self, Nk, combine=True):
+        lists = self._matsubara_params(Nk)
+        result = ExponentialBosonicEnvironment(
+            *lists, T=self.T, combine=combine)
+        # TODO what to do with the terminator?
+        # TODO tag stuff
+        return result
+
     def _matsubara_params(self, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
         ck_real = [self.lam * self.gamma / np.tan(self.gamma / (2 * self.T))]
@@ -395,6 +410,87 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         vk_imag = [self.gamma]
 
         return ck_real, vk_real, ck_imag, vk_imag
+
+    def _pade_approx(self, Nk, combine=True):
+        eta_p, gamma_p = self._corr(Nk)
+
+        ck_real = [np.real(eta) for eta in eta_p]
+        vk_real = [gam for gam in gamma_p]
+        # There is only one term in the expansion of the imaginary part of the
+        # Drude-Lorentz correlation function.
+        ck_imag = [np.imag(eta_p[0])]
+        vk_imag = [gamma_p[0]]
+
+        result = ExponentialBosonicEnvironment(
+            ck_real, vk_real, ck_imag, vk_imag, T=self.T, combine=combine)
+        # TODO what to do with the terminator?
+        # TODO tag stuff
+        return result
+
+    # --- Pade approx calculation ---
+
+    def _corr(self, lam, gamma, T, Nk):
+        beta = 1. / T
+        kappa, epsilon = self._kappa_epsilon(Nk)
+
+        eta_p = [lam * gamma * (self._cot(gamma * beta / 2.0) - 1.0j)]
+        gamma_p = [gamma]
+
+        for ll in range(1, Nk + 1):
+            eta_p.append(
+                (kappa[ll] / beta) * 4 * lam * gamma * (epsilon[ll] / beta)
+                / ((epsilon[ll]**2 / beta**2) - gamma**2)
+            )
+            gamma_p.append(epsilon[ll] / beta)
+
+        return eta_p, gamma_p
+
+    def _cot(self, x):
+        return 1. / np.tan(x)
+
+    def _kappa_epsilon(self, Nk):
+        eps = self._calc_eps(Nk)
+        chi = self._calc_chi(Nk)
+
+        kappa = [0]
+        prefactor = 0.5 * Nk * (2 * (Nk + 1) + 1)
+        for j in range(Nk):
+            term = prefactor
+            for k in range(Nk - 1):
+                term *= (
+                    (chi[k]**2 - eps[j]**2) /
+                    (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+                )
+            for k in [Nk - 1]:
+                term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+            kappa.append(term)
+
+        epsilon = [0] + eps
+
+        return kappa, epsilon
+
+    def _delta(self, i, j):
+        return 1.0 if i == j else 0.0
+
+    def _calc_eps(self, Nk):
+        alpha = np.diag([
+            1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+            for k in range(2 * Nk - 1)
+        ], k=1)
+        alpha += alpha.transpose()
+        evals = eigvalsh(alpha)
+        eps = [-2. / val for val in evals[0: Nk]]
+        return eps
+
+    def _calc_chi(self, Nk):
+        alpha_p = np.diag([
+            1. / np.sqrt((2 * k + 7) * (2 * k + 5))
+            for k in range(2 * Nk - 2)
+        ], k=1)
+        alpha_p += alpha_p.transpose()
+        evals = eigvalsh(alpha_p)
+        chi = [-2. / val for val in evals[0: Nk - 1]]
+        return chi
 
 class UnderDampedEnvironment(BosonicEnvironment):
     """
@@ -422,9 +518,14 @@ class UnderDampedEnvironment(BosonicEnvironment):
         self, T: float, lam: float, gamma: float, w0: float, *, tag=None
     ):
         super().__init__(T, tag=tag)
+
         self.lam = lam
         self.gamma = gamma
         self.w0 = w0
+
+        self._avail_approximators.update({
+            'matsubara': self._matsubara_approx,
+        })
 
     def spectral_density(self, w: float | ArrayLike):
         r"""
@@ -454,6 +555,14 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
     def power_spectrum(self, w: float | ArrayLike, dt: float = 1e-5):
         return super().power_spectrum(w, dt)
+
+    def _matsubara_approx(self, Nk, combine=True):
+        lists = self._matsubara_params(Nk)
+        result = ExponentialBosonicEnvironment(
+            *lists, T=self.T, combine=combine)
+        # TODO what to do with the terminator?
+        # TODO tag stuff
+        return result
 
     def _matsubara_params(self, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
