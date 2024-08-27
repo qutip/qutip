@@ -8,9 +8,12 @@ from __future__ import annotations
 __all__ = ['BosonicEnvironment',
            'DrudeLorentzEnvironment',
            'UnderDampedEnvironment',
-           'OhmicEnvironment']
+           'OhmicEnvironment',
+           'CFExponent',
+           'ExponentialBosonicEnvironment']
 
 import abc
+import enum
 from time import time
 from typing import Any, Callable
 import warnings
@@ -34,6 +37,10 @@ from .fit_utils import (_run_fit, _gen_summary,
 
 # TODO fermionic environment
 # TODO environment, bath, or reservoir?
+# TODO revise all documentation
+# TODO tests for this module
+# TODO add revised tests for HEOM (keeping the current tests as they are)
+# TODO update HEOM example notebooks
 
 class BosonicEnvironment(abc.ABC):
     """
@@ -535,6 +542,336 @@ class OhmicEnvironment(BosonicEnvironment):
         return super().power_spectrum(w, dt)
 
 
+class CFExponent:
+    """
+    Represents a single exponent (naively, an excitation mode) within an
+    exponential decomposition of the correlation function of a environment.
+
+    Parameters
+    ----------
+    type : {"R", "I", "RI", "+", "-"} or one of `CFExponent.types`
+        The type of exponent.
+
+        "R" and "I" are bosonic exponents that appear in the real and
+        imaginary parts of the correlation expansion, respectively.
+
+        "RI" is a combined bosonic exponent that appears in both the real
+        and imaginary parts of the correlation expansion. The combined exponent
+        has a single ``vk``. The ``ck`` is the coefficient in the real
+        expansion and ``ck2`` is the coefficient in the imaginary expansion.
+
+        "+" and "-" are fermionic exponents. These fermionic exponents must
+        specify ``sigma_bar_k_offset`` which specifies the amount to add to
+        ``k`` (the exponent index within the environment of this exponent) to
+        determine the ``k`` of the corresponding exponent with the opposite
+        sign (i.e. "-" or "+").
+
+    vk : complex
+        The frequency of the exponent of the excitation term.
+
+    ck : complex
+        The coefficient of the excitation term.
+
+    ck2 : optional, complex
+        For exponents of type "RI" this is the coefficient of the term in the
+        imaginary expansion (and ``ck`` is the coefficient in the real
+        expansion).
+
+    sigma_bar_k_offset : optional, int
+        For exponents of type "+" this gives the offset (within the list of
+        exponents within the environment) of the corresponding "-" type
+        exponent. For exponents of type "-" it gives the offset of the
+        corresponding "+" exponent.
+
+    Attributes
+    ----------
+    fermionic : bool
+        True if the type of the exponent is a Fermionic type (i.e. either
+        "+" or "-") and False otherwise.
+
+    All of the parameters are also available as attributes.
+    """
+    types = enum.Enum("ExponentType", ["R", "I", "RI", "+", "-"])
+
+    def _check_ck2(self, type, ck2):
+        if type == self.types["RI"]:
+            if ck2 is None:
+                raise ValueError("RI exponents require ck2")
+        else:
+            if ck2 is not None:
+                raise ValueError(
+                    "Second co-efficient (ck2) should only be specified for"
+                    " RI exponents"
+                )
+
+    def _check_sigma_bar_k_offset(self, type, offset):
+        if type in (self.types["+"], self.types["-"]):
+            if offset is None:
+                raise ValueError(
+                    "+ and - exponents require sigma_bar_k_offset"
+                )
+        else:
+            if offset is not None:
+                raise ValueError(
+                    "Offset of sigma bar (sigma_bar_k_offset) should only be"
+                    " specified for + and - bath exponents"
+                )
+
+    def _type_is_fermionic(self, type):
+        return type in (self.types["+"], self.types["-"])
+
+    def __init__(
+            self, type, ck, vk, ck2=None, sigma_bar_k_offset=None
+    ):
+        if not isinstance(type, self.types):
+            type = self.types[type]
+        self._check_ck2(type, ck2)
+        self._check_sigma_bar_k_offset(type, sigma_bar_k_offset)
+
+        self.type = type
+        self.ck = ck
+        self.vk = vk
+        self.ck2 = ck2
+        self.sigma_bar_k_offset = sigma_bar_k_offset
+
+        self.fermionic = self._type_is_fermionic(type)
+
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__name__} type={self.type.name}"
+            f" ck={self.ck!r} vk={self.vk!r} ck2={self.ck2!r}"
+            f" sigma_bar_k_offset={self.sigma_bar_k_offset!r}"
+            f" fermionic={self.fermionic!r}"
+            f" tag={self.tag!r}>"
+        )
+
+    @property
+    def coefficient(self):
+        # TODO docstring, fermionic coefficients
+        coeff = 0
+        if (self.type == self.types['R'] or self.type == self.types['RI']):
+            coeff += self.ck
+        if self.type == self.types['I']:
+            coeff += 1j * self.ck
+        if self.type == self.types['RI']:
+            coeff += 1j * self.ck2
+        return coeff
+
+    @property
+    def exponent(self):
+        # TODO docstring, fermionic coefficients
+        return self.exponent
+
+
+class ExponentialBosonicEnvironment(BosonicEnvironment):
+    """
+    Bosonic environment that is specified through an exponential decomposition
+    of its correlation function. The list of coefficients and exponents in
+    the decomposition may either be passed through the four lists `ck_real`,
+    `vk_real`, `ck_imag`, `vk_imag`, or as a list of bosonic
+    :class:`CFExponent` objects.
+
+    Parameters
+    ----------
+    ck_real : list of complex
+        The coefficients of the expansion terms for the real part of the
+        correlation function. The corresponding frequencies are passed as
+        vk_real.
+
+    vk_real : list of complex
+        The frequencies (exponents) of the expansion terms for the real part of
+        the correlation function. The corresponding ceofficients are passed as
+        ck_real.
+
+    ck_imag : list of complex
+        The coefficients of the expansion terms in the imaginary part of the
+        correlation function. The corresponding frequencies are passed as
+        vk_imag.
+
+    vk_imag : list of complex
+        The frequencies (exponents) of the expansion terms for the imaginary
+        part of the correlation function. The corresponding ceofficients are
+        passed as ck_imag.
+
+    exponents : list of :class:`CFExponent`
+        The expansion coefficients and exponents of both the real and the
+        imaginary parts of the correlation function as :class:`CFExponent`
+        objects.
+
+    combine : bool, default True
+        Whether to combine exponents with the same frequency (and coupling
+        operator). See :meth:`combine` for details.
+
+    tag : optional, str, tuple or any other object
+        An identifier (name) for this environment.
+
+    T: optional, float
+        The temperature of the bath.
+    """
+
+    def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
+        lists = [ck_real, vk_real, ck_imag, vk_imag]
+        if all(x is None for x in lists):
+            return False
+        if any(x is None for x in lists):
+            raise ValueError(
+                "If any of the exponent lists ck_real, vk_real, ck_imag, "
+                "vk_imag is provided, all must be provided."
+            )
+        if len(ck_real) != len(vk_real) or len(ck_imag) != len(vk_imag):
+            raise ValueError(
+                "The exponent lists ck_real and vk_real, and ck_imag and "
+                "vk_imag must be the same length."
+            )
+        return True
+
+    def __init__(
+        self, ck_real=None, vk_real=None, ck_imag=None, vk_imag=None, *,
+        exponents=None, combine=True, T=None, tag=None
+    ):
+        super().__init__(T=T, tag=tag)
+
+        lists_provided = self._check_cks_and_vks(
+            ck_real, vk_real, ck_imag, vk_imag)
+        if exponents is None and not lists_provided:
+            raise ValueError(
+                "Either the parameter `exponents` or the parameters "
+                "`ck_real`, `vk_real`, `ck_imag`, `vk_imag` must be provided."
+            )
+        if exponents is not None and any(exp.fermionic for exp in exponents):
+            raise ValueError(
+                "Fermionic exponent passed to exponential bosonic environment."
+            )
+
+        exponents = exponents or []
+        exponents.extend(
+            CFExponent("R", ck, vk) for ck, vk in zip(ck_real, vk_real)
+        )
+        exponents.extend(
+            CFExponent("I", ck, vk) for ck, vk in zip(ck_imag, vk_imag)
+        )
+
+        if combine:
+            exponents = self._combine(exponents)
+        self.exponents = exponents
+
+    @classmethod
+    def _combine(cls, exponents, rtol=1e-5, atol=1e-7):
+        """
+        Group bosonic exponents with the same frequency and return a
+        single exponent for each frequency present.
+
+        Parameters
+        ----------
+        exponents : list of CFExponent
+            The list of exponents to combine.
+
+        rtol : float, default 1e-5
+            The relative tolerance to use to when comparing frequencies.
+
+        atol : float, default 1e-7
+            The absolute tolerance to use to when comparing frequencies.
+
+        Returns
+        -------
+        list of CFExponent
+            The new reduced list of exponents.
+        """
+        groups = []
+        remaining = exponents[:]
+
+        while remaining:
+            e1 = remaining.pop(0)
+            group = [e1]
+            for e2 in remaining[:]:
+                if np.isclose(e1.vk, e2.vk, rtol=rtol, atol=atol):
+                    group.append(e2)
+                    remaining.remove(e2)
+            groups.append(group)
+
+        new_exponents = []
+        for combine in groups:
+            exp1 = combine[0]
+            if (exp1.type != exp1.types.RI) and all(
+                exp2.type == exp1.type for exp2 in combine
+            ):
+                # the group is either type I or R
+                ck = sum(exp.ck for exp in combine)
+                new_exponents.append(CFExponent(exp1.type, ck, exp1.vk))
+            else:
+                # the group includes both type I and R exponents
+                ck_R = (
+                    sum(exp.ck for exp in combine if exp.type == exp.types.R) +
+                    sum(exp.ck for exp in combine if exp.type == exp.types.RI)
+                )
+                ck_I = (
+                    sum(exp.ck for exp in combine if exp.type == exp.types.I) +
+                    sum(exp.ck2 for exp in combine if exp.type == exp.types.RI)
+                )
+                new_exponents.append(CFExponent("RI", ck_R, exp1.vk, ck2=ck_I))
+
+        return new_exponents
+
+    def correlation_function(self, t: float | ArrayLike, **kwargs):
+        """
+        Computes the correlation function represented by this exponential
+        decomposition.
+
+        Parameters
+        ----------
+        t: float or obj:`np.array`
+            time to compute correlations.
+
+        Returns
+        -------
+        The correlation function at time t.
+        """
+
+        corr = np.zeros_like(t, dtype=complex)
+        for exp in self.exponents:
+            corr += exp.coefficient * np.exp(-exp.exponent * t)
+        return corr
+
+    def power_spectrum(self, w: float | ArrayLike, **kwargs):
+        """
+        Calculates the power spectrum corresponding to the multi-exponential
+        correlation function.
+
+        Parameters
+        ----------
+        w: float or obj:`np.array`
+            Energy of the mode.
+
+        Returns
+        -------
+        The power spectrum of the mode with energy w.
+        """
+
+        S = np.zeros_like(w, dtype=float)
+        for exp in self.exponents:
+            coeff = exp.coefficient
+            S += 2 * np.real(coeff / (exp.vk - 1j * w))
+        return S
+
+    def spectral_density(self, w: float | ArrayLike):
+        """
+        Calculates the spectral density corresponding to the multi-exponential
+        correlation function.
+
+        Parameters
+        ----------
+        w: float or obj:`np.array`
+            Energy of the mode.
+
+        Returns
+        -------
+        The spectral density of the mode with energy w.
+        """
+        if self.T is None:
+            raise ValueError(
+                "Bath temperature must be specified for this operation")
+
+        return self.power_spectrum(w) / (n_thermal(w, self.T) + 1) / 2
 
 
 
@@ -599,158 +936,6 @@ def _fft(fun, t0=10, dt=1e-5):
 
 
 # --- old code ---
-
-
-class ExponentialBosonicEnvironment(BosonicEnvironment):
-    """
-    Hiden class that constructs a bosonic reservoir, from the coefficients and
-    exponents
-
-    Parameters
-    ----------
-    Q : Qobj
-        The coupling operator for the bath.
-
-    ck_real : list of complex
-        The coefficients of the expansion terms for the real part of the
-        correlation function. The corresponding frequencies are passed as
-        vk_real.
-
-    vk_real : list of complex
-        The frequencies (exponents) of the expansion terms for the real part of
-        the correlation function. The corresponding ceofficients are passed as
-        ck_real.
-
-    ck_imag : list of complex
-        The coefficients of the expansion terms in the imaginary part of the
-        correlation function. The corresponding frequencies are passed as
-        vk_imag.
-
-    vk_imag : list of complex
-        The frequencies (exponents) of the expansion terms for the imaginary
-        part of the correlation function. The corresponding ceofficients are
-        passed as ck_imag.
-
-    combine : bool, default True
-        Whether to combine exponents with the same frequency (and coupling
-        operator). See :meth:`combine` for details.
-
-    tag : optional, str, tuple or any other object
-        A label for the bath exponents (for example, the name of the
-        bath). It defaults to None but can be set to help identify which
-        bath an exponent is from.
-    T: optional, float
-        The temperature of the bath.
-    """
-
-    def __init__(self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
-                 tag=None, T=None):
-        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag, combine,
-                         tag, T)
-
-    def _bose_einstein(self, w):
-        """
-        Calculates the bose einstein distribution for the
-        temperature of the bath.
-
-        Parameters
-        ----------
-        w: float or obj:`np.array.`
-            Energy of the mode.
-
-        Returns
-        -------
-        The population of the mode with energy w.
-        """
-
-        if self.T is None:
-            raise ValueError(
-                "Bath temperature must be specified for this operation")
-        if self.T == 0:
-            return np.zeros_like(w)
-
-        w = np.array(w, dtype=float)
-        result = np.zeros_like(w)
-        non_zero = w != 0
-        result[non_zero] = 1 / (np.exp(w[non_zero] / self.T) - 1)
-        return result
-
-    def correlation_function_approx(self, t):
-        """
-        Computes the correlation function from the exponents. This is the
-        approximation for the correlation function that is used in the HEOM
-        construction.
-
-        Parameters
-        ----------
-        t: float or obj:`np.array.`
-            time to compute correlations.
-
-        Returns
-        -------
-        The correlation function of the bath at time t.
-        """
-
-        corr = np.zeros_like(t, dtype=complex)
-        for exp in self.exponents:
-            if (
-                exp.type == BathExponent.types['R'] or
-                exp.type == BathExponent.types['RI']
-            ):
-                corr += exp.ck * np.exp(-exp.vk * t)
-            if exp.type == BathExponent.types['I']:
-                corr += 1j*exp.ck * np.exp(-exp.vk * t)
-            if exp.type == BathExponent.types['RI']:
-                corr += 1j*exp.ck2 * np.exp(-exp.vk * t)
-        return corr
-
-    def power_spectrum_approx(self, w):
-        """
-        Calculates the power spectrum from the exponents
-        of the bosonic bath.
-
-        Parameters
-        ----------
-        w: float or obj:`np.array.`
-            Energy of the mode.
-
-        Returns
-        -------
-        The power spectrum of the mode with energy w.
-        """
-
-        S = np.zeros_like(w, dtype=float)
-        for exp in self.exponents:
-            if (
-                exp.type == BathExponent.types['R'] or
-                exp.type == BathExponent.types['RI']
-            ):
-                coeff = exp.ck
-            if exp.type == BathExponent.types['I']:
-                coeff = 1j * exp.ck
-            if exp.type == BathExponent.types['RI']:
-                coeff += 1j * exp.ck2
-
-            S += 2 * np.real((coeff) / (exp.vk - 1j*w))
-
-        return S
-
-    def spectral_density_approx(self, w):
-        """
-        Calculates the spectral density from the exponents
-        of the bosonic bath.
-
-        Parameters
-        ----------
-        w: float or obj:`np.array.`
-            Energy of the mode.
-
-        Returns
-        -------
-        The spectral density of the mode with energy w.
-        """
-        J = self.power_spectrum_approx(w) / (self._bose_einstein(w) + 1) / 2
-        return J
 
 
 class ApproximatedBosonicBath:
