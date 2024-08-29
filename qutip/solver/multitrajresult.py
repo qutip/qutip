@@ -9,7 +9,7 @@ from ..core.numpy_backend import np
 
 from copy import copy
 
-from .result import _BaseResult, Result
+from .result import _BaseResult
 from ..core import qzero_like
 
 __all__ = [
@@ -363,6 +363,18 @@ class MultiTrajResult(_BaseResult):
         self.stats["end_condition"] = "unknown"
 
     def add_deterministic(self, trajectory, weight):
+        """
+        Add a trajectory that was not randomly generated.
+        The weight provided here is the exact weight that will be used for this trajectory in all averages.
+        
+        Parameters
+        ----------
+        trajectory : :class:`Result`
+            The result of the simulation of the deterministic trajectory
+        
+        weight : float
+            Number (usually between 0 and 1), exact weight of this trajectory
+        """
         for op in self._state_processors:
             op(trajectory, abs=weight)
 
