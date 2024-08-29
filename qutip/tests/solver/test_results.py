@@ -206,7 +206,7 @@ class TestMultiTrajResult:
         assert isinstance(multiresult.std_expect, list)
         assert isinstance(multiresult.average_e_data, dict)
         assert isinstance(multiresult.runs_weights, list)
-        assert isinstance(multiresult.fixed_weights, list)
+        assert isinstance(multiresult.deterministic_weights, list)
 
         if multiresult.trajectories:
             assert isinstance(multiresult.runs_expect, list)

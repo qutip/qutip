@@ -511,13 +511,11 @@ class MCSolver(MultiTrajSolver):
         })
         return stats
 
-    def _no_jump_simulation(self, state, tlist, e_ops, seed=None):
+    def _no_jump_simulation(self, state, tlist, e_ops):
         """
         Simulates the no-jump trajectory from the initial state `state0`.
         Returns a tuple containing the seed, the `Result` describing
         this trajectory, and the trajectory's probability.
-        Note that a seed for the integrator may be provided, but will
-        be ignored in the no-jump simulation.
         """
         _, no_jump_result, _ = self._run_one_traj(
             None, state, tlist, e_ops, no_jump=True)
@@ -665,7 +663,6 @@ class MCSolver(MultiTrajSolver):
                           'state do not support target tolerance')
 
         # Default value for ntraj: as small as possible
-        # (2 per init. state for improved sampling, 1 per state otherwise)
         if ntraj is None:
             if is_mixed:
                 ntraj = len(state)
@@ -764,7 +761,6 @@ class MCSolver(MultiTrajSolver):
         result.stats['run time'] = time() - start_time
         result.initial_states = [self._restore_state(state, copy=False)
                                  for state, _ in ics_info.state_list]
-        # add back +1 for the no-jump trajectories:
         result.ntraj_per_initial_state = ics_info.ntraj
         return result
 
