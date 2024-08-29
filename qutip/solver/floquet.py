@@ -594,7 +594,7 @@ def fsesolve(
         # Old signature used
         warnings.warn(
             f"e_ops, args and options will be keyword only"
-            " for all solver from qutip 5.3",
+            " for all solvers from qutip 5.3",
             FutureWarning
         )
         # Re order for previous signature
