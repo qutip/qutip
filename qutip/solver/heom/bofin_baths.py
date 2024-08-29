@@ -295,6 +295,7 @@ class DrudeLorentzBath(BosonicBath):
             'matsubara', Nk=Nk, combine=combine
         )
         # TODO terminator stuff
+        # TODO this discards the lam, gamma, T
         return BosonicBath._from_env(matsubara_approx, Q, tag=tag)
 
 

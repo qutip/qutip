@@ -38,6 +38,7 @@ from ..utilities import (n_thermal, CorrelationFitter, SpectralFitter)
 # TODO tests for this module
 # TODO add revised tests for HEOM (keeping the current tests as they are)
 # TODO update HEOM example notebooks
+# TODO clarify scope (single coupling operator, sometimes thermal)
 
 class BosonicEnvironment(abc.ABC):
     """
@@ -1107,3 +1108,52 @@ def _fft(fun, t0=10, dt=1e-5):
     sorted_indices = np.argsort(w)
     zz = interp1d(w[sorted_indices], g[sorted_indices])
     return zz
+
+
+class FermionicEnvironment(abc.ABC):
+    def __init__():
+        ...
+
+    @abstractmethod
+    def spectral_dnesity(self):
+        ...
+
+    @abstractmethod
+    def correlation_function_plus(self):
+        ...
+
+    @abstractmethod
+    def correlation_function_minus(self):
+        ...
+
+    @abstractmethod
+    def power_spectrum_plus(self):
+        ...
+
+    @abstractmethod
+    def power_spectrum_plus(self):
+        ...
+
+    def exponential_approximation(self):
+        raise NotImplementedError
+    
+    @classmethod
+    def from_spectral_density(cls, ...):
+        raise NotImplementedError
+    
+    @classmethod
+    def from_correlation_function(cls, ...):
+        raise NotImplementedError
+        
+    @classmethod
+    def from_power_spectrum(cls, ...):
+        raise NotImplementedError
+
+
+class LorentzianEnvironment(FermionicEnvironment):
+    def exponential_approximation(self):
+        ...
+
+
+class ExponentialFermionicEnvironemnt(FermionicEnvironment):
+    ...
