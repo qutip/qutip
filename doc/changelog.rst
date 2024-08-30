@@ -6,6 +6,17 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.0.4 (2024-08-30)
+========================
+
+Micro release to add support for numpy 2.1
+
+Bug Fixes
+---------
+
+- Fixed rounding error in dicke_trace_function that resulted in negative eigenvalues. (#2466, by  Andrey Nikitin)
+
+
 QuTiP 5.0.3 (2024-06-20)
 ========================
 
