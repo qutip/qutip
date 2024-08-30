@@ -795,19 +795,6 @@ class MultiTrajResult(_BaseResult):
 
         return new
 
-    def _merge_weight(self, p, p_equal, is_det):
-        """
-        Merging two result objects can make the trajectories pick up
-        merge weights. In order to have
-            rho_merge = p * rho1 + (1-p) * rho2,
-        the merge weights must be as defined here. The merge weight depends on
-        whether that trajectory is deterministic (`is_det`). The parameter
-        `p_equal` is the value of p where all trajectories contribute equally.
-        """
-        if is_det:
-            return p
-        return p / p_equal
-
     def __add__(self, other):
         return self.merge(other, p=None)
 
