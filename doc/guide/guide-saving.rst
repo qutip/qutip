@@ -74,7 +74,7 @@ A common use for the :func:`qutip.fileio.file_data_store` function is to store t
     >>> a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
     >>> psi0 = rand_ket(10)
     >>> times = np.linspace(0, 100, 100)
-    >>> medata = mesolve(H, psi0, times, c_ops, [a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
+    >>> medata = mesolve(H, psi0, times, c_ops, e_ops=[a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
     >>> np.shape(medata.expect)
     (3, 100)
     >>> times.shape

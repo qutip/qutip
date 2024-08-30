@@ -569,3 +569,13 @@ def _solver_deprecation(kwargs, options, solver="me"):
     if kwargs:
         raise TypeError(f"unexpected keyword argument {kwargs.keys()}")
     return options
+
+
+def _kwargs_migration(position, keyword, name):
+    if position is not None:
+        warnings.warn(
+            f"{name} will be keyword only from qutip 5.3 for all solver",
+            FutureWarning
+        )
+        return position
+    return keyword

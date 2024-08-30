@@ -294,7 +294,7 @@ def test_expectation_outputs(keep_runs_results, improved_sampling,
     times = np.linspace(0, 10, 5)
     c_ops = [a, sm]
     e_ops = [a.dag()*a, sm.dag()*sm, a]
-    data = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
+    data = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
                    options={"keep_runs_results": keep_runs_results,
                             'map': 'serial',
                             "improved_sampling": improved_sampling})
@@ -432,7 +432,7 @@ def test_timeout(improved_sampling, mixed_initial_state):
     n_th = 0.05
     c_ops = np.sqrt(coupling * (n_th + 1)) * a
     e_ops = [qutip.num(size)]
-    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
+    res = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
                   options={'map': 'serial',
                            "improved_sampling": improved_sampling},
                   timeout=1e-6)
@@ -453,12 +453,12 @@ def test_target_tol(improved_sampling):
 
     options = {'map': 'serial', "improved_sampling": improved_sampling}
 
-    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj, options=options,
-                  target_tol = 0.5)
+    res = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
+                  options=options, target_tol=0.5)
     assert res.stats['end_condition'] == 'target tolerance reached'
 
-    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj, options=options,
-                  target_tol = 1e-6)
+    res = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
+                  options=options, target_tol=1e-6)
     assert res.stats['end_condition'] == 'ntraj reached'
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
@@ -478,11 +478,12 @@ def test_super_H(improved_sampling, mixed_initial_state):
     n_th = 0.05
     c_ops = np.sqrt(coupling * (n_th + 1)) * a
     e_ops = [qutip.num(size)]
-    mc_expected = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
+    mc_expected = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
                           target_tol=(0.1 if state.isket else None),
                           options={'map': 'serial',
                                    "improved_sampling": improved_sampling})
-    mc = mcsolve(qutip.liouvillian(H), state, times, c_ops, e_ops, ntraj=ntraj,
+    mc = mcsolve(qutip.liouvillian(H), state, times, c_ops,
+                 e_ops=e_ops, ntraj=ntraj,
                  target_tol=(0.1 if state.isket else None),
                  options={'map': 'serial',
                           "improved_sampling": improved_sampling})

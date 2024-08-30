@@ -233,8 +233,9 @@ def test_steadystate_floquet(sparse):
     T_max = 20 * 2 * np.pi / gam
     t_l = np.linspace(0, T_max, 20000)
 
-    expect_me = qutip.mesolve(H_t, psi0, t_l,
-                              c_ops, [sz], args=args).expect[0]
+    expect_me = qutip.mesolve(
+        H_t, psi0, t_l, c_ops, e_ops=[sz], args=args
+    ).expect[0]
 
     rho_ss = qutip.steadystate_floquet(H, c_ops,
                                        A_l * sx, w_l, n_it=3, sparse=sparse)

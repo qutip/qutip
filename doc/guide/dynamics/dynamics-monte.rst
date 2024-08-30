@@ -392,10 +392,10 @@ a lifetime of 10 microseconds (assuming time is in units of nanoseconds)
     H0 = -0.5 * omega * sigmaz()
     gamma = 1/10000
     data = mcsolve(
-        [H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100
+        [H0], psi0, times, [np.sqrt(gamma) * sm], e_ops=[sm.dag() * sm], ntraj=100
     )
     data_imp = mcsolve(
-        [H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100,
+        [H0], psi0, times, [np.sqrt(gamma) * sm], e_ops=[sm.dag() * sm], ntraj=100,
         options={"improved_sampling": True}
     )
 
