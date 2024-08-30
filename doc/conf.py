@@ -29,7 +29,7 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
               'sphinx.ext.napoleon',
-              'sphinx_gallery.gen_gallery',
+              # 'sphinx_gallery.gen_gallery',
               'sphinxcontrib.bibtex']
 
 # Add any paths that contain templates here, relative to this directory.
@@ -383,10 +383,10 @@ extlinks = {
 # configuration declares the location of the examples directory for
 # Sphinx Gallery
 
-sphinx_gallery_conf = {
-     'examples_dirs': 'gallery/src',   # path to your example scripts
-     'gallery_dirs': 'gallery/build',  # save generated examples
-     'abort_on_example_error': True  # abort if exception occurs
-}
+#sphinx_gallery_conf = {
+#     'examples_dirs': 'gallery/src',   # path to your example scripts
+#     'gallery_dirs': 'gallery/build',  # save generated examples
+#     'abort_on_example_error': True  # abort if exception occurs
+#}
 
 ipython_strict_fail = False
