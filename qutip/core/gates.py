@@ -799,8 +799,8 @@ def qubit_clifford_group(*, dtype: LayerType = None) -> list[Qobj]:
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
 
-    Return
-    ------
+    Returns
+    -------
     op : list of Qobj
         Clifford operators, represented as Qobj instances.
 
