@@ -362,6 +362,13 @@ texinfo_documents = [
 
 autodoc_member_order = 'alphabetical'
 
+# Type hint are already in the parameter section of the documentation in
+# (hopefully) user readable format.
+# "signature" : In the signature
+# "description" : Added to the description (doubled)
+# "none": Removed
+autodoc_typehints = "none"
+
 # Makes the following types appear as their alias in the apidoc
 # instead of expanding the alias
 autodoc_type_aliases = {
@@ -370,7 +377,9 @@ autodoc_type_aliases = {
     'QobjEvoLike': 'QobjEvoLike',
     'EopsLike': 'EopsLike',
     'LayerType': 'LayerType',
-    'ArrayLike': 'ArrayLike'
+    'ArrayLike': 'ArrayLike',
+    'SpaceLike': 'SpaceLike',
+    'DimensionLike': 'DimensionLike',
 }
 
 ## EXTLINKS CONFIGURATION ######################################################

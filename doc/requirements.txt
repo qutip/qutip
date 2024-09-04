@@ -27,11 +27,11 @@ prompt-toolkit==3.0.47
 ptyprocess==0.7.0
 Pygments==2.18.0
 pyparsing==3.1.4
-python-dateutil==2.9.0.post02.8.2
+python-dateutil==2.9.0.post0
 pytz==2024.1
 requests==2.32.0
 scipy==1.14.1
-setuptools==69.0.2
+setuptools==74.1.1
 six==1.16.0
 snowballstemmer==2.2.0
 Sphinx==7.4.7
@@ -44,7 +44,7 @@ sphinxcontrib-jquery==4.1
 sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==2.0.0
 sphinxcontrib-serializinghtml==2.0.0
-traitlets==5.9.0
-urllib3==1.26.19
+traitlets==5.14.3
+urllib3==2.2.2
 wcwidth==0.2.13
-wheel==0.38.4
+wheel==0.44.0

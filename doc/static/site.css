@@ -17,3 +17,11 @@ span.eqno:hover .headerlink {
   display: inline-block;
   visibility: visible;
 }
+
+/*
+Ensure each property is on it's line.
+https://github.com/readthedocs/sphinx_rtd_theme/issues/1301
+*/
+.py.property {
+  display: block !important;
+}
