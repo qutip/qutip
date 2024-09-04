@@ -367,8 +367,8 @@ autodoc_member_order = 'alphabetical'
 # "signature" : In the signature
 # "description" : Added to the description (doubled)
 # "none": Removed
-autodoc_typehints = "none"
-
+autodoc_typehints = "signature"
+python_maximum_signature_line_length = 80
 # Makes the following types appear as their alias in the apidoc
 # instead of expanding the alias
 autodoc_type_aliases = {

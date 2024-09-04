@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 from itertools import product
 from functools import partial, reduce
 from operator import mul

@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'fock', 'thermal_dm', 'maximally_mixed_dm', 'ket2dm', 'projection',
            'qstate', 'ket', 'bra', 'state_number_enumerate',

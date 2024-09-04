@@ -3,6 +3,8 @@ This module provides result classes for multi-trajectory solvers.
 Note that single trajectories are described by regular `Result` objects from the
 `qutip.solver.result` module.
 """
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
 
 from typing import TypedDict
 from ..core.numpy_backend import np

@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
 import numpy as np
