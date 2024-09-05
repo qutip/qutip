@@ -29,7 +29,6 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
               'sphinx.ext.napoleon',
-              # 'sphinx_gallery.gen_gallery',
               'sphinxcontrib.bibtex']
 
 # Add any paths that contain templates here, relative to this directory.
@@ -129,7 +128,6 @@ exclude_patterns = [
     '_build',
     'Thumbs.db',
     '.DS_Store',
-    'gallery/src',  # handled by sphinx-gallery instead.
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -388,14 +386,5 @@ extlinks = {
     'arxiv': ('https://arxiv.org/abs/%s', 'arXiv:%s'),
     'doi': ('https://dx.doi.org/%s', 'doi:%s'),
 }
-
-# configuration declares the location of the examples directory for
-# Sphinx Gallery
-
-#sphinx_gallery_conf = {
-#     'examples_dirs': 'gallery/src',   # path to your example scripts
-#     'gallery_dirs': 'gallery/build',  # save generated examples
-#     'abort_on_example_error': True  # abort if exception occurs
-#}
 
 ipython_strict_fail = False
