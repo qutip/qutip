@@ -774,3 +774,25 @@ cdef class ConstantCoefficient(Coefficient):
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`.Coefficient`."""
         return self
+
+    def __add__(left, right):
+        if (
+            isinstance(left, ConstantCoefficient)
+            and isinstance(right, ConstantCoefficient)
+        ):
+            return ConstantCoefficient(left.value + right.value)
+        return super().__add__(left, right)
+
+    def __mul__(left, right):
+        if (
+            isinstance(left, ConstantCoefficient)
+            and isinstance(right, ConstantCoefficient)
+        ):
+            return ConstantCoefficient(left.value * right.value)
+        return super().__mul__(left, right)
+
+    def conj(self):
+        return ConstantCoefficient(conj(self.value))
+
+    def _cdc(self):
+        return ConstantCoefficient(norm(self.value))

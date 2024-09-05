@@ -97,6 +97,31 @@ def _single_qobj_expect(oper, state):
         out = out.real
     return out
 
+def _single_qobjevo_expect(oper, state):
+    oper = QobjEvo(oper)
+    state = QobjEvo(state)
+    if not isoper(state):
+        state = state @ state.dag()
+
+    op_list = oper.to_list()
+    state_list = state.to_list()
+
+    out_coeff = ConstantCoefficient(0.)
+
+    for op, rho in product(op_list, state_list):
+        if isinstance(op, Qobj):
+            op = [op, ConstantCoefficient(1.)]
+        if isinstance(rho, Qobj):
+            rho = [rho, ConstantCoefficient(1.)]
+        if isinstance(op[0], Qobj) and isinstance(rho[0], Qobj):
+            out_coeff = out_coeff + ConstantCoefficient(_single_qobj_expect(op[0], rho[0])) * op[1] * rho[1]
+            continue
+        # One of the QobjEvo is in the function format: QobjEvo(lambda t, **kw: Qobj(...)
+        raise NotImplementedError("Function based QobjEvo is not yer supported")
+
+    return out_coeff
+
+
 
 @overload
 def variance(oper: Qobj, state: Qobj) -> complex: ...
