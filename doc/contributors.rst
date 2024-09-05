@@ -307,4 +307,3 @@ Contributors
 - Yuji TAMAKOSHI
 - yulanl22
 - yuri@FreeBSD
-- Богдан Богдан
