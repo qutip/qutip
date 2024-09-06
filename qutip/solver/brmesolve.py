@@ -2,6 +2,8 @@
 This module provides solvers for the Lindblad master equation and von Neumann
 equation.
 """
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
 
 __all__ = ['brmesolve', 'BRSolver']
 

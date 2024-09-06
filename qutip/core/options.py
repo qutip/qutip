@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 from ..settings import settings
 from .numpy_backend import np as qt_np
 import numpy
