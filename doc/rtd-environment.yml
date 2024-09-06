@@ -3,7 +3,7 @@ channels:
 - conda-forge
 dependencies:
 - alabaster==0.7.16
-- Babel==2.16.0
+- Babel==2.14.0
 - backcall==0.2.0
 - certifi==2024.8.30
 - chardet==5.2.0
@@ -31,11 +31,11 @@ dependencies:
 - ptyprocess==0.7.0
 - Pygments==2.18.0
 - pyparsing==3.1.4
-- python-dateutil==2.9.0.post0
+- python-dateutil==2.9.0
 - pytz==2024.1
-- requests==2.32.0
+- requests==2.32.2
 - scipy==1.14.1
-- setuptools==74.1.1
+- setuptools==73.0.1
 - six==1.16.0
 - snowballstemmer==2.2.0
 - Sphinx==7.4.7
@@ -47,7 +47,7 @@ dependencies:
 - sphinxcontrib-jquery==4.1
 - sphinxcontrib-jsmath==1.0.1
 - sphinxcontrib-qthelp==2.0.0
-- sphinxcontrib-serializinghtml==2.0.0
+- sphinxcontrib-serializinghtml==1.1.10
 - traitlets==5.14.3
 - urllib3==2.2.2
 - wcwidth==0.2.13
