@@ -166,3 +166,43 @@ def test_no_real_casting(monkeypatch):
     assert isinstance(qutip.expect(sz, sz), float)
     with qutip.CoreOptions(auto_real_casting=False):
         assert isinstance(qutip.expect(sz, sz), complex)
+
+
+@pytest.mark.parametrize("oper_type", ["qobj", "qevo", "func"])
+@pytest.mark.parametrize("state_type", ["qobj", "qevo", "func"])
+def test_expect_QobjEvo(oper_type, state_type):
+    N = 5
+    oper = qutip.num(N)
+    if oper_type == "qobj":
+        oper = qutip.rand_herm(N)
+    elif oper_type == "qevo":
+        oper = qutip.QobjEvo(
+            [qutip.rand_herm(N), [qutip.rand_herm(N), lambda t: t]]
+        )
+    elif oper_type == "func":
+        oper = qutip.QobjEvo(lambda t: qutip.num(N) * t)
+
+    if state_type == "qobj":
+        state = qutip.rand_ket(N)
+    elif state_type == "qevo":
+        state = qutip.QobjEvo(
+            [qutip.rand_ket(N), [qutip.rand_ket(N), lambda t: t]]
+        )
+    elif state_type == "func":
+        state = qutip.QobjEvo(lambda t: qutip.basis(N, N-1) * t)
+
+    if oper_type == "qobj" and state_type == "qobj":
+        # No QobjEvo, previously tested
+        return
+
+    expect_coeff = qutip.expect(oper, state)
+    oper = qutip.QobjEvo(oper)
+    state = qutip.QobjEvo(state)
+
+    for _ in range(5):
+        t = np.random.rand()
+        np.testing.assert_allclose(
+            expect_coeff(t),
+            qutip.expect(oper(t), state(t)),
+            atol=1e-10
+        )

@@ -2,11 +2,14 @@ __all__ = ['expect', 'variance']
 
 import numpy as np
 from typing import overload, Sequence
+import itertools
 
 from .qobj import Qobj
+from .properties import isoper
 from . import data as _data
 from ..settings import settings
 from .cy.coefficient import Coefficient
+from .coefficient import coefficient
 from .cy.qobjevo import QobjEvo
 
 
@@ -118,16 +121,16 @@ def _single_qobjevo_expect(oper, state):
     op_list = oper.to_list()
     state_list = state.to_list()
 
-    out_coeff = ConstantCoefficient(0.)
+    out_coeff = coefficient(0.)
 
-    for op, rho in product(op_list, state_list):
+    for op, rho in itertools.product(op_list, state_list):
         if isinstance(op, Qobj):
-            op = [op, ConstantCoefficient(1.)]
+            op = [op, coefficient(1.)]
         if isinstance(rho, Qobj):
-            rho = [rho, ConstantCoefficient(1.)]
+            rho = [rho, coefficient(1.)]
 
         if isinstance(op[0], Qobj) and isinstance(rho[0], Qobj):
-            out_coeff = out_coeff + ConstantCoefficient(
+            out_coeff = out_coeff + coefficient(
                 _single_qobj_expect(op[0], rho[0])
             ) * op[1] * rho[1]
 
@@ -135,18 +138,18 @@ def _single_qobjevo_expect(oper, state):
         elif isinstance(rho[0], Qobj):
 
             def _qevo_oper_expect(t):
-                return expect(op[0](t, **op[1]), rho) * rho[1](t)
+                return expect(op[0](t, **op[1]), rho[0]) * rho[1](t)
 
-            out_coeff = out_coeff + coefficient(_qevo_expect)
+            out_coeff = out_coeff + coefficient(_qevo_oper_expect)
 
         elif isinstance(op[0], Qobj):
 
             def _qevo_state_expect(t):
-                return expect(op, rho[0](t, **rho[1])) * op[1](t)
+                return expect(op[0], rho[0](t, **rho[1])) * op[1](t)
 
             out_coeff = out_coeff + coefficient(_qevo_state_expect)
 
-        elif isinstance(op[0], Qobj):
+        else:
 
             def _qevo_both_expect(t):
                 return expect(op[0](t, **op[1]), rho[0](t, **rho[1]))
