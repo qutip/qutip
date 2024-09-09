@@ -6,10 +6,15 @@ from typing import overload, Sequence
 from .qobj import Qobj
 from . import data as _data
 from ..settings import settings
+from .cy.coefficient import Coefficient
+from .cy.qobjevo import QobjEvo
 
 
 @overload
 def expect(oper: Qobj, state: Qobj) -> complex: ...
+
+@overload
+def expect(oper: Qobj | QobjEvo, state: Qobj | QobjEvo) -> Coefficient: ...
 
 @overload
 def expect(
@@ -70,6 +75,12 @@ def expect(oper, state):
             dtype = np.float64
         return np.array([_single_qobj_expect(oper, x) for x in state],
                         dtype=dtype)
+
+    if (
+        isinstance(state, (Qobj, QobjEvo))
+        and isinstance(oper, (Qobj, QobjEvo))
+    ):
+        return _single_qobjevo_expect(oper, state)
     raise TypeError('Arguments must be quantum objects')
 
 
@@ -97,6 +108,7 @@ def _single_qobj_expect(oper, state):
         out = out.real
     return out
 
+
 def _single_qobjevo_expect(oper, state):
     oper = QobjEvo(oper)
     state = QobjEvo(state)
@@ -113,14 +125,35 @@ def _single_qobjevo_expect(oper, state):
             op = [op, ConstantCoefficient(1.)]
         if isinstance(rho, Qobj):
             rho = [rho, ConstantCoefficient(1.)]
+
         if isinstance(op[0], Qobj) and isinstance(rho[0], Qobj):
-            out_coeff = out_coeff + ConstantCoefficient(_single_qobj_expect(op[0], rho[0])) * op[1] * rho[1]
-            continue
+            out_coeff = out_coeff + ConstantCoefficient(
+                _single_qobj_expect(op[0], rho[0])
+            ) * op[1] * rho[1]
+
         # One of the QobjEvo is in the function format: QobjEvo(lambda t, **kw: Qobj(...)
-        raise NotImplementedError("Function based QobjEvo is not yer supported")
+        elif isinstance(rho[0], Qobj):
+
+            def _qevo_oper_expect(t):
+                return expect(op[0](t, **op[1]), rho) * rho[1](t)
+
+            out_coeff = out_coeff + coefficient(_qevo_expect)
+
+        elif isinstance(op[0], Qobj):
+
+            def _qevo_state_expect(t):
+                return expect(op, rho[0](t, **rho[1])) * op[1](t)
+
+            out_coeff = out_coeff + coefficient(_qevo_state_expect)
+
+        elif isinstance(op[0], Qobj):
+
+            def _qevo_both_expect(t):
+                return expect(op[0](t, **op[1]), rho[0](t, **rho[1]))
+
+            out_coeff = out_coeff + coefficient(_qevo_both_expect)
 
     return out_coeff
-
 
 
 @overload

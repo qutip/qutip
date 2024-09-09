@@ -743,7 +743,7 @@ cdef class ConstantCoefficient(Coefficient):
 
     :obj:`ConstantCoefficient` is returned by ``qutip.coefficent.const(value)``.
     """
-    cdef complex value
+    cdef readonly complex value
 
     def __init__(self, complex value, **_):
         self.value = value
@@ -781,7 +781,7 @@ cdef class ConstantCoefficient(Coefficient):
             and isinstance(right, ConstantCoefficient)
         ):
             return ConstantCoefficient(left.value + right.value)
-        return super().__add__(left, right)
+        return Coefficient.__add__(left, right)
 
     def __mul__(left, right):
         if (
@@ -789,7 +789,7 @@ cdef class ConstantCoefficient(Coefficient):
             and isinstance(right, ConstantCoefficient)
         ):
             return ConstantCoefficient(left.value * right.value)
-        return super().__mul__(left, right)
+        return Coefficient.__mul__(left, right)
 
     def conj(self):
         return ConstantCoefficient(conj(self.value))
