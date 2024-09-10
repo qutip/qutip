@@ -137,61 +137,13 @@ def _single_qobjevo_expect(oper, state):
         # One of the QobjEvo is in the function format: QobjEvo(lambda t, **kw: Qobj(...)
         elif isinstance(rho[0], Qobj):
 
-            def _qevo_oper_expect(t):
-                return expect(op[0](t, **op[1]), rho[0]) * rho[1](t)
-
-            out_coeff = out_coeff + coefficient(_qevo_oper_expect)
-
-        elif isinstance(op[0], Qobj):
-
-            def _qevo_state_expect(t):
-                return expect(op[0], rho[0](t, **rho[1])) * op[1](t)
-
-            out_coeff = out_coeff + coefficient(_qevo_state_expect)
-
-        else:
-
-            def _qevo_both_expect(t):
-                return expect(op[0](t, **op[1]), rho[0](t, **rho[1]))
-
-            out_coeff = out_coeff + coefficient(_qevo_both_expect)
-
-    return out_coeff
-
-
-def _single_qobjevo_expect(oper, state):
-    oper = QobjEvo(oper)
-    state = QobjEvo(state)
-    if not isoper(state):
-        state = state @ state.dag()
-
-    op_list = oper.to_list()
-    state_list = state.to_list()
-
-    out_coeff = coefficient(0.)
-
-    for op, rho in itertools.product(op_list, state_list):
-        if isinstance(op, Qobj):
-            op = [op, coefficient(1.)]
-        if isinstance(rho, Qobj):
-            rho = [rho, coefficient(1.)]
-
-        if isinstance(op[0], Qobj) and isinstance(rho[0], Qobj):
-            out_coeff = out_coeff + coefficient(
-                _single_qobj_expect(op[0], rho[0])
-            ) * op[1] * rho[1]
-
-        # One of the QobjEvo is in the function format: QobjEvo(lambda t, **kw: Qobj(...)
-        elif isinstance(rho[0], Qobj):
-
             class _QevoOperExpect:
                 def __init__(self, func, args, state):
+                    self.oper = QobjEvo(func, args=args)
                     self.state = state.copy()
-                    self.func = func
-                    self.args = args.copy()
 
-                def __call__(self, t):
-                    return expect(self.func(t, **self.args), self.state)
+                def __call__(self, t, **args):
+                    return expect(self.oper(t, **args), self.state)
 
             _qevo_oper_expect = _QevoOperExpect(op[0], op[1], rho[0])
 
@@ -202,11 +154,10 @@ def _single_qobjevo_expect(oper, state):
             class _QevoStateExpect:
                 def __init__(self, oper, func, args):
                     self.oper = oper.copy()
-                    self.func = func
-                    self.args = args.copy()
+                    self.state = QobjEvo(func, args=args)
 
-                def __call__(self, t):
-                    return expect(self.oper, self.func(t, **self.args))
+                def __call__(self, t, **args):
+                    return expect(self.oper, self.state(t, **args))
 
             _qevo_state_expect = _QevoStateExpect(op[0], rho[0], rho[1])
 
@@ -217,16 +168,11 @@ def _single_qobjevo_expect(oper, state):
 
             class _QevoBothExpect:
                 def __init__(self, oper, state):
-                    self.oper_func = oper[0]
-                    self.oper_args = oper[1]
-                    self.state_func = state[0]
-                    self.state_args = state[1]
+                    self.oper = QobjEvo(oper[0], args=oper[1])
+                    self.state = QobjEvo(state[0], args=state[1])
 
-                def __call__(self, t):
-                    return expect(
-                        self.oper_func(t, **self.oper_args),
-                        self.state_func(t, **self.state_args)
-                    )
+                def __call__(self, t, **args):
+                    return expect(self.oper(t, **args), self.state(t, **args))
 
             _qevo_both_expect = _QevoBothExpect(op, rho)
 

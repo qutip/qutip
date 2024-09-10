@@ -206,3 +206,31 @@ def test_expect_QobjEvo(oper_type, state_type):
             qutip.expect(oper(t), state(t)),
             atol=1e-10
         )
+
+
+def test_expect_QobjEvo_args():
+    oper = qutip.QobjEvo([
+        qutip.qeye(2),
+        [qutip.qeye(2), lambda t, a: a],
+        lambda t, b: qutip.qeye(2) * b,
+    ], args={"a":0, "b":0}
+    )
+
+    rho = qutip.QobjEvo([
+        qutip.fock_dm(2),
+        [qutip.fock_dm(2), lambda t, c: c],
+        lambda t, d: qutip.fock_dm(2) * d,
+    ], args={"c":0, "d":0}
+    )
+
+    expect_coeff = qutip.expect(oper, rho)
+    assert expect_coeff(0.) == pytest.approx(1.)
+    assert expect_coeff(0., a=1) == pytest.approx(2.)
+    assert expect_coeff(0., b=2) == pytest.approx(3.)
+    assert expect_coeff(0., c=3) == pytest.approx(4.)
+    assert expect_coeff(0., d=4) == pytest.approx(5.)
+    args = np.random.rand(4)
+    assert (
+        expect_coeff(0., a=args[0], b=args[1], c=args[2], d=args[3])
+        == pytest.approx((1 + args[0] + args[1]) * (1 + args[2] + args[3]))
+    )
