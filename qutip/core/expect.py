@@ -162,7 +162,6 @@ def _single_qobjevo_expect(oper, state):
             _qevo_state_expect = _QevoStateExpect(op[0], rho[0], rho[1])
 
             out_coeff = out_coeff + coefficient(_qevo_state_expect) * op[1]
-            print(coefficient(_qevo_state_expect)(0.5)  )
 
         else:
 
