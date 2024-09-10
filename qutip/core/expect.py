@@ -134,7 +134,8 @@ def _single_qobjevo_expect(oper, state):
                 _single_qobj_expect(op[0], rho[0])
             ) * op[1] * rho[1]
 
-        # One of the QobjEvo is in the function format: QobjEvo(lambda t, **kw: Qobj(...)
+        # One of the QobjEvo is in the function format:
+        # QobjEvo(lambda t, **kw: Qobj(...)
         elif isinstance(rho[0], Qobj):
 
             class _QevoOperExpect:
