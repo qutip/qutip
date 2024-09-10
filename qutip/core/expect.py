@@ -159,6 +159,82 @@ def _single_qobjevo_expect(oper, state):
     return out_coeff
 
 
+def _single_qobjevo_expect(oper, state):
+    oper = QobjEvo(oper)
+    state = QobjEvo(state)
+    if not isoper(state):
+        state = state @ state.dag()
+
+    op_list = oper.to_list()
+    state_list = state.to_list()
+
+    out_coeff = coefficient(0.)
+
+    for op, rho in itertools.product(op_list, state_list):
+        if isinstance(op, Qobj):
+            op = [op, coefficient(1.)]
+        if isinstance(rho, Qobj):
+            rho = [rho, coefficient(1.)]
+
+        if isinstance(op[0], Qobj) and isinstance(rho[0], Qobj):
+            out_coeff = out_coeff + coefficient(
+                _single_qobj_expect(op[0], rho[0])
+            ) * op[1] * rho[1]
+
+        # One of the QobjEvo is in the function format: QobjEvo(lambda t, **kw: Qobj(...)
+        elif isinstance(rho[0], Qobj):
+
+            class _QevoOperExpect:
+                def __init__(self, func, args, state):
+                    self.state = state.copy()
+                    self.func = func
+                    self.args = args.copy()
+
+                def __call__(self, t):
+                    return expect(self.func(t, **self.args), self.state)
+
+            _qevo_oper_expect = _QevoOperExpect(op[0], op[1], rho[0])
+
+            out_coeff = out_coeff + coefficient(_qevo_oper_expect) * rho[1]
+
+        elif isinstance(op[0], Qobj):
+
+            class _QevoStateExpect:
+                def __init__(self, oper, func, args):
+                    self.oper = oper.copy()
+                    self.func = func
+                    self.args = args.copy()
+
+                def __call__(self, t):
+                    return expect(self.oper, self.func(t, **self.args))
+
+            _qevo_state_expect = _QevoStateExpect(op[0], rho[0], rho[1])
+
+            out_coeff = out_coeff + coefficient(_qevo_state_expect) * op[1]
+            print(coefficient(_qevo_state_expect)(0.5)  )
+
+        else:
+
+            class _QevoBothExpect:
+                def __init__(self, oper, state):
+                    self.oper_func = oper[0]
+                    self.oper_args = oper[1]
+                    self.state_func = state[0]
+                    self.state_args = state[1]
+
+                def __call__(self, t):
+                    return expect(
+                        self.oper_func(t, **self.oper_args),
+                        self.state_func(t, **self.state_args)
+                    )
+
+            _qevo_both_expect = _QevoBothExpect(op, rho)
+
+            out_coeff = out_coeff + coefficient(_qevo_both_expect)
+
+    return out_coeff
+
+
 @overload
 def variance(oper: Qobj, state: Qobj) -> complex: ...
 
