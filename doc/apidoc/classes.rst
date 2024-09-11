@@ -45,6 +45,39 @@ Distributions
 .. autoclass:: qutip.QFunc
     :members:
 
+Environments
+------------
+
+.. autoclass:: qutip.core.BosonicEnvironment
+    :members:
+
+.. autoclass:: qutip.core.DrudeLorentzEnvironment
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: from_correlation_function, from_power_spectrum, from_spectral_density
+
+.. autoclass:: qutip.core.UnderDampedEnvironment
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: from_correlation_function, from_power_spectrum, from_spectral_density
+
+.. autoclass:: qutip.core.OhmicEnvironment
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: from_correlation_function, from_power_spectrum, from_spectral_density
+
+.. autoclass:: qutip.core.CFExponent
+    :members:
+
+.. autoclass:: qutip.core.ExponentialBosonicEnvironment
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: from_correlation_function, from_power_spectrum, from_spectral_density
+
 
 .. _classes-solver:
 
