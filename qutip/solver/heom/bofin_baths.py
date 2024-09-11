@@ -401,10 +401,6 @@ class UnderDampedBath(BosonicBath):
         matsubara_approx = env.exponential_approximation(
             'matsubara', Nk=Nk, combine=combine
         )
-        print('helo')
-        for exp in matsubara_approx.exponents:
-            print(exp)
-            print()
         # TODO terminator stuff
         return BosonicBath._from_env(matsubara_approx, Q, tag=tag)
 

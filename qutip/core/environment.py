@@ -32,86 +32,190 @@ except ModuleNotFoundError:
 from ..utilities import (n_thermal, CorrelationFitter, SpectralFitter)
 
 
-# TODO fermionic environment
-# TODO environment, bath, or reservoir?
-# TODO revise all documentation
+# TODO improve all documentation (content, links, formatting)
 # TODO tests for this module
 # TODO add revised tests for HEOM (keeping the current tests as they are)
 # TODO update HEOM example notebooks
-# TODO clarify scope (single coupling operator, sometimes thermal)
 
 class BosonicEnvironment(abc.ABC):
     """
     The bosonic environment of an open quantum system. It is characterized by
     its spectral density or, equivalently, its power spectrum or its two-time
-    auto-correlation functions.
+    auto-correlation function.
 
-    Use one of the functions `BosonicEnvironment.from_spectral_density`,
-    `BosonicEnvironment.from_power_spectrum` or
-    `BosonicEnvironment.from_correlation_function` to contruct an environment
-    manually from one of these characteristic functions, or use a predefined
-    sub-class such as the `DrudeLorentzEnvironment` or the
-    `UnderDampedEnvironment`.
+    Use one of the classmethods `from_spectral_density`, `from_power_spectrum`
+    or `from_correlation_function` to contruct an environment manually from one
+    of these characteristic functions, or use a predefined sub-class such as
+    the `DrudeLorentzEnvironment`, the `UnderDampedEnvironment` or the
+    `OhmicEnvironment`.
+    
+    Parameters
+    ----------
+    T: optional, float
+        The temperature of this environment.
+    tag: optional, Any
+        An identifier (name) for this environment.
     """
-    # TODO: proper links in docstring
-    # TODO: properly document all our definitions of these functions in the users guide
-    # especially how we handle negative frequencies and all that stuff
 
-    def __init__(self, T: float = None, *, tag: Any = None):
+    def __init__(self, T: float = None, tag: Any = None):
         self.T = T
         self.tag = tag
 
         # TODO unsure about names
-        # TODO should these be available always?
         # TODO what if T is not set?
-        # TODO add AAA fitting in later PR
         self._avail_approximators = {
             'correlation_fit': self._fit_correlation_function,
             'underdamped_fit': self._fit_spectral_density,
         }
 
     @abc.abstractmethod
-    def spectral_density(self, w: float | ArrayLike):
-        # TODO docstring
+    def spectral_density(self, w: float | ArrayLike, *,
+                         dt: float = 1e-5):
+        """
+        The spectral density of this environment. For negative frequencies,
+        a value of zero will be returned. See the Users Guide on
+        :ref:`bosonic environments <bosonic environments guide>` for specifics
+        on the definitions used by QuTiP.
+
+        If no analytical expression for the spectral density is known, it will
+        be derived from the power spectrum. In this case, the temperature of
+        this environment must be specified.
+
+        If no analytical expression for the power spectrum is known either, it
+        will be derived from the correlation function via a fast fourier
+        transform.
+
+        Parameters
+        ----------
+        w: np.array or float
+            The frequencies at which to evaluate the spectral density.
+
+        dt: optional, float
+            Discretization used in the fast fourier transform, if applicable.
+        """
+
         ...
 
     @abc.abstractmethod
-    def correlation_function(self, t: float | ArrayLike, **kwargs):
-        # TODO docstring explaining kwargs
-        # Default implementation: calculate CF from SD by numerical integration
-        # TODO could this also be done via FFT?
-        def integrand(w, t):
-            return self.spectral_density(w) / np.pi * (
-                (2 * n_thermal(w, self.T) + 1) * np.cos(w * t)
-                - 1j * np.sin(w * t)
-            )
+    def correlation_function(self, t: float | ArrayLike, *,
+                             dw: float = 1e-5, eps: float = 1e-10):
+        """
+        The two-time auto-correlation function of this environment. See the
+        Users Guide on :ref:`bosonic environments <bosonic environments guide>`
+        for specifics on the definitions used by QuTiP.
 
-        result = quad_vec(lambda w: integrand(w, t), 0, np.inf, **kwargs)
-        return result[0]
+        If no analytical expression for the correlation function is known, it
+        will be derived from the power spectrum via a fast fourier transform.
+
+        If no analytical expression for the power spectrum is known either, it
+        will be derived from the spectral density. In this case, the
+        temperature of this environment must be specified.
+
+        Parameters
+        ----------
+        t: np.array or float
+            The times at which to evaluate the correlation function.
+
+        dw: optional, float
+            Discretization used in the fast fourier transform, if applicable.
+
+        eps: optional, float
+            If the power spectrum is derived from the spectral density, the 
+            calculation involves a numerical derivative. In that case, this
+            parameter is used as the finite difference in the numerical
+            differentiation.
+        """
+
+        ...
 
     @abc.abstractmethod
-    def power_spectrum(self, w: float | ArrayLike, dt: float = 1e-5):
-        # TODO docstring explaining dt
-        # Default implementation: calculate PS from SD directly
-        w = np.array(w, dtype=float)
+    def power_spectrum(self, w: float | ArrayLike, *,
+                       eps: float = 1e-10, dt: float = 1e-5):
+        """
+        The power spectrum of this environment. See the Users Guide on
+        :ref:`bosonic environments <bosonic environments guide>` for specifics
+        on the definitions used by QuTiP.
 
-        # at omega=0, typically SD is zero and n_thermal is undefined
-        # set omega to small positive value to capture limit as omega -> 0
-        w[w == 0.0] += 1e-6
-        if self.T != 0:
-            S = (2 * np.sign(w) * self.spectral_density(np.abs(w)) *
-                 (n_thermal(w, self.T) + 1))
-        else:
-            S = 2 * np.heaviside(w, 0) * self.spectral_density(w)
-        return S
+        If no analytical expression for the power spectrum is known, it will
+        be derived from the spectral density. In this case, the temperature of
+        this environment must be specified.
 
-    def exponential_approximation(self, method, **kwargs):
+        If no analytical expression for the spectral density is known either,
+        the power spectrum will instead be derived from the correlation
+        function via a fast fourier transform.
+
+        Parameters
+        ----------
+        w: np.array or float
+            The frequencies at which to evaluate the power spectrum.
+
+        eps: optional, float
+            To derive the zero-frequency power spectrum from the spectral
+            density, the spectral density must be differentiated numerically.
+            In that case, this parameter is used as the finite difference in
+            the numerical differentiation.
+
+        dt: optional, float
+            Discretization used in the fast fourier transform, if applicable.
+        """
+
+        ...
+
+    def exponential_approximation(self, method, **options):
         # TODO documentation
         # TODO is this the right way of doing it?
         approximator = self._avail_approximators.get(method, None)
         if approximator is None:
             raise ValueError(f"Unknown approximation method: {method}")
-        return approximator(**kwargs)
+        return approximator(**options)
+
+    def _ps_from_sd(self, w: float | ArrayLike, eps: float):
+        if self.T is None:
+            raise ValueError(
+                "Bath temperature must be specified for this operation")
+
+        w = np.array(w, dtype=float)
+        if self.T == 0:
+            return 2 * np.heaviside(w, 0) * self.spectral_density(w)
+
+        # at zero frequency, we do numerical differentiation
+        # S(0) = 2 J'(0) / beta
+        zero_mask = (w == 0)
+        nonzero_mask = np.invert(zero_mask)
+
+        S = np.zeros_like(w)
+        S[zero_mask] = 2 * self.T * self.spectral_density(eps) / eps
+        S[nonzero_mask] = (
+            2 * np.sign(w[nonzero_mask])
+            * self.spectral_density(np.abs(w[nonzero_mask]))
+            * (n_thermal(w[nonzero_mask], self.T) + 1)
+        )
+        return S
+
+    def _sd_from_ps(self, w: float | ArrayLike, **kwargs):
+        if self.T is None:
+            raise ValueError(
+                "Bath temperature must be specified for this operation")
+
+        w = np.array(w, dtype=float)
+        J = np.zeros_like(w)
+        positive_mask = (w > 0)
+
+        J[positive_mask] = (
+            self.power_spectrum(w[positive_mask], **kwargs) / 2
+            / (n_thermal(w[positive_mask], self.T) + 1)
+        )
+        return J
+
+    def _ps_from_cf(self, w: float | ArrayLike, dt: float):
+        wMax = max(np.abs(w[0]), np.abs(w[-1]))
+        negative = _fft(self.correlation_function, wMax, dt)
+        return np.real(negative(-w))
+
+    def _cf_from_ps(self, t: float | ArrayLike, dw: float, **kwargs):
+        tMax = max(np.abs(t[0]), np.abs(t[-1]))
+        fft = _fft(lambda w: self.power_spectrum(w, **kwargs), tMax, dw)
+        return fft(t) / (2 * np.pi)
 
     def _fit_correlation_function(self, tlist, Nr, Ni, full_ansatz=False):
         """
@@ -156,156 +260,159 @@ class BosonicEnvironment(abc.ABC):
         fitter = SpectralFitter(self.T, wlist, self.spectral_density)
         return fitter.get_fit(N=N, Nk=Nk)
 
-    # TODO: I thought these temperatures can be `None`. In what cases is that ok?
     @classmethod
     def from_correlation_function(
         cls,
-        T: float,
         C: Callable[[float], complex] | ArrayLike,
         tlist: ArrayLike = None,
         *,
+        T: float = None,
         tag: Any = None
     ) -> BosonicEnvironment:
-        """
-        Constructs a bosonic environment with the provided correlation
-        function and temperature
+        r"""
+        Constructs a bosonic environment from the provided correlation
+        function. The provided function will only be used for times
+        :math:`t \geq 0`. At times :math:`t < 0`, the symmetry relation
+        :math:`C(-t) = C(t)^\ast` is enforced.
 
         Parameters
         ----------
-        T : float
-            Bath temperature.
-
         C: callable or :obj:`np.array`
-            The correlation function
+            The correlation function.
 
-        tlist : :obj:`np.array` (optional)
+        tlist: optional, :obj:`np.array`
             The times where the correlation function is sampled (if it is
-            provided as an array)
+            provided as an array).
 
-        tag : optional, str, tuple or any other object
-            An identifier (name) for this environment
+        T: optional, float
+            Bath temperature. (The spectral density of this environment can
+            only be calculated from the correlation function if a temperature
+            is provided.)
+
+        tag: optional, str, tuple or any other object
+            An identifier (name) for this environment.
         """
-        return _BosonicEnvironment_fromCF(T, C, tlist, tag)
+        return _BosonicEnvironment_fromCF(C, tlist, T, tag)
 
     @classmethod
     def from_power_spectrum(
         cls,
-        T: float,
         S: Callable[[float], float] | ArrayLike,
         wlist: ArrayLike = None,
         *,
+        T: float = None,
         tag: Any = None
     ) -> BosonicEnvironment:
         """
-        Constructs a bosonic environment with the provided power spectrum
-        and temperature
+        Constructs a bosonic environment with the provided power spectrum.
 
         Parameters
         ----------
-        T : float
-            Bath temperature.
+        S: callable or :obj:`np.array`
+            The power spectrum.
 
-        S: callable or :obj:`np.array.`
-            The power spectrum
-
-        wlist : :obj:`np.array` (optional)
+        wlist: optional, :obj:`np.array`
             The frequencies where the power spectrum is sampled (if it is
-            provided as an array)
+            provided as an array).
+
+        T: optional, float
+            Bath temperature. (The spectral density of this environment can
+            only be calculated from the power spectrum if a temperature
+            is provided.)
 
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment
         """
-        return _BosonicEnvironment_fromPS(T, S, wlist, tag)
+        return _BosonicEnvironment_fromPS(S, wlist, T, tag)
 
     @classmethod
     def from_spectral_density(
         cls,
-        T: float,
         J: Callable[[float], float] | ArrayLike,
         wlist: ArrayLike = None,
         *,
+        T: float = None,
         tag: Any = None
     ) -> BosonicEnvironment:
-        """
-        Constructs a bosonic environment with the provided spectral density
-        and temperature
+        r"""
+        Constructs a bosonic environment with the provided spectral density.
+        The provided function will only be used for frequencies
+        :math:`\omega > 0`. At frequencies :math:`omega \leq 0`, the spectral
+        density is zero according to the definition used by QuTiP. See the
+        Users Guide on :ref:`bosonic environments <bosonic environments guide>`
+        for a note on spectral densities with support at negative frequencies.
 
         Parameters
         ----------
-        T : float
-            Bath temperature.
+        J: callable or :obj:`np.array`
+            The spectral density.
 
-        J : callable or :obj:`np.array`
-            The spectral density
-
-        wlist : :obj:`np.array` (optional)
+        wlist: optional, :obj:`np.array`
             The frequencies where the spectral density is sampled (if it is
-            provided as an array)
+            provided as an array).
+
+        T: optional, float
+            Bath temperature. (The correlation function and the power spectrum
+            of this environment can only be calculated from the spectral
+            density if a temperature is provided.)
 
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment
         """
-        return _BosonicEnvironment_fromSD(T, J, wlist, tag)
+        return _BosonicEnvironment_fromSD(J, wlist, T, tag)
 
 
 class _BosonicEnvironment_fromCF(BosonicEnvironment):
-    def __init__(self, T, C, tlist=None, tag=None):
-        super().__init__(T, tag=tag)
+    def __init__(self, C, tlist, T, tag):
+        super().__init__(T, tag)
         self._cf = _complex_interpolation(C, tlist, 'correlation function')
 
     def correlation_function(self, t, **kwargs):
-        # TODO document that the provided CF is only used for t>0
-        # (or change this?)
         result = np.zeros_like(t, dtype=complex)
-        positive_mask = t > 0
-        non_positive_mask = ~positive_mask
+        positive_mask = (t >= 0)
+        non_positive_mask = np.invert(positive_mask)
 
         result[positive_mask] = self._cf(t[positive_mask])
         result[non_positive_mask] = np.conj(
-            self._cf(np.abs(t[non_positive_mask]))
+            self._cf(-t[non_positive_mask])
         )
         return result
 
-    def spectral_density(self, w):
-        # TODO do we have to worry about w=0 or T=0 special cases?
-        # TODO add tests including these cases
-        return self.power_spectrum(w) / (n_thermal(w, self.T) + 1) / 2
+    def spectral_density(self, w, *, dt=1e-5):
+        return self._sd_from_ps(w, dt=dt)
 
-    def power_spectrum(self, w, dt=1e-5):
-        wMax = max(np.abs(w[0]), np.abs(w[-1]))
-        negative = _fft(self.correlation_function, wMax, dt)
-        return negative(-w)
+    def power_spectrum(self, w, *, dt=1e-5, **kwargs):
+        return self._ps_from_cf(w, dt)
 
 
 class _BosonicEnvironment_fromPS(BosonicEnvironment):
-    def __init__(self, T, S, wlist=None, tag=None):
-        super().__init__(T, tag=tag)
+    def __init__(self, S, wlist, T, tag):
+        super().__init__(T, tag)
         self._ps = _real_interpolation(S, wlist, 'power spectrum')
 
-    def correlation_function(self, t, **kwargs):
-        return super().correlation_function(t, **kwargs)
+    def correlation_function(self, t, *, dw=1e-5, **kwargs):
+        return self._cf_from_ps(t, dw)
 
-    def spectral_density(self, w):
-        # TODO is this okay at w=0 or do we have to do something like in _fromSD?
-        return self.power_spectrum(w) / (n_thermal(w, self.T) + 1) / 2
+    def spectral_density(self, w, **kwargs):
+        return self._sd_from_ps(w)
 
-    def power_spectrum(self, w, dt=1e-5):
+    def power_spectrum(self, w, **kwargs):
         return self._ps(w)
 
 
 class _BosonicEnvironment_fromSD(BosonicEnvironment):
-    def __init__(self, T, J, wlist=None, tag=None):
-        super().__init__(T, tag=tag)
+    def __init__(self, J, wlist, T, tag):
+        super().__init__(T, tag)
         self._sd = _real_interpolation(J, wlist, 'spectral density')
 
-    def correlation_function(self, t, **kwargs):
-        return super().correlation_function(t, **kwargs)
+    def correlation_function(self, t, *, dw=1e-5 ,eps=1e-10):
+        return self._cf_from_ps(t, dw, eps=eps)
 
-    def spectral_density(self, w):
+    def spectral_density(self, w, **kwargs):
         return self._sd(w)
 
-    def power_spectrum(self, w, dt=1e-5):
-        return super().power_spectrum(w, dt)
+    def power_spectrum(self, w, *, eps=1e-10, **kwargs):
+        return self._ps_from_sd(w, eps)
 
 
 class DrudeLorentzEnvironment(BosonicEnvironment):
@@ -1075,22 +1182,22 @@ def _complex_interpolation(fun, xlist, name):
         imag_interp = _real_interpolation(np.imag(fun), xlist, name)
         return lambda x: real_interp(x) + 1j * imag_interp(x)
 
-def _fft(fun, t0=10, dt=1e-5):
+def _fft(fun, t0, dt):
     """
     Calculates the Fast Fourier transform of the given function. This
     is an alternative to numerical integration which is often noisy in the 
-    settings we are interested on
+    settings we are interested in.
 
     Parameters
     ----------
-    t0: float or obj:`np.array.`
-        Range to use for the fast fourier transform, the range is [-t0,t0].
+    t0: float or obj:`np.array`
+        Range to use for the fast fourier transform, the range is [-t0, t0].
     dt: float
         The timestep to be used.
 
     Returns
     -------
-    The fourier transform of the correlation function
+    The fourier transform of the provided function as an interpolated function.
     """
     # Code adapted from https://stackoverflow.com/a/24077914
 
@@ -1110,43 +1217,47 @@ def _fft(fun, t0=10, dt=1e-5):
     return zz
 
 
+
+
+# --- TODO ---
+
 class FermionicEnvironment(abc.ABC):
     def __init__():
         ...
 
-    @abstractmethod
+    @abc.abstractmethod
     def spectral_dnesity(self):
         ...
 
-    @abstractmethod
+    @abc.abstractmethod
     def correlation_function_plus(self):
         ...
 
-    @abstractmethod
+    @abc.abstractmethod
     def correlation_function_minus(self):
         ...
 
-    @abstractmethod
+    @abc.abstractmethod
     def power_spectrum_plus(self):
         ...
 
-    @abstractmethod
-    def power_spectrum_plus(self):
+    @abc.abstractmethod
+    def power_spectrum_minus(self):
         ...
 
     def exponential_approximation(self):
         raise NotImplementedError
     
     @classmethod
-    def from_spectral_density(cls, ...):
+    def from_spectral_density(cls):
         raise NotImplementedError
     
     @classmethod
-    def from_correlation_function(cls, ...):
+    def from_correlation_function(cls):
         raise NotImplementedError
         
     @classmethod
-    def from_power_spectrum(cls, ...):
+    def from_power_spectrum(cls):
         raise NotImplementedError
 
 
