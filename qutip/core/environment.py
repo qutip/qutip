@@ -20,8 +20,7 @@ import warnings
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.linalg import eigvalsh
-from scipy.integrate import quad_vec
-from scipy.interpolate import interp1d
+from scipy.interpolate import CubicSpline
 
 try:
     from mpmath import mp
@@ -69,8 +68,7 @@ class BosonicEnvironment(abc.ABC):
         }
 
     @abc.abstractmethod
-    def spectral_density(self, w: float | ArrayLike, *,
-                         dt: float = 1e-5):
+    def spectral_density(self, w: float | ArrayLike):
         """
         The spectral density of this environment. For negative frequencies,
         a value of zero will be returned. See the Users Guide on
@@ -89,16 +87,13 @@ class BosonicEnvironment(abc.ABC):
         ----------
         w: np.array or float
             The frequencies at which to evaluate the spectral density.
-
-        dt: optional, float
-            Discretization used in the fast fourier transform, if applicable.
         """
 
         ...
 
     @abc.abstractmethod
     def correlation_function(self, t: float | ArrayLike, *,
-                             dw: float = 1e-5, eps: float = 1e-10):
+                             eps: float = 1e-10):
         """
         The two-time auto-correlation function of this environment. See the
         Users Guide on :ref:`bosonic environments <bosonic environments guide>`
@@ -116,21 +111,17 @@ class BosonicEnvironment(abc.ABC):
         t: np.array or float
             The times at which to evaluate the correlation function.
 
-        dw: optional, float
-            Discretization used in the fast fourier transform, if applicable.
-
         eps: optional, float
-            If the power spectrum is derived from the spectral density, the 
-            calculation involves a numerical derivative. In that case, this
-            parameter is used as the finite difference in the numerical
-            differentiation.
+            Used in case the power spectrum is derived from the spectral
+            density; see the documentation of
+            :meth:`BosonicEnvironment.power_spectrum`.
         """
 
         ...
 
     @abc.abstractmethod
     def power_spectrum(self, w: float | ArrayLike, *,
-                       eps: float = 1e-10, dt: float = 1e-5):
+                       eps: float = 1e-10):
         """
         The power spectrum of this environment. See the Users Guide on
         :ref:`bosonic environments <bosonic environments guide>` for specifics
@@ -154,9 +145,6 @@ class BosonicEnvironment(abc.ABC):
             density, the spectral density must be differentiated numerically.
             In that case, this parameter is used as the finite difference in
             the numerical differentiation.
-
-        dt: optional, float
-            Discretization used in the fast fourier transform, if applicable.
         """
 
         ...
@@ -192,7 +180,7 @@ class BosonicEnvironment(abc.ABC):
         )
         return S
 
-    def _sd_from_ps(self, w: float | ArrayLike, **kwargs):
+    def _sd_from_ps(self, w: float | ArrayLike):
         if self.T is None:
             raise ValueError(
                 "Bath temperature must be specified for this operation")
@@ -202,20 +190,31 @@ class BosonicEnvironment(abc.ABC):
         positive_mask = (w > 0)
 
         J[positive_mask] = (
-            self.power_spectrum(w[positive_mask], **kwargs) / 2
+            self.power_spectrum(w[positive_mask]) / 2
             / (n_thermal(w[positive_mask], self.T) + 1)
         )
         return J
 
-    def _ps_from_cf(self, w: float | ArrayLike, dt: float):
-        wMax = max(np.abs(w[0]), np.abs(w[-1]))
-        negative = _fft(self.correlation_function, wMax, dt)
-        return np.real(negative(-w))
+    def _ps_from_cf(self, w: float | ArrayLike, tMax):
+        w = np.array(w, dtype=float)
+        if w.ndim == 0:
+            wMax = np.abs(w)
+        else:
+            wMax = max(np.abs(w[0]), np.abs(w[-1]))
 
-    def _cf_from_ps(self, t: float | ArrayLike, dw: float, **kwargs):
-        tMax = max(np.abs(t[0]), np.abs(t[-1]))
-        fft = _fft(lambda w: self.power_spectrum(w, **kwargs), tMax, dw)
-        return fft(t) / (2 * np.pi)
+        mirrored_result = _fft(self.correlation_function, wMax, tMax=tMax)
+        return np.real(mirrored_result(-w))
+
+    def _cf_from_ps(self, t: float | ArrayLike, wMax, **ps_kwargs):
+        t = np.array(t, dtype=float)
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        else:
+            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+        result = _fft(lambda w: self.power_spectrum(w, **ps_kwargs),
+                      tMax, tMax=wMax)
+        return result(t) / (2 * np.pi)
 
     def _fit_correlation_function(self, tlist, Nr, Ni, full_ansatz=False):
         """
@@ -265,6 +264,7 @@ class BosonicEnvironment(abc.ABC):
         cls,
         C: Callable[[float], complex] | ArrayLike,
         tlist: ArrayLike = None,
+        tMax: float = None,
         *,
         T: float = None,
         tag: Any = None
@@ -284,6 +284,11 @@ class BosonicEnvironment(abc.ABC):
             The times where the correlation function is sampled (if it is
             provided as an array).
 
+        tMax: optional, float
+            Specifies that the correlation function is essentially zero outside
+            the interval [-tMax, tMax]. Used for numerical integration
+            purposes.
+
         T: optional, float
             Bath temperature. (The spectral density of this environment can
             only be calculated from the correlation function if a temperature
@@ -292,13 +297,14 @@ class BosonicEnvironment(abc.ABC):
         tag: optional, str, tuple or any other object
             An identifier (name) for this environment.
         """
-        return _BosonicEnvironment_fromCF(C, tlist, T, tag)
+        return _BosonicEnvironment_fromCF(C, tlist, tMax, T, tag)
 
     @classmethod
     def from_power_spectrum(
         cls,
         S: Callable[[float], float] | ArrayLike,
         wlist: ArrayLike = None,
+        wMax: float = None,
         *,
         T: float = None,
         tag: Any = None
@@ -315,6 +321,10 @@ class BosonicEnvironment(abc.ABC):
             The frequencies where the power spectrum is sampled (if it is
             provided as an array).
 
+        wMax: optional, float
+            Specifies that the power spectrum is essentially zero outside the
+            interval [-wMax, wMax]. Used for numerical integration purposes.
+
         T: optional, float
             Bath temperature. (The spectral density of this environment can
             only be calculated from the power spectrum if a temperature
@@ -323,13 +333,14 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment
         """
-        return _BosonicEnvironment_fromPS(S, wlist, T, tag)
+        return _BosonicEnvironment_fromPS(S, wlist, wMax, T, tag)
 
     @classmethod
     def from_spectral_density(
         cls,
         J: Callable[[float], float] | ArrayLike,
         wlist: ArrayLike = None,
+        wMax: float = None,
         *,
         T: float = None,
         tag: Any = None
@@ -351,6 +362,10 @@ class BosonicEnvironment(abc.ABC):
             The frequencies where the spectral density is sampled (if it is
             provided as an array).
 
+        wMax: optional, float
+            Specifies that the spectral density is essentially zero outside the
+            interval [-wMax, wMax]. Used for numerical integration purposes.
+
         T: optional, float
             Bath temperature. (The correlation function and the power spectrum
             of this environment can only be calculated from the spectral
@@ -359,13 +374,17 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment
         """
-        return _BosonicEnvironment_fromSD(J, wlist, T, tag)
+        return _BosonicEnvironment_fromSD(J, wlist, wMax, T, tag)
 
 
 class _BosonicEnvironment_fromCF(BosonicEnvironment):
-    def __init__(self, C, tlist, T, tag):
+    def __init__(self, C, tlist, tMax, T, tag):
         super().__init__(T, tag)
         self._cf = _complex_interpolation(C, tlist, 'correlation function')
+        if tlist is not None:
+            self.tMax = max(np.abs(tlist[0]), np.abs(tlist[-1]))
+        else:
+            self.tMax = tMax
 
     def correlation_function(self, t, **kwargs):
         result = np.zeros_like(t, dtype=complex)
@@ -378,22 +397,34 @@ class _BosonicEnvironment_fromCF(BosonicEnvironment):
         )
         return result
 
-    def spectral_density(self, w, *, dt=1e-5):
-        return self._sd_from_ps(w, dt=dt)
+    def spectral_density(self, w):
+        return self._sd_from_ps(w)
 
-    def power_spectrum(self, w, *, dt=1e-5, **kwargs):
-        return self._ps_from_cf(w, dt)
+    def power_spectrum(self, w, **kwargs):
+        if self.tMax is None:
+            raise ValueError('The support of the correlation function (tMax) '
+                             'must be specified in order to compute the power '
+                             'spectrum.')
+        return self._ps_from_cf(w, self.tMax)
 
 
 class _BosonicEnvironment_fromPS(BosonicEnvironment):
-    def __init__(self, S, wlist, T, tag):
+    def __init__(self, S, wlist, wMax, T, tag):
         super().__init__(T, tag)
         self._ps = _real_interpolation(S, wlist, 'power spectrum')
+        if wlist is not None:
+            self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
+        else:
+            self.wMax = wMax
 
-    def correlation_function(self, t, *, dw=1e-5, **kwargs):
-        return self._cf_from_ps(t, dw)
+    def correlation_function(self, t, **kwargs):
+        if self.wMax is None:
+            raise ValueError('The support of the power spectrum (wMax) '
+                             'must be specified in order to compute the '
+                             'correlation function.')
+        return self._cf_from_ps(t, self.wMax)
 
-    def spectral_density(self, w, **kwargs):
+    def spectral_density(self, w):
         return self._sd_from_ps(w)
 
     def power_spectrum(self, w, **kwargs):
@@ -401,17 +432,25 @@ class _BosonicEnvironment_fromPS(BosonicEnvironment):
 
 
 class _BosonicEnvironment_fromSD(BosonicEnvironment):
-    def __init__(self, J, wlist, T, tag):
+    def __init__(self, J, wlist, wMax, T, tag):
         super().__init__(T, tag)
         self._sd = _real_interpolation(J, wlist, 'spectral density')
+        if wlist is not None:
+            self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
+        else:
+            self.wMax = wMax
 
-    def correlation_function(self, t, *, dw=1e-5 ,eps=1e-10):
-        return self._cf_from_ps(t, dw, eps=eps)
+    def correlation_function(self, t, *, eps=1e-10):
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified in order to compute the '
+                             'correlation function.')
+        return self._cf_from_ps(t, self.wMax, eps=eps)
 
-    def spectral_density(self, w, **kwargs):
+    def spectral_density(self, w):
         return self._sd(w)
 
-    def power_spectrum(self, w, *, eps=1e-10, **kwargs):
+    def power_spectrum(self, w, *, eps=1e-10):
         return self._ps_from_sd(w, eps)
 
 
@@ -1170,9 +1209,7 @@ def _real_interpolation(fun, xlist, name):
         if xlist is None or len(xlist) != len(fun):
             raise ValueError("A list of x-values with the same length must be "
                              f"provided for the discretized function ({name})")
-        return interp1d(
-            xlist, fun, kind='cubic', fill_value='extrapolate'
-        )
+        return CubicSpline(xlist, fun)
 
 def _complex_interpolation(fun, xlist, name):
     if callable(fun):
@@ -1182,18 +1219,30 @@ def _complex_interpolation(fun, xlist, name):
         imag_interp = _real_interpolation(np.imag(fun), xlist, name)
         return lambda x: real_interp(x) + 1j * imag_interp(x)
 
-def _fft(fun, t0, dt):
-    """
-    Calculates the Fast Fourier transform of the given function. This
-    is an alternative to numerical integration which is often noisy in the 
-    settings we are interested in.
+def _fft(f, wMax, tMax):
+    r"""
+    Calculates the Fast Fourier transform of the given function. We calculate
+    Fourier transformations via FFT because numerical integration is often
+    noisy in the scenarios we are interested in.
+
+    Given a (mathematical) function `f(t)`, this function approximates its
+    Fourier transform
+
+    .. math::
+        g(\omega) = \int_{-\infty}^\infty dt\, e^{-i\omega t}\, f(t) .
+
+    The function f is sampled on the interval `[-tMax, tMax]`. The sampling
+    discretization is chosen as `dt = pi / (2*wMax)` (Shannon-Nyquist + some
+    leeway). However, `dt` is always chosen small enough to have at least 250
+    samples on the interval `[-tMax, tMax]`.
 
     Parameters
     ----------
-    t0: float or obj:`np.array`
-        Range to use for the fast fourier transform, the range is [-t0, t0].
-    dt: float
-        The timestep to be used.
+    wMax: float
+        Maximum frequency of interest
+    tMax: float
+        Support of the function f (i.e., f(t) is essentially zero for
+        `|t| > tMax`).
 
     Returns
     -------
@@ -1201,20 +1250,23 @@ def _fft(fun, t0, dt):
     """
     # Code adapted from https://stackoverflow.com/a/24077914
 
-    t = np.arange(-t0, t0, dt)
-    # Define function
-    f = fun(t)
+    numSamples = int(
+        max(250, np.ceil(4 * tMax * wMax / np.pi + 1))
+    )
+    t, dt = np.linspace(-tMax, tMax, numSamples, retstep=True)
+    f_values = f(t)
 
     # Compute Fourier transform by numpy's FFT function
-    g = np.fft.fft(f)
-    # frequency normalization factor is 2*np.pi/dt
-    w = np.fft.fftfreq(f.size) * 2 * np.pi / dt
+    g = np.fft.fft(f_values)
+    # frequency normalization factor is 2 * np.pi / dt
+    w = np.fft.fftfreq(numSamples) * 2 * np.pi / dt
     # In order to get a discretisation of the continuous Fourier transform
     # we need to multiply g by a phase factor
-    g *= dt * np.exp(-1j * w * t0)
-    sorted_indices = np.argsort(w)
-    zz = interp1d(w[sorted_indices], g[sorted_indices])
-    return zz
+    g *= dt * np.exp(1j * w * tMax)
+
+    return _complex_interpolation(
+        np.fft.fftshift(g), np.fft.fftshift(w), 'FFT'
+    )
 
 
 
