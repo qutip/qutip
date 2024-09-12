@@ -85,7 +85,7 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        w: np.array or float
+        w: :obj:`np.array` or float
             The frequencies at which to evaluate the spectral density.
         """
 
@@ -108,7 +108,7 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        t: np.array or float
+        t: :obj:`np.array` or float
             The times at which to evaluate the correlation function.
 
         eps: optional, float
@@ -137,7 +137,7 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        w: np.array or float
+        w: :obj:`np.array` or float
             The frequencies at which to evaluate the power spectrum.
 
         eps: optional, float
@@ -172,7 +172,8 @@ class BosonicEnvironment(abc.ABC):
         nonzero_mask = np.invert(zero_mask)
 
         S = np.zeros_like(w)
-        S[zero_mask] = 2 * self.T * self.spectral_density(eps) / eps
+        if np.any(zero_mask):
+            S[zero_mask] = 2 * self.T * self.spectral_density(eps) / eps
         S[nonzero_mask] = (
             2 * np.sign(w[nonzero_mask])
             * self.spectral_density(np.abs(w[nonzero_mask]))
@@ -222,7 +223,7 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        tlist: obj:`np.ndarray`
+        tlist: :obj:`np.array`
             The time range on which to perform the fit
         Nr: int
             The number of modes to use for the fit of the real part 
@@ -245,7 +246,7 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        wlist: obj:`np.ndarray`
+        wlist: :obj:`np.array`
             The frequency range on which to perform the fit
         N: int
             The number of modes to use for the fit
@@ -387,6 +388,7 @@ class _BosonicEnvironment_fromCF(BosonicEnvironment):
             self.tMax = tMax
 
     def correlation_function(self, t, **kwargs):
+        t = np.array(t, dtype=float)
         result = np.zeros_like(t, dtype=complex)
         positive_mask = (t >= 0)
         non_positive_mask = np.invert(positive_mask)
@@ -428,6 +430,7 @@ class _BosonicEnvironment_fromPS(BosonicEnvironment):
         return self._sd_from_ps(w)
 
     def power_spectrum(self, w, **kwargs):
+        w = np.array(w, dtype=float)
         return self._ps(w)
 
 
@@ -448,36 +451,47 @@ class _BosonicEnvironment_fromSD(BosonicEnvironment):
         return self._cf_from_ps(t, self.wMax, eps=eps)
 
     def spectral_density(self, w):
-        return self._sd(w)
+        w = np.array(w, dtype=float)
+
+        result = np.zeros_like(w)
+        positive_mask = (w > 0)
+        result[positive_mask] = self._sd(w[positive_mask])
+
+        return result
 
     def power_spectrum(self, w, *, eps=1e-10):
         return self._ps_from_sd(w, eps)
 
 
 class DrudeLorentzEnvironment(BosonicEnvironment):
-    """
-    Describes a Drude-Lorentz bosonic environment with the following
-    parameters:
+    r"""
+    Describes a Drude-Lorentz bosonic environment with the spectral density
+
+    .. math::
+
+        J(\omega) = \frac{2 \lambda \gamma \omega}{\gamma^{2}+\omega^{2}}
+
+    (see Eq. 15 in [BoFiN23]_).
 
     Parameters
     ----------
-    T : float
+    T: float
         Bath temperature.
 
-    lam : float
+    lam: float
         Coupling strength.
 
-    gamma : float
+    gamma: float
         Bath spectral density cutoff frequency.
 
-    tag : optional, str, tuple or any other object
+    tag: optional, Any
         An identifier (name) for this environment
     """
 
     def __init__(
         self, T: float, lam: float, gamma: float, *, tag: Any = None
     ):
-        super().__init__(T, tag=tag)
+        super().__init__(T, tag)
 
         self.lam = lam
         self.gamma = gamma
@@ -488,18 +502,12 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         })
 
     def spectral_density(self, w: float | ArrayLike):
-        r"""
-        Calculates the Drude-Lorentz spectral density,
-
-        .. math::
-
-            J(\omega) = \frac{2 \lambda \gamma \omega}{\gamma^{2}+\omega^{2}}
-
-        (see Eq. 15 in DOI: 10.1103/PhysRevResearch.5.013181)
+        """
+        Calculates the Drude-Lorentz spectral density.
 
         Parameters
         ----------
-        w: float or array
+        w: :obj:`np.array` or float
             Energy of the mode.
 
         Returns
@@ -507,33 +515,73 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         The spectral density of the mode with energy w.
         """
 
-        return 2 * self.lam * self.gamma * w / (self.gamma**2 + w**2)
+        w = np.array(w, dtype=float)
+        result = np.zeros_like(w)
+
+        positive_mask = (w > 0)
+        w_mask = w[positive_mask]
+        result[positive_mask] = (
+            2 * self.lam * self.gamma * w_mask / (self.gamma**2 + w_mask**2)
+        )
+
+        return result
 
     def correlation_function(
         self, t: float | ArrayLike, Nk: int = 15000, **kwargs
     ):
         """
-        Here we determine the correlation function by summing a large number
-        of exponents, as the numerical integration is noisy for this spectral
-        density.
+        Calculates the two-time auto-correlation function of the Drude-Lorentz
+        environment. The calculation is performed by summing a large number of
+        exponents of the Matsubara expansion.
 
         Parameters
         ----------
-        t : np.array or float
-            The time at which to evaluate the correlation function
-        Nk : int, default 15000
-            The number of exponents to use
+        t: :obj:`np.array` or float
+            The time at which to evaluate the correlation function.
+        Nk: int, default 15000
+            The number of exponents to use.
+
+        Returns
+        -------
+        The correlation function evaluated at the time t.
         """
 
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(Nk)
+        abs_t = np.abs(t)
 
         def C(c, v):
-            return np.sum([ck * np.exp(-np.array(vk * t))
+            return np.sum([ck * np.exp(-np.array(vk * abs_t))
                            for ck, vk in zip(c, v)], axis=0)
-        return C(ck_real, vk_real) + 1j * C(ck_imag, vk_imag)
+        result = C(ck_real, vk_real) + 1j * C(ck_imag, vk_imag)
 
-    def power_spectrum(self, w: float | ArrayLike, dt: float = 1e-5):
-        return super().power_spectrum(w, dt)
+        result[t < 0] = np.conj(result[t < 0])
+        return result
+
+    def power_spectrum(self, w: float | ArrayLike, **kwargs):
+        """
+        Calculates the power spectrum of the Drude-Lorentz environment.
+
+        Parameters
+        ----------
+        w: :obj:`np.array` or float
+            The frequency at which to evaluate the power spectrum.
+
+        Returns
+        -------
+        The power spectrum evaluated at the frequency w.
+        """
+
+        # We can calculate zero-frequency component analytically instead of
+        # taking numerical derivative, and use _ps_from_sd for the rest
+        w = np.array(w, dtype=float)
+        zero_mask = (w == 0)
+        nonzero_mask = np.invert(zero_mask)
+
+        result = np.zeros_like(w)
+        result[zero_mask] = 4 * self.T * self.lam / self.gamma
+        result[nonzero_mask] = self._ps_from_sd(w[nonzero_mask], 0)
+
+        return result
 
     def _matsubara_approx(self, Nk, combine=True):
         lists = self._matsubara_params(Nk)
