@@ -689,31 +689,37 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return chi
 
 class UnderDampedEnvironment(BosonicEnvironment):
-    """
-    Describes an underdamped environment with the following parameters:
+    r"""
+    Describes an underdamped environment with the spectral density
+
+    .. math::
+        J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_{c}^{2}-
+        \omega^{2})^{2}+ \Gamma^{2} \omega^{2}}
+
+    (see Eq. 16 in [BoFiN23]_).
 
     Parameters
     ----------
-    T : float
+    T: float
         Bath temperature.
 
-    lam : float
+    lam: float
         Coupling strength.
 
-    gamma : float
+    gamma: float
         Bath spectral density cutoff frequency.
 
-    w0 : float
+    w0: float
         Bath spectral density resonance frequency.
 
-    tag : optional, str, tuple or any other object
+    tag: optional, Any
         An identifier (name) for this environment
     """
 
     def __init__(
-        self, T: float, lam: float, gamma: float, w0: float, *, tag=None
+        self, T: float, lam: float, gamma: float, w0: float, *, tag: Any = None
     ):
-        super().__init__(T, tag=tag)
+        super().__init__(T, tag)
 
         self.lam = lam
         self.gamma = gamma
@@ -724,18 +730,12 @@ class UnderDampedEnvironment(BosonicEnvironment):
         })
 
     def spectral_density(self, w: float | ArrayLike):
-        r"""
-        Calculates the underdamped spectral density,
-
-        .. math::
-            J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_{c}^{2}-
-            \omega^{2})^{2}+ \Gamma^{2} \omega^{2}}
-
-        (see Eq. 16 in DOI: 10.1103/PhysRevResearch.5.013181)
+        """
+        Calculates the underdamped spectral density.
 
         Parameters
         ----------
-        w: float or array
+        w: :obj:`np.array` or float
             Energy of the mode.
 
         Returns
@@ -743,14 +743,65 @@ class UnderDampedEnvironment(BosonicEnvironment):
         The spectral density of the mode with energy w.
         """
 
-        return self.lam**2 * self.gamma * w / ((w**2 - self.w0**2)**2
-                                               + (self.gamma*w)**2)
+        w = np.array(w, dtype=float)
+        result = np.zeros_like(w)
+
+        positive_mask = (w > 0)
+        w_mask = w[positive_mask]
+        result[positive_mask] = (
+            self.lam**2 * self.gamma * w_mask / (
+                (w_mask**2 - self.w0**2)**2 + (self.gamma * w_mask)**2
+            )
+        )
+
+        return result
+
+    def power_spectrum(self, w: float | ArrayLike, **kwargs):
+        """
+        Calculates the power spectrum of the underdamped environment.
+
+        Parameters
+        ----------
+        w: :obj:`np.array` or float
+            The frequency at which to evaluate the power spectrum.
+
+        Returns
+        -------
+        The power spectrum evaluated at the frequency w.
+        """
+
+        # We can calculate zero-frequency component analytically instead of
+        # taking numerical derivative, and use _ps_from_sd for the rest
+        w = np.array(w, dtype=float)
+        zero_mask = (w == 0)
+        nonzero_mask = np.invert(zero_mask)
+
+        result = np.zeros_like(w)
+        result[zero_mask] = (
+            2 * self.T * self.lam**2 * self.gamma / self.w0**4
+        )
+        result[nonzero_mask] = self._ps_from_sd(w[nonzero_mask], 0)
+
+        return result
 
     def correlation_function(self, t: float | ArrayLike, **kwargs):
-        return super().correlation_function(t, **kwargs)
+        """
+        Calculates the two-time auto-correlation function of the underdamped
+        environment.
 
-    def power_spectrum(self, w: float | ArrayLike, dt: float = 1e-5):
-        return super().power_spectrum(w, dt)
+        Parameters
+        ----------
+        t: :obj:`np.array` or float
+            The time at which to evaluate the correlation function.
+
+        Returns
+        -------
+        The correlation function evaluated at the time t.
+        """
+
+        # we need an wMax so that spectral density is zero for w>wMax, guess:
+        wMax = self.w0 + 10 * self.gamma
+        return self._cf_from_ps(t, wMax)
 
     def _matsubara_approx(self, Nk, combine=True):
         lists = self._matsubara_params(Nk)
