@@ -9,9 +9,8 @@ The implementation is derived from the BoFiN library (see
 https://github.com/tehruhn/bofin) which was itself derived from an earlier
 implementation in QuTiP itself.
 
-Instead of this module, use `qutip.environment`, which provides the full
-functionality of this module and is compatible with other QuTiP solvers.
-This module might be removed in a future version of QuTiP.
+Instead of this module, prefer using `qutip.environment`, which provides the
+full functionality of this module and is compatible with other QuTiP solvers.
 """
 
 import numpy as np
@@ -46,7 +45,7 @@ class BathExponent(environment.CFExponent):
 
     Parameters
     ----------
-    type : {"R", "I", "RI", "+", "-"} or BathExponent.ExponentType
+    type : {"R", "I", "RI", "+", "-"} or environment.CFExponent.ExponentType
         The type of bath exponent.
 
         "R" and "I" are bosonic bath exponents that appear in the real and
@@ -208,6 +207,7 @@ class BosonicBath(environment.ExponentialBosonicEnvironment):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+
     T: optional, float
         The temperature of the bath.
     """
@@ -240,8 +240,9 @@ class BosonicBath(environment.ExponentialBosonicEnvironment):
 
     @staticmethod
     def _from_env(env, Q, tag=None, dim=None):
-        bath_exponents = []
+        tag = tag or env.tag
 
+        bath_exponents = []
         for exponent in env.exponents:
             new_exponent = BathExponent(
                 exponent.type, dim, Q, exponent.ck, exponent.vk,
@@ -249,7 +250,7 @@ class BosonicBath(environment.ExponentialBosonicEnvironment):
             )
             bath_exponents.append(new_exponent)
 
-        result = BosonicBath(Q, [], [], [], [], tag=env.tag, T=env.T)
+        result = BosonicBath(Q, [], [], [], [], tag=tag, T=env.T)
         result.exponents = bath_exponents
         return result
 
@@ -290,12 +291,12 @@ class DrudeLorentzBath(BosonicBath):
     def __new__(
         mcs, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
+        # Basically this makes DrudeLorentzBath a function
+        # (Q, lam, ...) -> BosonicBath
+        # but it is made to look like a class to not confuse people
         env = environment.DrudeLorentzEnvironment(T, lam, gamma, tag=tag)
-        matsubara_approx = env.exponential_approximation(
-            'matsubara', Nk=Nk, combine=combine
-        )
+        matsubara_approx = env.approx_by_matsubara(Nk=Nk, combine=combine)
         # TODO terminator stuff
-        # TODO this discards the lam, gamma, T
         return BosonicBath._from_env(matsubara_approx, Q, tag=tag)
 
 
@@ -351,9 +352,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         mcs, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
         env = environment.DrudeLorentzEnvironment(T, lam, gamma, tag=tag)
-        pade_approx = env.exponential_approximation(
-            'pade', Nk=Nk, combine=combine
-        )
+        pade_approx = env.approx_by_pade(Nk=Nk, combine=combine)
         # TODO terminator stuff
         return BosonicBath._from_env(pade_approx, Q, tag=tag)
 
@@ -398,9 +397,7 @@ class UnderDampedBath(BosonicBath):
         mcs, Q, lam, gamma, w0, T, Nk, combine=True, tag=None,
     ):
         env = environment.UnderDampedEnvironment(T, lam, gamma, w0, tag=tag)
-        matsubara_approx = env.exponential_approximation(
-            'matsubara', Nk=Nk, combine=combine
-        )
+        matsubara_approx = env.approx_by_matsubara(Nk=Nk, combine=combine)
         # TODO terminator stuff
         return BosonicBath._from_env(matsubara_approx, Q, tag=tag)
 

@@ -14,7 +14,7 @@ __all__ = ['BosonicEnvironment',
 
 import abc
 import enum
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 import warnings
 
 import numpy as np
@@ -42,17 +42,33 @@ class BosonicEnvironment(abc.ABC):
     its spectral density or, equivalently, its power spectrum or its two-time
     auto-correlation function.
 
-    Use one of the classmethods `from_spectral_density`, `from_power_spectrum`
-    or `from_correlation_function` to contruct an environment manually from one
-    of these characteristic functions, or use a predefined sub-class such as
-    the `DrudeLorentzEnvironment`, the `UnderDampedEnvironment` or the
-    `OhmicEnvironment`.
+    Use one of the classmethods :meth:`from_spectral_density`,
+    :meth:`from_power_spectrum` or :meth:`from_correlation_function` to
+    contruct an environment manually from one of these characteristic
+    functions, or use a predefined sub-class such as the
+    :class:`DrudeLorentzEnvironment`, the :class:`UnderDampedEnvironment` or
+    the :class:`OhmicEnvironment`.
+
+    Bosonic environments offer various ways to approximate the environment with
+    a multi-exponential correlation function, which can be used for example in
+    the HEOM solver. The approximated environment is represented as a
+    :class:`ExponentialBosonicEnvironment`.
+
+    All bosonic environments can be approximated by directly fitting their
+    correlation function witha multi-exponential ansatz
+    (:meth:`approx_by_cf_fit`) or by fitting their spectral density with a sum
+    of Lorentzians (:meth:`approx_by_sd_fit`), which correspond to
+    Drude-Lorentz environments with known multi-exponential decompositions.
+    Subclasses may offer additional approximation methods such as
+    :meth:`DrudeLorentzEnvironment.approx_by_matsubara` or
+    :meth:`DrudeLorentzEnvironment.approx_by_pade` in the case of a
+    Drude-Lorentz environment.
 
     Parameters
     ----------
-    T: optional, float
+    T : optional, float
         The temperature of this environment.
-    tag: optional, Any
+    tag : optional, str, tuple or any other object
         An identifier (name) for this environment.
     """
 
@@ -60,15 +76,8 @@ class BosonicEnvironment(abc.ABC):
         self.T = T
         self.tag = tag
 
-        # TODO unsure about names
-        # TODO what if T is not set?
-        self._avail_approximators = {
-            'correlation_fit': self._fit_correlation_function,
-            'underdamped_fit': self._fit_spectral_density,
-        }
-
     @abc.abstractmethod
-    def spectral_density(self, w: float | ArrayLike):
+    def spectral_density(self, w: float | ArrayLike) -> (float | ArrayLike):
         """
         The spectral density of this environment. For negative frequencies,
         a value of zero will be returned. See the Users Guide on
@@ -85,15 +94,16 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        w: array_like or float
+        w : array_like or float
             The frequencies at which to evaluate the spectral density.
         """
 
         ...
 
     @abc.abstractmethod
-    def correlation_function(self, t: float | ArrayLike, *,
-                             eps: float = 1e-10):
+    def correlation_function(
+        self, t: float | ArrayLike, *, eps: float = 1e-10
+    ) -> (float | ArrayLike):
         """
         The two-time auto-correlation function of this environment. See the
         Users Guide on :ref:`bosonic environments <bosonic environments guide>`
@@ -108,10 +118,10 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        t: array_like or float
+        t : array_like or float
             The times at which to evaluate the correlation function.
 
-        eps: optional, float
+        eps : optional, float
             Used in case the power spectrum is derived from the spectral
             density; see the documentation of
             :meth:`BosonicEnvironment.power_spectrum`.
@@ -120,8 +130,9 @@ class BosonicEnvironment(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def power_spectrum(self, w: float | ArrayLike, *,
-                       eps: float = 1e-10):
+    def power_spectrum(
+        self, w: float | ArrayLike, *, eps: float = 1e-10
+    ) -> (float | ArrayLike):
         """
         The power spectrum of this environment. See the Users Guide on
         :ref:`bosonic environments <bosonic environments guide>` for specifics
@@ -137,10 +148,10 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        w: array_like or float
+        w : array_like or float
             The frequencies at which to evaluate the power spectrum.
 
-        eps: optional, float
+        eps : optional, float
             To derive the zero-frequency power spectrum from the spectral
             density, the spectral density must be differentiated numerically.
             In that case, this parameter is used as the finite difference in
@@ -149,13 +160,61 @@ class BosonicEnvironment(abc.ABC):
 
         ...
 
-    def exponential_approximation(self, method, **options):
-        # TODO documentation
-        # TODO is this the right way of doing it?
-        approximator = self._avail_approximators.get(method, None)
-        if approximator is None:
-            raise ValueError(f"Unknown approximation method: {method}")
-        return approximator(**options)
+    def approx_by_cf_fit(
+        self, tlist: ArrayLike, Nr: int, Ni: int, full_ansatz: bool = False
+    ) -> ExponentialBosonicEnvironment:
+        """
+        Generates an approximation to this environment by fitting its
+        correlation function with a multi-exponential ansatz.
+
+        Parameters
+        ----------
+        tlist : array_like
+            The time range on which to perform the fit
+        Nr : int
+            The number of modes to use for the fit of the real part 
+        Ni : int
+            The number of modes to use for the fit of the imaginary part
+        full_ansatz : bool
+            Whether to use a fit of the imaginary and real parts that is 
+            complex
+
+        Returns
+        -------
+        :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
+        fitter = CorrelationFitter(self.T, tlist, self.correlation_function)
+        return fitter.get_fit(Nr=Nr, Ni=Ni, full_ansatz=full_ansatz)
+
+    def approx_by_sd_fit(
+        self, wlist: ArrayLike, N: int, Nk: int
+    ) -> ExponentialBosonicEnvironment:
+        """
+        Generates an approximation to this environment by fitting its spectral
+        density with a sum of `N` Lorentzian terms. Each Lorentzian term
+        effectively acts like a Drude-Lorentz environment. We use the known
+        exponential decomposition of the D-L environment, keeping `Nk`
+        Matsubara terms for each of the Lorentzians.
+
+        Parameters
+        ----------
+        wlist : array_like
+            The frequency range on which to perform the fit
+        N : int
+            The number of modes to use for the fit
+        Nk : int
+            The number of exponents to use in each mode
+
+        Returns
+        -------
+        :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
+        fitter = SpectralFitter(self.T, wlist, self.spectral_density)
+        return fitter.get_fit(N=N, Nk=Nk)
 
     def _ps_from_sd(self, w, eps, derivative=None):
         # derivative: value of J'(0)
@@ -220,49 +279,6 @@ class BosonicEnvironment(abc.ABC):
                       tMax, tMax=wMax)
         return result(t) / (2 * np.pi)
 
-    def _fit_correlation_function(self, tlist, Nr, Ni, full_ansatz=False):
-        """
-        Generates a reservoir from the correlation function
-
-        Parameters
-        ----------
-        tlist: array_like
-            The time range on which to perform the fit
-        Nr: int
-            The number of modes to use for the fit of the real part 
-        Ni: int
-            The number of modes to use for the fit of the real part
-        full_ansatz: bool
-            Whether to use a fit of the imaginary and real parts that is 
-            complex
-
-        Returns
-        -------
-        A bosonic reservoir
-        """
-        fitter = CorrelationFitter(self.T, tlist, self.correlation_function)
-        return fitter.get_fit(Nr=Nr, Ni=Ni, full_ansatz=full_ansatz)
-
-    def _fit_spectral_density(self, wlist, N, Nk):
-        """
-        Generates a reservoir from the spectral density
-
-        Parameters
-        ----------
-        wlist: array_like
-            The frequency range on which to perform the fit
-        N: int
-            The number of modes to use for the fit
-        Nk: int
-            The number of exponents to use in each mode
-
-        Returns
-        -------
-        A bosonic reservoir
-        """
-        fitter = SpectralFitter(self.T, wlist, self.spectral_density)
-        return fitter.get_fit(N=N, Nk=Nk)
-
     @classmethod
     def from_correlation_function(
         cls,
@@ -281,24 +297,24 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        C: callable or array_like
+        C : callable or array_like
             The correlation function.
 
-        tlist: optional, array_like
+        tlist : optional, array_like
             The times where the correlation function is sampled (if it is
             provided as an array).
 
-        tMax: optional, float
+        tMax : optional, float
             Specifies that the correlation function is essentially zero outside
             the interval [-tMax, tMax]. Used for numerical integration
             purposes.
 
-        T: optional, float
+        T : optional, float
             Bath temperature. (The spectral density of this environment can
             only be calculated from the correlation function if a temperature
             is provided.)
 
-        tag: optional, str, tuple or any other object
+        tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
         """
         return _BosonicEnvironment_fromCF(C, tlist, tMax, T, tag)
@@ -318,24 +334,24 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        S: callable or array_like
+        S : callable or array_like
             The power spectrum.
 
-        wlist: optional, array_like
+        wlist : optional, array_like
             The frequencies where the power spectrum is sampled (if it is
             provided as an array).
 
-        wMax: optional, float
+        wMax : optional, float
             Specifies that the power spectrum is essentially zero outside the
             interval [-wMax, wMax]. Used for numerical integration purposes.
 
-        T: optional, float
+        T : optional, float
             Bath temperature. (The spectral density of this environment can
             only be calculated from the power spectrum if a temperature
             is provided.)
 
         tag : optional, str, tuple or any other object
-            An identifier (name) for this environment
+            An identifier (name) for this environment.
         """
         return _BosonicEnvironment_fromPS(S, wlist, wMax, T, tag)
 
@@ -352,31 +368,31 @@ class BosonicEnvironment(abc.ABC):
         r"""
         Constructs a bosonic environment with the provided spectral density.
         The provided function will only be used for frequencies
-        :math:`\omega > 0`. At frequencies :math:`omega \leq 0`, the spectral
+        :math:`\omega > 0`. At frequencies :math:`\omega \leq 0`, the spectral
         density is zero according to the definition used by QuTiP. See the
         Users Guide on :ref:`bosonic environments <bosonic environments guide>`
         for a note on spectral densities with support at negative frequencies.
 
         Parameters
         ----------
-        J: callable or array_like
+        J : callable or array_like
             The spectral density.
 
-        wlist: optional, array_like
+        wlist : optional, array_like
             The frequencies where the spectral density is sampled (if it is
             provided as an array).
 
-        wMax: optional, float
+        wMax : optional, float
             Specifies that the spectral density is essentially zero outside the
             interval [-wMax, wMax]. Used for numerical integration purposes.
 
-        T: optional, float
+        T : optional, float
             Bath temperature. (The correlation function and the power spectrum
             of this environment can only be calculated from the spectral
             density if a temperature is provided.)
 
         tag : optional, str, tuple or any other object
-            An identifier (name) for this environment
+            An identifier (name) for this environment.
         """
         return _BosonicEnvironment_fromSD(J, wlist, wMax, T, tag)
 
@@ -478,16 +494,16 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
     Parameters
     ----------
-    T: float
+    T : float
         Bath temperature.
 
-    lam: float
+    lam : float
         Coupling strength.
 
-    gamma: float
+    gamma : float
         Bath spectral density cutoff frequency.
 
-    tag: optional, Any
+    tag : optional, str, tuple or any other object
         An identifier (name) for this environment.
     """
 
@@ -499,18 +515,13 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         self.lam = lam
         self.gamma = gamma
 
-        self._avail_approximators.update({
-            'matsubara': self._matsubara_approx,
-            'pade': self._pade_approx,
-        })
-
-    def spectral_density(self, w: float | ArrayLike):
+    def spectral_density(self, w: float | ArrayLike) -> (float | ArrayLike):
         """
         Calculates the Drude-Lorentz spectral density.
 
         Parameters
         ----------
-        w: array_like or float
+        w : array_like or float
             Energy of the mode.
         """
 
@@ -527,7 +538,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
     def correlation_function(
         self, t: float | ArrayLike, Nk: int = 100, **kwargs
-    ):
+    ) -> (float | ArrayLike):
         """
         Calculates the two-time auto-correlation function of the Drude-Lorentz
         environment. The calculation is performed by summing a large number of
@@ -535,14 +546,15 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         Parameters
         ----------
-        t: array_like or float
+        t : array_like or float
             The time at which to evaluate the correlation function.
-        Nk: int, default 100
+        Nk : int, default 100
             The number of exponents to use.
         """
 
-        ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(Nk)
+        t = np.array(t, dtype=float)
         abs_t = np.abs(t)
+        ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(Nk)
 
         def C(c, v):
             return np.sum([ck * np.exp(-np.array(vk * abs_t))
@@ -552,23 +564,86 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         result[t < 0] = np.conj(result[t < 0])
         return result
 
-    def power_spectrum(self, w: float | ArrayLike, **kwargs):
+    def power_spectrum(
+        self, w: float | ArrayLike, **kwargs
+    ) -> (float | ArrayLike):
         """
         Calculates the power spectrum of the Drude-Lorentz environment.
 
         Parameters
         ----------
-        w: array_like or float
+        w : array_like or float
             The frequency at which to evaluate the power spectrum.
         """
 
         sd_derivative = 2 * self.lam / self.gamma
         return self._ps_from_sd(w, None, sd_derivative)
 
-    def _matsubara_approx(self, Nk, combine=True):
+    def approx_by_matsubara(
+        self, Nk: int, combine: bool = True
+    ) -> ExponentialBosonicEnvironment:
+        """
+        Generates an approximation to this environment by truncating its
+        Matsubara expansion.
+
+        Parameters
+        ----------
+        Nk : int
+            Number of Matsubara terms to include. In total, the real part of
+            the correlation function will include `Nk+1` terms and the
+            imaginary part `1` term.
+
+        combine : bool, default `True`
+            Whether to combine exponents with the same frequency.
+
+        Returns
+        -------
+        :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
+
         lists = self._matsubara_params(Nk)
         result = ExponentialBosonicEnvironment(
             *lists, T=self.T, combine=combine)
+        # TODO what to do with the terminator?
+        # TODO tag stuff
+        return result
+
+    def approx_by_pade(
+        self, Nk: int, combine: bool = True
+    ) -> ExponentialBosonicEnvironment:
+        """
+        Generates an approximation to this environment by truncating its
+        Pade expansion.
+
+        Parameters
+        ----------
+        Nk : int
+            Number of Pade terms to include. In total, the real part of
+            the correlation function will include `Nk+1` terms and the
+            imaginary part `1` term.
+
+        combine : bool, default `True`
+            Whether to combine exponents with the same frequency.
+
+        Returns
+        -------
+        :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
+        eta_p, gamma_p = self._corr(Nk)
+
+        ck_real = [np.real(eta) for eta in eta_p]
+        vk_real = [gam for gam in gamma_p]
+        # There is only one term in the expansion of the imaginary part of the
+        # Drude-Lorentz correlation function.
+        ck_imag = [np.imag(eta_p[0])]
+        vk_imag = [gamma_p[0]]
+
+        result = ExponentialBosonicEnvironment(
+            ck_real, vk_real, ck_imag, vk_imag, T=self.T, combine=combine)
         # TODO what to do with the terminator?
         # TODO tag stuff
         return result
@@ -588,22 +663,6 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         vk_imag = [self.gamma]
 
         return ck_real, vk_real, ck_imag, vk_imag
-
-    def _pade_approx(self, Nk, combine=True):
-        eta_p, gamma_p = self._corr(Nk)
-
-        ck_real = [np.real(eta) for eta in eta_p]
-        vk_real = [gam for gam in gamma_p]
-        # There is only one term in the expansion of the imaginary part of the
-        # Drude-Lorentz correlation function.
-        ck_imag = [np.imag(eta_p[0])]
-        vk_imag = [gamma_p[0]]
-
-        result = ExponentialBosonicEnvironment(
-            ck_real, vk_real, ck_imag, vk_imag, T=self.T, combine=combine)
-        # TODO what to do with the terminator?
-        # TODO tag stuff
-        return result
 
     # --- Pade approx calculation ---
 
@@ -682,19 +741,19 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
     Parameters
     ----------
-    T: float
+    T : float
         Bath temperature.
 
-    lam: float
+    lam : float
         Coupling strength.
 
-    gamma: float
+    gamma : float
         Bath spectral density cutoff frequency.
 
-    w0: float
+    w0 : float
         Bath spectral density resonance frequency.
 
-    tag: optional, Any
+    tag : optional, str, tuple or any other object
         An identifier (name) for this environment.
     """
 
@@ -707,17 +766,13 @@ class UnderDampedEnvironment(BosonicEnvironment):
         self.gamma = gamma
         self.w0 = w0
 
-        self._avail_approximators.update({
-            'matsubara': self._matsubara_approx,
-        })
-
-    def spectral_density(self, w: float | ArrayLike):
+    def spectral_density(self, w: float | ArrayLike) -> (float | ArrayLike):
         """
         Calculates the underdamped spectral density.
 
         Parameters
         ----------
-        w: array_like or float
+        w : array_like or float
             Energy of the mode.
         """
 
@@ -734,27 +789,31 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
         return result
 
-    def power_spectrum(self, w: float | ArrayLike, **kwargs):
+    def power_spectrum(
+        self, w: float | ArrayLike, **kwargs
+    ) -> (float | ArrayLike):
         """
         Calculates the power spectrum of the underdamped environment.
 
         Parameters
         ----------
-        w: array_like or float
+        w : array_like or float
             The frequency at which to evaluate the power spectrum.
         """
 
         sd_derivative = self.lam**2 * self.gamma / self.w0**4
         return self._ps_from_sd(w, None, sd_derivative)
 
-    def correlation_function(self, t: float | ArrayLike, **kwargs):
+    def correlation_function(
+        self, t: float | ArrayLike, **kwargs
+    ) -> (float | ArrayLike):
         """
         Calculates the two-time auto-correlation function of the underdamped
         environment.
 
         Parameters
         ----------
-        t: array_like or float
+        t : array_like or float
             The time at which to evaluate the correlation function.
         """
         # TODO should we calculate this one also from summing matsubaras?
@@ -763,7 +822,30 @@ class UnderDampedEnvironment(BosonicEnvironment):
         wMax = self.w0 + 10 * self.gamma
         return self._cf_from_ps(t, wMax)
 
-    def _matsubara_approx(self, Nk, combine=True):
+    def approx_by_matsubara(
+        self, Nk: int, combine: bool = True
+    ) -> ExponentialBosonicEnvironment:
+        """
+        Generates an approximation to this environment by truncating its
+        Matsubara expansion.
+
+        Parameters
+        ----------
+        Nk : int
+            Number of Matsubara terms to include. In total, the real part of
+            the correlation function will include `Nk+2` terms and the
+            imaginary part `2` terms.
+
+        combine : bool, default `True`
+            Whether to combine exponents with the same frequency.
+
+        Returns
+        -------
+        :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
+
         lists = self._matsubara_params(Nk)
         result = ExponentialBosonicEnvironment(
             *lists, T=self.T, combine=combine)
@@ -822,19 +904,19 @@ class OhmicEnvironment(BosonicEnvironment):
 
     Parameters
     ----------
-    T: float
+    T : float
         Temperature of the bath.
 
-    alpha: float
+    alpha : float
         Coupling strength.
 
-    wc: float
+    wc : float
         Cutoff parameter.
 
-    s: float
+    s : float
         Power of omega in the spectral density.
 
-    tag: optional, Any
+    tag : optional, str, tuple or any other object
         An identifier (name) for this environment.
     """
 
@@ -852,13 +934,13 @@ class OhmicEnvironment(BosonicEnvironment):
                 "The mpmath module is required for some operations on "
                 "Ohmic environments, but it is not installed.")
 
-    def spectral_density(self, w: float | ArrayLike):
+    def spectral_density(self, w: float | ArrayLike) -> (float | ArrayLike):
         r"""
         Calculates the spectral density of the Ohmic environment.
 
         Parameters
         ----------
-        w: array_like or float
+        w : array_like or float
             Energy of the mode.
         """
 
@@ -875,13 +957,15 @@ class OhmicEnvironment(BosonicEnvironment):
 
         return result
 
-    def power_spectrum(self, w: float | ArrayLike, **kwargs):
+    def power_spectrum(
+        self, w: float | ArrayLike, **kwargs
+    ) -> (float | ArrayLike):
         """
         Calculates the power spectrum of the Ohmic environment.
 
         Parameters
         ----------
-        w: array_like or float
+        w : array_like or float
             The frequency at which to evaluate the power spectrum.
         """
         if self.s > 1:
@@ -892,7 +976,9 @@ class OhmicEnvironment(BosonicEnvironment):
             sd_derivative = np.inf
         return self._ps_from_sd(w, None, sd_derivative)
 
-    def correlation_function(self, t: float | ArrayLike, **kwargs):
+    def correlation_function(
+        self, t: float | ArrayLike, **kwargs
+    ) -> (float | ArrayLike):
         r"""
         Calculates the correlation function of an Ohmic bath using the formula
 
@@ -907,7 +993,7 @@ class OhmicEnvironment(BosonicEnvironment):
 
         Parameters
         ----------
-        t: array_like or float
+        t : array_like or float
             The time at which to evaluate the correlation function.
         """
         t = np.array(t, dtype=float)
@@ -961,11 +1047,11 @@ class CFExponent:
         determine the ``k`` of the corresponding exponent with the opposite
         sign (i.e. "-" or "+").
 
-    vk : complex
-        The frequency of the exponent of the excitation term.
-
     ck : complex
         The coefficient of the excitation term.
+
+    vk : complex
+        The frequency of the exponent of the excitation term.
 
     ck2 : optional, complex
         For exponents of type "RI" this is the coefficient of the term in the
@@ -983,6 +1069,13 @@ class CFExponent:
     fermionic : bool
         True if the type of the exponent is a Fermionic type (i.e. either
         "+" or "-") and False otherwise.
+
+    coefficient : complex
+        The coefficient of this excitation term in the total correlation
+        function (including real and imaginary part).
+
+    exponent : complex
+        The frequency of the exponent of the excitation term. (Alias for `vk`.)
 
     All of the parameters are also available as attributes.
     """
@@ -1016,7 +1109,9 @@ class CFExponent:
         return type in (self.types["+"], self.types["-"])
 
     def __init__(
-            self, type, ck, vk, ck2=None, sigma_bar_k_offset=None
+            self, type: str | CFExponent.ExponentType,
+            ck: complex, vk: complex, ck2: complex = None,
+            sigma_bar_k_offset: int = None
     ):
         if not isinstance(type, self.types):
             type = self.types[type]
@@ -1040,8 +1135,8 @@ class CFExponent:
         )
 
     @property
-    def coefficient(self):
-        # TODO docstring, fermionic coefficients
+    def coefficient(self) -> complex:
+        # TODO how to handle fermionic exponents?
         coeff = 0
         if (self.type == self.types['R'] or self.type == self.types['RI']):
             coeff += self.ck
@@ -1052,8 +1147,7 @@ class CFExponent:
         return coeff
 
     @property
-    def exponent(self):
-        # TODO docstring, fermionic coefficients
+    def exponent(self) -> complex:
         return self.vk
 
     def _can_combine(self, other, rtol, atol):
@@ -1083,7 +1177,7 @@ class CFExponent:
                 imag_part_coefficient += self.ck2
             if other.type == self.types['RI']:
                 imag_part_coefficient += other.ck2
-            
+
             return CFExponent(self.types['RI'], real_part_coefficient,
                               self.vk, imag_part_coefficient)
         else:
@@ -1130,14 +1224,17 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         Whether to combine exponents with the same frequency (and coupling
         operator). See :meth:`combine` for details.
 
-    tag : optional, str, tuple or any other object
-        An identifier (name) for this environment.
-
     T: optional, float
         The temperature of the bath.
+
+    tag : optional, str, tuple or any other object
+        An identifier (name) for this environment.
     """
 
     def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
+        # all None: returns False
+        # all provided and lengths match: returns True
+        # otherwise: raises ValueError
         lists = [ck_real, vk_real, ck_imag, vk_imag]
         if all(x is None for x in lists):
             return False
@@ -1154,10 +1251,14 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         return True
 
     def __init__(
-        self, ck_real=None, vk_real=None, ck_imag=None, vk_imag=None, *,
-        exponents=None, combine=True, T=None, tag=None
+        self,
+        ck_real: ArrayLike = None, vk_real: ArrayLike = None,
+        ck_imag: ArrayLike = None, vk_imag: ArrayLike = None,
+        *,
+        exponents: Sequence[CFExponent] = None,
+        combine: bool = True, T: float = None, tag: Any = None
     ):
-        super().__init__(T=T, tag=tag)
+        super().__init__(T, tag)
 
         lists_provided = self._check_cks_and_vks(
             ck_real, vk_real, ck_imag, vk_imag)
@@ -1185,14 +1286,17 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         self.exponents = exponents
 
     @classmethod
-    def combine(cls, exponents, rtol=1e-5, atol=1e-7):
+    def combine(
+        cls, exponents: Sequence[CFExponent],
+        rtol: float = 1e-5, atol: float = 1e-7
+    ) -> Sequence[CFExponent]:
         """
         Group bosonic exponents with the same frequency and return a
         single exponent for each frequency present.
 
         Parameters
         ----------
-        exponents : list of CFExponent
+        exponents : list of :class:`CFExponent`
             The list of exponents to combine.
 
         rtol : float, default 1e-5
@@ -1203,7 +1307,7 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
 
         Returns
         -------
-        list of CFExponent
+        list of :class:`CFExponent`
             The new reduced list of exponents.
         """
         remaining = exponents[:]
@@ -1219,66 +1323,63 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
 
         return new_exponents
 
-    def correlation_function(self, t: float | ArrayLike, **kwargs):
+    def correlation_function(
+        self, t: float | ArrayLike, **kwargs
+    ) -> (float | ArrayLike):
         """
         Computes the correlation function represented by this exponential
         decomposition.
 
         Parameters
         ----------
-        t: float or obj:`np.array`
-            time to compute correlations.
-
-        Returns
-        -------
-        The correlation function at time t.
+        t : array_like or float
+            The time at which to evaluate the correlation function.
         """
 
+        t = np.array(t, dtype=float)
         corr = np.zeros_like(t, dtype=complex)
+
         for exp in self.exponents:
-            corr += exp.coefficient * np.exp(-exp.exponent * t)
+            corr += exp.coefficient * np.exp(-exp.exponent * np.abs(t))
+        corr[t < 0] = np.conj(corr[t < 0])
+
         return corr
 
-    def power_spectrum(self, w: float | ArrayLike, **kwargs):
+    def power_spectrum(
+        self, w: float | ArrayLike, **kwargs
+    ) -> (float | ArrayLike):
         """
         Calculates the power spectrum corresponding to the multi-exponential
         correlation function.
 
         Parameters
         ----------
-        w: float or obj:`np.array`
-            Energy of the mode.
-
-        Returns
-        -------
-        The power spectrum of the mode with energy w.
+        w : array_like or float
+            The frequency at which to evaluate the power spectrum.
         """
 
-        S = np.zeros_like(w, dtype=float)
+        w = np.array(w, dtype=float)
+        S = np.zeros_like(w)
+
         for exp in self.exponents:
-            coeff = exp.coefficient
-            S += 2 * np.real(coeff / (exp.vk - 1j * w))
+            S += 2 * np.real(
+                exp.coefficient / (exp.exponent - 1j * w)
+            )
+
         return S
 
-    def spectral_density(self, w: float | ArrayLike):
+    def spectral_density(self, w: float | ArrayLike) -> (float | ArrayLike):
         """
         Calculates the spectral density corresponding to the multi-exponential
         correlation function.
 
         Parameters
         ----------
-        w: float or obj:`np.array`
+        w : array_like or float
             Energy of the mode.
-
-        Returns
-        -------
-        The spectral density of the mode with energy w.
         """
-        if self.T is None:
-            raise ValueError(
-                "Bath temperature must be specified for this operation")
 
-        return self.power_spectrum(w) / (n_thermal(w, self.T) + 1) / 2
+        return self._sd_from_ps(w)
 
 
 
