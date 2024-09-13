@@ -47,7 +47,7 @@ class BosonicEnvironment(abc.ABC):
     of these characteristic functions, or use a predefined sub-class such as
     the `DrudeLorentzEnvironment`, the `UnderDampedEnvironment` or the
     `OhmicEnvironment`.
-    
+
     Parameters
     ----------
     T: optional, float
@@ -85,7 +85,7 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        w: :obj:`np.array` or float
+        w: array_like or float
             The frequencies at which to evaluate the spectral density.
         """
 
@@ -108,7 +108,7 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        t: :obj:`np.array` or float
+        t: array_like or float
             The times at which to evaluate the correlation function.
 
         eps: optional, float
@@ -137,7 +137,7 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        w: :obj:`np.array` or float
+        w: array_like or float
             The frequencies at which to evaluate the power spectrum.
 
         eps: optional, float
@@ -157,7 +157,8 @@ class BosonicEnvironment(abc.ABC):
             raise ValueError(f"Unknown approximation method: {method}")
         return approximator(**options)
 
-    def _ps_from_sd(self, w: float | ArrayLike, eps: float):
+    def _ps_from_sd(self, w, eps, derivative=None):
+        # derivative: value of J'(0)
         if self.T is None:
             raise ValueError(
                 "Bath temperature must be specified for this operation")
@@ -172,8 +173,10 @@ class BosonicEnvironment(abc.ABC):
         nonzero_mask = np.invert(zero_mask)
 
         S = np.zeros_like(w)
-        if np.any(zero_mask):
+        if derivative is None:
             S[zero_mask] = 2 * self.T * self.spectral_density(eps) / eps
+        else:
+            S[zero_mask] = 2 * self.T * derivative
         S[nonzero_mask] = (
             2 * np.sign(w[nonzero_mask])
             * self.spectral_density(np.abs(w[nonzero_mask]))
@@ -181,7 +184,7 @@ class BosonicEnvironment(abc.ABC):
         )
         return S
 
-    def _sd_from_ps(self, w: float | ArrayLike):
+    def _sd_from_ps(self, w):
         if self.T is None:
             raise ValueError(
                 "Bath temperature must be specified for this operation")
@@ -196,7 +199,7 @@ class BosonicEnvironment(abc.ABC):
         )
         return J
 
-    def _ps_from_cf(self, w: float | ArrayLike, tMax):
+    def _ps_from_cf(self, w, tMax):
         w = np.array(w, dtype=float)
         if w.ndim == 0:
             wMax = np.abs(w)
@@ -206,7 +209,7 @@ class BosonicEnvironment(abc.ABC):
         mirrored_result = _fft(self.correlation_function, wMax, tMax=tMax)
         return np.real(mirrored_result(-w))
 
-    def _cf_from_ps(self, t: float | ArrayLike, wMax, **ps_kwargs):
+    def _cf_from_ps(self, t, wMax, **ps_kwargs):
         t = np.array(t, dtype=float)
         if t.ndim == 0:
             tMax = np.abs(t)
@@ -223,7 +226,7 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        tlist: :obj:`np.array`
+        tlist: array_like
             The time range on which to perform the fit
         Nr: int
             The number of modes to use for the fit of the real part 
@@ -246,7 +249,7 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        wlist: :obj:`np.array`
+        wlist: array_like
             The frequency range on which to perform the fit
         N: int
             The number of modes to use for the fit
@@ -278,10 +281,10 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        C: callable or :obj:`np.array`
+        C: callable or array_like
             The correlation function.
 
-        tlist: optional, :obj:`np.array`
+        tlist: optional, array_like
             The times where the correlation function is sampled (if it is
             provided as an array).
 
@@ -315,10 +318,10 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        S: callable or :obj:`np.array`
+        S: callable or array_like
             The power spectrum.
 
-        wlist: optional, :obj:`np.array`
+        wlist: optional, array_like
             The frequencies where the power spectrum is sampled (if it is
             provided as an array).
 
@@ -356,10 +359,10 @@ class BosonicEnvironment(abc.ABC):
 
         Parameters
         ----------
-        J: callable or :obj:`np.array`
+        J: callable or array_like
             The spectral density.
 
-        wlist: optional, :obj:`np.array`
+        wlist: optional, array_like
             The frequencies where the spectral density is sampled (if it is
             provided as an array).
 
@@ -485,7 +488,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         Bath spectral density cutoff frequency.
 
     tag: optional, Any
-        An identifier (name) for this environment
+        An identifier (name) for this environment.
     """
 
     def __init__(
@@ -507,12 +510,8 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         Parameters
         ----------
-        w: :obj:`np.array` or float
+        w: array_like or float
             Energy of the mode.
-
-        Returns
-        -------
-        The spectral density of the mode with energy w.
         """
 
         w = np.array(w, dtype=float)
@@ -527,7 +526,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return result
 
     def correlation_function(
-        self, t: float | ArrayLike, Nk: int = 15000, **kwargs
+        self, t: float | ArrayLike, Nk: int = 100, **kwargs
     ):
         """
         Calculates the two-time auto-correlation function of the Drude-Lorentz
@@ -536,14 +535,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         Parameters
         ----------
-        t: :obj:`np.array` or float
+        t: array_like or float
             The time at which to evaluate the correlation function.
-        Nk: int, default 15000
+        Nk: int, default 100
             The number of exponents to use.
-
-        Returns
-        -------
-        The correlation function evaluated at the time t.
         """
 
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(Nk)
@@ -563,25 +558,12 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         Parameters
         ----------
-        w: :obj:`np.array` or float
+        w: array_like or float
             The frequency at which to evaluate the power spectrum.
-
-        Returns
-        -------
-        The power spectrum evaluated at the frequency w.
         """
 
-        # We can calculate zero-frequency component analytically instead of
-        # taking numerical derivative, and use _ps_from_sd for the rest
-        w = np.array(w, dtype=float)
-        zero_mask = (w == 0)
-        nonzero_mask = np.invert(zero_mask)
-
-        result = np.zeros_like(w)
-        result[zero_mask] = 4 * self.T * self.lam / self.gamma
-        result[nonzero_mask] = self._ps_from_sd(w[nonzero_mask], 0)
-
-        return result
+        sd_derivative = 2 * self.lam / self.gamma
+        return self._ps_from_sd(w, None, sd_derivative)
 
     def _matsubara_approx(self, Nk, combine=True):
         lists = self._matsubara_params(Nk)
@@ -713,7 +695,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
         Bath spectral density resonance frequency.
 
     tag: optional, Any
-        An identifier (name) for this environment
+        An identifier (name) for this environment.
     """
 
     def __init__(
@@ -735,12 +717,8 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
         Parameters
         ----------
-        w: :obj:`np.array` or float
+        w: array_like or float
             Energy of the mode.
-
-        Returns
-        -------
-        The spectral density of the mode with energy w.
         """
 
         w = np.array(w, dtype=float)
@@ -762,27 +740,12 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
         Parameters
         ----------
-        w: :obj:`np.array` or float
+        w: array_like or float
             The frequency at which to evaluate the power spectrum.
-
-        Returns
-        -------
-        The power spectrum evaluated at the frequency w.
         """
 
-        # We can calculate zero-frequency component analytically instead of
-        # taking numerical derivative, and use _ps_from_sd for the rest
-        w = np.array(w, dtype=float)
-        zero_mask = (w == 0)
-        nonzero_mask = np.invert(zero_mask)
-
-        result = np.zeros_like(w)
-        result[zero_mask] = (
-            2 * self.T * self.lam**2 * self.gamma / self.w0**4
-        )
-        result[nonzero_mask] = self._ps_from_sd(w[nonzero_mask], 0)
-
-        return result
+        sd_derivative = self.lam**2 * self.gamma / self.w0**4
+        return self._ps_from_sd(w, None, sd_derivative)
 
     def correlation_function(self, t: float | ArrayLike, **kwargs):
         """
@@ -791,13 +754,10 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
         Parameters
         ----------
-        t: :obj:`np.array` or float
+        t: array_like or float
             The time at which to evaluate the correlation function.
-
-        Returns
-        -------
-        The correlation function evaluated at the time t.
         """
+        # TODO should we calculate this one also from summing matsubaras?
 
         # we need an wMax so that spectral density is zero for w>wMax, guess:
         wMax = self.w0 + 10 * self.gamma
@@ -850,33 +810,39 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
 
 class OhmicEnvironment(BosonicEnvironment):
-    """
+    r"""
     Describes Ohmic environments as well as sub- or super-Ohmic environments
-    (depending on the choice of the parameter `s`). This class requires the
-    `mpmath` module to be installed.
+    (depending on the choice of the parameter `s`). The spectral density is
+
+    .. math::
+        J(\omega)
+        = \alpha \frac{\omega^s}{\omega_c^{1-s}} e^{-\omega / \omega_c} .
+
+    This class requires the `mpmath` module to be installed.
 
     Parameters
     ----------
-    T : float
+    T: float
         Temperature of the bath.
 
-    alpha : float
+    alpha: float
         Coupling strength.
 
-    wc : float
+    wc: float
         Cutoff parameter.
 
-    s : float
+    s: float
         Power of omega in the spectral density.
 
-    tag : optional, str, tuple or any other object
-        An identifier (name) for this environment
+    tag: optional, Any
+        An identifier (name) for this environment.
     """
 
     def __init__(
         self, T: float, alpha: float, wc: float, s: float, *, tag: Any = None
     ):
-        super().__init__(T, tag=tag)
+        super().__init__(T, tag)
+
         self.alpha = alpha
         self.wc = wc
         self.s = s
@@ -888,57 +854,74 @@ class OhmicEnvironment(BosonicEnvironment):
 
     def spectral_density(self, w: float | ArrayLike):
         r"""
-        Calculates the spectral density of an Ohmic Bath,
-
-        .. math::
-            J(w) = \alpha \frac{w^{s}}{w_{c}^{1-s}} e^{-\frac{|w|}{w_{c}}}
+        Calculates the spectral density of the Ohmic environment.
 
         Parameters
         ----------
-        w : float or :obj:`np.array`
+        w: array_like or float
             Energy of the mode.
-
-        Returns
-        -------
-        The spectral density of the mode with energy w.
         """
 
-        return (
-            self.alpha * w ** self.s
+        w = np.array(w, dtype=float)
+        result = np.zeros_like(w)
+
+        positive_mask = (w > 0)
+        w_mask = w[positive_mask]
+        result[positive_mask] = (
+            self.alpha * w_mask ** self.s
             / (self.wc ** (1 - self.s))
-            * np.exp(-np.abs(w) / self.wc)
+            * np.exp(-np.abs(w_mask) / self.wc)
         )
+
+        return result
+
+    def power_spectrum(self, w: float | ArrayLike, **kwargs):
+        """
+        Calculates the power spectrum of the Ohmic environment.
+
+        Parameters
+        ----------
+        w: array_like or float
+            The frequency at which to evaluate the power spectrum.
+        """
+        if self.s > 1:
+            sd_derivative = 0
+        elif self.s == 1:
+            sd_derivative = self.alpha
+        else:
+            sd_derivative = np.inf
+        return self._ps_from_sd(w, None, sd_derivative)
 
     def correlation_function(self, t: float | ArrayLike, **kwargs):
         r"""
-        Calculates the correlation function of an Ohmic bath,
+        Calculates the correlation function of an Ohmic bath using the formula
 
         .. math::
             C(t)= \frac{1}{\pi} \alpha w_{c}^{1-s} \beta^{-(s+1)} \Gamma(s+1)
             \left[ \zeta\left(s+1,\frac{1+\beta w_{c} -i w_{c} t}{\beta w_{c}}
             \right) +\zeta\left(s+1,\frac{1+ i w_{c} t}{\beta w_{c}}\right)
-            \right]
+            \right] ,
 
         where :math:`\Gamma` is the gamma function, and :math:`\zeta` the
-        Riemann zeta function
+        Riemann zeta function.
 
         Parameters
         ----------
-        t : float or :obj:`np.array`
-            time.
-
-        Returns
-        -------
-        The correlation function at time t.
+        t: array_like or float
+            The time at which to evaluate the correlation function.
         """
+        t = np.array(t, dtype=float)
+        t_was_array = t.ndim > 0
+        if not t_was_array:
+            t = np.array([t], dtype=float)
 
         if self.T != 0:
             corr = (self.alpha * self.wc ** (1 - self.s) / np.pi
-                    * mp.gamma(self.s + 1) / self.T ** (-(self.s + 1)))
+                    * mp.gamma(self.s + 1) * self.T ** (self.s + 1))
             z1_u = ((1 + self.wc / self.T - 1j * self.wc * t)
                     / (self.wc / self.T))
             z2_u = (1 + 1j * self.wc * t) / (self.wc / self.T)
-            return np.array(
+            result = np.array(
                 [corr * (mp.zeta(self.s + 1, u1) + mp.zeta(self.s + 1, u2))
                  for u1, u2 in zip(z1_u, z2_u)],
                 dtype=np.cdouble
@@ -947,10 +930,11 @@ class OhmicEnvironment(BosonicEnvironment):
             corr = (self.alpha * self.wc ** (self.s+1) / np.pi
                     * mp.gamma(self.s + 1)
                     * (1 + 1j * self.wc * t) ** (-(self.s + 1)))
-            return np.array(corr, dtype=np.cdouble)
+            result = np.array(corr, dtype=np.cdouble)
 
-    def power_spectrum(self, w: float | ArrayLike, dt: float = 1e-5):
-        return super().power_spectrum(w, dt)
+        if t_was_array:
+            return result
+        return result[0]
 
 
 class CFExponent:
