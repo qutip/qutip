@@ -3,13 +3,12 @@ This module contains utility functions that are commonly needed in other
 qutip modules.
 """
 
-__all__ = ['n_thermal', 'clebsch', 'convert_unit',
-           'SpectralFitter', 'CorrelationFitter']
+__all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
 
-from time import time
+from typing import Callable
 
 import numpy as np
-from scipy.interpolate import InterpolatedUnivariateSpline
+from numpy.typing import ArrayLike
 from scipy.optimize import curve_fit
 
 
@@ -342,828 +341,148 @@ def _version2int(version_string):
 
 # -----------------------------------------------------------------------------
 # Fitting utilities
-# TODO clean up all of this -- generalize and remove references to environments
 #
 
-class CorrelationFitter:
-    # TODO make into function
+# TODO include in apidoc
+def iterated_fit(
+    fun: Callable[..., complex], num_params: int,
+    xdata: ArrayLike, ydata: ArrayLike,
+    target_rmse: float = 1e-5,
+    guess: Callable[[int], ArrayLike] = None,
+    Nmin: int = 1, Nmax: int = 10,
+    lower: ArrayLike = None, upper: ArrayLike = None
+) -> tuple[float, ArrayLike]:
+    r"""
+    Iteratively tries to fit the given data with a model of the form
 
-    def __init__(self, T, t, C):
-        self.T = T
-        self.set_correlation_function(t, C)
+    .. math::
+        y = \sum_{k=1}^N f(x; p_{k,1}, \dots, p_{k,n})
 
-    def set_correlation_function(self, t, C):
-        """
-        This function creates a discretized version of the correlation function
-        if the correlation function is provided, and a function if
-        an array is provided.
-
-        The array is needed to run the least squares algorithm, while the
-        the function is used to assign a correlation function to the bosonic
-        bath object.
-        """
-        if callable(C):
-            self._t = t
-            self._C_array = C(t)
-            self._C_fun = C
-        else:
-            self._t = t
-            self._C_array = C
-            _C_fun_r = InterpolatedUnivariateSpline(t, np.real(C))
-            _C_fun_i = InterpolatedUnivariateSpline(t, np.imag(C))
-            self._C_fun = lambda t: _C_fun_r(t) + 1j * _C_fun_i(t)
-
-    def _corr_approx(self, t, a, b, c, d=0):
-        r"""
-        This is the form of the correlation function to be used for fitting.
-
-        Parameters
-        ----------
-        t : :obj:`np.array.` or float
-            The times at which to evaluates the correlation function.
-        a : list or :obj:`np.array.`
-            A list describing the  real part amplitude of the correlation
-            approximation.
-        b : list or :obj:`np.array.`
-            A list describing the decay of the correlation approximation.
-        c : list or :obj:`np.array.`
-            A list describing the oscillations of the correlation
-            approximation.
-        d:  A list describing the imaginary part amplitude of the correlation
-            approximation, only used if the user selects if the full_ansatz
-            flag from get_fit is True.
-        """
-
-        a = np.array(a)
-        b = np.array(b)
-        c = np.array(c)
-        d = np.array(d)
-        if (d == 0).all():
-            d = np.zeros(a.shape)
-
-        return np.sum(
-            (a[:, None]+1j*d[:, None]) * np.exp(b[:, None] * t[None, :]) *
-            np.exp(1j*c[:, None] * t[None, :]),
-            axis=0,
-        )
-
-    def get_fit(
-        self,
-        Nr=None,
-        Ni=None,
-        final_rmse=2e-5,
-        lower=None,
-        upper=None,
-        sigma=None,
-        guesses=None,
-        full_ansatz=False
-    ):
-        r"""
-        Fit the correlation function with Ni exponential terms
-        for the imaginary part of the correlation function and Nr for the real.
-        If no number of terms is provided, this function determines the number
-        of exponents based on reducing the normalized root mean squared
-        error below a certain threshold.
-
-        Parameters
-        ----------
-        Nr : optional, int
-            Number of exponents to use for the real part.
-            If set to None it is determined automatically.
-        Ni : optional, int
-            Number of exponents terms to use for the imaginary part.
-            If set to None it is found automatically.
-        final_rmse : float
-            Desired normalized root mean squared error. Only used if Ni or Nr
-            are not specified.
-        lower : list
-            lower bounds on the parameters for the fit. A list of size 4 when
-            full_ansatz is True and of size 3 when it is false,each value
-            represents the lower bound for each parameter.
-
-            The first and last terms describe the real and imaginary parts of
-            the amplitude, the second the decay rate, and the third one the
-            oscillation frequency. The lower bounds are considered to be
-            the same for all Nr and Ni exponents. for example
-
-            lower=[0,-1,1,1]
-
-            would bound the real part of the amplitude to be bigger than 0,
-            the decay rate to be higher than -1, and the oscillation frequency
-            to be bigger than 1, and the imaginary part of the amplitude to
-            be greater than 1
-        upper : list
-            upper bounds on the parameters for the fit, the structure is the
-            same as the lower keyword.
-        sigma : float
-            uncertainty in the data considered for the fit, all data points are
-            considered to have the same uncertainty.
-        guesses : list
-            Initial guesses for the parameters. Same structure as lower and
-            upper.
-        full_ansatz : bool
-            Indicates whether to use the function
-
-            .. math::
-                C(t)= \sum_{k}a_{k}e^{-b_{k} t}e^{i c_{k} t}
-
-            for the fitting of the correlation function (when False, the
-            default value)  this function gives us
-            faster fits,usually it is not needed to tweek
-            guesses, sigma, upper and lower as defaults work for most
-            situations.  When set to True one uses the function
-
-            .. math::
-                C(t)= \sum_{k}(a_{k}+i d_{k})e^{-b_{k} t}e^{i c_{k} t}
-
-            Unfortunately this gives us significantly slower fits and some
-            tunning of the guesses,sigma, upper and lower are usually needed.
-            On the other hand, it can lead to better fits with lesser exponents
-            specially for anomalous spectral densities such that
-            $Im(C(0))\neq 0$. When using this with default values if the fit
-            takes too long you should input guesses, lower and upper bounds,
-            if you are not sure what to set them to it is useful to use the
-            output of fitting with the other option as guesses for the fit.
-
-
-
-        Note: If one of lower, upper, sigma, guesses is None, all are discarded
-
-        Returns
-        -------
-        1. A Bosonic Bath created with the fit parameters from the original
-          correlation function (that was provided or interpolated).
-        2. A dictionary containing the following information about the fit:
-            * Nr :
-                The number of terms used to fit the real part of the
-                correlation function.
-            * Ni :
-                The number of terms used to fit the imaginary part of the
-                correlation function.
-            * fit_time_real :
-                The time the fit of the real part of the correlation function
-                took in seconds.
-            * fit_time_imag :
-                The time the fit of the imaginary part of the correlation
-                function took in seconds.
-            * rsme_real :
-                Normalized mean squared error obtained in the fit of the real
-                part of the correlation function.
-            * rsme_imag :
-                Normalized mean squared error obtained in the fit of the
-                imaginary part of the correlation function.
-            * params_real :
-                The fitted parameters (3N parameters) for the real part of the
-                correlation function, it contains three lists one for each
-                parameter, each list containing N terms.
-            * params_imag :
-                The fitted parameters (3N parameters) for the imaginary part
-                of the correlation function, it contains three lists one for
-                each parameter, each list containing N terms.
-            * summary :
-                A string that summarizes the information about the fit.
-            """
-        if full_ansatz:
-            num_params = 4
-        else:
-            num_params = 3
-        # Fit real part
-        start_real = time()
-        rmse_real, params_real = _run_fit(
-            lambda *args: np.real(self._corr_approx(*args)),
-            y=np.real(self._C_array), x=self._t, final_rmse=final_rmse,
-            default_guess_scenario="correlation_real", N=Nr, sigma=sigma,
-            guesses=guesses, lower=lower, upper=upper, n=num_params)
-        end_real = time()
-
-        # Fit imaginary part
-        start_imag = time()
-        rmse_imag, params_imag = _run_fit(
-            lambda *args: np.imag(self._corr_approx(*args)),
-            y=np.imag(self._C_array), x=self._t, final_rmse=final_rmse,
-            default_guess_scenario="correlation_imag", N=Ni, sigma=sigma,
-            guesses=guesses, lower=lower, upper=upper, n=num_params)
-        end_imag = time()
-
-        # Calculate Fit Times
-        fit_time_real = end_real - start_real
-        fit_time_imag = end_imag - start_imag
-
-        # Generate summary
-        Nr = len(params_real[0])
-        Ni = len(params_imag[0])
-        full_summary = _two_column_summary(
-            params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
-            rmse_imag, rmse_real, n=num_params)
-
-        fitInfo = {"Nr": Nr, "Ni": Ni,
-                   "fit_time_real": fit_time_real,
-                   "fit_time_imag": fit_time_imag,
-                   "rmse_real": rmse_real, "rmse_imag": rmse_imag,
-                   "params_real": params_real,
-                   "params_imag": params_imag, "summary": full_summary}
-        result = self._generate_bath(params_real, params_imag, n=num_params)
-        result.fitinfo = fitInfo
-        return result
-
-    def _generate_bath(self, params_real, params_imag, n=3):
-        """
-        Calculate the Matsubara coefficients and frequencies for the
-        fitted underdamped oscillators and generate the corresponding bosonic
-        bath.
-
-        Parameters
-        ----------
-        params_real : :obj:`np.array.`
-            array of shape (N,3) where N is the number of fitted terms
-            for the real part.
-        params_imag : np.imag
-            array of shape (N,3) where N is the number of fitted terms
-            for the imaginary part.
-
-        Returns
-        -------
-        A bosonic Bath constructed from the fitted exponents.
-        """
-        if n == 4:
-            a, b, c, d = params_real
-            a2, b2, c2, d2 = params_imag
-        else:
-            a, b, c = params_real
-            a2, b2, c2 = params_imag
-            d = np.zeros(a.shape, dtype=int)
-            d2 = np.zeros(a2.shape, dtype=int)
-
-        # the 0.5 is from the cosine
-        ckAR = [(x + 1j*y)*0.5 for x, y in zip(a, d)]
-        # extend the list with the complex conjugates:
-        ckAR.extend(np.conjugate(ckAR))
-        vkAR = [-x - 1.0j * y for x, y in zip(b, c)]
-        vkAR.extend([-x + 1.0j * y for x, y in zip(b, c)])
-
-        # the 0.5 is from the sine
-        ckAI = [-1j*(x + 1j*y)*0.5 for x, y in zip(a2, d2)]
-
-        # extend the list with the complex conjugates:
-        ckAI.extend(np.conjugate(ckAI))
-        vkAI = [-x - 1.0j * y for x, y in zip(b2, c2)]
-        vkAI.extend([-x + 1.0j * y for x, y in zip(b2, c2)])
-
-        from .core.environment import ExponentialBosonicEnvironment # TODO
-        return ExponentialBosonicEnvironment(ckAR, vkAR, ckAI, vkAI, T=self.T)
-
-
-class SpectralFitter:
-    # TODO make into function
-
-    """
-    A helper class for constructing a Bosonic bath from a fit of the spectral
-    density with a sum of underdamped modes.
+    where `f` is a model function depending on `n` parameters, and the number
+    `N` of terms is increases until the normalized rmse (root mean square
+    error) falls below the target value.
 
     Parameters
     ----------
-    Q : :obj:`.Qobj`
-        Operator describing the coupling between system and bath.
-
-    T : float
-        Bath temperature.
-
-    w : :obj:`np.array.`
-        The range on which to perform the fit, it is recommended that it covers
-        at least twice the cutoff frequency of the desired spectral density.
-
-    J : :obj:`np.array.` or callable
-        The spectral density to be fitted as an array or function.
-    """
-
-    def __init__(self, T, w, J):
-        self.T = T
-        self.set_spectral_density(w, J)
-
-    def set_spectral_density(self, w, J):
-        """
-        Sets the spectral density to be fitted. It may be provided either as an
-        array of function values or as a python function. For internal reasons,
-        it will then be interpolated or discretized as necessary.
-        """
-
-        if callable(J):
-            self._w = w
-            self._J_array = J(w)
-            self._J_fun = J
-        else:
-            self._w = w
-            self._J_array = J
-            self._J_fun = InterpolatedUnivariateSpline(w, J)
-
-    @classmethod
-    def _meier_tannor_SD(cls, w, a, b, c):
-        r"""
-        Underdamped spectral density used for fitting in Meier-Tannor form
-        (see Eq. 38 in the BoFiN paper, DOI: 10.1103/PhysRevResearch.5.013181)
-        or the get_fit method.
-
-        Parameters
-        ----------
-        w : :obj:`np.array.`
-            The frequency of the spectral density
-        a : :obj:`np.array.`
-            Array of coupling constants ($\alpha_i^2$)
-        b : :obj:`np.array.`
-            Array of cutoff parameters ($\Gamma'_i$)
-        c : :obj:`np.array.`
-            Array of resonant frequencies ($\Omega_i$)
-        """
-
-        return sum((2 * ai * bi * w
-                    / ((w + ci) ** 2 + bi ** 2)
-                    / ((w - ci) ** 2 + bi ** 2))
-                   for ai, bi, ci in zip(a, b, c))
-
-    def get_fit(
-        self,
-        N=None,
-        Nk=1,
-        final_rmse=5e-6,
-        lower=None,
-        upper=None,
-        sigma=None,
-        guesses=None,
-    ):
-        r"""
-        Provides a fit to the spectral density with N underdamped oscillator
-        baths. N can be determined automatically based on reducing the
-        normalized root mean squared error below a certain threshold.
-
-        Parameters
-        ----------
-        N : optional, int
-            Number of underdamped oscillators to use.
-            If set to None, it is determined automatically.
-        Nk : optional, int
-            Number of exponential terms used to approximate the bath
-            correlation functions, defaults to 1. To approximate the
-            correlation function the number of exponents grow as the
-        final_rmse : float
-            Desired normalized root mean squared error. Defaults to
-            :math:`5\times10^{-6}`. Only used if N is set to None.
-        lower : list
-            Lower bounds on the parameters for the fit. A list of size 3,
-            containing the lower bounds for :math:`a_i` (coupling constants),
-            :math:`b_i` (cutoff frequencies) and :math:`c_i`
-            (resonant frequencies) in the following fit function:
-
-            .. math::
-                J(\omega) = \sum_{i=1}^{k} \frac{2 a_{i} b_{i} \omega
-                }{\left(\left( \omega + c_{i}\right)^{2} + b_{i}^{2}\right)
-                \left(\left( \omega - c_{i}\right)^{2} + b_{i}^{2} \right)}
-
-            The lower bounds are considered to be the same for all N modes.
-            For example,
-
-            lower=[0,-1,2]
-
-            would bound the coupling to be bigger than 0, the cutoff frequency
-            to be higher than 1, and the central frequency to be bigger than 2
-
-        upper : list
-            Upper bounds on the parameters for the fit, the structure is the
-            same as the lower keyword.
-        sigma : float
-            Uncertainty in the data considered for the fit, all data points are
-            considered to have the same uncertainty.
-        guesses : list
-            Initial guesses for the parameters. Same structure as lower and
-            upper.
-
-        Note: If one of lower, upper, sigma, guesses is None, all are discarded
-
-        Returns
-        -------
-        1. A Bosonic Bath created with the fit parameters for the original
-          spectral density function (that was provided or interpolated)
-        2. A dictionary containing the following information about the fit:
-            * fit_time:
-                The time the fit took in seconds.
-            * rsme:
-                Normalized mean squared error obtained in the fit.
-            * N:
-                The number of terms used for the fit.
-            * params:
-                The fitted parameters (3N parameters), it contains three lists
-                one for each parameter, each list containing N terms.
-            * Nk:
-                The number of exponents used to construct the bosonic bath.
-            * summary:
-                A string that summarizes the information of the fit.
-        """
-
-        start = time()
-        rmse, params = _run_fit(
-            SpectralFitter._meier_tannor_SD, self._J_array, self._w,
-            final_rmse, default_guess_scenario="Spectral Density", N=N,
-            sigma=sigma, guesses=guesses, lower=lower, upper=upper)
-        end = time()
-
-        fit_time = end - start
-        spec_n = len(params[0])
-        result = self._generate_bath(params, Nk)
-        summary = _gen_summary(
-            fit_time, rmse, N, "The Spectral Density", params)
-        fitInfo = {
-            "fit_time": fit_time, "rmse": rmse, "N": spec_n, "params": params,
-            "Nk": Nk, "summary": summary}
-        result.fitinfo = fitInfo
-        return result
-
-    def _generate_bath(self, params, Nk):
-        """
-        Obtains the bath exponents from the list of fit parameters. Some
-        transformations are done, to reverse the ones in the UnderDampedBath.
-        They are done to change the spectral density from eq. 38 to eq. 16
-        of the BoFiN paper and vice-versa.
-
-        Parameters
-        ----------
-        params: list
-            The parameters obtained from the fit.
-
-        Returns
-        -------
-            A Bosonic Bath created with the fit parameters.
-        """
-
-        lam, gamma, w0 = params
-        w0 = np.array(
-            [
-                np.sqrt((w0[i] + 0j) ** 2 + (gamma[i] + 0j / 2) ** 2)
-                for i in range(len(w0))
-            ]
-        )
-        lam = np.sqrt(
-            lam + 0j
-        )
-        # both w0, and lam modifications are needed to input the
-        # right value of the fit into the Underdamped bath
-        ckAR = []
-        vkAR = []
-        ckAI = []
-        vkAI = []
-
-        from .core.environment import (
-            ExponentialBosonicEnvironment,
-            UnderDampedEnvironment
-         ) # TODO
-        for lamt, Gamma, Om in zip(lam, gamma, w0):
-            env = UnderDampedEnvironment(self.T, lamt, 2 * Gamma, Om)
-            coeffs = env._matsubara_params(Nk)
-            ckAR.extend(coeffs[0])
-            vkAR.extend(coeffs[1])
-            ckAI.extend(coeffs[2])
-            vkAI.extend(coeffs[3])
-
-        return ExponentialBosonicEnvironment(ckAR, vkAR, ckAI, vkAI, T=self.T)
-
-
-def _pack(*args):
-    """
-    Pack parameter lists for fitting. In both use cases (spectral fit,
-    correlation fit), the fit parameters are three arrays of equal length.
-    """
-    return np.concatenate(tuple(args))
-
-
-def _unpack(params, n=3):
-    """
-    Unpack parameter lists for fitting. In the use cases (spectral fit/
-    correlation fit), the fit parameters are three/four arrays of equal length.
-    """
-    num_params = len(params) // n
-    zz = []
-    for i in range(n):
-        zz.append(params[i*num_params:(i+1)*num_params])
-    return zz
-
-
-def _leastsq(func, y, x, guesses=None, lower=None,
-             upper=None, sigma=None, n=3):
-    """
-    Performs nonlinear least squares to fit the function func to x and y.
-
-    Parameters
-    ----------
-    func : function
-        The function we wish to fit.
-    x : np.array
-        a numpy array containing the independent variable used for the fit.
-    y : :obj:`np.array.`
-        a numpy array containing the dependent variable we use for the fit.
-    guesses : list
-        Initial guess for the parameters.
-    lower : list
-        lower bounds on the parameters for the fit.
-    upper : list
-        upper bounds on the parameters for the fit.
-    sigma : float
-        uncertainty in the data considered for the fit
-    n: int
-        number of free parameters to be fitted, used for reshaping of the
-        parameters array across the different functions
-    Returns
-    -------
-    params: list
-        It returns the fitted parameters.
-    """
-
-    sigma = [sigma] * len(x)
-    params, _ = curve_fit(
-        lambda x, *params: func(x, *_unpack(params, n)),
-        x,
-        y,
-        p0=guesses,
-        bounds=(lower, upper),
-        sigma=sigma,
-        maxfev=int(1e9),
-        method="trf",
-    )
-
-    return _unpack(params, n)
-
-
-def _rmse(func, x, y, *args):
-    """
-    Calculates the normalized root mean squared error for fits
-    from the fitted parameters a, b, c.
-
-    Parameters
-    ----------
-    func : function
-        The approximated function for which we want to compute the rmse.
-    x: :obj:`np.array.`
-        a numpy array containing the independent variable used for the fit.
-    y: :obj:`np.array.`
-        a numpy array containing the dependent variable used for the fit.
-    a, b, c : list
-        fitted parameters.
+    fun : callable
+        The model function. Its first argument is the array `xdata`, its other
+        arguments are the fitting parameters.
+    num_params : int
+        The number of fitting parameters per term (`n` in the equation above).
+        The function `fun` must take `num_params+1` arguments.
+    xdata : array_like
+        The independent variable.
+    ydata : array_like
+        The dependent data.
+    target_rmse : optional, float
+        Desired normalized root mean squared error (default `1e-5`).
+    guess : optional, callable
+        A function that, given a number `N` of terms, returns an array
+        `[[p11, ..., p1n], [p21, ..., p2n], ..., [pN1, ..., pNn]]`
+        of initial guesses.
+    Nmin : optional, int
+        The minimum number of terms to be used for the fit (default 1).
+    Nmax : optional, int
+        The maximum number of terms to be used for the fit (default 10).
+        If the number `Nmax` of terms is reached, the function returns even if
+        the target rmse has not been reached yet.
+    lower : optional, list of length `num_params`
+        Lower bounds on the parameters for the fit.
+    upper : optional, list of length `num_params`
+        Upper bounds on the parameters for the fit.
 
     Returns
     -------
-    rmse: float
-        The normalized root mean squared error for the fit, the closer
-        to zero the better the fit.
-    """
-    yhat = func(x, *args)
-    rmse = np.sqrt(np.mean((yhat - y) ** 2) / len(y)) / \
-        (np.max(y) - np.min(y))
-    return rmse
-
-
-def _fit(func, corr, t, N, default_guess_scenario='',
-         guesses=None, lower=None, upper=None, sigma=None, n=3):
-    """
-    Performs a fit the function func to t and corr, with N number of
-    terms in func, the guesses,bounds and uncertainty can be determined
-    by the user.If none is provided it constructs default ones according
-    to the label.
-
-    Parameters
-    ----------
-    func : function
-        The function we wish to fit.
-    corr : :obj:`np.array.`
-        a numpy array containing the dependent variable used for the fit.
-    t : :obj:`np.array.`
-        a numpy array containing the independent variable used for the fit.
-    N : int
-        The number of modes / baths used for the fitting.
-    default_guess_scenario : str
-        Determines how the default guesses and bounds are chosen (in the case
-        guesses or bounds are not specified). May be 'correlation_real',
-        'correlation_imag' or any other string. Any other string will use
-        guesses and bounds designed for the fitting of spectral densities.
-    guesses : list
-        Initial guess for the parameters.
-    lower : list
-        lower bounds on the parameters for the fit.
-    upper: list
-        upper bounds on the parameters for the fit.
-    sigma: float
-        uncertainty in the data considered for the fit.
-    n: int
-        The Number of variables used in the fit
-    Returns
-    -------
-    params:
-        It returns the fitted parameters as a list.
-    rmse:
-        It returns the normalized mean squared error from the fit
+    rmse : float
+        The normalized mean squared error of the fit
+    params : array_like
+        The model parameters in the form
+        `[[p11, ..., p1n], [p21, ..., p2n], ..., [pN1, ..., pNn]]`.
     """
 
-    if None not in (guesses, lower, upper, sigma):
-        guesses = _reformat(guesses, N)
-        lower = _reformat(lower, N)
-        upper = _reformat(upper, N)
-    else:
-        tempguess, templower, tempupper, tempsigma = _default_guess_scenarios(
-            corr, t, default_guess_scenario, N, n)
-        guesses = tempguess
-        lower = templower
-        upper = tempupper
-        sigma = tempsigma
-        if (tempupper == templower).all() and (tempguess == tempupper).all():
-            return 0, _unpack(templower, n)
-    if not ((len(guesses) == len(lower)) and (len(guesses) == len(upper))):
-        raise ValueError("The shape of the provided fit parameters is \
-                         not consistent")
-    args = _leastsq(func, corr, t, sigma=sigma, guesses=guesses,
-                    lower=lower, upper=upper, n=n)
-    rmse = _rmse(func, t, corr, *args)
-    return rmse, args
+    if len(xdata) != len(ydata):
+        raise ValueError(
+            "The shape of the provided fit data is not consistent")
 
+    if lower is None:
+        lower = np.full(num_params, -np.inf)
+    if upper is None:
+        upper = np.full(num_params, np.inf)
+    if not (len(lower) == num_params and len(upper) == num_params):
+        raise ValueError(
+            "The shape of the provided fit bounds is not consistent")
 
-def _default_guess_scenarios(corr, t, default_guess_scenario, N, n):
-    corr_max = abs(max(corr, key=np.abs))
-    tempsigma = 1e-2
-
-    if corr_max == 0:
-        # When the target function is zero
-        tempguesses = _pack(
-            [0] * N, [0] * N, [0] * N, [0] * N)
-        templower = tempguesses
-        tempupper = tempguesses
-        return tempguesses, templower, tempupper, tempsigma
-    wc = t[np.argmax(corr)]
-
-    if "correlation" in default_guess_scenario:
-        if n == 4:
-            templower = _pack([-100*corr_max] * N, [-np.inf] * N, [-1]
-                              * N, [-100*corr_max] * N)
-        else:
-            templower = _pack([-20 * corr_max] * N, [-np.inf] * N, [0.0] * N)
-
-    if default_guess_scenario == "correlation_real":
-        if n == 4:
-            wc = np.inf
-            tempguesses = _pack([corr_max] * N, [-100*corr_max]
-                                * N, [0] * N, [0] * N)
-            tempupper = _pack([100*corr_max] * N, [0] * N,
-                              [1] * N, [100*corr_max] * N)
-        else:
-            tempguesses = _pack([corr_max] * N, [-wc] * N, [wc] * N)
-            tempupper = _pack([20 * corr_max] * N, [0.1] * N, [np.inf] * N)
-    elif default_guess_scenario == "correlation_imag":
-        if n == 4:
-            wc = np.inf
-            tempguesses = _pack([0] * N, [-10*corr_max] * N, [0] * N, [0] * N)
-            tempupper = _pack([100*corr_max] * N, [0] * N,
-                              [2] * N, [100*corr_max] * N)
-        else:
-            tempguesses = _pack([-corr_max] * N, [-10*corr_max] * N, [1] * N)
-            tempupper = _pack([10 * corr_max] * N, [0] * N, [np.inf] * N)
-    else:
-        tempguesses = _pack([corr_max] * N, [wc] * N, [wc] * N)
-        templower = _pack([-100 * corr_max] * N,
-                          [0.1 * wc] * N, [0.1 * wc] * N)
-        tempupper = _pack([100 * corr_max] * N,
-                          [100 * wc] * N, [100 * wc] * N)
-    return tempguesses, templower, tempupper, tempsigma
-
-
-def _reformat(guess, N):
-    """
-    This function reformats the user provided guesses into the format
-    appropiate for fitting, if the user did not provide it the defaults are
-    assigned
-    """
-    guesses = [[i]*N for i in guess]
-    guesses = [x for xs in guesses for x in xs]
-    guesses = _pack(guesses)
-    return guesses
-
-
-def _run_fit(funcx, y, x, final_rmse, default_guess_scenario='', N=None, n=3,
-             **kwargs):
-    """
-    It iteratively tries to fit the funcx to y on the interval x.
-    If N is provided the fit is done with N modes, if it is
-    None then this automatically finds the smallest number of modes that
-    whose mean squared error is smaller than final_rmse.
-
-    Parameters
-    ----------
-    funcx : function
-        The function we wish to fit.
-    y : :obj:`np.array.`
-        The function used for the fitting.
-    x : :obj:`np.array.`
-        a numpy array containing the independent variable used for the fit.
-    final_rmse : float
-        Desired normalized root mean squared error.
-    default_guess_scenario : str
-        Determines how the default guesses and bounds are chosen (in the case
-        guesses or bounds are not specified). May be 'correlation_real',
-        'correlation_imag' or any other string. Any other string will use
-        guesses and bounds designed for the fitting of spectral densities.
-    N : optional , int
-        The number of modes used for the fitting, if not provided starts at
-        1 and increases until a desired RMSE is satisfied.
-    sigma: float
-        uncertainty in the data considered for the fit.
-    guesses : list
-        Initial guess for the parameters.
-    lower : list
-        lower bounds on the parameters for the fit.
-    upper: list
-        upper bounds on the parameters for the fit.
-
-    Returns
-    -------
-    params:
-        It returns the fitted parameters as a list.
-    rmse:
-        It returns the normalized mean squared error from the fit
-    """
-
-    if N is None:
-        N = 2
-        iterate = True
-    else:
-        iterate = False
+    N = Nmin
     rmse1 = np.inf
 
-    while rmse1 > final_rmse:
-        rmse1, params = _fit(
-            funcx, y, x, N, default_guess_scenario, n=n, **kwargs)
+    while rmse1 > target_rmse and N <= Nmax:
+        if guess is None:
+            guesses = np.ones((N, num_params), dtype=float)
+        else:
+            guesses = np.array(guess(N))
+            if guesses.shape != (N, num_params):
+                raise ValueError(
+                    "The shape of the provided fit guesses is not consistent")
+
+        lower_repeat = np.repeat(lower, N)
+        upper_repeat = np.repeat(upper, N)
+        rmse1, params = _fit(fun, num_params, xdata, ydata, N,
+                             guesses, lower_repeat, upper_repeat)
         N += 1
-        if not iterate:
-            break
 
     return rmse1, params
 
 
-def _gen_summary(time, rmse, N, label, params,
-                 columns=['lam', 'gamma', 'w0']):
-    """Generates a summary of fits by nonlinear least squares"""
-    if len(columns) == 3:
-        summary = (f"Result of fitting {label} "
-                   f"with {N} terms: \n \n {'Parameters': <10}|"
-                   f"{columns[0]: ^10}|{columns[1]: ^10}|{columns[2]: >5} \n ")
-        for k in range(len(params[0])):
-            summary += (
-                f"{k+1: <10}|{params[0][k]: ^10.2e}|{params[1][k]:^10.2e}|"
-                f"{params[2][k]:>5.2e}\n ")
-    else:
-        summary = (
-            f"Result of fitting {label} "
-            f"with {N} terms: \n \n {'Parameters': <10}|"
-            f"{columns[0]: ^10}|{columns[1]: ^10}|{columns[2]: ^10}"
-            f"|{columns[3]: >5} \n ")
-        for k in range(len(params[0])):
-            summary += (
-                f"{k+1: <10}|{params[0][k]: ^10.2e}|{params[1][k]:^10.2e}"
-                f"|{params[2][k]:^10.2e}|{params[3][k]:>5.2e}\n ")
-    summary += (f"\nA  normalized RMSE of {rmse: .2e}"
-                f" was obtained for the {label}\n")
-    summary += f" The current fit took {time: 2f} seconds"
-    return summary
+def _pack(params):
+    # Pack parameter lists for fitting.
+    # Input: array of parameters like `[[p11, ..., p1n], ..., [pN1, ..., pNn]]`
+    # Output: packed parameters like `[p11, ..., p1n, p21, ..., p2n, ...]`
+    return params.ravel() # like flatten, but doesn't copy data
 
 
-def _two_column_summary(
-        params_real, params_imag, fit_time_real, fit_time_imag, Nr, Ni,
-        rmse_imag, rmse_real, n=3):
-    # Generate nicely formatted summary with two columns for correlations
-    columns = ["a", "b", "c"]
-    if n == 4:
-        columns.append("d")
-    summary_real = _gen_summary(
-        fit_time_real,
-        rmse_real,
-        Nr,
-        "The Real Part Of  \n the Correlation Function", params_real,
-        columns=columns)
-    summary_imag = _gen_summary(
-        fit_time_imag,
-        rmse_imag,
-        Ni,
-        "The Imaginary Part \n Of the Correlation Function", params_imag,
-        columns=columns)
+def _unpack(params, num_params):
+    # Inverse of _pack, `num_params` is "n"
+    N = len(params) // num_params
+    return np.reshape(params, (N, num_params))
 
-    full_summary = "Fit correlation class instance: \n \n"
-    lines_real = summary_real.splitlines()
-    lines_imag = summary_imag.splitlines()
-    max_lines = max(len(lines_real), len(lines_imag))
-    # Fill the shorter string with blank lines
-    lines_real = lines_real[:-1] + (max_lines - len(lines_real)
-                                    ) * [""] + [lines_real[-1]]
-    lines_imag = lines_imag[:-1] + (max_lines - len(lines_imag)
-                                    ) * [""] + [lines_imag[-1]]
-    # Find the maximum line length in each column
-    max_length1 = max(len(line) for line in lines_real)
-    max_length2 = max(len(line) for line in lines_imag)
 
-    # Print the strings side by side with a vertical bar separator
-    for line1, line2 in zip(lines_real, lines_imag):
-        formatted_line1 = f"{line1:<{max_length1}} |"
-        formatted_line2 = f"{line2:<{max_length2}}"
-        full_summary += formatted_line1 + formatted_line2 + "\n"
-    return full_summary
+def _evaluate(fun, x, params):
+    result = 0
+    for term_params in params:
+        result += fun(x, *term_params)
+    return result
+
+
+def _rmse(fun, xdata, ydata, params):
+    """
+    The normalized root mean squared error for the fit with the given
+    parameters. (The closer to zero = the better the fit.)
+    """
+    yhat = _evaluate(fun, xdata, params)
+    return (
+        np.sqrt(np.mean((yhat - ydata) ** 2) / len(ydata))
+        / (np.max(ydata) - np.min(ydata))
+    )
+
+
+def _fit(fun, num_params, xdata, ydata, N, guesses, lower, upper):
+    # fun: model function
+    # num_params: number of parameters in fun
+    # xdata, ydata: data to be fit
+    # N: number of terms
+    # guesses: initial guesses [[p11, ..., p1n],..., [pN1, ..., pNn]]
+    # lower, upper: parameter bounds
+
+    if (upper <= lower).all():
+            return _rmse(fun, xdata, ydata, guesses), guesses
+
+    packed_params, _ = curve_fit(
+        lambda x, *packed_params: _evaluate(
+            fun, x, _unpack(packed_params, num_params)
+        ),
+        xdata, ydata, p0=_pack(guesses), bounds=(lower, upper),
+        maxfev=int(1e9), method="trf"
+    )
+    params = _unpack(packed_params, num_params)
+    rmse = _rmse(fun, xdata, ydata, params)
+    return rmse, params
