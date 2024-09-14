@@ -704,9 +704,10 @@ class SpectralFitter:
             Number of exponential terms used to approximate the bath
             correlation functions, defaults to 1. To approximate the
             correlation function the number of exponents grow as the
+        final_rmse : float
             Desired normalized root mean squared error. Defaults to
             :math:`5\times10^{-6}`. Only used if N is set to None.
-            Desired normalized root mean squared error. Defaults to
+        lower : list
             Lower bounds on the parameters for the fit. A list of size 3,
             containing the lower bounds for :math:`a_i` (coupling constants),
             :math:`b_i` (cutoff frequencies) and :math:`c_i`

@@ -161,7 +161,8 @@ class BosonicEnvironment(abc.ABC):
         ...
 
     def approx_by_cf_fit(
-        self, tlist: ArrayLike, Nr: int, Ni: int, full_ansatz: bool = False
+        self, tlist: ArrayLike, Nr: int, Ni: int, full_ansatz: bool = False,
+        tag: Any = None
     ) -> ExponentialBosonicEnvironment:
         """
         Generates an approximation to this environment by fitting its
@@ -170,14 +171,17 @@ class BosonicEnvironment(abc.ABC):
         Parameters
         ----------
         tlist : array_like
-            The time range on which to perform the fit
+            The time range on which to perform the fit.
         Nr : int
-            The number of modes to use for the fit of the real part 
+            The number of modes to use for the fit of the real part.
         Ni : int
-            The number of modes to use for the fit of the imaginary part
-        full_ansatz : bool
+            The number of modes to use for the fit of the imaginary part.
+        full_ansatz : optional, bool
             Whether to use a fit of the imaginary and real parts that is 
-            complex
+            complex. (Defaults to `False`.)
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
 
         Returns
         -------
@@ -185,11 +189,13 @@ class BosonicEnvironment(abc.ABC):
             The approximated environment with multi-exponential correlation
             function.
         """
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "CF Fit")
         fitter = CorrelationFitter(self.T, tlist, self.correlation_function)
-        return fitter.get_fit(Nr=Nr, Ni=Ni, full_ansatz=full_ansatz)
+        return fitter.get_fit(Nr=Nr, Ni=Ni, full_ansatz=full_ansatz, tag=tag)
 
     def approx_by_sd_fit(
-        self, wlist: ArrayLike, N: int, Nk: int
+        self, wlist: ArrayLike, N: int, Nk: int, tag: Any = None
     ) -> ExponentialBosonicEnvironment:
         """
         Generates an approximation to this environment by fitting its spectral
@@ -201,11 +207,14 @@ class BosonicEnvironment(abc.ABC):
         Parameters
         ----------
         wlist : array_like
-            The frequency range on which to perform the fit
+            The frequency range on which to perform the fit.
         N : int
-            The number of modes to use for the fit
+            The number of modes to use for the fit.
         Nk : int
-            The number of exponents to use in each mode
+            The number of exponents to use in each mode.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
 
         Returns
         -------
@@ -213,8 +222,10 @@ class BosonicEnvironment(abc.ABC):
             The approximated environment with multi-exponential correlation
             function.
         """
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "SD Fit")
         fitter = SpectralFitter(self.T, wlist, self.spectral_density)
-        return fitter.get_fit(N=N, Nk=Nk)
+        return fitter.get_fit(N=N, Nk=Nk, tag=tag)
 
     def _ps_from_sd(self, w, eps, derivative=None):
         # derivative: value of J'(0)
@@ -580,7 +591,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return self._ps_from_sd(w, None, sd_derivative)
 
     def approx_by_matsubara(
-        self, Nk: int, combine: bool = True
+        self, Nk: int, combine: bool = True, tag: Any = None
     ) -> ExponentialBosonicEnvironment:
         """
         Generates an approximation to this environment by truncating its
@@ -596,22 +607,27 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         combine : bool, default `True`
             Whether to combine exponents with the same frequency.
 
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
         Returns
         -------
         :class:`ExponentialBosonicEnvironment`
             The approximated environment with multi-exponential correlation
             function.
         """
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "Matsubara Truncation")
 
         lists = self._matsubara_params(Nk)
         result = ExponentialBosonicEnvironment(
-            *lists, T=self.T, combine=combine)
+            *lists, T=self.T, combine=combine, tag=tag)
         # TODO what to do with the terminator?
-        # TODO tag stuff
         return result
 
     def approx_by_pade(
-        self, Nk: int, combine: bool = True
+        self, Nk: int, combine: bool = True, tag: Any = None
     ) -> ExponentialBosonicEnvironment:
         """
         Generates an approximation to this environment by truncating its
@@ -627,12 +643,19 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         combine : bool, default `True`
             Whether to combine exponents with the same frequency.
 
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
         Returns
         -------
         :class:`ExponentialBosonicEnvironment`
             The approximated environment with multi-exponential correlation
             function.
         """
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "Pade Truncation")
+
         eta_p, gamma_p = self._corr(Nk)
 
         ck_real = [np.real(eta) for eta in eta_p]
@@ -643,9 +666,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         vk_imag = [gamma_p[0]]
 
         result = ExponentialBosonicEnvironment(
-            ck_real, vk_real, ck_imag, vk_imag, T=self.T, combine=combine)
+            ck_real, vk_real, ck_imag, vk_imag,
+            T=self.T, combine=combine, tag=tag
+        )
         # TODO what to do with the terminator?
-        # TODO tag stuff
         return result
 
     def _matsubara_params(self, Nk):
@@ -823,7 +847,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
         return self._cf_from_ps(t, wMax)
 
     def approx_by_matsubara(
-        self, Nk: int, combine: bool = True
+        self, Nk: int, combine: bool = True, tag: Any = None
     ) -> ExponentialBosonicEnvironment:
         """
         Generates an approximation to this environment by truncating its
@@ -839,6 +863,10 @@ class UnderDampedEnvironment(BosonicEnvironment):
         combine : bool, default `True`
             Whether to combine exponents with the same frequency.
 
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
         Returns
         -------
         :class:`ExponentialBosonicEnvironment`
@@ -846,11 +874,13 @@ class UnderDampedEnvironment(BosonicEnvironment):
             function.
         """
 
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "Matsubara Truncation")
+
         lists = self._matsubara_params(Nk)
         result = ExponentialBosonicEnvironment(
-            *lists, T=self.T, combine=combine)
+            *lists, T=self.T, combine=combine, tag=tag)
         # TODO what to do with the terminator?
-        # TODO tag stuff
         return result
 
     def _matsubara_params(self, Nk):
@@ -1064,6 +1094,10 @@ class CFExponent:
         exponent. For exponents of type "-" it gives the offset of the
         corresponding "+" exponent.
 
+    tag : optional, str, tuple or any other object
+        A label for the exponent (often the name of the environment). It
+        defaults to None.
+
     Attributes
     ----------
     fermionic : bool
@@ -1111,7 +1145,7 @@ class CFExponent:
     def __init__(
             self, type: str | CFExponent.ExponentType,
             ck: complex, vk: complex, ck2: complex = None,
-            sigma_bar_k_offset: int = None
+            sigma_bar_k_offset: int = None, tag: Any = None
     ):
         if not isinstance(type, self.types):
             type = self.types[type]
@@ -1124,6 +1158,7 @@ class CFExponent:
         self.ck2 = ck2
         self.sigma_bar_k_offset = sigma_bar_k_offset
 
+        self.tag = tag
         self.fermionic = self._type_is_fermionic(type)
 
     def __repr__(self):
@@ -1132,6 +1167,7 @@ class CFExponent:
             f" ck={self.ck!r} vk={self.vk!r} ck2={self.ck2!r}"
             f" sigma_bar_k_offset={self.sigma_bar_k_offset!r}"
             f" fermionic={self.fermionic!r}"
+            f" tag={self.tag!r}>"
         )
 
     @property
@@ -1159,30 +1195,33 @@ class CFExponent:
             return False
         return True
 
-    def _combine(self, other):
+    def _combine(self, other, **init_kwargs):
         # Assumes can combine was checked
-        if self.type == self.types['RI'] or self.type != other.type:
-            # Result will be RI
-            real_part_coefficient = 0
-            imag_part_coefficient = 0
-            if self.type == self.types['RI'] or self.type == self.types['R']:
-                real_part_coefficient += self.ck
-            if other.type == self.types['RI'] or other.type == self.types['R']:
-                real_part_coefficient += other.ck
-            if self.type == self.types['I']:
-                imag_part_coefficient += self.ck
-            if other.type == self.types['I']:
-                imag_part_coefficient += other.ck
-            if self.type == self.types['RI']:
-                imag_part_coefficient += self.ck2
-            if other.type == self.types['RI']:
-                imag_part_coefficient += other.ck2
+        cls = type(self)
 
-            return CFExponent(self.types['RI'], real_part_coefficient,
-                              self.vk, imag_part_coefficient)
-        else:
+        if self.type == other.type and self.type != self.types['RI']:
             # Both R or both I
-            return CFExponent(self.type, self.ck + other.ck, self.vk)
+            return cls(type=self.type, ck=(self.ck + other.ck),
+                       vk=self.vk, tag=self.tag, **init_kwargs)
+
+        # Result will be RI
+        real_part_coefficient = 0
+        imag_part_coefficient = 0
+        if self.type == self.types['RI'] or self.type == self.types['R']:
+            real_part_coefficient += self.ck
+        if other.type == self.types['RI'] or other.type == self.types['R']:
+            real_part_coefficient += other.ck
+        if self.type == self.types['I']:
+            imag_part_coefficient += self.ck
+        if other.type == self.types['I']:
+            imag_part_coefficient += other.ck
+        if self.type == self.types['RI']:
+            imag_part_coefficient += self.ck2
+        if other.type == self.types['RI']:
+            imag_part_coefficient += other.ck2
+
+        return cls(type=self.types['RI'], ck=real_part_coefficient, vk=self.vk,
+                   ck2=imag_part_coefficient, tag=self.tag, **init_kwargs)
 
 
 class ExponentialBosonicEnvironment(BosonicEnvironment):
@@ -1231,6 +1270,8 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         An identifier (name) for this environment.
     """
 
+    _make_exponent = CFExponent
+
     def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
         # all None: returns False
         # all provided and lengths match: returns True
@@ -1274,12 +1315,10 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
 
         exponents = exponents or []
         if lists_provided:
-            exponents.extend(
-                CFExponent("R", ck, vk) for ck, vk in zip(ck_real, vk_real)
-            )
-            exponents.extend(
-                CFExponent("I", ck, vk) for ck, vk in zip(ck_imag, vk_imag)
-            )
+            exponents.extend(self._make_exponent("R", ck, vk, tag=tag)
+                             for ck, vk in zip(ck_real, vk_real))
+            exponents.extend(self._make_exponent("I", ck, vk, tag=tag)
+                             for ck, vk in zip(ck_imag, vk_imag))
 
         if combine:
             exponents = self.combine(exponents)

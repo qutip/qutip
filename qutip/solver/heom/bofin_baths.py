@@ -105,11 +105,10 @@ class BathExponent(environment.CFExponent):
             self, type, dim, Q, ck, vk, ck2=None,
             sigma_bar_k_offset=None, tag=None,
     ):
-        super().__init__(type, ck, vk, ck2, sigma_bar_k_offset)
+        super().__init__(type, ck, vk, ck2, sigma_bar_k_offset, tag)
 
         self.dim = dim
         self.Q = Q
-        self.tag = tag
 
     def __repr__(self):
         dims = getattr(self.Q, "dims", None)
@@ -132,11 +131,7 @@ class BathExponent(environment.CFExponent):
 
     def _combine(self, other):
         # Assumes can combine was checked
-        combined_cf = super()._combine(other)
-        return BathExponent(
-            combined_cf.type, None, self.Q, combined_cf.ck, combined_cf.vk,
-            combined_cf.ck2, combined_cf.sigma_bar_k_offset, self.tag
-        )
+        return super()._combine(other, dim=None, Q=self.Q)
 
 
 class Bath:
@@ -212,6 +207,9 @@ class BosonicBath(environment.ExponentialBosonicEnvironment):
         The temperature of the bath.
     """
 
+    def _make_exponent(self, type, ck, vk, ck2=None, tag=None):
+        return BathExponent(type, None, self._Q, ck, vk, ck2, tag=tag)
+
     def _check_coup_op(self, Q):
         if not isinstance(Q, Qobj):
             raise ValueError("The coupling operator Q must be a Qobj.")
@@ -220,37 +218,23 @@ class BosonicBath(environment.ExponentialBosonicEnvironment):
             self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
             tag=None, T=None
     ):
-        self._check_cks_and_vks(ck_real, vk_real, ck_imag, vk_imag)
         self._check_coup_op(Q)
+        self._Q = Q
 
-        # Create `BathExponent`s instead of `CFExponent`s
-        exponents = []
-        exponents.extend(
-            BathExponent("R", None, Q, ck, vk, tag=tag)
-            for ck, vk in zip(ck_real, vk_real)
-        )
-        exponents.extend(
-            BathExponent("I", None, Q, ck, vk, tag=tag)
-            for ck, vk in zip(ck_imag, vk_imag)
-        )
-
-        super().__init__(
-            exponents=exponents, combine=combine, T=T, tag=tag
-        )
+        super().__init__(ck_real, vk_real, ck_imag, vk_imag,
+                         combine=combine, T=T, tag=tag)
 
     @staticmethod
-    def _from_env(env, Q, tag=None, dim=None):
-        tag = tag or env.tag
-
+    def from_environment(env, Q, dim=None):
         bath_exponents = []
         for exponent in env.exponents:
             new_exponent = BathExponent(
                 exponent.type, dim, Q, exponent.ck, exponent.vk,
-                exponent.ck2, exponent.sigma_bar_k_offset, tag
+                exponent.ck2, exponent.sigma_bar_k_offset, env.tag
             )
             bath_exponents.append(new_exponent)
 
-        result = BosonicBath(Q, [], [], [], [], tag=tag, T=env.T)
+        result = BosonicBath(Q, [], [], [], [], tag=env.tag, T=env.T)
         result.exponents = bath_exponents
         return result
 
@@ -293,11 +277,14 @@ class DrudeLorentzBath(BosonicBath):
     ):
         # Basically this makes DrudeLorentzBath a function
         # (Q, lam, ...) -> BosonicBath
-        # but it is made to look like a class to not confuse people
-        env = environment.DrudeLorentzEnvironment(T, lam, gamma, tag=tag)
-        matsubara_approx = env.approx_by_matsubara(Nk=Nk, combine=combine)
+        # but it is made to look like a class because it was a class in the
+        # initial bofin release
+        env = environment.DrudeLorentzEnvironment(T, lam, gamma)
+        matsubara_approx = env.approx_by_matsubara(
+            Nk=Nk, combine=combine, tag=tag
+        )
         # TODO terminator stuff
-        return BosonicBath._from_env(matsubara_approx, Q, tag=tag)
+        return BosonicBath.from_environment(matsubara_approx, Q)
 
 
 class DrudeLorentzPadeBath(BosonicBath):
@@ -351,10 +338,11 @@ class DrudeLorentzPadeBath(BosonicBath):
     def __new__(
         mcs, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
-        env = environment.DrudeLorentzEnvironment(T, lam, gamma, tag=tag)
-        pade_approx = env.approx_by_pade(Nk=Nk, combine=combine)
+        # See DrudeLorentzBath comment
+        env = environment.DrudeLorentzEnvironment(T, lam, gamma)
+        pade_approx = env.approx_by_pade(Nk=Nk, combine=combine, tag=tag)
         # TODO terminator stuff
-        return BosonicBath._from_env(pade_approx, Q, tag=tag)
+        return BosonicBath.from_environment(pade_approx, Q)
 
 
 class UnderDampedBath(BosonicBath):
@@ -396,10 +384,13 @@ class UnderDampedBath(BosonicBath):
     def __new__(
         mcs, Q, lam, gamma, w0, T, Nk, combine=True, tag=None,
     ):
-        env = environment.UnderDampedEnvironment(T, lam, gamma, w0, tag=tag)
-        matsubara_approx = env.approx_by_matsubara(Nk=Nk, combine=combine)
+        # See DrudeLorentzBath comment
+        env = environment.UnderDampedEnvironment(T, lam, gamma, w0)
+        matsubara_approx = env.approx_by_matsubara(
+            Nk=Nk, combine=combine, tag=tag
+        )
         # TODO terminator stuff
-        return BosonicBath._from_env(matsubara_approx, Q, tag=tag)
+        return BosonicBath.from_environment(matsubara_approx, Q)
 
 
 # TODO fermionic environments
