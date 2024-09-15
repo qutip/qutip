@@ -30,6 +30,8 @@ except ModuleNotFoundError:
     _mpmath_available = False
 
 from ..utilities import (n_thermal, iterated_fit)
+from .superoperator import spre, spost
+from .qobj import Qobj
 
 
 # TODO improve all documentation (content, links, formatting)
@@ -850,7 +852,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
     def approx_by_matsubara(
         self, Nk: int, combine: bool = True, tag: Any = None
-    ) -> ExponentialBosonicEnvironment:
+    ) -> tuple[ExponentialBosonicEnvironment, float]:
         """
         Generates an approximation to this environment by truncating its
         Matsubara expansion.
@@ -871,22 +873,35 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         Returns
         -------
-        :class:`ExponentialBosonicEnvironment`
+        approx_env : :class:`ExponentialBosonicEnvironment`
             The approximated environment with multi-exponential correlation
             function.
+
+        delta : float
+            The approximation discrepancy. That is, the difference between the
+            true correlation function of the Drude-Lorentz bath and the sum of
+            the ``Nk`` exponential terms is approximately ``2 * delta *
+            dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
+            It can be used to create a "terminator" term to add to the system
+            dynamics to take this discrepancy into account, see
+            :func:`system_terminator`.
         """
         if tag is None and self.tag is not None:
             tag = (self.tag, "Matsubara Truncation")
 
         lists = self._matsubara_params(Nk)
-        result = ExponentialBosonicEnvironment(
+        approx_env = ExponentialBosonicEnvironment(
             *lists, T=self.T, combine=combine, tag=tag)
-        # TODO what to do with the terminator?
-        return result
+
+        delta = 2 * self.lam * self.T / self.gamma - 1j * self.lam
+        for exp in approx_env.exponents:
+            delta -= exp.coefficient / exp.exponent
+
+        return approx_env, delta
 
     def approx_by_pade(
         self, Nk: int, combine: bool = True, tag: Any = None
-    ) -> ExponentialBosonicEnvironment:
+    ) -> tuple[ExponentialBosonicEnvironment, float]:
         """
         Generates an approximation to this environment by truncating its
         Pade expansion.
@@ -907,9 +922,18 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         Returns
         -------
-        :class:`ExponentialBosonicEnvironment`
+        approx_env : :class:`ExponentialBosonicEnvironment`
             The approximated environment with multi-exponential correlation
             function.
+
+        delta : float
+            The approximation discrepancy. That is, the difference between the
+            true correlation function of the Drude-Lorentz bath and the sum of
+            the ``Nk`` exponential terms is approximately ``2 * delta *
+            dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
+            It can be used to create a "terminator" term to add to the system
+            dynamics to take this discrepancy into account, see
+            :func:`system_terminator`.
         """
         if tag is None and self.tag is not None:
             tag = (self.tag, "Pade Truncation")
@@ -923,12 +947,16 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         ck_imag = [np.imag(eta_p[0])]
         vk_imag = [gamma_p[0]]
 
-        result = ExponentialBosonicEnvironment(
+        approx_env = ExponentialBosonicEnvironment(
             ck_real, vk_real, ck_imag, vk_imag,
             T=self.T, combine=combine, tag=tag
         )
-        # TODO what to do with the terminator?
-        return result
+
+        delta = 2 * self.lam * self.T / self.gamma - 1j * self.lam
+        for exp in approx_env.exponents:
+            delta -= exp.coefficient / exp.exponent
+
+        return approx_env, delta
 
     def _matsubara_params(self, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
@@ -1678,6 +1706,32 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
 
         return self._sd_from_ps(w)
 
+
+# TODO add to apidoc
+def system_terminator(Q: Qobj, delta: float) -> Qobj:
+    """
+    Constructs the terminator for a given approximation discrepancy.
+
+    Parameters
+    ----------
+    Q : :class:`Qobj`
+        The system coupling operator.
+
+    delta : float
+        The approximation discrepancy of approximating an environment with a
+        finite number of exponentials, see for example
+        :meth:`DrudeLorentzEnvironment.approx_by_matsubara`.
+
+    Returns
+    -------
+    terminator : :class:`Qobj`
+        A superoperator acting on the system Hilbert space. Liouvillian term
+        representing the contribution to the system-bath dynamics of all
+        neglected expansion terms. It should be used by adding it to the system
+        Liouvillian (i.e. ``liouvillian(H_sys)``).
+    """
+    op = 2 * spre(Q) * spost(Q.dag()) - spre(Q.dag() * Q) - spost(Q.dag() * Q)
+    return delta * op
 
 
 

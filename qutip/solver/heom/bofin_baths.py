@@ -275,16 +275,44 @@ class DrudeLorentzBath(BosonicBath):
     def __new__(
         mcs, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
-        # Basically this makes DrudeLorentzBath a function
+        # Basically this makes `DrudeLorentzBath` a function
         # (Q, lam, ...) -> BosonicBath
         # but it is made to look like a class because it was a class in the
         # initial bofin release
         env = environment.DrudeLorentzEnvironment(T, lam, gamma)
-        matsubara_approx = env.approx_by_matsubara(
+        matsubara_approx, delta = env.approx_by_matsubara(
             Nk=Nk, combine=combine, tag=tag
         )
-        # TODO terminator stuff
-        return BosonicBath.from_environment(matsubara_approx, Q)
+
+        result = BosonicBath.from_environment(matsubara_approx, Q)
+        result.terminator = lambda: (
+            delta, environment.system_terminator(Q, delta)
+        )
+        return result
+
+    def terminator(self):
+        """
+        Return the Padé terminator for the bath and the calculated
+        approximation discrepancy.
+
+        Returns
+        -------
+        delta: float
+
+            The approximation discrepancy. That is, the difference between the
+            true correlation function of the Drude-Lorentz bath and the sum of
+            the ``Nk`` exponential terms is approximately ``2 * delta *
+            dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
+
+        terminator : Qobj
+
+            The Padé terminator -- i.e. a liouvillian term representing
+            the contribution to the system-bath dynamics of all exponential
+            expansion terms beyond ``Nk``. It should be used by adding it to
+            the system liouvillian (i.e. ``liouvillian(H_sys)``).
+        """
+        # This is only here to keep the API doc
+        ...
 
 
 class DrudeLorentzPadeBath(BosonicBath):
@@ -340,9 +368,39 @@ class DrudeLorentzPadeBath(BosonicBath):
     ):
         # See DrudeLorentzBath comment
         env = environment.DrudeLorentzEnvironment(T, lam, gamma)
-        pade_approx = env.approx_by_pade(Nk=Nk, combine=combine, tag=tag)
-        # TODO terminator stuff
-        return BosonicBath.from_environment(pade_approx, Q)
+        pade_approx, delta = env.approx_by_pade(
+            Nk=Nk, combine=combine, tag=tag
+        )
+
+        result = BosonicBath.from_environment(pade_approx, Q)
+        result.terminator = lambda: (
+            delta, environment.system_terminator(Q, delta)
+        )
+        return result
+
+    def terminator(self):
+        """
+        Return the Padé terminator for the bath and the calculated
+        approximation discrepancy.
+
+        Returns
+        -------
+        delta: float
+
+            The approximation discrepancy. That is, the difference between the
+            true correlation function of the Drude-Lorentz bath and the sum of
+            the ``Nk`` exponential terms is approximately ``2 * delta *
+            dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
+
+        terminator : Qobj
+
+            The Padé terminator -- i.e. a liouvillian term representing
+            the contribution to the system-bath dynamics of all exponential
+            expansion terms beyond ``Nk``. It should be used by adding it to
+            the system liouvillian (i.e. ``liouvillian(H_sys)``).
+        """
+        # This is only here to keep the API doc
+        ...
 
 
 class UnderDampedBath(BosonicBath):

@@ -218,7 +218,6 @@ class TestDrudeLorentzBath:
         check_exponent(exp2, "R", dim=None, Q=Q, ck=ck_real[1], vk=vk_real[1])
         check_exponent(exp3, "I", dim=None, Q=Q, ck=ck_imag[0], vk=vk_imag[0])
 
-    @pytest.mark.xfail # TODO
     @pytest.mark.parametrize(['combine'], [
         pytest.param(True, id="combine"),
         pytest.param(False, id="no-combine"),
@@ -267,7 +266,6 @@ class TestDrudeLorentzPadeBath:
         check_exponent(exp2, "R", dim=None, Q=Q, ck=ck_real[1], vk=vk_real[1])
         check_exponent(exp3, "I", dim=None, Q=Q, ck=ck_imag[0], vk=vk_imag[0])
 
-    @pytest.mark.xfail # TODO
     @pytest.mark.parametrize(['combine'], [
         pytest.param(True, id="combine"),
         pytest.param(False, id="no-combine"),
