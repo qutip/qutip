@@ -348,7 +348,7 @@ def iterated_fit(
     fun: Callable[..., complex], num_params: int,
     xdata: ArrayLike, ydata: ArrayLike,
     target_rmse: float = 1e-5,
-    guess: Callable[[int], ArrayLike] = None,
+    guess: ArrayLike | Callable[[int], ArrayLike] = None,
     Nmin: int = 1, Nmax: int = 10,
     lower: ArrayLike = None, upper: ArrayLike = None
 ) -> tuple[float, ArrayLike]:
@@ -376,10 +376,13 @@ def iterated_fit(
         The dependent data.
     target_rmse : optional, float
         Desired normalized root mean squared error (default `1e-5`).
-    guess : optional, callable
-        A function that, given a number `N` of terms, returns an array
-        `[[p11, ..., p1n], [p21, ..., p2n], ..., [pN1, ..., pNn]]`
-        of initial guesses.
+    guess : optional, array_like or callable
+        This can be either a list of length `n`, with the i-th entry being the
+        guess for the parameter :math:`p_{k,i}` (for all terms :math:`k`), or a
+        function that provides different initial guesses for each term.
+        Specifically, given a number `N` of terms, the function returns an
+        array `[[p11, ..., p1n], [p21, ..., p2n], ..., [pN1, ..., pNn]]` of
+        initial guesses.
     Nmin : optional, int
         The minimum number of terms to be used for the fit (default 1).
     Nmax : optional, int
@@ -418,14 +421,16 @@ def iterated_fit(
     while rmse1 > target_rmse and N <= Nmax:
         if guess is None:
             guesses = np.ones((N, num_params), dtype=float)
-        else:
+        elif callable(guess):
             guesses = np.array(guess(N))
             if guesses.shape != (N, num_params):
                 raise ValueError(
                     "The shape of the provided fit guesses is not consistent")
+        else:
+            guesses = np.tile(guess, (N, 1))
 
-        lower_repeat = np.repeat(lower, N)
-        upper_repeat = np.repeat(upper, N)
+        lower_repeat = np.tile(lower, N)
+        upper_repeat = np.tile(upper, N)
         rmse1, params = _fit(fun, num_params, xdata, ydata, N,
                              guesses, lower_repeat, upper_repeat)
         N += 1

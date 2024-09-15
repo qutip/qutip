@@ -479,25 +479,11 @@ class BosonicEnvironment(abc.ABC):
             guess_re, lower_re, upper_re = guess, lower, upper
             guess_im, lower_im, upper_im = guess, lower, upper
 
-        print(lower_re)
-        print(guess_re)
-        print(upper_re)
-        if guess_re is None:
-            guess_fun_re = None
-        else:
-            def guess_fun_re(N):
-                return np.tile(guess_re, (N, 1))
-        if guess_im is None:
-            guess_fun_im = None
-        else:
-            def guess_fun_im(N):
-                return np.tile(guess_im, (N, 1))
-
         # Fit real part
         start_real = time()
         rmse_real, params_real = iterated_fit(
             _cf_real_fit_model, num_params, tlist, np.real(clist), target_rsme,
-            guess_fun_re, Nr_min, Nr_max, lower_re, upper_re
+            guess_re, Nr_min, Nr_max, lower_re, upper_re
         )
         end_real = time()
         fit_time_real = end_real - start_real
@@ -506,7 +492,7 @@ class BosonicEnvironment(abc.ABC):
         start_imag = time()
         rmse_imag, params_imag = iterated_fit(
             _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rsme,
-            guess_fun_im, Ni_min, Ni_max, lower_im, upper_im
+            guess_im, Ni_min, Ni_max, lower_im, upper_im
         )
         end_imag = time()
         fit_time_imag = end_imag - start_imag
@@ -643,16 +629,10 @@ class BosonicEnvironment(abc.ABC):
         if guess is None and lower is None and upper is None:
             guess, lower, upper = _default_guess_sd(wlist, jlist)
 
-        if guess is None:
-            guess_fun = None
-        else:
-            def guess_fun(N):
-                return np.tile(guess, (N, 1))
-
         # Fit
         start = time()
         rmse, params = iterated_fit(
-            _sd_fit_model, 3, wlist, jlist, target_rsme, guess_fun,
+            _sd_fit_model, 3, wlist, jlist, target_rsme, guess,
             Nmin, Nmax, lower, upper
         )
         end = time()
