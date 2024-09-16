@@ -42,12 +42,12 @@ from .qobj import Qobj
 class BosonicEnvironment(abc.ABC):
     """
     The bosonic environment of an open quantum system. It is characterized by
-    its spectral density or, equivalently, its power spectrum or its two-time
-    auto-correlation function.
+    its spectral density  and Temperature or, equivalently, its power spectrum 
+    or its two-time auto-correlation function.
 
     Use one of the classmethods :meth:`from_spectral_density`,
     :meth:`from_power_spectrum` or :meth:`from_correlation_function` to
-    contruct an environment manually from one of these characteristic
+    construct an environment manually from one of these characteristic
     functions, or use a predefined sub-class such as the
     :class:`DrudeLorentzEnvironment`, the :class:`UnderDampedEnvironment` or
     the :class:`OhmicEnvironment`.
@@ -58,10 +58,10 @@ class BosonicEnvironment(abc.ABC):
     :class:`ExponentialBosonicEnvironment`.
 
     All bosonic environments can be approximated by directly fitting their
-    correlation function witha multi-exponential ansatz
+    correlation function with a multi-exponential ansatz
     (:meth:`approx_by_cf_fit`) or by fitting their spectral density with a sum
     of Lorentzians (:meth:`approx_by_sd_fit`), which correspond to
-    Drude-Lorentz environments with known multi-exponential decompositions.
+    Underdamped environments with known multi-exponential decompositions.
     Subclasses may offer additional approximation methods such as
     :meth:`DrudeLorentzEnvironment.approx_by_matsubara` or
     :meth:`DrudeLorentzEnvironment.approx_by_pade` in the case of a
@@ -980,12 +980,14 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         beta = 1. / self.T
         kappa, epsilon = self._kappa_epsilon(Nk)
 
-        eta_p = [self.lam * self.gamma * (self._cot(self.gamma * beta / 2.0) - 1.0j)]
+        eta_p = [self.lam * self.gamma *
+                 (self._cot(self.gamma * beta / 2.0) - 1.0j)]
         gamma_p = [self.gamma]
 
         for ll in range(1, Nk + 1):
             eta_p.append(
-                (kappa[ll] / beta) * 4 * self.lam * self.gamma * (epsilon[ll] / beta)
+                (kappa[ll] / beta) * 4 * self.lam *
+                self.gamma * (epsilon[ll] / beta)
                 / ((epsilon[ll]**2 / beta**2) - self.gamma**2)
             )
             gamma_p.append(epsilon[ll] / beta)
@@ -1038,6 +1040,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         evals = eigvalsh(alpha_p)
         chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
+
 
 class UnderDampedEnvironment(BosonicEnvironment):
     r"""
@@ -1734,7 +1737,6 @@ def system_terminator(Q: Qobj, delta: float) -> Qobj:
     return delta * op
 
 
-
 # --- utility functions ---
 
 def _real_interpolation(fun, xlist, name):
@@ -1950,9 +1952,6 @@ def _cf_fit_summary(
     return full_summary
 
 
-
-
-
 # --- TODO ---
 
 class FermionicEnvironment(abc.ABC):
@@ -1981,15 +1980,15 @@ class FermionicEnvironment(abc.ABC):
 
     def exponential_approximation(self):
         raise NotImplementedError
-    
+
     @classmethod
     def from_spectral_density(cls):
         raise NotImplementedError
-    
+
     @classmethod
     def from_correlation_function(cls):
         raise NotImplementedError
-        
+
     @classmethod
     def from_power_spectrum(cls):
         raise NotImplementedError

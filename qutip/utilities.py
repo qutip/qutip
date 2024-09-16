@@ -45,7 +45,10 @@ def n_thermal(w, w_th):
     w = np.array(w, dtype=float)
     result = np.zeros_like(w)
     non_zero = w != 0
-    result[non_zero] = 1 / (np.exp(w[non_zero] / w_th) - 1)
+    # result[non_zero] = 1 / (np.exp(w[non_zero] / w_th) - 1)
+    # The same definition with no overflow warnings
+    result[non_zero] = np.exp(-w[non_zero] / w_th) / \
+        (1-np.exp(-w[non_zero] / w_th))
     return result
 
 
@@ -115,8 +118,8 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
     # `S` and `C` are large integer,s if `sign` is a np.int32 it could oveflow
     sign = int((-1) ** (vmin + j2 + m2))
-    for i,v in enumerate(range(vmin, vmax + 1)):
-        factor = s_factors[i,:]
+    for i, v in enumerate(range(vmin, vmax + 1)):
+        factor = s_factors[i, :]
         _factorial_prod(j2 + j3 + m1 - v, factor)
         _factorial_prod(j1 - m1 + v, factor)
         _factorial_div(j3 - j1 + j2 - v, factor)
@@ -125,7 +128,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
         _factorial_div(v, factor)
     common_denominator = -np.min(s_factors, axis=0)
     numerators = s_factors + common_denominator
-    S = sum([(-1)**i * _to_long(vec) for i,vec in enumerate(numerators)]) * \
+    S = sum([(-1)**i * _to_long(vec) for i, vec in enumerate(numerators)]) * \
         sign / _to_long(common_denominator)
     return C * S
 
@@ -338,7 +341,6 @@ def _version2int(version_string):
                 for n, d in enumerate(str_list[:3])])
 
 
-
 # -----------------------------------------------------------------------------
 # Fitting utilities
 #
@@ -442,7 +444,7 @@ def _pack(params):
     # Pack parameter lists for fitting.
     # Input: array of parameters like `[[p11, ..., p1n], ..., [pN1, ..., pNn]]`
     # Output: packed parameters like `[p11, ..., p1n, p21, ..., p2n, ...]`
-    return params.ravel() # like flatten, but doesn't copy data
+    return params.ravel()  # like flatten, but doesn't copy data
 
 
 def _unpack(params, num_params):
@@ -479,7 +481,7 @@ def _fit(fun, num_params, xdata, ydata, N, guesses, lower, upper):
     # lower, upper: parameter bounds
 
     if (upper <= lower).all():
-            return _rmse(fun, xdata, ydata, guesses), guesses
+        return _rmse(fun, xdata, ydata, guesses), guesses
 
     packed_params, _ = curve_fit(
         lambda x, *packed_params: _evaluate(
