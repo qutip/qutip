@@ -433,7 +433,7 @@ def iterated_fit(
 
         lower_repeat = np.tile(lower, N)
         upper_repeat = np.tile(upper, N)
-        rmse1, params = _fit(fun, num_params, xdata, ydata, N,
+        rmse1, params = _fit(fun, num_params, xdata, ydata,
                              guesses, lower_repeat, upper_repeat)
         N += 1
 
@@ -472,7 +472,7 @@ def _rmse(fun, xdata, ydata, params):
     )
 
 
-def _fit(fun, num_params, xdata, ydata, N, guesses, lower, upper):
+def _fit(fun, num_params, xdata, ydata, guesses, lower, upper):
     # fun: model function
     # num_params: number of parameters in fun
     # xdata, ydata: data to be fit
