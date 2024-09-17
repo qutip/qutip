@@ -124,3 +124,18 @@ class TestBosonicEnvironment:
                 w2, gamma[k], w0[k], lam[k], T[k]), atol=1e-2).all()
             assert np.isclose(bb6.spectral_density(w), spectral_density(
                 w, gamma[k], w0[k], lam[k]), atol=1e-2).all()
+
+
+class TestFits:
+
+    def model1(t, a, b, c, d=0):
+        return np.real((a + 1j * d) * np.exp(-(b + 1j * c) * t))
+
+    def model1(t, a, b, c):
+        return a*(t-c)+b
+    def test_models(self,params):
+        rmse, params = qutip.iterated_fit(model1, 3, t_fit, np.real(c_fit))
+        print(rmse, ', ', len(params))
+        real_fit_result = 0
+        for x in params:
+            real_fit_result += model(t_fit, *x)

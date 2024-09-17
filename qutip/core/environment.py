@@ -476,7 +476,7 @@ class BosonicEnvironment(abc.ABC):
             guess_re, lower_re, upper_re = _default_guess_cfreal(
                 tlist, np.real(clist), full_ansatz)
             guess_im, lower_im, upper_im = _default_guess_cfimag(
-                tlist, np.imag(clist), full_ansatz)
+                np.imag(clist), full_ansatz)
         else:
             guess_re, lower_re, upper_re = guess, lower, upper
             guess_im, lower_im, upper_im = guess, lower, upper
@@ -1169,7 +1169,6 @@ class UnderDampedEnvironment(BosonicEnvironment):
         lists = self._matsubara_params(Nk)
         result = ExponentialBosonicEnvironment(
             *lists, T=self.T, combine=combine, tag=tag)
-        # TODO what to do with the terminator?
         return result
 
     def _matsubara_params(self, Nk):
@@ -1838,7 +1837,7 @@ def _default_guess_cfreal(tlist, clist, full_ansatz):
     return guess, lower, upper
 
 
-def _default_guess_cfimag(tlist, clist, full_ansatz):
+def _default_guess_cfimag(clist, full_ansatz):
     corr_max = np.max(np.abs(clist))
 
     if corr_max == 0:
