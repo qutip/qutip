@@ -1059,9 +1059,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
     r"""
     Describes an underdamped environment with the spectral density
 
-    .. math::
-        J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_{c}^{2}-
-        \omega^{2})^{2}+ \Gamma^{2} \omega^{2}}
+
 
     (see Eq. 16 in [BoFiN23]_).
 
