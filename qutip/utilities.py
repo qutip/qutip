@@ -352,7 +352,7 @@ def iterated_fit(
     target_rmse: float = 1e-5,
     guess: ArrayLike | Callable[[int], ArrayLike] = None,
     Nmin: int = 1, Nmax: int = 10,
-    lower: ArrayLike = None, upper: ArrayLike = None
+    lower: ArrayLike = None, upper: ArrayLike = None,
 ) -> tuple[float, ArrayLike]:
     r"""
     Iteratively tries to fit the given data with a model of the form
@@ -479,7 +479,6 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper):
     # N: number of terms
     # guesses: initial guesses [[p11, ..., p1n],..., [pN1, ..., pNn]]
     # lower, upper: parameter bounds
-
     if (upper <= lower).all():
         return _rmse(fun, xdata, ydata, guesses), guesses
 

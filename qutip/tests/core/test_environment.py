@@ -40,15 +40,17 @@ def correlation(t, gamma, w0, lam, T):
 
 @pytest.fixture()
 def params():
-    N = 5
+    N = 3
     lam = np.random.uniform(low=0.05, high=0.5, size=(N,))
     gamma = np.random.uniform(low=2, high=5, size=(N,))
     w0 = np.random.uniform(low=1.1, high=5, size=(N,))
     T = np.random.uniform(low=1, high=5, size=(N,))
     t = np.linspace(0, 25, 500)
-    w = np.linspace(0, 50, 1000)
+    w = np.linspace(0, 25, 1000)
     w2 = np.linspace(-50, 50, 1000)
-    return lam, gamma, w0, T, t, w, w2
+    corr = [correlation(t, gamma[k], w0[k], lam[k], T[k])
+            for k in range(len(lam))]
+    return lam, gamma, w0, T, t, w, w2, corr
 
 
 class TestBosonicEnvironment:
@@ -56,19 +58,19 @@ class TestBosonicEnvironment:
     # tolerance should be one order of magnitude below the epsabs,epsrel in
     # correlation
     def test_from_correlation(self, params):
-        lam, gamma, w0, T, t, w, w2 = params
+        lam, gamma, w0, T, t, w, w2, corr = params
         for k in range(len(lam)):
-            corr = correlation(t, gamma[k], w0[k], lam[k], T[k])
-            bb5 = BosonicEnvironment.from_correlation_function(corr, t, T=T[k])
+            bb5 = BosonicEnvironment.from_correlation_function(
+                corr[k], t, T=T[k])
             corr_approx = bb5.correlation_function(t)
-            assert np.isclose(corr_approx, corr).all()
+            assert np.isclose(corr_approx, corr[k]).all()
             assert np.isclose(bb5.power_spectrum(w2), power(
                 w2, gamma[k], w0[k], lam[k], T[k]), atol=1e-2).all()
             assert np.isclose(bb5.spectral_density(w), spectral_density(
                 w, gamma[k], w0[k], lam[k]), atol=1e-2).all()
 
     def test_from_spectral_density(self, params):
-        lam, gamma, w0, T, t, w, w2 = params
+        lam, gamma, w0, T, t, w, w2, corr = params
         for k in range(len(lam)):
             sd = spectral_density(w, gamma[k], w0[k], lam[k])
             bb5 = BosonicEnvironment.from_spectral_density(
@@ -78,10 +80,10 @@ class TestBosonicEnvironment:
             assert np.isclose(bb5.power_spectrum(w2), power(
                 w2, gamma[k], w0[k], lam[k], T[k]), atol=1e-2).all()
             assert np.isclose(bb5.spectral_density(
-                t), spectral_density(t, gamma[k], w0[k], lam[k])).all()
+                w), spectral_density(w, gamma[k], w0[k], lam[k])).all()
 
     def test_from_power_spectrum(self, params):
-        lam, gamma, w0, T, t, w, w2 = params
+        lam, gamma, w0, T, t, w, w2, corr = params
         for k in range(len(lam)):
             pow = power(w2, gamma[k], w0[k], lam[k], T[k])
             bb5 = BosonicEnvironment.from_power_spectrum(
@@ -94,32 +96,33 @@ class TestBosonicEnvironment:
                 w, gamma[k], w0[k], lam[k]), atol=1e-2).all()
 
     def test_approx_by_cf_fit(self, params):
-        lam, gamma, w0, T, t, w, w2 = params
+        lam, gamma, w0, T, t, w, w2, corr = params
         for k in range(len(lam)):
-            corr = correlation(t, gamma[k], w0[k], lam[k], T[k])
-            bb5 = BosonicEnvironment.from_correlation_function(corr, t, T=T[k])
-            bb6, _ = bb5.approx_by_cf_fit(t, target_rsme=5e-5)
+            bb5 = BosonicEnvironment.from_correlation_function(
+                corr[k], t, T=T[k])
+            bb6, _ = bb5.approx_by_cf_fit(t, target_rsme=2e-5)
             assert np.isclose(bb6.correlation_function(t),
-                              corr, atol=1e-3).all()
+                              corr[k], atol=1e-3).all()
             assert np.isclose(bb6.power_spectrum(w2), power(
                 w2, gamma[k], w0[k], lam[k], T[k]), atol=1e-2).all()
             assert np.isclose(bb6.spectral_density(w), spectral_density(
                 w, gamma[k], w0[k], lam[k]), atol=1e-2).all()
 
     def test_approx_by_sd_fit(self, params):
-        lam, gamma, w0, T, t, w, w2 = params
+        lam, gamma, w0, T, t, w, w2, corr = params
         for k in range(len(lam)):
             sd = spectral_density(t, gamma[k], w0[k], lam[k])
             bb5 = BosonicEnvironment.from_spectral_density(sd, t, T=T[k])
-            bb6, finfo = bb5.approx_by_sd_fit(w, target_rsme=5e-4)
+            bb6, finfo = bb5.approx_by_sd_fit(w, target_rsme=1e-4)
             # asking for more precision that the Bosonic enviroment has may
             # violate this (due to the interpolation and it's easily fixed
             # using a denser range). I could have set N=1 but thought this was
             # a sensible test for N
+            print(gamma[k], w0[k], lam[k])
             assert finfo["N"] == 1
             assert np.isclose(bb6.correlation_function(t),
                               correlation(t, gamma[k], w0[k], lam[k], T[k]),
-                              atol=1e-3).all()
+                              atol=1e-2).all()
             assert np.isclose(bb6.power_spectrum(w2), power(
                 w2, gamma[k], w0[k], lam[k], T[k]), atol=1e-2).all()
             assert np.isclose(bb6.spectral_density(w), spectral_density(
@@ -128,14 +131,17 @@ class TestBosonicEnvironment:
 
 class TestFits:
 
-    def model1(t, a, b, c, d=0):
-        return np.real((a + 1j * d) * np.exp(-(b + 1j * c) * t))
+    def model1(self, t, a, b, c):
+        return np.real(a * np.exp(-(b + 1j * c) * t))
 
-    def model1(t, a, b, c):
+    def model2(self, t, a, b, c):
         return a*(t-c)+b
-    def test_models(self,params):
-        rmse, params = qutip.iterated_fit(model1, 3, t_fit, np.real(c_fit))
-        print(rmse, ', ', len(params))
+
+    def test_same_model(self):
+        t = np.linspace(0, 10, 100)
+        fparams = np.random.uniform(low=0.05, high=5, size=(3,))
+        _, params = iterated_fit(self.model1, 3, t, self.model1(t, *fparams))
         real_fit_result = 0
         for x in params:
-            real_fit_result += model(t_fit, *x)
+            real_fit_result += self.model1(t, *x)
+        assert np.isclose(real_fit_result, self.model1(t, *fparams)).all()

@@ -34,15 +34,10 @@ from .superoperator import spre, spost
 from .qobj import Qobj
 
 
-# TODO improve all documentation (content, links, formatting)
-# TODO tests for this module
-# TODO add revised tests for HEOM (keeping the current tests as they are)
-# TODO update HEOM example notebooks
-
 class BosonicEnvironment(abc.ABC):
     """
     The bosonic environment of an open quantum system. It is characterized by
-    its spectral density  and Temperature or, equivalently, its power spectrum 
+    its spectral density  and Temperature or, equivalently, its power spectrum
     or its two-time auto-correlation function.
 
     Use one of the classmethods :meth:`from_spectral_density`,
@@ -390,22 +385,22 @@ class BosonicEnvironment(abc.ABC):
             The same initial guesses are used for all values of k, and for
             the real and imaginary parts. If `full_ansatz` is True, `guess` is
             a list of size 4, otherwise, it is a list of size 3.
-            If none of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
+            If  `guess`, `lower` and `upper` are not all provided, these
+            parameters will be chosen automatically
         lower : optional, list of float
             Lower bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
             The same lower bounds are used for all values of k, and for
             the real and imaginary parts. If `full_ansatz` is True, `lower` is
             a list of size 4, otherwise, it is a list of size 3.
-            If none of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
+            If  `guess`, `lower` and `upper` are not all provided, these
+            parameters will be chosen automatically
         upper : optional, list of float
             Upper bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
             The same upper bounds are used for all values of k, and for
             the real and imaginary parts. If `full_ansatz` is True, `upper` is
             a list of size 4, otherwise, it is a list of size 3.
-            If none of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
+            If  `guess`, `lower` and `upper` are not all provided, these
+            parameters will be chosen automatically
         full_ansatz : optional, bool (default False)
             If this is set to False, the parameters :math:`d_k` are all set to
             zero. The full ansatz, including :math:`d_k`, usually leads to
@@ -413,9 +408,11 @@ class BosonicEnvironment(abc.ABC):
             `lower` and `upper` is usually needed. On the other hand, the full
             ansatz can lead to better fits with fewer exponents, especially
             for anomalous spectral densities with
-            :math:`\operatorname{Im}[C(0)] \neq 0`. When using the full ansatz
-            with default values for the guesses and bounds, if the fit takes
-            too long, we recommend choosing guesses and bounds manually.
+            :math:`\operatorname{Im}[C(0)] \neq 0` for which the simplified
+            ansatz will always give :math:`\operatorname{Im}[C(0)] = 0`.
+            When using the full ansatz with default values for the guesses and
+            bounds, if the fit takes too long, we recommend choosing guesses
+            and bounds manually.
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
@@ -577,20 +574,20 @@ class BosonicEnvironment(abc.ABC):
             Initial guesses for the parameters :math:`a_k`, :math:`b_k` and
             :math:`c_k`. The same initial guesses are used for all values of
             k.
-            If none of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
+            If  `guess`, `lower` and `upper` are not all provided, these
+            parameters will be chosen automatically
         lower : optional, list of float
             Lower bounds for the parameters :math:`a_k`, :math:`b_k` and
             :math:`c_k`. The same lower bounds are used for all values of
             k.
-            If none of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
+            If  `guess`, `lower` and `upper` are not all provided, these
+            parameters will be chosen automatically
         upper : optional, list of float
             Upper bounds for the parameters :math:`a_k`, :math:`b_k` and
             :math:`c_k`. The same upper bounds are used for all values of
             k.
-            If none of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
+            If  `guess`, `lower` and `upper` are not all provided, these
+            parameters will be chosen automatically
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
@@ -1129,8 +1126,6 @@ class UnderDampedEnvironment(BosonicEnvironment):
         t : array_like or float
             The time at which to evaluate the correlation function.
         """
-        # TODO should we calculate this one also from summing matsubaras?
-
         # we need an wMax so that spectral density is zero for w>wMax, guess:
         wMax = self.w0 + 10 * self.gamma
         return self._cf_from_ps(t, wMax)
@@ -1460,7 +1455,6 @@ class CFExponent:
 
     @property
     def coefficient(self) -> complex:
-        # TODO how to handle fermionic exponents?
         coeff = 0
         if (self.type == self.types['R'] or self.type == self.types['RI']):
             coeff += self.ck
@@ -1709,7 +1703,6 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         return self._sd_from_ps(w)
 
 
-# TODO add to apidoc
 def system_terminator(Q: Qobj, delta: float) -> Qobj:
     """
     Constructs the terminator for a given approximation discrepancy.
@@ -1951,7 +1944,7 @@ def _cf_fit_summary(
     return full_summary
 
 
-# --- TODO ---
+# Fermionic enviroments not yet implemented
 
 class FermionicEnvironment(abc.ABC):
     def __init__():
