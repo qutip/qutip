@@ -39,7 +39,7 @@ def correlation(t, lam, wc, T):
         )
 
     result = quad_vec(lambda w: integrand(w, t), 0,
-                      np.Inf, epsabs=inttol, epsrel=inttol)
+                      np.inf, epsabs=inttol, epsrel=inttol)
     return result[0]
 
 
@@ -152,7 +152,6 @@ class TestBosonicEnvironment:
                 corr[k], t, T=T[k])
             bb6, finfo = bb5.approx_by_cf_fit(
                 t, target_rsme=None, Nr_max=2, Ni_max=1)
-            print(finfo['summary'])
             assert np.isclose(bb6.correlation_function(t),
                               corr[k], atol=5*comtol).all()
             assert np.isclose(bb6.power_spectrum(w2), power(
@@ -166,8 +165,6 @@ class TestBosonicEnvironment:
             sd = spectral_density(t, gamma[k], w0[k], lam[k])
             bb5 = BosonicEnvironment.from_spectral_density(sd, t, T=T[k])
             bb6, finfo = bb5.approx_by_sd_fit(w, Nmax=1, Nk=10)
-            print(gamma[k], lam[k], w0[k])
-            print(finfo['summary'])
             # asking for more precision that the Bosonic enviroment has may
             # violate this (due to the interpolation and it's easily fixed
             # using a denser range). I could have set N=1 but thought this was

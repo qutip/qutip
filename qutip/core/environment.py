@@ -9,7 +9,6 @@ __all__ = ['BosonicEnvironment',
            'DrudeLorentzEnvironment',
            'UnderDampedEnvironment',
            'OhmicEnvironment',
-           'CFExponent',
            'ExponentialBosonicEnvironment']
 
 import abc
@@ -359,26 +358,26 @@ class BosonicEnvironment(abc.ABC):
         model functions:
 
         .. math::
-            \operatorname{Re}[C(t)] = \sum_{k=1}^{N_r} \operatorname{Re}\Bigl[ 
+            \operatorname{Re}[C(t)] = \sum_{k=1}^{N_r} \operatorname{Re}\Bigl[
                 (a_k + \mathrm i d_k) \mathrm e^{(b_k + \mathrm i c_k) t}\Bigl]
                 ,
             \\
-            \operatorname{Im}[C(t)] = \sum_{k=1}^{N_i} \operatorname{Im}\Bigl[ 
+            \operatorname{Im}[C(t)] = \sum_{k=1}^{N_i} \operatorname{Im}\Bigl[
                 (a'_k + \mathrm i d'_k) \mathrm e^{(b'_k + \mathrm i c'_k) t}
                 \Bigr].
         When full_ansatz is True. If False the model functions simplify to
 
         .. math::
-            \operatorname{Re}[C(t)] = \sum_{k=1}^{N_r} 
+            \operatorname{Re}[C(t)] = \sum_{k=1}^{N_r}
                 a_k  e^{b_k  t} \cos(c_{k} t)
                 ,
             \\
-            \operatorname{Im}[C(t)] = \sum_{k=1}^{N_i} 
+            \operatorname{Im}[C(t)] = \sum_{k=1}^{N_i}
                 a'_k  e^{b'_k  t} \sin(c'_{k} t)
 
-        The simplified version offers faster fits, however it fails for 
-        anomalous spectral densities with 
-        :math:`\operatorname{Im}[C(0)] \neq 0` as :math:`\sin(0) = 0`. 
+        The simplified version offers faster fits, however it fails for
+        anomalous spectral densities with
+        :math:`\operatorname{Im}[C(0)] \neq 0` as :math:`\sin(0) = 0`.
 
 
 
