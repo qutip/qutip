@@ -345,7 +345,6 @@ def _version2int(version_string):
 # Fitting utilities
 #
 
-# TODO include in apidoc
 def iterated_fit(
     fun: Callable[..., complex], num_params: int,
     xdata: ArrayLike, ydata: ArrayLike,

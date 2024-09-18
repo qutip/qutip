@@ -208,6 +208,9 @@ Correlation Functions
 .. automodule:: qutip.solver.spectrum
     :members: spectrum, spectrum_correlation_fft
 
+.. automodule:: qutip.core.environment
+    :members: system_terminator
+
 
 Steady-state Solvers
 --------------------
@@ -289,7 +292,7 @@ Utility Functions
 -----------------
 
 .. automodule:: qutip.utilities
-    :members: n_thermal, clebsch, convert_unit
+    :members: n_thermal, clebsch, convert_unit, iterated_fit
 
 
 .. _functions-fileio:
