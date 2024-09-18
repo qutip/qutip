@@ -450,7 +450,6 @@ class UnderDampedBath(BosonicBath):
         return BosonicBath.from_environment(matsubara_approx, Q)
 
 
-
 class FermionicBath(Bath):
     """
     A helper class for constructing a fermionic bath from the expansion

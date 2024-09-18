@@ -15,34 +15,6 @@ inttol = 1e-3
 comtol = 1e-2
 
 
-def spectral_density(w, lam, wc):
-    return lam*w*np.exp(-np.abs(w)/wc)
-
-
-def power(w, lam, wc, T):
-    zero_mask = (w == 0)
-    nonzero_mask = np.invert(zero_mask)
-
-    S = np.zeros_like(w)
-    S[zero_mask] = 2 * T * spectral_density(1e-16, lam, wc) / 1e-16
-    S[nonzero_mask] = 2*np.sign(w[nonzero_mask])*spectral_density(
-        np.abs(w[nonzero_mask]), lam, wc)*(
-        n_thermal(w[nonzero_mask], T)+1)
-    return S
-
-
-def correlation(t, lam, wc, T):
-    def integrand(w, t):
-        return spectral_density(w, lam, wc) / np.pi * (
-            (2 * n_thermal(w, T) + 1) * np.cos(w * t)
-            - 1j * np.sin(w * t)
-        )
-
-    result = quad_vec(lambda w: integrand(w, t), 0,
-                      np.inf, epsabs=inttol, epsrel=inttol)
-    return result[0]
-
-
 @pytest.fixture()
 def params():
     N = 3
@@ -83,7 +55,7 @@ def correlation(t, gamma, w0, lam, T):
         )
 
     result = quad_vec(lambda w: integrand(w, t), 0,
-                      np.Inf, epsabs=1e-3, epsrel=1e-3)
+                      np.inf, epsabs=1e-3, epsrel=1e-3)
     return result[0]
 
 
