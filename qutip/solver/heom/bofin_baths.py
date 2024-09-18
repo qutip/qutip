@@ -447,11 +447,9 @@ class UnderDampedBath(BosonicBath):
         matsubara_approx = env.approx_by_matsubara(
             Nk=Nk, combine=combine, tag=tag
         )
-        # TODO terminator stuff
         return BosonicBath.from_environment(matsubara_approx, Q)
 
 
-# TODO fermionic environments
 
 class FermionicBath(Bath):
     """
