@@ -9,7 +9,8 @@ __all__ = ['BosonicEnvironment',
            'DrudeLorentzEnvironment',
            'UnderDampedEnvironment',
            'OhmicEnvironment',
-           'ExponentialBosonicEnvironment']
+           'ExponentialBosonicEnvironment',
+           'CFExponent']
 
 import abc
 import enum
