@@ -134,7 +134,7 @@ list format and call the solver (in this case :func:`.mesolve`)
     :context: close-figs
 
     H = [H0, [H1, H1_coeff]]
-    output = mesolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
+    output = mesolve(H, psi0, t, c_ops, e_ops=[ada, sigma_UU, sigma_GG])
 
 We can call the Monte Carlo solver in the exact same way (if using the default ``ntraj=500``):
 
@@ -145,7 +145,7 @@ We can call the Monte Carlo solver in the exact same way (if using the default `
 .. doctest::
     :skipif: True
 
-    output = mcsolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
+    output = mcsolve(H, psi0, t, c_ops, e_ops=[ada, sigma_UU, sigma_GG])
 
 The output from the master equation solver is identical to that shown in the examples,
 the Monte Carlo however will be noticeably off, suggesting we should increase the number
@@ -166,7 +166,7 @@ simple Harmonic oscillator with time-varying decay rate
     psi0 = basis(N, 9)  # initial state
     c_ops = [QobjEvo([a, col_coeff])]  # time-dependent collapse term
     times = np.linspace(0, 10, 100)
-    output = mesolve(H, psi0, times, c_ops, [a.dag() * a])
+    output = mesolve(H, psi0, times, c_ops, e_ops=[a.dag() * a])
 
 
 

@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 from ..settings import settings
 from .numpy_backend import np as qt_np
 import numpy
@@ -208,7 +211,7 @@ class CoreOptions(QutipOptions):
 
     def __setitem__(self, key: str, value: Any) -> None:
         # Let the dict catch the KeyError
-        self.options[key] = value
+        super().__setitem__(key, value)
 
 
 # Creating the instance of core options to use everywhere.

@@ -81,8 +81,8 @@ def test_harmonic_oscillator(n_th):
     a_ops = [[a + a.dag(), S_w]]
     e_ops = [a.dag()*a, a+a.dag()]
 
-    me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
-    brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    me = qutip.mesolve(H, psi0, times, c_ops, e_ops=e_ops)
+    brme = brmesolve(H, psi0, times, a_ops, e_ops=e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 
@@ -111,8 +111,8 @@ def test_jaynes_cummings_zero_temperature_spectral_callable():
     c_ops = [np.sqrt(kappa) * a]
     H = w0*a.dag()*a + w0*sp.dag()*sp + g*(a+a.dag())*(sp+sp.dag())
 
-    me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
-    brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    me = qutip.mesolve(H, psi0, times, c_ops, e_ops=e_ops)
+    brme = brmesolve(H, psi0, times, a_ops, e_ops=e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         # Accept 5% error.
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=5e-2)
@@ -187,8 +187,8 @@ def test_jaynes_cummings_zero_temperature_spectral_str():
     c_ops = [np.sqrt(kappa) * a]
     H = w0*a.dag()*a + w0*sp.dag()*sp + g*(a+a.dag())*(sp+sp.dag())
 
-    me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
-    brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    me = qutip.mesolve(H, psi0, times, c_ops, e_ops=e_ops)
+    brme = brmesolve(H, psi0, times, a_ops, e_ops=e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         # Accept 5% error.
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=5e-2)
@@ -290,8 +290,8 @@ def test_hamiltonian_taking_arguments():
     H = w0*a.dag()*a + w0*sp.dag()*sp + g*(a+a.dag())*(sp+sp.dag())
     args = {'ii': 1}
 
-    no_args = brmesolve(H, psi0, times, a_ops, e_ops)
-    args = brmesolve([[H, 'ii']], psi0, times, a_ops, e_ops, args=args)
+    no_args = brmesolve(H, psi0, times, a_ops, e_ops=e_ops)
+    args = brmesolve([[H, 'ii']], psi0, times, a_ops, e_ops=e_ops, args=args)
     for arg, no_arg in zip(args.expect, no_args.expect):
         np.testing.assert_allclose(arg, no_arg, atol=1e-10)
 

@@ -1,1 +1,0 @@
-Fixed rounding error in dicke_trace_function that resulted in negative eigenvalues.

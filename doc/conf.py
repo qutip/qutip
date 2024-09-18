@@ -29,7 +29,6 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
               'sphinx.ext.napoleon',
-              'sphinx_gallery.gen_gallery',
               'sphinxcontrib.bibtex']
 
 # Add any paths that contain templates here, relative to this directory.
@@ -129,7 +128,6 @@ exclude_patterns = [
     '_build',
     'Thumbs.db',
     '.DS_Store',
-    'gallery/src',  # handled by sphinx-gallery instead.
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -362,6 +360,13 @@ texinfo_documents = [
 
 autodoc_member_order = 'alphabetical'
 
+# Type hint are already in the parameter section of the documentation in
+# (hopefully) user readable format.
+# "signature" : In the signature
+# "description" : Added to the description (doubled)
+# "none": Removed
+autodoc_typehints = "signature"
+python_maximum_signature_line_length = 80
 # Makes the following types appear as their alias in the apidoc
 # instead of expanding the alias
 autodoc_type_aliases = {
@@ -370,7 +375,9 @@ autodoc_type_aliases = {
     'QobjEvoLike': 'QobjEvoLike',
     'EopsLike': 'EopsLike',
     'LayerType': 'LayerType',
-    'ArrayLike': 'ArrayLike'
+    'ArrayLike': 'ArrayLike',
+    'SpaceLike': 'SpaceLike',
+    'DimensionLike': 'DimensionLike',
 }
 
 ## EXTLINKS CONFIGURATION ######################################################
@@ -378,15 +385,6 @@ autodoc_type_aliases = {
 extlinks = {
     'arxiv': ('https://arxiv.org/abs/%s', 'arXiv:%s'),
     'doi': ('https://dx.doi.org/%s', 'doi:%s'),
-}
-
-# configuration declares the location of the examples directory for
-# Sphinx Gallery
-
-sphinx_gallery_conf = {
-     'examples_dirs': 'gallery/src',   # path to your example scripts
-     'gallery_dirs': 'gallery/build',  # save generated examples
-     'abort_on_example_error': True  # abort if exception occurs
 }
 
 ipython_strict_fail = False

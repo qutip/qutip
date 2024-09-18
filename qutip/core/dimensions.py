@@ -1,8 +1,8 @@
 """
 Internal use module for manipulating dims specifications.
 """
-
-# Everything should be explicitly imported, not made available by default.
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
 
 import numpy as np
 import numbers
