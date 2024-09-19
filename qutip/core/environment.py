@@ -37,7 +37,7 @@ from .qobj import Qobj
 class BosonicEnvironment(abc.ABC):
     """
     The bosonic environment of an open quantum system. It is characterized by
-    its spectral density  and Temperature or, equivalently, its power spectrum
+    its spectral density and temperature or, equivalently, its power spectrum
     or its two-time auto-correlation function.
 
     Use one of the classmethods :meth:`from_spectral_density`,
@@ -56,7 +56,7 @@ class BosonicEnvironment(abc.ABC):
     correlation function with a multi-exponential ansatz
     (:meth:`approx_by_cf_fit`) or by fitting their spectral density with a sum
     of Lorentzians (:meth:`approx_by_sd_fit`), which correspond to
-    Underdamped environments with known multi-exponential decompositions.
+    underdamped environments with known multi-exponential decompositions.
     Subclasses may offer additional approximation methods such as
     :meth:`DrudeLorentzEnvironment.approx_by_matsubara` or
     :meth:`DrudeLorentzEnvironment.approx_by_pade` in the case of a
@@ -366,7 +366,9 @@ class BosonicEnvironment(abc.ABC):
             \operatorname{Im}[C(t)] = \sum_{k=1}^{N_i} \operatorname{Im}\Bigl[
                 (a'_k + \mathrm i d'_k) \mathrm e^{(b'_k + \mathrm i c'_k) t}
                 \Bigr].
-        When full_ansatz is True. If False the model functions simplify to
+
+        If the parameter `full_ansatz` is `False`, :math:`d_k` and :math:`d'_k`
+        are set to zero and the model functions simplify to
 
         .. math::
             \operatorname{Re}[C(t)] = \sum_{k=1}^{N_r}
@@ -374,7 +376,7 @@ class BosonicEnvironment(abc.ABC):
                 ,
             \\
             \operatorname{Im}[C(t)] = \sum_{k=1}^{N_i}
-                a'_k  e^{b'_k  t} \sin(c'_{k} t)
+                a'_k  e^{b'_k  t} \sin(c'_{k} t) .
 
         The simplified version offers faster fits, however it fails for
         anomalous spectral densities with
@@ -401,22 +403,22 @@ class BosonicEnvironment(abc.ABC):
             The same initial guesses are used for all values of k, and for
             the real and imaginary parts. If `full_ansatz` is True, `guess` is
             a list of size 4, otherwise, it is a list of size 3.
-            If  `guess`, `lower` and `upper` are not all provided, these
-            parameters will be chosen automatically
+            If none of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
         lower : optional, list of float
             Lower bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
             The same lower bounds are used for all values of k, and for
             the real and imaginary parts. If `full_ansatz` is True, `lower` is
             a list of size 4, otherwise, it is a list of size 3.
-            If  `guess`, `lower` and `upper` are not all provided, these
-            parameters will be chosen automatically
+            If none of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
         upper : optional, list of float
             Upper bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
             The same upper bounds are used for all values of k, and for
             the real and imaginary parts. If `full_ansatz` is True, `upper` is
             a list of size 4, otherwise, it is a list of size 3.
-            If  `guess`, `lower` and `upper` are not all provided, these
-            parameters will be chosen automatically
+            If none of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
         full_ansatz : optional, bool (default False)
             If this is set to False, the parameters :math:`d_k` are all set to
             zero. The full ansatz, including :math:`d_k`, usually leads to
@@ -590,20 +592,20 @@ class BosonicEnvironment(abc.ABC):
             Initial guesses for the parameters :math:`a_k`, :math:`b_k` and
             :math:`c_k`. The same initial guesses are used for all values of
             k.
-            If  `guess`, `lower` and `upper` are not all provided, these
-            parameters will be chosen automatically
+            If none of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
         lower : optional, list of float
             Lower bounds for the parameters :math:`a_k`, :math:`b_k` and
             :math:`c_k`. The same lower bounds are used for all values of
             k.
-            If  `guess`, `lower` and `upper` are not all provided, these
-            parameters will be chosen automatically
+            If none of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
         upper : optional, list of float
             Upper bounds for the parameters :math:`a_k`, :math:`b_k` and
             :math:`c_k`. The same upper bounds are used for all values of
             k.
-            If  `guess`, `lower` and `upper` are not all provided, these
-            parameters will be chosen automatically
+            If none of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
@@ -1059,7 +1061,9 @@ class UnderDampedEnvironment(BosonicEnvironment):
     r"""
     Describes an underdamped environment with the spectral density
 
-
+    .. math::
+        J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_{c}^{2}-
+        \omega^{2})^{2}+ \Gamma^{2} \omega^{2}}
 
     (see Eq. 16 in [BoFiN23]_).
 
