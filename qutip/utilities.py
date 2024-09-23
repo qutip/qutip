@@ -404,6 +404,12 @@ def iterated_fit(
         `[[p11, ..., p1n], [p21, ..., p2n], ..., [pN1, ..., pNn]]`.
     """
 
+    # Check if array is constant
+    # if (ydata == ydata[0]).all():
+    #     if num_params == 3:
+    #         return [ydata[0]], [0], [0]
+    #     else:
+    #         return [ydata[0]], [0], [0], [0]
     if len(xdata) != len(ydata):
         raise ValueError(
             "The shape of the provided fit data is not consistent")
@@ -465,6 +471,8 @@ def _rmse(fun, xdata, ydata, params):
     parameters. (The closer to zero = the better the fit.)
     """
     yhat = _evaluate(fun, xdata, params)
+    if (np.max(ydata) - np.min(ydata)) == 0.0:
+        return 0
     return (
         np.sqrt(np.mean((yhat - ydata) ** 2) / len(ydata))
         / (np.max(ydata) - np.min(ydata))

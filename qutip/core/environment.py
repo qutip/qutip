@@ -1831,10 +1831,11 @@ def _default_guess_cfreal(tlist, clist, full_ansatz):
     corr_max = np.max(corr_abs)
     t0 = tlist[np.argmax(corr_abs)]
 
-    if corr_max == 0:
+    # Checks if constant array, and assigns zero
+    if (clist == clist[0]).all():
         if full_ansatz:
-            return [0] * 4
-        return [0] * 3
+            return [[0] * 4]*3
+        return [[0] * 3]*3
 
     if full_ansatz:
         lower = [-100 * corr_max, -np.inf, -1, -100 * corr_max]
@@ -1851,10 +1852,11 @@ def _default_guess_cfreal(tlist, clist, full_ansatz):
 def _default_guess_cfimag(clist, full_ansatz):
     corr_max = np.max(np.abs(clist))
 
-    if corr_max == 0:
+    # Checks if constant array, and assigns zero
+    if (clist == clist[0]).all():
         if full_ansatz:
-            return [0] * 4
-        return [0] * 3
+            return [[0] * 4]*3
+        return [[0] * 3]*3
 
     if full_ansatz:
         lower = [-100 * corr_max, -np.inf, -1, -100 * corr_max]
