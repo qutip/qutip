@@ -1819,11 +1819,11 @@ def _fft(f, wMax, tMax):
 
 
 def _cf_real_fit_model(tlist, a, b, c, d=0):
-    return np.real((a + 1j * d) * np.exp((b + 1j * c) * tlist))
+    return np.real((a + 1j * d) * np.exp((b + 1j * c) * np.abs(tlist)))
 
 
 def _cf_imag_fit_model(tlist, a, b, c, d=0):
-    return np.imag((a + 1j * d) * np.exp((b + 1j * c) * tlist))
+    return np.imag((a + 1j * d) * np.exp((b + 1j * c) * np.abs(tlist)))
 
 
 def _default_guess_cfreal(tlist, clist, full_ansatz):
