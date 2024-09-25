@@ -45,6 +45,37 @@ Distributions
 .. autoclass:: qutip.QFunc
     :members:
 
+Environments
+------------
+
+.. autoclass:: qutip.core.BosonicEnvironment
+    :members:
+
+.. autoclass:: qutip.core.DrudeLorentzEnvironment
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: from_correlation_function, from_power_spectrum, from_spectral_density
+
+.. autoclass:: qutip.core.UnderDampedEnvironment
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: from_correlation_function, from_power_spectrum, from_spectral_density
+
+.. autoclass:: qutip.core.OhmicEnvironment
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: from_correlation_function, from_power_spectrum, from_spectral_density
+
+.. autoclass:: qutip.core.CFExponent
+    :members:
+
+.. autoclass:: qutip.core.ExponentialBosonicEnvironment
+    :members:
+    :show-inheritance:
+
 
 .. _classes-solver:
 
@@ -123,21 +154,26 @@ Non-Markovian HEOM Solver
     :members:
 
 .. autoclass:: qutip.solver.heom.DrudeLorentzBath
+    :show-inheritance:
     :members:
 
 .. autoclass:: qutip.solver.heom.DrudeLorentzPadeBath
+    :show-inheritance:
     :members:
 
 .. autoclass:: qutip.solver.heom.UnderDampedBath
+    :show-inheritance:
     :members:
 
 .. autoclass:: qutip.solver.heom.FermionicBath
     :members:
 
 .. autoclass:: qutip.solver.heom.LorentzianBath
+    :show-inheritance:
     :members:
 
 .. autoclass:: qutip.solver.heom.LorentzianPadeBath
+    :show-inheritance:
     :members:
 
 .. autoclass:: qutip.solver.heom.HierarchyADOs
