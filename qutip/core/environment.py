@@ -1823,7 +1823,9 @@ def _cf_real_fit_model(tlist, a, b, c, d=0):
 
 
 def _cf_imag_fit_model(tlist, a, b, c, d=0):
-    return np.imag((a + 1j * d) * np.exp((b + 1j * c) * np.abs(tlist)))
+    return np.sign(tlist) * np.imag(
+        (a + 1j * d) * np.exp((b + 1j * c) * np.abs(tlist))
+    )
 
 
 def _default_guess_cfreal(tlist, clist, full_ansatz):
