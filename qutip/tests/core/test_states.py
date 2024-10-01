@@ -273,7 +273,8 @@ def _id_func(val):
 # Obtain all valid dtype from `to`
 dtype_names = list(qutip.data.to._str2type.keys()) + list(qutip.data.to.dtypes)
 dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes)
-@pytest.mark.parametrize(['alias', 'dtype'], zip(dtype_names, dtype_types),
+dtype_combinations = list(zip(dtype_names, dtype_types))
+@pytest.mark.parametrize(['alias', 'dtype'], dtype_combinations,
                          ids=[str(dtype) for dtype in dtype_names])
 @pytest.mark.parametrize(['func', 'args'], [
     (qutip.basis, (5, 1)),
