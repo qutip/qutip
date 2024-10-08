@@ -60,9 +60,9 @@ def propagator(
 
     **kwargs :
         Extra parameters to use when creating the
-        :obj:`.QobjEvo` from a list format ``H``. The most common as ``tlist``
-        and ``order`` for spline time dependance. See :obj:`.QobjEvo` for the
-        full list.
+        :obj:`.QobjEvo` from a list format ``H``. The most common are ``tlist``
+        and ``order`` for array-based time dependance. See :obj:`.QobjEvo` for
+        the full list.
 
     Returns
     -------
@@ -72,9 +72,9 @@ def propagator(
 
     Notes
     -----
-    Unlike :func:`.sesolve` or :func:`.mesolve`, the output times ``t`` are not
-    used for time dependent system with array based. ``tlist`` must be passed
-    as a keyword argument in those case. ``tlist`` and ``t`` can have different
+    Unlike :func:`.sesolve` or :func:`.mesolve`, the output times in ``t`` are
+    not used for array time dependent system. ``tlist`` must be passed as a
+    keyword argument in those case. ``tlist`` and ``t`` can have different
     length and values.
 
     """
@@ -89,9 +89,9 @@ def propagator(
         H = QobjEvo(H, args=args, **kwargs)
 
     if isinstance(c_ops, list):
-        c_ops = [QobjEvo(op, args=args, **kwargs) for op in c_ops)]
+        c_ops = [QobjEvo(op, args=args, **kwargs) for op in c_ops]
 
-    if c_ops is not None:
+    if c_ops:
         H = liouvillian(H, c_ops)
 
     U0 = qeye_like(H)
