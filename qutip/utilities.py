@@ -471,7 +471,7 @@ def _rmse(fun, xdata, ydata, params):
     parameters. (The closer to zero = the better the fit.)
     """
     yhat = _evaluate(fun, xdata, params)
-    if (np.max(ydata) - np.min(ydata)) == 0.0:
+    if (yhat == ydata).all():
         return 0
     return (
         np.sqrt(np.mean((yhat - ydata) ** 2) / len(ydata))

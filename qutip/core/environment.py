@@ -1186,7 +1186,10 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
     def _matsubara_params(self, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
-        beta = 1 / self.T
+        if self.T==0:
+            beta=np.Inf
+        else:    
+            beta = 1 / self.T
         Om = np.sqrt(self.w0**2 - (self.gamma / 2)**2)
         Gamma = self.gamma / 2
 
@@ -1623,6 +1626,7 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         if combine:
             exponents = self.combine(exponents)
         self.exponents = exponents
+
 
     @classmethod
     def combine(
