@@ -899,7 +899,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
             It can be used to create a "terminator" term to add to the system
             dynamics to take this discrepancy into account, see
-            :func:`system_terminator`.
+            :func:`.system_terminator`.
         """
         if tag is None and self.tag is not None:
             tag = (self.tag, "Matsubara Truncation")
@@ -948,7 +948,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
             It can be used to create a "terminator" term to add to the system
             dynamics to take this discrepancy into account, see
-            :func:`system_terminator`.
+            :func:`.system_terminator`.
         """
         if tag is None and self.tag is not None:
             tag = (self.tag, "Pade Truncation")
@@ -1733,7 +1733,7 @@ def system_terminator(Q: Qobj, delta: float) -> Qobj:
     delta : float
         The approximation discrepancy of approximating an environment with a
         finite number of exponentials, see for example
-        :meth:`DrudeLorentzEnvironment.approx_by_matsubara`.
+        :meth:`.DrudeLorentzEnvironment.approx_by_matsubara`.
 
     Returns
     -------

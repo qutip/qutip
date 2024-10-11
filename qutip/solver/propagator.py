@@ -48,7 +48,8 @@ def propagator(
         will always be the identity matrix.
 
     c_ops : list, optional
-        List of Qobj or QobjEvo collapse operators.
+        List of collapse operators as Qobj, QobjEvo or list that can be made
+        into QobjEvo.
 
     args : dictionary, optional
         Parameters to callback functions for time-dependent Hamiltonians and
@@ -59,13 +60,22 @@ def propagator(
 
     **kwargs :
         Extra parameters to use when creating the
-        :obj:`.QobjEvo` from a list format ``H``.
+        :obj:`.QobjEvo` from a list format ``H``. The most common are ``tlist``
+        and ``order`` for array-based time dependance. See :obj:`.QobjEvo` for
+        the full list.
 
     Returns
     -------
     U : :obj:`.Qobj`, list
         Instance representing the propagator(s) :math:`U(t)`. Return a single
         Qobj when ``t`` is a number or a list when ``t`` is a list.
+
+    Notes
+    -----
+    Unlike :func:`.sesolve` or :func:`.mesolve`, the output times in ``t`` are
+    not used for array time dependent system. ``tlist`` must be passed as a
+    keyword argument in those case. ``tlist`` and ``t`` can have different
+    length and values.
 
     """
     if isinstance(t, numbers.Real):
@@ -77,6 +87,9 @@ def propagator(
 
     if not isinstance(H, (Qobj, QobjEvo)):
         H = QobjEvo(H, args=args, **kwargs)
+
+    if isinstance(c_ops, list):
+        c_ops = [QobjEvo(op, args=args, **kwargs) for op in c_ops]
 
     if c_ops:
         H = liouvillian(H, c_ops)
