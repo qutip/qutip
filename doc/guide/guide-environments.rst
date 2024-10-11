@@ -261,11 +261,12 @@ the SD and the PS using the formula
 :math:`S(\omega) = \operatorname{sign}(\omega)\, J(|\omega|) \bigl[ \coth( \beta\omega / 2 ) + 1 \bigr]`
 introduced earlier, and between the PS and the CF using fast Fourier transform.
 The former conversion requires the bath temperature to be specified; the latter requires a cutoff frequency (or cutoff time)
-to be provided together with the provided function (SD, CF or PS).
-In this way, all characteristic functions can be computed from the provided one.
+to be provided together with the specified function (SD, CF or PS).
+In this way, all characteristic functions can be computed from the specified one.
 
 The following example manually creates an environment with an underdamped spectral density.
 It then compares the correlation function obtained via fast Fourier transformation with the Matsubara expansion.
+The slow convergence is visible around :math:`t=0`.
 
 .. plot::
     :context: close-figs
@@ -281,7 +282,7 @@ It then compares the correlation function obtained via fast Fourier transformati
         return lam**2 * gamma * w / ((w**2 - w0**2)**2 + (gamma*w)**2)
     env = qt.BosonicEnvironment.from_spectral_density(underdamped_sd, wMax=50, T=T)
 
-    tlist = np.linspace(0, 2, 250)
+    tlist = np.linspace(-2, 2, 250)
     plt.plot(tlist, np.real(env.correlation_function(tlist)), label='FFT')
 
     # Pre-defined environment and Matsubara approximations
@@ -299,11 +300,104 @@ It then compares the correlation function obtained via fast Fourier transformati
 Multi-Exponential Approximations
 --------------------------------
 
-TODO.
+Many approaches to simulating the dynamics of an open quantum system strongly coupled to an environment
+assume that the environment correlation function can be approximated by a multi-exponential expansion like
+
+.. math::
+    C(t) = C_R(t) + \mathrm i C_I(t) , \qquad
+    C_{R,I}(t) = \sum_{k=1}^{N_{R,I}} c^{R,I}_k \exp[-\nu^{R,I}_k t]
+
+with small numbers :math:`N_{R,I}` of exponents.
+Note that :math:`C_R(t)` and :math:`C_I(t)` are the real and imaginary parts of the correlation function,
+but the coefficients :math:`c^{R,I}_k` and exponents :math:`\nu^{R,I}_k` are not required to be real in general.
+
+In the previous sections, various methods of obtaining multi-exponential approximations were introduced.
+The output of these approximation functions are :class:`.ExponentialBosonicEnvironment` objects.
+An :class:`.ExponentialBosonicEnvironment` is basically a collection of :class:`.CFExponent` s, which store (in the bosonic case)
+the coefficient, the exponent, and whether the exponent contributes to the real part, the imaginary part, or both.
+As we have already seen above, one can then compute the spectral density, correlation function and power spectrum corresponding
+to the exponents, in order to compare them to the original, exact environment.
+
+Let :math:`c_k \mathrm e^{-\nu_k t}` be a term in the correlation function (i.e., :math:`c_k = c^R_k` or :math:`c_k = \mathrm i c^I_k`).
+The corresponding term in the power spectrum is
+
+.. math::
+    S_k(\omega) = 2\Re\Bigr[ \frac{c_k}{\nu_k - \mathrm i\omega} \Bigr]
+
+and, if a temperature has been specified, the corresponding term in the spectral density can be computed as described above.
+
+The following example shows how to manually create an :class:`.ExponentialBosonicEnvironment` for the simple example
+:math:`C(t) = c \mathrm e^{-\nu t}` with real :math:`c`, :math:`\nu`. The power spectrum then is a Lorentzian,
+:math:`S(\omega) = 2c\nu / (\nu^2 + \omega^2)`.
+
+.. plot::
+    :context: close-figs
+
+    c = 1
+    nu = 2
+    wlist = np.linspace(-3, 3, 250)
+
+    env = qt.ExponentialBosonicEnvironment([c], [nu], [], [])
+
+    plt.figure(figsize=(4, 3))
+    plt.plot(wlist, env.power_spectrum(wlist))
+    plt.plot(wlist, 2 * c * nu / (nu**2 + wlist**2), '--')
+    plt.xlabel('Frequency')
+    plt.ylabel('Power spectrum')
+    plt.tight_layout()
 
 
 Fermionic environments
 ----------------------
+
+The implementation of fermionic environments in QuTiP is not yet as advanced as the bosonic environments.
+Currently, user-defined fermionic environments and fitting are not implemented.
+
+However, the overall structure of fermionic environments in QuTiP is analogous to the bosonic environments.
+There is one pre-defined fermionic environment, the Lorentzian environment, and multi-exponential fermionic environments.
+Lorentzian environments can be approximated by multi-exponential Matsubara or Pade expansions.
+
+In the fermionic case, we consider the number-conserving Hamiltonian
+
+.. math::
+    H = H_s + (B^\dagger c + c^\dagger B) + \sum_k \hbar\omega_k\, b^\dagger_k b_k , \qquad
+    B = \sum_k f_k b_k ,
+
+where the bath operators :math:`b_k` and the system operator :math:`c` obey fermionic anti-commutation relations.
+In analogy to the bosonic case, we define the spectral density
+
+.. math::
+    J(\omega) = 2\pi \sum_k f_k^2\, \delta(\omega - \omega_k) ,
+
+which may however now be defined for all (including negative) frequencies, since the spectrum of each mode is bounded.
+
+The fermionic environment is characterized either by its spectral density, temperature and chemical potential,
+or equivalently by two correlation functions or by two power spectra. The correlation functions are
+
+.. math::
+    C^\sigma(t) = \langle B^\sigma(t) B^{\bar\sigma} \rangle
+    = \int_{-\infty}^\infty \frac{\mathrm d\omega}{2\pi}\, J(\omega)\, 
+        \mathrm e^{\sigma \mathrm i\omega t}\, f_F(\sigma \beta[\omega - \mu]) ,
+
+where :math:`\sigma = \pm 1`, :math:`\bar\sigma = -\sigma`, :math:`B^+ = B^\dagger` and :math:`B^- = B`.
+Further, :math:`f_F(x) = (\mathrm e^x + 1)^{-1}` is the Fermi-Dirac function.
+Note that we still have :math:`C^\sigma(-t) = C^\sigma(t)^\ast`.
+The power spectra are the Fourier transformed correlation functions,
+
+.. math::
+    S^\sigma(\omega) = \int_{-\infty}^\infty \mathrm dt\, C^\sigma(t)\, \mathrm e^{\bar\sigma \mathrm i\omega t}
+        = J(\omega) f_F(\sigma\beta[\omega - \mu]) .
+
+Since :math:`f_F(x) + f_F(-x) = 1`, we have :math:`S^+(\omega) + S^-(\omega) = J(\omega)`.
+
+Lorentzian Environment
+^^^^^^^^^^^^^^^^^^^^^^
+
+Todo.
+
+
+Multi-Exponential Fermionic Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Todo.
 
