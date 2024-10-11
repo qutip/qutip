@@ -1229,7 +1229,7 @@ class OhmicEnvironment(BosonicEnvironment):
 
     .. math::
         J(\omega)
-        = \alpha \frac{\omega^s}{\omega_c^{1-s}} e^{-\omega / \omega_c} .
+        = \alpha \frac{\omega^s}{\omega_c^{s-1}} e^{-\omega / \omega_c} .
 
     This class requires the `mpmath` module to be installed.
 
@@ -1282,7 +1282,7 @@ class OhmicEnvironment(BosonicEnvironment):
         w_mask = w[positive_mask]
         result[positive_mask] = (
             self.alpha * w_mask ** self.s
-            / (self.wc ** (1 - self.s))
+            / (self.wc ** (self.s - 1))
             * np.exp(-np.abs(w_mask) / self.wc)
         )
 
@@ -1344,9 +1344,9 @@ class OhmicEnvironment(BosonicEnvironment):
                 dtype=np.cdouble
             )
         else:
-            corr = (self.alpha * self.wc ** (self.s+1) / np.pi
+            corr = (self.alpha * self.wc**2 / np.pi
                     * mp.gamma(self.s + 1)
-                    * (1 + 1j * self.wc * t) ** (-(self.s + 1)))
+                    * (1 + 1j * self.wc * t) ** (-self.s - 1))
             result = np.array(corr, dtype=np.cdouble)
 
         if t_was_array:

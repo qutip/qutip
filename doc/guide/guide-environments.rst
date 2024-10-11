@@ -4,8 +4,13 @@
 Environments of Open Quantum Systems
 ************************************
 
-written by `Paul Menczel <https://www.menczel.net/>`_ and `Gerardo Suarez <https://scholar.google.com/citations?user=yi6jJAQAAAAJ&hl=es>`_ 
+*written by* |pm|_ *and* |gs|_
 
+.. _pm: https://www.menczel.net/
+.. |pm| replace:: *Paul Menczel*
+.. _gs: https://scholar.google.com/citations?user=yi6jJAQAAAAJ&hl=es
+.. |gs| replace:: *Gerardo Suarez*
+.. (this is a workaround for italic links in rst)
 
 QuTiP can describe environments of open quantum systems.
 They can be passed to various solvers, where their influence is taken into account exactly or approximately.
@@ -97,72 +102,72 @@ In the strong coupling case, QuTiP provides exact integration methods based on m
     Hence, :math:`S(0)` diverges if the spectral density is sub-ohmic.
 
 
+Pre-defined Environments
+------------------------
+
 Ohmic Environment
------------------
+^^^^^^^^^^^^^^^^^
 
-An Ohmic environment is often characterized by its spectral density, and temperature.
-Its spectral density is often  parametrized as
-
+Ohmic environments can be constructed in QuTiP using the class :class:`.OhmicEnvironment`.
+They are characterized by spectral densities of the form
 
 .. math::
     :label: ohmicf
 
-        J(\omega)
-        = \alpha \frac{\omega^s}{\omega_c^{1-s}} e^{-\omega / \omega_c} .
+    J(\omega) = \alpha \frac{\omega^s}{\omega_c^{s-1}} e^{-\omega / \omega_c} ,
 
 where :math:`\alpha` is a dimensionless parameter that indicates the coupling strength,
-:math:`\omega_{c}` is the cutoff frequency, and s is a parameter that determines the low
-frequency behaviour. The Ohmic environments are usually classified according to this parameter as
+:math:`\omega_{c}` is the cutoff frequency, and :math:`s` is a parameter that determines the low-frequency behaviour.
+Ohmic environments are usually classified according to this parameter as
 
 * Sub-Ohmic (:math:`s<1`)
 * Ohmic (:math:`s=1`)
-* Super-Ohmic (:math:`s>1`)
+* Super-Ohmic (:math:`s>1`).
 
-The parametrization of the spectral density :eq:`ohmicf` allows for the computation of the
-correlation function analytically by substituting into :eq:`cfandps`. The correlation function
-for a Ohmic environment is given by 
-
+Substituting this spectral density into :eq:`cfandps`, the correlation function can be computed analytically: 
 
 .. math::
-    C(t)= \frac{1}{\pi} \alpha w_{c}^{1-s} \beta^{-(s+1)} \Gamma(s+1)
+    C(t)= \frac{\alpha}{\pi} w_{c}^{1-s} \beta^{-(s+1)} \Gamma(s+1)
     \left[ \zeta\left(s+1,\frac{1+\beta w_{c} -i w_{c} t}{\beta w_{c}}
     \right) +\zeta\left(s+1,\frac{1+ i w_{c} t}{\beta w_{c}}\right)
     \right] ,
 
-where :math:`\Gamma` is the gamma function, and :math:`\zeta` the
-Riemann zeta function. The zero temperature case can be obtained by taking the limit :math:`\beta \to \infty`
-which results in 
+where :math:`\beta` is the inverse temperature, :math:`\Gamma` the Gamma function, and :math:`\zeta` the Hurwitz zeta function.
+The zero temperature case can be obtained by taking the limit :math:`\beta \to \infty`, which results in 
 
 .. math::
-    C(t)= \frac{\alpha}{\pi}  w_{c}^{s+1} \Gamma(s+1) (1+ i \omega_{c} t)^{-(s+1)}
+    C(t) = \frac{\alpha}{\pi} \omega_c^2\, \Gamma(s+1) (1+ i \omega_{c} t)^{-(s+1)} .
 
-The evaluation of the Riemann zeta function for complex
-arguments requires `mpmath`, so certain features of the Ohmic enviroment are 
+The evaluation of the zeta function for complex arguments requires `mpmath`, so certain features of the Ohmic enviroment are 
 only available if `mpmath` is installed.
 
+Multi-exponential approximations to Ohmic environments can currently only obtained through
+the fitting procedures :meth:`approx_by_cf_fit<.BosonicEnvironment.approx_by_cf_fit>`
+and :meth:`approx_by_sd_fit<.BosonicEnvironment.approx_by_sd_fit>`.
 
 .. note::
-    In the literature the Ohmic spectral density can often be found as  :math:`J(\omega)= \alpha \frac{\omega^s}{\omega_c^{1-s}} f(\omega)`
-    where :math:`\lim\limits_{\omega \to \infty} f(\omega) = 0` is known as the cutoff function, and is a function that makes sure the function
-    and its integrals (for example :eq:`cfandps`) do not diverge. Sometimes, with sub-Ohmic spectral densities
-    an infrared cutoff is used as well so that :math:`\lim\limits_{\omega \to 0} J(\omega) = 0`. While we chose an exponential cutoff function
-    as it is one of the most used in the literature, other cutoff functions are possible and such baths can be constructed with User-Defined
-    environments as explained below.
+    In the literature, the Ohmic spectral density can often be found as :math:`J(\omega) = \alpha \frac{\omega^s}{\omega_c^{s-1}} f(\omega)`,
+    where :math:`f(\omega)` with :math:`\lim\limits_{\omega \to \infty} f(\omega) = 0` is known as the cutoff function.
+    The cutoff function ensures that the spectral density and its integrals (for example :eq:`cfandps`) do not diverge.
+    Sometimes, with sub-Ohmic spectral densities, an infrared cutoff is used as well so that :math:`\lim\limits_{\omega \to 0} J(\omega) = 0`.
+    This pre-defined Ohmic environment class is restricted to an exponential cutoff function, which is one of the most commonly used in the literature.
+    Other cutoff functions can be used in QuTiP with user-defined environments as explained below.
 
 Drude-Lorentz Environment
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A Drude-Lorentz enviroment also known as Overdamped enviroment, is one that is characterized
-by the spectral density
+Drude-Lorentz environments, also known as overdamped environments, can be constructed in QuTiP
+using the class :class:`.DrudeLorentzEnvironment`. They are characterized by spectral densities of the form
 
 .. math::
+    J(\omega) = \frac{2 \lambda \gamma \omega}{\gamma^{2}+\omega^{2}} ,
 
-    J(\omega) = \frac{2 \lambda \gamma \omega}{\gamma^{2}+\omega^{2}}
+where 
 
 
 
 Underdamped Environment
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 An Underdamped enviroment is characterized by the spectral density 
 
@@ -173,8 +178,8 @@ An Underdamped enviroment is characterized by the spectral density
 
 
 
-User-Defined Environment
-------------------------
+User-Defined Environments
+-------------------------
 
 As stated in the introduction a thermal Bosonic environment is fully characterized
 by its temperature and spectral density, or alternatively by its correlation function
