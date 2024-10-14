@@ -3,11 +3,20 @@ Functions for visualizing results of quantum dynamics simulations,
 visualizations of quantum states and processes.
 """
 
-__all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
-           'matrix_histogram', 'plot_energy_levels', 'plot_fock_distribution',
-           'plot_wigner', 'plot_expectation_values',
-           'plot_spin_distribution', 'complex_array_to_rgb',
-           'plot_qubism', 'plot_schmidt']
+__all__ = [
+    "plot_wigner_sphere",
+    "hinton",
+    "sphereplot",
+    "matrix_histogram",
+    "plot_energy_levels",
+    "plot_fock_distribution",
+    "plot_wigner",
+    "plot_expectation_values",
+    "plot_spin_distribution",
+    "complex_array_to_rgb",
+    "plot_qubism",
+    "plot_schmidt",
+]
 
 import itertools as it
 import numpy as np
@@ -15,9 +24,7 @@ from numpy import pi, array, sin, cos, angle, log2, sqrt
 
 from packaging.version import parse as parse_version
 
-from . import (
-    Qobj, isket, ket2dm, tensor, vector_to_operator, settings
-)
+from . import Qobj, isket, ket2dm, tensor, vector_to_operator, settings
 from .core.superop_reps import _to_superpauli, isqubitdims
 from .wigner import wigner
 from .matplotlib_utilities import complex_phase_cmap
@@ -31,13 +38,17 @@ try:
 
     # Define a custom _axes3D function based on the matplotlib version.
     # The auto_add_to_figure keyword is new for matplotlib>=3.4.
-    if parse_version(mpl.__version__) >= parse_version('3.4'):
+    if parse_version(mpl.__version__) >= parse_version("3.4"):
+
         def _axes3D(fig, *args, **kwargs):
             ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
             return fig.add_axes(ax)
+
     else:
+
         def _axes3D(*args, **kwargs):
             return Axes3D(*args, **kwargs)
+
 except:
     pass
 
@@ -63,11 +74,11 @@ def _sequential_cmap():
         return cm.jet
 
 
-def _is_fig_and_ax(fig, ax, projection='2d'):
+def _is_fig_and_ax(fig, ax, projection="2d"):
     if fig is None:
         if ax is None:
             fig = plt.figure()
-            if projection == '2d':
+            if projection == "2d":
                 ax = fig.add_subplot(1, 1, 1)
             else:
                 ax = _axes3D(fig)
@@ -75,7 +86,7 @@ def _is_fig_and_ax(fig, ax, projection='2d'):
             fig = ax.get_figure()
     else:
         if ax is None:
-            if projection == '2d':
+            if projection == "2d":
                 ax = fig.add_subplot(1, 1, 1)
             else:
                 ax = _axes3D(fig)
@@ -85,19 +96,15 @@ def _is_fig_and_ax(fig, ax, projection='2d'):
 
 def _set_ticklabels(ax, ticklabels, ticks, axis, fontsize=14):
     if len(ticks) != len(ticklabels):
-        raise ValueError(
-            f"got {len(ticklabels)} ticklabels but needed {len(ticks)}"
-        )
-    if axis == 'x':
+        raise ValueError(f"got {len(ticklabels)} ticklabels but needed {len(ticks)}")
+    if axis == "x":
         ax.set_xticks(ticks)
         ax.set_xticklabels(ticklabels, fontsize=fontsize)
-    elif axis == 'y':
+    elif axis == "y":
         ax.set_yticks(ticks)
         ax.set_yticklabels(ticklabels, fontsize=fontsize)
     else:
-        raise ValueError(
-            "axis must be either 'x' or 'y'"
-        )
+        raise ValueError("axis must be either 'x' or 'y'")
 
 
 def _equal_shape(matrices):
@@ -108,8 +115,7 @@ def _equal_shape(matrices):
         raise ValueError(text)
 
 
-def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
-                       colorbar=True, fig=None, ax=None):
+def plot_wigner_sphere(wigner, reflections=False, *, cmap=None, colorbar=True, fig=None, ax=None):
     """Plots a coloured Bloch sphere.
 
     Parameters
@@ -143,7 +149,7 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
     Special thanks to Russell P Rundle for writing this function.
     """
 
-    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
+    fig, ax = _is_fig_and_ax(fig, ax, projection="3d")
 
     if not isinstance(wigner, list):
         wigners = [wigner]
@@ -173,46 +179,75 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
 
         artist = list()
         # Plot coloured Bloch sphere:
-        artist.append(ax.plot_surface(x, y, z, facecolors=cmap(norm(wigner)),
-                                      rcount=steps, ccount=steps, linewidth=0,
-                                      zorder=0.5, antialiased=None))
+        artist.append(
+            ax.plot_surface(
+                x,
+                y,
+                z,
+                facecolors=cmap(norm(wigner)),
+                rcount=steps,
+                ccount=steps,
+                linewidth=0,
+                zorder=0.5,
+                antialiased=None,
+            )
+        )
 
         if reflections:
             side_color = cmap(norm(wigner[0:steps, 0:steps]))
 
             # Plot bottom reflection:
-            artist.append(ax.plot_surface(x[0:steps, 0:steps],
-                                          y[0:steps, 0:steps],
-                                          -1.5*np.ones((steps, steps)),
-                                          facecolors=side_color,
-                                          rcount=steps/2, ccount=steps/2,
-                                          linewidth=0, zorder=0.5,
-                                          antialiased=False))
+            artist.append(
+                ax.plot_surface(
+                    x[0:steps, 0:steps],
+                    y[0:steps, 0:steps],
+                    -1.5 * np.ones((steps, steps)),
+                    facecolors=side_color,
+                    rcount=steps / 2,
+                    ccount=steps / 2,
+                    linewidth=0,
+                    zorder=0.5,
+                    antialiased=False,
+                )
+            )
 
             # Plot side reflection:
-            artist.append(ax.plot_surface(-1.5*np.ones((steps, steps)),
-                                          y[0:steps, 0:steps],
-                                          z[0:steps, 0:steps],
-                                          facecolors=side_color,
-                                          rcount=steps/2, ccount=steps/2,
-                                          linewidth=0, zorder=0.5,
-                                          antialiased=False))
+            artist.append(
+                ax.plot_surface(
+                    -1.5 * np.ones((steps, steps)),
+                    y[0:steps, 0:steps],
+                    z[0:steps, 0:steps],
+                    facecolors=side_color,
+                    rcount=steps / 2,
+                    ccount=steps / 2,
+                    linewidth=0,
+                    zorder=0.5,
+                    antialiased=False,
+                )
+            )
 
             # Plot back reflection:
-            artist.append(ax.plot_surface(x[0:steps, 0:steps],
-                                          1.5*np.ones((steps, steps)),
-                                          z[0:steps, 0:steps],
-                                          facecolors=side_color,
-                                          rcount=steps/2, ccount=steps/2,
-                                          linewidth=0, zorder=0.5,
-                                          antialiased=False))
+            artist.append(
+                ax.plot_surface(
+                    x[0:steps, 0:steps],
+                    1.5 * np.ones((steps, steps)),
+                    z[0:steps, 0:steps],
+                    facecolors=side_color,
+                    rcount=steps / 2,
+                    ccount=steps / 2,
+                    linewidth=0,
+                    zorder=0.5,
+                    antialiased=False,
+                )
+            )
         artist_list.append(artist)
 
     if len(wigners) == 1:
         output = ax
     else:
-        output = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                           blit=True, repeat_delay=1000)
+        output = animation.ArtistAnimation(
+            fig, artist_list, interval=50, blit=True, repeat_delay=1000
+        )
 
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -220,7 +255,7 @@ def plot_wigner_sphere(wigner, reflections=False, *, cmap=None,
 
     # Create colourbar:
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=0.1)
         mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
     return fig, output
@@ -260,13 +295,10 @@ def _cb_labels(left_dims):
         (kets and bras, respectively).
     """
     # FIXME: assumes dims, such that we only need left_dims == dims[0].
-    basis_labels = list(map(",".join, it.product(*[
-        map(str, range(dim))
-        for dim in left_dims
-    ])))
+    basis_labels = list(map(",".join, it.product(*[map(str, range(dim)) for dim in left_dims])))
     return [
-        map(fmt.format, basis_labels) for fmt in
-        (
+        map(fmt.format, basis_labels)
+        for fmt in (
             r"$\langle{}|$",
             r"$|{}\rangle$",
         )
@@ -274,8 +306,18 @@ def _cb_labels(left_dims):
 
 
 # Adopted from the SciPy Cookbook.
-def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
-           label_top=True, *, cmap=None, colorbar=True, fig=None, ax=None):
+def hinton(
+    rho,
+    x_basis=None,
+    y_basis=None,
+    color_style="scaled",
+    label_top=True,
+    *,
+    cmap=None,
+    colorbar=True,
+    fig=None,
+    ax=None,
+):
     """Draws a Hinton diagram to visualize a density matrix or superoperator.
 
     Parameters
@@ -381,8 +423,9 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
 
             elif rho.issuper:
                 if not isqubitdims(rho.dims):
-                    raise ValueError("Hinton plots of superoperators are "
-                                     "currently only supported for qubits.")
+                    raise ValueError(
+                        "Hinton plots of superoperators are " "currently only supported for qubits."
+                    )
                 # Convert to a superoperator in the Pauli basis,
                 # so that all the elements are real.
                 sqobj = _to_superpauli(rho)
@@ -396,9 +439,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
                     y_basis = labels
 
             else:
-                raise ValueError(
-                    "Input quantum object must be "
-                    "an operator or superoperator.")
+                raise ValueError("Input quantum object must be " "an operator or superoperator.")
         else:
             W = rho
         Ws.append(W)
@@ -417,6 +458,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
         def color_fn(w):
             w = np.abs(w) * np.sign(np.real(w))
             return cmap(int((w + w_max) * 256 / (2 * w_max)))
+
     elif color_style == "threshold":
         if cmap is None:
             cmap = _diverging_cmap()
@@ -424,66 +466,71 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
         def color_fn(w):
             w = np.real(w)
             return cmap(255 if w > 0 else 0)
+
     elif color_style == "phase":
         if cmap is None:
             cmap = _cyclic_cmap()
 
         def color_fn(w):
             return cmap(int(255 * (np.angle(w) / 2 / np.pi + 0.5)))
+
     else:
-        raise ValueError(
-            "Unknown color style {} for Hinton diagrams.".format(color_style)
-        )
+        raise ValueError("Unknown color style {} for Hinton diagrams.".format(color_style))
 
     artist_list = list()
-    ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
-            color=cmap(128))
+    ax.fill(array([0, width, width, 0]), array([0, 0, height, height]), color=cmap(128))
     for W in Ws:
         artist = list()
         for x in range(width):
             for y in range(height):
                 _x = x + 1
                 _y = y + 1
-                artist += _blob(_x - 0.5, height - _y + 0.5, W[y, x],
-                                w_max, min(1, abs(W[y, x]) / w_max),
-                                color_fn=color_fn, ax=ax)
+                artist += _blob(
+                    _x - 0.5,
+                    height - _y + 0.5,
+                    W[y, x],
+                    w_max,
+                    min(1, abs(W[y, x]) / w_max),
+                    color_fn=color_fn,
+                    ax=ax,
+                )
         artist_list.append(artist)
 
     if len(rhos) == 1:
         output = ax
     else:
-        output = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                           blit=True, repeat_delay=1000)
+        output = animation.ArtistAnimation(
+            fig, artist_list, interval=50, blit=True, repeat_delay=1000
+        )
 
     # axis
     if not (x_basis or y_basis):
-        ax.axis('off')
-    ax.axis('equal')
+        ax.axis("off")
+    ax.axis("equal")
     ax.set_frame_on(False)
 
     # x axis
     xticks = 0.5 + np.arange(width)
     if x_basis:
-        _set_ticklabels(ax, x_basis, xticks, 'x')
+        _set_ticklabels(ax, x_basis, xticks, "x")
     if label_top:
         ax.xaxis.tick_top()
 
     # y axis
     yticks = 0.5 + np.arange(height)
     if y_basis:
-        _set_ticklabels(ax, list(reversed(y_basis)), yticks, 'y')
+        _set_ticklabels(ax, list(reversed(y_basis)), yticks, "y")
 
     if colorbar:
         vmax = np.pi if color_style == "phase" else w_max
         norm = mpl.colors.Normalize(-vmax, vmax)
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=0.1)
         mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
     return fig, output
 
 
-def sphereplot(values, theta, phi, *,
-               cmap=None, colorbar=True, fig=None, ax=None):
+def sphereplot(values, theta, phi, *, cmap=None, colorbar=True, fig=None, ax=None):
     """Plots a matrix of values on a sphere
 
     Parameters
@@ -516,7 +563,7 @@ def sphereplot(values, theta, phi, *,
         instance used to produce the figure.
     """
 
-    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
+    fig, ax = _is_fig_and_ax(fig, ax, projection="3d")
 
     if not isinstance(values, list):
         V = [values]
@@ -548,26 +595,36 @@ def sphereplot(values, theta, phi, *,
     zz = cos(thetam)
     artist_list = list()
     for r, ph in r_and_ph:
-        artist = [ax.plot_surface(r * xx, r * yy, r * zz, rstride=1, cstride=1,
-                                  facecolors=cmap(norm(ph)), linewidth=0,)]
+        artist = [
+            ax.plot_surface(
+                r * xx,
+                r * yy,
+                r * zz,
+                rstride=1,
+                cstride=1,
+                facecolors=cmap(norm(ph)),
+                linewidth=0,
+            )
+        ]
         artist_list.append(artist)
 
     if len(V) == 1:
         output = ax
     else:
-        output = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                           blit=True, repeat_delay=1000)
+        output = animation.ArtistAnimation(
+            fig, artist_list, interval=50, blit=True, repeat_delay=1000
+        )
 
     if colorbar:
         # create new axes on plot for colorbar and shrink it a bit.
         # pad shifts location of bar with repsect to the main plot
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.05)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.66, pad=0.05)
 
         # create new colorbar in axes cax with cmap and normalized to nrm like
         # our facecolors
         cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
         # add our colorbar label
-        cb1.set_label('Angle')
+        cb1.set_label("Angle")
 
     return fig, output
 
@@ -577,15 +634,26 @@ def _remove_margins(axis):
     removes margins about z = 0 and improves the style
     by monkey patching
     """
-    def _get_coord_info_new(renderer):
-        mins, maxs, centers, deltas, tc, highs = \
-            _get_coord_info_old(renderer)
+
+    def _get_coord_info_new_mpl38(renderer):
+        mins, maxs, centers, deltas, tc, highs = _get_coord_info_old(renderer)
         mins += deltas / 4
         maxs -= deltas / 4
         return mins, maxs, centers, deltas, tc, highs
 
+    def _get_coord_info_new_mpl39():
+        mins, maxs, bounds_proj, highs = _get_coord_info_old()
+        centers, deltas = axis._calc_centers_deltas(maxs, mins)
+        mins += deltas / 4
+        maxs -= deltas / 4
+        return mins, maxs, bounds_proj, highs
+
     _get_coord_info_old = axis._get_coord_info
-    axis._get_coord_info = _get_coord_info_new
+
+    if parse_version(mpl.__version__) >= parse_version("3.9"):
+        axis._get_coord_info = _get_coord_info_new_mpl39
+    else:
+        axis._get_coord_info = _get_coord_info_new_mpl38
 
 
 def _stick_to_planes(stick, azim, ax, M, spacing):
@@ -595,17 +663,25 @@ def _stick_to_planes(stick, azim, ax, M, spacing):
     if stick is True:
         azim = azim % 360
         if 0 <= azim <= 90:
-            ax.set_ylim(1 - .5,)
-            ax.set_xlim(1 - .5,)
+            ax.set_ylim(
+                1 - 0.5,
+            )
+            ax.set_xlim(
+                1 - 0.5,
+            )
         elif 90 < azim <= 180:
-            ax.set_ylim(1 - .5,)
-            ax.set_xlim(0, M.shape[0] + (.5 - spacing))
+            ax.set_ylim(
+                1 - 0.5,
+            )
+            ax.set_xlim(0, M.shape[0] + (0.5 - spacing))
         elif 180 < azim <= 270:
-            ax.set_ylim(0, M.shape[1] + (.5 - spacing))
-            ax.set_xlim(0, M.shape[0] + (.5 - spacing))
+            ax.set_ylim(0, M.shape[1] + (0.5 - spacing))
+            ax.set_xlim(0, M.shape[0] + (0.5 - spacing))
         elif 270 < azim < 360:
-            ax.set_ylim(0, M.shape[1] + (.5 - spacing))
-            ax.set_xlim(1 - .5,)
+            ax.set_ylim(0, M.shape[1] + (0.5 - spacing))
+            ax.set_xlim(
+                1 - 0.5,
+            )
 
 
 def _update_yaxis(spacing, M, ax, ylabels):
@@ -622,7 +698,7 @@ def _update_yaxis(spacing, M, ax, ylabels):
     else:
         ax.set_yticklabels([str(y + 1) for y in range(M.shape[1])])
         ax.set_yticklabels([str(i) for i in range(M.shape[1])])
-    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis="y", labelsize=14)
     ax.set_yticks([y + (1 - (spacing / 2)) for y in range(M.shape[1])])
 
 
@@ -640,7 +716,7 @@ def _update_xaxis(spacing, M, ax, xlabels):
     else:
         ax.set_xticklabels([str(x + 1) for x in range(M.shape[0])])
         ax.set_xticklabels([str(i) for i in range(M.shape[0])])
-    ax.tick_params(axis='x', labelsize=14)
+    ax.tick_params(axis="x", labelsize=14)
     ax.set_xticks([x + (1 - (spacing / 2)) for x in range(M.shape[0])])
 
 
@@ -655,17 +731,16 @@ def _update_zaxis(ax, z_min, z_max, zticks):
 
 
 def _get_matrix_components(option, M, argument):
-    if option == 'real':
+    if option == "real":
         return np.real(M.flatten())
-    elif option == 'img':
+    elif option == "img":
         return np.imag(M.flatten())
-    elif option == 'abs':
+    elif option == "abs":
         return np.abs(M.flatten())
-    elif option == 'phase':
+    elif option == "phase":
         return angle(M.flatten())
     else:
-        raise ValueError("got an unexpected argument, "
-                         f"{option} for {argument}")
+        raise ValueError("got an unexpected argument, " f"{option} for {argument}")
 
 
 def sph2cart(r, theta, phi):
@@ -684,9 +759,7 @@ def sphview(ax):
     zlim = ax.get_zlim()
     # Compute  based on the plots xyz limits.
     r = 0.5 * np.sqrt(
-        (xlim[1] - xlim[0]) ** 2 +
-        (ylim[1] - ylim[0]) ** 2 +
-        (zlim[1] - zlim[0]) ** 2
+        (xlim[1] - xlim[0]) ** 2 + (ylim[1] - ylim[0]) ** 2 + (zlim[1] - zlim[0]) ** 2
     )
     theta, phi = np.radians((90 - ax.elev, ax.azim))
     return r, theta, phi
@@ -856,8 +929,7 @@ def matrix_histogram(
         # check if keys in options dict are valid
         if set(options) - set(default_opts):
             raise ValueError(
-                "invalid key(s) found in options: "
-                f"{', '.join(set(options) - set(default_opts))}"
+                "invalid key(s) found in options: " f"{', '.join(set(options) - set(default_opts))}"
             )
         else:
             # updating default options
@@ -925,7 +997,7 @@ def matrix_histogram(
 
     artist_list = list()
 
-    ax.view_init(azim=options['azim'], elev=options['elev'])
+    ax.view_init(azim=options["azim"], elev=options["elev"])
 
     camera = get_camera_position(ax)
     for M in Ms:
@@ -959,12 +1031,7 @@ def matrix_histogram(
         # calculating z_order for each bar based on its position
         # The sorting issue was fixed by making minor change to
         # https://stackoverflow.com/questions/18602660/matplotlib-bar3d-clipping-problems
-        z_order = (
-            np.multiply(
-                [
-                    temp_xpos, temp_ypos, temp_zpos], camera
-                    ).sum(0).flatten()
-        )
+        z_order = np.multiply([temp_xpos, temp_ypos, temp_zpos], camera).sum(0).flatten()
 
         for i, uxpos in enumerate(xpos):
             artist = ax.bar3d(
@@ -1013,8 +1080,7 @@ def matrix_histogram(
 
     # color axis
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(
-            ax, shrink=0.75, pad=options["cbar_pad"])
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=options["cbar_pad"])
         cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
         if color_style == "real":
@@ -1027,15 +1093,12 @@ def matrix_histogram(
             cb.set_label("arg")
             if color_limits is None:
                 cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
-                cb.set_ticklabels(
-                    (r"$-\pi$", r"$-\pi/2$", r"$0$", r"$\pi/2$", r"$\pi$")
-                )
+                cb.set_ticklabels((r"$-\pi$", r"$-\pi/2$", r"$0$", r"$\pi/2$", r"$\pi$"))
 
     return fig, output
 
 
-def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
-                       fig=None, ax=None):
+def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *, fig=None, ax=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
     up to N energy levels. For each element in H_list, the energy
@@ -1090,7 +1153,7 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
     x = 0
     evals0 = H.eigenenergies(eigvals=N)
     for e_idx, e in enumerate(evals0[:N]):
-        ax.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
+        ax.plot([x, x + 2], np.array([1, 1]) * e, "b", linewidth=2)
         yticks.append(e)
     xticks.append(x + 1)
     x += 2
@@ -1101,11 +1164,11 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
         evals1 = H.eigenenergies()
 
         for e_idx, e in enumerate(evals1[:N]):
-            ax.plot([x, x + 1], np.array([evals0[e_idx], e]), 'k:')
+            ax.plot([x, x + 1], np.array([evals0[e_idx], e]), "k:")
         x += 1
 
         for e_idx, e in enumerate(evals1[:N]):
-            ax.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
+            ax.plot([x, x + 2], np.array([1, 1]) * e, "b", linewidth=2)
         xticks.append(x + 1)
         x += 2
 
@@ -1115,7 +1178,7 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
 
     if energy_levels:
         yticks = np.unique(np.around(yticks, 1))
-        _set_ticklabels(ax, energy_levels, yticks, 'y')
+        _set_ticklabels(ax, energy_levels, yticks, "y")
     else:
         # show eigenenergies
         yticks = np.unique(np.around(yticks, 1))
@@ -1123,17 +1186,17 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
 
     if h_labels:
         ax.get_xaxis().tick_bottom()
-        _set_ticklabels(ax, h_labels, xticks, 'x')
+        _set_ticklabels(ax, h_labels, xticks, "x")
     else:
         # hide xtick
-        ax.tick_params(axis='x', which='both',
-                       bottom=False, labelbottom=False)
+        ax.tick_params(axis="x", which="both", bottom=False, labelbottom=False)
 
     return fig, ax
 
 
-def plot_fock_distribution(rho, fock_numbers=None, color="green",
-                           unit_y_range=True, *, fig=None, ax=None):
+def plot_fock_distribution(
+    rho, fock_numbers=None, color="green", unit_y_range=True, *, fig=None, ax=None
+):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1181,32 +1244,46 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
         N = rho.shape[0]
 
-        artist = ax.bar(np.arange(N), np.real(rho.diag()),
-                        color=color, alpha=0.6, width=0.8).patches
+        artist = ax.bar(
+            np.arange(N), np.real(rho.diag()), color=color, alpha=0.6, width=0.8
+        ).patches
         artist_list.append(artist)
 
     if len(rhos) == 1:
         output = ax
     else:
-        output = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                           blit=True, repeat_delay=1000)
+        output = animation.ArtistAnimation(
+            fig, artist_list, interval=50, blit=True, repeat_delay=1000
+        )
 
     if fock_numbers:
-        _set_ticklabels(ax, fock_numbers, np.arange(N), 'x', fontsize=12)
+        _set_ticklabels(ax, fock_numbers, np.arange(N), "x", fontsize=12)
 
     if unit_y_range:
         ax.set_ylim(0, 1)
 
-    ax.set_xlim(-.5, N)
-    ax.set_xlabel('Fock number', fontsize=12)
-    ax.set_ylabel('Occupation probability', fontsize=12)
+    ax.set_xlim(-0.5, N)
+    ax.set_xlabel("Fock number", fontsize=12)
+    ax.set_ylabel("Occupation probability", fontsize=12)
 
     return fig, output
 
 
-def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
-                g=sqrt(2), sparse=False, parfor=False, *,
-                cmap=None, colorbar=False, fig=None, ax=None):
+def plot_wigner(
+    rho,
+    xvec=None,
+    yvec=None,
+    method="clenshaw",
+    projection="2d",
+    g=sqrt(2),
+    sparse=False,
+    parfor=False,
+    *,
+    cmap=None,
+    colorbar=False,
+    fig=None,
+    ax=None,
+):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1263,8 +1340,8 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
         instance used to produce the figure.
     """
 
-    if projection not in ('2d', '3d'):
-        raise ValueError('Unexpected value of projection keyword argument')
+    if projection not in ("2d", "3d"):
+        raise ValueError("Unexpected value of projection keyword argument")
 
     fig, ax = _is_fig_and_ax(fig, ax, projection)
 
@@ -1283,10 +1360,7 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
         if isket(rho):
             rho = ket2dm(rho)
 
-        W0 = wigner(
-            rho, xvec, yvec, method=method,
-            g=g, sparse=sparse, parfor=parfor
-        )
+        W0 = wigner(rho, xvec, yvec, method=method, g=g, sparse=sparse, parfor=parfor)
 
         W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)
         Ws.append(W)
@@ -1300,40 +1374,40 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
 
     artist_list = list()
     for W in Ws:
-        if projection == '2d':
-            if parse_version(mpl.__version__) >= parse_version('3.8'):
+        if projection == "2d":
+            if parse_version(mpl.__version__) >= parse_version("3.8"):
                 cf = [ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)]
             else:
-                cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
-                                 cmap=cmap).collections
+                cf = ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap).collections
         else:
             X, Y = np.meshgrid(xvec, yvec)
-            cf = [ax.plot_surface(X, Y, W, rstride=5, cstride=5, linewidth=0.5,
-                                  norm=norm, cmap=cmap)]
+            cf = [
+                ax.plot_surface(X, Y, W, rstride=5, cstride=5, linewidth=0.5, norm=norm, cmap=cmap)
+            ]
         artist_list.append(cf)
 
     if len(rhos) == 1:
         output = ax
     else:
-        output = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                           blit=True, repeat_delay=1000)
+        output = animation.ArtistAnimation(
+            fig, artist_list, interval=50, blit=True, repeat_delay=1000
+        )
 
-    ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
-    ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
+    ax.set_xlabel(r"$\rm{Re}(\alpha)$", fontsize=12)
+    ax.set_ylabel(r"$\rm{Im}(\alpha)$", fontsize=12)
 
     if colorbar:
-        if projection == '2d':
+        if projection == "2d":
             shrink = 1
         else:
-            shrink = .75
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=shrink, pad=.1)
+            shrink = 0.75
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=shrink, pad=0.1)
         cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
     return fig, output
 
 
-def plot_expectation_values(results, ylabels=None, *,
-                            fig=None, axes=None):
+def plot_expectation_values(results, ylabels=None, *, fig=None, axes=None):
     """
     Visualize the results (expectation values) for an evolution solver.
     `results` is assumed to be an instance of Result, or a list of Result
@@ -1367,8 +1441,7 @@ def plot_expectation_values(results, ylabels=None, *,
     if axes is None:
         if fig is None:
             fig = plt.figure()
-        axes = np.array([fig.add_subplot(n_e_ops, 1, i+1)
-                         for i in range(n_e_ops)])
+        axes = np.array([fig.add_subplot(n_e_ops, 1, i + 1) for i in range(n_e_ops)])
 
     # create np.ndarray if axes is one axes object or list
     if not isinstance(axes, np.ndarray):
@@ -1378,8 +1451,7 @@ def plot_expectation_values(results, ylabels=None, *,
 
     for _, result in enumerate(results):
         for e_idx, e in enumerate(result.expect):
-            axes[e_idx].plot(result.times, e,
-                             label="%s [%d]" % (result.solver, e_idx))
+            axes[e_idx].plot(result.times, e, label="%s [%d]" % (result.solver, e_idx))
 
     axes[n_e_ops - 1].set_xlabel("time", fontsize=12)
     for n in range(n_e_ops):
@@ -1389,8 +1461,9 @@ def plot_expectation_values(results, ylabels=None, *,
     return fig, axes
 
 
-def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
-                           cmap=None, colorbar=False, fig=None, ax=None):
+def plot_spin_distribution(
+    P, THETA, PHI, projection="2d", *, cmap=None, colorbar=False, fig=None, ax=None
+):
     """
     Plots a spin distribution (given as meshgrid data).
 
@@ -1430,10 +1503,10 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         instance used to produce the figure.
     """
 
-    if projection in ('2d', '3d'):
+    if projection in ("2d", "3d"):
         fig, ax = _is_fig_and_ax(fig, ax, projection)
     else:
-        raise ValueError('Unexpected value of projection keyword argument')
+        raise ValueError("Unexpected value of projection keyword argument")
 
     if not isinstance(P, list):
         Ps = [P]
@@ -1457,38 +1530,42 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
             norm = mpl.colors.Normalize(min_P, max_P)
 
     artist_list = list()
-    if projection == '2d':
+    if projection == "2d":
         Y = (THETA - pi / 2) / (pi / 2)
         X = (pi - PHI) / pi * np.sqrt(cos(THETA - pi / 2))
         for P in Ps:
             artist_list.append([ax.pcolor(X, Y, P.real, cmap=cmap)])
-        ax.set_xlabel(r'$\varphi$', fontsize=18)
-        ax.set_ylabel(r'$\theta$', fontsize=18)
-        ax.axis('equal')
+        ax.set_xlabel(r"$\varphi$", fontsize=18)
+        ax.set_ylabel(r"$\theta$", fontsize=18)
+        ax.axis("equal")
         ax.set_xticks([-1, 0, 1])
-        ax.set_xticklabels([r'$0$', r'$\pi$', r'$2\pi$'], fontsize=18)
+        ax.set_xticklabels([r"$0$", r"$\pi$", r"$2\pi$"], fontsize=18)
         ax.set_yticks([-1, 0, 1])
-        ax.set_yticklabels([r'$\pi$', r'$\pi/2$', r'$0$'], fontsize=18)
+        ax.set_yticklabels([r"$\pi$", r"$\pi/2$", r"$0$"], fontsize=18)
     else:
         xx = sin(THETA) * cos(PHI)
         yy = sin(THETA) * sin(PHI)
         zz = cos(THETA)
         for P in Ps:
-            artist = [ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
-                      facecolors=cmap(norm(P)), linewidth=0)]
+            artist = [
+                ax.plot_surface(
+                    xx, yy, zz, rstride=1, cstride=1, facecolors=cmap(norm(P)), linewidth=0
+                )
+            ]
             artist_list.append(artist)
         ax.view_init(azim=-35, elev=35)
 
     if len(Ps) == 1:
         output = ax
     else:
-        output = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                           blit=True, repeat_delay=1000)
+        output = animation.ArtistAnimation(
+            fig, artist_list, interval=50, blit=True, repeat_delay=1000
+        )
 
     if colorbar:
-        cax, _ = mpl.colorbar.make_axes(ax, shrink=.66, pad=.1)
+        cax, _ = mpl.colorbar.make_axes(ax, shrink=0.66, pad=0.1)
         cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
-        cb1.set_label('magnitude')
+        cb1.set_label("magnitude")
 
     return fig, output
 
@@ -1496,7 +1573,7 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
 #
 # Qubism and other qubistic visualizations
 #
-def complex_array_to_rgb(X, theme='light', rmax=None):
+def complex_array_to_rgb(X, theme="light", rmax=None):
     """
     Makes an array of complex number and converts it to an array of [r, g, b],
     where phase gives hue and saturation/value are given by the absolute value.
@@ -1527,14 +1604,14 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
     """
 
     absmax = rmax or np.abs(X).max()
-    if absmax == 0.:
-        absmax = 1.
-    Y = np.zeros(X.shape + (3,), dtype='float')
+    if absmax == 0.0:
+        absmax = 1.0
+    Y = np.zeros(X.shape + (3,), dtype="float")
     Y[..., 0] = np.angle(X) / (2 * pi) % 1
-    if theme == 'light':
+    if theme == "light":
         Y[..., 1] = np.clip(np.abs(X) / absmax, 0, 1)
         Y[..., 2] = 1
-    elif theme == 'dark':
+    elif theme == "dark":
         Y[..., 1] = 1
         Y[..., 2] = np.clip(np.abs(X) / absmax, 0, 1)
     Y = mpl.colors.hsv_to_rgb(Y)
@@ -1594,7 +1671,7 @@ def _sequence_to_index(seq, dim_list):
     return i
 
 
-def _to_qubism_index_pair(i, dim_list, how='pairs'):
+def _to_qubism_index_pair(i, dim_list, how="pairs"):
     """
     For a matrix entry with index i
     it returns x, y coordinates in qubism mapping.
@@ -1618,27 +1695,26 @@ def _to_qubism_index_pair(i, dim_list, how='pairs'):
     """
     seq = _index_to_sequence(i, dim_list)
 
-    if how == 'pairs':
+    if how == "pairs":
         y = _sequence_to_index(seq[::2], dim_list[::2])
         x = _sequence_to_index(seq[1::2], dim_list[1::2])
-    elif how == 'pairs_skewed':
+    elif how == "pairs_skewed":
         dim_list2 = dim_list[::2]
         y = _sequence_to_index(seq[::2], dim_list2)
         seq2 = [(b - a) % d for a, b, d in zip(seq[::2], seq[1::2], dim_list2)]
         x = _sequence_to_index(seq2, dim_list2)
-    elif how == 'before_after':
+    elif how == "before_after":
         # https://en.wikipedia.org/wiki/File:Ising-tartan.png
         n = len(dim_list)
-        y = _sequence_to_index(reversed(seq[:(n // 2)]),
-                               reversed(dim_list[:(n // 2)]))
-        x = _sequence_to_index(seq[(n // 2):], dim_list[(n // 2):])
+        y = _sequence_to_index(reversed(seq[: (n // 2)]), reversed(dim_list[: (n // 2)]))
+        x = _sequence_to_index(seq[(n // 2) :], dim_list[(n // 2) :])
     else:
         raise Exception("No such 'how'.")
 
     return x, y
 
 
-def _sequence_to_latex(seq, style='ket'):
+def _sequence_to_latex(seq, style="ket"):
     """
     For a sequence of particle states generate LaTeX code.
 
@@ -1656,19 +1732,20 @@ def _sequence_to_latex(seq, style='ket'):
         LaTeX output.
 
     """
-    if style == 'ket':
+    if style == "ket":
         latex = "$\\left|{0}\\right\\rangle$"
-    elif style == 'bra':
+    elif style == "bra":
         latex = "$\\left\\langle{0}\\right|$"
-    elif style == 'bare':
+    elif style == "bare":
         latex = "${0}$"
     else:
         raise Exception("No such style.")
     return latex.format("".join(map(str, seq)))
 
 
-def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
-                legend_iteration=0, *, fig=None, ax=None):
+def plot_qubism(
+    ket, theme="light", how="pairs", grid_iteration=1, legend_iteration=0, *, fig=None, ax=None
+):
     """
     Qubism plot for pure states of many qudits.  Works best for spin chains,
     especially with even number of particles of the same dimension.  Allows to
@@ -1755,18 +1832,17 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
 
         ketdata = ket.full()
 
-        if how == 'pairs':
+        if how == "pairs":
             dim_list_y = dim_list[::2]
             dim_list_x = dim_list[1::2]
-        elif how == 'pairs_skewed':
+        elif how == "pairs_skewed":
             dim_list_y = dim_list[::2]
             dim_list_x = dim_list[1::2]
             if dim_list_x != dim_list_y:
-                raise Exception("For 'pairs_skewed' pairs " +
-                                "of dimensions need to be the same.")
-        elif how == 'before_after':
-            dim_list_y = list(reversed(dim_list[:(n // 2)]))
-            dim_list_x = dim_list[(n // 2):]
+                raise Exception("For 'pairs_skewed' pairs " + "of dimensions need to be the same.")
+        elif how == "before_after":
+            dim_list_y = list(reversed(dim_list[: (n // 2)]))
+            dim_list_x = dim_list[(n // 2) :]
         else:
             raise Exception("No such 'how'.")
 
@@ -1778,16 +1854,21 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
             qub[_to_qubism_index_pair(i, dim_list, how=how)] = ketdata[i, 0]
         qub = qub.transpose()
 
-        artist = [ax.imshow(complex_array_to_rgb(qub, theme=theme),
-                  interpolation="none",
-                  extent=(0, size_x, 0, size_y))]
+        artist = [
+            ax.imshow(
+                complex_array_to_rgb(qub, theme=theme),
+                interpolation="none",
+                extent=(0, size_x, 0, size_y),
+            )
+        ]
         artist_list.append(artist)
 
     if len(kets) == 1:
         output = ax
     else:
-        output = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                           blit=True, repeat_delay=1000)
+        output = animation.ArtistAnimation(
+            fig, artist_list, interval=50, blit=True, repeat_delay=1000
+        )
 
     quadrants_x = np.prod(dim_list_x[:grid_iteration])
     quadrants_y = np.prod(dim_list_y[:grid_iteration])
@@ -1799,27 +1880,27 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
     ax.set_xticklabels([""] * (quadrants_x - 1))
     ax.set_yticks(ticks_y)
     ax.set_yticklabels([""] * (quadrants_y - 1))
-    theme2color_of_lines = {'light': '#000000',
-                            'dark': '#FFFFFF'}
+    theme2color_of_lines = {"light": "#000000", "dark": "#FFFFFF"}
     ax.grid(True, color=theme2color_of_lines[theme])
 
-    if legend_iteration == 'all':
+    if legend_iteration == "all":
         label_n = n // 2
-    elif legend_iteration == 'grid_iteration':
+    elif legend_iteration == "grid_iteration":
         label_n = grid_iteration
     else:
         try:
             label_n = int(legend_iteration)
         except:
-            raise Exception("No such option for legend_iteration keyword " +
-                            "argument. Use 'all', 'grid_iteration' or an " +
-                            "integer.")
+            raise Exception(
+                "No such option for legend_iteration keyword "
+                + "argument. Use 'all', 'grid_iteration' or an "
+                + "integer."
+            )
 
     if label_n:
 
-        if how == 'before_after':
-            dim_list_small = list(reversed(dim_list_y[-label_n:])) \
-                + dim_list_x[:label_n]
+        if how == "before_after":
+            dim_list_small = list(reversed(dim_list_y[-label_n:])) + dim_list_x[:label_n]
         else:
             dim_list_small = []
             for j in range(label_n):
@@ -1831,26 +1912,28 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
         scale_y = float(size_y) / np.prod(dim_list_y[:label_n])
         shift_y = 0.5 * scale_y
 
-        bbox = ax.get_window_extent().transformed(
-            fig.dpi_scale_trans.inverted())
+        bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
         fontsize = 35 * bbox.width / np.prod(dim_list_x[:label_n]) / label_n
-        opts = {'fontsize': fontsize,
-                'color': theme2color_of_lines[theme],
-                'horizontalalignment': 'center',
-                'verticalalignment': 'center'}
+        opts = {
+            "fontsize": fontsize,
+            "color": theme2color_of_lines[theme],
+            "horizontalalignment": "center",
+            "verticalalignment": "center",
+        }
         for i in range(np.prod(dim_list_small)):
             x, y = _to_qubism_index_pair(i, dim_list_small, how=how)
             seq = _index_to_sequence(i, dim_list=dim_list_small)
-            ax.text(scale_x * x + shift_x,
-                    size_y - (scale_y * y + shift_y),
-                    _sequence_to_latex(seq),
-                    **opts)
+            ax.text(
+                scale_x * x + shift_x,
+                size_y - (scale_y * y + shift_y),
+                _sequence_to_latex(seq),
+                **opts,
+            )
 
     return fig, output
 
 
-def plot_schmidt(ket, theme='light', splitting=None,
-                 labels_iteration=(3, 2), *, fig=None, ax=None):
+def plot_schmidt(ket, theme="light", splitting=None, labels_iteration=(3, 2), *, fig=None, ax=None):
     """
     Plotting scheme related to Schmidt decomposition.
     Converts a state into a matrix (A_ij -> A_i^j),
@@ -1927,34 +2010,39 @@ def plot_schmidt(ket, theme='light', splitting=None,
 
         ketdata = ketdata.reshape((size_y, size_x))
 
-        artist = [ax.imshow(complex_array_to_rgb(ketdata, theme=theme),
-                            interpolation="none",
-                            extent=(0, size_x, 0, size_y))]
+        artist = [
+            ax.imshow(
+                complex_array_to_rgb(ketdata, theme=theme),
+                interpolation="none",
+                extent=(0, size_x, 0, size_y),
+            )
+        ]
         artist_list.append(artist)
 
     if len(kets) == 1:
         output = ax
     else:
-        output = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                           blit=True, repeat_delay=1000)
+        output = animation.ArtistAnimation(
+            fig, artist_list, interval=50, blit=True, repeat_delay=1000
+        )
 
-    dim_list_small_x = dim_list_x[:labels_iteration[1]]
-    dim_list_small_y = dim_list_y[:labels_iteration[0]]
+    dim_list_small_x = dim_list_x[: labels_iteration[1]]
+    dim_list_small_y = dim_list_y[: labels_iteration[0]]
 
     quadrants_x = np.prod(dim_list_small_x)
     quadrants_y = np.prod(dim_list_small_y)
 
-    ticks_x = [size_x / quadrants_x * (i + 0.5)
-               for i in range(quadrants_x)]
-    ticks_y = [size_y / quadrants_y * (quadrants_y - i - 0.5)
-               for i in range(quadrants_y)]
+    ticks_x = [size_x / quadrants_x * (i + 0.5) for i in range(quadrants_x)]
+    ticks_y = [size_y / quadrants_y * (quadrants_y - i - 0.5) for i in range(quadrants_y)]
 
-    labels_x = [_sequence_to_latex(_index_to_sequence(i*size_x // quadrants_x,
-                                                      dim_list=dim_list_x))
-                for i in range(quadrants_x)]
-    labels_y = [_sequence_to_latex(_index_to_sequence(i*size_y // quadrants_y,
-                                                      dim_list=dim_list_y))
-                for i in range(quadrants_y)]
+    labels_x = [
+        _sequence_to_latex(_index_to_sequence(i * size_x // quadrants_x, dim_list=dim_list_x))
+        for i in range(quadrants_x)
+    ]
+    labels_y = [
+        _sequence_to_latex(_index_to_sequence(i * size_y // quadrants_y, dim_list=dim_list_y))
+        for i in range(quadrants_y)
+    ]
 
     ax.set_xticks(ticks_x)
     ax.set_xticklabels(labels_x)
