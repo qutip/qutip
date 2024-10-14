@@ -354,7 +354,7 @@ def _frozen(*args, **kwargs):
 def einsum(subscripts, *operands):
     """
     Implementation of numpy.einsum for Qobj.
-    Returns the result of einsum as a Qobj (or numpy.complex128 if the result is a scalar).
+    Evaluates the Einstein summation convention on the operands.
     Parameters
     ----------
     subscripts: str
