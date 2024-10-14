@@ -351,6 +351,11 @@ def from_tensor_rep(tensorrep, dims):
 def _frozen(*args, **kwargs):
     raise RuntimeError("Dimension cannot be modified.")
 
+def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe', optimize=False):
+    operands_array = [to_tensor_rep(op) for op in operands]
+    result = np.einsum(subscripts, *operands_array)
+    dims = [[d] for d in result.shape]
+    return from_tensor_rep(result, dims)
 
 class MetaSpace(type):
     def __call__(cls, *args: SpaceLike, rep: str = None) -> "Space":
