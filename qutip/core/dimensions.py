@@ -351,6 +351,7 @@ def from_tensor_rep(tensorrep, dims):
 def _frozen(*args, **kwargs):
     raise RuntimeError("Dimension cannot be modified.")
 
+
 def einsum(subscripts, *operands):
     """
     Implementation of numpy.einsum for Qobj.
@@ -358,13 +359,11 @@ def einsum(subscripts, *operands):
     Parameters
     ----------
     subscripts: str
-        Specifies the subscripts for summation as comma separated list of subscript labels.
-        An implicit (classical Einstein summation) calculation is performed unless the explicit
-        indicator ‘->’ is included as well as subscript labels of the precise output form.
-
+        Specifies the subscripts for summation as comma
+        separated list of subscript labels.
     operands: list of array_like
         These are the arrays for the operation.
-    
+
     Returns
     -------
     Qobj (numpy.complex128)
@@ -376,6 +375,7 @@ def einsum(subscripts, *operands):
         return result
     dims = [[d] for d in result.shape]
     return from_tensor_rep(result, dims)
+
 
 class MetaSpace(type):
     def __call__(cls, *args: SpaceLike, rep: str = None) -> "Space":
