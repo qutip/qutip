@@ -351,9 +351,29 @@ def from_tensor_rep(tensorrep, dims):
 def _frozen(*args, **kwargs):
     raise RuntimeError("Dimension cannot be modified.")
 
-def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe', optimize=False):
+def einsum(subscripts, *operands):
+    """
+    Implementation of numpy.einsum for Qobj.
+    Returns the result of einsum as a Qobj (or numpy.complex128 if the result is a scalar).
+    Parameters
+    ----------
+    subscripts: str
+        Specifies the subscripts for summation as comma separated list of subscript labels.
+        An implicit (classical Einstein summation) calculation is performed unless the explicit
+        indicator ‘->’ is included as well as subscript labels of the precise output form.
+
+    operands: list of array_like
+        These are the arrays for the operation.
+    
+    Returns
+    -------
+    Qobj (numpy.complex128)
+        Result of einsum as Qobj (numpy.complex128 if result is scalar)
+    """
     operands_array = [to_tensor_rep(op) for op in operands]
     result = np.einsum(subscripts, *operands_array)
+    if result.shape == ():
+        return result
     dims = [[d] for d in result.shape]
     return from_tensor_rep(result, dims)
 
