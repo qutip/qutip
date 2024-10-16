@@ -313,7 +313,7 @@ class TwoModeQuadratureCorrelation(Distribution):
                     sqrt(sqrt(pi) * 2 ** n2 * factorial(n2)) * \
                     exp(-X2 ** 2 / 2.0) * np.polyval(hermite(n2), X2)
                 i = state_number_index([N, N], [n1, n2])
-                p += kn1 * kn2 * psi.data[i, 0]
+                p += kn1 * kn2 * psi.data_as()[i, 0]
 
         self.data = abs(p) ** 2
 
@@ -350,7 +350,7 @@ class TwoModeQuadratureCorrelation(Distribution):
                 for p1 in range(N):
                     for p2 in range(N):
                         j = state_number_index([N, N], [p1, p2])
-                        p += M1[n1, p1] * M2[n2, p2] * rho.data[i, j]
+                        p += M1[n1, p1] * M2[n2, p2] * rho.data_as()[i, j]
 
         self.data = p
 
