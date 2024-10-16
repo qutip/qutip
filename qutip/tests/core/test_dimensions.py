@@ -196,6 +196,9 @@ def test_dims_comparison():
     pytest.param("ij", [qutip.sigmax()], qutip.sigmax()),
     pytest.param("ij->ji", [qutip.sigmay()], qutip.sigmay().trans()),
     pytest.param("ij,ji", [qutip.sigmaz(), qutip.sigmaz()], 2),
+    pytest.param("ii", [qutip.tensor(qutip.thermal_dm(2,1), qutip.thermal_dm(2,1))], 1),
+    pytest.param("ik, kj", [qutip.tensor(qutip.sigmaz(), qutip.sigmaz()), 
+                             qutip.tensor(qutip.sigmaz(), qutip.sigmaz())], qutip.qeye(4))
 ])
 def test_einsum(subscripts, operands, expected):
     assert einsum(subscripts, *operands) == expected
