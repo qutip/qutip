@@ -577,15 +577,27 @@ def _remove_margins(axis):
     removes margins about z = 0 and improves the style
     by monkey patching
     """
-    def _get_coord_info_new(renderer):
-        mins, maxs, centers, deltas, tc, highs = \
-            _get_coord_info_old(renderer)
+
+    def _get_coord_info_new_mpl38(renderer):
+        mins, maxs, centers, deltas, tc, highs = _get_coord_info_old(renderer)
         mins += deltas / 4
         maxs -= deltas / 4
         return mins, maxs, centers, deltas, tc, highs
 
+    def _get_coord_info_new_mpl39():
+        mins, maxs, bounds_proj, highs = _get_coord_info_old()
+        centers, deltas = axis._calc_centers_deltas(maxs, mins)
+        mins += deltas / 4
+        maxs -= deltas / 4
+        return mins, maxs, bounds_proj, highs
+
     _get_coord_info_old = axis._get_coord_info
-    axis._get_coord_info = _get_coord_info_new
+
+    # Select correct version of the function based on matplotlib version
+    if parse_version(mpl.__version__) >= parse_version("3.9"):
+        axis._get_coord_info = _get_coord_info_new_mpl39
+    else:
+        axis._get_coord_info = _get_coord_info_new_mpl38
 
 
 def _stick_to_planes(stick, azim, ax, M, spacing):
