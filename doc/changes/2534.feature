@@ -1,0 +1,1 @@
+This change introduces the BosonicEnvironment classes to characterize bosonic  thermal environments
