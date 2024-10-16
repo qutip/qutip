@@ -6,7 +6,7 @@ import qutip
 from qutip.core.dimensions import (
     flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
-    collapse_dims_super, collapse_dims_oper, Dimensions
+    collapse_dims_super, collapse_dims_oper, einsum, Dimensions
 )
 
 
@@ -189,3 +189,18 @@ def test_dims_comparison():
     assert Dimensions([[1], [2]])[0] != Dimensions([[1], [2]])[1]
     assert not Dimensions([[1], [2]])[1] != Dimensions([[1], [2]])[1]
     assert not Dimensions([[1], [2]])[0] != Dimensions([[1], [2]])[0]
+
+
+@pytest.mark.parametrize(["subscripts", "operands", "expected"], [
+    pytest.param("ii", [qutip.sigmaz()], 0),
+    pytest.param("ij", [qutip.sigmax()], qutip.sigmax()),
+    pytest.param("ij->ji", [qutip.sigmay()], qutip.sigmay().trans()),
+    pytest.param("ij,ji", [qutip.sigmaz(), qutip.sigmaz()], 2),
+    pytest.param("ii", [qutip.tensor(qutip.thermal_dm(2,1), qutip.thermal_dm(2,1))], 1),
+    pytest.param("ik, kj", [qutip.tensor(qutip.sigmaz(), qutip.sigmaz()), 
+                             qutip.tensor(qutip.sigmaz(), qutip.sigmaz())], qutip.qeye(4)),
+    pytest.param("ik, kj", [qutip.tensor(qutip.sigmaz(), qutip.sigmaz(), qutip.sigmaz()), 
+                             qutip.tensor(qutip.sigmaz(), qutip.sigmaz(), qutip.sigmaz())], qutip.qeye(8))
+])
+def test_einsum(subscripts, operands, expected):
+    assert einsum(subscripts, *operands) == expected
