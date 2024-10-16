@@ -266,6 +266,8 @@ jobs:
 
       - name: Install Towncrier
         run: |
+          python -m venv towncrier_check
+          source towncrier_check/bin/activate
           python -m pip install towncrier
 
       - name: Verify Towncrier entry added
@@ -277,6 +279,7 @@ jobs:
           # compare the current branch with the base branch.
           # Source: https://github.com/actions/checkout/#fetch-all-branches.
           git fetch --no-tags origin +refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}
+          source towncrier_check/bin/activate
           towncrier check --compare-with origin/${BASE_BRANCH}
           towncrier build --version "$(cat VERSION)" --draft
 
