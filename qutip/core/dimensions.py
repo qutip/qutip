@@ -369,11 +369,11 @@ def einsum(subscripts, *operands):
     Qobj (numpy.complex128)
         Result of einsum as Qobj (numpy.complex128 if result is scalar)
     """
-    operands_array = [to_tensor_rep(op).reshape(op.shape) for op in operands]
+    operands_array = [to_tensor_rep(op) for op in operands]
     result = np.einsum(subscripts, *operands_array)
     if result.shape == ():
         return result
-    dims = [[d] for d in result.shape]
+    dims = [d for d in result.shape[:result.ndim // 2]], [[d for d in result.shape[result.ndim // 2:]]]
     return from_tensor_rep(result, dims)
 
 
