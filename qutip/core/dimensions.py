@@ -373,7 +373,8 @@ def einsum(subscripts, *operands):
     result = np.einsum(subscripts, *operands_array)
     if result.shape == ():
         return result
-    dims = [d for d in result.shape[:result.ndim // 2]], [[d for d in result.shape[result.ndim // 2:]]]
+    dims = [d for d in result.shape[:result.ndim // 2]],
+    [[d for d in result.shape[result.ndim // 2:]]]
     return from_tensor_rep(result, dims)
 
 
