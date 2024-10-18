@@ -36,6 +36,22 @@ Bosonic Environments
 .. autofunction:: qutip.core.environment.system_terminator
 
 
+Fermionic Environments
+----------------------
+
+.. autoclass:: qutip.core.FermionicEnvironment
+    :members:
+    :exclude-members: from_correlation_function, from_power_spectrum, from_spectral_density
+
+.. autoclass:: qutip.core.LorentzianEnvironment
+    :members:
+    :show-inheritance:
+
+.. autoclass:: qutip.core.ExponentialFermionicEnvironment
+    :members:
+    :show-inheritance:
+
+
 
 ********************************
 Hierarchical Equations of Motion
