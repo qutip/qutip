@@ -125,7 +125,7 @@ class Distribution:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
 
         if cmap is None:
-            cmap = mpl.colormaps.get_cmap('RdBu')
+            cmap = mpl.colormaps['RdBu']
 
         lim = abs(self.data.real).max()
 
