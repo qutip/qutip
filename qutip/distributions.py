@@ -152,7 +152,7 @@ class Distribution:
             ax = Axes3D(fig, azim=-62, elev=25)
 
         if cmap is None:
-            cmap = mpl.colormaps.get_cmap('RdBu')
+            cmap = mpl.colormaps['RdBu']
 
         lim = abs(self.data.real).max()
 
