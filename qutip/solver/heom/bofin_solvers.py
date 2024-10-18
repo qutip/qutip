@@ -20,10 +20,12 @@ from qutip.settings import settings
 from qutip import state_number_enumerate
 from qutip.core import data as _data
 from qutip.core.data import csr as _csr
+from qutip.core.environment import (
+    ExponentialBosonicEnvironment, ExponentialFermionicEnvironment)
 from qutip.core import Qobj, QobjEvo
 from qutip.core.superoperator import liouvillian, spre, spost
 from .bofin_baths import (
-    BathExponent, DrudeLorentzBath,
+    BathExponent, BosonicBath, DrudeLorentzBath, FermionicBath,
 )
 from ..solver_base import Solver
 from .. import Result
@@ -712,12 +714,17 @@ class HEOMSolver(Solver):
 
     def _combine_bath_exponents(self, bath):
         """ Combine the exponents for the specified baths. """
-        if not isinstance(bath, (list, tuple)):
-            exponents = bath.exponents
-        else:
-            exponents = []
-            for b in bath:
-                exponents.extend(b.exponents)
+        # Only one bath provided, not a list of baths
+        if (not isinstance(bath, (list, tuple))
+            or self._is_environment_api(bath)):
+            bath = [bath]
+
+        exponents = []
+        for b in bath:
+            if self._is_environment_api(b):
+                b = self._env_to_bath(b)
+            exponents.extend(b.exponents)
+
         if not all(exp.Q.dims == exponents[0].Q.dims for exp in exponents):
             raise ValueError(
                 "All bath exponents must have system coupling operators"
@@ -725,6 +732,17 @@ class HEOMSolver(Solver):
                 " was given."
             )
         return exponents
+
+    def _is_environment_api(self, bath_spec):
+        return isinstance(bath_spec, (list, tuple)) and (
+            isinstance(bath_spec[0], ExponentialBosonicEnvironment)
+            or isinstance(bath_spec[0], ExponentialFermionicEnvironment)
+        )
+
+    def _env_to_bath(self, bath_spec):
+        if isinstance(bath_spec[0], ExponentialBosonicEnvironment):
+            return BosonicBath.from_environment(*bath_spec)
+        return FermionicBath.from_environment(*bath_spec)
 
     def _grad_n(self, he_n):
         """ Get the gradient for the hierarchy ADO at level n. """

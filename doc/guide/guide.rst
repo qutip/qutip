@@ -13,6 +13,7 @@ Users Guide
    guide-tensor.rst
    guide-super.rst
    guide-dynamics.rst
+   guide-environments.rst
    guide-heom.rst
    guide-steady.rst
    guide-piqs.rst
