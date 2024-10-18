@@ -127,9 +127,9 @@ class Distribution:
         if cmap is None:
             cmap = mpl.colormaps.get_cmap('RdBu')
 
-        lim = abs(self.data).max()
+        lim = abs(self.data.real).max()
 
-        cf = ax.contourf(self.xvecs[0], self.xvecs[1], self.data, 100,
+        cf = ax.contourf(self.xvecs[0], self.xvecs[1], self.data.real, 100,
                          norm=mpl.colors.Normalize(-lim, lim),
                          cmap=cmap)
 
@@ -154,10 +154,10 @@ class Distribution:
         if cmap is None:
             cmap = mpl.colormaps.get_cmap('RdBu')
 
-        lim = abs(self.data).max()
+        lim = abs(self.data.real).max()
 
         X, Y = np.meshgrid(self.xvecs[0], self.xvecs[1])
-        s = ax.plot_surface(X, Y, self.data,
+        s = ax.plot_surface(X, Y, self.data.real,
                             norm=mpl.colors.Normalize(-lim, lim),
                             rstride=5, cstride=5, cmap=cmap, lw=0.1)
 
@@ -177,7 +177,7 @@ class Distribution:
         if not fig and not ax:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
 
-        p = ax.plot(self.xvecs[0], self.data)
+        p = ax.plot(self.xvecs[0], self.data.real)
 
         if show_xlabel:
             ax.set_xlabel(self.xlabels[0], fontsize=12)
