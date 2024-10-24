@@ -107,6 +107,7 @@ class HierarchyADOs:
     labels: list of tuples
         A list of the ADO labels within the hierarchy.
     """
+
     def __init__(self, exponents, max_depth):
         self.exponents = exponents
         self.max_depth = max_depth
@@ -716,7 +717,7 @@ class HEOMSolver(Solver):
         """ Combine the exponents for the specified baths. """
         # Only one bath provided, not a list of baths
         if (not isinstance(bath, (list, tuple))
-            or self._is_environment_api(bath)):
+                or self._is_environment_api(bath)):
             bath = [bath]
         exponents = []
         for b in bath:
@@ -725,10 +726,12 @@ class HEOMSolver(Solver):
                     b = self._env_to_bath(b)
                 except ValueError as ve:
                     raise ValueError(ve.args[0] +
-                        " When passing environments and baths make sure to"
-                        " include the coupling operators for the environments"
-                        " [(env,Q),bath] is correct while [env,bath] is not"
-                    )
+                                     " When passing environments and baths"
+                                     " make sure to include the coupling "
+                                     "operators for the environments"
+                                     " [(env,Q),bath] is correct "
+                                     "while [env,bath] is not"
+                                     )
             exponents.extend(b.exponents)
 
         if not all(exp.Q.dims == exponents[0].Q.dims for exp in exponents):
@@ -740,18 +743,19 @@ class HEOMSolver(Solver):
         return exponents
 
     def _is_environment_api(self, bath_spec):
-        is_list =isinstance(bath_spec, (list, tuple)) 
+        is_list = isinstance(bath_spec, (list, tuple))
         if is_list:
-            env_syntax= (
+            env_syntax = (
                 isinstance(bath_spec[0], ExponentialBosonicEnvironment)
                 or isinstance(bath_spec[0], ExponentialFermionicEnvironment)
-            ) 
+            )
             is_bath = (
                 isinstance(bath_spec[0], BosonicBath)
-                or isinstance(bath_spec[0],FermionicBath)
+                or isinstance(bath_spec[0], FermionicBath)
             )
         else:
-            if type(bath_spec) in [ExponentialBosonicEnvironment,ExponentialFermionicEnvironment]:
+            if ((type(bath_spec) == ExponentialBosonicEnvironment) or
+                    (type(bath_spec) == ExponentialFermionicEnvironment)):
                 raise ValueError("Enviroments must be passed with their"
                                  " corresponding coupling operator as a list"
                                  " or tuple (env,Q)")
@@ -760,7 +764,6 @@ class HEOMSolver(Solver):
             return False
         else:
             return is_list and env_syntax
-            
 
     def _env_to_bath(self, bath_spec):
         if isinstance(bath_spec[0], ExponentialBosonicEnvironment):
@@ -1297,6 +1300,7 @@ class HSolverDL(HEOMSolver):
         operator). See :meth:`BosonicBath.combine` for details.
         Keyword only. Default: True.
     """
+
     def __init__(
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp, cut_freq, *, bnd_cut_approx=False, options=None,
@@ -1345,6 +1349,7 @@ class _GatherHEOMRHS:
         nhe : int
             The number of ADOs in the hierarchy.
     """
+
     def __init__(self, f_idx, block, nhe):
         self._block_size = block
         self._n_blocks = nhe

@@ -352,7 +352,7 @@ class BosonicEnvironment(abc.ABC):
         self, tlist: ArrayLike, target_rsme: float = 2e-5, Nr_max: int = 10,
         Ni_max: int = 10, guess: list[float] = None, lower: list[float] = None,
         upper: list[float] = None, full_ansatz: bool = False, tag: Any = None,
-        combine: bool =True,sigma:float= 1e-4,maxfev:int=100_000
+        combine: bool = True, sigma: float = 1e-4, maxfev: int = 100_000
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its
@@ -444,10 +444,10 @@ class BosonicEnvironment(abc.ABC):
             operator). See :meth:`combine` for details.
         sigma : float, default 1e-4
             The uncertainty in the date provided, to calculate uncertainty
-            residuals, it is useful to decrease if the values of the data are 
+            residuals, it is useful to decrease if the values of the data are
             too small
         maxfev: int, default 100_000
-            Number of times the parameters of the fit are allowed to vary 
+            Number of times the parameters of the fit are allowed to vary
             during the optimization
         Returns
         -------
@@ -514,7 +514,7 @@ class BosonicEnvironment(abc.ABC):
         start_real = time()
         rmse_real, params_real = iterated_fit(
             _cf_real_fit_model, num_params, tlist, np.real(clist), target_rsme,
-            guess_re, Nr_min, Nr_max, lower_re, upper_re,sigma=sigma,
+            guess_re, Nr_min, Nr_max, lower_re, upper_re, sigma=sigma,
             maxfev=maxfev
         )
         end_real = time()
@@ -525,7 +525,7 @@ class BosonicEnvironment(abc.ABC):
         rmse_imag, params_imag = iterated_fit(
             _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rsme,
             guess_im, Ni_min, Ni_max, lower_im, upper_im,
-            sigma=sigma,maxfev=maxfev
+            sigma=sigma, maxfev=maxfev
         )
         end_imag = time()
         fit_time_imag = end_imag - start_imag
@@ -567,14 +567,14 @@ class BosonicEnvironment(abc.ABC):
             vkAI.extend([-b - 1j * c, -b + 1j * c])
 
         approx_env = ExponentialBosonicEnvironment(
-            ckAR, vkAR, ckAI, vkAI, T=self.T, tag=tag,combine=combine)
+            ckAR, vkAR, ckAI, vkAI, T=self.T, tag=tag, combine=combine)
         return approx_env, fit_info
 
     def approx_by_sd_fit(
         self, wlist: ArrayLike, Nk: int = 1, target_rsme: float = 5e-6,
         Nmax: int = 10, guess: list[float] = None, lower: list[float] = None,
-        upper: list[float] = None, tag: Any = None,combine: bool=True,
-        sigma:float =1e-4,maxfev:int=1e-6
+        upper: list[float] = None, tag: Any = None, combine: bool = True,
+        sigma: float = 1e-4, maxfev: int = 1e-6
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its spectral
@@ -631,10 +631,10 @@ class BosonicEnvironment(abc.ABC):
             operator). See :meth:`combine` for details.
         sigma : float, default 1e-4
             The uncertainty in the date provided, to calculate uncertainty
-            residuals, it is useful to decrease if the values of the data are 
+            residuals, it is useful to decrease if the values of the data are
             too small
         maxfev: int, default 100_000
-            Number of times the parameters of the fit are allowed to vary 
+            Number of times the parameters of the fit are allowed to vary
             during the optimization
         Returns
         -------
@@ -676,7 +676,7 @@ class BosonicEnvironment(abc.ABC):
         start = time()
         rmse, params = iterated_fit(
             _sd_fit_model, 3, wlist, jlist, target_rsme, guess,
-            Nmin, Nmax, lower, upper,sigma=sigma,maxfev=maxfev
+            Nmin, Nmax, lower, upper, sigma=sigma, maxfev=maxfev
         )
         end = time()
         fit_time = end - start
@@ -705,7 +705,7 @@ class BosonicEnvironment(abc.ABC):
             vkAI.extend(coeffs[3])
 
         approx_env = ExponentialBosonicEnvironment(
-            ckAR, vkAR, ckAI, vkAI, T=self.T, tag=tag,combine=combine)
+            ckAR, vkAR, ckAI, vkAI, T=self.T, tag=tag, combine=combine)
         return approx_env, fit_info
 
 
@@ -929,11 +929,11 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         """
         if tag is None and self.tag is not None:
             tag = (self.tag, "Matsubara Truncation")
-        if self.T==0:
-            raise warnings.warn("The Matsubara coefficients at T=0 do" 
-                            "not improve with the number of exponents." 
-                            " Other approaches such as fitting the "
-                            "correlation function provide better results.")
+        if self.T == 0:
+            raise warnings.warn("The Matsubara coefficients at T=0 do"
+                                "not improve with the number of exponents."
+                                " Other approaches such as fitting the "
+                                "correlation function provide better results.")
 
         lists = self._matsubara_params(Nk)
         approx_env = ExponentialBosonicEnvironment(
@@ -1023,8 +1023,8 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
     # --- Pade approx calculation ---
 
     def _corr(self, Nk):
-        if self.T==0:
-            beta=np.inf
+        if self.T == 0:
+            beta = np.inf
         else:
             beta = 1. / self.T
         kappa, epsilon = self._kappa_epsilon(Nk)
@@ -1039,7 +1039,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
                 self.gamma * (epsilon[ll] * self.T)
                 / ((epsilon[ll]**2 * self.T**2) - self.gamma**2)
             )
-            gamma_p.append(epsilon[ll] *self.T)
+            gamma_p.append(epsilon[ll] * self.T)
 
         return eta_p, gamma_p
 
@@ -1220,11 +1220,11 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
     def _matsubara_params(self, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
-        if self.T==0:
-            raise warnings.warn("The Matsubara coefficients at T=0 do" 
-                            "not improve with the number of exponents." 
-                            " Other approaches such as fitting the "
-                            "correlation function provide better results.")
+        if self.T == 0:
+            raise warnings.warn("The Matsubara coefficients at T=0 do"
+                                "not improve with the number of exponents."
+                                " Other approaches such as fitting the "
+                                "correlation function provide better results.")
         Om = np.sqrt(self.w0**2 - (self.gamma / 2)**2)
         Gamma = self.gamma / 2
 
@@ -1236,7 +1236,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
         ])
 
         ck_real.extend([
-            (-2 * self.lam**2 * self.gamma *self.T) * (2 * np.pi * k * self.T)
+            (-2 * self.lam**2 * self.gamma * self.T) * (2 * np.pi * k * self.T)
             / (
                 ((Om + 1j * Gamma)**2 + (2 * np.pi * k * self.T)**2)
                 * ((Om - 1j * Gamma)**2 + (2 * np.pi * k * self.T)**2)
@@ -1635,7 +1635,6 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         if combine:
             exponents = self.combine(exponents)
         self.exponents = exponents
-
 
     @classmethod
     def combine(
@@ -2285,7 +2284,7 @@ class LorentzianEnvironment(FermionicEnvironment):
         ck_minus, vk_minus = self._matsubara_params(Nk, -1)
 
         return ExponentialFermionicEnvironment(
-            ck_plus, vk_plus, ck_minus, vk_minus, T=self.T, mu=self.mu, 
+            ck_plus, vk_plus, ck_minus, vk_minus, T=self.T, mu=self.mu,
             tag=tag
         )
 

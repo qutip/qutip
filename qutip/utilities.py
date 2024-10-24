@@ -355,7 +355,7 @@ def iterated_fit(
     guess: ArrayLike | Callable[[int], ArrayLike] = None,
     Nmin: int = 1, Nmax: int = 10,
     lower: ArrayLike = None, upper: ArrayLike = None,
-    sigma:float=1e-4,maxfev:int=100_000
+    sigma: float = 1e-4, maxfev: int = 100_000
 ) -> tuple[float, ArrayLike]:
     r"""
     Iteratively tries to fit the given data with a model of the form
@@ -436,7 +436,8 @@ def iterated_fit(
         lower_repeat = np.tile(lower, N)
         upper_repeat = np.tile(upper, N)
         rmse1, params = _fit(fun, num_params, xdata, ydata,
-                             guesses, lower_repeat, upper_repeat,sigma,maxfev)
+                             guesses, lower_repeat,
+                             upper_repeat, sigma, maxfev)
         N += 1
 
     return rmse1, params
@@ -476,8 +477,8 @@ def _rmse(fun, xdata, ydata, params):
     )
 
 
-def _fit(fun, num_params, xdata, ydata, guesses, lower, upper,sigma,
-         maxfev,method='trf'):
+def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
+         maxfev, method='trf'):
     # fun: model function
     # num_params: number of parameters in fun
     # xdata, ydata: data to be fit
@@ -495,7 +496,7 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper,sigma,
             fun, x, _unpack(packed_params, num_params)
         ),
         xdata, ydata, p0=_pack(guesses), bounds=(lower, upper),
-        maxfev=maxfev, method=method,sigma=sigma
+        maxfev=maxfev, method=method, sigma=sigma
     )
     params = _unpack(packed_params, num_params)
     rmse = _rmse(fun, xdata, ydata, params)
