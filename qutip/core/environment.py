@@ -1191,24 +1191,23 @@ class UnderDampedEnvironment(BosonicEnvironment):
     def _matsubara_params(self, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
         if self.T==0:
-            beta=np.Inf
-        else:    
-            beta = 1 / self.T
+            raise warnings.warn("The Matsubara coefficients at T=0 do" 
+                                "not improve with the number of exponents")
         Om = np.sqrt(self.w0**2 - (self.gamma / 2)**2)
         Gamma = self.gamma / 2
 
         ck_real = ([
             (self.lam**2 / (4 * Om))
-            * (1 / np.tanh(beta * (Om + 1j * Gamma) / 2)),
+            * (1 / np.tanh((Om + 1j * Gamma) / (2*self.T))),
             (self.lam**2 / (4 * Om))
-            * (1 / np.tanh(beta * (Om - 1j * Gamma) / 2)),
+            * (1 / np.tanh((Om - 1j * Gamma) / (2*self.T))),
         ])
 
         ck_real.extend([
-            (-2 * self.lam**2 * self.gamma / beta) * (2 * np.pi * k / beta)
+            (-2 * self.lam**2 * self.gamma *self.T) * (2 * np.pi * k * self.T)
             / (
-                ((Om + 1j * Gamma)**2 + (2 * np.pi * k / beta)**2)
-                * ((Om - 1j * Gamma)**2 + (2 * np.pi * k / beta)**2)
+                ((Om + 1j * Gamma)**2 + (2 * np.pi * k * self.T)**2)
+                * ((Om - 1j * Gamma)**2 + (2 * np.pi * k * self.T)**2)
             )
             for k in range(1, Nk + 1)
         ])
