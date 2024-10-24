@@ -1844,7 +1844,7 @@ def _cf_imag_fit_model(tlist, a, b, c, d=0):
 def _default_guess_cfreal(tlist, clist, full_ansatz):
     corr_abs = np.abs(clist)
     corr_max = np.max(corr_abs)
-    t0 = tlist[np.argmax(corr_abs)]
+    tc = 2/np.max(tlist)
 
     # Checks if constant array, and assigns zero
     if (clist == clist[0]).all():
@@ -1853,12 +1853,12 @@ def _default_guess_cfreal(tlist, clist, full_ansatz):
         return [[0] * 3]*3
 
     if full_ansatz:
-        lower = [-100 * corr_max, -np.inf, -1, -100 * corr_max]
+        lower = [-100 * corr_max, -np.inf, -np.inf, -100 * corr_max]
         guess = [corr_max, -100*corr_max, 0, 0]
-        upper = [100*corr_max, 0, 1, 100*corr_max]
+        upper = [100*corr_max, 0, np.inf, 100*corr_max]
     else:
         lower = [-20 * corr_max, -np.inf, 0]
-        guess = [corr_max, -t0, t0]
+        guess = [corr_max, -tc, 0]
         upper = [20 * corr_max, 0.1, np.inf]
 
     return guess, lower, upper

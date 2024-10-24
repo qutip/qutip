@@ -734,10 +734,22 @@ class HEOMSolver(Solver):
         return exponents
 
     def _is_environment_api(self, bath_spec):
-        return isinstance(bath_spec, (list, tuple)) and (
-            isinstance(bath_spec[0], ExponentialBosonicEnvironment)
-            or isinstance(bath_spec[0], ExponentialFermionicEnvironment)
-        )
+        is_list =isinstance(bath_spec, (list, tuple)) 
+        if is_list:
+            env_syntax= (
+                isinstance(bath_spec[0], ExponentialBosonicEnvironment)
+                or isinstance(bath_spec[0], ExponentialFermionicEnvironment)
+            )
+            is_bath = (
+                isinstance(bath_spec[0], BosonicBath)
+                or isinstance(bath_spec[0],FermionicBath)
+            )
+        else:
+            return False
+        if is_bath:
+            return False
+        else:
+            return is_list and env_syntax
 
     def _env_to_bath(self, bath_spec):
         if isinstance(bath_spec[0], ExponentialBosonicEnvironment):

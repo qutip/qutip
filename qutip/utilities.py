@@ -477,7 +477,7 @@ def _rmse(fun, xdata, ydata, params):
 
 
 def _fit(fun, num_params, xdata, ydata, guesses, lower, upper,sigma,
-         method,maxfev):
+         maxfev,method='trf'):
     # fun: model function
     # num_params: number of parameters in fun
     # xdata, ydata: data to be fit
