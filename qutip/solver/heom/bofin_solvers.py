@@ -718,11 +718,17 @@ class HEOMSolver(Solver):
         if (not isinstance(bath, (list, tuple))
             or self._is_environment_api(bath)):
             bath = [bath]
-
         exponents = []
         for b in bath:
             if self._is_environment_api(b):
-                b = self._env_to_bath(b)
+                try:
+                    b = self._env_to_bath(b)
+                except ValueError as ve:
+                    raise ValueError(ve.args[0] +
+                        " When passing environments and baths make sure to"
+                        " include the coupling operators for the environments"
+                        " [(env,Q),bath] is correct while [env,bath] is not"
+                    )
             exponents.extend(b.exponents)
 
         if not all(exp.Q.dims == exponents[0].Q.dims for exp in exponents):
@@ -753,12 +759,8 @@ class HEOMSolver(Solver):
         if is_bath:
             return False
         else:
-            if isinstance(bath_spec[1],Qobj):
-                return is_list and env_syntax
-            else:
-                raise ValueError("Enviroments must be passed with their"
-                    " corresponding coupling operator as a list"
-                    " or tuple (env,Q)")
+            return is_list and env_syntax
+            
 
     def _env_to_bath(self, bath_spec):
         if isinstance(bath_spec[0], ExponentialBosonicEnvironment):
