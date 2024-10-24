@@ -352,7 +352,7 @@ class BosonicEnvironment(abc.ABC):
         self, tlist: ArrayLike, target_rsme: float = 2e-5, Nr_max: int = 10,
         Ni_max: int = 10, guess: list[float] = None, lower: list[float] = None,
         upper: list[float] = None, full_ansatz: bool = False, tag: Any = None,
-        combine: bool =True
+        combine: bool =True,sigma:float= 1e-4,maxfev:int=100_000
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its
@@ -442,6 +442,13 @@ class BosonicEnvironment(abc.ABC):
         combine : bool, default True
             Whether to combine exponents with the same frequency (and coupling
             operator). See :meth:`combine` for details.
+        sigma : float, default 1e-4
+            The uncertainty in the date provided, to calculate uncertainty
+            residuals, it is useful to decrease if the values of the data are 
+            too small
+        maxfev: int, default 100_000
+            Number of times the parameters of the fit are allowed to vary 
+            during the optimization
         Returns
         -------
         approx_env : :class:`ExponentialBosonicEnvironment`
@@ -507,7 +514,8 @@ class BosonicEnvironment(abc.ABC):
         start_real = time()
         rmse_real, params_real = iterated_fit(
             _cf_real_fit_model, num_params, tlist, np.real(clist), target_rsme,
-            guess_re, Nr_min, Nr_max, lower_re, upper_re
+            guess_re, Nr_min, Nr_max, lower_re, upper_re,sigma=sigma,
+            maxfev=maxfev
         )
         end_real = time()
         fit_time_real = end_real - start_real
@@ -516,7 +524,8 @@ class BosonicEnvironment(abc.ABC):
         start_imag = time()
         rmse_imag, params_imag = iterated_fit(
             _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rsme,
-            guess_im, Ni_min, Ni_max, lower_im, upper_im
+            guess_im, Ni_min, Ni_max, lower_im, upper_im,
+            sigma=sigma,maxfev=maxfev
         )
         end_imag = time()
         fit_time_imag = end_imag - start_imag
@@ -564,7 +573,8 @@ class BosonicEnvironment(abc.ABC):
     def approx_by_sd_fit(
         self, wlist: ArrayLike, Nk: int = 1, target_rsme: float = 5e-6,
         Nmax: int = 10, guess: list[float] = None, lower: list[float] = None,
-        upper: list[float] = None, tag: Any = None,combine: bool=True
+        upper: list[float] = None, tag: Any = None,combine: bool=True,
+        sigma:float =1e-4,maxfev:int=1e-6
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its spectral
@@ -619,6 +629,13 @@ class BosonicEnvironment(abc.ABC):
         combine : bool, default True
             Whether to combine exponents with the same frequency (and coupling
             operator). See :meth:`combine` for details.
+        sigma : float, default 1e-4
+            The uncertainty in the date provided, to calculate uncertainty
+            residuals, it is useful to decrease if the values of the data are 
+            too small
+        maxfev: int, default 100_000
+            Number of times the parameters of the fit are allowed to vary 
+            during the optimization
         Returns
         -------
         approx_env : :class:`ExponentialBosonicEnvironment`
@@ -659,7 +676,7 @@ class BosonicEnvironment(abc.ABC):
         start = time()
         rmse, params = iterated_fit(
             _sd_fit_model, 3, wlist, jlist, target_rsme, guess,
-            Nmin, Nmax, lower, upper
+            Nmin, Nmax, lower, upper,sigma=sigma,maxfev=maxfev
         )
         end = time()
         fit_time = end - start
