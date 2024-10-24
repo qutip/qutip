@@ -406,13 +406,6 @@ def iterated_fit(
         The model parameters in the form
         `[[p11, ..., p1n], [p21, ..., p2n], ..., [pN1, ..., pNn]]`.
     """
-
-    # Check if array is constant
-    # if (ydata == ydata[0]).all():
-    #     if num_params == 3:
-    #         return [ydata[0]], [0], [0]
-    #     else:
-    #         return [ydata[0]], [0], [0], [0]
     if len(xdata) != len(ydata):
         raise ValueError(
             "The shape of the provided fit data is not consistent")

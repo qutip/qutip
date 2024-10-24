@@ -278,7 +278,8 @@ class TestDrudeLorentzPadeBath:
             Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, combine=combine,
         )
         delta, terminator = bath.terminator()
-
+        print(delta)
+        print(terminator)
         assert np.abs(delta - (0.0 / 4.0)) < 1e-8
         assert isequal(terminator, - (0.0 / 4.0) * op, tol=1e-8)
 

@@ -572,7 +572,7 @@ class HEOMSolver(Solver):
 
     bath : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the
-        bath correlation funcion and their associated coefficients
+        bath correlation function and their associated coefficients
         and coupling operators, or a list of baths.
 
         If multiple baths are given, they must all be either fermionic

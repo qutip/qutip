@@ -907,6 +907,11 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         """
         if tag is None and self.tag is not None:
             tag = (self.tag, "Matsubara Truncation")
+        if self.T==0:
+            raise warnings.warn("The Matsubara coefficients at T=0 do" 
+                            "not improve with the number of exponents." 
+                            " Other approaches such as fitting the "
+                            "correlation function provide better results.")
 
         lists = self._matsubara_params(Nk)
         approx_env = ExponentialBosonicEnvironment(
@@ -996,7 +1001,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
     # --- Pade approx calculation ---
 
     def _corr(self, Nk):
-        beta = 1. / self.T
+        if self.T==0:
+            beta=np.inf
+        else:
+            beta = 1. / self.T
         kappa, epsilon = self._kappa_epsilon(Nk)
 
         eta_p = [self.lam * self.gamma *
@@ -1005,11 +1013,11 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         for ll in range(1, Nk + 1):
             eta_p.append(
-                (kappa[ll] / beta) * 4 * self.lam *
-                self.gamma * (epsilon[ll] / beta)
-                / ((epsilon[ll]**2 / beta**2) - self.gamma**2)
+                (kappa[ll] * self.T) * 4 * self.lam *
+                self.gamma * (epsilon[ll] * self.T)
+                / ((epsilon[ll]**2 * self.T**2) - self.gamma**2)
             )
-            gamma_p.append(epsilon[ll] / beta)
+            gamma_p.append(epsilon[ll] *self.T)
 
         return eta_p, gamma_p
 
@@ -1192,7 +1200,9 @@ class UnderDampedEnvironment(BosonicEnvironment):
         """ Calculate the Matsubara coefficients and frequencies. """
         if self.T==0:
             raise warnings.warn("The Matsubara coefficients at T=0 do" 
-                                "not improve with the number of exponents")
+                            "not improve with the number of exponents." 
+                            " Other approaches such as fitting the "
+                            "correlation function provide better results.")
         Om = np.sqrt(self.w0**2 - (self.gamma / 2)**2)
         Gamma = self.gamma / 2
 
