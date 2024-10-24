@@ -739,7 +739,7 @@ class HEOMSolver(Solver):
             env_syntax= (
                 isinstance(bath_spec[0], ExponentialBosonicEnvironment)
                 or isinstance(bath_spec[0], ExponentialFermionicEnvironment)
-            )
+            ) 
             is_bath = (
                 isinstance(bath_spec[0], BosonicBath)
                 or isinstance(bath_spec[0],FermionicBath)
@@ -753,7 +753,12 @@ class HEOMSolver(Solver):
         if is_bath:
             return False
         else:
-            return is_list and env_syntax
+            if isinstance(bath_spec[1],Qobj):
+                return is_list and env_syntax
+            else:
+                raise ValueError("Enviroments must be passed with their"
+                    " corresponding coupling operator as a list"
+                    " or tuple (env,Q)")
 
     def _env_to_bath(self, bath_spec):
         if isinstance(bath_spec[0], ExponentialBosonicEnvironment):
