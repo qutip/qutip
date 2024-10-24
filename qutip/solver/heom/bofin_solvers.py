@@ -745,10 +745,9 @@ class HEOMSolver(Solver):
                 or isinstance(bath_spec[0],FermionicBath)
             )
         else:
-            if (isinstance(bath_spec,ExponentialBosonicEnvironment) or
-                isinstance(bath_spec,ExponentialFermionicEnvironment)):
+            if type(bath_spec) in [ExponentialBosonicEnvironment,ExponentialFermionicEnvironment]:
                 raise ValueError("Enviroments must be passed with their"
-                                 "corresponding coupling operator as a list"
+                                 " corresponding coupling operator as a list"
                                  " or tuple (env,Q)")
             return False
         if is_bath:
