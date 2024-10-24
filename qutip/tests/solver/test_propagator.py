@@ -2,11 +2,11 @@ import numpy as np
 from scipy.integrate import trapezoid
 from qutip import (destroy, propagator, Propagator, propagator_steadystate,
                    steadystate, tensor, qeye, basis, QobjEvo, sesolve,
-                   liouvillian)
+                   liouvillian, rand_dm)
 import qutip
 import pytest
 from qutip.solver.brmesolve import BRSolver
-from qutip.solver.mesolve import MESolver
+from qutip.solver.mesolve import MESolver, mesolve
 from qutip.solver.sesolve import SESolver
 from qutip.solver.mcsolve import MCSolver
 
@@ -47,6 +47,20 @@ def testPropHOTd():
     ts = np.linspace(0, 1, 101)
     U2 = (-1j * H * trapezoid(1 + func(ts), ts)).expm()
     assert (U - U2).norm('max') < 1e-4
+
+
+def testPropHOTd():
+    "Propagator: func array td format + open"
+    a = destroy(5)
+    H = a.dag()*a
+    ts = np.linspace(-0.01, 1.01, 103)
+    coeffs = np.cos(ts)
+    Htd = [H, [H, coeffs]]
+    rho_0 = rand_dm(5)
+    rho_1_prop = propagator(Htd, 1, c_ops=[a], tlist=ts)(rho_0)
+    rho_1_me = mesolve(QobjEvo(Htd, tlist=ts), rho_0, [0, 1], [a]).final_state
+
+    assert (rho_1_prop - rho_1_me).norm('max') < 1e-4
 
 
 def testPropObjTd():

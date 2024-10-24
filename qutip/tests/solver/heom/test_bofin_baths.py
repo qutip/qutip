@@ -363,14 +363,14 @@ class TestFermionicBath:
         with pytest.raises(ValueError) as err:
             FermionicBath(Q, [1.], [], [2.], [0.6])
         assert str(err.value) == (
-            "The bath exponent lists ck_plus and vk_plus, and ck_minus and"
+            "The exponent lists ck_plus and vk_plus, and ck_minus and"
             " vk_minus must be the same length."
         )
 
         with pytest.raises(ValueError) as err:
             FermionicBath(Q, [1.], [0.5], [2.], [])
         assert str(err.value) == (
-            "The bath exponent lists ck_plus and vk_plus, and ck_minus and"
+            "The exponent lists ck_plus and vk_plus, and ck_minus and"
             " vk_minus must be the same length."
         )
 

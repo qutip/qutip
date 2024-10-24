@@ -75,6 +75,9 @@ Bibliography
 .. [BoFiN23]
     \N. Lambert, T. Raheja, S. Cross, P. Menczel, S. Ahmed, A. Pitchford, D. Burgarth, F. Nori, *QuTiP-BoFiN: A bosonic and fermionic numerical hierarchical-equations-of-motion library with applications in light-harvesting, quantum control, and single-molecule electronics*, Phys. Rev. Research **5**, 013181 (2023). :doi:`10.1103/PhysRevResearch.5.013181`.
 
+.. [Lambert19]
+    \N. Lambert, S. Ahmed, M. Cirio, F. Nori, *Modelling the ultra-strongly coupled spin-boson model with unphysical modes*, Nat Commun **10**, 3721 (2019). :doi:`10.1038/s41467-019-11656-1`.
+
 
 
 ..  The trick with |text|_ is to get an italic link, and is described in the

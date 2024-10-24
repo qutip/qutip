@@ -4,8 +4,13 @@
 Environments of Open Quantum Systems
 ************************************
 
-written by `Paul Menczel <https://www.menczel.net/>`_ and `Gerardo Suarez <https://scholar.google.com/citations?user=yi6jJAQAAAAJ&hl=es>`_ 
+*written by* |pm|_ *and* |gs|_
 
+.. _pm: https://www.menczel.net/
+.. |pm| replace:: *Paul Menczel*
+.. _gs: https://scholar.google.com/citations?user=yi6jJAQAAAAJ&hl=es
+.. |gs| replace:: *Gerardo Suarez*
+.. (this is a workaround for italic links in rst)
 
 QuTiP can describe environments of open quantum systems.
 They can be passed to various solvers, where their influence is taken into account exactly or approximately.
@@ -97,109 +102,395 @@ In the strong coupling case, QuTiP provides exact integration methods based on m
     Hence, :math:`S(0)` diverges if the spectral density is sub-ohmic.
 
 
+Pre-defined Environments
+------------------------
+
 Ohmic Environment
------------------
+^^^^^^^^^^^^^^^^^
 
-An Ohmic environment is often characterized by its spectral density, and temperature.
-Its spectral density is often  parametrized as
-
+Ohmic environments can be constructed in QuTiP using the class :class:`.OhmicEnvironment`.
+They are characterized by spectral densities of the form
 
 .. math::
     :label: ohmicf
 
-        J(\omega)
-        = \alpha \frac{\omega^s}{\omega_c^{1-s}} e^{-\omega / \omega_c} .
+    J(\omega) = \alpha \frac{\omega^s}{\omega_c^{s-1}} e^{-\omega / \omega_c} ,
 
 where :math:`\alpha` is a dimensionless parameter that indicates the coupling strength,
-:math:`\omega_{c}` is the cutoff frequency, and s is a parameter that determines the low
-frequency behaviour. The Ohmic environments are usually classified according to this parameter as
+:math:`\omega_{c}` is the cutoff frequency, and :math:`s` is a parameter that determines the low-frequency behaviour.
+Ohmic environments are usually classified according to this parameter as
 
 * Sub-Ohmic (:math:`s<1`)
 * Ohmic (:math:`s=1`)
-* Super-Ohmic (:math:`s>1`)
+* Super-Ohmic (:math:`s>1`).
 
-The parametrization of the spectral density :eq:`ohmicf` allows for the computation of the
-correlation function analytically by substituting into :eq:`cfandps`. The correlation function
-for a Ohmic environment is given by 
+.. note::
+    In the literature, the Ohmic spectral density can often be found as :math:`J(\omega) = \alpha \frac{\omega^s}{\omega_c^{s-1}} f(\omega)`,
+    where :math:`f(\omega)` with :math:`\lim\limits_{\omega \to \infty} f(\omega) = 0` is known as the cutoff function.
+    The cutoff function ensures that the spectral density and its integrals (for example :eq:`cfandps`) do not diverge.
+    Sometimes, with sub-Ohmic spectral densities, an infrared cutoff is used as well so that :math:`\lim\limits_{\omega \to 0} J(\omega) = 0`.
+    This pre-defined Ohmic environment class is restricted to an exponential cutoff function, which is one of the most commonly used in the literature.
+    Other cutoff functions can be used in QuTiP with user-defined environments as explained below.
 
+Substituting the Ohmic spectral density :eq:`ohmicf` into :eq:`cfandps`, the correlation function can be computed analytically: 
 
 .. math::
-    C(t)= \frac{1}{\pi} \alpha w_{c}^{1-s} \beta^{-(s+1)} \Gamma(s+1)
+    C(t)= \frac{\alpha}{\pi} w_{c}^{1-s} \beta^{-(s+1)} \Gamma(s+1)
     \left[ \zeta\left(s+1,\frac{1+\beta w_{c} -i w_{c} t}{\beta w_{c}}
     \right) +\zeta\left(s+1,\frac{1+ i w_{c} t}{\beta w_{c}}\right)
     \right] ,
 
-where :math:`\Gamma` is the gamma function, and :math:`\zeta` the
-Riemann zeta function. The zero temperature case can be obtained by taking the limit :math:`\beta \to \infty`
-which results in 
+where :math:`\beta` is the inverse temperature, :math:`\Gamma` the Gamma function, and :math:`\zeta` the Hurwitz zeta function.
+The zero temperature case can be obtained by taking the limit :math:`\beta \to \infty`, which results in 
 
 .. math::
-    C(t)= \frac{\alpha}{\pi}  w_{c}^{s+1} \Gamma(s+1) (1+ i \omega_{c} t)^{-(s+1)}
+    C(t) = \frac{\alpha}{\pi} \omega_c^2\, \Gamma(s+1) (1+ i \omega_{c} t)^{-(s+1)} .
 
-The evaluation of the Riemann zeta function for complex
-arguments requires `mpmath`, so certain features of the Ohmic enviroment are 
+The evaluation of the zeta function for complex arguments requires `mpmath`, so certain features of the Ohmic enviroment are 
 only available if `mpmath` is installed.
 
+Multi-exponential approximations to Ohmic environments can be obtained through
+the fitting procedures :meth:`approx_by_cf_fit<.BosonicEnvironment.approx_by_cf_fit>`
+and :meth:`approx_by_sd_fit<.BosonicEnvironment.approx_by_sd_fit>`.
+The following example shows how to create a sub-Ohmic environment, and how to use
+:meth:`approx_by_cf_fit<.BosonicEnvironment.approx_by_cf_fit>` to fit the real and imaginary parts
+of the correlation function with two exponential terms each.
 
-.. note::
-    In the literature the Ohmic spectral density can often be found as  :math:`J(\omega)= \alpha \frac{\omega^s}{\omega_c^{1-s}} f(\omega)`
-    where :math:`\lim\limits_{\omega \to \infty} f(\omega) = 0` is known as the cutoff function, and is a function that makes sure the function
-    and its integrals (for example :eq:`cfandps`) do not diverge. Sometimes, with sub-Ohmic spectral densities
-    an infrared cutoff is used as well so that :math:`\lim\limits_{\omega \to 0} J(\omega) = 0`. While we chose an exponential cutoff function
-    as it is one of the most used in the literature, other cutoff functions are possible and such baths can be constructed with User-Defined
-    environments as explained below.
+.. plot::
+    :context: reset
+    :nofigs:
+
+    import numpy as np
+    import qutip as qt
+    import matplotlib.pyplot as plt
+
+    # Define a sub-Ohmic environment with the given temperature, coupling strength and cutoff
+    env = qt.OhmicEnvironment(T=0.1, alpha=1, wc=3, s=0.7)
+
+    # Fit the correlation function with two exponential terms
+    tlist = np.linspace(0, 3, 250)
+    approx_env, info = env.approx_by_cf_fit(tlist, target_rsme=None, Nr_max=2, Ni_max=2)
+
+The environment `approx_env` created here could be used, for example, with the :ref:`HEOM solver<heom>`.
+The variable `info` contains info about the convergence of the fit; here, we will just plot the fit together with
+the analytical correlation function. Note that a larger number of exponential terms would have yielded a better result.
+
+.. plot::
+    :context:
+
+    plt.plot(tlist, np.real(env.correlation_function(tlist)), label='Real part (analytic)')
+    plt.plot(tlist, np.real(approx_env.correlation_function(tlist)), '--', label='Real part (fit)')
+
+    plt.plot(tlist, np.imag(env.correlation_function(tlist)), label='Imag part (analytic)')
+    plt.plot(tlist, np.imag(approx_env.correlation_function(tlist)), '--', label='Imag part (fit)')
+
+    plt.xlabel('Time')
+    plt.ylabel('Correlation function')
+    plt.tight_layout()
+    plt.legend()
+
 
 Drude-Lorentz Environment
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A Drude-Lorentz enviroment also known as Overdamped enviroment, is one that is characterized
-by the spectral density
+Drude-Lorentz environments, also known as overdamped environments, can be constructed in QuTiP
+using the class :class:`.DrudeLorentzEnvironment`. They are characterized by spectral densities of the form
+
+.. math::
+    J(\omega) = \frac{2 \lambda \gamma \omega}{\gamma^{2}+\omega^{2}} ,
+
+where :math:`\lambda` is a coupling strength (with the dimension of energy) and :math:`\gamma` the cutoff frequency.
+
+To compute the corresponding correlation function, one can apply the Matsubara expansion:
+
+.. math::
+      C(t) = \sum_{k=0}^{\infty} c_k e^{- \nu_k t}
+
+The coefficients of this expansion are
 
 .. math::
 
-    J(\omega) = \frac{2 \lambda \gamma \omega}{\gamma^{2}+\omega^{2}}
+    \nu_{k} = \begin{cases}
+        \gamma               & k = 0\\
+        {2 \pi k} / {\beta}  & k \geq 1\\
+    \end{cases} \;, \qquad
+    c_k = \begin{cases}
+        \lambda \gamma [\cot(\beta \gamma / 2) - i]                & k = 0\\
+        \frac{4 \lambda \gamma \nu_k }{ (\nu_k^2 - \gamma^2)\beta} & k \geq 1\\
+    \end{cases} \;.
 
+The function :meth:`approx_by_matsubara<.DrudeLorentzEnvironment.approx_by_matsubara>` creates a multi-exponential
+approximation to the Drude-Lorentz environment by truncating this series at a finite index :math:`N_k`.
+This approximation can then be used with the HEOM solver, for example.
+The :ref:`HEOM section<heom>` of this guide contains further examples using the Drude-Lorentz enviroment.
 
+Similarly, the function :meth:`approx_by_pade<.DrudeLorentzEnvironment.approx_by_pade>` can be used to apply
+and truncate the numerically more efficient Pade expansion.
 
 Underdamped Environment
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
-An Underdamped enviroment is characterized by the spectral density 
+Underdamped environments can be constructed in QuTiP
+using the class :class:`.UnderDampedEnvironment`. They are characterized by spectral densities of the form
 
 .. math::
-    J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_{c}^{2}-
-    \omega^{2})^{2}+ \Gamma^{2} \omega^{2}}
+    J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_0^{2}-
+    \omega^{2})^{2}+ \Gamma^{2} \omega^{2}} ,
+
+where :math:`\lambda`, :math:`\Gamma` and :math:`\omega_0` are the coupling strength
+(with dimension :math:`(\text{energy})^{3/2}`), the cutoff frequency and the resonance frequency.
+
+Similar to the Drude-Lorentz environment, the correlation function can be approximated by a
+Matsubara expansion. This functionality is available with the
+:meth:`approx_by_matsubara<.UnderDampedEnvironment.approx_by_matsubara>` function.
+
+For small temperatures, the Matsubara expansion converges slowly. It is recommended to instead use a fitting procedure
+for the Matsubara contribution as described in [Lambert19]_.
 
 
+User-Defined Environments
+-------------------------
 
+As stated in the introduction, a bosonic environment is fully characterized
+by its temperature and spectral density (SD), or alternatively by its correlation function (CF)
+or its power spectrum (PS). QuTiP allows for the creation of an user-defined environment by
+specifying either the spectral density, the correlation function, or the power spectrum.
 
-User-Defined Environment
-------------------------
+QuTiP then computes the other two functions based on the provided one. To do so, it converts between
+the SD and the PS using the formula
+:math:`S(\omega) = \operatorname{sign}(\omega)\, J(|\omega|) \bigl[ \coth( \beta\omega / 2 ) + 1 \bigr]`
+introduced earlier, and between the PS and the CF using fast Fourier transform.
+The former conversion requires the bath temperature to be specified; the latter requires a cutoff frequency (or cutoff time)
+to be provided together with the specified function (SD, CF or PS).
+In this way, all characteristic functions can be computed from the specified one.
 
-As stated in the introduction a thermal Bosonic environment is fully characterized
-by its temperature and spectral density, or alternatively by its correlation function
-or power spectrum. QuTiP Allows for the creation of an User defined environment by
-specifying either
+The following example manually creates an environment with an underdamped spectral density.
+It then compares the correlation function obtained via fast Fourier transformation with the Matsubara expansion.
+The slow convergence of the Matsubara expansion is visible around :math:`t=0`.
 
-* The Spectral Density 
-* The Correlation function
-* The  Power spectrum
+.. plot::
+    :context: close-figs
 
-While temperature is an optional parameter, it is needed to fully characterize
-the environment. If it is not provided then one cannot recover the unspecified 
-functions 
+    # Define underdamped environment parameters
+    T = 0.1
+    lam = 1
+    gamma = 2
+    w0 = 5
 
-TODO: Very Clear example.
+    # User-defined environment based on SD
+    def underdamped_sd(w):
+        return lam**2 * gamma * w / ((w**2 - w0**2)**2 + (gamma*w)**2)
+    env = qt.BosonicEnvironment.from_spectral_density(underdamped_sd, wMax=50, T=T)
 
+    tlist = np.linspace(-2, 2, 250)
+    plt.plot(tlist, np.real(env.correlation_function(tlist)), label='FFT')
+
+    # Pre-defined environment and Matsubara approximations
+    env2 = qt.UnderDampedEnvironment(T, lam, gamma, w0)
+    for Nk in range(0, 11, 2):
+        approx_env = env2.approx_by_matsubara(Nk)
+        plt.plot(tlist, np.real(approx_env.correlation_function(tlist)), label=f'Nk={Nk}')
+
+    plt.xlabel('Time')
+    plt.ylabel('Correlation function (real part)')
+    plt.tight_layout()
+    plt.legend()
 
 
 Multi-Exponential Approximations
 --------------------------------
 
-TODO.
+Many approaches to simulating the dynamics of an open quantum system strongly coupled to an environment
+assume that the environment correlation function can be approximated by a multi-exponential expansion like
 
+.. math::
+    C(t) = C_R(t) + \mathrm i C_I(t) , \qquad
+    C_{R,I}(t) = \sum_{k=1}^{N_{R,I}} c^{R,I}_k \exp[-\nu^{R,I}_k t]
+
+with small numbers :math:`N_{R,I}` of exponents.
+Note that :math:`C_R(t)` and :math:`C_I(t)` are the real and imaginary parts of the correlation function,
+but the coefficients :math:`c^{R,I}_k` and exponents :math:`\nu^{R,I}_k` are not required to be real in general.
+
+In the previous sections, various methods of obtaining multi-exponential approximations were introduced.
+The output of these approximation functions are :class:`.ExponentialBosonicEnvironment` objects.
+An :class:`.ExponentialBosonicEnvironment` is basically a collection of :class:`.CFExponent` s, which store (in the bosonic case)
+the coefficient, the exponent, and whether the exponent contributes to the real part, the imaginary part, or both.
+As we have already seen above, one can then compute the spectral density, correlation function and power spectrum corresponding
+to the exponents, in order to compare them to the original, exact environment.
+
+Let :math:`c_k \mathrm e^{-\nu_k t}` be a term in the correlation function (i.e., :math:`c_k = c^R_k` or :math:`c_k = \mathrm i c^I_k`).
+The corresponding term in the power spectrum is
+
+.. math::
+    S_k(\omega) = 2\Re\Bigr[ \frac{c_k}{\nu_k - \mathrm i\omega} \Bigr]
+
+and, if a temperature has been specified, the corresponding term in the spectral density can be computed as described above.
+
+The following example shows how to manually create an :class:`.ExponentialBosonicEnvironment` for the simple example
+:math:`C(t) = c \mathrm e^{-\nu t}` with real :math:`c`, :math:`\nu`. The power spectrum then is a Lorentzian,
+:math:`S(\omega) = 2c\nu / (\nu^2 + \omega^2)`.
+
+.. plot::
+    :context: close-figs
+
+    c = 1
+    nu = 2
+    wlist = np.linspace(-3, 3, 250)
+
+    env = qt.ExponentialBosonicEnvironment([c], [nu], [], [])
+
+    plt.figure(figsize=(4, 3))
+    plt.plot(wlist, env.power_spectrum(wlist))
+    plt.plot(wlist, 2 * c * nu / (nu**2 + wlist**2), '--')
+    plt.xlabel('Frequency')
+    plt.ylabel('Power spectrum')
+    plt.tight_layout()
+
+
+.. _fermionic environments guide:
 
 Fermionic environments
 ----------------------
 
-Todo.
+The implementation of fermionic environments in QuTiP is not yet as advanced as the bosonic environments.
+Currently, user-defined fermionic environments and fitting are not implemented.
+
+However, the overall structure of fermionic environments in QuTiP is analogous to the bosonic environments.
+There is one pre-defined fermionic environment, the Lorentzian environment, and multi-exponential fermionic environments.
+Lorentzian environments can be approximated by multi-exponential Matsubara or Pade expansions.
+
+In the fermionic case, we consider the number-conserving Hamiltonian
+
+.. math::
+    H = H_s + (B^\dagger c + c^\dagger B) + \sum_k \hbar\omega_k\, b^\dagger_k b_k , \qquad
+    B = \sum_k f_k b_k ,
+
+where the bath operators :math:`b_k` and the system operator :math:`c` obey fermionic anti-commutation relations.
+In analogy to the bosonic case, we define the spectral density
+
+.. math::
+    J(\omega) = 2\pi \sum_k f_k^2\, \delta[\omega - \omega_k] ,
+
+which may however now be defined for all (including negative) frequencies, since the spectrum of each mode is bounded.
+
+The fermionic environment is characterized either by its spectral density, inverse temperature :math:`\beta` and chemical potential :math:`\mu`,
+or equivalently by two correlation functions or by two power spectra. The correlation functions are
+
+.. math::
+    C^\sigma(t) = \langle B^\sigma(t) B^{-\sigma} \rangle
+    = \int_{-\infty}^\infty \frac{\mathrm d\omega}{2\pi}\, J(\omega)\, 
+        \mathrm e^{\sigma \mathrm i\omega t}\, f_F(\sigma \beta[\omega - \mu]) ,
+
+where :math:`\sigma = \pm 1`, :math:`B^+ = B^\dagger` and :math:`B^- = B`.
+Further, :math:`f_F(x) = (\mathrm e^x + 1)^{-1}` is the Fermi-Dirac function.
+Note that we still have :math:`C^\sigma(-t) = C^\sigma(t)^\ast`.
+The power spectra are the Fourier transformed correlation functions,
+
+.. math::
+    S^\sigma(\omega) = \int_{-\infty}^\infty \mathrm dt\, C^\sigma(t)\, \mathrm e^{-\sigma \mathrm i\omega t}
+        = J(\omega) f_F(\sigma\beta[\omega - \mu]) .
+
+Since :math:`f_F(x) + f_F(-x) = 1`, we have :math:`S^+(\omega) + S^-(\omega) = J(\omega)`.
+
+.. note::
+    The relationship between the spectral density and the two power spectra (or the two correlation functions) is not one-to-one.
+    A pair of functions :math:`S^\pm(\omega)` is physical if they satisfy the condition
+
+    .. math::
+        S^-(\omega) = \mathrm e^{\beta(\omega - \mu)}\, S^+(\omega) .
+
+    For the correlation functions, the condition becomes :math:`C^-(t) = \mathrm e^{-\beta\mu}\, C^+(t - \mathrm i\beta)^\ast`.
+    For flexibility, we do not enforce the power spectra / correlation functions to be physical in this sense.
+
+
+Lorentzian Environment
+^^^^^^^^^^^^^^^^^^^^^^
+
+Fermionic Lorentzian environments are represented by the class :class:`.LorentzianEnvironment`.
+They are characterized by spectral densities of the form
+
+.. math::
+    J(\omega) = \frac{\gamma W^2}{(\omega - \omega_0)^2 + W^2} ,
+
+where :math:`\gamma` is the coupling strength, :math:`W` the spectral width and :math:`\omega_0` the resonance frequency.
+Often, the resonance frequency is taken to be equal to the chemical potential of the environment.
+
+As with the bosonic Drude-Lorentz environments, multi-exponential approximations of the correlation functions,
+
+.. math::
+    C^\sigma(t) \approx \sum_{k=0}^{N_k} c^\sigma_k e^{- \nu^\sigma_k t} ,
+
+can be obtained using the Matsubara or Pade expansions.
+The functions :meth:`approx_by_matsubara<.LorentzianEnvironment.approx_by_matsubara>` and
+:meth:`approx_by_pade<.LorentzianEnvironment.approx_by_pade>` implement these approximations in QuTiP,
+yielding approximated environments that can be used, for example, with the HEOM solver.
+Note that for this type of environment, the Matsubara expansion is very inefficient, converging much more slowly than the Pade expansion.
+Typically, at least :math:`N_k \geq 20` is required for good convergence.
+
+For reference, we tabulate the values of the coefficients and exponents in the following.
+For the Matsubara expansion, they are
+
+.. math::
+
+    \nu^\sigma_{k} = \begin{cases}
+        W - \mathrm i \sigma\, \omega_0                     & k = 0\\
+        \frac{(2k - 1) \pi}{\beta} - \mathrm i \sigma\, \mu & k \geq 1\\
+    \end{cases} \;, \qquad
+    c^\sigma_k = \begin{cases}
+        \frac{\gamma W}{2} f_F[\sigma\beta(\omega_0 - \mu) + \mathrm i\, \beta W]    & k = 0\\
+        \frac{\mathrm i \gamma W^2}{\beta} \frac{1}{[\mathrm i \sigma (\omega_0 - \mu) + (2k - 1) \pi / \beta]^2 - W^2} & k \geq 1\\
+    \end{cases} \;.
+
+The Padé decomposition approximates the Fermi distribution as:
+
+.. math::
+
+    f_F(x) \approx f_F^{\mathrm{approx}}(x) = \frac{1}{2} - \sum_{k=0}^{N_k} \frac{2\kappa_k x}{x^2 + \epsilon_k^2}
+
+where :math:`\kappa_k` and :math:`\epsilon_k` are coefficients that depend on :math:`N_k` and are defined in
+`J. Chem Phys 133, "Efficient on the fly calculation of time correlation functions in computer simulations" <https://doi.org/10.1063/1.3491098>`_.
+This approach results in the exponents
+
+.. math::
+
+    \nu^\sigma_{k} = \begin{cases}
+        W - \mathrm i \sigma\, \omega_0                     & k = 0\\
+        \frac{\epsilon_k}{\beta} - \mathrm i \sigma\, \mu    & k \geq 1\\
+    \end{cases} \;, \qquad
+    c^\sigma_k = \begin{cases}
+        \frac{\gamma W}{2} f_F^{\mathrm{approx}}[\sigma\beta(\omega_0 - \mu) + \mathrm i\, \beta W] & k = 0\\
+        \frac{\mathrm i\, \kappa_k \gamma W^2}{\beta} \frac{1}{[\mathrm i\sigma(\omega_0 - \mu) + \epsilon_k / \beta]^2 - W^2} & k \geq 1\\
+    \end{cases} \;.
+
+
+Multi-Exponential Fermionic Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Analogous to the :class:`.ExponentialBosonicEnvironment` in the bosonic case, the :class:`.ExponentialFermionicEnvironment` describes fermionic environments
+where the correlation functions are given by multi-exponential decompositions,
+
+.. math::
+    C^\sigma(t) \approx \sum_{k=0}^{N_k^\sigma} c^\sigma_k e^{-\nu^\sigma_k t} .
+
+As mentioned above, the two correlation-functions are in principle not independent, and one could be computed from the other through the relations
+
+.. math::
+    \nu_k^- = (\nu_k^+)^\ast , \qquad
+    c_k^- = (c_k^+)^\ast\, \mathrm e^{-\beta (\mu + \mathrm i \nu_k^-)} .
+
+However, for more flexibility, we allow both correlation functions to be specified independently.
+
+Like in the bosonic case, the class allows us to automatically compute the spectral density and power spectra that correspond to the
+multi-exponential correlation functions.
+In this case, they are
+
+.. math::
+    S^\sigma(\omega) = \sum_{k=0}^{N_k^\sigma} 2\Re\Bigr[ \frac{c_k^\sigma}{\nu_k^\sigma + \mathrm i \sigma\, \omega} \Bigr]
+
+and :math:`J(\omega) = S^+(\omega) + S^-(\omega)`.
+
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:

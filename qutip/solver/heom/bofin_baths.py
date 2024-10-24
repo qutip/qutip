@@ -13,9 +13,6 @@ Instead of this module, prefer using `qutip.environment`, which provides the
 full functionality of this module and is compatible with other QuTiP solvers.
 """
 
-import numpy as np
-from scipy.linalg import eigvalsh
-
 from qutip.core import data as _data
 from qutip.core import environment
 from qutip.core.qobj import Qobj
@@ -101,14 +98,30 @@ class BathExponent(environment.CFExponent):
     """
     types = environment.CFExponent.types
 
+    def _check_sigma_bar_k_offset(self, type, offset):
+        if type in (self.types["+"], self.types["-"]):
+            if offset is None:
+                raise ValueError(
+                    "+ and - type exponents require sigma_bar_k_offset"
+                )
+        else:
+            if offset is not None:
+                raise ValueError(
+                    "Offset of sigma bar (sigma_bar_k_offset) should only be"
+                    " specified for + and - type exponents"
+                )
+
     def __init__(
             self, type, dim, Q, ck, vk, ck2=None,
             sigma_bar_k_offset=None, tag=None,
     ):
-        super().__init__(type, ck, vk, ck2, sigma_bar_k_offset, tag)
+        super().__init__(type, ck, vk, ck2, tag)
 
         self.dim = dim
         self.Q = Q
+
+        self._check_sigma_bar_k_offset(self.type, sigma_bar_k_offset)
+        self.sigma_bar_k_offset = sigma_bar_k_offset
 
     def __repr__(self):
         dims = getattr(self.Q, "dims", None)
@@ -202,9 +215,6 @@ class BosonicBath(environment.ExponentialBosonicEnvironment):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
-
-    T: optional, float
-        The temperature of the bath.
     """
 
     def _make_exponent(self, type, ck, vk, ck2=None, tag=None):
@@ -215,26 +225,25 @@ class BosonicBath(environment.ExponentialBosonicEnvironment):
             raise ValueError("The coupling operator Q must be a Qobj.")
 
     def __init__(
-            self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
-            tag=None, T=None
+        self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True, tag=None
     ):
         self._check_coup_op(Q)
         self._Q = Q
 
         super().__init__(ck_real, vk_real, ck_imag, vk_imag,
-                         combine=combine, T=T, tag=tag)
+                         combine=combine, tag=tag)
 
-    @staticmethod
-    def from_environment(env, Q, dim=None):
+    @classmethod
+    def from_environment(cls, env, Q, dim=None):
         bath_exponents = []
         for exponent in env.exponents:
             new_exponent = BathExponent(
                 exponent.type, dim, Q, exponent.ck, exponent.vk,
-                exponent.ck2, exponent.sigma_bar_k_offset, env.tag
+                exponent.ck2, None, env.tag
             )
             bath_exponents.append(new_exponent)
 
-        result = BosonicBath(Q, [], [], [], [], tag=env.tag, T=env.T)
+        result = cls(Q, [], [], [], [], tag=env.tag)
         result.exponents = bath_exponents
         return result
 
@@ -450,7 +459,7 @@ class UnderDampedBath(BosonicBath):
         return BosonicBath.from_environment(matsubara_approx, Q)
 
 
-class FermionicBath(Bath):
+class FermionicBath(environment.ExponentialFermionicEnvironment):
     """
     A helper class for constructing a fermionic bath from the expansion
     coefficients and frequencies for the ``+`` and ``-`` modes of
@@ -503,18 +512,16 @@ class FermionicBath(Bath):
     """
 
     def _check_cks_and_vks(self, ck_plus, vk_plus, ck_minus, vk_minus):
-        if len(ck_plus) != len(vk_plus) or len(ck_minus) != len(vk_minus):
-            raise ValueError(
-                "The bath exponent lists ck_plus and vk_plus, and ck_minus and"
-                " vk_minus must be the same length."
-            )
-        if len(ck_plus) != len(ck_minus):
+        lists_provided = super()._check_cks_and_vks(
+            ck_plus, vk_plus, ck_minus, vk_minus)
+        if lists_provided and len(ck_plus) != len(ck_minus):
             raise ValueError(
                 "The must be the same number of plus and minus exponents"
                 " in the bath, and elements of plus and minus arrays"
                 " should be arranged so that ck_plus[i] is the plus mode"
                 " corresponding to ck_minus[i]."
             )
+        return lists_provided
 
     def _check_coup_op(self, Q):
         if not isinstance(Q, Qobj):
@@ -532,7 +539,35 @@ class FermionicBath(Bath):
             exponents.append(BathExponent(
                 "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1, tag=tag,
             ))
-        super().__init__(exponents)
+        super().__init__(exponents=exponents, tag=tag)
+
+    @classmethod
+    def from_environment(cls, env, Q, dim=2):
+        # make same amount of plus and minus exponents by adding zeros
+        plus_exponents = []
+        minus_exponents = []
+        for exponent in env.exponents:
+            if exponent.type == BathExponent.types['+']:
+                plus_exponents.append(exponent)
+            else:
+                minus_exponents.append(exponent)
+        while len(plus_exponents) > len(minus_exponents):
+            minus_exponents.append(environment.CFExponent('-', 0, 0))
+        while len(minus_exponents) > len(plus_exponents):
+            plus_exponents.append(environment.CFExponent('+', 0, 0))
+
+        bath_exponents = []
+        for expp, expm in zip(plus_exponents, minus_exponents):
+            bath_exponents.append(BathExponent(
+                '+', dim, Q, expp.ck, expp.vk, None, 1, env.tag
+            ))
+            bath_exponents.append(BathExponent(
+                '-', dim, Q, expm.ck, expm.vk, None, -1, env.tag
+            ))
+
+        result = cls(Q, [], [], [], [], tag=env.tag)
+        result.exponents = bath_exponents
+        return result
 
 
 class LorentzianBath(FermionicBath):
@@ -574,35 +609,11 @@ class LorentzianBath(FermionicBath):
         bath an exponent is from.
     """
 
-    def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
-        ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
-        ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
-
-        super().__init__(
-            Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
-        )
-
-    def _corr(self, gamma, w, mu, T, Nk, sigma):
-        beta = 1. / T
-        kappa = [0.]
-        kappa.extend([1. for _ in range(1, Nk + 1)])
-        epsilon = [0]
-        epsilon.extend([(2 * ll - 1) * np.pi for ll in range(1, Nk + 1)])
-
-        def f(x):
-            return 1 / (np.exp(x) + 1)
-
-        eta_list = [0.5 * gamma * w * f(1.0j * beta * w)]
-        gamma_list = [w - sigma * 1.0j * mu]
-
-        for ll in range(1, Nk + 1):
-            eta_list.append(
-                -1.0j * (kappa[ll] / beta) * gamma * w**2 /
-                (-(epsilon[ll]**2 / beta**2) + w**2)
-            )
-            gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * mu)
-
-        return eta_list, gamma_list
+    def __new__(self, Q, gamma, w, mu, T, Nk, tag=None):
+        # See DrudeLorentzBath comment
+        env = environment.LorentzianEnvironment(T, mu, gamma, w)
+        mats_approx = env.approx_by_matsubara(Nk, tag)
+        return FermionicBath.from_environment(mats_approx, Q)
 
 
 class LorentzianPadeBath(FermionicBath):
@@ -653,77 +664,8 @@ class LorentzianPadeBath(FermionicBath):
         bath an exponent is from.
     """
 
-    def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
-        ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
-        ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
-
-        super().__init__(
-            Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
-        )
-
-    def _corr(self, gamma, w, mu, T, Nk, sigma):
-        beta = 1. / T
-        kappa, epsilon = self._kappa_epsilon(Nk)
-
-        def f_approx(x):
-            f = 0.5
-            for ll in range(1, Nk + 1):
-                f = f - 2 * kappa[ll] * x / (x**2 + epsilon[ll]**2)
-            return f
-
-        eta_list = [0.5 * gamma * w * f_approx(1.0j * beta * w)]
-        gamma_list = [w - sigma * 1.0j * mu]
-
-        for ll in range(1, Nk + 1):
-            eta_list.append(
-                -1.0j * (kappa[ll] / beta) * gamma * w**2
-                / (-(epsilon[ll]**2 / beta**2) + w**2)
-            )
-            gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * mu)
-
-        return eta_list, gamma_list
-
-    def _kappa_epsilon(self, Nk):
-        eps = self._calc_eps(Nk)
-        chi = self._calc_chi(Nk)
-
-        kappa = [0]
-        prefactor = 0.5 * Nk * (2 * (Nk + 1) - 1)
-        for j in range(Nk):
-            term = prefactor
-            for k in range(Nk - 1):
-                term *= (
-                    (chi[k]**2 - eps[j]**2) /
-                    (eps[k]**2 - eps[j]**2 + self._delta(j, k))
-                )
-            for k in [Nk - 1]:
-                term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
-            kappa.append(term)
-
-        epsilon = [0] + eps
-
-        return kappa, epsilon
-
-    def _delta(self, i, j):
-        return 1.0 if i == j else 0.0
-
-    def _calc_eps(self, Nk):
-        alpha = np.diag([
-            1. / np.sqrt((2 * k + 3) * (2 * k + 1))
-            for k in range(2 * Nk - 1)
-        ], k=1)
-        alpha += alpha.transpose()
-
-        evals = eigvalsh(alpha)
-        eps = [-2. / val for val in evals[0: Nk]]
-        return eps
-
-    def _calc_chi(self, Nk):
-        alpha_p = np.diag([
-            1. / np.sqrt((2 * k + 5) * (2 * k + 3))
-            for k in range(2 * Nk - 2)
-        ], k=1)
-        alpha_p += alpha_p.transpose()
-        evals = eigvalsh(alpha_p)
-        chi = [-2. / val for val in evals[0: Nk - 1]]
-        return chi
+    def __new__(self, Q, gamma, w, mu, T, Nk, tag=None):
+        # See DrudeLorentzBath comment
+        env = environment.LorentzianEnvironment(T, mu, gamma, w)
+        mats_approx = env.approx_by_pade(Nk, tag)
+        return FermionicBath.from_environment(mats_approx, Q)

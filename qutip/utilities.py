@@ -3,6 +3,9 @@ This module contains utility functions that are commonly needed in other
 qutip modules.
 """
 
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
 
 from typing import Callable
@@ -360,7 +363,7 @@ def iterated_fit(
         y = \sum_{k=1}^N f(x; p_{k,1}, \dots, p_{k,n})
 
     where `f` is a model function depending on `n` parameters, and the number
-    `N` of terms is increases until the normalized rmse (root mean square
+    `N` of terms is increased until the normalized rmse (root mean square
     error) falls below the target value.
 
     Parameters

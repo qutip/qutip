@@ -10,7 +10,11 @@ __all__ = ['BosonicEnvironment',
            'UnderDampedEnvironment',
            'OhmicEnvironment',
            'ExponentialBosonicEnvironment',
-           'CFExponent']
+           'FermionicEnvironment',
+           'LorentzianEnvironment',
+           'ExponentialFermionicEnvironment',
+           'CFExponent',
+           'system_terminator']
 
 import abc
 import enum
@@ -191,9 +195,9 @@ class BosonicEnvironment(abc.ABC):
             purposes.
 
         T : optional, float
-            Bath temperature. (The spectral density of this environment can
-            only be calculated from the correlation function if a temperature
-            is provided.)
+            Environment temperature. (The spectral density of this environment
+            can only be calculated from the correlation function if a
+            temperature is provided.)
 
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
@@ -227,9 +231,9 @@ class BosonicEnvironment(abc.ABC):
             interval [-wMax, wMax]. Used for numerical integration purposes.
 
         T : optional, float
-            Bath temperature. (The spectral density of this environment can
-            only be calculated from the power spectrum if a temperature
-            is provided.)
+            Environment temperature. (The spectral density of this environment
+            can only be calculated from the powr spectrum if a temperature is
+            provided.)
 
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
@@ -268,9 +272,9 @@ class BosonicEnvironment(abc.ABC):
             interval [-wMax, wMax]. Used for numerical integration purposes.
 
         T : optional, float
-            Bath temperature. (The correlation function and the power spectrum
-            of this environment can only be calculated from the spectral
-            density if a temperature is provided.)
+            Environment temperature. (The correlation function and the power
+            spectrum of this environment can only be calculated from the
+            spectral density if a temperature is provided.)
 
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
@@ -283,7 +287,7 @@ class BosonicEnvironment(abc.ABC):
         # derivative: value of J'(0)
         if self.T is None:
             raise ValueError(
-                "Bath temperature must be specified for this operation")
+                "Temperature must be specified for this operation")
 
         w = np.array(w, dtype=float)
         if self.T == 0:
@@ -309,7 +313,7 @@ class BosonicEnvironment(abc.ABC):
     def _sd_from_ps(self, w):
         if self.T is None:
             raise ValueError(
-                "Bath temperature must be specified for this operation")
+                "Temperature must be specified for this operation")
 
         w = np.array(w, dtype=float)
         J = np.zeros_like(w)
@@ -781,13 +785,13 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
     Parameters
     ----------
     T : float
-        Bath temperature.
+        Environment temperature.
 
     lam : float
         Coupling strength.
 
     gamma : float
-        Bath spectral density cutoff frequency.
+        Spectral density cutoff frequency.
 
     tag : optional, str, tuple or any other object
         An identifier (name) for this environment.
@@ -894,12 +898,12 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         delta : float
             The approximation discrepancy. That is, the difference between the
-            true correlation function of the Drude-Lorentz bath and the sum of
-            the ``Nk`` exponential terms is approximately ``2 * delta *
+            true correlation function of the Drude-Lorentz environment and the
+            sum of the ``Nk`` exponential terms is approximately ``2 * delta *
             dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
             It can be used to create a "terminator" term to add to the system
             dynamics to take this discrepancy into account, see
-            :func:`system_terminator`.
+            :func:`.system_terminator`.
         """
         if tag is None and self.tag is not None:
             tag = (self.tag, "Matsubara Truncation")
@@ -943,12 +947,12 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         delta : float
             The approximation discrepancy. That is, the difference between the
-            true correlation function of the Drude-Lorentz bath and the sum of
-            the ``Nk`` exponential terms is approximately ``2 * delta *
+            true correlation function of the Drude-Lorentz environment and the
+            sum of the ``Nk`` exponential terms is approximately ``2 * delta *
             dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
             It can be used to create a "terminator" term to add to the system
             dynamics to take this discrepancy into account, see
-            :func:`system_terminator`.
+            :func:`.system_terminator`.
         """
         if tag is None and self.tag is not None:
             tag = (self.tag, "Pade Truncation")
@@ -1062,7 +1066,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
     Describes an underdamped environment with the spectral density
 
     .. math::
-        J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_{c}^{2}-
+        J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_0^{2}-
         \omega^{2})^{2}+ \Gamma^{2} \omega^{2}}
 
     (see Eq. 16 in [BoFiN23]_).
@@ -1070,16 +1074,16 @@ class UnderDampedEnvironment(BosonicEnvironment):
     Parameters
     ----------
     T : float
-        Bath temperature.
+        Environment temperature.
 
     lam : float
         Coupling strength.
 
     gamma : float
-        Bath spectral density cutoff frequency.
+        Spectral density cutoff frequency.
 
     w0 : float
-        Bath spectral density resonance frequency.
+        Spectral density resonance frequency.
 
     tag : optional, str, tuple or any other object
         An identifier (name) for this environment.
@@ -1232,14 +1236,14 @@ class OhmicEnvironment(BosonicEnvironment):
 
     .. math::
         J(\omega)
-        = \alpha \frac{\omega^s}{\omega_c^{1-s}} e^{-\omega / \omega_c} .
+        = \alpha \frac{\omega^s}{\omega_c^{s-1}} e^{-\omega / \omega_c} .
 
     This class requires the `mpmath` module to be installed.
 
     Parameters
     ----------
     T : float
-        Temperature of the bath.
+        Temperature of the environment.
 
     alpha : float
         Coupling strength.
@@ -1285,7 +1289,7 @@ class OhmicEnvironment(BosonicEnvironment):
         w_mask = w[positive_mask]
         result[positive_mask] = (
             self.alpha * w_mask ** self.s
-            / (self.wc ** (1 - self.s))
+            / (self.wc ** (self.s - 1))
             * np.exp(-np.abs(w_mask) / self.wc)
         )
 
@@ -1314,7 +1318,8 @@ class OhmicEnvironment(BosonicEnvironment):
         self, t: float | ArrayLike, **kwargs
     ) -> (float | ArrayLike):
         r"""
-        Calculates the correlation function of an Ohmic bath using the formula
+        Calculates the correlation function of an Ohmic environment using the
+        formula
 
         .. math::
             C(t)= \frac{1}{\pi} \alpha w_{c}^{1-s} \beta^{-(s+1)} \Gamma(s+1)
@@ -1347,9 +1352,9 @@ class OhmicEnvironment(BosonicEnvironment):
                 dtype=np.cdouble
             )
         else:
-            corr = (self.alpha * self.wc ** (self.s+1) / np.pi
+            corr = (self.alpha * self.wc**2 / np.pi
                     * mp.gamma(self.s + 1)
-                    * (1 + 1j * self.wc * t) ** (-(self.s + 1)))
+                    * (1 + 1j * self.wc * t) ** (-self.s - 1))
             result = np.array(corr, dtype=np.cdouble)
 
         if t_was_array:
@@ -1375,11 +1380,7 @@ class CFExponent:
         has a single ``vk``. The ``ck`` is the coefficient in the real
         expansion and ``ck2`` is the coefficient in the imaginary expansion.
 
-        "+" and "-" are fermionic exponents. These fermionic exponents must
-        specify ``sigma_bar_k_offset`` which specifies the amount to add to
-        ``k`` (the exponent index within the environment of this exponent) to
-        determine the ``k`` of the corresponding exponent with the opposite
-        sign (i.e. "-" or "+").
+        "+" and "-" are fermionic exponents.
 
     ck : complex
         The coefficient of the excitation term.
@@ -1391,12 +1392,6 @@ class CFExponent:
         For exponents of type "RI" this is the coefficient of the term in the
         imaginary expansion (and ``ck`` is the coefficient in the real
         expansion).
-
-    sigma_bar_k_offset : optional, int
-        For exponents of type "+" this gives the offset (within the list of
-        exponents within the environment) of the corresponding "-" type
-        exponent. For exponents of type "-" it gives the offset of the
-        corresponding "+" exponent.
 
     tag : optional, str, tuple or any other object
         A label for the exponent (often the name of the environment). It
@@ -1430,37 +1425,21 @@ class CFExponent:
                     " RI exponents"
                 )
 
-    def _check_sigma_bar_k_offset(self, type, offset):
-        if type in (self.types["+"], self.types["-"]):
-            if offset is None:
-                raise ValueError(
-                    "+ and - type exponents require sigma_bar_k_offset"
-                )
-        else:
-            if offset is not None:
-                raise ValueError(
-                    "Offset of sigma bar (sigma_bar_k_offset) should only be"
-                    " specified for + and - type exponents"
-                )
-
     def _type_is_fermionic(self, type):
         return type in (self.types["+"], self.types["-"])
 
     def __init__(
             self, type: str | CFExponent.ExponentType,
-            ck: complex, vk: complex, ck2: complex = None,
-            sigma_bar_k_offset: int = None, tag: Any = None
+            ck: complex, vk: complex, ck2: complex = None, tag: Any = None
     ):
         if not isinstance(type, self.types):
             type = self.types[type]
         self._check_ck2(type, ck2)
-        self._check_sigma_bar_k_offset(type, sigma_bar_k_offset)
 
         self.type = type
         self.ck = ck
         self.vk = vk
         self.ck2 = ck2
-        self.sigma_bar_k_offset = sigma_bar_k_offset
 
         self.tag = tag
         self.fermionic = self._type_is_fermionic(type)
@@ -1469,7 +1448,6 @@ class CFExponent:
         return (
             f"<{self.__class__.__name__} type={self.type.name}"
             f" ck={self.ck!r} vk={self.vk!r} ck2={self.ck2!r}"
-            f" sigma_bar_k_offset={self.sigma_bar_k_offset!r}"
             f" fermionic={self.fermionic!r}"
             f" tag={self.tag!r}>"
         )
@@ -1477,9 +1455,9 @@ class CFExponent:
     @property
     def coefficient(self) -> complex:
         coeff = 0
-        if (self.type == self.types['R'] or self.type == self.types['RI']):
+        if self.type != self.types['I']:
             coeff += self.ck
-        if self.type == self.types['I']:
+        else:
             coeff += 1j * self.ck
         if self.type == self.types['RI']:
             coeff += 1j * self.ck2
@@ -1544,7 +1522,7 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
 
     vk_real : list of complex
         The frequencies (exponents) of the expansion terms for the real part of
-        the correlation function. The corresponding ceofficients are passed as
+        the correlation function. The corresponding coefficients are passed as
         ck_real.
 
     ck_imag : list of complex
@@ -1554,7 +1532,7 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
 
     vk_imag : list of complex
         The frequencies (exponents) of the expansion terms for the imaginary
-        part of the correlation function. The corresponding ceofficients are
+        part of the correlation function. The corresponding coefficients are
         passed as ck_imag.
 
     exponents : list of :class:`CFExponent`
@@ -1567,7 +1545,7 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         operator). See :meth:`combine` for details.
 
     T: optional, float
-        The temperature of the bath.
+        The temperature of the environment.
 
     tag : optional, str, tuple or any other object
         An identifier (name) for this environment.
@@ -1737,13 +1715,13 @@ def system_terminator(Q: Qobj, delta: float) -> Qobj:
     delta : float
         The approximation discrepancy of approximating an environment with a
         finite number of exponentials, see for example
-        :meth:`DrudeLorentzEnvironment.approx_by_matsubara`.
+        :meth:`.DrudeLorentzEnvironment.approx_by_matsubara`.
 
     Returns
     -------
     terminator : :class:`Qobj`
         A superoperator acting on the system Hilbert space. Liouvillian term
-        representing the contribution to the system-bath dynamics of all
+        representing the contribution to the system-environment dynamics of all
         neglected expansion terms. It should be used by adding it to the system
         Liouvillian (i.e. ``liouvillian(H_sys)``).
     """
@@ -1827,7 +1805,9 @@ def _cf_real_fit_model(tlist, a, b, c, d=0):
 
 
 def _cf_imag_fit_model(tlist, a, b, c, d=0):
-    return np.imag((a + 1j * d) * np.exp((b + 1j * c) * np.abs(tlist)))
+    return np.sign(tlist) * np.imag(
+        (a + 1j * d) * np.exp((b + 1j * c) * np.abs(tlist))
+    )
 
 
 def _default_guess_cfreal(tlist, clist, full_ansatz):
@@ -1968,52 +1948,703 @@ def _cf_fit_summary(
     return full_summary
 
 
-# Fermionic enviroments not yet implemented
+# --- fermionic environments ---
 
 class FermionicEnvironment(abc.ABC):
-    def __init__():
+    r"""
+    The fermionic environment of an open quantum system. It is characterized by
+    its spectral density, temperature and chemical potential or, equivalently,
+    by its power spectra or its two-time auto-correlation functions.
+
+    This class is included as a counterpart to :class:`BosonicEnvironment`, but
+    it currently does not support all features that the bosonic environment
+    does. In particular, fermionic environments cannot be constructed from
+    manually specified spectral densities, power spectra or correlation
+    functions. The only types of fermionic environment implemented at this time
+    are Lorentzian environments (:class:`LorentzianEnvironment`) and
+    environments with multi-exponential correlation functions
+    (:class:`ExponentialFermionicEnvironment`).
+
+    Parameters
+    ----------
+    T : optional, float
+        The temperature of this environment.
+    mu : optional, float
+        The chemical potential of this environment.
+    tag : optional, str, tuple or any other object
+        An identifier (name) for this environment.
+    """
+
+    def __init__(self, T: float = None, mu: float = None, tag: Any = None):
+        self.T = T
+        self.mu = mu
+        self.tag = tag
+
+    @abc.abstractmethod
+    def spectral_density(self, w: float | ArrayLike) -> (float | ArrayLike):
+        r"""
+        The spectral density of this environment. See the Users Guide on
+        :ref:`fermionic environments <fermionic environments guide>` for
+        specifics on the definitions used by QuTiP.
+
+        Parameters
+        ----------
+        w : array_like or float
+            The frequencies at which to evaluate the spectral density.
+        """
+
         ...
 
     @abc.abstractmethod
-    def spectral_dnesity(self):
+    def correlation_function_plus(
+        self, t: float | ArrayLike
+    ) -> (float | ArrayLike):
+        r"""
+        The "+"-branch of the auto-correlation function of this environment.
+        See the Users Guide on
+        :ref:`fermionic environments <fermionic environments guide>` for
+        specifics on the definitions used by QuTiP.
+
+        Parameters
+        ----------
+        t : array_like or float
+            The times at which to evaluate the correlation function.
+        """
+
         ...
 
     @abc.abstractmethod
-    def correlation_function_plus(self):
+    def correlation_function_minus(
+        self, t: float | ArrayLike
+    ) -> (float | ArrayLike):
+        r"""
+        The "-"-branch of the auto-correlation function of this environment.
+        See the Users Guide on
+        :ref:`fermionic environments <fermionic environments guide>` for
+        specifics on the definitions used by QuTiP.
+
+        Parameters
+        ----------
+        t : array_like or float
+            The times at which to evaluate the correlation function.
+        """
+
         ...
 
     @abc.abstractmethod
-    def correlation_function_minus(self):
+    def power_spectrum_plus(self, w: float | ArrayLike) -> (float | ArrayLike):
+        r"""
+        The "+"-branch of the power spectrum of this environment. See the Users
+        Guide on :ref:`fermionic environments <fermionic environments guide>`
+        for specifics on the definitions used by QuTiP.
+
+        Parameters
+        ----------
+        w : array_like or float
+            The frequencies at which to evaluate the power spectrum.
+        """
+
         ...
 
     @abc.abstractmethod
-    def power_spectrum_plus(self):
+    def power_spectrum_minus(
+        self, w: float | ArrayLike
+    ) -> (float | ArrayLike):
+        r"""
+        The "-"-branch of the power spectrum of this environment. See the Users
+        Guide on :ref:`fermionic environments <fermionic environments guide>`
+        for specifics on the definitions used by QuTiP.
+
+        Parameters
+        ----------
+        w : array_like or float
+            The frequencies at which to evaluate the power spectrum.
+        """
+
         ...
 
-    @abc.abstractmethod
-    def power_spectrum_minus(self):
-        ...
-
-    def exponential_approximation(self):
-        raise NotImplementedError
+    # --- user-defined environment creation
 
     @classmethod
-    def from_spectral_density(cls):
-        raise NotImplementedError
+    def from_correlation_functions(cls, **kwargs) -> FermionicEnvironment:
+        r"""
+        User-defined fermionic environments are currently not implemented.
+        """
+
+        raise NotImplementedError("User-defined fermionic environments are "
+                                  "currently not implemented.")
 
     @classmethod
-    def from_correlation_function(cls):
-        raise NotImplementedError
+    def from_power_spectra(cls, **kwargs) -> FermionicEnvironment:
+        r"""
+        User-defined fermionic environments are currently not implemented.
+        """
+
+        raise NotImplementedError("User-defined fermionic environments are "
+                                  "currently not implemented.")
 
     @classmethod
-    def from_power_spectrum(cls):
-        raise NotImplementedError
+    def from_spectral_density(cls, **kwargs) -> FermionicEnvironment:
+        r"""
+        User-defined fermionic environments are currently not implemented.
+        """
+
+        raise NotImplementedError("User-defined fermionic environments are "
+                                  "currently not implemented.")
 
 
 class LorentzianEnvironment(FermionicEnvironment):
-    def exponential_approximation(self):
-        ...
+    r"""
+    Describes a Lorentzian fermionic environment with the spectral density
+
+    .. math::
+
+        J(\omega) = \frac{\gamma W^2}{(\omega - \omega_0)^2 + W^2}.
+
+    (see Eq. 46 in [BoFiN23]_).
+
+    Parameters
+    ----------
+    T : float
+        Environment temperature.
+
+    mu : float
+        Environment chemical potential.
+
+    gamma : float
+        Coupling strength.
+
+    W : float
+        The spectral width of the environment.
+
+    omega0 : optional, float (default equal to ``mu``)
+        The resonance frequency of the environment.
+
+    tag : optional, str, tuple or any other object
+        An identifier (name) for this environment.
+    """
+
+    def __init__(
+        self, T: float, mu: float, gamma: float, W: float,
+        omega0: float = None, *, tag: Any = None
+    ):
+        super().__init__(T, mu, tag)
+
+        self.gamma = gamma
+        self.W = W
+        if omega0 is None:
+            self.omega0 = mu
+        else:
+            self.omega0 = omega0
+
+    def spectral_density(self, w: float | ArrayLike) -> (float | ArrayLike):
+        """
+        Calculates the Lorentzian spectral density.
+
+        Parameters
+        ----------
+        w : array_like or float
+            Energy of the mode.
+        """
+
+        w = np.array(w, dtype=float)
+        return self.gamma * self.W**2 / ((w - self.omega0)**2 + self.W**2)
+
+    def correlation_function_plus(
+        self, t: float | ArrayLike, Nk: int = 100
+    ) -> (float | ArrayLike):
+        r"""
+        Calculates the "+"-branch of the two-time auto-correlation function of
+        the Lorentzian environment. The calculation is performed by summing a
+        large number of exponents of the Matsubara expansion.
+
+        Parameters
+        ----------
+        t : array_like or float
+            The time at which to evaluate the correlation function.
+        Nk : int, default 100
+            The number of exponents to use.
+        """
+
+        return self._correlation_function(t, Nk, 1)
+
+    def correlation_function_minus(
+        self, t: float | ArrayLike, Nk: int = 100
+    ) -> (float | ArrayLike):
+        r"""
+        Calculates the "-"-branch of the two-time auto-correlation function of
+        the Lorentzian environment. The calculation is performed by summing a
+        large number of exponents of the Matsubara expansion.
+
+        Parameters
+        ----------
+        t : array_like or float
+            The time at which to evaluate the correlation function.
+        Nk : int, default 100
+            The number of exponents to use.
+        """
+
+        return self._correlation_function(t, Nk, -1)
+
+    def _correlation_function(self, t, Nk, sigma):
+        t = np.array(t, dtype=float)
+        abs_t = np.abs(t)
+        c, v = self._matsubara_params(Nk, sigma)
+
+        result = np.sum([ck * np.exp(-np.array(vk * abs_t))
+                         for ck, vk in zip(c, v)], axis=0)
+
+        result[t < 0] = np.conj(result[t < 0])
+        return result
+
+    def power_spectrum_plus(self, w: float | ArrayLike) -> (float | ArrayLike):
+        r"""
+        Calculates the "+"-branch of the power spectrum of the Lorentzian
+        environment.
+
+        Parameters
+        ----------
+        w : array_like or float
+            The frequency at which to evaluate the power spectrum.
+        """
+
+        return self.spectral_density(w) / (np.exp((w - self.mu) / self.T) + 1)
+
+    def power_spectrum_minus(
+        self, w: float | ArrayLike
+    ) -> (float | ArrayLike):
+        r"""
+        Calculates the "-"-branch of the power spectrum of the Lorentzian
+        environment.
+
+        Parameters
+        ----------
+        w : array_like or float
+            The frequency at which to evaluate the power spectrum.
+        """
+
+        return self.spectral_density(w) / (np.exp((self.mu - w) / self.T) + 1)
+
+    def approx_by_matsubara(
+        self, Nk: int, tag: Any = None
+    ) -> ExponentialFermionicEnvironment:
+        """
+        Generates an approximation to this environment by truncating its
+        Matsubara expansion.
+
+        Parameters
+        ----------
+        Nk : int
+            Number of Matsubara terms to include. In total, the "+" and "-"
+            correlation function branches will include `Nk+1` terms each.
+
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
+        Returns
+        -------
+        The approximated environment with multi-exponential correlation
+        function.
+        """
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "Matsubara Truncation")
+
+        ck_plus, vk_plus = self._matsubara_params(Nk, 1)
+        ck_minus, vk_minus = self._matsubara_params(Nk, -1)
+
+        return ExponentialFermionicEnvironment(
+            ck_plus, vk_plus, ck_minus, vk_minus, T=self.T, mu=self.mu, tag=tag
+        )
+
+    def approx_by_pade(
+        self, Nk: int, tag: Any = None
+    ) -> ExponentialFermionicEnvironment:
+        """
+        Generates an approximation to this environment by truncating its
+        Pade expansion.
+
+        Parameters
+        ----------
+        Nk : int
+            Number of Pade terms to include. In total, the "+" and "-"
+            correlation function branches will include `Nk+1` terms each.
+
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
+        Returns
+        -------
+        The approximated environment with multi-exponential correlation
+        function.
+        """
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "Pade Truncation")
+
+        ck_plus, vk_plus = self._corr(Nk, sigma=1)
+        ck_minus, vk_minus = self._corr(Nk, sigma=-1)
+
+        return ExponentialFermionicEnvironment(
+            ck_plus, vk_plus, ck_minus, vk_minus, T=self.T, mu=self.mu, tag=tag
+        )
+
+    def _matsubara_params(self, Nk, sigma):
+        """ Calculate the Matsubara coefficients and frequencies. """
+
+        def f(x):
+            return 1 / (np.exp(x / self.T) + 1)
+        coeff_list = [(
+            self.W * self.gamma / 2 *
+            f(sigma * (self.omega0 - self.mu) + 1j * self.W)
+        )]
+        exp_list = [self.W - sigma * 1j * self.omega0]
+
+        xk_list = [(2 * k - 1) * np.pi * self.T for k in range(1, Nk + 1)]
+        for xk in xk_list:
+            coeff_list.append(
+                1j * self.gamma * self.W**2 * self.T /
+                ((sigma * xk - 1j * self.mu + 1j * self.omega0)**2 - self.W**2)
+            )
+            exp_list.append(
+                xk - sigma * 1j * self.mu
+            )
+
+        return coeff_list, exp_list
+
+    # --- Pade approx calculation ---
+
+    def _corr(self, Nk, sigma):
+        beta = 1 / self.T
+        kappa, epsilon = self._kappa_epsilon(Nk)
+
+        def f_approx(x):
+            f = 0.5
+            for ll in range(1, Nk + 1):
+                f = f - 2 * kappa[ll] * x / (x**2 + epsilon[ll]**2)
+            return f
+
+        eta_list = [(0.5 * self.gamma * self.W *
+                     f_approx(beta * sigma * (self.omega0 - self.mu)
+                              + beta * 1j * self.W))]
+        gamma_list = [self.W - sigma * 1.0j * self.omega0]
+
+        for ll in range(1, Nk + 1):
+            eta_list.append(
+                -1.0j * (kappa[ll] / beta) * self.gamma * self.W**2
+                / ((self.mu - self.omega0 + sigma * 1j * epsilon[ll] / beta)**2
+                   + self.W**2)
+            )
+            gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * self.mu)
+
+        return eta_list, gamma_list
+
+    def _kappa_epsilon(self, Nk):
+        eps = self._calc_eps(Nk)
+        chi = self._calc_chi(Nk)
+
+        kappa = [0]
+        prefactor = 0.5 * Nk * (2 * (Nk + 1) - 1)
+        for j in range(Nk):
+            term = prefactor
+            for k in range(Nk - 1):
+                term *= (
+                    (chi[k]**2 - eps[j]**2) /
+                    (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+                )
+            for k in [Nk - 1]:
+                term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+            kappa.append(term)
+
+        epsilon = [0] + eps
+
+        return kappa, epsilon
+
+    def _delta(self, i, j):
+        return 1.0 if i == j else 0.0
+
+    def _calc_eps(self, Nk):
+        alpha = np.diag([
+            1. / np.sqrt((2 * k + 3) * (2 * k + 1))
+            for k in range(2 * Nk - 1)
+        ], k=1)
+        alpha += alpha.transpose()
+
+        evals = eigvalsh(alpha)
+        eps = [-2. / val for val in evals[0: Nk]]
+        return eps
+
+    def _calc_chi(self, Nk):
+        alpha_p = np.diag([
+            1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+            for k in range(2 * Nk - 2)
+        ], k=1)
+        alpha_p += alpha_p.transpose()
+        evals = eigvalsh(alpha_p)
+        chi = [-2. / val for val in evals[0: Nk - 1]]
+        return chi
 
 
-class ExponentialFermionicEnvironemnt(FermionicEnvironment):
-    ...
+class ExponentialFermionicEnvironment(FermionicEnvironment):
+    """
+    Fermionic environment that is specified through an exponential
+    decomposition of its correlation function. The list of coefficients and
+    exponents in the decomposition may either be passed through the four lists
+    `ck_plus`, `vk_plus`, `ck_minus`, `vk_minus`, or as a list of fermionic
+    :class:`CFExponent` objects.
+
+    Alternative constructors :meth:`from_plus_exponents` and
+    :meth:`from_minus_exponents` are available to compute the "-" exponents
+    automatically from the "+" ones, or vice versa.
+
+    Parameters
+    ----------
+    ck_plus : list of complex
+        The coefficients of the expansion terms for the ``+`` part of the
+        correlation function. The corresponding frequencies are passed as
+        vk_plus.
+
+    vk_plus : list of complex
+        The frequencies (exponents) of the expansion terms for the ``+`` part
+        of the correlation function. The corresponding coefficients are passed
+        as ck_plus.
+
+    ck_minus : list of complex
+        The coefficients of the expansion terms for the ``-`` part of the
+        correlation function. The corresponding frequencies are passed as
+        vk_minus.
+
+    vk_minus : list of complex
+        The frequencies (exponents) of the expansion terms for the ``-`` part
+        of the correlation function. The corresponding coefficients are passed
+        as ck_minus.
+
+    exponents : list of :class:`CFExponent`
+        The expansion coefficients and exponents of both parts of the
+        correlation function as :class:`CFExponent` objects.
+
+    T: optional, float
+        The temperature of the environment.
+
+    mu: optional, float
+        The chemical potential of the environment.
+
+    tag : optional, str, tuple or any other object
+        An identifier (name) for this environment.
+    """
+
+    def _check_cks_and_vks(self, ck_plus, vk_plus, ck_minus, vk_minus):
+        # all None: returns False
+        # all provided and lengths match: returns True
+        # otherwise: raises ValueError
+        lists = [ck_plus, vk_plus, ck_minus, vk_minus]
+        if all(x is None for x in lists):
+            return False
+        if any(x is None for x in lists):
+            raise ValueError(
+                "If any of the exponent lists ck_plus, vk_plus, ck_minus, "
+                "vk_minus is provided, all must be provided."
+            )
+        if len(ck_plus) != len(vk_plus) or len(ck_minus) != len(vk_minus):
+            raise ValueError(
+                "The exponent lists ck_plus and vk_plus, and ck_minus and "
+                "vk_minus must be the same length."
+            )
+        return True
+
+    def __init__(
+        self,
+        ck_plus: ArrayLike = None, vk_plus: ArrayLike = None,
+        ck_minus: ArrayLike = None, vk_minus: ArrayLike = None,
+        *,
+        exponents: Sequence[CFExponent] = None,
+        T: float = None, mu: float = None, tag: Any = None
+    ):
+        super().__init__(T, mu, tag)
+
+        lists_provided = self._check_cks_and_vks(
+            ck_plus, vk_plus, ck_minus, vk_minus)
+        if exponents is None and not lists_provided:
+            raise ValueError(
+                "Either the parameter `exponents` or the parameters "
+                "`ck_plus`, `vk_plus`, `ck_minus`, `vk_minus` must be "
+                "provided."
+            )
+        if (exponents is not None and
+                not all(exp.fermionic for exp in exponents)):
+            raise ValueError(
+                "Bosonic exponent passed to exponential fermionic environment."
+            )
+
+        self.exponents = exponents or []
+        if lists_provided:
+            self.exponents.extend(CFExponent("+", ck, vk, tag=tag)
+                                  for ck, vk in zip(ck_plus, vk_plus))
+            self.exponents.extend(CFExponent("-", ck, vk, tag=tag)
+                                  for ck, vk in zip(ck_minus, vk_minus))
+
+    @classmethod
+    def from_plus_exponents(
+        cls, ck_plus: ArrayLike, vk_plus: ArrayLike,
+        T: float, mu: float, *, tag: Any = None
+    ) -> ExponentialFermionicEnvironment:
+        """
+        Constructs the exponential fermionic environment from an exponential
+        decomposition of the "+" branch of its correlation function. The
+        exponents for the "-" branch are computed automatically.
+
+        Parameters
+        ----------
+        ck_plus : list of complex
+            The coefficients of the expansion terms for the ``+`` part of the
+            correlation function.
+
+        vk_plus : list of complex
+            The frequencies (exponents) of the expansion terms for the ``+``
+            part of the correlation function.
+
+        T: float
+            The temperature of the environment.
+
+        mu: float
+            The chemical potential of the environment.
+
+        tag : optional, str, tuple or any other object
+            An identifier (name) for this environment.
+        """
+
+        vk_minus = [np.conj(vk) for vk in vk_plus]
+        ck_minus = [np.conj(ck) * np.exp((-mu - 1j * np.conj(vk)) / T)
+                    for ck, vk in zip(ck_plus, vk_plus)]
+        return cls(ck_plus, vk_plus, ck_minus, vk_minus, T=T, mu=mu, tag=tag)
+
+    @classmethod
+    def from_minus_exponents(
+        cls, ck_minus: ArrayLike, vk_minus: ArrayLike,
+        T: float, mu: float, *, tag: Any = None
+    ) -> ExponentialFermionicEnvironment:
+        """
+        Constructs the exponential fermionic environment from an exponential
+        decomposition of the "-" branch of its correlation function. The
+        exponents for the "+" branch are computed automatically.
+
+        Parameters
+        ----------
+        ck_minus : list of complex
+            The coefficients of the expansion terms for the ``-`` part of the
+            correlation function.
+
+        vk_minus : list of complex
+            The frequencies (exponents) of the expansion terms for the ``-``
+            part of the correlation function.
+
+        T: float
+            The temperature of the environment.
+
+        mu: float
+            The chemical potential of the environment.
+
+        tag : optional, str, tuple or any other object
+            An identifier (name) for this environment.
+        """
+
+        vk_plus = [np.conj(vk) for vk in vk_minus]
+        ck_plus = [np.conj(ck) * np.exp((mu - 1j * np.conj(vk)) / T)
+                   for ck, vk in zip(ck_minus, vk_minus)]
+        return cls(ck_plus, vk_plus, ck_minus, vk_minus, T=T, mu=mu, tag=tag)
+
+    def spectral_density(self, w: float | ArrayLike) -> (float | ArrayLike):
+        """
+        Computes the spectral density corresponding to the multi-exponential
+        correlation function.
+
+        Parameters
+        ----------
+        w : array_like or float
+            Energy of the mode.
+        """
+
+        return self.power_spectrum_minus(w) + self.power_spectrum_plus(w)
+
+    def correlation_function_plus(
+        self, t: float | ArrayLike
+    ) -> (float | ArrayLike):
+        r"""
+        Computes the "+"-branch of the correlation function represented by this
+        exponential decomposition.
+
+        Parameters
+        ----------
+        t : array_like or float
+            The times at which to evaluate the correlation function.
+        """
+
+        return self._cf(t, CFExponent.types['+'])
+
+    def correlation_function_minus(
+        self, t: float | ArrayLike
+    ) -> (float | ArrayLike):
+        r"""
+        Computes the "-"-branch of the correlation function represented by this
+        exponential decomposition.
+
+        Parameters
+        ----------
+        t : array_like or float
+            The times at which to evaluate the correlation function.
+        """
+
+        return self._cf(t, CFExponent.types['-'])
+
+    def _cf(self, t, type):
+        t = np.array(t, dtype=float)
+        corr = np.zeros_like(t, dtype=complex)
+
+        for exp in self.exponents:
+            if exp.type == type:
+                corr += exp.coefficient * np.exp(-exp.exponent * np.abs(t))
+        corr[t < 0] = np.conj(corr[t < 0])
+
+        return corr
+
+    def power_spectrum_plus(
+        self, w: float | ArrayLike
+    ) -> (float | ArrayLike):
+        r"""
+        Calculates the "+"-branch of the power spectrum corresponding to the
+        multi-exponential correlation function.
+
+        Parameters
+        ----------
+        w : array_like or float
+            The frequency at which to evaluate the power spectrum.
+        """
+
+        return self._ps(w, CFExponent.types['+'], 1)
+
+    def power_spectrum_minus(
+        self, w: float | ArrayLike
+    ) -> (float | ArrayLike):
+        r"""
+        Calculates the "-"-branch of the power spectrum corresponding to the
+        multi-exponential correlation function.
+
+        Parameters
+        ----------
+        w : array_like or float
+            The frequency at which to evaluate the power spectrum.
+        """
+
+        return self._ps(w, CFExponent.types['-'], -1)
+
+    def _ps(self, w, type, sigma):
+        w = np.array(w, dtype=float)
+        S = np.zeros_like(w)
+
+        for exp in self.exponents:
+            if exp.type == type:
+                S += 2 * np.real(
+                    exp.coefficient / (exp.exponent + sigma * 1j * w)
+                )
+
+        return S
