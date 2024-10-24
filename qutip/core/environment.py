@@ -351,7 +351,8 @@ class BosonicEnvironment(abc.ABC):
     def approx_by_cf_fit(
         self, tlist: ArrayLike, target_rsme: float = 2e-5, Nr_max: int = 10,
         Ni_max: int = 10, guess: list[float] = None, lower: list[float] = None,
-        upper: list[float] = None, full_ansatz: bool = False, tag: Any = None
+        upper: list[float] = None, full_ansatz: bool = False, tag: Any = None,
+        combine: bool =True
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its
@@ -438,7 +439,9 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
-
+        combine : bool, default True
+            Whether to combine exponents with the same frequency (and coupling
+            operator). See :meth:`combine` for details.
         Returns
         -------
         approx_env : :class:`ExponentialBosonicEnvironment`
@@ -555,13 +558,13 @@ class BosonicEnvironment(abc.ABC):
             vkAI.extend([-b - 1j * c, -b + 1j * c])
 
         approx_env = ExponentialBosonicEnvironment(
-            ckAR, vkAR, ckAI, vkAI, T=self.T, tag=tag)
+            ckAR, vkAR, ckAI, vkAI, T=self.T, tag=tag,combine=combine)
         return approx_env, fit_info
 
     def approx_by_sd_fit(
         self, wlist: ArrayLike, Nk: int = 1, target_rsme: float = 5e-6,
         Nmax: int = 10, guess: list[float] = None, lower: list[float] = None,
-        upper: list[float] = None, tag: Any = None
+        upper: list[float] = None, tag: Any = None,combine: bool=True
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its spectral
@@ -613,7 +616,9 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
-
+        combine : bool, default True
+            Whether to combine exponents with the same frequency (and coupling
+            operator). See :meth:`combine` for details.
         Returns
         -------
         approx_env : :class:`ExponentialBosonicEnvironment`
@@ -683,7 +688,7 @@ class BosonicEnvironment(abc.ABC):
             vkAI.extend(coeffs[3])
 
         approx_env = ExponentialBosonicEnvironment(
-            ckAR, vkAR, ckAI, vkAI, T=self.T, tag=tag)
+            ckAR, vkAR, ckAI, vkAI, T=self.T, tag=tag,combine=combine)
         return approx_env, fit_info
 
 
@@ -2263,7 +2268,8 @@ class LorentzianEnvironment(FermionicEnvironment):
         ck_minus, vk_minus = self._matsubara_params(Nk, -1)
 
         return ExponentialFermionicEnvironment(
-            ck_plus, vk_plus, ck_minus, vk_minus, T=self.T, mu=self.mu, tag=tag
+            ck_plus, vk_plus, ck_minus, vk_minus, T=self.T, mu=self.mu, 
+            tag=tag
         )
 
     def approx_by_pade(
