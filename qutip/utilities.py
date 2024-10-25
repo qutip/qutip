@@ -490,7 +490,7 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
     # less accurate
     if (upper <= lower).all():
         return _rmse(fun, xdata, ydata, guesses), guesses
-
+    sigma = [sigma] * len(xdata)
     packed_params, _ = curve_fit(
         lambda x, *packed_params: _evaluate(
             fun, x, _unpack(packed_params, num_params)
