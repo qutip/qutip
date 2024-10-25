@@ -123,7 +123,7 @@ class TestBosonicEnvironment:
             bb5 = BosonicEnvironment.from_correlation_function(
                 corr[k], t, T=T[k])
             bb6, finfo = bb5.approx_by_cf_fit(
-                t, target_rsme=None, Nr_max=3, Ni_max=1)
+                t, target_rsme=None, Nr_max=2, Ni_max=1)
             assert np.isclose(bb6.correlation_function(t),
                               corr[k], atol=5*comtol).all()
             assert np.isclose(bb6.power_spectrum(w2), power(
