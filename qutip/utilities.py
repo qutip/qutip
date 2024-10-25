@@ -503,6 +503,10 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
     else:
         maxfev_arg = {'max_nfev': maxfev}
 
+    # Scipy only supports scalar sigma since 1.12
+    if sigma is not None and not hasattr(sigma, "__len__"):
+        sigma = [sigma] * len(xdata)
+
     packed_params, _ = curve_fit(
         lambda x, *packed_params: _evaluate(
             fun, x, _unpack(packed_params, num_params)
