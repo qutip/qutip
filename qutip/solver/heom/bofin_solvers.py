@@ -724,7 +724,8 @@ class HEOMSolver(Solver):
         for b in bath:
             if self._is_environment_api(b):
                 b = self._env_to_bath(b)
-            if isinstance(b, (BosonicEnvironment, FermionicEnvironment)):
+            if (isinstance(b, (BosonicEnvironment, FermionicEnvironment))
+                    and not isinstance(b, (BosonicBath, FermionicBath))):
                 raise ValueError("Environments must be passed with their"
                                  " corresponding coupling operator as a list"
                                  " or tuple (env, Q)")
@@ -749,7 +750,10 @@ class HEOMSolver(Solver):
         if not starts_with_env:
             return False
 
-        contains_bath = any(isinstance(elem, Bath) for elem in bath_spec)
+        contains_bath = any(
+            isinstance(elem, (Bath, BosonicBath, FermionicBath))
+            for elem in bath_spec
+        )
         if contains_bath:
             # Potentially confused user, passed mixed list of environments
             # and baths. Error will be raised elsewhere.
