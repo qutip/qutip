@@ -355,7 +355,7 @@ def iterated_fit(
     guess: ArrayLike | Callable[[int], ArrayLike] = None,
     Nmin: int = 1, Nmax: int = 10,
     lower: ArrayLike = None, upper: ArrayLike = None,
-    sigma: float = 1e-4, maxfev: int = 100_000
+    sigma: float | ArrayLike = None, maxfev: int = None
 ) -> tuple[float, ArrayLike]:
     r"""
     Iteratively tries to fit the given data with a model of the form
@@ -398,6 +398,11 @@ def iterated_fit(
         Lower bounds on the parameters for the fit.
     upper : optional, list of length `num_params`
         Upper bounds on the parameters for the fit.
+    sigma : optional, float or array_like
+        The uncertainty in the dependent data, see the documentation of
+        ``scipy.optimize.curve_fit``.
+    maxfev : optional, int
+        The maximum number of function evaluations (per value of ``N``).
 
     Returns
     -------
@@ -485,18 +490,25 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
     # N: number of terms
     # guesses: initial guesses [[p11, ..., p1n],..., [pN1, ..., pNn]]
     # lower, upper: parameter bounds
-    # sigma: data uncertainty useful to control when values are small
-    # maxfev how many times the parameters can be altered, lower is faster but
-    # less accurate
+    # sigma: data uncertainty (useful to control when values are small)
+    # maxfev: how many times the parameters can be altered, lower is faster but
+    #         less accurate
     if (upper <= lower).all():
         return _rmse(fun, xdata, ydata, guesses), guesses
-    sigma = [sigma] * len(xdata)
+
+    # Depending on the method, scipy uses leastsq or least_squares, and the
+    # `maxfev` parameter has different names in the two functions
+    if method == 'lm':
+        maxfev_arg = {'maxfev': maxfev}
+    else:
+        maxfev_arg = {'max_nfev': maxfev}
+
     packed_params, _ = curve_fit(
         lambda x, *packed_params: _evaluate(
             fun, x, _unpack(packed_params, num_params)
         ),
         xdata, ydata, p0=_pack(guesses), bounds=(lower, upper),
-        maxfev=maxfev, method=method, sigma=sigma
+        method=method, sigma=sigma, **maxfev_arg
     )
     params = _unpack(packed_params, num_params)
     rmse = _rmse(fun, xdata, ydata, params)

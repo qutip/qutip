@@ -349,10 +349,19 @@ class BosonicEnvironment(abc.ABC):
     # --- fitting
 
     def approx_by_cf_fit(
-        self, tlist: ArrayLike, target_rsme: float = 2e-5, Nr_max: int = 10,
-        Ni_max: int = 10, guess: list[float] = None, lower: list[float] = None,
-        upper: list[float] = None, full_ansatz: bool = False, tag: Any = None,
-        combine: bool = True, sigma: float = 1e-4, maxfev: int = 100_000
+        self,
+        tlist: ArrayLike,
+        target_rsme: float = 2e-5,
+        Nr_max: int = 10,
+        Ni_max: int = 10,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        full_ansatz: bool = False,
+        combine: bool = True,
+        tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its
@@ -386,8 +395,6 @@ class BosonicEnvironment(abc.ABC):
         The simplified version offers faster fits, however it fails for
         anomalous spectral densities with
         :math:`\operatorname{Im}[C(0)] \neq 0` as :math:`\sin(0) = 0`.
-
-
 
         Parameters
         ----------
@@ -424,6 +431,15 @@ class BosonicEnvironment(abc.ABC):
             a list of size 4, otherwise, it is a list of size 3.
             If none of `guess`, `lower` and `upper` are provided, these
             parameters will be chosen automatically.
+        sigma : optional, float or list of float
+            Adds an uncertainty to the correlation function of the environment,
+            i.e., adds a leeway to the fit. This parameter is useful to adjust
+            if the correlation function is very small in parts of the time
+            range. For more details, see the documentation of
+            ``scipy.optimize.curve_fit``.
+        maxfev : optional, int
+            Number of times the parameters of the fit are allowed to vary
+            during the optimization (per fit).
         full_ansatz : optional, bool (default False)
             If this is set to False, the parameters :math:`d_k` are all set to
             zero. The full ansatz, including :math:`d_k`, usually leads to
@@ -436,19 +452,14 @@ class BosonicEnvironment(abc.ABC):
             When using the full ansatz with default values for the guesses and
             bounds, if the fit takes too long, we recommend choosing guesses
             and bounds manually.
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
-        combine : bool, default True
-            Whether to combine exponents with the same frequency (and coupling
-            operator). See :meth:`combine` for details.
-        sigma : float, default 1e-4
-            The uncertainty in the date provided, to calculate uncertainty
-            residuals, it is useful to decrease if the values of the data are
-            too small
-        maxfev: int, default 100_000
-            Number of times the parameters of the fit are allowed to vary
-            during the optimization
+
         Returns
         -------
         approx_env : :class:`ExponentialBosonicEnvironment`
@@ -567,14 +578,22 @@ class BosonicEnvironment(abc.ABC):
             vkAI.extend([-b - 1j * c, -b + 1j * c])
 
         approx_env = ExponentialBosonicEnvironment(
-            ckAR, vkAR, ckAI, vkAI, T=self.T, tag=tag, combine=combine)
+            ckAR, vkAR, ckAI, vkAI, combine=combine, T=self.T, tag=tag)
         return approx_env, fit_info
 
     def approx_by_sd_fit(
-        self, wlist: ArrayLike, Nk: int = 1, target_rsme: float = 5e-6,
-        Nmax: int = 10, guess: list[float] = None, lower: list[float] = None,
-        upper: list[float] = None, tag: Any = None, combine: bool = True,
-        sigma: float = 1e-4, maxfev: int = 100_000
+        self,
+        wlist: ArrayLike,
+        Nk: int = 1,
+        target_rsme: float = 5e-6,
+        Nmax: int = 10,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        combine: bool = True,
+        tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its spectral
@@ -623,19 +642,23 @@ class BosonicEnvironment(abc.ABC):
             k.
             If none of `guess`, `lower` and `upper` are provided, these
             parameters will be chosen automatically.
+        sigma : optional, float or list of float
+            Adds an uncertainty to the spectral density of the environment,
+            i.e., adds a leeway to the fit. This parameter is useful to adjust
+            if the spectral density is very small in parts of the frequency
+            range. For more details, see the documentation of
+            ``scipy.optimize.curve_fit``.
+        maxfev : optional, int
+            Number of times the parameters of the fit are allowed to vary
+            during the optimization (per fit).
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
-        combine : bool, default True
-            Whether to combine exponents with the same frequency (and coupling
-            operator). See :meth:`combine` for details.
-        sigma : float, default 1e-4
-            The uncertainty in the date provided, to calculate uncertainty
-            residuals, it is useful to decrease if the values of the data are
-            too small
-        maxfev: int, default 100_000
-            Number of times the parameters of the fit are allowed to vary
-            during the optimization
+
         Returns
         -------
         approx_env : :class:`ExponentialBosonicEnvironment`
@@ -705,7 +728,7 @@ class BosonicEnvironment(abc.ABC):
             vkAI.extend(coeffs[3])
 
         approx_env = ExponentialBosonicEnvironment(
-            ckAR, vkAR, ckAI, vkAI, T=self.T, tag=tag, combine=combine)
+            ckAR, vkAR, ckAI, vkAI, combine=combine, T=self.T, tag=tag)
         return approx_env, fit_info
 
 
@@ -863,6 +886,8 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         Nk : int, default 100
             The number of exponents to use.
         """
+        # TODO: this fails at zero temperature
+        # Should we fall back to FFT in that case?
 
         t = np.array(t, dtype=float)
         abs_t = np.abs(t)
@@ -927,13 +952,12 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             dynamics to take this discrepancy into account, see
             :func:`.system_terminator`.
         """
+        if self.T == 0:
+            raise ValueError("The Matsubara expansion cannot be performed at "
+                             "zero temperature. Use other approaches such as "
+                             "fitting the correlation function.")
         if tag is None and self.tag is not None:
             tag = (self.tag, "Matsubara Truncation")
-        if self.T == 0:
-            raise warnings.warn("The Matsubara coefficients at T=0 do"
-                                "not improve with the number of exponents."
-                                " Other approaches such as fitting the "
-                                "correlation function provide better results.")
 
         lists = self._matsubara_params(Nk)
         approx_env = ExponentialBosonicEnvironment(
@@ -981,6 +1005,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             dynamics to take this discrepancy into account, see
             :func:`.system_terminator`.
         """
+        if self.T == 0:
+            raise ValueError("The Pade expansion cannot be performed at "
+                             "zero temperature. Use other approaches such as "
+                             "fitting the correlation function.")
         if tag is None and self.tag is not None:
             tag = (self.tag, "Pade Truncation")
 
@@ -1023,14 +1051,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
     # --- Pade approx calculation ---
 
     def _corr(self, Nk):
-        if self.T == 0:
-            beta = np.inf
-        else:
-            beta = 1. / self.T
         kappa, epsilon = self._kappa_epsilon(Nk)
 
         eta_p = [self.lam * self.gamma *
-                 (self._cot(self.gamma * beta / 2.0) - 1.0j)]
+                 (self._cot(self.gamma / (2 * self.T)) - 1.0j)]
         gamma_p = [self.gamma]
 
         for ll in range(1, Nk + 1):
@@ -1220,11 +1244,13 @@ class UnderDampedEnvironment(BosonicEnvironment):
 
     def _matsubara_params(self, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
-        if self.T == 0:
-            raise warnings.warn("The Matsubara coefficients at T=0 do"
-                                "not improve with the number of exponents."
-                                " Other approaches such as fitting the "
-                                "correlation function provide better results.")
+
+        if Nk > 0 and self.T == 0:
+            warnings.warn("The Matsubara expansion cannot be performed at "
+                          "zero temperature. Use other approaches such as "
+                          "fitting the correlation function.")
+            Nk = 0
+
         Om = np.sqrt(self.w0**2 - (self.gamma / 2)**2)
         Gamma = self.gamma / 2
 
@@ -1572,8 +1598,8 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         objects.
 
     combine : bool, default True
-        Whether to combine exponents with the same frequency (and coupling
-        operator). See :meth:`combine` for details.
+        Whether to combine exponents with the same frequency. See
+        :meth:`combine` for details.
 
     T: optional, float
         The temperature of the environment.
@@ -1843,7 +1869,7 @@ def _cf_imag_fit_model(tlist, a, b, c, d=0):
 def _default_guess_cfreal(tlist, clist, full_ansatz):
     corr_abs = np.abs(clist)
     corr_max = np.max(corr_abs)
-    tc = 2/np.max(tlist)
+    tc = 2 / np.max(tlist)
 
     # Checks if constant array, and assigns zero
     if (clist == clist[0]).all():
@@ -2323,8 +2349,17 @@ class LorentzianEnvironment(FermionicEnvironment):
     def _matsubara_params(self, Nk, sigma):
         """ Calculate the Matsubara coefficients and frequencies. """
 
+        if Nk > 0 and self.T == 0:
+            warnings.warn("The Matsubara expansion cannot be performed at "
+                          "zero temperature. Use other approaches such as "
+                          "fitting the correlation functions.")
+            Nk = 0
+
         def f(x):
+            if self.T == 0:
+                return np.heaviside(-x, .5)
             return 1 / (np.exp(x / self.T) + 1)
+
         coeff_list = [(
             self.W * self.gamma / 2 *
             f(sigma * (self.omega0 - self.mu) + 1j * self.W)
@@ -2346,6 +2381,12 @@ class LorentzianEnvironment(FermionicEnvironment):
     # --- Pade approx calculation ---
 
     def _corr(self, Nk, sigma):
+        if Nk > 0 and self.T == 0:
+            warnings.warn("The Pade expansion cannot be performed at "
+                          "zero temperature. Use other approaches such as "
+                          "fitting the correlation functions.")
+            Nk = 0
+
         beta = 1 / self.T
         kappa, epsilon = self._kappa_epsilon(Nk)
 
