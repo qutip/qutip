@@ -574,7 +574,7 @@ class BosonicEnvironment(abc.ABC):
         self, wlist: ArrayLike, Nk: int = 1, target_rsme: float = 5e-6,
         Nmax: int = 10, guess: list[float] = None, lower: list[float] = None,
         upper: list[float] = None, tag: Any = None, combine: bool = True,
-        sigma: float = 1e-4, maxfev: int = 1e-6
+        sigma: float = 1e-4, maxfev: int = 100_000
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its spectral

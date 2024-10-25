@@ -123,7 +123,7 @@ class TestBosonicEnvironment:
             bb5 = BosonicEnvironment.from_correlation_function(
                 corr[k], t, T=T[k])
             bb6, finfo = bb5.approx_by_cf_fit(
-                t, target_rsme=None, Nr_max=2, Ni_max=1)
+                t, target_rsme=None, Nr_max=2, Ni_max=1,sigma=1e-2)
             assert np.isclose(bb6.correlation_function(t),
                               corr[k], atol=5*comtol).all()
             assert np.isclose(bb6.power_spectrum(w2), power(
@@ -136,7 +136,7 @@ class TestBosonicEnvironment:
         for k in range(len(lam)):
             sd = spectral_density(t, gamma[k], w0[k], lam[k])
             bb5 = BosonicEnvironment.from_spectral_density(sd, t, T=T[k])
-            bb6, finfo = bb5.approx_by_sd_fit(w, Nmax=1, Nk=10)
+            bb6, finfo = bb5.approx_by_sd_fit(w, Nmax=1, Nk=10,sigma=1)
             # asking for more precision that the Bosonic enviroment has may
             # violate this (due to the interpolation and it's easily fixed
             # using a denser range). I could have set N=1 but thought this was
