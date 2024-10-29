@@ -69,7 +69,7 @@ class HierarchyADOs:
 
     Parameters
     ----------
-    exponents : list of BathExponent
+    exponents : list of :class:`.BathExponent`
         The exponents of the correlation function describing the bath or
         baths.
 
@@ -79,7 +79,7 @@ class HierarchyADOs:
 
     Attributes
     ----------
-    exponents : list of BathExponent
+    exponents : list of :class:`.BathExponent`
         The exponents of the correlation function describing the bath or
         baths.
 
@@ -211,7 +211,7 @@ class HierarchyADOs:
 
         Returns
         -------
-        tuple of BathExponent
+        tuple of :class:`.BathExponent`
             A tuple of BathExponents.
 
         Examples
@@ -265,7 +265,7 @@ class HierarchyADOs:
         types : list of BathExponent types or list of str
             Filter parameter that matches the ``.type`` attribute
             of exponents. Types may be supplied by name (e.g. "R", "I", "+")
-            instead of by the actual type (e.g. ``BathExponent.types.R``).
+            instead of by the actual type (e.g. ``CFExponent.types.R``).
 
         Returns
         -------
@@ -343,6 +343,8 @@ class HierarchyADOsState:
     rho : Qobj
         The system state.
 
+    Notes
+    -----
     In addition, all of the attributes of the hierarchy description,
     i.e. ``HierarchyADOs``, are provided directly on this class for
     convenience. E.g. one can access ``.labels``, or ``.exponents`` or
@@ -375,7 +377,7 @@ class HierarchyADOsState:
         Returns
         -------
         Qobj
-            A :obj:`~qutip.Qobj` representing the state of the specified ADO.
+            A :obj:`.Qobj` representing the state of the specified ADO.
         """
         if isinstance(idx_or_label, int):
             idx = idx_or_label
@@ -432,7 +434,8 @@ def heomsolve(
     Hierarchical Equations of Motion (HEOM) solver that supports multiple
     baths.
 
-    The baths must be all either bosonic or fermionic baths.
+    Each bath must be either bosonic or fermionic, but bosonic and fermionic
+    baths can be mixed.
 
     If you need to run many evolutions of the same system and bath, consider
     using :class:`HEOMSolver` directly to avoid having to continually
@@ -442,16 +445,20 @@ def heomsolve(
     ----------
     H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        QobjEvo. List of [:obj:`.Qobj`, :obj:`.Coefficient`], or callable that
         can be made into :obj:`.QobjEvo` are also accepted.
 
-    bath : Bath or list of Bath
-        A :obj:`Bath` containing the exponents of the expansion of the
+    bath : Bath specification or list of Bath specifications
+        A bath containing the exponents of the expansion of the
         bath correlation funcion and their associated coefficients
         and coupling operators, or a list of baths.
 
-        If multiple baths are given, they must all be either fermionic
-        or bosonic baths.
+        Each bath can be specified as *either* an object of type
+        :class:`.Bath`, :class:`.BosonicBath`, :class:`.FermionicBath`, or
+        their subtypes, *or* as a tuple ``(env, Q)``, where ``env`` is an
+        :class:`.ExponentialBosonicEnvironment` or an
+        :class:`.ExponentialFermionicEnvironment` and ``Q`` the system coupling
+        operator.
 
     max_depth : int
         The maximum depth of the heirarchy (i.e. the maximum number of bath
@@ -540,9 +547,10 @@ def heomsolve(
 
         * ``ado_states``: the full ADO state at each time (only available
           if the results option ``ado_return`` was set to ``True``).
-          Each element is an instance of :class:`HierarchyADOsState`.
+          Each element is an instance of :class:`.HierarchyADOsState`.
           The state of a particular ADO may be extracted from
-          ``result.ado_states[i]`` by calling :meth:`extract`.
+          ``result.ado_states[i]`` by calling
+          :meth:`extract <.HierarchyADOsState.extract>`.
 
         * ``expect``: a list containing the values of each ``e_ops`` at
           time ``t``.
@@ -563,7 +571,8 @@ class HEOMSolver(Solver):
     """
     HEOM solver that supports multiple baths.
 
-    The baths must be all either bosonic or fermionic baths.
+    Each bath must be either bosonic or fermionic, but bosonic and fermionic
+    baths can be mixed.
 
     Parameters
     ----------
@@ -572,13 +581,17 @@ class HEOMSolver(Solver):
         QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
         can be made into :obj:`.QobjEvo` are also accepted.
 
-    bath : Bath or list of Bath
-        A :obj:`Bath` containing the exponents of the expansion of the
-        bath correlation function and their associated coefficients
+    bath : Bath specification or list of Bath specifications
+        A bath containing the exponents of the expansion of the
+        bath correlation funcion and their associated coefficients
         and coupling operators, or a list of baths.
 
-        If multiple baths are given, they must all be either fermionic
-        or bosonic baths.
+        Each bath can be specified as *either* an object of type
+        :class:`.Bath`, :class:`.BosonicBath`, :class:`.FermionicBath`, or
+        their subtypes, *or* as a tuple ``(env, Q)``, where ``env`` is an
+        :class:`.ExponentialBosonicEnvironment` or an
+        :class:`.ExponentialFermionicEnvironment` and ``Q`` the system coupling
+        operator.
 
     odd_parity : Bool
         For fermionic baths only. Default is "False". "Parity" refers to the
@@ -1232,11 +1245,6 @@ class HSolverDL(HEOMSolver):
     See :class:`HEOMSolver` and :class:`DrudeLorentzBath` for more
     descriptions of the underlying solver and bath construction.
 
-    An exact copy of the QuTiP 4.6 HSolverDL is provided in
-    ``qutip.nonmarkov.dlheom_solver`` for cases where the functionality of
-    the older solver is required. The older solver will be completely
-    removed in QuTiP 5.
-
     .. note::
 
         Unlike the version of ``HSolverDL`` in QuTiP 4.6, this solver
@@ -1268,10 +1276,12 @@ class HSolverDL(HEOMSolver):
         See parameter ``Q`` in :class:`BosonicBath` for a complete description.
 
     coup_strength : float
-        Coupling strength. Referred to as ``lam`` in :class:`DrudeLorentzBath`.
+        Coupling strength. Referred to as ``lam`` in
+        :class:`.DrudeLorentzEnvironment`.
 
     temperature : float
-        Bath temperature. Referred to as ``T`` in :class:`DrudeLorentzBath`.
+        Bath temperature. Referred to as ``T`` in
+        :class:`.DrudeLorentzEnvironment`.
 
     N_cut : int
         The maximum depth of the hierarchy. See ``max_depth`` in
@@ -1284,7 +1294,7 @@ class HSolverDL(HEOMSolver):
 
     cut_freq : float
         Bath spectral density cutoff frequency. Referred to as ``gamma`` in
-        :class:`DrudeLorentzBath`.
+        :class:`.DrudeLorentzEnvironment`.
 
     bnd_cut_approx : bool
         Use boundary cut off approximation. If true, the Matsubara
@@ -1299,7 +1309,8 @@ class HSolverDL(HEOMSolver):
 
     combine : bool, default: True
         Whether to combine exponents with the same frequency (and coupling
-        operator). See :meth:`BosonicBath.combine` for details.
+        operator). See :meth:`.ExponentialBosonicEnvironment.combine` for
+        details.
         Keyword only. Default: True.
     """
 

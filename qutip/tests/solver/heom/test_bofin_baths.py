@@ -1,5 +1,5 @@
 """
-Tests for qutip.nonmarkov.bofin_baths.
+Tests for qutip.solver.heom.bofin_baths.
 """
 
 import numpy as np

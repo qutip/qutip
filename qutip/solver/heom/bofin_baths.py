@@ -1,16 +1,23 @@
 """
-This is a legacy module, kept for backwards compatibility. It provides
-utilities for describing baths when using the HEOM (hierarchy equations of
-motion) to model system-bath interactions.
-
-See the ``qutip.nonmarkov.bofin_solvers`` module for the associated solver.
+This module provides utilities for describing baths when using the HEOM
+(hierarchy equations of motion) to model system-bath interactions. See the
+``qutip.nonmarkov.bofin_solvers`` module for the associated solver.
 
 The implementation is derived from the BoFiN library (see
 https://github.com/tehruhn/bofin) which was itself derived from an earlier
 implementation in QuTiP itself.
 
-Instead of this module, prefer using `qutip.environment`, which provides the
-full functionality of this module and is compatible with other QuTiP solvers.
+The "bath" classes in this module are closely related to the "environment"
+classes in the `qutip.core.environment` module. The bath classes were
+implemented first, specifically for the HEOM solver. The environment classes,
+added later provide additional functionality and are designed to work also with
+other QuTiP solvers.
+
+The bath classes are kept partly for backwards compatibility, partly to use as
+a "shortcut" when one only wants to use the HEOM solver.
+
+Note that this module also contains the `BathExponent` class, which is used by
+the HEOM solver internally and in the result object describing its output.
 """
 
 from qutip.core import data as _data
@@ -40,9 +47,16 @@ class BathExponent(environment.CFExponent):
     Represents a single exponent (naively, an excitation mode) within the
     decomposition of the correlation functions of a bath.
 
+    This class extends the
+    :class:`CFExponent <qutip.core.environment.CFExponent>` of the
+    environment-module for use with the HEOM solver. In addition to the
+    exponent itself, the `BathExponent` keeps track of the corresponding system
+    coupling operator ``Q``, as well as the parameters ``dim`` and
+    ``sigma_bar_k_offset``.
+
     Parameters
     ----------
-    type : {"R", "I", "RI", "+", "-"} or environment.CFExponent.ExponentType
+    type : {"R", "I", "RI", "+", "-"} or ``CFExponent.ExponentType``
         The type of bath exponent.
 
         "R" and "I" are bosonic bath exponents that appear in the real and
@@ -153,7 +167,7 @@ class Bath:
 
     Parameters
     ----------
-    exponents : list of BathExponent
+    exponents : list of :class:`.BathExponent`
         The exponents of the correlation function describing the bath.
     """
 
@@ -209,12 +223,21 @@ class BosonicBath(environment.ExponentialBosonicEnvironment):
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
-        operator). See :meth:`combine` for details.
+        operator). See :meth:`.ExponentialBosonicEnvironment.combine` for
+        details.
 
     tag : optional, str, tuple or any other object
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+
+    Notes
+    -----
+    This class is part of the "bath" API, which is now mirrored by the newer
+    "environment" API. The bath classes are kept in QuTiP for reasons of
+    backwards compatibility and convenience. This class is an extended version
+    of the :class:`.ExponentialBosonicEnvironment`, adding the parameter ``Q``,
+    which is not included in the newer "environment" API.
     """
 
     def _make_exponent(self, type, ck, vk, ck2=None, tag=None):
@@ -235,6 +258,21 @@ class BosonicBath(environment.ExponentialBosonicEnvironment):
 
     @classmethod
     def from_environment(cls, env, Q, dim=None):
+        """
+        Converts from the "environment" API to the "bath" API. A `BosonicBath`
+        combines the information from an `ExponentialBosonicEnvironment` and a
+        coupling operator.
+
+        Parameters
+        ----------
+        env : :class:`.ExponentialBosonicEnvironment`
+            The bath.
+        Q : Qobj
+            The coupling operator for the bath.
+        dim : optional, int or ``None`` (default ``None``)
+            The maximum number of excitations for each exponent. Usually
+            ``None`` (i.e. unlimited).
+        """
         bath_exponents = []
         for exponent in env.exponents:
             new_exponent = BathExponent(
@@ -273,12 +311,23 @@ class DrudeLorentzBath(BosonicBath):
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
-        operator). See :meth:`BosonicBath.combine` for details.
+        operator). See :meth:`.ExponentialBosonicEnvironment.combine` for
+        details.
 
     tag : optional, str, tuple or any other object
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+
+    Notes
+    -----
+    This class is part of the "bath" API, which is now mirrored by the newer
+    "environment" API. The bath classes are kept in QuTiP for reasons of
+    backwards compatibility and convenience. Creating a `DrudeLorentzBath` is
+    equivalent to creating a :class:`.DrudeLorentzEnvironment`, performing a
+    :meth:`Matsubara <.DrudeLorentzEnvironment.approx_by_matsubara>`
+    approximation, and finally bundling the result together with the coupling
+    operator ``Q`` for convenient use with the HEOM solver.
     """
 
     def __new__(
@@ -301,7 +350,7 @@ class DrudeLorentzBath(BosonicBath):
 
     def terminator(self):
         """
-        Return the Padé terminator for the bath and the calculated
+        Return the Matsubara terminator for the bath and the calculated
         approximation discrepancy.
 
         Returns
@@ -329,8 +378,8 @@ class DrudeLorentzPadeBath(BosonicBath):
     A helper class for constructing a Padé expansion for a Drude-Lorentz
     bosonic bath from the bath parameters (see parameters below).
 
-    A Padé approximant is a sum-over-poles expansion (
-    see https://en.wikipedia.org/wiki/Pad%C3%A9_approximant).
+    A Padé approximant is a sum-over-poles expansion (see
+    https://en.wikipedia.org/wiki/Pad%C3%A9_approximant).
 
     The application of the Padé method to spectrum decompoisitions is described
     in "Padé spectrum decompositions of quantum distribution functions and
@@ -364,12 +413,23 @@ class DrudeLorentzPadeBath(BosonicBath):
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
-        operator). See :meth:`BosonicBath.combine` for details.
+        operator). See :meth:`.ExponentialBosonicEnvironment.combine` for
+        details.
 
     tag : optional, str, tuple or any other object
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+
+    Notes
+    -----
+    This class is part of the "bath" API, which is now mirrored by the newer
+    "environment" API. The bath classes are kept in QuTiP for reasons of
+    backwards compatibility and convenience. Creating a `DrudeLorentzPadeBath`
+    is equivalent to creating a :class:`.DrudeLorentzEnvironment`, performing a
+    :meth:`Pade <.DrudeLorentzEnvironment.approx_by_pade>` approximation, and
+    finally bundling the result together with the coupling operator ``Q`` for
+    convenient use with the HEOM solver.
     """
 
     def __new__(
@@ -440,12 +500,23 @@ class UnderDampedBath(BosonicBath):
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
-        operator). See :meth:`BosonicBath.combine` for details.
+        operator). See :meth:`.ExponentialBosonicEnvironment.combine` for
+        details.
 
     tag : optional, str, tuple or any other object
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+
+    Notes
+    -----
+    This class is part of the "bath" API, which is now mirrored by the newer
+    "environment" API. The bath classes are kept in QuTiP for reasons of
+    backwards compatibility and convenience. Creating an `UnderDampedBath` is
+    equivalent to creating an :class:`.UnderDampedEnvironment`, performing a
+    :meth:`Matsubara <.UnderDampedEnvironment.approx_by_matsubara>`
+    approximation, and finally bundling the result together with the coupling
+    operator ``Q`` for convenient use with the HEOM solver.
     """
 
     def __new__(
@@ -509,6 +580,14 @@ class FermionicBath(environment.ExponentialFermionicEnvironment):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+
+    Notes
+    -----
+    This class is part of the "bath" API, which is now mirrored by the newer
+    "environment" API. The bath classes are kept in QuTiP for reasons of
+    backwards compatibility and convenience. This class is an extended version
+    of the :class:`.ExponentialFermionicEnvironment`, adding the parameter
+    ``Q``, which is not included in the newer "environment" API.
     """
 
     def _check_cks_and_vks(self, ck_plus, vk_plus, ck_minus, vk_minus):
@@ -543,6 +622,26 @@ class FermionicBath(environment.ExponentialFermionicEnvironment):
 
     @classmethod
     def from_environment(cls, env, Q, dim=2):
+        """
+        Converts from the "environment" API to the "bath" API. A
+        `FermionicBath` combines the information from an
+        `ExponentialFermionicEnvironment` and a coupling operator.
+
+        Note that the "environment" API does not require fermionic exponents to
+        come in pairs. This method will add additional exponents with
+        zero coefficient in order to achieve the same amount of ``+`` and ``-``
+        exponents.
+
+        Parameters
+        ----------
+        env : :class:`.ExponentialFermionicEnvironment`
+            The bath.
+        Q : Qobj
+            The coupling operator for the bath.
+        dim : optional, int or ``None`` (default ``2``)
+            The maximum number of excitations for each exponent. Usually ``2``.
+        """
+
         # make same amount of plus and minus exponents by adding zeros
         plus_exponents = []
         minus_exponents = []
@@ -607,6 +706,16 @@ class LorentzianBath(FermionicBath):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+
+    Notes
+    -----
+    This class is part of the "bath" API, which is now mirrored by the newer
+    "environment" API. The bath classes are kept in QuTiP for reasons of
+    backwards compatibility and convenience. Creating a `LorentzianBath` is
+    equivalent to creating a :class:`.LorentzianEnvironment`, performing a
+    :meth:`Matsubara <.LorentzianEnvironment.approx_by_matsubara>`
+    approximation, and finally bundling the result together with the coupling
+    operator ``Q`` for convenient use with the HEOM solver.
     """
 
     def __new__(self, Q, gamma, w, mu, T, Nk, tag=None):
@@ -662,6 +771,16 @@ class LorentzianPadeBath(FermionicBath):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+
+    Notes
+    -----
+    This class is part of the "bath" API, which is now mirrored by the newer
+    "environment" API. The bath classes are kept in QuTiP for reasons of
+    backwards compatibility and convenience. Creating a `LorentzianPadeBath` is
+    equivalent to creating a :class:`.LorentzianEnvironment`, performing a
+    :meth:`Pade <.LorentzianEnvironment.approx_by_pade>` approximation, and
+    finally bundling the result together with the coupling operator ``Q`` for
+    convenient use with the HEOM solver.
     """
 
     def __new__(self, Q, gamma, w, mu, T, Nk, tag=None):
