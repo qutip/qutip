@@ -190,6 +190,8 @@ the analytical correlation function. Note that a larger number of exponential te
     plt.legend()
 
 
+.. _dl env guide:
+
 Drude-Lorentz Environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -402,6 +404,7 @@ Since :math:`f_F(x) + f_F(-x) = 1`, we have :math:`S^+(\omega) + S^-(\omega) = J
     For the correlation functions, the condition becomes :math:`C^-(t) = \mathrm e^{-\beta\mu}\, C^+(t - \mathrm i\beta)^\ast`.
     For flexibility, we do not enforce the power spectra / correlation functions to be physical in this sense.
 
+.. _lorentzian env guide:
 
 Lorentzian Environment
 ^^^^^^^^^^^^^^^^^^^^^^
