@@ -439,15 +439,11 @@ class FLiMESolver(MESolver):
 
         self.Nt = self.options["Nt"]
 
-        self.Hdim = np.shape(self.floquet_basis.e_quasi)[0]
-
         self._num_collapse = len(c_ops)
         if not all(isinstance(c_op, Qobj) for c_op in c_ops):
             raise TypeError("c_ops must be type Qobj")
 
         self.dims = len(self.floquet_basis.e_quasi)
-
-        self.time_sense = time_sense
 
         self.RateDic = _floquet_rate_matrix(
             floquet_basis, self.Nt, c_ops, time_sense=time_sense
