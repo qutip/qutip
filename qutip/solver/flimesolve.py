@@ -181,10 +181,10 @@ def flimesolve(
 
     time_sense : float
         Value of the secular approximation to use when constructing the rate
-        matrix R(t).Default value of zero uses the fully time-independent/most
-        strict secular approximation, and will utilize the "diag" solver method.
-        Values greater than zero have time dependence, and will subsequently
-        use the "Adams" method for the ODE solver.
+        matrix R(t). Default value of zero uses the fully time-independent/most
+        strict secular approximation, and values greater than zero have time
+        dependence. The default integration method change depending
+        on this value, "diag" for `0`, "adams" otherwise.
 
     options : None / dict
         Dictionary of options for the solver.
