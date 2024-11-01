@@ -138,6 +138,7 @@ def flimesolve(
     T,
     Nt=None,
     c_ops=None,
+    *,
     e_ops=None,
     args=None,
     time_sense=0,
