@@ -341,7 +341,8 @@ The Floquet-Lindblad master equation in QuTiP
 The QuTiP function :func:`qutip.floquet.flimesolve` implements the 
 Floquet-Lindblad master equation. It calculates the dynamics of a system given 
 its initial state, a time-dependent Hamiltonian, and a list of operators 
-through which the system couples to its environment. 
+through which the system couples to its environment. More information on 
+the Floquet-Lindblad master equation can be found at https://arxiv.org/abs/2410.18046
 
 The following example extends the example studied above, and uses 
 :func:`qutip.floquet.flimesolve` to introduce dissipation into the calculation.

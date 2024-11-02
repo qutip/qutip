@@ -436,22 +436,14 @@ class FLiMESolver(MESolver):
             raise TypeError("The ``floquet_basis`` must be a FloquetBasis")
 
         self.options = options
-
+        self.c_ops = c_ops
+        self.time_sense = time_sense
         self.Nt = self.options["Nt"]
-
         self._num_collapse = len(c_ops)
         if not all(isinstance(c_op, Qobj) for c_op in c_ops):
             raise TypeError("c_ops must be type Qobj")
 
         self.dims = len(self.floquet_basis.e_quasi)
-
-        self.RateDic = _floquet_rate_matrix(
-            floquet_basis, self.Nt, c_ops, time_sense=time_sense
-        )
-
-        self.rhs = self._create_rhs(self.RateDic)
-        self._integrator = self._get_integrator()
-        self._state_metadata = {}
         self.stats = self._initialize_stats()
 
     def _initialize_stats(self):
@@ -464,6 +456,24 @@ class FLiMESolver(MESolver):
             }
         )
         return stats
+
+    @property
+    def Nt(self):
+        return self._Nt
+
+    @Nt.setter
+    def Nt(self, new):
+        self._Nt = new
+        self.rhs = self._create_rhs(
+            _floquet_rate_matrix(
+                self.floquet_basis,
+                self._Nt,
+                self.c_ops,
+                time_sense=self.time_sense,
+            )
+        )
+        self._integrator = self._get_integrator()
+        self._state_metadata = {}
 
     def _create_rhs(self, rate_matrix_dictionary):
         _time_start = time()
@@ -604,6 +614,7 @@ class FLiMESolver(MESolver):
             state0 = self.floquet_basis.to_floquet_basis(state0, tlist[0])
 
         _time_start = time()
+
         _data0 = self._prepare_state(state0)
         self._integrator.set_state(tlist[0], _data0)
         stats = self._initialize_stats()
