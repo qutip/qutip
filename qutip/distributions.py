@@ -359,16 +359,16 @@ class TwoModeQuadratureCorrelation(Distribution):
 class HarmonicOscillatorWaveFunction(Distribution):
 
     """
-    This class uses a function from the wavefunction_cython 
-    module, which is a compiled version for the Numpy and 
-    Cython version of QuTip, from the wavefunction_cython 
-    module of the Fast_Wave <https://github.com/fobos123deimos/fast-wave> 
-    package.which is released under 
+    This class uses a function from the wavefunction_cython
+    module, which is a compiled version for the Numpy and
+    Cython version of QuTip, from the wavefunction_cython
+    module of the Fast_Wave <https://github.com/fobos123deimos/fast-wave>
+    package.which is released under
     the BSD license, with the following copyright notice:
-    CORDEIRO, MATHEUS; BEZERRA, I. P. ; VASCONCELOS, H. H. M. . Efficient 
-    Computation of the Wave Function ψn(x) using Hermite Coefficient Matrix in 
-    Python. In: 7º Workshop Escola de Computação e Informação Quântica (7ª WECIQ), 
-    2024, Rio de Janeiro.ANAIS DO 7º WORKSHOP-ESCOLA DE COMPUTAÇÃO E INFORMAÇÃO 
+    CORDEIRO, MATHEUS; BEZERRA, I. P. ; VASCONCELOS, H. H. M. . Efficient
+    Computation of the Wave Function ψn(x) using Hermite Coefficient Matrix in
+    Python. In: 7º Workshop Escola de Computação e Informação Quântica (7ª WECIQ),
+    2024, Rio de Janeiro.ANAIS DO 7º WORKSHOP-ESCOLA DE COMPUTAÇÃO E INFORMAÇÃO
     QUÂNTICA. Rio de Janeiro: CEFET/RJ, 2024. p. 56-60.
     """
 
@@ -391,8 +391,7 @@ class HarmonicOscillatorWaveFunction(Distribution):
         N = psi.shape[0]
 
         for n in range(N):
-            self.data += wc.psi_n_single_fock_multiple_position_complex(n, 
-                            self.xvecs[0].astype(complex)) * psi[n, 0]
+            self.data += wc.psi_n_single_fock_multiple_position_complex(n, self.xvecs[0].astype(complex)) * psi[n, 0]
 
 
 class HarmonicOscillatorProbabilityFunction(Distribution):
@@ -431,5 +430,3 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
                     np.polyval(hermite(n), self.xvecs[0])
 
                 self.data += np.conjugate(k_n) * k_m * rho.data_as()[m, n]
-
-
