@@ -398,8 +398,6 @@ class HarmonicOscillatorWaveFunction(Distribution):
             )
 
 
-
-
 class HarmonicOscillatorProbabilityFunction(Distribution):
 
     def __init__(self, rho=None, omega=1.0, extent=[-5, 5], steps=250):
