@@ -367,9 +367,9 @@ class HarmonicOscillatorWaveFunction(Distribution):
     the BSD license, with the following copyright notice:
     CORDEIRO, MATHEUS; BEZERRA, I. P. ; VASCONCELOS, H. H. M. . Efficient
     Computation of the Wave Function ψn(x) using Hermite Coefficient Matrix in
-    Python. In: 7º Workshop Escola de Computação e Informação Quântica (7ª WECIQ),
-    2024, Rio de Janeiro.ANAIS DO 7º WORKSHOP-ESCOLA DE COMPUTAÇÃO E INFORMAÇÃO
-    QUÂNTICA. Rio de Janeiro: CEFET/RJ, 2024. p. 56-60.
+    Python. In: 7º Workshop Escola de Computação e Informação Quântica 
+    (7ª WECIQ),2024, Rio de Janeiro.ANAIS DO 7º WORKSHOP-ESCOLA DE COMPUTAÇÃO 
+    E INFORMAÇÃO QUÂNTICA. Rio de Janeiro: CEFET/RJ, 2024. p. 56-60.
     """
 
     def __init__(self, psi=None, omega=1.0, extent=[-5, 5], steps=250):
