@@ -308,7 +308,7 @@ class BosonicEnvironment(abc.ABC):
             * self.spectral_density(np.abs(w[nonzero_mask]))
             * (n_thermal(w[nonzero_mask], self.T) + 1)
         )
-        return S
+        return S.item() if w.ndim == 0 else S
 
     def _sd_from_ps(self, w):
         if self.T is None:
@@ -323,28 +323,34 @@ class BosonicEnvironment(abc.ABC):
             self.power_spectrum(w[positive_mask]) / 2
             / (n_thermal(w[positive_mask], self.T) + 1)
         )
-        return J
+        return J.item() if w.ndim == 0 else J
 
     def _ps_from_cf(self, w, tMax):
         w = np.array(w, dtype=float)
         if w.ndim == 0:
             wMax = np.abs(w)
+        elif len(w) == 0:
+            return np.array([])
         else:
             wMax = max(np.abs(w[0]), np.abs(w[-1]))
 
         mirrored_result = _fft(self.correlation_function, wMax, tMax=tMax)
-        return np.real(mirrored_result(-w))
+        result = np.real(mirrored_result(-w))
+        return result.item() if w.ndim == 0 else result
 
     def _cf_from_ps(self, t, wMax, **ps_kwargs):
         t = np.array(t, dtype=float)
         if t.ndim == 0:
             tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
         else:
             tMax = max(np.abs(t[0]), np.abs(t[-1]))
 
-        result = _fft(lambda w: self.power_spectrum(w, **ps_kwargs),
+        result_fct = _fft(lambda w: self.power_spectrum(w, **ps_kwargs),
                       tMax, tMax=wMax)
-        return result(t) / (2 * np.pi)
+        result = result_fct(t) / (2 * np.pi)
+        return result.item() if t.ndim == 0 else result
 
     # --- fitting
 
@@ -751,7 +757,7 @@ class _BosonicEnvironment_fromCF(BosonicEnvironment):
         result[non_positive_mask] = np.conj(
             self._cf(-t[non_positive_mask])
         )
-        return result
+        return result.item() if t.ndim == 0 else result
 
     def spectral_density(self, w):
         return self._sd_from_ps(w)
@@ -785,7 +791,8 @@ class _BosonicEnvironment_fromPS(BosonicEnvironment):
 
     def power_spectrum(self, w, **kwargs):
         w = np.array(w, dtype=float)
-        return self._ps(w)
+        ps = self._ps(w)
+        return ps.item() if w.ndim == 0 else self._ps(w)
 
 
 class _BosonicEnvironment_fromSD(BosonicEnvironment):
@@ -811,7 +818,7 @@ class _BosonicEnvironment_fromSD(BosonicEnvironment):
         positive_mask = (w > 0)
         result[positive_mask] = self._sd(w[positive_mask])
 
-        return result
+        return result.item() if w.ndim == 0 else result
 
     def power_spectrum(self, w, *, eps=1e-10):
         return self._ps_from_sd(w, eps)
@@ -886,8 +893,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         Nk : int, default 100
             The number of exponents to use.
         """
-        # TODO: this fails at zero temperature
-        # Should we fall back to FFT in that case?
+
+        if self.T == 0:
+            raise ValueError("The Drude-Lorentz correlation function diverges "
+                             "at zero temperature.")
 
         t = np.array(t, dtype=float)
         abs_t = np.abs(t)
@@ -952,10 +961,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             dynamics to take this discrepancy into account, see
             :func:`.system_terminator`.
         """
+
         if self.T == 0:
-            raise ValueError("The Matsubara expansion cannot be performed at "
-                             "zero temperature. Use other approaches such as "
-                             "fitting the correlation function.")
+            raise ValueError("The Drude-Lorentz correlation function diverges "
+                             "at zero temperature.")
         if tag is None and self.tag is not None:
             tag = (self.tag, "Matsubara Truncation")
 
@@ -1005,10 +1014,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             dynamics to take this discrepancy into account, see
             :func:`.system_terminator`.
         """
+
         if self.T == 0:
-            raise ValueError("The Pade expansion cannot be performed at "
-                             "zero temperature. Use other approaches such as "
-                             "fitting the correlation function.")
+            raise ValueError("The Drude-Lorentz correlation function diverges "
+                             "at zero temperature.")
         if tag is None and self.tag is not None:
             tag = (self.tag, "Pade Truncation")
 
@@ -1819,8 +1828,8 @@ def _fft(f, wMax, tMax):
         g(\omega) = \int_{-\infty}^\infty dt\, e^{-i\omega t}\, f(t) .
 
     The function f is sampled on the interval `[-tMax, tMax]`. The sampling
-    discretization is chosen as `dt = pi / (2*wMax)` (Shannon-Nyquist + some
-    leeway). However, `dt` is always chosen small enough to have at least 250
+    discretization is chosen as `dt = pi / (4*wMax)` (Shannon-Nyquist + some
+    leeway). However, `dt` is always chosen small enough to have at least 500
     samples on the interval `[-tMax, tMax]`.
 
     Parameters
@@ -1838,7 +1847,7 @@ def _fft(f, wMax, tMax):
     # Code adapted from https://stackoverflow.com/a/24077914
 
     numSamples = int(
-        max(250, np.ceil(4 * tMax * wMax / np.pi + 1))
+        max(500, np.ceil(2 * tMax * 4 * wMax / np.pi + 1))
     )
     t, dt = np.linspace(-tMax, tMax, numSamples, retstep=True)
     f_values = f(t)

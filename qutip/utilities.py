@@ -42,17 +42,19 @@ def n_thermal(w, w_th):
 
     """
 
-    if w_th <= 0:
-        return np.zeros_like(w)
-
     w = np.array(w, dtype=float)
     result = np.zeros_like(w)
+
+    if w_th <= 0:
+        result[w < 0] = -1
+        return result.item() if w.ndim == 0 else result
+
     non_zero = w != 0
     # result[non_zero] = 1 / (np.exp(w[non_zero] / w_th) - 1)
     # The same definition with no overflow warnings
     result[non_zero] = np.exp(-w[non_zero] / w_th) / \
         (1-np.exp(-w[non_zero] / w_th))
-    return result
+    return result.item() if w.ndim == 0 else result
 
 
 def _factorial_prod(N, arr):
