@@ -3,11 +3,16 @@ import pytest
 from numbers import Number
 
 import numpy as np
-from qutip.utilities import n_thermal
+import mpmath as mp
 from scipy.integrate import quad_vec
+from qutip.utilities import n_thermal
 
 from qutip.core.environment import (
-    BosonicEnvironment
+    BosonicEnvironment,
+    DrudeLorentzEnvironment,
+    UnderDampedEnvironment,
+    OhmicEnvironment,
+    ExponentialBosonicEnvironment
 )
 
 
@@ -235,14 +240,63 @@ class DLReference:
         return np.sign(x) + (x == 0)
 
 
+class OhmicReference:
+    def __init__(self, T, alpha, wc, s):
+        self.T = T
+        self.alpha = alpha
+        self.wc = wc
+        self.s = s
+
+    def spectral_density(self, w):
+        # only valid for w >= 0
+        return (self.alpha * self.wc**(1 - self.s) *
+                w**self.s * np.exp(-w / self.wc))
+
+    def power_spectrum(self, w, eps=1e-16):
+        # at zero frequency, take limit w->0
+        w = np.array(w)
+        w[w == 0] = eps
+        return 2 * np.sign(w) * self.spectral_density(np.abs(w)) * (
+            n_thermal(w, self.T) + 1
+        )
+
+    def correlation_function(self, t):
+        # only valid for t >= 0
+        if self.T == 0:
+            return self._cf_zeroT(t)
+
+        beta = 1 / self.T
+        corr = (
+            (self.alpha / np.pi) * self.wc**(1 - self.s) *
+            beta**(-(self.s + 1)) * mp.gamma(self.s + 1)
+        )
+        z1_u = (1 + beta * self.wc - 1.0j * self.wc * t) / (beta * self.wc)
+        z2_u = (1 + 1.0j * self.wc * t) / (beta * self.wc)
+
+        return np.array([
+            complex(corr * (mp.zeta(self.s + 1, u1) + mp.zeta(self.s + 1, u2)))
+            for u1, u2 in zip(z1_u, z2_u)
+        ])
+
+    def _cf_zeroT(self, t):
+        return (
+            self.alpha / np.pi * self.wc**(self.s + 1) *
+            complex(mp.gamma(self.s + 1)) *
+            (1 + 1j * self.wc * t)**(-(self.s + 1))
+        )
+
+
 class TestBosonicEnvironment:
     @pytest.mark.parametrize(["ref", "info"], [
-        pytest.param(UDReference(gamma=.1, lam=.5, w0=1, T=0),
+        pytest.param(UDReference(gamma=.1, lam=.5, w0=1, T=.5),
                      {'tMax': 125, 'npoints': 300, 'tol': 5e-3},
-                     id="UD zero T"),
+                     id="UD finite T"),
         pytest.param(DLReference(gamma=.5, lam=.1, T=.5),
-                     {'tMax': 25, 'npoints': 500, 'tol': 1e-2},
+                     {'tMax': 15, 'npoints': 300, 'tol': 1e-2},
                      id="DL finite T"),
+        pytest.param(OhmicReference(T=0, alpha=1, wc=10, s=1),
+                     {'tMax': 10, 'npoints': 500, 'tol': 1e-2},
+                     id="Ohmic zero T"),
     ])
     @pytest.mark.parametrize(["interpolate", "provide_tmax"], [
         [True, False], [False, False], [False, True]
@@ -289,15 +343,19 @@ class TestBosonicEnvironment:
                 env.spectral_density(0)
 
         assert_environment_guarantees(env, skip_sd=skip_sd, skip_ps=skip_ps)
-        assert_equivalent(env, ref, skip_sd=skip_sd, skip_ps=skip_ps, tol=tol)
+        assert_equivalent(env, ref, skip_sd=skip_sd, skip_ps=skip_ps,
+                          tol=tol, tMax=tMax)
 
     @pytest.mark.parametrize(["ref", "info"], [
-        pytest.param(UDReference(gamma=.1, lam=.5, w0=1, T=0),
+        pytest.param(UDReference(gamma=.1, lam=.5, w0=1, T=.5),
                      {'wMax': 5, 'npoints': 200, 'tol': 5e-3},
-                     id="UD zero T"),
+                     id="UD finite T"),
         pytest.param(DLReference(gamma=.5, lam=.1, T=.5),
                      {'wMax': 200, 'npoints': 1500, 'tol': 5e-3},
                      id="DL finite T"),
+        pytest.param(OhmicReference(T=0, alpha=1, wc=10, s=1),
+                     {'wMax': 150, 'npoints': 150, 'tol': 5e-3},
+                     id="Ohmic zero T"),
     ])
     @pytest.mark.parametrize(["interpolate", "provide_wmax"], [
         [True, False], [False, False], [False, True]
@@ -340,15 +398,19 @@ class TestBosonicEnvironment:
                 env.correlation_function(0)
 
         assert_environment_guarantees(env, skip_cf=skip_cf, skip_ps=skip_ps)
-        assert_equivalent(env, ref, skip_cf=skip_cf, skip_ps=skip_ps, tol=tol)
+        assert_equivalent(env, ref, skip_cf=skip_cf, skip_ps=skip_ps,
+                          tol=tol, wMax=wMax)
 
     @pytest.mark.parametrize(["ref", "info"], [
-        pytest.param(UDReference(gamma=.1, lam=.5, w0=1, T=0),
+        pytest.param(UDReference(gamma=.1, lam=.5, w0=1, T=.5),
                      {'wMax': 5, 'npoints': 200, 'tol': 5e-3},
-                     id="UD zero T"),
+                     id="UD finite T"),
         pytest.param(DLReference(gamma=.5, lam=.1, T=.5),
                      {'wMax': 200, 'npoints': 1500, 'tol': 5e-3},
                      id="DL finite T"),
+        pytest.param(OhmicReference(T=0, alpha=1, wc=10, s=1),
+                     {'wMax': 150, 'npoints': 2000, 'tol': 5e-3},
+                     id="Ohmic zero T"),
     ])
     @pytest.mark.parametrize(["interpolate", "provide_wmax"], [
         [True, False], [False, False], [False, True]
@@ -363,7 +425,7 @@ class TestBosonicEnvironment:
 
         # Collect arguments
         if interpolate:
-            wlist = np.linspace(-wMax, wMax, 2 * npoints)
+            wlist = np.linspace(-wMax, wMax, 2 * npoints + 1)
             slist = ref.power_spectrum(wlist)
             args1 = {'wlist': wlist, 'S': slist}
         else:
@@ -388,7 +450,183 @@ class TestBosonicEnvironment:
                 env.correlation_function(0)
 
         assert_environment_guarantees(env, skip_cf=skip_cf, skip_sd=skip_sd)
-        assert_equivalent(env, ref, skip_cf=skip_cf, skip_sd=skip_sd, tol=tol)
+        assert_equivalent(env, ref, skip_cf=skip_cf, skip_sd=skip_sd,
+                          tol=tol, wMax=wMax)
+
+
+@pytest.mark.parametrize("params", [
+    {'gamma': 2.5, 'lam': .75, 'T': 1.5}
+])
+class TestDLEnvironment:
+    def test_matches_reference(self, params):
+        ref = DLReference(**params)
+        env = DrudeLorentzEnvironment(**params)
+
+        assert_environment_guarantees(env)
+        assert_equivalent(env, ref, tol=1e-8)
+
+    def test_zero_temperature(self, params):
+        params_T0 = {**params, 'T': 0}
+        ref = DLReference(**params_T0)
+        env = DrudeLorentzEnvironment(**params_T0)
+
+        with np.testing.assert_raises(ValueError):
+            env.correlation_function(0)
+        with np.testing.assert_raises(ValueError):
+            env.approx_by_matsubara(10)
+        with np.testing.assert_raises(ValueError):
+            env.approx_by_pade(10)
+
+        assert_environment_guarantees(env, skip_cf=True)
+        assert_equivalent(env, ref, tol=1e-6, skip_cf=True)
+
+    @pytest.mark.parametrize("tag", [None, "test"])
+    def test_matsubara_approx(self, params, tag):
+        Nk = 25
+        original_tag = object()
+        env = DrudeLorentzEnvironment(**params, tag=original_tag)
+
+        approx, _ = env.approx_by_matsubara(Nk, combine=False, tag=tag)
+        assert isinstance(approx, ExponentialBosonicEnvironment)
+        assert len(approx.exponents) == Nk + 2  # (Nk+1) real + 1 imag
+        if tag is None:
+            assert approx.tag == (original_tag, "Matsubara Truncation")
+        else:
+            assert approx.tag == tag
+        assert approx.T == env.T
+
+        # CF at t=0 might not match, which is okay
+        assert_equivalent(env, approx, tol=1e-2, skip_cf=True)
+
+        approx_combine, delta = env.approx_by_matsubara(Nk, combine=True)
+        assert isinstance(approx_combine, ExponentialBosonicEnvironment)
+        assert len(approx_combine.exponents) < Nk + 2
+        assert approx_combine.T == env.T
+
+        assert_equivalent(approx, approx_combine, tol=1e-8)
+
+        # Check terminator amplitude
+        delta_ref = 2 * env.lam * env.T / env.gamma - 1j * env.lam
+        for exp in approx_combine.exponents:
+            delta_ref -= exp.coefficient / exp.exponent
+        assert_allclose(delta, delta_ref, tol=1e-8)
+
+    @pytest.mark.parametrize("tag", [None, "test"])
+    def test_pade_approx(self, params, tag):
+        Nk = 4
+        original_tag = object()
+        env = DrudeLorentzEnvironment(**params, tag=original_tag)
+
+        approx, _ = env.approx_by_pade(Nk, combine=False, tag=tag)
+        assert isinstance(approx, ExponentialBosonicEnvironment)
+        assert len(approx.exponents) == Nk + 2  # (Nk+1) real + 1 imag
+        if tag is None:
+            assert approx.tag == (original_tag, "Pade Truncation")
+        else:
+            assert approx.tag == tag
+        assert approx.T == env.T
+
+        # Wow, Pade is so much better
+        assert_equivalent(env, approx, tol=1e-8, skip_cf=True)
+
+        approx_combine, delta = env.approx_by_pade(Nk, combine=True)
+        assert isinstance(approx_combine, ExponentialBosonicEnvironment)
+        assert len(approx_combine.exponents) < Nk + 2
+        assert approx_combine.T == env.T
+
+        assert_equivalent(approx, approx_combine, tol=1e-8)
+
+        # Check terminator amplitude
+        delta_ref = 2 * env.lam * env.T / env.gamma - 1j * env.lam
+        for exp in approx_combine.exponents:
+            delta_ref -= exp.coefficient / exp.exponent
+        assert_allclose(delta, delta_ref, tol=1e-8)
+
+
+class TestUDEnvironment:
+    @pytest.mark.parametrize("params", [
+        pytest.param({'gamma': 2.5, 'lam': .75, 'w0': 5, 'T': 1.5},
+                     id='finite T'),
+        pytest.param({'gamma': 2.5, 'lam': .75, 'w0': 5, 'T': 0},
+                     id='zero T'),
+    ])
+    def test_matches_reference(self, params):
+        ref = UDReference(**params)
+        env = UnderDampedEnvironment(**params)
+
+        assert_environment_guarantees(env)
+        # a bit higher tolerance since we currently compute CF via FFT
+        assert_equivalent(env, ref, tol=1e-3)
+
+    @pytest.mark.parametrize("params", [
+        {'gamma': 2.5, 'lam': .75, 'w0': 5, 'T': 0},
+    ])
+    def test_zero_temperature(self, params):
+        # Attempting a Matsubara expansion at T=0 should raise a warning
+        # and return only the resonant (non-Matsubara) part of the expansion
+        env = UnderDampedEnvironment(**params)
+
+        tlist = np.linspace(0, 5, 100)
+        resonant_approx = env.approx_by_matsubara(Nk=0)
+
+        with np.testing.assert_warns(UserWarning):
+            test_approx = env.approx_by_matsubara(Nk=3)
+
+        assert_allclose(resonant_approx.correlation_function(tlist),
+                        test_approx.correlation_function(tlist),
+                        tol=1e-8)
+
+    @pytest.mark.parametrize("params", [
+        {'gamma': 2.5, 'lam': .75, 'w0': 5, 'T': 1.5},
+    ])
+    @pytest.mark.parametrize("tag", [None, "test"])
+    def test_matsubara_approx(self, params, tag):
+        Nk = 25
+        original_tag = object()
+        env = UnderDampedEnvironment(**params, tag=original_tag)
+
+        approx = env.approx_by_matsubara(Nk, combine=False, tag=tag)
+        assert isinstance(approx, ExponentialBosonicEnvironment)
+        assert len(approx.exponents) == Nk + 4  # (Nk+2) real + 2 imag
+        if tag is None:
+            assert approx.tag == (original_tag, "Matsubara Truncation")
+        else:
+            assert approx.tag == tag
+        assert approx.T == env.T
+
+        assert_equivalent(env, approx, tol=1e-3)
+
+        approx_combine = env.approx_by_matsubara(Nk, combine=True)
+        assert isinstance(approx_combine, ExponentialBosonicEnvironment)
+        assert len(approx_combine.exponents) < Nk + 4
+        assert approx_combine.T == env.T
+
+        assert_equivalent(approx, approx_combine, tol=1e-8)
+
+
+@pytest.mark.parametrize("params", [
+    pytest.param({'alpha': .75, 'wc': 10, 's': 1, 'T': 3},
+                id='finite T ohmic'),
+    pytest.param({'alpha': .75, 'wc': .5, 's': 1, 'T': 0},
+                id='zero T ohmic'),
+    pytest.param({'alpha': .75, 'wc': 10, 's': .5, 'T': 3},
+                id='finite T subohmic'),
+    pytest.param({'alpha': .75, 'wc': .5, 's': .5, 'T': 0},
+                id='zero T subohmic'),
+    pytest.param({'alpha': .75, 'wc': 10, 's': 5, 'T': 3},
+                id='finite T superohmic'),
+    pytest.param({'alpha': .75, 'wc': .5, 's': 5, 'T': 0},
+                id='zero T superohmic'),
+])
+class TestOhmicEnvironment:
+    def test_matches_reference(self, params):
+        ref = OhmicReference(**params)
+        env = OhmicEnvironment(**params)
+
+        assert_environment_guarantees(env)
+        assert_equivalent(env, ref, tol=1e-8)
+
+
 
 
 

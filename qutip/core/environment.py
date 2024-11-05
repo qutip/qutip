@@ -289,7 +289,7 @@ class BosonicEnvironment(abc.ABC):
             raise ValueError(
                 "Temperature must be specified for this operation")
 
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
         if self.T == 0:
             return 2 * np.heaviside(w, 0) * self.spectral_density(w)
 
@@ -315,7 +315,7 @@ class BosonicEnvironment(abc.ABC):
             raise ValueError(
                 "Temperature must be specified for this operation")
 
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
         J = np.zeros_like(w)
         positive_mask = (w > 0)
 
@@ -326,7 +326,7 @@ class BosonicEnvironment(abc.ABC):
         return J.item() if w.ndim == 0 else J
 
     def _ps_from_cf(self, w, tMax):
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
         if w.ndim == 0:
             wMax = np.abs(w)
         elif len(w) == 0:
@@ -339,7 +339,7 @@ class BosonicEnvironment(abc.ABC):
         return result.item() if w.ndim == 0 else result
 
     def _cf_from_ps(self, t, wMax, **ps_kwargs):
-        t = np.array(t, dtype=float)
+        t = np.asarray(t, dtype=float)
         if t.ndim == 0:
             tMax = np.abs(t)
         elif len(t) == 0:
@@ -748,7 +748,7 @@ class _BosonicEnvironment_fromCF(BosonicEnvironment):
             self.tMax = tMax
 
     def correlation_function(self, t, **kwargs):
-        t = np.array(t, dtype=float)
+        t = np.asarray(t, dtype=float)
         result = np.zeros_like(t, dtype=complex)
         positive_mask = (t >= 0)
         non_positive_mask = np.invert(positive_mask)
@@ -790,7 +790,7 @@ class _BosonicEnvironment_fromPS(BosonicEnvironment):
         return self._sd_from_ps(w)
 
     def power_spectrum(self, w, **kwargs):
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
         ps = self._ps(w)
         return ps.item() if w.ndim == 0 else self._ps(w)
 
@@ -812,7 +812,7 @@ class _BosonicEnvironment_fromSD(BosonicEnvironment):
         return self._cf_from_ps(t, self.wMax, eps=eps)
 
     def spectral_density(self, w):
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
 
         result = np.zeros_like(w)
         positive_mask = (w > 0)
@@ -867,7 +867,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             Energy of the mode.
         """
 
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
         result = np.zeros_like(w)
 
         positive_mask = (w > 0)
@@ -876,7 +876,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             2 * self.lam * self.gamma * w_mask / (self.gamma**2 + w_mask**2)
         )
 
-        return result
+        return result.item() if w.ndim == 0 else result
 
     def correlation_function(
         self, t: float | ArrayLike, Nk: int = 100, **kwargs
@@ -898,17 +898,18 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             raise ValueError("The Drude-Lorentz correlation function diverges "
                              "at zero temperature.")
 
-        t = np.array(t, dtype=float)
+        t = np.asarray(t, dtype=float)
         abs_t = np.abs(t)
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(Nk)
 
         def C(c, v):
-            return np.sum([ck * np.exp(-np.array(vk * abs_t))
+            return np.sum([ck * np.exp(-np.asarray(vk * abs_t))
                            for ck, vk in zip(c, v)], axis=0)
         result = C(ck_real, vk_real) + 1j * C(ck_imag, vk_imag)
 
+        result = np.asarray(result, dtype=complex)
         result[t < 0] = np.conj(result[t < 0])
-        return result
+        return result.item() if t.ndim == 0 else result
 
     def power_spectrum(
         self, w: float | ArrayLike, **kwargs
@@ -1171,7 +1172,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
             Energy of the mode.
         """
 
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
         result = np.zeros_like(w)
 
         positive_mask = (w > 0)
@@ -1182,7 +1183,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
             )
         )
 
-        return result
+        return result.item() if w.ndim == 0 else result
 
     def power_spectrum(
         self, w: float | ArrayLike, **kwargs
@@ -1212,7 +1213,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
             The time at which to evaluate the correlation function.
         """
         # we need an wMax so that spectral density is zero for w>wMax, guess:
-        wMax = self.w0 + 10 * self.gamma
+        wMax = self.w0 + 25 * self.gamma
         return self._cf_from_ps(t, wMax)
 
     def approx_by_matsubara(
@@ -1263,12 +1264,13 @@ class UnderDampedEnvironment(BosonicEnvironment):
         Om = np.sqrt(self.w0**2 - (self.gamma / 2)**2)
         Gamma = self.gamma / 2
 
-        ck_real = ([
-            (self.lam**2 / (4 * Om))
-            * (1 / np.tanh((Om + 1j * Gamma) / (2*self.T))),
-            (self.lam**2 / (4 * Om))
-            * (1 / np.tanh((Om - 1j * Gamma) / (2*self.T))),
-        ])
+        with np.errstate(divide='ignore'):
+            ck_real = ([
+                (self.lam**2 / (4 * Om))
+                * (1 / np.tanh((Om + 1j * Gamma) / (2*self.T))),
+                (self.lam**2 / (4 * Om))
+                * (1 / np.tanh((Om - 1j * Gamma) / (2*self.T))),
+            ])
 
         ck_real.extend([
             (-2 * self.lam**2 * self.gamma * self.T) * (2 * np.pi * k * self.T)
@@ -1348,7 +1350,7 @@ class OhmicEnvironment(BosonicEnvironment):
             Energy of the mode.
         """
 
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
         result = np.zeros_like(w)
 
         positive_mask = (w > 0)
@@ -1359,7 +1361,7 @@ class OhmicEnvironment(BosonicEnvironment):
             * np.exp(-np.abs(w_mask) / self.wc)
         )
 
-        return result
+        return result.item() if w.ndim == 0 else result
 
     def power_spectrum(
         self, w: float | ArrayLike, **kwargs
@@ -1401,7 +1403,7 @@ class OhmicEnvironment(BosonicEnvironment):
         t : array_like or float
             The time at which to evaluate the correlation function.
         """
-        t = np.array(t, dtype=float)
+        t = np.asarray(t, dtype=float)
         t_was_array = t.ndim > 0
         if not t_was_array:
             t = np.array([t], dtype=float)
@@ -1412,16 +1414,16 @@ class OhmicEnvironment(BosonicEnvironment):
             z1_u = ((1 + self.wc / self.T - 1j * self.wc * t)
                     / (self.wc / self.T))
             z2_u = (1 + 1j * self.wc * t) / (self.wc / self.T)
-            result = np.array(
+            result = np.asarray(
                 [corr * (mp.zeta(self.s + 1, u1) + mp.zeta(self.s + 1, u2))
                  for u1, u2 in zip(z1_u, z2_u)],
                 dtype=np.cdouble
             )
         else:
-            corr = (self.alpha * self.wc**2 / np.pi
+            corr = (self.alpha * self.wc**(self.s + 1) / np.pi
                     * mp.gamma(self.s + 1)
                     * (1 + 1j * self.wc * t) ** (-self.s - 1))
-            result = np.array(corr, dtype=np.cdouble)
+            result = np.asarray(corr, dtype=np.cdouble)
 
         if t_was_array:
             return result
@@ -1722,7 +1724,7 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
             The time at which to evaluate the correlation function.
         """
 
-        t = np.array(t, dtype=float)
+        t = np.asarray(t, dtype=float)
         corr = np.zeros_like(t, dtype=complex)
 
         for exp in self.exponents:
@@ -1744,7 +1746,7 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
             The frequency at which to evaluate the power spectrum.
         """
 
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
         S = np.zeros_like(w)
 
         for exp in self.exponents:
@@ -2212,7 +2214,7 @@ class LorentzianEnvironment(FermionicEnvironment):
             Energy of the mode.
         """
 
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
         return self.gamma * self.W**2 / ((w - self.omega0)**2 + self.W**2)
 
     def correlation_function_plus(
@@ -2252,11 +2254,11 @@ class LorentzianEnvironment(FermionicEnvironment):
         return self._correlation_function(t, Nk, -1)
 
     def _correlation_function(self, t, Nk, sigma):
-        t = np.array(t, dtype=float)
+        t = np.asarray(t, dtype=float)
         abs_t = np.abs(t)
         c, v = self._matsubara_params(Nk, sigma)
 
-        result = np.sum([ck * np.exp(-np.array(vk * abs_t))
+        result = np.sum([ck * np.exp(-np.asarray(vk * abs_t))
                          for ck, vk in zip(c, v)], axis=0)
 
         result[t < 0] = np.conj(result[t < 0])
@@ -2678,7 +2680,7 @@ class ExponentialFermionicEnvironment(FermionicEnvironment):
         return self._cf(t, CFExponent.types['-'])
 
     def _cf(self, t, type):
-        t = np.array(t, dtype=float)
+        t = np.asarray(t, dtype=float)
         corr = np.zeros_like(t, dtype=complex)
 
         for exp in self.exponents:
@@ -2719,7 +2721,7 @@ class ExponentialFermionicEnvironment(FermionicEnvironment):
         return self._ps(w, CFExponent.types['-'], -1)
 
     def _ps(self, w, type, sigma):
-        w = np.array(w, dtype=float)
+        w = np.asarray(w, dtype=float)
         S = np.zeros_like(w)
 
         for exp in self.exponents:
