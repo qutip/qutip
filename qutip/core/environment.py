@@ -348,7 +348,7 @@ class BosonicEnvironment(abc.ABC):
             tMax = max(np.abs(t[0]), np.abs(t[-1]))
 
         result_fct = _fft(lambda w: self.power_spectrum(w, **ps_kwargs),
-                      tMax, tMax=wMax)
+                          tMax, tMax=wMax)
         result = result_fct(t) / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
 
@@ -1902,7 +1902,6 @@ def _default_guess_cfreal(tlist, clist, full_ansatz):
 
 def _default_guess_cfimag(clist, full_ansatz):
     corr_max = np.max(np.abs(clist))
-
     # Checks if constant array, and assigns zero
     if (clist == clist[0]).all():
         if full_ansatz:
@@ -1910,9 +1909,9 @@ def _default_guess_cfimag(clist, full_ansatz):
         return [[0] * 3]*3
 
     if full_ansatz:
-        lower = [-100 * corr_max, -np.inf, -1, -100 * corr_max]
+        lower = [-100 * corr_max, -np.inf, -np.inf, -100 * corr_max]
         guess = [0, -10 * corr_max, 0, 0]
-        upper = [100 * corr_max, 0, 2, 100 * corr_max]
+        upper = [100 * corr_max, 0, np.inf, 100 * corr_max]
     else:
         lower = [-20 * corr_max, -np.inf, 0]
         guess = [-corr_max, -10 * corr_max, 1]
