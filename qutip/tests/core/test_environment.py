@@ -486,7 +486,7 @@ class TestDLEnvironment:
         original_tag = object()
         env = DrudeLorentzEnvironment(**params, tag=original_tag)
 
-        approx, _ = env.approx_by_matsubara(Nk, combine=False, tag=tag)
+        approx = env.approx_by_matsubara(Nk, combine=False, tag=tag)
         assert isinstance(approx, ExponentialBosonicEnvironment)
         assert len(approx.exponents) == Nk + 2  # (Nk+1) real + 1 imag
         if tag is None:
@@ -498,7 +498,9 @@ class TestDLEnvironment:
         # CF at t=0 might not match, which is okay
         assert_equivalent(env, approx, tol=1e-2, skip_cf=True)
 
-        approx_combine, delta = env.approx_by_matsubara(Nk, combine=True)
+        approx_combine, delta = env.approx_by_matsubara(
+            Nk, compute_delta=True, combine=True
+        )
         assert isinstance(approx_combine, ExponentialBosonicEnvironment)
         assert len(approx_combine.exponents) < Nk + 2
         assert approx_combine.T == env.T
@@ -517,7 +519,7 @@ class TestDLEnvironment:
         original_tag = object()
         env = DrudeLorentzEnvironment(**params, tag=original_tag)
 
-        approx, _ = env.approx_by_pade(Nk, combine=False, tag=tag)
+        approx = env.approx_by_pade(Nk, combine=False, tag=tag)
         assert isinstance(approx, ExponentialBosonicEnvironment)
         assert len(approx.exponents) == Nk + 2  # (Nk+1) real + 1 imag
         if tag is None:
@@ -529,7 +531,9 @@ class TestDLEnvironment:
         # Wow, Pade is so much better
         assert_equivalent(env, approx, tol=1e-8, skip_cf=True)
 
-        approx_combine, delta = env.approx_by_pade(Nk, combine=True)
+        approx_combine, delta = env.approx_by_pade(
+            Nk, combine=True, compute_delta=True
+        )
         assert isinstance(approx_combine, ExponentialBosonicEnvironment)
         assert len(approx_combine.exponents) < Nk + 2
         assert approx_combine.T == env.T

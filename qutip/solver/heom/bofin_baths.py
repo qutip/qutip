@@ -339,7 +339,7 @@ class DrudeLorentzBath(BosonicBath):
         # initial bofin release
         env = environment.DrudeLorentzEnvironment(T, lam, gamma)
         matsubara_approx, delta = env.approx_by_matsubara(
-            Nk=Nk, combine=combine, tag=tag
+            Nk=Nk, combine=combine, compute_delta=True, tag=tag
         )
 
         result = BosonicBath.from_environment(matsubara_approx, Q)
@@ -438,7 +438,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         # See DrudeLorentzBath comment
         env = environment.DrudeLorentzEnvironment(T, lam, gamma)
         pade_approx, delta = env.approx_by_pade(
-            Nk=Nk, combine=combine, tag=tag
+            Nk=Nk, combine=combine, compute_delta=True, tag=tag
         )
 
         result = BosonicBath.from_environment(pade_approx, Q)

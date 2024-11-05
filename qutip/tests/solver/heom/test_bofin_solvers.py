@@ -1445,9 +1445,11 @@ class TestHEOMSolverWithEnv:
         )
         env = DrudeLorentzEnvironment(lam=dlm.lam, gamma=dlm.gamma, T=dlm.T)
         if approx == 'matsubara':
-            approx_env, delta = env.approx_by_matsubara(Nk=dlm.Nk)
+            approx_env, delta = env.approx_by_matsubara(
+                Nk=dlm.Nk, compute_delta=True)
         else:
-            approx_env, delta = env.approx_by_pade(Nk=dlm.Nk)
+            approx_env, delta = env.approx_by_pade(
+                Nk=dlm.Nk, compute_delta=True)
         if terminator:
             terminator_op = system_terminator(dlm.Q, delta)
             H_sys = liouvillian(dlm.H) + terminator_op
