@@ -486,10 +486,10 @@ class BosonicEnvironment(abc.ABC):
             "fit_time_imag"
                 The time the fit of the imaginary part of the correlation
                 function took in seconds.
-            "rsme_real"
+            "rmse_real"
                 Normalized mean squared error obtained in the fit of the real
                 part of the correlation function.
-            "rsme_imag"
+            "rmse_imag"
                 Normalized mean squared error obtained in the fit of the
                 imaginary part of the correlation function.
             "params_real"
@@ -591,7 +591,7 @@ class BosonicEnvironment(abc.ABC):
         self,
         wlist: ArrayLike,
         Nk: int = 1,
-        target_rsme: float = 5e-6,
+        target_rmse: float = 5e-6,
         Nmax: int = 10,
         guess: list[float] = None,
         lower: list[float] = None,
@@ -679,7 +679,7 @@ class BosonicEnvironment(abc.ABC):
                 The number of Matsubara modes included per underdamped term.
             "fit_time"
                 The time the fit took in seconds.
-            "rsme"
+            "rmse"
                 Normalized mean squared error obtained in the fit.
             "params"
                 The fitted parameters (array of shape Nx3).
@@ -691,8 +691,8 @@ class BosonicEnvironment(abc.ABC):
         if tag is None and self.tag is not None:
             tag = (self.tag, "SD Fit")
 
-        if target_rsme is None:
-            target_rsme = 0
+        if target_rmse is None:
+            target_rmse = 0
             Nmin = Nmax
         else:
             Nmin = 1
@@ -704,7 +704,7 @@ class BosonicEnvironment(abc.ABC):
         # Fit
         start = time()
         rmse, params = iterated_fit(
-            _sd_fit_model, 3, wlist, jlist, target_rsme, guess,
+            _sd_fit_model, 3, wlist, jlist, target_rmse, guess,
             Nmin, Nmax, lower, upper, sigma=sigma, maxfev=maxfev
         )
         end = time()

@@ -498,6 +498,128 @@ class TestBosonicEnvironment:
         assert_equivalent(env, ref, skip_cf=skip_cf, skip_sd=skip_sd,
                           tol=tol, wMax=wMax)
 
+    @pytest.mark.parametrize(["reference", "tMax"], [
+        pytest.param(DLReference(.5, .1, .5), 15, id="DL Example"),
+    ])
+    @pytest.mark.parametrize(["full_ansatz", "tol"], [
+        pytest.param(True, 1e-3, id="Full ansatz"),
+        pytest.param(False, 5e-3, id="Not-full ansatz"),
+    ])
+    def test_fixed_cf_fit(self, reference, tMax, full_ansatz, tol):
+        # fixed number of exponents
+        env = BosonicEnvironment.from_correlation_function(
+            reference.correlation_function, T=reference.T
+        )
+        tlist = np.linspace(0, tMax, 100)[1:] # exclude t=0
+        fit, info = env.approx_by_cf_fit(
+            tlist, target_rsme=None, Nr_max=2, Ni_max=2,
+            full_ansatz=full_ansatz, combine=False
+        )
+
+        assert isinstance(fit, ExponentialBosonicEnvironment)
+        assert len(fit.exponents) == 8
+        assert fit.T == env.T
+        assert fit.tag is None
+        assert_equivalent(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+
+        assert info["Nr"] == 2
+        assert info["Ni"] == 2
+        assert info["rmse_real"] < 5e-3
+        assert info["rmse_imag"] < 5e-3
+        for key in ["fit_time_real", "fit_time_imag",
+                    "params_real", "params_imag", "summary"]:
+            assert key in info
+
+    @pytest.mark.parametrize(["reference", "tMax", "tol"], [
+        pytest.param(DLReference(.5, .1, .5), 15, 5e-2, id="DL Example"),
+        pytest.param(SingleExponentReference(1, 2 + .5j, None), 10, 1e-5,
+                     id="Exponential function")
+    ])
+    @pytest.mark.parametrize("full_ansatz", [True, False])
+    def test_dynamic_cf_fit(self, reference, tMax, tol, full_ansatz):
+        # dynamic number of exponents
+        env = BosonicEnvironment.from_correlation_function(
+            reference.correlation_function, tag="test"
+        )
+        tlist = np.linspace(0, tMax, 100)[1:] # exclude t=0
+        fit, info = env.approx_by_cf_fit(
+            tlist, target_rsme=0.01, Nr_max=3, Ni_max=3,
+            full_ansatz=full_ansatz
+        )
+
+        assert isinstance(fit, ExponentialBosonicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "CF Fit")
+        assert_equivalent(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+
+        assert info["Nr"] == 1
+        assert info["Ni"] == 1
+        assert info["rmse_real"] <= 0.01
+        assert info["rmse_imag"] <= 0.01
+        for key in ["fit_time_real", "fit_time_imag",
+                    "params_real", "params_imag", "summary"]:
+            assert key in info
+
+    @pytest.mark.parametrize(["reference", "wMax", "tol"], [
+        pytest.param(OhmicReference(3, .75, 10, 1), 15, 5e-2, id="DL Example"),
+    ])
+    def test_fixed_sd_fit(self, reference, wMax, tol):
+        # fixed number of lorentzians
+        env = BosonicEnvironment.from_spectral_density(
+            reference.spectral_density, T=reference.T
+        )
+        wlist = np.linspace(0, wMax, 100)
+        fit, info = env.approx_by_sd_fit(
+            wlist, Nk=1, target_rmse=None, Nmax=4, combine=False
+        )
+
+        assert isinstance(fit, ExponentialBosonicEnvironment)
+        assert len(fit.exponents) == 4 * (1 + 4)
+        assert fit.T == env.T
+        assert fit.tag is None
+        assert_equivalent(
+            fit, env, tol=tol, skip_cf=True, skip_ps=True, wMax=wMax
+        )
+
+        assert info["N"] == 4
+        assert info["Nk"] == 1
+        assert info["rmse"] < 5e-3
+        for key in ["fit_time", "params", "summary"]:
+            assert key in info
+
+    @pytest.mark.parametrize(["reference", "wMax", "tol", "params"], [
+        pytest.param(OhmicReference(3, .75, 10, 1), 15, .2, {},
+                     id="DL Example"),
+        pytest.param(UDReference(1, .5, .1, 1), 2, 1e-4,
+                     {'guess': [.2, .5, 1]}, id='UD Example'),
+    ])
+    def test_dynamic_sd_fit(self, reference, wMax, tol, params):
+        # dynamic number of exponents
+        env = BosonicEnvironment.from_spectral_density(
+            reference.spectral_density, T=reference.T, tag="test"
+        )
+        wlist = np.linspace(0, wMax, 100)
+        fit, info = env.approx_by_sd_fit(
+            wlist, Nk=1, target_rmse=0.01, Nmax=5, **params
+        )
+
+        assert isinstance(fit, ExponentialBosonicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "SD Fit")
+        assert_equivalent(
+            fit, env, tol=tol, skip_cf=True, skip_ps=True, wMax=wMax
+        )
+
+        assert info["N"] < 5
+        assert info["Nk"] == 1
+        assert info["rmse"] < 0.01
+        for key in ["fit_time", "params", "summary"]:
+            assert key in info
+
 
 @pytest.mark.parametrize("params", [
     {'gamma': 2.5, 'lam': .75, 'T': 1.5}
@@ -1162,40 +1284,3 @@ class TestExpFermionicEnv:
         assert_guarantees_f(env, check_db=False)
         ref = SingleMinusExpReference(coefficient=2, exponent=.6)
         assert_equivalent_f(env, ref, tol=1e-8)
-
-
-
-todo="""
-    def test_approx_by_cf_fit(self, params):
-        lam, gamma, w0, T, t, w, w2, corr = params
-        for k in range(len(lam)):
-            bb5 = BosonicEnvironment.from_correlation_function(
-                corr[k], t, T=T[k])
-            bb6, finfo = bb5.approx_by_cf_fit(
-                t, target_rsme=None, Nr_max=2, Ni_max=1)
-            assert np.isclose(bb6.correlation_function(t),
-                              corr[k], atol=5*comtol).all()
-            assert np.isclose(bb6.power_spectrum(w2), power(
-                w2, gamma[k], w0[k], lam[k], T[k]), atol=5*comtol).all()
-            assert np.isclose(bb6.spectral_density(w), spectral_density(
-                w, gamma[k], w0[k], lam[k]), atol=5*comtol).all()
-
-    def test_approx_by_sd_fit(self, params):
-        lam, gamma, w0, T, t, w, w2, corr = params
-        for k in range(len(lam)):
-            sd = spectral_density(t, gamma[k], w0[k], lam[k])
-            bb5 = BosonicEnvironment.from_spectral_density(sd, t, T=T[k])
-            bb6, finfo = bb5.approx_by_sd_fit(w, Nmax=1, Nk=10)
-            # asking for more precision that the Bosonic enviroment has may
-            # violate this (due to the interpolation and it's easily fixed
-            # using a denser range). I could have set N=1 but thought this was
-            # a sensible test for N
-            assert finfo["N"] == 1
-            assert np.isclose(bb6.correlation_function(t),
-                              corr[k],
-                              atol=comtol).all()
-            assert np.isclose(bb6.power_spectrum(w2), power(
-                w2, gamma[k], w0[k], lam[k], T[k]), atol=comtol).all()
-            assert np.isclose(bb6.spectral_density(w), spectral_density(
-                w, gamma[k], w0[k], lam[k]), atol=comtol).all()
-"""
