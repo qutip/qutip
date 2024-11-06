@@ -121,3 +121,25 @@ def test_cpu_count(monkeypatch):
     monkeypatch.setenv("QUTIP_NUM_PROCESSES", str(0))
     new_ncpus = available_cpu_count()
     assert new_ncpus >= 1
+
+
+class TestFitting:
+    def model(self, x, a, b, c):
+        return np.real(a * np.exp(-(b + 1j * c) * x))
+
+    def test_same_model(self):
+        x = np.linspace(0, 10, 100)
+
+        # Generate data to fit
+        fparams1 = [1, .5, 0]
+        fparams2 = [3, 2, .5]
+        y = self.model(x, *fparams1) + self.model(x, *fparams2)
+
+        rmse, params = utils.iterated_fit(
+            self.model, num_params=3, xdata=x, ydata=y,
+            lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2)
+
+        assert rmse < 1e-8
+        print(params)
+        assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
+                np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))

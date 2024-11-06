@@ -475,14 +475,6 @@ where the correlation functions are given by multi-exponential decompositions,
 .. math::
     C^\sigma(t) \approx \sum_{k=0}^{N_k^\sigma} c^\sigma_k e^{-\nu^\sigma_k t} .
 
-As mentioned above, the two correlation-functions are in principle not independent, and one could be computed from the other through the relations
-
-.. math::
-    \nu_k^- = (\nu_k^+)^\ast , \qquad
-    c_k^- = (c_k^+)^\ast\, \mathrm e^{-\beta (\mu + \mathrm i \nu_k^-)} .
-
-However, for more flexibility, we allow both correlation functions to be specified independently.
-
 Like in the bosonic case, the class allows us to automatically compute the spectral density and power spectra that correspond to the
 multi-exponential correlation functions.
 In this case, they are
