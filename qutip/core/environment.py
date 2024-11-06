@@ -879,12 +879,12 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return result.item() if w.ndim == 0 else result
 
     def correlation_function(
-        self, t: float | ArrayLike, Nk: int = 100, **kwargs
+        self, t: float | ArrayLike, Nk: int = 10, **kwargs
     ) -> (float | ArrayLike):
         """
         Calculates the two-time auto-correlation function of the Drude-Lorentz
         environment. The calculation is performed by summing a large number of
-        exponents of the Matsubara expansion.
+        exponents of the Pade expansion.
 
         Parameters
         ----------
@@ -900,7 +900,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         t = np.asarray(t, dtype=float)
         abs_t = np.abs(t)
-        ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(Nk)
+        ck_real, vk_real, ck_imag, vk_imag = self._pade_params(Nk)
 
         def C(c, v):
             return np.sum([ck * np.exp(-np.asarray(vk * abs_t))
@@ -1057,15 +1057,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         if tag is None and self.tag is not None:
             tag = (self.tag, "Pade Truncation")
 
-        eta_p, gamma_p = self._corr(Nk)
-
-        ck_real = [np.real(eta) for eta in eta_p]
-        vk_real = [gam for gam in gamma_p]
-        # There is only one term in the expansion of the imaginary part of the
-        # Drude-Lorentz correlation function.
-        ck_imag = [np.imag(eta_p[0])]
-        vk_imag = [gamma_p[0]]
-
+        ck_real, vk_real, ck_imag, vk_imag = self._pade_params(Nk)
         approx_env = ExponentialBosonicEnvironment(
             ck_real, vk_real, ck_imag, vk_imag,
             T=self.T, combine=combine, tag=tag
@@ -1079,6 +1071,18 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             delta -= exp.coefficient / exp.exponent
 
         return approx_env, delta
+
+    def _pade_params(self, Nk):
+        eta_p, gamma_p = self._corr(Nk)
+
+        ck_real = [np.real(eta) for eta in eta_p]
+        vk_real = [gam for gam in gamma_p]
+        # There is only one term in the expansion of the imaginary part of the
+        # Drude-Lorentz correlation function.
+        ck_imag = [np.imag(eta_p[0])]
+        vk_imag = [gamma_p[0]]
+
+        return ck_real, vk_real, ck_imag, vk_imag
 
     def _matsubara_params(self, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
@@ -2251,12 +2255,12 @@ class LorentzianEnvironment(FermionicEnvironment):
         return self.gamma * self.W**2 / ((w - self.omega0)**2 + self.W**2)
 
     def correlation_function_plus(
-        self, t: float | ArrayLike, Nk: int = 100
+        self, t: float | ArrayLike, Nk: int = 10
     ) -> (float | ArrayLike):
         r"""
         Calculates the "+"-branch of the two-time auto-correlation function of
         the Lorentzian environment. The calculation is performed by summing a
-        large number of exponents of the Matsubara expansion.
+        large number of exponents of the Pade expansion.
 
         Parameters
         ----------
@@ -2269,12 +2273,12 @@ class LorentzianEnvironment(FermionicEnvironment):
         return self._correlation_function(t, Nk, 1)
 
     def correlation_function_minus(
-        self, t: float | ArrayLike, Nk: int = 100
+        self, t: float | ArrayLike, Nk: int = 10
     ) -> (float | ArrayLike):
         r"""
         Calculates the "-"-branch of the two-time auto-correlation function of
         the Lorentzian environment. The calculation is performed by summing a
-        large number of exponents of the Matsubara expansion.
+        large number of exponents of the Pade expansion.
 
         Parameters
         ----------
@@ -2294,7 +2298,7 @@ class LorentzianEnvironment(FermionicEnvironment):
 
         t = np.asarray(t, dtype=float)
         abs_t = np.abs(t)
-        c, v = self._matsubara_params(Nk, sigma)
+        c, v = self._corr(Nk, sigma)
 
         result = np.sum([ck * np.exp(-np.asarray(vk * abs_t))
                          for ck, vk in zip(c, v)], axis=0)

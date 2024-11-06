@@ -960,7 +960,7 @@ class LorentzianReference:
             result += c * np.exp(-v * t)
         return result
 
-    def correlation_function_minus(self, t, Nk=10000):
+    def correlation_function_minus(self, t, Nk=5000):
         # only valid for t >= 0
         T = self.T
         mu = self.mu
@@ -1056,7 +1056,7 @@ class TestLorentzianEnvironment:
 
         assert_guarantees_f(
             env, check_db=True, beta=(1 / params['T']), mu=params['mu'])
-        assert_equivalent_f(env, ref, tol=5e-3)
+        assert_equivalent_f(env, ref, tol=5e-5)
 
     @pytest.mark.parametrize("tag", [None, "test"])
     def test_matsubara_approx(self, params, tag):
@@ -1079,7 +1079,7 @@ class TestLorentzianEnvironment:
 
     @pytest.mark.parametrize("tag", [None, "test"])
     def test_pade_approx(self, params, tag):
-        Nk = 4
+        Nk = 5
         original_tag = object()
 
         ref = LorentzianReference(**params)
@@ -1096,7 +1096,7 @@ class TestLorentzianEnvironment:
         assert approx.T == env.T
         assert approx.mu == env.mu
 
-        assert_equivalent_f(approx, ref, tol=1e-4)
+        assert_equivalent_f(approx, ref, tol=5e-5)
 
 
 class TestExpFermionicEnv:
