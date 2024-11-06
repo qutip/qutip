@@ -927,8 +927,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return self._ps_from_sd(w, None, sd_derivative)
 
     def approx_by_matsubara(
-        self, Nk: int, combine: bool = True, tag: Any = None
-    ) -> tuple[ExponentialBosonicEnvironment, float]:
+        self, Nk: int, combine: bool = True,
+        compute_delta: bool = False, tag: Any = None
+    ) -> (ExponentialBosonicEnvironment |
+          tuple[ExponentialBosonicEnvironment, float]):
         """
         Generates an approximation to this environment by truncating its
         Matsubara expansion.
@@ -943,6 +945,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         combine : bool, default `True`
             Whether to combine exponents with the same frequency.
 
+        compute_delta : bool, default `False`
+            Whether to compute and return the approximation discrepancy
+            (see below).
+
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
@@ -953,7 +959,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             The approximated environment with multi-exponential correlation
             function.
 
-        delta : float
+        delta : float, optional
             The approximation discrepancy. That is, the difference between the
             true correlation function of the Drude-Lorentz environment and the
             sum of the ``Nk`` exponential terms is approximately ``2 * delta *
@@ -973,6 +979,9 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         approx_env = ExponentialBosonicEnvironment(
             *lists, T=self.T, combine=combine, tag=tag)
 
+        if not compute_delta:
+            return approx_env
+
         delta = 2 * self.lam * self.T / self.gamma - 1j * self.lam
         for exp in approx_env.exponents:
             delta -= exp.coefficient / exp.exponent
@@ -980,7 +989,8 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return approx_env, delta
 
     def approx_by_pade(
-        self, Nk: int, combine: bool = True, tag: Any = None
+        self, Nk: int, combine: bool = True,
+        compute_delta: bool = False, tag: Any = None
     ) -> tuple[ExponentialBosonicEnvironment, float]:
         """
         Generates an approximation to this environment by truncating its
@@ -996,6 +1006,10 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         combine : bool, default `True`
             Whether to combine exponents with the same frequency.
 
+        compute_delta : bool, default `False`
+            Whether to compute and return the approximation discrepancy
+            (see below).
+
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
@@ -1006,7 +1020,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             The approximated environment with multi-exponential correlation
             function.
 
-        delta : float
+        delta : float, optional
             The approximation discrepancy. That is, the difference between the
             true correlation function of the Drude-Lorentz environment and the
             sum of the ``Nk`` exponential terms is approximately ``2 * delta *
@@ -1035,6 +1049,9 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
             ck_real, vk_real, ck_imag, vk_imag,
             T=self.T, combine=combine, tag=tag
         )
+
+        if not compute_delta:
+            return approx_env
 
         delta = 2 * self.lam * self.T / self.gamma - 1j * self.lam
         for exp in approx_env.exponents:
