@@ -850,12 +850,14 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
     """
 
     def __init__(
-        self, T: float, lam: float, gamma: float, *, tag: Any = None
+        self, T: float, lam: float, gamma: float, *, tag: Any = None,
+        Nk: int = None
     ):
         super().__init__(T, tag)
 
         self.lam = lam
         self.gamma = gamma
+        self.Nk = Nk
 
     def spectral_density(self, w: float | ArrayLike) -> (float | ArrayLike):
         """
@@ -900,6 +902,8 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         t = np.asarray(t, dtype=float)
         abs_t = np.abs(t)
+        if (self.Nk is not None):
+            Nk = self.Nk
         ck_real, vk_real, ck_imag, vk_imag = self._pade_params(Nk)
 
         def C(c, v):
