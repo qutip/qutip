@@ -847,11 +847,14 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
     tag : optional, str, tuple or any other object
         An identifier (name) for this environment.
+    Nk : optional, int, defaults to 10
+        The number of Pade exponents to be used for the calculation of the
+        correlation function.  
     """
 
     def __init__(
         self, T: float, lam: float, gamma: float, *, tag: Any = None,
-        Nk: int = None
+        Nk: int = 10
     ):
         super().__init__(T, tag)
 
@@ -881,7 +884,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return result.item() if w.ndim == 0 else result
 
     def correlation_function(
-        self, t: float | ArrayLike, Nk: int = 10, **kwargs
+        self, t: float | ArrayLike, Nk: int = None, **kwargs
     ) -> (float | ArrayLike):
         """
         Calculates the two-time auto-correlation function of the Drude-Lorentz
@@ -892,8 +895,9 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         ----------
         t : array_like or float
             The time at which to evaluate the correlation function.
-        Nk : int, default 100
-            The number of exponents to use.
+        Nk : int, default None
+            The number of exponents to use. If None then the value
+            used when the class was instanciated is used
         """
 
         if self.T == 0:
@@ -902,8 +906,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         t = np.asarray(t, dtype=float)
         abs_t = np.abs(t)
-        if (self.Nk is not None):
-            Nk = self.Nk
+        Nk = Nk or self.Nk
         ck_real, vk_real, ck_imag, vk_imag = self._pade_params(Nk)
 
         def C(c, v):
@@ -2233,12 +2236,13 @@ class LorentzianEnvironment(FermionicEnvironment):
 
     def __init__(
         self, T: float, mu: float, gamma: float, W: float,
-        omega0: float = None, *, tag: Any = None
+        omega0: float = None, *, tag: Any = None, Nk: int = 10
     ):
         super().__init__(T, mu, tag)
 
         self.gamma = gamma
         self.W = W
+        self.Nk = Nk
         if omega0 is None:
             self.omega0 = mu
         else:
@@ -2258,7 +2262,7 @@ class LorentzianEnvironment(FermionicEnvironment):
         return self.gamma * self.W**2 / ((w - self.omega0)**2 + self.W**2)
 
     def correlation_function_plus(
-        self, t: float | ArrayLike, Nk: int = 10
+        self, t: float | ArrayLike, Nk: int = None
     ) -> (float | ArrayLike):
         r"""
         Calculates the "+"-branch of the two-time auto-correlation function of
@@ -2269,14 +2273,15 @@ class LorentzianEnvironment(FermionicEnvironment):
         ----------
         t : array_like or float
             The time at which to evaluate the correlation function.
-        Nk : int, default 100
-            The number of exponents to use.
+        Nk : int, default None
+            The number of exponents to use. If None then the value
+            used when the class was instanciated is used
         """
-
+        Nk = Nk or self.Nk
         return self._correlation_function(t, Nk, 1)
 
     def correlation_function_minus(
-        self, t: float | ArrayLike, Nk: int = 10
+        self, t: float | ArrayLike, Nk: int = None
     ) -> (float | ArrayLike):
         r"""
         Calculates the "-"-branch of the two-time auto-correlation function of
@@ -2287,10 +2292,11 @@ class LorentzianEnvironment(FermionicEnvironment):
         ----------
         t : array_like or float
             The time at which to evaluate the correlation function.
-        Nk : int, default 100
-            The number of exponents to use.
+        Nk : int, default None
+            The number of exponents to use. If None then the value
+            used when the class was instanciated is used
         """
-
+        Nk = Nk or self.Nk
         return self._correlation_function(t, Nk, -1)
 
     def _correlation_function(self, t, Nk, sigma):
