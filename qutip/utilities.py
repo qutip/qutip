@@ -354,10 +354,8 @@ def iterated_fit(
     fun: Callable[..., complex], num_params: int,
     xdata: ArrayLike, ydata: ArrayLike,
     target_rmse: float = 1e-5,
-    guess: ArrayLike | Callable[[int], ArrayLike] = None,
     Nmin: int = 1, Nmax: int = 10,
-    lower: ArrayLike = None, upper: ArrayLike = None,
-    sigma: float | ArrayLike = None, maxfev: int = None
+    **kwargs
 ) -> tuple[float, ArrayLike]:
     r"""
     Iteratively tries to fit the given data with a model of the form
@@ -396,6 +394,9 @@ def iterated_fit(
         The maximum number of terms to be used for the fit (default 10).
         If the number `Nmax` of terms is reached, the function returns even if
         the target rmse has not been reached yet.
+    **kwargs
+    Scipy's curve_fit keyword arguments:
+
     lower : optional, list of length `num_params`
         Lower bounds on the parameters for the fit.
     upper : optional, list of length `num_params`
@@ -414,6 +415,12 @@ def iterated_fit(
         The model parameters in the form
         `[[p11, ..., p1n], [p21, ..., p2n], ..., [pN1, ..., pNn]]`.
     """
+    # Extract kwargs and set to None if not provided
+    lower = kwargs.get("lower", None)
+    guess = kwargs.get("guess", None)
+    upper = kwargs.get("upper", None)
+    sigma = kwargs.get("sigma", None)
+    maxfev = kwargs.get("maxfev", None)
     if len(xdata) != len(ydata):
         raise ValueError(
             "The shape of the provided fit data is not consistent")

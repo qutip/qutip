@@ -360,14 +360,10 @@ class BosonicEnvironment(abc.ABC):
         target_rsme: float = 2e-5,
         Nr_max: int = 10,
         Ni_max: int = 10,
-        guess: list[float] = None,
-        lower: list[float] = None,
-        upper: list[float] = None,
-        sigma: float | ArrayLike = None,
-        maxfev: int = None,
         full_ansatz: bool = False,
         combine: bool = True,
         tag: Any = None,
+        **kwargs
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its
@@ -416,36 +412,6 @@ class BosonicEnvironment(abc.ABC):
         Ni_max : optional, int
             The maximum number of modes to use for the fit of the imaginary
             part (default 10).
-        guess : optional, list of float
-            Initial guesses for the parameters :math:`a_k`, :math:`b_k`, etc.
-            The same initial guesses are used for all values of k, and for
-            the real and imaginary parts. If `full_ansatz` is True, `guess` is
-            a list of size 4, otherwise, it is a list of size 3.
-            If none of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        lower : optional, list of float
-            Lower bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
-            The same lower bounds are used for all values of k, and for
-            the real and imaginary parts. If `full_ansatz` is True, `lower` is
-            a list of size 4, otherwise, it is a list of size 3.
-            If none of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        upper : optional, list of float
-            Upper bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
-            The same upper bounds are used for all values of k, and for
-            the real and imaginary parts. If `full_ansatz` is True, `upper` is
-            a list of size 4, otherwise, it is a list of size 3.
-            If none of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        sigma : optional, float or list of float
-            Adds an uncertainty to the correlation function of the environment,
-            i.e., adds a leeway to the fit. This parameter is useful to adjust
-            if the correlation function is very small in parts of the time
-            range. For more details, see the documentation of
-            ``scipy.optimize.curve_fit``.
-        maxfev : optional, int
-            Number of times the parameters of the fit are allowed to vary
-            during the optimization (per fit).
         full_ansatz : optional, bool (default False)
             If this is set to False, the parameters :math:`d_k` are all set to
             zero. The full ansatz, including :math:`d_k`, usually leads to
@@ -465,6 +431,39 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
+
+        **kwargs
+        Optional fitting parameters:
+        guess :  list of float
+            Initial guesses for the parameters :math:`a_k`, :math:`b_k`, etc.
+            The same initial guesses are used for all values of k, and for
+            the real and imaginary parts. If `full_ansatz` is True, `guess` is
+            a list of size 4, otherwise, it is a list of size 3.
+            If none of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        lower :  list of float
+            Lower bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
+            The same lower bounds are used for all values of k, and for
+            the real and imaginary parts. If `full_ansatz` is True, `lower` is
+            a list of size 4, otherwise, it is a list of size 3.
+            If none of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        upper : list of float
+            Upper bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
+            The same upper bounds are used for all values of k, and for
+            the real and imaginary parts. If `full_ansatz` is True, `upper` is
+            a list of size 4, otherwise, it is a list of size 3.
+            If none of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        sigma : float or list of float
+            Adds an uncertainty to the correlation function of the environment,
+            i.e., adds a leeway to the fit. This parameter is useful to adjust
+            if the correlation function is very small in parts of the time
+            range. For more details, see the documentation of
+            ``scipy.optimize.curve_fit``.
+        maxfev :  int
+            Number of times the parameters of the fit are allowed to vary
+            during the optimization (per fit).
 
         Returns
         -------
@@ -516,7 +515,11 @@ class BosonicEnvironment(abc.ABC):
             Nr_min, Ni_min = Nr_max, Ni_max
         else:
             Nr_min, Ni_min = 1, 1
-
+        lower = kwargs.get("lower", None)
+        guess = kwargs.get("guess", None)
+        upper = kwargs.get("upper", None)
+        sigma = kwargs.get("sigma", None)
+        maxfev = kwargs.get("maxfev", None)
         clist = self.correlation_function(tlist)
         if guess is None and lower is None and upper is None:
             guess_re, lower_re, upper_re = _default_guess_cfreal(
@@ -531,8 +534,8 @@ class BosonicEnvironment(abc.ABC):
         start_real = time()
         rmse_real, params_real = iterated_fit(
             _cf_real_fit_model, num_params, tlist, np.real(clist), target_rsme,
-            guess_re, Nr_min, Nr_max, lower_re, upper_re, sigma=sigma,
-            maxfev=maxfev
+            Nr_min, Nr_max, guess=guess_re, lower=lower_re, upper=upper_re,
+            sigma=sigma, maxfev=maxfev
         )
         end_real = time()
         fit_time_real = end_real - start_real
@@ -541,7 +544,7 @@ class BosonicEnvironment(abc.ABC):
         start_imag = time()
         rmse_imag, params_imag = iterated_fit(
             _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rsme,
-            guess_im, Ni_min, Ni_max, lower_im, upper_im,
+            Ni_min, Ni_max, guess=guess_im, lower=lower_im, upper=upper_im,
             sigma=sigma, maxfev=maxfev
         )
         end_imag = time()
@@ -593,13 +596,9 @@ class BosonicEnvironment(abc.ABC):
         Nk: int = 1,
         target_rmse: float = 5e-6,
         Nmax: int = 10,
-        guess: list[float] = None,
-        lower: list[float] = None,
-        upper: list[float] = None,
-        sigma: float | ArrayLike = None,
-        maxfev: int = None,
         combine: bool = True,
         tag: Any = None,
+        **kwargs
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         r"""
         Generates an approximation to this environment by fitting its spectral
@@ -630,6 +629,16 @@ class BosonicEnvironment(abc.ABC):
             modes (`Nmax`).
         Nmax : optional, int
             The maximum number of modes to use for the fit (default 10).
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
+        **kwargs
+        Optional fitting parameters:
         guess : optional, list of float
             Initial guesses for the parameters :math:`a_k`, :math:`b_k` and
             :math:`c_k`. The same initial guesses are used for all values of
@@ -657,13 +666,6 @@ class BosonicEnvironment(abc.ABC):
         maxfev : optional, int
             Number of times the parameters of the fit are allowed to vary
             during the optimization (per fit).
-        combine : optional, bool (default True)
-            Whether to combine exponents with the same frequency. See
-            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
-            details.
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
 
         Returns
         -------
@@ -686,7 +688,11 @@ class BosonicEnvironment(abc.ABC):
             "summary"
                 A string that summarizes the information about the fit.
         """
-
+        lower = kwargs.get("lower", None)
+        guess = kwargs.get("guess", None)
+        upper = kwargs.get("upper", None)
+        sigma = kwargs.get("sigma", None)
+        maxfev = kwargs.get("maxfev", None)
         # Process arguments
         if tag is None and self.tag is not None:
             tag = (self.tag, "SD Fit")
@@ -704,8 +710,8 @@ class BosonicEnvironment(abc.ABC):
         # Fit
         start = time()
         rmse, params = iterated_fit(
-            _sd_fit_model, 3, wlist, jlist, target_rmse, guess,
-            Nmin, Nmax, lower, upper, sigma=sigma, maxfev=maxfev
+            _sd_fit_model, 3, wlist, jlist, target_rmse, Nmin, Nmax,
+            guess=guess, lower=lower, upper=upper, sigma=sigma, maxfev=maxfev
         )
         end = time()
         fit_time = end - start
@@ -849,7 +855,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         An identifier (name) for this environment.
     Nk : optional, int, defaults to 10
         The number of Pade exponents to be used for the calculation of the
-        correlation function.  
+        correlation function.
     """
 
     def __init__(
