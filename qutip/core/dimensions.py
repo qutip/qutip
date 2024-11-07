@@ -352,6 +352,34 @@ def _frozen(*args, **kwargs):
     raise RuntimeError("Dimension cannot be modified.")
 
 
+def einsum(subscripts, *operands):
+    """
+    Implementation of numpy.einsum for Qobj.
+    Evaluates the Einstein summation convention on the operands.
+    Parameters
+    ----------
+    subscripts: str
+        Specifies the subscripts for summation as comma
+        separated list of subscript labels.
+    operands: list of array_like
+        These are the arrays for the operation.
+
+    Returns
+    -------
+    Qobj (numpy.complex128)
+        Result of einsum as Qobj (numpy.complex128 if result is scalar)
+    """
+    operands_array = [to_tensor_rep(op) for op in operands]
+    result = np.einsum(subscripts, *operands_array)
+    if result.shape == ():
+        return result
+    dims = [
+        [d for d in result.shape[:result.ndim // 2]],
+        [d for d in result.shape[result.ndim // 2:]]
+    ]
+    return from_tensor_rep(result, dims)
+
+
 class MetaSpace(type):
     def __call__(cls, *args: SpaceLike, rep: str = None) -> "Space":
         """
