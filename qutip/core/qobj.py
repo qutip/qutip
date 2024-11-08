@@ -272,7 +272,8 @@ class Qobj:
         copy: bool = True,
         superrep: str = None,
         isherm: bool = None,
-        isunitary: bool = None
+        isunitary: bool = None,
+        dtype: type | str = None,
     ):
         self._isherm = isherm
         self._isunitary = isunitary
@@ -280,6 +281,16 @@ class Qobj:
 
         if superrep is not None:
             self.superrep = superrep
+
+        if (
+            isinstance(arg, list)
+            or dtype
+            or settings.core["default_dtype_range"] == "full"
+        ):
+            dtype = dtype or settings.core["default_dtype"]
+            if dtype is None or isinstance(self._data, _data.to.parse(dtype)):
+                return
+            self._data = _data.to(dtype, self._data)
 
     def copy(self) -> Qobj:
         """Create identical copy"""
