@@ -523,6 +523,7 @@ def _make_solver(H, c_ops, args, options, solver, **kwargs):
             c_ops,
             time_sense=kwargs["time_sense"],
             options=options,
+            Nt=kwargs["Nt"],
         )
     else:
         H = QobjEvo(H, args=args)
