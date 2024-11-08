@@ -247,7 +247,7 @@ def flimesolve(
     else:
         floquet_basis = FloquetBasis(H, T, args, precompute=None)
 
-        if Nt != None:
+        if Nt is not None:
             Nt = Nt
         else:
             if tlist is not None:
