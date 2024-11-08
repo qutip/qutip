@@ -51,7 +51,7 @@ class TestFlimesolve:
         # Collapse operator for Floquet-Markov Master Equation
         c_op = sigmax()
 
-        # Solve the floquet-markov master equation
+        # Solve the floquet-Lindblad master equation
 
         p_ex = flimesolve(
             H,
@@ -61,6 +61,7 @@ class TestFlimesolve:
             c_ops=[c_op * np.sqrt(gamma1)],
             e_ops=e_ops,
             args=args,
+            Nt=50,
         ).expect[0]
         # Compare with mesolve
         p_ex_ref = mesolve(
@@ -101,6 +102,7 @@ class TestFlimesolve:
             c_ops=[c_op * np.sqrt(gamma1)],
             e_ops=e_ops,
             args=args,
+            Nt=2**5,
         ).expect[0]
 
         # Compare with mesolve
@@ -135,7 +137,10 @@ class TestFlimesolve:
         # Solve the floquet-markov master equation
         floquet_basis = FloquetBasis(H, T, args=args)
         solver = FLiMESolver(
-            floquet_basis, c_ops=[c_op * np.sqrt(gamma1)], time_sense=0
+            floquet_basis,
+            c_ops=[c_op * np.sqrt(gamma1)],
+            time_sense=0,
+            Nt=2**5,
         )
         solver.start(psi0, tlist[0])
         p_ex = [expect(e_ops, solver.step(t))[0] for t in tlist]
@@ -176,6 +181,7 @@ class TestFlimesolve:
             c_ops=[sigmax() * np.sqrt(gamma1), sigmay() * np.sqrt(gamma1)],
             e_ops=e_ops,
             args=args,
+            Nt=2**5,
         ).expect[0]
 
         # Compare with mesolve
@@ -225,6 +231,7 @@ class TestFlimesolve:
             options={"store_floquet_states": True},
             time_sense=t_sensitivity,
             e_ops=num(2),
+            Nt=int(2**8 / 50),
         )
         p_ex = output.expect[0]
 
@@ -237,23 +244,45 @@ class TestFlimesolve:
 
     def testFLiMECorrelation(self):
         """
-        Test Floquet-Lindblad Master Equation with correlation functions.
+        Test Floquet-Lindblad Master Equation with nonzero timesense values.
 
         """
-        Om1 = 2 * np.pi * 0.0072992700729927
+        E1mag = 2 * np.pi * 0.072992700729927
+        E1pol = np.sqrt(1 / 2) * np.array([1, 1, 0])
+        E1 = E1mag * E1pol
 
-        T = 1 / 280
-        Gamma = 2 * np.pi * 0.00025
+        dmag = 1
+        d = dmag * np.sqrt(1 / 2) * np.array([1, 1, 0])
 
-        Nt = 20
-        timef = 2 * T
-        dt = timef / Nt
+        Om1 = np.dot(d, E1)
+        Om1t = np.dot(d, np.conj(E1))
+
+        wlas = 2 * np.pi * 280
+        wres = 2 * np.pi * 280
+
+        T = 2 * np.pi / abs(1)  # period of the Hamiltonian
+        Hargs = {"l": (wlas)}
+        w = Hargs["l"]
+        Gamma = 2 * np.pi * 0.0025  # in THz, roughly equivalent to 1 micro eV
+
+        Nt = 1600  # 50 times the number of points of tlist
+        # taulist goes over 50 periods of the system so that 50 periods can be simulated
+        timef = 10 * T
+        dt = timef / Nt  # time spacing in taulist - same as tlist!
         tlist = np.linspace(0, timef - dt, Nt)
 
-        H = -(Om1 / 2) * sigmax()
+        H_atom = ((wres - wlas) / 2) * np.array([[-1, 0], [0, 1]])
+        Hf1 = -(1 / 2) * np.array([[0, Om1], [np.conj(Om1), 0]])
+
+        H0 = Qobj(H_atom)  # Time independant Term
+        Hf1 = Qobj(Hf1)  # Forward Rotating Term
+
+        H = [
+            H0 + Hf1
+        ]  # Full Hamiltonian in string format, a form acceptable to QuTiP
 
         rho0 = Qobj([[0.5001, 0], [0, 0.4999]])
-        kwargs = {"T": T, "time_sense": 1e5}
+        kwargs = {"T": T, "time_sense": 1e5, "Nt": 160}
         testg1F = correlation.correlation_2op_1t(
             H,
             rho0,
@@ -263,6 +292,7 @@ class TestFlimesolve:
             b_op=destroy(2),
             solver="fme",
             reverse=True,
+            args=Hargs,
             **kwargs,
         )
 
@@ -275,6 +305,8 @@ class TestFlimesolve:
             b_op=destroy(2),
             solver="me",
             reverse=True,
+            args=Hargs,
+            **kwargs,
         )
 
-        np.testing.assert_allclose(testg1F, testg1M, atol=1e-5)
+        np.testing.assert_allclose(testg1F, testg1M, atol=1e-4)

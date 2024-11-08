@@ -136,11 +136,11 @@ def flimesolve(
     rho0,
     tlist,
     T,
-    Nt=None,
     c_ops=None,
     *,
     e_ops=None,
     args=None,
+    Nt=2**4,
     time_sense=0,
     options={},
 ):
@@ -164,11 +164,6 @@ def flimesolve(
     T : float
         The period of the time-dependence of the hamiltonian.
 
-    Nt: int
-        The number of points within one period of the Hamiltonian, used for
-        forming the rate matrix. If none is supplied, flimesolve will try to
-        pull Nt from tlist.
-
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         Single collapse operator, or list of collapse operators
 
@@ -186,9 +181,13 @@ def flimesolve(
         dependence. The default integration method change depending
         on this value, "diag" for `0`, "adams" otherwise.
 
+    Nt: int
+        The number of points within one period of the Hamiltonian, used for
+        forming the rate matrix. If none is supplied, flimesolve will default
+        to using 16 points per period.
+
     options : None / dict
         Dictionary of options for the solver.
-
         - store_final_state : bool
           Whether or not to store the final state of the evolution in the
           result class.
@@ -247,28 +246,8 @@ def flimesolve(
     else:
         floquet_basis = FloquetBasis(H, T, args, precompute=None)
 
-        if Nt is not None:
-            Nt = Nt
-        else:
-            if tlist is not None:
-                if tlist[1] - tlist[0] >= floquet_basis.T:
-                    Nt = 2**4
-                elif tlist[1] - tlist[0] < floquet_basis.T:
-                    dt = tlist[1] - tlist[0]
-                    tlist_zeroed = tlist - tlist[0]
-                    Nt_finder = abs(tlist_zeroed + dt - floquet_basis.T)
-                    Nt = (
-                        list(np.where(Nt_finder == np.amin(Nt_finder)))[0][0]
-                        + 1
-                    )
-            else:
-                Nt = 2**4
-    options["Nt"] = Nt
     solver = FLiMESolver(
-        floquet_basis,
-        c_ops,
-        time_sense=time_sense,
-        options=options,
+        floquet_basis, c_ops, time_sense=time_sense, options=options, Nt=Nt
     )
     return solver.run(rho0, tlist, e_ops=e_ops)
 
@@ -412,7 +391,6 @@ class FLiMESolver(MESolver):
         "normalize_output": True,
         "method": None,
         "store_floquet_states": False,
-        "Nt": 2**4,
         "atol": 1e-8,
         "rtol": 1e-6,
     }
@@ -421,7 +399,8 @@ class FLiMESolver(MESolver):
         self,
         floquet_basis,
         c_ops,
-        time_sense,
+        time_sense=0,
+        Nt=16,
         *,
         options=None,
     ):
@@ -435,14 +414,14 @@ class FLiMESolver(MESolver):
         else:
             raise TypeError("The ``floquet_basis`` must be a FloquetBasis")
 
-        self.options = options
-        self.c_ops = c_ops
-        self._time_sense = time_sense
-        self._Nt = self.options["Nt"]
-        self._num_collapse = len(c_ops)
         if not all(isinstance(c_op, Qobj) for c_op in c_ops):
             raise TypeError("c_ops must be type Qobj")
 
+        self._Nt = Nt
+        self.options = options
+        self.c_ops = c_ops
+        self._time_sense = time_sense
+        self._num_collapse = len(c_ops)
         self.dims = len(self.floquet_basis.e_quasi)
         self._build_rhs()
         self._state_metadata = {}
