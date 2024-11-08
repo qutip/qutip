@@ -851,16 +851,17 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
     gamma : float
         Spectral density cutoff frequency.
 
-    tag : optional, str, tuple or any other object
-        An identifier (name) for this environment.
     Nk : optional, int, defaults to 10
         The number of Pade exponents to be used for the calculation of the
         correlation function.
+
+    tag : optional, str, tuple or any other object
+        An identifier (name) for this environment.
     """
 
     def __init__(
-        self, T: float, lam: float, gamma: float, *, tag: Any = None,
-        Nk: int = 10
+        self, T: float, lam: float, gamma: float, *,
+        Nk: int = 10, tag: Any = None
     ):
         super().__init__(T, tag)
 
@@ -901,9 +902,9 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         ----------
         t : array_like or float
             The time at which to evaluate the correlation function.
-        Nk : int, default None
-            The number of exponents to use. If None then the value
-            used when the class was instanciated is used
+        Nk : int, optional
+            The number of exponents to use. If not provided, then the value
+            that was provided when the class was instantiated is used.
         """
 
         if self.T == 0:
@@ -2236,13 +2237,17 @@ class LorentzianEnvironment(FermionicEnvironment):
     omega0 : optional, float (default equal to ``mu``)
         The resonance frequency of the environment.
 
+    Nk : optional, int, defaults to 10
+        The number of Pade exponents to be used for the calculation of the
+        correlation functions.  
+
     tag : optional, str, tuple or any other object
         An identifier (name) for this environment.
     """
 
     def __init__(
         self, T: float, mu: float, gamma: float, W: float,
-        omega0: float = None, *, tag: Any = None, Nk: int = 10
+        omega0: float = None, *, Nk: int = 10, tag: Any = None
     ):
         super().__init__(T, mu, tag)
 
@@ -2279,9 +2284,9 @@ class LorentzianEnvironment(FermionicEnvironment):
         ----------
         t : array_like or float
             The time at which to evaluate the correlation function.
-        Nk : int, default None
-            The number of exponents to use. If None then the value
-            used when the class was instanciated is used
+        Nk : int, optional
+            The number of exponents to use. If not provided, then the value
+            that was provided when the class was instantiated is used.
         """
         Nk = Nk or self.Nk
         return self._correlation_function(t, Nk, 1)
@@ -2298,9 +2303,9 @@ class LorentzianEnvironment(FermionicEnvironment):
         ----------
         t : array_like or float
             The time at which to evaluate the correlation function.
-        Nk : int, default None
-            The number of exponents to use. If None then the value
-            used when the class was instanciated is used
+        Nk : int, optional
+            The number of exponents to use. If not provided, then the value
+            that was provided when the class was instantiated is used.
         """
         Nk = Nk or self.Nk
         return self._correlation_function(t, Nk, -1)
