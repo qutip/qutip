@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        repo: [qutip-qip, qutip-jax, qutip-qoc]
+        repo: [qutip-qip, qutip-jax, qutip-qoc, qutip-qtrl]
 
     steps:
       - uses: actions/checkout@v4
