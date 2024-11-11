@@ -1,0 +1,1 @@
+Implements a numpy.einsum version for Qobj dimensions (Evaluates the Einstein summation convention on the operands.)

@@ -125,11 +125,11 @@ class Distribution:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
 
         if cmap is None:
-            cmap = mpl.cm.get_cmap('RdBu')
+            cmap = mpl.colormaps['RdBu']
 
-        lim = abs(self.data).max()
+        lim = abs(self.data.real).max()
 
-        cf = ax.contourf(self.xvecs[0], self.xvecs[1], self.data, 100,
+        cf = ax.contourf(self.xvecs[0], self.xvecs[1], self.data.real, 100,
                          norm=mpl.colors.Normalize(-lim, lim),
                          cmap=cmap)
 
@@ -152,12 +152,12 @@ class Distribution:
             ax = Axes3D(fig, azim=-62, elev=25)
 
         if cmap is None:
-            cmap = mpl.cm.get_cmap('RdBu')
+            cmap = mpl.colormaps['RdBu']
 
-        lim = abs(self.data).max()
+        lim = abs(self.data.real).max()
 
         X, Y = np.meshgrid(self.xvecs[0], self.xvecs[1])
-        s = ax.plot_surface(X, Y, self.data,
+        s = ax.plot_surface(X, Y, self.data.real,
                             norm=mpl.colors.Normalize(-lim, lim),
                             rstride=5, cstride=5, cmap=cmap, lw=0.1)
 
@@ -177,7 +177,7 @@ class Distribution:
         if not fig and not ax:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
 
-        p = ax.plot(self.xvecs[0], self.data)
+        p = ax.plot(self.xvecs[0], self.data.real)
 
         if show_xlabel:
             ax.set_xlabel(self.xlabels[0], fontsize=12)
@@ -313,7 +313,7 @@ class TwoModeQuadratureCorrelation(Distribution):
                     sqrt(sqrt(pi) * 2 ** n2 * factorial(n2)) * \
                     exp(-X2 ** 2 / 2.0) * np.polyval(hermite(n2), X2)
                 i = state_number_index([N, N], [n1, n2])
-                p += kn1 * kn2 * psi.data[i, 0]
+                p += kn1 * kn2 * psi.data_as()[i, 0]
 
         self.data = abs(p) ** 2
 
@@ -350,7 +350,7 @@ class TwoModeQuadratureCorrelation(Distribution):
                 for p1 in range(N):
                     for p2 in range(N):
                         j = state_number_index([N, N], [p1, p2])
-                        p += M1[n1, p1] * M2[n2, p2] * rho.data[i, j]
+                        p += M1[n1, p1] * M2[n2, p2] * rho.data_as()[i, j]
 
         self.data = p
 
@@ -381,7 +381,7 @@ class HarmonicOscillatorWaveFunction(Distribution):
                 exp(-self.xvecs[0] ** 2 / 2.0) * \
                 np.polyval(hermite(n), self.xvecs[0])
 
-            self.data += k * psi.data[n, 0]
+            self.data += k * psi.data_as()[n, 0]
 
 
 class HarmonicOscillatorProbabilityFunction(Distribution):
@@ -419,4 +419,4 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
                     exp(-self.xvecs[0] ** 2 / 2.0) * \
                     np.polyval(hermite(n), self.xvecs[0])
 
-                self.data += np.conjugate(k_n) * k_m * rho.data[m, n]
+                self.data += np.conjugate(k_n) * k_m * rho.data_as()[m, n]

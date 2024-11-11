@@ -2,6 +2,8 @@
 This module contains functions for generating Qobj representation of a variety
 of commonly occuring quantum operators.
 """
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
 
 __all__ = [
     'jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
@@ -12,28 +14,31 @@ __all__ = [
     'tunneling', 'qft', 'qzero_like', 'qeye_like', 'swap',
 ]
 
-import numbers
-
 import numpy as np
-import scipy.sparse
-
+from typing import Literal, overload
 from . import data as _data
 from .qobj import Qobj
-from .dimensions import flatten, Space
+from .dimensions import Space
 from .. import settings
+from ..typing import DimensionLike, SpaceLike, LayerType
 
-
-def qdiags(diagonals, offsets=None, dims=None, shape=None, *,
-           dtype=None):
+def qdiags(
+    diagonals: np.typing.ArrayLike | list[np.typing.ArrayLike],
+    offsets: int | list[int] = None,
+    dims: DimensionLike = None,
+    shape: tuple[int, int] = None,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """
     Constructs an operator from an array of diagonals.
 
     Parameters
     ----------
-    diagonals : sequence of array_like
+    diagonals : array_like or sequence of array_like
         Array of elements to place along the selected diagonals.
 
-    offsets : sequence of ints, optional
+    offsets : int or sequence of ints, optional
         Sequence for diagonals to be set:
             - k=0 main diagonal
             - k>0 kth upper diagonal
@@ -64,11 +69,46 @@ shape = [4, 4], type = oper, isherm = False
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
     offsets = [0] if offsets is None else offsets
+    if not isinstance(offsets, list):
+        offsets = [offsets]
+    if len(offsets) == 1 and offsets[0] != 0:
+        isherm = False
+        isunitary = False
+    elif offsets == [0]:
+        isherm = np.all(np.imag(diagonals) <= settings.core["atol"])
+        isunitary = np.all(np.abs(diagonals) - 1 <= settings.core["atol"])
+    else:
+        isherm = None
+        isunitary = None
     data = _data.diag[dtype](diagonals, offsets, shape)
-    return Qobj(data, dims=dims, copy=False)
+    return Qobj(
+        data, copy=False,
+        dims=dims, isherm=isherm, isunitary=isunitary
+    )
 
 
-def jmat(j, which=None, *, dtype=None):
+@overload
+def jmat(
+    j: float,
+    which: Literal[None],
+    *,
+    dtype: LayerType = None
+) -> tuple[Qobj]: ...
+
+@overload
+def jmat(
+    j: float,
+    which: Literal["x", "y", "z", "+", "-"],
+    *,
+    dtype: LayerType = None
+) -> Qobj: ...
+
+def jmat(
+    j: float,
+    which: Literal["x", "y", "z", "+", "-", None] = None,
+    *,
+    dtype: LayerType = None
+) -> Qobj | tuple[Qobj]:
     """Higher-order spin operators:
 
     Parameters
@@ -132,8 +172,8 @@ shape = [3, 3], type = oper, isHerm = True
                     isherm=False, isunitary=False, copy=False)
     if which == 'x':
         A = _jplus(j, dtype=dtype)
-        return Qobj(_data.add(A, A.adjoint()), dims=dims,
-                    isherm=True, isunitary=False, copy=False) * 0.5
+        return Qobj(_data.add(A, A.adjoint()) * 0.5, dims=dims,
+                    isherm=True, isunitary=False, copy=False)
     if which == 'y':
         A = _data.mul(_jplus(j, dtype=dtype), -0.5j)
         return Qobj(_data.add(A, A.adjoint()), dims=dims,
@@ -167,7 +207,7 @@ def _jz(j, *, dtype=None):
 #
 # Spin j operators:
 #
-def spin_Jx(j, *, dtype=None):
+def spin_Jx(j: float, *, dtype: LayerType = None) -> Qobj:
     """Spin-j x operator
 
     Parameters
@@ -188,7 +228,7 @@ def spin_Jx(j, *, dtype=None):
     return jmat(j, 'x', dtype=dtype)
 
 
-def spin_Jy(j, *, dtype=None):
+def spin_Jy(j: float, *, dtype: LayerType = None) -> Qobj:
     """Spin-j y operator
 
     Parameters
@@ -209,7 +249,7 @@ def spin_Jy(j, *, dtype=None):
     return jmat(j, 'y', dtype=dtype)
 
 
-def spin_Jz(j, *, dtype=None):
+def spin_Jz(j: float, *, dtype: LayerType = None) -> Qobj:
     """Spin-j z operator
 
     Parameters
@@ -230,7 +270,7 @@ def spin_Jz(j, *, dtype=None):
     return jmat(j, 'z', dtype=dtype)
 
 
-def spin_Jm(j, *, dtype=None):
+def spin_Jm(j: float, *, dtype: LayerType = None) -> Qobj:
     """Spin-j annihilation operator
 
     Parameters
@@ -251,7 +291,7 @@ def spin_Jm(j, *, dtype=None):
     return jmat(j, '-', dtype=dtype)
 
 
-def spin_Jp(j, *, dtype=None):
+def spin_Jp(j: float, *, dtype: LayerType = None) -> Qobj:
     """Spin-j creation operator
 
     Parameters
@@ -272,7 +312,7 @@ def spin_Jp(j, *, dtype=None):
     return jmat(j, '+', dtype=dtype)
 
 
-def spin_J_set(j, *, dtype=None):
+def spin_J_set(j: float, *, dtype: LayerType = None) -> tuple[Qobj]:
     """Set of spin-j operators (x, y, z)
 
     Parameters
@@ -286,7 +326,7 @@ def spin_J_set(j, *, dtype=None):
 
     Returns
     -------
-    list : list of Qobj
+    list : tuple of Qobj
         list of ``qobj`` representating of the spin operator.
 
     """
@@ -301,12 +341,21 @@ def spin_J_set(j, *, dtype=None):
 _SIGMAP = jmat(0.5, '+')
 _SIGMAM = jmat(0.5, '-')
 _SIGMAX = 2 * jmat(0.5, 'x')
+_SIGMAX._isunitary = True
 _SIGMAY = 2 * jmat(0.5, 'y')
+_SIGMAY._isunitary = True
 _SIGMAZ = 2 * jmat(0.5, 'z')
+_SIGMAZ._isunitary = True
 
 
-def sigmap():
+def sigmap(*, dtype: LayerType = None) -> Qobj:
     """Creation operator for Pauli spins.
+
+    Parameters
+    ----------
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
 
     Examples
     --------
@@ -318,11 +367,18 @@ shape = [2, 2], type = oper, isHerm = False
      [ 0.  0.]]
 
     """
-    return _SIGMAP.copy()
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    return _SIGMAP.to(dtype, True)
 
 
-def sigmam():
+def sigmam(*, dtype: LayerType = None) -> Qobj:
     """Annihilation operator for Pauli spins.
+
+    Parameters
+    ----------
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
 
     Examples
     --------
@@ -334,11 +390,18 @@ shape = [2, 2], type = oper, isHerm = False
      [ 1.  0.]]
 
     """
-    return _SIGMAM.copy()
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    return _SIGMAM.to(dtype, True)
 
 
-def sigmax():
+def sigmax(*, dtype: LayerType = None) -> Qobj:
     """Pauli spin 1/2 sigma-x operator
+
+    Parameters
+    ----------
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
 
     Examples
     --------
@@ -350,11 +413,18 @@ shape = [2, 2], type = oper, isHerm = False
      [ 1.  0.]]
 
     """
-    return _SIGMAX.copy()
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    return _SIGMAX.to(dtype, True)
 
 
-def sigmay():
+def sigmay(*, dtype: LayerType = None) -> Qobj:
     """Pauli spin 1/2 sigma-y operator.
+
+    Parameters
+    ----------
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
 
     Examples
     --------
@@ -366,11 +436,18 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0.+1.j  0.+0.j]]
 
     """
-    return _SIGMAY.copy()
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    return _SIGMAY.to(dtype, True)
 
 
-def sigmaz():
+def sigmaz(*, dtype: LayerType = None) -> Qobj:
     """Pauli spin 1/2 sigma-z operator.
+
+    Parameters
+    ----------
+    dtype : type or str, optional
+        Storage representation. Any data-layer known to ``qutip.data.to`` is
+        accepted.
 
     Examples
     --------
@@ -382,10 +459,11 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0. -1.]]
 
     """
-    return _SIGMAZ.copy()
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    return _SIGMAZ.to(dtype, True)
 
 
-def destroy(N, offset=0, *, dtype=None):
+def destroy(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
     """
     Destruction (lowering) operator.
 
@@ -424,7 +502,7 @@ def destroy(N, offset=0, *, dtype=None):
     return qdiags(data, 1, dtype=dtype)
 
 
-def create(N, offset=0, *, dtype=None):
+def create(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
     """
     Creation (raising) operator.
 
@@ -463,7 +541,7 @@ def create(N, offset=0, *, dtype=None):
     return qdiags(data, -1, dtype=dtype)
 
 
-def fdestroy(n_sites, site, dtype=None):
+def fdestroy(n_sites: int, site, dtype: LayerType = None) -> Qobj:
     """
     Fermionic destruction operator.
     We use the Jordan-Wigner transformation,
@@ -481,7 +559,7 @@ def fdestroy(n_sites, site, dtype=None):
     n_sites : int
         Number of sites in Fock space.
 
-    site : int, default: 0
+    site : int
         The site in Fock space to add a fermion to.
         Corresponds to j in the above JW transform.
 
@@ -508,7 +586,7 @@ def fdestroy(n_sites, site, dtype=None):
     return _f_op(n_sites, site, 'destruction', dtype=dtype)
 
 
-def fcreate(n_sites, site, dtype=None):
+def fcreate(n_sites: int, site, dtype: LayerType = None) -> Qobj:
     """
     Fermionic creation operator.
     We use the Jordan-Wigner transformation,
@@ -554,7 +632,7 @@ def fcreate(n_sites, site, dtype=None):
     return _f_op(n_sites, site, 'creation', dtype=dtype)
 
 
-def _f_op(n_sites, site, action, dtype=None):
+def _f_op(n_sites, site, action, dtype: LayerType = None,):
     """ Makes fermionic creation and destruction operators.
     We use the Jordan-Wigner transformation,
     making use of the Jordan-Wigner ZZ..Z strings,
@@ -615,10 +693,18 @@ def _f_op(n_sites, site, action, dtype=None):
 
     eye = identity(2, dtype=dtype)
     opers = [s_z] * site + [operator] + [eye] * (n_sites - site - 1)
-    return tensor(opers).to(dtype)
+    out = tensor(opers).to(dtype)
+    out.isherm = False
+    out._isunitary = False
+    return out
 
 
-def qzero(dimensions, dims_right=None, *, dtype=None):
+def qzero(
+    dimensions: SpaceLike,
+    dims_right: SpaceLike = None,
+    *,
+    dtype: LayerType = None
+) -> Qobj:
     """
     Zero operator.
 
@@ -659,7 +745,7 @@ def qzero(dimensions, dims_right=None, *, dtype=None):
                 isherm=True, isunitary=False, copy=False)
 
 
-def qzero_like(qobj):
+def qzero_like(qobj: Qobj) -> Qobj:
     """
     Zero operator of the same dims and type as the reference.
 
@@ -681,7 +767,7 @@ def qzero_like(qobj):
     )
 
 
-def qeye(dimensions, *, dtype=None):
+def qeye(dimensions: SpaceLike, *, dtype: LayerType = None) -> Qobj:
     """
     Identity operator.
 
@@ -731,7 +817,7 @@ isherm = True
 identity = qeye
 
 
-def qeye_like(qobj):
+def qeye_like(qobj: Qobj) -> Qobj:
     """
     Identity operator with the same dims and type as the reference quantum
     object.
@@ -757,7 +843,7 @@ def qeye_like(qobj):
     )
 
 
-def position(N, offset=0, *, dtype=None):
+def position(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
     """
     Position operator :math:`x = 1 / sqrt(2) * (a + a.dag())`
 
@@ -783,10 +869,11 @@ def position(N, offset=0, *, dtype=None):
     a = destroy(N, offset=offset, dtype=dtype)
     position = np.sqrt(0.5) * (a + a.dag())
     position.isherm = True
+    position._isunitary = False
     return position.to(dtype)
 
 
-def momentum(N, offset=0, *, dtype=None):
+def momentum(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
     """
     Momentum operator p=-1j/sqrt(2)*(a-a.dag())
 
@@ -812,10 +899,11 @@ def momentum(N, offset=0, *, dtype=None):
     a = destroy(N, offset=offset, dtype=dtype)
     momentum = -1j * np.sqrt(0.5) * (a - a.dag())
     momentum.isherm = True
+    momentum._isunitary = False
     return momentum.to(dtype)
 
 
-def num(N, offset=0, *, dtype=None):
+def num(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
     """
     Quantum object for number operator.
 
@@ -852,7 +940,13 @@ def num(N, offset=0, *, dtype=None):
     return qdiags(data, 0, dtype=dtype)
 
 
-def squeeze(N, z, offset=0, *, dtype=None):
+def squeeze(
+    N: int,
+    z: float,
+    offset: int = 0,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """Single-mode squeezing operator.
 
     Parameters
@@ -889,12 +983,16 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     asq = destroy(N, offset=offset, dtype=dtype) ** 2
     op = 0.5*np.conj(z)*asq - 0.5*z*asq.dag()
-    return op.expm(dtype=dtype)
+    out = op.expm(dtype=dtype)
+    out.isherm = (N == 2) or (z == 0.)
+    out._isunitary = True
+    return out
 
 
-def squeezing(a1, a2, z):
+def squeezing(a1: Qobj, a2: Qobj, z: float) -> Qobj:
     """Generalized squeezing operator.
 
     .. math::
@@ -923,7 +1021,13 @@ def squeezing(a1, a2, z):
     return b.expm()
 
 
-def displace(N, alpha, offset=0, *, dtype=None):
+def displace(
+    N: int,
+    alpha: float,
+    offset: int = 0,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """Single-mode displacement operator.
 
     Parameters
@@ -961,10 +1065,17 @@ shape = [4, 4], type = oper, isHerm = False
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
     a = destroy(N, offset=offset)
-    return (alpha * a.dag() - np.conj(alpha) * a).expm(dtype=dtype)
+    out = (alpha * a.dag() - np.conj(alpha) * a).expm(dtype=dtype)
+    out.isherm = (alpha == 0.)
+    out._isunitary = True
+    return out
 
 
-def commutator(A, B, kind="normal"):
+def commutator(
+    A: Qobj,
+    B: Qobj,
+    kind: Literal["normal", "anti"] = "normal"
+) -> Qobj:
     """
     Return the commutator of kind `kind` (normal, anti) of the
     two operators A and B.
@@ -987,7 +1098,7 @@ def commutator(A, B, kind="normal"):
         raise TypeError("Unknown commutator kind '%s'" % kind)
 
 
-def qutrit_ops(*, dtype=None):
+def qutrit_ops(*, dtype: LayerType = None) -> list[Qobj]:
     """
     Operators for a three level system (qutrit).
 
@@ -1006,18 +1117,22 @@ def qutrit_ops(*, dtype=None):
     from .states import qutrit_basis
 
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    out = np.empty((6,), dtype=object)
-    one, two, three = qutrit_basis(dtype=dtype)
-    out[0] = one * one.dag()
-    out[1] = two * two.dag()
-    out[2] = three * three.dag()
-    out[3] = one * two.dag()
-    out[4] = two * three.dag()
-    out[5] = three * one.dag()
+    out = []
+    basis = qutrit_basis(dtype=dtype)
+    for i in range(3):
+        op = basis[i] @ basis[i].dag()
+        op.isherm = True
+        op._isunitary = False
+        out.append(op)
+    for i in range(3):
+        op = basis[i] @ basis[(i+1)%3].dag()
+        op.isherm = False
+        op._isunitary = False
+        out.append(op)
     return out
 
 
-def phase(N, phi0=0, *, dtype=None):
+def phase(N: int, phi0: float = 0, *, dtype: LayerType = None) -> Qobj:
     """
     Single-mode Pegg-Barnett phase operator.
 
@@ -1049,10 +1164,22 @@ def phase(N, phi0=0, *, dtype=None):
     states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1j * n * kk)
                        for kk in phim])
     ops = np.sum([np.outer(st, st.conj()) for st in states], axis=0)
-    return Qobj(ops, dims=[[N], [N]], copy=False).to(dtype)
+    return Qobj(
+        ops,
+        isherm=True,
+        isunitary=False,
+        dims=[[N], [N]],
+        copy=False
+    ).to(dtype)
 
 
-def charge(Nmax, Nmin=None, frac=1, *, dtype=None):
+def charge(
+    Nmax: int,
+    Nmin: int = None,
+    frac: float = 1,
+    *,
+    dtype: LayerType = None
+) -> Qobj:
     """
     Generate the diagonal charge operator over charge states
     from Nmin to Nmax.
@@ -1087,11 +1214,11 @@ def charge(Nmax, Nmin=None, frac=1, *, dtype=None):
         Nmin = -Nmax
     diag = frac * np.arange(Nmin, Nmax+1, dtype=float)
     out = qdiags(diag, 0, dtype=dtype)
-    out.isherm = True
+    out._isunitary = (len(diag) <= 2) and np.all(np.abs(diag) == 1.)
     return out
 
 
-def tunneling(N, m=1, *, dtype=None):
+def tunneling(N: int, m: int = 1, *, dtype: LayerType = None) -> Qobj:
     r"""
     Tunneling operator with elements of the form
     :math:`\\sum |N><N+m| + |N+m><N|`.
@@ -1116,10 +1243,11 @@ def tunneling(N, m=1, *, dtype=None):
     diags = [np.ones(N-m, dtype=int), np.ones(N-m, dtype=int)]
     T = qdiags(diags, [m, -m], dtype=dtype)
     T.isherm = True
+    T._isunitary = (m * 2 == N)
     return T
 
 
-def qft(dimensions, *, dtype="dense"):
+def qft(dimensions: SpaceLike, *, dtype: LayerType = None) -> Qobj:
     """
     Quantum Fourier Transform operator.
 
@@ -1130,7 +1258,7 @@ def qft(dimensions, *, dtype="dense"):
         ints, then the dimension is the product over this list, but the
         ``dims`` property of the new Qobj are set to this list.
 
-    dtype : str or type, [keyword only] [optional]
+    dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
@@ -1140,17 +1268,19 @@ def qft(dimensions, *, dtype="dense"):
         Quantum Fourier transform operator.
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     dimensions = Space(dimensions)
+    dims = [dimensions]*2
     N2 = dimensions.size
 
     phase = 2.0j * np.pi / N2
     arr = np.arange(N2)
     L, M = np.meshgrid(arr, arr)
     data = np.exp(phase * (L * M)) / np.sqrt(N2)
-    return Qobj(data, dims=[dimensions]*2).to(dtype)
+    return Qobj(data, isherm=False, isunitary=True, dims=dims).to(dtype)
 
 
-def swap(N, M, *, dtype=None):
+def swap(N: int, M: int, *, dtype: LayerType = None) -> Qobj:
     """
     Operator that exchanges the order of tensored spaces:
 
@@ -1174,5 +1304,7 @@ def swap(N, M, *, dtype=None):
     cols = np.ravel(M * np.arange(N)[None, :] + np.arange(M)[:, None])
     return Qobj(
         _data.CSR((data, cols, rows), (N * M, N * M)),
-        dims=[[M, N], [N, M]]
+        dims=[[M, N], [N, M]],
+        isherm=(N == M),
+        isunitary=True,
     ).to(dtype)

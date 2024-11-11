@@ -527,6 +527,10 @@ cpdef CSR multiply_csr(CSR left, CSR right):
             + " and "
             + str(right.shape)
         )
+
+    left = left.sort_indices()
+    right = right.sort_indices()
+
     cdef idxint col_left, left_nnz = csr.nnz(left)
     cdef idxint col_right, right_nnz = csr.nnz(right)
     cdef idxint ptr_left, ptr_right, ptr_left_max, ptr_right_max

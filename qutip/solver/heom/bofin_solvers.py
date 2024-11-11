@@ -347,6 +347,7 @@ class HierarchyADOsState:
     See :class:`HierarchyADOs` for a full list of the available attributes
     and methods.
     """
+
     def __init__(self, rho, ados, ado_state):
         self.rho = rho
         self._ado_state = ado_state
@@ -498,7 +499,8 @@ def heomsolve(
         - | store_ados : bool
           | Whether or not to store the HEOM ADOs.
         - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
+          | Normalize output state to hide ODE numerical errors. Only normalize
+            the state if the initial state is already normalized.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
@@ -574,8 +576,20 @@ class HEOMSolver(Solver):
         If multiple baths are given, they must all be either fermionic
         or bosonic baths.
 
+    odd_parity : Bool
+        For fermionic baths only. Default is "False". "Parity" refers to the
+        parity of the initial system state used with the HEOM. An example of
+        an odd parity state is one made from applying an odd number of
+        fermionic creation operators to a physical density operator.
+        Physical systems have even parity, but allowing the generalization
+        to odd-parity states allows one to calculate useful physical quantities
+        like the system power spectrum or density of states.
+        The form of the HEOM differs depending on the parity of the initial
+        system state, so if this option is set to "True", a different RHS is
+        constructed, which can then be used with a system state of odd parity.
+
     max_depth : int
-        The maximum depth of the heirarchy (i.e. the maximum number of bath
+        The maximum depth of the hierarchy (i.e. the maximum number of bath
         exponent "excitations" to retain).
 
     options : dict, optional
@@ -610,7 +624,10 @@ class HEOMSolver(Solver):
         "state_data_type": "dense",
     }
 
-    def __init__(self, H, bath, max_depth, *, options=None):
+    def __init__(self, H, bath, max_depth, *, odd_parity=False, options=None):
+        _time_start = time()
+        # we call bool here because odd_parity will be used in arithmetic
+        self.odd_parity = bool(odd_parity)
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian (H) must be a Qobj or QobjEvo")
 
@@ -766,10 +783,10 @@ class HEOMSolver(Solver):
         ]
 
         n_excite = sum(he_fermionic_n)
-        sign1 = (-1) ** (n_excite + 1)
+        sign1 = (-1) ** (n_excite + 1 - self.odd_parity)
 
         n_excite_before_m = sum(he_fermionic_n[:k])
-        sign2 = (-1) ** (n_excite_before_m)
+        sign2 = (-1) ** (n_excite_before_m + self.odd_parity)
 
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
 
@@ -813,10 +830,10 @@ class HEOMSolver(Solver):
             for i, exp in zip(he_n, self.ados.exponents)
         ]
         n_excite = sum(he_fermionic_n)
-        sign1 = (-1) ** (n_excite + 1)
+        sign1 = (-1) ** (n_excite + 1 - self.odd_parity)
 
         n_excite_before_m = sum(he_fermionic_n[:k])
-        sign2 = (-1) ** (n_excite_before_m)
+        sign2 = (-1) ** (n_excite_before_m + self.odd_parity)
 
         if self.ados.exponents[k].type == BathExponent.types["+"]:
             if sign1 == -1:

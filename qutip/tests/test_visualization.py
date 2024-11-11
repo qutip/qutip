@@ -462,7 +462,7 @@ def test_plot_expectation_values(n_of_results, n_of_e_ops, one_axes, args):
     e_ops = [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
     times = np.linspace(0, 10, 100)
     psi0 = (qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
-    result = qutip.mesolve(H, psi0, times, [], e_ops[:n_of_e_ops])
+    result = qutip.mesolve(H, psi0, times, e_ops=e_ops[:n_of_e_ops])
 
     if n_of_results == 1:
         results = result
@@ -651,3 +651,69 @@ def test_plot_schmidt_Error():
         fig, ax = qutip.plot_schmidt(state)
     assert str(exc_info.value) == text
     plt.close()
+
+
+
+@pytest.mark.parametrize(
+    "state",  [qutip.basis([2, 2], [0, 0]), qutip.ket2dm(qutip.basis([1, 1], [0, 0]))]
+)
+def test_TwoModeQuadratureCorrelation(state):
+    corr = qutip.TwoModeQuadratureCorrelation(state)
+
+    assert isinstance(corr, qutip.distributions.TwoModeQuadratureCorrelation)
+
+@pytest.mark.parametrize(
+    "state",  [qutip.basis([2, 2], [0, 0]), qutip.ket2dm(qutip.basis([1, 1], [0, 0]))]
+)   
+def test_TwoModeQuadratureCorrelation_plot(state):
+    corr = qutip.TwoModeQuadratureCorrelation(state)
+    
+    fig, ax = corr.visualize()
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+
+@pytest.mark.parametrize(
+    "state",  [qutip.basis([2, 2], [0, 0]), qutip.ket2dm(qutip.basis([1, 1], [0, 0]))]
+)
+def test_HarmonicOscillatorWaveFunction(state):
+    corr = qutip.HarmonicOscillatorWaveFunction(state)
+
+    assert isinstance(corr, qutip.distributions.HarmonicOscillatorWaveFunction)
+
+@pytest.mark.parametrize(
+    "state",  [qutip.basis([2, 2], [0, 0]), qutip.ket2dm(qutip.basis([1, 1], [0, 0]))]
+)   
+def test_HarmonicOscillatorWaveFunction_plot(state):
+    corr = qutip.HarmonicOscillatorWaveFunction(state)
+    
+    fig, ax = corr.visualize()
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+
+@pytest.mark.parametrize(
+    "state",  [qutip.basis([2, 2], [0, 0]), qutip.ket2dm(qutip.basis([1, 1], [0, 0]))]
+)
+def test_HarmonicOscillatorProbabilityFunction(state):
+    corr = qutip.HarmonicOscillatorProbabilityFunction(state)
+
+    assert isinstance(corr, qutip.distributions.HarmonicOscillatorProbabilityFunction)
+
+@pytest.mark.parametrize(
+    "state",  [qutip.basis([2, 2], [0, 0]), qutip.ket2dm(qutip.basis([1, 1], [0, 0]))]
+)   
+def test_HarmonicOscillatorProbabilityFunction_plot(state):
+    corr = qutip.HarmonicOscillatorProbabilityFunction(state)
+    
+    fig, ax = corr.visualize()
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)

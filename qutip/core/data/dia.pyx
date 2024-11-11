@@ -12,16 +12,23 @@ from cpython cimport mem
 
 import numbers
 import warnings
-
+import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
 from scipy.sparse import dia_matrix as scipy_dia_matrix
-try:
-    from scipy.sparse.data import _data_matrix as scipy_data_matrix
-except ImportError:
+from packaging.version import parse as parse_version
+from functools import partial
+if parse_version(scipy.version.version) >= parse_version("1.14.0"):
+    from scipy.sparse._data import _data_matrix as scipy_data_matrix
+    # From scipy 1.14.0, a check that the input is not scalar was added for
+    # sparse arrays.
+    scipy_data_matrix = partial(scipy_data_matrix, arg1=(0,))
+elif parse_version(scipy.version.version) >= parse_version("1.8.0"):
     # The file data was renamed to _data from scipy 1.8.0
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
+else:
+    from scipy.sparse.data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, CSR
@@ -69,7 +76,7 @@ cdef class Dia(base.Data):
     def __cinit__(self, *args, **kwargs):
         self._deallocate = True
 
-    def __init__(self, arg=None, shape=None, bint copy=True, bint tidyup=False):
+    def __init__(self, arg=None, shape=None, copy=True, bint tidyup=False):
         cdef size_t ptr
         cdef base.idxint col
         cdef object data, offsets
@@ -81,12 +88,14 @@ cdef class Dia(base.Data):
                     "shapes do not match: ", str(shape), " and ", str(arg.shape),
                 ]))
             shape = arg.shape
-            #
             arg = (arg.data, arg.offsets)
         if not isinstance(arg, tuple):
             raise TypeError("arg must be a scipy matrix or tuple")
         if len(arg) != 2:
             raise ValueError("arg must be a (data, offsets) tuple")
+        if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
+            # np2 accept None which act as np1's False
+            copy = builtins.bool(copy)
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
         offsets = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
 

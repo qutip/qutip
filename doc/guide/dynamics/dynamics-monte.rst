@@ -8,7 +8,7 @@ Monte Carlo Solver
 .. _monte-intro:
 
 Introduction
-=============
+============
 
 Where as the density matrix formalism describes the ensemble average over many
 identical realizations of a quantum system, the Monte Carlo (MC), or
@@ -282,6 +282,77 @@ trajectories:
     plt.show()
 
 
+Mixed Initial states
+--------------------
+
+The Monte-Carlo solver can be used for mixed initial states. For example, if a
+qubit can initially be in the excited state :math:`|+\rangle` with probability
+:math:`p` or in the ground state :math:`|-\rangle` with probability
+:math:`(1-p)`, the initial state is described by the density matrix
+:math:`\rho_0 = p | + \rangle\langle + | + (1-p) | - \rangle\langle - |`.
+
+In QuTiP, this initial density matrix can be created as follows:
+
+.. code-block::
+
+    ground = qutip.basis(2, 0)
+    excited = qutip.basis(2, 1)
+    density_matrix = p * excited.proj() + (1 - p) * ground.proj()
+
+One can then pass this density matrix directly to ``mcsolve``, as in
+
+.. code-block::
+
+    mcsolve(H, density_matrix, ...)
+
+Alternatively, using the class interface, if ``solver`` is an
+:class:`.MCSolver` object, one can either call
+``solver.run(density_matrix, ...)`` or pass the list of initial states like
+
+.. code-block::
+
+    solver.run([(excited, p), (ground, 1-p)], ...)
+
+The number of trajectories can still be specified as a single number ``ntraj``.
+In that case, QuTiP will automatically decide how many trajectories to use for
+each of the initial states, guaranteeing that the total number of trajectories
+is exactly the specified number. When using the class interface and providing
+the initial state as a list, the `ntraj` parameter may also be a list
+specifying the number of trajectories to use for each state manually. In either
+case, the resulting :class:`McResult` will have attributes ``initial_states``
+and ``ntraj_per_initial_state`` listing the initial states and the
+corresponding numbers of trajectories that were actually used.
+
+Note that in general, the fraction of trajectories starting in a given initial
+state will (and can) not exactly match the probability :math:`p` of that state
+in the initial ensemble. In this case, QuTiP will automatically apply a
+correction to the averages, weighting for example the initial states with
+"too few" trajectories more strongly. Therefore, the initial state returned in
+the result object will always match the provided one up to numerical
+inaccuracies. Furthermore, the result returned by the `mcsolve` call above is
+equivalent to the following:
+
+.. code-block::
+
+    result1 = qutip.mcsolve(H, excited, ...)
+    result2 = qutip.mcsolve(H, ground, ...)
+    result1.merge(result2, p)
+
+However, the single ``mcsolve`` call allows for more parallelization (see
+below).
+
+The Monte-Carlo solver with a mixed initial state currently does not support
+specifying a target tolerance. Also, in case the simulation ends early due to
+timeout, it is not guaranteed that all initial states have been sampled. If
+not all initial states have been sampled, the resulting states will not be
+normalized, and the result should be discarded.
+
+Finally note that what we just discussed concerns the case of mixed initial
+states where the provided Hamiltonian is an operator. If it is a superoperator
+(i.e., a Liouvillian), ``mcsolve`` will generate trajectories of mixed states
+(see below) and the present discussion does not apply.
+
+
 Using the Improved Sampling Algorithm
 -------------------------------------
 
@@ -321,10 +392,10 @@ a lifetime of 10 microseconds (assuming time is in units of nanoseconds)
     H0 = -0.5 * omega * sigmaz()
     gamma = 1/10000
     data = mcsolve(
-        [H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100
+        [H0], psi0, times, [np.sqrt(gamma) * sm], e_ops=[sm.dag() * sm], ntraj=100
     )
     data_imp = mcsolve(
-        [H0], psi0, times, [np.sqrt(gamma) * sm], [sm.dag() * sm], ntraj=100,
+        [H0], psi0, times, [np.sqrt(gamma) * sm], e_ops=[sm.dag() * sm], ntraj=100,
         options={"improved_sampling": True}
     )
 
@@ -382,10 +453,11 @@ Running trajectories in parallel
 
 Monte-Carlo evolutions often need hundreds of trajectories to obtain sufficient
 statistics. Since all trajectories are independent of each other, they can be computed
-in parallel. The option ``map`` can take ``"serial"``, ``"parallel"`` or ``"loky"``.
+in parallel. The option ``map`` can take ``"serial"``, ``"parallel"``, ``"loky"`` or ``"mpi"``.
 Both ``"parallel"`` and ``"loky"`` compute trajectories on multiple CPUs using
 respectively the `multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`_
 and `loky <https://loky.readthedocs.io/en/stable/index.html>`_ python modules.
+The ``"mpi"`` option is for computing trajectories in a computing cluster, see the :ref:`MPI section<monte-mpi>` below.
 
 .. code-block::
 
@@ -486,6 +558,66 @@ We can redo the previous example for a situation where only half the emitted pho
     plt.xlabel('Time')
     plt.ylabel('Photon detections')
     plt.show()
+
+
+.. _monte-mpi:
+
+Distributed Simulations Using MPI
+=================================
+
+..
+    adapted from the `nm_mcsolve` tutorial notebook
+
+Sometimes, many trajectories are needed to see the convergence of the trajectory average.
+Using QuTiP's MPI capabilities, large numbers of trajectories can be computed in parallel
+on multiple nodes of a computing cluster. On the QuTiP side, running Monte Carlo simulations
+through MPI is as easy as replacing ``"map": "parallel"`` by ``"map": "mpi"`` in the provided options.
+In addition, one should always provide the ``"num_cpus"`` option, which in this case specifies
+the number of available worker processes. The number of available worker processes is typically one
+less than the total number of processes assigned to the task.
+
+The call to the Monte Carlo solver might look like this (for a more detailed example, see e.g.
+`this tutorial notebook <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/013_nonmarkovian_monte_carlo.ipynb>`_):
+
+.. code-block:: python
+
+    qutip.mcsolve(H, psi0, times, c_ops, ntraj=NTRAJ,
+                  options={'store_states': True,
+                           'progress_bar': False,
+                           'map': 'mpi',
+                           'num_cpus': NUM_WORKER_PROCESSES})
+
+To invoke the MPI API, QuTiP relies on the ``MPIPoolExecutor`` class from the `mpi4py <https://mpi4py.github.io/>`_ module.
+For instructions on how to set up an environment in which an ``MPIPoolExecutor`` can successfully
+be created and communicate across nodes, we generally refer to the
+`documentation of mpi4py <https://mpi4py.readthedocs.io/en/stable/mpi4py.futures.html>`_ and to your system administrator.
+
+Below, we provide an example batch script that can be submitted to a SLURM workload manager. The authors of this guide
+used this script to perform a parallel calculation on 500 CPUs distributed over 5 nodes of the supercomputer
+`HOKUSAI <https://www.r-ccs.riken.jp/exhibit_contents/SC20/hokusai.html>`_, using the `MPICH <https://www.mpich.org>`_
+implementation of the MPI standard. However, one should expect that adjustments to the script are required depending
+on the available MPI implementations and their versions, as well as the workload manager and its version and configuration.
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH --partition=XXXXX
+    #SBATCH --account=XXXXX
+
+    #SBATCH --nodes=5
+    #SBATCH --ntasks=501
+    #SBATCH --mem-per-cpu=1G
+
+    #SBATCH --time=0-10:00
+
+    source ~/.bashrc
+
+    module purge
+    module load mpi/mpich-x86_64
+    conda activate qutip-environment
+
+    mpirun -np $SLURM_NTASKS -bind-to core python -m mpi4py.futures XXXXX.py
+
 
 
 .. plot::
