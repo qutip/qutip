@@ -141,7 +141,9 @@ class TestFlimesolve:
         p_ex = [expect(e_ops, solver.step(t))[0] for t in tlist]
 
         # Compare with mesolve
-        output2 = mesolve(H, psi0, tlist, np.sqrt(gamma1) * c_op, e_ops, args)
+        output2 = mesolve(
+            H, psi0, tlist, np.sqrt(gamma1) * c_op, e_ops=e_ops, args=args
+        )
         p_ex_ref = output2.expect[0]
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-5)
@@ -182,8 +184,8 @@ class TestFlimesolve:
             psi0,
             tlist,
             [np.sqrt(gamma1) * sigmax(), np.sqrt(gamma1) * sigmay()],
-            e_ops,
-            args,
+            e_ops=e_ops,
+            args=args,
         )
         p_ex_ref = output2.expect[0]
 
@@ -227,7 +229,12 @@ class TestFlimesolve:
         p_ex = output.expect[0]
 
         output = mesolve(
-            H, psi0, tlist, [np.sqrt(gamma1) * sigmax()], [num(2)], args
+            H,
+            psi0,
+            tlist,
+            [np.sqrt(gamma1) * sigmax()],
+            e_ops=[num(2)],
+            args=args,
         )
         p_ex_ref = output.expect[0]
 

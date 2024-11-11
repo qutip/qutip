@@ -521,9 +521,9 @@ def _make_solver(H, c_ops, args, options, solver, **kwargs):
         solver_instance = FLiMESolver(
             floquet_basis,
             c_ops,
-            time_sense=kwargs["time_sense"],
+            time_sense=kwargs["time_sense"] if "time_sense" in kwargs else 0,
             options=options,
-            Nt=kwargs["Nt"],
+            Nt=kwargs["Nt"] if "Nt" in kwargs else 2**4,
         )
     else:
         H = QobjEvo(H, args=args)
