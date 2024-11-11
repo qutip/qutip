@@ -523,7 +523,7 @@ def _make_solver(H, c_ops, args, options, solver, **kwargs):
             c_ops,
             time_sense=kwargs.get("time_sense", 0),
             options=options,
-            Nt=kwargs["Nt"] if "Nt" in kwargs else 2**4,
+            Nt=kwargs.get("Nt", 16),
         )
     else:
         H = QobjEvo(H, args=args)
