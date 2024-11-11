@@ -369,7 +369,7 @@ class HarmonicOscillatorWaveFunction(Distribution):
     provides specialized attributes and methods tailored for modeling
     the harmonic oscillator's wave function.This implementation leverages
     the Cython function `psi_n_single_fock_multiple_position_complex`from the
-    `_distributions.pyx` module to efficiently compute the wave function's 
+    `_distributions.pyx` module to efficiently compute the wave function's
     contribution for each Fock state across spatial coordinates using an
     optimized recurrence relation.
 
