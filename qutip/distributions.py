@@ -20,7 +20,7 @@ from scipy.special import hermite, factorial
 
 from . import isket, ket2dm, state_number_index
 from .wigner import wigner, qfunc
-from _distributions import  psi_n_single_fock_multiple_position_complex
+from _distributions import psi_n_single_fock_multiple_position_complex
 
 try:
     import matplotlib as mpl
@@ -358,16 +358,15 @@ class TwoModeQuadratureCorrelation(Distribution):
 
 class HarmonicOscillatorWaveFunction(Distribution):
 
-    """
-    Calculates and represents the wave function of a quantum harmonic oscillator.
+    """Calculates and represents the wave function of a quantum harmonic oscillator.
 
-    The `HarmonicOscillatorWaveFunction` class computes the spatial distribution of the 
-    wave function for a quantum harmonic oscillator given a set of state coefficients (`psi`). 
-    By extending the `Distribution` base class, this class provides specialized attributes 
+    The `HarmonicOscillatorWaveFunction` class computes the spatial distribution of the
+    wave function for a quantum harmonic oscillator given a set of state coefficients (`psi`).
+
+    By extending the `Distribution` base class, this class provides specialized attributes
     and methods tailored for modeling the harmonic oscillator's wave function.
-
-    This implementation leverages the Cython function `psi_n_single_fock_multiple_position_complex` 
-    from the `_distributions.pyx` module to efficiently compute the wave function's contribution 
+    This implementation leverages the Cython function `psi_n_single_fock_multiple_position_complex`
+    from the `_distributions.pyx` module to efficiently compute the wave function's contribution
     for each Fock state across spatial coordinates using an optimized recurrence relation.
 
     Parameters
@@ -409,8 +408,8 @@ class HarmonicOscillatorWaveFunction(Distribution):
 
     References
     ----------
-    - Pérez-Jordá, J. M. (2017). On the recursive solution of the quantum harmonic oscillator. *European Journal of Physics*, 39(1), 
-      015402. doi:10.1088/1361-6404/aa9584
+    - Pérez-Jordá, J. M. (2017). On the recursive solution of the quantum 
+      harmonic oscillator. *European Journal of Physics*, 39(1), 015402. doi:10.1088/1361-6404/aa9584
     - *Fast-Wave*: High-performance wave function calculations for quantum harmonic oscillators. 
        Available at: https://github.com/fobos123deimos/fast-wave
     """
@@ -440,7 +439,7 @@ class HarmonicOscillatorWaveFunction(Distribution):
                 ) * psi[n, 0]
             )
 
-        self.data *= pow(self.omega,0.25)
+        self.data *= pow(self.omega, 0.25)
 
 
 class HarmonicOscillatorProbabilityFunction(Distribution):
