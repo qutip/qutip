@@ -521,7 +521,7 @@ def _make_solver(H, c_ops, args, options, solver, **kwargs):
         solver_instance = FLiMESolver(
             floquet_basis,
             c_ops,
-            time_sense=kwargs["time_sense"] if "time_sense" in kwargs else 0,
+            time_sense=kwargs.get("time_sense", 0),
             options=options,
             Nt=kwargs["Nt"] if "Nt" in kwargs else 2**4,
         )
