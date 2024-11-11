@@ -64,7 +64,7 @@ class TestFlimesolve:
         ).expect[0]
         # Compare with mesolve
         p_ex_ref = mesolve(
-            H, psi0, tlist, [np.sqrt(gamma1) * c_op], e_ops=e_ops, args
+            H, psi0, tlist, [np.sqrt(gamma1) * c_op], e_ops=e_ops, args=args
         ).expect[0]
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-5)
