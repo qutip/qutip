@@ -186,7 +186,7 @@ class BosonicEnvironment(abc.ABC):
             The correlation function. When using a function the signature
             should be
 
-            C(t, *args) -> array_like
+            C(t, \*args) -> array_like
 
             where ``t`` is time and ``args`` is a tuple containing the
             other parameters of the function.
@@ -231,7 +231,7 @@ class BosonicEnvironment(abc.ABC):
         S : callable or array_like
             The power spectrum. When using a function the signature should be
 
-            S(w, *args) -> array_like
+            S(w, \*args) -> array_like
 
             where ``w`` is the frequency and ``args`` is a tuple containing the
             other parameters of the function.
@@ -280,7 +280,7 @@ class BosonicEnvironment(abc.ABC):
         J : callable or array_like
             The spectral density. When using a function the signature should be
 
-            J(w, *args) -> array_like
+            J(w, \*args) -> array_like
 
             where ``w`` is the frequency and ``args`` is a tuple containing the
             other parameters of the function.
