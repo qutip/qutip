@@ -738,9 +738,10 @@ class BosonicEnvironment(abc.ABC):
 
 
 class _BosonicEnvironment_fromCF(BosonicEnvironment):
-    def __init__(self, C, tlist, tMax, T, tag):
+    def __init__(self, C, tlist, tMax, T, tag, *args):
         super().__init__(T, tag)
-        self._cf = _complex_interpolation(C, tlist, 'correlation function')
+        self._cf = _complex_interpolation(
+            C, tlist, 'correlation function', *args)
         if tlist is not None:
             self.tMax = max(np.abs(tlist[0]), np.abs(tlist[-1]))
         else:
@@ -769,9 +770,9 @@ class _BosonicEnvironment_fromCF(BosonicEnvironment):
 
 
 class _BosonicEnvironment_fromPS(BosonicEnvironment):
-    def __init__(self, S, wlist, wMax, T, tag):
+    def __init__(self, S, wlist, wMax, T, tag, *args):
         super().__init__(T, tag)
-        self._ps = _real_interpolation(S, wlist, 'power spectrum')
+        self._ps = _real_interpolation(S, wlist, 'power spectrum', *args)
         if wlist is not None:
             self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
         else:
@@ -793,9 +794,9 @@ class _BosonicEnvironment_fromPS(BosonicEnvironment):
 
 
 class _BosonicEnvironment_fromSD(BosonicEnvironment):
-    def __init__(self, J, wlist, wMax, T, tag):
+    def __init__(self, J, wlist, wMax, T, tag, *args):
         super().__init__(T, tag)
-        self._sd = _real_interpolation(J, wlist, 'spectral density')
+        self._sd = _real_interpolation(J, wlist, 'spectral density', *args)
         if wlist is not None:
             self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
         else:
@@ -1841,9 +1842,9 @@ def system_terminator(Q: Qobj, delta: float) -> Qobj:
 
 # --- utility functions ---
 
-def _real_interpolation(fun, xlist, name):
+def _real_interpolation(fun, xlist, name, *args):
     if callable(fun):
-        return fun
+        return lambda w: fun(w, *args)
     else:
         if xlist is None or len(xlist) != len(fun):
             raise ValueError("A list of x-values with the same length must be "
@@ -1851,9 +1852,9 @@ def _real_interpolation(fun, xlist, name):
         return CubicSpline(xlist, fun)
 
 
-def _complex_interpolation(fun, xlist, name):
+def _complex_interpolation(fun, xlist, name, *args):
     if callable(fun):
-        return fun
+        return lambda t: fun(t, *args)
     else:
         real_interp = _real_interpolation(np.real(fun), xlist, name)
         imag_interp = _real_interpolation(np.imag(fun), xlist, name)
