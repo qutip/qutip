@@ -354,8 +354,8 @@ def iterated_fit(
     fun: Callable[..., complex], num_params: int,
     xdata: ArrayLike, ydata: ArrayLike,
     target_rmse: float = 1e-5,
-    guess: ArrayLike | Callable[[int], ArrayLike] = None,
     Nmin: int = 1, Nmax: int = 10,
+    guess: ArrayLike | Callable[[int], ArrayLike] = None,
     lower: ArrayLike = None, upper: ArrayLike = None,
     sigma: float | ArrayLike = None, maxfev: int = None
 ) -> tuple[float, ArrayLike]:
@@ -383,6 +383,12 @@ def iterated_fit(
         The dependent data.
     target_rmse : optional, float
         Desired normalized root mean squared error (default `1e-5`).
+    Nmin : optional, int
+        The minimum number of terms to be used for the fit (default 1).
+    Nmax : optional, int
+        The maximum number of terms to be used for the fit (default 10).
+        If the number `Nmax` of terms is reached, the function returns even if
+        the target rmse has not been reached yet.
     guess : optional, array_like or callable
         This can be either a list of length `n`, with the i-th entry being the
         guess for the parameter :math:`p_{k,i}` (for all terms :math:`k`), or a
@@ -390,12 +396,6 @@ def iterated_fit(
         Specifically, given a number `N` of terms, the function returns an
         array `[[p11, ..., p1n], [p21, ..., p2n], ..., [pN1, ..., pNn]]` of
         initial guesses.
-    Nmin : optional, int
-        The minimum number of terms to be used for the fit (default 1).
-    Nmax : optional, int
-        The maximum number of terms to be used for the fit (default 10).
-        If the number `Nmax` of terms is reached, the function returns even if
-        the target rmse has not been reached yet.
     lower : optional, list of length `num_params`
         Lower bounds on the parameters for the fit.
     upper : optional, list of length `num_params`

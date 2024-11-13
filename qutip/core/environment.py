@@ -170,9 +170,9 @@ class BosonicEnvironment(abc.ABC):
         C: Callable[[float], complex] | ArrayLike,
         tlist: ArrayLike = None,
         tMax: float = None,
-        *,
         T: float = None,
-        tag: Any = None
+        tag: Any = None,
+        args: ArrayLike = (),
     ) -> BosonicEnvironment:
         r"""
         Constructs a bosonic environment from the provided correlation
@@ -202,7 +202,7 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
         """
-        return _BosonicEnvironment_fromCF(C, tlist, tMax, T, tag)
+        return _BosonicEnvironment_fromCF(C, tlist, tMax, T, tag, args)
 
     @classmethod
     def from_power_spectrum(
@@ -210,9 +210,9 @@ class BosonicEnvironment(abc.ABC):
         S: Callable[[float], float] | ArrayLike,
         wlist: ArrayLike = None,
         wMax: float = None,
-        *,
         T: float = None,
-        tag: Any = None
+        tag: Any = None,
+        args: ArrayLike = (),
     ) -> BosonicEnvironment:
         """
         Constructs a bosonic environment with the provided power spectrum.
@@ -238,7 +238,7 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
         """
-        return _BosonicEnvironment_fromPS(S, wlist, wMax, T, tag)
+        return _BosonicEnvironment_fromPS(S, wlist, wMax, T, tag, args)
 
     @classmethod
     def from_spectral_density(
@@ -246,9 +246,9 @@ class BosonicEnvironment(abc.ABC):
         J: Callable[[float], float] | ArrayLike,
         wlist: ArrayLike = None,
         wMax: float = None,
-        *,
         T: float = None,
-        tag: Any = None
+        tag: Any = None,
+        args: ArrayLike = ()
     ) -> BosonicEnvironment:
         r"""
         Constructs a bosonic environment with the provided spectral density.
@@ -279,7 +279,7 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
         """
-        return _BosonicEnvironment_fromSD(J, wlist, wMax, T, tag)
+        return _BosonicEnvironment_fromSD(J, wlist, wMax, T, tag, args)
 
     # --- spectral density, power spectrum, correlation function conversions
 
@@ -738,10 +738,10 @@ class BosonicEnvironment(abc.ABC):
 
 
 class _BosonicEnvironment_fromCF(BosonicEnvironment):
-    def __init__(self, C, tlist, tMax, T, tag, *args):
+    def __init__(self, C, tlist, tMax, T, tag, args):
         super().__init__(T, tag)
         self._cf = _complex_interpolation(
-            C, tlist, 'correlation function', *args)
+            C, tlist, 'correlation function', args)
         if tlist is not None:
             self.tMax = max(np.abs(tlist[0]), np.abs(tlist[-1]))
         else:
@@ -770,9 +770,9 @@ class _BosonicEnvironment_fromCF(BosonicEnvironment):
 
 
 class _BosonicEnvironment_fromPS(BosonicEnvironment):
-    def __init__(self, S, wlist, wMax, T, tag, *args):
+    def __init__(self, S, wlist, wMax, T, tag, args):
         super().__init__(T, tag)
-        self._ps = _real_interpolation(S, wlist, 'power spectrum', *args)
+        self._ps = _real_interpolation(S, wlist, 'power spectrum', args)
         if wlist is not None:
             self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
         else:
@@ -794,9 +794,9 @@ class _BosonicEnvironment_fromPS(BosonicEnvironment):
 
 
 class _BosonicEnvironment_fromSD(BosonicEnvironment):
-    def __init__(self, J, wlist, wMax, T, tag, *args):
+    def __init__(self, J, wlist, wMax, T, tag, args):
         super().__init__(T, tag)
-        self._sd = _real_interpolation(J, wlist, 'spectral density', *args)
+        self._sd = _real_interpolation(J, wlist, 'spectral density', args)
         if wlist is not None:
             self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
         else:
@@ -1842,7 +1842,7 @@ def system_terminator(Q: Qobj, delta: float) -> Qobj:
 
 # --- utility functions ---
 
-def _real_interpolation(fun, xlist, name, *args):
+def _real_interpolation(fun, xlist, name, args=()):
     if callable(fun):
         return lambda w: fun(w, *args)
     else:
@@ -1852,7 +1852,7 @@ def _real_interpolation(fun, xlist, name, *args):
         return CubicSpline(xlist, fun)
 
 
-def _complex_interpolation(fun, xlist, name, *args):
+def _complex_interpolation(fun, xlist, name, args=()):
     if callable(fun):
         return lambda t: fun(t, *args)
     else:
