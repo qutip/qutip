@@ -9,7 +9,6 @@ from cmath import exp as cexp, sqrt as csqrt, pi as cpi
 @cython.cfunc
 @cython.locals(x_size=np.npy_intp, j=int, i=int, k=int, temp1=complex, temp2=complex)
 @cython.boundscheck(False)
-@cython.cdivision(True)
 cpdef np.ndarray[np.complex128_t, ndim=1] psi_n_single_fock_multiple_position_complex(int n, np.ndarray[np.complex128_t, ndim=1] x):
 
     """
