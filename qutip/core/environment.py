@@ -172,7 +172,7 @@ class BosonicEnvironment(abc.ABC):
         tMax: float = None,
         T: float = None,
         tag: Any = None,
-        args: ArrayLike = (),
+        args: tuple = (),
     ) -> BosonicEnvironment:
         r"""
         Constructs a bosonic environment from the provided correlation
@@ -183,7 +183,13 @@ class BosonicEnvironment(abc.ABC):
         Parameters
         ----------
         C : callable or array_like
-            The correlation function.
+            The correlation function. When using a function the signature 
+            should be
+
+            C(t, *args) -> array_like
+
+            where ``t`` is time and ``args`` is a tuple containing the
+            other parameters of the function.
 
         tlist : optional, array_like
             The times where the correlation function is sampled (if it is
@@ -201,6 +207,9 @@ class BosonicEnvironment(abc.ABC):
 
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
+
+        args: optional, tuple
+            Extra arguments to be passed to the callable C.
         """
         return _BosonicEnvironment_fromCF(C, tlist, tMax, T, tag, args)
 
@@ -212,7 +221,7 @@ class BosonicEnvironment(abc.ABC):
         wMax: float = None,
         T: float = None,
         tag: Any = None,
-        args: ArrayLike = (),
+        args: tuple = (),
     ) -> BosonicEnvironment:
         """
         Constructs a bosonic environment with the provided power spectrum.
@@ -220,7 +229,12 @@ class BosonicEnvironment(abc.ABC):
         Parameters
         ----------
         S : callable or array_like
-            The power spectrum.
+            The power spectrum. When using a function the signature should be
+
+            S(w, *args) -> array_like
+
+            where ``w`` is the frequency and ``args`` is a tuple containing the
+            other parameters of the function.
 
         wlist : optional, array_like
             The frequencies where the power spectrum is sampled (if it is
@@ -237,6 +251,9 @@ class BosonicEnvironment(abc.ABC):
 
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
+
+        args: optional, tuple
+            Extra arguments to be passed to the callable S.
         """
         return _BosonicEnvironment_fromPS(S, wlist, wMax, T, tag, args)
 
@@ -248,7 +265,7 @@ class BosonicEnvironment(abc.ABC):
         wMax: float = None,
         T: float = None,
         tag: Any = None,
-        args: ArrayLike = ()
+        args: tuple = ()
     ) -> BosonicEnvironment:
         r"""
         Constructs a bosonic environment with the provided spectral density.
@@ -261,7 +278,12 @@ class BosonicEnvironment(abc.ABC):
         Parameters
         ----------
         J : callable or array_like
-            The spectral density.
+            The spectral density. When using a function the signature should be
+
+            J(w, *args) -> array_like
+
+            where ``w`` is the frequency and ``args`` is a tuple containing the
+            other parameters of the function.
 
         wlist : optional, array_like
             The frequencies where the spectral density is sampled (if it is
@@ -278,6 +300,9 @@ class BosonicEnvironment(abc.ABC):
 
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
+
+        args: optional, tuple
+            Extra arguments to be passed to the callable J.
         """
         return _BosonicEnvironment_fromSD(J, wlist, wMax, T, tag, args)
 
