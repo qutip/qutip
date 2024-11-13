@@ -167,9 +167,9 @@ of the correlation function with two exponential terms each.
     # Define a sub-Ohmic environment with the given temperature, coupling strength and cutoff
     env = qt.OhmicEnvironment(T=0.1, alpha=1, wc=3, s=0.7)
 
-    # Fit the correlation function with two exponential terms
+    # Fit the correlation function with three exponential terms
     tlist = np.linspace(0, 3, 250)
-    approx_env, info = env.approx_by_cf_fit(tlist, target_rsme=None, Nr_max=2, Ni_max=2)
+    approx_env, info = env.approx_by_cf_fit(tlist, target_rsme=None, Nr_max=3, Ni_max=3,maxfev=1e8)
 
 The environment `approx_env` created here could be used, for example, with the :ref:`HEOM solver<heom>`.
 The variable `info` contains info about the convergence of the fit; here, we will just plot the fit together with
@@ -227,7 +227,7 @@ This approximation can then be used with the HEOM solver, for example.
 The :ref:`HEOM section<heom>` of this guide contains further examples using the Drude-Lorentz enviroment.
 
 Similarly, the function :meth:`approx_by_pade<.DrudeLorentzEnvironment.approx_by_pade>` can be used to apply
-and truncate the numerically more efficient Pade expansion.
+and truncate the numerically more efficient Padé expansion.
 
 Underdamped Environment
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -261,7 +261,7 @@ specifying either the spectral density, the correlation function, or the power s
 QuTiP then computes the other two functions based on the provided one. To do so, it converts between
 the SD and the PS using the formula
 :math:`S(\omega) = \operatorname{sign}(\omega)\, J(|\omega|) \bigl[ \coth( \beta\omega / 2 ) + 1 \bigr]`
-introduced earlier, and between the PS and the CF using fast Fourier transform.
+introduced earlier, and between the PS and the CF using the fast Fourier transform.
 The former conversion requires the bath temperature to be specified; the latter requires a cutoff frequency (or cutoff time)
 to be provided together with the specified function (SD, CF or PS).
 In this way, all characteristic functions can be computed from the specified one.
@@ -359,7 +359,7 @@ Currently, user-defined fermionic environments and fitting are not implemented.
 
 However, the overall structure of fermionic environments in QuTiP is analogous to the bosonic environments.
 There is one pre-defined fermionic environment, the Lorentzian environment, and multi-exponential fermionic environments.
-Lorentzian environments can be approximated by multi-exponential Matsubara or Pade expansions.
+Lorentzian environments can be approximated by multi-exponential Matsubara or Padé expansions.
 
 In the fermionic case, we consider the number-conserving Hamiltonian
 
@@ -423,11 +423,11 @@ As with the bosonic Drude-Lorentz environments, multi-exponential approximations
 .. math::
     C^\sigma(t) \approx \sum_{k=0}^{N_k} c^\sigma_k e^{- \nu^\sigma_k t} ,
 
-can be obtained using the Matsubara or Pade expansions.
+can be obtained using the Matsubara or Padé expansions.
 The functions :meth:`approx_by_matsubara<.LorentzianEnvironment.approx_by_matsubara>` and
 :meth:`approx_by_pade<.LorentzianEnvironment.approx_by_pade>` implement these approximations in QuTiP,
 yielding approximated environments that can be used, for example, with the HEOM solver.
-Note that for this type of environment, the Matsubara expansion is very inefficient, converging much more slowly than the Pade expansion.
+Note that for this type of environment, the Matsubara expansion is very inefficient, converging much more slowly than the Padé expansion.
 Typically, at least :math:`N_k \geq 20` is required for good convergence.
 
 For reference, we tabulate the values of the coefficients and exponents in the following.
