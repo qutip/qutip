@@ -183,7 +183,7 @@ class BosonicEnvironment(abc.ABC):
         Parameters
         ----------
         C : callable or array_like
-            The correlation function. When using a function the signature 
+            The correlation function. When using a function the signature
             should be
 
             C(t, *args) -> array_like
@@ -2258,7 +2258,7 @@ class LorentzianEnvironment(FermionicEnvironment):
 
     Nk : optional, int, defaults to 10
         The number of Pade exponents to be used for the calculation of the
-        correlation functions.  
+        correlation functions.
 
     tag : optional, str, tuple or any other object
         An identifier (name) for this environment.
