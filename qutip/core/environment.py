@@ -1339,7 +1339,9 @@ class UnderDampedEnvironment(BosonicEnvironment):
         Om = np.sqrt(self.w0**2 - (self.gamma / 2)**2)
         Gamma = self.gamma / 2
 
-        z = float('inf') if self.T == 0 else (Om + 1j * Gamma) / (2*self.T)
+        z = (np.inf * (1 + 1j) if self.T == 0
+             else (Om + 1j * Gamma) / (2*self.T))
+        # we set the argument of the hyperbolic tangent to infinity if T=0
         ck_real = ([
             (self.lam**2 / (4 * Om))
             * (1 / np.tanh(z)),
