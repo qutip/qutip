@@ -1339,13 +1339,13 @@ class UnderDampedEnvironment(BosonicEnvironment):
         Om = np.sqrt(self.w0**2 - (self.gamma / 2)**2)
         Gamma = self.gamma / 2
 
-        with np.errstate(divide='ignore'):
-            ck_real = ([
-                (self.lam**2 / (4 * Om))
-                * (1 / np.tanh((Om + 1j * Gamma) / (2*self.T))),
-                (self.lam**2 / (4 * Om))
-                * (1 / np.tanh((Om - 1j * Gamma) / (2*self.T))),
-            ])
+        z = float('inf') if self.T == 0 else (Om + 1j * Gamma) / (2*self.T)
+        ck_real = ([
+            (self.lam**2 / (4 * Om))
+            * (1 / np.tanh(z)),
+            (self.lam**2 / (4 * Om))
+            * (1 / np.tanh(np.conjugate(z))),
+        ])
 
         ck_real.extend([
             (-2 * self.lam**2 * self.gamma * self.T) * (2 * np.pi * k * self.T)

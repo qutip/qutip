@@ -8,7 +8,7 @@ Environments of Open Quantum Systems
 
 .. _pm: https://www.menczel.net/
 .. |pm| replace:: *Paul Menczel*
-.. _gs: https://scholar.google.com/citations?user=yi6jJAQAAAAJ&hl=es
+.. _gs: https://gsuarezr.github.io/
 .. |gs| replace:: *Gerardo Suarez*
 .. (this is a workaround for italic links in rst)
 
