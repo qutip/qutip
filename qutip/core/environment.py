@@ -170,9 +170,10 @@ class BosonicEnvironment(abc.ABC):
         C: Callable[[float], complex] | ArrayLike,
         tlist: ArrayLike = None,
         tMax: float = None,
+        *,
         T: float = None,
         tag: Any = None,
-        args: tuple = (),
+        args: dict[str, Any] = None,
     ) -> BosonicEnvironment:
         r"""
         Constructs a bosonic environment from the provided correlation
@@ -183,12 +184,12 @@ class BosonicEnvironment(abc.ABC):
         Parameters
         ----------
         C : callable or array_like
-            The correlation function. When using a function the signature
-            should be
+            The correlation function. Can be provided as a Python function or
+            as an array. When using a function, the signature should be
 
-            C(t, \*args) -> array_like
+            ``C(t: array_like, **args) -> array_like``
 
-            where ``t`` is time and ``args`` is a tuple containing the
+            where ``t`` is time and ``args`` is a dict containing the
             other parameters of the function.
 
         tlist : optional, array_like
@@ -208,8 +209,8 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
 
-        args: optional, tuple
-            Extra arguments to be passed to the callable C.
+        args : optional, dict
+            Extra arguments for the correlation function ``C``.
         """
         return _BosonicEnvironment_fromCF(C, tlist, tMax, T, tag, args)
 
@@ -219,21 +220,23 @@ class BosonicEnvironment(abc.ABC):
         S: Callable[[float], float] | ArrayLike,
         wlist: ArrayLike = None,
         wMax: float = None,
+        *,
         T: float = None,
         tag: Any = None,
-        args: tuple = (),
+        args: dict[str, Any] = None,
     ) -> BosonicEnvironment:
-        """
+        r"""
         Constructs a bosonic environment with the provided power spectrum.
 
         Parameters
         ----------
         S : callable or array_like
-            The power spectrum. When using a function the signature should be
+            The power spectrum. Can be provided as a Python function or
+            as an array. When using a function, the signature should be
 
-            S(w, \*args) -> array_like
+            ``S(w: array_like, **args) -> array_like``
 
-            where ``w`` is the frequency and ``args`` is a tuple containing the
+            where ``w`` is the frequency and ``args`` is a dict containing the
             other parameters of the function.
 
         wlist : optional, array_like
@@ -252,8 +255,8 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
 
-        args: optional, tuple
-            Extra arguments to be passed to the callable S.
+        args : optional, dict
+            Extra arguments for the power spectrum ``S``.
         """
         return _BosonicEnvironment_fromPS(S, wlist, wMax, T, tag, args)
 
@@ -263,9 +266,10 @@ class BosonicEnvironment(abc.ABC):
         J: Callable[[float], float] | ArrayLike,
         wlist: ArrayLike = None,
         wMax: float = None,
+        *,
         T: float = None,
         tag: Any = None,
-        args: tuple = ()
+        args: dict[str, Any] = None,
     ) -> BosonicEnvironment:
         r"""
         Constructs a bosonic environment with the provided spectral density.
@@ -278,9 +282,10 @@ class BosonicEnvironment(abc.ABC):
         Parameters
         ----------
         J : callable or array_like
-            The spectral density. When using a function the signature should be
+            The spectral density. Can be provided as a Python function or
+            as an array. When using a function, the signature should be
 
-            J(w, \*args) -> array_like
+            ``J(w: array_like, **args) -> array_like``
 
             where ``w`` is the frequency and ``args`` is a tuple containing the
             other parameters of the function.
@@ -301,8 +306,8 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
 
-        args: optional, tuple
-            Extra arguments to be passed to the callable J.
+        args : optional, dict
+            Extra arguments for the spectral density ``S``.
         """
         return _BosonicEnvironment_fromSD(J, wlist, wMax, T, tag, args)
 
@@ -441,14 +446,14 @@ class BosonicEnvironment(abc.ABC):
         Ni_max : optional, int
             The maximum number of modes to use for the fit of the imaginary
             part (default 10).
-        guess :  optional, list of float
+        guess : optional, list of float
             Initial guesses for the parameters :math:`a_k`, :math:`b_k`, etc.
             The same initial guesses are used for all values of k, and for
             the real and imaginary parts. If `full_ansatz` is True, `guess` is
             a list of size 4, otherwise, it is a list of size 3.
             If none of `guess`, `lower` and `upper` are provided, these
             parameters will be chosen automatically.
-        lower :  optional, list of float
+        lower : optional, list of float
             Lower bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
             The same lower bounds are used for all values of k, and for
             the real and imaginary parts. If `full_ansatz` is True, `lower` is
@@ -468,7 +473,7 @@ class BosonicEnvironment(abc.ABC):
             if the correlation function is very small in parts of the time
             range. For more details, see the documentation of
             ``scipy.optimize.curve_fit``.
-        maxfev :  optional, int
+        maxfev : optional, int
             Number of times the parameters of the fit are allowed to vary
             during the optimization (per fit).
         full_ansatz : optional, bool (default False)
@@ -689,6 +694,7 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
+
         Returns
         -------
         approx_env : :class:`ExponentialBosonicEnvironment`
@@ -1339,13 +1345,11 @@ class UnderDampedEnvironment(BosonicEnvironment):
         Om = np.sqrt(self.w0**2 - (self.gamma / 2)**2)
         Gamma = self.gamma / 2
 
-        z = float('inf') if self.T == 0 else (Om + 1j * Gamma) / (2*self.T)
+        z = np.inf if self.T == 0 else (Om + 1j * Gamma) / (2*self.T)
         # we set the argument of the hyperbolic tangent to infinity if T=0
         ck_real = ([
-            (self.lam**2 / (4 * Om))
-            * (1 / np.tanh(z)),
-            (self.lam**2 / (4 * Om))
-            * (1 / np.tanh(np.conjugate(z))),
+            (self.lam**2 / (4 * Om)) * (1 / np.tanh(z)),
+            (self.lam**2 / (4 * Om)) * (1 / np.tanh(np.conjugate(z))),
         ])
 
         ck_real.extend([
@@ -1869,9 +1873,10 @@ def system_terminator(Q: Qobj, delta: float) -> Qobj:
 
 # --- utility functions ---
 
-def _real_interpolation(fun, xlist, name, args=()):
+def _real_interpolation(fun, xlist, name, args=None):
+    args = args or {}
     if callable(fun):
-        return lambda w: fun(w, *args)
+        return lambda w: fun(w, **args)
     else:
         if xlist is None or len(xlist) != len(fun):
             raise ValueError("A list of x-values with the same length must be "
@@ -1879,9 +1884,10 @@ def _real_interpolation(fun, xlist, name, args=()):
         return CubicSpline(xlist, fun)
 
 
-def _complex_interpolation(fun, xlist, name, args=()):
+def _complex_interpolation(fun, xlist, name, args=None):
+    args = args or {}
     if callable(fun):
-        return lambda t: fun(t, *args)
+        return lambda t: fun(t, **args)
     else:
         real_interp = _real_interpolation(np.real(fun), xlist, name)
         imag_interp = _real_interpolation(np.imag(fun), xlist, name)

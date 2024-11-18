@@ -414,7 +414,6 @@ def iterated_fit(
         The model parameters in the form
         `[[p11, ..., p1n], [p21, ..., p2n], ..., [pN1, ..., pNn]]`.
     """
-    # Extract kwargs and set to None if not provided
 
     if len(xdata) != len(ydata):
         raise ValueError(
