@@ -271,7 +271,7 @@ coefficients of this expansion are, for the real part, :math:`C_{real}(t)`:
     \end{cases}
 
     c_{k,real} &= \begin{cases}
-        \lambda \gamma [\cot(\beta \gamma / 2) - i]             & k = 0\\
+        \lambda \gamma [\cot(\beta \gamma / 2) ]             & k = 0\\
         \frac{4 \lambda \gamma \nu_k }{ (\nu_k^2 - \gamma^2)\beta}    & k \geq 1\\
     \end{cases}
 
