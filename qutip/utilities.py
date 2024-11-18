@@ -50,10 +50,8 @@ def n_thermal(w, w_th):
         return result.item() if w.ndim == 0 else result
 
     non_zero = w != 0
-    # result[non_zero] = 1 / (np.exp(w[non_zero] / w_th) - 1)
-    # The same definition with no overflow warnings
-    result[non_zero] = np.exp(-w[non_zero] / w_th) / \
-        (1-np.exp(-w[non_zero] / w_th))
+    result[non_zero] = 1 / (np.exp(w[non_zero] / w_th) - 1)
+
     return result.item() if w.ndim == 0 else result
 
 
