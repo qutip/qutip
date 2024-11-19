@@ -37,10 +37,11 @@ __all__ = [
 class OrderEfficiencyWarning(EfficiencyWarning):
     pass
 
+is_numpy1 = np.lib.NumpyVersion(np.__version__) < '2.0.0b1'
 
 cdef class Dense(base.Data):
     def __init__(self, data, shape=None, copy=True):
-        if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
+        if is_numpy1:
             # np2 accept None which act as np1's False
             copy = builtins.bool(copy)
         base = np.array(data, dtype=np.complex128, order='K', copy=copy)
