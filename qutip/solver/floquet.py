@@ -897,7 +897,6 @@ class FMESolver(MESolver):
         self._dims = Dimensions(
             [self.floquet_basis._dims, self.floquet_basis._dims]
         )
-        self.constant_system = self.floquet_basis.U.cte
         if not all(
             isinstance(c_op, Qobj) and callable(spectrum)
             for c_op, spectrum in a_ops

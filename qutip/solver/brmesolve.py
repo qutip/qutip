@@ -308,7 +308,7 @@ class BRSolver(Solver):
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
-        self._dims = Dimensions([self.H._dims, self.H._dims])
+        self._dims = Dimensions([H._dims, H._dims])
 
         a_ops = a_ops or []
         if not hasattr(a_ops, "__iter__"):
@@ -323,12 +323,7 @@ class BRSolver(Solver):
                 raise TypeError("All `a_ops` spectra "
                                 "must be a Coefficient.")
 
-        self.constant_system = self.H.isconstant
-        self.constant_system &= all(c_op.isconstant for c_op in c_ops)
-        self.constant_system &= all(isinstance(op, Qobj) for op, _ in a_ops)
-        if not self.constant_system:
-            self._rhs_reset_options = {"sparse_eigensolver", "tensor_type"}
-
+        self._rhs_reset_options = {"sparse_eigensolver", "tensor_type"}
         self._system = H, a_ops, c_ops
         self._num_collapse = len(c_ops)
         self._num_a_ops = len(a_ops)

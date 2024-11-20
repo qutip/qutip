@@ -60,7 +60,6 @@ class Solver:
             TypeError("The rhs must be a QobjEvo")
         self.rhs = QobjEvo(rhs)
         self._dims = rhs._dims
-        self.constant_system = self.rhs.isconstant
         self._post_init(options)
 
     def _post_init(self, options):

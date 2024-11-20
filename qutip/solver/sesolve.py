@@ -170,7 +170,6 @@ class SESolver(Solver):
         self.H = QobjEvo(H)
 
         self._dims = self.H._dims
-        self.constant_system = self.H.isconstant
         if not self.H.isoper:
             raise ValueError("The hamiltonian must be an operator")
         self._post_init(options)

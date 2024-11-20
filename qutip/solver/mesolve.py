@@ -240,6 +240,7 @@ class MESolver(SESolver):
 
         self._num_collapse = len(c_ops)
 
+        H = QobjEvo(H)
         self.H = H if not H.issuper else 0.
         self.L0 = [H] if H.issuper else []
         self.c_ops = []
@@ -248,10 +249,6 @@ class MESolver(SESolver):
                 self.L0 += [c_op]
             else:
                 self.c_ops.append(c_op)
-
-        self.constant_system = self.H.isconstant if self.H else True
-        self.constant_system &= all(c_op.isconstant for c_op in self.c_ops)
-        self.constant_system &= all(L_part.isconstant for L_part in self.L0)
 
         if self.H:
             self._dims = Dimensions([self.H._dims, self.H._dims])
