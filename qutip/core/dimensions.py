@@ -835,10 +835,6 @@ class Dimensions(metaclass=MetaDims):
                 self.superrep = 'mixed'
         self.__setitem__ = _frozen
 
-    @classmethod
-    def to_super(cls, dims):
-        return Dimensions([dims, dims])
-
     def __eq__(self, other: "Dimensions") -> bool:
         if isinstance(other, Dimensions):
             return (

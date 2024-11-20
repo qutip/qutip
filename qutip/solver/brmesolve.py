@@ -308,7 +308,7 @@ class BRSolver(Solver):
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
-        self._dims = Dimensions.to_super(self.H._dims)
+        self._dims = Dimensions([self.H._dims, self.H._dims])
 
         a_ops = a_ops or []
         if not hasattr(a_ops, "__iter__"):

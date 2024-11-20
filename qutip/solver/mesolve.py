@@ -254,7 +254,7 @@ class MESolver(SESolver):
         self.constant_system &= all(L_part.isconstant for L_part in self.L0)
 
         if self.H:
-            self._dims = Dimensions.to_super(self.H._dims)
+            self._dims = Dimensions([self.H._dims, self.H._dims])
         else:
             self._dims = self.L0[0]._dims
 
