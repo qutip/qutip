@@ -410,18 +410,20 @@ class BRSolver(Solver):
         Solver.options.fset(self, new_options)
 
     def _apply_options(self, keys):
-        need_new_rhs = self.rhs is not None and not self.rhs.isconstant
+        need_new_rhs = self._rhs is not None and not self._rhs.isconstant
         need_new_rhs &= (
             'sparse_eigensolver' in keys or 'tensor_type' in keys
         )
         if need_new_rhs:
-            self.rhs = self._prepare_rhs()
+            self._rhs = None
+            self._integrator_instance = None
 
-        if self._integrator is None or not keys:
+        if self._integrator_instance is None or not keys:
             pass
         elif 'method' in keys or need_new_rhs:
             state = self._integrator.get_state()
-            self._integrator = self._get_integrator()
+            self._integrator_instance = None
+            # self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
         else:
             self._integrator.options = self._options

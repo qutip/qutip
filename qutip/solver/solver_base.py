@@ -411,14 +411,16 @@ class Solver:
                 **old_solver_options
             )
 
-        if self._integrator is None or not keys:
+        if self._integrator_instance is None or not keys:
             pass
         elif 'method' in keys and self._integrator._is_set:
             state = self._integrator.get_state()
-            self._integrator = self._get_integrator()
+            self._integrator_instance = None
+            # self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
         elif "method" in keys:
-            self._integrator = self._get_integrator()
+            self._integrator_instance = None
+            # self._integrator = self._get_integrator()
         elif keys & self._integrator.integrator_options.keys():
             # Some of the keys are used by the integrator.
             self._integrator.options = self._options
