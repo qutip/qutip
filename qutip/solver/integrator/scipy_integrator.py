@@ -34,7 +34,6 @@ class IntegratorScipyAdams(Integrator):
         'max_step': 0,
         'min_step': 0,
     }
-    _ode_reset_options = set(integrator_options.keys())
     support_time_dependant = True
     supports_blackbox = True
     method = 'adams'
@@ -212,7 +211,6 @@ class IntegratorScipyBDF(IntegratorScipyAdams):
         'max_step': 0,
         'min_step': 0,
     }
-    _ode_reset_options = set(integrator_options.keys())
 
 
 class IntegratorScipyDop853(Integrator):
@@ -235,7 +233,6 @@ class IntegratorScipyDop853(Integrator):
         'dfactor': 0.3,
         'beta': 0.0,
     }
-    _ode_reset_options = set(integrator_options.keys())
     support_time_dependant = True
     supports_blackbox = True
     method = 'dop853'
@@ -374,7 +371,6 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         'max_step': 0.0,
         'min_step': 0.0,
     }
-    _ode_reset_options = set(integrator_options.keys())
     support_time_dependant = True
     supports_blackbox = True
     method = 'lsoda'

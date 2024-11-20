@@ -32,7 +32,6 @@ class IntegratorVern7(Integrator):
         'min_step': 0,
         'interpolate': True,
     }
-    _ode_reset_options = set(integrator_options.keys())
     support_time_dependant = True
     supports_blackbox = True
     method = 'vern7'
@@ -129,7 +128,6 @@ class IntegratorDiag(Integrator):
     Usable with ``method="diag"``
     """
     integrator_options = {"eigensolver_dtype": "dense"}
-    _ode_reset_options = set(integrator_options.keys())
     support_time_dependant = False
     supports_blackbox = False
     method = 'diag'

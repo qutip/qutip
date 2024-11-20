@@ -24,7 +24,6 @@ class IntegratorKrylov(Integrator):
         'sub_system_tol': 1e-7,
         'always_compute_step': False,
     }
-    _ode_reset_options = set(integrator_options.keys())
     support_time_dependant = False
     supports_blackbox = False
     method = 'krylov'
