@@ -91,7 +91,6 @@ class SIntegrator(Integrator):
                 (self.N_dw, num_collapse)
             )
         self.rhs._register_feedback(self.wiener)
-        # rhs = self.rhs(self.options)
         self.step_func = self.stepper(self.rhs, **stepper_opt).run
         self._is_set = True
 
