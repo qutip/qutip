@@ -20,28 +20,6 @@ import warnings
 import numpy as np
 
 
-def _format_oper(**kwargs):
-    if not len(kwargs) == 1:
-        raise ValueError("One at a time")
-    for var, val in kwargs.items():
-        if not isinstance(val, (Qobj, QobjEvo)):
-            raise TypeError(f"`{var}` must be a Qobj or QobjEvo")
-        return QobjEvo(val, copy=False)
-
-
-def _format_list_oper(**kwargs):
-    if not len(kwargs) == 1:
-        raise ValueError("One at a time")
-    for var, val in kwargs.items():
-        if val is None:
-            val = []
-        if isinstance(val, (Qobj, QobjEvo)):
-            val = [val]
-        if not all(isinstance(op, (Qobj, QobjEvo)) for op in val):
-            raise TypeError(f"`{var}` must be a list of Qobj or QobjEvo")
-        return [QobjEvo(op, copy=False) for op in val]
-
-
 class Solver:
     """
     Runner for an evolution.

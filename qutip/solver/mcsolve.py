@@ -14,8 +14,7 @@ from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
 from ..typing import QobjEvoLike, EopsLike
 from .multitraj import MultiTrajSolver, _InitialConditions
 from .solver_base import (
-    Solver, Integrator, _solver_deprecation, _kwargs_migration,
-    _format_oper, _format_list_oper
+    Solver, Integrator, _solver_deprecation, _kwargs_migration
 )
 from .multitrajresult import McResult
 from .mesolve import mesolve, MESolver
@@ -448,8 +447,16 @@ class MCSolver(MultiTrajSolver):
     ):
         _time_start = time()
 
-        self.c_ops = _format_list_oper(c_ops=c_ops)
-        self.LH = _format_oper(H=H)
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+        self.LH = QobjEvo(H)
+
+        if isinstance(c_ops, (Qobj, QobjEvo)):
+            c_ops = [c_ops]
+        for c_op in c_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+        self.c_ops = [QobjEvo(c_op) for c_op in c_ops]
 
         self._num_collapse = len(self.c_ops)
         self._dims = self.LH._dims

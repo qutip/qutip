@@ -19,8 +19,6 @@ from ..core.dimensions import Dimensions
 from .solver_base import (
     Solver,
     _solver_deprecation,
-    _format_oper,
-    _format_list_oper,
     _kwargs_migration
 )
 from ..typing import EopsLike, QobjEvoLike
@@ -234,8 +232,11 @@ class MESolver(SESolver):
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
-        H = _format_oper(H=H)
-        c_ops = _format_list_oper(c_ops=c_ops)
+        c_ops = c_ops or []
+        c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
+        for c_op in c_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
         self._num_collapse = len(c_ops)
 

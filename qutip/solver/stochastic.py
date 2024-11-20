@@ -18,7 +18,7 @@ from .multitraj import MultiTrajSolver
 from .multitrajresult import MultiTrajResult
 from .. import Qobj, QobjEvo
 from ..core.dimensions import Dimensions
-from .solver_base import _solver_deprecation, _format_oper, _format_list_oper
+from .solver_base import _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
 
 from ..core import data as _data
@@ -577,12 +577,22 @@ class StochasticSolver(MultiTrajSolver):
         if self.name == "ssesolve" and c_ops:
             raise ValueError("c_ops are not supported by ssesolve.")
 
-        H = _format_oper(H=H)
-        c_ops = _format_list_oper(c_ops=c_ops)
-        sc_ops = _format_list_oper(sc_ops=sc_ops)
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
 
-        self.H = H
-        self.c_ops = c_ops
+        c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
+        for c_op in c_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+
+        sc_ops = [sc_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else sc_ops
+        for c_op in sc_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+        sc_ops = [QobjEvo(op) for op in sc_ops]
+
+        self.H = QobjEvo(H)
+        self.c_ops = [QobjEvo(op) for op in c_ops]
         if heterodyne:
             new_sc_ops = []
             for c_op in sc_ops:
