@@ -12,7 +12,7 @@ import warnings
 
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
 from ..typing import QobjEvoLike, EopsLike
-from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
+from .multitraj import MultiTrajSolver, _InitialConditions
 from .solver_base import (
     Solver, Integrator, _solver_deprecation, _kwargs_migration,
     _format_oper, _format_list_oper
@@ -638,7 +638,7 @@ class MCSolver(MultiTrajSolver):
                 raise ValueError('The ntraj parameter can only be a list if '
                                  'the initial conditions are mixed and given '
                                  'in the form of a list of pure states')
-            is_mixed = state.isoper and not self.rhs.issuper
+            is_mixed = state.isoper and not self._dims.issuper
             if is_mixed:
                 # Mixed state given as density matrix. Decompose into list
                 # format, i.e., into eigenstates and eigenvalues

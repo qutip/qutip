@@ -598,7 +598,7 @@ class StochasticSolver(MultiTrajSolver):
             self._dims = self.H._dims
 
         self.seed_sequence = np.random.SeedSequence()
-        self._integrator = self._get_integrator()
+        # self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
 

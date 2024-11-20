@@ -130,7 +130,7 @@ class Solver:
             # This is herm flag take for granted that the liouvillian keep
             # hermiticity.  But we do not check user passed super operator for
             # anything other than dimensions.
-            'isherm': not (self.rhs.dims == state.dims) and state._isherm,
+            'isherm': not (self._dims == state._dims) and state._isherm,
         }
         if state.isket:
             norm = state.norm()
@@ -147,9 +147,9 @@ class Solver:
             # refer to the ODE tolerance and some integrator do not use it.
             and np.abs(norm - 1) <= settings.core["atol"]
             # Only ket and dm can be normalized
-            and (self.rhs.dims[1] == state.dims or state.shape[1] == 1)
+            and (self._dims[1] == state._dims or state.shape[1] == 1)
         )
-        if self.rhs.dims[1] == state.dims:
+        if self._dims[1] == state._dims:
             return stack_columns(state.data)
         return state.data
 

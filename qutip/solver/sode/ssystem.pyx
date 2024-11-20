@@ -193,7 +193,7 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         return out
 
     def _register_feedback(self, val):
-        self.L._register_feedback({"wiener_process": val}, "stochatic solver")
+        self.L._register_feedback({"WienerFeedback": val}, "stochatic solver")
         for c_op in self.c_ops:
             c_op._register_feedback(
                 {"WeinerFeedback": val}, "stochatic solver"
@@ -536,10 +536,10 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         return out
 
     def _register_feedback(self, val):
-        self.L._register_feedback({"wiener_process": val}, "stochatic solver")
+        self.L._register_feedback({"WienerFeedback": val}, "stochatic solver")
         for c_op in self.c_ops:
             c_op._register_feedback(
-                {"WeinerFeedback": val}, "stochatic solver"
+                {"WienerFeedback": val}, "stochatic solver"
             )
 
 

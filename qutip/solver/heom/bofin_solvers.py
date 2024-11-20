@@ -644,8 +644,12 @@ class HEOMSolver(Solver):
         self._sys_dims = self.L_sys.dims[0]
 
         self._post_init(options)
+        self.rhs = None
+        self._build_rhs()
 
     def _build_rhs(self):
+        if self.rhs is not None:
+            return self.rhs
         _time_start = time()
         bath = self.bath
         max_depth = self.max_depth
@@ -655,7 +659,9 @@ class HEOMSolver(Solver):
         self._n_ados = len(self.ados.labels)
         self._n_exponents = len(self.ados.exponents)
 
-        self._init_ados_time = time() - _time_start
+        self.stats["init ados time"] += time() - _time_start
+        self.stats["init time"] += time() - _time_start
+        self.stats["max_depth"] = self.ados.max_depth
         _time_start = time()
 
         # pre-calculate identity matrix required by _grad_n
@@ -684,12 +690,14 @@ class HEOMSolver(Solver):
             for k in range(self._n_exponents)
         ]
 
-        self._init_superop_cache_time = time() - _time_start
+        self.stats["init superop cache time"] += time() - _time_start
+        self.stats["init time"] += time() - _time_start
         _time_start = time()
 
         self.rhs = self._calculate_rhs()
 
-        self._init_rhs_time = time() - _time_start
+        self.stats["init rhs time"] += time() - _time_start
+        self.stats["init time"] += time() - _time_start
         return self.rhs
 
     @property
@@ -705,15 +713,12 @@ class HEOMSolver(Solver):
     def _initialize_stats(self):
         stats = super()._initialize_stats()
         stats.update({
-            "init time": sum([
-                stats["ODE init time"], self._init_ados_time,
-                self._init_superop_cache_time, self._init_rhs_time,
-            ]),
-            "init ados time": self._init_ados_time,
-            "init superop cache time": self._init_superop_cache_time,
-            "init rhs time": self._init_rhs_time,
+            "init time": stats["ODE init time"],
+            "init ados time": 0,
+            "init superop cache time": 0,
+            "init rhs time": 0,
             "solver": "Hierarchical Equations of Motion Solver",
-            "max_depth": self.ados.max_depth,
+            "max_depth": None,
         })
         return stats
 

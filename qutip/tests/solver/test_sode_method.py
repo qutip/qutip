@@ -2,7 +2,7 @@ import numpy as np
 from itertools import product
 from qutip.core import data as _data
 from qutip import (qeye, destroy, QobjEvo, rand_ket, rand_herm, create, Qobj,
-                   operator_to_vector, fock_dm)
+                   operator_to_vector, fock_dm, fock)
 import qutip.solver.sode._sode as _sode
 import pytest
 from qutip.solver.sode.ssystem import (
@@ -13,12 +13,19 @@ from qutip.solver.stochastic import SMESolver
 
 
 class PSEUDOSOLVER:
-    def __init__(self, rhs, options):
+    def __init__(self, open, H, sc_ops, c_ops=[], options={}):
+        self.H = H
+        self.sc_ops = sc_ops
+        self.c_ops = c_ops
         self.options = options
-        self.rhs = rhs
+        self._open = open
 
     def _build_rhs(self):
-        return self.rhs
+        if self._open:
+            return StochasticOpenSystem(self.H, self.sc_ops, self.c_ops)
+        else:
+            return StochasticClosedSystem(self.H, self.sc_ops)
+
 
 
 def get_error_order(system, state, method, plot=False, **kw):
@@ -154,7 +161,7 @@ def test_open_integrator(method, order, H, c_ops, sc_ops):
     c_ops = [_make_oper(op, N) for op in c_ops]
     sc_ops = [_make_oper(op, N) for op in sc_ops]
 
-    rhs = PSEUDOSOLVER(StochasticOpenSystem(H, sc_ops, c_ops), {"dt": 0.01})
+    rhs = PSEUDOSOLVER(True, H, sc_ops, c_ops, options={"dt": 0.01})
     ref_sode = SMESolver.avail_integrators()["taylor1.5"](rhs)
     sode = SMESolver.avail_integrators()[method](rhs)
     state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
@@ -180,11 +187,11 @@ def test_closed_integrator(method, order, H, sc_ops):
     H = _make_oper(H, N)
     sc_ops = [_make_oper(op, N) for op in sc_ops]
 
-    rhs = PSEUDOSOLVER(StochasticClosedSystem(H, sc_ops), {"dt": 0.01})
+    rhs = PSEUDOSOLVER(False, H, sc_ops, options={"dt": 0.01})
 
     ref_sode = SMESolver.avail_integrators()["explicit1.5"](rhs)
     sode = SMESolver.avail_integrators()[method](rhs)
-    state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
+    state = fock(5, 3, dtype="Dense").data
 
     error_order = get_error_order_integrator(sode, ref_sode, state)
     assert (order + 0.35) < error_order

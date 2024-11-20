@@ -182,10 +182,9 @@ def test_concurent_usage(integrator):
 )
 def test_pickling_vern_methods(integrator):
     """Test whether VernN methods can be pickled and hence used in multiprocessing"""
-    opt = {'atol':1e-10, 'rtol':1e-7}
-
     sys = qutip.QobjEvo(0.5*qutip.qeye(1))
-    inter = integrator(sys, opt)
+    system = Solver(sys, options={'atol':1e-10, 'rtol':1e-7})
+    inter = integrator(system)
     inter.set_state(0, qutip.basis(1,0).data)
 
     import pickle
