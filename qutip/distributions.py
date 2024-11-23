@@ -20,7 +20,7 @@ from scipy.special import hermite, factorial
 
 from . import isket, ket2dm, state_number_index
 from .wigner import wigner, qfunc
-from _distributions import psi_n_single_fock_multiple_position_complex
+from ._distributions import psi_n_single_fock_multiple_position_complex
 
 try:
     import matplotlib as mpl
@@ -280,8 +280,9 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         self.theta1 = theta1
         self.theta2 = theta2
-
-        self.update(state)
+        
+        if state:
+            self.update(state)
 
     def update(self, state):
         """
@@ -436,13 +437,13 @@ class HarmonicOscillatorWaveFunction(Distribution):
         """
 
         self.data = np.zeros(len(self.xvecs[0]), dtype=complex)
-        N = psi.shape[0]
+        N = psi.shape[1]
 
         for n in range(N):
             self.data += (
                 psi_n_single_fock_multiple_position_complex(
                     n, self.xvecs[0].astype(complex)
-                ) * psi[n, 0]
+                ) * psi[0, n]
             )
 
         self.data *= pow(self.omega, 0.25)
