@@ -280,7 +280,7 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         self.theta1 = theta1
         self.theta2 = theta2
-        
+
         if state:
             self.update(state)
 
