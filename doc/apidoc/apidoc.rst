@@ -13,6 +13,7 @@ complete list of QuTiP's public classes and functions.
    quantumobject.rst
    time_dep.rst
    solver.rst
+   environments.rst
    heom.rst
    piqs.rst
    visualization.rst

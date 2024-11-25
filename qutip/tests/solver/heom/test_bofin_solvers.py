@@ -1,5 +1,5 @@
 """
-Tests for qutip.nonmarkov.bofin_solvers.
+Tests for qutip.solver.heom.bofin_solvers.
 """
 
 import numpy as np
@@ -22,6 +22,15 @@ from qutip.solver.heom.bofin_baths import (
     FermionicBath,
     LorentzianBath,
     LorentzianPadeBath,
+)
+from qutip.core.environment import (
+    CFExponent,
+    ExponentialBosonicEnvironment,
+    ExponentialFermionicEnvironment,
+    DrudeLorentzEnvironment,
+    UnderDampedEnvironment,
+    LorentzianEnvironment,
+    system_terminator,
 )
 from qutip.solver.heom.bofin_solvers import (
     heomsolve,
@@ -741,7 +750,7 @@ class TestHEOMSolver:
         else:
             assert_raises_steady_state_time_dependent(hsolver)
 
-    def test_steady_state_bosonic_bath(
+    def test_steady_state(
         self, atol=1e-3
     ):
         H_sys = 0.25 * sigmaz() + 0.5 * sigmay()
@@ -1183,7 +1192,8 @@ class TestHEOMSolver:
         rhoss = rhoss.full()
         expected = np.diag([0.10623, 0.39376, 0.39376, 0.10623])
         np.testing.assert_allclose(rhoss, expected, atol=1e-5)
-        
+
+
 class TestHeomsolveFunction:
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj", id="qobj"),
@@ -1215,6 +1225,442 @@ class TestHeomsolveFunction:
         tlist = np.linspace(0, 10, 21)
         result = heomsolve(
             H_sys, bath, 14, dlm.rho(), tlist,
+            e_ops=e_ops, args={"foo": 1}, options=options)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        for label in ["11", "22"]:
+            np.testing.assert_allclose(
+                result.e_data[label],
+                [expect(rho, e_ops[label]) for rho in result.states],
+                atol=atol,
+            )
+
+
+class TestHEOMSolverWithEnv:
+    # Copied from TestHEOMSolver but uses "environment" API instead of "bath"s
+    # Note: to reduce test runtime, not all tests were included
+
+    def _exponents_equal(self, list1, list2):
+        # Exponents get converted from CFExponent into BathExponent
+        # -> can't be compared using '=='.
+        # Check that all properties of the CFExponents are retained.
+        for exp1, exp2 in zip(list1, list2):
+            if (exp1.type != exp2.type or
+                    exp1.ck != exp2.ck or
+                    exp1.vk != exp2.vk or
+                    exp1.ck2 != exp2.ck2 or
+                    exp1.tag != exp2.tag):
+                return False
+        return True
+
+    def test_create_bosonic(self):
+        Q = sigmaz()
+        H = sigmax()
+        exponents = [
+            CFExponent("R", ck=1.1, vk=2.1),
+            CFExponent("I", ck=1.2, vk=2.2),
+            CFExponent("RI", ck=1.3, vk=2.3, ck2=3.3),
+        ]
+        env = ExponentialBosonicEnvironment(exponents=exponents)
+
+        hsolver = HEOMSolver(H, (env, Q), 2)
+        assert self._exponents_equal(hsolver.ados.exponents, exponents)
+        assert hsolver.ados.max_depth == 2
+
+        hsolver = HEOMSolver(H, [(env, Q)], 2)
+        assert self._exponents_equal(hsolver.ados.exponents, exponents)
+        assert hsolver.ados.max_depth == 2
+
+        hsolver = HEOMSolver(H, [(env, Q)] * 3, 2)
+        assert self._exponents_equal(hsolver.ados.exponents, exponents * 3)
+        assert hsolver.ados.max_depth == 2
+
+    def test_create_fermionic(self):
+        Q = sigmaz()
+        H = sigmax()
+        exponents = [
+            CFExponent("+", ck=1.1, vk=2.1),
+            CFExponent("-", ck=1.2, vk=2.2),
+        ]
+        env = ExponentialFermionicEnvironment(exponents=exponents)
+
+        hsolver = HEOMSolver(H, (env, Q), 2)
+        assert self._exponents_equal(hsolver.ados.exponents, exponents)
+        assert hsolver.ados.max_depth == 2
+
+        hsolver = HEOMSolver(H, [(env, Q)], 2)
+        assert self._exponents_equal(hsolver.ados.exponents, exponents)
+        assert hsolver.ados.max_depth == 2
+
+        hsolver = HEOMSolver(H, [(env, Q)] * 3, 2)
+        assert self._exponents_equal(hsolver.ados.exponents, exponents * 3)
+        assert hsolver.ados.max_depth == 2
+
+    def test_create_mixed_api(self):
+        Q = sigmaz()
+        H = sigmax()
+        exponent = CFExponent("R", ck=1.2, vk=2.2)
+        bath_exponent = BathExponent("R", 2, Q=Q, ck=1.2, vk=2.2)
+        env = ExponentialBosonicEnvironment(exponents=[exponent])
+        bath = Bath([bath_exponent])
+
+        hsolver = HEOMSolver(H, [(env, Q), bath, (env, Q)], 2)
+        assert self._exponents_equal(hsolver.ados.exponents, [exponent] * 3)
+        assert hsolver.ados.max_depth == 2
+
+        hsolver = HEOMSolver(H, [bath, (env, Q), bath] * 3, 2)
+        assert self._exponents_equal(hsolver.ados.exponents, [exponent] * 3)
+        assert hsolver.ados.max_depth == 2
+
+    def test_create_bath_errors(self):
+        Q = sigmaz()
+        H = sigmax()
+        exponents = [
+            CFExponent("I", ck=1.2, vk=2.2),
+            CFExponent("R", ck=1.2, vk=2.2),
+        ]
+        env = ExponentialBosonicEnvironment(exponents=exponents)
+
+        with pytest.raises(ValueError) as err:
+            HEOMSolver(H, [(env, Q), (env, Q & Q)], 2)
+        assert str(err.value) == (
+            "All bath exponents must have system coupling operators with the"
+            " same dimensions but a mixture of dimensions was given."
+        )
+
+    def test_create_h_sys_errors(self):
+        H = object()
+        Q = sigmax()
+        empty_env = ExponentialBosonicEnvironment(exponents=[])
+
+        with pytest.raises(TypeError) as err:
+            HEOMSolver(H, (empty_env, Q), 2)
+        assert str(err.value) == (
+            "The Hamiltonian (H) must be a Qobj or QobjEvo"
+        )
+
+        H = [sigmax()]
+        with pytest.raises(TypeError) as err:
+            HEOMSolver([H], (empty_env, Q), 2)
+        assert str(err.value) == (
+            "The Hamiltonian (H) must be a Qobj or QobjEvo"
+        )
+
+    @pytest.mark.parametrize(['method'], [
+        pytest.param("run", id="run"),
+        pytest.param("start", id="start"),
+    ])
+    def test_invalid_rho0_errors(self, method):
+        Q = sigmaz()
+        H = sigmax()
+        exponents = [
+            CFExponent("R", ck=1.1, vk=2.1),
+            CFExponent("I", ck=1.2, vk=2.2),
+            CFExponent("RI", ck=1.3, vk=2.3, ck2=3.3),
+        ]
+        env = ExponentialBosonicEnvironment(exponents=exponents)
+        hsolver = HEOMSolver(H, (env, Q), 2)
+
+        if method == "run":
+            def solve_method(rho0):
+                return hsolver.run(rho0, [0, 1])
+        elif method == "start":
+            def solve_method(rho0):
+                return hsolver.start(rho0, 0)
+        else:
+            assert False, f"method {method} not supported by test"
+
+        with pytest.raises(ValueError) as err:
+            solve_method(basis(3, 0))
+        assert str(err.value) == (
+            "Initial state rho has dims [[3], [1]]"
+            " but the system dims are [[2], [2]]"
+        )
+
+        with pytest.raises(TypeError) as err:
+            solve_method("batman")
+        assert str(err.value) == (
+            "Initial ADOs passed have type <class 'str'> but a "
+            "HierarchyADOsState or a numpy array-like instance was expected"
+        )
+
+        with pytest.raises(ValueError) as err:
+            solve_method(np.array([1, 2, 3]))
+        assert str(err.value) == (
+            "Initial ADOs passed have shape (3,) but the solver hierarchy"
+            " shape is (10, 2, 2)"
+        )
+
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj", id="qobj"),
+        pytest.param("qobjevo_const", id="qobjevo_const"),
+        pytest.param("qobjevo_timedep", id="qobjevo_timedep"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_pure_dephasing_model_bosonic_env(
+        self, evo, liouvillianize, atol=1e-3
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+
+        env = ExponentialBosonicEnvironment(ck_real, vk_real, ck_imag, vk_imag)
+        options = {"nsteps": 15000, "store_states": True}
+        hsolver = HEOMSolver(H_sys, (env, dlm.Q), 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(dlm.rho(), tlist)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        if evo != "qobjevo_timedep":
+            rho_final, ado_state = hsolver.steady_state()
+            test = dlm.state_results([rho_final])
+            expected = dlm.analytic_results([100])
+            np.testing.assert_allclose(test, expected, atol=atol)
+            assert rho_final == ado_state.extract(0)
+        else:
+            assert_raises_steady_state_time_dependent(hsolver)
+
+    @pytest.mark.parametrize(['terminator'], [
+        pytest.param(True, id="terminator"),
+        pytest.param(False, id="noterminator"),
+    ])
+    @pytest.mark.parametrize('approx', ["matsubara", "pade"])
+    def test_pure_dephasing_model_drude_lorentz_baths(
+        self, terminator, approx, atol=1e-3
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        env = DrudeLorentzEnvironment(lam=dlm.lam, gamma=dlm.gamma, T=dlm.T)
+        if approx == 'matsubara':
+            approx_env, delta = env.approx_by_matsubara(
+                Nk=dlm.Nk, compute_delta=True)
+        else:
+            approx_env, delta = env.approx_by_pade(
+                Nk=dlm.Nk, compute_delta=True)
+        if terminator:
+            terminator_op = system_terminator(dlm.Q, delta)
+            H_sys = liouvillian(dlm.H) + terminator_op
+        else:
+            H_sys = dlm.H
+
+        options = {"nsteps": 15000, "store_states": True}
+        hsolver = HEOMSolver(H_sys, (approx_env, dlm.Q), 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(dlm.rho(), tlist)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = dlm.state_results([rho_final])
+        expected = dlm.analytic_results([100])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
+
+    def test_underdamped_pure_dephasing_model_underdamped_bath(
+        self, atol=1e-3
+    ):
+        udm = UnderdampedPureDephasingModel(
+            lam=0.1, gamma=0.05, w0=1, T=1/0.95, Nk=2,
+        )
+        env = UnderDampedEnvironment(
+            lam=udm.lam, T=udm.T, gamma=udm.gamma, w0=udm.w0
+        ).approx_by_matsubara(Nk=udm.Nk)
+
+        options = {"nsteps": 15000, "store_states": True}
+        hsolver = HEOMSolver(udm.H, (env, udm.Q), 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(udm.rho(), tlist)
+
+        test = udm.state_results(result.states)
+        expected = udm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = udm.state_results([rho_final])
+        expected = udm.analytic_results([5000])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
+
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj"),
+        pytest.param("qobjevo_const"),
+        pytest.param("qobjevo_timedep"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_discrete_level_model_fermionic_bath(self, evo, liouvillianize):
+        dlm = DiscreteLevelCurrentModel(
+            gamma=0.01, W=1, T=0.025851991, lmax=10,
+        )
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+        ck_plus, vk_plus, ck_minus, vk_minus = dlm.bath_coefficients()
+
+        options = {
+            "store_states": True,
+            "store_ados": True,
+            "nsteps": 15_000,
+            "rtol": 1e-7,
+            "atol": 1e-7,
+        }
+        env = ExponentialFermionicEnvironment(
+            ck_plus, vk_plus, ck_minus, vk_minus
+        )
+        # for a single impurity we converge with max_depth = 2
+        hsolver = HEOMSolver(H_sys, (env, dlm.Q), 2, options=options)
+
+        tlist = [0, 600]
+        result = hsolver.run(dlm.rho(), tlist)
+        current = dlm.state_current(result.ado_states[-1])
+        analytic_current = dlm.analytic_current()
+        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+
+        if evo != "qobjevo_timedep":
+            rho_final, ado_state = hsolver.steady_state()
+            current = dlm.state_current(ado_state)
+            analytic_current = dlm.analytic_current()
+            np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+        else:
+            assert_raises_steady_state_time_dependent(hsolver)
+
+    @pytest.mark.parametrize(['approx', 'analytic_current'], [
+        pytest.param("matsubara", 0.001101, id="matsubara"),
+        pytest.param("pade", 0.000813, id="pade"),
+    ])
+    def test_discrete_level_model_lorentzian_baths(
+        self, approx, analytic_current, atol=1e-3
+    ):
+        dlm = DiscreteLevelCurrentModel(
+            gamma=0.01, W=1, T=0.025851991, lmax=10,
+        )
+
+        options = {
+            "nsteps": 15_000, "store_states": True, "store_ados": True,
+            "rtol": 1e-7, "atol": 1e-7,
+        }
+        env_l = LorentzianEnvironment(
+            gamma=dlm.gamma, W=dlm.W, T=dlm.T, mu=dlm.theta / 2
+        )
+        env_r = LorentzianEnvironment(
+            gamma=dlm.gamma, W=dlm.W, T=dlm.T, mu=-dlm.theta / 2
+        )
+        if approx == 'matsubara':
+            env_l = env_l.approx_by_matsubara(Nk=dlm.lmax)
+            env_r = env_r.approx_by_matsubara(Nk=dlm.lmax)
+        else:
+            env_l = env_l.approx_by_pade(Nk=dlm.lmax)
+            env_r = env_r.approx_by_pade(Nk=dlm.lmax)
+        # for a single impurity we converge with max_depth = 2
+        hsolver = HEOMSolver(
+            dlm.H, [(env_r, dlm.Q), (env_l, dlm.Q)], 2, options=options
+        )
+
+        tlist = [0, 600]
+        result = hsolver.run(dlm.rho(), tlist)
+        current = dlm.state_current(result.ado_states[-1])
+        # analytic_current = dlm.analytic_current()
+        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+
+        rho_final, ado_state = hsolver.steady_state()
+        current = dlm.state_current(ado_state)
+        # analytic_current = dlm.analytic_current()
+        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+
+    def test_parity(self):
+        depth = 2
+        Nk = 2
+        # system: two fermions
+        N = 2
+        d_1 = fdestroy(N, 0)
+        d_2 = fdestroy(N, 1)
+        # bath params:
+        mu = 0.  # chemical potential
+        Gamma = 1  # coupling strenght
+        W = 2.5  # bath width
+        # system params:
+        # coulomb repulsion
+        U = 3 * np.pi * Gamma
+        # impurity energy
+        w0 = - U / 2.
+        beta = 1 / (0.2 * Gamma)  # Inverse Temperature
+        H = w0 * (d_1.dag() * d_1 + d_2.dag()
+                  * d_2) + U * d_1.dag() * d_1 * d_2.dag() * d_2
+
+        L = liouvillian(H)
+        env1 = LorentzianEnvironment(
+            gamma=2 * Gamma, W=W, mu=mu, T=1 / beta, tag="Lead 1"
+        ).approx_by_pade(Nk=Nk)
+        env2 = LorentzianEnvironment(
+            gamma=2 * Gamma, W=W, mu=mu, T=1 / beta, tag="Lead 2"
+        ).approx_by_pade(Nk=Nk)
+        solver = HEOMSolver(
+            L, [(env1, d_1), (env2, d_2)], depth, odd_parity=True
+        )
+        rhoss, _ = solver.steady_state(use_mkl=False)
+        rhoss = rhoss.full()
+        expected_odd = np.diag([-0.18472, 0.68472, 0.68472, -0.18472])
+        np.testing.assert_allclose(rhoss, expected_odd, atol=1e-5)
+
+        solver = HEOMSolver(
+            L, [(env1, d_1), (env2, d_2)], depth, odd_parity=False
+        )
+        rhoss, _ = solver.steady_state(use_mkl=False)
+        rhoss = rhoss.full()
+        expected = np.diag([0.10623, 0.39376, 0.39376, 0.10623])
+        np.testing.assert_allclose(rhoss, expected, atol=1e-5)
+
+
+class TestHeomsolveFunctionWithEnv:
+    # Copied from TestHeomsolveFunction but uses "environment" API instead of
+    # "bath"s
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj", id="qobj"),
+        pytest.param("listevo_const", id="listevo_const"),
+        pytest.param("qobjevo_const", id="qobjevo_const"),
+        pytest.param("qobjevo_timedep", id="qobjevo_timedep"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_heomsolve_with_pure_dephasing_model(
+        self, evo, liouvillianize, atol=1e-3
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+
+        env = ExponentialBosonicEnvironment(ck_real, vk_real, ck_imag, vk_imag)
+        options = {"nsteps": 15000, "store_states": True}
+
+        e_ops = {
+            "11": basis(2, 0) * basis(2, 0).dag(),
+            "22": basis(2, 1) * basis(2, 1).dag(),
+        }
+
+        tlist = np.linspace(0, 10, 21)
+        result = heomsolve(
+            H_sys, (env, dlm.Q), 14, dlm.rho(), tlist,
             e_ops=e_ops, args={"foo": 1}, options=options)
 
         test = dlm.state_results(result.states)
