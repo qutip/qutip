@@ -23,21 +23,23 @@ density:
 
 .. math::
 
-    J_D = \frac{2\lambda \gamma \omega}{(\gamma^2 + \omega^2)},
+    J_D = \frac{2\lambda \gamma \omega}{\gamma^2 + \omega^2},
 
 or an under-damped Brownian motion spectral density:
 
 .. math::
 
-    J_U = \frac{\alpha^2 \Gamma \omega}{[(\omega_c^2 - \omega^2)^2 + \Gamma^2 \omega^2]}.
+    J_U = \frac{\lambda^2 \Gamma \omega}{(\omega_c^2 - \omega^2)^2 + \Gamma^2 \omega^2}.
 
 Given the spectral density, the HEOM requires a decomposition of the bath
-correlation functions in terms of exponentials. In :doc:`bosonic` we describe
+correlation functions in terms of exponentials.
+Generally, such decompositions can be generated using the methods available in the :ref:`environment module <environments guide>`.
+We will go into some more detail in :doc:`bosonic`, describe
 how this is done with code examples, and how these expansions are passed to the
 solver.
 
 In addition to support for bosonic environments, QuTiP also provides support for
-feriomic environments which is described in :doc:`fermionic`.
+fermionic environments which is described in :doc:`fermionic`.
 
 Both bosonic and fermionic environments are supported via a single solver,
 :class:`.HEOMSolver`, that supports solving for both dynamics and steady-states.
