@@ -89,7 +89,7 @@ jobs:
           - case-name: macos
             # setup-miniconda not compatible with macos-latest presently.
             # https://github.com/conda-incubator/setup-miniconda/issues/344
-            os: macos-12
+            os: macos-latest
             python-version: "3.12"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
@@ -97,7 +97,7 @@ jobs:
             nomkl: 1
 
           - case-name: macos - numpy fallback
-            os: macos-12
+            os: macos-latest
             python-version: "3.11"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=1.25,<1.26"
