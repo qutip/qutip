@@ -250,7 +250,7 @@ def dims_to_tensor_shape(dims):
     tensor_shape : tuple
         NumPy shape of the corresponding tensor.
     """
-    perm = dims_to_tensor_perm(dims)
+    perm = np.argsort(dims_to_tensor_perm(dims))
     dims = flatten(dims)
     return tuple(map(partial(getitem, dims), perm))
 

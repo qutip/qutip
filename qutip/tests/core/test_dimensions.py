@@ -6,7 +6,8 @@ import qutip
 from qutip.core.dimensions import (
     flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
-    collapse_dims_super, collapse_dims_oper, einsum, Dimensions, to_tensor_rep
+    collapse_dims_super, collapse_dims_oper, einsum, Dimensions,
+    to_tensor_rep, from_tensor_rep
 )
 
 
@@ -118,7 +119,7 @@ class TestSuperOperatorDimsModification:
         assert dims_to_tensor_shape(indices.base) == indices.shape
 
 
-@pytest.mark.parametrize([dims], [
+@pytest.mark.parametrize("dims", [
     pytest.param([[2, 3], [1]], id="ket"),
     pytest.param([[1, 1], [2, 3]], id="bra"),
     pytest.param([[2, 3], [5, 7]], id="oper"),
@@ -174,6 +175,12 @@ class test_to_tensor_rep:
                 np.all(array[*slices.at(i, j)] == j)
                 for j in range(array.shape[i])
             )
+
+    def from_tensor_rep(self, dims):
+        qobj = self._build_qobj(dims)
+        array = to_tensor_rep(qobj)
+        back = from_tensor_rep(array, dims)
+        assert qobj == back
 
 
 class TestTypeFromDims:
