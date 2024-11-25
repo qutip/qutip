@@ -349,13 +349,18 @@ def _version2int(version_string):
 #
 
 def iterated_fit(
-    fun: Callable[..., complex], num_params: int,
-    xdata: ArrayLike, ydata: ArrayLike,
+    fun: Callable[..., complex],
+    num_params: int,
+    xdata: ArrayLike,
+    ydata: ArrayLike,
     target_rmse: float = 1e-5,
-    Nmin: int = 1, Nmax: int = 10,
+    Nmin: int = 1,
+    Nmax: int = 10,
     guess: ArrayLike | Callable[[int], ArrayLike] = None,
-    lower: ArrayLike = None, upper: ArrayLike = None,
-    sigma: float | ArrayLike = None, maxfev: int = None
+    lower: ArrayLike = None,
+    upper: ArrayLike = None,
+    sigma: float | ArrayLike = None,
+    maxfev: int = None
 ) -> tuple[float, ArrayLike]:
     r"""
     Iteratively tries to fit the given data with a model of the form
