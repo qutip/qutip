@@ -437,13 +437,13 @@ class HarmonicOscillatorWaveFunction(Distribution):
         """
 
         self.data = np.zeros(len(self.xvecs[0]), dtype=complex)
-        N = psi.shape[1]
+        N = psi.shape[0]
 
         for n in range(N):
             self.data += (
                 psi_n_single_fock_multiple_position_complex(
                     n, self.xvecs[0].astype(complex)
-                ) * psi[0, n]
+                ) * psi[n, 0]
             )
 
         self.data *= pow(self.omega, 0.25)

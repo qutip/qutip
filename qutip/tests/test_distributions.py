@@ -17,7 +17,7 @@ def harmonic_oscillator_ground_state():
     Returns:
         np.ndarray: Ground state wavefunction as a 2D complex array.
     """
-    return np.array([[1.0 + 0.0j]])  
+    return basis(1,0)
 
 @pytest.fixture
 def harmonic_oscillator_first_excited_state():
@@ -27,7 +27,7 @@ def harmonic_oscillator_first_excited_state():
     Returns:
         np.ndarray: First excited state wavefunction as a 2D complex array.
     """
-    return np.array([[0.0 + 0.0j, 1.0 + 0.0j]])
+    return basis(2,1)
 
 @pytest.fixture
 def two_mode_wavefunction():
