@@ -936,10 +936,10 @@ class Dimensions(metaclass=MetaDims):
         # dims_to_tensor_perm
         stepl = self.to_.step()
         stepr = self.from_.step()
-        return list(np.concatenate([
+        return list(np.argsort(np.concatenate([
             np.argsort(stepl)[::-1],
             np.argsort(stepr)[::-1] + len(stepl)
-        ]))
+        ])))
 
     def remove(self, idx: int | list[int]) -> "Dimensions":
         """
