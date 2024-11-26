@@ -20,6 +20,7 @@ from scipy.special import hermite, factorial
 
 from . import isket, ket2dm, state_number_index
 from .wigner import wigner, qfunc
+from ._distributions import psi_n_single_fock_multiple_position_complex
 
 try:
     import matplotlib as mpl
@@ -280,7 +281,8 @@ class TwoModeQuadratureCorrelation(Distribution):
         self.theta1 = theta1
         self.theta2 = theta2
 
-        self.update(state)
+        if state:
+            self.update(state)
 
     def update(self, state):
         """
@@ -357,6 +359,68 @@ class TwoModeQuadratureCorrelation(Distribution):
 
 class HarmonicOscillatorWaveFunction(Distribution):
 
+    """Calculates and represents the wave function of
+       a quantum harmonic oscillator.
+
+    The `HarmonicOscillatorWaveFunction` class computes
+    the spatial distribution of the wave function for a quantum
+    harmonic oscillator given a set of state coefficients (`psi`).
+
+    By extending the `Distribution` base class, this class
+    provides specialized attributes and methods tailored for modeling
+    the harmonic oscillator's wave function.This implementation leverages
+    the Cython function `psi_n_single_fock_multiple_position_complex`from the
+    `_distributions.pyx` module to efficiently compute the wave function's
+    contribution for each Fock state across spatial coordinates using an
+    optimized recurrence relation.
+
+    Parameters
+    ----------
+    psi : array_like, optional
+        Coefficients for each harmonic oscillator state (Fock state) to
+        calculate the wave function. Defaults to None, in which case the
+        wave function is not initialized until `update` is called.
+    omega : float, optional
+        The angular frequency of the harmonic oscillator. Defaults to 1.0.
+    extent : list, optional
+        A list with two elements that defines the range of the spatial
+        dimension for calculating the wave function. Defaults to [-5, 5].
+    steps : int, optional
+        Number of points used to discretize the spatial range defined by
+        `extent`. Higher values increase resolution but may slow down
+        computations. Defaults to 250.
+
+    Attributes
+    ----------
+    xvecs : list of arrays
+        A list containing arrays that represent the spatial
+        coordinates over which the wave function is calculated.
+    xlabels : list of str
+        A list of labels for each spatial coordinate, in this case with
+        one element representing the x-axis.
+    omega : float
+        The angular frequency of the harmonic oscillator, stored as an
+        attribute for use in wave function calculations.
+    data : np.ndarray of complex numbers
+        The calculated wave function values across the spatial range.
+        Populated when `update` is called.
+
+    Methods
+    -------
+    update(psi)
+        Calculates and updates the wave function values for the harmonic
+        oscillator based on the provided state coefficients, `psi`.
+
+    References
+    ----------
+    - Pérez-Jordá, J. M. (2017). On the recursive solution of the quantum
+      harmonic oscillator. *European Journal of Physics*, 39(1),
+      015402. doi:10.1088/1361-6404/aa9584
+    - *Fast-Wave*: High-performance wave function calculations for quantum
+       harmonic oscillators.Available at:
+       https://github.com/fobos123deimos/fast-wave
+    """
+
     def __init__(self, psi=None, omega=1.0, extent=[-5, 5], steps=250):
 
         self.xvecs = [np.linspace(extent[0], extent[1], steps)]
@@ -376,12 +440,13 @@ class HarmonicOscillatorWaveFunction(Distribution):
         N = psi.shape[0]
 
         for n in range(N):
-            k = pow(self.omega / pi, 0.25) / \
-                sqrt(2 ** n * factorial(n)) * \
-                exp(-self.xvecs[0] ** 2 / 2.0) * \
-                np.polyval(hermite(n), self.xvecs[0])
+            self.data += (
+                psi_n_single_fock_multiple_position_complex(
+                    n, self.xvecs[0].astype(complex)
+                ) * psi[n, 0]
+            )
 
-            self.data += k * psi.data_as()[n, 0]
+        self.data *= pow(self.omega, 0.25)
 
 
 class HarmonicOscillatorProbabilityFunction(Distribution):
