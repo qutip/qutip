@@ -120,6 +120,7 @@ jobs:
             oldcython: 1
             nocython: 1
             condaforge: 1
+            nomkl: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
