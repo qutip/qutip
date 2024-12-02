@@ -3,7 +3,7 @@ import pytest
 from numbers import Number
 
 import numpy as np
-import mpmath as mp
+mp = pytest.importorskip("mpmath")
 from scipy.integrate import quad_vec
 from qutip.utilities import n_thermal
 
