@@ -248,7 +248,7 @@ class MESolver(SESolver):
             if c_op.issuper:
                 self.L0 += [c_op]
             else:
-                self.c_ops.append(c_op)
+                self.c_ops.append(QobjEvo(c_op))
 
         if self.H:
             self._dims = Dimensions([self.H._dims, self.H._dims])

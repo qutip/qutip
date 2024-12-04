@@ -423,7 +423,6 @@ class BRSolver(Solver):
         elif 'method' in keys or need_new_rhs:
             state = self._integrator.get_state()
             self._integrator_instance = None
-            # self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
         else:
             self._integrator.options = self._options

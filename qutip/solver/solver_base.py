@@ -62,9 +62,9 @@ class Solver:
         self._post_init(options)
 
     def _post_init(self, options):
+        self.options = options
         self._state_metadata = {}
         self.stats = self._initialize_stats()
-        self.options = options
 
     def _build_rhs(self):
         """
@@ -76,7 +76,7 @@ class Solver:
         """ Return the initial values for the solver stats.
         """
         return {
-            "method": "",
+            "method": self.options["method"],
             "ODE init time": 0.0,
             "preparation time": 0.0,
             "run time": 0.0,
@@ -192,13 +192,12 @@ class Solver:
         _data0 = self._prepare_state(state0)
         self._integrator.set_state(tlist[0], _data0)
         self._argument(args)
-        stats = self._initialize_stats()
         results = self._resultclass(
             e_ops, self.options,
-            solver=self.name, stats=stats,
+            solver=self.name, stats=self.stats,
         )
         results.add(tlist[0], self._restore_state(_data0, copy=False))
-        stats['preparation time'] += time() - _time_start
+        self.stats['preparation time'] += time() - _time_start
 
         progress_bar = progress_bars[self.options['progress_bar']](
             len(tlist)-1, **self.options['progress_kwargs']
@@ -208,7 +207,7 @@ class Solver:
             results.add(t, self._restore_state(state, copy=False))
         progress_bar.finished()
 
-        stats['run time'] = progress_bar.total_time()
+        self.stats['run time'] = progress_bar.total_time()
         # TODO: It would be nice if integrator could give evolution statistics
         # stats.update(_integrator.stats)
         return results
@@ -285,7 +284,6 @@ class Solver:
         if not self._integrator_instance:
             _time_start = time()
             self._integrator_instance = self._get_integrator()
-            self.stats["method"] = self._integrator_instance.name
             self.stats["ODE init time"] += time() - _time_start
         return self._integrator_instance
 

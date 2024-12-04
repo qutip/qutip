@@ -883,7 +883,6 @@ class FMESolver(MESolver):
         nT: int = None,
         options: dict[str, Any] = None,
     ):
-        # self.options = options
         if isinstance(floquet_basis, FloquetBasis):
             self.floquet_basis = floquet_basis
         else:
