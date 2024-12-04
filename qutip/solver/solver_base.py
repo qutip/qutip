@@ -57,7 +57,7 @@ class Solver:
     def __init__(self, rhs, *, options=None):
         if not isinstance(rhs, (QobjEvo, Qobj)):
             TypeError("The rhs must be a QobjEvo")
-        self.rhs = QobjEvo(rhs)
+        self._rhs = QobjEvo(rhs)
         self._dims = rhs._dims
         self._post_init(options)
 
@@ -70,7 +70,7 @@ class Solver:
         """
         Build the rhs QobjEvo.
         """
-        return self.rhs
+        return self._rhs
 
     def _initialize_stats(self):
         """ Return the initial values for the solver stats.
@@ -416,11 +416,9 @@ class Solver:
         elif 'method' in keys and self._integrator._is_set:
             state = self._integrator.get_state()
             self._integrator_instance = None
-            # self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
         elif "method" in keys:
             self._integrator_instance = None
-            # self._integrator = self._get_integrator()
         elif keys & self._integrator.integrator_options.keys():
             # Some of the keys are used by the integrator.
             self._integrator.options = self._options

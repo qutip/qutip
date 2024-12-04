@@ -116,6 +116,15 @@ class IntegratorVern9(IntegratorVern7):
 
     Usable with ``method="vern9"``
     """
+    integrator_options = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 1000,
+        'first_step': 0,
+        'max_step': 0,
+        'min_step': 0,
+        'interpolate': True,
+    }
     method = 'vern9'
 
 
