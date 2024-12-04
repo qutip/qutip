@@ -1,9 +1,9 @@
 import pytest
+from importlib.util import find_spec
 
 from numbers import Number
 
 import numpy as np
-mp = pytest.importorskip("mpmath")
 from scipy.integrate import quad_vec
 from qutip.utilities import n_thermal
 
@@ -263,6 +263,8 @@ class OhmicReference:
         )
 
     def correlation_function(self, t):
+        mp = pytest.importorskip("mpmath")
+
         # only valid for t >= 0
         if self.T == 0:
             return self._cf_zeroT(t)
@@ -281,6 +283,8 @@ class OhmicReference:
         ])
 
     def _cf_zeroT(self, t):
+        mp = pytest.importorskip("mpmath")
+
         return (
             self.alpha / np.pi * self.wc**(self.s + 1) *
             complex(mp.gamma(self.s + 1)) *
@@ -803,11 +807,17 @@ class TestUDEnvironment:
 ])
 class TestOhmicEnvironment:
     def test_matches_reference(self, params):
-        ref = OhmicReference(**params)
-        env = OhmicEnvironment(**params)
+        mpmath_missing = (find_spec('mpmath') is None)
 
-        assert_guarantees(env)
-        assert_equivalent(env, ref, tol=1e-8)
+        ref = OhmicReference(**params)
+        if mpmath_missing:
+            with pytest.warns(UserWarning):
+                env = OhmicEnvironment(**params)
+        else:
+            env = OhmicEnvironment(**params)
+
+        assert_guarantees(env, skip_cf=mpmath_missing)
+        assert_equivalent(env, ref, tol=1e-8, skip_cf=mpmath_missing)
 
 
 class TestCFExponent:
