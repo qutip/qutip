@@ -1,5 +1,5 @@
 """
-This module provides solvers for system-bath evoluation using the
+This module provides solvers for system-bath evolution using the
 HEOM (hierarchy equations of motion).
 
 See https://en.wikipedia.org/wiki/Hierarchical_equations_of_motion for a very

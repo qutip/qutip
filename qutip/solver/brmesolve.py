@@ -22,6 +22,7 @@ from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
 from ._feedback import _QobjFeedback, _DataFeedback
 from ..typing import EopsLike, QobjEvoLike, CoefficientLike
+from ..core.environment import BosonicEnvironment, FermionicEnvironment
 
 
 def brmesolve(
@@ -199,17 +200,22 @@ def brmesolve(
             a_op = QobjEvo(a_op, args=args, tlist=tlist)
         if isinstance(spectra, str):
             new_a_ops.append(
-                (a_op, coefficient(spectra, args={**args, 'w':0})))
+                (a_op, coefficient(spectra, args={**args, 'w': 0})))
         elif isinstance(spectra, InterCoefficient):
             new_a_ops.append((a_op, SpectraCoefficient(spectra)))
         elif isinstance(spectra, Coefficient):
             new_a_ops.append((a_op, spectra))
+        elif isinstance(spectra, BosonicEnvironment):
+            spec = SpectraCoefficient(
+                coefficient(spectra.power_spectrum)
+            )
+            new_a_ops.append((a_op, spec))
         elif callable(spectra):
             sig = inspect.signature(spectra)
             if tuple(sig.parameters.keys()) == ("w",):
                 spec = SpectraCoefficient(coefficient(spectra))
             else:
-                spec = coefficient(spectra, args={**args, 'w':0})
+                spec = coefficient(spectra, args={**args, 'w': 0})
             new_a_ops.append((a_op, spec))
         else:
             raise TypeError("a_ops's spectra not known")
@@ -275,7 +281,7 @@ class BRSolver(Solver):
     name = "brmesolve"
     solver_options = {
         "progress_bar": "",
-        "progress_kwargs": {"chunk_size":10},
+        "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
         "normalize_output": False,
