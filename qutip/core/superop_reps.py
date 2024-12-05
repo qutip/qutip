@@ -162,7 +162,7 @@ def kraus_to_choi(kraus_list):
                 copy=False)
 
 
-def kraus_to_super(kraus_list):
+def kraus_to_super(kraus_list, sparse=False):
     """
     Convert a list of Kraus operators to a superoperator.
 
@@ -170,8 +170,13 @@ def kraus_to_super(kraus_list):
     ----------
     kraus_list : list of Qobj
         The list of Kraus super operators to convert.
+    sparse: bool
+        Prevents dense intermediates if true.
     """
-    return to_super(kraus_to_choi(kraus_list))
+    if sparse:
+        return sum(sprepost(k, k.dag()) for k in kraus_list)
+    else:
+        return to_super(kraus_to_choi(kraus_list))
 
 
 def _super_tofrom_choi(q_oper):
