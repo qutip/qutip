@@ -9,14 +9,19 @@ __all__ = [
 
 import numpy as np
 from functools import partial
+from typing import TypeVar, overload
+
 from .operators import qeye
 from .qobj import Qobj
+from .cy.qobjevo import QobjEvo
 from .superoperator import operator_to_vector, reshuffle
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
     dims_idxs_to_tensor_idxs
 )
 from . import data as _data
+from .. import settings
+from ..typing import LayerType
 
 
 class _reverse_partial_tensor:
@@ -28,7 +33,13 @@ class _reverse_partial_tensor:
         return tensor(op, self.right)
 
 
-def tensor(*args):
+@overload
+def tensor(*args: Qobj) -> Qobj: ...
+
+@overload
+def tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
+
+def tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
     """Calculates the tensor product of input operators.
 
     Parameters
@@ -105,7 +116,13 @@ shape = [4, 4], type = oper, isHerm = True
                 copy=False)
 
 
-def super_tensor(*args):
+@overload
+def super_tensor(*args: Qobj) -> Qobj: ...
+
+@overload
+def super_tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
+
+def super_tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
     """
     Calculate the tensor product of input superoperators, by tensoring together
     the underlying Hilbert spaces on which each vectorized operator acts.
@@ -172,6 +189,12 @@ def _isketlike(q):
 def _isbralike(q):
     return q.isbra or q.isoperbra
 
+
+@overload
+def composite(*args: Qobj) -> Qobj: ...
+
+@overload
+def composite(*args: Qobj | QobjEvo) -> QobjEvo: ...
 
 def composite(*args):
     """
@@ -244,13 +267,18 @@ def _tensor_contract_dense(arr, *pairs):
     return arr
 
 
-def tensor_swap(q_oper, *pairs):
+def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
     """Transposes one or more pairs of indices of a Qobj.
-    Note that this uses dense representations and thus
-    should *not* be used for very large Qobjs.
+
+    .. note::
+
+        Note that this uses dense representations and thus
+        should *not* be used for very large Qobjs.
 
     Parameters
     ----------
+    q_oper : Qobj
+        Operator to swap dims.
 
     pairs : tuple
         One or more tuples ``(i, j)`` indicating that the
@@ -283,10 +311,13 @@ def tensor_swap(q_oper, *pairs):
     return Qobj(data, dims=dims, superrep=q_oper.superrep, copy=False)
 
 
-def tensor_contract(qobj, *pairs):
+def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
     """Contracts a qobj along one or more index pairs.
-    Note that this uses dense representations and thus
-    should *not* be used for very large Qobjs.
+
+    .. note::
+
+        Note that this uses dense representations and thus
+        should *not* be used for very large Qobjs.
 
     Parameters
     ----------
@@ -413,7 +444,15 @@ def _targets_to_list(targets, oper=None, N=None):
     return targets
 
 
-def expand_operator(oper, dims, targets):
+QobjOrQobjEvo = TypeVar("QobjOrQobjEvo", Qobj, QobjEvo)
+
+
+def expand_operator(
+    oper: QobjOrQobjEvo,
+    dims: list[int],
+    targets: int,
+    dtype: LayerType = None
+) -> QobjOrQobjEvo:
     """
     Expand an operator to one that acts on a system with desired dimensions.
     e.g.
@@ -435,13 +474,19 @@ def expand_operator(oper, dims, targets):
         E.g ``[2, 3, 2, 3, 4]``.
     targets : int or list of int
         The indices of subspace that are acted on.
+    dtype : str, optional
+        Data type of the output :class:`.Qobj`. By default it uses the data
+        type specified in settings. If no data type is specified
+        in settings it uses the ``CSR`` data type.
 
     Returns
     -------
     expanded_oper : :class:`.Qobj`
-        The expanded operator acting on a system with desired dimension.
+        The expanded operator acting on a system with the desired dimension.
     """
     from .operators import identity
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    oper = oper.to(dtype)
     N = len(dims)
     targets = _targets_to_list(targets, oper=oper, N=N)
     _check_oper_dims(oper, dims=dims, targets=targets)

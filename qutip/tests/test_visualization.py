@@ -1,10 +1,10 @@
 import pytest
 import qutip
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 from scipy.special import sph_harm
 
+mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
 def test_cyclic():
     qutip.settings.colorblind_safe = True
@@ -462,7 +462,7 @@ def test_plot_expectation_values(n_of_results, n_of_e_ops, one_axes, args):
     e_ops = [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
     times = np.linspace(0, 10, 100)
     psi0 = (qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
-    result = qutip.mesolve(H, psi0, times, [], e_ops[:n_of_e_ops])
+    result = qutip.mesolve(H, psi0, times, e_ops=e_ops[:n_of_e_ops])
 
     if n_of_results == 1:
         results = result
@@ -651,3 +651,59 @@ def test_plot_schmidt_Error():
         fig, ax = qutip.plot_schmidt(state)
     assert str(exc_info.value) == text
     plt.close()
+
+
+@pytest.fixture(params=["ket", "oper"])
+def state(request):
+    if request.param == "ket":
+        return qutip.basis([2, 2], [0, 0])
+    else:
+        return qutip.fock_dm([2, 2], [0, 0])
+
+
+def test_TwoModeQuadratureCorrelation(state):
+    corr = qutip.TwoModeQuadratureCorrelation(state)
+
+    assert isinstance(corr, qutip.distributions.TwoModeQuadratureCorrelation)
+
+
+def test_TwoModeQuadratureCorrelation_plot(state):
+    corr = qutip.TwoModeQuadratureCorrelation(state)
+
+    fig, ax = corr.visualize()
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_HarmonicOscillatorWaveFunction(state):
+    corr = qutip.HarmonicOscillatorWaveFunction(state)
+
+    assert isinstance(corr, qutip.distributions.HarmonicOscillatorWaveFunction)
+
+
+def test_HarmonicOscillatorWaveFunction_plot(state):
+    corr = qutip.HarmonicOscillatorWaveFunction(state)
+
+    fig, ax = corr.visualize()
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+def test_HarmonicOscillatorProbabilityFunction(state):
+    corr = qutip.HarmonicOscillatorProbabilityFunction(state)
+
+    assert isinstance(corr, qutip.distributions.HarmonicOscillatorProbabilityFunction)
+
+
+def test_HarmonicOscillatorProbabilityFunction_plot(state):
+    corr = qutip.HarmonicOscillatorProbabilityFunction(state)
+
+    fig, ax = corr.visualize()
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)

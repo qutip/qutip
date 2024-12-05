@@ -1,13 +1,16 @@
 """
 Internal use module for manipulating dims specifications.
 """
-
-# Everything should be explicitly imported, not made available by default.
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
 
 import numpy as np
+import numbers
 from operator import getitem
 from functools import partial
+from typing import Literal
 from qutip.settings import settings
+from qutip.typing import SpaceLike, DimensionLike
 
 
 __all__ = ["to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"]
@@ -16,9 +19,13 @@ __all__ = ["to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"]
 def flatten(l):
     """Flattens a list of lists to the first level.
 
-    Given a list containing a mix of scalars and lists,
-    flattens down to a list of the scalars within the original
-    list.
+    Given a list containing a mix of scalars and lists or a dimension object,
+    flattens it down to a list of the scalars within the original list.
+
+    Parameters
+    ----------
+    l : scalar, list, Space, Dimension
+        Object to flatten.
 
     Examples
     --------
@@ -26,7 +33,14 @@ def flatten(l):
     >>> flatten([[[0], 1], 2]) # doctest: +SKIP
     [0, 1, 2]
 
+    Notes
+    -----
+    Any scalar will be returned wrapped in a list: ``flaten(1) == [1]``.
+    A non-list iterable will not be treated as a list by flatten. For example, flatten would treat a tuple
+    as a scalar.
     """
+    if isinstance(l, (Space, Dimensions)):
+        l = l.as_list()
     if not isinstance(l, list):
         return [l]
     else:
@@ -338,14 +352,42 @@ def _frozen(*args, **kwargs):
     raise RuntimeError("Dimension cannot be modified.")
 
 
+def einsum(subscripts, *operands):
+    """
+    Implementation of numpy.einsum for Qobj.
+    Evaluates the Einstein summation convention on the operands.
+    Parameters
+    ----------
+    subscripts: str
+        Specifies the subscripts for summation as comma
+        separated list of subscript labels.
+    operands: list of array_like
+        These are the arrays for the operation.
+
+    Returns
+    -------
+    Qobj (numpy.complex128)
+        Result of einsum as Qobj (numpy.complex128 if result is scalar)
+    """
+    operands_array = [to_tensor_rep(op) for op in operands]
+    result = np.einsum(subscripts, *operands_array)
+    if result.shape == ():
+        return result
+    dims = [
+        [d for d in result.shape[:result.ndim // 2]],
+        [d for d in result.shape[result.ndim // 2:]]
+    ]
+    return from_tensor_rep(result, dims)
+
+
 class MetaSpace(type):
-    def __call__(cls, *args, rep=None):
+    def __call__(cls, *args: SpaceLike, rep: str = None) -> "Space":
         """
         Select which subclass is instantiated.
         """
         if cls is Space and len(args) == 1 and isinstance(args[0], list):
             # From a list of int.
-            return cls.from_list(*args, rep=rep)
+            return cls.from_list(args[0], rep=rep)
         elif len(args) == 1 and isinstance(args[0], Space):
             # Already a Space
             return args[0]
@@ -387,7 +429,11 @@ class MetaSpace(type):
             cls._stored_dims[args] = instance
         return cls._stored_dims[args]
 
-    def from_list(cls, list_dims, rep=None):
+    def from_list(
+        cls,
+        list_dims: list[int] | list[list[int]],
+        rep: str = None
+    ) -> "Space":
         if len(list_dims) == 0:
             raise ValueError("Empty list can't be used as dims.")
         elif (
@@ -437,7 +483,7 @@ class Space(metaclass=MetaSpace):
         self._pure_dims = True
         self.__setitem__ = _frozen
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self is other or (
             type(other) is type(self)
             and other.size == self.size
@@ -446,28 +492,36 @@ class Space(metaclass=MetaSpace):
     def __hash__(self):
         return hash(self.size)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Space({self.size})"
 
-    def as_list(self):
+    def as_list(self) -> list[int]:
         return [self.size]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.as_list())
 
-    def dims2idx(self, dims):
+    def dims2idx(self, dims: list[int]) -> int:
         """
         Transform dimensions indices to full array indices.
         """
-        return dims
+        if not isinstance(dims, list) or len(dims) != 1:
+            raise ValueError("Dimensions must be a list of one element")
+        if not (0 <= dims[0] < self.size):
+            raise IndexError("Dimensions out of range")
+        if not isinstance(dims[0], numbers.Integral):
+            raise TypeError("Dimensions must be integers")
+        return dims[0]
 
-    def idx2dims(self, idx):
+    def idx2dims(self, idx: int) -> list[int]:
         """
         Transform full array indices to dimensions indices.
         """
+        if not (0 <= idx < self.size):
+            raise IndexError("Index out of range")
         return [idx]
 
-    def step(self):
+    def step(self) -> list[int]:
         """
         Get the step in the array between for each dimensions index.
 
@@ -476,11 +530,11 @@ class Space(metaclass=MetaSpace):
         """
         return [1]
 
-    def flat(self):
+    def flat(self) -> list[int]:
         """ Dimensions as a flat list. """
         return [self.size]
 
-    def remove(self, idx):
+    def remove(self, idx: int):
         """
         Remove a Space from a Dimensons or complex Space.
 
@@ -488,7 +542,7 @@ class Space(metaclass=MetaSpace):
         """
         raise RuntimeError("Cannot delete a flat space.")
 
-    def replace(self, idx, new):
+    def replace(self, idx: int, new: int) -> "Space":
         """
         Reshape a Space from a Dimensons or complex Space.
 
@@ -500,8 +554,11 @@ class Space(metaclass=MetaSpace):
             )
         return Space(new)
 
-    def replace_superrep(self, super_rep):
+    def replace_superrep(self, super_rep: str) -> "Space":
         return self
+
+    def scalar_like(self) -> "Space":
+        return Field()
 
 
 class Field(Space):
@@ -514,28 +571,28 @@ class Field(Space):
         self._pure_dims = True
         self.__setitem__ = _frozen
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return type(other) is Field
 
     def __hash__(self):
         return hash(0)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Field()"
 
-    def as_list(self):
+    def as_list(self) -> list[int]:
         return [1]
 
-    def step(self):
+    def step(self) -> list[int]:
         return [1]
 
-    def flat(self):
+    def flat(self) -> list[int]:
         return [1]
 
-    def remove(self, idx):
+    def remove(self, idx: int) -> Space:
         return self
 
-    def replace(self, idx, new):
+    def replace(self, idx: int, new: int) -> Space:
         return Space(new)
 
 
@@ -546,16 +603,16 @@ Field.field_instance.__init__()
 class Compound(Space):
     _stored_dims = {}
 
-    def __init__(self, *spaces):
-        self.spaces = []
+    def __init__(self, *spaces: Space):
+        spaces_ = []
         if len(spaces) <= 1:
             raise ValueError("Compound need multiple space to join.")
         for space in spaces:
             if isinstance(space, Compound):
-                self.spaces += space.spaces
+                spaces_ += space.spaces
             else:
-                self.spaces += [space]
-        self.spaces = tuple(self.spaces)
+                spaces_ += [space]
+        self.spaces = tuple(spaces_)
         self.size = np.prod([space.size for space in self.spaces])
         self.issuper = all(space.issuper for space in self.spaces)
         if not self.issuper and any(space.issuper for space in self.spaces):
@@ -573,7 +630,7 @@ class Compound(Space):
             )
         self.__setitem__ = _frozen
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self is other or (
             type(other) is type(self) and
             self.spaces == other.spaces
@@ -582,31 +639,31 @@ class Compound(Space):
     def __hash__(self):
         return hash(self.spaces)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         parts_rep = ", ".join(repr(space) for space in self.spaces)
         return f"Compound({parts_rep})"
 
-    def as_list(self):
+    def as_list(self) -> list[int]:
         return sum([space.as_list() for space in self.spaces], [])
 
-    def dims2idx(self, dims):
+    def dims2idx(self, dims: list[int]) -> int:
         if len(dims) != len(self.spaces):
             raise ValueError("Length of supplied dims does not match the number of subspaces.")
         pos = 0
         step = 1
         for space, dim in zip(self.spaces[::-1], dims[::-1]):
-            pos += space.dims2idx(dim) * step
+            pos += space.dims2idx([dim]) * step
             step *= space.size
         return pos
 
-    def idx2dims(self, idx):
+    def idx2dims(self, idx: int) -> list[int]:
         dims = []
         for space in self.spaces[::-1]:
             idx, dim = divmod(idx, space.size)
             dims = space.idx2dims(dim) + dims
         return dims
 
-    def step(self):
+    def step(self) -> list[int]:
         steps = []
         step = 1
         for space in self.spaces[::-1]:
@@ -614,10 +671,10 @@ class Compound(Space):
             step *= space.size
         return steps
 
-    def flat(self):
+    def flat(self) -> list[int]:
         return sum([space.flat() for space in self.spaces], [])
 
-    def remove(self, idx):
+    def remove(self, idx: int) -> Space:
         new_spaces = []
         for space in self.spaces:
             n_indices = len(space.flat())
@@ -628,7 +685,7 @@ class Compound(Space):
             return Compound(*new_spaces)
         return Field()
 
-    def replace(self, idx, new):
+    def replace(self, idx: int, new: int) -> Space:
         new_spaces = []
         for space in self.spaces:
             n_indices = len(space.flat())
@@ -639,16 +696,19 @@ class Compound(Space):
             idx -= n_indices
         return Compound(*new_spaces)
 
-    def replace_superrep(self, super_rep):
+    def replace_superrep(self, super_rep: str) -> Space:
         return Compound(
             *[space.replace_superrep(super_rep) for space in self.spaces]
         )
+
+    def scalar_like(self) -> Space:
+        return Space([space.scalar_like() for space in self.spaces])
 
 
 class SuperSpace(Space):
     _stored_dims = {}
 
-    def __init__(self, oper, rep='super'):
+    def __init__(self, oper: "Dimensions", rep: str = 'super'):
         self.oper = oper
         self.superrep = rep
         self.size = oper.shape[0] * oper.shape[1]
@@ -656,7 +716,7 @@ class SuperSpace(Space):
         self._pure_dims = oper._pure_dims
         self.__setitem__ = _frozen
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (
             self is other
             or self.oper == other
@@ -670,44 +730,47 @@ class SuperSpace(Space):
     def __hash__(self):
         return hash((self.oper, self.superrep))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Super({repr(self.oper)}, rep={self.superrep})"
 
-    def as_list(self):
+    def as_list(self) -> list[list[int]]:
         return self.oper.as_list()
 
-    def dims2idx(self, dims):
+    def dims2idx(self, dims: list[int]) -> int:
         posl, posr = self.oper.dims2idx(dims)
         return posl + posr * self.oper.shape[0]
 
-    def idx2dims(self, idx):
+    def idx2dims(self, idx: int) -> list[int]:
         posl = idx % self.oper.shape[0]
         posr = idx // self.oper.shape[0]
         return self.oper.idx2dims(posl, posr)
 
-    def step(self):
+    def step(self) -> list[int]:
         stepl, stepr = self.oper.step()
         step = self.oper.shape[0]
         return stepl + [step * N for N in stepr]
 
-    def flat(self):
+    def flat(self) -> list[int]:
         return sum(self.oper.flat(), [])
 
-    def remove(self, idx):
+    def remove(self, idx: int) -> Space:
         new_dims = self.oper.remove(idx)
         if new_dims.type == 'scalar':
             return Field()
         return SuperSpace(new_dims, rep=self.superrep)
 
-    def replace(self, idx, new):
+    def replace(self, idx: int, new: int) -> Space:
         return SuperSpace(self.oper.replace(idx, new), rep=self.superrep)
 
-    def replace_superrep(self, super_rep):
+    def replace_superrep(self, super_rep: str) -> Space:
         return SuperSpace(self.oper, rep=super_rep)
+
+    def scalar_like(self) -> Space:
+        return SuperSpace(self.oper.scalar_like(), rep=self.superrep)
 
 
 class MetaDims(type):
-    def __call__(cls, *args, rep=None):
+    def __call__(cls, *args: DimensionLike, rep: str = None) -> "Dimensions":
         if len(args) == 1 and isinstance(args[0], Dimensions):
             return args[0]
         elif len(args) == 1 and len(args[0]) == 2:
@@ -732,9 +795,9 @@ class MetaDims(type):
 
 class Dimensions(metaclass=MetaDims):
     _stored_dims = {}
-    _type = None
+    _type: str = None
 
-    def __init__(self, from_, to_):
+    def __init__(self, from_: Space, to_: Space):
         self.from_ = from_
         self.to_ = to_
         self.shape = to_.size, from_.size
@@ -772,32 +835,52 @@ class Dimensions(metaclass=MetaDims):
                 self.superrep = 'mixed'
         self.__setitem__ = _frozen
 
-    def __eq__(self, other):
-        return (
-            self is other
-            or (
-                type(self) is type(other)
-                and self.to_ == other.to_
-                and self.from_ == other.from_
+    def __eq__(self, other: "Dimensions") -> bool:
+        if isinstance(other, Dimensions):
+            return (
+                self is other
+                or (
+                    self.to_ == other.to_
+                    and self.from_ == other.from_
+                )
             )
-        )
+        return NotImplemented
+
+    def __ne__(self, other: "Dimensions") -> bool:
+        if isinstance(other, Dimensions):
+            return not (
+                self is other
+                or (
+                    self.to_ == other.to_
+                    and self.from_ == other.from_
+                )
+            )
+        return NotImplemented
+
+    def __matmul__(self, other: "Dimensions") -> "Dimensions":
+        if self.from_ != other.to_:
+            raise TypeError(f"incompatible dimensions {self} and {other}")
+        args = other.from_, self.to_
+        if args in Dimensions._stored_dims:
+            return Dimensions._stored_dims[args]
+        return Dimensions(*args)
 
     def __hash__(self):
         return hash((self.to_, self.from_))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Dimensions({repr(self.from_)}, {repr(self.to_)})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.as_list())
 
-    def as_list(self):
+    def as_list(self) -> list:
         """
         Return the list representation of the Dimensions object.
         """
         return [self.to_.as_list(), self.from_.as_list()]
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Literal[0, 1]) -> Space:
         if key == 0:
             return self.to_
         elif key == 1:
@@ -816,7 +899,7 @@ class Dimensions(metaclass=MetaDims):
         """
         return [self.to_.idx2dims(idxl), self.from_.idx2dims(idxr)]
 
-    def step(self):
+    def step(self) -> list[list[int]]:
         """
         Get the step in the array between for each dimensions index.
 
@@ -825,7 +908,7 @@ class Dimensions(metaclass=MetaDims):
         """
         return [self.to_.step(), self.from_.step()]
 
-    def flat(self):
+    def flat(self) -> list[list[int]]:
         """ Dimensions as a flat list. """
         return [self.to_.flat(), self.from_.flat()]
 
@@ -858,7 +941,7 @@ class Dimensions(metaclass=MetaDims):
             np.argsort(stepr)[::-1] + len(stepl)
         ]))
 
-    def remove(self, idx):
+    def remove(self, idx: int | list[int]) -> "Dimensions":
         """
         Remove a Space from a Dimensons or complex Space.
 
@@ -877,7 +960,7 @@ class Dimensions(metaclass=MetaDims):
             self.to_.remove(idx_to),
         )
 
-    def replace(self, idx, new):
+    def replace(self, idx: int, new: int) -> "Dimensions":
         """
         Reshape a Space from a Dimensons or complex Space.
 
@@ -893,10 +976,13 @@ class Dimensions(metaclass=MetaDims):
 
         return Dimensions(new_from, new_to)
 
-    def replace_superrep(self, super_rep):
+    def replace_superrep(self, super_rep: str) -> "Dimensions":
         if not self.issuper and super_rep is not None:
             raise TypeError("Can't set a superrep of a non super object.")
         return Dimensions(
             self.from_.replace_superrep(super_rep),
             self.to_.replace_superrep(super_rep)
         )
+
+    def scalar_like(self) -> "Dimensions":
+        return Dimensions([self.to_.scalar_like(), self.from_.scalar_like()])

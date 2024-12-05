@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'fock', 'thermal_dm', 'maximally_mixed_dm', 'ket2dm', 'projection',
            'qstate', 'ket', 'bra', 'state_number_enumerate',
@@ -9,16 +12,18 @@ __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
 import itertools
 import numbers
 import warnings
-
+from collections.abc import Iterator
+from typing import Literal
 import numpy as np
 import scipy.sparse as sp
-import itertools
 
 from . import data as _data
 from .qobj import Qobj
 from .operators import jmat, displace, qdiags
 from .tensor import tensor
+from .dimensions import Space
 from .. import settings
+from ..typing import SpaceLike, LayerType
 
 
 def _promote_to_zero_list(arg, length):
@@ -43,13 +48,35 @@ def _promote_to_zero_list(arg, length):
     raise TypeError("Dimensions must be an integer or list of integers.")
 
 
-def basis(dimensions, n=None, offset=None, *, dtype=None):
+def _to_space(dimensions):
+    """
+    Convert `dimensions` to a :class:`.Space`.
+
+    Returns
+    -------
+    space : :class:`.Space`
+    """
+    if isinstance(dimensions, Space):
+        return dimensions
+    elif isinstance(dimensions, list):
+        return Space(dimensions)
+    else:
+        return Space([dimensions])
+
+
+def basis(
+    dimensions: SpaceLike,
+    n: int | list[int] = None,
+    offset: int | list[int] = None,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """Generates the vector representation of a Fock state.
 
     Parameters
     ----------
-    dimensions : int or list of ints
-        Number of Fock states in Hilbert space.  If a list, then the resultant
+    dimensions : int or list of ints, Space
+        Number of basis states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
     n : int or list of ints, optional (default 0 for all dimensions)
@@ -106,31 +133,46 @@ def basis(dimensions, n=None, offset=None, *, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
-    # Promote all parameters to lists to simplify later logic.
-    if not isinstance(dimensions, list):
-        dimensions = [dimensions]
-    n_dimensions = len(dimensions)
-    ns = [m-off for m, off in zip(_promote_to_zero_list(n, n_dimensions),
-                                  _promote_to_zero_list(offset, n_dimensions))]
-    if any((not isinstance(x, numbers.Integral)) or x < 0 for x in dimensions):
-        raise ValueError("All dimensions must be >= 0.")
-    if not all(0 <= n < dimension for n, dimension in zip(ns, dimensions)):
-        raise ValueError("All basis indices must be "
-                         "`offset <= n < dimension+offset`.")
-    location, size = 0, 1
-    for m, dimension in zip(reversed(ns), reversed(dimensions)):
-        location += m*size
-        size *= dimension
+    # Promote all parameters to Space to simplify later logic.
+    dimensions = _to_space(dimensions)
+
+    size = dimensions.size
+    if n is None:
+        location = 0
+    elif offset:
+        if not isinstance(offset, list):
+            offset = [offset]
+        if not isinstance(n, list):
+            n = [n]
+        if len(n) != len(dimensions.as_list()) or len(offset) != len(n):
+            raise ValueError("All list inputs must be the same length.")
+
+        n_off = [m-off for m, off in zip(n, offset)]
+        try:
+            location = dimensions.dims2idx(n_off)
+        except IndexError:
+            raise ValueError("All basis indices must be integers in the range "
+                             "`offset <= n < dimension+offset`.")
+    else:
+        if not isinstance(n, list):
+            n = [n]
+        if len(n) != len(dimensions.as_list()):
+            raise ValueError("All list inputs must be the same length.")
+        try:
+            location = dimensions.dims2idx(n)
+        except IndexError:
+            raise ValueError("All basis indices must be integers in the range "
+                             "`0 <= n < dimension`.")
 
     data = _data.one_element[dtype]((size, 1), (location, 0), 1)
     return Qobj(data,
-                dims=[dimensions, [1]*n_dimensions],
+                dims=[dimensions, dimensions.scalar_like()],
                 isherm=False,
                 isunitary=False,
                 copy=False)
 
 
-def qutrit_basis(*, dtype=None):
+def qutrit_basis(*, dtype: LayerType = None) -> list[Qobj]:
     """Basis states for a three level system (qutrit)
 
     dtype : type or str, optional
@@ -144,8 +186,7 @@ def qutrit_basis(*, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
-    out = np.empty((3,), dtype=object)
-    out[:] = [
+    out = [
         basis(3, 0, dtype=dtype),
         basis(3, 1, dtype=dtype),
         basis(3, 2, dtype=dtype),
@@ -156,7 +197,14 @@ def qutrit_basis(*, dtype=None):
 _COHERENT_METHODS = ('operator', 'analytic')
 
 
-def coherent(N, alpha, offset=0, method=None, *, dtype=None):
+def coherent(
+    N: int,
+    alpha: float,
+    offset: int = 0,
+    method: str = None,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """Generates a coherent state with eigenvalue alpha.
 
     Constructed using displacement operator on vacuum state.
@@ -223,7 +271,7 @@ def coherent(N, alpha, offset=0, method=None, *, dtype=None):
                 "The method 'operator' does not support offset != 0. Please"
                 " select another method or set the offset to zero."
             )
-        return (displace(N, alpha, dtype=dtype) * basis(N, 0)).to(dtype)
+        return (displace(N, alpha, dtype=dtype) @ basis(N, 0)).to(dtype)
 
     elif method == "analytic":
         sqrtn = np.sqrt(np.arange(offset, offset+N, dtype=complex))
@@ -241,7 +289,14 @@ def coherent(N, alpha, offset=0, method=None, *, dtype=None):
     )
 
 
-def coherent_dm(N, alpha, offset=0, method='operator', *, dtype=None):
+def coherent_dm(
+    N: int,
+    alpha: float,
+    offset: int = 0,
+    method: str = None,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """Density matrix representation of a coherent state.
 
     Constructed via outer product of :func:`coherent`
@@ -249,7 +304,7 @@ def coherent_dm(N, alpha, offset=0, method='operator', *, dtype=None):
     Parameters
     ----------
     N : int
-        Number of Fock states in Hilbert space.
+        Number of basis states in Hilbert space.
 
     alpha : float/complex
         Eigenvalue for coherent state.
@@ -295,18 +350,26 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
-    return coherent(N, alpha, offset=offset, method=method, dtype=dtype).proj()
+    return coherent(
+        N, alpha, offset=offset, method=method, dtype=dtype
+    ).proj().to(dtype)
 
 
-def fock_dm(dimensions, n=None, offset=None, *, dtype=None):
+def fock_dm(
+    dimensions: int | list[int] | Space,
+    n: int | list[int] = None,
+    offset: int | list[int] = None,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """Density matrix representation of a Fock state
 
     Constructed via outer product of :func:`basis`.
 
     Parameters
     ----------
-    dimensions : int or list of ints
-        Number of Fock states in Hilbert space.  If a list, then the resultant
+    dimensions : int or list of ints, Space
+        Number of basis states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
     n : int or list of ints, default: 0 for all dimensions
@@ -340,18 +403,24 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
-    return basis(dimensions, n, offset=offset, dtype=dtype).proj()
+    return basis(dimensions, n, offset=offset, dtype=dtype).proj().to(dtype)
 
 
-def fock(dimensions, n=None, offset=None, *, dtype=None):
+def fock(
+    dimensions: SpaceLike,
+    n: int | list[int] = None,
+    offset: int | list[int] = None,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """Bosonic Fock (number) state.
 
     Same as :func:`basis`.
 
     Parameters
     ----------
-    dimensions : int or list of ints
-        Number of Fock states in Hilbert space.  If a list, then the resultant
+    dimensions : int or list of ints, Space
+        Number of basis states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
     n : int or list of ints, default: 0 for all dimensions
@@ -386,7 +455,13 @@ def fock(dimensions, n=None, offset=None, *, dtype=None):
     return basis(dimensions, n, offset=offset, dtype=dtype)
 
 
-def thermal_dm(N, n, method='operator', *, dtype=None):
+def thermal_dm(
+    N: int,
+    n: float,
+    method: Literal['operator', 'analytic'] = 'operator',
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """Density matrix for a thermal state of n particles
 
     Parameters
@@ -465,15 +540,20 @@ shape = [5, 5], type = oper, isHerm = True
         return out
 
 
-def maximally_mixed_dm(N, *, dtype=None):
+def maximally_mixed_dm(
+    dimensions: SpaceLike,
+    *,
+    dtype: LayerType = None
+) -> Qobj:
     """
     Returns the maximally mixed density matrix for a Hilbert space of
     dimension N.
 
     Parameters
     ----------
-    N : int
-        Number of basis states in Hilbert space.
+    dimensions : int or list of ints, Space
+        Number of basis states in Hilbert space.  If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -485,13 +565,15 @@ def maximally_mixed_dm(N, *, dtype=None):
         Thermal state density matrix.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
-    if not isinstance(N, numbers.Integral) or N <= 0:
-        raise ValueError("N must be integer N > 0")
-    return Qobj(_data.identity[dtype](N, scale=1/N), dims=[[N], [N]],
+    dimensions = _to_space(dimensions)
+    N = dimensions.size
+
+    return Qobj(_data.identity[dtype](N, scale=1/N),
+                dims=[dimensions, dimensions],
                 isherm=True, isunitary=(N == 1), copy=False)
 
 
-def ket2dm(Q):
+def ket2dm(Q: Qobj) -> Qobj:
     """
     Takes input ket or bra vector and returns density matrix formed by outer
     product.  This is completely identical to calling ``Q.proj()``.
@@ -523,17 +605,25 @@ shape = [3, 3], type = oper, isHerm = True
     raise TypeError("Input is not a ket or bra vector.")
 
 
-def projection(N, n, m, offset=None, *, dtype=None):
+def projection(
+    dimensions: int | list[int],
+    n: int | list[int],
+    m: int | list[int],
+    offset: int | list[int] = None,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     r"""
     The projection operator that projects state :math:`\lvert m\rangle` on
     state :math:`\lvert n\rangle`.
 
     Parameters
     ----------
-    N : int
-        Number of basis states in Hilbert space.
+    dimensions : int or list of ints, Space
+        Number of basis states in Hilbert space.  If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
-    n, m : float
+    n, m : int
         The number states in the projection.
 
     offset : int, default: 0
@@ -550,11 +640,13 @@ def projection(N, n, m, offset=None, *, dtype=None):
          Requested projection operator.
     """
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
-    return basis(N, n, offset=offset, dtype=dtype) @ \
-           basis(N, m, offset=offset, dtype=dtype).dag()
+    return (
+        basis(dimensions, n, offset=offset, dtype=dtype) @
+        basis(dimensions, m, offset=offset, dtype=dtype).dag()
+    ).to(dtype)
 
 
-def qstate(string, *, dtype=None):
+def qstate(string: str, *, dtype: LayerType = None) -> Qobj:
     r"""Creates a tensor product for a set of qubits in either
     the 'up' :math:`\lvert0\rangle` or 'down' :math:`\lvert1\rangle` state.
 
@@ -612,14 +704,19 @@ _qubit_dict = {
 }
 
 
-def _character_to_qudit(x):
+def _character_to_qudit(x: int | str) -> int:
     """
     Converts a character representing a one-particle state into int.
     """
     return _qubit_dict[x] if x in _qubit_dict else int(x)
 
 
-def ket(seq, dim=2, *, dtype=None):
+def ket(
+    seq: list[int | str] | str,
+    dim: int | list[int] = 2,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """
     Produces a multiparticle ket state for a list or string,
     where each element stands for state of the respective particle.
@@ -703,7 +800,12 @@ def ket(seq, dim=2, *, dtype=None):
     return basis(dim, ns, dtype=dtype)
 
 
-def bra(seq, dim=2, *, dtype=None):
+def bra(
+    seq: list[int | str] | str,
+    dim: int | list[int] = 2,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """
     Produces a multiparticle bra state for a list or string,
     where each element stands for state of the respective particle.
@@ -761,7 +863,10 @@ def bra(seq, dim=2, *, dtype=None):
     return ket(seq, dim=dim, dtype=dtype).dag()
 
 
-def state_number_enumerate(dims, excitations=None):
+def state_number_enumerate(
+    dims: list[int],
+    excitations: int = None
+) -> Iterator[tuple]:
     """
     An iterator that enumerates all the state number tuples (quantum numbers of
     the form (n1, n2, n3, ...)) for a system with dimensions given by dims.
@@ -777,7 +882,7 @@ def state_number_enumerate(dims, excitations=None):
 
     Parameters
     ----------
-    dims : list or array
+    dims : list
         The quantum state dimensions array, as it would appear in a Qobj.
 
     excitations : integer, optional
@@ -819,7 +924,10 @@ def state_number_enumerate(dims, excitations=None):
             state = state[:idx] + (state[idx]+1, 0) + state[idx+2:]
 
 
-def state_number_index(dims, state):
+def state_number_index(
+    dims: list[int],
+    state: list[int],
+) -> int:
     """
     Return the index of a quantum state corresponding to state,
     given a system with dimensions given by dims.
@@ -831,7 +939,7 @@ def state_number_index(dims, state):
 
     Parameters
     ----------
-    dims : list or array
+    dims : list
         The quantum state dimensions array, as it would appear in a Qobj.
 
     state : list
@@ -847,7 +955,10 @@ def state_number_index(dims, state):
     return np.ravel_multi_index(state, dims)
 
 
-def state_index_number(dims, index):
+def state_index_number(
+    dims: list[int],
+    index: int,
+) -> tuple:
     """
     Return a quantum number representation given a state index, for a system
     of composite structure defined by dims.
@@ -875,7 +986,12 @@ def state_index_number(dims, index):
     return np.unravel_index(index, dims)
 
 
-def state_number_qobj(dims, state, *, dtype=None):
+def state_number_qobj(
+    dims: SpaceLike,
+    state: int | list[int] = None,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """
     Return a Qobj representation of a quantum state specified by the state
     array `state`.
@@ -921,14 +1037,20 @@ shape = [8, 1], type = ket
     return basis(dims, state, dtype=dtype)
 
 
-def phase_basis(N, m, phi0=0, *, dtype=None):
+def phase_basis(
+    N: int,
+    m: int,
+    phi0: float = 0,
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     """
     Basis vector for the mth phase of the Pegg-Barnett phase operator.
 
     Parameters
     ----------
     N : int
-        Number of basis vectors in Hilbert space.
+        Number of basis states in Hilbert space.
 
     m : int
         Integer corresponding to the mth discrete phase
@@ -959,18 +1081,15 @@ def phase_basis(N, m, phi0=0, *, dtype=None):
     return Qobj(data, dims=[[N], [1]], copy=False).to(dtype)
 
 
-def zero_ket(N, dims=None, *, dtype=None):
+def zero_ket(dimensions: SpaceLike, *, dtype: LayerType = None) -> Qobj:
     """
     Creates the zero ket vector with shape Nx1 and dimensions `dims`.
 
     Parameters
     ----------
-    N : int
-        Hilbert space dimensionality
-
-    dims : list, optional
-        Optional dimensions if ket corresponds to
-        a composite Hilbert space.
+    dimensions : int or list of ints, Space
+        Number of basis states in Hilbert space.  If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
@@ -983,10 +1102,19 @@ def zero_ket(N, dims=None, *, dtype=None):
 
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
-    return Qobj(_data.zeros[dtype](N, 1), dims=dims, copy=False)
+    dimensions = _to_space(dimensions)
+    N = dimensions.size
+    return Qobj(_data.zeros[dtype](N, 1),
+                dims=[dimensions, dimensions.scalar_like()], copy=False)
 
 
-def spin_state(j, m, type='ket', *, dtype=None):
+def spin_state(
+    j: float,
+    m: float,
+    type: Literal["ket", "bra", "dm"] = "ket",
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     r"""Generates the spin state :math:`\lvert j, m\rangle`, i.e. the
     eigenstate of the spin-j Sz operator with eigenvalue m.
 
@@ -995,7 +1123,7 @@ def spin_state(j, m, type='ket', *, dtype=None):
     j : float
         The spin of the state ().
 
-    m : int
+    m : float
         Eigenvalue of the spin-j Sz operator.
 
     type : string {'ket', 'bra', 'dm'}, default: 'ket'
@@ -1023,7 +1151,14 @@ def spin_state(j, m, type='ket', *, dtype=None):
         raise ValueError(f"Invalid value keyword argument type='{type}'")
 
 
-def spin_coherent(j, theta, phi, type='ket', *, dtype=None):
+def spin_coherent(
+    j: float,
+    theta: float,
+    phi: float,
+    type: Literal["ket", "bra", "dm"] = "ket",
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     r"""Generate the coherent spin state :math:`\lvert \theta, \phi\rangle`.
 
     Parameters
@@ -1072,7 +1207,11 @@ _BELL_STATES = {
     '11': np.sqrt(0.5) * (basis([2, 2], [0, 1]) - basis([2, 2], [1, 0])),
 }
 
-def bell_state(state='00', *, dtype=None):
+def bell_state(
+    state: Literal["00", "01", "10", "11"] = "00",
+    *,
+    dtype: LayerType = None,
+) -> Qobj:
     r"""
     Returns the selected Bell state:
 
@@ -1108,7 +1247,7 @@ def bell_state(state='00', *, dtype=None):
     return _BELL_STATES[state].copy().to(dtype)
 
 
-def singlet_state(*, dtype=None):
+def singlet_state(*, dtype: LayerType = None) -> Qobj:
     r"""
     Returns the two particle singlet-state:
 
@@ -1133,7 +1272,7 @@ def singlet_state(*, dtype=None):
     return bell_state('11').to(dtype)
 
 
-def triplet_states(*, dtype=None):
+def triplet_states(*, dtype: LayerType = None) -> list[Qobj]:
     r"""
     Returns a list of the two particle triplet-states:
 
@@ -1154,22 +1293,27 @@ def triplet_states(*, dtype=None):
     trip_states : list
         2 particle triplet states
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     return [
         basis([2, 2], [1, 1], dtype=dtype),
-        np.sqrt(0.5) * (basis([2, 2], [0, 1], dtype=dtype) +
-                        basis([2, 2], [1, 0], dtype=dtype)),
+        (
+            np.sqrt(0.5) * (
+                basis([2, 2], [0, 1], dtype=dtype) +
+                basis([2, 2], [1, 0], dtype=dtype)
+            )
+        ).to(dtype),
         basis([2, 2], [0, 0], dtype=dtype),
     ]
 
 
-def w_state(N=3, *, dtype=None):
+def w_state(N_qubit: int, *, dtype: LayerType = None) -> Qobj:
     """
     Returns the N-qubit W-state:
         ``[ |100..0> + |010..0> + |001..0> + ... |000..1> ] / sqrt(n)``
 
     Parameters
     ----------
-    N : int, default: 3
+    N_qubit : int
         Number of qubits in state
 
     dtype : type or str, optional
@@ -1181,22 +1325,24 @@ def w_state(N=3, *, dtype=None):
     W : :obj:`.Qobj`
         N-qubit W-state
     """
-    inds = np.zeros(N, dtype=int)
+
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    inds = np.zeros(N_qubit, dtype=int)
     inds[0] = 1
-    state = basis([2]*N, list(inds), dtype=dtype)
-    for kk in range(1, N):
-        state += basis([2]*N, list(np.roll(inds, kk)), dtype=dtype)
-    return np.sqrt(1 / N) * state
+    state = basis([2]*N_qubit, list(inds), dtype=dtype)
+    for kk in range(1, N_qubit):
+        state += basis([2] * N_qubit, list(np.roll(inds, kk)), dtype=dtype)
+    return (np.sqrt(1 / N_qubit) * state).to(dtype)
 
 
-def ghz_state(N=3, *, dtype=None):
+def ghz_state(N_qubit: int, *, dtype: LayerType = None) -> Qobj:
     """
     Returns the N-qubit GHZ-state:
         ``[ |00...00> + |11...11> ] / sqrt(2)``
 
     Parameters
     ----------
-    N : int, default: 3
+    N_qubit : int
         Number of qubits in state
 
     dtype : type or str, optional
@@ -1208,5 +1354,11 @@ def ghz_state(N=3, *, dtype=None):
     G : qobj
         N-qubit GHZ-state
     """
-    return np.sqrt(0.5) * (basis([2]*N, [0]*N, dtype=dtype) +
-                           basis([2]*N, [1]*N, dtype=dtype))
+
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    return (
+        np.sqrt(0.5) * (
+            basis([2] * N_qubit, [0] * N_qubit, dtype=dtype) +
+            basis([2] * N_qubit, [1] * N_qubit, dtype=dtype)
+        )
+    ).to(dtype)

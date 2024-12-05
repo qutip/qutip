@@ -1,6 +1,7 @@
 __all__ = ['Bloch']
 
 import os
+from typing import Literal
 
 import numpy as np
 from numpy import (outer, cos, sin, ones)
@@ -169,8 +170,10 @@ class Bloch:
         # ---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_default_color = ['b', 'r', 'g', '#CC6600']
+        # Old variable used in V4 to customise the color of the points
+        self.point_color = None
         # List that stores the display colors for each set of points
-        self.point_color = []
+        self._inner_point_color = []
         # Size of point markers, default = 25
         self.point_size = [25, 32, 35, 45]
         # Shape of point markers, default = ['o','^','d','s']
@@ -308,11 +311,12 @@ class Bloch:
         self.vector_alpha = []
         self.annotations = []
         self.vector_color = []
-        self.point_color = []
+        self.point_color = None
         self._lines = []
         self._arcs = []
 
-    def add_points(self, points, meth='s', colors=None, alpha=1.0):
+    def add_points(self, points, meth: Literal['s', 'm', 'l'] = 's',
+                   colors=None, alpha=1.0):
         """Add a list of data points to bloch sphere.
 
         Parameters
@@ -360,15 +364,16 @@ class Bloch:
         self.point_style.append(meth)
         self.points.append(points)
         self.point_alpha.append(alpha)
-        self.point_color.append(colors)
+        self._inner_point_color.append(colors)
 
-    def add_states(self, state, kind='vector', colors=None, alpha=1.0):
+    def add_states(self, state, kind: Literal['vector', 'point'] = 'vector',
+                   colors=None, alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
 
         Parameters
         ----------
-        state : :obj:`.Qobj`
-            Input state vector.
+        state : :obj:`.Qobj` or array_like
+            Input state vector or list.
 
         kind : {'vector', 'point'}
             Type of object to plot.
@@ -379,10 +384,27 @@ class Bloch:
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
         """
-        if isinstance(state, Qobj):
-            state = [state]
-        if not isinstance(colors, (list, np.ndarray)) and colors is not None:
-            colors = [colors]
+        state = np.asarray(state)
+
+        if state.ndim == 0:
+            state = state[np.newaxis]
+
+        if state.ndim != 1:
+            raise ValueError("The included states are not valid. "
+                             "State should be a Qobj or a list of Qobj.")
+
+        if colors is not None:
+            colors = np.asarray(colors)
+
+            if colors.ndim == 0:
+                colors = colors[np.newaxis]
+
+            if colors.shape != state.shape:
+                raise ValueError("The included colors are not valid. "
+                                 "colors must be equivalent to a 1D array "
+                                 "with the same size as the number of states.")
+        else:
+            colors = np.array([None] * state.size)
 
         for k, st in enumerate(state):
             vec = [expect(sigmax(), st),
@@ -390,15 +412,9 @@ class Bloch:
                    expect(sigmaz(), st)]
 
             if kind == 'vector':
-                if colors is not None:
-                    self.add_vectors(vec, colors=colors[k], alpha=alpha)
-                else:
-                    self.add_vectors(vec)
+                self.add_vectors(vec, colors=[colors[k]], alpha=alpha)
             elif kind == 'point':
-                if colors is not None:
-                    self.add_points(vec, colors=colors[k], alpha=alpha)
-                else:
-                    self.add_points(vec)
+                self.add_points(vec, colors=[colors[k]], alpha=alpha)
 
     def add_vectors(self, vectors, colors=None, alpha=1.0):
         """Add a list of vectors to Bloch sphere.
@@ -792,19 +808,21 @@ class Bloch:
             dist = np.linalg.norm(points, axis=0)
             if not np.allclose(dist, dist[0], rtol=1e-12):
                 indperm = np.argsort(dist)
-                points = points[:, indperm]
             else:
                 indperm = np.arange(num_points)
 
             s = self.point_size[np.mod(k, len(self.point_size))]
             marker = self.point_marker[np.mod(k, len(self.point_marker))]
             style = self.point_style[k]
-            if self.point_color[k] is not None:
-                color = self.point_color[k]
+
+            if self._inner_point_color[k] is not None:
+                color = self._inner_point_color[k]
+            elif self.point_color is not None:
+                color = self.point_color
             elif self.point_style[k] in ['s', 'l']:
-                color = self.point_default_color[
+                color = [self.point_default_color[
                     k % len(self.point_default_color)
-                ]
+                ]]
             elif self.point_style[k] == 'm':
                 length = np.ceil(num_points/len(self.point_default_color))
                 color = np.tile(self.point_default_color, length.astype(int))
@@ -812,9 +830,9 @@ class Bloch:
                 color = list(color)
 
             if self.point_style[k] in ['s', 'm']:
-                self.axes.scatter(np.real(points[1]),
-                                  -np.real(points[0]),
-                                  np.real(points[2]),
+                self.axes.scatter(np.real(points[1][indperm]),
+                                  -np.real(points[0][indperm]),
+                                  np.real(points[2][indperm]),
                                   s=s,
                                   marker=marker,
                                   color=color,
@@ -824,6 +842,7 @@ class Bloch:
                                   )
 
             elif self.point_style[k] == 'l':
+                color = color[k % len(color)]
                 self.axes.plot(np.real(points[1]),
                                -np.real(points[0]),
                                np.real(points[2]),

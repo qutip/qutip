@@ -81,7 +81,7 @@ def _nq(dims):
     return nq
 
 
-def isqubitdims(dims):
+def isqubitdims(dims: list[list[int]] | list[list[list[int]]]) -> bool:
     """
     Checks whether all entries in a dims list are integer powers of 2.
 
@@ -138,31 +138,46 @@ def _choi_to_kraus(q_oper, tol=1e-9):
 # Individual conversions from Kraus operators are public because the output
 # list of Kraus operators is not itself a quantum object.
 
-def kraus_to_choi(kraus_list):
-    """
-    Take a list of Kraus operators and returns the Choi matrix for the channel
-    represented by the Kraus operators in `kraus_list`.
+def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
+    r"""
+    Convert a list of Kraus operators into Choi representation of the channel.
+
+    Essentially, kraus operators are a decomposition of a Choi matrix,
+    and its reconstruction from them should go as
+    :math:`E = \sum_{i} |K_i\rangle\rangle \langle\langle K_i|`,
+    where we use vector representation of Kraus operators.
 
     Parameters
     ----------
-    kraus_list : list of Qobj
-        The list of Kraus super operators to convert.
+    kraus_ops : list[Qobj]
+        The list of Kraus operators to be converted to Choi representation.
+
+    Returns
+    -------
+    choi : Qobj
+        A quantum object representing the same map as ``kraus_ops``, such that
+        ``choi.superrep == "choi"``.
     """
-    kraus_mat_list = [k.full() for k in kraus_list]
-    op_rng = list(range(kraus_mat_list[0].shape[1]))
-    choi_blocks = np.array(
-        [[sum(op[:, c_ix, None] @ np.conj(op[None, :, r_ix])
-              for op in kraus_mat_list)
-          for r_ix in op_rng]
-         for c_ix in op_rng]
+    len_op = np.prod(kraus_ops[0].shape)
+    # If Kraus ops have dims [M, N] in qutip notation (act on [N, N] density
+    # matrix and produce [M, M] d.m.), Choi matrix Hilbert space will
+    # be [[M, N], [M, N]] because Choi Hilbert space
+    # is (output space) x (input space).
+    choi_dims = [kraus_ops[0].dims] * 2
+    # transform a list of Qobj matrices list[sum_ij k_ij |i><j|]
+    # into an array of array vectors sum_ij k_ij |i, j>> = sum_I k_I |I>>
+    kraus_vectors = np.asarray([
+        np.reshape(kraus_op.full(), len_op, order="F")
+        for kraus_op in kraus_ops
+    ])
+    # sum_{I} |k_I|^2 |I>><<I|
+    choi_array = np.tensordot(
+        kraus_vectors, kraus_vectors.conj(), axes=([0], [0])
     )
-    return Qobj(np.hstack(np.hstack(choi_blocks)),
-                dims=[kraus_list[0].dims[::-1]]*2,
-                superrep='choi',
-                copy=False)
+    return Qobj(choi_array, choi_dims, superrep="choi", copy=False)
 
 
-def kraus_to_super(kraus_list, sparse=False):
+def kraus_to_super(kraus_list: list[Qobj], sparse=False) -> Qobj:
     """
     Convert a list of Kraus operators to a superoperator.
 
@@ -196,7 +211,9 @@ def _super_tofrom_choi(q_oper):
     d1 = np.prod(flatten(new_dims[1]))
     s0 = np.prod(dims[0][0])
     s1 = np.prod(dims[1][1])
-    data = data.reshape([s0, s1, s0, s1]).transpose(3, 1, 2, 0).reshape(d0, d1)
+    data = (
+        data.reshape([s0, s1, s0, s1]).transpose(3, 1, 2, 0).reshape([d0, d1])
+    )
     return Qobj(data,
                 dims=new_dims,
                 superrep='super' if q_oper.superrep == 'choi' else 'choi',
@@ -337,7 +354,7 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
     return A, B
 
 
-def to_choi(q_oper):
+def to_choi(q_oper: Qobj) -> Qobj:
     """
     Converts a Qobj representing a quantum map to the Choi representation,
     such that the trace of the returned operator is equal to the dimension
@@ -380,7 +397,7 @@ def to_choi(q_oper):
         )
 
 
-def to_chi(q_oper):
+def to_chi(q_oper: Qobj) -> Qobj:
     """
     Converts a Qobj representing a quantum map to a representation as a chi
     (process) matrix in the Pauli basis, such that the trace of the returned
@@ -423,7 +440,7 @@ def to_chi(q_oper):
         )
 
 
-def to_super(q_oper):
+def to_super(q_oper: Qobj) -> Qobj:
     """
     Converts a Qobj representing a quantum map to the supermatrix (Liouville)
     representation.
@@ -467,7 +484,7 @@ def to_super(q_oper):
         )
 
 
-def to_kraus(q_oper, tol=1e-9):
+def to_kraus(q_oper: Qobj, tol: float=1e-9) -> list[Qobj]:
     """
     Converts a Qobj representing a quantum map to a list of quantum objects,
     each representing an operator in the Kraus decomposition of the given map.
@@ -506,7 +523,7 @@ def to_kraus(q_oper, tol=1e-9):
     )
 
 
-def to_stinespring(q_oper, threshold=1e-10):
+def to_stinespring(q_oper: Qobj, threshold: float=1e-10) -> tuple[Qobj, Qobj]:
     r"""
     Converts a Qobj representing a quantum map :math:`\Lambda` to a pair of
     partial isometries ``A`` and ``B`` such that

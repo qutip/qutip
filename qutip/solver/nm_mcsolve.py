@@ -1,20 +1,27 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
-import functools
 import numbers
-
+from typing import Any
+from collections.abc import Sequence
 import numpy as np
+from numpy.typing import ArrayLike
+from numpy.random import SeedSequence
 import scipy
 
 from .multitraj import MultiTrajSolver
+from .multitrajresult import NmmcResult
 from .mcsolve import MCSolver, MCIntegrator
 from .mesolve import MESolver, mesolve
-from .result import NmmcResult, NmmcTrajectoryResult
+from .solver_base import _kwargs_migration
 from .cy.nm_mcsolve import RateShiftCoefficient, SqrtRealCoefficient
-from ..core.coefficient import ConstantCoefficient
+from ..core.coefficient import ConstantCoefficient, Coefficient
 from ..core import (
     CoreOptions, Qobj, QobjEvo, isket, ket2dm, qeye, coefficient,
 )
+from ..typing import QobjEvoLike, EopsLike, CoefficientLike
 
 
 # The algorithm implemented here is based on the influence martingale approach
@@ -26,9 +33,23 @@ from ..core import (
 #     https://arxiv.org/abs/2209.08958
 
 
-def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
-               args=None, options=None, seeds=None, target_tol=None,
-               timeout=None):
+def nm_mcsolve(
+    H: QobjEvoLike,
+    state: Qobj,
+    tlist: ArrayLike,
+    ops_and_rates: list[tuple[Qobj, CoefficientLike]] = (),
+    _e_ops = None,
+    _ntraj = None,
+    *,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    ntraj: int = 500,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+    seeds: int | SeedSequence | list[int | SeedSequence] = None,
+    target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
+    timeout: float = None,
+    **kwargs,
+) -> NmmcResult:
     """
     Monte-Carlo evolution corresponding to a Lindblad equation with "rates"
     that may be negative. Usage of this function is analogous to ``mcsolve``,
@@ -45,7 +66,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         operators are to be treated deterministically.
 
     state : :class:`.Qobj`
-        Initial state vector.
+        Initial state vector or density matrix.
 
     tlist : array_like
         Times at which results are recorded.
@@ -60,10 +81,10 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         specified using any format accepted by
         :func:`~qutip.core.coefficient.coefficient`.
 
-    e_ops : list, optional
-        A ``list`` of operator as Qobj, QobjEvo or callable with signature of
-        (t, state: Qobj) for calculating expectation values. When no ``e_ops``
-        are given, the solver will default to save the states.
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single operator, or list or dict of operators, for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
 
     ntraj : int, default: 500
         Maximum number of trajectories to run. Can be cut short if a time limit
@@ -83,8 +104,6 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
           | Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
-        - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
@@ -96,20 +115,18 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         - | atol, rtol : float
           | Absolute and relative tolerance of the ODE integrator.
         - | nsteps : int
-          | Maximum number of (internally defined) steps allowed in one ``tlist``
-            step.
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
         - | max_step : float
-          | Maximum lenght of one internal step. When using pulses, it should be
-            less than half the width of the thinnest pulse.
+          | Maximum length of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
         - | keep_runs_results : bool, [False]
           | Whether to store results from all trajectories or just store the
             averages.
-        - | map : str {"serial", "parallel", "loky"}
-          | How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
-        - | job_timeout : int
-          | Maximum time to compute one trajectory.
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
         - | num_cpus : int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -118,22 +135,27 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
             ``norm_tol`` are the tolerance in time and norm respectively.
             An error will be raised if the collapse could not be found within
             ``norm_steps`` tries.
-        - | mc_corr_eps : float
-          | Small number used to detect non-physical collapse caused by
-            numerical imprecision.
         - | improved_sampling : Bool
           | Whether to use the improved sampling algorithm from Abdelhafez et
             al. PRA (2019)
+        - | mc_corr_eps : float
+          | Small number used to detect non-physical collapse caused by
+            numerical imprecision.
         - | completeness_rtol, completeness_atol : float, float
           | Parameters used in determining whether the given Lindblad operators
             satisfy a certain completeness relation. If they do not, an
             additional Lindblad operator is added automatically (with zero
             rate).
         - | martingale_quad_limit : float or int
-            An upper bound on the number of subintervals used in the adaptive
+          | An upper bound on the number of subintervals used in the adaptive
             integration of the martingale.
 
         Note that the 'improved_sampling' option is not currently supported.
+        Additional options are listed under `options
+        <./classes.html#qutip.solver.nm_mcsolve.NonMarkovianMCSolver.options>`__.
+        More options may be available depending on the selected
+        differential equation integration method, see
+        `Integrator <./classes.html#classes-ode>`_.
 
     seeds : int, SeedSequence, list, optional
         Seed for the random number generator. It can be a single seed used to
@@ -163,8 +185,12 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
         ``trace`` (and ``runs_trace`` if ``store_final_state`` is set). Note
         that the states on the individual trajectories are not normalized. This
         field contains the average of their trace, which will converge to one
-        in the limit of sufficiently many trajectories.
+        in the limit of sufficiently many trajectories. If the initial
+        condition is mixed, the result has additional attributes
+        ``initial_states`` and ``ntraj_per_initial_state``.
     """
+    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
+    ntraj = _kwargs_migration(_ntraj, ntraj, "ntraj")
     H = QobjEvo(H, args=args, tlist=tlist)
 
     if len(ops_and_rates) == 0:
@@ -186,7 +212,7 @@ def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
 
     nmmc = NonMarkovianMCSolver(H, ops_and_rates, options=options)
     result = nmmc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
-                      seed=seeds, target_tol=target_tol, timeout=timeout)
+                      seeds=seeds, target_tol=target_tol, timeout=timeout)
     return result
 
 
@@ -194,10 +220,7 @@ def _parse_op_and_rate(op, rate, **kw):
     """ Sanity check the op and convert rates to coefficients. """
     if not isinstance(op, Qobj):
         raise ValueError("NonMarkovianMCSolver ops must be of type Qobj")
-    if isinstance(rate, numbers.Number):
-        rate = ConstantCoefficient(rate)
-    else:
-        rate = coefficient(rate, **kw)
+    rate = coefficient(rate, **kw)
     return op, rate
 
 
@@ -219,7 +242,10 @@ class InfluenceMartingale:
         #  to pre-compute the continuous contribution to the martingale
         self._t_prev = t0
         self._continuous_martingale_at_t_prev = 1
-        self._discrete_martingale = 1
+
+        # _discrete_martingale is a list of (time, factor) such that
+        # mu_d(t) is the product of all factors with time < t
+        self._discrete_martingale = []
 
         if np.array_equal(cache, 'clear'):
             self._precomputed_continuous_martingale = {}
@@ -241,7 +267,7 @@ class InfluenceMartingale:
         rate = self._nm_solver.rate(collapse_time, collapse_channel)
         shift = self._nm_solver.rate_shift(collapse_time)
         factor = rate / (rate + shift)
-        self._discrete_martingale *= factor
+        self._discrete_martingale.append((collapse_time, factor))
 
     def value(self, t):
         if self._t_prev is None:
@@ -258,7 +284,13 @@ class InfluenceMartingale:
         self._t_prev = t
         self._continuous_martingale_at_t_prev = mu_c
 
-        return self._discrete_martingale * mu_c
+        # find value of discrete martingale at given time
+        mu_d = 1
+        for time, factor in self._discrete_martingale:
+            if t > time:
+                mu_d *= factor
+
+        return mu_d * mu_c
 
     def _compute_continuous_martingale(self, t1, t2):
         if t1 == t2:
@@ -315,57 +347,70 @@ class NonMarkovianMCSolver(MCSolver):
         is a :class:`.Qobj` and ``Gamma`` represents the corresponding
         rate, which is allowed to be negative. The Lindblad operators must be
         operators even if ``H`` is a superoperator. Each rate ``Gamma`` may be
-        just a number (in the case of a constant rate) or, otherwise, specified
-        using any format accepted by :func:`qutip.coefficient`.
-
-    args : None / dict
-        Arguments for time-dependent Hamiltonian and collapse operator terms.
+        just a number (in the case of a constant rate) or, otherwise, a
+        :class:`~qutip.core.cy.Coefficient`.
 
     options : SolverOptions, [optional]
         Options for the evolution.
-
-    seed : int, SeedSequence, list, [optional]
-        Seed for the random number generator. It can be a single seed used to
-        spawn seeds for each trajectory or a list of seed, one for each
-        trajectory. Seeds are saved in the result and can be reused with::
-
-            seeds=prev_result.seeds
     """
     name = "nm_mcsolve"
     _resultclass = NmmcResult
     solver_options = {
-        **MCSolver.solver_options,
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "keep_runs_results": False,
+        "map": "serial",
+        "mpi_options": {},
+        "num_cpus": None,
+        "bitgenerator": None,
+        "method": "adams",
+        "mc_corr_eps": 1e-10,
+        "norm_steps": 5,
+        "norm_t_tol": 1e-6,
+        "norm_tol": 1e-4,
+        "improved_sampling": False,
         "completeness_rtol": 1e-5,
         "completeness_atol": 1e-8,
         "martingale_quad_limit": 100,
     }
-    del solver_options["improved_sampling"]
-
-    # both classes will be partially initialized in constructor
-    _trajectory_resultclass = NmmcTrajectoryResult
-    _mc_integrator_class = NmMCIntegrator
 
     def __init__(
-        self, H, ops_and_rates, *_args, args=None, options=None, **kwargs,
+        self,
+        H: Qobj | QobjEvo,
+        ops_and_rates: Sequence[tuple[Qobj, float | Coefficient]],
+        *,
+        options: dict[str, Any] = None,
     ):
         self.options = options
 
-        ops_and_rates = [
-            _parse_op_and_rate(op, rate, args=args or {})
-            for op, rate in ops_and_rates
-        ]
-        a_parameter, L = self._check_completeness(ops_and_rates)
-        if L is not None:
-            ops_and_rates.append((L, ConstantCoefficient(0)))
+        self.ops = []
+        self._rates = []
 
-        self.ops = [op for op, _ in ops_and_rates]
+        for op, rate in ops_and_rates:
+            if not isinstance(op, Qobj):
+                raise ValueError("ops_and_rates' ops must be Qobj")
+            if isinstance(rate, numbers.Number):
+                rate = ConstantCoefficient(rate)
+            if not isinstance(rate, Coefficient):
+                raise ValueError(
+                    "ops_and_rates' rates must be scalar or Coefficient"
+                )
+            self.ops.append(op)
+            self._rates.append(rate)
+
+        a_parameter, L = self._check_completeness(self.ops)
+        if L is not None:
+            self.ops.append(L)
+            self._rates.append(ConstantCoefficient(0))
+
         self._martingale = InfluenceMartingale(
             self, a_parameter, self.options["martingale_quad_limit"]
         )
 
         # Many coefficients. These should not be publicly exposed
         # and will all need to be updated in _arguments():
-        self._rates = [rate for _, rate in ops_and_rates]
         self._rate_shift = RateShiftCoefficient(self._rates)
         self._sqrt_shifted_rates = [
             SqrtRealCoefficient(rate + self._rate_shift)
@@ -377,15 +422,12 @@ class NonMarkovianMCSolver(MCSolver):
             for op, sqrt_shifted_rate
             in zip(self.ops, self._sqrt_shifted_rates)
         ]
-        self._trajectory_resultclass = functools.partial(
-            NmmcTrajectoryResult, __nm_solver=self,
-        )
-        self._mc_integrator_class = functools.partial(
-            NmMCIntegrator, __martingale=self._martingale,
-        )
-        super().__init__(H, c_ops, *_args, options=options, **kwargs)
+        super().__init__(H, c_ops, options=options)
 
-    def _check_completeness(self, ops_and_rates):
+    def _mc_integrator_class(self, *args):
+        return NmMCIntegrator(*args, __martingale=self._martingale)
+
+    def _check_completeness(self, ops):
         """
         Checks whether ``sum(Li.dag() * Li)`` is proportional to the identity
         operator. If not, creates an extra Lindblad operator so that it is.
@@ -393,7 +435,7 @@ class NonMarkovianMCSolver(MCSolver):
         Returns the proportionality factor a, and the extra Lindblad operator
         (or None if no extra Lindblad operator is necessary).
         """
-        op = sum((L.dag() * L) for L, _ in ops_and_rates)
+        op = sum((L.dag() * L) for L in ops)
 
         a_candidate = op.tr() / op.shape[0]
         with CoreOptions(rtol=self.options["completeness_rtol"],
@@ -422,6 +464,11 @@ class NonMarkovianMCSolver(MCSolver):
             rate.replace_arguments(args) for rate in self._sqrt_shifted_rates
         ]
         super()._argument(args)
+
+    def add_feedback(self, key, type):
+        raise NotImplementedError(
+            "NM mcsolve does not support feedback currently."
+        )
 
     def rate_shift(self, t):
         """
@@ -501,34 +548,51 @@ class NonMarkovianMCSolver(MCSolver):
     # the run.
     #
     # Regarding (b), in the start/step-interface we just include the martingale
-    # in the step method. In order to include the martingale in the
-    # run-interface, we use a custom trajectory-resultclass that grabs the
-    # martingale value from the NonMarkovianMCSolver whenever a state is added.
+    # in the step method. In the run-interface, the martingale is added as a
+    # relative weight to the trajectory result at the end of `_run_one_traj`.
 
-    def start(self, state, t0, seed=None):
+    def start(self, state: Qobj, t0: float, seed: int | SeedSequence = None):
         self._martingale.initialize(t0, cache='clear')
         return super().start(state, t0, seed=seed)
 
     # The returned state will be a density matrix with trace=mu the martingale
-    def step(self, t, *, args=None, copy=True):
+    def step(
+        self, t: float, *, args: dict[str, Any] = None, copy: bool = True
+    ) -> Qobj:
         state = super().step(t, args=args, copy=copy)
         if isket(state):
             state = ket2dm(state)
         return state * self.current_martingale()
 
-    def run(self, state, tlist, *args, **kwargs):
+    def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
+        """
+        Run one trajectory and return the result.
+        """
+        seed, result, weight = super()._run_one_traj(seed, state, tlist, e_ops,
+                                                     **integrator_kwargs)
+        result.trace = [self._martingale.value(t) for t in tlist]
+        return seed, result, weight
+
+    def run(
+        self,
+        state: Qobj,
+        tlist: ArrayLike,
+        ntraj: int = 1,
+        *,
+        args: dict[str, Any] = None,
+        **kwargs
+    ):
         # update `args` dictionary before precomputing martingale
-        if 'args' in kwargs:
-            self._argument(kwargs.pop('args'))
+        self._argument(args)
 
         self._martingale.initialize(tlist[0], cache=tlist)
-        result = super().run(state, tlist, *args, **kwargs)
+        result = super().run(state, tlist, ntraj, **kwargs)
         self._martingale.reset()
 
         return result
 
     @property
-    def options(self):
+    def options(self) -> dict[str, Any]:
         """
         Options for non-Markovian Monte Carlo solver:
 
@@ -551,19 +615,22 @@ class NonMarkovianMCSolver(MCSolver):
             ``chunk_size``.
 
         keep_runs_results: bool, default: False
-          Whether to store results from all trajectories or just store the
-          averages.
+            Whether to store results from all trajectories or just store the
+            averages.
 
         method: str, default: "adams"
-            Which ODE integrator methods are supported.
+            Which differential equation integration method to use.
 
-        map: str {"serial", "parallel", "loky"}, default: "serial"
-            How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
+            How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
 
-        job_timeout: None, int
-            Maximum time to compute one trajectory.
+        mpi_options: dict, default: {}
+            Only applies if map is "mpi". This dictionary will be passed as
+            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
+            constructor. Note that the `max_workers` argument is provided
+            separately through the `num_cpus` option.
 
         num_cpus: None, int
             Number of cpus to use when running in parallel. ``None`` detect the
@@ -586,6 +653,10 @@ class NonMarkovianMCSolver(MCSolver):
         norm_steps: int, default: 5
             Maximum number of tries to find the collapse.
 
+        improved_sampling: Bool, default: False
+            Whether to use the improved sampling algorithm
+            of Abdelhafez et al. PRA (2019)
+
         completeness_rtol: float, default: 1e-5
             Used in determining whether the given Lindblad operators satisfy
             a certain completeness relation. If they do not, an additional
@@ -605,7 +676,7 @@ class NonMarkovianMCSolver(MCSolver):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict[str, Any]):
         MCSolver.options.fset(self, new_options)
 
     start.__doc__ = MultiTrajSolver.start.__doc__

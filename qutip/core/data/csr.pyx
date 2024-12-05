@@ -12,16 +12,23 @@ from cpython cimport mem
 
 import numbers
 import warnings
-
+import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
 from scipy.sparse import csr_matrix as scipy_csr_matrix
-try:
-    from scipy.sparse.data import _data_matrix as scipy_data_matrix
-except ImportError:
+from functools import partial
+from packaging.version import parse as parse_version
+if parse_version(scipy.version.version) >= parse_version("1.14.0"):
+    from scipy.sparse._data import _data_matrix as scipy_data_matrix
+    # From scipy 1.14.0, a check that the input is not scalar was added for
+    # sparse arrays.
+    scipy_data_matrix = partial(scipy_data_matrix, arg1=(0,))
+elif parse_version(scipy.version.version) >= parse_version("1.8.0"):
     # The file data was renamed to _data from scipy 1.8.0
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
+else:
+    from scipy.sparse.data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, Dia
@@ -78,7 +85,7 @@ cdef class CSR(base.Data):
         # single flag that is set as soon as the pointers are assigned.
         self._deallocate = True
 
-    def __init__(self, arg=None, shape=None, bint copy=True, bint tidyup=False):
+    def __init__(self, arg=None, shape=None, copy=True, bint tidyup=False):
         # This is the Python __init__ method, so we do not care that it is not
         # super-fast C access.  Typically Cython code will not call this, but
         # will use a factory method in this module or at worst, call
@@ -100,6 +107,9 @@ cdef class CSR(base.Data):
             raise TypeError("arg must be a scipy matrix or tuple")
         if len(arg) != 3:
             raise ValueError("arg must be a (data, col_index, row_index) tuple")
+        if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
+            # np2 accept None which act as np1's False
+            copy = builtins.bool(copy)
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
         col_index = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
         row_index = np.array(arg[2], dtype=idxint_dtype, copy=copy, order='C')
@@ -530,9 +540,21 @@ cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
         <base.idxint *> PyDataMem_NEW(size * sizeof(base.idxint))
     out.row_index =\
         <base.idxint *> PyDataMem_NEW(row_size * sizeof(base.idxint))
-    if not out.data: raise MemoryError()
-    if not out.col_index: raise MemoryError()
-    if not out.row_index: raise MemoryError()
+    if not out.data:
+        raise MemoryError(
+            f"Failed to allocate the `data` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
+    if not out.col_index:
+        raise MemoryError(
+            f"Failed to allocate the `col_index` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
+    if not out.row_index:
+        raise MemoryError(
+            f"Failed to allocate the `row_index` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
     # Set the number of non-zero elements to 0.
     out.row_index[rows] = 0
     return out
@@ -604,7 +626,10 @@ cdef CSR from_coo_pointers(
     data_tmp = <double complex *> mem.PyMem_Malloc(nnz * sizeof(double complex))
     cols_tmp = <base.idxint *> mem.PyMem_Malloc(nnz * sizeof(base.idxint))
     if data_tmp == NULL or cols_tmp == NULL:
-        raise MemoryError
+        raise MemoryError(
+            f"Failed to allocate the memory needed for a ({n_rows}, {n_cols}) "
+            f"CSR array with {nnz} elements."
+        )
     with nogil:
         memset(out.row_index, 0, (n_rows + 1) * sizeof(base.idxint))
         for ptr_in in range(nnz):

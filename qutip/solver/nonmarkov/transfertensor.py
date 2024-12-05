@@ -15,7 +15,7 @@ import time
 from qutip import spre, vector_to_operator, operator_to_vector, Result
 
 
-def ttmsolve(dynmaps, state0, times, e_ops=[], num_learning=0, options=None):
+def ttmsolve(dynmaps, state0, times, e_ops=(), num_learning=0, options=None):
     """
     Expand time-evolution using the Transfer Tensor Method [1]_, based on a set
     of precomputed dynamical maps.
@@ -71,7 +71,7 @@ def ttmsolve(dynmaps, state0, times, e_ops=[], num_learning=0, options=None):
     opt = {
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": "ket",
+        "normalize_output": True,
         "threshold": 0.0,
         "num_learning": 0,
     }

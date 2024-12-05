@@ -10,5 +10,12 @@ complete list of QuTiP's public classes and functions.
 .. toctree::
    :maxdepth: 3
 
-   classes.rst 
-   functions.rst
+   quantumobject.rst
+   time_dep.rst
+   solver.rst
+   environments.rst
+   heom.rst
+   piqs.rst
+   visualization.rst
+   utilities.rst
+   experimental.rst

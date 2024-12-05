@@ -5,7 +5,7 @@ from libc.string cimport memcpy
 cimport cython
 
 import numbers
-
+import builtins
 import numpy as np
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
@@ -37,9 +37,13 @@ __all__ = [
 class OrderEfficiencyWarning(EfficiencyWarning):
     pass
 
+is_numpy1 = np.lib.NumpyVersion(np.__version__) < '2.0.0b1'
 
 cdef class Dense(base.Data):
     def __init__(self, data, shape=None, copy=True):
+        if is_numpy1:
+            # np2 accept None which act as np1's False
+            copy = builtins.bool(copy)
         base = np.array(data, dtype=np.complex128, order='K', copy=copy)
         # Ensure that the array is contiguous.
         # Non contiguous array with copy=False would otherwise slip through
@@ -120,7 +124,11 @@ cdef class Dense(base.Data):
         cdef Dense out = Dense.__new__(Dense)
         cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
-        if not ptr: raise MemoryError()
+        if not ptr:
+            raise MemoryError(
+                "Could not allocate memory to copy a "
+                f"({self.shape[0]}, {self.shape[1]}) Dense matrix."
+            )
         memcpy(ptr, self.data, size)
         out.shape = self.shape
         out.data = ptr
@@ -131,8 +139,8 @@ cdef class Dense(base.Data):
     cdef void _fix_flags(self, object array, bint make_owner=False):
         cdef int enable = cnp.NPY_ARRAY_OWNDATA if make_owner else 0
         cdef int disable = 0
-        cdef cnp.Py_intptr_t *dims = cnp.PyArray_DIMS(array)
-        cdef cnp.Py_intptr_t *strides = cnp.PyArray_STRIDES(array)
+        cdef cnp.npy_intp *dims = cnp.PyArray_DIMS(array)
+        cdef cnp.npy_intp *strides = cnp.PyArray_STRIDES(array)
         # Not necessary when creating a new array because this will already
         # have been done, but needed for as_ndarray() if we have been mutated.
         dims[0] = self.shape[0]
@@ -163,7 +171,11 @@ cdef class Dense(base.Data):
         """
         cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
-        if not ptr: raise MemoryError()
+        if not ptr:
+            raise MemoryError(
+                "Could not allocate memory to convert to a numpy array a "
+                f"({self.shape[0]}, {self.shape[1]}) Dense matrix."
+            )
         memcpy(ptr, self.data, size)
         cdef object out =\
             cnp.PyArray_SimpleNewFromData(2, [self.shape[0], self.shape[1]],
@@ -246,7 +258,11 @@ cpdef Dense empty(base.idxint rows, base.idxint cols, bint fortran=True):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
     out.data = <double complex *> PyDataMem_NEW(rows * cols * sizeof(double complex))
-    if not out.data: raise MemoryError()
+    if not out.data:
+        raise MemoryError(
+            "Could not allocate memory to create an empty "
+            f"({rows}, {cols}) Dense matrix."
+        )
     out._deallocate = True
     out.fortran = fortran
     return out
@@ -267,7 +283,11 @@ cpdef Dense zeros(base.idxint rows, base.idxint cols, bint fortran=True):
     out.shape = (rows, cols)
     out.data =\
         <double complex *> PyDataMem_NEW_ZEROED(rows * cols, sizeof(double complex))
-    if not out.data: raise MemoryError()
+    if not out.data:
+        raise MemoryError(
+            "Could not allocate memory to create a zero "
+            f"({rows}, {cols}) Dense matrix."
+        )
     out.fortran = fortran
     out._deallocate = True
     return out
@@ -294,7 +314,11 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
         <double complex *>
         PyDataMem_NEW_ZEROED(out.shape[0]*out.shape[1], sizeof(double complex))
     )
-    if not out.data: raise MemoryError()
+    if not out.data:
+        raise MemoryError(
+            "Could not allocate memory to create a "
+            f"({out.shape[0]}, {out.shape[1]}) Dense matrix from a CSR."
+        )
     out.fortran = fortran
     out._deallocate = True
     cdef size_t row, ptr_in, ptr_out, row_stride, col_stride

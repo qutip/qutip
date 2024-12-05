@@ -66,9 +66,10 @@ def test_converters(from_, base, to_, dtype):
 
 dtype_names = list(data.to._str2type.keys()) + list(data.to.dtypes)
 dtype_types = list(data.to._str2type.values()) + list(data.to.dtypes)
-@pytest.mark.parametrize(['input', 'type_'], zip(dtype_names, dtype_types),
+dtype_combinations = list(zip(dtype_names, dtype_types))
+@pytest.mark.parametrize(['input', 'type_'], dtype_combinations,
                          ids=[str(dtype) for dtype in dtype_names])
-def test_parse_error(input, type_):
+def test_parse(input, type_):
     assert data.to.parse(input) is type_
 
 

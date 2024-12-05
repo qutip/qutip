@@ -1,37 +1,50 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
-from .sode.ssystem import *
-from .result import MultiTrajResult, Result, ExpectOp
-from .multitraj import MultiTrajSolver
-from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator
 import numpy as np
-from collections.abc import Iterable
+from numpy.typing import ArrayLike
+from numpy.random import SeedSequence
+from typing import Any, Callable, Literal, overload
 from functools import partial
+from time import time
+from collections.abc import Sequence
+from .multitrajresult import MultiTrajResult
+from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
+from .sode._noise import PreSetWiener
+from .result import Result, ExpectOp
+from .multitraj import _MultiTrajRHS, MultiTrajSolver
+from .. import Qobj, QobjEvo
+from ..core.dimensions import Dimensions
+from ..core import data as _data
 from .solver_base import _solver_deprecation
+from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
+from ..typing import QobjEvoLike, EopsLike
+
 
 class StochasticTrajResult(Result):
     def _post_init(self, m_ops=(), dw_factor=(), heterodyne=False):
         super()._post_init()
-        self.W = []
-        self.m_ops = []
-        self.m_expect = []
-        self.dW_factor = dw_factor
+        self.noise = []
         self.heterodyne = heterodyne
-        for op in m_ops:
-            f = self._e_op_func(op)
-            self.W.append([0.0])
-            self.m_expect.append([])
-            self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
-            self.add_processor(self.m_ops[-1]._store)
+        if self.options["store_measurement"]:
+            self.m_ops = []
+            self.m_expect = []
+            self.dW_factor = dw_factor
+            for op in m_ops:
+                f = self._e_op_func(op)
+                self.m_expect.append([])
+                self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
+                self.add_processor(self.m_ops[-1]._store)
 
-    def add(self, t, state, noise):
+    def add(self, t, state, noise=None):
         super().add(t, state)
-        if noise is not None and self.options["store_measurement"]:
-            for i, dW in enumerate(noise):
-                self.W[i].append(self.W[i][-1] + dW)
+        if noise is not None:
+            self.noise.append(noise)
 
     @property
-    def wiener_process(self):
+    def wiener_process(self) -> np.typing.NDArray[float]:
         """
         Wiener processes for each stochastic collapse operators.
 
@@ -41,13 +54,17 @@ class StochasticTrajResult(Result):
             (len(sc_ops), 2, len(tlist))
         for heterodyne detection.
         """
-        W = np.array(self.W)
+        W = np.zeros(
+            (self.noise[0].shape[0], len(self.times)),
+            dtype=np.float64
+        )
+        np.cumsum(np.array(self.noise).T, axis=1, out=W[:, 1:])
         if self.heterodyne:
             W = W.reshape(-1, 2, W.shape[1])
         return W
 
     @property
-    def dW(self):
+    def dW(self) -> np.typing.NDArray[float]:
         """
         Wiener increment for each stochastic collapse operators.
 
@@ -57,13 +74,13 @@ class StochasticTrajResult(Result):
             (len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
         """
-        dw = np.diff(self.W, axis=1)
+        noise = np.array(self.noise).T
         if self.heterodyne:
-            dw = dw.reshape(-1, 2, dw.shape[1])
-        return dw
+            return noise.reshape(-1, 2, noise.shape[1])
+        return noise
 
     @property
-    def measurement(self):
+    def measurement(self) -> np.typing.NDArray[float]:
         """
         Measurements for each stochastic collapse operators.
 
@@ -73,20 +90,41 @@ class StochasticTrajResult(Result):
             (len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
         """
-        dts = np.diff(self.times)
-        m_expect = np.array(self.m_expect)[:, 1:]
-        noise = np.einsum(
-            "i,ij,j->ij", self.dW_factor, np.diff(self.W, axis=1), (1 / dts)
+        if not self.options["store_measurement"]:
+            return None
+        elif len(self.m_ops) == 0:
+            if self.heterodyne:
+                return np.empty(shape=(0, 2, len(self.times) - 1))
+            else:
+                return np.empty(shape=(0, len(self.times) - 1))
+        elif self.options["store_measurement"] == "start":
+            m_expect = np.array(self.m_expect)[:, :-1]
+        elif self.options["store_measurement"] == "middle":
+            m_expect = np.apply_along_axis(
+                lambda m: np.convolve(m, [0.5, 0.5], "valid"),
+                axis=1, arr=self.m_expect,
+            )
+        elif self.options["store_measurement"] in ["end", True]:
+            m_expect = np.array(self.m_expect)[:, 1:]
+        else:
+            raise ValueError(
+                "store_measurement must be in {'start', 'middle', 'end', ''}, "
+                f"not {self.options['store_measurement']}"
+            )
+        noise = np.array(self.noise).T
+        noise_scaled = np.einsum(
+            "i,ij,j->ij", self.dW_factor, noise, (1 / np.diff(self.times))
         )
         if self.heterodyne:
             m_expect = m_expect.reshape(-1, 2, m_expect.shape[1])
-            noise = noise.reshape(-1, 2, noise.shape[1])
-        return m_expect + noise
+            noise_scaled = noise_scaled.reshape(-1, 2, noise_scaled.shape[1])
+        return m_expect + noise_scaled
 
 
 class StochasticResult(MultiTrajResult):
-    def _post_init(self):
+    def _post_init(self, heterodyne=False):
         super()._post_init()
+        self.heterodyne = heterodyne
 
         store_measurement = self.options["store_measurement"]
         keep_runs = self.options["keep_runs_results"]
@@ -103,11 +141,12 @@ class StochasticResult(MultiTrajResult):
             self.add_processor(partial(self._reduce_attr, attr="measurement"))
             self._measurement = []
 
-    def _reduce_attr(self, trajectory, attr):
+    def _reduce_attr(self, trajectory, attr, *, rel=None, abs=None):
         """
         Add a result attribute to a list when the trajectories are not stored.
         """
-        getattr(self, "_" + attr).append(getattr(trajectory, attr))
+        if abs is None:
+            getattr(self, "_" + attr).append(getattr(trajectory, attr))
 
     def _trajectories_attr(self, attr):
         """
@@ -123,7 +162,7 @@ class StochasticResult(MultiTrajResult):
         return None
 
     @property
-    def measurement(self):
+    def measurement(self) -> np.typing.NDArray[float]:
         """
         Measurements for each trajectories and stochastic collapse operators.
 
@@ -136,7 +175,7 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("measurement")
 
     @property
-    def dW(self):
+    def dW(self) -> np.typing.NDArray[float]:
         """
         Wiener increment for each trajectories and stochastic collapse
         operators.
@@ -150,7 +189,7 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("dW")
 
     @property
-    def wiener_process(self):
+    def wiener_process(self) -> np.typing.NDArray[float]:
         """
         Wiener processes for each trajectories and stochastic collapse
         operators.
@@ -163,8 +202,36 @@ class StochasticResult(MultiTrajResult):
         """
         return self._trajectories_attr("wiener_process")
 
+    def merge(self, other: "StochasticResult", p: float = None) -> "StochasticResult":
+        if not isinstance(other, StochasticResult):
+            return NotImplemented
+        if self.stats["solver"] != other.stats["solver"]:
+            raise ValueError("Can't merge smesolve and ssesolve results")
+        if self.heterodyne != other.heterodyne:
+            raise ValueError("Can't merge heterodyne and homodyne results")
+        if p is not None:
+            raise ValueError(
+                "Stochastic solvers does not support custom weights"
+            )
+        new = super().merge(other, p)
 
-class _StochasticRHS:
+        if (
+            self.options["store_measurement"]
+            and other.options["store_measurement"]
+            and not new.trajectories
+        ):
+            new._measurement = np.concatenate(
+                (self.measurement, other.measurement), axis=0
+            )
+            new._wiener_process = np.concatenate(
+                (self.wiener_process, other.wiener_process), axis=0
+            )
+            new._dW = np.concatenate((self.dW, other.dW), axis=0)
+
+        return new
+
+
+class _StochasticRHS(_MultiTrajRHS):
     """
     In between object to store the stochastic system.
 
@@ -179,7 +246,7 @@ class _StochasticRHS:
     def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
 
         if not isinstance(H, (Qobj, QobjEvo)) or not H.isoper:
-            raise TypeError("The Hamiltonian must be am operator")
+            raise TypeError("The Hamiltonian must be an operator")
         self.H = QobjEvo(H)
 
         if isinstance(sc_ops, (Qobj, QobjEvo)):
@@ -198,6 +265,7 @@ class _StochasticRHS:
 
         self.issuper = issuper
         self.heterodyne = heterodyne
+        self._noise_key = None
 
         if heterodyne:
             sc_ops = []
@@ -208,8 +276,10 @@ class _StochasticRHS:
 
         if self.issuper and not self.H.issuper:
             self.dims = [self.H.dims, self.H.dims]
+            self._dims = Dimensions([self.H._dims, self.H._dims])
         else:
             self.dims = self.H.dims
+            self._dims = self.H._dims
 
     def __call__(self, options):
         if self.issuper:
@@ -219,12 +289,42 @@ class _StochasticRHS:
         else:
             return StochasticClosedSystem(self.H, self.sc_ops)
 
+    def arguments(self, args):
+        self.H.arguments(args)
+        for c_op in self.c_ops:
+            c_op.arguments(args)
+        for sc_op in self.sc_ops:
+            sc_op.arguments(args)
+
+    def _register_feedback(self, val):
+        self.H._register_feedback({"wiener_process": val}, "stochastic solver")
+        for c_op in self.c_ops:
+            c_op._register_feedback(
+                {"WienerFeedback": val}, "stochastic solver"
+            )
+        for sc_op in self.sc_ops:
+            sc_op._register_feedback(
+                {"WienerFeedback": val}, "stochastic solver"
+            )
+
 
 def smesolve(
-    H, rho0, tlist, c_ops=(), sc_ops=(), heterodyne=False, *,
-    e_ops=(), args={}, ntraj=500, options=None,
-    seeds=None, target_tol=None, timeout=None, **kwargs
-):
+    H: QobjEvoLike,
+    rho0: Qobj,
+    tlist: ArrayLike,
+    c_ops: Qobj | QobjEvo | Sequence[QobjEvoLike] = (),
+    sc_ops: Qobj | QobjEvo | Sequence[QobjEvoLike] = (),
+    heterodyne: bool = False,
+    *,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    args: dict[str, Any] = None,
+    ntraj: int = 500,
+    options: dict[str, Any] = None,
+    seeds: int | SeedSequence | Sequence[int | SeedSequence] = None,
+    target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
+    timeout: float = None,
+    **kwargs
+) -> StochasticResult:
     """
     Solve stochastic master equation.
 
@@ -248,11 +348,10 @@ def smesolve(
     sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    e_ops : : :class:`.qobj`, callable, or list, optional
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
-        Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`.expect` for more detail of operator expectation.
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single operator, or list or dict of operators, for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
 
     args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians and
@@ -296,14 +395,16 @@ def smesolve(
           | Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
-        - | store_measurement: bool
-          | Whether to store the measurement and wiener process for each
-            trajectories.
+        - | store_measurement: str, {'start', 'middle', 'end', ''}
+          | Whether and how to store the measurement for each trajectories.
+            'start', 'middle', 'end' indicate when in the interval the
+            expectation value of the ``m_ops`` is taken.
         - | keep_runs_results : bool
           | Whether to store results from all trajectories or just store the
             averages.
         - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
+          | Normalize output state to hide ODE numerical errors. Only normalize
+            the state if the initial state is already normalized.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
@@ -313,12 +414,10 @@ def smesolve(
         - | method : str
           | Which stochastic differential equation integration method to use.
             Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
-        - | map : str {"serial", "parallel", "loky"}
-          | How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
-        - | job_timeout : NoneType, int
-          | Maximum time to compute one trajectory.
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -326,8 +425,11 @@ def smesolve(
           | The finite steps lenght for the Stochastic integration method.
             Default change depending on the integrator.
 
-        Other options could be supported depending on the integration method,
-        see `SIntegrator <./classes.html#classes-sode>`_.
+        Additional options are listed under
+        `options <./classes.html#qutip.solver.stochastic.SMESolver.options>`__.
+        More options may be available depending on the selected
+        differential equation integration method, see
+        `SIntegrator <./classes.html#classes-sode>`_.
 
     Returns
     -------
@@ -337,6 +439,10 @@ def smesolve(
     """
     options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
+    if not isinstance(sc_ops, Sequence):
+        sc_ops = [sc_ops]
+    if not isinstance(c_ops, Sequence):
+        c_ops = [c_ops]
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
     sol = SMESolver(
@@ -344,15 +450,26 @@ def smesolve(
     )
     return sol.run(
         rho0, tlist, ntraj, e_ops=e_ops,
-        seed=seeds, target_tol=target_tol, timeout=timeout,
+        seeds=seeds, target_tol=target_tol, timeout=timeout,
     )
 
 
 def ssesolve(
-    H, psi0, tlist, sc_ops=(), heterodyne=False, *,
-    e_ops=(), args={}, ntraj=500, options=None,
-    seeds=None, target_tol=None, timeout=None, **kwargs
-):
+    H: QobjEvoLike,
+    psi0: Qobj,
+    tlist: ArrayLike,
+    sc_ops: QobjEvoLike | Sequence[QobjEvoLike] = (),
+    heterodyne: bool = False,
+    *,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    args: dict[str, Any] = None,
+    ntraj: int = 500,
+    options: dict[str, Any] = None,
+    seeds: int | SeedSequence | Sequence[int | SeedSequence] = None,
+    target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
+    timeout: float = None,
+    **kwargs
+) -> StochasticResult:
     """
     Solve stochastic Schrodinger equation.
 
@@ -372,11 +489,10 @@ def ssesolve(
     sc_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         List of stochastic collapse operators.
 
-    e_ops : :class:`.qobj`, callable, or list, optional
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
-        Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`expect` for more detail of operator expectation.
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single operator, or list or dict of operators, for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
 
     args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians and
@@ -418,14 +534,16 @@ def ssesolve(
           | Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
-        - | store_measurement: bool
-            Whether to store the measurement and wiener process, or brownian
-            noise for each trajectories.
+        - | store_measurement: str, {'start', 'middle', 'end', ''}
+          | Whether and how to store the measurement for each trajectories.
+            'start', 'middle', 'end' indicate when in the interval the
+            expectation value of the ``m_ops`` is taken.
         - | keep_runs_results : bool
           | Whether to store results from all trajectories or just store the
             averages.
         - | normalize_output : bool
-          | Normalize output state to hide ODE numerical errors.
+          | Normalize output state to hide ODE numerical errors. Only normalize
+            the state if the initial state is already normalized.
         - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
           | How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
@@ -435,12 +553,10 @@ def ssesolve(
         - | method : str
           | Which stochastic differential equation integration method to use.
             Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
-        - | map : str {"serial", "parallel", "loky"}
-            How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
-        - | job_timeout : NoneType, int
-          | Maximum time to compute one trajectory.
+        - | map : str {"serial", "parallel", "loky", "mpi"}
+          | How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -448,8 +564,11 @@ def ssesolve(
           | The finite steps lenght for the Stochastic integration method.
             Default change depending on the integrator.
 
-        Other options could be supported depending on the integration method,
-        see `SIntegrator <./classes.html#classes-sode>`_.
+        Additional options are listed under
+        `options <./classes.html#qutip.solver.stochastic.SSESolver.options>`__.
+        More options may be available depending on the selected
+        differential equation integration method, see
+        `SIntegrator <./classes.html#classes-sode>`_.
 
     Returns
     -------
@@ -459,11 +578,13 @@ def ssesolve(
     """
     options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
+    if not isinstance(sc_ops, Sequence):
+        sc_ops = [sc_ops]
     sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
     sol = SSESolver(H, sc_ops, options=options, heterodyne=heterodyne)
     return sol.run(
         psi0, tlist, ntraj, e_ops=e_ops,
-        seed=seeds, target_tol=target_tol, timeout=timeout,
+        seeds=seeds, target_tol=target_tol, timeout=timeout,
     )
 
 
@@ -473,26 +594,59 @@ class StochasticSolver(MultiTrajSolver):
     """
 
     name = "StochasticSolver"
-    _resultclass = StochasticResult
     _avail_integrators = {}
-    system = None
+    _open = None
+
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "taylor1.5",
         "map": "serial",
-        "job_timeout": None,
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": "",
     }
 
-    def __init__(self, H, sc_ops, heterodyne, *, c_ops=(), options=None):
-        self.options = options
+    def _resultclass(self, e_ops, options, solver, stats):
+        return StochasticResult(
+            e_ops,
+            options,
+            solver=solver,
+            stats=stats,
+            heterodyne=self.heterodyne,
+        )
+
+    def _trajectory_resultclass(self, e_ops, options):
+        return StochasticTrajResult(
+            e_ops,
+            options,
+            m_ops=self.m_ops,
+            dw_factor=self.dW_factors,
+            heterodyne=self.heterodyne,
+        )
+
+    def _initialize_stats(self):
+        stats = super()._initialize_stats()
+        if self._open:
+            stats["solver"] = "Stochastic Master Equation Evolution"
+        else:
+            stats["solver"] = "Stochastic Schrodinger Equation Evolution"
+        return stats
+
+    def __init__(
+        self,
+        H: Qobj | QobjEvo,
+        sc_ops: Sequence[Qobj | QobjEvo],
+        heterodyne: bool,
+        *,
+        c_ops: Sequence[Qobj | QobjEvo] = (),
+        options: dict[str, Any] = None,
+    ):
         self._heterodyne = heterodyne
         if self.name == "ssesolve" and c_ops:
             raise ValueError("c_ops are not supported by ssesolve.")
@@ -510,15 +664,15 @@ class StochasticSolver(MultiTrajSolver):
             self._dW_factors = np.ones(len(sc_ops))
 
     @property
-    def heterodyne(self):
+    def heterodyne(self) -> bool:
         return self._heterodyne
 
     @property
-    def m_ops(self):
+    def m_ops(self) -> list[QobjEvo | Qobj]:
         return self._m_ops
 
     @m_ops.setter
-    def m_ops(self, new_m_ops):
+    def m_ops(self, new_m_ops: list[QobjEvo | Qobj]):
         """
         Measurements operators.
 
@@ -565,11 +719,11 @@ class StochasticSolver(MultiTrajSolver):
         self._m_ops = new_m_ops
 
     @property
-    def dW_factors(self):
+    def dW_factors(self) -> np.typing.NDArray[float]:
         return self._dW_factors
 
     @dW_factors.setter
-    def dW_factors(self, new_dW_factors):
+    def dW_factors(self, new_dW_factors: np.typing.NDArray[float]):
         """
         Scaling of the noise on the measurements.
         Default are ``1`` for homodyne and ``sqrt(1/2)`` for heterodyne.
@@ -587,26 +741,158 @@ class StochasticSolver(MultiTrajSolver):
                 )
         self._dW_factors = new_dW_factors
 
-    def _run_one_traj(self, seed, state, tlist, e_ops):
-        """
-        Run one trajectory and return the result.
-        """
-        result = StochasticTrajResult(
-            e_ops,
-            self.options,
-            m_ops=self.m_ops,
-            dw_factor=self.dW_factors,
-            heterodyne=self.heterodyne,
-        )
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator)
-        state_t = self._restore_state(state, copy=False)
-        result.add(tlist[0], state_t, None)
-        for t in tlist[1:]:
-            t, state, noise = self._integrator.integrate(t, copy=False)
-            state_t = self._restore_state(state, copy=False)
-            result.add(t, state_t, noise)
+    def _integrate_one_traj(self, seed, tlist, result):
+        for t, state, noise in self._integrator.run(tlist):
+            result.add(t, self._restore_state(state, copy=False), noise)
         return seed, result
+
+    def run_from_experiment(
+        self,
+        state: Qobj,
+        tlist: ArrayLike,
+        noise: Sequence[float],
+        *,
+        args: dict[str, Any] = None,
+        e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+        measurement: bool = False,
+    ):
+        """
+        Run a single trajectory from a given state and noise.
+
+        Parameters
+        ----------
+        state : Qobj
+            Initial state of the system.
+
+        tlist : array_like
+            List of times for which to evaluate the state. The tlist must
+            increase uniformly.
+
+        noise : array_like
+            Noise for each time step and each stochastic collapse operators.
+            For homodyne detection, ``noise[i, t_idx]`` is the Wiener
+            increments between ``tlist[t_idx]`` and ``tlist[t_idx+1]`` for the
+            i-th sc_ops.
+            For heterodyne detection, an extra dimension is added for the pair
+            of measurement: ``noise[i, j, t_idx]``with ``j`` in ``{0,1}``.
+
+        args : dict, optional
+            Arguments to pass to the Hamiltonian and collapse operators.
+
+        e_ops : :obj:`.Qobj`, callable, list or dict, optional
+            Single operator, or list or dict of operators, for which to
+            evaluate expectation values. Operator can be Qobj, QobjEvo or
+            callables with the signature `f(t: float, state: Qobj) -> Any`.
+
+        measurement : bool, default : False
+            Whether the passed noise is the Wiener increments ``dW`` (gaussian
+            noise with standard derivation of dt**0.5), or the measurement.
+
+            Homodyne measurement is::
+
+              noise[i][t] = dW/dt + expect(sc_ops[i] + sc_ops[i].dag, state[t])
+
+            Heterodyne measurement is::
+
+              noise[i][0][t] = dW/dt * 2**0.5
+                + expect(sc_ops[i] + sc_ops[i].dag, state[t])
+
+              noise[i][1][t] = dW/dt * 2**0.5
+                -1j * expect(sc_ops[i] - sc_ops[i].dag, state[t])
+
+            Note that this function expects the expectation values to be taken
+            at the start of the time step, corresponding to the "start" setting
+            for the "store_measurements" option.
+
+            Only available for limited integration methods.
+
+        Returns
+        -------
+        result : StochasticTrajResult
+            Result of the trajectory.
+
+        Notes
+        -----
+        Only default values of `m_ops` and `dW_factors` are supported.
+        """
+        start_time = time()
+        self._argument(args)
+        stats = self._initialize_stats()
+        dt = tlist[1] - tlist[0]
+        if not np.allclose(dt, np.diff(tlist)):
+            raise ValueError("tlist must be evenly spaced.")
+        generator = PreSetWiener(
+            noise, tlist, len(self.rhs.sc_ops), self.heterodyne, measurement
+        )
+        state0 = self._prepare_state(state)
+        try:
+            old_dt = None
+            if "dt" in self._integrator.options:
+                old_dt = self._integrator.options["dt"]
+                self._integrator.options["dt"] = dt
+            mid_time = time()
+            result = self._initialize_run_one_traj(
+                None, state0, tlist, e_ops, generator=generator
+            )
+            _, result = self._integrate_one_traj(None, tlist, result)
+        except Exception as err:
+            if old_dt is not None:
+                self._integrator.options["dt"] = old_dt
+            raise
+
+        stats['preparation time'] += mid_time - start_time
+        stats['run time'] = time() - mid_time
+        result.stats.update(stats)
+        return result
+
+    @overload
+    def step(
+        self, t: float,
+        *,
+        args: dict[str, Any],
+        copy: bool,
+        wiener_increment: Literal[False],
+    ) -> Qobj: ...
+
+    @overload
+    def step(
+        self, t: float,
+        *,
+        args: dict[str, Any],
+        copy: bool,
+        wiener_increment: Literal[True],
+    ) -> tuple[Qobj, np.typing.NDArray[float]]: ...
+
+    def step(self, t, *, args=None, copy=True, wiener_increment=False):
+        """
+        Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
+
+        Parameters
+        ----------
+        t : double
+            Time to evolve to, must be higher than the last call.
+
+        args : dict, optional
+            Update the ``args`` of the system.
+            The change is effective from the beginning of the interval.
+            Changing ``args`` can slow the evolution.
+
+        copy : bool, default: True
+            Whether to return a copy of the data or the data in the ODE solver.
+
+        wiener_increment: bool, default: False
+            Whether to return ``dW`` in addition to the state.
+        """
+        if not self._integrator._is_set:
+            raise RuntimeError("The `start` method must called first.")
+        self._argument(args)
+        _, state, dW = self._integrator.integrate(t, copy=False)
+        state = self._restore_state(state, copy=copy)
+        if wiener_increment:
+            if self.heterodyne:
+                dW = dW.reshape(-1, 2)
+            return state, dW
+        return state
 
     @classmethod
     def avail_integrators(cls):
@@ -618,7 +904,7 @@ class StochasticSolver(MultiTrajSolver):
         }
 
     @property
-    def options(self):
+    def options(self) -> dict[str, Any]:
         """
         Options for stochastic solver:
 
@@ -631,8 +917,10 @@ class StochasticSolver(MultiTrajSolver):
             On `None` the states will be saved if no expectation operators are
             given.
 
-        store_measurement: bool, default: False
-            Whether to store the measurement for each trajectories.
+        store_measurement: str, {'start', 'middle', 'end', ''}, default: ""
+            Whether and how to store the measurement for each trajectories.
+            'start', 'middle', 'end' indicate when in the interval the
+            expectation value of the ``m_ops`` is taken.
             Storing measurements will also store the wiener process, or
             brownian noise for each trajectories.
 
@@ -649,16 +937,22 @@ class StochasticSolver(MultiTrajSolver):
           Whether to store results from all trajectories or just store the
           averages.
 
+        normalize_output: bool
+            Normalize output state to hide ODE numerical errors.
+
         method: str, default: "platen"
-            Which ODE integrator methods are supported.
+            Which differential equation integration method to use.
 
-        map: str {"serial", "parallel", "loky"}, default: "serial"
-            How to run the trajectories. "parallel" uses concurent module to
-            run in parallel while "loky" use the module of the same name to do
-            so.
+        map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
+            How to run the trajectories. "parallel" uses the multiprocessing
+            module to run in parallel while "loky" and "mpi" use the "loky" and
+            "mpi4py" modules to do so.
 
-        job_timeout: None, int, default: None
-            Maximum time to compute one trajectory.
+        mpi_options: dict, default: {}
+            Only applies if map is "mpi". This dictionary will be passed as
+            keyword arguments to the `mpi4py.futures.MPIPoolExecutor`
+            constructor. Note that the `max_workers` argument is provided
+            separately through the `num_cpus` option.
 
         num_cpus: None, int, default: None
             Number of cpus to use when running in parallel. ``None`` detect the
@@ -671,8 +965,75 @@ class StochasticSolver(MultiTrajSolver):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict[str, Any]):
         MultiTrajSolver.options.fset(self, new_options)
+
+    @classmethod
+    def WienerFeedback(
+        cls,
+        default: Callable[[float], np.typing.NDArray[float]] = None,
+    ):
+        """
+        Wiener function of the trajectory argument for time dependent systems.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"W": SMESolver.WienerFeedback()})``
+
+        The ``func`` will receive a function as ``W`` that return an array of
+        wiener processes values at ``t``. The wiener process for the i-th
+        sc_ops is the i-th element for homodyne detection and the (2i, 2i+1)
+        pairs of process in heterodyne detection. The process is a step
+        function with step of length ``options["dt"]``.
+
+        .. note::
+
+            WienerFeedback can't be added to a running solver when updating
+            arguments between steps: ``solver.step(..., args={})``.
+
+        Parameters
+        ----------
+        default : callable, optional
+            Default function used outside the solver.
+            When not passed, a function returning ``np.array([0])`` is used.
+
+        """
+        return _WienerFeedback(default)
+
+    @classmethod
+    def StateFeedback(
+        cls,
+        default: Qobj | _data.Data = None,
+        raw_data: bool = False
+    ):
+        """
+        State of the evolution to be used in a time-dependent operator.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"state": SMESolver.StateFeedback()})``
+
+        The ``func`` will receive the density matrix as ``state`` during the
+        evolution.
+
+        .. note::
+
+            Not supported by the ``rouchon`` mehtod.
+
+        Parameters
+        ----------
+        default : Qobj or qutip.core.data.Data, default : None
+            Initial value to be used at setup of the system.
+
+        raw_data : bool, default : False
+            If True, the raw matrix will be passed instead of a Qobj.
+            For density matrices, the matrices can be column stacked or square
+            depending on the integration method.
+
+        """
+        if raw_data:
+            return _DataFeedback(default, open=cls._open)
+        return _QobjFeedback(default, open=cls._open)
 
 
 class SMESolver(StochasticSolver):
@@ -704,14 +1065,14 @@ class SMESolver(StochasticSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "platen",
         "map": "serial",
-        "job_timeout": None,
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": "",
     }
 
 
@@ -748,12 +1109,12 @@ class SSESolver(StochasticSolver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "store_measurement": False,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "platen",
         "map": "serial",
-        "job_timeout": None,
+        "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
+        "method": "platen",
+        "store_measurement": "",
     }

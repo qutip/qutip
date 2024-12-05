@@ -1,9 +1,11 @@
 import numpy as np
+import warnings
 from qutip import unstack_columns, stack_columns
 from qutip.core import data as _data
 from ..stochastic import StochasticSolver
 from .sode import SIntegrator
 from ..integrator.integrator import Integrator
+from ._noise import Wiener
 
 
 __all__ = ["RouchonSODE"]
@@ -34,7 +36,11 @@ class RouchonSODE(SIntegrator):
     def __init__(self, rhs, options):
         self._options = self.integrator_options.copy()
         self.options = options
+        self.rhs = rhs
+        self._make_operators()
 
+    def _make_operators(self):
+        rhs = self.rhs
         self.H = rhs.H
         if self.H.issuper:
             raise TypeError("The rouchon stochastic integration method can't"
@@ -62,25 +68,52 @@ class RouchonSODE(SIntegrator):
 
         self.id = _data.identity[dtype](self.H.shape[0])
 
+    def set_state(self, t, state0, generator):
+        """
+        Set the state of the SODE solver.
+
+        Parameters
+        ----------
+        t : float
+            Initial time
+
+        state0 : qutip.Data
+            Initial state.
+
+        generator : numpy.random.generator
+            Random number generator.
+        """
+        self.t = t
+        self.state = state0
+        if isinstance(generator, Wiener):
+            self.wiener = generator
+        else:
+            self.wiener = Wiener(
+                t, self.options["dt"], generator,
+                (1, self.num_collapses,)
+            )
+        self.rhs._register_feedback(self.wiener)
+        self._make_operators()
+        self._is_set = True
+
     def integrate(self, t, copy=True):
         delta_t = (t - self.t)
+        dt = self.options["dt"]
         if delta_t < 0:
             raise ValueError("Stochastic integration need increasing times")
-        elif delta_t == 0:
-            return self.t, self.state, np.zeros(self.N_dw)
+        elif delta_t < 0.5 * dt:
+            warnings.warn(
+                f"Step under minimum step ({dt}), skipped.",
+                RuntimeWarning
+            )
+            return self.t, self.state, np.zeros(len(self.sc_ops))
 
-        dt = self.options["dt"]
         N, extra = np.divmod(delta_t, dt)
         N = int(N)
-        if extra > self.options["tol"]:
-            # Not a whole number of steps.
+        if extra > 0.5 * dt:
+            # Not a whole number of steps, round to higher
             N += 1
-            dt = delta_t / N
-        dW = self.generator.normal(
-            0,
-            np.sqrt(dt),
-            size=(N, self.num_collapses)
-        )
+        dW = self.wiener.dW(self.t, N)[:, 0, :]
 
         if self._issuper:
             self.state = unstack_columns(self.state)
@@ -131,6 +164,17 @@ class RouchonSODE(SIntegrator):
     @options.setter
     def options(self, new_options):
         Integrator.options.fset(self, new_options)
+
+    def reset(self, hard=False):
+        if self._is_set:
+            state = self.get_state()
+        if hard:
+            raise NotImplementedError(
+                "Changing stochastic integrator "
+                "options is not supported."
+            )
+        if self._is_set:
+            self.set_state(*state)
 
 
 StochasticSolver.add_integrator(RouchonSODE, "rouchon")

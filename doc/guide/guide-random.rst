@@ -11,7 +11,7 @@ Generating Random Quantum States & Operators
 QuTiP includes a collection of random state, unitary and channel generators for simulations, Monte Carlo evaluation, theorem evaluation, and code testing.
 Each of these objects can be sampled from one of several different distributions.
 
-For example, a random Hermitian operator can be sampled by calling `rand_herm` function:
+For example, a random Hermitian operator can be sampled by calling :func:`.rand_herm` function:
 
 .. doctest:: [random]
     :hide:
@@ -40,23 +40,23 @@ For example, a random Hermitian operator can be sampled by calling `rand_herm` f
 
 .. cssclass:: table-striped
 
-+-------------------------------+--------------------------------------------+------------------------------------------+
-| Random Variable Type          | Sampling Functions                         | Dimensions                               |
-+===============================+============================================+==========================================+
-| State vector (``ket``)        | `rand_ket`,                                | :math:`N \times 1`                       |
-+-------------------------------+--------------------------------------------+------------------------------------------+
-| Hermitian operator (``oper``) | `rand_herm`                                | :math:`N \times N`                       |
-+-------------------------------+--------------------------------------------+------------------------------------------+
-| Density operator (``oper``)   | `rand_dm`,                                 | :math:`N \times N`                       |
-+-------------------------------+--------------------------------------------+------------------------------------------+
-| Unitary operator (``oper``)   | `rand_unitary`,                            | :math:`N \times N`                       |
-+-------------------------------+--------------------------------------------+------------------------------------------+
-| stochastic matrix (``oper``)  | `rand_stochastic`,                         | :math:`N \times N`                       |
-+-------------------------------+--------------------------------------------+------------------------------------------+
-| CPTP channel (``super``)      | `rand_super`, `rand_super_bcsz`            | :math:`(N \times N) \times (N \times N)` |
-+-------------------------------+--------------------------------------------+------------------------------------------+
-| CPTP map (list of ``oper``)   | `rand_kraus_map`                           | :math:`N \times N` (N**2 operators)      |
-+-------------------------------+--------------------------------------------+------------------------------------------+
++-------------------------------+-----------------------------------------------+------------------------------------------+
+| Random Variable Type          | Sampling Functions                            | Dimensions                               |
++===============================+===============================================+==========================================+
+| State vector (``ket``)        | :func:`.rand_ket`                             | :math:`N \times 1`                       |
++-------------------------------+-----------------------------------------------+------------------------------------------+
+| Hermitian operator (``oper``) | :func:`.rand_herm`                            | :math:`N \times N`                       |
++-------------------------------+-----------------------------------------------+------------------------------------------+
+| Density operator (``oper``)   | :func:`.rand_dm`                              | :math:`N \times N`                       |
++-------------------------------+-----------------------------------------------+------------------------------------------+
+| Unitary operator (``oper``)   | :func:`.rand_unitary`                         | :math:`N \times N`                       |
++-------------------------------+-----------------------------------------------+------------------------------------------+
+| stochastic matrix (``oper``)  | :func:`.rand_stochastic`                      | :math:`N \times N`                       |
++-------------------------------+-----------------------------------------------+------------------------------------------+
+| CPTP channel (``super``)      | :func:`.rand_super`, :func:`.rand_super_bcsz` | :math:`(N \times N) \times (N \times N)` |
++-------------------------------+-----------------------------------------------+------------------------------------------+
+| CPTP map (list of ``oper``)   | :func:`.rand_kraus_map`                       | :math:`N \times N` (N**2 operators)      |
++-------------------------------+-----------------------------------------------+------------------------------------------+
 
 In all cases, these functions can be called with a single parameter :math:`dimensions` that can be the size of the relevant Hilbert space or the dimensions of a random state, unitary or channel.
 
@@ -69,9 +69,9 @@ In all cases, these functions can be called with a single parameter :math:`dimen
     >>> rand_super_bcsz([[2, 3], [2, 3]]).dims
     [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
 
-Several of the random `Qobj` function in QuTiP support additional parameters as well, namely *density* and *distribution*.
-`rand_dm`, `rand_herm`, `rand_unitary` and `rand_ket` can be created using multiple method controlled by *distribution*.
-The `rand_ket`, `rand_herm` and `rand_unitary` functions can return quantum objects such that a fraction of the elements are identically equal to zero.
+Several of the random :class:`.Qobj` function in QuTiP support additional parameters as well, namely *density* and *distribution*.
+:func:`.rand_dm`, :func:`.rand_herm`, :func:`.rand_unitary` and :func:`.rand_ket` can be created using multiple method controlled by *distribution*.
+The :func:`.rand_ket`, :func:`.rand_herm` and :func:`.rand_unitary` functions can return quantum objects such that a fraction of the elements are identically equal to zero.
 The ratio of nonzero elements is passed as the ``density`` keyword argument.
 By contrast, `rand_super_bcsz` take as an argument the rank of the generated object, such that passing ``rank=1`` returns a random pure state or unitary channel, respectively.
 Passing ``rank=None`` specifies that the generated object should be full-rank for the given dimension.
@@ -105,7 +105,7 @@ For example,
     [ 0.016-0.045j, -0.057+0.078j, -0.028+0.058j,  0.101+0.056j, 0.236+0.j   ]]
 
 
-See the API documentation: :ref:`functions-rand` for details.
+See the API documentation: :ref:`api-rand` for details.
 
 .. warning::
 
@@ -115,7 +115,7 @@ See the API documentation: :ref:`functions-rand` for details.
 Random objects with a given eigen spectrum
 ==========================================
 
-It is also possible to generate random Hamiltonian (``rand_herm``) and densitiy matrices (``rand_dm``) with a given eigen spectrum.
+It is also possible to generate random Hamiltonian (:func:`.rand_herm`) and densitiy matrices (:func:`.rand_dm`) with a given eigen spectrum.
 This is done by passing an array to eigenvalues argument to either function and choosing the "eigen" distribution.
 For example,
 
@@ -153,9 +153,9 @@ This technique requires many steps to build the desired quantum object, and is t
 Composite random objects
 ========================
 
-In many cases, one is interested in generating random quantum objects that correspond to composite systems generated using the :func:`qutip.tensor.tensor` function.
+In many cases, one is interested in generating random quantum objects that correspond to composite systems generated using the :func:`.tensor` function.
 Specifying the tensor structure of a quantum object is done passing a list for the first argument.
-The resulting quantum objects size will be the product of the elements in the list and the resulting :class:`qutip.Qobj` dimensions will be ``[dims, dims]``:
+The resulting quantum objects size will be the product of the elements in the list and the resulting :class:`.Qobj` dimensions will be ``[dims, dims]``:
 
 .. doctest:: [random]
     :hide:

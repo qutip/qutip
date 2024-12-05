@@ -470,6 +470,23 @@ class TestBloch:
                    "size as the number of vectors. ")
         assert str(err.value) == err_msg
 
+    @check_pngs_equal
+    def test_clear(self, fig_test=None, fig_ref=None):
+        b = Bloch(fig=fig_test)
+        b.add_vectors([0, 1, 0])
+        b.add_points([1, 0, 0])
+        b.vector_color = ["g"]
+        b.point_color = ["g"]
+        b.clear()
+        b.add_vectors([0, 0, 1])
+        b.add_points([0, 0, -1])
+        b.make_sphere()
+
+        b2 = Bloch(fig=fig_ref)
+        b2.add_vectors([0, 0, 1])
+        b2.add_points([0, 0, -1])
+        b2.make_sphere()
+
 
 def test_repr_svg():
     pytest.importorskip("matplotlib")

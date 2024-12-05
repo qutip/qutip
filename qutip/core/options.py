@@ -1,4 +1,11 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 from ..settings import settings
+from .numpy_backend import np as qt_np
+import numpy
+from typing import overload, Literal, Any
+import types
 
 __all__ = ["CoreOptions"]
 
@@ -9,8 +16,13 @@ class QutipOptions:
 
     Define basic method to wrap an ``options`` dict.
     Default options are in a class _options dict.
+
+    Options can also act as properties. The ``_properties`` map options keys to
+    a function to call when the ``QutipOptions`` become the default.
     """
-    _options = {}
+
+    _options: dict[str, Any] = {}
+    _properties = {}
     _settings_name = None  # Where the default is in settings
 
     def __init__(self, **options):
@@ -20,34 +32,49 @@ class QutipOptions:
         if options:
             raise KeyError(f"Options {set(options)} are not supported.")
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> bool:
         return key in self.options
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         # Let the dict catch the KeyError
         return self.options[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any) -> None:
         # Let the dict catch the KeyError
         self.options[key] = value
+        if (
+            key in self._properties
+            and self is getattr(settings, self._settings_name)
+        ):
+            self._properties[key](value)
 
-    def __repr__(self, full=True):
+    def __repr__(self, full: bool = True) -> str:
         out = [f"<{self.__class__.__name__}("]
         for key, value in self.options.items():
             if full or value != self._options[key]:
                 out += [f"    '{key}': {repr(value)},"]
         out += [")>"]
-        if len(out)-2:
+        if len(out) - 2:
             return "\n".join(out)
         else:
             return "".join(out)
 
     def __enter__(self):
         self._backup = getattr(settings, self._settings_name)
-        setattr(settings, self._settings_name, self)
+        self._set_as_global_default()
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        setattr(settings, self._settings_name, self._backup)
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: types.TracebackType | None,
+    ) -> None:
+        self._backup._set_as_global_default()
+
+    def _set_as_global_default(self):
+        setattr(settings, self._settings_name, self)
+        for key in self._properties:
+            self._properties[key](self.options[key])
 
 
 class CoreOptions(QutipOptions):
@@ -56,29 +83,32 @@ class CoreOptions(QutipOptions):
     comparison or coefficient's format.
 
     Values can be changed in ``qutip.settings.core`` or by using context:
-    ``with CoreOptions(atol=1e-6): ...``.
 
-    Options
-    -------
+        ``with CoreOptions(atol=1e-6): ...``
+
+    ********
+    Options:
+    ********
+
     auto_tidyup : bool
         Whether to tidyup during sparse operations.
 
     auto_tidyup_dims : bool [False]
         Use auto tidyup dims on multiplication, tensor, etc.
         Without auto_tidyup_dims:
+
             ``basis([2, 2]).dims == [[2, 2], [1, 1]]``
+
         With auto_tidyup_dims:
+
             ``basis([2, 2]).dims == [[2, 2], [1]]``
 
-    auto_herm : boolTrue
-        detect hermiticity
-
     atol : float {1e-12}
-        General absolute tolerance
+        General absolute tolerance. Used in various functions to round off
+        small values.
 
     rtol : float {1e-12}
-        General relative tolerance
-        Used to choose QobjEvo.expect output type
+        General relative tolerance.
 
     auto_tidyup_atol : float {1e-14}
         The absolute tolerance used in automatic tidyup (see the
@@ -107,13 +137,12 @@ class CoreOptions(QutipOptions):
         known to ``qutip.data.to`` is accepted. When ``None``, these functions
         will default to a sensible data type.
     """
+
     _options = {
         # use auto tidyup
         "auto_tidyup": True,
         # use auto tidyup dims on multiplication
         "auto_tidyup_dims": False,
-        # detect hermiticity
-        "auto_herm": True,
         # general absolute tolerance
         "atol": 1e-12,
         # general relative tolerance
@@ -124,9 +153,67 @@ class CoreOptions(QutipOptions):
         "function_coefficient_style": "auto",
         # Default Qobj dtype for Qobj create function
         "default_dtype": None,
+        # Expect, trace, etc. will return real for hermitian matrices.
+        # Hermiticity checks can be slow, stop jitting, etc.
+        "auto_real_casting": True,
+        # Default backend is numpy
+        "numpy_backend": numpy
     }
     _settings_name = "core"
+    _properties = {
+        "numpy_backend": qt_np._qutip_setting_backend,
+    }
+
+    @overload
+    def __getitem__(
+        self,
+        key: Literal["auto_tidyup", "auto_tidyup_dims", "auto_real_casting"],
+    ) -> bool: ...
+
+    @overload
+    def __getitem__(
+        self, key: Literal["atol", "rtol", "auto_tidyup_atol"]
+    ) -> float: ...
+
+    @overload
+    def __getitem__(
+        self, key: Literal["function_coefficient_style"]
+    ) -> str: ...
+
+    @overload
+    def __getitem__(self, key: Literal["default_dtype"]) -> str | None: ...
+
+    def __getitem__(self, key: str) -> Any:
+        # Let the dict catch the KeyError
+        return self.options[key]
+
+    @overload
+    def __setitem__(
+        self,
+        key: Literal["auto_tidyup", "auto_tidyup_dims", "auto_real_casting"],
+        value: bool,
+    ) -> None: ...
+
+    @overload
+    def __setitem__(
+        self, key: Literal["atol", "rtol", "auto_tidyup_atol"], value: float
+    ) -> None: ...
+
+    @overload
+    def __setitem__(
+        self, key: Literal["function_coefficient_style"], value: str
+    ) -> None: ...
+
+    @overload
+    def __setitem__(
+        self, key: Literal["default_dtype"], value: str | None
+    ) -> None: ...
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        # Let the dict catch the KeyError
+        super().__setitem__(key, value)
 
 
 # Creating the instance of core options to use everywhere.
-settings.core = CoreOptions()
+# settings.core = CoreOptions()
+CoreOptions()._set_as_global_default()
