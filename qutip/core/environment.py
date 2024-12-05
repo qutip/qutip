@@ -2019,7 +2019,7 @@ def _default_guess_sd(wlist, jlist):
 
 
 def _fit_summary(time, rmse, N, label, params,
-                 columns=['lam', 'gamma', 'w0']):
+                 columns=['a', 'b', 'c']):
     # Generates summary of fit by nonlinear least squares
     if len(columns) == 3:
         summary = (f"Result of fitting {label} "
