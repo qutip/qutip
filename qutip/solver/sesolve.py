@@ -11,12 +11,9 @@ from numpy.typing import ArrayLike
 from time import time
 from typing import Any, Callable
 from .. import Qobj, QobjEvo
-
 from ..core import data as _data
 from ..typing import QobjEvoLike, EopsLike
-from .solver_base import (
-    Solver, _solver_deprecation, _kwargs_migration
-)
+from .solver_base import Solver, _solver_deprecation, _kwargs_migration
 from ._feedback import _QobjFeedback, _DataFeedback
 from . import Result
 
@@ -174,7 +171,8 @@ class SESolver(Solver):
             raise ValueError("The hamiltonian must be an operator")
         self._post_init(options)
 
-    def _build_rhs(self):
+    @property
+    def rhs(self):
         """
         Build the rhs QobjEvo.
         """

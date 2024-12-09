@@ -464,7 +464,8 @@ class MCSolver(MultiTrajSolver):
 
         self._post_init(options)
 
-    def _build_rhs(self):
+    @property
+    def rhs(self):
         if self.LH.issuper:
             c_ops = [
                 spre(c_op) * spost(c_op.dag()) if c_op.isoper else c_op
@@ -759,19 +760,23 @@ class MCSolver(MultiTrajSolver):
         result.ntraj_per_initial_state = ics_info.ntraj
         return result
 
-    def _get_integrator(self):
-        _time_start = time()
-        method = self.options["method"]
-        if method in self.avail_integrators():
-            integrator = self.avail_integrators()[method]
-        elif issubclass(method, Integrator):
-            integrator = method
-        else:
-            raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self)
-        mc_integrator = self._mc_integrator_class(integrator_instance, self)
-        self._init_integrator_time = time() - _time_start
-        return mc_integrator
+    @property
+    def _integrator(self):
+        if not self._integrator_instance:
+            _time_start = time()
+            method = self.options["method"]
+            if method in self.avail_integrators():
+                integrator = self.avail_integrators()[method]
+            elif issubclass(method, Integrator):
+                integrator = method
+            else:
+                raise ValueError("Integrator method not supported.")
+            base_ode = integrator(self)
+            mc_integrator = self._mc_integrator_class(base_ode, self)
+            self.stats["ODE init time"] += time() - _time_start
+            self.stats["method"] = integrator.name
+            self._integrator_instance = mc_integrator
+        return self._integrator_instance
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""

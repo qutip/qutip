@@ -60,11 +60,10 @@ class MultiTrajSolver(Solver):
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (Qobj, QobjEvo)):
-            self.rhs = QobjEvo(rhs)
+            self._rhs = QobjEvo(rhs)
         else:
             raise TypeError("The system should be a QobjEvo")
         self.options = options
-        self.rhs = self.system()
         self._dims = self.rhs._dims
         self.seed_sequence = SeedSequence()
         self._post_init(options)

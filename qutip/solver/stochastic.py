@@ -620,14 +620,17 @@ class StochasticSolver(MultiTrajSolver):
             self._m_ops = [op + op.dag() for op in sc_ops]
             self._dW_factors = np.ones(len(sc_ops))
 
-    def _build_rhs(self):
-        if self._open:
-            return StochasticOpenSystem(
-                self.H, self.sc_ops, self.c_ops,
-                self.options.get("derr_dt", 1e-6)
-            )
-        else:
-            return StochasticClosedSystem(self.H, self.sc_ops)
+    @property
+    def rhs(self):
+        if self._rhs is None:
+            if self._open:
+                self._rhs = StochasticOpenSystem(
+                    self.H, self.sc_ops, self.c_ops,
+                    self.options.get("derr_dt", 1e-6)
+                )
+            else:
+                self._rhs = StochasticClosedSystem(self.H, self.sc_ops)
+        return self._rhs
 
     @property
     def heterodyne(self) -> bool:

@@ -904,7 +904,8 @@ class FMESolver(MESolver):
 
         self._post_init(options)
 
-    def _build_rhs(self):
+    @property
+    def rhs(self):
         if not self._rhs:
             _time_start = time()
             c_ops, spectra_cb = zip(*self.a_ops)

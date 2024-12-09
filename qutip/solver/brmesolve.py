@@ -344,7 +344,8 @@ class BRSolver(Solver):
         })
         return stats
 
-    def _build_rhs(self):
+    @property
+    def rhs(self):
         if not self._rhs:
             _time_start = time()
             rhs = bloch_redfield_tensor(

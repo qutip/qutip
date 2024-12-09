@@ -68,7 +68,7 @@ class Integrator:
     method = ""
 
     def __init__(self, solver):
-        self.system = solver._build_rhs()
+        self.system = solver.rhs
         self._is_set = False  # get_state can be used and return a valid state.
         self._back = (np.inf, None)
         self._options = self.integrator_options.copy()

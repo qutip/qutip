@@ -20,7 +20,8 @@ class PSEUDOSOLVER:
         self.options = options or {}
         self._open = c_ops is not None
 
-    def _build_rhs(self):
+    @property
+    def rhs(self):
         if self._open:
             return StochasticOpenSystem(self.H, self.sc_ops, self.c_ops)
         else:

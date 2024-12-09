@@ -217,7 +217,7 @@ class Propagator:
         self.invs = [None]
         self.props = [qeye(self.solver.sys_dims)]
         self.solver.start(self.props[0], self.times[0])
-        rhs = self.solver._build_rhs()
+        rhs = self.solver.rhs
         self.cte = rhs.isconstant
         H_0 = rhs(0)
         self.unitary = not H_0.issuper and H_0.isherm

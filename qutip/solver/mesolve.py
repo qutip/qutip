@@ -13,17 +13,10 @@ from typing import Any, Callable
 from time import time
 
 from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
-from ..core import stack_columns, unstack_columns
-from ..core.data import to
 from ..core.dimensions import Dimensions
-from .solver_base import (
-    Solver,
-    _solver_deprecation,
-    _kwargs_migration
-)
 from ..typing import EopsLike, QobjEvoLike
 from ..core import data as _data
-
+from .solver_base import Solver, _solver_deprecation, _kwargs_migration
 from .sesolve import sesolve, SESolver
 from ._feedback import _QobjFeedback, _DataFeedback
 from . import Result
@@ -257,7 +250,8 @@ class MESolver(SESolver):
 
         self._post_init(options)
 
-    def _build_rhs(self):
+    @property
+    def rhs(self):
         """
         Build the rhs QobjEvo.
         """

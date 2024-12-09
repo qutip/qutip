@@ -148,7 +148,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
     def __init__(self, solver):
         self._options = self.integrator_options.copy()
         self.options = solver.options
-        self.rhs = solver._build_rhs()
+        self.rhs = solver.rhs
 
     def integrate(self, t, copy=True):
         delta_t = t - self.t
