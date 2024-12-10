@@ -51,24 +51,35 @@ class Solver:
         "method": "adams",
     }
     _resultclass = Result
+    _integrator_instance = None
+    _rhs = None
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
-            self.rhs = QobjEvo(rhs)
+            self._rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
+        self._dims = rhs._dims
+        self._post_init(options)
+
+    def _post_init(self, options):
         self.options = options
-        self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
-        self.rhs._register_feedback({}, solver=self.name)
+
+    @property
+    def rhs(self):
+        """
+        Build the rhs QobjEvo.
+        """
+        return self._rhs
 
     def _initialize_stats(self):
         """ Return the initial values for the solver stats.
         """
         return {
-            "method": self._integrator.name,
-            "init time": self._init_integrator_time,
+            "method": self.options["method"],
+            "ODE init time": 0.0,
             "preparation time": 0.0,
             "run time": 0.0,
         }
@@ -82,14 +93,14 @@ class Solver:
 
         Should return the state's data such that it can be used by Integrators.
         """
-        if self.rhs.issuper and state.isket:
+        if self._dims.issuper and state.isket:
             state = ket2dm(state)
 
         if (
-            self.rhs.dims[1] != state.dims[0]
-            and self.rhs.dims[1] != state.dims
+            self._dims[1] != state._dims[0]
+            and self._dims[1] != state._dims
         ):
-            raise TypeError(f"incompatible dimensions {self.rhs.dims}"
+            raise TypeError(f"incompatible dimensions {self._dims.as_list()}"
                             f" and {state.dims}")
 
         self._state_metadata = {
@@ -97,7 +108,7 @@ class Solver:
             # This is herm flag take for granted that the liouvillian keep
             # hermiticity.  But we do not check user passed super operator for
             # anything other than dimensions.
-            'isherm': not (self.rhs.dims == state.dims) and state._isherm,
+            'isherm': not (self._dims == state._dims) and state._isherm,
         }
         if state.isket:
             norm = state.norm()
@@ -114,9 +125,9 @@ class Solver:
             # refer to the ODE tolerance and some integrator do not use it.
             and np.abs(norm - 1) <= settings.core["atol"]
             # Only ket and dm can be normalized
-            and (self.rhs.dims[1] == state.dims or state.shape[1] == 1)
+            and (self._dims[1] == state._dims or state.shape[1] == 1)
         )
-        if self.rhs.dims[1] == state.dims:
+        if self._dims[1] == state._dims:
             return stack_columns(state.data)
         return state.data
 
@@ -124,7 +135,7 @@ class Solver:
         """
         Retore the Qobj state from its data.
         """
-        if self._state_metadata['dims'] == self.rhs._dims[1]:
+        if self._state_metadata['dims'] == self._dims[1]:
             state = Qobj(unstack_columns(data),
                          **self._state_metadata, copy=False)
         else:
@@ -183,13 +194,12 @@ class Solver:
         _data0 = self._prepare_state(state0)
         self._integrator.set_state(tlist[0], _data0)
         self._argument(args)
-        stats = self._initialize_stats()
         results = self._resultclass(
             e_ops, self.options,
-            solver=self.name, stats=stats,
+            solver=self.name, stats=self.stats,
         )
         results.add(tlist[0], self._restore_state(_data0, copy=False))
-        stats['preparation time'] += time() - _time_start
+        self.stats['preparation time'] += time() - _time_start
 
         progress_bar = progress_bars[self.options['progress_bar']](
             len(tlist)-1, **self.options['progress_kwargs']
@@ -199,7 +209,7 @@ class Solver:
             results.add(t, self._restore_state(state, copy=False))
         progress_bar.finished()
 
-        stats['run time'] = progress_bar.total_time()
+        self.stats['run time'] = progress_bar.total_time()
         # TODO: It would be nice if integrator could give evolution statistics
         # stats.update(_integrator.stats)
         return results
@@ -258,19 +268,21 @@ class Solver:
         self.stats["run time"] += time() - _time_start
         return self._restore_state(state, copy=copy)
 
-    def _get_integrator(self):
-        """ Return the initialted integrator. """
-        _time_start = time()
-        method = self._options["method"]
-        if method in self.avail_integrators():
-            integrator = self.avail_integrators()[method]
-        elif issubclass(method, Integrator):
-            integrator = method
-        else:
-            raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs, self.options)
-        self._init_integrator_time = time() - _time_start
-        return integrator_instance
+    @property
+    def _integrator(self):
+        if not self._integrator_instance:
+            _time_start = time()
+            method = self._options["method"]
+            if method in self.avail_integrators():
+                integrator = self.avail_integrators()[method]
+            elif issubclass(method, Integrator):
+                integrator = method
+            else:
+                raise ValueError("Integrator method not supported.")
+            self._integrator_instance = integrator(self)
+            self.stats["ODE init time"] += time() - _time_start
+            self.stats["method"] = integrator.name
+        return self._integrator_instance
 
     @property
     def sys_dims(self):
@@ -280,7 +292,7 @@ class Solver:
         ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
         for this solver.
         """
-        return self.rhs.dims[0]
+        return self._dims[0]
 
     @property
     def options(self) -> dict[str, Any]:
@@ -329,7 +341,8 @@ class Solver:
         if new_options is None:
             new_options = {}
         if not isinstance(new_options, dict):
-            raise TypeError("options most to be a dictionary.")
+            raise TypeError("options must to be a dictionary.")
+
         new_solver_options, new_ode_options = self._parse_options(
             new_options, self.solver_options, self.options
         )
@@ -351,6 +364,7 @@ class Solver:
         new_ode_options, extra_options = self._parse_options(
             new_ode_options, integrator.integrator_options, self.options
         )
+
         if extra_options:
             raise KeyError(f"Options {extra_options.keys()} are not supported")
         if self._options and not (new_solver_options or new_ode_options):
@@ -392,14 +406,14 @@ class Solver:
                 **old_solver_options
             )
 
-        if self._integrator is None or not keys:
+        if self._integrator_instance is None or not keys:
             pass
         elif 'method' in keys and self._integrator._is_set:
             state = self._integrator.get_state()
-            self._integrator = self._get_integrator()
+            self._integrator_instance = None
             self._integrator.set_state(*state)
         elif "method" in keys:
-            self._integrator = self._get_integrator()
+            self._integrator_instance = None
         elif keys & self._integrator.integrator_options.keys():
             # Some of the keys are used by the integrator.
             self._integrator.options = self._options
