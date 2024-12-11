@@ -56,6 +56,45 @@ def n_thermal(w, w_th):
     return result.item() if w.ndim == 0 else result
 
 
+def fermi_dirac(w, T, mu):
+    """
+    Fermi Dirac distribution
+
+    Parameters
+    ----------
+
+    w : float or ndarray
+        Frequency of the oscillator.
+
+    T : float
+        The temperature in units of frequency (or the same units as `w`).
+    mu: float
+        Chemical potential
+
+    Returns
+    -------
+
+    n_avg : float or array
+
+        Return the number of average fermions in thermal equilibrium for a
+        with the given energy and temperature and chemical potential.
+
+
+    """
+
+    w = np.array(w, dtype=float)
+    result = np.zeros_like(w)
+
+    if T <= 0:
+        result[w < 0] = -1
+        return result.item() if w.ndim == 0 else result
+
+    non_zero = w != 0
+    result[non_zero] = 1 / (np.exp(w[non_zero] / T) + 1)
+
+    return result.item() if w.ndim == 0 else result
+
+
 def _factorial_prod(N, arr):
     arr[:int(N)] += 1
 

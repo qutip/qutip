@@ -847,6 +847,10 @@ class BosonicEnvironment(abc.ABC):
         # TODO: Why doesn't the heom construction work when one fits the
         # complex signal rather than the real and imaginary parts separately?
         # Probably a dumb reason but I couldn't figure it out
+        # I was passing exponents incorrectly, they should be passed the same
+        # way as they are passed to AAA, however Neill and Paul may like
+        # having these separate so ask before modification (I typically find
+        # better fits with less exponent's when fitting the complex signal)
         amp, phases = prony(self.correlation_function(tlist).real, Nr)
         amp2, phases2 = prony(self.correlation_function(tlist).imag, Ni)
         ckAR = amp
@@ -2358,6 +2362,49 @@ class FermionicEnvironment(abc.ABC):
 
         raise NotImplementedError("User-defined fermionic environments are "
                                   "currently not implemented.")
+
+
+class _FermionicEnvironment_fromSD(BosonicEnvironment):
+    def __init__(self, J, wlist, wMax, T, tag, args):
+        super().__init__(T, tag)
+        self._sd = _real_interpolation(J, wlist, 'spectral density', args)
+        if wlist is not None:
+            self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
+        else:
+            self.wMax = wMax
+
+    def correlation_function_plus(self, t, *, eps=1e-10):
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        return self._cf_from_ps_plus(t, self.wMax, eps=eps)
+
+    def correlation_function_minus(self, t, *, eps=1e-10):
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        return self._cf_from_ps_minus(t, self.wMax, eps=eps)
+
+    def spectral_density(self, w):
+        w = np.asarray(w, dtype=float)
+
+        result = np.zeros_like(w)
+        positive_mask = (w > 0)
+        result[positive_mask] = self._sd(w[positive_mask])
+
+        return result.item() if w.ndim == 0 else result
+
+    def power_spectrum_plus(self, w, *, eps=1e-10):
+        return self._ps_plus_from_sd(w, eps)
+
+    def power_spectrum_minus(self, w, *, eps=1e-10):
+        return self._ps_minus_from_sd(w, eps)
 
 
 class LorentzianEnvironment(FermionicEnvironment):
