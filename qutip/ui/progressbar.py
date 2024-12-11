@@ -176,16 +176,20 @@ class HTMLProgressBar(BaseProgressBar):
         if p >= self.p_chunk:
             lbl = ("Elapsed time: %s. " % self.time_elapsed() +
                    "Est. remaining time: %s." % self.time_remaining_est(p))
-            js_code = ("$('div#%s').width('%i%%');" % (self.divid, p) +
-                       "$('p#%s').text('%s');" % (self.textid, lbl))
+            js_code = f"""
+                document.getElementById('{self.divid}').style.width = '{p}%';
+                document.getElementById('{self.textid}').textContent = '{lbl}';
+            """
             self.display(self.Javascript(js_code))
             self.p_chunk += self.p_chunk_size
 
     def finished(self):
         self.t_done = time.time()
         lbl = "Elapsed time: %s" % self.time_elapsed()
-        js_code = ("$('div#%s').width('%i%%');" % (self.divid, 100.0) +
-                   "$('p#%s').text('%s');" % (self.textid, lbl))
+        js_code = f"""
+            document.getElementById('{self.divid}').style.width = '{100.0}%';
+            document.getElementById('{self.textid}').textContent = '{lbl}';
+        """
         self.display(self.Javascript(js_code))
 
 
