@@ -33,7 +33,8 @@ try:
 except ModuleNotFoundError:
     _mpmath_available = False
 
-from ..utilities import (n_thermal, iterated_fit)
+from ..utilities import (n_thermal, iterated_fit, aaa,
+                         matrix_pencil, prony, esprit)
 from .superoperator import spre, spost
 from .qobj import Qobj
 
@@ -766,6 +767,129 @@ class BosonicEnvironment(abc.ABC):
         approx_env = ExponentialBosonicEnvironment(
             ckAR, vkAR, ckAI, vkAI, combine=combine, T=self.T, tag=tag)
         return approx_env, fit_info
+
+    def approx_by_aaa(
+        self,
+        wlist: ArrayLike,
+        tol: float = 1e-13,
+        N_max: int = 10,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+
+        _, pol, res, _, _ = aaa(self.power_spectrum, wlist,
+                                tol=tol,
+                                max_iter=N_max*2)
+        mask = np.imag(pol) < 0
+
+        new_pols, new_res = pol[mask], res[mask]
+
+        # Create complex conjugates for both vk and ck
+        vk = 1j*new_pols
+        ck = -1j*new_res
+        ckAR = []
+        vkAR = []
+        ckAI = []
+        vkAI = []
+
+        for term in range(len(vk)):
+            a, b, c, d = np.real(ck[term]), -np.real(vk[term]), - \
+                np.imag(vk[term]), np.imag(ck[term])
+            ckAR.extend([(a + 1j * d) / 2, (a - 1j * d) / 2])
+            vkAR.extend([-b - 1j * c, -b + 1j * c])
+            ckAI.extend([-1j * (a + 1j * d) / 2, 1j * (a - 1j * d) / 2])
+
+        cls = ExponentialBosonicEnvironment(
+            ck_real=ckAR, vk_real=vkAR - 1j * vkAI, ck_imag=ckAI,
+            vk_imag=vkAR - 1j * vkAI, T=self.T, combine=combine, tag=tag)
+        return cls
+
+    def approx_by_mp(
+        self,
+        tlist: ArrayLike,
+        Nr: int = 3,
+        Ni: int = 3,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        # amp, phases = matrix_pencil(self.correlation_function(tlist), N)
+        # ckAR = amp.real
+        # ckAI = amp.imag
+        # vk = -((len(tlist)-1)/tlist[-1]) * \
+        #     (np.log(np.abs(phases))+1j*np.angle(phases))
+        amp, phases = matrix_pencil(self.correlation_function(tlist).real, Nr)
+        amp2, phases2 = matrix_pencil(self.correlation_function(tlist).imag, Ni)
+        ckAR = amp
+        ckAI = amp2
+        vkAR = -((len(tlist)-1)/tlist[-1]) * \
+            (np.log(np.abs(phases))+1j*np.angle(phases))
+        vkAI = -((len(tlist)-1)/tlist[-1]) * \
+            (np.log(np.abs(phases2))+1j*np.angle(phases2))
+
+        cls = ExponentialBosonicEnvironment(
+            ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
+            vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
+        return cls, (amp, phases)
+
+    def approx_by_prony(
+        self,
+        tlist: ArrayLike,
+        Nr: int = 3,
+        Ni: int = 3,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        # amp, phases = prony(self.correlation_function(tlist), N)
+        # ckAR = amp.real
+        # ckAI = amp.imag
+        # vk = -((len(tlist)-1)/tlist[-1]) * \
+        #     (np.log(np.abs(phases))+1j*np.angle(phases))
+        # TODO: Why doesn't the heom construction work when one fits the
+        # complex signal rather than the real and imaginary parts separately?
+        # Probably a dumb reason but I couldn't figure it out
+        amp, phases = prony(self.correlation_function(tlist).real, Nr)
+        amp2, phases2 = prony(self.correlation_function(tlist).imag, Ni)
+        ckAR = amp
+        ckAI = amp2
+        vkAR = -((len(tlist)-1)/tlist[-1]) * \
+            (np.log(np.abs(phases))+1j*np.angle(phases))
+        vkAI = -((len(tlist)-1)/tlist[-1]) * \
+            (np.log(np.abs(phases2))+1j*np.angle(phases2))
+
+        cls = ExponentialBosonicEnvironment(
+            ck_real=ckAR, vk_real=vkAR, vk_imag=vkAI,
+            ck_imag=ckAI, combine=combine, tag=tag)
+        return cls, (amp, phases)
+
+    def approx_by_esprit(
+        self,
+        tlist: ArrayLike,
+        Nr: int = 3,
+        Ni: int = 3,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        # amp, phases = esprit(self.correlation_function(tlist), N)
+        # ckAR = amp.real
+        # ckAI = amp.imag
+        # vk = -((len(tlist)-1)/tlist[-1]) * \
+        #     (np.log(np.abs(phases))+1j*np.angle(phases))
+        # cls = ExponentialBosonicEnvironment(
+        #     ck_real=ckAR, vk_real=vk, vk_imag=vk,
+        #     ck_imag=ckAI, combine=combine, tag=tag)
+        amp, phases = esprit(self.correlation_function(tlist).real, Nr)
+        amp2, phases2 = esprit(self.correlation_function(tlist).imag, Ni)
+        ckAR = amp
+        ckAI = amp2
+        vkAR = -((len(tlist)-1)/tlist[-1]) * \
+            (np.log(np.abs(phases))+1j*np.angle(phases))
+        vkAI = -((len(tlist)-1)/tlist[-1]) * \
+            (np.log(np.abs(phases2))+1j*np.angle(phases2))
+
+        cls = ExponentialBosonicEnvironment(
+            ck_real=ckAR, vk_real=vkAR, vk_imag=vkAI,
+            ck_imag=ckAI, combine=combine, tag=tag)
+        return cls, (amp, phases)
 
 
 class _BosonicEnvironment_fromCF(BosonicEnvironment):
