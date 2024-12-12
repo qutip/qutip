@@ -1,1 +1,0 @@
-`clip` gives deprecation warning, that might be a problem in the future. Hence switch to `where`

@@ -1,1 +1,0 @@
-Fix compatibility issue with matplotlib>=3.9 in matrix_histogram
