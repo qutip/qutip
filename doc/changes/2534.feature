@@ -1,1 +1,0 @@
-This change introduces the qutip.core.environment module, which contains classes that characterize bosonic and fermionic thermal environments.

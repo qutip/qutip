@@ -1,2 +1,0 @@
-Wave function calculations have been sped up through the implementation of a new Cython module, _distributions.pyx. 
-This module optimizes the update method of the HarmonicOscillatorWaveFunction class in distribution.py.
