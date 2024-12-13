@@ -27,6 +27,11 @@ cdef extern from *:
     void PyDataMem_FREE(void *ptr)
 
 
+@cython.overflowcheck(True)
+cdef size_t _mul_checked(size_t a, size_t b):
+    return a * b
+
+
 # Creation functions like 'identity' and 'from_csr' aren't exported in __all__
 # to avoid naming clashes with other type modules.
 __all__ = [
@@ -121,7 +126,9 @@ cdef class Dense(base.Data):
         low-level C code).
         """
         cdef Dense out = Dense.__new__(Dense)
-        cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
+        cdef size_t size = (
+            _mul_checked(self.shape[0], self.shape[1]) * sizeof(double complex)
+        )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
         if not ptr:
             raise MemoryError(
@@ -168,7 +175,9 @@ cdef class Dense(base.Data):
         dimensions.  This is not a view onto the data, and changes to new array
         will not affect the original data structure.
         """
-        cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
+        cdef size_t size = (
+          _mul_checked(self.shape[0], self.shape[1]) * sizeof(double complex)
+        )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
         if not ptr:
             raise MemoryError(
@@ -256,7 +265,9 @@ cpdef Dense empty(base.idxint rows, base.idxint cols, bint fortran=True):
     """
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
-    out.data = <double complex *> PyDataMem_NEW(rows * cols * sizeof(double complex))
+    out.data = <double complex *> PyDataMem_NEW(
+        _mul_checked(rows, cols) * sizeof(double complex)
+    )
     if not out.data:
         raise MemoryError(
             "Could not allocate memory to create an empty "
@@ -281,7 +292,9 @@ cpdef Dense zeros(base.idxint rows, base.idxint cols, bint fortran=True):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
     out.data =\
-        <double complex *> PyDataMem_NEW_ZEROED(rows * cols, sizeof(double complex))
+        <double complex *> PyDataMem_NEW_ZEROED(
+            _mul_checked(rows, cols), sizeof(double complex)
+        )
     if not out.data:
         raise MemoryError(
             "Could not allocate memory to create a zero "
@@ -310,8 +323,9 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = matrix.shape
     out.data = (
-        <double complex *>
-        PyDataMem_NEW_ZEROED(out.shape[0]*out.shape[1], sizeof(double complex))
+        <double complex *> PyDataMem_NEW_ZEROED(
+            _mul_checked(out.shape[0], out.shape[1]), sizeof(double complex)
+        )
     )
     if not out.data:
         raise MemoryError(
