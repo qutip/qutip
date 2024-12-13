@@ -127,7 +127,7 @@ cdef class Dense(base.Data):
         """
         cdef Dense out = Dense.__new__(Dense)
         cdef size_t size = (
-            _mul_checked(self.shape[0], self.shape[1]) * sizeof(double complex)
+            _mul_checked(_mul_checked(self.shape[0], self.shape[1]), sizeof(double complex))
         )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
         if not ptr:
@@ -176,7 +176,7 @@ cdef class Dense(base.Data):
         will not affect the original data structure.
         """
         cdef size_t size = (
-          _mul_checked(self.shape[0], self.shape[1]) * sizeof(double complex)
+          _mul_checked(_mul_checked(self.shape[0], self.shape[1]), sizeof(double complex))
         )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
         if not ptr:
@@ -266,7 +266,7 @@ cpdef Dense empty(base.idxint rows, base.idxint cols, bint fortran=True):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
     out.data = <double complex *> PyDataMem_NEW(
-        _mul_checked(rows, cols) * sizeof(double complex)
+        _mul_checked(_mul_checked(rows, cols), sizeof(double complex))
     )
     if not out.data:
         raise MemoryError(
