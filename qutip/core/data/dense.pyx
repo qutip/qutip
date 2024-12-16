@@ -28,7 +28,9 @@ cdef extern from *:
 
 
 @cython.overflowcheck(True)
-cdef size_t _mul_checked(size_t a, size_t b):
+cdef size_t _mul_mem_checked(size_t a, size_t b, size_t c=0):
+    if c != 0:
+        return a * b * c
     return a * b
 
 
@@ -127,7 +129,7 @@ cdef class Dense(base.Data):
         """
         cdef Dense out = Dense.__new__(Dense)
         cdef size_t size = (
-            _mul_checked(_mul_checked(self.shape[0], self.shape[1]), sizeof(double complex))
+            _mul_mem_checked(self.shape[0], self.shape[1], sizeof(double complex))
         )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
         if not ptr:
@@ -176,7 +178,7 @@ cdef class Dense(base.Data):
         will not affect the original data structure.
         """
         cdef size_t size = (
-          _mul_checked(_mul_checked(self.shape[0], self.shape[1]), sizeof(double complex))
+          _mul_mem_checked(self.shape[0], self.shape[1], sizeof(double complex))
         )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
         if not ptr:
@@ -266,7 +268,7 @@ cpdef Dense empty(base.idxint rows, base.idxint cols, bint fortran=True):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
     out.data = <double complex *> PyDataMem_NEW(
-        _mul_checked(_mul_checked(rows, cols), sizeof(double complex))
+        _mul_mem_checked(rows, cols, sizeof(double complex))
     )
     if not out.data:
         raise MemoryError(
@@ -293,7 +295,7 @@ cpdef Dense zeros(base.idxint rows, base.idxint cols, bint fortran=True):
     out.shape = (rows, cols)
     out.data =\
         <double complex *> PyDataMem_NEW_ZEROED(
-            _mul_checked(rows, cols), sizeof(double complex)
+            _mul_mem_checked(rows, cols), sizeof(double complex)
         )
     if not out.data:
         raise MemoryError(
@@ -324,7 +326,7 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
     out.shape = matrix.shape
     out.data = (
         <double complex *> PyDataMem_NEW_ZEROED(
-            _mul_checked(out.shape[0], out.shape[1]), sizeof(double complex)
+            _mul_mem_checked(out.shape[0], out.shape[1]), sizeof(double complex)
         )
     )
     if not out.data:
