@@ -1,4 +1,0 @@
-Make `e_ops`, `args` and `options` keyword only.
-Solver were inconsistent with `e_ops` usually following `c_ops` but sometime
-preceding it. Setting it as keyword only remove the need to memorize the 
-signature of each solver.
