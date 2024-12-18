@@ -172,7 +172,7 @@ class test_to_tensor_rep:
             array = to_tensor_rep(qobj)
             slices = mylist([slice(j) for j in array.shape])
             assert all(
-                np.all(array[*slices.at(i, j)] == j)
+                np.all(array.__getitem__(*slices.at(i, j)) == j)
                 for j in range(array.shape[i])
             )
 
