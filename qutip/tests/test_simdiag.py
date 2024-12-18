@@ -94,6 +94,15 @@ def test_simdiag_orthonormal_eigenvectors():
     )
 
 
+def test_large_degenerate():
+    N = sum(
+        qutip.expand_operator((1 + qutip.sigmaz()) / 2, [2] * 6, i)
+        for i in range(6)
+    )
+    vals, vecs = qutip.simdiag([N, N])
+    assert len(np.unique(np.round(vals, 14))) == 7
+
+
 def test_simdiag_no_input():
     with pytest.raises(ValueError):
         qutip.simdiag([])
