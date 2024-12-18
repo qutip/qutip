@@ -1,1 +1,0 @@
-Speed up `kraus_to_super` by adding a `sparse` option.

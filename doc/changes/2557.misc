@@ -1,1 +1,0 @@
-Improve performance of qt.Qobj by using static numpy version check 
