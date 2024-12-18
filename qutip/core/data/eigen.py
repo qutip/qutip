@@ -239,8 +239,9 @@ def eigs_csr(data, /, isherm=None, vecs=True, sort='low', eigvals=0,
 
     if vecs and isherm:
         i = 0
+        degen_tol = (2 * tol or 1e-15 * data.shape[0])
         while i < len(evals):
-            num_degen = np.sum(np.abs(evals - evals[i]) < (2 * tol or 1e-14))
+            num_degen = np.sum(np.abs(evals[i:] - evals[i]) < degen_tol)
             # orthogonalize vectors 1 .. k with respect to the first, then
             # 2 .. k with respect to the second, and so on. Relies on both the
             # order of each pair and the ordering of pairs returned by
