@@ -66,7 +66,7 @@ def simdiag(ops, evals: bool = True, *,
     Returns
     -------
     eigs : tuple
-        Tuple of arrays representing eigvecs and eigvals of quantum objects
+        Tuple of arrays representing eigvals and eigvecs of quantum objects
         corresponding to simultaneous eigenvectors and eigenvalues for each
         operator.
 
