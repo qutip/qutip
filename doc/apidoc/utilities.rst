@@ -7,7 +7,7 @@ Utility Functions
 -----------------
 
 .. automodule:: qutip.utilities
-    :members: n_thermal, clebsch, convert_unit
+    :members: n_thermal, clebsch, convert_unit, iterated_fit
 
 
 .. _fileio:
