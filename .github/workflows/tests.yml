@@ -40,9 +40,9 @@ jobs:
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
-          - case-name: p312 numpy 2
+          - case-name: p313 numpy 2
             os: ubuntu-latest
-            python-version: "3.12"
+            python-version: "3.13"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
@@ -88,7 +88,7 @@ jobs:
           # Mac has issues with MKL since september 2022.
           - case-name: macos
             os: macos-latest
-            python-version: "3.12"
+            python-version: "3.13"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             condaforge: 1
@@ -104,7 +104,7 @@ jobs:
 
           - case-name: Windows
             os: windows-latest
-            python-version: "3.11"
+            python-version: "3.13"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
