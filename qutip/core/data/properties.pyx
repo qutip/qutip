@@ -11,6 +11,8 @@ from qutip.core.data cimport csr, dense, dia, CSR, Dense, Dia
 from qutip.core.data.adjoint cimport transpose_csr
 import numpy as np
 
+from libc.math cimport isnan
+
 cdef extern from *:
     # Not defined in cpython.mem for some reason, but is in pymem.h.
     void *PyMem_Calloc(size_t nelem, size_t elsize)
@@ -304,24 +306,28 @@ cpdef bint iszero_dia(Dia matrix, double tol=-1) nogil:
 
 cpdef bint iszero_csr(CSR matrix, double tol=-1) nogil:
     cdef size_t ptr
+    cdef double complex v
     if tol < 0:
         with gil:
             tol = settings.core["atol"]
     tolsq = tol*tol
     for ptr in range(csr.nnz(matrix)):
-        if _abssq(matrix.data[ptr]) > tolsq:
+        v = matrix.data[ptr]
+        if _abssq(v) > tolsq or isnan(v.real) or isnan(v.imag):
             return False
     return True
 
 
 cpdef bint iszero_dense(Dense matrix, double tol=-1) nogil:
     cdef size_t ptr
+    cdef double complex v
     if tol < 0:
         with gil:
             tol = settings.core["atol"]
     tolsq = tol*tol
     for ptr in range(matrix.shape[0]*matrix.shape[1]):
-        if _abssq(matrix.data[ptr]) > tolsq:
+        v = matrix.data[ptr]
+        if _abssq(matrix.data[ptr]) > tolsq or isnan(v.real) or isnan(v.imag):
             return False
     return True
 
