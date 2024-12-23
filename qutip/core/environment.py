@@ -800,8 +800,8 @@ class BosonicEnvironment(abc.ABC):
             ckAI.extend([-1j * (a + 1j * d) / 2, 1j * (a - 1j * d) / 2])
 
         cls = ExponentialBosonicEnvironment(
-            ck_real=ckAR, vk_real=vkAR - 1j * vkAI, ck_imag=ckAI,
-            vk_imag=vkAR - 1j * vkAI, T=self.T, combine=combine, tag=tag)
+            ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
+            vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
         return cls
 
     def approx_by_mp(
