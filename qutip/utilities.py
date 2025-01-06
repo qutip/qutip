@@ -13,6 +13,7 @@ from typing import Callable
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import curve_fit
+from scipy.linalg import qr, hankel, lstsq, eigvals, svd, eig
 
 
 def n_thermal(w, w_th):
@@ -51,6 +52,45 @@ def n_thermal(w, w_th):
 
     non_zero = w != 0
     result[non_zero] = 1 / (np.exp(w[non_zero] / w_th) - 1)
+
+    return result.item() if w.ndim == 0 else result
+
+
+def fermi_dirac(w, T, mu):
+    """
+    Fermi Dirac distribution
+
+    Parameters
+    ----------
+
+    w : float or ndarray
+        Frequency of the oscillator.
+
+    T : float
+        The temperature in units of frequency (or the same units as `w`).
+    mu: float
+        Chemical potential
+
+    Returns
+    -------
+
+    n_avg : float or array
+
+        Return the number of average fermions in thermal equilibrium for a
+        with the given energy and temperature and chemical potential.
+
+
+    """
+
+    w = np.array(w, dtype=float)
+    result = np.zeros_like(w)
+
+    if T <= 0:
+        result[w < 0] = -1
+        return result.item() if w.ndim == 0 else result
+
+    non_zero = w != 0
+    result[non_zero] = 1 / (np.exp(w[non_zero] / T) + 1)
 
     return result.item() if w.ndim == 0 else result
 
@@ -523,3 +563,308 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
     params = _unpack(packed_params, num_params)
     rmse = _rmse(fun, xdata, ydata, params)
     return rmse, params
+
+
+# AAA Fitting
+
+def aaa(func, z, tol=1e-13, max_iter=100):
+    """
+    Computes a rational approximation of the function according to the AAA 
+    algorithm as explained in https://doi.org/10.1137/16M1106122 . This
+    implementation is a python adaptation of the matlab version in that paper
+
+    Parameters:
+    -----------
+    func : callable or np.ndarray
+
+    z : np.ndarray
+        The sampling points on which to perform the rational approximation. 
+        Even though linearly spaced sample points will yield good 
+        approximations, logarithmicly spaced points will usually give better
+        exponent approximations
+
+    tol : float, optional
+        Relative tolerance of the approximation
+    max_iter : int, optional
+        Maximum number of support points ~2*n where n is the number of bath 
+        exponents
+
+    Returns:
+    --------
+    r : callable
+        rational approximation of the function
+    pol : np.ndarray
+        poles of the approximant function
+    res : np.ndarray
+        residues of the approximant function
+    zer : np.ndarray
+        zeros of the approximant function
+    errors : np.ndarray
+        Error by iteration
+    """
+    func = func(z) if callable(func) else func
+    indices = np.arange(len(z))
+    support_points = np.empty(0, dtype=z.dtype)
+    values = np.empty(0, dtype=func.dtype)
+    errors = np.zeros(max_iter)
+    rational_approx = np.full_like(func, np.mean(func))
+
+    for k in range(max_iter):
+        j = np.argmax(np.abs(func - rational_approx))  # next support index
+        support_points = np.append(support_points, z[j])
+        values = np.append(values, func[j])  # function evaluated at support
+        indices = indices[indices != j]  # Remaining indices
+
+        cauchy = compute_cauchy_matrix(z[indices], support_points)
+        # Then we construct the Loewner Matrix
+        loewner = np.subtract.outer(func[indices], values) * cauchy
+        # Perform SVD only d is needed
+        _, _, vh = svd(loewner)
+        # Compute weights
+        weights = vh[-1, :].conj()
+        # Obtain the rational Approximation of the function with these support
+        # points
+        rational_approx = get_rational_approx(
+            cauchy, weights, values, indices, func)
+        errors[k] = np.linalg.norm(
+            func - rational_approx, np.inf)  # compute error
+        if errors[k] <= tol * np.linalg.norm(func, np.inf):
+            # if contributions are smaller than the tolerance, then stop the
+            # loop
+            break
+    # Define the function appproximation as a callable for output
+
+    def r(x):
+        return approximated_function(x, support_points, values, weights)
+    # Obtain poles residies and zeros
+    pol, res, zer = prz(support_points, values, weights)
+    return r, pol, res, zer, errors[:k+1]
+
+
+def compute_cauchy_matrix(z, support_points):
+    r"""
+    Computes the `Cauchy matrix <https://en.wikipedia.org/wiki/Cauchy_matrix>`
+    for the AAA rational approximation
+
+    ..math::
+    a_{ij}={\frac {1}{x_{i}-y_{j}}};\quad x_{i}-y_{j}\neq 0
+    ,\quad 1\leq i\leq m,\quad 1\leq j\leq n}
+
+    Parameters:
+    -----------
+    z : np.ndarray
+        sample points x
+    support_points : np.ndarray
+        support points y 
+
+    Returns:
+    --------
+    cauchy : np.ndarray
+        The cauchy matrix from the sample and support points
+    """
+    return 1 / np.subtract.outer(z, support_points)
+
+
+def get_rational_approx(cauchy, weights, values, indices=None, func=None):
+    """
+    Gets the rational approximation of the function. The approximation is of 
+    the form 
+
+    ..math::
+        r(z) = \frac{w_{j} f_{j}}{z-z_{j}}/\frac{w_{j}}{z-z_{j}}
+
+    where w is the cauchy matrix
+    Parameters:
+    -----------
+    cauchy : np.ndarray
+        The cauchy matrix
+    values : np.ndarray
+        The data used for the approximation
+    weights : np.ndarray
+        The weights used for the approximation
+    indices: np.ndarray
+        The support points to be avoided
+    func:
+        The function evaluated in the range of the fit
+
+
+    Returns:
+    --------
+    r : np.ndarray
+        The rational approximation of the function
+    """
+
+    numerator = cauchy @ (weights * values)
+    denominator = cauchy @ weights
+    if func is None:
+        rational_approx = numerator / denominator
+    else:
+        # This bit is to Avoid the support points in the AAA iterations
+        # as they shouldn't be included
+        rational_approx = func.copy()
+        rational_approx[indices] = numerator / denominator
+    return rational_approx
+
+
+def approximated_function(z, support_points, values, weights):
+    """
+    It computes the rational approximation 
+    ..math::
+        r(z) = \frac{w_{j} f_{j}}{z-z_{j}}/\frac{w_{j}}{z-z_{j}}
+    and interpolates its poles naively
+    Parameters:
+    -----------
+    z : np.ndarray
+        sample points for the approximation
+    support_points : np.ndarray
+        the support points for the cauchy matrix
+    values : np.ndarray
+        the data use for the approximation
+    weights : np.ndarray
+        the weight vector w
+
+    Returns:
+    --------
+    r : np.ndarray
+        The rational approximation of the function smoothed out
+    """
+    zv = np.ravel(z)  # flatten with c order
+    cauchy = compute_cauchy_matrix(z, support_points)
+    r = get_rational_approx(cauchy, weights, values)
+    mask = np.isnan(r)  # removing the nans in the poles
+    if np.any(mask):
+        # We then replace the evaluation at the poles, by their closest value
+        closest_indices = np.argmin(
+            np.abs(zv[mask, None] - support_points), axis=1)
+        r[mask] = values[closest_indices]
+
+    return r.reshape(z.shape)
+
+
+def prz(support_points, values, weights):
+    r"""
+    prz stands for poles, residues and zeros. It calculates and returns the
+    poles, residue and zeros of the rational approximation. Using the
+    generalized eigenvalue problem
+
+    ..math::
+       geig = \begin{pmatrix}0 & \omega_{2} & \dots& \omega_{m} \\
+           1& z_{1} & 0 & \dots \\
+           1 & 0 & z_{2} & \dots \\
+            \vdots   & \vdots & \vdots & \vdots \\
+             1   & \dots  & \dots &z_{m}\end{pmatrix} = \lambda L
+
+    where B is like a mxm identity matrix, except its first element is 0.
+
+    Unlike the implementation in the reference we use the simple quotient 
+    formula for the residue 
+
+
+https://math.stackexchange.com/questions/2202129/residue-for-quotient-of-functions
+
+
+    Parameters:
+    -----------
+    support_points : np.ndarray
+        The support points of the rational approximation
+    values : np.ndarray
+        Data values on which the approximation is performed
+    weights :np.ndarray
+        The weight vector
+
+    Returns:
+    --------
+    pol : np.ndarray
+        The poles of the rational approximation
+    res : np.ndarray
+        The residues of the rational approximation
+    zer : np.ndarray
+        The zeros of the rational approximation
+    """
+    m = len(weights)
+    geye = np.eye(m+1)
+    geye[0, 0] = 0
+    geig = np.block([[0, weights], [np.ones((m, 1)), np.diag(support_points)]])
+    eigvals = eig(geig, geye)[0]
+    # removing spurious values
+    pol = np.real_if_close(eigvals[np.isfinite(eigvals)])
+
+    cauchy = compute_cauchy_matrix(pol, support_points)
+
+    numerator = cauchy @ (values * weights)
+    denominator = (-cauchy**2) @ weights  # Quotient rule f=1/cauchy
+    res = numerator / denominator
+    ez = np.block([[0, weights], [values[:, None], np.diag(support_points)]])
+    zeros = eig(ez, geye)[0]
+    zeros = zeros[~np.isinf(zeros)]
+    return pol, res, zeros
+
+
+# Matrix Pencil Method (chosen over Prony because of resilience to Noise)
+
+
+def matrix_pencil(C: np.ndarray, n: int) -> tuple:
+    """
+    Estimate amplitudes and frequencies using the Matrix Pencil Method.
+
+    Args:
+        signal (np.ndarray): The input signal (1D complex array).
+        n (int): The number of modes to estimate (rank of the signal).
+
+    Returns:
+        tuple: A tuple containing:
+            - amplitudes (np.ndarray): The estimated amplitudes.
+            - phases (np.ndarray): The estimated complex exponential frequencies.
+    """
+    num_freqs = len(C)-n
+    hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
+    hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
+
+    _, R = qr(hankel0)
+
+    pencil_matrix = np.linalg.pinv(R.T@hankel0) @ (R.T@hankel1)
+    phases = eigvals(pencil_matrix)
+    generation_matrix = np.array(
+        [[phase**k for phase in phases] for k in range(len(C))])
+    amplitudes = lstsq(generation_matrix, C)[0]
+
+    return amplitudes, phases
+
+# Prony
+
+
+def prony(signal: np.ndarray, n):
+    num_freqs = n
+    hankel0 = hankel(c=signal[:num_freqs], r=signal[num_freqs - 1: -1])
+    hankel1 = hankel(c=signal[1: num_freqs + 1], r=signal[num_freqs:])
+    shift_matrix = lstsq(hankel0.T, hankel1.T)[0]
+    phases = eigvals(shift_matrix.T)
+
+    generation_matrix = np.array(
+        [[phase**k for phase in phases] for k in range(len(signal))])
+    amplitudes = lstsq(generation_matrix, signal)[0]
+
+    amplitudes, phases = zip(
+        *sorted(zip(amplitudes, phases), key=lambda x: np.abs(x[0]), reverse=True)
+    )
+
+    return np.array(amplitudes), np.array(phases)
+
+# ESPRIT
+
+
+def esprit(C: np.ndarray, n: int) -> tuple:
+    # Step 1: Create the Hankel matrices
+    num_freqs = len(C)-n
+    hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
+    hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
+
+    # Step 2: Perform SVD on the first Hankel matrix
+    U1, _, _ = svd(hankel0)
+    pencil_matrix = np.linalg.pinv(U1.T@hankel0) @ (U1.T@hankel1)
+    phases = eigvals(pencil_matrix)
+    generation_matrix = np.array(
+        [[phase**k for phase in phases] for k in range(len(C))])
+    amplitudes = lstsq(generation_matrix, C)[0]
+
+    return amplitudes, phases
