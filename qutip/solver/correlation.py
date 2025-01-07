@@ -5,7 +5,6 @@ __all__ = [
 ]
 
 import numpy as np
-import scipy.fftpack
 
 from ..core import (
     Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
