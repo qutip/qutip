@@ -12,7 +12,8 @@ import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la
 import scipy.special
-from scipy.special import genlaguerre, binom, sph_harm, factorial
+from scipy.special import genlaguerre, binom, factorial
+from scipy.special import sph_harm_y, sph_harm
 
 import qutip
 from qutip import Qobj, ket2dm, jmat
@@ -998,6 +999,8 @@ def spin_wigner(rho, theta, phi):
     for k in range(int(2 * j)+1):
         for q in arange(-k, k+1):
             # sph_harm takes azimuthal angle then polar angle as arguments
-            W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
+            rhokq = _rho_kq(rho, j, k, q)
+            sph = sph_harm_y(k, q, THETA, PHI)
+            W += rhokq * sph
 
     return W.real, THETA, PHI
