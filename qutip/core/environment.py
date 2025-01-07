@@ -777,33 +777,35 @@ class BosonicEnvironment(abc.ABC):
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         """
-        Generates an approximation to this environment by fitting its power spectrum
-        using the AAA algorithm. The function is fit to a rational polynomial of the 
-        form
+        Generates an approximation to this environment by fitting its power
+        spectrum using the AAA algorithm. The function is fit to a rational
+        polynomial of the form
 
         .. math::
-            S(\omega)= 2 \Re \left(\sum_{k} \frac{c_{k}}{\nu_{k}-i \omega} \right)
+            S(\\omega)= 2 \\Re \\left(\\sum_{k} \frac{c_{k}}{\nu_{k}-i \\omega}
+            \right)
 
-        By isolating the poles and residues of a section of the complex plane the 
-        correlation function can be reconstructed as a sum of decaying exponentials.
-        The main benefit of this method is that it does not require much knowledge about
-        the function to be fit. On the downside, if many poles are around the origin, it
-        might require the sample points to be used for the fit to be a large dense range
-        which makes this algorithm consume a lot of RAM (it will also be slow if asking
-        for many exponents)
+        By isolating the poles and residues of a section of the complex plane
+        the correlation function can be reconstructed as a sum of decaying
+        exponentials. The main benefit of this method is that it does not
+        require much knowledge about the function to be fit. On the downside,
+        if many poles are around the origin, it might require the sample points
+        to be used for the fit to be a large dense range which makes this
+        algorithm consume a lot of RAM (it will also be slow if asking for many
+        exponents)
 
 
         Parameters
         ----------
         wlist : array_like
-            The frequency range on which to perform the fit. With this method typically 
-            logarithmic spacing works best.
+            The frequency range on which to perform the fit. With this method
+            typically logarithmic spacing works best.
         tol : optional, int
-            Relative tolerance to be used to stop the algorithm, if an iteration contribution
-            is less than the tolerance the fit is stopped.
+            Relative tolerance to be used to stop the algorithm, if an iteration
+            contribution is less than the tolerance the fit is stopped.
         Nmax : optional, int
-            The maximum number of exponents desired. Corresponds to the 
-            maximum number of iterations for the AAA algorithm 
+            The maximum number of exponents desired. Corresponds to the
+            maximum number of iterations for the AAA algorithm
         combine : optional, bool (default True)
             Whether to combine exponents with the same frequency. See
             :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
@@ -821,15 +823,15 @@ class BosonicEnvironment(abc.ABC):
 
         _, pol, res, _, _ = aaa(self.power_spectrum, wlist,
                                 tol=tol,
-                                max_iter=N_max*2)
+                                max_iter=N_max * 2)
         # The *2 is there because half the poles will be filtered out
         mask = np.imag(pol) < 0
 
         new_pols, new_res = pol[mask], res[mask]
 
         # Create complex conjugates for both vk and ck
-        vk = 1j*new_pols
-        ck = -1j*new_res
+        vk = 1j * new_pols
+        ck = -1j * new_res
         ckAR = []
         vkAR = []
         ckAI = []
@@ -855,16 +857,19 @@ class BosonicEnvironment(abc.ABC):
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         """
-        Generates an approximation to this environment by fitting its correlation function
-        using the Matrix pencil method based on the prony polynomial.
+        Generates an approximation to this environment by fitting its
+        correlation function using the Matrix pencil method based on the prony
+        polynomial.
         Parameters
         ----------
         tlist : array_like
-            The time range on which to perform the fit. 
+            The time range on which to perform the fit.
         Nr : optional, int
-            The number of exponents desired to describe the imaginary part of the correlation function. It defaults to 3
+            The number of exponents desired to describe the imaginary part of
+            the correlation function. It defaults to 3
         Nr : optional, int
-            The number of exponents desired to describe the real part of the correlation function. It defaults to 3
+            The number of exponents desired to describe the real part of
+            the correlation function. It defaults to 3
         combine : optional, bool (default True)
             Whether to combine exponents with the same frequency. See
             :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
@@ -879,38 +884,19 @@ class BosonicEnvironment(abc.ABC):
             The approximated environment with multi-exponential correlation
             function.
         """
-        if Ni != Nr:
-            amp, phases = matrix_pencil(
-                self.correlation_function(tlist).real, Nr)
-            amp2, phases2 = matrix_pencil(
-                self.correlation_function(tlist).imag, Ni)
-            ckAR = amp
-            ckAI = amp2
-            vkAR = -((len(tlist)-1)/tlist[-1]) * \
-                (np.log(np.abs(phases))+1j*np.angle(phases))
-            vkAI = -((len(tlist)-1)/tlist[-1]) * \
-                (np.log(np.abs(phases2))+1j*np.angle(phases2))
-            cls = ExponentialBosonicEnvironment(
-                ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
-                vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
-        else:
-            vkAR = []
-            ckAI = []
-            ckAR = []
-
-            amp, phases = matrix_pencil(self.correlation_function(tlist), Nr)
-            ck = amp
-            vk = -((len(tlist)-1)/tlist[-1]) * \
-                (np.log(np.abs(phases))+1j*np.angle(phases))
-            # for term in range(len(vk)):
-            #     a, b, c, d = np.real(ck[term]), -np.real(vk[term]), - \
-            #         np.imag(vk[term]), np.imag(ck[term])
-            #     ckAR.extend([(a + 1j * d) / 2])
-            #     vkAR.extend([-b - 1j * c])
-            #     ckAI.extend([-1j * (a + 1j * d) / 2])
-            cls = ExponentialBosonicEnvironment(
-                ck_real=ck.real, vk_real=vk, ck_imag=ck.imag,
-                vk_imag=vk, T=self.T, combine=combine, tag=tag)
+        amp, phases = matrix_pencil(
+            self.correlation_function(tlist).real, Nr)
+        amp2, phases2 = matrix_pencil(
+            self.correlation_function(tlist).imag, Ni)
+        ckAR = amp
+        ckAI = amp2
+        vkAR = -((len(tlist) - 1) / tlist[-1]) * \
+            (np.log(np.abs(phases)) + 1j * np.angle(phases))
+        vkAI = -((len(tlist) - 1) / tlist[-1]) * \
+            (np.log(np.abs(phases2)) + 1j * np.angle(phases2))
+        cls = ExponentialBosonicEnvironment(
+            ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
+            vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
         return cls, (amp, phases)
 
     def approx_by_prony(
@@ -922,16 +908,19 @@ class BosonicEnvironment(abc.ABC):
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         """
-        Generates an approximation to this environment by fitting its correlation function
+        Generates an approximation to this environment by fitting its
+        correlation function
         using the prony method.
         Parameters
         ----------
         tlist : array_like
-            The time range on which to perform the fit. 
+            The time range on which to perform the fit.
         Nr : optional, int
-            The number of exponents desired to describe the imaginary part of the correlation function. It defaults to 3
+            The number of exponents desired to describe the imaginary part of
+            the correlation function. It defaults to 3
         Nr : optional, int
-            The number of exponents desired to describe the real part of the correlation function. It defaults to 3
+            The number of exponents desired to describe the real part of
+            the correlation function. It defaults to 3
         combine : optional, bool (default True)
             Whether to combine exponents with the same frequency. See
             :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
@@ -946,26 +935,21 @@ class BosonicEnvironment(abc.ABC):
             The approximated environment with multi-exponential correlation
             function.
         """
-        # amp, phases = prony(self.correlation_function(tlist), N)
-        # ckAR = amp.real
-        # ckAI = amp.imag
-        # vk = -((len(tlist)-1)/tlist[-1]) * \
-        #     (np.log(np.abs(phases))+1j*np.angle(phases))
+
         # TODO: Why doesn't the heom construction work when one fits the
         # complex signal rather than the real and imaginary parts separately?
         # Probably a dumb reason but I couldn't figure it out
         # I was passing exponents incorrectly, they should be passed the same
-        # way as they are passed to AAA, however Neill and Paul may like
-        # having these separate so ask before modification (I typically find
-        # better fits with less exponent's when fitting the complex signal)
+        # (I typically find better fits with less exponent's when fitting the
+        # complex signal)
         amp, phases = prony(self.correlation_function(tlist).real, Nr)
         amp2, phases2 = prony(self.correlation_function(tlist).imag, Ni)
         ckAR = amp
         ckAI = amp2
-        vkAR = -((len(tlist)-1)/tlist[-1]) * \
-            (np.log(np.abs(phases))+1j*np.angle(phases))
-        vkAI = -((len(tlist)-1)/tlist[-1]) * \
-            (np.log(np.abs(phases2))+1j*np.angle(phases2))
+        vkAR = -((len(tlist) - 1) / tlist[-1]) * \
+            (np.log(np.abs(phases)) + 1j * np.angle(phases))
+        vkAI = -((len(tlist) - 1) / tlist[-1]) * \
+            (np.log(np.abs(phases2)) + 1j * np.angle(phases2))
 
         cls = ExponentialBosonicEnvironment(
             ck_real=ckAR, vk_real=vkAR, vk_imag=vkAI,
@@ -981,16 +965,19 @@ class BosonicEnvironment(abc.ABC):
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         """
-        Generates an approximation to this environment by fitting its correlation function
-        using the ESPRIT method based on the prony polynomial.
+        Generates an approximation to this environment by fitting its
+        correlation function using the ESPRIT method based on the prony
+        polynomial.
         Parameters
         ----------
         tlist : array_like
-            The time range on which to perform the fit. 
+            The time range on which to perform the fit.
         Nr : optional, int
-            The number of exponents desired to describe the imaginary part of the correlation function. It defaults to 3
+            The number of exponents desired to describe the imaginary part of
+            the correlation function. It defaults to 3
         Nr : optional, int
-            The number of exponents desired to describe the real part of the correlation function. It defaults to 3
+            The number of exponents desired to describe the real part of the
+            correlation function. It defaults to 3
         combine : optional, bool (default True)
             Whether to combine exponents with the same frequency. See
             :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
@@ -1005,22 +992,14 @@ class BosonicEnvironment(abc.ABC):
             The approximated environment with multi-exponential correlation
             function.
         """
-        # amp, phases = esprit(self.correlation_function(tlist), N)
-        # ckAR = amp.real
-        # ckAI = amp.imag
-        # vk = -((len(tlist)-1)/tlist[-1]) * \
-        #     (np.log(np.abs(phases))+1j*np.angle(phases))
-        # cls = ExponentialBosonicEnvironment(
-        #     ck_real=ckAR, vk_real=vk, vk_imag=vk,
-        #     ck_imag=ckAI, combine=combine, tag=tag)
         amp, phases = esprit(self.correlation_function(tlist).real, Nr)
         amp2, phases2 = esprit(self.correlation_function(tlist).imag, Ni)
         ckAR = amp
         ckAI = amp2
-        vkAR = -((len(tlist)-1)/tlist[-1]) * \
-            (np.log(np.abs(phases))+1j*np.angle(phases))
-        vkAI = -((len(tlist)-1)/tlist[-1]) * \
-            (np.log(np.abs(phases2))+1j*np.angle(phases2))
+        vkAR = -((len(tlist) - 1) / tlist[-1]) * \
+            (np.log(np.abs(phases)) + 1j * np.angle(phases))
+        vkAI = -((len(tlist) - 1) / tlist[-1]) * \
+            (np.log(np.abs(phases2)) + 1j * np.angle(phases2))
 
         cls = ExponentialBosonicEnvironment(
             ck_real=ckAR, vk_real=vkAR, vk_imag=vkAI,
@@ -1605,7 +1584,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
         Om = np.sqrt(self.w0**2 - (self.gamma / 2)**2)
         Gamma = self.gamma / 2
 
-        z = np.inf if self.T == 0 else (Om + 1j * Gamma) / (2*self.T)
+        z = np.inf if self.T == 0 else (Om + 1j * Gamma) / (2 * self.T)
         # we set the argument of the hyperbolic tangent to infinity if T=0
         ck_real = ([
             (self.lam**2 / (4 * Om)) * (1 / np.tanh(z)),
@@ -2222,13 +2201,13 @@ def _default_guess_cfreal(tlist, clist, full_ansatz):
     # Checks if constant array, and assigns zero
     if (clist == clist[0]).all():
         if full_ansatz:
-            return [[0] * 4]*3
-        return [[0] * 3]*3
+            return [[0] * 4] * 3
+        return [[0] * 3] * 3
 
     if full_ansatz:
         lower = [-100 * corr_max, -np.inf, -np.inf, -100 * corr_max]
-        guess = [corr_max, -100*corr_max, 0, 0]
-        upper = [100*corr_max, 0, np.inf, 100*corr_max]
+        guess = [corr_max, -100 * corr_max, 0, 0]
+        upper = [100 * corr_max, 0, np.inf, 100 * corr_max]
     else:
         lower = [-20 * corr_max, -np.inf, 0]
         guess = [corr_max, -tc, 0]
@@ -2242,8 +2221,8 @@ def _default_guess_cfimag(clist, full_ansatz):
     # Checks if constant array, and assigns zero
     if (clist == clist[0]).all():
         if full_ansatz:
-            return [[0] * 4]*3
-        return [[0] * 3]*3
+            return [[0] * 4] * 3
+        return [[0] * 3] * 3
 
     if full_ansatz:
         lower = [-100 * corr_max, -np.inf, -np.inf, -100 * corr_max]
@@ -2287,7 +2266,7 @@ def _fit_summary(time, rmse, N, label, params,
                    f"{columns[0]: ^10}|{columns[1]: ^10}|{columns[2]: >5} \n ")
         for k in range(N):
             summary += (
-                f"{k+1: <10}|{params[k][0]: ^10.2e}|{params[k][1]:^10.2e}|"
+                f"{k + 1: <10}|{params[k][0]: ^10.2e}|{params[k][1]:^10.2e}|"
                 f"{params[k][2]:>5.2e}\n ")
     elif len(columns) == 4:
         summary = (
@@ -2297,7 +2276,7 @@ def _fit_summary(time, rmse, N, label, params,
             f"|{columns[3]: >5} \n ")
         for k in range(N):
             summary += (
-                f"{k+1: <10}|{params[k][0]: ^10.2e}|{params[k][1]:^10.2e}"
+                f"{k + 1: <10}|{params[k][0]: ^10.2e}|{params[k][1]:^10.2e}"
                 f"|{params[k][2]:^10.2e}|{params[k][3]:>5.2e}\n ")
     else:
         raise ValueError("Unsupported number of columns")

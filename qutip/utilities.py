@@ -67,7 +67,7 @@ def _factorial_div(N, arr):
 def _to_long(arr):
     prod = 1
     for i, v in enumerate(arr):
-        prod *= (i+1)**int(v)
+        prod *= (i + 1)**int(v)
     return prod
 
 
@@ -117,7 +117,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     _factorial_div(j1 + m1, c_factor)
     _factorial_div(j2 - m2, c_factor)
     _factorial_div(j2 + m2, c_factor)
-    C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
+    C = np.sqrt((2.0 * j3 + 1.0) * _to_long(c_factor))
 
     s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
     # `S` and `C` are large integer,s if `sign` is a np.int32 it could oveflow
@@ -530,7 +530,7 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 
 def aaa(func, z, tol=1e-13, max_iter=100):
     """
-    Computes a rational approximation of the function according to the AAA 
+    Computes a rational approximation of the function according to the AAA
     algorithm as explained in https://doi.org/10.1137/16M1106122 . This
     implementation is a python adaptation of the matlab version in that paper
     NOTE: I am not sure if this is necessary anymore as scipy 1.15 includes AAA
@@ -539,15 +539,15 @@ def aaa(func, z, tol=1e-13, max_iter=100):
     func : callable or np.ndarray
 
     z : np.ndarray
-        The sampling points on which to perform the rational approximation. 
-        Even though linearly spaced sample points will yield good 
+        The sampling points on which to perform the rational approximation.
+        Even though linearly spaced sample points will yield good
         approximations, logarithmicly spaced points will usually give better
         exponent approximations
 
     tol : float, optional
         Relative tolerance of the approximation
     max_iter : int, optional
-        Maximum number of support points ~2*n where n is the number of bath 
+        Maximum number of support points ~2*n where n is the number of bath
         exponents
 
     Returns:
@@ -599,7 +599,7 @@ def aaa(func, z, tol=1e-13, max_iter=100):
         return approximated_function(x, support_points, values, weights)
     # Obtain poles residies and zeros
     pol, res, zer = prz(support_points, values, weights)
-    return r, pol, res, zer, errors[:k+1]
+    return r, pol, res, zer, errors[:k + 1]
 
 
 def compute_cauchy_matrix(z, support_points):
@@ -616,7 +616,7 @@ def compute_cauchy_matrix(z, support_points):
     z : np.ndarray
         sample points x
     support_points : np.ndarray
-        support points y 
+        support points y
 
     Returns:
     --------
@@ -628,8 +628,8 @@ def compute_cauchy_matrix(z, support_points):
 
 def get_rational_approx(cauchy, weights, values, indices=None, func=None):
     """
-    Gets the rational approximation of the function. The approximation is of 
-    the form 
+    Gets the rational approximation of the function. The approximation is of
+    the form
 
     ..math::
         r(z) = \frac{w_{j} f_{j}}{z-z_{j}}/\frac{w_{j}}{z-z_{j}}
@@ -669,7 +669,7 @@ def get_rational_approx(cauchy, weights, values, indices=None, func=None):
 
 def approximated_function(z, support_points, values, weights):
     """
-    It computes the rational approximation 
+    It computes the rational approximation
     ..math::
         r(z) = \frac{w_{j} f_{j}}{z-z_{j}}/\frac{w_{j}}{z-z_{j}}
     and interpolates its poles naively
@@ -717,11 +717,9 @@ def prz(support_points, values, weights):
 
     where B is like a mxm identity matrix, except its first element is 0.
 
-    Unlike the implementation in the reference we use the simple quotient 
-    formula for the residue 
-
-
-    https://math.stackexchange.com/questions/2202129/residue-for-quotient-of-functions
+    Unlike the implementation in the reference we use the simple quotient
+    formula for the residue (https://math.stackexchange.com/questions/2202129/
+    residue-for-quotient-of-functions)
 
 
     Parameters:
@@ -743,7 +741,7 @@ def prz(support_points, values, weights):
         The zeros of the rational approximation
     """
     m = len(weights)
-    geye = np.eye(m+1)
+    geye = np.eye(m + 1)
     geye[0, 0] = 0
     geig = np.block([[0, weights], [np.ones((m, 1)), np.diag(support_points)]])
     eigvals = eig(geig, geye)[0]
@@ -772,22 +770,25 @@ def matrix_pencil(C: np.ndarray, n: int) -> tuple:
 
     Returns:
         tuple: A tuple containing:
-            - amplitudes (np.ndarray): The estimated amplitudes.
-            - phases (np.ndarray): The estimated complex exponential frequencies.
+            - amplitudes (np.ndarray):
+                The estimated amplitudes.
+            - phases (np.ndarray):
+                The estimated complex exponential frequencies.
     """
-    num_freqs = len(C)-n
+    num_freqs = len(C) - n
     hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
     hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
 
     _, R = qr(hankel0)
 
-    pencil_matrix = np.linalg.pinv(R.T@hankel0) @ (R.T@hankel1)
+    pencil_matrix = np.linalg.pinv(R.T @ hankel0) @ (R.T @ hankel1)
     phases = eigvals(pencil_matrix)
     generation_matrix = np.array(
         [[phase**k for phase in phases] for k in range(len(C))])
     amplitudes = lstsq(generation_matrix, C)[0]
 
     return amplitudes, phases
+
 
 def prony(signal: np.ndarray, n):
     """
@@ -800,8 +801,10 @@ def prony(signal: np.ndarray, n):
 
     Returns:
         tuple: A tuple containing:
-            - amplitudes (np.ndarray): The estimated amplitudes.
-            - phases (np.ndarray): The estimated complex exponential frequencies.
+            - amplitudes (np.ndarray):
+                The estimated amplitudes.
+            - phases (np.ndarray):
+                The estimated complex exponential frequencies.
     """
     num_freqs = n
     hankel0 = hankel(c=signal[:num_freqs], r=signal[num_freqs - 1: -1])
@@ -814,10 +817,11 @@ def prony(signal: np.ndarray, n):
     amplitudes = lstsq(generation_matrix, signal)[0]
 
     amplitudes, phases = zip(
-        *sorted(zip(amplitudes, phases), key=lambda x: np.abs(x[0]), reverse=True)
+    *sorted(zip(amplitudes, phases), key=lambda x: np.abs(x[0]), reverse=True)
     )
 
     return np.array(amplitudes), np.array(phases)
+
 
 def esprit(C: np.ndarray, n: int) -> tuple:
     """
@@ -830,17 +834,19 @@ def esprit(C: np.ndarray, n: int) -> tuple:
 
     Returns:
         tuple: A tuple containing:
-            - amplitudes (np.ndarray): The estimated amplitudes.
-            - phases (np.ndarray): The estimated complex exponential frequencies.
+            - amplitudes (np.ndarray):
+                The estimated amplitudes.
+            - phases (np.ndarray):
+                The estimated complex exponential frequencies.
     """
     # Step 1: Create the Hankel matrices
-    num_freqs = len(C)-n
+    num_freqs = len(C) - n
     hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
     hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
 
     # Step 2: Perform SVD on the first Hankel matrix
     U1, _, _ = svd(hankel0)
-    pencil_matrix = np.linalg.pinv(U1.T@hankel0) @ (U1.T@hankel1)
+    pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
     phases = eigvals(pencil_matrix)
     generation_matrix = np.array(
         [[phase**k for phase in phases] for k in range(len(C))])
