@@ -1,7 +1,7 @@
 import pytest
 import qutip
 import numpy as np
-from scipy.special import sph_harm
+from qutip.wigner import sph_harm_y
 
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
@@ -37,7 +37,7 @@ def test_sequential():
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
     phi_mesh, theta_mesh = np.meshgrid(phi, theta)
-    values = sph_harm(-1, 2, phi_mesh, theta_mesh).T
+    values = sph_harm_y(2, -1, theta_mesh, phi_mesh).T
     fig, ax = qutip.sphereplot(values, theta, phi)
     plt.close()
 
@@ -206,7 +206,7 @@ def test_sphereplot(args):
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
     phi_mesh, theta_mesh = np.meshgrid(phi, theta)
-    values = sph_harm(-1, 2, phi_mesh, theta_mesh).T
+    values = sph_harm_y(2, -1, theta_mesh, phi_mesh).T
     fig, ax = qutip.sphereplot(values, theta, phi, **args)
     plt.close()
 
@@ -218,7 +218,7 @@ def test_sphereplot_anim():
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
     phi_mesh, theta_mesh = np.meshgrid(phi, theta)
-    values = sph_harm(-1, 2, phi_mesh, theta_mesh).T
+    values = sph_harm_y(2, -1, theta_mesh, phi_mesh).T
     fig, ani = qutip.sphereplot([values]*2, theta, phi)
     plt.close()
 
