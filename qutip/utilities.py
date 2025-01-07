@@ -56,45 +56,6 @@ def n_thermal(w, w_th):
     return result.item() if w.ndim == 0 else result
 
 
-def fermi_dirac(w, T, mu):
-    """
-    Fermi Dirac distribution
-
-    Parameters
-    ----------
-
-    w : float or ndarray
-        Frequency of the oscillator.
-
-    T : float
-        The temperature in units of frequency (or the same units as `w`).
-    mu: float
-        Chemical potential
-
-    Returns
-    -------
-
-    n_avg : float or array
-
-        Return the number of average fermions in thermal equilibrium for a
-        with the given energy and temperature and chemical potential.
-
-
-    """
-
-    w = np.array(w, dtype=float)
-    result = np.zeros_like(w)
-
-    if T <= 0:
-        result[w < 0] = -1
-        return result.item() if w.ndim == 0 else result
-
-    non_zero = w != 0
-    result[non_zero] = 1 / (np.exp(w[non_zero] / T) + 1)
-
-    return result.item() if w.ndim == 0 else result
-
-
 def _factorial_prod(N, arr):
     arr[:int(N)] += 1
 
@@ -572,7 +533,7 @@ def aaa(func, z, tol=1e-13, max_iter=100):
     Computes a rational approximation of the function according to the AAA 
     algorithm as explained in https://doi.org/10.1137/16M1106122 . This
     implementation is a python adaptation of the matlab version in that paper
-
+    NOTE: I am not sure if this is necessary anymore as scipy 1.15 includes AAA
     Parameters:
     -----------
     func : callable or np.ndarray
@@ -760,7 +721,7 @@ def prz(support_points, values, weights):
     formula for the residue 
 
 
-https://math.stackexchange.com/questions/2202129/residue-for-quotient-of-functions
+    https://math.stackexchange.com/questions/2202129/residue-for-quotient-of-functions
 
 
     Parameters:
@@ -800,12 +761,10 @@ https://math.stackexchange.com/questions/2202129/residue-for-quotient-of-functio
     return pol, res, zeros
 
 
-# Matrix Pencil Method (chosen over Prony because of resilience to Noise)
-
-
 def matrix_pencil(C: np.ndarray, n: int) -> tuple:
     """
     Estimate amplitudes and frequencies using the Matrix Pencil Method.
+    Based on the description in https://doi.org/10.1093/imanum/drab108
 
     Args:
         signal (np.ndarray): The input signal (1D complex array).
@@ -830,10 +789,20 @@ def matrix_pencil(C: np.ndarray, n: int) -> tuple:
 
     return amplitudes, phases
 
-# Prony
-
-
 def prony(signal: np.ndarray, n):
+    """
+    Estimate amplitudes and frequencies using the prony Method.
+    Based on the description in https://doi.org/10.1093/imanum/drab108
+
+    Args:
+        signal (np.ndarray): The input signal (1D complex array).
+        n (int): The number of modes to estimate (rank of the signal).
+
+    Returns:
+        tuple: A tuple containing:
+            - amplitudes (np.ndarray): The estimated amplitudes.
+            - phases (np.ndarray): The estimated complex exponential frequencies.
+    """
     num_freqs = n
     hankel0 = hankel(c=signal[:num_freqs], r=signal[num_freqs - 1: -1])
     hankel1 = hankel(c=signal[1: num_freqs + 1], r=signal[num_freqs:])
@@ -850,10 +819,20 @@ def prony(signal: np.ndarray, n):
 
     return np.array(amplitudes), np.array(phases)
 
-# ESPRIT
-
-
 def esprit(C: np.ndarray, n: int) -> tuple:
+    """
+    Estimate amplitudes and frequencies using the ESPRIT Method.
+    Based on the description in https://doi.org/10.1093/imanum/drab108
+
+    Args:
+        signal (np.ndarray): The input signal (1D complex array).
+        n (int): The number of modes to estimate (rank of the signal).
+
+    Returns:
+        tuple: A tuple containing:
+            - amplitudes (np.ndarray): The estimated amplitudes.
+            - phases (np.ndarray): The estimated complex exponential frequencies.
+    """
     # Step 1: Create the Hankel matrices
     num_freqs = len(C)-n
     hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])

@@ -776,10 +776,53 @@ class BosonicEnvironment(abc.ABC):
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        """
+        Generates an approximation to this environment by fitting its power spectrum
+        using the AAA algorithm. The function is fit to a rational polynomial of the 
+        form
+
+        .. math::
+            S(\omega)= 2 \Re \left(\sum_{k} \frac{c_{k}}{\nu_{k}-i \omega} \right)
+
+        By isolating the poles and residues of a section of the complex plane the 
+        correlation function can be reconstructed as a sum of decaying exponentials.
+        The main benefit of this method is that it does not require much knowledge about
+        the function to be fit. On the downside, if many poles are around the origin, it
+        might require the sample points to be used for the fit to be a large dense range
+        which makes this algorithm consume a lot of RAM (it will also be slow if asking
+        for many exponents)
+
+
+        Parameters
+        ----------
+        wlist : array_like
+            The frequency range on which to perform the fit. With this method typically 
+            logarithmic spacing works best.
+        tol : optional, int
+            Relative tolerance to be used to stop the algorithm, if an iteration contribution
+            is less than the tolerance the fit is stopped.
+        Nmax : optional, int
+            The maximum number of exponents desired. Corresponds to the 
+            maximum number of iterations for the AAA algorithm 
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
+        Returns
+        -------
+        approx_env : :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
 
         _, pol, res, _, _ = aaa(self.power_spectrum, wlist,
                                 tol=tol,
                                 max_iter=N_max*2)
+        # The *2 is there because half the poles will be filtered out
         mask = np.imag(pol) < 0
 
         new_pols, new_res = pol[mask], res[mask]
@@ -790,7 +833,6 @@ class BosonicEnvironment(abc.ABC):
         ckAR = []
         vkAR = []
         ckAI = []
-        vkAI = []
 
         for term in range(len(vk)):
             a, b, c, d = np.real(ck[term]), -np.real(vk[term]), - \
@@ -812,23 +854,63 @@ class BosonicEnvironment(abc.ABC):
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
-        # amp, phases = matrix_pencil(self.correlation_function(tlist), N)
-        # ckAR = amp.real
-        # ckAI = amp.imag
-        # vk = -((len(tlist)-1)/tlist[-1]) * \
-        #     (np.log(np.abs(phases))+1j*np.angle(phases))
-        amp, phases = matrix_pencil(self.correlation_function(tlist).real, Nr)
-        amp2, phases2 = matrix_pencil(self.correlation_function(tlist).imag, Ni)
-        ckAR = amp
-        ckAI = amp2
-        vkAR = -((len(tlist)-1)/tlist[-1]) * \
-            (np.log(np.abs(phases))+1j*np.angle(phases))
-        vkAI = -((len(tlist)-1)/tlist[-1]) * \
-            (np.log(np.abs(phases2))+1j*np.angle(phases2))
+        """
+        Generates an approximation to this environment by fitting its correlation function
+        using the Matrix pencil method based on the prony polynomial.
+        Parameters
+        ----------
+        tlist : array_like
+            The time range on which to perform the fit. 
+        Nr : optional, int
+            The number of exponents desired to describe the imaginary part of the correlation function. It defaults to 3
+        Nr : optional, int
+            The number of exponents desired to describe the real part of the correlation function. It defaults to 3
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
 
-        cls = ExponentialBosonicEnvironment(
-            ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
-            vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
+        Returns
+        -------
+        approx_env : :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
+        if Ni != Nr:
+            amp, phases = matrix_pencil(
+                self.correlation_function(tlist).real, Nr)
+            amp2, phases2 = matrix_pencil(
+                self.correlation_function(tlist).imag, Ni)
+            ckAR = amp
+            ckAI = amp2
+            vkAR = -((len(tlist)-1)/tlist[-1]) * \
+                (np.log(np.abs(phases))+1j*np.angle(phases))
+            vkAI = -((len(tlist)-1)/tlist[-1]) * \
+                (np.log(np.abs(phases2))+1j*np.angle(phases2))
+            cls = ExponentialBosonicEnvironment(
+                ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
+                vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
+        else:
+            vkAR = []
+            ckAI = []
+            ckAR = []
+
+            amp, phases = matrix_pencil(self.correlation_function(tlist), Nr)
+            ck = amp
+            vk = -((len(tlist)-1)/tlist[-1]) * \
+                (np.log(np.abs(phases))+1j*np.angle(phases))
+            # for term in range(len(vk)):
+            #     a, b, c, d = np.real(ck[term]), -np.real(vk[term]), - \
+            #         np.imag(vk[term]), np.imag(ck[term])
+            #     ckAR.extend([(a + 1j * d) / 2])
+            #     vkAR.extend([-b - 1j * c])
+            #     ckAI.extend([-1j * (a + 1j * d) / 2])
+            cls = ExponentialBosonicEnvironment(
+                ck_real=ck.real, vk_real=vk, ck_imag=ck.imag,
+                vk_imag=vk, T=self.T, combine=combine, tag=tag)
         return cls, (amp, phases)
 
     def approx_by_prony(
@@ -839,6 +921,31 @@ class BosonicEnvironment(abc.ABC):
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        """
+        Generates an approximation to this environment by fitting its correlation function
+        using the prony method.
+        Parameters
+        ----------
+        tlist : array_like
+            The time range on which to perform the fit. 
+        Nr : optional, int
+            The number of exponents desired to describe the imaginary part of the correlation function. It defaults to 3
+        Nr : optional, int
+            The number of exponents desired to describe the real part of the correlation function. It defaults to 3
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
+        Returns
+        -------
+        approx_env : :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
         # amp, phases = prony(self.correlation_function(tlist), N)
         # ckAR = amp.real
         # ckAI = amp.imag
@@ -873,6 +980,31 @@ class BosonicEnvironment(abc.ABC):
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        """
+        Generates an approximation to this environment by fitting its correlation function
+        using the ESPRIT method based on the prony polynomial.
+        Parameters
+        ----------
+        tlist : array_like
+            The time range on which to perform the fit. 
+        Nr : optional, int
+            The number of exponents desired to describe the imaginary part of the correlation function. It defaults to 3
+        Nr : optional, int
+            The number of exponents desired to describe the real part of the correlation function. It defaults to 3
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
+        Returns
+        -------
+        approx_env : :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
         # amp, phases = esprit(self.correlation_function(tlist), N)
         # ckAR = amp.real
         # ckAI = amp.imag
@@ -2362,49 +2494,6 @@ class FermionicEnvironment(abc.ABC):
 
         raise NotImplementedError("User-defined fermionic environments are "
                                   "currently not implemented.")
-
-
-class _FermionicEnvironment_fromSD(BosonicEnvironment):
-    def __init__(self, J, wlist, wMax, T, tag, args):
-        super().__init__(T, tag)
-        self._sd = _real_interpolation(J, wlist, 'spectral density', args)
-        if wlist is not None:
-            self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
-        else:
-            self.wMax = wMax
-
-    def correlation_function_plus(self, t, *, eps=1e-10):
-        if self.T is None:
-            raise ValueError('The temperature must be specified for this '
-                             'operation.')
-        if self.wMax is None:
-            raise ValueError('The support of the spectral density (wMax) '
-                             'must be specified for this operation.')
-        return self._cf_from_ps_plus(t, self.wMax, eps=eps)
-
-    def correlation_function_minus(self, t, *, eps=1e-10):
-        if self.T is None:
-            raise ValueError('The temperature must be specified for this '
-                             'operation.')
-        if self.wMax is None:
-            raise ValueError('The support of the spectral density (wMax) '
-                             'must be specified for this operation.')
-        return self._cf_from_ps_minus(t, self.wMax, eps=eps)
-
-    def spectral_density(self, w):
-        w = np.asarray(w, dtype=float)
-
-        result = np.zeros_like(w)
-        positive_mask = (w > 0)
-        result[positive_mask] = self._sd(w[positive_mask])
-
-        return result.item() if w.ndim == 0 else result
-
-    def power_spectrum_plus(self, w, *, eps=1e-10):
-        return self._ps_plus_from_sd(w, eps)
-
-    def power_spectrum_minus(self, w, *, eps=1e-10):
-        return self._ps_minus_from_sd(w, eps)
 
 
 class LorentzianEnvironment(FermionicEnvironment):
