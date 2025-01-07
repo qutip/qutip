@@ -105,10 +105,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # between 13 and 14, mac changed from intel chip to apple silicon
+        os: [ubuntu-latest, windows-latest, macos-13, macos-latest]
     env:
-      # Set up wheels matrix.  This is CPython 3.10--3.12 for all OS targets.
-      CIBW_BUILD: "cp3{10,11,12}-*"
+      # Set up wheels matrix.  This is CPython 3.10--3.13 for all OS targets.
+      CIBW_BUILD: "cp3{10,11,12,13}-*"
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
       CIBW_SKIP: "*-musllinux* *-manylinux_i686 *-win32"
@@ -126,8 +127,8 @@ jobs:
       - name: Install cibuildwheel
         run: |
           # cibuildwheel does the heavy lifting for us. Tested on
-          # 2.19, but should be fine at least up to any minor new release.
-          python -m pip install 'cibuildwheel==2.19.*'
+          # 2.22, but should be fine at least up to any minor new release.
+          python -m pip install 'cibuildwheel==2.22.*'
 
       - name: Build wheels
         shell: bash
@@ -163,7 +164,7 @@ jobs:
       - name: Check wheels
         run: |
           ls -R wheels
-          if ! [[ $(ls wheels/*.whl | wc -l) == 9 ]]; then exit 1; fi
+          if ! [[ $(ls wheels/*.whl | wc -l) == 16 ]]; then exit 1; fi
           if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
           if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
 

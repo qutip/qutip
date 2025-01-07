@@ -71,10 +71,10 @@ class TestExplicitForm:
         pytest.param(gates.berkeley, 8, lambda : -qutip.qeye([2, 2]),
                      id="berkeley"),
         pytest.param(gates.sqrtnot, 2, qutip.sigmax, id="sqrtnot"),
-        pytest.param(gates.sqrtswap, 2, gates.swap, id="cs_gate"),
-        pytest.param(gates.sqrtiswap, 2, gates.iswap, id="ct_gate"),
+        pytest.param(gates.sqrtswap, 2, gates.swap, id="sqrtswap"),
+        pytest.param(gates.sqrtiswap, 2, gates.iswap, id="sqrtiswap"),
     ])
-    def gate_power_relation(self, gate, expected, power):
+    def test_gate_power_relation(self, gate, expected, power):
         assert gate()**power == expected()
 
     @pytest.mark.parametrize(['angle', 'expected'], [

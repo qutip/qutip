@@ -206,7 +206,7 @@ def brmesolve(
             new_a_ops.append((a_op, spectra))
         elif isinstance(spectra, BosonicEnvironment):
             spec = SpectraCoefficient(
-                coefficient(lambda w: spectra.power_spectrum(w))
+                coefficient(spectra.power_spectrum)
             )
             new_a_ops.append((a_op, spec))
         elif callable(spectra):

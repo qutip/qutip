@@ -733,15 +733,9 @@ class HEOMSolver(Solver):
         if (not isinstance(bath, (list, tuple))
                 or self._is_environment_api(bath)):
             bath = [bath]
+        bath = [self._to_bath(b) for b in bath]
         exponents = []
         for b in bath:
-            if self._is_environment_api(b):
-                b = self._env_to_bath(b)
-            if (isinstance(b, (BosonicEnvironment, FermionicEnvironment))
-                    and not isinstance(b, (BosonicBath, FermionicBath))):
-                raise ValueError("Environments must be passed with their"
-                                 " corresponding coupling operator as a list"
-                                 " or tuple (env, Q)")
             exponents.extend(b.exponents)
 
         if not all(exp.Q.dims == exponents[0].Q.dims for exp in exponents):
@@ -753,37 +747,38 @@ class HEOMSolver(Solver):
         return exponents
 
     def _is_environment_api(self, bath_spec):
-        is_list = isinstance(bath_spec, (list, tuple))
-        if not is_list:
+        if not isinstance(bath_spec, (list, tuple)) or len(bath_spec) < 2:
+            return False
+        env, Q, *args = bath_spec
+
+        if not isinstance(env, (BosonicEnvironment, FermionicEnvironment)):
             return False
 
-        starts_with_env = isinstance(
-            bath_spec[0], (BosonicEnvironment, FermionicEnvironment)
-        )
-        if not starts_with_env:
-            return False
-
-        contains_bath = any(
-            isinstance(elem, (Bath, BosonicBath, FermionicBath))
-            for elem in bath_spec
-        )
-        if contains_bath:
-            # Potentially confused user, passed mixed list of environments
-            # and baths. Error will be raised elsewhere.
+        if not isinstance(Q, (Qobj, QobjEvo)):
             return False
 
         return True
 
-    def _env_to_bath(self, bath_spec):
-        if isinstance(bath_spec[0], ExponentialBosonicEnvironment):
-            return BosonicBath.from_environment(*bath_spec)
-        if isinstance(bath_spec[0], ExponentialFermionicEnvironment):
-            return FermionicBath.from_environment(*bath_spec)
-        else:
-            raise ValueError("The HEOM solver requires the environment to have"
-                             " a multi-exponential correlation function. Use"
-                             " one of the `approx_by_` functions to generate a"
-                             " multi-exponential approximation.")
+    def _to_bath(self, bath_spec):
+        if isinstance(bath_spec, (Bath, BosonicBath, FermionicBath)):
+            return bath_spec
+
+        if not self._is_environment_api(bath_spec):
+            raise ValueError(
+                "Environments must be passed as either Bath instances or"
+                " as a tuple or list corresponding to an environment and a"
+                " coupling operator, (env, Q)"
+            )
+        env, Q, *args = bath_spec
+
+        if isinstance(env, ExponentialBosonicEnvironment):
+            return BosonicBath.from_environment(env, Q, *args)
+        if isinstance(env, ExponentialFermionicEnvironment):
+            return FermionicBath.from_environment(env, Q, *args)
+        raise ValueError("The HEOM solver requires the environment to have"
+                        " a multi-exponential correlation function. Use"
+                        " one of the `approx_by_` functions to generate a"
+                        " multi-exponential approximation.")
 
     def _grad_n(self, he_n):
         """ Get the gradient for the hierarchy ADO at level n. """
