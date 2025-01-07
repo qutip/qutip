@@ -839,7 +839,7 @@ class BosonicEnvironment(abc.ABC):
         for term in range(len(vk)):
             ckr, vkr, vki, cki = np.real(ck[term]), -np.real(vk[term]), - \
                 np.imag(vk[term]), np.imag(ck[term])
-            ckk=(ckr + 1j * cki) / 2
+            ckk = (ckr + 1j * cki) / 2
             ckAR.extend([ckk, np.conjugate(ckk)])
             vkAR.extend([-vkr - 1j * vki, -vkr + 1j * vki])
             ckAI.extend([-1j * ckk, 1j * np.conjugate(ckk)])
@@ -937,10 +937,8 @@ class BosonicEnvironment(abc.ABC):
             function.
         """
 
-        # TODO: Why doesn't the heom construction work when one fits the
-        # complex signal rather than the real and imaginary parts separately?
-        # Probably a dumb reason but I couldn't figure it out
-        # I was passing exponents incorrectly, they should be passed the same
+        # TODO: I need to fit the complex signal and pass the exponents to the
+        # constructor correctly (probably need to extend conjugates)
         # (I typically find better fits with less exponent's when fitting the
         # complex signal)
         amp, phases = prony(self.correlation_function(tlist).real, Nr)
