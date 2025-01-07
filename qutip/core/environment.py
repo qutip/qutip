@@ -801,7 +801,7 @@ class BosonicEnvironment(abc.ABC):
             The frequency range on which to perform the fit. With this method
             typically logarithmic spacing works best.
         tol : optional, int
-            Relative tolerance to be used to stop the algorithm, if an iteration
+            Relative tolerance used to stop the algorithm, if an iteration
             contribution is less than the tolerance the fit is stopped.
         Nmax : optional, int
             The maximum number of exponents desired. Corresponds to the
@@ -837,11 +837,12 @@ class BosonicEnvironment(abc.ABC):
         ckAI = []
 
         for term in range(len(vk)):
-            a, b, c, d = np.real(ck[term]), -np.real(vk[term]), - \
+            ckr, vkr, vki, cki = np.real(ck[term]), -np.real(vk[term]), - \
                 np.imag(vk[term]), np.imag(ck[term])
-            ckAR.extend([(a + 1j * d) / 2, (a - 1j * d) / 2])
-            vkAR.extend([-b - 1j * c, -b + 1j * c])
-            ckAI.extend([-1j * (a + 1j * d) / 2, 1j * (a - 1j * d) / 2])
+            ckk=(ckr + 1j * cki) / 2
+            ckAR.extend([ckk, np.conjugate(ckk)])
+            vkAR.extend([-vkr - 1j * vki, -vkr + 1j * vki])
+            ckAI.extend([-1j * ckk, 1j * np.conjugate(ckk)])
 
         cls = ExponentialBosonicEnvironment(
             ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,

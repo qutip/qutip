@@ -596,7 +596,7 @@ def aaa(func, z, tol=1e-13, max_iter=100):
     # Define the function appproximation as a callable for output
 
     def r(x):
-        return approximated_function(x, support_points, values, weights)
+        return approximated_function_aaa(x, support_points, values, weights)
     # Obtain poles residies and zeros
     pol, res, zer = prz(support_points, values, weights)
     return r, pol, res, zer, errors[:k + 1]
@@ -667,7 +667,7 @@ def get_rational_approx(cauchy, weights, values, indices=None, func=None):
     return rational_approx
 
 
-def approximated_function(z, support_points, values, weights):
+def approximated_function_aaa(z, support_points, values, weights):
     """
     It computes the rational approximation
     ..math::
@@ -817,7 +817,8 @@ def prony(signal: np.ndarray, n):
     amplitudes = lstsq(generation_matrix, signal)[0]
 
     amplitudes, phases = zip(
-    *sorted(zip(amplitudes, phases), key=lambda x: np.abs(x[0]), reverse=True)
+        *sorted(zip(amplitudes, phases), key=lambda x: np.abs(x[0]), 
+                reverse=True)
     )
 
     return np.array(amplitudes), np.array(phases)
