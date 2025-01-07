@@ -25,7 +25,7 @@ def about():
     print(
         "Current admin team: Alexander Pitchford, "
         "Nathan Shammah, Shahnawaz Ahmed, Neill Lambert, Eric Giguère, "
-        "Boxi Li, Jake Lishman, Simon Cross, Asier Galicia, Paul Menczel, "
+        "Boxi Li, Simon Cross, Asier Galicia, Paul Menczel, "
         "and Patrick Hopf."
     )
     print(
