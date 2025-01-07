@@ -25,7 +25,7 @@ def cite(save=False, path=None):
   author = {Lambert, Neill and Giguère, Eric and Menczel, Paul and Li, Boxi
     and Hopf, Patrick and Suárez, Gerardo and Gali, Marc and Lishman, Jake
     and Gadhvi, Rushiraj and Agarwal, Rochisha and Galicia, Asier
-    and Shammah, Nathan and Nation, Paul D.  and Johansson, J. R.
+    and Shammah, Nathan and Nation, Paul D. and Johansson, J. R.
     and Ahmed, Shahnawaz and Cross, Simon and Pitchford, Alexander
     and Nori, Franco},
   year={2024},
