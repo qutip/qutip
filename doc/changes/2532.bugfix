@@ -1,1 +1,0 @@
-`propagator` now accepts list format `c_ops` like `mesolve` does.

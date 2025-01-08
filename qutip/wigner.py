@@ -12,7 +12,17 @@ import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la
 import scipy.special
-from scipy.special import genlaguerre, binom, sph_harm, factorial
+from scipy.special import genlaguerre, binom, factorial
+
+try:
+    from scipy.special import sph_harm_y
+except ImportError:
+    from scipy.special import sph_harm
+
+    def sph_harm_y(n, m, polar, azimuthal):
+        # sph_harm is set for removal.
+        # Same function, but changed parameter order
+        return sph_harm(m, n, azimuthal, polar)
 
 import qutip
 from qutip import Qobj, ket2dm, jmat
@@ -410,13 +420,14 @@ def _wigner_fft(psi, xvec):
     Returns the corresponding density matrix and range
     """
     n = 2*len(psi.T)
-    r1 = np.concatenate((np.array([[0]]),
-                        np.fliplr(psi.conj()),
-                        np.zeros((1, n//2 - 1))), axis=1)
-    r2 = np.concatenate((np.array([[0]]), psi,
-                        np.zeros((1, n//2 - 1))), axis=1)
-    w = la.toeplitz(np.zeros((n//2, 1)), r1) * \
-        np.flipud(la.toeplitz(np.zeros((n//2, 1)), r2))
+    r1 = np.concatenate(
+        (np.array([0]), np.fliplr(psi.conj()).ravel(), np.zeros(n//2 - 1))
+    )
+    r2 = np.concatenate(
+        (np.array([0]), psi.ravel(), np.zeros(n//2 - 1))
+    )
+    w = la.toeplitz(np.zeros(n//2), r1) * \
+        np.flipud(la.toeplitz(np.zeros(n//2), r2))
     w = np.concatenate((w[:, n//2:n], w[:, 0:n//2]), axis=1)
     w = ft.fft(w)
     w = np.real(np.concatenate((w[:, 3*n//4:n+1], w[:, 0:n//4]), axis=1))
@@ -997,7 +1008,6 @@ def spin_wigner(rho, theta, phi):
 
     for k in range(int(2 * j)+1):
         for q in arange(-k, k+1):
-            # sph_harm takes azimuthal angle then polar angle as arguments
-            W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
+            W += _rho_kq(rho, j, k, q) * sph_harm_y(k, q, THETA, PHI)
 
     return W.real, THETA, PHI
