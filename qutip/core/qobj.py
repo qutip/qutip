@@ -1507,9 +1507,9 @@ class Qobj:
                                       sort=sort, eigvals=eigvals)
 
         if self.type == 'super':
-            new_dims = [self.dims[0], [1]]
+            new_dims = [self._dims[0], [1]]
         else:
-            new_dims = [self.dims[0], [1]*len(self.dims[0])]
+            new_dims = [self._dims[0], [1]*len(self.dims[0])]
         ekets = np.empty((evecs.shape[1],), dtype=object)
         ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
                     for vec in _data.split_columns(evecs, False)]
