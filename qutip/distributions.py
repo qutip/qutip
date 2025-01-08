@@ -18,7 +18,7 @@ from numpy import pi, exp, sqrt
 
 from scipy.special import hermite, factorial
 
-from . import isket, ket2dm, state_number_index
+from . import isket, ket2dm, state_number_index, Qobj
 from .wigner import wigner, qfunc
 from ._distributions import psi_n_single_fock_multiple_position_complex
 
@@ -235,6 +235,19 @@ class Distribution:
 
 
 class WignerDistribution(Distribution):
+    """A class for representing the Wigner distribution function.
+    
+    Parameters
+    ----------
+    rho : Qobj, default : None
+        Density matrix for composite quantum systems. Data for the distribution is
+        generated from rho, but can be generated later if not given as input.
+    extent : list, default : [[-5, 5], [-5, 5]]
+        List of arrays with the bounds [a, b] for each coordinate.
+    steps : int, default : 250 
+        The number of data points generated between the bounds for each coordinate. 
+
+    """
 
     def __init__(self, rho=None, extent=[[-5, 5], [-5, 5]], steps=250):
 
@@ -246,12 +259,33 @@ class WignerDistribution(Distribution):
         if rho:
             self.update(rho)
 
-    def update(self, rho):
+    def update(self, rho : Qobj):
+        """Updates data for the Wigner distribution.
+
+        Parameters
+        ----------
+        rho : Qobj
+            Density matrix for composite quantum systems.
+
+        """
 
         self.data = wigner(rho, self.xvecs[0], self.xvecs[1])
 
 
 class QDistribution(Distribution):
+    """A class for representing the Husimi-Q distribution function.
+
+    Parameters
+    ----------
+    rho : Qobj, default : None
+        Density matrix for composite quantum systems. Data for the distribution is
+        generated from rho, but can be generated later if not given as input.
+    extent : list, default : [[-5, 5], [-5, 5]]
+        List of arrays with the bounds [a, b] for each coordinate.
+    steps : int, default : 250 
+        The number of data points generated between the bounds for each coordinate.
+        
+    """
 
     def __init__(self, rho=None, extent=[[-5, 5], [-5, 5]], steps=250):
 
@@ -263,12 +297,39 @@ class QDistribution(Distribution):
         if rho:
             self.update(rho)
 
-    def update(self, rho):
+    def update(self, rho : Qobj):
+        """Updates data for the Husimi-Q distribution.
+
+        Parameters
+        ----------
+        rho : Qobj
+            Density matrix for composite quantum systems.
+
+        """
 
         self.data = qfunc(rho, self.xvecs[0], self.xvecs[1])
 
 
 class TwoModeQuadratureCorrelation(Distribution):
+    """A class for representing the probability distribution for
+    quadrature measurement outcomes given a two-mode wavefunction 
+    or density matrix.
+    
+    Parameters
+    ----------
+    state : Qobj, default : None
+        A quantum state (wavefunction or density matrix) from which the
+        distribution is generated.
+    theta1 : float, default : 0.0
+        Angle for the first coordinate.
+    theta2 : float, default : 0.0
+        Angle for the second coordinate.
+    extent : list, default : [[-5, 5], [-5, 5]]
+        List of arrays with the bounds [a, b] for each coordinate.
+    steps : int, default : 250 
+        The number of data points generated between the bounds for each coordinate.
+        
+    """
 
     def __init__(self, state=None, theta1=0.0, theta2=0.0,
                  extent=[[-5, 5], [-5, 5]], steps=250):
@@ -284,20 +345,32 @@ class TwoModeQuadratureCorrelation(Distribution):
         if state:
             self.update(state)
 
-    def update(self, state):
+    def update(self, state : Qobj):
+        """Calculates the probability distribution for quadrature measurement
+        outcomes.
+
+        Parameters
+        ----------
+        state : Qobj
+            A quantum state (wavefunction or density matrix) from which the
+            distribution is generated.
+
         """
-        calculate probability distribution for quadrature measurement
-        outcomes given a two-mode wavefunction or density matrix
-        """
+
         if isket(state):
             self.update_psi(state)
         else:
             self.update_rho(state)
 
-    def update_psi(self, psi):
-        """
-        calculate probability distribution for quadrature measurement
-        outcomes given a two-mode wavefunction
+    def update_psi(self, psi : Qobj):
+        """Calculates the probability distribution for quadrature measurement
+        outcomes given a two-mode wavefunction.
+
+        Parameters
+        ----------
+        state : Qobj
+            A wavefunction from which the distribution is generated.
+        
         """
 
         X1, X2 = np.meshgrid(self.xvecs[0], self.xvecs[1])
@@ -319,10 +392,15 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         self.data = abs(p) ** 2
 
-    def update_rho(self, rho):
-        """
-        calculate probability distribution for quadrature measurement
-        outcomes given a two-mode density matrix
+    def update_rho(self, rho : Qobj):
+        """Calculates the probability distribution for quadrature measurement
+        outcomes given a two-mode density matrix.
+
+        Parameters
+        ----------
+        state : Qobj
+            A density matrix from which the distribution is generated.
+        
         """
 
         X1, X2 = np.meshgrid(self.xvecs[0], self.xvecs[1])
@@ -358,7 +436,6 @@ class TwoModeQuadratureCorrelation(Distribution):
 
 
 class HarmonicOscillatorWaveFunction(Distribution):
-
     """Calculates and represents the wave function of
        a quantum harmonic oscillator.
 
@@ -430,7 +507,7 @@ class HarmonicOscillatorWaveFunction(Distribution):
         if psi:
             self.update(psi)
 
-    def update(self, psi):
+    def update(self, psi : Qobj):
         """
         Calculate the wavefunction for the given state of an harmonic
         oscillator
@@ -450,6 +527,21 @@ class HarmonicOscillatorWaveFunction(Distribution):
 
 
 class HarmonicOscillatorProbabilityFunction(Distribution):
+    """A class for representing the probability distribution of a quantum
+    harmonic oscillator given a density matrix.
+    
+    Parameters
+    ----------
+    rho : qobj, default : None
+        Density matrix for composite quantum systems.
+    omega : float, default : 1.0
+        The angular frequency of the harmonic oscillator.
+    extent : list, default : [[-5, 5], [-5, 5]]
+        List of arrays with the bounds [a, b] for each coordinate.
+    steps : int, default : 250 
+        The number of data points generated between the bounds for each coordinate.
+        
+    """
 
     def __init__(self, rho=None, omega=1.0, extent=[-5, 5], steps=250):
 
@@ -460,10 +552,9 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
         if rho:
             self.update(rho)
 
-    def update(self, rho):
-        """
-        Calculate the probability function for the given state of an harmonic
-        oscillator (as density matrix)
+    def update(self, rho : Qobj):
+        """Calculates the probability function for the given state of an harmonic
+        oscillator (as density matrix).
         """
 
         if isket(rho):
