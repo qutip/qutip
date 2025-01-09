@@ -14,6 +14,7 @@ __all__ = ['Distribution', 'WignerDistribution', 'QDistribution',
            'HarmonicOscillatorProbabilityFunction']
 
 import numpy as np
+from numpy.typing import ArrayLike
 from numpy import pi, exp, sqrt
 
 from scipy.special import hermite, factorial
@@ -25,6 +26,9 @@ from ._distributions import psi_n_single_fock_multiple_position_complex
 try:
     import matplotlib as mpl
     import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+    from matplotlib.axes import Axes
+    from matplotlib.colors import Colormap
     from mpl_toolkits.mplot3d import Axes3D
 except:
     pass
@@ -54,14 +58,15 @@ class Distribution:
 
     """
 
-    def __init__(self, data=None, xvecs=[], xlabels=[]):
+    def __init__(self, data: ArrayLike=None, xvecs: list=[], xlabels: list=[]):
         self.data = data
         self.xvecs = xvecs
         self.xlabels = xlabels
 
-    def visualize(self, fig=None, ax=None, figsize=(8, 6),
-                  colorbar=True, cmap=None, style="colormap",
-                  show_xlabel=True, show_ylabel=True):
+    def visualize(self, fig: Figure=None, ax: Axes=None, figsize: tuple=(8, 6),
+                  colorbar: bool=True, cmap: Colormap=None, 
+                  style: str="colormap", show_xlabel: bool=True, 
+                  show_ylabel: bool=True) -> tuple[Figure, Axes]:
         """
         Visualize the data of the distribution in 1D or 2D, depending
         on the dimensionality of the underlaying distribution.
@@ -86,6 +91,12 @@ class Distribution:
         style : string
             Type of visualization: 'colormap' (default) or 'surface'.
 
+        show_xlabel : bool
+            Whether or not the xlabel is shown.
+
+        show_ylabel : bool
+            Whether or not the ylabel is shown.
+
         Returns
         -------
 
@@ -96,14 +107,14 @@ class Distribution:
         n = len(self.xvecs)
         if n == 2:
             if style == "colormap":
-                return self.visualize_2d_colormap(fig=fig, ax=ax,
+                return self._visualize_2d_colormap(fig=fig, ax=ax,
                                                   figsize=figsize,
                                                   colorbar=colorbar,
                                                   cmap=cmap,
                                                   show_xlabel=show_xlabel,
                                                   show_ylabel=show_ylabel)
             else:
-                return self.visualize_2d_surface(fig=fig, ax=ax,
+                return self._visualize_2d_surface(fig=fig, ax=ax,
                                                  figsize=figsize,
                                                  colorbar=colorbar,
                                                  cmap=cmap,
@@ -111,14 +122,14 @@ class Distribution:
                                                  show_ylabel=show_ylabel)
 
         elif n == 1:
-            return self.visualize_1d(fig=fig, ax=ax, figsize=figsize,
+            return self._visualize_1d(fig=fig, ax=ax, figsize=figsize,
                                      show_xlabel=show_xlabel,
                                      show_ylabel=show_ylabel)
         else:
             raise NotImplementedError("Distribution visualization in " +
                                       "%d dimensions is not implemented." % n)
 
-    def visualize_2d_colormap(self, fig=None, ax=None, figsize=(8, 6),
+    def _visualize_2d_colormap(self, fig=None, ax=None, figsize=(8, 6),
                               colorbar=True, cmap=None,
                               show_xlabel=True, show_ylabel=True):
 
@@ -144,7 +155,7 @@ class Distribution:
 
         return fig, ax
 
-    def visualize_2d_surface(self, fig=None, ax=None, figsize=(8, 6),
+    def _visualize_2d_surface(self, fig=None, ax=None, figsize=(8, 6),
                              colorbar=True, cmap=None,
                              show_xlabel=True, show_ylabel=True):
 
@@ -172,7 +183,7 @@ class Distribution:
 
         return fig, ax
 
-    def visualize_1d(self, fig=None, ax=None, figsize=(8, 6),
+    def _visualize_1d(self, fig=None, ax=None, figsize=(8, 6),
                      show_xlabel=True, show_ylabel=True):
 
         if not fig and not ax:
@@ -243,7 +254,7 @@ class WignerDistribution(Distribution):
         Density matrix for composite quantum systems. Data for the
         distribution is generated from rho, but can be generated
         later if not given as input.
-    extent : list, default : [[-5, 5], [-5, 5]]
+    extent : ArrayLike, default : [[-5, 5], [-5, 5]]
         List of arrays with the bounds [a, b] for each coordinate.
     steps : int, default : 250
         The number of data points generated between the bounds for
@@ -251,7 +262,7 @@ class WignerDistribution(Distribution):
 
     """
 
-    def __init__(self, rho=None, extent=[[-5, 5], [-5, 5]], steps=250):
+    def __init__(self, rho: Qobj=None, extent: ArrayLike=[[-5, 5], [-5, 5]], steps: int=250):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
                       np.linspace(extent[1][0], extent[1][1], steps)]
@@ -283,7 +294,7 @@ class QDistribution(Distribution):
         Density matrix for composite quantum systems. Data for
         the distribution is generated from rho, but can be
         generated later if not given as input.
-    extent : list, default : [[-5, 5], [-5, 5]]
+    extent : ArrayLike, default : [[-5, 5], [-5, 5]]
         List of arrays with the bounds [a, b] for each coordinate.
     steps : int, default : 250
         The number of data points generated between the bounds
@@ -291,7 +302,8 @@ class QDistribution(Distribution):
 
     """
 
-    def __init__(self, rho=None, extent=[[-5, 5], [-5, 5]], steps=250):
+    def __init__(self, rho: Qobj=None, extent: ArrayLike=[[-5, 5], [-5, 5]],
+                 steps: int=250):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
                       np.linspace(extent[1][0], extent[1][1], steps)]
@@ -328,7 +340,7 @@ class TwoModeQuadratureCorrelation(Distribution):
         Angle for the first coordinate.
     theta2 : float, default : 0.0
         Angle for the second coordinate.
-    extent : list, default : [[-5, 5], [-5, 5]]
+    extent : ArrayLike, default : [[-5, 5], [-5, 5]]
         List of arrays with the bounds [a, b] for each coordinate.
     steps : int, default : 250
         The number of data points generated between the bounds for
@@ -336,8 +348,8 @@ class TwoModeQuadratureCorrelation(Distribution):
 
     """
 
-    def __init__(self, state=None, theta1=0.0, theta2=0.0,
-                 extent=[[-5, 5], [-5, 5]], steps=250):
+    def __init__(self, state: Qobj=None, theta1: float=0.0, theta2: float=0.0,
+                 extent: ArrayLike=[[-5, 5], [-5, 5]], steps: int=250):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
                       np.linspace(extent[1][0], extent[1][1], steps)]
@@ -503,7 +515,8 @@ class HarmonicOscillatorWaveFunction(Distribution):
        https://github.com/fobos123deimos/fast-wave
     """
 
-    def __init__(self, psi=None, omega=1.0, extent=[-5, 5], steps=250):
+    def __init__(self, psi: ArrayLike=None, omega: float=1.0, 
+                 extent: list=[-5, 5], steps: int=250):
 
         self.xvecs = [np.linspace(extent[0], extent[1], steps)]
         self.xlabels = [r'$x$']
@@ -513,9 +526,14 @@ class HarmonicOscillatorWaveFunction(Distribution):
             self.update(psi)
 
     def update(self, psi: Qobj):
-        """
-        Calculate the wavefunction for the given state of an harmonic
-        oscillator
+        """Calculate the wavefunction for the given state of an harmonic
+        oscillator.
+
+        Parameters
+        ----------
+        psi : Qobj
+            A quantum state from which the distribution is generated.
+
         """
 
         self.data = np.zeros(len(self.xvecs[0]), dtype=complex)
@@ -549,7 +567,8 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
 
     """
 
-    def __init__(self, rho=None, omega=1.0, extent=[-5, 5], steps=250):
+    def __init__(self, rho: Qobj=None, omega: float=1.0, 
+                 extent: list=[-5, 5], steps: int=250):
 
         self.xvecs = [np.linspace(extent[0], extent[1], steps)]
         self.xlabels = [r'$x$']
@@ -561,6 +580,12 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
     def update(self, rho: Qobj):
         """Calculates the probability function for the given state of an
         harmonic oscillator (as density matrix).
+
+        Parameters
+        ----------
+        state : Qobj
+            A density matrix from which the distribution is generated.
+
         """
 
         if isket(rho):
