@@ -294,7 +294,7 @@ def test_expectation_outputs(keep_runs_results, improved_sampling,
     times = np.linspace(0, 10, 5)
     c_ops = [a, sm]
     e_ops = [a.dag()*a, sm.dag()*sm, a]
-    data = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
+    data = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
                    options={"keep_runs_results": keep_runs_results,
                             'map': 'serial',
                             "improved_sampling": improved_sampling})
@@ -432,7 +432,7 @@ def test_timeout(improved_sampling, mixed_initial_state):
     n_th = 0.05
     c_ops = np.sqrt(coupling * (n_th + 1)) * a
     e_ops = [qutip.num(size)]
-    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
+    res = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
                   options={'map': 'serial',
                            "improved_sampling": improved_sampling},
                   timeout=1e-6)
@@ -453,12 +453,12 @@ def test_target_tol(improved_sampling):
 
     options = {'map': 'serial', "improved_sampling": improved_sampling}
 
-    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj, options=options,
-                  target_tol = 0.5)
+    res = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
+                  options=options, target_tol=0.5)
     assert res.stats['end_condition'] == 'target tolerance reached'
 
-    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj, options=options,
-                  target_tol = 1e-6)
+    res = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
+                  options=options, target_tol=1e-6)
     assert res.stats['end_condition'] == 'ntraj reached'
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
@@ -478,11 +478,12 @@ def test_super_H(improved_sampling, mixed_initial_state):
     n_th = 0.05
     c_ops = np.sqrt(coupling * (n_th + 1)) * a
     e_ops = [qutip.num(size)]
-    mc_expected = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
+    mc_expected = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
                           target_tol=(0.1 if state.isket else None),
                           options={'map': 'serial',
                                    "improved_sampling": improved_sampling})
-    mc = mcsolve(qutip.liouvillian(H), state, times, c_ops, e_ops, ntraj=ntraj,
+    mc = mcsolve(qutip.liouvillian(H), state, times, c_ops,
+                 e_ops=e_ops, ntraj=ntraj,
                  target_tol=(0.1 if state.isket else None),
                  options={'map': 'serial',
                           "improved_sampling": improved_sampling})
@@ -604,7 +605,10 @@ def test_mixed_averaging(improved_sampling, initial_state, ntraj):
         assert result.ntraj_per_initial_state == ntraj
     else:
         assert sum(result.ntraj_per_initial_state) == ntraj
-    assert sum(result.runs_weights) == pytest.approx(1.)
+    assert (
+        sum(result.deterministic_weights + result.runs_weights)
+        == pytest.approx(1.)
+    )
 
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
@@ -626,13 +630,8 @@ def test_mixed_equals_merged(improved_sampling, p):
 
     # Reuse seeds, then results should be identical
     seeds = mixed_result.seeds
-    if improved_sampling:
-        # For improved sampling, first two seeds are no-jump trajectories
-        seeds1 = seeds[0:1] + seeds[2:(ntraj[0]+1)]
-        seeds2 = seeds[1:2] + seeds[(ntraj[0]+1):]
-    else:
-        seeds1 = seeds[:ntraj[0]]
-        seeds2 = seeds[ntraj[0]:]
+    seeds1 = seeds[:ntraj[0]]
+    seeds2 = seeds[ntraj[0]:]
 
     pure_result1 = solver.run(initial_state1, tlist, ntraj[0], seeds=seeds1)
     pure_result2 = solver.run(initial_state2, tlist, ntraj[1], seeds=seeds2)
@@ -649,5 +648,11 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert hasattr(mixed_result, 'ntraj_per_initial_state')
     assert isinstance(mixed_result.ntraj_per_initial_state, list)
     assert mixed_result.ntraj_per_initial_state == ntraj
-    assert sum(mixed_result.runs_weights) == pytest.approx(1.)
-    assert sum(merged_result.runs_weights) == pytest.approx(1.)
+    assert (
+        sum(mixed_result.runs_weights + mixed_result.deterministic_weights) 
+        == pytest.approx(1.)
+    )
+    assert (
+        sum(merged_result.runs_weights + merged_result.deterministic_weights)
+        == pytest.approx(1.)
+    )

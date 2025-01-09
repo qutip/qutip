@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 from itertools import product
 from functools import partial, reduce
 from operator import mul
@@ -794,13 +797,13 @@ def qubit_clifford_group(*, dtype: LayerType = None) -> list[Qobj]:
     (http://www.mathstat.dal.ca/~selinger/newsynth/).
 
     Parameters
-    -----------
+    ----------
     dtype : str or type, [keyword only] [optional]
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
 
-    Return
-    ------
+    Returns
+    -------
     op : list of Qobj
         Clifford operators, represented as Qobj instances.
 

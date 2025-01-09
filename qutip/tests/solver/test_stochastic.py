@@ -58,7 +58,8 @@ def test_smesolve(heterodyne, system):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, c_ops + sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, c_ops + sc_ops,
+                      e_ops=e_ops, args={"w": 2})
 
     options = {
         "store_measurement": False,
@@ -94,7 +95,8 @@ def test_smesolve_methods(method, heterodyne, system):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, c_ops + sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, c_ops + sc_ops,
+                      e_ops=e_ops, args={"w": 2})
 
     options = {
         "store_measurement": True,
@@ -158,7 +160,7 @@ def test_ssesolve(heterodyne, system):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, sc_ops, e_ops=e_ops, args={"w": 2})
 
     options = {
         "map": "serial",
@@ -197,7 +199,7 @@ def test_ssesolve_method(method, heterodyne, system):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, sc_ops, e_ops=e_ops, args={"w": 2})
 
     options = {
         "store_measurement": True,
@@ -562,6 +564,7 @@ def test_merge_results(store_measurement, keep_runs_results):
             w.shape == result_merged.wiener_process[0].shape
             for w in result_merged.wiener_process
         )
+
 
 @pytest.mark.parametrize("open", [True, False])
 @pytest.mark.parametrize("heterodyne", [True, False])

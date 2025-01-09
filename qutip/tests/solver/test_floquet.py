@@ -99,12 +99,12 @@ class TestFloquet:
         c_op_mesolve = _convert_c_ops(c_op_fmmesolve, spectrum, vp, ep)
 
         # Solve the floquet-markov master equation
-        p_ex = fmmesolve(H, psi0, tlist, [c_op_fmmesolve], [num(2)],
-                         [spectrum], T, args=args).expect[0]
+        p_ex = fmmesolve(H, psi0, tlist, [c_op_fmmesolve], [spectrum], T,
+                         e_ops=[num(2)], args=args).expect[0]
 
         # Compare with mesolve
         p_ex_ref = mesolve(
-            H, psi0, tlist, c_op_mesolve, [num(2)], args
+            H, psi0, tlist, c_op_mesolve, e_ops=[num(2)], args=args
         ).expect[0]
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
@@ -144,13 +144,13 @@ class TestFloquet:
 
         # Solve the floquet-markov master equation
         p_ex = fmmesolve(
-            H, psi0, tlist, [c_op_fmmesolve], [num(2)],
-            [spectrum], T, args=args
+            H, psi0, tlist, [c_op_fmmesolve], [spectrum], T,
+            e_ops=[num(2)], args=args
         ).expect[0]
 
         # Compare with mesolve
         p_ex_ref = mesolve(
-            H, psi0, tlist, c_op_mesolve, [num(2)], args
+            H, psi0, tlist, c_op_mesolve, e_ops=[num(2)], args=args
         ).expect[0]
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
@@ -198,7 +198,9 @@ class TestFloquet:
         p_ex = [expect(num(2), solver.step(t)) for t in tlist]
 
         # Compare with mesolve
-        output2 = mesolve(H, psi0, tlist, c_op_mesolve, [num(2)], args)
+        output2 = mesolve(
+            H, psi0, tlist, c_op_mesolve, e_ops=[num(2)], args=args
+        )
         p_ex_ref = output2.expect[0]
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref),
@@ -251,11 +253,11 @@ class TestFloquet:
 
         # Solve the floquet-markov master equation
         output1 = fmmesolve(
-            H, psi0, tlist, c_ops_fmmesolve, e_ops, noise_spectra, T
+            H, psi0, tlist, c_ops_fmmesolve, noise_spectra, T, e_ops=e_ops,
         )
         p_ex = output1.expect[0]
         # Compare with mesolve
-        output2 = mesolve(H, psi0, tlist, c_op_mesolve, e_ops, args)
+        output2 = mesolve(H, psi0, tlist, c_op_mesolve, e_ops=e_ops, args=args)
         p_ex_ref = output2.expect[0]
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)

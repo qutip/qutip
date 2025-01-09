@@ -1,7 +1,7 @@
 import pytest
 import qutip
 import numpy as np
-from scipy.special import sph_harm
+from qutip.wigner import sph_harm_y
 
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
@@ -9,7 +9,7 @@ plt = pytest.importorskip("matplotlib.pyplot")
 def test_result_state():
     H = qutip.rand_dm(2)
     tlist = np.linspace(0, 3*np.pi, 2)
-    results = qutip.mesolve(H, H, tlist, [], [])
+    results = qutip.mesolve(H, H, tlist)
 
     fig, ani = qutip.anim_fock_distribution(results)
     plt.close()
@@ -21,8 +21,7 @@ def test_result_state():
 def test_result_state_ValueError():
     H = qutip.rand_dm(2)
     tlist = np.linspace(0, 3*np.pi, 2)
-    results = qutip.mesolve(H, H, tlist, [], [],
-                            options={"store_states": False})
+    results = qutip.mesolve(H, H, tlist, options={"store_states": False})
 
     text = 'Nothing to visualize. You might have forgotten ' +\
            'to set options={"store_states": True}.'
@@ -57,7 +56,7 @@ def test_anim_sphereplot():
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
     phi_mesh, theta_mesh = np.meshgrid(phi, theta)
-    values = sph_harm(-1, 2, phi_mesh, theta_mesh).T
+    values = sph_harm_y(2, -1, theta_mesh, phi_mesh).T
     fig, ani = qutip.anim_sphereplot([values]*2, theta, phi)
     plt.close()
 
