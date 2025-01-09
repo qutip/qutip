@@ -58,15 +58,16 @@ class Distribution:
 
     """
 
-    def __init__(self, data: ArrayLike=None, xvecs: list=[], xlabels: list=[]):
+    def __init__(self, data: ArrayLike = None, xvecs: list = [], 
+                 xlabels: list = []):
         self.data = data
         self.xvecs = xvecs
         self.xlabels = xlabels
 
-    def visualize(self, fig: Figure=None, ax: Axes=None, figsize: tuple=(8, 6),
-                  colorbar: bool=True, cmap: Colormap=None, 
-                  style: str="colormap", show_xlabel: bool=True, 
-                  show_ylabel: bool=True) -> tuple[Figure, Axes]:
+    def visualize(self, fig: Figure = None, ax: Axes = None,
+                  figsize: tuple = (8, 6), colorbar: bool = True,
+                  cmap: Colormap = None, style: str = "colormap",
+                  show_xlabel: bool = True, show_ylabel: bool = True)-> tuple[Figure, Axes]:
         """
         Visualize the data of the distribution in 1D or 2D, depending
         on the dimensionality of the underlaying distribution.
@@ -262,7 +263,8 @@ class WignerDistribution(Distribution):
 
     """
 
-    def __init__(self, rho: Qobj=None, extent: ArrayLike=[[-5, 5], [-5, 5]], steps: int=250):
+    def __init__(self, rho: Qobj = None, extent: ArrayLike = [[-5, 5], [-5, 5]],
+                 steps: int = 250):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
                       np.linspace(extent[1][0], extent[1][1], steps)]
@@ -515,8 +517,8 @@ class HarmonicOscillatorWaveFunction(Distribution):
        https://github.com/fobos123deimos/fast-wave
     """
 
-    def __init__(self, psi: ArrayLike=None, omega: float=1.0, 
-                 extent: list=[-5, 5], steps: int=250):
+    def __init__(self, psi: ArrayLike = None, omega: float = 1.0,
+                 extent: list = [-5, 5], steps: int = 250):
 
         self.xvecs = [np.linspace(extent[0], extent[1], steps)]
         self.xlabels = [r'$x$']
@@ -567,8 +569,8 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
 
     """
 
-    def __init__(self, rho: Qobj=None, omega: float=1.0, 
-                 extent: list=[-5, 5], steps: int=250):
+    def __init__(self, rho: Qobj = None, omega: float = 1.0,
+                 extent: list = [-5, 5], steps: int = 250):
 
         self.xvecs = [np.linspace(extent[0], extent[1], steps)]
         self.xlabels = [r'$x$']
