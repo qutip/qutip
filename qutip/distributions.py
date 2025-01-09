@@ -58,7 +58,7 @@ class Distribution:
 
     """
 
-    def __init__(self, data: ArrayLike = None, xvecs: list = [], 
+    def __init__(self, data: ArrayLike = None, xvecs: list = [],
                  xlabels: list = []):
         self.data = data
         self.xvecs = xvecs
@@ -67,7 +67,7 @@ class Distribution:
     def visualize(self, fig: Figure = None, ax: Axes = None,
                   figsize: tuple = (8, 6), colorbar: bool = True,
                   cmap: Colormap = None, style: str = "colormap",
-                  show_xlabel: bool = True, show_ylabel: bool = True)-> tuple[Figure, Axes]:
+                  show_xlabel: bool = True, show_ylabel: bool = True) -> tuple[Figure, Axes]:
         """
         Visualize the data of the distribution in 1D or 2D, depending
         on the dimensionality of the underlaying distribution.
@@ -109,30 +109,30 @@ class Distribution:
         if n == 2:
             if style == "colormap":
                 return self._visualize_2d_colormap(fig=fig, ax=ax,
+                                                   figsize=figsize,
+                                                   colorbar=colorbar,
+                                                   cmap=cmap,
+                                                   show_xlabel=show_xlabel,
+                                                   show_ylabel=show_ylabel)
+            else:
+                return self._visualize_2d_surface(fig=fig, ax=ax,
                                                   figsize=figsize,
                                                   colorbar=colorbar,
                                                   cmap=cmap,
                                                   show_xlabel=show_xlabel,
                                                   show_ylabel=show_ylabel)
-            else:
-                return self._visualize_2d_surface(fig=fig, ax=ax,
-                                                 figsize=figsize,
-                                                 colorbar=colorbar,
-                                                 cmap=cmap,
-                                                 show_xlabel=show_xlabel,
-                                                 show_ylabel=show_ylabel)
 
         elif n == 1:
             return self._visualize_1d(fig=fig, ax=ax, figsize=figsize,
-                                     show_xlabel=show_xlabel,
-                                     show_ylabel=show_ylabel)
+                                      show_xlabel=show_xlabel,
+                                      show_ylabel=show_ylabel)
         else:
             raise NotImplementedError("Distribution visualization in " +
                                       "%d dimensions is not implemented." % n)
 
     def _visualize_2d_colormap(self, fig=None, ax=None, figsize=(8, 6),
-                              colorbar=True, cmap=None,
-                              show_xlabel=True, show_ylabel=True):
+                               colorbar=True, cmap=None,
+                               show_xlabel=True, show_ylabel=True):
 
         if not fig and not ax:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -157,8 +157,8 @@ class Distribution:
         return fig, ax
 
     def _visualize_2d_surface(self, fig=None, ax=None, figsize=(8, 6),
-                             colorbar=True, cmap=None,
-                             show_xlabel=True, show_ylabel=True):
+                              colorbar=True, cmap=None,
+                              show_xlabel=True, show_ylabel=True):
 
         if not fig and not ax:
             fig = plt.figure(figsize=figsize)
@@ -185,7 +185,7 @@ class Distribution:
         return fig, ax
 
     def _visualize_1d(self, fig=None, ax=None, figsize=(8, 6),
-                     show_xlabel=True, show_ylabel=True):
+                      show_xlabel=True, show_ylabel=True):
 
         if not fig and not ax:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -304,8 +304,8 @@ class QDistribution(Distribution):
 
     """
 
-    def __init__(self, rho: Qobj=None, extent: ArrayLike=[[-5, 5], [-5, 5]],
-                 steps: int=250):
+    def __init__(self, rho: Qobj = None, extent: ArrayLike = [[-5, 5], [-5, 5]],
+                 steps: int = 250):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
                       np.linspace(extent[1][0], extent[1][1], steps)]
@@ -350,8 +350,8 @@ class TwoModeQuadratureCorrelation(Distribution):
 
     """
 
-    def __init__(self, state: Qobj=None, theta1: float=0.0, theta2: float=0.0,
-                 extent: ArrayLike=[[-5, 5], [-5, 5]], steps: int=250):
+    def __init__(self, state: Qobj = None, theta1: float = 0.0, theta2: float = 0.0,
+                 extent: ArrayLike = [[-5, 5], [-5, 5]], steps: int = 250):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
                       np.linspace(extent[1][0], extent[1][1], steps)]
