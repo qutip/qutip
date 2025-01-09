@@ -246,7 +246,7 @@ class WignerDistribution(Distribution):
     extent : list, default : [[-5, 5], [-5, 5]]
         List of arrays with the bounds [a, b] for each coordinate.
     steps : int, default : 250
-        The number of data points generated between the bounds for 
+        The number of data points generated between the bounds for
         each coordinate.
 
     """
