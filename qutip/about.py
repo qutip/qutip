@@ -5,6 +5,7 @@ __all__ = ['about']
 
 import sys
 import os
+import importlib
 import platform
 import numpy
 import scipy
@@ -16,7 +17,7 @@ from qutip.settings import _blas_info, settings
 def about():
     """
     About box for QuTiP. Gives version numbers for QuTiP, NumPy, SciPy, Cython,
-    and MatPlotLib.
+    and MatPlotLib and information about installed QuTiP family packages.
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
@@ -61,6 +62,30 @@ def about():
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
     print("Installation path:  %s" % qutip_install_path)
+    print()
+
+    # family packages
+
+    print("Installed QuTiP family packages:")
+    print()
+
+    entrypoints = importlib.metadata.entry_points(group="qutip.family")
+
+    if not entrypoints:
+        print("No QuTiP family packages installed.")
+        print()
+
+    for ep in entrypoints:
+        family_mod = ep.load()
+        try:
+            title, lines = family_mod.about()
+        except Exception as exc:
+            title, lines = ep.name, [str(exc)]
+        print(title)
+        print("-" * len(title))
+        for line in lines:
+            print(line)
+        print()
 
     # citation
     longbar = "=" * 80
