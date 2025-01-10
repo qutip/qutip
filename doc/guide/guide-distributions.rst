@@ -50,6 +50,8 @@ From that, it is easy to see that energy levels of the harmonic oscillator obey 
 
     \displaystyle E_n = \hbar \omega \left(n + \frac{1}{2}\right)
 
+.. _wave_function:
+
 Finding the wave function of the ground state
 =============================================
 
@@ -79,6 +81,8 @@ with a single solution for the ground state giving
 
 By the Born rule, we obtain the probability distribution for the ground state. Because all states can be reached by the ladder operators from the ground state, one can generalize the wave function for the state :math:`|n>`.
 
+.. _implementation:
+
 QuTiP implementation
 ====================
 
@@ -101,4 +105,3 @@ We can use the class `HarmonicOscillatorProbabilityFunction` from `qutip.distrib
        wf.visualize(fig=fig, ax=ax[M-n-1], show_ylabel=False, show_xlabel=(n == 0))
 
 There are other distributions like the `WignerDistribution`, `QDistribution` or `TwoModeQuadratureCorrelation` (again, see qutip-tutorials/tutorials-v5/visualization/distributions.md for examples).
-
