@@ -6,6 +6,23 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.1.1 (2025-01-10)
+=========================
+
+Patch to add support for scipy 1.15.
+
+Features
+--------
+
+- qutip.cite() now cite the paper for qutip version 5.
+
+
+Bug Fixes
+---------
+
+- ENR dimensions work with eigenstates (#2595)
+- Use `sph_harm_y` when using scipy>=1.15
+
 QuTiP 5.1.0 (2024-12-12)
 ========================
 
