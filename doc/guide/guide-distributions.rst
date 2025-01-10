@@ -86,22 +86,20 @@ By the Born rule, we obtain the probability distribution for the ground state. B
 QuTiP implementation
 ====================
 
-We can use the class `HarmonicOscillatorProbabilityFunction` from `qutip.distributions` in order to visualize what the distribution would look like for any state of the harmonic oscillator (see qutip-tutorials/tutorials-v5/visualization/distributions.md). Here, we would have all distributions from :math:`n=0` to :math:`n=7`.
+We can use the class `HarmonicOscillatorProbabilityFunction` from `qutip.distributions` in order to visualize what the distribution would look like for any state of the harmonic oscillator. Here, we would have all distributions from :math:`n=0` to :math:`n=7`.
 
 .. code-block:: Python
 
-   from qutip import *
-   from qutip.distributions import *
-   import matplotlib.pyplot as plt
+    from qutip import fock
+    from qutip.distributions import HarmonicOscillatorProbabilityFunction
+    import matplotlib.pyplot as plt
 
-   M=8
-   N=20
+    M=8
+    N=20
 
-   fig, ax = plt.subplots(M, 1, figsize=(10, 12), sharex=True)
+    fig, ax = plt.subplots(M, 1, figsize=(10, 12), sharex=True)
 
-   for n in range(M):
-       psi = fock(N, n)
-       wf = HarmonicOscillatorProbabilityFunction(psi, 1.0, extent=[-10, 10])
-       wf.visualize(fig=fig, ax=ax[M-n-1], show_ylabel=False, show_xlabel=(n == 0))
-
-There are other distributions like the `WignerDistribution`, `QDistribution` or `TwoModeQuadratureCorrelation` (again, see qutip-tutorials/tutorials-v5/visualization/distributions.md for examples).
+    for n in range(M):
+        psi = fock(N, n)
+        wf = HarmonicOscillatorProbabilityFunction(psi, 1.0, extent=[-10, 10])
+        wf.visualize(fig=fig, ax=ax[M-n-1], show_ylabel=False, show_xlabel=(n == 0))
