@@ -22,14 +22,19 @@ class RefBloch(Bloch):
         raise NotImplementedError("RefBloch disables .render()")
 
     def render_back(self):
+        old_plot_axes = self.plot_axes
         old_plot_front = self.plot_front
+        self.plot_axes = lambda: None
         self.plot_front = lambda: None
         try:
             Bloch.render(self)
         finally:
+            self.plot_axes = old_plot_axes
             self.plot_front = old_plot_front
 
     def render_front(self):
+        if not self.background:
+            self.plot_axes()
         self.plot_front()
 
 
@@ -79,11 +84,14 @@ class TestBloch:
                     part.append(point)
                 else:
                     part.append(point)
+        pos_arc, neg_arc = np.array(pos_arc), np.array(neg_arc)
         b = RefBloch(fig=fig)
         b.render_back()
-        b.axes.plot(neg_arc[:, 1], -neg_arc[:, 0], neg_arc[:, 2], fmt, **kw)
+        if len(neg_arc) > 0:
+            b.axes.plot(neg_arc[:, 1], -neg_arc[:, 0], neg_arc[:, 2], fmt, **kw)
         b.render_front()
-        b.axes.plot(pos_arc[:, 1], -pos_arc[:, 0], pos_arc[:, 2], fmt, **kw)
+        if len(pos_arc) > 0:
+            b.axes.plot(pos_arc[:, 1], -pos_arc[:, 0], pos_arc[:, 2], fmt, **kw)
 
     @pytest.mark.parametrize([
         "start_test", "start_ref", "end_test", "end_ref", "kwargs",

@@ -725,6 +725,7 @@ class Bloch:
         # back half of sphere
         u = np.linspace(0, np.pi, 25)
         v = np.linspace(0, np.pi, 25)
+        w = np.linspace(-np.pi / 2, np.pi / 2, 25)
         x = outer(cos(u), sin(v))
         y = outer(sin(u), sin(v))
         z = outer(ones(np.size(u)), cos(v))
@@ -738,13 +739,14 @@ class Bloch:
         # equator
         self.axes.plot(1.0 * cos(u), 1.0 * sin(u), zs=0, zdir='z',
                        lw=self.frame_width, color=self.frame_color)
-        self.axes.plot(1.0 * cos(u-np.pi/2), 1.0 * sin(u-np.pi/2), zs=0,
-                       zdir='x', lw=self.frame_width, color=self.frame_color)
+        self.axes.plot(1.0 * cos(w), 1.0 * sin(w), zs=0, zdir='x',
+                       lw=self.frame_width, color=self.frame_color)
 
     def plot_front(self):
         # front half of sphere
         u = np.linspace(-np.pi, 0, 25)
         v = np.linspace(0, np.pi, 25)
+        w = np.linspace(-3 * np.pi / 2, -np.pi / 2, 25)
         x = outer(cos(u), sin(v))
         y = outer(sin(u), sin(v))
         z = outer(ones(np.size(u)), cos(v))
@@ -759,7 +761,7 @@ class Bloch:
         self.axes.plot(1.0 * cos(u), 1.0 * sin(u),
                        zs=0, zdir='z', lw=self.frame_width,
                        color=self.frame_color)
-        self.axes.plot(1.0 * cos(u-np.pi/2), 1.0 * sin(u-np.pi/2),
+        self.axes.plot(1.0 * cos(w), 1.0 * sin(w),
                        zs=0, zdir='x', lw=self.frame_width,
                        color=self.frame_color)
 
