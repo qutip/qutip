@@ -80,10 +80,15 @@ def _find_mkl():
     distributions.
     """
     plat = sys.platform
-    # TODO: fix the mkl handling on windows or use modules like pydiso to do it
-    # for us.
+
     if plat.startswith("win"):
+        # TODO: fix the mkl handling on windows or use modules like pydiso to do it
+        # for us.
         return ""
+    if plat == "emscripten":
+        # mkl is not supported on emscripten
+        return ""
+
     python_dir = os.path.dirname(sys.executable)
     if plat in ['darwin', 'linux2', 'linux']:
         python_dir = os.path.dirname(python_dir)
