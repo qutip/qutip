@@ -1,0 +1,1 @@
+Update mkl finding to support the 'emscripten' sys.platform.
