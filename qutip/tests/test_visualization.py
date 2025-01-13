@@ -413,6 +413,27 @@ def test_plot_fock_distribution_anim():
     ('ket', {}),
     ('oper', {'xvec': np.linspace(-1, 1, 100)}),
     ('oper', {'yvec': np.linspace(-1, 1, 100)}),
+    ('oper', {'projection': '3d'}),
+    ('oper', {'colorbar': True})
+])
+def test_plot_qfunc(rho_type, args):
+    if rho_type == 'oper':
+        rho = qutip.rand_dm(4)
+    else:
+        rho = qutip.basis(2, 0)
+
+    fig, ax = qutip.plot_qfunc(rho, **args)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes.Axes)
+
+
+@pytest.mark.parametrize('rho_type, args', [
+    ('oper', {}),
+    ('ket', {}),
+    ('oper', {'xvec': np.linspace(-1, 1, 100)}),
+    ('oper', {'yvec': np.linspace(-1, 1, 100)}),
     ('oper', {'method': 'fft'}),
     ('oper', {'projection': '3d'}),
     ('oper', {'colorbar': True})
