@@ -66,26 +66,24 @@ def about():
 
     # family packages
 
-    print("Installed QuTiP family packages:")
+    print("Installed QuTiP family packages")
+    print("-------------------------------")
     print()
 
     entrypoints = importlib.metadata.entry_points(group="qutip.family")
 
     if not entrypoints:
         print("No QuTiP family packages installed.")
-        print()
 
     for ep in entrypoints:
         family_mod = ep.load()
         try:
-            title, lines = family_mod.about()
+            pkg, version = family_mod.version()
         except Exception as exc:
-            title, lines = ep.name, [str(exc)]
-        print(title)
-        print("-" * len(title))
-        for line in lines:
-            print(line)
-        print()
+            pkg, version = ep.name, [str(exc)]
+        print("%s: %s" % (pkg, version))
+
+    print()
 
     # citation
     longbar = "=" * 80
