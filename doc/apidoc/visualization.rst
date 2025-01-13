@@ -37,3 +37,15 @@ Quantum Process Tomography
 .. automodule:: qutip.tomography
     :members: qpt, qpt_plot, qpt_plot_combined
     :undoc-members:
+
+Distribution functions
+----------------------
+
+.. autoclass:: qutip.distributions.Distribution
+    :members:
+
+.. autoclass:: qutip.distributions.HarmonicOscillatorWaveFunction
+    :members:
+
+.. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
+    :members:
