@@ -82,8 +82,8 @@ def _find_mkl():
     plat = sys.platform
 
     if plat.startswith("win"):
-        # TODO: fix the mkl handling on windows or use modules like pydiso to do it
-        # for us.
+        # TODO: fix the mkl handling on windows or use modules like pydiso to
+        # do it for us.
         return ""
     if plat == "emscripten":
         # mkl is not supported on emscripten
