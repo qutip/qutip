@@ -14,7 +14,7 @@ Patch to add support for scipy 1.15.
 Features
 --------
 
-- qutip.cite() now cites the QuTiP 5 paper, https://arxiv.org/abs/2412.04705..
+- qutip.cite() now cites the QuTiP 5 paper, https://arxiv.org/abs/2412.04705.
 
 
 Bug Fixes
