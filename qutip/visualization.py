@@ -1345,8 +1345,8 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
 
 
 def plot_qfunc(rho, xvec=None, yvec=None, projection='2d',
-                g=sqrt(2), *, cmap=None, colorbar=False,
-                fig=None, ax=None):
+               g=sqrt(2), *, cmap=None, colorbar=False,
+               fig=None, ax=None):
     """
     Plot the the Husimi-Q function for a density matrix (or ket).
 
