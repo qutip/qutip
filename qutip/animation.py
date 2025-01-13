@@ -416,7 +416,7 @@ def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw', projection='2d',
 
 
 def anim_qfunc(rhos, xvec=None, yvec=None, projection='2d',
-                g=sqrt(2), *, cmap=None, colorbar=False, 
+                g=sqrt(2), *, cmap=None, colorbar=False,
                 fig=None, ax=None):
     """
     Animation of the Husimi-Q function for a density matrix (or ket).
@@ -458,7 +458,7 @@ def anim_qfunc(rhos, xvec=None, yvec=None, projection='2d',
         A tuple of the matplotlib figure and the animation instance
         used to produce the figure.
     """
-    
+
     rhos = _result_state(rhos)
 
     fig, ani = plot_qfunc(rhos, xvec, yvec, g=g, projection=projection,
