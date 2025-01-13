@@ -14,14 +14,14 @@ Patch to add support for scipy 1.15.
 Features
 --------
 
-- qutip.cite() now cite the paper for qutip version 5.
+- qutip.cite() now cites the QuTiP 5 paper, https://arxiv.org/abs/2412.04705..
 
 
 Bug Fixes
 ---------
 
-- ENR dimensions work with eigenstates (#2595)
-- Use `sph_harm_y` when using scipy>=1.15
+- Fix support for calculating the eigenstates of ENR operators (#2595).
+- Update various functions to use `sph_harm_y` when using scipy >= 1.15.
 
 QuTiP 5.1.0 (2024-12-12)
 ========================
