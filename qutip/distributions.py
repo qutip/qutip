@@ -8,7 +8,7 @@ distributions, such as Wigner distributions, etc.
 
 """
 
-__all__ = ['Distribution','HarmonicOscillatorWaveFunction',
+__all__ = ['Distribution', 'HarmonicOscillatorWaveFunction',
            'HarmonicOscillatorProbabilityFunction']
 
 import numpy as np
