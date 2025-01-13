@@ -550,11 +550,11 @@ class Bloch:
             raise ValueError('Polar and azimuthal angles undefined at origin.')
         elif abs(len1 - len2) > 1e-12:
             raise ValueError("Points not on the same sphere.")
-        elif (pt1 == pt2).all():
+        elif np.linalg.norm(pt1 - pt2) < 1e-12:
             raise ValueError(
                 "Start and end represent the same point. No arc can be formed."
             )
-        elif (pt1 == -pt2).all():
+        elif np.linalg.norm(pt1 + pt2) < 1e-12:
             raise ValueError(
                 "Start and end are diagonally opposite, no unique arc is"
                 " possible."
