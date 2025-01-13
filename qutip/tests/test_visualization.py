@@ -682,22 +682,6 @@ def state(request):
         return qutip.fock_dm([2, 2], [0, 0])
 
 
-def test_TwoModeQuadratureCorrelation(state):
-    corr = qutip.TwoModeQuadratureCorrelation(state)
-
-    assert isinstance(corr, qutip.distributions.TwoModeQuadratureCorrelation)
-
-
-def test_TwoModeQuadratureCorrelation_plot(state):
-    corr = qutip.TwoModeQuadratureCorrelation(state)
-
-    fig, ax = corr.visualize()
-    plt.close()
-
-    assert isinstance(fig, mpl.figure.Figure)
-    assert isinstance(ax, mpl.axes.Axes)
-
-
 def test_HarmonicOscillatorWaveFunction(state):
     corr = qutip.HarmonicOscillatorWaveFunction(state)
 
