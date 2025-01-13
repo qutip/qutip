@@ -571,26 +571,31 @@ class Bloch:
         # the origin.
         arc = (line * len1 / np.linalg.norm(line, axis=0)).T
 
-        # We separate the arc between what is in front and what is in back
+        # Add points in the appropriate area (front or back)
         front = arc[0][0] >= 0  # is it a front point?
         part = []
         for point in arc:
             if (point[0] >= 0) == front:
                 part.append(point)
+                continue
+
+            if point[0] != 0:
+                # Interpolation of the junction point to ensure continuity
+                t_edge = 1 / (1 - part[-1][0] / point[0])
+                edge_point = part[-1] * t_edge + point * (1 - t_edge)
+                edge_point = edge_point * len1 / np.linalg.norm(edge_point)
+                part.append(edge_point)
             else:
-                if point[0] != 0:
-                    t_edge = 1 / (1 - part[-1][0] / point[0])
-                    edge_point = part[-1] * t_edge + point * (1 - t_edge)
-                    edge_point = edge_point * len1 / np.linalg.norm(edge_point)
-                    part.append(edge_point)
-                else:
-                    part.append(point)
-                self._arcs.append([np.array(part), front, fmt, kwargs])
-                if point[0] != 0:
-                    part = [edge_point, point]
-                else:
-                    part = [point]
-                front = not front
+                part.append(point)
+
+            # Save the arc on the previous semi-sphere
+            self._arcs.append([np.array(part), front, fmt, kwargs])
+
+            # Start the arc on the new semi-sphere
+            part = [edge_point, point] if point[0] != 0 else [point]
+            front = not front
+
+        # Save the last arc
         self._arcs.append([np.array(part), front, fmt, kwargs])
 
     def add_line(self, start, end, fmt="k", **kwargs):
