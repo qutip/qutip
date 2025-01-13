@@ -12,7 +12,7 @@ Graphs and Visualization
 ------------------------
 
 .. automodule:: qutip.visualization
-    :members: hinton, matrix_histogram, plot_energy_levels, plot_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_wigner_sphere, plot_spin_distribution
+    :members: hinton, matrix_histogram, plot_energy_levels, plot_fock_distribution, plot_wigner, plot_qfunc, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_wigner_sphere, plot_spin_distribution
     :undoc-members:
 
 .. automodule:: qutip.animation

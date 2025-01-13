@@ -5,7 +5,7 @@ visualizations of quantum states and processes.
 
 __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
            'matrix_histogram', 'plot_energy_levels', 'plot_fock_distribution',
-           'plot_wigner', 'plot_expectation_values',
+           'plot_wigner', 'plot_qfunc', 'plot_expectation_values',
            'plot_spin_distribution', 'complex_array_to_rgb',
            'plot_qubism', 'plot_schmidt']
 
