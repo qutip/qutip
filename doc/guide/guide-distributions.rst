@@ -27,13 +27,13 @@ and
 
 .. math::
 
-    \displaystyle \dagger{\hat{a}} = \sqrt{\frac{m \omega}{2 \hbar}} \left(\hat{X} - \frac{i}{m \omega}\hat{P}\right)
+    \displaystyle \hat{a}^\dagger = \sqrt{\frac{m \omega}{2 \hbar}} \left(\hat{X} - \frac{i}{m \omega}\hat{P}\right)
 
 Then, the Hamiltonian can be written in terms of the ladder operators as
 
 .. math::
 
-    \displaystyle \hat{H} = \hbar \omega \left(\dagger{\hat{a}}\hat{a} + \frac{1}{2}\hat{I}\right) = \hbar \omega \left(\hat{N} + \frac{1}{2}\hat{I}\right) 
+    \displaystyle \hat{H} = \hbar \omega \left(\hat{a}^\dagger \hat{a} + \frac{1}{2}\hat{I}\right) = \hbar \omega \left(\hat{N} + \frac{1}{2}\hat{I}\right) 
 
 where :math:`\hat{N}` is the number operator. It can be shown that on an eigenstate :math:`|n>` of the number operator (:math:`n \geq 0`), the ladder operators accomplish
 
@@ -42,7 +42,7 @@ where :math:`\hat{N}` is the number operator. It can be shown that on an eigenst
     \displaystyle \hat{a} |n> = \sqrt{n}|n-1> 
 .. math::
 
-    \displaystyle \dagger{\hat{a}} |n> = \sqrt{n+1}|n+1> 
+    \displaystyle \hat{a}^\dagger |n> = \sqrt{n+1}|n+1> 
 
 From that, it is easy to see that energy levels of the harmonic oscillator obey the following :
 
@@ -79,17 +79,33 @@ with a single solution for the ground state giving
 
     \displaystyle \psi_0(x) = \left(\frac{m \omega}{\pi \hbar}\right)^{1/4} e^{-\frac{m \omega}{2\hbar}x²}
 
-By the Born rule, we obtain the probability distribution for the ground state. Because all states can be reached by the ladder operators from the ground state, one can generalize the wave function for the state :math:`|n>`.
+By the Born rule, we obtain the probability distribution for the ground state. Because all states can be reached by the ladder operators from the ground state, one can generalize the wave function and probability distribution for the state :math:`|n>`.
 
 .. _implementation:
 
 QuTiP implementation
 ====================
 
-We can use the class `HarmonicOscillatorProbabilityFunction` from `qutip.distributions` in order to visualize what the distribution would look like for any state of the harmonic oscillator. Here, we would have all distributions from :math:`n=0` to :math:`n=7`.
+We can use the classes `HarmonicOscillatorWaveFunction` and `HarmonicOscillatorProbabilityFunction` from `qutip.distributions` in order to visualize what the wave function and probability distribution would look like for any state of the harmonic oscillator. Here, we would have all wave functions followed by all probability distributions from :math:`n=0` to :math:`n=7`.
 
 .. code-block:: Python
+    
+    from qutip import fock
+    from qutip.distributions import HarmonicOscillatorWaveFunction
+    import matplotlib.pyplot as plt
 
+    M=8
+    N=20
+
+    fig, ax = plt.subplots(M, 1, figsize=(10, 12), sharex=True)
+
+    for n in range(M):
+        psi = fock(N, n)
+        wf = HarmonicOscillatorWaveFunction(psi, 1.0, extent=[-10, 10])
+        wf.visualize(fig=fig, ax=ax[M-n-1], show_ylabel=False, show_xlabel=(n == 0))
+
+.. code-block:: Python
+    
     from qutip import fock
     from qutip.distributions import HarmonicOscillatorProbabilityFunction
     import matplotlib.pyplot as plt
@@ -101,5 +117,5 @@ We can use the class `HarmonicOscillatorProbabilityFunction` from `qutip.distrib
 
     for n in range(M):
         psi = fock(N, n)
-        wf = HarmonicOscillatorProbabilityFunction(psi, 1.0, extent=[-10, 10])
-        wf.visualize(fig=fig, ax=ax[M-n-1], show_ylabel=False, show_xlabel=(n == 0))
+        prob = HarmonicOscillatorProbabilityFunction(psi, 1.0, extent=[-10, 10])
+        prob.visualize(fig=fig, ax=ax[M-n-1], show_ylabel=False, show_xlabel=(n == 0))
