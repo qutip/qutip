@@ -20,20 +20,8 @@ Distribution functions
 .. autoclass:: qutip.distributions.Distribution
     :members:
 
-..
-  Docstrings are empty...
+.. autoclass:: qutip.distributions.HarmonicOscillatorWaveFunction
+    :members:
 
-  .. autoclass:: qutip.distributions.WignerDistribution
-      :members:
-
-  .. autoclass:: qutip.distributions.QDistribution
-      :members:
-
-  .. autoclass:: qutip.distributions.TwoModeQuadratureCorrelation
-      :members:
-
-  .. autoclass:: qutip.distributions.HarmonicOscillatorWaveFunction
-      :members:
-
-  .. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
-      :members:
+.. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
+    :members:

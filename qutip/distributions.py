@@ -469,7 +469,7 @@ class HarmonicOscillatorWaveFunction(Distribution):
 
 class HarmonicOscillatorProbabilityFunction(Distribution):
     """A class for representing the probability distribution of a quantum
-    harmonic oscillator given a density matrix.
+       harmonic oscillator given a density matrix.
 
     Parameters
     ----------
@@ -482,7 +482,6 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
     steps : int, default : 250
         The number of data points generated between the bounds for
         each coordinate.
-
     """
 
     def __init__(self, rho: Qobj = None, omega: float = 1.0,
