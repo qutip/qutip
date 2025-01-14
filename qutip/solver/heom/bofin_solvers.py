@@ -653,54 +653,70 @@ class HEOMSolver(Solver):
             liouvillian(H) if H.type == "oper"  # hamiltonian
             else H  # already a liouvillian
         )
+        self.bath = bath
+        self.max_depth = max_depth
 
         self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
         self._sup_shape = self.L_sys.shape[0]
         self._sys_dims = self.L_sys.dims[0]
 
-        self.ados = HierarchyADOs(
-            self._combine_bath_exponents(bath), max_depth,
-        )
-        self._n_ados = len(self.ados.labels)
-        self._n_exponents = len(self.ados.exponents)
+        self._post_init(options)
+        # _n_ados is part of the shape/dims so should be computed here, it is
+        # computed with the rhs
+        self.rhs
 
-        self._init_ados_time = time() - _time_start
-        _time_start = time()
+    @property
+    def rhs(self):
+        if self._rhs is None:
+            _time_start = time()
+            bath = self.bath
+            max_depth = self.max_depth
+            self.ados = HierarchyADOs(
+                self._combine_bath_exponents(bath), max_depth,
+            )
+            self._n_ados = len(self.ados.labels)
+            self._n_exponents = len(self.ados.exponents)
 
-        # pre-calculate identity matrix required by _grad_n
-        self._sId = _data.identity(self._sup_shape, dtype="csr")
+            self.stats["init ados time"] += time() - _time_start
+            self.stats["init time"] += time() - _time_start
+            self.stats["max_depth"] = self.ados.max_depth
+            _time_start = time()
 
-        # pre-calculate superoperators required by _grad_prev and _grad_next:
-        Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
-        self._spreQ = [spre(op).data for op in Qs]
-        self._spostQ = [spost(op).data for op in Qs]
-        self._s_pre_minus_post_Q = [
-            _data.sub(self._spreQ[k], self._spostQ[k])
-            for k in range(self._n_exponents)
-        ]
-        self._s_pre_plus_post_Q = [
-            _data.add(self._spreQ[k], self._spostQ[k])
-            for k in range(self._n_exponents)
-        ]
-        self._spreQdag = [spre(op.dag()).data for op in Qs]
-        self._spostQdag = [spost(op.dag()).data for op in Qs]
-        self._s_pre_minus_post_Qdag = [
-            _data.sub(self._spreQdag[k], self._spostQdag[k])
-            for k in range(self._n_exponents)
-        ]
-        self._s_pre_plus_post_Qdag = [
-            _data.add(self._spreQdag[k], self._spostQdag[k])
-            for k in range(self._n_exponents)
-        ]
+            # pre-calculate identity matrix required by _grad_n
+            self._sId = _data.identity(self._sup_shape, dtype="csr")
 
-        self._init_superop_cache_time = time() - _time_start
-        _time_start = time()
+            # pre-calculate superoperators required by _grad_prev and _grad_next:
+            Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
+            self._spreQ = [spre(op).data for op in Qs]
+            self._spostQ = [spost(op).data for op in Qs]
+            self._s_pre_minus_post_Q = [
+                _data.sub(self._spreQ[k], self._spostQ[k])
+                for k in range(self._n_exponents)
+            ]
+            self._s_pre_plus_post_Q = [
+                _data.add(self._spreQ[k], self._spostQ[k])
+                for k in range(self._n_exponents)
+            ]
+            self._spreQdag = [spre(op.dag()).data for op in Qs]
+            self._spostQdag = [spost(op.dag()).data for op in Qs]
+            self._s_pre_minus_post_Qdag = [
+                _data.sub(self._spreQdag[k], self._spostQdag[k])
+                for k in range(self._n_exponents)
+            ]
+            self._s_pre_plus_post_Qdag = [
+                _data.add(self._spreQdag[k], self._spostQdag[k])
+                for k in range(self._n_exponents)
+            ]
 
-        rhs = self._calculate_rhs()
+            self.stats["init superop cache time"] += time() - _time_start
+            self.stats["init time"] += time() - _time_start
+            _time_start = time()
 
-        self._init_rhs_time = time() - _time_start
+            self._rhs = self._calculate_rhs()
 
-        super().__init__(rhs, options=options)
+            self.stats["init rhs time"] += time() - _time_start
+            self.stats["init time"] += time() - _time_start
+        return self._rhs
 
     @property
     def sys_dims(self):
@@ -715,15 +731,12 @@ class HEOMSolver(Solver):
     def _initialize_stats(self):
         stats = super()._initialize_stats()
         stats.update({
-            "init time": sum([
-                stats["init time"], self._init_ados_time,
-                self._init_superop_cache_time, self._init_rhs_time,
-            ]),
-            "init ados time": self._init_ados_time,
-            "init superop cache time": self._init_superop_cache_time,
-            "init rhs time": self._init_rhs_time,
+            "init time": stats["ODE init time"],
+            "init ados time": 0,
+            "init superop cache time": 0,
+            "init rhs time": 0,
             "solver": "Hierarchical Equations of Motion Solver",
-            "max_depth": self.ados.max_depth,
+            "max_depth": None,
         })
         return stats
 
@@ -899,7 +912,7 @@ class HEOMSolver(Solver):
             )
         return op
 
-    def _rhs(self):
+    def _HEOMRHS(self):
         """ Make the RHS for the HEOM. """
         ops = _GatherHEOMRHS(
             self.ados.idx, block=self._sup_shape, nhe=self._n_ados
@@ -922,7 +935,7 @@ class HEOMSolver(Solver):
 
     def _calculate_rhs(self):
         """ Make the full RHS required by the solver. """
-        rhs_mat = self._rhs()
+        rhs_mat = self._HEOMRHS()
         rhs_dims = [
             [self._sup_shape * self._n_ados], [self._sup_shape * self._n_ados]
         ]
