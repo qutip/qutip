@@ -8,9 +8,7 @@ distributions, such as Wigner distributions, etc.
 
 """
 
-__all__ = ['Distribution', 'WignerDistribution', 'QDistribution',
-           'TwoModeQuadratureCorrelation',
-           'HarmonicOscillatorWaveFunction',
+__all__ = ['Distribution', 'HarmonicOscillatorWaveFunction',
            'HarmonicOscillatorProbabilityFunction']
 
 import numpy as np
@@ -31,7 +29,11 @@ try:
     from matplotlib.colors import Colormap
     from mpl_toolkits.mplot3d import Axes3D
 except:
-    pass
+    # Type when matplotlib is not installed
+    from typing import Any
+    Figure = Any
+    Axes = Any
+    Colormap = Any
 
 
 class Distribution:
@@ -244,88 +246,6 @@ class Distribution:
         return Distribution(data=self.data.max(axis=dim),
                             xvecs=[self.xvecs[dim]],
                             xlabels=[self.xlabels[dim]])
-
-
-class WignerDistribution(Distribution):
-    """A class for representing the Wigner distribution function.
-
-    Parameters
-    ----------
-    rho : Qobj, default : None
-        Density matrix for composite quantum systems. Data for the
-        distribution is generated from rho, but can be generated
-        later if not given as input.
-    extent : ArrayLike, default : [[-5, 5], [-5, 5]]
-        List of arrays with the bounds [a, b] for each coordinate.
-    steps : int, default : 250
-        The number of data points generated between the bounds for
-        each coordinate.
-
-    """
-
-    def __init__(self, rho: Qobj = None, extent: ArrayLike = [[-5, 5], [-5, 5]],
-                 steps: int = 250):
-
-        self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
-                      np.linspace(extent[1][0], extent[1][1], steps)]
-
-        self.xlabels = [r'$\rm{Re}(\alpha)$', r'$\rm{Im}(\alpha)$']
-
-        if rho:
-            self.update(rho)
-
-    def update(self, rho: Qobj):
-        """Updates data for the Wigner distribution.
-
-        Parameters
-        ----------
-        rho : Qobj
-            Density matrix for composite quantum systems.
-
-        """
-
-        self.data = wigner(rho, self.xvecs[0], self.xvecs[1])
-
-
-class QDistribution(Distribution):
-    """A class for representing the Husimi-Q distribution function.
-
-    Parameters
-    ----------
-    rho : Qobj, default : None
-        Density matrix for composite quantum systems. Data for
-        the distribution is generated from rho, but can be
-        generated later if not given as input.
-    extent : ArrayLike, default : [[-5, 5], [-5, 5]]
-        List of arrays with the bounds [a, b] for each coordinate.
-    steps : int, default : 250
-        The number of data points generated between the bounds
-        for each coordinate.
-
-    """
-
-    def __init__(self, rho: Qobj = None, extent: ArrayLike = [[-5, 5], [-5, 5]],
-                 steps: int = 250):
-
-        self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
-                      np.linspace(extent[1][0], extent[1][1], steps)]
-
-        self.xlabels = [r'$\rm{Re}(\alpha)$', r'$\rm{Im}(\alpha)$']
-
-        if rho:
-            self.update(rho)
-
-    def update(self, rho: Qobj):
-        """Updates data for the Husimi-Q distribution.
-
-        Parameters
-        ----------
-        rho : Qobj
-            Density matrix for composite quantum systems.
-
-        """
-
-        self.data = qfunc(rho, self.xvecs[0], self.xvecs[1])
 
 
 class TwoModeQuadratureCorrelation(Distribution):
@@ -553,7 +473,7 @@ class HarmonicOscillatorWaveFunction(Distribution):
 
 class HarmonicOscillatorProbabilityFunction(Distribution):
     """A class for representing the probability distribution of a quantum
-    harmonic oscillator given a density matrix.
+       harmonic oscillator given a density matrix.
 
     Parameters
     ----------
@@ -566,7 +486,6 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
     steps : int, default : 250
         The number of data points generated between the bounds for
         each coordinate.
-
     """
 
     def __init__(self, rho: Qobj = None, omega: float = 1.0,
