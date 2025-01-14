@@ -3,7 +3,8 @@ Functions to animate results of quantum dynamics simulations,
 """
 __all__ = ['anim_wigner_sphere', 'anim_hinton', 'anim_sphereplot',
            'anim_matrix_histogram', 'anim_fock_distribution', 'anim_wigner',
-           'anim_spin_distribution', 'anim_qubism', 'anim_schmidt', 'anim_qfunc']
+           'anim_spin_distribution', 'anim_qubism', 'anim_schmidt',
+           'anim_qfunc']
 
 from . import (plot_wigner_sphere, hinton, sphereplot, matrix_histogram,
                plot_fock_distribution, plot_wigner, plot_spin_distribution,
