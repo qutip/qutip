@@ -55,6 +55,12 @@ except ImportError:
     pass
 
 
+def _state_to_cartesian_coordinates(state: Qobj):
+    return [expect(sigmax(), state),
+            expect(sigmay(), state),
+            expect(sigmaz(), state)]
+
+
 class Bloch:
     r"""
     Class for plotting data on the Bloch sphere.  Valid data can be either
@@ -366,7 +372,8 @@ class Bloch:
         self.point_alpha.append(alpha)
         self._inner_point_color.append(colors)
 
-    def add_states(self, state, kind: Literal['vector', 'point'] = 'vector',
+    def add_states(self, state: Qobj,
+                   kind: Literal['vector', 'point'] = 'vector',
                    colors=None, alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
 
@@ -407,9 +414,7 @@ class Bloch:
             colors = np.array([None] * state.size)
 
         for k, st in enumerate(state):
-            vec = [expect(sigmax(), st),
-                   expect(sigmay(), st),
-                   expect(sigmaz(), st)]
+            vec = _state_to_cartesian_coordinates(st)
 
             if kind == 'vector':
                 self.add_vectors(vec, colors=[colors[k]], alpha=alpha)
@@ -483,9 +488,7 @@ class Bloch:
 
         """
         if isinstance(state_or_vector, Qobj):
-            vec = [expect(sigmax(), state_or_vector),
-                   expect(sigmay(), state_or_vector),
-                   expect(sigmaz(), state_or_vector)]
+            vec = _state_to_cartesian_coordinates(state_or_vector)
         elif isinstance(state_or_vector, (list, np.ndarray, tuple)) \
                 and len(state_or_vector) == 3:
             vec = state_or_vector
@@ -523,42 +526,36 @@ class Bloch:
             Additional parameters to pass to the matplotlib .plot function
             when rendering this arc.
         """
-        if isinstance(start, Qobj):
-            pt1 = [
-                expect(sigmax(), start),
-                expect(sigmay(), start),
-                expect(sigmaz(), start),
-            ]
-        else:
-            pt1 = start
+        pt1 = _state_to_cartesian_coordinates(start) \
+            if isinstance(start, Qobj) else start
 
-        if isinstance(end, Qobj):
-            pt2 = [
-                expect(sigmax(), end),
-                expect(sigmay(), end),
-                expect(sigmaz(), end),
-            ]
-        else:
-            pt2 = end
+        pt2 = _state_to_cartesian_coordinates(end) \
+            if isinstance(end, Qobj) else end
 
         pt1 = np.asarray(pt1)
         pt2 = np.asarray(pt2)
 
         len1 = np.linalg.norm(pt1)
         len2 = np.linalg.norm(pt2)
-        if len1 < 1e-12 or len2 < 1e-12:
-            raise ValueError('Polar and azimuthal angles undefined at origin.')
-        elif abs(len1 - len2) > 1e-12:
-            raise ValueError("Points not on the same sphere.")
-        elif np.linalg.norm(pt1 - pt2) < 1e-12:
-            raise ValueError(
-                "Start and end represent the same point. No arc can be formed."
-            )
-        elif np.linalg.norm(pt1 + pt2) < 1e-12:
-            raise ValueError(
-                "Start and end are diagonally opposite, no unique arc is"
-                " possible."
-            )
+
+        def check_arguments_validity():
+            if len1 < 1e-12 or len2 < 1e-12:
+                raise ValueError("Polar and azimuthal angles undefined"
+                                 " at origin.")
+            elif abs(len1 - len2) > 1e-12:
+                raise ValueError("Points not on the same sphere.")
+            elif np.linalg.norm(pt1 - pt2) < 1e-12:
+                raise ValueError(
+                    "Start and end represent the same point."
+                    " No arc can be formed."
+                )
+            elif np.linalg.norm(pt1 + pt2) < 1e-12:
+                raise ValueError(
+                    "Start and end are diagonally opposite, no unique arc is"
+                    " possible."
+                )
+
+        check_arguments_validity()
 
         if steps is None:
             steps = int(np.linalg.norm(pt1 - pt2) * 100)
@@ -571,32 +568,50 @@ class Bloch:
         # the origin.
         arc = (line * len1 / np.linalg.norm(line, axis=0)).T
 
-        # Add points in the appropriate area (front or back)
-        front = arc[0][0] >= 0  # is it a front point?
+        # Add points in the appropriate area (rear, inner or front)
+        if len1 < 1 - 1e-12:
+            self._arcs.append([np.array(arc), "inner", fmt, kwargs])
+            return
+
+        def get_plot_area(front: bool, norm: float):
+            if front:
+                return "front"
+            if norm > 1 + 1e-12:
+                return "rear"
+            return "inner"
+
+        def append_interpolation_point(point, part, norm: float):
+            if point[0] != 0:
+                # Interpolation of the junction point to ensure continuity
+                t_edge = 1 / (1 - part[-1][0] / point[0])
+                edge_point = part[-1] * t_edge + point * (1 - t_edge)
+                edge_point = edge_point * norm / np.linalg.norm(edge_point)
+                part.append(edge_point)
+                return [edge_point, point]
+            else:
+                part.append(point)
+                return [point]
+
+        front = arc[0][0] >= 0  # is it a point in the front half-space (x>0)?
         part = []
         for point in arc:
             if (point[0] >= 0) == front:
                 part.append(point)
                 continue
 
-            if point[0] != 0:
-                # Interpolation of the junction point to ensure continuity
-                t_edge = 1 / (1 - part[-1][0] / point[0])
-                edge_point = part[-1] * t_edge + point * (1 - t_edge)
-                edge_point = edge_point * len1 / np.linalg.norm(edge_point)
-                part.append(edge_point)
-            else:
-                part.append(point)
+            new_part = append_interpolation_point(point, part, len1)
 
-            # Save the arc on the previous semi-sphere
-            self._arcs.append([np.array(part), front, fmt, kwargs])
+            # Save the arc on the previous half-space
+            self._arcs.append([np.array(part),
+                               get_plot_area(front, len1), fmt, kwargs])
 
-            # Start the arc on the new semi-sphere
-            part = [edge_point, point] if point[0] != 0 else [point]
+            # Start the arc on the new half-space
+            part = new_part
             front = not front
 
         # Save the last arc
-        self._arcs.append([np.array(part), front, fmt, kwargs])
+        self._arcs.append([np.array(part),
+                           get_plot_area(front, len1), fmt, kwargs])
 
     def add_line(self, start, end, fmt="k", **kwargs):
         """Adds a line segment connecting two points on the bloch sphere.
@@ -620,20 +635,12 @@ class Bloch:
             when rendering this line.
         """
         if isinstance(start, Qobj):
-            pt1 = [
-                expect(sigmax(), start),
-                expect(sigmay(), start),
-                expect(sigmaz(), start),
-            ]
+            pt1 = _state_to_cartesian_coordinates(start)
         else:
             pt1 = start
 
         if isinstance(end, Qobj):
-            pt2 = [
-                expect(sigmax(), end),
-                expect(sigmay(), end),
-                expect(sigmaz(), end),
-            ]
+            pt2 = _state_to_cartesian_coordinates(end)
         else:
             pt2 = end
 
@@ -712,15 +719,16 @@ class Bloch:
         if parse_version(matplotlib.__version__) >= parse_version('3.3'):
             self.axes.set_box_aspect((1, 1, 1))
 
+        self.plot_arcs("rear")
         self.plot_back()
         self.plot_points()
         self.plot_vectors()
         self.plot_lines()
-        self.plot_arcs(False)
+        self.plot_arcs("inner")
         if not self.background:
             self.plot_axes()
         self.plot_front()
-        self.plot_arcs(True)
+        self.plot_arcs("front")
         self.plot_axes_labels()
         self.plot_annotations()
         # Trigger an update of the Bloch sphere if it is already shown:
@@ -848,17 +856,17 @@ class Bloch:
                 color = self._inner_point_color[k]
             elif self.point_color is not None:
                 color = self.point_color
-            elif self.point_style[k] in ['s', 'l']:
+            elif style in ['s', 'l']:
                 color = [self.point_default_color[
                     k % len(self.point_default_color)
                 ]]
-            elif self.point_style[k] == 'm':
+            elif style == 'm':
                 length = np.ceil(num_points/len(self.point_default_color))
                 color = np.tile(self.point_default_color, length.astype(int))
                 color = color[indperm]
                 color = list(color)
 
-            if self.point_style[k] in ['s', 'm']:
+            if style in ['s', 'm']:
                 self.axes.scatter(np.real(points[1][indperm]),
                                   -np.real(points[0][indperm]),
                                   np.real(points[2][indperm]),
@@ -870,7 +878,7 @@ class Bloch:
                                   zdir='z',
                                   )
 
-            elif self.point_style[k] == 'l':
+            elif style == 'l':
                 color = color[k % len(color)]
                 self.axes.plot(np.real(points[1]),
                                -np.real(points[0]),
@@ -896,9 +904,9 @@ class Bloch:
         for line, fmt, kw in self._lines:
             self.axes.plot(line[0], line[1], line[2], fmt, **kw)
 
-    def plot_arcs(self, plot_front):
-        for arc, front, fmt, kw in self._arcs:
-            if plot_front == front:
+    def plot_arcs(self, plot_area: Literal["rear", "inner", "front"]):
+        for arc, area, fmt, kw in self._arcs:
+            if plot_area == area:
                 self.axes.plot(arc[:, 1], -arc[:, 0], arc[:, 2], fmt, **kw)
 
     def show(self):

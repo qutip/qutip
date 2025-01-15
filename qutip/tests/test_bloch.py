@@ -21,20 +21,25 @@ class RefBloch(Bloch):
     def render(self):
         raise NotImplementedError("RefBloch disables .render()")
 
-    def render_back(self):
+    def render_canva(self):
+        old_plot_back = self.plot_back
         old_plot_axes = self.plot_axes
         old_plot_front = self.plot_front
+        self.plot_back = lambda: None
         self.plot_axes = lambda: None
         self.plot_front = lambda: None
         try:
             Bloch.render(self)
         finally:
+            self.plot_back = old_plot_back
             self.plot_axes = old_plot_axes
             self.plot_front = old_plot_front
 
+    def render_back(self):
+        self.plot_back()
+
     def render_front(self):
-        if not self.background:
-            self.plot_axes()
+        self.plot_axes()
         self.plot_front()
 
 
@@ -57,41 +62,56 @@ class TestBloch:
         line = start[:, np.newaxis] * t + end[:, np.newaxis] * (1 - t)
         len1 = np.linalg.norm(start)
         arc = (line * len1 / np.linalg.norm(line, axis=0)).T
-        pos_arc, neg_arc = [], []
-        front = arc[0][0] >= 0
-        if front:
-            part = pos_arc
+        front_arc, inner_arc, rear_arc = [], [], []
+        if len1 < 1 - 1e-12:
+            rear_arc = arc
         else:
-            part = neg_arc
-        for point in arc:
-            if (point[0] >= 0) == front:
-                part.append(point)
+            front = arc[0][0] >= 0
+            if front:
+                part = front_arc
+            elif len1 > 1 + 1e-12:
+                part = rear_arc
             else:
-                if point[0] != 0:
-                    t_edge = 1 / (1 - part[-1][0] / point[0])
-                    edge_point = part[-1] * t_edge + point * (1 - t_edge)
-                    edge_point = edge_point * len1 / np.linalg.norm(edge_point)
-                    part.append(edge_point)
-                else:
-                    part.append(point)
-                front = not front
-                if front:
-                    part = pos_arc
-                else:
-                    part = neg_arc
-                if point[0] != 0:
-                    part.append(edge_point)
+                part = inner_arc
+
+            for point in arc:
+                if (point[0] >= 0) == front:
                     part.append(point)
                 else:
-                    part.append(point)
-        pos_arc, neg_arc = np.array(pos_arc), np.array(neg_arc)
+                    if point[0] != 0:
+                        t_edge = 1 / (1 - part[-1][0] / point[0])
+                        edge_point = part[-1] * t_edge + point * (1 - t_edge)
+                        edge_point = edge_point * len1 / np.linalg.norm(edge_point)
+                        part.append(edge_point)
+                    else:
+                        part.append(point)
+                    front = not front
+
+                    if front:
+                        part = front_arc
+                    elif len1 > 1 + 1e-12:
+                        part = rear_arc
+                    else:
+                        part = inner_arc
+
+                    if point[0] != 0:
+                        part += [edge_point, point]
+                    else:
+                        part.append(point)
+
+        front_arc = np.array(front_arc)
+        inner_arc = np.array(inner_arc)
+        rear_arc = np.asarray(rear_arc)
         b = RefBloch(fig=fig)
+        b.render_canva()
+        if len(rear_arc) > 0:
+            b.axes.plot(rear_arc[:, 1], -rear_arc[:, 0], rear_arc[:, 2], fmt, **kw)
         b.render_back()
-        if len(neg_arc) > 0:
-            b.axes.plot(neg_arc[:, 1], -neg_arc[:, 0], neg_arc[:, 2], fmt, **kw)
+        if len(inner_arc) > 0:
+            b.axes.plot(inner_arc[:, 1], -inner_arc[:, 0], inner_arc[:, 2], fmt, **kw)
         b.render_front()
-        if len(pos_arc) > 0:
-            b.axes.plot(pos_arc[:, 1], -pos_arc[:, 0], pos_arc[:, 2], fmt, **kw)
+        if len(front_arc) > 0:
+            b.axes.plot(front_arc[:, 1], -front_arc[:, 0], front_arc[:, 2], fmt, **kw)
 
     @pytest.mark.parametrize([
         "start_test", "start_ref", "end_test", "end_ref", "kwargs",
@@ -195,6 +215,7 @@ class TestBloch:
         z = [start[2], end[2]]
 
         b = RefBloch(fig=fig)
+        b.render_canva()
         b.render_back()
         b.axes.plot(x, y, z, fmt, **kw)
         b.render_front()
@@ -241,6 +262,7 @@ class TestBloch:
 
     def plot_point_ref(self, fig, point_kws):
         b = RefBloch(fig=fig)
+        b.render_canva()
         b.render_back()
         point_colors = ['b', 'r', 'g', '#CC6600']
         point_sizes = [25, 32, 35, 45]
@@ -398,6 +420,7 @@ class TestBloch:
     def plot_vector_ref(self, fig, vector_kws):
         from qutip.bloch import Arrow3D
         b = RefBloch(fig=fig)
+        b.render_canva()
         b.render_back()
         vector_colors = ['g', '#CC6600', 'b', 'r']
         idx = 0
