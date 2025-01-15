@@ -46,6 +46,10 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
         double complex *data, T *col_index, T *row_index,
         double complex *vec, double complex scale, double complex *out,
         T nrows)
+    void _matmul_dag_csr_vector[T](
+        double complex *data, T *col_index, T *row_index,
+        double complex *vec, double complex scale, double complex *out,
+        T nrows)
 
 cdef extern from "src/matmul_diag_vector.hpp" nogil:
     void _matmul_diag_vector[T](
@@ -571,7 +575,7 @@ cpdef Dense matmul_dag_dense_csr_dense(
             out = out.reorder()
         else:
             left = left.reorder()
-    cdef idxint row, col, ptr, idx_l, idx_out, out_row
+    cdef idxint row, col, ptr, idx_l, idx_out, out_row, idx_c
     cdef idxint stride_in_col, stride_in_row, stride_out_row, stride_out_col
     cdef idxint nrows=left.shape[0], ncols=right.shape[1]
     cdef double complex val
@@ -581,15 +585,29 @@ cpdef Dense matmul_dag_dense_csr_dense(
     stride_out_row = 1 if out.fortran else out.shape[1]
 
     # A @ B.dag = (B* @ A.T).T
-    # Todo: make a conj version of _matmul_csr_vector?
-    for row in range(right.shape[0]):
-        for ptr in range(right.row_index[row], right.row_index[row + 1]):
-            val = scale * conj(right.data[ptr])
-            col = right.col_index[ptr]
-            for out_row in range(out.shape[0]):
-                idx_out = row * stride_out_col + out_row * stride_out_row
-                idx_l = col * stride_in_col + out_row * stride_in_row
-                out.data[idx_out] += val * left.data[idx_l]
+    if left.fortran:
+        for row in range(right.shape[0]):
+            for ptr in range(right.row_index[row], right.row_index[row + 1]):
+                val = scale * conj(right.data[ptr])
+                col = right.col_index[ptr]
+                for out_row in range(out.shape[0]):
+                    idx_out = row * stride_out_col + out_row * stride_out_row
+                    idx_l = col * stride_in_col + out_row * stride_in_row
+                    out.data[idx_out] += val * left.data[idx_l]
+
+    else:
+      idx_c = idx_out = 0
+      for _ in range(nrows):
+          _matmul_dag_csr_vector(
+              right.data, right.col_index, right.row_index,
+              left.data + idx_c,
+              scale,
+              out.data + idx_out,
+              right.shape[0]
+          )
+          idx_out += right.shape[0]
+          idx_c += left.shape[1]
+
     if tmp is None:
         return out
     memcpy(tmp.data, out.data, ncols * nrows * sizeof(double complex))
