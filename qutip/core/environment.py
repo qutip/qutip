@@ -732,16 +732,18 @@ class BosonicEnvironment(abc.ABC):
         """
     # --- fitting
     def approximate(self,method:str,*args,**kwargs):
-        if method=="corr_lsq":
-            return self._approx_by_cf_fit(*args,**kwargs)
-        elif method=="spec_lsq":
-            return self._approx_by_sd_fit(*args,**kwargs)
-        elif method=="prony":
-            return self._approx_by_prony(*args,**kwargs)
-        elif method=="mp":
-            return self._approx_by_mp(*args,**kwargs)
-        elif method=="esprit":
-            return self._approx_by_esprit(*args,**kwargs)
+        dispatch = {
+            "corr_lsq": self._approx_by_cf_fit,
+            "spec_lsq": self._approx_by_sd_fit,
+            "prony": self._approx_by_prony,
+            "mp": self._approx_by_mp,
+            "esprit": self._approx_by_esprit,
+        }
+        
+        if method not in dispatch:
+            raise ValueError(f"Unsupported method: {method}")
+        
+        return dispatch[method](*args, **kwargs)
 
     def _approx_by_cf_fit(
         self,
