@@ -74,7 +74,7 @@ void _matmul_dag_csr_vector(
             num2 = _mm_set_pd(std::imag(vec[col_index[ptr]]),
                               std::real(vec[col_index[ptr]]));
             num3 = _mm_mul_pd(num2, num1);
-            num1 = _mm_loaddup_pd(&reinterpret_cast<const double(&)[2]>(-data[ptr])[1]);
+            num1 = _mm_loaddup_pd(- &reinterpret_cast<const double(&)[2]>(data[ptr])[1]);
             num2 = _mm_shuffle_pd(num2, num2, 1);
             num2 = _mm_mul_pd(num2, num1);
             num3 = _mm_addsub_pd(num3, num2);
