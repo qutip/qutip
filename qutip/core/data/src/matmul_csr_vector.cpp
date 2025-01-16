@@ -52,7 +52,8 @@ void _matmul_csr_vector(
         _mm_storeu_pd((double *)&out[row], num3);
     }
 }
-
+/*
+// TODO: Fix the SIMD version of _matmul_dag_csr_vector
 template <typename IntT>
 void _matmul_dag_csr_vector(
         const std::complex<double> * _RESTRICT data,
@@ -90,9 +91,11 @@ void _matmul_dag_csr_vector(
         num3 = _mm_addsub_pd(num3, num4);
         num2 = _mm_loadu_pd((double *)&out[row]);
         num3 = _mm_add_pd(num2, num3);
-        _mm_storeu_pd((double *)&out[row], num3);
+        // _mm_storeu_pd((double *)&out[row], num3);
+        _mm_storeu_pd((double *)&out[row], num1);
     }
 }
+*/
 #else
 /* No manual vectorisation. */
 template <typename IntT>
@@ -119,6 +122,7 @@ void _matmul_csr_vector(
         out[row] += scale * dot;
     }
 }
+#endif
 
 template <typename IntT>
 void _matmul_dag_csr_vector(
@@ -144,7 +148,7 @@ void _matmul_dag_csr_vector(
         out[row] += scale * dot;
     }
 }
-#endif
+
 
 /* It seems wrong to me to specify the integer specialisations as `int`, `long` and
  * `long long` rather than just `int32_t` and `int64_t`, but for some reason the

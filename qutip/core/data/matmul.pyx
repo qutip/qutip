@@ -601,8 +601,7 @@ cpdef Dense matmul_dag_dense_csr_dense(
           _matmul_dag_csr_vector(
               right.data, right.col_index, right.row_index,
               left.data + idx_c,
-              scale,
-              out.data + idx_out,
+              scale, out.data + idx_out,
               right.shape[0]
           )
           idx_out += right.shape[0]
@@ -658,7 +657,6 @@ cpdef Dense matmul_dag_dense(
         m = right.shape[0]
         n = left.shape[0]
         a, b = right, left
-
         lda = right.shape[1]
         ldb = left.shape[0] if left.fortran else left.shape[1]
         ldc = right.shape[0]
@@ -677,7 +675,6 @@ cpdef Dense matmul_dag_dense(
         m = left.shape[0]
         n = right.shape[0]
         a, b = left, right
-
         lda = left.shape[0] if left.fortran else left.shape[1]
         ldb = right.shape[0]
         ldc = left.shape[0]
