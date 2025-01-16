@@ -382,22 +382,23 @@ class BosonicEnvironment(abc.ABC):
                           tMax, tMax=wMax)
         result = result_fct(t) / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
+
     @overload
     def approximate(self,
-        method: Literal['corr_lsq'],
-        tlist: ArrayLike,
-        target_rsme: float = 2e-5,
-        Nr_max: int = 10,
-        Ni_max: int = 10,
-        guess: list[float] = None,
-        lower: list[float] = None,
-        upper: list[float] = None,
-        sigma: float | ArrayLike = None,
-        maxfev: int = None,
-        full_ansatz: bool = False,
-        combine: bool = True,
-        tag: Any = None,
-    ):
+                    method: Literal['corr_lsq'],
+                    tlist: ArrayLike,
+                    target_rsme: float = 2e-5,
+                    Nr_max: int = 10,
+                    Ni_max: int = 10,
+                    guess: list[float] = None,
+                    lower: list[float] = None,
+                    upper: list[float] = None,
+                    sigma: float | ArrayLike = None,
+                    maxfev: int = None,
+                    full_ansatz: bool = False,
+                    combine: bool = True,
+                    tag: Any = None,
+                    ):
         ...
         r"""
         Generates an approximation to this environment by fitting its
@@ -532,17 +533,18 @@ class BosonicEnvironment(abc.ABC):
                 A string that summarizes the information about the fit.
         """
         ...
+
     @overload
     def approximate(
         self,
         method: Literal['spec_lsq'],
         wlist: ArrayLike,
-        Nk: int ,
+        Nk: int,
         target_rmse: float,
-        Nmax: int ,
-        guess: list[float] ,
-        lower: list[float] ,
-        upper: list[float] ,
+        Nmax: int,
+        guess: list[float],
+        lower: list[float],
+        upper: list[float],
         sigma: float | ArrayLike,
         maxfev: int = None,
         combine: bool = True,
@@ -637,20 +639,20 @@ class BosonicEnvironment(abc.ABC):
 
     @overload
     def approximate(self,
-        method: Literal['esprit'],
-        tlist: ArrayLike,
-        Nr: int ,
-        Ni: int ,
-        combine: bool ,
-        tag: Any,):
+                    method: Literal['esprit'],
+                    tlist: ArrayLike,
+                    Nr: int,
+                    Ni: int,
+                    combine: bool,
+                    tag: Any,):
         r"""
         Generates an approximation to this environment by fitting its
-        correlation function using one of the methods based on the Prony 
+        correlation function using one of the methods based on the Prony
         polynomial.
 
-        - method='prony'  For the Prony Method 
-        - method='mp'  For the Matrix Pencil Method 
-        - method='esprit'  For the Estimation of signal parameters via 
+        - method='prony'  For the Prony Method
+        - method='mp'  For the Matrix Pencil Method
+        - method='esprit'  For the Estimation of signal parameters via
         rotational invariant techniques method
 
 
@@ -680,58 +682,59 @@ class BosonicEnvironment(abc.ABC):
         """
     @overload
     def approximate(self,
-        method: Literal['aaa'],
-        wlist: ArrayLike,
-        tol: float,
-        N_max: int,
-        combine: bool,
-        tag: Any):
-         """
-        Generates an approximation to this environment by fitting its power
-        spectrum using the AAA algorithm. The function is fit to a rational
-        polynomial of the form
-
-        .. math::
-            S(\\omega)= 2 \\Re \\left(\\sum_{k} \frac{c_{k}}{\nu_{k}-i \\omega}
-            \right)
-
-        By isolating the poles and residues of a section of the complex plane
-        the correlation function can be reconstructed as a sum of decaying
-        exponentials. The main benefit of this method is that it does not
-        require much knowledge about the function to be fit. On the downside,
-        if many poles are around the origin, it might require the sample points
-        to be used for the fit to be a large dense range which makes this
-        algorithm consume a lot of RAM (it will also be slow if asking for many
-        exponents)
-
-
-        Parameters
-        ----------
-        wlist : array_like
-            The frequency range on which to perform the fit. With this method
-            typically logarithmic spacing works best.
-        tol : optional, int
-            Relative tolerance used to stop the algorithm, if an iteration
-            contribution is less than the tolerance the fit is stopped.
-        Nmax : optional, int
-            The maximum number of exponents desired. Corresponds to the
-            maximum number of iterations for the AAA algorithm
-        combine : optional, bool (default True)
-            Whether to combine exponents with the same frequency. See
-            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
-            details.
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-
-        Returns
-        -------
-        approx_env : :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
+                    method: Literal['aaa'],
+                    wlist: ArrayLike,
+                    tol: float,
+                    N_max: int,
+                    combine: bool,
+                    tag: Any):
         """
+       Generates an approximation to this environment by fitting its power
+       spectrum using the AAA algorithm. The function is fit to a rational
+       polynomial of the form
+
+       .. math::
+           S(\\omega)= 2 \\Re \\left(\\sum_{k} \frac{c_{k}}{\nu_{k}-i \\omega}
+           \right)
+
+       By isolating the poles and residues of a section of the complex plane
+       the correlation function can be reconstructed as a sum of decaying
+       exponentials. The main benefit of this method is that it does not
+       require much knowledge about the function to be fit. On the downside,
+       if many poles are around the origin, it might require the sample points
+       to be used for the fit to be a large dense range which makes this
+       algorithm consume a lot of RAM (it will also be slow if asking for many
+       exponents)
+
+
+       Parameters
+       ----------
+       wlist : array_like
+           The frequency range on which to perform the fit. With this method
+           typically logarithmic spacing works best.
+       tol : optional, int
+           Relative tolerance used to stop the algorithm, if an iteration
+           contribution is less than the tolerance the fit is stopped.
+       Nmax : optional, int
+           The maximum number of exponents desired. Corresponds to the
+           maximum number of iterations for the AAA algorithm
+       combine : optional, bool (default True)
+           Whether to combine exponents with the same frequency. See
+           :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+           details.
+       tag : optional, str, tuple or any other object
+           An identifier (name) for the approximated environment. If not
+           provided, a tag will be generated from the tag of this environment.
+
+       Returns
+       -------
+       approx_env : :class:`ExponentialBosonicEnvironment`
+           The approximated environment with multi-exponential correlation
+           function.
+       """
     # --- fitting
-    def approximate(self,method:str,*args,**kwargs):
+
+    def approximate(self, method: str, *args, **kwargs):
         dispatch = {
             "corr_lsq": self._approx_by_cf_fit,
             "spec_lsq": self._approx_by_sd_fit,
@@ -740,10 +743,10 @@ class BosonicEnvironment(abc.ABC):
             "esprit": self._approx_by_esprit,
             "aaa": self._approx_by_aaa,
         }
-        
+
         if method not in dispatch:
             raise ValueError(f"Unsupported method: {method}")
-        
+
         return dispatch[method](*args, **kwargs)
 
     def _approx_by_cf_fit(
@@ -761,7 +764,6 @@ class BosonicEnvironment(abc.ABC):
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
-      
 
         # Process arguments
         if tag is None and self.tag is not None:
@@ -862,7 +864,7 @@ class BosonicEnvironment(abc.ABC):
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
-      
+
         # Process arguments
         if tag is None and self.tag is not None:
             tag = (self.tag, "SD Fit")
@@ -949,7 +951,7 @@ class BosonicEnvironment(abc.ABC):
         cls = ExponentialBosonicEnvironment(
             ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
             vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
-        return cls,{}
+        return cls, {}
 
     def _approx_by_mp(
         self,
