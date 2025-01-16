@@ -738,6 +738,7 @@ class BosonicEnvironment(abc.ABC):
             "prony": self._approx_by_prony,
             "mp": self._approx_by_mp,
             "esprit": self._approx_by_esprit,
+            "aaa": self._approx_by_aaa,
         }
         
         if method not in dispatch:
@@ -920,7 +921,8 @@ class BosonicEnvironment(abc.ABC):
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
-
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "AAA Fit")
         _, pol, res, _, _ = aaa(self.power_spectrum, wlist,
                                 tol=tol,
                                 max_iter=N_max * 2)
@@ -947,7 +949,7 @@ class BosonicEnvironment(abc.ABC):
         cls = ExponentialBosonicEnvironment(
             ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
             vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
-        return cls
+        return cls,{}
 
     def _approx_by_mp(
         self,
@@ -957,34 +959,8 @@ class BosonicEnvironment(abc.ABC):
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
-        """
-        Generates an approximation to this environment by fitting its
-        correlation function using the Matrix pencil method based on the prony
-        polynomial.
-        Parameters
-        ----------
-        tlist : array_like
-            The time range on which to perform the fit.
-        Nr : optional, int
-            The number of exponents desired to describe the imaginary part of
-            the correlation function. It defaults to 3
-        Nr : optional, int
-            The number of exponents desired to describe the real part of
-            the correlation function. It defaults to 3
-        combine : optional, bool (default True)
-            Whether to combine exponents with the same frequency. See
-            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
-            details.
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-
-        Returns
-        -------
-        approx_env : :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
-        """
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "MP Fit")
         amp, phases = matrix_pencil(
             self.correlation_function(tlist).real, Nr)
         amp2, phases2 = matrix_pencil(
@@ -1012,6 +988,8 @@ class BosonicEnvironment(abc.ABC):
         # constructor correctly (probably need to extend conjugates)
         # (I typically find better fits with less exponent's when fitting the
         # complex signal)
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "Prony Fit")
         amp, phases = prony(self.correlation_function(tlist).real, Nr)
         amp2, phases2 = prony(self.correlation_function(tlist).imag, Ni)
         ckAR = amp
@@ -1034,34 +1012,8 @@ class BosonicEnvironment(abc.ABC):
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
-        """
-        Generates an approximation to this environment by fitting its
-        correlation function using the ESPRIT method based on the prony
-        polynomial.
-        Parameters
-        ----------
-        tlist : array_like
-            The time range on which to perform the fit.
-        Nr : optional, int
-            The number of exponents desired to describe the imaginary part of
-            the correlation function. It defaults to 3
-        Nr : optional, int
-            The number of exponents desired to describe the real part of the
-            correlation function. It defaults to 3
-        combine : optional, bool (default True)
-            Whether to combine exponents with the same frequency. See
-            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
-            details.
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-
-        Returns
-        -------
-        approx_env : :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
-        """
+        if tag is None and self.tag is not None:
+            tag = (self.tag, "ESPRIT Fit")
         amp, phases = esprit(self.correlation_function(tlist).real, Nr)
         amp2, phases2 = esprit(self.correlation_function(tlist).imag, Ni)
         ckAR = amp
