@@ -81,7 +81,7 @@ void _matmul_dag_csr_vector(
             num2 = _mm_mul_pd(num2, num1);
             num5 = _mm_addsub_pd(num5, num2);
         }
-        num4 = _mm_sum_pd(num3, num5);
+        num4 = _mm_sub_pd(num3, num5);
         num1 = _mm_loaddup_pd(&reinterpret_cast<const double(&)[2]>(scale)[0]);
         num3 = _mm_mul_pd(num4, num1);
         num1 = _mm_loaddup_pd(&reinterpret_cast<const double(&)[2]>(scale)[1]);
