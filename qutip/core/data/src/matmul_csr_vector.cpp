@@ -64,9 +64,10 @@ void _matmul_dag_csr_vector(
         const IntT nrows)
 {
     IntT row_start, row_end;
-    __m128d num1, num2, num3, num4;
+    __m128d num1, num2, num3, num4, num5;
     for (IntT row=0; row < nrows; row++) {
         num4 = _mm_setzero_pd();
+        num5 = _mm_setzero_pd();
         row_start = row_index[row];
         row_end = row_index[row+1];
         for (IntT ptr=row_start; ptr < row_end; ptr++) {
@@ -74,12 +75,13 @@ void _matmul_dag_csr_vector(
             num2 = _mm_set_pd(std::imag(vec[col_index[ptr]]),
                               std::real(vec[col_index[ptr]]));
             num3 = _mm_mul_pd(num2, num1);
-            num1 = _mm_loaddup_pd(- &reinterpret_cast<const double(&)[2]>(data[ptr])[1]);
+            num4 = _mm_add_pd(num3, num4);
+            num1 = _mm_loaddup_pd(&reinterpret_cast<const double(&)[2]>(data[ptr])[1]);
             num2 = _mm_shuffle_pd(num2, num2, 1);
             num2 = _mm_mul_pd(num2, num1);
-            num3 = _mm_addsub_pd(num3, num2);
-            num4 = _mm_add_pd(num3, num4);
+            num5 = _mm_addsub_pd(num5, num2);
         }
+        num4 = _mm_sum_pd(num3, num5);
         num1 = _mm_loaddup_pd(&reinterpret_cast<const double(&)[2]>(scale)[0]);
         num3 = _mm_mul_pd(num4, num1);
         num1 = _mm_loaddup_pd(&reinterpret_cast<const double(&)[2]>(scale)[1]);
