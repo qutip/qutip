@@ -40,9 +40,9 @@ jobs:
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
-          - case-name: p312 numpy 2
+          - case-name: p313 numpy 2
             os: ubuntu-latest
-            python-version: "3.12"
+            python-version: "3.13"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
@@ -56,6 +56,7 @@ jobs:
             semidefinite: 1
             oldcython: 1
             pypi: 1
+            coveralls: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
           # Python 3.12 and latest numpy
@@ -69,6 +70,7 @@ jobs:
             # Install mpi4py to test mpi_pmap
             # Should be enough to include this in one of the runs
             includempi: 1
+            coveralls: 1
 
           # Python 3.10, no mkl, scipy 1.9, numpy 1.23
           # Scipy 1.9 did not support cython 3.0 yet.
@@ -82,13 +84,14 @@ jobs:
             condaforge: 1
             oldcython: 1
             nomkl: 1
+            coveralls: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
           # Mac
           # Mac has issues with MKL since september 2022.
           - case-name: macos
             os: macos-latest
-            python-version: "3.12"
+            python-version: "3.13"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             condaforge: 1
@@ -101,10 +104,11 @@ jobs:
             numpy-requirement: ">=1.25,<1.26"
             condaforge: 1
             nomkl: 1
+            coveralls: 1
 
           - case-name: Windows
             os: windows-latest
-            python-version: "3.11"
+            python-version: "3.13"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
@@ -119,6 +123,7 @@ jobs:
             nocython: 1
             condaforge: 1
             nomkl: 1
+            coveralls: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
@@ -250,6 +255,7 @@ jobs:
           #     force coloured output in the terminal
 
       - name: Upload to Coveralls
+        if: ${{ matrix.coveralls }}
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}

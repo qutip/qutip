@@ -97,6 +97,17 @@ def test_anim_wigner():
     assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
+def test_anim_qfunc():
+    rho = qutip.rand_dm(5)
+    rhos = [rho]*2
+
+    fig, ani = qutip.anim_qfunc(rhos)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
+
+
 @pytest.mark.filterwarnings(
     "ignore:The input coordinates to pcolor:UserWarning"
 )
