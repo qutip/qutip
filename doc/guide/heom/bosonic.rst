@@ -433,6 +433,29 @@ occurs:
     axes.set_ylabel(r"Population", fontsize=16)
     axes.legend(loc=0, fontsize=16)
 
+Shifted-Drude-Lorentz Bath
+--------------------------
+
+To create a Shifted-Drude-Lorentz Bath, as discussed in :ref:`Drude-Lorentz Environment <dl env guide>`,
+with a shift of :math:`\Omega`.
+Two Drude-Lorentz baths can be connected to the same site using a similar approach as in the previous section:
+
+.. plot::
+    :context:
+    :nofigs:
+
+    baths = []
+    for i in range(N_sys):
+        Q = proj(i, i)
+        # Two baths are added with same coupling-operator
+        baths.append(DrudeLorentzBath(Q, lam/2, gamma + 1j * Omega, T, Nk))
+        baths.append(DrudeLorentzBath(Q, lam/2, gamma - 1j * Omega, T, Nk))
+
+As a side note, it is easy to see that if :math:`\Omega=0` then we get two
+Drude-Lorentz baths each with a coupling strength of :math:`\lambda/2`.
+Now, because :math:`\gamma` and :math:`T` are same for both of them, it the
+two can be combined to form a Drude-Lorentz bath of coupling strength :math:`lambda`.
+
 .. admonition:: Environment API
 
     Instead of a list ``[bath1, bath2, ...]``, one can of course also pass multiple

@@ -229,7 +229,7 @@ The :ref:`HEOM section<heom>` of this guide contains further examples using the 
 Similarly, the function :meth:`approx_by_pade<.DrudeLorentzEnvironment.approx_by_pade>` can be used to apply
 and truncate the numerically more efficient Padé expansion.
 
-Interestingly, the Drude-Lorentz environment can also be used to generate a Shifted-Drude-Lorentz environment,
+Interestingly, the Drude-Lorentz environment can also be used to generate a Shifted-Drude-Lorentz environment [Kreisbeck12]_,
 which can be characterized by spectral densities of the form
 
 .. math::
@@ -239,7 +239,8 @@ which can be characterized by spectral densities of the form
     \left(\omega-\Omega\right)^2}\right]
 
 This can be achieved by summating two Drude-Lorentz Environments with :math:`\gamma \rightarrow \gamma \pm i \Omega`
-and :math:`\lambda \rightarrow \lambda/2`. The :ref:`HEOM section<heom>` has an example implementation.
+(where, :math:`\Omega` is the shift) and :math:`\lambda \rightarrow \lambda/2`. The :ref:`HEOM section<heom>` has
+an example implementation.
 
 Underdamped Environment
 ^^^^^^^^^^^^^^^^^^^^^^^
