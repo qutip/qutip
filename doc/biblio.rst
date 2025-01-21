@@ -78,6 +78,9 @@ Bibliography
 .. [Lambert19]
     \N. Lambert, S. Ahmed, M. Cirio, F. Nori, *Modelling the ultra-strongly coupled spin-boson model with unphysical modes*, Nat Commun **10**, 3721 (2019). :doi:`10.1038/s41467-019-11656-1`.
 
+.. [Kreisbeck12]
+   \C. Kreisbeck, T. Kramer, *Long-Lived Electronic Coherence in Dissipative Exciton Dynamics of Light-Harvesting Complexes*, J. Phys. Chem. Lett. 3, 2828–2833 (2012). :doi:`10.1021/jz3012029`.
+
 
 
 ..  The trick with |text|_ is to get an italic link, and is described in the
