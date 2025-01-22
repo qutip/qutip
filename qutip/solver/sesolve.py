@@ -164,11 +164,27 @@ class SESolver(Solver):
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+        self.H = QobjEvo(H)
 
-        rhs = -1j * H
-        if not rhs.isoper:
+        self._dims = self.H._dims
+        if not self.H.isoper:
             raise ValueError("The hamiltonian must be an operator")
-        super().__init__(rhs, options=options)
+        self._post_init(options)
+
+    @property
+    def rhs(self):
+        """
+        Build the rhs QobjEvo.
+        """
+        if not self._rhs:
+            self._rhs = -1j * self.H
+        return self._rhs
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and other operators."""
+        if args:
+            self.H.arguments(args)
+            self._integrator.arguments(args)
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
