@@ -433,6 +433,17 @@ occurs:
     axes.set_ylabel(r"Population", fontsize=16)
     axes.legend(loc=0, fontsize=16)
 
+.. admonition:: Environment API
+
+    Instead of a list ``[bath1, bath2, ...]``, one can of course also pass multiple
+    environments with different coupling operators like
+
+    .. code-block:: python
+
+        HEOMSolver(Hsys, [(env1, Q1), (env2, Q2), ...], ...)
+
+    or even a mixed list of baths and environments.
+
 Shifted-Drude-Lorentz Bath
 --------------------------
 
@@ -442,6 +453,7 @@ Two Drude-Lorentz baths can be connected to the same site using a similar approa
 
 .. code-block:: python
 
+    Omega = 0.1 # Shift
     baths = []
     for i in range(N_sys):
         Q = proj(i, i)
@@ -453,17 +465,6 @@ As a side note, it is easy to see that if :math:`\Omega=0` then we get two
 Drude-Lorentz baths each with a coupling strength of :math:`\lambda/2`.
 Now, because :math:`\gamma` and :math:`T` are same for both of them, the
 two can be combined to form a Drude-Lorentz bath with coupling strength :math:`\lambda`.
-
-.. admonition:: Environment API
-
-    Instead of a list ``[bath1, bath2, ...]``, one can of course also pass multiple
-    environments with different coupling operators like
-
-    .. code-block:: python
-
-        HEOMSolver(Hsys, [(env1, Q1), (env2, Q2), ...], ...)
-
-    or even a mixed list of baths and environments.
 
 
 .. plot::
