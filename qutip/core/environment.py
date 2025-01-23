@@ -1112,10 +1112,8 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return approx_env, delta
 
     def _pade_params(self, Nk):
-        eta_p, gamma_p = self._corr(Nk)
+        ck_real, vk_real = self._corr(Nk)
 
-        ck_real = [eta for eta in eta_p]
-        vk_real = [gam for gam in gamma_p]
         # There is only one term in the expansion of the imaginary part of the
         # Drude-Lorentz correlation function.
         ck_imag = [-self.lam * self.gamma]
