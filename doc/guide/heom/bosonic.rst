@@ -453,8 +453,8 @@ Two Drude-Lorentz baths can be connected to the same site using a similar approa
 
 As a side note, it is easy to see that if :math:`\Omega=0` then we get two
 Drude-Lorentz baths each with a coupling strength of :math:`\lambda/2`.
-Now, because :math:`\gamma` and :math:`T` are same for both of them, it the
-two can be combined to form a Drude-Lorentz bath of coupling strength :math:`lambda`.
+Now, because :math:`\gamma` and :math:`T` are same for both of them, the
+two can be combined to form a Drude-Lorentz bath with coupling strength :math:`\lambda`.
 
 .. admonition:: Environment API
 
