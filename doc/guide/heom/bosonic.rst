@@ -440,9 +440,7 @@ As discussed in :ref:`Drude-Lorentz Environment <dl env guide>`, a Shifted-Drude
 with a shift of :math:`\Omega` can be created by combining two regular Drude-Lorentz baths.
 Two Drude-Lorentz baths can be connected to the same site using a similar approach as in the previous section:
 
-.. plot::
-    :context:
-    :nofigs:
+.. code-block:: python
 
     baths = []
     for i in range(N_sys):
