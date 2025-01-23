@@ -436,8 +436,8 @@ occurs:
 Shifted-Drude-Lorentz Bath
 --------------------------
 
-To create a Shifted-Drude-Lorentz Bath, as discussed in :ref:`Drude-Lorentz Environment <dl env guide>`,
-with a shift of :math:`\Omega`.
+As discussed in :ref:`Drude-Lorentz Environment <dl env guide>`, a Shifted-Drude-Lorentz bath
+with a shift of :math:`\Omega` can be created by combining two regular Drude-Lorentz baths.
 Two Drude-Lorentz baths can be connected to the same site using a similar approach as in the previous section:
 
 .. plot::
