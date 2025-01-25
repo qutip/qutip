@@ -12,14 +12,17 @@ Graphs and Visualization
 ------------------------
 
 .. automodule:: qutip.visualization
-    :members: hinton, matrix_histogram, plot_energy_levels, plot_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_wigner_sphere, plot_spin_distribution
+    :members: hinton, matrix_histogram, plot_energy_levels, plot_fock_distribution, plot_wigner, plot_qfunc, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_wigner_sphere, plot_spin_distribution
     :undoc-members:
 
 .. automodule:: qutip.animation
-    :members: anim_hinton, anim_matrix_histogram, anim_fock_distribution, anim_wigner, anim_sphereplot, anim_schmidt, anim_qubism, anim_wigner_sphere, anim_spin_distribution
+    :members: anim_hinton, anim_matrix_histogram, anim_fock_distribution, anim_wigner, anim_qfunc, anim_sphereplot, anim_schmidt, anim_qubism, anim_wigner_sphere, anim_spin_distribution
 
 .. automodule:: qutip.matplotlib_utilities
    :members: wigner_cmap, complex_phase_cmap
+
+.. automodule:: qutip.distributions
+    :members: Distribution, HarmonicOscillatorWaveFunction, HarmonicOscillatorProbabilityFunction
 
 
 Pseudoprobability Functions

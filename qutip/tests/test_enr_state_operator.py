@@ -189,3 +189,11 @@ def test_steadystate_ENR():
 
     np.testing.assert_allclose(exp_sz_JC,
                                exp_sz_enr, atol=1e-2)
+
+
+def test_eigenstates_ENR():
+    a1, a2 = qutip.enr_destroy([2, 2], 1)
+    H = a1.dag() * a1 + a2.dag() * a2
+    vals, vecs = H.eigenstates()
+    for val, vec in zip(vals, vecs):
+        assert val * vec == H @ vec

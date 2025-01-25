@@ -2,7 +2,6 @@ import numpy as np
 from qutip import basis, tensor
 import pytest
 from qutip.distributions import (
-    WignerDistribution, QDistribution,
     TwoModeQuadratureCorrelation, HarmonicOscillatorWaveFunction,
     HarmonicOscillatorProbabilityFunction
 )
@@ -64,37 +63,6 @@ def density_matrix():
     """
     psi = basis(5, 0)  # Ground state
     return psi.proj()
-
-# Tests for Wigner distribution updates and properties.
-
-def test_wigner_distribution_update(density_matrix):
-    """
-    Tests the update and properties of the Wigner distribution.
-
-    Args:
-        density_matrix (Qobj): Density matrix of the quantum system.
-    """
-    dist = WignerDistribution()
-    dist.update(density_matrix)
-    assert dist.data is not None
-    assert dist.data.shape == (250, 250)
-    assert np.isclose(dist.data.sum() * (dist.xvecs[0][1] - dist.xvecs[0][0]) ** 2, 1.0, atol=1e-2)
-
-# Tests for Q distribution updates and properties.
-
-def test_q_distribution_update(density_matrix):
-    """
-    Tests the update and properties of the Q distribution.
-
-    Args:
-        density_matrix (Qobj): Density matrix of the quantum system.
-    """
-    dist = QDistribution()
-    dist.update(density_matrix)
-    assert dist.data is not None
-    assert dist.data.shape == (250, 250)
-    assert dist.data.min() >= 0 
-    assert np.isclose(dist.data.sum() * (dist.xvecs[0][1] - dist.xvecs[0][0]) ** 2, 1.0, atol=1e-2)
 
 # Tests for initializing the harmonic oscillator wavefunction.
 
