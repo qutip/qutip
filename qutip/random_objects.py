@@ -520,7 +520,10 @@ def rand_ket(
         X = _data.csr.CSR(X + Y)
         ket = Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
                    copy=False, isherm=False, isunitary=False)
-    ket.dims = [dims[0], [1]]
+    if np.ndim(dims[0]) == 1: # ket
+        ket.dims = [dims[0], [1] * len(dims[0])]
+    else: # operator-ket
+        ket.dims = [dims[0], [1]]
     return ket.to(dtype)
 
 
