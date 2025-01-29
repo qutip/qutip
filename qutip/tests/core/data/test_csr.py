@@ -74,6 +74,8 @@ class TestClassMethods:
     ))
     @pytest.mark.parametrize('c_type', _dtype_int + _dtype_uint)
     @pytest.mark.parametrize('r_type', _dtype_int + _dtype_uint)
+    # uint on macos raise a RuntimeWarning
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_init_from_tuple_allowed_dtypes(self, d_type, c_type, r_type):
         """
         Test that initialisation can use a variety of dtypes and converts into

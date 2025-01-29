@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
 import numbers
@@ -12,6 +15,7 @@ from .multitraj import MultiTrajSolver
 from .multitrajresult import NmmcResult
 from .mcsolve import MCSolver, MCIntegrator
 from .mesolve import MESolver, mesolve
+from .solver_base import _kwargs_migration
 from .cy.nm_mcsolve import RateShiftCoefficient, SqrtRealCoefficient
 from ..core.coefficient import ConstantCoefficient, Coefficient
 from ..core import (
@@ -34,9 +38,11 @@ def nm_mcsolve(
     state: Qobj,
     tlist: ArrayLike,
     ops_and_rates: list[tuple[Qobj, CoefficientLike]] = (),
+    _e_ops = None,
+    _ntraj = None,
+    *,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     ntraj: int = 500,
-    *,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
     seeds: int | SeedSequence | list[int | SeedSequence] = None,
@@ -183,6 +189,8 @@ def nm_mcsolve(
         condition is mixed, the result has additional attributes
         ``initial_states`` and ``ntraj_per_initial_state``.
     """
+    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
+    ntraj = _kwargs_migration(_ntraj, ntraj, "ntraj")
     H = QobjEvo(H, args=args, tlist=tlist)
 
     if len(ops_and_rates) == 0:
@@ -560,12 +568,10 @@ class NonMarkovianMCSolver(MCSolver):
         """
         Run one trajectory and return the result.
         """
-        seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
-                                             **integrator_kwargs)
-        martingales = [self._martingale.value(t) for t in tlist]
-        result.add_relative_weight(martingales)
-        result.trace = martingales
-        return seed, result
+        seed, result, weight = super()._run_one_traj(seed, state, tlist, e_ops,
+                                                     **integrator_kwargs)
+        result.trace = [self._martingale.value(t) for t in tlist]
+        return seed, result, weight
 
     def run(
         self,

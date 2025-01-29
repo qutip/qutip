@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 from ..settings import settings
 from .numpy_backend import np as qt_np
 import numpy
@@ -121,11 +124,11 @@ class CoreOptions(QutipOptions):
             ``basis([2, 2]).dims == [[2, 2], [1]]``
 
     atol : float {1e-12}
-        General absolute tolerance
+        General absolute tolerance. Used in various functions to round off
+        small values.
 
     rtol : float {1e-12}
-        General relative tolerance
-        Used to choose QobjEvo.expect output type
+        General relative tolerance.
 
     auto_tidyup_atol : float {1e-14}
         The absolute tolerance used in automatic tidyup (see the

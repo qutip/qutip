@@ -28,7 +28,7 @@ for n, t in enumerate(tlist):
     p_ex[n] = qutip.expect(qutip.num(2), psi_t)
 
 # For reference: calculate the same thing with mesolve
-p_ex_ref = qutip.mesolve(H, psi0, tlist, [], [qutip.num(2)], args).expect[0]
+p_ex_ref = qutip.mesolve(H, psi0, tlist, e_ops=[qutip.num(2)], args=args).expect[0]
 
 # plot the results
 pyplot.plot(tlist, np.real(p_ex),     'ro', tlist, 1-np.real(p_ex),     'bo')

@@ -58,7 +58,10 @@ def _assert_metadata(random_qobj, dims, dtype=None, super=False, ket=False):
         shape0 = N
 
     if ket:
-        target_dims_1 = [1]
+        if isinstance(dims[0], list): # operator-ket
+            target_dims_1 = [1]
+        else: # regular ket
+            target_dims_1 = [1 for _ in dims]
         shape1 = 1
     else:
         target_dims_1 = target_dims_0
@@ -310,7 +313,8 @@ def test_kraus_map(dimensions, dtype):
 
 dtype_names = list(_data.to._str2type.keys()) + list(_data.to.dtypes)
 dtype_types = list(_data.to._str2type.values()) + list(_data.to.dtypes)
-@pytest.mark.parametrize(['alias', 'dtype'], zip(dtype_names, dtype_types),
+dtype_combinations = list(zip(dtype_names, dtype_types))
+@pytest.mark.parametrize(['alias', 'dtype'], dtype_combinations,
                          ids=[str(dtype) for dtype in dtype_names])
 @pytest.mark.parametrize('func', [
     rand_herm,

@@ -1,3 +1,0 @@
-Fix a dimension problem for the argument color of Bloch.add_states
-Clean-up of the code in  Bloch.add_state
-Add Bloch.add_arc and Bloch.add_line in the guide on Bloch class

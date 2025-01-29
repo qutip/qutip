@@ -2,6 +2,8 @@
 This module contains functions for generating Qobj representation of a variety
 of commonly occuring quantum operators.
 """
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
 
 __all__ = [
     'jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',

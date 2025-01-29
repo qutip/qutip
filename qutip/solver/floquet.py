@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = [
     "FloquetBasis",
     "floquet_tensor",
@@ -7,6 +10,7 @@ __all__ = [
 ]
 
 from typing import Any, overload, TypeVar, Literal, Callable
+import warnings
 import numpy as np
 from numpy.typing import ArrayLike
 from qutip.core import data as _data
@@ -533,8 +537,9 @@ def fsesolve(
     H: QobjEvoLike | FloquetBasis,
     psi0: Qobj,
     tlist: ArrayLike,
-    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     T: float = 0.0,
+    *pos_args,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
 ) -> Result:
@@ -554,15 +559,15 @@ def fsesolve(
     tlist : *list* / *array*
         List of times for :math:`t`.
 
+    T : float, default=tlist[-1]
+        The period of the time-dependence of the hamiltonian.
+
     e_ops : list or dict of :class:`.Qobj` / callback function, optional
         Single operator, or list or dict of operators, for which to evaluate
         expectation values. Operator can be Qobj, QobjEvo or callables with the
         signature `f(t: float, state: Qobj) -> Any`.
         See :func:`~qutip.core.expect.expect` for more detail of operator
         expectation.
-
-    T : float, default=tlist[-1]
-        The period of the time-dependence of the hamiltonian.
 
     args : dictionary, optional
         Dictionary with variables required to evaluate H.
@@ -588,6 +593,23 @@ def fsesolve(
         contains either an *array* of expectation values or an array of
         state vectors, for the times specified by `tlist`.
     """
+    if pos_args or not isinstance(T, (int, float)):
+        # Old signature used
+        warnings.warn(
+            f"e_ops, args and options will be keyword only"
+            " for all solvers from qutip 5.3",
+            FutureWarning
+        )
+        # Re order for previous signature
+        e_ops = T
+        T = 0.0
+        if len(pos_args) >= 1:
+            T = pos_args[0]
+        if len(pos_args) >= 2:
+            args = pos_args[1]
+        if len(pos_args) >= 3:
+            options = pos_args[2]
+
     if isinstance(H, FloquetBasis):
         floquet_basis = H
     else:
@@ -617,10 +639,11 @@ def fmmesolve(
     rho0: Qobj,
     tlist: ArrayLike,
     c_ops: list[Qobj] = None,
-    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     spectra_cb: list[Callable[[float], complex]] = None,
     T: float = 0.0,
     w_th: float = 0.0,
+    *pos_args,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
  ) -> "FloquetResult":
@@ -728,6 +751,31 @@ def fmmesolve(
             args=args,
             options=options,
         )
+    if pos_args:
+        # Old signature used
+        warnings.warn(
+            "e_ops, args and options will be keyword only"
+            " for all solver from qutip 5.3",
+            FutureWarning
+        )
+        e_ops = spectra_cb
+        spectra_cb = T
+        T = w_th
+        w_th = pos_args[0]
+    elif e_ops or spectra_cb is None:
+        # New signature or extra param not used
+        pass
+    elif isinstance(T, list):
+        # After the `c_ops` we could have the e_ops (old) or spectra_cb (new)
+        # If old signature is used, the spectra_cb will overflow to `T`
+        warnings.warn(
+            "e_ops will be keyword only from qutip 5.3 for all solver",
+            FutureWarning
+        )
+        e_ops = spectra_cb
+        spectra_cb = T
+        if w_th:
+            T = w_th
 
     if isinstance(H, FloquetBasis):
         floquet_basis = H

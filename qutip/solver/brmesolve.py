@@ -2,10 +2,13 @@
 This module provides solvers for the Lindblad master equation and von Neumann
 equation.
 """
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
 
 __all__ = ['brmesolve', 'BRSolver']
 
 from typing import Any
+import warnings
 import numpy as np
 from numpy.typing import ArrayLike
 import inspect
@@ -18,6 +21,7 @@ from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
 from ._feedback import _QobjFeedback, _DataFeedback
 from ..typing import EopsLike, QobjEvoLike, CoefficientLike
+from ..core.environment import BosonicEnvironment, FermionicEnvironment
 
 
 def brmesolve(
@@ -25,14 +29,15 @@ def brmesolve(
     psi0: Qobj,
     tlist: ArrayLike,
     a_ops: list[tuple[QobjEvoLike, CoefficientLike]] = None,
-    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
-    c_ops: list[QobjEvoLike] = None,
-    args: dict[str, Any] = None,
     sec_cutoff: float = 0.1,
+    *_pos_args,
+    c_ops: list[QobjEvoLike] = None,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    args: dict[str, Any] = None,
     options: dict[str, Any] = None,
     **kwargs
 ):
-    """
+    r"""
     Solves for the dynamics of a system using the Bloch-Redfield master
     equation, given an input Hamiltonian, Hermitian bath-coupling terms and
     their associated spectral functions, as well as possible Lindblad collapse
@@ -45,7 +50,7 @@ def brmesolve(
         QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
         can be made into :obj:`.QobjEvo` are also accepted.
 
-    psi0: Qobj
+    psi0: :obj:`.Qobj`
         Initial density matrix or state vector (ket).
 
     tlist : array_like
@@ -79,19 +84,26 @@ def brmesolve(
                 (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
             ]
 
-        .. note:
-            ``Cubic_Spline`` has been replaced by :obj:`.Coefficient`:
+        .. note::
+
+            ``Cubic_Spline`` has been replaced by:
                 ``spline = qutip.coefficient(array, tlist=times)``
 
-            Whether the ``a_ops`` is time dependent is decided by the type of
-            the operator: :obj:`.Qobj` vs :obj:`.QobjEvo` instead of the type
-            of the spectra.
+        Whether the ``a_ops`` is time dependent is decided by the type of
+        the operator: :obj:`.Qobj` vs :obj:`.QobjEvo` instead of the type
+        of the spectra.
 
-    e_ops : list, dict, :obj:`.Qobj` or callback function, optional
-        Single operator, or list or dict of operators, for which to evaluate
-        expectation values. Operator can be Qobj, QobjEvo or callables with the
-        signature `f(t: float, state: Qobj) -> Any`.
-        Callable signature must be, `f(t: float, state: Qobj)`.
+    sec_cutoff : float, default: 0.1
+        Cutoff for secular approximation. Use ``-1`` if secular approximation
+        is not used when evaluating bath-coupling terms.
+
+    *_pos_args :
+        | Temporary shim to update the signature from
+        | ``(..., a_ops, e_ops, c_ops, args, sec_cutoff, options)``
+        | to
+        | ``(..., a_ops, sec_cutoff, *, e_ops, c_ops, args, options)``
+        | making ``e_ops``, ``c_ops``, ``args`` and ``options`` keyword only
+          parameter from qutip 5.3.
 
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format), optional
         List of collapse operators.
@@ -100,9 +112,11 @@ def brmesolve(
         Dictionary of parameters for time-dependent Hamiltonians and
         collapse operators. The key ``w`` is reserved for the spectra function.
 
-    sec_cutoff : float, default: 0.1
-        Cutoff for secular approximation. Use ``-1`` if secular approximation
-        is not used when evaluating bath-coupling terms.
+    e_ops : list, dict, :obj:`.Qobj` or callback function, optional
+        Single operator, or list or dict of operators, for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
+        Callable signature must be, `f(t: float, state: Qobj)`.
 
     options : dict, optional
         Dictionary of options for the solver.
@@ -150,6 +164,25 @@ def brmesolve(
         either an array of expectation values, for operators given in e_ops,
         or a list of states for the times specified by ``tlist``.
     """
+    if _pos_args or not isinstance(sec_cutoff, (int, float)):
+        # Old signature used
+        warnings.warn(
+            "c_ops, e_ops, args and options will be keyword only"
+            " from qutip 5.3",
+            FutureWarning
+        )
+        # Re order for previous signature
+        e_ops = sec_cutoff
+        sec_cutoff = 0.1
+        if len(_pos_args) >= 1:
+            c_ops = _pos_args[0]
+        if len(_pos_args) >= 2:
+            args = _pos_args[1]
+        if len(_pos_args) >= 3:
+            sec_cutoff = _pos_args[2]
+        if len(_pos_args) >= 4:
+            options = _pos_args[3]
+
     options = _solver_deprecation(kwargs, options, "br")
     args = args or {}
     H = QobjEvo(H, args=args, tlist=tlist)
@@ -162,21 +195,27 @@ def brmesolve(
     new_a_ops = []
     a_ops = a_ops or []
     for (a_op, spectra) in a_ops:
-        aop = QobjEvo(a_op, args=args, tlist=tlist)
+        if not isinstance(a_op, Qobj):
+            a_op = QobjEvo(a_op, args=args, tlist=tlist)
         if isinstance(spectra, str):
             new_a_ops.append(
-                (aop, coefficient(spectra, args={**args, 'w':0})))
+                (a_op, coefficient(spectra, args={**args, 'w': 0})))
         elif isinstance(spectra, InterCoefficient):
-            new_a_ops.append((aop, SpectraCoefficient(spectra)))
+            new_a_ops.append((a_op, SpectraCoefficient(spectra)))
         elif isinstance(spectra, Coefficient):
-            new_a_ops.append((aop, spectra))
+            new_a_ops.append((a_op, spectra))
+        elif isinstance(spectra, BosonicEnvironment):
+            spec = SpectraCoefficient(
+                coefficient(spectra.power_spectrum)
+            )
+            new_a_ops.append((a_op, spec))
         elif callable(spectra):
             sig = inspect.signature(spectra)
             if tuple(sig.parameters.keys()) == ("w",):
                 spec = SpectraCoefficient(coefficient(spectra))
             else:
-                spec = coefficient(spectra, args={**args, 'w':0})
-            new_a_ops.append((aop, spec))
+                spec = coefficient(spectra, args={**args, 'w': 0})
+            new_a_ops.append((a_op, spec))
         else:
             raise TypeError("a_ops's spectra not known")
 
@@ -241,7 +280,7 @@ class BRSolver(Solver):
     name = "brmesolve"
     solver_options = {
         "progress_bar": "",
-        "progress_kwargs": {"chunk_size":10},
+        "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
         "normalize_output": False,
@@ -297,7 +336,6 @@ class BRSolver(Solver):
         self._state_metadata = {}
         self.stats = self._initialize_stats()
         self.rhs._register_feedback({}, solver=self.name)
-
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
