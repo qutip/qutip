@@ -83,11 +83,11 @@ def _set_default_dtype(new_dtype):
         dispatcher.rebuild_lookup()
 
 
-def _set_default_dtype_range(new_range):
+def _set_default_dtype_scope(new_range):
     import qutip
     if new_range not in ["creation", "missing", "full"]:
         raise ValueError(
-            "'default_dtype_range' must be one of "
+            "'default_dtype_scope' must be one of "
             "'creation', 'missing', 'full'"
         )
     for dispatcher in qutip.core.data.to.dispatchers:
@@ -150,11 +150,11 @@ class CoreOptions(QutipOptions):
 
     default_dtype : Nonetype, str, type {None}
         The specified data type will be used as output for different qutip
-        functions determined by the "default_dtype_range" options. Any
+        functions determined by the "default_dtype_scope" options. Any
         data-layer known to ``qutip.data.to`` is accepted. When ``None``, these
         functions will default to a sensible data type.
 
-    default_dtype_range : str {"creation"}
+    default_dtype_scope : str {"creation"}
         Control where the default_dtype apply.
 
         - "creation": Used in function creating :obj:`.Qobj`, such as
@@ -190,7 +190,7 @@ class CoreOptions(QutipOptions):
         # - "creation": Used in functions creating Qobj.
         # - "missing": Missing specialisation output use default.
         # - "full": All data layer operation output that type.
-        "default_dtype_range": "creation",
+        "default_dtype_scope": "creation",
         # Expect, trace, etc. will return real for hermitian matrices.
         # Hermiticity checks can be slow, stop jitting, etc.
         "auto_real_casting": True,
@@ -215,7 +215,7 @@ class CoreOptions(QutipOptions):
 
     @overload
     def __getitem__(
-        self, key: Literal["function_coefficient_style", "default_dtype_range"]
+        self, key: Literal["function_coefficient_style", "default_dtype_scope"]
     ) -> str: ...
 
     @overload
@@ -239,7 +239,7 @@ class CoreOptions(QutipOptions):
 
     @overload
     def __setitem__(
-        self, key: Literal["function_coefficient_style", "default_dtype_range"], value: str
+        self, key: Literal["function_coefficient_style", "default_dtype_scope"], value: str
     ) -> None: ...
 
     @overload
@@ -256,4 +256,4 @@ class CoreOptions(QutipOptions):
 CoreOptions()._set_as_global_default()
 # Add properties after initial setup to not trigger the lookup rebuild
 CoreOptions._properties["default_dtype"] = _set_default_dtype
-CoreOptions._properties["default_dtype_range"] = _set_default_dtype_range
+CoreOptions._properties["default_dtype_scope"] = _set_default_dtype_scope

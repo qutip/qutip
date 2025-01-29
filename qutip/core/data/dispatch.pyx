@@ -353,13 +353,13 @@ cdef class Dispatcher:
         # Now build the lookup table in the case that we dispatch on the output
         # type as well, but the user has called us without specifying it.
         # TODO: option to control default output type choice if unspecified?
-        if self.output and settings.core["default_dtype_range"] == "full":
+        if self.output and settings.core["default_dtype_scope"] == "full":
             default_dtype = _to.parse(settings.core["default_dtype"])
             for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
                 self._lookup[in_types] = self._lookup[in_types + (default_dtype,)]
         elif self.output:
             default_dtype = None
-            if settings.core["default_dtype_range"] == "missing":
+            if settings.core["default_dtype_scope"] == "missing":
                 default_dtype = _to.parse(settings.core["default_dtype"])
             for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
                 self._find_specialization(in_types, False, default_dtype)

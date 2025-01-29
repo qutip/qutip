@@ -285,7 +285,7 @@ class Qobj:
         if (
             isinstance(arg, list)
             or dtype
-            or settings.core["default_dtype_range"] == "full"
+            or settings.core["default_dtype_scope"] == "full"
         ):
             dtype = dtype or settings.core["default_dtype"]
             if dtype is None or isinstance(self._data, _data.to.parse(dtype)):
