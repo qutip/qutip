@@ -9,6 +9,7 @@ qutip-qip: Quantum Information Processing
 The `qutip-qip <https://qutip-qip.readthedocs.io/en/stable/>`_ package aims to provide fundamental tools for quantum computing simulation. It offers:
 
 - Two approaches for simulating quantum circuits:
+
   * ``QubitCircuit``: Calculates unitary evolution under quantum gates using matrix product
   * ``Processor``: Uses open system solvers to simulate noisy quantum devices
 
@@ -22,10 +23,12 @@ The `qutip-qoc <https://qutip-qoc.readthedocs.io/latest/>`_ package is an advanc
 
 - Builds upon the deprecated qutip-qtrl package
 - Introduces two new control optimization algorithms:
+
   * Extended Gradient Optimization of Analytic conTrols (GOAT)
   * JOPT: Utilizing QuTiP 5's diffrax for automatic differentiation
 
 - Supports multiple control algorithms:
+
   * GOAT
   * JOPT
   * GRAPE
