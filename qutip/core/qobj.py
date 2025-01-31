@@ -216,7 +216,7 @@ class Qobj:
         Overlap between two state vectors or two operators.
     permute(order)
         Returns composite qobj with indices reordered.
-    print_basis_expansion(decimal_places=14, term_separator=" + ", 
+    print_basis_expansion(decimal_places=14, term_separator=" + ",
                           dim_separator="auto", sort="largest-first")
         Return a string-representation of the basis expansion
         E.g. "(0.5+0.15j) |010> + (0.25+0j) |000> + ..."
@@ -517,10 +517,10 @@ class Qobj:
             out += ", superrep=" + repr(self.superrep)
         return out
 
-    def print_basis_expansion(self, decimal_places: int=14, 
-                              term_separator: str=" + ", 
-                              dim_separator: str="auto", 
-                              sort: str="largest-first") -> str:
+    def print_basis_expansion(self, decimal_places: int = 14,
+                              term_separator: str = " + ",
+                              dim_separator: str = "auto",
+                              sort: str = "largest-first") -> str:
         """
         Return a string-representation of the basis expansion
         for a ket or a bra, e.g.
@@ -537,9 +537,9 @@ class Qobj:
             to print terms on separate lines.
 
         dim_separator: str
-            Separator string between dimension indices. 
-            E.g. use ", " to print as "|0, 0, 0>". 
-            If dim_separator="auto", then "" is used 
+            Separator string between dimension indices.
+            E.g. use ", " to print as "|0, 0, 0>".
+            If dim_separator="auto", then "" is used
             for qubits and ", " is used otherwise.
 
         sort: str
@@ -560,11 +560,11 @@ class Qobj:
 
         if dim_separator == "auto":
             # No separator for pure qubit states but comma-separator otherwise,
-            # since bitstrings are nice, but e.g. |153> would be ambiguous. 
+            # since bitstrings are nice, but e.g. |153> would be ambiguous.
             dim_separator = ", " if any([dim > 2 for dim in dims]) else ""
 
         template = "{} |{}>" if self.isket else "{} <{}|"
-        
+
         ket_full = np.round(self.full(squeeze=True), decimals=decimal_places)
 
         indices = range(len(ket_full))
@@ -580,9 +580,9 @@ class Qobj:
                 )
                 parts.append(template.format(coeff, basis_str))
 
-        if len(parts) == 0: # return something for norm-zero states.
+        if len(parts) == 0:  # return something for norm-zero states.
             return "0"
-        
+
         return term_separator.join(parts)
 
     def __str__(self):
