@@ -564,8 +564,9 @@ def heomsolve(
         list of attributes.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
-    solver = HEOMSolver(H, bath=bath, max_depth=max_depth, options=options)
-    return solver.run(state0, tlist, e_ops=e_ops)
+    solver = HEOMSolver(H, bath=bath, max_depth=max_depth, 
+                        options=options, args=args)
+    return solver.run(state0, tlist, e_ops=e_ops, args=args)
 
 
 class HEOMSolver(Solver):
@@ -642,19 +643,19 @@ class HEOMSolver(Solver):
         "state_data_type": "dense",
     }
 
-    def __init__(self, H, bath, max_depth, *, odd_parity=False, options=None):
+    def __init__(self, H, bath, max_depth, *, odd_parity=False, args=None, options=None):
         _time_start = time()
         # we call bool here because odd_parity will be used in arithmetic
         self.odd_parity = bool(odd_parity)
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian (H) must be a Qobj or QobjEvo")
 
-        H = QobjEvo(H)
+        H = QobjEvo(H, args=args)
         self.L_sys = (
             liouvillian(H) if H.type == "oper"  # hamiltonian
             else H  # already a liouvillian
         )
-
+        self._args = args
         self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
         self._sup_shape = self.L_sys.shape[0]
         self._sys_dims = self.L_sys.dims[0]
@@ -953,7 +954,8 @@ class HEOMSolver(Solver):
         ]
         ops = _GatherHEOMRHS(
             self.ados.idx, block=self._sup_shape,
-            nhe=self._n_ados, rhs_dims=rhs_dims
+            nhe=self._n_ados, rhs_dims=rhs_dims,
+            args = self._args
         )
 
         for he_n in self.ados.labels:
@@ -1424,7 +1426,7 @@ class _GatherHEOMRHS:
             The number of ADOs in the hierarchy.
     """
 
-    def __init__(self, f_idx, block, nhe, rhs_dims):
+    def __init__(self, f_idx, block, nhe, rhs_dims, args):
 
         self._block_size = block
         self._n_blocks = nhe
@@ -1432,6 +1434,7 @@ class _GatherHEOMRHS:
         self._ops = []
         self._ops_td = []
         self._rhs_dims = rhs_dims
+        self._args = args
 
     def add_op(self, row_he, col_he, op, ck_td_factor=None, ado_pos=None):
         """ Add an block operator to the list. """
@@ -1516,6 +1519,6 @@ class _GatherHEOMRHS:
                                 ops["row"], ops["col"], ops["op"],
                                 self._n_blocks, self._block_size,
                                 ), dims=self._rhs_dims),
-                                ops["func"][0]])
+                                ops["func"][0]], args=self._args)
 
         return RHStemp

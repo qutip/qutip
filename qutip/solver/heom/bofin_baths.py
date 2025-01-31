@@ -326,7 +326,7 @@ class InputOutputBath(environment.ExponentialBosonicEnvironment):
         <X(t)^{L}b_out(t_out)^R> where X is the bath coupling operator to the
         system defined for the bath being prepared.
 
-    ck_output_fn_R : list of complex
+    ck_output_fn_R : list of functions
         Functions defining the time-dependence of the output fields that are
         chosen to act on the bath at t_out. The time dependence here defines
         how those fields are correlated with the actual bath the system is
