@@ -533,7 +533,7 @@ class Qobj:
             The number of decimal places to show for the coefficients.
 
         term_separator: str
-            Separator string between terms. E.g. use " +\"
+            Separator string between terms. E.g. use " +\n"
             to print terms on separate lines.
 
         dim_separator: str
