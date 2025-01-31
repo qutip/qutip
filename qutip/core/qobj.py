@@ -219,7 +219,7 @@ class Qobj:
     print_basis_expansion(decimal_places=14, term_separator=" + ",
                           dim_separator="auto", sort="largest-first")
         Return a string-representation of the basis expansion
-        E.g. "(0.5+0.15j) |010> + (0.25+0j) |000> + ..."
+        E.g. ``"(0.5+0.15j) |010> + (0.25+0j) |000> + ..."``
     proj()
         Computes the projector for a ket or bra vector.
     ptrace(sel)
@@ -525,7 +525,7 @@ class Qobj:
         Return a string-representation of the basis expansion
         for a ket or a bra, e.g.
 
-        "(0.5+0.15j) |010> + (0.25+0j) |000> + ..."
+        ``"(0.5+0.15j) |010> + (0.25+0j) |000> + ..."``
 
         Parameters
         ----------
@@ -538,7 +538,7 @@ class Qobj:
 
         dim_separator: str
             Separator string between dimension indices.
-            E.g. use ", " to print as "|0, 0, 0>".
+            E.g. use ", " to print as ``"|0, 0, 0>"``.
             If dim_separator="auto", then "" is used
             for qubits and ", " is used otherwise.
 
