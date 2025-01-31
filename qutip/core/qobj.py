@@ -216,6 +216,10 @@ class Qobj:
         Overlap between two state vectors or two operators.
     permute(order)
         Returns composite qobj with indices reordered.
+    print_basis_expansion(decimal_places=14, term_separator=" + ", 
+                          dim_separator="auto", sort="largest-first")
+        Return a string-representation of the basis expansion
+        E.g. "(0.5+0.15j) |010> + (0.25+0j) |000> + ..."
     proj()
         Computes the projector for a ket or bra vector.
     ptrace(sel)
@@ -512,6 +516,74 @@ class Qobj:
         if self.issuper and self.superrep != 'super':
             out += ", superrep=" + repr(self.superrep)
         return out
+
+    def print_basis_expansion(self, decimal_places: int=14, 
+                              term_separator: str=" + ", 
+                              dim_separator: str="auto", 
+                              sort: str="largest-first") -> str:
+        """
+        Return a string-representation of the basis expansion
+        for a ket or a bra, e.g.
+
+        "(0.5+0.15j) |010> + (0.25+0j) |000> + ..."
+
+        Parameters
+        ----------
+        decimal_places : int
+            The number of decimal places to show for the coefficients.
+
+        term_separator: str
+            Separator string between terms. E.g. use " +\"
+            to print terms on separate lines.
+
+        dim_separator: str
+            Separator string between dimension indices. 
+            E.g. use ", " to print as "|0, 0, 0>". 
+            If dim_separator="auto", then "" is used 
+            for qubits and ", " is used otherwise.
+
+        sort: str
+            Show largest elements (by magnitude) first
+            if "largest-first". Unsorted otherwise.
+
+        Returns
+        -------
+        basis_expansion : str
+            The requested string representation.
+        """
+
+        if not (self.isket or self.isbra):
+            raise ValueError(
+                f"Only implemented for states, not {self.type}."
+            )
+        dims = self.dims[0 if self.isket else 1]
+
+        if dim_separator == "auto":
+            # No separator for pure qubit states but comma-separator otherwise,
+            # since bitstrings are nice, but e.g. |153> would be ambiguous. 
+            dim_separator = ", " if any([dim > 2 for dim in dims]) else ""
+
+        template = "{} |{}>" if self.isket else "{} <{}|"
+        
+        ket_full = np.round(self.full(squeeze=True), decimals=decimal_places)
+
+        indices = range(len(ket_full))
+        if sort == "largest-first":
+            indices = np.argsort(np.abs(ket_full))[::-1]
+
+        parts = []
+        for i in indices:
+            if np.abs(ket_full[i]) > 10**-(decimal_places):
+                coeff = ket_full.item(i)
+                basis_str = dim_separator.join(
+                    map(str, np.unravel_index(i, dims))
+                )
+                parts.append(template.format(coeff, basis_str))
+
+        if len(parts) == 0: # return something for norm-zero states.
+            return "0"
+        
+        return term_separator.join(parts)
 
     def __str__(self):
         if self.data.shape[0] * self.data.shape[0] > 100_000_000:

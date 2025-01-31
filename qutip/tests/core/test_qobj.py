@@ -1279,3 +1279,16 @@ def test_qobj_dtype(dtype):
 def test_dtype_in_info_string(dtype):
     obj = qutip.qeye(2, dtype=dtype)
     assert dtype.lower() in str(obj).lower()
+
+@pytest.mark.parametrize(["state", "expected", "kwargs"], [
+        (qutip.basis([2, 2, 2], [1, 1, 0]), "(1+0j) |110>", {}),
+        (qutip.basis([2, 2, 2], [1, 1, 0]).dag(), "(1-0j) <110|", {}),
+        (qutip.basis([5, 5, 5], [4, 0, 2]), "(1+0j) |4, 0, 2>", {}),
+        (qutip.ket("1011001"), "(1+0j) |1011001>", {}),
+        (qutip.bell_state("00"), "(0.70711+0j) |11> + (0.70711+0j) |00>", {"decimal_places": 5}),
+        (0*qutip.basis(2, 0), "0", {})
+])
+def test_print_basis_expansion(state: qutip.Qobj, expected: str, kwargs: dict):
+    result = state.print_basis_expansion(**kwargs)
+
+    assert result == expected
