@@ -1,0 +1,1 @@
+plot_expect function added to result object 
