@@ -1290,7 +1290,7 @@ def test_dtype_in_info_string(dtype):
             {"decimal_places": 5}),
         (0*qutip.basis(2, 0), "0", {})
 ])
-def test_print_basis_expansion(state: qutip.Qobj, expected: str, kwargs: dict):
-    result = state.print_basis_expansion(**kwargs)
+def test_basis_expansion(state: qutip.Qobj, expected: str, kwargs: dict):
+    result = state.basis_expansion(**kwargs)
 
     assert result == expected

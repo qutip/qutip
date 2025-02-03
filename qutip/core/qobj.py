@@ -216,8 +216,8 @@ class Qobj:
         Overlap between two state vectors or two operators.
     permute(order)
         Returns composite qobj with indices reordered.
-    print_basis_expansion(decimal_places=14, term_separator=" + ",
-                          dim_separator="auto", sort="largest-first")
+    basis_expansion(decimal_places=14, term_separator=" + ",
+                    dim_separator="auto", sort="largest-first")
         Return a string-representation of the basis expansion
         E.g. ``"(0.5+0.15j) |010> + (0.25+0j) |000> + ..."``
     proj()
@@ -517,7 +517,7 @@ class Qobj:
             out += ", superrep=" + repr(self.superrep)
         return out
 
-    def print_basis_expansion(self, decimal_places: int = 14,
+    def basis_expansion(self, decimal_places: int = 14,
                               term_separator: str = " + ",
                               dim_separator: str = "auto",
                               sort: str = "largest-first") -> str:
