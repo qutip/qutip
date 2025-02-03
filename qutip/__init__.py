@@ -62,3 +62,6 @@ from .cite import *
 # Clean name space
 #
 del os, warnings
+
+settings.core["default_dtype"] = "csr"
+settings.core["default_dtype_scope"] = "full"

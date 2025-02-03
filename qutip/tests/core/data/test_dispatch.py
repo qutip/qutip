@@ -124,57 +124,58 @@ def test_Data_low_priority_one_dispatch():
 
 
 def test_Data_low_priority_two_dispatch():
-    class func():
-        __name__ = ""
-        def __init__(self):
-            self.count = 0
+    with qutip.CoreOptions(default_dtype_scope="creation"):
+        class func():
+            __name__ = ""
+            def __init__(self):
+                self.count = 0
 
-        def __call__(self, a=None, b=None, /):
-            self.count += 1
-            return _data.zeros[_data.Dense](1, 1)
+            def __call__(self, a=None, b=None, /):
+                self.count += 1
+                return _data.zeros[_data.Dense](1, 1)
 
-    f_dense = func()
-    f_mixed = func()
-    f_data = func()
+        f_dense = func()
+        f_mixed = func()
+        f_data = func()
 
-    dispatched = Dispatcher(f_dense, ("a", "b"), False)
-    dispatched.add_specialisations([
-        (_data.Dense, _data.Dense, f_dense),
-        (_data.Dense, _data.Data, f_mixed),
-        (_data.Data, _data.Data, f_data),
-    ])
+        dispatched = Dispatcher(f_dense, ("a", "b"), False)
+        dispatched.add_specialisations([
+            (_data.Dense, _data.Dense, f_dense),
+            (_data.Dense, _data.Data, f_mixed),
+            (_data.Data, _data.Data, f_data),
+        ])
 
-    assert dispatched[_data.Dense, _data.Dense] is f_dense
-    assert dispatched[_data.Dense, _data.CSR] is f_mixed
-    assert dispatched[_data.CSR, _data.Dense] is f_data
-    assert dispatched[_data.CSR, _data.CSR] is f_data
+        assert dispatched[_data.Dense, _data.Dense] is f_dense
+        assert dispatched[_data.Dense, _data.CSR] is f_mixed
+        assert dispatched[_data.CSR, _data.Dense] is f_data
+        assert dispatched[_data.CSR, _data.CSR] is f_data
 
-    dispatched = Dispatcher(f_dense, ("a",), True)
-    dispatched.add_specialisations([
-        (_data.Dense, _data.Dense, f_dense),
-        (_data.Dense, _data.Data, f_mixed),
-        (_data.Data, _data.Data, f_data),
-    ])
+        dispatched = Dispatcher(f_dense, ("a",), True)
+        dispatched.add_specialisations([
+            (_data.Dense, _data.Dense, f_dense),
+            (_data.Dense, _data.Data, f_mixed),
+            (_data.Data, _data.Data, f_data),
+        ])
 
-    assert dispatched[_data.Dense, _data.Dense] is f_dense
-    assert dispatched[_data.CSR] is f_data
-    assert dispatched[_data.Dense] is f_dense
-    assert isinstance(
-        dispatched[_data.Dense, _data.CSR], _constructed_specialisation
-    )
+        assert dispatched[_data.Dense, _data.Dense] is f_dense
+        assert dispatched[_data.CSR] is f_data
+        assert dispatched[_data.Dense] is f_dense
+        assert isinstance(
+            dispatched[_data.Dense, _data.CSR], _constructed_specialisation
+        )
 
-    assert f_mixed.count == 0
-    dispatched[_data.Dense, _data.CSR](_data.zeros[_data.Dense](1, 1))
-    assert f_mixed.count == 1
+        assert f_mixed.count == 0
+        dispatched[_data.Dense, _data.CSR](_data.zeros[_data.Dense](1, 1))
+        assert f_mixed.count == 1
 
-    assert isinstance(
-        dispatched[_data.CSR, _data.Dense], _constructed_specialisation
-    )
-    assert isinstance(
-        dispatched[_data.CSR, _data.CSR], _constructed_specialisation
-    )
+        assert isinstance(
+            dispatched[_data.CSR, _data.Dense], _constructed_specialisation
+        )
+        assert isinstance(
+            dispatched[_data.CSR, _data.CSR], _constructed_specialisation
+        )
 
-    assert f_data.count == 0
-    dispatched[_data.CSR, _data.Dense](_data.zeros[_data.CSR](1, 1))
-    dispatched[_data.CSR, _data.CSR](_data.zeros[_data.CSR](1, 1))
-    assert f_data.count == 1
+        assert f_data.count == 0
+        dispatched[_data.CSR, _data.Dense](_data.zeros[_data.CSR](1, 1))
+        dispatched[_data.CSR, _data.CSR](_data.zeros[_data.CSR](1, 1))
+        assert f_data.count == 1

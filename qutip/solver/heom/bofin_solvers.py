@@ -17,7 +17,7 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import spsolve
 
 from qutip.settings import settings
-from qutip import state_number_enumerate
+from qutip import state_number_enumerate, CoreOptions
 from qutip.core import data as _data
 from qutip.core.data import csr as _csr
 from qutip.core.environment import (
@@ -667,36 +667,37 @@ class HEOMSolver(Solver):
         self._init_ados_time = time() - _time_start
         _time_start = time()
 
-        # pre-calculate identity matrix required by _grad_n
-        self._sId = _data.identity(self._sup_shape, dtype="csr")
+        with CoreOptions(default_dtype="csr"):
+            # pre-calculate identity matrix required by _grad_n
+            self._sId = _data.identity(self._sup_shape, dtype="csr")
 
-        # pre-calculate superoperators required by _grad_prev and _grad_next:
-        Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
-        self._spreQ = [spre(op).data for op in Qs]
-        self._spostQ = [spost(op).data for op in Qs]
-        self._s_pre_minus_post_Q = [
-            _data.sub(self._spreQ[k], self._spostQ[k])
-            for k in range(self._n_exponents)
-        ]
-        self._s_pre_plus_post_Q = [
-            _data.add(self._spreQ[k], self._spostQ[k])
-            for k in range(self._n_exponents)
-        ]
-        self._spreQdag = [spre(op.dag()).data for op in Qs]
-        self._spostQdag = [spost(op.dag()).data for op in Qs]
-        self._s_pre_minus_post_Qdag = [
-            _data.sub(self._spreQdag[k], self._spostQdag[k])
-            for k in range(self._n_exponents)
-        ]
-        self._s_pre_plus_post_Qdag = [
-            _data.add(self._spreQdag[k], self._spostQdag[k])
-            for k in range(self._n_exponents)
-        ]
+            # pre-calculate superoperators required by _grad_prev and _grad_next:
+            Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
+            self._spreQ = [spre(op).data for op in Qs]
+            self._spostQ = [spost(op).data for op in Qs]
+            self._s_pre_minus_post_Q = [
+                _data.sub(self._spreQ[k], self._spostQ[k])
+                for k in range(self._n_exponents)
+            ]
+            self._s_pre_plus_post_Q = [
+                _data.add(self._spreQ[k], self._spostQ[k])
+                for k in range(self._n_exponents)
+            ]
+            self._spreQdag = [spre(op.dag()).data for op in Qs]
+            self._spostQdag = [spost(op.dag()).data for op in Qs]
+            self._s_pre_minus_post_Qdag = [
+                _data.sub(self._spreQdag[k], self._spostQdag[k])
+                for k in range(self._n_exponents)
+            ]
+            self._s_pre_plus_post_Qdag = [
+                _data.add(self._spreQdag[k], self._spostQdag[k])
+                for k in range(self._n_exponents)
+            ]
 
-        self._init_superop_cache_time = time() - _time_start
-        _time_start = time()
+            self._init_superop_cache_time = time() - _time_start
+            _time_start = time()
 
-        rhs = self._calculate_rhs()
+            rhs = self._calculate_rhs()
 
         self._init_rhs_time = time() - _time_start
 
@@ -1011,7 +1012,7 @@ class HEOMSolver(Solver):
         b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
         b_mat[0] = 1.0
 
-        L = self.rhs(0).data.copy().as_scipy()
+        L = self.rhs(0).to("CSR").data.copy().as_scipy()
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()

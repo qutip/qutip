@@ -256,8 +256,8 @@ def test_rcm():
     I = qutip.qeye(N, dtype="CSR")
     H = (a + a.dag() & I) + (I & a * a.dag())
     c_ops = [a & I, I & a]
-    L = qutip.liouvillian(H, c_ops).data
-    b = qutip.basis(N**4).data
+    L = qutip.liouvillian(H, c_ops).to("CSR").data
+    b = qutip.basis(N**4).to("CSR").data
 
     def bandwidth(mat):
         return sum(scipy.linalg.bandwidth(mat.to_array()))
@@ -272,13 +272,13 @@ def test_wbm():
     I = qutip.qeye(N, dtype="CSR")
     H = (a + a.dag() & I) + (I & a * a.dag())
     c_ops = [a & I, I & a]
-    L = qutip.liouvillian(H, c_ops).data
-    b = qutip.basis(N**4).data
+    L = qutip.liouvillian(H, c_ops).to("CSR").data
+    b = qutip.basis(N**4).to("CSR").data
 
     # shuffling the Liouvillian to ensure the diag is almost empty
     perm = np.arange(N**4)
     np.random.shuffle(perm)
-    L = _data.permute.indices(L, None, perm)
+    L = _data.permute.indices(L, None, perm, dtype="CSR")
 
     def dia_dominance(mat):
         mat = mat.to_array()
