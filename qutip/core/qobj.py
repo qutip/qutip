@@ -518,9 +518,9 @@ class Qobj:
         return out
 
     def basis_expansion(self, decimal_places: int = 14,
-                              term_separator: str = " + ",
-                              dim_separator: str = "auto",
-                              sort: str = "largest-first") -> str:
+                        term_separator: str = " + ",
+                        dim_separator: str = "auto",
+                        sort: str = "largest-first") -> str:
         """
         Return a string-representation of the basis expansion
         for a ket or a bra, e.g.
