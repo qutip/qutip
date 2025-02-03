@@ -176,7 +176,7 @@ class _eigen_qevo:
         if args is not self.args:
             self.args = args
             self.qevo.arguments(self.args)
-        _, data = _data.eigs(self.qevo._call(t), True, True)
+        _, data = _data.eigs(_data.to(Dense, self.qevo._call(t)), True, True)
         return Qobj(data, copy=False, dims=self.out_dims)
 
 
@@ -203,8 +203,9 @@ cdef class _EigenBasisTransform:
         self.size = oper.shape[0]
 
         if oper.isconstant:
-            self._eigvals, self._evecs = _data.eigs(self.oper._call(0),
-                                                    True, True)
+            self._eigvals, self._evecs = _data.eigs(
+                _data.to(Dense, self.oper._call(0)), True, True
+            )
         else:
             self._evecs = None
             self._eigvals = None
@@ -223,7 +224,9 @@ cdef class _EigenBasisTransform:
         if self._t != t and not self.isconstant:
             self._t = t
             self._evecs_inv = None
-            self._eigvals, self._evecs = _data.eigs(self.oper._call(t), True, True)
+            self._eigvals, self._evecs = _data.eigs(
+                _data.to(Dense, self.oper._call(t)), True, True
+            )
 
     cpdef object eigenvalues(self, double t):
         """
@@ -266,23 +269,23 @@ cdef class _EigenBasisTransform:
             if type(fock) is Dense and (<Dense> fock).fortran:
                 fock = _data.column_unstack_dense(fock, self.size, True)
                 temp = _data.matmul(matmul_var_data(self.evecs(t), fock, 3, 0),
-                                    self.evecs(t))
+                                    self.evecs(t), dtype=type(fock))
                 fock = _data.column_stack_dense(fock, True)
             else:
-                fock = _data.column_unstack(fock, self.size)
+                fock = _data.column_unstack(fock, self.size, dtype=type(fock))
                 temp = _data.matmul(matmul_var_data(self.evecs(t), fock, 3, 0),
-                                    self.evecs(t))
+                                    self.evecs(t), dtype=type(fock))
             if type(temp) is Dense:
                 return _data.column_stack_dense(temp, True)
-            return _data.column_stack(temp)
+            return _data.column_stack(temp, dtype=type(fock))
 
         elif fock.shape[0] == self.size and fock.shape[0] == fock.shape[1]:
             return _data.matmul(matmul_var_data(self.evecs(t), fock, 3, 0),
-                                self.evecs(t))
+                                self.evecs(t), dtype=type(fock))
 
         elif fock.shape[0] == self.size**2 and fock.shape[0] == fock.shape[1]:
             temp = self._S_converter_inverse(t)
-            return _data.matmul(matmul_var_data(temp, fock, 3, 0), temp)
+            return _data.matmul(matmul_var_data(temp, fock, 3, 0), temp, dtype=type(fock))
 
         raise ValueError("Could not convert the Qobj's data to eigenbasis: "
                          "can't guess type from shape.")
@@ -294,21 +297,21 @@ cdef class _EigenBasisTransform:
         """
         cdef Data temp
         if eig.shape[0] == self.size and eig.shape[1] == 1:
-            return _data.matmul(self.evecs(t), eig)
+            return _data.matmul(self.evecs(t), eig, dtype=type(eig))
 
         elif eig.shape[0] == self.size**2 and eig.shape[1] == 1:
             if type(eig) is Dense and (<Dense> eig).fortran:
                 eig = _data.column_unstack_dense(eig, self.size, True)
-                temp = matmul_var_data(_data.matmul(self.evecs(t), eig),
+                temp = matmul_var_data(_data.matmul(self.evecs(t), eig, dtype=type(eig)),
                                   self.evecs(t), 0, 3)
                 eig = _data.column_stack_dense(eig, True)
             else:
                 eig = _data.column_unstack(eig, self.size)
-                temp = matmul_var_data(_data.matmul(self.evecs(t), eig),
+                temp = matmul_var_data(_data.matmul(self.evecs(t), eig, dtype=type(eig)),
                                   self.evecs(t), 0, 3)
             if type(temp) is Dense:
                 return _data.column_stack_dense(temp, True)
-            return _data.column_stack(temp)
+            return _data.column_stack(temp, dtype=type(eig))
 
         elif eig.shape[0] == self.size and eig.shape[0] == eig.shape[1]:
             temp = self.evecs(t)
@@ -316,7 +319,7 @@ cdef class _EigenBasisTransform:
 
         elif eig.shape[0] == self.size**2 and eig.shape[0] == eig.shape[1]:
             temp = self._S_converter_inverse(t)
-            return _data.matmul(temp, matmul_var_data(eig, temp, 0, 3))
+            return _data.matmul(temp, matmul_var_data(eig, temp, 0, 3), dtype=type(eig))
 
         raise ValueError("Could not convert the Qobj's data from eigenbasis: "
                          "can't guess type from shape.")

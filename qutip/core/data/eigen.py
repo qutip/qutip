@@ -99,6 +99,7 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
     Internal functions for computing eigenvalues and eigenstates for a sparse
     matrix.
     """
+    print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Sparse Eigen solver used >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     N = data.shape[0]
     big_vals = np.array([])
     small_vals = np.array([])
