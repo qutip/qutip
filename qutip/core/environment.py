@@ -940,7 +940,8 @@ class BosonicEnvironment(abc.ABC):
         # TODO: I need to fit the complex signal and pass the exponents to the
         # constructor correctly (probably need to extend conjugates)
         # (I typically find better fits with less exponent's when fitting the
-        # complex signal)
+        # complex signal), though I guess in a lot of situations fitting
+        # separately is adequate
         amp, phases = prony(self.correlation_function(tlist).real, Nr)
         amp2, phases2 = prony(self.correlation_function(tlist).imag, Ni)
         ckAR = amp
