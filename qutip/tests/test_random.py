@@ -58,7 +58,10 @@ def _assert_metadata(random_qobj, dims, dtype=None, super=False, ket=False):
         shape0 = N
 
     if ket:
-        target_dims_1 = [1]
+        if isinstance(dims[0], list): # operator-ket
+            target_dims_1 = [1]
+        else: # regular ket
+            target_dims_1 = [1 for _ in dims]
         shape1 = 1
     else:
         target_dims_1 = target_dims_0

@@ -6,6 +6,26 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.1.1 (2025-01-10)
+=========================
+
+Patch to add support for scipy 1.15.
+
+Features
+--------
+
+- qutip.cite() now cites the QuTiP 5 paper, https://arxiv.org/abs/2412.04705.
+- Added QuTiP family package information to qutip.about(). (#2604)
+
+
+Bug Fixes
+---------
+
+- Fix support for calculating the eigenstates of ENR operators (#2595).
+- Update various functions to use `sph_harm_y` when using scipy >= 1.15.
+- Update mkl finding to support the 'emscripten' sys.platform. (#2606)
+
+
 QuTiP 5.1.0 (2024-12-12)
 ========================
 

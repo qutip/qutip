@@ -15,6 +15,8 @@ import numpy
 
 __all__ = [
     'kron', 'kron_csr', 'kron_dense', 'kron_dia',
+    'kron_csr_dense_csr', 'kron_dense_csr_csr',
+    'kron_dia_dense_dia', 'kron_dense_dia_dia',
     'kron_transpose', 'kron_transpose_dense', 'kron_transpose_data',
 ]
 
@@ -68,6 +70,20 @@ cpdef CSR kron_csr(CSR left, CSR right):
                     ptr_start_out += dist_r
                     ptr_end_out += dist_r
     return out
+
+
+cpdef CSR kron_csr_dense_csr(CSR left, Dense right):
+    # Since the dispatcher does not have precise control on which function to
+    # use when the signature is missing, we specify the output to be the sparse
+    # in this case.
+    return kron_csr(left, _to(CSR, right))
+
+
+cpdef CSR kron_dense_csr_csr(Dense left, CSR right):
+    # Since the dispatcher does not have precise control on which function to
+    # use when the signature is missing, we specify the output to be the sparse
+    # in this case.
+    return kron_csr(_to(CSR, left), right)
 
 
 cdef inline void _vec_kron(
@@ -159,6 +175,20 @@ cpdef Dia kron_dia(Dia left, Dia right):
     return out
 
 
+cpdef Dia kron_dia_dense_dia(Dia left, Dense right):
+    # Since the dispatcher does not have precise control on which function to
+    # use when the signature is missing, we specify the output to be the sparse
+    # in this case.
+    return kron_dia(left, _to(Dia, right))
+
+
+cpdef Dia kron_dense_dia_dia(Dense left, Dia right):
+    # Since the dispatcher does not have precise control on which function to
+    # use when the signature is missing, we specify the output to be the sparse
+    # in this case.
+    return kron_dia(_to(Dia, left), right)
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -181,6 +211,10 @@ kron.add_specialisations([
     (CSR, CSR, CSR, kron_csr),
     (Dense, Dense, Dense, kron_dense),
     (Dia, Dia, Dia, kron_dia),
+    (CSR, Dense, CSR, kron_csr_dense_csr),
+    (Dense, CSR, CSR, kron_dense_csr_csr),
+    (Dia, Dense, Dia, kron_dia_dense_dia),
+    (Dense, Dia, Dia, kron_dense_dia_dia),
 ], _defer=True)
 
 
