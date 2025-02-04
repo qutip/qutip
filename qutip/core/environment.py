@@ -308,7 +308,7 @@ class BosonicEnvironment(abc.ABC):
             An identifier (name) for this environment.
 
         args : optional, dict
-            Extra arguments for the spectral density ``S``.
+            Extra arguments for the spectral density ``J``.
         """
         return _BosonicEnvironment_fromSD(J, wlist, wMax, T, tag, args)
 
@@ -655,7 +655,6 @@ class BosonicEnvironment(abc.ABC):
         - method='esprit'  For the Estimation of signal parameters via
         rotational invariant techniques method
 
-
         Parameters
         ----------
         tlist : array_like
@@ -689,68 +688,79 @@ class BosonicEnvironment(abc.ABC):
                     combine: bool,
                     tag: Any):
         """
-       Generates an approximation to this environment by fitting its power
-       spectrum using the AAA algorithm. The function is fit to a rational
-       polynomial of the form
+        Generates an approximation to this environment by fitting its power
+        spectrum using the AAA algorithm. The function is fit to a rational
+        polynomial of the form
 
-       .. math::
-           S(\\omega)= 2 \\Re \\left(\\sum_{k} \frac{c_{k}}{\nu_{k}-i \\omega}
-           \right)
+        .. math::
+            S(\\omega)= 2 \\Re \\left(\\sum_{k} \frac{c_{k}}{\nu_{k}-i \\omega}
+            \right)
 
-       By isolating the poles and residues of a section of the complex plane
-       the correlation function can be reconstructed as a sum of decaying
-       exponentials. The main benefit of this method is that it does not
-       require much knowledge about the function to be fit. On the downside,
-       if many poles are around the origin, it might require the sample points
-       to be used for the fit to be a large dense range which makes this
-       algorithm consume a lot of RAM (it will also be slow if asking for many
-       exponents)
+        By isolating the poles and residues of a section of the complex plane
+        the correlation function can be reconstructed as a sum of decaying
+        exponentials. The main benefit of this method is that it does not
+        require much knowledge about the function to be fit. On the downside,
+        if many poles are around the origin, it might require the sample points
+        to be used for the fit to be a large dense range which makes this
+        algorithm consume a lot of RAM (it will also be slow if asking for many
+        exponents)
 
+        Parameters
+        ----------
+        wlist : array_like
+            The frequency range on which to perform the fit. With this method
+            typically logarithmic spacing works best.
+        tol : optional, int
+            Relative tolerance used to stop the algorithm, if an iteration
+            contribution is less than the tolerance the fit is stopped.
+        Nmax : optional, int
+            The maximum number of exponents desired. Corresponds to the
+            maximum number of iterations for the AAA algorithm
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
 
-       Parameters
-       ----------
-       wlist : array_like
-           The frequency range on which to perform the fit. With this method
-           typically logarithmic spacing works best.
-       tol : optional, int
-           Relative tolerance used to stop the algorithm, if an iteration
-           contribution is less than the tolerance the fit is stopped.
-       Nmax : optional, int
-           The maximum number of exponents desired. Corresponds to the
-           maximum number of iterations for the AAA algorithm
-       combine : optional, bool (default True)
-           Whether to combine exponents with the same frequency. See
-           :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
-           details.
-       tag : optional, str, tuple or any other object
-           An identifier (name) for the approximated environment. If not
-           provided, a tag will be generated from the tag of this environment.
-
-       Returns
-       -------
-       approx_env : :class:`ExponentialBosonicEnvironment`
-           The approximated environment with multi-exponential correlation
-           function.
-       """
+        Returns
+        -------
+        approx_env : :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
     # --- fitting
 
     def approximate(self, method: str, *args, **kwargs):
+        """ 
+        Main implementation for all approximation methods
+        """
         dispatch = {
             "corr_lsq": self._approx_by_cf_fit,
             "spec_lsq": self._approx_by_sd_fit,
             "prony": self._approx_by_prony,
-            "mp": self._approx_by_mp,
-            "esprit": self._approx_by_esprit,
+            "mp": self._approx_by_prony,
+            "esprit": self._approx_by_prony,
             "aaa": self._approx_by_aaa,
         }
 
         if method not in dispatch:
-            raise ValueError(f"Unsupported method: {method}")
+            raise ValueError(f"Unsupported method: {method}. The available"
+                             " methods are: \n "
+                             "- Correlation function NLSQ Fitting (corr_lsq)\n"
+                             "- Spectral Density NLSQ Fitting (spec_lsq) \n"
+                             "- Correlation function Prony Fitting (prony) \n"
+                             "- Correlation function Matrix Pencil Fitting"
+                             " (mp) \n"
+                             "- Correlation function ESPRIT Fitting (esprit)\n"
+                             "- Power spectrum AAA fitting (aaa) \n")
 
-        return dispatch[method](*args, **kwargs)
+        return dispatch[method](method, *args, **kwargs)
 
     def _approx_by_cf_fit(
         self,
+        method: str,
         tlist: ArrayLike,
         target_rsme: float = 2e-5,
         Nr_max: int = 10,
@@ -852,6 +862,7 @@ class BosonicEnvironment(abc.ABC):
 
     def _approx_by_sd_fit(
         self,
+        method: str,
         wlist: ArrayLike,
         Nk: int = 1,
         target_rmse: float = 5e-6,
@@ -917,6 +928,7 @@ class BosonicEnvironment(abc.ABC):
 
     def _approx_by_aaa(
         self,
+        method: str,
         wlist: ArrayLike,
         tol: float = 1e-13,
         N_max: int = 10,
@@ -953,20 +965,30 @@ class BosonicEnvironment(abc.ABC):
             vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
         return cls, {}
 
-    def _approx_by_mp(
+    def _approx_by_prony(
         self,
+        method: str,
         tlist: ArrayLike,
         Nr: int = 3,
         Ni: int = 3,
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        methods = {"mp": matrix_pencil,
+                   "prony": prony,
+                   "esprit": esprit}
         if tag is None and self.tag is not None:
-            tag = (self.tag, "MP Fit")
-        amp, phases = matrix_pencil(
+            tag = (self.tag, f"{method.upper()} Fit")
+        start_real = time()
+        params_real, rmse_real = methods[method](
             self.correlation_function(tlist).real, Nr)
-        amp2, phases2 = matrix_pencil(
+        end_real = time()
+        start_imag = time()
+        params_imag, rmse_imag = methods[method](
             self.correlation_function(tlist).imag, Ni)
+        end_imag = time()
+        amp, phases = params_real.T
+        amp2, phases2 = params_imag.T
         ckAR = amp
         ckAI = amp2
         vkAR = -((len(tlist) - 1) / tlist[-1]) * \
@@ -976,61 +998,23 @@ class BosonicEnvironment(abc.ABC):
         cls = ExponentialBosonicEnvironment(
             ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
             vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
-        return cls, (amp, phases)
+        params_real = [(amp[i], phases[i].real, phases[i].imag)
+                       for i in range(len(amp))]
+        params_imag = [(amp2[i], phases2[i].real, phases2[i].imag)
+                       for i in range(len(amp))]
+        fit_time_real = end_real-start_real
+        fit_time_imag = end_imag-start_imag
 
-    def _approx_by_prony(
-        self,
-        tlist: ArrayLike,
-        Nr: int = 3,
-        Ni: int = 3,
-        combine: bool = True,
-        tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
-        # TODO: I need to fit the complex signal and pass the exponents to the
-        # constructor correctly (probably need to extend conjugates)
-        # (I typically find better fits with less exponent's when fitting the
-        # complex signal), though I guess in a lot of situations fitting
-        # separately is adequate
-        # complex signal)
-        if tag is None and self.tag is not None:
-            tag = (self.tag, "Prony Fit")
-        amp, phases = prony(self.correlation_function(tlist).real, Nr)
-        amp2, phases2 = prony(self.correlation_function(tlist).imag, Ni)
-        ckAR = amp
-        ckAI = amp2
-        vkAR = -((len(tlist) - 1) / tlist[-1]) * \
-            (np.log(np.abs(phases)) + 1j * np.angle(phases))
-        vkAI = -((len(tlist) - 1) / tlist[-1]) * \
-            (np.log(np.abs(phases2)) + 1j * np.angle(phases2))
+        full_summary = _cf_fit_summary(
+            params_real, params_imag, fit_time_real, fit_time_imag,
+            Nr, Ni, rmse_real, rmse_imag, n=3
+        )
 
-        cls = ExponentialBosonicEnvironment(
-            ck_real=ckAR, vk_real=vkAR, vk_imag=vkAI,
-            ck_imag=ckAI, combine=combine, tag=tag)
-        return cls, (amp, phases)
-
-    def _approx_by_esprit(
-        self,
-        tlist: ArrayLike,
-        Nr: int = 3,
-        Ni: int = 3,
-        combine: bool = True,
-        tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
-        if tag is None and self.tag is not None:
-            tag = (self.tag, "ESPRIT Fit")
-        amp, phases = esprit(self.correlation_function(tlist).real, Nr)
-        amp2, phases2 = esprit(self.correlation_function(tlist).imag, Ni)
-        ckAR = amp
-        ckAI = amp2
-        vkAR = -((len(tlist) - 1) / tlist[-1]) * \
-            (np.log(np.abs(phases)) + 1j * np.angle(phases))
-        vkAI = -((len(tlist) - 1) / tlist[-1]) * \
-            (np.log(np.abs(phases2)) + 1j * np.angle(phases2))
-
-        cls = ExponentialBosonicEnvironment(
-            ck_real=ckAR, vk_real=vkAR, vk_imag=vkAI,
-            ck_imag=ckAI, combine=combine, tag=tag)
-        return cls, (amp, phases)
+        fit_info = {"Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
+                    "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
+                    "rmse_imag": rmse_imag, "params_real": params_real,
+                    "params_imag": params_imag, "summary": full_summary}
+        return cls, fit_info
 
 
 class _BosonicEnvironment_fromCF(BosonicEnvironment):

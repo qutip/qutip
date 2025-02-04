@@ -759,6 +759,11 @@ def prz(support_points, values, weights):
     return pol, res, zeros
 
 
+def prony_model(orig, amp, phase):
+    x = len(orig)
+    return amp * np.power(phase, np.arange(len(orig)))
+
+
 def matrix_pencil(C: np.ndarray, n: int) -> tuple:
     """
     Estimate amplitudes and frequencies using the Matrix Pencil Method.
@@ -786,8 +791,12 @@ def matrix_pencil(C: np.ndarray, n: int) -> tuple:
     generation_matrix = np.array(
         [[phase**k for phase in phases] for k in range(len(C))])
     amplitudes = lstsq(generation_matrix, C)[0]
+    params = _unpack(
+        np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    return amplitudes, phases
+    rmse = _rmse(prony_model, C, C, params)
+
+    return params, rmse
 
 
 def prony(signal: np.ndarray, n):
@@ -797,6 +806,7 @@ def prony(signal: np.ndarray, n):
 
     Args:
         signal (np.ndarray): The input signal (1D complex array).
+        t (np.ndarray): The points where the signal was sampled
         n (int): The number of modes to estimate (rank of the signal).
 
     Returns:
@@ -805,6 +815,8 @@ def prony(signal: np.ndarray, n):
                 The estimated amplitudes.
             - phases (np.ndarray):
                 The estimated complex exponential frequencies.
+            - Normalized Root Mean Squared Error (float)
+                The error commited by approximating the signal
     """
     num_freqs = n
     hankel0 = hankel(c=signal[:num_freqs], r=signal[num_freqs - 1: -1])
@@ -817,11 +829,15 @@ def prony(signal: np.ndarray, n):
     amplitudes = lstsq(generation_matrix, signal)[0]
 
     amplitudes, phases = zip(
-        *sorted(zip(amplitudes, phases), key=lambda x: np.abs(x[0]), 
+        *sorted(zip(amplitudes, phases), key=lambda x: np.abs(x[0]),
                 reverse=True)
     )
+    params = _unpack(
+        np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    return np.array(amplitudes), np.array(phases)
+    rmse = _rmse(prony_model, signal, signal, params)
+
+    return params, rmse
 
 
 def esprit(C: np.ndarray, n: int) -> tuple:
@@ -852,5 +868,8 @@ def esprit(C: np.ndarray, n: int) -> tuple:
     generation_matrix = np.array(
         [[phase**k for phase in phases] for k in range(len(C))])
     amplitudes = lstsq(generation_matrix, C)[0]
+    params = _unpack(
+        np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    return amplitudes, phases
+    rmse = _rmse(prony_model, C, C, params)
+    return params,rmse
