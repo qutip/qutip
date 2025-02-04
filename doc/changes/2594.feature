@@ -1,0 +1,1 @@
+Adds extra fitting methods for quantum environments

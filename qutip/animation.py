@@ -3,11 +3,12 @@ Functions to animate results of quantum dynamics simulations,
 """
 __all__ = ['anim_wigner_sphere', 'anim_hinton', 'anim_sphereplot',
            'anim_matrix_histogram', 'anim_fock_distribution', 'anim_wigner',
-           'anim_spin_distribution', 'anim_qubism', 'anim_schmidt']
+           'anim_spin_distribution', 'anim_qubism', 'anim_schmidt',
+           'anim_qfunc']
 
 from . import (plot_wigner_sphere, hinton, sphereplot, matrix_histogram,
                plot_fock_distribution, plot_wigner, plot_spin_distribution,
-               plot_qubism, plot_schmidt)
+               plot_qubism, plot_schmidt, plot_qfunc)
 from .solver import Result
 from numpy import sqrt
 
@@ -411,6 +412,58 @@ def anim_wigner(rhos, xvec=None, yvec=None, method='clenshaw', projection='2d',
     fig, ani = plot_wigner(rhos, xvec, yvec, method=method, g=g, sparse=sparse,
                            parfor=parfor, projection=projection,
                            cmap=cmap, colorbar=colorbar, fig=fig, ax=ax)
+
+    return fig, ani
+
+
+def anim_qfunc(rhos, xvec=None, yvec=None, projection='2d',
+               g=sqrt(2), *, cmap=None, colorbar=False,
+               fig=None, ax=None):
+    """
+    Animation of the Husimi-Q function for a density matrix (or ket).
+
+    Parameters
+    ----------
+    rhos : :class:`.Result` or list of :class:`.Qobj`
+        The density matrix (or ket) of the state to visualize.
+
+    xvec : array_like, optional
+        x-coordinates at which to calculate the Husimi-Q function.
+
+    yvec : array_like, optional
+        y-coordinates at which to calculate the Husimi-Q function.
+
+    projection: str {'2d', '3d'}, default: '2d'
+        Specify whether the Husimi-Q function is to be plotted as a
+        contour graph ('2d') or surface plot ('3d').
+
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+
+    cmap : a matplotlib cmap instance, optional
+        The colormap.
+
+    colorbar : bool, default: False
+        Whether (True) or not (False) a colorbar should be attached to the
+        Husimi-Q function graph.
+
+    fig : a matplotlib Figure instance, optional
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance, optional
+        The axes context in which the plot will be drawn.
+
+    Returns
+    -------
+    fig, ani : tuple
+        A tuple of the matplotlib figure and the animation instance
+        used to produce the figure.
+    """
+
+    rhos = _result_state(rhos)
+
+    fig, ani = plot_qfunc(rhos, xvec, yvec, g=g, projection=projection,
+                          cmap=cmap, colorbar=colorbar, fig=fig, ax=ax)
 
     return fig, ani
 

@@ -515,7 +515,7 @@ class TestBosonicEnvironment:
             reference.correlation_function, T=reference.T
         )
         tlist = np.linspace(0, tMax, 100)[1:] # exclude t=0
-        fit, info = env.approx_by_cf_fit(
+        fit, info = env.approximate("corr_lsq",
             tlist, target_rsme=None, Nr_max=2, Ni_max=2,
             full_ansatz=full_ansatz, combine=False
         )
@@ -548,7 +548,7 @@ class TestBosonicEnvironment:
             reference.correlation_function, tag="test"
         )
         tlist = np.linspace(0, tMax, 100)[1:] # exclude t=0
-        fit, info = env.approx_by_cf_fit(
+        fit, info = env.approximate("corr_lsq",
             tlist, target_rsme=0.01, Nr_max=3, Ni_max=3,
             full_ansatz=full_ansatz
         )
@@ -569,7 +569,7 @@ class TestBosonicEnvironment:
             assert key in info
 
     @pytest.mark.parametrize(["reference", "wMax", "tol"], [
-        pytest.param(OhmicReference(3, .75, 10, 1), 15, 5e-2, id="DL Example"),
+        pytest.param(OhmicReference(3, .75, 10, 1), 15, 5e-2, id="Ohmic Example"),
     ])
     def test_fixed_sd_fit(self, reference, wMax, tol):
         # fixed number of lorentzians
@@ -577,7 +577,7 @@ class TestBosonicEnvironment:
             reference.spectral_density, T=reference.T
         )
         wlist = np.linspace(0, wMax, 100)
-        fit, info = env.approx_by_sd_fit(
+        fit, info = env.approximate("spec_lsq",
             wlist, Nk=1, target_rmse=None, Nmax=4, combine=False
         )
 
@@ -607,7 +607,7 @@ class TestBosonicEnvironment:
             reference.spectral_density, T=reference.T, tag="test"
         )
         wlist = np.linspace(0, wMax, 100)
-        fit, info = env.approx_by_sd_fit(
+        fit, info = env.approximate("spec_lsq",
             wlist, Nk=1, target_rmse=0.01, Nmax=5, **params
         )
 
@@ -624,6 +624,85 @@ class TestBosonicEnvironment:
         for key in ["fit_time", "params", "summary"]:
             assert key in info
 
+    @pytest.mark.parametrize(["reference", "tMax", "tol"], [
+        pytest.param(OhmicReference(3, .75, 10, 1), 15,1e-3,id="Ohmic Example"),
+        pytest.param(UDReference(1, .5, .1, 1), 2,1e-3, id='UD Example'),
+    ])
+    def test_fixed_prony_fit(self, reference, tMax,tol):
+        #TODO: come up with a better test, for now I was just fitting into this 
+        #style but those support points are not good for a low number of 
+        # exponents
+        env = BosonicEnvironment.from_correlation_function(
+            reference.correlation_function, tag="test"
+        )
+        tlist = np.linspace(0, tMax, 500)
+        fit, info = env.approximate("prony",
+            tlist, Nr=10 , Ni=10
+        )
+
+        assert isinstance(fit, ExponentialBosonicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "Prony Fit")
+        assert_equivalent(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+    @pytest.mark.parametrize(["reference", "tMax", "tol"], [
+        pytest.param(OhmicReference(3, .75, 10, 1), 5,5e-2,id="Ohmic Example"),
+        pytest.param(UDReference(1, .5, .1, 1), 2,5e-2, id='UD Example'),
+    ])
+    def test_fixed_mp_fit(self, reference, tMax,tol):
+        env = BosonicEnvironment.from_correlation_function(
+            reference.correlation_function, tag="test"
+        )
+        tlist = np.linspace(0, tMax, 100)
+        fit, info = env.approximate("mp",
+            tlist, Nr=10 , Ni=10
+        )
+
+        assert isinstance(fit, ExponentialBosonicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "MP Fit")
+        assert_equivalent(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+    @pytest.mark.parametrize(["reference", "tMax", "tol"], [
+        pytest.param(OhmicReference(3, .75, 10, 1), 15,1e-3,id="Ohmic Example"),
+        pytest.param(UDReference(1, .5, .1, 1), 2,1e-3, id='UD Example'),
+    ])
+    def test_fixed_esprit_fit(self, reference, tMax,tol):
+        env = BosonicEnvironment.from_correlation_function(
+            reference.correlation_function, tag="test"
+        )
+        tlist = np.linspace(0, tMax, 500)
+        fit, info = env.approximate("esprit",
+            tlist, Nr=15 , Ni=15
+        )
+
+        assert isinstance(fit, ExponentialBosonicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "ESPRIT Fit")
+        assert_equivalent(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+    @pytest.mark.parametrize(["reference", "wMax", "tol"], [
+        pytest.param(OhmicReference(3, .75, 10, 1), 15, .2,id="DL Example"),
+        pytest.param(UDReference(1, .5, .1, 1), 2, 1e-4, id='UD Example'),
+    ])
+    def test_fixed_aaa_fit(self, reference, wMax, tol):
+        env = BosonicEnvironment.from_spectral_density(
+            reference.spectral_density, T=reference.T, tag="test"
+        )
+        wlist = np.linspace(-wMax, wMax, 100)
+        fit, info = env.approximate("aaa",
+            wlist
+        )
+
+        assert isinstance(fit, ExponentialBosonicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "AAA Fit")
+        assert_equivalent(
+            fit, env, tol=tol, skip_cf=True, skip_ps=True, wMax=wMax
+        )
 
 @pytest.mark.parametrize("params", [
     {'gamma': 2.5, 'lam': .75, 'T': 1.5}
