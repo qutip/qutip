@@ -941,6 +941,17 @@ class TestLogm(UnaryOpMixin):
     ]
 
 
+class TestSqrtm(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return scipy.linalg.sqrtm(matrix)
+
+    shapes = shapes_square()
+    bad_shapes = shapes_not_square()
+    specialisations = [
+        pytest.param(data.sqrtm_dense, Dense, Dense),
+    ]
+
+
 class TestTranspose(UnaryOpMixin):
     def op_numpy(self, matrix):
         return matrix.T

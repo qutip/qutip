@@ -6,6 +6,177 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.1.1 (2025-01-10)
+=========================
+
+Patch to add support for scipy 1.15.
+
+Features
+--------
+
+- qutip.cite() now cites the QuTiP 5 paper, https://arxiv.org/abs/2412.04705.
+- Added QuTiP family package information to qutip.about(). (#2604)
+
+
+Bug Fixes
+---------
+
+- Fix support for calculating the eigenstates of ENR operators (#2595).
+- Update various functions to use `sph_harm_y` when using scipy >= 1.15.
+- Update mkl finding to support the 'emscripten' sys.platform. (#2606)
+
+
+QuTiP 5.1.0 (2024-12-12)
+========================
+
+Features
+--------
+
+- It adds odd parity support to HEOM's fermionic solver (#2261, by Gerardo Jose Suarez)
+- Create `SMESolver.run_from_experiment`, which allows to run stochastic evolution from know noise or measurements. (#2318)
+- Add types hints. (#2327, #2473)
+- Weighted trajectories in trajectory solvers (enables improved sampling for nm_mcsolve) (#2369, by Paul Menczel)
+- Updated `qutip.core.metrics.dnorm` to have an efficient speedup when finding the difference of two unitaries. We use a result on page 18 of
+  D. Aharonov, A. Kitaev, and N. Nisan, (1998). (#2416, by owenagnel)
+- Allow mixed initial conditions for mcsolve and nm_mcsolve. (#2437, by Paul Menczel)
+- Add support for `jit` and `grad` in qutip.core.metrics (#2461, by Rochisha Agarwal)
+- Allow merging results from stochastic solvers. (#2474)
+- Support measurement statistics for `jax` and `jaxdia` dtypes (#2493, by Rochisha Agarwal)
+- Enable mcsolve with jax.grad using numpy_backend (#2499, by Rochisha Agarwal)
+- Add propagator method to steadystate (#2508)
+- Introduces the qutip.core.environment module, which contains classes that characterize bosonic and fermionic thermal environments. (#2534, by Gerardo Jose Suarez)
+- Implements a `einsum` function for Qobj dimensions (Evaluates the Einstein summation convention on the operands.) (#2545, by Franco Mayo)
+- Wave function calculations have been sped up with a Cython implementation.
+  It optimizes the update method of the HarmonicOscillatorWaveFunction class in distribution.py. (#2553, by Matheus Gomes Cordeiro)
+- Speed up `kraus_to_super` by adding a `sparse` option. (#2569, by Sola85)
+
+
+Bug Fixes
+---------
+
+- Fix a dimension problem for the argument color of Bloch.add_states
+  Clean-up of the code in  Bloch.add_state
+  Add Bloch.add_arc and Bloch.add_line in the guide on Bloch class (#2445, by PositroniumJS)
+- Fix HTMLProgressBar display (#2475)
+- Make expm, cosm, sinm work with jax. (#2484, by Rochisha Agarwal)
+- Fix stochastic solver step method (#2491)
+- `clip` gives deprecation warning, that might be a problem in the future. Hence switch to `where` (#2507, by Rochisha Agarwal)
+- Fix brmesolve detection of contant vs time-dependent system. (#2530)
+- `propagator` now accepts list format `c_ops` like `mesolve` does. (#2532)
+- Fix compatibility issue with matplotlib>=3.9 in matrix_histogram (#2544, by Andreas Maeder)
+- Resolve incompatibility of TwoModeQuadratureCorrelation class (#2548, by quantum-menace)
+- Fix sparse eigen solver issue with many degenerate eigen values. (#2586)
+- Fix getting tensor permutation for uneven super operators. (#2561)
+
+
+Documentation
+-------------
+
+- Improve guide-settings page. (#2403)
+- Tidy up formatting of type aliases in the api documentation (#2436, by Paul Menczel)
+- Update documentation
+  - Update contributors
+  - Improve apidoc readability (#2523)
+- Fix error in simdiag docstring (#2585, by Sola85)
+
+
+Miscellaneous
+-------------
+
+- Add auto_real_casting options. (#2329)
+- Add dispatcher for sqrtm (#2453, by Rochisha Agarwal)
+- Make `e_ops`, `args` and `options` keyword only.
+  Solver were inconsistent with `e_ops` usually following `c_ops` but sometime
+  preceding it. Setting it as keyword only remove the need to memorize the
+  signature of each solver. (#2489)
+- Introduces a new `NumpyBackend `class that enables dynamic selection of the numpy_backend used in `qutip`.
+  The class facilitates switching between different numpy implementations ( `numpy` and `jax.numpy` mainly ) based on the configuration specified in `settings.core`. (#2490, by Rochisha Agarwal)
+- Improve mkl lookup function. (#2497)
+- Deterministic trajectories are not counted in ``ntraj``. (#2502)
+- Allow tests to be executed multiple times in one Python session (#2538, by Zhang Maiyun)
+- Improve performance of qutip.Qobj by using static numpy version check (#2557, by Pieter Eendebak)
+- Fix towncrier check (#2542)
+
+
+
+QuTiP 5.0.4 (2024-08-30)
+========================
+
+Micro release to add support for numpy 2.1
+
+Bug Fixes
+---------
+
+- Fixed rounding error in dicke_trace_function that resulted in negative eigenvalues. (#2466, by  Andrey Nikitin)
+
+
+QuTiP 5.0.3 (2024-06-20)
+========================
+
+Micro release to add support for numpy 2.
+
+Bug Fixes
+---------
+
+- Bug Fix in Process Matrix Rendering. (#2400, by Anush Venkatakrishnan)
+- Fix steadystate permutation being reversed. (#2443)
+- Add parallelizing support for `vernN` methods with `mcsolve`. (#2454 by Utkarsh)
+
+
+Documentation
+-------------
+
+- Added `qutip.core.gates` to apidoc/functions.rst and a Gates section to guide-states.rst. (#2441, by alan-nala)
+
+
+Miscellaneous
+-------------
+
+- Add support for numpy 2 (#2421, #2457)
+- Add support for scipy 1.14 (#2469)
+
+
+QuTiP 5.0.2 (2024-05-16)
+========================
+
+Bug Fixes
+---------
+
+- Use CSR as the default for expand_operator (#2380, by BoxiLi)
+- Fix import of the partial_transpose function.
+  Ensures that the negativity function can handle both kets and density operators as input. (#2371, by vikas-chaudhary-2802)
+- Ensure that end_condition of mcsolve result doesn't say target tolerance reached when it hasn't (#2382, by magzpavz)
+- Fix two bugs in steadystate floquet solver, and adjust tests to be sensitive to this issue. (#2393, by Neill Lambert)
+
+
+Documentation
+-------------
+
+- Correct a mistake in the doc (#2401, by PositroniumJS)
+- Fix #2156: Correct a sample of code in the doc (#2409, by PositroniumJS)
+
+
+Miscellaneous
+-------------
+
+- Better metadata management in operators creation functions (#2388)
+- Implicitly set minimum python version to 3.9 (#2413)
+- Qobj.__eq__ uses core's settings rtol. (#2425)
+- Only normalize solver states when the initial state is already normalized. (#2427)
+
+
+QuTiP 5.0.1 (2024-04-03)
+========================
+
+
+Patch update fixing small issues with v5.0.0 release
+
+- Fix broken links in the documentation when migrating to readthedocs
+- Fix readthedocs search feature
+- Add setuptools to runtime compilation requirements
+- Fix mcsolve documentation for open systems
+- Fix OverFlowError in progress bars
+
 
 QuTiP 5.0.0 (2024-03-26)
 ========================
@@ -582,8 +753,8 @@ Miscellaneous
 - Sorted arguments of sphereplot so that the order is similar to those of plot_spin_distribution (#2219 by Yuji Tamakoshi)
 
 
-Version 5.0.0a1 (February 7, 2023)
-++++++++++++++++++++++++++++++++++
+QuTiP 5.0.0a1 (2023-02-07)
+==========================
 
 QuTiP 5 is a redesign of many of the core components of QuTiP (``Qobj``,
 ``QobjEvo``, solvers) to make them more consistent and more flexible.
@@ -1002,8 +1173,8 @@ Miscellaneous
 - `mesolve` can support mixed callable and Qobj for `e_ops` (#2184 issue by balopat)
 
 
-Version 4.7.1 (December 11, 2022)
-+++++++++++++++++++++++++++++++++
+QuTiP 4.7.1 (2022-12-11)
+========================
 
 This is a bugfix release for QuTiP 4.7.X. In addition to the minor fixes
 listed below, the release adds builds for Python 3.11 and support for
@@ -1043,8 +1214,8 @@ Miscellaneous
 - Update builds to use cibuildwheel 2.11, and to build with manylinux2014 on Python 3.8 and 3.9, since numpy and SciPy no longer support manylinux2010 on those versions of Python. (#2047)
 
 
-Version 4.7.0 (April 13, 2022)
-++++++++++++++++++++++++++++++
+QuTiP 4.7.0 (2022-04-13)
+========================
 
 This release sees the addition of two new solvers -- ``qutip.krylovsolve`` based on the Krylov subspace approximation and ``qutip.nonmarkov.heom`` that reimplements the BoFiN HEOM solver.
 
@@ -1122,8 +1293,8 @@ Developer Changes
 - The release documentation was reworked after the initial 4.6.1 to match the actual release process. (`#1544 <https://github.com/qutip/qutip/pull/1544>`_ by Jake Lishman)
 
 
-Version 4.6.3 (February 9, 2022)
-++++++++++++++++++++++++++++++++
+QuTiP 4.6.3 (2022-02-9)
+=======================
 
 This minor release adds support for numpy 1.22 and Python 3.10 and removes some blockers for running QuTiP on the Apple M1.
 
@@ -1194,8 +1365,8 @@ Developer Changes
 - Add building of wheels for Python 3.10 to the cibuildwheel job. (`#1796 <https://github.com/qutip/qutip/pull/1796>`_ by Simon Cross)
 
 
-Version 4.6.2 (June 2, 2021)
-++++++++++++++++++++++++++++
+QuTiP 4.6.2 (2021-06-02)
+========================
 
 This minor release adds a function to calculate the quantum relative entropy, fixes a corner case in handling time-dependent Hamiltonians in ``mesolve`` and adds back support for a wider range of matplotlib versions when plotting or animating Bloch spheres.
 
@@ -1221,8 +1392,8 @@ Developer Changes
 - Read documentation version and release from the VERSION file.
 
 
-Version 4.6.1 (May 4, 2021)
-+++++++++++++++++++++++++++
+QuTiP 4.6.1 (2021-05-04)
+========================
 
 This minor release fixes bugs in QIP gate definitions, fixes building from
 the source tarball when git is not installed and works around an MKL
@@ -1250,8 +1421,8 @@ Developer Changes
 - Add Simon Cross as author (by **Simon Cross**)
 
 
-Version 4.6.0 (April 11, 2021)
-++++++++++++++++++++++++++++++
+QuTiP 4.6.0 (2021-04-11)
+========================
 
 This release brings improvements for qubit circuits, including a pulse scheduler, measurement statistics, reading/writing OpenQASM and optimisations in the circuit simulations.
 
@@ -1311,8 +1482,8 @@ Developer Changes
 
 
 
-Version 4.5.3 (February 19, 2021)
-+++++++++++++++++++++++++++++++++
+QuTiP 4.5.3 (2021-02-19)
+========================
 
 This patch release adds support for Numpy 1.20, made necessary by changes to how array-like objects are handled. There are no other changes relative to version 4.5.2.
 
@@ -1324,8 +1495,8 @@ Improvements
 
 
 
-Version 4.5.2 (July 14, 2020)
-+++++++++++++++++++++++++++++
+QuTiP 4.5.2 (2020-07-14)
+========================
 
 This is predominantly a hot-fix release to add support for Scipy 1.5, due to changes in private sparse matrix functions that QuTiP also used.
 
@@ -1349,8 +1520,8 @@ Developer Changes
 
 
 
-Version 4.5.1 (May 15, 2020)
-++++++++++++++++++++++++++++
+QuTiP 4.5.1 (2020-05-15)
+========================
 
 Improvements
 ------------
@@ -1379,8 +1550,8 @@ Developer Changes
 
 
 
-Version 4.5.0 (January 31, 2020)
-++++++++++++++++++++++++++++++++
+QuTiP 4.5.0 (2020-01-31)
+========================
 
 Improvements
 ------------
@@ -1451,8 +1622,8 @@ Bug Fixes
 - Updated `plot_fock_distribution` by removing the offset value 0.4 in the plot (by **Rajiv-B**).
 
 
-Version 4.4.1 (August 29, 2019)
-+++++++++++++++++++++++++++++++
+QuTiP 4.4.1 (2019-08-29)
+========================
 
 Improvements
 ------------
@@ -1488,8 +1659,8 @@ Bug Fixes
 - Fixed potential cyclic import in the control module (by **Alexander Pitchford**).
 
 
-Version 4.4.0 (July 03, 2019)
-+++++++++++++++++++++++++++++
+QuTiP 4.4.0 (2019-07-03)
+========================
 
 Improvements
 ------------
@@ -1521,8 +1692,8 @@ Bug Fixes
 - Fixed bug that made QuTiP incompatible with SciPy 1.3.
 
 
-Version 4.3.0 (July 14, 2018)
-+++++++++++++++++++++++++++++
+QuTiP 4.3.0 (2018-07-14)
+========================
 
 Improvements
 ------------
@@ -1580,8 +1751,8 @@ Bug Fixes
 - Fixed MKL error checking dict key error
 
 
-Version 4.2.0 (July 28, 2017)
-+++++++++++++++++++++++++++++
+QuTiP 4.2.0 (2017-07-28)
+========================
 
 Improvements
 ------------
@@ -1627,8 +1798,8 @@ Bug Fixes
 
 
 
-Version 4.1.0 (March 10, 2017)
-++++++++++++++++++++++++++++++
+QuTiP 4.1.0 (2017-03-10)
+========================
 
 Improvements
 ------------
@@ -1664,8 +1835,8 @@ Bug Fixes
 
 
 
-Version 4.0.2 (January 5, 2017)
-+++++++++++++++++++++++++++++++
+QuTiP 4.0.2 (2017-01-05)
+========================
 
 Bug Fixes
 ---------
@@ -1674,8 +1845,8 @@ Bug Fixes
 
 
 
-Version 4.0.0 (December 22, 2016)
-+++++++++++++++++++++++++++++++++
+QuTiP 4.0.0 (2016-12-22)
+========================
 
 Improvements
 ------------
@@ -1697,8 +1868,10 @@ Bug Fixes
 - recompilation of pyx files on first import removed
 - tau array in control.pulseoptim funcs now works
 
-Version 3.2.0 (Never officially released)
-+++++++++++++++++++++++++++++++++++++++++
+QuTiP 3.2.0
+===========
+
+(Never officially released)
 
 New Features
 ------------
@@ -1820,8 +1993,8 @@ Bug Fixes
 
 
 
-Version 3.1.0 (January 1, 2015)
-+++++++++++++++++++++++++++++++
+QuTiP 3.1.0 (2015-01-01)
+========================
 
 New Features
 ------------
@@ -1857,8 +2030,9 @@ Bug Fixes
 - Fixed bug in `gate_expand_3toN`.
 - Fixed bug for time-dependent problem (list string format) with multiple terms in coefficient to an operator.
 
-Version 3.0.1 (Aug 5, 2014)
-+++++++++++++++++++++++++++
+
+QuTiP 3.0.1 (2014-08-05)
+========================
 
 Bug Fixes
 ---------
@@ -1870,11 +2044,10 @@ Bug Fixes
 - Fix bug in parsing of time-dependent Hamiltonian/collapse operator arguments
   that occurred when the args argument is not a dictionary.
 - Fix bug in internal _version2int function that cause a failure when parsingthe version number of the Cython package.
--
 
 
-Version 3.0.0 (July 17, 2014)
-+++++++++++++++++++++++++++++
+QuTiP 3.0.0 (2014-07-17)
+========================
 
 New Features
 ------------
@@ -1982,8 +2155,9 @@ Improvements
 
 - QuTiP is now using continuous integration tests (TravisCI).
 
-Version 2.2.0 (March 01, 2013)
-++++++++++++++++++++++++++++++
+
+QuTiP 2.2.0 (2013-03-01)
+========================
 
 
 New Features
@@ -2024,8 +2198,8 @@ Bug Fixes
 - mcsolve no longer prints to the command line if ntraj=1.
 
 
-Version 2.1.0 (October 05, 2012)
-++++++++++++++++++++++++++++++++
+QuTiP 2.1.0 (2012-10-05)
+========================
 
 
 New Features
@@ -2078,8 +2252,8 @@ Bug Fixes
 - Text for progress bar on Linux systems is no longer cutoff.
 
 
-Version 2.0.0 (June 01, 2012)
-+++++++++++++++++++++++++++++
+QuTiP 2.0.0 (2012-06-01)
+========================
 
 The second version of QuTiP has seen many improvements in the performance of the original code base, as well as the addition of several new routines supporting a wide range of functionality.  Some of the highlights of this release include:
 
@@ -2131,8 +2305,8 @@ New Features
 - Demos window now lets you copy and paste code from each example.
 
 
-Version 1.1.4 (May 28, 2012)
-++++++++++++++++++++++++++++
+QuTiP 1.1.4 (2012-05-28)
+========================
 
 Bug Fixes
 ---------
@@ -2144,8 +2318,8 @@ Bug Fixes
 - Updated factorial import for scipy version 0.10+
 
 
-Version 1.1.3 (November 21, 2011)
-+++++++++++++++++++++++++++++++++
+QuTiP 1.1.3 (2011-11-21)
+========================
 
 New Functions
 -------------
@@ -2169,8 +2343,8 @@ Bug Fixes
 - Fixed zero-dimensional array output from metrics module.
 
 
-Version 1.1.2 (October 27, 2011)
-++++++++++++++++++++++++++++++++
+QuTiP 1.1.2 (2011-10-27)
+========================
 
 Bug Fixes
 ---------
@@ -2178,8 +2352,8 @@ Bug Fixes
 - Fixed issue where Monte Carlo states were not output properly.
 
 
-Version 1.1.1 (October 25, 2011)
-++++++++++++++++++++++++++++++++
+QuTiP 1.1.1 (2011-10-25)
+========================
 
 **THIS POINT-RELEASE INCLUDES VASTLY IMPROVED TIME-INDEPENDENT MCSOLVE AND ODESOLVE PERFORMANCE**
 
@@ -2202,8 +2376,8 @@ Bug Fixes
 - Fixed issue where GUI windows do not raise to front.
 
 
-Version 1.1.0 (October 04, 2011)
-++++++++++++++++++++++++++++++++
+QuTiP 1.1.0 (2011-10-04)
+========================
 
 **THIS RELEASE NOW REQUIRES THE GCC COMPILER TO BE INSTALLED**
 
@@ -2244,7 +2418,7 @@ Bug Fixes
 - Fixed issue in Wigner where xvec was used twice (in place of yvec).
 
 
-Version 1.0.0 (July 29, 2011)
-+++++++++++++++++++++++++++++
+QuTiP 1.0.0 (2011-07-29)
+========================
 
 - **Initial release.**

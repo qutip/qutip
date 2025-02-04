@@ -15,6 +15,10 @@ def _make_system(N, system):
     gamma = 0.25
     a = destroy(N)
 
+    if system == "no sc_ops":
+        H = a.dag() * a
+        sc_ops = []
+
     if system == "simple":
         H = a.dag() * a
         sc_ops = [np.sqrt(gamma) * a]
@@ -39,7 +43,7 @@ def _make_system(N, system):
 
 
 @pytest.mark.parametrize("system", [
-    "simple", "2 c_ops", "H td", "complex", "c_ops td",
+    "no sc_ops", "simple", "2 c_ops", "H td", "complex", "c_ops td",
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_smesolve(heterodyne, system):
@@ -54,7 +58,8 @@ def test_smesolve(heterodyne, system):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, c_ops + sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, c_ops + sc_ops,
+                      e_ops=e_ops, args={"w": 2})
 
     options = {
         "store_measurement": False,
@@ -73,13 +78,15 @@ def test_smesolve(heterodyne, system):
         )
 
 
+@pytest.mark.parametrize("system", [
+    "no sc_ops", "simple"
+])
 @pytest.mark.parametrize("heterodyne", [True, False])
 @pytest.mark.parametrize("method", SMESolver.avail_integrators().keys())
-def test_smesolve_methods(method, heterodyne):
+def test_smesolve_methods(method, heterodyne, system):
     tol = 0.05
     N = 4
     ntraj = 20
-    system = "simple"
 
     H, sc_ops = _make_system(N, system)
     c_ops = [destroy(N)]
@@ -88,7 +95,8 @@ def test_smesolve_methods(method, heterodyne):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, c_ops + sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, c_ops + sc_ops,
+                      e_ops=e_ops, args={"w": 2})
 
     options = {
         "store_measurement": True,
@@ -138,7 +146,7 @@ def test_smesolve_methods(method, heterodyne):
 
 
 @pytest.mark.parametrize("system", [
-    "simple", "2 c_ops", "H td", "complex", "c_ops td",
+    "no sc_ops", "simple", "2 c_ops", "H td", "complex", "c_ops td",
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 def test_ssesolve(heterodyne, system):
@@ -152,7 +160,7 @@ def test_ssesolve(heterodyne, system):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, sc_ops, e_ops=e_ops, args={"w": 2})
 
     options = {
         "map": "serial",
@@ -174,14 +182,16 @@ def test_ssesolve(heterodyne, system):
     assert res.dW is None
 
 
+@pytest.mark.parametrize("system", [
+    "no sc_ops", "simple"
+])
 @pytest.mark.parametrize("heterodyne", [True, False])
 @pytest.mark.parametrize("method", SSESolver.avail_integrators().keys())
-def test_ssesolve_method(method, heterodyne):
+def test_ssesolve_method(method, heterodyne, system):
     "Stochastic: smesolve: homodyne, time-dependent H"
     tol = 0.1
     N = 4
     ntraj = 20
-    system = "simple"
 
     H, sc_ops = _make_system(N, system)
     psi0 = coherent(N, 0.5)
@@ -189,7 +199,7 @@ def test_ssesolve_method(method, heterodyne):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, sc_ops, e_ops=e_ops, args={"w": 2})
 
     options = {
         "store_measurement": True,
@@ -281,9 +291,42 @@ def test_reuse_seeds():
 
 
 @pytest.mark.parametrize("heterodyne", [True, False])
-def test_m_ops(heterodyne):
+def test_measurements(heterodyne):
     N = 10
     ntraj = 1
+
+    H = num(N)
+    sc_ops = [destroy(N)]
+    psi0 = basis(N, N-1)
+
+    times = np.linspace(0, 1.0, 11)
+
+    solver = SMESolver(H, sc_ops, heterodyne=heterodyne)
+
+    solver.options["store_measurement"] = "start"
+    res_start = solver.run(psi0, times, ntraj=ntraj, seeds=1)
+
+    solver.options["store_measurement"] = "middle"
+    res_middle = solver.run(psi0, times, ntraj=ntraj, seeds=1)
+
+    solver.options["store_measurement"] = "end"
+    res_end = solver.run(psi0, times, ntraj=ntraj, seeds=1)
+
+    diff = np.sum(np.abs(res_end.measurement[0] - res_start.measurement[0]))
+    assert diff > 0.1 # Each measurement should be different by ~dt
+    np.testing.assert_allclose(
+        res_middle.measurement[0] * 2,
+        res_start.measurement[0] + res_end.measurement[0],
+    )
+
+    np.testing.assert_allclose(
+        np.diff(res_start.wiener_process[0][0]), res_start.dW[0][0]
+    )
+
+
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_m_ops(heterodyne):
+    N = 10
 
     H = num(N)
     sc_ops = [destroy(N), qeye(N)]
@@ -294,7 +337,7 @@ def test_m_ops(heterodyne):
 
     times = np.linspace(0, 1.0, 51)
 
-    options = {"store_measurement": True,}
+    options = {"store_measurement": "end",}
 
     solver = SMESolver(H, sc_ops, heterodyne=heterodyne, options=options)
     solver.m_ops = m_ops
@@ -322,7 +365,6 @@ def test_m_ops(heterodyne):
 
 
 def test_feedback():
-    tol = 0.05
     N = 10
     ntraj = 2
 
@@ -339,13 +381,15 @@ def test_feedback():
     )]
     psi0 = basis(N, N-3)
 
-    times = np.linspace(0, 10, 101)
-    options = {"map": "serial", "dt": 0.001}
+    times = np.linspace(0, 2, 101)
+    options = {"map": "serial", "dt": 0.0005}
 
     solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
     results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
 
-    assert np.all(results.expect[0] > 6.-1e-6)
+    # If this was deterministic, it should never go under `6`.
+    # We add a tolerance ~dt due to the stochatic part.
+    assert np.all(results.expect[0] > 6. - 0.001)
     assert np.all(results.expect[0][-20:] < 6.7)
 
 
@@ -380,3 +424,176 @@ def test_small_step_warnings(method):
             qeye(2), basis(2), [0, 0.0000001], [qeye(2)],
             options={"method": method}
         )
+
+
+@pytest.mark.parametrize("method", ["euler", "platen"])
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_run_from_experiment_close(method, heterodyne):
+    N = 5
+
+    H = num(N)
+    a = destroy(N)
+    sc_ops = [a, a @ a + (a @ a).dag()]
+    psi0 = basis(N, N-1)
+    tlist = np.linspace(0, 0.1, 501)
+    options = {
+        "store_measurement": "start",
+        "dt": tlist[1],
+        "store_states": True,
+        "method": method,
+    }
+    solver = SSESolver(H, sc_ops, heterodyne, options=options)
+    res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
+    res_backward = solver.run_from_experiment(
+        psi0, tlist, res_forward.dW[0], e_ops=[H]
+    )
+    res_measure = solver.run_from_experiment(
+        psi0, tlist, res_forward.measurement[0], e_ops=[H], measurement=True
+    )
+
+    np.testing.assert_allclose(
+        res_backward.measurement, res_forward.measurement[0], atol=1e-10
+    )
+    np.testing.assert_allclose(
+        res_measure.measurement, res_forward.measurement[0], atol=1e-10
+    )
+
+    np.testing.assert_allclose(res_backward.dW, res_forward.dW[0], atol=1e-10)
+    np.testing.assert_allclose(res_measure.dW, res_forward.dW[0], atol=1e-10)
+
+    np.testing.assert_allclose(
+        res_backward.expect, res_forward.expect, atol=1e-10
+    )
+    np.testing.assert_allclose(
+        res_measure.expect, res_forward.expect, atol=1e-10
+    )
+
+
+@pytest.mark.parametrize(
+    "method", ["euler", "milstein", "platen", "pred_corr"]
+)
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_run_from_experiment_open(method, heterodyne):
+    N = 10
+
+    H = num(N)
+    a = destroy(N)
+    sc_ops = [a, a.dag() * 0.1]
+    psi0 = basis(N, N-1)
+    tlist = np.linspace(0, 1, 251)
+    options = {
+        "store_measurement": "start",
+        "dt": tlist[1],
+        "store_states": True,
+        "method": method,
+    }
+    solver = SMESolver(H, sc_ops, heterodyne, options=options)
+    res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
+    res_backward = solver.run_from_experiment(
+        psi0, tlist, res_forward.dW[0], e_ops=[H]
+    )
+    res_measure = solver.run_from_experiment(
+        psi0, tlist, res_forward.measurement[0], e_ops=[H], measurement=True
+    )
+
+    np.testing.assert_allclose(
+        res_backward.measurement, res_forward.measurement[0], atol=1e-10
+    )
+    np.testing.assert_allclose(
+        res_measure.measurement, res_forward.measurement[0], atol=1e-10
+    )
+
+    np.testing.assert_allclose(res_backward.dW, res_forward.dW[0], atol=1e-10)
+    np.testing.assert_allclose(res_measure.dW, res_forward.dW[0], atol=1e-10)
+
+    np.testing.assert_allclose(
+        res_backward.expect, res_forward.expect, atol=1e-10
+    )
+    np.testing.assert_allclose(
+        res_measure.expect, res_forward.expect, atol=1e-10
+    )
+
+
+@pytest.mark.parametrize("store_measurement", [True, False])
+@pytest.mark.parametrize("keep_runs_results", [True, False])
+def test_merge_results(store_measurement, keep_runs_results):
+    # Running smesolve with mixed ICs should be the same as running smesolve
+    # multiple times and merging the results afterwards
+    initial_state1 = basis([2, 2], [1, 0])
+    initial_state2 = basis([2, 2], [1, 1])
+    H = qeye([2, 2])
+    L = destroy(2) & qeye(2)
+    tlist = np.linspace(0, 1, 11)
+    e_ops = [num(2) & qeye(2), qeye(2) & num(2)]
+
+    options = {
+        "store_measurement": True,
+        "keep_runs_results": True,
+        "store_states": True,
+    }
+    solver = SMESolver(H, [L], True, options=options)
+    result1 = solver.run(initial_state1, tlist, 5, e_ops=e_ops)
+
+    options = {
+        "store_measurement": store_measurement,
+        "keep_runs_results": keep_runs_results,
+        "store_states": True,
+    }
+    solver = SMESolver(H, [L], True, options=options)
+    result2 = solver.run(initial_state2, tlist, 10, e_ops=e_ops)
+
+    result_merged = result1 + result2
+    assert len(result_merged.seeds) == 15
+    if store_measurement:
+        assert (
+            result_merged.average_states[0] ==
+            (initial_state1.proj() + 2 * initial_state2.proj()).unit()
+        )
+    np.testing.assert_allclose(result_merged.average_expect[0][0], 1)
+    np.testing.assert_allclose(result_merged.average_expect[1], 2/3)
+
+    if store_measurement:
+        assert len(result_merged.measurement) == 15
+        assert len(result_merged.dW) == 15
+        assert all(
+            dw.shape == result_merged.dW[0].shape
+            for dw in result_merged.dW
+        )
+        assert len(result_merged.wiener_process) == 15
+        assert all(
+            w.shape == result_merged.wiener_process[0].shape
+            for w in result_merged.wiener_process
+        )
+
+
+@pytest.mark.parametrize("open", [True, False])
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_step(open, heterodyne):
+    state0 = basis(5, 3)
+    kw = {}
+    if open:
+        SolverCls = SMESolver
+        state0 = state0.proj()
+    else:
+        SolverCls = SSESolver
+
+    solver = SolverCls(
+        num(5),
+        sc_ops=[destroy(5), destroy(5)**2 / 10],
+        heterodyne=heterodyne,
+        options={"dt": 0.001},
+        **kw
+    )
+    solver.start(state0, t0=0)
+    state1 = solver.step(0.01)
+    assert state1.dims == state0.dims
+    assert state1.norm() == pytest.approx(1, abs=0.01)
+    state2, dW = solver.step(0.02, wiener_increment=True)
+    assert state2.dims == state0.dims
+    assert state2.norm() == pytest.approx(1, abs=0.01)
+    if heterodyne:
+        assert dW.shape == (2, 2)
+        assert abs(dW[0, 0]) < 0.5 # 5 sigmas
+    else:
+        assert dW.shape == (2,)
+        assert abs(dW[0]) < 0.5 # 5 sigmas

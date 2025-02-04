@@ -5,11 +5,10 @@ visualizations of quantum states and processes.
 
 __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
            'matrix_histogram', 'plot_energy_levels', 'plot_fock_distribution',
-           'plot_wigner', 'plot_expectation_values',
+           'plot_wigner', 'plot_qfunc', 'plot_expectation_values',
            'plot_spin_distribution', 'complex_array_to_rgb',
            'plot_qubism', 'plot_schmidt']
 
-import warnings
 import itertools as it
 import numpy as np
 from numpy import pi, array, sin, cos, angle, log2, sqrt
@@ -17,11 +16,10 @@ from numpy import pi, array, sin, cos, angle, log2, sqrt
 from packaging.version import parse as parse_version
 
 from . import (
-    Qobj, isket, ket2dm, tensor, vector_to_operator, to_super, settings
+    Qobj, isket, ket2dm, tensor, vector_to_operator, settings
 )
-from .core.dimensions import flatten
 from .core.superop_reps import _to_superpauli, isqubitdims
-from .wigner import wigner
+from .wigner import wigner, qfunc
 from .matplotlib_utilities import complex_phase_cmap
 
 try:
@@ -579,15 +577,27 @@ def _remove_margins(axis):
     removes margins about z = 0 and improves the style
     by monkey patching
     """
-    def _get_coord_info_new(renderer):
-        mins, maxs, centers, deltas, tc, highs = \
-            _get_coord_info_old(renderer)
+
+    def _get_coord_info_new_mpl38(renderer):
+        mins, maxs, centers, deltas, tc, highs = _get_coord_info_old(renderer)
         mins += deltas / 4
         maxs -= deltas / 4
         return mins, maxs, centers, deltas, tc, highs
 
+    def _get_coord_info_new_mpl39():
+        mins, maxs, bounds_proj, highs = _get_coord_info_old()
+        centers, deltas = axis._calc_centers_deltas(maxs, mins)
+        mins += deltas / 4
+        maxs -= deltas / 4
+        return mins, maxs, bounds_proj, highs
+
     _get_coord_info_old = axis._get_coord_info
-    axis._get_coord_info = _get_coord_info_new
+
+    # Select correct version of the function based on matplotlib version
+    if parse_version(mpl.__version__) >= parse_version("3.9"):
+        axis._get_coord_info = _get_coord_info_new_mpl39
+    else:
+        axis._get_coord_info = _get_coord_info_new_mpl38
 
 
 def _stick_to_planes(stick, azim, ax, M, spacing):
@@ -670,10 +680,54 @@ def _get_matrix_components(option, M, argument):
                          f"{option} for {argument}")
 
 
-def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
-                     bar_style='real', color_limits=None, color_style='real',
-                     options=None, *, cmap=None, colorbar=True,
-                     fig=None, ax=None):
+def sph2cart(r, theta, phi):
+    """spherical to cartesian transformation."""
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+    return x, y, z
+
+
+def sphview(ax):
+    """
+    returns the camera position for 3D axes in spherical coordinates."""
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    zlim = ax.get_zlim()
+    # Compute  based on the plots xyz limits.
+    r = 0.5 * np.sqrt(
+        (xlim[1] - xlim[0]) ** 2 +
+        (ylim[1] - ylim[0]) ** 2 +
+        (zlim[1] - zlim[0]) ** 2
+    )
+    theta, phi = np.radians((90 - ax.elev, ax.azim))
+    return r, theta, phi
+
+
+def get_camera_position(ax):
+    """
+    returns the camera position for 3D axes in cartesian coordinates
+    as a 3d numpy array.
+    """
+    r, theta, phi = sphview(ax)
+    return np.array(sph2cart(r, theta, phi), ndmin=3).T
+
+
+def matrix_histogram(
+    M,
+    x_basis=None,
+    y_basis=None,
+    limits=None,
+    bar_style="real",
+    color_limits=None,
+    color_style="real",
+    options=None,
+    *,
+    cmap=None,
+    colorbar=True,
+    fig=None,
+    ax=None,
+):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -791,11 +845,20 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     """
 
-    # default options
-    default_opts = {'zticks': None, 'bars_spacing': 0.2,
-                    'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
-                    'shade': True, 'azim': -35, 'elev': 35, 'stick': False,
-                    'cbar_pad': 0.04, 'cbar_to_z': False, 'threshold': None}
+    default_opts = {
+        "zticks": None,
+        "bars_spacing": 0.3,
+        "bars_alpha": 1.0,
+        "bars_lw": 0.7,
+        "bars_edgecolor": "k",
+        "shade": True,
+        "azim": -60,
+        "elev": 30,
+        "stick": False,
+        "cbar_pad": 0.04,
+        "cbar_to_z": False,
+        "threshold": None,
+    }
 
     # update default_opts from input options
     if options is None:
@@ -804,8 +867,10 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     if isinstance(options, dict):
         # check if keys in options dict are valid
         if set(options) - set(default_opts):
-            raise ValueError("invalid key(s) found in options: "
-                             f"{', '.join(set(options) - set(default_opts))}")
+            raise ValueError(
+                "invalid key(s) found in options: "
+                f"{', '.join(set(options) - set(default_opts))}"
+            )
         else:
             # updating default options
             default_opts.update(options)
@@ -813,7 +878,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
     else:
         raise ValueError("options must be a dictionary")
 
-    fig, ax = _is_fig_and_ax(fig, ax, projection='3d')
+    fig, ax = _is_fig_and_ax(fig, ax, projection="3d")
 
     if not isinstance(M, list):
         Ms = [M]
@@ -822,8 +887,7 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     _equal_shape(Ms)
 
-    for i in range(len(Ms)):
-        M = Ms[i]
+    for i, M in enumerate(Ms):
         if isinstance(M, Qobj):
             if x_basis is None:
                 x_basis = list(_cb_labels([M.shape[0]])[0])
@@ -832,10 +896,9 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
             # extract matrix data from Qobj
             M = M.full()
 
-        bar_M = _get_matrix_components(bar_style, M, 'bar_style')
+        bar_M = _get_matrix_components(bar_style, M, "bar_style")
 
-        if isinstance(limits, list) and \
-                len(limits) == 2:
+        if isinstance(limits, list) and len(limits) == 2:
             z_min = limits[0]
             z_max = limits[1]
         else:
@@ -846,19 +909,18 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
                 z_min -= 0.1
                 z_max += 0.1
 
-        color_M = _get_matrix_components(color_style, M, 'color_style')
+        color_M = _get_matrix_components(color_style, M, "color_style")
 
-        if isinstance(color_limits, list) and \
-                len(color_limits) == 2:
+        if isinstance(color_limits, list) and len(color_limits) == 2:
             c_min = color_limits[0]
             c_max = color_limits[1]
         else:
-            if color_style == 'phase':
+            if color_style == "phase":
                 c_min = -pi
                 c_max = pi
             else:
                 c_min = min(color_M) if i == 0 else min(min(color_M), c_min)
-                c_max = min(color_M) if i == 0 else max(max(color_M), c_max)
+                c_max = max(color_M) if i == 0 else max(max(color_M), c_max)
 
             if c_min == c_max:
                 c_min -= 0.1
@@ -868,66 +930,93 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     if cmap is None:
         # change later
-        if color_style == 'phase':
+        if color_style == "phase":
             cmap = _cyclic_cmap()
         else:
             cmap = _sequential_cmap()
 
     artist_list = list()
+
+    ax.view_init(azim=options['azim'], elev=options['elev'])
+
+    camera = get_camera_position(ax)
     for M in Ms:
 
         if isinstance(M, Qobj):
             M = M.full()
 
-        bar_M = _get_matrix_components(bar_style, M, 'bar_style')
-        color_M = _get_matrix_components(color_style, M, 'color_style')
+        bar_M = _get_matrix_components(bar_style, M, "bar_style")
+        color_M = _get_matrix_components(color_style, M, "color_style")
 
         n = np.size(M)
         xpos, ypos = np.meshgrid(range(M.shape[0]), range(M.shape[1]))
         xpos = xpos.T.flatten() + 0.5
         ypos = ypos.T.flatten() + 0.5
         zpos = np.zeros(n)
-        dx = dy = (1 - options['bars_spacing']) * np.ones(n)
+        dx = dy = (1 - options["bars_spacing"]) * np.ones(n)
         colors = cmap(norm(color_M))
 
-        colors[:, 3] = options['bars_alpha']
+        colors[:, 3] = options["bars_alpha"]
 
-        if options['threshold'] is not None:
-            colors[:, 3] *= 1 * (bar_M >= options['threshold'])
+        if options["threshold"] is not None:
+            colors[:, 3] *= 1 * (bar_M >= options["threshold"])
 
-            idx, = np.where(bar_M < options['threshold'])
+            (idx,) = np.where(bar_M < options["threshold"])
             bar_M[idx] = 0
 
-        artist = ax.bar3d(xpos, ypos, zpos, dx, dy, bar_M, color=colors,
-                          edgecolors=options['bars_edgecolor'],
-                          linewidths=options['bars_lw'],
-                          shade=options['shade'])
-        artist_list.append([artist])
+        temp_xpos = xpos.reshape(M.shape)
+        temp_ypos = ypos.reshape(M.shape)
+        temp_zpos = zpos.reshape(M.shape)
+
+        # calculating z_order for each bar based on its position
+        # The sorting issue was fixed by making minor change to
+        # https://stackoverflow.com/questions/18602660/matplotlib-bar3d-clipping-problems
+        z_order = (
+            np.multiply(
+                [
+                    temp_xpos, temp_ypos, temp_zpos], camera
+                    ).sum(0).flatten()
+        )
+
+        for i, uxpos in enumerate(xpos):
+            artist = ax.bar3d(
+                uxpos,
+                ypos[i],
+                zpos[i],
+                dx[i],
+                dy[i],
+                bar_M[i],
+                color=colors[i],
+                edgecolors=options["bars_edgecolor"],
+                linewidths=options["bars_lw"],
+                shade=options["shade"],
+            )
+            # Setting the z-order for rendering
+            artist._sort_zpos = z_order[i]
+            artist_list.append([artist])
 
     if len(Ms) == 1:
         output = ax
     else:
-        output = animation.ArtistAnimation(fig, artist_list, interval=50,
-                                           blit=True, repeat_delay=1000)
+        output = animation.ArtistAnimation(
+            fig, artist_list, interval=50, blit=True, repeat_delay=1000
+        )
 
     # remove vertical lines on xz and yz plane
-    ax.yaxis._axinfo["grid"]['linewidth'] = 0
-    ax.xaxis._axinfo["grid"]['linewidth'] = 0
+    ax.yaxis._axinfo["grid"]["linewidth"] = 0
+    ax.xaxis._axinfo["grid"]["linewidth"] = 0
 
     # x axis
-    _update_xaxis(options['bars_spacing'], M, ax, x_basis)
+    _update_xaxis(options["bars_spacing"], M, ax, x_basis)
 
     # y axis
-    _update_yaxis(options['bars_spacing'], M, ax, y_basis)
+    _update_yaxis(options["bars_spacing"], M, ax, y_basis)
 
     # z axis
-    _update_zaxis(ax, z_min, z_max, options['zticks'])
+    _update_zaxis(ax, z_min, z_max, options["zticks"])
 
     # stick to xz and yz plane
-    _stick_to_planes(options['stick'],
-                     options['azim'], ax, M,
-                     options['bars_spacing'])
-    ax.view_init(azim=options['azim'], elev=options['elev'])
+    _stick_to_planes(options["stick"], options["azim"], ax, M, options["bars_spacing"])
 
     # removing margins
     _remove_margins(ax.xaxis)
@@ -936,22 +1025,23 @@ def matrix_histogram(M, x_basis=None, y_basis=None, limits=None,
 
     # color axis
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75,
-                                         pad=options['cbar_pad'])
+        cax, kw = mpl.colorbar.make_axes(
+            ax, shrink=0.75, pad=options["cbar_pad"])
         cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
-        if color_style == 'real':
-            cb.set_label('real')
-        elif color_style == 'img':
-            cb.set_label('imaginary')
-        elif color_style == 'abs':
-            cb.set_label('absolute')
+        if color_style == "real":
+            cb.set_label("real")
+        elif color_style == "img":
+            cb.set_label("imaginary")
+        elif color_style == "abs":
+            cb.set_label("absolute")
         else:
-            cb.set_label('arg')
+            cb.set_label("arg")
             if color_limits is None:
                 cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
                 cb.set_ticklabels(
-                    (r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
+                    (r"$-\pi$", r"$-\pi/2$", r"$0$", r"$\pi/2$", r"$\pi$")
+                )
 
     return fig, output
 
@@ -1208,6 +1298,118 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
         W0 = wigner(
             rho, xvec, yvec, method=method,
             g=g, sparse=sparse, parfor=parfor
+        )
+
+        W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)
+        Ws.append(W)
+
+        wlim = max(abs(W).max(), wlim)
+
+    norm = mpl.colors.Normalize(-wlim, wlim)
+
+    if cmap is None:
+        cmap = _diverging_cmap()
+
+    artist_list = list()
+    for W in Ws:
+        if projection == '2d':
+            if parse_version(mpl.__version__) >= parse_version('3.8'):
+                cf = [ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)]
+            else:
+                cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
+                                 cmap=cmap).collections
+        else:
+            X, Y = np.meshgrid(xvec, yvec)
+            cf = [ax.plot_surface(X, Y, W, rstride=5, cstride=5, linewidth=0.5,
+                                  norm=norm, cmap=cmap)]
+        artist_list.append(cf)
+
+    if len(rhos) == 1:
+        output = ax
+    else:
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
+
+    ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
+    ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
+
+    if colorbar:
+        if projection == '2d':
+            shrink = 1
+        else:
+            shrink = .75
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=shrink, pad=.1)
+        cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+
+    return fig, output
+
+
+def plot_qfunc(rho, xvec=None, yvec=None, projection='2d',
+               g=sqrt(2), *, cmap=None, colorbar=False,
+               fig=None, ax=None):
+    """
+    Plot the the Husimi-Q function for a density matrix (or ket).
+
+    Parameters
+    ----------
+    rho : :obj:`.Qobj`
+        The density matrix (or ket) of the state to visualize.
+
+    xvec : array_like, optional
+        x-coordinates at which to calculate the Husimi-Q function.
+
+    yvec : array_like, optional
+        y-coordinates at which to calculate the Husimi-Q function.
+
+    projection: str {'2d', '3d'}, default: '2d'
+        Specify whether the Husimi-Q function is to be plotted as a
+        contour graph ('2d') or surface plot ('3d').
+
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+
+    cmap : a matplotlib cmap instance, optional
+        The colormap.
+
+    colorbar : bool, default: False
+        Whether (True) or not (False) a colorbar should be attached to the
+        Husimi-Q function graph.
+
+    fig : a matplotlib Figure instance, optional
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance, optional
+        The axes context in which the plot will be drawn.
+
+    Returns
+    -------
+    fig, output : tuple
+        A tuple of the matplotlib figure and the axes instance or animation
+        instance used to produce the figure.
+    """
+
+    if projection not in ('2d', '3d'):
+        raise ValueError('Unexpected value of projection keyword argument')
+
+    fig, ax = _is_fig_and_ax(fig, ax, projection)
+
+    if not isinstance(rho, list):
+        rhos = [rho]
+    else:
+        rhos = rho
+
+    _equal_shape(rhos)
+
+    wlim = 0
+    Ws = list()
+    xvec = np.linspace(-7.5, 7.5, 200) if xvec is None else xvec
+    yvec = np.linspace(-7.5, 7.5, 200) if yvec is None else yvec
+    for rho in rhos:
+        if isket(rho):
+            rho = ket2dm(rho)
+
+        W0 = qfunc(
+            rho, xvec, yvec, g=g
         )
 
         W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)

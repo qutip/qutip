@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 import qutip
 from qutip.solver.brmesolve import brmesolve
+from qutip.core.environment import DrudeLorentzEnvironment
 
 
 def pauli_spin_operators():
@@ -10,7 +11,7 @@ def pauli_spin_operators():
 
 _simple_qubit_gamma = 0.25
 coeff = qutip.coefficient(lambda t, w: _simple_qubit_gamma * (w >= 0),
-                          args={'w':0})
+                          args={'w': 0})
 _m_c_op = np.sqrt(_simple_qubit_gamma) * qutip.sigmam()
 _z_c_op = np.sqrt(_simple_qubit_gamma) * qutip.sigmaz()
 _x_a_op = [qutip.sigmax(), coeff]
@@ -81,8 +82,8 @@ def test_harmonic_oscillator(n_th):
     a_ops = [[a + a.dag(), S_w]]
     e_ops = [a.dag()*a, a+a.dag()]
 
-    me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
-    brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    me = qutip.mesolve(H, psi0, times, c_ops, e_ops=e_ops)
+    brme = brmesolve(H, psi0, times, a_ops, e_ops=e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 
@@ -111,8 +112,8 @@ def test_jaynes_cummings_zero_temperature_spectral_callable():
     c_ops = [np.sqrt(kappa) * a]
     H = w0*a.dag()*a + w0*sp.dag()*sp + g*(a+a.dag())*(sp+sp.dag())
 
-    me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
-    brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    me = qutip.mesolve(H, psi0, times, c_ops, e_ops=e_ops)
+    brme = brmesolve(H, psi0, times, a_ops, e_ops=e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         # Accept 5% error.
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=5e-2)
@@ -132,8 +133,8 @@ def test_tensor_system():
          + w3/2. * qutip.tensor(id2, id2, qutip.sigmaz()))
 
     # White noise
-    S2 = qutip.coefficient(lambda t, w: gamma2, args={'w':0})
-    S3 = qutip.coefficient(lambda t, w: gamma3, args={'w':0})
+    S2 = qutip.coefficient(lambda t, w: gamma2, args={'w': 0})
+    S3 = qutip.coefficient(lambda t, w: gamma3, args={'w': 0})
 
     qubit_2_x = qutip.tensor(id2, qutip.sigmax(), id2)
     qubit_3_x = qutip.tensor(id2, id2, qutip.sigmax())
@@ -187,8 +188,8 @@ def test_jaynes_cummings_zero_temperature_spectral_str():
     c_ops = [np.sqrt(kappa) * a]
     H = w0*a.dag()*a + w0*sp.dag()*sp + g*(a+a.dag())*(sp+sp.dag())
 
-    me = qutip.mesolve(H, psi0, times, c_ops, e_ops)
-    brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    me = qutip.mesolve(H, psi0, times, c_ops, e_ops=e_ops)
+    brme = brmesolve(H, psi0, times, a_ops, e_ops=e_ops)
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         # Accept 5% error.
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=5e-2)
@@ -209,10 +210,10 @@ def _string_w_interpolating_t(kappa, times):
 
 @pytest.mark.slow
 @pytest.mark.parametrize("time_dependence_tuple", [
-        _mixed_string,
-        _separate_strings,
-        _string_w_interpolating_t,
-    ])
+    _mixed_string,
+    _separate_strings,
+    _string_w_interpolating_t,
+])
 def test_time_dependence_tuples(time_dependence_tuple):
     N = 10
     a = qutip.destroy(N)
@@ -290,8 +291,8 @@ def test_hamiltonian_taking_arguments():
     H = w0*a.dag()*a + w0*sp.dag()*sp + g*(a+a.dag())*(sp+sp.dag())
     args = {'ii': 1}
 
-    no_args = brmesolve(H, psi0, times, a_ops, e_ops)
-    args = brmesolve([[H, 'ii']], psi0, times, a_ops, e_ops, args=args)
+    no_args = brmesolve(H, psi0, times, a_ops, e_ops=e_ops)
+    args = brmesolve([[H, 'ii']], psi0, times, a_ops, e_ops=e_ops, args=args)
     for arg, no_arg in zip(args.expect, no_args.expect):
         np.testing.assert_allclose(arg, no_arg, atol=1e-10)
 
@@ -312,3 +313,27 @@ def test_feedback():
         args={"A": qutip.BRSolver.ExpectFeedback(qutip.num(N))}
     )
     assert np.all(result.expect[0] > 4. - tol)
+
+
+@pytest.mark.parametrize("lam,gamma,beta", [(0.05, 1, 1), (0.1, 5, 2)])
+def test_accept_environment(lam, gamma, beta):
+    DL = (
+        "2 * pi * 2.0 * {lam} / (pi * {gamma} * {beta}) if (w==0) "
+        "else 2 * pi * (2.0 * {lam} * {gamma} * w / (pi * (w**2 + {gamma}**2))) "
+        "* ((1 / (exp(w * {beta}) - 1)) + 1)"
+    ).format(gamma=gamma, beta=beta, lam=lam)
+    H = 0.5 * qutip.sigmax()
+    psi0 = (2 * qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
+    times = np.linspace(0, 10, 100)
+    resultBR_str = brmesolve(
+        H, psi0, times,
+        a_ops=[[qutip.sigmaz(), DL]],
+        e_ops=[qutip.sigmaz()]
+    )
+    env = DrudeLorentzEnvironment(T=1/beta, lam=lam, gamma=gamma)
+    resultBR_env = brmesolve(
+        H, psi0, times,
+        a_ops=[[qutip.sigmaz(), env]],
+        e_ops=[qutip.sigmaz()]
+    )
+    assert np.allclose(resultBR_env.expect[0], resultBR_str.expect[0])

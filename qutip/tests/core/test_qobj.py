@@ -442,6 +442,15 @@ def test_QobjEquals():
     q2 = qutip.Qobj(-data)
     assert q1 != q2
 
+    # data's entry are of order 1,
+    with qutip.CoreOptions(atol=10):
+        assert q1 == q2
+        assert q1 != q2 * 100
+
+    with qutip.CoreOptions(rtol=10):
+        assert q1 == q2
+        assert q1 == q2 * 100
+
 
 def test_QobjGetItem():
     "qutip.Qobj getitem"
@@ -551,6 +560,12 @@ def test_QobjDiagonals():
     b = A.diag()
     assert np.all(b == np.diag(data))
 
+
+def test_diag_type():
+    assert qutip.sigmaz().diag().dtype == np.float64
+    assert (1j * qutip.sigmaz()).diag().dtype == np.complex128
+    with qutip.CoreOptions(auto_real_casting=False):
+        assert qutip.sigmaz().diag().dtype == np.complex128
 
 def test_QobjEigenEnergies():
     "qutip.Qobj eigenenergies"
@@ -1123,21 +1138,11 @@ def test_trace():
     assert sz.tr() == 0
 
 
-def test_no_real_attribute(monkeypatch):
-    """This tests ensures that trace still works even if the output of a
-    specialisation does not have the ``real`` attribute. This is the case for
-    the tensorflow and cupy data layers."""
-
-    def mocker_trace_return(oper):
-        """
-        We simply return a string which does not have the `real` attribute.
-        """
-        return "object without .real"
-
-    monkeypatch.setattr(_data, "trace", mocker_trace_return)
-
-    sz = qutip.sigmaz() # the choice of the matrix does not matter
-    assert "object without .real" == sz.tr()
+def test_no_real_casting():
+    sz = qutip.sigmaz()
+    assert isinstance(sz.tr(), float)
+    with qutip.CoreOptions(auto_real_casting=False):
+        assert isinstance(sz.tr(), complex)
 
 
 @pytest.mark.parametrize('inplace', [True, False], ids=['inplace', 'new'])

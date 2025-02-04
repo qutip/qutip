@@ -1,4 +1,8 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 import numpy as np
+from numpy.typing import ArrayLike
 import scipy
 import scipy.interpolate
 import os
@@ -25,6 +29,7 @@ from .cy.coefficient import (
     Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
     ConjCoefficient, NormCoefficient, ConstantCoefficient
 )
+from qutip.typing import CoefficientLike
 
 
 __all__ = ["coefficient", "CompilationOptions", "Coefficient",
@@ -48,12 +53,22 @@ coefficient_builders = {
     np.ndarray: InterCoefficient,
     scipy.interpolate.PPoly: InterCoefficient.from_PPoly,
     scipy.interpolate.BSpline: InterCoefficient.from_Bspline,
+    numbers.Number: ConstantCoefficient,
 }
 
 
-def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                order=3, compile_opt=None, function_style=None,
-                boundary_conditions=None, **kwargs):
+def coefficient(
+    base: CoefficientLike,
+    *,
+    tlist: ArrayLike = None,
+    args: dict = {},
+    args_ctypes: dict = {},
+    order: int = 3,
+    compile_opt: dict = None,
+    function_style: str = None,
+    boundary_conditions: tuple | str = None,
+    **kwargs
+):
     """Build ``Coefficient`` for time dependent systems:
 
     ```
@@ -209,10 +224,29 @@ WARN_MISSING_MODULE = [0]
 
 class CompilationOptions(QutipOptions):
     """
+    Options that control compilation of string based coefficient to Cython.
+
+    These options can be set globaly:
+
+        ``settings.compile["compiler_flags"] = "-O1"``
+
+    In a ``with`` block:
+
+        ``with CompilationOptions(use_cython=False):``
+
+    Or as an instance:
+
+        ``coefficient(coeff, compile_opt=CompilationOptions(recompile=True))``
+
+    ********************
     Compilation options:
+    ********************
 
     use_cython: bool
         Whether to compile strings as cython code or use python's ``exec``.
+
+    recompile : bool
+        Do not use previously made files but build a new one.
 
     try_parse: bool [True]
         Whether to try parsing the string for reuse and static typing.
@@ -228,9 +262,6 @@ class CompilationOptions(QutipOptions):
 
     accept_float : bool
         Whether to use the type ``float`` or upgrade them to ``complex``.
-
-    recompile : bool
-        Do not use previously made files but build a new one.
 
     compiler_flags : str
         Flags to pass to the compiler, ex: "-Wall -O3"...
@@ -267,6 +298,7 @@ class CompilationOptions(QutipOptions):
     try:
         import cython
         import filelock
+        import setuptools
         _use_cython = True
     except ImportError:
         _use_cython = False
@@ -277,7 +309,7 @@ class CompilationOptions(QutipOptions):
         "try_parse": True,
         "static_types": True,
         "accept_int": None,
-        "accept_float": True,
+        "accept_float": None,
         "recompile": False,
         "compiler_flags": _compiler_flags,
         "link_flags": _link_flags,
@@ -293,7 +325,7 @@ qset.compile = CompilationOptions()
 
 
 # Version number of the Coefficient
-COEFF_VERSION = "1.1"
+COEFF_VERSION = "1.2"
 
 try:
     root = os.path.join(qset.tmproot, f"qutip_coeffs_{COEFF_VERSION}")
@@ -309,15 +341,17 @@ def clean_compiled_coefficient(all=False):
     Parameter:
     ----------
     all: bool
-        If not `all` will remove only previous version.
+        If not `all`, it will remove only previous version.
     """
     import glob
     import shutil
     tmproot = qset.tmproot
-    root = os.path.join(tmproot, f'qutip_coeffs_{COEFF_VERSION}')
+    active = qset.coeffroot
     folders = glob.glob(os.path.join(tmproot, 'qutip_coeffs_') + "*")
+    if all:
+        shutil.rmtree(active)
     for folder in folders:
-        if all or folder != root:
+        if folder != active:
             shutil.rmtree(folder)
     # Recreate the empty folder.
     qset.coeffroot = qset.coeffroot
@@ -384,8 +418,8 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None, **_):
     if not compile_opt['use_cython']:
         if WARN_MISSING_MODULE[0]:
             warnings.warn(
-                "Both `cython` and `filelock` are required for compilation of "
-                "string coefficents. Falling back on `eval`.")
+                "`cython`, `setuptools` and `filelock` are required for "
+                "compilation of string coefficents. Falling back on `eval`.")
             # Only warns once.
             WARN_MISSING_MODULE[0] = 0
         return StrFunctionCoefficient(base, args)
@@ -711,8 +745,11 @@ def parse(code, args, compile_opt):
     accept_float = compile_opt['accept_float']
     if accept_int is None:
         # If there is a subscript: a[b] int are always accepted to be safe
-        # with TypeError
+        # with TypeError.
+        # Also comparison is not supported for complex.
         accept_int = "SUBSCR" in dis.Bytecode(code).dis()
+    if accept_float is None:
+        accept_float = "COMPARE_OP" in dis.Bytecode(code).dis()
     for word in code.split():
         if word not in names:
             # syntax

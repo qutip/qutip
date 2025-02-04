@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from scipy.integrate import trapezoid
 import itertools
 from scipy.special import laguerre
 from numpy.random import rand
@@ -634,7 +635,9 @@ def test_spin_q_function_normalized(spin, pure):
     phi = np.linspace(-np.pi, np.pi, 256, endpoint=True)
     Q, THETA, _ = qutip.spin_q_function(rho, theta, phi)
 
-    norm = d / (4 * np.pi) * np.trapz(np.trapz(Q * np.sin(THETA), theta), phi)
+    norm = d / (4 * np.pi) * trapezoid(
+        trapezoid(Q * np.sin(THETA), theta), phi
+    )
     assert_allclose(norm, 1, atol=2e-4)
 
 
@@ -657,7 +660,9 @@ def test_spin_wigner_normalized(spin, pure):
     phi = np.linspace(-np.pi, np.pi, 512, endpoint=True)
     W, THETA, PHI = qutip.spin_wigner(rho, theta, phi)
 
-    norm = np.trapz(np.trapz(W * np.sin(THETA) * np.sqrt(d / (4*np.pi)), theta), phi)
+    norm = trapezoid(
+        trapezoid(W * np.sin(THETA) * np.sqrt(d / (4*np.pi)), theta), phi
+    )
     assert_almost_equal(norm, 1, decimal=4)
 
 @pytest.mark.parametrize(['spin'], [
@@ -684,6 +689,6 @@ def test_spin_wigner_overlap(spin, pure, n=5):
         state_overlap = (test_state*rho).tr().real
 
         W_state, _, _ = qutip.spin_wigner(test_state, theta, phi)
-        W_overlap = np.trapz(
-            np.trapz(W_state * W * np.sin(THETA), theta), phi).real
+        W_overlap = trapezoid(
+            trapezoid(W_state * W * np.sin(THETA), theta), phi).real
         assert_almost_equal(W_overlap, state_overlap, decimal=4)

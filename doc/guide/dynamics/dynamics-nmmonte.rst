@@ -79,6 +79,9 @@ associated jump rates :math:`\Gamma_n(t)\geq0` appropriate for simulation.
 We conclude with a simple example demonstrating the usage of the ``nm_mcsolve``
 function. For more elaborate, physically motivated examples, we refer to the
 `accompanying tutorial notebook <https://github.com/qutip/qutip-tutorials/blob/main/tutorials-v5/time-evolution/013_nonmarkovian_monte_carlo.md>`_.
+Note that the example also demonstrates the usage of the ``improved_sampling``
+option (which is explained in the guide for the
+:ref:`Monte Carlo Solver<monte>`) in ``nm_mcsolve``.
 
 
 .. plot::
@@ -98,10 +101,11 @@ function. For more elaborate, physically motivated examples, we refer to the
     ops_and_rates = []
     ops_and_rates.append([a0.dag(), gamma1])
     ops_and_rates.append([a0,       gamma2])
+    nm_options = {'map': 'parallel', 'improved_sampling': True}
     MCSol = nm_mcsolve(H, psi0, times, ops_and_rates,
                        args={'kappa': 1.0 / 0.129, 'nth': 0.063},
                        e_ops=[a0.dag() * a0, a0 * a0.dag()],
-                       options={'map': 'parallel'}, ntraj=2500)
+                       options=nm_options, ntraj=2500)
 
     # mesolve integration for comparison
     d_ops = [[lindblad_dissipator(a0.dag(), a0.dag()), gamma1],

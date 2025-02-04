@@ -2,6 +2,7 @@ import pytest
 import functools
 from itertools import product
 import numpy as np
+from scipy.integrate import trapezoid
 import qutip
 
 pytestmark = [pytest.mark.usefixtures("in_temporary_directory")]
@@ -91,7 +92,7 @@ def test_spectrum_solver_equivalence_to_es(spectrum):
 def _trapz_2d(z, xy):
     """2D trapezium-method integration assuming a square grid."""
     dx = xy[1] - xy[0]
-    return dx*dx * np.trapz(np.trapz(z, axis=0))
+    return dx*dx * trapezoid(trapezoid(z, axis=0))
 
 
 def _n_correlation(times, n):
@@ -135,7 +136,7 @@ def _2ls_g2_0(H, c_ops):
                                   e_ops=[qutip.num(2)],
                                   args=_2ls_args).expect[0]
     integral_correlation = _trapz_2d(np.real(correlation), times)
-    integral_n_expectation = np.trapz(n_expectation, times)
+    integral_n_expectation = trapezoid(n_expectation, times)
     # Factor of two from negative time correlations.
     return 2 * integral_correlation / integral_n_expectation**2
 

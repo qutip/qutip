@@ -12,7 +12,7 @@ from .base import idxint_dtype
 
 __all__ = [
     'expm', 'expm_csr', 'expm_csr_dense', 'expm_dense', 'expm_dia',
-    'logm', 'logm_dense',
+    'logm', 'logm_dense', 'sqrtm', 'sqrtm_dense'
 ]
 
 
@@ -127,6 +127,27 @@ logm = _Dispatcher(
 logm.__doc__ = """Matrix logarithm `ln(A)` for a matrix `A`."""
 logm.add_specialisations([
     (Dense, Dense, logm_dense),
+], _defer=True)
+
+
+def sqrtm_dense(matrix) -> Dense:
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("can only compute logarithm square matrix")
+    return Dense(scipy.linalg.sqrtm(matrix.as_ndarray()))
+
+
+sqrtm = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
+    ]),
+    name='sqrtm',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+sqrtm.__doc__ = """Matrix square root `sqrt(A)` for a matrix `A`."""
+sqrtm.add_specialisations([
+    (Dense, Dense, sqrtm_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher

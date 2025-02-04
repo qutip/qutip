@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['Propagator', 'propagator', 'propagator_steadystate']
 
 import numbers
@@ -5,14 +8,24 @@ import numpy as np
 
 from .. import Qobj, qeye, qeye_like, unstack_columns, QobjEvo, liouvillian
 from ..core import data as _data
+from ..typing import QobjEvoLike
 from .mesolve import mesolve, MESolver
 from .sesolve import sesolve, SESolver
 from .heom.bofin_solvers import HEOMSolver
 from .solver_base import Solver
 from .multitraj import MultiTrajSolver
+from numbers import Number
+from typing import Any
 
 
-def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
+def propagator(
+    H: QobjEvoLike,
+    t: Number,
+    c_ops: QobjEvoLike | list[QobjEvoLike] = None,
+    args: dict[str, Any] = None,
+    options: dict[str, Any] = None,
+    **kwargs,
+) -> Qobj | list[Qobj]:
     r"""
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
@@ -28,10 +41,15 @@ def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
         that can be made into :obj:`.QobjEvo` are also accepted.
 
     t : float or array-like
-        Time or list of times for which to evaluate the propagator.
+        Time or list of times for which to evaluate the propagator. If a single
+        time ``t`` is passed, the propagator from ``0`` to ``t`` is computed.
+        When ``t`` is a list, the propagators from the first time in the list
+        to each elements in ``t`` is returned. In that case, the first output
+        will always be the identity matrix.
 
     c_ops : list, optional
-        List of Qobj or QobjEvo collapse operators.
+        List of collapse operators as Qobj, QobjEvo or list that can be made
+        into QobjEvo.
 
     args : dictionary, optional
         Parameters to callback functions for time-dependent Hamiltonians and
@@ -42,13 +60,22 @@ def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
 
     **kwargs :
         Extra parameters to use when creating the
-        :obj:`.QobjEvo` from a list format ``H``.
+        :obj:`.QobjEvo` from a list format ``H``. The most common are ``tlist``
+        and ``order`` for array-based time dependance. See :obj:`.QobjEvo` for
+        the full list.
 
     Returns
     -------
     U : :obj:`.Qobj`, list
         Instance representing the propagator(s) :math:`U(t)`. Return a single
         Qobj when ``t`` is a number or a list when ``t`` is a list.
+
+    Notes
+    -----
+    Unlike :func:`.sesolve` or :func:`.mesolve`, the output times in ``t`` are
+    not used for array time dependent system. ``tlist`` must be passed as a
+    keyword argument in those case. ``tlist`` and ``t`` can have different
+    length and values.
 
     """
     if isinstance(t, numbers.Real):
@@ -60,6 +87,9 @@ def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
 
     if not isinstance(H, (Qobj, QobjEvo)):
         H = QobjEvo(H, args=args, **kwargs)
+
+    if isinstance(c_ops, list):
+        c_ops = [QobjEvo(op, args=args, **kwargs) for op in c_ops]
 
     if c_ops:
         H = liouvillian(H, c_ops)
@@ -77,7 +107,7 @@ def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
         return out[-1]
 
 
-def propagator_steadystate(U):
+def propagator_steadystate(U: Qobj) -> Qobj:
     r"""Find the steady state for successive applications of the propagator
     :math:`U`.
 
@@ -154,8 +184,16 @@ class Propagator:
         U = QobjEvo(Propagator(H))
 
     """
-    def __init__(self, system, *, c_ops=(), args=None, options=None,
-                 memoize=10, tol=1e-14):
+    def __init__(
+        self,
+        system: Qobj | QobjEvo | Solver,
+        *,
+        c_ops: QobjEvoLike | list[QobjEvoLike] = None,
+        args: dict[str, Any] = None,
+        options: dict[str, Any] = None,
+        memoize: int = 10,
+        tol: float = 1e-14,
+    ):
         if isinstance(system, MultiTrajSolver):
             raise TypeError("Non-deterministic solvers cannot be used "
                             "as a propagator system")
@@ -168,6 +206,7 @@ class Propagator:
             self.solver = system
         else:
             Hevo = QobjEvo(system, args=args)
+            c_ops = c_ops if c_ops is not None else []
             c_ops = [QobjEvo(op, args=args) for op in c_ops]
             if Hevo.issuper or c_ops:
                 self.solver = MESolver(Hevo, c_ops=c_ops, options=options)
@@ -199,7 +238,7 @@ class Propagator:
             self._insert(t, U, idx)
         return U
 
-    def __call__(self, t, t_start=0, **args):
+    def __call__(self, t: float, t_start: float = 0, **args):
         """
         Get the propagator from ``t_start`` to ``t``.
 
@@ -235,7 +274,7 @@ class Propagator:
             U = self._lookup_or_compute(t)
         return U
 
-    def inv(self, t, **args):
+    def inv(self, t: float, **args):
         """
         Get the inverse of the propagator at ``t``, such that
             ``psi_0 = U.inv(t) @ psi_t``

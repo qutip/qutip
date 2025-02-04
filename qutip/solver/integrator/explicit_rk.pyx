@@ -199,6 +199,15 @@ cdef class Explicit_RungeKutta:
         self.b_factor_np = np.empty(self.rk_extra_step, dtype=np.float64)
         self.b_factor = self.b_factor_np
 
+    def __reduce__(self):
+        """
+        Helper for pickle to serialize the object
+        """
+        return (self.__class__, (
+            self.qevo, self.rtol, self.atol, self.max_numsteps, self.first_step,
+            self.min_step, self.max_step, self.interpolate, self.method
+        ))
+
     cpdef void set_initial_value(self, Data y0, double t) except *:
         """
         Set the initial state and time of the integration.

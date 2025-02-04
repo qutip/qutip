@@ -1,14 +1,23 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['Solver']
 
+from numpy.typing import ArrayLike
+from numbers import Number
+from typing import Any, Callable
 from .. import Qobj, QobjEvo, ket2dm
 from .options import _SolverOptions
 from ..core import stack_columns, unstack_columns
+from .. import settings
 from .result import Result
 from .integrator import Integrator
 from ..ui.progressbar import progress_bars
 from ._feedback import _ExpectFeedback
+from ..typing import EopsLike
 from time import time
 import warnings
+import numpy as np
 
 
 class Solver:
@@ -85,8 +94,28 @@ class Solver:
 
         self._state_metadata = {
             'dims': state._dims,
-            'isherm': state.isherm and not (self.rhs.dims == state.dims)
+            # This is herm flag take for granted that the liouvillian keep
+            # hermiticity.  But we do not check user passed super operator for
+            # anything other than dimensions.
+            'isherm': not (self.rhs.dims == state.dims) and state._isherm,
         }
+        if state.isket:
+            norm = state.norm()
+        elif state._dims.issquare:
+            # Qobj.isoper does not differientiate between rectangular operators
+            # and normal ones.
+            norm = state.tr()
+        else:
+            norm = -1
+        self._normalize_output = (
+            self._options.get("normalize_output", False)
+            # Don't normalize output if input is not normalized.
+            # Use the settings atol instead of the solver one since the second
+            # refer to the ODE tolerance and some integrator do not use it.
+            and np.abs(norm - 1) <= settings.core["atol"]
+            # Only ket and dm can be normalized
+            and (self.rhs.dims[1] == state.dims or state.shape[1] == 1)
+        )
         if self.rhs.dims[1] == state.dims:
             return stack_columns(state.data)
         return state.data
@@ -101,12 +130,22 @@ class Solver:
         else:
             state = Qobj(data, **self._state_metadata, copy=copy)
 
-        if data.shape[1] == 1 and self._options['normalize_output']:
-            state = state * (1 / state.norm())
+        if self._normalize_output:
+            if state.isoper:
+                state = state * (1 / state.tr())
+            else:
+                state = state * (1 / state.norm())
 
         return state
 
-    def run(self, state0, tlist, *, args=None, e_ops=None):
+    def run(
+        self,
+        state0: Qobj,
+        tlist: ArrayLike,
+        *,
+        e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+        args: dict[str, Any] = None,
+    ) -> Result:
         """
         Do the evolution of the Quantum system.
 
@@ -126,12 +165,12 @@ class Solver:
             evolution. Each times of the list must be increasing, but does not
             need to be uniformy distributed.
 
-        args : dict, optional {None}
+        args : dict, optional
             Change the ``args`` of the rhs for the evolution.
 
-        e_ops : list {None}
-            List of Qobj, QobjEvo or callable to compute the expectation
-            values. Function[s] must have the signature
+        e_ops : Qobj, QobjEvo, callable, list, or dict optional
+            Single, list or dict of Qobj, QobjEvo or callable to compute the
+            expectation values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
 
         Returns
@@ -165,7 +204,7 @@ class Solver:
         # stats.update(_integrator.stats)
         return results
 
-    def start(self, state0, t0):
+    def start(self, state0: Qobj, t0: Number) -> None:
         """
         Set the initial state and time for a step evolution.
 
@@ -181,7 +220,13 @@ class Solver:
         self._integrator.set_state(t0, self._prepare_state(state0))
         self.stats["preparation time"] += time() - _time_start
 
-    def step(self, t, *, args=None, copy=True):
+    def step(
+        self,
+        t: Number,
+        *,
+        args: dict[str, Any] = None,
+        copy: bool = True
+    ) -> Qobj:
         """
         Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
 
@@ -238,7 +283,7 @@ class Solver:
         return self.rhs.dims[0]
 
     @property
-    def options(self):
+    def options(self) -> dict[str, Any]:
         """
         method: str
             Which ordinary differential equation integration method to use.
@@ -278,7 +323,7 @@ class Solver:
         return included_options, extra_options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict[str, Any]):
         if not hasattr(self, "_options"):
             self._options = {}
         if new_options is None:
@@ -399,7 +444,7 @@ class Solver:
         cls._avail_integrators[key] = integrator
 
     @classmethod
-    def ExpectFeedback(cls, operator, default=0.):
+    def ExpectFeedback(cls, operator: Qobj | QobjEvo, default: Any = 0.):
         """
         Expectation value of the instantaneous state of the evolution to be
         used by a time-dependent operator.
@@ -524,3 +569,13 @@ def _solver_deprecation(kwargs, options, solver="me"):
     if kwargs:
         raise TypeError(f"unexpected keyword argument {kwargs.keys()}")
     return options
+
+
+def _kwargs_migration(position, keyword, name):
+    if position is not None:
+        warnings.warn(
+            f"{name} will be keyword only from qutip 5.3 for all solver",
+            FutureWarning
+        )
+        return position
+    return keyword

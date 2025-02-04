@@ -5,7 +5,7 @@ from libc.string cimport memcpy
 cimport cython
 
 import numbers
-
+import builtins
 import numpy as np
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
@@ -27,6 +27,13 @@ cdef extern from *:
     void PyDataMem_FREE(void *ptr)
 
 
+@cython.overflowcheck(True)
+cdef size_t _mul_mem_checked(size_t a, size_t b, size_t c=0):
+    if c != 0:
+        return a * b * c
+    return a * b
+
+
 # Creation functions like 'identity' and 'from_csr' aren't exported in __all__
 # to avoid naming clashes with other type modules.
 __all__ = [
@@ -37,9 +44,13 @@ __all__ = [
 class OrderEfficiencyWarning(EfficiencyWarning):
     pass
 
+is_numpy1 = np.lib.NumpyVersion(np.__version__) < '2.0.0b1'
 
 cdef class Dense(base.Data):
     def __init__(self, data, shape=None, copy=True):
+        if is_numpy1:
+            # np2 accept None which act as np1's False
+            copy = builtins.bool(copy)
         base = np.array(data, dtype=np.complex128, order='K', copy=copy)
         # Ensure that the array is contiguous.
         # Non contiguous array with copy=False would otherwise slip through
@@ -118,7 +129,9 @@ cdef class Dense(base.Data):
         low-level C code).
         """
         cdef Dense out = Dense.__new__(Dense)
-        cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
+        cdef size_t size = (
+            _mul_mem_checked(self.shape[0], self.shape[1], sizeof(double complex))
+        )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
         if not ptr:
             raise MemoryError(
@@ -135,8 +148,8 @@ cdef class Dense(base.Data):
     cdef void _fix_flags(self, object array, bint make_owner=False):
         cdef int enable = cnp.NPY_ARRAY_OWNDATA if make_owner else 0
         cdef int disable = 0
-        cdef cnp.Py_intptr_t *dims = cnp.PyArray_DIMS(array)
-        cdef cnp.Py_intptr_t *strides = cnp.PyArray_STRIDES(array)
+        cdef cnp.npy_intp *dims = cnp.PyArray_DIMS(array)
+        cdef cnp.npy_intp *strides = cnp.PyArray_STRIDES(array)
         # Not necessary when creating a new array because this will already
         # have been done, but needed for as_ndarray() if we have been mutated.
         dims[0] = self.shape[0]
@@ -165,7 +178,9 @@ cdef class Dense(base.Data):
         dimensions.  This is not a view onto the data, and changes to new array
         will not affect the original data structure.
         """
-        cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
+        cdef size_t size = (
+          _mul_mem_checked(self.shape[0], self.shape[1], sizeof(double complex))
+        )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
         if not ptr:
             raise MemoryError(
@@ -253,7 +268,9 @@ cpdef Dense empty(base.idxint rows, base.idxint cols, bint fortran=True):
     """
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
-    out.data = <double complex *> PyDataMem_NEW(rows * cols * sizeof(double complex))
+    out.data = <double complex *> PyDataMem_NEW(
+        _mul_mem_checked(rows, cols, sizeof(double complex))
+    )
     if not out.data:
         raise MemoryError(
             "Could not allocate memory to create an empty "
@@ -278,7 +295,9 @@ cpdef Dense zeros(base.idxint rows, base.idxint cols, bint fortran=True):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
     out.data =\
-        <double complex *> PyDataMem_NEW_ZEROED(rows * cols, sizeof(double complex))
+        <double complex *> PyDataMem_NEW_ZEROED(
+            _mul_mem_checked(rows, cols), sizeof(double complex)
+        )
     if not out.data:
         raise MemoryError(
             "Could not allocate memory to create a zero "
@@ -307,8 +326,9 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = matrix.shape
     out.data = (
-        <double complex *>
-        PyDataMem_NEW_ZEROED(out.shape[0]*out.shape[1], sizeof(double complex))
+        <double complex *> PyDataMem_NEW_ZEROED(
+            _mul_mem_checked(out.shape[0], out.shape[1]), sizeof(double complex)
+        )
     )
     if not out.data:
         raise MemoryError(

@@ -482,7 +482,13 @@ cdef class QobjEvo:
                     f"Desired feedback {key} is not available for the {solver}."
                 )
             new_args[key] = solvers_feeds[feed]
-        self.arguments(**new_args)
+
+        if new_args:
+            cache = []
+            self.elements = [
+                element.replace_arguments(new_args, cache=cache)
+                for element in self.elements
+            ]
 
     def _update_feedback(QobjEvo self, QobjEvo other=None):
         """

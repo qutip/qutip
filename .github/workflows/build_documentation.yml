@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.8'
+          python-version: '3.11'
 
       - name: Install documentation dependencies
         run: |
@@ -27,7 +27,7 @@ jobs:
         run: |
           # Build without build isolation so that we use the build
           # dependencies already installed from doc/requirements.txt.
-          python -m pip install -e .[full] --no-build-isolation
+          python -m pip install -e .[full] --no-build-isolation --config-settings editable_mode=compat
           # Install in editable mode so it doesn't matter if we import from
           # inside the installation directory, otherwise we can get some errors
           # because we're importing from the wrong location.
@@ -43,7 +43,7 @@ jobs:
           #   -T : display a full traceback if a Python exception occurs
 
       - name: Upload built PDF files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qutip_pdf_docs
           path: doc/_build/latex/*
@@ -59,7 +59,7 @@ jobs:
           #   -T : display a full traceback if a Python exception occurs
 
       - name: Upload built HTML files
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qutip_html_docs
           path: doc/_build/html/*

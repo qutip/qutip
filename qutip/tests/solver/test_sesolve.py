@@ -57,9 +57,11 @@ class TestSeSolve():
         options = {"progress_bar": None}
 
         if unitary_op is None:
-            output = sesolve(H, psi0, self.tlist,
-                             [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()],
-                             args=self.args, options=options)
+            output = sesolve(
+                H, psi0, self.tlist,
+                e_ops=[qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()],
+                args=self.args, options=options
+            )
             sx, sy, sz = output.expect[0], output.expect[1], output.expect[2]
         else:
             output = sesolve(H, unitary_op, self.tlist, args=self.args,
@@ -125,9 +127,11 @@ class TestSeSolve():
         H = [[self.H1, 'exp(-alpha*t)']]
 
         if unitary_op is None:
-            output = sesolve(H, psi0, self.tlist,
-                             [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()],
-                             args=self.args, options=options)
+            output = sesolve(
+                H, psi0, self.tlist,
+                e_ops=[qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()],
+                args=self.args, options=options
+            )
             sx, sy, sz = output.expect[0], output.expect[1], output.expect[2]
         else:
             output = sesolve(H, unitary_op, self.tlist,
@@ -179,10 +183,11 @@ class TestSeSolve():
             "normalize_output": normalize,
             "progress_bar": None
         }
-        out_s = sesolve(H, psi0, self.tlist, [qutip.sigmax(),
-                                              qutip.sigmay(),
-                                              qutip.sigmaz()],
-                        options=options, args=args)
+        out_s = sesolve(
+            H, psi0, self.tlist,
+            e_ops=[qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()],
+            options=options, args=args
+        )
         xs, ys, zs = out_s.expect[0], out_s.expect[1], out_s.expect[2]
         xss = [qutip.expect(qutip.sigmax(), U) for U in out_s.states]
         yss = [qutip.expect(qutip.sigmay(), U) for U in out_s.states]
@@ -301,9 +306,19 @@ def test_krylovsolve(always_compute_step):
     e_op.dims = H.dims
     tlist = np.linspace(0, 1, 11)
     ref = sesolve(H, psi0, tlist, e_ops=[e_op]).expect[0]
-    options = {"always_compute_step", always_compute_step}
-    krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op]).expect[0]
-    np.testing.assert_allclose(ref, krylov_sol)
+    options = {"always_compute_step": always_compute_step}
+    krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op], options=options)
+    np.testing.assert_allclose(ref, krylov_sol.expect[0])
+
+
+def test_krylovsolve_error():
+    H = qutip.rand_herm(256, density=0.2)
+    psi0 = qutip.basis([256], [255])
+    tlist = np.linspace(0, 1, 11)
+    options = {"min_step": 1e10}
+    with pytest.raises(ValueError) as err:
+        krylovsolve(H, psi0, tlist, 20, options=options)
+    assert "error with the minimum step" in str(err.value)
 
 
 def test_feedback():

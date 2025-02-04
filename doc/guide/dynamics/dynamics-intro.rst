@@ -45,14 +45,14 @@ quantum systems and indicates the type of object returned by the solver:
    * - Monte Carlo evolution
      - :func:`~qutip.solver.mcsolve.mcsolve`
      - :obj:`~qutip.solver.mcsolve.MCSolver`
-     - :obj:`~qutip.solver.result.McResult`
+     - :obj:`~qutip.solver.multitrajresult.McResult`
    * - Non-Markovian Monte Carlo
      - :func:`~qutip.solver.nm_mcsolve.nm_mcsolve`
      - :obj:`~qutip.solver.nm_mcsolve.NonMarkovianMCSolver`
-     - :obj:`~qutip.solver.result.NmmcResult`
+     - :obj:`~qutip.solver.multitrajresult.NmmcResult`
    * - Bloch-Redfield master equation
-     - :func:`~qutip.solver.mesolve.brmesolve`
-     - :obj:`~qutip.solver.mesolve.BRSolver`
+     - :func:`~qutip.solver.brmesolve.brmesolve`
+     - :obj:`~qutip.solver.brmesolve.BRSolver`
      - :obj:`~qutip.solver.result.Result`
    * - Floquet-Markov master equation
      - :func:`~qutip.solver.floquet.fmmesolve`
@@ -61,11 +61,11 @@ quantum systems and indicates the type of object returned by the solver:
    * - Stochastic Schrödinger equation
      - :func:`~qutip.solver.stochastic.ssesolve`
      - :obj:`~qutip.solver.stochastic.SSESolver`
-     - :obj:`~qutip.solver.result.MultiTrajResult`
+     - :obj:`~qutip.solver.multitrajresult.MultiTrajResult`
    * - Stochastic master equation
      - :func:`~qutip.solver.stochastic.smesolve`
      - :obj:`~qutip.solver.stochastic.SMESolver`
-     - :obj:`~qutip.solver.result.MultiTrajResult`
+     - :obj:`~qutip.solver.multitrajresult.MultiTrajResult`
    * - Transfer Tensor Method time-evolution
      - :func:`~qutip.solver.nonmarkov.transfertensor.ttmsolve`
      - None

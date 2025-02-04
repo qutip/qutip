@@ -16,7 +16,7 @@ c_ops = [np.sqrt(G1 * (1 + n_th)) * a, np.sqrt(G1 * n_th) * a.dag()]
 rho0 = qutip.coherent_dm(N, 2.0)
 
 # first calculate the occupation number as a function of time
-n = qutip.mesolve(H, rho0, taus, c_ops, [a.dag() * a]).expect[0]
+n = qutip.mesolve(H, rho0, taus, c_ops, e_ops=[a.dag() * a]).expect[0]
 
 # calculate the correlation function G1 and normalize with n to obtain g1
 G1 = qutip.correlation_2op_1t(H, rho0, taus, c_ops, a.dag(), a)
