@@ -671,7 +671,8 @@ class HEOMSolver(Solver):
             # pre-calculate identity matrix required by _grad_n
             self._sId = _data.identity(self._sup_shape, dtype="csr")
 
-            # pre-calculate superoperators required by _grad_prev and _grad_next:
+            # pre-calculate superoperators required by _grad_prev and
+            # _grad_next:
             Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
             self._spreQ = [spre(op).data for op in Qs]
             self._spostQ = [spost(op).data for op in Qs]

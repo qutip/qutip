@@ -242,7 +242,9 @@ class CoreOptions(QutipOptions):
 
     @overload
     def __setitem__(
-        self, key: Literal["function_coefficient_style", "default_dtype_scope"], value: str
+        self,
+        key: Literal["function_coefficient_style", "default_dtype_scope"],
+        value: str
     ) -> None: ...
 
     @overload
