@@ -73,18 +73,16 @@ cpdef CSR kron_csr(CSR left, CSR right):
 
 
 cpdef CSR kron_csr_dense_csr(CSR left, Dense right):
-    # The dispatcher would use kron_dense, but the output is at least as sparse
-    # as the sparse input. Since the dispatcher does not have precise control
-    # on which function to use when the signature is missing. We add
-    # then like this.
+    # Since the dispatcher does not have precise control on which function to
+    # use when the signature is missing, we specify the output to be the sparse
+    # in this case.
     return kron_csr(left, _to(CSR, right))
 
 
 cpdef CSR kron_dense_csr_csr(Dense left, CSR right):
-    # The dispatcher would use kron_dense, but the output is at least as sparse
-    # as the sparse input. Since the dispatcher does not have precise control
-    # on which function to use when the signature is missing. We add
-    # then like this.
+    # Since the dispatcher does not have precise control on which function to
+    # use when the signature is missing, we specify the output to be the sparse
+    # in this case.
     return kron_csr(_to(CSR, left), right)
 
 
@@ -178,18 +176,16 @@ cpdef Dia kron_dia(Dia left, Dia right):
 
 
 cpdef Dia kron_dia_dense_dia(Dia left, Dense right):
-    # The dispatcher would use kron_dense, but the output is at least as sparse
-    # as the sparse input. Since the dispatcher does not have precise control
-    # on which function to use when the signature is missing. We add
-    # then like this.
+    # Since the dispatcher does not have precise control on which function to
+    # use when the signature is missing, we specify the output to be the sparse
+    # in this case.
     return kron_dia(left, _to(Dia, right))
 
 
 cpdef Dia kron_dense_dia_dia(Dense left, Dia right):
-    # The dispatcher would use kron_dense, but the output is at least as sparse
-    # as the sparse input. Since the dispatcher does not have precise control
-    # on which function to use when the signature is missing. We add
-    # then like this.
+    # Since the dispatcher does not have precise control on which function to
+    # use when the signature is missing, we specify the output to be the sparse
+    # in this case.
     return kron_dia(_to(Dia, left), right)
 
 
