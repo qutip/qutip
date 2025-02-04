@@ -298,6 +298,7 @@ class Qobj:
                     dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
+                    dtype=self.dtype,
                     copy=True)
 
     @property
@@ -370,10 +371,10 @@ class Qobj:
             A :class:`Qobj` with the data stored in the requested format.
         """
         data_type = _data.to.parse(data_type)
-        # if type(self._data) is data_type and copy:
-        #     return self.copy()
-        # elif type(self._data) is data_type:
-        #     return self
+        if type(self._data) is data_type and copy:
+            return self.copy()
+        elif type(self._data) is data_type:
+            return self
         return Qobj(
             _data.to(data_type, self._data),
             dims=self._dims,
