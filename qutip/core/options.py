@@ -93,8 +93,8 @@ class CoreOptions(QutipOptions):
     auto_tidyup : bool
         Whether to tidyup during sparse operations.
 
-    auto_tidyup_dims : bool [False]
-        Use auto tidyup dims on multiplication, tensor, etc.
+    auto_tidyup_dims : bool [True]
+        Whether to track the structure of scalar dimensions.
         Without auto_tidyup_dims:
 
             ``basis([2, 2]).dims == [[2, 2], [1, 1]]``
@@ -141,8 +141,8 @@ class CoreOptions(QutipOptions):
     _options = {
         # use auto tidyup
         "auto_tidyup": True,
-        # use auto tidyup dims on multiplication
-        "auto_tidyup_dims": False,
+        # use auto tidyup dims
+        "auto_tidyup_dims": True,
         # general absolute tolerance
         "atol": 1e-12,
         # general relative tolerance
