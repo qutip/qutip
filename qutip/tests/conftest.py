@@ -78,6 +78,10 @@ def _patched_build_err_msg(arrays, err_msg, header='Items are not equal:',
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
     """
+    try:
+        from numpy._core import array_repr
+    except ImportError:
+        from numpy.core import array_repr
     msg = ['\n' + header]
     if err_msg:
         if err_msg.find('\n') == -1 and len(err_msg) < 79-len(header):
@@ -88,8 +92,7 @@ def _patched_build_err_msg(arrays, err_msg, header='Items are not equal:',
         for i, a in enumerate(arrays):
             if isinstance(a, np.ndarray):
                 # precision argument is only needed if the objects are ndarrays
-                r_func = functools.partial(np.core.array_repr,
-                                           precision=precision)
+                r_func = functools.partial(array_repr, precision=precision)
             else:
                 r_func = repr
 
