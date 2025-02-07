@@ -10,6 +10,7 @@ from qutip.core._brtools cimport _EigenBasisTransform
 from qutip.core.qobj import Qobj
 
 import numpy as np
+import itertools
 from libcpp.vector cimport vector
 from libc.math cimport fabs, fmin
 
@@ -221,7 +222,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
         self.sec_cutoff = sec_cutoff
         self.eig_basis = eig_basis
         self.nrows = a_op.shape[0]
-        self.dims = [a_op.dims, a_op.dims]
+        self.dims = [a_op._dims, a_op._dims]
 
         dtype = dtype or ('dense' if sec_cutoff >= np.inf else 'sparse')
         self.tensortype = {
@@ -302,7 +303,8 @@ cdef class _BlochRedfieldElement(_BaseElement):
     def replace_arguments(self, args, cache=None):
         if cache is None:
             return _BlochRedfieldElement(
-                self.H,
+                _EigenBasisTransform(QobjEvo(self.H.oper, args=args),
+                                     type(self.H.oper) is CSR),
                 QobjEvo(self.a_op, args=args),
                 self.spectra,
                 self.sec_cutoff
@@ -329,8 +331,217 @@ cdef class _BlochRedfieldElement(_BaseElement):
 
     def __mul__(left, right):
         cdef _MapElement out
-        if type(left) is _BlochRedfieldElement:
+        if isinstance(left, _BlochRedfieldElement):
             out = _MapElement(left, [], right)
-        if type(right) is _BlochRedfieldElement:
+        if isinstance(right, _BlochRedfieldElement):
             out = _MapElement(right, [], left)
         return out
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef Data _br_cterm_data(Data A, Data B, double[:, ::1] spectrum,
+                         double[:, ::1] skew, double cutoff):
+    """
+    Compute the contribution of A to the Bloch Redfield tensor.
+    Computation are done using dispatched function.
+    """
+    cdef object cutoff_arr
+    cdef int nrows = A.shape[0], a, b, c, d
+    cdef Data S, I, P1, P2, P3, P4
+    cdef type cls = type(A)
+
+    S = _data.to(cls, _data.mul(_data.Dense(spectrum), 0.5))
+    I = _data.identity[cls](nrows)
+
+    P1 = _data.kron(_data.multiply(A, _data.transpose(S)), _data.transpose(B))
+    P2 = _data.kron(A, _data.transpose(_data.multiply(B, S)))
+    P3 = _data.kron(I, _data.transpose(_data.matmul(_data.multiply(A, S), B)))
+    P4 = _data.kron(_data.matmul(A, _data.multiply(B, _data.transpose(S))), I)
+
+    out = _data.add(_data.sub(P1, P3), _data.sub(P2, P4))
+
+    if cutoff == np.inf:
+        return out
+
+    # The cutoff_arr should be sparse most of the time, but it depend on the
+    # cutoff and we cannot easily guess a nnz to make it efficiently...
+    # But there is probably room from improvement.
+    cutoff_arr = np.zeros((nrows*nrows, nrows*nrows), dtype=np.complex128)
+    for a in range(nrows):
+        for b in range(nrows):
+            for c in range(nrows):
+                for d in range(nrows):
+                    if fabs(skew[a, b] - skew[c, d]) < cutoff:
+                        cutoff_arr[a * nrows + b, c * nrows + d] = 1.
+    C = _data.to(cls, _data.Dense(cutoff_arr, copy=False))
+    return _data.multiply(out, C)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef Dense _br_cterm_dense(Data A, Data B, double[:, ::1] spectrum,
+                           double[:, ::1] skew, double cutoff):
+    """
+    Compute the contribution of A to the Bloch Redfield tensor.
+    Allocate a Dense array and fill it.
+    """
+    cdef size_t nrows = A.shape[0]
+    cdef size_t a, b, c, d, k # matrix indexing variables
+    cdef double complex elem
+    cdef double complex[:,:] A_mat, B_mat, ac_term, bd_term
+    cdef object np2term
+    cdef Dense out
+    cdef double complex[::1, :] out_array
+
+    if type(A) is Dense:
+        A_mat = A.as_ndarray()
+    else:
+        A_mat = A.to_array()
+
+    if type(B) is Dense:
+        B_mat = B.as_ndarray()
+    else:
+        B_mat = B.to_array()
+
+    out = _data.dense.zeros(nrows*nrows, nrows*nrows)
+    out_array = out.as_ndarray()
+
+    np2term = np.zeros((nrows, nrows, 2), dtype=np.complex128)
+    ac_term = np2term[:, :, 0]
+    bd_term = np2term[:, :, 1]
+
+    for a in range(nrows):
+        for b in range(nrows-1, -1, -1):
+            if fabs(skew[a, b]) < cutoff:
+                for k in range(nrows):
+                    ac_term[a, b] += A_mat[a, k] * B_mat[k, b] * spectrum[a, k]
+                    bd_term[a, b] += A_mat[a, k] * B_mat[k, b] * spectrum[b, k]
+
+    # TODO: we could use openmp to speed up.
+    for a in range(nrows):
+        for b in range(nrows):
+            for c in range(nrows):
+                for d in range(nrows):
+                    if fabs(skew[a, b] - skew[c, d]) < cutoff:
+                        elem = A_mat[a, c] * B_mat[d, b]
+                        elem *= (spectrum[c, a] + spectrum[d, b])
+                        if a == c:
+                            elem = elem - ac_term[d, b]
+                        if b == d:
+                            elem = elem - bd_term[a, c]
+                        out_array[a * nrows + b, c * nrows + d] = elem * 0.5
+    return out
+
+
+cdef class _BlochRedfieldCrossElement(_BlochRedfieldElement):
+    """
+    Element for individual Bloch Redfield collapse cross-term.
+
+    Single term in equation (6):
+        A^a -> a_op
+        A^b -> b_op
+        spectra -> S_ab
+
+    The tensor is computed in the ``eig_basis``, but is returned in the outside
+    basis unless ``eig_basis`` is True. The ``matmul_data_t`` method also act
+    on a state expected to be in that basis. It transform the state instead of
+    the tensor as it is usually faster, the state being a density matrix in
+    most cases.
+
+    Diffenrent term can share a same instance of the eigen transform tool
+    (``H`` as _EigenBasisTransform) so that the Hamiltonian is diagonalized
+    only once even when needed by multiple terms.
+    """
+    cdef readonly QobjEvo b_op
+
+    def __init__(self, H, a_op, b_op, spectra, sec_cutoff, eig_basis=False,
+                 dtype=None):
+        if isinstance(H, _EigenBasisTransform):
+            self.H = H
+        else:
+            self.H = _EigenBasisTransform(H)
+
+        self.a_op = a_op
+        self.b_op = b_op
+        self.spectra = spectra
+        self.sec_cutoff = sec_cutoff
+        self.eig_basis = eig_basis
+        self.nrows = a_op.shape[0]
+        self.dims = [a_op._dims, a_op._dims]
+
+        dtype = dtype or ('dense' if sec_cutoff >= np.inf else 'sparse')
+        self.tensortype = {
+            'sparse': DATA,
+            'dense': DENSE,
+            'data': DATA
+        }[dtype]
+
+        # Allocate some array
+        # Let numpy manage memory
+        self.np_datas = [np.zeros((self.nrows, self.nrows), dtype=np.float64),
+                         np.zeros((self.nrows, self.nrows), dtype=np.float64)]
+        self.skew = self.np_datas[0]
+        self.spectrum = self.np_datas[1]
+
+    cdef Data _br_cterm(self, Data A_eig, Data B_eig, double cutoff):
+        if self.tensortype == DENSE:
+            return _br_cterm_dense(A_eig, B_eig, self.spectrum, self.skew, cutoff)
+        elif self.tensortype == DATA:
+            return _br_cterm_data(A_eig, B_eig, self.spectrum, self.skew, cutoff)
+        raise ValueError('Invalid tensortype')
+
+    cpdef Data data(self, t):
+        cdef size_t i
+        cdef double cutoff = self.sec_cutoff * self._compute_spectrum(t)
+        cdef Data A_eig = self.H.to_eigbasis(t, self.a_op._call(t))
+        cdef Data B_eig = self.H.to_eigbasis(t, self.b_op._call(t))
+        cdef Data BR_eig = self._br_cterm(A_eig, B_eig, cutoff)
+        if self.eig_basis:
+            return BR_eig
+        return self.H.from_eigbasis(t, BR_eig)
+
+    cdef Data matmul_data_t(self, t, Data state, Data out=None):
+        cdef size_t i
+        cdef double cutoff = self.sec_cutoff * self._compute_spectrum(t)
+        cdef Data A_eig, B_eig, BR_eig
+
+        if not self.eig_basis:
+            state = self.H.to_eigbasis(t, state)
+        if not self.eig_basis and out is not None:
+            out = self.H.to_eigbasis(t, out)
+        A_eig = self.H.to_eigbasis(t, self.a_op._call(t))
+        B_eig = self.H.to_eigbasis(t, self.a_op._call(t))
+        BR_eig = self._br_cterm(A_eig, B_eig, cutoff)
+        out = _data.add(_data.matmul(BR_eig, state), out)
+        if not self.eig_basis:
+            out = self.H.from_eigbasis(t, out)
+        return out
+
+    def replace_arguments(self, args, cache=None):
+        if cache is None:
+            return _BlochRedfieldCrossElement(
+                _EigenBasisTransform(QobjEvo(self.H.oper, args=args),
+                                     type(self.H.oper) is CSR),
+                QobjEvo(self.a_op, args=args),
+                QobjEvo(self.b_op, args=args),
+                self.spectra,
+                self.sec_cutoff
+            )
+
+        H = None
+        for old, new in cache:
+            if old is self:
+                return new
+            if old is self.H:
+                H = new
+        if H is None:
+            H = _EigenBasisTransform(QobjEvo(self.H.oper, args=args),
+                                     type(self.H.oper) is CSR)
+        new = _BlochRedfieldElement(
+            H, QobjEvo(self.a_op, args=args), QobjEvo(self.b_op, args=args),
+            self.spectra.replace_arguments(**args), self.sec_cutoff
+        )
+        cache.append((self, new))
+        cache.append((self.H, H))
+        return new

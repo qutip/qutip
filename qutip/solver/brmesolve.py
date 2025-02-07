@@ -21,7 +21,7 @@ from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
 from ._feedback import _QobjFeedback, _DataFeedback
 from ..typing import EopsLike, QobjEvoLike, CoefficientLike
-from ..core.environment import BosonicEnvironment, FermionicEnvironment
+from ..core.environment import Environment
 
 
 def brmesolve(
@@ -204,11 +204,8 @@ def brmesolve(
             new_a_ops.append((a_op, SpectraCoefficient(spectra)))
         elif isinstance(spectra, Coefficient):
             new_a_ops.append((a_op, spectra))
-        elif isinstance(spectra, BosonicEnvironment):
-            spec = SpectraCoefficient(
-                coefficient(spectra.power_spectrum)
-            )
-            new_a_ops.append((a_op, spec))
+        elif isinstance(spectra, Environment):
+            new_a_ops.append((a_op, spectra))
         elif callable(spectra):
             sig = inspect.signature(spectra)
             if tuple(sig.parameters.keys()) == ("w",):
@@ -243,11 +240,13 @@ class BRSolver(Solver):
         a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :obj:`.Coefficient`
+        spectra : :obj:`.Coefficient`, :obj:`.Environment`
             The corresponding bath spectra. As a `Coefficient` using an 'w'
             args. Can depend on ``t`` only if a_op is a :obj:`.QobjEvo`.
             :obj:`SpectraCoefficient` can be used to conver a coefficient
             depending on ``t`` to one depending on ``w``.
+            :class:`.BosonicEnvironment` or :class:`.FermionicEnvironment` are
+            also valid spectrum.
 
         Example:
 
@@ -293,7 +292,7 @@ class BRSolver(Solver):
     def __init__(
         self,
         H: Qobj | QobjEvo,
-        a_ops: list[tuple[Qobj | QobjEvo, Coefficient]],
+        a_ops: list[tuple[Qobj | QobjEvo, Coefficient | Environment]],
         c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo] = None,
         sec_cutoff: float = 0.1,
         *,
@@ -324,9 +323,9 @@ class BRSolver(Solver):
             if not isinstance(oper, (Qobj, QobjEvo)):
                 raise TypeError("All `a_ops` operators "
                                 "must be a Qobj or QobjEvo")
-            if not isinstance(spectra, Coefficient):
+            if not isinstance(spectra, (Coefficient, Environment)):
                 raise TypeError("All `a_ops` spectra "
-                                "must be a Coefficient.")
+                                "must be a Coefficient or Environment.")
 
         self._system = H, a_ops, c_ops
         self._num_collapse = len(c_ops)
@@ -354,7 +353,7 @@ class BRSolver(Solver):
             fock_basis=True,
             sec_cutoff=self.sec_cutoff,
             sparse_eigensolver=self.options['sparse_eigensolver'],
-            br_dtype=self.options['tensor_type']
+            br_computation_method=self.options['tensor_type']
         )
         self._init_rhs_time = time() - _time_start
         return rhs

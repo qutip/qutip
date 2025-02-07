@@ -3,8 +3,11 @@ import qutip
 import numpy as np
 from qutip.core._brtools import matmul_var_data, _EigenBasisTransform
 from qutip.core.blochredfield import brterm, bloch_redfield_tensor
-from qutip.core._brtensor import (_br_term_dense, _br_term_sparse,
-                                  _br_term_data, _BlochRedfieldElement)
+from qutip.core._brtensor import (
+    _br_term_dense, _br_term_sparse, _br_term_data,
+    _br_cterm_dense, _br_cterm_data,
+    _BlochRedfieldElement
+)
 
 
 def _make_rand_data(shape):
@@ -218,6 +221,57 @@ def test_td_brterm(cutoff):
         np.testing.assert_allclose(fock_computed(t).full(),
                                    eig_computed(t).full(),
                                    rtol=1e-14, atol=1e-14)
+
+
+@pytest.mark.parametrize(
+    'func', [_br_term_sparse, _br_term_data], ids=['sparse', 'data']
+)
+@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
+def test_br_term_format(func, cutoff):
+    N = 5
+    a = qutip.destroy(N) + qutip.destroy(N)**2 / 2
+    A_op = a + a.dag()
+    H = qutip.num(N)
+    diag = H.eigenenergies()
+    skew =  np.einsum('i,j->ji', np.ones(N), diag) - diag * np.ones((N, N))
+    spectrum = (skew > 0) * 1.
+    computed = func(A_op.data, spectrum, skew, cutoff).to_array()
+    expected = _br_term_dense(A_op.data, spectrum, skew, cutoff).to_array()
+    np.testing.assert_allclose(computed, expected, rtol=1e-14, atol=1e-14)
+
+
+@pytest.mark.parametrize(
+    'func', [_br_cterm_dense, _br_cterm_data], ids=['dense', 'data']
+)
+@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
+def test_brcrossterm_direct(func, cutoff):
+    N = 5
+    a = qutip.destroy(N) + qutip.destroy(N)**2 / 2
+    A_op = a + a.dag()
+    H = qutip.num(N)
+    diag = H.eigenenergies()
+    skew =  np.einsum('i,j->ji', np.ones(N), diag) - diag * np.ones((N, N))
+    spectrum = (skew > 0) * 1.
+    computed = func(A_op.data, A_op.data, spectrum, skew, cutoff).to_array()
+    expected = _br_term_dense(A_op.data, spectrum, skew, cutoff).to_array()
+    np.testing.assert_allclose(computed, expected, rtol=1e-14, atol=1e-14)
+
+
+@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
+def test_brcrossterm_comp(cutoff):
+    N = 5
+    a = qutip.destroy(N) + qutip.destroy(N)**2 / 2
+    H = qutip.num(N)
+    diag = H.eigenenergies()
+    skew =  np.einsum('i,j->ji', np.ones(N), diag) - diag * np.ones((N, N))
+    spectrum = (skew > 0) * 1.
+    computed = _br_cterm_dense(
+        a.data, a.dag().data, spectrum, skew, cutoff
+    ).to_array()
+    expected = _br_cterm_data(
+        a.data, a.dag().data, spectrum, skew, cutoff
+    ).to_array()
+    np.testing.assert_allclose(computed, expected, rtol=1e-14, atol=1e-14)
 
 
 @pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])

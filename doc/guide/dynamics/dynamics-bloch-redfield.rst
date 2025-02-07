@@ -187,11 +187,12 @@ Bloch-Redfield master equation in QuTiP
 =======================================
 
 
-
-In QuTiP, the Bloch-Redfield tensor Eq. :eq:`br-tensor` can be calculated using the function :func:`.bloch_redfield_tensor`.
+In QuTiP, Eq. :eq:`br-final` can be calculated using the function :func:`.bloch_redfield_tensor`.
 It takes two mandatory arguments: The system Hamiltonian :math:`H`, a nested list of operator
 :math:`A_\alpha`, spectral density functions :math:`S_\alpha(\omega)` pairs that characterize the coupling between system and bath.
 The spectral density functions are Python callback functions that takes the (angular) frequency as a single argument.
+Each term of Eq. :eq:`br-tensor` can be called using :func:`.brterm`.
+This function take only a single operator a_op and spectral response function.
 
 To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-level atom
 
@@ -316,6 +317,18 @@ where the resulting `output` is an instance of the class :class:`.Result`.
 
     will simulate the same example as above without the secular approximation.
     Note that using the non-secular version may lead to negativity issues.
+
+.. _br-fermion:
+
+Simulating Fermionic interactions
+=================================
+
+Previously, we assumed that the interaction operators :math:`A_\alpha` were hermitian.
+However to simulate fermionic bath, we must consider system-bath interaction in the form :math:`H_I = \sum_\alpha A^\dagger_\alpha \otimes B_\alpha + A_\alpha \otimes B^\dagger_\alpha`.
+
+In QuTiP, to simutate such system, :class:`.FermionicEnvironment` can be used as the spectra.
+Otherwise the function :func:`.brcrossterm` can build a single term of the :math:`\alpha, \beta` sum of Eq. :eq:`br-nonmarkovian-form-five` allowing custom complex baths.
+
 
 .. _td-bloch-redfield:
 
