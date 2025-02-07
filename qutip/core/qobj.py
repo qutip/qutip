@@ -1630,7 +1630,8 @@ class Qobj:
         -----
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
-
+        It is designed to compute only a few eigenvalues and can give wrong
+        results when all eigenvalues are asked.
         """
         # TODO: consider another way of handling the dispatch here.
         if isinstance(self.data, _data.CSR) and sparse:
@@ -1682,6 +1683,8 @@ class Qobj:
         -----
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
+        It is designed to compute only a few eigenvalues and can give wrong
+        results when all eigenvalues are asked.
         """
         eigvals = 2 if safe else 1
         evals, evecs = self.eigenstates(sparse=sparse, eigvals=eigvals,
