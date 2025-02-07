@@ -228,6 +228,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
         self.tensortype = {
             'sparse': SPARSE,
             'dense': DENSE,
+            'matrix': DATA,
             'data': DATA
         }[dtype]
 
@@ -472,8 +473,9 @@ cdef class _BlochRedfieldCrossElement(_BlochRedfieldElement):
 
         dtype = dtype or ('dense' if sec_cutoff >= np.inf else 'sparse')
         self.tensortype = {
-            'sparse': DATA,
+            'sparse': DENSE,  # TODO write the dense version.
             'dense': DENSE,
+            'matrix': DATA,
             'data': DATA
         }[dtype]
 

@@ -141,7 +141,7 @@ def test_eigen_transform_super_ops():
 
 @pytest.mark.parametrize('func',
                          [_br_term_dense, _br_term_sparse, _br_term_data],
-                         ids=['dense', 'sparse', 'data'])
+                         ids=['dense', 'sparse', 'matrix'])
 def test_br_term_linbblad_comp(func):
     N = 5
     a = qutip.destroy(N) + qutip.destroy(N)**2 / 2
@@ -224,7 +224,7 @@ def test_td_brterm(cutoff):
 
 
 @pytest.mark.parametrize(
-    'func', [_br_term_sparse, _br_term_data], ids=['sparse', 'data']
+    'func', [_br_term_sparse, _br_term_data], ids=['sparse', 'matrix']
 )
 @pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
 def test_br_term_format(func, cutoff):
@@ -241,7 +241,7 @@ def test_br_term_format(func, cutoff):
 
 
 @pytest.mark.parametrize(
-    'func', [_br_cterm_dense, _br_cterm_data], ids=['dense', 'data']
+    'func', [_br_cterm_dense, _br_cterm_data], ids=['dense', 'matrix']
 )
 @pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
 def test_brcrossterm_direct(func, cutoff):

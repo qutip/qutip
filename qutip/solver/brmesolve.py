@@ -137,8 +137,11 @@ def brmesolve(
             if not installed. Empty string or False will disable the bar.
         - | progress_kwargs : dict
           | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - | tensor_type : str ['sparse', 'dense', 'data']
-          | Which data type to use when computing the brtensor.
+        - | computation_type : str ['sparse', 'dense', 'matrix']
+          | With 'dense', the secular cutoff is checked first and only
+            elements within the approximation are computed and stored in an
+            array. With 'matrix', the tensor is build using matrix operation
+            and the secular cutoff is applied at the end.
             With a cutoff 'sparse' is usually the most efficient.
         - | sparse_eigensolver : bool {False}
             Whether to use the sparse eigensolver

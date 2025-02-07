@@ -100,10 +100,13 @@ def bloch_redfield_tensor(
     sparse_eigensolver : bool {False}
         Whether to use the sparse eigensolver
 
-    br_computation_method : ['sparse', 'dense', 'data']
+    br_computation_method : ['sparse', 'dense', 'matrix']
         How computation for the tensor is made.
-        Using "dense" numpy array, coo "sparse" matrix or qutip's "data" class.
-        With a cutoff 'sparse' is usually the most efficient.
+        With 'dense' or 'sparse', the secular cutoff is checked first and only
+        elements within the approximation are computed and stored in an
+        (sparse) array.
+        With 'matrix', the tensor is build using matrix operation and the
+        secular cutoff is applied at the end.
 
     Returns
     -------
@@ -229,10 +232,13 @@ def brterm(
     sparse_eigensolver : bool {False}
         Whether to use the sparse eigensolver on the Hamiltonian.
 
-    br_computation_method : ['sparse', 'dense', 'data']
+    br_computation_method : ['sparse', 'dense', 'matrix']
         How computation for the tensor is made.
-        Using "dense" numpy array, coo "sparse" matrix or qutip's "data" class.
-        With a cutoff 'sparse' is usually the most efficient.
+        With 'dense' or 'sparse', the secular cutoff is checked first and only
+        elements within the approximation are computed and stored in an
+        (sparse) array.
+        With 'matrix', the tensor is build using matrix operation and the
+        secular cutoff is applied at the end.
 
     Returns
     -------
@@ -353,9 +359,12 @@ def brcrossterm(
     sparse_eigensolver : bool {False}
         Whether to use the sparse eigensolver on the Hamiltonian.
 
-    br_computation_method : ['dense', 'data']
+    br_computation_method : ['dense', 'matrix']
         How computation for the tensor is made.
-        Using "dense" numpy array or qutip's "data" class.
+        With 'dense', the secular cutoff is checked first and only
+        elements within the approximation are computed and stored in an array.
+        With 'matrix', the tensor is build using matrix operation and the
+        secular cutoff is applied at the end.
 
     Returns
     -------
