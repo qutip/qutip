@@ -937,9 +937,11 @@ class BosonicEnvironment(abc.ABC):
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         if tag is None and self.tag is not None:
             tag = (self.tag, "AAA Fit")
-        _, pol, res, _, _ = aaa(self.power_spectrum, wlist,
-                                tol=tol,
-                                max_iter=N_max * 2)
+        start = time()
+        _, pol, res, _, _, rmse = aaa(self.power_spectrum, wlist,
+                                      tol=tol,
+                                      max_iter=N_max * 2)
+        end = time()
         # The *2 is there because half the poles will be filtered out
         mask = np.imag(pol) < 0
 
@@ -963,7 +965,18 @@ class BosonicEnvironment(abc.ABC):
         cls = ExponentialBosonicEnvironment(
             ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
             vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
-        return cls, {}
+        # Generate summary
+        N = len(vk)
+        fit_time = end - start
+        params = [(ck.real[i], ck.imag[i], vk[i])
+                  for i in range(len(ck))]
+        summary = _fit_summary(
+            fit_time, rmse, N, "the spectral density", params
+        )
+        fitinfo = {
+            "N": N, "fit_time": fit_time, "rmse": rmse,
+            "params": params, "summary": summary}
+        return cls, fitinfo
 
     def _approx_by_prony(
         self,
@@ -979,41 +992,60 @@ class BosonicEnvironment(abc.ABC):
                    "esprit": esprit}
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
-        start_real = time()
-        params_real, rmse_real = methods[method](
-            self.correlation_function(tlist).real, Nr)
-        end_real = time()
-        start_imag = time()
-        params_imag, rmse_imag = methods[method](
-            self.correlation_function(tlist).imag, Ni)
-        end_imag = time()
-        amp, phases = params_real.T
-        amp2, phases2 = params_imag.T
-        ckAR = amp
-        ckAI = amp2
-        vkAR = -((len(tlist) - 1) / tlist[-1]) * \
-            (np.log(np.abs(phases)) + 1j * np.angle(phases))
-        vkAI = -((len(tlist) - 1) / tlist[-1]) * \
-            (np.log(np.abs(phases2)) + 1j * np.angle(phases2))
-        cls = ExponentialBosonicEnvironment(
-            ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
-            vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
-        params_real = [(amp[i], phases[i].real, phases[i].imag)
-                       for i in range(len(amp))]
-        params_imag = [(amp2[i], phases2[i].real, phases2[i].imag)
-                       for i in range(len(amp))]
-        fit_time_real = end_real-start_real
-        fit_time_imag = end_imag-start_imag
-
-        full_summary = _cf_fit_summary(
-            params_real, params_imag, fit_time_real, fit_time_imag,
-            Nr, Ni, rmse_real, rmse_imag, n=3
-        )
-
-        fit_info = {"Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
-                    "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
-                    "rmse_imag": rmse_imag, "params_real": params_real,
-                    "params_imag": params_imag, "summary": full_summary}
+        if Ni != Nr:
+            start_real = time()
+            params_real, rmse_real = methods[method](
+                self.correlation_function(tlist).real, Nr)
+            end_real = time()
+            start_imag = time()
+            params_imag, rmse_imag = methods[method](
+                self.correlation_function(tlist).imag, Ni)
+            end_imag = time()
+            amp, phases = params_real.T
+            amp2, phases2 = params_imag.T
+            ckAR = amp
+            ckAI = amp2
+            vkAR = -((len(tlist) - 1) / tlist[-1]) * \
+                (np.log(np.abs(phases)) + 1j * np.angle(phases))
+            vkAI = -((len(tlist) - 1) / tlist[-1]) * \
+                (np.log(np.abs(phases2)) + 1j * np.angle(phases2))
+            cls = ExponentialBosonicEnvironment(
+                ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
+                vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
+            params_real = [(amp[i].real, phases[i].real, phases[i].imag, amp[i].imag)
+                           for i in range(len(amp))]
+            params_imag = [(amp2[i].real, phases2[i].real, phases2[i].imag, amp2[i].imag)
+                           for i in range(len(amp))]
+            fit_time_real = end_real-start_real
+            fit_time_imag = end_imag-start_imag
+            full_summary = _cf_fit_summary(
+                params_real, params_imag, fit_time_real, fit_time_imag,
+                Nr, Ni, rmse_real, rmse_imag, n=4)
+            fit_info = {"Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
+                        "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
+                        "rmse_imag": rmse_imag, "params_real": params_real,
+                        "params_imag": params_imag, "summary": full_summary}
+        else:
+            start_real = time()
+            params_real, rmse_real = methods[method](
+                self.correlation_function(tlist), Nr)
+            end_real = time()
+            amp, phases = params_real.T
+            ckAR = amp
+            vkAR = -((len(tlist) - 1) / tlist[-1]) * \
+                (np.log(np.abs(phases)) + 1j * np.angle(phases))
+            cls = ExponentialBosonicEnvironment(
+                ck_real=ckAR.real, vk_real=vkAR, ck_imag=ckAR.imag,
+                vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
+            params_real = [(amp[i].real, phases[i].real, phases[i].imag, amp[i].imag)
+                           for i in range(len(amp))]
+            fit_time_real = end_real-start_real
+            full_summary = _fit_summary(fit_time_real, rmse_real, Nr,
+                                        "Correlation Function", params_real,
+                                        columns=['a', 'b', 'c', 'd'])
+            fit_info = {"N": Nr, "fit_time": fit_time_real,
+                        "rmse": rmse_real, "params_real": params_real,
+                        "summary": full_summary}
         return cls, fit_info
 
 

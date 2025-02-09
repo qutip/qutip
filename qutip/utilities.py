@@ -480,7 +480,11 @@ def _rmse(fun, xdata, ydata, params):
     The normalized root mean squared error for the fit with the given
     parameters. (The closer to zero = the better the fit.)
     """
-    yhat = _evaluate(fun, xdata, params)
+    if params is None:
+        yhat = fun
+    else:
+        yhat = _evaluate(fun, xdata, params)
+
     if (yhat == ydata).all():
         return 0
     return (
@@ -534,6 +538,7 @@ def aaa(func, z, tol=1e-13, max_iter=100):
     algorithm as explained in https://doi.org/10.1137/16M1106122 . This
     implementation is a python adaptation of the matlab version in that paper
     NOTE: I am not sure if this is necessary anymore as scipy 1.15 includes AAA
+
     Parameters:
     -----------
     func : callable or np.ndarray
@@ -599,7 +604,8 @@ def aaa(func, z, tol=1e-13, max_iter=100):
         return approximated_function_aaa(x, support_points, values, weights)
     # Obtain poles residies and zeros
     pol, res, zer = prz(support_points, values, weights)
-    return r, pol, res, zer, errors[:k + 1]
+    rmse = _rmse(r(z), z, func, None)
+    return r, pol, res, zer, errors[:k + 1], rmse
 
 
 def compute_cauchy_matrix(z, support_points):
@@ -872,4 +878,4 @@ def esprit(C: np.ndarray, n: int) -> tuple:
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
     rmse = _rmse(prony_model, C, C, params)
-    return params,rmse
+    return params, rmse
