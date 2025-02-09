@@ -19,12 +19,14 @@ import numpy as np
 from numpy.random import Generator, SeedSequence, default_rng
 import scipy.linalg
 import scipy.sparse as sp
+from typing import Literal, Sequence
 
 from . import (Qobj, create, destroy, jmat, basis,
                to_super, to_choi, to_chi, to_kraus, to_stinespring)
 from .core import data as _data
-from .core.dimensions import flatten, Dimensions
+from .core.dimensions import flatten, Dimensions, Space
 from . import settings
+from .typing import SpaceLike, LayerType
 
 
 _RAND = default_rng()
@@ -52,6 +54,8 @@ def _implicit_tensor_dimensions(dimensions, superoper=False):
     dimensions : list
         Dimension list in the form required by ``Qobj`` creation.
     """
+    if isinstance(dimensions, Space):
+        dimensions = dimensions.as_list()
     if not isinstance(dimensions, list):
         dimensions = [dimensions]
     flat = flatten(dimensions)
@@ -210,8 +214,15 @@ def _merge_shuffle_blocks(blocks, generator):
     return _data.create(matrix, copy=False)
 
 
-def rand_herm(dimensions, density=0.30, distribution="fill", *,
-              eigenvalues=(), seed=None, dtype=None):
+def rand_herm(
+    dimensions: SpaceLike,
+    density: float = 0.30,
+    distribution: Literal["fill", "pos_def", "eigen"] = "fill",
+    *,
+    eigenvalues: Sequence[float] = (),
+    seed: int | SeedSequence | Generator = None,
+    dtype: LayerType = None,
+):
     """Creates a random sparse Hermitian quantum object.
 
     Parameters
@@ -335,8 +346,14 @@ def _rand_herm_dense(N, density, pos_def, generator):
     return _data.create(M)
 
 
-def rand_unitary(dimensions, density=1, distribution="haar", *,
-                 seed=None, dtype=None):
+def rand_unitary(
+    dimensions: SpaceLike,
+    density: float = 1,
+    distribution: Literal["haar", "exp"] = "haar",
+    *,
+    seed: int | SeedSequence | Generator = None,
+    dtype: LayerType = None,
+):
     r"""Creates a random sparse unitary quantum object.
 
     Parameters
@@ -438,8 +455,14 @@ def _rand_unitary_haar(N, generator):
     return Q * Lambda
 
 
-def rand_ket(dimensions, density=1, distribution="haar", *,
-             seed=None, dtype=None):
+def rand_ket(
+    dimensions: SpaceLike,
+    density: float = 1,
+    distribution: Literal["haar", "fill"] = "haar",
+    *,
+    seed: int | SeedSequence | Generator = None,
+    dtype: LayerType = None,
+):
     """Creates a random ket vector.
 
     Parameters
@@ -497,13 +520,24 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         X = _data.csr.CSR(X + Y)
         ket = Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
                    copy=False, isherm=False, isunitary=False)
-    ket.dims = [dims[0], [1]]
+    if np.ndim(dims[0]) == 1: # ket
+        ket.dims = [dims[0], [1] * len(dims[0])]
+    else: # operator-ket
+        ket.dims = [dims[0], [1]]
     return ket.to(dtype)
 
 
-def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
-            eigenvalues=(), rank=None, seed=None,
-            dtype=None):
+def rand_dm(
+    dimensions: SpaceLike,
+    density: float = 0.75,
+    distribution: Literal["ginibre", "hs", "pure", "eigen", "uniform"] \
+                  = "ginibre",
+    *,
+    eigenvalues: Sequence[float] = (),
+    rank: int = None,
+    seed: int | SeedSequence | Generator = None,
+    dtype: LayerType = None,
+):
     r"""Creates a random density matrix of the desired dimensions.
 
     Parameters
@@ -631,7 +665,12 @@ def _rand_dm_ginibre(N, rank, generator):
     return rho
 
 
-def rand_kraus_map(dimensions, *, seed=None, dtype=None):
+def rand_kraus_map(
+    dimensions: SpaceLike,
+    *,
+    seed: int | SeedSequence | Generator = None,
+    dtype: LayerType = None,
+):
     """
     Creates a random CPTP map on an N-dimensional Hilbert space in Kraus
     form.
@@ -671,7 +710,13 @@ def rand_kraus_map(dimensions, *, seed=None, dtype=None):
     return [Qobj(x, dims=dims, copy=False).to(dtype) for x in oper_list]
 
 
-def rand_super(dimensions, *, superrep="super", seed=None, dtype=None):
+def rand_super(
+    dimensions: SpaceLike,
+    *,
+    superrep: Literal["super", "choi", "chi"] = "super",
+    seed: int | SeedSequence | Generator = None,
+    dtype: LayerType = None,
+):
     """
     Returns a randomly drawn superoperator acting on operators acting on
     N dimensions.
@@ -712,9 +757,15 @@ def rand_super(dimensions, *, superrep="super", seed=None, dtype=None):
     return out
 
 
-def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
-                    superrep="super", seed=None,
-                    dtype=None):
+def rand_super_bcsz(
+    dimensions: SpaceLike,
+    enforce_tp: bool = True,
+    rank: int = None,
+    *,
+    superrep: Literal["super", "choi", "chi"] = "super",
+    seed: int | SeedSequence | Generator = None,
+    dtype: LayerType = None,
+):
     """
     Returns a random superoperator drawn from the Bruzda
     et al ensemble for CPTP maps [BCSZ08]_. Note that due to
@@ -816,8 +867,14 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
     return out
 
 
-def rand_stochastic(dimensions, density=0.75, kind='left',
-                    *, seed=None, dtype=None):
+def rand_stochastic(
+    dimensions: SpaceLike,
+    density: float = 0.75,
+    kind: Literal["left", "right"] = "left",
+    *,
+    seed: int | SeedSequence | Generator = None,
+    dtype: LayerType = None,
+):
     """Generates a random stochastic matrix.
 
     Parameters

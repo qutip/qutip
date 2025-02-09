@@ -24,7 +24,8 @@ part of `Google Summer of Code <https://summerofcode.withgoogle.com/>`_:
 
 * `GSoC 2021 <https://github.com/qutip/qutip/wiki/Google-Summer-of-Code-2021/>`_
 * `GSoC 2022 <https://github.com/qutip/qutip/wiki/Google-Summer-of-Code-2022/>`_
-
+* `GSoC 2023 <https://github.com/qutip/qutip/wiki/Google-Summer-of-Code-2023/>`_
+* `GSoC 2024 <https://github.com/qutip/qutip/wiki/Google-Summer-of-Code-2024/>`_
 
 
 Completed Projects

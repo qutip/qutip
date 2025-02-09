@@ -1,8 +1,7 @@
 """
-Tests for qutip.nonmarkov.heom.
+Tests for qutip.solver.heom.
 """
 
-import pytest
 from qutip.solver.heom import (
     BathExponent,
     Bath,

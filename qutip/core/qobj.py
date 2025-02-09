@@ -14,7 +14,8 @@ import scipy.sparse
 from .. import __version__
 from ..settings import settings
 from . import data as _data
-from qutip.typing import LayerType
+from qutip.typing import LayerType, DimensionLike
+import qutip
 from .dimensions import (
     enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions
 )
@@ -113,12 +114,10 @@ class Qobj:
 
     Parameters
     ----------
-    inpt: array_like, data object or :obj:`.Qobj`
+    arg: array_like, data object or :obj:`.Qobj`
         Data for vector/matrix representation of the quantum object.
     dims: list
         Dimensions of object used for tensor products.
-    shape: list
-        Shape of underlying data structure (matrix shape).
     copy: bool
         Flag specifying whether Qobj should get a copy of the
         input data, or use the original.
@@ -217,6 +216,10 @@ class Qobj:
         Overlap between two state vectors or two operators.
     permute(order)
         Returns composite qobj with indices reordered.
+    basis_expansion(decimal_places=14, term_separator=" + ",
+                    dim_separator="auto", sort="largest-first")
+        Return a string-representation of the basis expansion
+        E.g. ``"(0.5+0.15j) |010> + (0.25+0j) |000> + ..."``
     proj()
         Computes the projector for a ket or bra vector.
     ptrace(sel)
@@ -269,7 +272,7 @@ class Qobj:
     def __init__(
         self,
         arg: ArrayLike | Any = None,
-        dims: list[list[int]] | list[list[list[int]]] | Dimensions = None,
+        dims: DimensionLike = None,
         copy: bool = True,
         superrep: str = None,
         isherm: bool = None,
@@ -318,10 +321,6 @@ class Qobj:
     def data(self) -> _data.Data:
         return self._data
 
-    @property
-    def dtype(self):
-        return type(self._data)
-
     @data.setter
     def data(self, data: _data.Data):
         if not isinstance(data, _data.Data):
@@ -330,6 +329,10 @@ class Qobj:
             raise ValueError('Provided data do not match the dimensions: ' +
                              f"{self._dims.shape} vs {data.shape}")
         self._data = data
+
+    @property
+    def dtype(self):
+        return type(self._data)
 
     def to(self, data_type: LayerType, copy: bool=False) -> Qobj:
         """
@@ -373,7 +376,7 @@ class Qobj:
         )
 
     @_require_equal_type
-    def __add__(self, other: Qobj | numbers.Number) -> Qobj:
+    def __add__(self, other: Qobj | complex) -> Qobj:
         if other == 0:
             return self.copy()
         return Qobj(_data.add(self._data, other._data),
@@ -381,11 +384,11 @@ class Qobj:
                     isherm=(self._isherm and other._isherm) or None,
                     copy=False)
 
-    def __radd__(self, other: Qobj | numbers.Number) -> Qobj:
+    def __radd__(self, other: Qobj | complex) -> Qobj:
         return self.__add__(other)
 
     @_require_equal_type
-    def __sub__(self, other: Qobj | numbers.Number) -> Qobj:
+    def __sub__(self, other: Qobj | complex) -> Qobj:
         if other == 0:
             return self.copy()
         return Qobj(_data.sub(self._data, other._data),
@@ -393,10 +396,10 @@ class Qobj:
                     isherm=(self._isherm and other._isherm) or None,
                     copy=False)
 
-    def __rsub__(self, other: Qobj | numbers.Number) -> Qobj:
+    def __rsub__(self, other: Qobj | complex) -> Qobj:
         return self.__neg__().__add__(other)
 
-    def __mul__(self, other: numbers.Number) -> Qobj:
+    def __mul__(self, other: complex) -> Qobj:
         """
         If other is a Qobj, we dispatch to __matmul__. If not, we
         check that other is a valid complex scalar, i.e., we can do
@@ -430,7 +433,7 @@ class Qobj:
                     isunitary=isunitary,
                     copy=False)
 
-    def __rmul__(self, other: numbers.Number) -> Qobj:
+    def __rmul__(self, other: complex) -> Qobj:
         # Shouldn't be here unless `other.__mul__` has already been tried, so
         # we _shouldn't_ check that `other` is `Qobj`.
         return self.__mul__(other)
@@ -452,7 +455,7 @@ class Qobj:
             copy=False
         )
 
-    def __truediv__(self, other: numbers.Number) -> Qobj:
+    def __truediv__(self, other: complex) -> Qobj:
         return self.__mul__(1 / other)
 
     def __neg__(self) -> Qobj:
@@ -514,6 +517,74 @@ class Qobj:
             out += ", superrep=" + repr(self.superrep)
         return out
 
+    def basis_expansion(self, decimal_places: int = 14,
+                        term_separator: str = " + ",
+                        dim_separator: str = "auto",
+                        sort: str = "largest-first") -> str:
+        """
+        Return a string-representation of the basis expansion
+        for a ket or a bra, e.g.
+
+        ``"(0.5+0.15j) |010> + (0.25+0j) |000> + ..."``
+
+        Parameters
+        ----------
+        decimal_places : int
+            The number of decimal places to show for the coefficients.
+
+        term_separator: str
+            Separator string between terms. E.g. use " +\n"
+            to print terms on separate lines.
+
+        dim_separator: str
+            Separator string between dimension indices.
+            E.g. use ", " to print as ``"|0, 0, 0>"``.
+            If dim_separator="auto", then "" is used
+            for qubits and ", " is used otherwise.
+
+        sort: str
+            Show largest elements (by magnitude) first
+            if "largest-first". Unsorted otherwise.
+
+        Returns
+        -------
+        basis_expansion : str
+            The requested string representation.
+        """
+
+        if not (self.isket or self.isbra):
+            raise ValueError(
+                f"Only implemented for states, not {self.type}."
+            )
+        dims = self.dims[0 if self.isket else 1]
+
+        if dim_separator == "auto":
+            # No separator for pure qubit states but comma-separator otherwise,
+            # since bitstrings are nice, but e.g. |153> would be ambiguous.
+            dim_separator = ", " if any([dim > 2 for dim in dims]) else ""
+
+        template = "{} |{}>" if self.isket else "{} <{}|"
+
+        ket_full = np.round(self.full(squeeze=True), decimals=decimal_places)
+
+        indices = range(len(ket_full))
+        if sort == "largest-first":
+            indices = np.argsort(np.abs(ket_full))[::-1]
+
+        parts = []
+        for i in indices:
+            if np.abs(ket_full[i]) > 10**-(decimal_places):
+                coeff = ket_full.item(i)
+                basis_str = dim_separator.join(
+                    map(str, np.unravel_index(i, dims))
+                )
+                parts.append(template.format(coeff, basis_str))
+
+        if len(parts) == 0:  # return something for norm-zero states.
+            return "0"
+
+        return term_separator.join(parts)
+
     def __str__(self):
         if self.data.shape[0] * self.data.shape[0] > 100_000_000:
             # If the system is huge, don't attempt to convert to a dense matrix
@@ -546,7 +617,7 @@ class Qobj:
         if self.issuper:
             if other.isket:
                 other = other.proj()
-            return vector_to_operator(self @ operator_to_vector(other))
+            return qutip.vector_to_operator(self @ qutip.operator_to_vector(other))
         return self.__matmul__(other)
 
     def __getstate__(self):
@@ -593,7 +664,7 @@ class Qobj:
         Syntax shortcut for tensor:
         A & B ==> tensor(A, B)
         """
-        return tensor(self, other)
+        return qutip.tensor(self, other)
 
     def dag(self) -> Qobj:
         """Get the Hermitian adjoint of the quantum object."""
@@ -635,9 +706,9 @@ class Qobj:
         # is only valid for completely positive maps.
         if not self.iscp:
             raise ValueError("Dual channels are only implemented for CP maps.")
-        J = to_choi(self)
+        J = qutip.to_choi(self)
         tensor_idxs = enumerate_flat(J.dims)
-        J_dual = tensor_swap(J, *(
+        J_dual = qutip.tensor_swap(J, *(
                 list(zip(tensor_idxs[0][1], tensor_idxs[0][0])) +
                 list(zip(tensor_idxs[1][1], tensor_idxs[1][0]))
         )).trans()
@@ -648,7 +719,7 @@ class Qobj:
         self,
         norm: Literal["l2", "max", "fro", "tr", "one"] = None,
         kwargs: dict[str, Any] = None
-    ) -> numbers.Number:
+    ) -> float:
         """
         Norm of a quantum object.
 
@@ -708,7 +779,7 @@ class Qobj:
                     isherm=True,
                     copy=False)
 
-    def tr(self) -> numbers.Number:
+    def tr(self) -> complex:
         """Trace of a quantum object.
 
         Returns
@@ -724,7 +795,7 @@ class Qobj:
             out = out.real
         return out
 
-    def purity(self) -> numbers.Number:
+    def purity(self) -> complex:
         """Calculate purity of a quantum object.
 
         Returns
@@ -798,7 +869,7 @@ class Qobj:
             out = np.real(out)
         return out
 
-    def expm(self, dtype: LayerType = _data.Dense) -> Qobj:
+    def expm(self, dtype: LayerType = None) -> Qobj:
         """Matrix exponential of quantum operator.
 
         Input operator must be square.
@@ -806,9 +877,7 @@ class Qobj:
         Parameters
         ----------
         dtype : type
-            The data-layer type that should be output.  As the matrix
-            exponential is almost dense, this defaults to outputting dense
-            matrices.
+            The data-layer type that should be output.
 
         Returns
         -------
@@ -822,6 +891,8 @@ class Qobj:
         """
         if not self._dims.issquare:
             raise TypeError("expm is only valid for square operators")
+        if dtype is None and isinstance(self.data, (_data.CSR, _data.Dia)):
+            dtype = _data.Dense
         return Qobj(_data.expm(self._data, dtype=dtype),
                     dims=self._dims,
                     isherm=self._isherm,
@@ -996,16 +1067,16 @@ class Qobj:
         obj : :class:`.Qobj`
             Normalized quantum object.  Will be the `self` object if in place.
         """
-        norm = self.norm(norm=norm, kwargs=kwargs)
+        norm_ = self.norm(norm=norm, kwargs=kwargs)
         if inplace:
-            self.data = _data.mul(self.data, 1 / norm)
-            self._isherm = self._isherm if norm.imag == 0 else None
+            self.data = _data.mul(self.data, 1 / norm_)
+            self._isherm = self._isherm if norm_.imag == 0 else None
             self._isunitary = (self._isunitary
-                               if abs(norm) - 1 < settings.core['atol']
+                               if abs(norm_) - 1 < settings.core['atol']
                                else None)
             out = self
         else:
-            out = self / norm
+            out = self / norm_
         return out
 
     def ptrace(self, sel: int | list[int], dtype: LayerType = None) -> Qobj:
@@ -1057,10 +1128,10 @@ class Qobj:
             sel = [sel]
         if self.isoperket:
             dims = self.dims[0]
-            data = vector_to_operator(self).data
+            data = qutip.vector_to_operator(self).data
         elif self.isoperbra:
             dims = self.dims[1]
-            data = vector_to_operator(self.dag()).data
+            data = qutip.vector_to_operator(self.dag()).data
         elif self.issuper or self.isoper:
             dims = self.dims
             data = self.data
@@ -1074,9 +1145,9 @@ class Qobj:
         new_dims = [[dims[x] for x in sel]] * 2 if sel else None
         out = Qobj(new_data, dims=new_dims, copy=False)
         if self.isoperket:
-            return operator_to_vector(out)
+            return qutip.operator_to_vector(out)
         if self.isoperbra:
-            return operator_to_vector(out).dag()
+            return qutip.operator_to_vector(out).dag()
         return out
 
     def contract(self, inplace: bool = False) -> Qobj:
@@ -1390,7 +1461,7 @@ class Qobj:
             right = right.adjoint()
         return _data.inner_op(left, op, right, bra.isket)
 
-    def overlap(self, other: Qobj) -> numbers.Number:
+    def overlap(self, other: Qobj) -> complex:
         """
         Overlap between two state vectors or two operators.
 
@@ -1508,9 +1579,9 @@ class Qobj:
                                       sort=sort, eigvals=eigvals)
 
         if self.type == 'super':
-            new_dims = [self.dims[0], [1]]
+            new_dims = [self._dims[0], [1]]
         else:
-            new_dims = [self.dims[0], [1]*len(self.dims[0])]
+            new_dims = [self._dims[0], [1]*len(self.dims[0])]
         ekets = np.empty((evecs.shape[1],), dtype=object)
         ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
                     for vec in _data.split_columns(evecs, False)]
@@ -1624,7 +1695,7 @@ class Qobj:
                 warnings.warn("Ground state may be degenerate.", UserWarning)
         return evals[0], evecs[0]
 
-    def dnorm(self, B: Qobj = None) -> numbers.Number:
+    def dnorm(self, B: Qobj = None) -> float:
         """Calculates the diamond norm, or the diamond distance to another
         operator.
 
@@ -1641,14 +1712,14 @@ class Qobj:
             from this operator to B.
 
         """
-        return mts.dnorm(self, B)
+        return qutip.dnorm(self, B)
 
     @property
     def ishp(self) -> bool:
         # FIXME: this needs to be cached in the same ways as isherm.
         if self.type in ["super", "oper"]:
             try:
-                J = to_choi(self)
+                J = qutip.to_choi(self)
                 return J.isherm
             except:
                 return False
@@ -1663,7 +1734,7 @@ class Qobj:
         # We can test with either Choi or chi, since the basis
         # transformation between them is unitary and hence preserves
         # the CP and TP conditions.
-        J = self if self.superrep in ('choi', 'chi') else to_choi(self)
+        J = self if self.superrep in ('choi', 'chi') else qutip.to_choi(self)
         # If J isn't hermitian, then that could indicate either that J is not
         # normal, or is normal, but has complex eigenvalues.  In either case,
         # it makes no sense to then demand that the eigenvalues be
@@ -1681,7 +1752,7 @@ class Qobj:
         if self.issuper and self.superrep in ('choi', 'chi'):
             qobj = self
         else:
-            qobj = to_choi(self)
+            qobj = qutip.to_choi(self)
         # Possibly collapse dims.
         if any([len(index) > 1
                 for super_index in qobj.dims
@@ -1703,7 +1774,7 @@ class Qobj:
         if not (self.issuper or self.isoper):
             return False
         reps = ('choi', 'chi')
-        q_oper = to_choi(self) if self.superrep not in reps else self
+        q_oper = qutip.to_choi(self) if self.superrep not in reps else self
         return q_oper.iscp and q_oper.istp
 
     @property
@@ -1796,11 +1867,3 @@ def ptrace(Q: Qobj, sel: int | list[int]) -> Qobj:
     if not isinstance(Q, Qobj):
         raise TypeError("Input is not a quantum object")
     return Q.ptrace(sel)
-
-
-# TRAILING IMPORTS
-# We do a few imports here to avoid circular dependencies.
-from qutip.core.superop_reps import to_choi
-from qutip.core.superoperator import vector_to_operator, operator_to_vector
-from qutip.core.tensor import tensor_swap, tensor
-from qutip.core import metrics as mts

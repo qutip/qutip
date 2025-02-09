@@ -33,11 +33,11 @@ def test_ttmsolve_jc_model(call):
 
     # calculate exact solution using mesolve
     times = np.arange(0, 5.0, 0.1)
-    exactsol = qutip.mesolve(H, rho0, times, c_ops, [sz])
+    exactsol = qutip.mesolve(H, rho0, times, c_ops, e_ops=[sz])
 
     if not call:
         learning_times = np.arange(0, 2.0, 0.1)
-        Et_list = qutip.mesolve(H, E0, learning_times, c_ops, []).states
+        Et_list = qutip.mesolve(H, E0, learning_times, c_ops).states
         learning_maps = [ptracesuper @ Et @ superrho0cav for Et in Et_list]
     else:
         prop = qutip.Propagator(qutip.liouvillian(H, c_ops))

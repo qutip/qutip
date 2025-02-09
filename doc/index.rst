@@ -18,7 +18,6 @@ Here, you can also find a collection of `tutorials for QuTiP <https://qutip.org/
    frontmatter.rst
    installation.rst
    guide/guide.rst
-   gallery/build/index.rst
    apidoc/apidoc.rst
 
    changelog.rst

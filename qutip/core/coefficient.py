@@ -53,6 +53,7 @@ coefficient_builders = {
     np.ndarray: InterCoefficient,
     scipy.interpolate.PPoly: InterCoefficient.from_PPoly,
     scipy.interpolate.BSpline: InterCoefficient.from_Bspline,
+    numbers.Number: ConstantCoefficient,
 }
 
 

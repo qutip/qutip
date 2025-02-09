@@ -403,7 +403,7 @@ A full example is:
     ]]
     e_ops = [a.dag() * a, a + a.dag()]
 
-    res_brme = brmesolve(H, psi0, times, a_ops, e_ops)
+    res_brme = brmesolve(H, psi0, times, a_ops, e_ops=e_ops)
 
     plt.figure()
     plt.plot(times, res_brme.expect[0], label=r'$a^{+}a$')

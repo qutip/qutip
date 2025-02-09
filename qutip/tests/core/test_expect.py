@@ -92,11 +92,10 @@ class TestKnownExpectation:
 
     def test_broadcast_operator_list(self, operators, state, expected):
         result = qutip.expect(operators, state)
-        expected_dtype = (np.float64 if all(op.isherm for op in operators)
-                          else np.complex128)
-        assert isinstance(result, np.ndarray)
-        assert result.dtype == expected_dtype
-        assert list(result) == list(expected)
+        assert len(result) == len(operators)
+        for part, operator, expected_part in zip(result, operators, expected):
+            assert isinstance(part, float if operator.isherm else complex)
+            assert part == expected_part
 
     def test_broadcast_state_list(self, operator, states, expected):
         result = qutip.expect(operator, states)

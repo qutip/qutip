@@ -99,7 +99,7 @@ plotting functions:
     >>> H = 2*np.pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
     >>> times = np.linspace(0.0, 10.0, 100)
-    >>> result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
+    >>> result = sesolve(H, psi0, times, e_ops=[sigmaz(), sigmay()])
     >>> fig, ax = plt.subplots()
     >>> ax.plot(result.times, result.expect[0])
     >>> ax.plot(result.times, result.expect[1])
@@ -117,7 +117,7 @@ instance that contains a list of state vectors for the times specified in
     :context: close-figs
 
     >>> times = [0.0, 1.0]
-    >>> result = sesolve(H, psi0, times, [])
+    >>> result = sesolve(H, psi0, times)
     >>> result.states
     [Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
      Qobj data =

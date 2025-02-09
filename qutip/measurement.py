@@ -239,7 +239,7 @@ def measurement_statistics_observable(state, op, tol=None):
 
         if probability >= tol:
             probabilities.append(probability)
-            values.append(np.mean(eigenvalues[present_group]))
+            values.append(np.mean(eigenvalues[np.array(present_group)]))
             projectors.append(projector)
 
         present_group = []

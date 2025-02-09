@@ -22,9 +22,9 @@ def _qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, solver):
     e_ops = [sigmax(), sigmay(), sigmaz()]
 
     if solver == "me":
-        output = mesolve(H, psi0, tlist, c_op_list, e_ops)
+        output = mesolve(H, psi0, tlist, c_op_list, e_ops=e_ops)
     elif solver == "mc":
-        output = mcsolve(H, psi0, tlist, c_op_list, e_ops, ntraj=750)
+        output = mcsolve(H, psi0, tlist, c_op_list, e_ops=e_ops, ntraj=750)
     else:
         raise ValueError("unknown solver")
 

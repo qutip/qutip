@@ -17,11 +17,18 @@ import numpy as np
 cimport numpy as cnp
 import scipy.sparse
 from scipy.sparse import csr_matrix as scipy_csr_matrix
-try:
-    from scipy.sparse.data import _data_matrix as scipy_data_matrix
-except ImportError:
+from functools import partial
+from packaging.version import parse as parse_version
+if parse_version(scipy.version.version) >= parse_version("1.14.0"):
+    from scipy.sparse._data import _data_matrix as scipy_data_matrix
+    # From scipy 1.14.0, a check that the input is not scalar was added for
+    # sparse arrays.
+    scipy_data_matrix = partial(scipy_data_matrix, arg1=(0,))
+elif parse_version(scipy.version.version) >= parse_version("1.8.0"):
     # The file data was renamed to _data from scipy 1.8.0
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
+else:
+    from scipy.sparse.data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, Dia
@@ -590,14 +597,19 @@ cpdef CSR from_dense(Dense matrix):
     cdef CSR out = empty(matrix.shape[0], matrix.shape[1],
                          matrix.shape[0]*matrix.shape[1])
     cdef size_t row, col, ptr_in, ptr_out=0, row_stride, col_stride
+    cdef double atol = 0
+    cdef double complex value
     row_stride = 1 if matrix.fortran else matrix.shape[1]
     col_stride = matrix.shape[0] if matrix.fortran else 1
     out.row_index[0] = 0
+    if settings.core["auto_tidyup"]:
+        atol = settings.core["auto_tidyup_atol"]**2
     for row in range(matrix.shape[0]):
         ptr_in = row_stride * row
         for col in range(matrix.shape[1]):
-            if matrix.data[ptr_in] != 0:
-                out.data[ptr_out] = matrix.data[ptr_in]
+            value = matrix.data[ptr_in]
+            if value.real**2 + value.imag**2 > atol:
+                out.data[ptr_out] = value
                 out.col_index[ptr_out] = col
                 ptr_out += 1
             ptr_in += col_stride

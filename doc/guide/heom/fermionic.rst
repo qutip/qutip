@@ -11,7 +11,7 @@ are
 
     H_{sys} &= c^{\dagger} c
 
-    J_D &= \frac{\Gamma W^2}{(w - \mu)^2 + W^2},
+    J_D(\omega) &= \frac{\Gamma W^2}{(w - \mu)^2 + W^2},
 
 We will demonstrate how to describe the bath using two different expansions
 of the spectral density correlation function (Matsubara's expansion and
@@ -19,26 +19,29 @@ a Padé expansion), how to evolve the system in time, and how to calculate
 the steady state.
 
 Since our fermion is coupled to two reservoirs, we will construct two baths --
-one for each reservoir or lead -- and call them the left (:math:`L`) and right
-(:math:`R`) baths for convenience. Each bath will have a different chemical
+one for each reservoir or lead -- and call them the left (L) and right
+(R) baths for convenience. Each bath will have a different chemical
 potential :math:`\mu` which we will label :math:`\mu_L` and :math:`\mu_R`.
 
 First we will do this using the built-in implementations of the bath expansions,
 :class:`~qutip.solver.heom.LorentzianBath` and
 :class:`~qutip.solver.heom.LorentzianPadeBath`.
-
 Afterwards, we will show how to calculate the bath expansion coefficients and to
 use those coefficients to construct your own bath description so that you can
 implement your own fermionic baths.
 
-Our implementation of fermionic baths primarily follows the definitions used by
-Christian Schinabeck in his dissertation (
-https://opus4.kobv.de/opus4-fau/files/10984/DissertationChristianSchinabeck.pdf
-) and related publications.
+.. admonition:: Environment API
 
-A notebook containing a complete example similar to this one implemented in
-BoFiN can be found in `example notebook 4b
-<https://github.com/tehruhn/bofin/blob/main/examples/example-4b-fermions-single-impurity-model.ipynb>`__.
+    As for the bosonic case, we will include brief intermissions showing how to
+    achieve the same results using the newer environment API. The "bath" classes
+    are part of an older API that is less powerful, but often more convenient to
+    use when one only uses the HEOM solver and does not need any of the new features.
+
+Our implementation of fermionic baths primarily follows the definitions used in the
+`dissertation of Christian Schinabeck <https://opus4.kobv.de/opus4-fau/files/10984/DissertationChristianSchinabeck.pdf>`_
+and related publications.
+A notebook containing a complete example similar to this one implemented in BoFiN can be found in
+`HEOM example notebook 5a <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/heom/heom-5a-fermions-single-impurity-model.ipynb>`_.
 
 
 Describing the system and bath
@@ -67,8 +70,8 @@ Now let us describe the bath properties:
     :nofigs:
 
     # Shared bath properties:
-    gamma = 0.01   # coupling strength
-    W = 1.0  # cut-off
+    gamma = 0.01     # coupling strength
+    W = 1.0          # cut-off
     T = 0.025851991  # temperature
     beta = 1. / T
 
@@ -79,10 +82,11 @@ Now let us describe the bath properties:
     # System-bath coupling operator:
     Q = destroy(2)
 
-where :math:`\Gamma` (``gamma``), :math:`W` and :math:`T` are the parameters of
+where :math:`\Gamma` (``gamma``), :math:`W` and the temperature :math:`T` are the parameters of
 an Lorentzian bath, :math:`\mu_L` (``mu_L``) and :math:`\mu_R` (``mu_R``) are
 the chemical potentials of the left and right baths, and ``Q`` is the coupling
-operator between the system and the baths.
+operator between the system and the baths. QuTiP assumes a number-conserving coupling term, as described
+in the :ref:`section on fermionic environments <fermionic environments guide>`.
 
 We may the pass these parameters to either ``LorentzianBath`` or
 ``LorentzianPadeBath`` to construct an expansion of the bath correlations:
@@ -105,12 +109,34 @@ We may the pass these parameters to either ``LorentzianBath`` or
     bath_L = LorentzianPadeBath(Q, gamma, W, mu_L, T, Nk, tag="L")
     bath_R = LorentzianPadeBath(Q, gamma, W, mu_R, T, Nk, tag="R")
 
-Where ``Nk`` is the number of terms to retain within the expansion of the
-bath.
+Here, ``Nk`` is the number of terms to retain within the expansion of the bath.
 
 Note that we haved labelled each bath with a tag (either "L" or "R") so that
 we can identify the exponents from individual baths later when calculating
 the currents between the system and the bath.
+
+.. admonition:: Environment API
+
+    In analogy to the Drude-Lorentz environment in the previous section,
+    we first create a :class:`.LorentzianEnvironment` that describes the bath abstractly
+    and then invoke approximation methods:
+
+    .. plot::
+        :context:
+        :nofigs:
+
+        from qutip.core.environment import LorentzianEnvironment
+
+        env_L = LorentzianEnvironment(T, mu_L, gamma, W)
+        env_R = LorentzianEnvironment(T, mu_R, gamma, W)
+
+        # Matsubara expansion:
+        approx_L = env_L.approx_by_matsubara(Nk, tag="L")
+        approx_R = env_R.approx_by_matsubara(Nk, tag="R")
+
+        # Pade expansion:
+        approx_L = env_L.approx_by_pade(Nk, tag="L")
+        approx_R = env_R.approx_by_pade(Nk, tag="R")
 
 
 System and bath dynamics
@@ -139,11 +165,22 @@ and to calculate the system evolution as a function of time:
 
 As in the bosonic case, the ``max_depth`` parameter determines how many levels
 of the hierarchy to retain.
-
-As in the bosonic case, we can specify ``e_ops`` in order to retrieve the
+Also here, we can specify ``e_ops`` in order to retrieve the
 expectation values of operators at each given time. See
-:ref:`heom-bosonic-system-and-bath-dynamics` for a fuller description of
+:ref:`the previous section <heom-bosonic-system-and-bath-dynamics>` for a fuller description of
 the returned ``result`` object.
+
+.. admonition:: Environment API
+
+    When using the environment API, we again have to pass the coupling operator
+    to the HEOM solver together with the approximated environment:
+
+    .. plot::
+        :context:
+        :nofigs:
+
+        solver = HEOMSolver(H_sys, [(approx_L, Q), (approx_R, Q)],
+                            max_depth=max_depth, options=options)
 
 Below we run the solver again, but use ``e_ops`` to store the expectation
 values of the population of the system states:
@@ -161,11 +198,11 @@ values of the population of the system states:
     result = solver.run(rho0, tlist, e_ops={"11": P11p, "22": P22p})
 
     # Plot the results:
-    fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    axes.plot(result.times, result.e_data["11"], 'b', linewidth=2, label="P11")
-    axes.plot(result.times, result.e_data["22"], 'r', linewidth=2, label="P22")
-    axes.set_xlabel(r't', fontsize=28)
-    axes.legend(loc=0, fontsize=12)
+    fig, axes = plt.subplots(1, 1, sharex=True, figsize=(6, 6))
+    axes.plot(result.times, np.real(result.e_data["11"]), 'b', linewidth=2, label="P11")
+    axes.plot(result.times, np.real(result.e_data["22"]), 'r', linewidth=2, label="P22")
+    axes.set_xlabel(r't', fontsize=16)
+    axes.legend(loc=0, fontsize=16)
 
 The plot above is not very exciting. What we would really like to see in
 this case are the currents between the system and the two baths. We will plot
@@ -187,12 +224,11 @@ bath is:
 
 .. math::
 
-    \mathrm{Contribution from Exponent} = \pm i \mathrm{Tr}(Q^\pm \cdot A)
+    \text{Contribution from Exponent} = \pm i \mathrm{Tr}(Q^\pm \cdot A)
 
-where the :math:`\pm` sign is the sign of the exponent (see the
-description later in :ref:`heom-fermionic-pade-expansion-coefficients`) and
-:math:`Q^\pm` is :math:`Q` for ``+`` exponents and :math:`Q^{\dagger}` for
-``-`` exponents.
+where the :math:`\pm` sign depends on whether the exponent corresponds to the :math:`C^+(t)` or the :math:`C^-(t)` correlation function
+(see the explanation in the guide on :ref:`fermionic environments guide`) and
+:math:`Q^\pm` is :math:`Q` for ``+`` exponents and :math:`Q^{\dagger}` for ``-`` exponents.
 
 The first-level exponents for the left bath are retrieved by calling
 ``.filter(tags=["L"])`` on ``ado_state`` which is an instance of
@@ -250,10 +286,10 @@ baths, we can pass them to ``e_ops`` and plot the results:
         result.times, result.e_data["right_currents"], 'r',
         linewidth=2, label="Bath R",
     )
-    axes.set_xlabel(r't', fontsize=28)
-    axes.set_ylabel(r'Current', fontsize=20)
-    axes.set_title(r'System to Bath Currents', fontsize=20)
-    axes.legend(loc=0, fontsize=12)
+    axes.set_xlabel(r't', fontsize=16)
+    axes.set_ylabel(r'Current', fontsize=16)
+    axes.set_title(r'System to Bath Currents', fontsize=16)
+    axes.legend(loc=0, fontsize=16)
 
 And now we have a more interesting plot that shows the currents to the
 left and right baths decaying towards their steady states!
@@ -320,68 +356,15 @@ steady state is reached!
 Padé expansion coefficients
 ---------------------------
 
-We now look at how to calculate the correlation expansion coefficients for the
-Lorentzian spectral density ourselves. Once we have calculated the coefficients
-we can construct a :class:`~qutip.solver.heom.FermionicBath` directly from
-them. A similar procedure can be used to apply
-:class:`~qutip.solver.heom.HEOMSolver` to any fermionic bath for which we can
-calculate the expansion coefficients.
+As in the bosonic case, we can also use manually calculated correlation function
+coefficients of fermionic environments with the HEOM solver. In the section on
+fermionic environments, we :ref:`defined <fermionic environments guide>` their
+correlation functions and :ref:`calculated <lorentzian env guide>` the Matsubara and Pade
+expansions for Lorentzian environments.
 
-In the fermionic case we must descriminate between the order in which
-excitations are created within the bath, so we define two different correlation
-functions, :math:`C_{+}(t)`, and :math:`C_{-}(t)`:
-
-.. math::
-
-    C^{\sigma}(t) = \frac{1}{2\pi} \int_{-\infty}^{\infty} d\omega e^{\sigma i \omega t} J(\omega) f_F[\sigma\beta(\omega - \mu)]
-
-where :math:`\sigma` is either ``+`` or ``-`` and, :math:`f_F` is the Fermi
-distribution function, and :math:`J(\omega)` is the Lorentzian spectral density
-we defined at the start.
-
-The Fermi distribution function is:
-
-.. math::
-
-    f_F (x) = (\exp(x) + 1)^{-1}
-
-As in the bosonic case we can approximate this integral with a Matsubara or
-Padé expansion. For the Lorentzian bath the Padé expansion converges much
+For the Lorentzian bath, the Padé expansion converges much
 more quickly, so we will calculate the Padé expansion coefficients here.
-
-The Padé decomposition approximates the Fermi distribution as:
-
-.. math::
-
-    f_F(x) \approx f_F^{\mathrm{approx}}(x) = \frac{1}{2} - \sum_{l=0}^{Nk} \frac{2k_l x}{x^2 + \epsilon_l^2}
-
-where :math:`k_l` and :math:`\epsilon_l` are coefficients defined in
-`J. Chem Phys 133, "Efficient on the fly calculation of time correlation functions in computer simulations" <https://doi.org/10.1063/1.3491098>`_,
-and :math:`Nk` specifies the cut-off in the expansion.
-
-Evaluating the integral for the correlation functions gives:
-
-.. math::
-
-    C^{\sigma}(t) \approx \sum_{l=0}^{Nk} \eta^{\sigma,l} e^{-\gamma_{\sigma,l}t}
-
-where:
-
-.. math::
-
-    \eta_{\sigma, l} &= \begin{cases}
-        \frac{\Gamma W}{2} f_F^{approx}(i\beta W)  & l = 0\\
-        -i\cdot \frac{k_l}{\beta} \cdot \frac{\Gamma W^2}{-\frac{\epsilon^2_l}{\beta^2} + W^2}  & l \neq 0\\
-    \end{cases}
-
-    \gamma_{\sigma,l} &= \begin{cases}
-        W - \sigma i\mu  & l = 0\\
-        \frac{\epsilon_l}{\beta} - \sigma i \mu  & l \neq 0\\
-    \end{cases}
-
-and :math:`\beta = \frac{1}{T}`.
-
-And now we calculate the same numbers in Python:
+In Python code, the calculation can be done as follows:
 
 .. plot::
     :context:
@@ -447,7 +430,7 @@ And now we calculate the same numbers in Python:
     # correlation function expansions:
 
     def C(sigma, mu, Nk):
-        """ Calculate the expansion coefficients for C_\sigma. """
+        r""" Calculate the expansion coefficients for C_\sigma. """
         beta = 1. / T
         ck = [0.5 * gamma * W * f_approx(1.0j * beta * W, Nk)]
         vk = [W - sigma * 1.0j * mu]
@@ -483,6 +466,18 @@ And we're done!
 The :class:`~qutip.solver.heom.FermionicBath` can be used with the
 :class:`~qutip.solver.heom.HEOMSolver` in exactly the same way as the baths
 we constructed previously using the built-in Lorentzian bath expansions.
+
+.. admonition:: Environment API
+
+    The analogue of the ``FermionicBath`` is the ``ExponentialFermionicEnvironment``.
+    Its usage is very similar:
+
+    .. code-block:: python
+
+        from qutip.core.environment import ExponentialFermionicEnvironment
+
+        env_L = ExponentialFermionicEnvironment(ck_plus_L, vk_plus_L, ck_minus_L, vk_minus_L)
+        env_R = ExponentialFermionicEnvironment(ck_plus_R, vk_plus_R, ck_minus_R, vk_minus_R)
 
 
 .. plot::

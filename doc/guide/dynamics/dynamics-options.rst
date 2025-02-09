@@ -31,7 +31,7 @@ they can be listed through the integrator method of the solvers:
 
    help(MESolver.integrator("adams").options)
 
-See :ref:`classes-ode` for a list of supported methods.
+See :ref:`api-ode` for a list of supported methods.
 
 
 As an example, let us consider changing the integrator, turn the GUI off, and
@@ -41,7 +41,7 @@ strengthen the absolute tolerance.
 
     options = {method="bdf", "atol": 1e-10, "progress_bar": False}
 
-To use these new settings we can use the keyword argument ``options`` in either 
+To use these new settings we can use the keyword argument ``options`` in either
 the :func:`.mesolve` and :func:`.mcsolve` function::
 
     >>> mesolve(H0, psi0, tlist, c_op_list, [sigmaz()], options=options)

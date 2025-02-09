@@ -105,7 +105,7 @@ For example,
     [ 0.016-0.045j, -0.057+0.078j, -0.028+0.058j,  0.101+0.056j, 0.236+0.j   ]]
 
 
-See the API documentation: :ref:`functions-rand` for details.
+See the API documentation: :ref:`api-rand` for details.
 
 .. warning::
 

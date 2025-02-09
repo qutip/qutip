@@ -1,15 +1,15 @@
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
-from .result import TrajectoryResult
+from .result import Result
 from .multitrajresult import MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver
 from ..core import QobjEvo, Qobj
-import numpy as np
+from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
-from numpy.random import SeedSequence
+from numpy.random import SeedSequence, default_rng
 from numbers import Number
 from typing import Any, Callable
 import bisect
@@ -61,7 +61,7 @@ class MultiTrajSolver(Solver):
     """
     name = "generic multi trajectory"
     _resultclass = MultiTrajResult
-    _trajectory_resultclass = TrajectoryResult
+    _trajectory_resultclass = Result
     _avail_integrators = {}
 
     # Class of option used by the solver
@@ -87,12 +87,12 @@ class MultiTrajSolver(Solver):
         else:
             raise TypeError("The system should be a QobjEvo")
         self.options = options
-        self.seed_sequence = np.random.SeedSequence()
+        self.seed_sequence = SeedSequence()
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
 
-    def start(self, state0: Qobj, t0: Number, seed: int | SeedSequence = None):
+    def start(self, state0: Qobj, t0: float, seed: int | SeedSequence = None):
         """
         Set the initial state and time for a step evolution.
 
@@ -118,7 +118,7 @@ class MultiTrajSolver(Solver):
         self._integrator.set_state(t0, self._prepare_state(state0), generator)
 
     def step(
-        self, t: Number, *, args: dict[str, Any] = None, copy: bool = True
+        self, t: float, *, args: dict[str, Any] = None, copy: bool = True
     ) -> Qobj:
         """
         Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
@@ -174,7 +174,7 @@ class MultiTrajSolver(Solver):
         *,
         args: dict[str, Any] = None,
         e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
-        target_tol: float = None,
+        target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
         timeout: float = None,
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> MultiTrajResult:
@@ -275,7 +275,7 @@ class MultiTrajSolver(Solver):
         """
         result = self._initialize_run_one_traj(seed, state, tlist, e_ops,
                                                **integrator_kwargs)
-        return self._integrate_one_traj(seed, tlist, result)
+        return *self._integrate_one_traj(seed, tlist, result), 1
 
     def _integrate_one_traj(self, seed, tlist, result):
         for t, state in self._integrator.run(tlist):
@@ -291,12 +291,10 @@ class MultiTrajSolver(Solver):
         seed = seeds[id]
         state, weight = ics.get_state_and_weight(id)
 
-        seed, result = self._run_one_traj(seed, state, tlist, e_ops,
-                                          **integrator_kwargs)
+        seed, result, w = self._run_one_traj(seed, state, tlist, e_ops,
+                                             **integrator_kwargs)
 
-        if weight != 1:
-            result.add_relative_weight(weight)
-        return seed, result
+        return seed, result, weight * w
 
     def _run_mixed(
         self,
@@ -360,15 +358,15 @@ class MultiTrajSolver(Solver):
         """
         if seed is None:
             seeds = self.seed_sequence.spawn(ntraj)
-        elif isinstance(seed, np.random.SeedSequence):
+        elif isinstance(seed, SeedSequence):
             seeds = seed.spawn(ntraj)
         elif not isinstance(seed, list):
-            seeds = np.random.SeedSequence(seed).spawn(ntraj)
+            seeds = SeedSequence(seed).spawn(ntraj)
         elif len(seed) >= ntraj:
             seeds = [
-                seed_ if (isinstance(seed_, np.random.SeedSequence)
+                seed_ if (isinstance(seed_, SeedSequence)
                           or hasattr(seed_, 'random'))
-                else np.random.SeedSequence(seed_)
+                else SeedSequence(seed_)
                 for seed_ in seed[:ntraj]
             ]
         else:
@@ -391,7 +389,7 @@ class MultiTrajSolver(Solver):
             bit_gen = getattr(np.random, self.options['bitgenerator'])
             generator = np.random.Generator(bit_gen(seed))
         else:
-            generator = np.random.default_rng(seed)
+            generator = default_rng(seed)
         return generator
 
 
@@ -433,6 +431,13 @@ class _InitialConditions:
         self.ntraj = ntraj
         self._state_selector = np.cumsum(ntraj)
         self.ntraj_total = self._state_selector[-1]
+
+        if len(ntraj) != len(state_list):
+            raise ValueError('The length of the `ntraj` list must equal '
+                             'the number of states in the initial mixture')
+        if not all(n > 0 for n in ntraj):
+            raise ValueError('Each initial state must be use for at least '
+                             'one trajectory')
 
     def _minimum_roundoff_ensemble(self, state_list, ntraj_total):
         """

@@ -1,5 +1,5 @@
 """
-Tests for qutip.nonmarkov.bofin_baths.
+Tests for qutip.solver.heom.bofin_baths.
 """
 
 import numpy as np
@@ -80,7 +80,7 @@ class TestBathExponent:
                 )
             assert str(err.value) == (
                 "Second co-efficient (ck2) should only be specified for RI"
-                " bath exponents"
+                " exponents"
             )
 
         for exp_type, kw in [("R", {}), ("I", {}), ("RI", {"ck2": 3.0})]:
@@ -91,7 +91,7 @@ class TestBathExponent:
                 )
             assert str(err.value) == (
                 "Offset of sigma bar (sigma_bar_k_offset) should only be"
-                " specified for + and - bath exponents"
+                " specified for + and - type exponents"
             )
 
     def test_repr(self):
@@ -144,14 +144,14 @@ class TestBosonicBath:
         with pytest.raises(ValueError) as err:
             BosonicBath(Q, [1.], [], [2.], [0.6])
         assert str(err.value) == (
-            "The bath exponent lists ck_real and vk_real, and ck_imag and"
+            "The exponent lists ck_real and vk_real, and ck_imag and"
             " vk_imag must be the same length."
         )
 
         with pytest.raises(ValueError) as err:
             BosonicBath(Q, [1.], [0.5], [2.], [])
         assert str(err.value) == (
-            "The bath exponent lists ck_real and vk_real, and ck_imag and"
+            "The exponent lists ck_real and vk_real, and ck_imag and"
             " vk_imag must be the same length."
         )
 
@@ -278,7 +278,8 @@ class TestDrudeLorentzPadeBath:
             Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, combine=combine,
         )
         delta, terminator = bath.terminator()
-
+        print(delta)
+        print(terminator)
         assert np.abs(delta - (0.0 / 4.0)) < 1e-8
         assert isequal(terminator, - (0.0 / 4.0) * op, tol=1e-8)
 
@@ -363,14 +364,14 @@ class TestFermionicBath:
         with pytest.raises(ValueError) as err:
             FermionicBath(Q, [1.], [], [2.], [0.6])
         assert str(err.value) == (
-            "The bath exponent lists ck_plus and vk_plus, and ck_minus and"
+            "The exponent lists ck_plus and vk_plus, and ck_minus and"
             " vk_minus must be the same length."
         )
 
         with pytest.raises(ValueError) as err:
             FermionicBath(Q, [1.], [0.5], [2.], [])
         assert str(err.value) == (
-            "The bath exponent lists ck_plus and vk_plus, and ck_minus and"
+            "The exponent lists ck_plus and vk_plus, and ck_minus and"
             " vk_minus must be the same length."
         )
 

@@ -130,16 +130,21 @@ Example
 Below, we solve the dynamics for an optical cavity at 0K whose output is monitored
 using homodyne detection. The cavity decay rate is given by :math:`\kappa` and the
 :math:`\Delta` is the cavity detuning with respect to the driving field.
-The measurement operators can be passed using the option ``m_ops``. The homodyne
-current :math:`J_x` is calculated using
+The homodyne current :math:`J_x` is calculated using
 
 .. math::
     :label: measurement_result
 
     J_x = \langle x \rangle + dW / dt,
 
-where :math:`x` is the operator passed using ``m_ops``. The results are available
-in ``result.measurements``.
+where :math:`x` is the operator build from the ``sc_ops`` as
+
+.. math::
+
+    x_n = S_n + S_n^\dagger
+
+
+The results are available in ``result.measurement``.
 
 .. plot::
     :context: reset
@@ -178,20 +183,55 @@ in ``result.measurements``.
     ax.set_xlabel('Time')
     ax.legend()
 
+
+Run from known measurements
+===========================
+
+In situations where instead of running multiple trajectories, we want to reproduce a single trajectory from known noise or measurements obtained in lab.
+In these cases, we can use :meth:`~qutip.solver.stochastic.SMESolver.run_from_experiment`.
+
+Let use the measurement output ``J_x`` of the first trajectory of the previous simulation as the input to recompute a trajectory:
+
+.. code-block::
+
+    # Create a stochastic solver instance with the some Hamiltonian as the
+    # previous evolution.
+    solver = SMESolver(
+        H, sc_ops=[np.sqrt(KAPPA) * a],
+        options={"dt": 0.00125, "store_measurement": True,}
+    )
+
+    # Run the evolution, noise
+    recreated_solution = solver.run_from_experiment(
+        rho_0, tlist, stoc_solution.measurements[0],
+        e_ops=[H],
+        # The third parameter is the measurement, not the Wiener increment
+        measurement=True,
+    )
+
+This will recompute the states, expectation values and wiener increments for that trajectory.
+
+.. note::
+
+  The measurement in the result is by default computed from the state at the end of the time step.
+  However, when using ``run_from_experiment`` with measurement input, the state at the start of the time step is used.
+  To obtain the measurement at the start of the time step in the output of ``smesolve``, one may use the option ``{'store_measurement': 'start'}``.
+
+
+For other examples on :func:`qutip.solver.stochastic.smesolve`, see the
+notebooks available on the `QuTiP Tutorials page <https://qutip.org/tutorials.html>`_:
+
+* `Heterodyne detection <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/015_smesolve-heterodyne.ipynb>`_
+* `Inefficient detection <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/016_smesolve-inefficient-detection.ipynb>`_
+
 ..
-    TODO merge qutip-tutorials#61
-    For other examples on :func:`qutip.solver.stochastic.smesolve`, see the
-    `following notebook <...>`_, as well as these notebooks available at
-    `QuTiP Tutorials page <https://qutip.org/tutorials.html>`_:
-    `heterodyne detection <...>`_,
-    `inefficient detection <...>`_, and
-    `feedback control <https://github.com/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_.
+  TODO: Add back when the notebook is migrated
+  * `Feedback control <https://github.com/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_
 
 
 The stochastic solvers share many features with :func:`.mcsolve`, such as
 end conditions, seed control and running in parallel. See the sections
 :ref:`monte-ntraj`, :ref:`monte-seeds` and :ref:`monte-parallel` for details.
-
 
 .. plot::
     :context: reset

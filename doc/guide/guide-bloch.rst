@@ -29,7 +29,7 @@ Before getting into the details of these objects, we can simply plot the blank B
 .. plot::
     :context:
 
-    b.make_sphere()
+    b.render()
 
 In addition to the ``show`` command, see the API documentation for :class:`~qutip.bloch.Bloch` for a full list of other available functions.
 As an example, we can add a single data point:
@@ -107,6 +107,15 @@ a similar method works for adding vectors:
     b.clear()
     vec = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
     b.add_vectors(vec)
+    b.render()
+
+You can also add lines and arcs:
+
+.. plot::
+    :context: close-figs
+
+    b.add_line(x, y)
+    b.add_arc(y, z)
     b.render()
 
 Adding multiple points to the Bloch sphere works slightly differently than adding multiple states or vectors.  For example, lets add a set of 20 points around the equator (after calling `clear()`):
@@ -332,7 +341,7 @@ The code to directly generate an mp4 movie of the Qubit decay is as follows ::
       sphere.clear()
       sphere.add_vectors([np.sin(theta), 0, np.cos(theta)], ["r"])
       sphere.add_points([sx[:i+1], sy[:i+1], sz[:i+1]])
-      sphere.make_sphere()
+      sphere.render()
       return ax
 
    ani = animation.FuncAnimation(fig, animate, np.arange(len(sx)), blit=False, repeat=False)

@@ -12,9 +12,9 @@ from numpy.typing import ArrayLike
 from typing import Any, Callable
 from time import time
 from .. import (Qobj, QobjEvo, liouvillian, lindblad_dissipator)
-from ..typing import QobjEvoLike
+from ..typing import EopsLike, QobjEvoLike
 from ..core import data as _data
-from .solver_base import Solver, _solver_deprecation
+from .solver_base import Solver, _solver_deprecation, _kwargs_migration
 from .sesolve import sesolve, SESolver
 from ._feedback import _QobjFeedback, _DataFeedback
 from . import Result
@@ -24,8 +24,12 @@ def mesolve(
     H: QobjEvoLike,
     rho0: Qobj,
     tlist: ArrayLike,
-    c_ops: QobjEvoLike | list[QobjEvoLike] = None,
-    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+    c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
+    _e_ops = None,
+    _args = None,
+    _options = None,
+    *,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
     **kwargs
@@ -87,11 +91,10 @@ def mesolve(
         Single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators. None is equivalent to an empty list.
 
-    e_ops : list of :obj:`.Qobj` / callback function, optional
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
-        Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`expect` for more detail of operator expectation.
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single operator, or list or dict of operators, for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
 
     args : dict, optional
         dictionary of parameters for time-dependent Hamiltonians and
@@ -141,6 +144,9 @@ def mesolve(
         is an empty list of ``store_states=True`` in options].
 
     """
+    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
+    args = _kwargs_migration(_args, args, "args")
+    options = _kwargs_migration(_options, options, "options")
     options = _solver_deprecation(kwargs, options)
     H = QobjEvo(H, args=args, tlist=tlist)
 

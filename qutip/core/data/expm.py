@@ -133,7 +133,7 @@ logm.add_specialisations([
 def sqrtm_dense(matrix) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only compute logarithm square matrix")
-    return Dense(scipy.linalg.sqrtm(matrix.as_ndarray()), copy=False)
+    return Dense(scipy.linalg.sqrtm(matrix.as_ndarray()))
 
 
 sqrtm = _Dispatcher(
