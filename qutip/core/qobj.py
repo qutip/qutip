@@ -1563,7 +1563,8 @@ class Qobj:
         -----
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
-
+        It is designed to compute only a few eigenvalues and can give wrong
+        results when all eigenvalues are asked.
         """
         if isinstance(self.data, _data.CSR) and sparse:
             evals, evecs = _data.eigs_csr(self.data,
@@ -1678,13 +1679,6 @@ class Qobj:
             Eigenvalue for the ground state of quantum operator.
         eigvec : :class:`.Qobj`
             Eigenket for the ground state of quantum operator.
-
-        Notes
-        -----
-        The sparse eigensolver is much slower than the dense version.
-        Use sparse only if memory requirements demand it.
-        It is designed to compute only a few eigenvalues and can give wrong
-        results when all eigenvalues are asked.
         """
         eigvals = 2 if safe else 1
         evals, evecs = self.eigenstates(sparse=sparse, eigvals=eigvals,
