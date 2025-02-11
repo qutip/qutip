@@ -145,7 +145,7 @@ def _rand_jacobi_rotation(A, generator):
     cols = np.hstack(([i, j, i, j], diag))
     R = sp.coo_matrix((data, (rows, cols)), shape=(n, n), dtype=complex)
     R = _data.create(R.tocsr())
-    return _data.matmul(_data.matmul(R, A), R.adjoint())
+    return _data.to(_data.CSR, _data.matmul(_data.matmul(R, A), R.adjoint()))
 
 
 def _get_block_sizes(N, density, generator):

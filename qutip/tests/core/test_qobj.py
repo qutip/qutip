@@ -66,24 +66,26 @@ def test_QobjData():
                          ids=["copy=True", "copy=False"])
 def test_QobjCopyArgument(original_data, copy):
     """Tests that Qobj copy argument works properly when instantiating Qobj."""
-    qobj_data = qutip.Qobj(original_data, copy=copy).data
+    with qutip.CoreOptions(default_dtype_scope="creation"):
+        # default_dtype_scope="full" would break the copy logic
+        qobj_data = qutip.Qobj(original_data, copy=copy).data
 
-    if isinstance(original_data, qutip.Qobj):
-        # Qobj copies the data of another Qobj, so we take `data` if
-        # original_data was a Qobj
-        original_data = original_data.data
+        if isinstance(original_data, qutip.Qobj):
+            # Qobj copies the data of another Qobj, so we take `data` if
+            # original_data was a Qobj
+            original_data = original_data.data
 
-    if isinstance(original_data, np.ndarray):
-        # For numpy object we compare with data's data. This should be dense so
-        # we get its data as ndarray.
-        qobj_data = qobj_data.as_ndarray()
+        if isinstance(original_data, np.ndarray):
+            # For numpy object we compare with data's data. This should be dense so
+            # we get its data as ndarray.
+            qobj_data = qobj_data.as_ndarray()
 
-        # We look at the memory and see if it is shared or not to asses wether
-        # copy argument worked or not.
-        assert np.shares_memory(qobj_data, original_data) != copy
+            # We look at the memory and see if it is shared or not to asses wether
+            # copy argument worked or not.
+            assert np.shares_memory(qobj_data, original_data) != copy
 
-    else:
-        assert (original_data is qobj_data) != copy
+        else:
+            assert (original_data is qobj_data) != copy
 
 
 def test_QobjType():
