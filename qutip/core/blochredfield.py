@@ -125,12 +125,12 @@ def bloch_redfield_tensor(
                 # TODO: Check if plus / minus are right.
                 R += brcrossterm(
                     H_transform, a_op, a_op.dag(),
-                    spectra.power_spectrum_minus, sec_cutoff, True,
+                    lambda w: spectra.power_spectrum_plus(-w), sec_cutoff, True,
                     br_computation_method=br_computation_method
                 )
                 R += brcrossterm(
                     H_transform, a_op.dag(), a_op,
-                    spectra.power_spectrum_plus, sec_cutoff, True,
+                    spectra.power_spectrum_minus, sec_cutoff, True,
                     br_computation_method=br_computation_method
                 )
             else:
