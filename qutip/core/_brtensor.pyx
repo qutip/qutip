@@ -355,8 +355,8 @@ cpdef Data _br_cterm_data(Data A, Data B, double[:, ::1] spectrum,
     S = _data.to(cls, _data.mul(_data.Dense(spectrum), 0.5))
     I = _data.identity[cls](nrows)
 
-    P1 = _data.kron(_data.multiply(A, _data.transpose(S)), _data.transpose(B))
-    P2 = _data.kron(A, _data.transpose(_data.multiply(B, S)))
+    P1 = _data.kron(_data.multiply(B, _data.transpose(S)), _data.transpose(A))
+    P2 = _data.kron(B, _data.transpose(_data.multiply(A, S)))
     P3 = _data.kron(I, _data.transpose(_data.matmul(_data.multiply(A, S), B)))
     P4 = _data.kron(_data.matmul(A, _data.multiply(B, _data.transpose(S))), I)
 
@@ -425,8 +425,8 @@ cpdef Dense _br_cterm_dense(Data A, Data B, double[:, ::1] spectrum,
             for c in range(nrows):
                 for d in range(nrows):
                     if fabs(skew[a, b] - skew[c, d]) < cutoff:
-                        elem = A_mat[a, c] * B_mat[d, b]
-                        elem *= (spectrum[c, a] + spectrum[d, b])
+                        elem = B_mat[a, c] * A_mat[d, b] * spectrum[d, b]
+                        elem += B_mat[a, c] * A_mat[d, b] * spectrum[c, a]
                         if a == c:
                             elem = elem - ac_term[d, b]
                         if b == d:
