@@ -444,6 +444,28 @@ occurs:
 
     or even a mixed list of baths and environments.
 
+Shifted-Drude-Lorentz Bath
+--------------------------
+
+As discussed in :ref:`Drude-Lorentz Environment <dl env guide>`, a Shifted-Drude-Lorentz bath
+with a shift of :math:`\Omega` can be created by combining two regular Drude-Lorentz baths.
+Two Drude-Lorentz baths can be connected to the same site using a similar approach as in the previous section:
+
+.. code-block:: python
+
+    Omega = 0.1 # Shift
+    baths = []
+    for i in range(N_sys):
+        Q = proj(i, i)
+        # Two baths are added with same coupling-operator
+        baths.append(DrudeLorentzBath(Q, lam/2, gamma + 1j * Omega, T, Nk))
+        baths.append(DrudeLorentzBath(Q, lam/2, gamma - 1j * Omega, T, Nk))
+
+As a side note, it is easy to see that if :math:`\Omega=0` then we get two
+Drude-Lorentz baths each with a coupling strength of :math:`\lambda/2`.
+Now, because :math:`\gamma` and :math:`T` are same for both of them, the
+two can be combined to form a Drude-Lorentz bath with coupling strength :math:`\lambda`.
+
 
 .. plot::
     :context: reset
