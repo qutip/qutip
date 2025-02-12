@@ -81,10 +81,10 @@ This allows us to write master equation in terms of system operators and bath co
     \sum_{\alpha\beta}
     \int_0^\infty d\tau\;
     \left\{
-    g_{\alpha\beta}(\tau) \left[A_\alpha(t)A_\beta(t-\tau)\rho_S(t) - A_\alpha(t-\tau)\rho_S(t)A_\beta(t)\right]
+    g_{\alpha\beta}(\tau) \left[A_\alpha(t)A_\beta(t-\tau)\rho_S(t) - A_\beta(t-\tau)\rho_S(t)A_\alpha(t)\right]
     \right. \nonumber\\
     \left.
-    g_{\alpha\beta}(-\tau) \left[\rho_S(t)A_\alpha(t-\tau)A_\beta(t) - A_\alpha(t)\rho_S(t)A_\beta(t-\tau)\right]
+    g_{\alpha\beta}(-\tau) \left[\rho_S(t)A_\alpha(t-\tau)A_\beta(t) - A_\beta(t)\rho_S(t)A_\beta(t-\alpha)\right]
     \right\},
 
 where :math:`g_{\alpha\beta}(\tau) = {\rm Tr}_B\left[B_\alpha(t)B_\beta(t-\tau)\rho_B\right] = \left<B_\alpha(\tau)B_\beta(0)\right>`,
@@ -107,7 +107,7 @@ corresponding the eigenstate :math:`\left|m\right>`, we obtain in matrix form in
     g_{\alpha\beta}(\tau)
     \left[\delta_{bd}\sum_nA^\alpha_{an}A^\beta_{nc}e^{i\omega_{cn}\tau}
     -
-    A^\alpha_{ac} A^\beta_{db} e^{i\omega_{ca}\tau}
+    A^\beta_{ac} A^\alpha_{db} e^{i\omega_{ca}\tau}
     \right]
     \right. \nonumber\\
     &+
@@ -115,7 +115,7 @@ corresponding the eigenstate :math:`\left|m\right>`, we obtain in matrix form in
     g_{\alpha\beta}(-\tau)
     \left[\delta_{ac}\sum_n A^\alpha_{dn}A^\beta_{nb} e^{i\omega_{nd}\tau}
     -
-    A^\alpha_{ac}A^\beta_{db}e^{i\omega_{bd}\tau}
+    A^\beta_{ac}A^\alpha_{db}e^{i\omega_{bd}\tau}
     \right]
     \right\} \rho_{cd}(t),
     \nonumber\\
@@ -149,20 +149,20 @@ where
     \left\{
     \delta_{bd}\sum_nA^\alpha_{an}A^\beta_{nc}S_{\alpha\beta}(\omega_{cn})
     -
-    A^\alpha_{ac} A^\beta_{db} S_{\alpha\beta}(\omega_{ca})
+    A^\beta_{ac} A^\alpha_{db} S_{\alpha\beta}(\omega_{ca})
     \right. \nonumber\\
     +
     \left.
     \delta_{ac}\sum_n A^\alpha_{dn}A^\beta_{nb} S_{\alpha\beta}(\omega_{dn})
     -
-    A^\alpha_{ac}A^\beta_{db} S_{\alpha\beta}(\omega_{db})
+    A^\beta_{ac}A^\alpha_{db} S_{\alpha\beta}(\omega_{db})
     \right\},
 
 is the Bloch-Redfield tensor.
 
 The Bloch-Redfield master equation in the form Eq. :eq:`br-final` is suitable for numerical implementation. The input parameters are the system Hamiltonian :math:`H`, the system operators through which the environment couples to the system :math:`A_\alpha`, and the noise-power spectrum :math:`S_{\alpha\beta}(\omega)` associated with each system-environment interaction term.
 
-To simplify the numerical implementation we assume that :math:`A_\alpha` are Hermitian and that cross-correlations between different environment operators vanish, so that the final expression for the Bloch-Redfield tensor that is implemented in QuTiP is
+To simplify the numerical implementation we often assume that :math:`A_\alpha` are Hermitian and that cross-correlations between different environment operators vanish, resulting in
 
 .. math::
    :label: br-tensor
@@ -190,8 +190,8 @@ Bloch-Redfield master equation in QuTiP
 In QuTiP, Eq. :eq:`br-final` can be calculated using the function :func:`.bloch_redfield_tensor`.
 It takes two mandatory arguments: The system Hamiltonian :math:`H`, a nested list of operator
 :math:`A_\alpha`, spectral density functions :math:`S_\alpha(\omega)` pairs that characterize the coupling between system and bath.
-The spectral density functions are Python callback functions that takes the (angular) frequency as a single argument.
-Each term of Eq. :eq:`br-tensor` can be called using :func:`.brterm`.
+The spectral density functions are best given using `QuTiP's Environment <environments guide>`_, but Python callback functions that takes the (angular) frequency as a single argument are also accepted.
+It is possible to also get each term of Eq. :eq:`br-tensor` directly using :func:`.brterm`.
 This function take only a single operator a_op and spectral response function.
 
 To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-level atom
@@ -324,10 +324,10 @@ Simulating Fermionic interactions
 =================================
 
 Previously, we assumed that the interaction operators :math:`A_\alpha` were hermitian.
-However to simulate fermionic bath, we must consider system-bath interaction in the form :math:`H_I = \sum_\alpha A^\dagger_\alpha \otimes B_\alpha + A_\alpha \otimes B^\dagger_\alpha`.
+However for fermionic bath, we must consider system-bath interaction in the form :math:`H_I = \sum_\alpha A^\dagger_\alpha \otimes B_\alpha + A_\alpha \otimes B^\dagger_\alpha`.
 
-In QuTiP, to simutate such system, :class:`.FermionicEnvironment` can be used as the spectra.
-Otherwise the function :func:`.brcrossterm` can build a single term of the :math:`\alpha, \beta` sum of Eq. :eq:`br-nonmarkovian-form-five` allowing custom complex baths.
+In QuTiP, to create such system, :class:`.FermionicEnvironment` can be used as the spectra in :func:`.bloch_redfield_tensor`.
+The function :func:`.brcrossterm` can build a single term of the sum over :math:`\alpha, \beta` of Eq. :eq:`br-nonmarkovian-form-five` allowing custom complex baths.
 
 
 .. _td-bloch-redfield:
