@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 import inspect
 import numpy as np
-from typing import overload
+from typing import overload, Union
 
 from qutip.settings import settings as qset
 from . import Qobj, QobjEvo, liouvillian, coefficient, sprepost
@@ -14,13 +14,19 @@ from ._brtensor import _BlochRedfieldElement, _BlochRedfieldCrossElement
 from ..typing import CoeffProtocol
 from .environment import BosonicEnvironment, FermionicEnvironment
 
+
 __all__ = ['bloch_redfield_tensor', 'brterm', 'brcrossterm']
+
+SpectrumType = Union[
+    Coefficient, str, CoeffProtocol,
+    BosonicEnvironment, FermionicEnvironment
+]
 
 
 @overload
 def bloch_redfield_tensor(
     H: Qobj,
-    a_ops: list[tuple[Qobj, Coefficient | str | CoeffProtocol | Environment]],
+    a_ops: list[tuple[Qobj, SpectrumType]],
     c_ops: list[Qobj] = None,
     sec_cutoff: float = 0.1,
     fock_basis: bool = False,
@@ -31,7 +37,7 @@ def bloch_redfield_tensor(
 @overload
 def bloch_redfield_tensor(
     H: Qobj | QobjEvo,
-    a_ops: list[tuple[Qobj | QobjEvo, Coefficient | str | CoeffProtocol | Environment]],
+    a_ops: list[tuple[Qobj | QobjEvo, SpectrumType]],
     c_ops: list[Qobj | QobjEvo] = None,
     sec_cutoff: float = 0.1,
     fock_basis: bool = False,
@@ -41,7 +47,7 @@ def bloch_redfield_tensor(
 
 def bloch_redfield_tensor(
     H: Qobj | QobjEvo,
-    a_ops: list[tuple[Qobj | QobjEvo, Coefficient | str | CoeffProtocol | Environment]],
+    a_ops: list[tuple[Qobj | QobjEvo, SpectrumType]],
     c_ops: list[Qobj | QobjEvo] = None,
     sec_cutoff: float = 0.1,
     fock_basis: bool = False,
@@ -122,11 +128,10 @@ def bloch_redfield_tensor(
     if fock_basis:
         for (a_op, spectra) in a_ops:
             if isinstance(spectra, FermionicEnvironment):
-                # TODO: Check if plus / minus are right.
                 R += brcrossterm(
                     H_transform, a_op, a_op.dag(),
-                    lambda w: spectra.power_spectrum_plus(-w), sec_cutoff, True,
-                    br_computation_method=br_computation_method
+                    lambda w: spectra.power_spectrum_plus(-w), sec_cutoff,
+                    True, br_computation_method=br_computation_method
                 )
                 R += brcrossterm(
                     H_transform, a_op.dag(), a_op,
@@ -148,11 +153,10 @@ def bloch_redfield_tensor(
         R = sprepost(evec, evec.dag()) @ R @ sprepost(evec.dag(), evec)
         for (a_op, spectra) in a_ops:
             if isinstance(spectra, FermionicEnvironment):
-                # TODO: double check plus / minus ...
                 R += brcrossterm(
                     H_transform, a_op, a_op.dag(),
-                    lambda w: spectra.power_spectrum_plus(-w), sec_cutoff, False,
-                    br_computation_method=br_computation_method
+                    lambda w: spectra.power_spectrum_plus(-w), sec_cutoff,
+                    False, br_computation_method=br_computation_method
                 )[0]
                 R += brcrossterm(
                     H_transform, a_op.dag(), a_op,
@@ -168,7 +172,7 @@ def bloch_redfield_tensor(
 def brterm(
     H: Qobj,
     a_op: Qobj,
-    spectra: Coefficient | CoeffProtocol | str,
+    spectra: SpectrumType,
     sec_cutoff: float = 0.1,
     fock_basis: bool = False,
     sparse_eigensolver: bool = False,
@@ -179,7 +183,7 @@ def brterm(
 def brterm(
     H: Qobj | QobjEvo,
     a_op: Qobj | QobjEvo,
-    spectra: Coefficient | CoeffProtocol | str,
+    spectra: SpectrumType,
     sec_cutoff: float = 0.1,
     fock_basis: bool = False,
     sparse_eigensolver: bool = False,
@@ -189,7 +193,7 @@ def brterm(
 def brterm(
     H: Qobj | QobjEvo,
     a_op: Qobj | QobjEvo,
-    spectra: Coefficient | CoeffProtocol | str,
+    spectra: SpectrumType,
     sec_cutoff: float = 0.1,
     fock_basis: bool = False,
     sparse_eigensolver: bool = False,
