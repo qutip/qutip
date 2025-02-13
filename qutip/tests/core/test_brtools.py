@@ -2,7 +2,7 @@ import pytest
 import qutip
 import numpy as np
 from qutip.core._brtools import matmul_var_data, _EigenBasisTransform
-from qutip.core.blochredfield import brterm, bloch_redfield_tensor
+from qutip.core.blochredfield import brterm, bloch_redfield_tensor, brcrossterm
 from qutip.core._brtensor import (
     _br_term_dense, _br_term_sparse, _br_term_data,
     _br_cterm_dense, _br_cterm_data,
@@ -272,6 +272,25 @@ def test_brcrossterm_comp(cutoff):
         a.data, a.dag().data, spectrum, skew, cutoff
     ).to_array()
     np.testing.assert_allclose(computed, expected, rtol=1e-14, atol=1e-14)
+
+
+def test_bloch_redfield_tensor_fermionbath():
+    N = 5
+    A = qutip.destroy(N)
+    H = qutip.num(N)
+    env = qutip.LorentzianEnvironment(0.1, 0.2, 0.3, 0.4)
+
+    R_split = qutip.liouvillian(H)
+    R_split += brcrossterm(
+        H, A, A.dag(), w, fock_basis=True
+    )
+    R_split += brcrossterm(
+        H, A.dag(), A, lambda w: env.power_spectrum_plus(-w), fock_basis=True
+    )
+
+    R_auto = bloch_redfield_tensor(H, [[A.dag(), env]], fock_basis=True)
+
+    assert R_split == R_auto
 
 
 @pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
