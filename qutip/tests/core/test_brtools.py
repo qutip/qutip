@@ -5,7 +5,7 @@ from qutip.core._brtools import matmul_var_data, _EigenBasisTransform
 from qutip.core.blochredfield import brterm, bloch_redfield_tensor, brcrossterm
 from qutip.core._brtensor import (
     _br_term_dense, _br_term_sparse, _br_term_data,
-    _br_cterm_dense, _br_cterm_data,
+    _br_cterm_dense, _br_cterm_sparse, _br_cterm_data,
     _BlochRedfieldElement
 )
 
@@ -241,7 +241,9 @@ def test_br_term_format(func, cutoff):
 
 
 @pytest.mark.parametrize(
-    'func', [_br_cterm_dense, _br_cterm_data], ids=['dense', 'matrix']
+    'func',
+    [_br_cterm_dense, _br_cterm_data, _br_cterm_sparse],
+    ids=['dense', 'matrix', 'sparse']
 )
 @pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
 def test_brcrossterm_direct(func, cutoff):
@@ -272,6 +274,10 @@ def test_brcrossterm_comp(cutoff):
         a.data, a.dag().data, spectrum, skew, cutoff
     ).to_array()
     np.testing.assert_allclose(computed, expected, rtol=1e-14, atol=1e-14)
+    expected = _br_cterm_sparse(
+        a.data, a.dag().data, spectrum, skew, cutoff
+    ).to_array()
+    np.testing.assert_allclose(computed, expected, rtol=1e-14, atol=1e-14)
 
 
 def test_bloch_redfield_tensor_fermionbath():
@@ -282,7 +288,7 @@ def test_bloch_redfield_tensor_fermionbath():
 
     R_split = qutip.liouvillian(H)
     R_split += brcrossterm(
-        H, A, A.dag(), w, fock_basis=True
+        H, A, A.dag(), env.power_spectrum_minus, fock_basis=True
     )
     R_split += brcrossterm(
         H, A.dag(), A, lambda w: env.power_spectrum_plus(-w), fock_basis=True

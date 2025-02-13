@@ -435,6 +435,79 @@ cpdef Dense _br_cterm_dense(Data A, Data B, double[:, ::1] spectrum,
     return out
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef CSR _br_cterm_sparse(Data A, Data B, double[:, :] spectrum,
+                           double[:, ::1] skew, double cutoff):
+    """
+    Compute the contribution of A to the Bloch Redfield tensor.
+    Create it as coo pointers and return as CSR.
+    """
+    cdef size_t nrows = A.shape[0]
+    cdef size_t a, b, c, d, k, d_min # matrix indexing variables
+    cdef double complex elem, ac_elem, bd_elem
+    cdef double complex[:,:] A_mat, ac_term, bd_term
+    cdef double dskew
+    cdef object np2term
+    cdef vector[idxint] coo_rows, coo_cols
+    cdef vector[double complex] coo_data
+
+    if type(A) is Dense:
+        A_mat = A.as_ndarray()
+    else:
+        A_mat = A.to_array()
+
+    if type(B) is Dense:
+        B_mat = B.as_ndarray()
+    else:
+        B_mat = B.to_array()
+
+    np2term = np.zeros((nrows, nrows, 2), dtype=np.complex128)
+    ac_term = np2term[:, :, 0]
+    bd_term = np2term[:, :, 1]
+
+    for a in range(nrows):
+        for b in range(nrows-1, -1, -1):
+            if fabs(skew[a, b]) < cutoff:
+                for k in range(nrows):
+                    ac_term[a, b] += A_mat[a, k] * B_mat[k, b] * spectrum[a, k]
+                    bd_term[a, b] += A_mat[a, k] * B_mat[k, b] * spectrum[b, k]
+            elif skew[a, b] > cutoff:
+                break
+
+    # skew[a,b] = w[a] - w[b]
+    # (w[a] - w[b] - w[c] + w[d]) < cutoff
+    # w's are sorted so we can skip part of the loop.
+    for a in range(nrows):
+        for b in range(nrows):
+            d_min = 0
+            for c in range(nrows):
+                if skew[a, b] - skew[c, nrows-1] <= -cutoff:
+                    break
+                for d in range(d_min, nrows):
+                    dskew = skew[a, b] - skew[c, d]
+                    if -dskew > cutoff:
+                        d_min = d
+                    elif fabs(dskew) < cutoff:
+                        elem = (B_mat[a, c] * A_mat[d, b]) * 0.5
+                        elem *= (spectrum[c, a] + spectrum[d, b])
+                        if a == c:
+                            elem -= 0.5 * ac_term[d, b]
+                        if b == d:
+                            elem -= 0.5 * bd_term[a, c]
+                        if elem != 0:
+                            coo_rows.push_back(a * nrows + b)
+                            coo_cols.push_back(c * nrows + d)
+                            coo_data.push_back(elem)
+                    elif dskew >= cutoff:
+                        break
+
+    return csr.from_coo_pointers(
+        coo_rows.data(), coo_cols.data(), coo_data.data(),
+        nrows*nrows, nrows*nrows, coo_rows.size()
+    )
+
+
 cdef class _BlochRedfieldCrossElement(_BlochRedfieldElement):
     """
     Element for individual Bloch Redfield collapse cross-term.
@@ -473,7 +546,7 @@ cdef class _BlochRedfieldCrossElement(_BlochRedfieldElement):
 
         dtype = dtype or ('dense' if sec_cutoff >= np.inf else 'sparse')
         self.tensortype = {
-            'sparse': DENSE,  # TODO write the dense version.
+            'sparse': SPARSE,
             'dense': DENSE,
             'matrix': DATA,
             'data': DATA
@@ -491,6 +564,8 @@ cdef class _BlochRedfieldCrossElement(_BlochRedfieldElement):
             return _br_cterm_dense(A_eig, B_eig, self.spectrum, self.skew, cutoff)
         elif self.tensortype == DATA:
             return _br_cterm_data(A_eig, B_eig, self.spectrum, self.skew, cutoff)
+        elif self.tensortype == SPARSE:
+            return _br_cterm_sparse(A_eig, B_eig, self.spectrum, self.skew, cutoff)
         raise ValueError('Invalid tensortype')
 
     cpdef Data data(self, t):

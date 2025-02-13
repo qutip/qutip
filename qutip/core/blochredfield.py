@@ -294,7 +294,7 @@ def brcrossterm(
     sec_cutoff: float = 0.1,
     fock_basis: bool = False,
     sparse_eigensolver: bool = False,
-    br_computation_method: str = 'data',
+    br_computation_method: str = 'sparse',
 ) -> Qobj: ...
 
 @overload
@@ -306,7 +306,7 @@ def brcrossterm(
     sec_cutoff: float = 0.1,
     fock_basis: bool = False,
     sparse_eigensolver: bool = False,
-    br_computation_method: str = 'data',
+    br_computation_method: str = 'sparse',
 ) -> QobjEvo: ...
 
 def brcrossterm(
@@ -317,7 +317,7 @@ def brcrossterm(
     sec_cutoff: float = 0.1,
     fock_basis: bool = False,
     sparse_eigensolver: bool = False,
-    br_computation_method: str = 'data',
+    br_computation_method: str = 'sparse',
 ) -> Qobj | QobjEvo:
     """
     Calculates the contribution of one coupling operator to the Bloch-Redfield
@@ -359,10 +359,11 @@ def brcrossterm(
     sparse_eigensolver : bool {False}
         Whether to use the sparse eigensolver on the Hamiltonian.
 
-    br_computation_method : ['dense', 'matrix']
+    br_computation_method : ['dense', 'sparse', 'matrix']
         How computation for the tensor is made.
-        With 'dense', the secular cutoff is checked first and only
-        elements within the approximation are computed and stored in an array.
+        With 'dense' or 'sparse', the secular cutoff is checked first and only
+        elements within the approximation are computed and stored in an
+        (sparse) array.
         With 'matrix', the tensor is build using matrix operation and the
         secular cutoff is applied at the end.
 
