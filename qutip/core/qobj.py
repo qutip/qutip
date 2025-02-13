@@ -447,6 +447,13 @@ class Qobj:
         new_dims = self._dims @ other._dims
         if new_dims.type == 'scalar':
             return _data.inner(self._data, other._data)
+        if self.isket and other.isbra:
+            return Qobj(
+                _data.matmul_outer(self._data, other._data),
+                dims=new_dims,
+                isunitary=False,
+                copy=False
+            )
 
         return Qobj(
             _data.matmul(self._data, other._data),

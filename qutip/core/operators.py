@@ -1118,14 +1118,14 @@ def qutrit_ops(*, dtype: LayerType = None) -> list[Qobj]:
 
     dtype = dtype or settings.core["default_dtype"] or _data.CSR
     out = []
-    basis = qutrit_basis(dtype=dtype)
+    basis = qutrit_basis()
     for i in range(3):
-        op = basis[i] @ basis[i].dag()
+        op = (basis[i] @ basis[i].dag()).to(dtype)
         op.isherm = True
         op._isunitary = False
         out.append(op)
     for i in range(3):
-        op = basis[i] @ basis[(i+1)%3].dag()
+        op = (basis[i] @ basis[(i+1)%3].dag()).to(dtype)
         op.isherm = False
         op._isunitary = False
         out.append(op)
