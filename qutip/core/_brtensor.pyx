@@ -523,7 +523,7 @@ cdef class _BlochRedfieldCrossElement(_BlochRedfieldElement):
     the tensor as it is usually faster, the state being a density matrix in
     most cases.
 
-    Diffenrent term can share a same instance of the eigen transform tool
+    Different term can share a same instance of the eigen transform tool
     (``H`` as _EigenBasisTransform) so that the Hamiltonian is diagonalized
     only once even when needed by multiple terms.
     """
