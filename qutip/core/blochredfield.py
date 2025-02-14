@@ -72,13 +72,16 @@ def bloch_redfield_tensor(
         a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :obj:`.Coefficient`, func, str
+        spectra : :obj:`.Coefficient`, func, str, Environment
             The corresponding bath spectra.
-            Can be a :obj:`.Coefficient` using an 'w' args, a function of the
-            frequency or a string. The :class:`SpectraCoefficient` can be used
-            for array based coefficient.
-            The spectra can depend on ``t`` if the corresponding
-            ``a_op`` is a :obj:`.QobjEvo`.
+            Bath can be provided as :class:`.BosonicEnvironment`,
+            :class:`.FermionicEnvironment` or power spectra function. These can
+            be a :obj:`.Coefficient`, function or string. For coefficient, the
+            frequency is passed as the 'w' args. The
+            :class:`SpectraCoefficient` can be used for array based
+            coefficient.
+
+            The spectra can depend on ``t`` if ``a_op`` is a :obj:`.QobjEvo`.
 
         Example:
 
@@ -212,18 +215,22 @@ def brterm(
     a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
         The operator coupling to the environment. Expected to be hermitian.
 
-    spectra : :obj:`.Coefficient`, func, str
+    spectra : :obj:`.Coefficient`, func, str, Environment
         The corresponding bath spectra.
-        Can be a :obj:`.Coefficient` using an 'w' args, a function of the
-        frequency or a string. The :class:`SpectraCoefficient` can be used for
-        array based coefficient.
-        The spectra can depend on ``t`` if the corresponding
-        ``a_op`` is a :obj:`.QobjEvo`.
+        Bath can be provided as :class:`.BosonicEnvironment`,
+        :class:`.FermionicEnvironment` or power spectra function. These can be
+        a :obj:`.Coefficient`, function or string. For coefficient, the
+        frequency is passed as the 'w' args. The :class:`SpectraCoefficient`
+        can be used for array based coefficient.
+
+        The spectra can depend on ``t`` if ``a_op`` is a :obj:`.QobjEvo`.
 
         Example:
 
             coefficient('w>0', args={"w": 0})
             SpectraCoefficient(coefficient(array, tlist=...))
+            lambda w: (w > 0) * 1.
+            BosonicEnvironment(...)
 
     sec_cutoff : float {0.1}
         Cutoff for secular approximation. Use ``-1`` if secular approximation
@@ -339,18 +346,22 @@ def brcrossterm(
     b_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
         The operator coupling to the environment.
 
-    spectra : :obj:`.Coefficient`, func, str
+    spectra : :obj:`.Coefficient`, func, str, Environment
         The corresponding bath spectra.
-        Can be a :obj:`.Coefficient` using an 'w' args, a function of the
-        frequency or a string. The :class:`SpectraCoefficient` can be used for
-        array based coefficient.
-        The spectra can depend on ``t`` if the corresponding
-        ``a_op`` is a :obj:`.QobjEvo`.
+        Bath can be provided as :class:`.BosonicEnvironment`,
+        :class:`.FermionicEnvironment` or power spectra function. These can be
+        a :obj:`.Coefficient`, function or string. For coefficient, the
+        frequency is passed as the 'w' args. The :class:`SpectraCoefficient`
+        can be used for array based coefficient.
+
+        The spectra can depend on ``t`` if ``a_op`` is a :obj:`.QobjEvo`.
 
         Example:
 
             coefficient('w>0', args={"w": 0})
             SpectraCoefficient(coefficient(array, tlist=...))
+            lambda w: (w > 0) * 1.
+            BosonicEnvironment(...)
 
     sec_cutoff : float {0.1}
         Cutoff for secular approximation. Use ``-1`` if secular approximation

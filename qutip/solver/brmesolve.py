@@ -63,21 +63,24 @@ def brmesolve(
         a_op : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :obj:`.Coefficient`, str, func
-            The corresponding bath spectral responce.
-            Can be a `Coefficient` using an 'w' args, a function of the
-            frequence or a string. Coefficient build from a numpy array are
-            understood as a function of ``w`` instead of ``t``. Function are
-            expected to be of the signature ``f(w)`` or ``f(t, w, **args)``.
+        spectra : :obj:`.Coefficient`, str, func, Environment
+            The corresponding bath spectra.
+            Bath can be provided as :class:`.BosonicEnvironment`, 
+            :class:`.FermionicEnvironment` or power spectra function.  These
+            can be a :obj:`.Coefficient`, function or string. For coefficient,
+            the frequency is passed as the 'w' args. The
+            :class:`SpectraCoefficient` can be used for array based
+            coefficient.
 
-            The spectra function can depend on ``t`` if the corresponding
-            ``a_op`` is a :obj:`.QobjEvo`.
+            The spectra can depend on ``t`` if the corresponding ``a_op`` is a
+            :obj:`.QobjEvo`.
 
         Example:
 
         .. code-block::
 
             a_ops = [
+                (a+a.dag(), BosonicEnvironment(...)),
                 (a+a.dag(), ('w>0', args={"w": 0})),
                 (QobjEvo(a+a.dag()), 'w > exp(-t)'),
                 ([[b+b.dag(), lambda t: ...]], lambda w: ...)),
