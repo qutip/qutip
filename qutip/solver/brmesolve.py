@@ -143,8 +143,6 @@ def brmesolve(
             array. With 'matrix', the tensor is build using matrix operation
             and the secular cutoff is applied at the end.
             With a cutoff 'sparse' is usually the most efficient.
-        - | sparse_eigensolver : bool {False}
-            Whether to use the sparse eigensolver
         - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
             Which differential equation integration method to use.
         - | atol, rtol : float
@@ -288,7 +286,6 @@ class BRSolver(Solver):
         "normalize_output": False,
         'method': 'adams',
         'tensor_type': 'sparse',
-        'sparse_eigensolver': False,
     }
     _avail_integrators = {}
 
@@ -355,7 +352,7 @@ class BRSolver(Solver):
             *self._system,
             fock_basis=True,
             sec_cutoff=self.sec_cutoff,
-            sparse_eigensolver=self.options['sparse_eigensolver'],
+            sparse_eigensolver=False,
             br_computation_method=self.options['tensor_type']
         )
         self._init_rhs_time = time() - _time_start
@@ -391,9 +388,6 @@ class BRSolver(Solver):
             Which data type to use when computing the brtensor.
             With a cutoff 'sparse' is usually the most efficient.
 
-        sparse_eigensolver: bool, default: False
-            Whether to use the sparse eigensolver
-
         method: str, default: "adams"
             Which ODE integrator methods are supported.
         """
@@ -405,9 +399,7 @@ class BRSolver(Solver):
 
     def _apply_options(self, keys):
         need_new_rhs = self.rhs is not None and not self.rhs.isconstant
-        need_new_rhs &= (
-            'sparse_eigensolver' in keys or 'tensor_type' in keys
-        )
+        need_new_rhs &= 'tensor_type' in keys
         if need_new_rhs:
             self.rhs = self._prepare_rhs()
 

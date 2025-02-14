@@ -44,12 +44,11 @@ def test_matmul_var(datatype, transleft, transright):
     np.testing.assert_allclose(computed, expected, rtol=1e-14)
 
 
-@pytest.mark.parametrize('sparse', [False, True], ids=['Dense', 'Sparse'])
-def test_eigen_transform(sparse):
+def test_eigen_transform():
     a = qutip.destroy(5)
     f = lambda t: t
     op = qutip.QobjEvo([a*a.dag(), [a+a.dag(), f]])
-    eigenT = _EigenBasisTransform(op, sparse=sparse)
+    eigenT = _EigenBasisTransform(op)
     evecs_qevo = eigenT.as_Qobj()
 
     for t in [0, 1, 1.5]:

@@ -104,7 +104,7 @@ def bloch_redfield_tensor(
         basis.
 
     sparse_eigensolver : bool {False}
-        Whether to use the sparse eigensolver
+        Deprecated
 
     br_computation_method : ['sparse', 'dense', 'matrix']
         How computation for the tensor is made.
@@ -123,7 +123,7 @@ def bloch_redfield_tensor(
         column.
     """
     R = liouvillian(H, c_ops)
-    H_transform = _EigenBasisTransform(QobjEvo(H), sparse_eigensolver)
+    H_transform = _EigenBasisTransform(QobjEvo(H), sparse=sparse_eigensolver)
 
     if fock_basis:
         for (a_op, spectra) in a_ops:
@@ -234,7 +234,7 @@ def brterm(
         basis.
 
     sparse_eigensolver : bool {False}
-        Whether to use the sparse eigensolver on the Hamiltonian.
+        Deprecated
 
     br_computation_method : ['sparse', 'dense', 'matrix']
         How computation for the tensor is made.
@@ -361,7 +361,7 @@ def brcrossterm(
         basis.
 
     sparse_eigensolver : bool {False}
-        Whether to use the sparse eigensolver on the Hamiltonian.
+        Deprecated
 
     br_computation_method : ['dense', 'sparse', 'matrix']
         How computation for the tensor is made.
