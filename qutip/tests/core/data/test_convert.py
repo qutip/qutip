@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from scipy import sparse
-from qutip import data
+from qutip import data, CoreOptions
 from .test_mathematics import UnaryOpMixin
 
 
@@ -103,3 +103,15 @@ class TestConvert(UnaryOpMixin):
         pytest.param(data.dia.from_dense, data.Dense, data.Dia),
         pytest.param(data.dia.from_csr, data.CSR, data.Dia),
     ]
+
+def test_tidyup_on_convert():
+    mat = data.Dense([[0.1, 1, 1e-15, 0]])
+    with CoreOptions(auto_tidyup=False):
+        csr_mat = data.csr.from_dense(mat)
+        assert data.csr.nnz(csr_mat) == 3
+    with CoreOptions(auto_tidyup=True, auto_tidyup_atol=1e-13):
+        csr_mat = data.csr.from_dense(mat)
+        assert data.csr.nnz(csr_mat) == 2
+    with CoreOptions(auto_tidyup=True, auto_tidyup_atol=0.5):
+        csr_mat = data.csr.from_dense(mat)
+        assert data.csr.nnz(csr_mat) == 1
