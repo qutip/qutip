@@ -39,9 +39,6 @@ Bibliography
 .. [AKN98]
     \D. Aharonov, A. Kitaev, N. Nisan, *Quantum circuits with mixed states*, in Proceedings of the Thirtieth Annual ACM STOC, 20-30 (1998). :arxiv:`quant-ph/9806029`
 
-.. [dAless08]
-    \D. d’Alessandro, *Introduction to Quantum Control and Dynamics*, (Chapman & Hall/CRC, 2008).
-
 .. [Wis09]
     \H. M. Wiseman, G. J. Milburn, *Quantum Measurement and Control*, (Cambridge University Press, 2009).
 
