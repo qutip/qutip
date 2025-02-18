@@ -34,7 +34,7 @@ except ModuleNotFoundError:
     _mpmath_available = False
 
 from ..utilities import (n_thermal, iterated_fit, aaa,
-                         matrix_pencil, prony, esprit)
+                         matrix_pencil, prony, esprit, espira1)
 from .superoperator import spre, spost
 from .qobj import Qobj
 
@@ -744,6 +744,7 @@ class BosonicEnvironment(abc.ABC):
             "mp": self._approx_by_prony,
             "esprit": self._approx_by_prony,
             "aaa": self._approx_by_aaa,
+            "espira-I": self._approx_by_prony
         }
 
         if method not in dispatch:
@@ -939,10 +940,13 @@ class BosonicEnvironment(abc.ABC):
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
         start = time()
-        _, pol, res, _, _, rmse = aaa(self.power_spectrum, wlist,
-                                      tol=tol,
-                                      max_iter=N_max * 2)
+        result = aaa(self.power_spectrum, wlist,
+                     tol=tol,
+                     max_iter=N_max * 2)
         end = time()
+        pol = result['poles']
+        res = result['residues']
+        rmse = result['rmse']
         # The *2 is there because half the poles will be filtered out
         mask = np.imag(pol) < 0
 
@@ -969,10 +973,11 @@ class BosonicEnvironment(abc.ABC):
         # Generate summary
         N = len(vk)
         fit_time = end - start
-        params = [(ck.real[i], ck.imag[i], vk[i])
+        params = [(ck.real[i], ck.imag[i], vk[i].real, vk[i].imag)
                   for i in range(len(ck))]
         summary = _fit_summary(
-            fit_time, rmse, N, "the spectral density", params
+            fit_time, rmse, N, "the spectral density", params,
+            columns=['a', 'b', 'c', 'd']
         )
         fitinfo = {
             "N": N, "fit_time": fit_time, "rmse": rmse,
@@ -991,7 +996,8 @@ class BosonicEnvironment(abc.ABC):
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         methods = {"mp": matrix_pencil,
                    "prony": prony,
-                   "esprit": esprit}
+                   "esprit": esprit,
+                   "espira-I": espira1}
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
         if separate:

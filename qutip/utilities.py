@@ -14,6 +14,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import curve_fit
 from scipy.linalg import qr, hankel, lstsq, eigvals, svd, eig
+from scipy.fft import fft
 
 
 def n_thermal(w, w_th):
@@ -641,7 +642,8 @@ def aaa(func, z, tol=1e-13, max_iter=100):
         "errors": errors[:k + 1],
         "rmse": rmse,
         "support points": support_points,
-        "values at support": values
+        "values at support": values,
+        "indices": indices,
     }
 
 
@@ -885,4 +887,26 @@ def esprit(C: np.ndarray, n: int) -> tuple:
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
     rmse = _r2(prony_model, C, C, params)
+    return params, rmse
+
+# ESPIRA I
+
+
+def espira1(y, Nexp, tol=1e-16):
+    # Compute FFT
+    F = fft(y)
+    M = len(F)  # number of modified DFT values
+
+    # Set knots on the unit circle
+    Z = np.exp(2j * np.pi * np.arange(M) / M)
+    # Modify the DFT values
+    F = F * Z**(-1)
+    result = aaa(F, Z, max_iter=Nexp+1, tol=tol)
+    CC = (-1) / np.subtract.outer(result['support points'], result['poles'])
+    AB, _, _, _ = np.linalg.lstsq(
+        CC, result['values at support'], rcond=None)  # Least squares solution
+    g = -AB / (1 - result['poles']**M)  # Element-wise division
+    params = _unpack(
+        np.array([val for pair in zip(g, result['poles']) for val in pair]), 2)
+    rmse = _r2(prony_model, y, y, params)
     return params, rmse
