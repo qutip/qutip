@@ -475,22 +475,48 @@ def _evaluate(fun, x, params):
     return result
 
 
-def _rmse(fun, xdata, ydata, params):
+# def _rmse(fun, xdata, ydata, params):
+#     """
+#     The normalized root mean squared error for the fit with the given
+#     parameters. (The closer to zero = the better the fit.)
+#     """
+#     if params is None:
+#         yhat = fun
+#     else:
+#         yhat = _evaluate(fun, xdata, params)
+
+#     if (yhat == ydata).all():
+#         return 0
+#     return (
+#         np.sqrt(np.mean((yhat - ydata) ** 2) / len(ydata))
+#         / (np.max(ydata) - np.min(ydata))
+#     )
+
+
+def _r2(fun, xdata, ydata, params):
     """
-    The normalized root mean squared error for the fit with the given
-    parameters. (The closer to zero = the better the fit.)
+    The 1-r2 coefficient serves to evaluate the goodness of fit 
+    https://en.wikipedia.org/wiki/Coefficient_of_determination
+    it normally ranges from zero to one the closer to one the better. 
+    if negative it means the model is worst than the worse possible least 
+    squares predictor (basically a line over the mean of the signal)
+    1-r2 is chosen instead of r2 because fits using our methods are typically 
+    good, so it is hard to show in summary as everything is almost one, so the
+    summary shows 1. this way it shows small numbers and fits can be compared 
+    easily
     """
     if params is None:
         yhat = fun
     else:
         yhat = _evaluate(fun, xdata, params)
 
-    if (yhat == ydata).all():
-        return 0
-    return (
-        np.sqrt(np.mean((yhat - ydata) ** 2) / len(ydata))
-        / (np.max(ydata) - np.min(ydata))
-    )
+    ss_tot = np.sum((ydata - np.mean(ydata)) ** 2)
+    ss_res = np.sum((ydata - yhat) ** 2)
+
+    if ss_tot == 0:
+        return 1 if ss_res == 0 else 0  # Handle constant ydata case
+
+    return (ss_res / ss_tot)
 
 
 def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
@@ -526,7 +552,7 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
         method=method, sigma=sigma, **maxfev_arg
     )
     params = _unpack(packed_params, num_params)
-    rmse = _rmse(fun, xdata, ydata, params)
+    rmse = _r2(fun, xdata, ydata, params)
     return rmse, params
 
 
@@ -598,14 +624,25 @@ def aaa(func, z, tol=1e-13, max_iter=100):
             # if contributions are smaller than the tolerance, then stop the
             # loop
             break
-    # Define the function appproximation as a callable for output
+    # Define the function approximation as a callable for output
 
-    def r(x):
-        return approximated_function_aaa(x, support_points, values, weights)
+    def r(z):
+        cauchy = compute_cauchy_matrix(z, support_points)
+        r = get_rational_approx(cauchy, weights, values)
+        return r.reshape(z.shape)
     # Obtain poles residies and zeros
     pol, res, zer = prz(support_points, values, weights)
-    rmse = _rmse(r(z), z, func, None)
-    return r, pol, res, zer, errors[:k + 1], rmse
+    rmse = _r2(r(z), z, func, None)
+    return {
+        "function": r,
+        "poles": pol,
+        "residues": res,
+        "zeros": zer,
+        "errors": errors[:k + 1],
+        "rmse": rmse,
+        "support points": support_points,
+        "values at support": values
+    }
 
 
 def compute_cauchy_matrix(z, support_points):
@@ -629,7 +666,12 @@ def compute_cauchy_matrix(z, support_points):
     cauchy : np.ndarray
         The cauchy matrix from the sample and support points
     """
-    return 1 / np.subtract.outer(z, support_points)
+    epsilon = 1e-15  # Small constant to avoid division by zero
+    # Prevent division by zero on poles
+    denominator = np.subtract.outer(z, support_points)
+    denominator[denominator == 0] = epsilon
+    cauchy = 1 / denominator
+    return cauchy
 
 
 def get_rational_approx(cauchy, weights, values, indices=None, func=None):
@@ -671,41 +713,6 @@ def get_rational_approx(cauchy, weights, values, indices=None, func=None):
         rational_approx = func.copy()
         rational_approx[indices] = numerator / denominator
     return rational_approx
-
-
-def approximated_function_aaa(z, support_points, values, weights):
-    """
-    It computes the rational approximation
-    ..math::
-        r(z) = \frac{w_{j} f_{j}}{z-z_{j}}/\frac{w_{j}}{z-z_{j}}
-    and interpolates its poles naively
-    Parameters:
-    -----------
-    z : np.ndarray
-        sample points for the approximation
-    support_points : np.ndarray
-        the support points for the cauchy matrix
-    values : np.ndarray
-        the data use for the approximation
-    weights : np.ndarray
-        the weight vector w
-
-    Returns:
-    --------
-    r : np.ndarray
-        The rational approximation of the function smoothed out
-    """
-    zv = np.ravel(z)  # flatten with c order
-    cauchy = compute_cauchy_matrix(z, support_points)
-    r = get_rational_approx(cauchy, weights, values)
-    mask = np.isnan(r)  # removing the nans in the poles
-    if np.any(mask):
-        # We then replace the evaluation at the poles, by their closest value
-        closest_indices = np.argmin(
-            np.abs(zv[mask, None] - support_points), axis=1)
-        r[mask] = values[closest_indices]
-
-    return r.reshape(z.shape)
 
 
 def prz(support_points, values, weights):
@@ -766,7 +773,7 @@ def prz(support_points, values, weights):
 
 
 def prony_model(orig, amp, phase):
-    x = len(orig)
+    # It serves to compute rmse
     return amp * np.power(phase, np.arange(len(orig)))
 
 
@@ -800,7 +807,7 @@ def matrix_pencil(C: np.ndarray, n: int) -> tuple:
     params = _unpack(
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    rmse = _rmse(prony_model, C, C, params)
+    rmse = _r2(prony_model, C, C, params)
 
     return params, rmse
 
@@ -841,7 +848,7 @@ def prony(signal: np.ndarray, n):
     params = _unpack(
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    rmse = _rmse(prony_model, signal, signal, params)
+    rmse = _r2(prony_model, signal, signal, params)
 
     return params, rmse
 
@@ -877,5 +884,5 @@ def esprit(C: np.ndarray, n: int) -> tuple:
     params = _unpack(
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    rmse = _rmse(prony_model, C, C, params)
+    rmse = _r2(prony_model, C, C, params)
     return params, rmse

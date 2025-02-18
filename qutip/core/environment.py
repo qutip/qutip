@@ -639,12 +639,13 @@ class BosonicEnvironment(abc.ABC):
 
     @overload
     def approximate(self,
-                    method: Literal['esprit'],
+                    method: Literal['esprit', 'prony', 'mp'],
                     tlist: ArrayLike,
                     Nr: int,
                     Ni: int,
                     combine: bool,
-                    tag: Any,):
+                    tag: Any,
+                    separate: bool):
         r"""
         Generates an approximation to this environment by fitting its
         correlation function using one of the methods based on the Prony
@@ -777,7 +778,7 @@ class BosonicEnvironment(abc.ABC):
 
         # Process arguments
         if tag is None and self.tag is not None:
-            tag = (self.tag, "CF Fit")
+            tag = (self.tag, f"{method.upper()} Fit")
 
         if full_ansatz:
             num_params = 4
@@ -878,7 +879,7 @@ class BosonicEnvironment(abc.ABC):
 
         # Process arguments
         if tag is None and self.tag is not None:
-            tag = (self.tag, "SD Fit")
+            tag = (self.tag, f"{method.upper()} Fit")
 
         if target_rmse is None:
             target_rmse = 0
@@ -936,7 +937,7 @@ class BosonicEnvironment(abc.ABC):
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         if tag is None and self.tag is not None:
-            tag = (self.tag, "AAA Fit")
+            tag = (self.tag, f"{method.upper()} Fit")
         start = time()
         _, pol, res, _, _, rmse = aaa(self.power_spectrum, wlist,
                                       tol=tol,
@@ -986,13 +987,14 @@ class BosonicEnvironment(abc.ABC):
         Ni: int = 3,
         combine: bool = True,
         tag: Any = None,
+        separate: bool = True
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         methods = {"mp": matrix_pencil,
                    "prony": prony,
                    "esprit": esprit}
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
-        if Ni != Nr:
+        if separate:
             start_real = time()
             params_real, rmse_real = methods[method](
                 self.correlation_function(tlist).real, Nr)
@@ -1015,7 +1017,7 @@ class BosonicEnvironment(abc.ABC):
             params_real = [(amp[i].real, phases[i].real, phases[i].imag, amp[i].imag)
                            for i in range(len(amp))]
             params_imag = [(amp2[i].real, phases2[i].real, phases2[i].imag, amp2[i].imag)
-                           for i in range(len(amp))]
+                           for i in range(len(amp2))]
             fit_time_real = end_real-start_real
             fit_time_imag = end_imag-start_imag
             full_summary = _cf_fit_summary(
@@ -2320,7 +2322,7 @@ def _fit_summary(time, rmse, N, label, params,
                 f"|{params[k][2]:^10.2e}|{params[k][3]:>5.2e}\n ")
     else:
         raise ValueError("Unsupported number of columns")
-    summary += (f"\nA normalized RMSE of {rmse: .2e}"
+    summary += (f"\nA 1-R2 coefficient of {rmse: .2e}"
                 f" was obtained for the {label}.\n")
     summary += f"The current fit took {time: 2f} seconds."
     return summary
