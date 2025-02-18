@@ -517,7 +517,7 @@ class TestBosonicEnvironment:
             reference.correlation_function, T=reference.T
         )
         tlist = np.linspace(0, tMax, 100)[1:]  # exclude t=0
-        fit, info = env.approximate("corr_lsq",
+        fit, info = env.approximate("cf",
                                     tlist, target_rsme=None, Nr_max=2, Ni_max=2,
                                     full_ansatz=full_ansatz, combine=False
                                     )
@@ -550,7 +550,7 @@ class TestBosonicEnvironment:
             reference.correlation_function, tag="test"
         )
         tlist = np.linspace(0, tMax, 100)[1:]  # exclude t=0
-        fit, info = env.approximate("corr_lsq",
+        fit, info = env.approximate("cf",
                                     tlist, target_rsme=0.01, Nr_max=3, Ni_max=3,
                                     full_ansatz=full_ansatz
                                     )
@@ -580,7 +580,7 @@ class TestBosonicEnvironment:
             reference.spectral_density, T=reference.T
         )
         wlist = np.linspace(0, wMax, 100)
-        fit, info = env.approximate("spec_lsq",
+        fit, info = env.approximate("sd",
                                     wlist, Nk=1, target_rmse=None, Nmax=4, combine=False
                                     )
 
@@ -610,7 +610,7 @@ class TestBosonicEnvironment:
             reference.spectral_density, T=reference.T, tag="test"
         )
         wlist = np.linspace(0, wMax, 100)
-        fit, info = env.approximate("spec_lsq",
+        fit, info = env.approximate("sd",
                                     wlist, Nk=1, target_rmse=0.01, Nmax=5, **params
                                     )
 

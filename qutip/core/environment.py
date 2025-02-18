@@ -385,7 +385,7 @@ class BosonicEnvironment(abc.ABC):
 
     @overload
     def approximate(self,
-                    method: Literal['corr_lsq'],
+                    method: Literal['cf'],
                     tlist: ArrayLike,
                     target_rsme: float = 2e-5,
                     Nr_max: int = 10,
@@ -537,7 +537,7 @@ class BosonicEnvironment(abc.ABC):
     @overload
     def approximate(
         self,
-        method: Literal['spec_lsq'],
+        method: Literal['sd'],
         wlist: ArrayLike,
         Nk: int,
         target_rmse: float,
@@ -738,8 +738,8 @@ class BosonicEnvironment(abc.ABC):
         Main implementation for all approximation methods
         """
         dispatch = {
-            "corr_lsq": self._approx_by_cf_fit,
-            "spec_lsq": self._approx_by_sd_fit,
+            "cf": self._approx_by_cf_fit,
+            "sd": self._approx_by_sd_fit,
             "prony": self._approx_by_prony,
             "mp": self._approx_by_prony,
             "esprit": self._approx_by_prony,
@@ -750,8 +750,8 @@ class BosonicEnvironment(abc.ABC):
         if method not in dispatch:
             raise ValueError(f"Unsupported method: {method}. The available"
                              " methods are: \n "
-                             "- Correlation function NLSQ Fitting (corr_lsq)\n"
-                             "- Spectral Density NLSQ Fitting (spec_lsq) \n"
+                             "- Correlation function NLSQ Fitting (cf)\n"
+                             "- Spectral Density NLSQ Fitting (sd) \n"
                              "- Correlation function Prony Fitting (prony) \n"
                              "- Correlation function Matrix Pencil Fitting"
                              " (mp) \n"
