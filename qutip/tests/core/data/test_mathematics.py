@@ -811,6 +811,26 @@ class TestMultiply(BinaryOpMixin):
     ]
 
 
+class TestMatmul_Outer(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.matmul(left, right)
+
+    shapes = shapes_binary_matmul()
+    bad_shapes = shapes_binary_bad_matmul()
+    from qutip.core.data.matmul import (
+        matmul_outer_csr_dense_sparse,
+        matmul_outer_dia_dense_sparse,
+        matmul_outer_dense_Data,
+    )
+    specialisations = [
+        pytest.param(matmul_outer_csr_dense_sparse, CSR, Dense, CSR),
+        pytest.param(matmul_outer_csr_dense_sparse, Dense, CSR, CSR),
+        pytest.param(matmul_outer_dia_dense_sparse, Dia, Dense, Dia),
+        pytest.param(matmul_outer_dia_dense_sparse, Dense, Dia, Dia),
+        pytest.param(matmul_outer_dense_Data, Dense, Dense, Data),
+    ]
+
+
 class TestMul(UnaryScalarOpMixin):
     def op_numpy(self, matrix, scalar):
         return scalar * matrix

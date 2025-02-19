@@ -87,7 +87,10 @@ def random_hamiltonian(request):
 @pytest.mark.parametrize('dtype', ['csr', 'dense'])
 def test_satisfy_eigenvalue_equation(random_hamiltonian, sparse, dtype):
     random_hamiltonian = random_hamiltonian.to(dtype)
-    eigenvalues, eigenstates = random_hamiltonian.eigenstates(sparse=sparse)
+    eigvals = 3 if sparse else 0
+    eigenvalues, eigenstates = random_hamiltonian.eigenstates(
+        sparse=sparse, eigvals=eigvals
+    )
     for eigenvalue, eigenstate in zip(eigenvalues, eigenstates):
         np.testing.assert_allclose((random_hamiltonian * eigenstate).full(),
                                    (eigenvalue * eigenstate).full(),

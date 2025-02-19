@@ -43,6 +43,7 @@ Monte Carlo Evolution
 .. autoclass:: qutip.solver.mcsolve.MCSolver
     :members:
     :inherited-members:
+    :member-order: bysource
     :show-inheritance:
     :exclude-members: add_integrator
 
@@ -52,16 +53,15 @@ Monte Carlo Evolution
 .. autoclass:: qutip.solver.nm_mcsolve.NonMarkovianMCSolver
     :members:
     :inherited-members:
+    :member-order: bysource
     :show-inheritance:
     :exclude-members: add_integrator
 
 .. autoclass:: qutip.solver.multitrajresult.McResult
-    :show-inheritance:
-    :members:
+    :members: steady_state, merge
 
 .. autoclass:: qutip.solver.multitrajresult.NmmcResult
-    :show-inheritance:
-    :members:
+    :members: steady_state, merge
 
 
 Bloch-Redfield Master Equation
