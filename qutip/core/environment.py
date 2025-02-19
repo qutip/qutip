@@ -734,7 +734,7 @@ class BosonicEnvironment(abc.ABC):
     # --- fitting
 
     def approximate(self, method: str, *args, **kwargs):
-        """ 
+        """
         Main implementation for all approximation methods
         """
         dispatch = {
@@ -954,17 +954,10 @@ class BosonicEnvironment(abc.ABC):
 
         vk = 1j * new_pols
         ck = -1j * new_res
-        ckAR = []
-        vkAR = []
-        ckAI = []
         # Create complex conjugates for both vk and ck
-        for term in range(len(vk)):
-            ckr, vkr, vki, cki = np.real(ck[term]), -np.real(vk[term]), - \
-                np.imag(vk[term]), np.imag(ck[term])
-            ckk = (ckr + 1j * cki) / 2
-            ckAR.extend([ckk, np.conjugate(ckk)])
-            vkAR.extend([-vkr - 1j * vki, -vkr + 1j * vki])
-            ckAI.extend([-1j * ckk, 1j * np.conjugate(ckk)])
+        ckAR = np.concatenate((ck/2, ck.conj()/2))
+        ckAI = np.concatenate((-1j*ck/2, 1j*ck.conj()/2))
+        vkAR = np.concatenate((vk, vk.conj()))
 
         cls = ExponentialBosonicEnvironment(
             ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
@@ -995,6 +988,10 @@ class BosonicEnvironment(abc.ABC):
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         def prony(x, n):
             return prony_methods(method, x, n)
+
+        def phase_to_exponent(phases):
+            return -((len(tlist) - 1) / tlist[-1]) * \
+                (np.log(np.abs(phases)) + 1j * np.angle(phases))
         methods = {"mp": prony,
                    "prony": prony,
                    "esprit": prony,
@@ -1011,22 +1008,17 @@ class BosonicEnvironment(abc.ABC):
             params_imag, rmse_imag, r2_imag = methods[method](
                 self.correlation_function(tlist).imag, Ni)
             end_imag = time()
-            amp, phases = params_real.T
-            amp2, phases2 = params_imag.T
-            ckAR = amp
-            ckAI = amp2
-            print(len(params_real))
-            vkAR = -((len(tlist) - 1) / tlist[-1]) * \
-                (np.log(np.abs(phases)) + 1j * np.angle(phases))
-            vkAI = -((len(tlist) - 1) / tlist[-1]) * \
-                (np.log(np.abs(phases2)) + 1j * np.angle(phases2))
+            ckAR, phases = params_real.T
+            ckAI, phases2 = params_imag.T
+            vkAR = phase_to_exponent(phases)
+            vkAI = phase_to_exponent(phases2)
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
-            params_real = [(amp[i].real, phases[i].real, phases[i].imag, amp[i].imag)
-                           for i in range(len(amp))]
-            params_imag = [(amp2[i].real, phases2[i].real, phases2[i].imag, amp2[i].imag)
-                           for i in range(len(amp2))]
+            params_real = [(ckAR[i].real, vkAR[i].real, vkAR[i].imag, ckAR[i].imag)
+                           for i in range(len(ckAR))]
+            params_imag = [(ckAI[i].real, vkAI[i].real, vkAI[i].imag, ckAI[i].imag)
+                           for i in range(len(ckAI))]
             fit_time_real = end_real-start_real
             fit_time_imag = end_imag-start_imag
             full_summary = _cf_fit_summary(
@@ -1044,23 +1036,15 @@ class BosonicEnvironment(abc.ABC):
             end_real = time()
             amp, phases = params_real.T
             ck = amp
-            vk = -((len(tlist) - 1) / tlist[-1]) * \
-                (np.log(np.abs(phases)) + 1j * np.angle(phases))
+            vk = phase_to_exponent(phases)
             # Create complex conjugates for both vk and ck
-            ckAR = []
-            vkAR = []
-            ckAI = []
-            for term in range(len(vk)):
-                ckr, vkr, vki, cki = np.real(ck[term]), -np.real(vk[term]), - \
-                    np.imag(vk[term]), np.imag(ck[term])
-                ckk = (ckr + 1j * cki) / 2
-                ckAR.extend([ckk, np.conjugate(ckk)])
-                vkAR.extend([-vkr - 1j * vki, -vkr + 1j * vki])
-                ckAI.extend([-1j * ckk, 1j * np.conjugate(ckk)])
+            ckAR = np.concatenate((ck/2, ck.conj()/2))
+            ckAI = np.concatenate((-1j*ck/2, 1j*ck.conj()/2))
+            vkAR = np.concatenate((vk, vk.conj()))
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
-            params_real = [(amp[i].real, phases[i].real, phases[i].imag, amp[i].imag)
+            params_real = [(ckAR[i].real, ckAI[i].real, ckAI[i].imag, ckAR[i].imag)
                            for i in range(len(amp))]
             fit_time_real = end_real-start_real
             full_summary = _fit_summary(fit_time_real, r2, Nr,
