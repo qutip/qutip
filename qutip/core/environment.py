@@ -744,18 +744,21 @@ class BosonicEnvironment(abc.ABC):
             "mp": self._approx_by_prony,
             "esprit": self._approx_by_prony,
             "aaa": self._approx_by_aaa,
-            "espira-I": self._approx_by_prony
+            "espira-I": self._approx_by_prony,
+            "espira-II": self._approx_by_prony
         }
 
-        if method not in dispatch:
-            raise ValueError(f"Unsupported method: {method}. The available"
-                             " methods are: \n "
-                             "- Correlation function NLSQ Fitting (cf)\n"
+        if not any(method in key for key in dispatch):
+            raise ValueError(f"Unsupported method: {method}. Using the "
+                             "abbreviation Correlation function (CF)."
+                             "The available methods are: \n "
+                             "- CF NLSQ Fitting (cf)\n"
                              "- Spectral Density NLSQ Fitting (sd) \n"
-                             "- Correlation function Prony Fitting (prony) \n"
-                             "- Correlation function Matrix Pencil Fitting"
-                             " (mp) \n"
-                             "- Correlation function ESPRIT Fitting (esprit)\n"
+                             "- CF Prony Fitting (prony) \n"
+                             "- CF Matrix Pencil Fitting (mp) \n"
+                             "- CF ESPRIT Fitting (esprit)\n"
+                             "- CF ESPIRA-I Fitting (espira-I)\n"
+                             "- CF ESPIRA-II Fitting (espira-II)\n"
                              "- Power spectrum AAA fitting (aaa) \n")
 
         return dispatch[method](method, *args, **kwargs)
