@@ -952,13 +952,12 @@ class BosonicEnvironment(abc.ABC):
 
         new_pols, new_res = pol[mask], res[mask]
 
-        # Create complex conjugates for both vk and ck
         vk = 1j * new_pols
         ck = -1j * new_res
         ckAR = []
         vkAR = []
         ckAI = []
-
+        # Create complex conjugates for both vk and ck
         for term in range(len(vk)):
             ckr, vkr, vki, cki = np.real(ck[term]), -np.real(vk[term]), - \
                 np.imag(vk[term]), np.imag(ck[term])
@@ -1016,6 +1015,7 @@ class BosonicEnvironment(abc.ABC):
             amp2, phases2 = params_imag.T
             ckAR = amp
             ckAI = amp2
+            print(len(params_real))
             vkAR = -((len(tlist) - 1) / tlist[-1]) * \
                 (np.log(np.abs(phases)) + 1j * np.angle(phases))
             vkAI = -((len(tlist) - 1) / tlist[-1]) * \
@@ -1043,11 +1043,22 @@ class BosonicEnvironment(abc.ABC):
                 self.correlation_function(tlist), Nr)
             end_real = time()
             amp, phases = params_real.T
-            ckAR = amp
-            vkAR = -((len(tlist) - 1) / tlist[-1]) * \
+            ck = amp
+            vk = -((len(tlist) - 1) / tlist[-1]) * \
                 (np.log(np.abs(phases)) + 1j * np.angle(phases))
+            # Create complex conjugates for both vk and ck
+            ckAR = []
+            vkAR = []
+            ckAI = []
+            for term in range(len(vk)):
+                ckr, vkr, vki, cki = np.real(ck[term]), -np.real(vk[term]), - \
+                    np.imag(vk[term]), np.imag(ck[term])
+                ckk = (ckr + 1j * cki) / 2
+                ckAR.extend([ckk, np.conjugate(ckk)])
+                vkAR.extend([-vkr - 1j * vki, -vkr + 1j * vki])
+                ckAI.extend([-1j * ckk, 1j * np.conjugate(ckk)])
             cls = ExponentialBosonicEnvironment(
-                ck_real=ckAR.real, vk_real=vkAR, ck_imag=ckAR.imag,
+                ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
             params_real = [(amp[i].real, phases[i].real, phases[i].imag, amp[i].imag)
                            for i in range(len(amp))]

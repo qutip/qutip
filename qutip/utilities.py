@@ -807,7 +807,10 @@ def prony_methods(method: str, C: np.ndarray, n: int):
             - phases (np.ndarray):
                 The estimated complex exponential frequencies.
     """
-    num_freqs = len(C) - n
+    if method == "prony":
+        num_freqs = n
+    else:
+        num_freqs = len(C)-n
     hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
     hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
     if method == "mp":
