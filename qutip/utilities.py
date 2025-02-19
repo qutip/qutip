@@ -783,30 +783,21 @@ def prony_model(orig, amp, phase):
     return amp * np.power(phase, np.arange(len(orig)))
 
 
-def matrix_pencil(C: np.ndarray, n: int) -> tuple:
-    """
-    Estimate amplitudes and frequencies using the Matrix Pencil Method.
-    Based on the description in https://doi.org/10.1093/imanum/drab108
-
-    Args:
-        signal (np.ndarray): The input signal (1D complex array).
-        n (int): The number of modes to estimate (rank of the signal).
-
-    Returns:
-        tuple: A tuple containing:
-            - amplitudes (np.ndarray):
-                The estimated amplitudes.
-            - phases (np.ndarray):
-                The estimated complex exponential frequencies.
-    """
+def prony_methods(method: str, C: np.ndarray, n: int):
     num_freqs = len(C) - n
     hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
     hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
-
-    _, R = qr(hankel0)
-
-    pencil_matrix = np.linalg.pinv(R.T @ hankel0) @ (R.T @ hankel1)
-    phases = eigvals(pencil_matrix)
+    if method == "mp":
+        _, R = qr(hankel0)
+        pencil_matrix = np.linalg.pinv(R.T @ hankel0) @ (R.T @ hankel1)
+        phases = eigvals(pencil_matrix)
+    elif method == "prony":
+        shift_matrix = lstsq(hankel0.T, hankel1.T)[0]
+        phases = eigvals(shift_matrix.T)
+    elif method == "esprit":
+        U1, _, _ = svd(hankel0)
+        pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
+        phases = eigvals(pencil_matrix)
     generation_matrix = np.array(
         [[phase**k for phase in phases] for k in range(len(C))])
     amplitudes = lstsq(generation_matrix, C)[0]
@@ -818,83 +809,118 @@ def matrix_pencil(C: np.ndarray, n: int) -> tuple:
     return params, rmse, r2
 
 
-def prony(signal: np.ndarray, n):
-    """
-    Estimate amplitudes and frequencies using the prony Method.
-    Based on the description in https://doi.org/10.1093/imanum/drab108
+# def matrix_pencil(C: np.ndarray, n: int) -> tuple:
+#     """
+#     Estimate amplitudes and frequencies using the Matrix Pencil Method.
+#     Based on the description in https://doi.org/10.1093/imanum/drab108
 
-    Args:
-        signal (np.ndarray): The input signal (1D complex array).
-        t (np.ndarray): The points where the signal was sampled
-        n (int): The number of modes to estimate (rank of the signal).
+#     Args:
+#         signal (np.ndarray): The input signal (1D complex array).
+#         n (int): The number of modes to estimate (rank of the signal).
 
-    Returns:
-        tuple: A tuple containing:
-            - amplitudes (np.ndarray):
-                The estimated amplitudes.
-            - phases (np.ndarray):
-                The estimated complex exponential frequencies.
-            - Normalized Root Mean Squared Error (float)
-                The error commited by approximating the signal
-    """
-    num_freqs = n
-    hankel0 = hankel(c=signal[:num_freqs], r=signal[num_freqs - 1: -1])
-    hankel1 = hankel(c=signal[1: num_freqs + 1], r=signal[num_freqs:])
-    shift_matrix = lstsq(hankel0.T, hankel1.T)[0]
-    phases = eigvals(shift_matrix.T)
+#     Returns:
+#         tuple: A tuple containing:
+#             - amplitudes (np.ndarray):
+#                 The estimated amplitudes.
+#             - phases (np.ndarray):
+#                 The estimated complex exponential frequencies.
+#     """
+#     num_freqs = len(C) - n
+#     hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
+#     hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
 
-    generation_matrix = np.array(
-        [[phase**k for phase in phases] for k in range(len(signal))])
-    amplitudes = lstsq(generation_matrix, signal)[0]
+#     _, R = qr(hankel0)
 
-    amplitudes, phases = zip(
-        *sorted(zip(amplitudes, phases), key=lambda x: np.abs(x[0]),
-                reverse=True)
-    )
-    params = _unpack(
-        np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
+#     pencil_matrix = np.linalg.pinv(R.T @ hankel0) @ (R.T @ hankel1)
+#     phases = eigvals(pencil_matrix)
+#     generation_matrix = np.array(
+#         [[phase**k for phase in phases] for k in range(len(C))])
+#     amplitudes = lstsq(generation_matrix, C)[0]
+#     params = _unpack(
+#         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    rmse = _rmse(prony_model, signal, signal, params)
-    r2 = _r2(prony_model, signal, signal, params)
-
-    return params, rmse, r2
+#     rmse = _rmse(prony_model, C, C, params)
+#     r2 = _r2(prony_model, C, C, params)
+#     return params, rmse, r2
 
 
-def esprit(C: np.ndarray, n: int) -> tuple:
-    """
-    Estimate amplitudes and frequencies using the ESPRIT Method.
-    Based on the description in https://doi.org/10.1093/imanum/drab108
+# def prony(signal: np.ndarray, n):
+#     """
+#     Estimate amplitudes and frequencies using the prony Method.
+#     Based on the description in https://doi.org/10.1093/imanum/drab108
 
-    Args:
-        signal (np.ndarray): The input signal (1D complex array).
-        n (int): The number of modes to estimate (rank of the signal).
+#     Args:
+#         signal (np.ndarray): The input signal (1D complex array).
+#         t (np.ndarray): The points where the signal was sampled
+#         n (int): The number of modes to estimate (rank of the signal).
 
-    Returns:
-        tuple: A tuple containing:
-            - amplitudes (np.ndarray):
-                The estimated amplitudes.
-            - phases (np.ndarray):
-                The estimated complex exponential frequencies.
-    """
-    # Step 1: Create the Hankel matrices
-    num_freqs = len(C) - n
-    hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
-    hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
+#     Returns:
+#         tuple: A tuple containing:
+#             - amplitudes (np.ndarray):
+#                 The estimated amplitudes.
+#             - phases (np.ndarray):
+#                 The estimated complex exponential frequencies.
+#             - Normalized Root Mean Squared Error (float)
+#                 The error commited by approximating the signal
+#     """
+#     num_freqs = n
+#     hankel0 = hankel(c=signal[:num_freqs], r=signal[num_freqs - 1: -1])
+#     hankel1 = hankel(c=signal[1: num_freqs + 1], r=signal[num_freqs:])
+#     shift_matrix = lstsq(hankel0.T, hankel1.T)[0]
+#     phases = eigvals(shift_matrix.T)
 
-    # Step 2: Perform SVD on the first Hankel matrix
-    U1, _, _ = svd(hankel0)
-    pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
-    phases = eigvals(pencil_matrix)
-    generation_matrix = np.array(
-        [[phase**k for phase in phases] for k in range(len(C))])
-    amplitudes = lstsq(generation_matrix, C)[0]
-    params = _unpack(
-        np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
+#     generation_matrix = np.array(
+#         [[phase**k for phase in phases] for k in range(len(signal))])
+#     amplitudes = lstsq(generation_matrix, signal)[0]
 
-    rmse = _rmse(prony_model, C, C, params)
-    r2 = _r2(prony_model, C, C, params)
+#     amplitudes, phases = zip(
+#         *sorted(zip(amplitudes, phases), key=lambda x: np.abs(x[0]),
+#                 reverse=True)
+#     )
+#     params = _unpack(
+#         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    return params, rmse, r2
+#     rmse = _rmse(prony_model, signal, signal, params)
+#     r2 = _r2(prony_model, signal, signal, params)
+
+#     return params, rmse, r2
+
+
+# def esprit(C: np.ndarray, n: int) -> tuple:
+#     """
+#     Estimate amplitudes and frequencies using the ESPRIT Method.
+#     Based on the description in https://doi.org/10.1093/imanum/drab108
+
+#     Args:
+#         signal (np.ndarray): The input signal (1D complex array).
+#         n (int): The number of modes to estimate (rank of the signal).
+
+#     Returns:
+#         tuple: A tuple containing:
+#             - amplitudes (np.ndarray):
+#                 The estimated amplitudes.
+#             - phases (np.ndarray):
+#                 The estimated complex exponential frequencies.
+#     """
+#     # Step 1: Create the Hankel matrices
+#     num_freqs = len(C) - n
+#     hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
+#     hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
+
+#     # Step 2: Perform SVD on the first Hankel matrix
+#     U1, _, _ = svd(hankel0)
+#     pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
+#     phases = eigvals(pencil_matrix)
+#     generation_matrix = np.array(
+#         [[phase**k for phase in phases] for k in range(len(C))])
+#     amplitudes = lstsq(generation_matrix, C)[0]
+#     params = _unpack(
+#         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
+
+#     rmse = _rmse(prony_model, C, C, params)
+#     r2 = _r2(prony_model, C, C, params)
+
+#     return params, rmse, r2
 
 # ESPIRA I
 
