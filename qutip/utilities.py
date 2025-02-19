@@ -602,9 +602,10 @@ def aaa(func, z, tol=1e-13, max_iter=100):
     values = np.empty(0, dtype=func.dtype)
     errors = np.zeros(max_iter)
     rational_approx = np.full_like(func, np.mean(func))
-
+    iindices = np.empty(0, dtype=int)
     for k in range(max_iter):
         j = np.argmax(np.abs(func - rational_approx))  # next support index
+        iindices = np.append(iindices, j)
         support_points = np.append(support_points, z[j])
         values = np.append(values, func[j])  # function evaluated at support
         indices = indices[indices != j]  # Remaining indices
@@ -648,6 +649,9 @@ def aaa(func, z, tol=1e-13, max_iter=100):
         "support points": support_points,
         "values at support": values,
         "indices": indices,
+        "cauchy": cauchy,
+        "loewner": loewner,
+        "iindices": iindices
     }
 
 
@@ -778,12 +782,31 @@ def prz(support_points, values, weights):
     return pol, res, zeros
 
 
-def prony_model(orig, amp, phase):
-    # It serves to compute rmse
+def _prony_model(orig, amp, phase):
+    # It serves to compute rmse, a single term of the prony
+    # polynomial form https://doi.org/10.1093/imanum/drab108 using phases
     return amp * np.power(phase, np.arange(len(orig)))
 
 
 def prony_methods(method: str, C: np.ndarray, n: int):
+    """
+    Estimate amplitudes and frequencies using prony methods.
+    Based on the description in https://doi.org/10.1093/imanum/drab108
+    and their matlab implementation
+    Args:
+        method (str): The method to obtain the roots of the prony polynomial
+        can be prony,matrix pencil (mp), and Estimation of signal parameters 
+        via rotational invariant techniques (esprit)
+        signal (np.ndarray): The input signal (1D complex array).
+        n (int): The number of modes to estimate (rank of the signal).
+
+    Returns:
+        tuple: A tuple containing:
+            - amplitudes (np.ndarray):
+                The estimated amplitudes.
+            - phases (np.ndarray):
+                The estimated complex exponential frequencies.
+    """
     num_freqs = len(C) - n
     hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
     hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
@@ -804,125 +827,11 @@ def prony_methods(method: str, C: np.ndarray, n: int):
     params = _unpack(
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    rmse = _rmse(prony_model, C, C, params)
-    r2 = _r2(prony_model, C, C, params)
+    rmse = _rmse(_prony_model, C, C, params)
+    r2 = _r2(_prony_model, C, C, params)
     return params, rmse, r2
 
-
-# def matrix_pencil(C: np.ndarray, n: int) -> tuple:
-#     """
-#     Estimate amplitudes and frequencies using the Matrix Pencil Method.
-#     Based on the description in https://doi.org/10.1093/imanum/drab108
-
-#     Args:
-#         signal (np.ndarray): The input signal (1D complex array).
-#         n (int): The number of modes to estimate (rank of the signal).
-
-#     Returns:
-#         tuple: A tuple containing:
-#             - amplitudes (np.ndarray):
-#                 The estimated amplitudes.
-#             - phases (np.ndarray):
-#                 The estimated complex exponential frequencies.
-#     """
-#     num_freqs = len(C) - n
-#     hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
-#     hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
-
-#     _, R = qr(hankel0)
-
-#     pencil_matrix = np.linalg.pinv(R.T @ hankel0) @ (R.T @ hankel1)
-#     phases = eigvals(pencil_matrix)
-#     generation_matrix = np.array(
-#         [[phase**k for phase in phases] for k in range(len(C))])
-#     amplitudes = lstsq(generation_matrix, C)[0]
-#     params = _unpack(
-#         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
-
-#     rmse = _rmse(prony_model, C, C, params)
-#     r2 = _r2(prony_model, C, C, params)
-#     return params, rmse, r2
-
-
-# def prony(signal: np.ndarray, n):
-#     """
-#     Estimate amplitudes and frequencies using the prony Method.
-#     Based on the description in https://doi.org/10.1093/imanum/drab108
-
-#     Args:
-#         signal (np.ndarray): The input signal (1D complex array).
-#         t (np.ndarray): The points where the signal was sampled
-#         n (int): The number of modes to estimate (rank of the signal).
-
-#     Returns:
-#         tuple: A tuple containing:
-#             - amplitudes (np.ndarray):
-#                 The estimated amplitudes.
-#             - phases (np.ndarray):
-#                 The estimated complex exponential frequencies.
-#             - Normalized Root Mean Squared Error (float)
-#                 The error commited by approximating the signal
-#     """
-#     num_freqs = n
-#     hankel0 = hankel(c=signal[:num_freqs], r=signal[num_freqs - 1: -1])
-#     hankel1 = hankel(c=signal[1: num_freqs + 1], r=signal[num_freqs:])
-#     shift_matrix = lstsq(hankel0.T, hankel1.T)[0]
-#     phases = eigvals(shift_matrix.T)
-
-#     generation_matrix = np.array(
-#         [[phase**k for phase in phases] for k in range(len(signal))])
-#     amplitudes = lstsq(generation_matrix, signal)[0]
-
-#     amplitudes, phases = zip(
-#         *sorted(zip(amplitudes, phases), key=lambda x: np.abs(x[0]),
-#                 reverse=True)
-#     )
-#     params = _unpack(
-#         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
-
-#     rmse = _rmse(prony_model, signal, signal, params)
-#     r2 = _r2(prony_model, signal, signal, params)
-
-#     return params, rmse, r2
-
-
-# def esprit(C: np.ndarray, n: int) -> tuple:
-#     """
-#     Estimate amplitudes and frequencies using the ESPRIT Method.
-#     Based on the description in https://doi.org/10.1093/imanum/drab108
-
-#     Args:
-#         signal (np.ndarray): The input signal (1D complex array).
-#         n (int): The number of modes to estimate (rank of the signal).
-
-#     Returns:
-#         tuple: A tuple containing:
-#             - amplitudes (np.ndarray):
-#                 The estimated amplitudes.
-#             - phases (np.ndarray):
-#                 The estimated complex exponential frequencies.
-#     """
-#     # Step 1: Create the Hankel matrices
-#     num_freqs = len(C) - n
-#     hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
-#     hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
-
-#     # Step 2: Perform SVD on the first Hankel matrix
-#     U1, _, _ = svd(hankel0)
-#     pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
-#     phases = eigvals(pencil_matrix)
-#     generation_matrix = np.array(
-#         [[phase**k for phase in phases] for k in range(len(C))])
-#     amplitudes = lstsq(generation_matrix, C)[0]
-#     params = _unpack(
-#         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
-
-#     rmse = _rmse(prony_model, C, C, params)
-#     r2 = _r2(prony_model, C, C, params)
-
-#     return params, rmse, r2
-
-# ESPIRA I
+# ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
 
 def espira1(y, Nexp, tol=1e-16):
@@ -941,7 +850,46 @@ def espira1(y, Nexp, tol=1e-16):
     g = -AB / (1 - result['poles']**M)  # Element-wise division
     params = _unpack(
         np.array([val for pair in zip(g, result['poles']) for val in pair]), 2)
-    rmse = _rmse(prony_model, y, y, params)
-    r2 = _r2(prony_model, y, y, params)
+    rmse = _rmse(_prony_model, y, y, params)
+    r2 = _r2(_prony_model, y, y, params)
+
+    return params, rmse, r2
+
+
+def espira2(y, Nexp, tol=1e-16):
+    # Compute FFT
+    F1 = fft(y)
+    M = len(F1)  # number of modified DFT values
+
+    # Set knots on the unit circle
+    Z = np.exp(2j * np.pi * np.arange(M) / M)
+    # Modify the DFT values
+    F = F1 * Z**(-1)
+    result = aaa(F, Z, max_iter=Nexp+1, tol=tol)
+    indices = result["indices"]
+    support_points = result["support points"]
+    values = result['values at support']
+    cauchy = compute_cauchy_matrix(Z[indices], support_points)
+    loewner = np.subtract.outer(F[indices], values) * cauchy
+    loewner = loewner[::-1].conj()
+    loewner2 = np.subtract.outer(F1[indices], F1[result['iindices']]) * cauchy
+    loewner2 = loewner2[::-1].conj()
+    N1, N2 = loewner2.shape
+    A1 = np.hstack((loewner, loewner2))
+    _, G, Vt = np.linalg.svd(A1)
+    V = Vt[:(Nexp), :]  # Reduce rows in V matrix
+    V1 = V[:, :N2]  # First matrix for matrix pencil
+    V2 = V[:, N2:2*N2]  # Second matrix for matrix pencil
+    pol = np.linalg.eigvals(np.linalg.pinv(V1.T) @ V2.T)
+    # Initialize Vandermonde matrix
+    Z1 = np.zeros((M, len(pol)), dtype=np.complex128)
+    for i in range(len(pol)):  # Loop over pol (0-based indexing)
+        Z1[:, i] = pol[i] ** np.arange(M)  # Assign to i-th column (0-based)
+    # Solve for g
+    g = np.linalg.lstsq(Z1, y, rcond=None)[0]  # Equivalent to MATLAB's `Z1 \ y
+    params = _unpack(
+        np.array([val for pair in zip(g, pol) for val in pair]), 2)
+    rmse = _rmse(_prony_model, y, y, params)
+    r2 = _r2(_prony_model, y, y, params)
 
     return params, rmse, r2

@@ -34,7 +34,7 @@ except ModuleNotFoundError:
     _mpmath_available = False
 
 from ..utilities import (n_thermal, iterated_fit, aaa,
-                         matrix_pencil, prony, esprit, espira1)
+                         prony_methods, espira1, espira2)
 from .superoperator import spre, spost
 from .qobj import Qobj
 
@@ -994,10 +994,13 @@ class BosonicEnvironment(abc.ABC):
         tag: Any = None,
         separate: bool = True
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
-        methods = {"mp": matrix_pencil,
+        def prony(x, n):
+            return prony_methods(method, x, n)
+        methods = {"mp": prony,
                    "prony": prony,
-                   "esprit": esprit,
-                   "espira-I": espira1}
+                   "esprit": prony,
+                   "espira-I": espira1,
+                   "espira-II": espira2}
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
         if separate:
