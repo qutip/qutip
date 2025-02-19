@@ -523,7 +523,7 @@ def rand_ket(
     if np.ndim(dims[0]) == 1: # ket
         ket.dims = [dims[0], [1] * len(dims[0])]
     else: # operator-ket
-        ket.dims = [dims[0], [1]]
+        ket.dims = [dims[0], [[1], [1]]]
     return ket.to(dtype)
 
 
