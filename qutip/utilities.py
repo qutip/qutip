@@ -13,6 +13,8 @@ from typing import Callable
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import curve_fit
+from scipy.linalg import qr, hankel, lstsq, eigvals, svd, eig
+from scipy.fft import fft
 
 
 def n_thermal(w, w_th):
@@ -66,7 +68,7 @@ def _factorial_div(N, arr):
 def _to_long(arr):
     prod = 1
     for i, v in enumerate(arr):
-        prod *= (i+1)**int(v)
+        prod *= (i + 1)**int(v)
     return prod
 
 
@@ -116,7 +118,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     _factorial_div(j1 + m1, c_factor)
     _factorial_div(j2 - m2, c_factor)
     _factorial_div(j2 + m2, c_factor)
-    C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
+    C = np.sqrt((2.0 * j3 + 1.0) * _to_long(c_factor))
 
     s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
     # `S` and `C` are large integer,s if `sign` is a np.int32 it could oveflow
@@ -446,12 +448,12 @@ def iterated_fit(
 
         lower_repeat = np.tile(lower, N)
         upper_repeat = np.tile(upper, N)
-        rmse1, params = _fit(fun, num_params, xdata, ydata,
-                             guesses, lower_repeat,
-                             upper_repeat, sigma, maxfev)
+        rmse1, params, r2 = _fit(fun, num_params, xdata, ydata,
+                                 guesses, lower_repeat,
+                                 upper_repeat, sigma, maxfev)
         N += 1
 
-    return rmse1, params
+    return rmse1, params, r2
 
 
 def _pack(params):
@@ -479,13 +481,43 @@ def _rmse(fun, xdata, ydata, params):
     The normalized root mean squared error for the fit with the given
     parameters. (The closer to zero = the better the fit.)
     """
-    yhat = _evaluate(fun, xdata, params)
+    if params is None:
+        yhat = fun
+    else:
+        yhat = _evaluate(fun, xdata, params)
+
     if (yhat == ydata).all():
         return 0
     return (
         np.sqrt(np.mean((yhat - ydata) ** 2) / len(ydata))
         / (np.max(ydata) - np.min(ydata))
     )
+
+
+def _r2(fun, xdata, ydata, params):
+    """
+    The 1-r2 coefficient serves to evaluate the goodness of fit 
+    https://en.wikipedia.org/wiki/Coefficient_of_determination
+    it normally ranges from zero to one the closer to one the better. 
+    if negative it means the model is worst than the worse possible least 
+    squares predictor (basically a line over the mean of the signal)
+    1-r2 is chosen instead of r2 because fits using our methods are typically 
+    good, so it is hard to show in summary as everything is almost one, so the
+    summary shows 1. this way it shows small numbers and fits can be compared 
+    easily
+    """
+    if params is None:
+        yhat = fun
+    else:
+        yhat = _evaluate(fun, xdata, params)
+
+    ss_tot = np.sum((ydata - np.mean(ydata)) ** 2)
+    ss_res = np.sum((ydata - yhat) ** 2)
+
+    if ss_tot == 0:
+        return 1 if ss_res == 0 else 0  # Handle constant ydata case
+
+    return (ss_res / ss_tot)
 
 
 def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
@@ -522,4 +554,345 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
     )
     params = _unpack(packed_params, num_params)
     rmse = _rmse(fun, xdata, ydata, params)
-    return rmse, params
+    r2 = _r2(fun, xdata, ydata, params)
+    return rmse, params, r2
+
+
+# AAA Fitting
+
+def aaa(func, z, tol=1e-13, max_iter=100):
+    """
+    Computes a rational approximation of the function according to the AAA
+    algorithm as explained in https://doi.org/10.1137/16M1106122 . This
+    implementation is a python adaptation of the matlab version in that paper
+    NOTE: I am not sure if this is necessary anymore as scipy 1.15 includes AAA
+
+    Parameters:
+    -----------
+    func : callable or np.ndarray
+
+    z : np.ndarray
+        The sampling points on which to perform the rational approximation.
+        Even though linearly spaced sample points will yield good
+        approximations, logarithmicly spaced points will usually give better
+        exponent approximations
+
+    tol : float, optional
+        Relative tolerance of the approximation
+    max_iter : int, optional
+        Maximum number of support points ~2*n where n is the number of bath
+        exponents
+
+    Returns:
+    --------
+    r : callable
+        rational approximation of the function
+    pol : np.ndarray
+        poles of the approximant function
+    res : np.ndarray
+        residues of the approximant function
+    zer : np.ndarray
+        zeros of the approximant function
+    errors : np.ndarray
+        Error by iteration
+    """
+    func = func(z) if callable(func) else func
+    indices = np.arange(len(z))
+    support_points = np.empty(0, dtype=z.dtype)
+    values = np.empty(0, dtype=func.dtype)
+    errors = np.zeros(max_iter)
+    rational_approx = np.full_like(func, np.mean(func))
+    iindices = np.empty(0, dtype=int)
+    for k in range(max_iter):
+        j = np.argmax(np.abs(func - rational_approx))  # next support index
+        iindices = np.append(iindices, j)
+        support_points = np.append(support_points, z[j])
+        values = np.append(values, func[j])  # function evaluated at support
+        indices = indices[indices != j]  # Remaining indices
+
+        cauchy = compute_cauchy_matrix(z[indices], support_points)
+        # Then we construct the Loewner Matrix
+        loewner = np.subtract.outer(func[indices], values) * cauchy
+        # Perform SVD only d is needed
+        _, _, vh = svd(loewner)
+        # Compute weights
+        weights = vh[-1, :].conj()
+        # Obtain the rational Approximation of the function with these support
+        # points
+        rational_approx = get_rational_approx(
+            cauchy, weights, values, indices, func)
+        errors[k] = np.linalg.norm(
+            func - rational_approx, np.inf)  # compute error
+        if errors[k] <= tol * np.linalg.norm(func, np.inf):
+            # if contributions are smaller than the tolerance, then stop the
+            # loop
+            break
+    # Define the function approximation as a callable for output
+
+    def r(z):
+        cauchy = compute_cauchy_matrix(z, support_points)
+        r = get_rational_approx(cauchy, weights, values)
+        return r.reshape(z.shape)
+    # Obtain poles residies and zeros
+    pol, res, zer = prz(support_points, values, weights)
+    rmse = _rmse(r(z), z, func, None)
+    r2 = _r2(r(z), z, func, None)
+
+    return {
+        "function": r,
+        "poles": pol,
+        "residues": res,
+        "zeros": zer,
+        "errors": errors[:k + 1],
+        "rmse": rmse,
+        "r2": r2,
+        "support points": support_points,
+        "values at support": values,
+        "indices": indices,
+        "cauchy": cauchy,
+        "loewner": loewner,
+        "iindices": iindices
+    }
+
+
+def compute_cauchy_matrix(z, support_points):
+    r"""
+    Computes the `Cauchy matrix <https://en.wikipedia.org/wiki/Cauchy_matrix>`
+    for the AAA rational approximation
+
+    ..math::
+    a_{ij}={\frac {1}{x_{i}-y_{j}}};\quad x_{i}-y_{j}\neq 0
+    ,\quad 1\leq i\leq m,\quad 1\leq j\leq n}
+
+    Parameters:
+    -----------
+    z : np.ndarray
+        sample points x
+    support_points : np.ndarray
+        support points y
+
+    Returns:
+    --------
+    cauchy : np.ndarray
+        The cauchy matrix from the sample and support points
+    """
+    epsilon = 1e-15  # Small constant to avoid division by zero
+    # Prevent division by zero on poles
+    denominator = np.subtract.outer(z, support_points)
+    denominator[denominator == 0] = epsilon
+    cauchy = 1 / denominator
+    return cauchy
+
+
+def get_rational_approx(cauchy, weights, values, indices=None, func=None):
+    """
+    Gets the rational approximation of the function. The approximation is of
+    the form
+
+    ..math::
+        r(z) = \frac{w_{j} f_{j}}{z-z_{j}}/\frac{w_{j}}{z-z_{j}}
+
+    where w is the cauchy matrix
+    Parameters:
+    -----------
+    cauchy : np.ndarray
+        The cauchy matrix
+    values : np.ndarray
+        The data used for the approximation
+    weights : np.ndarray
+        The weights used for the approximation
+    indices: np.ndarray
+        The support points to be avoided
+    func:
+        The function evaluated in the range of the fit
+
+
+    Returns:
+    --------
+    r : np.ndarray
+        The rational approximation of the function
+    """
+
+    numerator = cauchy @ (weights * values)
+    denominator = cauchy @ weights
+    if func is None:
+        rational_approx = numerator / denominator
+    else:
+        # This bit is to Avoid the support points in the AAA iterations
+        # as they shouldn't be included
+        rational_approx = func.copy()
+        rational_approx[indices] = numerator / denominator
+    return rational_approx
+
+
+def prz(support_points, values, weights):
+    r"""
+    prz stands for poles, residues and zeros. It calculates and returns the
+    poles, residue and zeros of the rational approximation. Using the
+    generalized eigenvalue problem
+
+    ..math::
+       geig = \begin{pmatrix}0 & \omega_{2} & \dots& \omega_{m} \\
+           1& z_{1} & 0 & \dots \\
+           1 & 0 & z_{2} & \dots \\
+            \vdots   & \vdots & \vdots & \vdots \\
+             1   & \dots  & \dots &z_{m}\end{pmatrix} = \lambda L
+
+    where B is like a mxm identity matrix, except its first element is 0.
+
+    Unlike the implementation in the reference we use the simple quotient
+    formula for the residue (https://math.stackexchange.com/questions/2202129/
+    residue-for-quotient-of-functions)
+
+
+    Parameters:
+    -----------
+    support_points : np.ndarray
+        The support points of the rational approximation
+    values : np.ndarray
+        Data values on which the approximation is performed
+    weights :np.ndarray
+        The weight vector
+
+    Returns:
+    --------
+    pol : np.ndarray
+        The poles of the rational approximation
+    res : np.ndarray
+        The residues of the rational approximation
+    zer : np.ndarray
+        The zeros of the rational approximation
+    """
+    m = len(weights)
+    geye = np.eye(m + 1)
+    geye[0, 0] = 0
+    geig = np.block([[0, weights], [np.ones((m, 1)), np.diag(support_points)]])
+    eigvals = eig(geig, geye)[0]
+    # removing spurious values
+    pol = np.real_if_close(eigvals[np.isfinite(eigvals)])
+
+    cauchy = compute_cauchy_matrix(pol, support_points)
+
+    numerator = cauchy @ (values * weights)
+    denominator = (-cauchy**2) @ weights  # Quotient rule f=1/cauchy
+    res = numerator / denominator
+    ez = np.block([[0, weights], [values[:, None], np.diag(support_points)]])
+    zeros = eig(ez, geye)[0]
+    zeros = zeros[~np.isinf(zeros)]
+    return pol, res, zeros
+
+
+def _prony_model(orig, amp, phase):
+    # It serves to compute rmse, a single term of the prony
+    # polynomial form https://doi.org/10.1093/imanum/drab108 using phases
+    return amp * np.power(phase, np.arange(len(orig)))
+
+
+def prony_methods(method: str, C: np.ndarray, n: int):
+    """
+    Estimate amplitudes and frequencies using prony methods.
+    Based on the description in https://doi.org/10.1093/imanum/drab108
+    and their matlab implementation
+    Args:
+        method (str): The method to obtain the roots of the prony polynomial
+        can be prony,matrix pencil (mp), and Estimation of signal parameters 
+        via rotational invariant techniques (esprit)
+        signal (np.ndarray): The input signal (1D complex array).
+        n (int): The number of modes to estimate (rank of the signal).
+
+    Returns:
+        tuple: A tuple containing:
+            - amplitudes (np.ndarray):
+                The estimated amplitudes.
+            - phases (np.ndarray):
+                The estimated complex exponential frequencies.
+    """
+    if method == "prony":
+        num_freqs = n
+    else:
+        num_freqs = len(C)-n
+    hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
+    hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
+    if method == "mp":
+        _, R = qr(hankel0)
+        pencil_matrix = np.linalg.pinv(R.T @ hankel0) @ (R.T @ hankel1)
+        phases = eigvals(pencil_matrix)
+    elif method == "prony":
+        shift_matrix = lstsq(hankel0.T, hankel1.T)[0]
+        phases = eigvals(shift_matrix.T)
+    elif method == "esprit":
+        U1, _, _ = svd(hankel0)
+        pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
+        phases = eigvals(pencil_matrix)
+    generation_matrix = np.array(
+        [[phase**k for phase in phases] for k in range(len(C))])
+    amplitudes = lstsq(generation_matrix, C)[0]
+    params = _unpack(
+        np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
+
+    rmse = _rmse(_prony_model, C, C, params)
+    r2 = _r2(_prony_model, C, C, params)
+    return params, rmse, r2
+
+# ESPIRA I and II, ESPIRA 2 based on SVD not QR
+
+
+def espira1(y, Nexp, tol=1e-16):
+    # Compute FFT
+    F = fft(y)
+    M = len(F)  # number of modified DFT values
+
+    # Set knots on the unit circle
+    Z = np.exp(2j * np.pi * np.arange(M) / M)
+    # Modify the DFT values
+    F = F * Z**(-1)
+    result = aaa(F, Z, max_iter=Nexp+1, tol=tol)
+    CC = (-1) / np.subtract.outer(result['support points'], result['poles'])
+    AB, _, _, _ = np.linalg.lstsq(
+        CC, result['values at support'], rcond=None)  # Least squares solution
+    g = -AB / (1 - result['poles']**M)  # Element-wise division
+    params = _unpack(
+        np.array([val for pair in zip(g, result['poles']) for val in pair]), 2)
+    rmse = _rmse(_prony_model, y, y, params)
+    r2 = _r2(_prony_model, y, y, params)
+
+    return params, rmse, r2
+
+
+def espira2(y, Nexp, tol=1e-16):
+    # Compute FFT
+    F1 = fft(y)
+    M = len(F1)  # number of modified DFT values
+
+    # Set knots on the unit circle
+    Z = np.exp(2j * np.pi * np.arange(M) / M)
+    # Modify the DFT values
+    F = F1 * Z**(-1)
+    result = aaa(F, Z, max_iter=Nexp+1, tol=tol)
+    indices = result["indices"]
+    support_points = result["support points"]
+    values = result['values at support']
+    cauchy = compute_cauchy_matrix(Z[indices], support_points)
+    loewner = np.subtract.outer(F[indices], values) * cauchy
+    loewner = loewner[::-1].conj()
+    loewner2 = np.subtract.outer(F1[indices], F1[result['iindices']]) * cauchy
+    loewner2 = loewner2[::-1].conj()
+    N1, N2 = loewner2.shape
+    A1 = np.hstack((loewner, loewner2))
+    _, G, Vt = np.linalg.svd(A1)
+    V = Vt[:(Nexp), :]  # Reduce rows in V matrix
+    V1 = V[:, :N2]  # First matrix for matrix pencil
+    V2 = V[:, N2:2*N2]  # Second matrix for matrix pencil
+    pol = np.linalg.eigvals(np.linalg.pinv(V1.T) @ V2.T)
+    # Initialize Vandermonde matrix
+    Z1 = np.zeros((M, len(pol)), dtype=np.complex128)
+    for i in range(len(pol)):  # Loop over pol (0-based indexing)
+        Z1[:, i] = pol[i] ** np.arange(M)  # Assign to i-th column (0-based)
+    # Solve for g
+    g = np.linalg.lstsq(Z1, y, rcond=None)[0]  # Equivalent to MATLAB's `Z1 \ y
+    params = _unpack(
+        np.array([val for pair in zip(g, pol) for val in pair]), 2)
+    rmse = _rmse(_prony_model, y, y, params)
+    r2 = _r2(_prony_model, y, y, params)
+
+    return params, rmse, r2
