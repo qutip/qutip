@@ -280,7 +280,7 @@ def test_einsum(subscripts, operands, expected):
     pytest.param([[1, 1, 1, 1], [5, 5, 2, 6]], [[1], [5, 5, 2, 6]]),
     pytest.param(
         [[[2, 3, 5], [2, 3, 5]], [[1, 1, 1], [1, 1, 1]]],
-        [[[2, 3, 5], [2, 3, 5]], [[1], [1]]]
+        [[[2, 3, 5], [2, 3, 5]], [1]]
     )
 ])
 def test_scalar_dims(list_dims, expected):

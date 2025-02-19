@@ -409,6 +409,8 @@ class MetaSpace(type):
         if settings.core['auto_tidyup_dims']:
             if cls is Compound and all(arg.size == 1 for arg in args):
                 cls = Field
+            elif cls is SuperSpace and args[0].type == 'scalar':
+                cls = Field
 
         args = tuple([
             tuple(arg) if isinstance(arg, list) else arg
