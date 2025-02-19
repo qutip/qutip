@@ -1281,6 +1281,13 @@ def test_dtype_in_info_string(dtype):
     assert dtype.lower() in str(obj).lower()
 
 
+def test_constructing_op_from_states():
+    obj = qutip.basis(2, dtype="Dense")
+    assert (obj @ obj.dag()).dtype == qutip.data.to.parse("csr")
+    obj = qutip.basis(2, 0, dtype="Dense") + qutip.basis(2, 1, dtype="Dense")
+    assert (obj @ obj.dag()).dtype == qutip.data.to.parse("Dense")
+
+    
 @pytest.mark.parametrize(["state", "expected", "kwargs"], [
         (qutip.basis([2, 2, 2], [1, 1, 0]), "(1+0j) |110>", {}),
         (qutip.basis([2, 2, 2], [1, 1, 0]).dag(), "(1-0j) <110|", {}),

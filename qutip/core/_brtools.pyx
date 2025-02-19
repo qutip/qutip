@@ -4,6 +4,7 @@ from libc.float cimport DBL_MAX
 
 cimport numpy as cnp
 import numpy as np
+import warnings
 
 cimport cython
 
@@ -191,13 +192,18 @@ cdef class _EigenBasisTransform:
         Hermitian operator for which to compute the eigenbasis.
 
     sparse : bool [False]
-        Whether to use sparse solver for eigen decomposition.
+        Deprecated
     """
     def __init__(self, QobjEvo oper, bint sparse=False):
         if oper.dims[0] != oper.dims[1]:
             raise ValueError
         if type(oper(0).data) in (_data.CSR, _data.Dia) and not sparse:
             oper = oper.to(Dense)
+        elif type(oper(0).data) in (_data.CSR, _data.Dia) and sparse:
+            warnings.warn(
+                "Sparse Eigen solver is unstable and will be removed",
+                DeprecationWarning
+            )
         self.oper = oper
         self.isconstant = oper.isconstant
         self.size = oper.shape[0]
