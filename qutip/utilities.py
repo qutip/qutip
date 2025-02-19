@@ -448,12 +448,12 @@ def iterated_fit(
 
         lower_repeat = np.tile(lower, N)
         upper_repeat = np.tile(upper, N)
-        rmse1, params = _fit(fun, num_params, xdata, ydata,
-                             guesses, lower_repeat,
-                             upper_repeat, sigma, maxfev)
+        rmse1, params, r2 = _fit(fun, num_params, xdata, ydata,
+                                 guesses, lower_repeat,
+                                 upper_repeat, sigma, maxfev)
         N += 1
 
-    return rmse1, params
+    return rmse1, params, r2
 
 
 def _pack(params):
@@ -476,22 +476,22 @@ def _evaluate(fun, x, params):
     return result
 
 
-# def _rmse(fun, xdata, ydata, params):
-#     """
-#     The normalized root mean squared error for the fit with the given
-#     parameters. (The closer to zero = the better the fit.)
-#     """
-#     if params is None:
-#         yhat = fun
-#     else:
-#         yhat = _evaluate(fun, xdata, params)
+def _rmse(fun, xdata, ydata, params):
+    """
+    The normalized root mean squared error for the fit with the given
+    parameters. (The closer to zero = the better the fit.)
+    """
+    if params is None:
+        yhat = fun
+    else:
+        yhat = _evaluate(fun, xdata, params)
 
-#     if (yhat == ydata).all():
-#         return 0
-#     return (
-#         np.sqrt(np.mean((yhat - ydata) ** 2) / len(ydata))
-#         / (np.max(ydata) - np.min(ydata))
-#     )
+    if (yhat == ydata).all():
+        return 0
+    return (
+        np.sqrt(np.mean((yhat - ydata) ** 2) / len(ydata))
+        / (np.max(ydata) - np.min(ydata))
+    )
 
 
 def _r2(fun, xdata, ydata, params):
@@ -553,8 +553,9 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
         method=method, sigma=sigma, **maxfev_arg
     )
     params = _unpack(packed_params, num_params)
-    rmse = _r2(fun, xdata, ydata, params)
-    return rmse, params
+    rmse = _rmse(fun, xdata, ydata, params)
+    r2 = _r2(fun, xdata, ydata, params)
+    return rmse, params, r2
 
 
 # AAA Fitting
@@ -633,7 +634,9 @@ def aaa(func, z, tol=1e-13, max_iter=100):
         return r.reshape(z.shape)
     # Obtain poles residies and zeros
     pol, res, zer = prz(support_points, values, weights)
-    rmse = _r2(r(z), z, func, None)
+    rmse = _rmse(r(z), z, func, None)
+    r2 = _r2(r(z), z, func, None)
+
     return {
         "function": r,
         "poles": pol,
@@ -641,6 +644,7 @@ def aaa(func, z, tol=1e-13, max_iter=100):
         "zeros": zer,
         "errors": errors[:k + 1],
         "rmse": rmse,
+        "r2": r2,
         "support points": support_points,
         "values at support": values,
         "indices": indices,
@@ -809,9 +813,9 @@ def matrix_pencil(C: np.ndarray, n: int) -> tuple:
     params = _unpack(
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    rmse = _r2(prony_model, C, C, params)
-
-    return params, rmse
+    rmse = _rmse(prony_model, C, C, params)
+    r2 = _r2(prony_model, C, C, params)
+    return params, rmse, r2
 
 
 def prony(signal: np.ndarray, n):
@@ -850,9 +854,10 @@ def prony(signal: np.ndarray, n):
     params = _unpack(
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    rmse = _r2(prony_model, signal, signal, params)
+    rmse = _rmse(prony_model, signal, signal, params)
+    r2 = _r2(prony_model, signal, signal, params)
 
-    return params, rmse
+    return params, rmse, r2
 
 
 def esprit(C: np.ndarray, n: int) -> tuple:
@@ -886,8 +891,10 @@ def esprit(C: np.ndarray, n: int) -> tuple:
     params = _unpack(
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    rmse = _r2(prony_model, C, C, params)
-    return params, rmse
+    rmse = _rmse(prony_model, C, C, params)
+    r2 = _r2(prony_model, C, C, params)
+
+    return params, rmse, r2
 
 # ESPIRA I
 
@@ -908,5 +915,7 @@ def espira1(y, Nexp, tol=1e-16):
     g = -AB / (1 - result['poles']**M)  # Element-wise division
     params = _unpack(
         np.array([val for pair in zip(g, result['poles']) for val in pair]), 2)
-    rmse = _r2(prony_model, y, y, params)
-    return params, rmse
+    rmse = _rmse(prony_model, y, y, params)
+    r2 = _r2(prony_model, y, y, params)
+
+    return params, rmse, r2

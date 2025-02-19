@@ -804,7 +804,7 @@ class BosonicEnvironment(abc.ABC):
 
         # Fit real part
         start_real = time()
-        rmse_real, params_real = iterated_fit(
+        rmse_real, params_real, r2_real = iterated_fit(
             _cf_real_fit_model, num_params, tlist, np.real(clist), target_rsme,
             Nr_min, Nr_max, guess=guess_re, lower=lower_re, upper=upper_re,
             sigma=sigma, maxfev=maxfev
@@ -814,7 +814,7 @@ class BosonicEnvironment(abc.ABC):
 
         # Fit imaginary part
         start_imag = time()
-        rmse_imag, params_imag = iterated_fit(
+        rmse_imag, params_imag, r2_imag = iterated_fit(
             _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rsme,
             Ni_min, Ni_max, guess=guess_im, lower=lower_im, upper=upper_im,
             sigma=sigma, maxfev=maxfev
@@ -827,13 +827,14 @@ class BosonicEnvironment(abc.ABC):
         Ni = len(params_imag)
         full_summary = _cf_fit_summary(
             params_real, params_imag, fit_time_real, fit_time_imag,
-            Nr, Ni, rmse_real, rmse_imag, n=num_params
+            Nr, Ni, r2_real, r2_imag, n=num_params
         )
 
         fit_info = {"Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
                     "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
                     "rmse_imag": rmse_imag, "params_real": params_real,
-                    "params_imag": params_imag, "summary": full_summary}
+                    "params_imag": params_imag, "summary": full_summary,
+                    "r2_imag": r2_imag, "r2_real": r2_real}
 
         # Finally, generate environment and return
         ckAR = []
@@ -894,7 +895,7 @@ class BosonicEnvironment(abc.ABC):
 
         # Fit
         start = time()
-        rmse, params = iterated_fit(
+        rmse, params, r2 = iterated_fit(
             _sd_fit_model, 3, wlist, jlist, target_rmse, Nmin, Nmax,
             guess=guess, lower=lower, upper=upper, sigma=sigma, maxfev=maxfev
         )
@@ -904,11 +905,11 @@ class BosonicEnvironment(abc.ABC):
         # Generate summary
         N = len(params)
         summary = _fit_summary(
-            fit_time, rmse, N, "the spectral density", params
+            fit_time, r2, N, "the spectral density", params
         )
         fit_info = {
             "N": N, "Nk": Nk, "fit_time": fit_time, "rmse": rmse,
-            "params": params, "summary": summary}
+            "params": params, "summary": summary, "r2": r2}
 
         ckAR, vkAR, ckAI, vkAI = [], [], [], []
         # Finally, generate environment and return
@@ -940,14 +941,13 @@ class BosonicEnvironment(abc.ABC):
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
         start = time()
+        # The *2 is there because half the poles will be filtered out
         result = aaa(self.power_spectrum, wlist,
                      tol=tol,
                      max_iter=N_max * 2)
         end = time()
         pol = result['poles']
         res = result['residues']
-        rmse = result['rmse']
-        # The *2 is there because half the poles will be filtered out
         mask = np.imag(pol) < 0
 
         new_pols, new_res = pol[mask], res[mask]
@@ -976,12 +976,12 @@ class BosonicEnvironment(abc.ABC):
         params = [(ck.real[i], ck.imag[i], vk[i].real, vk[i].imag)
                   for i in range(len(ck))]
         summary = _fit_summary(
-            fit_time, rmse, N, "the spectral density", params,
+            fit_time, result['r2'], N, "the spectral density", params,
             columns=['a', 'b', 'c', 'd']
         )
         fitinfo = {
-            "N": N, "fit_time": fit_time, "rmse": rmse,
-            "params": params, "summary": summary}
+            "N": N, "fit_time": fit_time, "rmse": result['rmse'],
+            "params": params, "summary": summary, "r2": result['r2']}
         return cls, fitinfo
 
     def _approx_by_prony(
@@ -1002,11 +1002,11 @@ class BosonicEnvironment(abc.ABC):
             tag = (self.tag, f"{method.upper()} Fit")
         if separate:
             start_real = time()
-            params_real, rmse_real = methods[method](
+            params_real, rmse_real, r2_real = methods[method](
                 self.correlation_function(tlist).real, Nr)
             end_real = time()
             start_imag = time()
-            params_imag, rmse_imag = methods[method](
+            params_imag, rmse_imag, r2_imag = methods[method](
                 self.correlation_function(tlist).imag, Ni)
             end_imag = time()
             amp, phases = params_real.T
@@ -1028,14 +1028,15 @@ class BosonicEnvironment(abc.ABC):
             fit_time_imag = end_imag-start_imag
             full_summary = _cf_fit_summary(
                 params_real, params_imag, fit_time_real, fit_time_imag,
-                Nr, Ni, rmse_real, rmse_imag, n=4)
+                Nr, Ni, r2_real, r2_imag, n=4)
             fit_info = {"Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
                         "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
                         "rmse_imag": rmse_imag, "params_real": params_real,
-                        "params_imag": params_imag, "summary": full_summary}
+                        "params_imag": params_imag, "summary": full_summary,
+                        "r2_real": r2_real, "r2_imag": r2_imag}
         else:
             start_real = time()
-            params_real, rmse_real = methods[method](
+            params_real, rmse_real, r2 = methods[method](
                 self.correlation_function(tlist), Nr)
             end_real = time()
             amp, phases = params_real.T
@@ -1048,12 +1049,12 @@ class BosonicEnvironment(abc.ABC):
             params_real = [(amp[i].real, phases[i].real, phases[i].imag, amp[i].imag)
                            for i in range(len(amp))]
             fit_time_real = end_real-start_real
-            full_summary = _fit_summary(fit_time_real, rmse_real, Nr,
+            full_summary = _fit_summary(fit_time_real, r2, Nr,
                                         "Correlation Function", params_real,
                                         columns=['a', 'b', 'c', 'd'])
             fit_info = {"N": Nr, "fit_time": fit_time_real,
                         "rmse": rmse_real, "params_real": params_real,
-                        "summary": full_summary}
+                        "summary": full_summary, "r2": r2}
         return cls, fit_info
 
 
