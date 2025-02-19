@@ -150,11 +150,10 @@ The evaluation of the zeta function for complex arguments requires `mpmath`, so 
 only available if `mpmath` is installed.
 
 Multi-exponential approximations to Ohmic environments can be obtained through
-the fitting procedures :meth:`approx_by_cf_fit<.BosonicEnvironment.approx_by_cf_fit>`
-and :meth:`approx_by_sd_fit<.BosonicEnvironment.approx_by_sd_fit>`.
+the fitting procedures :meth:`approximate<.BosonicEnvironment.approximate>`
 The following example shows how to create a sub-Ohmic environment, and how to use
-:meth:`approx_by_cf_fit<.BosonicEnvironment.approx_by_cf_fit>` to fit the real and imaginary parts
-of the correlation function with two exponential terms each.
+:meth:`approximate<.BosonicEnvironment.approximate>` to fit the real and imaginary parts
+of the correlation function with three exponential terms each.
 
 .. plot::
     :context: reset
@@ -169,7 +168,7 @@ of the correlation function with two exponential terms each.
 
     # Fit the correlation function with three exponential terms
     tlist = np.linspace(0, 3, 250)
-    approx_env, info = env.approx_by_cf_fit(tlist, target_rsme=None, Nr_max=3, Ni_max=3, maxfev=1e8)
+    approx_env, info = env.approximate("cf",tlist, target_rsme=None, Nr_max=3, Ni_max=3, maxfev=1e8)
 
 The environment `approx_env` created here could be used, for example, with the :ref:`HEOM solver<heom>`.
 The variable `info` contains info about the convergence of the fit; here, we will just plot the fit together with

@@ -639,7 +639,8 @@ class BosonicEnvironment(abc.ABC):
 
     @overload
     def approximate(self,
-                    method: Literal['esprit', 'prony', 'mp'],
+                    method: Literal['esprit', 'prony', 'mp', 'espira-I',
+                                    'espira-II'],
                     tlist: ArrayLike,
                     Nr: int,
                     Ni: int,
