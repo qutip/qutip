@@ -171,7 +171,9 @@ class IntegratorDiag(Integrator):
         return self.integrate(t, copy=copy)
 
     def get_state(self, copy=True):
-        return self._t, _data.matmul(self.U, _data.dense.Dense(self._y))
+        return self._t, _data.matmul(
+            self.U, _data.dense.fast_from_numpy(self._y)
+        )
 
     def set_state(self, t, state0):
         self._t = t

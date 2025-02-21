@@ -365,7 +365,7 @@ class NonMarkovianMCSolver(MCSolver):
         "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
-        "method": "adams",
+        "method": "vern7",
         "mc_corr_eps": 1e-10,
         "norm_steps": 5,
         "norm_t_tol": 1e-6,

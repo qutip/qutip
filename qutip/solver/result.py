@@ -6,7 +6,8 @@ from __future__ import annotations
 from typing import TypedDict, Any, Callable
 from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
-from ..core import Qobj, QobjEvo, expect
+from ..core import Qobj, QobjEvo
+from ..core.data import expect
 
 __all__ = ["Result"]
 
@@ -23,10 +24,10 @@ class _QobjExpectEop:
     """
 
     def __init__(self, op):
-        self.op = op
+        self.op = op.data
 
     def __call__(self, t, state):
-        return expect(self.op, state)
+        return expect(self.op, state.data)
 
 
 class ExpectOp:
@@ -92,6 +93,10 @@ class _BaseResult:
         if hasattr(options_copy, "_feedback"):
             options_copy._feedback = None
         self.options = options_copy
+        # Almost all integrators already return a copy that is safe to use.
+        self._integrator_return_not_copy = options.get("method", None) in [
+            "vern7", "vern9"
+        ]
 
     def _e_ops_to_dict(self, e_ops):
         """Convert the supplied e_ops to a dictionary of Eop instances."""
@@ -325,7 +330,10 @@ class Result(_BaseResult):
         """
         self.times.append(t)
 
-        if self._state_processors_require_copy:
+        if (
+            self._state_processors_require_copy
+            and self._integrator_return_not_copy
+        ):
             state = self._pre_copy(state)
 
         for op in self._state_processors:
