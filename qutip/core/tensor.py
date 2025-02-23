@@ -35,7 +35,7 @@ class _reverse_partial_tensor:
 
 @overload
 def tensor(*args: Qobj) -> Qobj: ...
- 
+
 @overload
 def tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
 
@@ -73,7 +73,9 @@ shape = [4, 4], type = oper, isHerm = True
     try:
         args = tuple(args[0])
     except TypeError:
-        raise TypeError("Input must be a list or tuple of Qobj or QobjEvo operands")
+        raise TypeError(
+            "Input must be a list or tuple of Qobj or QobjEvo operands"
+            )
 
     if not all(isinstance(q, (Qobj, QobjEvo)) for q in args):
         raise TypeError("All arguments must be Qobj or QobjEvo.")
@@ -81,7 +83,7 @@ shape = [4, 4], type = oper, isHerm = True
     if any(isinstance(q, QobjEvo) for q in args):
         if len(args) >= 3:
             return tensor(args[0], tensor(args[1:]))
-        
+
         left, right = args
         if isinstance(left, Qobj):
             return right.linear_map(partial(tensor, left))
@@ -92,7 +94,10 @@ shape = [4, 4], type = oper, isHerm = True
         return left_t @ right_t
 
     if not all(q.superrep == args[0].superrep for q in args[1:]):
-        raise TypeError("In tensor products of superoperators, all must have the same representation.")
+        raise TypeError(
+            "In tensor products of superoperators,"
+            "all must have the same representation."
+            )
 
     isherm = args[0]._isherm
     isunitary = args[0]._isunitary
@@ -140,7 +145,9 @@ def super_tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
         raise TypeError("All arguments must be superoperators.")
 
     if not all(arg.superrep == "super" for arg in args):
-        raise TypeError("All superoperators must have the 'super' representation.")
+        raise TypeError(
+            "All superoperators must have the 'super' representation."
+            )
 
     shuffled_ops = list(map(reshuffle, args))
     shuffled_tensor = tensor(shuffled_ops)
@@ -151,7 +158,8 @@ def super_tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
 
 def composite(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
     """
-    Create a composite quantum object from a mix of operators, kets, bras, and superoperators.
+    Create a composite quantum object from a mix of operators,
+    kets, bras, and superoperators.
 
     Parameters
     ----------
@@ -237,7 +245,10 @@ def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
     tensor_dims = dims_to_tensor_shape(dims)
     qtens = qobj.data.to_array().reshape(tensor_dims)
 
-    qtens = _tensor_contract_dense(qtens, *dims_idxs_to_tensor_idxs(dims, pairs))
+    qtens = _tensor_contract_dense(
+        qtens,
+        *dims_idxs_to_tensor_idxs(dims, pairs)
+        )
     contracted_dims = unflatten(
         deep_remove(flatten(dims), *flatten(list(map(list, pairs)))),
         enumerate_flat(dims)
@@ -325,7 +336,9 @@ def _targets_to_list(
     if not all(isinstance(t, int) for t in targets):
         raise TypeError("Targets must be integers.")
     if oper and len(targets) != len(oper.dims[0]):
-        raise ValueError("Number of targets does not match operator dimensions.")
+        raise ValueError(
+            "Number of targets does not match operator dimensions."
+            )
     if N and any(t >= N for t in targets):
         raise ValueError(f"Targets must be less than N={N}.")
     return targets
@@ -347,7 +360,12 @@ def _check_oper_dims(oper: Qobj, dims: list[int], targets: list[int]) -> None:
         Indices of the subsystems being targeted.
     """
     if not isinstance(oper, Qobj) or oper.dims[0] != oper.dims[1]:
-        raise ValueError("Operator must have the same input and output dimensions.")
+        raise ValueError(
+            "Operator must have the same input and output dimensions."
+            )
     target_dims = [dims[t] for t in targets]
     if oper.dims[0] != target_dims:
-        raise ValueError(f"Operator dims {oper.dims[0]} do not match target dims {target_dims}.")
+        raise ValueError(
+            f"Operator dims {oper.dims[0]} do not match target dims"
+            f"{target_dims}."
+            )
