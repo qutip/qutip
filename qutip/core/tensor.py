@@ -67,10 +67,8 @@ shape = [4, 4], type = oper, isHerm = True
     if not args:
         raise TypeError("Requires at least one input argument")
 
-    if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvo)):
-        return args[0].copy()
-
     try:
+        # Ensure args is a tuple of Qobj or QobjEvo operands
         args = tuple(args[0])
     except TypeError:
         raise TypeError(
@@ -80,45 +78,55 @@ shape = [4, 4], type = oper, isHerm = True
     if not all(isinstance(q, (Qobj, QobjEvo)) for q in args):
         raise TypeError("All arguments must be Qobj or QobjEvo.")
 
-    if any(isinstance(q, QobjEvo) for q in args):
-        if len(args) >= 3:
-            return tensor(args[0], tensor(args[1:]))
+    if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvo)):
+        result = args[0].copy()
+    else:
+        if any(isinstance(q, QobjEvo) for q in args):
+            if len(args) >= 3:
+                result = tensor(args[0], tensor(args[1:]))
+            else:
+                left, right = args
+                if isinstance(left, Qobj):
+                    result = right.linear_map(partial(tensor, left))
+                elif isinstance(right, Qobj):
+                    result = left.linear_map(_reverse_partial_tensor(right))
+                else:
+                    left_t = left.linear_map(
+                        _reverse_partial_tensor(qeye(right.dims[0]))
+                        )
+                    right_t = right.linear_map(
+                        partial(tensor, qeye(left.dims[1]))
+                        )
+                    result = left_t @ right_t
+        else:
+            if not all(q.superrep == args[0].superrep for q in args[1:]):
+                raise TypeError(
+                    "In tensor products of superoperators,"
+                    "all must have the same representation."
+                )
 
-        left, right = args
-        if isinstance(left, Qobj):
-            return right.linear_map(partial(tensor, left))
-        if isinstance(right, Qobj):
-            return left.linear_map(_reverse_partial_tensor(right))
-        left_t = left.linear_map(_reverse_partial_tensor(qeye(right.dims[0])))
-        right_t = right.linear_map(partial(tensor, qeye(left.dims[1])))
-        return left_t @ right_t
+            isherm = args[0]._isherm
+            isunitary = args[0]._isunitary
+            out_data = args[0].data
+            dims_l = [args[0]._dims[0]]
+            dims_r = [args[0]._dims[1]]
 
-    if not all(q.superrep == args[0].superrep for q in args[1:]):
-        raise TypeError(
-            "In tensor products of superoperators,"
-            "all must have the same representation."
+            for arg in args[1:]:
+                out_data = _data.kron(out_data, arg.data)
+                isherm = (isherm and arg._isherm) or None
+                isunitary = (isunitary and arg._isunitary) or None
+                dims_l.append(arg._dims[0])
+                dims_r.append(arg._dims[1])
+
+            result = Qobj(
+                out_data,
+                dims=[dims_l, dims_r],
+                isherm=isherm,
+                isunitary=isunitary,
+                copy=False
             )
 
-    isherm = args[0]._isherm
-    isunitary = args[0]._isunitary
-    out_data = args[0].data
-    dims_l = [args[0]._dims[0]]
-    dims_r = [args[0]._dims[1]]
-
-    for arg in args[1:]:
-        out_data = _data.kron(out_data, arg.data)
-        isherm = (isherm and arg._isherm) or None
-        isunitary = (isunitary and arg._isunitary) or None
-        dims_l.append(arg._dims[0])
-        dims_r.append(arg._dims[1])
-
-    return Qobj(
-        out_data,
-        dims=[dims_l, dims_r],
-        isherm=isherm,
-        isunitary=isunitary,
-        copy=False
-    )
+    return result
 
 
 @overload
