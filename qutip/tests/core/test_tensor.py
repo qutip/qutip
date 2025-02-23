@@ -1,8 +1,6 @@
 import numpy as np
-
 from numpy.testing import assert_equal, assert_
 import pytest
-import functools
 import itertools
 import qutip
 from qutip import (
