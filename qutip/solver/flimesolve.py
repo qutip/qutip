@@ -23,7 +23,9 @@ from ..ui.progressbar import progress_bars
 from qutip.solver.floquet import fsesolve, FloquetBasis
 
 
-def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
+def _floquet_rate_matrix(
+    floquet_basis, Nt, c_ops, time_sense=0, power_spectrum=False
+):
     """
     Parameters
     ----------
@@ -43,6 +45,9 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
         rotation frtequency, i.e. more important matrix entries. Higher
         values meaning rates cause changes slower than the Hamiltonian rotates,
         i.e. the changes average out on "longer" time scales.
+    power_spectrum : function
+        The power spectrum of the autocorrelation function as a function of
+        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
 
     Returns
     -------
@@ -78,6 +83,16 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
             / len(tlist)
         )
 
+        delta_ml = np.add.outer(-floquet_basis.e_quasi, floquet_basis.e_quasi)
+        delta_ml = np.add.outer(delta_ml, np.array(range(0, Nt)) * omega)
+        power_spectrum_single_vals = np.ones_like(delta_ml)
+        for i, _ in enumerate(delta_ml):
+            for j, _ in enumerate(delta_ml[i]):
+                for k, _ in enumerate(delta_ml[i, j]):
+                    power_spectrum_single_vals[i, j, k] = power_spectrum(
+                        delta_ml[i, j, k]
+                    )
+
         # Building the Rate matrix
         delta_m = np.add.outer(-floquet_basis.e_quasi, floquet_basis.e_quasi)
         delta_m = np.add.outer(delta_m, -delta_m)
@@ -93,14 +108,23 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
                     c_op_Fourier_amplitudes_list[l],
                     np.conj(c_op_Fourier_amplitudes_list)[k],
                 )
+                pow_spec_combos = np.add.outer(
+                    power_spectrum_single_vals[:, :, l],
+                    np.conj(power_spectrum_single_vals[:, :, k]),
+                )
             else:
                 rate_products = np.multiply.outer(
                     c_op_Fourier_amplitudes_list[l],
                     np.conj(c_op_Fourier_amplitudes_list[k]),
                 )
+                pow_spec_combos = np.add.outer(
+                    power_spectrum_single_vals[:, :, l],
+                    np.conj(power_spectrum_single_vals[:, :, k]),
+                )
             included_deltas = abs(delta_shift * omega) <= abs(
                 rate_products * time_sense
             )
+
             if not np.any(included_deltas):
                 continue
             keys = np.unique(delta_shift[included_deltas])
@@ -108,7 +132,9 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, time_sense=0):
                 mask[key] = np.logical_and(delta_shift == key, included_deltas)
 
             for key in mask.keys():
-                valid_c_op_products = rate_products * mask[key]
+                valid_c_op_products = (
+                    pow_spec_combos * rate_products * mask[key]
+                )
                 I_ = np.eye(Hdim, Hdim)
                 flime_FirstTerm = np.transpose(
                     valid_c_op_products, [0, 2, 1, 3]
@@ -142,6 +168,7 @@ def flimesolve(
     args=None,
     Nt=2**4,
     time_sense=0,
+    power_spectrum=None,
     options={},
 ):
     """
@@ -180,6 +207,10 @@ def flimesolve(
         strict secular approximation, and values greater than zero have time
         dependence. The default integration method change depending
         on this value, "diag" for `0`, "adams" otherwise.
+
+    power_spectrum : function
+        The power spectrum of the autocorrelation function as a function of
+        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
 
     Nt: int
         The number of points within one period of the Hamiltonian, used for
@@ -247,7 +278,12 @@ def flimesolve(
         floquet_basis = FloquetBasis(H, T, args, precompute=None)
 
     solver = FLiMESolver(
-        floquet_basis, c_ops, time_sense=time_sense, options=options, Nt=Nt
+        floquet_basis,
+        c_ops,
+        power_spectrum,
+        time_sense=time_sense,
+        options=options,
+        Nt=Nt,
     )
     return solver.run(rho0, tlist, e_ops=e_ops)
 
@@ -368,6 +404,10 @@ class FLiMESolver(MESolver):
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
         Single collapse operator, or list of collapse operators
 
+    power_spectrum : function
+        The power spectrum of the autocorrelation function as a function of
+        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
+
     time_sense : float
         Value of the secular approximation to use when constructing the rate
         matrix R(t).Default value of zero uses the fully time-independent/most
@@ -399,6 +439,7 @@ class FLiMESolver(MESolver):
         self,
         floquet_basis,
         c_ops,
+        power_spectrum=None,
         time_sense=0,
         Nt=16,
         *,
@@ -416,6 +457,12 @@ class FLiMESolver(MESolver):
 
         if not all(isinstance(c_op, Qobj) for c_op in c_ops):
             raise TypeError("c_ops must be type Qobj")
+        if power_spectrum == None:
+
+            def power_spectrum(omega):
+                # Value of 0.5 brings the ME to the Lindblad equation if no
+                # power spectrum is supplied
+                return 0.5
 
         self._Nt = Nt
         self.options = options
@@ -423,6 +470,7 @@ class FLiMESolver(MESolver):
         self._time_sense = time_sense
         self._num_collapse = len(c_ops)
         self.dims = len(self.floquet_basis.e_quasi)
+        self.power_spectrum = power_spectrum
         self._build_rhs()
         self._state_metadata = {}
 
@@ -464,6 +512,7 @@ class FLiMESolver(MESolver):
             self._Nt,
             self.c_ops,
             time_sense=self._time_sense,
+            power_spectrum=self.power_spectrum,
         )
         self.rhs = self._create_rhs(self.rate_matrix)
         self._integrator = self._get_integrator()
@@ -645,23 +694,23 @@ class FLiMESolver(MESolver):
             fstates_table,
             sols,
             np.transpose(fstates_table.conj(), axes=(0, 2, 1)),
+            order="F",
         )
-
+        # stats["run time3"] = time() - _time_start
+        dims = self.floquet_basis.U(0)._dims
         sols_comp = [
             Qobj(
-                _data.Dense(state),
-                dims=[
-                    self.floquet_basis.U(0).dims[0],
-                    self.floquet_basis.U(0).dims[0],
-                ],
+                _data.Dense(state, copy=False),
+                dims=dims,
                 copy=False,
             )
             for state in sols_comp_arr
         ]
-
+        # stats["run time2"] = time() - _time_start
         for idx, state in enumerate(sols_comp):
-            results.add(tlist[idx], state, Qobj(fstates_table[idx]))
-
+            results.add(
+                tlist[idx], state, Qobj(fstates_table[idx], copy=False)
+            )
         stats["run time"] = time() - _time_start
         return results
 
