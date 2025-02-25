@@ -126,20 +126,48 @@ def test_cpu_count(monkeypatch):
 class TestFitting:
     def model(self, x, a, b, c):
         return np.real(a * np.exp(-(b + 1j * c) * x))
-
-    def test_same_model(self):
+    @pytest.fixture
+    def generate_data(self):
+        """Generate test data."""
         x = np.linspace(0, 10, 100)
-
-        # Generate data to fit
         fparams1 = [1, .5, 0]
         fparams2 = [3, 2, .5]
         y = self.model(x, *fparams1) + self.model(x, *fparams2)
+        return x, y, fparams1, fparams2
 
-        rmse, params,r2 = utils.iterated_fit(
+    def test_fit(self, generate_data):
+        x, y, fparams1, fparams2 = generate_data
+        rmse, r2,params = utils.iterated_fit(
             self.model, num_params=3, xdata=x, ydata=y,
-            lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2)
-
+            lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2
+        )
         assert rmse < 1e-8
         assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
                 np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
+        assert r2 < 1e-8
+
+    def test_aaa(self, generate_data):
+        x, y, _, _ = generate_data
+        result = utils.aaa(y, x, tol=1e-13, max_iter=4)
+        rmse, r2 = result["rmse"], result["r2"]
+        assert rmse < 1e-3
+        assert r2 < 1e-3
+
+    def test_espira_I(self, generate_data):
+        _, y, _, _ = generate_data
+        _, rmse, r2 = utils.espira1(y, 4, tol=1e-16)
+        assert rmse < 1e-8
+        assert r2 < 1e-8
+
+    def test_espira_II(self, generate_data):
+        _, y, _, _ = generate_data
+        _, rmse, r2 = utils.espira2(y, 4, tol=1e-16)
+        _, rmse < 1e-8
+        assert r2 < 1e-8
+
+    @pytest.mark.parametrize("method", ["prony", "mp", "esprit"])
+    def test_prony_methods(self, generate_data, method):
+        _, y, _, _ = generate_data
+        _, rmse, r2 = utils.prony_methods(method, y, 4)
+        assert rmse < 1e-8
         assert r2 < 1e-8

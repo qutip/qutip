@@ -363,7 +363,7 @@ def iterated_fit(
     upper: ArrayLike = None,
     sigma: float | ArrayLike = None,
     maxfev: int = None
-) -> tuple[float, ArrayLike]:
+) -> tuple[float, float,ArrayLike]:
     r"""
     Iteratively tries to fit the given data with a model of the form
 
@@ -453,7 +453,7 @@ def iterated_fit(
                                  upper_repeat, sigma, maxfev)
         N += 1
 
-    return rmse1, params, r2
+    return rmse1,r2, params
 
 
 def _pack(params):
@@ -574,18 +574,20 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 #       contributors may be used to endorse or promote products derived from
 #       this software without specific prior written permission.
 
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+# OF THE POSSIBILITY OF SUCH DAMAGE.
 
-def aaa(func, z, tol=1e-13, max_iter=100):
+def aaa(func:Callable[...,complex], z:ArrayLike, tol:float=1e-13,
+        max_iter:int=100):
     """
     Computes a rational approximation of the function according to the AAA
     algorithm as explained in https://doi.org/10.1137/16M1106122 . This
@@ -594,13 +596,12 @@ def aaa(func, z, tol=1e-13, max_iter=100):
     Parameters:
     -----------
     func : callable or np.ndarray
-
+        The function to be approximated
     z : np.ndarray
         The sampling points on which to perform the rational approximation.
         Even though linearly spaced sample points will yield good
         approximations, logarithmicly spaced points will usually give better
         exponent approximations
-
     tol : float, optional
         Relative tolerance of the approximation
     max_iter : int, optional
@@ -609,16 +610,27 @@ def aaa(func, z, tol=1e-13, max_iter=100):
 
     Returns:
     --------
-    r : callable
-        rational approximation of the function
-    pol : np.ndarray
-        poles of the approximant function
-    res : np.ndarray
-        residues of the approximant function
-    zer : np.ndarray
-        zeros of the approximant function
-    errors : np.ndarray
-        Error by iteration
+    A dictionary containing
+        function : callable
+            rational approximation of the function
+        poles : np.ndarray
+            poles of the approximant function
+        residues : np.ndarray
+            residues of the approximant function
+        zeros : np.ndarray
+            zeros of the approximant function
+        errors : np.ndarray
+            Error by iteration
+        rmse: float
+            Normalized root mean squared error from the fit
+        r2: float
+            1-coefficient of determination of the fit
+        support points: np.ndarray
+            The values used as the support points for the approximation
+        indices: np.ndarray
+            The indices of the support point values
+        iindices: np.ndarray
+            The indices of the support point values, sorted by importance
     """
     func = func(z) if callable(func) else func
     indices = np.arange(len(z))
@@ -634,7 +646,7 @@ def aaa(func, z, tol=1e-13, max_iter=100):
         values = np.append(values, func[j])  # function evaluated at support
         indices = indices[indices != j]  # Remaining indices
 
-        cauchy = compute_cauchy_matrix(z[indices], support_points)
+        cauchy = _compute_cauchy_matrix(z[indices], support_points)
         # Then we construct the Loewner Matrix
         loewner = np.subtract.outer(func[indices], values) * cauchy
         # Perform SVD only d is needed
@@ -643,7 +655,7 @@ def aaa(func, z, tol=1e-13, max_iter=100):
         weights = vh[-1, :].conj()
         # Obtain the rational Approximation of the function with these support
         # points
-        rational_approx = get_rational_approx(
+        rational_approx = _get_rational_approx(
             cauchy, weights, values, indices, func)
         errors[k] = np.linalg.norm(
             func - rational_approx, np.inf)  # compute error
@@ -654,11 +666,11 @@ def aaa(func, z, tol=1e-13, max_iter=100):
     # Define the function approximation as a callable for output
 
     def r(z):
-        cauchy = compute_cauchy_matrix(z, support_points)
-        r = get_rational_approx(cauchy, weights, values)
+        cauchy = _compute_cauchy_matrix(z, support_points)
+        r = _get_rational_approx(cauchy, weights, values)
         return r.reshape(z.shape)
     # Obtain poles residies and zeros
-    pol, res, zer = prz(support_points, values, weights)
+    pol, res, zer = _prz(support_points, values, weights)
     rmse = _rmse(r(z), z, func, None)
     r2 = _r2(r(z), z, func, None)
 
@@ -673,13 +685,11 @@ def aaa(func, z, tol=1e-13, max_iter=100):
         "support points": support_points,
         "values at support": values,
         "indices": indices,
-        "cauchy": cauchy,
-        "loewner": loewner,
         "iindices": iindices
     }
 
 
-def compute_cauchy_matrix(z, support_points):
+def _compute_cauchy_matrix(z, support_points):
     r"""
     Computes the `Cauchy matrix <https://en.wikipedia.org/wiki/Cauchy_matrix>`
     for the AAA rational approximation
@@ -708,7 +718,7 @@ def compute_cauchy_matrix(z, support_points):
     return cauchy
 
 
-def get_rational_approx(cauchy, weights, values, indices=None, func=None):
+def _get_rational_approx(cauchy, weights, values, indices=None, func=None):
     """
     Gets the rational approximation of the function. The approximation is of
     the form
@@ -749,7 +759,7 @@ def get_rational_approx(cauchy, weights, values, indices=None, func=None):
     return rational_approx
 
 
-def prz(support_points, values, weights):
+def _prz(support_points, values, weights):
     r"""
     prz stands for poles, residues and zeros. It calculates and returns the
     poles, residue and zeros of the rational approximation. Using the
@@ -795,7 +805,7 @@ def prz(support_points, values, weights):
     # removing spurious values
     pol = np.real_if_close(eigvals[np.isfinite(eigvals)])
 
-    cauchy = compute_cauchy_matrix(pol, support_points)
+    cauchy = _compute_cauchy_matrix(pol, support_points)
 
     numerator = cauchy @ (values * weights)
     denominator = (-cauchy**2) @ weights  # Quotient rule f=1/cauchy
@@ -814,7 +824,7 @@ def _prony_model(orig, amp, phase):
     return amp * np.power(phase, np.arange(len(orig)))
 
 
-def prony_methods(method: str, C: np.ndarray, n: int):
+def prony_methods(method: str, signal: ArrayLike, n: int):
     """
     Estimate amplitudes and frequencies using prony methods.
     Based on the description in https://doi.org/10.1093/imanum/drab108
@@ -824,8 +834,8 @@ def prony_methods(method: str, C: np.ndarray, n: int):
         can be prony,matrix pencil (mp), and Estimation of signal parameters
         via rotational invariant techniques (esprit)
         signal (np.ndarray): The input signal (1D complex array).
-        n (int): The number of modes to estimate (rank of the signal).
-
+        n (int): Desired number of modes to  use as estimation
+        (rank of the signal).
     Returns:
         params:
             A list of tuples containing the amplitudes and phases
@@ -838,9 +848,9 @@ def prony_methods(method: str, C: np.ndarray, n: int):
     if method == "prony":
         num_freqs = n
     else:
-        num_freqs = len(C)-n
-    hankel0 = hankel(c=C[:num_freqs], r=C[num_freqs - 1: -1])
-    hankel1 = hankel(c=C[1: num_freqs + 1], r=C[num_freqs:])
+        num_freqs = len(signal)-n
+    hankel0 = hankel(c=signal[:num_freqs], r=signal[num_freqs - 1: -1])
+    hankel1 = hankel(c=signal[1: num_freqs + 1], r=signal[num_freqs:])
     if method == "mp":
         _, R = qr(hankel0)
         pencil_matrix = np.linalg.pinv(R.T @ hankel0) @ (R.T @ hankel1)
@@ -853,19 +863,19 @@ def prony_methods(method: str, C: np.ndarray, n: int):
         pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
         phases = eigvals(pencil_matrix)
     generation_matrix = np.array(
-        [[phase**k for phase in phases] for k in range(len(C))])
-    amplitudes = lstsq(generation_matrix, C)[0]
+        [[phase**k for phase in phases] for k in range(len(signal))])
+    amplitudes = lstsq(generation_matrix, signal)[0]
     params = _unpack(
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    rmse = _rmse(_prony_model, C, C, params)
-    r2 = _r2(_prony_model, C, C, params)
+    rmse = _rmse(_prony_model, signal, signal, params)
+    r2 = _r2(_prony_model, signal, signal, params)
     return params, rmse, r2
 
 # ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
 
-def espira1(signal, Nexp, tol=1e-16):
+def espira1(signal: ArrayLike, Nexp:int, tol:float=1e-8):
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
     Based on the description in https://doi.org/10.1093/imanum/drab108
@@ -885,26 +895,32 @@ def espira1(signal, Nexp, tol=1e-16):
     """
     # Compute FFT
     F = fft(signal)
-    M = len(F)  # number of modified DFT values
+    M = len(F)   # lenght of the signal
 
     # Set knots on the unit circle
     Z = np.exp(2j * np.pi * np.arange(M) / M)
     # Modify the DFT values
     F = F * Z**(-1)
-    result = aaa(F, Z, max_iter=Nexp+1, tol=tol)
+    # Use AAA
+    result = aaa(F, Z, max_iter=Nexp+1, tol=tol) # One extra iteration so Nexp
+    # coincides with the number of exponents
+    # Construct Cauchy matrix
     CC = (-1) / np.subtract.outer(result['support points'], result['poles'])
-    AB, _, _, _ = np.linalg.lstsq(
-        CC, result['values at support'], rcond=None)  # Least squares solution
-    g = -AB / (1 - result['poles']**M)  # Element-wise division
+    ck, _, _, _ = np.linalg.lstsq(
+        CC, result['values at support'], rcond=None)  # Solve by lstsq
+    amplitudes = -ck / (1 - result['poles']**M)  # Calculate proper amplitudes
+
+    # pack and calculate goodness of fit
     params = _unpack(
-        np.array([val for pair in zip(g, result['poles']) for val in pair]), 2)
+        np.array([val for pair in zip(amplitudes, result['poles'])
+                  for val in pair]), 2)
     rmse = _rmse(_prony_model, signal, signal, params)
     r2 = _r2(_prony_model, signal, signal, params)
 
     return params, rmse, r2
 
 
-def espira2(y, Nexp, tol=1e-16):
+def espira2(signal: ArrayLike, Nexp:int, tol:float=1e-8):
     """
     Estimate amplitudes and frequencies using ESPIRA-II.
     Based on the description in https://doi.org/10.1093/imanum/drab108
@@ -926,38 +942,44 @@ def espira2(y, Nexp, tol=1e-16):
             Goodness of the fit. 1-coefficient of determination
     """
     # Compute FFT
-    F1 = fft(y)
-    M = len(F1)  # number of modified DFT values
+    F1 = fft(signal)
+    M = len(F1)  # lenght of the signal
 
     # Set knots on the unit circle
     Z = np.exp(2j * np.pi * np.arange(M) / M)
     # Modify the DFT values
     F = F1 * Z**(-1)
+    # Run AAA
     result = aaa(F, Z, max_iter=Nexp+1, tol=tol)
+    # Use results from AAA to construct lowener and cauchy matrices for the
+    # FFT and modified FFT values
     indices = result["indices"]
     support_points = result["support points"]
     values = result['values at support']
-    cauchy = compute_cauchy_matrix(Z[indices], support_points)
+    cauchy = _compute_cauchy_matrix(Z[indices], support_points)
     loewner = np.subtract.outer(F[indices], values) * cauchy
-    loewner = loewner[::-1].conj()
+    loewner = loewner[::-1].conj() # invert rows and conjugate
     loewner2 = np.subtract.outer(F1[indices], F1[result['iindices']]) * cauchy
-    loewner2 = loewner2[::-1].conj()
-    N1, N2 = loewner2.shape
+    loewner2 = loewner2[::-1].conj() # invert rows and conjugate
+    _, N2 = loewner2.shape
     A1 = np.hstack((loewner, loewner2))
-    _, G, Vt = np.linalg.svd(A1)
+    _, _, Vt = np.linalg.svd(A1)
     V = Vt[:(Nexp), :]  # Reduce rows in V matrix
     V1 = V[:, :N2]  # First matrix for matrix pencil
     V2 = V[:, N2:2*N2]  # Second matrix for matrix pencil
-    pol = np.linalg.eigvals(np.linalg.pinv(V1.T) @ V2.T)
+    # obtain phases
+    phases = np.linalg.eigvals(np.linalg.pinv(V1.T) @ V2.T)
     # Initialize Vandermonde matrix
-    Z1 = np.zeros((M, len(pol)), dtype=np.complex128)
-    for i in range(len(pol)):  # Loop over pol (0-based indexing)
-        Z1[:, i] = pol[i] ** np.arange(M)  # Assign to i-th column (0-based)
-    # Solve for g
-    g = np.linalg.lstsq(Z1, y, rcond=None)[0]  # Equivalent to MATLAB's `Z1 \ y
-    params = _unpack(
-        np.array([val for pair in zip(g, pol) for val in pair]), 2)
-    rmse = _rmse(_prony_model, y, y, params)
-    r2 = _r2(_prony_model, y, y, params)
+    vd = np.zeros((M, len(phases)), dtype=np.complex128)
+    for i in range(len(phases)):
+        vd[:, i] = phases[i] ** np.arange(M)
+    # Solve for amplitudes, by solving the overdetermined problem with
+    # the Vandermonde matrix
+    amp= np.linalg.lstsq(vd, signal, rcond=None)[0]
+    # calculate and pack stuff similarly to other fitting methods
+    params= _unpack(
+        np.array([val for pair in zip(amp, phases) for val in pair]), 2)
+    rmse = _rmse(_prony_model, signal, signal, params)
+    r2 = _r2(_prony_model, signal, signal, params)
 
     return params, rmse, r2

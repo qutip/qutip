@@ -808,7 +808,7 @@ class BosonicEnvironment(abc.ABC):
 
         # Fit real part
         start_real = time()
-        rmse_real, params_real, r2_real = iterated_fit(
+        rmse_real, r2_real, params_real = iterated_fit(
             _cf_real_fit_model, num_params, tlist, np.real(clist), target_rsme,
             Nr_min, Nr_max, guess=guess_re, lower=lower_re, upper=upper_re,
             sigma=sigma, maxfev=maxfev
@@ -818,7 +818,7 @@ class BosonicEnvironment(abc.ABC):
 
         # Fit imaginary part
         start_imag = time()
-        rmse_imag, params_imag, r2_imag = iterated_fit(
+        rmse_imag, r2_imag, params_imag = iterated_fit(
             _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rsme,
             Ni_min, Ni_max, guess=guess_im, lower=lower_im, upper=upper_im,
             sigma=sigma, maxfev=maxfev
@@ -899,7 +899,7 @@ class BosonicEnvironment(abc.ABC):
 
         # Fit
         start = time()
-        rmse, params, r2 = iterated_fit(
+        rmse, r2, params = iterated_fit(
             _sd_fit_model, 3, wlist, jlist, target_rmse, Nmin, Nmax,
             guess=guess, lower=lower, upper=upper, sigma=sigma, maxfev=maxfev
         )
@@ -1019,10 +1019,10 @@ class BosonicEnvironment(abc.ABC):
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
-            params_real = [(ckAR[i].real, vkAR[i].real, vkAR[i].imag
-                            , ckAR[i].imag) for i in range(len(ckAR))]
-            params_imag = [(ckAI[i].real, vkAI[i].real, vkAI[i].imag
-                            , ckAI[i].imag) for i in range(len(ckAI))]
+            params_real = [(ckAR[i].real, vkAR[i].real, vkAR[i].imag,
+                            ckAR[i].imag) for i in range(len(ckAR))]
+            params_imag = [(ckAI[i].real, vkAI[i].real, vkAI[i].imag,
+                            ckAI[i].imag) for i in range(len(ckAI))]
             fit_time_real = end_real-start_real
             fit_time_imag = end_imag-start_imag
             full_summary = _cf_fit_summary(
@@ -1048,8 +1048,8 @@ class BosonicEnvironment(abc.ABC):
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
-            params_real = [(ckAR[i].real, ckAI[i].real, ckAI[i].imag
-                            , ckAR[i].imag) for i in range(len(amp))]
+            params_real = [(ckAR[i].real, ckAI[i].real, ckAI[i].imag,
+                            ckAR[i].imag) for i in range(len(amp))]
             fit_time_real = end_real-start_real
             full_summary = _fit_summary(fit_time_real, r2, Nr,
                                         "Correlation Function", params_real,
