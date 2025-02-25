@@ -1019,10 +1019,10 @@ class BosonicEnvironment(abc.ABC):
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
-            params_real = [(ckAR[i].real, vkAR[i].real, vkAR[i].imag, ckAR[i].imag)
-                           for i in range(len(ckAR))]
-            params_imag = [(ckAI[i].real, vkAI[i].real, vkAI[i].imag, ckAI[i].imag)
-                           for i in range(len(ckAI))]
+            params_real = [(ckAR[i].real, vkAR[i].real, vkAR[i].imag
+                            , ckAR[i].imag) for i in range(len(ckAR))]
+            params_imag = [(ckAI[i].real, vkAI[i].real, vkAI[i].imag
+                            , ckAI[i].imag) for i in range(len(ckAI))]
             fit_time_real = end_real-start_real
             fit_time_imag = end_imag-start_imag
             full_summary = _cf_fit_summary(
@@ -1048,8 +1048,8 @@ class BosonicEnvironment(abc.ABC):
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
-            params_real = [(ckAR[i].real, ckAI[i].real, ckAI[i].imag, ckAR[i].imag)
-                           for i in range(len(amp))]
+            params_real = [(ckAR[i].real, ckAI[i].real, ckAI[i].imag
+                            , ckAR[i].imag) for i in range(len(amp))]
             fit_time_real = end_real-start_real
             full_summary = _fit_summary(fit_time_real, r2, Nr,
                                         "Correlation Function", params_real,

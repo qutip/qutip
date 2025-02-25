@@ -135,11 +135,11 @@ class TestFitting:
         fparams2 = [3, 2, .5]
         y = self.model(x, *fparams1) + self.model(x, *fparams2)
 
-        rmse, params = utils.iterated_fit(
+        rmse, params,r2 = utils.iterated_fit(
             self.model, num_params=3, xdata=x, ydata=y,
             lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2)
 
         assert rmse < 1e-8
-        print(params)
         assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
                 np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
+        assert r2 < 1e-8

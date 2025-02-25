@@ -496,14 +496,14 @@ def _rmse(fun, xdata, ydata, params):
 
 def _r2(fun, xdata, ydata, params):
     """
-    The 1-r2 coefficient serves to evaluate the goodness of fit 
+    The 1-r2 coefficient serves to evaluate the goodness of fit
     https://en.wikipedia.org/wiki/Coefficient_of_determination
-    it normally ranges from zero to one the closer to one the better. 
-    if negative it means the model is worst than the worse possible least 
+    it normally ranges from zero to one the closer to one the better.
+    if negative it means the model is worst than the worse possible least
     squares predictor (basically a line over the mean of the signal)
-    1-r2 is chosen instead of r2 because fits using our methods are typically 
+    1-r2 is chosen instead of r2 because fits using our methods are typically
     good, so it is hard to show in summary as everything is almost one, so the
-    summary shows 1. this way it shows small numbers and fits can be compared 
+    summary shows 1. this way it shows small numbers and fits can be compared
     easily
     """
     if params is None:
@@ -560,12 +560,36 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 
 # AAA Fitting
 
+# Copyright (c) 2017, The Chancellor, Masters and Scholars of the University
+# of Oxford, and the Chebfun Developers. All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of the University of Oxford nor the names of its
+#       contributors may be used to endorse or promote products derived from
+#       this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 def aaa(func, z, tol=1e-13, max_iter=100):
     """
     Computes a rational approximation of the function according to the AAA
     algorithm as explained in https://doi.org/10.1137/16M1106122 . This
-    implementation is a python adaptation of the matlab version in that paper
-    NOTE: I am not sure if this is necessary anymore as scipy 1.15 includes AAA
+    implementation is a python adaptation of the Chebfun version in that paper
 
     Parameters:
     -----------
@@ -782,6 +806,8 @@ def prz(support_points, values, weights):
     return pol, res, zeros
 
 
+# Prony methods Fitting
+
 def _prony_model(orig, amp, phase):
     # It serves to compute rmse, a single term of the prony
     # polynomial form https://doi.org/10.1093/imanum/drab108 using phases
@@ -795,17 +821,19 @@ def prony_methods(method: str, C: np.ndarray, n: int):
     and their matlab implementation
     Args:
         method (str): The method to obtain the roots of the prony polynomial
-        can be prony,matrix pencil (mp), and Estimation of signal parameters 
+        can be prony,matrix pencil (mp), and Estimation of signal parameters
         via rotational invariant techniques (esprit)
         signal (np.ndarray): The input signal (1D complex array).
         n (int): The number of modes to estimate (rank of the signal).
 
     Returns:
-        tuple: A tuple containing:
-            - amplitudes (np.ndarray):
-                The estimated amplitudes.
-            - phases (np.ndarray):
-                The estimated complex exponential frequencies.
+        params:
+            A list of tuples containing the amplitudes and phases
+            of our approximation
+        rmse:
+            Normalized mean squared error
+        r2:
+            Goodness of the fit. 1-coefficient of determination
     """
     if method == "prony":
         num_freqs = n
@@ -837,9 +865,26 @@ def prony_methods(method: str, C: np.ndarray, n: int):
 # ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
 
-def espira1(y, Nexp, tol=1e-16):
+def espira1(signal, Nexp, tol=1e-16):
+    """
+    Estimate amplitudes and frequencies using ESPIRA-I.
+    Based on the description in https://doi.org/10.1093/imanum/drab108
+    and their matlab implementation
+    Args:
+        signal (np.ndarray): The input signal (1D complex array).
+        n (int): The number of modes to estimate (rank of the signal).
+
+    Returns:
+        params:
+            A list of tuples containing the amplitudes and phases
+            of our approximation
+        rmse:
+            Normalized mean squared error
+        r2:
+            Goodness of the fit. 1-coefficient of determination
+    """
     # Compute FFT
-    F = fft(y)
+    F = fft(signal)
     M = len(F)  # number of modified DFT values
 
     # Set knots on the unit circle
@@ -853,13 +898,33 @@ def espira1(y, Nexp, tol=1e-16):
     g = -AB / (1 - result['poles']**M)  # Element-wise division
     params = _unpack(
         np.array([val for pair in zip(g, result['poles']) for val in pair]), 2)
-    rmse = _rmse(_prony_model, y, y, params)
-    r2 = _r2(_prony_model, y, y, params)
+    rmse = _rmse(_prony_model, signal, signal, params)
+    r2 = _r2(_prony_model, signal, signal, params)
 
     return params, rmse, r2
 
 
 def espira2(y, Nexp, tol=1e-16):
+    """
+    Estimate amplitudes and frequencies using ESPIRA-II.
+    Based on the description in https://doi.org/10.1093/imanum/drab108
+    and their matlab implementation
+    Args:
+        method (str): The method to obtain the roots of the prony polynomial
+        can be prony,matrix pencil (mp), and Estimation of signal parameters
+        via rotational invariant techniques (esprit)
+        signal (np.ndarray): The input signal (1D complex array).
+        n (int): The number of modes to estimate (rank of the signal).
+
+    Returns:
+        params:
+            A list of tuples containing the amplitudes and phases
+            of our approximation
+        rmse:
+            Normalized mean squared error
+        r2:
+            Goodness of the fit. 1-coefficient of determination
+    """
     # Compute FFT
     F1 = fft(y)
     M = len(F1)  # number of modified DFT values
