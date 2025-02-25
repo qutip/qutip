@@ -363,7 +363,7 @@ def iterated_fit(
     upper: ArrayLike = None,
     sigma: float | ArrayLike = None,
     maxfev: int = None
-) -> tuple[float, float,ArrayLike]:
+) -> tuple[float, float, ArrayLike]:
     r"""
     Iteratively tries to fit the given data with a model of the form
 
@@ -453,7 +453,7 @@ def iterated_fit(
                                  upper_repeat, sigma, maxfev)
         N += 1
 
-    return rmse1,r2, params
+    return rmse1, r2, params
 
 
 def _pack(params):
@@ -586,8 +586,8 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
-def aaa(func:Callable[...,complex], z:ArrayLike, tol:float=1e-13,
-        max_iter:int=100):
+def aaa(func: Callable[...,complex], z: ArrayLike, tol: float = 1e-13,
+        max_iter: int = 100):
     """
     Computes a rational approximation of the function according to the AAA
     algorithm as explained in https://doi.org/10.1137/16M1106122 . This
@@ -875,7 +875,7 @@ def prony_methods(method: str, signal: ArrayLike, n: int):
 # ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
 
-def espira1(signal: ArrayLike, Nexp:int, tol:float=1e-8):
+def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
     Based on the description in https://doi.org/10.1093/imanum/drab108
@@ -902,7 +902,7 @@ def espira1(signal: ArrayLike, Nexp:int, tol:float=1e-8):
     # Modify the DFT values
     F = F * Z**(-1)
     # Use AAA
-    result = aaa(F, Z, max_iter=Nexp+1, tol=tol) # One extra iteration so Nexp
+    result = aaa(F, Z, max_iter=Nexp+1, tol=tol)  # One extra iteration so Nexp
     # coincides with the number of exponents
     # Construct Cauchy matrix
     CC = (-1) / np.subtract.outer(result['support points'], result['poles'])
@@ -920,7 +920,7 @@ def espira1(signal: ArrayLike, Nexp:int, tol:float=1e-8):
     return params, rmse, r2
 
 
-def espira2(signal: ArrayLike, Nexp:int, tol:float=1e-8):
+def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
     """
     Estimate amplitudes and frequencies using ESPIRA-II.
     Based on the description in https://doi.org/10.1093/imanum/drab108
@@ -958,9 +958,9 @@ def espira2(signal: ArrayLike, Nexp:int, tol:float=1e-8):
     values = result['values at support']
     cauchy = _compute_cauchy_matrix(Z[indices], support_points)
     loewner = np.subtract.outer(F[indices], values) * cauchy
-    loewner = loewner[::-1].conj() # invert rows and conjugate
+    loewner = loewner[::-1].conj()  # invert rows and conjugate
     loewner2 = np.subtract.outer(F1[indices], F1[result['iindices']]) * cauchy
-    loewner2 = loewner2[::-1].conj() # invert rows and conjugate
+    loewner2 = loewner2[::-1].conj()  # invert rows and conjugate
     _, N2 = loewner2.shape
     A1 = np.hstack((loewner, loewner2))
     _, _, Vt = np.linalg.svd(A1)
@@ -975,9 +975,9 @@ def espira2(signal: ArrayLike, Nexp:int, tol:float=1e-8):
         vd[:, i] = phases[i] ** np.arange(M)
     # Solve for amplitudes, by solving the overdetermined problem with
     # the Vandermonde matrix
-    amp= np.linalg.lstsq(vd, signal, rcond=None)[0]
+    amp = np.linalg.lstsq(vd, signal, rcond=None)[0]
     # calculate and pack stuff similarly to other fitting methods
-    params= _unpack(
+    params = _unpack(
         np.array([val for pair in zip(amp, phases) for val in pair]), 2)
     rmse = _rmse(_prony_model, signal, signal, params)
     r2 = _r2(_prony_model, signal, signal, params)
