@@ -39,32 +39,8 @@ Bibliography
 .. [AKN98]
     \D. Aharonov, A. Kitaev, N. Nisan, *Quantum circuits with mixed states*, in Proceedings of the Thirtieth Annual ACM STOC, 20-30 (1998). :arxiv:`quant-ph/9806029`
 
-.. [dAless08]
-    \D. d’Alessandro, *Introduction to Quantum Control and Dynamics*, (Chapman & Hall/CRC, 2008).
-
-.. [Byrd95]
-    \R. H. Byrd, P. Lu, J. Nocedal, C. Zhu, *A Limited Memory Algorithm for Bound Constrained Optimization*, SIAM J. Sci. Comput. **16**, 1190 (1995). :doi:`10.1137/0916069`
-
-.. [Flo12]
-    \F. F. Floether, P. de Fouquieres, S. G. Schirmer, *Robust quantum gates for open systems via optimal control: Markovian versus non-Markovian dynamics*, New J. Phys. **14**, 073023 (2012). :doi:`10.1088/1367-2630/14/7/073023`
-
-.. [Lloyd14]
-    \S. Lloyd, S. Montangero, *Information theoretical analysis of quantum optimal control*, Phys. Rev. Lett. **113**, 010502 (2014). :doi:`10.1103/PhysRevLett.113.010502`
-
-.. [Doria11]
-    \P. Doria, T. Calarco, S. Montangero, *Optimal Control Technique for Many-Body Quantum Dynamics*, Phys. Rev. Lett. **106**, 190501 (2011). :doi:`10.1103/PhysRevLett.106.190501`
-
-.. [Caneva11]
-    \T. Caneva, T. Calarco, S. Montangero, *Chopped random-basis quantum optimization*, Phys. Rev. A **84**, 022326 (2011). :doi:`10.1103/PhysRevA.84.022326`
-
-.. [Rach15]
-    \N. Rach, M. M. Müller, T. Calarco, S. Montangero, *Dressing the chopped-random-basis optimization: A bandwidth-limited access to the trap-free landscape*, Phys. Rev. A. **92**, 062343 (2015). :doi:`10.1103/PhysRevA.92.062343`
-
 .. [Wis09]
     \H. M. Wiseman, G. J. Milburn, *Quantum Measurement and Control*, (Cambridge University Press, 2009).
-
-.. [NKanej]
-    \N. Khaneja *et al.*, *Optimal control of coupled spin dynamics: Design of NMR pulse sequences by gradient ascent algorithms.* J. Magn. Reson. **172**, 296–305 (2005). :doi:`10.1016/j.jmr.2004.11.004`
 
 .. [Donvil22]
     \B. Donvil, P. Muratore-Ginanneschi, *Quantum trajectory framework for general time-local master equations*, Nat Commun **13**, 4140 (2022). :doi:`10.1038/s41467-022-31533-8`.

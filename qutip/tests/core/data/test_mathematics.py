@@ -762,6 +762,10 @@ class TestKron(BinaryOpMixin):
         pytest.param(data.kron_csr, CSR, CSR, CSR),
         pytest.param(data.kron_dense, Dense, Dense, Dense),
         pytest.param(data.kron_dia, Dia, Dia, Dia),
+        pytest.param(data.kron_dense_csr_csr, Dense, CSR, CSR),
+        pytest.param(data.kron_csr_dense_csr, CSR, Dense, CSR),
+        pytest.param(data.kron_dense_dia_dia, Dense, Dia, Dia),
+        pytest.param(data.kron_dia_dense_dia, Dia, Dense, Dia),
     ]
 
 
@@ -804,6 +808,26 @@ class TestMultiply(BinaryOpMixin):
         pytest.param(data.multiply_csr, CSR, CSR, CSR),
         pytest.param(data.multiply_dense, Dense, Dense, Dense),
         pytest.param(data.multiply_dia, Dia, Dia, Dia),
+    ]
+
+
+class TestMatmul_Outer(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.matmul(left, right)
+
+    shapes = shapes_binary_matmul()
+    bad_shapes = shapes_binary_bad_matmul()
+    from qutip.core.data.matmul import (
+        matmul_outer_csr_dense_sparse,
+        matmul_outer_dia_dense_sparse,
+        matmul_outer_dense_Data,
+    )
+    specialisations = [
+        pytest.param(matmul_outer_csr_dense_sparse, CSR, Dense, CSR),
+        pytest.param(matmul_outer_csr_dense_sparse, Dense, CSR, CSR),
+        pytest.param(matmul_outer_dia_dense_sparse, Dia, Dense, Dia),
+        pytest.param(matmul_outer_dia_dense_sparse, Dense, Dia, Dia),
+        pytest.param(matmul_outer_dense_Data, Dense, Dense, Data),
     ]
 
 
