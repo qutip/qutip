@@ -309,7 +309,8 @@ cdef class Dispatcher:
             print(f"Building {self.__name__}{[in_type.__name__ for in_type in in_types]}")
         for out_types, out_function in self._specialisations.items():
             cur = _conversion_weight(
-                in_types, out_types[:n_dispatch], _to.weight, out=output)
+                in_types, out_types[:n_dispatch], _to.weight, out=output
+            )
             if verbose:
                 print(f"    {out_function.__name__}: {cur}")
             if cur < weight:
