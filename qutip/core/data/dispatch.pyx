@@ -18,7 +18,7 @@ from qutip import settings
 __all__ = ['Dispatcher']
 
 
-cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out) except -1:
+cdef object _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out):
     """
     Find the total weight of conversion if the types in `froms` are converted
     element-wise to the types in `tos`.  `weight_map` is a mapping of
@@ -27,7 +27,7 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out
 
     Specialisations that support any types input should use ``Data``.
     """
-    cdef double weight = 0.0
+    cdef object weight = 0.0
     cdef Py_ssize_t i, n=len(froms)
     if len(tos) != n:
         raise ValueError(
@@ -291,12 +291,13 @@ cdef class Dispatcher:
             self.rebuild_lookup()
 
     cdef object _find_specialization(
-        self, tuple in_types, bint output, type default=None
+        self, tuple in_types, bint output,
+        type default=None, int verbose=False
     ):
         # The complexity of building the table here is very poor, but it's a
         # cost we pay very infrequently, and until it's proved to be a
         # bottle-neck in real code, we stick with the simple algorithm.
-        cdef double weight, cur
+        cdef object weight, cur
         cdef tuple types, out_types, displayed_type
         cdef object function
         cdef int n_dispatch
@@ -304,10 +305,13 @@ cdef class Dispatcher:
         types = None
         function = None
         n_dispatch = len(in_types)
+        if verbose:
+            print(f"Building {self.__name__}{[in_type.__name__ for in_type in in_types]}")
         for out_types, out_function in self._specialisations.items():
             cur = _conversion_weight(
-                in_types, out_types[:n_dispatch], _to.weight, out=output
-            )
+                in_types, out_types[:n_dispatch], _to.weight, out=output)
+            if verbose:
+                print(f"    {out_function.__name__}: {cur}")
             if cur < weight:
                 weight = cur
                 types = out_types
@@ -315,6 +319,10 @@ cdef class Dispatcher:
 
         if cur == math.INFINITY:
             raise ValueError("No valid specialisations found")
+
+        if verbose:
+            print(f"Selected: {function.__name__}")
+            print()
 
         if weight in [EPSILON, 0.] and not (output and types[-1] is Data):
             self._lookup[in_types] = function
@@ -336,7 +344,7 @@ cdef class Dispatcher:
                 _constructed_specialisation(function, self, displayed_type,
                                             converters, output)
 
-    def rebuild_lookup(self):
+    def rebuild_lookup(self, verbose=False):
         """
         Manually trigger a rebuild of the lookup table for this dispatcher.
         This is called automatically when new data types are added to
@@ -349,7 +357,7 @@ cdef class Dispatcher:
             return
         self._dtypes = _to.dtypes.copy()
         for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch):
-            self._find_specialization(in_types, self.output)
+            self._find_specialization(in_types, self.output, None, verbose=verbose)
         # Now build the lookup table in the case that we dispatch on the output
         # type as well, but the user has called us without specifying it.
         # TODO: option to control default output type choice if unspecified?
@@ -362,7 +370,7 @@ cdef class Dispatcher:
             if settings.core["default_dtype_scope"] == "missing":
                 default_dtype = _to.parse(settings.core["default_dtype"])
             for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
-                self._find_specialization(in_types, False, default_dtype)
+                self._find_specialization(in_types, False, default_dtype, verbose)
 
     def __getitem__(self, types):
         """

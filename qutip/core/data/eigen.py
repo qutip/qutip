@@ -337,7 +337,6 @@ eigs.__doc__ =\
         order of the eigenvalues.
     """
 eigs.add_specialisations([
-    (CSR, eigs_csr),
     (Dense, eigs_dense),
 ], _defer=True)
 
