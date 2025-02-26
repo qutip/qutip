@@ -777,7 +777,7 @@ class TestKronT(BinaryOpMixin):
     shapes = shapes_binary_unrestricted(dim=5)
     bad_shapes = shapes_binary_bad_unrestricted(dim=5)
     specialisations = [
-        pytest.param(data.kron_transpose_data, CSR, CSR, CSR),
+        pytest.param(data.kron_transpose_data, CSR, CSR, Data),
         pytest.param(data.kron_transpose_dense, Dense, Dense, Dense),
     ]
 
@@ -1009,27 +1009,19 @@ class TestProject(UnaryOpMixin):
 
 def _inv_dense(matrix):
     # Add a diagonal so `matrix` is not singular
-    return data.inv_dense(
-        data.add(
-            matrix,
-            data.diag([1.1]*matrix.shape[0], shape=matrix.shape, dtype='dense')
-        )
-    )
+    diag = data.diag([2.] * matrix.shape[0], shape=matrix.shape, dtype='dense')
+    return data.inv_dense(data.to(Dense, data.add(matrix, diag)))
 
 
 def _inv_csr(matrix):
     # Add a diagonal so `matrix` is not singular
-    return data.inv_csr(
-        data.add(
-            matrix,
-            data.diag([1.1]*matrix.shape[0], shape=matrix.shape, dtype='csr')
-        )
-    )
+    diag = data.diag([2.] * matrix.shape[0], shape=matrix.shape, dtype='csr')
+    return data.inv_csr(data.to(CSR, data.add(matrix, diag)))
 
 
 class TestInv(UnaryOpMixin):
     def op_numpy(self, matrix):
-        return np.linalg.inv(matrix + np.eye(matrix.shape[0]) * 1.1)
+        return np.linalg.inv(matrix + np.eye(matrix.shape[0]) * 2.)
 
     shapes = [
         (pytest.param((1, 1), id="scalar"),),

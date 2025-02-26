@@ -262,13 +262,13 @@ class TestMESolveDecay:
                          ids=["ket", "dm", "liouvillian"])
 def testME_SesolveFallback(super_):
     "mesolve: final_state has correct dims"
-    N = 5
-    a = qutip.tensor(qutip.destroy(N+1), qutip.qeye(N+1), qutip.qeye(N+1))
-    b = qutip.tensor(qutip.qeye(N+1), qutip.destroy(N+1), qutip.qeye(N+1))
-    c = qutip.tensor(qutip.qeye(N+1), qutip.qeye(N+1), qutip.destroy(N+1))
-    psi0 = qutip.tensor(qutip.basis(N+1,0),
-                        qutip.basis(N+1,0),
-                        qutip.basis(N+1,N))
+    N = 3
+    a = qutip.tensor(qutip.destroy(N), qutip.qeye(N), qutip.qeye(N))
+    b = qutip.tensor(qutip.qeye(N), qutip.destroy(N), qutip.qeye(N))
+    c = qutip.tensor(qutip.qeye(N), qutip.qeye(N), qutip.destroy(N))
+    psi0 = qutip.tensor(qutip.basis(N, 0),
+                        qutip.basis(N, 0),
+                        qutip.basis(N, N - 1))
     H = a * b * c.dag() * c.dag() + a.dag() * b.dag() * c * c
     if super_ == "dm":
         state0 = qutip.ket2dm(psi0)

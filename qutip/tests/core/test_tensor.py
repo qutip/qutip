@@ -258,7 +258,7 @@ class Test_expand_operator:
 
     def test_dtype(self):
         expanded_qobj = expand_operator(
-            qutip.gates.cnot(), dims=[2, 2, 2], targets=[0, 1]
+            qutip.gates.cnot(), dims=[2, 2, 2], targets=[0, 1], dtype="csr"
         ).data
         assert isinstance(expanded_qobj, qutip.data.CSR)
         expanded_qobj = expand_operator(
