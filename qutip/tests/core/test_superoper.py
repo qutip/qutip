@@ -166,26 +166,6 @@ class TestMatVec:
         S2 = qutip.sprepost(U1, U2)
         assert S1 == S2
 
-    @pytest.mark.parametrize("dtype", [_data.CSR, _data.Dense])
-    @pytest.mark.parametrize("operation", [qutip.spre,
-                                           qutip.spost,
-                                           qutip.liouvillian,
-                                           qutip.lindblad_dissipator])
-    def test_operation_dtype(self, dtype, operation):
-        """This test checks that the dtype is properly kept with the
-        `operation` function."""
-        U1 = qutip.rand_unitary(3).to(dtype)
-        result = operation(U1)
-        assert type(result.data) == dtype
-
-    @pytest.mark.parametrize("dtype", [_data.CSR, _data.Dense])
-    def test_sprepost_dtype(self, dtype):
-        """This test checks that the dtype is properly kept with `sprepost`
-        function."""
-        U1 = qutip.rand_unitary(3).to(dtype)
-        result = qutip.sprepost(U1, U1)
-        assert type(result.data) == dtype
-
     def testLiouvillianImplem(self):
         """
         Superoperator: Randomized comparison of standard and reference

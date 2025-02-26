@@ -252,11 +252,11 @@ def test_steadystate_floquet(sparse):
 
 def test_rcm():
     N = 5
-    a = qutip.destroy(N, dtype="CSR")
-    I = qutip.qeye(N, dtype="CSR")
+    a = qutip.destroy(N)
+    I = qutip.qeye(N)
     H = (a + a.dag() & I) + (I & a * a.dag())
     c_ops = [a & I, I & a]
-    L = qutip.liouvillian(H, c_ops).data
+    L = qutip.liouvillian(H, c_ops).to("CSR").data
     b = qutip.basis(N**4).data
 
     def bandwidth(mat):
@@ -268,8 +268,8 @@ def test_rcm():
 
 def test_wbm():
     N = 5
-    a = qutip.destroy(N, dtype="CSR")
-    I = qutip.qeye(N, dtype="CSR")
+    a = qutip.destroy(N)
+    I = qutip.qeye(N)
     H = (a + a.dag() & I) + (I & a * a.dag())
     c_ops = [a & I, I & a]
     L = qutip.liouvillian(H, c_ops).data
@@ -278,7 +278,7 @@ def test_wbm():
     # shuffling the Liouvillian to ensure the diag is almost empty
     perm = np.arange(N**4)
     np.random.shuffle(perm)
-    L = _data.permute.indices(L, None, perm)
+    L = _data.permute.indices(L, None, perm, dtype="CSR")
 
     def dia_dominance(mat):
         mat = mat.to_array()

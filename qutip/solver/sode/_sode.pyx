@@ -497,9 +497,9 @@ cdef class Milstein_imp:
                 iadd_dense(target, system.Libj(i, j), dw)
 
         if self.use_inv:
-            out = _data.matmul(self.inv, target)
+            out = _data.matmul(self.inv, target, dtype=Dense)
         else:
-            out = _data.solve(self.implicit._call(t+dt), target, **self.imp_opt)
+            out = _data.solve(self.implicit._call(t+dt), target, **self.imp_opt, dtype=Dense)
 
         return out
 
@@ -542,8 +542,8 @@ cdef class Taylor15_imp(Milstein_imp):
                     iadd_dense(target, system.LiLjbk(i, j, k), dw[i]*dw[j]*dw[k])
 
         if self.use_inv:
-            out = _data.matmul(self.inv, target)
+            out = _data.matmul(self.inv, target, dtype=Dense)
         else:
-            out = _data.solve(self.implicit._call(t+dt), target, **self.imp_opt)
+            out = _data.solve(self.implicit._call(t+dt), target, **self.imp_opt, dtype=Dense)
 
         return out

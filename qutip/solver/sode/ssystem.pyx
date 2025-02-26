@@ -57,7 +57,7 @@ cdef class _StochasticSystem:
         """
         raise NotImplementedError
 
-    cpdef void set_state(self, double t, Dense state) except *:
+    cpdef void set_state(self, double t, Data state) except *:
         """
             Initialize the set of derrivatives.
         """
@@ -249,8 +249,9 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             expect.append(_data.trace_oper_ket(vec))
         return expect
 
-    cpdef void set_state(self, double t, Dense state) except *:
+    cpdef void set_state(self, double t, Data state_raw) except *:
         cdef n, l
+        cdef Dense state = _data.to(Dense, state_raw)
         self.t = t
         if not state.fortran:
             state = state.reorder(fortran=1)
@@ -558,7 +559,7 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
             expect.append(0j)
         return expect
 
-    cpdef void set_state(self, double t, Dense state) except *:
+    cpdef void set_state(self, double t, Data state) except *:
         self.t = t
         self.state = state
 

@@ -2,7 +2,9 @@ import pytest
 import numpy as np
 import qutip
 from qutip.solver.brmesolve import brmesolve
-from qutip.core.environment import DrudeLorentzEnvironment
+from qutip.core.environment import (
+    DrudeLorentzEnvironment, LorentzianEnvironment
+)
 
 
 def pauli_spin_operators():
@@ -318,8 +320,8 @@ def test_feedback():
 @pytest.mark.parametrize("lam,gamma,beta", [(0.05, 1, 1), (0.1, 5, 2)])
 def test_accept_environment(lam, gamma, beta):
     DL = (
-        "2 * pi * 2.0 * {lam} / (pi * {gamma} * {beta}) if (w==0) "
-        "else 2 * pi * (2.0 * {lam} * {gamma} * w / (pi * (w**2 + {gamma}**2))) "
+        "2 * pi * 2.0 * {lam} / (pi * {gamma} * {beta}) if (w==0) else "
+        "2 * pi * (2.0 * {lam} * {gamma} * w / (pi * (w**2 + {gamma}**2))) "
         "* ((1 / (exp(w * {beta}) - 1)) + 1)"
     ).format(gamma=gamma, beta=beta, lam=lam)
     H = 0.5 * qutip.sigmax()
@@ -337,3 +339,55 @@ def test_accept_environment(lam, gamma, beta):
         e_ops=[qutip.sigmaz()]
     )
     assert np.allclose(resultBR_env.expect[0], resultBR_str.expect[0])
+
+
+@pytest.mark.parametrize("e1", [-1.5, -1, 0, 1, 1.5])
+def test_fermionic_environment(e1):
+    T = 0.025851991
+    mu_L = 1.
+    mu_R = -1.
+    gamma = 0.01
+    W = 4.0
+
+    env_L = LorentzianEnvironment(T, mu_L, gamma, W)
+    env_R = LorentzianEnvironment(T, mu_R, gamma, W)
+
+    d1 = qutip.destroy(2)
+    H = e1 * d1.dag() * d1
+    psi0 = (2 * qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
+    times = np.linspace(0, 10, 100)
+
+    resultBR_env = brmesolve(
+        H, psi0, times,
+        a_ops=[[d1.dag(), env_L], [d1.dag(), env_R]],
+        e_ops=[qutip.sigmaz()]
+    )
+
+    def RC_bath_sec(a, H_sys, env):
+        all_energy, all_state = H_sys.eigenstates()
+        Nmax = len(all_energy)
+        col_list = []
+        proj = [all_state[j] @ all_state[j].dag() for j in range(Nmax)]
+
+        for j in range(Nmax):
+            for k in range(Nmax):
+                delE = (all_energy[j] - all_energy[k])
+
+                A = proj[j] @ a.dag() @ proj[k]
+                rate = env.power_spectrum_plus(delE)
+                if rate > 0:
+                    col_list.append(np.sqrt(rate) * A)
+
+                A = proj[j] @ a @ proj[k]
+                rate = env.power_spectrum_minus(-delE)
+                if rate > 0:
+                    col_list.append(np.sqrt(rate) * A)
+
+        return qutip.liouvillian(0 * H_sys, col_list)
+
+    RL = RC_bath_sec(d1, H, env_L)
+    RR = RC_bath_sec(d1, H, env_R)
+    R = qutip.liouvillian(H) + RL + RR
+
+    resultME = qutip.mesolve(R, psi0, times, e_ops=[qutip.sigmaz()])
+    np.testing.assert_allclose(resultBR_env.expect[0], resultME.expect[0])

@@ -85,6 +85,12 @@ Superoperators and Liouvillians
 .. automodule:: qutip.core.superoperator
     :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, lindblad_dissipator
 
+Superoperators and Liouvillians
+-------------------------------
+
+.. automodule:: qutip.core.blochredfield
+    :members: bloch_redfield_tensor, brterm, brcrossterm
+
 Superoperator Representations
 -----------------------------
 

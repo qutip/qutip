@@ -6,7 +6,7 @@ Provide a cython implimentation for a general Explicit runge-Kutta method.
 from qutip.core.data cimport Data, Dense, CSR, dense
 from qutip.core.data.add cimport iadd_dense
 from qutip.core.data.add import add
-from qutip.core.data.mul import imul_data
+from qutip.core.data.mul cimport imul_data
 from qutip.core.data.tidyup import tidyup_csr
 from qutip.core.data.norm import frobenius_data
 from .verner7efficient import vern7_coeff
@@ -41,7 +41,7 @@ cdef Data copy_to(Data in_, Data out):
     # Copy while reusing allocated buffer if possible.
     # Does not check the shape, etc.
     cdef size_t ptr
-    if type(in_) is Dense:
+    if type(in_) is Dense and type(out) is Dense:
         for ptr in range(in_.shape[0] * in_.shape[1]):
             (<Dense> out).data[ptr] = (<Dense> in_).data[ptr]
         return out
@@ -55,7 +55,7 @@ cdef Data iadd_data(Data left, Data right, double complex factor):
     # TODO: when/if iadd_csr is added: move to data/add.pyx.
     if factor == 0:
         return left
-    if type(left) is Dense:
+    if type(left) is Dense and type(right) is Dense:
         iadd_dense(left, right, factor)
         return left
     else:

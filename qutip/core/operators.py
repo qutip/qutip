@@ -82,7 +82,7 @@ shape = [4, 4], type = oper, isherm = False
         isunitary = None
     data = _data.diag[dtype](diagonals, offsets, shape)
     return Qobj(
-        data, copy=False,
+        data, copy=False, dtype=dtype,
         dims=dims, isherm=isherm, isunitary=isunitary
     )
 
@@ -165,21 +165,21 @@ shape = [3, 3], type = oper, isHerm = True
 
     dims = [[int(2*j + 1)]]*2
     if which == '+':
-        return Qobj(_jplus(j, dtype=dtype), dims=dims,
+        return Qobj(_jplus(j, dtype=dtype), dims=dims, dtype=dtype,
                     isherm=False, isunitary=False, copy=False)
     if which == '-':
-        return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims,
+        return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims, dtype=dtype,
                     isherm=False, isunitary=False, copy=False)
     if which == 'x':
         A = _jplus(j, dtype=dtype)
-        return Qobj(_data.add(A, A.adjoint()) * 0.5, dims=dims,
+        return Qobj(_data.add(A, A.adjoint()) * 0.5, dims=dims, dtype=dtype,
                     isherm=True, isunitary=False, copy=False)
     if which == 'y':
         A = _data.mul(_jplus(j, dtype=dtype), -0.5j)
-        return Qobj(_data.add(A, A.adjoint()), dims=dims,
+        return Qobj(_data.add(A, A.adjoint()), dims=dims, dtype=dtype,
                     isherm=True, isunitary=False, copy=False)
     if which == 'z':
-        return Qobj(_jz(j, dtype=dtype), dims=dims,
+        return Qobj(_jz(j, dtype=dtype), dims=dims, dtype=dtype,
                     isherm=True, isunitary=False, copy=False)
     raise ValueError('Invalid spin operator: ' + which)
 
@@ -742,7 +742,7 @@ def qzero(
     dims = [dims_left, dims_right]
     # A sparse matrix with no data is equal to a zero matrix.
     return Qobj(_data.zeros[dtype](size_left, size_right), dims=dims,
-                isherm=True, isunitary=False, copy=False)
+                isherm=True, isunitary=False, copy=False, dtype=dtype)
 
 
 def qzero_like(qobj: Qobj) -> Qobj:
@@ -763,7 +763,7 @@ def qzero_like(qobj: Qobj) -> Qobj:
 
     return Qobj(
         _data.zeros[qobj.dtype](*qobj.shape), dims=qobj._dims,
-        isherm=True, isunitary=False, copy=False
+        isherm=True, isunitary=False, copy=False, dtype=qobj.dtype
     )
 
 
@@ -810,7 +810,7 @@ isherm = True
     dtype = dtype or settings.core["default_dtype"] or _data.Dia
     dimensions = Space(dimensions)
     return Qobj(_data.identity[dtype](dimensions.size), dims=[dimensions]*2,
-                isherm=True, isunitary=True, copy=False)
+                isherm=True, isunitary=True, copy=False, dtype=dtype)
 
 
 # Name alias.
@@ -839,7 +839,7 @@ def qeye_like(qobj: Qobj) -> Qobj:
         )
     return Qobj(
         _data.identity[qobj.dtype](qobj.shape[0]), dims=qobj._dims,
-        isherm=True, isunitary=True, copy=False
+        isherm=True, isunitary=True, copy=False, dtype=qobj.dtype
     )
 
 

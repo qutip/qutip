@@ -19,7 +19,7 @@ __all__ = ['BosonicEnvironment',
 import abc
 import enum
 from time import time
-from typing import Any, Callable, Literal, Sequence, overload
+from typing import Any, Callable, Literal, Sequence, overload, Union
 import warnings
 
 import numpy as np
@@ -2743,3 +2743,6 @@ class ExponentialFermionicEnvironment(FermionicEnvironment):
                 )
 
         return S.item() if w.ndim == 0 else S
+
+
+Environment = Union[BosonicEnvironment, FermionicEnvironment]

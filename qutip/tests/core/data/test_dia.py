@@ -344,8 +344,10 @@ def test_tidyup(data_diag):
 
 
 def test_autotidyup():
-    small = qeye(1) * 1e-5
-    with CoreOptions(auto_tidyup_atol=1e-3):
+    small = (qeye(1) * 1e-5).to(Dia)
+    with CoreOptions(auto_tidyup_atol=1e-3, default_dtype=Dia):
         assert (small + small).tr() == 0
-    with CoreOptions(auto_tidyup_atol=1e-3, auto_tidyup=False):
+    with CoreOptions(
+        auto_tidyup_atol=1e-3, auto_tidyup=False, default_dtype=Dia
+    ):
         assert (small + small).tr() == 2e-5

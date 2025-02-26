@@ -133,7 +133,7 @@ def enr_fock(dims, excitations, state, *, dtype=None):
         )
         raise ValueError(msg) from None
     return Qobj(data, dims=[EnrSpace(dims, excitations), [1]*len(dims)],
-                copy=False)
+                copy=False, dtype=dtype)
 
 
 def enr_thermal_dm(dims, excitations, n, *, dtype=None):
@@ -248,7 +248,7 @@ def enr_destroy(dims, excitations, *, dtype=None):
                 a_ops[idx][n2, n1] = np.sqrt(s)
 
     return [
-        Qobj(a, dims=enr_dims, isunitary=False, isherm=False).to(dtype)
+        Qobj(a, dims=enr_dims, isunitary=False, isherm=False, dtype=dtype)
         for a in a_ops
     ]
 
@@ -286,4 +286,5 @@ def enr_identity(dims, excitations, *, dtype=None):
                 dims=[dims, dims],
                 isherm=True,
                 isunitary=True,
-                copy=False)
+                copy=False,
+                dtype=dtype)

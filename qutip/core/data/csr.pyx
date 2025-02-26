@@ -958,6 +958,8 @@ cpdef CSR _from_csr_blocks(
 
     # check op shapes and calculate nnz
     for op in block_ops:
+        if type(op) is not CSR:
+            raise TypeError("Blocks must all be CSR.")
         nnz_ += nnz(op)
         if op.shape[0] != block_size or op.shape[1] != block_size:
             raise ValueError(

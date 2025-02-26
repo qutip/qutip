@@ -276,7 +276,8 @@ class Qobj:
         copy: bool = True,
         superrep: str = None,
         isherm: bool = None,
-        isunitary: bool = None
+        isunitary: bool = None,
+        dtype: type | str = None,
     ):
         self._isherm = isherm
         self._isunitary = isunitary
@@ -285,12 +286,23 @@ class Qobj:
         if superrep is not None:
             self.superrep = superrep
 
+        if (
+            isinstance(arg, list)
+            or dtype
+            or settings.core["default_dtype_scope"] == "full"
+        ):
+            dtype = dtype or settings.core["default_dtype"]
+            if dtype is None or isinstance(self._data, _data.to.parse(dtype)):
+                return
+            self._data = _data.to(dtype, self._data)
+
     def copy(self) -> Qobj:
         """Create identical copy"""
         return Qobj(arg=self._data,
                     dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
+                    dtype=self.dtype,
                     copy=True)
 
     @property
@@ -372,7 +384,8 @@ class Qobj:
             dims=self._dims,
             isherm=self._isherm,
             isunitary=self._isunitary,
-            copy=False
+            dtype=data_type,
+            copy=copy
         )
 
     @_require_equal_type
@@ -903,7 +916,8 @@ class Qobj:
         return Qobj(_data.expm(self._data, dtype=dtype),
                     dims=self._dims,
                     isherm=self._isherm,
-                    copy=False)
+                    copy=False,
+                    dtype=dtype)
 
     def logm(self) -> Qobj:
         """Matrix logarithm of quantum operator.
