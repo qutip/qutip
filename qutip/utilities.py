@@ -586,8 +586,8 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
-def aaa(func: Callable[...,complex], z: ArrayLike, tol: float = 1e-13,
-        max_iter: int = 100):
+def aaa(func: Callable[...,complex], z: ArrayLike, tol: float = 1e-13, 
+    max_iter: int = 100):
     """
     Computes a rational approximation of the function according to the AAA
     algorithm as explained in https://doi.org/10.1137/16M1106122 . This
