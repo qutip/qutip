@@ -46,7 +46,10 @@ def test_agreement_with_mesolve_for_negative_rates(
     mc_result = nm_mcsolve(
         H, state0, times, ops_and_rates,
         args=args, e_ops=e_ops, ntraj=1000 if improved_sampling else 2000,
-        options={"rtol": 1e-8, "improved_sampling": improved_sampling},
+        options={
+            "rtol": 1e-10, "atol": 1e-10, 
+            "improved_sampling": improved_sampling
+        },
         seeds=0,
     )
 

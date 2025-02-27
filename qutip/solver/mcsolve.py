@@ -335,12 +335,12 @@ class MCIntegrator:
                 t_guess = t_final
                 _, state = self._integrator.get_state(copy=False)
                 break
-            t_guess = (
-                t_prev
-                + ((t_final - t_prev)
-                   * np.log(norm_old / self.target_norm)
-                   / np.log(norm_old / norm))
+            dt = t_final - t_prev
+            ratio = (
+                np.log(norm_old / self.target_norm)
+                / np.log(norm_old / norm)
             )
+            t_guess = t_prev + dt * ratio
             if (t_guess - t_prev) < self.options['norm_t_tol']:
                 t_guess = t_prev + self.options['norm_t_tol']
             _, state = self._integrator.mcstep(t_guess, copy=False)
@@ -457,7 +457,7 @@ class MCSolver(MultiTrajSolver):
         "bitgenerator": None,
         "method": "vern7",
         "mc_corr_eps": 1e-10,
-        "norm_steps": 5,
+        "norm_steps": 10,
         "norm_t_tol": 1e-6,
         "norm_tol": 1e-4,
         "improved_sampling": False,

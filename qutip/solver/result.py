@@ -6,8 +6,7 @@ from __future__ import annotations
 from typing import TypedDict, Any, Callable
 from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
-from ..core import Qobj, QobjEvo
-from ..core.data import expect
+from ..core import Qobj, QobjEvo, expect
 
 __all__ = ["Result"]
 
@@ -24,10 +23,10 @@ class _QobjExpectEop:
     """
 
     def __init__(self, op):
-        self.op = op.data
+        self.op = op
 
     def __call__(self, t, state):
-        return expect(self.op, state.data)
+        return expect(self.op, state)
 
 
 class ExpectOp:
