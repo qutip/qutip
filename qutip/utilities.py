@@ -559,7 +559,7 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 
 
 # AAA Fitting
-
+## CHEBFUN attribution for AAA
 # Copyright (c) 2017, The Chancellor, Masters and Scholars of the University
 # of Oxford, and the Chebfun Developers. All rights reserved.
 
@@ -586,7 +586,7 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
-def aaa(func: Callable[..., complex], z: ArrayLike, 
+def aaa(func: Callable[..., complex], z: ArrayLike,
         tol: float = 1e-13, max_iter: int = 100):
     """
     Computes a rational approximation of the function according to the AAA

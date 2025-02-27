@@ -775,7 +775,8 @@ class BosonicEnvironment(abc.ABC):
         tag : optional, str, tuple or any other object
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
-
+        separate: optional, bool
+            When True real and imaginary parts are fit separately
         Returns
         -------
         approx_env : :class:`ExponentialBosonicEnvironment`

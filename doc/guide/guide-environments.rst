@@ -341,46 +341,38 @@ The methods available in qutip can be roughly put into three categories
     - ESPIRA-I (`espira-I`) :question:
     - ESPIRA-II (`espira-II`)
 
+.. list-table:: 
+   :header-rows: 1
+   :widths: auto
 
-  <tr>
-    <th>Class</th>
-    <th>Requires Extra information</th>
-    <th>Fast</th>
-    <th>Resilient to Noise</th>
-    <th>Allows constraitns</th>
-    <th>Stable</th>
-
-    
-  </tr>
-  <tr>
-    <td align="center"> Non-Linear Least Squares</td>
-    <td align="center">✔️</td>
-    <td align="center">❌</td>
-    <td align="center">❌</td>
-    <td align="center">✔️</td>
-    <td align="center">❌</td>
-  </tr>
-  <tr>
-    <td align="center">Prony Polynomial</td>
-    <td align="center">❌</td>
-    <td align="center">✔️</td>
-    <td align="center">❗</td>
-    <td align="center">❌</td>
-    <td align="center">❗</td>
-  </tr>
-  <tr>
-    <td align="center">Rational Approximations </td>
-    <td align="center">❌</td>
-    <td align="center">✔️</td>
-    <td align="center">❗</td>
-    <td align="center">❗</td>
-    <td align="center">✔️</td>
-  </tr>
-</table>
+   * - Class
+     - Requires Extra Information
+     - Fast
+     - Resilient to Noise
+     - Allows Constraints
+     - Stable
+   * - Non-Linear Least Squares
+     - ✔️
+     - ❌
+     - ❌
+     - ✔️
+     - ❌
+   * - Prony Polynomial
+     - ❌
+     - ✔️
+     - ❗
+     - ❌
+     - ❗
+   * - Rational Approximations
+     - ❌
+     - ✔️
+     - ❗
+     - ❗
+     - ✔️
 
 Legend:
 
-❌: NO ✔️: Yes ❗: Partially
+❌: NO   ✔️: Yes   ❗: Partially
 
 All different approximation schemes are available using the approximate method of
 :class:`BosonicEnvironment`,the scheme is chosen by passing the "method" argument,
