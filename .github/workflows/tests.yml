@@ -55,6 +55,7 @@ jobs:
             scipy-requirement: ">=1.10,<1.11"
             semidefinite: 1
             oldcython: 1
+            oldmpl: 1
             pypi: 1
             coveralls: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
@@ -67,6 +68,7 @@ jobs:
             numpy-requirement: ">=1.26,<1.27"
             scipy-requirement: ">=1.11,<1.12"
             condaforge: 1
+            oldmpl: 1
             # Install mpi4py to test mpi_pmap
             # Should be enough to include this in one of the runs
             includempi: 1
@@ -83,6 +85,7 @@ jobs:
             semidefinite: 1
             condaforge: 1
             oldcython: 1
+            oldmpl: 1
             nomkl: 1
             coveralls: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
@@ -193,7 +196,11 @@ jobs:
           if [[ -n "${{ matrix.semidefinite }}" ]]; then
             python -m pip install cvxpy>=1.0 cvxopt
           fi
-          python -m pip install matplotlib>=1.2.1  # graphics
+          if [[ "${{ matrix.oldmpl }}" ]]; then
+            python -m pip install matplotlib==3.7.*  # graphics
+          else
+            python -m pip install matplotlib  # graphics
+          fi
 
       - name: Package information
         run: |
