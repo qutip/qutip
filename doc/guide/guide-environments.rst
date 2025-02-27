@@ -150,11 +150,10 @@ The evaluation of the zeta function for complex arguments requires `mpmath`, so 
 only available if `mpmath` is installed.
 
 Multi-exponential approximations to Ohmic environments can be obtained through
-the fitting procedures :meth:`approx_by_cf_fit<.BosonicEnvironment.approx_by_cf_fit>`
-and :meth:`approx_by_sd_fit<.BosonicEnvironment.approx_by_sd_fit>`.
+the fitting procedures :meth:`approximate<.BosonicEnvironment.approximate>`
 The following example shows how to create a sub-Ohmic environment, and how to use
-:meth:`approx_by_cf_fit<.BosonicEnvironment.approx_by_cf_fit>` to fit the real and imaginary parts
-of the correlation function with two exponential terms each.
+:meth:`approximate<.BosonicEnvironment.approximate>` to fit the real and imaginary parts
+of the correlation function with three exponential terms each.
 
 .. plot::
     :context: reset
@@ -169,7 +168,7 @@ of the correlation function with two exponential terms each.
 
     # Fit the correlation function with three exponential terms
     tlist = np.linspace(0, 3, 250)
-    approx_env, info = env.approx_by_cf_fit(tlist, target_rsme=None, Nr_max=3, Ni_max=3, maxfev=1e8)
+    approx_env, info = env.approximate("cf",tlist, target_rsme=None, Nr_max=3, Ni_max=3, maxfev=1e8)
 
 The environment `approx_env` created here could be used, for example, with the :ref:`HEOM solver<heom>`.
 The variable `info` contains info about the convergence of the fit; here, we will just plot the fit together with
@@ -327,6 +326,54 @@ Note that :math:`C_R(t)` and :math:`C_I(t)` are the real and imaginary parts of 
 but the coefficients :math:`c^{R,I}_k` and exponents :math:`\nu^{R,I}_k` are not required to be real in general.
 
 In the previous sections, various methods of obtaining multi-exponential approximations were introduced.
+The methods available in qutip can be roughly put into three categories
+
+- Non-Linear Least Squares:
+    - On the Spectral Density (`sd`)
+    - On the Correlation Function (`cf`)
+    - On the Power Spectrum (`ps`)
+- Methods based on the Prony Polynomial
+    - Prony on the correlation function(`prony`)
+    - The Matrix Pencil method on the correlation function (`mp`) :question:
+    - ESPRIT on the correlation function(`esprit`)
+- Methods based on rational Approximations
+    - The AAA algorithm on the Power Spectrum (`aaa`)
+    - ESPIRA-I (`espira-I`) :question:
+    - ESPIRA-II (`espira-II`)
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: auto
+
+   * - Class
+     - Requires Extra Information
+     - Fast
+     - Resilient to Noise
+     - Allows Constraints
+     - Stable
+   * - Non-Linear Least Squares
+     - Yes
+     - No
+     - No
+     - Yes
+     - No
+   * - Prony Polynomial
+     - No
+     - Yes
+     - Partially
+     - No
+     - Partially
+   * - Rational Approximations
+     - No
+     - Yes
+     - Partially
+     - Partially
+     - Yes
+
+All different approximation schemes are available using the approximate method of
+:class:`BosonicEnvironment`,the scheme is chosen by passing the "method" argument,
+more information about each approximation scheme can be seen in the tutorials. 
+
 The output of these approximation functions are :class:`.ExponentialBosonicEnvironment` objects.
 An :class:`.ExponentialBosonicEnvironment` is basically a collection of :class:`.CFExponent` s, which store (in the bosonic case)
 the coefficient, the exponent, and whether the exponent contributes to the real part, the imaginary part, or both.
