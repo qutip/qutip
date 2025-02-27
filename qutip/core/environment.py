@@ -2691,22 +2691,40 @@ class FermionicEnvironment(abc.ABC):
     # --- user-defined environment creation
 
     @classmethod
-    def from_correlation_functions(cls, **kwargs) -> FermionicEnvironment:
+    def from_correlation_functions(cls,
+                                   J: Callable[[float], float] | ArrayLike,
+                                   wlist: ArrayLike = None,
+                                   wMax: float = None,
+                                   *,
+                                   T: float = None,
+                                   mu: float = None,
+                                   sigma: float = None,
+                                   tag: Any = None,
+                                   args: dict[str, Any] = None,
+                                   ) -> FermionicEnvironment:
         r"""
-        User-defined fermionic environments are currently not implemented.
+            Fermionic Environment from CF
         """
-
-        raise NotImplementedError("User-defined fermionic environments are "
-                                  "currently not implemented.")
+        return _FermionicEnvironment_fromCF(J, wlist, wMax, T, mu, sigma,
+                                            tag, args)
 
     @classmethod
-    def from_power_spectra(cls, **kwargs) -> FermionicEnvironment:
+    def from_power_spectra(cls,
+                           J: Callable[[float], float] | ArrayLike,
+                           wlist: ArrayLike = None,
+                           wMax: float = None,
+                           *,
+                           T: float = None,
+                           mu: float = None,
+                           sigma: float = None,
+                           tag: Any = None,
+                           args: dict[str, Any] = None,
+                           ) -> FermionicEnvironment:
         r"""
-        User-defined fermionic environments are currently not implemented.
+            Fermionic Environment from PS
         """
-
-        raise NotImplementedError("User-defined fermionic environments are "
-                                  "currently not implemented.")
+        return _FermionicEnvironment_fromPS(J, wlist, wMax, T, mu, sigma,
+                                            tag, args)
 
     @classmethod
     def from_spectral_density(
@@ -2721,42 +2739,7 @@ class FermionicEnvironment(abc.ABC):
         args: dict[str, Any] = None,
     ) -> FermionicEnvironment:
         r"""
-        Constructs a bosonic environment with the provided spectral density.
-        The provided function will only be used for frequencies
-        :math:`\omega > 0`. At frequencies :math:`\omega \leq 0`, the spectral
-        density is zero according to the definition used by QuTiP. See the
-        Users Guide on :ref:`bosonic environments <bosonic environments guide>`
-        for a note on spectral densities with support at negative frequencies.
-
-        Parameters
-        ----------
-        J : callable or array_like
-            The spectral density. Can be provided as a Python function or
-            as an array. When using a function, the signature should be
-
-            ``J(w: array_like, **args) -> array_like``
-
-            where ``w`` is the frequency and ``args`` is a tuple containing the
-            other parameters of the function.
-
-        wlist : optional, array_like
-            The frequencies where the spectral density is sampled (if it is
-            provided as an array).
-
-        wMax : optional, float
-            Specifies that the spectral density is essentially zero outside the
-            interval [-wMax, wMax]. Used for numerical integration purposes.
-
-        T : optional, float
-            Environment temperature. (The correlation function and the power
-            spectrum of this environment can only be calculated from the
-            spectral density if a temperature is provided.)
-
-        tag : optional, str, tuple or any other object
-            An identifier (name) for this environment.
-
-        args : optional, dict
-            Extra arguments for the spectral density ``J``.
+            Fermionic Environment from SD
         """
         return _FermionicEnvironment_fromSD(J, wlist, wMax, T, mu, tag, args)
 
@@ -3379,3 +3362,252 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
                              'this operation.')
         beta = 1/self.T
         return self.spectral_density(w)*fermi_dirac(w, -beta, self.mu)
+
+
+class _FermionicEnvironment_fromPS(FermionicEnvironment):
+    def __init__(self, J, wlist, wMax, T, mu, sigma, tag, args):
+        super().__init__(T, mu, tag)
+        self._ps = _real_interpolation(J, wlist, 'power spectrum', args)
+        self.sigma = sigma
+        if wlist is not None:
+            self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
+        else:
+            self.wMax = wMax
+
+    def correlation_function_plus(self, t, *, eps=1e-10):
+        t = np.asarray(t, dtype=float)
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
+        else:
+            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+        result_fct = _fft(lambda w: self.power_spectrum_plus(w),
+                          tMax, tMax=self.wMax)
+        result = result_fct(t).conj() / (2 * np.pi)
+        return result.item() if t.ndim == 0 else result
+
+    def correlation_function_minus(self, t, *, eps=1e-10):
+        t = np.asarray(t, dtype=float)
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
+        else:
+            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+        result_fct = _fft(lambda w: self.power_spectrum_minus(w),
+                          tMax, tMax=self.wMax)
+        result = result_fct(t) / (2 * np.pi)
+        return result.item() if t.ndim == 0 else result
+
+    def spectral_density(self, w):
+        w = np.asarray(w, dtype=float)
+        beta = 1/self.T
+        result = self.power_spectrum_minus(w)+self.power_spectrum_plus(w)
+        return result.item() if w.ndim == 0 else result
+
+    def power_spectrum_plus(self, w, *, eps=1e-10):
+        if self.sigma == 1:
+            return self._ps(w)
+        else:
+            with np.errstate(divide='ignore', invalid='ignore'):
+                # Original calculation
+                ff = 1/fermi_dirac(w, self.sigma/self.T, self.mu)
+                ff -= 1
+                result = ff*self._ps(w)
+
+                # Identify problematic values (inf or nan)
+                problematic_indices = ~np.isfinite(result)
+
+                # Only if there are problematic values, recalculate those specific points
+                if np.any(problematic_indices):
+                    # For problematic points, use an alternative calculation with a small epsilon
+                    ff_safe = 1/(fermi_dirac(w[problematic_indices],
+                                             self.sigma/self.T, self.mu) + eps)
+                    ff_safe -= 1
+                    result[problematic_indices] = ff_safe * \
+                        self._ps(w[problematic_indices])
+            return result
+
+    def power_spectrum_minus(self, w, *, eps=1e-10):
+        if self.sigma == -1:
+            return self._ps(w)
+        else:
+            with np.errstate(divide='ignore', invalid='ignore'):
+                # Original calculation
+                ff = 1/fermi_dirac(w, self.sigma/self.T, self.mu)
+                ff -= 1
+                result = ff*self._ps(w)
+
+                # Identify problematic values (inf or nan)
+                problematic_indices = ~np.isfinite(result)
+
+                # Only if there are problematic values, recalculate those specific points
+                if np.any(problematic_indices):
+                    # For problematic points, use an alternative calculation with a small epsilon
+                    ff_safe = 1/(fermi_dirac(w[problematic_indices],
+                                             self.sigma/self.T, self.mu) + eps)
+                    ff_safe -= 1
+                    result[problematic_indices] = ff_safe * \
+                        self._ps(w[problematic_indices])
+
+            return result
+
+
+class _FermionicEnvironment_fromCF(FermionicEnvironment):
+    def __init__(self, J, wlist, wMax, T, mu, sigma, tag, args):
+        super().__init__(T, mu, tag)
+        self._cf = _complex_interpolation(
+            J, wlist, 'correlation function', args)
+        self.sigma = sigma
+        if wlist is not None:
+            self.tMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
+        else:
+            self.tMax = wMax
+
+    def correlation_function_plus(self, t, *, eps=1e-10):
+        if self.sigma == 1:
+            t = np.asarray(t, dtype=float)
+            result = np.zeros_like(t, dtype=complex)
+            positive_mask = (t >= 0)
+            non_positive_mask = np.invert(positive_mask)
+
+            result[positive_mask] = self._cf(t[positive_mask])
+            result[non_positive_mask] = np.conj(
+                self._cf(-t[non_positive_mask])
+            )
+            return result.item() if t.ndim == 0 else result
+        else:
+            t = np.asarray(t, dtype=float)
+            if self.wMax is None:
+                raise ValueError('The support of the spectral density (wMax) '
+                                 'must be specified for this operation.')
+            if t.ndim == 0:
+                tMax = np.abs(t)
+            elif len(t) == 0:
+                return np.array([])
+            else:
+                tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+            result_fct = _fft(lambda w: self.power_spectrum_plus(w),
+                              tMax, tMax=self.wMax)
+            result = result_fct(t).conj() / (2 * np.pi)
+            return result.item() if t.ndim == 0 else result
+
+    def correlation_function_minus(self, t, *, eps=1e-10):
+        if self.sigma == -1:
+            t = np.asarray(t, dtype=float)
+            result = np.zeros_like(t, dtype=complex)
+            positive_mask = (t >= 0)
+            non_positive_mask = np.invert(positive_mask)
+
+            result[positive_mask] = self._cf(t[positive_mask])
+            result[non_positive_mask] = np.conj(
+                self._cf(-t[non_positive_mask])
+            )
+            return result.item() if t.ndim == 0 else result
+        else:
+            t = np.asarray(t, dtype=float)
+            if self.wMax is None:
+                raise ValueError('The support of the spectral density (wMax) '
+                                 'must be specified for this operation.')
+            if t.ndim == 0:
+                tMax = np.abs(t)
+            elif len(t) == 0:
+                return np.array([])
+            else:
+                tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+            result_fct = _fft(lambda w: self.power_spectrum_minus(w),
+                              tMax, tMax=self.wMax)
+            result = result_fct(t) / (2 * np.pi)
+            return result.item() if t.ndim == 0 else result
+
+    def spectral_density(self, w):
+        w = np.asarray(w, dtype=float)
+        result = self.power_spectrum_minus(w)+self.power_spectrum_plus(w)
+        return result.item() if w.ndim == 0 else result
+
+    def power_spectrum_plus(self, w, *, eps=1e-10):
+        if self.sigma == 1:
+            w = np.asarray(w, dtype=float)
+            if self.tMax is None:
+                raise ValueError('The support of the spectral density (wMax) '
+                                 'must be specified for this operation.')
+            if w.ndim == 0:
+                tMax = np.abs(w)
+            elif len(w) == 0:
+                return np.array([])
+            else:
+                tMax = max(np.abs(w[0]), np.abs(w[-1]))
+
+            result_fct = _fft(lambda w: self.correlation_function_plus(w),
+                              tMax, tMax=self.tMax)
+            result = result_fct(w)
+            
+            return result.item() if w.ndim == 0 else result
+        else:
+            with np.errstate(divide='ignore', invalid='ignore'):
+                # Original calculation
+                ff = 1/fermi_dirac(w, self.sigma/self.T, self.mu)
+                ff -= 1
+                result = ff*self.power_spectrum_minus(w)
+
+                # Identify problematic values (inf or nan)
+                problematic_indices = ~np.isfinite(result)
+
+                # Only if there are problematic values, recalculate those specific points
+                if np.any(problematic_indices):
+                    # For problematic points, use an alternative calculation with a small epsilon
+                    ff_safe = 1/(fermi_dirac(w[problematic_indices],
+                                             self.sigma/self.T, self.mu) + eps)
+                    ff_safe -= 1
+                    result[problematic_indices] = ff_safe * \
+                        self.power_spectrum_minus(w[problematic_indices])
+
+            return result
+
+    def power_spectrum_minus(self, w, *, eps=1e-10):
+        if self.sigma == -1:
+            w = np.asarray(w, dtype=float)
+            if self.tMax is None:
+                raise ValueError('The support of the spectral density (wMax) '
+                                 'must be specified for this operation.')
+            if w.ndim == 0:
+                tMax = np.abs(w)
+            elif len(w) == 0:
+                return np.array([])
+            else:
+                tMax = max(np.abs(w[0]), np.abs(w[-1]))
+
+            result_fct = _fft(lambda w: self.correlation_function_minus(w).conj(),
+                              tMax, tMax=self.tMax)
+            result = result_fct(w)
+            return result.item() if w.ndim == 0 else result
+        else:
+            with np.errstate(divide='ignore', invalid='ignore'):
+                # Original calculation
+                ff = 1/fermi_dirac(w, 1/self.T, self.mu)
+                ff -= 1
+                result = ff*self.power_spectrum_plus(w)
+
+                # Identify problematic values (inf or nan)
+                problematic_indices = ~np.isfinite(result)
+
+                # Only if there are problematic values, recalculate those specific points
+                if np.any(problematic_indices):
+                    # For problematic points, use an alternative calculation with a small epsilon
+                    ff_safe = 1/(fermi_dirac(w[problematic_indices],
+                                             1/self.T, self.mu) + eps)
+                    ff_safe -= 1
+                    result[problematic_indices] = ff_safe * \
+                        self.power_spectrum_plus(w[problematic_indices])
+            return result

@@ -87,8 +87,12 @@ def fermi_dirac(w, beta, mu):
     """
 
     w = np.array(w, dtype=float)
-
-    result = 1 / (np.exp(beta*(w-mu)) + 1)
+    with np.errstate(over='ignore', under='ignore'):
+        result = 1 / (np.exp(beta*(w-mu)) + 1)
+    mask = np.isnan(result)
+    if np.any(mask):
+        result[mask] = np.exp(-beta*(w[mask]-mu)) / \
+            (np.exp(-beta*(w[mask]-mu)) + 1)
 
     return result.item() if w.ndim == 0 else result
 
