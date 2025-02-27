@@ -681,7 +681,7 @@ class TestBosonicEnvironment:
         )
         tlist = np.linspace(0, tMax, 500)
         fit, info = env.approximate("esprit",
-                                    tlist, Nr=15, Ni=15
+                                    tlist, Nr=15, Ni=15,separate=True
                                     )
 
         assert isinstance(fit, ExponentialBosonicEnvironment)

@@ -653,8 +653,8 @@ class BosonicEnvironment(abc.ABC):
         tag: Any = None,
     ):
         r"""
-        Generates an approximation to this environment by fitting its power 
-        spectrum via the the fourier transform of decaying exponentials. The 
+        Generates an approximation to this environment by fitting its power
+        spectrum via the the fourier transform of decaying exponentials. The
         number of underdamped terms is determined iteratively based on reducing
         the normalized root mean squared error below a given threshold.
 
