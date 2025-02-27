@@ -2394,10 +2394,21 @@ def _fft(f, wMax, tMax):
     t, dt = np.linspace(-tMax, tMax, numSamples, retstep=True)
     f_values = f(t)
 
+    # Apply window function to reduce spectral leakage
+    # Blackman window generally provides good results
+    window = np.blackman(numSamples)
+    f_values = f_values * window
+
+    # Zero padding to increase frequency resolution
+    padding_factor = 4  # Increase this for better frequency resolution
+    padded_length = numSamples * padding_factor
+    f_values_padded = np.pad(
+        f_values, (0, padded_length - numSamples), 'constant')
+
     # Compute Fourier transform by numpy's FFT function
-    g = np.fft.fft(f_values)
+    g = np.fft.fft(f_values_padded)
     # frequency normalization factor is 2 * np.pi / dt
-    w = np.fft.fftfreq(numSamples) * 2 * np.pi / dt
+    w = np.fft.fftfreq(padded_length) * 2 * np.pi / dt
     # In order to get a discretisation of the continuous Fourier transform
     # we need to multiply g by a phase factor
     g *= dt * np.exp(1j * w * tMax)
@@ -3543,16 +3554,15 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
                 raise ValueError('The support of the spectral density (wMax) '
                                  'must be specified for this operation.')
             if w.ndim == 0:
-                tMax = np.abs(w)
+                wMax = np.abs(w)
             elif len(w) == 0:
                 return np.array([])
             else:
-                tMax = max(np.abs(w[0]), np.abs(w[-1]))
-
+                wMax = max(np.abs(w[0]), np.abs(w[-1]))
             result_fct = _fft(lambda w: self.correlation_function_plus(w),
-                              tMax, tMax=self.tMax)
-            result = result_fct(w)
-            
+                              wMax, tMax=self.tMax)  # fft not accurate enough
+            result = result_fct(w).real
+
             return result.item() if w.ndim == 0 else result
         else:
             with np.errstate(divide='ignore', invalid='ignore'):
@@ -3575,7 +3585,7 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
 
             return result
 
-    def power_spectrum_minus(self, w, *, eps=1e-10):
+    def power_spectrum_minus(self, w, *, eps=1e-2):
         if self.sigma == -1:
             w = np.asarray(w, dtype=float)
             if self.tMax is None:
@@ -3595,13 +3605,13 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
         else:
             with np.errstate(divide='ignore', invalid='ignore'):
                 # Original calculation
-                ff = 1/fermi_dirac(w, 1/self.T, self.mu)
+                f = fermi_dirac(w, 1/self.T, self.mu)
+                ff = 1/f
                 ff -= 1
                 result = ff*self.power_spectrum_plus(w)
 
                 # Identify problematic values (inf or nan)
                 problematic_indices = ~np.isfinite(result)
-
                 # Only if there are problematic values, recalculate those specific points
                 if np.any(problematic_indices):
                     # For problematic points, use an alternative calculation with a small epsilon
@@ -3611,3 +3621,23 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
                     result[problematic_indices] = ff_safe * \
                         self.power_spectrum_plus(w[problematic_indices])
             return result
+
+
+# TODO: FFT is not enough for accurate S+ or S- in a way that one can be
+# obtained from the other accuracy needs to be too high to do that.
+# A potential problem if working with data. So providing a correlation function
+# Does not work currently
+
+# TODO: Finish from correlation function
+
+# TODO: Add Fitting to fermionic systems
+
+# TODO: Test examples
+
+# TODO: Refactor
+
+# TODO: Add docstrings
+
+# TODO: Add unit tests
+
+# TODO: Discuss wheter this is appropiate on github
