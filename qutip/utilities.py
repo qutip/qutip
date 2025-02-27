@@ -6,7 +6,8 @@ qutip modules.
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
-__all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
+__all__ = ['n_thermal', 'clebsch',
+           'convert_unit', 'iterated_fit', 'fermi_dirac']
 
 from typing import Callable
 
@@ -53,6 +54,41 @@ def n_thermal(w, w_th):
 
     non_zero = w != 0
     result[non_zero] = 1 / (np.exp(w[non_zero] / w_th) - 1)
+
+    return result.item() if w.ndim == 0 else result
+
+
+def fermi_dirac(w, beta, mu):
+    """
+    Return the number of fermions in thermal and chemical equilibrium for an
+    fermionic mode with frequency 'w', at the temperature described by
+    'beta' where :math:`\\beta = \\hbar/k_BT` and chemical potential
+    mu.
+
+    Parameters
+    ----------
+
+    w : float or ndarray
+        Frequency of the oscillator.
+
+    beta : float
+        The inverse temperature in units of time 
+        (or the same units as `1/w`).
+    mu : float
+        The Chemical potential.
+    Returns
+    -------
+
+    n_avg : float or array
+
+        Return the number of average fermions in chemical and thermal
+        equilibrium for a fermion with the given frequency,chemical potential
+        and temperature.
+    """
+
+    w = np.array(w, dtype=float)
+
+    result = 1 / (np.exp(beta*(w-mu)) + 1)
 
     return result.item() if w.ndim == 0 else result
 
@@ -586,8 +622,8 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
-def aaa(func: Callable[...,complex], z: ArrayLike, tol: float = 1e-13, 
-    max_iter: int = 100):
+def aaa(func: Callable[..., complex], z: ArrayLike, tol: float = 1e-13,
+        max_iter: int = 100):
     """
     Computes a rational approximation of the function according to the AAA
     algorithm as explained in https://doi.org/10.1137/16M1106122 . This

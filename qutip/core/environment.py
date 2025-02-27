@@ -34,7 +34,7 @@ except ModuleNotFoundError:
     _mpmath_available = False
 
 from ..utilities import (n_thermal, iterated_fit, aaa,
-                         prony_methods, espira1, espira2)
+                         prony_methods, espira1, espira2, fermi_dirac)
 from .superoperator import spre, spost
 from .qobj import Qobj
 
@@ -2709,13 +2709,94 @@ class FermionicEnvironment(abc.ABC):
                                   "currently not implemented.")
 
     @classmethod
-    def from_spectral_density(cls, **kwargs) -> FermionicEnvironment:
+    def from_spectral_density(
+        cls,
+        J: Callable[[float], float] | ArrayLike,
+        wlist: ArrayLike = None,
+        wMax: float = None,
+        *,
+        T: float = None,
+        mu: float = None,
+        tag: Any = None,
+        args: dict[str, Any] = None,
+    ) -> FermionicEnvironment:
         r"""
-        User-defined fermionic environments are currently not implemented.
-        """
+        Constructs a bosonic environment with the provided spectral density.
+        The provided function will only be used for frequencies
+        :math:`\omega > 0`. At frequencies :math:`\omega \leq 0`, the spectral
+        density is zero according to the definition used by QuTiP. See the
+        Users Guide on :ref:`bosonic environments <bosonic environments guide>`
+        for a note on spectral densities with support at negative frequencies.
 
-        raise NotImplementedError("User-defined fermionic environments are "
-                                  "currently not implemented.")
+        Parameters
+        ----------
+        J : callable or array_like
+            The spectral density. Can be provided as a Python function or
+            as an array. When using a function, the signature should be
+
+            ``J(w: array_like, **args) -> array_like``
+
+            where ``w`` is the frequency and ``args`` is a tuple containing the
+            other parameters of the function.
+
+        wlist : optional, array_like
+            The frequencies where the spectral density is sampled (if it is
+            provided as an array).
+
+        wMax : optional, float
+            Specifies that the spectral density is essentially zero outside the
+            interval [-wMax, wMax]. Used for numerical integration purposes.
+
+        T : optional, float
+            Environment temperature. (The correlation function and the power
+            spectrum of this environment can only be calculated from the
+            spectral density if a temperature is provided.)
+
+        tag : optional, str, tuple or any other object
+            An identifier (name) for this environment.
+
+        args : optional, dict
+            Extra arguments for the spectral density ``J``.
+        """
+        return _FermionicEnvironment_fromSD(J, wlist, wMax, T, mu, tag, args)
+
+    # --- spectral density, power spectrum, correlation function conversions
+
+    def _psp_from_sd(self, w, eps, derivative=None):
+        # derivative: value of J'(0)
+        if self.T is None:
+            raise ValueError(
+                "The temperature must be specified for this operation.")
+
+        S = np.zeros(len(w))
+        return S.item() if w.ndim == 0 else S
+
+    def _psm_from_sd(self, w, eps, derivative=None):
+        # derivative: value of J'(0)
+        if self.T is None:
+            raise ValueError(
+                "The temperature must be specified for this operation.")
+
+        S = np.zeros(len(w))
+        return S.item() if w.ndim == 0 else S
+
+    def _cfm_from_sd(self, w, eps, derivative=None):
+        # derivative: value of J'(0)
+        if self.T is None:
+            raise ValueError(
+                "The temperature must be specified for this operation.")
+
+        S = np.zeros(len(w))
+        return S.item() if w.ndim == 0 else S
+
+    def _cfp_from_sd(self, w, eps, derivative=None):
+        # derivative: value of J'(0)
+        if self.T is None:
+            raise ValueError(
+                "The temperature must be specified for this operation.")
+
+        S = np.zeros(len(w))
+        return S.item() if w.ndim == 0 else S
 
 
 class LorentzianEnvironment(FermionicEnvironment):
@@ -3227,3 +3308,74 @@ class ExponentialFermionicEnvironment(FermionicEnvironment):
                 )
 
         return S.item() if w.ndim == 0 else S
+
+
+# Arbitrary Fermionic environments
+
+class _FermionicEnvironment_fromSD(FermionicEnvironment):
+    def __init__(self, J, wlist, wMax, T, mu, tag, args):
+        super().__init__(T, mu, tag)
+        self._sd = _real_interpolation(J, wlist, 'spectral density', args)
+        if wlist is not None:
+            self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
+        else:
+            self.wMax = wMax
+
+    def correlation_function_plus(self, t, *, eps=1e-10):
+        t = np.asarray(t, dtype=float)
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
+        else:
+            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+        result_fct = _fft(lambda w: self.power_spectrum_plus(w),
+                          tMax, tMax=self.wMax)
+        result = result_fct(t).conj() / (2 * np.pi)
+        return result.item() if t.ndim == 0 else result
+
+    def correlation_function_minus(self, t, *, eps=1e-10):
+        t = np.asarray(t, dtype=float)
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
+        else:
+            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+        result_fct = _fft(lambda w: self.power_spectrum_minus(w),
+                          tMax, tMax=self.wMax)
+        result = result_fct(t) / (2 * np.pi)
+        return result.item() if t.ndim == 0 else result
+
+    def spectral_density(self, w):
+        w = np.asarray(w, dtype=float)
+        result = self._sd(w)
+        return result.item() if w.ndim == 0 else result
+
+    def power_spectrum_plus(self, w, *, eps=1e-10):
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
+        if self.mu is None:
+            raise ValueError('The chemical potential must be specified for '
+                             'this operation.')
+        beta = 1/self.T
+        return self.spectral_density(w)*fermi_dirac(w, beta, self.mu)
+
+    def power_spectrum_minus(self, w, *, eps=1e-10):
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
+        if self.mu is None:
+            raise ValueError('The chemical potential must be specified for '
+                             'this operation.')
+        beta = 1/self.T
+        return self.spectral_density(w)*fermi_dirac(w, -beta, self.mu)
