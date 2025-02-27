@@ -352,27 +352,23 @@ The methods available in qutip can be roughly put into three categories
      - Allows Constraints
      - Stable
    * - Non-Linear Least Squares
-     - ✔️
-     - ❌
-     - ❌
-     - ✔️
-     - ❌
+     - Yes
+     - No
+     - No
+     - Yes
+     - No
    * - Prony Polynomial
-     - ❌
-     - ✔️
-     - ❗
-     - ❌
-     - ❗
+     - No
+     - Yes
+     - Partially
+     - No
+     - Partially
    * - Rational Approximations
-     - ❌
-     - ✔️
-     - ❗
-     - ❗
-     - ✔️
-
-Legend:
-
-❌: NO   ✔️: Yes   ❗: Partially
+     - No
+     - Yes
+     - Partially
+     - Partially
+     - Yes
 
 All different approximation schemes are available using the approximate method of
 :class:`BosonicEnvironment`,the scheme is chosen by passing the "method" argument,
