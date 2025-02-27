@@ -407,9 +407,9 @@ class MetaSpace(type):
                 cls = Compound
 
         if settings.core['auto_tidyup_dims']:
-            if cls is Compound and all(isinstance(arg, Field) for arg in args):
+            if cls is Compound and all(arg.size == 1 for arg in args):
                 cls = Field
-            if cls is SuperSpace and args[0].type == "scalar":
+            elif cls is SuperSpace and args[0].type == 'scalar':
                 cls = Field
 
         args = tuple([
@@ -780,11 +780,6 @@ class MetaDims(type):
             )
         elif len(args) != 2:
             raise NotImplementedError('No Dual, Ket, Bra...', args)
-        elif (
-            settings.core["auto_tidyup_dims"]
-            and args[0] == args[1] == Field()
-        ):
-            return Field()
 
         if args not in cls._stored_dims:
             instance = cls.__new__(cls)
