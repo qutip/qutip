@@ -26,7 +26,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.linalg import eigvalsh
 from scipy.interpolate import CubicSpline
-
+from scipy.signal.windows import gaussian
 try:
     from mpmath import mp
     _mpmath_available = True
@@ -2754,43 +2754,581 @@ class FermionicEnvironment(abc.ABC):
         """
         return _FermionicEnvironment_fromSD(J, wlist, wMax, T, mu, tag, args)
 
-    # --- spectral density, power spectrum, correlation function conversions
+    @overload
+    def approximate(self,
+                    method: Literal['cf'],
+                    tlist: ArrayLike,
+                    target_rsme: float = 2e-5,
+                    Nr_max: int = 10,
+                    Ni_max: int = 10,
+                    guess: list[float] = None,
+                    lower: list[float] = None,
+                    upper: list[float] = None,
+                    sigma: float | ArrayLike = None,
+                    maxfev: int = None,
+                    full_ansatz: bool = False,
+                    combine: bool = True,
+                    tag: Any = None,
+                    ):
+        ...
+        r"""
+        Generates an approximation to this environment by fitting its
+        correlation function with a multi-exponential ansatz. The number of
+        exponents is determined iteratively based on reducing the normalized
+        root mean squared error below a given threshold.
 
-    def _psp_from_sd(self, w, eps, derivative=None):
-        # derivative: value of J'(0)
-        if self.T is None:
-            raise ValueError(
-                "The temperature must be specified for this operation.")
+        Specifically, the real and imaginary parts are fit by the following
+        model functions:
 
-        S = np.zeros(len(w))
-        return S.item() if w.ndim == 0 else S
+        .. math::
+            \operatorname{Re}[C(t)] = \sum_{k=1}^{N_r} \operatorname{Re}\Bigl[
+                (a_k + \mathrm i d_k) \mathrm e^{(b_k + \mathrm i c_k) t}\Bigl]
+                ,
+            \\
+            \operatorname{Im}[C(t)] = \sum_{k=1}^{N_i} \operatorname{Im}\Bigl[
+                (a'_k + \mathrm i d'_k) \mathrm e^{(b'_k + \mathrm i c'_k) t}
+                \Bigr].
 
-    def _psm_from_sd(self, w, eps, derivative=None):
-        # derivative: value of J'(0)
-        if self.T is None:
-            raise ValueError(
-                "The temperature must be specified for this operation.")
+        If the parameter `full_ansatz` is `False`, :math:`d_k` and :math:`d'_k`
+        are set to zero and the model functions simplify to
 
-        S = np.zeros(len(w))
-        return S.item() if w.ndim == 0 else S
+        .. math::
+            \operatorname{Re}[C(t)] = \sum_{k=1}^{N_r}
+                a_k  e^{b_k  t} \cos(c_{k} t)
+                ,
+            \\
+            \operatorname{Im}[C(t)] = \sum_{k=1}^{N_i}
+                a'_k  e^{b'_k  t} \sin(c'_{k} t) .
 
-    def _cfm_from_sd(self, w, eps, derivative=None):
-        # derivative: value of J'(0)
-        if self.T is None:
-            raise ValueError(
-                "The temperature must be specified for this operation.")
+        The simplified version offers faster fits, however it fails for
+        anomalous spectral densities with
+        :math:`\operatorname{Im}[C(0)] \neq 0` as :math:`\sin(0) = 0`.
 
-        S = np.zeros(len(w))
-        return S.item() if w.ndim == 0 else S
+        Parameters
+        ----------
+        tlist : array_like
+            The time range on which to perform the fit.
+        target_rmse : optional, float
+            Desired normalized root mean squared error (default `2e-5`). Can be
+            set to `None` to perform only one fit using the maximum number of
+            modes (`Nr_max`, `Ni_max`).
+        Nr_max : optional, int
+            The maximum number of modes to use for the fit of the real part
+            (default 10).
+        Ni_max : optional, int
+            The maximum number of modes to use for the fit of the imaginary
+            part (default 10).
+        guess : optional, list of float
+            Initial guesses for the parameters :math:`a_k`, :math:`b_k`, etc.
+            The same initial guesses are used for all values of k, and for
+            the real and imaginary parts. If `full_ansatz` is True, `guess` is
+            a list of size 4, otherwise, it is a list of size 3.
+            if one of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        lower : optional, list of float
+            Lower bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
+            The same lower bounds are used for all values of k, and for
+            the real and imaginary parts. If `full_ansatz` is True, `lower` is
+            a list of size 4, otherwise, it is a list of size 3.
+            if one of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        upper : optional, list of float
+            Upper bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
+            The same upper bounds are used for all values of k, and for
+            the real and imaginary parts. If `full_ansatz` is True, `upper` is
+            a list of size 4, otherwise, it is a list of size 3.
+            if one of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        sigma : optional, float or list of float
+            Adds an uncertainty to the correlation function of the environment,
+            i.e., adds a leeway to the fit. This parameter is useful to adjust
+            if the correlation function is very small in parts of the time
+            range. For more details, see the documentation of
+            ``scipy.optimize.curve_fit``.
+        maxfev : optional, int
+            Number of times the parameters of the fit are allowed to vary
+            during the optimization (per fit).
+        full_ansatz : optional, bool (default False)
+            If this is set to False, the parameters :math:`d_k` are all set to
+            zero. The full ansatz, including :math:`d_k`, usually leads to
+            significantly slower fits, and some manual tuning of the `guesses`,
+            `lower` and `upper` is usually needed. On the other hand, the full
+            ansatz can lead to better fits with fewer exponents, especially
+            for anomalous spectral densities with
+            :math:`\operatorname{Im}[C(0)] \neq 0` for which the simplified
+            ansatz will always give :math:`\operatorname{Im}[C(0)] = 0`.
+            When using the full ansatz with default values for the guesses and
+            bounds, if the fit takes too long, we recommend choosing guesses
+            and bounds manually.
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
 
-    def _cfp_from_sd(self, w, eps, derivative=None):
-        # derivative: value of J'(0)
-        if self.T is None:
-            raise ValueError(
-                "The temperature must be specified for this operation.")
+        Returns
+        -------
+        approx_env : :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        fit_info : dictionary
+            A dictionary containing the following information about the fit.
 
-        S = np.zeros(len(w))
-        return S.item() if w.ndim == 0 else S
+            "Nr"
+                The number of terms used to fit the real part of the
+                correlation function.
+            "Ni"
+                The number of terms used to fit the imaginary part of the
+                correlation function.
+            "fit_time_real"
+                The time the fit of the real part of the correlation function
+                took in seconds.
+            "fit_time_imag"
+                The time the fit of the imaginary part of the correlation
+                function took in seconds.
+            "rmse_real"
+                Normalized mean squared error obtained in the fit of the real
+                part of the correlation function.
+            "rmse_imag"
+                Normalized mean squared error obtained in the fit of the
+                imaginary part of the correlation function.
+            "params_real"
+                The fitted parameters (array of shape Nx3 or Nx4) for the real
+                part of the correlation function.
+            "params_imag"
+                The fitted parameters (array of shape Nx3 or Nx4) for the
+                imaginary part of the correlation function.
+            "summary"
+                A string that summarizes the information about the fit.
+        """
+        ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['sd'],
+        wlist: ArrayLike,
+        Nk: int,
+        target_rmse: float,
+        Nmax: int,
+        guess: list[float],
+        lower: list[float],
+        upper: list[float],
+        sigma: float | ArrayLike,
+        maxfev: int = None,
+        combine: bool = True,
+        tag: Any = None,
+    ):
+        r"""
+        Generates an approximation to this environment by fitting its spectral
+        density with a sum of underdamped terms. Each underdamped term
+        effectively acts like an underdamped environment. We use the known
+        exponential decomposition of the underdamped environment, keeping `Nk`
+        Matsubara terms for each. The number of underdamped terms is determined
+        iteratively based on reducing the normalized root mean squared error
+        below a given threshold.
+
+        Specifically, the spectral density is fit by the following model
+        function:
+
+        .. math::
+            J(\omega) = \sum_{k=1}^{N} \frac{2 a_k b_k \omega}{\left(\left(
+                \omega + c_k \right)^2 + b_k^2 \right) \left(\left(
+                \omega - c_k \right)^2 + b_k^2 \right)}
+
+        Parameters
+        ----------
+        wlist : array_like
+            The frequency range on which to perform the fit.
+        Nk : optional, int
+            The number of Matsubara terms to keep in each mode (default 1).
+        target_rmse : optional, float
+            Desired normalized root mean squared error (default `5e-6`). Can be
+            set to `None` to perform only one fit using the maximum number of
+            modes (`Nmax`).
+        Nmax : optional, int
+            The maximum number of modes to use for the fit (default 10).
+        guess : optional, list of float
+            Initial guesses for the parameters :math:`a_k`, :math:`b_k` and
+            :math:`c_k`. The same initial guesses are used for all values of
+            k.
+            if one of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        lower : optional, list of float
+            Lower bounds for the parameters :math:`a_k`, :math:`b_k` and
+            :math:`c_k`. The same lower bounds are used for all values of
+            k.
+            if one of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        upper : optional, list of float
+            Upper bounds for the parameters :math:`a_k`, :math:`b_k` and
+            :math:`c_k`. The same upper bounds are used for all values of
+            k.
+            if one of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        sigma : optional, float or list of float
+            Adds an uncertainty to the spectral density of the environment,
+            i.e., adds a leeway to the fit. This parameter is useful to adjust
+            if the spectral density is very small in parts of the frequency
+            range. For more details, see the documentation of
+            ``scipy.optimize.curve_fit``.
+        maxfev : optional, int
+            Number of times the parameters of the fit are allowed to vary
+            during the optimization (per fit).
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
+        Returns
+        -------
+        approx_env : :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        fit_info : dictionary
+            A dictionary containing the following information about the fit.
+
+            "N"
+                The number of underdamped terms used in the fit.
+            "Nk"
+                The number of Matsubara modes included per underdamped term.
+            "fit_time"
+                The time the fit took in seconds.
+            "rmse"
+                Normalized mean squared error obtained in the fit.
+            "params"
+                The fitted parameters (array of shape Nx3).
+            "summary"
+                A string that summarizes the information about the fit.
+        """
+        ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['ps'],
+        wlist: ArrayLike,
+        target_rmse: float,
+        Nmax: int,
+        guess: list[float],
+        lower: list[float],
+        upper: list[float],
+        sigma: float | ArrayLike,
+        maxfev: int = None,
+        combine: bool = True,
+        tag: Any = None,
+    ):
+        r"""
+        Generates an approximation to this environment by fitting its power 
+        spectrum via the the fourier transform of decaying exponentials. The 
+        number of underdamped terms is determined iteratively based on reducing
+        the normalized root mean squared error below a given threshold.
+
+        Specifically, the power spectrum is fit by the following model
+        function:
+
+        .. math::
+            S(\omega) = \sum_{k=1}^{N}\frac{2(a c + b (d - \omega))}
+            {(\omega - d)^2 + c^2}
+
+        Parameters
+        ----------
+        wlist : array_like
+            The frequency range on which to perform the fit.
+        target_rmse : optional, float
+            Desired normalized root mean squared error (default `5e-6`). Can be
+            set to `None` to perform only one fit using the maximum number of
+            modes (`Nmax`).
+        Nmax : optional, int
+            The maximum number of modes to use for the fit (default 10).
+        guess : optional, list of float
+            Initial guesses for the parameters :math:`a_k`, :math:`b_k` and
+            :math:`c_k`. The same initial guesses are used for all values of
+            k.
+            if one of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        lower : optional, list of float
+            Lower bounds for the parameters :math:`a_k`, :math:`b_k`,
+            :math:`c_k` and :math:`d_k`. The same lower bounds are used for all
+            values of k.
+            if one of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        upper : optional, list of float
+            Upper bounds for the parameters :math:`a_k`, :math:`b_k` and
+            :math:`c_k`. The same upper bounds are used for all values of
+            k.
+            if one of `guess`, `lower` and `upper` are provided, these
+            parameters will be chosen automatically.
+        sigma : optional, float or list of float
+            Adds an uncertainty to the spectral density of the environment,
+            i.e., adds a leeway to the fit. This parameter is useful to adjust
+            if the spectral density is very small in parts of the frequency
+            range. For more details, see the documentation of
+            ``scipy.optimize.curve_fit``.
+        maxfev : optional, int
+            Number of times the parameters of the fit are allowed to vary
+            during the optimization (per fit).
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
+        Returns
+        -------
+        approx_env : :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        fit_info : dictionary
+            A dictionary containing the following information about the fit.
+
+            "N"
+                The number of underdamped terms used in the fit.
+            "fit_time"
+                The time the fit took in seconds.
+            "rmse"
+                Normalized mean squared error obtained in the fit.
+            "params"
+                The fitted parameters (array of shape Nx4).
+            "summary"
+                A string that summarizes the information about the fit.
+        """
+        ...
+
+    @overload
+    def approximate(self,
+                    method: Literal['esprit', 'prony', 'mp', 'espira-I',
+                                    'espira-II'],
+                    tlist: ArrayLike,
+                    Nr: int,
+                    Ni: int,
+                    combine: bool,
+                    tag: Any,
+                    separate: bool):
+        r"""
+        Generates an approximation to this environment by fitting its
+        correlation function using methods based on the prony polynomial:
+
+        - method='prony'  For the Prony Method
+        - method='mp'  For the Matrix Pencil Method
+        - method='esprit'  For the Estimation of signal parameters via
+        rotational invariant techniques method
+
+        or methods based on the AAA algorithm:
+
+        - method='espira-I'  For the Estimation of Signal Parameters by
+        Iterative Rational Approximation
+        - method='espira-II'  For the Estimation of Signal Parameters by
+        Iterative Rational Approximation as matrix pencil from loewner matries
+
+
+        Parameters
+        ----------
+        tlist : array_like
+            The time range on which to perform the fit.
+        Nr : optional, int
+            The number of exponents desired to describe the imaginary part of
+            the correlation function. It defaults to 3
+        Nr : optional, int
+            The number of exponents desired to describe the real part of
+            the correlation function. It defaults to 3
+        combine : optional, bool (default True)
+            Whether to combine exponents with the same frequency. See
+            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
+            details.
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the approximated environment. If not
+            provided, a tag will be generated from the tag of this environment.
+
+        Returns
+        -------
+        approx_env : :class:`ExponentialBosonicEnvironment`
+            The approximated environment with multi-exponential correlation
+            function.
+        """
+        ...
+    # --- fitting
+
+    def approximate(self, method: str, *args, **kwargs):
+        """
+        Main implementation for all approximation methods
+        """
+        dispatch = {
+            "cf": self._approx_by_cf_fit,
+            "prony": self._approx_by_prony,
+            "mp": self._approx_by_prony,
+            "esprit": self._approx_by_prony,
+            "espira-I": self._approx_by_prony,
+            "espira-II": self._approx_by_prony
+        }
+
+        if not any(method in key for key in dispatch):
+            raise ValueError(f"""Unsupported method: {method}. Using the "
+                             abbreviation Correlation function (CF)."
+                             The available methods are: \n "
+                             - CF NLSQ Fitting (cf)\n"
+                             - CF Prony Fitting (prony) \n"
+                             - CF Matrix Pencil Fitting (mp) \n"
+                             - CF ESPRIT Fitting (esprit)\n"
+                             - CF ESPIRA-I Fitting (espira-I)\n"
+                             - CF ESPIRA-II Fitting (espira-II)\n"
+                             """)
+
+        return dispatch[method](method, *args, **kwargs)
+
+    def _approx_by_cf_fit(
+        self,
+        method: str,
+        tlist: ArrayLike,
+        target_rsme: float = 2e-5,
+        Nr_max: int = 10,
+        Ni_max: int = 10,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        full_ansatz: bool = False,
+        combine: bool = True,
+        tag: Any = None,
+    ):
+
+        # Process arguments
+        if tag is None and self.tag is not None:
+            tag = (self.tag, f"{method.upper()} Fit")
+
+        if full_ansatz:
+            num_params = 4
+        else:
+            num_params = 3
+
+        if target_rsme is None:
+            target_rsme = 0
+            Nr_min, Ni_min = Nr_max, Ni_max
+        else:
+            Nr_min, Ni_min = 1, 1
+
+        clist = self.correlation_function(tlist)
+        if guess is None and lower is None and upper is None:
+            guess_re, lower_re, upper_re = _default_guess_cfreal(
+                tlist, np.real(clist), full_ansatz)
+            guess_im, lower_im, upper_im = _default_guess_cfimag(
+                np.imag(clist), full_ansatz)
+        else:
+            guess_re, lower_re, upper_re = guess, lower, upper
+            guess_im, lower_im, upper_im = guess, lower, upper
+
+        # Fit real part
+        start_real = time()
+        rmse_real, r2_real, params_real = iterated_fit(
+            _cf_real_fit_model, num_params, tlist, np.real(clist), target_rsme,
+            Nr_min, Nr_max, guess=guess_re, lower=lower_re, upper=upper_re,
+            sigma=sigma, maxfev=maxfev
+        )
+        end_real = time()
+        fit_time_real = end_real - start_real
+
+        # Fit imaginary part
+        start_imag = time()
+        rmse_imag, r2_imag, params_imag = iterated_fit(
+            _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rsme,
+            Ni_min, Ni_max, guess=guess_im, lower=lower_im, upper=upper_im,
+            sigma=sigma, maxfev=maxfev
+        )
+        end_imag = time()
+        fit_time_imag = end_imag - start_imag
+
+        # Generate summary
+        Nr = len(params_real)
+        Ni = len(params_imag)
+        full_summary = _cf_fit_summary(
+            params_real, params_imag, fit_time_real, fit_time_imag,
+            Nr, Ni, r2_real, r2_imag, n=num_params
+        )
+
+        fit_info = {"Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
+                    "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
+                    "rmse_imag": rmse_imag, "params_real": params_real,
+                    "params_imag": params_imag, "summary": full_summary,
+                    "r2_imag": r2_imag, "r2_real": r2_real}
+
+        # Finally, generate environment and return
+        ckAR = []
+        vkAR = []
+        for term in params_real:
+            if full_ansatz:
+                a, b, c, d = term
+            else:
+                a, b, c = term
+                d = 0
+            ckAR.extend([(a + 1j * d) / 2, (a - 1j * d) / 2])
+            vkAR.extend([-b - 1j * c, -b + 1j * c])
+
+        ckAI = []
+        vkAI = []
+        for term in params_imag:
+            if full_ansatz:
+                a, b, c, d = term
+            else:
+                a, b, c = term
+                d = 0
+            ckAI.extend([-1j * (a + 1j * d) / 2, 1j * (a - 1j * d) / 2])
+            vkAI.extend([-b - 1j * c, -b + 1j * c])
+
+        approx_env = ExponentialBosonicEnvironment(
+            ckAR, vkAR, ckAI, vkAI, combine=combine, T=self.T, tag=tag)
+        return approx_env, fit_info
+
+    def _approx_by_prony(
+        self,
+        method: str,
+        tlist: ArrayLike,
+        Np: int = 3,
+        Nm: int = 3,
+        tag: Any = None,
+    ):
+        def prony(x, n):
+            return prony_methods(method, x, n)
+
+        def phase_to_exponent(phases):
+            return -((len(tlist) - 1) / tlist[-1]) * \
+                (np.log(np.abs(phases)) + 1j * np.angle(phases))
+        methods = {"mp": prony,
+                   "prony": prony,
+                   "esprit": prony,
+                   "espira-I": espira1,
+                   "espira-II": espira2}
+        if tag is None and self.tag is not None:
+            tag = (self.tag, f"{method.upper()} Fit")
+        start_plus = time()
+        params_plus, rmse_plus, r2 = methods[method](
+            self.correlation_function_plus(tlist), Np)
+        end_plus = time()
+        amp, phases = params_plus.T
+        ck = amp
+        vk = phase_to_exponent(phases)
+        fit_time_plus = end_plus-start_plus
+        start_minus = time()
+        params_minus, rmse_plus, r2 = methods[method](
+            self.correlation_function_minus(tlist), Nm)
+        end_minus = time()
+        amp, phases = params_minus.T
+        ckm = amp
+        vkm = phase_to_exponent(phases)
+
+        fit_time_minus = end_minus-start_minus
+        cls = ExponentialFermionicEnvironment(ck_plus=ck, vk_plus=vk,
+                                              ck_minus=ck, vk_minus=np.array(
+                                                  vk).conj(),
+                                              T=self.T, mu=self.mu, tag=tag)
+        return cls
 
 
 class LorentzianEnvironment(FermionicEnvironment):
