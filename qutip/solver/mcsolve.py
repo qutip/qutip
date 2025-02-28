@@ -335,12 +335,16 @@ class MCIntegrator:
                 t_guess = t_final
                 _, state = self._integrator.get_state(copy=False)
                 break
+
             dt = t_final - t_prev
             ratio = (
                 np.log(norm_old / self.target_norm)
                 / np.log(norm_old / norm)
             )
-            t_guess = t_prev + dt * ratio
+            # We have a bias on the larger side.
+            # The 0.99 stop slow getting stuck in slow converging pattern
+            t_guess = t_prev + dt * ratio * 0.99
+
             if (t_guess - t_prev) < self.options['norm_t_tol']:
                 t_guess = t_prev + self.options['norm_t_tol']
             _, state = self._integrator.mcstep(t_guess, copy=False)
