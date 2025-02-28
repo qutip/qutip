@@ -915,7 +915,7 @@ def prony_methods(method: str, signal: ArrayLike, n: int):
 # ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
 
-def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
+def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-15):
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
     Based on the description in https://doi.org/10.1093/imanum/drab108
@@ -960,7 +960,7 @@ def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
     return params, rmse, r2
 
 
-def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
+def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-15):
     """
     Estimate amplitudes and frequencies using ESPIRA-II.
     Based on the description in https://doi.org/10.1093/imanum/drab108

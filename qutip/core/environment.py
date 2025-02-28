@@ -3322,7 +3322,7 @@ class FermionicEnvironment(abc.ABC):
         amp, phases = params_minus.T
         ckm = amp
         vkm = phase_to_exponent(phases)
-
+        print(len(ck))
         fit_time_minus = end_minus-start_minus
         cls = ExponentialFermionicEnvironment(ck_plus=ck, vk_plus=vk,
                                               ck_minus=ck, vk_minus=np.array(
@@ -4179,3 +4179,6 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
 # TODO: Add unit tests
 
 # TODO: Discuss wheter this is appropiate on github
+
+# TODO: Fix other fitting methods, delete innecessary, check why exponents
+# work that way
