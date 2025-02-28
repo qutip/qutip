@@ -21,7 +21,7 @@ from scipy.sparse import dok_matrix, csgraph
 cimport cython
 from qutip.core.data.base cimport Data
 
-__all__ = ['to', 'create']
+__all__ = ['to', 'create', '_parse_defaut_dtype']
 
 
 class _Epsilon:
@@ -204,7 +204,7 @@ cdef class _to:
         self.dispatchers = []
         self._str2type = {}
 
-    def add_conversions(self, converters):
+    def add_conversions(self, converters, _defer=False):
         """
         Add conversion functions between different data types.  This is an
         advanced function, and is only intended for the QuTiP user who wants to
@@ -250,6 +250,11 @@ cdef class _to:
                 the `weights` attribute of this object.
                 Weight of ~0.001 are should be used in case when no conversion
                 is needed or ``converter = lambda mat : mat``.
+
+        _defer : bool, optional (False)
+            Only intended for internal library use during initialisation. If
+            `True`, the full lookup tables is not built and the added types
+            will not be usable until the building is triggered elsewhere.
         """
         for arg in converters:
             if len(arg) == 3:
@@ -313,8 +318,9 @@ cdef class _to:
             self.weight[(Data, dtype)] = EPSILON
             self._convert[(dtype, Data)] = _partial_converter(self, dtype)
             self._convert[(Data, dtype)] = identity_converter
-        for dispatcher in self.dispatchers:
-            dispatcher.rebuild_lookup()
+        if not _defer:
+            for dispatcher in self.dispatchers:
+                dispatcher.rebuild_lookup()
         for group in self.groups:
             for dtype in self.dtypes:
                 to_t = getattr(group, dtype.sparcity())
@@ -345,7 +351,7 @@ cdef class _to:
                 raise TypeError("The alias must be a str : " + repr(alias))
             self._str2type[alias] = layer_type
 
-    def register_group(self, names, *, dense=None, sparse=None, diagonal=None):
+    def register_group(self, names, *, dense=None, sparse=None, diagonal=None, _defer=False):
         """
         Register a set of Data layers under a single name to allow conversion
         to that general group:
@@ -368,6 +374,11 @@ cdef class _to:
 
         diagonal : type
             Layer type of a diagonal representation in that group.
+
+        _defer : bool, optional (False)
+            Only intended for internal library use during initialisation. If
+            `True`, the full lookup tables is not built and the added types
+            will not be usable until the building is triggered elsewhere.
         """
         group = _DataGroup(
             dense=(dense or sparse or diagonal),
@@ -386,6 +397,10 @@ cdef class _to:
             self._convert[(group, dtype)] = self._convert[(to_t, dtype)]
 
         self._convert[(group, Data)] = _partial_converter(self, group)
+
+        if not _defer:
+            for dispatcher in self.dispatchers:
+                dispatcher.rebuild_lookup()
 
     def parse(self, dtype):
         """
@@ -535,3 +550,14 @@ cdef class _create:
 
 to = _to()
 create = _create()
+
+
+def _parse_defaut_dtype(provided, sparcity):
+    from qutip import settings
+    if provided is None:
+        provided = settings.core["default_dtype"] or "core"
+
+    parsed = to.parse(provided)
+    if isinstance(provided, _DataGroup):
+        parsed = getattr(parsed, sparcity)
+    return parsed

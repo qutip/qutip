@@ -64,7 +64,7 @@ def cy_gate(*, dtype: LayerType = None) -> Qobj:
     result : :class:`.Qobj`
         Quantum object for operator describing the rotation.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return Qobj(
         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, -1j], [0, 0, 1j, 0]],
         dims=_DIMS_2_QB,
@@ -87,7 +87,7 @@ def cz_gate(*, dtype: LayerType = None) -> Qobj:
     result : :class:`.Qobj`
         Quantum object for operator describing the rotation.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return qdiags([1, 1, 1, -1], dims=_DIMS_2_QB, dtype=dtype)
 
 
@@ -107,7 +107,7 @@ def s_gate(*, dtype: LayerType = None) -> Qobj:
         a 90 degree rotation around the z-axis.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return qdiags([1, 1j], dtype=dtype)
 
 
@@ -126,7 +126,7 @@ def cs_gate(*, dtype: LayerType = None) -> Qobj:
         Quantum object for operator describing the rotation.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return qdiags([1, 1, 1, 1j], dims=_DIMS_2_QB, dtype=dtype)
 
 
@@ -145,7 +145,7 @@ def t_gate(*, dtype: LayerType = None) -> Qobj:
         Quantum object for operator describing a phase shift of pi/4.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return qdiags([1, np.exp(1j * np.pi / 4)], dtype=dtype)
 
 
@@ -164,7 +164,7 @@ def ct_gate(*, dtype: LayerType = None) -> Qobj:
         Quantum object for operator describing the rotation.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return qdiags(
         [1, 1, 1, np.exp(1j * np.pi / 4)],
         dims=_DIMS_2_QB,
@@ -190,7 +190,7 @@ def rx(phi: float, *, dtype: LayerType = None) -> Qobj:
         Quantum object for operator describing the rotation.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_defaut_dtype(dtype, "dense")
     return Qobj(
         [
             [np.cos(phi / 2), -1j * np.sin(phi / 2)],
@@ -219,7 +219,7 @@ def ry(phi: float, *, dtype: LayerType = None) -> Qobj:
         Quantum object for operator describing the rotation.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_defaut_dtype(dtype, "dense")
     return Qobj(
         [
             [np.cos(phi / 2), -np.sin(phi / 2)],
@@ -248,7 +248,7 @@ def rz(phi: float, *, dtype: LayerType = None) -> Qobj:
         Quantum object for operator describing the rotation.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return qdiags([np.exp(-1j * phi / 2), np.exp(1j * phi / 2)], dtype=dtype)
 
 
@@ -267,7 +267,7 @@ def sqrtnot(*, dtype: LayerType = None) -> Qobj:
         Quantum object for operator describing the square root NOT gate.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_defaut_dtype(dtype, "dense")
     return Qobj(
         [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]],
         isherm=False,
@@ -290,7 +290,7 @@ def snot(*, dtype: LayerType = None) -> Qobj:
         Quantum object representation of SNOT gate.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return Qobj(
         [[np.sqrt(0.5), np.sqrt(0.5)], [np.sqrt(0.5), -np.sqrt(0.5)]],
         isherm=True,
@@ -316,7 +316,7 @@ def phasegate(theta: float, *, dtype: LayerType = None) -> Qobj:
         Quantum object representation of phase shift gate.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return qdiags([1, np.exp(1.0j * theta)], dtype=dtype)
 
 
@@ -340,7 +340,7 @@ def qrot(theta: float, phi: float, *, dtype: LayerType = None) -> Qobj:
         Quantum object representation of physical qubit rotation under
         a rabi pulse.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_defaut_dtype(dtype, "dense")
     return Qobj(
         [
             [np.cos(theta / 2), -1j * np.exp(-1j * phi) * np.sin(theta / 2)],
@@ -373,7 +373,7 @@ def cphase(theta: float, *, dtype: LayerType = None) -> Qobj:
     U : qobj
         Quantum object representation of controlled phase gate.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return qdiags(
         [1, 1, 1, np.exp(1.0j * theta)], dims=_DIMS_2_QB, dtype=dtype
     )
@@ -395,7 +395,7 @@ def cnot(*, dtype: LayerType = None) -> Qobj:
         Quantum object representation of CNOT gate
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return Qobj(
         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]],
         dims=_DIMS_2_QB,
@@ -439,7 +439,7 @@ def berkeley(*, dtype: LayerType = None) -> Qobj:
         Quantum object representation of Berkeley gate
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_defaut_dtype(dtype, "dense")
     return Qobj(
         [
             [np.cos(np.pi / 8), 0, 0, 1.0j * np.sin(np.pi / 8)],
@@ -471,7 +471,7 @@ def swapalpha(alpha: float, *, dtype: LayerType = None) -> Qobj:
     swapalpha_gate : qobj
         Quantum object representation of SWAPalpha gate
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     phase = np.exp(1.0j * np.pi * alpha)
     return Qobj(
         [
@@ -501,7 +501,7 @@ def swap(*, dtype: LayerType = None) -> Qobj:
         Quantum object representation of SWAP gate
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return Qobj(
         [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
         dims=_DIMS_2_QB,
@@ -524,7 +524,7 @@ def iswap(*, dtype: LayerType = None) -> Qobj:
     iswap_gate : qobj
         Quantum object representation of iSWAP gate
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return Qobj(
         [[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]],
         dims=_DIMS_2_QB,
@@ -548,7 +548,7 @@ def sqrtswap(*, dtype: LayerType = None) -> Qobj:
         Quantum object representation of square root SWAP gate
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return Qobj(
         np.array(
             [
@@ -578,7 +578,7 @@ def sqrtiswap(*, dtype: LayerType = None) -> Qobj:
     sqrtiswap_gate : qobj
         Quantum object representation of square root iSWAP gate
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return Qobj(
         np.array(
             [
@@ -613,7 +613,7 @@ def molmer_sorensen(theta: float, *, dtype: LayerType = None) -> Qobj:
     molmer_sorensen_gate: :class:`.Qobj`
         Quantum object representation of the Mølmer–Sørensen gate.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return Qobj(
         [
             [np.cos(theta / 2.0), 0, 0, -1.0j * np.sin(theta / 2.0)],
@@ -647,7 +647,7 @@ def fredkin(*, dtype: LayerType = None) -> Qobj:
         Quantum object representation of Fredkin gate.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return Qobj(
         [
             [1, 0, 0, 0, 0, 0, 0, 0],
@@ -680,7 +680,7 @@ def toffoli(*, dtype: LayerType = None) -> Qobj:
         Quantum object representation of Toffoli gate.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return Qobj(
         [
             [1, 0, 0, 0, 0, 0, 0, 0],
@@ -725,7 +725,7 @@ def globalphase(theta: float, N: int = 1, *, dtype: LayerType = None) -> Qobj:
         Quantum object representation of global phase shift gate.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_defaut_dtype(dtype, "sparse")
     return qeye([2] * N, dtype=dtype) * np.exp(1.0j * theta)
 
 
@@ -764,7 +764,7 @@ def hadamard_transform(N: int = 1, *, dtype: LayerType = None) -> Qobj:
         Quantum object representation of the N-qubit Hadamard gate.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_defaut_dtype(dtype, "dense")
     data = 2 ** (-N / 2) * np.array(
         [
             [(-1) ** _hamming_distance(i & j) for i in range(2**N)]
@@ -808,7 +808,7 @@ def qubit_clifford_group(*, dtype: LayerType = None) -> list[Qobj]:
         Clifford operators, represented as Qobj instances.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_defaut_dtype(dtype, "dense")
 
     # The Ross-Selinger presentation of the single-qubit Clifford
     # group expresses each element in the form C_{ijk} = E^i X^j S^k
