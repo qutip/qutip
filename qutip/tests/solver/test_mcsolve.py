@@ -649,7 +649,7 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert isinstance(mixed_result.ntraj_per_initial_state, list)
     assert mixed_result.ntraj_per_initial_state == ntraj
     assert (
-        sum(mixed_result.runs_weights + mixed_result.deterministic_weights) 
+        sum(mixed_result.runs_weights + mixed_result.deterministic_weights)
         == pytest.approx(1.)
     )
     assert (

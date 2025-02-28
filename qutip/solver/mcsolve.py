@@ -333,14 +333,18 @@ class MCIntegrator:
             tries += 1
             if (t_final - t_prev) < self.options['norm_t_tol']:
                 t_guess = t_final
-                _, state = self._integrator.get_state()
+                _, state = self._integrator.get_state(copy=False)
                 break
-            t_guess = (
-                t_prev
-                + ((t_final - t_prev)
-                   * np.log(norm_old / self.target_norm)
-                   / np.log(norm_old / norm))
+
+            dt = t_final - t_prev
+            ratio = (
+                np.log(norm_old / self.target_norm)
+                / np.log(norm_old / norm)
             )
+            # We have a bias on the larger side.
+            # The 0.99 stop slow getting stuck in slow converging pattern
+            t_guess = t_prev + dt * ratio * 0.99
+
             if (t_guess - t_prev) < self.options['norm_t_tol']:
                 t_guess = t_prev + self.options['norm_t_tol']
             _, state = self._integrator.mcstep(t_guess, copy=False)
@@ -376,15 +380,19 @@ class MCIntegrator:
         - Store collapse info.
         """
         # collapse_time, state is at the collapse
-        if len(self._n_ops) == 1:
+        num_ops = len(self._n_ops)
+        if num_ops == 1:
             which = 0
         else:
-            probs = np.zeros(len(self._n_ops))
-            for i, n_op in enumerate(self._n_ops):
-                probs[i] = n_op.expect_data(collapse_time, state).real
-            probs = np.cumsum(probs)
-            which = np.searchsorted(probs,
-                                    probs[-1] * self._generator.random())
+            probs = [
+                n_op.expect_data(collapse_time, state).real
+                for i, n_op in enumerate(self._n_ops)
+            ]
+            target = sum(probs) * self._generator.random() - probs[0]
+            which = 0
+            while target > 0 and which <= num_ops:
+                which = which + 1
+                target -= probs[which]
 
         state_new = self._c_ops[which].matmul_data(collapse_time, state)
         new_norm = self._norm_func(state_new)
@@ -451,9 +459,9 @@ class MCSolver(MultiTrajSolver):
         "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
-        "method": "adams",
+        "method": "vern7",
         "mc_corr_eps": 1e-10,
-        "norm_steps": 5,
+        "norm_steps": 10,
         "norm_t_tol": 1e-6,
         "norm_tol": 1e-4,
         "improved_sampling": False,
