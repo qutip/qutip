@@ -8,7 +8,7 @@ Monte Carlo Solver
 .. _monte-intro:
 
 Introduction
-=============
+============
 
 Where as the density matrix formalism describes the ensemble average over many
 identical realizations of a quantum system, the Monte Carlo (MC), or
@@ -153,8 +153,9 @@ Monte Carlo Solver Result
 The Monte Carlo solver returns a :class:`.McResult` object consisting of
 expectation values and/or states. The main difference with :func:`.mesolve`'s
 :class:`.Result` is that it optionally stores the result of each trajectory
-together with their averages. When trajectories are stored, ``result.runs_expect``
-is a list over the expectation operators, trajectories and times in that order.
+together with their averages with the use of the ``"keep_runs_results"`` option.
+When trajectories are stored, ``result.runs_expect`` is a list over the
+expectation operators, trajectories and times in that order.
 The averages are stored in ``result.average_expect`` and the standard derivation
 of the expectation values in ``result.std_expect``. When the states are returned,
 ``result.runs_states`` will be an array of length ``ntraj``. Each element
@@ -453,10 +454,11 @@ Running trajectories in parallel
 
 Monte-Carlo evolutions often need hundreds of trajectories to obtain sufficient
 statistics. Since all trajectories are independent of each other, they can be computed
-in parallel. The option ``map`` can take ``"serial"``, ``"parallel"`` or ``"loky"``.
+in parallel. The option ``map`` can take ``"serial"``, ``"parallel"``, ``"loky"`` or ``"mpi"``.
 Both ``"parallel"`` and ``"loky"`` compute trajectories on multiple CPUs using
 respectively the `multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`_
 and `loky <https://loky.readthedocs.io/en/stable/index.html>`_ python modules.
+The ``"mpi"`` option is for computing trajectories in a computing cluster, see the :ref:`MPI section<monte-mpi>` below.
 
 .. code-block::
 
@@ -557,6 +559,66 @@ We can redo the previous example for a situation where only half the emitted pho
     plt.xlabel('Time')
     plt.ylabel('Photon detections')
     plt.show()
+
+
+.. _monte-mpi:
+
+Distributed Simulations Using MPI
+=================================
+
+..
+    adapted from the `nm_mcsolve` tutorial notebook
+
+Sometimes, many trajectories are needed to see the convergence of the trajectory average.
+Using QuTiP's MPI capabilities, large numbers of trajectories can be computed in parallel
+on multiple nodes of a computing cluster. On the QuTiP side, running Monte Carlo simulations
+through MPI is as easy as replacing ``"map": "parallel"`` by ``"map": "mpi"`` in the provided options.
+In addition, one should always provide the ``"num_cpus"`` option, which in this case specifies
+the number of available worker processes. The number of available worker processes is typically one
+less than the total number of processes assigned to the task.
+
+The call to the Monte Carlo solver might look like this (for a more detailed example, see e.g.
+`this tutorial notebook <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/013_nonmarkovian_monte_carlo.ipynb>`_):
+
+.. code-block:: python
+
+    qutip.mcsolve(H, psi0, times, c_ops, ntraj=NTRAJ,
+                  options={'store_states': True,
+                           'progress_bar': False,
+                           'map': 'mpi',
+                           'num_cpus': NUM_WORKER_PROCESSES})
+
+To invoke the MPI API, QuTiP relies on the ``MPIPoolExecutor`` class from the `mpi4py <https://mpi4py.github.io/>`_ module.
+For instructions on how to set up an environment in which an ``MPIPoolExecutor`` can successfully
+be created and communicate across nodes, we generally refer to the
+`documentation of mpi4py <https://mpi4py.readthedocs.io/en/stable/mpi4py.futures.html>`_ and to your system administrator.
+
+Below, we provide an example batch script that can be submitted to a SLURM workload manager. The authors of this guide
+used this script to perform a parallel calculation on 500 CPUs distributed over 5 nodes of the supercomputer
+`HOKUSAI <https://www.r-ccs.riken.jp/exhibit_contents/SC20/hokusai.html>`_, using the `MPICH <https://www.mpich.org>`_
+implementation of the MPI standard. However, one should expect that adjustments to the script are required depending
+on the available MPI implementations and their versions, as well as the workload manager and its version and configuration.
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH --partition=XXXXX
+    #SBATCH --account=XXXXX
+
+    #SBATCH --nodes=5
+    #SBATCH --ntasks=501
+    #SBATCH --mem-per-cpu=1G
+
+    #SBATCH --time=0-10:00
+
+    source ~/.bashrc
+
+    module purge
+    module load mpi/mpich-x86_64
+    conda activate qutip-environment
+
+    mpirun -np $SLURM_NTASKS -bind-to core python -m mpi4py.futures XXXXX.py
+
 
 
 .. plot::

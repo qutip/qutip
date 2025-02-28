@@ -166,9 +166,10 @@ def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
     choi_dims = [kraus_ops[0].dims] * 2
     # transform a list of Qobj matrices list[sum_ij k_ij |i><j|]
     # into an array of array vectors sum_ij k_ij |i, j>> = sum_I k_I |I>>
-    kraus_vectors = np.asarray(
-        [np.reshape(kraus_op.full(), len_op, "F") for kraus_op in kraus_ops]
-    )
+    kraus_vectors = np.asarray([
+        np.reshape(kraus_op.full(), len_op, order="F")
+        for kraus_op in kraus_ops
+    ])
     # sum_{I} |k_I|^2 |I>><<I|
     choi_array = np.tensordot(
         kraus_vectors, kraus_vectors.conj(), axes=([0], [0])
@@ -176,7 +177,7 @@ def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
     return Qobj(choi_array, choi_dims, superrep="choi", copy=False)
 
 
-def kraus_to_super(kraus_list: list[Qobj]) -> Qobj:
+def kraus_to_super(kraus_list: list[Qobj], sparse=False) -> Qobj:
     """
     Convert a list of Kraus operators to a superoperator.
 
@@ -184,8 +185,13 @@ def kraus_to_super(kraus_list: list[Qobj]) -> Qobj:
     ----------
     kraus_list : list of Qobj
         The list of Kraus super operators to convert.
+    sparse: bool
+        Prevents dense intermediates if true.
     """
-    return to_super(kraus_to_choi(kraus_list))
+    if sparse:
+        return sum(sprepost(k, k.dag()) for k in kraus_list)
+    else:
+        return to_super(kraus_to_choi(kraus_list))
 
 
 def _super_tofrom_choi(q_oper):
@@ -205,7 +211,9 @@ def _super_tofrom_choi(q_oper):
     d1 = np.prod(flatten(new_dims[1]))
     s0 = np.prod(dims[0][0])
     s1 = np.prod(dims[1][1])
-    data = data.reshape([s0, s1, s0, s1]).transpose(3, 1, 2, 0).reshape(d0, d1)
+    data = (
+        data.reshape([s0, s1, s0, s1]).transpose(3, 1, 2, 0).reshape([d0, d1])
+    )
     return Qobj(data,
                 dims=new_dims,
                 superrep='super' if q_oper.superrep == 'choi' else 'choi',

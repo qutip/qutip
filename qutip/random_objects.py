@@ -145,7 +145,7 @@ def _rand_jacobi_rotation(A, generator):
     cols = np.hstack(([i, j, i, j], diag))
     R = sp.coo_matrix((data, (rows, cols)), shape=(n, n), dtype=complex)
     R = _data.create(R.tocsr())
-    return _data.matmul(_data.matmul(R, A), R.adjoint())
+    return _data.to(_data.CSR, _data.matmul(_data.matmul(R, A), R.adjoint()))
 
 
 def _get_block_sizes(N, density, generator):
@@ -520,7 +520,10 @@ def rand_ket(
         X = _data.csr.CSR(X + Y)
         ket = Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
                    copy=False, isherm=False, isunitary=False)
-    ket.dims = [dims[0], [1]]
+    if np.ndim(dims[0]) == 1: # ket
+        ket.dims = [dims[0], [1] * len(dims[0])]
+    else: # operator-ket
+        ket.dims = [dims[0], [1]]
     return ket.to(dtype)
 
 

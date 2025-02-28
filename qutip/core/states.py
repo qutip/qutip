@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'fock', 'thermal_dm', 'maximally_mixed_dm', 'ket2dm', 'projection',
            'qstate', 'ket', 'bra', 'state_number_enumerate',
@@ -162,11 +165,14 @@ def basis(
                              "`0 <= n < dimension`.")
 
     data = _data.one_element[dtype]((size, 1), (location, 0), 1)
-    return Qobj(data,
-                dims=[dimensions, dimensions.scalar_like()],
-                isherm=False,
-                isunitary=False,
-                copy=False)
+    return Qobj(
+        data,
+        dims=[dimensions, dimensions.scalar_like()],
+        isherm=False,
+        isunitary=False,
+        copy=False,
+        dtype=dtype,
+    )
 
 
 def qutrit_basis(*, dtype: LayerType = None) -> list[Qobj]:
@@ -280,7 +286,7 @@ def coherent(
             s = np.prod(np.sqrt(np.arange(1, offset + 1)))  # sqrt factorial
             data[0] = np.exp(-abs(alpha)**2 * 0.5) * alpha**offset / s
         np.cumprod(data, out=sqrtn)  # Reuse sqrtn array
-        return Qobj(sqrtn, dims=[[N], [1]], copy=False).to(dtype)
+        return Qobj(sqrtn, dims=[[N], [1]], copy=False, dtype=dtype)
     raise TypeError(
         "The method option can only take values in " + repr(_COHERENT_METHODS)
     )
@@ -566,7 +572,7 @@ def maximally_mixed_dm(
     N = dimensions.size
 
     return Qobj(_data.identity[dtype](N, scale=1/N),
-                dims=[dimensions, dimensions],
+                dims=[dimensions, dimensions], dtype=dtype,
                 isherm=True, isunitary=(N == 1), copy=False)
 
 
@@ -857,7 +863,7 @@ def bra(
     [[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.]]
     """
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
-    return ket(seq, dim=dim, dtype=dtype).dag()
+    return ket(seq, dim=dim, dtype=dtype).dag().to(dtype)
 
 
 def state_number_enumerate(
@@ -1102,7 +1108,8 @@ def zero_ket(dimensions: SpaceLike, *, dtype: LayerType = None) -> Qobj:
     dimensions = _to_space(dimensions)
     N = dimensions.size
     return Qobj(_data.zeros[dtype](N, 1),
-                dims=[dimensions, dimensions.scalar_like()], copy=False)
+                dims=[dimensions, dimensions.scalar_like()],
+                copy=False, dtype=dtype)
 
 
 def spin_state(
@@ -1295,8 +1302,8 @@ def triplet_states(*, dtype: LayerType = None) -> list[Qobj]:
         basis([2, 2], [1, 1], dtype=dtype),
         (
             np.sqrt(0.5) * (
-                basis([2, 2], [0, 1], dtype=dtype) +
-                basis([2, 2], [1, 0], dtype=dtype)
+                basis([2, 2], [0, 1]) +
+                basis([2, 2], [1, 0])
             )
         ).to(dtype),
         basis([2, 2], [0, 0], dtype=dtype),

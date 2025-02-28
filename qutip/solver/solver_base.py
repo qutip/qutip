@@ -574,7 +574,7 @@ def _solver_deprecation(kwargs, options, solver="me"):
 def _kwargs_migration(position, keyword, name):
     if position is not None:
         warnings.warn(
-            f"{name} will be positional only from qutip 5.3 for all solver",
+            f"{name} will be keyword only from qutip 5.3 for all solver",
             FutureWarning
         )
         return position

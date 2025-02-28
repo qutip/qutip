@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
 import numbers
@@ -565,12 +568,10 @@ class NonMarkovianMCSolver(MCSolver):
         """
         Run one trajectory and return the result.
         """
-        seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
-                                             **integrator_kwargs)
-        martingales = [self._martingale.value(t) for t in tlist]
-        result.add_relative_weight(martingales)
-        result.trace = martingales
-        return seed, result
+        seed, result, weight = super()._run_one_traj(seed, state, tlist, e_ops,
+                                                     **integrator_kwargs)
+        result.trace = [self._martingale.value(t) for t in tlist]
+        return seed, result, weight
 
     def run(
         self,

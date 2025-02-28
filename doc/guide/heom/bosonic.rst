@@ -10,7 +10,7 @@ spectral density, :math:`J_D`, are
 
     H_{sys} &= \frac{\epsilon \sigma_z}{2} + \frac{\Delta \sigma_x}{2}
 
-    J_D &= \frac{2\lambda \gamma \omega}{(\gamma^2 + \omega^2)},
+    J_D(\omega) &= \frac{2\lambda \gamma \omega}{\gamma^2 + \omega^2},
 
 We will demonstrate how to describe the bath using two different expansions
 of the spectral density correlation function (Matsubara's expansion and
@@ -23,23 +23,28 @@ the two bath expansions, :class:`~qutip.solver.heom.DrudeLorentzBath` and
 truncated expansion and show how to include an approximation to all of the
 remaining terms in the bath expansion.
 
-Afterwards, we will show how to calculate the bath expansion coefficients and to
+.. admonition:: Environment API
+
+    We will also explain how to achieve the same results using the :class:`.DrudeLorentzEnvironment`
+    that was introduced in the :ref:`section on environments <environments guide>`.
+    The "bath" classes are part of an older API that is less powerful than the "environment" API,
+    but often more convenient to use when one only uses the HEOM solver and does not need any of the new features.
+
+Afterwards, we will show how to calculate the correlation function expansion coefficients and to
 use those coefficients to construct your own bath description so that you can
-implement your own bosonic baths.
+implement your own bosonic baths / environments.
 
 Finally, we will demonstrate how to simulate a system coupled to multiple
 independent baths, as occurs, for example, in certain photosynthesis processes.
 
-A notebook containing a complete example similar to this one implemented in
-BoFiN can be found in
-`example notebook 1a <https://github.com/tehruhn/bofin/blob/main/examples/example-1a-Spin-bath-model-basic.ipynb>`__.
+A tutorial notebook containing a complete example similar to this one is the
+`HEOM example notebook 1a <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/heom/heom-1a-spin-bath-model-basic.ipynb>`_.
 
 
 Describing the system and bath
 ------------------------------
 
-First, let us construct the system Hamiltonian, :math:`H_{sys}`, and the initial
-system state, ``rho0``:
+First, let us construct the system Hamiltonian ``H_sys`` and the initial system state ``rho0``:
 
 .. plot::
     :context: reset
@@ -69,9 +74,8 @@ Now let us describe the bath properties:
     # System-bath coupling operator:
     Q = sigmaz()
 
-where :math:`\gamma` (``gamma``), :math:`\lambda` (``lam``) and :math:`T` are
-the parameters of a Drude-Lorentz bath, and ``Q`` is the coupling operator
-between the system and the bath.
+where :math:`\gamma` (``gamma``), :math:`\lambda` (``lam``) and the temperature :math:`T` are
+the parameters of a Drude-Lorentz bath, and ``Q`` is the coupling operator between the system and the bath.
 
 We may the pass these parameters to either
 :class:`~qutip.solver.heom.DrudeLorentzBath` or
@@ -94,8 +98,28 @@ the bath correlations:
     # Padé expansion:
     bath = DrudeLorentzPadeBath(Q, lam, gamma, T, Nk)
 
-Where ``Nk`` is the number of terms to retain within the expansion of the
-bath.
+Here, ``Nk`` is the number of terms to retain within the expansion of the bath.
+
+.. admonition:: Environment API
+
+    Using the environment API, we first create an abstract :class:`.DrudeLorentzEnvironment` describing the bath,
+    and then use its functions to create exponential expansions such as the Matsubara and Pade ones:
+
+    .. plot::
+        :context:
+        :nofigs:
+
+        from qutip.core.environment import DrudeLorentzEnvironment
+
+        env = DrudeLorentzEnvironment(T, lam, gamma)
+
+        # Matsubara expansion:
+        approx = env.approx_by_matsubara(Nk)
+
+        # Padé expansion:
+        approx = env.approx_by_pade(Nk)
+
+    Note that the coupling operator ``Q`` is not part of the environment objects.
 
 
 .. _heom-bosonic-system-and-bath-dynamics:
@@ -124,32 +148,41 @@ and to calculate the system evolution as a function of time:
     result = solver.run(rho0, tlist)
 
 The ``max_depth`` parameter determines how many levels of the hierarchy to
-retain. As a first approximation hierarchy depth may be thought of as similar
+retain. As a first approximation, hierarchy depth may be thought of as similar
 to the order of Feynman Diagrams (both classify terms by increasing number
 of interactions).
 
 The ``result`` is a standard QuTiP results object with the attributes:
 
-- ``times``: the times at which the state was evaluated (i.e. ``tlist``)
-- ``states``: the system states at each time
-- ``expect``: a list with the values of each ``e_ops`` at each time
-- ``e_data``: a dictionary with the values of each ``e_op`` at each time
-- ``ado_states``: see below (an instance of
-  :class:`~qutip.solver.heom.HierarchyADOsState`)
+- ``times``: The times at which the state was evaluated (i.e. ``tlist``).
+- ``states``: The system states at each time.
+- ``expect``: A list with the values of each expectation operator at each time.
+- ``e_data``: A dictionary with the values of each expectation operator at each time.
+- ``ado_states``: See below (a list of instances of :class:`~qutip.solver.heom.HierarchyADOsState`).
 
 If ``ado_return=True`` is passed to ``.run(...)`` the full set of auxilliary
 density operators (ADOs) that make up the hierarchy at each time will be
-returned as ``.ado_states``. We will describe how to use these to determine
-other properties, such as system-bath currents, later in the fermionic guide
-(see :ref:`heom-determining-currents`).
-
-If one has a full set of ADOs from a previous call of ``.run(...)`` you may
+returned as ``result.ado_states``. We will describe how to use these to determine
+other properties, such as system-bath currents, later in the :ref:`fermionic guide <heom-determining-currents>`.
+If one has a full set of ADOs from a previous call of ``.run(...)``, one may
 supply it as the initial state of the solver by calling
 ``.run(result.ado_states[-1], tlist, ado_init=True)``.
 
 As with other QuTiP solvers, if expectation operators or functions are supplied
 using ``.run(..., e_ops=[...])`` the expectation values are available in
 ``result.expect`` and ``result.e_data``.
+
+.. admonition:: Environment API
+
+    When using the environment API, one needs to pass the coupling operator
+    to the HEOM solver together with the approximated environment:
+
+    .. plot::
+        :context:
+        :nofigs:
+
+        solver = HEOMSolver(H_sys, (approx, Q), max_depth=max_depth, options=options)
+
 
 Below we run the solver again, but use ``e_ops`` to store the expectation
 values of the population of the system states and the coherence:
@@ -171,14 +204,14 @@ values of the population of the system states and the coherence:
     result = solver.run(rho0, tlist, e_ops={"11": P11p, "22": P22p, "12": P12p})
 
     # Plot the results:
-    fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    axes.plot(result.times, result.e_data["11"], 'b', linewidth=2, label="P11")
-    axes.plot(result.times, result.e_data["12"], 'r', linewidth=2, label="P12")
-    axes.set_xlabel(r't', fontsize=28)
-    axes.legend(loc=0, fontsize=12)
+    fig, axes = plt.subplots(1, 1, sharex=True, figsize=(6, 6))
+    axes.plot(result.times, np.real(result.e_data["11"]), 'b', linewidth=2, label="P11")
+    axes.plot(result.times, np.real(result.e_data["12"]), 'r', linewidth=2, label="P12")
+    axes.set_xlabel(r't', fontsize=16)
+    axes.legend(loc=0, fontsize=16)
 
 
-Steady-state
+Steady state
 ------------
 
 Using the same solver, we can also determine the steady state of the
@@ -191,9 +224,9 @@ combined system and bath using:
     steady_state, steady_ados = solver.steady_state()
 
 where ``steady_state`` is the steady state of the system and ``steady_ados``
-if the steady state of the full hierarchy. The ADO states are
-described more fully in :ref:`heom-determining-currents` and
-:class:`~qutip.solver.heom.HierarchyADOsState`.
+is the steady state of the full hierarchy. The ADO states are
+described more fully in the section on :ref:`determining currents <heom-determining-currents>`
+and in the API documentation for :class:`~qutip.solver.heom.HierarchyADOsState`.
 
 
 Matsubara Terminator
@@ -234,9 +267,33 @@ calculating the terminator for a given expansion:
 This captures the Markovian effect of the remaining terms in the expansion
 without having to fully model many more terms.
 
-The value ``delta`` is an approximation to the strength of the effect of
+The terminator amplitude ``delta`` is an approximation to the strength of the effect of
 the remaining terms in the expansion (i.e. how strongly the terminator is
 coupled to the rest of the system).
+
+.. admonition:: Environment API
+
+    Here, the terminator amplitude can be returned directly by the ``approx_by_matsubara`` and ``approx_by_pade`` methods used earlier.
+    Based on it, the special function ``environment.system_terminator`` can then be used to construct the terminator Liouvillian:
+
+    .. plot::
+        :context:
+        :nofigs:
+
+        from qutip.core.environment import system_terminator
+
+        # Matsubara expansion:
+        approx, delta = env.approx_by_matsubara(Nk, compute_delta=True)
+
+        # Padé expansion:
+        approx, delta = env.approx_by_pade(Nk, compute_delta=True)
+
+        # Add terminator to the system Liouvillian:
+        terminator = system_terminator(Q, delta)
+        HL = liouvillian(H_sys) + terminator
+
+        # Construct solver
+        solver = HEOMSolver(HL, (approx, Q), max_depth=max_depth, options=options)
 
 
 Matsubara expansion coefficients
@@ -249,47 +306,9 @@ construct a :class:`~qutip.solver.heom.BosonicBath` directly. A similar
 procedure can be used to apply :class:`~qutip.solver.heom.HEOMSolver` to any
 bosonic bath for which we can calculate the expansion coefficients.
 
-The real and imaginary parts of the correlation function, :math:`C(t)`, for the
-bosonic bath is expanded in an expontential series:
-
-.. math::
-
-      C(t) &= C_{real}(t) + i C_{imag}(t)
-
-      C_{real}(t) &= \sum_{k=0}^{\infty} c_{k,real} e^{- \nu_{k,real} t}
-
-      C_{imag}(t) &= \sum_{k=0}^{\infty} c_{k,imag} e^{- \nu_{k,imag} t}
-
-In the specific case of Matsubara expansion for the Drude-Lorentz bath, the
-coefficients of this expansion are, for the real part, :math:`C_{real}(t)`:
-
-.. math::
-
-    \nu_{k,real} &= \begin{cases}
-        \gamma                & k = 0\\
-        {2 \pi k} / {\beta }  & k \geq 1\\
-    \end{cases}
-
-    c_{k,real} &= \begin{cases}
-        \lambda \gamma [\cot(\beta \gamma / 2) - i]             & k = 0\\
-        \frac{4 \lambda \gamma \nu_k }{ (\nu_k^2 - \gamma^2)\beta}    & k \geq 1\\
-    \end{cases}
-
-and the imaginary part, :math:`C_{imag}(t)`:
-
-.. math::
-
-    \nu_{k,imag} &= \begin{cases}
-        \gamma                & k = 0\\
-        0                     & k \geq 1\\
-    \end{cases}
-
-    c_{k,imag} &= \begin{cases}
-        - \lambda \gamma      & k = 0\\
-        0                     & k \geq 1\\
-    \end{cases}
-
-And now the same numbers calculated in Python:
+The Matsubara expansion of the Drude-Lorentz correlation function is detailed in
+the section on the :ref:`Drude-Lorentz Environment <dl env guide>`.
+Let us calculate the coefficients and exponents in Python:
 
 .. plot::
     :context:
@@ -331,8 +350,19 @@ After all that, constructing the bath is very straight forward:
 
 And we're done!
 
-The :class:`~qutip.solver.heom.BosonicBath` can be used with the
-:class:`~qutip.solver.heom.HEOMSolver` in exactly the same way as the baths
+.. admonition:: Environment API
+
+    The analogue of the ``BosonicBath`` is the ``ExponentialBosonicEnvironment``.
+    Its usage is very similar:
+
+    .. code-block:: python
+
+        from qutip.core.environment import ExponentialBosonicEnvironment
+
+        env = ExponentialBosonicEnvironment(ck_real, vk_real, ck_imag, vk_imag)
+
+The :class:`~qutip.solver.heom.BosonicBath` and the :class:`.ExponentialBosonicEnvironment` can be used with the
+:class:`~qutip.solver.heom.HEOMSolver` in exactly the same way as the baths and environments that
 we constructed previously using the built-in Drude-Lorentz bath expansions.
 
 
@@ -340,16 +370,15 @@ Multiple baths
 --------------
 
 The :class:`~qutip.solver.heom.HEOMSolver` supports having a system interact
-with multiple environments. All that is needed is to supply a list of baths
-instead of a single bath.
+with multiple reservoirs. All that is needed is to supply a list of baths or environments
+instead of a single bath or environment.
 
 In the example below we calculate the evolution of a small system where
 each basis state of the system interacts with a separate bath. Such
 an arrangement can model, for example, the Fenna–Matthews–Olson (FMO)
-pigment-protein complex which plays an important role in photosynthesis (
-for a full FMO example see the notebook
-https://github.com/tehruhn/bofin/blob/main/examples/example-2-FMO-example.ipynb
-).
+pigment-protein complex which plays an important role in photosynthesis
+(for a full FMO example see the
+`HEOM example notebook 2 <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/heom/heom-2-fmo-example.ipynb>`_).
 
 For each bath expansion, we also include the terminator in the system
 Liouvillian.
@@ -399,10 +428,43 @@ occurs:
     # Plot populations:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
     for label, values in result.e_data.items():
-        axes.plot(result.times, values, label=label)
-    axes.set_xlabel(r't', fontsize=28)
-    axes.set_ylabel(r"Population", fontsize=28)
-    axes.legend(loc=0, fontsize=12)
+        axes.plot(result.times, np.real(values), label=label)
+    axes.set_xlabel(r't', fontsize=16)
+    axes.set_ylabel(r"Population", fontsize=16)
+    axes.legend(loc=0, fontsize=16)
+
+.. admonition:: Environment API
+
+    Instead of a list ``[bath1, bath2, ...]``, one can of course also pass multiple
+    environments with different coupling operators like
+
+    .. code-block:: python
+
+        HEOMSolver(Hsys, [(env1, Q1), (env2, Q2), ...], ...)
+
+    or even a mixed list of baths and environments.
+
+Shifted-Drude-Lorentz Bath
+--------------------------
+
+As discussed in :ref:`Drude-Lorentz Environment <dl env guide>`, a Shifted-Drude-Lorentz bath
+with a shift of :math:`\Omega` can be created by combining two regular Drude-Lorentz baths.
+Two Drude-Lorentz baths can be connected to the same site using a similar approach as in the previous section:
+
+.. code-block:: python
+
+    Omega = 0.1 # Shift
+    baths = []
+    for i in range(N_sys):
+        Q = proj(i, i)
+        # Two baths are added with same coupling-operator
+        baths.append(DrudeLorentzBath(Q, lam/2, gamma + 1j * Omega, T, Nk))
+        baths.append(DrudeLorentzBath(Q, lam/2, gamma - 1j * Omega, T, Nk))
+
+As a side note, it is easy to see that if :math:`\Omega=0` then we get two
+Drude-Lorentz baths each with a coupling strength of :math:`\lambda/2`.
+Now, because :math:`\gamma` and :math:`T` are same for both of them, the
+two can be combined to form a Drude-Lorentz bath with coupling strength :math:`\lambda`.
 
 
 .. plot::

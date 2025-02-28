@@ -739,6 +739,10 @@ def test_mixed_averaging(improved_sampling, initial_state, ntraj):
         assert result.ntraj_per_initial_state == ntraj
     else:
         assert sum(result.ntraj_per_initial_state) == ntraj
+    assert (
+        sum(result.deterministic_weights + result.runs_weights)
+        == pytest.approx(1.)
+    )
 
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
@@ -763,13 +767,8 @@ def test_mixed_equals_merged(improved_sampling, p):
 
     # Reuse seeds, then results should be identical
     seeds = mixed_result.seeds
-    if improved_sampling:
-        # For improved sampling, first two seeds are no-jump trajectories
-        seeds1 = seeds[0:1] + seeds[2:(ntraj[0]+1)]
-        seeds2 = seeds[1:2] + seeds[(ntraj[0]+1):]
-    else:
-        seeds1 = seeds[:ntraj[0]]
-        seeds2 = seeds[ntraj[0]:]
+    seeds1 = seeds[:ntraj[0]]
+    seeds2 = seeds[ntraj[0]:]
 
     pure_result1 = solver.run(initial_state1, tlist, ntraj[0], seeds=seeds1)
     pure_result2 = solver.run(initial_state2, tlist, ntraj[1], seeds=seeds2)
@@ -786,3 +785,11 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert hasattr(mixed_result, 'ntraj_per_initial_state')
     assert isinstance(mixed_result.ntraj_per_initial_state, list)
     assert mixed_result.ntraj_per_initial_state == ntraj
+    assert (
+        sum(mixed_result.runs_weights + mixed_result.deterministic_weights)
+        == pytest.approx(1.)
+    )
+    assert (
+        sum(merged_result.runs_weights + merged_result.deterministic_weights)
+        == pytest.approx(1.)
+    )

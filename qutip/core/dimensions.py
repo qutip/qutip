@@ -1,8 +1,8 @@
 """
 Internal use module for manipulating dims specifications.
 """
-
-# Everything should be explicitly imported, not made available by default.
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
 
 import numpy as np
 import numbers
@@ -250,7 +250,7 @@ def dims_to_tensor_shape(dims):
     tensor_shape : tuple
         NumPy shape of the corresponding tensor.
     """
-    perm = dims_to_tensor_perm(dims)
+    perm = np.argsort(dims_to_tensor_perm(dims))
     dims = flatten(dims)
     return tuple(map(partial(getitem, dims), perm))
 
@@ -350,6 +350,34 @@ def from_tensor_rep(tensorrep, dims):
 
 def _frozen(*args, **kwargs):
     raise RuntimeError("Dimension cannot be modified.")
+
+
+def einsum(subscripts, *operands):
+    """
+    Implementation of numpy.einsum for Qobj.
+    Evaluates the Einstein summation convention on the operands.
+    Parameters
+    ----------
+    subscripts: str
+        Specifies the subscripts for summation as comma
+        separated list of subscript labels.
+    operands: list of array_like
+        These are the arrays for the operation.
+
+    Returns
+    -------
+    Qobj (numpy.complex128)
+        Result of einsum as Qobj (numpy.complex128 if result is scalar)
+    """
+    operands_array = [to_tensor_rep(op) for op in operands]
+    result = np.einsum(subscripts, *operands_array)
+    if result.shape == ():
+        return result
+    dims = [
+        [d for d in result.shape[:result.ndim // 2]],
+        [d for d in result.shape[result.ndim // 2:]]
+    ]
+    return from_tensor_rep(result, dims)
 
 
 class MetaSpace(type):
@@ -908,10 +936,10 @@ class Dimensions(metaclass=MetaDims):
         # dims_to_tensor_perm
         stepl = self.to_.step()
         stepr = self.from_.step()
-        return list(np.concatenate([
+        return list(np.argsort(np.concatenate([
             np.argsort(stepl)[::-1],
             np.argsort(stepr)[::-1] + len(stepl)
-        ]))
+        ])))
 
     def remove(self, idx: int | list[int]) -> "Dimensions":
         """
