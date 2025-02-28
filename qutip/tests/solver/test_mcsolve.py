@@ -469,7 +469,7 @@ def test_super_H(improved_sampling, mixed_initial_state):
     a = qutip.destroy(size)
     H = qutip.num(size)
     if mixed_initial_state:
-        state = qutip.maximally_mixed_dm(size, dtype="dense")
+        state = qutip.maximally_mixed_dm(size)
     else:
         state = qutip.basis(size, size-1)
     times = np.linspace(0, 1.0, 100)
