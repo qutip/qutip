@@ -480,12 +480,12 @@ def test_super_H(improved_sampling, mixed_initial_state):
     e_ops = [qutip.num(size)]
     mc_expected = mcsolve(H, state, times, c_ops, e_ops=e_ops, ntraj=ntraj,
                           target_tol=(0.1 if state.isket else None),
-                          options={'map': 'serial',
+                          options={'map': 'serial', 'method': 'adams',
                                    "improved_sampling": improved_sampling})
     mc = mcsolve(qutip.liouvillian(H), state, times, c_ops,
                  e_ops=e_ops, ntraj=ntraj,
                  target_tol=(0.1 if state.isket else None),
-                 options={'map': 'serial',
+                 options={'map': 'serial', 'method': 'adams',
                           "improved_sampling": improved_sampling})
     np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.65)
 
@@ -649,7 +649,7 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert isinstance(mixed_result.ntraj_per_initial_state, list)
     assert mixed_result.ntraj_per_initial_state == ntraj
     assert (
-        sum(mixed_result.runs_weights + mixed_result.deterministic_weights) 
+        sum(mixed_result.runs_weights + mixed_result.deterministic_weights)
         == pytest.approx(1.)
     )
     assert (
