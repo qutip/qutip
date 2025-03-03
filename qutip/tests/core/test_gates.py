@@ -152,7 +152,7 @@ class TestCliffordGroup:
         assert len(pauli_gates) == 0
 
 
-@pytest.mark.parametrize("alias", [qutip.data.Dense, "CSR"])
+@pytest.mark.parametrize("alias", [qutip.data.Dense, "CSR", "core"])
 @pytest.mark.parametrize(["gate_func", "args"], [
         pytest.param(gates.cnot, (), id="cnot"),
         pytest.param(gates.cy_gate, (), id="cy_gate"),
@@ -191,6 +191,8 @@ class TestCliffordGroup:
 def test_metadata(gate_func, args, alias):
     gate = gate_func(*args, dtype=alias)
     dtype = qutip.data.to.parse(alias)
+    if alias == "core":
+        dtype = tuple(dtype)
     assert isinstance(gate.data, dtype)
     assert gate._isherm == qutip.data.isherm(gate.data)
     assert gate._isunitary == gate._calculate_isunitary()

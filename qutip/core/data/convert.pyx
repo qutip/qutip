@@ -558,6 +558,6 @@ def _parse_defaut_dtype(provided, sparcity):
         provided = settings.core["default_dtype"] or "core"
 
     parsed = to.parse(provided)
-    if isinstance(provided, _DataGroup):
+    if isinstance(parsed, _DataGroup):
         parsed = getattr(parsed, sparcity)
     return parsed

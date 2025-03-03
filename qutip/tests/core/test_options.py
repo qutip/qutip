@@ -43,6 +43,28 @@ class TestDefaultDType:
             assert (sparse + dense).dtype is qutip.core.data.CSR
             assert (dense + dense).dtype is qutip.core.data.CSR
 
+    def test_dtype_group(self):
+        qutip.core.data.to.register_group(
+            ["test"],
+            dense=qutip.core.data.Dia,
+            sparse=qutip.core.data.Dia,
+            diagonal=qutip.core.data.CSR
+        )
+        with CoreOptions(default_dtype="test"):
+            # sparse to dense is cheaper than the reverse.
+            assert qutip.qeye(3).dtype is qutip.core.data.CSR
+            assert qutip.basis(2).dtype is qutip.core.data.Dia
+
+        with CoreOptions(default_dtype="test", default_dtype_scope="full"):
+            assert (
+                qutip.qeye(3).dtype
+                in (qutip.core.data.CSR, qutip.core.data.Dia)
+            )
+            assert (
+                (-qutip.qeye(3, dtype="dense")).dtype in
+                (qutip.core.data.CSR, qutip.core.data.Dia)
+            )
+
 
 class TestNumpyBackend:
     def test_getattr_numpy(self):
