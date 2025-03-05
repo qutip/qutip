@@ -21,7 +21,7 @@ from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
 from ._feedback import _QobjFeedback, _DataFeedback
 from ..typing import EopsLike, QobjEvoLike, CoefficientLike
-from ..core.environment import BosonicEnvironment, FermionicEnvironment
+from ..core.environment import Environment
 
 
 def brmesolve(
@@ -63,21 +63,24 @@ def brmesolve(
         a_op : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :obj:`.Coefficient`, str, func
-            The corresponding bath spectral responce.
-            Can be a `Coefficient` using an 'w' args, a function of the
-            frequence or a string. Coefficient build from a numpy array are
-            understood as a function of ``w`` instead of ``t``. Function are
-            expected to be of the signature ``f(w)`` or ``f(t, w, **args)``.
+        spectra : :obj:`.Coefficient`, str, func, Environment
+            The corresponding bath spectra.
+            Bath can be provided as :class:`.BosonicEnvironment`, 
+            :class:`.FermionicEnvironment` or power spectra function.  These
+            can be a :obj:`.Coefficient`, function or string. For coefficient,
+            the frequency is passed as the 'w' args. The
+            :class:`SpectraCoefficient` can be used for array based
+            coefficient.
 
-            The spectra function can depend on ``t`` if the corresponding
-            ``a_op`` is a :obj:`.QobjEvo`.
+            The spectra can depend on ``t`` if the corresponding ``a_op`` is a
+            :obj:`.QobjEvo`.
 
         Example:
 
         .. code-block::
 
             a_ops = [
+                (a+a.dag(), BosonicEnvironment(...)),
                 (a+a.dag(), ('w>0', args={"w": 0})),
                 (QobjEvo(a+a.dag()), 'w > exp(-t)'),
                 ([[b+b.dag(), lambda t: ...]], lambda w: ...)),
@@ -137,11 +140,12 @@ def brmesolve(
             if not installed. Empty string or False will disable the bar.
         - | progress_kwargs : dict
           | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - | tensor_type : str ['sparse', 'dense', 'data']
-          | Which data type to use when computing the brtensor.
+        - | computation_type : str ['sparse', 'dense', 'matrix']
+          | With 'dense', the secular cutoff is checked first and only
+            elements within the approximation are computed and stored in an
+            array. With 'matrix', the tensor is build using matrix operation
+            and the secular cutoff is applied at the end.
             With a cutoff 'sparse' is usually the most efficient.
-        - | sparse_eigensolver : bool {False}
-            Whether to use the sparse eigensolver
         - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
             Which differential equation integration method to use.
         - | atol, rtol : float
@@ -204,11 +208,8 @@ def brmesolve(
             new_a_ops.append((a_op, SpectraCoefficient(spectra)))
         elif isinstance(spectra, Coefficient):
             new_a_ops.append((a_op, spectra))
-        elif isinstance(spectra, BosonicEnvironment):
-            spec = SpectraCoefficient(
-                coefficient(spectra.power_spectrum)
-            )
-            new_a_ops.append((a_op, spec))
+        elif isinstance(spectra, Environment):
+            new_a_ops.append((a_op, spectra))
         elif callable(spectra):
             sig = inspect.signature(spectra)
             if tuple(sig.parameters.keys()) == ("w",):
@@ -243,11 +244,13 @@ class BRSolver(Solver):
         a_op : :obj:`.Qobj`, :obj:`.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :obj:`.Coefficient`
+        spectra : :obj:`.Coefficient`, :obj:`.Environment`
             The corresponding bath spectra. As a `Coefficient` using an 'w'
             args. Can depend on ``t`` only if a_op is a :obj:`.QobjEvo`.
             :obj:`SpectraCoefficient` can be used to conver a coefficient
             depending on ``t`` to one depending on ``w``.
+            :class:`.BosonicEnvironment` or :class:`.FermionicEnvironment` are
+            also valid spectrum.
 
         Example:
 
@@ -286,14 +289,13 @@ class BRSolver(Solver):
         "normalize_output": False,
         'method': 'adams',
         'tensor_type': 'sparse',
-        'sparse_eigensolver': False,
     }
     _avail_integrators = {}
 
     def __init__(
         self,
         H: Qobj | QobjEvo,
-        a_ops: list[tuple[Qobj | QobjEvo, Coefficient]],
+        a_ops: list[tuple[Qobj | QobjEvo, Coefficient | Environment]],
         c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo] = None,
         sec_cutoff: float = 0.1,
         *,
@@ -324,9 +326,9 @@ class BRSolver(Solver):
             if not isinstance(oper, (Qobj, QobjEvo)):
                 raise TypeError("All `a_ops` operators "
                                 "must be a Qobj or QobjEvo")
-            if not isinstance(spectra, Coefficient):
+            if not isinstance(spectra, (Coefficient, Environment)):
                 raise TypeError("All `a_ops` spectra "
-                                "must be a Coefficient.")
+                                "must be a Coefficient or Environment.")
 
         self._system = H, a_ops, c_ops
         self._num_collapse = len(c_ops)
@@ -353,8 +355,8 @@ class BRSolver(Solver):
             *self._system,
             fock_basis=True,
             sec_cutoff=self.sec_cutoff,
-            sparse_eigensolver=self.options['sparse_eigensolver'],
-            br_dtype=self.options['tensor_type']
+            sparse_eigensolver=False,
+            br_computation_method=self.options['tensor_type']
         )
         self._init_rhs_time = time() - _time_start
         return rhs
@@ -389,9 +391,6 @@ class BRSolver(Solver):
             Which data type to use when computing the brtensor.
             With a cutoff 'sparse' is usually the most efficient.
 
-        sparse_eigensolver: bool, default: False
-            Whether to use the sparse eigensolver
-
         method: str, default: "adams"
             Which ODE integrator methods are supported.
         """
@@ -403,9 +402,7 @@ class BRSolver(Solver):
 
     def _apply_options(self, keys):
         need_new_rhs = self.rhs is not None and not self.rhs.isconstant
-        need_new_rhs &= (
-            'sparse_eigensolver' in keys or 'tensor_type' in keys
-        )
+        need_new_rhs &= 'tensor_type' in keys
         if need_new_rhs:
             self.rhs = self._prepare_rhs()
 

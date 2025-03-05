@@ -424,7 +424,7 @@ def _targets_to_list(targets, oper=None, N=None):
         targets = list(range(len(oper.dims[0])))
     if not hasattr(targets, '__iter__'):
         targets = [targets]
-    if not all([isinstance(t, int) for t in targets]):
+    if not all([isinstance(t, (int, np.integer)) for t in targets]):
         raise TypeError(
             "targets should be "
             "an integer or a list of integer")

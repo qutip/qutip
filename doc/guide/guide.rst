@@ -25,4 +25,4 @@ Users Guide
    guide-random.rst
    guide-settings.rst
    guide-measurement.rst
-   guide-control.rst
+   guide-family.rst
