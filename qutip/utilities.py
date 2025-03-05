@@ -68,7 +68,7 @@ def _factorial_div(N, arr):
 def _to_long(arr):
     prod = 1
     for i, v in enumerate(arr):
-        prod *= (i + 1)**int(v)
+        prod *= (i+1)**int(v)
     return prod
 
 
@@ -118,7 +118,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     _factorial_div(j1 + m1, c_factor)
     _factorial_div(j2 - m2, c_factor)
     _factorial_div(j2 + m2, c_factor)
-    C = np.sqrt((2.0 * j3 + 1.0) * _to_long(c_factor))
+    C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
 
     s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
     # `S` and `C` are large integer,s if `sign` is a np.int32 it could oveflow

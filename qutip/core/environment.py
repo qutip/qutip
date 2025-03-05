@@ -383,258 +383,25 @@ class BosonicEnvironment(abc.ABC):
         result = result_fct(t) / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
 
-    @overload
-    def approximate(self,
-                    method: Literal['cf'],
-                    tlist: ArrayLike,
-                    target_rsme: float = 2e-5,
-                    Nr_max: int = 10,
-                    Ni_max: int = 10,
-                    guess: list[float] = None,
-                    lower: list[float] = None,
-                    upper: list[float] = None,
-                    sigma: float | ArrayLike = None,
-                    maxfev: int = None,
-                    full_ansatz: bool = False,
-                    combine: bool = True,
-                    tag: Any = None,
-                    ):
-        ...
-        r"""
-        Generates an approximation to this environment by fitting its
-        correlation function with a multi-exponential ansatz. The number of
-        exponents is determined iteratively based on reducing the normalized
-        root mean squared error below a given threshold.
-
-        Specifically, the real and imaginary parts are fit by the following
-        model functions:
-
-        .. math::
-            \operatorname{Re}[C(t)] = \sum_{k=1}^{N_r} \operatorname{Re}\Bigl[
-                (a_k + \mathrm i d_k) \mathrm e^{(b_k + \mathrm i c_k) t}\Bigl]
-                ,
-            \\
-            \operatorname{Im}[C(t)] = \sum_{k=1}^{N_i} \operatorname{Im}\Bigl[
-                (a'_k + \mathrm i d'_k) \mathrm e^{(b'_k + \mathrm i c'_k) t}
-                \Bigr].
-
-        If the parameter `full_ansatz` is `False`, :math:`d_k` and :math:`d'_k`
-        are set to zero and the model functions simplify to
-
-        .. math::
-            \operatorname{Re}[C(t)] = \sum_{k=1}^{N_r}
-                a_k  e^{b_k  t} \cos(c_{k} t)
-                ,
-            \\
-            \operatorname{Im}[C(t)] = \sum_{k=1}^{N_i}
-                a'_k  e^{b'_k  t} \sin(c'_{k} t) .
-
-        The simplified version offers faster fits, however it fails for
-        anomalous spectral densities with
-        :math:`\operatorname{Im}[C(0)] \neq 0` as :math:`\sin(0) = 0`.
-
-        Parameters
-        ----------
-        tlist : array_like
-            The time range on which to perform the fit.
-        target_rmse : optional, float
-            Desired normalized root mean squared error (default `2e-5`). Can be
-            set to `None` to perform only one fit using the maximum number of
-            modes (`Nr_max`, `Ni_max`).
-        Nr_max : optional, int
-            The maximum number of modes to use for the fit of the real part
-            (default 10).
-        Ni_max : optional, int
-            The maximum number of modes to use for the fit of the imaginary
-            part (default 10).
-        guess : optional, list of float
-            Initial guesses for the parameters :math:`a_k`, :math:`b_k`, etc.
-            The same initial guesses are used for all values of k, and for
-            the real and imaginary parts. If `full_ansatz` is True, `guess` is
-            a list of size 4, otherwise, it is a list of size 3.
-            if one of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        lower : optional, list of float
-            Lower bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
-            The same lower bounds are used for all values of k, and for
-            the real and imaginary parts. If `full_ansatz` is True, `lower` is
-            a list of size 4, otherwise, it is a list of size 3.
-            if one of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        upper : optional, list of float
-            Upper bounds for the parameters :math:`a_k`, :math:`b_k`, etc.
-            The same upper bounds are used for all values of k, and for
-            the real and imaginary parts. If `full_ansatz` is True, `upper` is
-            a list of size 4, otherwise, it is a list of size 3.
-            if one of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        sigma : optional, float or list of float
-            Adds an uncertainty to the correlation function of the environment,
-            i.e., adds a leeway to the fit. This parameter is useful to adjust
-            if the correlation function is very small in parts of the time
-            range. For more details, see the documentation of
-            ``scipy.optimize.curve_fit``.
-        maxfev : optional, int
-            Number of times the parameters of the fit are allowed to vary
-            during the optimization (per fit).
-        full_ansatz : optional, bool (default False)
-            If this is set to False, the parameters :math:`d_k` are all set to
-            zero. The full ansatz, including :math:`d_k`, usually leads to
-            significantly slower fits, and some manual tuning of the `guesses`,
-            `lower` and `upper` is usually needed. On the other hand, the full
-            ansatz can lead to better fits with fewer exponents, especially
-            for anomalous spectral densities with
-            :math:`\operatorname{Im}[C(0)] \neq 0` for which the simplified
-            ansatz will always give :math:`\operatorname{Im}[C(0)] = 0`.
-            When using the full ansatz with default values for the guesses and
-            bounds, if the fit takes too long, we recommend choosing guesses
-            and bounds manually.
-        combine : optional, bool (default True)
-            Whether to combine exponents with the same frequency. See
-            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
-            details.
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-
-        Returns
-        -------
-        approx_env : :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
-        fit_info : dictionary
-            A dictionary containing the following information about the fit.
-
-            "Nr"
-                The number of terms used to fit the real part of the
-                correlation function.
-            "Ni"
-                The number of terms used to fit the imaginary part of the
-                correlation function.
-            "fit_time_real"
-                The time the fit of the real part of the correlation function
-                took in seconds.
-            "fit_time_imag"
-                The time the fit of the imaginary part of the correlation
-                function took in seconds.
-            "rmse_real"
-                Normalized mean squared error obtained in the fit of the real
-                part of the correlation function.
-            "rmse_imag"
-                Normalized mean squared error obtained in the fit of the
-                imaginary part of the correlation function.
-            "params_real"
-                The fitted parameters (array of shape Nx3 or Nx4) for the real
-                part of the correlation function.
-            "params_imag"
-                The fitted parameters (array of shape Nx3 or Nx4) for the
-                imaginary part of the correlation function.
-            "summary"
-                A string that summarizes the information about the fit.
-        """
-        ...
+    # --- fitting
 
     @overload
     def approximate(
         self,
-        method: Literal['sd'],
-        wlist: ArrayLike,
-        Nk: int,
-        target_rmse: float,
-        Nmax: int,
-        guess: list[float],
-        lower: list[float],
-        upper: list[float],
-        sigma: float | ArrayLike,
+        method: Literal['cf'],
+        tlist: ArrayLike,
+        target_rsme: float = 2e-5,
+        Nr_max: int = 10,
+        Ni_max: int = 10,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
         maxfev: int = None,
+        full_ansatz: bool = False,
         combine: bool = True,
         tag: Any = None,
-    ):
-        r"""
-        Generates an approximation to this environment by fitting its spectral
-        density with a sum of underdamped terms. Each underdamped term
-        effectively acts like an underdamped environment. We use the known
-        exponential decomposition of the underdamped environment, keeping `Nk`
-        Matsubara terms for each. The number of underdamped terms is determined
-        iteratively based on reducing the normalized root mean squared error
-        below a given threshold.
-
-        Specifically, the spectral density is fit by the following model
-        function:
-
-        .. math::
-            J(\omega) = \sum_{k=1}^{N} \frac{2 a_k b_k \omega}{\left(\left(
-                \omega + c_k \right)^2 + b_k^2 \right) \left(\left(
-                \omega - c_k \right)^2 + b_k^2 \right)}
-
-        Parameters
-        ----------
-        wlist : array_like
-            The frequency range on which to perform the fit.
-        Nk : optional, int
-            The number of Matsubara terms to keep in each mode (default 1).
-        target_rmse : optional, float
-            Desired normalized root mean squared error (default `5e-6`). Can be
-            set to `None` to perform only one fit using the maximum number of
-            modes (`Nmax`).
-        Nmax : optional, int
-            The maximum number of modes to use for the fit (default 10).
-        guess : optional, list of float
-            Initial guesses for the parameters :math:`a_k`, :math:`b_k` and
-            :math:`c_k`. The same initial guesses are used for all values of
-            k.
-            if one of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        lower : optional, list of float
-            Lower bounds for the parameters :math:`a_k`, :math:`b_k` and
-            :math:`c_k`. The same lower bounds are used for all values of
-            k.
-            if one of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        upper : optional, list of float
-            Upper bounds for the parameters :math:`a_k`, :math:`b_k` and
-            :math:`c_k`. The same upper bounds are used for all values of
-            k.
-            if one of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        sigma : optional, float or list of float
-            Adds an uncertainty to the spectral density of the environment,
-            i.e., adds a leeway to the fit. This parameter is useful to adjust
-            if the spectral density is very small in parts of the frequency
-            range. For more details, see the documentation of
-            ``scipy.optimize.curve_fit``.
-        maxfev : optional, int
-            Number of times the parameters of the fit are allowed to vary
-            during the optimization (per fit).
-        combine : optional, bool (default True)
-            Whether to combine exponents with the same frequency. See
-            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
-            details.
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-
-        Returns
-        -------
-        approx_env : :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
-        fit_info : dictionary
-            A dictionary containing the following information about the fit.
-
-            "N"
-                The number of underdamped terms used in the fit.
-            "Nk"
-                The number of Matsubara modes included per underdamped term.
-            "fit_time"
-                The time the fit took in seconds.
-            "rmse"
-                Normalized mean squared error obtained in the fit.
-            "params"
-                The fitted parameters (array of shape Nx3).
-            "summary"
-                A string that summarizes the information about the fit.
-        """
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         ...
 
     @overload
@@ -642,239 +409,101 @@ class BosonicEnvironment(abc.ABC):
         self,
         method: Literal['ps'],
         wlist: ArrayLike,
-        target_rmse: float,
-        Nmax: int,
-        guess: list[float],
-        lower: list[float],
-        upper: list[float],
-        sigma: float | ArrayLike,
+        target_rmse: float = 5e-6,
+        Nmax: int = 5,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
         maxfev: int = None,
         combine: bool = True,
         tag: Any = None,
-    ):
-        r"""
-        Generates an approximation to this environment by fitting its power
-        spectrum via the the fourier transform of decaying exponentials. The
-        number of underdamped terms is determined iteratively based on reducing
-        the normalized root mean squared error below a given threshold.
-
-        Specifically, the power spectrum is fit by the following model
-        function:
-
-        .. math::
-            S(\omega) = \sum_{k=1}^{N}\frac{2(a c + b (d - \omega))}
-            {(\omega - d)^2 + c^2}
-
-        Parameters
-        ----------
-        wlist : array_like
-            The frequency range on which to perform the fit.
-        target_rmse : optional, float
-            Desired normalized root mean squared error (default `5e-6`). Can be
-            set to `None` to perform only one fit using the maximum number of
-            modes (`Nmax`).
-        Nmax : optional, int
-            The maximum number of modes to use for the fit (default 10).
-        guess : optional, list of float
-            Initial guesses for the parameters :math:`a_k`, :math:`b_k` and
-            :math:`c_k`. The same initial guesses are used for all values of
-            k.
-            if one of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        lower : optional, list of float
-            Lower bounds for the parameters :math:`a_k`, :math:`b_k`,
-            :math:`c_k` and :math:`d_k`. The same lower bounds are used for all
-            values of k.
-            if one of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        upper : optional, list of float
-            Upper bounds for the parameters :math:`a_k`, :math:`b_k` and
-            :math:`c_k`. The same upper bounds are used for all values of
-            k.
-            if one of `guess`, `lower` and `upper` are provided, these
-            parameters will be chosen automatically.
-        sigma : optional, float or list of float
-            Adds an uncertainty to the spectral density of the environment,
-            i.e., adds a leeway to the fit. This parameter is useful to adjust
-            if the spectral density is very small in parts of the frequency
-            range. For more details, see the documentation of
-            ``scipy.optimize.curve_fit``.
-        maxfev : optional, int
-            Number of times the parameters of the fit are allowed to vary
-            during the optimization (per fit).
-        combine : optional, bool (default True)
-            Whether to combine exponents with the same frequency. See
-            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
-            details.
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-
-        Returns
-        -------
-        approx_env : :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
-        fit_info : dictionary
-            A dictionary containing the following information about the fit.
-
-            "N"
-                The number of underdamped terms used in the fit.
-            "fit_time"
-                The time the fit took in seconds.
-            "rmse"
-                Normalized mean squared error obtained in the fit.
-            "params"
-                The fitted parameters (array of shape Nx4).
-            "summary"
-                A string that summarizes the information about the fit.
-        """
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         ...
 
     @overload
-    def approximate(self,
-                    method: Literal['esprit', 'prony', 'mp', 'espira-I',
-                                    'espira-II'],
-                    tlist: ArrayLike,
-                    Nr: int,
-                    Ni: int,
-                    combine: bool,
-                    tag: Any,
-                    separate: bool):
-        r"""
-        Generates an approximation to this environment by fitting its
-        correlation function using methods based on the prony polynomial:
-
-        - method='prony'  For the Prony Method
-        - method='mp'  For the Matrix Pencil Method
-        - method='esprit'  For the Estimation of signal parameters via
-        rotational invariant techniques method
-
-        or methods based on the AAA algorithm:
-
-        - method='espira-I'  For the Estimation of Signal Parameters by
-        Iterative Rational Approximation
-        - method='espira-II'  For the Estimation of Signal Parameters by
-        Iterative Rational Approximation as matrix pencil from loewner matries
-
-
-        Parameters
-        ----------
-        tlist : array_like
-            The time range on which to perform the fit.
-        Nr : optional, int
-            The number of exponents desired to describe the imaginary part of
-            the correlation function. It defaults to 3
-        Nr : optional, int
-            The number of exponents desired to describe the real part of
-            the correlation function. It defaults to 3
-        combine : optional, bool (default True)
-            Whether to combine exponents with the same frequency. See
-            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
-            details.
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-        separate: optional, bool
-            When True real and imaginary parts are fit separately
-        Returns
-        -------
-        approx_env : :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
-        """
+    def approximate(
+        self,
+        method: Literal["sd"],
+        wlist: ArrayLike,
+        Nk: int = 1,
+        target_rmse: float = 5e-6,
+        Nmax: int = 10,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         ...
 
     @overload
-    def approximate(self,
-                    method: Literal['aaa'],
-                    wlist: ArrayLike,
-                    tol: float,
-                    N_max: int,
-                    combine: bool,
-                    tag: Any):
-        """
-        Generates an approximation to this environment by fitting its power
-        spectrum using the AAA algorithm. The function is fit to a rational
-        polynomial of the form
-
-        .. math::
-            S(\\omega)= 2 \\Re \\left(\\sum_{k} \frac{c_{k}}{\nu_{k}-i \\omega}
-            \right)
-
-        By isolating the poles and residues of a section of the complex plane
-        the correlation function can be reconstructed as a sum of decaying
-        exponentials. The main benefit of this method is that it does not
-        require much knowledge about the function to be fit. On the downside,
-        if many poles are around the origin, it might require the sample points
-        to be used for the fit to be a large dense range which makes this
-        algorithm consume a lot of RAM (it will also be slow if asking for many
-        exponents)
-
-        Parameters
-        ----------
-        wlist : array_like
-            The frequency range on which to perform the fit. With this method
-            typically logarithmic spacing works best.
-        tol : optional, int
-            Relative tolerance used to stop the algorithm, if an iteration
-            contribution is less than the tolerance the fit is stopped.
-        Nmax : optional, int
-            The maximum number of exponents desired. Corresponds to the
-            maximum number of iterations for the AAA algorithm
-        combine : optional, bool (default True)
-            Whether to combine exponents with the same frequency. See
-            :meth:`combine <.ExponentialBosonicEnvironment.combine>` for
-            details.
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-
-        Returns
-        -------
-        approx_env : :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
-        """
+    def approximate(
+        self,
+        method: Literal['aaa'],
+        wlist: ArrayLike,
+        tol: float = 1e-13,
+        N_max: int = 10,
+        combine: bool = True,
+        tag: Any = None
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         ...
-    # --- fitting
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['prony', 'mp', 'esprit', 'espira-I', 'espira-II'],
+        tlist: ArrayLike,
+        Nr: int = 3,
+        Ni: int = 3,
+        combine: bool = True,
+        tag: Any = None,
+        separate: bool = False
+    ) -> ExponentialBosonicEnvironment:
+        ...
+
+    @property
+    def _approximation_methods(self):
+        return {
+            "cf": (self._approx_by_cf_fit, "Correlation Function NLSQ"),
+            "ps": (self._approx_by_ps_fit, "Power Spectrum NLSQ"),
+            "sd": (self._approx_by_sd_fit, "Spectral Density NLSQ"),
+            "aaa": (self._approx_by_aaa, "Power spectrum AAA"),
+            "prony": (self._approx_by_prony, "Correlation Function Prony"),
+            "mp": (self._approx_by_prony,
+                   "Correlation Function Matrix Pencil"),
+            "esprit": (self._approx_by_prony, "Correlation Function ESPRIT"),
+            "espira-i": (self._approx_by_prony,
+                         "Correlation Function ESPIRA-I"),
+            "espira-ii": (self._approx_by_prony,
+                          "Correlation Function ESPIRA-II"),
+        }
 
     def approximate(self, method: str, *args, **kwargs):
         """
-        Main implementation for all approximation methods
+        Generates a multi-exponential approximation of this environment.
+        The available methods are ``"cf"``, ``"ps"``, ``"sd"``, ``"aaa"``,
+        ``"prony"``, ``"mp"``, ``"esprit"``, ``"espira-I"`` and
+        ``"espira-II"``. The methods and the parameters required per method are
+        documented in the :ref:`Users Guide<environment approximations api>`.
         """
-        dispatch = {
-            "cf": self._approx_by_cf_fit,
-            "sd": self._approx_by_sd_fit,
-            "ps": self._approx_by_ps_fit,
-            "prony": self._approx_by_prony,
-            "mp": self._approx_by_prony,
-            "esprit": self._approx_by_prony,
-            "aaa": self._approx_by_aaa,
-            "espira-I": self._approx_by_prony,
-            "espira-II": self._approx_by_prony
-        }
+        dispatch = self._approximation_methods
 
-        if not any(method in key for key in dispatch):
-            raise ValueError(f"""Unsupported method: {method}. Using the "
-                             abbreviation Correlation function (CF)."
-                             The available methods are: \n "
-                             - CF NLSQ Fitting (cf)\n"
-                             - Spectral Density NLSQ Fitting (sd) \n"
-                             - Power Spectrum NLSQ Fitting (ps) \n"
-                             - CF Prony Fitting (prony) \n"
-                             - CF Matrix Pencil Fitting (mp) \n"
-                             - CF ESPRIT Fitting (esprit)\n"
-                             - CF ESPIRA-I Fitting (espira-I)\n"
-                             - CF ESPIRA-II Fitting (espira-II)\n"
-                             - Power spectrum AAA fitting (aaa) \n
-                             If unsure what method to use, you should probably
-                             use ESPIRA-II, por Power spectrum NLSQ. For more
-                             information about when to use them, see the user's
-                             guide
-                             """)
+        if method.lower() not in dispatch:
+            error_string = (f"Unsupported method: {method}."
+                            " The available methods are:\n")
+            for key in dispatch:
+                error_string += f" - {dispatch[key][1]} ({key})\n"
+            error_string += ("If unsure what fitting method to use, you should"
+                             " probably use ESPIRA-II, or Power Spectrum NLSQ."
+                             " For more information about the fitting methods,"
+                             " see the Users Guide.")
+            raise ValueError(error_string)
 
-        return dispatch[method](method, *args, **kwargs)
+        func = dispatch[method.lower()][0]
+        return func(method, *args, **kwargs)
 
     def _approx_by_cf_fit(
         self,
@@ -1086,8 +715,8 @@ class BosonicEnvironment(abc.ABC):
         # Generate summary
         N = len(params)
         summary = _fit_summary(
-            fit_time, r2, N, "the power spectrum", params, columns=['a', 'b',
-                                                                    'c', 'd']
+            fit_time, r2, N, "the power spectrum", params,
+            columns=['a', 'b', 'c', 'd']
         )
         fit_info = {
             "N": N, "fit_time": fit_time, "rmse": rmse,
@@ -1116,6 +745,7 @@ class BosonicEnvironment(abc.ABC):
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
         start = time()
@@ -1164,6 +794,7 @@ class BosonicEnvironment(abc.ABC):
         tag: Any = None,
         separate: bool = False
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+
         def prony(x, n):
             return prony_methods(method, x, n)
 
@@ -1232,6 +863,18 @@ class BosonicEnvironment(abc.ABC):
                         "rmse": rmse_real, "params_real": params_real,
                         "summary": full_summary, "r2": r2}
         return cls, fit_info
+
+    def approx_by_cf_fit(self, *args, **kwargs):
+        # TODO remove by 5.3
+        warnings.warn('The API has changed. Please use approximate("cf", ...)'
+                      ' instead of approx_by_cf_fit(...).', FutureWarning)
+        return self.approximate("cf", *args, **kwargs)
+
+    def approx_by_sd_fit(self, *args, **kwargs):
+        # TODO remove by 5.3
+        warnings.warn('The API has changed. Please use approximate("sd", ...)'
+                      ' instead of approx_by_sd_fit(...).', FutureWarning)
+        return self.approximate("sd", *args, **kwargs)
 
 
 class _BosonicEnvironment_fromCF(BosonicEnvironment):
@@ -1431,59 +1074,134 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         sd_derivative = 2 * self.lam / self.gamma
         return self._ps_from_sd(w, None, sd_derivative)
 
+    # --- approximation methods
+
     @overload
-    def approx_by_matsubara(
-        self, Nk: int, combine: bool = ...,
-        compute_delta: Literal[False] = False, tag: Any = ...
+    def approximate(
+        self,
+        method: Literal['matsubara', 'pade'],
+        Nk: int,
+        combine: bool = True,
+        compute_delta: Literal[False] = False,
+        tag: Any = None
     ) -> ExponentialBosonicEnvironment: ...
 
     @overload
-    def approx_by_matsubara(
-        self, Nk: int, combine: bool = ...,
-        compute_delta: Literal[True] = True, tag: Any = ...
+    def approximate(
+        self,
+        method: Literal['matsubara', 'pade'],
+        Nk: int,
+        combine: bool = True,
+        compute_delta: Literal[True] = True,
+        tag: Any = None
     ) -> tuple[ExponentialBosonicEnvironment, float]: ...
 
-    def approx_by_matsubara(
-        self, Nk, combine=True, compute_delta=False, tag=None
+    #region overloads from parent class
+    # unfortunately, @overload definitions must be duplicated in subclasses
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['cf'],
+        tlist: ArrayLike,
+        target_rsme: float = 2e-5,
+        Nr_max: int = 10,
+        Ni_max: int = 10,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        full_ansatz: bool = False,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['ps'],
+        wlist: ArrayLike,
+        target_rmse: float = 5e-6,
+        Nmax: int = 5,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal["sd"],
+        wlist: ArrayLike,
+        Nk: int = 1,
+        target_rmse: float = 5e-6,
+        Nmax: int = 10,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['aaa'],
+        wlist: ArrayLike,
+        tol: float = 1e-13,
+        N_max: int = 10,
+        combine: bool = True,
+        tag: Any = None
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['prony', 'mp', 'esprit', 'espira-I', 'espira-II'],
+        tlist: ArrayLike,
+        Nr: int = 3,
+        Ni: int = 3,
+        combine: bool = True,
+        tag: Any = None,
+        separate: bool = False
+    ) -> ExponentialBosonicEnvironment: ...
+
+    #endregion
+
+    @property
+    def _approximation_methods(self):
+        return {
+            **super()._approximation_methods,
+            "matsubara": (self._approx_by_matsubara, "Matsubara Truncation"),
+            "pade": (self._approx_by_pade, "Pade Truncation")
+        }
+
+    def approximate(self, method: str, *args, **kwargs):
+        """
+        Generates a multi-exponential approximation of this environment.
+        The available methods are ``"matsubara"``, ``"pade"``, ``"cf"``,
+        ``"ps"``, ``"sd"``, ``"aaa"``, ``"prony"``, ``"mp"``, ``"esprit"``,
+        ``"espira-I"`` and ``"espira-II"``. The methods and the parameters
+        required per method are documented in the
+        :ref:`Users Guide<environment approximations api>`.
+        """
+        return super().approximate(method, *args, **kwargs)
+
+    def _approx_by_matsubara(
+        self,
+        method: str,
+        Nk: int,
+        combine: bool = True,
+        compute_delta: bool = False,
+        tag: Any = None
     ):
-        """
-        Generates an approximation to this environment by truncating its
-        Matsubara expansion.
-
-        Parameters
-        ----------
-        Nk : int
-            Number of Matsubara terms to include. In total, the real part of
-            the correlation function will include `Nk+1` terms and the
-            imaginary part `1` term.
-
-        combine : bool, default `True`
-            Whether to combine exponents with the same frequency.
-
-        compute_delta : bool, default `False`
-            Whether to compute and return the approximation discrepancy
-            (see below).
-
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-
-        Returns
-        -------
-        approx_env : :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
-
-        delta : float, optional
-            The approximation discrepancy. That is, the difference between the
-            true correlation function of the Drude-Lorentz environment and the
-            sum of the ``Nk`` exponential terms is approximately ``2 * delta *
-            dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
-            It can be used to create a "terminator" term to add to the system
-            dynamics to take this discrepancy into account, see
-            :func:`.system_terminator`.
-        """
-
         if self.T == 0:
             raise ValueError("The Drude-Lorentz correlation function diverges "
                              "at zero temperature.")
@@ -1503,59 +1221,14 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         return approx_env, delta
 
-    @overload
-    def approx_by_pade(
-        self, Nk: int, combine: bool = ...,
-        compute_delta: Literal[False] = False, tag: Any = ...
-    ) -> ExponentialBosonicEnvironment: ...
-
-    @overload
-    def approx_by_pade(
-        self, Nk: int, combine: bool = ...,
-        compute_delta: Literal[True] = True, tag: Any = ...
-    ) -> tuple[ExponentialBosonicEnvironment, float]: ...
-
-    def approx_by_pade(
-        self, Nk, combine=True, compute_delta=False, tag=None
+    def _approx_by_pade(
+        self,
+        method: str,
+        Nk: int,
+        combine: bool = True,
+        compute_delta: bool = False,
+        tag: Any = None
     ):
-        """
-        Generates an approximation to this environment by truncating its
-        Pade expansion.
-
-        Parameters
-        ----------
-        Nk : int
-            Number of Pade terms to include. In total, the real part of
-            the correlation function will include `Nk+1` terms and the
-            imaginary part `1` term.
-
-        combine : bool, default `True`
-            Whether to combine exponents with the same frequency.
-
-        compute_delta : bool, default `False`
-            Whether to compute and return the approximation discrepancy
-            (see below).
-
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-
-        Returns
-        -------
-        approx_env : :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
-
-        delta : float, optional
-            The approximation discrepancy. That is, the difference between the
-            true correlation function of the Drude-Lorentz environment and the
-            sum of the ``Nk`` exponential terms is approximately ``2 * delta *
-            dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
-            It can be used to create a "terminator" term to add to the system
-            dynamics to take this discrepancy into account, see
-            :func:`.system_terminator`.
-        """
-
         if self.T == 0:
             raise ValueError("The Drude-Lorentz correlation function diverges "
                              "at zero temperature.")
@@ -1669,6 +1342,20 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
 
+    def approx_by_matsubara(self, *args, **kwargs):
+        # TODO remove by 5.3
+        warnings.warn(
+            'The API has changed. Please use approximate("matsubara", ...)'
+            ' instead of approx_by_matsubara(...).', FutureWarning)
+        return self.approximate("matsubara", *args, **kwargs)
+
+    def approx_by_pade(self, *args, **kwargs):
+        # TODO remove by 5.3
+        warnings.warn(
+            'The API has changed. Please use approximate("pade", ...)'
+            ' instead of approx_by_pade(...).', FutureWarning)
+        return self.approximate("pade", *args, **kwargs)
+
 
 class UnderDampedEnvironment(BosonicEnvironment):
     r"""
@@ -1761,34 +1448,133 @@ class UnderDampedEnvironment(BosonicEnvironment):
         wMax = self.w0 + 25 * self.gamma
         return self._cf_from_ps(t, wMax)
 
-    def approx_by_matsubara(
-        self, Nk: int, combine: bool = True, tag: Any = None
-    ) -> ExponentialBosonicEnvironment:
+    # --- approximation methods
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['matsubara'],
+        Nk: int,
+        combine: bool = True,
+        compute_delta: Literal[False] = False,
+        tag: Any = None
+    ) -> ExponentialBosonicEnvironment: ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['matsubara'],
+        Nk: int,
+        combine: bool = True,
+        compute_delta: Literal[True] = True,
+        tag: Any = None
+    ) -> tuple[ExponentialBosonicEnvironment, float]: ...
+
+    #region overloads from parent class
+    # unfortunately, @overload definitions must be duplicated in subclasses
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['cf'],
+        tlist: ArrayLike,
+        target_rsme: float = 2e-5,
+        Nr_max: int = 10,
+        Ni_max: int = 10,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        full_ansatz: bool = False,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['ps'],
+        wlist: ArrayLike,
+        target_rmse: float = 5e-6,
+        Nmax: int = 5,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal["sd"],
+        wlist: ArrayLike,
+        Nk: int = 1,
+        target_rmse: float = 5e-6,
+        Nmax: int = 10,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        combine: bool = True,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['aaa'],
+        wlist: ArrayLike,
+        tol: float = 1e-13,
+        N_max: int = 10,
+        combine: bool = True,
+        tag: Any = None
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['prony', 'mp', 'esprit', 'espira-I', 'espira-II'],
+        tlist: ArrayLike,
+        Nr: int = 3,
+        Ni: int = 3,
+        combine: bool = True,
+        tag: Any = None,
+        separate: bool = False
+    ) -> ExponentialBosonicEnvironment: ...
+
+    #endregion
+
+    @property
+    def _approximation_methods(self):
+        return {
+            **super()._approximation_methods,
+            "matsubara": (self._approx_by_matsubara, "Matsubara Truncation")
+        }
+
+    def approximate(self, method: str, *args, **kwargs):
         """
-        Generates an approximation to this environment by truncating its
-        Matsubara expansion.
-
-        Parameters
-        ----------
-        Nk : int
-            Number of Matsubara terms to include. In total, the real part of
-            the correlation function will include `Nk+2` terms and the
-            imaginary part `2` terms.
-
-        combine : bool, default `True`
-            Whether to combine exponents with the same frequency.
-
-        tag : optional, str, tuple or any other object
-            An identifier (name) for the approximated environment. If not
-            provided, a tag will be generated from the tag of this environment.
-
-        Returns
-        -------
-        :class:`ExponentialBosonicEnvironment`
-            The approximated environment with multi-exponential correlation
-            function.
+        Generates a multi-exponential approximation of this environment.
+        The available methods are ``"matsubara"``, ``"cf"``,
+        ``"ps"``, ``"sd"``, ``"aaa"``, ``"prony"``, ``"mp"``, ``"esprit"``,
+        ``"espira-I"`` and ``"espira-II"``. The methods and the parameters
+        required per method are documented in the
+        :ref:`Users Guide<environment approximations api>`.
         """
+        return super().approximate(method, *args, **kwargs)
 
+    def _approx_by_matsubara(
+        self,
+        method: str,
+        Nk: int,
+        combine: bool = True,
+        compute_delta: bool = False,
+        tag: Any = None
+    ):
         if tag is None and self.tag is not None:
             tag = (self.tag, "Matsubara Truncation")
 
@@ -1839,6 +1625,13 @@ class UnderDampedEnvironment(BosonicEnvironment):
         vk_imag = [-1j * Om + Gamma, 1j * Om + Gamma]
 
         return ck_real, vk_real, ck_imag, vk_imag
+
+    def approx_by_matsubara(self, *args, **kwargs):
+        # TODO remove by 5.3
+        warnings.warn(
+            'The API has changed. Please use approximate("matsubara", ...)'
+            ' instead of approx_by_matsubara(...).', FutureWarning)
+        return self.approximate("matsubara", *args, **kwargs)
 
 
 class OhmicEnvironment(BosonicEnvironment):
@@ -2501,7 +2294,7 @@ def _default_guess_ps(wlist, jlist):
     return guess, lower, upper
 
 
-def _fit_summary(time, rmse, N, label, params,
+def _fit_summary(time, r2, N, label, params,
                  columns=['a', 'b', 'c']):
     # Generates summary of fit by nonlinear least squares
     if len(columns) == 3:
@@ -2524,7 +2317,7 @@ def _fit_summary(time, rmse, N, label, params,
                 f"|{params[k][2]:^10.2e}|{params[k][3]:>5.2e}\n ")
     else:
         raise ValueError("Unsupported number of columns")
-    summary += (f"\nA 1-R2 coefficient of {rmse: .2e}"
+    summary += (f"\nA 1-R2 coefficient of {r2: .2e}"
                 f" was obtained for the {label}.\n")
     summary += f"The current fit took {time: 2f} seconds."
     return summary

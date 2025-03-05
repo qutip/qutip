@@ -779,7 +779,7 @@ class HEOMSolver(Solver):
             return FermionicBath.from_environment(env, Q, *args)
         raise ValueError("The HEOM solver requires the environment to have"
                         " a multi-exponential correlation function. Use"
-                        " one of the `approx_by_` functions to generate a"
+                        " the `approximate` functions to generate a"
                         " multi-exponential approximation.")
 
     def _grad_n(self, he_n):

@@ -734,12 +734,12 @@ class TestDLEnvironment:
             'The Drude-Lorentz correlation function '
             'diverges at zero temperature.')
         with pytest.raises(ValueError) as err:
-            env.approx_by_matsubara(10)
+            env.approximate("matsubara", 10)
         assert str(err.value) == (
             'The Drude-Lorentz correlation function '
             'diverges at zero temperature.')
         with pytest.raises(ValueError) as err:
-            env.approx_by_pade(10)
+            env.approximate("pade", 10)
         assert str(err.value) == (
             'The Drude-Lorentz correlation function '
             'diverges at zero temperature.')
@@ -753,7 +753,7 @@ class TestDLEnvironment:
         original_tag = object()
         env = DrudeLorentzEnvironment(**params, tag=original_tag)
 
-        approx = env.approx_by_matsubara(Nk, combine=False, tag=tag)
+        approx = env.approximate("matsubara", Nk, combine=False, tag=tag)
         assert isinstance(approx, ExponentialBosonicEnvironment)
         assert len(approx.exponents) == Nk + 2  # (Nk+1) real + 1 imag
         if tag is None:
@@ -765,8 +765,8 @@ class TestDLEnvironment:
         # CF at t=0 might not match, which is okay
         assert_equivalent(approx, env, tol=1e-2, skip_cf=True)
 
-        approx_combine, delta = env.approx_by_matsubara(
-            Nk, compute_delta=True, combine=True
+        approx_combine, delta = env.approximate(
+            "matsubara", Nk, compute_delta=True, combine=True
         )
         assert isinstance(approx_combine, ExponentialBosonicEnvironment)
         assert len(approx_combine.exponents) < Nk + 2
@@ -786,7 +786,7 @@ class TestDLEnvironment:
         original_tag = object()
         env = DrudeLorentzEnvironment(**params, tag=original_tag)
 
-        approx = env.approx_by_pade(Nk, combine=False, tag=tag)
+        approx = env.approximate("pade", Nk, combine=False, tag=tag)
         assert isinstance(approx, ExponentialBosonicEnvironment)
         assert len(approx.exponents) == Nk + 2  # (Nk+1) real + 1 imag
         if tag is None:
@@ -798,8 +798,8 @@ class TestDLEnvironment:
         # Wow, Pade is so much better
         assert_equivalent(approx, env, tol=1e-8, skip_cf=True)
 
-        approx_combine, delta = env.approx_by_pade(
-            Nk, combine=True, compute_delta=True
+        approx_combine, delta = env.approximate(
+            "pade", Nk, combine=True, compute_delta=True
         )
         assert isinstance(approx_combine, ExponentialBosonicEnvironment)
         assert len(approx_combine.exponents) < Nk + 2
@@ -838,10 +838,10 @@ class TestUDEnvironment:
         env = UnderDampedEnvironment(**params)
 
         tlist = np.linspace(0, 5, 100)
-        resonant_approx = env.approx_by_matsubara(Nk=0)
+        resonant_approx = env.approximate("matsubara", Nk=0)
 
         with pytest.warns(UserWarning) as record:
-            test_approx = env.approx_by_matsubara(Nk=3)
+            test_approx = env.approximate("matsubara", Nk=3)
         assert str(record[0].message) == (
             'The Matsubara expansion cannot be performed at zero temperature. '
             'Use other approaches such as fitting the correlation function.')
@@ -859,7 +859,7 @@ class TestUDEnvironment:
         original_tag = object()
         env = UnderDampedEnvironment(**params, tag=original_tag)
 
-        approx = env.approx_by_matsubara(Nk, combine=False, tag=tag)
+        approx = env.approximate("matsubara", Nk, combine=False, tag=tag)
         assert isinstance(approx, ExponentialBosonicEnvironment)
         assert len(approx.exponents) == Nk + 4  # (Nk+2) real + 2 imag
         if tag is None:
@@ -870,7 +870,7 @@ class TestUDEnvironment:
 
         assert_equivalent(approx, env, tol=1e-3)
 
-        approx_combine = env.approx_by_matsubara(Nk, combine=True)
+        approx_combine = env.approximate("matsubara", Nk, combine=True)
         assert isinstance(approx_combine, ExponentialBosonicEnvironment)
         assert len(approx_combine.exponents) < Nk + 4
         assert approx_combine.T == env.T
