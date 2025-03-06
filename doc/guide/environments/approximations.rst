@@ -132,12 +132,13 @@ API Documentation
 
         **delta** : float, optional
             The approximation discrepancy. That is, the difference between the
-            true correlation function of the Drude-Lorentz environment and the
-            sum of the ``Nk`` exponential terms is approximately ``2 * delta *
-            dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
+            true correlation function of the environment and the sum of the
+            ``Nk`` exponential terms is approximately ``2 * delta * dirac(t)``,
+            where ``dirac(t)`` denotes the Dirac delta function.
             It can be used to create a "terminator" term to add to the system
             dynamics to take this discrepancy into account, see
             :func:`.system_terminator`.
+            Note that for underdamped environments, ``delta`` is negative.
 
 ``"cf"`` Fit Correlation Function with Exponentials
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

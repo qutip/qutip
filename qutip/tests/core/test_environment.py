@@ -870,12 +870,23 @@ class TestUDEnvironment:
 
         assert_equivalent(approx, env, tol=1e-3)
 
-        approx_combine = env.approximate("matsubara", Nk, combine=True)
+        approx_combine, delta = env.approximate(
+            "matsubara", Nk, compute_delta=True, combine=True
+        )
         assert isinstance(approx_combine, ExponentialBosonicEnvironment)
         assert len(approx_combine.exponents) < Nk + 4
         assert approx_combine.T == env.T
 
         assert_equivalent(approx_combine, approx, tol=1e-8)
+
+        # Check terminator amplitude
+        delta_ref = (
+            env.gamma * env.lam**2 * env.T / env.w0**4 -
+            1j * env.lam**2 / (2 * env.w0**2)
+        )
+        for exp in approx_combine.exponents:
+            delta_ref -= exp.coefficient / exp.exponent
+        assert_allclose(delta, delta_ref, tol=1e-8)
 
 
 @pytest.mark.parametrize("params", [

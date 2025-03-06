@@ -1579,9 +1579,17 @@ class UnderDampedEnvironment(BosonicEnvironment):
             tag = (self.tag, "Matsubara Truncation")
 
         lists = self._matsubara_params(Nk)
-        result = ExponentialBosonicEnvironment(
+        approx_env = ExponentialBosonicEnvironment(
             *lists, T=self.T, combine=combine, tag=tag)
-        return result
+
+        if not compute_delta:
+            return approx_env
+
+        delta = self.gamma * self.lam**2 * self.T / self.w0**4
+        for exp in approx_env.exponents:
+            delta -= np.real(exp.coefficient / exp.exponent)
+
+        return approx_env, delta
 
     def _matsubara_params(self, Nk):
         """ Calculate the Matsubara coefficients and frequencies. """
