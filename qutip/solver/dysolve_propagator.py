@@ -3,6 +3,7 @@ import numpy as np
 import itertools
 from scipy.special import factorial
 
+__all__ = ['DysolvePropagator', 'dysolve_propagator']
 
 class DysolvePropagator:
     """
