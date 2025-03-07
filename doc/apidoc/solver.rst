@@ -206,8 +206,8 @@ Propagators
 .. automodule:: qutip.solver.dysolve_propagator
     :members: dysolve_propagator
 
-.. autoclass:: qutip.solver.propagator
-    :members: DysolvePropagator
+.. autoclass:: qutip.solver.propagator.DysolvePropagator
+    :members:
 
 ************************
 Other dynamics functions
