@@ -65,10 +65,13 @@ Finally, because :math:`\left\{\boldsymbol{\omega}_0\right\}` is empty, we get
 
  \displaystyle U^{(0)}(t+\delta t, t) = e^{-iH_0\delta t}
 
-The general nested integral can be evaluated analytically in code with integration by parts and a recursive function. As a result, Dysolve gives more precise results overall. Also, in practice, the summation over :math:`n` is truncated to the first few terms and the evolution is divided into small time increments. So,
+The general nested integral can be evaluated analytically in code with integration by parts and a recursive function. As a result, Dysolve gives more precise results overall. Also, in practice, the summation over :math:`n` is truncated to the first few terms and the evolution is divided into small time increments. So, with :math:`\tau` being the time ordering operator,
 
 .. math::
- \displaystyle U(T,0) = \tau\prod_{p=0}^{P}U((p+1)\delta t, p\delta t) = \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{\infty}U^{(n)}((p+1)\delta t, p\delta t)\right) \approx  \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{r}U^{(n)}((p+1)\delta t, p\delta t)\right)
+ \displaystyle U(T,0) = \tau\prod_{p=0}^{P}U((p+1)\delta t, p\delta t) = \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{\infty}U^{(n)}((p+1)\delta t, p\delta t)\right)
+
+.. math::
+ \displaystyle \approx  \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{r}U^{(n)}((p+1)\delta t, p\delta t)\right)
 
 As we can see from that, computing :math:`S^{(n)}(\boldsymbol{\omega}_n, \delta t)` for a given range on :math:`n` once allows us to calculate as many propagtors as we want. Therefore, in the long run and with the right ressources, Dysolve can be an extremely useful and efficient method for calculating propagators of systems with the form described at the beginning of this section.
 
