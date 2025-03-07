@@ -12,7 +12,7 @@ It is common knowledge that the time evolution of a closed quantum system is giv
 
 .. math::
 
- \displaystyle i \frac{d}{dt}|\psi(t)> = H(t)|\psi(t)>
+ \displaystyle i \frac{d}{dt}\left|\psi(t)\right> = H(t)\left|\psi(t)\right>
 
 When solving this equation, a time evolution operator :math:`U(t_f, t_i)` (often called a propagator) is introduced and allows a quantum state to evolve from time :math:`t_i` to time :math:`t_f` when applied. To derive an equation for the propagator, a Dyson series (a sum over nested integrals) is used. From this, a general form for the propagator is obtained :
 
@@ -47,7 +47,7 @@ where
 
  \displaystyle S^{(n)}_{\boldsymbol{m}}(\boldsymbol{\omega}_n, \delta t) = \int_{0}^{\delta t}\int_{0}^{t_M}...\int_{0}^{t_2} (-iH_0)^{m_n}X...X(-iH_0)^{m_0} \cdot (-i)^n \prod_{p=1}^{n}e^{i\boldsymbol{\omega}_n[p]t_{l(p)}} dt_1 ... dt_M
 
-Here, :math:`\{\boldsymbol{\omega}_n\}` is the set of vectors of length :math:`n` of the form :math:`\boldsymbol{\omega}_n = \left[±\omega, ..., ±\omega\right]` (so :math:`2^n` combinations), :math:`\boldsymbol{m}= \left[m_n, ..., m_0\right]` where :math:`m_i \in \mathbb{Z}_+`, :math:`M = \left(\sum_{i=0}^n m_i\right) + n` and :math:`\left(\sum_{j=0}^{p-1}\right) + p`. As an example, let's find what :math:`U^{(0)}(t+\delta t, t)` (the 0th order) is. First, 
+Here, :math:`\{\boldsymbol{\omega}_n\}` is the set of vectors of length :math:`n` of the form :math:`\boldsymbol{\omega}_n = \left[±\omega, ..., ±\omega\right]` (so :math:`2^n` combinations), :math:`\boldsymbol{m}= \left[m_n, ..., m_0\right]` where :math:`m_i \in \mathbb{Z}_+`, :math:`M = \left(\sum_{i=0}^n m_i\right) + n` and :math:`\left(\sum_{j=0}^{p-1} m_j \right) + p`. As an example, let's find what :math:`U^{(0)}(t+\delta t, t)` is. First, 
 
 .. math::
 
