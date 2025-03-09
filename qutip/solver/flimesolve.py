@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 29 22:07:34 2023
-
-@author: Fenton
-"""
-
 __all__ = [
     "flimesolve",
     "FLiMESolver",
@@ -21,6 +14,40 @@ from .result import Result
 from time import time
 from ..ui.progressbar import progress_bars
 from qutip.solver.floquet import fsesolve, FloquetBasis
+
+
+def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
+    """
+    Parameters
+    ----------
+    floquet_basis : FloquetBasis Object
+        The FloquetBasis object formed from qutip.floquet.FloquetBasis
+    c_ops : list of :obj:`.Qobj`, :obj:`.QobjEvo`
+        Single collapse operator, or list of collapse operators
+    tlist: list, array
+        A list of times over a single period for which to calculate the
+        Fourier transform of the collapse operators in the Floquet basis
+
+    Returns
+    -------
+    c_op_Fourier_ampltiides : A list of Fourier amplitudes for the system
+        collapse operators in the Floquet basis, used to calculate the rate
+        matrices
+    """
+    # Transforming the lowering operator into the Floquet Basis
+    #     and taking the FFT
+    modes_table = _floquet_mode_table(floquet_basis, tlist)
+
+    c_op_Floquet_basis = np.einsum(
+        "xij,jk,xkl->xil",
+        np.transpose(modes_table.conj(), (0, 2, 1)),
+        c_op.full(),
+        modes_table,
+    )
+    c_op_Fourier_amplitudes_list = np.fft.fftshift(
+        np.fft.fft(c_op_Floquet_basis, axis=0)
+    ) / len(tlist)
+    return c_op_Fourier_amplitudes_list
 
 
 def _floquet_rate_matrix(
@@ -68,37 +95,45 @@ def _floquet_rate_matrix(
 
     total_R_tensor = defaultdict(lambda: 0)
     for cdx, c_op in enumerate(c_ops):
-        # Transforming the lowering operator into the Floquet Basis
-        #     and taking the FFT
-        modes_table = _floquet_mode_table(floquet_basis, tlist)
 
-        c_op_Floquet_basis = np.einsum(
-            "xij,jk,xkl->xil",
-            np.transpose(modes_table.conj(), (0, 2, 1)),
-            c_op.full(),
-            modes_table,
+        c_op_Fourier_amplitudes_list = _c_op_Fourier_amplitudes(
+            floquet_basis, tlist, c_op
         )
-        c_op_Fourier_amplitudes_list = np.flip(
-            np.fft.fftshift(np.fft.fft(c_op_Floquet_basis, axis=0))
-            / len(tlist)
-        )
-
-        delta_ml = np.add.outer(-floquet_basis.e_quasi, floquet_basis.e_quasi)
-        delta_ml = np.add.outer(delta_ml, np.array(range(0, Nt)) * omega)
-        power_spectrum_single_vals = np.ones_like(delta_ml)
-        for i, _ in enumerate(delta_ml):
-            for j, _ in enumerate(delta_ml[i]):
-                for k, _ in enumerate(delta_ml[i, j]):
-                    power_spectrum_single_vals[i, j, k] = power_spectrum(
-                        delta_ml[i, j, k]
-                    )
 
         # Building the Rate matrix
-        delta_m = np.add.outer(-floquet_basis.e_quasi, floquet_basis.e_quasi)
-        delta_m = np.add.outer(delta_m, -delta_m)
+        delta_m = np.subtract.outer(
+            floquet_basis.e_quasi, floquet_basis.e_quasi
+        )
+
+        delta_m = np.subtract.outer(delta_m, delta_m)
         delta_m /= omega
-        for l, k in product(np.arange(Nt), repeat=2):
+        for l, k in product(
+            np.array(
+                np.linspace(int(-Nt / 2), int(Nt / 2) - 1, num=Nt), dtype=int
+            ),
+            repeat=2,
+        ):
             delta_shift = delta_m + (l - k)
+
+            powspec_single_conj = np.zeros((Hdim, Hdim))
+            powspec_single = np.zeros((Hdim, Hdim))
+            for i in range(Hdim):
+                for j in range(Hdim):
+                    powspec_single_conj = power_spectrum(
+                        floquet_basis.e_quasi[i]
+                        - floquet_basis.e_quasi[j]
+                        - k * omega
+                    )
+                    powspec_single = power_spectrum(
+                        floquet_basis.e_quasi[i]
+                        - floquet_basis.e_quasi[j]
+                        + l * omega
+                    )
+
+            pow_spec_combos = np.add.outer(
+                powspec_single,
+                powspec_single_conj,
+            )
             mask = {}
             if time_sense <= 0.0:
                 mask[0] = delta_shift == 0
@@ -108,21 +143,13 @@ def _floquet_rate_matrix(
                     c_op_Fourier_amplitudes_list[l],
                     np.conj(c_op_Fourier_amplitudes_list)[k],
                 )
-                pow_spec_combos = np.add.outer(
-                    power_spectrum_single_vals[:, :, l],
-                    np.conj(power_spectrum_single_vals[:, :, k]),
-                )
             else:
                 rate_products = np.multiply.outer(
                     c_op_Fourier_amplitudes_list[l],
                     np.conj(c_op_Fourier_amplitudes_list[k]),
                 )
-                pow_spec_combos = np.add.outer(
-                    power_spectrum_single_vals[:, :, l],
-                    np.conj(power_spectrum_single_vals[:, :, k]),
-                )
             included_deltas = abs(delta_shift * omega) <= abs(
-                rate_products * time_sense
+                rate_products * time_sense * pow_spec_combos
             )
 
             if not np.any(included_deltas):
@@ -132,18 +159,23 @@ def _floquet_rate_matrix(
                 mask[key] = np.logical_and(delta_shift == key, included_deltas)
 
             for key in mask.keys():
-                valid_c_op_products = (
-                    pow_spec_combos * rate_products * mask[key]
-                )
+                valid_c_op_products = rate_products * mask[key]
                 I_ = np.eye(Hdim, Hdim)
-                flime_FirstTerm = np.transpose(
-                    valid_c_op_products, [0, 2, 1, 3]
-                ).reshape(Hdim**2, Hdim**2)
-                tmp = np.trace(valid_c_op_products, axis1=0, axis2=2)
-                flime_SecondTerm = np.kron(tmp.T, I_)
-                flime_ThirdTerm = np.kron(I_, tmp)
+                tmp1 = np.trace(
+                    powspec_single_conj * valid_c_op_products, axis1=0, axis2=2
+                )
+                tmp2 = np.trace(
+                    powspec_single * valid_c_op_products, axis1=0, axis2=2
+                )
 
-                total_R_tensor[key] += flime_FirstTerm - (0.5) * (
+                flime_FirstTerm = np.transpose(
+                    valid_c_op_products * pow_spec_combos, [0, 2, 1, 3]
+                ).reshape(Hdim**2, Hdim**2)
+
+                flime_SecondTerm = np.kron(tmp1.T, I_)
+                flime_ThirdTerm = np.kron(I_, tmp2)
+
+                total_R_tensor[key] += flime_FirstTerm - (
                     flime_SecondTerm + flime_ThirdTerm
                 )
 
@@ -305,12 +337,9 @@ def _floquet_mode_table(floquet_basis, tlist):
         An array, indexed by (i,j,k), for the jth row, kth column, and
             ith time point of the Floquet modes used to transform into the
             FLoquet Basis
-    NOTE: Technically speaking, these are the dagger of the modes, s.t.
-            mode @ state @ mode.conj().T will transform INTO the Floquet basis.
-            I just think the name works better this way?
     """
     return np.stack(
-        [np.hstack([i.full() for i in floquet_basis.mode(t)]) for t in tlist]
+        [floquet_basis.mode(t, data=True).to_array() for t in tlist]
     )
 
 
