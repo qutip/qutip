@@ -74,9 +74,3 @@ The general nested integral can be evaluated analytically in code with integrati
  \displaystyle \approx  \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{r}U^{(n)}((p+1)\delta t, p\delta t)\right)
 
 As we can see from that, computing :math:`S^{(n)}(\boldsymbol{\omega}_n, \delta t)` for a given range on :math:`n` once allows us to calculate as many propagtors as we want. Therefore, in the long run and with the right ressources, Dysolve can be an extremely useful and efficient method for calculating propagators of systems with the form described at the beginning of this section.
-
-.. _implementation:
-
-QuTiP implementation
-====================
-...

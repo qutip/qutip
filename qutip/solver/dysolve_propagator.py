@@ -5,6 +5,7 @@ from scipy.special import factorial
 
 __all__ = ['DysolvePropagator', 'dysolve_propagator']
 
+
 class DysolvePropagator:
     """
     A generator of propagator(s) using the Dysolve algorithm
@@ -84,26 +85,27 @@ class DysolvePropagator:
     def __call__(self):
         """
         Computes propagator from times[i] to times[i+1] for all time
-        increment that fit in [t_i, t_f]. 
+        increment that fit in [t_i, t_f].
 
         So, [U(times[1], times[0]), U(times[2], times[1]) ...]
         """
         Us = []
         for time in self.times[:]:
             U = np.zeros(
-                (len(self.eigenenergies), len(self.eigenenergies)), dtype=np.complex128
+                (len(self.eigenenergies), len(self.eigenenergies)),
+                dtype=np.complex128
             )
             Uns = self._compute_Uns(time)
             for n in range(self.max_order + 1):
                 U += Uns[n]
-            Us.append(Qobj(U, dims=H_0.dims))
+            Us.append(Qobj(U, dims=self.H_0.dims))
 
         self.Us = Us
 
     def _compute_integrals(self, ws: list) -> float:
         """
-        Computes the value of the nested integrals for a given list of effective
-        omegas.
+        Computes the value of the nested integrals for a given list of
+        effective omegas.
 
         Parameters
         ----------
@@ -141,9 +143,9 @@ class DysolvePropagator:
 
     def _compute_tn_integrals(self, ws: list, n: int) -> float:
         """
-        Helper function to compute nested integrals when the function to integrate
-        is t^n/factorial(n) * exp(1j*omega*t). This happens when some effective
-        omegas are 0.
+        Helper function to compute nested integrals when the function to
+        integrate is t^n/factorial(n) * exp(1j*omega*t). This happens when
+        some effective omegas are 0.
 
         Paramaters
         ----------
@@ -186,7 +188,8 @@ class DysolvePropagator:
 
     def _compute_matrix_elements(self, i_j_indices: list) -> list:
         """
-        Computes the products of matrix elements for each term in the sum for Sns.
+        Computes the products of matrix elements for each term in the
+        sum for Sns.
 
         Parameters
         ----------
@@ -205,8 +208,8 @@ class DysolvePropagator:
 
         for i in range(i_j_indices.shape[1] - 1):
             matrix_elements_products *= self.X[
-                i_j_indices[:, 0 + i: 2 + i][:,
-                                             0], i_j_indices[:, 0 + i: 2 + i][:, 1]
+                i_j_indices[:, 0 + i: 2 + i][:,0],
+                i_j_indices[:, 0 + i: 2 + i][:,1]
             ].A1
 
         return matrix_elements_products * np.exp(
@@ -356,7 +359,7 @@ def dysolve_propagator(
     -------
     Us : list[Qobj]
         The time evolution propagators from t_i to all time increments
-        that fit in the range [t_i, t_f]. 
+        that fit in the range [t_i, t_f].
 
         So, [U(t_i + dt, t_i), U(t_i + 2*dt, t_i), ...].
 
