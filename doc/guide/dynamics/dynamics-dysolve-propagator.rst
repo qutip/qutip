@@ -74,3 +74,35 @@ The general nested integral can be evaluated analytically in code with integrati
  \displaystyle \approx  \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{r}U^{(n)}((p+1)\delta t, p\delta t)\right)
 
 As we can see from that, computing :math:`S^{(n)}(\boldsymbol{\omega}_n, \delta t)` for a given range on :math:`n` once allows us to calculate as many propagtors as we want. Therefore, in the long run and with the right ressources, Dysolve can be an extremely useful and efficient method for calculating propagators of systems with the form described at the beginning of this section.
+
+.. _dysolve_code_example:
+
+Example
+=======
+
+The following code shows a simple example on how to use QuTiP's implementation of Dysolve. Here, :math:`H(t) = \sigma_z + \cos(t)\sigma_x`.
+
+.. code-block:: Python
+    
+    from qutip.solver.dysolve_propagator import DysolvePropagator, dysolve_propagator
+    from qutip import sigmax, sigmaz
+
+    max_order = 5
+    omega = 1
+    t_i = 0
+    t_f = 1
+    dt = 0.1
+    H_0 = sigmaz()
+    X = sigmax()
+
+    #Initialize and call to compute the propagators for each time increment t => U(t + dt, t)
+    dysolve = DysolvePropagator(
+                max_order, H_0, X, omega, t_i, t_f, dt
+            )
+    dysolve()
+    Us = dysolve.Us
+
+    #Another option is to use the function to get propagators from t_i to each time increment t => U(t, t_i)
+    dysolve, propagators = dysolve_propagator(
+        max_order, H_0, X, omega, t_i, t_f, dt
+    )

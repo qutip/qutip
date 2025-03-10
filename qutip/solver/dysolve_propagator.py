@@ -232,9 +232,9 @@ class DysolvePropagator:
                 list(itertools.product([self.omega, -self.omega], repeat=n))
             )
             diff_lambdas = np.diff(
-                np.array(list(itertools.product(self.eigenenergies, repeat=n + 1)))[
-                    :, ::-1
-                ],
+                np.array(list(itertools.product(
+                    self.eigenenergies, repeat=n + 1
+                    )))[:, ::-1],
                 axis=1,
             )
             eff_omegas = omega_vectors[:, None, :] + diff_lambdas[None, :, :]
@@ -250,8 +250,9 @@ class DysolvePropagator:
 
             # Compute matrix elements
             i_j_indices = np.array(
-                list(itertools.product(range(len(self.eigenenergies)), repeat=n + 1))
-            )[:, ::-1]
+                list(itertools.product(
+                    range(len(self.eigenenergies)), repeat=n + 1
+                    )))[:, ::-1]
             ket_bra_indices = i_j_indices[:, [0, -1]]
             matrix_elements = self._compute_matrix_elements(i_j_indices)
 
@@ -259,7 +260,8 @@ class DysolvePropagator:
             factor = (-1j / 2) ** n
             x = factor * matrix_elements * integrals
             Sn = np.zeros(
-                (len(omega_vectors), len(self.eigenenergies), len(self.eigenenergies)),
+                (len(omega_vectors), len(self.eigenenergies),
+                 len(self.eigenenergies)),
                 dtype=np.complex128,
             )
 
