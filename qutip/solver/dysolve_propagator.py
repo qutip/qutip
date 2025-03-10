@@ -208,8 +208,8 @@ class DysolvePropagator:
 
         for i in range(i_j_indices.shape[1] - 1):
             matrix_elements_products *= self.X[
-                i_j_indices[:, 0 + i: 2 + i][:,0],
-                i_j_indices[:, 0 + i: 2 + i][:,1]
+                i_j_indices[:, 0 + i: 2 + i][:, 0],
+                i_j_indices[:, 0 + i: 2 + i][:, 1]
             ].A1
 
         return matrix_elements_products * np.exp(
@@ -296,7 +296,8 @@ class DysolvePropagator:
             )
 
             U_n = np.zeros(
-                (len(self.eigenenergies), len(self.eigenenergies)), dtype=np.complex128
+                (len(self.eigenenergies), len(self.eigenenergies)),
+                dtype=np.complex128
             )
 
             for i, omega_vector in enumerate(omega_vectors):
@@ -315,7 +316,7 @@ def dysolve_propagator(
         t_f: float,
         dt: float,
         a_tol: float = 1e-10,
-) -> list[Qobj]:
+) -> tuple[DysolvePropagator, list[Qobj]]:
     """
     Calculates the time evolution propagators from t_i to
     all time increments that fit in the range [t_i, t_f]
@@ -357,8 +358,9 @@ def dysolve_propagator(
 
     Returns
     -------
-    Us : list[Qobj]
-        The time evolution propagators from t_i to all time increments
+    (dysolve_instance, propagators): tuple[DysolvePropagator, list[Qobj]]
+        The DysolvePropagator class instance formed the entries and
+        the time evolution propagators from t_i to all time increments
         that fit in the range [t_i, t_f].
 
         So, [U(t_i + dt, t_i), U(t_i + 2*dt, t_i), ...].
@@ -377,4 +379,4 @@ def dysolve_propagator(
         if i != 0:
             Us[i] = Us[i] @ Us[i - 1]
 
-    return Us
+    return dysolve, Us
