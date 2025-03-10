@@ -370,6 +370,7 @@ class NonMarkovianMCSolver(MCSolver):
         "norm_steps": 5,
         "norm_t_tol": 1e-6,
         "norm_tol": 1e-4,
+        "norm_min_step": 0.0,
         "improved_sampling": False,
         "completeness_rtol": 1e-5,
         "completeness_atol": 1e-8,
@@ -652,6 +653,11 @@ class NonMarkovianMCSolver(MCSolver):
 
         norm_steps: int, default: 5
             Maximum number of tries to find the collapse.
+
+        norm_min_step: float, default: 0.0
+            Minimum split used when finding jump location.
+            A small non-zero value can help avoid the worst cases convergence
+            when finding jumb at the cost of increased average steps.
 
         improved_sampling: Bool, default: False
             Whether to use the improved sampling algorithm

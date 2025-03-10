@@ -329,18 +329,27 @@ class MCIntegrator:
     def _find_collapse_time(self, norm_old, norm, t_prev, t_final):
         """Find the time of the collapse and state just before it."""
         tries = 0
+        ratio_cutoff = self.options['norm_min_step']
         while tries < self.options['norm_steps']:
             tries += 1
             if (t_final - t_prev) < self.options['norm_t_tol']:
                 t_guess = t_final
-                _, state = self._integrator.get_state()
+                _, state = self._integrator.get_state(copy=False)
                 break
-            t_guess = (
-                t_prev
-                + ((t_final - t_prev)
-                   * np.log(norm_old / self.target_norm)
-                   / np.log(norm_old / norm))
+            dt = t_final - t_prev
+            ratio = (
+                np.log(norm_old / self.target_norm)
+                / np.log(norm_old / norm)
             )
+            # We have a bias to guessing times after the collapse.
+            # It can get stuck in slow converging pattern when ratio is close
+            # to 1. By forcing a minimum step we can avoid worst cases.
+            if ratio < ratio_cutoff:
+                ratio = ratio_cutoff
+            if ratio > (1 - ratio_cutoff):
+                ratio = (1 - ratio_cutoff)
+            t_guess = t_prev + dt * ratio
+
             if (t_guess - t_prev) < self.options['norm_t_tol']:
                 t_guess = t_prev + self.options['norm_t_tol']
             _, state = self._integrator.mcstep(t_guess, copy=False)
@@ -376,15 +385,19 @@ class MCIntegrator:
         - Store collapse info.
         """
         # collapse_time, state is at the collapse
-        if len(self._n_ops) == 1:
+        num_ops = len(self._n_ops)
+        if num_ops == 1:
             which = 0
         else:
-            probs = np.zeros(len(self._n_ops))
-            for i, n_op in enumerate(self._n_ops):
-                probs[i] = n_op.expect_data(collapse_time, state).real
-            probs = np.cumsum(probs)
-            which = np.searchsorted(probs,
-                                    probs[-1] * self._generator.random())
+            probs = [
+                n_op.expect_data(collapse_time, state).real
+                for i, n_op in enumerate(self._n_ops)
+            ]
+            target = sum(probs) * self._generator.random() - probs[0]
+            which = 0
+            while target > 0 and which <= num_ops:
+                which = which + 1
+                target -= probs[which]
 
         state_new = self._c_ops[which].matmul_data(collapse_time, state)
         new_norm = self._norm_func(state_new)
@@ -451,11 +464,12 @@ class MCSolver(MultiTrajSolver):
         "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
-        "method": "adams",
+        "method": "vern7",
         "mc_corr_eps": 1e-10,
-        "norm_steps": 5,
+        "norm_steps": 25,
         "norm_t_tol": 1e-6,
         "norm_tol": 1e-4,
+        "norm_min_step": 0.1,
         "improved_sampling": False,
     }
 
@@ -846,8 +860,13 @@ class MCSolver(MultiTrajSolver):
         norm_tol: float, default: 1e-4
             Tolerance in norm used when finding the collapse.
 
-        norm_steps: int, default: 5
+        norm_steps: int, default: 25
             Maximum number of tries to find the collapse.
+
+        norm_min_step: float, default: 0.10
+            Minimum split used when finding jump location.
+            A small non-zero value can help avoid the worst cases convergence
+            when finding jumb at the cost of increased average steps.
 
         improved_sampling: Bool, default: False
             Whether to use the improved sampling algorithm
