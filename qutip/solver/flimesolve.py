@@ -119,12 +119,12 @@ def _floquet_rate_matrix(
             powspec_single = np.zeros((Hdim, Hdim))
             for i in range(Hdim):
                 for j in range(Hdim):
-                    powspec_single_conj = power_spectrum(
+                    powspec_single_conj[i, j] = power_spectrum(
                         floquet_basis.e_quasi[i]
                         - floquet_basis.e_quasi[j]
                         - k * omega
                     )
-                    powspec_single = power_spectrum(
+                    powspec_single[i, j] = power_spectrum(
                         floquet_basis.e_quasi[i]
                         - floquet_basis.e_quasi[j]
                         + l * omega
