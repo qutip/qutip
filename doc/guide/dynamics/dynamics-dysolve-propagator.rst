@@ -97,9 +97,9 @@ The following code shows a simple example on how to use QuTiP's implementation o
 
     #Initialize and call to compute the propagators for each time increment t => U(t + dt, t)
     dysolve = DysolvePropagator(
-                max_order, H_0, X, omega, t_i, t_f, dt
+                max_order, H_0, X, omega
             )
-    dysolve()
+    dysolve(t_i, t_f, dt)
     Us = dysolve.Us
 
     #Another option is to use the function to get propagators from t_i to each time increment t => U(t, t_i)
