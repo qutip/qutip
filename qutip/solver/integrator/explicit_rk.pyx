@@ -221,7 +221,8 @@ cdef class Explicit_RungeKutta:
         self._norm_front = self._norm_prev
 
         #prepare the buffers
-        for i in range(len(self.k), self.rk_extra_step):
+        self.k = []
+        for i in range(self.rk_extra_step):
             self.k.append(self._y.copy())
         self._y_temp = self._y.copy()
         self._y_front = self._y.copy()
