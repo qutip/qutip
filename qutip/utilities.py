@@ -448,12 +448,12 @@ def iterated_fit(
 
         lower_repeat = np.tile(lower, N)
         upper_repeat = np.tile(upper, N)
-        rmse1, params, r2 = _fit(fun, num_params, xdata, ydata,
+        rmse1, params = _fit(fun, num_params, xdata, ydata,
                                  guesses, lower_repeat,
                                  upper_repeat, sigma, maxfev)
         N += 1
 
-    return rmse1, r2, params
+    return rmse1, params
 
 
 def _pack(params):
@@ -494,30 +494,7 @@ def _rmse(fun, xdata, ydata, params):
     )
 
 
-def _r2(fun, xdata, ydata, params):
-    """
-    The 1-r2 coefficient serves to evaluate the goodness of fit
-    https://en.wikipedia.org/wiki/Coefficient_of_determination
-    it normally ranges from zero to one the closer to one the better.
-    if negative it means the model is worst than the worse possible least
-    squares predictor (basically a line over the mean of the signal)
-    1-r2 is chosen instead of r2 because fits using our methods are typically
-    good, so it is hard to show in summary as everything is almost one, so the
-    summary shows 1. this way it shows small numbers and fits can be compared
-    easily
-    """
-    if params is None:
-        yhat = fun
-    else:
-        yhat = _evaluate(fun, xdata, params)
 
-    ss_tot = np.sum((ydata - np.mean(ydata)) ** 2)
-    ss_res = np.sum((ydata - yhat) ** 2)
-
-    if ss_tot == 0:
-        return 1 if ss_res == 0 else 0  # Handle constant ydata case
-
-    return (ss_res / ss_tot)
 
 
 def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
@@ -554,12 +531,11 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
     )
     params = _unpack(packed_params, num_params)
     rmse = _rmse(fun, xdata, ydata, params)
-    r2 = _r2(fun, xdata, ydata, params)
-    return rmse, params, r2
+    return rmse, params
 
 
 # AAA Fitting
-## CHEBFUN attribution for AAA
+# CHEBFUN attribution for AAA
 # Copyright (c) 2017, The Chancellor, Masters and Scholars of the University
 # of Oxford, and the Chebfun Developers. All rights reserved.
 
@@ -623,8 +599,6 @@ def aaa(func: Callable[..., complex], z: ArrayLike,
             Error by iteration
         rmse: float
             Normalized root mean squared error from the fit
-        r2: float
-            1-coefficient of determination of the fit
         support points: np.ndarray
             The values used as the support points for the approximation
         indices: np.ndarray
@@ -672,7 +646,6 @@ def aaa(func: Callable[..., complex], z: ArrayLike,
     # Obtain poles residies and zeros
     pol, res, zer = _prz(support_points, values, weights)
     rmse = _rmse(r(z), z, func, None)
-    r2 = _r2(r(z), z, func, None)
 
     return {
         "function": r,
@@ -681,7 +654,6 @@ def aaa(func: Callable[..., complex], z: ArrayLike,
         "zeros": zer,
         "errors": errors[:k + 1],
         "rmse": rmse,
-        "r2": r2,
         "support points": support_points,
         "values at support": values,
         "indices": indices,
@@ -842,8 +814,6 @@ def prony_methods(method: str, signal: ArrayLike, n: int):
             of our approximation
         rmse:
             Normalized mean squared error
-        r2:
-            Goodness of the fit. 1-coefficient of determination
     """
     if method == "prony":
         num_freqs = n
@@ -869,8 +839,7 @@ def prony_methods(method: str, signal: ArrayLike, n: int):
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
     rmse = _rmse(_prony_model, signal, signal, params)
-    r2 = _r2(_prony_model, signal, signal, params)
-    return params, rmse, r2
+    return params, rmse
 
 # ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
@@ -890,8 +859,6 @@ def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
             of our approximation
         rmse:
             Normalized mean squared error
-        r2:
-            Goodness of the fit. 1-coefficient of determination
     """
     # Compute FFT
     F = fft(signal)
@@ -915,9 +882,8 @@ def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
         np.array([val for pair in zip(amplitudes, result['poles'])
                   for val in pair]), 2)
     rmse = _rmse(_prony_model, signal, signal, params)
-    r2 = _r2(_prony_model, signal, signal, params)
 
-    return params, rmse, r2
+    return params, rmse
 
 
 def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
@@ -938,8 +904,6 @@ def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
             of our approximation
         rmse:
             Normalized mean squared error
-        r2:
-            Goodness of the fit. 1-coefficient of determination
     """
     # Compute FFT
     F1 = fft(signal)
@@ -980,6 +944,5 @@ def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
     params = _unpack(
         np.array([val for pair in zip(amp, phases) for val in pair]), 2)
     rmse = _rmse(_prony_model, signal, signal, params)
-    r2 = _r2(_prony_model, signal, signal, params)
 
-    return params, rmse, r2
+    return params, rmse
