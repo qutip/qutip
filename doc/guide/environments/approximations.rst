@@ -24,7 +24,30 @@ The following table shows which methods are available for which type of environm
 Below, we then explain the fitting methods in more detail,
 and we document the parameters for the :meth:`approximate<.BosonicEnvironment.approximate>` function.
 
-TODO: table
+.. list-table:: 
+   :header-rows: 1
+   :widths: auto
+
+   * - 
+     - Matsubara
+     - Pade
+     - Fitting
+   * - Ohmic
+     - Yes
+     - No
+     - Yes
+   * - Drude-Lorentz
+     - Yes
+     - Yes
+     - Yes
+   * - Underdamped
+     - Yes
+     - No
+     - Yes
+   * - User-defined
+     - No
+     - No
+     - Yes
 
 ..
     Rows: Ohmic, DL, UD, User-defined
@@ -48,39 +71,92 @@ The fitting methods available in QuTiP can be roughly put into three categories:
     - ESPIRA-I (``"espira-I"``)
     - ESPIRA-II (``"espira-II"``)
 
+
+The different categories have different witnesses and strengths, for example
+in the case of non-linear squares the parameters are found via an optimization
+process, unfortunately, in many cases the optimization returns mediocre 
+approximations, this can be improved by specifying information to the optimization
+such as guesses as to where the optimal parameters may be, lower and upper bounds
+on the parameters, degrees of uncertainty .. etc. The requirement for this extra
+bits of information is a weakness, however, the fact it allows for constraints 
+is a strength as approximations with similar accuracy on the fitted curve may 
+have different perfomances on solvers.
+
+..
+    Here I wanted to express the idea that a big positive ck and a big negative 
+    ck that sort of cancel each other reproduces the fitted curve nicely
+    but it's problematic for the HEOM solver. This typically doesn't happen 
+    on the other methods though
+
+Methods based on the Prony polynomial, only require the set of points on which 
+to perform the fit, they are typically really accurate, the difference between 
+then from a practical point of view is whether or not they are resilient to Noise
+in the signal to be fit and the number of exponents one requires to reach a 
+certain accuracy
+
+Methods based on rational approximations, also only require the set of points
+on which to perform the fit. AAA typically takes more exponents than Prony like 
+methods, but reproduce the power spectrum better this is important because 
+:math:`\frac{S(\omega)}{S(-\omega)}=e^{\beta \omega}` is highly influential 
+on the steady state.
+
+While all methods apply in all situations when done with enough care we recommend
+
+- Non-Linear squares 
+    when you have intuition about the number of exponents that 
+    are needed, and have some vague ideas of what they might be. For example for UD 
+    at zero temperature one knows that there is only one exponent for the imaginary
+    part of the correlation function 
+- AAA and ESPIRA 
+    when looking for accuracy on the steady state, espira is also 
+    a good first choice in most cases
+- Prony methods 
+    when simulating transient dynamics and don't have extensive 
+    knowledge about the funciton to be fixed , esprit is a good first choice
+
 The following table highlights the strengths and weaknesses of each fitting method.
+
 TODO: explain a bit the meaning of the columns?
 
 .. list-table:: 
    :header-rows: 1
    :widths: auto
 
-   * - Class
-     - Requires Extra Information
-     - Fast
-     - Resilient to Noise
-     - Allows Constraints
-     - Stable
-   * - Non-Linear Least Squares
+   * - 
+     - NL-Least Squares
+     - Prony Polynomial
+     - Rational Approximations
+   * - Requires Extra Information
      - Yes
      - No
      - No
-     - Yes
-     - No
-   * - Prony Polynomial
+   * - Fast
      - No
      - Yes
-     - Partially
+     - Yes
+   * - Resilient to Noise
      - No
      - Partially
-   * - Rational Approximations
-     - No
-     - Yes
      - Partially
+   * - Allows Constraints
+     - Yes
+     - No
+     - Partially
+   * - Stable
+     - No
      - Partially
      - Yes
 
+In the table above fast refers to the typical computation time of the approach
+with a moderate number of exponents, resilient to noise refers to whether the
+fitting approach is affected by noise in the signal to be fitted
+,stable whether it returns similar results 
+for different sampling points. The answer partially means that it is true for 
+some methods in the group but not for others.
+
 .. _environment approximations api:
+
+TODO: Put references in the API for interested readers
 
 API Documentation
 ~~~~~~~~~~~~~~~~~
