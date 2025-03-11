@@ -12,9 +12,9 @@ def test_number_of_propagators():
     with CoreOptions():
         for dt in dts:
             dysolve = DysolvePropagator(
-                1, sigmaz(), sigmax(), 1, t_i, t_f, dt
+                1, sigmaz(), sigmax(), 1
             )
-            dysolve()
+            dysolve(t_i, t_f, dt)
             assert (len(dysolve.times) == len(dysolve.Us))
 
 
@@ -30,9 +30,9 @@ def test_dims():
     with CoreOptions():
         for H_0, X in zip(H_0s, Xs):
             dysolve = DysolvePropagator(
-                1, H_0, X, 1, 0, 1, 0.1
+                1, H_0, X, 1
             )
-            dysolve()
+            dysolve(0, 1, 0.1)
             for U in dysolve.Us:
                 assert (dysolve.H_0.dims == dysolve.X.dims == U.dims)
 

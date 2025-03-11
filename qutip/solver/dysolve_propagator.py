@@ -27,18 +27,6 @@ class DysolvePropagator:
     omega : float
         The frequency of the cosine perturbation.
 
-    t_i : float
-        Initial time of the evolution.
-
-    t_f : float
-        Final time of the evolution.
-
-    dt : float
-        The time increment in between each step of the
-        evolution. If time + dt exceeds t_f the propagator for that
-        time period will not be calculated. Only the propagators
-        with time period inside [t_i, t_f] are returned.
-
     a_tol : float, default: 1e-10
         The absolute tolerance when it comes to say if values that
         are computed are small enough to be considered as 0.
@@ -56,9 +44,6 @@ class DysolvePropagator:
         H_0: Qobj,
         X: Qobj,
         omega: float,
-        t_i: float,
-        t_f: float,
-        dt: float,
         a_tol: float = 1e-10,
     ):
         self.max_order = max_order
@@ -66,6 +51,36 @@ class DysolvePropagator:
         self.eigenenergies = H_0.eigenenergies()
         self.X = X.transform(H_0)
         self.omega = omega
+        self.t_i = None
+        self.t_f = None
+        self.dt = None
+        self.times = None
+        self.a_tol = a_tol
+        self._Sns = None
+        self.Us = None
+
+    def __call__(self, t_i: float, t_f: float, dt: float):
+        """
+        Computes propagator from times[i] to times[i+1] seperated by dt
+        for all time increment that fit in [t_i, t_f].
+
+        So, [U(times[1], times[0]), U(times[2], times[1]) ...]
+
+        Parameters
+        ----------
+        t_i : float
+            Initial time of the evolution.
+
+        t_f : float
+            Final time of the evolution.
+
+        dt : float
+            The time increment in between each step of the
+            evolution. If time + dt exceeds t_f the propagator for that
+            time period will not be calculated. Only the propagators
+            with time period inside [t_i, t_f] are returned.
+
+        """
         self.t_i = t_i
         self.t_f = t_f
         self.dt = dt
@@ -78,17 +93,8 @@ class DysolvePropagator:
         else:
             self.times = np.arange(t_i, t_f, dt)[:-1]
 
-        self.a_tol = a_tol
         self._Sns = self._compute_Sns()
-        self.Us = None
 
-    def __call__(self):
-        """
-        Computes propagator from times[i] to times[i+1] for all time
-        increment that fit in [t_i, t_f].
-
-        So, [U(times[1], times[0]), U(times[2], times[1]) ...]
-        """
         Us = []
         for time in self.times[:]:
             U = np.zeros(
@@ -373,8 +379,8 @@ def dysolve_propagator(
     H = H_0 + cos(omega*t)X for Dysolve to work.
 
     """
-    dysolve = DysolvePropagator(max_order, H_0, X, omega, t_i, t_f, dt, a_tol)
-    dysolve()
+    dysolve = DysolvePropagator(max_order, H_0, X, omega, a_tol)
+    dysolve(t_i, t_f, dt,)
     Us = dysolve.Us
 
     for i in range(len(Us)):
