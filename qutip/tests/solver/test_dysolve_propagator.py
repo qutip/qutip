@@ -96,3 +96,33 @@ def test_4x4_propagators():
         for i in range(len(propagators)-1):
             # .conj() for them to be in the same basis
             assert (propagators[i] == prop[i].conj())
+
+
+def test_8x8_propagators():
+    max_order = 4
+    omega = 100
+    t_i = 0
+    t_f = 1
+    dt = 0.01
+    H_0 = tensor(sigmaz(), qeye(2), qeye(2))
+    X = tensor(sigmax(), qeye(2), qeye(2))
+
+    # Dysolve
+    dysolve, propagators = dysolve_propagator(
+        max_order, H_0, X, omega, t_i, t_f, dt
+    )
+
+    # Qutip.solver.propagator
+    def H1_coeff(t, omega):
+        return np.cos(omega * t)
+
+    H = [H_0, [X, H1_coeff]]
+    args = {'omega': omega}
+    prop = propagator(
+        H, dysolve.times, args=args, options={"atol": 1e-10, "rtol": 1e-8}
+    )[1:]
+
+    with CoreOptions(atol=1e-8, rtol=1e-8):
+        for i in range(len(propagators)-1):
+            # .conj() for them to be in the same basis
+            assert (propagators[i] == prop[i].conj())
