@@ -33,6 +33,8 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
     c_op_Fourier_ampltiides : A list of Fourier amplitudes for the system
         collapse operators in the Floquet basis, used to calculate the rate
         matrices
+
+    NOTE FOR ME: The frequency values iterate over [0,1...Nt/2-1,-Nt/2...-1]
     """
     # Transforming the lowering operator into the Floquet Basis
     #     and taking the FFT
@@ -44,10 +46,60 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
         c_op.full(),
         modes_table,
     )
-    c_op_Fourier_amplitudes_list = np.fft.fftshift(
+    c_op_Fourier_amplitudes_list = (
         np.fft.fft(c_op_Floquet_basis, axis=0)
     ) / len(tlist)
     return c_op_Fourier_amplitudes_list
+
+
+def _power_density_functions(floquet_basis, power_spectrum, Nt):
+    """
+    Parameters
+    ----------
+    floquet_basis : FloquetBasis Object
+        The FloquetBasis object formed from qutip.floquet.FloquetBasis
+    power_spectrum : function
+        The power spectrum of the autocorrelation function as a function of
+        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
+    Nt : Int
+        Number of points in one period of the Hamiltonian
+
+    Returns
+    -------
+    List of [Gamma(+omega),Gamma(-omega)] functions where each gamma is itself
+        an NtxHdimxHdim array for the power density function values over
+        Nt harmonics and HdimxHdim combination of floquet quasienergy frequencies
+    NOTE FOR ME: The frequency values iterate over [0,1...Nt/2-1,-Nt/2...-1]
+    """
+    Hdim = len(floquet_basis.e_quasi)
+    T = floquet_basis.T
+    omega = 2 * np.pi / T
+    quasies = [quasi / omega for quasi in floquet_basis.e_quasi]
+
+    gamma_plus = np.zeros((Nt, Hdim, Hdim))
+    gamma_minus = np.zeros((Nt, Hdim, Hdim))
+
+    # Trying to build these up like an unshifted Fourier transform
+    for i in range(Hdim):
+        for j in range(Hdim):
+            for k in range(0, int(Nt / 2) - 1):
+                gamma_plus[k, i, j] = power_spectrum(
+                    (quasies[i] - quasies[j] + k) * omega
+                )
+
+                gamma_minus[k, i, j] = power_spectrum(
+                    (quasies[i] - quasies[j] + k) * -omega
+                )
+            for k in range(int(Nt / 2) - 1, Nt):
+                gamma_plus[k, i, j] = power_spectrum(
+                    (quasies[i] - quasies[j] + (k - Nt)) * omega
+                )
+
+                gamma_minus[k, i, j] = power_spectrum(
+                    (quasies[i] - quasies[j] + (k - Nt)) * -omega
+                )
+
+    return [gamma_plus, gamma_minus]
 
 
 def _floquet_rate_matrix(
@@ -99,12 +151,14 @@ def _floquet_rate_matrix(
         c_op_Fourier_amplitudes_list = _c_op_Fourier_amplitudes(
             floquet_basis, tlist, c_op
         )
+        [gamp, gamm] = _power_density_functions(
+            floquet_basis, power_spectrum, Nt
+        )
 
         # Building the Rate matrix
         delta_m = np.subtract.outer(
             floquet_basis.e_quasi, floquet_basis.e_quasi
         )
-
         delta_m = np.subtract.outer(delta_m, delta_m)
         delta_m /= omega
         for l, k in product(
@@ -115,25 +169,6 @@ def _floquet_rate_matrix(
         ):
             delta_shift = delta_m + (l - k)
 
-            powspec_single_conj = np.zeros((Hdim, Hdim))
-            powspec_single = np.zeros((Hdim, Hdim))
-            for i in range(Hdim):
-                for j in range(Hdim):
-                    powspec_single_conj[i, j] = power_spectrum(
-                        floquet_basis.e_quasi[i]
-                        - floquet_basis.e_quasi[j]
-                        - k * omega
-                    )
-                    powspec_single[i, j] = power_spectrum(
-                        floquet_basis.e_quasi[i]
-                        - floquet_basis.e_quasi[j]
-                        + l * omega
-                    )
-
-            pow_spec_combos = np.add.outer(
-                powspec_single,
-                powspec_single_conj,
-            )
             mask = {}
             if time_sense <= 0.0:
                 mask[0] = delta_shift == 0
@@ -149,7 +184,7 @@ def _floquet_rate_matrix(
                     np.conj(c_op_Fourier_amplitudes_list[k]),
                 )
             included_deltas = abs(delta_shift * omega) <= abs(
-                rate_products * time_sense * pow_spec_combos
+                rate_products * time_sense
             )
 
             if not np.any(included_deltas):
@@ -159,23 +194,21 @@ def _floquet_rate_matrix(
                 mask[key] = np.logical_and(delta_shift == key, included_deltas)
 
             for key in mask.keys():
-                valid_c_op_products = rate_products * mask[key]
+                gams = np.add.outer(gamp[l], gamm[k])
+                valid_c_op_products = gams * rate_products * mask[key]
+
                 I_ = np.eye(Hdim, Hdim)
-                tmp1 = np.trace(
-                    powspec_single_conj * valid_c_op_products, axis1=0, axis2=2
-                )
-                tmp2 = np.trace(
-                    powspec_single * valid_c_op_products, axis1=0, axis2=2
-                )
+                tmp2ndterm = np.trace(valid_c_op_products, axis1=0, axis2=2)
+                tmp3rdterm = np.trace(valid_c_op_products, axis1=0, axis2=2)
 
                 flime_FirstTerm = np.transpose(
-                    valid_c_op_products * pow_spec_combos, [0, 2, 1, 3]
+                    valid_c_op_products, [0, 2, 1, 3]
                 ).reshape(Hdim**2, Hdim**2)
 
-                flime_SecondTerm = np.kron(tmp1.T, I_)
-                flime_ThirdTerm = np.kron(I_, tmp2)
+                flime_SecondTerm = np.kron(tmp2ndterm.T, I_)
+                flime_ThirdTerm = np.kron(I_, tmp3rdterm)
 
-                total_R_tensor[key] += flime_FirstTerm - (
+                total_R_tensor[key] += flime_FirstTerm - (1 / 2) * (
                     flime_SecondTerm + flime_ThirdTerm
                 )
 
