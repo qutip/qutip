@@ -534,7 +534,7 @@ cpdef Dense matmul_dag_dense_csr_dense(
 ):
     """
     Perform the operation
-        ``out := scale * (left @ right) + out``
+        ``out = scale * (left @ right.dag()) + out``
     where `left`, `right` and `out` are matrices.  `scale` is a complex scalar,
     defaulting to 1.
 
