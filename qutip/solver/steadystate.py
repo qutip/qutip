@@ -1,6 +1,6 @@
 from qutip import liouvillian, lindblad_dissipator, Qobj, qzero_like, qeye_like
 from qutip import vector_to_operator, operator_to_vector, hilbert_dist
-from qutip import settings
+from qutip import settings, CoreOptions
 import qutip.core.data as _data
 import numpy as np
 import scipy.sparse.csgraph
@@ -15,21 +15,21 @@ def _permute_wbm(L, b):
     perm = np.argsort(
         scipy.sparse.csgraph.maximum_bipartite_matching(L.as_scipy())
     )
-    L = _data.permute.indices(L, perm, None)
-    b = _data.permute.indices(b, perm, None)
+    L = _data.permute.indices(L, perm, None, dtype=type(L))
+    b = _data.permute.indices(b, perm, None, dtype=type(b))
     return L, b
 
 
 def _permute_rcm(L, b):
     perm = np.argsort(scipy.sparse.csgraph.reverse_cuthill_mckee(L.as_scipy()))
-    L = _data.permute.indices(L, perm, perm)
-    b = _data.permute.indices(b, perm, None)
+    L = _data.permute.indices(L, perm, perm, dtype=type(L))
+    b = _data.permute.indices(b, perm, None, dtype=type(b))
     return L, b, perm
 
 
 def _reverse_rcm(rho, perm):
     rev_perm = np.argsort(perm)
-    rho = _data.permute.indices(rho, rev_perm, None)
+    rho = _data.permute.indices(rho, rev_perm, None, dtype=type(rho))
     return rho
 
 
@@ -194,14 +194,18 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         kwargs.pop("power_maxiter", 0)
         kwargs.pop("power_eps", 0)
         kwargs.pop("sparse", 0)
-        rho_ss = _steadystate_direct(A, kwargs.pop("weight", 0),
-                                     method=solver, **kwargs)
+        with CoreOptions(default_dtype_scope="creation"):
+            # We want to ensure the dtype we set are kept
+            rho_ss = _steadystate_direct(A, kwargs.pop("weight", 0),
+                                         method=solver, **kwargs)
 
     elif method == "power":
         # Remove unused kwargs, so only used and pass-through ones are included
         kwargs.pop("weight", 0)
         kwargs.pop("sparse", 0)
-        rho_ss = _steadystate_power(A, method=solver, **kwargs)
+        with CoreOptions(default_dtype_scope="creation"):
+            # We want to ensure the dtype we set are kept
+            rho_ss = _steadystate_power(A, method=solver, **kwargs)
 
     elif method == "propagator":
         rho_ss = _steadystate_expm(A, **kwargs)

@@ -216,6 +216,10 @@ class Qobj:
         Overlap between two state vectors or two operators.
     permute(order)
         Returns composite qobj with indices reordered.
+    basis_expansion(decimal_places=14, term_separator=" + ",
+                    dim_separator="auto", sort="largest-first")
+        Return a string-representation of the basis expansion
+        E.g. ``"(0.5+0.15j) |010> + (0.25+0j) |000> + ..."``
     proj()
         Computes the projector for a ket or bra vector.
     ptrace(sel)
@@ -272,7 +276,8 @@ class Qobj:
         copy: bool = True,
         superrep: str = None,
         isherm: bool = None,
-        isunitary: bool = None
+        isunitary: bool = None,
+        dtype: type | str = None,
     ):
         self._isherm = isherm
         self._isunitary = isunitary
@@ -281,12 +286,23 @@ class Qobj:
         if superrep is not None:
             self.superrep = superrep
 
+        if (
+            isinstance(arg, list)
+            or dtype
+            or settings.core["default_dtype_scope"] == "full"
+        ):
+            dtype = dtype or settings.core["default_dtype"]
+            if dtype is None or isinstance(self._data, _data.to.parse(dtype)):
+                return
+            self._data = _data.to(dtype, self._data)
+
     def copy(self) -> Qobj:
         """Create identical copy"""
         return Qobj(arg=self._data,
                     dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
+                    dtype=self.dtype,
                     copy=True)
 
     @property
@@ -368,7 +384,8 @@ class Qobj:
             dims=self._dims,
             isherm=self._isherm,
             isunitary=self._isunitary,
-            copy=False
+            dtype=data_type,
+            copy=copy
         )
 
     @_require_equal_type
@@ -443,6 +460,13 @@ class Qobj:
         new_dims = self._dims @ other._dims
         if new_dims.type == 'scalar':
             return _data.inner(self._data, other._data)
+        if self.isket and other.isbra:
+            return Qobj(
+                _data.matmul_outer(self._data, other._data),
+                dims=new_dims,
+                isunitary=False,
+                copy=False
+            )
 
         return Qobj(
             _data.matmul(self._data, other._data),
@@ -512,6 +536,74 @@ class Qobj:
         if self.issuper and self.superrep != 'super':
             out += ", superrep=" + repr(self.superrep)
         return out
+
+    def basis_expansion(self, decimal_places: int = 14,
+                        term_separator: str = " + ",
+                        dim_separator: str = "auto",
+                        sort: str = "largest-first") -> str:
+        """
+        Return a string-representation of the basis expansion
+        for a ket or a bra, e.g.
+
+        ``"(0.5+0.15j) |010> + (0.25+0j) |000> + ..."``
+
+        Parameters
+        ----------
+        decimal_places : int
+            The number of decimal places to show for the coefficients.
+
+        term_separator: str
+            Separator string between terms. E.g. use " +\n"
+            to print terms on separate lines.
+
+        dim_separator: str
+            Separator string between dimension indices.
+            E.g. use ", " to print as ``"|0, 0, 0>"``.
+            If dim_separator="auto", then "" is used
+            for qubits and ", " is used otherwise.
+
+        sort: str
+            Show largest elements (by magnitude) first
+            if "largest-first". Unsorted otherwise.
+
+        Returns
+        -------
+        basis_expansion : str
+            The requested string representation.
+        """
+
+        if not (self.isket or self.isbra):
+            raise ValueError(
+                f"Only implemented for states, not {self.type}."
+            )
+        dims = self.dims[0 if self.isket else 1]
+
+        if dim_separator == "auto":
+            # No separator for pure qubit states but comma-separator otherwise,
+            # since bitstrings are nice, but e.g. |153> would be ambiguous.
+            dim_separator = ", " if any([dim > 2 for dim in dims]) else ""
+
+        template = "{} |{}>" if self.isket else "{} <{}|"
+
+        ket_full = np.round(self.full(squeeze=True), decimals=decimal_places)
+
+        indices = range(len(ket_full))
+        if sort == "largest-first":
+            indices = np.argsort(np.abs(ket_full))[::-1]
+
+        parts = []
+        for i in indices:
+            if np.abs(ket_full[i]) > 10**-(decimal_places):
+                coeff = ket_full.item(i)
+                basis_str = dim_separator.join(
+                    map(str, np.unravel_index(i, dims))
+                )
+                parts.append(template.format(coeff, basis_str))
+
+        if len(parts) == 0:  # return something for norm-zero states.
+            return "0"
+
+        return term_separator.join(parts)
 
     def __str__(self):
         if self.data.shape[0] * self.data.shape[0] > 100_000_000:
@@ -824,7 +916,8 @@ class Qobj:
         return Qobj(_data.expm(self._data, dtype=dtype),
                     dims=self._dims,
                     isherm=self._isherm,
-                    copy=False)
+                    copy=False,
+                    dtype=dtype)
 
     def logm(self) -> Qobj:
         """Matrix logarithm of quantum operator.
@@ -1491,7 +1584,8 @@ class Qobj:
         -----
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
-
+        It is designed to compute only a few eigenvalues and can give wrong
+        results when all eigenvalues are asked.
         """
         if isinstance(self.data, _data.CSR) and sparse:
             evals, evecs = _data.eigs_csr(self.data,
@@ -1558,7 +1652,8 @@ class Qobj:
         -----
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
-
+        It is designed to compute only a few eigenvalues and can give wrong
+        results when all eigenvalues are asked.
         """
         # TODO: consider another way of handling the dispatch here.
         if isinstance(self.data, _data.CSR) and sparse:
@@ -1605,11 +1700,6 @@ class Qobj:
             Eigenvalue for the ground state of quantum operator.
         eigvec : :class:`.Qobj`
             Eigenket for the ground state of quantum operator.
-
-        Notes
-        -----
-        The sparse eigensolver is much slower than the dense version.
-        Use sparse only if memory requirements demand it.
         """
         eigvals = 2 if safe else 1
         evals, evecs = self.eigenstates(sparse=sparse, eigvals=eigvals,

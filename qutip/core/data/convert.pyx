@@ -38,12 +38,12 @@ class _Epsilon:
         return NotImplemented
 
     def __add__(self, other):
-        if isinstance(other, _Epsilon):
+        if isinstance(other, _Epsilon) or other == 0:
             return self
         return other
 
     def __radd__(self, other):
-        if isinstance(other, _Epsilon):
+        if isinstance(other, _Epsilon) or other == 0:
             return self
         return other
 

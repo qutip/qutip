@@ -19,7 +19,7 @@ __all__ = ['BosonicEnvironment',
 import abc
 import enum
 from time import time
-from typing import Any, Callable, Literal, Sequence, overload
+from typing import Any, Callable, Literal, Sequence, overload, Union
 import warnings
 
 import numpy as np
@@ -1112,14 +1112,12 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return approx_env, delta
 
     def _pade_params(self, Nk):
-        eta_p, gamma_p = self._corr(Nk)
+        ck_real, vk_real = self._corr(Nk)
 
-        ck_real = [np.real(eta) for eta in eta_p]
-        vk_real = [gam for gam in gamma_p]
         # There is only one term in the expansion of the imaginary part of the
         # Drude-Lorentz correlation function.
-        ck_imag = [np.imag(eta_p[0])]
-        vk_imag = [gamma_p[0]]
+        ck_imag = [-self.lam * self.gamma]
+        vk_imag = [self.gamma]
 
         return ck_real, vk_real, ck_imag, vk_imag
 
@@ -1145,7 +1143,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         kappa, epsilon = self._kappa_epsilon(Nk)
 
         eta_p = [self.lam * self.gamma *
-                 (self._cot(self.gamma / (2 * self.T)) - 1.0j)]
+                 self._cot(self.gamma / (2 * self.T))]
         gamma_p = [self.gamma]
 
         for ll in range(1, Nk + 1):
@@ -2745,3 +2743,6 @@ class ExponentialFermionicEnvironment(FermionicEnvironment):
                 )
 
         return S.item() if w.ndim == 0 else S
+
+
+Environment = Union[BosonicEnvironment, FermionicEnvironment]

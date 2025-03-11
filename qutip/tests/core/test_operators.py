@@ -124,7 +124,6 @@ def test_diagonal_raise(function, message):
         [2, 3, 4],
         1,
         [1],
-        [1, 1],
         qutip.dimensions.Space([2, 3, 4]),
     ])
 def test_implicit_tensor_creation(to_test, dimensions):

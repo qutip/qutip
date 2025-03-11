@@ -65,6 +65,7 @@ __all__ = [
     'matmul_csr_dense_dense', 'matmul_dia_dense_dense', 'matmul_dense_dia_dense',
     'multiply', 'multiply_csr', 'multiply_dense', 'multiply_dia',
     'matmul_dag', 'matmul_dag_data', 'matmul_dag_dense', 'matmul_dag_dense_csr_dense',
+    'matmul_outer',
 ]
 
 
@@ -927,6 +928,7 @@ matmul_dag = _Dispatcher(
     inputs=('left', 'right'),
     out=True,
 )
+
 matmul_dag.__doc__ =\
     """
     Compute the matrix multiplication of two matrices, with the operation
@@ -945,11 +947,82 @@ matmul_dag.__doc__ =\
     scale : complex, optional
         The scalar to multiply the output by.
     """
+
 matmul_dag.add_specialisations([
     (Dense, CSR, Dense, matmul_dag_dense_csr_dense),
     (Dense, Dense, Dense, matmul_dag_dense),
     (Data, Data, Data, matmul_dag_data),
 ], _defer=True)
+
+
+cpdef CSR matmul_outer_csr_dense_sparse(Data left, Data right, double complex scale=1):
+    return matmul(left, right, dtype=CSR)
+
+
+cpdef Dia matmul_outer_dia_dense_sparse(Data left, Data right, double complex scale=1):
+    return matmul(left, right, dtype=Dia)
+
+
+cpdef Data matmul_outer_dense_Data(Dense left, Dense right, double complex scale=1):
+    out_type = settings.core["default_dtype"]
+    if out_type is None:
+        out_density = (
+            dense.nnz(left) * 1.0 / left.shape[0]
+            * dense.nnz(right) * 1.0 / right.shape[1]
+        )
+        if out_density < 0.3:
+            out_type = CSR
+        else:
+            out_type = Dense
+    return matmul(left, right, dtype=out_type)
+
+
+cpdef Data matmul_outer_Data(Data left, Data right, double complex scale=1):
+    return matmul(left, right)
+
+
+matmul_outer = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=1),
+    ]),
+    name='matmul_outer',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+
+matmul_outer.__doc__ =\
+    """
+    Alternative to matmul. Does the same operation, but with different output
+    type specializations.
+
+    It is expected to be used when `left` is a column matrix and `right` a
+    row matrix, creating an output larger than the inputs.
+
+    Parameters
+    ----------
+    left : Data
+        The left operand as either a bra or a ket matrix.
+
+    right : Data
+        The right operand as a ket matrix.
+
+    scale : complex, optional
+        The scalar to multiply the output by.
+    """
+
+matmul_outer.add_specialisations([
+    (CSR, Dense, CSR, matmul_outer_csr_dense_sparse),
+    (Dense, CSR, CSR, matmul_outer_csr_dense_sparse),
+    (Dia, Dense, Dia, matmul_outer_dia_dense_sparse),
+    (Dense, Dia, Dia, matmul_outer_dia_dense_sparse),
+    (Dense, Dense, Data, matmul_outer_dense_Data),
+    (Data, Data, Data, matmul_outer_Data),
+], _defer=True)
+
 
 del _inspect, _Dispatcher
 
