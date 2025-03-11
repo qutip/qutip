@@ -1,6 +1,6 @@
 from qutip.solver.dysolve_propagator import DysolvePropagator, dysolve_propagator
 from qutip.solver import propagator
-from qutip import sigmax, sigmaz, tensor, CoreOptions
+from qutip import sigmax, sigmaz, qeye, tensor, CoreOptions
 import numpy as np
 
 
@@ -46,6 +46,36 @@ def test_2x2_propagators():
     dt = 0.1
     H_0 = sigmaz()
     X = sigmax()
+
+    # Dysolve
+    dysolve, propagators = dysolve_propagator(
+        max_order, H_0, X, omega, t_i, t_f, dt
+    )
+
+    # Qutip.solver.propagator
+    def H1_coeff(t, omega):
+        return np.cos(omega * t)
+
+    H = [H_0, [X, H1_coeff]]
+    args = {'omega': omega}
+    prop = propagator(
+        H, dysolve.times, args=args, options={"atol": 1e-10, "rtol": 1e-8}
+    )[1:]
+
+    with CoreOptions(atol=1e-8, rtol=1e-8):
+        for i in range(len(propagators)-1):
+            # .conj() for them to be in the same basis
+            assert (propagators[i] == prop[i].conj())
+
+
+def test_4x4_propagators():
+    max_order = 5
+    omega = 10
+    t_i = 0
+    t_f = 1
+    dt = 0.01
+    H_0 = tensor(sigmaz(), qeye(2))
+    X = tensor(sigmax(), qeye(2))
 
     # Dysolve
     dysolve, propagators = dysolve_propagator(
