@@ -64,7 +64,6 @@ The fitting methods available in QuTiP can be roughly put into three categories:
     - On the Spectral Density (``"sd"``)
 - Methods based on the Prony polynomial
     - Prony on the correlation function (``"prony"``)
-    - The Matrix Pencil method on the correlation function (``"mp"``)
     - ESPRIT on the correlation function(``"esprit"``)
 - Methods based on rational approximations
     - The AAA algorithm on the Power Spectrum (``"aaa"``)
@@ -116,7 +115,6 @@ While all methods apply in all situations when done with enough care we recommen
 
 The following table highlights the strengths and weaknesses of each fitting method.
 
-TODO: explain a bit the meaning of the columns?
 
 .. list-table:: 
    :header-rows: 1
@@ -612,17 +610,16 @@ API Documentation
             function.
 
 
-``"prony"`` | ``"mp"`` | ``"esprit"`` | ``"espira-I"`` | ``"espira-II"`` Prony-Based and ESPIRA
+``"prony"``  | ``"esprit"`` | ``"espira-I"`` | ``"espira-II"`` Prony-Based and ESPIRA
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-.. method:: approximate("prony" | "mp" | "esprit" | "espira-I" | "espira-II", tlist: ArrayLike, Nr: int = 3, Ni: int = 3, separate: bool = False, combine: bool = True, tag: Any = None) -> ExponentialBosonicEnvironment
+.. method:: approximate("prony"  | "esprit" | "espira-I" | "espira-II", tlist: ArrayLike, Nr: int = 3, Ni: int = 3, separate: bool = False, combine: bool = True, tag: Any = None) -> ExponentialBosonicEnvironment
     :no-index:
 
     Generates an approximation to the environment by fitting its
     correlation function using methods based on the Prony polynomial:
 
     - ``"prony"``  For the Prony method
-    - ``"mp"``  For the Matrix Pencil method
     - ``"esprit"``  For the "Estimation of Signal Parameters via Rotational Invariant Techniques" method
 
     or methods based on the AAA algorithm:
