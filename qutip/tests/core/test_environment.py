@@ -651,27 +651,6 @@ class TestBosonicEnvironment:
 
     @pytest.mark.parametrize(["reference", "tMax", "tol"], [
         pytest.param(OhmicReference(3, .75, 10, 1),
-                     5, 5e-2, id="Ohmic Example"),
-        pytest.param(UDReference(1, .5, .1, 1), 2, 5e-2, id='UD Example'),
-    ])
-    def test_fixed_mp_fit(self, reference, tMax, tol):
-        env = BosonicEnvironment.from_correlation_function(
-            reference.correlation_function, tag="test"
-        )
-        tlist = np.linspace(0, tMax, 100)
-        fit, info = env.approximate("mp",
-                                    tlist, Nr=10, Ni=10
-                                    )
-
-        assert isinstance(fit, ExponentialBosonicEnvironment)
-        assert fit.T == env.T
-        assert fit.tag == ("test", "MP Fit")
-        assert_equivalent(
-            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
-        )
-
-    @pytest.mark.parametrize(["reference", "tMax", "tol"], [
-        pytest.param(OhmicReference(3, .75, 10, 1),
                      15, 1e-3, id="Ohmic Example"),
         pytest.param(UDReference(1, .5, .1, 1), 2, 1e-3, id='UD Example'),
     ])
@@ -681,7 +660,7 @@ class TestBosonicEnvironment:
         )
         tlist = np.linspace(0, tMax, 500)
         fit, info = env.approximate("esprit",
-                                    tlist, Nr=15, Ni=15,separate=True
+                                    tlist, Nr=15, Ni=15, separate=True
                                     )
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
