@@ -539,7 +539,7 @@ shape = [5, 5], type = oper, isHerm = True
             raise ValueError("The method option can only take "
                              "values 'operator' or 'analytic'")
         out = qdiags(diags, 0, dims=[[N], [N]], shape=(N, N), dtype=dtype)
-        out._isherm = True
+        out.isherm = True
         return out
 
 

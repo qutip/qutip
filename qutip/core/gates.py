@@ -840,5 +840,5 @@ def qubit_clifford_group(*, dtype: LayerType = None) -> list[Qobj]:
     ]
     for gate in gates:
         gate.isherm
-        gate._isunitary = True
+        gate.isunitary = True
     return gates
