@@ -801,10 +801,10 @@ class BosonicEnvironment(abc.ABC):
             return -((len(tlist) - 1) / tlist[-1]) * \
                 (np.log(np.abs(phases)) + 1j * np.angle(phases))
         methods = {
-                   "prony": prony,
-                   "esprit": prony,
-                   "espira-I": espira1,
-                   "espira-II": espira2}
+            "prony": prony,
+            "esprit": prony,
+            "espira-I": espira1,
+            "espira-II": espira2}
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
         if separate:
