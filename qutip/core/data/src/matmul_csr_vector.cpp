@@ -54,6 +54,12 @@ void _matmul_csr_vector(
 }
 /*
 // TODO: Fix the SIMD version of _matmul_dag_csr_vector
+// This version using x86 intrinsics is not working.
+// It is also not clear how needed it is with current cpus and compilers.
+// Hopefully modern compilers do the vectorizations for us.
+// Leaving the template for future contributor if there is interest in 
+// resurecting this.
+
 template <typename IntT>
 void _matmul_dag_csr_vector(
         const std::complex<double> * _RESTRICT data,
