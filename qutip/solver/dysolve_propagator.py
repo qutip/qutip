@@ -85,7 +85,7 @@ class DysolvePropagator:
 
         dt : float
             The time increment in between each step of the
-            evolution. If a time increment exceeds t_f, the propagator
+            evolution. If a time increment exceeds t_f, its propagator
             for that time period will not be calculated. 
 
         Returns
@@ -331,15 +331,14 @@ class DysolvePropagator:
 
 
 def dysolve_propagator(
-        max_order: int,
         H_0: Qobj,
         X: Qobj,
         omega: float,
         t_i: float,
         t_f: float,
         dt: float,
-        a_tol: float = 1e-10,
-) -> tuple[DysolvePropagator, list[Qobj]]:
+        options: dict[str] = None
+) -> list[Qobj]:
     """
     Calculates the time evolution propagators from t_i to
     all time increments that fit in the range [t_i, t_f]
@@ -349,11 +348,6 @@ def dysolve_propagator(
 
     Parameters
     ----------
-    max_order : int
-        The maximum order of approximation for the time evolution.
-        The bigger this variable is, the more terms are calculated,
-        so more accuracy but a longer time to compute the propagator(s).
-
     H_0 : Qobj
         The hamiltonian of the system.
 
@@ -370,20 +364,20 @@ def dysolve_propagator(
         Final time of the evolution.
 
     dt : float
-        The time increment in between each step of the
-        evolution. If time + dt exceeds t_f the propagator for that
-        time period will not be calculated. Only the propagators
-        with time period inside [t_i, t_f] are returned.
+        The time increment in between each step of the evolution.
+        If a time increment exceeds t_f, its propagator will not be
+        calculated.
 
-    a_tol : float, default: 1e-10
-        The absolute tolerance when it comes to say if values that
-        are computed are small enough to be considered as 0.
+    options : dict, optional
+        Extra parameters. "max_order" is a given integer to indicate the
+        highest order of approximation used to compute the propagators
+        (default is 4). "a_tol" is the absolute tolerance used when
+        computing the propagators (default is 1e-10).
 
     Returns
     -------
-    (dysolve_instance, propagators): tuple[DysolvePropagator, list[Qobj]]
-        The DysolvePropagator class instance formed the entries and
-        the time evolution propagators from t_i to all time increments
+    Us : list[Qobj]
+        The time evolution propagators from t_i to all time increments
         that fit in the range [t_i, t_f].
 
         So, [U(t_i + dt, t_i), U(t_i + 2*dt, t_i), ...].
@@ -394,12 +388,11 @@ def dysolve_propagator(
     H = H_0 + cos(omega*t)X for Dysolve to work.
 
     """
-    dysolve = DysolvePropagator(max_order, H_0, X, omega, a_tol)
-    dysolve(t_i, t_f, dt,)
-    Us = dysolve.Us
+    dysolve = DysolvePropagator(H_0, X, omega, options)
+    Us = dysolve(t_i, t_f, dt)
 
     for i in range(len(Us)):
         if i != 0:
             Us[i] = Us[i] @ Us[i - 1]
 
-    return dysolve, Us
+    return Us
