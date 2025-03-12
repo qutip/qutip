@@ -27,14 +27,13 @@ def test_dims():
           tensor(sigmax(), sigmax(), sigmax()),
           tensor(sigmax(), sigmax(), sigmax(), sigmax())]
 
-    with CoreOptions():
-        for H_0, X in zip(H_0s, Xs):
-            dysolve = DysolvePropagator(
-                1, H_0, X, 1
-            )
-            dysolve(0, 1, 0.1)
-            for U in dysolve.Us:
-                assert (dysolve.H_0.dims == dysolve.X.dims == U.dims)
+    for H_0, X in zip(H_0s, Xs):
+        dysolve = DysolvePropagator(
+            1, H_0, X, 1
+        )
+        dysolve(0, 1, 0.1)
+        for U in dysolve.Us:
+            assert (dysolve.H_0.dims == dysolve.X.dims == U.dims)
 
 
 def test_2x2_propagators():

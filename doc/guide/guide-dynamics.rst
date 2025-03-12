@@ -9,7 +9,6 @@ Time Evolution and Quantum System Dynamics
 
    dynamics/dynamics-intro.rst
    dynamics/dynamics-data.rst
-   dynamics/dynamics-dysolve-propagator.rst
    dynamics/dynamics-master.rst
    dynamics/dynamics-monte.rst
    dynamics/dynamics-krylov.rst
@@ -21,3 +20,4 @@ Time Evolution and Quantum System Dynamics
    dynamics/dynamics-nmmonte.rst
    dynamics/dynamics-options.rst
    dynamics/dynamics-propagator.rst
+   dynamics/dynamics-dysolve-propagator.rst

@@ -13,11 +13,6 @@ class DysolvePropagator:
 
     Parameters
     ----------
-    max_order : int
-        The maximum order of approximation for the time evolution.
-        The bigger this variable is, the more terms are calculated,
-        so more accuracy but a longer time to compute the propagator(s).
-
     H_0 : Qobj
         The hamiltonian of the system.
 
@@ -27,9 +22,12 @@ class DysolvePropagator:
     omega : float
         The frequency of the cosine perturbation.
 
-    a_tol : float, default: 1e-10
-        The absolute tolerance when it comes to say if values that
-        are computed are small enough to be considered as 0.
+    options : dict, optional
+        Extra parameters when creating a DysolvePropagator instance.
+        "max_order" is a given integer to indicate the highest order
+        of approximation used to compute the propagators (default is 4).
+        "a_tol" is the absolute tolerance used when computing the propagators
+        (default is 1e-10).
 
     Notes
     -----
@@ -40,31 +38,42 @@ class DysolvePropagator:
 
     def __init__(
         self,
-        max_order: int,
         H_0: Qobj,
         X: Qobj,
         omega: float,
-        a_tol: float = 1e-10,
+        options: dict[str] = None,
     ):
-        self.max_order = max_order
+        # System
         self.H_0 = H_0
         self.eigenenergies = H_0.eigenenergies()
         self.X = X.transform(H_0)
         self.omega = omega
+
+        # Times
         self.t_i = None
         self.t_f = None
         self.dt = None
         self.times = None
-        self.a_tol = a_tol
+
+        # Options
+        if options is not None:
+            if options.get('max_order') is not None:
+                self.max_order = options['max_order']
+            if options.get('a_tol') is not None:
+                self.a_tol = options['a_tol']
+            else:
+                raise KeyError('Incorrect keys for options have been given')
+        else:
+            self.max_order = 4
+            self.a_tol = 1e-10
+
         self._Sns = None
         self.Us = None
 
-    def __call__(self, t_i: float, t_f: float, dt: float):
+    def __call__(self, t_i: float, t_f: float, dt: float) -> list[Qobj]:
         """
-        Computes propagator from times[i] to times[i+1] seperated by dt
-        for all time increment that fit in [t_i, t_f].
-
-        So, [U(times[1], times[0]), U(times[2], times[1]) ...]
+        Computes propagators for all time increments that fit in the
+        range [t_i, t_f]. Each increment is separated by dt.
 
         Parameters
         ----------
@@ -76,9 +85,14 @@ class DysolvePropagator:
 
         dt : float
             The time increment in between each step of the
-            evolution. If time + dt exceeds t_f the propagator for that
-            time period will not be calculated. Only the propagators
-            with time period inside [t_i, t_f] are returned.
+            evolution. If a time increment exceeds t_f, the propagator
+            for that time period will not be calculated. 
+
+        Returns
+        -------
+        Us : list[Qobj]
+            The propagators for all time increments in the given range
+            of time. So, [U(times[1], times[0]), U(times[2], times[1]) ...].
 
         """
         self.t_i = t_i
@@ -107,6 +121,7 @@ class DysolvePropagator:
             Us.append(Qobj(U, dims=self.H_0.dims))
 
         self.Us = Us
+        return Us
 
     def _compute_integrals(self, ws: list) -> float:
         """
@@ -240,7 +255,7 @@ class DysolvePropagator:
             diff_lambdas = np.diff(
                 np.array(list(itertools.product(
                     self.eigenenergies, repeat=n + 1
-                    )))[:, ::-1],
+                )))[:, ::-1],
                 axis=1,
             )
             eff_omegas = omega_vectors[:, None, :] + diff_lambdas[None, :, :]
@@ -258,7 +273,7 @@ class DysolvePropagator:
             i_j_indices = np.array(
                 list(itertools.product(
                     range(len(self.eigenenergies)), repeat=n + 1
-                    )))[:, ::-1]
+                )))[:, ::-1]
             ket_bra_indices = i_j_indices[:, [0, -1]]
             matrix_elements = self._compute_matrix_elements(i_j_indices)
 
