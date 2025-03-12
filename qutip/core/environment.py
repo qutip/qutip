@@ -455,7 +455,7 @@ class BosonicEnvironment(abc.ABC):
     @overload
     def approximate(
         self,
-        method: Literal['prony', 'mp', 'esprit', 'espira-I', 'espira-II'],
+        method: Literal['prony', 'esprit', 'espira-I', 'espira-II'],
         tlist: ArrayLike,
         Nr: int = 3,
         Ni: int = 3,
@@ -473,8 +473,6 @@ class BosonicEnvironment(abc.ABC):
             "sd": (self._approx_by_sd_fit, "Spectral Density NLSQ"),
             "aaa": (self._approx_by_aaa, "Power spectrum AAA"),
             "prony": (self._approx_by_prony, "Correlation Function Prony"),
-            "mp": (self._approx_by_prony,
-                   "Correlation Function Matrix Pencil"),
             "esprit": (self._approx_by_prony, "Correlation Function ESPRIT"),
             "espira-i": (self._approx_by_prony,
                          "Correlation Function ESPIRA-I"),
@@ -486,7 +484,7 @@ class BosonicEnvironment(abc.ABC):
         """
         Generates a multi-exponential approximation of this environment.
         The available methods are ``"cf"``, ``"ps"``, ``"sd"``, ``"aaa"``,
-        ``"prony"``, ``"mp"``, ``"esprit"``, ``"espira-I"`` and
+        ``"prony"``, ``"esprit"``, ``"espira-I"`` and
         ``"espira-II"``. The methods and the parameters required per method are
         documented in the :ref:`Users Guide<environment approximations api>`.
         """
@@ -655,7 +653,7 @@ class BosonicEnvironment(abc.ABC):
         )
         fit_info = {
             "N": N, "Nk": Nk, "fit_time": fit_time, "rmse": rmse,
-            "params": params, "summary": summary }
+            "params": params, "summary": summary}
 
         ckAR, vkAR, ckAI, vkAI = [], [], [], []
         # Finally, generate environment and return
@@ -802,7 +800,7 @@ class BosonicEnvironment(abc.ABC):
         def phase_to_exponent(phases):
             return -((len(tlist) - 1) / tlist[-1]) * \
                 (np.log(np.abs(phases)) + 1j * np.angle(phases))
-        methods = {"mp": prony,
+        methods = {
                    "prony": prony,
                    "esprit": prony,
                    "espira-I": espira1,
@@ -1165,7 +1163,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
     @overload
     def approximate(
         self,
-        method: Literal['prony', 'mp', 'esprit', 'espira-I', 'espira-II'],
+        method: Literal['prony', 'esprit', 'espira-I', 'espira-II'],
         tlist: ArrayLike,
         Nr: int = 3,
         Ni: int = 3,
@@ -1188,7 +1186,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         """
         Generates a multi-exponential approximation of this environment.
         The available methods are ``"matsubara"``, ``"pade"``, ``"cf"``,
-        ``"ps"``, ``"sd"``, ``"aaa"``, ``"prony"``, ``"mp"``, ``"esprit"``,
+        ``"ps"``, ``"sd"``, ``"aaa"``, ``"prony"``, ``"esprit"``,
         ``"espira-I"`` and ``"espira-II"``. The methods and the parameters
         required per method are documented in the
         :ref:`Users Guide<environment approximations api>`.
@@ -1539,7 +1537,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
     @overload
     def approximate(
         self,
-        method: Literal['prony', 'mp', 'esprit', 'espira-I', 'espira-II'],
+        method: Literal['prony', 'esprit', 'espira-I', 'espira-II'],
         tlist: ArrayLike,
         Nr: int = 3,
         Ni: int = 3,
@@ -1561,7 +1559,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
         """
         Generates a multi-exponential approximation of this environment.
         The available methods are ``"matsubara"``, ``"cf"``,
-        ``"ps"``, ``"sd"``, ``"aaa"``, ``"prony"``, ``"mp"``, ``"esprit"``,
+        ``"ps"``, ``"sd"``, ``"aaa"``, ``"prony"``, ``"esprit"``,
         ``"espira-I"`` and ``"espira-II"``. The methods and the parameters
         required per method are documented in the
         :ref:`Users Guide<environment approximations api>`.

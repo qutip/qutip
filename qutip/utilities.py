@@ -449,8 +449,8 @@ def iterated_fit(
         lower_repeat = np.tile(lower, N)
         upper_repeat = np.tile(upper, N)
         rmse1, params = _fit(fun, num_params, xdata, ydata,
-                                 guesses, lower_repeat,
-                                 upper_repeat, sigma, maxfev)
+                             guesses, lower_repeat,
+                             upper_repeat, sigma, maxfev)
         N += 1
 
     return rmse1, params
@@ -492,9 +492,6 @@ def _rmse(fun, xdata, ydata, params):
         np.sqrt(np.mean((yhat - ydata) ** 2) / len(ydata))
         / (np.max(ydata) - np.min(ydata))
     )
-
-
-
 
 
 def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
@@ -603,7 +600,7 @@ def aaa(func: Callable[..., complex], z: ArrayLike,
             The values used as the support points for the approximation
         indices: np.ndarray
             The indices of the support point values
-        iindices: np.ndarray
+        indices ordered: np.ndarray
             The indices of the support point values, sorted by importance
     """
     func = func(z) if callable(func) else func
@@ -657,7 +654,7 @@ def aaa(func: Callable[..., complex], z: ArrayLike,
         "support points": support_points,
         "values at support": values,
         "indices": indices,
-        "iindices": iindices
+        "indices ordered": iindices
     }
 
 
@@ -803,7 +800,7 @@ def prony_methods(method: str, signal: ArrayLike, n: int):
     and their matlab implementation
     Args:
         method (str): The method to obtain the roots of the prony polynomial
-        can be prony,matrix pencil (mp), and Estimation of signal parameters
+        can be prony, and Estimation of signal parameters
         via rotational invariant techniques (esprit)
         signal (np.ndarray): The input signal (1D complex array).
         n (int): Desired number of modes to  use as estimation
@@ -821,11 +818,7 @@ def prony_methods(method: str, signal: ArrayLike, n: int):
         num_freqs = len(signal)-n
     hankel0 = hankel(c=signal[:num_freqs], r=signal[num_freqs - 1: -1])
     hankel1 = hankel(c=signal[1: num_freqs + 1], r=signal[num_freqs:])
-    if method == "mp":
-        _, R = qr(hankel0)
-        pencil_matrix = np.linalg.pinv(R.T @ hankel0) @ (R.T @ hankel1)
-        phases = eigvals(pencil_matrix)
-    elif method == "prony":
+    if method == "prony":
         shift_matrix = lstsq(hankel0.T, hankel1.T)[0]
         phases = eigvals(shift_matrix.T)
     elif method == "esprit":
@@ -923,7 +916,8 @@ def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
     cauchy = _compute_cauchy_matrix(Z[indices], support_points)
     loewner = np.subtract.outer(F[indices], values) * cauchy
     loewner = loewner[::-1].conj()  # invert rows and conjugate
-    loewner2 = np.subtract.outer(F1[indices], F1[result['iindices']]) * cauchy
+    loewner2 = np.subtract.outer(
+        F1[indices], F1[result['indices ordered']]) * cauchy
     loewner2 = loewner2[::-1].conj()  # invert rows and conjugate
     _, N2 = loewner2.shape
     A1 = np.hstack((loewner, loewner2))
