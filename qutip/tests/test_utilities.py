@@ -138,14 +138,13 @@ class TestFitting:
 
     def test_fit(self, generate_data):
         x, y, fparams1, fparams2 = generate_data
-        rmse, r2, params = utils.iterated_fit(
+        rmse, params = utils.iterated_fit(
             self.model, num_params=3, xdata=x, ydata=y,
             lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2
         )
         assert rmse < 1e-8
         assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
                 np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
-        assert r2 < 1e-8
 
     def test_aaa(self, generate_data):
         x, y, _, _ = generate_data
