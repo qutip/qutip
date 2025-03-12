@@ -104,15 +104,15 @@ While all methods apply in all situations when done with enough care we recommen
 
 - Non-Linear squares 
     when you have intuition about the number of exponents that 
-    are needed, and have some vague ideas of what they might be. For example for UD 
-    at zero temperature one knows that there is only one exponent for the imaginary
-    part of the correlation function 
+    are needed, some clue as to what they might be. For example for UD 
+    at zero temperature one knows that there is only one exponent 
+    for the imaginary part of the correlation function.
 - AAA and ESPIRA 
-    when looking for accuracy on the steady state, espira is also 
+    when looking for accuracy on the steady state, ESPIRA is also 
     a good first choice in most cases
 - Prony methods 
-    when simulating transient dynamics and don't have extensive 
-    knowledge about the funciton to be fixed , esprit is a good first choice
+    Prony methods are good in general and are recommended when you don't have
+    intuition about the correlation function. ESPRIT is often a good choice
 
 The following table highlights the strengths and weaknesses of each fitting method.
 
@@ -147,16 +147,18 @@ TODO: explain a bit the meaning of the columns?
      - Partially
      - Yes
 
-In the table above fast refers to the typical computation time of the approach
+In the table requires extra information refers to whether we need to input 
+more than the function and the sampling points for the fitting method to work, 
+fast refers to the typical computation time of the approach
 with a moderate number of exponents, resilient to noise refers to whether the
-fitting approach is affected by noise in the signal to be fitted
-,stable whether it returns similar results 
-for different sampling points. The answer partially means that it is true for 
-some methods in the group but not for others.
+fitting approach is affected by noise in the function, allows for constraints
+refers to whether we can bound the fit parameters to be in a range,stable 
+refers whether it returns similar results for slightly different sampling 
+points. The answer partially means that it is 
+true for some methods in the group but not for others.
 
 .. _environment approximations api:
 
-TODO: Put references in the API for interested readers
 
 API Documentation
 ~~~~~~~~~~~~~~~~~
@@ -577,7 +579,8 @@ API Documentation
     if many poles are around the origin, it might require the sample points
     to be used for the fit to be a large dense range which makes this
     algorithm consume a lot of RAM (it will also be slow if asking for many
-    exponents).
+    exponents). It is recommended that the sample points provided are a 
+    logarithmicly scaled range. 
 
     :Parameters:
 
@@ -627,6 +630,13 @@ API Documentation
     - ``"espira-I"``  For the "Estimation of Signal Parameters by Iterative Rational Approximation" method
     - ``"espira-II"``  For the modified ESPIRA method based on matrix pencils for Loewner matrices
 
+
+    Prony fitting advantages over nonlinear least squares are that it converts 
+    the problem into a linear system, avoiding the need for initial guesses and
+    iterative optimization. This makes it computationally efficient and as 
+    opposed to non linear least squares it won't get trapped in local minima
+    and does not require anything appart from the sample points. 
+    
     :Parameters:
 
         **tlist** : array_like
