@@ -41,7 +41,7 @@ class DysolvePropagator:
         H_0: Qobj,
         X: Qobj,
         omega: float,
-        options: dict[str] = None,
+        options: dict[str] = {},
     ):
         # System
         self.H_0 = H_0
@@ -56,15 +56,13 @@ class DysolvePropagator:
         self.times = None
 
         # Options
-        if options is not None:
-            if options.get('max_order') is not None:
-                self.max_order = options['max_order']
-            if options.get('a_tol') is not None:
-                self.a_tol = options['a_tol']
-            else:
-                raise KeyError('Incorrect keys for options have been given')
+        if options['max_order'] is not None:
+            self.max_order = options['max_order']
         else:
             self.max_order = 4
+        if options['a_tol'] is not None:
+            self.a_tol = options['a_tol']
+        else:
             self.a_tol = 1e-10
 
         self._Sns = None

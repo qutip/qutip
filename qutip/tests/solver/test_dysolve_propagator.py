@@ -9,13 +9,13 @@ def test_number_of_propagators():
     t_i = 0
     t_f = 1
     dts = [0.1, 0.15, 0.2, 0.25, 0.35, 0.5, 0.75, 1]
-    with CoreOptions():
-        for dt in dts:
-            dysolve = DysolvePropagator(
-                1, sigmaz(), sigmax(), 1
-            )
-            dysolve(t_i, t_f, dt)
-            assert (len(dysolve.times) == len(dysolve.Us))
+
+    for dt in dts:
+        dysolve = DysolvePropagator(
+            sigmaz(), sigmax(), 1, {'max_order': 1, 'a_tol': 1e-8}
+        )
+        Us = dysolve(t_i, t_f, dt)
+        assert (len(dysolve.times) == len(Us))
 
 
 def test_dims():
@@ -29,10 +29,10 @@ def test_dims():
 
     for H_0, X in zip(H_0s, Xs):
         dysolve = DysolvePropagator(
-            1, H_0, X, 1
+            H_0, X, 1, {'max_order': 1, 'a_tol': 1e-8}
         )
-        dysolve(0, 1, 0.1)
-        for U in dysolve.Us:
+        Us = dysolve(0, 1, 0.1)
+        for U in Us:
             assert (dysolve.H_0.dims == dysolve.X.dims == U.dims)
 
 
@@ -47,9 +47,9 @@ def test_2x2_propagators():
     X = sigmax()
 
     # Dysolve
-    dysolve, propagators = dysolve_propagator(
-        max_order, H_0, X, omega, t_i, t_f, dt
-    )
+    propagators = dysolve_propagator(
+        H_0, X, omega, t_i, t_f, dt, {'max_order' : max_order}
+        )
 
     # Qutip.solver.propagator
     def H1_coeff(t, omega):
@@ -58,7 +58,7 @@ def test_2x2_propagators():
     H = [H_0, [X, H1_coeff]]
     args = {'omega': omega}
     prop = propagator(
-        H, dysolve.times, args=args, options={"atol": 1e-10, "rtol": 1e-8}
+        H, np.arange(t_i,t_f,dt), args=args, options={"atol": 1e-10, "rtol": 1e-8}
     )[1:]
 
     with CoreOptions(atol=1e-8, rtol=1e-8):
