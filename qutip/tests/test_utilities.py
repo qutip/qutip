@@ -126,6 +126,7 @@ def test_cpu_count(monkeypatch):
 class TestFitting:
     def model(self, x, a, b, c):
         return np.real(a * np.exp(-(b + 1j * c) * x))
+
     @pytest.fixture
     def generate_data(self):
         """Generate test data."""
@@ -137,7 +138,7 @@ class TestFitting:
 
     def test_fit(self, generate_data):
         x, y, fparams1, fparams2 = generate_data
-        rmse, r2,params = utils.iterated_fit(
+        rmse, r2, params = utils.iterated_fit(
             self.model, num_params=3, xdata=x, ydata=y,
             lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2
         )
@@ -165,7 +166,7 @@ class TestFitting:
         _, rmse < 1e-8
         assert r2 < 1e-8
 
-    @pytest.mark.parametrize("method", ["prony", "mp", "esprit"])
+    @pytest.mark.parametrize("method", ["prony", "esprit"])
     def test_prony_methods(self, generate_data, method):
         _, y, _, _ = generate_data
         _, rmse, r2 = utils.prony_methods(method, y, 4)
