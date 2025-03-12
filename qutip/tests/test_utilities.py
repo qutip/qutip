@@ -150,25 +150,21 @@ class TestFitting:
     def test_aaa(self, generate_data):
         x, y, _, _ = generate_data
         result = utils.aaa(y, x, tol=1e-13, max_iter=4)
-        rmse, r2 = result["rmse"], result["r2"]
+        rmse = result["rmse"]
         assert rmse < 1e-3
-        assert r2 < 1e-3
 
     def test_espira_I(self, generate_data):
         _, y, _, _ = generate_data
-        _, rmse, r2 = utils.espira1(y, 4, tol=1e-16)
+        _, rmse = utils.espira1(y, 4, tol=1e-16)
         assert rmse < 1e-8
-        assert r2 < 1e-8
 
     def test_espira_II(self, generate_data):
         _, y, _, _ = generate_data
-        _, rmse, r2 = utils.espira2(y, 4, tol=1e-16)
-        _, rmse < 1e-8
-        assert r2 < 1e-8
+        _, rmse = utils.espira2(y, 4, tol=1e-16)
+        assert rmse < 1e-8
 
     @pytest.mark.parametrize("method", ["prony", "esprit"])
     def test_prony_methods(self, generate_data, method):
         _, y, _, _ = generate_data
-        _, rmse, r2 = utils.prony_methods(method, y, 4)
+        _, rmse = utils.prony_methods(method, y, 4)
         assert rmse < 1e-8
-        assert r2 < 1e-8
