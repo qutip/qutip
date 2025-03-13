@@ -823,27 +823,14 @@ class Dimensions(metaclass=MetaDims):
                     "not supported. Please open an issue if you have an use "
                     f"case for these: {from_}, {to_}]"
                 )
-            if self.shape[0] == self.shape[1]:
-                self.type = 'super' if self.from_.issuper else 'oper'
-            else:
-                self.type = 'rec_super' if self.from_.issuper else 'rec_oper'
+            self.type = 'super' if self.from_.issuper else 'oper'
+            if self.shape[0] != self.shape[1]:
+                self.type = 'rec_' + self.type
             if self.from_.superrep == self.to_.superrep:
                 self.superrep = self.from_.superrep
             else:
                 self.superrep = 'mixed'
         self.__setitem__ = _frozen
-
-    @staticmethod
-    def from_prepost(pre, post):
-        pre = Dimensions(pre)
-        post = Dimensions(post)
-        return Dimensions(
-            SuperSpace(Dimensions(pre[1], post[0])),
-            SuperSpace(Dimensions(pre[0], post[1])),
-        )
-
-    def transpose(self):
-        return Dimensions(self.to_, self.from_)
 
     def __eq__(self, other: "Dimensions") -> bool:
         if isinstance(other, Dimensions):
