@@ -47,7 +47,7 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
         modes_table,
     )
     c_op_Fourier_amplitudes_list = (
-        np.fft.fft(c_op_Floquet_basis, axis=0)
+        (np.fft.fft(c_op_Floquet_basis, axis=0))
     ) / len(tlist)
     return c_op_Fourier_amplitudes_list
 
@@ -80,23 +80,26 @@ def _power_density_functions(floquet_basis, power_spectrum, Nt):
     gamma_minus = np.zeros((Nt, Hdim, Hdim))
 
     # Trying to build these up like an unshifted Fourier transform
+    # i.e. this should range over [0,1,...Nt/2-1,-Nt/2,-Nt/2+1,...-1]
     for i in range(Hdim):
         for j in range(Hdim):
-            for k in range(0, int(Nt / 2) - 1):
+            for k in range(0, int(Nt / 2) - 0):
                 gamma_plus[k, i, j] = power_spectrum(
                     (quasies[i] - quasies[j] + k) * omega
                 )
 
-                gamma_minus[k, i, j] = power_spectrum(
-                    (quasies[i] - quasies[j] + k) * -omega
+                gamma_minus[k, i, j] = np.conj(
+                    power_spectrum((quasies[i] - quasies[j] + k) * omega)
                 )
-            for k in range(int(Nt / 2) - 1, Nt):
+            for k in range(int(Nt / 2) - 0, Nt):
                 gamma_plus[k, i, j] = power_spectrum(
                     (quasies[i] - quasies[j] + (k - Nt)) * omega
                 )
 
-                gamma_minus[k, i, j] = power_spectrum(
-                    (quasies[i] - quasies[j] + (k - Nt)) * -omega
+                gamma_minus[k, i, j] = np.conj(
+                    power_spectrum(
+                        (quasies[i] - quasies[j] + (k - Nt)) * omega
+                    )
                 )
 
     return [gamma_plus, gamma_minus]
@@ -168,7 +171,7 @@ def _floquet_rate_matrix(
             repeat=2,
         ):
             delta_shift = delta_m + (l - k)
-
+            gamsum = np.add.outer(gamp[l], gamm[k])
             mask = {}
             if time_sense <= 0.0:
                 mask[0] = delta_shift == 0
@@ -183,8 +186,9 @@ def _floquet_rate_matrix(
                     c_op_Fourier_amplitudes_list[l],
                     np.conj(c_op_Fourier_amplitudes_list[k]),
                 )
+
             included_deltas = abs(delta_shift * omega) <= abs(
-                rate_products * time_sense
+                rate_products * time_sense  # * gamsum
             )
 
             if not np.any(included_deltas):
@@ -194,8 +198,7 @@ def _floquet_rate_matrix(
                 mask[key] = np.logical_and(delta_shift == key, included_deltas)
 
             for key in mask.keys():
-                gams = np.add.outer(gamp[l], gamm[k])
-                valid_c_op_products = gams * rate_products * mask[key]
+                valid_c_op_products = gamsum * rate_products * mask[key]
 
                 I_ = np.eye(Hdim, Hdim)
                 tmp2ndterm = np.trace(valid_c_op_products, axis1=0, axis2=2)
@@ -416,7 +419,7 @@ def _floquet_state_table(floquet_basis, tlist):
     sorted_time_args = {key: tally[key] for key in np.sort(list(tally.keys()))}
 
     fmodes_core_dict = {
-        t: np.hstack([i.full() for i in floquet_basis.mode(t)])
+        t: floquet_basis.mode(t, data=True).to_array()
         for t in (sorted_time_args.keys())
     }
 
