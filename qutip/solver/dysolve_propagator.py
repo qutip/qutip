@@ -1,4 +1,4 @@
-from qutip import Qobj
+from qutip import Qobj, qeye_like
 import numpy as np
 import itertools
 from scipy.special import factorial
@@ -8,7 +8,7 @@ __all__ = ['DysolvePropagator', 'dysolve_propagator']
 
 class DysolvePropagator:
     """
-    A generator of propagator(s) using the Dysolve algorithm
+    A generator of propagator using the Dysolve algorithm
     (see https://arxiv.org/abs/2012.09282).
 
     Parameters
@@ -41,7 +41,7 @@ class DysolvePropagator:
         H_0: Qobj,
         X: Qobj,
         omega: float,
-        options: dict[str] = {},
+        options: dict[str] = None,
     ):
         # System
         self.H_0 = H_0
@@ -53,73 +53,55 @@ class DysolvePropagator:
         self.t_i = None
         self.t_f = None
         self.dt = None
-        self.times = None
 
         # Options
-        if options['max_order'] is not None:
-            self.max_order = options['max_order']
-        else:
+        if options is None:
             self.max_order = 4
-        if options['a_tol'] is not None:
-            self.a_tol = options['a_tol']
-        else:
             self.a_tol = 1e-10
+        else:
+            self.max_order = options.get('max_order', 4)
+            self.a_tol = options.get('a_tol', 1e-10)
 
         self._Sns = None
-        self.Us = None
+        self.U = None
 
-    def __call__(self, t_i: float, t_f: float, dt: float) -> list[Qobj]:
+    def __call__(self, t_f: float, t_i: float = 0) -> Qobj:
         """
-        Computes propagators for all time increments that fit in the
-        range [t_i, t_f]. Each increment is separated by dt.
+        Computes the propagator from t_i to t_f. If t_i is not provided,
+        computes the propagator from 0 to t_f.
 
         Parameters
         ----------
-        t_i : float
-            Initial time of the evolution.
-
         t_f : float
             Final time of the evolution.
 
-        dt : float
-            The time increment in between each step of the
-            evolution. If a time increment exceeds t_f, its propagator
-            for that time period will not be calculated. 
+        t_i : float, default = 0
+            Initial time of the evolution.
 
         Returns
         -------
-        Us : list[Qobj]
-            The propagators for all time increments in the given range
-            of time. So, [U(times[1], times[0]), U(times[2], times[1]) ...].
+        U : Qobj
+            The propagator U(t_f, t_i) from t_i to t_f.
 
         """
         self.t_i = t_i
         self.t_f = t_f
-        self.dt = dt
-
-        if np.arange(t_i, t_f, dt)[-1] < self.t_f:
-            if np.arange(t_i, t_f, dt)[-1] + self.dt > self.t_f:
-                self.times = np.arange(t_i, t_f, dt)[:-1]
-            else:
-                self.times = np.arange(t_i, t_f, dt)
-        else:
-            self.times = np.arange(t_i, t_f, dt)[:-1]
+        self.dt = t_f - t_i
 
         self._Sns = self._compute_Sns()
 
-        Us = []
-        for time in self.times[:]:
-            U = np.zeros(
-                (len(self.eigenenergies), len(self.eigenenergies)),
-                dtype=np.complex128
-            )
-            Uns = self._compute_Uns(time)
-            for n in range(self.max_order + 1):
-                U += Uns[n]
-            Us.append(Qobj(U, dims=self.H_0.dims))
+        U = np.zeros(
+            (len(self.eigenenergies), len(self.eigenenergies)),
+            dtype=np.complex128
+        )
 
-        self.Us = Us
-        return Us
+        Uns = self._compute_Uns(t_i)
+        for n in range(self.max_order + 1):
+            U += Uns[n]
+
+        self.U = U
+
+        return U
 
     def _compute_integrals(self, ws: list) -> float:
         """
@@ -301,7 +283,6 @@ class DysolvePropagator:
         current_time : float
             The current time where to start the evolution for
             a time dt. current_time can be positive or negative.
-            Corresponds to one of the times in self.times.
 
         Returns
         -------
@@ -332,16 +313,11 @@ def dysolve_propagator(
         H_0: Qobj,
         X: Qobj,
         omega: float,
-        t_i: float,
-        t_f: float,
-        dt: float,
+        t: float | list[float],
         options: dict[str] = None
-) -> list[Qobj]:
+) -> Qobj | list[Qobj]:
     """
-    Calculates the time evolution propagators from t_i to
-    all time increments that fit in the range [t_i, t_f]
-    using the Dysolve algorithm.
-
+    A generator of propagator(s) using the Dysolve algorithm.
     See https://arxiv.org/abs/2012.09282.
 
     Parameters
@@ -355,16 +331,13 @@ def dysolve_propagator(
     omega : float
         The frequency of the cosine perturbation.
 
-    t_i : float
-        Initial time of the evolution.
-
-    t_f : float
-        Final time of the evolution.
-
-    dt : float
-        The time increment in between each step of the evolution.
-        If a time increment exceeds t_f, its propagator will not be
-        calculated.
+    t : float | list[float]
+        Time or list of times for which to evaluate the propagator(s). If t
+        is a single number, the propagator from 0 to t is computed. When
+        t is a list, the propagators from the first time to each elements in
+        t is returned. In that case, the first output will always be the
+        identity matrix. Also, in that case, have the same time increment in
+        between elements for better performance.
 
     options : dict, optional
         Extra parameters. "max_order" is a given integer to indicate the
@@ -374,11 +347,9 @@ def dysolve_propagator(
 
     Returns
     -------
-    Us : list[Qobj]
-        The time evolution propagators from t_i to all time increments
-        that fit in the range [t_i, t_f].
-
-        So, [U(t_i + dt, t_i), U(t_i + 2*dt, t_i), ...].
+    Us : Qobj | list[Qobj]
+        The time evolution propagator U(t,0) if t is a single number or else
+        a list of propagators [U(t[i], t[0])] for all elements t[i] in t.
 
     Notes
     -----
@@ -386,11 +357,43 @@ def dysolve_propagator(
     H = H_0 + cos(omega*t)X for Dysolve to work.
 
     """
-    dysolve = DysolvePropagator(H_0, X, omega, options)
-    Us = dysolve(t_i, t_f, dt)
+    if isinstance(t, float):
+        dysolve = DysolvePropagator(H_0, X, omega, options)
+        U = dysolve(t)
+        return U
 
-    for i in range(len(Us)):
-        if i != 0:
+    else:
+        Us = []
+        dts = np.diff(t)
+        dt_Sns = {}  # memoize Sns of a given dt
+
+        Us.append(qeye_like(H_0))  # U(t_0, t_0) = identity
+
+        dysolve = DysolvePropagator(H_0, X, omega, options)
+        for i in range(len(t[:-1])):  # Compute individual U(t[i+1], t[i])
+            if dt_Sns.get(dts[i]) is None:
+                U = dysolve(t[i+1], t[i])
+                Us.append(U)
+                dt_Sns[dts[i]] = dysolve._Sns
+            else:
+                dysolve.t_i = t[i]
+                dysolve.t_f = t[i+1]
+                dysolve.dt = dts[i]
+                dysolve._Sns = dt_Sns[dts[i]]
+
+                U = np.zeros(
+                    (len(dysolve.eigenenergies), len(dysolve.eigenenergies)),
+                    dtype=np.complex128
+                )
+
+                Uns = dysolve._compute_Uns(t[i])
+                for n in range(dysolve.max_order + 1):
+                    U += Uns[n]
+
+                dysolve.U = U
+                Us.append(U)
+
+        for i in range(1, len(Us)):  # [U(t[i], t[0])]
             Us[i] = Us[i] @ Us[i - 1]
 
     return Us
