@@ -823,7 +823,10 @@ class Dimensions(metaclass=MetaDims):
                     "not supported. Please open an issue if you have an use "
                     f"case for these: {from_}, {to_}]"
                 )
-            self.type = 'super' if self.from_.issuper else 'oper'
+            if self.shape[0] == self.shape[1]:
+                self.type = 'super' if self.from_.issuper else 'oper'
+            else:
+                self.type = 'rec_super' if self.from_.issuper else 'rec_oper'
             if self.from_.superrep == self.to_.superrep:
                 self.superrep = self.from_.superrep
             else:

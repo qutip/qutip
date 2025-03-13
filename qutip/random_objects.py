@@ -500,13 +500,14 @@ def rand_ket(
     dtype = dtype or settings.core["default_dtype"] or _data.Dense
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
+    dims = dims[0]
     if distribution not in ["haar", "fill"]:
         raise ValueError("distribution must be one of {'haar', 'fill'}")
 
     if N == 1:
         ket = rand_unitary(1, seed=generator)
     elif distribution == "haar":
-        ket = rand_unitary(N, density, "haar", seed=generator) @ basis(N, 0)
+        ket = rand_unitary(dims, density, "haar", seed=generator) @ basis(dims)
     else:
         X = scipy.sparse.rand(N, 1, density, format='csr',
                               random_state=generator)
@@ -519,11 +520,8 @@ def rand_ket(
         Y.data = 1.0j * (generator.random(len(X.data)) - 0.5)
         X = _data.csr.CSR(X + Y)
         ket = Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
+                   dims=[dims, [1]],
                    copy=False, isherm=False, isunitary=False)
-    if np.ndim(dims[0]) == 1: # ket
-        ket.dims = [dims[0], [1] * len(dims[0])]
-    else: # operator-ket
-        ket.dims = [dims[0], [[1], [1]]]
     return ket.to(dtype)
 
 

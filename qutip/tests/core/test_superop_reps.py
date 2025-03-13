@@ -143,7 +143,7 @@ class TestSuperopReps:
         op2 = to_kraus(choi)
         op3 = to_super(choi)
         assert choi.type == "super" and choi.superrep == "choi"
-        assert super.type == "super" and super.superrep == "super"
+        assert super.type == "rec_super" and super.superrep == "super"
         assert_kraus_equivalence(op1[0], kraus, tol=1e-8)
         assert_kraus_equivalence(op2[0], kraus, tol=1e-8)
         with CoreOptions(atol=tol):

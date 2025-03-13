@@ -14,18 +14,7 @@ from typing import Any, Literal
 __all__ = []
 
 
-class Operator(Qobj):
-    def __init__(self, data, dims, **flags):
-        super().__init__(data, dims, **flags)
-        if self._dims.type not in ["oper"]:
-            raise ValueError(
-                f"Expected operator dimensions, but got {self._dims.type}"
-            )
-
-    @property
-    def isoper(self) -> bool:
-        return True
-
+class _SquareOperator(Qobj):
     @property
     def isherm(self) -> bool:
         if self._flags.get("isherm", None) is None:
@@ -53,54 +42,19 @@ class Operator(Qobj):
     def isunitary(self, isunitary: bool):
         self._flags["isunitary"] = isunitary
 
-    @property
-    def ishp(self) -> bool:
-        return True
-
-    @property
-    def iscp(self) -> bool:
-        return True
-
-    @property
-    def istp(self) -> bool:
-        return self.isunitary
-
-    @property
-    def iscptp(self) -> bool:
-        return self.isunitary
-
-    def matrix_element(self, bra: Qobj, ket: Qobj) -> Qobj:
-        """Calculates a matrix element.
-
-        Gives the matrix element for the quantum object sandwiched between a
-        `bra` and `ket` vector.
-
-        Parameters
-        ----------
-        bra : :class:`.Qobj`
-            Quantum object of type 'bra' or 'ket'
-
-        ket : :class:`.Qobj`
-            Quantum object of type 'ket'.
-
-        Returns
-        -------
-        elem : complex
-            Complex valued matrix element.
-
-        Notes
-        -----
-        It is slightly more computationally efficient to use a ket
-        vector for the 'bra' input.
-
-        """
-        if bra.type not in ('bra', 'ket') or ket.type not in ('bra', 'ket'):
-            msg = "Can only calculate matrix elements between a bra and a ket."
-            raise TypeError(msg)
-        left, op, right = bra.data, self.data, ket.data
-        if ket.isbra:
-            right = right.adjoint()
-        return _data.inner_op(left, op, right, bra.isket)
+    def __pow__(self, n: int, m=None) -> Qobj:
+        # calculates powers of Qobj
+        if (
+            m is not None
+            or not isinstance(n, numbers.Integral)
+            or n < 0
+        ):
+            return NotImplemented
+        return Qobj(_data.pow(self._data, n),
+                    dims=self._dims,
+                    isherm=self._isherm,
+                    isunitary=self._isunitary,
+                    copy=False)
 
     def dnorm(self, B: Qobj = None) -> float:
         """Calculates the diamond norm, or the diamond distance to another
@@ -120,63 +74,6 @@ class Operator(Qobj):
 
         """
         return qutip.dnorm(self, B)
-
-    def __call__(self, other: Qobj) -> Qobj:
-        """
-        Acts this Qobj on another Qobj either by left-multiplication,
-        or by vectorization and devectorization, as
-        appropriate.
-        """
-        if not isinstance(other, Qobj):
-            raise TypeError("Only defined for quantum objects.")
-        if other.type not in ["ket"]:
-            raise TypeError(self.type + " cannot act on " + other.type)
-        return self.__matmul__(other)
-
-    def __pow__(self, n: int, m=None) -> Qobj:
-        # calculates powers of Qobj
-        if (
-            m is not None
-            or not isinstance(n, numbers.Integral)
-            or n < 0
-        ):
-            return NotImplemented
-        return Qobj(_data.pow(self._data, n),
-                    dims=self._dims,
-                    isherm=self._isherm,
-                    isunitary=self._isunitary,
-                    copy=False)
-
-    def tr(self) -> complex:
-        """Trace of a quantum object.
-
-        Returns
-        -------
-        trace : float
-            Returns the trace of the quantum object.
-
-        """
-        out = _data.trace(self._data)
-        # This ensures that trace can return something that is not a number such
-        # as a `tensorflow.Tensor` in qutip-tensorflow.
-        if settings.core["auto_real_casting"] and self.isherm:
-            out = out.real
-        return out
-
-    def diag(self) -> np.ndarray:
-        """Diagonal elements of quantum object.
-
-        Returns
-        -------
-        diags : array
-            Returns array of ``real`` values if operators is Hermitian,
-            otherwise ``complex`` values are returned.
-        """
-        # TODO: add a `diagonal` method to the data layer?
-        out = _data.to(_data.CSR, self.data).as_scipy().diagonal()
-        if settings.core["auto_real_casting"] and self.isherm:
-            out = np.real(out)
-        return out
 
     def expm(self, dtype: LayerType = None) -> Qobj:
         """Matrix exponential of quantum operator.
@@ -352,6 +249,22 @@ class Operator(Qobj):
         self.isherm = None
         return self.isherm
 
+    def tr(self) -> complex:
+        """Trace of a quantum object.
+
+        Returns
+        -------
+        trace : float
+            Returns the trace of the quantum object.
+
+        """
+        out = _data.trace(self._data)
+        # This ensures that trace can return something that is not a number such
+        # as a `tensorflow.Tensor` in qutip-tensorflow.
+        if settings.core["auto_real_casting"] and self.isherm:
+            out = out.real
+        return out
+
     def eigenstates(
         self,
         sparse: bool = False,
@@ -419,9 +332,9 @@ class Operator(Qobj):
                                       sort=sort, eigvals=eigvals)
 
         if self.type == 'super':
-            new_dims = [self.dims[0], [1]]
+            new_dims = [self._dims[0], [1]]
         else:
-            new_dims = [self.dims[0], [1]*len(self.dims[0])]
+            new_dims = [self._dims[0], [1]]
         ekets = np.empty((evecs.shape[1],), dtype=object)
         ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
                     for vec in _data.split_columns(evecs, False)]
@@ -598,6 +511,95 @@ class Operator(Qobj):
         out_data = _data.mul(out_data, 1/_data.norm.trace(out_data))
         return Qobj(out_data, dims=self._dims, isherm=True, copy=False)
 
+
+class RecOperator(Qobj):
+    def __init__(self, data, dims, **flags):
+        super().__init__(data, dims, **flags)
+        if self._dims.type not in ["rec_oper"]:
+            raise ValueError(
+                f"Expected operator dimensions, but got {self._dims.type}"
+            )
+
+    @property
+    def isoper(self) -> bool:
+        return True
+
+    @property
+    def ishp(self) -> bool:
+        return True
+
+    @property
+    def iscp(self) -> bool:
+        return True
+
+    @property
+    def istp(self) -> bool:
+        return self.isunitary
+
+    @property
+    def iscptp(self) -> bool:
+        return self.isunitary
+
+    def matrix_element(self, bra: Qobj, ket: Qobj) -> Qobj:
+        """Calculates a matrix element.
+
+        Gives the matrix element for the quantum object sandwiched between a
+        `bra` and `ket` vector.
+
+        Parameters
+        ----------
+        bra : :class:`.Qobj`
+            Quantum object of type 'bra' or 'ket'
+
+        ket : :class:`.Qobj`
+            Quantum object of type 'ket'.
+
+        Returns
+        -------
+        elem : complex
+            Complex valued matrix element.
+
+        Notes
+        -----
+        It is slightly more computationally efficient to use a ket
+        vector for the 'bra' input.
+
+        """
+        if bra.type not in ('bra', 'ket') or ket.type not in ('bra', 'ket'):
+            msg = "Can only calculate matrix elements between a bra and a ket."
+            raise TypeError(msg)
+        left, op, right = bra.data, self.data, ket.data
+        if ket.isbra:
+            right = right.adjoint()
+        return _data.inner_op(left, op, right, bra.isket)
+
+    def __call__(self, other: Qobj) -> Qobj:
+        """
+        Acts this Qobj on another Qobj either by left-multiplication,
+        or by vectorization and devectorization, as
+        appropriate.
+        """
+        if not isinstance(other, Qobj):
+            raise TypeError("Only defined for quantum objects.")
+        if other.type not in ["ket"]:
+            raise TypeError(self.type + " cannot act on " + other.type)
+        return self.__matmul__(other)
+
+    def diag(self) -> np.ndarray:
+        """Diagonal elements of quantum object.
+
+        Returns
+        -------
+        diags : array
+            Returns array of ``real`` values if operators is Hermitian,
+            otherwise ``complex`` values are returned.
+        """
+        # TODO: add a `diagonal` method to the data layer?
+        out = _data.to(_data.CSR, self.data).as_scipy().diagonal()
+        if settings.core["auto_real_casting"] and self.isherm:
+            out = np.real(out)
+        return out
+
     def norm(
         self,
         norm: Literal["max", "fro", "tr", "one"] = "tr",
@@ -677,6 +679,15 @@ class Operator(Qobj):
         return out
 
 
+class Operator(RecOperator, _SquareOperator):
+    def __init__(self, data, dims, **flags):
+        Qobj.__init__(self, data, dims, **flags)
+        if self._dims.type not in ["oper"]:
+            raise ValueError(
+                f"Expected operator dimensions, but got {self._dims.type}"
+            )
+
+
 class Scalar(Operator):
     # Scalar can be anything
     def __init__(self, data, dims, **flags):
@@ -710,3 +721,4 @@ class Scalar(Operator):
 
 _QobjBuilder.qobjtype_to_class["scalar"] = Scalar
 _QobjBuilder.qobjtype_to_class["oper"] = Operator
+_QobjBuilder.qobjtype_to_class["rec_oper"] = RecOperator

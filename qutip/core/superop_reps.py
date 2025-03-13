@@ -379,7 +379,7 @@ def to_choi(q_oper: Qobj) -> Qobj:
         If the given quantum object is not a map, or cannot be converted to
         Choi representation.
     """
-    if q_oper.type == 'super':
+    if q_oper.type in ['super', 'rec_super']:
         if q_oper.superrep == 'choi':
             return q_oper
         if q_oper.superrep == 'super':
@@ -388,7 +388,7 @@ def to_choi(q_oper: Qobj) -> Qobj:
             return _chi_to_choi(q_oper)
         else:
             raise TypeError(q_oper.superrep)
-    elif q_oper.type == 'oper':
+    elif q_oper.type in ['oper', 'rec_oper']:
         return _super_tofrom_choi(sprepost(q_oper, q_oper.dag()))
     else:
         raise TypeError(
@@ -422,7 +422,7 @@ def to_chi(q_oper: Qobj) -> Qobj:
         If the given quantum object is not a map, or cannot be converted
         to Chi representation.
     """
-    if q_oper.type == 'super':
+    if q_oper.type in ['super', 'rec_super']:
         if q_oper.superrep == 'chi':
             return q_oper
         elif q_oper.superrep == 'choi':
@@ -431,7 +431,7 @@ def to_chi(q_oper: Qobj) -> Qobj:
             return _choi_to_chi(to_choi(q_oper))
         else:
             raise TypeError(q_oper.superrep)
-    elif q_oper.type == 'oper':
+    elif q_oper.type in ['oper', 'rec_oper']:
         return to_chi(sprepost(q_oper, q_oper.dag()))
     else:
         raise TypeError(
@@ -464,7 +464,7 @@ def to_super(q_oper: Qobj) -> Qobj:
         If the given quantum object is not a map, or cannot be converted
         to supermatrix representation.
     """
-    if q_oper.type == 'super':
+    if q_oper.type in ['super', 'rec_super']:
         if q_oper.superrep == "super":
             return q_oper
         elif q_oper.superrep == 'choi':
@@ -474,7 +474,7 @@ def to_super(q_oper: Qobj) -> Qobj:
         else:
             raise ValueError(
                 "Unrecognized superrep '{}'.".format(q_oper.superrep))
-    elif q_oper.type == 'oper':  # Assume unitary
+    elif q_oper.type in ['oper', 'rec_oper']:  # Assume unitary
         return sprepost(q_oper, q_oper.dag())
     else:
         raise TypeError(

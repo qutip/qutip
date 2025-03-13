@@ -1,21 +1,21 @@
 from ._base import Qobj, _QobjBuilder, _require_equal_type
-from ._operator import Operator
+from ._operator import Operator, _SquareOperator
 import qutip
 from ..dimensions import enumerate_flat, collapse_dims_super, Dimensions
 import numpy as np
 from ...settings import settings
 from .. import data as _data
-from typing import Sequence
+from typing import Sequence, Literal, Any
 from qutip.typing import LayerType, DimensionLike
 
 
 __all__ = []
 
 
-class SuperOperator(Qobj):
+class RecSuperOperator(Qobj):
     def __init__(self, data, dims, **flags):
         super().__init__(data, dims, **flags)
-        if self._dims.type not in ["super"]:
+        if self._dims.type not in ["rec_super"]:
             raise ValueError(
                 f"Expected super operator dimensions, but got {self._dims.type}"
             )
@@ -23,33 +23,6 @@ class SuperOperator(Qobj):
     @property
     def issuper(self) -> bool:
         return True
-
-    @property
-    def isherm(self) -> bool:
-        if self._flags.get("isherm", None) is None:
-            self._flags["isherm"] = _data.isherm(self._data)
-        return self._flags["isherm"]
-
-    @isherm.setter
-    def isherm(self, isherm: bool):
-        self._flags["isherm"] = isherm
-
-    @property
-    def isunitary(self) -> bool:
-        if self._flags.get("isunitary", None) is None:
-            if not self.isoper or self._data.shape[0] != self._data.shape[1]:
-                self._flags["isunitary"] = False
-            else:
-                cmp = _data.matmul(self._data, self._data.adjoint())
-                iden = _data.identity_like(cmp)
-                self._flags["isunitary"] = _data.iszero(
-                    _data.sub(cmp, iden), tol=settings.core['atol']
-                )
-        return self._flags["isunitary"]
-
-    @isunitary.setter
-    def isunitary(self, isunitary: bool):
-        self._flags["isunitary"] = isunitary
 
     @property
     def ishp(self) -> bool:
@@ -122,25 +95,6 @@ class SuperOperator(Qobj):
             self._flags["istp"] = q_oper.istp
         return self.iscp and self.istp
 
-    def dnorm(self, B: Qobj = None) -> float:
-        """Calculates the diamond norm, or the diamond distance to another
-        operator.
-
-        Parameters
-        ----------
-        B : :class:`.Qobj` or None
-            If B is not None, the diamond distance d(A, B) = dnorm(A - B)
-            between this operator and B is returned instead of the diamond norm.
-
-        Returns
-        -------
-        d : float
-            Either the diamond norm of this operator, or the diamond distance
-            from this operator to B.
-
-        """
-        return qutip.dnorm(self, B)
-
     def __call__(self, other: Qobj) -> Qobj:
         """
         Acts this Qobj on another Qobj either by left-multiplication,
@@ -166,21 +120,21 @@ class SuperOperator(Qobj):
 
     # Matrix operations, should we support them?
     # Can't be easily applied on kraus map
-    # __pow__ = Operator.__pow__
-    # expm = Operator.expm
-    # logm = Operator.logm
-    # cosm = Operator.cosm
-    # cosm = Operator.cosm
-    sqrtm = _warn(Operator.sqrtm, "sqrtm")  # Fidelity used for choi
-    # inv = Operator.inv
+    ## __pow__ = Operator.__pow__
+    ## expm = Operator.expm
+    ## logm = Operator.logm
+    ## cosm = Operator.cosm
+    ## cosm = Operator.cosm
+    ## sqrtm = _warn(Operator.sqrtm, "sqrtm")  # Fidelity used for choi
+    ## inv = Operator.inv
 
     # These depend on the matrix representation.
-    tr = Operator.tr
-    # diag = Operator.diag
+    ## tr = Operator.tr
+    diag = Operator.diag
 
-    eigenstates = Operator.eigenstates  # Could be modified to return dm
-    eigenenergies = Operator.eigenenergies
-    # groundstate = Operator.groundstate  # Useful for super operator?
+    ## eigenstates = Operator.eigenstates  # Could be modified to return dm
+    ## eigenenergies = Operator.eigenenergies
+    ## groundstate = Operator.groundstate  # Useful for super operator?
 
     def dual_chan(self) -> Qobj:
         """Dual channel of quantum object representing a completely positive
@@ -213,8 +167,56 @@ class SuperOperator(Qobj):
             return qutip.to_kraus(self)
         else:
             from qutip.core.superop_reps import _generalized_kraus
-            pp = [(u, v.dag()) for u, v in _generalized_kraus(self.to_choi())]
-            return KrausMap.generalizedKraus(general_terms=pp)
+            return _generalized_kraus(self.to_choi())
 
+    def norm(
+        self,
+        norm: Literal["max", "fro", "tr", "one"] = "tr",
+        kwargs: dict[str, Any] = None
+    ) -> float:
+        """
+        Norm of a quantum object.
+
+        Default norm is the trace-norm. Other operator norms may be
+        specified using the `norm` parameter.
+
+        Parameters
+        ----------
+        norm : str, default: "tr"
+            Which type of norm to use. Allowed values are 'tr' for the trace
+            norm, 'fro' for the Frobenius norm, 'one' and 'max'.
+
+        kwargs : dict, optional
+            Additional keyword arguments to pass on to the relevant norm
+            solver.  See details for each norm function in :mod:`.data.norm`.
+
+        Returns
+        -------
+        norm : float
+            The requested norm of the operator or state quantum object.
+        """
+        norm = norm or "tr"
+        if norm not in {'tr', 'fro', 'one', 'max'}:
+            raise ValueError(
+                "matrix norm must be in {'tr', 'fro', 'one', 'max'}"
+            )
+
+        kwargs = kwargs or {}
+        return  {
+            'tr': _data.norm.trace,
+            'one': _data.norm.one,
+            'max': _data.norm.max,
+            'fro': _data.norm.frobenius,
+        }[norm](self._data, **kwargs)
+
+
+class SuperOperator(RecSuperOperator, _SquareOperator):
+    def __init__(self, data, dims, **flags):
+        Qobj.__init__(self, data, dims, **flags)
+        if self._dims.type not in ["super"]:
+            raise ValueError(
+                f"Expected super operator dimensions, but got {self._dims.type}"
+            )
 
 _QobjBuilder.qobjtype_to_class["super"] = SuperOperator
+_QobjBuilder.qobjtype_to_class["rec_super"] = RecSuperOperator
