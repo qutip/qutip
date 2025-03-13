@@ -99,7 +99,7 @@ class DysolvePropagator:
         for n in range(self.max_order + 1):
             U += Uns[n]
 
-        self.U = Qobj(U)
+        self.U = Qobj(U, self.H_0.dims)
 
         return self.U
 
@@ -390,7 +390,7 @@ def dysolve_propagator(
                 for n in range(dysolve.max_order + 1):
                     U += Uns[n]
 
-                dysolve.U = Qobj(U)
+                dysolve.U = Qobj(U, H_0.dims)
                 Us.append(dysolve.U)
 
         for i in range(1, len(Us)):  # [U(t[i], t[0])]
