@@ -14,7 +14,7 @@ class DysolvePropagator:
     Parameters
     ----------
     H_0 : Qobj
-        The hamiltonian of the system.
+        The hamiltonian of the system. Must be diagonal.
 
     X : Qobj
         A cosine perturbation applied on the system.
@@ -45,7 +45,7 @@ class DysolvePropagator:
     ):
         # System
         self.H_0 = H_0
-        self.eigenenergies = H_0.eigenenergies()
+        self.eigenenergies = H_0.diag()
         self.X = X.transform(H_0)
         self.omega = omega
 
@@ -99,9 +99,9 @@ class DysolvePropagator:
         for n in range(self.max_order + 1):
             U += Uns[n]
 
-        self.U = U
+        self.U = Qobj(U)
 
-        return U
+        return self.U
 
     def _compute_integrals(self, ws: list) -> float:
         """
@@ -390,8 +390,8 @@ def dysolve_propagator(
                 for n in range(dysolve.max_order + 1):
                     U += Uns[n]
 
-                dysolve.U = U
-                Us.append(U)
+                dysolve.U = Qobj(U)
+                Us.append(dysolve.U)
 
         for i in range(1, len(Us)):  # [U(t[i], t[0])]
             Us[i] = Us[i] @ Us[i - 1]
