@@ -87,7 +87,8 @@ class RecSuperOperator(Qobj):
         super().__init__(data, dims, **flags)
         if self._dims.type not in ["rec_super"]:
             raise ValueError(
-                f"Expected super operator dimensions, but got {self._dims.type}"
+                "Expected super operator dimensions, "
+                f"but got {self._dims.type}"
             )
 
     @property
@@ -100,7 +101,7 @@ class RecSuperOperator(Qobj):
             try:
                 J = qutip.to_choi(self)
                 self._flags["ishp"] = J.isherm
-            except:
+            except:  #TODO: except what?
                 self._flags["ishp"] = False
 
         return self._flags["ishp"]
@@ -111,10 +112,13 @@ class RecSuperOperator(Qobj):
             # We can test with either Choi or chi, since the basis
             # transformation between them is unitary and hence preserves
             # the CP and TP conditions.
-            J = self if self.superrep in ('choi', 'chi') else qutip.to_choi(self)
-            # If J isn't hermitian, then that could indicate either that J is not
-            # normal, or is normal, but has complex eigenvalues.  In either case,
-            # it makes no sense to then demand that the eigenvalues be
+            if self.superrep in ('choi', 'chi'):
+                J = self
+            else:
+                J = qutip.to_choi(self)
+            # If J isn't hermitian, then that could indicate either that J is
+            # not normal, or is normal, but has complex eigenvalues.  In either
+            # case, it makes no sense to then demand that the eigenvalues be
             # non-negative.
             self._flags["iscp"] = (
                 J.isherm
@@ -183,9 +187,11 @@ class RecSuperOperator(Qobj):
 
     def _warn(f, name=None):
         import warnings
+
         def func(*a, **kw):
             warnings.warn(f"SuperOperator.{name} used")
             return f(*a, **kw)
+
         return func
 
     # These depend on the matrix representation.
@@ -257,7 +263,7 @@ class RecSuperOperator(Qobj):
             )
 
         kwargs = kwargs or {}
-        return  {
+        return {
             'tr': _data.norm.trace,
             'one': _data.norm.one,
             'max': _data.norm.max,
@@ -340,8 +346,10 @@ class SuperOperator(RecSuperOperator, _SquareOperator):
         Qobj.__init__(self, data, dims, **flags)
         if self._dims.type not in ["super"]:
             raise ValueError(
-                f"Expected super operator dimensions, but got {self._dims.type}"
+                "Expected super operator dimensions, "
+                f"but got {self._dims.type}"
             )
+
 
 _QobjBuilder.qobjtype_to_class["super"] = SuperOperator
 _QobjBuilder.qobjtype_to_class["rec_super"] = RecSuperOperator

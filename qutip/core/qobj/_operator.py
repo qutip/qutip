@@ -65,7 +65,8 @@ class _SquareOperator(Qobj):
         ----------
         B : :class:`.Qobj` or None
             If B is not None, the diamond distance d(A, B) = dnorm(A - B)
-            between this operator and B is returned instead of the diamond norm.
+            between this operator and B is returned instead of the diamond
+            norm.
 
         Returns
         -------
@@ -248,8 +249,8 @@ class _SquareOperator(Qobj):
 
         """
         out = _data.trace(self._data)
-        # This ensures that trace can return something that is not a number such
-        # as a `tensorflow.Tensor` in qutip-tensorflow.
+        # This ensures that trace can return something that is not a number
+        # such as a `tensorflow.Tensor` in qutip-tensorflow.
         if settings.core["auto_real_casting"] and self.isherm:
             out = out.real
         return out

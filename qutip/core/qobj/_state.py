@@ -182,6 +182,7 @@ class _StateQobj(Qobj):
             raise TypeError('purity is only defined for states.')
         return _data.norm.l2(self._data)**2
 
+
 class Bra(_StateQobj):
     """
     A class for representing quantum objects, such as quantum operators and
