@@ -17,15 +17,15 @@ Qobj
     :members:
     :special-members: __call__
 
-.. autoclass:: qutip.core.qobj._base.BraQobj
+.. autoclass:: qutip.core.qobj._state.BraQobj
     :members:
     :special-members: __call__
 
-.. autoclass:: qutip.core.qobj._base.OperatorQobj
+.. autoclass:: qutip.core.qobj._operator.OperatorQobj
     :members:
     :special-members: __call__
 
-.. autoclass:: qutip.core.qobj._base.SuperOperatorQobj
+.. autoclass:: qutip.core.qobj._super.SuperOperatorQobj
     :members:
     :special-members: __call__
 
