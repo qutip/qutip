@@ -13,11 +13,17 @@ __all__ = [
 
 def _invalid_shapes():
     raise ValueError(
-        "The given blocks have incompatible shapes and cannot be concatenated."
+        "The given matrices have incompatible shapes and cannot be"
+        " concatenated."
     )
 
 
-def concat_data(data_array: list[list[Data]]) -> Dense:
+def _to_array(data: Data | numpy.ndarray) -> numpy.ndarray:
+    if isinstance(data, Data):
+        return data.to_array()
+    return data
+
+def concat_data(data_array: list[list[Data | numpy.ndarray]]) -> Dense:
     """
     TODO: docstring
     """
@@ -32,11 +38,13 @@ def concat_data(data_array: list[list[Data]]) -> Dense:
 
         row_height = row[0].shape[0]
         for data, column_width in zip(row, column_widths):
-            if data.shape != (column_width, row_height):
+            if data.shape != (row_height, column_width):
+                print(data.shape, column_width, row_height)
                 _invalid_shapes()
 
-    nd_arrays = [[data.to_array() for data in row] for row in data_array]
-    return Dense(numpy.block(nd_arrays), copy=False)
+    nd_arrays = [[_to_array(data) for data in row] for row in data_array]
+    return Dense(numpy.block(nd_arrays), copy=None)  # only copy if numpy
+                                                     # cannot avoid copying
 
 
 # TODO other dtypes
