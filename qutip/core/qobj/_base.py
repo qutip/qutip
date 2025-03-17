@@ -213,7 +213,7 @@ class Qobj(metaclass=_QobjBuilder):
         isherm: bool = None,
         isunitary: bool = None
     ):
-        flags = {}
+        flags = {"isherm": isherm, "isunitary": isunitary}
         if not (isinstance(arg, _data.Data) and isinstance(dims, Dimensions)):
             arg, dims, flags = _QobjBuilder._initialize_data(arg, dims, copy)
             if isherm is None and flags["isherm"] is not None:
@@ -226,8 +226,14 @@ class Qobj(metaclass=_QobjBuilder):
         self._data = arg
         self._dims = dims
         self._flags = {}
-        self._flags["isherm"] = isherm or flags.get("isherm", None)
-        self._flags["isunitary"] = isunitary or flags.get("isunitary", None)
+        if isherm is not None:
+            self._flags["isherm"] = isherm
+        else:
+            self._flags["isherm"] = flags.get("isherm", None)
+        if isunitary is not None:
+            self._flags["isunitary"] = isunitary
+        else:
+            self._flags["isunitary"] = flags.get("isunitary", None)
 
     @property
     def type(self) -> str:
