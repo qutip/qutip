@@ -45,7 +45,8 @@ class _SquareOperator(Qobj):
     def __pow__(self, n: int, m=None) -> Qobj:
         # calculates powers of Qobj
         if (
-            m is not None
+            self._dims[0] != self._dims[1]
+            or m is not None
             or not isinstance(n, numbers.Integral)
             or n < 0
         ):
@@ -95,8 +96,6 @@ class _SquareOperator(Qobj):
         TypeError
             Quantum operator is not square.
         """
-        if self.shape[0] != self.shape[1]:
-            raise TypeError("expm is only valid for square operators")
         if dtype is None and isinstance(self.data, (_data.CSR, _data.Dia)):
             dtype = _data.Dense
         return Qobj(_data.expm(self._data, dtype=dtype),
@@ -119,8 +118,6 @@ class _SquareOperator(Qobj):
         TypeError
             Quantum operator is not square.
         """
-        if self.shape[0] != self.shape[1]:
-            raise TypeError("logm is only valid for square operators")
         return Qobj(_data.logm(self._data),
                     dims=self._dims,
                     isherm=self._isherm,
@@ -159,8 +156,6 @@ class _SquareOperator(Qobj):
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
         """
-        if self.shape[0] != self.shape[1]:
-            raise TypeError('sqrt only valid on square matrices')
         return Qobj(_data.sqrtm(self._data),
                     dims=self._dims,
                     copy=False)
@@ -185,8 +180,6 @@ class _SquareOperator(Qobj):
         Uses the Q.expm() method.
 
         """
-        if self.shape[0] != self.shape[1]:
-            raise TypeError('invalid operand for matrix cosine')
         return 0.5 * ((1j * self).expm() + (-1j * self).expm())
 
     def sinm(self) -> Qobj:
@@ -208,8 +201,6 @@ class _SquareOperator(Qobj):
         -----
         Uses the Q.expm() method.
         """
-        if self.shape[0] != self.shape[1]:
-            raise TypeError('invalid operand for matrix sine')
         return -0.5j * ((1j * self).expm() - (-1j * self).expm())
 
     def inv(self, sparse: bool = False) -> Qobj:
@@ -227,8 +218,6 @@ class _SquareOperator(Qobj):
         TypeError
             Quantum object is not square.
         """
-        if self.shape[0] != self.shape[1]:
-            raise TypeError('Invalid operand for matrix inverse')
         if isinstance(self.data, _data.CSR) and not sparse:
             data = _data.to(_data.Dense, self.data)
         else:
@@ -316,8 +305,6 @@ class _SquareOperator(Qobj):
         Use sparse only if memory requirements demand it.
 
         """
-        if self.shape[0] != self.shape[1]:
-            raise TypeError('eigenstates only valid on square matrices')
         if isinstance(self.data, _data.CSR) and sparse:
             evals, evecs = _data.eigs_csr(self.data,
                                           isherm=self._isherm,
@@ -385,8 +372,6 @@ class _SquareOperator(Qobj):
         Use sparse only if memory requirements demand it.
 
         """
-        if self.shape[0] != self.shape[1]:
-            raise TypeError('eigenenergies only valid on square matrices')
         # TODO: consider another way of handling the dispatch here.
         if isinstance(self.data, _data.CSR) and sparse:
             return _data.eigs_csr(self.data,
@@ -438,8 +423,6 @@ class _SquareOperator(Qobj):
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
         """
-        if self.shape[0] != self.shape[1]:
-            raise TypeError('groundstate only valid on square matrices')
         eigvals = 2 if safe else 1
         evals, evecs = self.eigenstates(sparse=sparse, eigvals=eigvals,
                                         tol=tol, maxiter=maxiter)
@@ -472,8 +455,6 @@ class _SquareOperator(Qobj):
         oper : :class:`.Qobj`
             A valid density operator.
         """
-        if self.shape[0] != self.shape[1]:
-            raise TypeError('trunc_neg only valid on square matrices')
         if not self.isherm:
             raise ValueError("Must be a Hermitian operator to remove negative "
                              "eigenvalues.")
@@ -511,8 +492,73 @@ class _SquareOperator(Qobj):
         out_data = _data.mul(out_data, 1/_data.norm.trace(out_data))
         return Qobj(out_data, dims=self._dims, isherm=True, copy=False)
 
+    def purity(self) -> complex:
+        """Calculate purity of a quantum object.
+
+        Returns
+        -------
+        state_purity : float
+            Returns the purity of a quantum object.
+            For a pure state, the purity is 1.
+            For a mixed state of dimension `d`, 1/d<=purity<1.
+
+        """
+        if self.type in "super":
+            raise TypeError('purity is only defined for states.')
+        return _data.trace(_data.matmul(self._data, self._data)).real
+
 
 class RecOperator(Qobj):
+    """
+    A class for representing quantum objects, such as quantum operators and
+    states.
+
+    The Qobj class is the QuTiP representation of quantum operators and state
+    vectors. This class also implements math operations +,-,* between Qobj
+    instances (and / by a C-number), as well as a collection of common
+    operator/state operations.  The Qobj constructor optionally takes a
+    dimension ``list`` and/or shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    arg: array_like, data object or :obj:`.Qobj`
+        Data for vector/matrix representation of the quantum object.
+    dims: list
+        Dimensions of object used for tensor products.
+    copy: bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
+
+    Attributes
+    ----------
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
+    """
     def __init__(self, data, dims, **flags):
         super().__init__(data, dims, **flags)
         if self._dims.type not in ["rec_oper"]:
@@ -680,6 +726,60 @@ class RecOperator(Qobj):
 
 
 class Operator(RecOperator, _SquareOperator):
+    """
+    A class for representing quantum objects, such as quantum operators and
+    states.
+
+    The Qobj class is the QuTiP representation of quantum operators and state
+    vectors. This class also implements math operations +,-,* between Qobj
+    instances (and / by a C-number), as well as a collection of common
+    operator/state operations.  The Qobj constructor optionally takes a
+    dimension ``list`` and/or shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    arg: array_like, data object or :obj:`.Qobj`
+        Data for vector/matrix representation of the quantum object.
+    dims: list
+        Dimensions of object used for tensor products.
+    copy: bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
+
+    Attributes
+    ----------
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+    isherm : bool
+        Indicates if quantum object represents Hermitian operator.
+    isunitary : bool
+        Indictaes if quantum object represents unitary operator.
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
+    """
     def __init__(self, data, dims, **flags):
         Qobj.__init__(self, data, dims, **flags)
         if self._dims.type not in ["oper"]:
@@ -689,6 +789,60 @@ class Operator(RecOperator, _SquareOperator):
 
 
 class Scalar(Operator):
+    """
+    A class for representing quantum objects, such as quantum operators and
+    states.
+
+    The Qobj class is the QuTiP representation of quantum operators and state
+    vectors. This class also implements math operations +,-,* between Qobj
+    instances (and / by a C-number), as well as a collection of common
+    operator/state operations.  The Qobj constructor optionally takes a
+    dimension ``list`` and/or shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    arg: array_like, data object or :obj:`.Qobj`
+        Data for vector/matrix representation of the quantum object.
+    dims: list
+        Dimensions of object used for tensor products.
+    copy: bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
+
+    Attributes
+    ----------
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+    isherm : bool
+        Indicates if quantum object represents Hermitian operator.
+    isunitary : bool
+        Indictaes if quantum object represents unitary operator.
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
+    """
     # Scalar can be anything
     def __init__(self, data, dims, **flags):
         Qobj.__init__(self, data, dims, **flags)

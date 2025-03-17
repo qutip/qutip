@@ -150,10 +150,58 @@ def _require_equal_type(method):
 
 
 class Qobj(metaclass=_QobjBuilder):
+    """
+    A class for representing quantum objects, such as quantum operators and
+    states.
+
+    The Qobj class is the QuTiP representation of quantum operators and state
+    vectors. This class also implements math operations +,-,* between Qobj
+    instances (and / by a C-number), as well as a collection of common
+    operator/state operations.  The Qobj constructor optionally takes a
+    dimension ``list`` and/or shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    arg: array_like, data object or :obj:`.Qobj`
+        Data for vector/matrix representation of the quantum object.
+    dims: list
+        Dimensions of object used for tensor products.
+    copy: bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
+
+    Attributes
+    ----------
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
+    """
     _dims: Dimensions
-    dims: Dimensions
     _data: Data
-    data: data
     __array_ufunc__ = None
 
     def __init__(
@@ -165,6 +213,7 @@ class Qobj(metaclass=_QobjBuilder):
         isherm: bool = None,
         isunitary: bool = None
     ):
+        flags = {}
         if not (isinstance(arg, _data.Data) and isinstance(dims, Dimensions)):
             arg, dims, flags = _QobjBuilder._initialize_data(arg, dims, copy)
             if isherm is None and flags["isherm"] is not None:
@@ -177,10 +226,8 @@ class Qobj(metaclass=_QobjBuilder):
         self._data = arg
         self._dims = dims
         self._flags = {}
-        if isherm is not None:
-            self._flags["isherm"] = isherm
-        if isunitary is not None:
-            self._flags["isunitary"] = isunitary
+        self._flags["isherm"] = isherm or flags.get("isherm", None)
+        self._flags["isunitary"] = isunitary or flags.get("isunitary", None)
 
     @property
     def type(self) -> str:
@@ -217,11 +264,14 @@ class Qobj(metaclass=_QobjBuilder):
 
     def copy(self) -> Qobj:
         """Create identical copy"""
-        return Qobj(arg=self._data,
-                    dims=self._dims,
-                    isherm=self._isherm,
-                    isunitary=self._isunitary,
-                    copy=True)
+        return self.__class__(
+            arg=self._data,
+            dims=self._dims,
+            isherm=self._isherm,
+            isunitary=self._isunitary,
+            dtype=self.dtype,
+            copy=True
+        )
 
     def to(self, data_type: LayerType, copy: bool=False) -> Qobj:
         """
@@ -261,6 +311,7 @@ class Qobj(metaclass=_QobjBuilder):
             dims=self._dims,
             isherm=self._isherm,
             isunitary=self._isunitary,
+            dtype=data_type,
             copy=False
         )
 
@@ -593,7 +644,6 @@ class Qobj(metaclass=_QobjBuilder):
             return self
         return Qobj(self.data.copy(), dims=dims, copy=False)
 
-
     def permute(self, order: list) -> Qobj:
         """
         Permute the tensor structure of a quantum object.  For example,
@@ -701,6 +751,8 @@ class Qobj(metaclass=_QobjBuilder):
         self.data = _data.tidyup(self.data, atol)
         return self
 
+    # TODO: What about superoper?
+    # TODO: split into each cases?
     def transform(
         self,
         inpt: list[Qobj] | ArrayLike,
@@ -727,8 +779,6 @@ class Qobj(metaclass=_QobjBuilder):
         -----
         This function is still in development.
         """
-        # TODO: What about superoper
-        # TODO: split into each cases.
         if isinstance(inpt, list) or (isinstance(inpt, np.ndarray) and
                                       inpt.ndim == 1):
             if len(inpt) != max(self.shape):
@@ -749,22 +799,26 @@ class Qobj(metaclass=_QobjBuilder):
                 data = _data.matmul(S.adjoint(), self.data)
             elif self.isbra:
                 data = _data.matmul(self.data, S)
-            else:
+            elif self.isoper:
                 data = _data.matmul(_data.matmul(S.adjoint(), self.data), S)
+            else:
+                raise NotImplementedError
         else:
             if self.isket:
                 data = _data.matmul(S, self.data)
             elif self.isbra:
                 data = _data.matmul(self.data, S.adjoint())
-            else:
+            elif self.isoper:
                 data = _data.matmul(_data.matmul(S, self.data), S.adjoint())
+            else:
+                raise NotImplementedError
         return Qobj(data,
                     dims=self.dims,
                     isherm=self._isherm,
                     superrep=self.superrep,
                     copy=False)
 
-    # TODO: split
+    # TODO: split?
     def overlap(self, other: Qobj) -> complex:
         """
         Overlap between two state vectors or two operators.
@@ -816,6 +870,16 @@ class Qobj(metaclass=_QobjBuilder):
             #   conj(other.overlap(self))
             # so we take care to conjugate the output.
             out = np.conj(out)
+            # TODO: Is this still True?
+            # This case is the only one giving different results:
+            # A.overlap(B) == C
+            # A.dag().overlap(B) == C
+            # A.overlap(B.dag()) == conj(C)
+            # A.dag().overlap(B.dag()) == C
+            # B.overlap(A) == C
+            # B.dag().overlap(A) == C
+            # B.overlap(A.dag()) == conj(C)
+            # B.dag().overlap(A.dag()) == C
         return out
 
     @property
@@ -938,20 +1002,3 @@ class Qobj(metaclass=_QobjBuilder):
             remaining.
         """
         return qutip.ptrace(self, sel, dtype)
-
-    def purity(self) -> complex:
-        """Calculate purity of a quantum object.
-
-        Returns
-        -------
-        state_purity : float
-            Returns the purity of a quantum object.
-            For a pure state, the purity is 1.
-            For a mixed state of dimension `d`, 1/d<=purity<1.
-
-        """
-        if self.type in ("super", "operator-ket", "operator-bra"):
-            raise TypeError('purity is only defined for states.')
-        if self.isket or self.isbra:
-            return _data.norm.l2(self._data)**2
-        return _data.trace(_data.matmul(self._data, self._data)).real

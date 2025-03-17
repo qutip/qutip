@@ -13,6 +13,76 @@ __all__ = []
 
 
 class RecSuperOperator(Qobj):
+    """
+    A class for representing quantum objects, such as quantum operators and
+    states.
+
+    The Qobj class is the QuTiP representation of quantum operators and state
+    vectors. This class also implements math operations +,-,* between Qobj
+    instances (and / by a C-number), as well as a collection of common
+    operator/state operations.  The Qobj constructor optionally takes a
+    dimension ``list`` and/or shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    arg: array_like, data object or :obj:`.Qobj`
+        Data for vector/matrix representation of the quantum object.
+    dims: list
+        Dimensions of object used for tensor products.
+    copy: bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
+
+    Attributes
+    ----------
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+    superrep : str
+        Representation used if `type` is 'super'. One of 'super'
+        (Liouville form), 'choi' (Choi matrix with tr = dimension),
+        or 'chi' (chi-matrix representation).
+    isherm : bool
+        Indicates if quantum object represents Hermitian operator.
+    isunitary : bool
+        Indictaes if quantum object represents unitary operator.
+    iscp : bool
+        Indicates if the quantum object represents a map, and if that map is
+        completely positive (CP).
+    ishp : bool
+        Indicates if the quantum object represents a map, and if that map is
+        hermicity preserving (HP).
+    istp : bool
+        Indicates if the quantum object represents a map, and if that map is
+        trace preserving (TP).
+    iscptp : bool
+        Indicates if the quantum object represents a map that is completely
+        positive and trace preserving (CPTP).
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
+    """
     def __init__(self, data, dims, **flags):
         super().__init__(data, dims, **flags)
         if self._dims.type not in ["rec_super"]:
@@ -118,23 +188,8 @@ class RecSuperOperator(Qobj):
             return f(*a, **kw)
         return func
 
-    # Matrix operations, should we support them?
-    # Can't be easily applied on kraus map
-    ## __pow__ = Operator.__pow__
-    ## expm = Operator.expm
-    ## logm = Operator.logm
-    ## cosm = Operator.cosm
-    ## cosm = Operator.cosm
-    ## sqrtm = _warn(Operator.sqrtm, "sqrtm")  # Fidelity used for choi
-    ## inv = Operator.inv
-
     # These depend on the matrix representation.
-    ## tr = Operator.tr
     diag = Operator.diag
-
-    ## eigenstates = Operator.eigenstates  # Could be modified to return dm
-    ## eigenenergies = Operator.eigenenergies
-    ## groundstate = Operator.groundstate  # Useful for super operator?
 
     def dual_chan(self) -> Qobj:
         """Dual channel of quantum object representing a completely positive
@@ -211,6 +266,76 @@ class RecSuperOperator(Qobj):
 
 
 class SuperOperator(RecSuperOperator, _SquareOperator):
+    """
+    A class for representing quantum objects, such as quantum operators and
+    states.
+
+    The Qobj class is the QuTiP representation of quantum operators and state
+    vectors. This class also implements math operations +,-,* between Qobj
+    instances (and / by a C-number), as well as a collection of common
+    operator/state operations.  The Qobj constructor optionally takes a
+    dimension ``list`` and/or shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    arg: array_like, data object or :obj:`.Qobj`
+        Data for vector/matrix representation of the quantum object.
+    dims: list
+        Dimensions of object used for tensor products.
+    copy: bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
+
+    Attributes
+    ----------
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+    superrep : str
+        Representation used if `type` is 'super'. One of 'super'
+        (Liouville form), 'choi' (Choi matrix with tr = dimension),
+        or 'chi' (chi-matrix representation).
+    isherm : bool
+        Indicates if quantum object represents Hermitian operator.
+    isunitary : bool
+        Indictaes if quantum object represents unitary operator.
+    iscp : bool
+        Indicates if the quantum object represents a map, and if that map is
+        completely positive (CP).
+    ishp : bool
+        Indicates if the quantum object represents a map, and if that map is
+        hermicity preserving (HP).
+    istp : bool
+        Indicates if the quantum object represents a map, and if that map is
+        trace preserving (TP).
+    iscptp : bool
+        Indicates if the quantum object represents a map that is completely
+        positive and trace preserving (CPTP).
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
+    """
     def __init__(self, data, dims, **flags):
         Qobj.__init__(self, data, dims, **flags)
         if self._dims.type not in ["super"]:

@@ -21,6 +21,8 @@ class _StateQobj(Qobj):
         P : :class:`.Qobj`
             Projection operator.
         """
+        if not (self.isket or self.isbra):
+            raise TypeError("projection is only defined for bras and kets")
         dims = ([self._dims[0], self._dims[0]] if self.isket
                 else [self._dims[1], self._dims[1]])
         return Qobj(_data.project(self._data),
@@ -165,8 +167,72 @@ class _StateQobj(Qobj):
 
         return term_separator.join(parts)
 
+    def purity(self) -> float:
+        """Calculate purity of a quantum object.
+
+        Returns
+        -------
+        state_purity : float
+            Returns the purity of a quantum object.
+            For a pure state, the purity is 1.
+            For a mixed state of dimension `d`, 1/d<=purity<1.
+
+        """
+        if self.type in ("operator-ket", "operator-bra"):
+            raise TypeError('purity is only defined for states.')
+        return _data.norm.l2(self._data)**2
 
 class Bra(_StateQobj):
+    """
+    A class for representing quantum objects, such as quantum operators and
+    states.
+
+    The Qobj class is the QuTiP representation of quantum operators and state
+    vectors. This class also implements math operations +,-,* between Qobj
+    instances (and / by a C-number), as well as a collection of common
+    operator/state operations.  The Qobj constructor optionally takes a
+    dimension ``list`` and/or shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    arg: array_like, data object or :obj:`.Qobj`
+        Data for vector/matrix representation of the quantum object.
+    dims: list
+        Dimensions of object used for tensor products.
+    copy: bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
+
+    Attributes
+    ----------
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
+    """
     def __init__(self, data, dims, **flags):
         super().__init__(data, dims, **flags)
         if self._dims.type != "bra":
@@ -180,6 +246,56 @@ class Bra(_StateQobj):
 
 
 class Ket(_StateQobj):
+    """
+    A class for representing quantum objects, such as quantum operators and
+    states.
+
+    The Qobj class is the QuTiP representation of quantum operators and state
+    vectors. This class also implements math operations +,-,* between Qobj
+    instances (and / by a C-number), as well as a collection of common
+    operator/state operations.  The Qobj constructor optionally takes a
+    dimension ``list`` and/or shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    arg: array_like, data object or :obj:`.Qobj`
+        Data for vector/matrix representation of the quantum object.
+    dims: list
+        Dimensions of object used for tensor products.
+    copy: bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
+
+    Attributes
+    ----------
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
+    """
     def __init__(self, data, dims, **flags):
         super().__init__(data, dims, **flags)
         if self._dims.type != "ket":
@@ -193,6 +309,56 @@ class Ket(_StateQobj):
 
 
 class OperKet(_StateQobj):
+    """
+    A class for representing quantum objects, such as quantum operators and
+    states.
+
+    The Qobj class is the QuTiP representation of quantum operators and state
+    vectors. This class also implements math operations +,-,* between Qobj
+    instances (and / by a C-number), as well as a collection of common
+    operator/state operations.  The Qobj constructor optionally takes a
+    dimension ``list`` and/or shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    arg: array_like, data object or :obj:`.Qobj`
+        Data for vector/matrix representation of the quantum object.
+    dims: list
+        Dimensions of object used for tensor products.
+    copy: bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
+
+    Attributes
+    ----------
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
+    """
     def __init__(self, data, dims, **flags):
         super().__init__(data, dims, **flags)
         if self._dims.type != "operator-ket":
@@ -206,6 +372,56 @@ class OperKet(_StateQobj):
 
 
 class OperBra(_StateQobj):
+    """
+    A class for representing quantum objects, such as quantum operators and
+    states.
+
+    The Qobj class is the QuTiP representation of quantum operators and state
+    vectors. This class also implements math operations +,-,* between Qobj
+    instances (and / by a C-number), as well as a collection of common
+    operator/state operations.  The Qobj constructor optionally takes a
+    dimension ``list`` and/or shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    arg: array_like, data object or :obj:`.Qobj`
+        Data for vector/matrix representation of the quantum object.
+    dims: list
+        Dimensions of object used for tensor products.
+    copy: bool
+        Flag specifying whether Qobj should get a copy of the
+        input data, or use the original.
+
+    Attributes
+    ----------
+    data : object
+        The data object storing the vector / matrix representation of the
+        `Qobj`.
+    dtype : type
+        The data-layer type used for storing the data. The possible types are
+        described in `Qobj.to <./classes.html#qutip.core.qobj.Qobj.to>`__.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
+    """
     def __init__(self, data, dims, **flags):
         super().__init__(data, dims, **flags)
         if self._dims.type != "operator-bra":
