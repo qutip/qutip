@@ -183,16 +183,13 @@ class _StateQobj(Qobj):
         return _data.norm.l2(self._data)**2
 
 
-class Bra(_StateQobj):
+class BraQobj(_StateQobj):
     """
-    A class for representing quantum objects, such as quantum operators and
-    states.
+    A class for representing quantum objects that represent Bra states.
 
-    The Qobj class is the QuTiP representation of quantum operators and state
-    vectors. This class also implements math operations +,-,* between Qobj
+    This class implements math operations +,-,* between Qobj
     instances (and / by a C-number), as well as a collection of common
-    operator/state operations.  The Qobj constructor optionally takes a
-    dimension ``list`` and/or shape ``list`` as arguments.
+    operator operations.
 
     Parameters
     ----------
@@ -246,16 +243,13 @@ class Bra(_StateQobj):
         return True
 
 
-class Ket(_StateQobj):
+class KetQobj(_StateQobj):
     """
-    A class for representing quantum objects, such as quantum operators and
-    states.
+    A class for representing quantum objects that represent Ket states.
 
-    The Qobj class is the QuTiP representation of quantum operators and state
-    vectors. This class also implements math operations +,-,* between Qobj
+    This class implements math operations +,-,* between Qobj
     instances (and / by a C-number), as well as a collection of common
-    operator/state operations.  The Qobj constructor optionally takes a
-    dimension ``list`` and/or shape ``list`` as arguments.
+    operator operations.
 
     Parameters
     ----------
@@ -309,16 +303,14 @@ class Ket(_StateQobj):
         return True
 
 
-class OperKet(_StateQobj):
+class OperKetQobj(_StateQobj):
     """
-    A class for representing quantum objects, such as quantum operators and
-    states.
+    A class for representing quantum objects that represent column stacked
+    operators states.
 
-    The Qobj class is the QuTiP representation of quantum operators and state
-    vectors. This class also implements math operations +,-,* between Qobj
+    This class implements math operations +,-,* between Qobj
     instances (and / by a C-number), as well as a collection of common
-    operator/state operations.  The Qobj constructor optionally takes a
-    dimension ``list`` and/or shape ``list`` as arguments.
+    operator operations.
 
     Parameters
     ----------
@@ -372,16 +364,14 @@ class OperKet(_StateQobj):
         return True
 
 
-class OperBra(_StateQobj):
+class OperBraQobj(_StateQobj):
     """
-    A class for representing quantum objects, such as quantum operators and
-    states.
+    A class for representing quantum objects that represent column stacked
+    operators states as a Bra state.
 
-    The Qobj class is the QuTiP representation of quantum operators and state
-    vectors. This class also implements math operations +,-,* between Qobj
+    This class implements math operations +,-,* between Qobj
     instances (and / by a C-number), as well as a collection of common
-    operator/state operations.  The Qobj constructor optionally takes a
-    dimension ``list`` and/or shape ``list`` as arguments.
+    operator operations.
 
     Parameters
     ----------
@@ -435,7 +425,7 @@ class OperBra(_StateQobj):
         return True
 
 
-_QobjBuilder.qobjtype_to_class["ket"] = Ket
-_QobjBuilder.qobjtype_to_class["bra"] = Bra
-_QobjBuilder.qobjtype_to_class["operator-ket"] = OperKet
-_QobjBuilder.qobjtype_to_class["operator-bra"] = OperBra
+_QobjBuilder.qobjtype_to_class["ket"] = KetQobj
+_QobjBuilder.qobjtype_to_class["bra"] = BraQobj
+_QobjBuilder.qobjtype_to_class["operator-ket"] = OperKetQobj
+_QobjBuilder.qobjtype_to_class["operator-bra"] = OperBraQobj

@@ -9,7 +9,23 @@ Quantum Objects
 Qobj
 ----
 
-.. autoclass:: qutip.core.qobj.Qobj
+.. autoclass:: qutip.core.qobj._base.Qobj
+    :members:
+    :special-members: __call__
+
+.. autoclass:: qutip.core.qobj._state.KetQobj
+    :members:
+    :special-members: __call__
+
+.. autoclass:: qutip.core.qobj._base.BraQobj
+    :members:
+    :special-members: __call__
+
+.. autoclass:: qutip.core.qobj._base.OperatorQobj
+    :members:
+    :special-members: __call__
+
+.. autoclass:: qutip.core.qobj._base.SuperOperatorQobj
     :members:
     :special-members: __call__
 

@@ -279,7 +279,7 @@ class Qobj(metaclass=_QobjBuilder):
             copy=True
         )
 
-    def to(self, data_type: LayerType, copy: bool=False) -> Qobj:
+    def to(self, data_type: LayerType, copy: bool = False) -> Qobj:
         """
         Convert the underlying data store of this `Qobj` into a different
         storage representation.

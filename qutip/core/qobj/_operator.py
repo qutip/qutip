@@ -509,16 +509,13 @@ class _SquareOperator(Qobj):
         return _data.trace(_data.matmul(self._data, self._data)).real
 
 
-class RecOperator(Qobj):
+class RecOperatorQobj(Qobj):
     """
-    A class for representing quantum objects, such as quantum operators and
-    states.
+    A class for representing quantum objects that represent operators.
 
-    The Qobj class is the QuTiP representation of quantum operators and state
-    vectors. This class also implements math operations +,-,* between Qobj
+    This class implements math operations +,-,* between Qobj
     instances (and / by a C-number), as well as a collection of common
-    operator/state operations.  The Qobj constructor optionally takes a
-    dimension ``list`` and/or shape ``list`` as arguments.
+    operator operations.
 
     Parameters
     ----------
@@ -680,7 +677,7 @@ class RecOperator(Qobj):
             )
 
         kwargs = kwargs or {}
-        return  {
+        return {
             'tr': _data.norm.trace,
             'one': _data.norm.one,
             'max': _data.norm.max,
@@ -726,16 +723,13 @@ class RecOperator(Qobj):
         return out
 
 
-class Operator(RecOperator, _SquareOperator):
+class OperatorQobj(RecOperatorQobj, _SquareOperator):
     """
-    A class for representing quantum objects, such as quantum operators and
-    states.
+    A class for representing quantum objects that represent operators.
 
-    The Qobj class is the QuTiP representation of quantum operators and state
-    vectors. This class also implements math operations +,-,* between Qobj
+    This class implements math operations +,-,* between Qobj
     instances (and / by a C-number), as well as a collection of common
-    operator/state operations.  The Qobj constructor optionally takes a
-    dimension ``list`` and/or shape ``list`` as arguments.
+    operator operations.
 
     Parameters
     ----------
@@ -789,16 +783,14 @@ class Operator(RecOperator, _SquareOperator):
             )
 
 
-class Scalar(Operator):
+class ScalarQobj(OperatorQobj):
     """
-    A class for representing quantum objects, such as quantum operators and
-    states.
+    A class for representing quantum objects that represent scalar quantum
+    object.
 
-    The Qobj class is the QuTiP representation of quantum operators and state
-    vectors. This class also implements math operations +,-,* between Qobj
+    This class implements math operations +,-,* between Qobj
     instances (and / by a C-number), as well as a collection of common
-    operator/state operations.  The Qobj constructor optionally takes a
-    dimension ``list`` and/or shape ``list`` as arguments.
+    operator operations.
 
     Parameters
     ----------
@@ -874,6 +866,6 @@ class Scalar(Operator):
         return self.issuper
 
 
-_QobjBuilder.qobjtype_to_class["scalar"] = Scalar
-_QobjBuilder.qobjtype_to_class["oper"] = Operator
-_QobjBuilder.qobjtype_to_class["rec_oper"] = RecOperator
+_QobjBuilder.qobjtype_to_class["scalar"] = ScalarQobj
+_QobjBuilder.qobjtype_to_class["oper"] = OperatorQobj
+_QobjBuilder.qobjtype_to_class["rec_oper"] = RecOperatorQobj

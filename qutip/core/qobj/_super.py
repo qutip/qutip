@@ -1,5 +1,5 @@
 from ._base import Qobj, _QobjBuilder, _require_equal_type
-from ._operator import Operator, _SquareOperator
+from ._operator import OperatorQobj, _SquareOperator
 import qutip
 from ..dimensions import enumerate_flat, collapse_dims_super, Dimensions
 import numpy as np
@@ -12,16 +12,13 @@ from qutip.typing import LayerType, DimensionLike
 __all__ = []
 
 
-class RecSuperOperator(Qobj):
+class RecSuperOperatorQobj(Qobj):
     """
-    A class for representing quantum objects, such as quantum operators and
-    states.
+    A class for representing quantum objects that represent super operators.
 
-    The Qobj class is the QuTiP representation of quantum operators and state
-    vectors. This class also implements math operations +,-,* between Qobj
+    This class implements math operations +,-,* between Qobj
     instances (and / by a C-number), as well as a collection of common
-    operator/state operations.  The Qobj constructor optionally takes a
-    dimension ``list`` and/or shape ``list`` as arguments.
+    operator operations.
 
     Parameters
     ----------
@@ -101,7 +98,7 @@ class RecSuperOperator(Qobj):
             try:
                 J = qutip.to_choi(self)
                 self._flags["ishp"] = J.isherm
-            except:  #TODO: except what?
+            except:  # TODO: except what?
                 self._flags["ishp"] = False
 
         return self._flags["ishp"]
@@ -195,7 +192,7 @@ class RecSuperOperator(Qobj):
         return func
 
     # These depend on the matrix representation.
-    diag = Operator.diag
+    diag = OperatorQobj.diag
 
     def dual_chan(self) -> Qobj:
         """Dual channel of quantum object representing a completely positive
@@ -271,16 +268,13 @@ class RecSuperOperator(Qobj):
         }[norm](self._data, **kwargs)
 
 
-class SuperOperator(RecSuperOperator, _SquareOperator):
+class SuperOperatorQobj(RecSuperOperatorQobj, _SquareOperator):
     """
-    A class for representing quantum objects, such as quantum operators and
-    states.
+    A class for representing quantum objects that represent super operators.
 
-    The Qobj class is the QuTiP representation of quantum operators and state
-    vectors. This class also implements math operations +,-,* between Qobj
+    This class implements math operations +,-,* between Qobj
     instances (and / by a C-number), as well as a collection of common
-    operator/state operations.  The Qobj constructor optionally takes a
-    dimension ``list`` and/or shape ``list`` as arguments.
+    operator operations.
 
     Parameters
     ----------
@@ -351,5 +345,5 @@ class SuperOperator(RecSuperOperator, _SquareOperator):
             )
 
 
-_QobjBuilder.qobjtype_to_class["super"] = SuperOperator
-_QobjBuilder.qobjtype_to_class["rec_super"] = RecSuperOperator
+_QobjBuilder.qobjtype_to_class["super"] = SuperOperatorQobj
+_QobjBuilder.qobjtype_to_class["rec_super"] = RecSuperOperatorQobj
