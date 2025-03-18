@@ -126,44 +126,77 @@ def test_cpu_count(monkeypatch):
 class TestFitting:
     def model(self, x, a, b, c):
         return np.real(a * np.exp(-(b + 1j * c) * x))
-
-    @pytest.fixture
-    def generate_data(self):
+    def eval_prony(self,x,params):
+        return utils._evaluate(utils._prony_model,x,params)
+    
+    @pytest.fixture(params = [True, False])
+    def generate_data(self,request):
         """Generate test data."""
+        noisy = request.param
         x = np.linspace(0, 10, 100)
         fparams1 = [1, .5, 0]
         fparams2 = [3, 2, .5]
         y = self.model(x, *fparams1) + self.model(x, *fparams2)
-        return x, y, fparams1, fparams2
+        if noisy:
+            np.random.seed(42)  
+            noise = np.random.normal(0, 0.01, len(x))
+            y += noise
+        return x, y, fparams1, fparams2 , noisy
 
     def test_fit(self, generate_data):
-        x, y, fparams1, fparams2 = generate_data
+        x, y, fparams1, fparams2, noisy = generate_data
         rmse, params = utils.iterated_fit(
             self.model, num_params=3, xdata=x, ydata=y,
             lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2
         )
-        assert rmse < 1e-8
-        assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
-                np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
+        if noisy:
+            assert rmse < 1e-3
+            # The atol is the std of noise times the maximum of the signal
+            assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-2*np.max(y))) or
+                    np.all(np.isclose(params, [fparams2, fparams1], atol=1e-2*np.max(y))))
+        else:
+            assert rmse < 1e-8
+            assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
+                    np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
 
     def test_aaa(self, generate_data):
-        x, y, _, _ = generate_data
-        result = utils.aaa(y, x, tol=1e-13, max_iter=4)
+        x, y, _, _ , noisy= generate_data
+        result = utils.aaa(y, x, tol=1e-8, max_iter=10)
         rmse = result["rmse"]
-        assert rmse < 1e-3
+        if noisy:
+            assert rmse < 2e-2
+            np.testing.assert_allclose(result["function"](x),y,atol=1e-1*np.max(y))
+        else:
+            assert rmse < 1e-8
+            np.testing.assert_allclose(result["function"](x),y,rtol=1e-4)
 
     def test_espira_I(self, generate_data):
-        _, y, _, _ = generate_data
-        _, rmse = utils.espira1(y, 4, tol=1e-16)
-        assert rmse < 1e-8
+        x, y, _, _, noisy = generate_data
+        params, rmse = utils.espira1(y, 4, tol=1e-16)
+        if noisy:
+            assert rmse < 1e-3
+            np.testing.assert_allclose(self.eval_prony(len(x), params),y,atol=1e-2*np.max(y))
+        else:
+            assert rmse < 1e-8
+            np.testing.assert_allclose(self.eval_prony(len(x), params),y,rtol=1e-4)
 
     def test_espira_II(self, generate_data):
-        _, y, _, _ = generate_data
-        _, rmse = utils.espira2(y, 4, tol=1e-16)
-        assert rmse < 1e-8
+        x, y, _, _, noisy = generate_data
+        params, rmse = utils.espira2(y, 4, tol=1e-16)
+        if noisy:
+            assert rmse < 1e-3
+            np.testing.assert_allclose(self.eval_prony(len(x), params),y,atol=1e-2*np.max(y))
+        else:
+            assert rmse < 1e-8
+            np.testing.assert_allclose(self.eval_prony(len(x), params),y,rtol=1e-4)
 
     @pytest.mark.parametrize("method", ["prony", "esprit"])
     def test_prony_methods(self, generate_data, method):
-        _, y, _, _ = generate_data
-        _, rmse = utils.prony_methods(method, y, 4)
-        assert rmse < 1e-8
+        x, y, _, _, noisy = generate_data
+        params, rmse = utils.prony_methods(method, y, 4)
+        if noisy:
+            assert rmse < 1e-3
+            np.testing.assert_allclose(self.eval_prony(len(x), params),y,atol=2e-2*np.max(y))
+        else:
+            assert rmse < 1e-8
+            np.testing.assert_allclose(self.eval_prony(len(x), params),y,rtol=1e-4)

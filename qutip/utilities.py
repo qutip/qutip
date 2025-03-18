@@ -787,10 +787,10 @@ def _prz(support_points, values, weights):
 
 # Prony methods Fitting
 
-def _prony_model(orig, amp, phase):
+def _prony_model(n, amp, phase):
     # It serves to compute rmse, a single term of the prony
     # polynomial form https://doi.org/10.1093/imanum/drab108 using phases
-    return amp * np.power(phase, np.arange(orig))
+    return amp * np.power(phase, np.arange(n))
 
 
 def prony_methods(method: str, signal: ArrayLike, n: int):
