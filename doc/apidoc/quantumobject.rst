@@ -89,7 +89,7 @@ Tensor
 .. automodule:: qutip.core.tensor
     :members: tensor, super_tensor, composite, tensor_contract
 
-.. automodule:: qutip.core.qobj
+.. automodule:: qutip.core.transformation
     :members: ptrace
 
 .. automodule:: qutip.partial_transpose
