@@ -362,6 +362,31 @@ def test_Coeffcopy(style, transform):
     _assert_eq_over_interval(coeff, coeff_cp)
 
 
+@pytest.mark.parametrize(['style'], [
+    pytest.param("func", id="func"),
+    pytest.param("array", id="array"),
+    pytest.param("arraylog", id="logarray"),
+    pytest.param("string", id="string"),
+    pytest.param("steparray", id="steparray"),
+    pytest.param("const", id="constant"),
+])
+def test_CoeffEq(style):
+    coeff = coeff_generator(style, "f")
+    coeff2 = coeff_generator(style, "f")
+    coeff3 = coeff_generator(style, "g")
+    assert coeff == coeff
+    assert coeff == coeff2
+    assert coeff != coeff3
+    assert coeff + coeff3 == coeff + coeff3
+    assert coeff + coeff3 != coeff + coeff2
+    assert coeff * coeff3 == coeff * coeff3
+    assert coeff * coeff3 != coeff * coeff2
+    assert coeff.conj() == coeff2.conj()
+    assert coeff.conj() != coeff3.conj()
+    assert norm(coeff) == norm(coeff2)
+    assert norm(coeff) != norm(coeff3)
+
+
 @pytest.mark.parametrize('order', [0, 1, 2, 3])
 def test_CoeffArray(order):
     tlist = np.linspace(0, 1, 101)
