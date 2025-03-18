@@ -23,28 +23,31 @@ def _to_array(data: Data | numpy.ndarray) -> numpy.ndarray:
         return data.to_array()
     return data
 
-def concat_data(data_array: list[list[Data | numpy.ndarray]]) -> Dense:
+def concat_data(
+    data_array: list[list[Data | numpy.ndarray]],
+    _skip_checks: bool = False
+) -> Dense:
     """
     TODO: docstring
     """
 
-    if len(data_array) == 0 or len(data_array[0]) == 0:
-        _invalid_shapes()
-
-    column_widths = [data.shape[1] for data in data_array[0]]
-    for row in data_array:
-        if len(row) != len(column_widths):
+    if not _skip_checks:
+        if len(data_array) == 0 or len(data_array[0]) == 0:
             _invalid_shapes()
 
-        row_height = row[0].shape[0]
-        for data, column_width in zip(row, column_widths):
-            if data.shape != (row_height, column_width):
-                print(data.shape, column_width, row_height)
+        column_widths = [data.shape[1] for data in data_array[0]]
+        for row in data_array:
+            if len(row) != len(column_widths):
                 _invalid_shapes()
 
+            row_height = row[0].shape[0]
+            for data, column_width in zip(row, column_widths):
+                if data.shape != (row_height, column_width):
+                    _invalid_shapes()
+
     nd_arrays = [[_to_array(data) for data in row] for row in data_array]
-    return Dense(numpy.block(nd_arrays), copy=None)  # only copy if numpy
-                                                     # cannot avoid copying
+    return Dense(numpy.block(nd_arrays), copy=None)
+    # copy=None means: only copy if numpy cannot avoid copying
 
 
 # TODO other dtypes
