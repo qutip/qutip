@@ -11,6 +11,14 @@ import numpy as np
 __all__ = ['direct_sum', 'SumSpace', 'component']
 
 
+def _is_like_scalar(qobj):
+    return (
+        isinstance(qobj, Number)
+        or (
+            isinstance(qobj, Qobj)
+            and qobj.type == 'scalar'
+        ))
+
 def _is_like_qobj(qobj):
     return isinstance(qobj, Number) or isinstance(qobj, Qobj)
 
@@ -119,8 +127,66 @@ def direct_sum(qobjs: list[Qobj | float] | list[list[Qobj | float]]) -> Qobj:
                     dims=Dimensions(vector_dim, scalar_dim),
                     copy=False)
 
-    if not linear and all(_is_like_oper(qobj)
-                          for row in qobjs for qobj in row):
+    if linear and all(_is_like_operator_ket(qobj) for qobj in qobjs):
+        oper_as_opket = [False] * len(qobjs)
+        for index, qobj in enumerate(qobjs):
+            if isinstance(qobj, Qobj) and qobj.type == 'oper':
+                oper_as_opket[index] = True
+                qobjs[index] = operator_to_vector(qobj)
+
+        if not settings.core['auto_tidyup_dims']:
+            scalar_dim = _qobj_dims(qobjs[0]).from_
+            scalar_dims_match = all(
+                _qobj_dims(qobj).from_ == scalar_dim for qobj in qobjs
+            )
+            if not scalar_dims_match:
+                raise ValueError("Scalar dimensions do not match in"
+                                 " direct sum of operator-kets.")
+        else:
+            scalar_dim = Field()
+        vector_dim = SumSpace([_qobj_dims(qobj).to_ for qobj in qobjs],
+                              oper_as_opket)
+
+        out_data = _data.concat_data([[_qobj_data(qobj)] for qobj in qobjs],
+                                     _skip_checks=True)
+        return Qobj(out_data,
+                    dims=Dimensions(scalar_dim, vector_dim),
+                    copy=False)
+
+    if linear and all(_is_like_operator_bra(qobj) for qobj in qobjs):
+        oper_as_opket = [False] * len(qobjs)
+        for index, qobj in enumerate(qobjs):
+            if isinstance(qobj, Qobj) and qobj.type == 'oper':
+                oper_as_opket[index] = True
+                qobjs[index] = operator_to_vector(qobj).dag()
+
+        if not settings.core['auto_tidyup_dims']:
+            scalar_dim = _qobj_dims(qobjs[0]).to_
+            scalar_dims_match = all(
+                _qobj_dims(qobj).to_ == scalar_dim for qobj in qobjs
+            )
+            if not scalar_dims_match:
+                raise ValueError("Scalar dimensions do not match in"
+                                 " direct sum of covectors.")
+        else:
+            scalar_dim = Field()
+        vector_dim = SumSpace([_qobj_dims(qobj).from_ for qobj in qobjs],
+                              oper_as_opket)
+
+        out_data = _data.concat_data([[_qobj_data(qobj) for qobj in qobjs]],
+                                     _skip_checks=True)
+        return Qobj(out_data,
+                    dims=Dimensions(vector_dim, scalar_dim),
+                    copy=False)
+
+    allsuper = all(_is_like_super(qobj) for row in qobjs for qobj in row)
+    alloper = all(_is_like_oper(qobj) for row in qobjs for qobj in row)
+    if allsuper and any(not _is_like_scalar(qobj) and qobj.superrep != 'super'
+                        for row in qobjs for qobj in row):
+        raise ValueError("Direct sums only accept superoperators"
+                         " in super representation.")
+
+    if not linear and (allsuper or alloper):
         from_dim = [_qobj_dims(qobj).from_ for qobj in qobjs[0]]
         to_dim = [_qobj_dims(row[0]).to_ for row in qobjs]
         dims_match = all(
@@ -141,7 +207,7 @@ def direct_sum(qobjs: list[Qobj | float] | list[list[Qobj | float]]) -> Qobj:
                     dims=Dimensions(SumSpace(from_dim), SumSpace(to_dim)),
                     copy=False)
 
-    raise NotImplementedError
+    raise ValueError("Invalid combination of Qobj types for direct sum.")
 
 
 def component(qobj: Qobj, *index: list[int]) -> Qobj:
@@ -177,40 +243,57 @@ def component(qobj: Qobj, *index: list[int]) -> Qobj:
         to_data_start = qobj._dims.to_._space_cumdims[to_index]
         to_data_stop = qobj._dims.to_._space_cumdims[to_index + 1]
         from_data_start = 0
-        from_data_stop = qobj._dims.from_._size
+        from_data_stop = qobj._dims.from_.size
 
         out_data = _data.slice(qobj.data,
                                to_data_start, to_data_stop,
                                from_data_start, from_data_stop)
-        return Qobj(out_data,
-                    dims=Dimensions(qobj._dims.from_,
-                                    qobj._dims.to_.spaces[to_index]),
-                    copy=False)
+        result = Qobj(out_data,
+                      dims=Dimensions(qobj._dims.from_,
+                                      qobj._dims.to_.spaces[to_index]),
+                      copy=False)
+        if qobj._dims.to_._oper_as_opket[to_index]:
+            return vector_to_operator(result)
+        return result
 
     from_index, = index
     to_data_start = 0
-    to_data_stop = qobj._dims.to_._size
+    to_data_stop = qobj._dims.to_.size
     from_data_start = qobj._dims.from_._space_cumdims[from_index]
     from_data_stop = qobj._dims.from_._space_cumdims[from_index + 1]
 
     out_data = _data.slice(qobj.data,
                            to_data_start, to_data_stop,
                            from_data_start, from_data_stop)
-    return Qobj(out_data,
-                dims=Dimensions(qobj._dims.from_.spaces[from_index],
-                                qobj._dims.to_),
-                copy=False)
+    result = Qobj(out_data,
+                  dims=Dimensions(qobj._dims.from_.spaces[from_index],
+                                  qobj._dims.to_),
+                  copy=False)
+    if qobj._dims.from_._oper_as_opket[from_index]:
+        return vector_to_operator(result.dag())
+    return result
 
 
 class SumSpace(Space):
     _stored_dims = {}
 
-    def __init__(self, spaces: list[Space], _oper_as_opket=None):
+    def _check_super(self):
+        if all(not space.issuper for space in self.spaces):
+            return False
+        if all(space.issuper or space == Field() for space in self.spaces):
+            return True
+        raise ValueError("Cannot mix super and regular spaces in direct sum.")
+
+    def __init__(self, spaces: list[Space], _oper_as_opket: list[bool] = None):
+        if len(spaces) == 0:
+            raise ValueError("Need at least one space for direct sum.")
+
         self.spaces = spaces
         self._space_dims = [space.size for space in spaces]
         self._space_cumdims = np.cumsum([0] + self._space_dims)
 
         super().__init__(self._space_cumdims[-1])
+        self.issuper = self._check_super()
         self._pure_dims = False
 
         if _oper_as_opket is None:
