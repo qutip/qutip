@@ -790,7 +790,7 @@ def _prz(support_points, values, weights):
 def _prony_model(orig, amp, phase):
     # It serves to compute rmse, a single term of the prony
     # polynomial form https://doi.org/10.1093/imanum/drab108 using phases
-    return amp * np.power(phase, np.arange(len(orig)))
+    return amp * np.power(phase, np.arange(orig))
 
 
 def prony_methods(method: str, signal: ArrayLike, n: int):
@@ -831,13 +831,13 @@ def prony_methods(method: str, signal: ArrayLike, n: int):
     params = _unpack(
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
-    rmse = _rmse(_prony_model, signal, signal, params)
+    rmse = _rmse(_prony_model, len(signal), signal, params)
     return params, rmse
 
 # ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
 
-def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
+def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-13):
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
     Based on the description in https://doi.org/10.1093/imanum/drab108
@@ -874,12 +874,12 @@ def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
     params = _unpack(
         np.array([val for pair in zip(amplitudes, result['poles'])
                   for val in pair]), 2)
-    rmse = _rmse(_prony_model, signal, signal, params)
+    rmse = _rmse(_prony_model, len(signal), signal, params)
 
     return params, rmse
 
 
-def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
+def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-13):
     """
     Estimate amplitudes and frequencies using ESPIRA-II.
     Based on the description in https://doi.org/10.1093/imanum/drab108
@@ -937,6 +937,6 @@ def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-8):
     # calculate and pack stuff similarly to other fitting methods
     params = _unpack(
         np.array([val for pair in zip(amp, phases) for val in pair]), 2)
-    rmse = _rmse(_prony_model, signal, signal, params)
+    rmse = _rmse(_prony_model, len(signal), signal, params)
 
     return params, rmse
