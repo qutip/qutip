@@ -1,5 +1,6 @@
 from .dimensions import Dimensions, Field, Space
 from .qobj import Qobj
+from .superoperator import operator_to_vector, vector_to_operator
 from . import data as _data
 from .. import settings
 
@@ -7,7 +8,7 @@ from numbers import Number
 
 import numpy as np
 
-__all__ = ['direct_sum']
+__all__ = ['direct_sum', 'SumSpace', 'component']
 
 
 def _is_like_qobj(qobj):
@@ -143,14 +144,78 @@ def direct_sum(qobjs: list[Qobj | float] | list[list[Qobj | float]]) -> Qobj:
     raise NotImplementedError
 
 
+def component(qobj: Qobj, *index: list[int]) -> Qobj:
+    is_to_sum = isinstance(qobj._dims.to_, SumSpace)
+    is_from_sum = isinstance(qobj._dims.from_, SumSpace)
+    if not is_to_sum and not is_from_sum:
+        raise ValueError("Qobj is not a direct sum.")
+
+    if is_to_sum and is_from_sum:
+        if len(index) != 2:
+            raise ValueError("Invalid number of indices provided for component"
+                             " of direct sum (two indices required).")
+        to_index, from_index = index
+        to_data_start = qobj._dims.to_._space_cumdims[to_index]
+        to_data_stop = qobj._dims.to_._space_cumdims[to_index + 1]
+        from_data_start = qobj._dims.from_._space_cumdims[from_index]
+        from_data_stop = qobj._dims.from_._space_cumdims[from_index + 1]
+
+        out_data = _data.slice(qobj.data,
+                               to_data_start, to_data_stop,
+                               from_data_start, from_data_stop)
+        return Qobj(out_data,
+                    dims=Dimensions(qobj._dims.from_.spaces[from_index],
+                                    qobj._dims.to_.spaces[to_index]),
+                    copy=False)
+
+    if len(index) != 1:
+        raise ValueError("Invalid number of indices provided for component"
+                         " of direct sum (one index required).")
+
+    if is_to_sum:
+        to_index, = index
+        to_data_start = qobj._dims.to_._space_cumdims[to_index]
+        to_data_stop = qobj._dims.to_._space_cumdims[to_index + 1]
+        from_data_start = 0
+        from_data_stop = qobj._dims.from_._size
+
+        out_data = _data.slice(qobj.data,
+                               to_data_start, to_data_stop,
+                               from_data_start, from_data_stop)
+        return Qobj(out_data,
+                    dims=Dimensions(qobj._dims.from_,
+                                    qobj._dims.to_.spaces[to_index]),
+                    copy=False)
+
+    from_index, = index
+    to_data_start = 0
+    to_data_stop = qobj._dims.to_._size
+    from_data_start = qobj._dims.from_._space_cumdims[from_index]
+    from_data_stop = qobj._dims.from_._space_cumdims[from_index + 1]
+
+    out_data = _data.slice(qobj.data,
+                           to_data_start, to_data_stop,
+                           from_data_start, from_data_stop)
+    return Qobj(out_data,
+                dims=Dimensions(qobj._dims.from_.spaces[from_index],
+                                qobj._dims.to_),
+                copy=False)
+
+
 class SumSpace(Space):
     _stored_dims = {}
 
-    def __init__(self, spaces: list[Space]):
+    def __init__(self, spaces: list[Space], _oper_as_opket=None):
         self.spaces = spaces
-        dim = sum(space.size for space in spaces)
-        super().__init__(dim)
+        self._space_dims = [space.size for space in spaces]
+        self._space_cumdims = np.cumsum([0] + self._space_dims)
+
+        super().__init__(self._space_cumdims[-1])
         self._pure_dims = False
+
+        if _oper_as_opket is None:
+            _oper_as_opket = [False] * len(spaces)
+        self._oper_as_opket = _oper_as_opket
 
     def __eq__(self, other) -> bool:
         return self is other or (

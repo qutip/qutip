@@ -6,7 +6,7 @@ import numpy
 
 
 __all__ = [
-    'concat_data',
+    'concat_data', 'slice_dense', 'slice',
 ]
 
 
@@ -53,3 +53,31 @@ def concat_data(
 # TODO other dtypes
 def concat_csr(data_array: list[list[CSR]]) -> CSR:
     ...
+
+
+def slice_dense(data: Data,
+                row_start: int, row_stop: int,
+                col_start: int, col_stop: int) -> Dense:
+    array = data.to_array()
+    return Dense(array[row_start:row_stop, col_start:col_stop], copy=True)
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+slice = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('data', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('row_start', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('row_stop', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('col_start', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('col_stop', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='slice',
+    module=__name__,
+    inputs=('data',),
+    out=True,
+)
+slice.__doc__ = """TODO"""
+slice.add_specialisations([
+    (Data, Dense, slice_dense),
+], _defer=True)
