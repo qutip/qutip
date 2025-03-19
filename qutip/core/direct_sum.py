@@ -1,4 +1,4 @@
-from .dimensions import Dimensions, Field, Space
+from .dimensions import Dimensions, Field, SumSpace
 from .qobj import Qobj
 from .superoperator import operator_to_vector, vector_to_operator
 from . import data as _data
@@ -8,7 +8,7 @@ from numbers import Number
 
 import numpy as np
 
-__all__ = ['direct_sum', 'SumSpace', 'component']
+__all__ = ['direct_sum', 'component']
 
 
 def _is_like_scalar(qobj):
@@ -272,70 +272,3 @@ def component(qobj: Qobj, *index: list[int]) -> Qobj:
     if qobj._dims.from_._oper_as_opket[from_index]:
         return vector_to_operator(result.dag())
     return result
-
-
-class SumSpace(Space):
-    _stored_dims = {}
-
-    def _check_super(self):
-        if all(not space.issuper for space in self.spaces):
-            return False
-        if all(space.issuper or space == Field() for space in self.spaces):
-            return True
-        raise ValueError("Cannot mix super and regular spaces in direct sum.")
-
-    def __init__(self, spaces: list[Space], _oper_as_opket: list[bool] = None):
-        if len(spaces) == 0:
-            raise ValueError("Need at least one space for direct sum.")
-
-        self.spaces = spaces
-        self._space_dims = [space.size for space in spaces]
-        self._space_cumdims = np.cumsum([0] + self._space_dims)
-
-        super().__init__(self._space_cumdims[-1])
-        self.issuper = self._check_super()
-        self._pure_dims = False
-
-        if _oper_as_opket is None:
-            _oper_as_opket = [False] * len(spaces)
-        self._oper_as_opket = _oper_as_opket
-
-    def __eq__(self, other) -> bool:
-        return self is other or (
-            type(other) is type(self) and
-            self.spaces == other.spaces
-        )
-
-    def __hash__(self):
-        return hash(self.spaces)
-
-    def __repr__(self) -> str:
-        parts_rep = ", ".join(repr(space) for space in self.spaces)
-        return f"Sum({parts_rep})"
-
-    def as_list(self) -> tuple[list[int]]:
-        return tuple(space.as_list() for space in self.spaces)
-
-    def dims2idx(self, dims: list[int]) -> int:
-        raise NotImplementedError()
-
-    def idx2dims(self, idx: int) -> list[int]:
-        raise NotImplementedError()
-
-    def step(self) -> list[int]:
-        raise NotImplementedError()
-
-    def flat(self) -> list[int]:
-        raise NotImplementedError()
-
-    def remove(self, idx: int):
-        raise NotImplementedError()
-
-    def replace(self, idx: int, new: int) -> "Space":
-        raise NotImplementedError()
-
-    def replace_superrep(self, super_rep: str) -> "Space":
-        raise NotImplementedError()
-
-    def scalar_like(self) -> "Space":
-        raise NotImplementedError()

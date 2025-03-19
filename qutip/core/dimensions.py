@@ -385,7 +385,10 @@ class MetaSpace(type):
         """
         Select which subclass is instantiated.
         """
-        if cls is Space and len(args) == 1 and isinstance(args[0], list):
+        if (cls is Space
+            and len(args) == 1
+            and isinstance(args[0], (list, tuple))
+        ):
             # From a list of int.
             return cls.from_list(args[0], rep=rep)
         elif len(args) == 1 and isinstance(args[0], Space):
@@ -423,6 +426,16 @@ class MetaSpace(type):
         if cls is SuperSpace:
             args = (*args, rep or 'super')
 
+        if cls is SumSpace and any(isinstance(arg, SumSpace) for arg in args):
+            # flatten nested direct sums
+            new_args = []
+            for arg in args:
+                if isinstance(arg, SumSpace):
+                    new_args += arg.spaces
+                else:
+                    new_args.append(arg)
+            args = tuple(new_args)
+
         if args not in cls._stored_dims:
             instance = cls.__new__(cls)
             instance.__init__(*args)
@@ -431,9 +444,16 @@ class MetaSpace(type):
 
     def from_list(
         cls,
-        list_dims: list[int] | list[list[int]],
+        list_dims: (list[int] | list[list[int]] |
+                    tuple[list[int] | list[list[int]], ...]),
         rep: str = None
     ) -> "Space":
+        if isinstance(list_dims, tuple):
+            # direct sum
+            return SumSpace(
+                *[cls.from_list(dim, rep=rep) for dim in list_dims]
+            )
+
         if len(list_dims) == 0:
             raise ValueError("Empty list can't be used as dims.")
         elif (
@@ -703,6 +723,81 @@ class Compound(Space):
 
     def scalar_like(self) -> Space:
         return Space([space.scalar_like() for space in self.spaces])
+
+
+class SumSpace(Space):
+    _stored_dims = {}
+
+    def _check_super(self):
+        if all(not space.issuper for space in self.spaces):
+            return False, None
+        if all(space == Field() or space.issuper for space in self.spaces):
+            if not all(space == Field() or space.superrep == 'super'
+                       for space in self.spaces):
+                raise ValueError("Direct sums only accept superoperators"
+                                 " in super representation.")
+            return True, 'super'
+        raise ValueError("Cannot mix super and regular spaces in direct sum.")
+
+    def __init__(self, *spaces: Space):
+        if len(spaces) == 0:
+            raise ValueError("Need at least one space for direct sum.")
+
+        self.spaces = spaces
+        self._space_dims = [space.size for space in spaces]
+        self._space_cumdims = np.cumsum([0] + self._space_dims)
+
+        super().__init__(self._space_cumdims[-1])
+        self.issuper, self.superrep = self._check_super()
+        self._pure_dims = False
+
+    def __eq__(self, other) -> bool:
+        return self is other or (
+            type(other) is type(self) and
+            self.spaces == other.spaces
+        )
+
+    def __hash__(self):
+        return hash(self.spaces)
+
+    def __repr__(self) -> str:
+        parts_rep = ", ".join(repr(space) for space in self.spaces)
+        return f"Sum({parts_rep})"
+
+    def as_list(self) -> tuple[list[int]]:
+        return tuple(space.as_list() for space in self.spaces)
+
+    def dims2idx(self, dims: list[int]) -> int:
+        raise NotImplementedError()
+
+    def idx2dims(self, idx: int) -> list[int]:
+        raise NotImplementedError()
+
+    def step(self) -> list[int]:
+        raise NotImplementedError()
+
+    def flat(self) -> list[int]:
+        raise NotImplementedError()
+
+    def remove(self, idx: int):
+        new_spaces = []
+        for space in self.spaces:
+            new_spaces.append(space.remove(idx))
+        return SumSpace(*new_spaces)
+
+    def replace(self, idx: int, new: int) -> "Space":
+        new_spaces = []
+        for space in self.spaces:
+            new_spaces.append(space.replace(idx, new))
+        return SumSpace(*new_spaces)
+
+    def replace_superrep(self, super_rep: str) -> "Space":
+        if super_rep != 'super':
+            raise ValueError("Direct sums only accept superoperators"
+                             " in super representation.")
+
+    def scalar_like(self) -> "Space":
+        return self.spaces[0].scalar_like()  # they should all be the same
 
 
 class SuperSpace(Space):
