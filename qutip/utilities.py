@@ -8,7 +8,7 @@ from __future__ import annotations
 
 __all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
 
-from typing import Callable, Literal
+from typing import Callable, Literal, Any
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -560,7 +560,7 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
 def aaa(func: Callable[..., complex], z: ArrayLike,
-        tol: float = 1e-13, max_iter: int = 100):
+        tol: float = 1e-13, max_iter: int = 100) -> dict[str, Any]:
     """
     Computes a rational approximation of the function according to the AAA
     algorithm as explained in [AAA]_ . This
@@ -795,7 +795,7 @@ def _prony_model(n, amp, phase):
 
 
 def prony_methods(method: Literal["prony", "esprit"],
-                   signal: ArrayLike, n: int):
+                   signal: ArrayLike, n: int)-> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using prony methods.
     Based on the description in [ESPIRAvsESPRIT]_
@@ -818,32 +818,31 @@ def prony_methods(method: Literal["prony", "esprit"],
     rmse:
         Normalized mean squared error
     """
+    if method != "prony":
+        n = len(signal)-n
+    hankel0 = hankel(c=signal[:n], r=signal[n - 1: -1])
+    hankel1 = hankel(c=signal[1: n + 1], r=signal[n:])
     if method == "prony":
-        num_freqs = n
-    else:
-        num_freqs = len(signal)-n
-    hankel0 = hankel(c=signal[:num_freqs], r=signal[num_freqs - 1: -1])
-    hankel1 = hankel(c=signal[1: num_freqs + 1], r=signal[num_freqs:])
-    if method == "prony":
-        shift_matrix = lstsq(hankel0.T, hankel1.T)[0]
-        phases = eigvals(shift_matrix.T)
+        pencil_matrix = lstsq(hankel0.T, hankel1.T)[0]
+        phases = eigvals(pencil_matrix.T)
     elif method == "esprit":
         U1, _, _ = svd(hankel0)
         pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
         phases = eigvals(pencil_matrix)
-    generation_matrix = np.array(
+    vandermonte = np.array(
         [[phase**k for phase in phases] for k in range(len(signal))])
-    amplitudes = lstsq(generation_matrix, signal)[0]
+    amplitudes = lstsq(vandermonte, signal)[0]
     params = _unpack(
         np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
     rmse = _rmse(_prony_model, len(signal), signal, params)
-    return params, rmse
+    return rmse, params
 
 # ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
 
-def espira1(signal: ArrayLike, n: int, tol: float = 1e-13):
+def espira1(signal: ArrayLike, n: int,
+                 tol: float = 1e-13)-> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
     Based on the description in [ESPIRAvsESPRIT]_
@@ -892,10 +891,11 @@ def espira1(signal: ArrayLike, n: int, tol: float = 1e-13):
                   for val in pair]), 2)
     rmse = _rmse(_prony_model, len(signal), signal, params)
 
-    return params, rmse
+    return rmse, params
 
 
-def espira2(signal: ArrayLike, n: int, tol: float = 1e-13):
+def espira2(signal: ArrayLike, n: int,
+                 tol: float = 1e-13)-> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-II.
     Based on the description in [ESPIRAvsESPRIT]_
@@ -962,4 +962,4 @@ def espira2(signal: ArrayLike, n: int, tol: float = 1e-13):
         np.array([val for pair in zip(amp, phases) for val in pair]), 2)
     rmse = _rmse(_prony_model, len(signal), signal, params)
 
-    return params, rmse
+    return rmse, params

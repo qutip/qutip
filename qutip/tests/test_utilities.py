@@ -172,7 +172,7 @@ class TestFitting:
 
     def test_espira_I(self, generate_data):
         x, y, _, _, noisy = generate_data
-        params, rmse = utils.espira1(y, 4, tol=1e-16)
+        rmse, params = utils.espira1(y, 4, tol=1e-16)
         if noisy:
             assert rmse < 1e-3
             np.testing.assert_allclose(self.eval_prony(len(x), params),y,atol=1e-2*np.max(y))
@@ -182,7 +182,7 @@ class TestFitting:
 
     def test_espira_II(self, generate_data):
         x, y, _, _, noisy = generate_data
-        params, rmse = utils.espira2(y, 4, tol=1e-16)
+        rmse, params = utils.espira2(y, 4, tol=1e-16)
         if noisy:
             assert rmse < 1e-3
             np.testing.assert_allclose(self.eval_prony(len(x), params),y,atol=1e-2*np.max(y))
@@ -193,7 +193,7 @@ class TestFitting:
     @pytest.mark.parametrize("method", ["prony", "esprit"])
     def test_prony_methods(self, generate_data, method):
         x, y, _, _, noisy = generate_data
-        params, rmse = utils.prony_methods(method, y, 4)
+        rmse, params = utils.prony_methods(method, y, 4)
         if noisy:
             assert rmse < 1e-3
             np.testing.assert_allclose(self.eval_prony(len(x), params),y,atol=2e-2*np.max(y))
