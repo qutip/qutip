@@ -182,7 +182,7 @@ def enr_thermal_dm(dims, excitations, n, *, dtype=None):
     diags /= np.sum(diags)
     out = qdiags(diags, 0, dims=enr_dims,
                  shape=(nstates, nstates), dtype=dtype)
-    out._isherm = True
+    out.isherm = True
     return out
 
 

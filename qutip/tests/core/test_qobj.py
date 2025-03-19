@@ -30,7 +30,7 @@ def assert_hermicity(oper, hermicity):
     # Check the cached isherm, if any exists.
     assert oper.isherm == hermicity
     # Force a reset of the cached value for isherm.
-    oper._isherm = None
+    oper.isherm = None
     # Force a recalculation of isherm.
     assert oper.isherm == hermicity
 
@@ -164,7 +164,7 @@ def assert_unitarity(oper, unitarity):
     assert oper.isunitary == unitarity
 
     # Force a reset of the cached value for isunitary.
-    oper._isunitary = None
+    oper.isunitary = None
     # Force a recalculation of isunitary.
     assert oper.isunitary == unitarity
 
@@ -192,7 +192,7 @@ def test_QobjUnitaryOper():
     assert_unitarity(Sx*np.exp(5j), True)
     assert_unitarity(Sx*1j, True)
     assert_unitarity(Sx*1, True)
-    # Chech that if qobj is _not_ unitary, operation by scalar set it to `None`
+    # Check that if qobj is _not_ unitary, operation by scalar set it to `None`
     # We do not know if it is unitary until we check the whole matrix again.
     assert (qutip.sigmam()*4)._isunitary == None  # Non unitary
     # This may be removed in the future as if scalar has abs value of 1 and
@@ -263,7 +263,7 @@ def test_QobjAddition():
 
     q4 = q1 + q2
     q4_isherm = q4.isherm
-    q4._isherm = None  # clear cached values
+    q4.isherm = None  # clear cached values
     assert q4_isherm == q4.isherm
 
     # check elementwise addition/subtraction
@@ -1289,7 +1289,7 @@ def test_constructing_op_from_states():
     obj = qutip.basis(2, 0, dtype="Dense") + qutip.basis(2, 1, dtype="Dense")
     assert (obj @ obj.dag()).dtype == qutip.data.to.parse("Dense")
 
-    
+
 @pytest.mark.parametrize(["state", "expected", "kwargs"], [
         (qutip.basis([2, 2, 2], [1, 1, 0]), "(1+0j) |110>", {}),
         (qutip.basis([2, 2, 2], [1, 1, 0]).dag(), "(1-0j) <110|", {}),

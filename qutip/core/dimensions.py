@@ -767,6 +767,8 @@ class Dimensions(metaclass=MetaDims):
                     f"case for these: {from_}, {to_}]"
                 )
             self.type = 'super' if self.from_.issuper else 'oper'
+            if self.shape[0] != self.shape[1]:
+                self.type = 'rec_' + self.type
             if self.from_.superrep == self.to_.superrep:
                 self.superrep = self.from_.superrep
             else:

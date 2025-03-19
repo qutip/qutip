@@ -222,7 +222,7 @@ The partial trace is an operation that reduces the dimension of a Hilbert space 
 In this sense it is therefore the converse of the tensor product.
 It is useful when one is interested in only a part of a coupled quantum system.
 For open quantum systems, this typically involves tracing over the environment leaving only the system of interest.
-In QuTiP the class method  :meth:`~qutip.core.qobj.Qobj.ptrace` is used to take partial traces. :meth:`~qutip.core.qobj.Qobj.ptrace` acts on the :class:`~qutip.core.qobj.Qobj` instance for which it is called, and it takes one argument ``sel``, which is a ``list`` of integers that mark the component systems that should be **kept**.
+In QuTiP the class method  :meth:`~qutip.core.qobj._base.Qobj.ptrace` is used to take partial traces. :meth:`~qutip.core.qobj._base.Qobj.ptrace` acts on the :class:`~qutip.core.qobj._base.Qobj` instance for which it is called, and it takes one argument ``sel``, which is a ``list`` of integers that mark the component systems that should be **kept**.
 All other components are traced out.
 
 For example, the density matrix describing a single qubit obtained from a coupled two-qubit system is obtained via:

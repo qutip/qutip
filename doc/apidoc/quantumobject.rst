@@ -9,7 +9,23 @@ Quantum Objects
 Qobj
 ----
 
-.. autoclass:: qutip.core.qobj.Qobj
+.. autoclass:: qutip.core.qobj._base.Qobj
+    :members:
+    :special-members: __call__
+
+.. autoclass:: qutip.core.qobj._state.KetQobj
+    :members:
+    :special-members: __call__
+
+.. autoclass:: qutip.core.qobj._state.BraQobj
+    :members:
+    :special-members: __call__
+
+.. autoclass:: qutip.core.qobj._operator.OperatorQobj
+    :members:
+    :special-members: __call__
+
+.. autoclass:: qutip.core.qobj._super.SuperOperatorQobj
     :members:
     :special-members: __call__
 
@@ -73,7 +89,7 @@ Tensor
 .. automodule:: qutip.core.tensor
     :members: tensor, super_tensor, composite, tensor_contract
 
-.. automodule:: qutip.core.qobj
+.. automodule:: qutip.core.transformation
     :members: ptrace
 
 .. automodule:: qutip.partial_transpose

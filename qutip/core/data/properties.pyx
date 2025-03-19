@@ -339,6 +339,11 @@ cpdef bint isequal_dia(Dia A, Dia B, double atol=-1, double rtol=-1):
     cdef double complex *ptr_b
     cdef idxint size=A.shape[1]
 
+    if A.num_diag == 0:
+        return iszero_dia(B, atol)
+    if B.num_diag == 0:
+        return iszero_dia(A, atol)
+
     # TODO:
     # Works only for a sorted offsets list.
     # We don't have a check for whether it's already sorted, but it should be

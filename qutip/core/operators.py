@@ -341,11 +341,11 @@ def spin_J_set(j: float, *, dtype: LayerType = None) -> tuple[Qobj]:
 _SIGMAP = jmat(0.5, '+')
 _SIGMAM = jmat(0.5, '-')
 _SIGMAX = 2 * jmat(0.5, 'x')
-_SIGMAX._isunitary = True
+_SIGMAX.isunitary = True
 _SIGMAY = 2 * jmat(0.5, 'y')
-_SIGMAY._isunitary = True
+_SIGMAY.isunitary = True
 _SIGMAZ = 2 * jmat(0.5, 'z')
-_SIGMAZ._isunitary = True
+_SIGMAZ.isunitary = True
 
 
 def sigmap(*, dtype: LayerType = None) -> Qobj:
@@ -695,7 +695,7 @@ def _f_op(n_sites, site, action, dtype: LayerType = None,):
     opers = [s_z] * site + [operator] + [eye] * (n_sites - site - 1)
     out = tensor(opers).to(dtype)
     out.isherm = False
-    out._isunitary = False
+    out.isunitary = False
     return out
 
 
@@ -869,7 +869,7 @@ def position(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
     a = destroy(N, offset=offset, dtype=dtype)
     position = np.sqrt(0.5) * (a + a.dag())
     position.isherm = True
-    position._isunitary = False
+    position.isunitary = False
     return position.to(dtype)
 
 
@@ -899,7 +899,7 @@ def momentum(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
     a = destroy(N, offset=offset, dtype=dtype)
     momentum = -1j * np.sqrt(0.5) * (a - a.dag())
     momentum.isherm = True
-    momentum._isunitary = False
+    momentum.isunitary = False
     return momentum.to(dtype)
 
 
@@ -988,7 +988,7 @@ shape = [4, 4], type = oper, isHerm = False
     op = 0.5*np.conj(z)*asq - 0.5*z*asq.dag()
     out = op.expm(dtype=dtype)
     out.isherm = (N == 2) or (z == 0.)
-    out._isunitary = True
+    out.isunitary = True
     return out
 
 
@@ -1067,7 +1067,7 @@ shape = [4, 4], type = oper, isHerm = False
     a = destroy(N, offset=offset)
     out = (alpha * a.dag() - np.conj(alpha) * a).expm(dtype=dtype)
     out.isherm = (alpha == 0.)
-    out._isunitary = True
+    out.isunitary = True
     return out
 
 
@@ -1122,12 +1122,12 @@ def qutrit_ops(*, dtype: LayerType = None) -> list[Qobj]:
     for i in range(3):
         op = (basis[i] @ basis[i].dag()).to(dtype)
         op.isherm = True
-        op._isunitary = False
+        op.isunitary = False
         out.append(op)
     for i in range(3):
         op = (basis[i] @ basis[(i+1)%3].dag()).to(dtype)
         op.isherm = False
-        op._isunitary = False
+        op.isunitary = False
         out.append(op)
     return out
 
@@ -1214,7 +1214,7 @@ def charge(
         Nmin = -Nmax
     diag = frac * np.arange(Nmin, Nmax+1, dtype=float)
     out = qdiags(diag, 0, dtype=dtype)
-    out._isunitary = (len(diag) <= 2) and np.all(np.abs(diag) == 1.)
+    out.isunitary = (len(diag) <= 2) and np.all(np.abs(diag) == 1.)
     return out
 
 
@@ -1243,7 +1243,7 @@ def tunneling(N: int, m: int = 1, *, dtype: LayerType = None) -> Qobj:
     diags = [np.ones(N-m, dtype=int), np.ones(N-m, dtype=int)]
     T = qdiags(diags, [m, -m], dtype=dtype)
     T.isherm = True
-    T._isunitary = (m * 2 == N)
+    T.isunitary = (m * 2 == N)
     return T
 
 
