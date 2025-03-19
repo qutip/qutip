@@ -678,9 +678,11 @@ class Compound(Space):
         new_spaces = []
         for space in self.spaces:
             n_indices = len(space.flat())
-            idx_space = [i for i in idx if i < n_indices]
-            idx = [i-n_indices for i in idx if i >= n_indices]
-            new_space = space.remove(idx_space)
+            if 0 <= idx < n_indices:
+                pass
+            else:
+                new_spaces.append(space)
+            idx -= n_indices
         if new_spaces:
             return Compound(*new_spaces)
         return Field()
