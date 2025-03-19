@@ -8,7 +8,7 @@ from __future__ import annotations
 
 __all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
 
-from typing import Callable
+from typing import Callable, Literal
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -363,7 +363,7 @@ def iterated_fit(
     upper: ArrayLike = None,
     sigma: float | ArrayLike = None,
     maxfev: int = None
-) -> tuple[float, float, ArrayLike]:
+) -> tuple[float, ArrayLike]:
     r"""
     Iteratively tries to fit the given data with a model of the form
 
@@ -563,7 +563,7 @@ def aaa(func: Callable[..., complex], z: ArrayLike,
         tol: float = 1e-13, max_iter: int = 100):
     """
     Computes a rational approximation of the function according to the AAA
-    algorithm as explained in https://doi.org/10.1137/16M1106122 . This
+    algorithm as explained in [AAA]_ . This
     implementation is a python adaptation of the Chebfun version in that paper
 
     Parameters:
@@ -743,9 +743,10 @@ def _prz(support_points, values, weights):
 
     where B is like a mxm identity matrix, except its first element is 0.
 
-    Unlike the implementation in the reference we use the simple quotient
-    formula for the residue (https://math.stackexchange.com/questions/2202129/
-    residue-for-quotient-of-functions)
+    Unlike the implementation in the reference we use the `simple quotient
+    formula for the residue
+    <https://math.stackexchange.com/questions/2202129/
+    residue-for-quotient-of-functions>`
 
 
     Parameters:
@@ -789,28 +790,32 @@ def _prz(support_points, values, weights):
 
 def _prony_model(n, amp, phase):
     # It serves to compute rmse, a single term of the prony
-    # polynomial form https://doi.org/10.1093/imanum/drab108 using phases
+    # polynomial form [ESPIRAvsESPRIT]_ using phases
     return amp * np.power(phase, np.arange(n))
 
 
-def prony_methods(method: str, signal: ArrayLike, n: int):
+def prony_methods(method: Literal["prony", "esprit"], signal: ArrayLike, n: int):
     """
     Estimate amplitudes and frequencies using prony methods.
-    Based on the description in https://doi.org/10.1093/imanum/drab108
+    Based on the description in [ESPIRAvsESPRIT]_
     and their matlab implementation
-    Args:
-        method (str): The method to obtain the roots of the prony polynomial
+    Parameters:
+    -----------
+    method: str
+        The method to obtain the roots of the prony polynomial
         can be prony, and Estimation of signal parameters
-        via rotational invariant techniques (esprit)
-        signal (np.ndarray): The input signal (1D complex array).
-        n (int): Desired number of modes to  use as estimation
-        (rank of the signal).
-    Returns:
-        params:
-            A list of tuples containing the amplitudes and phases
-            of our approximation
-        rmse:
-            Normalized mean squared error
+        via rotational invariant techniques (ESPRIT)
+    signal: n.ndarray
+        The input signal (1D complex array).
+    n: int
+        Desired number of modes to  use as estimation (rank of the signal).
+    Returns
+    -------
+    params:
+        A list of tuples containing the amplitudes and phases
+        of our approximation
+    rmse:
+        Normalized mean squared error
     """
     if method == "prony":
         num_freqs = n
@@ -837,21 +842,31 @@ def prony_methods(method: str, signal: ArrayLike, n: int):
 # ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
 
-def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-13):
+def espira1(signal: ArrayLike, n: int, tol: float = 1e-13):
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
-    Based on the description in https://doi.org/10.1093/imanum/drab108
+    Based on the description in [ESPIRAvsESPRIT]_
     and their matlab implementation
-    Args:
-        signal (np.ndarray): The input signal (1D complex array).
-        n (int): The number of modes to estimate (rank of the signal).
 
-    Returns:
-        params:
-            A list of tuples containing the amplitudes and phases
-            of our approximation
-        rmse:
-            Normalized mean squared error
+    Parameters:
+    -----------
+
+    signal: n.ndarray
+        The input signal (1D complex array).
+    n: int
+        Desired number of modes to  use as estimation (rank of the signal).
+    tol: float
+        Tolerance used in the AAA algorithm. If it is not low enough, the
+        desired number of exponents may not be reached, as AAA converges in
+        less iterations
+
+    Returns
+    -------
+    params:
+        A list of tuples containing the amplitudes and phases
+        of our approximation
+    rmse:
+        Normalized mean squared error
     """
     # Compute FFT
     F = fft(signal)
@@ -862,7 +877,7 @@ def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-13):
     # Modify the DFT values
     F = F * Z**(-1)
     # Use AAA
-    result = aaa(F, Z, max_iter=Nexp+1, tol=tol)  # One extra iteration so Nexp
+    result = aaa(F, Z, max_iter=n+1, tol=tol)  # One extra iteration so n
     # coincides with the number of exponents
     # Construct Cauchy matrix
     CC = (-1) / np.subtract.outer(result['support points'], result['poles'])
@@ -879,24 +894,31 @@ def espira1(signal: ArrayLike, Nexp: int, tol: float = 1e-13):
     return params, rmse
 
 
-def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-13):
+def espira2(signal: ArrayLike, n: int, tol: float = 1e-13):
     """
     Estimate amplitudes and frequencies using ESPIRA-II.
-    Based on the description in https://doi.org/10.1093/imanum/drab108
+    Based on the description in [ESPIRAvsESPRIT]_
     and their matlab implementation
-    Args:
-        method (str): The method to obtain the roots of the prony polynomial
-        can be prony,matrix pencil (mp), and Estimation of signal parameters
-        via rotational invariant techniques (esprit)
-        signal (np.ndarray): The input signal (1D complex array).
-        n (int): The number of modes to estimate (rank of the signal).
 
-    Returns:
-        params:
-            A list of tuples containing the amplitudes and phases
-            of our approximation
-        rmse:
-            Normalized mean squared error
+    Parameters:
+    -----------
+
+    signal: n.ndarray
+        The input signal (1D complex array).
+    n: int
+        Desired number of modes to  use as estimation (rank of the signal).
+    tol: float
+        Tolerance used in the AAA algorithm. If it is not low enough, the
+        desired number of exponents may not be reached, as AAA converges in
+        less iterations
+
+    Returns
+    -------
+    params:
+        A list of tuples containing the amplitudes and phases
+        of our approximation
+    rmse:
+        Normalized mean squared error
     """
     # Compute FFT
     F1 = fft(signal)
@@ -907,7 +929,7 @@ def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-13):
     # Modify the DFT values
     F = F1 * Z**(-1)
     # Run AAA
-    result = aaa(F, Z, max_iter=Nexp+1, tol=tol)
+    result = aaa(F, Z, max_iter=n+1, tol=tol)
     # Use results from AAA to construct lowener and cauchy matrices for the
     # FFT and modified FFT values
     indices = result["indices"]
@@ -922,7 +944,7 @@ def espira2(signal: ArrayLike, Nexp: int, tol: float = 1e-13):
     _, N2 = loewner2.shape
     A1 = np.hstack((loewner, loewner2))
     _, _, Vt = np.linalg.svd(A1)
-    V = Vt[:(Nexp), :]  # Reduce rows in V matrix
+    V = Vt[:n, :]  # Reduce rows in V matrix
     V1 = V[:, :N2]  # First matrix for matrix pencil
     V2 = V[:, N2:2*N2]  # Second matrix for matrix pencil
     # obtain phases
