@@ -534,26 +534,6 @@ class Space(metaclass=MetaSpace):
         """ Dimensions as a flat list. """
         return [self.size]
 
-    def remove(self, idx: int):
-        """
-        Remove a Space from a Dimensons or complex Space.
-
-        ``Space([2, 3, 4]).remove(1) == Space([2, 4])``
-        """
-        raise RuntimeError("Cannot delete a flat space.")
-
-    def replace(self, idx: int, new: int) -> "Space":
-        """
-        Reshape a Space from a Dimensons or complex Space.
-
-        ``Space([2, 3, 4]).replace(1, 5) == Space([2, 5, 4])``
-        """
-        if idx != 0:
-            raise ValueError(
-                "Cannot replace a non-zero index in a flat space."
-            )
-        return Space(new)
-
     def replace_superrep(self, super_rep: str) -> "Space":
         return self
 
@@ -588,12 +568,6 @@ class Field(Space):
 
     def flat(self) -> list[int]:
         return [1]
-
-    def remove(self, idx: int) -> Space:
-        return self
-
-    def replace(self, idx: int, new: int) -> Space:
-        return Space(new)
 
 
 Field.field_instance = Field.__new__(Field)
@@ -674,30 +648,6 @@ class Compound(Space):
     def flat(self) -> list[int]:
         return sum([space.flat() for space in self.spaces], [])
 
-    def remove(self, idx: int) -> Space:
-        new_spaces = []
-        for space in self.spaces:
-            n_indices = len(space.flat())
-            if 0 <= idx < n_indices:
-                pass
-            else:
-                new_spaces.append(space)
-            idx -= n_indices
-        if new_spaces:
-            return Compound(*new_spaces)
-        return Field()
-
-    def replace(self, idx: int, new: int) -> Space:
-        new_spaces = []
-        for space in self.spaces:
-            n_indices = len(space.flat())
-            if 0 <= idx < n_indices:
-                new_spaces.append(space.replace(idx, new))
-            else:
-                new_spaces.append(space)
-            idx -= n_indices
-        return Compound(*new_spaces)
-
     def replace_superrep(self, super_rep: str) -> Space:
         return Compound(
             *[space.replace_superrep(super_rep) for space in self.spaces]
@@ -754,15 +704,6 @@ class SuperSpace(Space):
 
     def flat(self) -> list[int]:
         return sum(self.oper.flat(), [])
-
-    def remove(self, idx: int) -> Space:
-        new_dims = self.oper.remove(idx)
-        if new_dims.type == 'scalar':
-            return Field()
-        return SuperSpace(new_dims, rep=self.superrep)
-
-    def replace(self, idx: int, new: int) -> Space:
-        return SuperSpace(self.oper.replace(idx, new), rep=self.superrep)
 
     def replace_superrep(self, super_rep: str) -> Space:
         return SuperSpace(self.oper, rep=super_rep)
@@ -937,41 +878,6 @@ class Dimensions(metaclass=MetaDims):
             np.argsort(stepl)[::-1],
             np.argsort(stepr)[::-1] + len(stepl)
         ])))
-
-    def remove(self, idx: int | list[int]) -> "Dimensions":
-        """
-        Remove a Space from a Dimensons or complex Space.
-
-        ``Space([2, 3, 4]).remove(1) == Space([2, 4])``
-        """
-        if not isinstance(idx, list):
-            idx = [idx]
-        if not idx:
-            return self
-        idx = sorted(idx)
-        n_indices = len(self.to_.flat())
-        idx_to = [i for i in idx if i < n_indices]
-        idx_from = [i-n_indices for i in idx if i >= n_indices]
-        return Dimensions(
-            self.from_.remove(idx_from),
-            self.to_.remove(idx_to),
-        )
-
-    def replace(self, idx: int, new: int) -> "Dimensions":
-        """
-        Reshape a Space from a Dimensons or complex Space.
-
-        ``Space([2, 3, 4]).replace(1, 5) == Space([2, 5, 4])``
-        """
-        n_indices = len(self.to_.flat())
-        if idx < n_indices:
-            new_to = self.to_.replace(idx, new)
-            new_from = self.from_
-        else:
-            new_to = self.to_
-            new_from = self.from_.replace(idx-n_indices, new)
-
-        return Dimensions(new_from, new_to)
 
     def replace_superrep(self, super_rep: str) -> "Dimensions":
         if not self.issuper and super_rep is not None:
