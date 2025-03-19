@@ -816,6 +816,8 @@ cdef class QobjEvo:
         qobjs = []
         coeffs = []
         for element in coeff_elements:
+            if _data.iszero(element.data(0)):
+                continue
             for i, qobj in enumerate(qobjs):
                 if element.qobj(0) == qobj:
                     coeffs[i] = coeffs[i] + element._coefficient
@@ -834,6 +836,7 @@ cdef class QobjEvo:
         Constant parts, (:obj:`.Qobj` without :obj:`Coefficient`) will be
         summed.
         Pairs ``[Qobj, Coefficient]`` with the same :obj:`.Qobj` are merged.
+        Pairs ``[Qobj, Coefficient]`` with zero :obj:`.Qobj` are discarded.
 
         Example:
         ``[[sigmax(), f1], [sigmax(), f2]] -> [[sigmax(), f1+f2]]``

@@ -6,7 +6,7 @@ import numpy
 
 
 __all__ = [
-    'concat_data', 'slice_dense', 'slice',
+    'concat_data', 'slice_dense', 'slice', 'zeropad_dense', 'zeropad'
 ]
 
 
@@ -80,4 +80,30 @@ slice = _Dispatcher(
 slice.__doc__ = """TODO"""
 slice.add_specialisations([
     (Data, Dense, slice_dense),
+], _defer=True)
+
+
+def zeropad_dense(data: Data,
+                  before: int, after: int,
+                  above: int, below: int) -> Dense:
+    array = data.to_array()
+    padded = numpy.pad(array, ((above, below), (before, after)))
+    return Dense(padded, copy=True)
+
+zeropad = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('data', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('before', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('after', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('above', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('below', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='zeropad',
+    module=__name__,
+    inputs=('data',),
+    out=True,
+)
+zeropad.__doc__ = """TODO"""
+zeropad.add_specialisations([
+    (Data, Dense, zeropad_dense),
 ], _defer=True)
