@@ -6,7 +6,7 @@ qutip modules.
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
-__all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit',"aaa"]
+__all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
 
 from typing import Callable, Literal
 
@@ -794,7 +794,8 @@ def _prony_model(n, amp, phase):
     return amp * np.power(phase, np.arange(n))
 
 
-def prony_methods(method: Literal["prony", "esprit"], signal: ArrayLike, n: int):
+def prony_methods(method: Literal["prony", "esprit"],
+                   signal: ArrayLike, n: int):
     """
     Estimate amplitudes and frequencies using prony methods.
     Based on the description in [ESPIRAvsESPRIT]_
