@@ -809,7 +809,7 @@ class BosonicEnvironment(abc.ABC):
             tag = (self.tag, f"{method.upper()} Fit")
         if separate:
             start_real = time()
-            rmse_real, params_real  = methods[method](
+            rmse_real, params_real = methods[method](
                 self.correlation_function(tlist).real, Nr)
             end_real = time()
             start_imag = time()
@@ -839,7 +839,7 @@ class BosonicEnvironment(abc.ABC):
                         }
         else:
             start_real = time()
-            rmse_real, params_real  = methods[method](
+            rmse_real, params_real = methods[method](
                 self.correlation_function(tlist), Nr)
             end_real = time()
             amp, phases = params_real.T

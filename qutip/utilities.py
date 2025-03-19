@@ -795,7 +795,7 @@ def _prony_model(n, amp, phase):
 
 
 def prony_methods(method: Literal["prony", "esprit"],
-                   signal: ArrayLike, n: int)-> tuple[float, ArrayLike]:
+                   signal: ArrayLike, n: int) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using prony methods.
     Based on the description in [ESPIRAvsESPRIT]_
@@ -842,7 +842,7 @@ def prony_methods(method: Literal["prony", "esprit"],
 
 
 def espira1(signal: ArrayLike, n: int,
-                 tol: float = 1e-13)-> tuple[float, ArrayLike]:
+                 tol: float = 1e-13) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
     Based on the description in [ESPIRAvsESPRIT]_
@@ -895,7 +895,7 @@ def espira1(signal: ArrayLike, n: int,
 
 
 def espira2(signal: ArrayLike, n: int,
-                 tol: float = 1e-13)-> tuple[float, ArrayLike]:
+                 tol: float = 1e-13) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-II.
     Based on the description in [ESPIRAvsESPRIT]_

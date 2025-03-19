@@ -145,12 +145,12 @@ The following table highlights the strengths and weaknesses of each fitting meth
      - Partially
      - Yes
 
-In the table requires extra information refers to whether we need to input 
+In the table "Requires Extra Information" refers to whether we need to input 
 more than the function and the sampling points for the fitting method to work, 
-fast refers to the typical computation time of the approach
-with a moderate number of exponents, resilient to noise refers to whether the
-fitting approach is affected by noise in the function, allows for constraints
-refers to whether we can bound the fit parameters to be in a range,stable 
+"Fast" refers to the typical computation time of the approach
+with a moderate number of exponents, "Resilient to Noise" refers to whether the
+fitting approach is affected by noise in the function, "Allows Constraints"
+refers to whether we can bound the fit parameters to be in a range,"Stable" 
 refers whether it returns similar results for slightly different sampling 
 points. The answer partially means that it is 
 true for some methods in the group but not for others.
