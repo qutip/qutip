@@ -96,7 +96,7 @@ def coeff_generator(style, func):
         return coefficient(base(tlistlog, **args), tlist=tlistlog,
                            order=0)
     if style == "const":
-        return const(2.0)
+        return const({"f": 2.0, "g": 1j}[func])
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [

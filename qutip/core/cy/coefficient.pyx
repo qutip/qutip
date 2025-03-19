@@ -608,6 +608,9 @@ cdef class InterCoefficient(Coefficient):
             self = right
             right = left
 
+        if not isinstance(right, Coefficient):
+            return Coefficient.__mul__(self, right)
+
         if isinstance(right, InterCoefficient):
             other = <InterCoefficient> right
             if (
@@ -620,6 +623,7 @@ cdef class InterCoefficient(Coefficient):
                 poly1 = self.np_arrays[1]
                 poly2 = other.np_arrays[1]
                 N = max(poly1.shape[0], poly2.shape[0])
+                N = poly1.shape[0] + poly2.shape[0] - 1
                 prod = np.zeros((N, poly1.shape[1]), dtype=complex)
                 for i in range(poly1.shape[0]):
                     for j in range(poly2.shape[0]):
@@ -628,7 +632,7 @@ cdef class InterCoefficient(Coefficient):
                         idx = -1 - inv1 - inv2
                         if -idx > N:
                             continue
-                        prod[idx] += poly1[inv1] * poly1[inv2]
+                        prod[idx, :] += poly1[i, :] * poly2[j, :]
                 return InterCoefficient.restore(
                     self.np_arrays[0], prod, self.dt
                 )
@@ -641,11 +645,11 @@ cdef class InterCoefficient(Coefficient):
 
         return MulCoefficient(left, right)
 
-    def conj(self):
+    def conj(InterCoefficient self):
         if np.isreal(self.np_arrays[1]).all():
             return self
         return InterCoefficient.restore(
-            self.np_arrays[0], self.np_arrays[1], self.dt
+            self.np_arrays[0], np.conj(self.np_arrays[1]), self.dt
         )
 
     def __eq__(left, right):
@@ -950,7 +954,10 @@ cdef class ConstantCoefficient(Coefficient):
             isinstance(self, ConstantCoefficient) and
             isinstance(other, ConstantCoefficient)
         ):
-            return ConstantCoefficient(self.value + other.value)
+            return ConstantCoefficient(
+                (<ConstantCoefficient> self).value +
+                (<ConstantCoefficient> other).value
+            )
         return NotImplemented
 
     def __mul__(self, other):
@@ -958,10 +965,13 @@ cdef class ConstantCoefficient(Coefficient):
             isinstance(self, ConstantCoefficient) and
             isinstance(other, ConstantCoefficient)
         ):
-            return ConstantCoefficient(self.value * other.value)
-        return NotImplemented
+            return ConstantCoefficient(
+                (<ConstantCoefficient> self).value *
+                (<ConstantCoefficient> other).value
+            )
+        return Coefficient.__mul__(self, other)
 
-    def conj(self):
+    def conj(ConstantCoefficient self):
         if self.value.imag == 0:
             return self
         return ConstantCoefficient(conj(self.value))
