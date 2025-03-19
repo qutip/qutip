@@ -6,7 +6,7 @@ qutip modules.
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
-__all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
+__all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit',"aaa"]
 
 from typing import Callable, Literal
 

@@ -578,7 +578,7 @@ API Documentation
     to be used for the fit to be a large dense range which makes this
     algorithm consume a lot of RAM (it will also be slow if asking for many
     exponents). It is recommended that the sample points provided are a 
-    logarithmicly scaled range. 
+    logarithmicly scaled range. For more informatio about the method see [AAA]_
 
     :Parameters:
 
@@ -632,7 +632,8 @@ API Documentation
     the problem into a linear system, avoiding the need for initial guesses and
     iterative optimization. This makes it computationally efficient and as 
     opposed to non linear least squares it won't get trapped in local minima
-    and does not require anything appart from the sample points. 
+    and does not require anything appart from the evenly spaced sample points. 
+    For more information about these methods see [ESPIRAvsESPRIT]_
     
     :Parameters:
 
