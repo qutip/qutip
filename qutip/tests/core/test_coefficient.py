@@ -209,9 +209,15 @@ def test_ConstantCoefficient():
 def test_CoeffOperation(style_left, style_right, oper):
     coeff_left = coeff_generator(style_left, "f")
     coeff_right = coeff_generator(style_right, "g")
+    if oper(2, 1) == 2 and "array" in style_left:
+        # Array product recompute the spline
+        rtol = 1e-7
+    else:
+        rtol = 1e-12
     _assert_eq_over_interval(
         oper(coeff_left, coeff_right),
-        lambda t: oper(coeff_left(t), coeff_right(t))
+        lambda t: oper(coeff_left(t), coeff_right(t)),
+        rtol=rtol
     )
 
 

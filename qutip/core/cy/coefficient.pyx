@@ -431,6 +431,7 @@ cdef class InterCoefficient(Coefficient):
     cdef double[::1] tlist
     cdef complex[:, :] poly
     cdef object np_arrays
+    cdef object boundary_conditions
 
     def __init__(self, coeff_arr, tlist, int order, boundary_conditions, **_):
         tlist = np.array(tlist, dtype=np.float64)
@@ -469,6 +470,7 @@ cdef class InterCoefficient(Coefficient):
             ]).reshape((spline.k+1, -1))
 
         self._prepare(tlist, coeff_arr)
+        self.boundary_conditions = boundary_conditions
 
     def _prepare(self, np_tlist, np_poly, dt=None):
         self.np_arrays = (np_tlist, np_poly)
@@ -615,26 +617,20 @@ cdef class InterCoefficient(Coefficient):
             other = <InterCoefficient> right
             if (
                 self.np_arrays[0].shape == other.np_arrays[0].shape
+                and (self.order == other.order)
+                and (self.boundary_conditions == other.boundary_conditions)
                 and np.allclose(
                     self.np_arrays[0], other.np_arrays[0],
                     rtol=1e-15, atol=1e-15
                 )
             ):
-                poly1 = self.np_arrays[1]
-                poly2 = other.np_arrays[1]
-                N = max(poly1.shape[0], poly2.shape[0])
-                N = poly1.shape[0] + poly2.shape[0] - 1
-                prod = np.zeros((N, poly1.shape[1]), dtype=complex)
-                for i in range(poly1.shape[0]):
-                    for j in range(poly2.shape[0]):
-                        inv1 = poly1.shape[0] - i - 1
-                        inv2 = poly2.shape[0] - j - 1
-                        idx = -1 - inv1 - inv2
-                        if -idx > N:
-                            continue
-                        prod[idx, :] += poly1[i, :] * poly2[j, :]
-                return InterCoefficient.restore(
-                    self.np_arrays[0], prod, self.dt
+                coeff1 = self.np_arrays[1][-1, :]
+                coeff2 = other.np_arrays[1][-1, :]
+                return InterCoefficient(
+                    coeff1 * coeff2,
+                    self.tlist,
+                    self.order,
+                    self.boundary_conditions
                 )
 
         if isinstance(right, ConstantCoefficient):
