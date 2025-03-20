@@ -1,14 +1,15 @@
 from .base import Data
-from .csr import CSR
 from .dense import Dense
+from .dispatch import Dispatcher as _Dispatcher
+
+import inspect as _inspect
 
 import numpy
 
 
 __all__ = [
-    'concat_data', 'slice_dense', 'slice', 'zeropad_dense', 'zeropad'
+    'concat_data', 'slice_dense', 'slice', 'insert_dense', 'insert'
 ]
-
 
 
 def _invalid_shapes():
@@ -16,7 +17,6 @@ def _invalid_shapes():
         "The given matrices have incompatible shapes and cannot be"
         " concatenated."
     )
-
 
 def _to_array(data: Data | numpy.ndarray) -> numpy.ndarray:
     if isinstance(data, Data):
@@ -28,7 +28,7 @@ def concat_data(
     _skip_checks: bool = False
 ) -> Dense:
     """
-    TODO: docstring
+    Concatenates blocks of data into a block matrix
     """
 
     if not _skip_checks:
@@ -50,9 +50,7 @@ def concat_data(
     # copy=None means: only copy if numpy cannot avoid copying
 
 
-# TODO other dtypes
-def concat_csr(data_array: list[list[CSR]]) -> CSR:
-    ...
+# TODO other dtypes, dispatch function
 
 
 def slice_dense(data: Data,
@@ -60,9 +58,6 @@ def slice_dense(data: Data,
                 col_start: int, col_stop: int) -> Dense:
     array = data.to_array()
     return Dense(array[row_start:row_stop, col_start:col_stop], copy=True)
-
-from .dispatch import Dispatcher as _Dispatcher
-import inspect as _inspect
 
 slice = _Dispatcher(
     _inspect.Signature([
@@ -77,33 +72,40 @@ slice = _Dispatcher(
     inputs=('data',),
     out=True,
 )
-slice.__doc__ = """TODO"""
+slice.__doc__ =\
+    """
+    Extracts a block of data from a large matrix.
+    """
 slice.add_specialisations([
     (Data, Dense, slice_dense),
 ], _defer=True)
 
 
-def zeropad_dense(data: Data,
-                  before: int, after: int,
-                  above: int, below: int) -> Dense:
-    array = data.to_array()
-    padded = numpy.pad(array, ((above, below), (before, after)))
-    return Dense(padded, copy=True)
+def insert_dense(data: Data, block: Data,
+                 above: int, before: int) -> Dense:
+    data_array = data.to_array()
+    data_height, data_width = data.shape
+    block_array = block.to_array()
+    block_height, block_width = block.shape
+    if above + block_height > data_height or before + block_width > data_width:
+        raise IndexError("Cannot insert block into data: doesn't fit.")
+    data_array[above:(above+block_height), before:(before+block_width)] =\
+        block_array
+    return Dense(data_array, copy=False)
 
-zeropad = _Dispatcher(
+insert = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('data', _inspect.Parameter.POSITIONAL_ONLY),
-        _inspect.Parameter('before', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('after', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('block', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('above', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('below', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('before', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
-    name='zeropad',
+    name='insert',
     module=__name__,
-    inputs=('data',),
+    inputs=('data', 'block'),
     out=True,
 )
-zeropad.__doc__ = """TODO"""
-zeropad.add_specialisations([
-    (Data, Dense, zeropad_dense),
+insert.__doc__ = """TODO"""
+insert.add_specialisations([
+    (Data, Data, Dense, insert_dense),
 ], _defer=True)

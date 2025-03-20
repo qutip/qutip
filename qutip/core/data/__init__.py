@@ -8,7 +8,7 @@ from .base import Data
 
 from .add import *
 from .adjoint import *
-from .concat import *
+from .block_operations import *
 from .constant import *
 from .eigen import *
 from .expect import *
