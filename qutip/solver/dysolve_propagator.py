@@ -26,12 +26,16 @@ class DysolvePropagator:
     options : dict, optional
         Extra parameters. 
 
-        - "max_order": a given integer to indicate the highest order of
-        approximation used to compute the propagators (default is 4).
-        This corresponds to n in eq. (4) of Ref.
+        - "max_order"
 
-        - "a_tol" is the absolute tolerance used when
-        computing the propagators (default is 1e-10).
+            A given integer to indicate the highest order of
+            approximation used to compute the propagators (default is 4).
+            This corresponds to n in eq. (4) of Ref.
+
+        - "a_tol"
+
+            The absolute tolerance used whencomputing the propagators
+            (default is 1e-10).
 
     Notes
     -----
