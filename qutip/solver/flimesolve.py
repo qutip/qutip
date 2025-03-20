@@ -52,61 +52,8 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
     return c_op_Fourier_amplitudes_list
 
 
-def _power_density_functions(floquet_basis, power_spectrum, Nt):
-    """
-    Parameters
-    ----------
-    floquet_basis : FloquetBasis Object
-        The FloquetBasis object formed from qutip.floquet.FloquetBasis
-    power_spectrum : function
-        The power spectrum of the autocorrelation function as a function of
-        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
-    Nt : Int
-        Number of points in one period of the Hamiltonian
-
-    Returns
-    -------
-    List of [Gamma(+omega),Gamma(-omega)] functions where each gamma is itself
-        an NtxHdimxHdim array for the power density function values over
-        Nt harmonics and HdimxHdim combination of floquet quasienergy frequencies
-    NOTE FOR ME: The frequency values iterate over [0,1...Nt/2-1,-Nt/2...-1]
-    """
-    Hdim = len(floquet_basis.e_quasi)
-    T = floquet_basis.T
-    omega = 2 * np.pi / T
-    quasies = [quasi / omega for quasi in floquet_basis.e_quasi]
-
-    gamma_plus = np.zeros((Nt, Hdim, Hdim))
-    gamma_minus = np.zeros((Nt, Hdim, Hdim))
-
-    # Trying to build these up like an unshifted Fourier transform
-    # i.e. this should range over [0,1,...Nt/2-1,-Nt/2,-Nt/2+1,...-1]
-    for i in range(Hdim):
-        for j in range(Hdim):
-            for k in range(0, int(Nt / 2) - 0):
-                gamma_plus[k, i, j] = power_spectrum(
-                    (quasies[i] - quasies[j] + k) * omega
-                )
-
-                gamma_minus[k, i, j] = np.conj(
-                    power_spectrum((quasies[i] - quasies[j] + k) * omega)
-                )
-            for k in range(int(Nt / 2) - 0, Nt):
-                gamma_plus[k, i, j] = power_spectrum(
-                    (quasies[i] - quasies[j] + (k - Nt)) * omega
-                )
-
-                gamma_minus[k, i, j] = np.conj(
-                    power_spectrum(
-                        (quasies[i] - quasies[j] + (k - Nt)) * omega
-                    )
-                )
-
-    return [gamma_plus, gamma_minus]
-
-
 def _floquet_rate_matrix(
-    floquet_basis, Nt, c_ops, time_sense=0, power_spectrum=False
+    floquet_basis, Nt, c_ops, time_sense=0, power_spectrum=None
 ):
     """
     Parameters
@@ -117,9 +64,6 @@ def _floquet_rate_matrix(
         Number of points in one period of the Hamiltonian
     c_ops : list of :obj:`.Qobj`, :obj:`.QobjEvo`
         Single collapse operator, or list of collapse operators
-    args : *dictionary*
-        dictionary of parameters for time-dependent Hamiltonians and
-        collapse operators.
     time_sense : float 0-1,optional
         the time sensitivity or secular approximation restriction of
         FLiMESolve. Decides "acceptable" values of (frequency/rate) for rate
@@ -148,79 +92,192 @@ def _floquet_rate_matrix(
         2 * np.pi
     ) / floquet_basis.T  # Frequency dependence of Hamiltonian
 
-    total_R_tensor = defaultdict(lambda: 0)
+    """
+    Defining a kronecker delta function because I forgot numpy has one until now,
+        as I write this note
+    """
+    if power_spectrum == None:
+
+        def power_spectrum(omega):
+            return 1
+
+    def kron(a, b):
+        if a == b:
+            value = 1
+        else:
+            value = 0
+        return value
+
+    """
+    Defining the frequency value for any given combination of indices
+    """
+
+    def delta(a, ap, b, bp, l, lp):
+        return (
+            (floquet_basis.e_quasi[a] - floquet_basis.e_quasi[ap])
+            - (floquet_basis.e_quasi[b] - floquet_basis.e_quasi[bp])
+        ) / omega + (l - lp)
+
+    """
+    Recovers frequency values used as arguments in the power spectrum
+    """
+
+    def powfreqs(a, b, k):
+        return floquet_basis.e_quasi[a] - floquet_basis.e_quasi[b] - k * omega
+
+    Nt = len(tlist)
+    Hdim = len(floquet_basis.e_quasi)
+
+    total_R_tensor = {}
+
     for cdx, c_op in enumerate(c_ops):
 
         c_op_Fourier_amplitudes_list = _c_op_Fourier_amplitudes(
             floquet_basis, tlist, c_op
         )
-        [gamp, gamm] = _power_density_functions(
-            floquet_basis, power_spectrum, Nt
-        )
+        indices_list = np.argwhere(np.ones((Hdim, Hdim, Hdim, Hdim, Nt, Nt)))
+        # This shifts the indices in the indices list to call the correct k elements
+        for idx in indices_list:
+            idx[4] = idx[4] - int(Nt / 2)
+            idx[5] = idx[5] - int(Nt / 2)
 
-        # Building the Rate matrix
-        delta_m = np.subtract.outer(
-            floquet_basis.e_quasi, floquet_basis.e_quasi
-        )
-        delta_m = np.subtract.outer(delta_m, delta_m)
-        delta_m /= omega
-        for l, k in product(
-            np.array(
-                np.linspace(int(-Nt / 2), int(Nt / 2) - 1, num=Nt), dtype=int
-            ),
-            repeat=2,
-        ):
-            delta_shift = delta_m + (l - k)
-            gamsum = np.add.outer(gamp[l], gamm[k])
-            mask = {}
-            if time_sense <= 0.0:
-                mask[0] = delta_shift == 0
-                if not np.any(mask):
-                    continue
-                rate_products = np.multiply.outer(
-                    c_op_Fourier_amplitudes_list[l],
-                    np.conj(c_op_Fourier_amplitudes_list)[k],
-                )
-            else:
-                rate_products = np.multiply.outer(
-                    c_op_Fourier_amplitudes_list[l],
-                    np.conj(c_op_Fourier_amplitudes_list[k]),
-                )
+        """
+        Finding all terms that are either DC or that are "important" enough
+            to include as decided by the Relative Secular Approximation
+        """
 
-            included_deltas = abs(delta_shift * omega) <= abs(
-                rate_products * time_sense  # * gamsum
+        valid_indices = [
+            tuple(idx)
+            for idx in indices_list
+            if delta(*idx) == 0
+            or abs(
+                (
+                    (
+                        c_op_Fourier_amplitudes_list[idx[4], idx[0], idx[1]]
+                        * np.conj(
+                            c_op_Fourier_amplitudes_list[
+                                idx[5], idx[2], idx[3]
+                            ]
+                        )
+                    )
+                    / delta(*idx)
+                )
+                ** (-1)
+            )
+            <= time_sense
+        ]
+
+        """
+        Grouping together the valid indices found by the RSA according to their
+            frequency values
+        """
+        delta_dict = {}
+        for indices in valid_indices:
+            try:
+                delta_dict[delta(*indices)].append(indices)
+            except KeyError:
+                delta_dict[delta(*indices)] = [indices]
+
+        """
+        Below takes all the indices that correspond to a single frequency,
+            and builds that frequency value of the Rate Matrix
+        """
+        for key in delta_dict.keys():
+            valid_c_op_prods_list = [indices for indices in delta_dict[key]]
+            # using c = ap, d = bp, k=lp
+            flime_FirstTerm = np.zeros(
+                (Hdim, Hdim, Hdim, Hdim), dtype="complex"
+            )
+            flime_SecondTerm = np.zeros(
+                (Hdim, Hdim, Hdim, Hdim), dtype="complex"
+            )
+            flime_ThirdTerm = np.zeros(
+                (Hdim, Hdim, Hdim, Hdim), dtype="complex"
+            )
+            flime_FourthTerm = np.zeros(
+                (Hdim, Hdim, Hdim, Hdim), dtype="complex"
             )
 
-            if not np.any(included_deltas):
-                continue
-            keys = np.unique(delta_shift[included_deltas])
-            for key in keys:
-                mask[key] = np.logical_and(delta_shift == key, included_deltas)
+            for indices in valid_c_op_prods_list:
+                a = indices[0]
+                b = indices[1]
+                ap = indices[2]
+                bp = indices[3]
+                k = indices[4]
+                kp = indices[5]
 
-            for key in mask.keys():
-                valid_c_op_products = gamsum * rate_products * mask[key]
+                for m in range(Hdim):
+                    for n in range(Hdim):
+                        for p in range(Hdim):
+                            for q in range(Hdim):
+                                c_prods = c_op_Fourier_amplitudes_list[
+                                    k, a, b
+                                ] * np.conj(
+                                    c_op_Fourier_amplitudes_list[kp, ap, bp]
+                                )
 
-                I_ = np.eye(Hdim, Hdim)
-                tmp2ndterm = np.trace(valid_c_op_products, axis1=0, axis2=2)
-                tmp3rdterm = np.trace(valid_c_op_products, axis1=0, axis2=2)
+                                gam_plus = power_spectrum(powfreqs(a, b, k))
 
-                flime_FirstTerm = np.transpose(
-                    valid_c_op_products, [0, 2, 1, 3]
-                ).reshape(Hdim**2, Hdim**2)
+                                gam_minus_prime = power_spectrum(
+                                    powfreqs(bp, bp, kp)
+                                )
 
-                flime_SecondTerm = np.kron(tmp2ndterm.T, I_)
-                flime_ThirdTerm = np.kron(I_, tmp3rdterm)
+                                flime_FirstTerm[m, n, p, q] += (
+                                    gam_plus
+                                    * c_prods
+                                    * kron(b, p)
+                                    * kron(q, bp)
+                                    * kron(m, a)
+                                    * kron(ap, n)
+                                )
 
-                total_R_tensor[key] += flime_FirstTerm - (1 / 2) * (
-                    flime_SecondTerm + flime_ThirdTerm
+                                flime_SecondTerm[m, n, p, q] += (
+                                    gam_minus_prime
+                                    * c_prods
+                                    * kron(b, p)
+                                    * kron(q, bp)
+                                    * kron(m, a)
+                                    * kron(ap, n)
+                                )
+
+                                flime_ThirdTerm[m, n, p, q] += (
+                                    gam_plus
+                                    * c_prods
+                                    * kron(m, bp)
+                                    * kron(q, n)
+                                    * kron(ap, a)
+                                    * kron(b, p)
+                                )
+
+                                flime_FourthTerm[m, n, p, q] += (
+                                    gam_minus_prime
+                                    * c_prods
+                                    * kron(q, bp)
+                                    * kron(ap, a)
+                                    * kron(m, p)
+                                    * kron(b, n)
+                                )
+
+            try:
+                total_R_tensor[key] += (1 / 2) * np.reshape(
+                    (
+                        flime_FirstTerm
+                        + flime_SecondTerm
+                        - flime_ThirdTerm
+                        - flime_FourthTerm
+                    ),
+                    (Hdim**2, Hdim**2),
                 )
-
-    # Turning the Rate Matrix into a super operator
-    dims = [floquet_basis.U(0).dims] * 2
-    total_R_tensor = {
-        key: Qobj(RateMat, dims=dims, copy=False)
-        for key, RateMat in total_R_tensor.items()
-    }
+            except KeyError:
+                total_R_tensor[key] = (1 / 2) * np.reshape(
+                    (
+                        flime_FirstTerm
+                        + flime_SecondTerm
+                        - flime_ThirdTerm
+                        - flime_FourthTerm
+                    ),
+                    (Hdim**2, Hdim**2),
+                )
 
     return total_R_tensor
 
@@ -522,12 +579,6 @@ class FLiMESolver(MESolver):
 
         if not all(isinstance(c_op, Qobj) for c_op in c_ops):
             raise TypeError("c_ops must be type Qobj")
-        if power_spectrum == None:
-
-            def power_spectrum(omega):
-                # Value of 0.5 brings the ME to the Lindblad equation if no
-                # power spectrum is supplied
-                return 0.5
 
         self._Nt = Nt
         self.options = options
