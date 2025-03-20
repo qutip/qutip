@@ -1,4 +1,5 @@
 from qutip import Qobj, qeye_like
+from numpy.typing import ArrayLike
 import numpy as np
 import itertools
 from scipy.special import factorial
@@ -8,13 +9,13 @@ __all__ = ['DysolvePropagator', 'dysolve_propagator']
 
 class DysolvePropagator:
     """
-    A generator of propagator using the Dysolve algorithm
-    (see https://arxiv.org/abs/2012.09282).
+    A generator of propagator using Dysolve.
+    https://arxiv.org/abs/2012.09282
 
     Parameters
     ----------
     H_0 : Qobj
-        The hamiltonian of the system. Must be diagonal.
+        The base hamiltonian of the system.
 
     X : Qobj
         A cosine perturbation applied on the system.
@@ -23,11 +24,14 @@ class DysolvePropagator:
         The frequency of the cosine perturbation.
 
     options : dict, optional
-        Extra parameters when creating a DysolvePropagator instance.
-        "max_order" is a given integer to indicate the highest order
-        of approximation used to compute the propagators (default is 4).
-        "a_tol" is the absolute tolerance used when computing the propagators
-        (default is 1e-10).
+        Extra parameters. 
+
+        - "max_order": a given integer to indicate the highest order of
+        approximation used to compute the propagators (default is 4).
+        This corresponds to n in eq. (4) of Ref.
+
+        - "a_tol" is the absolute tolerance used when
+        computing the propagators (default is 1e-10).
 
     Notes
     -----
@@ -45,8 +49,8 @@ class DysolvePropagator:
     ):
         # System
         self.H_0 = H_0
-        self.eigenenergies = H_0.diag()
-        self.X = X.transform(H_0)
+        self.eigenenergies, self.basis = H_0.eigenstates()
+        self.X = X.transform(self.basis)
         self.omega = omega
 
         # Times
@@ -103,15 +107,15 @@ class DysolvePropagator:
 
         return self.U
 
-    def _compute_integrals(self, ws: list) -> float:
+    def _compute_integrals(self, ws: ArrayLike) -> float:
         """
         Computes the value of the nested integrals for a given list of
-        effective omegas.
+        effective omegas. See eq. (7) in Ref.
 
         Parameters
         ----------
-        ws : list
-            A list of effective omegas. ws[0] is the omega for the rightmost
+        ws : ArrayLike
+            An array of effective omegas. ws[0] is the omega for the rightmost
             integral.
 
         Returns
@@ -121,7 +125,7 @@ class DysolvePropagator:
 
         Notes
         -----
-        Integrals are done from right to left.
+        Integrals are done analytically from right to left.
 
         """
         if len(ws) == 0:
@@ -135,23 +139,24 @@ class DysolvePropagator:
             if np.abs(ws[0]) < self.a_tol:
                 return self._compute_tn_integrals(ws[1:], 1)
             else:
-                ws_prime = ws[1:]
+                ws_prime = ws[1:].copy()
                 ws_prime[0] += ws[0]
                 return (-1j / ws[0]) * (
                     self._compute_integrals(
                         ws_prime) - self._compute_integrals(ws[1:])
                 )
 
-    def _compute_tn_integrals(self, ws: list, n: int) -> float:
+    def _compute_tn_integrals(self, ws: ArrayLike, n: int) -> float:
         """
         Helper function to compute nested integrals when the function to
         integrate is t^n/factorial(n) * exp(1j*omega*t). This happens when
-        some effective omegas are 0.
+        some effective omegas are 0. In that case, the recursion differs a
+        bit from _compute_integrals(). See eq. (7) in Ref.
 
         Paramaters
         ----------
-        ws : list
-            A list of effective omegas. ws[0] is the omega for the rightmost
+        ws : ArrayLike
+            An array of effective omegas. ws[0] is the omega for the rightmost
             integral.
 
         n : int
@@ -163,14 +168,19 @@ class DysolvePropagator:
             The value of the nested integrals when the function to integrate is
             t^n/factorial(n) * exp(1j*omega*t).
 
+        Notes
+        -----
+        Integrals are done analytically from right to left.
+
         """
         if n == 0:
             return self._compute_integrals(ws)
 
         if len(ws) == 1:
             if np.abs(ws[0]) < self.a_tol:
-                return self.dt ** (n + 1) / factorial(n + 1)
-            else:
+                return (self.dt ** (n + 1)) / factorial(n + 1)
+            else:  # This case can be done directly without recursion
+                # don't know if it's faster...
                 factor = -1j / ws[0]
                 term1 = (self.dt**n / factorial(n)) * \
                     np.exp(1j * ws[0] * self.dt)
@@ -181,7 +191,7 @@ class DysolvePropagator:
                 return self._compute_tn_integrals(ws[1:], n + 1)
             else:
                 factor = -1j / ws[0]
-                ws_prime = ws[1:]
+                ws_prime = ws[1:].copy()
                 ws_prime[0] += ws[0]
                 term1 = self._compute_tn_integrals(ws_prime, n)
                 term2 = self._compute_tn_integrals(ws, n - 1)
@@ -211,7 +221,7 @@ class DysolvePropagator:
             matrix_elements_products *= self.X[
                 i_j_indices[:, 0 + i: 2 + i][:, 0],
                 i_j_indices[:, 0 + i: 2 + i][:, 1]
-            ].A1
+            ]
 
         return matrix_elements_products * np.exp(
             -1j * self.eigenenergies[i_j_indices[:, -1]] * self.dt
