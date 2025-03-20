@@ -1156,6 +1156,9 @@ class Qobj:
         elif self.issuper or self.isoper:
             dims = self.dims
             data = self.data
+        elif self.isket:
+            from .tensor import _ptrace_specialization_kets
+            return _ptrace_specialization_kets(self, sel)
         else:
             dims = [self.dims[0] if self.isket else self.dims[1]] * 2
             data = _data.project(self.data)

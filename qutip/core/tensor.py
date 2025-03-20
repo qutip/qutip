@@ -17,7 +17,7 @@ from .cy.qobjevo import QobjEvo
 from .superoperator import operator_to_vector, reshuffle
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
-    dims_idxs_to_tensor_idxs
+    dims_idxs_to_tensor_idxs, to_tensor_rep
 )
 from . import data as _data
 from .. import settings
@@ -506,3 +506,48 @@ def expand_operator(
         new_order[ind] = rest_qubits[i]
     id_list = [identity(dims[i]) for i in rest_pos]
     return tensor([oper] + id_list).permute(new_order).to(dtype)
+
+
+def _ptrace_specialization_kets(state: Qobj, keep_dims: list[int]) -> Qobj:
+    """ Faster implementation of ptrace for kets.
+    
+    Example:
+        If ``|\psi> = s_ijk |ijk>`` is a ket with three dimensions (i, j and k), 
+        this code directly computes e.g. ``\sum_j s_ijk s*_njm`` without first 
+        having to compute ``|\psi><\psi|``, which can be prohibitively large.
+
+        The comments below refer an example with ``state.dims = [12, 13, 14]``
+        and ``keep_dims = [0, 2]`` (i.e. the dimensions with size 12 and 14)
+    """
+    assert state.isket
+
+    if len(keep_dims) != len(set(keep_dims)):
+        raise ValueError("Duplicate selection index in ptrace.")
+
+    dims = state.dims[0]
+    num_dims = len(dims)
+
+    # Build index lists for subsequent einsum call
+    ket_indices = list(range(num_dims)) # [0, 1, 2] in the above example
+    bra_indices = list(range(num_dims)) # [0, 1, 2] in the example
+    new_indices = list(range(num_dims, num_dims+len(keep_dims))) # [3, 4]
+    out_indices = keep_dims + new_indices # [0, 2, 3, 4]
+
+    for keep_index, new_index in zip(keep_dims, new_indices):
+        bra_indices[keep_index] = new_index
+    # Now state2_indices = [3, 1, 4]
+
+    state_np = to_tensor_rep(state).squeeze()
+
+    try:
+        res = np.einsum(state_np, ket_indices,           # [0, 1, 2] 
+                        state_np.conj(), bra_indices,    # [3, 1, 4]
+                        out_indices,                     # [0, 2, 3, 4]
+                        optimize=True)
+    except ValueError:
+        raise IndexError("Invalid selection index in ptrace.")
+    
+    new_shape = [dims[keep_index] for keep_index in keep_dims] # [12, 14]
+    res = res.reshape(np.prod(new_shape), np.prod(new_shape))
+
+    return Qobj(res, dims=[new_shape, new_shape])
