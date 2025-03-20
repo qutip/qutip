@@ -92,6 +92,10 @@ class _BaseResult:
         if hasattr(options_copy, "_feedback"):
             options_copy._feedback = None
         self.options = options_copy
+        # Almost all integrators already return a copy that is safe to use.
+        self._integrator_return_not_copy = options.get("method", None) in [
+            "vern7", "vern9"
+        ]
 
     def _e_ops_to_dict(self, e_ops):
         """Convert the supplied e_ops to a dictionary of Eop instances."""
@@ -325,7 +329,10 @@ class Result(_BaseResult):
         """
         self.times.append(t)
 
-        if self._state_processors_require_copy:
+        if (
+            self._state_processors_require_copy
+            and self._integrator_return_not_copy
+        ):
             state = self._pre_copy(state)
 
         for op in self._state_processors:
