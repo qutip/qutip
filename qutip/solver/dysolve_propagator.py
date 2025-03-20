@@ -24,7 +24,7 @@ class DysolvePropagator:
         The frequency of the cosine perturbation.
 
     options : dict, optional
-        Extra parameters. 
+        Extra parameters.
 
         - "max_order"
 

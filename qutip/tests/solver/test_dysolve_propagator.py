@@ -40,7 +40,7 @@ def test_integrals_1():
 
             for ws, answer in zip(list_ws, answers):
                 integrals = dysolve._compute_integrals(ws)
-                assert np.isclose(integrals, answer), (dt, omega, ws, answer)
+                assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
 
 
 def test_integrals_2():
@@ -70,7 +70,7 @@ def test_integrals_2():
                     answer = -(exp_1-1)/(omega_1*(omega_1+omega_2)) + \
                         (exp_2-1)/(omega_1*omega_2)
 
-                assert np.isclose(integrals, answer)
+                assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
 
 # def test_number_of_propagators():
 #     # Single time
