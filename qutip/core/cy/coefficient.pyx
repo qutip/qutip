@@ -156,7 +156,7 @@ cdef class Coefficient:
         return ConjCoefficient(self)
 
     def __eq__(self, other):
-        return self is other
+        return self is other or self.__reduce__() == other.__reduce__()
 
 
 @cython.auto_pickle(True)
