@@ -113,7 +113,7 @@ class DysolvePropagator:
 
     def _compute_integrals(self, ws: ArrayLike) -> float:
         """
-        Computes the value of the nested integrals for a given list of
+        Computes the value of the nested integrals for a given array of
         effective omegas. See eq. (7) in Ref.
 
         Parameters
@@ -183,13 +183,21 @@ class DysolvePropagator:
         if len(ws) == 1:
             if np.abs(ws[0]) < self.a_tol:
                 return (self.dt ** (n + 1)) / factorial(n + 1)
-            else:  # This case can be done directly without recursion
-                # don't know if it's faster...
-                factor = -1j / ws[0]
-                term1 = (self.dt**n / factorial(n)) * \
-                    np.exp(1j * ws[0] * self.dt)
-                term2 = self._compute_tn_integrals(ws, n - 1)
-                return factor * (term1 - term2)
+            else:
+                factor = (-1j/ws[0]) * np.exp(1j*ws[0]*self.dt)
+                term1 = 0
+                for j in range(n+1):
+                    term1 += ((1j/ws[0])**j) * \
+                        (self.dt**(n-j) / factorial(n-j))
+                term2 = (1j / ws[0])**(n+1)
+                return factor*term1 + term2
+
+                # Recursive version of this case:
+                # factor = -1j / ws[0]
+                # term1 = (self.dt**n / factorial(n)) * \
+                #     np.exp(1j * ws[0] * self.dt)
+                # term2 = self._compute_tn_integrals(ws, n - 1)
+                # return factor * (term1 - term2)
         else:
             if np.abs(ws[0]) < self.a_tol:
                 return self._compute_tn_integrals(ws[1:], n + 1)
