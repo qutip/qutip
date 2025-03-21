@@ -6,71 +6,66 @@ import numpy as np
 import pytest
 
 
-def test_integrals_1():
-    # In order to have an instance to call the function
-    # Data inside doesn't matter and is not used in the calculations.
-    dysolve = DysolvePropagator(
-        sigmaz(), sigmax(), 1
-    )
-
-    omegas = [-10, -1, -0.1, 0.1, 1, 10]
-    dts = [-10, -1, -0.1, 0.1, 1, 10]
-
-    for dt in dts:
-        dysolve.dt = dt
-        for omega in omegas:
-            list_ws = [
-                np.array([]),
-                np.array([0]),
-                np.array([omega]),
-                np.array([0, 0, 0, 0, 0]),
-                np.array([omega, 0]),
-                np.array([0, omega])
-            ]
-
-            answers = [
-                1,
-                dt,
-                (-1j / omega) * (np.exp(1j * omega * dt) - 1),
-                (dt**5) / factorial(5),
-                (-1j / omega) * ((-1j / omega)*(np.exp(1j*omega*dt)-1) - dt),
-                (-1j*dt/omega) * np.exp(1j*omega*dt) -
-                ((1j/omega)**2) * (np.exp(1j*omega*dt)-1)
-            ]
-
-            for ws, answer in zip(list_ws, answers):
-                integrals = dysolve._compute_integrals(ws)
-                assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
+@pytest.fixture(scope='module')
+def empty_instance():
+    return DysolvePropagator.__new__(DysolvePropagator)
 
 
-def test_integrals_2():
-    # In order to have an instance to call the function
-    # Data inside doesn't matter and is not used in the calculations.
-    dysolve = DysolvePropagator(
-        sigmaz(), sigmax(), 1
-    )
+@pytest.mark.parametrize("eff_omega", [-10, -1, -0.1, 0.1, 1, 10])
+@pytest.mark.parametrize("dt", [-10, -1, -0.1, 0.1, 1, 10])
+@pytest.mark.parametrize("ws, answer", [
+    (np.array([]), 1), (np.array([0]), lambda _, dt: dt),
+    (np.array([1e-12]), lambda _, dt: dt),
+    (lambda eff_omega: np.array([eff_omega]),
+     lambda eff_omega, dt: (-1j/eff_omega) * (np.exp(1j*eff_omega*dt) - 1)),
+    (np.array([0, 0, 0, 0, 0]), lambda _, dt: (dt**5) / factorial(5)),
+    (np.array([1e-12, 1e-12, 1e-12]), lambda _, dt: (dt**3) / factorial(3)),
+    (lambda eff_omega: np.array([eff_omega, 0]),
+     lambda eff_omega, dt: (-1j / eff_omega) * ((-1j / eff_omega)
+                                                * (np.exp(1j*eff_omega*dt)-1) - dt)),
+    (lambda eff_omega: np.array([0, eff_omega]), lambda eff_omega, dt:
+     (-1j*dt/eff_omega) * np.exp(1j*eff_omega*dt) -
+     ((1j/eff_omega)**2) * (np.exp(1j*eff_omega*dt)-1))
+])
+def test_integrals_1(empty_instance, eff_omega, dt, ws, answer):
+    # Create instance only with the required data
+    dysolve = empty_instance
+    dysolve.a_tol = 1e-10
+    dysolve.dt = dt
 
-    omegas_1 = [-25, -5, -0.5, 0.5, 5, 25]
-    omegas_2 = [-25, -5, -0.5, 0.5, 5, 25]
-    dts = [-10, -1, -0.1, 0.1, 1, 10]
+    if callable(ws):
+        ws = ws(eff_omega)
+    if callable(answer):
+        answer = answer(eff_omega, dt)
 
-    for dt in dts:
-        dysolve.dt = dt
-        for omega_1 in omegas_1:
-            for omega_2 in omegas_2:
-                ws = [omega_1, omega_2]
-                integrals = dysolve._compute_integrals(ws)
+    integrals = dysolve._compute_integrals(ws)
 
-                if omega_1 + omega_2 == 0:
-                    answer = (-1j*dt/omega_1) + \
-                        (np.exp(1j*omega_2*dt)-1)/(omega_1*omega_2)
-                else:
-                    exp_1 = np.exp(1j*(omega_1+omega_2)*dt)
-                    exp_2 = np.exp(1j*omega_2*dt)
-                    answer = -(exp_1-1)/(omega_1*(omega_1+omega_2)) + \
-                        (exp_2-1)/(omega_1*omega_2)
+    assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
 
-                assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
+
+@pytest.mark.parametrize("eff_omega_1", [-25, -5, -0.5, 0.5, 5, 25])
+@pytest.mark.parametrize("eff_omega_2", [-25, -5, -0.5, 0.5, 5, 25])
+@pytest.mark.parametrize("dt", [-10, -1, -0.1, 0.1, 1, 10])
+def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
+    # Create instance only with the required data
+    dysolve = empty_instance
+    dysolve.a_tol = 1e-10
+    dysolve.dt = dt
+
+    ws = [eff_omega_1, eff_omega_2]
+    integrals = dysolve._compute_integrals(ws)
+
+    if eff_omega_1 + eff_omega_2 == 0:
+        answer = (-1j*dt/eff_omega_1) + \
+            (np.exp(1j*eff_omega_2*dt)-1)/(eff_omega_1*eff_omega_2)
+    else:
+        exp_1 = np.exp(1j*(eff_omega_1+eff_omega_2)*dt)
+        exp_2 = np.exp(1j*eff_omega_2*dt)
+        answer = -(exp_1-1)/(eff_omega_1*(eff_omega_1+eff_omega_2)) + \
+            (exp_2-1)/(eff_omega_1*eff_omega_2)
+
+    assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
+
 
 # def test_number_of_propagators():
 #     # Single time
