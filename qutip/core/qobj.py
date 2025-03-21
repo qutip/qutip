@@ -17,7 +17,7 @@ from . import data as _data
 from qutip.typing import LayerType, DimensionLike
 import qutip
 from .dimensions import (
-    enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions, 
+    enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions,
     to_tensor_rep
 )
 
