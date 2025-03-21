@@ -325,7 +325,7 @@ class DrudeLorentzBath(BosonicBath):
     "environment" API. The bath classes are kept in QuTiP for reasons of
     backwards compatibility and convenience. Creating a `DrudeLorentzBath` is
     equivalent to creating a :class:`.DrudeLorentzEnvironment`, performing a
-    :meth:`Matsubara <.DrudeLorentzEnvironment.approx_by_matsubara>`
+    :meth:`Matsubara <.DrudeLorentzEnvironment.approximate>`
     approximation, and finally bundling the result together with the coupling
     operator ``Q`` for convenient use with the HEOM solver.
     """
@@ -338,8 +338,8 @@ class DrudeLorentzBath(BosonicBath):
         # but it is made to look like a class because it was a class in the
         # initial bofin release
         env = environment.DrudeLorentzEnvironment(T, lam, gamma)
-        matsubara_approx, delta = env.approx_by_matsubara(
-            Nk=Nk, combine=combine, compute_delta=True, tag=tag
+        matsubara_approx, delta = env.approximate(
+            "matsubara", Nk=Nk, combine=combine, compute_delta=True, tag=tag
         )
 
         result = BosonicBath.from_environment(matsubara_approx, Q)
@@ -427,7 +427,7 @@ class DrudeLorentzPadeBath(BosonicBath):
     "environment" API. The bath classes are kept in QuTiP for reasons of
     backwards compatibility and convenience. Creating a `DrudeLorentzPadeBath`
     is equivalent to creating a :class:`.DrudeLorentzEnvironment`, performing a
-    :meth:`Pade <.DrudeLorentzEnvironment.approx_by_pade>` approximation, and
+    :meth:`Pade <.DrudeLorentzEnvironment.approximate>` approximation, and
     finally bundling the result together with the coupling operator ``Q`` for
     convenient use with the HEOM solver.
     """
@@ -437,8 +437,8 @@ class DrudeLorentzPadeBath(BosonicBath):
     ):
         # See DrudeLorentzBath comment
         env = environment.DrudeLorentzEnvironment(T, lam, gamma)
-        pade_approx, delta = env.approx_by_pade(
-            Nk=Nk, combine=combine, compute_delta=True, tag=tag
+        pade_approx, delta = env.approximate(
+            "pade", Nk=Nk, combine=combine, compute_delta=True, tag=tag
         )
 
         result = BosonicBath.from_environment(pade_approx, Q)
@@ -514,7 +514,7 @@ class UnderDampedBath(BosonicBath):
     "environment" API. The bath classes are kept in QuTiP for reasons of
     backwards compatibility and convenience. Creating an `UnderDampedBath` is
     equivalent to creating an :class:`.UnderDampedEnvironment`, performing a
-    :meth:`Matsubara <.UnderDampedEnvironment.approx_by_matsubara>`
+    :meth:`Matsubara <.UnderDampedEnvironment.approximate>`
     approximation, and finally bundling the result together with the coupling
     operator ``Q`` for convenient use with the HEOM solver.
     """
@@ -524,8 +524,8 @@ class UnderDampedBath(BosonicBath):
     ):
         # See DrudeLorentzBath comment
         env = environment.UnderDampedEnvironment(T, lam, gamma, w0)
-        matsubara_approx = env.approx_by_matsubara(
-            Nk=Nk, combine=combine, tag=tag
+        matsubara_approx = env.approximate(
+            "matsubara", Nk=Nk, combine=combine, tag=tag
         )
         return BosonicBath.from_environment(matsubara_approx, Q)
 
