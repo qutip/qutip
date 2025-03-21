@@ -207,7 +207,7 @@ def norm(coeff):
 def conj(coeff):
     """ return a Coefficient with is the conjugate.
     """
-    return ConjCoefficient(coeff)
+    return coeff.conj()
 
 
 def const(value):
@@ -325,7 +325,7 @@ qset.compile = CompilationOptions()
 
 
 # Version number of the Coefficient
-COEFF_VERSION = "1.2"
+COEFF_VERSION = "1.3"
 
 try:
     root = os.path.join(qset.tmproot, f"qutip_coeffs_{COEFF_VERSION}")
@@ -568,6 +568,19 @@ cdef class StrCoefficient(Coefficient):
     @cython.cdivision(True)
     cdef complex _call(self, double t) except *:
 {call_var}        return {code}
+
+    def __eq__(left, right):
+        if left is right:
+            return True
+        if (
+            not isinstance(left, StrCoefficient) or
+            not isinstance(right, StrCoefficient)
+        ):
+            return False
+        cdef StrCoefficient self = left
+        cdef StrCoefficient other = right
+        return self.__reduce__()[2] == other.__reduce__()[2]
+
 """
     return code
 
