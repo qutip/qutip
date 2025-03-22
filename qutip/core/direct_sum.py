@@ -120,49 +120,50 @@ def direct_sum(qobjs):
             return qobj
         qobjs = [[_ensure_vector(qobj) for qobj in qobjs]]
     elif linear:
-        raise ValueError("Invalid combination of Qobj types"
-                         " for direct sum.")
+        raise ValueError("Invalid combination of Qobj types for direct sum.")
     else:
         allsuper = all(_is_like_super(qobj) for row in qobjs for qobj in row)
         alloper = all(_is_like_oper(qobj) for row in qobjs for qobj in row)
         if not (allsuper or alloper):
-            raise ValueError("Invalid combination of Qobj types"
-                             " for direct sum.")
+            raise ValueError(
+                "Invalid combination of Qobj types for direct sum.")
 
-    from_dim = [_qobj_dims(qobj).from_ for qobj in qobjs[0]]
-    to_dim = [_qobj_dims(row[0]).to_ for row in qobjs]
+    from_spaces = [_qobj_dims(qobj).from_ for qobj in qobjs[0]]
+    to_spaces = [_qobj_dims(row[0]).to_ for row in qobjs]
     dims_match = all(
-        _qobj_dims(qobj).from_ == from_dim[col_index]
-        and _qobj_dims(qobj).to_ == to_dim[row_index]
+        _qobj_dims(qobj).from_ == from_spaces[col_index]
+        and _qobj_dims(qobj).to_ == to_spaces[row_index]
         for row_index, row in enumerate(qobjs)
         for col_index, qobj in enumerate(row)
     )
     if not dims_match:
         raise ValueError("Mismatching dimensions in direct sum.")
-    out_dims = Dimensions(SumSpace(*from_dim), SumSpace(*to_dim))
+    out_dims = Dimensions(SumSpace(*from_spaces), SumSpace(*to_spaces))
 
     # Handle QobjEvos. We have to pull them out and handle them separately.
     qobjevos = []
+    to_data_start = 0
     for to_index, row in enumerate(qobjs):
+        from_data_start = 0
         for from_index, qobj in enumerate(row):
             if isinstance(qobj, QobjEvo):
                 # remove from `qobjs` ...
                 qobjs[to_index][from_index] = qzero_like(qobj)
 
                 # ... but embed component in big matrix and add to qobjevos
-                zeroes_like_sum = Qobj(
-                    _data.zeros[qobj.dtype](*out_dims.shape),
-                    dims=out_dims, copy=False
-                )
                 blow_up = qobj.linear_map(
-                    lambda x: set_component(
-                        zeroes_like_sum, x, to_index, from_index
-                    ))
+                    lambda x: Qobj(
+                        _data.insert(_data.zeros[qobj.dtype](*out_dims.shape),
+                                     x.data, to_data_start, from_data_start),
+                        dims=out_dims, copy=False
+                    ), _skip_check=True)
                 qobjevos.append(blow_up)
+            from_data_start += from_spaces[from_index].size
+        to_data_start += to_spaces[to_index].size
 
     out_data = _data.concat_data(
         [[_qobj_data(qobj) for qobj in row] for row in qobjs],
-        _skip_checks=True
+        _skip_check=True
     )
     result = Qobj(out_data, dims=out_dims, copy=False)
     return sum(qobjevos, start=result)
@@ -181,14 +182,15 @@ def component(sum_qobj, *index):
     Extracts component at index from qobj which is a direct sum.
     """
     if isinstance(sum_qobj, QobjEvo):
-        result = sum_qobj.linear_map(lambda x: component(x, *index))
+        result = sum_qobj.linear_map(lambda x: component(x, *index),
+                                     _skip_check=True)
         result.compress()
         return result(0) if result.isconstant else result
 
-    to_index, from_index = _check_component_index(sum_qobj, index)
+    to_index, from_index = _check_component_index(sum_qobj._dims, index)
     (component_to, to_data_start, to_data_stop,
      component_from, from_data_start, from_data_stop) =\
-        _component_info(sum_qobj, to_index, from_index)
+        _component_info(sum_qobj._dims, to_index, from_index)
 
     out_data = _data.slice(sum_qobj.data,
                            to_data_start, to_data_stop,
@@ -214,12 +216,10 @@ def set_component(sum_qobj, component, *index):
     """
     Sets the component of the direct sum qobjs at the given index.
     """
-    if isinstance(sum_qobj, QobjEvo) or isinstance(component, QobjEvo):
-        raise NotImplementedError()
 
-    to_index, from_index = _check_component_index(sum_qobj, index)
+    to_index, from_index = _check_component_index(sum_qobj._dims, index)
     (component_to, to_data_start, _, component_from, from_data_start, _) =\
-        _component_info(sum_qobj, to_index, from_index)
+        _component_info(sum_qobj._dims, to_index, from_index)
 
     if (
         component._dims.to_ != component_to
@@ -228,9 +228,38 @@ def set_component(sum_qobj, component, *index):
         raise ValueError("Canot set component of direct sum:"
                          " dimension mismatch.")
 
-    out_data = _data.insert(sum_qobj.data, component.data,
-                            to_data_start, from_data_start)
-    return Qobj(out_data, dims=sum_qobj._dims, copy=False)
+    if not(isinstance(sum_qobj, QobjEvo) or isinstance(component, QobjEvo)):
+        # first, get the easy case out of the way
+        out_data = _data.insert(sum_qobj.data, component.data,
+                                to_data_start, from_data_start)
+        return Qobj(out_data, dims=sum_qobj._dims, copy=False)
+
+    # if QobjEvo is involved, the result is the sum of two parts:
+    # - the sum_qobj with the component zeroed
+    # - the new component embedded into a large zero matrix
+    # all "set_component" below act on simple Qobj
+
+    if isinstance(sum_qobj, QobjEvo):
+        zeroed = sum_qobj.linear_map(
+            lambda x: set_component(x, qzero_like(component), *index),
+            _skip_check=True)
+        zeroed.compress()
+        zeroed = zeroed(0) if zeroed.isconstant else zeroed
+    else:
+        zeroed = set_component(sum_qobj, qzero_like(component), *index)
+
+    zeroes_like_sum = Qobj(
+        _data.zeros[component.dtype](*sum_qobj._dims.shape),
+        dims=sum_qobj._dims, copy=False
+    )
+    if isinstance(component, QobjEvo):
+        blow_up = component.linear_map(
+            lambda x: set_component(zeroes_like_sum, x, *index),
+            _skip_check=True)
+    else:
+        blow_up = set_component(zeroes_like_sum, component, *index)
+
+    return zeroed + blow_up
 
 
 def _check_bounds(given, min, max):
@@ -238,9 +267,9 @@ def _check_bounds(given, min, max):
         raise ValueError(f"Index ({given}) out of bounds ({min}, {max-1})"
                           " for component of direct sum.")
 
-def _check_component_index(sum_qobj, index):
-    is_to_sum = isinstance(sum_qobj._dims.to_, SumSpace)
-    is_from_sum = isinstance(sum_qobj._dims.from_, SumSpace)
+def _check_component_index(sum_dims, index):
+    is_to_sum = isinstance(sum_dims.to_, SumSpace)
+    is_from_sum = isinstance(sum_dims.from_, SumSpace)
     if not is_to_sum and not is_from_sum:
         raise ValueError("Qobj is not a direct sum.")
 
@@ -255,32 +284,32 @@ def _check_component_index(sum_qobj, index):
             index = (0, index[0])
         if len(index) != 2:
             raise ValueError("Invalid number of indices provided for component"
-                             " of direct sum (one ortwo indices required).")
+                             " of direct sum (one or two indices required).")
 
     return index
 
-def _component_info(sum_qobj, to_index, from_index):
-    if isinstance(sum_qobj._dims.to_, SumSpace):
-        _check_bounds(to_index, 0, len(sum_qobj._dims.to_.spaces))
-        component_to = sum_qobj._dims.to_.spaces[to_index]
-        to_data_start = sum_qobj._dims.to_._space_cumdims[to_index]
-        to_data_stop = sum_qobj._dims.to_._space_cumdims[to_index + 1]
+def _component_info(sum_dims, to_index, from_index):
+    if isinstance(sum_dims.to_, SumSpace):
+        _check_bounds(to_index, 0, len(sum_dims.to_.spaces))
+        component_to = sum_dims.to_.spaces[to_index]
+        to_data_start = sum_dims.to_._space_cumdims[to_index]
+        to_data_stop = sum_dims.to_._space_cumdims[to_index + 1]
     else:
         _check_bounds(to_index, 0, 1)
-        component_to = sum_qobj._dims.to_
+        component_to = sum_dims.to_
         to_data_start = 0
-        to_data_stop = sum_qobj._dims.to_.size
+        to_data_stop = sum_dims.to_.size
 
-    if isinstance(sum_qobj._dims.from_, SumSpace):
-        _check_bounds(from_index, 0, len(sum_qobj._dims.from_.spaces))
-        component_from = sum_qobj._dims.from_.spaces[from_index]
-        from_data_start = sum_qobj._dims.from_._space_cumdims[from_index]
-        from_data_stop = sum_qobj._dims.from_._space_cumdims[from_index + 1]
+    if isinstance(sum_dims.from_, SumSpace):
+        _check_bounds(from_index, 0, len(sum_dims.from_.spaces))
+        component_from = sum_dims.from_.spaces[from_index]
+        from_data_start = sum_dims.from_._space_cumdims[from_index]
+        from_data_stop = sum_dims.from_._space_cumdims[from_index + 1]
     else:
         _check_bounds(from_index, 0, 1)
-        component_from = sum_qobj._dims.from_
+        component_from = sum_dims.from_
         from_data_start = 0
-        from_data_stop = sum_qobj._dims.from_.size
+        from_data_stop = sum_dims.from_.size
 
     return (component_to, to_data_start, to_data_stop,
             component_from, from_data_start, from_data_stop)

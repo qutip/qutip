@@ -25,13 +25,13 @@ def _to_array(data: Data | numpy.ndarray) -> numpy.ndarray:
 
 def concat_data(
     data_array: list[list[Data | numpy.ndarray]],
-    _skip_checks: bool = False
+    _skip_check: bool = False
 ) -> Dense:
     """
     Concatenates blocks of data into a block matrix
     """
 
-    if not _skip_checks:
+    if not _skip_check:
         if len(data_array) == 0 or len(data_array[0]) == 0:
             _invalid_shapes()
 
