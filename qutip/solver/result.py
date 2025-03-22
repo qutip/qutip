@@ -7,6 +7,7 @@ from typing import TypedDict, Any, Callable
 from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
 from ..core import Qobj, QobjEvo, expect
+import matplotlib.pyplot as plt
 
 __all__ = ["Result"]
 
@@ -295,6 +296,42 @@ class Result(_BaseResult):
         altogether if a copy is not necessary.
         """
         return state.copy()
+
+    def plot_expect(self, labels=None, title=None, show=True):
+        """
+        Plot expectation values stored in the result object.
+
+        Parameters:
+        -----------
+        labels : list of str, optional
+            Labels for the expectation values.
+            If None, keys from e_ops dictionary are used.
+        title : str, optional
+            Title of the plot. If None, a default title is used.
+        show : bool, optional
+            If True, the plot is displayed immediately.
+        """
+        if not hasattr(self, 'expect'):
+            raise AttributeError(
+                "No expectation values found in the result object.")
+
+        if labels is None:
+            if hasattr(self, 'e_ops') and isinstance(self.e_ops, dict):
+                labels = list(self.e_ops.keys())
+            else:
+                labels = [f'Expectation {i}' for i in range(len(self.expect))]
+
+        plt.figure()
+        for i, (label, values) in enumerate(zip(labels, self.expect)):
+            plt.plot(self.times, values, label=label)
+
+        plt.xlabel('Time')
+        plt.ylabel('Expectation Value')
+        plt.title(title if title else 'Expectation Values')
+        plt.legend()
+
+        if show:
+            plt.show()
 
     def add(self, t, state):
         """
