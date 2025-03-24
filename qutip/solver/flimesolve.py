@@ -52,7 +52,13 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
     return c_op_Fourier_amplitudes_list
 
 
-def _floquet_rate_matrix(floquet_basis, Nt, c_ops, rsa=0, power_spectrum=None):
+def _floquet_rate_matrix(
+    floquet_basis,
+    Nt,
+    c_ops,
+    power_spectra=None,
+    rsa=0,
+):
     """
     Parameters
     ----------
@@ -69,8 +75,8 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, rsa=0, power_spectrum=None):
         rotation frtequency, i.e. more important matrix entries. Higher
         values meaning rates cause changes slower than the Hamiltonian rotates,
         i.e. the changes average out on "longer" time scales.
-    power_spectrum : function
-        The power spectrum of the autocorrelation function as a function of
+    power_spectrum : list of functions
+        The power spectra of the autocorrelation function(s) as a function of
         w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
 
     Returns
@@ -94,10 +100,14 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, rsa=0, power_spectrum=None):
     Defining a kronecker delta function because I forgot numpy has one until now,
         as I write this note
     """
-    if power_spectrum == None:
+    if power_spectra == None:
 
         def power_spectrum(omega):
             return 1
+
+        power_spectra = []
+        for idx in range(len(c_ops)):
+            power_spectra.append(power_spectrum)
 
     def kron(a, b):
         if a == b:
@@ -129,7 +139,7 @@ def _floquet_rate_matrix(floquet_basis, Nt, c_ops, rsa=0, power_spectrum=None):
     total_R_tensor = {0: np.zeros((Hdim**2, Hdim**2), dtype="complex")}
 
     for cdx, c_op in enumerate(c_ops):
-
+        power_spectrum = power_spectra[cdx]
         c_op_Fourier_amplitudes_list = _c_op_Fourier_amplitudes(
             floquet_basis, tlist, c_op
         )
@@ -291,13 +301,12 @@ def flimesolve(
     tlist,
     T,
     c_ops=None,
+    power_spectra=None,
     *,
     e_ops=None,
     args=None,
-    Nt=2**4,
     rsa=0,
-    power_spectrum=None,
-    options={},
+    options={"Nt": 2**4},
 ):
     """
     Solve system dynamics using the Floquet-Lindblad Master Equation
@@ -336,17 +345,16 @@ def flimesolve(
         dependence. The default integration method change depending
         on this value, "diag" for `0`, "adams" otherwise.
 
-    power_spectrum : function
-        The power spectrum of the autocorrelation function as a function of
+    power_spectra : function
+        The power spectra of the autocorrelation functions as a function of
         w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
-
-    Nt: int
-        The number of points within one period of the Hamiltonian, used for
-        forming the rate matrix. If none is supplied, flimesolve will default
-        to using 16 points per period.
 
     options : None / dict
         Dictionary of options for the solver.
+        - Nt : Int
+          The number of points within one period of the Hamiltonian, used for
+          forming the rate matrix. If none is supplied, flimesolve will default
+          to using 16 points per period.
         - store_final_state : bool
           Whether or not to store the final state of the evolution in the
           result class.
@@ -408,10 +416,9 @@ def flimesolve(
     solver = FLiMESolver(
         floquet_basis,
         c_ops,
-        power_spectrum,
+        power_spectra,
         rsa=rsa,
         options=options,
-        Nt=Nt,
     )
     return solver.run(rho0, tlist, e_ops=e_ops)
 
@@ -565,9 +572,8 @@ class FLiMESolver(MESolver):
         self,
         floquet_basis,
         c_ops,
-        power_spectrum=None,
+        power_spectra=None,
         rsa=0,
-        Nt=16,
         *,
         options=None,
     ):
@@ -584,13 +590,13 @@ class FLiMESolver(MESolver):
         if not all(isinstance(c_op, Qobj) for c_op in c_ops):
             raise TypeError("c_ops must be type Qobj")
 
-        self._Nt = optionsNt
         self.options = options
+        self._Nt = self.options["Nt"]
         self.c_ops = c_ops
         self._rsa = rsa
         self._num_collapse = len(c_ops)
         self.dims = len(self.floquet_basis.e_quasi)
-        self.power_spectrum = power_spectrum
+        self.power_spectra = power_spectra
         self._build_rhs()
         self._state_metadata = {}
 
@@ -632,7 +638,7 @@ class FLiMESolver(MESolver):
             self._Nt,
             self.c_ops,
             rsa=self._rsa,
-            power_spectrum=self.power_spectrum,
+            power_spectra=self.power_spectra,
         )
         self.rhs = self._create_rhs(self.rate_matrix)
         self._integrator = self._get_integrator()
