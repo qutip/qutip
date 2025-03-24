@@ -4,6 +4,16 @@ import pytest
 import qutip
 
 
+def _calculate_isunitary(oper):
+    """
+    Checks whether qobj is a unitary matrix
+    """
+    if not oper.isoper or oper._data.shape[0] != oper._data.shape[1]:
+        return False
+    id_ = oper @ oper.dag()
+    return id_ == qutip.qeye_like(id_)
+
+
 N = 5
 
 
@@ -155,7 +165,7 @@ def test_position():
     expected = (np.diag((np.arange(1, N) / 2)**0.5, k=-1) +
                 np.diag((np.arange(1, N) / 2)**0.5, k=1))
     np.testing.assert_allclose(operator.full(), expected)
-    assert operator._isherm == True
+    assert operator.isherm == True
 
 
 def test_momentum():
@@ -163,7 +173,7 @@ def test_momentum():
     expected = (np.diag((np.arange(1, N) / 2)**0.5, k=-1) -
                 np.diag((np.arange(1, N) / 2)**0.5, k=1)) * 1j
     np.testing.assert_allclose(operator.full(), expected)
-    assert operator._isherm == True
+    assert operator.isherm == True
 
 
 def test_squeeze():
@@ -250,8 +260,8 @@ def _check_meta(object, dtype):
         [_check_meta(qobj, dtype) for qobj in object]
         return
     assert isinstance(object.data, dtype)
-    assert object._isherm == qutip.data.isherm(object.data)
-    assert object._isunitary == object._calculate_isunitary()
+    assert object.isherm == qutip.data.isherm(object.data)
+    assert object.isunitary == _calculate_isunitary(object)
 
 
 # random object accept `str` and base.Data
@@ -341,7 +351,7 @@ def test_qeye_like(dims, superrep, dtype):
     expected.superrep = superrep
     assert new == expected
     assert new.dtype is qutip.data.to.parse(dtype)
-    assert new._isherm
+    assert new.isherm
 
     opevo = qutip.QobjEvo(op)
     new = qutip.qeye_like(op)
@@ -371,7 +381,7 @@ def test_qzero_like(dims, superrep, dtype):
     expected.superrep = superrep
     assert new == expected
     assert new.dtype is qutip.data.to.parse(dtype)
-    assert new._isherm
+    assert new.isherm
 
     opevo = qutip.QobjEvo(op)
     new = qutip.qzero_like(op)

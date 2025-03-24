@@ -187,12 +187,13 @@ class TestTypeFromDims:
     @pytest.mark.parametrize(["base", "expected"], [
         pytest.param([[2], [2]], 'oper'),
         pytest.param([[2, 3], [2, 3]], 'oper'),
-        pytest.param([[2], [3]], 'oper'),
+        pytest.param([[2], [3]], 'rec_oper'),
         pytest.param([[2], [1]], 'ket'),
         pytest.param([[1], [2]], 'bra'),
         pytest.param([[[2, 3], [2, 3]], [1]], 'operator-ket'),
         pytest.param([[1], [[2, 3], [2, 3]]], 'operator-bra'),
-        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'super'),
+        pytest.param([[[2, 3], [2, 3]], [[2, 3], [2, 3]]], 'super'),
+        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'rec_super'),
     ])
     def test_Dimensions_type(self, base, expected):
         assert Dimensions(base).type == expected
