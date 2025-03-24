@@ -14,18 +14,41 @@ def empty_instance():
 @pytest.mark.parametrize("eff_omega", [-10, -1, -0.1, 0.1, 1, 10])
 @pytest.mark.parametrize("dt", [-10, -1, -0.1, 0.1, 1, 10])
 @pytest.mark.parametrize("ws, answer", [
-    (np.array([]), 1), (np.array([0]), lambda _, dt: dt),
-    (np.array([1e-12]), lambda _, dt: dt),
-    (lambda eff_omega: np.array([eff_omega]),
-     lambda eff_omega, dt: (-1j/eff_omega) * (np.exp(1j*eff_omega*dt) - 1)),
-    (np.array([0, 0, 0, 0, 0]), lambda _, dt: (dt**5) / factorial(5)),
-    (np.array([1e-12, 1e-12, 1e-12]), lambda _, dt: (dt**3) / factorial(3)),
-    (lambda eff_omega: np.array([eff_omega, 0]),
-     lambda eff_omega, dt: (-1j / eff_omega) * ((-1j / eff_omega)
-                                                * (np.exp(1j*eff_omega*dt)-1) - dt)),
-    (lambda eff_omega: np.array([0, eff_omega]), lambda eff_omega, dt:
-     (-1j*dt/eff_omega) * np.exp(1j*eff_omega*dt) -
-     ((1j/eff_omega)**2) * (np.exp(1j*eff_omega*dt)-1))
+    # First part of tuple is "ws", second part is "answer"
+    (
+        np.array([]),
+        1
+    ),
+    (
+        np.array([0]),
+        lambda _, dt: dt
+    ),
+    (
+        np.array([1e-12]),
+        lambda _, dt: dt
+    ),
+    (
+        lambda eff_omega: np.array([eff_omega]),
+        lambda eff_omega, dt: (-1j/eff_omega) * (np.exp(1j*eff_omega*dt) - 1)
+    ),
+    (
+        np.array([0, 0, 0, 0, 0]),
+        lambda _, dt: (dt**5) / factorial(5)
+    ),
+    (
+        np.array([1e-12, 1e-12, 1e-12]),
+        lambda _, dt: (dt**3) / factorial(3)
+    ),
+    (
+        lambda eff_omega: np.array([eff_omega, 0]),
+        lambda eff_omega, dt: (-1j/eff_omega) * (
+            (-1j/eff_omega) * (np.exp(1j*eff_omega*dt) - 1) - dt
+        )
+    ),
+    (
+        lambda eff_omega: np.array([0, eff_omega]),
+        lambda eff_omega, dt: (-1j*dt/eff_omega) * np.exp(1j*eff_omega*dt) -
+        ((1j/eff_omega)**2) * (np.exp(1j*eff_omega*dt)-1))
 ])
 def test_integrals_1(empty_instance, eff_omega, dt, ws, answer):
     # Create instance only with the required data
