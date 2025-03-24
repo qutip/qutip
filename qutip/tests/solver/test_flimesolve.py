@@ -62,7 +62,7 @@ class TestFlimesolve:
             c_ops=[c_op * np.sqrt(gamma1)],
             e_ops=e_ops,
             args=args,
-            Nt=50,
+            options={"Nt": 2**5},
         ).expect[0]
         # Compare with mesolve
         p_ex_ref = mesolve(
@@ -103,7 +103,7 @@ class TestFlimesolve:
             c_ops=[c_op * np.sqrt(gamma1)],
             e_ops=e_ops,
             args=args,
-            Nt=2**5,
+            options={"Nt": 2**5},
         ).expect[0]
 
         # Compare with mesolve
@@ -141,7 +141,7 @@ class TestFlimesolve:
             floquet_basis,
             c_ops=[c_op * np.sqrt(gamma1)],
             time_sense=0,
-            Nt=2**5,
+            options={"Nt": 2**5},
         )
         solver.start(psi0, tlist[0])
         p_ex = [expect(e_ops, solver.step(t))[0] for t in tlist]
@@ -182,7 +182,7 @@ class TestFlimesolve:
             c_ops=[sigmax() * np.sqrt(gamma1), sigmay() * np.sqrt(gamma1)],
             e_ops=e_ops,
             args=args,
-            Nt=2**5,
+            options={"Nt": 2**5},
         ).expect[0]
 
         # Compare with mesolve
@@ -222,7 +222,7 @@ class TestFlimesolve:
             c_ops=[np.sqrt(gamma1) * sigmax()],
             e_ops=e_ops,
             args=[],
-            Nt=2**8,
+            options={"Nt": 2**8},
             time_sense=1e5,
         )
         output1 = brmesolve(

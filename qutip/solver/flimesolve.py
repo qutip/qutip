@@ -558,6 +558,7 @@ class FLiMESolver(MESolver):
         "store_floquet_states": False,
         "atol": 1e-8,
         "rtol": 1e-6,
+        "Nt": 2**4,
     }
 
     def __init__(
@@ -583,7 +584,7 @@ class FLiMESolver(MESolver):
         if not all(isinstance(c_op, Qobj) for c_op in c_ops):
             raise TypeError("c_ops must be type Qobj")
 
-        self._Nt = Nt
+        self._Nt = optionsNt
         self.options = options
         self.c_ops = c_ops
         self._rsa = rsa
