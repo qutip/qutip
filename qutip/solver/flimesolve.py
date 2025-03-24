@@ -52,9 +52,7 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
     return c_op_Fourier_amplitudes_list
 
 
-def _floquet_rate_matrix(
-    floquet_basis, Nt, c_ops, time_sense=0, power_spectrum=None
-):
+def _floquet_rate_matrix(floquet_basis, Nt, c_ops, rsa=0, power_spectrum=None):
     """
     Parameters
     ----------
@@ -64,8 +62,8 @@ def _floquet_rate_matrix(
         Number of points in one period of the Hamiltonian
     c_ops : list of :obj:`.Qobj`, :obj:`.QobjEvo`
         Single collapse operator, or list of collapse operators
-    time_sense : float 0-1,optional
-        the time sensitivity or secular approximation restriction of
+    rsa : float 0-1,optional
+        the relative secular approximation restriction of
         FLiMESolve. Decides "acceptable" values of (frequency/rate) for rate
         matrix entries. Lower values imply rate occurs much faster than
         rotation frtequency, i.e. more important matrix entries. Higher
@@ -128,7 +126,7 @@ def _floquet_rate_matrix(
     Nt = len(tlist)
     Hdim = len(floquet_basis.e_quasi)
 
-    total_R_tensor = {}
+    total_R_tensor = {0: np.zeros((Hdim**2, Hdim**2), dtype="complex")}
 
     for cdx, c_op in enumerate(c_ops):
 
@@ -145,10 +143,18 @@ def _floquet_rate_matrix(
         Finding all terms that are either DC or that are "important" enough
             to include as decided by the Relative Secular Approximation
         """
-
-        valid_indices = [
+        test_indices = [
             tuple(idx)
             for idx in indices_list
+            if (
+                c_op_Fourier_amplitudes_list[idx[4], idx[0], idx[1]]
+                * np.conj(c_op_Fourier_amplitudes_list[idx[5], idx[2], idx[3]])
+            )
+            != 0
+        ]
+        valid_indices = [
+            tuple(idx)
+            for idx in test_indices
             if delta(*idx) == 0
             or abs(
                 (
@@ -164,7 +170,7 @@ def _floquet_rate_matrix(
                 )
                 ** (-1)
             )
-            <= time_sense
+            <= rsa
         ]
 
         """
@@ -289,7 +295,7 @@ def flimesolve(
     e_ops=None,
     args=None,
     Nt=2**4,
-    time_sense=0,
+    rsa=0,
     power_spectrum=None,
     options={},
 ):
@@ -323,8 +329,8 @@ def flimesolve(
     args : *dictionary*
         Dictionary of parameters for time-dependent Hamiltonian
 
-    time_sense : float
-        Value of the secular approximation to use when constructing the rate
+    rsa : float
+        Value of the relative secular approximation to use when constructing the rate
         matrix R(t). Default value of zero uses the fully time-independent/most
         strict secular approximation, and values greater than zero have time
         dependence. The default integration method change depending
@@ -403,7 +409,7 @@ def flimesolve(
         floquet_basis,
         c_ops,
         power_spectrum,
-        time_sense=time_sense,
+        rsa=rsa,
         options=options,
         Nt=Nt,
     )
@@ -527,8 +533,8 @@ class FLiMESolver(MESolver):
         The power spectrum of the autocorrelation function as a function of
         w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
 
-    time_sense : float
-        Value of the secular approximation to use when constructing the rate
+    rsa : float
+        Value of the relative secular approximation to use when constructing the rate
         matrix R(t).Default value of zero uses the fully time-independent/most
         strict secular approximation, and will utilize the "diag" solver method.
         Values greater than zero have time dependence, and will subsequently
@@ -559,12 +565,12 @@ class FLiMESolver(MESolver):
         floquet_basis,
         c_ops,
         power_spectrum=None,
-        time_sense=0,
+        rsa=0,
         Nt=16,
         *,
         options=None,
     ):
-        if time_sense == 0:
+        if rsa == 0:
             self.solver_options["method"] = "diag"
         else:
             self.solver_options["method"] = "adams"
@@ -580,7 +586,7 @@ class FLiMESolver(MESolver):
         self._Nt = Nt
         self.options = options
         self.c_ops = c_ops
-        self._time_sense = time_sense
+        self._rsa = rsa
         self._num_collapse = len(c_ops)
         self.dims = len(self.floquet_basis.e_quasi)
         self.power_spectrum = power_spectrum
@@ -610,12 +616,12 @@ class FLiMESolver(MESolver):
         self._build_rhs()
 
     @property
-    def time_sense(self):
-        return self._time_sense
+    def rsa(self):
+        return self._rsa
 
-    @time_sense.setter
-    def time_sense(self, new):
-        self._time_sense = new
+    @rsa.setter
+    def rsa(self, new):
+        self._rsa = new
 
         self._build_rhs()
 
@@ -624,7 +630,7 @@ class FLiMESolver(MESolver):
             self.floquet_basis,
             self._Nt,
             self.c_ops,
-            time_sense=self._time_sense,
+            rsa=self._rsa,
             power_spectrum=self.power_spectrum,
         )
         self.rhs = self._create_rhs(self.rate_matrix)
