@@ -14,7 +14,8 @@ from .mesolve import MESolver
 from .mcsolve import MCSolver
 from .brmesolve import BRSolver
 from .heom.bofin_solvers import HEOMSolver
-
+from qutip.ui.progressbar import BaseProgressBar, ProgressBar
+from qutip.core import parallel_map
 from .steadystate import steadystate
 from ..ui.progressbar import progress_bars
 
@@ -493,32 +494,68 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     return out
 
 
-def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
-    old_opt = solver.options.copy()
-    try:
-        # We don't want to modify the solver
-        # TODO: Solver could have a ``with`` or ``copy``.
-        solver.options["normalize_output"] = False
-        solver.options["progress_bar"] = False
-
-        progress_bar = progress_bars[old_opt['progress_bar']](
-            len(taulist) + 1, **old_opt['progress_kwargs']
-        )
-        rho_t = solver.run(state0, tlist).states
-        corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
+def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C, args=None, 
+                         options=None, progress_bar=None, _safe_mode=True):
+    """
+    Internal function for calculating the three-operator correlation function:
+    <A(t)B(t+tau)C(t)> for density matrices.
+    """
+    
+    
+    # Set max_t_plus_tau from options, default to infinity
+    if options is None:
+        options = {}
+    max_t_plus_tau = options.get('max_t_plus_tau', np.inf)
+    
+    # Calculate state evolution for all t in tlist
+    solver_obj = solver(state0, tlist, e_ops=[], args=args, options=options)
+    rho_t = solver_obj.states
+    
+    # Setup progress bar if needed
+    if progress_bar is True:
+        progress_bar = ProgressBar(len(tlist))
+    elif progress_bar is None or progress_bar is False:
+        progress_bar = BaseProgressBar()
+    
+    # Initialize correlation matrix
+    corr_mat = np.zeros((len(tlist), len(taulist)), dtype=complex)
+    
+    # Define function to compute correlation for a specific time point
+    def _compute_tau_correlation(t_idx):
+        t = tlist[t_idx]
+        rho = rho_t[t_idx]
+        
+        # Prepare the initial state for tau evolution: C * rho * A
+        C_rho = C(t) * rho if callable(getattr(C, '__call__', None)) else C * rho
+        rho_tau0 = C_rho * A(t).dag() if callable(getattr(A, '__call__', None)) else C_rho * A.dag()
+        
+        # Filter tau values based on max_t_plus_tau
+        if max_t_plus_tau < np.inf:
+            valid_tau_indices = np.where(t + np.array(taulist) <= max_t_plus_tau)[0]
+            if len(valid_tau_indices) == 0:
+                return np.zeros(len(taulist), dtype=complex)
+                
+            this_taulist = [taulist[i] for i in valid_tau_indices]
+            
+            # Calculate for valid tau values
+            tau_solver = solver(rho_tau0, this_taulist, e_ops=[B], args=args, options=options)
+            result = np.zeros(len(taulist), dtype=complex)
+            result[valid_tau_indices] = tau_solver.expect[0]
+        else:
+            # Original calculation for all tau values
+            tau_solver = solver(rho_tau0, taulist, e_ops=[B], args=args, options=options)
+            result = tau_solver.expect[0]
+            
         progress_bar.update()
-
-        for t_idx, rho in enumerate(rho_t):
-            t = tlist[t_idx]
-            corr_mat[t_idx, :] = solver.run(
-                C(t) @ rho @ A(t),
-                taulist + t,
-                e_ops=B
-            ).expect[0]
-            progress_bar.update()
-        progress_bar.finished()
-
-    finally:
-        solver.options = old_opt
-
+        return result
+    
+    # Use parallel map to compute correlations for all time points
+    results = parallel_map(_compute_tau_correlation, range(len(tlist)))
+    
+    # Fill correlation matrix with results
+    for t_idx, result in enumerate(results):
+        corr_mat[t_idx, :] = result
+    
+    progress_bar.finished()
+    
     return corr_mat
