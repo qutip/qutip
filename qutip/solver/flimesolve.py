@@ -15,6 +15,17 @@ from time import time
 from ..ui.progressbar import progress_bars
 from qutip.solver.floquet import fsesolve, FloquetBasis
 
+from .heom.bofin_baths import (
+    Bath,
+    BosonicBath,
+)
+from qutip.core.environment import (
+    BosonicEnvironment,
+    FermionicEnvironment,
+    ExponentialBosonicEnvironment,
+    ExponentialFermionicEnvironment,
+)
+
 
 def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
     """
@@ -57,7 +68,7 @@ def _floquet_rate_matrix(
     Nt,
     c_ops,
     power_spectra=None,
-    rsa=0,
+    relative_secular_cutoff=0,
 ):
     """
     Parameters
@@ -68,7 +79,7 @@ def _floquet_rate_matrix(
         Number of points in one period of the Hamiltonian
     c_ops : list of :obj:`.Qobj`, :obj:`.QobjEvo`
         Single collapse operator, or list of collapse operators
-    rsa : float 0-1,optional
+    relative_secular_cutoff : float 0-1,optional
         the relative secular approximation restriction of
         FLiMESolve. Decides "acceptable" values of (frequency/rate) for rate
         matrix entries. Lower values imply rate occurs much faster than
@@ -95,19 +106,6 @@ def _floquet_rate_matrix(
     omega = (
         2 * np.pi
     ) / floquet_basis.T  # Frequency dependence of Hamiltonian
-
-    """
-    Defining a kronecker delta function because I forgot numpy has one until now,
-        as I write this note
-    """
-    if power_spectra == None:
-
-        def power_spectrum(omega):
-            return 1
-
-        power_spectra = []
-        for idx in range(len(c_ops)):
-            power_spectra.append(power_spectrum)
 
     def kron(a, b):
         if a == b:
@@ -140,6 +138,7 @@ def _floquet_rate_matrix(
 
     for cdx, c_op in enumerate(c_ops):
         power_spectrum = power_spectra[cdx]
+
         c_op_Fourier_amplitudes_list = _c_op_Fourier_amplitudes(
             floquet_basis, tlist, c_op
         )
@@ -180,11 +179,11 @@ def _floquet_rate_matrix(
                 )
                 ** (-1)
             )
-            <= rsa
+            <= relative_secular_cutoff
         ]
 
         """
-        Grouping together the valid indices found by the RSA according to their
+        Grouping together the valid indices found by the relative_secular_cutoff according to their
             frequency values
         """
         delta_dict = {}
@@ -228,7 +227,7 @@ def _floquet_rate_matrix(
 
                 gam_plus = power_spectrum(powfreqs(a, b, k))
 
-                gam_minus_prime = power_spectrum(powfreqs(bp, bp, kp))
+                gam_minus_prime = power_spectrum(powfreqs(ap, bp, kp))
 
                 for m in range(Hdim):
                     for n in range(Hdim):
@@ -301,11 +300,10 @@ def flimesolve(
     tlist,
     T,
     c_ops=None,
-    power_spectra=None,
     *,
     e_ops=None,
     args=None,
-    rsa=0,
+    relative_secular_cutoff=0,
     options={"Nt": 2**4},
 ):
     """
@@ -338,7 +336,7 @@ def flimesolve(
     args : *dictionary*
         Dictionary of parameters for time-dependent Hamiltonian
 
-    rsa : float
+    relative_secular_cutoff : float
         Value of the relative secular approximation to use when constructing the rate
         matrix R(t). Default value of zero uses the fully time-independent/most
         strict secular approximation, and values greater than zero have time
@@ -416,8 +414,7 @@ def flimesolve(
     solver = FLiMESolver(
         floquet_basis,
         c_ops,
-        power_spectra,
-        rsa=rsa,
+        relative_secular_cutoff=relative_secular_cutoff,
         options=options,
     )
     return solver.run(rho0, tlist, e_ops=e_ops)
@@ -540,7 +537,7 @@ class FLiMESolver(MESolver):
         The power spectrum of the autocorrelation function as a function of
         w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
 
-    rsa : float
+    relative_secular_cutoff : float
         Value of the relative secular approximation to use when constructing the rate
         matrix R(t).Default value of zero uses the fully time-independent/most
         strict secular approximation, and will utilize the "diag" solver method.
@@ -572,12 +569,11 @@ class FLiMESolver(MESolver):
         self,
         floquet_basis,
         c_ops,
-        power_spectra=None,
-        rsa=0,
+        relative_secular_cutoff=0,
         *,
         options=None,
     ):
-        if rsa == 0:
+        if relative_secular_cutoff == 0:
             self.solver_options["method"] = "diag"
         else:
             self.solver_options["method"] = "adams"
@@ -587,16 +583,49 @@ class FLiMESolver(MESolver):
         else:
             raise TypeError("The ``floquet_basis`` must be a FloquetBasis")
 
-        if not all(isinstance(c_op, Qobj) for c_op in c_ops):
-            raise TypeError("c_ops must be type Qobj")
-
         self.options = options
         self._Nt = self.options["Nt"]
-        self.c_ops = c_ops
-        self._rsa = rsa
+
+        def dummy_power_spectrum(omega):
+            return 1
+
+        spectra_new = []
+        c_ops_new = []
+        for c_op in c_ops:
+            if isinstance(c_op, Qobj):  # C_op is just a rate
+                c_ops_new.append(c_op)
+                spectra_new.append(dummy_power_spectrum)
+            elif isinstance(
+                c_op, (BosonicEnvironment)
+            ):  # C_op is a bosonic Environment
+                c_ops_new.append(c_op._Q)
+                spectra_new.append(c_op.power_spectrum)
+            elif isinstance(
+                c_op[0], Qobj
+            ):  # C_op is an operator/spectrum pair
+                if callable(c_op[1]):
+                    c_ops_new.append(c_op[0])
+                    spectra_new.append(c_op[1])
+                else:
+                    print(
+                        "c_ops must be either a [rate*operator] quantum object, "
+                        "a [Qobj,power spectrum] pair, or a bosonic bath "
+                        "Environment"
+                    )
+
+            else:
+                print(
+                    "c_ops must be either a [rate*operator] quantum object, "
+                    "a [Qobj,power spectrum] pair, or a bosonic bath "
+                    "Environment"
+                )
+
+        self.c_ops = c_ops_new
+        self.power_spectra = spectra_new
+
+        self._relative_secular_cutoff = relative_secular_cutoff
         self._num_collapse = len(c_ops)
         self.dims = len(self.floquet_basis.e_quasi)
-        self.power_spectra = power_spectra
         self._build_rhs()
         self._state_metadata = {}
 
@@ -623,12 +652,12 @@ class FLiMESolver(MESolver):
         self._build_rhs()
 
     @property
-    def rsa(self):
-        return self._rsa
+    def relative_secular_cutoff(self):
+        return self._relative_secular_cutoff
 
-    @rsa.setter
-    def rsa(self, new):
-        self._rsa = new
+    @relative_secular_cutoff.setter
+    def relative_secular_cutoff(self, new):
+        self._relative_secular_cutoff = new
 
         self._build_rhs()
 
@@ -637,7 +666,7 @@ class FLiMESolver(MESolver):
             self.floquet_basis,
             self._Nt,
             self.c_ops,
-            rsa=self._rsa,
+            relative_secular_cutoff=self._relative_secular_cutoff,
             power_spectra=self.power_spectra,
         )
         self.rhs = self._create_rhs(self.rate_matrix)

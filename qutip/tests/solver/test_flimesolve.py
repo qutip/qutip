@@ -140,7 +140,7 @@ class TestFlimesolve:
         solver = FLiMESolver(
             floquet_basis,
             c_ops=[c_op * np.sqrt(gamma1)],
-            time_sense=0,
+            rsa=0,
             options={"Nt": 2**5},
         )
         solver.start(psi0, tlist[0])
@@ -223,7 +223,7 @@ class TestFlimesolve:
             e_ops=e_ops,
             args=[],
             options={"Nt": 2**8},
-            time_sense=1e5,
+            rsa=1e5,
         )
         output1 = brmesolve(
             H,
@@ -238,72 +238,71 @@ class TestFlimesolve:
             output.expect[0], output1.expect[0], atol=1e-2
         )
 
-    def testFLiMECorrelation(self):
+    def testFLiMEPDS(self):
         """
-        Test Floquet-Lindblad Master Equation with nonzero timesense values.
-
+        Testing Power Density Spectra for FLiMESolve
         """
 
-        E1mag = 2 * np.pi * 0.072992700729927
-        E1pol = np.sqrt(1 / 2) * np.array([1, 1, 0])
-        E1 = E1mag * E1pol
+        # driving field
+        def f(t):
+            return np.sin(omega_d * t)
 
-        dmag = 1
-        d = dmag * np.sqrt(1 / 2) * np.array([1, 1, 0])
+        # Hamiltonian parameters
+        Delta = 2 * np.pi  # qubit splitting
 
-        Om1 = np.dot(d, E1)
-        Om1t = np.dot(d, np.conj(E1))
+        # Bath parameters
+        gamma = 0.05 * Delta / (2 * np.pi)  # dissipation strength
+        temp = 0  # temperature
 
-        wlas = 2 * np.pi * 280
-        wres = 2 * np.pi * 280
+        # Simulation parameters
+        psi0 = basis(2, 0)  # initial state
+        e_ops = [sigmaz()]
 
-        T = 2 * np.pi / abs(1)  # period of the Hamiltonian
-        Hargs = {"l": (wlas)}
-        w = Hargs["l"]
-        Gamma = 2 * np.pi * 0.0025  # in THz, roughly equivalent to 1 micro eV
+        # Hamiltonian
+        omega_d = 0.05 * Delta  # drive frequency
+        A = Delta  # drive amplitude
+        H_adi = [[A / 2.0 * sigmaz(), f]]
 
-        Nt = 2**8
-        timef = 10 * T
-        dt = timef / Nt
-        tlist = np.linspace(0, timef - dt, Nt)
+        # Simulation parameters
+        T = 2 * np.pi / omega_d  # period length
+        tlist = np.linspace(0, 5 * T, (5) * 2**4)
 
-        H_atom = ((wres - wlas) / 2) * np.array([[-1, 0], [0, 1]])
-        Hf1 = -(1 / 2) * np.array([[0, Om1], [np.conj(Om1), 0]])
+        H_adi = [[A / 2.0 * sigmaz(), f]]
 
-        H0 = Qobj(H_atom)  # Time independant Term
-        Hf1 = Qobj(Hf1)  # Forward Rotating Term
+        # Bose einstein distribution
+        def nth(w):
+            if temp > 0:
+                return 1 / (np.exp(w / temp) - 1)
+            else:
+                return 0
 
-        H = [
-            H0 + Hf1
-        ]  # Full Hamiltonian in string format, a form acceptable to QuTiP
+        # Power spectrum
+        def power_spectrum(w):
+            if w > 0:
+                return gamma / 2 * (nth(w) + 1)
+            elif w == 0:
+                return 0
+            else:
+                return 0  # gamma * nth(-w)
 
-        rho0 = Qobj([[0.5001, 0], [0, 0.4999]])
-        kwargs = {"T": T, "time_sense": 0}
-        testg1F = correlation.correlation_2op_1t(
-            H,
-            rho0,
-            taulist=tlist,
-            c_ops=[np.sqrt(Gamma) * destroy(2)],
-            a_op=destroy(2).dag(),
-            b_op=destroy(2),
-            solver="fme",
-            reverse=True,
-            args=Hargs,
-            Nt=Nt,
-            **kwargs,
+        a_ops = [[sigmax(), power_spectrum]]
+        brme_result2 = brmesolve(H_adi, psi0, tlist, a_ops=a_ops, e_ops=e_ops)
+
+        timesense = 1e10
+        c_ops_fme = [Qobj(sigmax())]
+        adi_fme_pow = flimesolve(
+            H_adi,
+            psi0,
+            tlist,
+            T,
+            c_ops=c_ops_fme,
+            e_ops=e_ops,
+            power_spectra=[power_spectrum],
+            rsa=timesense,
+            Nt=2**6,
+            options={"rtol": 1e-12, "atol": 1e-12},
         )
 
-        testg1M = correlation.correlation_2op_1t(
-            H,
-            rho0,
-            taulist=tlist,
-            c_ops=[np.sqrt(Gamma) * destroy(2)],
-            a_op=destroy(2).dag(),
-            b_op=destroy(2),
-            solver="me",
-            reverse=True,
-            args=Hargs,
-            **kwargs,
+        np.testing.assert_allclose(
+            brme_result2.expect[0], adi_fme_pow.expect[0], atol=2e-2
         )
-
-        np.testing.assert_allclose(testg1F, testg1M, atol=1e-2)
