@@ -34,7 +34,7 @@ from . import norm, permute
 # Set up the data conversions that are known by us.  All types covered by
 # conversions will be made available for use in the dispatcher functions.
 
-from .convert import to, create, _parse_defaut_dtype
+from .convert import to, create, _parse_default_dtype
 to.add_conversions([
     (Dense, CSR, dense.from_csr, 1),
     (CSR, Dense, csr.from_dense, 1.4),
@@ -46,7 +46,10 @@ to.add_conversions([
 to.register_aliases(['csr', 'CSR'], CSR)
 to.register_aliases(['Dense', 'dense'], Dense)
 to.register_aliases(['DIA', 'Dia', 'dia', 'diag'], Dia)
-to.register_group(['core', 'cython'], dense=Dense, sparse=CSR, diagonal=Dia)
+to.register_group(
+    ['core', 'Core', 'cython', 'Cython'],
+    dense=Dense, sparse=CSR, diagonal=Dia
+)
 
 
 from . import _creator_utils

@@ -21,7 +21,7 @@ from scipy.sparse import dok_matrix, csgraph
 cimport cython
 from qutip.core.data.base cimport Data
 
-__all__ = ['to', 'create', '_parse_defaut_dtype']
+__all__ = ['to', 'create', '_parse_default_dtype']
 
 
 class _Epsilon:
@@ -552,7 +552,7 @@ to = _to()
 create = _create()
 
 
-def _parse_defaut_dtype(provided, sparcity):
+def _parse_default_dtype(provided, sparcity):
     from qutip import settings
     if provided is None:
         provided = settings.core["default_dtype"] or "core"
