@@ -132,7 +132,7 @@ def basis(
         basis(N, 1) = ground state
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     # Promote all parameters to Space to simplify later logic.
     dimensions = _to_space(dimensions)
 
@@ -188,7 +188,7 @@ def qutrit_basis(*, dtype: LayerType = None) -> list[Qobj]:
         Array of qutrit basis vectors
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     out = [
         basis(3, 0, dtype=dtype),
         basis(3, 1, dtype=dtype),
@@ -261,7 +261,7 @@ def coherent(
     but would in that case give more accurate coefficients.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     if offset < 0:
         raise ValueError('Offset must be non-negative')
 
@@ -352,7 +352,7 @@ shape = [3, 3], type = oper, isHerm = True
     but would in that case give more accurate coefficients.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     return coherent(
         N, alpha, offset=offset, method=method, dtype=dtype
     ).proj().to(dtype)
@@ -405,7 +405,7 @@ shape = [3, 3], type = oper, isHerm = True
       [ 0.+0.j  0.+0.j  0.+0.j]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     return basis(dimensions, n, offset=offset, dtype=dtype).proj().to(dtype)
 
 
@@ -521,7 +521,7 @@ shape = [5, 5], type = oper, isHerm = True
     if truncated too aggressively.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     if n == 0:
         return fock_dm(N, 0, dtype=dtype)
     else:
@@ -567,7 +567,7 @@ def maximally_mixed_dm(
     dm : :obj:`.Qobj`
         Thermal state density matrix.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     dimensions = _to_space(dimensions)
     N = dimensions.size
 
@@ -642,7 +642,7 @@ def projection(
     oper : qobj
          Requested projection operator.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     return (
         basis(dimensions, n, offset=offset, dtype=dtype) @
         basis(dimensions, m, offset=offset, dtype=dtype).dag()
@@ -686,7 +686,7 @@ def qstate(string: str, *, dtype: LayerType = None) -> Qobj:
      [ 0.]
      [ 0.]]
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     n = len(string)
     if n != (string.count('u') + string.count('d')):
         raise TypeError('String input to QSTATE must consist ' +
@@ -797,7 +797,7 @@ def ket(
      [ 0.]
      [ 0.]]
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     ns = [_character_to_qudit(x) for x in seq]
     dim = [dim]*len(ns) if isinstance(dim, numbers.Integral) else dim
     return basis(dim, ns, dtype=dtype)
@@ -862,7 +862,7 @@ def bra(
     Qobj data =
     [[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.]]
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     return ket(seq, dim=dim, dtype=dtype).dag().to(dtype)
 
 
@@ -1034,7 +1034,7 @@ shape = [8, 1], type = ket
     state : :class:`.Qobj`
         The state as a :class:`.Qobj` instance.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     warnings.warn("basis() is a drop-in replacement for this",
                   DeprecationWarning)
     return basis(dims, state, dtype=dtype)
@@ -1077,7 +1077,7 @@ def phase_basis(
     Hilbert space.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     phim = phi0 + (2.0 * np.pi * m) / N
     n = np.arange(N)[:, np.newaxis]
     data = np.exp(1.0j * n * phim) / np.sqrt(N)
@@ -1104,7 +1104,7 @@ def zero_ket(dimensions: SpaceLike, *, dtype: LayerType = None) -> Qobj:
         Zero ket on given Hilbert space.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     dimensions = _to_space(dimensions)
     N = dimensions.size
     return Qobj(_data.zeros[dtype](N, 1),
@@ -1142,7 +1142,7 @@ def spin_state(
     state : qobj
         Qobj quantum object for spin state
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     J = 2*j + 1
 
     if type == 'ket':
@@ -1188,7 +1188,7 @@ def spin_coherent(
     state : qobj
         Qobj quantum object for spin coherent state
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     if type not in ['ket', 'bra', 'dm']:
         raise ValueError("Invalid value keyword argument 'type'")
     Sp = jmat(j, '+')
@@ -1247,7 +1247,7 @@ def bell_state(
     Bell_state : qobj
         Bell state
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     return _BELL_STATES[state].copy().to(dtype)
 
 
@@ -1272,7 +1272,7 @@ def singlet_state(*, dtype: LayerType = None) -> Qobj:
     Bell_state : qobj
         :math:`\lvert B_{11}\rangle` Bell state
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     return bell_state('11').to(dtype)
 
 
@@ -1297,7 +1297,7 @@ def triplet_states(*, dtype: LayerType = None) -> list[Qobj]:
     trip_states : list
         2 particle triplet states
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     return [
         basis([2, 2], [1, 1], dtype=dtype),
         (
@@ -1330,7 +1330,7 @@ def w_state(N_qubit: int, *, dtype: LayerType = None) -> Qobj:
         N-qubit W-state
     """
 
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     inds = np.zeros(N_qubit, dtype=int)
     inds[0] = 1
     state = basis([2]*N_qubit, list(inds), dtype=dtype)
@@ -1359,7 +1359,7 @@ def ghz_state(N_qubit: int, *, dtype: LayerType = None) -> Qobj:
         N-qubit GHZ-state
     """
 
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     return (
         np.sqrt(0.5) * (
             basis([2] * N_qubit, [0] * N_qubit, dtype=dtype) +
