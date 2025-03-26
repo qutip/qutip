@@ -5,10 +5,12 @@ from .qobj import Qobj
 from .superoperator import operator_to_vector
 from . import data as _data
 
+from ..typing import LayerType
+from .. import settings
+
 from numbers import Number
 from typing import overload, Union
 
-import numpy as np
 
 __all__ = ['direct_sum', 'component', 'set_component']
 
@@ -16,8 +18,12 @@ __all__ = ['direct_sum', 'component', 'set_component']
 QobjLike = Union[Number, Qobj, QobjEvo]
 
 
-def _qobj_data(qobj: Number | Qobj) -> np.ndarray | _data.Data:
-    return qobj.data if isinstance(qobj, Qobj) else np.array([[qobj]])
+def _qobj_data(qobj: Number | Qobj, scalar_dtype: LayerType) -> _data.Data:
+    if qobj is None:
+        return None
+    if isinstance(qobj, Number):
+        return _data.identity[scalar_dtype](1, scale=qobj)
+    return qobj.data
 
 
 def _qobj_dims(qobj: QobjLike) -> Dimensions:
@@ -29,126 +35,114 @@ def _qobj_dims(qobj: QobjLike) -> Dimensions:
 
 def _is_like_ket(qobj: QobjLike) -> bool:
     return (
-        isinstance(qobj, Number)
-        or (
-            isinstance(qobj, (Qobj, QobjEvo))
-            and qobj.type in ['scalar', 'ket']
+        isinstance(qobj, Number) or (
+            isinstance(qobj, (Qobj, QobjEvo)) and
+            qobj.type in ['scalar', 'ket']
         ))
 
 
 def _is_like_bra(qobj: QobjLike) -> bool:
     return (
-        isinstance(qobj, Number)
-        or (
-            isinstance(qobj, (Qobj, QobjEvo))
-            and qobj.type in ['scalar', 'bra']
+        isinstance(qobj, Number) or (
+            isinstance(qobj, (Qobj, QobjEvo)) and
+            qobj.type in ['scalar', 'bra']
         ))
 
 
 def _is_like_oper(qobj: QobjLike) -> bool:
     return (
-        isinstance(qobj, Number)
-        or (
-            isinstance(qobj, (Qobj, QobjEvo))
-            and qobj.type in ['scalar', 'oper', 'ket', 'bra']
+        qobj is None or
+        isinstance(qobj, Number) or (
+            isinstance(qobj, (Qobj, QobjEvo)) and
+            qobj.type in ['scalar', 'oper', 'ket', 'bra']
         ))
 
 
 def _is_like_operator_ket(qobj: QobjLike) -> bool:
     return (
-        isinstance(qobj, Number)
-        or (
-            isinstance(qobj, (Qobj, QobjEvo))
-            and qobj.type in ['scalar', 'oper', 'operator-ket']
+        isinstance(qobj, Number) or (
+            isinstance(qobj, (Qobj, QobjEvo)) and
+            qobj.type in ['scalar', 'oper', 'operator-ket']
         ))
 
 
 def _is_like_operator_bra(qobj: QobjLike) -> bool:
     return (
-        isinstance(qobj, Number)
-        or (
-            isinstance(qobj, (Qobj, QobjEvo))
-            and qobj.type in ['scalar', 'oper', 'operator-bra']
+        isinstance(qobj, Number) or (
+            isinstance(qobj, (Qobj, QobjEvo)) and
+            qobj.type in ['scalar', 'oper', 'operator-bra']
         ))
 
 
 def _is_like_super(qobj: QobjLike) -> bool:
     return (
-        isinstance(qobj, Number)
-        or (
-            isinstance(qobj, (Qobj, QobjEvo))
-            and qobj.type in ['scalar', 'super',
-                              'operator-ket', 'operator-bra']
+        qobj is None or
+        isinstance(qobj, Number) or (
+            isinstance(qobj, (Qobj, QobjEvo)) and
+            qobj.type in ['scalar', 'super', 'operator-ket', 'operator-bra']
         ))
 
 
 @overload
 def direct_sum(
-    qobjs: list[Qobj | float] | list[list[Qobj | float]]
+    qobjs: list[Qobj | float] | list[list[Qobj | float]],
+    dtype: LayerType = None
 ) -> Qobj:
     ...
 
 
 @overload
 def direct_sum(
-    qobjs: list[QobjEvo | Qobj | float] | list[list[QobjEvo | Qobj | float]]
+    qobjs: list[QobjEvo | Qobj | float] | list[list[QobjEvo | Qobj | float]],
+    dtype: LayerType = None
 ) -> QobjEvo:
     ...
 
 
-def direct_sum(qobjs):
+def direct_sum(qobjs, dtype=None):
     """
     Takes a list or matrix of Qobjs and makes them into a single Qobj with
     block-matrix elements.
     """
-    if len(qobjs) == 0:
-        raise ValueError("No Qobjs provided for direct sum.")
-
-    linear = isinstance(qobjs[0], QobjLike)
-    if not linear and len(qobjs[0]) == 0:
-        raise ValueError("No Qobjs provided for direct sum.")
-    if not linear and not all(len(row) == len(qobjs[0]) for row in qobjs):
-        raise ValueError("Matrix of Qobjs in direct sum must be square.")
-
-    if linear and all(_is_like_ket(qobj) for qobj in qobjs):
-        qobjs = [[qobj] for qobj in qobjs]
-    elif linear and all(_is_like_operator_ket(qobj) for qobj in qobjs):
-        # for convenience, we call operator_to_vector on operators provided
-        # in matrix form
-        def _ensure_vector(qobj):
-            if isinstance(qobj, (Qobj, QobjEvo)) and qobj.type == 'oper':
-                return operator_to_vector(qobj)
-            return qobj
-        qobjs = [[_ensure_vector(qobj)] for qobj in qobjs]
-    elif linear and all(_is_like_bra(qobj) for qobj in qobjs):
-        qobjs = [[qobj for qobj in qobjs]]
-    elif linear and all(_is_like_operator_bra(qobj) for qobj in qobjs):
-        # for convenience, we call operator_to_vector on operators provided
-        # in matrix form
-        def _ensure_vector(qobj):
-            if isinstance(qobj, (Qobj, QobjEvo)) and qobj.type == 'oper':
-                return operator_to_vector(qobj).dag()
-            return qobj
-        qobjs = [[_ensure_vector(qobj) for qobj in qobjs]]
-    elif linear:
-        raise ValueError("Invalid combination of Qobj types for direct sum.")
+    if settings.core["default_dtype_scope"] == "full":
+        dtype = dtype or settings.core["default_dtype"] or _data.CSR
     else:
-        allsuper = all(_is_like_super(qobj) for row in qobjs for qobj in row)
-        alloper = all(_is_like_oper(qobj) for row in qobjs for qobj in row)
-        if not (allsuper or alloper):
-            raise ValueError(
-                "Invalid combination of Qobj types for direct sum.")
+        dtype = dtype or _data.CSR
 
-    from_spaces = [_qobj_dims(qobj).from_ for qobj in qobjs[0]]
-    to_spaces = [_qobj_dims(row[0]).to_ for row in qobjs]
-    dims_match = all(
-        _qobj_dims(qobj).from_ == from_spaces[col_index]
-        and _qobj_dims(qobj).to_ == to_spaces[row_index]
-        for row_index, row in enumerate(qobjs)
-        for col_index, qobj in enumerate(row)
-    )
-    if not dims_match:
-        raise ValueError("Mismatching dimensions in direct sum.")
+    qobjs = _process_arguments(qobjs)
+    num_columns = len(qobjs[0])
+    num_rows = len(qobjs)
+
+    # determine "from" spaces
+    from_spaces = [None] * num_columns
+    for column in range(num_columns):
+        for row in range(num_rows):
+            if qobjs[row][column] is None:
+                continue
+            from_space = _qobj_dims(qobjs[row][column]).from_
+            if from_spaces[column] is None:
+                from_spaces[column] = from_space
+            elif from_spaces[column] != from_space:
+                raise ValueError(
+                    "Direct sum: inconsistent dimensions in column"
+                    f" {column + 1}. Expected {from_spaces[column].as_list()},"
+                    f" got {from_space.as_list()}.")
+
+    # determine "to" spaces
+    to_spaces = [None] * num_rows
+    for row in range(num_rows):
+        for column in range(num_columns):
+            if qobjs[row][column] is None:
+                continue
+            to_space = _qobj_dims(qobjs[row][column]).to_
+            if to_spaces[row] is None:
+                to_spaces[row] = to_space
+            elif to_spaces[row] != to_space:
+                raise ValueError(
+                    "Direct sum: inconsistent dimensions in row"
+                    f" {row + 1}. Expected {to_spaces[row].as_list()},"
+                    f" got {to_space.as_list()}.")
+
     out_dims = Dimensions(SumSpace(*from_spaces), SumSpace(*to_spaces))
 
     # Handle QobjEvos. We have to pull them out and handle them separately.
@@ -159,25 +153,80 @@ def direct_sum(qobjs):
         for from_index, qobj in enumerate(row):
             if isinstance(qobj, QobjEvo):
                 # remove from `qobjs` ...
-                qobjs[to_index][from_index] = qzero_like(qobj)
+                qobjs[to_index][from_index] = None
 
                 # ... but embed component in big matrix and add to qobjevos
                 blow_up = qobj.linear_map(
                     lambda x: Qobj(
-                        _data.insert(_data.zeros[qobj.dtype](*out_dims.shape),
-                                     x.data, to_data_start, from_data_start),
-                        dims=out_dims, copy=False
-                    ), _skip_check=True)
+                        _data.insert(
+                            _data.zeros[dtype](*out_dims.shape), x.data,
+                            to_data_start, from_data_start, dtype=dtype),
+                        dims=out_dims, copy=False),
+                    _skip_check=True)
                 qobjevos.append(blow_up)
             from_data_start += from_spaces[from_index].size
         to_data_start += to_spaces[to_index].size
 
-    out_data = _data.concat_data(
-        [[_qobj_data(qobj) for qobj in row] for row in qobjs],
-        _skip_check=True
+    out_data = _data.concat(
+        [[_qobj_data(qobj, dtype) for qobj in row] for row in qobjs],
+        block_widths=[from_space.size for from_space in from_spaces],
+        block_heights=[to_space.size for to_space in to_spaces],
+        dtype=dtype
     )
     result = Qobj(out_data, dims=out_dims, copy=False)
     return sum(qobjevos, start=result)
+
+
+def _process_arguments(qobjs):
+    """
+    Ensures that the qobjs have compatible types, including converting
+    operators to operator-ket / operator-bra if necessary.
+    If a list of Qobj is provided, converts it to a matrix (list of lists).
+    The output is guaranteed a square matrix.
+    """
+
+    if len(qobjs) == 0:
+        raise ValueError("No Qobjs provided for direct sum.")
+
+    linear = isinstance(qobjs[0], QobjLike)
+    if not linear and len(qobjs[0]) == 0:
+        raise ValueError("No Qobjs provided for direct sum.")
+    if not linear and not all(len(row) == len(qobjs[0]) for row in qobjs):
+        raise ValueError("Matrix of Qobjs in direct sum must be square.")
+
+    if linear and all(_is_like_ket(qobj) for qobj in qobjs):
+        return [[qobj] for qobj in qobjs]
+
+    if linear and all(_is_like_operator_ket(qobj) for qobj in qobjs):
+        # for convenience, we call operator_to_vector on operators provided
+        # in matrix form
+        def _ensure_vector(qobj):
+            if isinstance(qobj, (Qobj, QobjEvo)) and qobj.type == 'oper':
+                return operator_to_vector(qobj)
+            return qobj
+        return [[_ensure_vector(qobj)] for qobj in qobjs]
+
+    if linear and all(_is_like_bra(qobj) for qobj in qobjs):
+        return [[qobj for qobj in qobjs]]
+
+    if linear and all(_is_like_operator_bra(qobj) for qobj in qobjs):
+        # for convenience, we call operator_to_vector on operators provided
+        # in matrix form
+        def _ensure_vector(qobj):
+            if isinstance(qobj, (Qobj, QobjEvo)) and qobj.type == 'oper':
+                return operator_to_vector(qobj).dag()
+            return qobj
+        return [[_ensure_vector(qobj) for qobj in qobjs]]
+
+    if linear:
+        raise ValueError("Invalid combination of Qobj types for direct sum.")
+
+    allsuper = all(_is_like_super(qobj) for row in qobjs for qobj in row)
+    alloper = all(_is_like_oper(qobj) for row in qobjs for qobj in row)
+    if not (allsuper or alloper):
+        raise ValueError(
+            "Invalid combination of Qobj types for direct sum.")
+    return qobjs
 
 
 @overload
@@ -215,38 +264,56 @@ def component(sum_qobj, *index):
 
 @overload
 def set_component(
-    sum_qobj: Qobj, component: Qobj, *index: int
+    sum_qobj: Qobj,
+    component: Qobj,
+    *index: int,
+    dtype: LayerType = None
 ) -> Qobj:
     ...
 
 
 @overload
 def set_component(
-    sum_qobj: Qobj | QobjEvo, component: Qobj | QobjEvo, *index: int
+    sum_qobj: Qobj | QobjEvo,
+    component: Qobj | QobjEvo,
+    *index: int,
+    dtype: LayerType = None
 ) -> QobjEvo:
     ...
 
 
-def set_component(sum_qobj, component, *index):
+def set_component(sum_qobj, component, *index, dtype=None):
     """
     Sets the component of the direct sum qobjs at the given index.
     """
+
+    if settings.core["default_dtype_scope"] == "full":
+        dtype = dtype or settings.core["default_dtype"] or sum_qobj.dtype
+    else:
+        dtype = dtype or sum_qobj.dtype
 
     to_index, from_index = _check_component_index(sum_qobj._dims, index)
     (component_to, to_data_start, _, component_from, from_data_start, _) =\
         _component_info(sum_qobj._dims, to_index, from_index)
 
-    if (
-        component._dims.to_ != component_to
-        or component._dims.from_ != component_from
+    if component is not None and (
+        _qobj_dims(component).to_ != component_to
+        or _qobj_dims(component).from_ != component_from
     ):
-        raise ValueError("Canot set component of direct sum:"
-                         " dimension mismatch.")
+        expected = Dimensions(component_from, component_to)
+        raise ValueError("Canot set component of direct sum: dimension"
+                         f" mismatch. Expected: {expected.as_list()},"
+                         f" got: {_qobj_dims(component).as_list()}.")
 
     if not(isinstance(sum_qobj, QobjEvo) or isinstance(component, QobjEvo)):
-        # first, get the easy case out of the way
-        out_data = _data.insert(sum_qobj.data, component.data,
-                                to_data_start, from_data_start)
+        # get the easy case out of the way
+        # all other cases will be broken down to this
+        component_data = (
+            _qobj_data(component, dtype) or
+            _data.zeros[dtype](component_to.size, component_from.size)
+        )
+        out_data = _data.insert(sum_qobj.data, component_data,
+                                to_data_start, from_data_start, dtype=dtype)
         return Qobj(out_data, dims=sum_qobj._dims, copy=False)
 
     # if QobjEvo is involved, the result is the sum of two parts:
@@ -256,12 +323,14 @@ def set_component(sum_qobj, component, *index):
 
     if isinstance(sum_qobj, QobjEvo):
         zeroed = sum_qobj.linear_map(
-            lambda x: set_component(x, qzero_like(component), *index),
+            lambda x: set_component(x, qzero_like(component), *index,
+                                    dtype=dtype),
             _skip_check=True)
         zeroed.compress()
         zeroed = zeroed(0) if zeroed.isconstant else zeroed
     else:
-        zeroed = set_component(sum_qobj, qzero_like(component), *index)
+        zeroed = set_component(sum_qobj, qzero_like(component), *index,
+                               dtype=dtype)
 
     zeroes_like_sum = Qobj(
         _data.zeros[component.dtype](*sum_qobj._dims.shape),
@@ -269,10 +338,12 @@ def set_component(sum_qobj, component, *index):
     )
     if isinstance(component, QobjEvo):
         blow_up = component.linear_map(
-            lambda x: set_component(zeroes_like_sum, x, *index),
+            lambda x: set_component(zeroes_like_sum, x, *index,
+                                    dtype=dtype),
             _skip_check=True)
     else:
-        blow_up = set_component(zeroes_like_sum, component, *index)
+        blow_up = set_component(zeroes_like_sum, component, *index,
+                                dtype=dtype)
 
     return zeroed + blow_up
 
