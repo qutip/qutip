@@ -8,22 +8,19 @@ from collections import defaultdict
 from itertools import product
 from qutip.core import data as _data
 from qutip import Qobj, QobjEvo, operator_to_vector
-from .mesolve import MESolver
-from .solver_base import Solver
-from .result import Result
+from qutip.solver.mesolve import MESolver
+from qutip.solver.solver_base import Solver
+from qutip.solver.result import Result
 from time import time
-from ..ui.progressbar import progress_bars
+from qutip.ui.progressbar import progress_bars
 from qutip.solver.floquet import fsesolve, FloquetBasis
 
-from .heom.bofin_baths import (
-    Bath,
-    BosonicBath,
-)
 from qutip.core.environment import (
     BosonicEnvironment,
-    FermionicEnvironment,
+    OhmicEnvironment,
+    DrudeLorentzEnvironment,
+    UnderDampedEnvironment,
     ExponentialBosonicEnvironment,
-    ExponentialFermionicEnvironment,
 )
 
 
@@ -596,16 +593,14 @@ class FLiMESolver(MESolver):
                 c_ops_new.append(c_op)
                 spectra_new.append(dummy_power_spectrum)
             elif isinstance(
-                c_op, (BosonicEnvironment)
-            ):  # C_op is a bosonic Environment
-                c_ops_new.append(c_op._Q)
-                spectra_new.append(c_op.power_spectrum)
-            elif isinstance(
                 c_op[0], Qobj
-            ):  # C_op is an operator/spectrum pair
+            ):  # C_op is an operator/spectrum or operator/environment pair
                 if callable(c_op[1]):
                     c_ops_new.append(c_op[0])
                     spectra_new.append(c_op[1])
+                elif isinstance(c_op[1], BosonicEnvironment):
+                    c_ops_new.append(c_op[0])
+                    spectra_new.append(c_op[1].power_spectrum)
                 else:
                     print(
                         "c_ops must be either a [rate*operator] quantum object, "
