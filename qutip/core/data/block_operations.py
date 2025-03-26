@@ -18,10 +18,12 @@ def _invalid_shapes():
         " concatenated."
     )
 
+
 def _to_array(data: Data | numpy.ndarray) -> numpy.ndarray:
     if isinstance(data, Data):
         return data.to_array()
     return data
+
 
 def concat_data(
     data_array: list[list[Data | numpy.ndarray]],
@@ -59,13 +61,18 @@ def slice_dense(data: Data,
     array = data.to_array()
     return Dense(array[row_start:row_stop, col_start:col_stop], copy=True)
 
+
 slice = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('data', _inspect.Parameter.POSITIONAL_ONLY),
-        _inspect.Parameter('row_start', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('row_stop', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('col_start', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('col_stop', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('row_start',
+                           _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('row_stop',
+                           _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('col_start',
+                           _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('col_stop',
+                           _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
     name='slice',
     module=__name__,
@@ -92,6 +99,7 @@ def insert_dense(data: Data, block: Data,
     data_array[above:(above+block_height), before:(before+block_width)] =\
         block_array
     return Dense(data_array, copy=False)
+
 
 insert = _Dispatcher(
     _inspect.Signature([

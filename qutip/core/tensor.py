@@ -66,11 +66,6 @@ shape = [4, 4], type = oper, isHerm = True
     """
     from .cy.qobjevo import QobjEvo
 
-    if any(isinstance(q._dims.from_, SumSpace)
-           or isinstance(q._dims.to_, SumSpace)
-           for q in args):
-        return _tensor_of_sum(*args)
-
     if not args:
         raise TypeError("Requires at least one input argument")
     if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvo)):
@@ -82,6 +77,12 @@ shape = [4, 4], type = oper, isHerm = True
             raise TypeError("requires Qobj or QobjEvo operands") from None
     if not all(isinstance(q, (Qobj, QobjEvo)) for q in args):
         raise TypeError("requires Qobj or QobjEvo operands")
+
+    if any(isinstance(q._dims.from_, SumSpace)
+           or isinstance(q._dims.to_, SumSpace)
+           for q in args):
+        return _tensor_of_sum(*args)
+
     if any(isinstance(q, QobjEvo) for q in args):
         # First make tensor from pairs only
         if len(args) >= 3:

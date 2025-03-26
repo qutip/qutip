@@ -15,14 +15,17 @@ __all__ = ['direct_sum', 'component', 'set_component']
 
 QobjLike = Union[Number, Qobj, QobjEvo]
 
+
 def _qobj_data(qobj: Number | Qobj) -> np.ndarray | _data.Data:
     return qobj.data if isinstance(qobj, Qobj) else np.array([[qobj]])
+
 
 def _qobj_dims(qobj: QobjLike) -> Dimensions:
     return (
         qobj._dims if isinstance(qobj, (Qobj, QobjEvo))
         else Dimensions(Field(), Field())
     )
+
 
 def _is_like_ket(qobj: QobjLike) -> bool:
     return (
@@ -32,6 +35,7 @@ def _is_like_ket(qobj: QobjLike) -> bool:
             and qobj.type in ['scalar', 'ket']
         ))
 
+
 def _is_like_bra(qobj: QobjLike) -> bool:
     return (
         isinstance(qobj, Number)
@@ -39,6 +43,7 @@ def _is_like_bra(qobj: QobjLike) -> bool:
             isinstance(qobj, (Qobj, QobjEvo))
             and qobj.type in ['scalar', 'bra']
         ))
+
 
 def _is_like_oper(qobj: QobjLike) -> bool:
     return (
@@ -48,6 +53,7 @@ def _is_like_oper(qobj: QobjLike) -> bool:
             and qobj.type in ['scalar', 'oper', 'ket', 'bra']
         ))
 
+
 def _is_like_operator_ket(qobj: QobjLike) -> bool:
     return (
         isinstance(qobj, Number)
@@ -56,6 +62,7 @@ def _is_like_operator_ket(qobj: QobjLike) -> bool:
             and qobj.type in ['scalar', 'oper', 'operator-ket']
         ))
 
+
 def _is_like_operator_bra(qobj: QobjLike) -> bool:
     return (
         isinstance(qobj, Number)
@@ -63,6 +70,7 @@ def _is_like_operator_bra(qobj: QobjLike) -> bool:
             isinstance(qobj, (Qobj, QobjEvo))
             and qobj.type in ['scalar', 'oper', 'operator-bra']
         ))
+
 
 def _is_like_super(qobj: QobjLike) -> bool:
     return (
@@ -73,17 +81,20 @@ def _is_like_super(qobj: QobjLike) -> bool:
                               'operator-ket', 'operator-bra']
         ))
 
+
 @overload
 def direct_sum(
     qobjs: list[Qobj | float] | list[list[Qobj | float]]
 ) -> Qobj:
     ...
 
+
 @overload
 def direct_sum(
     qobjs: list[QobjEvo | Qobj | float] | list[list[QobjEvo | Qobj | float]]
 ) -> QobjEvo:
     ...
+
 
 def direct_sum(qobjs):
     """
@@ -173,9 +184,11 @@ def direct_sum(qobjs):
 def component(sum_qobj: Qobj, *index: int) -> Qobj:
     ...
 
+
 @overload
 def component(sum_qobj: QobjEvo, *index: int) -> Qobj | QobjEvo:
     ...
+
 
 def component(sum_qobj, *index):
     """
@@ -206,11 +219,13 @@ def set_component(
 ) -> Qobj:
     ...
 
+
 @overload
 def set_component(
     sum_qobj: Qobj | QobjEvo, component: Qobj | QobjEvo, *index: int
 ) -> QobjEvo:
     ...
+
 
 def set_component(sum_qobj, component, *index):
     """
@@ -265,7 +280,8 @@ def set_component(sum_qobj, component, *index):
 def _check_bounds(given, min, max):
     if not (min <= given < max):
         raise ValueError(f"Index ({given}) out of bounds ({min}, {max-1})"
-                          " for component of direct sum.")
+                         " for component of direct sum.")
+
 
 def _check_component_index(sum_dims, index):
     is_to_sum = isinstance(sum_dims.to_, SumSpace)
