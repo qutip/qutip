@@ -31,15 +31,20 @@ class IntegratorVern7(Integrator):
         'max_step': 0,
         'min_step': 0,
         'interpolate': True,
+        'allow_sparse': False,
     }
     support_time_dependant = True
     supports_blackbox = True
     method = 'vern7'
 
     def _prepare(self):
+        options = {
+            k: v for k, v in self.options.items()
+            if k != 'allow_sparse'
+        }
         self._ode_solver = Explicit_RungeKutta(
             self.system, method=self.method,
-            **self.options
+            **options
         )
         self.name = self.method
 
@@ -48,7 +53,14 @@ class IntegratorVern7(Integrator):
         return self._ode_solver.t, state.copy() if copy else state
 
     def set_state(self, t, state):
-        self._ode_solver.set_initial_value(state.copy(), t)
+        if (
+            not self.options["allow_sparse"]
+            and isinstance(state, (_data.CSR, _data.Dia))
+        ):
+            state = _data.to(_data.Dense, state)
+        else:
+            state = state.copy()
+        self._ode_solver.set_initial_value(state, t)
         self._is_set = True
 
     def integrate(self, t, copy=True):
@@ -93,6 +105,9 @@ class IntegratorVern7(Integrator):
 
         interpolate : bool, default: True
             Whether to use interpolation step, faster most of the time.
+
+        allow_sparse : bool, default: False
+            Whether to use sparse state for the evolution. Usually much slower.
         """
         return self._options
 
@@ -124,6 +139,7 @@ class IntegratorVern9(IntegratorVern7):
         'max_step': 0,
         'min_step': 0,
         'interpolate': True,
+        'allow_sparse': False,
     }
     method = 'vern9'
 
@@ -171,7 +187,9 @@ class IntegratorDiag(Integrator):
         return self.integrate(t, copy=copy)
 
     def get_state(self, copy=True):
-        return self._t, _data.matmul(self.U, _data.dense.Dense(self._y))
+        return self._t, _data.matmul(
+            self.U, _data.dense.fast_from_numpy(self._y)
+        )
 
     def set_state(self, t, state0):
         self._t = t
