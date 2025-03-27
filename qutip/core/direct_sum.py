@@ -131,6 +131,8 @@ def direct_sum(qobjs, dtype=None):
                     "Direct sum: inconsistent dimensions in column"
                     f" {column + 1}. Expected {from_spaces[column].as_list()},"
                     f" got {from_space.as_list()}.")
+        if from_spaces[column] is None:
+            raise ValueError(f"Direct sum: empty column {column + 1}.")
 
     # determine "to" spaces
     to_spaces = [None] * num_rows
@@ -148,6 +150,8 @@ def direct_sum(qobjs, dtype=None):
                     "Direct sum: inconsistent dimensions in row"
                     f" {row + 1}. Expected {to_spaces[row].as_list()},"
                     f" got {to_space.as_list()}.")
+        if to_spaces[row] is None:
+            raise ValueError(f"Direct sum: empty row {row + 1}.")
 
     out_dims = Dimensions(SumSpace(*from_spaces), SumSpace(*to_spaces))
 

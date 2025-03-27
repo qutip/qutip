@@ -1,4 +1,5 @@
 #cython: language_level=3
+#cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from . import base, convert, csr
 from . cimport base, CSR, Data, Dense
@@ -59,7 +60,7 @@ cpdef CSR concat_csr(
         len(block_heights) + 1, dtype=base.idxint_dtype)
     row_pos[1:] = np.cumsum(block_heights, dtype=base.idxint_dtype)
     cdef cnp.ndarray[base.idxint] col_pos = np.zeros(
-        len(block_heights) + 1, dtype=base.idxint_dtype)
+        len(block_widths) + 1, dtype=base.idxint_dtype)
     col_pos[1:] = np.cumsum(block_widths, dtype=base.idxint_dtype)
 
     cdef base.idxint row, columm
@@ -188,8 +189,13 @@ cpdef CSR insert_csr(CSR data, CSR block,
     data_scipy = data.as_scipy().copy()
     block_scipy = block.as_scipy()
 
-    data_scipy[above:(above+block_height),
-               before:(before+block_width)] = block_scipy
+    import warnings, scipy
+    with warnings.catch_warnings():
+        # TODO find a better way
+        warnings.filterwarnings(
+            "ignore", category=scipy.sparse._base.SparseEfficiencyWarning)
+        data_scipy[above:(above+block_height),
+                before:(before+block_width)] = block_scipy
     return CSR(data_scipy, copy=False)
 
 
