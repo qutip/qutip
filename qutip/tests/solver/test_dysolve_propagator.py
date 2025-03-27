@@ -99,10 +99,6 @@ def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
 ])
 @pytest.mark.parametrize("max_order, answer", [
     (
-        0,
-        lambda indices, _: np.ones((indices.shape[0], 1), dtype=np.complex128)
-    ),
-    (
         1,
         lambda indices, X: np.tile(X.full(), 1).reshape((indices.shape[0], 1))
     ),
@@ -121,7 +117,7 @@ def test_matrix_elements(empty_instance, X, max_order, answer):
     dysolve.X = X
     current_matrix_elements = None
 
-    for n in range(max_order + 1):
+    for n in range(1, max_order + 1):
         indices = np.array(
             list(
                 itertools.product(
@@ -130,7 +126,7 @@ def test_matrix_elements(empty_instance, X, max_order, answer):
             )
         )
         current_matrix_elements = dysolve._update_matrix_elements(
-            current_matrix_elements, n, indices
+            current_matrix_elements
         )
 
     answer = answer(indices, X)
@@ -167,6 +163,35 @@ def test_matrix_elements(empty_instance, X, max_order, answer):
 #         assert (dysolve_1.H_0.dims == dysolve_1.X.dims == U_1.dims)
 
 
+# def test_prop():
+#     #Data
+#     omega = 10
+#     t = 0.1
+#     H_0s = [qeye(2)]
+#     Xs = [qeye(2)]
+
+#     for i in range(len(H_0s)):
+#         for j in range(len(Xs)):
+#             H_0, X = H_0s[i], Xs[j]
+#             # Dysolve
+#             U = dysolve_propagator(H_0, X, omega, t, {'max_orer':7})
+
+#             # Qutip.solver.propagator
+#             def H1_coeff(t, omega):
+#                 return np.cos(omega * t)
+
+#             basis = H_0.eigenstates()[1]
+
+#             H = [H_0, [X, H1_coeff]]
+#             args = {'omega': omega}
+#             prop = propagator(
+#                 H, t, args=args, options={"atol": 1e-10, "rtol": 1e-8}
+#             )
+
+
+#             with CoreOptions(atol=1e-8, rtol=1e-8):
+#                 assert U == prop, (i,j)
+
 # #@pytest.mark.xfail()
 # def test_2x2_propagators_single_time():
 #     # Data
@@ -179,7 +204,7 @@ def test_matrix_elements(empty_instance, X, max_order, answer):
 #         for j in range(len(Xs)):
 #             H_0, X = H_0s[i], Xs[j]
 #             # Dysolve
-#             U = dysolve_propagator(H_0, X, omega, t, {'max_orer':5})
+#             U = dysolve_propagator(H_0, X, omega, t, {'max_orer':0})
 
 #             # Qutip.solver.propagator
 #             def H1_coeff(t, omega):

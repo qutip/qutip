@@ -209,37 +209,29 @@ class DysolvePropagator:
                 term2 = self._compute_tn_integrals(ws, n - 1)
                 return factor * (term1 - term2)
 
-    def _update_matrix_elements(self, current: ArrayLike, n: int,
-                                indices: ArrayLike) -> ArrayLike:
+    def _update_matrix_elements(self, current: ArrayLike) -> ArrayLike:
         """
-        Reuses the current matrix elements to compute the matrix elements
-        for the next order.
+        Reuses the current matrix elements (order n-1) to compute the
+        matrix elements for the next order n.
 
         Parameters
         ----------
         current : ArrayLike
             The current matrix elements (for the order n-1).
 
-        n : int
-            The current order.
-
-        indices : ArrayLike
-            The indices for the eigenenergies/eigenstates. Matchs the order
-            of combination used to compute the effective omegas.
-
         Returns
         -------
         matrix_elements : ArrayLike
             The new matrix elements for the order n.
         """
-        if n == 0:
-            return np.ones((indices.shape[0], 1), dtype=np.complex128)
-        elif n == 1:
-            return self.X.full().reshape((indices.shape[0], 1))
+        shape = self.X.shape[0]
+        if current is None:
+            return self.X.full().reshape((shape**2, 1))
         else:
-            a = np.tile(current, self.X.shape[0]).reshape(
-                (indices.shape[0], 1))
-            b = current.repeat(self.X.shape[0]).reshape((indices.shape[0], 1))
+            init_shape = current.shape[0]
+            a = np.tile(current, shape).reshape(
+                (init_shape*shape, 1))
+            b = current.repeat(shape).reshape((init_shape*shape, 1))
             return a * b
 
     def _compute_Sns(self) -> dict:
@@ -283,7 +275,7 @@ class DysolvePropagator:
 
                 # Compute matrix elements
                 current_matrix_elements = self._update_matrix_elements(
-                    current_matrix_elements, n, indices
+                    current_matrix_elements
                 )
 
                 for i, omega_vector in enumerate(omega_vectors):
