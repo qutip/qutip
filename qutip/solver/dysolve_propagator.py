@@ -52,8 +52,8 @@ class DysolvePropagator:
         options: dict[str] = None,
     ):
         # System
-        self.H_0 = H_0
         self.eigenenergies, self.basis = H_0.eigenstates()
+        self.H_0 = H_0.transform(self.basis)
         self.X = X.transform(self.basis)
         self.omega = omega
 
@@ -254,73 +254,58 @@ class DysolvePropagator:
         """
         Sns = {}
         length = len(self.eigenenergies)
+        exp_H_0 = (-1j*self.dt*self.H_0).expm()
         current_matrix_elements = None
 
         for n in range(self.max_order + 1):
-            omega_vectors = np.array(
-                list(
-                    itertools.product([self.omega, -self.omega], repeat=n)
-                )
-            )
-            lambdas = np.array(
-                list(
-                    itertools.product(self.eigenenergies, repeat=n + 1)
-                )
-            )
-            diff_lambdas = np.diff(lambdas)
-            indices = np.array(
-                list(
-                    itertools.product(
-                        range(length), repeat=n + 1
+            if n == 0:
+                Sns[0] = exp_H_0
+            else:
+                omega_vectors = np.array(
+                    list(
+                        itertools.product([self.omega, -self.omega], repeat=n)
                     )
                 )
-            )
+                lambdas = np.array(
+                    list(
+                        itertools.product(self.eigenenergies, repeat=n + 1)
+                    )
+                )
+                diff_lambdas = np.diff(lambdas)
+                indices = np.array(
+                    list(
+                        itertools.product(range(length), repeat=n + 1)
+                    )
+                )
+                Sn = np.zeros((len(omega_vectors), length, length),
+                            dtype=np.complex128
+                            )
 
-            # Reuse previous results
-            current_matrix_elements = self._update_matrix_elements(
-                current_matrix_elements, n, indices
-            )
+                # Compute matrix elements
+                current_matrix_elements = self._update_matrix_elements(
+                    current_matrix_elements, n, indices
+                )
 
-            Sn = np.zeros(
-                (len(omega_vectors), length, length), dtype=np.complex128
-            )
+                for i, omega_vector in enumerate(omega_vectors):
+                    # Compute integrals
+                    ls_ws = omega_vector + diff_lambdas
+                    integrals = np.zeros((ls_ws.shape[0],ls_ws.shape[1]), dtype=np.complex128)
+                    for j, ws in enumerate(ls_ws):
+                        integrals[j] = self._compute_integrals(ws)
 
-            for i, omega_vector in enumerate(omega_vectors):
-                self._compute_Sns_elements(omega_vector, diff_lambdas, indices)
+                    x = integrals * current_matrix_elements
+                    ket_bra_indices = indices[:, [0,-1]]
 
-            eff_omegas = omega_vectors[:, None, :] + diff_lambdas[None, :, :]
+                    k = 0
+                    for idx in ket_bra_indices:
+                        Sn[i, idx[1], idx[0]] += x[k][0]
+                        k += 1
 
-            # Compute integrals
-            integrals = np.zeros(
-                (eff_omegas.shape[0], eff_omegas.shape[1]), dtype=np.complex128
-            )
-            for i in range(eff_omegas.shape[0]):
-                for j in range(eff_omegas.shape[1]):
-                    integrals[i, j] = self._compute_integrals(
-                        list(eff_omegas[i, j, :]))
+                    Sn[i] *= (-1j / 2) ** n
+                    Sn[i] = exp_H_0.full() @ Sn[i]
 
-            # Compute matrix elements
-            i_j_indices = np.array(
-                list(itertools.product(
-                    range(len(self.eigenenergies)), repeat=n + 1
-                )))[:, ::-1]
-            ket_bra_indices = i_j_indices[:, [0, -1]]
-            matrix_elements = self._compute_matrix_elements(i_j_indices)
+                Sns[n] = Sn
 
-            # Compute Sns
-            factor = (-1j / 2) ** n
-            x = factor * matrix_elements * integrals
-            Sn = np.zeros(
-                (len(omega_vectors), len(self.eigenenergies),
-                 len(self.eigenenergies)),
-                dtype=np.complex128,
-            )
-
-            for i in range(len(omega_vectors)):
-                for j, idx in enumerate(ket_bra_indices):
-                    Sn[i, idx[1], idx[0]] += x[i, j]
-
-            Sns[n] = Sn
         return Sns
 
     def _compute_Uns(self, current_time: float) -> dict:
