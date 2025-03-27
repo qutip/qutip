@@ -1,6 +1,6 @@
 #cython: language_level=3
 
-from .. import data as _data
+from . import base, convert, csr
 from . cimport base, CSR, Data, Dense
 
 import numpy as np
@@ -17,49 +17,54 @@ __all__ = [
 
 
 cpdef Dense concat_dense(
-    list[list[Data]] data_array,
-    list[base.idxint] block_widths = None,
-    list[base.idxint] block_heights = None
+    Data[:,:] data_array,
+    base.idxint[:] block_widths = None,
+    base.idxint[:] block_heights = None
 ):
-    cdef base.idxint columm, row
+    cdef base.idxint row, column
+    cdef Data op
 
-    if len(data_array) == 0 or len(data_array[0]) == 0:
+    if data_array.shape[0] == 0 or data_array.shape[1] == 0:
         raise ValueError("Cannot concatenate empty data array.")
 
     if block_widths is None or block_heights is None:
         block_widths, block_heights = _check_widths_heights(data_array)
 
+    blocks = [[None] * len(block_widths) for _ in range(len(block_heights))]
     for row in range(len(block_heights)):
         for column in range(len(block_widths)):
-            if data_array[row][column] is None:
-                data_array[row][column] = np.zeros(
+            op = data_array[row][column]
+            if op is None:
+                blocks[row][column] = np.zeros(
                     (block_heights[row], block_widths[column])
                 )
             else:
-                data_array[row][column] = data_array[row][column].to_array()
+                blocks[row][column] = op.to_array()
 
-    return Dense(np.block(data_array),
-                 copy=(False if is_numpy1 else None))
+    return Dense(np.block(blocks), copy=(False if is_numpy1 else None))
 
 
 cpdef CSR concat_csr(
-    list[list[Data]] data_array,
-    list[base.idxint] block_widths = None,
-    list[base.idxint] block_heights = None
+    Data[:,:] data_array,
+    base.idxint[:] block_widths = None,
+    base.idxint[:] block_heights = None
 ):
-    if len(data_array) == 0 or len(data_array[0]) == 0:
+    if data_array.shape[0] == 0 or data_array.shape[1] == 0:
         raise ValueError("Cannot concatenate empty data array.")
 
     if block_widths is None or block_heights is None:
         block_widths, block_heights = _check_widths_heights(data_array)
 
-    cdef base.idxint columm, row
+    cdef cnp.ndarray[base.idxint] row_pos = np.zeros(
+        len(block_heights) + 1, dtype=base.idxint_dtype)
+    row_pos[1:] = np.cumsum(block_heights, dtype=base.idxint_dtype)
+    cdef cnp.ndarray[base.idxint] col_pos = np.zeros(
+        len(block_heights) + 1, dtype=base.idxint_dtype)
+    col_pos[1:] = np.cumsum(block_widths, dtype=base.idxint_dtype)
+
+    cdef base.idxint row, columm
     cdef base.idxint num_rows = len(block_heights)
     cdef base.idxint num_cols = len(block_widths)
-    cdef cnp.ndarray[base.idxint] row_pos = np.cumsum(
-        [0] + block_heights, dtype=_data.base.idxint_dtype)
-    cdef cnp.ndarray[base.idxint] col_pos = np.cumsum(
-        [0] + block_widths, dtype=_data.base.idxint_dtype)
     cdef base.idxint shape1 = row_pos[num_rows]
     cdef base.idxint shape2 = col_pos[num_cols]
     cdef base.idxint nnz_ = 0
@@ -71,14 +76,14 @@ cpdef CSR concat_csr(
             if op is None:
                 continue
             if type(op) is not CSR:
-                op = _data.to(CSR, op)
+                op = convert.to(CSR, op)
                 data_array[row][column] = op
-            nnz_ += _data.csr.nnz(op)
+            nnz_ += csr.nnz(op)
 
     if nnz_ == 0:
-        return _data.csr.zeros(shape1, shape2)
+        return csr.zeros(shape1, shape2)
 
-    cdef CSR out = _data.csr.empty(shape1, shape2, nnz_)
+    cdef CSR out = csr.empty(shape1, shape2, nnz_)
     cdef base.idxint op_row, op_row_start, op_row_end, op_row_len, i
     cdef base.idxint end = 0
     cdef CSR csr_op
@@ -89,7 +94,7 @@ cpdef CSR concat_csr(
         for op_row in range(block_heights[row]):
             for column in range(num_cols):
                 csr_op = data_array[row][column]
-                if csr_op is None or _data.csr.nnz(csr_op) == 0:
+                if csr_op is None or csr.nnz(csr_op) == 0:
                     continue
                 op_row_start = csr_op.row_index[op_row]
                 op_row_end = csr_op.row_index[op_row + 1]
@@ -104,15 +109,14 @@ cpdef CSR concat_csr(
     return out
 
 
-cdef _check_widths_heights(list[list[Data]] data_array):
-    cdef base.idxint num_columns, num_rows
-    cdef base.idxint columm, row
-
-    num_columns = len(data_array[0])
-    num_rows = len(data_array)
+cdef _check_widths_heights(Data[:,:] data_array):
+    cdef base.idxint num_rows = data_array.shape[0]
+    cdef base.idxint num_columns = data_array.shape[1]
+    cdef base.idxint row, column
 
     # determine block widths
-    block_widths = [-1] * num_columns
+    cdef base.idxint[:] block_widths =\
+        np.full(num_columns, -1, dtype=base.idxint_dtype)
     for column in range(num_columns):
         for row in range(num_rows):
             if data_array[row][column] is None:
@@ -125,7 +129,8 @@ cdef _check_widths_heights(list[list[Data]] data_array):
                     f" widths in column {column + 1}.")
 
     # determine block heights
-    block_heights = [-1] * num_rows
+    cdef base.idxint[:] block_heights =\
+        np.full(num_rows, -1, dtype=base.idxint_dtype)
     for row in range(num_rows):
         for column in range(num_columns):
             if data_array[row][column] is None:

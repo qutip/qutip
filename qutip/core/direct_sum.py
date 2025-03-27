@@ -11,6 +11,8 @@ from .. import settings
 from numbers import Number
 from typing import overload, Union
 
+import numpy as np
+
 
 __all__ = ['direct_sum', 'component', 'set_component']
 
@@ -115,6 +117,7 @@ def direct_sum(qobjs, dtype=None):
 
     # determine "from" spaces
     from_spaces = [None] * num_columns
+    block_widths = np.empty(num_columns, dtype=_data.base.idxint_dtype)
     for column in range(num_columns):
         for row in range(num_rows):
             if qobjs[row][column] is None:
@@ -122,6 +125,7 @@ def direct_sum(qobjs, dtype=None):
             from_space = _qobj_dims(qobjs[row][column]).from_
             if from_spaces[column] is None:
                 from_spaces[column] = from_space
+                block_widths[column] = from_space.size
             elif from_spaces[column] != from_space:
                 raise ValueError(
                     "Direct sum: inconsistent dimensions in column"
@@ -130,6 +134,7 @@ def direct_sum(qobjs, dtype=None):
 
     # determine "to" spaces
     to_spaces = [None] * num_rows
+    block_heights = np.empty(num_rows, dtype=_data.base.idxint_dtype)
     for row in range(num_rows):
         for column in range(num_columns):
             if qobjs[row][column] is None:
@@ -137,6 +142,7 @@ def direct_sum(qobjs, dtype=None):
             to_space = _qobj_dims(qobjs[row][column]).to_
             if to_spaces[row] is None:
                 to_spaces[row] = to_space
+                block_heights[row] = to_space.size
             elif to_spaces[row] != to_space:
                 raise ValueError(
                     "Direct sum: inconsistent dimensions in row"
@@ -145,17 +151,19 @@ def direct_sum(qobjs, dtype=None):
 
     out_dims = Dimensions(SumSpace(*from_spaces), SumSpace(*to_spaces))
 
-    # Handle QobjEvos. We have to pull them out and handle them separately.
+    # Get data from the Qobjs
+    data_array = np.empty((num_rows, num_columns), dtype=_data.Data)
+    # For QobjEvos, we have to pull them out and handle them separately.
     qobjevos = []
     to_data_start = 0
     for to_index, row in enumerate(qobjs):
         from_data_start = 0
         for from_index, qobj in enumerate(row):
             if isinstance(qobj, QobjEvo):
-                # remove from `qobjs` ...
-                qobjs[to_index][from_index] = None
+                # don't include the qobjevo with the regular qobjs ...
+                data_array[to_index][from_index] = None
 
-                # ... but embed component in big matrix and add to qobjevos
+                # ... but embed it in big zero matrix and add to qobjevos
                 blow_up = qobj.linear_map(
                     lambda x: Qobj(
                         _data.insert(
@@ -164,14 +172,14 @@ def direct_sum(qobjs, dtype=None):
                         dims=out_dims, copy=False),
                     _skip_check=True)
                 qobjevos.append(blow_up)
+            else:
+                # regular qobj
+                data_array[to_index][from_index] = _qobj_data(qobj, dtype)
             from_data_start += from_spaces[from_index].size
         to_data_start += to_spaces[to_index].size
 
     out_data = _data.concat(
-        [[_qobj_data(qobj, dtype) for qobj in row] for row in qobjs],
-        block_widths=[from_space.size for from_space in from_spaces],
-        block_heights=[to_space.size for to_space in to_spaces],
-        dtype=dtype
+        data_array, block_widths, block_heights, dtype=dtype
     )
     result = Qobj(out_data, dims=out_dims, copy=False)
     return sum(qobjevos, start=result)
