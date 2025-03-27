@@ -278,8 +278,8 @@ class DysolvePropagator:
                     )
                 )
                 Sn = np.zeros((len(omega_vectors), length, length),
-                            dtype=np.complex128
-                            )
+                              dtype=np.complex128
+                              )
 
                 # Compute matrix elements
                 current_matrix_elements = self._update_matrix_elements(
@@ -289,12 +289,13 @@ class DysolvePropagator:
                 for i, omega_vector in enumerate(omega_vectors):
                     # Compute integrals
                     ls_ws = omega_vector + diff_lambdas
-                    integrals = np.zeros((ls_ws.shape[0],ls_ws.shape[1]), dtype=np.complex128)
+                    integrals = np.zeros(
+                        (ls_ws.shape[0], ls_ws.shape[1]), dtype=np.complex128)
                     for j, ws in enumerate(ls_ws):
                         integrals[j] = self._compute_integrals(ws)
 
                     x = integrals * current_matrix_elements
-                    ket_bra_indices = indices[:, [0,-1]]
+                    ket_bra_indices = indices[:, [0, -1]]
 
                     k = 0
                     for idx in ket_bra_indices:
