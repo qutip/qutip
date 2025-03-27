@@ -1,0 +1,58 @@
+numpy>=1.22
+scipy>=1.9
+packaging
+
+[extras]
+tqdm
+mpmath
+
+[extras:python_version <= "3.10"]
+loky!=3.5.0
+
+[extras:python_version >= "3.11"]
+loky
+
+[full]
+matplotlib>=3.5
+filelock
+setuptools
+cvxpy>=1.0
+cvxopt
+pytest>=5.2
+pytest-rerunfailures
+ipython
+tqdm
+mpmath
+
+[full:python_version <= "3.10"]
+loky!=3.5.0
+
+[full:python_version >= "3.10"]
+cython>=0.29.20
+
+[full:python_version >= "3.11"]
+loky
+
+[graphics]
+matplotlib>=3.5
+
+[ipython]
+ipython
+
+[mpi]
+mpi4py
+
+[runtime_compilation]
+filelock
+setuptools
+
+[runtime_compilation:python_version >= "3.10"]
+cython>=0.29.20
+
+[semidefinite]
+cvxpy>=1.0
+cvxopt
+
+[tests]
+pytest>=5.2
+pytest-rerunfailures
