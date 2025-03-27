@@ -3,6 +3,7 @@ from qutip.solver import propagator
 from qutip import Qobj, sigmax, sigmay, sigmaz, qeye, tensor, CoreOptions
 from scipy.special import factorial
 import numpy as np
+import itertools
 import pytest
 
 
@@ -88,6 +89,52 @@ def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
             (exp_2-1)/(eff_omega_1*eff_omega_2)
 
     assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
+
+
+@pytest.mark.parametrize("X", [
+    sigmax(), sigmay(), sigmaz(), qeye(2),
+    sigmax() + sigmay(), sigmaz() + qeye(2),
+    tensor(sigmax(), sigmaz()), tensor(sigmay(), sigmaz()),
+    tensor(sigmax(), sigmaz()) + tensor(sigmay(), sigmaz()),
+])
+@pytest.mark.parametrize("max_order, answer", [
+    (
+        0,
+        lambda indices, _: np.ones((indices.shape[0], 1), dtype=np.complex128)
+    ),
+    (
+        1,
+        lambda indices, X: np.tile(X.full(), 1).reshape((indices.shape[0], 1))
+    ),
+    (
+        2,
+        lambda indices, X: np.tile(
+            np.tile(X.full(), 1).reshape((X.shape[0]**2, 1)), X.shape[0]
+        ).reshape((indices.shape[0], 1)) *
+        np.tile(X.full(), 1).reshape(
+            (X.shape[0]**2, 1)
+        ).repeat(X.shape[0]).reshape((indices.shape[0], 1))
+    )
+])
+def test_matrix_elements(empty_instance, X, max_order, answer):
+    dysolve = empty_instance
+    dysolve.X = X
+    current_matrix_elements = None
+
+    for n in range(max_order + 1):
+        indices = np.array(
+            list(
+                itertools.product(
+                    range(X.shape[0]), repeat=n + 1
+                )
+            )
+        )
+        current_matrix_elements = dysolve._update_matrix_elements(
+            current_matrix_elements, n, indices
+        )
+
+    answer = answer(indices, X)
+    assert np.array_equal(current_matrix_elements, answer)
 
 
 # def test_number_of_propagators():

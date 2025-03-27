@@ -209,35 +209,38 @@ class DysolvePropagator:
                 term2 = self._compute_tn_integrals(ws, n - 1)
                 return factor * (term1 - term2)
 
-    def _compute_matrix_elements(self, i_j_indices: list) -> list:
+    def _update_matrix_elements(self, current: ArrayLike, n: int,
+                                indices: ArrayLike) -> ArrayLike:
         """
-        Computes the products of matrix elements for each term in the
-        sum for Sns.
+        Reuses the current matrix elements to compute the matrix elements
+        for the next order.
 
         Parameters
         ----------
-        i_j_indices : list
-            The indices for the eigenenergies/eigenstates. Matchs the order of
-            combination used to compute the effective omegas.
+        current : ArrayLike
+            The current matrix elements (for the order n-1).
+
+        n : int
+            The current order.
+
+        indices : ArrayLike
+            The indices for the eigenenergies/eigenstates. Matchs the order
+            of combination used to compute the effective omegas.
 
         Returns
         -------
-        matrix_elements : list
-            The products of matrix elements for each term in the sum for Sns.
-
+        matrix_elements : ArrayLike
+            The new matrix elements for the order n.
         """
-        matrix_elements_products = np.ones(
-            (i_j_indices.shape[0]), dtype=np.complex128)
-
-        for i in range(i_j_indices.shape[1] - 1):
-            matrix_elements_products *= self.X[
-                i_j_indices[:, 0 + i: 2 + i][:, 0],
-                i_j_indices[:, 0 + i: 2 + i][:, 1]
-            ]
-
-        return matrix_elements_products * np.exp(
-            -1j * self.eigenenergies[i_j_indices[:, -1]] * self.dt
-        )
+        if n == 0:
+            return np.ones((indices.shape[0], 1), dtype=np.complex128)
+        elif n == 1:
+            return self.X.full().reshape((indices.shape[0], 1))
+        else:
+            a = np.tile(current, self.X.shape[0]).reshape(
+                (indices.shape[0], 1))
+            b = current.repeat(self.X.shape[0]).reshape((indices.shape[0], 1))
+            return a * b
 
     def _compute_Sns(self) -> dict:
         """
@@ -250,16 +253,41 @@ class DysolvePropagator:
 
         """
         Sns = {}
+        length = len(self.eigenenergies)
+        current_matrix_elements = None
+
         for n in range(self.max_order + 1):
             omega_vectors = np.array(
-                list(itertools.product([self.omega, -self.omega], repeat=n))
+                list(
+                    itertools.product([self.omega, -self.omega], repeat=n)
+                )
             )
-            diff_lambdas = np.diff(
-                np.array(list(itertools.product(
-                    self.eigenenergies, repeat=n + 1
-                )))[:, ::-1],
-                axis=1,
+            lambdas = np.array(
+                list(
+                    itertools.product(self.eigenenergies, repeat=n + 1)
+                )
             )
+            diff_lambdas = np.diff(lambdas)
+            indices = np.array(
+                list(
+                    itertools.product(
+                        range(length), repeat=n + 1
+                    )
+                )
+            )
+
+            # Reuse previous results
+            current_matrix_elements = self._update_matrix_elements(
+                current_matrix_elements, n, indices
+            )
+
+            Sn = np.zeros(
+                (len(omega_vectors), length, length), dtype=np.complex128
+            )
+
+            for i, omega_vector in enumerate(omega_vectors):
+                self._compute_Sns_elements(omega_vector, diff_lambdas, indices)
+
             eff_omegas = omega_vectors[:, None, :] + diff_lambdas[None, :, :]
 
             # Compute integrals
