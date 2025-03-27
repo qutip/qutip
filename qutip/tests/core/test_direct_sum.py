@@ -15,13 +15,17 @@ from numbers import Number
 import numpy as np
 
 
+def _ramp(t, args):
+    return t
+
+
 @pytest.mark.parametrize(
     ["arguments", "result_type", "result_dims"], [
         pytest.param([basis(2, 0)],
                      "ket",
                      Dimensions([[2], [1]]),
                      id="single_ket"),
-        pytest.param([QobjEvo([[basis(2, 0), "t"]]), basis(3, 0)],
+        pytest.param([QobjEvo([[basis(2, 0), _ramp]]), basis(3, 0)],
                      "ket",
                      Dimensions([([2], [3]), [1]]),
                      id="ket_with_evo"),
@@ -77,7 +81,7 @@ def test_linear(arguments, result_type, result_dims, dtype):
             assert isinstance(new_sum, QobjEvo)
         _assert_equal(component(new_sum, i), replacement)
 
-        replacement = QobjEvo([[replacement, "t"]])
+        replacement = QobjEvo([[replacement, _ramp]])
         new_sum = set_component(result, replacement, i)
         assert isinstance(new_sum, QobjEvo)
         _assert_equal(component(new_sum, i), replacement)
@@ -90,7 +94,7 @@ def test_linear(arguments, result_type, result_dims, dtype):
                      Dimensions([([2], [3]), [1]]),
                      False,
                      id="vector"),
-        pytest.param([[sigmax(), None], [None, QobjEvo([[sigmay(), "t"]])]],
+        pytest.param([[sigmax(), None], [None, QobjEvo([[sigmay(), _ramp]])]],
                      "oper",
                      Dimensions([([2], [2]), ([2], [2])]),
                      False,
@@ -154,7 +158,7 @@ def test_matrix(arguments, result_type, result_dims, dtype,
                 assert isinstance(new_sum, QobjEvo)
             _assert_equal(component(new_sum, i, j), replacement)
 
-            replacement = QobjEvo([[replacement, "t"]])
+            replacement = QobjEvo([[replacement, _ramp]])
             new_sum = set_component(result, replacement, i, j)
             assert isinstance(new_sum, QobjEvo)
             _assert_equal(component(new_sum, i, j), replacement)
