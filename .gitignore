@@ -1,8 +1,15 @@
-﻿build/
-temp.win-amd64-cpython-312/
+﻿# Ignore build directories
+build/
 doc/_build/
-qutip.egg-info
+qutip.egg-info/
+
+# Ignore Python cache files
 **/__pycache__/
-**/*.pyc
-**/*.pyo
-**/*.pyd
+*.pyc
+*.pyo
+
+# Ignore compiled Cython files
+*.c
+*.cpp
+*.so
+*.o
