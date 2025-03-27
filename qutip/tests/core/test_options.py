@@ -1,14 +1,21 @@
 import pytest
 import numpy
-from unittest.mock import Mock
 
 import qutip
 from qutip.core.numpy_backend import np
 from qutip import CoreOptions, settings
 
+
 # Mocking JAX to demonstrate backend switching
-mock_jax = Mock
-mock_jax.sum = Mock(return_value="jax_sum")
+class Mock_JAX:
+    def sum(*a, **kw):
+        return "jax_sum"
+
+    def __getattr__(self, _):
+        return "other"
+
+
+mock_jax = Mock_JAX()
 mock_np = numpy
 
 
