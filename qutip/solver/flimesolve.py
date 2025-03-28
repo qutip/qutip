@@ -139,45 +139,39 @@ def _floquet_rate_matrix(
         c_op_Fourier_amplitudes_list = _c_op_Fourier_amplitudes(
             floquet_basis, tlist, c_op
         )
-        indices_list = np.argwhere(np.ones((Hdim, Hdim, Hdim, Hdim, Nt, Nt)))
-        # This shifts the indices in the indices list to call the correct k elements
-        for idx in indices_list:
-            idx[4] = idx[4] - int(Nt / 2)
-            idx[5] = idx[5] - int(Nt / 2)
 
         """
         Finding all terms that are either DC or that are "important" enough
             to include as decided by the Relative Secular Approximation
         """
-        test_indices = [
-            tuple(idx)
-            for idx in indices_list
-            if (
-                c_op_Fourier_amplitudes_list[idx[4], idx[0], idx[1]]
-                * np.conj(c_op_Fourier_amplitudes_list[idx[5], idx[2], idx[3]])
-            )
-            != 0
-        ]
-        valid_indices = [
-            tuple(idx)
-            for idx in test_indices
-            if delta(*idx) == 0
-            or abs(
-                (
-                    (
-                        c_op_Fourier_amplitudes_list[idx[4], idx[0], idx[1]]
-                        * np.conj(
-                            c_op_Fourier_amplitudes_list[
-                                idx[5], idx[2], idx[3]
-                            ]
-                        )
-                    )
-                    / delta(*idx)
+
+        time_start = time()
+        xx, yy, zz = np.array(c_op_Fourier_amplitudes_list).nonzero()
+        xx = np.array(xx) - int(Nt / 2)
+
+        test = list(zip(xx, yy, zz))
+        valid_indices = []
+        for idx1 in test:
+            for idx2 in test:
+                cop1 = c_op_Fourier_amplitudes_list[idx1]
+                cop2 = np.conj(c_op_Fourier_amplitudes_list[idx2])
+                ordered_idx = (
+                    idx1[1],
+                    idx1[2],
+                    idx2[1],
+                    idx2[2],
+                    idx1[0],
+                    idx2[0],
                 )
-                ** (-1)
-            )
-            <= relative_secular_cutoff
-        ]
+                delts = delta(*ordered_idx)
+                if delts == 0:
+                    valid_indices.append(ordered_idx)
+                elif (
+                    abs((cop1 * cop2 / delts) ** (-1))
+                    <= relative_secular_cutoff
+                ):
+                    valid_indices.append(ordered_idx)
+        time_end = time() - time_start
 
         """
         Grouping together the valid indices found by the relative_secular_cutoff according to their
@@ -197,19 +191,12 @@ def _floquet_rate_matrix(
         for key in delta_dict.keys():
             valid_c_op_prods_list = [indices for indices in delta_dict[key]]
             # using c = ap, d = bp, k=lp
-            flime_FirstTerm = np.zeros(
-                (Hdim, Hdim, Hdim, Hdim), dtype="complex"
-            )
-            flime_SecondTerm = np.zeros(
-                (Hdim, Hdim, Hdim, Hdim), dtype="complex"
-            )
-            flime_ThirdTerm = np.zeros(
-                (Hdim, Hdim, Hdim, Hdim), dtype="complex"
-            )
-            flime_FourthTerm = np.zeros(
-                (Hdim, Hdim, Hdim, Hdim), dtype="complex"
-            )
-
+            flime_FirstTerm = []
+            flime_SecondTerm = []
+            flime_ThirdTerm = []
+            flime_FourthTerm = []
+            dummy_matrix = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
+            # for indices in test_list
             for indices in valid_c_op_prods_list:
                 a = indices[0]
                 b = indices[1]
@@ -226,68 +213,72 @@ def _floquet_rate_matrix(
 
                 gam_minus_prime = power_spectrum(powfreqs(ap, bp, kp))
 
-                for m in range(Hdim):
-                    for n in range(Hdim):
-                        for p in range(Hdim):
-                            for q in range(Hdim):
+                matrix_it = np.nditer(dummy_matrix, flags=["multi_index"])
 
-                                flime_FirstTerm[m, n, p, q] += (
-                                    gam_plus
-                                    * c_prods
-                                    * kron(b, p)
-                                    * kron(q, bp)
-                                    * kron(m, a)
-                                    * kron(ap, n)
-                                )
+                for itx in matrix_it:
+                    m = matrix_it.multi_index[0]
+                    n = matrix_it.multi_index[1]
+                    p = matrix_it.multi_index[2]
+                    q = matrix_it.multi_index[3]
 
-                                flime_SecondTerm[m, n, p, q] += (
-                                    gam_minus_prime
-                                    * c_prods
-                                    * kron(b, p)
-                                    * kron(q, bp)
-                                    * kron(m, a)
-                                    * kron(ap, n)
-                                )
+                    flime_FirstTerm.append(
+                        gam_plus
+                        * c_prods
+                        * kron(b, p)
+                        * kron(q, bp)
+                        * kron(m, a)
+                        * kron(ap, n)
+                    )
 
-                                flime_ThirdTerm[m, n, p, q] += (
-                                    gam_plus
-                                    * c_prods
-                                    * kron(m, bp)
-                                    * kron(q, n)
-                                    * kron(ap, a)
-                                    * kron(b, p)
-                                )
+                    flime_SecondTerm.append(
+                        gam_minus_prime
+                        * c_prods
+                        * kron(b, p)
+                        * kron(q, bp)
+                        * kron(m, a)
+                        * kron(ap, n)
+                    )
 
-                                flime_FourthTerm[m, n, p, q] += (
-                                    gam_minus_prime
-                                    * c_prods
-                                    * kron(q, bp)
-                                    * kron(ap, a)
-                                    * kron(m, p)
-                                    * kron(b, n)
-                                )
+                    flime_ThirdTerm.append(
+                        gam_plus
+                        * c_prods
+                        * kron(m, bp)
+                        * kron(q, n)
+                        * kron(ap, a)
+                        * kron(b, p)
+                    )
+
+                    flime_FourthTerm.append(
+                        gam_minus_prime
+                        * c_prods
+                        * kron(q, bp)
+                        * kron(ap, a)
+                        * kron(m, p)
+                        * kron(b, n)
+                    )
 
             try:
-                total_R_tensor[key] += (1 / 2) * np.reshape(
-                    (
-                        flime_FirstTerm
-                        + flime_SecondTerm
-                        - flime_ThirdTerm
-                        - flime_FourthTerm
+                total_R_tensor[key] += (1 / 2) * np.sum(
+                    np.reshape(
+                        np.subtract(
+                            np.add(flime_FirstTerm, flime_SecondTerm),
+                            np.add(flime_ThirdTerm, flime_FourthTerm),
+                        ),
+                        (len(valid_c_op_prods_list), Hdim**2, Hdim**2),
                     ),
-                    (Hdim**2, Hdim**2),
+                    axis=0,
                 )
             except KeyError:
-                total_R_tensor[key] = (1 / 2) * np.reshape(
-                    (
-                        flime_FirstTerm
-                        + flime_SecondTerm
-                        - flime_ThirdTerm
-                        - flime_FourthTerm
+                total_R_tensor[key] = (1 / 2) * np.sum(
+                    np.reshape(
+                        np.subtract(
+                            np.add(flime_FirstTerm, flime_SecondTerm),
+                            np.add(flime_ThirdTerm, flime_FourthTerm),
+                        ),
+                        (len(valid_c_op_prods_list), Hdim**2, Hdim**2),
                     ),
-                    (Hdim**2, Hdim**2),
+                    axis=0,
                 )
-
     return total_R_tensor
 
 
