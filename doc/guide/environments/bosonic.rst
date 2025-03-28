@@ -280,7 +280,7 @@ The slow convergence of the Matsubara expansion is visible around :math:`t=0`.
     # Pre-defined environment and Matsubara approximations
     env2 = qt.UnderDampedEnvironment(T, lam, gamma, w0)
     for Nk in range(0, 11, 2):
-        approx_env = env2.approx_by_matsubara(Nk)
+        approx_env = env2.approximate("matsubara", Nk)
         plt.plot(tlist, np.real(approx_env.correlation_function(tlist)), label=f'Nk={Nk}')
 
     plt.xlabel('Time')

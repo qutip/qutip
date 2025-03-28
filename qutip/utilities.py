@@ -13,7 +13,7 @@ from typing import Callable, Literal, Any
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import curve_fit
-from scipy.linalg import qr, hankel, lstsq, eigvals, svd, eig
+from scipy.linalg import hankel, lstsq, eigvals, svd, eig
 from scipy.fft import fft
 
 
@@ -559,21 +559,21 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
-def aaa(func: Callable[..., complex], z: ArrayLike,
+def aaa(func: Callable[..., complex] | ArrayLike, z: ArrayLike,
         tol: float = 1e-13, max_iter: int = 100) -> dict[str, Any]:
     """
     Computes a rational approximation of the function according to the AAA
     algorithm as explained in [AAA]_ . This
-    implementation is a python adaptation of the Chebfun version in that paper
+    implementation is a Python adaptation of the Chebfun version in that paper.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     func : callable or np.ndarray
         The function to be approximated
     z : np.ndarray
         The sampling points on which to perform the rational approximation.
         Even though linearly spaced sample points will yield good
-        approximations, logarithmicly spaced points will usually give better
+        approximations, logarithmically spaced points will usually give better
         exponent approximations
     tol : float, optional
         Relative tolerance of the approximation
@@ -581,8 +581,8 @@ def aaa(func: Callable[..., complex], z: ArrayLike,
         Maximum number of support points ~2*n where n is the number of bath
         exponents
 
-    Returns:
-    --------
+    Returns
+    -------
     A dictionary containing
         function : callable
             rational approximation of the function
@@ -795,13 +795,14 @@ def _prony_model(n, amp, phase):
 
 
 def prony_methods(method: Literal["prony", "esprit"],
-                   signal: ArrayLike, n: int) -> tuple[float, ArrayLike]:
+                  signal: ArrayLike, n: int) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using prony methods.
     Based on the description in [ESPIRAvsESPRIT]_
     and their matlab implementation
-    Parameters:
-    -----------
+
+    Parameters
+    ----------
     method: str
         The method to obtain the roots of the prony polynomial
         can be prony, and Estimation of signal parameters
@@ -810,13 +811,14 @@ def prony_methods(method: Literal["prony", "esprit"],
         The input signal (1D complex array).
     n: int
         Desired number of modes to  use as estimation (rank of the signal).
+
     Returns
     -------
+    rmse:
+        Normalized mean squared error
     params:
         A list of tuples containing the amplitudes and phases
         of our approximation
-    rmse:
-        Normalized mean squared error
     """
     if method != "prony":
         n = len(signal)-n
@@ -842,16 +844,15 @@ def prony_methods(method: Literal["prony", "esprit"],
 
 
 def espira1(signal: ArrayLike, n: int,
-                 tol: float = 1e-13) -> tuple[float, ArrayLike]:
+            tol: float = 1e-13) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
     Based on the description in [ESPIRAvsESPRIT]_
     and their matlab implementation
 
-    Parameters:
-    -----------
-
-    signal: n.ndarray
+    Parameters
+    ----------
+    signal: np.ndarray
         The input signal (1D complex array).
     n: int
         Desired number of modes to  use as estimation (rank of the signal).
@@ -862,11 +863,11 @@ def espira1(signal: ArrayLike, n: int,
 
     Returns
     -------
+    rmse:
+        Normalized mean squared error
     params:
         A list of tuples containing the amplitudes and phases
         of our approximation
-    rmse:
-        Normalized mean squared error
     """
     # Compute FFT
     F = fft(signal)
@@ -895,16 +896,15 @@ def espira1(signal: ArrayLike, n: int,
 
 
 def espira2(signal: ArrayLike, n: int,
-                 tol: float = 1e-13) -> tuple[float, ArrayLike]:
+            tol: float = 1e-13) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-II.
     Based on the description in [ESPIRAvsESPRIT]_
     and their matlab implementation
 
-    Parameters:
-    -----------
-
-    signal: n.ndarray
+    Parameters
+    ----------
+    signal: np.ndarray
         The input signal (1D complex array).
     n: int
         Desired number of modes to  use as estimation (rank of the signal).
@@ -915,11 +915,11 @@ def espira2(signal: ArrayLike, n: int,
 
     Returns
     -------
+    rmse:
+        Normalized mean squared error
     params:
         A list of tuples containing the amplitudes and phases
         of our approximation
-    rmse:
-        Normalized mean squared error
     """
     # Compute FFT
     F1 = fft(signal)

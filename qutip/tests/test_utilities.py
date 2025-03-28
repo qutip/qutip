@@ -126,11 +126,18 @@ def test_cpu_count(monkeypatch):
 class TestFitting:
     def model(self, x, a, b, c):
         return np.real(a * np.exp(-(b + 1j * c) * x))
-    def eval_prony(self,x,params):
-        return utils._evaluate(utils._prony_model,x,params)
-    
+
+    def eval_prony(self, x, params):
+        result = 0
+        for term_params in params:
+            result += self._prony_model(x, *term_params)
+        return result
+
+    def _prony_model(self, n, amp, phase):
+        return amp * np.power(phase, np.arange(n))
+
     @pytest.fixture(params = [True, False])
-    def generate_data(self,request):
+    def generate_data(self, request):
         """Generate test data."""
         noisy = request.param
         x = np.linspace(0, 10, 100)
@@ -141,7 +148,7 @@ class TestFitting:
             np.random.seed(42)  
             noise = np.random.normal(0, 0.01, len(x))
             y += noise
-        return x, y, fparams1, fparams2 , noisy
+        return x, y, fparams1, fparams2, noisy
 
     def test_fit(self, generate_data):
         x, y, fparams1, fparams2, noisy = generate_data
@@ -165,30 +172,30 @@ class TestFitting:
         rmse = result["rmse"]
         if noisy:
             assert rmse < 2e-2
-            np.testing.assert_allclose(result["function"](x),y,atol=1e-1*np.max(y))
+            np.testing.assert_allclose(result["function"](x), y, atol=1e-1*np.max(y))
         else:
             assert rmse < 1e-8
-            np.testing.assert_allclose(result["function"](x),y,rtol=1e-4)
+            np.testing.assert_allclose(result["function"](x), y, rtol=1e-4)
 
     def test_espira_I(self, generate_data):
         x, y, _, _, noisy = generate_data
         rmse, params = utils.espira1(y, 4, tol=1e-16)
         if noisy:
             assert rmse < 1e-3
-            np.testing.assert_allclose(self.eval_prony(len(x), params),y,atol=1e-2*np.max(y))
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
         else:
             assert rmse < 1e-8
-            np.testing.assert_allclose(self.eval_prony(len(x), params),y,rtol=1e-4)
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
     def test_espira_II(self, generate_data):
         x, y, _, _, noisy = generate_data
         rmse, params = utils.espira2(y, 4, tol=1e-16)
         if noisy:
             assert rmse < 1e-3
-            np.testing.assert_allclose(self.eval_prony(len(x), params),y,atol=1e-2*np.max(y))
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
         else:
             assert rmse < 1e-8
-            np.testing.assert_allclose(self.eval_prony(len(x), params),y,rtol=1e-4)
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
     @pytest.mark.parametrize("method", ["prony", "esprit"])
     def test_prony_methods(self, generate_data, method):
@@ -196,7 +203,7 @@ class TestFitting:
         rmse, params = utils.prony_methods(method, y, 4)
         if noisy:
             assert rmse < 1e-3
-            np.testing.assert_allclose(self.eval_prony(len(x), params),y,atol=2e-2*np.max(y))
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=2e-2*np.max(y))
         else:
             assert rmse < 1e-8
-            np.testing.assert_allclose(self.eval_prony(len(x), params),y,rtol=1e-4)
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)

@@ -71,15 +71,15 @@ The fitting methods available in QuTiP can be roughly put into three categories:
     - ESPIRA-II (``"espira-II"``)
 
 
-The different categories have different witnesses and strengths, for example
-in the case of non-linear squares the parameters are found via an optimization
-process, unfortunately, in many cases the optimization returns mediocre 
-approximations, this can be improved by specifying information to the optimization
+The different categories have different weaknesses and strengths. For example
+in the case of non-linear squares, the parameters are found via an optimization
+process. Unfortunately, in many cases, the optimization returns mediocre 
+approximations. This can be improved by specifying information to the optimization
 such as guesses as to where the optimal parameters may be, lower and upper bounds
-on the parameters, degrees of uncertainty .. etc. The requirement for this extra
-bits of information is a weakness, however, the fact it allows for constraints 
-is a strength as approximations with similar accuracy on the fitted curve may 
-have different perfomances on solvers.
+on the parameters, degrees of uncertainty etc. The requirement for these extra
+bits of information is a weakness, but the fact that it allows for constraints 
+is a strength, because approximations with similar accuracy on the fitted curve may 
+have different performances on solvers.
 
 ..
     Here I wanted to express the idea that a big positive ck and a big negative 
@@ -87,31 +87,31 @@ have different perfomances on solvers.
     but it's problematic for the HEOM solver. This typically doesn't happen 
     on the other methods though
 
-Methods based on the Prony polynomial, only require the set of points on which 
-to perform the fit, they are typically really accurate, the difference between 
-then from a practical point of view is whether or not they are resilient to Noise
-in the signal to be fit and the number of exponents one requires to reach a 
-certain accuracy
+Methods based on the Prony polynomial only require the set of points on which 
+to perform the fit. They are typically really accurate; the difference between 
+then from a practical point of view is whether or not they are resilient to noise
+in the signal to be fit, and the number of exponents one requires to reach a 
+certain accuracy.
 
-Methods based on rational approximations, also only require the set of points
-on which to perform the fit. AAA typically takes more exponents than Prony like 
-methods, but reproduce the power spectrum better this is important because 
+Methods based on rational approximations also only require the set of points
+on which to perform the fit. The AAA method typically generates more exponents than Prony-like 
+methods, but reproduces the power spectrum better. This is important because 
 :math:`\frac{S(\omega)}{S(-\omega)}=e^{\beta \omega}` is highly influential 
 on the steady state.
 
 While all methods apply in all situations when done with enough care we recommend
 
-- Non-Linear squares 
+- Non-Linear least squares 
     when you have intuition about the number of exponents that 
-    are needed, some clue as to what they might be. For example for UD 
-    at zero temperature one knows that there is only one exponent 
+    are needed, some clue as to what they might be. For example, for underdamped
+    environments at zero temperature, one knows that only one exponent is required
     for the imaginary part of the correlation function.
 - AAA and ESPIRA 
-    when looking for accuracy on the steady state, ESPIRA is also 
-    a good first choice in most cases
+    when looking for accuracy on the steady state. ESPIRA is also 
+    a good first choice in most cases.
 - Prony methods 
-    Prony methods are good in general and are recommended when you don't have
-    intuition about the correlation function. ESPRIT is often a good choice
+    when you don't have intuition about the correlation function.
+    Prony methods are good in general; ESPRIT is often a good choice.
 
 The following table highlights the strengths and weaknesses of each fitting method.
 
@@ -121,7 +121,7 @@ The following table highlights the strengths and weaknesses of each fitting meth
    :widths: auto
 
    * - 
-     - NL-Least Squares
+     - NL Least Squares
      - Prony Polynomial
      - Rational Approximations
    * - Requires Extra Information
@@ -150,9 +150,9 @@ more than the function and the sampling points for the fitting method to work,
 "Fast" refers to the typical computation time of the approach
 with a moderate number of exponents, "Resilient to Noise" refers to whether the
 fitting approach is affected by noise in the function, "Allows Constraints"
-refers to whether we can bound the fit parameters to be in a range,"Stable" 
+refers to whether we can bound the fit parameters to be in a range, "Stable" 
 refers whether it returns similar results for slightly different sampling 
-points. The answer partially means that it is 
+points. The answer "partially" means that it is 
 true for some methods in the group but not for others.
 
 .. _environment approximations api:
@@ -168,6 +168,8 @@ API Documentation
     Note: the formatting of the docstrings in the rst here is slightly different
     from the one in the codebase. The formatting here is like the rst output of
     numpydoc, which can be viewed with this trick: https://stackoverflow.com/a/31648880
+
+.. _matsubara approximations api:
 
 ``"matsubara"`` | ``"pade"`` Analytical Expansions
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -634,18 +636,18 @@ API Documentation
     opposed to non linear least squares it won't get trapped in local minima
     and does not require anything appart from the evenly spaced sample points. 
     For more information about these methods see [ESPIRAvsESPRIT]_
-    
+
     :Parameters:
 
         **tlist** : array_like
             The time range on which to perform the fit.
 
         **Nr** : optional, int
-            The number of exponents desired to describe the imaginary part of
+            The number of exponents desired to describe the real part of
             the correlation function. It defaults to 3
 
-        **Nr** : optional, int
-            The number of exponents desired to describe the real part of
+        **Ni** : optional, int
+            The number of exponents desired to describe the imaginary part of
             the correlation function. It defaults to 3
 
         **separate**: optional, bool

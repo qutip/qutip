@@ -713,7 +713,7 @@ class LorentzianBath(FermionicBath):
     "environment" API. The bath classes are kept in QuTiP for reasons of
     backwards compatibility and convenience. Creating a `LorentzianBath` is
     equivalent to creating a :class:`.LorentzianEnvironment`, performing a
-    :meth:`Matsubara <.LorentzianEnvironment.approx_by_matsubara>`
+    :ref:`Matsubara<.LorentzianEnvironment.approx_by_matsubara>`
     approximation, and finally bundling the result together with the coupling
     operator ``Q`` for convenient use with the HEOM solver.
     """

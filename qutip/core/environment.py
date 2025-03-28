@@ -57,15 +57,10 @@ class BosonicEnvironment(abc.ABC):
     the HEOM solver. The approximated environment is represented as a
     :class:`ExponentialBosonicEnvironment`.
 
-    All bosonic environments can be approximated by directly fitting their
-    correlation function with a multi-exponential ansatz
-    (:meth:`approx_by_cf_fit`) or by fitting their spectral density with a sum
-    of Lorentzians (:meth:`approx_by_sd_fit`), which correspond to
-    underdamped environments with known multi-exponential decompositions.
-    Subclasses may offer additional approximation methods such as
-    :meth:`DrudeLorentzEnvironment.approx_by_matsubara` or
-    :meth:`DrudeLorentzEnvironment.approx_by_pade` in the case of a
-    Drude-Lorentz environment.
+    All bosonic environments can be approximated by various fitting methods,
+    see the description of :meth:`approximate`.
+    Subclasses may offer additional approximation methods such as the
+    analytical Matsubara or Pade expansions.
 
     Parameters
     ----------
@@ -2120,8 +2115,8 @@ def system_terminator(Q: Qobj, delta: float) -> Qobj:
 
     delta : float
         The approximation discrepancy of approximating an environment with a
-        finite number of exponentials, see for example
-        :meth:`.DrudeLorentzEnvironment.approx_by_matsubara`.
+        finite number of exponentials, see for example the description of the
+        :ref:`Matsubara approximation<matsubara approximations api>`.
 
     Returns
     -------
@@ -2324,7 +2319,7 @@ def _fit_summary(time, rmse, N, label, params,
                 f"|{params[k][2]:^10.2e}|{params[k][3]:>5.2e}\n ")
     else:
         raise ValueError("Unsupported number of columns")
-    summary += (f"\nA RMSE of {rmse: .2e}"
+    summary += (f"\nAn RMSE of {rmse: .2e}"
                 f" was obtained for the {label}.\n")
     summary += f"The current fit took {time: 2f} seconds."
     return summary
