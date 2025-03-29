@@ -79,6 +79,9 @@ def _check_source_folder_and_imported_qutip_match():
         (e.g. docstrings), so if the two don't match the generated
         documentation will be a chimera.
     """
+    import os
+    import sys
+    sys.path.insert(0, os.path.abspath('../'))
     import qutip
     qutip_folder = pathlib.Path(qutip.__file__).absolute().parent.parent
     source_folder = pathlib.Path(__file__).absolute().parent.parent
