@@ -16,6 +16,7 @@ Here, you can also find a collection of `tutorials for QuTiP <https://qutip.org/
    :maxdepth: 3
 
    frontmatter.rst
+   advanced/64bit_indices
    installation.rst
    guide/guide.rst
    apidoc/apidoc.rst
