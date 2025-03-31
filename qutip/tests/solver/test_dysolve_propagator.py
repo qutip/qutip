@@ -1,6 +1,6 @@
 from qutip.solver.dysolve_propagator import DysolvePropagator, dysolve_propagator
 from qutip.solver import propagator
-from qutip import Qobj, sigmax, sigmay, sigmaz, qeye, tensor, CoreOptions
+from qutip import Qobj, sigmax, sigmay, sigmaz, qeye, qeye_like, tensor, CoreOptions
 from scipy.special import factorial
 import numpy as np
 import itertools
@@ -181,9 +181,27 @@ def test_matrix_elements_2(empty_instance, max_order, X, answer):
     assert np.array_equal(current_matrix_elements, answer)
 
 
-# @pytest.mark.parametrize()
-# def test_order_zero():
-#     pass
+@pytest.mark.parametrize("H_0", [
+    sigmaz(), sigmay(), sigmaz(), qeye(2), tensor(sigmax(), sigmaz()),
+    tensor(sigmax(), sigmaz()) + tensor(qeye(2), sigmay())
+])
+@pytest.mark.parametrize("t_i, t_f", [
+    (0, 0.1), (0, 0.5), (0, 1), (0, 10), (0, -1),
+    (-0.1, 0.1), (-0.5, 0.5), (-1, 1), (-10, 10), (1, -1)
+])
+def test_zeroth_order(H_0, t_i, t_f):
+    # self.X and self.omega don't matter
+    dysolve = DysolvePropagator(
+        H_0, qeye_like(H_0), 0, options={'max_order': 0}
+    )
+    dysolve(t_f, t_i)
+    U = dysolve.U
+
+    _, basis = H_0.eigenstates()
+    exp = (-1j*H_0*(t_f - t_i)).expm().transform(basis)
+
+    with CoreOptions(atol=1e-10, rtol=1e-10):
+        assert U == exp
 
 
 # def test_number_of_propagators():

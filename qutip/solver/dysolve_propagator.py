@@ -247,7 +247,7 @@ class DysolvePropagator:
         """
         Sns = {}
         length = len(self.eigenenergies)
-        exp_H_0 = (-1j*self.dt*self.H_0).expm()
+        exp_H_0 = (-1j*self.dt*self.H_0).expm().full()
         current_matrix_elements = None
 
         Sns[0] = exp_H_0
@@ -292,7 +292,7 @@ class DysolvePropagator:
                 k = 0
                 for row in range(ket_bra_indices.shape[0]):
                     Sn[i, ket_bra_indices[row, 1],
-                        ket_bra_indices[row, 1]] += x[k][0]
+                        ket_bra_indices[row, 0]] += x[k][0]
                     k += 1
 
                 Sn[i] *= (-1j / 2) ** n
@@ -321,7 +321,9 @@ class DysolvePropagator:
         """
         Uns = {}
         Sns = self._Sns
-        for n in range(self.max_order + 1):
+        Uns[0] = Sns[0]
+
+        for n in range(1, self.max_order + 1):
             omega_vectors = np.array(
                 list(itertools.product([self.omega, -self.omega], repeat=n))
             )
