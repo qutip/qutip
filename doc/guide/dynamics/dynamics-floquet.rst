@@ -357,10 +357,10 @@ on the physical parameters of the system and the user inputs. A system
 with no time dependence can be solved in the full secular approximation, 
 whereas a system with complicated time-dependence will need a more relaxed 
 secular approximation. To adress this, FLiMESolve does have one additional input, 
-relative to MESolve. This property is called "time_sense," for time sensitivity,
+relative to MESolve. This property is the relative secular approximation,
 which allows for the secular approximation used in the Lindblad equation to 
 be relaxed. This is in contrast to FMMESolve, which uses the most restrictive 
-form of the secular approximation. The value of time sensitivity goes as
+form of the secular approximation. The value of relative secular approximation goes as
 
 .. math::
     time sensitivity = (\omega_{1}-\omega_{2})/(S_{1}\S_{2})
@@ -368,14 +368,15 @@ form of the secular approximation. The value of time sensitivity goes as
 where :math:'\omega_{n},S_{n}' are the rotation frequency and rate of the 
 :math:'n^th' index of the Fourier-decomposed system operators in the Lindblad
 equation. Essentially, this value compares the rotation rate of a term in the
-master equation to how quickly that component affects the system. Large values
-mean that the component rotates quickly, relative to its contribution to the 
+master equation to the strength with which that component affects the system. 
+Large values mean that the component rotates quickly, relative to its contribution to the 
 system motion, so that overall the movement averages out on larger timescales.
 Smaller values have the converse meaning, such that overall the quotient can be
-understood to be a sort of "negligibility factor," with higher values being
-more negligible. The value of "time_sense" sets the value above which terms
-will be ignored. The default value of this input is zero, but if it can be
-to arbitrary limits to more accurately recover the behavior of MESolve.
+understood to be a  "negligibility factor," with higher values being
+more negligible. The value of the relative secular approximation sets the value 
+above which terms will be ignored. The default value of this input is zero, but 
+it can be set to higher values to more accurately recover the behavior of a 
+system.
 
 .. plot:: guide/scripts/floquet_ex5.py
    :width: 4.0in
