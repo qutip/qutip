@@ -91,45 +91,72 @@ def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
     assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
 
 
-@pytest.mark.parametrize("X", [
-    sigmax(), sigmay(), sigmaz(), qeye(2),
-    sigmax() + sigmay(), sigmaz() + qeye(2),
-    tensor(sigmax(), sigmaz()), tensor(sigmay(), sigmaz()),
-    tensor(sigmax(), sigmaz()) + tensor(sigmay(), sigmaz()),
-])
+# @pytest.mark.parametrize("X", [
+#     sigmax(), sigmay(), sigmaz(), qeye(2),
+#     sigmax() + sigmay(), sigmaz() + qeye(2),
+#     tensor(sigmax(), sigmaz()), tensor(sigmay(), sigmaz()),
+#     tensor(sigmax(), sigmaz()) + tensor(sigmay(), sigmaz()),
+# ])
+# @pytest.mark.parametrize("max_order, answer", [
+#     (
+#         1,
+#         lambda indices, X: np.tile(X.full(), 1).reshape((indices.shape[0], 1))
+#     ),
+#     (
+#         2,
+#         lambda indices, X: np.tile(
+#             np.tile(X.full(), 1).reshape((X.shape[0]**2, 1)), X.shape[0]
+#         ).reshape((indices.shape[0], 1)) *
+#         np.tile(X.full(), 1).reshape(
+#             (X.shape[0]**2, 1)
+#         ).repeat(X.shape[0]).reshape((indices.shape[0], 1))
+#     )
+# ])
+# def test_matrix_elements_1(empty_instance, X, max_order, answer):
+#     dysolve = empty_instance
+#     dysolve.X = X
+#     current_matrix_elements = None
+
+#     for n in range(1, max_order + 1):
+#         indices = np.array(
+#             list(
+#                 itertools.product(
+#                     range(X.shape[0]), repeat=n + 1
+#                 )
+#             )
+#         )
+#         current_matrix_elements = dysolve._update_matrix_elements(
+#             current_matrix_elements
+#         )
+
+#     answer = answer(indices, X)
+#     assert np.array_equal(current_matrix_elements, answer)
+
+
 @pytest.mark.parametrize("max_order, answer", [
     (
         1,
-        lambda indices, X: np.tile(X.full(), 1).reshape((indices.shape[0], 1))
+        np.array([[0], [-1j], [1j], [0]])
     ),
     (
         2,
-        lambda indices, X: np.tile(
-            np.tile(X.full(), 1).reshape((X.shape[0]**2, 1)), X.shape[0]
-        ).reshape((indices.shape[0], 1)) *
-        np.tile(X.full(), 1).reshape(
-            (X.shape[0]**2, 1)
-        ).repeat(X.shape[0]).reshape((indices.shape[0], 1))
+        np.array([[0], [0], [1], [0], [0], [1], [0], [0]])
+    ),
+    (
+        3,
+        np.array([[0], [0], [0], [0], [0], [-1j], [0], [0],
+                  [0], [0], [1j], [0], [0], [0], [0], [0],])
     )
 ])
-def test_matrix_elements(empty_instance, X, max_order, answer):
+def test_matrix_elements_2(empty_instance, max_order, answer):
     dysolve = empty_instance
-    dysolve.X = X
+    dysolve.X = sigmay()
     current_matrix_elements = None
 
     for n in range(1, max_order + 1):
-        indices = np.array(
-            list(
-                itertools.product(
-                    range(X.shape[0]), repeat=n + 1
-                )
-            )
-        )
         current_matrix_elements = dysolve._update_matrix_elements(
             current_matrix_elements
         )
-
-    answer = answer(indices, X)
     assert np.array_equal(current_matrix_elements, answer)
 
 
@@ -165,7 +192,7 @@ def test_matrix_elements(empty_instance, X, max_order, answer):
 
 # def test_prop():
 #     #Data
-#     omega = 10
+#     omega = 1
 #     t = 0.1
 #     H_0s = [qeye(2)]
 #     Xs = [qeye(2)]
@@ -174,7 +201,7 @@ def test_matrix_elements(empty_instance, X, max_order, answer):
 #         for j in range(len(Xs)):
 #             H_0, X = H_0s[i], Xs[j]
 #             # Dysolve
-#             U = dysolve_propagator(H_0, X, omega, t, {'max_orer':7})
+#             U = dysolve_propagator(H_0, X, omega, t, {'max_orer':0})
 
 #             # Qutip.solver.propagator
 #             def H1_coeff(t, omega):

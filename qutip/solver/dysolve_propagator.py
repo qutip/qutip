@@ -231,7 +231,8 @@ class DysolvePropagator:
             init_shape = current.shape[0]
             a = np.tile(current, shape).reshape(
                 (init_shape*shape, 1))
-            b = current.repeat(shape).reshape((init_shape*shape, 1))
+            b = np.tile(current, (shape, 1))
+            # b = current.repeat(shape).reshape((init_shape*shape, 1))
             return a * b
 
     def _compute_Sns(self) -> dict:
@@ -290,8 +291,8 @@ class DysolvePropagator:
                     ket_bra_indices = indices[:, [0, -1]]
 
                     k = 0
-                    for idx in ket_bra_indices:
-                        Sn[i, idx[1], idx[0]] += x[k][0]
+                    for row in range(ket_bra_indices.shape[0]):
+                        Sn[i, ket_bra_indices[row, 1], ket_bra_indices[row, 1]] += x[k][0]
                         k += 1
 
                     Sn[i] *= (-1j / 2) ** n
