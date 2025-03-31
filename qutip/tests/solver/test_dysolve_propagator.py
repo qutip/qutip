@@ -91,73 +91,99 @@ def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
     assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
 
 
-# @pytest.mark.parametrize("X", [
-#     sigmax(), sigmay(), sigmaz(), qeye(2),
-#     sigmax() + sigmay(), sigmaz() + qeye(2),
-#     tensor(sigmax(), sigmaz()), tensor(sigmay(), sigmaz()),
-#     tensor(sigmax(), sigmaz()) + tensor(sigmay(), sigmaz()),
-# ])
-# @pytest.mark.parametrize("max_order, answer", [
-#     (
-#         1,
-#         lambda indices, X: np.tile(X.full(), 1).reshape((indices.shape[0], 1))
-#     ),
-#     (
-#         2,
-#         lambda indices, X: np.tile(
-#             np.tile(X.full(), 1).reshape((X.shape[0]**2, 1)), X.shape[0]
-#         ).reshape((indices.shape[0], 1)) *
-#         np.tile(X.full(), 1).reshape(
-#             (X.shape[0]**2, 1)
-#         ).repeat(X.shape[0]).reshape((indices.shape[0], 1))
-#     )
-# ])
-# def test_matrix_elements_1(empty_instance, X, max_order, answer):
-#     dysolve = empty_instance
-#     dysolve.X = X
-#     current_matrix_elements = None
-
-#     for n in range(1, max_order + 1):
-#         indices = np.array(
-#             list(
-#                 itertools.product(
-#                     range(X.shape[0]), repeat=n + 1
-#                 )
-#             )
-#         )
-#         current_matrix_elements = dysolve._update_matrix_elements(
-#             current_matrix_elements
-#         )
-
-#     answer = answer(indices, X)
-#     assert np.array_equal(current_matrix_elements, answer)
-
-
-@pytest.mark.parametrize("max_order, answer", [
+@pytest.mark.parametrize("max_order, X, answer", [
     (
         1,
+        sigmay(),
         np.array([[0], [-1j], [1j], [0]])
     ),
     (
         2,
+        sigmay(),
         np.array([[0], [0], [1], [0], [0], [1], [0], [0]])
     ),
     (
         3,
+        sigmay(),
         np.array([[0], [0], [0], [0], [0], [-1j], [0], [0],
-                  [0], [0], [1j], [0], [0], [0], [0], [0],])
+                  [0], [0], [1j], [0], [0], [0], [0], [0]])
+    ),
+    (
+        1,
+        sigmax(),
+        np.array([[0], [1], [1], [0]])
+    ),
+    (
+        2,
+        sigmax(),
+        np.array([[0], [0], [1], [0], [0], [1], [0], [0]])
+    ),
+    (
+        3,
+        sigmax(),
+        np.array([[0], [0], [0], [0], [0], [1], [0], [0],
+                  [0], [0], [1], [0], [0], [0], [0], [0]])
+    ),
+    (
+        1,
+        sigmaz(),
+        np.array([[1], [0], [0], [-1]])
+    ),
+    (
+        2,
+        sigmaz(),
+        np.array([[1], [0], [0], [0], [0], [0], [0], [1]])
+    ),
+    (
+        3,
+        sigmaz(),
+        np.array([[1], [0], [0], [0], [0], [0], [0], [0],
+                  [0], [0], [0], [0], [0], [0], [0], [-1]])
+    ),
+    (
+        1,
+        qeye(2),
+        np.array([[1], [0], [0], [1]])
+    ),
+    (
+        2,
+        qeye(2),
+        np.array([[1], [0], [0], [0], [0], [0], [0], [1]])
+    ),
+    (
+        3,
+        qeye(2),
+        np.array([[1], [0], [0], [0], [0], [0], [0], [0],
+                  [0], [0], [0], [0], [0], [0], [0], [1]])
+    ),
+    (
+        1,
+        qeye(3),
+        np.array([[1], [0], [0], [0], [1], [0], [0], [0], [1]])
+    ),
+    (
+        2,
+        qeye(3),
+        np.array([[1], [0], [0], [0], [0], [0], [0], [0], [0],
+                  [0], [0], [0], [0], [1], [0], [0], [0], [0],
+                  [0], [0], [0], [0], [0], [0], [0], [0], [1]])
     )
 ])
-def test_matrix_elements_2(empty_instance, max_order, answer):
+def test_matrix_elements_2(empty_instance, max_order, X, answer):
     dysolve = empty_instance
-    dysolve.X = sigmay()
+    dysolve.X = X
     current_matrix_elements = None
 
-    for n in range(1, max_order + 1):
+    for _ in range(1, max_order + 1):
         current_matrix_elements = dysolve._update_matrix_elements(
             current_matrix_elements
         )
     assert np.array_equal(current_matrix_elements, answer)
+
+
+# @pytest.mark.parametrize()
+# def test_order_zero():
+#     pass
 
 
 # def test_number_of_propagators():
@@ -189,35 +215,6 @@ def test_matrix_elements_2(empty_instance, max_order, answer):
 #         U_1 = dysolve_1(0, 1)
 #         assert (dysolve_1.H_0.dims == dysolve_1.X.dims == U_1.dims)
 
-
-# def test_prop():
-#     #Data
-#     omega = 1
-#     t = 0.1
-#     H_0s = [qeye(2)]
-#     Xs = [qeye(2)]
-
-#     for i in range(len(H_0s)):
-#         for j in range(len(Xs)):
-#             H_0, X = H_0s[i], Xs[j]
-#             # Dysolve
-#             U = dysolve_propagator(H_0, X, omega, t, {'max_orer':0})
-
-#             # Qutip.solver.propagator
-#             def H1_coeff(t, omega):
-#                 return np.cos(omega * t)
-
-#             basis = H_0.eigenstates()[1]
-
-#             H = [H_0, [X, H1_coeff]]
-#             args = {'omega': omega}
-#             prop = propagator(
-#                 H, t, args=args, options={"atol": 1e-10, "rtol": 1e-8}
-#             )
-
-
-#             with CoreOptions(atol=1e-8, rtol=1e-8):
-#                 assert U == prop, (i,j)
 
 # #@pytest.mark.xfail()
 # def test_2x2_propagators_single_time():

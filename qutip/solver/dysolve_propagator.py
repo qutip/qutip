@@ -225,14 +225,14 @@ class DysolvePropagator:
             The new matrix elements for the order n.
         """
         shape = self.X.shape[0]
+        elems = self.X.full().reshape((shape**2, 1))
         if current is None:
-            return self.X.full().reshape((shape**2, 1))
+            return elems
         else:
-            init_shape = current.shape[0]
-            a = np.tile(current, shape).reshape(
-                (init_shape*shape, 1))
+            a = np.tile(elems, current.shape[0]//shape).reshape(
+                (current.shape[0]*shape, 1)
+            )
             b = np.tile(current, (shape, 1))
-            # b = current.repeat(shape).reshape((init_shape*shape, 1))
             return a * b
 
     def _compute_Sns(self) -> dict:
@@ -250,55 +250,55 @@ class DysolvePropagator:
         exp_H_0 = (-1j*self.dt*self.H_0).expm()
         current_matrix_elements = None
 
-        for n in range(self.max_order + 1):
-            if n == 0:
-                Sns[0] = exp_H_0
-            else:
-                omega_vectors = np.array(
-                    list(
-                        itertools.product([self.omega, -self.omega], repeat=n)
-                    )
+        Sns[0] = exp_H_0
+
+        for n in range(1, self.max_order + 1):
+            omega_vectors = np.array(
+                list(
+                    itertools.product([self.omega, -self.omega], repeat=n)
                 )
-                lambdas = np.array(
-                    list(
-                        itertools.product(self.eigenenergies, repeat=n + 1)
-                    )
+            )
+            lambdas = np.array(
+                list(
+                    itertools.product(self.eigenenergies, repeat=n + 1)
                 )
-                diff_lambdas = np.diff(lambdas)
-                indices = np.array(
-                    list(
-                        itertools.product(range(length), repeat=n + 1)
-                    )
+            )
+            diff_lambdas = np.diff(lambdas)
+            indices = np.array(
+                list(
+                    itertools.product(range(length), repeat=n + 1)
                 )
-                Sn = np.zeros((len(omega_vectors), length, length),
-                              dtype=np.complex128
-                              )
+            )
+            Sn = np.zeros((len(omega_vectors), length, length),
+                          dtype=np.complex128
+                          )
 
-                # Compute matrix elements
-                current_matrix_elements = self._update_matrix_elements(
-                    current_matrix_elements
-                )
+            # Compute matrix elements
+            current_matrix_elements = self._update_matrix_elements(
+                current_matrix_elements
+            )
 
-                for i, omega_vector in enumerate(omega_vectors):
-                    # Compute integrals
-                    ls_ws = omega_vector + diff_lambdas
-                    integrals = np.zeros(
-                        (ls_ws.shape[0], ls_ws.shape[1]), dtype=np.complex128)
-                    for j, ws in enumerate(ls_ws):
-                        integrals[j] = self._compute_integrals(ws)
+            for i, omega_vector in enumerate(omega_vectors):
+                # Compute integrals
+                ls_ws = omega_vector + diff_lambdas
+                integrals = np.zeros(
+                    (ls_ws.shape[0], ls_ws.shape[1]), dtype=np.complex128)
+                for j, ws in enumerate(ls_ws):
+                    integrals[j] = self._compute_integrals(ws)
 
-                    x = integrals * current_matrix_elements
-                    ket_bra_indices = indices[:, [0, -1]]
+                x = integrals * current_matrix_elements
+                ket_bra_indices = indices[:, [0, -1]]
 
-                    k = 0
-                    for row in range(ket_bra_indices.shape[0]):
-                        Sn[i, ket_bra_indices[row, 1], ket_bra_indices[row, 1]] += x[k][0]
-                        k += 1
+                k = 0
+                for row in range(ket_bra_indices.shape[0]):
+                    Sn[i, ket_bra_indices[row, 1],
+                        ket_bra_indices[row, 1]] += x[k][0]
+                    k += 1
 
-                    Sn[i] *= (-1j / 2) ** n
-                    Sn[i] = exp_H_0.full() @ Sn[i]
+                Sn[i] *= (-1j / 2) ** n
+                Sn[i] = exp_H_0.full() @ Sn[i]
 
-                Sns[n] = Sn
+            Sns[n] = Sn
 
         return Sns
 
