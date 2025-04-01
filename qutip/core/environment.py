@@ -1758,7 +1758,7 @@ class OhmicEnvironment(BosonicEnvironment):
                 dtype=np.cdouble
             )
         else:
-            corr = (self.alpha * self.wc**(2*self.s + 1) / np.pi
+            corr = (self.alpha * self.wc**(self.s + 1) / np.pi
                     * mp.gamma(self.s + 1)
                     * (1 + 1j * self.wc * t) ** (-self.s - 1))
             result = np.asarray(corr, dtype=np.cdouble)
