@@ -4,8 +4,6 @@ __all__ = [
 ]
 
 import numpy as np
-from collections import defaultdict
-from itertools import product
 from qutip.core import data as _data
 from qutip import Qobj, QobjEvo, operator_to_vector
 from qutip.solver.mesolve import MESolver
@@ -17,10 +15,6 @@ from qutip.solver.floquet import fsesolve, FloquetBasis
 
 from qutip.core.environment import (
     BosonicEnvironment,
-    OhmicEnvironment,
-    DrudeLorentzEnvironment,
-    UnderDampedEnvironment,
-    ExponentialBosonicEnvironment,
 )
 
 
@@ -42,7 +36,6 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
         collapse operators in the Floquet basis, used to calculate the rate
         matrices
 
-    NOTE FOR ME: The frequency values iterate over [0,1...Nt/2-1,-Nt/2...-1]
     """
     # Transforming the lowering operator into the Floquet Basis
     #     and taking the FFT
@@ -85,7 +78,9 @@ def _floquet_rate_matrix(
         i.e. the changes average out on "longer" time scales.
     power_spectrum : list of functions
         The power spectra of the autocorrelation function(s) as a function of
-        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
+        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}, 
+        supplied as either a list of callable power spectrum functions, as
+        a list of BosonicEnvironment objects, or some combination thereof.
 
     Returns
     -------
@@ -144,8 +139,6 @@ def _floquet_rate_matrix(
         Finding all terms that are either DC or that are "important" enough
             to include as decided by the Relative Secular Approximation
         """
-
-        time_start = time()
         xx, yy, zz = np.array(c_op_Fourier_amplitudes_list).nonzero()
         xx = np.array(xx) - int(Nt / 2)
 
@@ -171,11 +164,10 @@ def _floquet_rate_matrix(
                     <= relative_secular_cutoff
                 ):
                     valid_indices.append(ordered_idx)
-        time_end = time() - time_start
 
         """
-        Grouping together the valid indices found by the relative_secular_cutoff according to their
-            frequency values
+        Grouping together the valid indices found by the 
+            relative_secular_cutoff according to their frequency values
         """
         delta_dict = {}
         for indices in valid_indices:
@@ -190,13 +182,9 @@ def _floquet_rate_matrix(
         """
         for key in delta_dict.keys():
             valid_c_op_prods_list = [indices for indices in delta_dict[key]]
-            # using c = ap, d = bp, k=lp
             flime_FirstTerm = []
             flime_SecondTerm = []
-            flime_ThirdTerm = []
-            flime_FourthTerm = []
             dummy_matrix = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
-            # for indices in test_list
             for indices in valid_c_op_prods_list:
                 a = indices[0]
                 b = indices[1]
@@ -221,49 +209,23 @@ def _floquet_rate_matrix(
                     p = matrix_it.multi_index[2]
                     q = matrix_it.multi_index[3]
 
+                    t1 = (b == p) * (q == bp) * (m == a) * (ap == n)
+                    t2 = (m == bp) * (q == n) * (ap == a) * (b == p)
+                    t3 = t1
+                    t4 = (q == bp) * (ap == a) * (m == p) * (b == n)
+
                     flime_FirstTerm.append(
-                        gam_plus
-                        * c_prods
-                        * kron(b, p)
-                        * kron(q, bp)
-                        * kron(m, a)
-                        * kron(ap, n)
+                        gam_plus * c_prods * (t1 ^ t2) * (1 - 2 * t2)
                     )
 
                     flime_SecondTerm.append(
-                        gam_minus_prime
-                        * c_prods
-                        * kron(b, p)
-                        * kron(q, bp)
-                        * kron(m, a)
-                        * kron(ap, n)
-                    )
-
-                    flime_ThirdTerm.append(
-                        gam_plus
-                        * c_prods
-                        * kron(m, bp)
-                        * kron(q, n)
-                        * kron(ap, a)
-                        * kron(b, p)
-                    )
-
-                    flime_FourthTerm.append(
-                        gam_minus_prime
-                        * c_prods
-                        * kron(q, bp)
-                        * kron(ap, a)
-                        * kron(m, p)
-                        * kron(b, n)
+                        gam_minus_prime * c_prods * (t3 ^ t4) * (1 - 2 * t4)
                     )
 
             try:
                 total_R_tensor[key] += (1 / 2) * np.sum(
                     np.reshape(
-                        np.subtract(
-                            np.add(flime_FirstTerm, flime_SecondTerm),
-                            np.add(flime_ThirdTerm, flime_FourthTerm),
-                        ),
+                        np.add(flime_FirstTerm, flime_SecondTerm),
                         (len(valid_c_op_prods_list), Hdim**2, Hdim**2),
                     ),
                     axis=0,
@@ -271,10 +233,7 @@ def _floquet_rate_matrix(
             except KeyError:
                 total_R_tensor[key] = (1 / 2) * np.sum(
                     np.reshape(
-                        np.subtract(
-                            np.add(flime_FirstTerm, flime_SecondTerm),
-                            np.add(flime_ThirdTerm, flime_FourthTerm),
-                        ),
+                        np.add(flime_FirstTerm, flime_SecondTerm),
                         (len(valid_c_op_prods_list), Hdim**2, Hdim**2),
                     ),
                     axis=0,
@@ -315,7 +274,10 @@ def flimesolve(
         The period of the time-dependence of the hamiltonian.
 
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
-        Single collapse operator, or list of collapse operators
+        Single collapse operator, or list of collapse operators, or
+        list of [collapse operator, power spectrum function] pairs, or
+        list of [collapse operator, BosonicEnvironment] pairs, or
+        some combination of the three options.
 
     e_ops : list of :class:`qutip.Qobj` / callback function
         List of operators for which to evaluate expectation values.
@@ -330,10 +292,6 @@ def flimesolve(
         strict secular approximation, and values greater than zero have time
         dependence. The default integration method change depending
         on this value, "diag" for `0`, "adams" otherwise.
-
-    power_spectra : function
-        The power spectra of the autocorrelation functions as a function of
-        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
 
     options : None / dict
         Dictionary of options for the solver.
@@ -519,11 +477,10 @@ class FLiMESolver(MESolver):
              Hamiltonian
 
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format)
-        Single collapse operator, or list of collapse operators
-
-    power_spectrum : function
-        The power spectrum of the autocorrelation function as a function of
-        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}
+        Single collapse operator, or list of collapse operators, or
+        list of [collapse operator, power spectrum function] pairs, or
+        list of [collapse operator, BosonicEnvironment] pairs, or
+        some combination of the three options.
 
     relative_secular_cutoff : float
         Value of the relative secular approximation to use when constructing the rate
@@ -837,7 +794,6 @@ class FLiMESolver(MESolver):
             np.transpose(fstates_table.conj(), axes=(0, 2, 1)),
             order="F",
         )
-        # stats["run time3"] = time() - _time_start
         dims = self.floquet_basis.U(0)._dims
         sols_comp = [
             Qobj(
@@ -847,7 +803,6 @@ class FLiMESolver(MESolver):
             )
             for state in sols_comp_arr
         ]
-        # stats["run time2"] = time() - _time_start
         for idx, state in enumerate(sols_comp):
             results.add(
                 tlist[idx], state, Qobj(fstates_table[idx], copy=False)

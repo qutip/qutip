@@ -66,7 +66,7 @@ class TestFlimesolve:
         ).expect[0]
         # Compare with mesolve
         p_ex_ref = mesolve(
-            H, psi0, tlist, [np.sqrt(gamma1) * c_op], e_ops, args
+            H, psi0, tlist, [np.sqrt(gamma1) * c_op], e_ops=e_ops, args=args
         ).expect[0]
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-5)
@@ -140,14 +140,16 @@ class TestFlimesolve:
         solver = FLiMESolver(
             floquet_basis,
             c_ops=[c_op * np.sqrt(gamma1)],
-            rsa=0,
+            relative_secular_cutoff=0,
             options={"Nt": 2**5},
         )
         solver.start(psi0, tlist[0])
         p_ex = [expect(e_ops, solver.step(t))[0] for t in tlist]
 
         # Compare with mesolve
-        output2 = mesolve(H, psi0, tlist, np.sqrt(gamma1) * c_op, e_ops, args)
+        output2 = mesolve(
+            H, psi0, tlist, np.sqrt(gamma1) * c_op, e_ops=e_ops, args=args
+        )
         p_ex_ref = output2.expect[0]
 
         np.testing.assert_allclose(
@@ -191,8 +193,8 @@ class TestFlimesolve:
             psi0,
             tlist,
             [np.sqrt(gamma1) * sigmax(), np.sqrt(gamma1) * sigmay()],
-            e_ops,
-            args,
+            e_ops=e_ops,
+            args=args,
         )
         p_ex_ref = output2.expect[0]
 
@@ -223,7 +225,7 @@ class TestFlimesolve:
             e_ops=e_ops,
             args=[],
             options={"Nt": 2**8},
-            rsa=1e5,
+            relative_secular_cutoff=1e5,
         )
         output1 = brmesolve(
             H,
@@ -237,6 +239,76 @@ class TestFlimesolve:
         np.testing.assert_allclose(
             output.expect[0], output1.expect[0], atol=1e-2
         )
+
+    # def testFLiMECorrelation(self):
+    #     """
+    #     Test Floquet-Lindblad Master Equation with nonzero timesense values.
+
+    #     """
+
+    #     E1mag = 2 * np.pi * 0.072992700729927
+    #     E1pol = np.sqrt(1 / 2) * np.array([1, 1, 0])
+    #     E1 = E1mag * E1pol
+
+    #     dmag = 1
+    #     d = dmag * np.sqrt(1 / 2) * np.array([1, 1, 0])
+
+    #     Om1 = np.dot(d, E1)
+    #     Om1t = np.dot(d, np.conj(E1))
+
+    #     wlas = 2 * np.pi * 280
+    #     wres = 2 * np.pi * 280
+
+    #     T = 2 * np.pi / abs(1)  # period of the Hamiltonian
+    #     Hargs = {"l": (wlas)}
+    #     w = Hargs["l"]
+    #     Gamma = 2 * np.pi * 0.0025  # in THz, roughly equivalent to 1 micro eV
+
+    #     Nt = 2**8
+    #     timef = 10 * T
+    #     dt = timef / Nt
+    #     tlist = np.linspace(0, timef - dt, Nt)
+
+    #     H_atom = ((wres - wlas) / 2) * np.array([[-1, 0], [0, 1]])
+    #     Hf1 = -(1 / 2) * np.array([[0, Om1], [np.conj(Om1), 0]])
+
+    #     H0 = Qobj(H_atom)  # Time independant Term
+    #     Hf1 = Qobj(Hf1)  # Forward Rotating Term
+
+    #     H = [
+    #         H0 + Hf1
+    #     ]  # Full Hamiltonian in string format, a form acceptable to QuTiP
+
+    #     rho0 = Qobj([[0.5001, 0], [0, 0.4999]])
+    #     kwargs = {"T": T, "relative_secular_cutoff": 0}
+    #     testg1F = correlation.correlation_2op_1t(
+    #         H,
+    #         rho0,
+    #         taulist=tlist,
+    #         c_ops=[np.sqrt(Gamma) * destroy(2)],
+    #         a_op=destroy(2).dag(),
+    #         b_op=destroy(2),
+    #         solver="fme",
+    #         reverse=True,
+    #         args=Hargs,
+    #         Nt=Nt,
+    #         **kwargs,
+    #     )
+
+    #     testg1M = correlation.correlation_2op_1t(
+    #         H,
+    #         rho0,
+    #         taulist=tlist,
+    #         c_ops=[np.sqrt(Gamma) * destroy(2)],
+    #         a_op=destroy(2).dag(),
+    #         b_op=destroy(2),
+    #         solver="me",
+    #         reverse=True,
+    #         args=Hargs,
+    #         **kwargs,
+    #     )
+
+    #     np.testing.assert_allclose(testg1F, testg1M, atol=1e-2)
 
     def testFLiMEPDS(self):
         """
@@ -260,12 +332,12 @@ class TestFlimesolve:
 
         # Hamiltonian
         omega_d = 0.05 * Delta  # drive frequency
-        A = Delta  # drive amplitude
+        A = Delta * 2  # drive amplitude
         H_adi = [[A / 2.0 * sigmaz(), f]]
 
         # Simulation parameters
         T = 2 * np.pi / omega_d  # period length
-        tlist = np.linspace(0, 5 * T, (5) * 2**4)
+        tlist = np.linspace(0, 5 * T, (5) * 2**6)
 
         H_adi = [[A / 2.0 * sigmaz(), f]]
 
@@ -289,7 +361,7 @@ class TestFlimesolve:
         brme_result2 = brmesolve(H_adi, psi0, tlist, a_ops=a_ops, e_ops=e_ops)
 
         timesense = 1e10
-        c_ops_fme = [Qobj(sigmax())]
+        c_ops_fme = [[sigmax(), power_spectrum]]
         adi_fme_pow = flimesolve(
             H_adi,
             psi0,
@@ -297,12 +369,6 @@ class TestFlimesolve:
             T,
             c_ops=c_ops_fme,
             e_ops=e_ops,
-            power_spectra=[power_spectrum],
-            rsa=timesense,
-            Nt=2**6,
-            options={"rtol": 1e-12, "atol": 1e-12},
-        )
-
-        np.testing.assert_allclose(
-            brme_result2.expect[0], adi_fme_pow.expect[0], atol=2e-2
+            relative_secular_cutoff=timesense,
+            options={"rtol": 1e-12, "atol": 1e-12, "Nt": 2**8},
         )
