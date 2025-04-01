@@ -640,7 +640,7 @@ def aaa(func: Callable[..., complex] | ArrayLike, z: ArrayLike,
         cauchy = _compute_cauchy_matrix(z, support_points)
         r = _get_rational_approx(cauchy, weights, values)
         return r.reshape(z.shape)
-    # Obtain poles residies and zeros
+    # Obtain poles residues and zeros
     pol, res, zer = _prz(support_points, values, weights)
     rmse = _rmse(r(z), z, func, None)
 

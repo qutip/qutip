@@ -378,7 +378,6 @@ class BosonicEnvironment(abc.ABC):
                           tMax, tMax=wMax)
         result = result_fct(t) / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
-
     # --- fitting
 
     @overload
@@ -441,7 +440,7 @@ class BosonicEnvironment(abc.ABC):
         method: Literal['aaa'],
         wlist: ArrayLike,
         tol: float = 1e-13,
-        N_max: int = 10,
+        Nmax: int = 10,
         combine: bool = True,
         tag: Any = None
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
@@ -491,7 +490,7 @@ class BosonicEnvironment(abc.ABC):
             for key in dispatch:
                 error_string += f" - {dispatch[key][1]} ({key})\n"
             error_string += ("If unsure what fitting method to use, you should"
-                             " probably use ESPIRA-II, or Power Spectrum NLSQ."
+                             " probably use ESPIRA-I, or Power Spectrum NLSQ."
                              " For more information about the fitting methods,"
                              " see the Users Guide.")
             raise ValueError(error_string)
@@ -735,7 +734,7 @@ class BosonicEnvironment(abc.ABC):
         method: str,
         wlist: ArrayLike,
         tol: float = 1e-13,
-        N_max: int = 10,
+        Nmax: int = 10,
         combine: bool = True,
         tag: Any = None,
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
@@ -746,7 +745,7 @@ class BosonicEnvironment(abc.ABC):
         # The *2 is there because half the poles will be filtered out
         result = aaa(self.power_spectrum, wlist,
                      tol=tol,
-                     max_iter=N_max * 2)
+                     max_iter=Nmax * 2)
         end = time()
         pol = result['poles']
         res = result['residues']
@@ -771,7 +770,7 @@ class BosonicEnvironment(abc.ABC):
                   for i in range(len(ck))]
         summary = _fit_summary(
             fit_time, result['rmse'], N, "the power spectrum", params,
-            columns=['a', 'b', 'c', 'd']
+            columns=['ckr', 'cki', 'vkr', 'vki']
         )
         fitinfo = {
             "N": N, "fit_time": fit_time, "rmse": result['rmse'],
@@ -818,10 +817,10 @@ class BosonicEnvironment(abc.ABC):
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
-            params_real = [(ckAR[i].real, vkAR[i].real, vkAR[i].imag,
-                            ckAR[i].imag) for i in range(len(ckAR))]
-            params_imag = [(ckAI[i].real, vkAI[i].real, vkAI[i].imag,
-                            ckAI[i].imag) for i in range(len(ckAI))]
+            params_real = [(ckAR[i].real, ckAR[i].imag, vkAR[i].real,
+                            vkAR[i].imag) for i in range(len(ckAR))]
+            params_imag = [(ckAI[i].real, ckAI[i].imag, vkAI[i].real,
+                            vkAI[i].imag) for i in range(len(ckAI))]
             fit_time_real = end_real-start_real
             fit_time_imag = end_imag-start_imag
             full_summary = _cf_fit_summary(
@@ -847,14 +846,14 @@ class BosonicEnvironment(abc.ABC):
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
-            params_real = [(ckAR[i].real, ckAI[i].real, ckAI[i].imag,
-                            ckAR[i].imag) for i in range(len(amp))]
+            params_real = [(ck[i].real, ck[i].imag, vk[i].real,
+                            vk[i].imag) for i in range(len(amp))]
             fit_time_real = end_real-start_real
             full_summary = _fit_summary(fit_time_real, rmse_real, Nr,
                                         "Correlation Function", params_real,
-                                        columns=['a', 'b', 'c', 'd'])
+                                        columns=['ckr', 'cki', 'vkr', 'vki'])
             fit_info = {"N": Nr, "fit_time": fit_time_real,
-                        "rmse": rmse_real, "params_real": params_real,
+                        "rmse": rmse_real, "params": params_real,
                         "summary": full_summary}
         return cls, fit_info
 
@@ -1150,7 +1149,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         method: Literal['aaa'],
         wlist: ArrayLike,
         tol: float = 1e-13,
-        N_max: int = 10,
+        Nmax: int = 10,
         combine: bool = True,
         tag: Any = None
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
@@ -1524,7 +1523,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
         method: Literal['aaa'],
         wlist: ArrayLike,
         tol: float = 1e-13,
-        N_max: int = 10,
+        Nmax: int = 10,
         combine: bool = True,
         tag: Any = None
     ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
@@ -1759,7 +1758,7 @@ class OhmicEnvironment(BosonicEnvironment):
                 dtype=np.cdouble
             )
         else:
-            corr = (self.alpha * self.wc**(self.s + 1) / np.pi
+            corr = (self.alpha * self.wc**(2*self.s + 1) / np.pi
                     * mp.gamma(self.s + 1)
                     * (1 + 1j * self.wc * t) ** (-self.s - 1))
             result = np.asarray(corr, dtype=np.cdouble)
@@ -2102,7 +2101,21 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         """
 
         return self._sd_from_ps(w)
+    def rescale(self,alpha):
+        """
+        It multiplies ck times alpha, rescaling the spectral density, correlation
+        function and power spectrum
 
+        Parameters
+        ----------
+        alpha :  float
+            rescaling parameter.
+        """
+        exp_orig=self.exponents
+        for i in exp_orig:
+            i.ck*=alpha
+            i.ck2*=alpha
+        self.exponents=exp_orig
 
 def system_terminator(Q: Qobj, delta: float) -> Qobj:
     """
@@ -2330,9 +2343,9 @@ def _cf_fit_summary(
     rmse_real, rmse_imag, n=3
 ):
     # Generate nicely formatted summary with two columns for CF fit
-    columns = ["a", "b", "c"]
+    columns = ["ckr", "vkr", "vki"]
     if n == 4:
-        columns.append("d")
+        columns.append("cki")
     summary_real = _fit_summary(
         fit_time_real, rmse_real, Nr,
         "the real part of\nthe correlation function",

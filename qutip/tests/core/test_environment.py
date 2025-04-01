@@ -645,6 +645,18 @@ class TestBosonicEnvironment:
         assert_equivalent(
             fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
         )
+        if separate:
+            assert info["Nr"] == N
+            assert info["rmse_real"] < tol
+            assert info["rmse_imag"] < tol
+            for key in ["fit_time_real", "params_real",
+                        "fit_time_imag", "params_imag", "summary"]:
+                assert key in info
+        else:
+            assert info["N"] == N
+            assert info["rmse"] < tol
+            for key in ["fit_time", "params", "summary"]:
+                assert key in info
 
     @pytest.mark.parametrize(["reference", "tMax", "N", "tol"], [
         pytest.param(OhmicReference(3, .75, 10, 1),
@@ -666,6 +678,18 @@ class TestBosonicEnvironment:
         assert_equivalent(
             fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
         )
+        if separate:
+            assert info["Nr"] == N
+            assert info["rmse_real"] < tol
+            assert info["rmse_imag"] < tol
+            for key in ["fit_time_real", "params_real",
+                        "fit_time_imag", "params_imag", "summary"]:
+                assert key in info
+        else:
+            assert info["N"] == N
+            assert info["rmse"] < tol
+            for key in ["fit_time", "params", "summary"]:
+                assert key in info
 
     @pytest.mark.parametrize(["reference", "tMax", "N", "tol"], [
         pytest.param(OhmicReference(3, .75, 10, 1),
@@ -688,7 +712,18 @@ class TestBosonicEnvironment:
         assert_equivalent(
             fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
         )
-
+        if separate:
+            assert info["Nr"] == N
+            assert info["rmse_real"] < tol
+            assert info["rmse_imag"] < tol
+            for key in ["fit_time_real", "params_real",
+                        "fit_time_imag", "params_imag", "summary"]:
+                assert key in info
+        else:
+            assert info["N"] == N
+            assert info["rmse"] < tol
+            for key in ["fit_time", "params", "summary"]:
+                assert key in info
     @pytest.mark.parametrize(["reference", "tMax", "N", "tol"], [
         pytest.param(OhmicReference(3, .75, 10, 1),
                      15, 8, 1e-3, id="Ohmic Example"),
@@ -700,6 +735,9 @@ class TestBosonicEnvironment:
             reference.correlation_function, tag="test"
         )
         tlist = np.linspace(0, tMax, 250)
+        if not separate:
+            N=2*N + 1 # More exponents needed when fitting 
+            # the complex signal compared to the other methods
         fit, info = env.approximate("espira-II",
                                     tlist, Nr=N, Ni=N, separate=separate
                                     )
@@ -710,26 +748,60 @@ class TestBosonicEnvironment:
         assert_equivalent(
             fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
         )
-
+        if separate:
+            assert info["Nr"] == N
+            assert info["rmse_real"] < tol
+            assert info["rmse_imag"] < tol
+            for key in ["fit_time_real", "params_real",
+                        "fit_time_imag", "params_imag", "summary"]:
+                assert key in info
+        else:
+            assert info["N"] == N
+            assert info["rmse"] < tol
+            for key in ["fit_time", "params", "summary"]:
+                assert key in info
     @pytest.mark.parametrize(["reference", "wMax", "tol"], [
-        pytest.param(OhmicReference(3, .75, 10, 1), 15, .2, id="DL Example"),
+        pytest.param(OhmicReference(3, .75, 10, 1), 15, .2, id="Ohmic Example"),
         pytest.param(UDReference(1, .5, .1, 1), 2, 1e-4, id='UD Example'),
     ])
     def test_fixed_aaa_fit(self, reference, wMax, tol):
         env = BosonicEnvironment.from_spectral_density(
             reference.spectral_density, T=reference.T, tag="test"
         )
-        wlist = np.linspace(-wMax, wMax, 100)
-        fit, info = env.approximate("aaa", wlist)
+        wlist = np.linspace(-wMax, wMax, 200)
+        fit, info = env.approximate("aaa", wlist,Nmax=12)
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
         assert fit.tag == ("test", "AAA Fit")
         assert_equivalent(
-            fit, env, tol=tol, skip_cf=True, skip_ps=True, wMax=wMax
+            fit, env, tol=tol, skip_cf=True, wMax=wMax
         )
+        assert info["N"] <= 12
+        assert info["rmse"] < tol
+        for key in ["fit_time", "params", "summary"]:
+            assert key in info
+    @pytest.mark.parametrize(["reference", "wMax", "tol"], [
+        pytest.param(OhmicReference(3, .75, 10, 1), 15, .2, id="DL Example"),
+        pytest.param(UDReference(1, .5, .1, 1), 2, 1e-4, id='UD Example'),
+    ])
+    def test_fixed_ps_fit(self, reference, wMax, tol):
+        env = BosonicEnvironment.from_spectral_density(
+            reference.spectral_density, T=reference.T, tag="test"
+        )
+        wlist = np.linspace(-wMax, wMax, 200)
+        fit, info = env.approximate("ps", wlist,Nmax=6)
 
-
+        assert isinstance(fit, ExponentialBosonicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "PS Fit")
+        assert_equivalent(
+            fit, env, tol=tol, skip_cf=True, wMax=wMax
+        )
+        assert info["N"] <= 6
+        assert info["rmse"] < tol
+        for key in ["fit_time", "params", "summary"]:
+            assert key in info
 @pytest.mark.parametrize("params", [
     {'gamma': 2.5, 'lam': .75, 'T': 1.5}
 ])

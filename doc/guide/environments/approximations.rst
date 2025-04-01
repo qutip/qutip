@@ -610,6 +610,23 @@ API Documentation
         **approx_env** : :class:`.ExponentialBosonicEnvironment`
             The approximated environment with multi-exponential correlation
             function.
+         **fit_info** : dictionary
+            A dictionary containing the following information about the fit.
+
+            "N"
+                The number of terms used to fit the power spectrum.
+
+            "fit_time"
+                The time the fit of the power spectrum took in seconds.
+            
+            "rmse"
+                Normalized mean squared error obtained in the fit of the 
+                power spectrum.
+            "params"
+                The fitted parameters (array of shape  Nx4) for the power
+                spectrum.
+            "summary"
+                A string that summarizes the information about the fit.
 
 
 ``"prony"``  | ``"esprit"`` | ``"espira-I"`` | ``"espira-II"`` Prony-Based and ESPIRA
@@ -667,3 +684,51 @@ API Documentation
         **approx_env** : :class:`.ExponentialBosonicEnvironment`
             The approximated environment with multi-exponential correlation
             function.
+        **fit_info** : dictionary
+            A dictionary containing information about the fit.
+            
+            if separate is False it contains:
+            
+            "N"
+                The number of terms used to fit the correlation function.
+
+            "fit_time"
+                The time the fit of the correlation function took in seconds.
+            
+            "rmse"
+                Normalized mean squared error obtained in the fit of the 
+                power spectrum.
+            "params"
+                The fitted parameters (array of shape  Nx4) for the 
+                correlation function
+            "summary"
+                A string that summarizes the information about the fit.
+            
+            if separate is True it contains:
+
+            "Nr"
+                The number of terms used to fit the real part of the
+                correlation function.
+            "Ni"
+                The number of terms used to fit the imaginary part of the
+                correlation function.
+            "fit_time_real"
+                The time the fit of the real part of the correlation function
+                took in seconds.
+            "fit_time_imag"
+                The time the fit of the imaginary part of the correlation
+                function took in seconds.
+            "rmse_real"
+                Normalized mean squared error obtained in the fit of the real
+                part of the correlation function.
+            "rmse_imag"
+                Normalized mean squared error obtained in the fit of the
+                imaginary part of the correlation function.
+            "params_real"
+                The fitted parameters (array of shape Nx4) for the real
+                part of the correlation function.
+            "params_imag"
+                The fitted parameters (array of shape Nx4) for the
+                imaginary part of the correlation function.
+            "summary"
+                A string that summarizes the information about the fit.
