@@ -2101,21 +2101,22 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         """
 
         return self._sd_from_ps(w)
-    def rescale(self,alpha):
+    def rescale(self, alpha):
         """
-        It multiplies ck times alpha, rescaling the spectral density, correlation
-        function and power spectrum
+        It multiplies ck times alpha, rescaling the spectral density, 
+        correlation function and power spectrum
 
         Parameters
         ----------
         alpha :  float
             rescaling parameter.
         """
-        exp_orig=self.exponents
+        exp_orig = self.exponents
         for i in exp_orig:
-            i.ck*=alpha
-            i.ck2*=alpha
-        self.exponents=exp_orig
+            i.ck *= alpha
+            i.ck2 *= alpha
+        self.exponents = exp_orig
+
 
 def system_terminator(Q: Qobj, delta: float) -> Qobj:
     """
