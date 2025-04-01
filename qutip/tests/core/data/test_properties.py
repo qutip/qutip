@@ -252,5 +252,5 @@ class TestIsEqual:
         assert true_zeros == diag_of_zeros
         assert id != diag_of_zeros
         assert id != true_zeros
-        assert qutip.destroy(3) * qutip.create(3) != qutip.destroy(3)
-        assert qutip.destroy(3) * qutip.create(3) != qutip.create(3)
+        assert qutip.destroy(3) + qutip.create(3) != qutip.destroy(3)
+        assert qutip.destroy(3) + qutip.create(3) != qutip.create(3)
