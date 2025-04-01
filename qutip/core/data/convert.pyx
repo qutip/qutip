@@ -15,13 +15,13 @@ initialisation of the `data` module.
 # even in a simple interactive QuTiP session, and it all adds up.
 
 import numbers
-
+from collections import namedtuple
 import numpy as np
 from scipy.sparse import dok_matrix, csgraph
 cimport cython
 from qutip.core.data.base cimport Data
 
-__all__ = ['to', 'create']
+__all__ = ['to', 'create', '_parse_default_dtype']
 
 
 class _Epsilon:
@@ -116,7 +116,7 @@ cdef class _partial_converter:
     """Convert from any known data-layer type into the type `x.to`."""
 
     cdef object converter
-    cdef readonly type to
+    cdef readonly object to
 
     def __init__(self, converter, to_type):
         self.converter = converter
@@ -130,6 +130,9 @@ cdef class _partial_converter:
 
     def __repr__(self):
         return "<converter to " + self.to.__name__ + ">"
+
+
+_DataGroup = namedtuple("_DataGroup", ["dense", "sparse", "diagonal"])
 
 
 # While `_to` and `_create` are defined as objects here, they are actually
@@ -185,6 +188,7 @@ cdef class _to:
     """
 
     cdef readonly set dtypes
+    cdef readonly set groups
     cdef readonly list dispatchers
     cdef dict _direct_convert
     cdef dict _convert
@@ -195,11 +199,12 @@ cdef class _to:
         self._direct_convert = {}
         self._convert = {}
         self.dtypes = set()
+        self.groups = set()
         self.weight = {}
         self.dispatchers = []
         self._str2type = {}
 
-    def add_conversions(self, converters):
+    def add_conversions(self, converters, _defer=False):
         """
         Add conversion functions between different data types.  This is an
         advanced function, and is only intended for the QuTiP user who wants to
@@ -245,6 +250,11 @@ cdef class _to:
                 the `weights` attribute of this object.
                 Weight of ~0.001 are should be used in case when no conversion
                 is needed or ``converter = lambda mat : mat``.
+
+        _defer : bool, optional (False)
+            Only intended for internal library use during initialisation. If
+            `True`, the full lookup tables is not built and the added types
+            will not be usable until the building is triggered elsewhere.
         """
         for arg in converters:
             if len(arg) == 3:
@@ -308,8 +318,14 @@ cdef class _to:
             self.weight[(Data, dtype)] = EPSILON
             self._convert[(dtype, Data)] = _partial_converter(self, dtype)
             self._convert[(Data, dtype)] = identity_converter
-        for dispatcher in self.dispatchers:
-            dispatcher.rebuild_lookup()
+        if not _defer:
+            for dispatcher in self.dispatchers:
+                dispatcher.rebuild_lookup()
+        for group in self.groups:
+            for dtype in self.dtypes:
+                to_t = getattr(group, dtype.sparcity())
+                self._convert[(group, dtype)] = self._convert[(to_t, dtype)]
+
 
     def register_aliases(self, aliases, layer_type):
         """
@@ -319,7 +335,7 @@ cdef class _to:
         Parameters
         ----------
         aliases : str or list of str
-            Name of list of names to be understood to represent the layer_type.
+            Name or list of names to be understood to represent the layer_type.
 
         layer_type : type
             Data-layer type, must have been registered with
@@ -334,6 +350,57 @@ cdef class _to:
             if type(alias) is not str:
                 raise TypeError("The alias must be a str : " + repr(alias))
             self._str2type[alias] = layer_type
+
+    def register_group(self, names, *, dense=None, sparse=None, diagonal=None, _defer=False):
+        """
+        Register a set of Data layers under a single name to allow conversion
+        to that general group:
+
+        For example:
+
+          ``JaxArray`` to "cython" -> Dense
+          ``Dia`` to "jax" -> JaxDiag
+
+        Parameters
+        ----------
+        names : str or list of str
+            Names of the layer group.
+
+        dense : type
+            Layer type of a dense representation in that group.
+
+        sparse : type
+            Layer type of a sparse representation in that group.
+
+        diagonal : type
+            Layer type of a diagonal representation in that group.
+
+        _defer : bool, optional (False)
+            Only intended for internal library use during initialisation. If
+            `True`, the full lookup tables is not built and the added types
+            will not be usable until the building is triggered elsewhere.
+        """
+        group = _DataGroup(
+            dense=(dense or sparse or diagonal),
+            sparse=(sparse or dense or diagonal),
+            diagonal=(diagonal or sparse or dense),
+        )
+        self.groups.add(group)
+
+        if isinstance(names, str):
+            names = [names]
+        for name in names:
+            self._str2type[name] = group
+
+        for dtype in self.dtypes:
+            to_t = getattr(group, dtype.sparcity())
+            self._convert[(group, dtype)] = self._convert[(to_t, dtype)]
+
+        self._convert[(group, Data)] = _partial_converter(self, group)
+
+        if not _defer:
+            for dispatcher in self.dispatchers:
+                dispatcher.rebuild_lookup()
 
     def parse(self, dtype):
         """
@@ -370,6 +437,8 @@ cdef class _to:
                 raise ValueError(
                     "Type name is not known to the data-layer: " + repr(dtype)
                     ) from None
+        elif type(dtype) is _DataGroup:
+            return dtype
 
         raise TypeError(
             "Invalid dtype is neither a type nor a type name: " + repr(dtype))
@@ -481,3 +550,14 @@ cdef class _create:
 
 to = _to()
 create = _create()
+
+
+def _parse_default_dtype(provided, sparcity):
+    from qutip import settings
+    if provided is None:
+        provided = settings.core["default_dtype"] or "core"
+
+    parsed = to.parse(provided)
+    if isinstance(parsed, _DataGroup):
+        parsed = getattr(parsed, sparcity)
+    return parsed
