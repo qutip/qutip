@@ -2101,7 +2101,7 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         """
 
         return self._sd_from_ps(w)
-    
+
     def rescale(self, alpha):
         """
         It multiplies ck times alpha, rescaling the spectral density,
