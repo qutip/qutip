@@ -112,51 +112,11 @@ def direct_sum(qobjs, dtype=None):
         dtype = dtype or _data.CSR
 
     qobjs = _process_arguments(qobjs)
-    num_columns = len(qobjs[0])
-    num_rows = len(qobjs)
-
-    # determine "from" spaces
-    from_spaces = [None] * num_columns
-    block_widths = np.empty(num_columns, dtype=_data.base.idxint_dtype)
-    for column in range(num_columns):
-        for row in range(num_rows):
-            if qobjs[row][column] is None:
-                continue
-            from_space = _qobj_dims(qobjs[row][column]).from_
-            if from_spaces[column] is None:
-                from_spaces[column] = from_space
-                block_widths[column] = from_space.size
-            elif from_spaces[column] != from_space:
-                raise ValueError(
-                    "Direct sum: inconsistent dimensions in column"
-                    f" {column + 1}. Expected {from_spaces[column].as_list()},"
-                    f" got {from_space.as_list()}.")
-        if from_spaces[column] is None:
-            raise ValueError(f"Direct sum: empty column {column + 1}.")
-
-    # determine "to" spaces
-    to_spaces = [None] * num_rows
-    block_heights = np.empty(num_rows, dtype=_data.base.idxint_dtype)
-    for row in range(num_rows):
-        for column in range(num_columns):
-            if qobjs[row][column] is None:
-                continue
-            to_space = _qobj_dims(qobjs[row][column]).to_
-            if to_spaces[row] is None:
-                to_spaces[row] = to_space
-                block_heights[row] = to_space.size
-            elif to_spaces[row] != to_space:
-                raise ValueError(
-                    "Direct sum: inconsistent dimensions in row"
-                    f" {row + 1}. Expected {to_spaces[row].as_list()},"
-                    f" got {to_space.as_list()}.")
-        if to_spaces[row] is None:
-            raise ValueError(f"Direct sum: empty row {row + 1}.")
-
-    out_dims = Dimensions(SumSpace(*from_spaces), SumSpace(*to_spaces))
+    out_dims, block_widths, block_heights = _determine_dimensions(qobjs)
 
     # Get data from the Qobjs
-    data_array = np.empty((num_rows, num_columns), dtype=_data.Data)
+    data_array = np.empty((len(block_heights), len(block_widths)),
+                          dtype=_data.Data)
     # For QobjEvos, we have to pull them out and handle them separately.
     qobjevos = []
     to_data_start = 0
@@ -179,8 +139,8 @@ def direct_sum(qobjs, dtype=None):
             else:
                 # regular qobj
                 data_array[to_index][from_index] = _qobj_data(qobj, dtype)
-            from_data_start += from_spaces[from_index].size
-        to_data_start += to_spaces[to_index].size
+            from_data_start += block_widths[from_index]
+        to_data_start += block_heights[to_index]
 
     out_data = _data.concat(
         data_array, block_widths, block_heights, dtype=dtype
@@ -239,6 +199,51 @@ def _process_arguments(qobjs):
         raise ValueError(
             "Invalid combination of Qobj types for direct sum.")
     return qobjs
+
+
+def _determine_dimensions(qobjs):
+    num_columns = len(qobjs[0])
+    num_rows = len(qobjs)
+
+    from_spaces = [None] * num_columns
+    to_spaces = [None] * num_rows
+    block_widths = np.empty(num_columns, dtype=_data.base.idxint_dtype)
+    block_heights = np.empty(num_rows, dtype=_data.base.idxint_dtype)
+
+    for row in range(num_rows):
+        for column in range(num_columns):
+            if qobjs[row][column] is None:
+                continue
+
+            to_space = _qobj_dims(qobjs[row][column]).to_
+            if to_spaces[row] is None:
+                to_spaces[row] = to_space
+                block_heights[row] = to_space.size
+            elif to_spaces[row] != to_space:
+                raise ValueError(
+                    "Direct sum: inconsistent dimensions in row"
+                    f" {row + 1}. Expected {to_spaces[row].as_list()},"
+                    f" got {to_space.as_list()}.")
+
+            from_space = _qobj_dims(qobjs[row][column]).from_
+            if from_spaces[column] is None:
+                from_spaces[column] = from_space
+                block_widths[column] = from_space.size
+            elif from_spaces[column] != from_space:
+                raise ValueError(
+                    "Direct sum: inconsistent dimensions in column"
+                    f" {column + 1}. Expected {from_spaces[column].as_list()},"
+                    f" got {from_space.as_list()}.")
+
+    for row, space in enumerate(to_spaces):
+        if space is None:
+            raise ValueError(f"Direct sum: empty row {row + 1}.")
+    for column, space in enumerate(from_spaces):
+        if space is None:
+            raise ValueError(f"Direct sum: empty column {column + 1}.")
+
+    out_dims = Dimensions(SumSpace(*from_spaces), SumSpace(*to_spaces))
+    return out_dims, block_widths, block_heights
 
 
 @overload

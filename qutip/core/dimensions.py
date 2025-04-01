@@ -385,9 +385,11 @@ class MetaSpace(type):
         """
         Select which subclass is instantiated.
         """
-        if (cls is Space and
-                len(args) == 1 and
-                isinstance(args[0], (list, tuple))):
+        if (
+            cls is Space and
+            len(args) == 1 and
+            isinstance(args[0], (list, tuple))
+        ):
             # From a list of int (or tuple in the case of direct sum)
             return cls.from_list(args[0], rep=rep)
         elif len(args) == 1 and isinstance(args[0], Space):

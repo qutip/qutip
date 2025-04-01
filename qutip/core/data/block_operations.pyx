@@ -7,8 +7,6 @@ from . cimport base, CSR, Data, Dense
 import numpy as np
 cimport numpy as cnp
 
-is_numpy1 = np.lib.NumpyVersion(np.__version__) < '2.0.0b1'
-
 
 __all__ = [
     'concat_dense', 'slice_dense', 'insert_dense',
@@ -42,7 +40,17 @@ cpdef Dense concat_dense(
             else:
                 blocks[row][column] = op.to_array()
 
-    return Dense(np.block(blocks), copy=(False if is_numpy1 else None))
+    return Dense(np.block(blocks), copy=None)
+
+
+cdef base.idxint[:] _cumsum(base.idxint[:] array):
+    """Cumulative sum of array entries, starting with zero."""
+    cdef base.idxint i, n = len(array)
+    cdef base.idxint[:] out = np.empty(n + 1, dtype=base.idxint_dtype)
+    out[0] = 0
+    for i in range(n):
+        out[i + 1] = out[i] + array[i]
+    return out
 
 
 cpdef CSR concat_csr(
@@ -56,12 +64,8 @@ cpdef CSR concat_csr(
     if block_widths is None or block_heights is None:
         block_widths, block_heights = _check_widths_heights(data_array)
 
-    cdef cnp.ndarray[base.idxint] row_pos = np.zeros(
-        len(block_heights) + 1, dtype=base.idxint_dtype)
-    row_pos[1:] = np.cumsum(block_heights, dtype=base.idxint_dtype)
-    cdef cnp.ndarray[base.idxint] col_pos = np.zeros(
-        len(block_widths) + 1, dtype=base.idxint_dtype)
-    col_pos[1:] = np.cumsum(block_widths, dtype=base.idxint_dtype)
+    cdef base.idxint[:] row_pos = _cumsum(block_heights)
+    cdef base.idxint[:] col_pos = _cumsum(block_widths)
 
     cdef base.idxint row, columm
     cdef base.idxint num_rows = len(block_heights)
@@ -115,33 +119,30 @@ cdef _check_widths_heights(Data[:,:] data_array):
     cdef base.idxint num_columns = data_array.shape[1]
     cdef base.idxint row, column
 
-    # determine block widths
+    # determine block widths and heights
     cdef base.idxint[:] block_widths =\
         np.full(num_columns, -1, dtype=base.idxint_dtype)
-    for column in range(num_columns):
-        for row in range(num_rows):
-            if data_array[row][column] is None:
-                continue
-            if block_widths[column] == -1:
-                block_widths[column] = data_array[row][column].shape[1]
-            elif block_widths[column] != data_array[row][column].shape[1]:
-                raise ValueError(
-                    "Cannot concatenate data array: inconsistent block"
-                    f" widths in column {column + 1}.")
-
-    # determine block heights
     cdef base.idxint[:] block_heights =\
         np.full(num_rows, -1, dtype=base.idxint_dtype)
+
     for row in range(num_rows):
         for column in range(num_columns):
             if data_array[row][column] is None:
                 continue
+
             if block_heights[row] == -1:
                 block_heights[row] = data_array[row][column].shape[0]
             elif block_heights[row] != data_array[row][column].shape[0]:
                 raise ValueError(
                     "Cannot concatenate data array: inconsistent block"
                     f" heights in row {row + 1}.")
+
+            if block_widths[column] == -1:
+                block_widths[column] = data_array[row][column].shape[1]
+            elif block_widths[column] != data_array[row][column].shape[1]:
+                raise ValueError(
+                    "Cannot concatenate data array: inconsistent block"
+                    f" widths in column {column + 1}.")
 
     return block_widths, block_heights
 

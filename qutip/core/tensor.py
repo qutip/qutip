@@ -78,9 +78,11 @@ shape = [4, 4], type = oper, isHerm = True
     if not all(isinstance(q, (Qobj, QobjEvo)) for q in args):
         raise TypeError("requires Qobj or QobjEvo operands")
 
-    if any(isinstance(q._dims.from_, SumSpace)
-           or isinstance(q._dims.to_, SumSpace)
-           for q in args):
+    if any(
+        isinstance(q._dims.from_, SumSpace)
+        or isinstance(q._dims.to_, SumSpace)
+        for q in args
+    ):
         return _tensor_of_sum(*args)
 
     if any(isinstance(q, QobjEvo) for q in args):
