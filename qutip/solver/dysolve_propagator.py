@@ -296,7 +296,7 @@ class DysolvePropagator:
                     k += 1
 
                 Sn[i] *= (-1j / 2) ** n
-                Sn[i] = exp_H_0.full() @ Sn[i]
+                Sn[i] = exp_H_0 @ Sn[i]
 
             Sns[n] = Sn
 

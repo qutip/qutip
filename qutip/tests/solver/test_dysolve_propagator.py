@@ -203,6 +203,33 @@ def test_zeroth_order(H_0, t_i, t_f):
     with CoreOptions(atol=1e-10, rtol=1e-10):
         assert U == exp
 
+# Fails when 1 sigma_y is involded
+@pytest.mark.xfail()
+@pytest.mark.parametrize("H_0", [qeye(2), sigmax(), sigmay(), sigmaz()])
+@pytest.mark.parametrize("X", [qeye(2), sigmax(), sigmay(), sigmaz()])
+def test_2x2_propagators_single_time(H_0, X):
+    # Data
+    omega = 10
+    t = 0.1
+
+    # Dysolve
+    U = dysolve_propagator(H_0, X, omega, t, options={'max_order': 5})
+
+    # Qutip.solver.propagator
+    def H1_coeff(t, omega):
+        return np.cos(omega * t)
+
+    _, basis = H_0.eigenstates()
+
+    H = [H_0, [X, H1_coeff]]
+    args = {'omega': omega}
+    prop = propagator(
+        H, t, args=args, options={"atol": 1e-10, "rtol": 1e-8}
+    )
+
+    with CoreOptions(atol=1e-8, rtol=1e-8):
+        assert U == prop.transform(basis)
+
 
 # def test_number_of_propagators():
 #     # Single time
@@ -232,33 +259,3 @@ def test_zeroth_order(H_0, t_i, t_f):
 #         )
 #         U_1 = dysolve_1(0, 1)
 #         assert (dysolve_1.H_0.dims == dysolve_1.X.dims == U_1.dims)
-
-
-# #@pytest.mark.xfail()
-# def test_2x2_propagators_single_time():
-#     # Data
-#     omega = 10
-#     t = 0.1
-#     H_0s = [qeye(2), sigmax(), sigmay(), sigmaz()]
-#     Xs = [qeye(2), sigmax(), sigmay(), sigmaz()]
-
-#     for i in range(len(H_0s)):
-#         for j in range(len(Xs)):
-#             H_0, X = H_0s[i], Xs[j]
-#             # Dysolve
-#             U = dysolve_propagator(H_0, X, omega, t, {'max_orer':0})
-
-#             # Qutip.solver.propagator
-#             def H1_coeff(t, omega):
-#                 return np.cos(omega * t)
-
-#             basis = H_0.eigenstates()[1]
-
-#             H = [H_0, [X, H1_coeff]]
-#             args = {'omega': omega}
-#             prop = propagator(
-#                 H, t, args=args, options={"atol": 1e-10, "rtol": 1e-8}
-#             )
-
-#             with CoreOptions(atol=1e-8, rtol=1e-8):
-#                 assert U == prop, (i,j)
