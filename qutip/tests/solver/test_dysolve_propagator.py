@@ -95,81 +95,76 @@ def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
     (
         1,
         sigmay(),
-        np.array([[0], [-1j], [1j], [0]])
+        np.array([0, -1j, 1j, 0])
     ),
     (
         2,
         sigmay(),
-        np.array([[0], [0], [1], [0], [0], [1], [0], [0]])
+        np.array([0, 0, 1, 0, 0, 1, 0, 0])
     ),
     (
         3,
         sigmay(),
-        np.array([[0], [0], [0], [0], [0], [-1j], [0], [0],
-                  [0], [0], [1j], [0], [0], [0], [0], [0]])
+        np.array([0, 0, 0, 0, 0, -1j, 0, 0, 0, 0, 1j, 0, 0, 0, 0, 0])
     ),
     (
         1,
         sigmax(),
-        np.array([[0], [1], [1], [0]])
+        np.array([0, 1, 1, 0])
     ),
     (
         2,
         sigmax(),
-        np.array([[0], [0], [1], [0], [0], [1], [0], [0]])
+        np.array([0, 0, 1, 0, 0, 1, 0, 0])
     ),
     (
         3,
         sigmax(),
-        np.array([[0], [0], [0], [0], [0], [1], [0], [0],
-                  [0], [0], [1], [0], [0], [0], [0], [0]])
+        np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0])
     ),
     (
         1,
         sigmaz(),
-        np.array([[1], [0], [0], [-1]])
+        np.array([1, 0, 0, -1])
     ),
     (
         2,
         sigmaz(),
-        np.array([[1], [0], [0], [0], [0], [0], [0], [1]])
+        np.array([1, 0, 0, 0, 0, 0, 0, 1])
     ),
     (
         3,
         sigmaz(),
-        np.array([[1], [0], [0], [0], [0], [0], [0], [0],
-                  [0], [0], [0], [0], [0], [0], [0], [-1]])
+        np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1])
     ),
     (
         1,
         qeye(2),
-        np.array([[1], [0], [0], [1]])
+        np.array([1, 0, 0, 1])
     ),
     (
         2,
         qeye(2),
-        np.array([[1], [0], [0], [0], [0], [0], [0], [1]])
+        np.array([1, 0, 0, 0, 0, 0, 0, 1])
     ),
     (
         3,
         qeye(2),
-        np.array([[1], [0], [0], [0], [0], [0], [0], [0],
-                  [0], [0], [0], [0], [0], [0], [0], [1]])
+        np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
     ),
     (
         1,
         qeye(3),
-        np.array([[1], [0], [0], [0], [1], [0], [0], [0], [1]])
+        np.array([1, 0, 0, 0, 1, 0, 0, 0, 1])
     ),
     (
         2,
         qeye(3),
-        np.array([[1], [0], [0], [0], [0], [0], [0], [0], [0],
-                  [0], [0], [0], [0], [1], [0], [0], [0], [0],
-                  [0], [0], [0], [0], [0], [0], [0], [0], [1]])
+        np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 1])
     )
 ])
-def test_matrix_elements_2(empty_instance, max_order, X, answer):
+def test_matrix_elements(empty_instance, max_order, X, answer):
     dysolve = empty_instance
     dysolve.X = X
     current_matrix_elements = None
@@ -197,17 +192,16 @@ def test_zeroth_order(H_0, t_i, t_f):
     dysolve(t_f, t_i)
     U = dysolve.U
 
-    _, basis = H_0.eigenstates()
-    exp = (-1j*H_0*(t_f - t_i)).expm().transform(basis)
+    exp = (-1j*H_0*(t_f - t_i)).expm()
 
     with CoreOptions(atol=1e-10, rtol=1e-10):
         assert U == exp
 
-# Fails when 1 sigma_y is involded
+
 @pytest.mark.xfail()
-@pytest.mark.parametrize("H_0", [qeye(2), sigmax(), sigmay(), sigmaz()])
+@pytest.mark.parametrize("H_0", [qeye(2), sigmaz()])
 @pytest.mark.parametrize("X", [qeye(2), sigmax(), sigmay(), sigmaz()])
-def test_2x2_propagators_single_time(H_0, X):
+def test_2x2_diagonal_propagators_single_time(H_0, X):
     # Data
     omega = 10
     t = 0.1
@@ -219,8 +213,6 @@ def test_2x2_propagators_single_time(H_0, X):
     def H1_coeff(t, omega):
         return np.cos(omega * t)
 
-    _, basis = H_0.eigenstates()
-
     H = [H_0, [X, H1_coeff]]
     args = {'omega': omega}
     prop = propagator(
@@ -228,20 +220,7 @@ def test_2x2_propagators_single_time(H_0, X):
     )
 
     with CoreOptions(atol=1e-8, rtol=1e-8):
-        assert U == prop.transform(basis)
-
-
-# def test_number_of_propagators():
-#     # Single time
-#     dysolve_1 = dysolve_propagator(
-#         sigmaz(), sigmax(), 1, 0.1, {'max_order': 1, "a_tol": 1e-8}
-#     )
-#     assert isinstance(dysolve_1, Qobj)
-
-#     # Multiple times
-#     times = [0, 0.1, 0.2, 0.3]
-#     dysolve_2 = dysolve_propagator(sigmaz(), sigmax(), 1, times)
-#     assert len(dysolve_2) == len(times)
+        assert U == prop, (H_0, X)
 
 
 # def test_dims():

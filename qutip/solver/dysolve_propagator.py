@@ -53,8 +53,8 @@ class DysolvePropagator:
     ):
         # System
         self.eigenenergies, self.basis = H_0.eigenstates()
-        self.H_0 = H_0.transform(self.basis)
-        self.X = X.transform(self.basis)
+        self.H_0 = H_0  # .transform(self.basis)
+        self.X = X  # .transform(self.basis)
         self.omega = omega
 
         # Times
@@ -224,15 +224,13 @@ class DysolvePropagator:
         matrix_elements : ArrayLike
             The new matrix elements for the order n.
         """
-        shape = self.X.shape[0]
-        elems = self.X.full().reshape((shape**2, 1))
+        elems = self.X.full().flatten()
         if current is None:
             return elems
         else:
-            a = np.tile(elems, current.shape[0]//shape).reshape(
-                (current.shape[0]*shape, 1)
-            )
-            b = np.tile(current, (shape, 1))
+            shape = self.X.shape[0]
+            a = np.tile(current, shape)
+            b = np.repeat(elems, len(current)//shape)
             return a * b
 
     def _compute_Sns(self) -> dict:
@@ -253,22 +251,20 @@ class DysolvePropagator:
         Sns[0] = exp_H_0
 
         for n in range(1, self.max_order + 1):
-            omega_vectors = np.array(
-                list(
-                    itertools.product([self.omega, -self.omega], repeat=n)
-                )
+            omega_vectors = np.fromiter(
+                itertools.product([self.omega, -self.omega], repeat=n),
+                np.dtype((float, (n,)))
             )
-            lambdas = np.array(
-                list(
-                    itertools.product(self.eigenenergies, repeat=n + 1)
-                )
+            lambdas = np.fromiter(
+                itertools.product(self.eigenenergies, repeat=n + 1),
+                np.dtype((float, (n+1,)))
             )
             diff_lambdas = np.diff(lambdas)
-            indices = np.array(
-                list(
-                    itertools.product(range(length), repeat=n + 1)
-                )
+            indices = np.fromiter(
+                itertools.product(range(length), repeat=n + 1),
+                np.dtype((float, (n+1,)))
             )
+
             Sn = np.zeros((len(omega_vectors), length, length),
                           dtype=np.complex128
                           )
@@ -281,19 +277,16 @@ class DysolvePropagator:
             for i, omega_vector in enumerate(omega_vectors):
                 # Compute integrals
                 ls_ws = omega_vector + diff_lambdas
-                integrals = np.zeros(
-                    (ls_ws.shape[0], ls_ws.shape[1]), dtype=np.complex128)
+                integrals = np.zeros(ls_ws.shape[0], dtype=np.complex128)
                 for j, ws in enumerate(ls_ws):
                     integrals[j] = self._compute_integrals(ws)
 
                 x = integrals * current_matrix_elements
                 ket_bra_indices = indices[:, [0, -1]]
 
-                k = 0
                 for row in range(ket_bra_indices.shape[0]):
                     Sn[i, ket_bra_indices[row, 1],
-                        ket_bra_indices[row, 0]] += x[k][0]
-                    k += 1
+                        ket_bra_indices[row, 0]] += x[row]
 
                 Sn[i] *= (-1j / 2) ** n
                 Sn[i] = exp_H_0 @ Sn[i]
