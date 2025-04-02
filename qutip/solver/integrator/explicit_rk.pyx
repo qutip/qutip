@@ -302,6 +302,7 @@ cdef class Explicit_RungeKutta:
                 self._status = Status.INTERPOLATED
             self._y = self._interpolate_step(t, self._y)
             self._t = t
+            return
 
         self._status = Status.NORMAL
 
