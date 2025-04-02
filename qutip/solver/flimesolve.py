@@ -106,6 +106,11 @@ def _Rate_Matrix_Builder(
     Hdim = len(quasis)
 
     c_op_conj = np.conj(c_op_Fourier_amplitudes_list)
+    matrix_it = np.nditer(
+        np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex"),
+        flags=["multi_index"],
+    )
+    matrix_idx = [matrix_it.multi_index for idx in matrix_it]
 
     R_tensor = {}
     for key in delta_dict.keys():
@@ -117,8 +122,6 @@ def _Rate_Matrix_Builder(
         flime_SecondTerm = np.zeros(
             len(valid_c_op_prods_list * Hdim**4), dtype=complex
         )
-        dummy_matrix = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
-
         for idx, indices in enumerate(valid_c_op_prods_list):
             a, b, ap, bp, k, kp = indices
 
@@ -133,10 +136,8 @@ def _Rate_Matrix_Builder(
                 * power_spectrum(quasis[ap] - quasis[bp] - kp * omega)
             )
 
-            matrix_it = np.nditer(dummy_matrix, flags=["multi_index"])
-
-            for itx, _ in enumerate(matrix_it):
-                m, n, p, q = matrix_it.multi_index
+            for itx, indixes in enumerate(matrix_idx):
+                m, n, p, q = indixes
 
                 t1 = (b == p) & (q == bp) & (m == a) & (ap == n)
                 t2 = (m == bp) & (q == n) & (ap == a) & (b == p)
@@ -221,15 +222,14 @@ def _floquet_rate_matrix(
 
     for cdx, c_op in enumerate(c_ops):
         power_spectrum = power_spectra[cdx]
+
         c_op_Fourier_amplitudes_list = _c_op_Fourier_amplitudes(
             floquet_basis, tlist, c_op
         )
-
         """
         Finding all terms that are either DC or that are "important" enough
             to include as decided by the Relative Secular Approximation
         """
-
         delta_dict = _rate_matrix_indices(
             relative_secular_cutoff,
             c_op_Fourier_amplitudes_list,
@@ -241,14 +241,12 @@ def _floquet_rate_matrix(
         Below takes all the indices that correspond to a single frequency,
             and builds that frequency value of the Rate Matrix
         """
-
         R_tensor = _Rate_Matrix_Builder(
             delta_dict,
             c_op_Fourier_amplitudes_list,
             power_spectrum,
             floquet_basis,
         )
-
         for key in R_tensor:
             try:
                 total_R_tensor[key] += R_tensor[key]
