@@ -391,7 +391,7 @@ class MCIntegrator:
         else:
             probs = [
                 n_op.expect_data(collapse_time, state).real
-                for i, n_op in enumerate(self._n_ops)
+                for n_op in self._n_ops
             ]
             target = sum(probs) * self._generator.random() - probs[0]
             which = 0
@@ -864,9 +864,11 @@ class MCSolver(MultiTrajSolver):
             Maximum number of tries to find the collapse.
 
         norm_min_step: float, default: 0.10
-            Minimum split used when finding jump location.
-            A small non-zero value can help avoid the worst cases convergence
-            when finding jumb at the cost of increased average steps.
+            Minimum step used when finding the collapse time, given as a fraction
+            of the search interval. Must be between 0 and 0.5.
+            A small non-zero value can help avoid the worst cases of
+            convergence at the cost of increased average steps required to find
+            the collapse.
 
         improved_sampling: Bool, default: False
             Whether to use the improved sampling algorithm
