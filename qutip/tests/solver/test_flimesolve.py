@@ -372,3 +372,6 @@ class TestFlimesolve:
             relative_secular_cutoff=timesense,
             options={"rtol": 1e-12, "atol": 1e-12, "Nt": 2**8},
         )
+        np.testing.assert_allclose(
+            adi_fme_pow.expect[0], brme_result2.expect[0], atol=2e-2
+        )
