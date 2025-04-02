@@ -655,9 +655,11 @@ class NonMarkovianMCSolver(MCSolver):
             Maximum number of tries to find the collapse.
 
         norm_min_step: float, default: 0.0
-            Minimum split used when finding jump location.
-            A small non-zero value can help avoid the worst cases convergence
-            when finding jumb at the cost of increased average steps.
+            Minimum step used when finding the collapse time, given as a
+            fraction of the search interval. Must be between 0 and 0.5.
+            A small non-zero value can help avoid the worst cases of
+            convergence at the cost of increased average steps required to find
+            the collapse.
 
         improved_sampling: Bool, default: False
             Whether to use the improved sampling algorithm

@@ -93,8 +93,11 @@ class _BaseResult:
             options_copy._feedback = None
         self.options = options_copy
         # Almost all integrators already return a copy that is safe to use.
-        self._integrator_return_not_copy = options.get("method", None) in [
-            "vern7", "vern9"
+        self._integrator_return_copy = options.get("method", None) in [
+            "adams", "lsoda", "bdf", "dop853", "diag",
+            "euler", "platen", "explicit1.5",
+            "milstein", "pred_corr", "taylor1.5",
+            "milstein_imp", "taylor1.5_imp", "rouchon",
         ]
 
     def _e_ops_to_dict(self, e_ops):
@@ -331,7 +334,7 @@ class Result(_BaseResult):
 
         if (
             self._state_processors_require_copy
-            and self._integrator_return_not_copy
+            and not self._integrator_return_copy
         ):
             state = self._pre_copy(state)
 
