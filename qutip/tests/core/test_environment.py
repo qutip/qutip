@@ -288,7 +288,7 @@ class OhmicReference:
         mp = pytest.importorskip("mpmath")
 
         return (
-            self.alpha / np.pi * self.wc**(self.s + 1) *
+            self.alpha / np.pi * self.wc**(2) *
             complex(mp.gamma(self.s + 1)) *
             (1 + 1j * self.wc * t)**(-(self.s + 1))
         )

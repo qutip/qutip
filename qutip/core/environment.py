@@ -1758,7 +1758,7 @@ class OhmicEnvironment(BosonicEnvironment):
                 dtype=np.cdouble
             )
         else:
-            corr = (self.alpha * self.wc**(self.s + 1) / np.pi
+            corr = (self.alpha * self.wc**(2) / np.pi
                     * mp.gamma(self.s + 1)
                     * (1 + 1j * self.wc * t) ** (-self.s - 1))
             result = np.asarray(corr, dtype=np.cdouble)
@@ -2334,7 +2334,7 @@ def _fit_summary(time, rmse, N, label, params,
                 f"|{params[k][2]:^10.2e}|{params[k][3]:>5.2e}\n ")
     else:
         raise ValueError("Unsupported number of columns")
-    summary += (f"\nAn RMSE of {rmse: .2e}"
+    summary += (f"\nA RMSE of {rmse: .2e}"
                 f" was obtained for the {label}.\n")
     summary += f"The current fit took {time: 2f} seconds."
     return summary
