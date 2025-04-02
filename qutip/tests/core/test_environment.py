@@ -518,7 +518,7 @@ class TestBosonicEnvironment:
         )
         tlist = np.linspace(0, tMax, 100)[1:]  # exclude t=0
         fit, info = env.approximate("cf",
-                                    tlist, target_rsme=None, Nr_max=2, Ni_max=2,
+                                    tlist, target_rmse=None, Nr_max=2, Ni_max=2,
                                     full_ansatz=full_ansatz, combine=False
                                     )
 
@@ -551,7 +551,7 @@ class TestBosonicEnvironment:
         )
         tlist = np.linspace(0, tMax, 100)[1:]  # exclude t=0
         fit, info = env.approximate("cf",
-                                    tlist, target_rsme=0.01, Nr_max=3, Ni_max=3,
+                                    tlist, target_rmse=0.01, Nr_max=3, Ni_max=3,
                                     full_ansatz=full_ansatz
                                     )
 

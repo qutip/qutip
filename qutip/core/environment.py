@@ -385,7 +385,7 @@ class BosonicEnvironment(abc.ABC):
         self,
         method: Literal['cf'],
         tlist: ArrayLike,
-        target_rsme: float = 2e-5,
+        target_rmse: float = 2e-5,
         Nr_max: int = 10,
         Ni_max: int = 10,
         guess: list[float] = None,
@@ -502,7 +502,7 @@ class BosonicEnvironment(abc.ABC):
         self,
         method: str,
         tlist: ArrayLike,
-        target_rsme: float = 2e-5,
+        target_rmse: float = 2e-5,
         Nr_max: int = 10,
         Ni_max: int = 10,
         guess: list[float] = None,
@@ -524,8 +524,8 @@ class BosonicEnvironment(abc.ABC):
         else:
             num_params = 3
 
-        if target_rsme is None:
-            target_rsme = 0
+        if target_rmse is None:
+            target_rmse = 0
             Nr_min, Ni_min = Nr_max, Ni_max
         else:
             Nr_min, Ni_min = 1, 1
@@ -543,7 +543,7 @@ class BosonicEnvironment(abc.ABC):
         # Fit real part
         start_real = time()
         rmse_real, params_real = iterated_fit(
-            _cf_real_fit_model, num_params, tlist, np.real(clist), target_rsme,
+            _cf_real_fit_model, num_params, tlist, np.real(clist), target_rmse,
             Nr_min, Nr_max, guess=guess_re, lower=lower_re, upper=upper_re,
             sigma=sigma, maxfev=maxfev
         )
@@ -553,7 +553,7 @@ class BosonicEnvironment(abc.ABC):
         # Fit imaginary part
         start_imag = time()
         rmse_imag, params_imag = iterated_fit(
-            _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rsme,
+            _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rmse,
             Ni_min, Ni_max, guess=guess_im, lower=lower_im, upper=upper_im,
             sigma=sigma, maxfev=maxfev
         )
@@ -1097,7 +1097,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         self,
         method: Literal['cf'],
         tlist: ArrayLike,
-        target_rsme: float = 2e-5,
+        target_rmse: float = 2e-5,
         Nr_max: int = 10,
         Ni_max: int = 10,
         guess: list[float] = None,
@@ -1471,7 +1471,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
         self,
         method: Literal['cf'],
         tlist: ArrayLike,
-        target_rsme: float = 2e-5,
+        target_rmse: float = 2e-5,
         Nr_max: int = 10,
         Ni_max: int = 10,
         guess: list[float] = None,

@@ -221,7 +221,7 @@ API Documentation
 ``"cf"`` Fit Correlation Function with Exponentials
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-.. method:: approximate("cf", tlist: ArrayLike, target_rsme: float = 2e-5, Nr_max: int = 10, Ni_max: int = 10, guess: list[float] = None, lower: list[float] = None, upper: list[float] = None, sigma: float | ArrayLike = None, maxfev: int = None, full_ansatz: bool = False, combine: bool = True, tag: Any = None) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]
+.. method:: approximate("cf", tlist: ArrayLike, target_rmse: float = 2e-5, Nr_max: int = 10, Ni_max: int = 10, guess: list[float] = None, lower: list[float] = None, upper: list[float] = None, sigma: float | ArrayLike = None, maxfev: int = None, full_ansatz: bool = False, combine: bool = True, tag: Any = None) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]
     :no-index:
 
     Generates an approximation to the environment by fitting its
