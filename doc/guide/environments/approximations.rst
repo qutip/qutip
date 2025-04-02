@@ -610,6 +610,7 @@ API Documentation
         **approx_env** : :class:`.ExponentialBosonicEnvironment`
             The approximated environment with multi-exponential correlation
             function.
+            
          **fit_info** : dictionary
             A dictionary containing the following information about the fit.
 
