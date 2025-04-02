@@ -148,7 +148,7 @@ of the correlation function with three exponential terms each.
 
     # Fit the correlation function with three exponential terms
     tlist = np.linspace(0, 3, 250)
-    approx_env, info = env.approximate("cf", tlist, target_rsme=None, Nr_max=3, Ni_max=3, maxfev=1e8)
+    approx_env, info = env.approximate("cf", tlist, target_rmse=None, Nr_max=3, Ni_max=3, maxfev=1e8)
 
 The environment `approx_env` created here could be used, for example, with the :ref:`HEOM solver<heom>`.
 The variable `info` contains info about the convergence of the fit; here, we will just plot the fit together with
