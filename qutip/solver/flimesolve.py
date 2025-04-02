@@ -53,6 +53,124 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
     return c_op_Fourier_amplitudes_list
 
 
+def _rate_matrix_indices(
+    relative_secular_cutoff, c_op_Fourier_amplitudes_list, Nt, floquet_basis
+):
+    omega = 2 * np.pi / floquet_basis.T
+    quasis = floquet_basis.e_quasi
+    c_op_conj = np.conj(c_op_Fourier_amplitudes_list)
+
+    xx, yy, zz = np.array(c_op_Fourier_amplitudes_list).nonzero()
+    xx = np.array(xx) - int(Nt / 2)
+
+    idx_length = len(xx)
+    delta_dict = {}
+    for idx1 in range(idx_length):
+        x00 = xx[idx1]
+        x01 = yy[idx1]
+        x02 = zz[idx1]
+        q01 = quasis[x01]
+        q02 = quasis[x02]
+        for idx2 in range(idx_length):
+            x10 = xx[idx2]
+            x11 = yy[idx2]
+            x12 = zz[idx2]
+            q11 = quasis[x11]
+            q12 = quasis[x12]
+            cop1 = c_op_Fourier_amplitudes_list[x00, x01, x02]
+            cop2 = c_op_conj[x10, x11, x12]
+            ordered_idx = (
+                yy[idx1],
+                zz[idx1],
+                yy[idx2],
+                zz[idx2],
+                xx[idx1],
+                xx[idx2],
+            )
+            delts = ((q01 - q02) - (q11 - q12)) / omega + (x00 - x10)
+            if delts == 0 or (
+                abs(delts / (cop1 * cop2)) <= relative_secular_cutoff
+            ):
+                try:
+                    delta_dict[delts].append(ordered_idx)
+                except KeyError:
+                    delta_dict[delts] = [ordered_idx]
+    return delta_dict
+
+
+def _Rate_Matrix_Builder(
+    delta_dict, c_op_Fourier_amplitudes_list, power_spectrum, floquet_basis
+):
+    quasis = floquet_basis.e_quasi
+    omega = 2 * np.pi / floquet_basis.T
+    Hdim = len(quasis)
+
+    c_op_conj = np.conj(c_op_Fourier_amplitudes_list)
+
+    R_tensor = {}
+    for key in delta_dict.keys():
+        valid_c_op_prods_list = delta_dict[key]
+
+        flime_FirstTerm = np.zeros(
+            len(valid_c_op_prods_list * Hdim**4), dtype=complex
+        )
+        flime_SecondTerm = np.zeros(
+            len(valid_c_op_prods_list * Hdim**4), dtype=complex
+        )
+        dummy_matrix = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
+
+        for idx, indices in enumerate(valid_c_op_prods_list):
+            a, b, ap, bp, k, kp = indices
+
+            gam_plus = (
+                c_op_Fourier_amplitudes_list[k, a, b]
+                * c_op_conj[kp, ap, bp]
+                * power_spectrum(quasis[a] - quasis[b] - k * omega)
+            )
+            gam_minus_prime = (
+                c_op_Fourier_amplitudes_list[k, a, b]
+                * c_op_conj[kp, ap, bp]
+                * power_spectrum(quasis[ap] - quasis[bp] - kp * omega)
+            )
+
+            matrix_it = np.nditer(dummy_matrix, flags=["multi_index"])
+
+            for itx, _ in enumerate(matrix_it):
+                m, n, p, q = matrix_it.multi_index
+
+                t1 = (b == p) & (q == bp) & (m == a) & (ap == n)
+                t2 = (m == bp) & (q == n) & (ap == a) & (b == p)
+                # t3 = t1 Keeping this for reference
+                t4 = (q == bp) & (ap == a) & (m == p) & (b == n)
+
+                flime_FirstTerm[idx * Hdim**4 + itx] = (
+                    gam_plus * (t1 ^ t2) * (1 - 2 * t2)
+                )
+
+                flime_SecondTerm[idx * Hdim**4 + itx] = (
+                    gam_minus_prime * (t1 ^ t4) * (1 - 2 * t4)
+                )
+
+        try:
+            R_tensor[key] += (1 / 2) * np.sum(
+                np.reshape(
+                    np.add(flime_FirstTerm, flime_SecondTerm),
+                    (len(valid_c_op_prods_list), Hdim**2, Hdim**2),
+                ),
+                axis=0,
+            )
+        except KeyError:
+            R_tensor[key] = (1 / 2) * np.sum(
+                np.reshape(
+                    np.add(flime_FirstTerm, flime_SecondTerm),
+                    (len(valid_c_op_prods_list), Hdim**2, Hdim**2),
+                ),
+                axis=0,
+            )
+
+    return R_tensor
+
+
 def _floquet_rate_matrix(
     floquet_basis,
     Nt,
@@ -78,7 +196,7 @@ def _floquet_rate_matrix(
         i.e. the changes average out on "longer" time scales.
     power_spectrum : list of functions
         The power spectra of the autocorrelation function(s) as a function of
-        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B}, 
+        w, given by Gamma(w) = int_0^inf(e^i Delta t)Tr_B{B(t)B\rho_B},
         supplied as either a list of callable power spectrum functions, as
         a list of BosonicEnvironment objects, or some combination thereof.
 
@@ -95,33 +213,6 @@ def _floquet_rate_matrix(
     timet = floquet_basis.T
     dt = timet / Nt
     tlist = np.linspace(0, timet - dt, Nt)
-    omega = (
-        2 * np.pi
-    ) / floquet_basis.T  # Frequency dependence of Hamiltonian
-
-    def kron(a, b):
-        if a == b:
-            value = 1
-        else:
-            value = 0
-        return value
-
-    """
-    Defining the frequency value for any given combination of indices
-    """
-
-    def delta(a, b, ap, bp, l, lp):
-        return (
-            (floquet_basis.e_quasi[a] - floquet_basis.e_quasi[b])
-            - (floquet_basis.e_quasi[ap] - floquet_basis.e_quasi[bp])
-        ) / omega + (l - lp)
-
-    """
-    Recovers frequency values used as arguments in the power spectrum
-    """
-
-    def powfreqs(a, b, k):
-        return floquet_basis.e_quasi[a] - floquet_basis.e_quasi[b] - k * omega
 
     Nt = len(tlist)
     Hdim = len(floquet_basis.e_quasi)
@@ -130,7 +221,6 @@ def _floquet_rate_matrix(
 
     for cdx, c_op in enumerate(c_ops):
         power_spectrum = power_spectra[cdx]
-
         c_op_Fourier_amplitudes_list = _c_op_Fourier_amplitudes(
             floquet_basis, tlist, c_op
         )
@@ -139,105 +229,32 @@ def _floquet_rate_matrix(
         Finding all terms that are either DC or that are "important" enough
             to include as decided by the Relative Secular Approximation
         """
-        xx, yy, zz = np.array(c_op_Fourier_amplitudes_list).nonzero()
-        xx = np.array(xx) - int(Nt / 2)
 
-        test = list(zip(xx, yy, zz))
-        valid_indices = []
-        for idx1 in test:
-            for idx2 in test:
-                cop1 = c_op_Fourier_amplitudes_list[idx1]
-                cop2 = np.conj(c_op_Fourier_amplitudes_list[idx2])
-                ordered_idx = (
-                    idx1[1],
-                    idx1[2],
-                    idx2[1],
-                    idx2[2],
-                    idx1[0],
-                    idx2[0],
-                )
-                delts = delta(*ordered_idx)
-                if delts == 0:
-                    valid_indices.append(ordered_idx)
-                elif (
-                    abs((cop1 * cop2 / delts) ** (-1))
-                    <= relative_secular_cutoff
-                ):
-                    valid_indices.append(ordered_idx)
-
-        """
-        Grouping together the valid indices found by the 
-            relative_secular_cutoff according to their frequency values
-        """
-        delta_dict = {}
-        for indices in valid_indices:
-            try:
-                delta_dict[delta(*indices)].append(indices)
-            except KeyError:
-                delta_dict[delta(*indices)] = [indices]
+        delta_dict = _rate_matrix_indices(
+            relative_secular_cutoff,
+            c_op_Fourier_amplitudes_list,
+            Nt,
+            floquet_basis,
+        )
 
         """
         Below takes all the indices that correspond to a single frequency,
             and builds that frequency value of the Rate Matrix
         """
-        for key in delta_dict.keys():
-            valid_c_op_prods_list = [indices for indices in delta_dict[key]]
-            flime_FirstTerm = []
-            flime_SecondTerm = []
-            dummy_matrix = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
-            for indices in valid_c_op_prods_list:
-                a = indices[0]
-                b = indices[1]
-                ap = indices[2]
-                bp = indices[3]
-                k = indices[4]
-                kp = indices[5]
 
-                c_prods = c_op_Fourier_amplitudes_list[k, a, b] * np.conj(
-                    c_op_Fourier_amplitudes_list[kp, ap, bp]
-                )
+        R_tensor = _Rate_Matrix_Builder(
+            delta_dict,
+            c_op_Fourier_amplitudes_list,
+            power_spectrum,
+            floquet_basis,
+        )
 
-                gam_plus = power_spectrum(powfreqs(a, b, k))
-
-                gam_minus_prime = power_spectrum(powfreqs(ap, bp, kp))
-
-                matrix_it = np.nditer(dummy_matrix, flags=["multi_index"])
-
-                for itx in matrix_it:
-                    m = matrix_it.multi_index[0]
-                    n = matrix_it.multi_index[1]
-                    p = matrix_it.multi_index[2]
-                    q = matrix_it.multi_index[3]
-
-                    t1 = (b == p) * (q == bp) * (m == a) * (ap == n)
-                    t2 = (m == bp) * (q == n) * (ap == a) * (b == p)
-                    t3 = t1
-                    t4 = (q == bp) * (ap == a) * (m == p) * (b == n)
-
-                    flime_FirstTerm.append(
-                        gam_plus * c_prods * (t1 ^ t2) * (1 - 2 * t2)
-                    )
-
-                    flime_SecondTerm.append(
-                        gam_minus_prime * c_prods * (t3 ^ t4) * (1 - 2 * t4)
-                    )
-
+        for key in R_tensor:
             try:
-                total_R_tensor[key] += (1 / 2) * np.sum(
-                    np.reshape(
-                        np.add(flime_FirstTerm, flime_SecondTerm),
-                        (len(valid_c_op_prods_list), Hdim**2, Hdim**2),
-                    ),
-                    axis=0,
-                )
+                total_R_tensor[key] += R_tensor[key]
             except KeyError:
-                total_R_tensor[key] = (1 / 2) * np.sum(
-                    np.reshape(
-                        np.add(flime_FirstTerm, flime_SecondTerm),
-                        (len(valid_c_op_prods_list), Hdim**2, Hdim**2),
-                    ),
-                    axis=0,
-                )
+                total_R_tensor[key] = R_tensor[key]
+
     return total_R_tensor
 
 
