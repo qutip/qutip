@@ -13,6 +13,7 @@ cimport cython
 from libc cimport math
 from libcpp cimport bool
 from qutip.core.data.base cimport Data
+from qutip import settings
 
 __all__ = ['Dispatcher']
 
@@ -99,6 +100,52 @@ cdef class _constructed_specialisation:
             spec = "(" + ", ".join(x.__name__ for x in self.types) + ")"
         return "".join([
             "<indirect specialisation ", spec, " of ", self._short_name, ">"
+        ])
+
+
+cdef class _group_specialisation:
+    """
+    Callable object providing the specialisation of a data-layer operation for
+    a particular set of types (`self.types`) and a group output type.
+
+    See `self.__signature__` or `self.__text_signature__` for the call
+    signature of this object.
+    """
+    cdef object _call
+    cdef readonly Py_ssize_t _n_inputs, _n_dispatch
+    cdef readonly tuple types
+    cdef readonly object group
+    cdef readonly str _short_name
+    cdef public str __doc__
+    cdef public str __name__
+    cdef public object __signature__
+    cdef readonly str __text_signature__
+
+    def __init__(self, base, Dispatcher dispatcher, types, group):
+        self.__doc__ = inspect.getdoc(dispatcher)
+        self._short_name = dispatcher.__name__
+        self.__name__ = (
+            self._short_name
+            + "_"
+            + "_".join([x.__name__ for x in types])
+        )
+        self.__signature__ = dispatcher.__signature__
+        self.__text_signature__ = dispatcher.__text_signature__
+        self._call = base
+        self.types = types
+        self.group = group
+
+    @cython.wraparound(False)
+    def __call__(self, *args, **kwargs):
+        return _to(self.group, self._call(*args, **kwargs))
+
+    def __repr__(self):
+        if len(self.types) == 0:
+            spec = self.group.name
+        else:
+            spec = "(" + ", ".join(x.__name__ for x in self.types) + f" {self.group.name})"
+        return "".join([
+            f"<indirect specialisation {spec} of ", self._short_name, ">"
         ])
 
 
@@ -289,7 +336,10 @@ cdef class Dispatcher:
         if not _defer:
             self.rebuild_lookup()
 
-    cdef object _find_specialization(self, tuple in_types, bint output, int verbose):
+    cdef object _find_specialization(
+        self, tuple in_types, bint output,
+        type default=None, int verbose=False
+    ):
         # The complexity of building the table here is very poor, but it's a
         # cost we pay very infrequently, and until it's proved to be a
         # bottle-neck in real code, we stick with the simple algorithm.
@@ -305,7 +355,8 @@ cdef class Dispatcher:
             print(f"Building {self.__name__}{[in_type.__name__ for in_type in in_types]}")
         for out_types, out_function in self._specialisations.items():
             cur = _conversion_weight(
-                in_types, out_types[:n_dispatch], _to.weight, out=output)
+                in_types, out_types[:n_dispatch], _to.weight, out=output
+            )
             if verbose:
                 print(f"    {out_function.__name__}: {cur}")
             if cur < weight:
@@ -322,6 +373,9 @@ cdef class Dispatcher:
 
         if weight in [EPSILON, 0.] and not (output and types[-1] is Data):
             self._lookup[in_types] = function
+        elif default is not None:
+            # No exact match, use default dtype
+            self._lookup[in_types] = self._lookup[in_types + (default,)]
         else:
             if output:
                 converters = tuple(
@@ -350,13 +404,25 @@ cdef class Dispatcher:
             return
         self._dtypes = _to.dtypes.copy()
         for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch):
-            self._find_specialization(in_types, self.output, verbose)
+            self._find_specialization(in_types, self.output, None, verbose=verbose)
         # Now build the lookup table in the case that we dispatch on the output
         # type as well, but the user has called us without specifying it.
-        # TODO: option to control default output type choice if unspecified?
+        if self.output and settings.core["default_dtype_scope"] == "full":
+            default_dtype = _to.parse(settings.core["default_dtype"])
+            for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
+                self._lookup[in_types] = self._lookup[in_types + (default_dtype,)]
+        elif self.output:
+            default_dtype = None
+            if settings.core["default_dtype_scope"] == "missing":
+                default_dtype = _to.parse(settings.core["default_dtype"])
+            for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
+                self._find_specialization(in_types, False, default_dtype, verbose)
         if self.output:
             for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
-                self._find_specialization(in_types, False, verbose)
+                for group in _to.groups:
+                    self._lookup[in_types + (group,)] = _group_specialisation(
+                        self._lookup[in_types], self, in_types, group
+                    )
 
     def __getitem__(self, types):
         """

@@ -17,7 +17,8 @@ from . import data as _data
 from qutip.typing import LayerType, DimensionLike
 import qutip
 from .dimensions import (
-    enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions
+    enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions,
+    to_tensor_rep
 )
 
 __all__ = ['Qobj', 'ptrace']
@@ -276,7 +277,8 @@ class Qobj:
         copy: bool = True,
         superrep: str = None,
         isherm: bool = None,
-        isunitary: bool = None
+        isunitary: bool = None,
+        dtype: type | str = None,
     ):
         self._isherm = isherm
         self._isunitary = isunitary
@@ -285,12 +287,23 @@ class Qobj:
         if superrep is not None:
             self.superrep = superrep
 
+        if (
+            isinstance(arg, list)
+            or dtype
+            or settings.core["default_dtype_scope"] == "full"
+        ):
+            dtype = dtype or settings.core["default_dtype"]
+            if dtype is None or isinstance(self._data, _data.to.parse(dtype)):
+                return
+            self._data = _data.to(dtype, self._data)
+
     def copy(self) -> Qobj:
         """Create identical copy"""
         return Qobj(arg=self._data,
                     dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
+                    dtype=self.dtype,
                     copy=True)
 
     @property
@@ -372,7 +385,8 @@ class Qobj:
             dims=self._dims,
             isherm=self._isherm,
             isunitary=self._isunitary,
-            copy=False
+            dtype=data_type,
+            copy=copy
         )
 
     @_require_equal_type
@@ -903,7 +917,8 @@ class Qobj:
         return Qobj(_data.expm(self._data, dtype=dtype),
                     dims=self._dims,
                     isherm=self._isherm,
-                    copy=False)
+                    copy=False,
+                    dtype=dtype)
 
     def logm(self) -> Qobj:
         """Matrix logarithm of quantum operator.
@@ -1142,6 +1157,8 @@ class Qobj:
         elif self.issuper or self.isoper:
             dims = self.dims
             data = self.data
+        elif self.isket:
+            return _ptrace_specialization_kets(self, sel)
         else:
             dims = [self.dims[0] if self.isket else self.dims[1]] * 2
             data = _data.project(self.data)
@@ -1871,3 +1888,53 @@ def ptrace(Q: Qobj, sel: int | list[int]) -> Qobj:
     if not isinstance(Q, Qobj):
         raise TypeError("Input is not a quantum object")
     return Q.ptrace(sel)
+
+
+def _ptrace_specialization_kets(state: Qobj, keep_dims: list[int]) -> Qobj:
+    """ Faster implementation of ptrace for kets.
+
+    Example:
+        If ``|psi> = s_ijk |ijk>`` is a ket with three dimensions,
+        this code directly computes e.g. ``\\sum_j s_ijk s*_njm`` without first
+        having to compute ``|psi><psi|``, which can be prohibitively large.
+    """
+    assert state.isket
+
+    if len(keep_dims) != len(set(keep_dims)):
+        raise ValueError("Duplicate selection index in ptrace.")
+
+    dims = state.dims[0]
+    num_dims = len(dims)
+
+    # The comments below refer an example with ``state.dims = [12, 13, 14]``
+    # and ``keep_dims = [0, 2]`` (i.e. the dimensions with size 12 and 14)
+
+    # Build index lists for subsequent einsum call
+    ket_indices = list(range(num_dims))  # [0, 1, 2] in the above example
+    bra_indices = list(range(num_dims))  # [0, 1, 2] in the example
+    new_indices = list(range(num_dims, num_dims+len(keep_dims)))  # [3, 4]
+    out_indices = keep_dims + new_indices  # [0, 2, 3, 4]
+
+    for keep_index, new_index in zip(keep_dims, new_indices):
+        bra_indices[keep_index] = new_index
+    # Now bra_indices = [3, 1, 4]
+
+    state_np = to_tensor_rep(state).squeeze()
+
+    try:
+        res = np.einsum(state_np, ket_indices,           # [0, 1, 2]
+                        state_np.conj(), bra_indices,    # [3, 1, 4]
+                        out_indices,                     # [0, 2, 3, 4]
+                        optimize=True)
+    except ValueError:
+        raise IndexError("Invalid selection index in ptrace.")
+
+    new_shape = [dims[keep_ind] for keep_ind in keep_dims]  # [12, 14]
+
+    if len(res.shape) > 0:
+        res = res.reshape(np.prod(new_shape), np.prod(new_shape))
+    else:
+        # handle special case if the result is a scalar
+        new_shape = [1]
+
+    return Qobj(res, dims=[new_shape, new_shape])
