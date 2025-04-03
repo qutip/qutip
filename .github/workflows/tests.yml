@@ -223,7 +223,6 @@ jobs:
         # to see if something hung.
         timeout-minutes: 60
         run: |
-          export MKL_VERBOSE=2
           if [[ -n "${{ matrix.openmp }}" ]]; then
             # Force OpenMP runs to use more threads, even if there aren't
             # actually that many CPUs.  We have to check any dispatch code is
