@@ -61,8 +61,8 @@ def coefficient(
     base: CoefficientLike,
     *,
     tlist: ArrayLike = None,
-    args: dict = {},
-    args_ctypes: dict = {},
+    args: dict = None,
+    args_ctypes: dict = None,
     order: int = 3,
     compile_opt: dict = None,
     function_style: str = None,
@@ -175,6 +175,13 @@ def coefficient(
     **kwargs
         Extra arguments to pass the the coefficients.
     """
+    
+      # Safely initialize mutable defaults
+    if args is None:
+        args = {}
+    if args_ctypes is None:
+        args_ctypes = {}
+
     kwargs.update({
         "tlist": tlist,
         'args': args,
