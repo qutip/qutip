@@ -1,6 +1,7 @@
 from qutip import Qobj, qeye_like
 from numpy.typing import ArrayLike
 import numpy as np
+from numbers import Number
 import itertools
 from scipy.special import factorial
 
@@ -20,7 +21,7 @@ class DysolvePropagator:
     X : Qobj
         A cosine perturbation applied on the system.
 
-    omega : float
+    omega : Number
         The frequency of the cosine perturbation.
 
     options : dict, optional
@@ -34,7 +35,7 @@ class DysolvePropagator:
 
         - "a_tol"
 
-            The absolute tolerance used whencomputing the propagators
+            The absolute tolerance used when computing the propagators
             (default is 1e-10).
 
     Notes
@@ -42,20 +43,22 @@ class DysolvePropagator:
     The system's hamiltonian must be of the form
     H = H_0 + cos(omega*t)X for Dysolve to work.
 
+    For the moment, only a cosine perturbation is allowed. Dysolve can
+    manage more exotic perturbations, but this not implemented yet.
+
     """
 
     def __init__(
         self,
         H_0: Qobj,
         X: Qobj,
-        omega: float,
+        omega: Number,
         options: dict[str] = None,
     ):
         # System
-        # self.eigenenergies, self.basis = H_0.eigenstates()
-        self.eigenenergies = H_0.diag()
-        self.H_0 = H_0  # .transform(self.basis)
-        self.X = X  # .transform(self.basis)
+        self.eigenenergies, self._basis = H_0.eigenstates()
+        self.H_0 = H_0
+        self.X = X
         self.omega = omega
 
         # Times
@@ -74,17 +77,17 @@ class DysolvePropagator:
         self._Sns = None
         self.U = None
 
-    def __call__(self, t_f: float, t_i: float = 0) -> Qobj:
+    def __call__(self, t_f: Number, t_i: Number = 0) -> Qobj:
         """
         Computes the propagator from t_i to t_f. If t_i is not provided,
         computes the propagator from 0 to t_f.
 
         Parameters
         ----------
-        t_f : float
+        t_f : Number
             Final time of the evolution.
 
-        t_i : float, default = 0
+        t_i : Number, default = 0
             Initial time of the evolution.
 
         Returns
@@ -108,11 +111,11 @@ class DysolvePropagator:
         for n in range(self.max_order + 1):
             U += Uns[n]
 
-        self.U = Qobj(U, self.H_0.dims)
+        self.U = Qobj(U, self.H_0.dims).transform(self._basis, True)
 
         return self.U
 
-    def _compute_integrals(self, ws: ArrayLike) -> float:
+    def _compute_integrals(self, ws: ArrayLike) -> Number:
         """
         Computes the value of the nested integrals for a given array of
         effective omegas. See eq. (7) in Ref.
@@ -125,12 +128,13 @@ class DysolvePropagator:
 
         Returns
         -------
-        value : float
+        value : Number
             The value of the nested integrals.
 
         Notes
         -----
-        Integrals are done analytically from right to left.
+        Integrals are done analytically from right to left with integration
+        by parts.
 
         """
         if len(ws) == 0:
@@ -151,7 +155,7 @@ class DysolvePropagator:
                         ws_prime) - self._compute_integrals(ws[1:])
                 )
 
-    def _compute_tn_integrals(self, ws: ArrayLike, n: int) -> float:
+    def _compute_tn_integrals(self, ws: ArrayLike, n: int) -> Number:
         """
         Helper function to compute nested integrals when the function to
         integrate is t^n/factorial(n) * exp(1j*omega*t). This happens when
@@ -165,17 +169,18 @@ class DysolvePropagator:
             integral.
 
         n : int
-            An increment used in t^n/factorial(n).
+            The variable in t^n/factorial(n).
 
         Returns
         -------
-        value : float
+        value : Number
             The value of the nested integrals when the function to integrate is
             t^n/factorial(n) * exp(1j*omega*t).
 
         Notes
         -----
-        Integrals are done analytically from right to left.
+        Integrals are done analytically from right to left with integration
+        by parts.
 
         """
         if n == 0:
@@ -213,7 +218,7 @@ class DysolvePropagator:
     def _update_matrix_elements(self, current: ArrayLike) -> ArrayLike:
         """
         Reuses the current matrix elements (order n-1) to compute the
-        matrix elements for the next order n.
+        matrix elements for the order n.
 
         Parameters
         ----------
@@ -225,7 +230,7 @@ class DysolvePropagator:
         matrix_elements : ArrayLike
             The new matrix elements for the order n.
         """
-        elems = self.X.full().flatten()
+        elems = self.X.transform(self._basis).full().flatten()
         if current is None:
             return elems
         else:
@@ -236,17 +241,20 @@ class DysolvePropagator:
 
     def _compute_Sns(self) -> dict:
         """
-        Computes Sns for each omega vector.
+        Computes Sns for each omega vector. This implements a similar equation
+        to eq. (14) in Ref, but the function "f" is not used to avoid dealing
+        explicitly with limits.
 
         Returns
         -------
         Sns : dict
-            Sns for each omega vector (key = order).
+            Sns for each omega vector. key = order with the result for each
+            omega vector.
 
         """
         Sns = {}
         length = len(self.eigenenergies)
-        exp_H_0 = (-1j*self.dt*self.H_0).expm().full()
+        exp_H_0 = (-1j*self.dt*self.H_0.transform(self._basis)).expm().full()
         current_matrix_elements = None
 
         Sns[0] = exp_H_0
@@ -297,14 +305,14 @@ class DysolvePropagator:
 
         return Sns
 
-    def _compute_Uns(self, current_time: float) -> dict:
+    def _compute_Uns(self, current_time: Number) -> dict:
         """
-        Computes Un for each order from time current_time to
-        current_time + dt.
+        Computes Un for each order n from time current_time to
+        current_time + dt. See eq. (5) in Ref.
 
         Parameters
         ----------
-        current_time : float
+        current_time : Number
             The current time where to start the evolution for
             a time dt. current_time can be positive or negative.
 
@@ -312,7 +320,7 @@ class DysolvePropagator:
         -------
         Uns : dict
             Un for each order from time current_time to
-            current_time + dt.
+            current_time + dt. Key = order
         """
         Uns = {}
         Sns = self._Sns
@@ -338,13 +346,13 @@ class DysolvePropagator:
 def dysolve_propagator(
         H_0: Qobj,
         X: Qobj,
-        omega: float,
-        t: float | list[float],
+        omega: Number,
+        t: Number | list[Number],
         options: dict[str] = None
 ) -> Qobj | list[Qobj]:
     """
-    A generator of propagator(s) using the Dysolve algorithm.
-    See https://arxiv.org/abs/2012.09282.
+    A generator of propagator(s) using Dysolve.
+    https://arxiv.org/abs/2012.09282.
 
     Parameters
     ----------
@@ -354,10 +362,10 @@ def dysolve_propagator(
     X : Qobj
         A cosine perturbation applied on the system.
 
-    omega : float
+    omega : Number
         The frequency of the cosine perturbation.
 
-    t : float | list[float]
+    t : Number | list[Number]
         Time or list of times for which to evaluate the propagator(s). If t
         is a single number, the propagator from 0 to t is computed. When
         t is a list, the propagators from the first time to each elements in
@@ -382,8 +390,11 @@ def dysolve_propagator(
     The system's hamiltonian must be of the form
     H = H_0 + cos(omega*t)X for Dysolve to work.
 
+    For the moment, only a cosine perturbation is allowed. Dysolve can
+    manage more exotic perturbations, but this not implemented yet.
+
     """
-    if isinstance(t, float):
+    if isinstance(t, Number):
         dysolve = DysolvePropagator(H_0, X, omega, options)
         U = dysolve(t)
         return U

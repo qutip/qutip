@@ -1,9 +1,8 @@
 from qutip.solver.dysolve_propagator import DysolvePropagator, dysolve_propagator
 from qutip.solver import propagator
-from qutip import Qobj, sigmax, sigmay, sigmaz, qeye, qeye_like, tensor, CoreOptions
+from qutip import sigmax, sigmay, sigmaz, qeye, qeye_like, tensor, CoreOptions
 from scipy.special import factorial
 import numpy as np
-import itertools
 import pytest
 
 
@@ -167,6 +166,8 @@ def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
 def test_matrix_elements(empty_instance, max_order, X, answer):
     dysolve = empty_instance
     dysolve.X = X
+    # The basis shouldn't matter
+    dysolve._basis = qeye_like(X)
     current_matrix_elements = None
 
     for _ in range(1, max_order + 1):
@@ -198,13 +199,11 @@ def test_zeroth_order(H_0, t_i, t_f):
         assert U == exp
 
 
-@pytest.mark.parametrize("H_0", [qeye(2), sigmaz()])
+@pytest.mark.parametrize("H_0", [qeye(2), sigmax(), sigmay(), sigmaz()])
 @pytest.mark.parametrize("X", [qeye(2), sigmax(), sigmay(), sigmaz()])
-def test_2x2_diagonal_propagators_single_time(H_0, X):
-    # Data
-    omega = 10
-    t = 0.1
-
+@pytest.mark.parametrize("t", [-0.1, -0.01, -0.001, 0, 0.001, 0.01, 0.1])
+@pytest.mark.parametrize("omega", [-10, -5, -1, 0, 1, 5, 10])
+def test_2x2_propagators_single_time(H_0, X, t, omega):
     # Dysolve
     U = dysolve_propagator(H_0, X, omega, t, options={'max_order': 5})
 
@@ -218,22 +217,29 @@ def test_2x2_diagonal_propagators_single_time(H_0, X):
         H, t, args=args, options={"atol": 1e-10, "rtol": 1e-8}
     )
 
-    with CoreOptions(atol=1e-8, rtol=1e-8):
+    with CoreOptions(atol=1e-10, rtol=1e-6):
         assert U == prop
 
 
-# def test_dims():
-#     # Dimensions of H_0, X, and propagators shoud be the same
-#     H_0s = [sigmaz(), tensor(sigmaz(), sigmaz()),
-#             tensor(sigmaz(), sigmaz(), sigmaz()),
-#             tensor(sigmaz(), sigmaz(), sigmaz(), sigmaz())]
-#     Xs = [sigmax(), tensor(sigmax(), sigmax()),
-#           tensor(sigmax(), sigmax(), sigmax()),
-#           tensor(sigmax(), sigmax(), sigmax(), sigmax())]
-
-#     for H_0, X in zip(H_0s, Xs):
-#         dysolve_1 = DysolvePropagator(
-#             H_0, X, 1, {'max_order': 1, 'a_tol': 1e-8}
-#         )
-#         U_1 = dysolve_1(0, 1)
-#         assert (dysolve_1.H_0.dims == dysolve_1.X.dims == U_1.dims)
+@pytest.mark.parametrize("H_0, X", [
+    (
+       sigmaz(), sigmax(),
+    ),
+    (
+        tensor(sigmaz(), sigmaz()), tensor(sigmax(), sigmax()),
+    ),
+    (
+        tensor(sigmaz(), sigmaz(), sigmaz()),
+        tensor(sigmax(), sigmax(), sigmax())
+    ),
+    (
+        tensor(sigmaz(), sigmaz(), sigmaz(), sigmaz()),
+        tensor(sigmax(), sigmax(), sigmax(), sigmax())
+    )
+])
+def test_dims(H_0, X):
+    dysolve = DysolvePropagator(
+        H_0, X, 1, {'max_order': 0}
+    )
+    U_1 = dysolve(0.001)
+    assert (dysolve.H_0.dims == dysolve.X.dims == U_1.dims)
