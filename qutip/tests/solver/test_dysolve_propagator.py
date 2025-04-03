@@ -198,7 +198,6 @@ def test_zeroth_order(H_0, t_i, t_f):
         assert U == exp
 
 
-@pytest.mark.xfail()
 @pytest.mark.parametrize("H_0", [qeye(2), sigmaz()])
 @pytest.mark.parametrize("X", [qeye(2), sigmax(), sigmay(), sigmaz()])
 def test_2x2_diagonal_propagators_single_time(H_0, X):
@@ -220,7 +219,7 @@ def test_2x2_diagonal_propagators_single_time(H_0, X):
     )
 
     with CoreOptions(atol=1e-8, rtol=1e-8):
-        assert U == prop, (H_0, X)
+        assert U == prop
 
 
 # def test_dims():

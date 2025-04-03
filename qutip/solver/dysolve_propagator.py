@@ -52,7 +52,8 @@ class DysolvePropagator:
         options: dict[str] = None,
     ):
         # System
-        self.eigenenergies, self.basis = H_0.eigenstates()
+        # self.eigenenergies, self.basis = H_0.eigenstates()
+        self.eigenenergies = H_0.diag()
         self.H_0 = H_0  # .transform(self.basis)
         self.X = X  # .transform(self.basis)
         self.omega = omega
@@ -260,7 +261,7 @@ class DysolvePropagator:
                 itertools.product(self.eigenenergies, repeat=n + 1),
                 np.dtype((float, (n+1,)))
             )
-            diff_lambdas = np.diff(lambdas)
+            diff_lambdas = -np.diff(lambdas)
 
             ket_bra_idx = np.vstack(
                 (np.repeat(np.arange(0, length), length**n),
@@ -278,7 +279,7 @@ class DysolvePropagator:
 
             for i, omega_vector in enumerate(omega_vectors):
                 # Compute integrals
-                ls_ws = omega_vector + diff_lambdas
+                ls_ws = omega_vector + diff_lambdas[:, ::-1]
                 integrals = np.zeros(ls_ws.shape[0], dtype=np.complex128)
                 for j, ws in enumerate(ls_ws):
                     integrals[j] = self._compute_integrals(ws)
@@ -286,8 +287,8 @@ class DysolvePropagator:
                 x = integrals * current_matrix_elements
 
                 for row in range(ket_bra_idx.shape[0]):
-                    Sn[i, ket_bra_idx[row, 1],
-                        ket_bra_idx[row, 0]] += x[row]
+                    Sn[i, ket_bra_idx[row, 0],
+                        ket_bra_idx[row, 1]] += x[row]
 
                 Sn[i] *= (-1j / 2) ** n
                 Sn[i] = exp_H_0 @ Sn[i]
