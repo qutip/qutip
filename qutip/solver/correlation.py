@@ -501,7 +501,6 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C, args=None,
     <A(t)B(t+tau)C(t)> for density matrices.
     """
     
-    
     # Set max_t_plus_tau from options, default to infinity
     if options is None:
         options = {}
@@ -511,11 +510,13 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C, args=None,
     solver_obj = solver(state0, tlist, e_ops=[], args=args, options=options)
     rho_t = solver_obj.states
     
-    # Setup progress bar if needed
-    if progress_bar is True:
-        progress_bar = ProgressBar(len(tlist))
-    elif progress_bar is None or progress_bar is False:
-        progress_bar = BaseProgressBar()
+    # Setup progress bar using the progress_bars API
+    if progress_bar is None:
+        progress_bar = False
+    
+    # Get appropriate progress bar from the progress_bars factory
+    pbar = progress_bars.get_progress_bar(progress_bar, len(tlist))
+    pbar.start()
     
     # Initialize correlation matrix
     corr_mat = np.zeros((len(tlist), len(taulist)), dtype=complex)
@@ -546,7 +547,7 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C, args=None,
             tau_solver = solver(rho_tau0, taulist, e_ops=[B], args=args, options=options)
             result = tau_solver.expect[0]
             
-        progress_bar.update()
+        pbar.update(t_idx)
         return result
     
     # Use parallel map to compute correlations for all time points
@@ -556,6 +557,6 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C, args=None,
     for t_idx, result in enumerate(results):
         corr_mat[t_idx, :] = result
     
-    progress_bar.finished()
+    pbar.finished()
     
     return corr_mat
