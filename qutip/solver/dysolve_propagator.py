@@ -44,7 +44,7 @@ class DysolvePropagator:
     H = H_0 + cos(omega*t)X for Dysolve to work.
 
     For the moment, only a cosine perturbation is allowed. Dysolve can
-    manage more exotic perturbations, but this not implemented yet.
+    manage more exotic perturbations, but this is not implemented yet.
 
     """
 
@@ -391,7 +391,7 @@ def dysolve_propagator(
     H = H_0 + cos(omega*t)X for Dysolve to work.
 
     For the moment, only a cosine perturbation is allowed. Dysolve can
-    manage more exotic perturbations, but this not implemented yet.
+    manage more exotic perturbations, but this is not implemented yet.
 
     """
     if isinstance(t, Number):
