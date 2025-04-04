@@ -374,10 +374,18 @@ def dysolve_propagator(
         between elements for better performance.
 
     options : dict, optional
-        Extra parameters. "max_order" is a given integer to indicate the
-        highest order of approximation used to compute the propagators
-        (default is 4). "a_tol" is the absolute tolerance used when
-        computing the propagators (default is 1e-10).
+        Extra parameters.
+
+        - "max_order"
+
+            A given integer to indicate the highest order of
+            approximation used to compute the propagators (default is 4).
+            This corresponds to n in eq. (4) of Ref.
+
+        - "a_tol"
+
+            The absolute tolerance used when computing the propagators
+            (default is 1e-10).
 
     Returns
     -------
