@@ -203,6 +203,13 @@ Propagators
     :inherited-members:
     :special-members: __call__
 
+*******
+Dysolve
+*******
+
+.. automodule:: qutip.solver.dysolve_propagator
+    :members: dysolve_propagator, DysolvePropagator
+
 
 ************************
 Other dynamics functions
