@@ -368,6 +368,7 @@ def iterated_fit(
     Iteratively tries to fit the given data with a model of the form
 
     .. math::
+
         y = \sum_{k=1}^N f(x; p_{k,1}, \dots, p_{k,n})
 
     where `f` is a model function depending on `n` parameters, and the number
@@ -574,7 +575,7 @@ def aaa(func: Callable[..., complex] | ArrayLike, z: ArrayLike,
         The sampling points on which to perform the rational approximation.
         Even though linearly spaced sample points will yield good
         approximations, logarithmically spaced points will usually give better
-        exponent approximations
+        exponent approximations.
     tol : float, optional
         Relative tolerance of the approximation
     max_iter : int, optional
@@ -583,24 +584,24 @@ def aaa(func: Callable[..., complex] | ArrayLike, z: ArrayLike,
 
     Returns
     -------
-    A dictionary containing
-        function : callable
-            rational approximation of the function
-        poles : np.ndarray
-            poles of the approximant function
-        residues : np.ndarray
-            residues of the approximant function
-        zeros : np.ndarray
-            zeros of the approximant function
-        errors : np.ndarray
+    A dictionary containing:
+        "function" : callable
+            Rational approximation of the function
+        "poles" : np.ndarray
+            Poles of the approximant function
+        "residues" : np.ndarray
+            Residues of the approximant function
+        "zeros" : np.ndarray
+            Zeros of the approximant function
+        "errors" : np.ndarray
             Error by iteration
-        rmse: float
+        "rmse" : float
             Normalized root mean squared error from the fit
-        support points: np.ndarray
+        "support points" : np.ndarray
             The values used as the support points for the approximation
-        indices: np.ndarray
+        "indices" : np.ndarray
             The indices of the support point values
-        indices ordered: np.ndarray
+        "indices ordered" : np.ndarray
             The indices of the support point values, sorted by importance
     """
     func = func(z) if callable(func) else func
@@ -663,7 +664,8 @@ def _compute_cauchy_matrix(z, support_points):
     Computes the `Cauchy matrix <https://en.wikipedia.org/wiki/Cauchy_matrix>`
     for the AAA rational approximation
 
-    ..math::
+    .. math::
+
     a_{ij}={\frac {1}{x_{i}-y_{j}}};\quad x_{i}-y_{j}\neq 0
     ,\quad 1\leq i\leq m,\quad 1\leq j\leq n}
 
@@ -692,12 +694,14 @@ def _get_rational_approx(cauchy, weights, values, indices=None, func=None):
     Gets the rational approximation of the function. The approximation is of
     the form
 
-    ..math::
+    .. math::
+
         r(z) = \frac{w_{j} f_{j}}{z-z_{j}}/\frac{w_{j}}{z-z_{j}}
 
     where w is the cauchy matrix
-    Parameters:
-    -----------
+
+    Parameters
+    ----------
     cauchy : np.ndarray
         The cauchy matrix
     values : np.ndarray
@@ -709,9 +713,8 @@ def _get_rational_approx(cauchy, weights, values, indices=None, func=None):
     func:
         The function evaluated in the range of the fit
 
-
-    Returns:
-    --------
+    Returns
+    -------
     r : np.ndarray
         The rational approximation of the function
     """
@@ -734,7 +737,8 @@ def _prz(support_points, values, weights):
     poles, residue and zeros of the rational approximation. Using the
     generalized eigenvalue problem
 
-    ..math::
+    .. math::
+
        geig = \begin{pmatrix}0 & \omega_{2} & \dots& \omega_{m} \\
            1& z_{1} & 0 & \dots \\
            1 & 0 & z_{2} & \dots \\
@@ -786,7 +790,7 @@ def _prz(support_points, values, weights):
     return pol, res, zeros
 
 
-# Prony methods Fitting
+# --- Prony methods fitting ---
 
 def _prony_model(n, amp, phase):
     # It serves to compute rmse, a single term of the prony
@@ -799,7 +803,7 @@ def prony_methods(method: Literal["prony", "esprit"],
     """
     Estimate amplitudes and frequencies using prony methods.
     Based on the description in [ESPIRAvsESPRIT]_
-    and their matlab implementation
+    and their matlab implementation.
 
     Parameters
     ----------
@@ -840,15 +844,15 @@ def prony_methods(method: Literal["prony", "esprit"],
     rmse = _rmse(_prony_model, len(signal), signal, params)
     return rmse, params
 
-# ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
+# ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
 def espira1(signal: ArrayLike, n: int,
             tol: float = 1e-13) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
     Based on the description in [ESPIRAvsESPRIT]_
-    and their matlab implementation
+    and their matlab implementation.
 
     Parameters
     ----------

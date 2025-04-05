@@ -305,7 +305,6 @@ class BosonicEnvironment(abc.ABC):
         args : optional, dict
             Extra arguments for the spectral density ``J``.
         """
-
         return _BosonicEnvironment_fromSD(J, wlist, wMax, T, tag, args)
 
     # --- spectral density, power spectrum, correlation function conversions
@@ -378,6 +377,7 @@ class BosonicEnvironment(abc.ABC):
                           tMax, tMax=wMax)
         result = result_fct(t) / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
+
     # --- fitting
 
     @overload
@@ -451,12 +451,12 @@ class BosonicEnvironment(abc.ABC):
         self,
         method: Literal['prony', 'esprit', 'espira-I', 'espira-II'],
         tlist: ArrayLike,
+        separate: bool = False,
         Nr: int = 3,
         Ni: int = 3,
         combine: bool = True,
-        tag: Any = None,
-        separate: bool = False
-    ) -> ExponentialBosonicEnvironment:
+        tag: Any = None
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
         ...
 
     @property
@@ -499,21 +499,10 @@ class BosonicEnvironment(abc.ABC):
         return func(method, *args, **kwargs)
 
     def _approx_by_cf_fit(
-        self,
-        method: str,
-        tlist: ArrayLike,
-        target_rmse: float = 2e-5,
-        Nr_max: int = 10,
-        Ni_max: int = 10,
-        guess: list[float] = None,
-        lower: list[float] = None,
-        upper: list[float] = None,
-        sigma: float | ArrayLike = None,
-        maxfev: int = None,
-        full_ansatz: bool = False,
-        combine: bool = True,
-        tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        self, method, tlist, target_rmse=2e-5, Nr_max=10, Ni_max=10,
+        guess=None, lower=None, upper=None, sigma=None, maxfev=None,
+        full_ansatz=False, combine=True, tag=None
+    ):
 
         # Process arguments
         if tag is None and self.tag is not None:
@@ -571,8 +560,7 @@ class BosonicEnvironment(abc.ABC):
         fit_info = {"Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
                     "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
                     "rmse_imag": rmse_imag, "params_real": params_real,
-                    "params_imag": params_imag, "summary": full_summary,
-                    }
+                    "params_imag": params_imag, "summary": full_summary}
 
         # Finally, generate environment and return
         ckAR = []
@@ -602,20 +590,10 @@ class BosonicEnvironment(abc.ABC):
         return approx_env, fit_info
 
     def _approx_by_sd_fit(
-        self,
-        method: str,
-        wlist: ArrayLike,
-        Nk: int = 1,
-        target_rmse: float = 5e-6,
-        Nmax: int = 10,
-        guess: list[float] = None,
-        lower: list[float] = None,
-        upper: list[float] = None,
-        sigma: float | ArrayLike = None,
-        maxfev: int = None,
-        combine: bool = True,
-        tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        self, method, wlist, Nk=1, target_rmse=5e-6, Nmax=10,
+        guess=None, lower=None, upper=None, sigma=None, maxfev=None,
+        combine=True, tag=None
+    ):
 
         # Process arguments
         if tag is None and self.tag is not None:
@@ -668,19 +646,10 @@ class BosonicEnvironment(abc.ABC):
         return approx_env, fit_info
 
     def _approx_by_ps_fit(
-        self,
-        method: str,
-        wlist: ArrayLike,
-        target_rmse: float = 5e-6,
-        Nmax: int = 5,
-        guess: list[float] = None,
-        lower: list[float] = None,
-        upper: list[float] = None,
-        sigma: float | ArrayLike = None,
-        maxfev: int = None,
-        combine: bool = True,
-        tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        self, method, wlist, target_rmse=5e-6, Nmax=5,
+        guess=None, lower=None, upper=None, sigma=None, maxfev=None,
+        combine=True, tag=None
+    ):
 
         # Process arguments
         if tag is None and self.tag is not None:
@@ -730,17 +699,12 @@ class BosonicEnvironment(abc.ABC):
         return approx_env, fit_info
 
     def _approx_by_aaa(
-        self,
-        method: str,
-        wlist: ArrayLike,
-        tol: float = 1e-13,
-        Nmax: int = 10,
-        combine: bool = True,
-        tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        self, method, wlist, tol=1e-13, Nmax=10, combine=True, tag=None
+    ):
 
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
+
         start = time()
         # The *2 is there because half the poles will be filtered out
         result = aaa(self.power_spectrum, wlist,
@@ -778,38 +742,40 @@ class BosonicEnvironment(abc.ABC):
         return cls, fitinfo
 
     def _approx_by_prony(
-        self,
-        method: str,
-        tlist: ArrayLike,
-        Nr: int = 3,
-        Ni: int = 3,
-        combine: bool = True,
-        tag: Any = None,
-        separate: bool = False
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        self, method, tlist, separate=False, Nr=3, Ni=None,
+        combine=True, tag=None
+    ):
+        if not separate and Ni is not None:
+            raise ValueError("The number of imaginary exponents (Ni) cannot be"
+                             " specified if real and imaginary parts are fit"
+                             " together (separate=False).")
+        if Ni is None:
+            Ni = 3  # default value
+        if tag is None and self.tag is not None:
+            tag = (self.tag, f"{method.upper()} Fit")
 
         def prony(x, n):
             return prony_methods(method, x, n)
 
         def phase_to_exponent(phases):
-            return -((len(tlist) - 1) / tlist[-1]) * \
-                (np.log(np.abs(phases)) + 1j * np.angle(phases))
-        methods = {
-            "prony": prony,
-            "esprit": prony,
-            "espira-I": espira1,
-            "espira-II": espira2}
-        if tag is None and self.tag is not None:
-            tag = (self.tag, f"{method.upper()} Fit")
+            return -((len(tlist) - 1) / tlist[-1]) * (
+                np.log(np.abs(phases)) + 1j * np.angle(phases)
+            )
+
+        methods = {"prony": prony, "esprit": prony,
+                   "espira-I": espira1, "espira-II": espira2}
+
         if separate:
             start_real = time()
             rmse_real, params_real = methods[method](
                 self.correlation_function(tlist).real, Nr)
             end_real = time()
+
             start_imag = time()
             rmse_imag, params_imag = methods[method](
                 self.correlation_function(tlist).imag, Ni)
             end_imag = time()
+
             ckAR, phases = params_real.T
             ckAI, phases2 = params_imag.T
             vkAR = phase_to_exponent(phases)
@@ -817,6 +783,7 @@ class BosonicEnvironment(abc.ABC):
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
+
             params_real = [(ckAR[i].real, ckAR[i].imag, vkAR[i].real,
                             vkAR[i].imag) for i in range(len(ckAR))]
             params_imag = [(ckAI[i].real, ckAI[i].imag, vkAI[i].real,
@@ -826,16 +793,19 @@ class BosonicEnvironment(abc.ABC):
             full_summary = _cf_fit_summary(
                 params_real, params_imag, fit_time_real, fit_time_imag,
                 Nr, Ni, rmse_real, rmse_imag, n=4)
-            fit_info = {"Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
-                        "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
-                        "rmse_imag": rmse_imag, "params_real": params_real,
-                        "params_imag": params_imag, "summary": full_summary,
-                        }
+            fit_info = {
+                "Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
+                "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
+                "rmse_imag": rmse_imag, "params_real": params_real,
+                "params_imag": params_imag, "summary": full_summary,
+            }
+
         else:
             start_real = time()
             rmse_real, params_real = methods[method](
                 self.correlation_function(tlist), Nr)
             end_real = time()
+
             amp, phases = params_real.T
             ck = amp
             vk = phase_to_exponent(phases)
@@ -846,15 +816,18 @@ class BosonicEnvironment(abc.ABC):
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAR, T=self.T, combine=combine, tag=tag)
+
             params_real = [(ck[i].real, ck[i].imag, vk[i].real,
                             vk[i].imag) for i in range(len(amp))]
             fit_time_real = end_real-start_real
             full_summary = _fit_summary(fit_time_real, rmse_real, Nr,
                                         "Correlation Function", params_real,
                                         columns=['ckr', 'cki', 'vkr', 'vki'])
-            fit_info = {"N": Nr, "fit_time": fit_time_real,
-                        "rmse": rmse_real, "params": params_real,
-                        "summary": full_summary}
+            fit_info = {
+                "N": Nr, "fit_time": fit_time_real, "rmse": rmse_real,
+                "params": params_real, "summary": full_summary,
+            }
+
         return cls, fit_info
 
     def approx_by_cf_fit(self, *args, **kwargs):
@@ -1108,7 +1081,8 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         full_ansatz: bool = False,
         combine: bool = True,
         tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        ...
 
     @overload
     def approximate(
@@ -1124,7 +1098,8 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         maxfev: int = None,
         combine: bool = True,
         tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        ...
 
     @overload
     def approximate(
@@ -1141,7 +1116,8 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         maxfev: int = None,
         combine: bool = True,
         tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        ...
 
     @overload
     def approximate(
@@ -1152,19 +1128,21 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         Nmax: int = 10,
         combine: bool = True,
         tag: Any = None
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        ...
 
     @overload
     def approximate(
         self,
         method: Literal['prony', 'esprit', 'espira-I', 'espira-II'],
         tlist: ArrayLike,
+        separate: bool = False,
         Nr: int = 3,
         Ni: int = 3,
         combine: bool = True,
-        tag: Any = None,
-        separate: bool = False
-    ) -> ExponentialBosonicEnvironment: ...
+        tag: Any = None
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        ...
 
     # endregion
 
@@ -1188,12 +1166,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return super().approximate(method, *args, **kwargs)
 
     def _approx_by_matsubara(
-        self,
-        method: str,
-        Nk: int,
-        combine: bool = True,
-        compute_delta: bool = False,
-        tag: Any = None
+        self, method, Nk, combine=True, compute_delta=False, tag=None
     ):
         if self.T == 0:
             raise ValueError("The Drude-Lorentz correlation function diverges "
@@ -1215,12 +1188,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         return approx_env, delta
 
     def _approx_by_pade(
-        self,
-        method: str,
-        Nk: int,
-        combine: bool = True,
-        compute_delta: bool = False,
-        tag: Any = None
+        self, method, Nk, combine=True, compute_delta=False, tag=None
     ):
         if self.T == 0:
             raise ValueError("The Drude-Lorentz correlation function diverges "
@@ -1355,6 +1323,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
     Describes an underdamped environment with the spectral density
 
     .. math::
+
         J(\omega) = \frac{\lambda^{2} \Gamma \omega}{(\omega_0^{2}-
         \omega^{2})^{2}+ \Gamma^{2} \omega^{2}}
 
@@ -1482,7 +1451,8 @@ class UnderDampedEnvironment(BosonicEnvironment):
         full_ansatz: bool = False,
         combine: bool = True,
         tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        ...
 
     @overload
     def approximate(
@@ -1498,7 +1468,8 @@ class UnderDampedEnvironment(BosonicEnvironment):
         maxfev: int = None,
         combine: bool = True,
         tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        ...
 
     @overload
     def approximate(
@@ -1515,7 +1486,8 @@ class UnderDampedEnvironment(BosonicEnvironment):
         maxfev: int = None,
         combine: bool = True,
         tag: Any = None,
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        ...
 
     @overload
     def approximate(
@@ -1526,19 +1498,21 @@ class UnderDampedEnvironment(BosonicEnvironment):
         Nmax: int = 10,
         combine: bool = True,
         tag: Any = None
-    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]: ...
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        ...
 
     @overload
     def approximate(
         self,
         method: Literal['prony', 'esprit', 'espira-I', 'espira-II'],
         tlist: ArrayLike,
+        separate: bool = False,
         Nr: int = 3,
         Ni: int = 3,
         combine: bool = True,
-        tag: Any = None,
-        separate: bool = False
-    ) -> ExponentialBosonicEnvironment: ...
+        tag: Any = None
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        ...
 
     # endregion
 
@@ -1561,12 +1535,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
         return super().approximate(method, *args, **kwargs)
 
     def _approx_by_matsubara(
-        self,
-        method: str,
-        Nk: int,
-        combine: bool = True,
-        compute_delta: bool = False,
-        tag: Any = None
+        self, method, Nk, combine=True, compute_delta=False, tag=None
     ):
         if tag is None and self.tag is not None:
             tag = (self.tag, "Matsubara Truncation")
@@ -1641,6 +1610,7 @@ class OhmicEnvironment(BosonicEnvironment):
     (depending on the choice of the parameter `s`). The spectral density is
 
     .. math::
+
         J(\omega)
         = \alpha \frac{\omega^s}{\omega_c^{s-1}} e^{-\omega / \omega_c} .
 
@@ -1728,6 +1698,7 @@ class OhmicEnvironment(BosonicEnvironment):
         formula
 
         .. math::
+
             C(t)= \frac{1}{\pi} \alpha w_{c}^{1-s} \beta^{-(s+1)} \Gamma(s+1)
             \left[ \zeta\left(s+1,\frac{1+\beta w_{c} -i w_{c} t}{\beta w_{c}}
             \right) +\zeta\left(s+1,\frac{1+ i w_{c} t}{\beta w_{c}}\right)
@@ -1758,7 +1729,7 @@ class OhmicEnvironment(BosonicEnvironment):
                 dtype=np.cdouble
             )
         else:
-            corr = (self.alpha * self.wc**(2) / np.pi
+            corr = (self.alpha * self.wc**2 / np.pi
                     * mp.gamma(self.s + 1)
                     * (1 + 1j * self.wc * t) ** (-self.s - 1))
             result = np.asarray(corr, dtype=np.cdouble)
@@ -1849,6 +1820,17 @@ class CFExponent:
 
         self.tag = tag
         self.fermionic = self._type_is_fermionic(type)
+
+    def rescale(self, alpha: float) -> CFExponent:
+        """Rescale the coefficient of the exponent by a factor of alpha."""
+        ck_new = self.ck * alpha
+        if self.type == self.types["RI"]:
+            ck2_new = self.ck2 * alpha
+        else:
+            ck2_new = None
+        return CFExponent(
+            type=self.type, ck=ck_new, vk=self.vk, ck2=ck2_new, tag=self.tag
+        )
 
     def __repr__(self):
         return (
@@ -2102,21 +2084,35 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
 
         return self._sd_from_ps(w)
 
-    def rescale(self, alpha):
+    def rescale(
+        self, alpha: float, tag: Any = None
+    ) -> ExponentialBosonicEnvironment:
         """
-        It multiplies ck times alpha, rescaling the spectral density,
-        correlation function and power spectrum
+        Returns a new environment where all exponents are scaled by the factor
+        alpha. This corresponds to changing the coupling constant. The spectral
+        density, the correlation function and the power spectrum are all scaled
+        by the same factor.
 
         Parameters
         ----------
-        alpha :  float
-            rescaling parameter.
+        alpha : float
+            Rescaling factor.
+
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the rescaled environment.
+
+        Returns
+        -------
+        ExponentialBosonicEnvironment
+            The new environment with the rescaled exponents.
         """
-        exp_orig = self.exponents
-        for i in exp_orig:
-            i.ck *= alpha
-            i.ck2 *= alpha
-        self.exponents = exp_orig
+
+        tag = tag or self.tag
+
+        return ExponentialBosonicEnvironment(
+            exponents=[exp.rescale(alpha) for exp in self.exponents],
+            combine=False, T=self.T, tag=tag
+        )
 
 
 def system_terminator(Q: Qobj, delta: float) -> Qobj:
@@ -2178,6 +2174,7 @@ def _fft(f, wMax, tMax):
     Fourier transform
 
     .. math::
+
         g(\omega) = \int_{-\infty}^\infty dt\, e^{-i\omega t}\, f(t) .
 
     The function f is sampled on the interval `[-tMax, tMax]`. The sampling
@@ -3038,6 +3035,36 @@ class ExponentialFermionicEnvironment(FermionicEnvironment):
                 )
 
         return S.item() if w.ndim == 0 else S
+
+    def rescale(
+        self, alpha: float, tag: Any = None
+    ) -> ExponentialFermionicEnvironment:
+        """
+        Returns a new environment where all exponents are scaled by the factor
+        alpha. This corresponds to changing the coupling constant. The spectral
+        density, the correlation function and the power spectrum are all scaled
+        by the same factor.
+
+        Parameters
+        ----------
+        alpha : float
+            Rescaling factor.
+
+        tag : optional, str, tuple or any other object
+            An identifier (name) for the rescaled environment.
+
+        Returns
+        -------
+        ExponentialBosonicEnvironment
+            The new environment with the rescaled exponents.
+        """
+
+        tag = tag or self.tag
+
+        return ExponentialFermionicEnvironment(
+            exponents=[exp.rescale(alpha) for exp in self.exponents],
+            T=self.T, mu=self.mu, tag=tag
+        )
 
 
 Environment = Union[BosonicEnvironment, FermionicEnvironment]

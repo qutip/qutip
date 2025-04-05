@@ -149,6 +149,18 @@ class BathExponent(environment.CFExponent):
             f" tag={self.tag!r}>"
         )
 
+    def rescale(self, alpha):
+        """Rescale the coefficient of the exponent by a factor of alpha."""
+        ck_new = self.ck * alpha
+        if self.type == self.types["RI"]:
+            ck2_new = self.ck2 * alpha
+        else:
+            ck2_new = None
+        return BathExponent(
+            self.type, self.dim, self.Q, ck_new, self.vk, ck2=ck2_new,
+            sigma_bar_k_offset=self.sigma_bar_k_offset, tag=self.tag
+        )
+
     def _can_combine(self, other, rtol, atol):
         if not super()._can_combine(other, rtol, atol):
             return False
@@ -676,7 +688,7 @@ class LorentzianBath(FermionicBath):
 
     .. note::
 
-        This Matsubara expansion used in this bath converges very slowly
+        The Matsubara expansion used in this bath converges very slowly
         and ``Nk > 20`` may be required to get good convergence. The
         Padé expansion used by :class:`LorentzianPadeBath` converges much
         more quickly.
@@ -713,7 +725,7 @@ class LorentzianBath(FermionicBath):
     "environment" API. The bath classes are kept in QuTiP for reasons of
     backwards compatibility and convenience. Creating a `LorentzianBath` is
     equivalent to creating a :class:`.LorentzianEnvironment`, performing a
-    :meth:`Matsubara<.LorentzianEnvironment.approx_by_matsubara>`
+    :meth:`Matsubara <.LorentzianEnvironment.approx_by_matsubara>`
     approximation, and finally bundling the result together with the coupling
     operator ``Q`` for convenient use with the HEOM solver.
     """

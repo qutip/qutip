@@ -1,1 +1,1 @@
-Adds extra fitting methods for quantum environments
+Adds extra fitting methods (power spectrum, prony, esprit, aaa, espira-I, espira-II) for bosonic environments

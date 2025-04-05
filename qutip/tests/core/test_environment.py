@@ -288,7 +288,7 @@ class OhmicReference:
         mp = pytest.importorskip("mpmath")
 
         return (
-            self.alpha / np.pi * self.wc**(2) *
+            self.alpha / np.pi * self.wc**2 *
             complex(mp.gamma(self.s + 1)) *
             (1 + 1j * self.wc * t)**(-(self.s + 1))
         )
@@ -517,10 +517,10 @@ class TestBosonicEnvironment:
             reference.correlation_function, T=reference.T
         )
         tlist = np.linspace(0, tMax, 100)[1:]  # exclude t=0
-        fit, info = env.approximate("cf",
-                                    tlist, target_rmse=None, Nr_max=2, Ni_max=2,
-                                    full_ansatz=full_ansatz, combine=False
-                                    )
+        fit, info = env.approximate(
+            "cf", tlist, target_rmse=None, Nr_max=2, Ni_max=2,
+            full_ansatz=full_ansatz, combine=False
+        )
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert len(fit.exponents) == 8
@@ -550,10 +550,10 @@ class TestBosonicEnvironment:
             reference.correlation_function, tag="test"
         )
         tlist = np.linspace(0, tMax, 100)[1:]  # exclude t=0
-        fit, info = env.approximate("cf",
-                                    tlist, target_rmse=0.01, Nr_max=3, Ni_max=3,
-                                    full_ansatz=full_ansatz
-                                    )
+        fit, info = env.approximate(
+            "cf", tlist, target_rmse=0.01, Nr_max=3, Ni_max=3,
+            full_ansatz=full_ansatz
+        )
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
@@ -580,9 +580,9 @@ class TestBosonicEnvironment:
             reference.spectral_density, T=reference.T
         )
         wlist = np.linspace(0, wMax, 100)
-        fit, info = env.approximate("sd",
-                                    wlist, Nk=1, target_rmse=None, Nmax=4, combine=False
-                                    )
+        fit, info = env.approximate(
+            "sd", wlist, Nk=1, target_rmse=None, Nmax=4, combine=False
+        )
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert len(fit.exponents) == 4 * (1 + 4)
@@ -610,8 +610,10 @@ class TestBosonicEnvironment:
             reference.spectral_density, T=reference.T, tag="test"
         )
         wlist = np.linspace(0, wMax, 100)
-        fit, info = env.approximate("sd", wlist, Nk=1, target_rmse=0.01,
-                                    Nmax=5, **params)
+        fit, info = env.approximate(
+            "sd", wlist, Nk=1, target_rmse=0.01, Nmax=5, **params
+        )
+
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
         assert fit.tag == ("test", "SD Fit")
@@ -636,8 +638,10 @@ class TestBosonicEnvironment:
             reference.correlation_function, tag="test"
         )
         tlist = np.linspace(0, tMax, 250)
-        fit, info = env.approximate(
-            "prony", tlist, Nr=N, Ni=N, separate=separate)
+        if separate:
+            fit, info = env.approximate("prony", tlist, True, Nr=N, Ni=N)
+        else:
+            fit, info = env.approximate("prony", tlist, False, Nr=N)
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
@@ -647,6 +651,7 @@ class TestBosonicEnvironment:
         )
         if separate:
             assert info["Nr"] == N
+            assert info["Ni"] == N
             assert info["rmse_real"] < tol
             assert info["rmse_imag"] < tol
             for key in ["fit_time_real", "params_real",
@@ -669,8 +674,10 @@ class TestBosonicEnvironment:
             reference.correlation_function, tag="test"
         )
         tlist = np.linspace(0, tMax, 250)
-        fit, info = env.approximate("esprit",
-                                    tlist, Nr=N, Ni=N, separate=separate)
+        if separate:
+            fit, info = env.approximate("esprit", tlist, True, Nr=N, Ni=N)
+        else:
+            fit, info = env.approximate("esprit", tlist, False, Nr=N)
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
@@ -680,6 +687,7 @@ class TestBosonicEnvironment:
         )
         if separate:
             assert info["Nr"] == N
+            assert info["Ni"] == N
             assert info["rmse_real"] < tol
             assert info["rmse_imag"] < tol
             for key in ["fit_time_real", "params_real",
@@ -702,9 +710,10 @@ class TestBosonicEnvironment:
             reference.correlation_function, tag="test"
         )
         tlist = np.linspace(0, tMax, 250)
-        fit, info = env.approximate("espira-I",
-                                    tlist, Nr=N, Ni=N, separate=separate
-                                    )
+        if separate:
+            fit, info = env.approximate("espira-I", tlist, True, Nr=N, Ni=N)
+        else:
+            fit, info = env.approximate("espira-I", tlist, False, Nr=N)
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
@@ -714,6 +723,7 @@ class TestBosonicEnvironment:
         )
         if separate:
             assert info["Nr"] == N
+            assert info["Ni"] == N
             assert info["rmse_real"] < tol
             assert info["rmse_imag"] < tol
             for key in ["fit_time_real", "params_real",
@@ -724,6 +734,7 @@ class TestBosonicEnvironment:
             assert info["rmse"] < tol
             for key in ["fit_time", "params", "summary"]:
                 assert key in info
+
     @pytest.mark.parametrize(["reference", "tMax", "N", "tol"], [
         pytest.param(OhmicReference(3, .75, 10, 1),
                      15, 8, 1e-3, id="Ohmic Example"),
@@ -735,12 +746,12 @@ class TestBosonicEnvironment:
             reference.correlation_function, tag="test"
         )
         tlist = np.linspace(0, tMax, 250)
-        if not separate:
-            N=2*N + 1 # More exponents needed when fitting 
+        if separate:
+            fit, info = env.approximate("espira-II", tlist, True, Nr=N, Ni=N)
+        else:
+            # More exponents needed when fitting
             # the complex signal compared to the other methods
-        fit, info = env.approximate("espira-II",
-                                    tlist, Nr=N, Ni=N, separate=separate
-                                    )
+            fit, info = env.approximate("espira-II", tlist, False, Nr=2*N+1)
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
@@ -750,16 +761,18 @@ class TestBosonicEnvironment:
         )
         if separate:
             assert info["Nr"] == N
+            assert info["Ni"] == N
             assert info["rmse_real"] < tol
             assert info["rmse_imag"] < tol
             for key in ["fit_time_real", "params_real",
                         "fit_time_imag", "params_imag", "summary"]:
                 assert key in info
         else:
-            assert info["N"] == N
+            assert info["N"] == 2 * N + 1
             assert info["rmse"] < tol
             for key in ["fit_time", "params", "summary"]:
                 assert key in info
+
     @pytest.mark.parametrize(["reference", "wMax", "tol"], [
         pytest.param(OhmicReference(3, .75, 10, 1), 15, .2, id="Ohmic Example"),
         pytest.param(UDReference(1, .5, .1, 1), 2, 1e-4, id='UD Example'),
@@ -781,6 +794,7 @@ class TestBosonicEnvironment:
         assert info["rmse"] < tol
         for key in ["fit_time", "params", "summary"]:
             assert key in info
+
     @pytest.mark.parametrize(["reference", "wMax", "tol"], [
         pytest.param(OhmicReference(3, .75, 10, 1), 15, .2, id="DL Example"),
         pytest.param(UDReference(1, .5, .1, 1), 2, 1e-4, id='UD Example'),
@@ -802,6 +816,8 @@ class TestBosonicEnvironment:
         assert info["rmse"] < tol
         for key in ["fit_time", "params", "summary"]:
             assert key in info
+
+
 @pytest.mark.parametrize("params", [
     {'gamma': 2.5, 'lam': .75, 'T': 1.5}
 ])
@@ -1118,6 +1134,27 @@ class TestExpBosonicEnv:
         assert str(err.value) == (
             "Fermionic exponent passed to exponential bosonic environment."
         )
+
+    def test_rescale(self):
+        env = ExponentialBosonicEnvironment(
+            [1.], [0.5], [2.], [0.6], tag=object())
+        env_rescaled = env.rescale(2.0)
+        assert env_rescaled.T == env.T
+        assert len(env_rescaled.exponents) == len(env.exponents)
+        for exp1, exp2 in zip(env.exponents, env_rescaled.exponents):
+            assert exp2.coefficient == 2 * exp1.coefficient
+            assert exp2.exponent == exp1.exponent
+        assert env_rescaled.tag == env.tag
+
+        env = ExponentialBosonicEnvironment(
+            [1.], [0.5], [2.], [0.5], tag="test")
+        env_rescaled = env.rescale(3., tag="rescaled")
+        assert env_rescaled.T == env.T
+        assert len(env_rescaled.exponents) == len(env.exponents)
+        for exp1, exp2 in zip(env.exponents, env_rescaled.exponents):
+            assert exp2.coefficient == 3 * exp1.coefficient
+            assert exp2.exponent == exp1.exponent
+        assert env_rescaled.tag == "rescaled"
 
     @pytest.mark.parametrize("provide_temp", [True, False])
     def test_matches_reference(self, provide_temp):
@@ -1471,6 +1508,18 @@ class TestExpFermionicEnv:
         assert str(err.value) == (
             "Bosonic exponent passed to exponential fermionic environment."
         )
+
+    def test_rescale(self):
+        env = ExponentialFermionicEnvironment(
+            [1.], [0.5], [2.], [0.6], tag=object())
+        env_rescaled = env.rescale(2.0)
+        assert env_rescaled.T == env.T
+        assert env_rescaled.mu == env.mu
+        assert len(env_rescaled.exponents) == len(env.exponents)
+        for exp1, exp2 in zip(env.exponents, env_rescaled.exponents):
+            assert exp2.coefficient == 2 * exp1.coefficient
+            assert exp2.exponent == exp1.exponent
+        assert env_rescaled.tag == env.tag
 
     def test_matches_reference(self):
         env = ExponentialFermionicEnvironment([1.], [0.5], [], [])

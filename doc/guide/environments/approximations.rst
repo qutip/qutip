@@ -99,7 +99,7 @@ methods, but reproduces the power spectrum better. This is important because
 :math:`\frac{S(\omega)}{S(-\omega)}=e^{\beta \omega}` is highly influential 
 on the steady state.
 
-While all methods apply in all situations when done with enough care we recommend
+While all methods apply in all situations when done with enough care, we recommend:
 
 - Non-Linear least squares 
     when you have intuition about the number of exponents that 
@@ -610,16 +610,14 @@ API Documentation
         **approx_env** : :class:`.ExponentialBosonicEnvironment`
             The approximated environment with multi-exponential correlation
             function.
-            
+
          **fit_info** : dictionary
             A dictionary containing the following information about the fit.
 
             "N"
                 The number of terms used to fit the power spectrum.
-
             "fit_time"
                 The time the fit of the power spectrum took in seconds.
-            
             "rmse"
                 Normalized mean squared error obtained in the fit of the 
                 power spectrum.
@@ -633,7 +631,7 @@ API Documentation
 ``"prony"``  | ``"esprit"`` | ``"espira-I"`` | ``"espira-II"`` Prony-Based and ESPIRA
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-.. method:: approximate("prony"  | "esprit" | "espira-I" | "espira-II", tlist: ArrayLike, Nr: int = 3, Ni: int = 3, separate: bool = False, combine: bool = True, tag: Any = None) -> ExponentialBosonicEnvironment
+.. method:: approximate("prony"  | "esprit" | "espira-I" | "espira-II", tlist: ArrayLike, separate: bool = False, Nr: int = 3, Ni: int = 3, combine: bool = True, tag: Any = None) -> ExponentialBosonicEnvironment
     :no-index:
 
     Generates an approximation to the environment by fitting its
@@ -660,16 +658,19 @@ API Documentation
         **tlist** : array_like
             The time range on which to perform the fit.
 
+        **separate**: optional, bool
+            When True, real and imaginary parts are fit separately.
+            It defaults to False.
+
         **Nr** : optional, int
             The number of exponents desired to describe the real part of
-            the correlation function. It defaults to 3
+            the correlation function. If ``separate`` is False, the number of
+            exponents desired to describe the complex-valued correlation
+            function. Defaults to 3.
 
         **Ni** : optional, int
             The number of exponents desired to describe the imaginary part of
-            the correlation function. It defaults to 3
-
-        **separate**: optional, bool
-            When True real and imaginary parts are fit separately
+            the correlation function. It defaults to 3.
 
         **combine** : optional, bool (default True)
             Whether to combine exponents with the same frequency. See
@@ -685,17 +686,16 @@ API Documentation
         **approx_env** : :class:`.ExponentialBosonicEnvironment`
             The approximated environment with multi-exponential correlation
             function.
+
         **fit_info** : dictionary
             A dictionary containing information about the fit.
-            
-            if separate is False it contains:
-            
+
+            If separate is False it contains:
+
             "N"
                 The number of terms used to fit the correlation function.
-
             "fit_time"
                 The time the fit of the correlation function took in seconds.
-            
             "rmse"
                 Normalized mean squared error obtained in the fit of the 
                 power spectrum.
@@ -704,8 +704,8 @@ API Documentation
                 correlation function
             "summary"
                 A string that summarizes the information about the fit.
-            
-            if separate is True it contains:
+
+            If separate is True it contains:
 
             "Nr"
                 The number of terms used to fit the real part of the
