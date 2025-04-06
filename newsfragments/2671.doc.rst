@@ -1,0 +1,1 @@
+Added a dedicated guide for building QuTiP with 64-bit integer indices. The new documentation (`doc/advanced/64bit_indices.rst`) provides step-by-step instructions for enabling 64-bit indexing using build options. This information was previously only available in the changelog.
