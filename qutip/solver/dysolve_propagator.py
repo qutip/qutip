@@ -47,6 +47,8 @@ class DysolvePropagator:
     For the moment, only a cosine perturbation is allowed. Dysolve can
     manage more exotic perturbations, but this is not implemented yet.
 
+    Experimental.
+
     """
 
     def __init__(
@@ -57,7 +59,7 @@ class DysolvePropagator:
         options: dict[str] = None,
     ):
         # System
-        self.eigenenergies, self._basis = H_0.eigenstates()
+        self._eigenenergies, self._basis = H_0.eigenstates()
         self.H_0 = H_0
         self.X = X
         self.omega = omega
@@ -104,7 +106,7 @@ class DysolvePropagator:
         self._Sns = self._compute_Sns()
 
         U = np.zeros(
-            (len(self.eigenenergies), len(self.eigenenergies)),
+            (len(self._eigenenergies), len(self._eigenenergies)),
             dtype=np.complex128
         )
 
@@ -267,7 +269,7 @@ class DysolvePropagator:
 
         """
         Sns = {}
-        length = len(self.eigenenergies)
+        length = len(self._eigenenergies)
         exp_H_0 = (-1j*self.dt*self.H_0.transform(self._basis)).expm().full()
         current_matrix_elements = None
 
@@ -280,7 +282,7 @@ class DysolvePropagator:
             )
 
             lambdas = np.fromiter(
-                itertools.product(self.eigenenergies, repeat=n + 1),
+                itertools.product(self._eigenenergies, repeat=n + 1),
                 np.dtype((float, (n+1,)))
             )
             diff_lambdas = -np.diff(lambdas)[:, ::-1]
@@ -347,7 +349,7 @@ class DysolvePropagator:
             )
 
             U_n = np.zeros(
-                (len(self.eigenenergies), len(self.eigenenergies)),
+                (len(self._eigenenergies), len(self._eigenenergies)),
                 dtype=np.complex128
             )
 
@@ -416,6 +418,8 @@ def dysolve_propagator(
     For the moment, only a cosine perturbation is allowed. Dysolve can
     manage more exotic perturbations, but this is not implemented yet.
 
+    Experimental.
+
     """
     if isinstance(t, Number):
         dysolve = DysolvePropagator(H_0, X, omega, options)
@@ -442,7 +446,7 @@ def dysolve_propagator(
                 dysolve._Sns = dt_Sns[dts[i]]
 
                 U = np.zeros(
-                    (len(dysolve.eigenenergies), len(dysolve.eigenenergies)),
+                    (len(dysolve._eigenenergies), len(dysolve._eigenenergies)),
                     dtype=np.complex128
                 )
 

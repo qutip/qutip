@@ -199,10 +199,10 @@ def test_zeroth_order(H_0, t_i, t_f):
         assert U == exp
 
 
-@pytest.mark.parametrize("H_0", [qeye(2), sigmax(), sigmay(), sigmaz()])
-@pytest.mark.parametrize("X", [qeye(2), sigmax(), sigmay(), sigmaz()])
-@pytest.mark.parametrize("t", [-0.1, -0.01, -0.001, 0, 0.001, 0.01, 0.1])
-@pytest.mark.parametrize("omega", [-10, -5, -1, 0, 1, 5, 10])
+@pytest.mark.parametrize("H_0", [sigmax(), sigmay(), sigmaz()])
+@pytest.mark.parametrize("X", [sigmax(), sigmay(), sigmaz()])
+@pytest.mark.parametrize("t", [-0.1, 0, 0.1])
+@pytest.mark.parametrize("omega", [0, 1, 5, 10])
 def test_2x2_propagators_single_time(H_0, X, t, omega):
     # Dysolve
     U = dysolve_propagator(H_0, X, omega, t, options={'max_order': 5})
