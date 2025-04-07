@@ -283,7 +283,7 @@ class DysolvePropagator:
                 itertools.product(self.eigenenergies, repeat=n + 1),
                 np.dtype((float, (n+1,)))
             )
-            diff_lambdas = -np.diff(lambdas)
+            diff_lambdas = -np.diff(lambdas)[:, ::-1]
 
             ket_bra_idx = np.vstack(
                 (np.repeat(np.arange(0, length), length**n),
@@ -301,7 +301,7 @@ class DysolvePropagator:
 
             for i, omega_vector in enumerate(omega_vectors):
                 # Compute integrals
-                ls_ws = omega_vector + diff_lambdas[:, ::-1]
+                ls_ws = omega_vector + diff_lambdas
                 integrals = np.zeros(ls_ws.shape[0], dtype=np.complex128)
                 for j, ws in enumerate(ls_ws):
                     integrals[j] = self._compute_integrals(ws)
