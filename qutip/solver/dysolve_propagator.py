@@ -67,7 +67,8 @@ class DysolvePropagator:
         # Times
         self.t_i = None
         self.t_f = None
-        self.dt = None
+        self._dt = None
+        self._max_dt = 0.1
 
         # Options
         if options is None:
@@ -101,18 +102,32 @@ class DysolvePropagator:
         """
         self.t_i = t_i
         self.t_f = t_f
-        self.dt = t_f - t_i
+        time_diff = t_f - t_i
+        n_steps = abs(int(time_diff / self._max_dt))
 
+        U = np.eye(len(self._eigenenergies), dtype=np.complex128)
+
+        self._dt = self._max_dt * np.sign(n_steps)
         self._Sns = self._compute_Sns()
 
-        U = np.zeros(
-            (len(self._eigenenergies), len(self._eigenenergies)),
-            dtype=np.complex128
-        )
+        for j in range(n_steps):
+            U_step = np.zeros_like(U)
 
-        Uns = self._compute_Uns(t_i)
-        for n in range(self.max_order + 1):
-            U += Uns[n]
+            Uns = self._compute_Uns(t_i + j*self._dt)
+            for n in range(self.max_order + 1):
+                U_step += Uns[n]
+            
+            U = U_step @ U
+
+        if time_diff - n_steps*self._dt != 0:
+            self._dt = time_diff - n_steps*self._dt
+            self._Sns = self._compute_Sns()
+
+            U_extra = np.zeros_like(U)
+            Uns = self._compute_Uns(t_f - self._dt)
+            for n in range(self.max_order + 1):
+                U_extra += Uns[n]
+            U = U_extra @ U
 
         self.U = Qobj(U, self.H_0.dims).transform(self._basis, True)
 
@@ -144,9 +159,9 @@ class DysolvePropagator:
             return 1
         elif len(ws) == 1:
             if np.abs(ws[0]) < self.a_tol:
-                return self.dt
+                return self._dt
             else:
-                return (-1j / ws[0]) * (np.exp(1j * ws[0] * self.dt) - 1)
+                return (-1j / ws[0]) * (np.exp(1j * ws[0] * self._dt) - 1)
         else:
             if np.abs(ws[0]) < self.a_tol:
                 return self._compute_tn_integrals(ws[1:], 1)
@@ -191,13 +206,13 @@ class DysolvePropagator:
 
         if len(ws) == 1:
             if np.abs(ws[0]) < self.a_tol:
-                return (self.dt ** (n + 1)) / factorial(n + 1)
+                return (self._dt ** (n + 1)) / factorial(n + 1)
             else:
-                factor = (-1j/ws[0]) * np.exp(1j*ws[0]*self.dt)
+                factor = (-1j/ws[0]) * np.exp(1j*ws[0]*self._dt)
                 term1 = 0
                 for j in range(n+1):
                     term1 += ((1j/ws[0])**j) * \
-                        (self.dt**(n-j) / factorial(n-j))
+                        (self._dt**(n-j) / factorial(n-j))
                 term2 = (1j / ws[0])**(n+1)
                 return factor*term1 + term2
 
@@ -270,7 +285,7 @@ class DysolvePropagator:
         """
         Sns = {}
         length = len(self._eigenenergies)
-        exp_H_0 = (-1j*self.dt*self.H_0.transform(self._basis)).expm().full()
+        exp_H_0 = (-1j*self._dt*self.H_0.transform(self._basis)).expm().full()
         current_matrix_elements = None
 
         Sns[0] = exp_H_0
