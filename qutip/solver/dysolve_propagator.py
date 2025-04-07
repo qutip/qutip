@@ -341,8 +341,9 @@ class DysolvePropagator:
         Uns[0] = Sns[0]
 
         for n in range(1, self.max_order + 1):
-            omega_vectors = np.array(
-                list(itertools.product([self.omega, -self.omega], repeat=n))
+            omega_vectors = np.fromiter(
+                itertools.product([self.omega, -self.omega], repeat=n),
+                np.dtype((float, (n,)))
             )
 
             U_n = np.zeros(
