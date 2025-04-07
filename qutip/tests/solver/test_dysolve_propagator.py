@@ -223,7 +223,7 @@ def test_2x2_propagators_single_time(H_0, X, t, omega):
 
 @pytest.mark.parametrize("H_0, X", [
     (
-       sigmaz(), sigmax(),
+        sigmaz(), sigmax(),
     ),
     (
         tensor(sigmaz(), sigmaz()), tensor(sigmax(), sigmax()),

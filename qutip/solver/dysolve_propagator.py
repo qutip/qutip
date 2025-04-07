@@ -1,6 +1,7 @@
 from qutip import Qobj, qeye_like
 from numpy.typing import ArrayLike
 import numpy as np
+import scipy as sp
 from numbers import Number
 import itertools
 from scipy.special import factorial
@@ -238,6 +239,19 @@ class DysolvePropagator:
             a = np.tile(current, shape)
             b = np.repeat(elems, len(current)//shape)
             return a * b
+
+        # elems = sp.sparse.csr_array(
+        #     self.X.transform(self._basis).full().flatten()
+        # )
+        # if current is None:
+        #     return elems
+        # else:
+        #     x_shape = self.X.shape[0]
+        #     a = sp.sparse.hstack([current]*x_shape)
+        #     b = sp.sparse.vstack(
+        #         [elems]*(current.shape[0]//x_shape)
+        #     ).transpose().reshape(a.shape)
+        #     return a.multiply(b).reshape((a.shape[1],))
 
     def _compute_Sns(self) -> dict:
         """
