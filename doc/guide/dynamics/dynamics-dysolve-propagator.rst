@@ -27,7 +27,7 @@ There are many ways to compute such a propagator with code depending on what the
 Calculating propagators with Dysolve
 ====================================
 
-For hamiltonians of the form :math:`H(t) = H_0 + \cos(\omega t)X` where a perturbation :math:`X` is added to some quantum system with hamiltonian :math:`H_0`, Dysolve is an excellent method to compute time propagators. Indeed, the calculations can be done in parallel and certain quantities can be reused throughout the whole process. Futhermore, Dysolve can be generalized to more complicated drives, offering a wide range of possible applications. 
+For hamiltonians of the form :math:`H(t) = H_0 + \cos(\omega t)X` where a perturbation :math:`X` is added to some quantum system with hamiltonian :math:`H_0`, Dysolve is an excellent method to compute time propagators. Indeed, the calculations can be done in parallel and certain quantities can be reused throughout the whole process. Futhermore, Dysolve can be generalized to more complicated perturbations, offering a wide range of possible applications. 
 
 After plugging in :math:`H(t) = H_0 + \cos(\omega t)X` in the equation for the propagator and manipulating it, we can find the following result for a time increment :math:`\delta t` :
 
@@ -63,7 +63,7 @@ Here, :math:`\{\boldsymbol{\omega}_n\}` is the set of vectors of length :math:`n
 
  \displaystyle \times \bra{k^{(n)}}X \ket{k^{(n-1)}}...\bra{k^{(1)}}X \ket{k^{(0)}}\ket{k^{(n)}}\bra{k^{(0)}}
 
-This assumes that :math:`H_0` and :math:`X` are written in :math:`H_0`'s basis. The nested integral can be evaluated analytically in code with integration by parts and a recursive function. Also, in practice, the summation over :math:`n` is truncated to the first few terms and the evolution is divided into small time increments. So, with :math:`\tau` being the time ordering operator,
+This assumes that :math:`H_0` and :math:`X` are written in :math:`H_0`'s basis. The nested integral can be evaluated analytically in code with integration by parts. Also, in practice, the summation over :math:`n` is truncated to the first few terms and the evolution is divided into small time increments. So, with :math:`\tau` being the time ordering operator,
 
 .. math::
  \displaystyle U(T,0) = \tau\prod_{p=0}^{P}U((p+1)\delta t, p\delta t) = \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{\infty}U^{(n)}((p+1)\delta t, p\delta t)\right)
@@ -71,7 +71,7 @@ This assumes that :math:`H_0` and :math:`X` are written in :math:`H_0`'s basis. 
 .. math::
  \displaystyle \approx  \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{r}U^{(n)}((p+1)\delta t, p\delta t)\right)
 
-As we can see, computing :math:`S^{(n)}(\boldsymbol{\omega}_n, \delta t)` for a given range on :math:`n` once allows us to calculate as many propagators as we want. Therefore, in the long run and with the right ressources, Dysolve can be an extremely useful and efficient method for calculating propagators of systems with the form described at the beginning of this section.
+As we can see, computing :math:`S^{(n)}(\boldsymbol{\omega}_n, \delta t)` for a given range on :math:`n` once allows us to calculate as many propagators as we want because this quantity depends on the time increment :math:`\delta t` and not the current time in the evolution. Therefore, in the long run and with the right ressources, Dysolve can be an extremely useful and efficient method for calculating propagators of systems with the form described at the beginning of this section.
 
 Zeroth order example
 ====================
