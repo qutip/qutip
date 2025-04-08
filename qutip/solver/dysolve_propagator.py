@@ -100,6 +100,14 @@ class DysolvePropagator:
         U : Qobj
             The propagator U(t_f, t_i) from t_i to t_f.
 
+        Notes
+        -----
+        If t_f - t_i > 0.1, splits the evolution into smaller ones
+        to then reconstruct U(t_f, t_i).
+
+        Memoization is used. First call may be slow but the next calls
+        should be faster.
+
         """
         self.t_i = t_i
         self.t_f = t_f
