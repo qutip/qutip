@@ -79,6 +79,7 @@ class DysolvePropagator:
             self.a_tol = options.get('a_tol', 1e-10)
 
         self._Sns = None
+        self._dt_Sns = {}
         self.U = None
 
     def __call__(self, t_f: Number, t_i: Number = 0) -> Qobj:
@@ -108,7 +109,11 @@ class DysolvePropagator:
         U = np.eye(len(self._eigenenergies), dtype=np.complex128)
 
         self._dt = self._max_dt * np.sign(time_diff)
-        self._Sns = self._compute_Sns()
+        if self._dt not in self._dt_Sns:
+            self._Sns = self._compute_Sns()
+            self._dt_Sns[self._dt] = self._Sns
+        else:
+            self._Sns = self._dt_Sns[self._dt]
 
         for j in range(n_steps):
             U_step = np.zeros_like(U)
@@ -121,7 +126,11 @@ class DysolvePropagator:
 
         if time_diff - n_steps*self._dt != 0:
             self._dt = time_diff - n_steps*self._dt
-            self._Sns = self._compute_Sns()
+            if self._dt not in self._dt_Sns:
+                self._Sns = self._compute_Sns()
+                self._dt_Sns[self._dt] = self._Sns
+            else:
+                self._Sns = self._dt_Sns[self._dt]
 
             U_extra = np.zeros_like(U)
             Uns = self._compute_Uns(t_f - self._dt)
