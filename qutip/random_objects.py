@@ -286,16 +286,16 @@ def rand_herm(
         while _data.csr.nnz(out) < 0.95 * nvals:
             out = _rand_jacobi_rotation(out, generator)
         out = Qobj(out, dims=dims, isherm=True, copy=False)
-        dtype = _data._parse_default_dtype(dtype, "sparse")
+        dtype = dtype or settings.core["default_dtype"] or _data.CSR
 
     else:
         pos_def = distribution == "pos_def"
         if density < 0.5:
             M = _rand_herm_sparse(N, density, pos_def, generator)
-            dtype = _data._parse_default_dtype(dtype, "sparse")
+            dtype = dtype or settings.core["default_dtype"] or _data.CSR
         else:
             M = _rand_herm_dense(N, density, pos_def, generator)
-            dtype = _data._parse_default_dtype(dtype, "dense")
+            dtype = dtype or settings.core["default_dtype"] or _data.Dense
 
         out = Qobj(M, dims=dims, isherm=True, copy=False)
 
@@ -387,7 +387,7 @@ def rand_unitary(
     oper : qobj
         Unitary quantum operator.
     """
-    dtype = _data._parse_default_dtype(dtype, "dense")
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     N, dims = _implicit_tensor_dimensions(dimensions)
     if distribution not in ["haar", "exp"]:
         raise ValueError("distribution must be one of {'haar', 'exp'}")
@@ -497,7 +497,7 @@ def rand_ket(
     oper : qobj
         Ket quantum state vector.
     """
-    dtype = _data._parse_default_dtype(dtype, "dense")
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
     if distribution not in ["haar", "fill"]:
@@ -523,7 +523,7 @@ def rand_ket(
     if np.ndim(dims[0]) == 1: # ket
         ket.dims = [dims[0], [1] * len(dims[0])]
     else: # operator-ket
-        ket.dims = [dims[0], [[1], [1]]]
+        ket.dims = [dims[0], [1]]
     return ket.to(dtype)
 
 
@@ -585,7 +585,7 @@ default: "ginibre"
     oper : qobj
         Density matrix quantum operator.
     """
-    dtype = _data._parse_default_dtype(dtype, "dense")
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
     distributions = set(["eigen", "ginibre", "hs", "pure", "herm"])
@@ -697,7 +697,7 @@ def rand_kraus_map(
         N^2 x N x N qobj operators.
 
     """
-    dtype = _data._parse_default_dtype(dtype, "dense")
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     N, dims = _implicit_tensor_dimensions(dimensions)
     dims = Dimensions(dims)
     if dims.issuper:
@@ -740,7 +740,7 @@ def rand_super(
         Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
     """
-    dtype = _data._parse_default_dtype(dtype, "dense")
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     generator = _get_generator(seed)
     from .solver.propagator import propagator
     N, dims = _implicit_tensor_dimensions(dimensions, superoper=True)
@@ -808,7 +808,7 @@ def rand_super_bcsz(
         A superoperator acting on vectorized dim × dim density operators,
         sampled from the BCSZ distribution.
     """
-    dtype = _data._parse_default_dtype(dtype, "sparse")
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions, superoper=True)
 
@@ -904,7 +904,7 @@ def rand_stochastic(
     oper : qobj
         Quantum operator form of stochastic matrix.
     """
-    dtype = _data._parse_default_dtype(dtype, "dense")
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
     num_elems = max([int(np.ceil(N*(N+1)*density)/2), N])

@@ -371,18 +371,6 @@ cpdef bint isequal_dia(Dia A, Dia B, double atol=-1, double rtol=-1):
                         return False
                 ptr_b += size
                 diag_b += 1
-        while diag_a < A.num_diag:
-            for i in range(size):
-                if not _feq(0., ptr_a[i], atol, rtol):
-                    return False
-            ptr_a += size
-            diag_a += 1
-        while diag_b < B.num_diag:
-            for i in range(size):
-                if not _feq(0., ptr_b[i], atol, rtol):
-                    return False
-            ptr_b += size
-            diag_b += 1
     return True
 
 

@@ -708,7 +708,6 @@ cdef class QobjEvo:
         res.elements = [element.linear_map(Qobj.trans)
                         for element in res.elements]
         res._dims = Dimensions(res._dims[0], res._dims[1])
-        res.shape = res._dims.shape
         return res
 
     def conj(self):
@@ -724,7 +723,6 @@ cdef class QobjEvo:
         res.elements = [element.linear_map(Qobj.dag, True)
                         for element in res.elements]
         res._dims = Dimensions(res._dims[0], res._dims[1])
-        res.shape = res._dims.shape
         return res
 
     def to(self, data_type):

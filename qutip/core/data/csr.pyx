@@ -150,10 +150,6 @@ cdef class CSR(base.Data):
         if tidyup:
             tidyup_csr(self, settings.core['auto_tidyup_atol'], True)
 
-    @classmethod
-    def sparcity(self):
-        return "sparse"
-
     def __reduce__(self):
         return (fast_from_scipy, (self.as_scipy(),))
 

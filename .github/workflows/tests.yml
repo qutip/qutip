@@ -148,7 +148,7 @@ jobs:
           # Install the extra requirement
           python -m pip install pytest>=5.2 pytest-rerunfailures  # tests
           python -m pip install ipython  # ipython
-          python -m pip install loky!=3.5.0 tqdm mpmath  # extras
+          python -m pip install loky tqdm mpmath  # extras
           python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
           python -m pip install pytest-cov coveralls pytest-fail-slow
           python -m pip install setuptools
@@ -223,6 +223,7 @@ jobs:
         # to see if something hung.
         timeout-minutes: 60
         run: |
+          export MKL_VERBOSE=2
           if [[ -n "${{ matrix.openmp }}" ]]; then
             # Force OpenMP runs to use more threads, even if there aren't
             # actually that many CPUs.  We have to check any dispatch code is

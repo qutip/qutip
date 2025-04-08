@@ -92,13 +92,6 @@ class _BaseResult:
         if hasattr(options_copy, "_feedback"):
             options_copy._feedback = None
         self.options = options_copy
-        # Almost all integrators already return a copy that is safe to use.
-        self._integrator_return_copy = options.get("method", None) in [
-            "adams", "lsoda", "bdf", "dop853", "diag",
-            "euler", "platen", "explicit1.5",
-            "milstein", "pred_corr", "taylor1.5",
-            "milstein_imp", "taylor1.5_imp", "rouchon",
-        ]
 
     def _e_ops_to_dict(self, e_ops):
         """Convert the supplied e_ops to a dictionary of Eop instances."""
@@ -332,10 +325,7 @@ class Result(_BaseResult):
         """
         self.times.append(t)
 
-        if (
-            self._state_processors_require_copy
-            and not self._integrator_return_copy
-        ):
+        if self._state_processors_require_copy:
             state = self._pre_copy(state)
 
         for op in self._state_processors:

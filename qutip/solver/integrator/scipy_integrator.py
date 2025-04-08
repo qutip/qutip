@@ -87,11 +87,11 @@ class IntegratorScipyAdams(Integrator):
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
-                _data.dense.fast_from_numpy(self._ode_solver._y),
+                _data.dense.Dense(self._ode_solver._y, copy=copy),
                 self._size,
                 inplace=True)
         else:
-            state = _data.dense.fast_from_numpy(self._ode_solver._y)
+            state = _data.dense.Dense(self._ode_solver._y, copy=copy)
         return t, state
 
     def _check_handle(self):
@@ -283,16 +283,13 @@ class IntegratorScipyDop853(Integrator):
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
-                _data.dense.fast_from_numpy(
-                    self._ode_solver._y.view(np.complex128)
-                ),
+                _data.dense.Dense(self._ode_solver._y.view(np.complex128),
+                                  copy=copy),
                 self._size,
                 inplace=True)
         else:
-            state = _data.dense.fast_from_numpy(
-                self._ode_solver._y.view(np.complex128)
-            )
-            state = state.copy() if copy else state
+            state = _data.dense.Dense(self._ode_solver._y.view(np.complex128),
+                                      copy=copy)
         return t, state
 
     def set_state(self, t, state0):

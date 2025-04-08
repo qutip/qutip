@@ -5,7 +5,7 @@ __all__ = ['about']
 
 import sys
 import os
-import importlib.metadata
+import importlib
 import platform
 import numpy
 import scipy

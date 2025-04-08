@@ -79,7 +79,7 @@ def _single_qobj_expect(oper, state):
     """
     if not oper.isoper or not (state.isket or state.isoper):
         raise TypeError('invalid operand types')
-    if oper._dims[1] != state._dims[0]:
+    if oper.dims[1] != state.dims[0]:
         msg = (
             "incompatible dimensions "
             + str(oper.dims[1]) + " and " + str(state.dims[0])

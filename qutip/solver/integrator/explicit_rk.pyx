@@ -221,7 +221,6 @@ cdef class Explicit_RungeKutta:
         self._norm_front = self._norm_prev
 
         #prepare the buffers
-        self.k = []
         for i in range(self.rk_extra_step):
             self.k.append(self._y.copy())
         self._y_temp = self._y.copy()
@@ -289,6 +288,8 @@ cdef class Explicit_RungeKutta:
             self._status = Status.NOT_INITIATED
             return
 
+        self._status = Status.NORMAL
+
         if t == self._t:
             return
 
@@ -297,20 +298,14 @@ cdef class Explicit_RungeKutta:
             return
 
         if self.interpolate and t < self._t_front:
-            if self._status != Status.INTERPOLATED:
-                self._prep_dense_out()
-                self._status = Status.INTERPOLATED
-            self._y = self._interpolate_step(t, self._y)
-            self._t = t
-            return
-
-        self._status = Status.NORMAL
+             self._y = self._interpolate_step(t, self._y)
+             self._t = t
 
         if step and self._t < self._t_front and t > self._t_front:
             # To ensure that the self._t ... t_out interval can be covered.
             t = self._t_front
 
-        while self._t_front < t and self._status >= 0:
+        while self._t_front < t:
             self._y_prev = copy_to(self._y_front, self._y_prev)
             self._t_prev = self._t_front
             self._norm_prev = self._norm_front

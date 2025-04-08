@@ -118,7 +118,7 @@ def enr_fock(dims, excitations, state, *, dtype=None):
         restricted state space defined by `dims` and `exciations`.
 
     """
-    dtype = _data._parse_default_dtype(dtype, "dense")
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     nstates, state2idx, _ = enr_state_dictionaries(dims, excitations)
     try:
         data = _data.one_element[dtype](
@@ -169,7 +169,7 @@ def enr_thermal_dm(dims, excitations, n, *, dtype=None):
     dm : Qobj
         Thermal state density matrix.
     """
-    dtype = _data._parse_default_dtype(dtype, "sparse")
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     nstates, _, idx2state = enr_state_dictionaries(dims, excitations)
     enr_dims = [EnrSpace(dims, excitations)] * 2
     if not isinstance(n, (list, np.ndarray)):
@@ -231,7 +231,7 @@ def enr_destroy(dims, excitations, *, dtype=None):
         A list of annihilation operators for each mode in the composite
         quantum system described by dims.
     """
-    dtype = _data._parse_default_dtype(dtype, "sparse")
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
     enr_dims = [EnrSpace(dims, excitations)] * 2
 
@@ -280,7 +280,7 @@ def enr_identity(dims, excitations, *, dtype=None):
         exication-number-restricted state space defined by `dims` and
         `exciations`.
     """
-    dtype = _data._parse_default_dtype(dtype, "diagonal")
+    dtype = dtype or settings.core["default_dtype"] or _data.Dia
     dims = EnrSpace(dims, excitations)
     return Qobj(_data.identity[dtype](dims.size),
                 dims=[dims, dims],

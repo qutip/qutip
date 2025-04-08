@@ -485,7 +485,7 @@ def expand_operator(
         The expanded operator acting on a system with the desired dimension.
     """
     from .operators import identity
-    dtype = _data._parse_default_dtype(dtype, "sparse")
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     oper = oper.to(dtype)
     N = len(dims)
     targets = _targets_to_list(targets, oper=oper, N=N)

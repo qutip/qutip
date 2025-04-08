@@ -144,10 +144,6 @@ cdef class Dia(base.Data):
         if tidyup:
             tidyup_dia(self, settings.core['auto_tidyup_atol'], True)
 
-    @classmethod
-    def sparcity(self):
-        return "diagonal"
-
     def __reduce__(self):
         return (fast_from_scipy, (self.as_scipy(),))
 

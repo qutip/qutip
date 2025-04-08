@@ -798,28 +798,6 @@ class TestMatmul(BinaryOpMixin):
     ]
 
 
-class TestMatmulDag(BinaryOpMixin):
-    def op_numpy(self, left, right):
-        return np.matmul(left, right)
-
-    shapes = shapes_binary_matmul()
-    bad_shapes = shapes_binary_bad_matmul()
-    specialisations = [
-        pytest.param(
-            lambda l, r: data.matmul_dag_data(l, r.adjoint()),
-            CSR, CSR, CSR
-        ),
-        pytest.param(
-            lambda l, r: data.matmul_dag_dense_csr_dense(l, r.adjoint()),
-            Dense, CSR, Dense
-        ),
-        pytest.param(
-            lambda l, r: data.matmul_dag_dense(l, r.adjoint()),
-            Dense, Dense, Dense
-        ),
-    ]
-
-
 class TestMultiply(BinaryOpMixin):
     def op_numpy(self, left, right):
         return left * right
