@@ -460,34 +460,12 @@ def dysolve_propagator(
 
     else:
         Us = []
-        dts = np.diff(t)
-        dt_Sns = {}  # memoize Sns of a given dt
-
         Us.append(qeye_like(H_0))  # U(t_0, t_0) = identity
 
         dysolve = DysolvePropagator(H_0, X, omega, options)
         for i in range(len(t[:-1])):  # Compute individual U(t[i+1], t[i])
-            if dt_Sns.get(dts[i]) is None:
-                U = dysolve(t[i+1], t[i])
-                Us.append(U)
-                dt_Sns[dts[i]] = dysolve._Sns
-            else:
-                dysolve.t_i = t[i]
-                dysolve.t_f = t[i+1]
-                dysolve.dt = dts[i]
-                dysolve._Sns = dt_Sns[dts[i]]
-
-                U = np.zeros(
-                    (len(dysolve._eigenenergies), len(dysolve._eigenenergies)),
-                    dtype=np.complex128
-                )
-
-                Uns = dysolve._compute_Uns(t[i])
-                for n in range(dysolve.max_order + 1):
-                    U += Uns[n]
-
-                dysolve.U = Qobj(U, H_0.dims)
-                Us.append(dysolve.U)
+            U = dysolve(t[i+1], t[i])
+            Us.append(U)
 
         for i in range(1, len(Us)):  # [U(t[i], t[0])]
             Us[i] = Us[i] @ Us[i - 1]

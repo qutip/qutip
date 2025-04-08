@@ -221,6 +221,32 @@ def test_2x2_propagators_single_time(H_0, X, t, omega):
         assert U == prop
 
 
+@pytest.mark.parametrize("H_0", [sigmax(), sigmay(), sigmaz()])
+@pytest.mark.parametrize("X", [sigmax(), sigmay(), sigmaz()])
+@pytest.mark.parametrize("ts", [
+    [0, 0.25, 0.5],
+    [0, -0.25, -0.5],
+    [-0.1, 0, 0.1]
+])
+@pytest.mark.parametrize("omega", [0, 1, 10])
+def test_2x2_propagators_list_times(H_0, X, ts, omega):
+    Us = dysolve_propagator(H_0, X, omega, ts, options={'max_order': 5})
+
+    # Qutip.solver.propagator
+    def H1_coeff(t, omega):
+        return np.cos(omega * t)
+
+    H = [H_0, [X, H1_coeff]]
+    args = {'omega': omega}
+    props = propagator(
+        H, ts, args=args, options={"atol": 1e-10, "rtol": 1e-8}
+    )
+
+    for i in range(len(Us)):
+        with CoreOptions(atol=1e-10, rtol=1e-6):
+            assert Us[i] == props[i]
+
+
 @pytest.mark.parametrize("H_0, X", [
     (
         sigmaz(), sigmax(),
