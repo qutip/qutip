@@ -107,7 +107,7 @@ class DysolvePropagator:
 
         U = np.eye(len(self._eigenenergies), dtype=np.complex128)
 
-        self._dt = self._max_dt * np.sign(n_steps)
+        self._dt = self._max_dt * np.sign(time_diff)
         self._Sns = self._compute_Sns()
 
         for j in range(n_steps):
@@ -116,7 +116,7 @@ class DysolvePropagator:
             Uns = self._compute_Uns(t_i + j*self._dt)
             for n in range(self.max_order + 1):
                 U_step += Uns[n]
-            
+
             U = U_step @ U
 
         if time_diff - n_steps*self._dt != 0:
