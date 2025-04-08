@@ -54,7 +54,7 @@ def test_integrals_1(empty_instance, eff_omega, dt, ws, answer):
     # Create instance only with the required data
     dysolve = empty_instance
     dysolve.a_tol = 1e-10
-    dysolve.dt = dt
+    dysolve._dt = dt
 
     if callable(ws):
         ws = ws(eff_omega)
@@ -73,7 +73,7 @@ def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
     # Create instance only with the required data
     dysolve = empty_instance
     dysolve.a_tol = 1e-10
-    dysolve.dt = dt
+    dysolve._dt = dt
 
     ws = [eff_omega_1, eff_omega_2]
     integrals = dysolve._compute_integrals(ws)
