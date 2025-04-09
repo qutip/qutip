@@ -22,7 +22,7 @@ class DysolvePropagator:
     X : Qobj
         A cosine perturbation applied on the system.
 
-    omega : Number
+    omega : float
         The frequency of the cosine perturbation.
 
     options : dict, optional
@@ -55,7 +55,7 @@ class DysolvePropagator:
         self,
         H_0: Qobj,
         X: Qobj,
-        omega: Number,
+        omega: float,
         options: dict[str] = None,
     ):
         # System
@@ -82,17 +82,17 @@ class DysolvePropagator:
         self._dt_Sns = {}
         self.U = None
 
-    def __call__(self, t_f: Number, t_i: Number = 0) -> Qobj:
+    def __call__(self, t_f: float, t_i: float = 0.0) -> Qobj:
         """
         Computes the propagator from t_i to t_f. If t_i is not provided,
         computes the propagator from 0 to t_f.
 
         Parameters
         ----------
-        t_f : Number
+        t_f : float
             Final time of the evolution.
 
-        t_i : Number, default = 0
+        t_i : float, default = 0.0
             Initial time of the evolution.
 
         Returns
@@ -353,14 +353,14 @@ class DysolvePropagator:
 
         return Sns
 
-    def _compute_Uns(self, current_time: Number) -> dict:
+    def _compute_Uns(self, current_time: float) -> dict:
         """
         Computes Un for each order n from time current_time to
         current_time + dt. See eq. (5) in Ref.
 
         Parameters
         ----------
-        current_time : Number
+        current_time : float
             The current time where to start the evolution for
             a time dt. current_time can be positive or negative.
 
@@ -395,8 +395,8 @@ class DysolvePropagator:
 def dysolve_propagator(
         H_0: Qobj,
         X: Qobj,
-        omega: Number,
-        t: Number | list[Number],
+        omega: float,
+        t: float | list[float],
         options: dict[str] = None
 ) -> Qobj | list[Qobj]:
     """
@@ -411,10 +411,10 @@ def dysolve_propagator(
     X : Qobj
         A cosine perturbation applied on the system.
 
-    omega : Number
+    omega : float
         The frequency of the cosine perturbation.
 
-    t : Number | list[Number]
+    t : float | list[float]
         Time or list of times for which to evaluate the propagator(s). If t
         is a single number, the propagator from 0 to t is computed. When
         t is a list, the propagators from the first time to each elements in
