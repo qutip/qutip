@@ -65,8 +65,6 @@ class DysolvePropagator:
         self.omega = omega
 
         # Times
-        self.t_i = None
-        self.t_f = None
         self._dt = None
         self._max_dt = 0.1
 
@@ -78,7 +76,6 @@ class DysolvePropagator:
             self.max_order = options.get('max_order', 4)
             self.a_tol = options.get('a_tol', 1e-10)
 
-        self._Sns = None
         self._dt_Sns = {}
         self.U = None
 
@@ -109,19 +106,11 @@ class DysolvePropagator:
         should be faster.
 
         """
-        self.t_i = t_i
-        self.t_f = t_f
         time_diff = t_f - t_i
+        self._dt = self._max_dt * np.sign(time_diff)
         n_steps = abs(int(time_diff / self._max_dt))
 
         U = np.eye(len(self._eigenenergies), dtype=np.complex128)
-
-        self._dt = self._max_dt * np.sign(time_diff)
-        if self._dt not in self._dt_Sns:
-            self._Sns = self._compute_Sns()
-            self._dt_Sns[self._dt] = self._Sns
-        else:
-            self._Sns = self._dt_Sns[self._dt]
 
         for j in range(n_steps):
             U_step = np.zeros_like(U)
@@ -132,13 +121,8 @@ class DysolvePropagator:
 
             U = U_step @ U
 
-        if time_diff - n_steps*self._dt != 0:
+        if abs(time_diff - n_steps*self._dt) > self.a_tol:
             self._dt = time_diff - n_steps*self._dt
-            if self._dt not in self._dt_Sns:
-                self._Sns = self._compute_Sns()
-                self._dt_Sns[self._dt] = self._Sns
-            else:
-                self._Sns = self._dt_Sns[self._dt]
 
             U_extra = np.zeros_like(U)
             Uns = self._compute_Uns(t_f - self._dt)
@@ -300,58 +284,64 @@ class DysolvePropagator:
             omega vector.
 
         """
-        Sns = {}
-        length = len(self._eigenenergies)
-        exp_H_0 = (-1j*self._dt*self.H_0.transform(self._basis)).expm().full()
-        current_matrix_elements = None
+        if self._dt in self._dt_Sns:
+            return self._dt_Sns[self._dt]
 
-        Sns[0] = exp_H_0
+        else:
+            Sns = {}
+            length = len(self._eigenenergies)
+            exp_H_0 = (-1j*self._dt*self.H_0.transform(self._basis)
+                       ).expm().full()
+            current_matrix_elements = None
 
-        for n in range(1, self.max_order + 1):
-            omega_vectors = np.fromiter(
-                itertools.product([self.omega, -self.omega], repeat=n),
-                np.dtype((float, (n,)))
-            )
+            Sns[0] = exp_H_0
 
-            lambdas = np.fromiter(
-                itertools.product(self._eigenenergies, repeat=n + 1),
-                np.dtype((float, (n+1,)))
-            )
-            diff_lambdas = -np.diff(lambdas)[:, ::-1]
+            for n in range(1, self.max_order + 1):
+                omega_vectors = np.fromiter(
+                    itertools.product([self.omega, -self.omega], repeat=n),
+                    np.dtype((float, (n,)))
+                )
 
-            ket_bra_idx = np.vstack(
-                (np.repeat(np.arange(0, length), length**n),
-                 np.tile(np.arange(0, length), length**n))
-            ).T
+                lambdas = np.fromiter(
+                    itertools.product(self._eigenenergies, repeat=n + 1),
+                    np.dtype((float, (n+1,)))
+                )
+                diff_lambdas = -np.diff(lambdas)[:, ::-1]
 
-            Sn = np.zeros((len(omega_vectors), length, length),
-                          dtype=np.complex128
-                          )
+                ket_bra_idx = np.vstack(
+                    (np.repeat(np.arange(0, length), length**n),
+                     np.tile(np.arange(0, length), length**n))
+                ).T
 
-            # Compute matrix elements
-            current_matrix_elements = self._update_matrix_elements(
-                current_matrix_elements
-            )
+                Sn = np.zeros((len(omega_vectors), length, length),
+                              dtype=np.complex128
+                              )
 
-            for i, omega_vector in enumerate(omega_vectors):
-                # Compute integrals
-                ls_ws = omega_vector + diff_lambdas
-                integrals = np.zeros(ls_ws.shape[0], dtype=np.complex128)
-                for j, ws in enumerate(ls_ws):
-                    integrals[j] = self._compute_integrals(ws)
+                # Compute matrix elements
+                current_matrix_elements = self._update_matrix_elements(
+                    current_matrix_elements
+                )
 
-                x = integrals * current_matrix_elements
+                for i, omega_vector in enumerate(omega_vectors):
+                    # Compute integrals
+                    ls_ws = omega_vector + diff_lambdas
+                    integrals = np.zeros(ls_ws.shape[0], dtype=np.complex128)
+                    for j, ws in enumerate(ls_ws):
+                        integrals[j] = self._compute_integrals(ws)
 
-                for row in range(ket_bra_idx.shape[0]):
-                    Sn[i, ket_bra_idx[row, 0],
-                        ket_bra_idx[row, 1]] += x[row]
+                    x = integrals * current_matrix_elements
 
-                Sn[i] *= (-1j / 2) ** n
-                Sn[i] = exp_H_0 @ Sn[i]
+                    for row in range(ket_bra_idx.shape[0]):
+                        Sn[i, ket_bra_idx[row, 0],
+                            ket_bra_idx[row, 1]] += x[row]
 
-            Sns[n] = Sn
+                    Sn[i] *= (-1j / 2) ** n
+                    Sn[i] = exp_H_0 @ Sn[i]
 
-        return Sns
+                Sns[n] = Sn
+
+            self._dt_Sns[self._dt] = Sns
+            return Sns
 
     def _compute_Uns(self, current_time: float) -> dict:
         """
@@ -371,7 +361,7 @@ class DysolvePropagator:
             current_time + dt. Key = order
         """
         Uns = {}
-        Sns = self._Sns
+        Sns = self._compute_Sns()
         Uns[0] = Sns[0]
 
         for n in range(1, self.max_order + 1):
