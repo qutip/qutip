@@ -99,25 +99,22 @@ The following code shows a simple example on how to use QuTiP's implementation o
     from qutip.solver.dysolve_propagator import DysolvePropagator, dysolve_propagator
     from qutip import sigmax, sigmaz
 
-    max_order = 5
-    omega = 1
-    t_i = 0
-    t_f = 1
-    dt = 0.1
     H_0 = sigmaz()
     X = sigmax()
+    omega = 1
+    options = {'max_order': 5, 'max_dt': 0.05}
 
-    #Initialize and call to compute the propagators for each time increment t => U(t + dt, t)
-    dysolve = DysolvePropagator(
-                max_order, H_0, X, omega
-            )
-    dysolve(t_i, t_f, dt)
-    Us = dysolve.Us
-
-    #Another option is to use the function to get propagators from t_i to each time increment t => U(t, t_i)
-    dysolve, propagators = dysolve_propagator(
-        max_order, H_0, X, omega, t_i, t_f, dt
-    )
+    #Initialize an instance and call it to compute a time propagator.
+    #Give a final time and, optionally, an initial time.
+    t_f = 1
+    dy = DysolvePropagator(H_0, X, omega, options)
+    U = dy(t_f)
+    
+    #Another option is to use the dysolve_propagator function.
+    #A final time or a list of times can be given.
+    #For the latter, [U(t[i], t[0])] is returned.
+    times = [0, 1, 2]
+    Us = dysolve_propagator(H_0, X, omega, times, options)
 
 .. [1] Ross Shillito, Jonathan A. Gross, Agustin Di Paolo, Élie Genois, and Alexandre Blais. Fast and differentiable simulation of driven quantum systems. *Physical Review Research*, 3(3), September 2021. https://arxiv.org/abs/2012.09282
 .. [2] H.P. Breuer and F. Petruccione. *The theory of open quantum systems*. Oxford University Press, Great Clarendon Street, 2002.

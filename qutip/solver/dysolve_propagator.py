@@ -6,6 +6,7 @@ from numbers import Number
 import itertools
 from scipy.special import factorial
 
+
 __all__ = ['DysolvePropagator', 'dysolve_propagator']
 
 
@@ -105,7 +106,7 @@ class DysolvePropagator:
 
         Notes
         -----
-        If t_f - t_i > 0.1, splits the evolution into smaller ones
+        If t_f - t_i > max_dt, splits the evolution into smaller ones
         to then reconstruct U(t_f, t_i).
 
         Memoization is used. First call may be slow but the next calls
