@@ -1,4 +1,4 @@
-name: Tests familly project
+name: Test family projects
 
 on:
   workflow_dispatch:
@@ -37,7 +37,7 @@ jobs:
           python -m pip install pytest pytest-rerunfailures  # tests
           python -m pip install numpy scipy cython filelock
           python -m pip install -e . -v --no-build-isolation
-      - name: Install qutip-plugin
+      - name: Install QuTiP family package
         run: |
           # jax cannot be installed from requirement (cpu vs gpu issue)
           python -m pip install jax[cpu]
