@@ -39,6 +39,11 @@ class DysolvePropagator:
             The absolute tolerance used when computing the propagators
             (default is 1e-10).
 
+        - "max_dt"
+
+            The maximum time increment used when computing propagators
+            (default is 0.1).
+
     Notes
     -----
     The system's hamiltonian must be of the form
@@ -64,16 +69,17 @@ class DysolvePropagator:
         self.X = X
         self.omega = omega
 
-        # Times
+        # Time increment
         self._dt = None
-        self._max_dt = 0.1
 
         # Options
         if options is None:
             self.max_order = 4
             self.a_tol = 1e-10
+            self.max_dt = 0.1
         else:
             self.max_order = options.get('max_order', 4)
+            self.max_dt = options.get('max_dt', 0.1)
             self.a_tol = options.get('a_tol', 1e-10)
 
         self._dt_Sns = {}
@@ -107,8 +113,8 @@ class DysolvePropagator:
 
         """
         time_diff = t_f - t_i
-        self._dt = self._max_dt * np.sign(time_diff)
-        n_steps = abs(int(time_diff / self._max_dt))
+        self._dt = self.max_dt * np.sign(time_diff)
+        n_steps = abs(int(time_diff / self.max_dt))
 
         U = np.eye(len(self._eigenenergies), dtype=np.complex128)
 
@@ -426,6 +432,11 @@ def dysolve_propagator(
             The absolute tolerance used when computing the propagators
             (default is 1e-10).
 
+        - "max_dt"
+
+            The maximum time increment used when computing propagators
+            (default is 0.1).
+
     Returns
     -------
     Us : Qobj | list[Qobj]
@@ -445,8 +456,7 @@ def dysolve_propagator(
     """
     if isinstance(t, Number):
         dysolve = DysolvePropagator(H_0, X, omega, options)
-        U = dysolve(t)
-        return U
+        return dysolve(t)
 
     else:
         Us = []

@@ -190,8 +190,7 @@ def test_zeroth_order(H_0, t_i, t_f):
     dysolve = DysolvePropagator(
         H_0, qeye_like(H_0), 0, options={'max_order': 0}
     )
-    dysolve(t_f, t_i)
-    U = dysolve.U
+    U = dysolve(t_f, t_i)
 
     exp = (-1j*H_0*(t_f - t_i)).expm()
 
@@ -230,7 +229,8 @@ def test_2x2_propagators_single_time(H_0, X, t, omega):
 ])
 @pytest.mark.parametrize("omega", [0, 1, 10])
 def test_2x2_propagators_list_times(H_0, X, ts, omega):
-    Us = dysolve_propagator(H_0, X, omega, ts, options={'max_order': 5})
+    Us = dysolve_propagator(H_0, X, omega, ts, options={
+                            'max_order': 5, 'max_dt': 0.05})
 
     # Qutip.solver.propagator
     def H1_coeff(t, omega):
