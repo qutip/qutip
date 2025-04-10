@@ -53,7 +53,7 @@ class DysolvePropagator:
     For the moment, only a cosine perturbation is allowed. Dysolve can
     manage more exotic perturbations, but this is not implemented yet.
 
-    Experimental.
+    .. note:: Experimental.
 
     """
 
@@ -452,7 +452,7 @@ def dysolve_propagator(
     For the moment, only a cosine perturbation is allowed. Dysolve can
     manage more exotic perturbations, but this is not implemented yet.
 
-    Experimental.
+    .. note:: Experimental.
 
     """
     if isinstance(t, Number):
