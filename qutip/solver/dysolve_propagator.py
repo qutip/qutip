@@ -66,9 +66,9 @@ class DysolvePropagator:
     ):
         # System
         self._eigenenergies, self._basis = H_0.eigenstates()
-        self.H_0 = H_0
-        self.X = X
-        self.omega = omega
+        self._H_0 = H_0
+        self._X = X
+        self._omega = omega
 
         # Time increment
         self._dt = None
@@ -137,7 +137,7 @@ class DysolvePropagator:
                 U_extra += Uns[n]
             U = U_extra @ U
 
-        self.U = Qobj(U, self.H_0.dims).transform(self._basis, True)
+        self.U = Qobj(U, self._H_0.dims).transform(self._basis, True)
 
         return self.U
 
@@ -256,11 +256,11 @@ class DysolvePropagator:
         matrix_elements : ArrayLike
             The new matrix elements for the order n.
         """
-        elems = self.X.transform(self._basis).full().flatten()
+        elems = self._X.transform(self._basis).full().flatten()
         if current is None:
             return elems
         else:
-            shape = self.X.shape[0]
+            shape = self._X.shape[0]
             a = np.tile(current, shape)
             b = np.repeat(elems, len(current)//shape)
             return a * b
@@ -297,7 +297,7 @@ class DysolvePropagator:
         else:
             Sns = {}
             length = len(self._eigenenergies)
-            exp_H_0 = (-1j*self._dt*self.H_0.transform(self._basis)
+            exp_H_0 = (-1j*self._dt*self._H_0.transform(self._basis)
                        ).expm().full()
             current_matrix_elements = None
 
@@ -305,7 +305,7 @@ class DysolvePropagator:
 
             for n in range(1, self.max_order + 1):
                 omega_vectors = np.fromiter(
-                    itertools.product([self.omega, -self.omega], repeat=n),
+                    itertools.product([self._omega, -self._omega], repeat=n),
                     np.dtype((float, (n,)))
                 )
 
@@ -373,7 +373,7 @@ class DysolvePropagator:
 
         for n in range(1, self.max_order + 1):
             omega_vectors = np.fromiter(
-                itertools.product([self.omega, -self.omega], repeat=n),
+                itertools.product([self._omega, -self._omega], repeat=n),
                 np.dtype((float, (n,)))
             )
 

@@ -165,7 +165,7 @@ def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
 ])
 def test_matrix_elements(empty_instance, max_order, X, answer):
     dysolve = empty_instance
-    dysolve.X = X
+    dysolve._X = X
     # The basis shouldn't matter
     dysolve._basis = qeye_like(X)
     current_matrix_elements = None
@@ -268,4 +268,4 @@ def test_dims(H_0, X):
         H_0, X, 1, {'max_order': 0}
     )
     U_1 = dysolve(0.001)
-    assert (dysolve.H_0.dims == dysolve.X.dims == U_1.dims)
+    assert (dysolve._H_0.dims == dysolve._X.dims == U_1.dims)
