@@ -259,7 +259,7 @@ def test_2x2_propagators_list_times(H_0, X, ts, omega):
 @pytest.mark.parametrize("t_f", [
     1, -1
 ])
-def test_4x4_propagator(H_0, X, omega, t_f):
+def test_4x4_propagator_single_time(H_0, X, omega, t_f):
     dy = DysolvePropagator(H_0, X, omega, options={'max_order': 4})
     U = dy(t_f)
 
