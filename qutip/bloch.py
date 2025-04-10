@@ -4,8 +4,7 @@ import os
 from typing import Literal
 
 import numpy as np
-from numpy import (outer, cos, sin, ones)
-
+from numpy import cos, ones, outer, sin
 from packaging.version import parse as parse_version
 
 from . import Qobj, expect, sigmax, sigmay, sigmaz
@@ -13,9 +12,8 @@ from . import Qobj, expect, sigmax, sigmay, sigmaz
 try:
     import matplotlib
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
     from matplotlib.patches import FancyArrowPatch
-    from mpl_toolkits.mplot3d import proj3d
+    from mpl_toolkits.mplot3d import Axes3D, proj3d
 
     # Define a custom _axes3D function based on the matplotlib version.
     # The auto_add_to_figure keyword is new for matplotlib>=3.4.
@@ -385,8 +383,9 @@ class Bloch:
         kind : {'vector', 'point'}
             Type of object to plot.
 
-        colors : array_like
+        colors : str or array_like
             Optional array with colors for the states.
+            The colors can be a string or a RGB or RGBA tuple.
 
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
@@ -404,14 +403,16 @@ class Bloch:
             colors = np.asarray(colors)
 
             if colors.ndim == 0:
-                colors = colors[np.newaxis]
+                colors = np.repeat(colors, state.shape[0])
 
-            if colors.shape != state.shape:
+            if (
+                colors.shape[0] != state.shape[0]
+                or colors.ndim == 2 and colors.dtype != np.float64
+            ):
                 raise ValueError("The included colors are not valid. "
-                                 "colors must be equivalent to a 1D array "
-                                 "with the same size as the number of states.")
+                                 "colors must have the same size as state.")
         else:
-            colors = np.array([None] * state.size)
+            colors = np.array([None] * state.shape[0])
 
         for k, st in enumerate(state):
             vec = _state_to_cartesian_coordinates(st)
@@ -429,8 +430,9 @@ class Bloch:
         vectors : array_like
             Array with vectors of unit length or smaller.
 
-        colors : array_like
+        colors : str or array_like
             Optional array with colors for the vectors.
+            The colors can be a string or a RGB or RGBA tuple.
 
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
@@ -448,16 +450,20 @@ class Bloch:
                 "index represents the iteration over the vectors and the "
                 "second index represents the position in 3D of vector head.")
 
-        n_vectors = vectors.shape[0]
         if colors is None:
-            colors = np.array([None] * n_vectors)
+            colors = np.array([None] * vectors.shape[0])
         else:
             colors = np.asarray(colors)
 
-        if colors.ndim != 1 or colors.size != n_vectors:
-            raise ValueError("The included colors are not valid. colors must "
-                             "be equivalent to a 1D array with the same "
-                             "size as the number of vectors. ")
+            if colors.ndim == 0:
+                colors = np.repeat(colors, vectors.shape[0])
+
+            if (
+                colors.shape[0] != vectors.shape[0]
+                or colors.ndim == 2 and colors.dtype != np.float64
+            ):
+                raise ValueError("The included colors are not valid. "
+                                 "colors must have the same size as vectors.")
 
         for k, vec in enumerate(vectors):
             self.vectors.append(vec)
