@@ -70,9 +70,6 @@ class DysolvePropagator:
         self._X = X
         self._omega = omega
 
-        # Time increment
-        self._dt = None
-
         # Options
         if options is None:
             self.max_order = 4
@@ -114,7 +111,7 @@ class DysolvePropagator:
 
         """
         time_diff = t_f - t_i
-        self._dt = self.max_dt * np.sign(time_diff)
+        dt = self.max_dt * np.sign(time_diff)
         n_steps = abs(int(time_diff / self.max_dt))
 
         U = np.eye(len(self._eigenenergies), dtype=np.complex128)
@@ -122,17 +119,17 @@ class DysolvePropagator:
         for j in range(n_steps):
             U_step = np.zeros_like(U)
 
-            Uns = self._compute_Uns(t_i + j*self._dt)
+            Uns = self._compute_Uns(t_i + j*dt, dt)
             for n in range(self.max_order + 1):
                 U_step += Uns[n]
 
             U = U_step @ U
 
-        if abs(time_diff - n_steps*self._dt) > self.a_tol:
-            self._dt = time_diff - n_steps*self._dt
+        if abs(time_diff - n_steps*dt) > self.a_tol:
+            dt = time_diff - n_steps*dt
 
             U_extra = np.zeros_like(U)
-            Uns = self._compute_Uns(t_f - self._dt)
+            Uns = self._compute_Uns(t_f - dt, dt)
             for n in range(self.max_order + 1):
                 U_extra += Uns[n]
             U = U_extra @ U
@@ -141,7 +138,7 @@ class DysolvePropagator:
 
         return self.U
 
-    def _compute_integrals(self, ws: ArrayLike) -> Number:
+    def _compute_integrals(self, ws: ArrayLike, dt: float) -> Number:
         """
         Computes the value of the nested integrals for a given array of
         effective omegas. See eq. (7) in Ref.
@@ -151,6 +148,9 @@ class DysolvePropagator:
         ws : ArrayLike
             An array of effective omegas. ws[0] is the omega for the rightmost
             integral.
+
+        dt : float
+            The time increment.
 
         Returns
         -------
@@ -167,21 +167,21 @@ class DysolvePropagator:
             return 1
         elif len(ws) == 1:
             if np.abs(ws[0]) < self.a_tol:
-                return self._dt
+                return dt
             else:
-                return (-1j / ws[0]) * (np.exp(1j * ws[0] * self._dt) - 1)
+                return (-1j / ws[0]) * (np.exp(1j * ws[0] * dt) - 1)
         else:
             if np.abs(ws[0]) < self.a_tol:
-                return self._compute_tn_integrals(ws[1:], 1)
+                return self._compute_tn_integrals(ws[1:], 1, dt)
             else:
                 ws_prime = ws[1:].copy()
                 ws_prime[0] += ws[0]
                 return (-1j / ws[0]) * (
                     self._compute_integrals(
-                        ws_prime) - self._compute_integrals(ws[1:])
+                        ws_prime, dt) - self._compute_integrals(ws[1:], dt)
                 )
 
-    def _compute_tn_integrals(self, ws: ArrayLike, n: int) -> Number:
+    def _compute_tn_integrals(self, ws: ArrayLike, n: int, dt: float) -> Number:
         """
         Helper function to compute nested integrals when the function to
         integrate is t^n/factorial(n) * exp(1j*omega*t). This happens when
@@ -197,6 +197,9 @@ class DysolvePropagator:
         n : int
             The variable in t^n/factorial(n).
 
+        dt : float
+            The time increment.
+
         Returns
         -------
         value : Number
@@ -210,17 +213,17 @@ class DysolvePropagator:
 
         """
         if n == 0:
-            return self._compute_integrals(ws)
+            return self._compute_integrals(ws, dt)
 
         if len(ws) == 1:
             if np.abs(ws[0]) < self.a_tol:
-                return (self._dt ** (n + 1)) / factorial(n + 1)
+                return (dt ** (n + 1)) / factorial(n + 1)
             else:
-                factor = (-1j/ws[0]) * np.exp(1j*ws[0]*self._dt)
+                factor = (-1j/ws[0]) * np.exp(1j*ws[0]*dt)
                 term1 = 0
                 for j in range(n+1):
                     term1 += ((1j/ws[0])**j) * \
-                        (self._dt**(n-j) / factorial(n-j))
+                        (dt**(n-j) / factorial(n-j))
                 term2 = (1j / ws[0])**(n+1)
                 return factor*term1 + term2
 
@@ -232,13 +235,13 @@ class DysolvePropagator:
                 # return factor * (term1 - term2)
         else:
             if np.abs(ws[0]) < self.a_tol:
-                return self._compute_tn_integrals(ws[1:], n + 1)
+                return self._compute_tn_integrals(ws[1:], n + 1, dt)
             else:
                 factor = -1j / ws[0]
                 ws_prime = ws[1:].copy()
                 ws_prime[0] += ws[0]
-                term1 = self._compute_tn_integrals(ws_prime, n)
-                term2 = self._compute_tn_integrals(ws, n - 1)
+                term1 = self._compute_tn_integrals(ws_prime, n, dt)
+                term2 = self._compute_tn_integrals(ws, n - 1, dt)
                 return factor * (term1 - term2)
 
     def _update_matrix_elements(self, current: ArrayLike) -> ArrayLike:
@@ -278,11 +281,16 @@ class DysolvePropagator:
         #     ).transpose().reshape(a.shape)
         #     return a.multiply(b).reshape((a.shape[1],))
 
-    def _compute_Sns(self) -> dict:
+    def _compute_Sns(self, dt: float) -> dict:
         """
         Computes Sns for each omega vector. This implements a similar equation
         to eq. (14) in Ref, but the function "f" is not used to avoid dealing
         explicitly with limits.
+
+        Parameters
+        ----------
+        dt : float
+            The time increment.
 
         Returns
         -------
@@ -291,13 +299,13 @@ class DysolvePropagator:
             omega vector.
 
         """
-        if self._dt in self._dt_Sns:
-            return self._dt_Sns[self._dt]
+        if dt in self._dt_Sns:
+            return self._dt_Sns[dt]
 
         else:
             Sns = {}
             length = len(self._eigenenergies)
-            exp_H_0 = (-1j*self._dt*self._H_0.transform(self._basis)
+            exp_H_0 = (-1j*dt*self._H_0.transform(self._basis)
                        ).expm().full()
             current_matrix_elements = None
 
@@ -334,7 +342,7 @@ class DysolvePropagator:
                     ls_ws = omega_vector + diff_lambdas
                     integrals = np.zeros(ls_ws.shape[0], dtype=np.complex128)
                     for j, ws in enumerate(ls_ws):
-                        integrals[j] = self._compute_integrals(ws)
+                        integrals[j] = self._compute_integrals(ws, dt)
 
                     x = integrals * current_matrix_elements
 
@@ -347,10 +355,10 @@ class DysolvePropagator:
 
                 Sns[n] = Sn
 
-            self._dt_Sns[self._dt] = Sns
+            self._dt_Sns[dt] = Sns
             return Sns
 
-    def _compute_Uns(self, current_time: float) -> dict:
+    def _compute_Uns(self, current_time: float, dt: float) -> dict:
         """
         Computes Un for each order n from time current_time to
         current_time + dt. See eq. (5) in Ref.
@@ -361,6 +369,9 @@ class DysolvePropagator:
             The current time where to start the evolution for
             a time dt. current_time can be positive or negative.
 
+        dt : float
+            The time increment.
+
         Returns
         -------
         Uns : dict
@@ -368,7 +379,7 @@ class DysolvePropagator:
             current_time + dt. Key = order
         """
         Uns = {}
-        Sns = self._compute_Sns()
+        Sns = self._compute_Sns(dt)
         Uns[0] = Sns[0]
 
         for n in range(1, self.max_order + 1):

@@ -54,14 +54,13 @@ def test_integrals_1(empty_instance, eff_omega, dt, ws, answer):
     # Create instance only with the required data
     dysolve = empty_instance
     dysolve.a_tol = 1e-10
-    dysolve._dt = dt
 
     if callable(ws):
         ws = ws(eff_omega)
     if callable(answer):
         answer = answer(eff_omega, dt)
 
-    integrals = dysolve._compute_integrals(ws)
+    integrals = dysolve._compute_integrals(ws, dt)
 
     assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
 
@@ -73,10 +72,9 @@ def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
     # Create instance only with the required data
     dysolve = empty_instance
     dysolve.a_tol = 1e-10
-    dysolve._dt = dt
 
     ws = [eff_omega_1, eff_omega_2]
-    integrals = dysolve._compute_integrals(ws)
+    integrals = dysolve._compute_integrals(ws, dt)
 
     if eff_omega_1 + eff_omega_2 == 0:
         answer = (-1j*dt/eff_omega_1) + \
