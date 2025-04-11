@@ -10,6 +10,13 @@ from scipy.special import factorial
 __all__ = ['DysolvePropagator', 'dysolve_propagator']
 
 
+FACTORIAL_LOOKUP = {
+    0: 1, 1: 1, 2: 2, 3: 6, 4: 24, 5: 120, 6: 720, 7: 5040, 8: 40320,
+    9: 362880, 10: 3628800, 11: 39916800, 12: 479001600, 13: 6227020800,
+    14: 87178291200, 15: 1307674368000
+}
+
+
 class DysolvePropagator:
     """
     A generator of propagator using Dysolve.
@@ -217,13 +224,13 @@ class DysolvePropagator:
 
         if len(ws) == 1:
             if np.abs(ws[0]) < self.a_tol:
-                return (dt ** (n + 1)) / factorial(n + 1)
+                return (dt ** (n + 1)) / FACTORIAL_LOOKUP[n + 1]
             else:
                 factor = (-1j/ws[0]) * np.exp(1j*ws[0]*dt)
                 term1 = 0
                 for j in range(n+1):
                     term1 += ((1j/ws[0])**j) * \
-                        (dt**(n-j) / factorial(n-j))
+                        (dt**(n-j) / FACTORIAL_LOOKUP[n-j])
                 term2 = (1j / ws[0])**(n+1)
                 return factor*term1 + term2
 
