@@ -1545,7 +1545,8 @@ class Qobj:
         eigvals: int = 0,
         tol: float = 0,
         maxiter: int = 100000,
-        phase_fix: int = None
+        phase_fix: int = None,
+		**kwargs
     ) -> tuple[np.ndarray, list[Qobj]]:
         """Eigenstates and eigenenergies.
 
@@ -1617,7 +1618,30 @@ class Qobj:
             phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
                               if ket[phase_fix, 0] else 1
                               for ket in ekets])
-        return evals, ekets / norms * phase
+
+        if kwargs['output_type']=='ket':
+            return evals,ekets/norms*phase
+        elif kwargs['output_type']=='oper':
+            ekets = ekets / norms *phase
+
+            eigarr = np.zeros((len(evals),len(evals)),dtype=complex)
+
+            for i in range(len(ekets)):
+                x = ekets[i].full()
+                arr1 = np.array([ele[0] for ele in x])				
+                arr1 = arr1.flatten()
+                nonzero = arr1 !=0
+                if not np.any(nonzero):
+                    arr1 = arr1
+                else:
+                    arr1 = arr1/arr1[np.argmax(nonzero)]
+
+                eigarr[:,i] = arr1
+
+             eigoper = Qobj(eigarr)
+
+             return evals,eigoper
+
 
     def eigenenergies(
         self,

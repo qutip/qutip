@@ -67,6 +67,25 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
         np.testing.assert_allclose(test, expected, atol=1e-10)
 
 
+@pytest.mark.parametrize(["hamiltonian","eigenstates"],[
+    pytest.param(qutip.sigmaz(), [[0, 1], [1, 0]], id="diagonal-2"),
+    pytest.param(_diagonal_hamiltonian, 
+                 _diagonal_eigenstates,
+                 id="diagonal-"+str(_diagonal_dimension)),
+    pytest.param(qutip.sigmax(), [[-1, 1], [1, 1]], id="sigmax"),
+    pytest.param(_nondiagonal_hamiltonian,
+                 _nondiagonal_eigenstates, id="non-diagonal"),
+])
+def test_eigenstates_oper_conversion(hamiltonian, eigenstates):
+    test_states_ket = np.array(hamiltonian.eigenstates(output_type='ket')[1])
+    test_states_oper = np.array(hamiltonian.eigenstates(output_type='oper')[1].full()).T
+
+    test_vectors_ket = [_canonicalise_eigenvector(test_states_ket[i].full()) for i in range(len(test_states_ket))]	
+
+    for ket,oper in zip(test_vectors_ket,test_states_oper_arr):
+        np.testing.assert_allclose(ket,oper,atol=1e-10)
+
+
 # Specify parametrisation over a random Hamiltonian by specifying the
 # dimensions, rather than duplicating that logic.
 @pytest.fixture(params=[
