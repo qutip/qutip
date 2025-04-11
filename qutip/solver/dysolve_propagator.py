@@ -127,8 +127,9 @@ class DysolvePropagator:
             Uns = self._compute_Uns(t_i + j*dt, dt)
             U = sum(Uns.values()) @ U
 
-        if abs(time_diff - n_steps*dt) > self.a_tol:
-            dt = time_diff - n_steps*dt
+        remaining = time_diff - n_steps*dt 
+        if abs(remaining) > self.a_tol:
+            dt = remaining
 
             Uns = self._compute_Uns(t_f - dt, dt)
             U = sum(Uns.values()) @ U
