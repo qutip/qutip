@@ -127,8 +127,7 @@ class DysolvePropagator:
             U_step = np.zeros_like(U)
 
             Uns = self._compute_Uns(t_i + j*dt, dt)
-            for n in range(self.max_order + 1):
-                U_step += Uns[n]
+            U_step = sum(Uns.values())
 
             U = U_step @ U
 
@@ -137,8 +136,7 @@ class DysolvePropagator:
 
             U_extra = np.zeros_like(U)
             Uns = self._compute_Uns(t_f - dt, dt)
-            for n in range(self.max_order + 1):
-                U_extra += Uns[n]
+            U_extra = sum(Uns.values())
             U = U_extra @ U
 
         self.U = Qobj(U, self._H_0.dims).transform(self._basis, True)
