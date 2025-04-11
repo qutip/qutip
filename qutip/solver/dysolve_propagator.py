@@ -124,20 +124,14 @@ class DysolvePropagator:
         U = np.eye(len(self._eigenenergies), dtype=np.complex128)
 
         for j in range(n_steps):
-            U_step = np.zeros_like(U)
-
             Uns = self._compute_Uns(t_i + j*dt, dt)
-            U_step = sum(Uns.values())
-
-            U = U_step @ U
+            U = sum(Uns.values()) @ U
 
         if abs(time_diff - n_steps*dt) > self.a_tol:
             dt = time_diff - n_steps*dt
 
-            U_extra = np.zeros_like(U)
             Uns = self._compute_Uns(t_f - dt, dt)
-            U_extra = sum(Uns.values())
-            U = U_extra @ U
+            U = sum(Uns.values()) @ U
 
         self.U = Qobj(U, self._H_0.dims).transform(self._basis, True)
 
