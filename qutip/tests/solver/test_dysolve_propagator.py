@@ -163,10 +163,11 @@ def test_matrix_elements(empty_instance, max_order, X, answer):
     # The basis shouldn't matter
     dysolve._basis = qeye_like(X)
     current_matrix_elements = None
+    elems = dysolve._X.transform(dysolve._basis).full().flatten()
 
     for _ in range(1, max_order + 1):
         current_matrix_elements = dysolve._update_matrix_elements(
-            current_matrix_elements
+            current_matrix_elements, elems
         )
     assert np.array_equal(current_matrix_elements, answer)
 

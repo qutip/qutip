@@ -242,7 +242,8 @@ class DysolvePropagator:
                 term2 = self._compute_tn_integrals(ws, n - 1, dt)
                 return factor * (term1 - term2)
 
-    def _update_matrix_elements(self, current: ArrayLike) -> ArrayLike:
+    def _update_matrix_elements(self, current: ArrayLike,
+                                elems: ArrayLike) -> ArrayLike:
         """
         Reuses the current matrix elements (order n-1) to compute the
         matrix elements for the order n.
@@ -252,12 +253,14 @@ class DysolvePropagator:
         current : ArrayLike
             The current matrix elements (for the order n-1).
 
+        elems : ArrayLike
+            The matrix elements of self.X.
+
         Returns
         -------
         matrix_elements : ArrayLike
             The new matrix elements for the order n.
         """
-        elems = self._X.transform(self._basis).full().flatten()
         if current is None:
             return elems
         else:
@@ -305,6 +308,8 @@ class DysolvePropagator:
             length = len(self._eigenenergies)
             exp_H_0 = (-1j*dt*self._H_0.transform(self._basis)
                        ).expm().full()
+            
+            elems = self._X.transform(self._basis).full().flatten()
             current_matrix_elements = None
 
             Sns[0] = exp_H_0
@@ -332,7 +337,7 @@ class DysolvePropagator:
 
                 # Compute matrix elements
                 current_matrix_elements = self._update_matrix_elements(
-                    current_matrix_elements
+                    current_matrix_elements, elems
                 )
 
                 for i, omega_vector in enumerate(omega_vectors):
