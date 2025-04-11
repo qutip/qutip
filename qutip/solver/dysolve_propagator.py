@@ -168,9 +168,7 @@ class DysolvePropagator:
         by parts.
 
         """
-        if len(ws) == 0:
-            return 1
-        elif len(ws) == 1:
+        if len(ws) == 1:
             if np.abs(ws[0]) < self.a_tol:
                 return dt
             else:

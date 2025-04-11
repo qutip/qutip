@@ -16,10 +16,6 @@ def empty_instance():
 @pytest.mark.parametrize("ws, answer", [
     # First part of tuple is "ws", second part is "answer"
     (
-        np.array([]),
-        1
-    ),
-    (
         np.array([0]),
         lambda _, dt: dt
     ),
