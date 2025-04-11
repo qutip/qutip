@@ -240,9 +240,8 @@ def test_2x2_propagators_list_times(H_0, X, ts, omega):
         H, ts, args=args, options={"atol": 1e-10, "rtol": 1e-8}
     )
 
-    for i in range(len(Us)):
-        with CoreOptions(atol=1e-10, rtol=1e-6):
-            assert Us[i] == props[i]
+    with CoreOptions(atol=1e-10, rtol=1e-6):
+        assert Us == props
 
 
 @pytest.mark.parametrize("H_0", [
