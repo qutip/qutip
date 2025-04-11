@@ -536,9 +536,8 @@ class TestBloch:
             b.add_vectors(vectors, colors=colors)
             b.render()
 
-        err_msg = ("The included colors are not valid. colors must "
-                   "be equivalent to a 1D array with the same "
-                   "size as the number of vectors. ")
+        err_msg = ("The included colors are not valid. "
+                   "colors must have the same size as vectors.")
         assert str(err.value) == err_msg
 
     @check_pngs_equal
