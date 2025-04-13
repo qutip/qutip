@@ -57,7 +57,11 @@ Bibliography
 .. [Kreisbeck12]
    \C. Kreisbeck, T. Kramer, *Long-Lived Electronic Coherence in Dissipative Exciton Dynamics of Light-Harvesting Complexes*, J. Phys. Chem. Lett. 3, 2828–2833 (2012). :doi:`10.1021/jz3012029`.
 
+.. [AAA]
+   \Y. Nakatsukasa, O.  Sete,  L. Trefethen, *The AAA Algorithm for Rational Approximation*, SIAM Journal on Scientific Computing, Vol. 40, Iss. 3 (2018) :doi:`10.1137/16M1106122`
 
+.. [ESPIRAvsESPRIT]
+   \N. Derevianko, G. Plonka, M. Petz, *From ESPRIT to ESPIRA: estimation of signal parameters by iterative rational approximation*, IMA Journal of Numerical Analysis (2023) :doi:`10.1093/imanum/drab108`
 
 ..  The trick with |text|_ is to get an italic link, and is described in the
     Docutils FAQ at https://docutils.sourceforge.net/FAQ.html#is-nested-inline-markup-possible.

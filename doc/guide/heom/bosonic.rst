@@ -114,10 +114,10 @@ Here, ``Nk`` is the number of terms to retain within the expansion of the bath.
         env = DrudeLorentzEnvironment(T, lam, gamma)
 
         # Matsubara expansion:
-        approx = env.approx_by_matsubara(Nk)
+        approx = env.approximate("matsubara", Nk)
 
         # Padé expansion:
-        approx = env.approx_by_pade(Nk)
+        approx = env.approximate("pade", Nk)
 
     Note that the coupling operator ``Q`` is not part of the environment objects.
 
@@ -273,7 +273,7 @@ coupled to the rest of the system).
 
 .. admonition:: Environment API
 
-    Here, the terminator amplitude can be returned directly by the ``approx_by_matsubara`` and ``approx_by_pade`` methods used earlier.
+    Here, the terminator amplitude can be returned directly by the ``approximate`` method used earlier.
     Based on it, the special function ``environment.system_terminator`` can then be used to construct the terminator Liouvillian:
 
     .. plot::
@@ -283,10 +283,10 @@ coupled to the rest of the system).
         from qutip.core.environment import system_terminator
 
         # Matsubara expansion:
-        approx, delta = env.approx_by_matsubara(Nk, compute_delta=True)
+        approx, delta = env.approximate("matsubara", Nk, compute_delta=True)
 
         # Padé expansion:
-        approx, delta = env.approx_by_pade(Nk, compute_delta=True)
+        approx, delta = env.approximate("pade", Nk, compute_delta=True)
 
         # Add terminator to the system Liouvillian:
         terminator = system_terminator(Q, delta)

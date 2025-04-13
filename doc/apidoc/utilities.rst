@@ -7,7 +7,19 @@ Utility Functions
 -----------------
 
 .. automodule:: qutip.utilities
-    :members: n_thermal, clebsch, convert_unit, iterated_fit
+    :members: n_thermal, clebsch, convert_unit
+
+
+.. _fitting:
+
+Fitting Functions
+-----------------
+
+.. autofunction:: qutip.utilities.iterated_fit
+.. autofunction:: qutip.utilities.aaa
+.. autofunction:: qutip.utilities.prony_methods
+.. autofunction:: qutip.utilities.espira1
+.. autofunction:: qutip.utilities.espira2
 
 
 .. _fileio:
