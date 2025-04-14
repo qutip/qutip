@@ -14,9 +14,7 @@ for i in range(1, 21):
 
 cpdef complex cy_compute_integrals(double[:] ws, double dt, double a_tol=1e-10):
     cdef double[:] ws_prime
-    if len(ws) == 0:
-        return 1.
-    elif len(ws) == 1:
+    if len(ws) == 1:
         if abs(ws[0]) < a_tol:
             return dt
         else:
