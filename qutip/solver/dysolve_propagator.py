@@ -1,4 +1,5 @@
 from qutip import Qobj, qeye_like
+from .cy.dysolve import cy_compute_integrals
 from numpy.typing import ArrayLike
 import numpy as np
 import scipy as sp
@@ -339,7 +340,8 @@ class DysolvePropagator:
                     ls_ws = omega_vector + diff_lambdas
                     integrals = np.zeros(ls_ws.shape[0], dtype=np.complex128)
                     for j, ws in enumerate(ls_ws):
-                        integrals[j] = self._compute_integrals(ws, dt)
+                        # integrals[j] = self._compute_integrals(ws, dt)
+                        integrals[j] = cy_compute_integrals(ws, dt)
 
                     x = integrals * current_matrix_elements
 
