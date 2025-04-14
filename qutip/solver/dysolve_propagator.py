@@ -120,15 +120,12 @@ class DysolvePropagator:
         U = np.eye(len(self._eigenenergies), dtype=np.complex128)
 
         for j in range(n_steps):
-            Uns = self._compute_Uns(t_i + j*dt, dt)
-            U = sum(Uns.values()) @ U
+            U = self._compute_subprop(t_i + j*dt, dt) @ U
 
         remaining = time_diff - n_steps*dt
         if abs(remaining) > self.a_tol:
             dt = remaining
-
-            Uns = self._compute_Uns(t_f - dt, dt)
-            U = sum(Uns.values()) @ U
+            U = self._compute_subprop(t_f - dt, dt) @ U
 
         self.U = Qobj(U, self._H_0.dims, copy=False).transform(
             self._basis, True
@@ -358,29 +355,31 @@ class DysolvePropagator:
             self._dt_Sns[dt] = Sns
             return Sns
 
-    def _compute_Uns(self, current_time: float, dt: float) -> dict:
+    def _compute_subprop(self, current_time: float, dt: float) -> ArrayLike:
         """
-        Computes Un for each order n from time current_time to
-        current_time + dt. See eq. (5) in Ref.
+        Computes a subpropagator U(current_time + dt, current_time).
 
         Parameters
         ----------
         current_time : float
-            The current time where to start the evolution for
-            a time dt. current_time can be positive or negative.
+            The starting time of the evolution. Can be positive or negative.
 
         dt : float
             The time increment.
 
         Returns
         -------
-        Uns : dict
-            Un for each order from time current_time to
-            current_time + dt. Key = order
+        subpropagator : ArrayLike
+            U(current_time + dt, current_time).
+
         """
-        Uns = {}
         Sns = self._compute_Sns(dt)
-        Uns[0] = Sns[0]
+
+        subpropagator = np.zeros(
+            (len(self._eigenenergies), len(self._eigenenergies)),
+            dtype=np.complex128
+        )
+        subpropagator += Sns[0]
 
         for n in range(1, self.max_order + 1):
             omega_vectors = np.fromiter(
@@ -388,16 +387,11 @@ class DysolvePropagator:
                 np.dtype((float, (n,)))
             )
 
-            U_n = np.zeros(
-                (len(self._eigenenergies), len(self._eigenenergies)),
-                dtype=np.complex128
-            )
-
             for i, omega_vector in enumerate(omega_vectors):
-                U_n += np.exp(1j * np.sum(omega_vector)
-                              * current_time) * Sns[n][i]
-            Uns[n] = U_n
-        return Uns
+                subpropagator += np.exp(1j * np.sum(omega_vector)
+                                        * current_time) * Sns[n][i]
+
+        return subpropagator
 
 
 def dysolve_propagator(
