@@ -114,13 +114,14 @@ def liouvillian(
 
     if isinstance(H, QobjEvo) or any(isinstance(op, QobjEvo) for op in c_ops):
         # With QobjEvo, faster computation using Data is not used
-        L = -1.0j * (spre(H) - spost(H))
+        L = -1.0j * (spre(H) - spost(H.dag()))
         L += sum(lindblad_dissipator(c_op, chi=chi_)
                  for c_op, chi_ in zip(c_ops, chi))
+        L.compress()
         return L
     spI = _data.identity_like(H.data)
     data = _data.mul(_data.kron(spI, H.data), -1j)
-    data = _data.add(data, _data.kron_transpose(H.data, spI),
+    data = _data.add(data, _data.kron(_data.conj(H.data), spI),
                      scale=1j)
 
     for c_op, chi_ in zip(c_ops, chi):
@@ -218,6 +219,9 @@ def lindblad_dissipator(
         )
     else:
         D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
+
+    if isinstance(D, QobjEvo):
+        D.compress()
 
     return D.data if data_only else D
 
