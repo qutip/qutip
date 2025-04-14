@@ -10,11 +10,7 @@ from scipy.special import factorial
 __all__ = ['DysolvePropagator', 'dysolve_propagator']
 
 
-FACTORIAL_LOOKUP = {
-    0: 1, 1: 1, 2: 2, 3: 6, 4: 24, 5: 120, 6: 720, 7: 5040, 8: 40320,
-    9: 362880, 10: 3628800, 11: 39916800, 12: 479001600, 13: 6227020800,
-    14: 87178291200, 15: 1307674368000
-}
+FACTORIAL_LOOKUP = [factorial(i) for i in range(21)]
 
 
 class DysolvePropagator:
@@ -73,8 +69,8 @@ class DysolvePropagator:
     ):
         # System
         self._eigenenergies, self._basis = H_0.eigenstates()
-        self._H_0 = H_0
-        self._X = X
+        self._H_0 = H_0.transform(self._basis)
+        self._X = X.transform(self._basis)
         self._omega = omega
 
         # Options
@@ -127,14 +123,16 @@ class DysolvePropagator:
             Uns = self._compute_Uns(t_i + j*dt, dt)
             U = sum(Uns.values()) @ U
 
-        remaining = time_diff - n_steps*dt 
+        remaining = time_diff - n_steps*dt
         if abs(remaining) > self.a_tol:
             dt = remaining
 
             Uns = self._compute_Uns(t_f - dt, dt)
             U = sum(Uns.values()) @ U
 
-        self.U = Qobj(U, self._H_0.dims).transform(self._basis, True)
+        self.U = Qobj(U, self._H_0.dims, copy=False).transform(
+            self._basis, True
+        )
 
         return self.U
 
@@ -306,10 +304,9 @@ class DysolvePropagator:
         else:
             Sns = {}
             length = len(self._eigenenergies)
-            exp_H_0 = (-1j*dt*self._H_0.transform(self._basis)
-                       ).expm().full()
-            
-            elems = self._X.transform(self._basis).full().flatten()
+            exp_H_0 = (-1j*dt*self._H_0).expm().full()
+
+            elems = self._X.full().flatten()
             current_matrix_elements = None
 
             Sns[0] = exp_H_0
