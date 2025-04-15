@@ -17,6 +17,9 @@ from qutip.core.environment import (
     BosonicEnvironment,
 )
 
+from collections import defaultdict
+from itertools import product
+
 
 def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
     """
@@ -39,13 +42,27 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
     """
     # Transforming the lowering operator into the Floquet Basis
     #     and taking the FFT
-    modes_table = _floquet_mode_table(floquet_basis, tlist)
+    # modes_table = _floquet_mode_table(floquet_basis, tlist)
 
-    c_op_Floquet_basis = np.einsum(
-        "xij,jk,xkl->xil",
-        np.transpose(modes_table.conj(), (0, 2, 1)),
-        c_op.full(),
-        modes_table,
+    # c_op_Floquet_basis = np.einsum(
+    #     "xij,jk,xkl->xil",
+    #     np.transpose(modes_table.conj(), (0, 2, 1)),
+    #     c_op.full(),
+    #     modes_table,
+    # )
+    """
+    The two lines below transform the collapse operator to the Floquet basis 
+        for every time t in tlist, then performs the FFT over this list 
+        (and normalizes it) to find an array indexed by [k,a,b] of Fourier
+        amplitudes of the collapse operator
+        
+    Normally, I'd like to use the transformation above with the einsum,
+        but for some reason it seems to return different values than the
+        transformation below, and I'd like to make sure I'm using the proper
+        transformations so I'm using the built-in one
+    """
+    c_op_Floquet_basis = np.array(
+        [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist]
     )
     c_op_Fourier_amplitudes_list = (
         (np.fft.fft(c_op_Floquet_basis, axis=0))
@@ -60,113 +77,163 @@ def _rate_matrix_indices(
     quasis = floquet_basis.e_quasi
     c_op_conj = np.conj(c_op_Fourier_amplitudes_list)
 
-    xx, yy, zz = np.array(c_op_Fourier_amplitudes_list).nonzero()
-    xx = np.array(xx) - int(Nt / 2)
+    # Finding all nonzero elements of the c_op Fourier Amplitudes
+    kvals, avals, bvals = np.array(c_op_Fourier_amplitudes_list).nonzero()
 
-    idx_length = len(xx)
+    """
+    Because any terms beyond Nt/2 in the FFT refer to negative frequencies,
+        the below loop shifts any FFT indices (k values) by -NT if they're
+        greater than NT/2, i.e. it shifts them to actually refer to the 'proper'
+        negative k value. This matters later on when the k values are 
+        directly used to call the power density functions, which depend on
+        +-(k *omega)
+    """
+    # Shifting the k values of negative frequency terms to be negative
+    for idx, kval in enumerate(kvals):
+        if kval > Nt / 2:
+            kvals[idx] -= Nt
+
+    """
+    The two for loops below are used to find the value of S(a,b,k)*S^*(a',b',k'),
+        as well as Delta(a,b,k)-Delta(a',b',k'), as well as the ordered list
+        of (a,b,ap,bp,k,kp). Then it finds 
+        Delta(a,b,k)-Delta(a',b',k') / S(a,b,k)*S^*(a',b',k'), and keeps values
+        of (a,b,k,ap,bp,k,kp) when the above quotient is less than the
+        relative secular approximation value.
+        
+    If a good value is found, the (a,b,ap,bp,k,kp) tuple is stored in
+        a dictionary whose key is the frequency value defined by
+        Delta(a,b,k)-Delta(a',b',k'), and whose values are every combination
+        (a,b,ap,bp,k,kp) that have that frequency and that satisfy the 
+        relative_secular_approximation inequality
+    """
+    idx_length = len(kvals)
     delta_dict = {}
+    # Setting values for a,b,k quasi[a],quasi[b], S(a,b,k)
     for idx1 in range(idx_length):
-        x00 = xx[idx1]
-        x01 = yy[idx1]
-        x02 = zz[idx1]
-        q01 = quasis[x01]
-        q02 = quasis[x02]
+        k = kvals[idx1]
+        a = avals[idx1]
+        b = bvals[idx1]
+        q1a = quasis[a]
+        q1b = quasis[b]
+        S_op = c_op_Fourier_amplitudes_list[k, a, b]
+        # Setting values for a',b',k',quasi[a'],quasi[b'], S^*(a',b',k')
         for idx2 in range(idx_length):
-            x10 = xx[idx2]
-            x11 = yy[idx2]
-            x12 = zz[idx2]
-            q11 = quasis[x11]
-            q12 = quasis[x12]
-            cop1 = c_op_Fourier_amplitudes_list[x00, x01, x02]
-            cop2 = c_op_conj[x10, x11, x12]
-            ordered_idx = (
-                yy[idx1],
-                zz[idx1],
-                yy[idx2],
-                zz[idx2],
-                xx[idx1],
-                xx[idx2],
-            )
-            delts = ((q01 - q02) - (q11 - q12)) / omega + (x00 - x10)
+            kp = kvals[idx2]
+            ap = avals[idx2]
+            bp = bvals[idx2]
+            q2a = quasis[ap]
+            q2b = quasis[bp]
+            S_op_conj = c_op_conj[kp, ap, bp]
+
+            # Forming the difference of frequencies
+            delts = ((q1a - q1b) - (q2a - q2b)) / omega + (k - kp)
+
+            # Perfoming Relative secular approximation check
+            # Also keeping DC terms (i.e. when delts==0)
             if delts == 0 or (
-                abs(delts / (cop1 * cop2)) <= relative_secular_cutoff
+                abs(delts * omega / (S_op * S_op_conj))
+                <= relative_secular_cutoff
             ):
                 try:
-                    delta_dict[delts].append(ordered_idx)
+                    delta_dict[delts].append((a, b, ap, bp, k, kp))
                 except KeyError:
-                    delta_dict[delts] = [ordered_idx]
+                    delta_dict[delts] = [(a, b, ap, bp, k, kp)]
     return delta_dict
 
 
 def _Rate_Matrix_Builder(
     delta_dict, c_op_Fourier_amplitudes_list, power_spectrum, floquet_basis
 ):
+    """
+    While this construction of the rate tensor is MUCH slower, it's a lot
+        more readable while I figure out the issues!
+    """
     quasis = floquet_basis.e_quasi
     omega = 2 * np.pi / floquet_basis.T
     Hdim = len(quasis)
 
     c_op_conj = np.conj(c_op_Fourier_amplitudes_list)
-    matrix_it = np.nditer(
-        np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex"),
-        flags=["multi_index"],
+    # Line beloe forms a list of all indices of the 4d Rate Tensor
+    matrix_idx = list(
+        product(*[range(dim) for dim in (Hdim, Hdim, Hdim, Hdim)])
     )
-    matrix_idx = [matrix_it.multi_index for idx in matrix_it]
 
     R_tensor = {}
     for key in delta_dict.keys():
         valid_c_op_prods_list = delta_dict[key]
 
-        flime_FirstTerm = np.zeros(
-            len(valid_c_op_prods_list * Hdim**4), dtype=complex
-        )
-        flime_SecondTerm = np.zeros(
-            len(valid_c_op_prods_list * Hdim**4), dtype=complex
-        )
-        for idx, indices in enumerate(valid_c_op_prods_list):
+        flime_FirstTerm = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
+        flime_SecondTerm = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
+        flime_ThirdTerm = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
+        flime_FourthTerm = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
+
+        for indices in valid_c_op_prods_list:
             a, b, ap, bp, k, kp = indices
 
-            gam_plus = (
-                c_op_Fourier_amplitudes_list[k, a, b]
-                * c_op_conj[kp, ap, bp]
-                * power_spectrum(quasis[a] - quasis[b] - k * omega)
-            )
-            gam_minus_prime = (
-                c_op_Fourier_amplitudes_list[k, a, b]
-                * c_op_conj[kp, ap, bp]
-                * power_spectrum(quasis[ap] - quasis[bp] - kp * omega)
+            """
+            Forming S(a,b,k)*S(a',b',k')
+            """
+            c_prods = (
+                c_op_Fourier_amplitudes_list[k, a, b] * c_op_conj[kp, ap, bp]
             )
 
-            for itx, indixes in enumerate(matrix_idx):
-                m, n, p, q = indixes
+            """
+            Forming Gamma^(-*)(a,b,k)
+            """
+            gam_minus_conj = np.conj(
+                power_spectrum(-quasis[a] + quasis[b] - k * omega)
+            )
+            """
+            #Forming Gamma^-(a',b',k'). 
+            """
+            gam_minus_prime = power_spectrum(
+                -quasis[ap] + quasis[bp] - kp * omega
+            )
 
-                t1 = (b == p) & (q == bp) & (m == a) & (ap == n)
-                t2 = (m == bp) & (q == n) & (ap == a) & (b == p)
-                # t3 = t1 Keeping this for reference
-                t4 = (q == bp) & (ap == a) & (m == p) & (b == n)
+            """
+            This part loops over m,n,p,q in the Rate Matrix equation,
+                building up the rate matrix for each matrix element
+            """
+            for more_indices in matrix_idx:
+                m, n, p, q = more_indices
 
-                flime_FirstTerm[idx * Hdim**4 + itx] = (
-                    gam_plus * (t1 ^ t2) * (1 - 2 * t2)
+                flime_FirstTerm[m, n, p, q] += (
+                    (gam_minus_prime + gam_minus_conj)
+                    * c_prods
+                    * (m == a)
+                    * (q == bp)
+                    * (ap == n)
+                    * (b == p)
                 )
 
-                flime_SecondTerm[idx * Hdim**4 + itx] = (
-                    gam_minus_prime * (t1 ^ t4) * (1 - 2 * t4)
+                flime_ThirdTerm[m, n, p, q] += (
+                    gam_minus_conj
+                    * c_prods
+                    * (m == bp)
+                    * (q == n)
+                    * (ap == a)
+                    * (b == p)
+                )
+
+                flime_FourthTerm[m, n, p, q] += (
+                    gam_minus_prime
+                    * c_prods
+                    * (m == p)
+                    * (q == bp)
+                    * (ap == a)
+                    * (b == n)
                 )
 
         try:
-            R_tensor[key] += (1 / 2) * np.sum(
-                np.reshape(
-                    np.add(flime_FirstTerm, flime_SecondTerm),
-                    (len(valid_c_op_prods_list), Hdim**2, Hdim**2),
-                ),
-                axis=0,
+            R_tensor[key] += (1 / 2) * np.reshape(
+                (flime_FirstTerm - flime_ThirdTerm - flime_FourthTerm),
+                (Hdim**2, Hdim**2),
             )
         except KeyError:
-            R_tensor[key] = (1 / 2) * np.sum(
-                np.reshape(
-                    np.add(flime_FirstTerm, flime_SecondTerm),
-                    (len(valid_c_op_prods_list), Hdim**2, Hdim**2),
-                ),
-                axis=0,
+            R_tensor[key] = (1 / 2) * np.reshape(
+                (flime_FirstTerm - flime_ThirdTerm - flime_FourthTerm),
+                (Hdim**2, Hdim**2),
             )
 
     return R_tensor
@@ -208,7 +275,6 @@ def _floquet_rate_matrix(
         frequency of a specific rate matrix term, and whose values are the
         rate matrices for the associated frequency.
     """
-    Hdim = len(floquet_basis.e_quasi)  # Dimensionality of the Hamiltonian
 
     # Forming tlist to take FFT of collapse operators
     timet = floquet_basis.T
@@ -236,7 +302,6 @@ def _floquet_rate_matrix(
             Nt,
             floquet_basis,
         )
-
         """
         Below takes all the indices that correspond to a single frequency,
             and builds that frequency value of the Rate Matrix
@@ -252,7 +317,6 @@ def _floquet_rate_matrix(
                 total_R_tensor[key] += R_tensor[key]
             except KeyError:
                 total_R_tensor[key] = R_tensor[key]
-
     return total_R_tensor
 
 
@@ -431,7 +495,7 @@ def _floquet_state_table(floquet_basis, tlist):
     taulist_correction = np.argwhere(
         abs(taulist_test - floquet_basis.T) < 1e-10
     )
-    taulist_test_new = np.round(taulist_test, 10)
+    taulist_test_new = np.round(taulist_test, 16)
     taulist_test_new[taulist_correction] = 0
 
     tally = {}
