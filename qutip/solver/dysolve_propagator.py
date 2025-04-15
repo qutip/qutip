@@ -379,10 +379,10 @@ class DysolvePropagator:
                 itertools.product([self._omega, -self._omega], repeat=n),
                 np.dtype((float, (n,)))
             )
-
-            for i, omega_vector in enumerate(omega_vectors):
-                subpropagator += np.exp(1j * np.sum(omega_vector)
-                                        * current_time) * Sns[n][i]
+            subpropagator += sum(
+                Sns[n] * np.exp(1j * np.sum(omega_vectors, axis=1) * current_time)
+                [:, np.newaxis, np.newaxis]
+            )
 
         return subpropagator
 
