@@ -118,9 +118,9 @@ class DysolvePropagator:
         dt = self.max_dt * np.sign(time_diff)
         n_steps = abs(int(time_diff / self.max_dt))
 
-        U = np.eye(len(self._eigenenergies), dtype=np.complex128)
+        U = self._compute_subprop(t_i, dt)
 
-        for j in range(n_steps):
+        for j in range(1, n_steps):
             U = self._compute_subprop(t_i + j*dt, dt) @ U
 
         remaining = time_diff - n_steps*dt
