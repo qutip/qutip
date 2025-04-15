@@ -347,7 +347,7 @@ class Qobj:
     def dtype(self):
         return type(self._data)
 
-    def to(self, data_type: LayerType, copy: bool=False) -> Qobj:
+    def to(self, data_type: LayerType, copy: bool = False) -> Qobj:
         """
         Convert the underlying data store of this `Qobj` into a different
         storage representation.
@@ -730,8 +730,8 @@ class Qobj:
         J = qutip.to_choi(self)
         tensor_idxs = enumerate_flat(J.dims)
         J_dual = qutip.tensor_swap(J, *(
-                list(zip(tensor_idxs[0][1], tensor_idxs[0][0])) +
-                list(zip(tensor_idxs[1][1], tensor_idxs[1][0]))
+            list(zip(tensor_idxs[0][1], tensor_idxs[0][0])) +
+            list(zip(tensor_idxs[1][1], tensor_idxs[1][0]))
         )).trans()
         J_dual.superrep = 'choi'
         return J_dual
@@ -1539,15 +1539,14 @@ class Qobj:
         return out
 
     def eigenstates(
-        self,
-        sparse: bool = False,
-        sort: Literal["low", "high"] = 'low',
-        eigvals: int = 0,
-        tol: float = 0,
-        maxiter: int = 100000,
-        phase_fix: int = None,
-		**kwargs
-    ) -> tuple[np.ndarray, list[Qobj]]:
+            self,
+            sparse: bool = False,
+            sort: Literal["low", "high"] = 'low',
+            eigvals: int = 0,
+            tol: float = 0,
+            maxiter: int = 100000,
+            phase_fix: int = None,
+            **kwargs) -> tuple[np.ndarray, list[Qobj]]:
         """Eigenstates and eigenenergies.
 
         Eigenstates and eigenenergies are defined for operators and
@@ -1619,29 +1618,28 @@ class Qobj:
                               if ket[phase_fix, 0] else 1
                               for ket in ekets])
 
-        if kwargs['output_type']=='ket':
-            return evals,ekets/norms*phase
-        elif kwargs['output_type']=='oper':
-            ekets = ekets / norms *phase
+        if kwargs['output_type'] == 'ket':
+            return evals, ekets / norms * phase
+        elif kwargs['output_type'] == 'oper':
+            ekets = ekets / norms * phase
 
-            eigarr = np.zeros((len(evals),len(evals)),dtype=complex)
+            eigarr = np.zeros((len(evals), len(evals)), dtype=complex)
 
             for i in range(len(ekets)):
                 x = ekets[i].full()
-                arr1 = np.array([ele[0] for ele in x])				
+                arr1 = np.array([ele[0] for ele in x])
                 arr1 = arr1.flatten()
-                nonzero = arr1 !=0
+                nonzero = arr1 != 0
                 if not np.any(nonzero):
                     arr1 = arr1
                 else:
                     arr1 = arr1/arr1[np.argmax(nonzero)]
 
-                eigarr[:,i] = arr1
+                eigarr[:, i] = arr1
 
-             eigoper = Qobj(eigarr)
+            eigoper = Qobj(eigarr)
 
-             return evals,eigoper
-
+        return evals, eigoper
 
     def eigenenergies(
         self,
