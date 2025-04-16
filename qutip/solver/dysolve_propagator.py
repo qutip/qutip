@@ -264,6 +264,7 @@ class DysolvePropagator:
             a = np.tile(current, shape)
             b = np.repeat(elems, len(current)//shape)
             return a * b
+        
         # if current is None:
         #     return elems
         # else:
@@ -301,7 +302,9 @@ class DysolvePropagator:
             exp_H_0 = (-1j*dt*self._H_0).expm().full()
 
             elems = self._X.full().flatten()
+
             # elems = sp.sparse.csr_array([self._X.full().flatten()])
+            
             current_matrix_elements = None
 
             Sns[0] = exp_H_0
@@ -335,9 +338,11 @@ class DysolvePropagator:
                 for i, omega_vector in enumerate(omega_vectors):
                     # Compute integrals
                     ls_ws = omega_vector + diff_lambdas
+                    
                     # for j in current_matrix_elements.indices:
                     #     x = cy_compute_integrals(ls_ws[j], dt) * current_matrix_elements[0,j]
                     #     Sn[i, ket_bra_idx[j,0], ket_bra_idx[j,1]] += x
+
                     for j, ws in enumerate(ls_ws):
                         if current_matrix_elements[j] != 0:
                             x = cy_compute_integrals(

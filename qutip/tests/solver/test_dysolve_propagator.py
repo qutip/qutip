@@ -199,7 +199,8 @@ def test_zeroth_order(H_0, t_i, t_f):
 @pytest.mark.parametrize("omega", [0, 1, 10])
 def test_2x2_propagators_single_time(H_0, X, t, omega):
     # Dysolve
-    U = dysolve_propagator(H_0, X, omega, t, options={'max_order': 5})
+    options = {'max_order': 3, 'max_dt': 0.05}
+    U = dysolve_propagator(H_0, X, omega, t, options=options)
 
     # Qutip.solver.propagator
     def H1_coeff(t, omega):
@@ -224,8 +225,8 @@ def test_2x2_propagators_single_time(H_0, X, t, omega):
 ])
 @pytest.mark.parametrize("omega", [0, 1, 10])
 def test_2x2_propagators_list_times(H_0, X, ts, omega):
-    Us = dysolve_propagator(H_0, X, omega, ts, options={
-                            'max_order': 5, 'max_dt': 0.05})
+    options = {'max_order': 3, 'max_dt': 0.01}
+    Us = dysolve_propagator(H_0, X, omega, ts, options=options)
 
     # Qutip.solver.propagator
     def H1_coeff(t, omega):
@@ -255,9 +256,9 @@ def test_2x2_propagators_list_times(H_0, X, ts, omega):
 @pytest.mark.parametrize("t_f", [
     1, -1
 ])
-def test_4x4_propagator_single_time(H_0, X, omega, t_f):
-    dy = DysolvePropagator(H_0, X, omega, options={'max_order': 4})
-    U = dy(t_f)
+def test_4x4_propagators_single_time(H_0, X, omega, t_f):
+    options = {'max_order': 3, 'max_dt': 0.01}
+    U = dysolve_propagator(H_0, X, omega, t_f, options=options)
 
     # Qutip.solver.propagator
     def H1_coeff(t, omega):
@@ -271,6 +272,40 @@ def test_4x4_propagator_single_time(H_0, X, omega, t_f):
 
     with CoreOptions(atol=1e-10, rtol=1e-5):
         assert U == prop
+
+
+@pytest.mark.parametrize("H_0", [
+    tensor(sigmax(), sigmaz()) + tensor(qeye(2), sigmay()),
+    tensor(sigmaz(), qeye(2))
+])
+@pytest.mark.parametrize("X", [
+    tensor(qeye(2), sigmaz()),
+    tensor(sigmaz(), sigmax()) + tensor(sigmay(), qeye(2))
+])
+@pytest.mark.parametrize("omega", [
+    5, 10
+])
+@pytest.mark.parametrize("ts", [
+    [0, 0.25, 0.5],
+    [0, -0.25, -0.5],
+    [-0.1, 0, 0.1]
+])
+def test_4x4_propagators_list_times(H_0, X, omega, ts):
+    options = {'max_order': 3, 'max_dt': 0.01}
+    Us = dysolve_propagator(H_0, X, omega, ts, options=options)
+
+    # Qutip.solver.propagator
+    def H1_coeff(t, omega):
+        return np.cos(omega * t)
+
+    H = [H_0, [X, H1_coeff]]
+    args = {'omega': omega}
+    props = propagator(
+        H, ts, args=args, options={"atol": 1e-10, "rtol": 1e-8}
+    )
+
+    with CoreOptions(atol=1e-10, rtol=1e-6):
+        assert Us == props
 
 
 @pytest.mark.parametrize("H_0, X", [
@@ -293,5 +328,5 @@ def test_dims(H_0, X):
     dysolve = DysolvePropagator(
         H_0, X, 1, {'max_order': 0}
     )
-    U_1 = dysolve(0.001)
-    assert (dysolve._H_0.dims == dysolve._X.dims == U_1.dims)
+    U = dysolve(0.001)
+    assert (dysolve._H_0.dims == dysolve._X.dims == U.dims)
