@@ -866,21 +866,25 @@ class FLiMESolver(MESolver):
         progress_bar.finished()
         sols = np.array(sols)
 
-        sols_comp_arr = np.einsum(
-            "xij,xjk,xkl->xil",
-            fstates_table,
-            sols,
-            np.transpose(fstates_table.conj(), axes=(0, 2, 1)),
-            order="F",
-        )
-        dims = self.floquet_basis.U(0)._dims
+        # sols_comp_arr = np.einsum(
+        #     "xij,xjk,xkl->xil",
+        #     fstates_table,
+        #     sols,
+        #     np.transpose(fstates_table.conj(), axes=(0, 2, 1)),
+        #     order="F",
+        # )
+        # dims = self.floquet_basis.U(0)._dims
+        # sols_comp = [
+        #     Qobj(
+        #         _data.Dense(state, copy=False),
+        #         dims=dims,
+        #         copy=False,
+        #     )
+        #     for state in sols_comp_arr
+        # ]
         sols_comp = [
-            Qobj(
-                _data.Dense(state, copy=False),
-                dims=dims,
-                copy=False,
-            )
-            for state in sols_comp_arr
+            self.floquet_basis.from_floquet_basis(Qobj(state), tlist[idx])
+            for idx, state in enumerate(sols)
         ]
         for idx, state in enumerate(sols_comp):
             results.add(
