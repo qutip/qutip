@@ -488,7 +488,7 @@ class TestBloch:
             dict(vectors=[(1, 0, 1), (1, 1, 0)], alpha=0.5),
         ], id="alpha-multiple-vector-sets"),
         pytest.param(
-            dict(vectors=(0, 0, 1), colors=['y']), id="color-y"),
+            dict(vectors=(0, 0, 1), colors=['#4f52cc']), id="color-hex"),
         pytest.param(
             dict(vectors=[(0, 0, 1), (0, 1, 0)], colors=['y', 'y']),
             id="color-two-y"),
@@ -496,6 +496,12 @@ class TestBloch:
             dict(vectors=[(0, 0, 1)], colors=['y']),
             dict(vectors=[(1, 0, 1)], colors=['g']),
         ], id="color-yg"),
+        pytest.param(
+            dict(vectors=[(0, 0, 1), (0, 1, 0)], colors=[(0.4, 0.7, 0.5), (0.1, 0.2, 0.8)]),
+            id="color-RGB"),
+        pytest.param(
+            dict(vectors=[(0, 0, 1), (0, 1, 0)], colors=[(0.4, 0.7, 0.5, 0.9), (0.1, 0.2, 0.8, 0.4)]),
+            id="color-RGBA"),
     ])
     @check_pngs_equal
     def test_vector(self, vector_kws, fig_test, fig_ref):
@@ -536,9 +542,8 @@ class TestBloch:
             b.add_vectors(vectors, colors=colors)
             b.render()
 
-        err_msg = ("The included colors are not valid. colors must "
-                   "be equivalent to a 1D array with the same "
-                   "size as the number of vectors. ")
+        err_msg = ("The included colors are not valid. "
+                   "colors must have the same size as vectors.")
         assert str(err.value) == err_msg
 
     @check_pngs_equal
