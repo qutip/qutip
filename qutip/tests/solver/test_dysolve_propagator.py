@@ -209,14 +209,14 @@ def test_2x2_propagators_single_time(H_0, X, t, omega):
         assert U == prop
 
 
-@pytest.mark.parametrize("H_0", [sigmay(), sigmaz()])
-@pytest.mark.parametrize("X", [sigmay(), sigmaz()])
+@pytest.mark.parametrize("H_0", [sigmax(), sigmay(), sigmaz()])
+@pytest.mark.parametrize("X", [sigmax(), sigmay(), sigmaz()])
 @pytest.mark.parametrize("ts", [
     [0, 0.25, 0.5],
     [0, -0.25, -0.5],
     [-0.1, 0, 0.1]
 ])
-@pytest.mark.parametrize("omega", [0, 10])
+@pytest.mark.parametrize("omega", [0, 1, 10])
 def test_2x2_propagators_list_times(H_0, X, ts, omega):
     options = {'max_order': 3, 'max_dt': 0.01}
     Us = dysolve_propagator(H_0, X, omega, ts, options=options)
@@ -276,7 +276,7 @@ def test_4x4_propagators_single_time(H_0, X, omega, t_f):
     tensor(sigmaz(), sigmax()) + tensor(sigmay(), qeye(2))
 ])
 @pytest.mark.parametrize("omega", [
-    0, 10
+    5, 10
 ])
 @pytest.mark.parametrize("ts", [
     [0, 0.25, 0.5],
