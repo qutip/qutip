@@ -3,7 +3,7 @@ import copy
 import numpy as np
 import pytest
 
-from qutip.bloch import Bloch
+from qutip.bloch import Bloch, _state_to_cartesian_coordinates
 from qutip import ket, ket2dm
 
 try:
@@ -544,6 +544,164 @@ class TestBloch:
 
         err_msg = ("The included colors are not valid. "
                    "colors must have the same size as vectors.")
+        assert str(err.value) == err_msg
+
+    def plot_state_test(self, fig, state_kws):
+        b = Bloch(fig=fig)
+        state = state_kws.pop("state")
+        b.add_states(state, **state_kws)
+        b.render()
+
+    @pytest.mark.parametrize("state_kws", [
+        pytest.param(
+            dict(state=ket("0"), kind="point", colors=(0,0,1)), id="point-RGB"),
+        pytest.param(
+            dict(state=ket("0"), kind="point", colors=(0.4,0,0,0.3)), id="point-RGBA"),
+        pytest.param(
+            dict(state=ket("1"), kind="point", colors="y"), id="point-y"),
+        pytest.param(
+            dict(state=ket("1"), kind="point", colors="#4faadd"), id="point-hex"),
+        pytest.param(
+            dict(state=ket("0"), kind="vector", colors=(0,0,1)), id="vector-RGB"),
+        pytest.param(
+            dict(state=ket("0"), kind="vector", colors=(0.4,0,0,0.3)), id="vector-RGBA"),
+        pytest.param(
+            dict(state=ket("1"), kind="vector", colors="y"), id="vector-y"),
+        pytest.param(
+            dict(state=ket("1"), kind="vector", colors="#4faadd"), id="vector-hex"),
+        pytest.param(
+            dict(state=[ket("0")], kind="point", colors=(0,0,1)), id="[point]-RGB"),
+        pytest.param(
+            dict(state=[ket("0")], kind="point", colors=(0.4,0,0,0.3)), id="[point]-RGBA"),
+        pytest.param(
+            dict(state=[ket("1")], kind="point", colors="y"), id="[point]-y"),
+        pytest.param(
+            dict(state=[ket("1")], kind="point", colors="#4faadd"), id="[point]-hex"),
+        pytest.param(
+            dict(state=[ket("0")], kind="vector", colors=(0,0,1)), id="[vector]-RGB"),
+        pytest.param(
+            dict(state=[ket("0")], kind="vector", colors=(0.4,0,0,0.3)), id="[vector]-RGBA"),
+        pytest.param(
+            dict(state=[ket("1")], kind="vector", colors="y"), id="[vector]-y"),
+        pytest.param(
+            dict(state=[ket("1")], kind="vector", colors="#4faadd"), id="[vector]-hex"),
+        pytest.param(
+            dict(state=ket("0"), kind="point", colors=[(0,0,1)]), id="point-[RGB]"),
+        pytest.param(
+            dict(state=ket("0"), kind="point", colors=[(0.4,0,0,0.3)]), id="point-[RGBA]"),
+        pytest.param(
+            dict(state=ket("1"), kind="point", colors=["y"]), id="point-[y]"),
+        pytest.param(
+            dict(state=ket("1"), kind="point", colors=["#4faadd"]), id="point-[hex]"),
+        pytest.param(
+            dict(state=ket("0"), kind="vector", colors=[(0,0,1)]), id="vector-[RGB]"),
+        pytest.param(
+            dict(state=ket("0"), kind="vector", colors=[(0.4,0,0,0.3)]), id="vector-[RGBA]"),
+        pytest.param(
+            dict(state=ket("1"), kind="vector", colors=["y"]), id="vector-[y]"),
+        pytest.param(
+            dict(state=ket("1"), kind="vector", colors=["#4faadd"]), id="vector-[hex]"),
+        pytest.param(
+            dict(state=[ket("0")], kind="point", colors=[(0,0,1)]), id="[point]-[RGB]"),
+        pytest.param(
+            dict(state=[ket("0")], kind="point", colors=[(0.4,0,0,0.3)]), id="[point]-[RGBA]"),
+        pytest.param(
+            dict(state=[ket("1")], kind="point", colors=["y"]), id="[point]-[y]"),
+        pytest.param(
+            dict(state=[ket("1")], kind="point", colors=["#4faadd"]), id="[point]-[hex]"),
+        pytest.param(
+            dict(state=[ket("0")], kind="vector", colors=[(0,0,1)]), id="[vector]-[RGB]"),
+        pytest.param(
+            dict(state=[ket("0")], kind="vector", colors=[(0.4,0,0,0.3)]), id="[vector]-[RGBA]"),
+        pytest.param(
+            dict(state=[ket("1")], kind="vector", colors=["y"]), id="[vector]-[y]"),
+        pytest.param(
+            dict(state=[ket("1")], kind="vector", colors=["#4faadd"]), id="[vector]-[hex]"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="point", colors=(0,0,1)), id="points-RGB"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="point", colors=(0.4,0,0,0.3)), id="points-RGBA"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="point", colors="y"), id="points-y"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="point", colors="#4faadd"), id="points-hex"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="vector", colors=(0,0,1)), id="vectors-RGB"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="vector", colors=(0.4,0,0,0.3)), id="vectors-RGBA"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="vector", colors="y"), id="vectors-y"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="vector", colors="#4faadd"), id="vectors-hex"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="point", colors=[(0,0,1), (1,0,0)]), id="points-RGBs"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="point", colors=[(0.4,0,0,0.3), (0,0.4,0,0.7)]), id="points-RGBAs"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="point", colors=["y","g"]), id="points-yg"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="point", colors=["#4faadd","#aa7d52"]), id="points-hexs"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="vector", colors=[(0,0,1), (1,0,0)]), id="vectors-RGBs"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="vector", colors=[(0.4,0,0,0.3), (0,0.4,0,0.7)]), id="vectors-RGBAs"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="vector", colors=["y","g"]), id="vectors-yg"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1")], kind="vector", colors=["#4faadd","#aa7d52"]), id="vectors-hexs"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1"), (ket("0")+ket("1")).unit()], kind="point", colors=(0,0,1)), id="3-points-RGB"),
+        pytest.param(
+            dict(state=[ket("0"), ket("1"), (ket("0")+ket("1")).unit()], kind="vector", colors=(0,0,1)), id="3-vectors-RGB"),
+    ])
+    @check_pngs_equal
+    def test_state(self, state_kws, fig_test, fig_ref):
+        state = np.asarray(state_kws["state"])
+        if state.ndim == 0:
+            state = state[np.newaxis]
+
+        colors = state_kws["colors"]
+        if isinstance(colors, str):
+            colors = np.repeat(colors, state.shape[0])
+        elif isinstance(colors, tuple):
+            colors = np.array(colors)[np.newaxis]
+            colors = np.repeat(colors, [state.shape[0]], axis=0)
+
+        self.plot_state_test(fig_test, copy.deepcopy(state_kws))
+
+        state = [_state_to_cartesian_coordinates(st) for st in state]
+        if state_kws["kind"] == "point":
+            self.plot_point_ref(fig_ref, [{"points": state[k], "colors": [colors[k]]} for k in range(len(state))])
+        else:
+            self.plot_vector_ref(fig_ref, [{"vectors": state[k], "colors": [colors[k]]} for k in range(len(state))])
+
+    @pytest.mark.parametrize("state, colors",
+                             [([ket("0"), ket("1")], ['y']),
+                              (ket("0"), ['y', 'g', 'b']),
+                              ([ket("0")], ['y', 'g', 'b']),
+                              (ket("1"), [['g', 'y']])],
+                             ids=["two-st-one-color", "one-st-three-colors",
+                                  "one-[st]-three-colors", "wrong-dimension-list"]
+                             )
+    def test_state_errors_color_length(self, state, colors):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_states(state, colors=colors)
+            b.render()
+
+        err_msg = ("The included colors are not valid. "
+                   "colors must have the same size as state.")
+        assert str(err.value) == err_msg
+
+    @pytest.mark.parametrize("state, kind", [(ket("0"), "hyperspace")])
+    def test_state_error_kind(self, state, kind):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_states(state, kind=kind)
+            b.render()
+
+        err_msg = ("The included kind is not valid. "
+                   f"It should be vector or point, not {kind}.")
         assert str(err.value) == err_msg
 
     @check_pngs_equal
