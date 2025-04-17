@@ -1,5 +1,4 @@
 from qutip import Qobj, qeye_like
-from .cy.dysolve import cy_compute_integrals
 from numpy.typing import ArrayLike
 import numpy as np
 import scipy as sp

@@ -1,6 +1,5 @@
 from qutip.solver.dysolve_propagator import DysolvePropagator, dysolve_propagator
 from qutip.solver import propagator
-from qutip.solver.cy.dysolve import cy_compute_integrals
 from qutip import sigmax, sigmay, sigmaz, qeye, qeye_like, tensor, CoreOptions
 from scipy.special import factorial
 import numpy as np
