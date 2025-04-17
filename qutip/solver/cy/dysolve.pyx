@@ -13,6 +13,33 @@ for i in range(1, 21):
 
 
 cpdef complex cy_compute_integrals(double[:] ws, double dt, double a_tol=1e-10):
+    """
+        Computes the value of the nested integrals for a given array of
+        effective omegas. See eq. (7) in Ref.
+
+        Parameters
+        ----------
+        ws : double[:]
+            An array of effective omegas. ws[0] is the omega for the rightmost
+            integral.
+
+        dt : double
+            The time increment.
+
+        a_tol : double, default = 1e-10
+            The absolute tolerance used.
+
+        Returns
+        -------
+        value : complex
+            The value of the nested integrals.
+
+        Notes
+        -----
+        Integrals are done analytically from right to left with integration
+        by parts.
+
+    """
     cdef double[:] ws_prime
     if len(ws) == 1:
         if abs(ws[0]) < a_tol:
@@ -32,6 +59,39 @@ cpdef complex cy_compute_integrals(double[:] ws, double dt, double a_tol=1e-10):
 
 
 cdef complex cy_compute_tn_integrals(double[:] ws, int n, double dt, double a_tol=1e-10):
+    """
+        Helper function to compute nested integrals when the function to
+        integrate is t^n/factorial(n) * exp(1j*omega*t). This happens when
+        some effective omegas are 0. In that case, the recursion differs a
+        bit from _compute_integrals(). See eq. (7) in Ref.
+
+        Paramaters
+        ----------
+        ws : double[:]
+            An array of effective omegas. ws[0] is the omega for the rightmost
+            integral.
+
+        n : int
+            The variable in t^n/factorial(n).
+
+        dt : double
+            The time increment.
+
+        a_tol : double, default = 1e-10
+            The absolute tolerance used.
+
+        Returns
+        -------
+        value : complex
+            The value of the nested integrals when the function to integrate is
+            t^n/factorial(n) * exp(1j*omega*t).
+
+        Notes
+        -----
+        Integrals are done analytically from right to left with integration
+        by parts.
+
+    """
     cdef complex factor, term1, term2
     cdef double[:] ws_prime
     cdef int j
