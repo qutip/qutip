@@ -137,7 +137,7 @@ class DysolvePropagator:
         )
 
         return self.U
-    
+
     def _compute_integrals(self, ws: ArrayLike, dt: float) -> Number:
         """
         Computes the value of the nested integrals for a given array of
