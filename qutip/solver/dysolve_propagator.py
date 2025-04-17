@@ -5,13 +5,9 @@ import numpy as np
 import scipy as sp
 from numbers import Number
 import itertools
-from scipy.special import factorial
 
 
 __all__ = ['DysolvePropagator', 'dysolve_propagator']
-
-
-FACTORIAL_LOOKUP = [factorial(i) for i in range(21)]
 
 
 class DysolvePropagator:
@@ -72,6 +68,7 @@ class DysolvePropagator:
         self._eigenenergies, self._basis = H_0.eigenstates()
         self._H_0 = H_0.transform(self._basis)
         self._X = X.transform(self._basis)
+        self._elems = self._X.full().flatten()
         self._omega = omega
 
         # Options
@@ -84,7 +81,10 @@ class DysolvePropagator:
             self.max_dt = options.get('max_dt', 0.1)
             self.a_tol = options.get('a_tol', 1e-10)
 
+        # Memoization
         self._dt_Sns = {}
+
+        # Time propagator
         self.U = None
 
     def __call__(self, t_f: float, t_i: float = 0.0) -> Qobj:
@@ -238,8 +238,7 @@ class DysolvePropagator:
                 term2 = self._compute_tn_integrals(ws, n - 1, dt)
                 return factor * (term1 - term2)
 
-    def _update_matrix_elements(self, current: ArrayLike,
-                                elems: ArrayLike) -> ArrayLike:
+    def _update_matrix_elements(self, current: ArrayLike) -> ArrayLike:
         """
         Reuses the current matrix elements (order n-1) to compute the
         matrix elements for the order n.
@@ -247,10 +246,7 @@ class DysolvePropagator:
         Parameters
         ----------
         current : ArrayLike
-            The current matrix elements (for the order n-1).
-
-        elems : ArrayLike
-            The matrix elements of self.X.
+            The current matrix elements (for the order n-1)..
 
         Returns
         -------
@@ -258,13 +254,21 @@ class DysolvePropagator:
             The new matrix elements for the order n.
         """
         if current is None:
-            return elems
+            return self._elems
         else:
             shape = self._X.shape[0]
             a = np.tile(current, shape)
-            b = np.repeat(elems, len(current)//shape)
+            b = np.repeat(self._elems, len(current)//shape)
             return a * b
-        
+
+        # WIP:
+        # The following is an attempt to use scipy.sparse to store "current".
+        # There can be a lot of zeros, so scipy.sparse could be useful here.
+        # This involves more operations than the implementation above because
+        # "current" is a vector and scipy.sparse only accepts matrices.
+        # A better approach is necessary to use the full potential of
+        # scipy.sparse.
+
         # if current is None:
         #     return elems
         # else:
@@ -300,11 +304,6 @@ class DysolvePropagator:
             Sns = {}
             length = len(self._eigenenergies)
             exp_H_0 = (-1j*dt*self._H_0).expm().full()
-
-            elems = self._X.full().flatten()
-
-            # elems = sp.sparse.csr_array([self._X.full().flatten()])
-            
             current_matrix_elements = None
 
             Sns[0] = exp_H_0
@@ -332,16 +331,12 @@ class DysolvePropagator:
 
                 # Compute matrix elements
                 current_matrix_elements = self._update_matrix_elements(
-                    current_matrix_elements, elems
+                    current_matrix_elements
                 )
 
                 for i, omega_vector in enumerate(omega_vectors):
                     # Compute integrals
                     ls_ws = omega_vector + diff_lambdas
-                    
-                    # for j in current_matrix_elements.indices:
-                    #     x = cy_compute_integrals(ls_ws[j], dt) * current_matrix_elements[0,j]
-                    #     Sn[i, ket_bra_idx[j,0], ket_bra_idx[j,1]] += x
 
                     for j, ws in enumerate(ls_ws):
                         if current_matrix_elements[j] != 0:
