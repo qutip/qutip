@@ -47,13 +47,16 @@ def empty_instance():
         lambda eff_omega, dt: (-1j*dt/eff_omega) * np.exp(1j*eff_omega*dt) -
         ((1j/eff_omega)**2) * (np.exp(1j*eff_omega*dt)-1))
 ])
-def test_integrals_1(eff_omega, dt, ws, answer):
+def test_integrals_1(empty_instance, eff_omega, dt, ws, answer):
+    # Create instance only with the required data
+    dysolve = empty_instance
+    dysolve.a_tol = 1e-10
     if callable(ws):
         ws = ws(eff_omega)
     if callable(answer):
         answer = answer(eff_omega, dt)
 
-    integrals = cy_compute_integrals(ws, dt)
+    integrals = dysolve._compute_integrals(ws, dt)
 
     assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
 
@@ -61,9 +64,13 @@ def test_integrals_1(eff_omega, dt, ws, answer):
 @pytest.mark.parametrize("eff_omega_1", [-25.0, -5.0, -0.5, 0.5, 5.0, 25.0])
 @pytest.mark.parametrize("eff_omega_2", [-25.0, -5.0, -0.5, 0.5, 5.0, 25.0])
 @pytest.mark.parametrize("dt", [-10.0, -1.0, -0.1, 0.1, 1.0, 10.0])
-def test_integrals_2(eff_omega_1, eff_omega_2, dt):
+def test_integrals_2(empty_instance, eff_omega_1, eff_omega_2, dt):
+    # Create instance only with the required data
+    dysolve = empty_instance
+    dysolve.a_tol = 1e-10
+
     ws = np.array([eff_omega_1, eff_omega_2])
-    integrals = cy_compute_integrals(ws, dt)
+    integrals = dysolve._compute_integrals(ws, dt)
 
     if eff_omega_1 + eff_omega_2 == 0:
         answer = (-1j*dt/eff_omega_1) + \
