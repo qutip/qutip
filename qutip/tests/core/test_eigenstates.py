@@ -41,6 +41,25 @@ _nondiagonal_eigenstates = np.array([
      -0.5593181579625106+0.2953063897306936j]])
 
 
+@pytest.mark.parametrize(["hamiltonian","eigenstates"],[
+    pytest.param(qutip.sigmaz(), [[0, 1], [1, 0]], id="diagonal-2"),
+    pytest.param(_diagonal_hamiltonian, 
+                 _diagonal_eigenstates,
+                 id="diagonal-"+str(_diagonal_dimension)),
+    pytest.param(qutip.sigmax(), [[-1, 1], [1, 1]], id="sigmax"),
+    pytest.param(_nondiagonal_hamiltonian,
+                 _nondiagonal_eigenstates, id="non-diagonal"),
+])
+def test_compare_eigenstates_ket_n_oper(hamiltonian, eigenstates):
+	test_states_ket = np.array(hamiltonian.eigenstates(output_type='ket')[1])
+	test_states_oper_arr = np.array(hamiltonian.eigenstates(output_type='oper')[1].full()).T
+
+	test_vectors_ket = [_canonicalise_eigenvector(test_states_ket[i].full()) for i in range(len(test_states_ket))] 
+
+	for ket,oper in zip(test_vectors_ket,test_states_oper_arr):
+		np.testing.assert_allclose(ket,oper,atol=1e-10)		
+
+
 @pytest.mark.parametrize(["hamiltonian", "eigenvalues", "eigenstates"], [
     pytest.param(qutip.sigmaz(), [-1, 1], [[0, 1], [1, 0]], id="diagonal-2"),
     pytest.param(_diagonal_hamiltonian, _diagonal_eigenvalues,
@@ -51,10 +70,12 @@ _nondiagonal_eigenstates = np.array([
                  _nondiagonal_eigenstates, id="non-diagonal"),
 ])
 def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
-    test_values, test_states = hamiltonian.eigenstates()
+    test_values, test_states = hamiltonian.eigenstates(output_type='ket')
     eigenvalues = np.array(eigenvalues)
     eigenstates = np.array(eigenstates)
+
     test_order = np.argsort(test_values)
+
     test_vectors = [_canonicalise_eigenvector(test_states[i].full())
                     for i in test_order]
     expected_order = np.argsort(eigenvalues)
@@ -65,25 +86,6 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
                                atol=1e-10)
     for test, expected in zip(test_vectors, expected_vectors):
         np.testing.assert_allclose(test, expected, atol=1e-10)
-
-
-@pytest.mark.parametrize(["hamiltonian","eigenstates"],[
-    pytest.param(qutip.sigmaz(), [[0, 1], [1, 0]], id="diagonal-2"),
-    pytest.param(_diagonal_hamiltonian, 
-                 _diagonal_eigenstates,
-                 id="diagonal-"+str(_diagonal_dimension)),
-    pytest.param(qutip.sigmax(), [[-1, 1], [1, 1]], id="sigmax"),
-    pytest.param(_nondiagonal_hamiltonian,
-                 _nondiagonal_eigenstates, id="non-diagonal"),
-])
-def test_eigenstates_oper_conversion(hamiltonian, eigenstates):
-    test_states_ket = np.array(hamiltonian.eigenstates(output_type='ket')[1])
-    test_states_oper = np.array(hamiltonian.eigenstates(output_type='oper')[1].full()).T
-
-    test_vectors_ket = [_canonicalise_eigenvector(test_states_ket[i].full()) for i in range(len(test_states_ket))]	
-
-    for ket,oper in zip(test_vectors_ket,test_states_oper_arr):
-        np.testing.assert_allclose(ket,oper,atol=1e-10)
 
 
 # Specify parametrisation over a random Hamiltonian by specifying the
@@ -108,8 +110,8 @@ def test_satisfy_eigenvalue_equation(random_hamiltonian, sparse, dtype):
     random_hamiltonian = random_hamiltonian.to(dtype)
     eigvals = 3 if sparse else 0
     eigenvalues, eigenstates = random_hamiltonian.eigenstates(
-        sparse=sparse, eigvals=eigvals
-    )
+        sparse=sparse, eigvals=eigvals,
+    output_type='ket')
     for eigenvalue, eigenstate in zip(eigenvalues, eigenstates):
         np.testing.assert_allclose((random_hamiltonian * eigenstate).full(),
                                    (eigenvalue * eigenstate).full(),
@@ -118,3 +120,14 @@ def test_satisfy_eigenvalue_equation(random_hamiltonian, sparse, dtype):
     errors = [evec1.overlap(evec2)
               for evec1, evec2 in combinations(eigenstates, 2)]
     assert np.max(np.abs(errors)) == pytest.approx(0., abs=1e-8)
+
+
+
+if __name__=="__main__":
+#	test_known_eigensystem(_nondiagonal_hamiltonian, _nondiagonal_eigenvalues,
+#		_nondiagonal_eigenstates)
+	test_compare_eigenstates_ket_n_oper(_nondiagonal_hamiltonian, 
+		_nondiagonal_eigenstates)
+
+
+
