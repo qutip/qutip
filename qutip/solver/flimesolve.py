@@ -42,14 +42,14 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
     """
     # Transforming the lowering operator into the Floquet Basis
     #     and taking the FFT
-    # modes_table = _floquet_mode_table(floquet_basis, tlist)
+    modes_table = _floquet_mode_table(floquet_basis, tlist)
 
-    # c_op_Floquet_basis = np.einsum(
-    #     "xij,jk,xkl->xil",
-    #     np.transpose(modes_table.conj(), (0, 2, 1)),
-    #     c_op.full(),
-    #     modes_table,
-    # )
+    c_op_Floquet_basis = np.einsum(
+        "xij,jk,xkl->xil",
+        np.transpose(modes_table.conj(), (0, 2, 1)),
+        c_op.full(),
+        modes_table,
+    )
     """
     The two lines below transform the collapse operator to the Floquet basis 
         for every time t in tlist, then performs the FFT over this list 
@@ -61,9 +61,6 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
         transformation below, and I'd like to make sure I'm using the proper
         transformations so I'm using the built-in one
     """
-    c_op_Floquet_basis = np.array(
-        [floquet_basis.to_floquet_basis(c_op, t).full() for t in tlist]
-    )
     c_op_Fourier_amplitudes_list = (
         (np.fft.fft(c_op_Floquet_basis, axis=0))
     ) / len(tlist)
@@ -133,6 +130,7 @@ def _rate_matrix_indices(
             # Also keeping DC terms (i.e. when delts==0)
             if delts == 0 or (
                 abs(delts * omega / (S_op * S_op_conj))
+                # abs(delts * omega)
                 <= relative_secular_cutoff
             ):
                 try:
@@ -155,6 +153,8 @@ def _Rate_Matrix_Builder(
 
     c_op_conj = np.conj(c_op_Fourier_amplitudes_list)
     # Line beloe forms a list of all indices of the 4d Rate Tensor
+    from itertools import product
+
     matrix_idx = list(
         product(*[range(dim) for dim in (Hdim, Hdim, Hdim, Hdim)])
     )
