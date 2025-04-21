@@ -4,6 +4,7 @@ __all__ = [
 ]
 
 import numpy as np
+
 from qutip.core import data as _data
 from qutip import Qobj, QobjEvo, operator_to_vector
 from qutip.solver.mesolve import MESolver
@@ -17,7 +18,7 @@ from qutip.core.environment import (
     BosonicEnvironment,
 )
 
-from collections import defaultdict
+# from collections import defaultdict
 from itertools import product
 
 
@@ -55,11 +56,6 @@ def _c_op_Fourier_amplitudes(floquet_basis, tlist, c_op):
         for every time t in tlist, then performs the FFT over this list 
         (and normalizes it) to find an array indexed by [k,a,b] of Fourier
         amplitudes of the collapse operator
-        
-    Normally, I'd like to use the transformation above with the einsum,
-        but for some reason it seems to return different values than the
-        transformation below, and I'd like to make sure I'm using the proper
-        transformations so I'm using the built-in one
     """
     c_op_Fourier_amplitudes_list = (
         (np.fft.fft(c_op_Floquet_basis, axis=0))
@@ -130,13 +126,12 @@ def _rate_matrix_indices(
             # Also keeping DC terms (i.e. when delts==0)
             if delts == 0 or (
                 abs(delts * omega / (S_op * S_op_conj))
-                # abs(delts * omega)
                 <= relative_secular_cutoff
             ):
                 try:
-                    delta_dict[delts].append((a, b, ap, bp, k, kp))
+                    delta_dict[-delts].append((a, b, ap, bp, k, kp))
                 except KeyError:
-                    delta_dict[delts] = [(a, b, ap, bp, k, kp)]
+                    delta_dict[-delts] = [(a, b, ap, bp, k, kp)]
     return delta_dict
 
 
@@ -152,8 +147,7 @@ def _Rate_Matrix_Builder(
     Hdim = len(quasis)
 
     c_op_conj = np.conj(c_op_Fourier_amplitudes_list)
-    # Line beloe forms a list of all indices of the 4d Rate Tensor
-    from itertools import product
+    # Line below forms a list of all indices of the 4d Rate Tensor
 
     matrix_idx = list(
         product(*[range(dim) for dim in (Hdim, Hdim, Hdim, Hdim)])
@@ -164,7 +158,6 @@ def _Rate_Matrix_Builder(
         valid_c_op_prods_list = delta_dict[key]
 
         flime_FirstTerm = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
-        flime_SecondTerm = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
         flime_ThirdTerm = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
         flime_FourthTerm = np.zeros((Hdim, Hdim, Hdim, Hdim), dtype="complex")
 
@@ -181,14 +174,14 @@ def _Rate_Matrix_Builder(
             """
             Forming Gamma^(-*)(a,b,k)
             """
-            gam_minus_conj = np.conj(
-                power_spectrum(-quasis[a] + quasis[b] - k * omega)
+            gam_minus_conj = np.real(
+                np.conj(power_spectrum(-quasis[a] + quasis[b] - k * omega))
             )
             """
             #Forming Gamma^-(a',b',k'). 
             """
-            gam_minus_prime = power_spectrum(
-                -quasis[ap] + quasis[bp] - kp * omega
+            gam_minus_prime = np.real(
+                power_spectrum(-quasis[ap] + quasis[bp] - kp * omega)
             )
 
             """
@@ -866,26 +859,26 @@ class FLiMESolver(MESolver):
         progress_bar.finished()
         sols = np.array(sols)
 
-        # sols_comp_arr = np.einsum(
-        #     "xij,xjk,xkl->xil",
-        #     fstates_table,
-        #     sols,
-        #     np.transpose(fstates_table.conj(), axes=(0, 2, 1)),
-        #     order="F",
-        # )
-        # dims = self.floquet_basis.U(0)._dims
-        # sols_comp = [
-        #     Qobj(
-        #         _data.Dense(state, copy=False),
-        #         dims=dims,
-        #         copy=False,
-        #     )
-        #     for state in sols_comp_arr
-        # ]
+        sols_comp_arr = np.einsum(
+            "xij,xjk,xkl->xil",
+            fstates_table,
+            sols,
+            np.transpose(fstates_table.conj(), axes=(0, 2, 1)),
+            order="F",
+        )
+        dims = self.floquet_basis.U(0)._dims
         sols_comp = [
-            self.floquet_basis.from_floquet_basis(Qobj(state), tlist[idx])
-            for idx, state in enumerate(sols)
+            Qobj(
+                _data.Dense(state, copy=False),
+                dims=dims,
+                copy=False,
+            )
+            for state in sols_comp_arr
         ]
+        # sols_comp = [
+        #     self.floquet_basis.from_floquet_basis(Qobj(state), tlist[idx])
+        #     for idx, state in enumerate(sols)
+        # ]
         for idx, state in enumerate(sols_comp):
             results.add(
                 tlist[idx], state, Qobj(fstates_table[idx], copy=False)
