@@ -129,9 +129,9 @@ def _rate_matrix_indices(
                 <= relative_secular_cutoff
             ):
                 try:
-                    delta_dict[-delts].append((a, b, ap, bp, k, kp))
+                    delta_dict[delts].append((a, b, ap, bp, k, kp))
                 except KeyError:
-                    delta_dict[-delts] = [(a, b, ap, bp, k, kp)]
+                    delta_dict[delts] = [(a, b, ap, bp, k, kp)]
     return delta_dict
 
 
@@ -220,12 +220,22 @@ def _Rate_Matrix_Builder(
 
         try:
             R_tensor[key] += (1 / 2) * np.reshape(
-                (flime_FirstTerm - flime_ThirdTerm - flime_FourthTerm),
+                (
+                    +flime_FirstTerm
+                    - flime_ThirdTerm
+                    - flime_FourthTerm
+                    #
+                ),
                 (Hdim**2, Hdim**2),
             )
         except KeyError:
             R_tensor[key] = (1 / 2) * np.reshape(
-                (flime_FirstTerm - flime_ThirdTerm - flime_FourthTerm),
+                (
+                    +flime_FirstTerm
+                    - flime_ThirdTerm
+                    - flime_FourthTerm
+                    #
+                ),
                 (Hdim**2, Hdim**2),
             )
 
@@ -708,7 +718,7 @@ class FLiMESolver(MESolver):
                 [
                     Rate_Qobj_list[key],
                     lambda t, key=key: np.exp(
-                        (1j * key * 2 * np.pi * t) / self.floquet_basis.T
+                        (-1j * key * 2 * np.pi * t) / self.floquet_basis.T
                     ),
                 ]
                 for key in set(Rate_Qobj_list) - {0}
