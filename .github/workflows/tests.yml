@@ -64,7 +64,7 @@ jobs:
           # Use conda-forge to provide Python 3.11 and latest numpy
           - case-name: p312, numpy fallback
             os: ubuntu-latest
-            python-version: "3.12"
+            python-version: "3.12.9"
             numpy-requirement: ">=1.26,<1.27"
             scipy-requirement: ">=1.11,<1.12"
             condaforge: 1
