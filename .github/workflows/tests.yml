@@ -64,14 +64,14 @@ jobs:
           # Use conda-forge to provide Python 3.11 and latest numpy
           - case-name: p312, numpy fallback
             os: ubuntu-latest
-            python-version: "3.12.9"
+            python-version: "3.12"
             numpy-requirement: ">=1.26,<1.27"
             scipy-requirement: ">=1.11,<1.12"
             condaforge: 1
             oldmpl: 1
             # Install mpi4py to test mpi_pmap
             # Should be enough to include this in one of the runs
-            includempi: 1
+            # includempi: 1
             coveralls: 1
 
           # Python 3.10, no mkl, scipy 1.9, numpy 1.23
@@ -88,6 +88,7 @@ jobs:
             oldmpl: 1
             nomkl: 1
             coveralls: 1
+            includempi: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
           # Mac
