@@ -75,8 +75,8 @@ shape = [4, 4], type = oper, isherm = False
         isherm = False
         isunitary = False
     elif offsets == [0]:
-        isherm = np.all(np.imag(diagonals) <= settings.core["atol"])
-        isunitary = np.all(np.abs(diagonals) - 1 <= settings.core["atol"])
+        isherm = np.all(np.abs(np.imag(diagonals)) <= settings.core["atol"])
+        isunitary = np.all(np.abs(np.abs(diagonals) - 1) <= settings.core["atol"])
     else:
         isherm = None
         isunitary = None
