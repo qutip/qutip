@@ -2195,6 +2195,8 @@ def _sd_fit_model(wlist, a, b, c):
     )
 
 
+
+
 def _default_guess_sd(wlist, jlist):
     sd_abs = np.abs(jlist)
     sd_max = np.max(sd_abs)
@@ -2208,6 +2210,8 @@ def _default_guess_sd(wlist, jlist):
     upper = [100 * sd_max, 100 * wc, 100 * wc]
 
     return guess, lower, upper
+
+
 
 
 def _ps_fit_model(wlist, a, b, c, d):
@@ -2518,20 +2522,20 @@ class FermionicEnvironment(abc.ABC):
 
     @classmethod
     def from_correlation_functions(cls,
-                                   J: Callable[[float], float] | ArrayLike,
+                                   Cp: Callable[[float], float] | ArrayLike,
+                                   Cm: Callable[[float], float] | ArrayLike,
                                    wlist: ArrayLike = None,
                                    wMax: float = None,
                                    *,
                                    T: float = None,
                                    mu: float = None,
-                                   sigma: float = None,
                                    tag: Any = None,
                                    args: dict[str, Any] = None,
                                    ) -> FermionicEnvironment:
         r"""
             Fermionic Environment from CF
         """
-        return _FermionicEnvironment_fromCF(J, wlist, wMax, T, mu, sigma,
+        return _FermionicEnvironment_fromCF(Cp,Cm, wlist, wMax, T, mu,
                                             tag, args)
 
     @classmethod
@@ -2626,6 +2630,7 @@ class FermionicEnvironment(abc.ABC):
 
         func = dispatch[method.lower()][0]
         return func(method, *args, **kwargs)
+    # TODO: Discuss about fitting fermi instead :) like in the Xu paper
 
     def _approx_by_aaa(
         self,
@@ -2746,14 +2751,7 @@ class FermionicEnvironment(abc.ABC):
         Np: int = 3,
         Nm: int = 3,
         tag: Any = None,
-        separate=False,
     ):
-        # if not separate and Ni is not None:
-        #     raise ValueError("The number of imaginary exponents (Ni) cannot be"
-        #                      " specified if real and imaginary parts are fit"
-        #                      " together (separate=False).")
-        # if Ni is None:
-        #     Ni = 3  # default value
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
         methods = {
@@ -2804,7 +2802,7 @@ class FermionicEnvironment(abc.ABC):
                                               T=self.T, mu=self.mu, tag=tag)
 
         return cls, fit_info
-
+   
 
 class LorentzianEnvironment(FermionicEnvironment):
     r"""
@@ -2951,23 +2949,8 @@ class LorentzianEnvironment(FermionicEnvironment):
 
         return self.spectral_density(w) / (np.exp((self.mu - w) / self.T) + 1)
 
-    @overload
-    def approximate(
-        self,
-        method: Literal['sd'],
-        wlist: ArrayLike,
-        Nk: int,
-        target_rmse: float,
-        Nmax: int,
-        guess: list[float],
-        lower: list[float],
-        upper: list[float],
-        sigma: float | ArrayLike,
-        maxfev: int = None,
-        combine: bool = True,
-        tag: Any = None,
-    ):
-        ...
+   # --- overload region
+
 
     @overload
     def approximate(self,
@@ -3508,11 +3491,13 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
         return self.spectral_density(w)*fermi_dirac(w, -beta, self.mu)
 
 
+#TODO: Fix underflow issue making powerspectra non smooth or ask for both 
+# power spectra
 class _FermionicEnvironment_fromPS(FermionicEnvironment):
-    def __init__(self, J, wlist, wMax, T, mu, sigma, tag, args):
+    def __init__(self, S, wlist, wMax, T, mu, sigma, tag, args):
         super().__init__(T, mu, tag)
-        self._ps = _real_interpolation(J, wlist, 'power spectrum', args)
-        self.sigma = sigma
+        self._ps = _real_interpolation(S, wlist, 'power spectrum', args)
+        self.sigma = sigma # Specifies whether plus or minus was used as input
         if wlist is not None:
             self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
         else:
@@ -3554,26 +3539,21 @@ class _FermionicEnvironment_fromPS(FermionicEnvironment):
 
     def spectral_density(self, w):
         w = np.asarray(w, dtype=float)
-        beta = 1/self.T
         result = self.power_spectrum_minus(w)+self.power_spectrum_plus(w)
         return result.item() if w.ndim == 0 else result
 
-    def power_spectrum_plus(self, w, *, eps=1e-10):
+    def power_spectrum_plus(self, w, *, eps=1e-3):
         if self.sigma == 1:
             return self._ps(w)
         else:
+            # deals with problematic indices when fermi-dirac is close to zero
             with np.errstate(divide='ignore', invalid='ignore'):
-                # Original calculation
                 ff = 1/fermi_dirac(w, self.sigma/self.T, self.mu)
                 ff -= 1
                 result = ff*self._ps(w)
 
-                # Identify problematic values (inf or nan)
                 problematic_indices = ~np.isfinite(result)
-
-                # Only if there are problematic values, recalculate those specific points
                 if np.any(problematic_indices):
-                    # For problematic points, use an alternative calculation with a small epsilon
                     ff_safe = 1/(fermi_dirac(w[problematic_indices],
                                              self.sigma/self.T, self.mu) + eps)
                     ff_safe -= 1
@@ -3585,34 +3565,28 @@ class _FermionicEnvironment_fromPS(FermionicEnvironment):
         if self.sigma == -1:
             return self._ps(w)
         else:
+            # deals with problematic indices when fermi-dirac is close to zero
             with np.errstate(divide='ignore', invalid='ignore'):
-                # Original calculation
                 ff = 1/fermi_dirac(w, self.sigma/self.T, self.mu)
                 ff -= 1
                 result = ff*self._ps(w)
-
-                # Identify problematic values (inf or nan)
                 problematic_indices = ~np.isfinite(result)
-
-                # Only if there are problematic values, recalculate those specific points
                 if np.any(problematic_indices):
-                    # For problematic points, use an alternative calculation with a small epsilon
                     ff_safe = 1/(fermi_dirac(w[problematic_indices],
                                              self.sigma/self.T, self.mu) + eps)
                     ff_safe -= 1
                     result[problematic_indices] = ff_safe * \
                         self._ps(w[problematic_indices])
-
             return result
 
 
 class _FermionicEnvironment_fromCF(FermionicEnvironment):
-    def __init__(self, J, J1, wlist, wMax, T, mu, tag, args):
+    def __init__(self, Cp, Cm, wlist, wMax, T, mu, tag, args):
         super().__init__(T, mu, tag)
         self._cfp = _complex_interpolation(
-            J, wlist, 'correlation function', args)
+            Cp, wlist, 'correlation function', args)
         self._cfm = _complex_interpolation(
-            J1, wlist, 'correlation function', args)
+            Cm, wlist, 'correlation function', args)
         if wlist is not None:
             self.tMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
         else:
@@ -3626,7 +3600,7 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
 
         result[positive_mask] = self._cfp(t[positive_mask])
         result[non_positive_mask] = np.conj(
-            self._cf(-t[non_positive_mask])
+            self._cfp(-t[non_positive_mask])
         )
         return result.item() if t.ndim == 0 else result
 
@@ -3638,7 +3612,7 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
 
         result[positive_mask] = self._cfm(t[positive_mask])
         result[non_positive_mask] = np.conj(
-            self._cf(-t[non_positive_mask])
+            self._cfm(-t[non_positive_mask])
         )
         return result.item() if t.ndim == 0 else result
 
@@ -3664,7 +3638,7 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
 
         return result.item() if w.ndim == 0 else result
 
-    def power_spectrum_minus(self, w, *, eps=1e-2):
+    def power_spectrum_minus(self, w, *, eps=1e-10):
         w = np.asarray(w, dtype=float)
         if self.tMax is None:
             raise ValueError('The support of the spectral density (wMax) '
@@ -3682,16 +3656,6 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
         return result.item() if w.ndim == 0 else result
 
 
-# TODO: From CF requires both functions clarify this
-
-# TODO: Finish from correlation function, problem is how to construct the
-# environment
-
-# TODO: Add Fitting to fermionic systems,
-# Done:
-# Prony
-# Missing:
-# Power,Density, CF, Prony with separate
 
 
 # TODO: Refactor
