@@ -1421,7 +1421,7 @@ class TestLorentzianEnvironment:
         original_tag = object()
         env = LorentzianEnvironment(**params, tag=original_tag)
 
-        approx = env.approx_by_matsubara(Nk, tag=tag)
+        approx = env.approximate("matsubara", Nk, tag=tag)
         assert isinstance(approx, ExponentialFermionicEnvironment)
         assert_guarantees_f(approx, check_db=False)
         assert len(approx.exponents) == 2 * (Nk + 1)  # (Nk+1) each + and -
@@ -1442,7 +1442,7 @@ class TestLorentzianEnvironment:
         ref = LorentzianReference(**params)
         env = LorentzianEnvironment(**params, tag=original_tag)
 
-        approx = env.approx_by_pade(Nk, tag=tag)
+        approx = env.approximate("pade", Nk, tag=tag)
         assert isinstance(approx, ExponentialFermionicEnvironment)
         assert_guarantees_f(approx, check_db=False)
         assert len(approx.exponents) == 2 * (Nk + 1)  # (Nk+1) each + and -

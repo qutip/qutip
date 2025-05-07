@@ -2195,8 +2195,6 @@ def _sd_fit_model(wlist, a, b, c):
     )
 
 
-
-
 def _default_guess_sd(wlist, jlist):
     sd_abs = np.abs(jlist)
     sd_max = np.max(sd_abs)
@@ -2210,8 +2208,6 @@ def _default_guess_sd(wlist, jlist):
     upper = [100 * sd_max, 100 * wc, 100 * wc]
 
     return guess, lower, upper
-
-
 
 
 def _ps_fit_model(wlist, a, b, c, d):
@@ -2535,7 +2531,7 @@ class FermionicEnvironment(abc.ABC):
         r"""
             Fermionic Environment from CF
         """
-        return _FermionicEnvironment_fromCF(Cp,Cm, wlist, wMax, T, mu,
+        return _FermionicEnvironment_fromCF(Cp, Cm, wlist, wMax, T, mu,
                                             tag, args)
 
     @classmethod
@@ -2802,7 +2798,7 @@ class FermionicEnvironment(abc.ABC):
                                               T=self.T, mu=self.mu, tag=tag)
 
         return cls, fit_info
-   
+
 
 class LorentzianEnvironment(FermionicEnvironment):
     r"""
@@ -2950,7 +2946,6 @@ class LorentzianEnvironment(FermionicEnvironment):
         return self.spectral_density(w) / (np.exp((self.mu - w) / self.T) + 1)
 
    # --- overload region
-
 
     @overload
     def approximate(self,
@@ -3491,13 +3486,13 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
         return self.spectral_density(w)*fermi_dirac(w, -beta, self.mu)
 
 
-#TODO: Fix underflow issue making powerspectra non smooth or ask for both 
+# TODO: Fix underflow issue making powerspectra non smooth or ask for both
 # power spectra
 class _FermionicEnvironment_fromPS(FermionicEnvironment):
     def __init__(self, S, wlist, wMax, T, mu, sigma, tag, args):
         super().__init__(T, mu, tag)
         self._ps = _real_interpolation(S, wlist, 'power spectrum', args)
-        self.sigma = sigma # Specifies whether plus or minus was used as input
+        self.sigma = sigma  # Specifies whether plus or minus was used as input
         if wlist is not None:
             self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
         else:
@@ -3654,8 +3649,6 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
                           tMax, tMax=self.tMax)
         result = result_fct(w)
         return result.item() if w.ndim == 0 else result
-
-
 
 
 # TODO: Refactor
