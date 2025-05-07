@@ -34,7 +34,7 @@ except ModuleNotFoundError:
     _mpmath_available = False
 
 from ..utilities import (n_thermal, iterated_fit, aaa,
-                         prony_methods, espira1, espira2)
+                         prony_methods, espira1, espira2, fermi_dirac)
 from .superoperator import spre, spost
 from .qobj import Qobj
 
@@ -503,91 +503,16 @@ class BosonicEnvironment(abc.ABC):
         guess=None, lower=None, upper=None, sigma=None, maxfev=None,
         full_ansatz=False, combine=True, tag=None
     ):
-
-        # Process arguments
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
-
-        if full_ansatz:
-            num_params = 4
-        else:
-            num_params = 3
-
-        if target_rmse is None:
-            target_rmse = 0
-            Nr_min, Ni_min = Nr_max, Ni_max
-        else:
-            Nr_min, Ni_min = 1, 1
-
         clist = self.correlation_function(tlist)
-        if guess is None and lower is None and upper is None:
-            guess_re, lower_re, upper_re = _default_guess_cfreal(
-                tlist, np.real(clist), full_ansatz)
-            guess_im, lower_im, upper_im = _default_guess_cfimag(
-                np.imag(clist), full_ansatz)
-        else:
-            guess_re, lower_re, upper_re = guess, lower, upper
-            guess_im, lower_im, upper_im = guess, lower, upper
-
-        # Fit real part
-        start_real = time()
-        rmse_real, params_real = iterated_fit(
-            _cf_real_fit_model, num_params, tlist, np.real(clist), target_rmse,
-            Nr_min, Nr_max, guess=guess_re, lower=lower_re, upper=upper_re,
-            sigma=sigma, maxfev=maxfev
-        )
-        end_real = time()
-        fit_time_real = end_real - start_real
-
-        # Fit imaginary part
-        start_imag = time()
-        rmse_imag, params_imag = iterated_fit(
-            _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rmse,
-            Ni_min, Ni_max, guess=guess_im, lower=lower_im, upper=upper_im,
-            sigma=sigma, maxfev=maxfev
-        )
-        end_imag = time()
-        fit_time_imag = end_imag - start_imag
-
-        # Generate summary
-        Nr = len(params_real)
-        Ni = len(params_imag)
-        full_summary = _cf_fit_summary(
-            params_real, params_imag, fit_time_real, fit_time_imag,
-            Nr, Ni, rmse_real, rmse_imag, n=num_params
-        )
-
-        fit_info = {"Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
-                    "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
-                    "rmse_imag": rmse_imag, "params_real": params_real,
-                    "params_imag": params_imag, "summary": full_summary}
-
-        # Finally, generate environment and return
-        ckAR = []
-        vkAR = []
-        for term in params_real:
-            if full_ansatz:
-                a, b, c, d = term
-            else:
-                a, b, c = term
-                d = 0
-            ckAR.extend([(a + 1j * d) / 2, (a - 1j * d) / 2])
-            vkAR.extend([-b - 1j * c, -b + 1j * c])
-
-        ckAI = []
-        vkAI = []
-        for term in params_imag:
-            if full_ansatz:
-                a, b, c, d = term
-            else:
-                a, b, c = term
-                d = 0
-            ckAI.extend([-1j * (a + 1j * d) / 2, 1j * (a - 1j * d) / 2])
-            vkAI.extend([-b - 1j * c, -b + 1j * c])
-
-        approx_env = ExponentialBosonicEnvironment(
+        fit_result = _approx_cf_fit(clist, tlist, target_rmse, Nr_max, Ni_max,
+                                    guess, lower, upper, sigma, maxfev,
+                                    full_ansatz)
+        ckAR, vkAR, ckAI, vkAI, fit_info = fit_result
+        cls = ExponentialBosonicEnvironment(
             ckAR, vkAR, ckAI, vkAI, combine=combine, T=self.T, tag=tag)
-        return approx_env, fit_info
+        return cls, fit_info
 
     def _approx_by_sd_fit(
         self, method, wlist, Nk=1, target_rmse=5e-6, Nmax=10,
@@ -754,15 +679,8 @@ class BosonicEnvironment(abc.ABC):
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
 
-        def prony(x, n):
-            return prony_methods(method, x, n)
-
-        def phase_to_exponent(phases):
-            return -((len(tlist) - 1) / tlist[-1]) * (
-                np.log(np.abs(phases)) + 1j * np.angle(phases)
-            )
-
-        methods = {"prony": prony, "esprit": prony,
+        methods = {"prony":  _prony,
+                   "esprit": _esprit,
                    "espira-I": espira1, "espira-II": espira2}
 
         if separate:
@@ -778,8 +696,8 @@ class BosonicEnvironment(abc.ABC):
 
             ckAR, phases = params_real.T
             ckAI, phases2 = params_imag.T
-            vkAR = phase_to_exponent(phases)
-            vkAI = phase_to_exponent(phases2)
+            vkAR = _phase_to_exponent(phases, tlist)
+            vkAI = _phase_to_exponent(phases2, tlist)
             cls = ExponentialBosonicEnvironment(
                 ck_real=ckAR, vk_real=vkAR, ck_imag=ckAI,
                 vk_imag=vkAI, T=self.T, combine=combine, tag=tag)
@@ -808,7 +726,7 @@ class BosonicEnvironment(abc.ABC):
 
             amp, phases = params_real.T
             ck = amp
-            vk = phase_to_exponent(phases)
+            vk = _phase_to_exponent(phases, tlist)
             # Create complex conjugates for both vk and ck
             ckAR = np.concatenate((ck/2, ck.conj()/2))
             ckAI = np.concatenate((-1j*ck/2, 1j*ck.conj()/2))
@@ -2215,6 +2133,9 @@ def _fft(f, wMax, tMax):
     )
 
 
+# --- utilities for NLSQ ---
+
+
 def _cf_real_fit_model(tlist, a, b, c, d=0):
     return np.real((a + 1j * d) * np.exp((b + 1j * c) * np.abs(tlist)))
 
@@ -2381,7 +2302,104 @@ def _cf_fit_summary(
     return full_summary
 
 
+def _approx_cf_fit(clist, tlist, target_rmse, Nr_max, Ni_max,
+                   guess, lower, upper, sigma, maxfev,
+                   full_ansatz, fermionic=False):
+
+    if full_ansatz:
+        num_params = 4
+    else:
+        num_params = 3
+
+    if target_rmse is None:
+        target_rmse = 0
+        Nr_min, Ni_min = Nr_max, Ni_max
+    else:
+        Nr_min, Ni_min = 1, 1
+
+    if guess is None and lower is None and upper is None:
+        guess_re, lower_re, upper_re = _default_guess_cfreal(
+            tlist, np.real(clist), full_ansatz)
+        guess_im, lower_im, upper_im = _default_guess_cfimag(
+            np.imag(clist), full_ansatz)
+    else:
+        guess_re, lower_re, upper_re = guess, lower, upper
+        guess_im, lower_im, upper_im = guess, lower, upper
+
+    # Fit real part
+    start_real = time()
+    rmse_real, params_real = iterated_fit(
+        _cf_real_fit_model, num_params, tlist, np.real(clist), target_rmse,
+        Nr_min, Nr_max, guess=guess_re, lower=lower_re, upper=upper_re,
+        sigma=sigma, maxfev=maxfev
+    )
+    end_real = time()
+    fit_time_real = end_real - start_real
+
+    # Fit imaginary part
+    start_imag = time()
+    rmse_imag, params_imag = iterated_fit(
+        _cf_imag_fit_model, num_params, tlist, np.imag(clist), target_rmse,
+        Ni_min, Ni_max, guess=guess_im, lower=lower_im, upper=upper_im,
+        sigma=sigma, maxfev=maxfev
+    )
+    end_imag = time()
+    fit_time_imag = end_imag - start_imag
+
+    # Generate summary
+    Nr = len(params_real)
+    Ni = len(params_imag)
+    full_summary = _cf_fit_summary(
+        params_real, params_imag, fit_time_real, fit_time_imag,
+        Nr, Ni, rmse_real, rmse_imag, n=num_params
+    )
+
+    fit_info = {"Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
+                "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
+                "rmse_imag": rmse_imag, "params_real": params_real,
+                "params_imag": params_imag, "summary": full_summary}
+    # Finally, generate coefficients and exponents
+    ckAR = []
+    vkAR = []
+    for term in params_real:
+        if full_ansatz:
+            a, b, c, d = term
+        else:
+            a, b, c = term
+            d = 0
+        ckAR.extend([(a + 1j * d) / 2, (a - 1j * d) / 2])
+        vkAR.extend([-b - 1j * c, -b + 1j * c])
+
+    ckAI = []
+    vkAI = []
+    for term in params_imag:
+        if full_ansatz:
+            a, b, c, d = term
+        else:
+            a, b, c = term
+            d = 0
+        ckAI.extend([-1j * (a + 1j * d) / 2, 1j * (a - 1j * d) / 2])
+        vkAI.extend([-b - 1j * c, -b + 1j * c])
+
+    return np.array(ckAR), np.array(vkAR), np.array(ckAI), np.array(vkAI), fit_info
+
+# --- utilities for prony ---
+
+
+def _prony(x, n):
+    return prony_methods("prony", x, n)
+
+
+def _esprit(x, n):
+    return prony_methods("esprit", x, n)
+
+
+def _phase_to_exponent(phases, tlist):
+    return -((len(tlist) - 1) / tlist[-1]) * (
+        np.log(np.abs(phases)) + 1j * np.angle(phases)
+    )
 # --- fermionic environments ---
+
 
 class FermionicEnvironment(abc.ABC):
     r"""
@@ -2499,31 +2517,287 @@ class FermionicEnvironment(abc.ABC):
     # --- user-defined environment creation
 
     @classmethod
-    def from_correlation_functions(cls, **kwargs) -> FermionicEnvironment:
+    def from_correlation_functions(cls,
+                                   Cp: Callable[[float], float] | ArrayLike,
+                                   Cm: Callable[[float], float] | ArrayLike,
+                                   wlist: ArrayLike = None,
+                                   wMax: float = None,
+                                   *,
+                                   T: float = None,
+                                   mu: float = None,
+                                   tag: Any = None,
+                                   args: dict[str, Any] = None,
+                                   ) -> FermionicEnvironment:
         r"""
-        User-defined fermionic environments are currently not implemented.
+            Fermionic Environment from CF
         """
-
-        raise NotImplementedError("User-defined fermionic environments are "
-                                  "currently not implemented.")
+        return _FermionicEnvironment_fromCF(Cp, Cm, wlist, wMax, T, mu,
+                                            tag, args)
 
     @classmethod
-    def from_power_spectra(cls, **kwargs) -> FermionicEnvironment:
+    def from_power_spectra(cls,
+                           J: Callable[[float], float] | ArrayLike,
+                           wlist: ArrayLike = None,
+                           wMax: float = None,
+                           *,
+                           T: float = None,
+                           mu: float = None,
+                           sigma: float = None,
+                           tag: Any = None,
+                           args: dict[str, Any] = None,
+                           ) -> FermionicEnvironment:
         r"""
-        User-defined fermionic environments are currently not implemented.
+            Fermionic Environment from PS
         """
-
-        raise NotImplementedError("User-defined fermionic environments are "
-                                  "currently not implemented.")
+        return _FermionicEnvironment_fromPS(J, wlist, wMax, T, mu, sigma,
+                                            tag, args)
 
     @classmethod
-    def from_spectral_density(cls, **kwargs) -> FermionicEnvironment:
+    def from_spectral_density(
+        cls,
+        J: Callable[[float], float] | ArrayLike,
+        wlist: ArrayLike = None,
+        wMax: float = None,
+        *,
+        T: float = None,
+        mu: float = None,
+        tag: Any = None,
+        args: dict[str, Any] = None,
+    ) -> FermionicEnvironment:
         r"""
-        User-defined fermionic environments are currently not implemented.
+            Fermionic Environment from SD
+        """
+        return _FermionicEnvironment_fromSD(J, wlist, wMax, T, mu, tag, args)
+
+    # --- overloads
+
+    @overload
+    def approximate(self,
+                    method: Literal['esprit', 'prony', 'espira-I',
+                                    'espira-II'],
+                    tlist: ArrayLike,
+                    Nr: int,
+                    Ni: int,
+                    combine: bool,
+                    tag: Any,
+                    separate: bool):
+        ...
+
+    @overload
+    def approximate(self,
+                    method: Literal['aaa'],
+                    wlist: ArrayLike,
+                    tol: float,
+                    Np_max: int,
+                    Nm_max: int,
+                    tag: Any):
+        ...
+    # --- fitting
+
+    @property
+    def _approximation_methods(self):
+        return {
+            "aaa": (self._approx_by_aaa, "Power spectrum AAA"),
+            "prony": (self._approx_by_prony, "Correlation Function Prony"),
+            "esprit": (self._approx_by_prony, "Correlation Function ESPRIT"),
+            "espira-i": (self._approx_by_prony,
+                         "Correlation Function ESPIRA-I"),
+            "espira-ii": (self._approx_by_prony,
+                          "Correlation Function ESPIRA-II"),
+        }
+
+    def approximate(self, method: str, *args, **kwargs):
+        """
+        Main implementation for all approximation methods
         """
 
-        raise NotImplementedError("User-defined fermionic environments are "
-                                  "currently not implemented.")
+        dispatch = self._approximation_methods
+
+        if method.lower() not in dispatch:
+            error_string = (f"Unsupported method: {method}."
+                            " The available methods are:\n")
+            for key in dispatch:
+                error_string += f" - {dispatch[key][1]} ({key})\n"
+            error_string += ("If unsure what fitting method to use, you should"
+                             " probably use Pade, or Espira-I."
+                             " For more information about the fitting methods,"
+                             " see the Users Guide.")
+            raise ValueError(error_string)
+
+        func = dispatch[method.lower()][0]
+        return func(method, *args, **kwargs)
+    # TODO: Discuss about fitting fermi instead :) like in the Xu paper
+
+    def _approx_by_aaa(
+        self,
+        method: str,
+        wlist: ArrayLike,
+        tol: float = 1e-30,
+        Np_max: int = 10,
+        Nm_max: int = 10,
+        tag: Any = None,
+    ) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]:
+        if tag is None and self.tag is not None:
+            tag = (self.tag, f"{method.upper()} Fit")
+
+        start = time()
+        # The *2 is there because half the poles will be filtered out
+        result_plus = aaa(self.power_spectrum_plus, wlist,
+                          tol=tol,
+                          max_iter=Np_max * 2)
+        pol = result_plus['poles']
+        res = result_plus['residues']
+        mask = np.imag(pol) < 0  # opposite convention as bosonic
+
+        new_pols, new_res = pol[mask], res[mask]
+
+        vk = 1j * new_pols
+        ck = -1j * new_res
+        end = time()
+        fit_time_plus = end - start
+
+        # Repeat the calculation for the other power spectrum
+        start = time()
+        result_minus = aaa(self.power_spectrum_minus, wlist,
+                           tol=tol,
+                           max_iter=Nm_max * 2)
+        pol = result_minus['poles']
+        res = result_minus['residues']
+        mask = np.imag(pol) < 0
+
+        new_pols, new_res = pol[mask], res[mask]
+
+        vkm = 1j * new_pols
+        ckm = -1j * new_res
+        end = time()
+        fit_time_minus = end - start
+        cls = ExponentialFermionicEnvironment(ck_plus=np.conjugate(ck), ck_minus=ckm,
+                                              vk_plus=np.conjugate(vk), vk_minus=vkm,
+                                              T=self.T, mu=self.mu, tag=tag)
+        # Generate summary
+        Np = len(vk)
+        Nm = len(vkm)
+
+        params_plus = [(ck.real[i], ck.imag[i], vk[i].real, vk[i].imag)
+                       for i in range(len(ck))]
+        params_minus = [(ckm.real[i], ckm.imag[i], vkm[i].real, vkm[i].imag)
+                        for i in range(len(ckm))]
+        summary_plus = _fit_summary(
+            fit_time_plus, result_minus['rmse'], Np, "the power spectrum", params_plus,
+            columns=['ckr', 'cki', 'vkr', 'vki']
+        )
+        summary_minus = _fit_summary(
+            fit_time_minus, result_minus['rmse'], Nm, "the power spectrum", params_minus,
+            columns=['ckr', 'cki', 'vkr', 'vki']
+        )
+        fitinfo = {
+            "Np": Np, "Nm": Nm, "fit_time_plus": fit_time_plus,
+            "fit_time_minus": fit_time_minus,
+            "rmse_minus": result_minus['rmse'],
+            "rmse_plus": result_plus['rmse'], "params_plus": params_plus,
+            "params_minus": params_minus, "summary_plus": summary_plus,
+            "summary_minus": summary_minus}
+        return cls, fitinfo
+
+    # TODO: make this work, right now is not working
+    def _approx_by_cf_fit(
+        self,
+        method: str,
+        tlist: ArrayLike,
+        target_rmse: float = 2e-5,
+        Np_max: int = 3,
+        Nm_max: int = 3,
+        guess: list[float] = None,
+        lower: list[float] = None,
+        upper: list[float] = None,
+        sigma: float | ArrayLike = None,
+        maxfev: int = None,
+        full_ansatz: bool = False,
+        tag: Any = None,
+    ):
+
+        # Process arguments
+        if tag is None and self.tag is not None:
+            tag = (self.tag, f"{method.upper()} Fit")
+        clist_plus = self.correlation_function_plus(tlist)
+        fit_result = _approx_cf_fit(clist_plus, tlist, target_rmse, Np_max,
+                                    Np_max, guess, lower, upper, sigma, maxfev,
+                                    full_ansatz, fermionic=True)
+        ck, vk, fit_info_plus = fit_result
+        clist_minus = self.correlation_function_minus(tlist)
+        fit_result = _approx_cf_fit(clist_minus, tlist, target_rmse, Nm_max,
+                                    Nm_max, guess, lower, upper, sigma, maxfev,
+                                    full_ansatz, fermionic=True)
+        ckm, vkm, fit_info_minus = fit_result
+        cls = ExponentialFermionicEnvironment(
+            ck, vk, ckm, vkm, T=self.T, mu=self.mu, tag=tag)
+
+        # merge both fit info dictionaries
+        fit_info = {**{str(key) + "_plus": value for key, value
+                       in fit_info_plus.items()},
+                    **{str(key) + "_minus": value for key, value
+                       in fit_info_minus.items()}}
+
+        return cls, fit_info
+
+    def _approx_by_prony(
+        self,
+        method: str,
+        tlist: ArrayLike,
+        Np: int = 3,
+        Nm: int = 3,
+        tag: Any = None,
+    ):
+        if tag is None and self.tag is not None:
+            tag = (self.tag, f"{method.upper()} Fit")
+        methods = {
+            "prony":  _prony,
+            "esprit": _esprit,
+            "espira-I": espira1,
+            "espira-II": espira2}
+
+        if tag is None and self.tag is not None:
+            tag = (self.tag, f"{method.upper()} Fit")
+        start_plus = time()
+        rmse_plus, params_plus = methods[method](
+            self.correlation_function_plus(tlist), Np)
+        end_plus = time()
+        ck, phases = params_plus.T
+        vk = _phase_to_exponent(phases, tlist)
+        fit_time_plus = end_plus-start_plus
+        start_minus = time()
+        rmse_minus, params_minus = methods[method](
+            self.correlation_function_minus(tlist), Nm)
+        end_minus = time()
+        ckm, phases = params_minus.T
+        vkm = _phase_to_exponent(phases, tlist)
+        fit_time_minus = end_minus-start_minus
+        params_plus = [(ck[i].real, ck[i].imag, vk[i].real,
+                        vk[i].imag) for i in range(len(ck))]
+        params_minus = [(ckm[i].real, ckm[i].imag, vkm[i].real,
+                         vkm[i].imag) for i in range(len(ckm))]
+
+        full_summary = _cf_fit_summary(
+            params_plus, params_minus, fit_time_plus, fit_time_minus,
+            Np, Nm, rmse_plus, rmse_minus, n=4)
+        fit_info = {
+            "Np": Np, "Nm": Nm, "fit_time_plus": fit_time_plus,
+            "fit_time_minus": fit_time_minus, "rmse_plus": rmse_plus,
+            "rmse_minus": rmse_minus, "params_plus": params_plus,
+            "params_minus": params_minus, "summary": full_summary}
+        full_summary = _cf_fit_summary(
+            params_plus, params_minus, fit_time_plus, fit_time_minus,
+            Np, Nm, rmse_plus, rmse_minus, n=4)
+        fit_info = {
+            "Np": Np, "Nm": Nm, "fit_time_plus": fit_time_plus,
+            "fit_time_minus": fit_time_minus, "rmse_plus": rmse_plus,
+            "rmse_minus": rmse_minus, "params_plus": params_plus,
+            "params_minus": params_minus, "summary": full_summary}
+        cls = ExponentialFermionicEnvironment(ck_plus=ck, vk_plus=vk,
+                                              ck_minus=ckm, vk_minus=vkm,
+                                              T=self.T, mu=self.mu, tag=tag)
+
+        return cls, fit_info
 
 
 class LorentzianEnvironment(FermionicEnvironment):
@@ -2671,8 +2945,65 @@ class LorentzianEnvironment(FermionicEnvironment):
 
         return self.spectral_density(w) / (np.exp((self.mu - w) / self.T) + 1)
 
-    def approx_by_matsubara(
-        self, Nk: int, tag: Any = None
+   # --- overload region
+
+    @overload
+    def approximate(self,
+                    method: Literal['esprit', 'prony', 'espira-I',
+                                    'espira-II'],
+                    tlist: ArrayLike,
+                    Nr: int,
+                    Ni: int,
+                    combine: bool,
+                    tag: Any,
+                    separate: bool):
+        ...
+
+   # --- approximation methods
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['matsubara', 'pade'],
+        Nk: int,
+        combine: bool = True,
+        compute_delta: Literal[False] = False,
+        tag: Any = None
+    ) -> ExponentialBosonicEnvironment: ...
+
+    @overload
+    def approximate(
+        self,
+        method: Literal['matsubara', 'pade'],
+        Nk: int,
+        combine: bool = True,
+        compute_delta: Literal[True] = True,
+        tag: Any = None
+    ) -> tuple[ExponentialBosonicEnvironment, float]: ...
+
+    # endregion
+
+    @property
+    def _approximation_methods(self):
+        return {
+            **super()._approximation_methods,
+            "matsubara": (self._approx_by_matsubara, "Matsubara Truncation"),
+            "pade": (self._approx_by_pade, "Pade Truncation")
+        }
+
+    def approximate(self, method: str, *args, **kwargs):
+        """
+        Generates a multi-exponential approximation of this environment.
+        The available methods are ``"matsubara"``, ``"pade"``, ``"cf"``,
+        ``"ps"``, ``"sd"``, ``"aaa"``, ``"prony"``, ``"esprit"``,
+        ``"espira-I"`` and ``"espira-II"``. The methods and the parameters
+        required per method are documented in the
+        :ref:`Users Guide<environment approximations api>`.
+        """
+        return super().approximate(method, *args, **kwargs)
+
+    def _approx_by_matsubara(
+        self, method: str, Nk: int, tag: Any = None
     ) -> ExponentialFermionicEnvironment:
         """
         Generates an approximation to this environment by truncating its
@@ -2709,8 +3040,8 @@ class LorentzianEnvironment(FermionicEnvironment):
             tag=tag
         )
 
-    def approx_by_pade(
-        self, Nk: int, tag: Any = None
+    def _approx_by_pade(
+        self, method: str, Nk: int, tag: Any = None
     ) -> ExponentialFermionicEnvironment:
         """
         Generates an approximation to this environment by truncating its
@@ -2745,6 +3076,20 @@ class LorentzianEnvironment(FermionicEnvironment):
         return ExponentialFermionicEnvironment(
             ck_plus, vk_plus, ck_minus, vk_minus, T=self.T, mu=self.mu, tag=tag
         )
+
+    def approx_by_matsubara(self, *args, **kwargs):
+        # TODO remove by 5.3
+        warnings.warn(
+            'The API has changed. Please use approximate("matsubara", ...)'
+            ' instead of approx_by_matsubara(...).', FutureWarning)
+        return self.approximate("matsubara", *args, **kwargs)
+
+    def approx_by_pade(self, *args, **kwargs):
+        # TODO remove by 5.3
+        warnings.warn(
+            'The API has changed. Please use approximate("pade", ...)'
+            ' instead of approx_by_pade(...).', FutureWarning)
+        return self.approximate("pade", *args, **kwargs)
 
     def _matsubara_params(self, Nk, sigma):
         """ Calculate the Matsubara coefficients and frequencies. """
@@ -3068,3 +3413,246 @@ class ExponentialFermionicEnvironment(FermionicEnvironment):
 
 
 Environment = Union[BosonicEnvironment, FermionicEnvironment]
+
+# Arbitrary Fermionic environments
+
+
+class _FermionicEnvironment_fromSD(FermionicEnvironment):
+    def __init__(self, J, wlist, wMax, T, mu, tag, args):
+        super().__init__(T, mu, tag)
+        self._sd = _real_interpolation(J, wlist, 'spectral density', args)
+        if wlist is not None:
+            self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
+        else:
+            self.wMax = wMax
+
+    def correlation_function_plus(self, t, *, eps=1e-10):
+        t = np.asarray(t, dtype=float)
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
+        else:
+            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+        result_fct = _fft(lambda w: self.power_spectrum_plus(w),
+                          tMax, tMax=self.wMax)
+        result = result_fct(t).conj() / (2 * np.pi)
+        return result.item() if t.ndim == 0 else result
+
+    def correlation_function_minus(self, t, *, eps=1e-10):
+        t = np.asarray(t, dtype=float)
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
+        else:
+            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+        result_fct = _fft(lambda w: self.power_spectrum_minus(w),
+                          tMax, tMax=self.wMax)
+        result = result_fct(t) / (2 * np.pi)
+        return result.item() if t.ndim == 0 else result
+
+    def spectral_density(self, w):
+        w = np.asarray(w, dtype=float)
+        result = self._sd(w)
+        return result.item() if w.ndim == 0 else result
+
+    def power_spectrum_plus(self, w, *, eps=1e-10):
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
+        if self.mu is None:
+            raise ValueError('The chemical potential must be specified for '
+                             'this operation.')
+        beta = 1/self.T
+        return self.spectral_density(w)*fermi_dirac(w, beta, self.mu)
+
+    def power_spectrum_minus(self, w, *, eps=1e-10):
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
+        if self.mu is None:
+            raise ValueError('The chemical potential must be specified for '
+                             'this operation.')
+        beta = 1/self.T
+        return self.spectral_density(w)*fermi_dirac(w, -beta, self.mu)
+
+
+# TODO: Fix underflow issue making powerspectra non smooth or ask for both
+# power spectra
+class _FermionicEnvironment_fromPS(FermionicEnvironment):
+    def __init__(self, S, wlist, wMax, T, mu, sigma, tag, args):
+        super().__init__(T, mu, tag)
+        self._ps = _real_interpolation(S, wlist, 'power spectrum', args)
+        self.sigma = sigma  # Specifies whether plus or minus was used as input
+        if wlist is not None:
+            self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
+        else:
+            self.wMax = wMax
+
+    def correlation_function_plus(self, t, *, eps=1e-10):
+        t = np.asarray(t, dtype=float)
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
+        else:
+            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+        result_fct = _fft(lambda w: self.power_spectrum_plus(w),
+                          tMax, tMax=self.wMax)
+        result = result_fct(t).conj() / (2 * np.pi)
+        return result.item() if t.ndim == 0 else result
+
+    def correlation_function_minus(self, t, *, eps=1e-10):
+        t = np.asarray(t, dtype=float)
+        if self.wMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
+        else:
+            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+
+        result_fct = _fft(lambda w: self.power_spectrum_minus(w),
+                          tMax, tMax=self.wMax)
+        result = result_fct(t) / (2 * np.pi)
+        return result.item() if t.ndim == 0 else result
+
+    def spectral_density(self, w):
+        w = np.asarray(w, dtype=float)
+        result = self.power_spectrum_minus(w)+self.power_spectrum_plus(w)
+        return result.item() if w.ndim == 0 else result
+
+    def power_spectrum_plus(self, w, *, eps=1e-3):
+        if self.sigma == 1:
+            return self._ps(w)
+        else:
+            # deals with problematic indices when fermi-dirac is close to zero
+            with np.errstate(divide='ignore', invalid='ignore'):
+                ff = 1/fermi_dirac(w, self.sigma/self.T, self.mu)
+                ff -= 1
+                result = ff*self._ps(w)
+
+                problematic_indices = ~np.isfinite(result)
+                if np.any(problematic_indices):
+                    ff_safe = 1/(fermi_dirac(w[problematic_indices],
+                                             self.sigma/self.T, self.mu) + eps)
+                    ff_safe -= 1
+                    result[problematic_indices] = ff_safe * \
+                        self._ps(w[problematic_indices])
+            return result
+
+    def power_spectrum_minus(self, w, *, eps=1e-10):
+        if self.sigma == -1:
+            return self._ps(w)
+        else:
+            # deals with problematic indices when fermi-dirac is close to zero
+            with np.errstate(divide='ignore', invalid='ignore'):
+                ff = 1/fermi_dirac(w, self.sigma/self.T, self.mu)
+                ff -= 1
+                result = ff*self._ps(w)
+                problematic_indices = ~np.isfinite(result)
+                if np.any(problematic_indices):
+                    ff_safe = 1/(fermi_dirac(w[problematic_indices],
+                                             self.sigma/self.T, self.mu) + eps)
+                    ff_safe -= 1
+                    result[problematic_indices] = ff_safe * \
+                        self._ps(w[problematic_indices])
+            return result
+
+
+class _FermionicEnvironment_fromCF(FermionicEnvironment):
+    def __init__(self, Cp, Cm, wlist, wMax, T, mu, tag, args):
+        super().__init__(T, mu, tag)
+        self._cfp = _complex_interpolation(
+            Cp, wlist, 'correlation function', args)
+        self._cfm = _complex_interpolation(
+            Cm, wlist, 'correlation function', args)
+        if wlist is not None:
+            self.tMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
+        else:
+            self.tMax = wMax
+
+    def correlation_function_plus(self, t, *, eps=1e-10):
+        t = np.asarray(t, dtype=float)
+        result = np.zeros_like(t, dtype=complex)
+        positive_mask = (t >= 0)
+        non_positive_mask = np.invert(positive_mask)
+
+        result[positive_mask] = self._cfp(t[positive_mask])
+        result[non_positive_mask] = np.conj(
+            self._cfp(-t[non_positive_mask])
+        )
+        return result.item() if t.ndim == 0 else result
+
+    def correlation_function_minus(self, t, *, eps=1e-10):
+        t = np.asarray(t, dtype=float)
+        result = np.zeros_like(t, dtype=complex)
+        positive_mask = (t >= 0)
+        non_positive_mask = np.invert(positive_mask)
+
+        result[positive_mask] = self._cfm(t[positive_mask])
+        result[non_positive_mask] = np.conj(
+            self._cfm(-t[non_positive_mask])
+        )
+        return result.item() if t.ndim == 0 else result
+
+    def spectral_density(self, w):
+        w = np.asarray(w, dtype=float)
+        result = self.power_spectrum_minus(w)+self.power_spectrum_plus(w)
+        return result.item() if w.ndim == 0 else result
+
+    def power_spectrum_plus(self, w, *, eps=1e-10):
+        w = np.asarray(w, dtype=float)
+        if self.tMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        if w.ndim == 0:
+            wMax = np.abs(w)
+        elif len(w) == 0:
+            return np.array([])
+        else:
+            wMax = max(np.abs(w[0]), np.abs(w[-1]))
+        result_fct = _fft(lambda w: self.correlation_function_plus(w),
+                          wMax, tMax=self.tMax)  # fft not accurate enough
+        result = result_fct(w).real
+
+        return result.item() if w.ndim == 0 else result
+
+    def power_spectrum_minus(self, w, *, eps=1e-10):
+        w = np.asarray(w, dtype=float)
+        if self.tMax is None:
+            raise ValueError('The support of the spectral density (wMax) '
+                             'must be specified for this operation.')
+        if w.ndim == 0:
+            tMax = np.abs(w)
+        elif len(w) == 0:
+            return np.array([])
+        else:
+            tMax = max(np.abs(w[0]), np.abs(w[-1]))
+
+        result_fct = _fft(lambda w: self.correlation_function_minus(w).conj(),
+                          tMax, tMax=self.tMax)
+        result = result_fct(w)
+        return result.item() if w.ndim == 0 else result
+
+
+# TODO: Refactor
+
+# TODO: Add docstrings to environments.rst
+
+# TODO: Add unit tests

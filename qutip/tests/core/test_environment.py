@@ -782,7 +782,7 @@ class TestBosonicEnvironment:
             reference.spectral_density, T=reference.T, tag="test"
         )
         wlist = np.linspace(-wMax, wMax, 200)
-        fit, info = env.approximate("aaa", wlist,Nmax=12)
+        fit, info = env.approximate("aaa", wlist, Nmax=12)
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
@@ -804,7 +804,7 @@ class TestBosonicEnvironment:
             reference.spectral_density, T=reference.T, tag="test"
         )
         wlist = np.linspace(-wMax, wMax, 200)
-        fit, info = env.approximate("ps", wlist,Nmax=6)
+        fit, info = env.approximate("ps", wlist, Nmax=6)
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
@@ -1421,7 +1421,7 @@ class TestLorentzianEnvironment:
         original_tag = object()
         env = LorentzianEnvironment(**params, tag=original_tag)
 
-        approx = env.approx_by_matsubara(Nk, tag=tag)
+        approx = env.approximate("matsubara", Nk, tag=tag)
         assert isinstance(approx, ExponentialFermionicEnvironment)
         assert_guarantees_f(approx, check_db=False)
         assert len(approx.exponents) == 2 * (Nk + 1)  # (Nk+1) each + and -
@@ -1442,7 +1442,7 @@ class TestLorentzianEnvironment:
         ref = LorentzianReference(**params)
         env = LorentzianEnvironment(**params, tag=original_tag)
 
-        approx = env.approx_by_pade(Nk, tag=tag)
+        approx = env.approximate("pade", Nk, tag=tag)
         assert isinstance(approx, ExponentialFermionicEnvironment)
         assert_guarantees_f(approx, check_db=False)
         assert len(approx.exponents) == 2 * (Nk + 1)  # (Nk+1) each + and -
