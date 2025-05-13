@@ -3427,10 +3427,14 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
             self.wMax = wMax
 
     def correlation_function_plus(self, t, *, eps=1e-10):
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
         t = np.asarray(t, dtype=float)
         if self.wMax is None:
-            raise ValueError('The support of the spectral density (wMax) '
-                             'must be specified for this operation.')
+            raise ValueError(
+                'The support of the spectral density (wMax) must be '
+                'specified for this operation.')
         if t.ndim == 0:
             tMax = np.abs(t)
         elif len(t) == 0:
@@ -3445,9 +3449,13 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
 
     def correlation_function_minus(self, t, *, eps=1e-10):
         t = np.asarray(t, dtype=float)
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
         if self.wMax is None:
-            raise ValueError('The support of the spectral density (wMax) '
-                             'must be specified for this operation.')
+            raise ValueError(
+                'The support of the spectral density (wMax) must be '
+                'specified for this operation.')
         if t.ndim == 0:
             tMax = np.abs(t)
         elif len(t) == 0:
@@ -3501,8 +3509,8 @@ class _FermionicEnvironment_fromPS(FermionicEnvironment):
     def correlation_function_plus(self, t, *, eps=1e-10):
         t = np.asarray(t, dtype=float)
         if self.wMax is None:
-            raise ValueError('The support of the spectral density (wMax) '
-                             'must be specified for this operation.')
+            raise ValueError('The support of the spectral density (wMax) must be '
+                             'specified for this operation.')
         if t.ndim == 0:
             tMax = np.abs(t)
         elif len(t) == 0:
@@ -3518,8 +3526,9 @@ class _FermionicEnvironment_fromPS(FermionicEnvironment):
     def correlation_function_minus(self, t, *, eps=1e-10):
         t = np.asarray(t, dtype=float)
         if self.wMax is None:
-            raise ValueError('The support of the spectral density (wMax) '
-                             'must be specified for this operation.')
+            raise ValueError(
+                'The support of the spectral density (wMax) must be '
+                'specified for this operation.')
         if t.ndim == 0:
             tMax = np.abs(t)
         elif len(t) == 0:
