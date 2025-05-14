@@ -22,6 +22,7 @@ from .dimensions import (
 from . import data as _data
 from .. import settings
 from ..typing import LayerType
+from typing import Iterable, overload
 
 
 class _reverse_partial_tensor:
@@ -34,12 +35,12 @@ class _reverse_partial_tensor:
 
 
 @overload
-def tensor(*args: Qobj) -> Qobj: ...
+def tensor(*args: Iterable[Qobj]) -> Qobj: ...
 
 @overload
-def tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
+def tensor(*args: Iterable[Qobj | QobjEvo]) -> QobjEvo: ...
 
-def tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
+def tensor(*args: Iterable[Qobj | QobjEvo]) -> Qobj | QobjEvo:
     """Calculates the tensor product of input operators.
 
     Parameters
@@ -117,12 +118,12 @@ shape = [4, 4], type = oper, isHerm = True
 
 
 @overload
-def super_tensor(*args: Qobj) -> Qobj: ...
+def super_tensor(*args: Iterable[Qobj]) -> Qobj: ...
 
 @overload
-def super_tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
+def super_tensor(*args: Iterable[Qobj | QobjEvo]) -> QobjEvo: ...
 
-def super_tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
+def super_tensor(*args: Iterable[Qobj | QobjEvo]) -> Qobj | QobjEvo:
     """
     Calculate the tensor product of input superoperators, by tensoring together
     the underlying Hilbert spaces on which each vectorized operator acts.
