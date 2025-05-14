@@ -3425,7 +3425,7 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
             self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
         else:
             self.wMax = wMax
-
+        self.beta = None if T is None else (1 / T if T != 0 else np.inf)
     def correlation_function_plus(self, t, *, eps=1e-10):
         if self.T is None:
             raise ValueError('The temperature must be specified for this '
@@ -3480,8 +3480,7 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
         if self.mu is None:
             raise ValueError('The chemical potential must be specified for '
                              'this operation.')
-        beta = 1/self.T
-        return self.spectral_density(w)*fermi_dirac(w, beta, self.mu)
+        return self.spectral_density(w)*fermi_dirac(w, self.beta, self.mu)
 
     def power_spectrum_minus(self, w, *, eps=1e-10):
         if self.T is None:
@@ -3490,8 +3489,7 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
         if self.mu is None:
             raise ValueError('The chemical potential must be specified for '
                              'this operation.')
-        beta = 1/self.T
-        return self.spectral_density(w)*fermi_dirac(w, -beta, self.mu)
+        return self.spectral_density(w)*fermi_dirac(w, -self.beta, self.mu)
 
 
 # TODO: Fix underflow issue making powerspectra non smooth or ask for both

@@ -85,14 +85,29 @@ def fermi_dirac(w, beta, mu):
         equilibrium for a fermion with the given frequency,chemical potential
         and temperature.
     """
-
     w = np.array(w, dtype=float)
-    with np.errstate(over='ignore', under='ignore'):
-        result = 1 / (np.exp(beta*(w-mu)) + 1)
-    mask = np.isnan(result)
-    if np.any(mask):
-        result[mask] = np.exp(-beta*(w[mask]-mu)) / \
-            (np.exp(-beta*(w[mask]-mu)) + 1)
+
+    if beta == np.inf:
+        result = np.zeros_like(w)
+        # If w < mu, result is 1
+        result[w > mu] = 1.0
+        # If w = mu, result is 0.5
+        result[w == mu] = 0.5
+        # If w > mu, result is 0 
+    elif beta == -np.inf:
+        result = np.zeros_like(w)
+        # If w < mu, result is 1
+        result[w < mu] = 1.0
+        # If w = mu, result is 0.5
+        result[w == mu] = 0.5
+        # If w > mu, result is 0 
+    else:
+        with np.errstate(over='ignore', under='ignore'):
+            result = 1 / (np.exp(beta*(w-mu)) + 1)
+        mask = np.isnan(result)
+        if np.any(mask):
+            result[mask] = np.exp(-beta*(w[mask]-mu)) / \
+                (np.exp(-beta*(w[mask]-mu)) + 1)
 
     return result.item() if w.ndim == 0 else result
 
