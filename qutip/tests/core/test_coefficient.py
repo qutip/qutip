@@ -161,6 +161,17 @@ def test_CoeffCallArguments(base, tol):
     _assert_eq_over_interval(coeff, expected, rtol=tol)
 
 
+def test_coefficient_update_args():
+
+    def f(t, a):
+        return a
+
+    coeff1 = coefficient(f, args={"a": 1})
+    coeff2 = coefficient(coeff1, args={"a": 2})
+
+    assert coeff2(0)
+
+
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),

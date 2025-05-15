@@ -1,0 +1,2 @@
+Fix coefficient `args` not being properly updated
+when initiated from another coefficient.
