@@ -152,6 +152,15 @@ class TestClassMethods:
         assert original is not copy
         assert (original.as_scipy() - copy.as_scipy()).nnz == 0
 
+    def test_as_scipy_initializes_correctly(self, data_csr):
+        """
+        Test that the object returned from as_scipy is initialized correctly.
+        If not, there might be some missing attributes.
+        """
+        sci = data_csr.as_scipy()
+        reference = scipy.sparse.csr_matrix((1, 0))
+        assert sci.__dict__.keys() == reference.__dict__.keys()
+
     def test_as_scipy_returns_a_view(self, data_csr):
         """
         Test that modifying the views in the result of as_scipy() also modifies
