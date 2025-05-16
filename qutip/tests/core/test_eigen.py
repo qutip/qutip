@@ -62,11 +62,16 @@ def test_FewState(rand, sparse, dtype, order, N):
     all_spvals = H.eigenenergies(sort=order)
     spvals, spvecs = H.eigenstates(sparse=sparse, sort=order, eigvals=N)
     assert np.allclose(all_spvals[:N], spvals)
-    is_eigen_set(H, spvals, spvecs)
     if order == 'low':
         assert np.all(np.diff(spvals).real >= 0)
     else:
         assert np.all(np.diff(spvals).real <= 0)
+    if sparse and sum(np.abs(all_spvals) <= 1e-14) > 1:
+        pytest.xfail(
+            "scipy sparse eigen solver sometimes fails "
+            "for degenerate zeros eigen values"
+        )
+    is_eigen_set(H, spvals, spvecs)
 
 
 @pytest.mark.parametrize(["sparse", 'dtype'], [
