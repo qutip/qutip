@@ -169,7 +169,7 @@ def test_coefficient_update_args():
     coeff1 = coefficient(f, args={"a": 1})
     coeff2 = coefficient(coeff1, args={"a": 2})
 
-    assert coeff2(0)
+    assert coeff2(0) == 2
 
 
 @pytest.mark.parametrize(['style'], [
