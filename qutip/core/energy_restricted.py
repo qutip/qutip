@@ -6,11 +6,13 @@ import numpy as np
 import scipy.sparse
 from .. import settings
 import math
+import numbers
 import itertools
+from functools import cache, lru_cache
 
-
-__all__ = ['enr_state_dictionaries', 'enr_nstates', 'enr_fock',
-           'enr_thermal_dm', 'enr_destroy', 'enr_identity']
+__all__ = ['enr_state_dictionaries', 'enr_nstates', 'enr_state2idx', 'enr_idx2state',  
+           'enr_fock', 'enr_thermal_dm', 'enr_destroy', 'enr_identity',
+           'enr_ptrace']
 
 
 def enr_state_dictionaries(dims, excitations):
@@ -47,6 +49,7 @@ def enr_state_dictionaries(dims, excitations):
 
     return nstates, state2idx, idx2state
 
+@lru_cache(maxsize=None)
 def enr_nstates(dims, excitations):
     """
     Directly compute the number of states for a system with a given number of 
@@ -66,7 +69,7 @@ def enr_nstates(dims, excitations):
     nstates: integer
         The number of states in the excitation-number restricted state space
     """
-    if not dims:
+    if len(dims) == 0:
         return 1
     m = len(dims)
     kmax = excitations//min(dims)
@@ -79,6 +82,7 @@ def enr_nstates(dims, excitations):
                    for subset in itertools.combinations(dims, k)
                     if sum(subset) < excitations+m)
 
+@lru_cache(maxsize=None)
 def enr_state2idx(dims, excitations, state):
     """
     Returns the index of a state in the excitation-number restricted space
@@ -112,6 +116,7 @@ def enr_state2idx(dims, excitations, state):
         stot += s
     return idx
 
+@lru_cache(maxsize=4096)
 def enr_idx2state(dims, excitations, idx):
     """
     Returns the index of a state in the excitation-number restricted space
@@ -396,3 +401,210 @@ def enr_identity(dims, excitations, *, dtype=None):
                 isunitary=True,
                 copy=False,
                 dtype=dtype)
+
+def enr_ptrace(rho, sel, excitations):
+    """
+    Trace out the modes not in `sel`, with input and output in the excitation-
+    number restricted state space. Only for density matrices with CSR dtype.
+    Be aware that the partial trace behaves weirdly in ENR space, since the size
+    of the subsystems' spaces depend on other subsystems' states. For example,
+    it does not invert the tensor multiplication with the identity operator.
+
+    Parameters
+    ----------
+    rho : Qobj
+        The input density matrix.
+
+    sel : list of integers
+        The indices of the modes to keep.
+        
+    excitations : integer
+        The maximum number of excitations for the input's state space.
+
+    Returns
+    -------
+    out : Qobj
+        A Qobj instance that represents the partially-traced `rho` in the 
+        excitation-number restricted state. The maximum number of
+        excitations is the same as for the input.
+    """
+    if rho.shape[0] != rho.shape[1]:
+        raise ValueError("enr_ptrace is only defined for square density matrices")
+    if rho.dtype is not _data.CSR:
+        raise TypeError("only implemented for CSR dtype")
+    try:
+        sel = sorted(sel)
+    except TypeError:
+        if not isinstance(sel, numbers.Integral):
+            raise TypeError(
+                "selection must be an integer or list of integers"
+            ) from None
+        sel = [sel]
+
+    dims = rho.dims[0]
+    if (len(sel) == len(dims)):
+        # no need to trace out anything
+        return rho
+    if len(sel) == 0:
+        # trace out all modes
+        return rho.tr()
+    
+    if rho.shape[0] != enr_nstates(dims, excitations):
+        raise ValueError("Input density matrix shape does not agree with `excitations`.")
+    mat = rho.data.as_scipy().tocoo()
+
+    # get the new dimensions
+    dims_new = [dims[i] for i in sel]
+    nstates_new = enr_nstates(dims_new, excitations)
+    toremove = set(range(len(dims))) - set(sel)
+    # initialize the new matrix 
+    out = scipy.sparse.dok_matrix((nstates_new,nstates_new), dtype="complex128")
+
+    # loop over nonzero elements of the input, which is reasonable since it is sparse
+    for row_idx_old, col_idx_old, val in zip(mat.row, mat.col, mat.data):
+        # find the states corresponding to the old indices
+        row_state_old = enr_idx2state(dims, excitations, row_idx_old)
+        col_state_old = enr_idx2state(dims, excitations, col_idx_old)
+        
+        # only keep if on diagonal or if diagonal wrt systems to be removed
+        if row_idx_old==col_idx_old or all(row_state_old[ii]==col_state_old[ii] for ii in toremove):
+            # find the new indices for the kept subsystems
+            row_state_new = tuple(row_state_old[ii] for ii in sel)
+            col_state_new = tuple(col_state_old[ii] for ii in sel)
+            
+            row_idx_new = enr_state2idx(dims_new, excitations, row_state_new)
+            col_idx_new = enr_state2idx(dims_new, excitations, col_state_new)
+            out[row_idx_new, col_idx_new] += val
+                
+    # convert to Qobj
+    return Qobj(out, dims=[EnrSpace(dims_new, excitations)]*2)
+
+def enr_tensor(*args: Qobj, excitations: int | list[int],
+              newexcitations: int=None, truncate=False, verbose=True):
+    """
+    Calculates the tensor product of 2 input operators in the excitation-
+    number restricted state space. 
+    Be aware that tensor multiplication behaves weirdly in ENR space, since the 
+    size of the subsystems' spaces depend on other subsystems' states. 
+    Taking a tensor product with the identity is not inverted by partial trace!
+
+    Parameters
+    ----------
+    args : Qobj's
+        The input operators to be tensor-multiplied.
+
+    excitations : integer or list/tuple of integers
+        The maximum number of excitations for the input operators' state spaces.
+        If a single integer is given, it is used for all input Qobj's.
+    
+    newexcitations : integer, optional
+        The maximum number of excitations for the output operator. If not given, 
+        the minimum of the input excitations is used. 
+
+    truncate : bool, optional
+        If True, the function will ignore entries that are not in the new
+        restricted state space. If False, such entries will raise an error.
+
+    verbose : bool, optional
+        If True, the function will print a message if any entries are
+        truncated. 
+        
+    Returns
+    -------
+    obj : qobj
+        A composite quantum object.
+    """    
+    if not args:
+        raise TypeError("Requires at least one input argument")
+    if len(args) == 1 and isinstance(args[0], Qobj):
+        return args[0].copy()
+    if len(args) == 1:
+        try:
+            args = tuple(args[0])
+        except TypeError:
+            raise TypeError("requires Qobj operands") from None
+    if not all(isinstance(q, Qobj) for q in args):
+        raise TypeError("requires Qobj operands")
+    if any(q.dtype is not _data.CSR for q in args):
+        raise TypeError("only implemented for CSR dtype")
+
+    if isinstance(excitations, numbers.Integral):
+        excitations = [excitations] * len(args)
+    if len(excitations) != len(args):
+        raise ValueError("Input `excitations` must be either a single integer or a list the same length as args.")
+    
+    dimslists = [[tuple(q.dims[i]) for q in args] for i in range(2)] 
+    # top level of list is row vs col
+    # second level is which of the two input Qobj's
+
+    if any([q.shape[i] != enr_nstates(dims,ex) for i in range(2)
+            for q, dims, ex in zip(args, dimslists[i], excitations)]):
+        raise ValueError("One of the input Qobj shapes does not agree with input `excitations`.")
+
+    # get the new max excitations
+    newexcitations = newexcitations or min(excitations)
+    newdims = [tuple(itertools.chain(*dimsublist)) for dimsublist in dimslists]
+
+    trunccount = 0
+    currop = {}  # keep track of the CURRent OPerator as we build up the tensor product
+
+    # initialize currop with the first operator 
+    mat = args[0].data.as_scipy().tocoo()
+    for row_idx, col_idx, val in zip(mat.row, mat.col, mat.data):
+        row_state = enr_idx2state(dimslists[0][0], excitations[0], row_idx)
+        col_state = enr_idx2state(dimslists[1][0], excitations[0], col_idx)
+        if sum(row_state) > newexcitations or sum(col_state) > newexcitations:
+            if truncate:
+                trunccount += 1
+            else:
+                missingstates = (str(state) for state in [row_state, col_state] if sum(state) > newexcitations)
+                msg = (
+                    "state(s) " + ", ".join(missingstates) + 
+                    " are not in the new restricted state space. " + 
+                    "Set `truncate=True` to ignore these entries."
+                )
+                raise ValueError(msg) from None
+        currop[row_state,col_state] = val
+
+    # loop over the rest of the operators
+    for ii in range(1, len(args)):
+        oldop = currop
+        currop = {}
+        mat = args[ii].data.as_scipy().tocoo()
+        for row_idx, col_idx, val in zip(mat.row, mat.col, mat.data):
+            row_state = enr_idx2state(dimslists[0][ii],excitations[ii], row_idx)
+            col_state = enr_idx2state(dimslists[1][ii],excitations[ii], col_idx)
+            for (row_state_old, col_state_old), oldval in oldop.items():
+                row_state_new = row_state_old + row_state
+                col_state_new = col_state_old + col_state
+                if sum(row_state_new) > newexcitations or sum(col_state_new) > newexcitations:
+                    if truncate:
+                        trunccount += 1
+                        continue
+                    else:
+                        missingstates = (str(state) for state in [row_state_new, col_state_new] if sum(state) > newexcitations)
+                        msg = (
+                            "state " + ", ".join(missingstates) + 
+                            " is not in the new restricted state space. " + 
+                            "Set `truncate=True` to ignore these entries."
+                        )
+                        raise ValueError(msg) from None
+                currop[row_state_new, col_state_new] = oldval * val
+    
+    if trunccount>0 and verbose:
+        print(f"Truncated {trunccount} entries.")
+
+    # convert dict into sparse matrix
+    nstates_row = enr_nstates(newdims[0], newexcitations)
+    nstates_col = enr_nstates(newdims[1], newexcitations)
+
+    idxpairs = ((enr_state2idx(newdims[0], newexcitations, row_state), 
+                 enr_state2idx(newdims[1], newexcitations, col_state)) 
+                  for (row_state, col_state) in currop.keys())
+    rows, cols = zip(*idxpairs)
+    opcoo = scipy.sparse.coo_matrix((list(currop.values()), (rows, cols)), 
+        shape=(nstates_row,nstates_col), dtype="complex128")
+
+    # convert to Qobj
+    return Qobj(opcoo, dims=[EnrSpace(dims, newexcitations) for dims in newdims], 
+                   isherm = all(q.isherm for q in args))
