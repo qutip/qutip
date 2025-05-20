@@ -2521,7 +2521,7 @@ class FermionicEnvironment(abc.ABC):
                                    Cp: Callable[[float], float] | ArrayLike,
                                    Cm: Callable[[float], float] | ArrayLike,
                                    wlist: ArrayLike = None,
-                                   wMax: float = None,
+                                   tMax: float = None,
                                    *,
                                    T: float = None,
                                    mu: float = None,
@@ -2531,25 +2531,25 @@ class FermionicEnvironment(abc.ABC):
         r"""
             Fermionic Environment from CF
         """
-        return _FermionicEnvironment_fromCF(Cp, Cm, wlist, wMax, T, mu,
+        return _FermionicEnvironment_fromCF(Cp, Cm, wlist, tMax, T, mu,
                                             tag, args)
 
     @classmethod
     def from_power_spectra(cls,
-                           J: Callable[[float], float] | ArrayLike,
+                           Sp: Callable[[float], float] | ArrayLike,
+                           Sm: Callable[[float], float] | ArrayLike,
                            wlist: ArrayLike = None,
                            wMax: float = None,
                            *,
                            T: float = None,
                            mu: float = None,
-                           sigma: float = None,
                            tag: Any = None,
                            args: dict[str, Any] = None,
                            ) -> FermionicEnvironment:
         r"""
             Fermionic Environment from PS
         """
-        return _FermionicEnvironment_fromPS(J, wlist, wMax, T, mu, sigma,
+        return _FermionicEnvironment_fromPS(Sp, Sm, wlist, wMax, T, mu,
                                             tag, args)
 
     @classmethod
@@ -2945,7 +2945,7 @@ class LorentzianEnvironment(FermionicEnvironment):
 
         return self.spectral_density(w) / (np.exp((self.mu - w) / self.T) + 1)
 
-   # --- overload region
+    # --- overload region
 
     @overload
     def approximate(self,
@@ -2959,7 +2959,7 @@ class LorentzianEnvironment(FermionicEnvironment):
                     separate: bool):
         ...
 
-   # --- approximation methods
+    # --- approximation methods
 
     @overload
     def approximate(
@@ -3426,6 +3426,7 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
         else:
             self.wMax = wMax
         self.beta = None if T is None else (1 / T if T != 0 else np.inf)
+
     def correlation_function_plus(self, t, *, eps=1e-10):
         if self.T is None:
             raise ValueError('The temperature must be specified for this '
@@ -3492,23 +3493,30 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
         return self.spectral_density(w)*fermi_dirac(w, -self.beta, self.mu)
 
 
-# TODO: Fix underflow issue making powerspectra non smooth or ask for both
-# power spectra
 class _FermionicEnvironment_fromPS(FermionicEnvironment):
-    def __init__(self, S, wlist, wMax, T, mu, sigma, tag, args):
+    def __init__(self, Sp, Sm, wlist, wMax, T, mu, tag, args):
         super().__init__(T, mu, tag)
-        self._ps = _real_interpolation(S, wlist, 'power spectrum', args)
-        self.sigma = sigma  # Specifies whether plus or minus was used as input
+        self._psp = _real_interpolation(Sp, wlist, 'power spectrum', args)
+        self._psm = _real_interpolation(Sm, wlist, 'power spectrum', args)
+
         if wlist is not None:
             self.wMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
         else:
             self.wMax = wMax
 
+        self.beta = None if T is None else (1 / T if T != 0 else np.inf)
+
     def correlation_function_plus(self, t, *, eps=1e-10):
         t = np.asarray(t, dtype=float)
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
         if self.wMax is None:
-            raise ValueError('The support of the spectral density (wMax) must be '
-                             'specified for this operation.')
+            raise ValueError('The support of the spectral density (wMax) must '
+                             'be specified for this operation.')
+        if self.mu is None:
+            raise ValueError('The chemical potential must be specified for '
+                             'this operation.')
         if t.ndim == 0:
             tMax = np.abs(t)
         elif len(t) == 0:
@@ -3523,10 +3531,16 @@ class _FermionicEnvironment_fromPS(FermionicEnvironment):
 
     def correlation_function_minus(self, t, *, eps=1e-10):
         t = np.asarray(t, dtype=float)
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
         if self.wMax is None:
-            raise ValueError(
-                'The support of the spectral density (wMax) must be '
-                'specified for this operation.')
+            raise ValueError('The support of the spectral density (wMax) must '
+                             'be specified for this operation.')
+        if self.mu is None:
+            raise ValueError('The chemical potential must be specified for '
+                             'this operation.')
+
         if t.ndim == 0:
             tMax = np.abs(t)
         elif len(t) == 0:
@@ -3540,50 +3554,27 @@ class _FermionicEnvironment_fromPS(FermionicEnvironment):
         return result.item() if t.ndim == 0 else result
 
     def spectral_density(self, w):
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
+        if self.mu is None:
+            raise ValueError('The chemical potential must be specified for '
+                             'this operation.')
         w = np.asarray(w, dtype=float)
         result = self.power_spectrum_minus(w)+self.power_spectrum_plus(w)
-        return result.item() if w.ndim == 0 else result
+        return result
 
-    def power_spectrum_plus(self, w, *, eps=1e-3):
-        if self.sigma == 1:
-            return self._ps(w)
-        else:
-            # deals with problematic indices when fermi-dirac is close to zero
-            with np.errstate(divide='ignore', invalid='ignore'):
-                ff = 1/fermi_dirac(w, self.sigma/self.T, self.mu)
-                ff -= 1
-                result = ff*self._ps(w)
-
-                problematic_indices = ~np.isfinite(result)
-                if np.any(problematic_indices):
-                    ff_safe = 1/(fermi_dirac(w[problematic_indices],
-                                             self.sigma/self.T, self.mu) + eps)
-                    ff_safe -= 1
-                    result[problematic_indices] = ff_safe * \
-                        self._ps(w[problematic_indices])
-            return result
+    def power_spectrum_plus(self, w, *, eps=1e-10):
+        w = np.array(w)
+        return self._psp(w).item() if w.ndim == 0 else self._psp(w)
 
     def power_spectrum_minus(self, w, *, eps=1e-10):
-        if self.sigma == -1:
-            return self._ps(w)
-        else:
-            # deals with problematic indices when fermi-dirac is close to zero
-            with np.errstate(divide='ignore', invalid='ignore'):
-                ff = 1/fermi_dirac(w, self.sigma/self.T, self.mu)
-                ff -= 1
-                result = ff*self._ps(w)
-                problematic_indices = ~np.isfinite(result)
-                if np.any(problematic_indices):
-                    ff_safe = 1/(fermi_dirac(w[problematic_indices],
-                                             self.sigma/self.T, self.mu) + eps)
-                    ff_safe -= 1
-                    result[problematic_indices] = ff_safe * \
-                        self._ps(w[problematic_indices])
-            return result
+        w = np.array(w)
+        return self._psm(w).item() if w.ndim == 0 else self._psm(w)
 
 
 class _FermionicEnvironment_fromCF(FermionicEnvironment):
-    def __init__(self, Cp, Cm, wlist, wMax, T, mu, tag, args):
+    def __init__(self, Cp, Cm, wlist, tMax, T, mu, tag, args):
         super().__init__(T, mu, tag)
         self._cfp = _complex_interpolation(
             Cp, wlist, 'correlation function', args)
@@ -3592,7 +3583,7 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
         if wlist is not None:
             self.tMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
         else:
-            self.tMax = wMax
+            self.tMax = tMax
 
     def correlation_function_plus(self, t, *, eps=1e-10):
         t = np.asarray(t, dtype=float)
@@ -3621,13 +3612,19 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
     def spectral_density(self, w):
         w = np.asarray(w, dtype=float)
         result = self.power_spectrum_minus(w)+self.power_spectrum_plus(w)
-        return result.item() if w.ndim == 0 else result
+        return result
 
     def power_spectrum_plus(self, w, *, eps=1e-10):
         w = np.asarray(w, dtype=float)
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
         if self.tMax is None:
-            raise ValueError('The support of the spectral density (wMax) '
+            raise ValueError('The support of the correlation function (tMax) '
                              'must be specified for this operation.')
+        if self.mu is None:
+            raise ValueError('The chemical potential must be specified for '
+                             'this operation.')
         if w.ndim == 0:
             wMax = np.abs(w)
         elif len(w) == 0:
@@ -3636,15 +3633,22 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
             wMax = max(np.abs(w[0]), np.abs(w[-1]))
         result_fct = _fft(lambda w: self.correlation_function_plus(w),
                           wMax, tMax=self.tMax)  # fft not accurate enough
-        result = result_fct(w).real
-
-        return result.item() if w.ndim == 0 else result
+        # for finding everything from one correlation function
+        result = result_fct(w).real  # neglect small imaginart part due to
+        # floating point error
+        return result
 
     def power_spectrum_minus(self, w, *, eps=1e-10):
         w = np.asarray(w, dtype=float)
+        if self.T is None:
+            raise ValueError('The temperature must be specified for this '
+                             'operation.')
         if self.tMax is None:
-            raise ValueError('The support of the spectral density (wMax) '
+            raise ValueError('The support of the correlation function (tMax) '
                              'must be specified for this operation.')
+        if self.mu is None:
+            raise ValueError('The chemical potential must be specified for '
+                             'this operation.')
         if w.ndim == 0:
             tMax = np.abs(w)
         elif len(w) == 0:
@@ -3654,12 +3658,7 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
 
         result_fct = _fft(lambda w: self.correlation_function_minus(w).conj(),
                           tMax, tMax=self.tMax)
-        result = result_fct(w)
-        return result.item() if w.ndim == 0 else result
-
-
-# TODO: Refactor
-
-# TODO: Add docstrings to environments.rst
-
-# TODO: Add unit tests
+        # for finding everything from one correlation function
+        result = result_fct(w).real  # neglect small imaginart part due to
+        # floating point error
+        return result

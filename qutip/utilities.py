@@ -72,7 +72,7 @@ def fermi_dirac(w, beta, mu):
         Frequency of the oscillator.
 
     beta : float
-        The inverse temperature in units of time 
+        The inverse temperature in units of time
         (or the same units as `1/w`).
     mu : float
         The Chemical potential.
@@ -87,20 +87,8 @@ def fermi_dirac(w, beta, mu):
     """
     w = np.array(w, dtype=float)
 
-    if beta == np.inf:
-        result = np.zeros_like(w)
-        # If w < mu, result is 1
-        result[w > mu] = 1.0
-        # If w = mu, result is 0.5
-        result[w == mu] = 0.5
-        # If w > mu, result is 0 
-    elif beta == -np.inf:
-        result = np.zeros_like(w)
-        # If w < mu, result is 1
-        result[w < mu] = 1.0
-        # If w = mu, result is 0.5
-        result[w == mu] = 0.5
-        # If w > mu, result is 0 
+    if (beta == np.inf) or (beta == -np.inf):
+        result = np.heaviside(-np.sign(beta)*(w-mu), 0.5)
     else:
         with np.errstate(over='ignore', under='ignore'):
             result = 1 / (np.exp(beta*(w-mu)) + 1)
