@@ -2,7 +2,7 @@ import numpy as np
 from qutip import gates, Qobj
 
 def test_phasegate_hermitian():
-    phi = 4 * np.pi / 3  # Angle where bug occurs
+    phi = 4 * np.pi / 3 
     pg = gates.phasegate(phi)
     expected = Qobj([[1, 0], [0, np.exp(1j * phi)]])
     assert not pg.isherm, "Phasegate should not be Hermitian"
