@@ -534,70 +534,65 @@ def enr_tensor(*args: Qobj, newexcitations: int = None,
 
     excitations = [(getattr(q._dims[0], 'n_excitations', None)
                     or q._dims[1].n_excitations) for q in args]
-    dimslists = [[tuple(q.dims[i]) for q in args] for i in range(2)]
-    # top level of list is row vs col
-    # second level is which of the input Qobj's
 
     # get the new max excitations
     newexcitations = newexcitations or min(excitations)
-    newdims = [tuple(itertools.chain(*dimsublist)) for dimsublist in dimslists]
+    newdims = [tuple(itertools.chain(*(q.dims[i] for q in args)))
+               for i in range(2)]
 
     trunccount = 0
-    currop = {}  # keep track as we build up the tensor product
+    out = {((), ()): 1.0}  # initialize a dict to tensor the first Qobj with
 
-    # initialize currop with the first operator
-    mat = args[0].data.as_scipy().tocoo()
-    for row_idx, col_idx, val in zip(mat.row, mat.col, mat.data):
-        row_state = tuple(args[0]._dims[0].idx2dims(row_idx))
-        col_state = tuple(args[0]._dims[1].idx2dims(col_idx))
-        if sum(row_state) > newexcitations or sum(col_state) > newexcitations:
-            if truncate:
-                trunccount += 1
-                continue
-            else:
-                missingstates = (str(state) for state in [row_state, col_state]
-                                 if sum(state) > newexcitations)
-                msg = (
-                    "state(s) " + ", ".join(missingstates) +
-                    " are not in the new restricted state space. " +
-                    "Set `truncate=True` to ignore these entries."
-                )
-                raise ValueError(msg) from None
-        currop[row_state, col_state] = val
-
-    # loop over the rest of the operators
-    for q in args[1:]:
-        oldop = currop
-        currop = {}
-        mat = q.data.as_scipy().tocoo()
-        for row_idx, col_idx, val in zip(mat.row, mat.col, mat.data):
-            row_state = tuple(q._dims[0].idx2dims(row_idx))
-            col_state = tuple(q._dims[1].idx2dims(col_idx))
-            for (row_state_old, col_state_old), oldval in oldop.items():
-                row_state_new = row_state_old + row_state
-                col_state_new = col_state_old + col_state
-                if (sum(row_state_new) > newexcitations
-                        or sum(col_state_new) > newexcitations):
-                    if truncate:
-                        trunccount += 1
-                        continue
-                    else:
-                        missingstates = (str(state) for state
-                                         in [row_state_new, col_state_new]
-                                         if sum(state) > newexcitations)
-                        msg = (
-                            "state " + ", ".join(missingstates) +
-                            " is not in the new restricted state space. " +
-                            "Set `truncate=True` to ignore these entries."
-                        )
-                        raise ValueError(msg) from None
-                currop[row_state_new, col_state_new] = oldval * val
+    # loop over the the operators
+    for q in args:
+        out, trunccount = _enr_tensor_qobj_with_dict(
+            out, q, newexcitations, truncate, trunccount)
 
     if trunccount > 0 and verbose:
         print(f"Truncated {trunccount} entries.")
 
-    return _enr_qobj_from_dict(currop, newdims, newexcitations,
+    return _enr_qobj_from_dict(out, newdims, newexcitations,
                                isherm=all(q.isherm for q in args))
+
+
+def _enr_tensor_qobj_with_dict(d: dict, q: Qobj, newexcitations: int,
+                               truncate, trunccount=0):
+    """
+    Helper function to do the tensor product between a dictionary (which
+    represents a Qobj) and a Qobj.
+    """
+    out = {}
+    mat = q.data.as_scipy().tocoo()
+
+    # loop over nonzero elements of the qobj
+    for row_idx, col_idx, val in zip(mat.row, mat.col, mat.data):
+        # convert the indices to the state tuples
+        row_state = tuple(q._dims[0].idx2dims(row_idx))
+        col_state = tuple(q._dims[1].idx2dims(col_idx))
+
+        # loop over the nonzero elements of the dictionary
+        for (row_state_old, col_state_old), oldval in d.items():
+            # concatenate the states
+            row_state_new = row_state_old + row_state
+            col_state_new = col_state_old + col_state
+
+            if (sum(row_state_new) <= newexcitations
+                    and sum(col_state_new) <= newexcitations):
+                out[row_state_new, col_state_new] = oldval * val
+            elif truncate:
+                trunccount += 1
+            else:
+                missingstates = (str(state) for state
+                                 in [row_state_new, col_state_new]
+                                 if sum(state) > newexcitations)
+                msg = (
+                    "state " + ", ".join(missingstates) +
+                    " is not in the new restricted state space. " +
+                    "Set `truncate=True` to truncate these entries."
+                )
+                raise ValueError(msg) from None
+
+    return (out, trunccount)
 
 
 def _enr_qobj_from_dict(op_dict, dims, excitations, **kwargs):
