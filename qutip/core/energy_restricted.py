@@ -50,7 +50,7 @@ def enr_state_dictionaries(dims, excitations):
     return nstates, state2idx, idx2state
 
 
-@lru_cache(maxsize=None)
+@lru_cache(maxsize=4096)
 def enr_nstates(dims, excitations):
     """
     Directly compute the number of states for a system with a given number of
@@ -85,7 +85,7 @@ def enr_nstates(dims, excitations):
                    if sum(subset) < excitations+m)
 
 
-@lru_cache(maxsize=None)
+@lru_cache(maxsize=4096)
 def enr_state2idx(dims, excitations, state):
     """
     Returns the index of a state in the excitation-number restricted space
