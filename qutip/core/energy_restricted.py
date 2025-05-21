@@ -453,7 +453,7 @@ def enr_ptrace(rho, sel):
         return rho
     if len(sel) == 0:
         # trace out all modes
-        return rho.tr()
+        return Qobj(rho.tr(), dtype="csr")
 
     excitations = rho._dims[0].n_excitations
     mat = rho.data.as_scipy().tocoo()
