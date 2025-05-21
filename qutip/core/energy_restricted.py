@@ -596,28 +596,24 @@ def _enr_tensor_qobj_with_dict(d: dict, q: Qobj, newexcitations: int,
 
 
 def _enr_qobj_from_dict(op_dict, dims, excitations, **kwargs):
-    if np.prod(dims[0]) == 1:  # 1-dimensional (e.g. bra)
-        rowspace = Space(list(dims[0]))
-        nrows = 1
-        row_idxlist = [0]*len(op_dict)
-    else:
-        rowspace = EnrSpace(dims[0], excitations)
-        nrows = rowspace.size
-        row_idxlist = [rowspace.dims2idx(coord_state[0])
-                       for coord_state in op_dict.keys()]
-
-    if np.prod(dims[1]) == 1:  # 1-dimensional (e.g. ket)
-        colspace = Space(list(dims[1]))
-        ncols = 1
-        col_idxlist = [0]*len(op_dict)
-    else:
-        colspace = EnrSpace(dims[1], excitations)
-        ncols = colspace.size
-        col_idxlist = [colspace.dims2idx(coord_state[1])
-                       for coord_state in op_dict.keys()]
+    rowspace, row_idxlist = _get_space_and_indices(
+        op_dict, dims, 0, excitations)
+    colspace, col_idxlist = _get_space_and_indices(
+        op_dict, dims, 1, excitations)
 
     op_coo = scipy.sparse.coo_matrix(
         (list(op_dict.values()), (row_idxlist, col_idxlist)),
-        shape=(nrows, ncols), dtype="complex128")
+        shape=(rowspace.size, colspace.size), dtype="complex128")
 
     return Qobj(op_coo, dims=[rowspace, colspace], **kwargs)
+
+
+def _get_space_and_indices(op_dict, dims, dim_idx, excitations):
+    if np.prod(dims[dim_idx]) == 1:  # 1-dimensional (e.g. ket)
+        space = Space(list(dims[dim_idx]))
+        indices = [0]*len(op_dict)
+    else:
+        space = EnrSpace(dims[dim_idx], excitations)
+        indices = [space.dims2idx(coord_state[dim_idx])
+                   for coord_state in op_dict.keys()]
+    return space, indices
