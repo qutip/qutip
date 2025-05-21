@@ -23,6 +23,7 @@ from . import data as _data
 from .. import settings
 from ..typing import LayerType
 
+
 class _reverse_partial_tensor:
     """ Picklable lambda op: tensor(op, right) """
     def __init__(self, right):
