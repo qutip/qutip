@@ -23,8 +23,6 @@ from . import data as _data
 from .. import settings
 from ..typing import LayerType
 
-
-
 class _reverse_partial_tensor:
     """ Picklable lambda op: tensor(op, right) """
     def __init__(self, right):
@@ -33,7 +31,6 @@ class _reverse_partial_tensor:
     def __call__(self, op):
         return tensor(op, self.right)
 
-
 @overload
 def tensor(*args: Qobj) -> Qobj: ...
 
@@ -41,10 +38,10 @@ def tensor(*args: Qobj) -> Qobj: ...
 def tensor(args: List[Qobj]) -> Qobj: ...
 
 @overload
-def tensor(*args: Union[Qobj, QobjEvo]) -> Union[Qobj, QobjEvo]: ... 
+def tensor(*args: Union[Qobj, QobjEvo]) -> Union[Qobj, QobjEvo]: ...
 
 @overload
-def tensor(args: List[Union[Qobj, QobjEvo]]) -> Union[Qobj, QobjEvo]: ... 
+def tensor(args: List[Union[Qobj, QobjEvo]]) -> Union[Qobj, QobjEvo]: ...
     """Calculates the tensor product of input operators.
 
     Parameters
