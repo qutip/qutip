@@ -43,7 +43,8 @@ def tensor(*args: Union[Qobj, QobjEvo]) -> Union[Qobj, QobjEvo]: ...
 
 @overload
 def tensor(args: List[Union[Qobj, QobjEvo]]) -> Union[Qobj, QobjEvo]: ...
-"""Calculates the tensor product of input operators.
+    """
+    Calculates the tensor product of input operators.
 
     Parameters
     ----------
