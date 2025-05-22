@@ -199,7 +199,7 @@ def test_metadata(gate_func, args, alias):
     assert gate._isunitary == gate._calculate_isunitary()
     with qutip.CoreOptions(default_dtype=alias):
         gate = gate_func(*args)
-        assert isinstance(gate.data, type)
+        assert isinstance(gate.data, dtype)
 
 def test_phasegate_hermitian():
     phi = 4 * np.pi / 3
