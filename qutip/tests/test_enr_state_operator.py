@@ -3,6 +3,7 @@ import itertools
 import random
 import numpy as np
 import qutip
+import scipy.sparse
 
 
 def _n_enr_states(dimensions, n_excitations):
@@ -197,3 +198,101 @@ def test_eigenstates_ENR():
     vals, vecs = H.eigenstates()
     for val, vec in zip(vals, vecs):
         assert val * vec == H @ vec
+
+
+# function to convert an ENR Qobj to a regular Qobj
+def enr_to_reg(q):
+    if q.type == "scalar":
+        return q
+    mat = q.data_as().tocoo()
+    dims = q.dims[0]
+    n_ex = q._dims[0].n_excitations
+
+    if q.isoper:
+        newdims = [list(dims)]*2
+        newshape = [np.prod(dims)]*2
+    elif q.isket:
+        newdims = [list(dims), [1]*len(dims)]
+        newshape = [np.prod(dims), 1]
+    else:
+        raise ValueError("Invalid Qobj type")
+
+    newindices = [i for i, state  # get indices for unrestricted space
+                  in enumerate(qutip.state_number_enumerate(dims))
+                  if sum(state) <= n_ex]
+    newrows = [newindices[i] for i in mat.row]
+    newcols = [newindices[i] for i in mat.col]
+    newmat = scipy.sparse.coo_matrix(
+        (mat.data, (newrows, newcols)), shape=newshape)
+
+    return qutip.Qobj(newmat, dims=newdims, dtype="csr")
+
+
+# copied parameters from test_ptrace.py
+@pytest.mark.parametrize('dims, sel',
+                         [
+                             ([5, 2, 3], [2, 1]),
+                             ([5, 2, 3], [0, 2]),
+                             ([5, 2, 3], [0, 1]),
+                             ([2]*6, [3, 2]),
+                             ([2]*6, [0, 2]),
+                             ([2]*6, [0, 1]),
+                             ([4, 4, 4], []),
+                             ([4, 4, 4], [0, 1, 2]),
+                         ])
+def test_enr_ptrace(dims, sel, n_excitations):
+    nstates_enr = _n_enr_states(dims, n_excitations)
+    # use qutip to make a random sparse Hermitian matrix w/ trace 1
+    rand_dm_mat = qutip.rand_dm(
+        nstates_enr, 0.05, distribution="herm", dtype="csr").data_as()
+
+    rho_in_enr = qutip.Qobj(rand_dm_mat,
+                            dims=[qutip.energy_restricted.EnrSpace(
+                                dims, n_excitations)]*2)
+    rho_in_reg = enr_to_reg(rho_in_enr)
+
+    rho_out_enr = qutip.enr_ptrace(rho_in_enr, sel)
+    rho_out_toreg = enr_to_reg(rho_out_enr)
+    rho_out_check = qutip.ptrace(rho_in_reg, sel)
+
+    assert rho_out_toreg == rho_out_check
+
+
+@pytest.fixture(params=[
+    pytest.param(0, id="ket"),
+    pytest.param(1, id="oper"),
+])
+def isoper(request):
+    return request.param
+
+
+@pytest.mark.parametrize('dims_list, n_ex_list',
+                         [
+                             ([[3]], [2]),
+                             ([[3], [4]], [2, 1]),
+                             ([[3, 2], [2, 2]], [2, 1]),
+                             ([[3, 2], [4], [2, 2]], [2, 3, 2]),
+                         ])
+def test_enr_tensor(dims_list, n_ex_list, isoper):
+    # isoper = 1 to test for operators, 0 to test for kets
+    nstates_enr_list = [_n_enr_states(dims, n_ex)
+                        for dims, n_ex in zip(dims_list, n_ex_list)]
+    dens_floor_list = 1/(np.array(nstates_enr_list)**(isoper + 1))
+    rand_mat_list = [scipy.sparse.random(
+        nstates, nstates*isoper + 1*(not isoper),
+        density=max(0.05, dens_floor), dtype="complex128")
+        for (nstates, dens_floor)
+        in zip(nstates_enr_list, dens_floor_list)]
+
+    q_in_enr_list = [qutip.Qobj(
+        rand_mat,
+        dims=[qutip.energy_restricted.EnrSpace(dims, n_ex)]*(1 + isoper)
+        + [1]*(not isoper))
+        for rand_mat, dims, n_ex in zip(rand_mat_list, dims_list, n_ex_list)]
+    q_in_reg_list = [enr_to_reg(q_in_enr) for q_in_enr in q_in_enr_list]
+
+    q_out_enr = qutip.enr_tensor(*q_in_enr_list, newexcitations=sum(n_ex_list))
+    q_out_toreg = enr_to_reg(q_out_enr)
+    q_out_check = qutip.tensor(*q_in_reg_list)
+
+    assert q_out_toreg == q_out_check
