@@ -965,16 +965,15 @@ cpdef Dia matmul_outer_dia_dense_sparse(Data left, Data right, double complex sc
 
 cpdef Data matmul_outer_dense_Data(Dense left, Dense right, double complex scale=1):
     out_type = settings.core["default_dtype"]
-    if out_type is None:
-        out_density = (
-            dense.nnz(left) * 1.0 / left.shape[0]
-            * dense.nnz(right) * 1.0 / right.shape[1]
-        )
-        if out_density < 0.3:
-            out_type = CSR
-        else:
-            out_type = Dense
-    return matmul(left, right, dtype=out_type)
+    out_density = (
+        dense.nnz(left) * 1.0 / left.shape[0]
+        * dense.nnz(right) * 1.0 / right.shape[1]
+    )
+    if out_density < 0.3 and out_type is not Dense:
+        return matmul(left, right, dtype=CSR)
+    else:
+        return matmul(left, right, dtype=Dense)
+
 
 
 cpdef Data matmul_outer_Data(Data left, Data right, double complex scale=1):

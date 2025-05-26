@@ -3,15 +3,17 @@
 
 from libc.string cimport memcpy, memset
 
+from qutip.settings import settings
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr, dense, Dense, dia, Dia
+from qutip.core.data cimport csr, dense, Dense, dia, Dia, Data
 from qutip.core.data.csr cimport CSR
+from qutip.core.data.convert import to as _to
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 __all__ = [
-    'project', 'project_csr', 'project_dense', 'project_dia',
+    'project', 'project_csr', 'project_dense_data', 'project_dia',
 ]
 
 
@@ -93,12 +95,23 @@ cpdef CSR project_csr(CSR state):
     raise ValueError("state must be a ket or a bra.")
 
 
-cpdef Dense project_dense(Dense state):
+cpdef Data project_dense_data(Dense state):
     """
     Calculate the projection |state><state|.  The shape of `state` will be used
     to determine if it has been supplied as a ket or a bra.  The result of this
     function will be identical is passed `state` or `adjoint(state)`.
+
+    If the projection output would be less than 30% full, return a CSR matrix.
     """
+    out_type = settings.core["default_dtype"]
+    out_density = dense.nnz(state) * 1.0 / state.shape[0]
+    if out_density < 0.55 and out_type is not Dense:
+        return project_csr(_to(CSR, state))
+    else:
+        return _project_dense(state)
+
+
+cpdef Dense _project_dense(Dense state):
     cdef Dense out
     cdef size_t size, i, j
     cdef bint fortran
@@ -199,7 +212,7 @@ project.__doc__ =\
 project.add_specialisations([
     (CSR, CSR, project_csr),
     (Dia, Dia, project_dia),
-    (Dense, Dense, project_dense),
+    (Dense, Data, project_dense_data),
 ], _defer=True)
 
 del _inspect, _Dispatcher
