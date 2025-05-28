@@ -265,7 +265,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     I_ops : array / list (optional)
         List of net current superoperators. Where I_ops is defined as the
         difference of currents across a junction I_ops ≡ I+ - I-. If not provided,
-        it will be asumed the case I- = 0 and set I_ops = J_ops.
+        it will be assumed that I- = 0 and set I_ops = J_ops.
 
     sparse : bool [True]
         Flag that indicates whether to use sparse or dense matrix methods when
