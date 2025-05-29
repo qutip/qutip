@@ -1,0 +1,61 @@
+name: Test family projects
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Which version, empty for development, `release` for latest released version'
+        default: ""
+
+  pull_request:
+
+defaults:
+  run:
+    # The slightly odd shell call is to force bash to read .bashrc, which is
+    # necessary for having conda behave sensibly.
+    shell: bash -l -e {0}
+
+jobs:
+  tests:
+    name: ${{ matrix.repo }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: [qutip-qip, qutip-jax, qutip-qoc, qutip-qtrl]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          python-version: 3.11
+
+      - name: Install QuTiP and dependencies
+        run: |
+          # Install the extra requirement
+          python -m pip install pytest pytest-rerunfailures  # tests
+          python -m pip install numpy scipy cython filelock
+          python -m pip install -e . -v --no-build-isolation
+      - name: Install QuTiP family package
+        run: |
+          # jax cannot be installed from requirement (cpu vs gpu issue)
+          python -m pip install jax[cpu]
+          cd ..
+          git clone https://github.com/qutip/${{ matrix.repo }}.git
+          cd ${{ matrix.repo }}
+          if [[ $inputs.version == "release" ]]; then
+            # Checkout the latest tag as the latest release
+            git fetch --tags
+            git checkout $(git describe --tags "$(git rev-list --tags --max-count=1)")
+          elif [[ "${{ inputs.version }}" ]]; then
+            git checkout ${{ inputs.version }}
+          fi
+          python -m pip install .[full]
+      - name: Print python environment
+        run: |
+          pip list
+      - name: Run test
+        run: |
+          cd ../${{ matrix.repo }}
+          pytest tests -vv

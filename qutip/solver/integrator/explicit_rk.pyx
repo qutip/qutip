@@ -6,7 +6,7 @@ Provide a cython implimentation for a general Explicit runge-Kutta method.
 from qutip.core.data cimport Data, Dense, CSR, dense
 from qutip.core.data.add cimport iadd_dense
 from qutip.core.data.add import add
-from qutip.core.data.mul import imul_data
+from qutip.core.data.mul cimport imul_data
 from qutip.core.data.tidyup import tidyup_csr
 from qutip.core.data.norm import frobenius_data
 from .verner7efficient import vern7_coeff
@@ -41,7 +41,7 @@ cdef Data copy_to(Data in_, Data out):
     # Copy while reusing allocated buffer if possible.
     # Does not check the shape, etc.
     cdef size_t ptr
-    if type(in_) is Dense:
+    if type(in_) is Dense and type(out) is Dense:
         for ptr in range(in_.shape[0] * in_.shape[1]):
             (<Dense> out).data[ptr] = (<Dense> in_).data[ptr]
         return out
@@ -55,7 +55,7 @@ cdef Data iadd_data(Data left, Data right, double complex factor):
     # TODO: when/if iadd_csr is added: move to data/add.pyx.
     if factor == 0:
         return left
-    if type(left) is Dense:
+    if type(left) is Dense and type(right) is Dense:
         iadd_dense(left, right, factor)
         return left
     else:
@@ -221,6 +221,7 @@ cdef class Explicit_RungeKutta:
         self._norm_front = self._norm_prev
 
         #prepare the buffers
+        self.k = []
         for i in range(self.rk_extra_step):
             self.k.append(self._y.copy())
         self._y_temp = self._y.copy()
@@ -288,8 +289,6 @@ cdef class Explicit_RungeKutta:
             self._status = Status.NOT_INITIATED
             return
 
-        self._status = Status.NORMAL
-
         if t == self._t:
             return
 
@@ -298,14 +297,20 @@ cdef class Explicit_RungeKutta:
             return
 
         if self.interpolate and t < self._t_front:
-             self._y = self._interpolate_step(t, self._y)
-             self._t = t
+            if self._status != Status.INTERPOLATED:
+                self._prep_dense_out()
+                self._status = Status.INTERPOLATED
+            self._y = self._interpolate_step(t, self._y)
+            self._t = t
+            return
+
+        self._status = Status.NORMAL
 
         if step and self._t < self._t_front and t > self._t_front:
             # To ensure that the self._t ... t_out interval can be covered.
             t = self._t_front
 
-        while self._t_front < t:
+        while self._t_front < t and self._status >= 0:
             self._y_prev = copy_to(self._y_front, self._y_prev)
             self._t_prev = self._t_front
             self._norm_prev = self._norm_front

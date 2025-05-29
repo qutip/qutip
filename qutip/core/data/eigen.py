@@ -5,7 +5,7 @@ import scipy.sparse.linalg
 from itertools import combinations
 
 from .dense import Dense, from_csr
-from .csr import CSR
+from .csr import CSR, nnz
 from .properties import isherm as _isherm
 from qutip.settings import settings
 
@@ -233,7 +233,19 @@ def eigs_csr(data, /, isherm=None, vecs=True, sort='low', eigvals=0,
         return eigs_dense(from_csr(data), isherm, vecs, sort, eigvals)
     _eigs_check_shape(data)
     eigvals, num_large, num_small = _eigs_fix_eigvals(data, eigvals, sort)
-    isherm = isherm if isherm is not None else _isherm(data)
+
+    if nnz(data) == 0:
+        # With change in ARPACK used with scipy 1.15, zeros matrix input raise
+        # an error.
+        evals = np.zeros(num_large + num_small)
+        evecs = np.zeros((num_large + num_small, data.shape[0]), dtype=complex)
+        for i in range(num_large + num_small):
+            evecs[i, i] = 1.+0j
+        return (evals, Dense(evecs, copy=False)) if vecs else evals
+
+    # eigsh call eigs for complex matrix. Using the Hermitian version only cast
+    # the eigen values to real values.
+    isherm = isherm if isherm is not None else False
     evals, evecs = _eigs_csr(data.as_scipy(), isherm, vecs, eigvals,
                              num_large, num_small, tol, maxiter)
 
@@ -325,7 +337,6 @@ eigs.__doc__ =\
         order of the eigenvalues.
     """
 eigs.add_specialisations([
-    (CSR, eigs_csr),
     (Dense, eigs_dense),
 ], _defer=True)
 

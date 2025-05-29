@@ -109,7 +109,7 @@ class TestResult:
                 np.testing.assert_allclose(e_op_call_values, results[k])
 
     def test_add_processor(self):
-        res = Result([], fill_options(store_states=False))
+        res = Result([], fill_options(store_states=False, method="vern7"))
         a = []
         b = []
         states = [{"t": 0}, {"t": 1}]

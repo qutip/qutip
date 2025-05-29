@@ -153,8 +153,9 @@ Monte Carlo Solver Result
 The Monte Carlo solver returns a :class:`.McResult` object consisting of
 expectation values and/or states. The main difference with :func:`.mesolve`'s
 :class:`.Result` is that it optionally stores the result of each trajectory
-together with their averages. When trajectories are stored, ``result.runs_expect``
-is a list over the expectation operators, trajectories and times in that order.
+together with their averages with the use of the ``"keep_runs_results"`` option.
+When trajectories are stored, ``result.runs_expect`` is a list over the
+expectation operators, trajectories and times in that order.
 The averages are stored in ``result.average_expect`` and the standard derivation
 of the expectation values in ``result.std_expect``. When the states are returned,
 ``result.runs_states`` will be an array of length ``ntraj``. Each element

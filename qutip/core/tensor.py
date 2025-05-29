@@ -424,7 +424,7 @@ def _targets_to_list(targets, oper=None, N=None):
         targets = list(range(len(oper.dims[0])))
     if not hasattr(targets, '__iter__'):
         targets = [targets]
-    if not all([isinstance(t, int) for t in targets]):
+    if not all([isinstance(t, (int, np.integer)) for t in targets]):
         raise TypeError(
             "targets should be "
             "an integer or a list of integer")
@@ -485,7 +485,7 @@ def expand_operator(
         The expanded operator acting on a system with the desired dimension.
     """
     from .operators import identity
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     oper = oper.to(dtype)
     N = len(dims)
     targets = _targets_to_list(targets, oper=oper, N=N)
@@ -505,4 +505,4 @@ def expand_operator(
     for i, ind in enumerate(rest_pos):
         new_order[ind] = rest_qubits[i]
     id_list = [identity(dims[i]) for i in rest_pos]
-    return tensor([oper] + id_list).permute(new_order)
+    return tensor([oper] + id_list).permute(new_order).to(dtype)

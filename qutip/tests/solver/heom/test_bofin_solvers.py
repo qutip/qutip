@@ -1612,12 +1612,8 @@ class TestHEOMSolverWithEnv:
             lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
         )
         env = DrudeLorentzEnvironment(lam=dlm.lam, gamma=dlm.gamma, T=dlm.T)
-        if approx == 'matsubara':
-            approx_env, delta = env.approx_by_matsubara(
-                Nk=dlm.Nk, compute_delta=True)
-        else:
-            approx_env, delta = env.approx_by_pade(
-                Nk=dlm.Nk, compute_delta=True)
+        approx_env, delta = env.approximate(
+            approx, Nk=dlm.Nk, compute_delta=True)
         if terminator:
             terminator_op = system_terminator(dlm.Q, delta)
             H_sys = liouvillian(dlm.H) + terminator_op
@@ -1648,7 +1644,7 @@ class TestHEOMSolverWithEnv:
         )
         env = UnderDampedEnvironment(
             lam=udm.lam, T=udm.T, gamma=udm.gamma, w0=udm.w0
-        ).approx_by_matsubara(Nk=udm.Nk)
+        ).approximate("matsubara", Nk=udm.Nk)
 
         options = {"nsteps": 15000, "store_states": True}
         hsolver = HEOMSolver(udm.H, (env, udm.Q), 14, options=options)

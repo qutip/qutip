@@ -14,6 +14,7 @@ from .base import EfficiencyWarning
 from qutip.core.data cimport base, CSR, Dia
 from qutip.core.data.adjoint cimport adjoint_dense, transpose_dense, conj_dense
 from qutip.core.data.trace cimport trace_dense
+from qutip import settings
 
 cnp.import_array()
 
@@ -84,6 +85,10 @@ cdef class Dense(base.Data):
         self.data = <double complex *> cnp.PyArray_GETPTR2(self._np, 0, 0)
         self.fortran = cnp.PyArray_IS_F_CONTIGUOUS(self._np)
         self.shape = (shape[0], shape[1])
+
+    @classmethod
+    def sparcity(self):
+        return "dense"
 
     def __reduce__(self):
         return (fast_from_numpy, (self.as_ndarray(),))
@@ -358,6 +363,23 @@ cdef inline base.idxint _diagonal_length(
     if offset > 0:
         return n_rows if offset <= n_cols - n_rows else n_cols - offset
     return n_cols if offset > n_cols - n_rows else n_rows + offset
+
+
+cpdef long nnz(Dense matrix, double tol=0):
+    "Compute the number of element larger than the tolerance"
+    cdef long N = 0;
+    cdef base.idxint row, col
+    cdef double tol2
+    cdef double complex val
+    if tol:
+        tol2 = tol**2
+    else:
+        tol2 = settings.core["atol"]**2
+    for i in range(matrix.shape[0] * matrix.shape[1]):
+        val = matrix.data[i]
+        if (val.real**2 + val.imag**2) > tol2:
+            N += 1
+    return N
 
 
 @cython.wraparound(True)

@@ -151,6 +151,18 @@ class BathExponent(environment.CFExponent):
             f" tag={self.tag!r}>"
         )
 
+    def rescale(self, alpha):
+        """Rescale the coefficient of the exponent by a factor of alpha."""
+        ck_new = self.ck * alpha
+        if self.type == self.types["RI"]:
+            ck2_new = self.ck2 * alpha
+        else:
+            ck2_new = None
+        return BathExponent(
+            self.type, self.dim, self.Q, ck_new, self.vk, ck2=ck2_new,
+            sigma_bar_k_offset=self.sigma_bar_k_offset, tag=self.tag
+        )
+
     def _can_combine(self, other, rtol, atol):
         if not super()._can_combine(other, rtol, atol):
             return False
@@ -465,7 +477,7 @@ class DrudeLorentzBath(BosonicBath):
     "environment" API. The bath classes are kept in QuTiP for reasons of
     backwards compatibility and convenience. Creating a `DrudeLorentzBath` is
     equivalent to creating a :class:`.DrudeLorentzEnvironment`, performing a
-    :meth:`Matsubara <.DrudeLorentzEnvironment.approx_by_matsubara>`
+    :meth:`Matsubara <.DrudeLorentzEnvironment.approximate>`
     approximation, and finally bundling the result together with the coupling
     operator ``Q`` for convenient use with the HEOM solver.
     """
@@ -478,8 +490,8 @@ class DrudeLorentzBath(BosonicBath):
         # but it is made to look like a class because it was a class in the
         # initial bofin release
         env = environment.DrudeLorentzEnvironment(T, lam, gamma)
-        matsubara_approx, delta = env.approx_by_matsubara(
-            Nk=Nk, combine=combine, compute_delta=True, tag=tag
+        matsubara_approx, delta = env.approximate(
+            "matsubara", Nk=Nk, combine=combine, compute_delta=True, tag=tag
         )
 
         result = BosonicBath.from_environment(matsubara_approx, Q)
@@ -567,7 +579,7 @@ class DrudeLorentzPadeBath(BosonicBath):
     "environment" API. The bath classes are kept in QuTiP for reasons of
     backwards compatibility and convenience. Creating a `DrudeLorentzPadeBath`
     is equivalent to creating a :class:`.DrudeLorentzEnvironment`, performing a
-    :meth:`Pade <.DrudeLorentzEnvironment.approx_by_pade>` approximation, and
+    :meth:`Pade <.DrudeLorentzEnvironment.approximate>` approximation, and
     finally bundling the result together with the coupling operator ``Q`` for
     convenient use with the HEOM solver.
     """
@@ -577,8 +589,8 @@ class DrudeLorentzPadeBath(BosonicBath):
     ):
         # See DrudeLorentzBath comment
         env = environment.DrudeLorentzEnvironment(T, lam, gamma)
-        pade_approx, delta = env.approx_by_pade(
-            Nk=Nk, combine=combine, compute_delta=True, tag=tag
+        pade_approx, delta = env.approximate(
+            "pade", Nk=Nk, combine=combine, compute_delta=True, tag=tag
         )
 
         result = BosonicBath.from_environment(pade_approx, Q)
@@ -654,7 +666,7 @@ class UnderDampedBath(BosonicBath):
     "environment" API. The bath classes are kept in QuTiP for reasons of
     backwards compatibility and convenience. Creating an `UnderDampedBath` is
     equivalent to creating an :class:`.UnderDampedEnvironment`, performing a
-    :meth:`Matsubara <.UnderDampedEnvironment.approx_by_matsubara>`
+    :meth:`Matsubara <.UnderDampedEnvironment.approximate>`
     approximation, and finally bundling the result together with the coupling
     operator ``Q`` for convenient use with the HEOM solver.
     """
@@ -664,8 +676,8 @@ class UnderDampedBath(BosonicBath):
     ):
         # See DrudeLorentzBath comment
         env = environment.UnderDampedEnvironment(T, lam, gamma, w0)
-        matsubara_approx = env.approx_by_matsubara(
-            Nk=Nk, combine=combine, tag=tag
+        matsubara_approx = env.approximate(
+            "matsubara", Nk=Nk, combine=combine, tag=tag
         )
         return BosonicBath.from_environment(matsubara_approx, Q)
 
@@ -816,7 +828,7 @@ class LorentzianBath(FermionicBath):
 
     .. note::
 
-        This Matsubara expansion used in this bath converges very slowly
+        The Matsubara expansion used in this bath converges very slowly
         and ``Nk > 20`` may be required to get good convergence. The
         Padé expansion used by :class:`LorentzianPadeBath` converges much
         more quickly.

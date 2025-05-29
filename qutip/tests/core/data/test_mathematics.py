@@ -762,6 +762,10 @@ class TestKron(BinaryOpMixin):
         pytest.param(data.kron_csr, CSR, CSR, CSR),
         pytest.param(data.kron_dense, Dense, Dense, Dense),
         pytest.param(data.kron_dia, Dia, Dia, Dia),
+        pytest.param(data.kron_dense_csr_csr, Dense, CSR, CSR),
+        pytest.param(data.kron_csr_dense_csr, CSR, Dense, CSR),
+        pytest.param(data.kron_dense_dia_dia, Dense, Dia, Dia),
+        pytest.param(data.kron_dia_dense_dia, Dia, Dense, Dia),
     ]
 
 
@@ -773,7 +777,7 @@ class TestKronT(BinaryOpMixin):
     shapes = shapes_binary_unrestricted(dim=5)
     bad_shapes = shapes_binary_bad_unrestricted(dim=5)
     specialisations = [
-        pytest.param(data.kron_transpose_data, CSR, CSR, CSR),
+        pytest.param(data.kron_transpose_data, CSR, CSR, Data),
         pytest.param(data.kron_transpose_dense, Dense, Dense, Dense),
     ]
 
@@ -794,6 +798,28 @@ class TestMatmul(BinaryOpMixin):
     ]
 
 
+class TestMatmulDag(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.matmul(left, right)
+
+    shapes = shapes_binary_matmul()
+    bad_shapes = shapes_binary_bad_matmul()
+    specialisations = [
+        pytest.param(
+            lambda l, r: data.matmul_dag_data(l, r.adjoint()),
+            CSR, CSR, CSR
+        ),
+        pytest.param(
+            lambda l, r: data.matmul_dag_dense_csr_dense(l, r.adjoint()),
+            Dense, CSR, Dense
+        ),
+        pytest.param(
+            lambda l, r: data.matmul_dag_dense(l, r.adjoint()),
+            Dense, Dense, Dense
+        ),
+    ]
+
+
 class TestMultiply(BinaryOpMixin):
     def op_numpy(self, left, right):
         return left * right
@@ -804,6 +830,26 @@ class TestMultiply(BinaryOpMixin):
         pytest.param(data.multiply_csr, CSR, CSR, CSR),
         pytest.param(data.multiply_dense, Dense, Dense, Dense),
         pytest.param(data.multiply_dia, Dia, Dia, Dia),
+    ]
+
+
+class TestMatmul_Outer(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.matmul(left, right)
+
+    shapes = shapes_binary_matmul()
+    bad_shapes = shapes_binary_bad_matmul()
+    from qutip.core.data.matmul import (
+        matmul_outer_csr_dense_sparse,
+        matmul_outer_dia_dense_sparse,
+        matmul_outer_dense_Data,
+    )
+    specialisations = [
+        pytest.param(matmul_outer_csr_dense_sparse, CSR, Dense, CSR),
+        pytest.param(matmul_outer_csr_dense_sparse, Dense, CSR, CSR),
+        pytest.param(matmul_outer_dia_dense_sparse, Dia, Dense, Dia),
+        pytest.param(matmul_outer_dia_dense_sparse, Dense, Dia, Dia),
+        pytest.param(matmul_outer_dense_Data, Dense, Dense, Data),
     ]
 
 
@@ -985,27 +1031,19 @@ class TestProject(UnaryOpMixin):
 
 def _inv_dense(matrix):
     # Add a diagonal so `matrix` is not singular
-    return data.inv_dense(
-        data.add(
-            matrix,
-            data.diag([1.1]*matrix.shape[0], shape=matrix.shape, dtype='dense')
-        )
-    )
+    diag = data.diag([2.] * matrix.shape[0], shape=matrix.shape, dtype='dense')
+    return data.inv_dense(data.to(Dense, data.add(matrix, diag)))
 
 
 def _inv_csr(matrix):
     # Add a diagonal so `matrix` is not singular
-    return data.inv_csr(
-        data.add(
-            matrix,
-            data.diag([1.1]*matrix.shape[0], shape=matrix.shape, dtype='csr')
-        )
-    )
+    diag = data.diag([2.] * matrix.shape[0], shape=matrix.shape, dtype='csr')
+    return data.inv_csr(data.to(CSR, data.add(matrix, diag)))
 
 
 class TestInv(UnaryOpMixin):
     def op_numpy(self, matrix):
-        return np.linalg.inv(matrix + np.eye(matrix.shape[0]) * 1.1)
+        return np.linalg.inv(matrix + np.eye(matrix.shape[0]) * 2.)
 
     shapes = [
         (pytest.param((1, 1), id="scalar"),),
