@@ -243,12 +243,10 @@ def enr_to_reg(q):
 def test_enr_ptrace(dims, sel, n_excitations):
     nstates_enr = _n_enr_states(dims, n_excitations)
     # use qutip to make a random sparse Hermitian matrix w/ trace 1
-    rand_dm_mat = qutip.rand_dm(
-        nstates_enr, 0.05, distribution="herm", dtype="csr").data_as()
+    rho_in_enr = qutip.rand_dm(
+        nstates_enr, 0.05, distribution="herm", dtype="csr")
 
-    rho_in_enr = qutip.Qobj(rand_dm_mat,
-                            dims=[qutip.energy_restricted.EnrSpace(
-                                dims, n_excitations)]*2)
+    rho_in_enr.dims = [qutip.energy_restricted.EnrSpace(dims, n_excitations)]*2
     rho_in_reg = enr_to_reg(rho_in_enr)
 
     rho_out_enr = qutip.enr_ptrace(rho_in_enr, sel)
@@ -275,20 +273,32 @@ def isoper(request):
                          ])
 def test_enr_tensor(dims_list, n_ex_list, isoper):
     # isoper = 1 to test for operators, 0 to test for kets
-    nstates_enr_list = [_n_enr_states(dims, n_ex)
-                        for dims, n_ex in zip(dims_list, n_ex_list)]
-    dens_floor_list = 1/(np.array(nstates_enr_list)**(isoper + 1))
-    rand_mat_list = [scipy.sparse.random(
-        nstates, nstates*isoper + 1*(not isoper),
-        density=max(0.05, dens_floor), dtype="complex128")
-        for (nstates, dens_floor)
-        in zip(nstates_enr_list, dens_floor_list)]
+    # figure out how big the matrices/vectors will be
+    nstates_list = [_n_enr_states(dims, n_ex)
+                    for dims, n_ex in zip(dims_list, n_ex_list)]
+    # make sure sparse matrices are dense enough to not be empty
+    dens_list = [max(0.1, 1/(nstates**(isoper+1))) for nstates in nstates_list]
+    # number of columns in the random matrices, depending on if operator or ket
+    ncol_arr = nstates_list if isoper else [1]*len(nstates_list)
 
-    q_in_enr_list = [qutip.Qobj(
-        rand_mat,
-        dims=[qutip.energy_restricted.EnrSpace(dims, n_ex)]*(1 + isoper)
-        + [1]*(not isoper))
-        for rand_mat, dims, n_ex in zip(rand_mat_list, dims_list, n_ex_list)]
+    # generate the random matrices
+    rand_mat_list = [scipy.sparse.random(
+        nstates, ncol,
+        density=dens, dtype="complex128")
+        for (nstates, ncol, dens)
+        in zip(nstates_list, ncol_arr, dens_list)]
+
+    # turn the random matrices into Qobj with ENR dimensions
+    rowspace_list = [qutip.energy_restricted.EnrSpace(dims, n_ex)
+                     for dims, n_ex in zip(dims_list, n_ex_list)]
+    if isoper:
+        colspace_list = rowspace_list
+    else:
+        colspace_list = [[1]] * len(rowspace_list)
+    q_in_enr_list = [qutip.Qobj(rand_mat, dims=[rowspace, colspace])
+                     for rand_mat, rowspace, colspace
+                     in zip(rand_mat_list, rowspace_list, colspace_list)]
+
     q_in_reg_list = [enr_to_reg(q_in_enr) for q_in_enr in q_in_enr_list]
 
     q_out_enr = qutip.enr_tensor(*q_in_enr_list, newexcitations=sum(n_ex_list))
@@ -296,3 +306,22 @@ def test_enr_tensor(dims_list, n_ex_list, isoper):
     q_out_check = qutip.tensor(*q_in_reg_list)
 
     assert q_out_toreg == q_out_check
+
+
+@pytest.mark.parametrize('truncate', [True, False])
+def test_enr_tensor_trunc(isoper, truncate):
+    q_in = qutip.enr_fock([2], 1, [1], dtype="csr")
+    if isoper:
+        q_in = q_in.proj()
+
+    if not truncate:
+        with pytest.raises(ValueError) as e:
+            qutip.enr_tensor(q_in, q_in)
+        assert "not in the new restricted state space" in str(e.value)
+    else:
+        q_out = qutip.enr_tensor(q_in, q_in, truncate=truncate, verbose=False)
+        q_out_check = qutip.zero_ket(
+            qutip.energy_restricted.EnrSpace([2, 2], 1), dtype="csr")
+        if isoper:
+            q_out_check = q_out_check.proj()
+        assert q_out == q_out_check
