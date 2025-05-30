@@ -204,7 +204,6 @@ def test_eigenstates_ENR():
 def enr_to_reg(q):
     if q.type == "scalar":
         return q
-    mat = q.data_as().tocoo()
     dims = q.dims[0]
     n_ex = q._dims[0].n_excitations
 
@@ -220,12 +219,22 @@ def enr_to_reg(q):
     newindices = [i for i, state  # get indices for unrestricted space
                   in enumerate(qutip.state_number_enumerate(dims))
                   if sum(state) <= n_ex]
-    newrows = [newindices[i] for i in mat.row]
-    newcols = [newindices[i] for i in mat.col]
-    newmat = scipy.sparse.coo_matrix(
-        (mat.data, (newrows, newcols)), shape=newshape)
+    dtype = q.dtype
+    if dtype is qutip.data.Dense:
+        mat = q.data_as()
+        newmat = np.zeros(newshape, dtype=mat.dtype)
+        if q.isoper:
+            newmat[np.ix_(newindices, newindices)] = mat
+        else:
+            newmat[newindices] = mat
+    else:
+        mat = q.to("csr").data_as().tocoo()
+        newrows = [newindices[i] for i in mat.row]
+        newcols = [newindices[i] for i in mat.col]
+        newmat = scipy.sparse.coo_matrix(
+            (mat.data, (newrows, newcols)), shape=newshape)
 
-    return qutip.Qobj(newmat, dims=newdims, dtype="csr")
+    return qutip.Qobj(newmat, dims=newdims, dtype=dtype)
 
 
 # copied parameters from test_ptrace.py
@@ -264,6 +273,11 @@ def isoper(request):
     return request.param
 
 
+@pytest.fixture(params=["csr", "dense", "dia"])
+def dtype(request):
+    return request.param
+
+
 @pytest.mark.parametrize('dims_list, n_ex_list',
                          [
                              ([[3]], [2]),
@@ -271,7 +285,7 @@ def isoper(request):
                              ([[3, 2], [2, 2]], [2, 1]),
                              ([[3, 2], [4], [2, 2]], [2, 3, 2]),
                          ])
-def test_enr_tensor(dims_list, n_ex_list, isoper):
+def test_enr_tensor(dims_list, n_ex_list, isoper, dtype):
     # isoper = 1 to test for operators, 0 to test for kets
     # figure out how big the matrices/vectors will be
     nstates_list = [_n_enr_states(dims, n_ex)
@@ -288,16 +302,20 @@ def test_enr_tensor(dims_list, n_ex_list, isoper):
         for (nstates, ncol, dens)
         in zip(nstates_list, ncol_arr, dens_list)]
 
-    # turn the random matrices into Qobj with ENR dimensions
+    # figure out the row and column spaces for the ENR Qobj's
     rowspace_list = [qutip.energy_restricted.EnrSpace(dims, n_ex)
                      for dims, n_ex in zip(dims_list, n_ex_list)]
     if isoper:
         colspace_list = rowspace_list
     else:
         colspace_list = [[1]] * len(rowspace_list)
-    q_in_enr_list = [qutip.Qobj(rand_mat, dims=[rowspace, colspace])
-                     for rand_mat, rowspace, colspace
-                     in zip(rand_mat_list, rowspace_list, colspace_list)]
+
+    # turn the random matrices into Qobj's
+    q_in_enr_list = [
+        qutip.Qobj(rand_mat, dims=[rowspace, colspace], dtype=dtype)
+        for rand_mat, rowspace, colspace
+        in zip(rand_mat_list, rowspace_list, colspace_list)]
+    assert all(q_in_enr.isoper == isoper for q_in_enr in q_in_enr_list)
 
     q_in_reg_list = [enr_to_reg(q_in_enr) for q_in_enr in q_in_enr_list]
 
@@ -309,8 +327,8 @@ def test_enr_tensor(dims_list, n_ex_list, isoper):
 
 
 @pytest.mark.parametrize('truncate', [True, False])
-def test_enr_tensor_trunc(isoper, truncate):
-    q_in = qutip.enr_fock([2], 1, [1], dtype="csr")
+def test_enr_tensor_trunc(isoper, dtype, truncate):
+    q_in = qutip.enr_fock([2], 1, [1], dtype=dtype)
     if isoper:
         q_in = q_in.proj()
 
@@ -321,7 +339,7 @@ def test_enr_tensor_trunc(isoper, truncate):
     else:
         q_out = qutip.enr_tensor(q_in, q_in, truncate=truncate, verbose=False)
         q_out_check = qutip.zero_ket(
-            qutip.energy_restricted.EnrSpace([2, 2], 1), dtype="csr")
+            qutip.energy_restricted.EnrSpace([2, 2], 1), dtype=dtype)
         if isoper:
             q_out_check = q_out_check.proj()
         assert q_out == q_out_check

@@ -446,8 +446,6 @@ def enr_tensor(*args: Qobj, newexcitations: int = None,
             raise TypeError("requires Qobj operands") from None
     if not all(isinstance(q, Qobj) for q in args):
         raise TypeError("requires Qobj operands")
-    if any(q.dtype is not _data.CSR for q in args):
-        raise TypeError("only implemented for CSR dtype")
 
     excitations = [(getattr(q._dims[0], 'n_excitations', None)
                     or q._dims[1].n_excitations) for q in args]
@@ -463,13 +461,16 @@ def enr_tensor(*args: Qobj, newexcitations: int = None,
     # loop over the the operators
     for q in args:
         out, trunccount = _enr_tensor_qobj_with_dict(
-            out, q, newexcitations, truncate, trunccount)
+            out, q.to(_data.CSR), newexcitations, truncate, trunccount)
 
     if trunccount > 0 and verbose:
         print(f"Truncated {trunccount} entries.")
 
+    dtype = args[0].dtype if all(q.dtype == args[0].dtype for q in args) \
+        else None
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     return _enr_qobj_from_dict(out, newdims, newexcitations,
-                               isherm=all(q.isherm for q in args))
+                               isherm=all(q.isherm for q in args), dtype=dtype)
 
 
 def _enr_tensor_qobj_with_dict(d: dict, q: Qobj, newexcitations: int,
