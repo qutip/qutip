@@ -8,11 +8,10 @@ from .. import settings
 import math
 import numbers
 import itertools
-from functools import lru_cache
 
-__all__ = ['enr_state_dictionaries', 'enr_nstates', 'enr_state2idx',
-           'enr_idx2state', 'enr_fock', 'enr_thermal_dm', 'enr_destroy',
-           'enr_identity', 'enr_ptrace', 'enr_tensor']
+__all__ = ['enr_state_dictionaries', 'enr_nstates',
+           'enr_fock', 'enr_thermal_dm', 'enr_destroy', 'enr_identity',
+           'enr_ptrace', 'enr_tensor']
 
 
 def enr_state_dictionaries(dims, excitations):
@@ -50,7 +49,6 @@ def enr_state_dictionaries(dims, excitations):
     return nstates, state2idx, idx2state
 
 
-@lru_cache(maxsize=4096)
 def enr_nstates(dims, excitations):
     """
     Directly compute the number of states for a system with a given number of
@@ -83,87 +81,6 @@ def enr_nstates(dims, excitations):
                    for k in range(kmax+1)
                    for subset in itertools.combinations(dims, k)
                    if sum(subset) < excitations+m)
-
-
-@lru_cache(maxsize=4096)
-def enr_state2idx(dims, excitations, state):
-    """
-    Returns the index of a state in the excitation-number restricted space
-    defined by `dims` and `excitations`.
-
-    Parameters
-    ----------
-    dims: list of integers
-        A list with the number of states in each sub-system.
-
-    excitations : integer
-        The maximum number excitations across all sub-systems.
-
-    state: list of integers
-        The state in the number basis representation.
-
-    Returns
-    -------
-    idx: integer
-        The index of the given state in the ENR state space
-    """
-    if sum(state) > excitations:
-        raise ValueError("state and excitations not compatible")
-    if (len(state) != len(dims)
-            or any(s > d-1 for (s, d) in zip(state, dims))):
-        raise ValueError("state and dims not compatible")
-    idx = 0
-    stot = 0
-    for (ii, s) in enumerate(state):
-        # add how many states have skpped to get to this number of excitations
-        idx += sum(enr_nstates(dims[(ii+1):], excitations-stot-jj)
-                   for jj in range(s))
-        stot += s
-    return idx
-
-
-@lru_cache(maxsize=4096)
-def enr_idx2state(dims, excitations, idx):
-    """
-    Returns the index of a state in the excitation-number restricted space
-    defined by `dims` and `excitations`.
-
-    Parameters
-    ----------
-    dims: list
-        A list with the number of states in each sub-system.
-
-    excitations : integer
-        The maximum number excitations across all sub-systems.
-
-    idx: integer
-        The index of the state in the ENR space
-
-    Returns
-    -------
-    state: tuple of integers
-        The state corresponding to the index in the ENR state space
-    """
-    if idx >= enr_nstates(dims, excitations):
-        raise ValueError("index inconsistent with dims, excitations")
-    stot = 0        # number of excitations added so far
-    idx_tmp = 0     # we increment the index until we find the right state
-    state = [0]*len(dims)
-    inc = 0
-    ii = 0          # which component we are adding to
-    while idx_tmp < idx:
-        # how much index would increment by if we added 1 to current component
-        inc = enr_nstates(dims[(ii+1):], excitations-stot)
-        if (idx_tmp + inc) > idx:
-            # if we can't add any more to current component, go to next
-            ii += 1
-        else:
-            # if we can add to current component, do so
-            state[ii] += 1
-            idx_tmp += inc
-            stot += 1
-
-    return tuple(state)
 
 
 class EnrSpace(Space):
