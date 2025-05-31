@@ -56,7 +56,7 @@ class Solver:
         if isinstance(rhs, (QobjEvo, Qobj)):
             self.rhs = QobjEvo(rhs)
         else:
-            TypeError("The rhs must be a QobjEvo")
+            raise TypeError("The rhs must be a QobjEvo")
         self.options = options
         self._integrator = self._get_integrator()
         self._state_metadata = {}
