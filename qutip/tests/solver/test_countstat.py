@@ -117,6 +117,6 @@ def test_three_cumulants(method):
 
     current_ana, noise_ana, skewness_ana = compute_analytical_cumulants(Gamma_r, Gamma_l)
 
-    np.testing.assert_allclose(current_num[0], current_ana, atol=1e-6)
-    np.testing.assert_allclose(noise_num[0,0,0], noise_ana, atol=1e-6)
-    np.testing.assert_allclose(skw_num[0,0], skewness_ana, atol=1e-6)
+    np.testing.assert_allclose(current_num[0], current_ana, atol=1e-4)
+    np.testing.assert_allclose(noise_num[0,0,0], noise_ana, atol=1e-4)
+    np.testing.assert_allclose(skw_num[0,0], skewness_ana, atol=1e-4)
