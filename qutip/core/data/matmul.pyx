@@ -350,13 +350,14 @@ cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=1):
     cdef idxint col, row, ii, num_diag_out, offset
     cdef idxint start_left, end_left, start_out, end_out, start, end, off_out
     cdef idxint start_right, end_right
-    cdef int ONE=1, ZERO=0, l
+    cdef int ONE=1, ZERO=0, num_elem
 
     out = dia.empty(
         left.shape[0], right.shape[1],
-        min(left.shape[0] + right.shape[1] -1, left.num_diag * right.num_diag)
+        min(left.shape[0] + right.shape[1] - 1, left.num_diag * right.num_diag)
     )
 
+    # Fill the output matrix's offsets, sorted and without redundancies.
     offsets = out.offsets
     num_diag_out = 0
     for col in range(left.num_diag):
@@ -383,8 +384,8 @@ cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=1):
     ptr = &offsets[0]
 
     with nogil:
-      l = num_diag_out * out.shape[1]
-      blas.zcopy(&l, &ZZERO, &ZERO, data, &ONE)
+      num_elem = num_diag_out * out.shape[1]
+      blas.zcopy(&num_elem, &ZZERO, &ZERO, data, &ONE)
 
       for diag_left in range(left.num_diag):
         for diag_right in range(right.num_diag):
