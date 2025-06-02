@@ -8,6 +8,7 @@ from .. import settings
 import math
 import numbers
 import itertools
+import warnings
 
 __all__ = ['enr_state_dictionaries', 'enr_nstates',
            'enr_fock', 'enr_thermal_dm', 'enr_destroy', 'enr_identity',
@@ -353,8 +354,6 @@ def enr_ptrace(rho, sel):
     if rho.shape[0] != rho.shape[1]:
         raise ValueError(
             "enr_ptrace is only defined for square density matrices")
-    if rho.dtype is not _data.CSR:
-        raise TypeError("only implemented for CSR dtype")
     try:
         sel = sorted(sel)
     except TypeError:
@@ -372,8 +371,12 @@ def enr_ptrace(rho, sel):
         # trace out all modes
         return Qobj(rho.tr(), dtype="csr")
 
+    dtype = rho.dtype
+    if dtype is _data.Dense:
+        warnings.warn("enr_ptrace may be slow for dense matrices.")
+
     excitations = rho._dims[0].n_excitations
-    mat = rho.data.as_scipy().tocoo()
+    mat = rho.to(_data.CSR).data.as_scipy().tocoo()
 
     # get the new dimensions
     dims_new = [dims[i] for i in sel]
@@ -401,7 +404,7 @@ def enr_ptrace(rho, sel):
             out[row_idx_new, col_idx_new] += val
 
     # convert to Qobj
-    return Qobj(out, dims=[space_new]*2)
+    return Qobj(out, dims=[space_new]*2, dtype=dtype)
 
 
 def enr_tensor(*args: Qobj, newexcitations: int = None,

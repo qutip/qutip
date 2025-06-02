@@ -242,6 +242,11 @@ def enr_to_reg(q):
     return qutip.Qobj(newmat, dims=newdims, dtype=dtype)
 
 
+@pytest.fixture(params=["csr", "dense", "dia"])
+def dtype(request):
+    return request.param
+
+
 # copied parameters from test_ptrace.py
 @pytest.mark.parametrize('dims, sel',
                          [
@@ -254,11 +259,11 @@ def enr_to_reg(q):
                              ([4, 4, 4], []),
                              ([4, 4, 4], [0, 1, 2]),
                          ])
-def test_enr_ptrace(dims, sel, n_excitations):
+def test_enr_ptrace(dims, sel, n_excitations, dtype):
     nstates_enr = _n_enr_states(dims, n_excitations)
     # use qutip to make a random sparse Hermitian matrix w/ trace 1
     rho_in_enr = qutip.rand_dm(
-        nstates_enr, 0.05, distribution="herm", dtype="csr")
+        nstates_enr, 0.05, distribution="herm", dtype=dtype)
 
     rho_in_enr.dims = [qutip.energy_restricted.EnrSpace(dims, n_excitations)]*2
     rho_in_reg = enr_to_reg(rho_in_enr)
@@ -275,11 +280,6 @@ def test_enr_ptrace(dims, sel, n_excitations):
     pytest.param(1, id="oper"),
 ])
 def isoper(request):
-    return request.param
-
-
-@pytest.fixture(params=["csr", "dense", "dia"])
-def dtype(request):
     return request.param
 
 
