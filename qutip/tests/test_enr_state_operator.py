@@ -65,6 +65,11 @@ class TestOperator:
         assert iden.shape == expected_shape
         assert iden.dims == [dimensions, dimensions]
 
+    def test_nstates(self, dimensions, n_excitations):
+        expected_size = _n_enr_states(dimensions, n_excitations)
+        nstates = qutip.enr_nstates(dimensions, n_excitations)
+        assert nstates == expected_size
+
 
 def test_fock_state(dimensions, n_excitations):
     """

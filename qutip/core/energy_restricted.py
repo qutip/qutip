@@ -71,7 +71,7 @@ def enr_nstates(dims, excitations):
     if len(dims) == 0:
         return 1
     m = len(dims)
-    kmax = excitations//min(dims)
+    kmax = min((excitations, sum(dims)))//min(dims)
     if all(d == dims[0] for d in dims):  # this situation can be solved faster
         return sum(
             (-1)**k * math.comb(m, k) * math.comb(excitations-k*dims[0]+m, m)
