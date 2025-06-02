@@ -259,6 +259,7 @@ def dtype(request):
                              ([4, 4, 4], []),
                              ([4, 4, 4], [0, 1, 2]),
                          ])
+@pytest.mark.filterwarnings("ignore:enr_ptrace")  
 def test_enr_ptrace(dims, sel, n_excitations, dtype):
     nstates_enr = _n_enr_states(dims, n_excitations)
     # use qutip to make a random sparse Hermitian matrix w/ trace 1
