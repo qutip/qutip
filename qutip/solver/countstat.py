@@ -216,12 +216,18 @@ def _noise_pseudoinv(L, wlist, rhoss, J_ops, I_ops, sparse, method):
                 noise[i, j, k] = J_ops[i](rhoss).tr().real
                 skewness[i, k] = I_ops[i](rhoss).tr().real
                 skewness[i, k] -= (
-                    3*((I_ops[i] @ R @ J_ops[i])(rhoss).tr().real
-                    + (J_ops[i] @ R @ I_ops[i])(rhoss).tr().real)
+                    3 * (
+                        (I_ops[i] @ R @ J_ops[i])(rhoss).tr().real +
+                        (J_ops[i] @ R @ I_ops[i])(rhoss).tr().real
+                    )
                 )
+
                 skewness[i, k] -= (
-                    6*((I_ops[i] @ R @ (R @ I_ops[i] @ Pop_new
-                    - I_ops[i] @ R) @ I_ops[i])(rhoss).tr().real)
+                    6 * (
+                        (I_ops[i] @ R @ (
+                            R @ I_ops[i] @ Pop_new - I_ops[i] @ R
+                        ) @ I_ops[i])(rhoss).tr().real
+                    )
                 )
             op = I_ops[i] @ R @ I_ops[j] + I_ops[j] @ R @ I_ops[i]
             noise[i, j, k] -= op(rhoss).tr().real
@@ -295,7 +301,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     --------
     current : tuple of arrays
         The first cumulant, representing the mean current associated with each
-        current superoperator `I_ops`. It quantifies the average charge 
+        current superoperator `I_ops`. It quantifies the average charge
         transfer rate across the system.
 
     noise : tuple of arrays
@@ -306,7 +312,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
 
     skewness : tuple of arrays
         The third cumulant, representing the asymmetry of current fluctuations.
-        It describes whether deviations from the mean current are more 
+        It describes whether deviations from the mean current are more
         likely to be positive or negative. Unlike noise, skewness only
         accounts for diagonal (self-correlated) terms and does not
         include cross-correlations between different `J_ops`.
