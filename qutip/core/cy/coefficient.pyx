@@ -156,7 +156,7 @@ cdef class Coefficient:
         return ConjCoefficient(self)
 
     def __eq__(self, other):
-        return self is other or self.__reduce__() == other.__reduce__()
+        return NotImplemented
 
 
 @cython.auto_pickle(True)
@@ -614,6 +614,15 @@ cdef class InterCoefficient(Coefficient):
             return Coefficient.__mul__(self, right)
 
         if isinstance(right, InterCoefficient):
+            """
+            We create a spline of the same order as the input.
+            The pure mathematical product should add orders, creating a 6th
+            order for the product of 2 cubic splines, etc. We don't want to
+            increase the polynome size without limit and recreating the spline
+            is still a good approximation.
+
+            Note: Should we add an option for this? Or limit to CubicSpline?
+            """
             other = <InterCoefficient> right
             if (
                 self.np_arrays[0].shape == other.np_arrays[0].shape
@@ -661,7 +670,8 @@ cdef class InterCoefficient(Coefficient):
         return (
             np.allclose(self.np_arrays[0], other.np_arrays[0]) and
             np.allclose(self.np_arrays[1], other.np_arrays[1]) and
-            np.allclose(self.dt, other.dt)
+            np.allclose(self.dt, other.dt) and
+            self.boundary_conditions == other.boundary_conditions
         )
 
 

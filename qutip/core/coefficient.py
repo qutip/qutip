@@ -572,16 +572,15 @@ cdef class StrCoefficient(Coefficient):
     cdef complex _call(self, double t) except *:
 {call_var}        return {code}
 
-    def __eq__(left, right):
-        if left is right:
+    def __eq__(self, other):
+        if self is other:
             return True
+        # If compiled with cython 0.X, self and other could be inverted.
         if (
-            not isinstance(left, StrCoefficient) or
-            not isinstance(right, StrCoefficient)
+            not isinstance(self, StrCoefficient) or
+            not isinstance(other, StrCoefficient)
         ):
             return False
-        cdef StrCoefficient self = left
-        cdef StrCoefficient other = right
         return self.__reduce__()[2] == other.__reduce__()[2]
 
 """
