@@ -338,25 +338,62 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
 
 cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=1):
     _check_shape(left, right, None)
-    # We could probably do faster than this...
-    npoffsets = np.unique(np.add.outer(left.as_scipy().offsets, right.as_scipy().offsets))
-    npoffsets = npoffsets[np.logical_and(npoffsets > -left.shape[0], npoffsets < right.shape[1])]
-    cdef idxint[:] offsets = npoffsets
-    if len(npoffsets) == 0:
+
+    if left.num_diag == 0 or right.num_diag == 0:
         return dia.zeros(left.shape[0], right.shape[1])
-    cdef idxint *ptr = &offsets[0]
-    cdef size_t num_diag = offsets.shape[0], diag_out, diag_left, diag_right
-    cdef idxint start_left, end_left, start_out, end_out, start, end, col, off_out
-    npdata = np.zeros((num_diag, right.shape[1]), dtype=complex)
-    cdef double complex[:, ::1] data = npdata
+
+    cdef size_t diag_out, diag_left, diag_right
+    cdef idxint *offsets
+    cdef idxint *ptr
+    cdef double complex *data
+    cdef double complex ZZERO=0.
+    cdef idxint col, row, ii, num_diag_out, offset
+    cdef idxint start_left, end_left, start_out, end_out, start, end, off_out
+    cdef idxint start_right, end_right
+    cdef int ONE=1, ZERO=0, num_elem
+
+    out = dia.empty(
+        left.shape[0], right.shape[1],
+        min(left.shape[0] + right.shape[1] - 1, left.num_diag * right.num_diag)
+    )
+
+    # Fill the output matrix's offsets, sorted and without redundancies.
+    offsets = out.offsets
+    num_diag_out = 0
+    for col in range(left.num_diag):
+      for row in range(right.num_diag):
+        offset = left.offsets[col] + right.offsets[row]
+        if not (offset > -left.shape[0] and offset < right.shape[1]):
+          continue
+        loc = num_diag_out
+        for ii in range(num_diag_out):
+            if offsets[ii] == offset:
+                loc = -1
+                break
+            if offsets[ii] > offset:
+                loc = ii
+                break
+        if loc >= 0:
+            for ii in range(num_diag_out, loc, -1):
+                offsets[ii] = offsets[ii - 1]
+            offsets[loc] = offset
+            num_diag_out += 1
+
+    out.num_diag = num_diag_out
+    data = out.data
+    ptr = &offsets[0]
 
     with nogil:
+      num_elem = num_diag_out * out.shape[1]
+      blas.zcopy(&num_elem, &ZZERO, &ZERO, data, &ONE)
+
       for diag_left in range(left.num_diag):
         for diag_right in range(right.num_diag):
           off_out = left.offsets[diag_left] + right.offsets[diag_right]
           if off_out <= -left.shape[0] or off_out >= right.shape[1]:
             continue
-          diag_out = <idxint> (lower_bound(ptr, ptr + num_diag, off_out) - ptr)
+
+          diag_out = <idxint> (lower_bound(ptr, ptr + num_diag_out, off_out) - ptr)
 
           start_left = max(0, left.offsets[diag_left]) + right.offsets[diag_right]
           start_right = max(0, right.offsets[diag_right])
@@ -364,16 +401,18 @@ cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=1):
           end_left = min(left.shape[1], left.shape[0] + left.offsets[diag_left]) + right.offsets[diag_right]
           end_right = min(right.shape[1], right.shape[0] + right.offsets[diag_right])
           end_out = min(right.shape[1], left.shape[0] + off_out)
+
           start = max(start_left, start_right, start_out)
           end = min(end_left, end_right, end_out)
 
           for col in range(start, end):
-              data[diag_out, col] += (
+              data[diag_out * out.shape[1] + col] += (
                 scale
                 * left.data[diag_left * left.shape[1] + col - right.offsets[diag_right]]
                 * right.data[diag_right * right.shape[1] + col]
               )
-    return Dia((npdata, npoffsets), shape=(left.shape[0], right.shape[1]), copy=False)
+
+    return out
 
 
 cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1, Dense out=None):
