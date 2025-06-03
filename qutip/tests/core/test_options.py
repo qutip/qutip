@@ -1,14 +1,21 @@
 import pytest
 import numpy
-from unittest.mock import Mock
 
 import qutip
 from qutip.core.numpy_backend import np
 from qutip import CoreOptions, settings
 
+
 # Mocking JAX to demonstrate backend switching
-mock_jax = Mock
-mock_jax.sum = Mock(return_value="jax_sum")
+class Mock_JAX:
+    def sum(*a, **kw):
+        return "jax_sum"
+
+    def __getattr__(self, _):
+        return "other"
+
+
+mock_jax = Mock_JAX()
 mock_np = numpy
 
 
@@ -42,6 +49,28 @@ class TestDefaultDType:
         with CoreOptions(default_dtype="CSR", default_dtype_scope="full"):
             assert (sparse + dense).dtype is qutip.core.data.CSR
             assert (dense + dense).dtype is qutip.core.data.CSR
+
+    def test_dtype_group(self):
+        qutip.core.data.to.register_group(
+            ["test"],
+            dense=qutip.core.data.Dia,
+            sparse=qutip.core.data.Dia,
+            diagonal=qutip.core.data.CSR
+        )
+        with CoreOptions(default_dtype="test"):
+            # sparse to dense is cheaper than the reverse.
+            assert qutip.qeye(3).dtype is qutip.core.data.CSR
+            assert qutip.basis(2).dtype is qutip.core.data.Dia
+
+        with CoreOptions(default_dtype="test", default_dtype_scope="full"):
+            assert (
+                qutip.qeye(3).dtype
+                in (qutip.core.data.CSR, qutip.core.data.Dia)
+            )
+            assert (
+                (-qutip.qeye(3, dtype="dense")).dtype in
+                (qutip.core.data.CSR, qutip.core.data.Dia)
+            )
 
 
 class TestNumpyBackend:

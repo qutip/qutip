@@ -130,3 +130,23 @@ def test_ptrace_operator(dtype, sel):
         qutip.rand_dm(2), qutip.thermal_dm(10, 1), qutip.rand_unitary(3),
     ).to(dtype)
     assert A.ptrace(sel) == expected(A, sel)
+
+@pytest.mark.parametrize('dims, sel',
+                         [
+                             ([5, 2, 3], [2, 1]),
+                             ([5, 2, 3], [0, 2]),
+                             ([5, 2, 3], [0, 1]),
+                             ([5, 2, 3], [0]),
+                             ([2]*6, []),
+                             ([2]*6, [3]),
+                             ([2]*6, [0, 2]),
+                             ([2]*6, [0, 1, 4]),
+                             ([2]*6, [0, 1, 2, 3, 4, 5]),
+                         ])
+def test_ptrace_ket_specialization_matches_old_implementation(dtype, dims, sel):
+    """Kets have a different implementation for ptrace. 
+       Test that this specialization gives the same result 
+       as the non-specialized version.
+    """
+    A = qutip.rand_ket(dims)
+    assert A.ptrace(sel) == A.proj().ptrace(sel)

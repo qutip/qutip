@@ -40,7 +40,9 @@ class StringParsingWarning(Warning):
     pass
 
 
-def _return(base, **kwargs):
+def _return(base, args=None, **kwargs):
+    if args is not None:
+        base = base.replace_arguments(args)
     return base
 
 
@@ -61,8 +63,8 @@ def coefficient(
     base: CoefficientLike,
     *,
     tlist: ArrayLike = None,
-    args: dict = {},
-    args_ctypes: dict = {},
+    args: dict = None,
+    args_ctypes: dict = None,
     order: int = 3,
     compile_opt: dict = None,
     function_style: str = None,
@@ -177,8 +179,8 @@ def coefficient(
     """
     kwargs.update({
         "tlist": tlist,
-        'args': args,
-        'args_ctypes': args_ctypes,
+        'args': args or {},
+        'args_ctypes': args_ctypes or {},
         'order': order,
         'compile_opt': compile_opt,
         'function_style': function_style,
@@ -190,6 +192,7 @@ def coefficient(
             return coefficient_builders[type_](base, **kwargs)
 
     if callable(base):
+        args = args or {}
         op = FunctionCoefficient(base, args.copy(), style=function_style)
         if not isinstance(op(0), numbers.Number):
             raise TypeError("The coefficient function must return a number")

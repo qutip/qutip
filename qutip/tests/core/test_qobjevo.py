@@ -318,6 +318,9 @@ def test_unary_ket(unary_op):
         as_qevo = transformed(t)
         as_qobj = unary_op(obj(t))
         assert transformed._dims == as_qevo._dims
+        assert transformed._dims == as_qobj._dims
+        assert transformed.shape == as_qobj.shape
+        assert transformed.shape == as_qevo.shape
         _assert_qobj_almost_eq(as_qevo, as_qobj)
 
 
@@ -496,7 +499,7 @@ def test_QobjEvo_step_coeff():
     "QobjEvo step interpolation"
     coeff1 = np.random.rand(6)
     coeff2 = np.random.rand(6) + np.random.rand(6) * 1.j
-    # uniform t
+    # uniform t_dims =
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
                       tlist=tlist, order=0)
