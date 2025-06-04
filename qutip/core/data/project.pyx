@@ -3,7 +3,6 @@
 
 from libc.string cimport memcpy, memset
 
-from qutip.settings import settings
 from qutip.core.data.base cimport idxint
 from qutip.core.data cimport csr, dense, Dense, dia, Dia, Data
 from qutip.core.data.csr cimport CSR
@@ -103,9 +102,8 @@ cpdef Data project_dense_data(Dense state):
 
     If the projection output would be less than 30% full, return a CSR matrix.
     """
-    out_type = settings.core["default_dtype"]
     out_density = dense.nnz(state) * 1.0 / state.shape[0]
-    if out_density < 0.55 and out_type is not Dense:
+    if out_density < 0.55:
         return project_csr(_to(CSR, state))
     else:
         return _project_dense(state)
