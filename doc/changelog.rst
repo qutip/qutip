@@ -36,7 +36,7 @@ Other improvements
 ^^^^^^^^^^^^^^^^^^
 - Add the calculation of the third cumulant to the functions of countstat.py.
   I use a result of "Electrons in nanostructures" C. Flindt, PhD Thesis (#2435, by Daniel Moreno Galán)
-- Support pretty-printing of basis expansion for states (e.g. "(0.5+0j) |0010> + ..."). (#2620, by Sola85)
+- Support pretty-printing of basis expansion for states (e.g. ``(0.5+0j) |0010> + ...``). (#2620, by Sola85)
 - Added QuTiP family package information to qutip.about().
   The information is provided by a new QuTiP family package entry point. (#2604)
 - Speed up ptrace for kets (by several orders of magnitude for large states). (#2657, by Sola85)
