@@ -6,6 +6,78 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.2.0 (2025-06-06)
+========================
+
+Features
+--------
+
+Improvements to Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- Two 'DrudeLorentzPadeBath' can be added with complex conjugate 'gammas' to create a Shifted-DrudeLorentzPadeBath. (#2574, by Akhil Bhartiya)
+- Adds extra fitting methods (power spectrum, prony, esprit, aaa, espira-I, espira-II) for bosonic environments (#2594, by Gerardo Jose Suarez)
+- Add support for `FermionicEnvironment` in Bloch Redfield tensor and solver. (#2628)
+
+New experimental solver
+^^^^^^^^^^^^^^^^^^^^^^^
+- Add a first version of Dysolve solver as ``dysolve_propagator``.
+  A perturbation solver for Schrödinger equation optimized for driven systems.
+  (#2648, #2679, by Mathis)
+
+Better matrix format control
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- Add "default_dtype_scope" option.
+  Give more control on matrix format used by operations. (#2519)
+- Creating operator from dense ket.proj return CSR when appropriate (#2700)
+- `|ket> @ <bra|` create sparse matrix per default. (#2611)
+
+Other improvements
+^^^^^^^^^^^^^^^^^^
+- Add the calculation of the third cumulant to the functions of countstat.py.
+  I use a result of "Electrons in nanostructures" C. Flindt, PhD Thesis (#2435, by Daniel Moreno Galán)
+- Support pretty-printing of basis expansion for states (e.g. "(0.5+0j) |0010> + ..."). (#2620, by Sola85)
+- Added QuTiP family package information to qutip.about().
+  The information is provided by a new QuTiP family package entry point. (#2604)
+- Speed up ptrace for kets (by several orders of magnitude for large states). (#2657, by Sola85)
+- Implement partial trace and tensor product for states in excitation-number restricted space. (#2696, magzpavz)
+
+Bug Fixes
+---------
+
+- Fix arc behind hidden behind the wireframe. (#2467, by PositroniumJS)
+- Update mkl finding to support the 'emscripten' sys.platform. (#2606)
+- Make sure that dims of rand_ket output are set correctly. (#2613, reported by Mário Filho)
+- Allow np.int as targets in expand_operator (#2634, by Sola85)
+- Fix coefficient `args` not being properly updated
+  when initiated from another coefficient. (#2646, reported by Kyle Wamer)
+- Fix equality operators for diagonal format Qobj. (#2669, reported by Richard Dong)
+- Enable again to plot a state as a point on the Bloch sphere with a RGBA tuple.
+  Enable to do the same as a vector. (#2678, by PositroniumJS)
+- Added missing abs when checking hermiticity (#2680, by Tanuj Rai, reported by tuureorell)
+- Fix types and exceptions (#2701, Emmanuel Ferdman)
+
+Documentation
+-------------
+
+- Docstrings, typing, guide page for distributions. (#2599, by Mathis)
+- Guide for qutip.distributions (#2600, by Mathis)
+- Removes the Quantum Optimal Control page in the Users Guide and adds Family guide page in Users guide. (#2616, by Kavya Rambhia)
+- Fix small typo in docstring for `sesolve`. (#2677, by Sarang Joshi)
+
+
+Miscellaneous
+-------------
+
+- Removed WignerDistribution, QDistribution from distributions with their tests.
+  Added plot_qfunc to plot Husimi-Q function with tests and animation. (#2607, by Mathis)
+- Specialized A @ B.dag() operation. (#2610)
+- Set auto_tidyup_dims default to True (#2623)
+- Change default ode method for mcsolve (#2643)
+- Fix parameter name inconsistency in qsave (#2688, by Andrey Rakhubovsky)
+- Add tests for qdiags and phasegate Hermitian fix (#2698, by Tanuj Rai)
+- Changed type hints in function visualize in distributions.py (tests failed if mpl not installed). (#2607, by Mathis)
+
+
 QuTiP 5.1.1 (2025-01-10)
 =========================
 
