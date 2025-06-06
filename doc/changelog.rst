@@ -30,6 +30,7 @@ Better matrix format control
   Give more control on matrix format used by operations. (#2519)
 - Creating operator from dense ket.proj return CSR when appropriate (#2700)
 - `|ket> @ <bra|` create sparse matrix per default. (#2611)
+- Tensor product of sparse and dense matrices return sparse matrix per default. (#2391)
 
 Other improvements
 ^^^^^^^^^^^^^^^^^^
