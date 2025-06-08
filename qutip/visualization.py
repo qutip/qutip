@@ -978,6 +978,8 @@ def matrix_histogram(
                     ).sum(0).flatten()
         )
 
+        frame_artists = []
+
         for i, uxpos in enumerate(xpos):
             artist = ax.bar3d(
                 uxpos,
@@ -991,9 +993,10 @@ def matrix_histogram(
                 linewidths=options["bars_lw"],
                 shade=options["shade"],
             )
-            # Setting the z-order for rendering
             artist._sort_zpos = z_order[i]
-            artist_list.append([artist])
+            frame_artists.append(artist)
+
+        artist_list.append(frame_artists)
 
     if len(Ms) == 1:
         output = ax
