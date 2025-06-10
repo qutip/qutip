@@ -30,7 +30,7 @@ Pygments==2.18.0
 pyparsing==3.1.4
 python-dateutil==2.9.0.post0
 pytz==2024.1
-requests==2.32.2
+requests==2.32.4
 scipy==1.14.1
 setuptools==78.1.1
 six==1.16.0
