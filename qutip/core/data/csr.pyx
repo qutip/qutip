@@ -23,12 +23,14 @@ if parse_version(scipy.version.version) >= parse_version("1.14.0"):
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
     # From scipy 1.14.0, a check that the input is not scalar was added for
     # sparse arrays.
-    scipy_data_matrix = partial(scipy_data_matrix, arg1=(0,))
+    scipy_data_matrix_init = partial(scipy_data_matrix.__init__, arg1=(0,))
 elif parse_version(scipy.version.version) >= parse_version("1.8.0"):
     # The file data was renamed to _data from scipy 1.8.0
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
+    scipy_data_matrix_init = scipy_data_matrix.__init__
 else:
     from scipy.sparse.data import _data_matrix as scipy_data_matrix
+    scipy_data_matrix_init = scipy_data_matrix.__init__
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, Dia
@@ -60,7 +62,7 @@ cdef object _csr_matrix(data, indices, indptr, shape):
     cdef object out = scipy_csr_matrix.__new__(scipy_csr_matrix)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
-    scipy_data_matrix.__init__(out)
+    scipy_data_matrix_init(out)
     out.data = data
     out.indices = indices
     out.indptr = indptr
@@ -149,6 +151,10 @@ cdef class CSR(base.Data):
         self._scipy = _csr_matrix(data, col_index, row_index, self.shape)
         if tidyup:
             tidyup_csr(self, settings.core['auto_tidyup_atol'], True)
+
+    @classmethod
+    def sparcity(self):
+        return "sparse"
 
     def __reduce__(self):
         return (fast_from_scipy, (self.as_scipy(),))

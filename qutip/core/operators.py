@@ -67,7 +67,7 @@ shape = [4, 4], type = oper, isherm = False
      [ 0.          0.          0.          0.        ]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     offsets = [0] if offsets is None else offsets
     if not isinstance(offsets, list):
         offsets = [offsets]
@@ -75,7 +75,7 @@ shape = [4, 4], type = oper, isherm = False
         isherm = False
         isunitary = False
     elif offsets == [0]:
-        isherm = np.all(np.imag(diagonals) <= settings.core["atol"])
+        isherm = np.all(np.abs(np.imag(diagonals)) <= settings.core["atol"])
         isunitary = np.all(np.abs(diagonals) - 1 <= settings.core["atol"])
     else:
         isherm = None
@@ -152,7 +152,7 @@ shape = [3, 3], type = oper, isHerm = True
      [ 0.  0.  0.]
      [ 0.  0. -1.]]]
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     if int(2 * j) != 2 * j or j < 0:
         raise ValueError('j must be a non-negative integer or half-integer')
 
@@ -198,7 +198,7 @@ def _jz(j, *, dtype=None):
     """
     Internal functions for generating the data representing the J-z operator.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     N = int(2*j + 1)
     data = np.array([j-k for k in range(N)], dtype=complex)
     return _data.diag[dtype](data, 0)
@@ -367,7 +367,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 0.  0.]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     return _SIGMAP.to(dtype, True)
 
 
@@ -390,7 +390,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 1.  0.]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     return _SIGMAM.to(dtype, True)
 
 
@@ -413,7 +413,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 1.  0.]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     return _SIGMAX.to(dtype, True)
 
 
@@ -436,7 +436,7 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0.+1.j  0.+0.j]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     return _SIGMAY.to(dtype, True)
 
 
@@ -459,7 +459,7 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0. -1.]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     return _SIGMAZ.to(dtype, True)
 
 
@@ -495,7 +495,7 @@ def destroy(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
      [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  1.73205081+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]]
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
@@ -534,7 +534,7 @@ def create(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
      [ 0.00000000+0.j  1.41421356+0.j  0.00000000+0.j  0.00000000+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
@@ -666,7 +666,7 @@ def _f_op(n_sites, site, action, dtype: LayerType = None,):
     oper : qobj
         Qobj for destruction operator.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     # get `tensor` and sigma z objects
     from .tensor import tensor
     s_z = 2 * jmat(0.5, 'z', dtype=dtype)
@@ -730,7 +730,7 @@ def qzero(
         Zero operator Qobj.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     dims_left = Space(dimensions)
     size_left = dims_left.size
     if dims_right is None:
@@ -807,7 +807,7 @@ isherm = True
      [0. 0. 0. 1.]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     dimensions = Space(dimensions)
     return Qobj(_data.identity[dtype](dimensions.size), dims=[dimensions]*2,
                 isherm=True, isunitary=True, copy=False, dtype=dtype)
@@ -865,7 +865,7 @@ def position(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
     oper : qobj
         Position operator as Qobj.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     a = destroy(N, offset=offset, dtype=dtype)
     position = np.sqrt(0.5) * (a + a.dag())
     position.isherm = True
@@ -895,7 +895,7 @@ def momentum(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
     oper : qobj
         Momentum operator as Qobj.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     a = destroy(N, offset=offset, dtype=dtype)
     momentum = -1j * np.sqrt(0.5) * (a - a.dag())
     momentum.isherm = True
@@ -935,7 +935,7 @@ def num(N: int, offset: int = 0, *, dtype: LayerType = None) -> Qobj:
      [0 0 2 0]
      [0 0 0 3]]
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     data = np.arange(offset, offset + N, dtype=complex)
     return qdiags(data, 0, dtype=dtype)
 
@@ -983,7 +983,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     asq = destroy(N, offset=offset, dtype=dtype) ** 2
     op = 0.5*np.conj(z)*asq - 0.5*z*asq.dag()
     out = op.expm(dtype=dtype)
@@ -1063,7 +1063,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00626025+0.j  0.07418172+0.j  0.41083747+0.j  0.90866411+0.j]]
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     a = destroy(N, offset=offset)
     out = (alpha * a.dag() - np.conj(alpha) * a).expm(dtype=dtype)
     out.isherm = (alpha == 0.)
@@ -1116,7 +1116,7 @@ def qutrit_ops(*, dtype: LayerType = None) -> list[Qobj]:
     """
     from .states import qutrit_basis
 
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     out = []
     basis = qutrit_basis()
     for i in range(3):
@@ -1158,7 +1158,7 @@ def phase(N: int, phi0: float = 0, *, dtype: LayerType = None) -> Qobj:
     The Pegg-Barnett phase operator is Hermitian on a truncated Hilbert space.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     phim = phi0 + (2 * np.pi * np.arange(N)) / N  # discrete phase angles
     n = np.arange(N)[:, np.newaxis]
     states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1j * n * kk)
@@ -1209,7 +1209,7 @@ def charge(
     .. versionadded:: 3.2
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dia
+    dtype = _data._parse_default_dtype(dtype, "diagonal")
     if Nmin is None:
         Nmin = -Nmax
     diag = frac * np.arange(Nmin, Nmax+1, dtype=float)
@@ -1268,7 +1268,7 @@ def qft(dimensions: SpaceLike, *, dtype: LayerType = None) -> Qobj:
         Quantum Fourier transform operator.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     dimensions = Space(dimensions)
     dims = [dimensions]*2
     N2 = dimensions.size
@@ -1294,7 +1294,7 @@ def swap(N: int, M: int, *, dtype: LayerType = None) -> Qobj:
     M : int
         Number of basis states in the second Hilbert space.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
 
     if N == 1 and M == 1:
         return qeye([1, 1], dtype=dtype)
