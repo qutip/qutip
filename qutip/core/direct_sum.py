@@ -154,7 +154,6 @@ def _process_arguments(qobjs):
     Ensures that the qobjs have compatible types, including converting
     operators to operator-ket / operator-bra if necessary.
     If a list of Qobj is provided, converts it to a matrix (list of lists).
-    The output is guaranteed a square matrix.
     """
 
     if len(qobjs) == 0:
