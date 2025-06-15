@@ -120,7 +120,7 @@ def _rate_matrix_indices(
             S_op_conj = c_op_conj[kp, ap, bp]
 
             # Forming the difference of frequencies
-            delts = ((q1a - q1b) - (q2a - q2b)) / omega + (k - kp)
+            delts = ((q1a - q1b) - (q2a - q2b)) / omega - (k - kp)
 
             # Perfoming Relative secular approximation check
             # Also keeping DC terms (i.e. when delts==0)
@@ -885,10 +885,6 @@ class FLiMESolver(MESolver):
             )
             for state in sols_comp_arr
         ]
-        # sols_comp = [
-        #     self.floquet_basis.from_floquet_basis(Qobj(state), tlist[idx])
-        #     for idx, state in enumerate(sols)
-        # ]
         for idx, state in enumerate(sols_comp):
             results.add(
                 tlist[idx], state, Qobj(fstates_table[idx], copy=False)
