@@ -48,21 +48,11 @@ def test_spconcat(intype, outtype):
 
     block_rows = np.array([0, 0, 1, 1], dtype=_data.base.idxint_dtype)
     block_cols = np.array([0, 3, 2, 3], dtype=_data.base.idxint_dtype)
-    def generator(row, col):
-        if row == 0 and col == 0:
-            return data1
-        elif row == 0 and col == 3:
-            return data2
-        elif row == 1 and col == 2:
-            return data3
-        elif row == 1 and col == 3:
-            return data4
-        else:
-            assert False
+    blocks = np.array([data1, data2, data3, data4], dtype=_data.Data)
     block_widths = np.array([3, 2, 1, 1], dtype=_data.base.idxint_dtype)
     block_heights = np.array([2, 1, 1, 2], dtype=_data.base.idxint_dtype)
     result = _data.spconcat[outtype](
-        block_rows, block_cols, generator, block_widths, block_heights
+        block_rows, block_cols, blocks, block_widths, block_heights
     )
 
     np.testing.assert_array_equal(result.to_array(), np.array(

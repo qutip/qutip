@@ -57,18 +57,6 @@ cpdef Dense concat_dense(
     return Dense(np.block(blocks), copy=None)
 
 
-cdef class _getitem:
-    # Using `_getitem(data_array)` instead of `lambda r, c: data_array[r, c]`
-    # in `concat_csr` below, because the lambda crashes the cython compiler
-    cdef readonly Data[:,:] array
-
-    def __init__(self, Data[:,:] array):
-        self.array = array
-
-    def __call__(self, base.idxint row, base.idxint column):
-        return self.array[row, column]
-
-
 cpdef CSR concat_csr(
     Data[:,:] data_array,
     base.idxint[:] block_widths,
@@ -85,6 +73,7 @@ cpdef CSR concat_csr(
     # delegate to spconcat_csr
     block_rows = []
     block_cols = []
+    blocks = []
 
     cdef base.idxint row, column
     for row in range(len(block_heights)):
@@ -92,17 +81,18 @@ cpdef CSR concat_csr(
             if data_array[row][column] is not None:
                 block_rows.append(row)
                 block_cols.append(column)
+                blocks.append(data_array[row][column])
 
     return spconcat_csr(
         np.array(block_rows, dtype=base.idxint_dtype),
         np.array(block_cols, dtype=base.idxint_dtype),
-        _getitem(data_array),
+        np.array(blocks, dtype=Data),
         block_widths, block_heights
     )
 
 
 cpdef Dense spconcat_dense(
-    base.idxint[:] block_rows, base.idxint[:] block_cols, block_generator,
+    base.idxint[:] block_rows, base.idxint[:] block_cols, Data[:] blocks,
     base.idxint[:] block_widths, base.idxint[:] block_heights
 ):
     if len(block_rows) != len(block_cols):
@@ -126,7 +116,7 @@ cpdef Dense spconcat_dense(
     for i in range(len(block_rows)):
         above = row_pos[block_rows[i]]
         before = col_pos[block_cols[i]]
-        block = block_generator(block_rows[i], block_cols[i])
+        block = blocks[i]
         block_height, block_width = block.shape
         if type(block) is Dense:
             block_array = block.as_ndarray()
@@ -139,7 +129,7 @@ cpdef Dense spconcat_dense(
 
 
 cpdef CSR spconcat_csr(
-    base.idxint[:] block_rows, base.idxint[:] block_cols, block_generator,
+    base.idxint[:] block_rows, base.idxint[:] block_cols, Data[:] blocks,
     base.idxint[:] block_widths, base.idxint[:] block_heights
 ):
     if len(block_rows) != len(block_cols):
@@ -161,7 +151,7 @@ cpdef CSR spconcat_csr(
 
     cdef base.idxint idx, row, column, nnz = 0
     cdef cnp.ndarray ops = np.empty((num_ops,), dtype=CSR)
-    cdef Data op
+    cdef Data block
 
     for idx in range(num_ops):
         row = block_rows[idx]
@@ -174,23 +164,23 @@ cpdef CSR spconcat_csr(
             raise ValueError("The arrays block_rows and block_cols must be "
                              "sorted by (row, column).")
 
-        # check op shape, convert to CSR if needed, calculate nnz
-        op = block_generator(row, column)
-        if op.shape != (block_heights[row], block_widths[column]):
+        # check block shape, convert to CSR if needed, calculate nnz
+        block = blocks[idx]
+        if block.shape != (block_heights[row], block_widths[column]):
             raise ValueError(
                 "Block operators do not have the correct shape."
             )
 
-        if type(op) is not CSR:
-            op = convert.to(CSR, op)
-        ops[idx] = <CSR>op
-        nnz += csr.nnz(op)
+        if type(block) is not CSR:
+            block = convert.to(CSR, block)
+        ops[idx] = <CSR>block
+        nnz += csr.nnz(block)
 
     if nnz == 0:
         return csr.zeros(shape1, shape2)
 
     cdef CSR out = csr.empty(shape1, shape2, nnz)
-    cdef CSR csr_op
+    cdef CSR op
 
     idx = 0
     cdef base.idxint prev_idx, counter, end = 0
@@ -208,7 +198,7 @@ cpdef CSR spconcat_csr(
 
         for op_row in range(block_heights[row]):
             for i in range(prev_idx, idx):
-                csr_op = ops[i]
+                op = ops[i]
                 if csr.nnz(op) == 0:
                     # empty CSR matrices have uninitialized row_index entries.
                     # it's unclear whether users should ever see such matrixes
@@ -216,16 +206,16 @@ cpdef CSR spconcat_csr(
                     continue
 
                 column = block_cols[i]
-                op_row_start = csr_op.row_index[op_row]
-                op_row_end = csr_op.row_index[op_row + 1]
+                op_row_start = op.row_index[op_row]
+                op_row_end = op.row_index[op_row + 1]
                 op_row_len = op_row_end - op_row_start
                 for counter in range(op_row_len):
                     out.col_index[end + counter] = (
-                        csr_op.col_index[op_row_start + counter] +
+                        op.col_index[op_row_start + counter] +
                         col_pos[column]
                     )
                     out.data[end + counter] =\
-                        csr_op.data[op_row_start + counter]
+                        op.data[op_row_start + counter]
                 end += op_row_len
             out.row_index[row_pos[row] + op_row + 1] = end
 
@@ -335,7 +325,7 @@ spconcat = _Dispatcher(
                            _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('block_cols',
                            _inspect.Parameter.POSITIONAL_ONLY),
-        _inspect.Parameter('block_generator',
+        _inspect.Parameter('blocks',
                            _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('block_widths',
                            _inspect.Parameter.POSITIONAL_OR_KEYWORD),
@@ -353,14 +343,12 @@ spconcat.__doc__ =\
     In contrast to ``concat``, this function is intended for large block
     matrices where most of the blocks are empty. The coordinates of the
     non-empty blocks are given by the arrays ``block_rows`` and ``block_cols``,
-    and the blocks themselves are generated by the ``block_generator``
-    function.
+    and the blocks themselves in the ``blocks`` array.
 
-    The generator function takes two arguments, ``row`` and ``column``, and
-    returns a ``Data`` object representing the block at that position. The
-    shape of the block should be
-    ``(block_heights[row], ``block_widths[column])``. The shape of the output
-    will be ``(sum(block_heights), sum(block_widths))``.
+    All three arrays ``block_rows``, ``block_cols``, and ``blocks`` should have
+    the same length. The shape of the i-th block should be
+    ``(block_heights[block_rows[i]], ``block_widths[block_cols[i]])``. The
+    shape of the output will be ``(sum(block_heights), sum(block_widths))``.
 
     Parameters
     ----------
@@ -372,9 +360,8 @@ spconcat.__doc__ =\
         The block column for each operator. The block column should be in
         ``range(0, len(block_widths))``.
 
-    generator : Callable[[int, int] -> Data]
-        Function generating the blocks. Will only be called with arguments
-        ``(row, column)`` that are in ``zip(block_rows, block_cols)``.
+    blocks : Data[:]
+        The blocks themselves.
 
     block_widths : int[:]
         Array containing the block widths.
@@ -407,7 +394,9 @@ slice = _Dispatcher(
 )
 slice.__doc__ =\
     """
-    Extracts a block of data from a large matrix.
+    Extracts a block of data from a large matrix. The output of this function
+    is the slice ``[row_start:row_stop, col_start:col_stop]``. Returns a copy,
+    not a view.
     """
 slice.add_specialisations([
     (Dense, slice_dense),
@@ -429,7 +418,11 @@ insert = _Dispatcher(
 )
 insert.__doc__ =\
     """
-    Inserts a block of data into a large matrix.
+    Inserts a block of data into a large matrix. The slice
+    ``[above:(above+block_height), before:(before+block_width)]``
+    of the ``data`` matrix is replaced by the ``block`` matrix, where
+    ``block_height, block_width = block.shape``. The data objects ``data``
+    and ``block`` are not modified, a new data object is returned.
     """
 insert.add_specialisations([
     (Data, Dense, Dense, insert_dense),
