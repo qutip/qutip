@@ -427,16 +427,6 @@ class MetaSpace(type):
         if cls is SuperSpace:
             args = (*args, rep or 'super')
 
-        if cls is SumSpace and any(isinstance(arg, SumSpace) for arg in args):
-            # flatten nested direct sums
-            new_args = []
-            for arg in args:
-                if isinstance(arg, SumSpace):
-                    new_args += arg.spaces
-                else:
-                    new_args.append(arg)
-            args = tuple(new_args)
-
         if args not in cls._stored_dims:
             instance = cls.__new__(cls)
             instance.__init__(*args)
