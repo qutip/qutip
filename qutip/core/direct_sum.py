@@ -291,7 +291,7 @@ def sparse_direct_sum(qobjs, sum_dimensions, dtype=None):
                                  dtype=_data.base.idxint_dtype)
         block_cumheights = [0, sum_dimensions.to_.size]
 
-    num_non_evo = sum(isinstance(qobj, Qobj) for qobj in qobjs.values())
+    num_non_evo = sum(not isinstance(qobj, QobjEvo) for qobj in qobjs.values())
     qobjevos = []
 
     block_rows = np.empty((num_non_evo,), dtype=_data.base.idxint_dtype)
@@ -306,27 +306,28 @@ def sparse_direct_sum(qobjs, sum_dimensions, dtype=None):
         qobj = qobjs[(row, column)]
         _check_bounds(row, 0, len(to_spaces))
         _check_bounds(column, 0, len(from_spaces))
-        if (qobj._dims.to_ != to_spaces[row] or
-                qobj._dims.from_ != from_spaces[column]):
+        if (
+            _qobj_dims(qobj).to_ != to_spaces[row] or
+            _qobj_dims(qobj).from_ != from_spaces[column]
+        ):
             raise ValueError("Direct sum: dimension mismatch for component at"
                              f" ({row}, {column}).")
 
-        if isinstance(qobj, Qobj):
+        if isinstance(qobj, QobjEvo):
+            # Handle QobjEvo (same as in direct_sum)
+            blow_up = qobj.linear_map(
+                lambda x: Qobj(
+                    _data.insert(_data.zeros[dtype](*sum_dimensions.shape), x.data,
+                                block_cumheights[row], block_cumwidths[column],
+                                dtype=dtype),
+                    dims=sum_dimensions, copy=False),
+                _skip_check=True)
+            qobjevos.append(blow_up)
+        else:
             block_rows[i] = row
             block_cols[i] = column
             blocks[i] = _qobj_data(qobj, dtype)
             i += 1
-            continue
-
-        # Handle QobjEvo (same as in direct_sum)
-        blow_up = qobj.linear_map(
-            lambda x: Qobj(
-                _data.insert(_data.zeros[dtype](*sum_dimensions.shape), x.data,
-                             block_cumheights[row], block_cumwidths[column],
-                             dtype=dtype),
-                dims=sum_dimensions, copy=False),
-            _skip_check=True)
-        qobjevos.append(blow_up)
 
     out_data = _data.spconcat(block_rows, block_cols, blocks,
                               block_widths, block_heights, dtype=dtype)

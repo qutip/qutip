@@ -8,7 +8,7 @@ from qutip import (
 from qutip.core.dimensions import Dimensions
 
 from qutip.core.direct_sum import (
-    direct_sum, component, set_component
+    direct_sum, sparse_direct_sum, component, set_component
 )
 
 from numbers import Number
@@ -88,6 +88,57 @@ def test_linear(arguments, result_type, result_dims, dtype):
 
 
 @pytest.mark.parametrize(
+    ["qobj_dict", "result_dims", "result_type"], [
+        pytest.param({(0, 0): basis(2, 0)},
+                     Dimensions([([2],), ([1],)]),
+                     "ket",
+                     id="single_ket"),
+        pytest.param({(0, 0): QobjEvo([[basis(2, 0), _ramp]]),
+                      (1, 0): basis(3, 0)},
+                     Dimensions([([2], [3]), ([1],)]),
+                     "ket",
+                     id="ket_with_evo"),
+        pytest.param({(0, 0): 1,
+                      (1, 0): 2j,
+                      (2, 0): 3},
+                     Dimensions([([1], [1], [1]), ([1],)]),
+                     "ket",
+                     id="scalars"),
+        pytest.param({(0, 0): basis(2, 0).dag(),
+                      (0, 1): basis([3, 4], [0, 0]).dag(),
+                      (0, 2): 1},
+                     Dimensions([([1],), ([2], [3, 4], [1])]),
+                     "bra",
+                     id="bras"),
+        pytest.param({(0, 0): operator_to_vector(sigmax()),
+                      (1, 0): operator_to_vector(sigmay())},
+                     Dimensions([([[2], [2]], [[2], [2]]), ([1],)]),
+                     "operator-ket",
+                     id="operators"),
+        pytest.param({(0, 0): operator_to_vector(sigmax()).dag(),
+                      (0, 1): operator_to_vector(sigmay()).dag()},
+                     Dimensions([([1],), ([[2], [2]], [[2], [2]])]),
+                     "operator-bra",
+                     id="operator_bras"),
+])
+@pytest.mark.parametrize("dtype", [None, "CSR", "Dense"])
+def test_linear_sparse(qobj_dict, result_dims, result_type, dtype):
+    result = sparse_direct_sum(qobj_dict, result_dims, dtype=dtype)
+
+    assert isinstance(result, (Qobj, QobjEvo))
+    assert result.type == result_type
+    assert result._dims == result_dims
+    assert result.shape == result_dims.shape
+    if result_type in ["super", "operator-ket", "operator-bra"]:
+        assert result.superrep == "super"
+    if dtype is not None:
+        if isinstance(result, Qobj):
+            assert result.dtype.__name__ == dtype
+        else:
+            assert result(0).dtype.__name__ == dtype
+
+
+@pytest.mark.parametrize(
     ["arguments", "result_type", "result_dims"], [
         pytest.param([[basis(2, 0)], [basis(3, 0)]],
                      "ket",
@@ -150,6 +201,58 @@ def test_matrix(arguments, result_type, result_dims, dtype):
             new_sum = set_component(result, replacement, i, j)
             assert isinstance(new_sum, QobjEvo)
             _assert_equal(component(new_sum, i, j), replacement)
+
+
+@pytest.mark.parametrize(
+    ["qobj_dict", "result_dims", "result_type"], [
+        pytest.param({(0, 0): basis(2, 0),
+                      (1, 0): basis(3, 0)},
+                     Dimensions([([2], [3]), ([1],)]),
+                     "ket",
+                     id="vector"),
+        pytest.param({(0, 0): sigmax(),
+                      (1, 1): QobjEvo([[sigmay(), _ramp]])},
+                     Dimensions([([2], [2]), ([2], [2])]),
+                     "oper",
+                     id="diag_operators"),
+        pytest.param({(0, 0): sigmax(),
+                      (1, 0): basis(2, 0).dag(),
+                      (1, 1): 10},
+                     Dimensions([([2], [1]), ([2], [1])]),
+                     "oper",
+                     id="mixed_operators"),
+        pytest.param({(0, 0): spre(sigmax()),
+                      (0, 1): operator_to_vector(sigmay()),
+                      (1, 1): 1j},
+                     Dimensions([([[2], [2]], [1]), ([[2], [2]], [1])]),
+                     "super",
+                     id="mixed_super"),
+        pytest.param({(0, 0): direct_sum([basis(2, 0), basis(3, 0)]),
+                      (0, 1): direct_sum([basis(2, 1), basis(3, 1)])},
+                     Dimensions([(([2], [3]),), (([1],), ([1],))]),
+                     "oper",
+                     id="nested1"),
+        pytest.param({(0, 0): direct_sum([[sigmax(), None], [basis(2, 0).dag(), 10]]),
+                      (1, 0): direct_sum([basis(2, 1).dag(), 0])},
+                     Dimensions([(([2], [1]), ([1],)), (([2], [1]),)]),
+                     "oper",
+                     id="nested2"),
+])
+@pytest.mark.parametrize("dtype", [None, "CSR", "Dense"])
+def test_matrix_sparse(qobj_dict, result_dims, result_type, dtype):
+    result = sparse_direct_sum(qobj_dict, result_dims, dtype=dtype)
+
+    assert isinstance(result, (Qobj, QobjEvo))
+    assert result.type == result_type
+    assert result._dims == result_dims
+    assert result.shape == result_dims.shape
+    if result_type in ["super", "operator-ket", "operator-bra"]:
+        assert result.superrep == "super"
+    if dtype is not None:
+        if isinstance(result, Qobj):
+            assert result.dtype.__name__ == dtype
+        else:
+            assert result(0).dtype.__name__ == dtype
 
 
 def _assert_equal(qobj1, qobj2):
