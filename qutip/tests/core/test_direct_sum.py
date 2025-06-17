@@ -23,27 +23,27 @@ def _ramp(t, args):
     ["arguments", "result_type", "result_dims"], [
         pytest.param([basis(2, 0)],
                      "ket",
-                     Dimensions([[2], [1]]),
+                     Dimensions([([2],), ([1],)]),
                      id="single_ket"),
         pytest.param([QobjEvo([[basis(2, 0), _ramp]]), basis(3, 0)],
                      "ket",
-                     Dimensions([([2], [3]), [1]]),
+                     Dimensions([([2], [3]), ([1],)]),
                      id="ket_with_evo"),
         pytest.param([1, 2j, 3],
                      "ket",
-                     Dimensions([([1], [1], [1]), [1]]),
+                     Dimensions([([1], [1], [1]), ([1],)]),
                      id="scalars"),
         pytest.param([basis(2, 0).dag(), basis([3, 4], [0, 0]).dag(), 1],
                      "bra",
-                     Dimensions([[1], ([2], [3, 4], [1])]),
+                     Dimensions([([1],), ([2], [3, 4], [1])]),
                      id="bras"),
         pytest.param([sigmax(), sigmay()],
                      "operator-ket",
-                     Dimensions([([[2], [2]], [[2], [2]]), [1]]),
+                     Dimensions([([[2], [2]], [[2], [2]]), ([1],)]),
                      id="operators"),
         pytest.param([sigmax(), operator_to_vector(sigmay()).dag()],
                      "operator-bra",
-                     Dimensions([[1], ([[2], [2]], [[2], [2]])]),
+                     Dimensions([([1],), ([[2], [2]], [[2], [2]])]),
                      id="operator_bras"),
 ])
 @pytest.mark.parametrize("dtype", [None, "CSR", "Dense"])
@@ -88,46 +88,37 @@ def test_linear(arguments, result_type, result_dims, dtype):
 
 
 @pytest.mark.parametrize(
-    ["arguments", "result_type", "result_dims", "disable_component_check"], [
+    ["arguments", "result_type", "result_dims"], [
         pytest.param([[basis(2, 0)], [basis(3, 0)]],
                      "ket",
-                     Dimensions([([2], [3]), [1]]),
-                     False,
+                     Dimensions([([2], [3]), ([1],)]),
                      id="vector"),
         pytest.param([[sigmax(), None], [None, QobjEvo([[sigmay(), _ramp]])]],
                      "oper",
                      Dimensions([([2], [2]), ([2], [2])]),
-                     False,
                      id="diag_operators"),
         pytest.param([[sigmax(), None], [basis(2, 0).dag(), 10]],
                      "oper",
                      Dimensions([([2], [1]), ([2], [1])]),
-                     False,
                      id="mixed_operators"),
         pytest.param([[spre(sigmax()), operator_to_vector(sigmay())],
                       [None, 1j]],
                      "super",
                      Dimensions([([[2], [2]], [1]), ([[2], [2]], [1])]),
-                     False,
                      id="mixed_super"),
         pytest.param([[direct_sum([basis(2, 0), basis(3, 0)]),
                        direct_sum([basis(2, 1), basis(3, 1)])]],
                      "oper",
-                     Dimensions([([2], [3]), ([1], [1])]),
-                     True,  # disable component check because direct sum is
-                            # flattened and `component` will return basic
-                            # Qobj instead of the sums we use for creation
-                     id="mixed_super"),
+                     Dimensions([(([2], [3]),), (([1],), ([1],))]),
+                     id="nested1"),
         pytest.param([[direct_sum([[sigmax(), None], [basis(2, 0).dag(), 10]])],
                       [direct_sum([basis(2, 1).dag(), 0])]],
                      "oper",
-                     Dimensions([([2], [1], [1]), ([2], [1])]),
-                     True,
-                     id="mixed_super"),
+                     Dimensions([(([2], [1]), ([1],)), (([2], [1]),)]),
+                     id="nested2"),
 ])
 @pytest.mark.parametrize("dtype", [None, "CSR", "Dense"])
-def test_matrix(arguments, result_type, result_dims, dtype,
-                disable_component_check):
+def test_matrix(arguments, result_type, result_dims, dtype):
     result = direct_sum(arguments, dtype=dtype)
 
     assert isinstance(result, (Qobj, QobjEvo))
@@ -141,9 +132,6 @@ def test_matrix(arguments, result_type, result_dims, dtype,
             assert result.dtype.__name__ == dtype
         else:
             assert result(0).dtype.__name__ == dtype
-
-    if disable_component_check:
-        return
 
     for i in range(len(arguments)):
         for j in range(len(arguments[0])):

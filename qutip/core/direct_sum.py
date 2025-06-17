@@ -460,8 +460,12 @@ def _check_bounds(given, min, max):
 
 
 def _check_component_index(sum_dims, index):
-    is_to_sum = isinstance(sum_dims.to_, SumSpace)
-    is_from_sum = isinstance(sum_dims.from_, SumSpace)
+    is_to_sum = (
+        isinstance(sum_dims.to_, SumSpace) and len(sum_dims.to_.spaces) > 1
+    )
+    is_from_sum = (
+        isinstance(sum_dims.from_, SumSpace) and len(sum_dims.from_.spaces) > 1
+    )
     if not is_to_sum and not is_from_sum:
         raise ValueError("Qobj is not a direct sum.")
 

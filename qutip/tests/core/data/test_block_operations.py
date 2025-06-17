@@ -21,7 +21,7 @@ def test_concat(intype, outtype):
     datas = np.array([[data1, data2], [data3, data4]], dtype=_data.Data)
     block_widths = np.array([3, 1], dtype=_data.base.idxint_dtype)
     block_heights = np.array([2, 1], dtype=_data.base.idxint_dtype)
-    result = _data.concat[outtype](datas, block_widths, block_heights)
+    result = _data.concat(datas, block_widths, block_heights, dtype=outtype)
 
     np.testing.assert_array_equal(result.to_array(), np.array(
         [[1, 1, 1, 2],
@@ -51,8 +51,9 @@ def test_spconcat(intype, outtype):
     blocks = np.array([data1, data2, data3, data4], dtype=_data.Data)
     block_widths = np.array([3, 2, 1, 1], dtype=_data.base.idxint_dtype)
     block_heights = np.array([2, 1, 1, 2], dtype=_data.base.idxint_dtype)
-    result = _data.spconcat[outtype](
-        block_rows, block_cols, blocks, block_widths, block_heights
+    result = _data.spconcat(
+        block_rows, block_cols, blocks, block_widths, block_heights,
+        dtype=outtype
     )
 
     np.testing.assert_array_equal(result.to_array(), np.array(

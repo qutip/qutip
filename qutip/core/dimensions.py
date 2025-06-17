@@ -392,8 +392,14 @@ class MetaSpace(type):
         ):
             # From a list of int (or tuple in the case of direct sum)
             return cls.from_list(args[0], rep=rep)
-        elif len(args) == 1 and isinstance(args[0], Space):
-            # Already a Space
+        elif (
+            cls is not SumSpace and
+            len(args) == 1 and
+            isinstance(args[0], Space)
+        ):
+            # Already a Space. We allow SumSpace with only one argument in
+            # so that `component` can work as expected.
+            # TODO: provide way to tidy up?
             return args[0]
 
         if cls is Space:
