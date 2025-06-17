@@ -5,7 +5,7 @@ from .qobj import Qobj
 from .superoperator import operator_to_vector
 from . import data as _data
 
-from ..typing import LayerType
+from ..typing import DimensionLike, LayerType
 from .. import settings
 
 from numbers import Number
@@ -14,7 +14,7 @@ from typing import overload, Union
 import numpy as np
 
 
-__all__ = ['direct_sum', 'component', 'set_component']
+__all__ = ['direct_sum', 'sparse_direct_sum', 'component', 'set_component']
 
 
 QobjLike = Union[Number, Qobj, QobjEvo]
@@ -107,9 +107,9 @@ def direct_sum(qobjs, dtype=None):
     block-matrix elements.
     """
     if settings.core["default_dtype_scope"] == "full":
-        dtype = dtype or settings.core["default_dtype"] or _data.CSR
+        dtype = _data._parse_default_dtype(dtype, "sparse")
     else:
-        dtype = dtype or _data.CSR
+        dtype = _data._parse_default_dtype(dtype or "core", "sparse")
 
     qobjs = _process_arguments(qobjs)
     out_dims, block_widths, block_heights = _determine_dimensions(qobjs)
@@ -243,6 +243,95 @@ def _determine_dimensions(qobjs):
 
     out_dims = Dimensions(SumSpace(*from_spaces), SumSpace(*to_spaces))
     return out_dims, block_widths, block_heights
+
+
+@overload
+def sparse_direct_sum(
+    qobjs: dict[tuple[int, int], Qobj],
+    sum_dimensions: DimensionLike,
+    dtype: LayerType = None
+) -> Qobj:
+    ...
+
+
+@overload
+def sparse_direct_sum(
+    qobjs: dict[tuple[int, int], Qobj | QobjEvo],
+    sum_dimensions: DimensionLike,
+    dtype: LayerType = None
+) -> QobjEvo:
+    ...
+
+
+def sparse_direct_sum(qobjs, sum_dimensions, dtype=None):
+    if settings.core["default_dtype_scope"] == "full":
+        dtype = _data._parse_default_dtype(dtype, "sparse")
+    else:
+        dtype = _data._parse_default_dtype(dtype or "core", "sparse")
+
+    sum_dimensions = Dimensions(sum_dimensions)
+    if isinstance(sum_dimensions.from_, SumSpace):
+        from_spaces = sum_dimensions.from_.spaces
+        block_widths = np.array(sum_dimensions.from_._space_dims,
+                                dtype=_data.base.idxint_dtype)
+        block_cumwidths = sum_dimensions.from_._space_cumdims
+    else:
+        from_spaces = [sum_dimensions.from_]
+        block_widths = np.array([sum_dimensions.from_.size],
+                                dtype=_data.base.idxint_dtype)
+        block_cumwidths = [0, sum_dimensions.from_.size]
+    if isinstance(sum_dimensions.to_, SumSpace):
+        to_spaces = sum_dimensions.to_.spaces
+        block_heights = np.array(sum_dimensions.to_._space_dims,
+                                 dtype=_data.base.idxint_dtype)
+        block_cumheights = sum_dimensions.to_._space_cumdims
+    else:
+        to_spaces = [sum_dimensions.to_]
+        block_heights = np.array([sum_dimensions.to_.size],
+                                 dtype=_data.base.idxint_dtype)
+        block_cumheights = [0, sum_dimensions.to_.size]
+
+    num_non_evo = sum(isinstance(qobj, Qobj) for qobj in qobjs.values())
+    qobjevos = []
+
+    block_rows = np.empty((num_non_evo,), dtype=_data.base.idxint_dtype)
+    block_cols = np.empty((num_non_evo,), dtype=_data.base.idxint_dtype)
+    blocks = np.empty((num_non_evo,), dtype=_data.Data)
+
+    places = list(qobjs.keys())
+    places.sort()
+
+    i = 0
+    for row, column in places:
+        qobj = qobjs[(row, column)]
+        _check_bounds(row, 0, len(to_spaces))
+        _check_bounds(column, 0, len(from_spaces))
+        if (qobj._dims.to_ != to_spaces[row] or
+                qobj._dims.from_ != from_spaces[column]):
+            raise ValueError("Direct sum: dimension mismatch for component at"
+                             f" ({row}, {column}).")
+
+        if isinstance(qobj, Qobj):
+            block_rows[i] = row
+            block_cols[i] = column
+            blocks[i] = _qobj_data(qobj, dtype)
+            i += 1
+            continue
+
+        # Handle QobjEvo (same as in direct_sum)
+        blow_up = qobj.linear_map(
+            lambda x: Qobj(
+                _data.insert(_data.zeros[dtype](*sum_dimensions.shape), x.data,
+                             block_cumheights[row], block_cumwidths[column],
+                             dtype=dtype),
+                dims=sum_dimensions, copy=False),
+            _skip_check=True)
+        qobjevos.append(blow_up)
+
+    out_data = _data.spconcat(block_rows, block_cols, blocks,
+                              block_widths, block_heights, dtype=dtype)
+    result = Qobj(out_data, dims=sum_dimensions, copy=False)
+    return sum(qobjevos, start=result)
 
 
 @overload
