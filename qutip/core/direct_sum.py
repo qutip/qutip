@@ -1,4 +1,6 @@
+from collections import OrderedDict
 from .cy.qobjevo import QobjEvo
+from .cy._element import _ConstantElement, _EvoElement
 from .dimensions import Dimensions, Field, SumSpace
 from .operators import qzero_like
 from .qobj import Qobj
@@ -146,7 +148,10 @@ def direct_sum(qobjs, dtype=None):
         data_array, block_widths, block_heights, dtype=dtype
     )
     result = Qobj(out_data, dims=out_dims, copy=False)
-    return sum(qobjevos, start=result)
+    result = sum(qobjevos, start=result)
+    if isinstance(result, QobjEvo):
+        result.compress()
+    return result
 
 
 def _process_arguments(qobjs):
@@ -270,34 +275,46 @@ def sparse_direct_sum(qobjs, sum_dimensions, dtype=None):
         dtype = _data._parse_default_dtype(dtype or "core", "sparse")
 
     sum_dimensions = Dimensions(sum_dimensions)
-    if isinstance(sum_dimensions.from_, SumSpace):
-        from_spaces = sum_dimensions.from_.spaces
-        block_widths = np.array(sum_dimensions.from_._space_dims,
-                                dtype=_data.base.idxint_dtype)
-        block_cumwidths = sum_dimensions.from_._space_cumdims
-    else:
-        from_spaces = [sum_dimensions.from_]
-        block_widths = np.array([sum_dimensions.from_.size],
-                                dtype=_data.base.idxint_dtype)
-        block_cumwidths = [0, sum_dimensions.from_.size]
-    if isinstance(sum_dimensions.to_, SumSpace):
-        to_spaces = sum_dimensions.to_.spaces
-        block_heights = np.array(sum_dimensions.to_._space_dims,
-                                 dtype=_data.base.idxint_dtype)
-        block_cumheights = sum_dimensions.to_._space_cumdims
-    else:
-        to_spaces = [sum_dimensions.to_]
-        block_heights = np.array([sum_dimensions.to_.size],
-                                 dtype=_data.base.idxint_dtype)
-        block_cumheights = [0, sum_dimensions.to_.size]
+    if (
+        not isinstance(sum_dimensions.from_, SumSpace)
+        or not isinstance(sum_dimensions.to_, SumSpace)
+    ):
+        raise ValueError("Dimensions of a direct sum must be of type SumSpace")
 
-    num_non_evo = sum(not isinstance(qobj, QobjEvo) for qobj in qobjs.values())
-    qobjevos = []
+    from_spaces = sum_dimensions.from_.spaces
+    block_widths = np.array(sum_dimensions.from_._space_dims,
+                            dtype=_data.base.idxint_dtype)
+    block_cumwidths = sum_dimensions.from_._space_cumdims
 
+    to_spaces = sum_dimensions.to_.spaces
+    block_heights = np.array(sum_dimensions.to_._space_dims,
+                                dtype=_data.base.idxint_dtype)
+    block_cumheights = sum_dimensions.to_._space_cumdims
+
+    # to improve performance, qobjevos are decomposed into their elements
+    # constant elements are added like regular qobj
+    # evo elements are grouped by their prefactors
+    # anything else is treated like in `direct_sum`
+
+    # we first count the number of elements where there is a constant part
+    num_non_evo = sum(
+        (
+            isinstance(qobj, Number)
+            or isinstance(qobj, Qobj)
+            or any(isinstance(el, _ConstantElement) for el in qobj._elements)
+        ) for qobj in qobjs.values()
+    )
+    # the constant parts will be stored here
     block_rows = np.empty((num_non_evo,), dtype=_data.base.idxint_dtype)
     block_cols = np.empty((num_non_evo,), dtype=_data.base.idxint_dtype)
     blocks = np.empty((num_non_evo,), dtype=_data.Data)
+    # the evo parts will be stored here
+    evo_coeffs = []
+    evo_dicts = []
+    # the others here
+    rest_qobjevos = []
 
+    # ensure entries of block_rows and block_cols are sorted by (row, column)
     places = list(qobjs.keys())
     places.sort()
 
@@ -313,26 +330,70 @@ def sparse_direct_sum(qobjs, sum_dimensions, dtype=None):
             raise ValueError("Direct sum: dimension mismatch for component at"
                              f" ({row}, {column}).")
 
-        if isinstance(qobj, QobjEvo):
-            # Handle QobjEvo (same as in direct_sum)
-            blow_up = qobj.linear_map(
-                lambda x: Qobj(
-                    _data.insert(_data.zeros[dtype](*sum_dimensions.shape), x.data,
-                                block_cumheights[row], block_cumwidths[column],
-                                dtype=dtype),
-                    dims=sum_dimensions, copy=False),
-                _skip_check=True)
-            qobjevos.append(blow_up)
-        else:
+        if not isinstance(qobj, QobjEvo):
             block_rows[i] = row
             block_cols[i] = column
             blocks[i] = _qobj_data(qobj, dtype)
             i += 1
+            continue
+
+        # handle QobjEvo
+        constant_elements, rest_elements = [], []
+        for el in qobj._elements:
+            if isinstance(el, _ConstantElement):
+                constant_elements.append(el.qobj(0))
+                continue
+            if not isinstance(el, _EvoElement):
+                rest_elements.append(el)
+                continue
+
+            # evo element: check if coefficient is already known
+            # otherwise, create new entry in evo_coeffs, evo_dicts
+            evo_coeff, evo_qobj = el._coeff, el.qobj(0)
+            for j, coeff in enumerate(evo_coeffs):
+                if coeff == evo_coeff:
+                    evo_dict = evo_dicts[j]
+                    if (row, column) in evo_dict:
+                        evo_dict[(row, column)] += evo_qobj
+                    else:
+                        evo_dict[(row, column)] = evo_qobj
+                    break
+            else:
+                evo_coeffs.append(evo_coeff)
+                evo_dict = OrderedDict()
+                evo_dict[(row, column)] = evo_qobj
+                evo_dicts.append(evo_dict)
+
+        # constant elements are treated just like normal Qobj
+        if constant_elements:
+            block_rows[i] = row
+            block_cols[i] = column
+            blocks[i] = sum(constant_elements).data
+            i += 1
+
+        # elements that are neither constant nor evo
+        # we procede like in direct_sum
+        if rest_elements:
+            rest_qobjevo = QobjEvo._restore(
+                rest_elements, qobj.dims, qobj.shape)
+            blow_up = rest_qobjevo.linear_map(
+                lambda x: Qobj(_data.insert(
+                    _data.zeros[dtype](*sum_dimensions.shape), x.data,
+                    block_cumheights[row], block_cumwidths[column],
+                    dtype=dtype), dims=sum_dimensions, copy=False),
+                _skip_check=True)
+            rest_qobjevos.append(blow_up)
 
     out_data = _data.spconcat(block_rows, block_cols, blocks,
                               block_widths, block_heights, dtype=dtype)
     result = Qobj(out_data, dims=sum_dimensions, copy=False)
-    return sum(qobjevos, start=result)
+    if evo_coeffs:
+        evo_results = [
+            [sparse_direct_sum(evo_dict, sum_dimensions, dtype), evo_coeff]
+            for evo_coeff, evo_dict in zip(evo_coeffs, evo_dicts)
+        ]
+        result = QobjEvo([result] + evo_results)
+    return sum(rest_qobjevos, start=result)
 
 
 @overload
@@ -461,14 +522,15 @@ def _check_bounds(given, min, max):
 
 
 def _check_component_index(sum_dims, index):
-    is_to_sum = (
-        isinstance(sum_dims.to_, SumSpace) and len(sum_dims.to_.spaces) > 1
-    )
-    is_from_sum = (
-        isinstance(sum_dims.from_, SumSpace) and len(sum_dims.from_.spaces) > 1
-    )
-    if not is_to_sum and not is_from_sum:
-        raise ValueError("Qobj is not a direct sum.")
+    if (
+        not isinstance(sum_dims.from_, SumSpace)
+        or not isinstance(sum_dims.to_, SumSpace)
+    ):
+        raise ValueError(
+            "Trying to access component of Qobj that is not a direct sum")
+
+    is_to_sum = len(sum_dims.to_.spaces) > 1
+    is_from_sum = len(sum_dims.from_.spaces) > 1
 
     if is_to_sum and is_from_sum:
         if len(index) != 2:
@@ -477,7 +539,7 @@ def _check_component_index(sum_dims, index):
     else:
         if len(index) == 1 and is_to_sum:
             index = (index[0], 0)
-        elif len(index) == 1 and is_from_sum:
+        elif len(index) == 1:
             index = (0, index[0])
         if len(index) != 2:
             raise ValueError("Invalid number of indices provided for component"
@@ -486,27 +548,15 @@ def _check_component_index(sum_dims, index):
     return index
 
 def _component_info(sum_dims, to_index, from_index):
-    if isinstance(sum_dims.to_, SumSpace):
-        _check_bounds(to_index, 0, len(sum_dims.to_.spaces))
-        component_to = sum_dims.to_.spaces[to_index]
-        to_data_start = sum_dims.to_._space_cumdims[to_index]
-        to_data_stop = sum_dims.to_._space_cumdims[to_index + 1]
-    else:
-        _check_bounds(to_index, 0, 1)
-        component_to = sum_dims.to_
-        to_data_start = 0
-        to_data_stop = sum_dims.to_.size
+    _check_bounds(to_index, 0, len(sum_dims.to_.spaces))
+    component_to = sum_dims.to_.spaces[to_index]
+    to_data_start = sum_dims.to_._space_cumdims[to_index]
+    to_data_stop = sum_dims.to_._space_cumdims[to_index + 1]
 
-    if isinstance(sum_dims.from_, SumSpace):
-        _check_bounds(from_index, 0, len(sum_dims.from_.spaces))
-        component_from = sum_dims.from_.spaces[from_index]
-        from_data_start = sum_dims.from_._space_cumdims[from_index]
-        from_data_stop = sum_dims.from_._space_cumdims[from_index + 1]
-    else:
-        _check_bounds(from_index, 0, 1)
-        component_from = sum_dims.from_
-        from_data_start = 0
-        from_data_stop = sum_dims.from_.size
+    _check_bounds(from_index, 0, len(sum_dims.from_.spaces))
+    component_from = sum_dims.from_.spaces[from_index]
+    from_data_start = sum_dims.from_._space_cumdims[from_index]
+    from_data_stop = sum_dims.from_._space_cumdims[from_index + 1]
 
     return (component_to, to_data_start, to_data_stop,
             component_from, from_data_start, from_data_stop)

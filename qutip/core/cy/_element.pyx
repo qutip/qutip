@@ -387,6 +387,10 @@ cdef class _EvoElement(_BaseElement):
     def dtype(self):
         return type(self._data)
 
+    @property
+    def _coeff(self):
+        return self._coefficient
+
 
 cdef class _FuncElement(_BaseElement):
     """
