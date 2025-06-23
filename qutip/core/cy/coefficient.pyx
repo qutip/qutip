@@ -3,6 +3,7 @@
 
 import inspect
 import pickle
+import typing
 import scipy
 from scipy.interpolate import make_interp_spline
 import numpy as np
@@ -133,11 +134,6 @@ cdef class Coefficient:
         return complex(self(t))
 
     def __add__(left, right):
-        if (
-            isinstance(left, InterCoefficient)
-            and isinstance(right, InterCoefficient)
-        ):
-            return add_inter(left, right)
         if isinstance(left, Coefficient) and isinstance(right, Coefficient):
             return SumCoefficient(left.copy(), right.copy())
         return NotImplemented
@@ -159,9 +155,8 @@ cdef class Coefficient:
         """ Return a conjugate :obj:`.Coefficient` of this"""
         return ConjCoefficient(self)
 
-    def _cdc(self):
-        """ Return a :obj:`.Coefficient` being the norm of this"""
-        return NormCoefficient(self)
+    def __eq__(self, other):
+        return NotImplemented
 
 
 @cython.auto_pickle(True)
@@ -258,6 +253,23 @@ cdef class FunctionCoefficient(Coefficient):
             _f_pythonic=self._f_pythonic,
             _f_parameters=self._f_parameters,
         )
+
+    def __eq__(left, right):
+        if left is right:
+            return True
+        if (
+            not isinstance(left, FunctionCoefficient) or
+            not isinstance(right, FunctionCoefficient)
+        ):
+            return False
+        cdef FunctionCoefficient self = left
+        cdef FunctionCoefficient other = right
+        return self.func is other.func and self.args == other.args
+
+    def conj(self):
+        if typing.get_type_hints(self.func).get("return", complex) is float:
+            return self
+        return ConjCoefficient(self)
 
 
 def proj(x):
@@ -378,6 +390,18 @@ def coeff(t, args):
             return StrFunctionCoefficient(self.base, {**self.args, **kwargs})
         return self
 
+    def __eq__(left, right):
+        if left is right:
+            return True
+        if (
+            not isinstance(left, StrFunctionCoefficient) or
+            not isinstance(right, StrFunctionCoefficient)
+        ):
+            return False
+        cdef StrFunctionCoefficient self = left
+        cdef StrFunctionCoefficient other = right
+        return self.base is other.base and self.args == other.args
+
 
 cdef class InterCoefficient(Coefficient):
     """
@@ -407,6 +431,7 @@ cdef class InterCoefficient(Coefficient):
     cdef double[::1] tlist
     cdef complex[:, :] poly
     cdef object np_arrays
+    cdef object boundary_conditions
 
     def __init__(self, coeff_arr, tlist, int order, boundary_conditions, **_):
         tlist = np.array(tlist, dtype=np.float64)
@@ -445,6 +470,7 @@ cdef class InterCoefficient(Coefficient):
             ]).reshape((spline.k+1, -1))
 
         self._prepare(tlist, coeff_arr)
+        self.boundary_conditions = boundary_conditions
 
     def _prepare(self, np_tlist, np_poly, dt=None):
         self.np_arrays = (np_tlist, np_poly)
@@ -535,22 +561,118 @@ cdef class InterCoefficient(Coefficient):
         """Return a copy of the :obj:`.Coefficient`."""
         return InterCoefficient.restore(*self.np_arrays, self.dt)
 
+    def __add__(left, right):
+        cdef InterCoefficient self
+        cdef InterCoefficient other
 
-cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
-    """ Add two array coefficient with matching tlist into one."""
-    if (
-        left.np_arrays[0].shape == right.np_arrays[0].shape
-        and np.allclose(left.np_arrays[0], right.np_arrays[0],
-                        rtol=1e-15, atol=1e-15)
-        and (left.order == right.order)
-    ):
-        return InterCoefficient.restore(
-            left.np_arrays[0], left.np_arrays[1] + right.np_arrays[1],
-            left.dt
-        )
-    else:
-        # It would be possible to add them by merging tlist.
+        # Pre-cython 3 support
+        if type(left) is InterCoefficient:
+            self = left
+        else:
+            self = right
+            right = left
+
+        if isinstance(right, InterCoefficient):
+            other = <InterCoefficient> right
+            if (
+                self.np_arrays[0].shape == other.np_arrays[0].shape
+                and (self.order == other.order)
+                and np.allclose(
+                    self.np_arrays[0], other.np_arrays[0],
+                    rtol=1e-15, atol=1e-15
+                )
+            ):
+                return InterCoefficient.restore(
+                    self.np_arrays[0],
+                    self.np_arrays[1] + other.np_arrays[1],
+                    self.dt
+                )
+
+        if isinstance(right, ConstantCoefficient):
+            value = (<ConstantCoefficient> right).value
+            poly = self.np_arrays[1].copy()
+            poly[-1, :] += value
+            return InterCoefficient.restore(
+                self.np_arrays[0], poly, self.dt
+            )
+
         return SumCoefficient(left, right)
+
+    def __mul__(left, right):
+        cdef InterCoefficient self
+        cdef InterCoefficient other
+        cdef int i, j, inv1, inv2, N, idx
+
+        # Pre-cython 3 support
+        if type(left) is InterCoefficient:
+            self = left
+        else:
+            self = right
+            right = left
+
+        if not isinstance(right, Coefficient):
+            return Coefficient.__mul__(self, right)
+
+        if isinstance(right, InterCoefficient):
+            """
+            We create a spline of the same order as the input.
+            The pure mathematical product should add orders, creating a 6th
+            order for the product of 2 cubic splines, etc. We don't want to
+            increase the polynome size without limit and recreating the spline
+            is still a good approximation.
+
+            Note: Should we add an option for this? Or limit to CubicSpline?
+            """
+            other = <InterCoefficient> right
+            if (
+                self.np_arrays[0].shape == other.np_arrays[0].shape
+                and (self.order == other.order)
+                and (self.boundary_conditions == other.boundary_conditions)
+                and np.allclose(
+                    self.np_arrays[0], other.np_arrays[0],
+                    rtol=1e-15, atol=1e-15
+                )
+            ):
+                coeff1 = self.np_arrays[1][-1, :]
+                coeff2 = other.np_arrays[1][-1, :]
+                return InterCoefficient(
+                    coeff1 * coeff2,
+                    self.tlist,
+                    self.order,
+                    self.boundary_conditions
+                )
+
+        if isinstance(right, ConstantCoefficient):
+            value = (<ConstantCoefficient> right).value
+            return InterCoefficient.restore(
+                self.np_arrays[0], self.np_arrays[1] * value, self.dt
+            )
+
+        return MulCoefficient(left, right)
+
+    def conj(InterCoefficient self):
+        if np.isreal(self.np_arrays[1]).all():
+            return self
+        return InterCoefficient.restore(
+            self.np_arrays[0], np.conj(self.np_arrays[1]), self.dt
+        )
+
+    def __eq__(left, right):
+        if left is right:
+            return True
+        if (
+            not isinstance(left, InterCoefficient) or
+            not isinstance(right, InterCoefficient)
+        ):
+            return False
+        cdef InterCoefficient self = left
+        cdef InterCoefficient other = right
+        return (
+            np.allclose(self.np_arrays[0], other.np_arrays[0]) and
+            np.allclose(self.np_arrays[1], other.np_arrays[1]) and
+            np.allclose(self.dt, other.dt) and
+            self.boundary_conditions == other.boundary_conditions
+        )
 
 
 @cython.auto_pickle(True)
@@ -598,6 +720,21 @@ cdef class SumCoefficient(Coefficient):
         return SumCoefficient(
             self.first.replace_arguments(_args, **kwargs),
             self.second.replace_arguments(_args, **kwargs)
+        )
+
+    def __eq__(left, right):
+        if left is right:
+            return True
+        if (
+            not isinstance(left, SumCoefficient) or
+            not isinstance(right, SumCoefficient)
+        ):
+            return False
+        cdef SumCoefficient self = left
+        cdef SumCoefficient other = right
+        return (
+            (self.first == other.first and self.second == other.second) or
+            (self.second == other.first and self.first == other.second)
         )
 
 
@@ -648,6 +785,22 @@ cdef class MulCoefficient(Coefficient):
             self.second.replace_arguments(_args, **kwargs)
         )
 
+    def __eq__(left, right):
+        if left is right:
+            return True
+        if (
+            not isinstance(left, MulCoefficient) or
+            not isinstance(right, MulCoefficient)
+        ):
+            return False
+        cdef MulCoefficient self = left
+        cdef MulCoefficient other = right
+        return (
+            self is other or
+            (self.first == other.first and self.second == other.second) or
+            (self.second == other.first and self.first == other.second)
+        )
+
 
 @cython.auto_pickle(True)
 cdef class ConjCoefficient(Coefficient):
@@ -667,7 +820,7 @@ cdef class ConjCoefficient(Coefficient):
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`.Coefficient`."""
-        return ConjCoefficient(self.base.copy())
+        return ConjCoefficient(self.base)
 
     def replace_arguments(self, _args=None, **kwargs):
         """
@@ -690,6 +843,21 @@ cdef class ConjCoefficient(Coefficient):
         return ConjCoefficient(
             self.base.replace_arguments(_args, **kwargs)
         )
+
+    def conj(self, other):
+        return self.base
+
+    def __eq__(left, right):
+        if left is right:
+            return True
+        if (
+            not isinstance(left, ConjCoefficient) or
+            not isinstance(right, ConjCoefficient)
+        ):
+            return False
+        cdef ConjCoefficient self = left
+        cdef ConjCoefficient other = right
+        return self is other or self.base == other.base
 
 
 @cython.auto_pickle(True)
@@ -735,6 +903,18 @@ cdef class NormCoefficient(Coefficient):
         """Return a copy of the :obj:`.Coefficient`."""
         return NormCoefficient(self.base.copy())
 
+    def __eq__(left, right):
+        if left is right:
+            return True
+        if (
+            not isinstance(left, NormCoefficient) or
+            not isinstance(right, NormCoefficient)
+        ):
+            return False
+        cdef NormCoefficient self = left
+        cdef NormCoefficient other = right
+        return self is other or self.base == other.base
+
 
 @cython.auto_pickle(True)
 cdef class ConstantCoefficient(Coefficient):
@@ -774,3 +954,42 @@ cdef class ConstantCoefficient(Coefficient):
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`.Coefficient`."""
         return self
+
+    def __add__(self, other):
+        if (
+            isinstance(self, ConstantCoefficient) and
+            isinstance(other, ConstantCoefficient)
+        ):
+            return ConstantCoefficient(
+                (<ConstantCoefficient> self).value +
+                (<ConstantCoefficient> other).value
+            )
+        return NotImplemented
+
+    def __mul__(self, other):
+        if (
+            isinstance(self, ConstantCoefficient) and
+            isinstance(other, ConstantCoefficient)
+        ):
+            return ConstantCoefficient(
+                (<ConstantCoefficient> self).value *
+                (<ConstantCoefficient> other).value
+            )
+        return Coefficient.__mul__(self, other)
+
+    def conj(ConstantCoefficient self):
+        if self.value.imag == 0:
+            return self
+        return ConstantCoefficient(conj(self.value))
+
+    def __eq__(left, right):
+        if left is right:
+            return True
+        if (
+            not isinstance(left, ConstantCoefficient) or
+            not isinstance(right, ConstantCoefficient)
+        ):
+            return False
+        cdef ConstantCoefficient self = left
+        cdef ConstantCoefficient other = right
+        return self.value == other.value

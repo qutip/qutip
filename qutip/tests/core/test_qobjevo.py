@@ -456,17 +456,20 @@ def test_convert(all_qevo, dtype):
         assert isinstance(op(0.5).data, dtype)
 
 
-def test_compress():
+@pytest.mark.parametrize('as_list', [
+    [[qeye(N), lambda t: t], [qeye(N), lambda t: t], [qeye(N), lambda t: t]],
+    [[qeye(2), "t"], [sigmax(), "t"], [sigmaz(), "t"]],
+    [[qeye(2), "t"], [sigmax(), "t"], [qeye(2), "2*t"], [sigmax(), "2*t"]],
+])
+def test_compress(as_list):
     "QobjEvo compress"
-    obj1 = QobjEvo(
-        [[qeye(N), "t"], [qeye(N), "t"], [qeye(N), "t"]])
+    obj1 = QobjEvo(as_list)
     assert obj1.num_elements == 1
-    obj2 = QobjEvo(
-        [[qeye(N), "t"], [qeye(N), "t"], [qeye(N), "t"]], compress=False)
-    assert obj2.num_elements == 3
+    obj2 = QobjEvo(as_list, compress=False)
+    assert obj2.num_elements == len(as_list)
     _assert_qobjevo_equivalent(obj1, obj2)
     obj3 = obj2.copy()
-    assert obj3.num_elements == 3
+    assert obj3.num_elements == len(as_list)
     obj3.compress()
     assert obj3.num_elements == 1
     _assert_qobjevo_equivalent(obj2, obj3)

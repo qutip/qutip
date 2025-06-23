@@ -810,7 +810,7 @@ cdef class QobjEvo:
     ###########################################################################
     # Cleaning and compress                                                   #
     ###########################################################################
-    def _compress_merge_qobj(self, coeff_elements):
+    def _compress_merge_evo(self, coeff_elements):
         """Merge element with matching qobj:
         ``[A, f1], [A, f2] -> [A, f1+f2]``
         """
@@ -829,7 +829,7 @@ cdef class QobjEvo:
                     coeffs[i] = coeffs[i] + element._coefficient
                     break
             else:
-                qobjs.append(element.qobj(0))
+                qobjs.append(element._qobj)
                 coeffs.append(element._coefficient)
         for qobj, coeff in zip(qobjs, coeffs):
             cleaned_elements.append(_EvoElement(qobj, coeff))
@@ -864,6 +864,8 @@ cdef class QobjEvo:
             else:
                 func_elements.append(element)
 
+        coeff_elements = self._compress_merge_evo(coeff_elements)
+
         cleaned_elements = []
         if len(cte_elements) >= 2:
             # Multiple constant parts
@@ -876,9 +878,9 @@ cdef class QobjEvo:
         ):
             cleaned_elements += cte_elements
 
-        coeff_elements = self._compress_merge_qobj(coeff_elements)
         cleaned_elements += coeff_elements + func_elements
 
+        # QobjEvo must have at least one element
         if not cleaned_elements:
             cleaned_elements = [_ConstantElement(qzero_like(self))]
 
