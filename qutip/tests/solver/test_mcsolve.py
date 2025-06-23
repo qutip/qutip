@@ -670,7 +670,8 @@ def test_mixed_initial_state_ntraj_mismatch():
     tlist = [0, 0.1, 0.2]
     # Initial state is a mix of ground and excited states, with
     # probabilities that do not sum to 1.
-    initial_states = [(qutip.basis(2, 0), 0.6), (qutip.basis(2, 1), 0.3)]
+    eps = 1e-2
+    initial_states = [(qutip.basis(2, 0), 0.7), (qutip.basis(2, 1), 0.3 - eps)]
     ntraj = 500
     # This should run without raising an IndexError.
     solver = qutip.MCSolver(
