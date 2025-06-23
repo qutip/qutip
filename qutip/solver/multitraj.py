@@ -333,13 +333,18 @@ class MultiTrajSolver(Solver):
             between ``ntraj`` and ``timeout``. Setting a target tolerance is
             not supported with mixed initial conditions.
         """
-        seeds, result, map_func, map_kw, prepared_ics = self._initialize_run(
-            initial_conditions, np.sum(ntraj), args=args, e_ops=e_ops,
-            timeout=timeout, seeds=seeds)
+        prepared_ics = [(self._prepare_state(psi), p)
+                        for psi, p in initial_conditions]
         ics_info = _InitialConditions(prepared_ics, ntraj)
+        ntraj_total = ics_info.ntraj_total
+
+        seeds, result, map_func, map_kw, _ = self._initialize_run(
+            initial_conditions, ntraj_total, args=args, e_ops=e_ops,
+            timeout=timeout, seeds=seeds)
+
         start_time = time()
         map_func(
-            self._run_one_traj_mixed, range(len(seeds)),
+            self._run_one_traj_mixed, range(ntraj_total),
             (seeds, ics_info, tlist, e_ops),
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
