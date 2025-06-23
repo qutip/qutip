@@ -11,13 +11,14 @@ import numpy as np
 from functools import partial
 from typing import TypeVar, overload
 
+from .direct_sum import component, direct_sum
 from .operators import qeye
 from .qobj import Qobj
 from .cy.qobjevo import QobjEvo
 from .superoperator import operator_to_vector, reshuffle
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
-    dims_idxs_to_tensor_idxs
+    dims_idxs_to_tensor_idxs, SumSpace
 )
 from . import data as _data
 from .. import settings
@@ -64,6 +65,7 @@ shape = [4, 4], type = oper, isHerm = True
      [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]]
     """
     from .cy.qobjevo import QobjEvo
+
     if not args:
         raise TypeError("Requires at least one input argument")
     if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvo)):
@@ -75,6 +77,14 @@ shape = [4, 4], type = oper, isHerm = True
             raise TypeError("requires Qobj or QobjEvo operands") from None
     if not all(isinstance(q, (Qobj, QobjEvo)) for q in args):
         raise TypeError("requires Qobj or QobjEvo operands")
+
+    if any(
+        isinstance(q._dims.from_, SumSpace)
+        or isinstance(q._dims.to_, SumSpace)
+        for q in args
+    ):
+        return _tensor_of_sum(*args)
+
     if any(isinstance(q, QobjEvo) for q in args):
         # First make tensor from pairs only
         if len(args) >= 3:
@@ -114,6 +124,32 @@ shape = [4, 4], type = oper, isHerm = True
                 isherm=isherm,
                 isunitary=isunitary,
                 copy=False)
+
+def _tensor_of_sum(*args):
+    sum_index = -1
+    for index, q in enumerate(args):
+        if (isinstance(q._dims.from_, SumSpace)
+                or isinstance(q._dims.to_, SumSpace)):
+            if sum_index == -1:
+                sum_index = index
+                nrows = len(q._dims.from_.spaces)
+                ncols = len(q._dims.to_.spaces)
+            else:
+                # It would not be too difficult to implement
+                # but it seems very niche
+                raise NotImplementedError(
+                    "Tensor involving more than one direct sum is not"
+                    " implemented. Please raise an issue on Github if you"
+                    " require it."
+                )
+
+    args_before = args[:sum_index]
+    sum_qobj = args[sum_index]
+    args_after = args[(sum_index+1):]
+    return direct_sum(
+        [[tensor(*args_before, component(sum_qobj, row, col), *args_after)
+          for col in range(ncols)] for row in range(nrows)]
+    )
 
 
 @overload

@@ -15,6 +15,7 @@ initialisation of the `data` module.
 # even in a simple interactive QuTiP session, and it all adds up.
 
 import numbers
+from typing import Literal
 from collections import namedtuple
 import numpy as np
 from scipy.sparse import dok_matrix, csgraph
@@ -552,7 +553,15 @@ to = _to()
 create = _create()
 
 
-def _parse_default_dtype(provided, sparcity):
+def _parse_default_dtype(
+    provided : type | str,
+    sparcity : Literal["dense", "sparse", "diagonal"],
+):
+    """
+    Find the best dtype for Qobj creation functions.
+    Take in to accound the settings, user ``provided`` dtype and
+    resulting object ``sparcity``.
+    """
     from qutip import settings
     if provided is None:
         provided = settings.core["default_dtype"] or "core"
