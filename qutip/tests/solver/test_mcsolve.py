@@ -656,3 +656,28 @@ def test_mixed_equals_merged(improved_sampling, p):
         sum(merged_result.runs_weights + merged_result.deterministic_weights)
         == pytest.approx(1.)
     )
+
+
+def test_mixed_initial_state_ntraj_mismatch():
+    """
+    Test that mcsolve with mixed initial states and parallel map works
+    even when the sum of probabilities is not 1. This could lead to ntraj
+    being different from the sum of the list of ntraj.
+    """
+    # A 2-level atom
+    H = qutip.sigmax()
+    c_ops = [qutip.sigmam()]
+    tlist = [0, 0.1, 0.2]
+    # Initial state is a mix of ground and excited states, with
+    # probabilities that do not sum to 1.
+    initial_states = [(qutip.basis(2, 0), 0.6), (qutip.basis(2, 1), 0.3)]
+    ntraj = 500
+    # This should run without raising an IndexError.
+    solver = qutip.MCSolver(
+        H, c_ops, options={'map': 'parallel', 'num_cpus': 2}
+    )
+    solver.run(
+        initial_states,
+        tlist,
+        ntraj=ntraj,
+    )
