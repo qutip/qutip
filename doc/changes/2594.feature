@@ -1,1 +1,0 @@
-Adds extra fitting methods (power spectrum, prony, esprit, aaa, espira-I, espira-II) for bosonic environments
