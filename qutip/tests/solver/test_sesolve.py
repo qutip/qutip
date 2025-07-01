@@ -310,6 +310,7 @@ def test_krylovsolve(always_compute_step):
     krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op], options=options)
     np.testing.assert_allclose(ref, krylov_sol.expect[0])
 
+
 def test_krylovsolve_arnoldi():
     H = qutip.tensor([qutip.rand_herm(2) for _ in range(8)])
     psi0 = qutip.basis([2]*8, [1]*8)
@@ -318,8 +319,11 @@ def test_krylovsolve_arnoldi():
     tlist = np.linspace(0, 1, 11)
     ref = sesolve(H, psi0, tlist, e_ops=[e_op]).expect[0]
     options = {"krylov_algorithm": "arnoldi"}
-    krylov_sol_arn = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op], options=options)
+    krylov_sol_arn = krylovsolve(
+        H, psi0, tlist, 20, e_ops=[e_op], options=options
+    )
     np.testing.assert_allclose(ref, krylov_sol_arn.expect[0])
+
 
 def test_krylovsolve_error():
     H = qutip.rand_herm(256, density=0.2)
