@@ -21,6 +21,7 @@ class IntegratorKrylov(Integrator):
         'min_step': 1e-5,
         'max_step': 1e5,
         'krylov_dim': 0,
+        'krylov_algorithm': 'lanczos',
         'sub_system_tol': 1e-7,
         'always_compute_step': False,
     }
@@ -35,7 +36,7 @@ class IntegratorKrylov(Integrator):
         krylov_dim = self.options["krylov_dim"]
         if krylov_dim < 0 or krylov_dim > self.system.shape[0]:
             raise ValueError("The options 'krylov_dim', must be a positive "
-                             "integer smaller that the system size")
+                             "integer smaller that the system size.")
 
         if krylov_dim == 0:
             # TODO: krylov_dim, max_step and error (atol) are related by
@@ -45,11 +46,19 @@ class IntegratorKrylov(Integrator):
             krylov_dim = min(int((N + 100)**0.5), N-1)
             self.options["krylov_dim"]  = krylov_dim
 
+        if self.options["krylov_algorithm"] == 'lanczos':
+            self._krylov_algorithm = self._lanczos_algorithm
+        elif self.options["krylov_algorithm"] == 'arnoldi':
+            self._krylov_algorithm = self._arnoldi_algorithm
+        else:
+            raise ValueError("The option 'krylov_algorithm' must be either "
+                             "'lanczos' or 'arnoldi'.")
+
         if not self.options["always_compute_step"]:
             from qutip import rand_ket
             N = self.system.shape[0]
             krylov_tridiag, krylov_basis = \
-                self._lanczos_algorithm(rand_ket(N).data)
+                self._krylov_algorithm(rand_ket(N).data)
             if (
                 krylov_tridiag.shape[0] < krylov_dim
                 or krylov_tridiag.shape[0] == N
@@ -61,14 +70,15 @@ class IntegratorKrylov(Integrator):
 
     def _lanczos_algorithm(self, psi):
         """
-        Computes a basis of the Krylov subspace for Hamiltonian 'H', a system
-        state 'psi' and Krylov dimension 'krylov_dim'. The space is spanned
-        by {psi, H psi, H^2 psi, ..., H^(krylov_dim) psi}.
+        Computes a basis of the Krylov subspace for the time independent
+        Hamiltonian 'H', a system state 'psi' and Krylov dimension 'krylov_dim'
+        using the Lanczos algorithm. The space is spanned by
+        {psi, H psi, H^2 psi, ..., H^(krylov_dim) psi}.
 
         Parameters
         ------------
         psi: np.ndarray
-            State used to calculate Krylov subspace.
+            State used to calculate Krylov subspace (= first basis state).
         """
         krylov_dim = self.options['krylov_dim']
         H = (1j * self.system(0)).data
@@ -100,6 +110,42 @@ class IntegratorKrylov(Integrator):
         krylov_basis = _data.Dense(np.hstack([psi.to_array() for psi in v]))
 
         return krylov_tridiag, krylov_basis
+
+    def _arnoldi_algorithm(self, psi, t=0):
+        """
+        Computes the Krylov subspace basis for a Hamiltonian 'H', a system
+        state 'psi' and Krylov dimension 'krylov_dim' using the Arnoldi
+        interation. The space is spanned by
+        {psi, H psi, H^2 psi, ..., H^(krylov_dim) psi}.
+
+        Parameters
+        ------------
+        psi: np.ndarray
+            State used to calculation Krylov subspace (= first basis state).
+
+        t: float, default: 0
+            Time at which to evaluate the Hamiltonian.
+        """
+        krylov_dim = self.options['krylov_dim']
+        H = (1j * self.system(t)).data
+
+        h = np.zeros((krylov_dim + 1, krylov_dim), dtype=complex)
+        Q = [psi]
+        for k in range(1, krylov_dim + 1):
+            v = _data.matmul(H, Q[-1])
+            for j in range(k): # remove projections
+                h[j, k-1] = _data.inner(Q[j].conj(), v)
+                v = v - h[j, k-1] * Q[j]
+            h[k, k-1] = _data.norm.l2(v)
+            if h[k, k-1] > self.options['sub_system_tol']:
+                Q.append(v / h[k, k-1])
+            else:
+                krylov_hesse = _data.Dense(h[:k,:k])
+                krylov_basis = _data.Dense(np.hstack([psi.to_array() for psi in Q]))
+                return krylov_hesse, krylov_basis
+        krylov_hesse = _data.Dense(h[:-1,:])
+        krylov_basis = _data.Dense(np.hstack([psi.to_array() for psi in Q[:-1]]))
+        return krylov_hesse, krylov_basis
 
     def _compute_krylov_set(self, krylov_tridiag, krylov_basis):
         """
@@ -164,7 +210,7 @@ class IntegratorKrylov(Integrator):
 
     def set_state(self, t, state0):
         self._t_0 = t
-        krylov_tridiag, krylov_basis = self._lanczos_algorithm(state0)
+        krylov_tridiag, krylov_basis = self._krylov_algorithm(state0)
         self._krylov_state = self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
         if (
