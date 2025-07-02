@@ -131,23 +131,23 @@ class IntegratorKrylov(Integrator):
 
         h = np.zeros((krylov_dim + 1, krylov_dim), dtype=complex)
         Q = [psi]
-        for k in range(1, krylov_dim + 1):
+
+        k = 1
+        v = _data.matmul(H, psi)
+        h[0, 0] = _data.inner(psi.conj(), v)
+        h[1, 0] = _data.norm.l2(v)
+        while k < krylov_dim and h[k, k-1] > self.options['sub_system_tol']:
+            Q.append(v / h[k, k-1])
             v = _data.matmul(H, Q[-1])
+            k += 1
             for j in range(k):  # remove projections
                 h[j, k-1] = _data.inner(Q[j].conj(), v)
                 v = v - h[j, k-1] * Q[j]
             h[k, k-1] = _data.norm.l2(v)
-            if h[k, k-1] > self.options['sub_system_tol']:
-                Q.append(v / h[k, k-1])
-            else:
-                krylov_hesse = _data.Dense(h[:k, :k])
-                krylov_basis = _data.Dense(
-                    np.hstack([psi.to_array() for psi in Q])
-                )
-                return krylov_hesse, krylov_basis
-        krylov_hesse = _data.Dense(h[:-1, :])
+
+        krylov_hesse = _data.Dense(h[:k, :k])
         krylov_basis = _data.Dense(
-            np.hstack([psi.to_array() for psi in Q[:-1]])
+            np.hstack([psi.to_array() for psi in Q])
         )
         return krylov_hesse, krylov_basis
 
