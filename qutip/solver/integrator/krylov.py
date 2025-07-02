@@ -291,6 +291,10 @@ class IntegratorKrylov(Integrator):
             If True, the step length is computed each time a new Krylov
             subspace is computed. Otherwise it is computed only once when
             creating the integrator.
+        
+        krylov_algorithm: str {'lanczos', 'arnoldi'}, default: "lanczos"
+            Algorithm that is used to construct the Krylov basis. Arnolid
+            generalizes Lanczos to non-Hermitian systems.
         """
         return self._options
 
