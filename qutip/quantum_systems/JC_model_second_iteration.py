@@ -59,8 +59,8 @@ def jaynes_cummings_model(n_cavity: int = 10,
     operators['n_c'] = operators['a_dag'] * operators['a']
 
     # Atomic operators
-    operators['sigma_plus'] = qt.tensor(qt.qeye(n_cavity), qt.sigmap())
-    operators['sigma_minus'] = qt.tensor(qt.qeye(n_cavity), qt.sigmam())
+    operators['sigma_minus'] = qt.tensor(qt.qeye(n_cavity), qt.destroy(2))
+    operators['sigma_plus'] = operators['sigma_minus'].dag()
     operators['sigma_z'] = qt.tensor(qt.qeye(n_cavity), qt.sigmaz())
     operators['sigma_x'] = qt.tensor(qt.qeye(n_cavity), qt.sigmax())
     operators['sigma_y'] = qt.tensor(qt.qeye(n_cavity), qt.sigmay())

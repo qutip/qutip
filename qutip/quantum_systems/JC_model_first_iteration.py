@@ -13,24 +13,24 @@ def build_jc_operators(n_cavity: int):
 
     Returns:
     --------
-    ops : dict
+    operators : dict
         Dictionary containing all operators
     """
-    ops = {}
+    operators = {}
 
     # Cavity operators
-    ops['a'] = qt.tensor(qt.destroy(n_cavity), qt.qeye(2))
-    ops['a_dag'] = ops['a'].dag()
-    ops['n_c'] = ops['a_dag'] * ops['a']
+    operators['a'] = qt.tensor(qt.destroy(n_cavity), qt.qeye(2))
+    operators['a_dag'] = operators['a'].dag()
+    operators['n_c'] = operators['a_dag'] * operators['a']
 
     # Atomic operators
-    ops['sigma_plus'] = qt.tensor(qt.qeye(n_cavity), qt.sigmap())
-    ops['sigma_minus'] = qt.tensor(qt.qeye(n_cavity), qt.sigmam())
-    ops['sigma_z'] = qt.tensor(qt.qeye(n_cavity), qt.sigmaz())
-    ops['sigma_x'] = qt.tensor(qt.qeye(n_cavity), qt.sigmax())
-    ops['sigma_y'] = qt.tensor(qt.qeye(n_cavity), qt.sigmay())
+    operators['sigma_minus'] = qt.tensor(qt.qeye(n_cavity), qt.destroy(2))
+    operators['sigma_plus'] = operators['sigma_minus'].dag()
+    operators['sigma_z'] = qt.tensor(qt.qeye(n_cavity), qt.sigmaz())
+    operators['sigma_x'] = qt.tensor(qt.qeye(n_cavity), qt.sigmax())
+    operators['sigma_y'] = qt.tensor(qt.qeye(n_cavity), qt.sigmay())
 
-    return ops
+    return operators
 
 
 def build_jc_hamiltonian(
