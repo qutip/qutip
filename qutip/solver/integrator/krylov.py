@@ -73,7 +73,7 @@ class IntegratorKrylov(Integrator):
         Computes a basis of the Krylov subspace for the time independent
         Hamiltonian 'H', a system state 'psi' and Krylov dimension 'krylov_dim'
         using the Lanczos algorithm. The space is spanned by
-        {psi, H psi, H^2 psi, ..., H^(krylov_dim) psi}.
+        {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
 
         Parameters
         ------------
@@ -116,7 +116,7 @@ class IntegratorKrylov(Integrator):
         Computes the Krylov subspace basis for a Hamiltonian 'H', a system
         state 'psi' and Krylov dimension 'krylov_dim' using the Arnoldi
         interation. The space is spanned by
-        {psi, H psi, H^2 psi, ..., H^(krylov_dim) psi}.
+        {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
 
         Parameters
         ------------
