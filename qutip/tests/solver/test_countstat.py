@@ -40,7 +40,7 @@ def test_dqd_current():
         L0 = qutip.liouvillian(H)
         L = qutip.liouvillian(H, c_ops)
         rhoss = qutip.steadystate(L)
-        current_1, noise_1 = qutip.countstat_current_noise(
+        current_1, noise_1, skewness_1 = qutip.countstat_current_noise(
             L, [], wlist=[0, 1], rhoss=rhoss, J_ops=J_ops
         )
         current[n] = current_1[0]
@@ -55,7 +55,7 @@ def test_dqd_current():
         current_2 = qutip.countstat_current(H, c_ops)
         assert abs(current_1[0] - current_2[0]) < 1e-8
 
-        current_3, noise_3 = qutip.countstat_current_noise(
+        current_3, noise_3, skewness_3 = qutip.countstat_current_noise(
             L, c_ops, wlist=[0, 1], sparse=False
         )
         assert abs(current_1[0] - current_3[0]) < 1e-6
@@ -88,3 +88,35 @@ def test_dqd_current():
 
     np.testing.assert_allclose(current, current_target, atol=1e-4)
     np.testing.assert_allclose(noise, noise_target, atol=1e-4)
+
+def compute_analytical_cumulants(Gamma_r, Gamma_l):
+    """Compute the analytical values of the first three cumulants."""
+    current = (Gamma_l * Gamma_r) / (Gamma_l + Gamma_r)
+    
+    noise = current * (Gamma_r**2 + Gamma_l**2) / (Gamma_r + Gamma_l)**2
+    
+    skewness = (current * (Gamma_r**4 - 2 * Gamma_r**3 * Gamma_l + 
+                6 * Gamma_r**2 * Gamma_l**2 - 2 * Gamma_r * Gamma_l**3 + 
+                Gamma_l**4) / (Gamma_r + Gamma_l)**4)
+
+    return current, noise, skewness
+
+@pytest.mark.parametrize("method", ["pinv", "direct"])
+def test_three_cumulants(method):
+    """Counting statistics: Test the calculation of 
+    the three first cummulat for the direct and pseudoinv methods"""
+    Gamma_r = 0.5
+    Gamma_l = 0.1
+
+    d = qutip.destroy(2).dag()
+    L_s = qutip.liouvillian(0*d.dag()*d, [np.sqrt(Gamma_l) *d, np.sqrt(Gamma_r) *d.dag()])
+    rho_ss = qutip.steadystate(L_s)
+    I_s = Gamma_r * qutip.sprepost(d.dag(),d)
+
+    current_num, noise_num, skw_num = qutip.countstat_current_noise(L_s, [], rhoss=rho_ss, J_ops=[I_s], I_ops=[I_s], sparse=True, method=method)
+
+    current_ana, noise_ana, skewness_ana = compute_analytical_cumulants(Gamma_r, Gamma_l)
+
+    np.testing.assert_allclose(current_num[0], current_ana, atol=1e-4)
+    np.testing.assert_allclose(noise_num[0,0,0], noise_ana, atol=1e-4)
+    np.testing.assert_allclose(skw_num[0,0], skewness_ana, atol=1e-4)

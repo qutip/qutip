@@ -154,7 +154,7 @@ def brmesolve(
           | Maximum number of (internally defined) steps allowed in one
             ``tlist`` step.
         - | max_step : float, 0
-          | Maximum lenght of one internal step. When using pulses, it should
+          | Maximum length of one internal step. When using pulses, it should
             be less than half the width of the thinnest pulse.
 
         Other options could be supported depending on the integration method,
@@ -247,7 +247,7 @@ class BRSolver(Solver):
         spectra : :obj:`.Coefficient`, :obj:`.Environment`
             The corresponding bath spectra. As a `Coefficient` using an 'w'
             args. Can depend on ``t`` only if a_op is a :obj:`.QobjEvo`.
-            :obj:`SpectraCoefficient` can be used to conver a coefficient
+            :obj:`SpectraCoefficient` can be used to convert a coefficient
             depending on ``t`` to one depending on ``w``.
             :class:`.BosonicEnvironment` or :class:`.FermionicEnvironment` are
             also valid spectrum.
@@ -319,7 +319,7 @@ class BRSolver(Solver):
 
         a_ops = a_ops or []
         if not hasattr(a_ops, "__iter__"):
-            TypeError("`a_ops` must be a list of (operator, spectra)")
+            raise TypeError("`a_ops` must be a list of (operator, spectra)")
         if a_ops and isinstance(a_ops[0], (Qobj, QobjEvo)):
             a_ops = [a_ops]
         for oper, spectra in a_ops:
