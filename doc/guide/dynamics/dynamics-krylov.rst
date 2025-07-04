@@ -21,10 +21,12 @@ Hamiltonian is given by
 	\mathcal{K}_{N}=\operatorname{span}\left\{|\psi\rangle, H|\psi\rangle, \ldots, H^{N-1}|\psi\rangle\right\},
 
 where the dimension :math:`N<D` is a parameter of choice. To construct an
-orthonormal basis :math:`B_N` for :math:`\mathcal{K}_{N}`, the simplest algorithm
-is the well-known Lanczos algorithm, which provides a sort of Gram-Schmidt procedure
-that harnesses the fact that orthonormalization needs to be imposed only for the last
-two vectors in the basis. Written in this basis the time-evolved state can be approximated as
+orthonormal basis :math:`B_N` for :math:`\mathcal{K}_{N}`, several algorithms
+have been developed.  The simplest among them is the well-known Lanczos
+algorithm, which provides a sort of Gram-Schmidt procedure that harnesses the
+fact that orthonormalization needs to be imposed only for the last two vectors
+in the basis. Written in this basis the time-evolved state can be approximated
+as
 
 .. math::
 	:label: lanczoskrylov
@@ -69,7 +71,15 @@ must always be a ket vector, (it cannot be used to compute propagators) and an
 additional parameter ``krylov_dim`` is needed. ``krylov_dim`` defines the
 maximum allowed Krylov-subspace dimension.
 
-Let's solve a simple example using the algorithm in QuTiP to get familiar with the method.
+By default, QuTiP applies the Lanczos algorithm to construct the Krylov basis.
+Alternatively, by supplying the options parameter with ``kyrlov_algorithm``,
+one can choose between ``"lanczos"`` and ``"arnoldi"`` and thereby also choose
+the Arnoldi iteration for basis construction. This algorithm generalizes the
+Lanczos algorithm to non-Hermitian systems and produces an upper Hessenberg
+matrix in case of non-hermiticity.
+
+Let's solve a simple example using the algorithm in QuTiP to get familiar with
+the method.
 
 .. plot::
     :context: reset
