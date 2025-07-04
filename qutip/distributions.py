@@ -8,25 +8,32 @@ distributions, such as Wigner distributions, etc.
 
 """
 
-__all__ = ['Distribution', 'WignerDistribution', 'QDistribution',
-           'TwoModeQuadratureCorrelation',
-           'HarmonicOscillatorWaveFunction',
+__all__ = ['Distribution', 'HarmonicOscillatorWaveFunction',
            'HarmonicOscillatorProbabilityFunction']
 
 import numpy as np
+from numpy.typing import ArrayLike
 from numpy import pi, exp, sqrt
 
 from scipy.special import hermite, factorial
 
-from . import isket, ket2dm, state_number_index
+from . import isket, ket2dm, state_number_index, Qobj
 from .wigner import wigner, qfunc
+from ._distributions import psi_n_single_fock_multiple_position_complex
 
 try:
     import matplotlib as mpl
     import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+    from matplotlib.axes import Axes
+    from matplotlib.colors import Colormap
     from mpl_toolkits.mplot3d import Axes3D
 except:
-    pass
+    # Type when matplotlib is not installed
+    from typing import Any
+    Figure = Any
+    Axes = Any
+    Colormap = Any
 
 
 class Distribution:
@@ -53,14 +60,16 @@ class Distribution:
 
     """
 
-    def __init__(self, data=None, xvecs=[], xlabels=[]):
+    def __init__(self, data: ArrayLike = None, xvecs: list = [],
+                 xlabels: list = []):
         self.data = data
         self.xvecs = xvecs
         self.xlabels = xlabels
 
-    def visualize(self, fig=None, ax=None, figsize=(8, 6),
-                  colorbar=True, cmap=None, style="colormap",
-                  show_xlabel=True, show_ylabel=True):
+    def visualize(self, fig: Figure = None, ax: Axes = None,
+                  figsize: tuple = (8, 6), colorbar: bool = True,
+                  cmap: Colormap = None, style: str = "colormap",
+                  show_xlabel: bool = True, show_ylabel: bool = True) -> tuple[Figure, Axes]:
         """
         Visualize the data of the distribution in 1D or 2D, depending
         on the dimensionality of the underlaying distribution.
@@ -85,6 +94,12 @@ class Distribution:
         style : string
             Type of visualization: 'colormap' (default) or 'surface'.
 
+        show_xlabel : bool
+            Whether or not the xlabel is shown.
+
+        show_ylabel : bool
+            Whether or not the ylabel is shown.
+
         Returns
         -------
 
@@ -95,41 +110,41 @@ class Distribution:
         n = len(self.xvecs)
         if n == 2:
             if style == "colormap":
-                return self.visualize_2d_colormap(fig=fig, ax=ax,
+                return self._visualize_2d_colormap(fig=fig, ax=ax,
+                                                   figsize=figsize,
+                                                   colorbar=colorbar,
+                                                   cmap=cmap,
+                                                   show_xlabel=show_xlabel,
+                                                   show_ylabel=show_ylabel)
+            else:
+                return self._visualize_2d_surface(fig=fig, ax=ax,
                                                   figsize=figsize,
                                                   colorbar=colorbar,
                                                   cmap=cmap,
                                                   show_xlabel=show_xlabel,
                                                   show_ylabel=show_ylabel)
-            else:
-                return self.visualize_2d_surface(fig=fig, ax=ax,
-                                                 figsize=figsize,
-                                                 colorbar=colorbar,
-                                                 cmap=cmap,
-                                                 show_xlabel=show_xlabel,
-                                                 show_ylabel=show_ylabel)
 
         elif n == 1:
-            return self.visualize_1d(fig=fig, ax=ax, figsize=figsize,
-                                     show_xlabel=show_xlabel,
-                                     show_ylabel=show_ylabel)
+            return self._visualize_1d(fig=fig, ax=ax, figsize=figsize,
+                                      show_xlabel=show_xlabel,
+                                      show_ylabel=show_ylabel)
         else:
             raise NotImplementedError("Distribution visualization in " +
                                       "%d dimensions is not implemented." % n)
 
-    def visualize_2d_colormap(self, fig=None, ax=None, figsize=(8, 6),
-                              colorbar=True, cmap=None,
-                              show_xlabel=True, show_ylabel=True):
+    def _visualize_2d_colormap(self, fig=None, ax=None, figsize=(8, 6),
+                               colorbar=True, cmap=None,
+                               show_xlabel=True, show_ylabel=True):
 
         if not fig and not ax:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
 
         if cmap is None:
-            cmap = mpl.cm.get_cmap('RdBu')
+            cmap = mpl.colormaps['RdBu']
 
-        lim = abs(self.data).max()
+        lim = abs(self.data.real).max()
 
-        cf = ax.contourf(self.xvecs[0], self.xvecs[1], self.data, 100,
+        cf = ax.contourf(self.xvecs[0], self.xvecs[1], self.data.real, 100,
                          norm=mpl.colors.Normalize(-lim, lim),
                          cmap=cmap)
 
@@ -143,21 +158,21 @@ class Distribution:
 
         return fig, ax
 
-    def visualize_2d_surface(self, fig=None, ax=None, figsize=(8, 6),
-                             colorbar=True, cmap=None,
-                             show_xlabel=True, show_ylabel=True):
+    def _visualize_2d_surface(self, fig=None, ax=None, figsize=(8, 6),
+                              colorbar=True, cmap=None,
+                              show_xlabel=True, show_ylabel=True):
 
         if not fig and not ax:
             fig = plt.figure(figsize=figsize)
             ax = Axes3D(fig, azim=-62, elev=25)
 
         if cmap is None:
-            cmap = mpl.cm.get_cmap('RdBu')
+            cmap = mpl.colormaps['RdBu']
 
-        lim = abs(self.data).max()
+        lim = abs(self.data.real).max()
 
         X, Y = np.meshgrid(self.xvecs[0], self.xvecs[1])
-        s = ax.plot_surface(X, Y, self.data,
+        s = ax.plot_surface(X, Y, self.data.real,
                             norm=mpl.colors.Normalize(-lim, lim),
                             rstride=5, cstride=5, cmap=cmap, lw=0.1)
 
@@ -171,13 +186,13 @@ class Distribution:
 
         return fig, ax
 
-    def visualize_1d(self, fig=None, ax=None, figsize=(8, 6),
-                     show_xlabel=True, show_ylabel=True):
+    def _visualize_1d(self, fig=None, ax=None, figsize=(8, 6),
+                      show_xlabel=True, show_ylabel=True):
 
         if not fig and not ax:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
 
-        p = ax.plot(self.xvecs[0], self.data)
+        p = ax.plot(self.xvecs[0], self.data.real)
 
         if show_xlabel:
             ax.set_xlabel(self.xlabels[0], fontsize=12)
@@ -233,44 +248,30 @@ class Distribution:
                             xlabels=[self.xlabels[dim]])
 
 
-class WignerDistribution(Distribution):
-
-    def __init__(self, rho=None, extent=[[-5, 5], [-5, 5]], steps=250):
-
-        self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
-                      np.linspace(extent[1][0], extent[1][1], steps)]
-
-        self.xlabels = [r'$\rm{Re}(\alpha)$', r'$\rm{Im}(\alpha)$']
-
-        if rho:
-            self.update(rho)
-
-    def update(self, rho):
-
-        self.data = wigner(rho, self.xvecs[0], self.xvecs[1])
-
-
-class QDistribution(Distribution):
-
-    def __init__(self, rho=None, extent=[[-5, 5], [-5, 5]], steps=250):
-
-        self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
-                      np.linspace(extent[1][0], extent[1][1], steps)]
-
-        self.xlabels = [r'$\rm{Re}(\alpha)$', r'$\rm{Im}(\alpha)$']
-
-        if rho:
-            self.update(rho)
-
-    def update(self, rho):
-
-        self.data = qfunc(rho, self.xvecs[0], self.xvecs[1])
-
-
 class TwoModeQuadratureCorrelation(Distribution):
+    """A class for representing the probability distribution for
+    quadrature measurement outcomes given a two-mode wavefunction
+    or density matrix.
 
-    def __init__(self, state=None, theta1=0.0, theta2=0.0,
-                 extent=[[-5, 5], [-5, 5]], steps=250):
+    Parameters
+    ----------
+    state : Qobj, default : None
+        A quantum state (wavefunction or density matrix) from which the
+        distribution is generated.
+    theta1 : float, default : 0.0
+        Angle for the first coordinate.
+    theta2 : float, default : 0.0
+        Angle for the second coordinate.
+    extent : ArrayLike, default : [[-5, 5], [-5, 5]]
+        List of arrays with the bounds [a, b] for each coordinate.
+    steps : int, default : 250
+        The number of data points generated between the bounds for
+        each coordinate.
+
+    """
+
+    def __init__(self, state: Qobj = None, theta1: float = 0.0, theta2: float = 0.0,
+                 extent: ArrayLike = [[-5, 5], [-5, 5]], steps: int = 250):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
                       np.linspace(extent[1][0], extent[1][1], steps)]
@@ -280,22 +281,35 @@ class TwoModeQuadratureCorrelation(Distribution):
         self.theta1 = theta1
         self.theta2 = theta2
 
-        self.update(state)
+        if state:
+            self.update(state)
 
-    def update(self, state):
+    def update(self, state: Qobj):
+        """Calculates the probability distribution for quadrature measurement
+        outcomes.
+
+        Parameters
+        ----------
+        state : Qobj
+            A quantum state (wavefunction or density matrix) from which the
+            distribution is generated.
+
         """
-        calculate probability distribution for quadrature measurement
-        outcomes given a two-mode wavefunction or density matrix
-        """
+
         if isket(state):
             self.update_psi(state)
         else:
             self.update_rho(state)
 
-    def update_psi(self, psi):
-        """
-        calculate probability distribution for quadrature measurement
-        outcomes given a two-mode wavefunction
+    def update_psi(self, psi: Qobj):
+        """Calculates the probability distribution for quadrature measurement
+        outcomes given a two-mode wavefunction.
+
+        Parameters
+        ----------
+        state : Qobj
+            A wavefunction from which the distribution is generated.
+
         """
 
         X1, X2 = np.meshgrid(self.xvecs[0], self.xvecs[1])
@@ -313,14 +327,19 @@ class TwoModeQuadratureCorrelation(Distribution):
                     sqrt(sqrt(pi) * 2 ** n2 * factorial(n2)) * \
                     exp(-X2 ** 2 / 2.0) * np.polyval(hermite(n2), X2)
                 i = state_number_index([N, N], [n1, n2])
-                p += kn1 * kn2 * psi.data[i, 0]
+                p += kn1 * kn2 * psi.full()[i, 0]
 
         self.data = abs(p) ** 2
 
-    def update_rho(self, rho):
-        """
-        calculate probability distribution for quadrature measurement
-        outcomes given a two-mode density matrix
+    def update_rho(self, rho: Qobj):
+        """Calculates the probability distribution for quadrature measurement
+        outcomes given a two-mode density matrix.
+
+        Parameters
+        ----------
+        state : Qobj
+            A density matrix from which the distribution is generated.
+
         """
 
         X1, X2 = np.meshgrid(self.xvecs[0], self.xvecs[1])
@@ -350,14 +369,76 @@ class TwoModeQuadratureCorrelation(Distribution):
                 for p1 in range(N):
                     for p2 in range(N):
                         j = state_number_index([N, N], [p1, p2])
-                        p += M1[n1, p1] * M2[n2, p2] * rho.data[i, j]
+                        p += M1[n1, p1] * M2[n2, p2] * rho.full()[i, j]
 
         self.data = p
 
 
 class HarmonicOscillatorWaveFunction(Distribution):
+    """Calculates and represents the wave function of
+       a quantum harmonic oscillator.
 
-    def __init__(self, psi=None, omega=1.0, extent=[-5, 5], steps=250):
+    The `HarmonicOscillatorWaveFunction` class computes
+    the spatial distribution of the wave function for a quantum
+    harmonic oscillator given a set of state coefficients (`psi`).
+
+    By extending the `Distribution` base class, this class
+    provides specialized attributes and methods tailored for modeling
+    the harmonic oscillator's wave function.This implementation leverages
+    the Cython function `psi_n_single_fock_multiple_position_complex`from the
+    `_distributions.pyx` module to efficiently compute the wave function's
+    contribution for each Fock state across spatial coordinates using an
+    optimized recurrence relation.
+
+    Parameters
+    ----------
+    psi : array_like, optional
+        Coefficients for each harmonic oscillator state (Fock state) to
+        calculate the wave function. Defaults to None, in which case the
+        wave function is not initialized until `update` is called.
+    omega : float, optional
+        The angular frequency of the harmonic oscillator. Defaults to 1.0.
+    extent : list, optional
+        A list with two elements that defines the range of the spatial
+        dimension for calculating the wave function. Defaults to [-5, 5].
+    steps : int, optional
+        Number of points used to discretize the spatial range defined by
+        `extent`. Higher values increase resolution but may slow down
+        computations. Defaults to 250.
+
+    Attributes
+    ----------
+    xvecs : list of arrays
+        A list containing arrays that represent the spatial
+        coordinates over which the wave function is calculated.
+    xlabels : list of str
+        A list of labels for each spatial coordinate, in this case with
+        one element representing the x-axis.
+    omega : float
+        The angular frequency of the harmonic oscillator, stored as an
+        attribute for use in wave function calculations.
+    data : np.ndarray of complex numbers
+        The calculated wave function values across the spatial range.
+        Populated when `update` is called.
+
+    Methods
+    -------
+    update(psi)
+        Calculates and updates the wave function values for the harmonic
+        oscillator based on the provided state coefficients, `psi`.
+
+    References
+    ----------
+    - Pérez-Jordá, J. M. (2017). On the recursive solution of the quantum
+      harmonic oscillator. *European Journal of Physics*, 39(1),
+      015402. doi:10.1088/1361-6404/aa9584
+    - *Fast-Wave*: High-performance wave function calculations for quantum
+       harmonic oscillators.Available at:
+       https://github.com/fobos123deimos/fast-wave
+    """
+
+    def __init__(self, psi: ArrayLike = None, omega: float = 1.0,
+                 extent: list = [-5, 5], steps: int = 250):
 
         self.xvecs = [np.linspace(extent[0], extent[1], steps)]
         self.xlabels = [r'$x$']
@@ -366,27 +447,49 @@ class HarmonicOscillatorWaveFunction(Distribution):
         if psi:
             self.update(psi)
 
-    def update(self, psi):
-        """
-        Calculate the wavefunction for the given state of an harmonic
-        oscillator
+    def update(self, psi: Qobj):
+        """Calculate the wavefunction for the given state of an harmonic
+        oscillator.
+
+        Parameters
+        ----------
+        psi : Qobj
+            A quantum state from which the distribution is generated.
+
         """
 
         self.data = np.zeros(len(self.xvecs[0]), dtype=complex)
         N = psi.shape[0]
 
         for n in range(N):
-            k = pow(self.omega / pi, 0.25) / \
-                sqrt(2 ** n * factorial(n)) * \
-                exp(-self.xvecs[0] ** 2 / 2.0) * \
-                np.polyval(hermite(n), self.xvecs[0])
+            self.data += (
+                psi_n_single_fock_multiple_position_complex(
+                    n, self.xvecs[0].astype(complex)
+                ) * psi[n, 0]
+            )
 
-            self.data += k * psi.data[n, 0]
+        self.data *= pow(self.omega, 0.25)
 
 
 class HarmonicOscillatorProbabilityFunction(Distribution):
+    """A class for representing the probability distribution of a quantum
+       harmonic oscillator given a density matrix.
 
-    def __init__(self, rho=None, omega=1.0, extent=[-5, 5], steps=250):
+    Parameters
+    ----------
+    rho : qobj, default : None
+        Density matrix for composite quantum systems.
+    omega : float, default : 1.0
+        The angular frequency of the harmonic oscillator.
+    extent : list, default : [[-5, 5], [-5, 5]]
+        List of arrays with the bounds [a, b] for each coordinate.
+    steps : int, default : 250
+        The number of data points generated between the bounds for
+        each coordinate.
+    """
+
+    def __init__(self, rho: Qobj = None, omega: float = 1.0,
+                 extent: list = [-5, 5], steps: int = 250):
 
         self.xvecs = [np.linspace(extent[0], extent[1], steps)]
         self.xlabels = [r'$x$']
@@ -395,10 +498,15 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
         if rho:
             self.update(rho)
 
-    def update(self, rho):
-        """
-        Calculate the probability function for the given state of an harmonic
-        oscillator (as density matrix)
+    def update(self, rho: Qobj):
+        """Calculates the probability function for the given state of an
+        harmonic oscillator (as density matrix).
+
+        Parameters
+        ----------
+        state : Qobj
+            A density matrix from which the distribution is generated.
+
         """
 
         if isket(rho):
@@ -419,4 +527,4 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
                     exp(-self.xvecs[0] ** 2 / 2.0) * \
                     np.polyval(hermite(n), self.xvecs[0])
 
-                self.data += np.conjugate(k_n) * k_m * rho.data[m, n]
+                self.data += np.conjugate(k_n) * k_m * rho.full()[m, n]

@@ -314,3 +314,13 @@ def test_inplace_matmul_error(shape):
     with pytest.raises(ValueError) as err:
         data.matmul_dense(op, op, 1., out=out)
     assert str(err.value).startswith("incompatible output shape")
+
+
+@pytest.mark.parametrize("shape", [(4, 1), (8, 3), (2, 8)])
+def test_nnz(shape):
+    op = np.zeros(shape, dtype=complex)
+    tol = 1e-8
+    for row in range(shape[0]):
+        op[row, (row+1) % shape[1]] = 0.1 * tol
+        op[row, row % shape[1]] = 0.8 * tol * (1. + 1j)
+    assert dense.nnz(dense.Dense(op), tol) == shape[0]

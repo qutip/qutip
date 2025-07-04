@@ -15,7 +15,7 @@ cdef class _StochasticSystem:
 
     cpdef list expect(self, t, Data state)
 
-    cpdef void set_state(self, double t, Dense state) except *
+    cpdef void set_state(self, double t, Data state) except *
 
     cpdef Data a(self)
     cpdef Data bi(self, int i)

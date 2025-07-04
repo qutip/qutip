@@ -3,20 +3,23 @@ from __future__ import annotations
 
 __all__ = ['mcsolve', "MCSolver"]
 
-import numpy as np
+from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
 from numpy.random import SeedSequence
+from time import time
+from typing import Any
+import warnings
+
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
-from ..typing import QobjEvoLike
+from ..typing import QobjEvoLike, EopsLike
 from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
-from .solver_base import Solver, Integrator, _solver_deprecation
+from .solver_base import (
+    Solver, Integrator, _solver_deprecation, _kwargs_migration
+)
 from .multitrajresult import McResult
 from .mesolve import mesolve, MESolver
 from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
 import qutip.core.data as _data
-from time import time
-from typing import Any, Callable
-import warnings
 
 
 def mcsolve(
@@ -24,13 +27,15 @@ def mcsolve(
     state: Qobj,
     tlist: ArrayLike,
     c_ops: QobjEvoLike | list[QobjEvoLike] = (),
-    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
-    ntraj: int = 500,
+    _e_ops = None,
+    _ntraj = None,
     *,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+    ntraj: int = 500,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
     seeds: int | SeedSequence | list[int | SeedSequence] = None,
-    target_tol: float = None,
+    target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
     timeout: float = None,
     **kwargs,
 ) -> McResult:
@@ -59,10 +64,10 @@ def mcsolve(
         even if ``H`` is a superoperator. If none are given, the solver will
         defer to ``sesolve`` or ``mesolve``.
 
-    e_ops : list, optional
-        A ``list`` of operator as Qobj, QobjEvo or callable with signature of
-        (t, state: Qobj) for calculating expectation values. When no ``e_ops``
-        are given, the solver will default to save the states.
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single operator, or list or dict of operators, for which to evaluate
+        expectation values. Operator can be Qobj, QobjEvo or callables with the
+        signature `f(t: float, state: Qobj) -> Any`.
 
     ntraj : int, default: 500
         Maximum number of trajectories to run. Can be cut short if a time limit
@@ -164,6 +169,9 @@ def mcsolve(
     function should be considered invalid.
     """
     options = _solver_deprecation(kwargs, options, "mc")
+    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
+    ntraj = _kwargs_migration(_ntraj, ntraj, "ntraj")
+
     H = QobjEvo(H, args=args, tlist=tlist)
     if not isinstance(c_ops, (list, tuple)):
         c_ops = [c_ops]
@@ -321,18 +329,27 @@ class MCIntegrator:
     def _find_collapse_time(self, norm_old, norm, t_prev, t_final):
         """Find the time of the collapse and state just before it."""
         tries = 0
+        ratio_cutoff = self.options['norm_min_step']
         while tries < self.options['norm_steps']:
             tries += 1
             if (t_final - t_prev) < self.options['norm_t_tol']:
                 t_guess = t_final
-                _, state = self._integrator.get_state()
+                _, state = self._integrator.get_state(copy=False)
                 break
-            t_guess = (
-                t_prev
-                + ((t_final - t_prev)
-                   * np.log(norm_old / self.target_norm)
-                   / np.log(norm_old / norm))
+            dt = t_final - t_prev
+            ratio = (
+                np.log(norm_old / self.target_norm)
+                / np.log(norm_old / norm)
             )
+            # We have a bias to guessing times after the collapse.
+            # It can get stuck in slow converging pattern when ratio is close
+            # to 1. By forcing a minimum step we can avoid worst cases.
+            if ratio < ratio_cutoff:
+                ratio = ratio_cutoff
+            if ratio > (1 - ratio_cutoff):
+                ratio = (1 - ratio_cutoff)
+            t_guess = t_prev + dt * ratio
+
             if (t_guess - t_prev) < self.options['norm_t_tol']:
                 t_guess = t_prev + self.options['norm_t_tol']
             _, state = self._integrator.mcstep(t_guess, copy=False)
@@ -368,15 +385,19 @@ class MCIntegrator:
         - Store collapse info.
         """
         # collapse_time, state is at the collapse
-        if len(self._n_ops) == 1:
+        num_ops = len(self._n_ops)
+        if num_ops == 1:
             which = 0
         else:
-            probs = np.zeros(len(self._n_ops))
-            for i, n_op in enumerate(self._n_ops):
-                probs[i] = n_op.expect_data(collapse_time, state).real
-            probs = np.cumsum(probs)
-            which = np.searchsorted(probs,
-                                    probs[-1] * self._generator.random())
+            probs = [
+                n_op.expect_data(collapse_time, state).real
+                for n_op in self._n_ops
+            ]
+            target = sum(probs) * self._generator.random() - probs[0]
+            which = 0
+            while target > 0 and which <= num_ops:
+                which = which + 1
+                target -= probs[which]
 
         state_new = self._c_ops[which].matmul_data(collapse_time, state)
         new_norm = self._norm_func(state_new)
@@ -443,18 +464,19 @@ class MCSolver(MultiTrajSolver):
         "mpi_options": {},
         "num_cpus": None,
         "bitgenerator": None,
-        "method": "adams",
+        "method": "vern7",
         "mc_corr_eps": 1e-10,
-        "norm_steps": 5,
+        "norm_steps": 25,
         "norm_t_tol": 1e-6,
         "norm_tol": 1e-4,
+        "norm_min_step": 0.1,
         "improved_sampling": False,
     }
 
     def __init__(
         self,
-        H: QobjEvoLike,
-        c_ops: QobjEvoLike | list[QobjEvoLike],
+        H: Qobj | QobjEvo,
+        c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo],
         *,
         options: dict[str, Any] = None,
     ):
@@ -510,22 +532,18 @@ class MCSolver(MultiTrajSolver):
         })
         return stats
 
-    def _no_jump_simulation(self, state, tlist, e_ops, seed=None):
+    def _no_jump_simulation(self, state, tlist, e_ops):
         """
         Simulates the no-jump trajectory from the initial state `state0`.
-        Returns a tuple containing the seed, the `TrajectoryResult` describing
-        this trajectory, and the trajectory's probability.
-        Note that a seed for the integrator may be provided, but is expected to
-        be ignored in the no-jump simulation.
+        Returns a tuple containing the `Result` describing
+        this trajectory and the trajectory's probability.
         """
-        seed, no_jump_result = self._run_one_traj(
-            seed, state, tlist, e_ops, no_jump=True)
+        _, no_jump_result, _ = self._run_one_traj(
+            None, state, tlist, e_ops, no_jump=True)
         _, state, _ = self._integrator.get_state(copy=False)
         no_jump_prob = self._integrator._prob_func(state)
 
-        no_jump_result.add_absolute_weight(no_jump_prob)
-
-        return seed, no_jump_result, no_jump_prob
+        return no_jump_result, no_jump_prob
 
     def _run_one_traj(self, seed, state, tlist, e_ops, **integrator_kwargs):
         """
@@ -543,17 +561,16 @@ class MCSolver(MultiTrajSolver):
             zero = qzero_like(self._restore_state(state, copy=False))
             result = self._trajectory_resultclass(e_ops, self.options)
             result.collapse = []
-            result.add_relative_weight(0)
             for t in tlist:
                 result.add(t, zero)
-            return seed, result
+            return seed, result, 0.
 
-        seed, result = super()._run_one_traj(seed, state, tlist, e_ops,
-                                             **integrator_kwargs)
-        if jump_prob_floor > 0:
-            result.add_relative_weight(1 - jump_prob_floor)
+        seed, result, weight = super()._run_one_traj(
+            seed, state, tlist, e_ops, **integrator_kwargs
+        )
+
         result.collapse = self._integrator.collapses
-        return seed, result
+        return seed, result, weight * (1 - jump_prob_floor)
 
     def run(
         self,
@@ -562,8 +579,8 @@ class MCSolver(MultiTrajSolver):
         ntraj: int | list[int] = None,
         *,
         args: dict[str, Any] = None,
-        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
-        target_tol: float = None,
+        e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+        target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
         timeout: float = None,
         seeds: int | SeedSequence | list[int | SeedSequence] = None,
     ) -> McResult:
@@ -605,10 +622,10 @@ class MCSolver(MultiTrajSolver):
         args : dict, optional
             Change the ``args`` of the rhs for the evolution.
 
-        e_ops : list
-            list of Qobj or QobjEvo to compute the expectation values.
-            Alternatively, function[s] with the signature f(t, state) -> expect
-            can be used.
+        e_ops : :obj:`.Qobj`, callable, list or dict, optional
+            Single operator, or list or dict of operators, for which to
+            evaluate expectation values. Operator can be Qobj, QobjEvo or
+            callables with the signature `f(t: float, state: Qobj) -> Any`.
 
         timeout : float, optional
             Maximum time in seconds for the trajectories to run. Once this time
@@ -667,14 +684,11 @@ class MCSolver(MultiTrajSolver):
                           'state do not support target tolerance')
 
         # Default value for ntraj: as small as possible
-        # (2 per init. state for improved sampling, 1 per state otherwise)
         if ntraj is None:
             if is_mixed:
                 ntraj = len(state)
             else:
                 ntraj = 1
-            if self.options["improved_sampling"]:
-                ntraj *= 2
 
         if not self.options["improved_sampling"]:
             if is_mixed:
@@ -705,9 +719,9 @@ class MCSolver(MultiTrajSolver):
 
         # first run the no-jump trajectory
         start_time = time()
-        seed0, no_jump_traj, no_jump_prob = (
-            self._no_jump_simulation(state0, tlist, e_ops, seeds[0]))
-        result.add((seed0, no_jump_traj))
+        no_jump_traj, no_jump_prob = (
+            self._no_jump_simulation(state0, tlist, e_ops))
+        result.add_deterministic(no_jump_traj, no_jump_prob)
         result.stats['no jump run time'] = time() - start_time
 
         # run the remaining trajectories with the random number floor
@@ -715,7 +729,7 @@ class MCSolver(MultiTrajSolver):
         # trajectories with jumps
         start_time = time()
         map_func(
-            self._run_one_traj, seeds[1:],
+            self._run_one_traj, seeds,
             task_args=(state0, tlist, e_ops),
             task_kwargs={'no_jump': False, 'jump_prob_floor': no_jump_prob},
             reduce_func=result.add, map_kw=map_kw,
@@ -732,42 +746,21 @@ class MCSolver(MultiTrajSolver):
             initial_conditions, np.sum(ntraj), args=args, e_ops=e_ops,
             timeout=timeout, seeds=seeds)
 
-        # For improved sampling, we need to run at least 2 trajectories
-        # per initial state (the no-jump trajectory and one other).
-        # We reduce `ntraj` by one for each initial state to account for the
-        # no-jump trajectories
-        num_states = len(prepared_ics)
-        if isinstance(ntraj, (list, tuple)):
-            if len(ntraj) != num_states:
-                raise ValueError('The length of the `ntraj` list must equal '
-                                 'the number of states in the initial mixture')
-            if np.any(np.less(ntraj, 2)):
-                raise ValueError('For the improved sampling algorithm, at '
-                                 'least 2 trajectories for each member of the '
-                                 'initial mixture are required')
-            ntraj = [n - 1 for n in ntraj]
-        else:
-            if ntraj < 2 * num_states:
-                raise ValueError('For the improved sampling algorithm, at '
-                                 'least 2 trajectories for each member of the '
-                                 'initial mixture are required')
-            ntraj -= num_states
-
         # Run the no-jump trajectories
         start_time = time()
         no_jump_results = map_func(
-            _unpack_arguments(self._no_jump_simulation, ('state', 'seed')),
-            [(state, seed) for seed, (state, _) in zip(seeds, prepared_ics)],
-            task_kwargs={'tlist': tlist, 'e_ops': e_ops}, map_kw=map_kw)
+            self._no_jump_simulation,
+            [state for (state, _) in prepared_ics],
+            task_kwargs={'tlist': tlist, 'e_ops': e_ops},
+            map_kw=map_kw,
+        )
         if None in no_jump_results:  # timeout reached
             return result
 
         # Process results of no-traj runs
         no_jump_probs = []
-        for (seed, res, prob), (_, weight) in (
-                zip(no_jump_results, prepared_ics)):
-            res.add_relative_weight(weight)
-            result.add((seed, res))
+        for (res, prob), (_, weight) in (zip(no_jump_results, prepared_ics)):
+            result.add_deterministic(res, prob * weight)
             no_jump_probs.append(prob)
         result.stats['no jump run time'] = time() - start_time
 
@@ -780,7 +773,7 @@ class MCSolver(MultiTrajSolver):
             _unpack_arguments(self._run_one_traj_mixed,
                               ('id', 'jump_prob_floor')),
             arguments,
-            task_kwargs={'seeds': seeds[num_states:], 'ics': ics_info,
+            task_kwargs={'seeds': seeds, 'ics': ics_info,
                          'tlist': tlist, 'e_ops': e_ops, 'no_jump': False},
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
@@ -789,8 +782,7 @@ class MCSolver(MultiTrajSolver):
         result.stats['run time'] = time() - start_time
         result.initial_states = [self._restore_state(state, copy=False)
                                  for state, _ in ics_info.state_list]
-        # add back +1 for the no-jump trajectories:
-        result.ntraj_per_initial_state = [(n+1) for n in ics_info.ntraj]
+        result.ntraj_per_initial_state = ics_info.ntraj
         return result
 
     def _get_integrator(self):
@@ -868,8 +860,15 @@ class MCSolver(MultiTrajSolver):
         norm_tol: float, default: 1e-4
             Tolerance in norm used when finding the collapse.
 
-        norm_steps: int, default: 5
+        norm_steps: int, default: 25
             Maximum number of tries to find the collapse.
+
+        norm_min_step: float, default: 0.10
+            Minimum step used when finding the collapse time, given as a
+            fraction of the search interval. Must be between 0 and 0.5.
+            A small non-zero value can help avoid the worst cases of
+            convergence at the cost of increased average steps required to find
+            the collapse.
 
         improved_sampling: Bool, default: False
             Whether to use the improved sampling algorithm

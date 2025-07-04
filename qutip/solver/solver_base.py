@@ -14,6 +14,7 @@ from .result import Result
 from .integrator import Integrator
 from ..ui.progressbar import progress_bars
 from ._feedback import _ExpectFeedback
+from ..typing import EopsLike
 from time import time
 import warnings
 import numpy as np
@@ -55,7 +56,7 @@ class Solver:
         if isinstance(rhs, (QobjEvo, Qobj)):
             self.rhs = QobjEvo(rhs)
         else:
-            TypeError("The rhs must be a QobjEvo")
+            raise TypeError("The rhs must be a QobjEvo")
         self.options = options
         self._integrator = self._get_integrator()
         self._state_metadata = {}
@@ -142,7 +143,7 @@ class Solver:
         state0: Qobj,
         tlist: ArrayLike,
         *,
-        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+        e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
         args: dict[str, Any] = None,
     ) -> Result:
         """
@@ -167,9 +168,9 @@ class Solver:
         args : dict, optional
             Change the ``args`` of the rhs for the evolution.
 
-        e_ops : list, optional
-            List of Qobj, QobjEvo or callable to compute the expectation
-            values. Function[s] must have the signature
+        e_ops : Qobj, QobjEvo, callable, list, or dict optional
+            Single, list or dict of Qobj, QobjEvo or callable to compute the
+            expectation values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
 
         Returns
@@ -568,3 +569,13 @@ def _solver_deprecation(kwargs, options, solver="me"):
     if kwargs:
         raise TypeError(f"unexpected keyword argument {kwargs.keys()}")
     return options
+
+
+def _kwargs_migration(position, keyword, name):
+    if position is not None:
+        warnings.warn(
+            f"{name} will be keyword only from qutip 5.3 for all solver",
+            FutureWarning
+        )
+        return position
+    return keyword

@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from qutip import (
-    mesolve, liouvillian, QobjEvo, spre, spost,
+    mesolve, liouvillian, QobjEvo, spre, spost, CoreOptions,
     destroy, coherent, qeye, fock_dm, num, basis
 )
 from qutip.solver.stochastic import smesolve, ssesolve, SMESolver, SSESolver
@@ -58,7 +58,8 @@ def test_smesolve(heterodyne, system):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, c_ops + sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, c_ops + sc_ops,
+                      e_ops=e_ops, args={"w": 2})
 
     options = {
         "store_measurement": False,
@@ -94,7 +95,8 @@ def test_smesolve_methods(method, heterodyne, system):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, c_ops + sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, c_ops + sc_ops,
+                      e_ops=e_ops, args={"w": 2})
 
     options = {
         "store_measurement": True,
@@ -158,7 +160,7 @@ def test_ssesolve(heterodyne, system):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, sc_ops, e_ops=e_ops, args={"w": 2})
 
     options = {
         "map": "serial",
@@ -197,7 +199,7 @@ def test_ssesolve_method(method, heterodyne, system):
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 0.1, 21)
-    res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"w": 2})
+    res_ref = mesolve(H, psi0, times, sc_ops, e_ops=e_ops, args={"w": 2})
 
     options = {
         "store_measurement": True,
@@ -543,10 +545,13 @@ def test_merge_results(store_measurement, keep_runs_results):
     result_merged = result1 + result2
     assert len(result_merged.seeds) == 15
     if store_measurement:
-        assert (
-            result_merged.average_states[0] ==
-            (initial_state1.proj() + 2 * initial_state2.proj()).unit()
-        )
+        with CoreOptions(atol=2e-8):
+            # In the numpy 1.X test, this fail with the defautl atol=1e-12
+            # One operation is computed in single precision?
+            assert (
+                result_merged.average_states[0] ==
+                (initial_state1.proj() + 2 * initial_state2.proj()).unit()
+            )
     np.testing.assert_allclose(result_merged.average_expect[0][0], 1)
     np.testing.assert_allclose(result_merged.average_expect[1], 2/3)
 
@@ -562,3 +567,36 @@ def test_merge_results(store_measurement, keep_runs_results):
             w.shape == result_merged.wiener_process[0].shape
             for w in result_merged.wiener_process
         )
+
+
+@pytest.mark.parametrize("open", [True, False])
+@pytest.mark.parametrize("heterodyne", [True, False])
+def test_step(open, heterodyne):
+    state0 = basis(5, 3)
+    kw = {}
+    if open:
+        SolverCls = SMESolver
+        state0 = state0.proj()
+    else:
+        SolverCls = SSESolver
+
+    solver = SolverCls(
+        num(5),
+        sc_ops=[destroy(5), destroy(5)**2 / 10],
+        heterodyne=heterodyne,
+        options={"dt": 0.001},
+        **kw
+    )
+    solver.start(state0, t0=0)
+    state1 = solver.step(0.01)
+    assert state1.dims == state0.dims
+    assert state1.norm() == pytest.approx(1, abs=0.01)
+    state2, dW = solver.step(0.02, wiener_increment=True)
+    assert state2.dims == state0.dims
+    assert state2.norm() == pytest.approx(1, abs=0.01)
+    if heterodyne:
+        assert dW.shape == (2, 2)
+        assert abs(dW[0, 0]) < 0.5 # 5 sigmas
+    else:
+        assert dW.shape == (2,)
+        assert abs(dW[0]) < 0.5 # 5 sigmas

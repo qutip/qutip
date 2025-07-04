@@ -74,6 +74,8 @@ class TestClassMethods:
     ))
     @pytest.mark.parametrize('c_type', _dtype_int + _dtype_uint)
     @pytest.mark.parametrize('r_type', _dtype_int + _dtype_uint)
+    # uint on macos raise a RuntimeWarning
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_init_from_tuple_allowed_dtypes(self, d_type, c_type, r_type):
         """
         Test that initialisation can use a variety of dtypes and converts into
@@ -149,6 +151,15 @@ class TestClassMethods:
         copy = data_csr.copy()
         assert original is not copy
         assert (original.as_scipy() - copy.as_scipy()).nnz == 0
+
+    def test_as_scipy_initializes_correctly(self, data_csr):
+        """
+        Test that the object returned from as_scipy is initialized correctly.
+        If not, there might be some missing attributes.
+        """
+        sci = data_csr.as_scipy()
+        reference = scipy.sparse.csr_matrix((1, 0))
+        assert sci.__dict__.keys() == reference.__dict__.keys()
 
     def test_as_scipy_returns_a_view(self, data_csr):
         """
@@ -435,11 +446,13 @@ class TestFromCSRBlocks:
         A = np.array([[1, 2], [3, 4]])
         B = np.array([[0.3, 0.35], [0.4, 0.45]])
         B_op = data.to("csr", data.Dense(B))
+        raw_blocks = [
+            A[0, 0] * B_op, A[0, 1] * B_op,
+            A[1, 0] * B_op, A[1, 1] * B_op,
+        ]
         blocks = self._blocks(
-            [0, 0, 1, 1], [0, 1, 0, 1], [
-                A[0, 0] * B_op, A[0, 1] * B_op,
-                A[1, 0] * B_op, A[1, 1] * B_op,
-            ]
+            [0, 0, 1, 1], [0, 1, 0, 1],
+            [data.to(csr.CSR, b) for b in raw_blocks]
         )
         out = blocks.from_csr_blocks()
         assert out == data.kron(data.Dense(A), data.Dense(B))
@@ -447,8 +460,10 @@ class TestFromCSRBlocks:
 
 
 def test_tidyup():
-    small = qeye(1) * 1e-5
-    with CoreOptions(auto_tidyup_atol=1e-3):
+    small = (qeye(1) * 1e-5).to(csr.CSR)
+    with CoreOptions(auto_tidyup_atol=1e-3, default_dtype=csr.CSR):
         assert (small + small).tr() == 0
-    with CoreOptions(auto_tidyup_atol=1e-3, auto_tidyup=False):
+    with CoreOptions(
+        auto_tidyup_atol=1e-3, auto_tidyup=False, default_dtype=csr.CSR
+    ):
         assert (small + small).tr() == 2e-5

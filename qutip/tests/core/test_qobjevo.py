@@ -4,7 +4,7 @@ import pytest
 from qutip import (
     Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, num, rand_stochastic,
     rand_herm, rand_ket, liouvillian, basis, spre, spost, to_choi, expect,
-    rand_ket, rand_dm, operator_to_vector, SESolver, MESolver
+    rand_ket, rand_dm, operator_to_vector, SESolver, MESolver, CoreOptions
 )
 import qutip.core.data as _data
 import numpy as np
@@ -318,6 +318,9 @@ def test_unary_ket(unary_op):
         as_qevo = transformed(t)
         as_qobj = unary_op(obj(t))
         assert transformed._dims == as_qevo._dims
+        assert transformed._dims == as_qobj._dims
+        assert transformed.shape == as_qobj.shape
+        assert transformed.shape == as_qevo.shape
         _assert_qobj_almost_eq(as_qevo, as_qobj)
 
 
@@ -447,8 +450,10 @@ def test_expect_rho(all_qevo):
      for dtype in _data.to.dtypes])
 def test_convert(all_qevo, dtype):
     "QobjEvo expect rho"
-    op = all_qevo.to(dtype)
-    assert isinstance(op(0.5).data, dtype)
+    with CoreOptions(default_dtype_scope="creation"):
+        # default_dtype_scope="full" overwrite the add used in QobjEvo...
+        op = all_qevo.to(dtype)
+        assert isinstance(op(0.5).data, dtype)
 
 
 def test_compress():
@@ -491,7 +496,7 @@ def test_QobjEvo_step_coeff():
     "QobjEvo step interpolation"
     coeff1 = np.random.rand(6)
     coeff2 = np.random.rand(6) + np.random.rand(6) * 1.j
-    # uniform t
+    # uniform t_dims =
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
                       tlist=tlist, order=0)
@@ -628,11 +633,12 @@ def test_feedback_super():
 
 @pytest.mark.parametrize('dtype', ["CSR", "Dense"])
 def test_qobjevo_dtype(dtype):
-    obj = QobjEvo([qeye(2, dtype=dtype), [num(2, dtype=dtype), lambda t: t]])
-    assert obj.dtype == _data.to.parse(dtype)
+    with CoreOptions(default_dtype_scope="creation"):
+        obj = QobjEvo([qeye(2, dtype=dtype), [num(2, dtype=dtype), lambda t: t]])
+        assert obj.dtype == _data.to.parse(dtype)
 
-    obj = QobjEvo(lambda t: qeye(2, dtype=dtype))
-    assert obj.dtype == _data.to.parse(dtype)
+        obj = QobjEvo(lambda t: qeye(2, dtype=dtype))
+        assert obj.dtype == _data.to.parse(dtype)
 
 
 def test_qobjevo_mixed():

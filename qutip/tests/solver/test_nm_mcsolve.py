@@ -110,12 +110,13 @@ def test_solver_pickleable():
         "sin(t)",
     ]
     args = [
-        None,
+        {},
         {'constant': 1},
-        None,
+        {},
     ]
     for rate, arg in zip(rates, args):
-        solver = NonMarkovianMCSolver(H, [(L, rate)], args=arg)
+        op_and_rate = (L, qutip.coefficient(rate, args=arg))
+        solver = NonMarkovianMCSolver(H, [op_and_rate])
         jar = pickle.dumps(solver)
 
         loaded_solver = pickle.loads(jar)
@@ -456,7 +457,7 @@ def test_expectation_outputs(keep_runs_results, improved_sampling,
     total_ops = len(ops_and_rates) + 1
     e_ops = [a.dag()*a, sm.dag()*sm, a]
     data = nm_mcsolve(
-        H, state, times, ops_and_rates, e_ops, ntraj=ntraj,
+        H, state, times, ops_and_rates, e_ops=e_ops, ntraj=ntraj,
         options={
             "keep_runs_results": keep_runs_results,
             "map": "serial",
@@ -559,9 +560,9 @@ class TestSeeds:
         size = 10
         a = qutip.destroy(size)
         H = qutip.num(size)
-        ops_and_rates = [(a, 'alpha')]
+        ops_and_rates = [(a, qutip.coefficient('alpha', args={'alpha': 0}))]
         mcsolver = NonMarkovianMCSolver(
-            H, ops_and_rates, args={'alpha': 0}, options={'map': 'serial'},
+            H, ops_and_rates, options={'map': 'serial'},
         )
         mcsolver.start(qutip.basis(size, size-1), 0, seed=5)
         state_1 = mcsolver.step(1, args={'alpha': 1})
@@ -590,7 +591,7 @@ def test_timeout(improved_sampling, mixed_initial_state):
     ]
     e_ops = [qutip.num(size)]
     res = nm_mcsolve(
-        H, state, times, ops_and_rates, e_ops, ntraj=ntraj,
+        H, state, times, ops_and_rates, e_ops=e_ops, ntraj=ntraj,
         options={'map': 'serial', "improved_sampling": improved_sampling},
         timeout=1e-6,
     )
@@ -617,25 +618,25 @@ def test_super_H(improved_sampling, mixed_initial_state):
     ]
     e_ops = [qutip.num(size)]
     mc_expected = nm_mcsolve(
-        H, state, times, ops_and_rates, e_ops, ntraj=ntraj,
+        H, state, times, ops_and_rates, e_ops=e_ops, ntraj=ntraj,
         target_tol=(0.1 if state.isket else None),
         options={'map': 'serial', "improved_sampling": improved_sampling},
     )
     mc = nm_mcsolve(
-        qutip.liouvillian(H), state, times, ops_and_rates, e_ops, ntraj=ntraj,
-        target_tol=(0.1 if state.isket else None),
+        qutip.liouvillian(H), state, times, ops_and_rates, e_ops=e_ops,
+        ntraj=ntraj, target_tol=(0.1 if state.isket else None),
         options={'map': 'serial', "improved_sampling": improved_sampling})
     np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.65)
 
 
 def test_NonMarkovianMCSolver_run():
     size = 10
-    ops_and_rates = [
-        (qutip.destroy(size), 'coupling')
-    ]
     args = {'coupling': 0}
+    ops_and_rates = [
+        (qutip.destroy(size), qutip.coefficient('coupling', args=args))
+    ]
     H = qutip.num(size)
-    solver = NonMarkovianMCSolver(H, ops_and_rates, args=args)
+    solver = NonMarkovianMCSolver(H, ops_and_rates)
     solver.options = {'store_final_state': True}
     res = solver.run(qutip.basis(size, size-1), np.linspace(0, 5.0, 11),
                      e_ops=[qutip.qeye(size)], args={'coupling': 1})
@@ -653,12 +654,12 @@ def test_NonMarkovianMCSolver_run():
 
 def test_NonMarkovianMCSolver_stepping():
     size = 10
-    ops_and_rates = [
-        (qutip.destroy(size), 'coupling')
-    ]
     args = {'coupling': 0}
+    ops_and_rates = [
+        (qutip.destroy(size), qutip.coefficient('coupling', args=args))
+    ]
     H = qutip.num(size)
-    solver = NonMarkovianMCSolver(H, ops_and_rates, args=args)
+    solver = NonMarkovianMCSolver(H, ops_and_rates)
     solver.start(qutip.basis(size, size-1), 0, seed=0)
     state = solver.step(1)
     assert qutip.expect(qutip.qeye(size), state) == pytest.approx(1)
@@ -738,6 +739,10 @@ def test_mixed_averaging(improved_sampling, initial_state, ntraj):
         assert result.ntraj_per_initial_state == ntraj
     else:
         assert sum(result.ntraj_per_initial_state) == ntraj
+    assert (
+        sum(result.deterministic_weights + result.runs_weights)
+        == pytest.approx(1.)
+    )
 
 
 @pytest.mark.parametrize("improved_sampling", [True, False])
@@ -755,20 +760,15 @@ def test_mixed_equals_merged(improved_sampling, p):
     ntraj = [3, 9]
 
     solver = qutip.NonMarkovianMCSolver(
-        H, [(L, rate_function)],
+        H, [(L, qutip.coefficient(rate_function))],
         options={'improved_sampling': improved_sampling})
     mixed_result = solver.run(
         [(initial_state1, p), (initial_state2, 1 - p)], tlist, ntraj)
 
     # Reuse seeds, then results should be identical
     seeds = mixed_result.seeds
-    if improved_sampling:
-        # For improved sampling, first two seeds are no-jump trajectories
-        seeds1 = seeds[0:1] + seeds[2:(ntraj[0]+1)]
-        seeds2 = seeds[1:2] + seeds[(ntraj[0]+1):]
-    else:
-        seeds1 = seeds[:ntraj[0]]
-        seeds2 = seeds[ntraj[0]:]
+    seeds1 = seeds[:ntraj[0]]
+    seeds2 = seeds[ntraj[0]:]
 
     pure_result1 = solver.run(initial_state1, tlist, ntraj[0], seeds=seeds1)
     pure_result2 = solver.run(initial_state2, tlist, ntraj[1], seeds=seeds2)
@@ -785,3 +785,11 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert hasattr(mixed_result, 'ntraj_per_initial_state')
     assert isinstance(mixed_result.ntraj_per_initial_state, list)
     assert mixed_result.ntraj_per_initial_state == ntraj
+    assert (
+        sum(mixed_result.runs_weights + mixed_result.deterministic_weights)
+        == pytest.approx(1.)
+    )
+    assert (
+        sum(merged_result.runs_weights + merged_result.deterministic_weights)
+        == pytest.approx(1.)
+    )

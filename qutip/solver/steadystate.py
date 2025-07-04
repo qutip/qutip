@@ -1,6 +1,6 @@
 from qutip import liouvillian, lindblad_dissipator, Qobj, qzero_like, qeye_like
-from qutip import vector_to_operator, operator_to_vector
-from qutip import settings
+from qutip import vector_to_operator, operator_to_vector, hilbert_dist
+from qutip import settings, CoreOptions
 import qutip.core.data as _data
 import numpy as np
 import scipy.sparse.csgraph
@@ -15,21 +15,21 @@ def _permute_wbm(L, b):
     perm = np.argsort(
         scipy.sparse.csgraph.maximum_bipartite_matching(L.as_scipy())
     )
-    L = _data.permute.indices(L, perm, None)
-    b = _data.permute.indices(b, perm, None)
+    L = _data.permute.indices(L, perm, None, dtype=type(L))
+    b = _data.permute.indices(b, perm, None, dtype=type(b))
     return L, b
 
 
 def _permute_rcm(L, b):
     perm = np.argsort(scipy.sparse.csgraph.reverse_cuthill_mckee(L.as_scipy()))
-    L = _data.permute.indices(L, perm, perm)
-    b = _data.permute.indices(b, perm, None)
+    L = _data.permute.indices(L, perm, perm, dtype=type(L))
+    b = _data.permute.indices(b, perm, None, dtype=type(b))
     return L, b, perm
 
 
 def _reverse_rcm(rho, perm):
     rev_perm = np.argsort(perm)
-    rho = _data.permute.indices(rho, rev_perm, None)
+    rho = _data.permute.indices(rho, rev_perm, None, dtype=type(rho))
     return rho
 
 
@@ -52,10 +52,12 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
 
     method : str, {"direct", "eigen", "svd", "power"}, default: "direct"
         The allowed methods are composed of 2 parts, the steadystate method:
+
         - "direct": Solving ``L(rho_ss) = 0``
         - "eigen" : Eigenvalue problem
         - "svd" : Singular value decomposition
         - "power" : Inverse-power method
+        - "propagator" : Repeatedly applying the propagator
 
     solver : str, optional
         'direct' and 'power' methods only.
@@ -106,6 +108,22 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         (default sparse).  With "direct" and "power" method, when the solver is
         not specified, it is used to set whether "solve" or "spsolve" is
         used as default solver.
+
+    rho: Qobj, default: None
+        Initial state for the "propagator" method.
+
+    propagator_T: float, default: 10
+        Initial time step for the propagator method. The time step is doubled
+        each iteration.
+
+    propagator_tol: float, default: 1e-5
+        Tolerance for propagator method convergence. If the Hilbert distance
+        between the states of a step is less than this tolerance, the state is
+        considered to have converged to the steady state.
+
+    propagator_max_iter: int, default: 30
+        Maximum number of iterations until convergence. A RuntimeError is
+        raised if the state did not converge.
 
     **kwargs :
         Extra options to pass to the linear system solver. See the
@@ -176,16 +194,25 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         kwargs.pop("power_maxiter", 0)
         kwargs.pop("power_eps", 0)
         kwargs.pop("sparse", 0)
-        return _steadystate_direct(A, kwargs.pop("weight", 0),
-                                   method=solver, **kwargs)
+        with CoreOptions(default_dtype_scope="creation"):
+            # We want to ensure the dtype we set are kept
+            rho_ss = _steadystate_direct(A, kwargs.pop("weight", 0),
+                                         method=solver, **kwargs)
 
     elif method == "power":
         # Remove unused kwargs, so only used and pass-through ones are included
         kwargs.pop("weight", 0)
         kwargs.pop("sparse", 0)
-        return _steadystate_power(A, method=solver, **kwargs)
+        with CoreOptions(default_dtype_scope="creation"):
+            # We want to ensure the dtype we set are kept
+            rho_ss = _steadystate_power(A, method=solver, **kwargs)
+
+    elif method == "propagator":
+        rho_ss = _steadystate_expm(A, **kwargs)
     else:
         raise ValueError(f"method {method} not supported.")
+
+    return rho_ss
 
 
 def _steadystate_direct(A, weight, **kw):
@@ -266,6 +293,29 @@ def _steadystate_svd(L, **kw):
     rho = _data.column_unstack(vec, n)
     rho = Qobj(rho, dims=L._dims[0].oper, isherm=True)
     return rho / rho.tr()
+
+
+def _steadystate_expm(L, rho=None, propagator_tol=1e-5, propagator_T=10, **kw):
+    if rho is None:
+        from qutip import rand_dm
+        rho = rand_dm(L.dims[0][0])
+    # Propagator at an arbitrary long time
+    prop = (propagator_T * L).expm()
+
+    niter = 0
+    max_iter = kw.get("propagator_max_iter", 30)
+    while niter < max_iter:
+        rho_next = prop(rho)
+        rho_next = (rho_next + rho_next.dag()) / (2 * rho_next.tr())
+        if hilbert_dist(rho_next, rho) <= propagator_tol:
+            return rho_next
+        rho = rho_next
+        prop = prop @ prop
+        niter += 1
+
+    raise RuntimeError(
+        f"Did not converge to a steadystate after {max_iter} iterations."
+    )
 
 
 def _steadystate_power(A, **kw):

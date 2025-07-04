@@ -67,3 +67,14 @@ def test_data_eq_operator(type_left, type_right):
 
     assert left != mat
     assert numpy.all(left != mat.full())
+
+
+def test_oper_from_ketbra():
+    ket = qutip.basis(2)
+    bra = qutip.basis(2).dag()
+    assert (ket @ bra).dtype is _data.CSR
+    assert (ket.proj()).dtype is _data.CSR
+
+    ket2 = qutip.coherent(2, 1)
+    assert (ket2 @ bra).dtype is _data.Dense
+    assert (ket2.proj()).dtype is _data.Dense

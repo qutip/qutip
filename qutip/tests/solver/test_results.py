@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import qutip
-from qutip.solver.result import Result, TrajectoryResult
+from qutip.solver.result import Result
 from qutip.solver.multitrajresult import MultiTrajResult, McResult, NmmcResult
 
 
@@ -109,7 +109,7 @@ class TestResult:
                 np.testing.assert_allclose(e_op_call_values, results[k])
 
     def test_add_processor(self):
-        res = Result([], fill_options(store_states=False))
+        res = Result([], fill_options(store_states=False, method="vern7"))
         a = []
         b = []
         states = [{"t": 0}, {"t": 1}]
@@ -162,42 +162,6 @@ class TestResult:
             ">",
         ])
 
-    def test_trajectory_result(self):
-        res = TrajectoryResult(
-            e_ops=qutip.num(5),
-            options=fill_options(store_states=True, store_final_state=True))
-        for i in range(5):
-            res.add(i, qutip.basis(5, i))
-
-        assert not res.has_weight
-        assert not res.has_absolute_weight
-        assert not res.has_time_dependent_weight
-        assert res.total_weight == 1
-
-        res.add_absolute_weight(2)
-        res.add_absolute_weight(2)
-        assert res.has_weight and res.has_absolute_weight
-        assert not res.has_time_dependent_weight
-        assert res.total_weight == 4
-
-        res.add_relative_weight([1j ** i for i in range(5)])
-        assert res.has_weight and res.has_absolute_weight
-        assert res.has_time_dependent_weight
-        np.testing.assert_array_equal(res.total_weight,
-                                      [4 * (1j ** i) for i in range(5)])
-
-        # weights do not modify states etc
-        assert res.states == [qutip.basis(5, i) for i in range(5)]
-        assert res.final_state == qutip.basis(5, 4)
-        np.testing.assert_array_equal(res.expect[0], range(5))
-
-        res = TrajectoryResult(e_ops=[], options=fill_options())
-        res.add(0, qutip.fock_dm(2, 0))
-        res.add_relative_weight(10)
-        assert res.has_weight
-        assert not (res.has_absolute_weight or res.has_time_dependent_weight)
-        assert res.total_weight == 10
-
 
 def e_op_num(t, state):
     """ An e_ops function that returns the ground state occupation. """
@@ -208,14 +172,10 @@ class TestMultiTrajResult:
     def _fill_trajectories(self, multiresult, N, ntraj,
                            collapse=False, noise=0, dm=False,
                            include_no_jump=False, rel_weights=None):
-        if rel_weights is None:
-            rel_weights = [None] * ntraj
 
-        # Fix the seed to avoid failing due to bad luck
-        np.random.seed(1)
-        for k, w in enumerate(rel_weights):
-            result = TrajectoryResult(multiresult._raw_ops,
-                                      multiresult.options)
+        for k in range(ntraj + include_no_jump):
+            # The fixed weight trajectory is not counted
+            result = Result(multiresult._raw_ops, multiresult.options)
             result.collapse = []
             for t in range(N):
                 delta = 1 + noise * np.random.randn()
@@ -227,15 +187,18 @@ class TestMultiTrajResult:
                     result.collapse.append((t+0.1, 0))
                     result.collapse.append((t+0.2, 1))
                     result.collapse.append((t+0.3, 1))
+
+            if rel_weights is not None:
+                result.trace = rel_weights[k]
+
             if include_no_jump and k == 0:
-                result.add_absolute_weight(0.25)
-            elif include_no_jump and k > 0:
-                result.add_relative_weight(0.75)
-            if w is not None:
-                result.add_relative_weight(w)
-                result.trace = w
-            if multiresult.add((0, result)) <= 0:
-                break
+                multiresult.add_deterministic(result, 0.25)
+            elif include_no_jump:
+                if multiresult.add((0, result, 0.75)) <= 0:
+                    break
+            else:
+                if multiresult.add((0, result, 1.)) <= 0:
+                    break
 
     def _check_types(self, multiresult):
         assert isinstance(multiresult.std_expect, list)
@@ -243,6 +206,7 @@ class TestMultiTrajResult:
         assert isinstance(multiresult.std_expect, list)
         assert isinstance(multiresult.average_e_data, dict)
         assert isinstance(multiresult.runs_weights, list)
+        assert isinstance(multiresult.deterministic_weights, list)
 
         if multiresult.trajectories:
             assert isinstance(multiresult.runs_expect, list)
@@ -272,31 +236,33 @@ class TestMultiTrajResult:
         assert np.all(np.array(m_res.col_which) < 2)
         assert isinstance(m_res.collapse, list)
         assert len(m_res.col_which[0]) == len(m_res.col_times[0])
-        np.testing.assert_allclose(m_res.photocurrent[0], np.ones(N-1))
-        np.testing.assert_allclose(m_res.photocurrent[1], 2 * np.ones(N-1))
+        if include_no_jump and keep_runs_results:
+            assert len(m_res.deterministic_trajectories) == 1
+
+        expected = 0.75 * np.ones(N-1) if include_no_jump else np.ones(N-1)
+        np.testing.assert_allclose(m_res.photocurrent[0], expected)
+        np.testing.assert_allclose(m_res.photocurrent[1], 2 * expected)
 
     @pytest.mark.parametrize(['include_no_jump', 'martingale',
-                              'result_trace', 'result_states'], [
+                              'result_trace'], [
         pytest.param(False, [[1.] * 10] * 5, [1.] * 10,
-                     [qutip.fock_dm(10, i) for i in range(10)],
                      id='constant-martingale'),
-        pytest.param(True, [[1.] * 10] * 5, [1.] * 10,
-                     [qutip.fock_dm(10, i) for i in range(10)],
+        pytest.param(True, [[1.] * 10] * 6, [1.] * 10,
                      id='constant-marting-no-jump'),
-        pytest.param(False, [[(j - 1) * np.sin(i) for i in range(10)]
-                             for j in range(5)],
-                     [np.sin(i) for i in range(10)],
-                     [np.sin(i) * qutip.fock_dm(10, i) for i in range(10)],
-                     id='timedep-marting'),
-        pytest.param(True, [[(j - 1) * np.sin(i) for i in range(10)]
-                             for j in range(5)],
-                     [(-0.25 + 1.5 * 0.75) * np.sin(i) for i in range(10)],
-                     [(-0.25 + 1.5 * 0.75) * np.sin(i) * qutip.fock_dm(10, i)
-                      for i in range(10)],
-                     id='timedep-marting-no-jump'),
+        pytest.param(
+            False,
+            [[(j - 1) * np.sin(i) for i in range(10)] for j in range(5)],
+            [np.sin(i) for i in range(10)],
+            id='timedep-marting'
+        ),
+        pytest.param(
+            True,
+            [[(j - 1) * np.sin(i) for i in range(10)] for j in range(6)],
+            [(-0.25 + 2.0 * 0.75) * np.sin(i) for i in range(10)],
+            id='timedep-marting-no-jump'
+        ),
     ])
-    def test_NmmcResult(self, include_no_jump, martingale,
-                        result_trace, result_states):
+    def test_NmmcResult(self, include_no_jump, martingale, result_trace):
         N = 10
         ntraj = 5
         m_res = NmmcResult([], fill_options(), stats={"num_collapse": 2})
@@ -314,8 +280,8 @@ class TestMultiTrajResult:
         assert len(m_res.col_which[0]) == len(m_res.col_times[0])
 
         np.testing.assert_almost_equal(m_res.average_trace, result_trace)
-        for s1, s2 in zip(m_res.average_states, result_states):
-            assert s1 == s2
+        for i, (s1, s2) in enumerate(zip(m_res.average_states, result_trace)):
+            assert s1 == s2 * qutip.fock_dm(10, i)
 
     @pytest.mark.parametrize('keep_runs_results', [True, False])
     @pytest.mark.parametrize('include_no_jump', [True, False])
@@ -358,7 +324,8 @@ class TestMultiTrajResult:
                 for expect in runs_expect:
                     np.testing.assert_allclose(expect, expected,
                                                atol=1e-14, rtol=0.1)
-
+            if include_no_jump:
+                assert len(m_res.deterministic_trajectories) == 1
         self._check_types(m_res)
         assert m_res.average_final_state is not None
         assert m_res.stats['end_condition'] == "unknown"
@@ -456,7 +423,7 @@ class TestMultiTrajResult:
         assert len(merged_res.e_ops) == 1
         self._check_types(merged_res)
         np.testing.assert_allclose(merged_res.average_expect[0],
-                                   np.arange(10), rtol=0.1)
+                                   np.arange(10), rtol=0.15)
         np.testing.assert_allclose(
             np.diag(sum(merged_res.average_states).full()),
             np.ones(N),
@@ -472,6 +439,9 @@ class TestMultiTrajResult:
         dim = 10
         ntraj = 10
         tlist = [1, 2, 3]
+        if abs_weights:
+            # The trajectory with fixed weight is not counted.
+            ntraj += 1
 
         opt = fill_options(
             keep_runs_results=False, store_states=True, store_final_state=True
@@ -479,21 +449,12 @@ class TestMultiTrajResult:
         res = cls([qutip.num(dim)], opt, stats={"run time": 0,
                                                 "num_collapse": 2})
 
-        for _ in range(ntraj):
-            traj = TrajectoryResult(res._raw_ops, res.options)
+        for j in range(ntraj):
+            traj = Result(res._raw_ops, res.options)
             seeds = np.random.randint(10_000, size=len(tlist))
             for t, seed in zip(tlist, seeds):
                 random_state = qutip.rand_ket(dim, seed=seed)
                 traj.add(t, random_state)
-
-            if time_dep_weights and np.random.randint(2):
-                weights = np.random.rand(len(tlist))
-            else:
-                weights = np.random.rand()
-            if abs_weights and np.random.randint(2):
-                traj.add_absolute_weight(weights)
-            else:
-                traj.add_relative_weight(weights)
 
             if collapse:
                 traj.collapse = []
@@ -503,7 +464,12 @@ class TestMultiTrajResult:
                          np.random.randint(2)))
             if trace:
                 traj.trace = np.random.rand(len(tlist))
-            res.add((0, traj))
+
+            if abs_weights and j==0:
+                res.add_deterministic(traj, np.random.rand())
+            else:
+                res.add((0, traj, np.random.rand()))
+
 
         return res
 
@@ -533,10 +499,8 @@ class TestMultiTrajResult:
 
     @pytest.mark.parametrize('p', [0, 0.1, 1, None])
     def test_merge_mcresult(self, p):
-        ensemble1 = self._random_ensemble(collapse=True,
-                                          time_dep_weights=False, cls=McResult)
-        ensemble2 = self._random_ensemble(collapse=True,
-                                          time_dep_weights=False, cls=McResult)
+        ensemble1 = self._random_ensemble(collapse=True, cls=McResult)
+        ensemble2 = self._random_ensemble(collapse=True, cls=McResult)
         merged = ensemble1.merge(ensemble2, p=p)
 
         if p is None:
@@ -552,9 +516,9 @@ class TestMultiTrajResult:
     @pytest.mark.parametrize('p', [0, 0.1, 1, None])
     def test_merge_nmmcresult(self, p):
         ensemble1 = self._random_ensemble(
-            collapse=True, trace=True, time_dep_weights=True, cls=NmmcResult)
+            collapse=True, trace=True, cls=NmmcResult)
         ensemble2 = self._random_ensemble(
-            collapse=True, trace=True, time_dep_weights=True, cls=NmmcResult)
+            collapse=True, trace=True, cls=NmmcResult)
         merged = ensemble1.merge(ensemble2, p=p)
 
         if p is None:

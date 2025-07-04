@@ -6,6 +6,9 @@ name: Tests
 
 on:
     [push, pull_request]
+concurrency:
+    group: test_${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 defaults:
   run:
@@ -40,12 +43,16 @@ jobs:
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
-          - case-name: p312 numpy 2
+          - case-name: p313 numpy 2
             os: ubuntu-latest
-            python-version: "3.12"
+            python-version: "3.13"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
+            # Install mpi4py to test mpi_pmap
+            # Should be enough to include this in one of the runs
+            includempi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: p310 numpy 1.22
             os: ubuntu-latest
@@ -55,8 +62,10 @@ jobs:
             scipy-requirement: ">=1.10,<1.11"
             semidefinite: 1
             oldcython: 1
+            oldmpl: 1
             pypi: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+            coveralls: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\" -W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           # Python 3.12 and latest numpy
           # Use conda-forge to provide Python 3.11 and latest numpy
@@ -66,9 +75,8 @@ jobs:
             numpy-requirement: ">=1.26,<1.27"
             scipy-requirement: ">=1.11,<1.12"
             condaforge: 1
-            # Install mpi4py to test mpi_pmap
-            # Should be enough to include this in one of the runs
-            includempi: 1
+            oldmpl: 1
+            coveralls: 1
 
           # Python 3.10, no mkl, scipy 1.9, numpy 1.23
           # Scipy 1.9 did not support cython 3.0 yet.
@@ -81,35 +89,39 @@ jobs:
             semidefinite: 1
             condaforge: 1
             oldcython: 1
+            oldmpl: 1
             nomkl: 1
+            coveralls: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
           # Mac
           # Mac has issues with MKL since september 2022.
           - case-name: macos
-            # setup-miniconda not compatible with macos-latest presently.
-            # https://github.com/conda-incubator/setup-miniconda/issues/344
-            os: macos-12
-            python-version: "3.12"
+            os: macos-latest
+            python-version: "3.13"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             condaforge: 1
             nomkl: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: macos - numpy fallback
-            os: macos-12
+            os: macos-13  # Test on intel cpus
             python-version: "3.11"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=1.25,<1.26"
             condaforge: 1
             nomkl: 1
+            coveralls: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows
             os: windows-latest
-            python-version: "3.11"
+            python-version: "3.13"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows - numpy fallback
             os: windows-latest
@@ -120,6 +132,8 @@ jobs:
             oldcython: 1
             nocython: 1
             condaforge: 1
+            nomkl: 1
+            coveralls: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
@@ -141,9 +155,10 @@ jobs:
           # Install the extra requirement
           python -m pip install pytest>=5.2 pytest-rerunfailures  # tests
           python -m pip install ipython  # ipython
-          python -m pip install loky tqdm  # extras
+          python -m pip install loky!=3.5.0 tqdm mpmath  # extras
           python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
           python -m pip install pytest-cov coveralls pytest-fail-slow
+          python -m pip install setuptools
 
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install "numpy${{ matrix.numpy-build }}"
@@ -161,8 +176,10 @@ jobs:
             conda install "${{ matrix.conda-extra-pkgs }}"
           fi
           if [[ "${{ matrix.includempi }}" ]]; then
-            # Use openmpi because mpich causes problems. Note, environment variable names change in v5
-            conda install "openmpi<5" mpi4py
+            # Both mpich and openmpi version 4 have caused problems in the past
+            # so we use openmpi version 5. Openmpi 5 and python 3.13-compatible
+            # version of mpi4py are currently only available on conda-forge:
+            conda install --channel conda-forge "openmpi>=5.0" mpi4py
           fi
           if [[ "${{ matrix.oldcython }}" ]]; then
             python -m pip install cython==0.29.36 filelock matplotlib==3.5
@@ -188,7 +205,11 @@ jobs:
           if [[ -n "${{ matrix.semidefinite }}" ]]; then
             python -m pip install cvxpy>=1.0 cvxopt
           fi
-          python -m pip install matplotlib>=1.2.1  # graphics
+          if [[ "${{ matrix.oldmpl }}" ]]; then
+            python -m pip install matplotlib==3.7.*  # graphics
+          else
+            python -m pip install matplotlib  # graphics
+          fi
 
       - name: Package information
         run: |
@@ -221,7 +242,10 @@ jobs:
             # By default, the max. number of allowed worker processes in openmpi is
             # (number of physical cpu cores) - 1.
             # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
-            export OMPI_MCA_rmaps_base_oversubscribe=true
+            # For OpenMPI <= 4:
+            # export OMPI_MCA_rmaps_base_oversubscribe=true
+            # For OpenMPI >= 5:
+            export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
           fi
           pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
           # Above flags are:
@@ -249,6 +273,7 @@ jobs:
           #     force coloured output in the terminal
 
       - name: Upload to Coveralls
+        if: ${{ matrix.coveralls }}
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
@@ -265,6 +290,8 @@ jobs:
 
       - name: Install Towncrier
         run: |
+          python -m venv towncrier_check
+          source towncrier_check/bin/activate
           python -m pip install towncrier
 
       - name: Verify Towncrier entry added
@@ -276,6 +303,7 @@ jobs:
           # compare the current branch with the base branch.
           # Source: https://github.com/actions/checkout/#fetch-all-branches.
           git fetch --no-tags origin +refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}
+          source towncrier_check/bin/activate
           towncrier check --compare-with origin/${BASE_BRANCH}
           towncrier build --version "$(cat VERSION)" --draft
 

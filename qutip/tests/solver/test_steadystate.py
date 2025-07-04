@@ -19,6 +19,7 @@ import qutip.core.data as _data
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('eigen', {'use_rcm':True},  id="eigen_rcm"),
     pytest.param('svd', {}, id="svd"),
+    pytest.param('propagator', {}, id="propagator"),
     pytest.param('power', {'power_tol':1e-5}, id="power"),
     pytest.param('power', {'power_tol':1e-5, 'solver':'mkl'}, id="power_mkl",
                  marks=pytest.mark.skipif(not qutip.settings.has_mkl,
@@ -78,6 +79,7 @@ def test_qubit(method, kwargs, dtype):
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('eigen', {'use_rcm': True},  id="eigen_rcm"),
     pytest.param('svd', {}, id="svd"),
+    pytest.param('propagator', {'propagator_tol': 1e-14}, id="propagator"),
 ])
 def test_exact_solution_for_simple_methods(method, kwargs):
     # this tests that simple methods correctly determine the steadystate
@@ -97,6 +99,7 @@ def test_exact_solution_for_simple_methods(method, kwargs):
     pytest.param('direct', {}, id="direct"),
     pytest.param('direct', {'sparse':False}, id="direct_dense"),
     pytest.param('eigen', {'sparse':False}, id="eigen"),
+    pytest.param('propagator', {}, id="propagator"),
     pytest.param('power', {'power_tol':1e-5}, id="power"),
     pytest.param('iterative-lgmres', {'tol': 1e-7, 'atol': 1e-7}, id="iterative-lgmres"),
     pytest.param('iterative-gmres', {'tol': 1e-7, 'atol': 1e-7}, id="iterative-gmres"),
@@ -139,6 +142,7 @@ def test_ho(method, kwargs):
     pytest.param('direct', {'sparse':False}, id="direct_dense"),
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('svd', {}, id="svd"),
+    pytest.param('propagator', {}, id="propagator"),
     pytest.param('power', {}, id="power"),
     pytest.param('power-gmres', {"atol": 1e-5, 'tol':1e-1, 'use_precond':1},
                  id="power-gmres"),
@@ -169,6 +173,18 @@ def test_driven_cavity(method, kwargs):
         rho_ss, rho_ss_analytic, atol=1e-4
     )
     assert rho_ss.trace() == pytest.approx(1, abs=1e-10)
+
+
+def test_prop_ss_degen():
+    N = 5
+    H = qutip.qeye(2) & qutip.num(N)
+    a = qutip.qeye(2) & qutip.destroy(N)
+    rho_l = qutip.rand_dm(2)
+    rho_r = qutip.rand_dm(N)
+    rho_ss = qutip.steadystate(H, [a], method="propagator", rho=rho_l & rho_r)
+    with qutip.CoreOptions(atol=1e-5):
+        assert rho_ss.ptrace([0]) == rho_l
+        assert rho_ss.ptrace([1]) == qutip.fock_dm(N, 0)
 
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
@@ -217,8 +233,9 @@ def test_steadystate_floquet(sparse):
     T_max = 20 * 2 * np.pi / gam
     t_l = np.linspace(0, T_max, 20000)
 
-    expect_me = qutip.mesolve(H_t, psi0, t_l,
-                              c_ops, [sz], args=args).expect[0]
+    expect_me = qutip.mesolve(
+        H_t, psi0, t_l, c_ops, e_ops=[sz], args=args
+    ).expect[0]
 
     rho_ss = qutip.steadystate_floquet(H, c_ops,
                                        A_l * sx, w_l, n_it=3, sparse=sparse)
@@ -235,11 +252,11 @@ def test_steadystate_floquet(sparse):
 
 def test_rcm():
     N = 5
-    a = qutip.destroy(N, dtype="CSR")
-    I = qutip.qeye(N, dtype="CSR")
+    a = qutip.destroy(N)
+    I = qutip.qeye(N)
     H = (a + a.dag() & I) + (I & a * a.dag())
     c_ops = [a & I, I & a]
-    L = qutip.liouvillian(H, c_ops).data
+    L = qutip.liouvillian(H, c_ops).to("CSR").data
     b = qutip.basis(N**4).data
 
     def bandwidth(mat):
@@ -251,8 +268,8 @@ def test_rcm():
 
 def test_wbm():
     N = 5
-    a = qutip.destroy(N, dtype="CSR")
-    I = qutip.qeye(N, dtype="CSR")
+    a = qutip.destroy(N)
+    I = qutip.qeye(N)
     H = (a + a.dag() & I) + (I & a * a.dag())
     c_ops = [a & I, I & a]
     L = qutip.liouvillian(H, c_ops).data
@@ -261,7 +278,7 @@ def test_wbm():
     # shuffling the Liouvillian to ensure the diag is almost empty
     perm = np.arange(N**4)
     np.random.shuffle(perm)
-    L = _data.permute.indices(L, None, perm)
+    L = _data.permute.indices(L, None, perm, dtype="CSR")
 
     def dia_dominance(mat):
         mat = mat.to_array()
@@ -307,3 +324,15 @@ def test_bad_system():
         qutip.steadystate(H, [], method='direct')
     with pytest.raises(TypeError):
         qutip.steadystate(qutip.basis(N, N-1), [], method='direct')
+
+
+def test_np_convergence_prop():
+    N = 4
+    a = qutip.destroy(N)
+    H = (a.dag() + a)
+    with pytest.raises(RuntimeError) as err:
+        qutip.steadystate(
+            H, [a], method='propagator',
+            propagator_max_iter=1, propagator_T=0.1
+        )
+    assert "Did not converge" in str(err.value)

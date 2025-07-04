@@ -4,14 +4,11 @@
 from __future__ import annotations
 
 from typing import TypedDict, Any, Callable
-import numpy as np
+from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
 from ..core import Qobj, QobjEvo, expect
 
-__all__ = [
-    "Result",
-    "TrajectoryResult",
-]
+__all__ = ["Result"]
 
 
 class _QobjExpectEop:
@@ -95,6 +92,13 @@ class _BaseResult:
         if hasattr(options_copy, "_feedback"):
             options_copy._feedback = None
         self.options = options_copy
+        # Almost all integrators already return a copy that is safe to use.
+        self._integrator_return_copy = options.get("method", None) in [
+            "adams", "lsoda", "bdf", "dop853", "diag",
+            "euler", "platen", "explicit1.5",
+            "milstein", "pred_corr", "taylor1.5",
+            "milstein_imp", "taylor1.5_imp", "rouchon",
+        ]
 
     def _e_ops_to_dict(self, e_ops):
         """Convert the supplied e_ops to a dictionary of Eop instances."""
@@ -328,7 +332,10 @@ class Result(_BaseResult):
         """
         self.times.append(t)
 
-        if self._state_processors_require_copy:
+        if (
+            self._state_processors_require_copy
+            and not self._integrator_return_copy
+        ):
             state = self._pre_copy(state)
 
         for op in self._state_processors:
@@ -368,106 +375,3 @@ class Result(_BaseResult):
         if self.states:
             return self.states[-1]
         return None
-
-
-class TrajectoryResult(Result):
-    r"""
-    Result class used for single trajectories in multi-trajectory simulations.
-
-    A trajectory may come with a weight. The trajectory average of an
-    observable O is then performed as
-
-    .. math::
-        \langle O \rangle = \sum_k w(k) O(k) ,
-
-    where O is an observable, w(k) the weight of the k-th trajectory, and O(k)
-    the observable on the k-th trajectory. The weight may be time-dependent.
-
-    There may be an absolute weight `wa` and / or a relative weight `wr`.
-    The total weight is `w = wa * wr` if the absolute weight is set, and
-    `w = wr / N` otherwise (where N is the number of trajectories with no
-    absolute weight specified).
-
-    Attributes
-    ----------
-    rel_weight: float or list
-        The relative weight, constant or time-dependent.
-
-    abs_weight: float or list or None
-        The absolute weight, constant or time-dependent.
-        None if no absolute weight has been set.
-    """
-
-    def _post_init(self):
-        super()._post_init()
-
-        self.rel_weight = np.array(1)
-        self.abs_weight = None
-        self._has_weight = False
-
-    def add_absolute_weight(self, new_weight):
-        """
-        Adds the given weight (which may be either a number or an array of the
-        same length as the list of times) as an absolute weight.
-        """
-        new_weight = np.array(new_weight)
-        if self.abs_weight is None:
-            self.abs_weight = new_weight
-        else:
-            self.abs_weight = self.abs_weight * new_weight
-        self._has_weight = True
-
-    def add_relative_weight(self, new_weight):
-        """
-        Adds the given weight (which may be either a number or an array of the
-        same length as the list of times) as a relative weight.
-        """
-        new_weight = np.array(new_weight)
-        self.rel_weight = self.rel_weight * new_weight
-        self._has_weight = True
-
-    @property
-    def has_weight(self):
-        """Whether any weight has been set."""
-        return self._has_weight
-
-    @property
-    def has_absolute_weight(self):
-        """Whether an absolute weight has been set."""
-        return (self.abs_weight is not None)
-
-    @property
-    def has_time_dependent_weight(self):
-        """Whether the total weight is time-dependent."""
-        # np.ndim(None) returns zero, which is what we want
-        return np.ndim(self.rel_weight) > 0 or np.ndim(self.abs_weight) > 0
-
-    @property
-    def total_weight(self):
-        """
-        Returns the total weight, either a single number or an array in case of
-        a time-dependent weight. If no absolute weight was set, this is only
-        the relative weight. If an absolute weight was set, this is the product
-        of the absolute and the relative weights.
-        """
-        if self.has_absolute_weight:
-            return self.abs_weight * self.rel_weight
-        return self.rel_weight
-
-    @property
-    def _total_weight_tlist(self):
-        """
-        Returns the total weight as a function of time (i.e., as an array with
-        the same shape as the `tlist`)
-        """
-        total_weight = self.total_weight
-        if self.has_time_dependent_weight:
-            return total_weight
-        return np.ones_like(self.times) * total_weight
-
-    @property
-    def _final_weight(self):
-        total_weight = self.total_weight
-        if self.has_time_dependent_weight:
-            return total_weight[-1]
-        return total_weight
