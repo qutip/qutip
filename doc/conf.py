@@ -29,7 +29,6 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
               'sphinx.ext.napoleon',
-              'sphinx_gallery.gen_gallery',
               'sphinxcontrib.bibtex']
 
 # Add any paths that contain templates here, relative to this directory.
@@ -62,10 +61,13 @@ author = ', '.join([
     'B. Li',
     'J. Lishman',
     'S. Cross',
+    'A. Galicia',
+    'P. Menczel',
+    'P. Hopf',
     'and E. Giguère'
 ])
 
-copyright = '2011 to 2021 inclusive, QuTiP developers and contributors'
+copyright = '2011 to 2024 inclusive, QuTiP developers and contributors'
 
 
 def _check_source_folder_and_imported_qutip_match():
@@ -117,7 +119,7 @@ version = ".".join(release.split(".")[:2])
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -126,7 +128,6 @@ exclude_patterns = [
     '_build',
     'Thumbs.db',
     '.DS_Store',
-    'gallery/src',  # handled by sphinx-gallery instead.
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -252,7 +253,7 @@ htmlhelp_basename = 'QuTiPdoc'
 #
 # See:
 # - https://docs.mathjax.org/en/v3.0-latest/input/tex/extensions/physics.html
-mathjax_config = {
+mathjax3_config = {
     'TeX': {
         'Macros': {
             'bra': [r'\left\langle{#1}\right\rvert', 1],
@@ -359,20 +360,31 @@ texinfo_documents = [
 
 autodoc_member_order = 'alphabetical'
 
+# Type hint are already in the parameter section of the documentation in
+# (hopefully) user readable format.
+# "signature" : In the signature
+# "description" : Added to the description (doubled)
+# "none": Removed
+autodoc_typehints = "signature"
+python_maximum_signature_line_length = 80
+# Makes the following types appear as their alias in the apidoc
+# instead of expanding the alias
+autodoc_type_aliases = {
+    'CoefficientLike': 'CoefficientLike',
+    'ElementType': 'ElementType',
+    'QobjEvoLike': 'QobjEvoLike',
+    'EopsLike': 'EopsLike',
+    'LayerType': 'LayerType',
+    'ArrayLike': 'ArrayLike',
+    'SpaceLike': 'SpaceLike',
+    'DimensionLike': 'DimensionLike',
+}
+
 ## EXTLINKS CONFIGURATION ######################################################
 
 extlinks = {
-    'arxiv': ('https://arxiv.org/abs/%s', 'arXiv:'),
-    'doi': ('https://dx.doi.org/%s', 'doi:'),
-}
-
-# configuration declares the location of the examples directory for
-# Sphinx Gallery
-
-sphinx_gallery_conf = {
-     'examples_dirs': 'gallery/src',   # path to your example scripts
-     'gallery_dirs': 'gallery/build',  # save generated examples
-     'abort_on_example_error': True  # abort if exception occurs
+    'arxiv': ('https://arxiv.org/abs/%s', 'arXiv:%s'),
+    'doi': ('https://dx.doi.org/%s', 'doi:%s'),
 }
 
 ipython_strict_fail = False

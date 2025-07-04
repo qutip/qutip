@@ -1,10 +1,10 @@
 __all__ = ['Bloch']
 
 import os
+from typing import Literal
 
 import numpy as np
-from numpy import (outer, cos, sin, ones)
-
+from numpy import cos, ones, outer, sin
 from packaging.version import parse as parse_version
 
 from . import Qobj, expect, sigmax, sigmay, sigmaz
@@ -12,9 +12,8 @@ from . import Qobj, expect, sigmax, sigmay, sigmaz
 try:
     import matplotlib
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
     from matplotlib.patches import FancyArrowPatch
-    from mpl_toolkits.mplot3d import proj3d
+    from mpl_toolkits.mplot3d import Axes3D, proj3d
 
     # Define a custom _axes3D function based on the matplotlib version.
     # The auto_add_to_figure keyword is new for matplotlib>=3.4.
@@ -52,6 +51,12 @@ try:
     from IPython.display import display
 except ImportError:
     pass
+
+
+def _state_to_cartesian_coordinates(state: Qobj):
+    return [expect(sigmax(), state),
+            expect(sigmay(), state),
+            expect(sigmaz(), state)]
 
 
 class Bloch:
@@ -159,18 +164,20 @@ class Bloch:
         self.vector_default_color = ['g', '#CC6600', 'b', 'r']
         # List that stores the display colors for each vector
         self.vector_color = []
-        #: Width of Bloch vectors, default = 5
+        # Width of Bloch vectors, default = 5
         self.vector_width = 3
-        #: Style of Bloch vectors, default = '-\|>' (or 'simple')
+        # Style of Bloch vectors, default = '-\|>' (or 'simple')
         self.vector_style = '-|>'
-        #: Sets the width of the vectors arrowhead
+        # Sets the width of the vectors arrowhead
         self.vector_mutation = 20
 
         # ---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_default_color = ['b', 'r', 'g', '#CC6600']
+        # Old variable used in V4 to customise the color of the points
+        self.point_color = None
         # List that stores the display colors for each set of points
-        self.point_color = []
+        self._inner_point_color = []
         # Size of point markers, default = 25
         self.point_size = [25, 32, 35, 45]
         # Shape of point markers, default = ['o','^','d','s']
@@ -308,11 +315,12 @@ class Bloch:
         self.vector_alpha = []
         self.annotations = []
         self.vector_color = []
-        self.point_color = []
+        self.point_color = None
         self._lines = []
         self._arcs = []
 
-    def add_points(self, points, meth='s', colors=None, alpha=1.0):
+    def add_points(self, points, meth: Literal['s', 'm', 'l'] = 's',
+                   colors=None, alpha=1.0):
         """Add a list of data points to bloch sphere.
 
         Parameters
@@ -331,12 +339,12 @@ class Bloch:
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
 
-        .. note::
-
-           When using ``meth=l`` in QuTiP 4.6, the line transparency defaulted
-           to ``0.75`` and there was no way to alter it.
-           When the ``alpha`` parameter was added in QuTiP 4.7, the default
-           became ``alpha=1.0`` for values of ``meth``.
+        Notes
+        -----
+        When using ``meth=l`` in QuTiP 4.6, the line transparency defaulted
+        to ``0.75`` and there was no way to alter it.
+        When the ``alpha`` parameter was added in QuTiP 4.7, the default
+        became ``alpha=1.0`` for values of ``meth``.
         """
 
         points = np.asarray(points)
@@ -360,45 +368,71 @@ class Bloch:
         self.point_style.append(meth)
         self.points.append(points)
         self.point_alpha.append(alpha)
-        self.point_color.append(colors)
+        self._inner_point_color.append(colors)
 
-    def add_states(self, state, kind='vector', colors=None, alpha=1.0):
+    def add_states(self, state: Qobj,
+                   kind: Literal['vector', 'point'] = 'vector',
+                   colors=None, alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
 
         Parameters
         ----------
-        state : Qobj
-            Input state vector.
+        state : :obj:`.Qobj` or array_like
+            Input state vector or list.
 
         kind : {'vector', 'point'}
             Type of object to plot.
 
-        colors : array_like
+        colors : str or array_like
             Optional array with colors for the states.
+            The colors can be a string or a RGB or RGBA tuple.
 
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
         """
-        if isinstance(state, Qobj):
-            state = [state]
-        if not isinstance(colors, (list, np.ndarray)) and colors is not None:
-            colors = [colors]
+        state = np.asarray(state)
+
+        if state.ndim == 0:
+            state = state[np.newaxis]
+
+        if state.ndim != 1:
+            raise ValueError("The included states are not valid. "
+                             "State should be a Qobj or a list of Qobj.")
+
+        if colors is not None:
+            colors = np.asarray(colors)
+
+            if colors.ndim == 0:
+                colors = np.repeat(colors, state.shape[0])
+
+            elif (
+                colors.ndim == 1
+                and (np.issubdtype(colors.dtype, np.floating)
+                     or np.issubdtype(colors.dtype, np.integer))):
+                colors = colors[np.newaxis]
+                colors = np.repeat(colors, [state.shape[0]], axis=0)
+
+            if (
+                colors.shape[0] != state.shape[0] or colors.ndim > 2
+                or colors.ndim == 2
+                and not (np.issubdtype(colors.dtype, np.floating)
+                         or np.issubdtype(colors.dtype, np.integer))):
+                raise ValueError("The included colors are not valid. "
+                                 "colors must have the same size as state.")
+
+        else:
+            colors = np.array([None] * state.shape[0])
 
         for k, st in enumerate(state):
-            vec = [expect(sigmax(), st),
-                   expect(sigmay(), st),
-                   expect(sigmaz(), st)]
+            vec = _state_to_cartesian_coordinates(st)
 
             if kind == 'vector':
-                if colors is not None:
-                    self.add_vectors(vec, colors=colors[k], alpha=alpha)
-                else:
-                    self.add_vectors(vec)
+                self.add_vectors(vec, colors=[colors[k]], alpha=alpha)
             elif kind == 'point':
-                if colors is not None:
-                    self.add_points(vec, colors=colors[k], alpha=alpha)
-                else:
-                    self.add_points(vec)
+                self.add_points(vec, colors=[colors[k]], alpha=alpha)
+            else:
+                raise ValueError("The included kind is not valid. "
+                                 f"It should be vector or point, not {kind}.")
 
     def add_vectors(self, vectors, colors=None, alpha=1.0):
         """Add a list of vectors to Bloch sphere.
@@ -408,8 +442,9 @@ class Bloch:
         vectors : array_like
             Array with vectors of unit length or smaller.
 
-        colors : array_like
+        colors : str or array_like
             Optional array with colors for the vectors.
+            The colors can be a string or a RGB or RGBA tuple.
 
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
@@ -427,16 +462,22 @@ class Bloch:
                 "index represents the iteration over the vectors and the "
                 "second index represents the position in 3D of vector head.")
 
-        n_vectors = vectors.shape[0]
         if colors is None:
-            colors = np.array([None] * n_vectors)
+            colors = np.array([None] * vectors.shape[0])
         else:
             colors = np.asarray(colors)
 
-        if colors.ndim != 1 or colors.size != n_vectors:
-            raise ValueError("The included colors are not valid. colors must "
-                             "be equivalent to a 1D array with the same "
-                             "size as the number of vectors. ")
+            if colors.ndim == 0:
+                colors = np.repeat(colors, vectors.shape[0])
+
+            if (
+                colors.shape[0] != vectors.shape[0]
+                or colors.ndim == 2
+                and not (np.issubdtype(colors.dtype, np.floating)
+                         or np.issubdtype(colors.dtype, np.integer))
+            ):
+                raise ValueError("The included colors are not valid. "
+                                 "colors must have the same size as vectors.")
 
         for k, vec in enumerate(vectors):
             self.vectors.append(vec)
@@ -450,7 +491,7 @@ class Bloch:
 
         Parameters
         ----------
-        state_or_vector : Qobj/array/list/tuple
+        state_or_vector : :obj:`.Qobj`/array/list/tuple
             Position for the annotaion.
             Qobj of a qubit or a vector of 3 elements.
 
@@ -467,9 +508,7 @@ class Bloch:
 
         """
         if isinstance(state_or_vector, Qobj):
-            vec = [expect(sigmax(), state_or_vector),
-                   expect(sigmay(), state_or_vector),
-                   expect(sigmaz(), state_or_vector)]
+            vec = _state_to_cartesian_coordinates(state_or_vector)
         elif isinstance(state_or_vector, (list, np.ndarray, tuple)) \
                 and len(state_or_vector) == 3:
             vec = state_or_vector
@@ -489,11 +528,11 @@ class Bloch:
 
         Parameters
         ----------
-        start : Qobj or array-like
+        start : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the first point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
-        end : Qobj or array-like
+        end : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the second point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
@@ -507,42 +546,36 @@ class Bloch:
             Additional parameters to pass to the matplotlib .plot function
             when rendering this arc.
         """
-        if isinstance(start, Qobj):
-            pt1 = [
-                expect(sigmax(), start),
-                expect(sigmay(), start),
-                expect(sigmaz(), start),
-            ]
-        else:
-            pt1 = start
+        pt1 = _state_to_cartesian_coordinates(start) \
+            if isinstance(start, Qobj) else start
 
-        if isinstance(end, Qobj):
-            pt2 = [
-                expect(sigmax(), end),
-                expect(sigmay(), end),
-                expect(sigmaz(), end),
-            ]
-        else:
-            pt2 = end
+        pt2 = _state_to_cartesian_coordinates(end) \
+            if isinstance(end, Qobj) else end
 
         pt1 = np.asarray(pt1)
         pt2 = np.asarray(pt2)
 
         len1 = np.linalg.norm(pt1)
         len2 = np.linalg.norm(pt2)
-        if len1 < 1e-12 or len2 < 1e-12:
-            raise ValueError('Polar and azimuthal angles undefined at origin.')
-        elif abs(len1 - len2) > 1e-12:
-            raise ValueError("Points not on the same sphere.")
-        elif (pt1 == pt2).all():
-            raise ValueError(
-                "Start and end represent the same point. No arc can be formed."
-            )
-        elif (pt1 == -pt2).all():
-            raise ValueError(
-                "Start and end are diagonally opposite, no unique arc is"
-                " possible."
-            )
+
+        def check_arguments_validity():
+            if len1 < 1e-12 or len2 < 1e-12:
+                raise ValueError("Polar and azimuthal angles undefined"
+                                 " at origin.")
+            elif abs(len1 - len2) > 1e-12:
+                raise ValueError("Points not on the same sphere.")
+            elif np.linalg.norm(pt1 - pt2) < 1e-12:
+                raise ValueError(
+                    "Start and end represent the same point."
+                    " No arc can be formed."
+                )
+            elif np.linalg.norm(pt1 + pt2) < 1e-12:
+                raise ValueError(
+                    "Start and end are diagonally opposite, no unique arc is"
+                    " possible."
+                )
+
+        check_arguments_validity()
 
         if steps is None:
             steps = int(np.linalg.norm(pt1 - pt2) * 100)
@@ -553,8 +586,52 @@ class Bloch:
         line = pt1[:, np.newaxis] * t + pt2[:, np.newaxis] * (1 - t)
         # Normalize all the points in the line so that are distance len1 from
         # the origin.
-        arc = line * len1 / np.linalg.norm(line, axis=0)
-        self._arcs.append([arc, fmt, kwargs])
+        arc = (line * len1 / np.linalg.norm(line, axis=0)).T
+
+        # Add points in the appropriate area (rear, inner or front)
+        if len1 < 1 - 1e-12:
+            self._arcs.append([np.array(arc), "inner", fmt, kwargs])
+            return
+
+        def get_plot_area(front: bool, norm: float):
+            if front:
+                return "front"
+            if norm > 1 + 1e-12:
+                return "rear"
+            return "inner"
+
+        def append_interpolation_point(point, part, norm: float):
+            if point[0] != 0:
+                # Interpolation of the junction point to ensure continuity
+                t_edge = 1 / (1 - part[-1][0] / point[0])
+                edge_point = part[-1] * t_edge + point * (1 - t_edge)
+                edge_point = edge_point * norm / np.linalg.norm(edge_point)
+                part.append(edge_point)
+                return [edge_point, point]
+            else:
+                part.append(point)
+                return [point]
+
+        front = arc[0][0] >= 0  # is it a point in the front half-space (x>0)?
+        part = []
+        for point in arc:
+            if (point[0] >= 0) == front:
+                part.append(point)
+                continue
+
+            new_part = append_interpolation_point(point, part, len1)
+
+            # Save the arc on the previous half-space
+            self._arcs.append([np.array(part),
+                               get_plot_area(front, len1), fmt, kwargs])
+
+            # Start the arc on the new half-space
+            part = new_part
+            front = not front
+
+        # Save the last arc
+        self._arcs.append([np.array(part),
+                           get_plot_area(front, len1), fmt, kwargs])
 
     def add_line(self, start, end, fmt="k", **kwargs):
         """Adds a line segment connecting two points on the bloch sphere.
@@ -563,11 +640,11 @@ class Bloch:
 
         Parameters
         ----------
-        start : Qobj or array-like
+        start : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the first point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
-        end : Qobj or array-like
+        end : :obj:`.Qobj` or array-like
             Array with cartesian coordinates of the second point, or a state
             vector or density matrix that can be mapped to a point on or
             within the Bloch sphere.
@@ -578,20 +655,12 @@ class Bloch:
             when rendering this line.
         """
         if isinstance(start, Qobj):
-            pt1 = [
-                expect(sigmax(), start),
-                expect(sigmay(), start),
-                expect(sigmaz(), start),
-            ]
+            pt1 = _state_to_cartesian_coordinates(start)
         else:
             pt1 = start
 
         if isinstance(end, Qobj):
-            pt2 = [
-                expect(sigmax(), end),
-                expect(sigmay(), end),
-                expect(sigmaz(), end),
-            ]
+            pt2 = _state_to_cartesian_coordinates(end)
         else:
             pt2 = end
 
@@ -669,15 +738,17 @@ class Bloch:
         # Matplotlib did this stretching for < 3.3.0, but not above.
         if parse_version(matplotlib.__version__) >= parse_version('3.3'):
             self.axes.set_box_aspect((1, 1, 1))
-        if not self.background:
-            self.plot_axes()
 
+        self.plot_arcs("rear")
         self.plot_back()
         self.plot_points()
         self.plot_vectors()
         self.plot_lines()
-        self.plot_arcs()
+        self.plot_arcs("inner")
+        if not self.background:
+            self.plot_axes()
         self.plot_front()
+        self.plot_arcs("front")
         self.plot_axes_labels()
         self.plot_annotations()
         # Trigger an update of the Bloch sphere if it is already shown:
@@ -687,6 +758,7 @@ class Bloch:
         # back half of sphere
         u = np.linspace(0, np.pi, 25)
         v = np.linspace(0, np.pi, 25)
+        w = np.linspace(-np.pi / 2, np.pi / 2, 25)
         x = outer(cos(u), sin(v))
         y = outer(sin(u), sin(v))
         z = outer(ones(np.size(u)), cos(v))
@@ -700,13 +772,14 @@ class Bloch:
         # equator
         self.axes.plot(1.0 * cos(u), 1.0 * sin(u), zs=0, zdir='z',
                        lw=self.frame_width, color=self.frame_color)
-        self.axes.plot(1.0 * cos(u), 1.0 * sin(u), zs=0, zdir='x',
+        self.axes.plot(1.0 * cos(w), 1.0 * sin(w), zs=0, zdir='x',
                        lw=self.frame_width, color=self.frame_color)
 
     def plot_front(self):
         # front half of sphere
         u = np.linspace(-np.pi, 0, 25)
         v = np.linspace(0, np.pi, 25)
+        w = np.linspace(-3 * np.pi / 2, -np.pi / 2, 25)
         x = outer(cos(u), sin(v))
         y = outer(sin(u), sin(v))
         z = outer(ones(np.size(u)), cos(v))
@@ -721,7 +794,7 @@ class Bloch:
         self.axes.plot(1.0 * cos(u), 1.0 * sin(u),
                        zs=0, zdir='z', lw=self.frame_width,
                        color=self.frame_color)
-        self.axes.plot(1.0 * cos(u), 1.0 * sin(u),
+        self.axes.plot(1.0 * cos(w), 1.0 * sin(w),
                        zs=0, zdir='x', lw=self.frame_width,
                        color=self.frame_color)
 
@@ -792,28 +865,31 @@ class Bloch:
             dist = np.linalg.norm(points, axis=0)
             if not np.allclose(dist, dist[0], rtol=1e-12):
                 indperm = np.argsort(dist)
-                points = points[:, indperm]
             else:
                 indperm = np.arange(num_points)
 
             s = self.point_size[np.mod(k, len(self.point_size))]
             marker = self.point_marker[np.mod(k, len(self.point_marker))]
             style = self.point_style[k]
-            if self.point_color[k] is not None:
-                color = self.point_color[k]
-            elif self.point_style[k] in ['s', 'l']:
-                color = self.point_default_color[
+
+            if self._inner_point_color[k] is not None:
+                color = self._inner_point_color[k]
+            elif self.point_color is not None:
+                color = self.point_color
+            elif style in ['s', 'l']:
+                color = [self.point_default_color[
                     k % len(self.point_default_color)
-                ]
-            elif self.point_style[k] == 'm':
+                ]]
+            elif style == 'm':
                 length = np.ceil(num_points/len(self.point_default_color))
                 color = np.tile(self.point_default_color, length.astype(int))
                 color = color[indperm]
+                color = list(color)
 
-            if self.point_style[k] in ['s', 'm']:
-                self.axes.scatter(np.real(points[1]),
-                                  -np.real(points[0]),
-                                  np.real(points[2]),
+            if style in ['s', 'm']:
+                self.axes.scatter(np.real(points[1][indperm]),
+                                  -np.real(points[0][indperm]),
+                                  np.real(points[2][indperm]),
                                   s=s,
                                   marker=marker,
                                   color=color,
@@ -822,7 +898,8 @@ class Bloch:
                                   zdir='z',
                                   )
 
-            elif self.point_style[k] == 'l':
+            elif style == 'l':
+                color = color[k % len(color)]
                 self.axes.plot(np.real(points[1]),
                                -np.real(points[0]),
                                np.real(points[2]),
@@ -847,9 +924,10 @@ class Bloch:
         for line, fmt, kw in self._lines:
             self.axes.plot(line[0], line[1], line[2], fmt, **kw)
 
-    def plot_arcs(self):
-        for arc, fmt, kw in self._arcs:
-            self.axes.plot(arc[1, :], -arc[0, :], arc[2, :], fmt, **kw)
+    def plot_arcs(self, plot_area: Literal["rear", "inner", "front"]):
+        for arc, area, fmt, kw in self._arcs:
+            if plot_area == area:
+                self.axes.plot(arc[:, 1], -arc[:, 0], arc[:, 2], fmt, **kw)
 
     def show(self):
         """
@@ -880,7 +958,7 @@ class Bloch:
 
         name : str
             Name of saved image. Must include path and format as well.
-            i.e. '/Users/Paul/Desktop/bloch.png'
+            i.e. '/Users/Me/Desktop/bloch.png'
             This overrides the 'format' and 'dirc' arguments.
         format : str
             Format of output image.

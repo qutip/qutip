@@ -1,0 +1,20 @@
+# .readthedocs.yaml
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+formats:
+  - pdf
+
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "mambaforge-4.10"
+
+conda:
+  environment: doc/rtd-environment.yml
+
+sphinx:
+  configuration: doc/conf.py
+  fail_on_warning: true

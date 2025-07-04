@@ -14,11 +14,12 @@ Developers
     import numpy as np
     import matplotlib.pyplot as plt
 
+    from matplotlib.path import Path
     from matplotlib.patches import PathPatch
     from matplotlib.textpath import TextPath
     from matplotlib.collections import PolyCollection
     from matplotlib.font_manager import FontProperties
-    import matplotlib.image as mpimg
+    import PIL
 
 
     LINK_CONTRIBUTORS = "https://api.github.com/repos/qutip/qutip/contributors"
@@ -39,7 +40,11 @@ Developers
     url_object = urllib.request.urlopen(LINK_CONTRIBUTORS)
     list_contributors = json.loads(url_object.read())
     qutip_contributors = [element["login"] for element in list_contributors]
+    qutip_contributors = [s.lower() for s in qutip_contributors]
     text = " ".join(qutip_contributors)
+
+    # load the QuTiP logo
+    img = PIL.Image.open(urllib.request.urlopen(LINK_LOGO))
 
     # code below was inspired in the following link:
     # https://github.com/dynamicwebpaige/nanowrimo-2021/blob/main/15_VS_Code_contributors.ipynb
@@ -56,12 +61,21 @@ Developers
     L = np.zeros(len(T))
     np.cumsum(np.sqrt(((T[1:] - T[:-1]) ** 2).sum(axis=1)), out=L[1:])
 
-    path = TextPath((0, 0), text, size=FONT_SIZE,
-                    prop=FontProperties(family=FONT_FAMILY))
-    Vx, Vy = path.vertices[:, 0], path.vertices[:, 1]
+    path = TextPath(
+        (0, 0), text,
+        size=FONT_SIZE,
+        prop=FontProperties(family=FONT_FAMILY),
+    )
+
+    vertices = path.vertices
+    codes = path.codes
+
+    Vx, Vy = vertices[:, 0], vertices[:, 1]
     X = np.interp(Vx, L, T[:, 0]) + Vy * np.interp(Vx, L, O[:, 0])
     Y = np.interp(Vx, L, T[:, 1]) + Vy * np.interp(Vx, L, O[:, 1])
-    Vx[...], Vy[...] = X, Y
+    vertices = np.stack([X, Y], axis=-1)
+
+    path = Path(vertices, codes, closed=False)
 
     # creating figure
     fig, ax = plt.subplots(figsize=(FIGURE_SIZE, FIGURE_SIZE))
@@ -70,8 +84,7 @@ Developers
     ax.set_xlim(-AXIS_SIZE, AXIS_SIZE), ax.set_xticks([])
     ax.set_ylim(-AXIS_SIZE, AXIS_SIZE), ax.set_yticks([])
 
-    # uncomment lines below to add qutip logo
-    img = mpimg.imread(LINK_LOGO)
+    # add qutip logo
     ax.imshow(img, alpha=LOGO_TRANSPARENCY,
               extent=[-LOGO_SIZE,LOGO_SIZE, -LOGO_SIZE, LOGO_SIZE])
 
@@ -86,16 +99,18 @@ Lead Developers
 - `Neill Lambert <https://github.com/nwlambert>`_
 - `Eric Giguère <https://github.com/Ericgig>`_
 - `Boxi Li <https://github.com/BoxiLi>`_
-- `Jake Lishman <https://binhbar.com>`_
 - `Simon Cross <http://hodgestar.za.net/>`_
+- `Asier Galicia <https://github.com/AGaliciaMartinez>`_
+- `Paul Menczel <www.menczel.net>`_
 
 Past Lead Developers
 ====================
 
 - `Robert Johansson <https://jrjohansson.github.io/research.html>`_ (RIKEN)
-- `Paul Nation <http://nqdl.korea.ac.kr>`_ (Korea University)
+- `Paul Nation <https://www.korea.ac.kr/>`_ (Korea University)
 - `Chris Granade <https://www.cgranade.com>`_
 - `Arne Grimsmo <https://www.sydney.edu.au/science/about/our-people/academic-staff/arne-grimsmo.html>`_
+- `Jake Lishman <https://binhbar.com>`_
 
 
 .. _developers-contributors:
@@ -105,97 +120,190 @@ Contributors
 
 .. note::
 
-	Anyone is welcome to contribute to QuTiP.
-        If you are interested in helping, please let us know!
+  Anyone is welcome to contribute to QuTiP.
+  If you are interested in helping, please let us know!
+
 
 - Abhisek Upadhyaya
+- adria.labay
 - Adriaan
+- AGaliciaMartinez
+- alan-nala
+- Alberto Mercurio
+- alex
 - Alexander Pitchford
 - Alexios-xi
 - Amit
+- Andrey Nikitin
+- Andrey Rakhubovsky
+- Anna Naden
+- anonymousdouble
+- Anto Luketina
+- Antonio Andrea Gentile
 - Anubhav Vardhan
+- Anush Venkatakrishnan
 - Arie van Deursen
 - Arne Grimsmo
 - Arne Hamann
+- Aryaman Kolhe
+- Ashish Panigrahi
 - Asier Galicia Martinez
+- awkwardPotato812
 - Ben Bartlett
 - Ben Criger
 - Ben Jones
 - Bo Yang
+- Bogdan Reznychenko
 - Boxi Li
+- CamilleLCal
 - Canoming
+- christian512
+- christian512
 - Christoph Gohlke
 - Christopher Granade
 - Craig Gidney
+- Daniel Weiss
+- Danny
+- davidschlegel
 - Denis Vasilyev
+- dependabot[bot]
+- dev-aditya
+- DnMGalan
 - Dominic Meiser
 - Drew Parsons
+- drodper
+- dweigand
+- Edward Thomas
+- Élie Gouzien
+- eliegenois
+- Emi
+- EmilianoG-byte
 - Eric Giguère
 - Eric Hontz
+- essence-of-waqf
 - Felipe Bivort Haiek
+- fhenneke
+- fhopfmueller
 - Florestan Ziem
+- Florian Hopfmueller
+- gadhvirushiraj
+- Gaurav Saxena
+- gecrooks
+- Gerardo Jose Suarez
 - Gilbert Shih
 - Harry Adams
+- Harsh Khilawala
+- HGSilveri
+- Hristo Georgiev
 - Ivan Carvalho
 - Jake Lishman
+- jakobjakobson13
+- Javad Noorbakhsh
 - Jevon Longdell
 - Johannes Feist
+- Jon Crall
 - Jonas Hoersch
 - Jonas Neergaard-Nielsen
 - Jonathan A. Gross
+- Joseph Fox-Rabinovitz
 - Julian Iacoponi
 - Kevin Fischer
+- Kosuke Mizuno
+- kwyip
+- L K Livingstone
+- Lajos Palanki
 - Laurence Stant
+- Laurent AJDNIK
+- Leo_am
+- Leonardo Assis
 - Louis Tessler
 - Lucas Verney
+- Maggie
+- Mahdi Aslani
+- maij
 - Marco David
-- Marek Narozniak
+- Marek
+- marekyggdrasil
+- Mark Johnson
 - Markus Baden
 - Martín Sande
 - Mateo Laguna
+- Matt
 - Matthew O'Brien
+- Matthew Treinish
+- mcditooss
+- Mehdi Aslani
 - Michael Goerz
 - Michael V. DePalatis
 - Moritz Oberhauser
+- MrRobot2211
 - Nathan Shammah
 - Neill Lambert
 - Nicolas Quesada
+- Nikhil Harle
 - Nikolas Tezak
 - Nithin Ramu
+- obliviateandsurrender
+- owenagnel
+- Paul
+- Paul Menczel
 - Paul Nation
 - Peter Kirton
 - Philipp Schindler
+- PierreGuilmin
+- Pieter Eendebak
 - Piotr Migdal
+- PositroniumJS
+- Purva Thakre
+- quantshah
+- Rajath Shetty
 - Rajiv-B
 - Ray Ganardi
 - Reinier Heeres
 - Richard Brierley
+- Rita Abani
 - Robert Johansson
+- Rochisha Agarwal
+- rochisha0
+- ruffa
+- Rushiraj Gadhvi
 - Sam Griffiths
+- Sam Wolski
 - Samesh Lakhotia
+- Sampreet Kalita
+- sbisw002
 - Sebastian Krämer
 - Shahnawaz Ahmed
 - Sidhant Saraogi
 - Simon Cross
 - Simon Humpohl
 - Simon Whalen
+- SJUW
+- Srinidhi P V
 - Stefan Krastanov
+- tamakoshi
+- tamakoshi2001
+- Tanya Garg
 - Tarun Raheja
 - Thomas Walker
+- Tobias Schmale
+- trentfridey
+- valanm22
 - Viacheslav Ostroukh
+- Victory Omole
+- vikas-chaudhary-2802
 - Vlad Negnevitsky
+- Vladimir Vargas-Calderón
+- Wikstahl
+- WingCode
 - Wojciech Rzadkowski
+- Xavier Spronken
 - Xiaodong Qi
 - Xiaoliang Wu
+- xspronken
 - Yariv Yanay
+- Yash-10
 - YouWei Zhao
-- alex
-- eliegenois
-- essence-of-waqf
-- fhenneke
-- gecrooks
-- jakobjakobson13
-- maij
-- sbisw002
+- Yuji TAMAKOSHI
+- yulanl22
 - yuri@FreeBSD
-- Élie Gouzien

@@ -1,8 +1,14 @@
 """ Class for solve function results"""
-import numpy as np
-from ..core import Qobj, QobjEvo, expect, qzero
 
-__all__ = ["Result", "MultiTrajResult", "McResult"]
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
+from typing import TypedDict, Any, Callable
+from ..core.numpy_backend import np
+from numpy.typing import ArrayLike
+from ..core import Qobj, QobjEvo, expect
+
+__all__ = ["Result"]
 
 
 class _QobjExpectEop:
@@ -12,9 +18,10 @@ class _QobjExpectEop:
 
     Parameters
     ----------
-    op : :obj:`~Qobj`
+    op : :obj:`.Qobj`
         The expectation value operator.
     """
+
     def __init__(self, op):
         self.op = op
 
@@ -45,6 +52,7 @@ class ExpectOp:
     op : object
         The original object used to define the e_op operation.
     """
+
     def __init__(self, op, f, append):
         self.op = op
         self._f = f
@@ -69,6 +77,7 @@ class _BaseResult:
     """
     Common method for all ``Result``.
     """
+
     def __init__(self, options, *, solver=None, stats=None):
         self.solver = solver
         if stats is None:
@@ -78,10 +87,21 @@ class _BaseResult:
         self._state_processors = []
         self._state_processors_require_copy = False
 
-        self.options = options
+        # make sure not to store a reference to the solver
+        options_copy = options.copy()
+        if hasattr(options_copy, "_feedback"):
+            options_copy._feedback = None
+        self.options = options_copy
+        # Almost all integrators already return a copy that is safe to use.
+        self._integrator_return_copy = options.get("method", None) in [
+            "adams", "lsoda", "bdf", "dop853", "diag",
+            "euler", "platen", "explicit1.5",
+            "milstein", "pred_corr", "taylor1.5",
+            "milstein_imp", "taylor1.5_imp", "rouchon",
+        ]
 
     def _e_ops_to_dict(self, e_ops):
-        """ Convert the supplied e_ops to a dictionary of Eop instances. """
+        """Convert the supplied e_ops to a dictionary of Eop instances."""
         if e_ops is None:
             e_ops = {}
         elif isinstance(e_ops, (list, tuple)):
@@ -113,22 +133,28 @@ class _BaseResult:
         self._state_processors_require_copy |= requires_copy
 
 
+class ResultOptions(TypedDict):
+    store_states: bool | None
+    store_final_state: bool
+
+
 class Result(_BaseResult):
     """
     Base class for storing solver results.
 
     Parameters
     ----------
-    e_ops : :obj:`~Qobj`, :obj:`~QobjEvo`, function or list or dict of these
+    e_ops : :obj:`.Qobj`, :obj:`.QobjEvo`, function or list or dict of these
         The ``e_ops`` parameter defines the set of values to record at
-        each time step ``t``. If an element is a :obj:`~Qobj` or
-        :obj:`~QobjEvo` the value recorded is the expectation value of that
+        each time step ``t``. If an element is a :obj:`.Qobj` or
+        :obj:`.QobjEvo` the value recorded is the expectation value of that
         operator given the state at ``t``. If the element is a function, ``f``,
         the value recorded is ``f(t, state)``.
 
-        The values are recorded in the ``.expect`` attribute of this result
-        object. ``.expect`` is a list, where each item contains the values
-        of the corresponding ``e_op``.
+        The values are recorded in the ``e_data`` and ``expect`` attributes of
+        this result object. ``e_data`` is a dictionary and ``expect`` is a
+        list, where each item contains the values of the corresponding
+        ``e_op``.
 
     options : dict
         The options for this result class.
@@ -149,14 +175,14 @@ class Result(_BaseResult):
         A list of the times at which the expectation values and states were
         recorded.
 
-    states : list of :obj:`~Qobj`
+    states : list of :obj:`.Qobj`
         The state at each time ``t`` (if the recording of the state was
         requested).
 
-    final_state : :obj:`~Qobj`:
+    final_state : :obj:`.Qobj`:
         The final state (if the recording of the final state was requested).
 
-    expect : list of lists of expectation values
+    expect : list of arrays of expectation values
         A list containing the values of each ``e_op``. The list is in
         the same order in which the ``e_ops`` were supplied and empty if
         no ``e_ops`` were given.
@@ -193,11 +219,24 @@ class Result(_BaseResult):
     options : dict
         The options for this result class.
     """
-    def __init__(self, e_ops, options, *, solver=None, stats=None, **kw):
+
+    times: list[float]
+    states: list[Qobj]
+    options: ResultOptions
+    e_data: dict[Any, list[Any]]
+
+    def __init__(
+        self,
+        e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]],
+        options: ResultOptions,
+        *,
+        solver: str = None,
+        stats: dict[str, Any] = None,
+        **kw,
+    ):
         super().__init__(options, solver=solver, stats=stats)
         raw_ops = self._e_ops_to_dict(e_ops)
         self.e_data = {k: [] for k in raw_ops}
-        self.expect = list(self.e_data.values())
         self.e_ops = {}
         for k, op in raw_ops.items():
             f = self._e_op_func(op)
@@ -206,7 +245,7 @@ class Result(_BaseResult):
 
         self.times = []
         self.states = []
-        self.final_state = None
+        self._final_state = None
 
         self._post_init(**kw)
 
@@ -238,29 +277,29 @@ class Result(_BaseResult):
         Sub-class ``.post_init()`` implementation may take additional keyword
         arguments if required.
         """
-        store_states = self.options['store_states']
-        store_final_state = self.options['store_final_state']
-
-        if store_states is None:
-            store_states = len(self.e_ops) == 0
+        store_states = self.options["store_states"]
+        store_states = store_states or (
+            len(self.e_ops) == 0 and store_states is None
+        )
         if store_states:
             self.add_processor(self._store_state, requires_copy=True)
 
-        if store_states or store_final_state:
+        store_final_state = self.options["store_final_state"]
+        if store_final_state and not store_states:
             self.add_processor(self._store_final_state, requires_copy=True)
 
     def _store_state(self, t, state):
-        """ Processor that stores a state in ``.states``. """
+        """Processor that stores a state in ``.states``."""
         self.states.append(state)
 
     def _store_final_state(self, t, state):
-        """ Processor that writes the state to ``.final_state``. """
-        self.final_state = state
+        """Processor that writes the state to ``._final_state``."""
+        self._final_state = state
 
     def _pre_copy(self, state):
-        """ Return a copy of the state. Sub-classes may override this to
-            copy a state in different manner or to skip making a copy
-            altogether if a copy is not necessary.
+        """Return a copy of the state. Sub-classes may override this to
+        copy a state in different manner or to skip making a copy
+        altogether if a copy is not necessary.
         """
         return state.copy()
 
@@ -279,21 +318,24 @@ class Result(_BaseResult):
         t : float
             The time of the added state.
 
-        state : typically a :obj:`~Qobj`
-            The state a time ``t``. Usually this is a :obj:`~Qobj` with
+        state : typically a :obj:`.Qobj`
+            The state a time ``t``. Usually this is a :obj:`.Qobj` with
             suitable dimensions, but it sub-classes of result might support
             other forms of the state.
 
-        .. note::
+        Notes
+        -----
+        The expectation values, i.e. ``e_ops``, and states are recorded by
+        the state processors (see ``.add_processor``).
 
-           The expectation values, i.e. ``e_ops``, and states are recorded by
-           the state processors (see ``.add_processor``).
-
-           Additional processors may be added by sub-classes.
+        Additional processors may be added by sub-classes.
         """
         self.times.append(t)
 
-        if self._state_processors_require_copy:
+        if (
+            self._state_processors_require_copy
+            and not self._integrator_return_copy
+        ):
             state = self._pre_copy(state)
 
         for op in self._state_processors:
@@ -306,10 +348,7 @@ class Result(_BaseResult):
         ]
         if self.stats:
             lines.append("  Solver stats:")
-            lines.extend(
-                f"    {k}: {v!r}"
-                for k, v in self.stats.items()
-            )
+            lines.extend(f"    {k}: {v!r}" for k, v in self.stats.items())
         if self.times:
             lines.append(
                 f"  Time interval: [{self.times[0]}, {self.times[-1]}]"
@@ -325,743 +364,14 @@ class Result(_BaseResult):
         lines.append(">")
         return "\n".join(lines)
 
-
-class MultiTrajResult(_BaseResult):
-    """
-    Base class for storing results for solver using multiple trajectories.
-
-    Parameters
-    ----------
-    e_ops : :obj:`~Qobj`, :obj:`~QobjEvo`, function or list or dict of these
-        The ``e_ops`` parameter defines the set of values to record at
-        each time step ``t``. If an element is a :obj:`~Qobj` or
-        :obj:`~QobjEvo` the value recorded is the expectation value of that
-        operator given the state at ``t``. If the element is a function, ``f``,
-        the value recorded is ``f(t, state)``.
-
-        The values are recorded in the ``.expect`` attribute of this result
-        object. ``.expect`` is a list, where each item contains the values
-        of the corresponding ``e_op``.
-
-        Function ``e_ops`` must return a number so the average can be computed.
-
-    options : :obj:`~SolverResultsOptions`
-        The options for this result class.
-
-    solver : str or None
-        The name of the solver generating these results.
-
-    stats : dict or None
-        The stats generated by the solver while producing these results. Note
-        that the solver may update the stats directly while producing results.
-
-    kw : dict
-        Additional parameters specific to a result sub-class.
-
-    Properties
-    ----------
-    times : list
-        A list of the times at which the expectation values and states were
-        recorded.
-
-    average_states : list of :obj:`~Qobj`
-        The state at each time ``t`` (if the recording of the state was
-        requested) averaged over all trajectories as a density matrix.
-
-    runs_states : list of list of :obj:`~Qobj`
-        The state for each trajectory and each time ``t`` (if the recording of
-        the states and trajectories was requested)
-
-    final_state : :obj:`~Qobj:
-        The final state (if the recording of the final state was requested)
-        averaged over all trajectories as a density matrix.
-
-    runs_final_state : list of :obj:`~Qobj`
-        The final state for each trajectory (if the recording of the final
-        state and trajectories was requested).
-
-    average_expect : list of array of expectation values
-        A list containing the values of each ``e_op`` averaged over each
-        trajectories. The list is in the same order in which the ``e_ops`` were
-        supplied and empty if no ``e_ops`` were given.
-
-        Each element is itself an array and contains the values of the
-        corresponding ``e_op``, with one value for each time in ``.times``.
-
-    std_expect : list of array of expectation values
-        A list containing the standard derivation of each ``e_op`` over each
-        trajectories. The list is in the same order in which the ``e_ops`` were
-        supplied and empty if no ``e_ops`` were given.
-
-        Each element is itself an array and contains the values of the
-        corresponding ``e_op``, with one value for each time in ``.times``.
-
-    runs_expect : list of array of expectation values
-        A list containing the values of each ``e_op`` for each trajectories.
-        The list is in the same order in which the ``e_ops`` were
-        supplied and empty if no ``e_ops`` were given. Only available if the
-        storing of trajectories was requested.
-
-        The order of the elements is ``runs_expect[e_ops][trajectory][time]``.
-
-        Each element is itself an array and contains the values of the
-        corresponding ``e_op``, with one value for each time in ``.times``.
-
-    average_e_data : dict
-        A dictionary containing the values of each ``e_op`` averaged over each
-        trajectories. If the ``e_ops`` were supplied as a dictionary, the keys
-        are the same as in that dictionary. Otherwise the keys are the index of
-        the ``e_op`` in the ``.expect`` list.
-
-        The lists of expectation values returned are the *same* lists as
-        those returned by ``.expect``.
-
-    average_e_data : dict
-        A dictionary containing the standard derivation of each ``e_op`` over
-        each trajectories. If the ``e_ops`` were supplied as a dictionary, the
-        keys are the same as in that dictionary. Otherwise the keys are the
-        index of the ``e_op`` in the ``.expect`` list.
-
-        The lists of expectation values returned are the *same* lists as
-        those returned by ``.expect``.
-
-    runs_e_data : dict
-        A dictionary containing the values of each ``e_op`` for each
-        trajectories. If the ``e_ops`` were supplied as a dictionary, the keys
-        are the same as in that dictionary. Otherwise the keys are the index of
-        the ``e_op`` in the ``.expect`` list. Only available if the storing
-        of trajectories was requested.
-
-        The order of the elements is ``runs_expect[e_ops][trajectory][time]``.
-
-        The lists of expectation values returned are the *same* lists as
-        those returned by ``.expect``.
-
-    solver : str or None
-        The name of the solver generating these results.
-
-    stats : dict or None
-        The stats generated by the solver while producing these results.
-
-    options : :obj:`~SolverResultsOptions`
-        The options for this result class.
-    """
-    def __init__(self, e_ops, options, *, solver=None, stats=None, **kw):
-        super().__init__(options, solver=solver, stats=stats)
-        self._raw_ops = self._e_ops_to_dict(e_ops)
-
-        self.times = []
-        self.trajectories = []
-        self.num_trajectories = 0
-        self.seeds = []
-
-        self._sum_states = None
-        self._sum_final_states = None
-        self._sum_expect = None
-        self._sum2_expect = None
-        self._target_tols = None
-
-        self.average_e_data = {}
-        self.average_expect = []
-        self.e_data = {}
-        self.expect = []
-        self.std_e_data = {}
-        self.std_expect = []
-        self.runs_e_data = {}
-        self.runs_expect = []
-
-        self._post_init(**kw)
-
-    @staticmethod
-    def _to_dm(state):
-        if state.type == 'ket':
-            state = state.proj()
-        return state
-
-    def _add_first_traj(self, trajectory):
-        """
-        Read the first trajectory, intitializing needed data.
-        """
-        self.times = trajectory.times
-
-        if trajectory.states:
-            state = trajectory.states[0]
-            self._sum_states = [qzero(state.dims[0])
-                                for state in trajectory.states]
-        if trajectory.final_state:
-            state = trajectory.final_state
-            self._sum_final_states = qzero(state.dims[0])
-
-        self._sum_expect = np.array(trajectory.expect) * 0.
-        self._sum2_expect = np.array(trajectory.expect) * 0.
-
-        self.e_ops = trajectory.e_ops
-
-        self.average_e_data = {
-            k: avg_expect if np.iscomplexobj(expect) else avg_expect.real
-            for k, avg_expect, expect
-            in zip(self._raw_ops, self._sum_expect, trajectory.expect)
-        }
-        self.average_expect = list(self.average_e_data.values())
-
-    def _store_trajectory(self, trajectory):
-        self.trajectories.append(trajectory)
-
-    def _reduce_states(self, trajectory):
-        self._sum_states = [
-            accu + self._to_dm(state)
-            for accu, state
-            in zip(self._sum_states, trajectory.states)
-        ]
-
-    def _reduce_final_state(self, trajectory):
-        self._sum_final_states += self._to_dm(trajectory.final_state)
-
-    def _reduce_expect(self, trajectory):
-        """
-        Compute the average of the expectation values and store it in it's
-        multiple formats.
-        """
-        self._sum_expect += np.array(trajectory.expect)
-        self._sum2_expect += np.abs(np.array(trajectory.expect))**2
-
-        avg = self._sum_expect / self.num_trajectories
-        avg2 = self._sum2_expect / self.num_trajectories
-
-        self.average_e_data = {
-            k: avg_expect if np.iscomplexobj(expect) else avg_expect.real
-            for k, avg_expect, expect
-            in zip(self._raw_ops, avg, self.average_expect)
-        }
-        self.average_expect = list(self.average_e_data.values())
-
-        self.expect = self.average_expect
-        self.e_data = self.average_e_data
-
-        # mean(expect**2) - mean(expect)**2 can something be very small
-        # negative (-1e-15) which raise an error for float sqrt.
-        self.std_e_data = {
-            k: np.sqrt(np.abs(avg_expect2 - np.abs(avg_expect**2)))
-            for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
-        }
-        self.std_expect = list(self.std_e_data.values())
-
-        if self.trajectories:
-            self.runs_e_data = {
-                k: np.stack([traj.e_data[k] for traj in self.trajectories])
-                for k in self._raw_ops
-            }
-            self.runs_expect = list(self.runs_e_data.values())
-            self.expect = self.runs_expect
-            self.e_data = self.runs_e_data
-
-    def _increment_traj(self, trajectory):
-        if self.num_trajectories == 0:
-            self._add_first_traj(trajectory)
-        self.num_trajectories += 1
-
-    def _no_end(self):
-        """
-        Remaining number of trajectories needed to finish cannot be determined
-        by this object.
-        """
-        return np.inf
-
-    def _fixed_end(self):
-        """
-        Finish at a known number of trajectories.
-        """
-        ntraj_left = self._target_ntraj - self.num_trajectories
-        if ntraj_left == 0:
-            self.stats['end_condition'] = 'ntraj reached'
-        return ntraj_left
-
-    def _target_tolerance_end(self):
-        """
-        Compute the error on the expectation values using jackknife resampling.
-        Return the approximate number of trajectories needed to have this
-        error within the tolerance fot all e_ops and times.
-        """
-        if self.num_trajectories <= 1:
-            return np.inf
-        avg = self._sum_expect / self.num_trajectories
-        avg2 = self._sum2_expect / self.num_trajectories
-        target = np.array([
-            atol + rtol * mean
-            for mean, (atol, rtol)
-            in zip(avg, self._target_tols)
-        ])
-        target_ntraj = np.max((avg2 - abs(avg)**2) / target**2 + 1)
-
-        self._estimated_ntraj = min(target_ntraj, self._target_ntraj)
-        if (self._estimated_ntraj - self.num_trajectories) <= 0:
-            self.stats['end_condition'] = 'target tolerance reached'
-        return self._estimated_ntraj - self.num_trajectories
-
-    def _post_init(self):
-        self.num_trajectories = 0
-        self._target_ntraj = None
-
-        store_states = self.options['store_states']
-        store_final_state = self.options['store_final_state']
-        store_traj = self.options['keep_runs_results']
-
-        self.add_processor(self._increment_traj)
-        if store_traj:
-            self.add_processor(self._store_trajectory)
-        if store_states is None:
-            store_states = len(self._raw_ops) == 0
-        if store_states:
-            self.add_processor(self._reduce_states)
-        if store_states or store_final_state:
-            self.add_processor(self._reduce_final_state)
-        if self._raw_ops:
-            self.add_processor(self._reduce_expect)
-
-        self._early_finish_check = self._no_end
-        self.stats['end_condition'] = 'unknown'
-
-    def add(self, trajectory_info):
-        """
-        Add a trajectory to the evolution.
-
-        Trajectories can be saved or average canbe extracted depending on the
-        options ``keep_runs_results``.
-
-        Parameters
-        ----------
-        trajectory_info : tuple of seed and trajectory
-            - seed: int, SeedSequence
-              Seed used to generate the trajectory.
-            - trajectory : :class:`Result`
-              Run result for one evolution over the times.
-
-        Return
-        ------
-        remaing_traj : number
-            Return the number of trajectories still needed to reach the target
-            tolerance. If no tolerance is provided, return infinity.
-        """
-        seed, trajectory = trajectory_info
-        self.seeds.append(seed)
-
-        for op in self._state_processors:
-            op(trajectory)
-
-        return self._early_finish_check()
-
-    def add_end_condition(self, ntraj, target_tol=None):
-        """
-        Set the condition to stop the computing trajectories when the certain
-        condition are fullfilled.
-        Supported end condition for multi trajectories computation are:
-        - Reaching a number of trajectories.
-        - Error bar on the expectation values reach smaller than a given
-          tolerance.
-
-        Parameters
-        ----------
-        ntraj : int
-            Number of trajectories expected.
-
-        target_tol : float, array_like, [optional]
-            Target tolerance of the evolution. The evolution will compute
-            trajectories until the error on the expectation values is lower
-            than this tolerance. The error is computed using jackknife
-            resampling. ``target_tol`` can be an absolute tolerance, a pair of
-            absolute and relative tolerance, in that order. Lastly, it can be a
-            list of pairs of (atol, rtol) for each e_ops.
-
-            Error estimation is done with jackknife resampling.
-        """
-        self._target_ntraj = ntraj
-        self.stats['end_condition'] = 'timeout'
-
-        if target_tol is None:
-            self._early_finish_check = self._fixed_end
-            return
-
-        num_e_ops = len(self._raw_ops)
-
-        if not num_e_ops:
-            raise ValueError("Cannot target a tolerance without e_ops")
-
-        self._estimated_ntraj = ntraj
-
-        targets = np.array(target_tol)
-        if targets.ndim == 0:
-            self._target_tols = np.array([(target_tol, 0.)] * num_e_ops)
-        elif targets.shape == (2,):
-            self._target_tols = np.ones((num_e_ops, 2)) * targets
-        elif targets.shape == (num_e_ops, 2):
-            self._target_tols = targets
-        else:
-            raise ValueError("target_tol must be a number, a pair of (atol, "
-                             "rtol) or a list of (atol, rtol) for each e_ops")
-
-        self._early_finish_check = self._target_tolerance_end
+    @property
+    def expect(self) -> list[ArrayLike]:
+        return [np.array(e_op) for e_op in self.e_data.values()]
 
     @property
-    def runs_states(self):
-        """
-        States of every runs as ``states[run][t]``.
-        """
-        if self.trajectories and self.trajectories[0].states:
-            return [traj.states for traj in self.trajectories]
-        else:
-            return None
-
-    @property
-    def average_states(self):
-        """
-        States averages as density matrices.
-        """
-        if self._sum_states is None:
-            return None
-        return [final / self.num_trajectories for final in self._sum_states]
-
-    @property
-    def states(self):
-        """
-        Runs final states if available, average otherwise.
-        """
-        return self.runs_states or self.average_states
-
-    @property
-    def runs_final_states(self):
-        """
-        Last states of each trajectories.
-        """
-        if self.trajectories and self.trajectories[0].final_state:
-            return [traj.final_state for traj in self.trajectories]
-        else:
-            return None
-
-    @property
-    def average_final_state(self):
-        """
-        Last states of each trajectories averaged into a density matrix.
-        """
-        if self._sum_final_states is None:
-            return None
-        return self._sum_final_states / self.num_trajectories
-
-    @property
-    def final_state(self):
-        """
-        Runs final states if available, average otherwise.
-        """
-        return self.runs_final_states or self.average_final_state
-
-    def steady_state(self, N=0):
-        """
-        Average the states of the last ``N`` times of every runs as a density
-        matrix. Should converge to the steady state in the right circumstances.
-
-        Parameters
-        ----------
-        N : int [optional]
-            Number of states from the end of ``tlist`` to average. Per default
-            all states will be averaged.
-        """
-        N = int(N) or len(self.times)
-        N = len(self.times) if N > len(self.times) else N
-        states = self.average_states
-        if states is not None:
-            return sum(states[-N:]) / N
-        else:
-            return None
-
-    def e_data_traj_avg(self, ntraj=-1):
-        """
-        Average of the expectation values for the ``ntraj`` first runs as a
-        dict. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to average.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            raise ValueError(
-                f"Trajectories information are not available. "
-                f"Use the options 'keep_runs_results' to store trajectories."
-            )
-        if ntraj > len(self.trajectories):
-            raise ValueError(
-                f"Cannot compute statistic for {ntraj} trajectories. "
-                f"Only {len(self.trajectories)} trajectories are stored."
-            )
-        return {
-            k: np.mean(np.stack([
-                traj.e_data[k] for traj in self.trajectories[:ntraj]
-            ]), axis=0)
-            for k in self._raw_ops
-        }
-
-    def expect_traj_avg(self, ntraj=-1):
-        """
-        Average of the expectation values for the ``ntraj`` first runs as a
-        list. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to average.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            raise ValueError(
-                f"Trajectories information are not available. "
-                f"Use the options 'keep_runs_results' to store trajectories."
-            )
-        return list(self.e_data_traj_avg(ntraj).values())
-
-    def e_data_traj_std(self, ntraj=-1):
-        """
-        Standard derivation of the expectation values for the ``ntraj``
-        first runs as a dict. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to compute de standard derivation.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            raise ValueError(
-                f"Trajectories information are not available. "
-                f"Use the options 'keep_runs_results' to store trajectories."
-            )
-        if ntraj > len(self.trajectories):
-            raise ValueError(
-                f"Cannot compute statistic for {ntraj} trajectories. "
-                f"Only {len(self.trajectories)} trajectories are stored."
-            )
-        return {
-            k: np.std(np.stack([
-                traj.e_data[k] for traj in self.trajectories[:ntraj]
-            ]), axis=0)
-            for k in self._raw_ops
-        }
-
-    def expect_traj_std(self, ntraj=-1):
-        """
-        Standard derivation of the expectation values for the ``ntraj``
-        first runs as a dict. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to compute de standard derivation.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            raise ValueError(
-                f"Trajectories information are not available. "
-                f"Use the options 'keep_runs_results' to store trajectories."
-            )
-        return list(self.e_data_traj_std(ntraj).values())
-
-    def __repr__(self):
-        lines = [
-            f"<{self.__class__.__name__}",
-            f"  Solver: {self.solver}",
-        ]
-        if self.stats:
-            lines.append("  Solver stats:")
-            lines.extend(
-                f"    {k}: {v!r}"
-                for k, v in self.stats.items()
-            )
-        if self.times:
-            lines.append(
-                f"  Time interval: [{self.times[0]}, {self.times[-1]}]"
-                f" ({len(self.times)} steps)"
-            )
-        lines.append(f"  Number of e_ops: {len(self.e_ops)}")
+    def final_state(self) -> Qobj:
+        if self._final_state is not None:
+            return self._final_state
         if self.states:
-            lines.append("  States saved.")
-        elif self.final_state is not None:
-            lines.append("  Final state saved.")
-        else:
-            lines.append("  State not saved.")
-        lines.append(f"  Number of trajectories: {self.num_trajectories}")
-        if self.trajectories:
-            lines.append("  Trajectories saved.")
-        else:
-            lines.append("  Trajectories not saved.")
-        lines.append(">")
-        return "\n".join(lines)
-
-    def __add__(self, other):
-        if not isinstance(other, MultiTrajResult):
-            return NotImplemented
-        if self._raw_ops != other._raw_ops:
-            raise ValueError("Shared `e_ops` is required to merge results")
-        if self.times != other.times:
-            raise ValueError("Shared `times` are is required to merge results")
-        new = self.__class__(self._raw_ops, self.options,
-                             solver=self.solver, stats=self.stats)
-        if self.trajectories and other.trajectories:
-            new.trajectories = self.trajectories + other.trajectories
-        new.num_trajectories = self.num_trajectories + other.num_trajectories
-        new.times = self.times
-        new.seeds = self.seeds + other.seeds
-
-        if self._sum_states is not None and other._sum_states is not None:
-            new._sum_states = self._sum_states + other._sum_states
-
-        if (
-            self._sum_final_states is not None
-            and other._sum_final_states is not None
-        ):
-            new._sum_final_states = (
-                self._sum_final_states + other._sum_final_states
-            )
-        new._target_tols = None
-
-        if self._raw_ops:
-            new._sum_expect = self._sum_expect + other._sum_expect
-            new._sum2_expect = self._sum2_expect + other._sum2_expect
-
-            avg = new._sum_expect / new.num_trajectories
-            avg2 = new._sum2_expect / new.num_trajectories
-
-            new.average_e_data = {
-                k: avg_expect
-                for k, avg_expect in zip(self._raw_ops, avg)
-            }
-            new.average_expect = list(new.average_e_data.values())
-
-            new.expect = new.average_expect
-            new.e_data = new.average_e_data
-
-            new.std_e_data = {}
-            for i, key in enumerate(self._raw_ops):
-                std2 = avg2[i] - abs(avg[i]**2)
-                std2[std2 < 0] = 0.
-                new.std_e_data[key] = np.sqrt(std2)
-
-            new.std_expect = list(new.std_e_data.values())
-
-            if new.trajectories:
-                new.runs_e_data = {
-                    k: np.stack([traj.e_data[k] for traj in new.trajectories])
-                    for k in new._raw_ops
-                }
-                new.runs_expect = list(new.runs_e_data.values())
-                new.expect = new.runs_expect
-                new.e_data = new.runs_e_data
-
-        new.stats["run time"] += other.stats["run time"]
-        new.stats['end_condition'] = "Merged results"
-
-        return new
-
-
-class McResult(MultiTrajResult):
-    """
-    Base class for storing solver results.
-
-    Parameters
-    ----------
-    e_ops : :obj:`~Qobj`, :obj:`~QobjEvo`, function or list or dict of these
-        The ``e_ops`` parameter defines the set of values to record at
-        each time step ``t``. If an element is a :obj:`~Qobj` or
-        :obj:`~QobjEvo` the value recorded is the expectation value of that
-        operator given the state at ``t``. If the element is a function, ``f``,
-        the value recorded is ``f(t, state)``.
-
-        The values are recorded in the ``.expect`` attribute of this result
-        object. ``.expect`` is a list, where each item contains the values
-        of the corresponding ``e_op``.
-
-    options : :obj:`~SolverResultsOptions`
-        The options for this result class.
-
-    solver : str or None
-        The name of the solver generating these results.
-
-    stats : dict
-        The stats generated by the solver while producing these results. Note
-        that the solver may update the stats directly while producing results.
-        Must include a value for "num_collapse".
-
-    kw : dict
-        Additional parameters specific to a result sub-class.
-
-    Properties
-    ----------
-    collapse : list
-        For each runs, a list of every collapse as a tuple of the time it
-        happened and the corresponding ``c_ops`` index.
-    """
-    # Collapse are only produced by mcsolve.
-
-    def _add_collapse(self, trajectory):
-        self.collapse.append(trajectory.collapse)
-
-    def _post_init(self):
-        super()._post_init()
-        self.num_c_ops = self.stats["num_collapse"]
-        self.collapse = []
-        self.add_processor(self._add_collapse)
-
-    @property
-    def col_times(self):
-        """
-        List of the times of the collapses for each runs.
-        """
-        out = []
-        for col_ in self.collapse:
-            col = list(zip(*col_))
-            col = ([] if len(col) == 0 else col[0])
-            out.append(col)
-        return out
-
-    @property
-    def col_which(self):
-        """
-        List of the indexes of the collapses for each runs.
-        """
-        out = []
-        for col_ in self.collapse:
-            col = list(zip(*col_))
-            col = ([] if len(col) == 0 else col[1])
-            out.append(col)
-        return out
-
-    @property
-    def photocurrent(self):
-        """
-        Average photocurrent or measurement of the evolution.
-        """
-        cols = [[] for _ in range(self.num_c_ops)]
-        tlist = self.times
-        for collapses in self.collapse:
-            for t, which in collapses:
-                cols[which].append(t)
-        mesurement = [
-            np.histogram(cols[i], tlist)[0] / np.diff(tlist) / self.num_trajectories
-            for i in range(self.num_c_ops)
-        ]
-        return mesurement
-
-    @property
-    def runs_photocurrent(self):
-        """
-        Photocurrent or measurement of each runs.
-        """
-        tlist = self.times
-        measurements = []
-        for collapses in self.collapse:
-            cols = [[] for _ in range(self.num_c_ops)]
-            for t, which in collapses:
-                cols[which].append(t)
-            measurements.append([
-                np.histogram(cols[i], tlist)[0] / np.diff(tlist)
-                for i in range(self.num_c_ops)
-            ])
-        return measurements
+            return self.states[-1]
+        return None

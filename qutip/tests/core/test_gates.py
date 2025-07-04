@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 import qutip
 from qutip.core import gates
+from qutip import Qobj
 
 
 def _infidelity(a, b):
@@ -35,7 +36,7 @@ def _make_random_three_qubit_gate():
 
 
 def _make_controled(op):
-    out = qutip.tensor(qutip.fock_dm(2, 0), qutip.qeye(op.dims[0]))
+    out = qutip.tensor(qutip.fock_dm(2, 0), qutip.qeye_like(op))
     out += qutip.tensor(qutip.fock_dm(2, 1), op)
     return out
 
@@ -71,10 +72,10 @@ class TestExplicitForm:
         pytest.param(gates.berkeley, 8, lambda : -qutip.qeye([2, 2]),
                      id="berkeley"),
         pytest.param(gates.sqrtnot, 2, qutip.sigmax, id="sqrtnot"),
-        pytest.param(gates.sqrtswap, 2, gates.swap, id="cs_gate"),
-        pytest.param(gates.sqrtiswap, 2, gates.iswap, id="ct_gate"),
+        pytest.param(gates.sqrtswap, 2, gates.swap, id="sqrtswap"),
+        pytest.param(gates.sqrtiswap, 2, gates.iswap, id="sqrtiswap"),
     ])
-    def gate_power_relation(self, gate, expected, power):
+    def test_gate_power_relation(self, gate, expected, power):
         assert gate()**power == expected()
 
     @pytest.mark.parametrize(['angle', 'expected'], [
@@ -111,11 +112,17 @@ class TestCliffordGroup:
     Test a sufficient set of conditions to prove that we have a full Clifford
     group for a single qubit.
     """
-    clifford = gates.qubit_clifford_group()
+    with qutip.CoreOptions(default_dtype="dia"):
+        clifford = gates.qubit_clifford_group()
+
     pauli = [qutip.qeye(2), qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
 
     def test_single_qubit_group_dimension_is_24(self):
         assert len(self.clifford) == 24
+
+    def test_dtype(self):
+        for gate in self.clifford:
+            assert isinstance(gate.data, qutip.data.Dia)
 
     def test_all_elements_different(self):
         clifford = [_remove_global_phase(gate) for gate in self.clifford]
@@ -124,7 +131,7 @@ class TestCliffordGroup:
                 # Big tolerance because we actually want to test the inverse.
                 assert not np.allclose(gate.full(), other.full(), atol=1e-3)
 
-    @pytest.mark.parametrize("gate", gates.qubit_clifford_group())
+    @pytest.mark.parametrize("gate", gates.qubit_clifford_group(dtype="dense"))
     def test_gate_normalises_pauli_group(self, gate):
         """
         Test the fundamental definition of the Clifford group, i.e. that it
@@ -133,6 +140,8 @@ class TestCliffordGroup:
         # Assert that each Clifford gate maps the set of Pauli gates back onto
         # itself (though not necessarily in order).  This condition is no
         # stronger than simply considering each (gate, Pauli) pair separately.
+        assert gate._isherm == qutip.data.isherm(gate.data)
+        assert isinstance(gate.data, qutip.data.Dense)
         pauli_gates = [_remove_global_phase(x) for x in self.pauli]
         normalised = [_remove_global_phase(gate * pauli * gate.dag())
                       for pauli in self.pauli]
@@ -142,3 +151,62 @@ class TestCliffordGroup:
                     del pauli_gates[i]
                     break
         assert len(pauli_gates) == 0
+
+
+@pytest.mark.parametrize("alias", [qutip.data.Dense, "CSR", "core"])
+@pytest.mark.parametrize(["gate_func", "args"], [
+        pytest.param(gates.cnot, (), id="cnot"),
+        pytest.param(gates.cy_gate, (), id="cy_gate"),
+        pytest.param(gates.cz_gate, (), id="cz_gate"),
+        pytest.param(gates.cs_gate, (), id="cs_gate"),
+        pytest.param(gates.ct_gate, (), id="ct_gate"),
+        pytest.param(gates.s_gate, (), id="s_gate"),
+        pytest.param(gates.t_gate, (), id="t_gate"),
+        pytest.param(gates.cphase, (np.pi,), id="cphase"),
+        pytest.param(gates.csign, (), id="csign"),
+        pytest.param(gates.fredkin, (), id="fredkin"),
+        pytest.param(gates.toffoli, (), id="toffoli"),
+        pytest.param(gates.rx, (np.pi,), id="rx"),
+        pytest.param(gates.ry, (np.pi,), id="ry 1"),
+        pytest.param(gates.ry, (4 * np.pi,), id="ry 0"),
+        pytest.param(gates.rz, (1,), id="rz"),
+        pytest.param(gates.sqrtnot, (), id="sqrtnot"),
+        pytest.param(gates.snot, (), id="snot"),
+        pytest.param(gates.phasegate, (0,), id="phasegate 0"),
+        pytest.param(gates.phasegate, (1,), id="phasegate 1"),
+        pytest.param(gates.qrot, (0, 0), id="qrot id"),
+        pytest.param(gates.qrot, (2*np.pi, np.pi), id="qrot 0 pi"),
+        pytest.param(gates.qrot, (np.pi, 0), id="qrot pi 0"),
+        pytest.param(gates.qrot, (np.pi, np.pi), id="qrot pi pi"),
+        pytest.param(gates.berkeley, (), id="berkeley"),
+        pytest.param(gates.swapalpha, (0,), id="swapalpha 0"),
+        pytest.param(gates.swapalpha, (1,), id="swapalpha 1"),
+        pytest.param(gates.swap, (), id="swap"),
+        pytest.param(gates.iswap, (), id="iswap"),
+        pytest.param(gates.sqrtswap, (), id="sqrtswap"),
+        pytest.param(gates.sqrtiswap, (), id="sqrtiswap"),
+        pytest.param(gates.molmer_sorensen, (0,), id="molmer_sorensen 0"),
+        pytest.param(gates.molmer_sorensen, (np.pi,), id="molmer_sorensen pi"),
+        pytest.param(gates.hadamard_transform, (), id="hadamard_transform"),
+    ])
+def test_metadata(gate_func, args, alias):
+    gate = gate_func(*args, dtype=alias)
+    dtype = qutip.data.to.parse(alias)
+    if alias == "core":
+        dtype = tuple(dtype)
+    assert isinstance(gate.data, dtype)
+    assert gate._isherm == qutip.data.isherm(gate.data)
+    assert gate._isunitary == gate._calculate_isunitary()
+    with qutip.CoreOptions(default_dtype=alias):
+        gate = gate_func(*args)
+        assert isinstance(gate.data, dtype)
+
+def test_phasegate_hermitian():
+    phi = 4 * np.pi / 3
+    pg = gates.phasegate(phi)
+    expected = Qobj([[1, 0], [0, np.exp(1j * phi)]])
+    assert not pg.isherm
+    assert np.allclose(pg.dag().full(), expected.dag().full())
+    diag_elements = np.diag(pg.full())
+    expected_diag = [1, np.exp(1j * phi)]
+    assert np.allclose(diag_elements, expected_diag)

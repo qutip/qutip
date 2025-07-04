@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_equal, assert_, run_module_suite
+from numpy.testing import assert_equal
 import unittest
 from qutip import *
 from qutip.settings import settings as qset
@@ -18,7 +18,7 @@ def test_openmp_spmv():
         out_openmp = np.zeros_like(vec)
         _spmvpy(L.data, L.indices, L.indptr, vec, 1, out)
         _spmvpy_openmp(L.data, L.indices, L.indptr, vec, 1, out_openmp, 2)
-        assert_(np.allclose(out, out_openmp, 1e-15))
+        assert (np.allclose(out, out_openmp, 1e-15))
 
 # @unittest.skipIf(qset.has_openmp == False, 'OPENMP not available.')
 @unittest.skipIf(True, 'OPENMP disabled.')
@@ -61,8 +61,8 @@ def test_openmp_mesolve():
     out = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm], options=opts)
     opts = SolverOptions(use_openmp=True)
     out_omp = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm], options=opts)
-    assert_(np.allclose(out.expect[0],out_omp.expect[0]))
-    assert_(np.allclose(out.expect[1],out_omp.expect[1]))
+    assert (np.allclose(out.expect[0],out_omp.expect[0]))
+    assert (np.allclose(out.expect[1],out_omp.expect[1]))
 
 
 # @unittest.skipIf(qset.has_openmp == False, 'OPENMP not available.')
@@ -107,5 +107,5 @@ def test_openmp_mesolve_td():
     out_omp = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm], options=opts)
     opts = SolverOptions(use_openmp=False)
     out = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm], options=opts)
-    assert_(np.allclose(out.expect[0],out_omp.expect[0]))
-    assert_(np.allclose(out.expect[1],out_omp.expect[1]))
+    assert (np.allclose(out.expect[0],out_omp.expect[0]))
+    assert (np.allclose(out.expect[1],out_omp.expect[1]))

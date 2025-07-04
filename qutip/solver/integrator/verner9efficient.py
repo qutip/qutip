@@ -1,10 +1,10 @@
 """
 Provide a cython implimentation verner 'most-efficient'
 order 9 runge-Kutta method.
-See http://people.math.sfu.ca/~jverner/
+See https://www.sfu.ca/~jverner/
 """
 # Verner 9 Efficient
-# http://people.math.sfu.ca/~jverner/
+# https://www.sfu.ca/~jverner/
 
 __all__ = ["vern9_coeff"]
 import numpy as np

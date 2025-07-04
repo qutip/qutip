@@ -5,11 +5,14 @@ __all__ = [
 ]
 
 import functools
-
+from typing import TypeVar, overload
 import numpy as np
 
 from .qobj import Qobj
+from .cy.qobjevo import QobjEvo
 from . import data as _data
+from .dimensions import Compound, SuperSpace, Space
+
 
 def _map_over_compound_operators(f):
     """
@@ -28,29 +31,52 @@ def _map_over_compound_operators(f):
     return out
 
 
-def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
+@overload
+def liouvillian(
+    H: Qobj,
+    c_ops: list[Qobj],
+    data_only: bool,
+    chi: list[float]
+) -> Qobj: ...
+
+@overload
+def liouvillian(
+    H: Qobj | QobjEvo,
+    c_ops: list[Qobj | QobjEvo],
+    data_only: bool,
+    chi: list[float]
+) -> QobjEvo: ...
+
+def liouvillian(
+    H: Qobj | QobjEvo = None,
+    c_ops: list[Qobj | QobjEvo] = None,
+    data_only: bool = False,
+    chi: list[float] = None,
+) -> Qobj | QobjEvo:
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
 
     Parameters
     ----------
-    H : Qobj or QobjEvo (optional)
+    H : Qobj or QobjEvo, optional
         System Hamiltonian or Hamiltonian component of a Liouvillian.
         Considered `0` if not given.
 
-    c_ops : array_like of Qobj or QobjEvo
+    c_ops : array_like of Qobj or QobjEvo, optional
         A ``list`` or ``array`` of collapse operators.
 
-    data_only :  bool [False]
+    data_only : bool, default: False
         Return the data object instead of a Qobj
 
-    chi : array_like of float [None]
-        In some systems it is possible to determine the statistical moments (mean, variance, etc) of the
-        probability distributions of occupation of various states by numerically evaluating the derivatives
-        of the steady state occupation probability as a function of artificial phase parameters ``chi``
-        which are included in the :func:`lindblad_dissipator` for each collapse operator. See
-        the documentation of :func:`lindblad_dissipator` for references and further details.
-        This parameter is deprecated and may be removed in QuTiP 5.
+    chi : array_like of float, optional
+        In some systems it is possible to determine the statistical moments
+        (mean, variance, etc) of the probability distributions of occupation of
+        various states by numerically evaluating the derivatives of the steady
+        state occupation probability as a function of artificial phase
+        parameters ``chi`` which are included in the
+        :func:`lindblad_dissipator` for each collapse operator. See the
+        documentation of :func:`lindblad_dissipator` for references and further
+        details. This parameter is deprecated and may be removed in QuTiP 5.
 
     Returns
     -------
@@ -92,15 +118,10 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         L += sum(lindblad_dissipator(c_op, chi=chi_)
                  for c_op, chi_ in zip(c_ops, chi))
         return L
-
-    op_dims = H.dims
-    op_shape = H.shape
-    sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
-    sop_shape = [np.prod(op_dims), np.prod(op_dims)]
-    spI = _data.identity(op_shape[0], dtype=type(H.data))
-
+    spI = _data.identity_like(H.data)
     data = _data.mul(_data.kron(spI, H.data), -1j)
-    data = _data.add(data, _data.kron(H.data.transpose(), spI), scale=1j)
+    data = _data.add(data, _data.kron_transpose(H.data, spI),
+                     scale=1j)
 
     for c_op, chi_ in zip(c_ops, chi):
         c = c_op.data
@@ -108,19 +129,39 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         cdc = _data.matmul(cd, c)
         data = _data.add(data, _data.kron(c.conj(), c), np.exp(1j*chi_))
         data = _data.add(data, _data.kron(spI, cdc), -0.5)
-        data = _data.add(data, _data.kron(cdc.transpose(), spI), -0.5)
+        data = _data.add(data, _data.kron_transpose(cdc, spI), -0.5)
 
     if data_only:
         return data
     else:
         return Qobj(data,
-                    dims=sop_dims,
-                    type='super',
+                    dims=[H._dims, H._dims],
                     superrep='super',
                     copy=False)
 
 
-def lindblad_dissipator(a, b=None, data_only=False, chi=None):
+@overload
+def lindblad_dissipator(
+    a: Qobj,
+    b: Qobj,
+    data_only: bool,
+    chi: list[float]
+) -> Qobj: ...
+
+@overload
+def lindblad_dissipator(
+    a: Qobj | QobjEvo,
+    b: Qobj | QobjEvo,
+    data_only: bool,
+    chi: list[float]
+) -> QobjEvo: ...
+
+def lindblad_dissipator(
+    a: Qobj | QobjEvo,
+    b: Qobj | QobjEvo = None,
+    data_only: bool = False,
+    chi: list[float] = None,
+) -> Qobj | QobjEvo:
     """
     Lindblad dissipator (generalized) for a single pair of collapse operators
     (a, b), or for a single collapse operator (a) when b is not specified:
@@ -135,20 +176,25 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
     a : Qobj or QobjEvo
         Left part of collapse operator.
 
-    b : Qobj or QobjEvo (optional)
+    b : Qobj or QobjEvo, optional
         Right part of collapse operator. If not specified, b defaults to a.
 
-    chi : float [None]
-        In some systems it is possible to determine the statistical moments (mean, variance, etc) of the
-        probability distribution of the occupation numbers of states by numerically evaluating the derivatives
-        of the steady state occupation probability as a function of an artificial phase parameter ``chi``
-        which multiplies the ``a \\rho a^dagger`` term of the dissipator by ``e ^ (i * chi)``. The factor ``e ^ (i * chi)``
-        is introduced via the generating function of the statistical moments. For examples of the technique,
-        see `Full counting statistics of nano-electromechanical systems <https://arxiv.org/abs/cond-mat/0410322>`_
-        and `Photon-mediated electron transport in hybrid circuit-QED <https://arxiv.org/abs/1303.7449>`_.
-        This parameter is deprecated and may be removed in QuTiP 5.
+    chi : float, optional
+        In some systems it is possible to determine the statistical moments
+        (mean, variance, etc) of the probability distribution of the occupation
+        numbers of states by numerically evaluating the derivatives of the
+        steady state occupation probability as a function of an artificial
+        phase parameter ``chi`` which multiplies the ``a \\rho a^dagger`` term
+        of the dissipator by ``e ^ (i * chi)``. The factor ``e ^ (i * chi)`` is
+        introduced via the generating function of the statistical moments. For
+        examples of the technique, see `Full counting statistics of
+        nano-electromechanical systems
+        <https://arxiv.org/abs/cond-mat/0410322>`_ and `Photon-mediated
+        electron transport in hybrid circuit-QED
+        <https://arxiv.org/abs/1303.7449>`_. This parameter is deprecated and
+        may be removed in QuTiP 5.
 
-    data_only :  bool [False]
+    data_only : bool, default: False
         Return the data object instead of a Qobj
 
     Returns
@@ -177,7 +223,7 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
 
 
 @_map_over_compound_operators
-def operator_to_vector(op):
+def operator_to_vector(op: Qobj) -> Qobj:
     """
     Create a vector representation given a quantum operator in matrix form.
     The passed object should have a ``Qobj.type`` of 'oper' or 'super'; this
@@ -200,13 +246,12 @@ def operator_to_vector(op):
                         "in super representation")
     return Qobj(stack_columns(op.data),
                 dims=[op.dims, [1]],
-                type='operator-ket',
                 superrep="super",
                 copy=False)
 
 
 @_map_over_compound_operators
-def vector_to_operator(op):
+def vector_to_operator(op: Qobj) -> Qobj:
     """
     Create a matrix representation given a quantum operator in vector form.
     The passed object should have a ``Qobj.type`` of 'operator-ket'; this
@@ -234,7 +279,10 @@ def vector_to_operator(op):
                 copy=False)
 
 
-def stack_columns(matrix):
+QobjOrArray = TypeVar("QobjOrArray", Qobj, np.ndarray)
+
+
+def stack_columns(matrix: QobjOrArray) -> QobjOrArray:
     """
     Stack the columns in a data-layer type, useful for converting an operator
     into a superoperator representation.
@@ -248,7 +296,10 @@ def stack_columns(matrix):
     return _data.column_stack(matrix)
 
 
-def unstack_columns(vector, shape=None):
+def unstack_columns(
+    vector: QobjOrArray,
+    shape: tuple[int, int] = None,
+) -> QobjOrArray:
     """
     Unstack the columns in a data-layer type back into a 2D shape, useful for
     converting an operator in vector form back into a regular operator.  If
@@ -293,8 +344,11 @@ def stacked_index(size, row, col):
     return row + size*col
 
 
+AnyQobj = TypeVar("AnyQobj", Qobj, QobjEvo)
+
+
 @_map_over_compound_operators
-def spost(A):
+def spost(A: AnyQobj) -> AnyQobj:
     """
     Superoperator formed from post-multiplication by operator A
 
@@ -310,18 +364,16 @@ def spost(A):
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
-    data = _data.kron(A.data.transpose(),
-                      _data.identity(A.shape[0], dtype=type(A.data)))
+    data = _data.kron_transpose(A.data, _data.identity_like(A.data))
     return Qobj(data,
-                dims=[A.dims, A.dims],
-                type='super',
+                dims=[A._dims, A._dims],
                 superrep='super',
                 isherm=A._isherm,
                 copy=False)
 
 
 @_map_over_compound_operators
-def spre(A):
+def spre(A: AnyQobj) -> AnyQobj:
     """Superoperator formed from pre-multiplication by operator A.
 
     Parameters
@@ -336,10 +388,9 @@ def spre(A):
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
-    data = _data.kron(_data.identity(A.shape[0], dtype=type(A.data)), A.data)
+    data = _data.kron(_data.identity_like(A.data), A.data)
     return Qobj(data,
-                dims=[A.dims, A.dims],
-                type='super',
+                dims=[A._dims, A._dims],
                 superrep='super',
                 isherm=A._isherm,
                 copy=False)
@@ -352,6 +403,12 @@ def _drop_projected_dims(dims):
     """
     return [d for d in dims if d != 1]
 
+
+@overload
+def sprepost(A: Qobj, B: Qobj) -> Qobj: ...
+
+@overload
+def sprepost(A: Qobj | QobjEvo, B: Qobj | QobjEvo) -> QobjEvo: ...
 
 def sprepost(A, B):
     """
@@ -379,34 +436,105 @@ def sprepost(A, B):
              _drop_projected_dims(B.dims[1])],
             [_drop_projected_dims(A.dims[1]),
              _drop_projected_dims(B.dims[0])]]
-    return Qobj(_data.kron(B.data.transpose(), A.data),
+    return Qobj(_data.kron_transpose(B.data, A.data),
                 dims=dims,
-                type='super',
                 superrep='super',
                 isherm=A._isherm and B._isherm,
                 copy=False)
 
 
-def reshuffle(q_oper):
+def _to_super_of_tensor(q_oper):
     """
-    Column-reshuffles a ``type="super"`` Qobj.
+    Transform a superoperator composed of multiple space into a superoperator
+    over a composite spaces.
     """
-    if q_oper.type not in ('super', 'operator-ket'):
+    msg = "Reshuffling is only supported for square operators."
+    if not q_oper._dims.issuper:
         raise TypeError("Reshuffling is only supported on type='super' "
                         "or type='operator-ket'.")
-    # How many indices are there, and how many subsystems can we decompose
-    # each index into?
-    n_indices = len(q_oper.dims[0])
-    n_subsystems = len(q_oper.dims[0][0])
-    # Generate a list of lists (lol) that represents the permutation order we
-    # need. It's easiest to do so if we make an array, then turn it into a lol
-    # by using map(list, ...). That array is generated by using reshape and
-    # transpose to turn an array like [a, b, a, b, ..., a, b] into one like
-    # [a, a, ..., a, b, b, ..., b].
-    perm_idxs = map(list,
-                    np.arange(n_subsystems * n_indices)[
-                        np.arange(n_subsystems * n_indices).reshape(
-                            (n_indices, n_subsystems)).T.flatten()
-                    ].reshape((n_subsystems, n_indices))
-                    )
-    return q_oper.permute(list(perm_idxs))
+    if q_oper.isoper and not q_oper._dims.issquare:
+        raise NotImplementedError(msg)
+
+    dims = q_oper._dims[0]
+    if isinstance(dims, SuperSpace):
+        return q_oper.copy()
+
+    perm_idxs = [[], []]
+
+    if isinstance(dims, Compound):
+        shift = 0
+        for space in dims.spaces:
+            if not isinstance(space, SuperSpace) or not space.oper.issquare:
+                raise NotImplementedError(msg)
+            space_dims = space.oper.to_
+            if type(space_dims) is Space:
+                perm_idxs[0] += [shift]
+                perm_idxs[1] += [shift + 1]
+                shift += 2
+            elif isinstance(space_dims, Compound):
+                N = len(space_dims.spaces)
+                perm_idxs[0] += [shift + i for i in range(N)]
+                perm_idxs[1] += [shift + N + i for i in range(N)]
+                shift += 2 * N
+            else:
+                # ENR space or other complex spaces
+                raise NotImplementedError("Reshuffling with non standard space"
+                                          "is not supported.")
+
+    return q_oper.permute(perm_idxs)
+
+
+def _to_tensor_of_super(q_oper):
+    """
+    Transform a superoperator composed of multiple space into a tensor of
+    superoperator on each spaces.
+    """
+    msg = "Reshuffling is only supported for square operators."
+    if not q_oper._dims[0].issuper:
+        raise TypeError("Reshuffling is only supported on type='super' "
+                        "or type='operator-ket'.")
+
+    dims = q_oper._dims[0]
+    perm_idxs = []
+
+    if isinstance(dims, Compound):
+        shift = 0
+        for space in dims.spaces:
+            if not isinstance(space, SuperSpace) or not space.oper.issquare:
+                raise TypeError(msg)
+            space_dims = space.oper.to_
+            if type(space_dims) is Space:
+                perm_idxs += [[shift], [shift + 1]]
+                shift += 2
+            elif isinstance(space_dims, Compound):
+                N = len(space_dims.spaces)
+                idxs = range(0, N * 2, 2)
+                perm_idxs += [[i + shift] for i in idxs]
+                perm_idxs += [[i + shift + 1] for i in idxs]
+                shift += N * 2
+            else:
+                # ENR space or other complex spaces
+                raise NotImplementedError("Reshuffling with non standard space"
+                                          "is not supported.")
+    elif isinstance(dims, SuperSpace):
+        if isinstance(dims.oper.to_, Compound):
+            step = len(dims.oper.to_.spaces)
+            perm_idxs = sum([[[i], [i+step]] for i in range(step)], [])
+        else:
+            return q_oper
+
+    return q_oper.permute(perm_idxs)
+
+
+def reshuffle(q_oper: Qobj) -> Qobj:
+    """
+    Column-reshuffles a super operator or a operator-ket Qobj.
+    """
+    if q_oper.type not in ["super", "operator-ket"]:
+        raise TypeError("Reshuffling is only supported on type='super' "
+                        "or type='operator-ket'.")
+
+    if isinstance(q_oper._dims[0], Compound):
+        return _to_super_of_tensor(q_oper)
+    else:
+        return _to_tensor_of_super(q_oper)

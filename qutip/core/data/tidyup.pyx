@@ -4,15 +4,16 @@
 from libc.math cimport fabs
 
 cimport numpy as cnp
+from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport csr, dense, CSR, Dense
+from qutip.core.data cimport csr, dense, CSR, Dense, dia, Dia, base
 
 cdef extern from "<complex>" namespace "std" nogil:
     # abs is templated such that Cython treats std::abs as complex->complex
     double abs(double complex x)
 
 __all__ = [
-    'tidyup', 'tidyup_csr', 'tidyup_dense',
+    'tidyup', 'tidyup_csr', 'tidyup_dense', 'tidyup_dia',
 ]
 
 
@@ -55,6 +56,47 @@ cpdef Dense tidyup_dense(Dense matrix, double tol, bint inplace=True):
     return out
 
 
+cpdef Dia tidyup_dia(Dia matrix, double tol, bint inplace=True):
+    cdef Dia out = matrix if inplace else matrix.copy()
+    cdef base.idxint diag=0, new_diag=0, ONE=1, start, end, col
+    cdef bint re, im, has_data
+    cdef double complex value
+    cdef int length
+
+    while diag < out.num_diag:
+        start = max(0, out.offsets[diag])
+        end = min(out.shape[1], out.shape[0] + out.offsets[diag])
+        has_data = False
+        for col in range(start, end):
+            re = False
+            im = False
+            if fabs(out.data[diag * out.shape[1] + col].real) < tol:
+                re = True
+                out.data[diag * out.shape[1] + col].real = 0
+            if fabs(out.data[diag * out.shape[1] + col].imag) < tol:
+                im = True
+                out.data[diag * out.shape[1] + col].imag = 0
+            has_data |= not (re & im)
+
+        if has_data and new_diag < diag:
+            length = out.shape[1]
+            blas.zcopy(
+                &length,
+                &out.data[diag * out.shape[1]], &ONE,
+                &out.data[new_diag * out.shape[1]], &ONE
+            )
+            out.offsets[new_diag] = out.offsets[diag]
+
+        if has_data:
+            new_diag += 1
+        diag += 1
+    out.num_diag = new_diag
+    if out._scipy is not None:
+        out._scipy.data = out._scipy.data[:new_diag]
+        out._scipy.offsets = out._scipy.offsets[:new_diag]
+    return out
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -63,7 +105,7 @@ import inspect as _inspect
 
 tidyup = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('inplace', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=True),
@@ -101,6 +143,7 @@ tidyup.__doc__ =\
 tidyup.add_specialisations([
     (CSR, tidyup_csr),
     (Dense, tidyup_dense),
+    (Dia, tidyup_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher

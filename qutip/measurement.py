@@ -2,9 +2,18 @@
 Module for measuring quantum objects.
 """
 
+__all__ = [
+    'measurement_statistics_povm',
+    'measurement_statistics_observable',
+    'measure_observable',
+    'measure_povm',
+    'measurement_statistics',
+    'measure'
+]
+
 import numpy as np
 
-from . import Qobj, expect, identity, tensor
+from . import Qobj, expect, identity, tensor, settings
 
 
 def _verify_input(op, state):
@@ -27,7 +36,7 @@ def _verify_input(op, state):
         raise ValueError("state must be a ket or a density matrix")
 
 
-def _measurement_statistics_povm_ket(state, ops):
+def _measurement_statistics_povm_ket(state, ops, tol=None):
     r"""
     Returns measurement statistics (resultant states and probabilities)
     for a measurements specified by a set of positive operator valued
@@ -42,6 +51,9 @@ def _measurement_statistics_povm_ket(state, ops):
       List of measurement operators :math:`M_i` (specifying a POVM such that
       :math:`E_i = M_i^\dagger M_i`).
 
+    tol : float, optional
+        Smallest value for the probabilities. Smaller probabilities will be
+        rounded to ``0``.
 
     Returns
     -------
@@ -56,19 +68,23 @@ def _measurement_statistics_povm_ket(state, ops):
     """
     probabilities = []
     collapsed_states = []
+    if tol is None:
+        tol = settings.core["atol"]
 
     for i, op in enumerate(ops):
-        p = np.absolute((state.dag() * op.dag() * op * state))
-        probabilities.append(p)
-        if p != 0:
-            collapsed_states.append((op * state) / np.sqrt(p))
+        psi = op * state
+        p = np.absolute(psi.overlap(psi))
+        if p >= tol:
+            collapsed_states.append(psi / np.sqrt(p))
+            probabilities.append(p)
         else:
             collapsed_states.append(None)
+            probabilities.append(0.)
 
     return collapsed_states, probabilities
 
 
-def _measurement_statistics_povm_dm(density_mat, ops):
+def _measurement_statistics_povm_dm(density_mat, ops, tol=None):
     r"""
     Returns measurement statistics (resultant states and probabilities)
     for a measurements specified by a set of positive operator valued
@@ -83,6 +99,10 @@ def _measurement_statistics_povm_dm(density_mat, ops):
         List of measurement operators :math:`M_i` (specifying a POVM s.t.
         :mathm:`E_i = M_i^\dagger M_i`)
 
+    tol : float, optional
+        Smallest value for the probabilities. Smaller probabilities will be
+        rounded to ``0``.
+
     Returns
     -------
     collapsed_states : list of :class:`.Qobj`
@@ -96,20 +116,24 @@ def _measurement_statistics_povm_dm(density_mat, ops):
     """
     probabilities = []
     collapsed_states = []
+    if tol is None:
+        tol = settings.core["atol"]
 
     for i, op in enumerate(ops):
         st = op * density_mat * op.dag()
         p = st.tr()
-        probabilities.append(p)
-        if p != 0:
+        if p >= tol:
             collapsed_states.append(st/p)
+            probabilities.append(p)
         else:
             collapsed_states.append(None)
+            probabilities.append(0.)
+
 
     return collapsed_states, probabilities
 
 
-def measurement_statistics_povm(state, ops):
+def measurement_statistics_povm(state, ops, tol=None):
     r"""
     Returns measurement statistics (resultant states and probabilities) for a
     measurement specified by a set of positive operator valued measurements on
@@ -127,6 +151,10 @@ def measurement_statistics_povm(state, ops):
         2. projection operators if ops correspond to
            projectors (s.t. :math:`E_i = M_i^\dagger = M_i`)
         3. kets (transformed to projectors)
+
+    tol : float, optional
+        Smallest value for the probabilities. Smaller probabilities will be
+        rounded to ``0``. Default is qutip's core settings' ``atol``.
 
     Returns
     -------
@@ -151,12 +179,12 @@ def measurement_statistics_povm(state, ops):
         raise ValueError("measurement operators must sum to identity")
 
     if state.isket:
-        return _measurement_statistics_povm_ket(state, ops)
+        return _measurement_statistics_povm_ket(state, ops, tol)
     else:
-        return _measurement_statistics_povm_dm(state, ops)
+        return _measurement_statistics_povm_dm(state, ops, tol)
 
 
-def measurement_statistics_observable(state, op):
+def measurement_statistics_observable(state, op, tol=None):
     """
     Return the measurement eigenvalues, eigenstates (or projectors) and
     measurement probabilities for the given state and measurement operator.
@@ -169,33 +197,57 @@ def measurement_statistics_observable(state, op):
     op : :class:`.Qobj`
         The measurement operator.
 
+    tol : float, optional
+        Smallest value for the probabilities.
+        Default is qutip's core settings' ``atol``.
+
     Returns
     -------
     eigenvalues: list of float
         The list of eigenvalues of the measurement operator.
 
-    eigenstates_or_projectors: list of :class:`.Qobj`
-        If the state was a ket, return the eigenstates of the measurement
-        operator. Otherwise return the projectors onto the eigenstates.
+    projectors: list of :class:`.Qobj`
+        Return the projectors onto the eigenstates.
 
     probabilities: list of float
         The probability of measuring the state as being in the corresponding
         eigenstate (and the measurement result being the corresponding
         eigenvalue).
     """
+    probabilities = []
+    values = []
+    projectors = []
     _verify_input(op, state)
+    if tol is None:
+        tol = settings.core["atol"]
 
     eigenvalues, eigenstates = op.eigenstates()
-    if state.isket:
-        probabilities = [abs(e.overlap(state))**2 for e in eigenstates]
-        return eigenvalues, eigenstates, probabilities
-    else:
-        projectors = [e.proj() for e in eigenstates]
-        probabilities = [expect(v, state) for v in projectors]
-        return eigenvalues, projectors, probabilities
+    # Detect groups of eigenvalues within atol of each other.
+    # A group will be [False] * N + [True]
+    groups = np.append(np.diff(eigenvalues) >= tol, True)
+
+    present_group = []
+    for i in range(len(eigenvalues)):
+        present_group.append(i)
+        if not groups[i]:
+            continue
+
+        projector = 0
+        for j in present_group:
+            projector += eigenstates[j].proj()
+        probability = expect(projector, state)
+
+        if probability >= tol:
+            probabilities.append(probability)
+            values.append(np.mean(eigenvalues[np.array(present_group)]))
+            projectors.append(projector)
+
+        present_group = []
+
+    return values, projectors, probabilities
 
 
-def measure_observable(state, op):
+def measure_observable(state, op, tol=None):
     """
     Perform a measurement specified by an operator on the given state.
 
@@ -211,6 +263,10 @@ def measure_observable(state, op):
 
     op : :class:`.Qobj`
         The measurement operator.
+
+    tol : float, optional
+        Smallest value for the probabilities.
+        Default is qutip's core settings' ``atol``.
 
     Returns
     -------
@@ -260,19 +316,17 @@ def measure_observable(state, op):
     The measurement result is the same, but the new state is returned as a
     density matrix.
     """
-    eigenvalues, eigenstates_or_projectors, probabilities = (
-        measurement_statistics_observable(state, op))
-    i = np.random.choice(range(len(eigenvalues)), p=probabilities)
+    eigenvalues, projectors, probabilities = (
+        measurement_statistics_observable(state, op, tol))
+    i = np.random.choice(len(eigenvalues), p=probabilities)
     if state.isket:
-        eigenstates = eigenstates_or_projectors
-        state = eigenstates[i]
+        state = (projectors[i] * state) / probabilities[i]**0.5
     else:
-        projectors = eigenstates_or_projectors
         state = (projectors[i] * state * projectors[i]) / probabilities[i]
     return eigenvalues[i], state
 
 
-def measure_povm(state, ops):
+def measure_povm(state, ops, tol=None):
     r"""
     Perform a measurement specified by list of POVMs.
 
@@ -294,6 +348,10 @@ def measure_povm(state, ops):
            :math:`E_i = M_i^\dagger = M_i`)
         3. kets (transformed to projectors)
 
+    tol : float, optional
+        Smallest value for the probabilities.
+        Default is qutip's core settings' ``atol``.
+
     Returns
     -------
     index : float
@@ -302,13 +360,14 @@ def measure_povm(state, ops):
     state : :class:`.Qobj`
         The new state (a ket if a ket was given, otherwise a density matrix).
     """
-    collapsed_states, probabilities = measurement_statistics_povm(state, ops)
-    index = np.random.choice(range(len(collapsed_states)), p=probabilities)
+    collapsed_states, probabilities = (
+        measurement_statistics_povm(state, ops, tol))
+    index = np.random.choice(len(collapsed_states), p=probabilities)
     state = collapsed_states[index]
     return index, state
 
 
-def measurement_statistics(state, ops):
+def measurement_statistics(state, ops, tol=None):
     r"""
     A dispatch method that provides measurement statistics handling both
     observable style measurements and projector style measurements(POVMs and
@@ -333,14 +392,18 @@ def measurement_statistics(state, ops):
           2. projection operators if ops correspond to projectors (s.t.
              :math:`E_i = M_i^\dagger = M_i`)
           3. kets (transformed to projectors)
+
+    tol : float, optional
+        Smallest value for the probabilities.
+        Default is qutip's core settings' ``atol``.
     """
     if isinstance(ops, list):
-        return measurement_statistics_povm(state, ops)
+        return measurement_statistics_povm(state, ops, tol)
     else:
-        return measurement_statistics_observable(state, ops)
+        return measurement_statistics_observable(state, ops, tol)
 
 
-def measure(state, ops):
+def measure(state, ops, tol=None):
     r"""
     A dispatch method that provides measurement results handling both
     observable style measurements and projector style measurements (POVMs and
@@ -365,8 +428,12 @@ def measure(state, ops):
           2. projection operators if ops correspond to projectors (s.t.
              :math:`E_i = M_i^\dagger = M_i`)
           3. kets (transformed to projectors)
+
+    tol : float, optional
+        Smallest value for the probabilities.
+        Default is qutip's core settings' ``atol``.
     """
     if isinstance(ops, list):
-        return measure_povm(state, ops)
+        return measure_povm(state, ops, tol)
     else:
-        return measure_observable(state, ops)
+        return measure_observable(state, ops, tol)

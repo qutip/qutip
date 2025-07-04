@@ -39,24 +39,24 @@ cdef class Explicit_RungeKutta:
     cdef double [:, ::1] a
     cdef double [:, ::1] bi
 
-    cpdef integrate(Explicit_RungeKutta self, double t, bint step=*)
+    cpdef void integrate(Explicit_RungeKutta self, double t, bint step=*) except *
 
-    cpdef void set_initial_value(self, Data y0, double t)
+    cpdef void set_initial_value(self, Data y0, double t) except *
 
-    cdef int _step_in_err(self, double t, int max_step)
+    cdef int _step_in_err(self, double t, int max_step) except -1
 
-    cdef double _compute_step(self, double dt)
+    cdef double _compute_step(self, double dt) except -1
 
-    cdef double _error(self, Data y_new, double dt)
+    cdef double _error(self, Data y_new, double dt) except -1
 
-    cdef void _prep_dense_out(self)
+    cdef void _prep_dense_out(self) except *
 
     cdef Data _interpolate_step(self, double t, Data out)
 
     cdef inline Data _accumulate(self, Data target, double[:] factors,
                                  double dt, int size)
 
-    cdef double _estimate_first_step(self, double t, Data y0)
+    cdef double _estimate_first_step(self, double t, Data y0) except -1
 
     cdef double _get_timestep(self, double t)
 

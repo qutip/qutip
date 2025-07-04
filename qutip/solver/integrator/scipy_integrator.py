@@ -21,7 +21,7 @@ class IntegratorScipyAdams(Integrator):
     """
     Integrator using Scipy `ode` with zvode integrator using adams method.
     Ordinary Differential Equation solver by netlib
-    (http://www.netlib.org/odepack).
+    (https://www.netlib.org/odepack).
 
     Usable with ``method="adams"``
     """
@@ -87,11 +87,11 @@ class IntegratorScipyAdams(Integrator):
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
-                _data.dense.Dense(self._ode_solver._y, copy=copy),
+                _data.dense.fast_from_numpy(self._ode_solver._y),
                 self._size,
                 inplace=True)
         else:
-            state = _data.dense.Dense(self._ode_solver._y, copy=copy)
+            state = _data.dense.fast_from_numpy(self._ode_solver._y)
         return t, state
 
     def _check_handle(self):
@@ -163,25 +163,25 @@ class IntegratorScipyAdams(Integrator):
         """
         Supported options by zvode integrator:
 
-        atol : float, default=1e-8
+        atol : float, default: 1e-8
             Absolute tolerance.
 
-        rtol : float, default=1e-6
+        rtol : float, default: 1e-6
             Relative tolerance.
 
-        order : int, default=12, 'adams' or 5, 'bdf'
+        order : int, default: 12, 'adams' or 5, 'bdf'
             Order of integrator <=12 'adams', <=5 'bdf'
 
-        nsteps : int, default=2500
+        nsteps : int, default: 2500
             Max. number of internal steps/call.
 
-        first_step : float, default=0
+        first_step : float, default: 0
             Size of initial step (0 = automatic).
 
-        min_step : float, default=0
+        min_step : float, default: 0
             Minimum step size (0 = automatic).
 
-        max_step : float, default=0
+        max_step : float, default: 0
             Maximum step size (0 = automatic)
             When using pulses, change to half the thinest pulse otherwise it
             may be skipped.
@@ -197,7 +197,7 @@ class IntegratorScipyBDF(IntegratorScipyAdams):
     """
     Integrator using Scipy `ode` with zvode integrator using bdf method.
     Ordinary Differential Equation solver by netlib
-    (http://www.netlib.org/odepack).
+    (https://www.netlib.org/odepack).
 
     Usable with ``method="bdf"``
     """
@@ -283,13 +283,16 @@ class IntegratorScipyDop853(Integrator):
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
-                _data.dense.Dense(self._ode_solver._y.view(np.complex128),
-                                  copy=copy),
+                _data.dense.fast_from_numpy(
+                    self._ode_solver._y.view(np.complex128)
+                ),
                 self._size,
                 inplace=True)
         else:
-            state = _data.dense.Dense(self._ode_solver._y.view(np.complex128),
-                                      copy=copy)
+            state = _data.dense.fast_from_numpy(
+                self._ode_solver._y.view(np.complex128)
+            )
+            state = state.copy() if copy else state
         return t, state
 
     def set_state(self, t, state0):
@@ -323,25 +326,25 @@ class IntegratorScipyDop853(Integrator):
         """
         Supported options by dop853 integrator:
 
-        atol : float, default=1e-8
+        atol : float, default: 1e-8
             Absolute tolerance.
 
-        rtol : float, default=1e-6
+        rtol : float, default: 1e-6
             Relative tolerance.
 
-        nsteps : int, default=2500
+        nsteps : int, default: 2500
             Max. number of internal steps/call.
 
-        first_step : float, default=0
+        first_step : float, default: 0
             Size of initial step (0 = automatic).
 
-        max_step : float, default=0
+        max_step : float, default: 0
             Maximum step size (0 = automatic)
 
-        ifactor, dfactor : float, default=6., 0.3
+        ifactor, dfactor : float, default: 6., 0.3
             Maximum factor to increase/decrease step size by in one step
 
-        beta : float, default=0
+        beta : float, default: 0
             Beta parameter for stabilised step size control.
 
         See scipy.integrate.ode ode for more detail
@@ -356,7 +359,7 @@ class IntegratorScipyDop853(Integrator):
 class IntegratorScipylsoda(IntegratorScipyDop853):
     """
     Integrator using Scipy `ode` with lsoda integrator. ODE solver by netlib
-    (http://www.netlib.org/odepack) Automatically choose between 'Adams' and
+    (https://www.netlib.org/odepack) Automatically choose between 'Adams' and
     'BDF' methods to solve both stiff and non-stiff systems.
 
     Usable with ``method="lsoda"``
@@ -488,30 +491,30 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         """
         Supported options by lsoda integrator:
 
-        atol : float, default=1e-8
+        atol : float, default: 1e-8
             Absolute tolerance.
 
-        rtol : float, default=1e-6
+        rtol : float, default: 1e-6
             Relative tolerance.
 
-        nsteps : int, default=2500
+        nsteps : int, default: 2500
             Max. number of internal steps/call.
 
-        max_order_ns : int, default=12
+        max_order_ns : int, default: 12
             Maximum order used in the nonstiff case (<= 12).
 
-        max_order_s : int, default=5
+        max_order_s : int, default: 5
             Maximum order used in the stiff case (<= 5).
 
-        first_step : float, default=0
+        first_step : float, default: 0
             Size of initial step (0 = automatic).
 
-        max_step : float, default=0
+        max_step : float, default: 0
             Maximum step size (0 = automatic)
             When using pulses, change to half the thinest pulse otherwise it
             may be skipped.
 
-        min_step : float, default=0
+        min_step : float, default: 0
             Minimum step size (0 = automatic)
         """
         return self._options

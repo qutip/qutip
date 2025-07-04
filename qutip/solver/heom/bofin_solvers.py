@@ -17,13 +17,16 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import spsolve
 
 from qutip.settings import settings
-from qutip import state_number_enumerate
+from qutip import state_number_enumerate, CoreOptions
 from qutip.core import data as _data
 from qutip.core.data import csr as _csr
+from qutip.core.environment import (
+    BosonicEnvironment, FermionicEnvironment,
+    ExponentialBosonicEnvironment, ExponentialFermionicEnvironment)
 from qutip.core import Qobj, QobjEvo
 from qutip.core.superoperator import liouvillian, spre, spost
 from .bofin_baths import (
-    BathExponent, DrudeLorentzBath,
+    Bath, BathExponent, BosonicBath, DrudeLorentzBath, FermionicBath,
 )
 from ..solver_base import Solver
 from .. import Result
@@ -66,7 +69,7 @@ class HierarchyADOs:
 
     Parameters
     ----------
-    exponents : list of BathExponent
+    exponents : list of :class:`.BathExponent`
         The exponents of the correlation function describing the bath or
         baths.
 
@@ -76,7 +79,7 @@ class HierarchyADOs:
 
     Attributes
     ----------
-    exponents : list of BathExponent
+    exponents : list of :class:`.BathExponent`
         The exponents of the correlation function describing the bath or
         baths.
 
@@ -105,6 +108,7 @@ class HierarchyADOs:
     labels: list of tuples
         A list of the ADO labels within the hierarchy.
     """
+
     def __init__(self, exponents, max_depth):
         self.exponents = exponents
         self.max_depth = max_depth
@@ -119,6 +123,7 @@ class HierarchyADOs:
 
         self.labels = list(state_number_enumerate(self.dims, max_depth))
         self._label_idx = {s: i for i, s in enumerate(self.labels)}
+        self.idx = self._label_idx.__getitem__
 
     def idx(self, label):
         """
@@ -134,6 +139,13 @@ class HierarchyADOs:
         -------
         int
             The index of the label within the list of ADO labels.
+
+        Notes
+        -----
+        This implementation of the ``.idx(...)`` method is just for
+        reference and documentation. To avoid the cost of a Python
+        function call, it is replaced with
+        ``self._label_idx.__getitem__`` when the instance is created.
         """
         return self._label_idx[label]
 
@@ -199,7 +211,7 @@ class HierarchyADOs:
 
         Returns
         -------
-        tuple of BathExponent
+        tuple of :class:`.BathExponent`
             A tuple of BathExponents.
 
         Examples
@@ -253,7 +265,7 @@ class HierarchyADOs:
         types : list of BathExponent types or list of str
             Filter parameter that matches the ``.type`` attribute
             of exponents. Types may be supplied by name (e.g. "R", "I", "+")
-            instead of by the actual type (e.g. ``BathExponent.types.R``).
+            instead of by the actual type (e.g. ``CFExponent.types.R``).
 
         Returns
         -------
@@ -318,7 +330,7 @@ class HierarchyADOsState:
 
     Parameters
     ----------
-    rho : :class:`~qutip.Qobj`
+    rho : :class:`.Qobj`
         The current state of the system (i.e. the 0th component of the
         hierarchy).
     ados : :class:`HierarchyADOs`
@@ -331,6 +343,8 @@ class HierarchyADOsState:
     rho : Qobj
         The system state.
 
+    Notes
+    -----
     In addition, all of the attributes of the hierarchy description,
     i.e. ``HierarchyADOs``, are provided directly on this class for
     convenience. E.g. one can access ``.labels``, or ``.exponents`` or
@@ -339,6 +353,7 @@ class HierarchyADOsState:
     See :class:`HierarchyADOs` for a full list of the available attributes
     and methods.
     """
+
     def __init__(self, rho, ados, ado_state):
         self.rho = rho
         self._ado_state = ado_state
@@ -362,7 +377,7 @@ class HierarchyADOsState:
         Returns
         -------
         Qobj
-            A :obj:`~qutip.Qobj` representing the state of the specified ADO.
+            A :obj:`.Qobj` representing the state of the specified ADO.
         """
         if isinstance(idx_or_label, int):
             idx = idx_or_label
@@ -377,7 +392,7 @@ class HEOMResult(Result):
 
         self.store_ados = self.options["store_ados"]
         if self.store_ados:
-            self.final_ado_state = None
+            self._final_ado_state = None
             self.ado_states = []
 
     def _e_op_func(self, e_op):
@@ -399,9 +414,17 @@ class HEOMResult(Result):
             self.ado_states.append(ado_state)
 
     def _store_final_state(self, t, ado_state):
-        self.final_state = ado_state.rho
+        self._final_state = ado_state.rho
         if self.store_ados:
-            self.final_ado_state = ado_state
+            self._final_ado_state = ado_state
+
+    @property
+    def final_ado_state(self):
+        if self._final_ado_state is not None:
+            return self._final_state
+        if self.ado_states:
+            return self.ado_states[-1]
+        return None
 
 
 def heomsolve(
@@ -411,7 +434,8 @@ def heomsolve(
     Hierarchical Equations of Motion (HEOM) solver that supports multiple
     baths.
 
-    The baths must be all either bosonic or fermionic baths.
+    Each bath must be either bosonic or fermionic, but bosonic and fermionic
+    baths can be mixed.
 
     If you need to run many evolutions of the same system and bath, consider
     using :class:`HEOMSolver` directly to avoid having to continually
@@ -419,26 +443,30 @@ def heomsolve(
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. List of [:obj:`.Qobj`, :obj:`.Coefficient`], or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
-    bath : Bath or list of Bath
-        A :obj:`Bath` containing the exponents of the expansion of the
+    bath : Bath specification or list of Bath specifications
+        A bath containing the exponents of the expansion of the
         bath correlation funcion and their associated coefficients
         and coupling operators, or a list of baths.
 
-        If multiple baths are given, they must all be either fermionic
-        or bosonic baths.
+        Each bath can be specified as *either* an object of type
+        :class:`.Bath`, :class:`.BosonicBath`, :class:`.FermionicBath`, or
+        their subtypes, *or* as a tuple ``(env, Q)``, where ``env`` is an
+        :class:`.ExponentialBosonicEnvironment` or an
+        :class:`.ExponentialFermionicEnvironment` and ``Q`` the system coupling
+        operator.
 
     max_depth : int
         The maximum depth of the heirarchy (i.e. the maximum number of bath
         exponent "excitations" to retain).
 
-    state0 : :class:`~Qobj` or :class:`~HierarchyADOsState` or array-like
-        If ``rho0`` is a :class:`~Qobj` the it is the initial state
-        of the system (i.e. a :obj:`~Qobj` density matrix).
+    state0 : :obj:`.Qobj` or :class:`~HierarchyADOsState` or array-like
+        If ``rho0`` is a :obj:`.Qobj` the it is the initial state
+        of the system (i.e. a :obj:`.Qobj` density matrix).
 
         If it is a :class:`~HierarchyADOsState` or array-like, then
         ``rho0`` gives the initial state of all ADOs.
@@ -457,8 +485,8 @@ def heomsolve(
         An ordered list of times at which to return the value of the state.
 
     e_ops : Qobj / QobjEvo / callable / list / dict / None, optional
-        A list or dictionary of operators as :class:`~Qobj`,
-        :class:`~QobjEvo` and/or callable functions (they can be mixed) or
+        A list or dictionary of operators as :obj:`.Qobj`,
+        :obj:`.QobjEvo` and/or callable functions (they can be mixed) or
         a single operator or callable function. For an operator ``op``, the
         result will be computed using ``(state * op).tr()`` and the state
         at each time ``t``. For callable functions, ``f``, the result is
@@ -466,50 +494,44 @@ def heomsolve(
         ``expect`` and ``e_data`` attributes of the result (see the return
         section below).
 
-    args : dict, optional {None}
+    args : dict, optional
         Change the ``args`` of the RHS for the evolution.
 
-    options : dict, optional {None}
+    options : dict, optional
         Generic solver options.
 
-        - store_final_state : bool
-          Whether or not to store the final state of the evolution in the
-          result class.
-        - store_states : bool, None
-          Whether or not to store the state vectors or density matrices.
-          On `None` the states will be saved if no expectation operators are
-          given.
-        - store_ados : bool {False, True}
-          Whether or not to store the HEOM ADOs.
-        - normalize_output : bool
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-          How to present the solver progress.
-          'tqdm' uses the python module of the same name and raise an error
-          if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict
-          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - state_data_type: str {'dense'}
-          Name of the data type of the state used during the ODE evolution.
-          Use an empty string to keep the input state type. Many integrator can
-          only work with `Dense`.
-        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
-          Which differential equation integration method to use.
-        - atol, rtol : float
-          Absolute and relative tolerance of the ODE integrator.
-        - nsteps :
-          Maximum number of (internally defined) steps allowed in one ``tlist``
-          step.
-        - max_step : float, 0
-          Maximum lenght of one internal step. When using pulses, it should be
-          less than half the width of the thinnest pulse.
-
-
-
-
-
-
-
+        - | store_final_state : bool
+          | Whether or not to store the final state of the evolution in the
+            result class.
+        - | store_states : bool, None
+          | Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+        - | store_ados : bool
+          | Whether or not to store the HEOM ADOs.
+        - | normalize_output : bool
+          | Normalize output state to hide ODE numerical errors. Only normalize
+            the state if the initial state is already normalized.
+        - | progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          | How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+        - | progress_kwargs : dict
+          | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - | state_data_type: str {'dense', 'CSR', 'Dia', }
+          | Name of the data type of the state used during the ODE evolution.
+            Use an empty string to keep the input state type. Many integrator
+            can only work with `Dense`.
+        - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          | Which differential equation integration method to use.
+        - | atol, rtol : float
+          | Absolute and relative tolerance of the ODE integrator.
+        - | nsteps : int
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
+        - | max_step : float,
+          | Maximum lenght of one internal step. When using pulses, it should
+            be less than half the width of the thinnest pulse.
 
     Returns
     -------
@@ -525,9 +547,10 @@ def heomsolve(
 
         * ``ado_states``: the full ADO state at each time (only available
           if the results option ``ado_return`` was set to ``True``).
-          Each element is an instance of :class:`HierarchyADOsState`.
+          Each element is an instance of :class:`.HierarchyADOsState`.
           The state of a particular ADO may be extracted from
-          ``result.ado_states[i]`` by calling :meth:`.extract`.
+          ``result.ado_states[i]`` by calling
+          :meth:`extract <.HierarchyADOsState.extract>`.
 
         * ``expect``: a list containing the values of each ``e_ops`` at
           time ``t``.
@@ -536,7 +559,7 @@ def heomsolve(
           at tme ``t``. The keys are those given by ``e_ops`` if it was
           a dict, otherwise they are the indexes of the supplied ``e_ops``.
 
-        See :class:`~HEOMResult` and :class:`~Result` for the complete
+        See :class:`~HEOMResult` and :class:`.Result` for the complete
         list of attributes.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
@@ -548,25 +571,42 @@ class HEOMSolver(Solver):
     """
     HEOM solver that supports multiple baths.
 
-    The baths must be all either bosonic or fermionic baths.
+    Each bath must be either bosonic or fermionic, but bosonic and fermionic
+    baths can be mixed.
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
-        can be made into :class:`QobjEvo` are also accepted.
+        QobjEvo. list of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        can be made into :obj:`.QobjEvo` are also accepted.
 
-    bath : Bath or list of Bath
-        A :obj:`Bath` containing the exponents of the expansion of the
+    bath : Bath specification or list of Bath specifications
+        A bath containing the exponents of the expansion of the
         bath correlation funcion and their associated coefficients
         and coupling operators, or a list of baths.
 
-        If multiple baths are given, they must all be either fermionic
-        or bosonic baths.
+        Each bath can be specified as *either* an object of type
+        :class:`.Bath`, :class:`.BosonicBath`, :class:`.FermionicBath`, or
+        their subtypes, *or* as a tuple ``(env, Q)``, where ``env`` is an
+        :class:`.ExponentialBosonicEnvironment` or an
+        :class:`.ExponentialFermionicEnvironment` and ``Q`` the system coupling
+        operator.
+
+    odd_parity : Bool
+        For fermionic baths only. Default is "False". "Parity" refers to the
+        parity of the initial system state used with the HEOM. An example of
+        an odd parity state is one made from applying an odd number of
+        fermionic creation operators to a physical density operator.
+        Physical systems have even parity, but allowing the generalization
+        to odd-parity states allows one to calculate useful physical quantities
+        like the system power spectrum or density of states.
+        The form of the HEOM differs depending on the parity of the initial
+        system state, so if this option is set to "True", a different RHS is
+        constructed, which can then be used with a system state of odd parity.
 
     max_depth : int
-        The maximum depth of the heirarchy (i.e. the maximum number of bath
+        The maximum depth of the hierarchy (i.e. the maximum number of bath
         exponent "excitations" to retain).
 
     options : dict, optional
@@ -579,10 +619,16 @@ class HEOMSolver(Solver):
     ados : :obj:`HierarchyADOs`
         The description of the hierarchy constructed from the given bath
         and maximum depth.
+
+    rhs : :obj:`.QobjEvo`
+        The right-hand side (RHS) of the hierarchy evolution ODE. Internally
+        the system and bath coupling operators are converted to
+        :class:`qutip.data.CSR` instances during construction of the RHS,
+        so the operators in the ``rhs`` will all be sparse.
     """
 
     name = "heomsolver"
-    resultclass = HEOMResult
+    _resultclass = HEOMResult
     _avail_integrators = {}
     solver_options = {
         "progress_bar": "text",
@@ -595,9 +641,10 @@ class HEOMSolver(Solver):
         "state_data_type": "dense",
     }
 
-    def __init__(self, H, bath, max_depth, *, options=None):
+    def __init__(self, H, bath, max_depth, *, odd_parity=False, options=None):
         _time_start = time()
-
+        # we call bool here because odd_parity will be used in arithmetic
+        self.odd_parity = bool(odd_parity)
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian (H) must be a Qobj or QobjEvo")
 
@@ -620,36 +667,38 @@ class HEOMSolver(Solver):
         self._init_ados_time = time() - _time_start
         _time_start = time()
 
-        # pre-calculate identity matrix required by _grad_n
-        self._sId = _data.identity(self._sup_shape, dtype="csr")
+        with CoreOptions(default_dtype="csr"):
+            # pre-calculate identity matrix required by _grad_n
+            self._sId = _data.identity(self._sup_shape, dtype="csr")
 
-        # pre-calculate superoperators required by _grad_prev and _grad_next:
-        Qs = [exp.Q for exp in self.ados.exponents]
-        self._spreQ = [spre(op).data for op in Qs]
-        self._spostQ = [spost(op).data for op in Qs]
-        self._s_pre_minus_post_Q = [
-            _data.sub(self._spreQ[k], self._spostQ[k])
-            for k in range(self._n_exponents)
-        ]
-        self._s_pre_plus_post_Q = [
-            _data.add(self._spreQ[k], self._spostQ[k])
-            for k in range(self._n_exponents)
-        ]
-        self._spreQdag = [spre(op.dag()).data for op in Qs]
-        self._spostQdag = [spost(op.dag()).data for op in Qs]
-        self._s_pre_minus_post_Qdag = [
-            _data.sub(self._spreQdag[k], self._spostQdag[k])
-            for k in range(self._n_exponents)
-        ]
-        self._s_pre_plus_post_Qdag = [
-            _data.add(self._spreQdag[k], self._spostQdag[k])
-            for k in range(self._n_exponents)
-        ]
+            # pre-calculate superoperators required by _grad_prev and
+            # _grad_next:
+            Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
+            self._spreQ = [spre(op).data for op in Qs]
+            self._spostQ = [spost(op).data for op in Qs]
+            self._s_pre_minus_post_Q = [
+                _data.sub(self._spreQ[k], self._spostQ[k])
+                for k in range(self._n_exponents)
+            ]
+            self._s_pre_plus_post_Q = [
+                _data.add(self._spreQ[k], self._spostQ[k])
+                for k in range(self._n_exponents)
+            ]
+            self._spreQdag = [spre(op.dag()).data for op in Qs]
+            self._spostQdag = [spost(op.dag()).data for op in Qs]
+            self._s_pre_minus_post_Qdag = [
+                _data.sub(self._spreQdag[k], self._spostQdag[k])
+                for k in range(self._n_exponents)
+            ]
+            self._s_pre_plus_post_Qdag = [
+                _data.add(self._spreQdag[k], self._spostQdag[k])
+                for k in range(self._n_exponents)
+            ]
 
-        self._init_superop_cache_time = time() - _time_start
-        _time_start = time()
+            self._init_superop_cache_time = time() - _time_start
+            _time_start = time()
 
-        rhs = self._calculate_rhs()
+            rhs = self._calculate_rhs()
 
         self._init_rhs_time = time() - _time_start
 
@@ -682,26 +731,15 @@ class HEOMSolver(Solver):
 
     def _combine_bath_exponents(self, bath):
         """ Combine the exponents for the specified baths. """
-        if not isinstance(bath, (list, tuple)):
-            exponents = bath.exponents
-        else:
-            exponents = []
-            for b in bath:
-                exponents.extend(b.exponents)
-        all_bosonic = all(
-            exp.type in (exp.types.R, exp.types.I, exp.types.RI)
-            for exp in exponents
-        )
-        all_fermionic = all(
-            exp.type in (exp.types["+"], exp.types["-"])
-            for exp in exponents
-        )
-        if not (all_bosonic or all_fermionic):
-            raise ValueError(
-                "Bath exponents are currently restricted to being either"
-                " all bosonic or all fermionic, but a mixture of bath"
-                " exponents was given."
-            )
+        # Only one bath provided, not a list of baths
+        if (not isinstance(bath, (list, tuple))
+                or self._is_environment_api(bath)):
+            bath = [bath]
+        bath = [self._to_bath(b) for b in bath]
+        exponents = []
+        for b in bath:
+            exponents.extend(b.exponents)
+
         if not all(exp.Q.dims == exponents[0].Q.dims for exp in exponents):
             raise ValueError(
                 "All bath exponents must have system coupling operators"
@@ -710,30 +748,53 @@ class HEOMSolver(Solver):
             )
         return exponents
 
-    def _grad_n(self, L, he_n):
+    def _is_environment_api(self, bath_spec):
+        if not isinstance(bath_spec, (list, tuple)) or len(bath_spec) < 2:
+            return False
+        env, Q, *args = bath_spec
+
+        if not isinstance(env, (BosonicEnvironment, FermionicEnvironment)):
+            return False
+
+        if not isinstance(Q, (Qobj, QobjEvo)):
+            return False
+
+        return True
+
+    def _to_bath(self, bath_spec):
+        if isinstance(bath_spec, (Bath, BosonicBath, FermionicBath)):
+            return bath_spec
+
+        if not self._is_environment_api(bath_spec):
+            raise ValueError(
+                "Environments must be passed as either Bath instances or"
+                " as a tuple or list corresponding to an environment and a"
+                " coupling operator, (env, Q)"
+            )
+        env, Q, *args = bath_spec
+
+        if isinstance(env, ExponentialBosonicEnvironment):
+            return BosonicBath.from_environment(env, Q, *args)
+        if isinstance(env, ExponentialFermionicEnvironment):
+            return FermionicBath.from_environment(env, Q, *args)
+        raise ValueError("The HEOM solver requires the environment to have"
+                        " a multi-exponential correlation function. Use"
+                        " the `approximate` function to generate a"
+                        " multi-exponential approximation.")
+
+    def _grad_n(self, he_n):
         """ Get the gradient for the hierarchy ADO at level n. """
         vk = self.ados.vk
         vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
-        if L is not None:  # time-independent case
-            op = _data.sub(L, _data.mul(self._sId, vk_sum))
-        else:  # time-dependent case
-            op = _data.mul(self._sId, -vk_sum)
+        op = _data.mul(self._sId, -vk_sum)
         return op
 
     def _grad_prev(self, he_n, k):
         """ Get the previous gradient. """
-        if self.ados.exponents[k].type in (
-                BathExponent.types.R, BathExponent.types.I,
-                BathExponent.types.RI
-        ):
-            return self._grad_prev_bosonic(he_n, k)
-        elif self.ados.exponents[k].type in (
-                BathExponent.types["+"], BathExponent.types["-"]
-        ):
+        if self.ados.exponents[k].fermionic:
             return self._grad_prev_fermionic(he_n, k)
         else:
-            raise ValueError(
-                f"Mode {k} has unsupported type {self.ados.exponents[k].type}")
+            return self._grad_prev_bosonic(he_n, k)
 
     def _grad_prev_bosonic(self, he_n, k):
         if self.ados.exponents[k].type == BathExponent.types.R:
@@ -765,12 +826,16 @@ class HEOMSolver(Solver):
 
     def _grad_prev_fermionic(self, he_n, k):
         ck = self.ados.ck
+        he_fermionic_n = [
+            i * int(exp.fermionic)
+            for i, exp in zip(he_n, self.ados.exponents)
+        ]
 
-        n_excite = sum(he_n)
-        sign1 = (-1) ** (n_excite + 1)
+        n_excite = sum(he_fermionic_n)
+        sign1 = (-1) ** (n_excite + 1 - self.odd_parity)
 
-        n_excite_before_m = sum(he_n[:k])
-        sign2 = (-1) ** (n_excite_before_m)
+        n_excite_before_m = sum(he_fermionic_n[:k])
+        sign2 = (-1) ** (n_excite_before_m + self.odd_parity)
 
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
 
@@ -799,29 +864,25 @@ class HEOMSolver(Solver):
 
     def _grad_next(self, he_n, k):
         """ Get the previous gradient. """
-        if self.ados.exponents[k].type in (
-                BathExponent.types.R, BathExponent.types.I,
-                BathExponent.types.RI
-        ):
-            return self._grad_next_bosonic(he_n, k)
-        elif self.ados.exponents[k].type in (
-                BathExponent.types["+"], BathExponent.types["-"]
-        ):
+        if self.ados.exponents[k].fermionic:
             return self._grad_next_fermionic(he_n, k)
         else:
-            raise ValueError(
-                f"Mode {k} has unsupported type {self.ados.exponents[k].type}")
+            return self._grad_next_bosonic(he_n, k)
 
     def _grad_next_bosonic(self, he_n, k):
         op = _data.mul(self._s_pre_minus_post_Q[k], -1j)
         return op
 
     def _grad_next_fermionic(self, he_n, k):
-        n_excite = sum(he_n)
-        sign1 = (-1) ** (n_excite + 1)
+        he_fermionic_n = [
+            i * int(exp.fermionic)
+            for i, exp in zip(he_n, self.ados.exponents)
+        ]
+        n_excite = sum(he_fermionic_n)
+        sign1 = (-1) ** (n_excite + 1 - self.odd_parity)
 
-        n_excite_before_m = sum(he_n[:k])
-        sign2 = (-1) ** (n_excite_before_m)
+        n_excite_before_m = sum(he_fermionic_n[:k])
+        sign2 = (-1) ** (n_excite_before_m + self.odd_parity)
 
         if self.ados.exponents[k].type == BathExponent.types["+"]:
             if sign1 == -1:
@@ -840,14 +901,14 @@ class HEOMSolver(Solver):
             )
         return op
 
-    def _rhs(self, L):
+    def _rhs(self):
         """ Make the RHS for the HEOM. """
         ops = _GatherHEOMRHS(
             self.ados.idx, block=self._sup_shape, nhe=self._n_ados
         )
 
         for he_n in self.ados.labels:
-            op = self._grad_n(L, he_n)
+            op = self._grad_n(he_n)
             ops.add_op(he_n, he_n, op)
             for k in range(len(self.ados.dims)):
                 next_he = self.ados.next(he_n, k)
@@ -863,12 +924,17 @@ class HEOMSolver(Solver):
 
     def _calculate_rhs(self):
         """ Make the full RHS required by the solver. """
+        rhs_mat = self._rhs()
+        rhs_dims = [
+            [self._sup_shape * self._n_ados], [self._sup_shape * self._n_ados]
+        ]
+        h_identity = _data.identity(self._n_ados, dtype="csr")
+
         if self.L_sys.isconstant:
-            L0 = self.L_sys(0)
-            rhs_mat = self._rhs(L0.data)
-            rhs = QobjEvo(Qobj(rhs_mat, dims=[
-                self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
-            ]))
+            # For the constant case, we just add the Liouvillian to the
+            # diagonal blocks of the RHS matrix.
+            rhs_mat += _data.kron(h_identity, self.L_sys(0).to("csr").data)
+            rhs = QobjEvo(Qobj(rhs_mat, dims=rhs_dims))
         else:
             # In the time dependent case, we construct the parameters
             # for the ODE gradient function under the assumption that
@@ -879,23 +945,23 @@ class HEOMSolver(Solver):
             # This assumption holds because only _grad_n dependents on
             # the system Liouvillian (and not _grad_prev or _grad_next) and
             # the bath coupling operators are not time-dependent.
-            #
-            # By calling _rhs(None) we omit the Liouvillian completely from
-            # the RHS and then manually add back the Liouvillian afterwards.
-            rhs_mat = self._rhs(None)
-            rhs = QobjEvo(Qobj(rhs_mat))
-            h_identity = _data.identity(self._n_ados, dtype="csr")
+            rhs = QobjEvo(Qobj(rhs_mat, dims=rhs_dims))
 
             def _kron(x):
-                return Qobj(_data.kron(h_identity, x.data)).to("csr")
+                return Qobj(
+                    _data.kron(h_identity, x.data),
+                    dims=rhs_dims,
+                ).to("csr")
+
             rhs += self.L_sys.linear_map(_kron)
 
         # The assertion that rhs_mat has data type CSR is just a sanity
         # check on the RHS creation. The base solver class will still
         # convert the RHS to the type required by the ODE integrator if
-        # required.
+        # needed.
         assert isinstance(rhs_mat, _csr.CSR)
         assert isinstance(rhs, QobjEvo)
+        assert rhs.dims == rhs_dims
 
         return rhs
 
@@ -916,16 +982,16 @@ class HEOMSolver(Solver):
             Specifies the the maximum number of iterative refinement steps that
             the MKL PARDISO solver performs.
 
-            For a complete description, see iparm(8) in
-            http://cali2.unilim.fr/intel-xe/mkl/mklman/GUID-264E311E-ACED-4D56-AC31-E9D3B11D1CBF.htm.
+            For a complete description, see iparm(7) in
+            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
 
         mkl_weighted_matching : bool
             MKL PARDISO can use a maximum weighted matching algorithm to
             permute large elements close the diagonal. This strategy adds an
             additional level of reliability to the factorization methods.
 
-            For a complete description, see iparm(13) in
-            http://cali2.unilim.fr/intel-xe/mkl/mklman/GUID-264E311E-ACED-4D56-AC31-E9D3B11D1CBF.htm.
+            For a complete description, see iparm(12) in
+            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
 
         Returns
         -------
@@ -934,7 +1000,8 @@ class HEOMSolver(Solver):
 
         steady_ados : :class:`HierarchyADOsState`
             The steady state of the full ADO hierarchy. A particular ADO may be
-            extracted from the full state by calling :meth:`.extract`.
+            extracted from the full state by calling
+            :meth:`extract`.
         """
         if not self.L_sys.isconstant:
             raise ValueError(
@@ -946,7 +1013,7 @@ class HEOMSolver(Solver):
         b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
         b_mat[0] = 1.0
 
-        L = self.rhs(0).data.copy().as_scipy()
+        L = self.rhs(0).to("CSR").data.copy().as_scipy()
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()
@@ -970,8 +1037,8 @@ class HEOMSolver(Solver):
             L = L.tocsc()
             solution = spsolve(L, b_mat)
 
-        data = _data.Dense(solution[:n ** 2].reshape((n, n)))
-        data = _data.mul(_data.add(data, data.conj()), 0.5)
+        data = _data.Dense(solution[:n ** 2].reshape((n, n), order='F'))
+        data = _data.mul(_data.add(data, data.adjoint()), 0.5)
         steady_state = Qobj(data, dims=self._sys_dims)
 
         solution = solution.reshape((self._n_ados, n, n))
@@ -985,9 +1052,9 @@ class HEOMSolver(Solver):
 
         Parameters
         ----------
-        state0 : :class:`~Qobj` or :class:`~HierarchyADOsState` or array-like
-            If ``rho0`` is a :class:`~Qobj` the it is the initial state
-            of the system (i.e. a :obj:`~Qobj` density matrix).
+        state0 : :obj:`.Qobj` or :class:`~HierarchyADOsState` or array-like
+            If ``rho0`` is a :obj:`.Qobj` the it is the initial state
+            of the system (i.e. a :obj:`.Qobj` density matrix).
 
             If it is a :class:`~HierarchyADOsState` or array-like, then
             ``rho0`` gives the initial state of all ADOs.
@@ -1009,8 +1076,8 @@ class HEOMSolver(Solver):
             Change the ``args`` of the RHS for the evolution.
 
         e_ops : Qobj / QobjEvo / callable / list / dict / None, optional
-            A list or dictionary of operators as :class:`~Qobj`,
-            :class:`~QobjEvo` and/or callable functions (they can be mixed) or
+            A list or dictionary of operators as :obj:`.Qobj`,
+            :obj:`.QobjEvo` and/or callable functions (they can be mixed) or
             a single operator or callable function. For an operator ``op``, the
             result will be computed using ``(state * op).tr()`` and the state
             at each time ``t``. For callable functions, ``f``, the result is
@@ -1034,7 +1101,7 @@ class HEOMSolver(Solver):
               if the results option ``ado_return`` was set to ``True``).
               Each element is an instance of :class:`HierarchyADOsState`.
               The state of a particular ADO may be extracted from
-              ``result.ado_states[i]`` by calling :meth:`.extract`.
+              ``result.ado_states[i]`` by calling :meth:`extract`.
 
             * ``expect``: a list containing the values of each ``e_ops`` at
               time ``t``.
@@ -1043,7 +1110,7 @@ class HEOMSolver(Solver):
               at tme ``t``. The keys are those given by ``e_ops`` if it was
               a dict, otherwise they are the indexes of the supplied ``e_ops``.
 
-            See :class:`~HEOMResult` and :class:`~Result` for the complete
+            See :class:`~HEOMResult` and :class:`.Result` for the complete
             list of attributes.
         """
         return super().run(state0, tlist, args=args, e_ops=e_ops)
@@ -1110,7 +1177,7 @@ class HEOMSolver(Solver):
 
         Parameters
         ----------
-        state0 : :class:`Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution. This may provide either just the
             initial density matrix of the system, or the full set of ADOs
             for the hierarchy. See the documentation for ``rho0`` in the
@@ -1126,36 +1193,36 @@ class HEOMSolver(Solver):
         """
         Options for HEOMSolver:
 
-        store_final_state: bool, default=False
+        store_final_state: bool, default: False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, default=None
+        store_states: bool, default: None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        normalize_output: bool, default=False
+        normalize_output: bool, default: False
             Normalize output state to hide ODE numerical errors.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default: "text"
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
             if not installed. Empty string or False will disable the bar.
 
-        progress_kwargs: dict, default={"chunk_size": 10}
+        progress_kwargs: dict, default: {"chunk_size": 10}
             Arguments to pass to the progress_bar. Qutip's bars use
             ``chunk_size``.
 
-        method: str, default="adams"
+        method: str, default: "adams"
             Which ordinary differential equation integration method to use.
 
-        state_data_type: str, default="dense"
+        state_data_type: str, default: "dense"
             Name of the data type of the state used during the ODE evolution.
-            Use an empty string to keep the input state type. Many integrator can
-            only work with `Dense`.
+            Use an empty string to keep the input state type. Many integrators
+            support only work with `Dense`.
 
-        store_ados : bool, default=False
+        store_ados : bool, default: False
             Whether or not to store the HEOM ADOs. Only relevant when using
             the HEOM solver.
         """
@@ -1174,11 +1241,6 @@ class HSolverDL(HEOMSolver):
 
     See :class:`HEOMSolver` and :class:`DrudeLorentzBath` for more
     descriptions of the underlying solver and bath construction.
-
-    An exact copy of the QuTiP 4.6 HSolverDL is provided in
-    ``qutip.nonmarkov.dlheom_solver`` for cases where the functionality of
-    the older solver is required. The older solver will be completely
-    removed in QuTiP 5.
 
     .. note::
 
@@ -1211,10 +1273,12 @@ class HSolverDL(HEOMSolver):
         See parameter ``Q`` in :class:`BosonicBath` for a complete description.
 
     coup_strength : float
-        Coupling strength. Referred to as ``lam`` in :class:`DrudeLorentzBath`.
+        Coupling strength. Referred to as ``lam`` in
+        :class:`.DrudeLorentzEnvironment`.
 
     temperature : float
-        Bath temperature. Referred to as ``T`` in :class:`DrudeLorentzBath`.
+        Bath temperature. Referred to as ``T`` in
+        :class:`.DrudeLorentzEnvironment`.
 
     N_cut : int
         The maximum depth of the hierarchy. See ``max_depth`` in
@@ -1227,7 +1291,7 @@ class HSolverDL(HEOMSolver):
 
     cut_freq : float
         Bath spectral density cutoff frequency. Referred to as ``gamma`` in
-        :class:`DrudeLorentzBath`.
+        :class:`.DrudeLorentzEnvironment`.
 
     bnd_cut_approx : bool
         Use boundary cut off approximation. If true, the Matsubara
@@ -1240,11 +1304,13 @@ class HSolverDL(HEOMSolver):
         If set to None the default options will be used. Keyword only.
         Default: None.
 
-    combine : bool, default True
+    combine : bool, default: True
         Whether to combine exponents with the same frequency (and coupling
-        operator). See :meth:`BosonicBath.combine` for details.
+        operator). See :meth:`.ExponentialBosonicEnvironment.combine` for
+        details.
         Keyword only. Default: True.
     """
+
     def __init__(
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp, cut_freq, *, bnd_cut_approx=False, options=None,
@@ -1293,20 +1359,21 @@ class _GatherHEOMRHS:
         nhe : int
             The number of ADOs in the hierarchy.
     """
+
     def __init__(self, f_idx, block, nhe):
-        self._block = block
-        self._nhe = nhe
+        self._block_size = block
+        self._n_blocks = nhe
         self._f_idx = f_idx
         self._ops = []
 
     def add_op(self, row_he, col_he, op):
         """ Add an block operator to the list. """
         self._ops.append(
-            (self._f_idx(row_he), self._f_idx(col_he), _data.to["csr"](op))
+            (self._f_idx(row_he), self._f_idx(col_he), op)
         )
 
     def gather(self):
-        """ Create the HEOM liouvillian from a sorted list of smaller (fast) CSR
+        """ Create the HEOM liouvillian from a sorted list of smaller sparse
             matrices.
 
             .. note::
@@ -1323,48 +1390,13 @@ class _GatherHEOMRHS:
             rhs : :obj:`Data`
                 A combined matrix of shape ``(block * nhe, block * ne)``.
         """
-        block = self._block
-        nhe = self._nhe
-        ops = self._ops
-        shape = (block * nhe, block * nhe)
-        if not ops:
-            return _data.zeros(*shape, dtype="csr")
-        ops.sort()
-        nnz = sum(_csr.nnz(op) for _, _, op in ops)
-        indptr = np.zeros(shape[0] + 1, dtype=np.int32)
-        indices = np.zeros(nnz, dtype=np.int32)
-        data = np.zeros(nnz, dtype=np.complex128)
-        end = 0
-        op_idx = 0
-        op_len = len(ops)
-
-        for row_idx in range(nhe):
-            prev_op_idx = op_idx
-            while op_idx < op_len:
-                if ops[op_idx][0] != row_idx:
-                    break
-                op_idx += 1
-
-            row_ops = ops[prev_op_idx: op_idx]
-            rowpos = row_idx * block
-            for op_row in range(block):
-                for _, col_idx, op in row_ops:
-                    op = op.as_scipy()  # convert CSR to SciPy csr_matrix
-                    colpos = col_idx * block
-                    op_row_start = op.indptr[op_row]
-                    op_row_end = op.indptr[op_row + 1]
-                    op_row_len = op_row_end - op_row_start
-                    if op_row_len == 0:
-                        continue
-                    indices[end: end + op_row_len] = (
-                        op.indices[op_row_start: op_row_end] + colpos
-                    )
-                    data[end: end + op_row_len] = (
-                        op.data[op_row_start: op_row_end]
-                    )
-                    end += op_row_len
-                indptr[rowpos + op_row + 1] = end
-
-        return _csr.CSR(
-            (data, indices, indptr), shape=shape, copy=False,
+        self._ops.sort()
+        ops = np.array(self._ops, dtype=[
+            ("row", _data.base.idxint_dtype),
+            ("col", _data.base.idxint_dtype),
+            ("op", _data.CSR),
+        ])
+        return _csr._from_csr_blocks(
+            ops["row"], ops["col"], ops["op"],
+            self._n_blocks, self._block_size,
         )

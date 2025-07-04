@@ -6,6 +6,9 @@ name: Tests
 
 on:
     [push, pull_request]
+concurrency:
+    group: test_${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 defaults:
   run:
@@ -27,96 +30,115 @@ jobs:
         os: [ubuntu-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
-        python-version: ["3.9"]
+        python-version: ["3.11"]
         case-name: [defaults]
-        numpy-requirement: [">=1.20,<1.21"]
+        # Version 2 not yet available on conda's default channel
+        condaforge: [1]
+        numpy-build: [""]
+        numpy-requirement: [""]
+        scipy-requirement: [">=1.9"]
         coverage-requirement: ["==6.5"]
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
+          - case-name: p313 numpy 2
+            os: ubuntu-latest
+            python-version: "3.13"
+            numpy-build: ">=2.0.0"
+            numpy-requirement: ">=2.0.0"
+            pypi: 1
+            # Install mpi4py to test mpi_pmap
+            # Should be enough to include this in one of the runs
+            includempi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+
+          - case-name: p310 numpy 1.22
+            os: ubuntu-latest
+            python-version: "3.10"
+            numpy-build: ">=1.22.0,<1.23.0"
+            numpy-requirement: ">=1.22.0,<1.23.0"
+            scipy-requirement: ">=1.10,<1.11"
+            semidefinite: 1
+            oldcython: 1
+            oldmpl: 1
+            pypi: 1
+            coveralls: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\" -W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+
+          # Python 3.12 and latest numpy
+          # Use conda-forge to provide Python 3.11 and latest numpy
+          - case-name: p312, numpy fallback
+            os: ubuntu-latest
+            python-version: "3.12"
+            numpy-requirement: ">=1.26,<1.27"
+            scipy-requirement: ">=1.11,<1.12"
+            condaforge: 1
+            oldmpl: 1
+            coveralls: 1
+
+          # Python 3.10, no mkl, scipy 1.9, numpy 1.23
+          # Scipy 1.9 did not support cython 3.0 yet.
+          # cython#17234
+          - case-name: p310 no mkl
+            os: ubuntu-latest
+            python-version: "3.10"
+            numpy-requirement: ">=1.23,<1.24"
+            scipy-requirement: ">=1.9,<1.10"
+            semidefinite: 1
+            condaforge: 1
+            oldcython: 1
+            oldmpl: 1
+            nomkl: 1
+            coveralls: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+
           # Mac
           # Mac has issues with MKL since september 2022.
           - case-name: macos
             os: macos-latest
-            python-version: "3.10"
+            python-version: "3.13"
+            numpy-build: ">=2.0.0"
+            numpy-requirement: ">=2.0.0"
             condaforge: 1
             nomkl: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
-          # Scipy 1.5
-          - case-name: old SciPy
-            os: ubuntu-latest
-            python-version: "3.8"
-            numpy-requirement: ">=1.20,<1.21"
-            scipy-requirement: ">=1.5,<1.6"
-            condaforge: 1
-
-          # No MKL runs.  MKL is now the default for conda installations, but
-          # not necessarily for pip.
-          - case-name: no MKL
-            os: ubuntu-latest
-            python-version: "3.9"
-            numpy-requirement: ">=1.20,<1.21"
-            nomkl: 1
-
-          # Builds without Cython at runtime.  This is a core feature;
-          # everything should be able to run this.
-          - case-name: no Cython
-            os: ubuntu-latest
-            python-version: "3.8"
-            nocython: 1
-
-          # Python 3.10 and numpy 1.22
-          # Use conda-forge to provide numpy 1.22
-          # Ignore ImportWarning because pyximport registered an importer
-          # PyxImporter that does not have a find_spec method and this raises
-          # a warning on Python 3.10
-          # Ignore DeprecationWarnings raised by cvxpy importing scipy.sparse.X
-          # under SciPy 1.8.0+.
-          # Ignore DeprecationWarnings raised by versions of
-          # setuptools >= 65.0.0 during pyximport imports This can be removed
-          # once https://github.com/cython/cython/issues/4985
-          # is fixed and released.
-          - case-name: Python 3.10
-            os: ubuntu-latest
-            python-version: "3.10"
-            condaforge: 1
-            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning"
-
-          # Python 3.11 and latest numpy
-          # Use conda-forge to provide Python 3.11 and latest numpy
-          # Ignore ImportWarning because pyximport registered an importer
-          # PyxImporter that does not have a find_spec method and this raises
-          # a warning on Python 3.10
-          # Ignore DeprecationWarnings raised by cvxpy importing scipy.sparse.X
-          # under SciPy 1.8.0+.
-          # Ignore DeprecationWarnings raised by versions of
-          # setuptools >= 65.0.0 during pyximport imports This can be removed
-          # once https://github.com/cython/cython/issues/4985
-          # is fixed and released.
-          - case-name: Python 3.11
-            os: ubuntu-latest
+          - case-name: macos - numpy fallback
+            os: macos-13  # Test on intel cpus
             python-version: "3.11"
+            numpy-build: ">=2.0.0"
+            numpy-requirement: ">=1.25,<1.26"
             condaforge: 1
-            conda-extra-pkgs: "suitesparse"  # for compiling cvxopt
-            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning -W ignore::DeprecationWarning:Cython.Tempita"
+            nomkl: 1
+            coveralls: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
-          # Windows. Once all tests pass without special options needed, this
-          # can be moved to the main os list in the test matrix. All the tests
-          # that fail currently seem to do so because mcsolve uses
-          # multiprocessing under the hood. Windows does not support fork()
-          # well, which makes transfering objects to the child processes
-          # error prone. See, e.g., https://github.com/qutip/qutip/issues/1202
-          - case-name: Windows Latest
+          - case-name: Windows
+            os: windows-latest
+            python-version: "3.13"
+            numpy-build: ">=2.0.0"
+            numpy-requirement: ">=2.0.0"
+            pypi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+
+          - case-name: Windows - numpy fallback
             os: windows-latest
             python-version: "3.10"
-            pytest-extra-options: "-W ignore::ImportWarning -k 'not (test_correlation or test_interpolate or test_mcsolve)'"
+            numpy-build: ">=2.0.0"
+            numpy-requirement: ">=1.24,<1.25"
+            semidefinite: 1
+            oldcython: 1
+            nocython: 1
+            condaforge: 1
+            nomkl: 1
+            coveralls: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
-      - uses: actions/checkout@v3
-
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
@@ -126,27 +148,68 @@ jobs:
         # In the run, first we handle any special cases.  We do this in bash
         # rather than in the GitHub Actions file directly, because bash gives us
         # a proper programming language to use.
+        # We install without build isolation so qutip is compiled with the
+        # version of cython, scipy, numpy in the test matrix, not a temporary
+        # version use in the installation virtual environment.
         run: |
-          QUTIP_TARGET="tests,graphics,semidefinite,ipython"
-          if [[ -z "${{ matrix.nocython }}" ]]; then
-            QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
-          fi
-          export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
-          if [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
+          # Install the extra requirement
+          python -m pip install pytest>=5.2 pytest-rerunfailures  # tests
+          python -m pip install ipython  # ipython
+          python -m pip install loky!=3.5.0 tqdm mpmath  # extras
+          python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
+          python -m pip install pytest-cov coveralls pytest-fail-slow
+          python -m pip install setuptools
+
+          if [[ "${{ matrix.pypi }}" ]]; then
+            pip install "numpy${{ matrix.numpy-build }}"
+            pip install "scipy${{ matrix.scipy-requirement }}"
+          elif [[ -z "${{ matrix.nomkl }}" ]]; then
+            conda install blas=*=mkl "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
             # Conda doesn't supply forced nomkl builds on Windows, so we rely on
             # pip not automatically linking to MKL.
-            pip install "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
+            pip install "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
           else
-            conda install nomkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
+            conda install nomkl "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
           fi
           if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install "${{ matrix.conda-extra-pkgs }}"
           fi
-          python -m pip install -e .[$QUTIP_TARGET]
-          python -m pip install "coverage${{ matrix.coverage-requirement }}"
-          python -m pip install pytest-cov coveralls pytest-fail-slow
+          if [[ "${{ matrix.includempi }}" ]]; then
+            # Both mpich and openmpi version 4 have caused problems in the past
+            # so we use openmpi version 5. Openmpi 5 and python 3.13-compatible
+            # version of mpi4py are currently only available on conda-forge:
+            conda install --channel conda-forge "openmpi>=5.0" mpi4py
+          fi
+          if [[ "${{ matrix.oldcython }}" ]]; then
+            python -m pip install cython==0.29.36 filelock matplotlib==3.5
+          else
+            python -m pip install cython filelock
+          fi
+
+          python -m pip install -e . -v --no-build-isolation
+
+          if [[ "${{ matrix.nocython }}" ]]; then
+            python -m pip uninstall cython -y
+          fi
+
+          if [[ "${{ matrix.pypi }}" ]]; then
+            python -m pip install "numpy${{ matrix.numpy-requirement }}"
+          elif [[ -z "${{ matrix.nomkl }}" ]]; then
+            conda install "numpy${{ matrix.numpy-requirement }}"
+          elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
+            python -m pip install "numpy${{ matrix.numpy-requirement }}"
+          else
+            conda install nomkl "numpy${{ matrix.numpy-requirement }}"
+          fi
+          if [[ -n "${{ matrix.semidefinite }}" ]]; then
+            python -m pip install cvxpy>=1.0 cvxopt
+          fi
+          if [[ "${{ matrix.oldmpl }}" ]]; then
+            python -m pip install matplotlib==3.7.*  # graphics
+          else
+            python -m pip install matplotlib  # graphics
+          fi
 
       - name: Package information
         run: |
@@ -175,6 +238,15 @@ jobs:
             # truly being executed.
             export QUTIP_NUM_PROCESSES=2
           fi
+          if [[ "${{ matrix.includempi }}" ]]; then
+            # By default, the max. number of allowed worker processes in openmpi is
+            # (number of physical cpu cores) - 1.
+            # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
+            # For OpenMPI <= 4:
+            # export OMPI_MCA_rmaps_base_oversubscribe=true
+            # For OpenMPI >= 5:
+            export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
+          fi
           pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
           # Above flags are:
           #  -Werror
@@ -201,6 +273,7 @@ jobs:
           #     force coloured output in the terminal
 
       - name: Upload to Coveralls
+        if: ${{ matrix.coveralls }}
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
@@ -211,16 +284,18 @@ jobs:
     name: Verify Towncrier entry added
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Install Towncrier
         run: |
+          python -m venv towncrier_check
+          source towncrier_check/bin/activate
           python -m pip install towncrier
 
       - name: Verify Towncrier entry added
-        if: False # github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         env:
           BASE_BRANCH: ${{ github.base_ref }}
         run: |
@@ -228,6 +303,7 @@ jobs:
           # compare the current branch with the base branch.
           # Source: https://github.com/actions/checkout/#fetch-all-branches.
           git fetch --no-tags origin +refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}
+          source towncrier_check/bin/activate
           towncrier check --compare-with origin/${BASE_BRANCH}
           towncrier build --version "$(cat VERSION)" --draft
 

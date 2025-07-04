@@ -8,16 +8,17 @@ cimport cython
 from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
-from qutip.core.data cimport csr, dense
+from qutip.core.data.dia cimport Dia
+from qutip.core.data cimport csr, dense, dia
 
 # Import std::conj as `_conj` to avoid clashing with our 'conj' dispatcher.
 cdef extern from "<complex>" namespace "std" nogil:
     double complex _conj "conj"(double complex x)
 
 __all__ = [
-    'adjoint', 'adjoint_csr', 'adjoint_dense',
-    'conj', 'conj_csr', 'conj_dense',
-    'transpose', 'transpose_csr', 'transpose_dense',
+    'adjoint', 'adjoint_csr', 'adjoint_dense', 'adjoint_dia',
+    'conj', 'conj_csr', 'conj_dense', 'conj_dia',
+    'transpose', 'transpose_csr', 'transpose_dense', 'transpose_dia',
 ]
 
 
@@ -109,12 +110,58 @@ cpdef Dense conj_dense(Dense matrix):
     return out
 
 
+cpdef Dia adjoint_dia(Dia matrix):
+    cdef Dia out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag)
+    cdef size_t i, new_i,
+    cdef idxint new_offset, j
+    with nogil:
+        out.num_diag = matrix.num_diag
+        for i in range(matrix.num_diag):
+            new_i = matrix.num_diag - i - 1
+            new_offset = out.offsets[new_i] = -matrix.offsets[i]
+            for j in range(out.shape[1]):
+                if (j < new_offset) or (j - new_offset >= matrix.shape[1]):
+                    out.data[new_i * out.shape[1] + j] = 0.
+                else:
+                    out.data[new_i * out.shape[1] + j] = _conj(matrix.data[i * matrix.shape[1] + j - new_offset])
+    return out
+
+
+cpdef Dia transpose_dia(Dia matrix):
+    cdef Dia out = dia.empty(matrix.shape[1], matrix.shape[0], matrix.num_diag)
+    cdef size_t i, new_i,
+    cdef idxint new_offset, j
+    with nogil:
+        out.num_diag = matrix.num_diag
+        for i in range(matrix.num_diag):
+            new_i = matrix.num_diag - i - 1
+            new_offset = out.offsets[new_i] = -matrix.offsets[i]
+            for j in range(out.shape[1]):
+                if (j < new_offset) or (j - new_offset >= matrix.shape[1]):
+                    out.data[new_i * out.shape[1] + j] = 0.
+                else:
+                    out.data[new_i * out.shape[1] + j] = matrix.data[i * matrix.shape[1] + j - new_offset]
+    return out
+
+
+cpdef Dia conj_dia(Dia matrix):
+    cdef Dia out = dia.empty_like(matrix)
+    cdef size_t i, j
+    with nogil:
+        out.num_diag = matrix.num_diag
+        for i in range(matrix.num_diag):
+            out.offsets[i] = matrix.offsets[i]
+            for j in range(matrix.shape[1]):
+                out.data[i * matrix.shape[1] + j] = _conj(matrix.data[i * matrix.shape[1] + j])
+    return out
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
 adjoint = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='adjoint',
     module=__name__,
@@ -125,11 +172,12 @@ adjoint.__doc__ = """Hermitian adjoint (matrix conjugate transpose)."""
 adjoint.add_specialisations([
     (Dense, Dense, adjoint_dense),
     (CSR, CSR, adjoint_csr),
+    (Dia, Dia, adjoint_dia),
 ], _defer=True)
 
 transpose = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='transpose',
     module=__name__,
@@ -140,11 +188,12 @@ transpose.__doc__ = """Transpose of a matrix."""
 transpose.add_specialisations([
     (Dense, Dense, transpose_dense),
     (CSR, CSR, transpose_csr),
+    (Dia, Dia, transpose_dia),
 ], _defer=True)
 
 conj = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='conj',
     module=__name__,
@@ -155,6 +204,7 @@ conj.__doc__ = """Element-wise conjugation of a matrix."""
 conj.add_specialisations([
     (Dense, Dense, conj_dense),
     (CSR, CSR, conj_csr),
+    (Dia, Dia, conj_dia),
 ], _defer=True)
 
 del _inspect, _Dispatcher

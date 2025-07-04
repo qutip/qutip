@@ -13,7 +13,12 @@ from . import Qobj, qeye, to_kraus, tensor
 from . import data as _data
 
 
-def subsystem_apply(state, channel, mask, reference=False):
+def subsystem_apply(
+    state: Qobj,
+    channel: Qobj,
+    mask: list[bool],
+    reference: bool=False
+)-> Qobj:
     """
     Returns the result of applying the propagator `channel` to the
     subsystems indicated in `mask`, which comprise the density operator
@@ -21,10 +26,10 @@ def subsystem_apply(state, channel, mask, reference=False):
 
     Parameters
     ----------
-    state : :class:`qutip.qobj`
+    state : :class:`.Qobj`
         A density matrix or ket.
 
-    channel : :class:`qutip.qobj`
+    channel : :class:`.Qobj`
         A propagator, either an `oper` or `super`.
 
     mask : *list* / *array*
@@ -37,7 +42,7 @@ def subsystem_apply(state, channel, mask, reference=False):
 
     Returns
     -------
-    rho_out: :class:`qutip.qobj`
+    rho_out: :class:`.Qobj`
         A density matrix with the selected subsystems transformed
         according to the specified channel.
     """

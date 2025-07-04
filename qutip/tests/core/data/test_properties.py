@@ -1,10 +1,13 @@
 import numpy as np
 import pytest
 
+import qutip
 from qutip import data as _data
+from qutip import CoreOptions
+from . import conftest
+from qutip.core.data.dia import clean_dia
 
-
-@pytest.fixture(params=[_data.CSR, _data.Dense], ids=["CSR", "Dense"])
+@pytest.fixture(params=[_data.CSR, _data.Dense, _data.Dia], ids=["CSR", "Dense", "Dia"])
 def datatype(request):
     return request.param
 
@@ -73,9 +76,11 @@ class Test_isherm:
         zeros.
         """
 
-        base = _data.to(
-            datatype, _data.create(np.array([[1, self.tol * 1e-3j], [0, 1]]))
-        )
+        with CoreOptions(auto_tidyup=False):
+            base = _data.to(
+                datatype,
+                _data.create(np.array([[1, self.tol * 1e-3j], [0, 1]]))
+            )
         # If this first line fails, the zero has been stored explicitly and so
         # the test is invalid.
         assert np.count_nonzero(base.to_array()) == 3
@@ -127,7 +132,8 @@ class Test_isherm:
         base[np.random.rand(n, n) > density] = 0
         np.fill_diagonal(base, self.tol * 1000)
         nnz = np.count_nonzero(base)
-        base = _data.to(datatype, _data.create(base))
+        with CoreOptions(auto_tidyup=False):
+            base = _data.to(datatype, _data.create(base))
         assert np.count_nonzero(base.to_array()) == nnz
         assert _data.isherm(base, tol=self.tol)
         assert _data.isherm(base.transpose(), tol=self.tol)
@@ -143,7 +149,8 @@ class Test_isherm:
             base[np.random.rand(n, n) > density] = 0
             np.fill_diagonal(base, self.tol * 1000)
             nnz = np.count_nonzero(base)
-        base = _data.to(datatype, _data.create(base))
+        with CoreOptions(auto_tidyup=False):
+            base = _data.to(datatype, _data.create(base))
         assert np.count_nonzero(base.to_array()) == nnz
         assert not _data.isherm(base, tol=self.tol)
         assert not _data.isherm(base.transpose(), tol=self.tol)
@@ -173,3 +180,77 @@ class Test_isdiag:
         mat[1, 0] = 1
         data = _data.to(datatype, _data.Dense(mat))
         assert not _data.isdiag(data)
+
+
+class TestIsEqual:
+    def op_numpy(self, left, right, atol, rtol):
+        return np.allclose(left.to_array(), right.to_array(), rtol, atol)
+
+    def rand_dense(shape):
+        return conftest.random_dense(shape, False)
+
+    def rand_diag(shape):
+        return conftest.random_diag(shape, 0.5, True)
+
+    def rand_csr(shape):
+        return conftest.random_csr(shape, 0.5, True)
+
+    @pytest.mark.parametrize("factory", [rand_dense, rand_diag, rand_csr])
+    @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
+    def test_same_shape(self, factory, shape):
+        atol = 1e-8
+        rtol = 1e-6
+        A = factory(shape)
+        B = factory(shape)
+        assert _data.isequal(A, A, atol, rtol)
+        assert _data.isequal(B, B, atol, rtol)
+        assert (
+            _data.isequal(A, B, atol, rtol) == self.op_numpy(A, B, atol, rtol)
+        )
+
+    @pytest.mark.parametrize("factory", [rand_dense, rand_diag, rand_csr])
+    @pytest.mark.parametrize("shapeA", [(1, 10), (9, 9), (10, 2)])
+    @pytest.mark.parametrize("shapeB", [(1, 9), (10, 10), (10, 1)])
+    def test_different_shape(self, factory, shapeA, shapeB):
+        A = factory(shapeA)
+        B = factory(shapeB)
+        assert not _data.isequal(A, B, np.inf, np.inf)
+
+    @pytest.mark.parametrize("rtol", [1e-6, 100])
+    @pytest.mark.parametrize("factory", [rand_dense, rand_diag, rand_csr])
+    @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
+    def test_rtol(self, factory, shape, rtol):
+        mat = factory(shape)
+        assert _data.isequal(mat + mat * (rtol / 10), mat, 1e-14, rtol)
+        assert not _data.isequal(mat * (1 + rtol * 10), mat, 1e-14, rtol)
+
+    @pytest.mark.parametrize("atol", [1e-14, 1e-6, 100])
+    @pytest.mark.parametrize("factory", [rand_dense, rand_diag, rand_csr])
+    @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
+    def test_atol(self, factory, shape, atol):
+        A = factory(shape)
+        B = factory(shape)
+        assert _data.isequal(A, A + B * (atol / 10), atol, 0)
+        assert not _data.isequal(A, A + B * (atol * 10), atol, 0)
+
+    @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
+    def test_csr_mismatch_sort(self, shape):
+        A = conftest.random_csr(shape, 0.5, False)
+        B = A.copy().sort_indices()
+        assert _data.isequal(A, B)
+
+    @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
+    def test_dia_mismatch_sort(self, shape):
+        A = conftest.random_diag(shape, 0.5, False)
+        B = clean_dia(A)
+        assert _data.isequal(A, B)
+
+    def test_dia_mismatch_structure(self):
+        true_zeros = qutip.qzero(5, dtype="dia")
+        diag_of_zeros = qutip.qdiags([0]*5)
+        id = qutip.qeye(5, dtype="dia")
+        assert true_zeros == diag_of_zeros
+        assert id != diag_of_zeros
+        assert id != true_zeros
+        assert qutip.destroy(3) + qutip.create(3) != qutip.destroy(3)
+        assert qutip.destroy(3) + qutip.create(3) != qutip.create(3)

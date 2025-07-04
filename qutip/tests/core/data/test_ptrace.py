@@ -3,7 +3,7 @@ import numpy as np
 import scipy.linalg
 import pytest
 from qutip import data
-from qutip.core.data import CSR, Dense
+from qutip.core.data import CSR, Dense, Dia
 
 
 class TestPtrace(testing.UnaryOpMixin):
@@ -38,6 +38,7 @@ class TestPtrace(testing.UnaryOpMixin):
         pytest.param(data.ptrace_csr, CSR, CSR),
         pytest.param(data.ptrace_csr_dense, CSR, Dense),
         pytest.param(data.ptrace_dense, Dense, Dense),
+        pytest.param(data.ptrace_dia, Dia, Dia),
     ]
 
     @pytest.mark.parametrize(

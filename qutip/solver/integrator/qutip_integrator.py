@@ -18,7 +18,7 @@ class IntegratorVern7(Integrator):
     sparse, GPU or other data layer objects to be used efficiently by the
     solver in their native formats.
 
-    See http://people.math.sfu.ca/~jverner/ for a detailed description of the
+    See https://www.sfu.ca/~jverner/ for a detailed description of the
     methods.
 
     Usable with ``method="vern7"``
@@ -31,15 +31,20 @@ class IntegratorVern7(Integrator):
         'max_step': 0,
         'min_step': 0,
         'interpolate': True,
+        'allow_sparse': False,
     }
     support_time_dependant = True
     supports_blackbox = True
     method = 'vern7'
 
     def _prepare(self):
+        options = {
+            k: v for k, v in self.options.items()
+            if k != 'allow_sparse'
+        }
         self._ode_solver = Explicit_RungeKutta(
             self.system, method=self.method,
-            **self.options
+            **options
         )
         self.name = self.method
 
@@ -48,7 +53,14 @@ class IntegratorVern7(Integrator):
         return self._ode_solver.t, state.copy() if copy else state
 
     def set_state(self, t, state):
-        self._ode_solver.set_initial_value(state.copy(), t)
+        if (
+            not self.options["allow_sparse"]
+            and isinstance(state, (_data.CSR, _data.Dia))
+        ):
+            state = _data.to(_data.Dense, state)
+        else:
+            state = state.copy()
+        self._ode_solver.set_initial_value(state, t)
         self._is_set = True
 
     def integrate(self, t, copy=True):
@@ -71,28 +83,31 @@ class IntegratorVern7(Integrator):
         """
         Supported options by verner method:
 
-        atol : float, default=1e-8
+        atol : float, default: 1e-8
             Absolute tolerance.
 
-        rtol : float, default=1e-6
+        rtol : float, default: 1e-6
             Relative tolerance.
 
-        nsteps : int, default=1000
+        nsteps : int, default: 1000
             Max. number of internal steps/call.
 
-        first_step : float, default=0
+        first_step : float, default: 0
             Size of initial step (0 = automatic).
 
-        min_step : float, default=0
+        min_step : float, default: 0
             Minimum step size (0 = automatic).
 
-        max_step : float, default=0
+        max_step : float, default: 0
             Maximum step size (0 = automatic)
             When using pulses, change to half the thinest pulse otherwise it
             may be skipped.
 
-        interpolate : bool, default=True
+        interpolate : bool, default: True
             Whether to use interpolation step, faster most of the time.
+
+        allow_sparse : bool, default: False
+            Whether to use sparse state for the evolution. Usually much slower.
         """
         return self._options
 
@@ -111,7 +126,7 @@ class IntegratorVern9(IntegratorVern7):
     sparse, GPU or other data layer objects to be used efficiently by the
     solver in their native formats.
 
-    See http://people.math.sfu.ca/~jverner/ for a detailed description of the
+    See https://www.sfu.ca/~jverner/ for a detailed description of the
     methods.
 
     Usable with ``method="vern9"``
@@ -124,6 +139,7 @@ class IntegratorVern9(IntegratorVern7):
         'max_step': 0,
         'min_step': 0,
         'interpolate': True,
+        'allow_sparse': False,
     }
     method = 'vern9'
 
@@ -171,7 +187,9 @@ class IntegratorDiag(Integrator):
         return self.integrate(t, copy=copy)
 
     def get_state(self, copy=True):
-        return self._t, _data.matmul(self.U, _data.dense.Dense(self._y))
+        return self._t, _data.matmul(
+            self.U, _data.dense.fast_from_numpy(self._y)
+        )
 
     def set_state(self, t, state0):
         self._t = t
@@ -183,7 +201,7 @@ class IntegratorDiag(Integrator):
         """
         Supported options by "diag" method:
 
-        eigensolver_dtype : str, default="dense"
+        eigensolver_dtype : str, default: "dense"
             Qutip data type {"dense", "csr", etc.} to use when computing the
             eigenstates. The dense eigen solver is usually faster and more
             stable.

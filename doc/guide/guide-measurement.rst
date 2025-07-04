@@ -42,8 +42,8 @@ along the z-axis.
 
 We choose what to measure (in this case) by selecting a **measurement operator**.
 For example,
-we could select :func:`~qutip.operators.sigmaz` which measures the z-component of the
-spin of a spin-1/2 particle, or :func:`~qutip.operators.sigmax` which measures the
+we could select :func:`.sigmaz` which measures the z-component of the
+spin of a spin-1/2 particle, or :func:`.sigmax` which measures the
 x-component:
 
 .. testcode::
@@ -276,7 +276,7 @@ when called with a single observable:
 
 - `eigenstates` is an array of the eigenstates of the measurement operator, i.e.
   a list of the possible final states after the measurement is complete.
-  Each element of the array is a :obj:`~qutip.Qobj`.
+  Each element of the array is a :obj:`.Qobj`.
 
 - `probabilities` is a list of the probabilities of each measurement result.
   In our example the value is `[0.5, 0.5]` since the `up` state has equal
@@ -343,7 +343,7 @@ the following result.
 The function :func:`~qutip.measurement.measurement_statistics` then returns two values:
 
 * `collapsed_states` is an array of the possible final states after the
-  measurement is complete. Each element of the array is a :obj:`~qutip.Qobj`.
+  measurement is complete. Each element of the array is a :obj:`.Qobj`.
 
 * `probabilities` is a list of the probabilities of each measurement outcome.
 

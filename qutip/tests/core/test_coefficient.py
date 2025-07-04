@@ -4,11 +4,12 @@ import qutip
 import numpy as np
 import scipy.interpolate as interp
 from functools import partial
-from qutip.core.coefficient import (coefficient, norm, conj,
+from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     CompilationOptions, Coefficient,
-                                    clean_compiled_coefficient
-                                   )
-from qutip.core.options import CoreOptions
+                                    clean_compiled_coefficient,
+                                    WARN_MISSING_MODULE,
+                                    )
+
 
 # Ensure the latest version is tested
 clean_compiled_coefficient(True)
@@ -94,6 +95,8 @@ def coeff_generator(style, func):
     if style == "steparraylog":
         return coefficient(base(tlistlog, **args), tlist=tlistlog,
                            order=0)
+    if style == "const":
+        return const(2.0)
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -158,13 +161,25 @@ def test_CoeffCallArguments(base, tol):
     _assert_eq_over_interval(coeff, expected, rtol=tol)
 
 
+def test_coefficient_update_args():
+
+    def f(t, a):
+        return a
+
+    coeff1 = coefficient(f, args={"a": 1})
+    coeff2 = coefficient(coeff1, args={"a": 2})
+
+    assert coeff2(0) == 2
+
+
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['transform', 'expected'], [
     pytest.param(norm, lambda val: np.abs(val)**2, id="norm"),
@@ -175,13 +190,19 @@ def test_CoeffUnitaryTransform(style, transform, expected):
     _assert_eq_over_interval(transform(coeff), lambda t: expected(coeff(t)))
 
 
+def test_ConstantCoefficient():
+    coeff = const(5.1)
+    _assert_eq_over_interval(coeff, lambda t: 5.1)
+
+
 @pytest.mark.parametrize(['style_left'], [
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['style_right'], [
     pytest.param("func", id="func"),
@@ -189,7 +210,8 @@ def test_CoeffUnitaryTransform(style, transform, expected):
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['oper'], [
     pytest.param(lambda a, b: a+b, id="sum"),
@@ -219,7 +241,7 @@ def test_CoeffOptions():
     base = "1 + 1. + 1j"
     options = []
     options.append(CompilationOptions(accept_int=True))
-    options.append(CompilationOptions(accept_float=False))
+    options.append(CompilationOptions(accept_float=True))
     options.append(CompilationOptions(static_types=True))
     options.append(CompilationOptions(try_parse=False))
     options.append(CompilationOptions(use_cython=False))
@@ -229,6 +251,16 @@ def test_CoeffOptions():
     for coeff1, coeff2 in combinations(coeffs, 2):
         assert not isinstance(coeff1, coeff2.__class__)
 
+
+def test_warn_no_cython():
+    option = CompilationOptions(use_cython=False)
+    WARN_MISSING_MODULE[0] = 1
+    with pytest.warns(UserWarning) as warning:
+        coefficient("t", compile_opt=option)
+    assert all(
+        module in warning[0].message.args[0]
+        for module in ["cython", "filelock", "setuptools"]
+    )
 
 @pytest.mark.requires_cython
 @pytest.mark.parametrize(['codestring', 'args', 'reference'], [
@@ -275,7 +307,7 @@ from qutip import basis
 from qutip.core.data cimport CSR
 from qutip.core.data.expect cimport expect_csr
 """)
-    csr = qutip.num(3).data
+    csr = qutip.num(3, dtype="CSR").data
     coeff = coefficient("expect_csr(op, op)",
                         args={"op": csr},
                         args_ctypes={"op": "CSR"},
@@ -301,7 +333,8 @@ def _mul(coeff):
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['transform'], [
     pytest.param(_pass, id="single"),
@@ -323,7 +356,8 @@ def test_Coeffpickle(style, transform):
     pytest.param("arraylog", id="logarray"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
 ])
 @pytest.mark.parametrize(['transform'], [
     pytest.param(_pass, id="single"),
@@ -360,9 +394,13 @@ def test_CoeffArray(order):
         assert derrs[i] == pytest.approx(0.0,  abs=0.0001)
 
 
-def test_CoeffFromScipy():
+@pytest.mark.parametrize('imag', [True, False])
+def test_CoeffFromScipyPPoly(imag):
     tlist = np.linspace(0, 1.01, 101)
-    y = np.exp((-1 + 1j) * tlist)
+    if imag:
+        y = np.exp(-1j * tlist)
+    else:
+        y = np.exp(-1 * tlist)
 
     coeff = coefficient(y, tlist=tlist, order=3)
     from_scipy = coefficient(interp.CubicSpline(tlist, y))
@@ -371,6 +409,28 @@ def test_CoeffFromScipy():
     coeff = coefficient(y, tlist=tlist, order=3)
     from_scipy = coefficient(interp.make_interp_spline(tlist, y, k=3))
     _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)
+
+    coeff = coefficient(y, tlist=tlist, order=3, boundary_conditions="natural")
+    from_scipy = coefficient(interp.make_interp_spline(tlist, y, k=3, bc_type="natural"))
+    _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)
+
+
+@pytest.mark.parametrize('imag', [True, False])
+def test_CoeffFromScipyBSpline(imag):
+    tlist = np.linspace(-0.1, 1.1, 121)
+    if imag:
+        y = np.exp(-1j * tlist)
+    else:
+        y = np.exp(-1 * tlist)
+
+    spline = interp.BSpline(tlist, y, 2)
+
+    def func(t):
+        return complex(spline(t))
+
+    coverted = coefficient(spline)
+    raw_scipy = coefficient(func)
+    _assert_eq_over_interval(coverted, raw_scipy, rtol=1e-8, inside=True)
 
 
 @pytest.mark.parametrize('map_func', [

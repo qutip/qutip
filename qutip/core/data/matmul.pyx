@@ -3,6 +3,8 @@
 
 from libc.string cimport memset, memcpy
 from libc.math cimport fabs
+from libc.stdlib cimport abs
+from libcpp.algorithm cimport lower_bound
 
 import warnings
 from qutip.settings import settings
@@ -19,13 +21,21 @@ from qutip.core.data.base import idxint_dtype
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
-from qutip.core.data cimport csr, dense
+from qutip.core.data.dia cimport Dia
+from qutip.core.data.tidyup cimport tidyup_dia
+from qutip.core.data cimport csr, dense, dia
 from qutip.core.data.add cimport iadd_dense, add_csr
+from qutip.core.data.mul cimport imul_dense
+from qutip.core.data.dense import OrderEfficiencyWarning
 
 cnp.import_array()
 
 cdef extern from *:
     void *PyMem_Calloc(size_t n, size_t elsize)
+
+
+cdef extern from "<complex>" namespace "std" nogil:
+    double complex conj "conj"(double complex x)
 
 # This function is templated over integral types on import to allow `idxint` to
 # be any signed integer (though likely things will only work for >=32-bit).  To
@@ -36,14 +46,30 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
         double complex *data, T *col_index, T *row_index,
         double complex *vec, double complex scale, double complex *out,
         T nrows)
+    void _matmul_dag_csr_vector[T](
+        double complex *data, T *col_index, T *row_index,
+        double complex *vec, double complex scale, double complex *out,
+        T nrows)
+
+cdef extern from "src/matmul_diag_vector.hpp" nogil:
+    void _matmul_diag_vector[T](
+        double complex *data, double complex *vec, double complex *out,
+        T length, double complex scale)
+    void _matmul_diag_block[T](
+        double complex *data, double complex *vec, double complex *out,
+        T length, T width)
+
 
 __all__ = [
-    'matmul', 'matmul_csr', 'matmul_dense', 'matmul_csr_dense_dense',
-    'multiply', 'multiply_csr', 'multiply_dense',
+    'matmul', 'matmul_csr', 'matmul_dense', 'matmul_dia',
+    'matmul_csr_dense_dense', 'matmul_dia_dense_dense', 'matmul_dense_dia_dense',
+    'multiply', 'multiply_csr', 'multiply_dense', 'multiply_dia',
+    'matmul_dag', 'matmul_dag_data', 'matmul_dag_dense', 'matmul_dag_dense_csr_dense',
+    'matmul_outer',
 ]
 
 
-cdef void _check_shape(Data left, Data right, Data out=None) nogil except *:
+cdef int _check_shape(Data left, Data right, Data out=None) except -1 nogil:
     if left.shape[1] != right.shape[0]:
         raise ValueError(
             "incompatible matrix shapes "
@@ -53,8 +79,10 @@ cdef void _check_shape(Data left, Data right, Data out=None) nogil except *:
         )
     if (
         out is not None
-        and out.shape[0] != left.shape[0]
-        and out.shape[1] != right.shape[1]
+        and (
+            out.shape[0] != left.shape[0]
+            or out.shape[1] != right.shape[1]
+        )
     ):
         raise ValueError(
             "incompatible output shape, got "
@@ -62,7 +90,7 @@ cdef void _check_shape(Data left, Data right, Data out=None) nogil except *:
             + " but needed "
             + str((left.shape[0], right.shape[1]))
         )
-
+    return 0
 
 cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
     """
@@ -196,7 +224,7 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right,
             "out matrix is {}-ordered".format('Fortran' if out.fortran else 'C')
             + " but input is {}-ordered".format('Fortran' if right.fortran else 'C')
         )
-        warnings.warn(msg, dense.OrderEfficiencyWarning)
+        warnings.warn(msg, OrderEfficiencyWarning)
         # Rather than making loads of copies of the same code, we just moan at
         # the user and then transpose one of the arrays.  We prefer to have
         # `right` in Fortran-order for cache efficiency.
@@ -308,6 +336,404 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
     return out
 
 
+cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=1):
+    _check_shape(left, right, None)
+
+    if left.num_diag == 0 or right.num_diag == 0:
+        return dia.zeros(left.shape[0], right.shape[1])
+
+    cdef size_t diag_out, diag_left, diag_right
+    cdef idxint *offsets
+    cdef idxint *ptr
+    cdef double complex *data
+    cdef double complex ZZERO=0.
+    cdef idxint col, row, ii, num_diag_out, offset
+    cdef idxint start_left, end_left, start_out, end_out, start, end, off_out
+    cdef idxint start_right, end_right
+    cdef int ONE=1, ZERO=0, num_elem
+
+    out = dia.empty(
+        left.shape[0], right.shape[1],
+        min(left.shape[0] + right.shape[1] - 1, left.num_diag * right.num_diag)
+    )
+
+    # Fill the output matrix's offsets, sorted and without redundancies.
+    offsets = out.offsets
+    num_diag_out = 0
+    for col in range(left.num_diag):
+      for row in range(right.num_diag):
+        offset = left.offsets[col] + right.offsets[row]
+        if not (offset > -left.shape[0] and offset < right.shape[1]):
+          continue
+        loc = num_diag_out
+        for ii in range(num_diag_out):
+            if offsets[ii] == offset:
+                loc = -1
+                break
+            if offsets[ii] > offset:
+                loc = ii
+                break
+        if loc >= 0:
+            for ii in range(num_diag_out, loc, -1):
+                offsets[ii] = offsets[ii - 1]
+            offsets[loc] = offset
+            num_diag_out += 1
+
+    out.num_diag = num_diag_out
+    data = out.data
+    ptr = &offsets[0]
+
+    with nogil:
+      num_elem = num_diag_out * out.shape[1]
+      blas.zcopy(&num_elem, &ZZERO, &ZERO, data, &ONE)
+
+      for diag_left in range(left.num_diag):
+        for diag_right in range(right.num_diag):
+          off_out = left.offsets[diag_left] + right.offsets[diag_right]
+          if off_out <= -left.shape[0] or off_out >= right.shape[1]:
+            continue
+
+          diag_out = <idxint> (lower_bound(ptr, ptr + num_diag_out, off_out) - ptr)
+
+          start_left = max(0, left.offsets[diag_left]) + right.offsets[diag_right]
+          start_right = max(0, right.offsets[diag_right])
+          start_out = max(0, off_out)
+          end_left = min(left.shape[1], left.shape[0] + left.offsets[diag_left]) + right.offsets[diag_right]
+          end_right = min(right.shape[1], right.shape[0] + right.offsets[diag_right])
+          end_out = min(right.shape[1], left.shape[0] + off_out)
+
+          start = max(start_left, start_right, start_out)
+          end = min(end_left, end_right, end_out)
+
+          for col in range(start, end):
+              data[diag_out * out.shape[1] + col] += (
+                scale
+                * left.data[diag_left * left.shape[1] + col - right.offsets[diag_right]]
+                * right.data[diag_right * right.shape[1] + col]
+              )
+
+    return out
+
+
+cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1, Dense out=None):
+    _check_shape(left, right, out)
+    cdef Dense tmp
+    if out is not None and scale == 1.:
+        tmp = out
+        out = None
+    else:
+        tmp = dense.zeros(left.shape[0], right.shape[1], right.fortran)
+
+    cdef idxint start_left, end_left, start_out, end_out, length, i, start_right
+    cdef idxint col, strideR_in, strideC_in, strideR_out, strideC_out
+    cdef size_t diag
+
+    with nogil:
+      strideR_in = right.shape[1] if not right.fortran else 1
+      strideC_in = right.shape[0] if right.fortran else 1
+      strideR_out = tmp.shape[1] if not tmp.fortran else 1
+      strideC_out = tmp.shape[0] if tmp.fortran else 1
+
+      if (
+        (left.shape[0] == left.shape[1])
+        and (strideC_in == 1)
+        and (strideC_out == 1)
+      ):
+          #Fast track for easy case
+          for diag in range(left.num_diag):
+              _matmul_diag_block(
+                  right.data + max(0, left.offsets[diag]) * strideR_in,
+                  left.data + diag * left.shape[1] + max(0, left.offsets[diag]),
+                  tmp.data + max(0, -left.offsets[diag]) * strideR_out,
+                  left.shape[1] - abs(left.offsets[diag]),
+                  right.shape[1]
+              )
+
+      elif (strideR_in == 1) and (strideR_out == 1):
+        for col in range(right.shape[1]):
+          for diag in range(left.num_diag):
+            start_left = max(0, left.offsets[diag])
+            end_left = min(left.shape[1], left.shape[0] + left.offsets[diag])
+            start_out = max(0, -left.offsets[diag])
+            end_out = min(left.shape[0], left.shape[1] - left.offsets[diag])
+            length = min(end_left - start_left, end_out - start_out)
+            start_right = start_left + col * strideC_in
+            start_left += diag * left.shape[1]
+            start_out += col * strideC_out
+            _matmul_diag_vector(
+                left.data + start_left,
+                right.data + start_right,
+                tmp.data + start_out,
+                length, 1.
+            )
+
+      else:
+        for col in range(right.shape[1]):
+          for diag in range(left.num_diag):
+            start_left = max(0, left.offsets[diag])
+            end_left = min(left.shape[1], left.shape[0] + left.offsets[diag])
+            start_out = max(0, -left.offsets[diag])
+            end_out = min(left.shape[0], left.shape[1] - left.offsets[diag])
+            length = min(end_left - start_left, end_out - start_out)
+            for i in range(length):
+              tmp.data[(start_out + i) * strideR_out + col * strideC_out] += (
+                left.data[diag * left.shape[1] + i + start_left]
+                * right.data[(start_left + i) * strideR_in + col * strideC_in]
+              )
+
+    if out is None and scale == 1.:
+        out = tmp
+    elif out is None:
+        imul_dense(tmp, scale)
+        out = tmp
+    else:
+        iadd_dense(out, tmp, scale)
+
+    return out
+
+
+cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1, Dense out=None):
+    _check_shape(left, right, out)
+    cdef Dense tmp
+    if out is not None and scale == 1.:
+        tmp = out
+        out = None
+    else:
+        tmp = dense.zeros(left.shape[0], right.shape[1], left.fortran)
+
+    cdef idxint start_left, end_right, start_out, end_out, length, i, start_right
+    cdef idxint row, strideR_in, strideC_in, strideR_out, strideC_out
+    cdef size_t diag
+
+    with nogil:
+      strideR_in = left.shape[1] if not left.fortran else 1
+      strideC_in = left.shape[0] if left.fortran else 1
+      strideR_out = tmp.shape[1] if not tmp.fortran else 1
+      strideC_out = tmp.shape[0] if tmp.fortran else 1
+
+      if (
+        (right.shape[0] == right.shape[1])
+        and (strideR_in == 1)
+        and (strideR_out == 1)
+      ):
+          #Fast track for easy case
+          for diag in range(right.num_diag):
+              _matmul_diag_block(
+                  left.data + max(0, -right.offsets[diag]) * strideC_in,
+                  right.data + diag * right.shape[1] + max(0, right.offsets[diag]),
+                  tmp.data + max(0, right.offsets[diag]) * strideC_out,
+                  right.shape[1] - abs(right.offsets[diag]),
+                  left.shape[0]
+              )
+
+      elif (strideC_in == 1) and (strideC_out == 1):
+        for row in range(left.shape[0]):
+          for diag in range(right.num_diag):
+            start_right = max(0, right.offsets[diag])
+            end_right = min(right.shape[1], right.shape[0] + right.offsets[diag])
+            start_out = max(0, right.offsets[diag])
+            length = end_right - start_right
+            start_left = max(0, -right.offsets[diag]) + row * strideR_in
+            start_right += diag * right.shape[1]
+            start_out = max(0, right.offsets[diag]) + row * strideR_out
+            _matmul_diag_vector(
+                right.data + start_right,
+                left.data + start_left,
+                tmp.data + start_out,
+                length, 1.
+            )
+
+      else:
+        for row in range(left.shape[0]):
+          for diag in range(right.num_diag):
+            start_right = max(0, right.offsets[diag])
+            end_right = min(right.shape[1], right.shape[0] + right.offsets[diag])
+            start_left = max(0, -right.offsets[diag])
+            length = end_right - start_right
+            for i in range(length):
+              tmp.data[(start_right + i) * strideC_out + row * strideR_out] += (
+                right.data[diag * right.shape[1] + i + start_right]
+                * left.data[(start_left + i) * strideC_in + row * strideR_in]
+              )
+
+    if out is None and scale == 1.:
+        out = tmp
+    elif out is None:
+        imul_dense(tmp, scale)
+        out = tmp
+    else:
+        iadd_dense(out, tmp, scale)
+
+    return out
+
+
+cpdef Dense matmul_dag_dense_csr_dense(
+    Dense left, CSR right,
+    double complex scale=1, Dense out=None
+):
+    """
+    Perform the operation
+        ``out = scale * (left @ right.dag()) + out``
+    where `left`, `right` and `out` are matrices.  `scale` is a complex scalar,
+    defaulting to 1.
+
+    If `out` is not given, it will be allocated as if it were a zero matrix.
+    """
+    if left.shape[1] != right.shape[1]:
+        raise ValueError(
+            "incompatible matrix shapes "
+            + str(left.shape)
+            + " and "
+            + str(right.shape)
+        )
+    if (
+        out is not None and (
+            out.shape[0] != left.shape[0]
+            or out.shape[1] != right.shape[0]
+        )
+    ):
+        raise ValueError(
+            "incompatible output shape, got "
+            + str(out.shape)
+            + " but needed "
+            + str((left.shape[0], right.shape[0]))
+        )
+    cdef Dense tmp = None
+    if out is None:
+        out = dense.zeros(left.shape[0], right.shape[0], left.fortran)
+    if bool(left.fortran) != bool(out.fortran):
+        msg = (
+            "out matrix is {}-ordered".format('Fortran' if out.fortran else 'C')
+            + " but input is {}-ordered".format('Fortran' if left.fortran else 'C')
+        )
+        warnings.warn(msg, OrderEfficiencyWarning)
+        # Rather than making loads of copies of the same code, we just moan at
+        # the user and then transpose one of the arrays.  We prefer to have
+        # `right` in Fortran-order for cache efficiency.
+        if left.fortran:
+            tmp = out
+            out = out.reorder()
+        else:
+            left = left.reorder()
+    cdef idxint row, col, ptr, idx_l, idx_out, out_row, idx_c
+    cdef idxint stride_in_col, stride_in_row, stride_out_row, stride_out_col
+    cdef idxint nrows=left.shape[0], ncols=right.shape[1]
+    cdef double complex val
+    stride_in_col = left.shape[0] if left.fortran else 1
+    stride_in_row = 1 if left.fortran else left.shape[1]
+    stride_out_col = out.shape[0] if out.fortran else 1
+    stride_out_row = 1 if out.fortran else out.shape[1]
+
+    # A @ B.dag = (B* @ A.T).T
+    if left.fortran:
+        for row in range(right.shape[0]):
+            for ptr in range(right.row_index[row], right.row_index[row + 1]):
+                val = scale * conj(right.data[ptr])
+                col = right.col_index[ptr]
+                for out_row in range(out.shape[0]):
+                    idx_out = row * stride_out_col + out_row * stride_out_row
+                    idx_l = col * stride_in_col + out_row * stride_in_row
+                    out.data[idx_out] += val * left.data[idx_l]
+
+    else:
+      idx_c = idx_out = 0
+      for _ in range(nrows):
+          _matmul_dag_csr_vector(
+              right.data, right.col_index, right.row_index,
+              left.data + idx_c,
+              scale, out.data + idx_out,
+              right.shape[0]
+          )
+          idx_out += right.shape[0]
+          idx_c += left.shape[1]
+
+    if tmp is None:
+        return out
+    memcpy(tmp.data, out.data, ncols * nrows * sizeof(double complex))
+    return tmp
+
+
+cpdef Dense matmul_dag_dense(
+    Dense left, Dense right,
+    double complex scale=1., Dense out=None
+):
+    # blas support matmul for normal, transpose, adjoint for fortran ordered
+    # matrices.
+    if left.shape[1] != right.shape[1]:
+        raise ValueError(
+            "incompatible matrix shapes "
+            + str(left.shape)
+            + " and "
+            + str(right.shape)
+        )
+    if (
+        out is not None and (
+            out.shape[0] != left.shape[0]
+            or out.shape[1] != right.shape[0]
+        )
+    ):
+        raise ValueError(
+            "incompatible output shape, got "
+            + str(out.shape)
+            + " but needed "
+            + str((left.shape[0], right.shape[0]))
+        )
+    cdef Dense a, b, out_add=None
+    cdef double complex alpha = 1., out_scale = 0.
+    cdef int m, n, k = left.shape[1], lda, ldb, ldc
+    cdef char left_code, right_code
+
+    if not right.fortran:
+        # Need a conjugate, we compute the transpose of the desired results.
+        # A.conj @ B^op -> (B^T^op @ A.dag)^T
+        if out is not None and out.fortran:
+          # out is not the right order, create an empty out and add it back.
+            out_add = out
+            out = dense.empty(left.shape[0], right.shape[0], False)
+        elif out is None:
+            out = dense.empty(left.shape[0], right.shape[0], False)
+        else:
+            out_scale = 1.
+        m = right.shape[0]
+        n = left.shape[0]
+        a, b = right, left
+        lda = right.shape[1]
+        ldb = left.shape[0] if left.fortran else left.shape[1]
+        ldc = right.shape[0]
+
+        left_code = b'C'
+        right_code = b'T' if left.fortran else b'N'
+    else:
+        if out is not None and not out.fortran:
+            out_add = out
+            out = dense.empty(left.shape[0], right.shape[0], True)
+        elif out is None:
+            out = dense.empty(left.shape[0], right.shape[0], True)
+        else:
+            out_scale = 1.
+
+        m = left.shape[0]
+        n = right.shape[0]
+        a, b = left, right
+        lda = left.shape[0] if left.fortran else left.shape[1]
+        ldb = right.shape[0]
+        ldc = left.shape[0]
+
+        left_code = b'N' if left.fortran else b'T'
+        right_code = b'C'
+
+    blas.zgemm(
+        &left_code, &right_code, &m, &n, &k,
+        &scale, a.data, &lda, b.data, &ldb,
+        &out_scale, out.data, &ldc
+    )
+
+    if out_add is not None:
+        out = iadd_dense(out, out_add)
+
+    return out
+
+
 cpdef CSR multiply_csr(CSR left, CSR right):
     """Element-wise multiplication of CSR matrices."""
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
@@ -317,6 +743,10 @@ cpdef CSR multiply_csr(CSR left, CSR right):
             + " and "
             + str(right.shape)
         )
+
+    left = left.sort_indices()
+    right = right.sort_indices()
+
     cdef idxint col_left, left_nnz = csr.nnz(left)
     cdef idxint col_right, right_nnz = csr.nnz(right)
     cdef idxint ptr_left, ptr_right, ptr_left_max, ptr_right_max
@@ -371,6 +801,70 @@ cpdef CSR multiply_csr(CSR left, CSR right):
     return out
 
 
+cpdef Dia multiply_dia(Dia left, Dia right):
+    if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
+        raise ValueError(
+            "incompatible matrix shapes "
+            + str(left.shape)
+            + " and "
+            + str(right.shape)
+        )
+    cdef idxint diag_left=0, diag_right=0, out_diag=0, col
+    cdef bint sorted=True
+    cdef Dia out = dia.empty(left.shape[0], left.shape[1], min(left.num_diag, right.num_diag))
+
+    with nogil:
+      for diag_left in range(1, left.num_diag):
+          if left.offsets[diag_left-1] > left.offsets[diag_left]:
+              sorted = False
+              continue
+      if sorted:
+          for diag_right in range(1, right.num_diag):
+              if right.offsets[diag_right-1] > right.offsets[diag_right]:
+                  sorted = False
+                  continue
+
+      if sorted:
+        diag_left = 0
+        diag_right = 0
+        while diag_left < left.num_diag and diag_right < right.num_diag:
+            if left.offsets[diag_left] == right.offsets[diag_right]:
+                out.offsets[out_diag] = left.offsets[diag_left]
+                for col in range(out.shape[1]):
+                    if col >= left.shape[1] or col >= right.shape[1]:
+                        out.data[out_diag * out.shape[1] + col] = 0
+                    else:
+                        out.data[out_diag * out.shape[1] + col] = (
+                            left.data[diag_left * left.shape[1] + col] *
+                            right.data[diag_right * right.shape[1] + col]
+                        )
+                out_diag += 1
+                diag_left += 1
+                diag_right += 1
+            elif left.offsets[diag_left] < right.offsets[diag_right]:
+                diag_left += 1
+            else:
+                diag_right += 1
+
+      else:
+        for diag_left in range(left.num_diag):
+          for diag_right in range(right.num_diag):
+            if left.offsets[diag_left] == right.offsets[diag_right]:
+                out.offsets[out_diag] = left.offsets[diag_left]
+                for col in range(right.shape[1]):
+                    out.data[out_diag * out.shape[1] + col] = (
+                        left.data[diag_left * left.shape[1] + col] *
+                        right.data[diag_right * right.shape[1] + col]
+                    )
+                out_diag += 1
+                break
+      out.num_diag = out_diag
+
+    if settings.core['auto_tidyup']:
+        tidyup_dia(out, settings.core['auto_tidyup_atol'], True)
+    return out
+
+
 cpdef Dense multiply_dense(Dense left, Dense right):
     """Element-wise multiplication of Dense matrices."""
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
@@ -397,8 +891,8 @@ import inspect as _inspect
 
 matmul = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=1),
     ]),
@@ -429,13 +923,16 @@ matmul.add_specialisations([
     (CSR, CSR, CSR, matmul_csr),
     (CSR, Dense, Dense, matmul_csr_dense_dense),
     (Dense, Dense, Dense, matmul_dense),
+    (Dia, Dia, Dia, matmul_dia),
+    (Dia, Dense, Dense, matmul_dia_dense_dense),
+    (Dense, Dia, Dense, matmul_dense_dia_dense),
 ], _defer=True)
 
 
 multiply = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='multiply',
     module=__name__,
@@ -447,6 +944,120 @@ multiply.__doc__ =\
 multiply.add_specialisations([
     (CSR, CSR, CSR, multiply_csr),
     (Dense, Dense, Dense, multiply_dense),
+    (Dia, Dia, Dia, multiply_dia),
+], _defer=True)
+
+
+cpdef Data matmul_dag_data(
+    Data left, Data right,
+    double complex scale=1, Dense out=None
+):
+    return matmul(left, right.adjoint(), scale, out)
+
+
+matmul_dag = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=1),
+    ]),
+    name='matmul_dag',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+
+matmul_dag.__doc__ =\
+    """
+    Compute the matrix multiplication of two matrices, with the operation
+        scale * (left @ right.dag)
+    where `scale` is (optionally) a scalar, and `left` and `right` are
+    matrices.
+
+    Parameters
+    ----------
+    left : Data
+        The left operand as either a bra or a ket matrix.
+
+    right : Data
+        The right operand as a ket matrix.
+
+    scale : complex, optional
+        The scalar to multiply the output by.
+    """
+
+matmul_dag.add_specialisations([
+    (Dense, CSR, Dense, matmul_dag_dense_csr_dense),
+    (Dense, Dense, Dense, matmul_dag_dense),
+    (Data, Data, Data, matmul_dag_data),
+], _defer=True)
+
+
+cpdef CSR matmul_outer_csr_dense_sparse(Data left, Data right, double complex scale=1):
+    return matmul(left, right, dtype=CSR)
+
+
+cpdef Dia matmul_outer_dia_dense_sparse(Data left, Data right, double complex scale=1):
+    return matmul(left, right, dtype=Dia)
+
+
+cpdef Data matmul_outer_dense_Data(Dense left, Dense right, double complex scale=1):
+    out_density = (
+        dense.nnz(left) * 1.0 / left.shape[0]
+        * dense.nnz(right) * 1.0 / right.shape[1]
+    )
+    if out_density < 0.3:
+        return matmul(left, right, dtype=CSR)
+    else:
+        return matmul(left, right, dtype=Dense)
+
+
+
+cpdef Data matmul_outer_Data(Data left, Data right, double complex scale=1):
+    return matmul(left, right)
+
+
+matmul_outer = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=1),
+    ]),
+    name='matmul_outer',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+
+matmul_outer.__doc__ =\
+    """
+    Alternative to matmul. Does the same operation, but with different output
+    type specializations.
+
+    It is expected to be used when `left` is a column matrix and `right` a
+    row matrix, creating an output larger than the inputs.
+
+    Parameters
+    ----------
+    left : Data
+        The left operand as either a bra or a ket matrix.
+
+    right : Data
+        The right operand as a ket matrix.
+
+    scale : complex, optional
+        The scalar to multiply the output by.
+    """
+
+matmul_outer.add_specialisations([
+    (CSR, Dense, CSR, matmul_outer_csr_dense_sparse),
+    (Dense, CSR, CSR, matmul_outer_csr_dense_sparse),
+    (Dia, Dense, Dia, matmul_outer_dia_dense_sparse),
+    (Dense, Dia, Dia, matmul_outer_dia_dense_sparse),
+    (Dense, Dense, Data, matmul_outer_dense_Data),
+    (Data, Data, Data, matmul_outer_Data),
 ], _defer=True)
 
 
@@ -459,6 +1070,8 @@ cdef Dense matmul_data_dense(Data left, Dense right):
         out = matmul_csr_dense_dense(left, right)
     elif type(left) is Dense:
         out = matmul_dense(left, right)
+    elif type(left) is Dia:
+        out = matmul_dia_dense_dense(left, right)
     else:
         out = matmul(left, right)
     return out
@@ -467,7 +1080,9 @@ cdef Dense matmul_data_dense(Data left, Dense right):
 cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense out):
     if type(left) is CSR:
         matmul_csr_dense_dense(left, right, scale, out)
+    elif type(left) is Dia:
+        matmul_dia_dense_dense(left, right, scale, out)
     elif type(left) is Dense:
         matmul_dense(left, right, scale, out)
     else:
-        iadd_dense(out, matmul(left, right), scale)
+        iadd_dense(out, matmul(left, right, dtype=Dense), scale)

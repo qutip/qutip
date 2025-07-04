@@ -10,7 +10,7 @@ With time-consuming calculations it is often necessary to store the results to f
 Storing and loading QuTiP objects
 =================================
 
-To store and load arbitrary QuTiP related objects (:class:`qutip.Qobj`, :class:`qutip.solve.solver.Result`, etc.) there are two functions: :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload`. The function :func:`qutip.fileio.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The function :func:`qutip.fileio.qload` takes a mandatory filename as first argument and loads and returns the objects in the file.
+To store and load arbitrary QuTiP related objects (:class:`.Qobj`, :class:`.Result`, etc.) there are two functions: :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload`. The function :func:`qutip.fileio.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The function :func:`qutip.fileio.qload` takes a mandatory filename as first argument and loads and returns the objects in the file.
 
 To illustrate how these functions can be used, consider a simple calculation of the steadystate of the harmonic oscillator ::
 
@@ -18,7 +18,7 @@ To illustrate how these functions can be used, consider a simple calculation of 
     >>> c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
     >>> rho_ss = steadystate(H, c_ops)
 
-The steadystate density matrix `rho_ss` is an instance of :class:`qutip.Qobj`. It can be stored to a file `steadystate.qu` using ::
+The steadystate density matrix `rho_ss` is an instance of :class:`.Qobj`. It can be stored to a file `steadystate.qu` using ::
 
     >>> qsave(rho_ss, 'steadystate')
     >>> !ls *.qu
@@ -32,7 +32,8 @@ and it can later be loaded again, and used in further calculations ::
     >>> a = destroy(10)
     >>> np.testing.assert_almost_equal(expect(a.dag() * a, rho_ss_loaded), 0.9902248289345061)
 
-The nice thing about the :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` functions is that almost any object can be stored and load again later on. We can for example store a list of density matrices as returned by :func:`qutip.mesolve` ::
+The nice thing about the :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` functions is that almost any object can be stored and load again later on.
+We can for example store a list of density matrices as returned by :func:`.mesolve` ::
 
     >>> a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
     >>> psi0 = rand_ket(10)
@@ -65,7 +66,7 @@ The :func:`qutip.fileio.file_data_store` takes two mandatory and three optional 
 
 where `filename` is the name of the file, `data` is the data to be written to the file (must be a *numpy* array), `numtype` (optional) is a flag indicating numerical type that can take values `complex` or `real`, `numformat` (optional) specifies the numerical format that can take the values `exp` for the format `1.0e1` and `decimal` for the format `10.0`, and `sep` (optional) is an arbitrary single-character field separator (usually a tab, space, comma, semicolon, etc.).
 
-A common use for the :func:`qutip.fileio.file_data_store` function is to store the expectation values of a set of operators for a sequence of times, e.g., as returned by the :func:`qutip.mesolve` function, which is what the following example does
+A common use for the :func:`qutip.fileio.file_data_store` function is to store the expectation values of a set of operators for a sequence of times, e.g., as returned by the :func:`.mesolve` function, which is what the following example does
 
 .. plot::
     :context:
@@ -73,7 +74,7 @@ A common use for the :func:`qutip.fileio.file_data_store` function is to store t
     >>> a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
     >>> psi0 = rand_ket(10)
     >>> times = np.linspace(0, 100, 100)
-    >>> medata = mesolve(H, psi0, times, c_ops, [a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
+    >>> medata = mesolve(H, psi0, times, c_ops, e_ops=[a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
     >>> np.shape(medata.expect)
     (3, 100)
     >>> times.shape

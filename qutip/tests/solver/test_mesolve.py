@@ -7,6 +7,11 @@ from qutip.solver.solver_base import Solver
 import pickle
 import pytest
 
+# Deactivate warning for test without cython
+from qutip.core.coefficient import WARN_MISSING_MODULE
+WARN_MISSING_MODULE[0] = 0
+
+
 all_ode_method = [
     method for method, integrator in MESolver.avail_integrators().items()
     if integrator.support_time_dependant
@@ -82,9 +87,8 @@ class TestMESolveDecay:
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [cte_c_ops]
         options = {"progress_bar": None}
-        medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
-                         args={"kappa": self.kappa},
-                         options=options)
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[H],
+                         args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-self.kappa * self.tlist)
         np.testing.assert_allclose(actual_answer, expt, atol=me_error)
@@ -98,7 +102,7 @@ class TestMESolveDecay:
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
         options = {"method": method, "progress_bar": None}
-        medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[H],
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-self.kappa * (1.0 - np.exp(-self.tlist)))
@@ -111,9 +115,8 @@ class TestMESolveDecay:
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops, c_ops_1]
         options = {"progress_bar": None}
-        medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
-                         args={"kappa": self.kappa},
-                         options=options)
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[H],
+                         args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-2 * self.kappa *
                                      (1.0 - np.exp(-self.tlist)))
@@ -125,9 +128,8 @@ class TestMESolveDecay:
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
         options = {"progress_bar": None}
-        medata = mesolve(H, psi0, self.tlist, c_op_list, [self.ada],
-                         args={"kappa": self.kappa},
-                         options=options)
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[self.ada],
+                         args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-self.kappa *
                                      (1.0 - np.exp(-self.tlist)))
@@ -144,9 +146,8 @@ class TestMESolveDecay:
         else:
             c_op_list = [[c_ops, c_ops]]
         options = {"progress_bar": None}
-        medata = mesolve(H, psi0, self.tlist, c_op_list, [self.ada],
-                         args={"kappa": self.kappa},
-                         options=options)
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[self.ada],
+                         args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-4 * self.kappa *
                                      (1.0 - np.exp(-self.tlist)))
@@ -162,10 +163,10 @@ class TestMESolveDecay:
         E0 = qutip.sprepost(qutip.qeye(self.N), qutip.qeye(self.N))
         options = {"progress_bar": None}
         c_op_list = [c_ops]
-        out1 = mesolve(H, psi0, self.tlist, c_op_list, [],
+        out1 = mesolve(H, psi0, self.tlist, c_op_list,
                        args={"kappa": self.kappa},
                        options=options)
-        out2 = mesolve(H, E0, self.tlist, c_op_list, [],
+        out2 = mesolve(H, E0, self.tlist, c_op_list,
                        args={"kappa": self.kappa},
                        options=options)
 
@@ -183,10 +184,10 @@ class TestMESolveDecay:
         E0 = qutip.sprepost(qutip.qeye(self.N), qutip.qeye(self.N))
         options = {"progress_bar": None}
         c_op_list = [c_ops]
-        out1 = mesolve(L, psi0, self.tlist, c_op_list, [],
+        out1 = mesolve(L, psi0, self.tlist, c_op_list,
                        args={"kappa": self.kappa},
                        options=options)
-        out2 = mesolve(L, E0, self.tlist, c_op_list, [],
+        out2 = mesolve(L, E0, self.tlist, c_op_list,
                        args={"kappa": self.kappa},
                        options=options)
 
@@ -201,9 +202,14 @@ class TestMESolveDecay:
     def test_mesolve_normalization(self, state_type):
         # non-hermitean H causes state to evolve non-unitarily
         H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
-        H = qutip.sprepost(H, H) # ensure use of MeSolve
+        H = qutip.spre(H) + qutip.spost(H.dag()) # ensure use of MeSolve
         psi0 = qutip.basis(2, 0)
-        options = {"normalize_output": True, "progress_bar": None}
+        options = {
+            "normalize_output": True,
+            "progress_bar": None,
+            "atol": 1e-5,
+            "nsteps": 1e5,
+        }
 
         if state_type in {"ket", "dm"}:
             if state_type == "dm":
@@ -256,13 +262,13 @@ class TestMESolveDecay:
                          ids=["ket", "dm", "liouvillian"])
 def testME_SesolveFallback(super_):
     "mesolve: final_state has correct dims"
-    N = 5
-    a = qutip.tensor(qutip.destroy(N+1), qutip.qeye(N+1), qutip.qeye(N+1))
-    b = qutip.tensor(qutip.qeye(N+1), qutip.destroy(N+1), qutip.qeye(N+1))
-    c = qutip.tensor(qutip.qeye(N+1), qutip.qeye(N+1), qutip.destroy(N+1))
-    psi0 = qutip.tensor(qutip.basis(N+1,0),
-                        qutip.basis(N+1,0),
-                        qutip.basis(N+1,N))
+    N = 3
+    a = qutip.tensor(qutip.destroy(N), qutip.qeye(N), qutip.qeye(N))
+    b = qutip.tensor(qutip.qeye(N), qutip.destroy(N), qutip.qeye(N))
+    c = qutip.tensor(qutip.qeye(N), qutip.qeye(N), qutip.destroy(N))
+    psi0 = qutip.tensor(qutip.basis(N, 0),
+                        qutip.basis(N, 0),
+                        qutip.basis(N, N - 1))
     H = a * b * c.dag() * c.dag() + a.dag() * b.dag() * c * c
     if super_ == "dm":
         state0 = qutip.ket2dm(psi0)
@@ -394,10 +400,10 @@ class TestJCModelEvolution:
 
         # evolve and calculate expectation values
         output = mesolve(
-            H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm],
+            H, psi0, tlist, c_op_list, e_ops=[a.dag() * a, sm.dag() * sm],
             options=options)
         if oper_evo:
-            output2 = mesolve(H, E0, tlist, c_op_list, [])
+            output2 = mesolve(H, E0, tlist, c_op_list)
             return output, output2
         return output.expect[0], output.expect[1]
 
@@ -675,3 +681,33 @@ def test_mesolve_bad_state():
 def test_mesolve_bad_options():
     with pytest.raises(TypeError):
         MESolver(qutip.qeye(4), [], options=False)
+
+
+def test_feedback():
+
+    def f(t, A):
+        return (A-4.)
+
+    N = 10
+    tol = 1e-14
+    psi0 = qutip.basis(N, 7)
+    a = qutip.QobjEvo(
+        [qutip.destroy(N), f],
+        args={"A": MESolver.ExpectFeedback(qutip.spre(qutip.num(N)))}
+    )
+    H = qutip.QobjEvo(qutip.num(N))
+    solver = qutip.MESolver(H, c_ops=[a])
+    result = solver.run(psi0, np.linspace(0, 30, 301), e_ops=[qutip.num(N)])
+    assert np.all(result.expect[0] > 4. - tol)
+
+
+@pytest.mark.parametrize(
+    'rho0',
+    [qutip.sigmax(), qutip.sigmaz(), qutip.qeye(2)],
+    ids=["sigmax", "sigmaz", "tr=2"]
+)
+def test_non_normalized_dm(rho0):
+    H = qutip.QobjEvo(qutip.num(2))
+    solver = qutip.MESolver(H, c_ops=[qutip.sigmaz()])
+    result = solver.run(rho0, np.linspace(0, 1, 10), e_ops=[qutip.qeye(2)])
+    np.testing.assert_allclose(result.expect[0], rho0.tr(), atol=1e-7)

@@ -6,19 +6,19 @@ from qutip.core.data.base cimport idxint
 cdef class QobjEvo:
     cdef:
         list elements
-        readonly list dims
+        readonly object _dims
         readonly (idxint, idxint) shape
-        readonly str type
-        readonly str superrep
         int _issuper
         int _isoper
+        readonly dict _feedback_functions
+        readonly dict _solver_only_feedback
 
     cpdef Data _call(QobjEvo self, double t)
 
-    cdef double _prepare(QobjEvo self, double t, Data state=*)
+    cdef object _prepare(QobjEvo self, object t, Data state=*)
 
-    cpdef double complex expect_data(QobjEvo self, double t, Data state) except *
+    cpdef object expect_data(QobjEvo self, object t, Data state)
 
     cdef double complex _expect_dense(QobjEvo self, double t, Dense state) except *
 
-    cpdef Data matmul_data(QobjEvo self, double t, Data state, Data out=*)
+    cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=*)

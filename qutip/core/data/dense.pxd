@@ -3,11 +3,12 @@
 cimport numpy as cnp
 
 from . cimport base
-from .csr cimport CSR
+from qutip.core.data.csr cimport CSR
+from qutip.core.data.dia cimport Dia
 
 cdef class Dense(base.Data):
     cdef double complex *data
-    cdef bint fortran
+    cdef readonly bint fortran
     cdef object _np
     cdef bint _deallocate
     cdef void _fix_flags(Dense self, object array, bint make_owner=*)
@@ -28,3 +29,5 @@ cpdef Dense zeros(base.idxint rows, base.idxint cols, bint fortran=*)
 cpdef Dense identity(base.idxint dimension, double complex scale=*,
                      bint fortran=*)
 cpdef Dense from_csr(CSR matrix, bint fortran=*)
+cpdef Dense from_dia(Dia matrix)
+cpdef long nnz(Dense matrix, double tol=*)

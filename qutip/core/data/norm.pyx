@@ -7,8 +7,9 @@ from cpython cimport mem
 
 from scipy.linalg cimport cython_blas as blas
 import scipy
+import numpy as np
 
-from qutip.core.data cimport CSR, Dense, csr, dense, Data
+from qutip.core.data cimport CSR, Dense, csr, Data, Dia
 
 from qutip.core.data.adjoint cimport adjoint_csr, adjoint_dense
 from qutip.core.data.matmul cimport matmul_csr
@@ -92,7 +93,7 @@ cpdef double frobenius_csr(CSR matrix) nogil:
     cdef int n=csr.nnz(matrix), inc=1
     return blas.dznrm2(&n, &matrix.data[0], &inc)
 
-cpdef double l2_csr(CSR matrix) nogil except -1:
+cpdef double l2_csr(CSR matrix) except -1 nogil:
     if matrix.shape[0] != 1 and matrix.shape[1] != 1:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_csr(matrix)
@@ -128,10 +129,49 @@ cpdef double frobenius_dense(Dense matrix) nogil:
     cdef int inc = 1
     return blas.dznrm2(&n, matrix.data, &inc)
 
-cpdef double l2_dense(Dense matrix) nogil except -1:
+cpdef double l2_dense(Dense matrix) except -1 nogil:
     if matrix.shape[0] != 1 and matrix.shape[1] != 1:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_dense(matrix)
+
+cpdef double frobenius_dia(Dia matrix) nogil:
+    cdef int offset, diag, start, end, col=1
+    cdef double total=0, cur
+    for diag in range(matrix.num_diag):
+        offset = matrix.offsets[diag]
+        start = int_max(0, offset)
+        end = min(matrix.shape[1], matrix.shape[0] + offset)
+        for col in range(start, end):
+            total += abssq(matrix.data[diag * matrix.shape[1] + col])
+    return math.sqrt(total)
+
+cpdef double l2_dia(Dia matrix) except -1 nogil:
+    if matrix.shape[0] != 1 and matrix.shape[1] != 1:
+        raise ValueError("L2 norm is only defined on vectors")
+    return frobenius_dia(matrix)
+
+cpdef double max_dia(Dia matrix) nogil:
+    cdef int offset, diag, start, end, col=1
+    cdef double total=0, cur
+    for diag in range(matrix.num_diag):
+        offset = matrix.offsets[diag]
+        start = int_max(0, offset)
+        end = min(matrix.shape[1], matrix.shape[0] + offset)
+        for col in range(start, end):
+            cur = abssq(matrix.data[diag * matrix.shape[1] + col])
+            total = cur if cur > total else total
+    return math.sqrt(total)
+
+cpdef double one_dia(Dia matrix) except -1:
+    cdef int offset, diag, start, end, col=1
+    cols_one = np.zeros(matrix.shape[1], dtype=float)
+    for diag in range(matrix.num_diag):
+        offset = matrix.offsets[diag]
+        start = int_max(0, offset)
+        end = min(matrix.shape[1], matrix.shape[0] + offset)
+        for col in range(start, end):
+            cols_one[col] += abs(matrix.data[diag * matrix.shape[1] + col])
+    return np.max(cols_one)
 
 
 from .dispatch import Dispatcher as _Dispatcher
@@ -139,7 +179,7 @@ import inspect as _inspect
 
 l2 = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('vector', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('vector', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='l2',
     module=__name__,
@@ -154,11 +194,12 @@ l2.__doc__ =\
     """
 l2.add_specialisations([
     (Dense, l2_dense),
+    (Dia, l2_dia),
     (CSR, l2_csr),
 ], _defer=True)
 
 _norm_signature = _inspect.Signature([
-    _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
 ])
 
 frobenius = _Dispatcher(_norm_signature, name='frobenius', module=__name__, inputs=('matrix',))
@@ -171,6 +212,7 @@ frobenius.__doc__ =\
     """
 frobenius.add_specialisations([
     (Dense, frobenius_dense),
+    (Dia, frobenius_dia),
     (CSR, frobenius_csr),
 ], _defer=True)
 
@@ -183,6 +225,7 @@ max.__doc__ =\
     """
 max.add_specialisations([
     (Dense, max_dense),
+    (Dia, max_dia),
     (CSR, max_csr),
 ], _defer=True)
 
@@ -195,13 +238,14 @@ one.__doc__ =\
     """
 one.add_specialisations([
     (Dense, one_dense),
+    (Dia, one_dia),
     (CSR, one_csr),
 ], _defer=True)
 
 
 trace = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     inputs=('matrix',),
     name='trace',
@@ -220,7 +264,7 @@ trace.add_specialisations([
 ], _defer=True)
 
 
-cpdef double frobenius_data(Data state):
+cpdef double frobenius_data(Data state) except -1:
     if type(state) is Dense:
         return frobenius_dense(state)
     elif type(state) is CSR:

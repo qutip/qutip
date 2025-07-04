@@ -5,18 +5,16 @@ from libc.string cimport memcpy
 cimport cython
 
 import numbers
-
+import builtins
 import numpy as np
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
 
 from .base import EfficiencyWarning
-from qutip.core.data cimport base, CSR
-from qutip.core.data.add cimport add_dense, sub_dense
+from qutip.core.data cimport base, CSR, Dia
 from qutip.core.data.adjoint cimport adjoint_dense, transpose_dense, conj_dense
-from qutip.core.data.mul cimport mul_dense, neg_dense
-from qutip.core.data.matmul cimport matmul_dense
 from qutip.core.data.trace cimport trace_dense
+from qutip import settings
 
 cnp.import_array()
 
@@ -30,6 +28,13 @@ cdef extern from *:
     void PyDataMem_FREE(void *ptr)
 
 
+@cython.overflowcheck(True)
+cdef size_t _mul_mem_checked(size_t a, size_t b, size_t c=0):
+    if c != 0:
+        return a * b * c
+    return a * b
+
+
 # Creation functions like 'identity' and 'from_csr' aren't exported in __all__
 # to avoid naming clashes with other type modules.
 __all__ = [
@@ -40,9 +45,13 @@ __all__ = [
 class OrderEfficiencyWarning(EfficiencyWarning):
     pass
 
+is_numpy1 = np.lib.NumpyVersion(np.__version__) < '2.0.0b1'
 
 cdef class Dense(base.Data):
     def __init__(self, data, shape=None, copy=True):
+        if is_numpy1:
+            # np2 accept None which act as np1's False
+            copy = builtins.bool(copy)
         base = np.array(data, dtype=np.complex128, order='K', copy=copy)
         # Ensure that the array is contiguous.
         # Non contiguous array with copy=False would otherwise slip through
@@ -76,6 +85,10 @@ cdef class Dense(base.Data):
         self.data = <double complex *> cnp.PyArray_GETPTR2(self._np, 0, 0)
         self.fortran = cnp.PyArray_IS_F_CONTIGUOUS(self._np)
         self.shape = (shape[0], shape[1])
+
+    @classmethod
+    def sparcity(self):
+        return "dense"
 
     def __reduce__(self):
         return (fast_from_numpy, (self.as_ndarray(),))
@@ -121,8 +134,15 @@ cdef class Dense(base.Data):
         low-level C code).
         """
         cdef Dense out = Dense.__new__(Dense)
-        cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
+        cdef size_t size = (
+            _mul_mem_checked(self.shape[0], self.shape[1], sizeof(double complex))
+        )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
+        if not ptr:
+            raise MemoryError(
+                "Could not allocate memory to copy a "
+                f"({self.shape[0]}, {self.shape[1]}) Dense matrix."
+            )
         memcpy(ptr, self.data, size)
         out.shape = self.shape
         out.data = ptr
@@ -133,8 +153,8 @@ cdef class Dense(base.Data):
     cdef void _fix_flags(self, object array, bint make_owner=False):
         cdef int enable = cnp.NPY_ARRAY_OWNDATA if make_owner else 0
         cdef int disable = 0
-        cdef cnp.Py_intptr_t *dims = cnp.PyArray_DIMS(array)
-        cdef cnp.Py_intptr_t *strides = cnp.PyArray_STRIDES(array)
+        cdef cnp.npy_intp *dims = cnp.PyArray_DIMS(array)
+        cdef cnp.npy_intp *strides = cnp.PyArray_STRIDES(array)
         # Not necessary when creating a new array because this will already
         # have been done, but needed for as_ndarray() if we have been mutated.
         dims[0] = self.shape[0]
@@ -163,8 +183,15 @@ cdef class Dense(base.Data):
         dimensions.  This is not a view onto the data, and changes to new array
         will not affect the original data structure.
         """
-        cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
+        cdef size_t size = (
+          _mul_mem_checked(self.shape[0], self.shape[1], sizeof(double complex))
+        )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
+        if not ptr:
+            raise MemoryError(
+                "Could not allocate memory to convert to a numpy array a "
+                f"({self.shape[0]}, {self.shape[1]}) Dense matrix."
+            )
         memcpy(ptr, self.data, size)
         cdef object out =\
             cnp.PyArray_SimpleNewFromData(2, [self.shape[0], self.shape[1]],
@@ -246,7 +273,14 @@ cpdef Dense empty(base.idxint rows, base.idxint cols, bint fortran=True):
     """
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
-    out.data = <double complex *> PyDataMem_NEW(rows * cols * sizeof(double complex))
+    out.data = <double complex *> PyDataMem_NEW(
+        _mul_mem_checked(rows, cols, sizeof(double complex))
+    )
+    if not out.data:
+        raise MemoryError(
+            "Could not allocate memory to create an empty "
+            f"({rows}, {cols}) Dense matrix."
+        )
     out._deallocate = True
     out.fortran = fortran
     return out
@@ -266,7 +300,14 @@ cpdef Dense zeros(base.idxint rows, base.idxint cols, bint fortran=True):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
     out.data =\
-        <double complex *> PyDataMem_NEW_ZEROED(rows * cols, sizeof(double complex))
+        <double complex *> PyDataMem_NEW_ZEROED(
+            _mul_mem_checked(rows, cols), sizeof(double complex)
+        )
+    if not out.data:
+        raise MemoryError(
+            "Could not allocate memory to create a zero "
+            f"({rows}, {cols}) Dense matrix."
+        )
     out.fortran = fortran
     out._deallocate = True
     return out
@@ -290,9 +331,15 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = matrix.shape
     out.data = (
-        <double complex *>
-        PyDataMem_NEW_ZEROED(out.shape[0]*out.shape[1], sizeof(double complex))
+        <double complex *> PyDataMem_NEW_ZEROED(
+            _mul_mem_checked(out.shape[0], out.shape[1]), sizeof(double complex)
+        )
     )
+    if not out.data:
+        raise MemoryError(
+            "Could not allocate memory to create a "
+            f"({out.shape[0]}, {out.shape[1]}) Dense matrix from a CSR."
+        )
     out.fortran = fortran
     out._deallocate = True
     cdef size_t row, ptr_in, ptr_out, row_stride, col_stride
@@ -306,12 +353,33 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
     return out
 
 
+cpdef Dense from_dia(Dia matrix):
+    return Dense(matrix.to_array(), copy=False)
+
+
 cdef inline base.idxint _diagonal_length(
     base.idxint offset, base.idxint n_rows, base.idxint n_cols,
 ) nogil:
     if offset > 0:
         return n_rows if offset <= n_cols - n_rows else n_cols - offset
     return n_cols if offset > n_cols - n_rows else n_rows + offset
+
+
+cpdef long nnz(Dense matrix, double tol=0):
+    "Compute the number of element larger than the tolerance"
+    cdef long N = 0;
+    cdef base.idxint row, col
+    cdef double tol2
+    cdef double complex val
+    if tol:
+        tol2 = tol**2
+    else:
+        tol2 = settings.core["atol"]**2
+    for i in range(matrix.shape[0] * matrix.shape[1]):
+        val = matrix.data[i]
+        if (val.real**2 + val.imag**2) > tol2:
+            N += 1
+    return N
 
 
 @cython.wraparound(True)

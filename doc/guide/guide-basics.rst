@@ -1,8 +1,8 @@
 .. _basics:
 
-************************************
+***********************************
 Basic Operations on Quantum Objects
-************************************
+***********************************
 
 .. _basics-first:
 
@@ -25,7 +25,7 @@ This will load all of the user available functions. Often, we also need to impor
 
    import matplotlib.pyplot as plt
 
-In the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the interpreter prompt, Python script, or Jupyter notebook.
+In the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`apidoc`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the interpreter prompt, Python script, or Jupyter notebook.
 
 .. _basics-qobj:
 
@@ -179,6 +179,8 @@ Therefore, QuTiP includes predefined objects for a variety of states and operato
 +--------------------------+----------------------------+----------------------------------------+
 | Identity                 | ``qeye(N)``                | N = number of levels in Hilbert space. |
 +--------------------------+----------------------------+----------------------------------------+
+| Identity-like            | ``qeye_like(qobj)``        | qobj = Object to copy dimensions from. |
++--------------------------+----------------------------+----------------------------------------+
 | Lowering (destruction)   | ``destroy(N)``             | same as above                          |
 | operator                 |                            |                                        |
 +--------------------------+----------------------------+----------------------------------------+
@@ -321,12 +323,43 @@ For the destruction operator above:
     False
 
     >>> q.data
+    Dia(shape=(4, 4), num_diag=1)
+
+
+The ``data`` attribute returns a Qutip diagonal matrix.
+``Qobj`` instances store their data in Qutip matrix format.
+In the core qutip module, the ``Dense``, ``CSR`` and ``Dia`` formats are available, but other packages can add other formats.
+For example, the ``qutip-jax`` module adds the ``Jax`` and ``JaxDia`` formats.
+One can always access the underlying matrix as a numpy array using :meth:`.Qobj.full`.
+It is also possible to access the underlying data in a common format using :meth:`.Qobj.data_as`.
+
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
+
+    >>> q.data_as("dia_matrix")
     <4x4 sparse matrix of type '<class 'numpy.complex128'>'
-	   with 3 stored elements in Compressed Sparse Row format>
+        with 3 stored elements (1 diagonals) in DIAgonal format>
 
 
+Conversion between storage type is done using the :meth:`.Qobj.to` method.
 
-The data attribute returns a message stating that the data is a sparse matrix. All ``Qobj`` instances store their data as a sparse matrix to save memory. To access the underlying dense matrix one needs to use the :func:`qutip.Qobj.full` function as described below.
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
+
+    >>> q.to("CSR").data
+    CSR(shape=(4, 4), nnz=3)
+
+    >>> q.to("CSR").data_as("csr_matrix")
+    <4x4 sparse matrix of type '<class 'numpy.complex128'>'
+        with 3 stored elements in Compressed Sparse Row format>
+
+
+Note that :meth:`.Qobj.data_as` does not do the conversion.
+
+QuTiP will do conversion when needed to keep everything working in any format.
+However these conversions could slow down computation and it is recommended to keep to one format family where possible.
+For example, core QuTiP  ``Dense`` and ``CSR`` work well together and binary operations between these formats is efficient.
+However binary operations between ``Dense`` and ``Jax`` should be avoided since it is not always clear whether the operation will be executed by Jax (possibly on a GPU if present) or numpy.
 
 .. _basics-qobj-math:
 
@@ -394,10 +427,11 @@ Of course, like matrices, multiplying two objects of incompatible shape throws a
 
 In addition, the logic operators "is equal" `==` and "is not equal" `!=` are also supported.
 
+
 .. _basics-functions:
 
 Functions operating on Qobj class
-==================================
+=================================
 
 Like attributes, the quantum object class has defined functions (methods) that operate on ``Qobj`` class instances. For a general quantum object ``Q``:
 
@@ -429,6 +463,8 @@ Like attributes, the quantum object class has defined functions (methods) that o
 +-----------------+-------------------------------+----------------------------------------+
 | Groundstate     | ``Q.groundstate()``           | Eigenval & eigket of Qobj groundstate. |
 +-----------------+-------------------------------+----------------------------------------+
+| Matrix inverse  | ``Q.inv()``                   | Matrix inverse of the Qobj.            |
++-----------------+-------------------------------+----------------------------------------+
 | Matrix Element  | ``Q.matrix_element(bra,ket)`` | Matrix element <bra|Q|ket>             |
 +-----------------+-------------------------------+----------------------------------------+
 | Norm            | ``Q.norm()``                  | Returns L2 norm for states,            |
@@ -453,6 +489,8 @@ Like attributes, the quantum object class has defined functions (methods) that o
 | Tidyup          | ``Q.tidyup()``                | Removes small elements from Qobj.      |
 +-----------------+-------------------------------+----------------------------------------+
 | Trace           | ``Q.tr()``                    | Returns trace of quantum object.       |
++-----------------+-------------------------------+----------------------------------------+
+| Conversion      | ``Q.to(dtype)``               | Convert the matrix format CSR / Dense. |
 +-----------------+-------------------------------+----------------------------------------+
 | Transform       | ``Q.transform(inpt)``         | A basis transformation defined by      |
 |                 |                               | matrix or list of kets 'inpt' .        |

@@ -9,14 +9,19 @@ __all__ = [
 
 import numpy as np
 from functools import partial
+from typing import TypeVar, overload
+
 from .operators import qeye
 from .qobj import Qobj
+from .cy.qobjevo import QobjEvo
 from .superoperator import operator_to_vector, reshuffle
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
     dims_idxs_to_tensor_idxs
 )
 from . import data as _data
+from .. import settings
+from ..typing import LayerType
 
 
 class _reverse_partial_tensor:
@@ -28,7 +33,13 @@ class _reverse_partial_tensor:
         return tensor(op, self.right)
 
 
-def tensor(*args):
+@overload
+def tensor(*args: Qobj) -> Qobj: ...
+
+@overload
+def tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
+
+def tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
     """Calculates the tensor product of input operators.
 
     Parameters
@@ -83,30 +94,35 @@ shape = [4, 4], type = oper, isHerm = True
             "In tensor products of superroperators,",
             " all must have the same representation"
         ]))
-    type = args[0].type
+
     isherm = args[0]._isherm
     isunitary = args[0]._isunitary
     out_data = args[0].data
-    dims_l = [d for arg in args for d in arg.dims[0]]
-    dims_r = [d for arg in args for d in arg.dims[1]]
+    dims_l = [args[0]._dims[0]]
+    dims_r = [args[0]._dims[1]]
     for arg in args[1:]:
         out_data = _data.kron(out_data, arg.data)
         # If both _are_ Hermitian and/or unitary, then so is the output, but if
         # both _aren't_, then output still can be.
         isherm = (isherm and arg._isherm) or None
         isunitary = (isunitary and arg._isunitary) or None
-        if arg.type != type:
-            type = None
+        dims_l.append(arg._dims[0])
+        dims_r.append(arg._dims[1])
+
     return Qobj(out_data,
                 dims=[dims_l, dims_r],
-                type=type,
                 isherm=isherm,
                 isunitary=isunitary,
-                superrep=args[0].superrep,
                 copy=False)
 
 
-def super_tensor(*args):
+@overload
+def super_tensor(*args: Qobj) -> Qobj: ...
+
+@overload
+def super_tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
+
+def super_tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
     """
     Calculate the tensor product of input superoperators, by tensoring together
     the underlying Hilbert spaces on which each vectorized operator acts.
@@ -173,6 +189,12 @@ def _isketlike(q):
 def _isbralike(q):
     return q.isbra or q.isoperbra
 
+
+@overload
+def composite(*args: Qobj) -> Qobj: ...
+
+@overload
+def composite(*args: Qobj | QobjEvo) -> QobjEvo: ...
 
 def composite(*args):
     """
@@ -245,13 +267,18 @@ def _tensor_contract_dense(arr, *pairs):
     return arr
 
 
-def tensor_swap(q_oper, *pairs):
+def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
     """Transposes one or more pairs of indices of a Qobj.
-    Note that this uses dense representations and thus
-    should *not* be used for very large Qobjs.
+
+    .. note::
+
+        Note that this uses dense representations and thus
+        should *not* be used for very large Qobjs.
 
     Parameters
     ----------
+    q_oper : Qobj
+        Operator to swap dims.
 
     pairs : tuple
         One or more tuples ``(i, j)`` indicating that the
@@ -284,13 +311,18 @@ def tensor_swap(q_oper, *pairs):
     return Qobj(data, dims=dims, superrep=q_oper.superrep, copy=False)
 
 
-def tensor_contract(qobj, *pairs):
+def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
     """Contracts a qobj along one or more index pairs.
-    Note that this uses dense representations and thus
-    should *not* be used for very large Qobjs.
+
+    .. note::
+
+        Note that this uses dense representations and thus
+        should *not* be used for very large Qobjs.
 
     Parameters
     ----------
+    qobj: Qobj
+        Operator to contract subspaces on.
 
     pairs : tuple
         One or more tuples ``(i, j)`` indicating that the
@@ -333,7 +365,7 @@ def tensor_contract(qobj, *pairs):
     # We don't need to check for tensor idxs versus dims idxs here,
     # as column- versus row-stacking will never move an index for the
     # vectorized operator spaces all the way from the left to the right.
-    l_mtx_dims, r_mtx_dims = map(np.product, map(flatten, contracted_dims))
+    l_mtx_dims, r_mtx_dims = map(np.prod, map(flatten, contracted_dims))
 
     # Reshape back into a 2D matrix.
     qmtx = qtens.reshape((l_mtx_dims, r_mtx_dims))
@@ -348,7 +380,7 @@ def _check_oper_dims(oper, dims=None, targets=None):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`
+    oper : :class:`.Qobj`
         The quantum object to be checked.
     dims : list, optional
         A list of integer for the dimension of each composite system.
@@ -379,8 +411,8 @@ def _targets_to_list(targets, oper=None, N=None):
     ----------
     targets : int or list of int
         The indices of subspace that are acted on.
-    oper : :class:`qutip.Qobj`, optional
-        An operator, the type of the :class:`qutip.Qobj`
+    oper : :class:`.Qobj`, optional
+        An operator, the type of the :class:`.Qobj`
         has to be an operator
         and the dimension matches the tensored qubit Hilbert space
         e.g. dims = ``[[2, 2, 2], [2, 2, 2]]``
@@ -392,7 +424,7 @@ def _targets_to_list(targets, oper=None, N=None):
         targets = list(range(len(oper.dims[0])))
     if not hasattr(targets, '__iter__'):
         targets = [targets]
-    if not all([isinstance(t, int) for t in targets]):
+    if not all([isinstance(t, (int, np.integer)) for t in targets]):
         raise TypeError(
             "targets should be "
             "an integer or a list of integer")
@@ -412,7 +444,15 @@ def _targets_to_list(targets, oper=None, N=None):
     return targets
 
 
-def expand_operator(oper, dims, targets):
+QobjOrQobjEvo = TypeVar("QobjOrQobjEvo", Qobj, QobjEvo)
+
+
+def expand_operator(
+    oper: QobjOrQobjEvo,
+    dims: list[int],
+    targets: int,
+    dtype: LayerType = None
+) -> QobjOrQobjEvo:
     """
     Expand an operator to one that acts on a system with desired dimensions.
     e.g.
@@ -425,7 +465,7 @@ def expand_operator(oper, dims, targets):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`
+    oper : :class:`.Qobj`
         An operator that act on the subsystem, has to be an operator and the
         dimension matches the tensored dims Hilbert space
         e.g. oper.dims = ``[[2, 3], [2, 3]]``
@@ -434,13 +474,19 @@ def expand_operator(oper, dims, targets):
         E.g ``[2, 3, 2, 3, 4]``.
     targets : int or list of int
         The indices of subspace that are acted on.
+    dtype : str, optional
+        Data type of the output :class:`.Qobj`. By default it uses the data
+        type specified in settings. If no data type is specified
+        in settings it uses the ``CSR`` data type.
 
     Returns
     -------
-    expanded_oper : :class:`qutip.Qobj`
-        The expanded operator acting on a system with desired dimension.
+    expanded_oper : :class:`.Qobj`
+        The expanded operator acting on a system with the desired dimension.
     """
     from .operators import identity
+    dtype = _data._parse_default_dtype(dtype, "sparse")
+    oper = oper.to(dtype)
     N = len(dims)
     targets = _targets_to_list(targets, oper=oper, N=N)
     _check_oper_dims(oper, dims=dims, targets=targets)
@@ -459,4 +505,4 @@ def expand_operator(oper, dims, targets):
     for i, ind in enumerate(rest_pos):
         new_order[ind] = rest_qubits[i]
     id_list = [identity(dims[i]) for i in rest_pos]
-    return tensor([oper] + id_list).permute(new_order)
+    return tensor([oper] + id_list).permute(new_order).to(dtype)

@@ -12,23 +12,29 @@ from cpython cimport mem
 
 import numbers
 import warnings
-
+import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
 from scipy.sparse import csr_matrix as scipy_csr_matrix
-try:
-    from scipy.sparse.data import _data_matrix as scipy_data_matrix
-except ImportError:
+from functools import partial
+from packaging.version import parse as parse_version
+if parse_version(scipy.version.version) >= parse_version("1.14.0"):
+    from scipy.sparse._data import _data_matrix as scipy_data_matrix
+    # From scipy 1.14.0, a check that the input is not scalar was added for
+    # sparse arrays.
+    scipy_data_matrix_init = partial(scipy_data_matrix.__init__, arg1=(0,))
+elif parse_version(scipy.version.version) >= parse_version("1.8.0"):
     # The file data was renamed to _data from scipy 1.8.0
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
+    scipy_data_matrix_init = scipy_data_matrix.__init__
+else:
+    from scipy.sparse.data import _data_matrix as scipy_data_matrix
+    scipy_data_matrix_init = scipy_data_matrix.__init__
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport base, Dense
-from qutip.core.data.add cimport add_csr, sub_csr
+from qutip.core.data cimport base, Dense, Dia
 from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
-from qutip.core.data.mul cimport mul_csr, neg_csr
-from qutip.core.data.matmul cimport matmul_csr
 from qutip.core.data.trace cimport trace_csr
 from qutip.core.data.tidyup cimport tidyup_csr
 from .base import idxint_dtype
@@ -56,7 +62,7 @@ cdef object _csr_matrix(data, indices, indptr, shape):
     cdef object out = scipy_csr_matrix.__new__(scipy_csr_matrix)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
-    scipy_data_matrix.__init__(out)
+    scipy_data_matrix_init(out)
     out.data = data
     out.indices = indices
     out.indptr = indptr
@@ -81,7 +87,7 @@ cdef class CSR(base.Data):
         # single flag that is set as soon as the pointers are assigned.
         self._deallocate = True
 
-    def __init__(self, arg=None, shape=None, bint copy=True, bint tidyup=False):
+    def __init__(self, arg=None, shape=None, copy=True, bint tidyup=False):
         # This is the Python __init__ method, so we do not care that it is not
         # super-fast C access.  Typically Cython code will not call this, but
         # will use a factory method in this module or at worst, call
@@ -103,6 +109,9 @@ cdef class CSR(base.Data):
             raise TypeError("arg must be a scipy matrix or tuple")
         if len(arg) != 3:
             raise ValueError("arg must be a (data, col_index, row_index) tuple")
+        if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
+            # np2 accept None which act as np1's False
+            copy = builtins.bool(copy)
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
         col_index = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
         row_index = np.array(arg[2], dtype=idxint_dtype, copy=copy, order='C')
@@ -142,6 +151,10 @@ cdef class CSR(base.Data):
         self._scipy = _csr_matrix(data, col_index, row_index, self.shape)
         if tidyup:
             tidyup_csr(self, settings.core['auto_tidyup_atol'], True)
+
+    @classmethod
+    def sparcity(self):
+        return "sparse"
 
     def __reduce__(self):
         return (fast_from_scipy, (self.as_scipy(),))
@@ -299,7 +312,7 @@ cpdef CSR copy_structure(CSR matrix):
     return out
 
 
-cpdef inline base.idxint nnz(CSR matrix) nogil:
+cpdef inline base.idxint nnz(CSR matrix) noexcept nogil:
     """Get the number of non-zero elements of a CSR matrix."""
     return matrix.row_index[matrix.shape[0]]
 
@@ -314,7 +327,7 @@ ctypedef fused _swap_data:
     double complex
     base.idxint
 
-cdef inline void _sorter_swap(_swap_data *a, _swap_data *b) nogil:
+cdef inline void _sorter_swap(_swap_data *a, _swap_data *b) noexcept nogil:
     a[0], b[0] = b[0], a[0]
 
 cdef class Sorter:
@@ -533,6 +546,21 @@ cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size):
         <base.idxint *> PyDataMem_NEW(size * sizeof(base.idxint))
     out.row_index =\
         <base.idxint *> PyDataMem_NEW(row_size * sizeof(base.idxint))
+    if not out.data:
+        raise MemoryError(
+            f"Failed to allocate the `data` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
+    if not out.col_index:
+        raise MemoryError(
+            f"Failed to allocate the `col_index` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
+    if not out.row_index:
+        raise MemoryError(
+            f"Failed to allocate the `row_index` of a ({rows}, {cols}) "
+            f"CSR array of {size} max elements."
+        )
     # Set the number of non-zero elements to 0.
     out.row_index[rows] = 0
     return out
@@ -575,14 +603,19 @@ cpdef CSR from_dense(Dense matrix):
     cdef CSR out = empty(matrix.shape[0], matrix.shape[1],
                          matrix.shape[0]*matrix.shape[1])
     cdef size_t row, col, ptr_in, ptr_out=0, row_stride, col_stride
+    cdef double atol = 0
+    cdef double complex value
     row_stride = 1 if matrix.fortran else matrix.shape[1]
     col_stride = matrix.shape[0] if matrix.fortran else 1
     out.row_index[0] = 0
+    if settings.core["auto_tidyup"]:
+        atol = settings.core["auto_tidyup_atol"]**2
     for row in range(matrix.shape[0]):
         ptr_in = row_stride * row
         for col in range(matrix.shape[1]):
-            if matrix.data[ptr_in] != 0:
-                out.data[ptr_out] = matrix.data[ptr_in]
+            value = matrix.data[ptr_in]
+            if value.real**2 + value.imag**2 > atol:
+                out.data[ptr_out] = value
                 out.col_index[ptr_out] = col
                 ptr_out += 1
             ptr_in += col_stride
@@ -604,7 +637,10 @@ cdef CSR from_coo_pointers(
     data_tmp = <double complex *> mem.PyMem_Malloc(nnz * sizeof(double complex))
     cols_tmp = <base.idxint *> mem.PyMem_Malloc(nnz * sizeof(base.idxint))
     if data_tmp == NULL or cols_tmp == NULL:
-        raise MemoryError
+        raise MemoryError(
+            f"Failed to allocate the memory needed for a ({n_rows}, {n_cols}) "
+            f"CSR array with {nnz} elements."
+        )
     with nogil:
         memset(out.row_index, 0, (n_rows + 1) * sizeof(base.idxint))
         for ptr_in in range(nnz):
@@ -640,6 +676,29 @@ cdef CSR from_coo_pointers(
     mem.PyMem_Free(cols_tmp)
     acc_free(&acc)
     return out
+
+
+cpdef CSR from_dia(Dia matrix):
+    cdef base.idxint col, diag, i, ptr=0
+    cdef base.idxint nrows=matrix.shape[0], ncols=matrix.shape[1]
+    cdef base.idxint nnz = matrix.num_diag * min(matrix.shape)
+    cdef double complex[:] data = np.zeros(nnz, dtype=complex)
+    cdef base.idxint[:] cols = np.zeros(nnz, dtype=idxint_dtype)
+    cdef base.idxint[:] rows = np.zeros(nnz, dtype=idxint_dtype)
+
+    for i in range(matrix.num_diag):
+        diag = matrix.offsets[i]
+
+        for col in range(ncols):
+            if col - diag < 0 or col - diag >= nrows:
+                continue
+            data[ptr] = matrix.data[i * ncols + col]
+            rows[ptr] = col - diag
+            cols[ptr] = col
+            ptr += 1
+
+    return from_coo_pointers(&rows[0], &cols[0], &data[0], matrix.shape[0],
+                             matrix.shape[1], nnz)
 
 
 cdef inline base.idxint _diagonal_length(
@@ -847,3 +906,124 @@ def diags(diagonals, offsets=None, shape=None):
     return diags_(
         diagonals_, np.array(offsets_, dtype=idxint_dtype), n_rows, n_cols,
     )
+
+
+cpdef CSR _from_csr_blocks(
+    base.idxint[:] block_rows, base.idxint[:] block_cols, CSR[:] block_ops,
+    base.idxint n_blocks, base.idxint block_size
+):
+    """
+    Construct a CSR from non-overlapping blocks.
+
+    Each operator in ``block_ops`` should be a square CSR operator with
+    shape ``(block_size, block_size)``. The output operator consists of
+    ``n_blocks`` by ``n_blocks`` blocks and thus has shape
+    ``(n_blocks * block_size, n_blocks * block_size)``.
+
+    None of the operators should overlap (i.e. the list of block row and
+    column pairs should be unique).
+
+    Parameters
+    ----------
+    block_rows : sequence of base.idxint integers
+        The block row for each operator. The block row should be in
+        ``range(0, n_blocks)``.
+
+    block_cols : sequence of base.idxint integers
+        The block column for each operator. The block column should be in
+        ``range(0, n_blocks)``.
+
+    block_ops : sequence of CSR matrixes
+        The operators corresponding to the rows and columns in ``block_rows``
+        and ``block_cols``.
+
+    n_blocks : base.idxint
+        Number of blocks. The shape of the final matrix is
+        (n_blocks * block, n_blocks * block).
+
+    block_size : base.idxint
+        Size of each block. The shape of matrices in ``block_ops`` is
+        ``(block_size, block_size)``.
+    """
+    cdef CSR op
+    cdef base.idxint shape = n_blocks * block_size
+    cdef base.idxint nnz_ = 0
+    cdef base.idxint n_ops = len(block_ops)
+    cdef base.idxint i, j
+    cdef base.idxint row_idx, col_idx
+
+    # check arrays are the same length
+    if len(block_rows) != n_ops or len(block_cols) != n_ops:
+        raise ValueError(
+            "The arrays block_rows, block_cols and block_ops should have"
+            " the same length."
+        )
+
+    if n_ops == 0:
+        return zeros(shape, shape)
+
+    # check op shapes and calculate nnz
+    for op in block_ops:
+        if type(op) is not CSR:
+            raise TypeError("Blocks must all be CSR.")
+        nnz_ += nnz(op)
+        if op.shape[0] != block_size or op.shape[1] != block_size:
+            raise ValueError(
+                "Block operators (block_ops) do not have the correct shape."
+            )
+
+    # check ops are ordered by (row, column)
+    row_idx = block_rows[0]
+    col_idx = block_cols[0]
+    for i in range(1, n_ops):
+        if (
+            block_rows[i] < row_idx or
+            (block_rows[i] == row_idx and block_cols[i] <= col_idx)
+        ):
+            raise ValueError(
+                "The arrays block_rows and block_cols must be sorted"
+                " by (row, column)."
+            )
+        row_idx = block_rows[i]
+        col_idx = block_cols[i]
+
+    if nnz_ == 0:
+        return zeros(shape, shape)
+
+    cdef CSR out = empty(shape, shape, nnz_)
+    cdef base.idxint op_idx = 0
+    cdef base.idxint prev_op_idx = 0
+    cdef base.idxint end = 0
+    cdef base.idxint row_pos, col_pos
+    cdef base.idxint op_row, op_row_start, op_row_end, op_row_len
+
+    out.row_index[0] = 0
+
+    for row_idx in range(n_blocks):
+        prev_op_idx = op_idx
+        while op_idx < n_ops:
+            if block_rows[op_idx] != row_idx:
+                break
+            op_idx += 1
+
+        row_pos = row_idx * block_size
+        for op_row in range(block_size):
+            for i in range(prev_op_idx, op_idx):
+                op = block_ops[i]
+                if nnz(op) == 0:
+                    # empty CSR matrices have uninitialized row_index entries.
+                    # it's unclear whether users should ever see such matrixes
+                    # but we support them here anyway.
+                    continue
+                col_idx = block_cols[i]
+                col_pos = col_idx * block_size
+                op_row_start = op.row_index[op_row]
+                op_row_end = op.row_index[op_row + 1]
+                op_row_len = op_row_end - op_row_start
+                for j in range(op_row_len):
+                    out.col_index[end + j] = op.col_index[op_row_start + j] + col_pos
+                    out.data[end + j] = op.data[op_row_start + j]
+                end += op_row_len
+            out.row_index[row_pos + op_row + 1] = end
+
+    return out

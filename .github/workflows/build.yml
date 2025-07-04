@@ -12,14 +12,15 @@ on:
 
 
 jobs:
-  # The deploy_test job is part of the test of whether we should deploy to PyPI.
-  # The job will succeed if either the confirmation reference is empty or if the
-  # confirmation is the selected branch or tag name.  It will fail if it is
-  # nonempty and does not match.  All later jobs depend on this job, so that
-  # they will be immediately cancelled if the confirmation is bad.  The
-  # dependency is currently necessary (2021-03) because GitHub Actions does not
-  # have a simpler method of cancelling an entire workflow---the normal use-case
-  # expects to try and run as much as possible despite one or two failures.
+  # The deploy_test job is part of the test of whether we should deploy to PyPI
+  # or test.PyPI. The job will succeed if either the confirmation reference is
+  # empty, 'test' or if the confirmation is the selected branch or tag name.
+  # It will fail if it is nonempty and does not match.  All later jobs depend
+  # on this job, so that they will be immediately cancelled if the confirmation
+  # is bad.  The dependency is currently necessary (2021-03) because GitHub
+  # Actions does not have a simpler method of cancelling an entire workflow---
+  # the normal use-case expects to try and run as much as possible despite one
+  # or two failures.
   deploy_test:
     name: Verify PyPI deployment confirmation
     runs-on: ubuntu-latest
@@ -30,8 +31,10 @@ jobs:
       - name: Compare confirmation to current reference
         shell: bash
         run: |
-          [[ -z $CONFIRM_REF || $GITHUB_REF =~ ^refs/(heads|tags)/$CONFIRM_REF$ ]]
-          if [[ -z $CONFIRM_REF ]]; then
+          [[ -z $CONFIRM_REF || $GITHUB_REF =~ ^refs/(heads|tags)/$CONFIRM_REF$ || $CONFIRM_REF == "test" ]]
+          if [[ $CONFIRM_REF == "test" ]]; then
+            echo "Build and deploy to test.pypi.org."
+          elif [[ -z $CONFIRM_REF ]]; then
             echo "Build only.  Nothing will be uploaded to PyPI."
           else
             echo "Full build and deploy.  Wheels and source will be uploaded to PyPI."
@@ -46,7 +49,7 @@ jobs:
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         name: Install Python
@@ -54,7 +57,7 @@ jobs:
           # For the sdist we should be as conservative as possible with our
           # Python version.  This should be the lowest supported version.  This
           # means that no unsupported syntax can sneak through.
-          python-version: '3.7'
+          python-version: '3.10'
 
       - name: Install pip build
         run: |
@@ -87,7 +90,7 @@ jobs:
           zip "$zipfile" -r "$stem"
           rm -r "$stem"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: |
@@ -102,29 +105,30 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # between 13 and 14, mac changed from intel chip to apple silicon
+        os: [ubuntu-latest, windows-latest, macos-13, macos-latest]
     env:
-      # Set up wheels matrix.  This is CPython 3.6--3.10 for all OS targets.
-      CIBW_BUILD: "cp3{6,7,8,9,10,11}-*"
+      # Set up wheels matrix.  This is CPython 3.10--3.13 for all OS targets.
+      CIBW_BUILD: "cp3{10,11,12,13}-*"
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
-      CIBW_SKIP: "*-musllinux* cp3{8,9,10,11}-manylinux_i686 cp3{8,9,10,11}-win32"
+      CIBW_SKIP: "*-musllinux* *-manylinux_i686 *-win32"
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         name: Install Python
         with:
           # This is about the build environment, not the released wheel version.
-          python-version: '3.7'
+          python-version: '3.10'
 
       - name: Install cibuildwheel
         run: |
-          # cibuildwheel does the heavy lifting for us. Originally tested on
-          # 2.11.3, but should be fine at least up to any minor new release.
-          python -m pip install 'cibuildwheel==2.11.*'
+          # cibuildwheel does the heavy lifting for us. Tested on
+          # 2.22, but should be fine at least up to any minor new release.
+          python -m pip install 'cibuildwheel==2.22.*'
 
       - name: Build wheels
         shell: bash
@@ -134,45 +138,66 @@ jobs:
           if [[ ! -z "$OVERRIDE_VERSION" ]]; then echo "$OVERRIDE_VERSION" > VERSION; fi
           python -m cibuildwheel --output-dir wheelhouse
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
 
 
   deploy:
     name: "Deploy to PyPI if desired"
-    # The confirmation is tested explicitly in `deploy_test`, so we know it is
-    # either a missing confirmation (so we shouldn't run this job) or a valid
-    # confirmation.  We don't need to retest the value of the confirmation,
-    # beyond checking that one existed.
-    if: ${{ github.event.inputs.confirm_ref != '' }}
     needs: [deploy_test, build_sdist, build_wheels]
     runs-on: ubuntu-latest
     env:
       TWINE_USERNAME: __token__
-      TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       TWINE_NON_INTERACTIVE: 1
-      TWINE_REPOSITORY: pypi
 
     steps:
       - name: Download build artifacts to local runner
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
+        with:
+          path: wheels
+          merge-multiple: true
+
+      # Check that all .whl, .tar.gz and .zip have been properly build
+      # and downloaded.
+      - name: Check wheels
+        run: |
+          ls -R wheels
+          if ! [[ $(ls wheels/*.whl | wc -l) == 16 ]]; then exit 1; fi
+          if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
+          if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
 
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.7'
+          python-version: '3.10'
 
       - name: Verify this is not a dev version
         shell: bash
         run: |
-          python -m pip install wheels/*-cp37-cp37m-*.manylinux2010_x86_64.whl
+          python -m pip install wheels/*-cp310-cp310-manylinux*.whl
           python -c 'import qutip; print(qutip.__version__); assert "dev" not in qutip.__version__; assert "+" not in qutip.__version__'
 
       # We built the zipfile for convenience distributing to Windows users on
       # our end, but PyPI only needs the tarball.
       - name: Upload sdist and wheels to PyPI
         run: |
+          # The confirmation is tested explicitly in `deploy_test`, so we know
+          # it is either a missing confirmation (so we shouldn't run this job),
+          # 'test' or a valid confirmation.  We don't need to retest the value
+          #  of the confirmation, beyond checking that one existed.
+          if [ '${{ github.event.inputs.confirm_ref }}' == 'test' ]; then
+            export TWINE_REPOSITORY=testpypi
+            export TWINE_PASSWORD=${{ secrets.TESTPYPI_TOKEN }}
+          elif [ '${{ github.event.inputs.confirm_ref }}' != '' ]; then
+            export TWINE_REPOSITORY=pypi
+            export TWINE_PASSWORD=${{ secrets.PYPI_TOKEN }}
+          else
+            # Exit without deploying
+            echo "Don't update wheels"
+            exit 0
+          fi
+          echo "Deploy to $TWINE_REPOSITORY"
           python -m pip install "twine"
-          python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
+          python -m twine upload --verbose wheels/*.whl wheels/*.tar.gz

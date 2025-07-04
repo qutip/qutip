@@ -6,7 +6,7 @@ from .csr import CSR
 __all__ = ['inv', 'inv_csr', 'inv_dense']
 
 
-def inv_dense(data):
+def inv_dense(data, /):
     """Compute the inverse of a matrix"""
     if not isinstance(data, Dense):
         raise TypeError("expected data in Dense format but got "
@@ -17,7 +17,7 @@ def inv_dense(data):
     return Dense(scipy.linalg.inv(data.as_ndarray()), copy=False)
 
 
-def inv_csr(data):
+def inv_csr(data, /):
     """Compute the inverse of a sparse matrix"""
     if not isinstance(data, CSR):
         raise TypeError("expected data in CSR format but got "

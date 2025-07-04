@@ -11,42 +11,48 @@ Time-Dependent Operators
 In the previous examples of quantum evolution,
 we assumed that the systems under consideration were described by time-independent Hamiltonians.
 However, many systems have explicit time dependence in either the Hamiltonian,
-or the collapse operators describing coupling to the environment, and sometimes both components might depend on time.
-The time-evolutions solvers such as :func:`sesolve`, :func:`brmesolve`, etc. are all capable of handling time-dependent Hamiltonians and collapse terms.
-QuTiP use :class:`QobjEvo` to represent time-dependent quantum operators.
-There are three different ways to build a :class:`QobjEvo`: :
+or the collapse operators describing coupling to the environment, and sometimes
+both components might depend on time. The time-evolutions solvers such as :func:`.sesolve`,
+:func:`.brmesolve`, etc. are all capable of handling time-dependent Hamiltonians and collapse terms.
+QuTiP use :obj:`.QobjEvo` to represent time-dependent quantum operators.
+There are three different ways to build a :obj:`.QobjEvo`:
 
 
-1. **Function based**: Build the time dependent operator from a function returning a :class:`Qobj`:
+1. **Function based**: Build the time dependent operator from a function returning a :obj:`.Qobj`:
 
 .. code-block:: python
 
     def oper(t):
         return num(N) + (destroy(N) + create(N)) * np.sin(t)
+
     H_t = QobjEvo(oper)
 
-1. **List based**: The time dependent quantum operator is represented as a list of ``qobj`` and ``[qobj, coefficient]`` pairs.
+1. **List based**: The time dependent quantum operator is represented as a list of ``qobj`` and ``[qobj, coefficient]`` pairs:
 
 .. code-block:: python
 
     H_t = QobjEvo([num(N), [create(N), lambda t: np.sin(t)], [destroy(N), lambda t: np.sin(t)]])
 
 
-3. **coefficent based**: The product of a :class:`Qobj` with a :class:`Coefficient` result in a :class:`QobjEvo`:
+3. **coefficent based**: The product of a :obj:`.Qobj` with a :obj:`.Coefficient`,
+created by the :func:`.coefficient` function, result in a :obj:`.QobjEvo`:
 
 .. code-block:: python
 
     coeff = coefficent(lambda t: np.sin(t))
     H_t = num(N) + (destroy(N) + create(N)) * coeff
 
-These 3 examples will create the same time dependent operator, however the function based method will usually be slower when used in solver.
+These 3 examples will create the same time dependent operator, however the function
+based method will usually be slower when used in solver.
 
 
-Solvers will accept a :class:`QobjEvo`: when an operator is expected: this include the Hamiltonian ``H``, collapse operators, expectation values operators, the operator of :func:`brmesolve`'s ``a_ops``, etc.
-Exception are :func:`krylovsolve`'s Hamiltonian and HEOM's Bath operators.
+Most solvers accept a :obj:`.QobjEvo` when an operator is expected: this include
+the Hamiltonian ``H``, collapse operators, expectation values operators, the operator
+of :func:`.brmesolve`'s ``a_ops``, etc.  Exception are :func:`.krylovsolve`'s
+Hamiltonian and HEOM's Bath operators.
 
 
-Most solvers will accept any format that could be made into a :class:`QobjEvo`: for the Hamiltonian.
+Most solvers will accept any format that could be made into a :obj:`.QobjEvo` for the Hamiltonian.
 All of the following are equivalent:
 
 
@@ -57,23 +63,27 @@ All of the following are equivalent:
     result = mesolve(oper, ...)
 
 
-Collapse operator also accept a list of object that could be made into :class:`QobjEvo`:.
-However one needs to be careful about not confusing the list nature of the `c_ops` parameter with list format quantum system.
-In the following call:
+Collapse operator also accept a list of object that could be made into :obj:`.QobjEvo`.
+However one needs to be careful about not confusing the list nature of the `c_ops`
+parameter with list format quantum system. In the following call:
 
 .. code-block:: python
 
     result = mesolve(H_t, ..., c_ops=[num(N), [destroy(N) + create(N), lambda t: np.sin(t)]])
 
-:func:`mesolve` will see 2 collapses operators: ``num(N)`` and ``[destroy(N) + create(N), lambda t: np.sin(t)]``.
-It is therefore preferred to pass each collapse operator as either a :class:`Qobj`: or a :class:`QobjEvo`:.
+:func:`.mesolve` will see 2 collapses operators:
+``num(N)`` and ``[destroy(N) + create(N), lambda t: np.sin(t)]``.
+It is therefore preferred to pass each collapse operator as either a :obj:`.Qobj`
+or a :obj:`.QobjEvo`.
 
 
-As an example, we will look at a case with a time-dependent Hamiltonian of the form :math:`H=H_{0}+f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.
+As an example, we will look at a case with a time-dependent Hamiltonian of the form
+:math:`H=H_{0}+f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength
+given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.
 The following code sets up the problem
 
 .. plot::
-    :context: close-figs
+    :context: reset
 
     ustate = basis(3, 0)
     excited = basis(3, 1)
@@ -104,23 +114,27 @@ The following code sets up the problem
     H0 = -g * (sigma_ge.dag() * a + a.dag() * sigma_ge)  # time-independent term
     H1 = (sigma_ue.dag() + sigma_ue)  # time-dependent term
 
-Given that we have a single time-dependent Hamiltonian term, and constant collapse terms, we need to specify a single Python function for the coefficient :math:`f(t)`.  In this case, one can simply do
+Given that we have a single time-dependent Hamiltonian term, and constant collapse terms,
+we need to specify a single Python function for the coefficient :math:`f(t)`.
+In this case, one can simply do
 
 .. plot::
-    :context:
+    :context: close-figs
     :nofigs:
 
     def H1_coeff(t):
         return 9 * np.exp(-(t / 5.) ** 2)
 
-In this case, the return value depends only on time.  However it is possible to add optional arguments to the call, see `Using arguments`_.
-Having specified our coefficient function, we can now specify the Hamiltonian in list format and call the solver (in this case :func:`qutip.mesolve`)
+In this case, the return value depends only on time.  However it is possible to
+add optional arguments to the call, see `Using arguments`_.
+Having specified our coefficient function, we can now specify the Hamiltonian in
+list format and call the solver (in this case :func:`.mesolve`)
 
 .. plot::
     :context: close-figs
 
     H = [H0, [H1, H1_coeff]]
-    output = mesolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
+    output = mesolve(H, psi0, t, c_ops, e_ops=[ada, sigma_UU, sigma_GG])
 
 We can call the Monte Carlo solver in the exact same way (if using the default ``ntraj=500``):
 
@@ -131,10 +145,12 @@ We can call the Monte Carlo solver in the exact same way (if using the default `
 .. doctest::
     :skipif: True
 
-    output = mcsolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
+    output = mcsolve(H, psi0, t, c_ops, e_ops=[ada, sigma_UU, sigma_GG])
 
-The output from the master equation solver is identical to that shown in the examples, the Monte Carlo however will be noticeably off, suggesting we should increase the number of trajectories for this example.
-In addition, we can also consider the decay of a simple Harmonic oscillator with time-varying decay rate
+The output from the master equation solver is identical to that shown in the examples,
+the Monte Carlo however will be noticeably off, suggesting we should increase the number
+of trajectories for this example. In addition, we can also consider the decay of a
+simple Harmonic oscillator with time-varying decay rate
 
 .. plot::
     :context: close-figs
@@ -150,14 +166,15 @@ In addition, we can also consider the decay of a simple Harmonic oscillator with
     psi0 = basis(N, 9)  # initial state
     c_ops = [QobjEvo([a, col_coeff])]  # time-dependent collapse term
     times = np.linspace(0, 10, 100)
-    output = mesolve(H, psi0, times, c_ops, [a.dag() * a])
+    output = mesolve(H, psi0, times, c_ops, e_ops=[a.dag() * a])
 
 
 
 Qobjevo
 =======
 
-:class:`QobjEvo` as a time dependent quantum system, as it's main functionality create a :class:`Qobj` at a time:
+:obj:`.QobjEvo` as a time dependent quantum system, as it's main functionality
+create a :obj:`.Qobj` at a time:
 
 .. doctest:: [basics]
     :options: +NORMALIZE_WHITESPACE
@@ -169,28 +186,29 @@ Qobjevo
      [1. 1.]]
 
 
-:class:`QobjEvo` shares a lot of properties with the :class:`Qobj`.
+:obj:`.QobjEvo` shares a lot of properties with the :obj:`.Qobj`.
 
-+---------------+------------------+----------------------------------------+
-| Property      | Attribute        | Description                            |
-+===============+==================+========================================+
-| Dimensions    | ``Q.dims``       | List keeping track of shapes for       |
-|               |                  | individual components of a             |
-|               |                  | multipartite system (for tensor        |
-|               |                  | products and partial traces).          |
-+---------------+------------------+----------------------------------------+
-| Shape         | ``Q.shape``      | Dimensions of underlying data matrix.  |
-+---------------+------------------+----------------------------------------+
-| Type          | ``Q.type``       | Is object of type 'ket, 'bra',         |
-|               |                  | 'oper', or 'super'?                    |
-+---------------+------------------+----------------------------------------+
-| is constant?  | ``Q.isconstant`` | Is the operator Hermitian or not?      |
-+---------------+------------------+----------------------------------------+
++----------------+------------------+----------------------------------------+
+| Property       | Attribute        | Description                            |
++================+==================+========================================+
+| Dimensions     | ``Q.dims``       | Shapes the tensor structure.           |
++----------------+------------------+----------------------------------------+
+| Shape          | ``Q.shape``      | Dimensions of underlying data matrix.  |
++----------------+------------------+----------------------------------------+
+| Type           | ``Q.type``       | Is object of type 'ket, 'bra',         |
+|                |                  | 'oper', or 'super'?                    |
++----------------+------------------+----------------------------------------+
+| Representation | ``Q.superrep``   | Representation used if `type` is       |
+|                |                  | 'super'?                               |
++----------------+------------------+----------------------------------------+
+| Is constant    | ``Q.isconstant`` | Does the QobjEvo depend on time.       |
++----------------+------------------+----------------------------------------+
 
 
-:class:`QobjEvo`'s follow the same mathematical operations rules than :class:`Qobj`.
+:obj:`.QobjEvo`'s follow the same mathematical operations rules than :obj:`.Qobj`.
 They can be added, subtracted and multiplied with scalar, ``Qobj`` and ``QobjEvo``.
-They also support the `dag` and `trans` and `conj` method and can be used for tensor operations and super operator transformation:
+They also support the ``dag`` and ``trans`` and ``conj`` method and can be used
+for tensor operations and super operator transformation:
 
 .. code-block:: python
 
@@ -211,68 +229,79 @@ Or equivalently:
 Using arguments
 ---------------
 
-Until now, the coefficient were only functions of time.
-In the definition of ``H1_coeff``, the driving amplitude ``A`` and width ``sigma`` were hardcoded with their numerical values.
+Until now, the coefficients were only functions of time. In the definition of ``H1_coeff``,
+the driving amplitude ``A`` and width ``sigma`` were hardcoded with their numerical values.
 This is fine for problems that are specialized, or that we only want to run once.
-However, in many cases, we would like study the same problem with a range of parameters and not have to worry about manually changing the values on each run.
-QuTiP allows you to accomplish this using by adding extra arguments to coefficients function that make the :class:`QobjEvo`.
-For instance, instead of explicitly writing 9 for the amplitude and 5 for the width of the gaussian driving term, we can add an `args` positional variable:
+However, in many cases, we would like study the same problem with a range of parameters and
+not have to worry about manually changing the values on each run.
+QuTiP allows you to accomplish this using by adding extra arguments to coefficients
+function that make the :obj:`.QobjEvo`. For instance, instead of explicitly writing
+9 for the amplitude and 5 for the width of the gaussian driving term, we can add an
+`args` positional variable:
 
 
-.. plot::
-    :context: close-figs
+.. code-block:: python
 
-    def H1_coeff(t, args):
-        return args['A'] * np.exp(-(t/args['sigma'])**2)
+    >>> def H1_coeff(t, args):
+    >>>     return args['A'] * np.exp(-(t/args['sigma'])**2)
 
 
 or, new from v5, add the extra parameter directly:
 
 
-.. plot::
-    :context: close-figs
+.. code-block:: python
 
-    def H1_coeff(t, A, sigma):
-        return A * np.exp(-(t / sigma)**2)
+    >>> def H1_coeff(t, A, sigma):
+    >>>     return A * np.exp(-(t / sigma)**2)
 
 
-When the second positional input of the coefficient function is named ``args``, the arguments are passed as a Python dictionary of ``key: value`` pairs.
+When the second positional input of the coefficient function is named ``args``,
+the arguments are passed as a Python dictionary of ``key: value`` pairs.
 Otherwise the coefficient function is called as ``coeff(t, **args)``.
-In the last example, ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the two parameters for the amplitude and width, respectively.
-This ``args`` dictionary need to be given at creation of the :class:`QobjEvo` when function using then are included:
+In the last example, ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the
+two parameters for the amplitude and width, respectively.
+This ``args`` dictionary need to be given at creation of the :obj:`.QobjEvo` when
+function using then are included:
 
-.. plot::
-    :context: close-figs
+.. code-block:: python
 
-    system = [H0, [H1, H1_coeff]]
-    args={'A': 9, 'sigma': 5}
-    qevo = QobjEvo(system, args=args)
+    >>> system = [sigmaz(), [sigmax(), H1_coeff]]
+    >>> args={'A': 9, 'sigma': 5}
+    >>> qevo = QobjEvo(system, args=args)
 
-But without ``args``, the :class:`QobjEvo` creation will fail:
+But without ``args``, the :obj:`.QobjEvo` creation will fail:
 
-.. plot::
-    :context: close-figs
+.. code-block:: python
 
-    try:
-        QobjEvo(system)
-    except TypeError as err:
-        print(err)
+    >>> QobjEvo(system)
+    TypeError: H1_coeff() missing 2 required positional arguments: 'A' and 'sigma'
 
-When evaluation the :class:`QobjEvo` at a time, new arguments can be passed either with the ``args`` dictionary positional arguments, or with specific keywords arguments:
+When evaluation the :obj:`.QobjEvo` at a time, new arguments can be passed either
+with the ``args`` dictionary positional arguments, or with specific keywords arguments:
 
-.. plot::
-    :context: close-figs
+.. code-block:: python
 
-    print(qevo(1))
-    print(qevo(1, {"A": 5, "sigma": 0.2}))
-    print(qevo(1, A=5))
-
+    >>> print(qevo(1))
+    Quantum object: dims=[[2], [2]], shape=(2, 2), type='oper', isherm=True
+    Qobj data =
+    [[ 1.          8.64710495]
+     [ 8.64710495 -1.        ]]
+    >>> print(qevo(1, {"A": 5, "sigma": 0.2}))
+    Quantum object: dims=[[2], [2]], shape=(2, 2), type='oper', isherm=True
+    Qobj data =
+    [[ 1.00000000e+00  6.94397193e-11]
+     [ 6.94397193e-11 -1.00000000e+00]]
+    >>> print(qevo(1, A=5))
+    Quantum object: dims=[[2], [2]], shape=(2, 2), type='oper', isherm=True
+    Qobj data =
+    [[ 1.         4.8039472]
+     [ 4.8039472 -1.       ]]
 
 Whether the original coefficient used the ``args`` or specific input does not matter.
 It is fine to mix the different signatures.
 
 Solver calls take an ``args`` input that is used to build the time dependent system.
-If the Hamiltonian or collapse operators are already :class:`QobjEvo`, their arguments will be overwritten.
+If the Hamiltonian or collapse operators are already :obj:`.QobjEvo`, their arguments will be overwritten.
 
 .. code-block:: python
 
@@ -282,19 +311,18 @@ If the Hamiltonian or collapse operators are already :class:`QobjEvo`, their arg
     mesolve(system, ..., args=args)
 
 
-To update arguments of an existing time dependent quantum system, you can pass the previous object as the input of a :class:`QobjEvo` with new ``args``:
+To update arguments of an existing time dependent quantum system, you can pass the
+previous object as the input of a :obj:`.QobjEvo` with new ``args``:
 
 
-.. plot::
-    :context: close-figs
+.. code-block:: python
 
-    print(qevo(1))
-    print(qevo(1, {"A": 5, "sigma": 0.2}))
-    new_qevo = QobjEvo(qevo, args={"A": 5, "sigma": 0.2})
-    print(new_qevo(1))
+    >>> new_qevo = QobjEvo(qevo, args={"A": 5, "sigma": 0.2})
+    >>> new_qevo(1) == qevo(1, {"A": 5, "sigma": 0.2})
+    True
 
 
-:class:`QobjEvo` created from a monolithic function can also use arguments:
+:obj:`.QobjEvo` created from a monolithic function can also use arguments:
 
 
 .. code-block:: python
@@ -305,25 +333,34 @@ To update arguments of an existing time dependent quantum system, you can pass t
     H_t = QobjEvo(oper, args={"w": np.pi})
 
 
-When merging two or more :class:`QobjEvo`, each will keep it arguments, but calling it with updated are will affect all parts:
+When merging two or more :obj:`.QobjEvo`, each will keep it arguments, but
+calling it with updated are will affect all parts:
 
 
-.. plot::
-    :context: close-figs
+.. code-block:: python
 
-    qevo1 = QobjEvo([[sigmap(), lambda t, a: a], [sigmam(), lambda t, a, b: a+1j*b]], args={"a": 1, "b":2})
-    qevo2 = QobjEvo([[num(2), lambda t, a, c: a+1j*c]], args={"a": 2, "c":2})
-    summed_evo = qevo1 + qevo2
-    print(summed_evo(0))
-    print(summed_evo(0, a=3, b=1))
+    >>> qevo1 = QobjEvo([[sigmap(), lambda t, a: a]], args={"a": 1})
+    >>> qevo2 = QobjEvo([[sigmam(), lambda t, a: a]], args={"a": 2})
+    >>> summed_evo = qevo1 + qevo2
+    >>> print(summed_evo(0))
+    Quantum object: dims=[[2], [2]], shape=(2, 2), type='oper', isherm=False
+    Qobj data =
+    [[0. 1.]
+     [2. 0.]]
+    >>> print(summed_evo(0, a=3, b=1))
+    Quantum object: dims=[[2], [2]], shape=(2, 2), type='oper', isherm=True
+    Qobj data =
+    [[0. 3.]
+     [3. 0.]]
 
 
 Coefficients
 ============
 
-To build time dependent quantum system we often use a list of :class:`Qobj` and *coefficient*.
-These *coefficients* represent the strength of the corresponding quantum object a function that of time.
-Up to now, we used functions for these, but QuTiP support multiple formats: ``callable``, ``strings``, ``array``.
+To build time dependent quantum system we often use a list of :obj:`.Qobj` and
+:obj:`.Coefficient`. These :obj:`.Coefficient` represent the strength of the corresponding
+quantum object a function that of time. Up to now, we used functions for these,
+but QuTiP support multiple formats: ``callable``, ``strings``, ``array``.
 
 
 **Function coefficients** :
@@ -341,12 +378,15 @@ Any function or method that can be called by ``f(t, args)``, ``f(t, **args)`` is
 
 **String coefficients** :
 Use a string containing a simple Python expression.
-The variable ``t``, common mathematical functions such as ``sin`` or ``exp`` an variable in args will be available.
-If available, the string will be compiled using cython, fixing variable type when possible, allowing slightly faster excution than function.
-While the speed up is usually very small, in long evolution, numerous calls to the functions are made and it's can accumulate.
-From version 5, compilation of the coefficient is done only once and saved between sessions.
-When Cython is not available, the code will be executed in python with the same environment.
-This, however, as no advantage over using python function.
+The variable ``t``, common mathematical functions such as ``sin`` or ``exp`` an
+variable in args will be available. If available, the string will be compiled using
+cython, fixing variable type when possible, allowing slightly faster execution than function.
+While the speed up is usually very small, in long evolution, numerous calls to the
+functions are made and it's can accumulate. From version 5, compilation of the
+coefficient is done only once and saved between sessions. When either the cython or
+filelock modules are not available, the code will be executed in python using
+``exec`` with the same environment . This, however, as no advantage over using
+python function.
 
 
 .. code-block:: python
@@ -361,7 +401,8 @@ Here is a list of defined variables:
     ``sinh``, ``cosh``, ``tanh``, ``asinh``, ``acosh``, ``atanh``,
     ``exp``, ``log``, ``log10``, ``erf``, ``zerf``, ``sqrt``,
     ``real``, ``imag``, ``conj``, ``abs``, ``norm``, ``arg``, ``proj``,
-    ``np`` (numpy) and ``spe`` (scipy.special).
+    ``np`` (numpy), ``spe`` (scipy.special) and ``cython_special``
+    (scipy cython interface).
 
 
 **Array coefficients** :
@@ -399,7 +440,8 @@ Outside the interpolation range, the first or last value are used.
     plt.legend()
 
 
-When using array coefficients in solver, if the time dependent quantum system is in list format, the solver tlist is used as times of the array.
+When using array coefficients in solver, if the time dependent quantum system is
+in list format, the solver tlist is used as times of the array.
 This is often not ideal as the interpolation is usually less precise close the extremities of the range.
 It is therefore better to create the QobjEvo using an extended range prior to the solver:
 
@@ -412,12 +454,12 @@ It is therefore better to create the QobjEvo using an extended range prior to th
     coeff = np.exp(-times)
 
     c_ops = [QobjEvo([destroy(N), coeff], tlist=times)]
-    plt.plot(
-        mesolve(qeye(N), basis(N, N-1), np.linspace(0, 1, 11), c_ops=c_ops, e_ops=[num(N)]).expect
-    )
+    tlist = np.linspace(0, 1, 11)
+    data = mesolve(qeye(N), basis(N, N-1), tlist, c_ops=c_ops, e_ops=[num(N)]).expect[0]
+    plt.plot(tlist, data)
 
 
-Different coefficient types can be mixed in a :class:`QobjEvo`.
+Different coefficient types can be mixed in a :obj:`.QobjEvo`.
 
 
 Given the multiple choices of input style, the first question that arises is which option to choose?
@@ -429,9 +471,40 @@ Of course, for small system sizes and evolution times, the difference will be mi
 Lastly the spline method is usually as fast the string method, but it cannot be modified once created.
 
 
-.. _time-dynargs:
+.. _time_max_step:
 
-Accessing the state from solver
-===============================
+Working with pulses
+===================
 
-In QuTiP 4.4 to 4.7, it was possible to request that the solver pass the state, expectation values or collapse operators via arguments to :class:`QobjEvo`. Support for this is not yet available in QuTiP 5.
+Special care is needed when working with pulses. ODE solvers select the step
+length automatically and can miss thin pulses when not properly warned.
+Integrations methods with variable step sizes have the ``max_step`` option that
+control the maximum length of a single internal integration step. This value
+should be set to under half the pulse width to be certain they are not missed.
+
+For example, the following pulse is missed without fixing the maximum step length.
+
+.. plot::
+    :context: close-figs
+
+    def pulse(t):
+        return 10 * np.pi * (0.7 < t < 0.75)
+
+    tlist = np.linspace(0, 1, 201)
+    H = [sigmaz(), [sigmax(), pulse]]
+    psi0 = basis(2,1)
+
+    data1 = sesolve(H, psi0, tlist, e_ops=num(2)).expect[0]
+    data2 = sesolve(H, psi0, tlist, e_ops=num(2), options={"max_step": 0.01}).expect[0]
+
+    plt.plot(tlist, data1, label="no max_step")
+    plt.plot(tlist, data2, label="fixed max_step")
+    plt.fill_between(tlist, [pulse(t) for t in tlist], color="g", alpha=0.2, label="pulse")
+    plt.ylim([-0.1, 1.1])
+    plt.legend(loc="center left")
+
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:

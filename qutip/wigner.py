@@ -12,11 +12,21 @@ import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la
 import scipy.special
-from scipy.special import genlaguerre, binom, sph_harm, factorial
+from scipy.special import genlaguerre, binom, factorial
+
+try:
+    from scipy.special import sph_harm_y
+except ImportError:
+    from scipy.special import sph_harm
+
+    def sph_harm_y(n, m, polar, azimuthal):
+        # sph_harm is set for removal.
+        # Same function, but changed parameter order
+        return sph_harm(m, n, azimuthal, polar)
 
 import qutip
 from qutip import Qobj, ket2dm, jmat
-from .parallel import parfor
+from .solver.parallel import parallel_map
 from .utilities import clebsch
 from .core import data as _data
 from .core.data.eigen import eigh
@@ -161,7 +171,7 @@ def _angle_slice(slicearray, theta, phi):
     return theta, phi
 
 
-def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
+def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
            sparse=False, parfor=False):
     """Wigner function for a state vector or density matrix at points
     `xvec + i * yvec`.
@@ -179,13 +189,13 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
         y-coordinates at which to calculate the Wigner function.  Does not
         apply to the 'fft' method.
 
-    g : float
+    g : float, default: sqrt(2)
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
         The value of `g` is related to the value of `hbar` in the commutation
         relation `[x, y] = i * hbar` via `hbar=2/g^2` giving the default
         value `hbar=1`.
 
-    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
+    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}, default: 'clenshaw'
         Select method 'clenshaw' 'iterative', 'laguerre', or 'fft', where 'clenshaw'
         and 'iterative' use an iterative method to evaluate the Wigner functions for density
         matrices :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials
@@ -197,12 +207,12 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
         dealing with density matrices that have a large number of excitations
         (>~50). 'clenshaw' is a fast and numerically stable method.
 
-    sparse : bool {False, True}
+    sparse : bool, optional
         Tells the default solver whether or not to keep the input density
         matrix in sparse format.  As the dimensions of the density matrix
         grow, setthing this flag can result in increased performance.
 
-    parfor : bool {False, True}
+    parfor : bool, optional
         Flag for calculating the Laguerre polynomial based Wigner function
         method='laguerre' in parallel using the parfor function.
 
@@ -322,7 +332,7 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel):
         if parallel:
             iterator = (
                 (m, rho, A, B) for m in range(len(rho.data.indptr) - 1))
-            W1_out = parfor(_par_wig_eval, iterator)
+            W1_out = parallel_map(_par_wig_eval, iterator)
             W += sum(W1_out)
         else:
             for m in range(len(rho.data.indptr) - 1):
@@ -410,13 +420,14 @@ def _wigner_fft(psi, xvec):
     Returns the corresponding density matrix and range
     """
     n = 2*len(psi.T)
-    r1 = np.concatenate((np.array([[0]]),
-                        np.fliplr(psi.conj()),
-                        np.zeros((1, n//2 - 1))), axis=1)
-    r2 = np.concatenate((np.array([[0]]), psi,
-                        np.zeros((1, n//2 - 1))), axis=1)
-    w = la.toeplitz(np.zeros((n//2, 1)), r1) * \
-        np.flipud(la.toeplitz(np.zeros((n//2, 1)), r2))
+    r1 = np.concatenate(
+        (np.array([0]), np.fliplr(psi.conj()).ravel(), np.zeros(n//2 - 1))
+    )
+    r2 = np.concatenate(
+        (np.array([0]), psi.ravel(), np.zeros(n//2 - 1))
+    )
+    w = la.toeplitz(np.zeros(n//2), r1) * \
+        np.flipud(la.toeplitz(np.zeros(n//2), r2))
     w = np.concatenate((w[:, n//2:n], w[:, 0:n//2]), axis=1)
     w = ft.fft(w)
     w = np.real(np.concatenate((w[:, 3*n//4:n+1], w[:, 0:n//4]), axis=1))
@@ -657,13 +668,13 @@ class QFunc:
     xvec, yvec : array_like
         x- and y-coordinates at which to calculate the Husimi-Q function.
 
-    g : float, default sqrt(2)
+    g : float, default: sqrt(2)
         Scaling factor for ``a = 0.5 * g * (x + iy)``.  The value of `g` is
         related to the value of `hbar` in the commutation relation
         :math:`[x,\,y] = i\hbar` via :math:`\hbar=2/g^2`, so the default
         corresponds to :math:`\hbar=1`.
 
-    memory : real, default 1024
+    memory : real, default: 1024
         Size in MB that may be used internally as workspace.  This class will
         raise ``MemoryError`` if subsequently passed a state of sufficiently
         large dimension that this bound would be exceeded.  In those cases, use
@@ -687,7 +698,7 @@ class QFunc:
     See Also
     --------
     :obj:`.qfunc` :
-        a single function version, which will involve computing several
+        A single function version, which will involve computing several
         quantities multiple times in order to use less memory.
     """
 
@@ -791,13 +802,13 @@ def qfunc(
     xvec, yvec : array_like
         x- and y-coordinates at which to calculate the Husimi-Q function.
 
-    g : float, default sqrt(2)
+    g : float, default: sqrt(2)
         Scaling factor for ``a = 0.5 * g * (x + iy)``.  The value of `g` is
         related to the value of :math:`\hbar` in the commutation relation
         :math:`[x,\,y] = i\hbar` via :math:`\hbar=2/g^2`, so the default
         corresponds to :math:`\hbar=1`.
 
-    precompute_memory : real, default 1024
+    precompute_memory : real, default: 1024
         Size in MB that may be used during calculations as working space when
         dealing with density-matrix inputs.  This is ignored for state-vector
         inputs.  The bound is not quite exact due to other, order-of-magnitude
@@ -997,7 +1008,6 @@ def spin_wigner(rho, theta, phi):
 
     for k in range(int(2 * j)+1):
         for q in arange(-k, k+1):
-            # sph_harm takes azimuthal angle then polar angle as arguments
-            W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
+            W += _rho_kq(rho, j, k, q) * sph_harm_y(k, q, THETA, PHI)
 
     return W.real, THETA, PHI

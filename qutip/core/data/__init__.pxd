@@ -5,6 +5,7 @@ from qutip.core.data cimport dense, csr
 from qutip.core.data.base cimport Data, idxint
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
+from qutip.core.data.dia cimport Dia
 
 from qutip.core.data.add cimport *
 from qutip.core.data.adjoint cimport *

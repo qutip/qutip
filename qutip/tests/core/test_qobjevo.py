@@ -1,8 +1,12 @@
 import operator
 
 import pytest
-from qutip import (Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz,
-                   rand_stochastic, rand_herm, rand_ket, liouvillian)
+from qutip import (
+    Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, num, rand_stochastic,
+    rand_herm, rand_ket, liouvillian, basis, spre, spost, to_choi, expect,
+    rand_ket, rand_dm, operator_to_vector, SESolver, MESolver, CoreOptions
+)
+import qutip.core.data as _data
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -45,6 +49,11 @@ class Pseudo_qevo:
 
     def __getitem__(self, which):
         return getattr(self, which)()
+
+    @property
+    def _dims(self):
+        return self.qobj._dims
+
 
 N = 3
 args = {'w1': 1, "w2": 2}
@@ -93,7 +102,9 @@ def pseudo_qevo(request):
 
 @pytest.fixture
 def all_qevo(pseudo_qevo, coeff_type):
-    return QobjEvo(*pseudo_qevo[coeff_type])
+    base, args, *tlist = pseudo_qevo[coeff_type]
+    if tlist: tlist = tlist[0]
+    return QobjEvo(base, args, tlist=tlist)
 
 
 @pytest.fixture
@@ -102,6 +113,8 @@ def other_qevo(all_qevo):
 
 
 def _assert_qobjevo_equivalent(obj1, obj2, tol=1e-8):
+    assert obj1._dims == obj1(0)._dims
+    assert obj2._dims == obj2(0)._dims
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj1(t), obj2(t), tol)
 
@@ -123,12 +136,54 @@ def _div(a, b):
 
 def test_call(pseudo_qevo, coeff_type):
     # test creation of QobjEvo and call
-    qevo = QobjEvo(*pseudo_qevo[coeff_type])
+    base, args, *tlist = pseudo_qevo[coeff_type]
+    if tlist: tlist = tlist[0]
+    qevo = QobjEvo(base, args, tlist=tlist)
     assert isinstance(qevo(0), Qobj)
     assert qevo.isoper
     assert not qevo.isconstant
     assert not qevo.issuper
     _assert_qobjevo_equivalent(pseudo_qevo, qevo)
+
+
+# Test the QobjEvo.__repr__()
+def test_QobjEvo_repr():
+    # case_n: cases with Objects of QobjEvo with unique __repr__
+    # expected_repr_n: are the Expected result from the __repr__
+
+    case_1 = repr(QobjEvo([qeye(3), lambda t: t]))
+    expected_repr_1 = 'QobjEvo: dims = [[3], [3]], shape = (3, 3), '
+    expected_repr_1 += 'type = oper, superrep = None, '
+    expected_repr_1 += 'isconstant = False, num_elements = 1'
+    assert case_1 == expected_repr_1
+
+    case_2 = repr(QobjEvo(qeye(2)))
+    expected_repr_2 = 'QobjEvo: dims = [[2], [2]], shape = (2, 2), '
+    expected_repr_2 += 'type = oper, superrep = None, '
+    expected_repr_2 += 'isconstant = True, num_elements = 1'
+    assert case_2 == expected_repr_2
+
+    case_3 = repr(QobjEvo(basis(5, 2)))
+    expected_repr_3 = 'QobjEvo: dims = [[5], [1]], shape = (5, 1), '
+    expected_repr_3 += 'type = ket, superrep = None, '
+    expected_repr_3 += 'isconstant = True, num_elements = 1'
+    assert case_3 == expected_repr_3
+
+    X = sigmax()
+    S = spre(X) * spost(X.dag())
+    case_4 = repr(QobjEvo(to_choi(S)))
+    expected_repr_4 = 'QobjEvo: dims = [[[2], [2]], [[2], [2]]], '
+    expected_repr_4 += 'shape = (4, 4), type = super, superrep = choi, '
+    expected_repr_4 += 'isconstant = True, num_elements = 1'
+    assert case_4 == expected_repr_4
+
+    case_5 = repr(QobjEvo([[qeye(4), lambda t: t],
+                           [qeye(4), lambda t: t]], compress=False))
+    expected_repr_5 = 'QobjEvo: dims = [[4], [4]], shape = (4, 4), '
+    expected_repr_5 += 'type = oper, superrep = None, '
+    expected_repr_5 += 'isconstant = False, num_elements = 2'
+    assert case_5 == expected_repr_5
+
 
 @pytest.mark.parametrize('coeff_type',
                          ['func_coeff', 'string', 'array', 'logarray'])
@@ -148,6 +203,7 @@ def test_copy(all_qevo):
     copy = qevo.copy()
     _assert_qobjevo_equivalent(copy, qevo)
     assert copy is not qevo
+
 
 @pytest.mark.parametrize('bin_op', [
     pytest.param(lambda a, b: a + b, id="add"),
@@ -202,6 +258,7 @@ def test_binopt_qobj(all_qevo, bin_op):
         as_qobj = bin_op(qobj, obj(t))
         _assert_qobj_almost_eq(as_qevo, as_qobj)
 
+
 @pytest.mark.parametrize('bin_op', [
     pytest.param(lambda a, b: a + b, id="add"),
     pytest.param(lambda a, b: a - b, id="sub"),
@@ -222,12 +279,14 @@ def test_binopt_scalar(all_qevo, bin_op):
             as_qobj = bin_op(scalar, obj(t))
             _assert_qobj_almost_eq(as_qevo, as_qobj)
 
+
 def binop_coeff(all_qevo):
     obj = all_qevo
     coeff = coeffient("t")
     created = obj * coeff_t
     for t in TESTTIMES:
         _assert_qobj_almost_eq(created(t), obj(t) * t)
+
 
 @pytest.mark.parametrize('unary_op', [
     pytest.param(lambda a: a.conj(), id="conj"),
@@ -239,9 +298,31 @@ def test_unary(all_qevo, unary_op):
     "QobjEvo arithmetic"
     obj = all_qevo
     for t in TESTTIMES:
-        as_qevo = unary_op(obj)(t)
+        transformed = unary_op(obj)
+        as_qevo = transformed(t)
         as_qobj = unary_op(obj(t))
+        assert transformed._dims == as_qevo._dims
         _assert_qobj_almost_eq(as_qevo, as_qobj)
+
+
+@pytest.mark.parametrize('unary_op', [
+    pytest.param(lambda a: a.conj(), id="conj"),
+    pytest.param(lambda a: a.dag(), id="dag"),
+    pytest.param(lambda a: a.trans(), id="trans"),
+    pytest.param(lambda a: -a, id="neg"),
+])
+def test_unary_ket(unary_op):
+    obj = QobjEvo(rand_ket(5))
+    for t in TESTTIMES:
+        transformed = unary_op(obj)
+        as_qevo = transformed(t)
+        as_qobj = unary_op(obj(t))
+        assert transformed._dims == as_qevo._dims
+        assert transformed._dims == as_qobj._dims
+        assert transformed.shape == as_qobj.shape
+        assert transformed.shape == as_qevo.shape
+        _assert_qobj_almost_eq(as_qevo, as_qobj)
+
 
 @pytest.mark.parametrize('args_coeff_type',
                          ['func_coeff', 'string', 'func_call'])
@@ -267,6 +348,7 @@ def test_args(pseudo_qevo, args_coeff_type):
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, args))
 
+
 def test_copy_side_effects(all_qevo):
     t = 0.2
     qevo = all_qevo
@@ -280,6 +362,7 @@ def test_copy_side_effects(all_qevo):
     after = qevo(t)
     _assert_qobj_almost_eq(before, after)
 
+
 @pytest.mark.parametrize('coeff_type',
     ['func_coeff', 'string', 'array', 'logarray']
 )
@@ -292,6 +375,7 @@ def test_tidyup(all_qevo):
     # check that the Qobj are cleaned
     assert_allclose(obj(t).full(), 0)
 
+
 def test_QobjEvo_pickle(all_qevo):
     "QobjEvo pickle"
     # used in parallel_map
@@ -299,6 +383,15 @@ def test_QobjEvo_pickle(all_qevo):
     obj = all_qevo
     pickled = pickle.dumps(obj, -1)
     recreated = pickle.loads(pickled)
+    _assert_qobjevo_equivalent(recreated, obj)
+
+
+def test_QobjEvo_restore(all_qevo):
+    "QobjEvo pickle"
+    # used in parallel_map
+    obj = all_qevo
+    state = obj._getstate()
+    recreated = QobjEvo._restore(**state)
     _assert_qobjevo_equivalent(recreated, obj)
 
 
@@ -327,6 +420,7 @@ def test_matmul(all_qevo):
         assert_allclose((Qo1 @ mat).full(),
                         op.matmul(t, matCSR).full(), atol=1e-14)
 
+
 def test_expect_psi(all_qevo):
     "QobjEvo expect psi"
     vec = _data.dense.fast_from_numpy(np.arange(N)*.5 + .5j)
@@ -336,6 +430,7 @@ def test_expect_psi(all_qevo):
         Qo1 = op(t)
         assert_allclose(_data.expect(Qo1.data, vec), op.expect(t, qobj),
                         atol=1e-14)
+
 
 def test_expect_rho(all_qevo):
     "QobjEvo expect rho"
@@ -349,13 +444,16 @@ def test_expect_rho(all_qevo):
         assert abs(_data.expect_super(Qo1.data, vec)
                    - op.expect(t, qobj)) < 1e-14
 
+
 @pytest.mark.parametrize('dtype',
 [pytest.param(dtype, id=dtype.__name__)
      for dtype in _data.to.dtypes])
 def test_convert(all_qevo, dtype):
     "QobjEvo expect rho"
-    op = all_qevo.to(dtype)
-    assert isinstance(op(0.5).data, dtype)
+    with CoreOptions(default_dtype_scope="creation"):
+        # default_dtype_scope="full" overwrite the add used in QobjEvo...
+        op = all_qevo.to(dtype)
+        assert isinstance(op(0.5).data, dtype)
 
 
 def test_compress():
@@ -398,7 +496,7 @@ def test_QobjEvo_step_coeff():
     "QobjEvo step interpolation"
     coeff1 = np.random.rand(6)
     coeff2 = np.random.rand(6) + np.random.rand(6) * 1.j
-    # uniform t
+    # uniform t_dims =
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
                       tlist=tlist, order=0)
@@ -439,3 +537,111 @@ def test_QobjEvo_isherm_flag_knowcase():
     assert QobjEvo([sigmax(), "1j"])(0)._isherm is None
     assert QobjEvo([[sigmax(), "t"], [sigmaz(), "1"]])(0)._isherm is True
     assert QobjEvo([[sigmax(), "t"], [sigmaz(), "1j"]])(0)._isherm is None
+
+
+@pytest.mark.parametrize(
+    "coeff_type",
+    ['func_coeff', 'string', 'array', 'logarray']
+)
+def test_QobjEvo_to_list(coeff_type, pseudo_qevo):
+    base, args, *tlist = pseudo_qevo[coeff_type]
+    if tlist: tlist = tlist[0]
+    qevo = QobjEvo(base, args, tlist=tlist)
+    as_list = qevo.to_list()
+    assert len(as_list) == 2
+    restored = QobjEvo(as_list)
+    _assert_qobjevo_equivalent(qevo, restored)
+
+
+class Feedback_Checker_Coefficient:
+    def __init__(self, stacked=True):
+        self.state = None
+        self.stacked = stacked
+
+    def __call__(self, t, data=None, qobj=None, e_val=None):
+        if self.state is not None:
+            if data is not None and self.stacked:
+                assert data == operator_to_vector(self.state).data
+            elif data is not None:
+                assert data == self.state.data
+            if qobj is not None:
+                assert qobj == self.state
+            if e_val is not None:
+                expected = expect(qeye(self.state.dims[0]), self.state)
+                assert e_val == pytest.approx(expected, abs=1e-7)
+        return 1.
+
+
+def test_feedback_oper():
+    checker = Feedback_Checker_Coefficient(stacked=False)
+    checker.state = basis(2, 1)
+    qevo = QobjEvo(
+        [qeye(2), checker],
+        args={
+            "e_val": SESolver.ExpectFeedback(qeye(2), default=1.),
+            "data": SESolver.StateFeedback(default=checker.state.data,
+                                           raw_data=True),
+            "qobj": SESolver.StateFeedback(default=checker.state),
+        },
+    )
+
+    checker.state = rand_ket(2)
+    qevo.expect(0, checker.state)
+    checker.state = rand_ket(2)
+    qevo.expect(0, checker.state)
+
+    checker.state = rand_ket(2)
+    qevo.matmul_data(0, checker.state.data)
+    checker.state = rand_ket(2)
+    qevo.matmul_data(0, checker.state.data)
+
+
+def test_feedback_super():
+    checker = Feedback_Checker_Coefficient()
+    qevo = QobjEvo(
+        [spre(qeye(2)), checker],
+        args={
+            "e_val": MESolver.ExpectFeedback(qeye(2)),
+            "data": MESolver.StateFeedback(raw_data=True),
+            "qobj": MESolver.StateFeedback(),
+        },
+    )
+
+    checker.state = rand_dm(2)
+    qevo.expect(0, operator_to_vector(checker.state))
+    qevo.matmul_data(0, operator_to_vector(checker.state).data)
+
+    qevo.arguments(e_val=MESolver.ExpectFeedback(spre(qeye(2))))
+
+    checker.state = rand_dm(2)
+    qevo.expect(0, operator_to_vector(checker.state))
+    qevo.matmul_data(0, operator_to_vector(checker.state).data)
+
+    checker = Feedback_Checker_Coefficient(stacked=False)
+    qevo = QobjEvo(
+        [spre(qeye(2)), checker],
+        args={
+            "data": MESolver.StateFeedback(raw_data=True, prop=True),
+            "qobj": MESolver.StateFeedback(prop=True),
+        },
+    )
+
+    checker.state = rand_dm(4)
+    checker.state.dims = [[[2],[2]], [[2],[2]]]
+    qevo.matmul_data(0, checker.state.data)
+
+
+@pytest.mark.parametrize('dtype', ["CSR", "Dense"])
+def test_qobjevo_dtype(dtype):
+    with CoreOptions(default_dtype_scope="creation"):
+        obj = QobjEvo([qeye(2, dtype=dtype), [num(2, dtype=dtype), lambda t: t]])
+        assert obj.dtype == _data.to.parse(dtype)
+
+        obj = QobjEvo(lambda t: qeye(2, dtype=dtype))
+        assert obj.dtype == _data.to.parse(dtype)
+
+
+def test_qobjevo_mixed():
+    obj = QobjEvo([qeye(2, dtype="CSR"), [num(2, dtype="Dense"), lambda t: t]])
+    # We test that the output dtype is a know type: accepted by `to.parse`.
+    _data.to.parse(obj.dtype)

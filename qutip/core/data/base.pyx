@@ -1,4 +1,5 @@
 #cython: language_level=3
+#cython: c_api_binop_methods=True
 
 import numpy as np
 cimport numpy as cnp
@@ -23,6 +24,10 @@ idxint_size = _idxint_size
 cdef class Data:
     def __init__(self, shape):
         self.shape = shape
+
+    @classmethod
+    def sparcity(self):
+        return "dense"
 
     cpdef object to_array(self):
         raise NotImplementedError

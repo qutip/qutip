@@ -23,22 +23,20 @@ def partial_transpose(rho, mask, method='dense'):
     Parameters
     ----------
 
-    rho : :class:`qutip.qobj`
+    rho : :class:`.Qobj`
         A density matrix.
 
     mask : *list* / *array*
         A mask that selects which subsystems should be transposed.
 
-    method : str
-        choice of method, `dense` or `sparse`. The default method
-        is `dense`. The `sparse` implementation can be faster for
+    method : str {"dense", "sparse"}, default: "dense"
+        Choice of method. The "sparse" implementation can be faster for
         large and sparse systems (hundreds of quantum states).
 
     Returns
     -------
 
-    rho_pr: :class:`qutip.qobj`
-
+    rho_pr: :class:`.Qobj`
         A density matrix with the selected subsystems transposed.
 
     """
@@ -57,7 +55,7 @@ def _partial_transpose_dense(rho, mask):
     Very fast for dense problems.
     """
     nsys = len(mask)
-    pt_dims = np.arange(2 * nsys).reshape(2, nsys).T
+    pt_dims = np.arange(2 * nsys).reshape([2, nsys]).T
     pt_idx = np.concatenate([[pt_dims[n, mask[n]] for n in range(nsys)],
                             [pt_dims[n, 1 - mask[n]] for n in range(nsys)]])
 
@@ -74,7 +72,7 @@ def _partial_transpose_sparse(rho, mask):
     """
 
     data = sp.lil_matrix((rho.shape[0], rho.shape[1]), dtype=complex)
-    rho_data = rho.data.as_scipy()
+    rho_data = rho.to("CSR").data.as_scipy()
 
     for m in range(len(rho_data.indptr) - 1):
 
@@ -117,6 +115,6 @@ def _partial_transpose_reference(rho, mask):
             n_pt = state_number_index(
                 rho.dims[0], np.choose(mask, [psi_B, psi_A]))
 
-            A_pt[m_pt, n_pt] = rho.data.as_scipy()[m, n]
+            A_pt[m_pt, n_pt] = rho.to("CSR").data.as_scipy()[m, n]
 
     return Qobj(A_pt, dims=rho.dims)

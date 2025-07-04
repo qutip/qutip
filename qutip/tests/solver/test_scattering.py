@@ -7,7 +7,6 @@ module. Tests are approximate with low resolution to minimize runtime.
 # Contact: benbartlett@stanford.edu
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite
 from qutip import create, destroy, basis
 from qutip.solver.scattering import *
 

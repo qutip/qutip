@@ -22,7 +22,7 @@ def _degen(tol, vecs, ops, i=0):
                               / (1 - np.abs(dot)**2)**0.5)
 
     subspace = vecs.conj().T @ ops[i].full() @ vecs
-    eigvals, eigvecs = la.eig(subspace)
+    eigvals, eigvecs = la.eigh(subspace)
 
     perm = np.argsort(eigvals)
     eigvals = eigvals[perm]
@@ -41,32 +41,42 @@ def _degen(tol, vecs, ops, i=0):
     return vecs_new
 
 
-def simdiag(ops, evals: bool = True, *,
-            tol: float = 1e-14, safe_mode: bool = True):
+def simdiag(
+    ops,
+    evals: bool = True, *,
+    tol: float = 1e-14,
+    safe_mode: bool = True,
+    use_dense_solver: bool = True,
+):
     """Simultaneous diagonalization of commuting Hermitian matrices.
 
     Parameters
     ----------
-    ops : list/array
+    ops : list, array
         ``list`` or ``array`` of qobjs representing commuting Hermitian
         operators.
 
-    evals : bool [True]
+    evals : bool, default: True
         Whether to return the eigenvalues for each ops and eigenvectors or just
         the eigenvectors.
 
-    tol : float [1e-14]
+    tol : float, default: 1e-14
         Tolerance for detecting degenerate eigenstates.
 
-    safe_mode : bool [True]
+    safe_mode : bool, default: True
         Whether to check that all ops are Hermitian and commuting. If set to
         ``False`` and operators are not commuting, the eigenvectors returned
         will often be eigenvectors of only the first operator.
 
+    use_dense_solver: bool, default: True
+        Whether to force use of numpy dense eigen solver. When ``False``
+        sparse operators will use scipy sparse eigen solver which is not
+        appropriate for this use.
+
     Returns
-    --------
+    -------
     eigs : tuple
-        Tuple of arrays representing eigvecs and eigvals of quantum objects
+        Tuple of arrays representing eigvals and eigvecs of quantum objects
         corresponding to simultaneous eigenvectors and eigenvalues for each
         operator.
 
@@ -79,17 +89,20 @@ def simdiag(ops, evals: bool = True, *,
         A = ops[jj]
         shape = A.shape
         if shape[0] != shape[1]:
-            raise TypeError('Matricies must be square.')
+            raise TypeError('Matrices must be square.')
         if shape[0] != N:
             raise TypeError('All matrices. must be the same shape')
         if not A.isherm:
-            raise TypeError('Matricies must be Hermitian')
+            raise TypeError('Matrices must be Hermitian')
         for kk in range(jj):
             B = ops[kk]
             if (A * B - B * A).norm() / (A * B).norm() > tol:
-                raise TypeError('Matricies must commute.')
+                raise TypeError('Matrices must commute.')
 
-    # TODO: rewrite using Data object
+    if use_dense_solver:
+        # Do not use sparse eigen solver.
+        ops = [op.to("Dense") for op in ops]
+
     eigvals, eigvecs = _data.eigs(ops[0].data, True, True)
     eigvecs = eigvecs.to_array()
 

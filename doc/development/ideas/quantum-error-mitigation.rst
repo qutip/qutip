@@ -20,7 +20,8 @@ device models, new noise models and integration with the existing general
 framework for quantum circuits (`qutip.qip.circuit`). There are also possible
 applications such as error mitigation techniques ([1]_, [2]_, [3]_).
 
-The tutorial notebooks can be found at https://qutip.org/tutorials.html#nisq. A
+The tutorial notebooks can be found in the Quantum information processing
+section of https://qutip.org/qutip-tutorials/index-v5.html. A
 recent presentation on the FOSDEM conference may help you get an overview
 (https://fosdem.org/2020/schedule/event/quantum_qutip/). See also the Github
 Project page for a collection of related issues and ongoing Pull Requests.

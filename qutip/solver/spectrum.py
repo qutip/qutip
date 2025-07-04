@@ -20,24 +20,24 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es"):
         \lim_{t \to \infty} \left<A(t+\tau)B(t)\right>
         e^{-i\omega\tau} d\tau.
 
-    using the solver indicated by the `solver` parameter. Note: this spectrum
+    using the solver indicated by the ``solver`` parameter. Note: this spectrum
     is only defined for stationary statistics (uses steady state rho0)
 
     Parameters
     ----------
-    H : :class:`qutip.qobj`
+    H : :class:`.qobj`
         system Hamiltonian.
     wlist : array_like
         List of frequencies for :math:`\omega`.
     c_ops : list
         List of collapse operators.
-    a_op : Qobj
+    a_op : :class:`.Qobj`
         Operator A.
-    b_op : Qobj
+    b_op : :class:`.Qobj`
         Operator B.
-    solver : str
-        Choice of solver (`es` for exponential series and
-        `pi` for psuedo-inverse, `solve` for generic solver).
+    solver : str, {'es', 'pi', 'solve'}, default: 'es'
+        Choice of solver, ``es`` for exponential series and
+        ``pi`` for psuedo-inverse, ``solve`` for generic solver.
 
     Returns
     -------
@@ -70,7 +70,7 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
         list/array of times :math:`t` which the correlation function is given.
     y : array_like
         list/array of correlations corresponding to time delays :math:`t`.
-    inverse: boolean
+    inverse: bool, default: False
         boolean parameter for using a positive exponent in the Fourier
         Transform instead. Default is False.
 

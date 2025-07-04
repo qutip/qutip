@@ -9,9 +9,9 @@ from functools import partial
 import qutip
 from .. import Qobj
 from .. import data as _data
+from ..dimensions import Dimensions
 from ..coefficient import coefficient, CompilationOptions
 from ._element import *
-from ..dimensions import type_from_dims
 from qutip.settings import settings
 
 from qutip.core.cy._element cimport _BaseElement
@@ -19,7 +19,6 @@ from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.expect cimport *
 from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
 from qutip.core.cy.coefficient cimport Coefficient
-from qutip.core.qobj import _MATMUL_TYPE_LOOKUP
 from libc.math cimport fabs
 
 __all__ = ['QobjEvo']
@@ -29,29 +28,29 @@ cdef class QobjEvo:
     A class for representing time-dependent quantum objects, such as quantum
     operators and states.
 
-    Importantly, :obj:`~QobjEvo` instances are used to represent such
+    Importantly, :obj:`.QobjEvo` instances are used to represent such
     time-dependent quantum objects when working with QuTiP solvers.
 
-    A :obj:`~QobjEvo` instance may be constructed from one of the following:
+    A :obj:`.QobjEvo` instance may be constructed from one of the following:
 
       * a callable ``f(t: double, args: dict) -> Qobj`` that returns the
         value of the quantum object at time ``t``.
 
-      * a ``[Qobj, Coefficient]`` pair, where :obj:`~Coefficient` may also be
-        any item that can be used to construct a coefficient (e.g. a function,
-        a numpy array of coefficient values, a string expression).
+      * a ``[Qobj, Coefficient]`` pair, where the :obj:`Coefficient` may be any
+        item that :func:`.coefficient` can accept (e.g. a function, a numpy
+        array of coefficient values, a string expression).
 
-      * a :obj:`~Qobj` (which creates a constant :obj:`~QobjEvo` term).
+      * a :obj:`.Qobj` (which creates a constant :obj:`.QobjEvo` term).
 
-      * a list of such callables, pairs or :obj:`~Qobj`\s.
+      * a list of such callables, pairs or :obj:`.Qobj`\s.
 
-      * a :obj:`~QobjEvo` (in which case a copy is created, all other arguments
+      * a :obj:`.QobjEvo` (in which case a copy is created, all other arguments
         are ignored except ``args`` which, if passed, replaces the existing
         arguments).
 
     Parameters
     ----------
-    Q_object : callable, list or Qobj
+    Q_object : callable, list or :obj:`.Qobj`
         A specification of the time-depedent quantum object. See the
         paragraph above for a full description and the examples section below
         for examples.
@@ -80,15 +79,15 @@ cdef class QobjEvo:
         ``0`` use previous or left value.
 
     copy : bool, default=True
-        Whether to make a copy of the :obj:`Qobj` instances supplied in
+        Whether to make a copy of the :obj:`.Qobj` instances supplied in
         the ``Q_object`` parameter.
 
     compress : bool, default=True
-        Whether to compress the :obj:`QobjEvo` instance terms after the
+        Whether to compress the :obj:`.QobjEvo` instance terms after the
         instance has been created.
 
         This sums the constant terms in a single term and combines
-        ``[Qobj, coefficient]`` pairs with the same :obj:`~Qobj` into a single
+        ``[Qobj, coefficient]`` pairs with the same :obj:`.Qobj` into a single
         pair containing the sum of the coefficients.
 
         See :meth:`compress`.
@@ -98,6 +97,13 @@ cdef class QobjEvo:
         If style is ``None``, the value of
         ``qutip.settings.core["function_coefficient_style"]``
         is used. Otherwise the supplied value overrides the global setting.
+
+
+    boundary_conditions : 2-Tuple, str or None, optional
+        Boundary conditions for spline evaluation. Default value is `None`.
+        Correspond to `bc_type` of scipy.interpolate.make_interp_spline.
+        Refer to Scipy's documentation for further details:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.make_interp_spline.html
 
     Attributes
     ----------
@@ -118,7 +124,7 @@ cdef class QobjEvo:
     Examples
     --------
 
-    A :obj:`~QobjEvo` constructed from a function:
+    A :obj:`.QobjEvo` constructed from a function:
 
     .. code-block::
 
@@ -128,17 +134,17 @@ cdef class QobjEvo:
         QobjEvo(f, args={'w': 1j})
 
 
-    For list based :obj:`~QobjEvo`, the list must consist of :obj`~Qobj` or
+    For list based :obj:`.QobjEvo`, the list must consist of :obj:`.Qobj` or
     ``[Qobj, Coefficient]`` pairs:
 
     .. code-block::
 
         QobjEvo([H0, [H1, coeff1], [H2, coeff2]], args=args)
 
-    The coefficients may be specified either using a :obj:`~Coefficient`
-    object or by a function, string, numpy array or any object that
-    can be passed to the :func:`~coefficient` function. See the documentation
-    of :func:`coefficient` for a full description.
+    The coefficients may be specified either using a :obj:`Coefficient` object
+    or by a function, string, numpy array or any object that can be passed to
+    the :func:`.coefficient` function. See the documentation of
+    :func:`.coefficient` for a full description.
 
     An example of a coefficient specified by a function:
 
@@ -171,8 +177,8 @@ cdef class QobjEvo:
 
     The coeffients array must have the same len as the tlist.
 
-    A :obj:`~QobjEvo` may also be built using simple arithmetic operations
-    combining :obj:`~Qobj` with :obj:`~Coefficient`, for example:
+    A :obj:`.QobjEvo` may also be built using simple arithmetic operations
+    combining :obj:`.Qobj` with :obj:`Coefficient`, for example:
 
     .. code-block:: python
 
@@ -180,16 +186,15 @@ cdef class QobjEvo:
         qevo = H0 + H1 * coeff
 
     """
-    def __init__(QobjEvo self, Q_object, args=None, tlist=None,
-                 order=3, copy=True, compress=True,
-                 function_style=None):
+    def __init__(QobjEvo self, Q_object, args=None, *, copy=True, compress=True,
+                 function_style=None,
+                 tlist=None, order=3, boundary_conditions=None):
         if isinstance(Q_object, QobjEvo):
-            self.dims = Q_object.dims.copy()
+            self._dims = Q_object._dims
             self.shape = Q_object.shape
-            self.type = Q_object.type
-            self._issuper = (<QobjEvo> Q_object)._issuper
-            self._isoper = (<QobjEvo> Q_object)._isoper
             self.elements = (<QobjEvo> Q_object).elements.copy()
+            self._feedback_functions = Q_object._feedback_functions.copy()
+            self._solver_only_feedback = Q_object._solver_only_feedback.copy()
             if args:
                 self.arguments(args)
             if compress:
@@ -197,11 +202,11 @@ cdef class QobjEvo:
             return
 
         self.elements = []
-        self.dims = None
+        self._dims = None
         self.shape = (0, 0)
-        self._issuper = -1
-        self._isoper = -1
-        args = args or {}
+        self._feedback_functions = {}
+        self._solver_only_feedback = {}
+        args = self._read_args(args or {})
 
         if (
             isinstance(Q_object, list)
@@ -217,21 +222,46 @@ cdef class QobjEvo:
                 self.elements.append(
                     self._read_element(
                         op, copy=copy, tlist=tlist, args=args, order=order,
-                        function_style=function_style
+                        function_style=function_style,
+                        boundary_conditions=boundary_conditions
                     )
                 )
         else:
             self.elements.append(
                 self._read_element(
                     Q_object, copy=copy, tlist=tlist, args=args, order=order,
-                    function_style=function_style
+                    function_style=function_style,
+                    boundary_conditions=boundary_conditions
                 )
             )
+
+        for key in self._feedback_functions:
+            # During _read_args, the dims could not have been set yet.
+            # To set the dims, for function QobjEvo, they need to be called.
+            # But to be called, the feedback args need to be read...
+            self._feedback_functions[key].check_consistency(self._dims)
 
         if compress:
             self.compress()
 
-    def _read_element(self, op, copy, tlist, args, order, function_style):
+    def __repr__(self):
+        cls = self.__class__.__name__
+        repr_str = f'{cls}: dims = {self.dims}, shape = {self.shape}, '
+        repr_str += f'type = {self.type}, superrep = {self.superrep}, '
+        repr_str += f'isconstant = {self.isconstant}, '
+        repr_str += f'num_elements = {self.num_elements}'
+        feedback_pairs = []
+        for key, val in self._feedback_functions.items():
+            feedback_pairs.append(key + ":" + repr(val))
+        for key, val in self._solver_only_feedback.items():
+            feedback_pairs.append(key + ":" + val)
+        if feedback_pairs:
+            repr_str += f', feedback = {feedback_pairs}'
+
+        return repr_str
+
+    def _read_element(self, op, copy, tlist, args, order, function_style,
+                      boundary_conditions):
         """ Read a Q_object item and return an element for that item. """
         if isinstance(op, Qobj):
             out = _ConstantElement(op.copy() if copy else op)
@@ -239,7 +269,8 @@ cdef class QobjEvo:
         elif isinstance(op, list):
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
-                coefficient(op[1], tlist=tlist, args=args, order=order)
+                coefficient(op[1], tlist=tlist, args=args, order=order,
+                            boundary_conditions=boundary_conditions)
             )
             qobj = op[0]
         elif isinstance(op, _BaseElement):
@@ -261,38 +292,47 @@ cdef class QobjEvo:
                 " received: {!r}".format(op)
             )
 
-        if self.dims is None:
-            self.dims = qobj.dims
+        if self._dims is None:
+            self._dims = qobj._dims
             self.shape = qobj.shape
-            self.type = qobj.type
-            self.superrep = qobj.superrep
-        elif self.dims != qobj.dims or self.shape != qobj.shape:
+        elif self._dims != qobj._dims:
             raise ValueError(
                 f"QobjEvo term {op!r} has dims {qobj.dims!r} and shape"
                 f" {qobj.shape!r} but previous terms had dims {self.dims!r}"
                 f" and shape {self.shape!r}."
             )
-        elif self.type != qobj.type:
-            raise ValueError(
-                f"QobjEvo term {op!r} has type {qobj.type!r} but "
-                f"previous terms had type {self.type!r}."
-            )
-        elif self.superrep != qobj.superrep:
-            raise ValueError(
-                f"QobjEvo term {op!r} has superrep {qobj.superrep!r} but "
-                f"previous terms had superrep {self.superrep!r}."
-            )
 
         return out
 
+    @classmethod
+    def _restore(cls, elements, dims, shape):
+        """Recreate a QobjEvo without using __init__. """
+        cdef QobjEvo out = cls.__new__(cls)
+        out.elements = elements
+        out._dims = dims
+        out.shape = shape
+        return out
+
+    def _getstate(self):
+        """ Obtain the state """
+        # For jax pytree representation
+        # auto_pickle create similar method __getstate__, but since it's
+        # automatically created, it could change depending on cython version
+        # etc., so we create our own.
+        return {
+            "elements": self.elements,
+            "dims": self._dims,
+            "shape": self.shape,
+        }
+
     def __call__(self, double t, dict _args=None, **kwargs):
         """
-        Get the :class:`~Qobj` at ``t``.
+        Get the :obj:`.Qobj` at ``t``.
 
         Parameters
         ----------
         t : float
-            Time at which the ``QobjEvo`` is to be evalued.
+            Time at which the :obj:`.QobjEvo` is to be evalued.
 
         _args : dict [optional]
             New arguments as a dict. Update args with ``arguments(new_args)``.
@@ -301,10 +341,11 @@ cdef class QobjEvo:
             New arguments as a keywors. Update args with
             ``arguments(**new_args)``.
 
-        .. note::
-            If both the positional ``_args`` and keywords are passed new values
-            from both will be used. If a key is present with both, the
-            ``_args`` dict value will take priority.
+        Notes
+        -----
+        If both the positional ``_args`` and keywords are passed new values
+        from both will be used. If a key is present with both, the
+        ``_args`` dict value will take priority.
         """
         if _args is not None or kwargs:
             if _args is not None:
@@ -332,10 +373,7 @@ cdef class QobjEvo:
             isherm &= <bint> obj._isherm and coeff.imag == 0
             out = _data.add(out, obj.data, coeff)
 
-        return Qobj(
-            out, dims=self.dims, copy=False, isherm=isherm or None,
-            type=self.type, superrep=self.superrep
-        )
+        return Qobj(out, dims=self._dims, copy=False, isherm=isherm or None)
 
     cpdef Data _call(QobjEvo self, double t):
         t = self._prepare(t, None)
@@ -353,13 +391,24 @@ cdef class QobjEvo:
             )
         return out
 
-    cdef double _prepare(QobjEvo self, double t, Data state=None):
+    cdef object _prepare(QobjEvo self, object t, Data state=None):
         """ Precomputation before computing getting the element at `t`"""
         # We keep the function for feedback eventually
+        if self._feedback_functions and state is not None:
+            new_args = {
+                key: func(t, state)
+                for key, func in self._feedback_functions.items()
+            }
+            cache = []
+            self.elements = [
+                element.replace_arguments(new_args, cache=cache)
+                for element in self.elements
+            ]
+
         return t
 
     def copy(QobjEvo self):
-        """Return a copy of this `QobjEvo`"""
+        """Return a copy of this :obj:`.QobjEvo`"""
         return QobjEvo(self, compress=False)
 
     def arguments(QobjEvo self, dict _args=None, **kwargs):
@@ -375,19 +424,90 @@ cdef class QobjEvo:
             New arguments as a keywors. Update args with
             ``arguments(**new_args)``.
 
-        .. note::
-            If both the positional ``_args`` and keywords are passed new values
-            from both will be used. If a key is present with both, the ``_args``
-            dict value will take priority.
+        Notes
+        -----
+        If both the positional ``_args`` and keywords are passed new values
+        from both will be used. If a key is present with both, the ``_args``
+        dict value will take priority.
         """
         if _args is not None:
             kwargs.update(_args)
         cache = []
+        kwargs = self._read_args(kwargs)
         self.elements = [
             element.replace_arguments(kwargs, cache=cache)
             for element in self.elements
         ]
 
+    def _read_args(self, args):
+        """
+        Filter feedback args from normal args.
+        """
+        new_args = {}
+        for key, val in args.items():
+            if isinstance(val, _Feedback):
+                new_args[key] = val.default
+                if self._dims is not None:
+                    val.check_consistency(self._dims)
+                if callable(val):
+                    self._feedback_functions[key] = val
+                else:
+                    self._solver_only_feedback[key] = val.code
+            else:
+                new_args[key] = val
+                if key in self._feedback_functions:
+                    del self._feedback_functions[key]
+                if key in self._solver_only_feedback:
+                    del self._solver_only_feedback[key]
+
+        return new_args
+
+    def _register_feedback(self, solvers_feeds, solver):
+        """
+        Receive feedback source from solver.
+
+        Parameters
+        ----------
+        solvers_feeds : dict[str]
+            When ``feedback={key: solver_specific}`` is used, update arguments
+            with ``args[key] = solvers_feeds[solver_specific]``.
+
+        solver: str
+            Name of the solver for the error message.
+        """
+        new_args = {}
+        for key, feed in self._solver_only_feedback.items():
+            if feed not in solvers_feeds:
+                raise ValueError(
+                    f"Desired feedback {key} is not available for the {solver}."
+                )
+            new_args[key] = solvers_feeds[feed]
+
+        if new_args:
+            cache = []
+            self.elements = [
+                element.replace_arguments(new_args, cache=cache)
+                for element in self.elements
+            ]
+
+    def _update_feedback(QobjEvo self, QobjEvo other=None):
+        """
+        Merge feedback from ``op`` into self.
+        """
+        if other is not None:
+            if not self._feedback_functions and other._feedback_functions:
+                self._feedback_functions = other._feedback_functions.copy()
+            elif other._feedback_functions:
+                self._feedback_functions.update(other._feedback_functions)
+
+            if not self._solver_only_feedback and other._solver_only_feedback:
+                self._solver_only_feedback = other._solver_only_feedback.copy()
+            elif other._solver_only_feedback:
+                self._solver_only_feedback.update(other._solver_only_feedback)
+
+        if self._feedback_functions:
+            for key in self._feedback_functions:
+                self._feedback_functions[key].check_consistency(self._dims)
 
     ###########################################################################
     # Math function                                                           #
@@ -415,21 +535,23 @@ cdef class QobjEvo:
     def __iadd__(QobjEvo self, other):
         cdef _BaseElement element
         if isinstance(other, QobjEvo):
-            if other.dims != self.dims:
+            if other._dims != self._dims:
                 raise TypeError("incompatible dimensions" +
-                                 str(self.dims) + ", " + str(other.dims))
+                                str(self.dims) + ", " + str(other.dims))
             for element in (<QobjEvo> other).elements:
                 self.elements.append(element)
+            self._update_feedback(other)
+
         elif isinstance(other, Qobj):
-            if other.dims != self.dims:
+            if other._dims != self._dims:
                 raise TypeError("incompatible dimensions" +
-                                 str(self.dims) + ", " + str(other.dims))
+                                str(self.dims) + ", " + str(other.dims))
             self.elements.append(_ConstantElement(other))
         elif (
             isinstance(other, numbers.Number) and
-            self.dims[0] == self.dims[1]
+            self._dims[0] == self._dims[1]
         ):
-            self.elements.append(_ConstantElement(other * qutip.qeye(self.dims[0])))
+            self.elements.append(_ConstantElement(other * qutip.qeye_like(self)))
         else:
             return NotImplemented
         return self
@@ -462,85 +584,59 @@ cdef class QobjEvo:
         if isinstance(left, QobjEvo):
             return left.copy().__imatmul__(right)
         elif isinstance(left, Qobj):
-            if left.dims[1] != (<QobjEvo> right).dims[0]:
+            if left._dims[1] != (<QobjEvo> right)._dims[0]:
                 raise TypeError("incompatible dimensions" +
                                  str(left.dims[1]) + ", " +
                                  str((<QobjEvo> right).dims[0]))
-
-            type_ =_MATMUL_TYPE_LOOKUP.get((left.type, right.type))
-            if type_ is None:
-                raise TypeError(
-                    "incompatible matmul types "
-                    + repr(left.type) + " and " + repr(right.type)
-                )
-
             res = right.copy()
-            res.dims = [left.dims[0], right.dims[1]]
+            res._dims = Dimensions(left._dims[0], right._dims[1])
             res.shape = (left.shape[0], right.shape[1])
-            res.type = type_
             left = _ConstantElement(left)
             res.elements = [left @ element for element in res.elements]
-            res._issuper = -1
-            res._isoper = -1
+            res._update_feedback()
+
             return res
+
         else:
             return NotImplemented
 
     def __rmatmul__(QobjEvo self, other):
         cdef QobjEvo res
         if isinstance(other, Qobj):
-            if other.dims[1] != self.dims[0]:
+            if other._dims[1] != self._dims[0]:
                 raise TypeError("incompatible dimensions" +
                                  str(other.dims[1]) + ", " +
                                  str(self.dims[0]))
-
-            type_ =_MATMUL_TYPE_LOOKUP.get((other.type, self.type))
-            if type_ is None:
-                raise TypeError(
-                    "incompatible matmul types "
-                    + repr(other.type) + " and " + repr(self.type)
-                )
-
             res = self.copy()
-            res.dims = [other.dims[0], res.dims[1]]
+            res._dims = Dimensions([other._dims[0], res._dims[1]])
             res.shape = (other.shape[0], res.shape[1])
-            res.type = type_
             other = _ConstantElement(other)
             res.elements = [other @ element for element in res.elements]
-            res._issuper = -1
-            res._isoper = -1
+            res._update_feedback()
             return res
         else:
             return NotImplemented
 
     def __imatmul__(QobjEvo self, other):
         if isinstance(other, (Qobj, QobjEvo)):
-            if self.dims[1] != other.dims[0]:
+            if self._dims[1] != other._dims[0]:
                 raise TypeError("incompatible dimensions" +
                                 str(self.dims[1]) + ", " +
                                 str(other.dims[0]))
-
-            type_ =_MATMUL_TYPE_LOOKUP.get((self.type, other.type))
-            if type_ is None:
-                raise TypeError(
-                    "incompatible matmul types "
-                    + repr(self.type) + " and " + repr(other.type)
-                )
-
-            self.dims = [self.dims[0], other.dims[1]]
+            self._dims = Dimensions([self._dims[0], other._dims[1]])
             self.shape = (self.shape[0], other.shape[1])
-            self.type = type_
-            self._issuper = -1
-            self._isoper = -1
             if isinstance(other, Qobj):
                 other = _ConstantElement(other)
                 self.elements = [element @ other for element in self.elements]
+                self._update_feedback()
 
             elif isinstance(other, QobjEvo):
                 self.elements = [left @ right
                     for left, right in itertools.product(
                         self.elements, (<QobjEvo> other).elements
                     )]
+                self._update_feedback(other)
+
         else:
             return NotImplemented
         return self
@@ -611,6 +707,8 @@ cdef class QobjEvo:
         cdef QobjEvo res = self.copy()
         res.elements = [element.linear_map(Qobj.trans)
                         for element in res.elements]
+        res._dims = Dimensions(res._dims[0], res._dims[1])
+        res.shape = res._dims.shape
         return res
 
     def conj(self):
@@ -625,6 +723,8 @@ cdef class QobjEvo:
         cdef QobjEvo res = self.copy()
         res.elements = [element.linear_map(Qobj.dag, True)
                         for element in res.elements]
+        res._dims = Dimensions(res._dims[0], res._dims[1])
+        res.shape = res._dims.shape
         return res
 
     def to(self, data_type):
@@ -633,16 +733,16 @@ cdef class QobjEvo:
         storage representation.
 
         The different storage representations available are the "data-layer
-        types".  By default, these are `qutip.data.Dense` and `qutip.data.CSR`,
-        which respectively construct a dense matrix store and a compressed
-        sparse row one.
+        types".  By default, these are :obj:`.Dense`, :obj:`.Dia` and
+        :obj:`.CSR`, which respectively construct a dense matrix, diagonal
+        sparse matrixand a compressed sparse row one.
 
-        The `QobjEvo` is transformed inplace.
+        The :obj:`.QobjEvo` is transformed inplace.
 
         Parameters
         ----------
         data_type : type
-            The data-layer type that the data of this `Qobj` should be
+            The data-layer type that the data of this :obj:`.Qobj` should be
             converted to.
 
         Returns
@@ -667,9 +767,17 @@ cdef class QobjEvo:
         Apply mapping to each Qobj contribution.
 
         Example:
-        ``QobjEvo([sigmax(), coeff]).linear_map(spre)``
+
+          ``QobjEvo([sigmax(), coeff]).linear_map(spre)``
+
         gives the same result has
-        ``QobjEvo([spre(sigmax()), coeff])``
+
+          ``QobjEvo([spre(sigmax()), coeff])``
+
+        Parameters
+        ----------
+        op_mapping: callable
+            Funtion to apply to each elements.
 
         Returns
         -------
@@ -688,11 +796,10 @@ cdef class QobjEvo:
                 raise TypeError("The op_mapping function must return a Qobj")
         cdef QobjEvo res = self.copy()
         res.elements = [element.linear_map(op_mapping) for element in res.elements]
-        res.dims = res.elements[0].qobj(0).dims
+        res._dims = res.elements[0].qobj(0)._dims
         res.shape = res.elements[0].qobj(0).shape
-        res.type = res.elements[0].qobj(0).type
-        res._issuper = res.elements[0].qobj(0).issuper
-        res._isoper = res.elements[0].qobj(0).isoper
+        res._update_feedback()
+
         if not _skip_check:
             if res(0) != out:
                 raise ValueError("The mapping is not linear")
@@ -724,16 +831,16 @@ cdef class QobjEvo:
 
     def compress(self):
         """
-        Look for redundance in the :obj:`~QobjEvo` components:
+        Look for redundance in the :obj:`.QobjEvo` components:
 
-        Constant parts, (:class:`~Qobj` without :class:`~Coefficient`) will be
+        Constant parts, (:obj:`.Qobj` without :obj:`Coefficient`) will be
         summed.
-        Pairs ``[Qobj, Coefficient]`` with the same :class:`~Qobj` are merged.
+        Pairs ``[Qobj, Coefficient]`` with the same :obj:`.Qobj` are merged.
 
         Example:
         ``[[sigmax(), f1], [sigmax(), f2]] -> [[sigmax(), f1+f2]]``
 
-        The :class:`~QobjEvo` is transformed inplace.
+        The :obj:`.QobjEvo` is transformed inplace.
 
         Returns
         -------
@@ -763,6 +870,35 @@ cdef class QobjEvo:
 
         self.elements = cleaned_elements
 
+    def to_list(QobjEvo self):
+        """
+        Restore the QobjEvo to a list form.
+
+        Returns
+        -------
+        list_qevo: list
+            The QobjEvo as a list, element are either :obj:`.Qobj` for
+            constant parts, ``[Qobj, Coefficient]`` for coefficient based term.
+            The original format of the :obj:`Coefficient` is not restored.
+            Lastly if the original :obj:`.QobjEvo` is constructed with a
+            function returning a Qobj, the term is returned as a pair of the
+            original function and args (``dict``).
+        """
+        out = []
+        for element in self.elements:
+            if isinstance(element, _ConstantElement):
+                out.append(element.qobj(0))
+            elif isinstance(element, _EvoElement):
+                coeff = element._coefficient
+                out.append([element.qobj(0), coeff])
+            elif isinstance(element, _FuncElement):
+                func = element._func
+                args = element._args
+                out.append([func, args])
+            else:
+                out.append([element, {}])
+        return out
+
     ###########################################################################
     # properties                                                              #
     ###########################################################################
@@ -780,24 +916,64 @@ cdef class QobjEvo:
     @property
     def isoper(self):
         """Indicates if the system represents an operator."""
-        # TODO: isoper should be part of dims
-        if self._isoper == -1:
-            self._isoper = type_from_dims(self.dims) == "oper"
-        return self._isoper
+        return self._dims.type in ['oper', 'scalar']
 
     @property
     def issuper(self):
         """Indicates if the system represents a superoperator."""
-        # TODO: issuper should/will be part of dims
-        # remove self._issuper then
-        if self._issuper == -1:
-            self._issuper = type_from_dims(self.dims) == "super"
-        return self._issuper
+        return self._dims.type == 'super'
+
+    @property
+    def dims(self):
+        return self._dims.as_list()
+
+    @property
+    def type(self):
+        return self._dims.type
+
+    @property
+    def superrep(self):
+        return self._dims.superrep
+
+    @property
+    def isbra(self):
+        """Indicates if the system represents a bra state."""
+        return self._dims.type in ['bra', 'scalar']
+
+    @property
+    def isket(self):
+        """Indicates if the system represents a ket state."""
+        return self._dims.type in ['ket', 'scalar']
+
+    @property
+    def isoperket(self):
+        """Indicates if the system represents a operator-ket state."""
+        return self._dims.type == 'operator-ket'
+
+    @property
+    def isoperbra(self):
+        """Indicates if the system represents a operator-bra state."""
+        return self._dims.type == 'operator-bra'
+
+    @property
+    def dtype(self):
+        """
+        Type of the data layers of the QobjEvo.
+        When different data layers are used, we return the type of the sum of
+        the parts.
+        """
+        part_types = [part.dtype for part in self.elements]
+        if (
+            part_types[0] is not None
+            and all(part == part_types[0] for part in part_types)
+        ):
+            return part_types[0]
+        return self(0).dtype
 
     ###########################################################################
     # operation methods                                                       #
     ###########################################################################
-    def expect(QobjEvo self, double t, state):
+    def expect(QobjEvo self, object t, state, check_real=True):
         """
         Expectation value of this operator at time ``t`` with the state.
 
@@ -805,8 +981,14 @@ cdef class QobjEvo:
         ----------
         t : float
             Time of the operator to apply.
+
         state : Qobj
             right matrix of the product
+
+        check_real : bool (True)
+            Whether to convert the result to a `real` when the imaginary part
+            is smaller than the real part by a dactor of
+            ``settings.core['rtol']``.
 
         Returns
         -------
@@ -824,17 +1006,20 @@ cdef class QobjEvo:
             raise ValueError("Must be an operator or super operator to compute"
                              " an expectation value")
         if not (
-            (self.dims[1] == state.dims[0]) or
-            (self.issuper and self.dims[1] == state.dims)
+            (self._dims[1] == state._dims[0]) or
+            (self.issuper and self._dims[1] == state._dims)
         ):
             raise ValueError("incompatible dimensions " + str(self.dims) +
                              ", " + str(state.dims))
         out = self.expect_data(t, state.data)
-        if out == 0 or (out.real and fabs(out.imag / out.real) < herm_rtol):
+        if (
+            check_real and
+            (out == 0 or (out.real and fabs(out.imag / out.real) < herm_rtol))
+        ):
             return out.real
         return out
 
-    cpdef double complex expect_data(QobjEvo self, double t, Data state) except *:
+    cpdef object expect_data(QobjEvo self, object t, Data state):
         """
         Expectation is defined as ``state.adjoint() @ self @ state`` if
         ``state`` is a vector, or ``state`` is an operator and ``self`` is a
@@ -844,7 +1029,7 @@ cdef class QobjEvo:
         if type(state) is Dense:
             return self._expect_dense(t, state)
         cdef _BaseElement part
-        cdef double complex out = 0., coeff
+        cdef object out = 0.
         cdef Data part_data
         cdef object expect_func
         t = self._prepare(t, state)
@@ -857,9 +1042,8 @@ cdef class QobjEvo:
 
         for element in self.elements:
             part = (<_BaseElement> element)
-            coeff = part.coeff(t)
             part_data = part.data(t)
-            out += coeff * expect_func(part_data, state)
+            out += part.coeff(t) * expect_func(part_data, state)
         return out
 
     cdef double complex _expect_dense(QobjEvo self, double t, Dense state) except *:
@@ -891,7 +1075,7 @@ cdef class QobjEvo:
                 out += coeff * expect_data_dense(part_data, state)
         return out
 
-    def matmul(self, double t, state):
+    def matmul(self, t, state):
         """
         Product of this operator at time ``t`` to the state.
         ``self(t) @ state``
@@ -911,16 +1095,16 @@ cdef class QobjEvo:
         if not isinstance(state, Qobj):
             raise TypeError("A Qobj state is expected")
 
-        if self.dims[1] != state.dims[0]:
+        if self._dims[1] != state._dims[0]:
             raise ValueError("incompatible dimensions " + str(self.dims[1]) +
                              ", " + str(state.dims[0]))
 
         return Qobj(self.matmul_data(t, state.data),
-                    dims=[self.dims[0],state.dims[1]],
+                    dims=[self._dims[0], state._dims[1]],
                     copy=False
-                   )
+                    )
 
-    cpdef Data matmul_data(QobjEvo self, double t, Data state, Data out=None):
+    cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None):
         """Compute ``out += self(t) @ state``"""
         cdef _BaseElement part
         t = self._prepare(t, state)
@@ -934,3 +1118,16 @@ cdef class QobjEvo:
             part = (<_BaseElement> element)
             out = part.matmul_data_t(t, state, out)
         return out
+
+
+class _Feedback:
+    default = None
+
+    def __init__(self):
+        raise NotImplementedError("Use subclass")
+
+    def check_consistency(self, dims):
+        """
+        Raise an error when the dims of the e_ops / state don't match.
+        Tell the dims to the feedback for reconstructing the Qobj.
+        """

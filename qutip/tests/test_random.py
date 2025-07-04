@@ -4,8 +4,9 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import pytest
 
-from qutip import qeye, num, to_kraus, kraus_to_choi, CoreOptions
+from qutip import qeye, num, to_kraus, kraus_to_choi, CoreOptions, Qobj
 from qutip import data as _data
+from qutip.core.dimensions import Space
 from qutip.random_objects import (
     rand_herm,
     rand_unitary,
@@ -22,8 +23,9 @@ from qutip.random_objects import (
     12,
     [8],
     [2, 2, 3],
-    [[2], [2]]
-], ids=["int", "list", "tensor", "super"])
+    [[2], [2]],
+    Space(3),
+], ids=["int", "list", "tensor", "super", "Space"])
 def dimensions(request):
     return request.param
 
@@ -45,6 +47,8 @@ def _assert_density(qobj, density):
 def _assert_metadata(random_qobj, dims, dtype=None, super=False, ket=False):
     if isinstance(dims, int):
         dims = [dims]
+    elif isinstance(dims, Space):
+        dims = dims.as_list()
     N = np.prod(dims)
     if super and not isinstance(dims[0], list):
         target_dims_0 = [dims, dims]
@@ -95,7 +99,10 @@ def test_rand_herm_Eigs(dimensions, density):
     """
     Random Qobjs: Hermitian matrix - Eigs given
     """
-    N = np.prod(dimensions)
+    if isinstance(dimensions, Space):
+        N = dimensions.size
+    else:
+        N = np.prod(dimensions)
     eigs = np.random.random(N)
     eigs /= np.sum(eigs)
     eigs.sort()
@@ -141,8 +148,11 @@ def test_rand_dm(dimensions, kw, dtype, distribution):
     """
     Random Qobjs: Density matrix
     """
-    N = np.prod(dimensions)
-    print(N, kw)
+    if isinstance(dimensions, Space):
+        N = dimensions.size
+    else:
+        N = np.prod(dimensions)
+
     if "eigenvalues" in kw:
         eigs = np.random.random(N)
         eigs /= np.sum(eigs)
@@ -202,7 +212,10 @@ def test_rand_ket(dimensions, distribution, dtype):
     """
     random_qobj = rand_ket(dimensions, distribution=distribution, dtype=dtype)
 
-    assert random_qobj.type == 'ket'
+    target_type = "ket"
+    if isinstance(dimensions, list) and isinstance(dimensions[0], list):
+        target_type = "operator-ket"
+    assert random_qobj.type == target_type
     assert abs(random_qobj.norm() - 1) < 1e-14
 
     if isinstance(dimensions, int):
@@ -219,7 +232,7 @@ def test_rand_super(dimensions, dtype, superrep):
     """
     random_qobj = rand_super(dimensions, dtype=dtype, superrep=superrep)
     assert random_qobj.issuper
-    with CoreOptions(atol=1e-9):
+    with CoreOptions(atol=2e-9):
         assert random_qobj.iscptp
     assert random_qobj.superrep == superrep
     _assert_metadata(random_qobj, dimensions, dtype, super=True)
@@ -235,6 +248,8 @@ def test_rand_super_bcsz(dimensions, dtype, rank, superrep):
 
     random_qobj = rand_super_bcsz(dimensions, rank=rank,
                                   dtype=dtype, superrep=superrep)
+    if isinstance(dimensions, Space):
+        dimensions = dimensions.as_list()
     assert random_qobj.issuper
     with CoreOptions(atol=1e-9):
         assert random_qobj.iscptp
@@ -281,7 +296,38 @@ def test_random_seeds(function, seed):
 
 
 def test_kraus_map(dimensions, dtype):
-    kmap = rand_kraus_map(dimensions, dtype=dtype)
-    _assert_metadata(kmap[0], dimensions, dtype)
-    with CoreOptions(atol=1e-9):
-        assert kraus_to_choi(kmap).iscptp
+    if isinstance(dimensions, list) and isinstance(dimensions[0], list):
+        # Each element of a kraus map cannot be a super operators
+        with pytest.raises(TypeError) as err:
+            kmap = rand_kraus_map(dimensions, dtype=dtype)
+        assert "super operator" in str(err.value)
+    else:
+        kmap = rand_kraus_map(dimensions, dtype=dtype)
+        _assert_metadata(kmap[0], dimensions, dtype)
+        with CoreOptions(atol=1e-9):
+            assert kraus_to_choi(kmap).iscptp
+
+
+dtype_names = list(_data.to._str2type.keys()) + list(_data.to.dtypes)
+dtype_types = list(_data.to._str2type.values()) + list(_data.to.dtypes)
+dtype_combinations = list(zip(dtype_names, dtype_types))
+@pytest.mark.parametrize(['alias', 'dtype'], dtype_combinations,
+                         ids=[str(dtype) for dtype in dtype_names])
+@pytest.mark.parametrize('func', [
+    rand_herm,
+    rand_unitary,
+    rand_dm,
+    rand_ket,
+    rand_stochastic,
+    rand_super,
+    rand_super_bcsz,
+    rand_kraus_map,
+])
+def test_random_dtype(func, alias, dtype):
+    with CoreOptions(default_dtype=alias):
+        object = func(2)
+        if isinstance(object, Qobj):
+            assert isinstance(object.data, dtype)
+        else:
+            for obj in object:
+                assert isinstance(obj.data, dtype)

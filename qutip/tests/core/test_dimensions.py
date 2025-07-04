@@ -4,46 +4,11 @@ import pytest
 import collections
 import qutip
 from qutip.core.dimensions import (
-    type_from_dims, flatten, unflatten, enumerate_flat, deep_remove, deep_map,
+    flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
-    collapse_dims_super, collapse_dims_oper,
+    collapse_dims_super, collapse_dims_oper, einsum, Dimensions,
+    to_tensor_rep, from_tensor_rep
 )
-
-_v = "vector"
-_vo = "vectorized_oper"
-
-
-@pytest.mark.parametrize(["rank", "actual_type", "scalar"], [
-    pytest.param([1], _v, True, id="scalar"),
-    pytest.param([1, 1], _v, True, id="tensor scalar"),
-    pytest.param([[1]], _vo, True, id="nested scalar"),
-    pytest.param([[1], [1]], _vo, True, id="nested tensor scalar 1"),
-    pytest.param([[1, 1]], _vo, True, id="nested tensor scalar 2"),
-    pytest.param([2], _v, False, id="vector"),
-    pytest.param([2, 3], _v, False, id="tensor vector"),
-    pytest.param([1, 2, 3], _v, False, id="tensor vector with 1d subspace 1"),
-    pytest.param([2, 1, 1], _v, False, id="tensor vector with 1d subspace 2"),
-    pytest.param([[2]], _vo, False, id="vectorised operator"),
-    pytest.param([[2, 3]], _vo, False, id="vector tensor operator"),
-    pytest.param([[1, 3]], _vo, False, id="vector tensor operator with 1d"),
-])
-@pytest.mark.parametrize("test_type", ["scalar", _v, _vo])
-def test_rank_type_detection(rank, actual_type, scalar, test_type):
-    """
-    Test the rank detection tests `is_scalar`, `is_vector` and
-    `is_vectorized_oper` for a range of different test cases.  These tests are
-    designed to be called on individual elements of the two-element `dims`
-    parameter of `Qobj`s, so they're testing the row-rank and column-rank.
-
-    It's possible to be both a scalar and something else, but "vector" and
-    "vectorized_oper" are mutually exclusive.
-
-    These functions aren't properly specified for improper dimension setups, so
-    there are no tests for those.
-    """
-    expected = scalar if test_type == "scalar" else (actual_type == test_type)
-    function = getattr(qutip.dimensions, "is_" + test_type)
-    assert function(rank) == expected
 
 
 @pytest.mark.parametrize(["base", "flat"], [
@@ -116,23 +81,27 @@ _Indices = collections.namedtuple('_Indices', ['base', 'permutation', 'shape'])
 
 @pytest.mark.parametrize("indices", [
     pytest.param(_Indices([[2], [1]], [0, 1], (2, 1)), id="ket preserved"),
-    pytest.param(_Indices([[2, 3], [1, 1]], [0, 1, 2, 3], (2, 3, 1, 1)),
+    pytest.param(_Indices([[2, 3], [1]], [0, 1, 2], (2, 3, 1)),
                  id="tensor-ket preserved"),
     pytest.param(_Indices([[1], [2]], [0, 1], (1, 2)), id="bra preserved"),
-    pytest.param(_Indices([[1, 1], [2, 2]], [0, 1, 2, 3], (1, 1, 2, 2)),
+    pytest.param(_Indices([[1], [2, 2]], [0, 1, 2], (1, 2, 2)),
                  id="tensor-bra preserved"),
     pytest.param(_Indices([[2], [3]], [0, 1], (2, 3)), id="oper preserved"),
-    pytest.param(_Indices([[2, 3], [1, 0]], [0, 1, 2, 3], (2, 3, 1, 0)),
+    pytest.param(_Indices([[2, 3], [1, 2]], [0, 1, 2, 3], (2, 3, 1, 2)),
                  id="tensor-oper preserved"),
     pytest.param(_Indices([[[2, 4], [6, 8]], [[1, 3], [5, 7]]],
                           [2, 3, 0, 1, 6, 7, 4, 5],
                           (6, 8, 2, 4, 5, 7, 1, 3)),
                  id="super-oper"),
+    pytest.param(_Indices([[[1], [2, 3]], [[4, 5], [6]]],
+                          [2, 0, 1, 4, 5, 3],
+                          (2, 3, 1, 6, 4, 5)),
+                 id="super-oper-uneven"),
     pytest.param(_Indices([[[2, 4], [6, 8]], [1]],
-                          [0, 1, 2, 3, 4], (2, 4, 6, 8, 1)),
+                          [2, 3, 0, 1, 4], (6, 8, 2, 4, 1)),
                  id="operator-ket"),
     pytest.param(_Indices([[1], [[2, 4], [6, 8]]],
-                          [0, 1, 2, 3, 4], (1, 2, 4, 6, 8)),
+                          [0, 3, 4, 1, 2], (1, 6, 8, 2, 4)),
                  id="operator-bra"),
 ])
 class TestSuperOperatorDimsModification:
@@ -150,31 +119,83 @@ class TestSuperOperatorDimsModification:
         assert dims_to_tensor_shape(indices.base) == indices.shape
 
 
-class TestTypeFromDims:
-    @pytest.mark.parametrize(["base", "expected", "enforce_square"], [
-        pytest.param([[2], [2]], 'oper', True),
-        pytest.param([[2, 3], [2, 3]], 'oper', True),
-        pytest.param([[2], [3]], 'other', True),
-        pytest.param([[2], [3]], 'oper', False),
-        pytest.param([[2], [1]], 'ket', True),
-        pytest.param([[1], [2]], 'bra', True),
-        pytest.param([[[2, 3], [2, 3]], [1]], 'operator-ket', True),
-        pytest.param([[1], [[2, 3], [2, 3]]], 'operator-bra', True),
-        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'other', True),
-        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'super', False),
-        pytest.param([[[2], [3, 3]], [[3], [2, 3]]], 'other', True),
-    ])
-    def test_type_from_dims(self, base, expected, enforce_square):
-        assert type_from_dims(base, enforce_square=enforce_square) == expected
+@pytest.mark.parametrize("dims", [
+    pytest.param([[2, 3], [1]], id="ket"),
+    pytest.param([[1, 1], [2, 3]], id="bra"),
+    pytest.param([[2, 3], [5, 7]], id="oper"),
+    pytest.param([[[2], [3]], [[5], [7]]], id="super-oper"),
+    pytest.param([[[2], [3]], [1]], id="oper-ket"),
+    pytest.param([[[1, 1], [1, 1]], [[2, 3], [5, 7]]], id="oper-bra"),
+    pytest.param([[[2], [3, 5]], [[7], [11]]], id="super-oper-uneven"),
+])
+class test_to_tensor_rep:
+    class mylist(list):
+        def at(self, i, j):
+            out = self.copy()
+            out[i] = j
+            return out
 
-    @pytest.mark.parametrize("qobj", [
-        pytest.param(qutip.rand_ket(10), id='ket'),
-        pytest.param(qutip.rand_ket(10).dag(), id='bra'),
-        pytest.param(qutip.rand_dm(10), id='oper'),
-        pytest.param(qutip.to_super(qutip.rand_dm(10)), id='super'),
+    def _build_qobj(self, dims, idx=-1):
+        """
+        Create an Qobj with given dims which values only increment for the
+        `idx` dims.
+        """
+        if isinstance(dims[0], int):
+            ket = qutip.tensor([
+                (
+                    qutip.Qobj(np.arange(N))
+                    if i == idx else (qutip.Qobj(np.ones(N)))
+                ) for i, N in enumerate(dims)
+            ])
+            ket.dims = [ket.dims[0], [1]]
+            return ket
+
+        left = self._build_qobj(dims[0], idx)
+        right = self._build_qobj(dims[1], idx - len(flatten(dims[0])))
+        if left.isoper and left.type != 'scalar':
+            left = qutip.operator_to_vector(left)
+            left.dims = [left.dims[0], [1]]
+        if right.isoper and right.type != 'scalar':
+            right = qutip.operator_to_vector(right)
+            left.dims = [left.dims[0], [1]]
+        return left @ right.dag()
+
+    def test_tensor_shape(self, dims):
+        qobj = self._build_qobj(dims)
+        array = to_tensor_rep(qobj)
+        assert array.shape == tuple(flatten(dims))
+
+    def test_tensor_rep(self, dims):
+        N = len(flatten(dims))
+        for i in range(N):
+            qobj = self._build_qobj(dims, i)
+            array = to_tensor_rep(qobj)
+            slices = mylist([slice(j) for j in array.shape])
+            assert all(
+                np.all(array.__getitem__(*slices.at(i, j)) == j)
+                for j in range(array.shape[i])
+            )
+
+    def from_tensor_rep(self, dims):
+        qobj = self._build_qobj(dims)
+        array = to_tensor_rep(qobj)
+        back = from_tensor_rep(array, dims)
+        assert qobj == back
+
+
+class TestTypeFromDims:
+    @pytest.mark.parametrize(["base", "expected"], [
+        pytest.param([[2], [2]], 'oper'),
+        pytest.param([[2, 3], [2, 3]], 'oper'),
+        pytest.param([[2], [3]], 'oper'),
+        pytest.param([[2], [1]], 'ket'),
+        pytest.param([[1], [2]], 'bra'),
+        pytest.param([[[2, 3], [2, 3]], [1]], 'operator-ket'),
+        pytest.param([[1], [[2, 3], [2, 3]]], 'operator-bra'),
+        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'super'),
     ])
-    def test_qobj_dims_match_qobj(self, qobj):
-        assert type_from_dims(qobj.dims) == qobj.type
+    def test_Dimensions_type(self, base, expected):
+        assert Dimensions(base).type == expected
 
 
 class TestCollapseDims:
@@ -199,3 +220,71 @@ class TestCollapseDims:
     ])
     def test_super(self, base, expected):
         assert collapse_dims_super(base) == expected
+
+
+@pytest.mark.parametrize("dims_list", [
+    pytest.param([0], id="zero"),
+    pytest.param([], id="empty"),
+    pytest.param([1, [2]], id="mixed depth"),
+    pytest.param([[2], [3], [4]], id="bay type"),
+])
+def test_bad_dims(dims_list):
+    with pytest.raises(ValueError):
+        Dimensions([dims_list, [1]])
+
+
+@pytest.mark.parametrize("space_l", [[1], [2], [2, 3]])
+@pytest.mark.parametrize("space_m", [[1], [2], [2, 3]])
+@pytest.mark.parametrize("space_r", [[1], [2], [2, 3]])
+def test_dims_matmul(space_l, space_m, space_r):
+    dims_l = Dimensions([space_l, space_m])
+    dims_r = Dimensions([space_m, space_r])
+    assert dims_l @ dims_r == Dimensions([space_l, space_r])
+
+
+def test_dims_matmul_bad():
+    dims_l = Dimensions([[1], [3]])
+    dims_r = Dimensions([[2], [2]])
+    with pytest.raises(TypeError):
+        dims_l @ dims_r
+
+
+def test_dims_comparison():
+    assert Dimensions([[1], [2]]) == Dimensions([[1], [2]])
+    assert not Dimensions([[1], [2]]) != Dimensions([[1], [2]])
+    assert Dimensions([[1], [2]]) != Dimensions([[2], [1]])
+    assert not Dimensions([[1], [2]]) == Dimensions([[2], [1]])
+    assert Dimensions([[1], [2]])[1] == Dimensions([[1], [2]])[1]
+    assert Dimensions([[1], [2]])[0] != Dimensions([[1], [2]])[1]
+    assert not Dimensions([[1], [2]])[1] != Dimensions([[1], [2]])[1]
+    assert not Dimensions([[1], [2]])[0] != Dimensions([[1], [2]])[0]
+
+
+@pytest.mark.parametrize(["subscripts", "operands", "expected"], [
+    pytest.param("ii", [qutip.sigmaz()], 0),
+    pytest.param("ij", [qutip.sigmax()], qutip.sigmax()),
+    pytest.param("ij->ji", [qutip.sigmay()], qutip.sigmay().trans()),
+    pytest.param("ij,ji", [qutip.sigmaz(), qutip.sigmaz()], 2),
+    pytest.param("ijij", [qutip.tensor(qutip.thermal_dm(2,1), qutip.thermal_dm(2,1))], 1),
+    pytest.param("ikjl,jm->ikml", [qutip.tensor(qutip.sigmaz(), qutip.sigmaz()),
+                             qutip.sigmaz()], qutip.tensor(qutip.qeye(2), qutip.sigmaz())),
+    pytest.param("ijkl->kjil", [qutip.tensor(qutip.sigmam(), qutip.sigmaz())], qutip.tensor(qutip.sigmap(), qutip.sigmaz()))
+])
+def test_einsum(subscripts, operands, expected):
+    assert einsum(subscripts, *operands) == expected
+
+
+@pytest.mark.parametrize(["list_dims", "expected"], [
+    pytest.param([[4, 4], [1, 1, 1]], [[4, 4], [1]]),
+    pytest.param([[1, 1], [1, 1, 1]], [[1], [1]]),
+    pytest.param([[1, 1, 1, 1], [5, 5, 2, 6]], [[1], [5, 5, 2, 6]]),
+    pytest.param(
+        [[[2, 3, 5], [2, 3, 5]], [[1, 1, 1], [1, 1, 1]]],
+        [[[2, 3, 5], [2, 3, 5]], [1]]
+    )
+])
+def test_scalar_dims(list_dims, expected):
+    with qutip.CoreOptions(auto_tidyup_dims=True):
+        assert Dimensions(list_dims).as_list() == expected
+    with qutip.CoreOptions(auto_tidyup_dims=False):
+        assert Dimensions(list_dims).as_list() == list_dims

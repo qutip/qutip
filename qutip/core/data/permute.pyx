@@ -320,7 +320,7 @@ import inspect as _inspect
 
 dimensions = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('dimensions', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('order', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
@@ -367,7 +367,7 @@ dimensions.add_specialisations([
 
 indices = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('row_perm', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
                            default=None),
         _inspect.Parameter('col_perm', _inspect.Parameter.POSITIONAL_OR_KEYWORD,

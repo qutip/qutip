@@ -2,7 +2,7 @@ from .test_mathematics import UnaryOpMixin
 import pytest
 import numpy as np
 from qutip import data
-from qutip.core.data import CSR, Dense
+from qutip.core.data import CSR, Dense, Dia
 
 
 class TestSplitColumns(UnaryOpMixin):
@@ -11,17 +11,20 @@ class TestSplitColumns(UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.split_columns_csr, CSR, list),
+        pytest.param(data.split_columns_dia, Dia, list),
         pytest.param(data.split_columns_dense, Dense, list),
     ]
 
 
+@pytest.mark.filterwarnings("ignore:Constructing a DIA matrix")
 class TestColumnStack(UnaryOpMixin):
     def op_numpy(self, matrix):
         out_shape = (matrix.shape[0]*matrix.shape[1], 1)
-        return np.reshape(matrix, newshape=out_shape, order='F')
+        return np.reshape(matrix, out_shape, order='F')
 
     specialisations = [
         pytest.param(data.column_stack_csr, CSR, CSR),
+        pytest.param(data.column_stack_dia, Dia, Dia),
         pytest.param(data.column_stack_dense, Dense, Dense),
     ]
 
@@ -29,7 +32,7 @@ class TestColumnStack(UnaryOpMixin):
 class TestColumnUnstack(UnaryOpMixin):
     def op_numpy(self, matrix, rows):
         out_shape = (rows, matrix.shape[0]*matrix.shape[1]//rows)
-        return np.reshape(matrix, newshape=out_shape, order='F')
+        return np.reshape(matrix, out_shape, order='F')
 
     shapes = [
         (pytest.param((10, 1), id="ket"), ),
@@ -43,6 +46,7 @@ class TestColumnUnstack(UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.column_unstack_csr, CSR, CSR),
+        pytest.param(data.column_unstack_dia, Dia, Dia),
         pytest.param(data.column_unstack_dense, Dense, Dense),
     ]
 
@@ -79,7 +83,7 @@ class TestColumnUnstack(UnaryOpMixin):
 class TestReshape(UnaryOpMixin):
     def op_numpy(self, matrix, rows, columns):
         out_shape = (rows, columns)
-        return np.reshape(matrix, newshape=out_shape, order='C')
+        return np.reshape(matrix, out_shape, order='C')
 
     # All matrices should have the same number of elements in total, so we can
     # use the same (rows, columns) parametrisation for each input.
@@ -92,6 +96,7 @@ class TestReshape(UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.reshape_dense, Dense, Dense),
+        pytest.param(data.reshape_dia, Dia, Dia),
         pytest.param(data.reshape_csr, CSR, CSR),
     ]
 

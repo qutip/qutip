@@ -1,21 +1,22 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
-from libc.string cimport memcpy
+from libc.string cimport memcpy, memset
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr, dense, Dense
+from qutip.core.data cimport csr, dense, Dense, dia, Dia, Data
 from qutip.core.data.csr cimport CSR
+from qutip.core.data.convert import to as _to
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 __all__ = [
-    'project', 'project_csr', 'project_dense',
+    'project', 'project_csr', 'project_dense_data', 'project_dia',
 ]
 
 
-cdef void _project_ket_csr(CSR ket, CSR out) nogil:
+cdef int _project_ket_csr(CSR ket, CSR out) except -1 nogil:
     """
     Calculate the projection of the given ket, and place the output in out.
     """
@@ -33,9 +34,10 @@ cdef void _project_ket_csr(CSR ket, CSR out) nogil:
         for ptr in range(nnz_in):
             out.data[offset + ptr] = ket.data[row] * conj(ket.data[ptr])
         offset += nnz_in
+    return 0
 
 
-cdef void _project_bra_csr(CSR bra, CSR out) nogil:
+cdef int _project_bra_csr(CSR bra, CSR out) except -1 nogil:
     """
     Calculate the projection of the given bra, and place the output in out.
     """
@@ -66,6 +68,8 @@ cdef void _project_bra_csr(CSR bra, CSR out) nogil:
     # Handle all zero rows after the last non-zero entry.
     for row_out in range(row_out, out.shape[0]):
         out.row_index[row_out + 1] = cur
+    return 0
+
 
 cpdef CSR project_csr(CSR state):
     """
@@ -89,14 +93,25 @@ cpdef CSR project_csr(CSR state):
         return out
     raise ValueError("state must be a ket or a bra.")
 
-cpdef Dense project_dense(Dense state):
+
+cpdef Data project_dense_data(Dense state):
     """
     Calculate the projection |state><state|.  The shape of `state` will be used
     to determine if it has been supplied as a ket or a bra.  The result of this
     function will be identical is passed `state` or `adjoint(state)`.
+
+    If the projection output would be less than 30% full, return a CSR matrix.
     """
+    out_density = dense.nnz(state) * 1.0 / state.shape[0]
+    if out_density < 0.55:
+        return project_csr(_to(CSR, state))
+    else:
+        return _project_dense(state)
+
+
+cpdef Dense _project_dense(Dense state):
     cdef Dense out
-    cdef size_t size, i
+    cdef size_t size, i, j
     cdef bint fortran
     if state.shape[1] == 1:
         size = state.shape[0]
@@ -113,13 +128,69 @@ cpdef Dense project_dense(Dense state):
     return out
 
 
+cpdef Dia project_dia(Dia state):
+    """
+    Calculate the projection |state><state|.  The shape of `state` will be used
+    to determine if it has been supplied as a ket or a bra.  The result of this
+    function will be identical is passed `state` or `adjoint(state)`.
+    """
+    cdef Dia out
+    cdef size_t size, i, j, k, num_diag=0, max_diag
+    if state.shape[1] == 1:
+        size = state.shape[0]
+    elif state.shape[0] == 1:
+        size = state.shape[1]
+    else:
+        raise ValueError("state must be a ket or a bra.")
+
+    max_diag = state.num_diag * state.num_diag - state.num_diag + 1
+    out = dia.empty(size, size, max_diag)
+    memset(out.data, 0, max_diag * out.shape[1] * sizeof(double complex))
+
+    if state.shape[1] == 1:
+        for i in range(state.num_diag):
+            for j in range(state.num_diag):
+                k = 0
+                out_offset = (state.offsets[i] - state.offsets[j])
+                while k < num_diag:
+                    if out_offset == out.offsets[k]:
+                        num_diag -= 1
+                        break
+                    k += 1
+                num_diag += 1
+                out.offsets[k] = out_offset
+
+                out.data[k * size + abs(state.offsets[j])] = (
+                    state.data[i] * conj(state.data[j])
+                )
+    else:
+        for i in range(state.num_diag):
+            for j in range(state.num_diag):
+                k = 0
+                out_offset = (state.offsets[i] - state.offsets[j])
+                while k < num_diag:
+                    if out_offset == out.offsets[k]:
+                        num_diag -= 1
+                        break
+                    k += 1
+                num_diag += 1
+                out.offsets[k] = out_offset
+
+                out.data[k * size + abs(state.offsets[i])] = (
+                    state.data[i * state.shape[1] + abs(state.offsets[i])]
+                    * conj(state.data[j * state.shape[1] + abs(state.offsets[j])])
+                )
+
+    out.num_diag = num_diag
+    return out
+
 
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
 project = _Dispatcher(
     _inspect.Signature([
-        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
     name='project',
     module=__name__,
@@ -138,7 +209,8 @@ project.__doc__ =\
     """
 project.add_specialisations([
     (CSR, CSR, project_csr),
-    (Dense, Dense, project_dense),
+    (Dia, Dia, project_dia),
+    (Dense, Data, project_dense_data),
 ], _defer=True)
 
 del _inspect, _Dispatcher

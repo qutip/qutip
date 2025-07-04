@@ -3,7 +3,6 @@ Unit tests for QuTiP partial transpose functions.
 """
 
 import numpy as np
-from numpy.testing import assert_, run_module_suite
 
 from qutip import Qobj, partial_transpose, tensor, rand_dm
 from qutip.partial_transpose import _partial_transpose_reference
@@ -16,7 +15,7 @@ def test_partial_transpose_bipartite():
 
     # no transpose
     rho_pt = partial_transpose(rho, [0, 0])
-    assert_(np.abs(np.max(rho_pt.full() - rho.full())) < 1e-12)
+    assert (np.abs(np.max(rho_pt.full() - rho.full())) < 1e-12)
 
     # partial transpose subsystem 1
     rho_pt = partial_transpose(rho, [1, 0])
@@ -24,7 +23,7 @@ def test_partial_transpose_bipartite():
                                 [4, 5, 12, 13],
                                 [2, 3, 10, 11],
                                 [6, 7, 14, 15]])
-    assert_(np.abs(np.max(rho_pt.full() - rho_pt_expected)) < 1e-12)
+    assert (np.abs(np.max(rho_pt.full() - rho_pt_expected)) < 1e-12)
 
     # partial transpose subsystem 2
     rho_pt = partial_transpose(rho, [0, 1])
@@ -32,11 +31,11 @@ def test_partial_transpose_bipartite():
                                 [1, 5, 3, 7],
                                 [8, 12, 10, 14],
                                 [9, 13, 11, 15]])
-    assert_(np.abs(np.max(rho_pt.full() - rho_pt_expected)) < 1e-12)
+    assert (np.abs(np.max(rho_pt.full() - rho_pt_expected)) < 1e-12)
 
     # full transpose
     rho_pt = partial_transpose(rho, [1, 1])
-    assert_(np.abs(np.max(rho_pt.full() - rho.trans().full())) < 1e-12)
+    assert (np.abs(np.max(rho_pt.full() - rho.trans().full())) < 1e-12)
 
 
 def test_partial_transpose_comparison():
@@ -72,7 +71,3 @@ def test_partial_transpose_randomized():
 
     rho_pt2 = partial_transpose(rho, mask, method="sparse")
     np.abs(np.max(rho_pt2.full() - rho_pt_ref.full())) < 1e-12
-
-
-if __name__ == "__main__":
-    run_module_suite()

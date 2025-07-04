@@ -9,15 +9,12 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
            'hellinger_dist', 'hilbert_dist', 'average_gate_fidelity',
            'process_fidelity', 'unitarity', 'dnorm']
 
-import warnings
-
-import numpy as np
+from .numpy_backend import np
 from scipy import linalg as la
 import scipy.sparse as sp
-from .superop_reps import (to_kraus, to_choi, _to_superpauli, to_super,
-                           kraus_to_choi)
+from .superop_reps import to_choi, _to_superpauli, to_super, kraus_to_choi
 from .superoperator import operator_to_vector, vector_to_operator
-from .operators import qeye
+from .operators import qeye, qeye_like
 from .states import ket2dm
 from .semidefinite import dnorm_problem, dnorm_sparse_problem
 from . import data as _data
@@ -31,7 +28,13 @@ except ImportError:
 def fidelity(A, B):
     """
     Calculates the fidelity (pseudo-metric) between two density matrices.
-    See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
+
+    Notes
+    -----
+    Uses the definition from Nielsen & Chuang, "Quantum Computation and Quantum
+    Information". It is the square root of the fidelity defined in
+    R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994), used in
+    :func:`qutip.core.metrics.process_fidelity`.
 
     Parameters
     ----------
@@ -77,7 +80,8 @@ def fidelity(A, B):
     # even for positive semidefinite matrices, small negative eigenvalues
     # can be reported.
     eig_vals = (sqrtmA * B * sqrtmA).eigenenergies()
-    return float(np.real(np.sqrt(eig_vals[eig_vals > 0]).sum()))
+    eig_vals_non_neg = np.where(eig_vals > 0, eig_vals, 0)
+    return np.real(np.sqrt(eig_vals_non_neg).sum())
 
 
 def _hilbert_space_dims(oper):
@@ -115,7 +119,7 @@ def _process_fidelity_to_id(oper):
     to the identity quantum channel.
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`/list
+    oper : :class:`.Qobj`/list
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
     Returns
@@ -154,10 +158,10 @@ def process_fidelity(oper, target=None):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`/list
+    oper : :class:`.Qobj`/list
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
-    target : :class:`qutip.Qobj`/list
+    target : :class:`.Qobj`/list, optional
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
 
@@ -171,8 +175,8 @@ def process_fidelity(oper, target=None):
     Since Qutip 5.0, this function computes the process fidelity as defined
     for example in: A. Gilchrist, N.K. Langford, M.A. Nielsen,
     Phys. Rev. A 71, 062310 (2005). Previously, it computed a function
-    that is now implemented in
-    :func:`control.fidcomp.FidCompUnitary.get_fidelity`.
+    that is now implemented as ``get_fidelity`` in qutip-qtrl.
+
     The definition of state fidelity that the process fidelity is based on
     is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
     It is the square of the one implemented in
@@ -196,7 +200,7 @@ def process_fidelity(oper, target=None):
         if isinstance(oper, list):  # oper is a list of Kraus operators
             return _process_fidelity_to_id([k * target.dag() for k in oper])
         elif oper.type == 'oper':
-            return _process_fidelity_to_id(oper*target.dag())
+            return _process_fidelity_to_id(oper * target.dag())
         elif oper.type == 'super':
             oper_super = to_super(oper)
             target_dag_super = to_super(target.dag())
@@ -217,10 +221,10 @@ def average_gate_fidelity(oper, target=None):
 
     Parameters
     ----------
-    oper : :class:`qutip.Qobj`/list
+    oper : :class:`.Qobj`/list
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
-    target : :class:`qutip.Qobj`
+    target : :class:`.Qobj`
         A unitary operator
 
     Returns
@@ -260,9 +264,9 @@ def tracedist(A, B, sparse=False, tol=0):
         Density matrix or state vector.
     B : qobj
         Density matrix or state vector with same dimensions as A.
-    tol : float
-        Tolerance used by sparse eigensolver, if used. (0=Machine precision)
-    sparse : {False, True}
+    tol : float, default: 0
+        Tolerance used by sparse eigensolver, if used. (0 = Machine precision)
+    sparse : bool, default: False
         Use sparse eigensolver.
 
     Returns
@@ -285,7 +289,7 @@ def tracedist(A, B, sparse=False, tol=0):
     diff = A - B
     diff = diff.dag() * diff
     vals = diff.eigenenergies(sparse=sparse, tol=tol)
-    return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
+    return np.real(0.5 * np.sum(np.sqrt(np.abs(vals))))
 
 
 def hilbert_dist(A, B):
@@ -379,7 +383,8 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     Calculates the quantum Hellinger distance between two density matrices.
 
     Formula:
-    hellinger_dist(A, B) = sqrt(2-2*Tr(sqrt(A)*sqrt(B)))
+
+        ``hellinger_dist(A, B) = sqrt(2 - 2 * tr(sqrt(A) * sqrt(B)))``
 
     See: D. Spehner, F. Illuminati, M. Orszag, and W. Roga, "Geometric
     measures of quantum correlations with Bures and Hellinger distances"
@@ -387,13 +392,13 @@ def hellinger_dist(A, B, sparse=False, tol=0):
 
     Parameters
     ----------
-    A : :class:`qutip.Qobj`
+    A : :class:`.Qobj`
         Density matrix or state vector.
-    B : :class:`qutip.Qobj`
+    B : :class:`.Qobj`
         Density matrix or state vector with same dimensions as A.
-    tol : float
-        Tolerance used by sparse eigensolver, if used. (0=Machine precision)
-    sparse : {False, True}
+    tol : float, default: 0
+        Tolerance used by sparse eigensolver, if used. (0 = Machine precision)
+    sparse : bool, default: False
         Use sparse eigensolver.
 
     Returns
@@ -403,9 +408,10 @@ def hellinger_dist(A, B, sparse=False, tol=0):
 
     Examples
     --------
-    >>> x=fock_dm(5,3)
-    >>> y=coherent_dm(5,1)
-    >>> np.testing.assert_almost_equal(hellinger_dist(x,y), 1.3725145002591095)
+    >>> x = fock_dm(5,3)
+    >>> y = coherent_dm(5,1)
+    >>> np.allclose(hellinger_dist(x, y), 1.3725145002591095)
+        True
     """
     if A.isket or A.isbra:
         sqrtmA = ket2dm(A)
@@ -429,11 +435,20 @@ def hellinger_dist(A, B, sparse=False, tol=0):
 
 def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
           sparse=True):
-    """
+    r"""
     Calculates the diamond norm of the quantum map q_oper, using
     the simplified semidefinite program of [Wat13]_.
 
-    The diamond norm SDP is solved by using CVXPY_.
+    The diamond norm SDP is solved by using `CVXPY <https://www.cvxpy.org/>`_.
+
+    If B is provided and both A and B are unitary, then the diamond norm
+    of the difference is calculated more efficiently using the following
+    geometric interpretation:
+    :math:`\|A - B\|_{\diamond}` equals :math:`2 \sqrt(1 - d^2)`, where
+    :math:`d`is the distance between the origin and the convex hull of the
+    eigenvalues of :math:`A B^{\dagger}`.
+    See [AKN98]_ page 18, in the paragraph immediately below the proof of 12.6,
+    as a reference.
 
     Parameters
     ----------
@@ -441,15 +456,15 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         Quantum map to take the diamond norm of.
     B : Qobj or None
         If provided, the diamond norm of :math:`A - B` is taken instead.
-    solver : str
-        Solver to use with CVXPY. One of "CVXOPT" (default) or "SCS". The
-        latter tends to be significantly faster, but somewhat less accurate.
-    verbose : bool
+    solver : str {"CVXOPT", "SCS"}, default: "CVXOPT"
+        Solver to use with CVXPY. "SCS" tends to be significantly faster, but
+        somewhat less accurate.
+    verbose : bool, default: False
         If True, prints additional information about the solution.
-    force_solve : bool
+    force_solve : bool, default: False
         If True, forces dnorm to solve the associated SDP, even if a special
         case is known for the argument.
-    sparse : bool
+    sparse : bool, default: True
         Whether to use sparse matrices in the convex optimisation problem.
         Default True.
 
@@ -463,70 +478,49 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     ImportError
         If CVXPY cannot be imported.
 
-    .. _cvxpy: https://www.cvxpy.org/en/latest/
     """
     if cvxpy is None:  # pragma: no cover
         raise ImportError("dnorm() requires CVXPY to be installed.")
+
+    if B is not None and A.dims != B.dims:
+        raise TypeError("A and B do not have the same dimensions.")
 
     # We follow the strategy of using Watrous' simpler semidefinite
     # program in its primal form. This is the same strategy used,
     # for instance, by both pyGSTi and SchattenNorms.jl. (By contrast,
     # QETLAB uses the dual problem.)
 
-    # Check if A and B are both unitaries. If so, then we can without
-    # loss of generality choose B to be the identity by using the
-    # unitary invariance of the diamond norm,
-    #     || A - B ||_♢ = || A B⁺ - I ||_♢.
-    # Then, using the technique mentioned by each of Johnston and
-    # da Silva,
-    #     || A B⁺ - I ||_♢ = max_{i, j} | \lambda_i(A B⁺) - \lambda_j(A B⁺) |,
-    # where \lambda_i(U) is the ith eigenvalue of U.
+    # Check if A and B are both unitaries. If so we can use the geometric
+    # interpretation mentioned in D. Aharonov, A. Kitaev, and N. Nisan. (1998).
+    # We find the eigenvalues of AB⁺ and the distance d between the origin
+    # and the complex hull of these. Plugging this into 2√1-d² gives the
+    # diamond norm.
 
-    # There's a lot of conditions to check for this path.  Only check if they
-    # aren't superoperators.  The difference of unitaries optimization is
-    # currently only implemented for d == 2. Much of the code below is more
-    # general, though, in anticipation of generalizing the optimization.
     if (
         not force_solve
+        and A.isunitary
         and B is not None
-        and A.isoper and B.isoper
-        and A.shape[0] == 2
-    ):
-        # Make an identity the same size as A and B to
-        # compare against.
-        I = qeye(A.dims[0])
-        # Compare to B first, so that an error is raised
-        # as soon as possible.
-        Bd = B.dag()
-        if (
-            (B * Bd - I).norm() < 1e-6 and
-            (A * A.dag() - I).norm() < 1e-6
-        ):
-            # Now we are on the fast path, so let's compute the
-            # eigenvalues, then find the diameter of the smallest circle
-            # containing all of them.
-            #
-            # For now, this is only implemented for dim = 2, such that
-            # generalizing here will allow for generalizing the optimization.
-            # A reasonable approach would probably be to use Welzl's algorithm
-            # (https://en.wikipedia.org/wiki/Smallest-circle_problem).
-            U = A * B.dag()
-            eigs = U.eigenenergies()
-            eig_distances = np.abs(eigs[:, None] - eigs[None, :])
-            return np.max(eig_distances)
+        and B.isunitary
+    ):  # Special optimisation for a difference of unitaries.
+        U = A * B.dag()
+        eigs = U.eigenenergies()
+        d = _find_poly_distance(eigs)
+        return 2 * np.sqrt(1 - d**2)  # plug d into formula
 
-    # Force the input superoperator to be a Choi matrix.
     J = to_choi(A)
 
-    if B is not None:
+    if B is not None:  # If B is provided, calculate difference
         J -= to_choi(B)
+
+    if not force_solve and J.iscptp:
+        # diamond norm of a CPTP map is 1 (Prop 3.44 Watrous 2018)
+        return 1.0
 
     # Watrous 2012 also points out that the diamond norm of Lambda
     # is the same as the completely-bounded operator-norm (∞-norm)
     # of the dual map of Lambda. We can evaluate that norm much more
     # easily if Lambda is completely positive, since then the largest
     # eigenvalue is the same as the largest singular value.
-
     if not force_solve and J.iscp:
         S_dual = to_super(J.dual_chan())
         vec_eye = operator_to_vector(qeye(S_dual.dims[1][1]))
@@ -538,18 +532,12 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     # If we're still here, we need to actually solve the problem.
 
     # Assume square...
-    dim = np.prod(J.dims[0][0])
-
-    # The constraints only depend on the dimension, so
-    # we can cache them efficiently.
-    problem, Jr, Ji, *_ = dnorm_problem(dim)
+    dim = int(np.prod(J.dims[0][0]))
 
     # Load the parameters with the Choi matrix passed in.
     J_dat = _data.to('csr', J.data).as_scipy()
 
     if not sparse:
-        # The parameters and constraints only depend on the dimension, so
-        # we can cache them efficiently.
         problem, Jr, Ji = dnorm_problem(dim)
 
         # Load the parameters with the Choi matrix passed in.
@@ -561,9 +549,6 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
                                   J_dat.indptr),
                                  shape=J_dat.shape).toarray()
     else:
-
-        # The parameters do not depend solely on the dimension,
-        # so we can not cache them efficiently.
         problem = dnorm_sparse_problem(dim, J_dat)
 
     problem.solve(solver=solver, verbose=verbose)
@@ -588,3 +573,34 @@ def unitarity(oper):
     """
     Eu = _to_superpauli(oper).full()[1:, 1:]
     return np.linalg.norm(Eu, 'fro')**2 / len(Eu)
+
+
+def _find_poly_distance(eigenvals) -> float:
+    """
+    Returns the distance between the origin and the convex hull of eigenvalues.
+
+    The complex eigenvalues must have unit length (i.e. lie on the circle
+    about the origin).
+    """
+    phases = np.angle(eigenvals)
+    phase_max = phases.max()
+    phase_min = phases.min()
+
+    if phase_min > 0:  # all eigenvals have pos phase: hull is above x axis
+        return np.cos((phase_max - phase_min) / 2)
+
+    if phase_max <= 0:  # all eigenvals have neg phase: hull is below x axis
+        return np.cos((np.abs(phase_min) - np.abs(phase_max)) / 2)
+
+    pos_phase_min = np.where(phases > 0, phases, np.inf).min()
+    neg_phase_max = np.where(phases <= 0, phases, -np.inf).max()
+
+    big_angle = phase_max - phase_min
+    small_angle = pos_phase_min - neg_phase_max
+    if big_angle >= np.pi:
+        if small_angle <= np.pi:  # hull contains the origin
+            return 0
+        else:  # hull is left of y axis
+            return np.cos((2 * np.pi - small_angle) / 2)
+    else:  # hull is right of y axis
+        return np.cos(big_angle / 2)

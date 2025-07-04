@@ -1,10 +1,10 @@
 """
 Provide a cython implimentation verner 'most-efficient'
 order 7 runge-Kutta method.
-See http://people.math.sfu.ca/~jverner/
+See https://www.sfu.ca/~jverner/
 """
 # Verner 7 Efficient
-# http://people.math.sfu.ca/~jverner/RKV76.IIa.Efficient.00001675585.081206.CoeffsOnlyFLOAT
+# https://www.sfu.ca/~jverner/RKV76.IIa.Efficient.00001675585.081206.CoeffsOnlyFLOAT
 __all__ = ["vern7_coeff"]
 import numpy as np
 order = 7

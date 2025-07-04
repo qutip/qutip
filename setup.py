@@ -44,6 +44,7 @@ def process_options():
     options = _determine_user_arguments(options)
     options = _determine_version(options)
     options = _determine_compilation_options(options)
+    options = _determine_cythonize_options(options)
     return options
 
 
@@ -131,6 +132,17 @@ def _determine_compilation_options(options):
     return options
 
 
+def _determine_cythonize_options(options):
+    options["annotate"] = False
+    if "--annotate" in sys.argv:
+        options["annotate"] = True
+        sys.argv.remove("--annotate")
+    if "-a" in sys.argv:
+        options["annotate"] = True
+        sys.argv.remove("-a")
+    return options
+
+
 def _determine_version(options):
     """
     Adds the 'short_version', 'version' and 'release' options.
@@ -202,6 +214,7 @@ def _extension_extra_sources():
     extra_sources = {
         'qutip.core.data.matmul': [
             'qutip/core/data/src/matmul_csr_vector.cpp',
+            'qutip/core/data/src/matmul_diag_vector.cpp',
         ],
     }
     out = collections.defaultdict(list)
@@ -269,7 +282,7 @@ def create_extension_modules(options):
                              extra_compile_args=options['cflags'],
                              extra_link_args=options['ldflags'],
                              language='c++'))
-    return cythonize(out)
+    return cythonize(out, annotate=options["annotate"])
 
 
 def print_epilogue():

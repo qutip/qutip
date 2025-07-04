@@ -92,11 +92,10 @@ class TestKnownExpectation:
 
     def test_broadcast_operator_list(self, operators, state, expected):
         result = qutip.expect(operators, state)
-        expected_dtype = (np.float64 if all(op.isherm for op in operators)
-                          else np.complex128)
-        assert isinstance(result, np.ndarray)
-        assert result.dtype == expected_dtype
-        assert list(result) == list(expected)
+        assert len(result) == len(operators)
+        for part, operator, expected_part in zip(result, operators, expected):
+            assert isinstance(part, float if operator.isherm else complex)
+            assert part == expected_part
 
     def test_broadcast_state_list(self, operator, states, expected):
         result = qutip.expect(operator, states)
@@ -148,32 +147,22 @@ def test_compatibility_with_solver(solve):
     assert len(direct)-1 == len(indirect)
     for direct_, indirect_ in zip(direct, indirect):
         assert len(direct_) == len(indirect_)
-        assert isinstance(direct_, list)
+        assert isinstance(direct_, np.ndarray)
         assert isinstance(indirect_, np.ndarray)
-        assert np.array(direct_).dtype == indirect_.dtype
+        assert direct_.dtype == indirect_.dtype
         np.testing.assert_allclose(np.array(direct_), indirect_, atol=1e-12)
         # test measurement operators based on lambda functions
         direct_ = direct[-1]
         indirect_ = np.sin(times)
         assert len(direct_) == len(indirect_)
-        assert isinstance(direct_, list)
+        assert isinstance(direct_, np.ndarray)
         assert isinstance(indirect_, np.ndarray)
-        assert np.array(direct_).dtype == indirect_.dtype
+        assert direct_.dtype == indirect_.dtype
         np.testing.assert_allclose(np.array(direct_), indirect_, atol=1e-12)
 
 
-def test_no_real_attribute(monkeypatch):
-    """This tests ensures that expect still works even if the output of a
-    specialisation does not have the ``real`` attribute. This is the case for
-    the tensorflow and cupy data layers."""
-
-    def mocker_expect_return(oper, state):
-        """
-        We simply return None which does not have the `real` attribute.
-        """
-        return "object without .real"
-
-    monkeypatch.setattr(_data, "expect", mocker_expect_return)
-
+def test_no_real_casting(monkeypatch):
     sz = qutip.sigmaz() # the choice of the matrix does not matter
-    assert "object without .real" == qutip.expect(sz, sz)
+    assert isinstance(qutip.expect(sz, sz), float)
+    with qutip.CoreOptions(auto_real_casting=False):
+        assert isinstance(qutip.expect(sz, sz), complex)

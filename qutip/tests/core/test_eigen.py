@@ -35,8 +35,9 @@ def test_eigen_known_oper(sparse, dtype):
 @pytest.mark.parametrize("order", ['low', 'high'])
 def test_eigen_rand_oper(rand, sparse, dtype, order):
     H = rand(10, dtype=dtype)
-    spvals, spvecs = H.eigenstates(sparse=sparse, sort=order)
-    sp_energies = H.eigenenergies(sparse=sparse, sort=order)
+    eigvals = 5 if sparse else 0
+    spvals, spvecs = H.eigenstates(sparse=sparse, sort=order, eigvals=eigvals)
+    sp_energies = H.eigenenergies(sparse=sparse, sort=order, eigvals=eigvals)
     if order == 'low':
         assert np.all(np.diff(spvals).real >= 0)
     else:
@@ -58,14 +59,19 @@ def test_eigen_rand_oper(rand, sparse, dtype, order):
 @pytest.mark.parametrize("N", [1, 5, 8, 9])
 def test_FewState(rand, sparse, dtype, order, N):
     H = rand(10, dtype=dtype)
-    all_spvals = H.eigenenergies(sparse=sparse, sort=order)
+    all_spvals = H.eigenenergies(sort=order)
     spvals, spvecs = H.eigenstates(sparse=sparse, sort=order, eigvals=N)
     assert np.allclose(all_spvals[:N], spvals)
-    is_eigen_set(H, spvals, spvecs)
     if order == 'low':
         assert np.all(np.diff(spvals).real >= 0)
     else:
         assert np.all(np.diff(spvals).real <= 0)
+    if sparse and sum(np.abs(all_spvals) <= 1e-14) > 1:
+        pytest.xfail(
+            "scipy sparse eigen solver sometimes fails "
+            "for degenerate zeros eigen values"
+        )
+    is_eigen_set(H, spvals, spvecs)
 
 
 @pytest.mark.parametrize(["sparse", 'dtype'], [
@@ -81,7 +87,7 @@ def test_FewState(rand, sparse, dtype, order, N):
 @pytest.mark.parametrize("N", [1, 5, 8, 9])
 def test_ValsOnly(rand, sparse, dtype, order, N):
     H = rand(10, dtype=dtype)
-    all_spvals = H.eigenenergies(sparse=sparse, sort=order)
+    all_spvals = H.eigenenergies(sort=order)
     spvals = H.eigenenergies(sparse=sparse, sort=order, eigvals=N)
     assert np.allclose(all_spvals[:N], spvals)
     if order == 'low':
@@ -97,7 +103,7 @@ def test_ValsOnly(rand, sparse, dtype, order, N):
 ])
 def test_eigen_small(sparse, dtype):
     H = (qutip.sigmax() + qutip.sigmaz()).to(dtype)
-    all_spvals = H.eigenenergies(sparse=sparse)
+    all_spvals = H.eigenenergies()
     spvals, spvecs = H.eigenstates(sparse=sparse, eigvals=1)
     assert np.abs(all_spvals[0] - spvals[0]) <= 1e-14
     is_eigen_set(H, spvals, spvecs)

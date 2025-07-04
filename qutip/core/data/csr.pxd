@@ -12,6 +12,7 @@ cimport numpy as cnp
 
 from qutip.core.data cimport base
 from qutip.core.data.dense cimport Dense
+from qutip.core.data.dia cimport Dia
 
 cdef class CSR(base.Data):
     cdef double complex *data
@@ -66,7 +67,7 @@ cdef inline Accumulator acc_alloc(size_t size):
     acc._sorted = True
     return acc
 
-cdef inline void acc_scatter(Accumulator *acc, double complex value, base.idxint position) nogil:
+cdef inline void acc_scatter(Accumulator *acc, double complex value, base.idxint position) noexcept nogil:
     """
     Add a value to the accumulator for this row, in column `position`.  The
     value is added on to any value already scattered into this position.
@@ -84,7 +85,7 @@ cdef inline void acc_scatter(Accumulator *acc, double complex value, base.idxint
         acc._sorted &= acc.nnz == 0 or acc.nonzero[acc.nnz - 1] < position
         acc.nnz += 1
 
-cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, base.idxint *indices, double tol=0) nogil:
+cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, base.idxint *indices, double tol=0) noexcept nogil:
     """
     Copy all the accumulated values into this row into the output pointers.
     This will always output its values in sorted order.  The pointers should
@@ -114,7 +115,7 @@ cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, bas
             nnz += 1
     return nnz
 
-cdef inline void acc_reset(Accumulator *acc) nogil:
+cdef inline void acc_reset(Accumulator *acc) noexcept nogil:
     """Prepare the accumulator to accept the next row of input."""
     # We actually don't need to do anything to reset other than to change
     # our sentinel values; the sentinel `_cur_row` makes it easy to detect
@@ -161,3 +162,7 @@ cpdef CSR from_dense(Dense matrix)
 cdef CSR from_coo_pointers(base.idxint *rows, base.idxint *cols, double complex *data,
                            base.idxint n_rows, base.idxint n_cols, base.idxint nnz,
                            double tol=*)
+cpdef CSR from_dia(Dia matrix)
+
+cpdef CSR _from_csr_blocks(base.idxint[:] block_rows, base.idxint[:] block_cols, CSR[:] block_ops,
+                          base.idxint n_blocks, base.idxint block_size)

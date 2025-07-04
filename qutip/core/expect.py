@@ -1,31 +1,56 @@
 __all__ = ['expect', 'variance']
 
 import numpy as np
+from typing import overload, Sequence
 
 from .qobj import Qobj
 from . import data as _data
+from ..settings import settings
 
+
+@overload
+def expect(oper: Qobj, state: Qobj) -> complex: ...
+
+@overload
+def expect(
+    oper: Qobj,
+    state: Qobj | Sequence[Qobj],
+) -> np.typing.NDArray[complex]: ...
+
+@overload
+def expect(
+    oper: Qobj | Sequence[Qobj],
+    state: Qobj,
+) -> list[complex]: ...
+
+@overload
+def expect(
+    oper: Qobj | Sequence[Qobj],
+    state: Qobj | Sequence[Qobj]
+) -> list[np.typing.NDArray[complex]]: ...
 
 def expect(oper, state):
     """
     Calculate the expectation value for operator(s) and state(s).  The
-    expectation of state `k` on operator `A` is defined as `k.dag() @ A @ k`,
-    and for density matrix `R` on operator `A` it is `trace(A @ R)`.
+    expectation of state ``k`` on operator ``A`` is defined as
+    ``k.dag() @ A @ k``, and for density matrix ``R`` on operator ``A`` it is
+    ``trace(A @ R)``.
 
     Parameters
     ----------
-    oper : qobj/array-like
-        A single or a `list` or operators for expectation value.
+    oper : qobj / list of Qobj
+        A single or a `list` of operators for expectation value.
 
-    state : qobj/array-like
+    state : qobj / list of Qobj
         A single or a `list` of quantum states or density matrices.
 
     Returns
     -------
-    expt : float/complex/array-like
-        Expectation value.  ``real`` if `oper` is Hermitian, ``complex``
-        otherwise. A (nested) array of expectaction values of state or operator
-        are arrays.
+    expt : float / complex / list / array
+        Expectation value(s).  ``real`` if ``oper`` is Hermitian, ``complex``
+        otherwise. If multiple ``oper`` are passed, a list of array.
+        A (nested) array of expectaction values if ``state`` or
+        ``oper`` are arrays.
 
     Examples
     --------
@@ -36,16 +61,10 @@ def expect(oper, state):
     if isinstance(state, Qobj) and isinstance(oper, Qobj):
         return _single_qobj_expect(oper, state)
 
-    elif isinstance(oper, (list, np.ndarray)):
-        if isinstance(state, Qobj):
-            dtype = np.complex128
-            if all(op.isherm for op in oper) and (state.isket or state.isherm):
-                dtype = np.float64
-            return np.array([_single_qobj_expect(op, state) for op in oper],
-                            dtype=dtype)
+    elif isinstance(oper, Sequence):
         return [expect(op, state) for op in oper]
 
-    elif isinstance(state, (list, np.ndarray)):
+    elif isinstance(state, Sequence):
         dtype = np.complex128
         if oper.isherm and all(op.isherm or op.isket for op in state):
             dtype = np.float64
@@ -60,7 +79,7 @@ def _single_qobj_expect(oper, state):
     """
     if not oper.isoper or not (state.isket or state.isoper):
         raise TypeError('invalid operand types')
-    if oper.dims[1] != state.dims[0]:
+    if oper._dims[1] != state._dims[0]:
         msg = (
             "incompatible dimensions "
             + str(oper.dims[1]) + " and " + str(state.dims[0])
@@ -70,11 +89,20 @@ def _single_qobj_expect(oper, state):
 
     # This ensures that expect can return something that is not a number such
     # as a `tensorflow.Tensor` in qutip-tensorflow.
-    return out.real if (oper.isherm
-                        and (state.isket or state.isherm)
-                        and hasattr(out, "real")
-                        ) else out
+    if (
+        settings.core["auto_real_casting"]
+        and oper.isherm
+        and (state.isket or state.isherm)
+    ):
+        out = out.real
+    return out
 
+
+@overload
+def variance(oper: Qobj, state: Qobj) -> complex: ...
+
+@overload
+def variance(oper: Qobj, state: list[Qobj]) -> np.typing.NDArray[complex]: ...
 
 def variance(oper, state):
     """
@@ -82,11 +110,11 @@ def variance(oper, state):
 
     Parameters
     ----------
-    oper : qobj
+    oper : Qobj
         Operator for expectation value.
 
-    state : qobj/list
-        A single or `list` of quantum states or density matrices..
+    state : Qobj / list of Qobj
+        A single or ``list`` of quantum states or density matrices..
 
     Returns
     -------

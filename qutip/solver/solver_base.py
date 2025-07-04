@@ -1,23 +1,34 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['Solver']
 
+from numpy.typing import ArrayLike
+from numbers import Number
+from typing import Any, Callable
 from .. import Qobj, QobjEvo, ket2dm
 from .options import _SolverOptions
 from ..core import stack_columns, unstack_columns
+from .. import settings
 from .result import Result
 from .integrator import Integrator
-from ..ui.progressbar import progess_bars
+from ..ui.progressbar import progress_bars
+from ._feedback import _ExpectFeedback
+from ..typing import EopsLike
 from time import time
+import warnings
+import numpy as np
 
 
 class Solver:
     """
     Runner for an evolution.
-    Can run the evolution at once using :method:`run` or step by step using
-    :method:`start` and :method:`step`.
+    Can run the evolution at once using :meth:`run` or step by step using
+    :meth:`start` and :meth:`step`.
 
     Parameters
     ----------
-    rhs : Qobj, QobjEvo
+    rhs : :obj:`.Qobj`, :obj:`.QobjEvo`
         Right hand side of the evolution::
             d state / dt = rhs @ state
 
@@ -36,21 +47,21 @@ class Solver:
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": "ket",
+        "normalize_output": True,
         "method": "adams",
     }
-    resultclass = Result
+    _resultclass = Result
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
             self.rhs = QobjEvo(rhs)
         else:
-            TypeError("The rhs must be a QobjEvo")
-        self._options = {}
-        self.options = {} if options is None else options
+            raise TypeError("The rhs must be a QobjEvo")
+        self.options = options
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
+        self.rhs._register_feedback({}, solver=self.name)
 
     def _initialize_stats(self):
         """ Return the initial values for the solver stats.
@@ -67,7 +78,7 @@ class Solver:
         Extract the data of the Qobj state.
 
         Is responsible for dims checks, preparing the data (stack columns, ...)
-        determining the dims of the output for :method:`_restore_state`.
+        determining the dims of the output for :meth:`_restore_state`.
 
         Should return the state's data such that it can be used by Integrators.
         """
@@ -82,10 +93,29 @@ class Solver:
                             f" and {state.dims}")
 
         self._state_metadata = {
-            'dims': state.dims,
-            'type': state.type,
-            'isherm': state.isherm and not (self.rhs.dims == state.dims)
+            'dims': state._dims,
+            # This is herm flag take for granted that the liouvillian keep
+            # hermiticity.  But we do not check user passed super operator for
+            # anything other than dimensions.
+            'isherm': not (self.rhs.dims == state.dims) and state._isherm,
         }
+        if state.isket:
+            norm = state.norm()
+        elif state._dims.issquare:
+            # Qobj.isoper does not differientiate between rectangular operators
+            # and normal ones.
+            norm = state.tr()
+        else:
+            norm = -1
+        self._normalize_output = (
+            self._options.get("normalize_output", False)
+            # Don't normalize output if input is not normalized.
+            # Use the settings atol instead of the solver one since the second
+            # refer to the ODE tolerance and some integrator do not use it.
+            and np.abs(norm - 1) <= settings.core["atol"]
+            # Only ket and dm can be normalized
+            and (self.rhs.dims[1] == state.dims or state.shape[1] == 1)
+        )
         if self.rhs.dims[1] == state.dims:
             return stack_columns(state.data)
         return state.data
@@ -94,29 +124,39 @@ class Solver:
         """
         Retore the Qobj state from its data.
         """
-        if self._state_metadata['dims'] == self.rhs.dims[1]:
+        if self._state_metadata['dims'] == self.rhs._dims[1]:
             state = Qobj(unstack_columns(data),
                          **self._state_metadata, copy=False)
         else:
             state = Qobj(data, **self._state_metadata, copy=copy)
 
-        if data.shape[1] == 1 and self._options['normalize_output']:
-            state = state * (1 / state.norm())
+        if self._normalize_output:
+            if state.isoper:
+                state = state * (1 / state.tr())
+            else:
+                state = state * (1 / state.norm())
 
         return state
 
-    def run(self, state0, tlist, *, args=None, e_ops=None):
+    def run(
+        self,
+        state0: Qobj,
+        tlist: ArrayLike,
+        *,
+        e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
+        args: dict[str, Any] = None,
+    ) -> Result:
         """
         Do the evolution of the Quantum system.
 
         For a ``state0`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :cls:`Result`. The evolution method and stored
-        results are determined by ``options``.
+        expectation values in a :class:`.Result`. The evolution method and
+        stored results are determined by ``options``.
 
         Parameters
         ----------
-        state0 : :class:`Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution.
 
         tlist : list of double
@@ -125,17 +165,17 @@ class Solver:
             evolution. Each times of the list must be increasing, but does not
             need to be uniformy distributed.
 
-        args : dict, optional {None}
+        args : dict, optional
             Change the ``args`` of the rhs for the evolution.
 
-        e_ops : list {None}
-            List of Qobj, QobjEvo or callable to compute the expectation
-            values. Function[s] must have the signature
+        e_ops : Qobj, QobjEvo, callable, list, or dict optional
+            Single, list or dict of Qobj, QobjEvo or callable to compute the
+            expectation values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
 
-        Return
-        ------
-        results : :class:`qutip.solver.Result`
+        Returns
+        -------
+        results : :obj:`.Result`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """
@@ -144,15 +184,16 @@ class Solver:
         self._integrator.set_state(tlist[0], _data0)
         self._argument(args)
         stats = self._initialize_stats()
-        results = self.resultclass(
+        results = self._resultclass(
             e_ops, self.options,
             solver=self.name, stats=stats,
         )
         results.add(tlist[0], self._restore_state(_data0, copy=False))
         stats['preparation time'] += time() - _time_start
 
-        progress_bar = progess_bars[self.options['progress_bar']]()
-        progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
+        progress_bar = progress_bars[self.options['progress_bar']](
+            len(tlist)-1, **self.options['progress_kwargs']
+        )
         for t, state in self._integrator.run(tlist):
             progress_bar.update()
             results.add(t, self._restore_state(state, copy=False))
@@ -163,14 +204,13 @@ class Solver:
         # stats.update(_integrator.stats)
         return results
 
-    def start(self, state0, t0):
+    def start(self, state0: Qobj, t0: Number) -> None:
         """
         Set the initial state and time for a step evolution.
-        ``options`` for the evolutions are read at this step.
 
         Parameters
         ----------
-        state0 : :class:`Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution.
 
         t0 : double
@@ -180,9 +220,15 @@ class Solver:
         self._integrator.set_state(t0, self._prepare_state(state0))
         self.stats["preparation time"] += time() - _time_start
 
-    def step(self, t, *, args=None, copy=True):
+    def step(
+        self,
+        t: Number,
+        *,
+        args: dict[str, Any] = None,
+        copy: bool = True
+    ) -> Qobj:
         """
-        Evolve the state to ``t`` and return the state as a :class:`Qobj`.
+        Evolve the state to ``t`` and return the state as a :obj:`.Qobj`.
 
         Parameters
         ----------
@@ -197,10 +243,12 @@ class Solver:
         copy : bool, optional {True}
             Whether to return a copy of the data or the data in the ODE solver.
 
-        .. note::
-            The state must be initialized first by calling ``start`` or
-            ``run``. If ``run`` is called, ``step`` will continue from the last
-            time and state obtained.
+        Notes
+        -----
+        The state must be initialized first by calling :meth:`start` or
+        :meth:`run`. If :meth:`run` is called, :meth:`step` will continue from
+        the last time and state obtained.
+
         """
         if not self._integrator._is_set:
             raise RuntimeError("The `start` method must called first")
@@ -235,7 +283,7 @@ class Solver:
         return self.rhs.dims[0]
 
     @property
-    def options(self):
+    def options(self) -> dict[str, Any]:
         """
         method: str
             Which ordinary differential equation integration method to use.
@@ -275,7 +323,11 @@ class Solver:
         return included_options, extra_options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict[str, Any]):
+        if not hasattr(self, "_options"):
+            self._options = {}
+        if new_options is None:
+            new_options = {}
         if not isinstance(new_options, dict):
             raise TypeError("options most to be a dictionary.")
         new_solver_options, new_ode_options = self._parse_options(
@@ -390,3 +442,140 @@ class Solver:
                             " of `qutip.solver.Integrator`")
 
         cls._avail_integrators[key] = integrator
+
+    @classmethod
+    def ExpectFeedback(cls, operator: Qobj | QobjEvo, default: Any = 0.):
+        """
+        Expectation value of the instantaneous state of the evolution to be
+        used by a time-dependent operator.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"E0": Solver.ExpectFeedback(oper)})``
+
+        The ``func`` will receive ``expect(oper, state)`` as ``E0`` during the
+        evolution.
+
+        Parameters
+        ----------
+        operator : Qobj, QobjEvo
+            Operator to compute the expectation values of.
+
+        default : float, default : 0.
+            Initial value to be used at setup.
+        """
+        return _ExpectFeedback(operator, default)
+
+
+def _solver_deprecation(kwargs, options, solver="me"):
+    """
+    Function to help the transition from v4 to v5.
+    Raise warnings for solver input that where moved from parameter to options.
+    """
+    if options is None:
+        options = {}
+    # TODO remove by 5.1
+    if "progress_bar" in kwargs:
+        warnings.warn(
+            '"progress_bar" is now included in options:\n Use '
+            '`options={"progress_bar": False / True / "tqdm" / "enhanced"}`',
+            FutureWarning
+        )
+        options["progress_bar"] = kwargs.pop("progress_bar")
+
+    if "_safe_mode" in kwargs:
+        warnings.warn(
+            '"_safe_mode" is no longer supported.',
+            FutureWarning
+        )
+        del kwargs["_safe_mode"]
+
+    if "verbose" in kwargs and solver == "br":
+        warnings.warn(
+            '"verbose" is no longer supported.',
+            FutureWarning
+        )
+        del kwargs["verbose"]
+
+    if "tol" in kwargs and solver == "br":
+        warnings.warn(
+            'The "tol" parameter is no longer used. '
+            '`qutip.settings.core["auto_tidyup_atol"]` '
+            'is now used for rounding small values in sparse arrays.',
+            FutureWarning
+        )
+        del kwargs["tol"]
+
+    if "map_func" in kwargs and solver in ["mc", "stoc"]:
+        warnings.warn(
+            '"map_func" is now included in options:\n'
+            'Use `options={"map": "serial" / "parallel" / "loky"}`',
+            FutureWarning
+        )
+        del kwargs["map_func"]
+
+    if "map_kwargs" in kwargs and solver in ["mc", "stoc"]:
+        warnings.warn(
+            '"map_kwargs" are now included in options:\n'
+            'Use `options={"num_cpus": N}`',
+            FutureWarning
+        )
+        del kwargs["map_kwargs"]
+
+    if "nsubsteps" in kwargs and solver == "stoc":
+        warnings.warn(
+            '"nsubsteps" is now replaced by "dt" in options:\n'
+            'Use `options={"dt": 0.001}`\n'
+            'The given value of "nsubsteps" is ignored in this call.',
+            FutureWarning
+        )
+        # Could be (tlist[1] - tlist[0]) / kwargs["nsubsteps"]
+        del kwargs["nsubsteps"]
+
+    if "tol" in kwargs and solver == "stoc":
+        warnings.warn(
+            'The "tol" parameter is now the "atol" options:\n'
+            'Use `options={"atol": tol}`',
+            FutureWarning
+        )
+        options["atol"] = kwargs.pop("tol")
+
+    if "store_all_expect" in kwargs and solver == "stoc":
+        warnings.warn(
+            'The "store_all_expect" parameter is now the '
+            '"keep_runs_results" options:\n'
+            'Use `options={"keep_runs_results": False / True}`',
+            FutureWarning
+        )
+        options["keep_runs_results"] = kwargs.pop("store_all_expect")
+
+    if "store_measurement" in kwargs and solver == "stoc":
+        warnings.warn(
+            'The "store_measurement" parameter is now an options:\n'
+            'Use `options={"store_measurement": False / True}`',
+            FutureWarning
+        )
+        options["store_measurement"] = kwargs.pop("store_measurement")
+
+    if ("dW_factors" in kwargs or "m_ops" in kwargs) and solver == "stoc":
+        raise TypeError(
+            '"m_ops" and "dW_factors" are now properties of '
+            'the stochastic solver class, use:\n'
+            '>>> solver = SMESolver(H, c_ops)\n'
+            '>>> solver.m_ops = m_ops\n'
+            '>>> solver.dW_factors = dW_factors\n'
+        )
+
+    if kwargs:
+        raise TypeError(f"unexpected keyword argument {kwargs.keys()}")
+    return options
+
+
+def _kwargs_migration(position, keyword, name):
+    if position is not None:
+        warnings.warn(
+            f"{name} will be keyword only from qutip 5.3 for all solver",
+            FutureWarning
+        )
+        return position
+    return keyword

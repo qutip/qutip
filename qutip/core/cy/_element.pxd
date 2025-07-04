@@ -6,10 +6,11 @@ from qutip.core.data.base cimport idxint
 from libcpp cimport bool
 
 cdef class _BaseElement:
-    cpdef Data data(self, double t)
-    cpdef object qobj(self, double t)
-    cpdef double complex coeff(self, double t) except *
-    cdef Data matmul_data_t(_BaseElement self, double t, Data state, Data out=?)
+    cdef Data _data
+    cpdef Data data(self, t)
+    cpdef object qobj(self, t)
+    cpdef object coeff(self, t)
+    cdef Data matmul_data_t(_BaseElement self, t, Data state, Data out=?)
 
 
 cdef class _ConstantElement(_BaseElement):
@@ -22,21 +23,21 @@ cdef class _EvoElement(_BaseElement):
 
 
 cdef class _FuncElement(_BaseElement):
-    cdef object _func
-    cdef dict _args
-    cdef tuple _previous
-    cdef bint _f_pythonic
-    cdef set _f_parameters
+    cdef readonly object _func
+    cdef readonly dict _args
+    cdef readonly tuple _previous
+    cdef readonly bint _f_pythonic
+    cdef readonly set _f_parameters
 
 
 cdef class _MapElement(_BaseElement):
-    cdef _FuncElement _base
-    cdef list _transform
-    cdef double complex _coeff
+    cdef readonly _FuncElement _base
+    cdef readonly list _transform
+    cdef readonly double complex _coeff
 
 
 cdef class _ProdElement(_BaseElement):
-    cdef _BaseElement _left
-    cdef _BaseElement _right
-    cdef list _transform
-    cdef bool _conj
+    cdef readonly _BaseElement _left
+    cdef readonly _BaseElement _right
+    cdef readonly list _transform
+    cdef readonly bool _conj

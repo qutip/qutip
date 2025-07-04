@@ -13,6 +13,8 @@ def expected(qobj, sel):
     sel = sorted(sel)
     dims = [[x for i, x in enumerate(qobj.dims[0]) if i in sel]]*2
     new_shape = (np.prod(dims[0], dtype=int),) * 2
+    if not dims[0]:
+        dims = None
     out = qobj.full()
     before, after = 1, qobj.shape[0]
     for i, dim in enumerate(qobj.dims[0]):
@@ -22,7 +24,7 @@ def expected(qobj, sel):
             continue
         tmp_dims = (before, dim, after) * 2
         out = np.einsum('aibcid->abcd', out.reshape(tmp_dims))
-    return qutip.Qobj(out.reshape(new_shape), dims=dims, type='oper')
+    return qutip.Qobj(out.reshape(new_shape), dims=dims)
 
 
 @pytest.fixture(params=[_data.CSR, _data.Dense], ids=['CSR', 'Dense'])
@@ -128,3 +130,23 @@ def test_ptrace_operator(dtype, sel):
         qutip.rand_dm(2), qutip.thermal_dm(10, 1), qutip.rand_unitary(3),
     ).to(dtype)
     assert A.ptrace(sel) == expected(A, sel)
+
+@pytest.mark.parametrize('dims, sel',
+                         [
+                             ([5, 2, 3], [2, 1]),
+                             ([5, 2, 3], [0, 2]),
+                             ([5, 2, 3], [0, 1]),
+                             ([5, 2, 3], [0]),
+                             ([2]*6, []),
+                             ([2]*6, [3]),
+                             ([2]*6, [0, 2]),
+                             ([2]*6, [0, 1, 4]),
+                             ([2]*6, [0, 1, 2, 3, 4, 5]),
+                         ])
+def test_ptrace_ket_specialization_matches_old_implementation(dtype, dims, sel):
+    """Kets have a different implementation for ptrace. 
+       Test that this specialization gives the same result 
+       as the non-specialized version.
+    """
+    A = qutip.rand_ket(dims)
+    assert A.ptrace(sel) == A.proj().ptrace(sel)
