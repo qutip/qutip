@@ -52,6 +52,7 @@ jobs:
             # Install mpi4py to test mpi_pmap
             # Should be enough to include this in one of the runs
             includempi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: p310 numpy 1.22
             os: ubuntu-latest
@@ -64,7 +65,7 @@ jobs:
             oldmpl: 1
             pypi: 1
             coveralls: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\" -W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           # Python 3.12 and latest numpy
           # Use conda-forge to provide Python 3.11 and latest numpy
@@ -102,6 +103,7 @@ jobs:
             numpy-requirement: ">=2.0.0"
             condaforge: 1
             nomkl: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: macos - numpy fallback
             os: macos-13  # Test on intel cpus
@@ -111,6 +113,7 @@ jobs:
             condaforge: 1
             nomkl: 1
             coveralls: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows
             os: windows-latest
@@ -118,6 +121,7 @@ jobs:
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows - numpy fallback
             os: windows-latest
