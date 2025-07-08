@@ -11,6 +11,7 @@ from .. import Qobj
 from .. import data as _data
 from ..dimensions import Dimensions
 from ..coefficient import coefficient, CompilationOptions
+from ..operators import qzero_like
 from ._element import *
 from qutip.settings import settings
 
@@ -809,7 +810,7 @@ cdef class QobjEvo:
     ###########################################################################
     # Cleaning and compress                                                   #
     ###########################################################################
-    def _compress_merge_qobj(self, coeff_elements):
+    def _compress_merge_evo(self, coeff_elements):
         """Merge element with matching qobj:
         ``[A, f1], [A, f2] -> [A, f1+f2]``
         """
@@ -818,12 +819,17 @@ cdef class QobjEvo:
         qobjs = []
         coeffs = []
         for element in coeff_elements:
-            for i, qobj in enumerate(qobjs):
+            if _data.iszero(element.data(0)):
+                continue
+            for i, (qobj, coeff) in enumerate(zip(qobjs, coeffs)):
+                if element._coefficient == coeff:
+                    qobjs[i] = qobjs[i] + element.qobj(0)
+                    break
                 if element.qobj(0) == qobj:
                     coeffs[i] = coeffs[i] + element._coefficient
                     break
             else:
-                qobjs.append(element.qobj(0))
+                qobjs.append(element._qobj)
                 coeffs.append(element._coefficient)
         for qobj, coeff in zip(qobjs, coeffs):
             cleaned_elements.append(_EvoElement(qobj, coeff))
@@ -836,6 +842,7 @@ cdef class QobjEvo:
         Constant parts, (:obj:`.Qobj` without :obj:`Coefficient`) will be
         summed.
         Pairs ``[Qobj, Coefficient]`` with the same :obj:`.Qobj` are merged.
+        Pairs ``[Qobj, Coefficient]`` with zero :obj:`.Qobj` are discarded.
 
         Example:
         ``[[sigmax(), f1], [sigmax(), f2]] -> [[sigmax(), f1+f2]]``
@@ -857,16 +864,25 @@ cdef class QobjEvo:
             else:
                 func_elements.append(element)
 
+        coeff_elements = self._compress_merge_evo(coeff_elements)
+
         cleaned_elements = []
         if len(cte_elements) >= 2:
             # Multiple constant parts
-            cleaned_elements.append(_ConstantElement(
-                sum(element.qobj(0) for element in cte_elements)))
-        else:
+            constant_sum = sum(element.qobj(0) for element in cte_elements)
+            if not _data.iszero(constant_sum.data):
+                cleaned_elements.append(_ConstantElement(constant_sum))
+        elif (
+            len(cte_elements) == 1
+            and not _data.iszero(cte_elements[0].data(0))
+        ):
             cleaned_elements += cte_elements
 
-        coeff_elements = self._compress_merge_qobj(coeff_elements)
         cleaned_elements += coeff_elements + func_elements
+
+        # QobjEvo must have at least one element
+        if not cleaned_elements:
+            cleaned_elements = [_ConstantElement(qzero_like(self))]
 
         self.elements = cleaned_elements
 
@@ -906,6 +922,10 @@ cdef class QobjEvo:
     def num_elements(self):
         """Number of parts composing the system"""
         return len(self.elements)
+
+    @property
+    def _elements(self):
+        return self.elements
 
     @property
     def isconstant(self):
