@@ -1,0 +1,1 @@
+Add class `RealCoefficient` and function `real` to take the real part of an existing coefficient.
