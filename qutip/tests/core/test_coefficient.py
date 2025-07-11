@@ -4,7 +4,7 @@ import qutip
 import numpy as np
 import scipy.interpolate as interp
 from functools import partial
-from qutip.core.coefficient import (coefficient, norm, conj, const,
+from qutip.core.coefficient import (coefficient, norm, conj, const, real,
                                     CompilationOptions, Coefficient,
                                     clean_compiled_coefficient,
                                     WARN_MISSING_MODULE,
@@ -184,6 +184,7 @@ def test_coefficient_update_args():
 @pytest.mark.parametrize(['transform', 'expected'], [
     pytest.param(norm, lambda val: np.abs(val)**2, id="norm"),
     pytest.param(conj, lambda val: np.conj(val), id="conj"),
+    pytest.param(real, lambda val: np.real(val), id="real"),
 ])
 def test_CoeffUnitaryTransform(style, transform, expected):
     coeff = coeff_generator(style, "f")
@@ -342,6 +343,7 @@ def _mul(coeff):
     pytest.param(_mul, id="prod"),
     pytest.param(norm, id="norm"),
     pytest.param(conj, id="conj"),
+    pytest.param(real, id="real"),
 ])
 def test_Coeffpickle(style, transform):
     coeff = coeff_generator(style, "f")
@@ -365,6 +367,7 @@ def test_Coeffpickle(style, transform):
     pytest.param(_mul, id="prod"),
     pytest.param(norm, id="norm"),
     pytest.param(conj, id="conj"),
+    pytest.param(real, id="real"),
 ])
 def test_Coeffcopy(style, transform):
     coeff = coeff_generator(style, "f")

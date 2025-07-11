@@ -13,11 +13,13 @@ import qutip
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
     double         norm(double complex x)
+    double         real(double complex x)
 
 
 __all__ = [
     "Coefficient",  "InterCoefficient", "FunctionCoefficient",
-    "StrFunctionCoefficient", "ConjCoefficient", "NormCoefficient"
+    "StrFunctionCoefficient", "ConjCoefficient", "NormCoefficient",
+    "RealCoefficient"
 ]
 
 
@@ -734,6 +736,49 @@ cdef class NormCoefficient(Coefficient):
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`.Coefficient`."""
         return NormCoefficient(self.base.copy())
+
+
+@cython.auto_pickle(True)
+cdef class RealCoefficient(Coefficient):
+    """
+    The real part of a :obj:`.Coefficient`.
+
+    :obj:`RealCoefficient` is returned by
+    ``qutip.coefficient.real(Coefficient)``.
+    """
+    cdef Coefficient base
+
+    def __init__(self, Coefficient base):
+        self.base = base
+
+    def replace_arguments(self, _args=None, **kwargs):
+        """
+        Replace the arguments (``args``) of a coefficient.
+
+        Returns a new :obj:`.Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
+
+        Parameters
+        ----------
+        _args : dict
+            Dictionary of arguments to replace.
+
+        **kwargs
+            Arguments to replace.
+        """
+        return RealCoefficient(
+            self.base.replace_arguments(_args, **kwargs)
+        )
+
+    cdef complex _call(self, double t) except *:
+        return real(self.base._call(t))
+
+    cpdef Coefficient copy(self):
+        """Return a copy of the :obj:`.Coefficient`."""
+        return RealCoefficient(self.base.copy())
 
 
 @cython.auto_pickle(True)

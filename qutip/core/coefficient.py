@@ -27,7 +27,7 @@ from .options import QutipOptions
 from .data import Data
 from .cy.coefficient import (
     Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
-    ConjCoefficient, NormCoefficient, ConstantCoefficient
+    ConjCoefficient, NormCoefficient, ConstantCoefficient, RealCoefficient
 )
 from qutip.typing import CoefficientLike
 
@@ -202,13 +202,13 @@ def coefficient(
 
 
 def norm(coeff):
-    """ return a Coefficient with is the norm: |c|^2.
+    """ return a Coefficient by taking the norm: |c|^2.
     """
     return NormCoefficient(coeff)
 
 
 def conj(coeff):
-    """ return a Coefficient with is the conjugate.
+    """ return a Coefficient by taking the conjugate.
     """
     return ConjCoefficient(coeff)
 
@@ -217,6 +217,12 @@ def const(value):
     """ return a Coefficient with a constant value.
     """
     return ConstantCoefficient(value)
+
+
+def real(coeff):
+    """ return a Coefficient by taking the real part.
+    """
+    return RealCoefficient(coeff)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
