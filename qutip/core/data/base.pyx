@@ -32,7 +32,7 @@ cdef class Data:
     cpdef object to_array(self):
         raise NotImplementedError
 
-    cpdef double complex trace(self):
+    cpdef double complex trace(self) except *:
         return NotImplementedError
 
     cpdef Data adjoint(self):
