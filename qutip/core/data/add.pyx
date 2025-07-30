@@ -202,6 +202,8 @@ cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
 
 cpdef Dense iadd_dense(Dense left, Dense right, double complex scale=1):
     _check_shape(left, right)
+    if scale == 0:
+        return left
     cdef int size = left.shape[0] * left.shape[1]
     cdef int dim1, dim2
     cdef size_t nrows=left.shape[0], ncols=left.shape[1], idx
@@ -217,10 +219,17 @@ cpdef Dense iadd_dense(Dense left, Dense right, double complex scale=1):
 
 
 cpdef Data iadd_data(Data left, Data right, double complex scale=1):
+    _check_shape(left, right)
+    if scale == 0:
+        return left
     return add(left, right, scale)
 
 
 cpdef Dense iadd_dense_data_dense(Dense left, Data right, double complex scale=1):
+    """ Fix for the dispatcher, Dense left take priority. """
+    _check_shape(left, right)
+    if scale == 0:
+        return left
     return iadd_dense(left, _to(Dense, right), scale)
 
 
