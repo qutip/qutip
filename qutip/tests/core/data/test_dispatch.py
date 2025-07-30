@@ -98,10 +98,10 @@ def test_build_full(specialisation, output):
 
 
 def test_register():
-    def func_dense(left, right):
+    def func_dense(left, right, /):
         return "Dense"
 
-    dispatched = Dispatcher(func_dense, ("mat",), False)
+    dispatched = Dispatcher(func_dense, ("left", "right"), False)
     dispatched.add_specialisations([
         (_data.Dense, _data.Dense, func_dense),
     ])

@@ -141,9 +141,9 @@ cdef class _group_specialisation:
 
     def __repr__(self):
         if len(self.types) == 0:
-            spec = self.group.name
+            spec = self.group
         else:
-            spec = "(" + ", ".join(x.__name__ for x in self.types) + f" {self.group.name})"
+            spec = "(" + ", ".join(x.__name__ for x in self.types) + f" {self.group})"
         return "".join([
             f"<indirect specialisation {spec} of ", self._short_name, ">"
         ])
@@ -335,6 +335,40 @@ cdef class Dispatcher:
             self._specialisations[arg[:-1]] = arg[-1]
         if not _defer:
             self.rebuild_lookup()
+
+    def register(self, *dtypes):
+        """
+        Decorator for add_specialisations.
+
+        Parameters
+        ----------
+        dtype: tuple(type)
+            dtype of the function to register.
+            If all dispatched types are the same, a single entry is sufficient.
+            Otherwise each types should be passed.
+
+        Example
+        -------
+
+        @func_dispatched.register(new_dtype)
+        def func_new_dtype(A: new_dtype, b: new_dtype) -> new_dtype:
+            ...
+
+        or
+
+        @func_dispatched.register(new_dtype, Dense, new_dtype)
+        def func_new_dtype(A: new_dtype, b: Dense) -> new_dtype:
+            ...
+
+        """
+        if len(dtypes) == 1 and self._n_dispatch > 1:
+            dtypes = dtypes * self._n_dispatch
+
+        def _register(func):
+            self.add_specialisations([dtypes + (func,)])
+            return func
+
+        return _register
 
     cdef object _find_specialization(
         self, tuple in_types, bint output,
