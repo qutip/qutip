@@ -3,9 +3,14 @@ from ..solver_base import Solver
 from .explicit_rk import Explicit_RungeKutta
 import numpy as np
 from qutip import data as _data
+from .verner7efficient import vern7_coeff
+from .verner9efficient import vern9_coeff
+from .tsit5 import tsit5_coeff
 
-
-__all__ = ['IntegratorVern7', 'IntegratorVern9', 'IntegratorDiag']
+__all__ = [
+    'IntegratorVern7', 'IntegratorVern9', 'IntegratorTsit5',
+    'IntegratorDiag'
+]
 
 
 class IntegratorVern7(Integrator):
@@ -36,6 +41,7 @@ class IntegratorVern7(Integrator):
     support_time_dependant = True
     supports_blackbox = True
     method = 'vern7'
+    tableau = vern7_coeff
 
     def _prepare(self):
         options = {
@@ -43,7 +49,7 @@ class IntegratorVern7(Integrator):
             if k != 'allow_sparse'
         }
         self._ode_solver = Explicit_RungeKutta(
-            self.system, method=self.method,
+            self.system, self.tableau, method=self.method,
             **options
         )
         self.name = self.method
@@ -142,6 +148,37 @@ class IntegratorVern9(IntegratorVern7):
         'allow_sparse': False,
     }
     method = 'vern9'
+    tableau = vern9_coeff
+
+
+class IntegratorTsit5(IntegratorVern7):
+    """
+    QuTiP's implementation of Tsitouras's 5/4 order Runge-Kutta method.
+
+    The implementation uses QuTiP's Data objects for the state, allowing
+    sparse, GPU or other data layer objects to be used efficiently by the
+    solver in their native formats.
+
+    Runge–Kutta pairs of order 5(4) satisfying only the first column
+    simplifying assumption,
+    Ch. Tsitouras,
+    Computers & Mathematics with Applications, Vol 62, Issue 2, 770-775
+    Jan 2011
+
+    Usable with ``method="tsit5"``
+    """
+    integrator_options = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 1000,
+        'first_step': 0,
+        'max_step': 0,
+        'min_step': 0,
+        'interpolate': False,  # Not Implemented yet
+        'allow_sparse': False,
+    }
+    method = 'tsit5'
+    tableau = tsit5_coeff
 
 
 class IntegratorDiag(Integrator):
@@ -215,4 +252,5 @@ class IntegratorDiag(Integrator):
 
 Solver.add_integrator(IntegratorVern7, 'vern7')
 Solver.add_integrator(IntegratorVern9, 'vern9')
+Solver.add_integrator(IntegratorTsit5, 'tsit5')
 Solver.add_integrator(IntegratorDiag, 'diag')
