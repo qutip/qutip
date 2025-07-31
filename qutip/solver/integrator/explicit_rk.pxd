@@ -16,7 +16,7 @@ cdef class Explicit_RungeKutta:
 
     # Ode state data, set in set_initial_value
     cdef list k
-    cdef Data _y_temp, _y, _y_prev, _y_front
+    cdef Data _y_temp, _y, _y_prev, _y_front, _k_fsal
     cdef double _norm_front, _norm_prev, _dt_safe, _dt_int
     cdef double _t, _t_prev, _t_front
     cdef Status _status
@@ -29,7 +29,7 @@ cdef class Explicit_RungeKutta:
 
     # Runge Kutta tableau and info
     cdef int rk_step, rk_extra_step, order, denseout_order
-    cdef bint adaptative_step, can_interpolate
+    cdef bint adaptative_step, can_interpolate, fsal
     cdef object b_factor_np
     cdef dict butcher_tableau
     cdef double [:] b

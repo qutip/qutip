@@ -184,6 +184,9 @@ cdef class Explicit_RungeKutta:
         self.bi = bi
         self.b_factor_np = np.empty(self.rk_extra_step, dtype=np.float64)
         self.b_factor = self.b_factor_np
+        self.fsal = np.allclose(
+            self.a[self.rk_step-1, :self.rk_step], self.b, atol=1e-14
+        )
 
     def __reduce__(self):
         """
@@ -214,6 +217,7 @@ cdef class Explicit_RungeKutta:
         self._y_temp = self._y.copy()
         self._y_front = self._y.copy()
         self._y_prev = self._y.copy()
+        self._k_fsal = None
 
         if not self.first_step:
             self._dt_safe = self._estimate_first_step(t, self._y)
@@ -339,6 +343,12 @@ cdef class Explicit_RungeKutta:
             if nsteps > max_step:
                 self._status = Status.TOO_MUCH_WORK
                 break
+
+        if self.fsal:
+            if self._k_fsal is not None:
+                self._k_fsal = self.k[self.rk_step-1].copy()
+            else:
+                self._k_fsal = copy_to(self.k[self.rk_step-1], self._k_fsal)
         return nsteps
 
     cdef double _compute_step(self, double dt) except -1:
@@ -347,13 +357,16 @@ cdef class Explicit_RungeKutta:
         Use (_t_prev, _y_prev) to create (_t_front, _y_front)
         """
         cdef int i
-        for i in range(self.rk_step):
-            self.k[i] = imul_data(<Data> self.k[i], 0.)
-
         # Compute the derivatives
-        self.k[0] = self.qevo.matmul_data(self._t_prev, self._y_prev,
-                                          <Data> self.k[0])
+        if self.fsal and self._k_fsal is not None:
+            self.k[0] = copy_to(self._k_fsal, self.k[0])
+        else:
+            self.k[0] = imul_data(<Data> self.k[0], 0.)
+            self.k[0] = self.qevo.matmul_data(self._t_prev, self._y_prev,
+                                              <Data> self.k[0])
+
         for i in range(1, self.rk_step):
+            self.k[i] = imul_data(<Data> self.k[i], 0.)
             self._y_temp = copy_to(self._y_prev, self._y_temp)
             self._y_temp = self._accumulate(self._y_temp, self.a[i,:], dt, i)
             self.k[i] = self.qevo.matmul_data(self._t_prev + self.c[i]*dt,
