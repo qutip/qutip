@@ -38,6 +38,7 @@ jobs:
         numpy-requirement: [""]
         scipy-requirement: [">=1.9"]
         coverage-requirement: ["==6.5"]
+        pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
@@ -52,7 +53,6 @@ jobs:
             # Install mpi4py to test mpi_pmap
             # Should be enough to include this in one of the runs
             includempi: 1
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: p310 numpy 1.22
             os: ubuntu-latest
@@ -103,7 +103,6 @@ jobs:
             numpy-requirement: ">=2.0.0"
             condaforge: 1
             nomkl: 1
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: macos - numpy fallback
             os: macos-13  # Test on intel cpus
@@ -113,7 +112,6 @@ jobs:
             condaforge: 1
             nomkl: 1
             coveralls: 1
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows
             os: windows-latest
@@ -121,7 +119,6 @@ jobs:
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows - numpy fallback
             os: windows-latest
