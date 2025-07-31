@@ -53,6 +53,7 @@ jobs:
             # Install mpi4py to test mpi_pmap
             # Should be enough to include this in one of the runs
             includempi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: p310 numpy 1.22
             os: ubuntu-latest
@@ -103,6 +104,7 @@ jobs:
             numpy-requirement: ">=2.0.0"
             condaforge: 1
             nomkl: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: macos - numpy fallback
             os: macos-13  # Test on intel cpus
@@ -112,6 +114,7 @@ jobs:
             condaforge: 1
             nomkl: 1
             coveralls: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows
             os: windows-latest
@@ -119,6 +122,7 @@ jobs:
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows - numpy fallback
             os: windows-latest
