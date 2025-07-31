@@ -19,17 +19,6 @@ import numpy as np
 __all__ = ["Explicit_RungeKutta"]
 
 
-rk4_coeff = {
-    'order': 4,
-    'a': np.array([[0., 0., 0., 0.],
-                   [.5, 0., 0., 0.],
-                   [0., .5, 0., 0.],
-                   [0., 0., 1., 0.]], dtype=np.float64),
-    'b': np.array([1/6, 1/3, 1/3, 1/6], dtype=np.float64),
-    'c': np.array([0., 0.5, 0.5, 1.0], dtype=np.float64)
-}
-
-
 cdef Data copy_to(Data in_, Data out):
     # Copy while reusing allocated buffer if possible.
     # Does not check the shape, etc.
@@ -65,6 +54,15 @@ cdef class Explicit_RungeKutta:
     qevo : QobjEvo
         The system to integrate: ```dX = qevo.matmul_data(t, X)``
 
+    butcher_tableau : dict
+        The coefficient as butcher tableau:
+            order: order of the method.
+            a[i, j]: coefficient for step `i`.
+            b[i]: coefficient for the output state.
+            c[i]: time coefficient vector.
+            e[i]: error coefficient vector (optional).
+            bi[i, j]: coefficient for the dense output (optional).
+
     rtol, atol : double
         Relative and absolute tolerance of the integration error respectively.
 
@@ -87,17 +85,11 @@ cdef class Explicit_RungeKutta:
             integrate up to ``t=3`` and then use interpolation to get the state
             at ``t=2``. With ``interpolate=False``, it will integrate to
             ``t=2``.
-
-    method : ['euler', 'rk4', 'vern7', 'vern9']
-        The integration method to use.
-        * It also accept a tuple of runge-kutta coefficients.
-        (See `Explicit_RungeKutta._init_coeff`)
     """
     def __init__(
             self,
             QobjEvo qevo,
-            dict butcher_tableau=None,
-            str method="",
+            dict butcher_tableau,
             double rtol=1e-6,
             double atol=1e-8,
             int nsteps=1000,
@@ -125,11 +117,7 @@ cdef class Explicit_RungeKutta:
         self.interpolate = interpolate
 
         self.k = []
-        if butcher_tableau is None:
-            self._init_coeff(**rk4_coeff)
-        else:
-            self._init_coeff(**butcher_tableau)
-        self.method = method
+        self._init_coeff(**butcher_tableau)
         self.butcher_tableau = butcher_tableau
         self._y_prev = None
 
@@ -202,7 +190,7 @@ cdef class Explicit_RungeKutta:
         Helper for pickle to serialize the object
         """
         return (self.__class__, (
-            self.qevo, self.butcher_tableau, self.method,
+            self.qevo, self.butcher_tableau,
             self.rtol, self.atol, self.max_numsteps, self.first_step,
             self.min_step, self.max_step, self.interpolate,
         ))

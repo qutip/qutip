@@ -26,13 +26,12 @@ cdef class Explicit_RungeKutta:
     cdef readonly double rtol, atol, first_step, min_step, max_step
     cdef readonly int max_numsteps
     cdef readonly bint interpolate
-    cdef readonly object method
-    cdef dict butcher_tableau
 
     # Runge Kutta tableau and info
     cdef int rk_step, rk_extra_step, order, denseout_order
     cdef bint adaptative_step, can_interpolate
     cdef object b_factor_np
+    cdef dict butcher_tableau
     cdef double [:] b
     cdef double [:] b_factor
     cdef double [:] c

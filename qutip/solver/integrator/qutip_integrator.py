@@ -13,6 +13,26 @@ __all__ = [
 ]
 
 
+# Butcher tableau for simple method
+# Never used directly: made available for debugging.
+euler_coeff = {
+    'order': 1,
+    'a': np.array([[0.]], dtype=np.float64),
+    'b': np.array([1.], dtype=np.float64),
+    'c': np.array([0.], dtype=np.float64)
+}
+
+rk4_coeff = {
+    'order': 4,
+    'a': np.array([[0., 0., 0., 0.],
+                   [.5, 0., 0., 0.],
+                   [0., .5, 0., 0.],
+                   [0., 0., 1., 0.]], dtype=np.float64),
+    'b': np.array([1/6, 1/3, 1/3, 1/6], dtype=np.float64),
+    'c': np.array([0., 0.5, 0.5, 1.0], dtype=np.float64)
+}
+
+
 class IntegratorVern7(Integrator):
     """
     QuTiP's implementation of Verner's "most efficient" Runge-Kutta method
@@ -49,7 +69,7 @@ class IntegratorVern7(Integrator):
             if k != 'allow_sparse'
         }
         self._ode_solver = Explicit_RungeKutta(
-            self.system, self.tableau, method=self.method,
+            self.system, self.tableau,
             **options
         )
         self.name = self.method
