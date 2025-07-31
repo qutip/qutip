@@ -194,7 +194,7 @@ class IntegratorTsit5(IntegratorVern7):
         'first_step': 0,
         'max_step': 0,
         'min_step': 0,
-        'interpolate': False,  # Not Implemented yet
+        'interpolate': True,
         'allow_sparse': False,
     }
     method = 'tsit5'
