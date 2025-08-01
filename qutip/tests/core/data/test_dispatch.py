@@ -119,6 +119,20 @@ def test_register():
     assert dispatched[_data.Dia, _data.CSR] is func_dia_csr
 
 
+def test_register_wrong_number_of_types():
+    def func_dense(left, right, /):
+        return "Dense"
+
+    dispatched = Dispatcher(func_dense, ("left", "right"), False)
+    with pytest.raises(ValueError) as err:
+        @dispatched.register(_data.CSR, _data.Dense, _data.Dia)
+        def func_too_many(left, right):
+            pass
+
+    assert str(exc.value) == (
+        "Dispatcher expects 2 type arguments, but 3 were given."
+    )
+
 def test_Data_low_priority_one_dispatch():
     class func():
         __name__ = "dummy name"

@@ -342,27 +342,36 @@ cdef class Dispatcher:
 
         Parameters
         ----------
-        dtype: tuple(type)
-            dtype of the function to register.
-            If all dispatched types are the same, a single entry is sufficient.
-            Otherwise each types should be passed.
+        *dtype: type
+            The data types for each of the dispatched arguments. There should
+            be one for each `Data` input and one for the output if also a
+            `Data` object.
+
+            As a convenience, if the specialisation uses the same data type for
+            all inputs, you can provide the type just once.
 
         Example
         -------
 
-        @func_dispatched.register(new_dtype)
-        def func_new_dtype(A: new_dtype, b: new_dtype) -> new_dtype:
+        @func.register(CSR)
+        def func_new_dtype(A: CSR, b: CSR) -> CSR:
             ...
 
         or
 
-        @func_dispatched.register(new_dtype, Dense, new_dtype)
-        def func_new_dtype(A: new_dtype, b: Dense) -> new_dtype:
+        @func.register(CSR, Dense, CSR)
+        def func_new_dtype(A: CSR, b: Dense) -> CSR:
             ...
 
         """
         if len(dtypes) == 1 and self._n_dispatch > 1:
             dtypes = dtypes * self._n_dispatch
+
+        if len(dtypes) != self._n_dispatch:
+            raise ValueError(
+                f"Dispatcher expects {self._n_dispatch} type arguments,"
+                f" but {len(dtypes)} were given."
+            )
 
         def _register(func):
             self.add_specialisations([dtypes + (func,)])
