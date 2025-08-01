@@ -124,7 +124,7 @@ def test_register_wrong_number_of_types():
         return "Dense"
 
     dispatched = Dispatcher(func_dense, ("left", "right"), False)
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(ValueError) as exc:
         @dispatched.register(_data.CSR, _data.Dense, _data.Dia)
         def func_too_many(left, right):
             pass
