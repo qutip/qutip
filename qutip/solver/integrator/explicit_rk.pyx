@@ -212,7 +212,8 @@ cdef class Explicit_RungeKutta:
 
         #prepare the buffers
         self.k = []
-        for i in range(self.rk_extra_step):
+        len_k = self.rk_extra_step if self.interpolate else self.rk_step
+        for i in range(len_k):
             self.k.append(self._y.copy())
         self._y_temp = self._y.copy()
         self._y_front = self._y.copy()

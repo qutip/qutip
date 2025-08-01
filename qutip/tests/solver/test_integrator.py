@@ -172,7 +172,8 @@ def test_concurent_usage(integrator):
     ids=["vern7", 'vern9', 'tsit5']
 )
 def test_pickling_rk_methods(integrator):
-    """Test whether VernN methods can be pickled and hence used in multiprocessing"""
+    """Test whether VernN and Tsitoura's methods can be pickled and"
+    " hence used in multiprocessing"""
     opt = {'atol':1e-10, 'rtol':1e-7}
 
     sys = qutip.QobjEvo(0.5 * qutip.qeye(1))
@@ -195,7 +196,7 @@ def test_pickling_rk_methods(integrator):
     ids=["vern7", 'vern9', 'tsit5']
 )
 def test_rk_options(integrator):
-    """Test whether VernN and Tsitoura's methods can be pickled and hence used in multiprocessing"""
+    """Test whether VernN and Tsitoura's methods with no dense output."""
     opt = {
         'atol':1e-10, 'rtol':1e-7, 'interpolate':False, 'first_step':0.5
     }
