@@ -93,15 +93,25 @@ def random_csr(shape, density, sorted_, gen=None):
     Generate a random qutip CSR matrix with the given shape, nnz density, and
     with indices that are either sorted or unsorted.  The nnz elements will
     always be at least one (use data.csr.zeros otherwise).
+
+    An optional numpy random generator can be passed.
     """
     return qutip.core.data.CSR(random_scipy_csr(shape, density, sorted_, gen))
 
 
 def random_dense(shape, fortran, gen=None):
-    """Generate a random qutip Dense matrix of the given shape."""
+    """
+    Generate a random qutip Dense matrix of the given shape.
+
+    An optional numpy random generator can be passed.
+    """
     return qutip.core.data.Dense(random_numpy_dense(shape, fortran, gen))
 
 
 def random_diag(shape, density, sort=False, gen=None):
-    """Generate a random qutip Dia matrix of the given shape and density"""
+    """
+    Generate a random qutip Dia matrix of the given shape and density.
+
+    An optional numpy random generator can be passed.
+    """
     return qutip.core.data.Dia(random_scipy_dia(shape, density, sort, gen))
