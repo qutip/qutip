@@ -5,7 +5,7 @@ Provide a cython implimentation for a general Explicit runge-Kutta method.
 """
 from qutip.core.data cimport Data, Dense, CSR, dense
 from qutip.core.data.add cimport iadd_dense
-from qutip.core.data.add import add
+from qutip.core.data.add import iadd
 from qutip.core.data.mul cimport imul_data
 from qutip.core.data.tidyup import tidyup_csr
 from qutip.core.data.norm import frobenius_data
@@ -59,7 +59,7 @@ cdef Data iadd_data(Data left, Data right, double complex factor):
         iadd_dense(left, right, factor)
         return left
     else:
-        return add(left, right, factor)
+        return iadd(left, right, factor)
 
 
 cdef class Explicit_RungeKutta:
