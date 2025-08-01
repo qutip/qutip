@@ -93,6 +93,10 @@ def _set_default_dtype_scope(new_range):
             "'default_dtype_scope' must be one of "
             "'creation', 'missing', 'full'"
         )
+    if new_range != "creation" and settings.core["default_dtype"] is None:
+        raise RuntimeError(
+            "Can't set 'default_dtype_scope' without setting 'default_dtype'"
+        )
     for dispatcher in qutip.core.data.to.dispatchers:
         dispatcher.rebuild_lookup()
 

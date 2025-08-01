@@ -141,9 +141,9 @@ cdef class _group_specialisation:
 
     def __repr__(self):
         if len(self.types) == 0:
-            spec = self.group.name
+            spec = self.group
         else:
-            spec = "(" + ", ".join(x.__name__ for x in self.types) + f" {self.group.name})"
+            spec = "(" + ", ".join(x.__name__ for x in self.types) + f" {self.group})"
         return "".join([
             f"<indirect specialisation {spec} of ", self._short_name, ">"
         ])
@@ -335,6 +335,49 @@ cdef class Dispatcher:
             self._specialisations[arg[:-1]] = arg[-1]
         if not _defer:
             self.rebuild_lookup()
+
+    def register(self, *dtypes):
+        """
+        Decorator for add_specialisations.
+
+        Parameters
+        ----------
+        *dtype: type
+            The data types for each of the dispatched arguments. There should
+            be one for each `Data` input and one for the output if also a
+            `Data` object.
+
+            As a convenience, if the specialisation uses the same data type for
+            all inputs, you can provide the type just once.
+
+        Example
+        -------
+
+        @func.register(CSR)
+        def func_new_dtype(A: CSR, b: CSR) -> CSR:
+            ...
+
+        or
+
+        @func.register(CSR, Dense, CSR)
+        def func_new_dtype(A: CSR, b: Dense) -> CSR:
+            ...
+
+        """
+        if len(dtypes) == 1 and self._n_dispatch > 1:
+            dtypes = dtypes * self._n_dispatch
+
+        if len(dtypes) != self._n_dispatch:
+            raise ValueError(
+                f"Dispatcher expects {self._n_dispatch} type arguments,"
+                f" but {len(dtypes)} were given."
+            )
+
+        def _register(func):
+            self.add_specialisations([dtypes + (func,)])
+            return func
+
+        return _register
 
     cdef object _find_specialization(
         self, tuple in_types, bint output,
