@@ -184,7 +184,7 @@ cdef class Explicit_RungeKutta:
         self.bi = bi
         self.b_factor_np = np.empty(self.rk_extra_step, dtype=np.float64)
         self.b_factor = self.b_factor_np
-        self.fsal = np.allclose(
+        self.first_same_as_last = np.allclose(
             self.a[self.rk_step-1, :self.rk_step], self.b, atol=1e-14
         )
 
@@ -218,7 +218,10 @@ cdef class Explicit_RungeKutta:
         self._y_temp = self._y.copy()
         self._y_front = self._y.copy()
         self._y_prev = self._y.copy()
-        self._k_fsal = None
+        if self.first_same_as_last:
+            self._k_fsal = self._y.copy()
+            self._k_fsal = imul_data(<Data> self._k_fsal, 0)
+            self._k_fsal = self.qevo.matmul_data(t, y0, <Data> self._k_fsal)
 
         if not self.first_step:
             self._dt_safe = self._estimate_first_step(t, self._y)
@@ -233,8 +236,11 @@ cdef class Explicit_RungeKutta:
         cdef double norm = frobenius_data(y0), tmp_norm
         cdef double tol = self.atol + norm * self.rtol
         cdef int i
-        self.k[0] = imul_data(<Data> self.k[0], 0)
-        self.k[0] = self.qevo.matmul_data(t, y0, <Data> self.k[0])
+        if self.first_same_as_last:
+            self.k[0] = copy_to(self._k_fsal, self.k[0])
+        else:
+            self.k[0] = imul_data(<Data> self.k[0], 0)
+            self.k[0] = self.qevo.matmul_data(t, y0, <Data> self.k[0])
 
         # Ok approximation for linear system. But not in a general case.
         if norm <= self.atol:
@@ -345,11 +351,8 @@ cdef class Explicit_RungeKutta:
                 self._status = Status.TOO_MUCH_WORK
                 break
 
-        if self.fsal:
-            if self._k_fsal is not None:
-                self._k_fsal = self.k[self.rk_step-1].copy()
-            else:
-                self._k_fsal = copy_to(self.k[self.rk_step-1], self._k_fsal)
+        if self.first_same_as_last:
+            self._k_fsal = copy_to(self.k[self.rk_step-1], self._k_fsal)
         return nsteps
 
     cdef double _compute_step(self, double dt) except -1:
@@ -359,7 +362,7 @@ cdef class Explicit_RungeKutta:
         """
         cdef int i
         # Compute the derivatives
-        if self.fsal and self._k_fsal is not None:
+        if self.first_same_as_last:
             self.k[0] = copy_to(self._k_fsal, self.k[0])
         else:
             self.k[0] = imul_data(<Data> self.k[0], 0.)
