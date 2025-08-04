@@ -38,6 +38,7 @@ jobs:
         numpy-requirement: [""]
         scipy-requirement: [">=1.9"]
         coverage-requirement: ["==6.5"]
+        pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
