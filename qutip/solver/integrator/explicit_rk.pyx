@@ -55,7 +55,7 @@ cdef class Explicit_RungeKutta:
         The system to integrate: ```dX = qevo.matmul_data(t, X)``
 
     butcher_tableau : dict
-        The coefficient as butcher tableau:
+        The coefficients as butcher tableau:
             order: order of the method.
             a[i, j]: coefficient for step `i`.
             b[i]: coefficient for the output state.

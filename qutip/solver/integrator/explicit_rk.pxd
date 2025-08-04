@@ -29,7 +29,11 @@ cdef class Explicit_RungeKutta:
 
     # Runge Kutta tableau and info
     cdef int rk_step, rk_extra_step, order, denseout_order
-    cdef bint adaptative_step, can_interpolate
+    # Whether variable step according to tolerance are supported
+    cdef bint adaptative_step
+    # Whether the output can be computed everywhere along the step
+    cdef bint can_interpolate
+    # Whether the first derivative is the same as the last one of the prevous step
     cdef bint first_same_as_last
     cdef object b_factor_np
     cdef dict butcher_tableau
