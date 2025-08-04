@@ -336,7 +336,7 @@ cdef class Dispatcher:
         if not _defer:
             self.rebuild_lookup()
 
-    def register(self, *dtypes):
+    def register(self, *dtypes, _defer=False):
         """
         Decorator for add_specialisations.
 
@@ -349,6 +349,14 @@ cdef class Dispatcher:
 
             As a convenience, if the specialisation uses the same data type for
             all inputs, you can provide the type just once.
+
+        _defer : bool, optional (False)
+            Only intended for internal library use during initialisation. If
+            `True`, then the input types are not checked, and the full lookup
+            table is not built until a manual call to
+            `Dispatcher.rebuild_lookup()` is made.  If you are getting errors,
+            remember that you should add the data type conversions to `data.to`
+            before you try to add specialisations.
 
         Example
         -------
@@ -373,8 +381,14 @@ cdef class Dispatcher:
                 f" but {len(dtypes)} were given."
             )
 
+        if any(not issubclass(dtype, Data) for dtype in dtypes):
+            raise ValueError(
+                "Trying to dispatch on something which is not a subclass of "
+                "qutip.core.data.Data"
+            )
+
         def _register(func):
-            self.add_specialisations([dtypes + (func,)])
+            self.add_specialisations([dtypes + (func,)], _defer=_defer)
             return func
 
         return _register

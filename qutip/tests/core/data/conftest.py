@@ -15,6 +15,9 @@ def shuffle_indices_scipy_csr(matrix, gen=None):
     If there is at most one value per row, there is no unsorted order.  In
     general, we attempt to shuffle, and if this returns the same order as
     before, we just reverse it to ensure it's different.
+
+    An optional numpy random generator can be passed as `gen`.
+    If not provided one will be created.
     """
     if gen is None:
         gen = np.random.default_rng()
@@ -33,6 +36,9 @@ def shuffle_indices_scipy_csr(matrix, gen=None):
 def random_scipy_dia(shape, density, sort=False, gen=None):
     """
     Generate a random scipy dia matrix with the given shape, density.
+
+    An optional numpy random generator can be passed as `gen`.
+    If not provided one will be created.
     """
     if gen is None:
         gen = np.random.default_rng()
@@ -65,6 +71,9 @@ def random_scipy_csr(shape, density, sorted_, gen=None):
     Generate a random scipy CSR matrix with the given shape, nnz density, and
     with indices that are either sorted or unsorted.  The nnz elements will
     always be at least one.
+
+    An optional numpy random generator can be passed as `gen`.
+    If not provided one will be created.
     """
     if gen is None:
         gen = np.random.default_rng()
@@ -79,7 +88,12 @@ def random_scipy_csr(shape, density, sorted_, gen=None):
 
 
 def random_numpy_dense(shape, fortran, gen=None):
-    """Generate a random numpy dense matrix with the given shape."""
+    """
+    Generate a random numpy dense matrix with the given shape.
+
+    An optional numpy random generator can be passed as `gen`.
+    If not provided one will be created.
+    """
     if gen is None:
         gen = np.random.default_rng()
     out = gen.uniform(size=shape) + 1j * gen.uniform(size=shape)
@@ -94,7 +108,8 @@ def random_csr(shape, density, sorted_, gen=None):
     with indices that are either sorted or unsorted.  The nnz elements will
     always be at least one (use data.csr.zeros otherwise).
 
-    An optional numpy random generator can be passed.
+    An optional numpy random generator can be passed as `gen`.
+    If not provided one will be created.
     """
     return qutip.core.data.CSR(random_scipy_csr(shape, density, sorted_, gen))
 
@@ -103,7 +118,8 @@ def random_dense(shape, fortran, gen=None):
     """
     Generate a random qutip Dense matrix of the given shape.
 
-    An optional numpy random generator can be passed.
+    An optional numpy random generator can be passed as `gen`.
+    If not provided one will be created.
     """
     return qutip.core.data.Dense(random_numpy_dense(shape, fortran, gen))
 
@@ -112,6 +128,7 @@ def random_diag(shape, density, sort=False, gen=None):
     """
     Generate a random qutip Dia matrix of the given shape and density.
 
-    An optional numpy random generator can be passed.
+    An optional numpy random generator can be passed as `gen`.
+    If not provided one will be created.
     """
     return qutip.core.data.Dia(random_scipy_dia(shape, density, sort, gen))
