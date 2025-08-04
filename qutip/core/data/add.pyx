@@ -20,7 +20,7 @@ from qutip.core.data.convert import to as _to
 cnp.import_array()
 
 __all__ = [
-    'add', 'add_csr', 'add_dense', 'iadd_dense', 'add_dia',
+    'add', 'add_csr', 'add_dense', 'add_dia',
     'iadd', 'iadd_dense', 'iadd_dense_data_dense', 'iadd_data',
     'sub', 'sub_csr', 'sub_dense', 'sub_dia',
 ]
@@ -226,7 +226,7 @@ cpdef Data iadd_data(Data left, Data right, double complex scale=1):
 
 
 cpdef Dense iadd_dense_data_dense(Dense left, Data right, double complex scale=1):
-    """ Fix for the dispatcher, Dense left take priority. """
+    """ Helper function to manually set the priority of the dispatcher. """
     _check_shape(left, right)
     if scale == 0:
         return left
