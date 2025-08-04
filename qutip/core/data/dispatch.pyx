@@ -344,7 +344,7 @@ cdef class Dispatcher:
         ----------
         *dtype: type
             The data types for each of the dispatched arguments. There should
-            be one for each `Data` input and one for the output if also a
+            be one for each `Data` input and one for the output if that is also a
             `Data` object.
 
             As a convenience, if the specialisation uses the same data type for
