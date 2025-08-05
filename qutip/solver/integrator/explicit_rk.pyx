@@ -19,24 +19,6 @@ import numpy as np
 __all__ = ["Explicit_RungeKutta"]
 
 
-euler_coeff = {
-    'order': 1,
-    'a': np.array([[0.]], dtype=np.float64),
-    'b': np.array([1.], dtype=np.float64),
-    'c': np.array([0.], dtype=np.float64)
-}
-
-rk4_coeff = {
-    'order': 4,
-    'a': np.array([[0., 0., 0., 0.],
-                   [.5, 0., 0., 0.],
-                   [0., .5, 0., 0.],
-                   [0., 0., 1., 0.]], dtype=np.float64),
-    'b': np.array([1/6, 1/3, 1/3, 1/6], dtype=np.float64),
-    'c': np.array([0., 0.5, 0.5, 1.0], dtype=np.float64)
-}
-
-
 cdef Data copy_to(Data in_, Data out):
     # Copy while reusing allocated buffer if possible.
     # Does not check the shape, etc.
@@ -72,6 +54,15 @@ cdef class Explicit_RungeKutta:
     qevo : QobjEvo
         The system to integrate: ```dX = qevo.matmul_data(t, X)``
 
+    butcher_tableau : dict
+        The coefficients as butcher tableau:
+            order: order of the method.
+            a[i, j]: coefficient for step `i`.
+            b[i]: coefficient for the output state.
+            c[i]: time coefficient vector.
+            e[i]: error coefficient vector (optional).
+            bi[i, j]: coefficient for the dense output (optional).
+
     rtol, atol : double
         Relative and absolute tolerance of the integration error respectively.
 
@@ -94,15 +85,19 @@ cdef class Explicit_RungeKutta:
             integrate up to ``t=3`` and then use interpolation to get the state
             at ``t=2``. With ``interpolate=False``, it will integrate to
             ``t=2``.
-
-    method : ['euler', 'rk4', 'vern7', 'vern9']
-        The integration method to use.
-        * It also accept a tuple of runge-kutta coefficients.
-        (See `Explicit_RungeKutta._init_coeff`)
     """
-    def __init__(self, QobjEvo qevo, double rtol=1e-6, double atol=1e-8,
-                 int nsteps=1000, double first_step=0, double min_step=0,
-                 double max_step=0, bint interpolate=True, method="euler"):
+    def __init__(
+            self,
+            QobjEvo qevo,
+            dict butcher_tableau,
+            double rtol=1e-6,
+            double atol=1e-8,
+            int nsteps=1000,
+            double first_step=0,
+            double min_step=0,
+            double max_step=0,
+            bint interpolate=True,
+        ):
         # Function to integrate.
         self.qevo = qevo
         # tolerances
@@ -122,17 +117,8 @@ cdef class Explicit_RungeKutta:
         self.interpolate = interpolate
 
         self.k = []
-        if isinstance(method, dict):
-            self._init_coeff(**method)
-        elif "vern7" == method:
-            self._init_coeff(**vern7_coeff)
-        elif "vern9" == method:
-            self._init_coeff(**vern9_coeff)
-        elif "rk4" == method:
-            self._init_coeff(**rk4_coeff)
-        else:
-            self._init_coeff(**euler_coeff)
-        self.method = method
+        self._init_coeff(**butcher_tableau)
+        self.butcher_tableau = butcher_tableau
         self._y_prev = None
 
     def _init_coeff(self, order, a, b, c, e=None, bi=None):
@@ -198,14 +184,18 @@ cdef class Explicit_RungeKutta:
         self.bi = bi
         self.b_factor_np = np.empty(self.rk_extra_step, dtype=np.float64)
         self.b_factor = self.b_factor_np
+        self.first_same_as_last = np.allclose(
+            self.a[self.rk_step-1, :self.rk_step], self.b, atol=1e-14
+        )
 
     def __reduce__(self):
         """
         Helper for pickle to serialize the object
         """
         return (self.__class__, (
-            self.qevo, self.rtol, self.atol, self.max_numsteps, self.first_step,
-            self.min_step, self.max_step, self.interpolate, self.method
+            self.qevo, self.butcher_tableau,
+            self.rtol, self.atol, self.max_numsteps, self.first_step,
+            self.min_step, self.max_step, self.interpolate,
         ))
 
     cpdef void set_initial_value(self, Data y0, double t) except *:
@@ -222,11 +212,16 @@ cdef class Explicit_RungeKutta:
 
         #prepare the buffers
         self.k = []
-        for i in range(self.rk_extra_step):
+        len_k = self.rk_extra_step if self.interpolate else self.rk_step
+        for i in range(len_k):
             self.k.append(self._y.copy())
         self._y_temp = self._y.copy()
         self._y_front = self._y.copy()
         self._y_prev = self._y.copy()
+        if self.first_same_as_last:
+            self._k_fsal = self._y.copy()
+            self._k_fsal = imul_data(<Data> self._k_fsal, 0)
+            self._k_fsal = self.qevo.matmul_data(t, y0, <Data> self._k_fsal)
 
         if not self.first_step:
             self._dt_safe = self._estimate_first_step(t, self._y)
@@ -241,8 +236,11 @@ cdef class Explicit_RungeKutta:
         cdef double norm = frobenius_data(y0), tmp_norm
         cdef double tol = self.atol + norm * self.rtol
         cdef int i
-        self.k[0] = imul_data(<Data> self.k[0], 0)
-        self.k[0] = self.qevo.matmul_data(t, y0, <Data> self.k[0])
+        if self.first_same_as_last:
+            self.k[0] = copy_to(self._k_fsal, self.k[0])
+        else:
+            self.k[0] = imul_data(<Data> self.k[0], 0)
+            self.k[0] = self.qevo.matmul_data(t, y0, <Data> self.k[0])
 
         # Ok approximation for linear system. But not in a general case.
         if norm <= self.atol:
@@ -352,6 +350,9 @@ cdef class Explicit_RungeKutta:
             if nsteps > max_step:
                 self._status = Status.TOO_MUCH_WORK
                 break
+
+        if self.first_same_as_last:
+            self._k_fsal = copy_to(self.k[self.rk_step-1], self._k_fsal)
         return nsteps
 
     cdef double _compute_step(self, double dt) except -1:
@@ -360,13 +361,16 @@ cdef class Explicit_RungeKutta:
         Use (_t_prev, _y_prev) to create (_t_front, _y_front)
         """
         cdef int i
-        for i in range(self.rk_step):
-            self.k[i] = imul_data(<Data> self.k[i], 0.)
-
         # Compute the derivatives
-        self.k[0] = self.qevo.matmul_data(self._t_prev, self._y_prev,
-                                          <Data> self.k[0])
+        if self.first_same_as_last:
+            self.k[0] = copy_to(self._k_fsal, self.k[0])
+        else:
+            self.k[0] = imul_data(<Data> self.k[0], 0.)
+            self.k[0] = self.qevo.matmul_data(self._t_prev, self._y_prev,
+                                              <Data> self.k[0])
+
         for i in range(1, self.rk_step):
+            self.k[i] = imul_data(<Data> self.k[i], 0.)
             self._y_temp = copy_to(self._y_prev, self._y_temp)
             self._y_temp = self._accumulate(self._y_temp, self.a[i,:], dt, i)
             self.k[i] = self.qevo.matmul_data(self._t_prev + self.c[i]*dt,
@@ -437,7 +441,7 @@ cdef class Explicit_RungeKutta:
     @cython.cdivision(True)
     cdef double _get_timestep(self, double t):
         """ Get the dt for the step. """
-        cdef double dt_needed = t - self._t_front
+        cdef double dt_needed = t - self._t_prev
         if not self.adaptative_step:
             return dt_needed
         if self.interpolate:
