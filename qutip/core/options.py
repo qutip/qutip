@@ -80,8 +80,7 @@ class QutipOptions:
 def _set_default_dtype(new_dtype):
     import qutip
     # Catch non existing alias and unsuported types
-    if new_dtype is not None:
-        qutip.core.data.to.parse(new_dtype)
+    new_dtype = qutip.core.data.to.parse(new_dtype)
     for dispatcher in qutip.core.data.to.dispatchers:
         dispatcher.rebuild_lookup()
 
@@ -92,10 +91,6 @@ def _set_default_dtype_scope(new_range):
         raise ValueError(
             "'default_dtype_scope' must be one of "
             "'creation', 'missing', 'full'"
-        )
-    if new_range != "creation" and settings.core["default_dtype"] is None:
-        raise RuntimeError(
-            "Can't set 'default_dtype_scope' without setting 'default_dtype'"
         )
     for dispatcher in qutip.core.data.to.dispatchers:
         dispatcher.rebuild_lookup()
@@ -155,10 +150,11 @@ class CoreOptions(QutipOptions):
           is exactly ``f(t, args)`` then ``dict`` is used. Otherwise
           ``pythonic`` is used.
 
-    default_dtype : Nonetype, str, type {None}
+    default_dtype : Nonetype, str, type {"core"}
         The specified data type will be used as output for different qutip
         functions determined by the "default_dtype_scope" options. Any
-        data-layer known to ``qutip.data.to`` is accepted. When ``None``, these
+        data-layer known to ``qutip.data.to`` is accepted. The default `core``,
+        refert to any format available in the qutip qutip package and
         functions will default to a sensible data type.
 
     default_dtype_scope : str {"creation"}
@@ -192,7 +188,7 @@ class CoreOptions(QutipOptions):
         # signature style expected by function coefficients
         "function_coefficient_style": "auto",
         # Default Qobj dtype for Qobj create function
-        "default_dtype": None,
+        "default_dtype": "core",
         # Where the default_dtype apply:
         # - "creation": Used in functions creating Qobj.
         # - "missing": Missing specialisation output use default.
