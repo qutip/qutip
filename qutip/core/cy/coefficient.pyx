@@ -796,7 +796,6 @@ cdef class MulCoefficient(Coefficient):
         cdef MulCoefficient self = left
         cdef MulCoefficient other = right
         return (
-            self is other or
             (self.first == other.first and self.second == other.second) or
             (self.second == other.first and self.first == other.second)
         )
@@ -857,7 +856,7 @@ cdef class ConjCoefficient(Coefficient):
             return False
         cdef ConjCoefficient self = left
         cdef ConjCoefficient other = right
-        return self is other or self.base == other.base
+        return self.base == other.base
 
 
 @cython.auto_pickle(True)
@@ -913,7 +912,7 @@ cdef class NormCoefficient(Coefficient):
             return False
         cdef NormCoefficient self = left
         cdef NormCoefficient other = right
-        return self is other or self.base == other.base
+        return self.base == other.base
 
 
 @cython.auto_pickle(True)

@@ -26,8 +26,8 @@ from ..settings import settings as qset
 from .options import QutipOptions
 from .data import Data
 from .cy.coefficient import (
-    Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
-    ConjCoefficient, NormCoefficient, ConstantCoefficient
+    Coefficient, InterCoefficient, FunctionCoefficient,
+    StrFunctionCoefficient, NormCoefficient, ConstantCoefficient,
 )
 from qutip.typing import CoefficientLike
 
