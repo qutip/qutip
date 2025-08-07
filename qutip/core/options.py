@@ -150,11 +150,11 @@ class CoreOptions(QutipOptions):
           is exactly ``f(t, args)`` then ``dict`` is used. Otherwise
           ``pythonic`` is used.
 
-    default_dtype : Nonetype, str, type {"core"}
+    default_dtype : str, type {"core"}
         The specified data type will be used as output for different qutip
         functions determined by the "default_dtype_scope" options. Any
         data-layer known to ``qutip.data.to`` is accepted. The default `core``,
-        refert to any format available in the qutip qutip package and
+        refers to any format available in the qutip package and
         functions will default to a sensible data type.
 
     default_dtype_scope : str {"creation"}
