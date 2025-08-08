@@ -4,7 +4,8 @@ from __future__ import annotations
 __all__ = ['krylovsolve']
 
 from .. import QobjEvo, Qobj
-from .sesolve import SESolver
+from .sesolve import sesolve
+from .mesolve import MESolver
 from .result import Result
 from .solver_base import _kwargs_migration
 from numpy.typing import ArrayLike
@@ -13,7 +14,7 @@ from typing import Any, Callable
 
 def krylovsolve(
     H: Qobj,
-    psi0: Qobj,
+    rho0: Qobj,
     tlist: ArrayLike,
     krylov_dim: int,
     _e_ops = None,
@@ -25,13 +26,13 @@ def krylovsolve(
     options: dict[str, Any] = None,
 ) -> Result:
     """
-    Schrodinger equation evolution of a state vector for time independent
-    Hamiltonians using Krylov method.
+    Master equation evolution of a density for time independent Hamiltonians
+    using the Krylov method.
 
-    Evolve the state vector ("psi0") finding an approximation for the time
-    evolution operator of Hamiltonian ("H") by obtaining the projection of
-    the time evolution operator on a set of small dimensional Krylov
-    subspaces (m << dim(H)).
+    Evolve the state vector or density matrix ("rho0") finding an
+    approximation for the time evolution operator of Hamiltonian ("H") by
+    obtaining the projection of the time evolution operator on a set of small
+    dimensional Krylov subspaces (m << dim(H)).
 
     The output is either the state vector or unitary matrix at arbitrary points
     in time (`tlist`), or the expectation values of the supplied operators
@@ -47,8 +48,8 @@ def krylovsolve(
         Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
         that can be made into :obj:`.QobjEvo` are also accepted.
 
-    psi0 : :class:`.Qobj`
-        Initial state vector (ket)
+    rho0 : :class:`.Qobj`
+        Initial density matric or state vector (ket).
 
     tlist : *list* / *array*
         list of times for :math:`t`.
@@ -119,5 +120,11 @@ def krylovsolve(
     options = options or {}
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
-    solver = SESolver(H, options=options)
-    return solver.run(psi0, tlist, e_ops=e_ops)
+
+    if rho0.isket:
+        return sesolve(H, rho0, tlist, e_ops=e_ops, args=args,
+                       options=options)
+
+    solver = MESolver(H, None, options=options)
+
+    return solver.run(rho0, tlist, e_ops=e_ops)

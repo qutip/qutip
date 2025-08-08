@@ -2,7 +2,7 @@ from ..integrator import IntegratorException, Integrator
 import numpy as np
 from qutip.core import data as _data
 from scipy.optimize import root_scalar
-from ..sesolve import SESolver
+from ..solver_base import Solver
 
 
 __all__ = ["IntegratorKrylov"]
@@ -35,7 +35,7 @@ class IntegratorKrylov(Integrator):
         krylov_dim = self.options["krylov_dim"]
         if krylov_dim < 0 or krylov_dim > self.system.shape[0]:
             raise ValueError("The options 'krylov_dim', must be a positive "
-                             "integer smaller that the system size")
+                             "integer smaller that the system size.")
 
         if krylov_dim == 0:
             # TODO: krylov_dim, max_step and error (atol) are related by
@@ -61,14 +61,15 @@ class IntegratorKrylov(Integrator):
 
     def _lanczos_algorithm(self, psi):
         """
-        Computes a basis of the Krylov subspace for Hamiltonian 'H', a system
-        state 'psi' and Krylov dimension 'krylov_dim'. The space is spanned
-        by {psi, H psi, H^2 psi, ..., H^(krylov_dim) psi}.
+        Computes a basis of the Krylov subspace for the time independent
+        Hamiltonian 'H', a system state 'psi' and Krylov dimension 'krylov_dim'
+        using the Lanczos algorithm. The space is spanned by
+        {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
 
         Parameters
         ------------
         psi: np.ndarray
-            State used to calculate Krylov subspace.
+            State used to calculate Krylov subspace (= first basis state).
         """
         krylov_dim = self.options['krylov_dim']
         H = (1j * self.system(0)).data
@@ -108,7 +109,8 @@ class IntegratorKrylov(Integrator):
         eigenvalues, eigenvectors = _data.eigs(krylov_tridiag, True)
         N = eigenvalues.shape[0]
         U = _data.matmul(krylov_basis, eigenvectors)
-        e0 = eigenvectors.adjoint() @ _data.one_element_dense((N, 1), (0, 0), 1.0)
+        e0 = eigenvectors.adjoint() @ \
+            _data.one_element_dense((N, 1), (0, 0), 1.0)
         return eigenvalues, U, e0
 
     def _compute_psi(self, dt, eigenvalues, U, e0):
@@ -119,19 +121,25 @@ class IntegratorKrylov(Integrator):
         aux = _data.multiply(phases, e0)
         return _data.matmul(U, aux)
 
-    def _compute_max_step(self, krylov_tridiag, krylov_basis, krylov_state=None):
+    def _compute_max_step(
+            self,
+            krylov_tridiag,
+            krylov_basis,
+            krylov_state=None
+    ):
         """
         Compute the maximum step length to stay under the desired tolerance.
         """
         if not krylov_state:
-            krylov_state = self._compute_krylov_set(krylov_tridiag, krylov_basis)
+            krylov_state = \
+                self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
         small_tridiag = _data.Dense(krylov_tridiag.as_ndarray()[:-1, :-1])
         small_basis = _data.Dense(krylov_basis.as_ndarray()[:, :-1])
         reduced_state = self._compute_krylov_set(small_tridiag, small_basis)
 
         def krylov_error(t):
-            # we divide by atol and take the log so that the error returned is 0
+            # we divide by atol and take the log so the error returned is 0
             # at atol, which is convenient for calling root_scalar with.
             return np.log(_data.norm.l2(
                 self._compute_psi(t, *krylov_state) -
@@ -193,7 +201,10 @@ class IntegratorKrylov(Integrator):
             # If outside, advance the range
             step += 1
             if step >= self.options["nsteps"]:
-                raise IntegratorException(f"Maximum number of integration steps ({self.options['nsteps']}) exceeded")
+                raise IntegratorException(
+                    "Maximum number of integration steps "
+                    f"({self.options['nsteps']}) exceeded"
+                )
             new_psi = self._compute_psi(self._max_step, *self._krylov_state)
             self.set_state(self._t_0 + self._max_step, new_psi)
 
@@ -217,8 +228,9 @@ class IntegratorKrylov(Integrator):
 
         krylov_dim: int, default: 0
             Dimension of Krylov approximation subspaces used for the time
-            evolution approximation. If the defaut 0 is given, the dimension is calculated
-            from the system size N, using `min(int((N + 100)**0.5), N-1)`.
+            evolution approximation. If the defaut 0 is given, the dimension
+            is calculated from the system size N, using
+            `min(int((N + 100)**0.5), N-1)`.
 
         sub_system_tol: float, default: 1e-7
             Tolerance to detect a happy breakdown. A happy breakdown occurs
@@ -237,4 +249,4 @@ class IntegratorKrylov(Integrator):
         Integrator.options.fset(self, new_options)
 
 
-SESolver.add_integrator(IntegratorKrylov, 'krylov')
+Solver.add_integrator(IntegratorKrylov, 'krylov')
