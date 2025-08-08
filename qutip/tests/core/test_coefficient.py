@@ -404,6 +404,12 @@ def test_CoeffEq(style):
     assert norm(coeff) != norm(coeff3)
 
 
+def test_CoeffEq_shape_missmatch():
+    coeff = coeff_generator("array", "f")
+    coeff2 = coeff_generator("arraylog", "f")
+    assert coeff != coeff2
+
+
 @pytest.mark.parametrize('order', [0, 1, 2, 3])
 def test_CoeffArray(order):
     tlist = np.linspace(0, 1, 101)
