@@ -480,26 +480,26 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
     cdef_cte = ""
     init_cte = ""
     copy_cte = ""
-    comp_cte = ""
+    same_cte = ""
     for i, (name, val, ctype) in enumerate(constants):
         cdef_cte += "        {} {}\n".format(ctype, name[5:])
         copy_cte += "        out.{} = {}\n".format(name[5:], name)
         init_cte += "        {} = cte[{}]\n".format(name, i)
-        comp_cte += "            c_other.{} == {},\n".format(name[5:], name)
+        same_cte += "            c_other.{} == {},\n".format(name[5:], name)
     cdef_var = ""
     init_var = ""
     init_arg = ""
     replace_var = ""
     call_var = ""
     copy_var = ""
-    comp_var = ""
+    same_var = ""
     for i, (name, val, ctype) in enumerate(variables):
         cdef_var += "        str key{}\n".format(i)
         cdef_var += "        {} {}\n".format(ctype, name[5:])
         copy_var += "        out.key{} = self.key{}\n".format(i, i)
         copy_var += "        out.{} = {}\n".format(name[5:], name)
-        comp_var += "            c_other.key{} == self.key{},\n".format(i, i)
-        comp_var += "            c_other.{} == {},\n".format(name[5:], name)
+        same_var += "            c_other.key{} == self.key{},\n".format(i, i)
+        same_var += "            c_other.{} == {},\n".format(name[5:], name)
         if not raw:
             init_var += "        self.key{} = var[{}]\n".format(i, i)
         else:
@@ -583,8 +583,9 @@ cdef class StrCoefficient(Coefficient):
 
         if type(self) is not type(other):
             return False
+        # cast other to StrCoefficient to access cdef attributes
         cdef StrCoefficient c_other = other
-        return all([\n{comp_cte}{comp_var}        ])
+        return all([\n{same_cte}{same_var}        ])
 
 """
     return code
