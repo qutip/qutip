@@ -659,6 +659,8 @@ cdef class InterCoefficient(Coefficient):
         cdef InterCoefficient self = left
         cdef InterCoefficient other = right
         return (
+            self.np_arrays[0].shape == other.np_arrays[0].shape and
+            self.np_arrays[1].shape == other.np_arrays[1].shape and
             np.allclose(self.np_arrays[0], other.np_arrays[0]) and
             np.allclose(self.np_arrays[1], other.np_arrays[1]) and
             np.allclose(self.dt, other.dt) and
