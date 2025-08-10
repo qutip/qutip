@@ -5,6 +5,8 @@ import qutip
 from qutip.solver.result import Result
 from qutip.solver.multitrajresult import MultiTrajResult, McResult, NmmcResult
 
+mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
 def fill_options(**kwargs):
     return {
@@ -166,6 +168,20 @@ class TestResult:
 def e_op_num(t, state):
     """ An e_ops function that returns the ground state occupation. """
     return state.dag() @ qutip.num(5) @ state
+
+@pytest.mark.parametrize('n_of_e_ops', [(1), (2), (3)])
+def test_plot_expect(n_of_e_ops):
+    H = qutip.sigmaz() + 0.3 * qutip.sigmay()
+    e_ops = [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
+    times = np.linspace(0, 10, 100)
+    psi0 = (qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
+    result = qutip.mesolve(H, psi0, times, e_ops=e_ops[:n_of_e_ops])
+
+    fig, ax = result.plot_expect
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ax, mpl.axes._axes.Axes)
 
 
 class TestMultiTrajResult:
