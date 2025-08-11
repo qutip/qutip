@@ -17,7 +17,7 @@ cdef class Explicit_RungeKutta:
     # Ode state data, set in set_initial_value
     cdef list k
     cdef Data _y_temp, _y, _y_prev, _y_front
-    cdef double _norm_front, _norm_prev, _dt_safe, _dt_int
+    cdef double _dt_safe, _dt_int
     cdef double _t, _t_prev, _t_front
     cdef Status _status
     cdef dict status_messages

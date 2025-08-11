@@ -1,15 +1,13 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
-cimport cython
 import numpy as np
 cimport numpy as cnp
-from qutip.settings import settings
 import inspect as _inspect
 
 # QuTiP core imports
 from qutip.core.data.base cimport idxint, Data
-from qutip.core.data cimport csr, dense, dia, Dense, CSR, Dia
+from qutip.core.data cimport dia, Dense, CSR, Dia
 from .dispatch import Dispatcher as _Dispatcher
 
 
@@ -202,3 +200,11 @@ wrmn_error.add_specialisations([
 
 
 del _inspect, _Dispatcher
+
+
+cdef double cy_wrmn_error(Data diff, Data state, float atol, float rtol) except -1:
+    """ c dispatcher to speed up ODE for dense states """
+    if type(diff) is Dense and type(state) is Dense:
+        return wrmn_error_dense(diff, state, atol, rtol)
+
+    return wrmn_error(diff, state, atol, rtol)
