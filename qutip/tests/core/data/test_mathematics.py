@@ -1082,3 +1082,52 @@ class TestIdentity_like(UnaryOpMixin):
         pytest.param(data.identity_like_data, CSR, CSR),
         pytest.param(data.identity_like_dense, Dense, Dense),
     ]
+
+
+class TestWRMN_error(BinaryOpMixin):
+    def op_numpy(self, left, right, atol, rtol):
+        return np.linalg.norm(
+            np.abs(left)
+            / (atol + rtol * np.abs(right))
+        ) / left.size**0.5
+
+    shapes = shapes_binary_identical()
+    bad_shapes = shapes_binary_bad_identical()
+    specialisations = [
+        pytest.param(data.ode.wrmn_error_csr, CSR, CSR, float),
+        pytest.param(data.ode.wrmn_error_dense, Dense, Dense, float),
+        pytest.param(data.ode.wrmn_error_dia, Dia, Dia, float),
+    ]
+
+    # `add` has an additional scalar parameter, because the operation is
+    # actually more like `A + c*B`.  We just parametrise that scalar
+    # separately.
+    @pytest.mark.parametrize('atol', [1e-7, 0.5],
+                             ids=['atol[small]', 'atol[large]'])
+    @pytest.mark.parametrize('rtol', [0, 1e-10, 0.5],
+                             ids=['rtol[0]', 'rtol[small]', 'rtol[large]'])
+    def test_mathematically_correct(self, op, data_l, data_r, out_type, atol, rtol):
+        """
+        Test that the binary operation is mathematically correct for all the
+        known type specialisations.
+        """
+        left, right = data_l(), data_r()
+        expected = self.op_numpy(left.to_array(), right.to_array(), atol, rtol)
+        test = op(left, right, atol, rtol)
+
+        assert isinstance(test, out_type)
+        if issubclass(out_type, Data):
+            assert test.shape == expected.shape
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.atol, rtol=self.rtol)
+        else:
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
+
+    def test_incorrect_shape_raises(self, op, data_l, data_r):
+        """
+        Test that the operation produces a suitable error if the shapes of the
+        given operands are not compatible.
+        """
+        with pytest.raises(ValueError):
+            op(data_l(), data_r(), 1e-5, 1e-5)
