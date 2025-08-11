@@ -43,7 +43,7 @@ class IntegratorKrylov(Integrator):
             # We could ask for 2 and determine the third one.
             N = self.system.shape[0]
             krylov_dim = min(int((N + 100)**0.5), N-1)
-            self.options["krylov_dim"]  = krylov_dim
+            self.options["krylov_dim"] = krylov_dim
 
         if not self.options["always_compute_step"]:
             from qutip import rand_ket
@@ -173,7 +173,8 @@ class IntegratorKrylov(Integrator):
     def set_state(self, t, state0):
         self._t_0 = t
         krylov_tridiag, krylov_basis = self._lanczos_algorithm(state0)
-        self._krylov_state = self._compute_krylov_set(krylov_tridiag, krylov_basis)
+        self._krylov_state = \
+            self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
         if (
             krylov_tridiag.shape[0] <= self.options['krylov_dim']
