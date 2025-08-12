@@ -50,7 +50,7 @@ cpdef double wrmn_error_dense(Dense diff, Dense state, double atol, double rtol)
     return (sum / N)**0.5
 
 
-cpdef double wrmn_error_csr(CSR diff, CSR state, float atol, float rtol) except -1:
+cpdef double wrmn_error_csr(CSR diff, CSR state, double atol, double rtol) except -1:
     """
     Compute the weighted root mean square norm for the ode error estimation
 
@@ -85,7 +85,9 @@ cpdef double wrmn_error_csr(CSR diff, CSR state, float atol, float rtol) except 
                 ptr_diff += 1
                 col_diff = diff.col_index[ptr_diff] if ptr_diff < ptr_diff_max else ncols
             elif col_state < col_diff:
-                # Element only in 'state'
+                # Element only in 'state'.
+                # The corresponding 'diff' element is zero, so the error
+                # contribution is zero.
                 ptr_state += 1
                 col_state = state.col_index[ptr_state] if ptr_state < ptr_state_max else ncols
             else: # col_diff == col_state
@@ -103,7 +105,7 @@ cpdef double wrmn_error_csr(CSR diff, CSR state, float atol, float rtol) except 
     return (sum_ / N)**0.5
 
 
-cpdef double wrmn_error_dia(Dia diff, Dia state, float atol, float rtol) except -1:
+cpdef double wrmn_error_dia(Dia diff, Dia state, double atol, double rtol) except -1:
     """
     Compute the weighted root mean square norm for the ode error estimation
 
@@ -143,10 +145,12 @@ cpdef double wrmn_error_dia(Dia diff, Dia state, float atol, float rtol) except 
             idx_diff += size
             diag_diff += 1
         else:
+            # diag only in `state`. `diff` is 0 so no error contribution.
             idx_state += size
             diag_state += 1
 
     while diag_diff < diff.num_diag:
+        # Leftover `diff` values.
         offset = diff.offsets[diag_diff]
         start = max(0, offset)
         end = min(diff.shape[1], diff.shape[0] + offset)
@@ -202,7 +206,7 @@ wrmn_error.add_specialisations([
 del _inspect, _Dispatcher
 
 
-cdef double cy_wrmn_error(Data diff, Data state, float atol, float rtol) except -1:
+cdef double cy_wrmn_error(Data diff, Data state, double atol, double rtol) except -1:
     """ c dispatcher to speed up ODE for dense states """
     if type(diff) is Dense and type(state) is Dense:
         return wrmn_error_dense(diff, state, atol, rtol)
