@@ -374,14 +374,12 @@ class Result(_BaseResult):
     def expect(self) -> list[ArrayLike]:
         return [np.array(e_op) for e_op in self.e_data.values()]
 
-    @property
     def plot_expect(self):
         """
         Optional dependency matplotlib is REQUIRED.
-        Look at the expectation value from evolution. Return a graph displaying 
-        the time evolution of the expectation of each op. 
-        The plt.close function prevents the figure from being displayed twice 
-        in a Jupyter notebook cell.
+        Look at the expectation value(s) from evolution. Return a matplotlib
+        Figure instance and the associated array of Axes instance(s) for 
+        the expectation of each op.
         """
         if not self.times:
             raise ValueError("This is not a result after evolution.")
@@ -389,14 +387,15 @@ class Result(_BaseResult):
             raise ImportError(
                 "matplotlib is required for plot_expect. Please install it.")
         labels = list(self.e_data.keys())
-        fig, ax = plt.subplots()
-        for _, (label, values) in enumerate(zip(labels, self.expect)):
-            ax.plot(self.times, values, label=label)
-            ax.set_xlabel('Time')
-            ax.set_ylabel('Expectation Value')
-        ax.legend()
+        fig, axes = plt.subplots(len(labels))
+        if len(labels) == 1:
+            axes = np.array([axes])
+        for i, (label, values) in enumerate(zip(labels, self.expect)):
+            axes[i].plot(self.times, values)
+            axes[i].set_xlabel('Time')
+            axes[i].set_ylabel('Exp. Val.: ' + str(label))
         plt.close(fig)
-        return fig, ax
+        return fig, axes
 
     @property
     def final_state(self) -> Qobj:
