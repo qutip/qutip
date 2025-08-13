@@ -9,6 +9,7 @@ from qutip.core.data.add import iadd
 from qutip.core.data.mul cimport imul_data
 from qutip.core.data.tidyup import tidyup_csr
 from qutip.core.data.norm import frobenius_data
+from qutip.core.data.ode cimport cy_wrmn_error
 from .verner7efficient import vern7_coeff
 from .verner9efficient import vern9_coeff
 from cpython.exc cimport PyErr_CheckSignals
@@ -207,8 +208,6 @@ cdef class Explicit_RungeKutta:
         self._t_front = t
         self._dt_int = 0
         self._y = y0
-        self._norm_prev = frobenius_data(self._y)
-        self._norm_front = self._norm_prev
 
         #prepare the buffers
         self.k = []
@@ -311,7 +310,6 @@ cdef class Explicit_RungeKutta:
         while self._t_front < t and self._status >= 0:
             self._y_prev = copy_to(self._y_front, self._y_prev)
             self._t_prev = self._t_front
-            self._norm_prev = self._norm_front
             nsteps_left -= self._step_in_err(t, nsteps_left)
             PyErr_CheckSignals()
             if step:
@@ -394,9 +392,7 @@ cdef class Explicit_RungeKutta:
             return 0.
         self._y_temp = imul_data(self._y_temp, 0.)
         self._y_temp = self._accumulate(self._y_temp, self.e, dt, self.rk_step)
-        self._norm_front = frobenius_data(y_new)
-        return frobenius_data(self._y_temp) / (self.atol +
-                max(self._norm_prev, self._norm_front) * self.rtol)
+        return cy_wrmn_error(self._y_temp, y_new, self.atol, self.rtol)
 
     cdef void _prep_dense_out(self) except *:
         """
@@ -520,12 +516,10 @@ cdef class Explicit_RungeKutta:
     def _debug_state(self):
         print("t, y: ", self._t,
               'None' if self._y is None else self._y.to_array())
-        print("t_prev, y_prev, |y_prev|", self._t_prev,
-              'None' if self._y_prev is None else self._y_prev.to_array(),
-              self._norm_prev)
-        print("t_front, y_front, |y_front|", self._t_front,
-              'None' if self._y_front is None else self._y_front.to_array(),
-              self._norm_front)
+        print("t_prev, y_prev", self._t_prev,
+              'None' if self._y_prev is None else self._y_prev.to_array())
+        print("t_front, y_front", self._t_front,
+              'None' if self._y_front is None else self._y_front.to_array())
         print("y_temp",
               'None' if self._y_temp is None else self._y_temp.to_array())
         print("dt_safe: ", self._dt_safe, "dt_int: ", self._dt_int)
