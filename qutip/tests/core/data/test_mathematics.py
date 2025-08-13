@@ -1102,9 +1102,7 @@ class TestWRMN_error(BinaryOpMixin):
         pytest.param(data.ode.wrmn_error_dia, Dia, Dia, float),
     ]
 
-    # `add` has an additional scalar parameter, because the operation is
-    # actually more like `A + c*B`.  We just parametrise that scalar
-    # separately.
+    # `wrmn_error` has additional scalar parameters: the tolerances.
     @pytest.mark.parametrize('atol', [1e-7, 0.5],
                              ids=['atol[small]', 'atol[large]'])
     @pytest.mark.parametrize('rtol', [0, 1e-10, 0.5],
@@ -1119,13 +1117,9 @@ class TestWRMN_error(BinaryOpMixin):
         test = op(left, right, atol, rtol)
 
         assert isinstance(test, out_type)
-        if issubclass(out_type, Data):
-            assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol, rtol=self.rtol)
-        else:
-            np.testing.assert_allclose(test, expected, atol=self.atol,
-                                       rtol=self.rtol)
+        np.testing.assert_allclose(
+            test, expected, atol=self.atol, rtol=self.rtol
+        )
 
     def test_incorrect_shape_raises(self, op, data_l, data_r):
         """
