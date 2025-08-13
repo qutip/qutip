@@ -2,6 +2,7 @@
 from qutip.core.data cimport Data
 from qutip.core.cy.qobjevo cimport QobjEvo
 
+
 cpdef enum Status:
     AT_FRONT = 2
     INTERPOLATED = 1
@@ -10,6 +11,28 @@ cpdef enum Status:
     DT_UNDERFLOW = -2
     OUTSIDE_RANGE = -3
     NOT_INITIATED = -4
+
+
+cdef class RKStats:
+    cdef int loglevel, rk_step, rk_extra_step
+    cdef int num_step_total, num_step_failed, num_step_success
+    cdef int num_interpolation_step, num_interpolation_preparation
+    cdef int num_derr_computation
+
+    cdef double max_sucess_dt, min_sucess_dt, avg_sucess_dt
+    cdef double max_failed_dt, min_failed_dt, avg_failed_dt
+    cdef double max_sucess_error, min_sucess_error, avg_sucess_error
+    cdef double max_failed_error, min_failed_error, avg_failed_error
+    cdef double max_sucess_safe_dt, min_sucess_safe_dt, avg_sucess_safe_dt
+    cdef double max_failed_safe_dt, min_failed_safe_dt, avg_failed_safe_dt
+    cdef dict full_step_data
+
+    cdef void log_success_step(self, double t, double dt, double error, double safe_dt)
+    cdef void log_failed_step(self, double t, double dt, double error, double safe_dt)
+    cdef void log_step(self, double t, double dt, double error, double safe_dt)
+    cdef void increment_interpolation_step(self)
+    cdef void increment_interpolation_preparation(self)
+
 
 cdef class Explicit_RungeKutta:
     cdef QobjEvo qevo
@@ -21,6 +44,7 @@ cdef class Explicit_RungeKutta:
     cdef double _t, _t_prev, _t_front
     cdef Status _status
     cdef dict status_messages
+    cdef RKStats statistics
 
     # options: set in init
     cdef readonly double rtol, atol, first_step, min_step, max_step

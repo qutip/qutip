@@ -45,6 +45,167 @@ cdef Data iadd_data(Data left, Data right, double complex factor):
         return iadd(left, right, factor)
 
 
+cdef class RKStats:
+    def __init__(self, loglevel, rk_step, rk_extra_step, fsal):
+        if loglevel not in [0, 1, 2]:
+            raise ValueError("Logging level not supported.")
+        self.loglevel = loglevel
+        self.rk_step = rk_step - fsal
+        # Here we want to new derr computation from interpolation.
+        # Not the shape of arrays needed for it.
+        self.rk_extra_step = rk_extra_step - rk_step
+
+        self.num_step_total = 0
+        self.num_step_failed = 0
+        self.num_step_success = 0
+        self.num_interpolation_step = 0
+        self.num_interpolation_preparation = 0
+        self.num_derr_computation = 0
+
+        self.max_sucess_dt = -1
+        self.max_failed_dt = -1
+        self.max_sucess_error = -1
+        self.max_failed_error = -1
+        self.max_sucess_safe_dt = -1
+        self.max_failed_safe_dt = -1
+
+        self.min_sucess_dt = np.inf
+        self.min_failed_dt = np.inf
+        self.min_sucess_error = np.inf
+        self.min_failed_error = np.inf
+        self.min_sucess_safe_dt = np.inf
+        self.min_failed_safe_dt = np.inf
+
+        self.avg_sucess_dt = 0
+        self.avg_failed_dt = 0
+        self.avg_sucess_error = 0
+        self.avg_failed_error = 0
+        self.avg_sucess_safe_dt = 0
+        self.avg_failed_safe_dt = 0
+
+        if self.loglevel == 2:
+            self.full_step_data = {
+                "success": [],
+                "times": [],
+                "step_lenghts": [],
+                "errors": [],
+                "safe_dts": [],
+            }
+
+    cdef void log_step(self, double t, double dt, double error, double safe_dt):
+        if self.loglevel == 0:
+            return
+        if error > 1:
+            self.log_failed_step(t, dt, error, safe_dt)
+        else:
+            self.log_success_step(t, dt, error, safe_dt)
+
+    cdef void log_success_step(self, double t, double dt, double error, double safe_dt):
+        self.num_step_total += 1
+        self.num_step_success += 1
+        self.num_derr_computation += self.rk_step
+
+        self.max_sucess_dt = max(self.max_sucess_dt, dt)
+        self.min_sucess_dt = min(self.min_sucess_dt, dt)
+        self.avg_sucess_dt += dt
+        self.max_sucess_error = max(self.max_sucess_error, error)
+        self.min_sucess_error = min(self.min_sucess_error, error)
+        self.avg_sucess_error += error
+        self.max_sucess_safe_dt = max(self.max_sucess_error, safe_dt)
+        self.min_sucess_safe_dt = min(self.min_sucess_error, safe_dt)
+        self.avg_sucess_safe_dt += safe_dt
+
+        if self.loglevel == 1:
+            return
+
+        self.full_step_data["success"].append(True)
+        self.full_step_data["times"].append(t)
+        self.full_step_data["step_lenghts"].append(dt)
+        self.full_step_data["errors"].append(error)
+        self.full_step_data["safe_dts"].append(safe_dt)
+
+    cdef void log_failed_step(self, double t, double dt, double error, double safe_dt):
+        self.num_step_total += 1
+        self.num_step_failed += 1
+        self.num_derr_computation += self.rk_step
+
+        self.max_failed_dt = max(self.max_failed_dt, dt)
+        self.min_failed_dt = min(self.min_failed_dt, dt)
+        self.avg_failed_dt += dt
+        self.max_failed_error = max(self.max_failed_error, error)
+        self.min_failed_error = min(self.min_failed_error, error)
+        self.avg_failed_error += error
+        self.max_failed_safe_dt = max(self.max_failed_safe_dt, safe_dt)
+        self.min_failed_safe_dt = min(self.min_failed_safe_dt, safe_dt)
+        self.avg_failed_safe_dt += safe_dt
+
+        if self.loglevel == 1:
+            return
+
+        self.full_step_data["success"].append(False)
+        self.full_step_data["times"].append(t)
+        self.full_step_data["step_lenghts"].append(dt)
+        self.full_step_data["errors"].append(error)
+        self.full_step_data["safe_dts"].append(safe_dt)
+
+    cdef void increment_interpolation_step(self):
+        self.num_interpolation_step += 1
+
+    cdef void increment_interpolation_preparation(self):
+        self.num_interpolation_preparation += 1
+        self.num_derr_computation += self.rk_extra_step
+
+    def as_dict(self):
+        if self.loglevel == 0:
+            return {}
+
+        out = {
+            "num_step_total": self.num_step_total,
+            "num_step_failed": self.num_step_failed,
+            "num_step_success": self.num_step_success,
+            "num_interpolation_step": self.num_interpolation_step,
+            "num_interpolation_preparation": self.num_interpolation_preparation,
+            "num_derr_computation": self.num_derr_computation,
+
+            "max_sucess_dt": self.max_sucess_dt,
+            "max_failed_dt": self.max_failed_dt,
+            "max_sucess_error": self.max_sucess_error,
+            "max_failed_error": self.max_failed_error,
+            "max_sucess_safe_dt": self.max_sucess_safe_dt,
+            "max_failed_safe_dt": self.max_failed_safe_dt,
+
+            "min_sucess_dt": self.min_sucess_dt,
+            "min_failed_dt": self.min_failed_dt,
+            "min_sucess_error": self.min_sucess_error,
+            "min_failed_error": self.min_failed_error,
+            "min_sucess_safe_dt": self.min_sucess_safe_dt,
+            "min_failed_safe_dt": self.min_failed_safe_dt,
+        }
+
+        if self.num_step_success:
+            out["avg_sucess_dt"] = self.avg_sucess_dt / self.num_step_success
+            out["avg_sucess_error"] = self.avg_sucess_error / self.num_step_success
+            out["avg_sucess_safe_dt"] = self.avg_sucess_safe_dt / self.num_step_success
+        else:
+            out["avg_sucess_dt"] = 0
+            out["avg_sucess_error"] = 0
+            out["avg_sucess_safe_dt"] = 0
+
+        if self.num_step_failed:
+            out["avg_failed_dt"] = self.avg_failed_dt / self.num_step_failed
+            out["avg_failed_error"] = self.avg_failed_error / self.num_step_failed
+            out["avg_failed_safe_dt"] = self.avg_failed_safe_dt / self.num_step_failed
+        else:
+            out["avg_failed_dt"] = 0
+            out["avg_failed_error"] = 0
+            out["avg_failed_safe_dt"] = 0
+
+        if self.loglevel == 2:
+            out.update(self.full_step_data)
+
+        return out
+
+
 cdef class Explicit_RungeKutta:
     """
     Qutip implementation of Runge Kutta ODE.
@@ -98,6 +259,7 @@ cdef class Explicit_RungeKutta:
             double min_step=0,
             double max_step=0,
             bint interpolate=True,
+            int loglevel=0,
         ):
         # Function to integrate.
         self.qevo = qevo
@@ -121,6 +283,9 @@ cdef class Explicit_RungeKutta:
         self._init_coeff(**butcher_tableau)
         self.butcher_tableau = butcher_tableau
         self._y_prev = None
+        self.statistics = RKStats(
+            loglevel, self.rk_step, self.rk_extra_step, self.first_same_as_last
+        )
 
     def _init_coeff(self, order, a, b, c, e=None, bi=None):
         """
@@ -340,6 +505,8 @@ cdef class Explicit_RungeKutta:
             self._dt_int = dt
             self._recompute_safe_step(error, dt)
 
+            self.statistics.log_step(self._t_prev, dt, error, self._dt_safe)
+
             if dt == self.min_step and error > 1:
                 # The tolerance was not reached but the dt is at the minimum.
                 self._status = Status.DT_UNDERFLOW
@@ -399,6 +566,7 @@ cdef class Explicit_RungeKutta:
         Compute derivative for the interpolation step.
         """
         cdef double dt = self._dt_int
+        self.statistics.increment_interpolation_preparation()
 
         for i in range(self.rk_step, self.rk_extra_step):
             self.k[i] = imul_data(<Data> self.k[i], 0.)
@@ -417,6 +585,8 @@ cdef class Explicit_RungeKutta:
             double t0 = self._t_prev
             double dt = self._dt_int
             double tau = (t - t0) / dt
+        self.statistics.increment_interpolation_step()
+
         for i in range(self.rk_extra_step):
             self.b_factor[i] = 0.
             for j in range(self.denseout_order-1, -1, -1):
@@ -488,6 +658,9 @@ cdef class Explicit_RungeKutta:
             OUTSIDE_RANGE: 'Step outside available range.',
             NOT_INITIATED: 'Not initialized.'
         }[self._status]
+
+    def get_statistics(self):
+        return self.statistics.as_dict()
 
     @property
     def y(self):

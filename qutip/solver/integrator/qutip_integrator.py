@@ -57,6 +57,7 @@ class IntegratorVern7(Integrator):
         'min_step': 0,
         'interpolate': True,
         'allow_sparse': False,
+        'loglevel': 0,
     }
     support_time_dependant = True
     supports_blackbox = True
@@ -103,6 +104,9 @@ class IntegratorVern7(Integrator):
         if self._ode_solver.successful():
             return
         raise IntegratorException(self._ode_solver.status_message())
+
+    def get_statistics(self):
+        return self._ode_solver.get_statistics()
 
     @property
     def options(self):
@@ -166,6 +170,7 @@ class IntegratorVern9(IntegratorVern7):
         'min_step': 0,
         'interpolate': True,
         'allow_sparse': False,
+        'loglevel': 0,
     }
     method = 'vern9'
     tableau = vern9_coeff
@@ -196,6 +201,7 @@ class IntegratorTsit5(IntegratorVern7):
         'min_step': 0,
         'interpolate': True,
         'allow_sparse': False,
+        'loglevel': 0,
     }
     method = 'tsit5'
     tableau = tsit5_coeff
