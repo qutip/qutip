@@ -26,12 +26,14 @@ cdef int _check_shape(Data left, Data right) except -1 nogil:
 
 cpdef double wrmn_error_dense(Dense diff, Dense state, double atol, double rtol) except -1:
     """
-    Compute the weighted root mean square norm for the ode error estimation
+    Compute the weighted root mean square error norm:
 
-    error = sqrt( 1/N * sum( ( |diff[i]| / (atol + rtol * |state[i]|))**2 ))
+        error = sqrt( 1/N * sum( ( |diff[i]| / (atol + rtol * |state[i]|))**2 ))
+        
+    This error norm is commonly used to estimate error in ODEs.
     """
     cdef double sum = 0.
-    cdef size_t i, j, N = diff.shape[0] * diff.shape[1]
+    cdef size_t i, N = diff.shape[0] * diff.shape[1]
     cdef int dim1, dim2
 
     _check_shape(diff, state)
@@ -176,9 +178,11 @@ wrmn_error = _Dispatcher(
 )
 wrmn_error.__doc__ =\
     """
-    Compute the weighted root mean square norm for the ode error estimation
+    Compute the weighted root mean square error norm:
 
-    error = sqrt( 1/N * sum( ( |diff[i]| / (atol + rtol * |state[i]|))**2 ))
+        error = sqrt( 1/N * sum( ( |diff[i]| / (atol + rtol * |state[i]|))**2 ))
+        
+    This error norm is commonly used to estimate error in ODEs.
 
     Parameters
     ----------
