@@ -5,6 +5,12 @@ import qutip
 from qutip.solver.result import Result
 from qutip.solver.multitrajresult import MultiTrajResult, McResult, NmmcResult
 
+try:
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+except ImportError:
+    mpl = None
+
 
 def fill_options(**kwargs):
     return {
@@ -168,6 +174,22 @@ def e_op_num(t, state):
     return state.dag() @ qutip.num(5) @ state
 
 
+@pytest.mark.skipif(mpl is None, reason="matplotlib is not available.")
+@pytest.mark.parametrize('n_of_e_ops', [(1), (2), (3)])
+def test_plot_expect(n_of_e_ops):
+    H = qutip.sigmaz() + 0.3 * qutip.sigmay()
+    e_ops = [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
+    times = np.linspace(0, 10, 100)
+    psi0 = (qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
+    result = qutip.mesolve(H, psi0, times, e_ops=e_ops[:n_of_e_ops])
+
+    fig, axes = result.plot_expect()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(axes, np.ndarray)
+    assert len(axes) == n_of_e_ops
+
+
 class TestMultiTrajResult:
     def _fill_trajectories(self, multiresult, N, ntraj,
                            collapse=False, noise=0, dm=False,
@@ -292,7 +314,8 @@ class TestMultiTrajResult:
             [np.arange(5), np.ones(5)],
             id="dict-e-ops",
         ),
-        pytest.param(qutip.QobjEvo(qutip.num(5)), [np.arange(5)], id="qobjevo"),
+        pytest.param(qutip.QobjEvo(qutip.num(5)), [
+                     np.arange(5)], id="qobjevo"),
         pytest.param(e_op_num, [np.arange(5)], id="function"),
         pytest.param(
             [qutip.num(5), e_op_num],
@@ -465,11 +488,10 @@ class TestMultiTrajResult:
             if trace:
                 traj.trace = np.random.rand(len(tlist))
 
-            if abs_weights and j==0:
+            if abs_weights and j == 0:
                 res.add_deterministic(traj, np.random.rand())
             else:
                 res.add((0, traj, np.random.rand()))
-
 
         return res
 
