@@ -376,10 +376,26 @@ class Result(_BaseResult):
 
     def plot_expect(self):
         """
-        Optional dependency matplotlib is REQUIRED.
-        Look at the expectation value(s) from evolution. Return a matplotlib
-        Figure instance and the associated array of Axes instance(s) for 
-        the expectation of each op.
+        Plot the expectation values from the evolution of quantum states.
+
+        This method generates a plot for the expectation values of each 
+        operator over time, based on the results of an evolution. It returns a 
+        Matplotlib Figure instance along with a numpy array of Axes instances, 
+        one for each operator's expectation value. 
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            A Matplotlib Figure instance containing the plots of expectation 
+        values.
+        axes : numpy.ndarray
+            An array of Axes instances corresponding to each operator's 
+        expectation value.
+
+        Notes
+        -----
+        The ``matplotlib`` library is required to use this method. Ensure it is 
+        installed in your environment to visualize the plots.
         """
         if not self.times:
             raise ValueError("This is not a result after evolution.")

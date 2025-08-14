@@ -187,6 +187,7 @@ def test_plot_expect(n_of_e_ops):
 
     assert isinstance(fig, mpl.figure.Figure)
     assert isinstance(axes, np.ndarray)
+    assert len(axes) == n_of_e_ops
 
 
 class TestMultiTrajResult:
@@ -313,7 +314,8 @@ class TestMultiTrajResult:
             [np.arange(5), np.ones(5)],
             id="dict-e-ops",
         ),
-        pytest.param(qutip.QobjEvo(qutip.num(5)), [np.arange(5)], id="qobjevo"),
+        pytest.param(qutip.QobjEvo(qutip.num(5)), [
+                     np.arange(5)], id="qobjevo"),
         pytest.param(e_op_num, [np.arange(5)], id="function"),
         pytest.param(
             [qutip.num(5), e_op_num],
@@ -486,11 +488,10 @@ class TestMultiTrajResult:
             if trace:
                 traj.trace = np.random.rand(len(tlist))
 
-            if abs_weights and j==0:
+            if abs_weights and j == 0:
                 res.add_deterministic(traj, np.random.rand())
             else:
                 res.add((0, traj, np.random.rand()))
-
 
         return res
 
