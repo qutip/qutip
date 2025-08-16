@@ -665,7 +665,7 @@ cdef class QobjEvo:
         elif isinstance(other, numbers.Number):
             self.elements = [element * other for element in self.elements]
         elif isinstance(other, Coefficient):
-            other = _EvoElement(qutip.qeye(self.dims[1]), other)
+            other = _EvoElement(qutip.qeye(self._dims[1]), other)
             self.elements = [element @ other for element in self.elements]
         else:
             return NotImplemented

@@ -153,11 +153,11 @@ def test_krylov(sizes):
 def test_concurent_usage(integrator):
     opt = {'atol':1e-10, 'rtol':1e-7}
 
-    sys1 = qutip.QobjEvo(0.5*qutip.qeye(1))
+    sys1 = qutip.QobjEvo(0.5 * qutip.qeye(1))
     inter1 = integrator(sys1, opt)
     inter1.set_state(0, qutip.basis(1,0).data)
 
-    sys2 = qutip.QobjEvo(-0.5*qutip.qeye(1))
+    sys2 = qutip.QobjEvo(-0.5 * qutip.qeye(1))
     inter2 = integrator(sys2, opt)
     inter2.set_state(0, qutip.basis(1,0).data)
 
@@ -168,14 +168,15 @@ def test_concurent_usage(integrator):
         assert inter2.integrate(t)[1].to_array()[0, 0] == expected2
 
 @pytest.mark.parametrize('integrator',
-    [IntegratorVern7, IntegratorVern9],
-    ids=["vern7", 'vern9']
+    [IntegratorVern7, IntegratorVern9, IntegratorTsit5],
+    ids=["vern7", 'vern9', 'tsit5']
 )
-def test_pickling_vern_methods(integrator):
-    """Test whether VernN methods can be pickled and hence used in multiprocessing"""
+def test_pickling_rk_methods(integrator):
+    """Test whether VernN and Tsitoura's methods can be pickled and"
+    " hence used in multiprocessing"""
     opt = {'atol':1e-10, 'rtol':1e-7}
 
-    sys = qutip.QobjEvo(0.5*qutip.qeye(1))
+    sys = qutip.QobjEvo(0.5 * qutip.qeye(1))
     inter = integrator(sys, opt)
     inter.set_state(0, qutip.basis(1,0).data)
 
@@ -184,8 +185,27 @@ def test_pickling_vern_methods(integrator):
     recreated = pickle.loads(pickled)
     recreated.set_state(0, qutip.basis(1,0).data)
 
-    for t in np.linspace(0,1,6):
+    for t in np.linspace(0, 1, 6):
         expected = pytest.approx(np.exp(t/2), abs=1e-5)
         result1 = inter.integrate(t)[1].to_array()[0, 0]
         result2 = recreated.integrate(t)[1].to_array()[0, 0]
         assert result1 == result2 == expected
+
+@pytest.mark.parametrize('integrator',
+    [IntegratorVern7, IntegratorVern9, IntegratorTsit5],
+    ids=["vern7", 'vern9', 'tsit5']
+)
+def test_rk_options(integrator):
+    """Test whether VernN and Tsitoura's methods with no dense output."""
+    opt = {
+        'atol':1e-10, 'rtol':1e-7, 'interpolate':False, 'first_step':0.5
+    }
+
+    sys = qutip.QobjEvo(qutip.qeye(1))
+    inter = integrator(sys, opt)
+    inter.set_state(0, qutip.basis(1,0).data)
+
+    for t in np.linspace(0, 1, 6):
+        expected = pytest.approx(np.exp(t), abs=1e-5)
+        result1 = inter.integrate(t)[1].to_array()[0, 0]
+        assert result1 == expected
