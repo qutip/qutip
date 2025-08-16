@@ -17,7 +17,7 @@ class TestQubit:
         assert q.parameters["omega"] == 1.0
         assert q.parameters["decay_rate"] == 0.0
         assert q.parameters["dephasing_rate"] == 0.0
-        assert q.dimension == 2
+        assert q.dimension == [[2], [2]]
 
     @pytest.mark.parametrize("omega", [0.5, 1.0, 2.0, -1.0, 0.0])
     def test_omega_parameter(self, omega):
