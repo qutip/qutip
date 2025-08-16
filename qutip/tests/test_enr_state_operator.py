@@ -349,3 +349,12 @@ def test_enr_tensor_trunc(isoper, dtype, truncate):
         if isoper:
             q_out_check = q_out_check.proj()
         assert q_out == q_out_check
+
+
+def test_enr_coefficient_mul():
+    # Ensure that QobjEvo can be multiplied by Coefficient with ENR operators
+    a, _ = qutip.enr_destroy([3, 3], 2)
+    evo = qutip.QobjEvo([a.dag() * a, qutip.coefficient("sin(2*pi*t)")])
+    evo *= qutip.coefficient("t")
+    assert evo.num_elements == 1
+    assert evo(0.25) == 0.25 * a.dag() * a

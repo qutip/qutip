@@ -246,6 +246,13 @@ cdef class Dia(base.Data):
         if self.offsets != NULL:
             PyDataMem_FREE(self.offsets)
 
+    cdef bint _is_sorted(Dia mat):
+        cdef base.idxint i
+        for i in range(mat.num_diag - 1):
+            if mat.offsets[i] > mat.offsets[i + 1]:
+                return False
+        return True
+
 
 cpdef Dia fast_from_scipy(object sci):
     """
