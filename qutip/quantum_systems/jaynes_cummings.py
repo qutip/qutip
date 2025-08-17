@@ -49,21 +49,6 @@ def jaynes_cummings(
         Configured Jaynes-Cummings system instance
 
     """
-
-    # Create QuantumSystem instance with parameters
-    system = QuantumSystem(
-        "Jaynes-Cummings",
-        omega_c=omega_c,
-        omega_a=omega_a,
-        g=g,
-        n_cavity=n_cavity,
-        rotating_wave=rotating_wave,
-        cavity_decay=cavity_decay,
-        atomic_decay=atomic_decay,
-        atomic_dephasing=atomic_dephasing,
-        thermal_photons=thermal_photons
-    )
-
     # Build operators
     operators = {}
 
@@ -128,65 +113,19 @@ def jaynes_cummings(
         latex = (r"H = \omega_c a^\dagger a + \frac{\omega_a}{2}\sigma_z + "
                  r"g(a^\dagger + a)(\sigma_+ + \sigma_-)")
 
-    # Set all attributes in the system
-    system.operators = operators
-    system.hamiltonian = hamiltonian
-    system.c_ops = c_ops
-    system.latex = latex
-
-    return system
-
-
-# Example usage and demonstrations
-if __name__ == "__main__":
-    print("Jaynes-Cummings Model Examples")
-    print("=" * 40)
-
-    # Example 1: Basic resonant system
-    print("\n1. Basic Resonant Jaynes-Cummings System:")
-    jc_basic = jaynes_cummings(omega_c=1.0, omega_a=1.0, g=0.1, n_cavity=5)
-    jc_basic.pretty_print()
-
-    # Example 2: Detuned system with dissipation
-    print("\n2. Detuned System with Dissipation:")
-    jc_dissipative = jaynes_cummings(
-        omega_c=1.0,
-        omega_a=1.1,  # 10% detuning
-        g=0.05,
-        n_cavity=8,
-        cavity_decay=0.01,    # kappa = 0.01
-        atomic_decay=0.005,   # gamma = 0.005
-        thermal_photons=0.1   # n_th = 0.1
+    return QuantumSystem(
+        name="Jaynes-Cummings",
+        hamiltonian=hamiltonian,
+        operators=operators,
+        c_ops=c_ops,
+        latex=latex,
+        omega_c=omega_c,
+        omega_a=omega_a,
+        g=g,
+        n_cavity=n_cavity,
+        rotating_wave=rotating_wave,
+        cavity_decay=cavity_decay,
+        atomic_decay=atomic_decay,
+        atomic_dephasing=atomic_dephasing,
+        thermal_photons=thermal_photons
     )
-    jc_dissipative.pretty_print()
-
-    # Example 3: Rabi model (no rotating wave approximation)
-    print("\n3. Rabi Model (No RWA):")
-    rabi = jaynes_cummings(
-        omega_c=1.0,
-        omega_a=1.0,
-        g=0.2,
-        rotating_wave=False
-    )
-    print(f"LaTeX: {rabi.latex}")
-
-    # Example 4: Accessing operators and Hamiltonian
-    print("\n4. Accessing System Components:")
-    jc = jaynes_cummings(omega_c=1.0, omega_a=1.0, g=0.1, n_cavity=3)
-
-    print(f"Available operators: {list(jc.operators.keys())}")
-    print(f"Hamiltonian dimension: {jc.hamiltonian.shape}")
-    print(f"Number of collapse operators: {len(jc.c_ops)}")
-
-    # Show both access methods
-    print(f"Direct access - operators: {type(jc.operators)}")
-    print(f"Method access - operators: {type(jc.get_operators())}")
-
-    # Example 6: Energy eigenvalues
-    print("\n6. Energy Spectrum:")
-    jc_small = jaynes_cummings(omega_c=1.0, omega_a=1.0, g=0.1, n_cavity=3)
-    eigenvals = jc_small.eigenvalues()
-    print(f"First few eigenvalues: {eigenvals[:6]}")
-
-    print(f"\nGround state energy: {eigenvals[0]:.3f}")
-    print(f"First excited energy: {eigenvals[1]:.3f}")

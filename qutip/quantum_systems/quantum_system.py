@@ -2,7 +2,6 @@ import numpy as np
 import qutip as qt
 
 
-
 class QuantumSystem:
     """
     General class for quantum systems
@@ -10,7 +9,9 @@ class QuantumSystem:
     All quantum systems are instances of this class, configured by factory functions.
     """
 
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, hamiltonian: qt.Qobj = None,
+                 operators: dict = None, c_ops: list = None,
+                 latex: str = "", **kwargs):
         """
         Initialize quantum system
 
@@ -18,16 +19,25 @@ class QuantumSystem:
         -----------
         name : str
             Name/type of the quantum system
+        hamiltonian : qt.Qobj, optional
+            System Hamiltonian
+        operators : dict, optional
+            Dictionary of system operators
+        c_ops : list, optional
+            List of collapse operators
+        latex : str, optional
+            LaTeX representation of the system
         **kwargs : dict
-            System-specific parameters
+            Additional system-specific parameters
         """
         self.name = name
         self.parameters = kwargs
 
-        self.operators = {}
-        self.hamiltonian = None
-        self.c_ops = []
-        self.latex = ""
+        # Set system components with defaults
+        self.hamiltonian = hamiltonian
+        self.operators = operators if operators is not None else {}
+        self.c_ops = c_ops if c_ops is not None else []
+        self.latex = latex
 
     def get_operators(self) -> dict:
         """Get operators dictionary"""
@@ -90,4 +100,3 @@ class QuantumSystem:
 
     def __repr__(self):
         return f"QuantumSystem(name='{self.name}', dim={self.dimension})"
-

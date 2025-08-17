@@ -23,12 +23,6 @@ def qubit(omega: float = 1.0, decay_rate: float = 0.0,
     --------
     QuantumSystem instance configured as qubit
     """
-    # Create system
-    system = QuantumSystem(
-        "Qubit",
-        omega=omega, decay_rate=decay_rate, dephasing_rate=dephasing_rate
-    )
-    
     # Build operators 
     operators = {}
     operators['sigma_minus'] = qt.destroy(2)
@@ -50,10 +44,14 @@ def qubit(omega: float = 1.0, decay_rate: float = 0.0,
     # LaTeX representation
     latex = r"H = \frac{\omega}{2}\sigma_z"
     
-    # Set everything in the system
-    system.operators = operators
-    system.hamiltonian = hamiltonian
-    system.c_ops = c_ops
-    system.latex = latex
-    
-    return system
+    # Create system with all components
+    return QuantumSystem(
+        name="Qubit",
+        hamiltonian=hamiltonian,
+        operators=operators,
+        c_ops=c_ops,
+        latex=latex,
+        omega=omega,
+        decay_rate=decay_rate,
+        dephasing_rate=dephasing_rate
+    )
