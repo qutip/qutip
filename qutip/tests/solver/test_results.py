@@ -4,6 +4,7 @@ import pytest
 import qutip
 from qutip.solver.result import Result
 from qutip.solver.multitrajresult import MultiTrajResult, McResult, NmmcResult
+from qutip import mesolve, sigmax, sigmaz, basis
 
 
 def fill_options(**kwargs):
@@ -526,3 +527,37 @@ class TestMultiTrajResult:
 
         np.testing.assert_almost_equal(
             merged.trace, p * ensemble1.trace + (1 - p) * ensemble2.trace)
+        
+
+    def test_plot_expect(monkeypatch):
+        matplotlib = pytest.importorskip("matplotlib")
+        plt = pytest.importorskip("matplotlib.pyplot")
+
+        # Define a simple system (1 qubit)
+        H = 0.5 * sigmaz()             # Hamiltonian
+        psi0 = basis(2, 0)             # initial state |0>
+        tlist = np.linspace(0, 10, 50) # times
+        e_ops = {"x": sigmax(), "z": sigmaz()}
+
+        # Solve
+        result = mesolve(H, psi0, tlist, [], e_ops)
+
+        # ---- Case 1: all in one axis ----
+        fig, ax = result.plot_expect(separate=False, show=False)
+        assert fig is not None
+        assert ax is not None
+        assert len(ax.get_lines()) == len(e_ops)  # one line per operator
+        labels = [line.get_label() for line in ax.get_lines()]
+        for key in e_ops.keys():
+            assert key in labels
+
+        # ---- Case 2: separate subplots ----
+        fig, axes = result.plot_expect(separate=True, show=False)
+        assert fig is not None
+        assert len(axes) == len(e_ops)  # one subplot per operator
+
+        # ---- Case 3: no e_ops ----
+        result_no_ops = mesolve(H, psi0, tlist, [])
+        with pytest.raises(ValueError):
+            result_no_ops.plot_expect(show=False)
+
