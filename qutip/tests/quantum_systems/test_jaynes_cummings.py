@@ -49,8 +49,8 @@ class TestJaynesCummings:
         n_c = jc.operators["n_c"]
 
         # Basic relationships
-        assert (a_dag - a.dag()).norm() < 1e-10
-        assert (n_c - a_dag * a).norm() < 1e-10
+        assert a_dag == a.dag()
+        assert n_c == a_dag * a
 
     def test_atomic_operators(self):
         """Test atomic operator properties"""
@@ -59,8 +59,7 @@ class TestJaynesCummings:
         sigma_plus = jc.operators["sigma_plus"]
         sigma_minus = jc.operators["sigma_minus"]
 
-        # σ+ = (σ-)†
-        assert (sigma_plus - sigma_minus.dag()).norm() < 1e-10
+        assert sigma_plus == sigma_minus.dag()
 
     @pytest.mark.parametrize("omega_c,omega_a,g", [
         (1.0, 1.0, 0.1),    # Resonant
@@ -79,7 +78,7 @@ class TestJaynesCummings:
 
         # Hamiltonian should be Hermitian
         H = jc.hamiltonian
-        assert (H - H.dag()).norm() < 1e-10
+        assert H == H.dag()
 
     def test_rotating_wave_approximation(self):
         """Test rotating wave approximation vs full interaction"""
@@ -110,7 +109,7 @@ class TestJaynesCummings:
                       0.5 * omega_a * sigma_z +
                       g * (a_dag * sigma_minus + a * sigma_plus))
 
-        assert (jc.hamiltonian - H_expected).norm() < 1e-10
+        assert jc.hamiltonian == H_expected
 
     def test_hamiltonian_structure_no_rwa(self):
         """Test Hamiltonian structure without RWA (Rabi model)"""
@@ -129,50 +128,30 @@ class TestJaynesCummings:
                       0.5 * omega_a * sigma_z +
                       g * (a_dag + a) * (sigma_plus + sigma_minus))
 
-        assert (jc.hamiltonian - H_expected).norm() < 1e-10
+        assert jc.hamiltonian == H_expected
 
-    @pytest.mark.parametrize("cavity_decay", [0.0, 0.1, 0.5])
-    def test_cavity_decay(self, cavity_decay):
-        """Test cavity decay collapse operators"""
-        jc = jaynes_cummings(cavity_decay=cavity_decay, n_cavity=3)
+    @pytest.mark.parametrize("decay_type,rate,operator_name", [
+        ("cavity_decay", 0.0, "a"),
+        ("cavity_decay", 0.1, "a"),
+        ("cavity_decay", 0.5, "a"),
+        ("atomic_decay", 0.0, "sigma_minus"),
+        ("atomic_decay", 0.1, "sigma_minus"),
+        ("atomic_decay", 0.5, "sigma_minus"),
+        ("atomic_dephasing", 0.0, "sigma_z"),
+        ("atomic_dephasing", 0.1, "sigma_z"),
+        ("atomic_dephasing", 0.5, "sigma_z"),
+    ])
+    def test_dissipation_mechanisms(self, decay_type, rate, operator_name):
+        """Test individual dissipation mechanisms"""
+        kwargs = {decay_type: rate, "n_cavity": 3}
+        jc = jaynes_cummings(**kwargs)
 
-        if cavity_decay == 0.0:
-            # No cavity decay operators when rate is zero
+        if rate == 0.0:
             assert len(jc.c_ops) == 0
         else:
-            # Should have cavity decay operator
-            expected_cavity_op = np.sqrt(cavity_decay) * jc.operators["a"]
-            cavity_found = any(
-                (c_op - expected_cavity_op).norm() < 1e-10 for c_op in jc.c_ops)
-            assert cavity_found
-
-    @pytest.mark.parametrize("atomic_decay", [0.0, 0.1, 0.5])
-    def test_atomic_decay(self, atomic_decay):
-        """Test atomic decay collapse operators"""
-        jc = jaynes_cummings(atomic_decay=atomic_decay, n_cavity=3)
-
-        if atomic_decay == 0.0:
-            assert len(jc.c_ops) == 0
-        else:
-            expected_atomic_op = np.sqrt(
-                atomic_decay) * jc.operators["sigma_minus"]
-            atomic_found = any(
-                (c_op - expected_atomic_op).norm() < 1e-10 for c_op in jc.c_ops)
-            assert atomic_found
-
-    @pytest.mark.parametrize("atomic_dephasing", [0.0, 0.1, 0.5])
-    def test_atomic_dephasing(self, atomic_dephasing):
-        """Test atomic dephasing collapse operators"""
-        jc = jaynes_cummings(atomic_dephasing=atomic_dephasing, n_cavity=3)
-
-        if atomic_dephasing == 0.0:
-            assert len(jc.c_ops) == 0
-        else:
-            expected_dephasing_op = np.sqrt(
-                atomic_dephasing) * jc.operators["sigma_z"]
-            dephasing_found = any(
-                (c_op - expected_dephasing_op).norm() < 1e-10 for c_op in jc.c_ops)
-            assert dephasing_found
+            assert len(jc.c_ops) == 1
+            expected_op = np.sqrt(rate) * jc.operators[operator_name]
+            assert expected_op in jc.c_ops
 
     def test_thermal_photons(self):
         """Test thermal photon effects"""
@@ -186,16 +165,12 @@ class TestJaynesCummings:
         # Should have both relaxation and excitation operators
         cavity_relax_rate = cavity_decay * (1 + thermal_photons)
         expected_relax_op = np.sqrt(cavity_relax_rate) * jc.operators["a"]
-        relax_found = any((c_op - expected_relax_op).norm()
-                          < 1e-10 for c_op in jc.c_ops)
-        assert relax_found
+        assert expected_relax_op in jc.c_ops
 
         cavity_excite_rate = cavity_decay * thermal_photons
         expected_excite_op = np.sqrt(
             cavity_excite_rate) * jc.operators["a_dag"]
-        excite_found = any((c_op - expected_excite_op).norm()
-                           < 1e-10 for c_op in jc.c_ops)
-        assert excite_found
+        assert expected_excite_op in jc.c_ops
 
     def test_all_dissipation_mechanisms(self):
         """Test system with all dissipation mechanisms"""
@@ -238,7 +213,7 @@ class TestJaynesCummings:
 
         H_psi = jc.hamiltonian * ground_state
         eigenval_psi = min_eigenval * ground_state
-        assert (H_psi - eigenval_psi).norm() < 1e-10
+        assert H_psi == eigenval_psi
 
     def test_photon_number_operator(self):
         """Test photon number operator"""
@@ -266,12 +241,12 @@ class TestJaynesCummings:
         # Cavity operators act on first subsystem
         a = jc.operators["a"]
         expected_a = qt.tensor(qt.destroy(n_cavity), qt.qeye(2))
-        assert (a - expected_a).norm() < 1e-10
+        assert a == expected_a
 
         # Atomic operators act on second subsystem
         sigma_z = jc.operators["sigma_z"]
         expected_sigma_z = qt.tensor(qt.qeye(n_cavity), qt.sigmaz())
-        assert (sigma_z - expected_sigma_z).norm() < 1e-10
+        assert sigma_z == expected_sigma_z
 
     def test_commutation_relations(self):
         """Test important commutation relations"""
@@ -283,11 +258,11 @@ class TestJaynesCummings:
 
         # [n_c, a] = -a
         commutator_n_a = n_c * a - a * n_c
-        assert (commutator_n_a + a).norm() < 1e-10
+        assert commutator_n_a == -a
 
         # [n_c, a_dag] = a_dag
         commutator_n_adag = n_c * a_dag - a_dag * n_c
-        assert (commutator_n_adag - a_dag).norm() < 1e-10
+        assert commutator_n_adag == a_dag
 
     def test_return_type_and_attributes(self):
         """Test return type and required attributes"""
