@@ -46,6 +46,6 @@ sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==2.0.0
 sphinxcontrib-serializinghtml==1.1.10
 traitlets==5.14.3
-urllib3==2.2.2
+urllib3==2.5.0
 wcwidth==0.2.13
 wheel==0.44.0
