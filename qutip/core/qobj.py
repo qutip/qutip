@@ -1547,7 +1547,7 @@ class Qobj:
         maxiter: int = 100000,
         phase_fix: int = None,
         output_type: Literal['kets', 'oper'] = 'kets'
-    ) -> tuple[np.ndarray, Union[list[Qobj], Qobj]]:
+    ) -> tuple[np.ndarray, Union[np.ndarray[Qobj], Qobj]]:
         """Eigenstates and eigenenergies.
 
         Eigenstates and eigenenergies are defined for operators and
@@ -1585,7 +1585,7 @@ class Qobj:
         eigvals : array
             Array of eigenvalues for operator.
 
-        eigvecs : list[Qobj], Qobj
+        eigvecs : array[Qobj], Qobj
             Array of quantum operators representing the operator eigenkets.
             Order of eigenkets is determined by order of eigenvalues.
 
