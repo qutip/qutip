@@ -6,6 +6,28 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.3.0.dev0+d849c94 (2025-08-18)
+=====================================
+
+Features
+--------
+
+- Add tsit5 integration method (#2720)
+
+
+Bug Fixes
+---------
+
+- ENR dimension bugfix for when QobjEvo is multiplied by Coefficient (#2713)
+- Use common error definition in home made ODE solver. (#2726)
+
+
+Miscellaneous
+-------------
+
+- Add support for scipy 1.16 (#2711)
+
+
 QuTiP 5.2.0 (2025-06-06)
 ========================
 
