@@ -1589,7 +1589,7 @@ class Qobj:
             Array of quantum operators representing the operator eigenkets.
             Order of eigenkets is determined by order of eigenvalues.
 
-            If output_type is operator, a Qobj representing the 
+            If output_type is oper, a Qobj representing the 
             operator eigenstates is returned.
 
         Notes
