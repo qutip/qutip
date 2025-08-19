@@ -1574,9 +1574,9 @@ class Qobj:
         phase_fix : int, None
             If not None, set the phase of each kets so that ket[phase_fix,0]
             is real positive.
-        
+
         output_type: Literal['kets', 'oper']
-            Type of output to return. If 'kets', return the eigenstates as kets.
+            If 'kets', return the eigenstates as a list of kets.
             If 'oper', return the eigenstates as an operator with the states
             as columns.
 
@@ -1589,8 +1589,8 @@ class Qobj:
             Array of quantum operators representing the operator eigenkets.
             Order of eigenkets is determined by order of eigenvalues.
 
-            If output_type is oper, a Qobj representing the 
-            operator eigenstates is returned.
+            If output_type is oper, a Qobj representing the operator
+            eigenstates is returned.
 
         Notes
         -----
@@ -1626,20 +1626,22 @@ class Qobj:
                 phase = np.array([1] * len(ekets))
             else:
                 phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
-                                if ket[phase_fix, 0] else 1
-                                for ket in ekets])
+                                  if ket[phase_fix, 0] else 1
+                                  for ket in ekets])
             return evals, ekets / norms * phase
 
         oper = Qobj(evecs, dims=[new_dims[0], [evecs.shape[1]]], copy=False)
 
-        norms = np.array([1/np.linalg.norm(oper[:, i]) for i in range(oper.shape[1])])
+        norms = np.array([1/np.linalg.norm(oper[:, i])
+                          for i in range(oper.shape[1])])
         oper = oper @ qutip.qdiags(norms)
 
         if phase_fix is not None:
             phase = np.array([
-                np.abs(oper[phase_fix, i]) / oper[phase_fix, i] if oper[phase_fix, i] else 1
+                np.abs(oper[phase_fix, i]) / oper[phase_fix, i]
+                if oper[phase_fix, i] else 1
                 for i in range(oper.shape[1])
-            ])
+                ])
             oper = oper @ qutip.qdiags(phase)
 
         return evals, oper

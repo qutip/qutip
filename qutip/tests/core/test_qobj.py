@@ -602,7 +602,8 @@ def test_QobjEigenStates():
     _, kets = op.eigenstates(output_type='kets', phase_fix=0)
     _, oper = op.eigenstates(output_type='oper', phase_fix=0)
 
-    assert qutip.Qobj(np.hstack([vec.full() for vec in kets]), dims=[5, 5]) == oper   
+    assert qutip.Qobj(
+           np.hstack([vec.full() for vec in kets]), dims=[5, 5]) == oper
 
 
 def test_QobjExpm():
