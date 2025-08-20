@@ -4,20 +4,21 @@ from quantum_system import QuantumSystem  # Import the QuantumSystem class
 
 
 def linear_spin_chain(
-        model_type: str = "heisenberg",
-        N: int = 4,
-        J: float = 1.0,
-        Jz: float = None,
-        boundary_conditions: str = "open",
-        B_x: float = 0.0,
-        B_y: float = 0.0,
-        B_z: float = 0.0,
-        gamma_relaxation: float = 0.0,
-        gamma_dephasing: float = 0.0,
-        gamma_depolarizing: float = 0.0,
-        gamma_thermal: float = 0.0,
-        temperature: float = 0.0,
-        transition_frequency: float = 1.0) -> QuantumSystem:
+    model_type: str = "heisenberg",
+    N: int = 4,
+    J: float = 1.0,
+    Jz: float = None,
+    boundary_conditions: str = "open",
+    B_x: float = 0.0,
+    B_y: float = 0.0,
+    B_z: float = 0.0,
+    gamma_relaxation: float = 0.0,
+    gamma_dephasing: float = 0.0,
+    gamma_depolarizing: float = 0.0,
+    gamma_thermal: float = 0.0,
+    temperature: float = 0.0,
+    transition_frequency: float = 1.0,
+) -> QuantumSystem:
     """
     Create linear spin chain system
 
@@ -68,7 +69,8 @@ def linear_spin_chain(
         raise ValueError("Chain length N must be at least 2")
     if N > 15:
         print(
-            f"Warning: Large system size N={N}. Hilbert space dimension = 2^{N} = {2**N}")
+            f"Warning: Large system size N={N}. Hilbert space dimension = 2^{N} = {2**N}"
+        )
 
     model_types = ["heisenberg", "xxz", "xy", "ising"]
     if model_type.lower() not in model_types:
@@ -76,8 +78,7 @@ def linear_spin_chain(
 
     boundary_types = ["open", "periodic"]
     if boundary_conditions.lower() not in boundary_types:
-        raise ValueError(
-            f"boundary_conditions must be one of {boundary_types}")
+        raise ValueError(f"boundary_conditions must be one of {boundary_types}")
 
     model_type = model_type.lower()
     boundary_conditions = boundary_conditions.lower()
@@ -91,65 +92,42 @@ def linear_spin_chain(
         else:  # xxz, ising
             Jz = J
 
-    # Create QuantumSystem instance with parameters
-    system = QuantumSystem(
-        f"Linear Spin Chain ({model_type.upper()})",
-        model_type=model_type,
-        N=N,
-        J=J,
-        Jz=Jz,
-        boundary_conditions=boundary_conditions,
-        B_x=B_x, B_y=B_y, B_z=B_z,
-        gamma_relaxation=gamma_relaxation,
-        gamma_dephasing=gamma_dephasing,
-        gamma_depolarizing=gamma_depolarizing,
-        gamma_thermal=gamma_thermal,
-        temperature=temperature,
-        transition_frequency=transition_frequency
-    )
-
     # Build operators
     operators = {}
 
     # Individual site operators
     for k in range(N):
         # Create single-site operators in full chain Hilbert space
-        operators[f'S_{k}_x'] = _create_site_operator(N, k, qt.sigmax() / 2)
-        operators[f'S_{k}_y'] = _create_site_operator(N, k, qt.sigmay() / 2)
-        operators[f'S_{k}_z'] = _create_site_operator(N, k, qt.sigmaz() / 2)
-        operators[f'S_{k}_plus'] = _create_site_operator(N, k, qt.sigmap())
-        operators[f'S_{k}_minus'] = _create_site_operator(N, k, qt.sigmam())
+        operators[f"S_{k}_x"] = _create_site_operator(N, k, qt.sigmax() / 2)
+        operators[f"S_{k}_y"] = _create_site_operator(N, k, qt.sigmay() / 2)
+        operators[f"S_{k}_z"] = _create_site_operator(N, k, qt.sigmaz() / 2)
+        operators[f"S_{k}_plus"] = _create_site_operator(N, k, qt.sigmap())
+        operators[f"S_{k}_minus"] = _create_site_operator(N, k, qt.sigmam())
 
     # Total spin operators
-    operators['S_x_total'] = sum(operators[f'S_{k}_x'] for k in range(N))
-    operators['S_y_total'] = sum(operators[f'S_{k}_y'] for k in range(N))
-    operators['S_z_total'] = sum(operators[f'S_{k}_z'] for k in range(N))
-    operators['S_plus_total'] = sum(operators[f'S_{k}_plus'] for k in range(N))
-    operators['S_minus_total'] = sum(
-        operators[f'S_{k}_minus'] for k in range(N))
+    operators["S_x_total"] = sum(operators[f"S_{k}_x"] for k in range(N))
+    operators["S_y_total"] = sum(operators[f"S_{k}_y"] for k in range(N))
+    operators["S_z_total"] = sum(operators[f"S_{k}_z"] for k in range(N))
+    operators["S_plus_total"] = sum(operators[f"S_{k}_plus"] for k in range(N))
+    operators["S_minus_total"] = sum(operators[f"S_{k}_minus"] for k in range(N))
 
     # Magnetization (alias for S_z_total)
-    operators['magnetization'] = operators['S_z_total']
+    operators["magnetization"] = operators["S_z_total"]
 
     # Nearest-neighbor correlation operators
-    operators['correlation_xx_nn'] = sum(
-        operators[f'S_{k}_x'] * operators[f'S_{(k+1)%N}_x'] for k in range(
-            N if boundary_conditions == "periodic" else N - 1))
-    operators['correlation_zz_nn'] = sum(
-        operators[f'S_{k}_z'] * operators[f'S_{(k+1)%N}_z'] for k in range(
-            N if boundary_conditions == "periodic" else N - 1))
+    operators["correlation_xx_nn"] = sum(
+        operators[f"S_{k}_x"] * operators[f"S_{(k+1)%N}_x"]
+        for k in range(N if boundary_conditions == "periodic" else N - 1)
+    )
+    operators["correlation_zz_nn"] = sum(
+        operators[f"S_{k}_z"] * operators[f"S_{(k+1)%N}_z"]
+        for k in range(N if boundary_conditions == "periodic" else N - 1)
+    )
 
     # Build Hamiltonian
     hamiltonian = _build_hamiltonian(
-        operators,
-        model_type,
-        N,
-        J,
-        Jz,
-        boundary_conditions,
-        B_x,
-        B_y,
-        B_z)
+        operators, model_type, N, J, Jz, boundary_conditions, B_x, B_y, B_z
+    )
 
     # Build collapse operators for dissipation
     c_ops = _build_collapse_operators(
@@ -160,25 +138,34 @@ def linear_spin_chain(
         gamma_depolarizing,
         gamma_thermal,
         temperature,
-        transition_frequency)
+        transition_frequency,
+    )
 
     # Generate LaTeX representation
-    latex = _generate_latex(
-        model_type,
-        J,
-        Jz,
-        B_x,
-        B_y,
-        B_z,
-        boundary_conditions)
+    latex = _generate_latex(model_type, J, Jz, B_x, B_y, B_z, boundary_conditions)
 
-    # Set all attributes in the system
-    system.operators = operators
-    system.hamiltonian = hamiltonian
-    system.c_ops = c_ops
-    system.latex = latex
-
-    return system
+    # Return system with all components
+    return QuantumSystem(
+        name=f"Linear Spin Chain ({model_type.upper()})",
+        hamiltonian=hamiltonian,
+        operators=operators,
+        c_ops=c_ops,
+        latex=latex,
+        model_type=model_type,
+        N=N,
+        J=J,
+        Jz=Jz,
+        boundary_conditions=boundary_conditions,
+        B_x=B_x,
+        B_y=B_y,
+        B_z=B_z,
+        gamma_relaxation=gamma_relaxation,
+        gamma_dephasing=gamma_dephasing,
+        gamma_depolarizing=gamma_depolarizing,
+        gamma_thermal=gamma_thermal,
+        temperature=temperature,
+        transition_frequency=transition_frequency,
+    )
 
 
 def _create_site_operator(N: int, site: int, single_op: qt.Qobj) -> qt.Qobj:
@@ -189,15 +176,16 @@ def _create_site_operator(N: int, site: int, single_op: qt.Qobj) -> qt.Qobj:
 
 
 def _build_hamiltonian(
-        operators: dict,
-        model_type: str,
-        N: int,
-        J: float,
-        Jz: float,
-        boundary_conditions: str,
-        B_x: float,
-        B_y: float,
-        B_z: float) -> qt.Qobj:
+    operators: dict,
+    model_type: str,
+    N: int,
+    J: float,
+    Jz: float,
+    boundary_conditions: str,
+    B_x: float,
+    B_y: float,
+    B_z: float,
+) -> qt.Qobj:
     """Build Hamiltonian for specified model type"""
 
     # Determine number of interaction terms
@@ -211,31 +199,35 @@ def _build_hamiltonian(
 
         if model_type in ["heisenberg", "xxz", "xy"]:
             # XY interactions (present in all except Ising)
-            H_interaction += J * (operators[f'S_{k}_x'] * operators[f'S_{k_next}_x'] +
-                                  operators[f'S_{k}_y'] * operators[f'S_{k_next}_y'])
+            H_interaction += J * (
+                operators[f"S_{k}_x"] * operators[f"S_{k_next}_x"]
+                + operators[f"S_{k}_y"] * operators[f"S_{k_next}_y"]
+            )
 
         if model_type in ["heisenberg", "xxz", "ising"]:
             # Z interactions (present in all except XY)
-            H_interaction += Jz * \
-                operators[f'S_{k}_z'] * operators[f'S_{k_next}_z']
+            H_interaction += Jz * operators[f"S_{k}_z"] * operators[f"S_{k_next}_z"]
 
     # External magnetic field
-    H_field = (B_x * operators['S_x_total'] +
-               B_y * operators['S_y_total'] +
-               B_z * operators['S_z_total'])
+    H_field = (
+        B_x * operators["S_x_total"]
+        + B_y * operators["S_y_total"]
+        + B_z * operators["S_z_total"]
+    )
 
     return H_interaction + H_field
 
 
 def _build_collapse_operators(
-        operators: dict,
-        N: int,
-        gamma_relaxation: float,
-        gamma_dephasing: float,
-        gamma_depolarizing: float,
-        gamma_thermal: float,
-        temperature: float,
-        transition_frequency: float) -> list:
+    operators: dict,
+    N: int,
+    gamma_relaxation: float,
+    gamma_dephasing: float,
+    gamma_depolarizing: float,
+    gamma_thermal: float,
+    temperature: float,
+    transition_frequency: float,
+) -> list:
     """Build collapse operators for open system dynamics"""
     c_ops = []
 
@@ -244,18 +236,18 @@ def _build_collapse_operators(
 
         # Spontaneous emission (relaxation)
         if gamma_relaxation > 0.0:
-            c_ops.append(np.sqrt(gamma_relaxation) * operators[f'S_{k}_minus'])
+            c_ops.append(np.sqrt(gamma_relaxation) * operators[f"S_{k}_minus"])
 
         # Pure dephasing
         if gamma_dephasing > 0.0:
-            c_ops.append(np.sqrt(gamma_dephasing) * operators[f'S_{k}_z'])
+            c_ops.append(np.sqrt(gamma_dephasing) * operators[f"S_{k}_z"])
 
         # Depolarizing channel
         if gamma_depolarizing > 0.0:
             rate = gamma_depolarizing / 3.0
-            c_ops.append(np.sqrt(rate) * operators[f'S_{k}_x'])
-            c_ops.append(np.sqrt(rate) * operators[f'S_{k}_y'])
-            c_ops.append(np.sqrt(rate) * operators[f'S_{k}_z'])
+            c_ops.append(np.sqrt(rate) * operators[f"S_{k}_x"])
+            c_ops.append(np.sqrt(rate) * operators[f"S_{k}_y"])
+            c_ops.append(np.sqrt(rate) * operators[f"S_{k}_z"])
 
         # Thermal bath coupling
         if gamma_thermal > 0.0 and temperature > 0.0:
@@ -266,31 +258,24 @@ def _build_collapse_operators(
 
             # Thermal down transitions (relaxation)
             p_down = 1.0 / (1.0 + exp_factor)
-            c_ops.append(
-                np.sqrt(
-                    gamma_thermal *
-                    p_down) *
-                operators[f'S_{k}_minus'])
+            c_ops.append(np.sqrt(gamma_thermal * p_down) * operators[f"S_{k}_minus"])
 
             # Thermal up transitions (excitation)
             p_up = exp_factor / (1.0 + exp_factor)
-            c_ops.append(
-                np.sqrt(
-                    gamma_thermal *
-                    p_up) *
-                operators[f'S_{k}_plus'])
+            c_ops.append(np.sqrt(gamma_thermal * p_up) * operators[f"S_{k}_plus"])
 
     return c_ops
 
 
 def _generate_latex(
-        model_type: str,
-        J: float,
-        Jz: float,
-        B_x: float,
-        B_y: float,
-        B_z: float,
-        boundary_conditions: str) -> str:
+    model_type: str,
+    J: float,
+    Jz: float,
+    B_x: float,
+    B_y: float,
+    B_z: float,
+    boundary_conditions: str,
+) -> str:
     """Generate LaTeX representation of the Hamiltonian"""
 
     # Interaction terms
