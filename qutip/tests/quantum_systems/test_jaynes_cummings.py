@@ -24,7 +24,7 @@ class TestJaynesCummings:
     def test_dimension_scaling(self, n_cavity):
         """Test dimension scaling with cavity size"""
         jc = jaynes_cummings(n_cavity=n_cavity)
-        expected_dim = n_cavity * 2
+        expected_dim = [[n_cavity, 2], [n_cavity, 2]]
         assert jc.dimension == expected_dim
 
     def test_operators_completeness(self):
@@ -287,5 +287,5 @@ class TestJaynesCummings:
 
         captured = capsys.readouterr()
         assert "Jaynes-Cummings" in captured.out
-        assert "Dimension: 10" in captured.out
+        assert "Hilbert Space Dimension: [[5, 2], [5, 2]]" in captured.out
         assert "omega_c" in captured.out

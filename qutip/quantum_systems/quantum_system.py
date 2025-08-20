@@ -90,7 +90,7 @@ class QuantumSystem:
         print(f"Parameters: {self.parameters}")
         print(f"Number of Operators: {len(self.operators)}")
         print(f"Number of Collapse Operators: {len(self.c_ops)}")
-        # print(f"LaTeX: {self.latex}")
+        print(f"LaTeX: {self.latex}")
         # Display LaTeX if available and in Jupyter
         if self.latex and in_jupyter:
             print("LaTeX Representation:")

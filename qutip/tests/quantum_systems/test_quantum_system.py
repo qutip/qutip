@@ -234,7 +234,7 @@ class TestQuantumSystem:
         # Large dimension system
         system_large = QuantumSystem("Large")
         system_large.hamiltonian = qt.qeye(50)
-        assert system_large.dimension == 50
+        assert system_large.dimension == [[50], [50]]
 
         # Zero Hamiltonian
         system_zero = QuantumSystem("Zero")

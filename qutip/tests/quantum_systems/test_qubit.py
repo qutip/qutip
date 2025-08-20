@@ -238,7 +238,7 @@ class TestQubit:
 
         captured = capsys.readouterr()
         assert "Qubit" in captured.out
-        assert "Dimension: 2" in captured.out
+        assert "Hilbert Space Dimension: [[2], [2]]" in captured.out
         assert "omega" in captured.out
 
     def test_edge_cases(self):
