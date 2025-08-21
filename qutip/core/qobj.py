@@ -6,7 +6,7 @@ from __future__ import annotations
 import functools
 import numbers
 import warnings
-from typing import Any, Literal, Union
+from typing import Any, Literal, Union, overload
 import numpy as np
 from numpy.typing import ArrayLike
 import scipy.sparse
@@ -1538,6 +1538,30 @@ class Qobj:
             out = np.conj(out)
         return out
 
+    @overload
+    def eigenstates(self, 
+        sparse: bool  = False,
+        sort: Literal["low", "high"] = 'low',
+        eigvals: int = 0,
+        tol: float = 0,
+        maxiter: int = 100000,
+        phase_fix: int = None,
+        output_type: Literal['kets'] = 'kets'
+    ) -> tuple[np.ndarray, np.ndarray[Qobj]]:
+        ...
+        
+    @overload
+    def eigenstates(self, 
+        sparse: bool  = False,
+        sort: Literal["low", "high"] = 'low',
+        eigvals: int = 0,
+        tol: float = 0,
+        maxiter: int = 100000,
+        phase_fix: int = None,
+        output_type: Literal['oper'] = 'oper'
+    ) -> tuple[np.ndarray, Qobj]:
+        ...
+        
     def eigenstates(
         self,
         sparse: bool = False,
@@ -1628,21 +1652,23 @@ class Qobj:
                 phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
                                   if ket[phase_fix, 0] else 1
                                   for ket in ekets])
-            return evals, ekets / norms * phase
+            
+            oper = ekets / norms * phase
 
-        oper = Qobj(evecs, dims=[new_dims[0], [evecs.shape[1]]], copy=False)
+        elif output_type == 'oper':
+            oper = Qobj(evecs, dims=[new_dims[0], [evecs.shape[1]]], copy=False)
 
-        norms = np.array([1/np.linalg.norm(oper[:, i])
-                          for i in range(oper.shape[1])])
-        oper = oper @ qutip.qdiags(norms)
+            norms = np.array([1/np.linalg.norm(oper[:, i])
+                            for i in range(oper.shape[1])])
+            oper = oper @ qutip.qdiags(norms)
 
-        if phase_fix is not None:
-            phase = np.array([
-                np.abs(oper[phase_fix, i]) / oper[phase_fix, i]
-                if oper[phase_fix, i] else 1
-                for i in range(oper.shape[1])
-                ])
-            oper = oper @ qutip.qdiags(phase)
+            if phase_fix is not None:
+                phase = np.array([
+                    np.abs(oper[phase_fix, i]) / oper[phase_fix, i]
+                    if oper[phase_fix, i] else 1
+                    for i in range(oper.shape[1])
+                    ])
+                oper = oper @ qutip.qdiags(phase)
 
         return evals, oper
 
