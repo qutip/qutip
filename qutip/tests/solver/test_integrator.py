@@ -209,3 +209,46 @@ def test_rk_options(integrator):
         expected = pytest.approx(np.exp(t), abs=1e-5)
         result1 = inter.integrate(t)[1].to_array()[0, 0]
         assert result1 == expected
+
+@pytest.mark.parametrize('integrator',
+    [IntegratorVern7, IntegratorVern9, IntegratorTsit5],
+    ids=["vern7", 'vern9', 'tsit5']
+)
+def test_rk_debug_stats(integrator):
+    N = 25
+    H0 = qutip.rand_herm(N)
+    a = qutip.destroy(N)
+
+    H = qutip.QobjEvo([[H0, "sin(t)"]])
+    c_ops = [a]
+
+    solver = qutip.MESolver(
+        H, c_ops,
+        options={"method": "vern7", "loglevel": 0}
+    )
+    res = solver.run(
+        qutip.rand_ket(N), np.linspace(0, 1, 11), e_ops=[qutip.num(N)])
+    stats = solver._integrator.get_statistics()
+    assert not stats
+
+    solver = qutip.MESolver(
+        H, c_ops,
+        options={"method": "vern7", "loglevel": 1}
+    )
+    res = solver.run(
+        qutip.rand_ket(N), np.linspace(0, 1, 11), e_ops=[qutip.num(N)])
+    stats = solver._integrator.get_statistics()
+    assert isinstance(stats, dict)
+    assert "num_step_total" in stats
+    assert "success" not in stats
+
+    solver = qutip.MESolver(
+        H, c_ops,
+        options={"method": "vern7", "loglevel": 2}
+    )
+    res = solver.run(
+        qutip.rand_ket(N), np.linspace(0, 1, 11), e_ops=[qutip.num(N)])
+    stats = solver._integrator.get_statistics()
+    assert isinstance(stats, dict)
+    assert "num_step_total" in stats
+    assert "success" in stats
