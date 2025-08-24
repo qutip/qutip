@@ -101,6 +101,9 @@ def krylovsolve(
           | Tolerance to detect an happy breakdown. An happy breakdown happens
             when the initial ket is in a subspace of the Hamiltonian smaller
             than ``krylov_dim``.
+        - | krylov_algorithm: str {'lanczos', 'arnoldi'}, default: "lanczos"
+          | Algorithm that is used to construct the Krylov basis. Arnolid
+            generalizes Lanczos to non-Hermitian systems.
 
     Returns
     -------
