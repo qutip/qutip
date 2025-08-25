@@ -6,6 +6,9 @@ name: Tests
 
 on:
     [push, pull_request]
+concurrency:
+    group: test_${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 defaults:
   run:
@@ -35,6 +38,7 @@ jobs:
         numpy-requirement: [""]
         scipy-requirement: [">=1.9"]
         coverage-requirement: ["==6.5"]
+        pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
@@ -46,6 +50,10 @@ jobs:
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
+            # Install mpi4py to test mpi_pmap
+            # Should be enough to include this in one of the runs
+            includempi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: p310 numpy 1.22
             os: ubuntu-latest
@@ -58,7 +66,7 @@ jobs:
             oldmpl: 1
             pypi: 1
             coveralls: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\" -W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           # Python 3.12 and latest numpy
           # Use conda-forge to provide Python 3.11 and latest numpy
@@ -69,9 +77,6 @@ jobs:
             scipy-requirement: ">=1.11,<1.12"
             condaforge: 1
             oldmpl: 1
-            # Install mpi4py to test mpi_pmap
-            # Should be enough to include this in one of the runs
-            includempi: 1
             coveralls: 1
 
           # Python 3.10, no mkl, scipy 1.9, numpy 1.23
@@ -99,6 +104,7 @@ jobs:
             numpy-requirement: ">=2.0.0"
             condaforge: 1
             nomkl: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: macos - numpy fallback
             os: macos-13  # Test on intel cpus
@@ -108,6 +114,7 @@ jobs:
             condaforge: 1
             nomkl: 1
             coveralls: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows
             os: windows-latest
@@ -115,6 +122,7 @@ jobs:
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows - numpy fallback
             os: windows-latest
@@ -148,7 +156,7 @@ jobs:
           # Install the extra requirement
           python -m pip install pytest>=5.2 pytest-rerunfailures  # tests
           python -m pip install ipython  # ipython
-          python -m pip install loky tqdm mpmath  # extras
+          python -m pip install loky!=3.5.0 tqdm mpmath  # extras
           python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
           python -m pip install pytest-cov coveralls pytest-fail-slow
           python -m pip install setuptools
@@ -169,8 +177,10 @@ jobs:
             conda install "${{ matrix.conda-extra-pkgs }}"
           fi
           if [[ "${{ matrix.includempi }}" ]]; then
-            # Use openmpi because mpich causes problems. Note, environment variable names change in v5
-            conda install "openmpi<5" mpi4py
+            # Both mpich and openmpi version 4 have caused problems in the past
+            # so we use openmpi version 5. Openmpi 5 and python 3.13-compatible
+            # version of mpi4py are currently only available on conda-forge:
+            conda install --channel conda-forge "openmpi>=5.0" mpi4py
           fi
           if [[ "${{ matrix.oldcython }}" ]]; then
             python -m pip install cython==0.29.36 filelock matplotlib==3.5
@@ -223,7 +233,6 @@ jobs:
         # to see if something hung.
         timeout-minutes: 60
         run: |
-          export MKL_VERBOSE=2
           if [[ -n "${{ matrix.openmp }}" ]]; then
             # Force OpenMP runs to use more threads, even if there aren't
             # actually that many CPUs.  We have to check any dispatch code is
@@ -234,7 +243,10 @@ jobs:
             # By default, the max. number of allowed worker processes in openmpi is
             # (number of physical cpu cores) - 1.
             # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
-            export OMPI_MCA_rmaps_base_oversubscribe=true
+            # For OpenMPI <= 4:
+            # export OMPI_MCA_rmaps_base_oversubscribe=true
+            # For OpenMPI >= 5:
+            export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
           fi
           pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
           # Above flags are:

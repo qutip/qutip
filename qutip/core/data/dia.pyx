@@ -144,6 +144,10 @@ cdef class Dia(base.Data):
         if tidyup:
             tidyup_dia(self, settings.core['auto_tidyup_atol'], True)
 
+    @classmethod
+    def sparcity(self):
+        return "diagonal"
+
     def __reduce__(self):
         return (fast_from_scipy, (self.as_scipy(),))
 
@@ -241,6 +245,13 @@ cdef class Dia(base.Data):
             PyDataMem_FREE(self.data)
         if self.offsets != NULL:
             PyDataMem_FREE(self.offsets)
+
+    cdef bint _is_sorted(Dia mat):
+        cdef base.idxint i
+        for i in range(mat.num_diag - 1):
+            if mat.offsets[i] > mat.offsets[i + 1]:
+                return False
+        return True
 
 
 cpdef Dia fast_from_scipy(object sci):

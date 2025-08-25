@@ -80,8 +80,7 @@ class QutipOptions:
 def _set_default_dtype(new_dtype):
     import qutip
     # Catch non existing alias and unsuported types
-    if new_dtype is not None:
-        qutip.core.data.to.parse(new_dtype)
+    new_dtype = qutip.core.data.to.parse(new_dtype)
     for dispatcher in qutip.core.data.to.dispatchers:
         dispatcher.rebuild_lookup()
 
@@ -113,8 +112,8 @@ class CoreOptions(QutipOptions):
     auto_tidyup : bool
         Whether to tidyup during sparse operations.
 
-    auto_tidyup_dims : bool [False]
-        Use auto tidyup dims on multiplication, tensor, etc.
+    auto_tidyup_dims : bool [True]
+        Whether to track the structure of scalar dimensions.
         Without auto_tidyup_dims:
 
             ``basis([2, 2]).dims == [[2, 2], [1, 1]]``
@@ -151,10 +150,11 @@ class CoreOptions(QutipOptions):
           is exactly ``f(t, args)`` then ``dict`` is used. Otherwise
           ``pythonic`` is used.
 
-    default_dtype : Nonetype, str, type {None}
+    default_dtype : str, type {"core"}
         The specified data type will be used as output for different qutip
         functions determined by the "default_dtype_scope" options. Any
-        data-layer known to ``qutip.data.to`` is accepted. When ``None``, these
+        data-layer known to ``qutip.data.to`` is accepted. The default `core``,
+        refers to any format available in the qutip package and
         functions will default to a sensible data type.
 
     default_dtype_scope : str {"creation"}
@@ -177,8 +177,8 @@ class CoreOptions(QutipOptions):
     _options = {
         # use auto tidyup
         "auto_tidyup": True,
-        # use auto tidyup dims on multiplication
-        "auto_tidyup_dims": False,
+        # use auto tidyup dims
+        "auto_tidyup_dims": True,
         # general absolute tolerance
         "atol": 1e-12,
         # general relative tolerance
@@ -188,7 +188,7 @@ class CoreOptions(QutipOptions):
         # signature style expected by function coefficients
         "function_coefficient_style": "auto",
         # Default Qobj dtype for Qobj create function
-        "default_dtype": None,
+        "default_dtype": "core",
         # Where the default_dtype apply:
         # - "creation": Used in functions creating Qobj.
         # - "missing": Missing specialisation output use default.

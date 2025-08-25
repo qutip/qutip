@@ -12,7 +12,7 @@ idna==3.8
 imagesize==1.4.1
 ipython==8.11.0
 jedi==0.18.2
-Jinja2==3.1.5
+Jinja2==3.1.6
 kiwisolver==1.4.4
 MarkupSafe==2.1.2
 matplotlib==3.7.1
@@ -30,9 +30,9 @@ Pygments==2.18.0
 pyparsing==3.1.4
 python-dateutil==2.9.0.post0
 pytz==2024.1
-requests==2.32.2
+requests==2.32.4
 scipy==1.14.1
-setuptools==73.0.1
+setuptools==78.1.1
 six==1.16.0
 snowballstemmer==2.2.0
 Sphinx==7.4.7
@@ -46,6 +46,6 @@ sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==2.0.0
 sphinxcontrib-serializinghtml==1.1.10
 traitlets==5.14.3
-urllib3==2.2.2
+urllib3==2.5.0
 wcwidth==0.2.13
 wheel==0.44.0

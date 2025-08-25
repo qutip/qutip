@@ -86,6 +86,10 @@ cdef class Dense(base.Data):
         self.fortran = cnp.PyArray_IS_F_CONTIGUOUS(self._np)
         self.shape = (shape[0], shape[1])
 
+    @classmethod
+    def sparcity(self):
+        return "dense"
+
     def __reduce__(self):
         return (fast_from_numpy, (self.as_ndarray(),))
 

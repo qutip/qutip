@@ -15,6 +15,7 @@ from .integrator import Integrator
 from ..ui.progressbar import progress_bars
 from ._feedback import _ExpectFeedback
 from ..typing import EopsLike
+from ..core import data as _data
 from time import time
 import warnings
 import numpy as np
@@ -56,7 +57,7 @@ class Solver:
         if isinstance(rhs, (QobjEvo, Qobj)):
             self.rhs = QobjEvo(rhs)
         else:
-            TypeError("The rhs must be a QobjEvo")
+            raise TypeError("The rhs must be a QobjEvo")
         self.options = options
         self._integrator = self._get_integrator()
         self._state_metadata = {}
@@ -84,6 +85,12 @@ class Solver:
         """
         if self.rhs.issuper and state.isket:
             state = ket2dm(state)
+
+        if not state.dtype.sparcity() == "dense":
+            # Add an option to support sparse data?
+            # States almost never stays sparse, so it's usually **very** slow.
+            dtype = _data._parse_default_dtype(None, "dense")
+            state = state.to(dtype)
 
         if (
             self.rhs.dims[1] != state.dims[0]

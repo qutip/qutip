@@ -598,6 +598,16 @@ def test_QobjEigenStates():
         assert c[k] == kets[k]
 
 
+def test_QobjEigenStatesOutputType():
+    op = qutip.rand_herm(5)
+
+    _, kets = op.eigenstates(output_type='kets', phase_fix=0)
+    _, oper = op.eigenstates(output_type='oper', phase_fix=0)
+
+    assert qutip.Qobj(
+           np.hstack([vec.full() for vec in kets]), dims=[5, 5]) == oper
+
+
 def test_QobjExpm():
     "qutip.Qobj expm (dense)"
     data = _random_not_singular(15)
@@ -1159,13 +1169,13 @@ def test_no_real_casting():
                  id='mixed,unchanged'),
     pytest.param([[2, 2, 2], [1, 2, 2]], [[2, 2, 2], [1, 2, 2]],
                  id='mixed,unchanged'),
-    pytest.param([[2, 2, 1], [1, 1, 1]], [[2, 2], [1, 1]], id='ket'),
-    pytest.param([[1, 2, 1], [1, 1, 1]], [[2], [1]], id='ket'),
-    pytest.param([[2, 3, 4], [1, 1, 1]], [[2, 3, 4], [1, 1, 1]],
+    pytest.param([[2, 2, 1], [1]], [[2, 2], [1]], id='ket'),
+    pytest.param([[1, 2, 1], [1]], [[2], [1]], id='ket'),
+    pytest.param([[2, 3, 4], [1]], [[2, 3, 4], [1]],
                  id='ket,unchanged'),
-    pytest.param([[1, 1, 1], [2, 2, 1]], [[1, 1], [2, 2]], id='bra'),
-    pytest.param([[1, 1, 1], [1, 2, 1]], [[1], [2]], id='bra'),
-    pytest.param([[1, 1, 1], [2, 3, 4]], [[1, 1, 1], [2, 3, 4]],
+    pytest.param([[1], [2, 2, 1]], [[1], [2, 2]], id='bra'),
+    pytest.param([[1], [1, 2, 1]], [[1], [2]], id='bra'),
+    pytest.param([[1], [2, 3, 4]], [[1], [2, 3, 4]],
                  id='bra,unchanged'),
     pytest.param([[[2, 1, 1], [2, 1, 1]], [1]], [[[2], [2]], [1]],
                  id='operket'),

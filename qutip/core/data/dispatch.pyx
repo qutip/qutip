@@ -103,6 +103,52 @@ cdef class _constructed_specialisation:
         ])
 
 
+cdef class _group_specialisation:
+    """
+    Callable object providing the specialisation of a data-layer operation for
+    a particular set of types (`self.types`) and a group output type.
+
+    See `self.__signature__` or `self.__text_signature__` for the call
+    signature of this object.
+    """
+    cdef object _call
+    cdef readonly Py_ssize_t _n_inputs, _n_dispatch
+    cdef readonly tuple types
+    cdef readonly object group
+    cdef readonly str _short_name
+    cdef public str __doc__
+    cdef public str __name__
+    cdef public object __signature__
+    cdef readonly str __text_signature__
+
+    def __init__(self, base, Dispatcher dispatcher, types, group):
+        self.__doc__ = inspect.getdoc(dispatcher)
+        self._short_name = dispatcher.__name__
+        self.__name__ = (
+            self._short_name
+            + "_"
+            + "_".join([x.__name__ for x in types])
+        )
+        self.__signature__ = dispatcher.__signature__
+        self.__text_signature__ = dispatcher.__text_signature__
+        self._call = base
+        self.types = types
+        self.group = group
+
+    @cython.wraparound(False)
+    def __call__(self, *args, **kwargs):
+        return _to(self.group, self._call(*args, **kwargs))
+
+    def __repr__(self):
+        if len(self.types) == 0:
+            spec = self.group
+        else:
+            spec = "(" + ", ".join(x.__name__ for x in self.types) + f" {self.group})"
+        return "".join([
+            f"<indirect specialisation {spec} of ", self._short_name, ">"
+        ])
+
+
 cdef class Dispatcher:
     """
     Dispatcher for a data-layer operation.  This object can be called with the
@@ -290,6 +336,63 @@ cdef class Dispatcher:
         if not _defer:
             self.rebuild_lookup()
 
+    def register(self, *dtypes, _defer=False):
+        """
+        Decorator for add_specialisations.
+
+        Parameters
+        ----------
+        *dtype: type
+            The data types for each of the dispatched arguments. There should
+            be one for each `Data` input and one for the output if that is also a
+            `Data` object.
+
+            As a convenience, if the specialisation uses the same data type for
+            all inputs, you can provide the type just once.
+
+        _defer : bool, optional (False)
+            Only intended for internal library use during initialisation. If
+            `True`, then the input types are not checked, and the full lookup
+            table is not built until a manual call to
+            `Dispatcher.rebuild_lookup()` is made.  If you are getting errors,
+            remember that you should add the data type conversions to `data.to`
+            before you try to add specialisations.
+
+        Example
+        -------
+
+        @func.register(CSR)
+        def func_new_dtype(A: CSR, b: CSR) -> CSR:
+            ...
+
+        or
+
+        @func.register(CSR, Dense, CSR)
+        def func_new_dtype(A: CSR, b: Dense) -> CSR:
+            ...
+
+        """
+        if len(dtypes) == 1 and self._n_dispatch > 1:
+            dtypes = dtypes * self._n_dispatch
+
+        if len(dtypes) != self._n_dispatch:
+            raise ValueError(
+                f"Dispatcher expects {self._n_dispatch} type arguments,"
+                f" but {len(dtypes)} were given."
+            )
+
+        if any(not issubclass(dtype, Data) for dtype in dtypes):
+            raise ValueError(
+                "Trying to dispatch on something which is not a subclass of "
+                "qutip.core.data.Data"
+            )
+
+        def _register(func):
+            self.add_specialisations([dtypes + (func,)], _defer=_defer)
+            return func
+
+        return _register
+
     cdef object _find_specialization(
         self, tuple in_types, bint output,
         type default=None, int verbose=False
@@ -361,7 +464,6 @@ cdef class Dispatcher:
             self._find_specialization(in_types, self.output, None, verbose=verbose)
         # Now build the lookup table in the case that we dispatch on the output
         # type as well, but the user has called us without specifying it.
-        # TODO: option to control default output type choice if unspecified?
         if self.output and settings.core["default_dtype_scope"] == "full":
             default_dtype = _to.parse(settings.core["default_dtype"])
             for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
@@ -372,6 +474,12 @@ cdef class Dispatcher:
                 default_dtype = _to.parse(settings.core["default_dtype"])
             for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
                 self._find_specialization(in_types, False, default_dtype, verbose)
+        if self.output:
+            for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
+                for group in _to.groups:
+                    self._lookup[in_types + (group,)] = _group_specialisation(
+                        self._lookup[in_types], self, in_types, group
+                    )
 
     def __getitem__(self, types):
         """

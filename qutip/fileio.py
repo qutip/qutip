@@ -209,7 +209,7 @@ def file_data_read(filename, sep=None):
     return data
 
 
-def qsave(data, name='qutip_data'):
+def qsave(data, filename='qutip_data'):
     """
     Saves given data to file named 'filename.qu' in current directory.
 
@@ -222,7 +222,7 @@ def qsave(data, name='qutip_data'):
 
     """
     # open the file for writing
-    path = Path(name)
+    path = Path(filename)
     path = path.with_suffix(path.suffix + ".qu")
 
     with open(path, "wb") as fileObject:

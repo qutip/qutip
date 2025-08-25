@@ -240,6 +240,11 @@ If any failures or errors occur, please check that you have installed all of the
 See the next section on how to check the installed versions of the QuTiP dependencies.
 If these tests still fail, then head on over to the `QuTiP Discussion Board <https://groups.google.com/g/qutip>`_ or `the GitHub issues page <https://github.com/qutip/qutip/issues>`_ and post a message detailing your particular issue.
 
+If the ``mpi4py`` module is installed, the test suide will also run a set of tests checking the MPI capabilities of QuTiP.
+If the MPI backend on your system is not configured correctly, these tests may sometimes cause the test suite to crash or hang.
+Please make sure that you are using the latest versions of ``mpi4py`` and the MPI backend.
+If the tests still crash or hang, try running pytest with the ``-s`` option to display any potential error or warning messages from the MPI backend.
+
 .. _install-about:
 
 Checking Version Information
