@@ -1,5 +1,5 @@
 import numpy as np
-import qutip as qt
+from qutip import Qobj
 
 
 class QuantumSystem:
@@ -9,7 +9,7 @@ class QuantumSystem:
     All quantum systems are instances of this class, configured by factory functions.
     """
 
-    def __init__(self, name: str, hamiltonian: qt.Qobj = None,
+    def __init__(self, hamiltonian: Qobj, name: str = "Quantum System",
                  operators: dict = None, c_ops: list = None,
                  latex: str = "", **kwargs):
         """
@@ -19,7 +19,7 @@ class QuantumSystem:
         -----------
         name : str
             Name/type of the quantum system
-        hamiltonian : qt.Qobj, optional
+        hamiltonian : Qobj, optional
             System Hamiltonian
         operators : dict, optional
             Dictionary of system operators
@@ -39,24 +39,8 @@ class QuantumSystem:
         self.c_ops = c_ops if c_ops is not None else []
         self.latex = latex
 
-    def get_operators(self) -> dict:
-        """Get operators dictionary"""
-        return self.operators
-
-    def get_hamiltonian(self) -> qt.Qobj:
-        """Get Hamiltonian"""
-        return self.hamiltonian
-
-    def get_c_ops(self) -> list[qt.Qobj]:
-        """Get collapse operators"""
-        return self.c_ops
-
-    def get_latex(self) -> str:
-        """Get LaTeX representation"""
-        return self.latex
-
     @property
-    def dimension(self) -> int:
+    def dimension(self) -> list:
         """Get Hilbert space dimension"""
         return self.hamiltonian.dims if self.hamiltonian else 0
 
@@ -71,7 +55,7 @@ class QuantumSystem:
         return self.hamiltonian.eigenstates()
 
     @property
-    def ground_state(self) -> qt.Qobj:
+    def ground_state(self) -> Qobj:
         """Get ground state"""
         _, states = self.eigenstates
         return states[0]

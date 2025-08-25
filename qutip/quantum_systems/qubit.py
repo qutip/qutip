@@ -1,6 +1,6 @@
 import numpy as np
-import qutip as qt
-from .quantum_system import QuantumSystem  # Import the QuantumSystem class
+from qutip import destroy, create, sigmax, sigmay, sigmaz, Coefficient
+from .quantum_system import QuantumSystem
 
 
 def qubit(omega: float = 1.0, decay_rate: float = 0.0,
@@ -12,11 +12,11 @@ def qubit(omega: float = 1.0, decay_rate: float = 0.0,
 
     Parameters:
     -----------
-    omega : float
+    omega : float, default=1.0
         Transition frequency
-    decay_rate : float
+    decay_rate : float, default=0.0
         Relaxation rate (1/T1)
-    dephasing_rate : float
+    dephasing_rate : float, default=0.0
         Dephasing rate (1/T2)
 
     Returns:
@@ -25,11 +25,11 @@ def qubit(omega: float = 1.0, decay_rate: float = 0.0,
     """
     # Build operators
     operators = {}
-    operators['sigma_minus'] = qt.destroy(2)
-    operators['sigma_plus'] = qt.create(2)
-    operators['sigma_z'] = qt.sigmaz()
-    operators['sigma_x'] = qt.sigmax()
-    operators['sigma_y'] = qt.sigmay()
+    operators['sigma_minus'] = destroy(2)
+    operators['sigma_plus'] = create(2)
+    operators['sigma_z'] = sigmaz()
+    operators['sigma_x'] = sigmax()
+    operators['sigma_y'] = sigmay()
 
     # Build Hamiltonian
     hamiltonian = 0.5 * omega * operators['sigma_z']
@@ -46,8 +46,8 @@ def qubit(omega: float = 1.0, decay_rate: float = 0.0,
 
     # Create system with all components
     return QuantumSystem(
-        name="Qubit",
         hamiltonian=hamiltonian,
+        name="Qubit",
         operators=operators,
         c_ops=c_ops,
         latex=latex,

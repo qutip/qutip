@@ -34,7 +34,7 @@ from .core import *
 from .solver import *
 from .solver import nonmarkov
 import qutip.piqs.piqs as piqs
-from .quantum_systems import *
+from . import quantum_systems
 
 # graphics
 from .bloch import *

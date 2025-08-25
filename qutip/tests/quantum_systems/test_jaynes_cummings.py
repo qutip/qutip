@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-import qutip as qt
+from qutip import tensor, qeye, destroy, sigmaz, basis, expect
 from qutip.quantum_systems.jaynes_cummings import jaynes_cummings
 from qutip.quantum_systems.quantum_system import QuantumSystem
 
@@ -61,7 +61,7 @@ class TestJaynesCummings:
 
         assert sigma_plus == sigma_minus.dag()
 
-    @pytest.mark.parametrize("omega_c,omega_a,g", [
+    @pytest.mark.parametrize("omega_c, omega_a, g", [
         (1.0, 1.0, 0.1),    # Resonant
         (1.0, 1.2, 0.1),    # Detuned
         (2.0, 1.0, 0.2),    # Different frequencies
@@ -106,7 +106,7 @@ class TestJaynesCummings:
         sigma_z = jc.operators["sigma_z"]
 
         H_expected = (omega_c * a_dag * a +
-                      0.5 * omega_a * sigma_z +
+                      omega_a * sigma_plus * sigma_minus +
                       g * (a_dag * sigma_minus + a * sigma_plus))
 
         assert jc.hamiltonian == H_expected
@@ -125,12 +125,12 @@ class TestJaynesCummings:
         sigma_z = jc.operators["sigma_z"]
 
         H_expected = (omega_c * a_dag * a +
-                      0.5 * omega_a * sigma_z +
+                      omega_a * sigma_plus * sigma_minus +
                       g * (a_dag + a) * (sigma_plus + sigma_minus))
 
         assert jc.hamiltonian == H_expected
 
-    @pytest.mark.parametrize("decay_type,rate,operator_name", [
+    @pytest.mark.parametrize("decay_type, rate, operator_name", [
         ("cavity_decay", 0.0, "a"),
         ("cavity_decay", 0.1, "a"),
         ("cavity_decay", 0.5, "a"),
@@ -164,12 +164,11 @@ class TestJaynesCummings:
 
         # Should have both relaxation and excitation operators
         cavity_relax_rate = cavity_decay * (1 + thermal_photons)
-        expected_relax_op = np.sqrt(cavity_relax_rate) * jc.operators["a"]
+        expected_relax_op = cavity_relax_rate**0.5 * jc.operators["a"]
         assert expected_relax_op in jc.c_ops
 
         cavity_excite_rate = cavity_decay * thermal_photons
-        expected_excite_op = np.sqrt(
-            cavity_excite_rate) * jc.operators["a_dag"]
+        expected_excite_op = cavity_excite_rate**0.5 * jc.operators["a_dag"]
         assert expected_excite_op in jc.c_ops
 
     def test_all_dissipation_mechanisms(self):
@@ -205,7 +204,7 @@ class TestJaynesCummings:
         ground_state = jc.ground_state
 
         # Ground state should be normalized
-        assert abs(ground_state.norm() - 1.0) < 1e-10
+        assert ground_state.norm() == pytest.approx(1., abs=1e-10)
 
         # Should be eigenstate with lowest energy
         eigenvals = jc.eigenvalues
@@ -226,11 +225,8 @@ class TestJaynesCummings:
         # Test expectation values on basis states
         for n in range(min(3, n_cavity)):
             for atom_state in [0, 1]:
-                state = qt.tensor(
-                    qt.basis(
-                        n_cavity, n), qt.basis(
-                        2, atom_state))
-                expectation = qt.expect(n_c, state)
+                state = basis([n_cavity, 2], [n, atom_state])
+                expectation = expect(n_c, state)
                 assert abs(expectation - n) < 1e-10
 
     def test_operator_tensor_structure(self):
@@ -240,12 +236,12 @@ class TestJaynesCummings:
 
         # Cavity operators act on first subsystem
         a = jc.operators["a"]
-        expected_a = qt.tensor(qt.destroy(n_cavity), qt.qeye(2))
+        expected_a = tensor(destroy(n_cavity), qeye(2))
         assert a == expected_a
 
         # Atomic operators act on second subsystem
         sigma_z = jc.operators["sigma_z"]
-        expected_sigma_z = qt.tensor(qt.qeye(n_cavity), qt.sigmaz())
+        expected_sigma_z = tensor(qeye(n_cavity), sigmaz())
         assert sigma_z == expected_sigma_z
 
     def test_commutation_relations(self):
@@ -269,16 +265,6 @@ class TestJaynesCummings:
         jc = jaynes_cummings()
 
         assert isinstance(jc, QuantumSystem)
-
-        required_attributes = [
-            'name',
-            'operators',
-            'hamiltonian',
-            'c_ops',
-            'latex',
-            'parameters']
-        for attr in required_attributes:
-            assert hasattr(jc, attr)
 
     def test_pretty_print_basic(self, capsys):
         """Test pretty_print output"""

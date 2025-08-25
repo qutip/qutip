@@ -1,12 +1,13 @@
 import numpy as np
-import qutip as qt
-from .quantum_system import QuantumSystem  # Import the QuantumSystem class
+from qutip import tensor, qeye, destroy, sigmax, sigmay, sigmaz, Coefficient
+from typing import Union
+from .quantum_system import QuantumSystem
 
 
 def jaynes_cummings(
-        omega_c: float = 1.0,
-        omega_a: float = 1.0,
-        g: float = 0.1,
+        omega_c: Union[float, Coefficient] = 1.0,
+        omega_a: Union[float, Coefficient] = 1.0,
+        g: Union[float, Coefficient] = 0.1,
         n_cavity: int = 10,
         rotating_wave: bool = True,
         cavity_decay: float = 0.0,
@@ -53,23 +54,23 @@ def jaynes_cummings(
     operators = {}
 
     # Cavity operators (tensor with 2-level atomic system)
-    operators['a'] = qt.tensor(qt.destroy(n_cavity), qt.qeye(2))
+    operators['a'] = tensor(destroy(n_cavity), qeye(2))
     operators['a_dag'] = operators['a'].dag()
     operators['n_c'] = operators['a_dag'] * operators['a']  # Photon number
 
     # Atomic operators (tensor with cavity system)
-    operators['sigma_minus'] = qt.tensor(qt.qeye(n_cavity), qt.destroy(2))
+    operators['sigma_minus'] = tensor(qeye(n_cavity), destroy(2))
     operators['sigma_plus'] = operators['sigma_minus'].dag()
-    operators['sigma_z'] = qt.tensor(qt.qeye(n_cavity), qt.sigmaz())
-    operators['sigma_x'] = qt.tensor(qt.qeye(n_cavity), qt.sigmax())
-    operators['sigma_y'] = qt.tensor(qt.qeye(n_cavity), qt.sigmay())
+    operators['sigma_z'] = tensor(qeye(n_cavity), sigmaz())
+    operators['sigma_x'] = tensor(qeye(n_cavity), sigmax())
+    operators['sigma_y'] = tensor(qeye(n_cavity), sigmay())
 
     # Build Hamiltonian
     # Free cavity evolution: ω_c a†a
     H_cavity = omega_c * operators['n_c']
 
     # Free atomic evolution: (ω_a/2)σ_z
-    H_atom = 0.5 * omega_a * operators['sigma_z']
+    H_atom = omega_a * operators['sigma_plus'] * operators['sigma_minus']
 
     # Interaction term
     if rotating_wave:
@@ -114,8 +115,8 @@ def jaynes_cummings(
                  r"g(a^\dagger + a)(\sigma_+ + \sigma_-)")
 
     return QuantumSystem(
-        name="Jaynes-Cummings",
         hamiltonian=hamiltonian,
+        name="Jaynes-Cummings",
         operators=operators,
         c_ops=c_ops,
         latex=latex,

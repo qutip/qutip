@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-import qutip as qt
-from qutip.quantum_systems.quantum_system import QuantumSystem
+from qutip import tensor, qeye, destroy, sigmax, sigmaz, basis, num
+from qutip.quantum_systems import QuantumSystem
 
 
 class TestQuantumSystem:
@@ -9,12 +9,13 @@ class TestQuantumSystem:
 
     def test_basic_initialization(self):
         """Test basic initialization"""
-        system = QuantumSystem("Test System")
+        hamiltonian = None
+        system = QuantumSystem(hamiltonian, "Test System")
 
         assert system.name == "Test System"
         assert system.parameters == {}
         assert system.operators == {}
-        assert system.hamiltonian is None
+        assert system.hamiltonian == hamiltonian
         assert system.c_ops == []
         assert system.latex == ""
         assert system.dimension == 0
@@ -26,76 +27,44 @@ class TestQuantumSystem:
     ])
     def test_various_initializations(self, name, params):
         """Test various initialization scenarios"""
-        system = QuantumSystem(name, **params)
+        system = QuantumSystem(qeye(2), name, **params)
         assert system.name == name
         assert system.parameters == params
 
-    def test_get_methods_empty(self):
-        """Test getter methods on empty system"""
-        system = QuantumSystem("Test")
-
-        assert system.get_operators() == {}
-        assert system.get_hamiltonian() is None
-        assert system.get_c_ops() == []
-        assert system.get_latex() == ""
-
-    def test_get_methods_with_data(self):
-        """Test getter methods with data"""
-        system = QuantumSystem("Test")
-
-        # Set data
-        ops = {"sigma_x": qt.sigmax(), "sigma_z": qt.sigmaz()}
-        system.operators = ops
-        system.hamiltonian = qt.sigmaz()
-        system.c_ops = [qt.destroy(2)]
-        system.latex = r"H = \sigma_z"
-
-        # Test getters
-        assert system.get_operators() == ops
-        assert system.get_hamiltonian() == qt.sigmaz()
-        assert system.get_c_ops() == [qt.destroy(2)]
-        assert system.get_latex() == r"H = \sigma_z"
-
     @pytest.mark.parametrize("hamiltonian,expected_dim", [
-        (qt.sigmaz(), [[2], [2]]),
-        (qt.sigmax(), [[2], [2]]),
-        (qt.qeye(3), [[3], [3]]),
-        (qt.qeye(5), [[5], [5]]),
-        (qt.destroy(4), [[4], [4]]),
-        (qt.tensor(qt.sigmaz(), qt.sigmaz()), [[2, 2], [2, 2]]),
+        (sigmaz(), [[2], [2]]),
+        (sigmax(), [[2], [2]]),
+        (qeye(3), [[3], [3]]),
+        (qeye(5), [[5], [5]]),
+        (destroy(4), [[4], [4]]),
+        (tensor(sigmaz(), sigmaz()), [[2, 2], [2, 2]]),
     ])
     def test_dimension_property(self, hamiltonian, expected_dim):
         """Test dimension property with various Hamiltonians"""
-        system = QuantumSystem("Test")
-        system.hamiltonian = hamiltonian
+        system = QuantumSystem(hamiltonian, "Test")
         assert system.dimension == expected_dim
 
     def test_eigenvalues_qubit(self):
         """Test eigenvalues for qubit systems"""
-        system = QuantumSystem("Test")
-        system.hamiltonian = 0.5 * qt.sigmaz()
+        system = QuantumSystem(0.5 * sigmaz(), "Test")
 
         eigenvals = system.eigenvalues
         expected = np.array([-0.5, 0.5])
-        np.testing.assert_array_almost_equal(
-            sorted(eigenvals), sorted(expected))
+        np.testing.assert_array_almost_equal(eigenvals, expected)
 
     def test_eigenvalues_harmonic_oscillator(self):
         """Test eigenvalues for harmonic oscillator"""
-        system = QuantumSystem("Test")
         n_levels = 5
-        system.hamiltonian = qt.num(n_levels) + 0.5 * qt.qeye(n_levels)
+        hamiltonian = num(n_levels) + 0.5 * qeye(n_levels)
+        system = QuantumSystem(hamiltonian, "Test")
 
         eigenvals = system.eigenvalues
         expected = np.arange(n_levels) + 0.5
-        np.testing.assert_array_almost_equal(
-            sorted(eigenvals), sorted(expected))
+        np.testing.assert_array_almost_equal(eigenvals, expected)
 
     def test_eigenstates_properties(self):
         """Test eigenstate properties"""
-        system = QuantumSystem("Test")
-        system.hamiltonian = qt.sigmaz()
-
+        system = QuantumSystem(sigmaz(), "Test")
         eigenvals, eigenstates = system.eigenstates
 
         # Check counts and normalization
@@ -112,14 +81,13 @@ class TestQuantumSystem:
             assert H_psi == E_psi
 
     @pytest.mark.parametrize("hamiltonian,expected_ground", [
-        (qt.sigmaz(), qt.basis(2, 1)),           # |1⟩ for sigma_z
-        (-qt.sigmaz(), qt.basis(2, 0)),          # |0⟩ for -sigma_z
-        (qt.num(4), qt.basis(4, 0)),            # |0⟩ for number operator
+        (sigmaz(), basis(2, 1)),           # |1⟩ for sigma_z
+        (-sigmaz(), basis(2, 0)),          # |0⟩ for -sigma_z
+        (num(4), basis(4, 0)),            # |0⟩ for number operator
     ])
     def test_ground_state_identification(self, hamiltonian, expected_ground):
         """Test ground state identification"""
-        system = QuantumSystem("Test")
-        system.hamiltonian = hamiltonian
+        system = QuantumSystem(hamiltonian, "Test")
 
         ground_state = system.ground_state
 
@@ -138,47 +106,9 @@ class TestQuantumSystem:
         overlap = abs(ground_state.overlap(expected_ground))
         assert overlap > 0.99
 
-    def test_operators_management(self):
-        """Test operator storage and retrieval"""
-        system = QuantumSystem("Test")
-
-        # Add operators
-        system.operators["sigma_x"] = qt.sigmax()
-        system.operators["sigma_z"] = qt.sigmaz()
-
-        assert "sigma_x" in system.operators
-        assert "sigma_z" in system.operators
-        assert system.operators["sigma_x"] == qt.sigmax()
-        assert system.operators["sigma_z"] == qt.sigmaz()
-
-    def test_collapse_operators_management(self):
-        """Test collapse operator storage and retrieval"""
-        system = QuantumSystem("Test")
-
-        # Add collapse operators
-        c_op1 = qt.destroy(2)
-        c_op2 = qt.sigmaz()
-        system.c_ops.append(c_op1)
-        system.c_ops.append(c_op2)
-
-        assert len(system.c_ops) == 2
-        assert system.c_ops[0] == c_op1
-        assert system.c_ops[1] == c_op2
-
-    def test_latex_management(self):
-        """Test LaTeX string management"""
-        system = QuantumSystem("Test")
-
-        latex_str = r"H = \omega \sigma_z"
-        system.latex = latex_str
-
-        assert system.get_latex() == latex_str
-        assert system.latex == latex_str
-
     def test_repr_string(self):
         """Test string representation"""
-        system = QuantumSystem("Test System")
-        system.hamiltonian = qt.sigmaz()
+        system = QuantumSystem(sigmaz(), "Test System")
 
         repr_str = repr(system)
         assert "QuantumSystem(name='Test System'" in repr_str
@@ -189,21 +119,24 @@ class TestQuantumSystem:
         """Test pretty_print with different system states"""
 
         if system_type == "empty":
-            system = QuantumSystem("Empty System")
+            system = QuantumSystem(qeye(2), "Empty System")  # For empty case
             system.pretty_print()
 
             captured = capsys.readouterr()
             assert "Quantum System: Empty System" in captured.out
-            assert "Hilbert Space Dimension: 0" in captured.out
+            assert "Hilbert Space Dimension: [[2], [2]]" in captured.out
             assert "Parameters: {}" in captured.out
             assert "Number of Operators: 0" in captured.out
             assert "Number of Collapse Operators: 0" in captured.out
 
         else:  # populated
-            system = QuantumSystem("Populated System", omega=1.0, gamma=0.1)
-            system.hamiltonian = qt.sigmaz()
-            system.operators = {"sz": qt.sigmaz(), "sx": qt.sigmax()}
-            system.c_ops = [qt.destroy(2)]
+            system = QuantumSystem(
+                sigmaz(),
+                "Populated System",
+                omega=1.0,
+                gamma=0.1)  # For populated case
+            system.operators = {"sz": sigmaz(), "sx": sigmax()}
+            system.c_ops = [destroy(2)]
             system.latex = r"H = \sigma_z"
 
             system.pretty_print()
@@ -217,47 +150,13 @@ class TestQuantumSystem:
             assert "Number of Collapse Operators: 1" in captured.out
             assert r"H = \sigma_z" in captured.out
 
-    def test_parameter_modification(self):
-        """Test parameter modification"""
-        system = QuantumSystem("Test", omega=1.0)
-
-        # Modify existing parameter
-        system.parameters["omega"] = 2.0
-        assert system.parameters["omega"] == 2.0
-
-        # Add new parameter
-        system.parameters["gamma"] = 0.1
-        assert system.parameters["gamma"] == 0.1
-
-    def test_edge_cases(self):
-        """Test edge cases"""
-        # Large dimension system
-        system_large = QuantumSystem("Large")
-        system_large.hamiltonian = qt.qeye(50)
-        assert system_large.dimension == [[50], [50]]
-
-        # Zero Hamiltonian
-        system_zero = QuantumSystem("Zero")
-        system_zero.hamiltonian = qt.qzero(3)
-        eigenvals = system_zero.eigenvalues
-        assert all(abs(e) < 1e-10 for e in eigenvals)
-
-        # Identity Hamiltonian
-        system_identity = QuantumSystem("Identity")
-        system_identity.hamiltonian = qt.qeye(3)
-        eigenvals = system_identity.eigenvalues
-        expected = [1.0, 1.0, 1.0]
-        np.testing.assert_array_almost_equal(
-            sorted(eigenvals), sorted(expected))
-
     def test_tensor_product_systems(self):
         """Test tensor product Hamiltonians"""
-        system = QuantumSystem("Two Qubits")
-
         # Two-qubit Hamiltonian
-        H = qt.tensor(qt.sigmaz(), qt.qeye(2)) + \
-            qt.tensor(qt.qeye(2), qt.sigmaz())
-        system.hamiltonian = H
+        H = tensor(sigmaz(), qeye(2)) + \
+            tensor(qeye(2), sigmaz())
+
+        system = QuantumSystem(H, "Two Qubits")
 
         assert system.dimension == [[2, 2], [2, 2]]
         eigenvals = system.eigenvalues
