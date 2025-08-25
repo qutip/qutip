@@ -26,6 +26,7 @@ cdef class Dia(base.Data):
     cpdef Dia adjoint(Dia self)
     cpdef Dia conj(Dia self)
     cpdef Dia transpose(Dia self)
+    cdef bint _is_sorted(Dia self)
 
 cpdef Dia fast_from_scipy(object sci)
 cpdef Dia empty(base.idxint rows, base.idxint cols, base.idxint num_diag)

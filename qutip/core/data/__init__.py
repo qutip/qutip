@@ -28,7 +28,7 @@ from .trace import *
 from .solve import *
 from .extract import *
 # For operations with mulitple related versions, we just import the module.
-from . import norm, permute
+from . import norm, permute, ode
 
 
 # Set up the data conversions that are known by us.  All types covered by

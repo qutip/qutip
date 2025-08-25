@@ -26,8 +26,8 @@ from ..settings import settings as qset
 from .options import QutipOptions
 from .data import Data
 from .cy.coefficient import (
-    Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
-    ConjCoefficient, NormCoefficient, ConstantCoefficient
+    Coefficient, InterCoefficient, FunctionCoefficient,
+    StrFunctionCoefficient, NormCoefficient, ConstantCoefficient,
 )
 from qutip.typing import CoefficientLike
 
@@ -210,7 +210,7 @@ def norm(coeff):
 def conj(coeff):
     """ return a Coefficient with is the conjugate.
     """
-    return ConjCoefficient(coeff)
+    return coeff.conj()
 
 
 def const(value):
@@ -328,7 +328,7 @@ qset.compile = CompilationOptions()
 
 
 # Version number of the Coefficient
-COEFF_VERSION = "1.2"
+COEFF_VERSION = "1.3"
 
 try:
     root = os.path.join(qset.tmproot, f"qutip_coeffs_{COEFF_VERSION}")
@@ -480,21 +480,26 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
     cdef_cte = ""
     init_cte = ""
     copy_cte = ""
+    iseq_cte = ""
     for i, (name, val, ctype) in enumerate(constants):
         cdef_cte += "        {} {}\n".format(ctype, name[5:])
         copy_cte += "        out.{} = {}\n".format(name[5:], name)
         init_cte += "        {} = cte[{}]\n".format(name, i)
+        iseq_cte += "            c_other.{} == {},\n".format(name[5:], name)
     cdef_var = ""
     init_var = ""
     init_arg = ""
     replace_var = ""
     call_var = ""
     copy_var = ""
+    iseq_var = ""
     for i, (name, val, ctype) in enumerate(variables):
         cdef_var += "        str key{}\n".format(i)
         cdef_var += "        {} {}\n".format(ctype, name[5:])
         copy_var += "        out.key{} = self.key{}\n".format(i, i)
         copy_var += "        out.{} = {}\n".format(name[5:], name)
+        iseq_var += "            c_other.key{} == self.key{},\n".format(i, i)
+        iseq_var += "            c_other.{} == {},\n".format(name[5:], name)
         if not raw:
             init_var += "        self.key{} = var[{}]\n".format(i, i)
         else:
@@ -571,6 +576,17 @@ cdef class StrCoefficient(Coefficient):
     @cython.cdivision(True)
     cdef complex _call(self, double t) except *:
 {call_var}        return {code}
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+
+        if type(self) is not type(other):
+            return False
+        # cast other to StrCoefficient to access cdef attributes
+        cdef StrCoefficient c_other = other
+        return all([\n{iseq_cte}{iseq_var}        ])
+
 """
     return code
 

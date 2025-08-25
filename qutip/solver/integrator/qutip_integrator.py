@@ -3,9 +3,34 @@ from ..solver_base import Solver
 from .explicit_rk import Explicit_RungeKutta
 import numpy as np
 from qutip import data as _data
+from .verner7efficient import vern7_coeff
+from .verner9efficient import vern9_coeff
+from .tsit5 import tsit5_coeff
+
+__all__ = [
+    'IntegratorVern7', 'IntegratorVern9', 'IntegratorTsit5',
+    'IntegratorDiag'
+]
 
 
-__all__ = ['IntegratorVern7', 'IntegratorVern9', 'IntegratorDiag']
+# Butcher tableau for simple method
+# Never used directly: made available for debugging.
+euler_coeff = {
+    'order': 1,
+    'a': np.array([[0.]], dtype=np.float64),
+    'b': np.array([1.], dtype=np.float64),
+    'c': np.array([0.], dtype=np.float64)
+}
+
+rk4_coeff = {
+    'order': 4,
+    'a': np.array([[0., 0., 0., 0.],
+                   [.5, 0., 0., 0.],
+                   [0., .5, 0., 0.],
+                   [0., 0., 1., 0.]], dtype=np.float64),
+    'b': np.array([1/6, 1/3, 1/3, 1/6], dtype=np.float64),
+    'c': np.array([0., 0.5, 0.5, 1.0], dtype=np.float64)
+}
 
 
 class IntegratorVern7(Integrator):
@@ -31,20 +56,16 @@ class IntegratorVern7(Integrator):
         'max_step': 0,
         'min_step': 0,
         'interpolate': True,
-        'allow_sparse': False,
     }
     support_time_dependant = True
     supports_blackbox = True
     method = 'vern7'
+    tableau = vern7_coeff
 
     def _prepare(self):
-        options = {
-            k: v for k, v in self.options.items()
-            if k != 'allow_sparse'
-        }
         self._ode_solver = Explicit_RungeKutta(
-            self.system, method=self.method,
-            **options
+            self.system, self.tableau,
+            **self.options
         )
         self.name = self.method
 
@@ -53,14 +74,7 @@ class IntegratorVern7(Integrator):
         return self._ode_solver.t, state.copy() if copy else state
 
     def set_state(self, t, state):
-        if (
-            not self.options["allow_sparse"]
-            and isinstance(state, (_data.CSR, _data.Dia))
-        ):
-            state = _data.to(_data.Dense, state)
-        else:
-            state = state.copy()
-        self._ode_solver.set_initial_value(state, t)
+        self._ode_solver.set_initial_value(state.copy(), t)
         self._is_set = True
 
     def integrate(self, t, copy=True):
@@ -105,9 +119,6 @@ class IntegratorVern7(Integrator):
 
         interpolate : bool, default: True
             Whether to use interpolation step, faster most of the time.
-
-        allow_sparse : bool, default: False
-            Whether to use sparse state for the evolution. Usually much slower.
         """
         return self._options
 
@@ -139,9 +150,38 @@ class IntegratorVern9(IntegratorVern7):
         'max_step': 0,
         'min_step': 0,
         'interpolate': True,
-        'allow_sparse': False,
     }
     method = 'vern9'
+    tableau = vern9_coeff
+
+
+class IntegratorTsit5(IntegratorVern7):
+    """
+    QuTiP's implementation of Tsitouras's 5/4 order Runge-Kutta method.
+
+    The implementation uses QuTiP's Data objects for the state, allowing
+    sparse, GPU or other data layer objects to be used efficiently by the
+    solver in their native formats.
+
+    Runge–Kutta pairs of order 5(4) satisfying only the first column
+    simplifying assumption,
+    Ch. Tsitouras,
+    Computers & Mathematics with Applications, Vol 62, Issue 2, 770-775
+    Jan 2011
+
+    Usable with ``method="tsit5"``
+    """
+    integrator_options = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 1000,
+        'first_step': 0,
+        'max_step': 0,
+        'min_step': 0,
+        'interpolate': True,
+    }
+    method = 'tsit5'
+    tableau = tsit5_coeff
 
 
 class IntegratorDiag(Integrator):
@@ -215,4 +255,5 @@ class IntegratorDiag(Integrator):
 
 Solver.add_integrator(IntegratorVern7, 'vern7')
 Solver.add_integrator(IntegratorVern9, 'vern9')
+Solver.add_integrator(IntegratorTsit5, 'tsit5')
 Solver.add_integrator(IntegratorDiag, 'diag')

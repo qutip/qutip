@@ -133,6 +133,9 @@ logm.add_specialisations([
 def sqrtm_dense(matrix) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only compute logarithm square matrix")
+    # As of scipy 1.16.0, it's bugged and overly eager for warning.
+    # Tests filter warnings, and 1.16.1 will fix the bug.
+    # See qutip#2711
     return Dense(scipy.linalg.sqrtm(matrix.as_ndarray()))
 
 

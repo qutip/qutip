@@ -15,11 +15,13 @@ from qutip.core.data.csr cimport (
     CSR, Accumulator, acc_alloc, acc_free, acc_scatter, acc_gather, acc_reset,
 )
 from qutip.core.data cimport csr, dense, dia
+from qutip.core.data.convert import to as _to
 
 cnp.import_array()
 
 __all__ = [
-    'add', 'add_csr', 'add_dense', 'iadd_dense', 'add_dia',
+    'add', 'add_csr', 'add_dense', 'add_dia',
+    'iadd', 'iadd_dense', 'iadd_dense_data_dense', 'iadd_data',
     'sub', 'sub_csr', 'sub_dense', 'sub_dia',
 ]
 
@@ -200,6 +202,8 @@ cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
 
 cpdef Dense iadd_dense(Dense left, Dense right, double complex scale=1):
     _check_shape(left, right)
+    if scale == 0:
+        return left
     cdef int size = left.shape[0] * left.shape[1]
     cdef int dim1, dim2
     cdef size_t nrows=left.shape[0], ncols=left.shape[1], idx
@@ -212,6 +216,21 @@ cpdef Dense iadd_dense(Dense left, Dense right, double complex scale=1):
                 blas.zaxpy(&dim1, &scale, right.data + idx, &dim2,
                            left.data + idx*dim1, &_ONE)
     return left
+
+
+cpdef Data iadd_data(Data left, Data right, double complex scale=1):
+    _check_shape(left, right)
+    if scale == 0:
+        return left
+    return add(left, right, scale)
+
+
+cpdef Dense iadd_dense_data_dense(Dense left, Data right, double complex scale=1):
+    """ Helper function to manually set the priority of the dispatcher. """
+    _check_shape(left, right)
+    if scale == 0:
+        return left
+    return iadd_dense(left, _to(Dense, right), scale)
 
 
 cpdef Dia add_dia(Dia left, Dia right, double complex scale=1):
@@ -325,6 +344,34 @@ add.add_specialisations([
     (Dense, Dense, Dense, add_dense),
     (CSR, CSR, CSR, add_csr),
     (Dia, Dia, Dia, add_dia),
+], _defer=True)
+
+iadd = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=1),
+    ]),
+    name='iadd',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+iadd.__doc__ =\
+    """
+    Perform the operation
+        left + scale*right
+    where `left` and `right` are matrices, and `scale` is an optional complex
+    scalar.
+    The `left`'s memory can be reused / overwritten by this operation.
+    It should not be used after this operation.
+    `right` is untouched and can be re-used.
+    """
+iadd.add_specialisations([
+    (Dense, Dense, Dense, iadd_dense),
+    (Dense, Data, Dense, iadd_dense_data_dense),
+    (Data, Data, Data, iadd_data),
 ], _defer=True)
 
 sub = _Dispatcher(

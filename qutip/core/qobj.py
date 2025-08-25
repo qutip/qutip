@@ -6,7 +6,7 @@ from __future__ import annotations
 import functools
 import numbers
 import warnings
-from typing import Any, Literal
+from typing import Any, Literal, Union, overload
 import numpy as np
 from numpy.typing import ArrayLike
 import scipy.sparse
@@ -1538,6 +1538,30 @@ class Qobj:
             out = np.conj(out)
         return out
 
+    @overload
+    def eigenstates(self, 
+        sparse: bool  = False,
+        sort: Literal["low", "high"] = 'low',
+        eigvals: int = 0,
+        tol: float = 0,
+        maxiter: int = 100000,
+        phase_fix: int = None,
+        output_type: Literal['kets'] = 'kets'
+    ) -> tuple[np.ndarray, np.ndarray[Qobj]]:
+        ...
+        
+    @overload
+    def eigenstates(self, 
+        sparse: bool  = False,
+        sort: Literal["low", "high"] = 'low',
+        eigvals: int = 0,
+        tol: float = 0,
+        maxiter: int = 100000,
+        phase_fix: int = None,
+        output_type: Literal['oper'] = 'oper'
+    ) -> tuple[np.ndarray, Qobj]:
+        ...
+        
     def eigenstates(
         self,
         sparse: bool = False,
@@ -1545,8 +1569,9 @@ class Qobj:
         eigvals: int = 0,
         tol: float = 0,
         maxiter: int = 100000,
-        phase_fix: int = None
-    ) -> tuple[np.ndarray, list[Qobj]]:
+        phase_fix: int = None,
+        output_type: Literal['kets', 'oper'] = 'kets'
+    ) -> tuple[np.ndarray, Union[np.ndarray[Qobj], Qobj]]:
         """Eigenstates and eigenenergies.
 
         Eigenstates and eigenenergies are defined for operators and
@@ -1574,14 +1599,22 @@ class Qobj:
             If not None, set the phase of each kets so that ket[phase_fix,0]
             is real positive.
 
+        output_type: Literal['kets', 'oper']
+            If 'kets', return the eigenstates as a list of kets.
+            If 'oper', return the eigenstates as an operator with the states
+            as columns.
+
         Returns
         -------
         eigvals : array
             Array of eigenvalues for operator.
 
-        eigvecs : array
-            Array of quantum operators representing the oprator eigenkets.
+        eigvecs : array[Qobj], Qobj
+            Array of quantum operators representing the operator eigenkets.
             Order of eigenkets is determined by order of eigenvalues.
+
+            If output_type is oper, a Qobj representing the operator
+            eigenstates is returned.
 
         Notes
         -----
@@ -1607,17 +1640,37 @@ class Qobj:
             new_dims = [self._dims[0], [1]]
         else:
             new_dims = [self._dims[0], [1]*len(self.dims[0])]
-        ekets = np.empty((evecs.shape[1],), dtype=object)
-        ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
-                    for vec in _data.split_columns(evecs, False)]
-        norms = np.array([ket.norm() for ket in ekets])
-        if phase_fix is None:
-            phase = np.array([1] * len(ekets))
-        else:
-            phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
-                              if ket[phase_fix, 0] else 1
-                              for ket in ekets])
-        return evals, ekets / norms * phase
+
+        if output_type == 'kets':
+            ekets = np.empty((evecs.shape[1],), dtype=object)
+            ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
+                        for vec in _data.split_columns(evecs, False)]
+            norms = np.array([ket.norm() for ket in ekets])
+            if phase_fix is None:
+                phase = np.array([1] * len(ekets))
+            else:
+                phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
+                                  if ket[phase_fix, 0] else 1
+                                  for ket in ekets])
+            
+            oper = ekets / norms * phase
+
+        elif output_type == 'oper':
+            oper = Qobj(evecs, dims=[new_dims[0], [evecs.shape[1]]], copy=False)
+
+            norms = np.array([1/np.linalg.norm(oper[:, i])
+                            for i in range(oper.shape[1])])
+            oper = oper @ qutip.qdiags(norms)
+
+            if phase_fix is not None:
+                phase = np.array([
+                    np.abs(oper[phase_fix, i]) / oper[phase_fix, i]
+                    if oper[phase_fix, i] else 1
+                    for i in range(oper.shape[1])
+                    ])
+                oper = oper @ qutip.qdiags(phase)
+
+        return evals, oper
 
     def eigenenergies(
         self,
