@@ -87,7 +87,7 @@ cdef class RKStats:
             self.full_step_data = {
                 "success": [],
                 "times": [],
-                "step_lenghts": [],
+                "step_lengths": [],
                 "errors": [],
                 "safe_dts": [],
             }
@@ -167,29 +167,29 @@ cdef class RKStats:
             "num_interpolation_preparation": self.num_interpolation_preparation,
             "num_derr_computation": self.num_derr_computation,
 
-            "max_sucess_dt": self.max_sucess_dt,
+            "max_success_dt": self.max_sucess_dt,
             "max_failed_dt": self.max_failed_dt,
-            "max_sucess_error": self.max_sucess_error,
+            "max_success_error": self.max_sucess_error,
             "max_failed_error": self.max_failed_error,
-            "max_sucess_safe_dt": self.max_sucess_safe_dt,
+            "max_success_safe_dt": self.max_sucess_safe_dt,
             "max_failed_safe_dt": self.max_failed_safe_dt,
 
-            "min_sucess_dt": self.min_sucess_dt,
+            "min_success_dt": self.min_sucess_dt,
             "min_failed_dt": self.min_failed_dt,
-            "min_sucess_error": self.min_sucess_error,
+            "min_success_error": self.min_sucess_error,
             "min_failed_error": self.min_failed_error,
-            "min_sucess_safe_dt": self.min_sucess_safe_dt,
+            "min_success_safe_dt": self.min_sucess_safe_dt,
             "min_failed_safe_dt": self.min_failed_safe_dt,
         }
 
         if self.num_step_success:
-            out["avg_sucess_dt"] = self.avg_sucess_dt / self.num_step_success
-            out["avg_sucess_error"] = self.avg_sucess_error / self.num_step_success
-            out["avg_sucess_safe_dt"] = self.avg_sucess_safe_dt / self.num_step_success
+            out["avg_success_dt"] = self.avg_sucess_dt / self.num_step_success
+            out["avg_success_error"] = self.avg_sucess_error / self.num_step_success
+            out["avg_success_safe_dt"] = self.avg_sucess_safe_dt / self.num_step_success
         else:
-            out["avg_sucess_dt"] = 0
-            out["avg_sucess_error"] = 0
-            out["avg_sucess_safe_dt"] = 0
+            out["avg_success_dt"] = 0
+            out["avg_success_error"] = 0
+            out["avg_success_safe_dt"] = 0
 
         if self.num_step_failed:
             out["avg_failed_dt"] = self.avg_failed_dt / self.num_step_failed
