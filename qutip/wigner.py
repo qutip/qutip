@@ -1,6 +1,8 @@
 __all__ = [
     'wigner', 'qfunc', 'QFunc', 'spin_q_function', 'spin_wigner',
-    'wigner_transform',
+    'wigner_transform', 'wigner_2mode', 'qfunc_2mode', 'wigner_2mode_full',
+    'wigner_2mode_xx', 'wigner_2mode_xp', 'wigner_2mode_alpha', 'qfunc_2mode_full',
+    'qfunc_2mode_alpha',
 ]
 
 import numpy as np
@@ -18,14 +20,29 @@ try:
     from scipy.special import sph_harm_y
 except ImportError:
     from scipy.special import sph_harm
-
     def sph_harm_y(n, m, polar, azimuthal):
         # sph_harm is set for removal.
         # Same function, but changed parameter order
         return sph_harm(m, n, azimuthal, polar)
 
-import qutip
-from qutip import Qobj, ket2dm, jmat
+# Direct imports from core modules to avoid circular imports
+from .core.qobj import Qobj
+from .core.states import ket2dm, coherent
+from .core.operators import displace, jmat, num
+from .core.tensor import tensor
+
+# Parity operator implementation (named 'parity' to match existing calls)
+def parity(N):
+    """Create a parity operator for N-dimensional Hilbert space.
+    
+    The parity operator is P = sum_n (-1)^n |n><n|
+    """
+    from numpy import diag, arange
+    # Create diagonal matrix with (-1)^n entries
+    data = (-1) ** arange(N)
+    return Qobj(diag(data))
+
+import qutip.settings
 from .solver.parallel import parallel_map
 from .utilities import clebsch
 from .core import data as _data
@@ -1011,3 +1028,393 @@ def spin_wigner(rho, theta, phi):
             W += _rho_kq(rho, j, k, q) * sph_harm_y(k, q, THETA, PHI)
 
     return W.real, THETA, PHI
+
+# =============================================================================
+# TWO-MODE WIGNER AND Q-FUNCTIONS
+# =============================================================================
+# Two-mode Wigner and Q-function implementation
+# Author: @R_Cosmic (https://github.com/cosmic-quantum/)
+# Date: August 2025
+# 
+# This implementation addresses community request for two-mode quantum optics
+# functions supporting entangled states and two-mode squeezed light analysis.
+# =============================================================================
+def _wigner_2mode_check_state(rho):
+    """Validate two-mode density matrix input with graceful normalization."""
+    if not isinstance(rho, Qobj):
+        raise TypeError(f"rho must be a Qobj, got {type(rho)}")
+    if not rho.isoper:
+        raise ValueError("rho must be an operator (density matrix)")
+    if rho.dims[0] != rho.dims[1]:
+        raise ValueError(f"rho must have square dims, got {rho.dims}")
+    if not rho.isherm:
+        raise ValueError("rho must be Hermitian")
+
+    # Handle normalization gracefully
+    tr = real(rho.tr())
+    if not np.isfinite(tr) or tr <= 0:
+        raise ValueError("rho trace must be positive and finite")
+    if abs(tr - 1.0) > 1e-9:
+        rho = rho / tr
+
+    # Must have exactly two modes
+    if len(rho.dims[0]) != 2:
+        raise ValueError(f"rho must be a two-mode tensor operator, got dims {rho.dims}")
+
+    N1, N2 = rho.dims[0]
+    return rho, N1, N2
+
+
+def _wigner_2mode_check_coordinates(coords, name):
+    """Validate coordinate arrays."""
+    if coords is None or np.isscalar(coords):
+        raise TypeError(f"{name} must be a 1D array-like, got {repr(coords)}")
+    arr = array(coords, dtype=np.float64)
+    if arr.ndim != 1:
+        raise ValueError(f"{name} must be 1D, got shape {arr.shape}")
+    return arr
+
+
+def _wigner_2mode_parity(N1, N2):
+    """Create two-mode parity operator."""
+    return tensor(parity(N1), parity(N2))
+
+
+def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), chunk_sizes=(16, 16)):
+    r"""
+    Full 4D two-mode Wigner function W(x1,p1,x2,p2).
+
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density operator with dims [[N1, N2], [N1, N2]].
+    x1, p1, x2, p2 : array_like
+        Quadrature coordinate arrays for each mode (1D arrays).
+    g : float, default: sqrt(2)
+        Scaling factor where α = (x + ip)/g and ħ = 2/g².
+    chunk_sizes : tuple, default: (16, 16)
+        Chunk sizes along (x1,p1) axes for memory management.
+
+    Returns
+    -------
+    ndarray
+        Real array with shape (len(x1), len(p1), len(x2), len(p2)).
+        
+    Notes
+    -----
+    Computes the full four-dimensional two-mode Wigner function:
+    
+    .. math::
+        W(x_1,p_1,x_2,p_2) = \\frac{4}{\\pi^2} \\text{Tr}\\left[\\rho D_1(\\alpha_1) D_2(\\alpha_2) 
+        \\Pi D_2^{\\dagger}(\\alpha_2) D_1^{\\dagger}(\\alpha_1)\\right]
+    
+    where :math:`\\alpha_i = (x_i + ip_i)/g` and :math:`\\Pi` is the two-mode parity operator.
+    Negative values indicate quantum entanglement and non-classicality.
+    """
+    rho, N1, N2 = _wigner_2mode_check_state(rho)
+    x1 = _wigner_2mode_check_coordinates(x1, "x1")
+    p1 = _wigner_2mode_check_coordinates(p1, "p1")
+    x2 = _wigner_2mode_check_coordinates(x2, "x2")
+    p2 = _wigner_2mode_check_coordinates(p2, "p2")
+
+    Pi = _wigner_2mode_parity(N1, N2)
+    out = zeros((len(x1), len(p1), len(x2), len(p2)))
+
+    # Cache displacement operators for mode 2
+    D2_cache = {}
+    for k, x2_val in enumerate(x2):
+        for l, p2_val in enumerate(p2):
+            alpha2 = (x2_val + 1j * p2_val) / g
+            D2_cache[(k, l)] = displace(N2, alpha2)
+
+    cx, cp = chunk_sizes
+    for i0 in range(0, len(x1), cx):
+        i1 = min(i0 + cx, len(x1))
+        for j0 in range(0, len(p1), cp):
+            j1 = min(j0 + cp, len(p1))
+
+            # Cache D1 for current chunk
+            D1_cache = {}
+            for i in range(i0, i1):
+                for j in range(j0, j1):
+                    alpha1 = (x1[i] + 1j * p1[j]) / g
+                    D1_cache[(i, j)] = displace(N1, alpha1)
+
+            # Compute Wigner elements for this chunk
+            for i in range(i0, i1):
+                for j in range(j0, j1):
+                    D1 = D1_cache[(i, j)]
+                    for k in range(len(x2)):
+                        for l in range(len(p2)):
+                            D2 = D2_cache[(k, l)]
+                            D = tensor(D1, D2)
+                            val = (4.0 / pi**2) * (rho * D * Pi * D.dag()).tr()
+                            out[i, j, k, l] = real(val)
+
+    return out
+
+
+def wigner_2mode_xx(rho, x1, x2, p1=0.0, p2=0.0, g=sqrt(2)):
+    """
+    2D slice W(x1, x2) with p1, p2 fixed.
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density matrix.
+    x1, x2 : array_like
+        Position coordinates for each mode.
+    p1, p2 : float, default: 0.0
+        Fixed momentum coordinates.
+    g : float, default: sqrt(2)
+        Scaling factor.
+        
+    Returns
+    -------
+    ndarray
+        2D Wigner function slice, shape (len(x1), len(x2)).
+    """
+    x1 = _wigner_2mode_check_coordinates(x1, "x1")
+    x2 = _wigner_2mode_check_coordinates(x2, "x2")
+    W = wigner_2mode_full(rho, x1, [p1], x2, [p2], g=g)
+    return W[:, 0, :, 0]
+
+
+def wigner_2mode_xp(rho, x1, p1, x2=0.0, p2=0.0, g=sqrt(2)):
+    """
+    2D slice W(x1, p1) with x2, p2 fixed.
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density matrix.
+    x1, p1 : array_like
+        Position and momentum coordinates for mode 1.
+    x2, p2 : float, default: 0.0
+        Fixed coordinates for mode 2.
+    g : float, default: sqrt(2)
+        Scaling factor.
+        
+    Returns
+    -------
+    ndarray
+        2D Wigner function slice, shape (len(x1), len(p1)).
+    """
+    x1 = _wigner_2mode_check_coordinates(x1, "x1")
+    p1 = _wigner_2mode_check_coordinates(p1, "p1")
+    W = wigner_2mode_full(rho, x1, p1, [x2], [p2], g=g)
+    return W[:, :, 0, 0]
+
+
+def wigner_2mode_alpha(rho, alpha1, alpha2):
+    """
+    Wigner function on complex phase-space grid W(α1, α2).
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density matrix.
+    alpha1, alpha2 : array_like (complex)
+        Complex phase-space coordinates for each mode.
+        
+    Returns
+    -------
+    ndarray
+        Real array with shape (len(alpha1), len(alpha2)).
+    """
+    rho, N1, N2 = _wigner_2mode_check_state(rho)
+    alpha1 = array(alpha1, dtype=np.complex128)
+    alpha2 = array(alpha2, dtype=np.complex128)
+    if alpha1.ndim != 1 or alpha2.ndim != 1:
+        raise ValueError("alpha1 and alpha2 must be 1D arrays")
+
+    Pi = _wigner_2mode_parity(N1, N2)
+    D1_list = [displace(N1, complex(a)) for a in alpha1]
+    D2_list = [displace(N2, complex(b)) for b in alpha2]
+
+    out = zeros((len(alpha1), len(alpha2)))
+    for i, D1 in enumerate(D1_list):
+        for j, D2 in enumerate(D2_list):
+            D = tensor(D1, D2)
+            val = (4.0 / pi**2) * (rho * D * Pi * D.dag()).tr()
+            out[i, j] = real(val)
+    return out
+
+
+def qfunc_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2)):
+    r"""
+    Full 4D two-mode Q-function Q(x1,p1,x2,p2).
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density operator.
+    x1, p1, x2, p2 : array_like
+        Quadrature coordinate arrays.
+    g : float, default: sqrt(2)
+        Scaling factor.
+        
+    Returns
+    -------
+    ndarray
+        Real array with shape (len(x1), len(p1), len(x2), len(p2)).
+        Always non-negative.
+        
+    Notes
+    -----
+    Computes the two-mode Q-function:
+    
+    .. math::
+        Q(\\alpha_1, \\alpha_2) = \\frac{1}{\\pi^2}\\left\\langle\\alpha_1,\\alpha_2|\\rho|\\alpha_1,\\alpha_2\\right\\rangle
+    
+    where :math:`|\\alpha_1,\\alpha_2\\rangle = |\\alpha_1\\rangle \\otimes |\\alpha_2\\rangle`.
+    """
+    rho, N1, N2 = _wigner_2mode_check_state(rho)
+    x1 = _wigner_2mode_check_coordinates(x1, "x1")
+    p1 = _wigner_2mode_check_coordinates(p1, "p1")
+    x2 = _wigner_2mode_check_coordinates(x2, "x2")
+    p2 = _wigner_2mode_check_coordinates(p2, "p2")
+
+    out = zeros((len(x1), len(p1), len(x2), len(p2)))
+    inv_pi2 = 1.0 / pi**2
+
+    # Cache coherent states
+    ket1_cache = {}
+    for i, x1_val in enumerate(x1):
+        for j, p1_val in enumerate(p1):
+            alpha1 = (x1_val + 1j * p1_val) / g
+            ket1_cache[(i, j)] = coherent(N1, alpha1)
+
+    ket2_cache = {}
+    for k, x2_val in enumerate(x2):
+        for l, p2_val in enumerate(p2):
+            alpha2 = (x2_val + 1j * p2_val) / g
+            ket2_cache[(k, l)] = coherent(N2, alpha2)
+
+    for i in range(len(x1)):
+        for j in range(len(p1)):
+            psi1 = ket1_cache[(i, j)]
+            for k in range(len(x2)):
+                for l in range(len(p2)):
+                    psi2 = ket2_cache[(k, l)]
+                    psi = tensor(psi1, psi2)
+                    result = psi.dag() * rho * psi
+                    val = result.tr() if hasattr(result, 'tr') else result
+                    out[i, j, k, l] = real(val) * inv_pi2
+
+    return out
+
+
+def qfunc_2mode_alpha(rho, alpha1, alpha2):
+    """Q-function on complex phase-space grid Q(α1, α2)."""
+    rho, N1, N2 = _wigner_2mode_check_state(rho)
+    alpha1 = array(alpha1, dtype=np.complex128)
+    alpha2 = array(alpha2, dtype=np.complex128)
+    if alpha1.ndim != 1 or alpha2.ndim != 1:
+        raise ValueError("alpha1 and alpha2 must be 1D arrays")
+
+    kets1 = [coherent(N1, complex(a)) for a in alpha1]
+    kets2 = [coherent(N2, complex(b)) for b in alpha2]
+
+    out = zeros((len(alpha1), len(alpha2)))
+    inv_pi2 = 1.0 / pi**2
+
+    for i, psi1 in enumerate(kets1):
+        for j, psi2 in enumerate(kets2):
+            psi = tensor(psi1, psi2)
+            val = (psi.dag() * rho * psi).tr()
+            out[i, j] = real(val) * inv_pi2
+    return out
+
+
+def wigner_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx"):
+    r"""
+    Two-mode Wigner function with flexible coordinate interpretation.
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density matrix with dims [[N1, N2], [N1, N2]].
+    xvec, yvec : array_like
+        Coordinate arrays for the two modes.
+    g : float, default: sqrt(2)
+        Scaling factor where ħ = 2/g².
+    interpretation : str, default: "xx"
+        Coordinate interpretation:
+        
+        - "xx": W(x1, x2) with p1=p2=0
+        - "xp": W(x1, p1) with x2=p2=0  
+        - "alpha": W(Re(α1), Re(α2)) with Im(α1)=Im(α2)=0
+        
+    Returns
+    -------
+    ndarray
+        Two-mode Wigner function values with shape (len(xvec), len(yvec)).
+        
+    See Also
+    --------
+    wigner_2mode_full : Complete 4D two-mode Wigner function
+    wigner_2mode_xx : Position-position slice
+    wigner_2mode_xp : Position-momentum slice
+        
+    Notes
+    -----
+    This function computes 2D slices of the full four-dimensional two-mode 
+    Wigner function for visualization purposes. For the complete function,
+    use :obj:`wigner_2mode_full`.
+    """
+    if interpretation == "xx":
+        return wigner_2mode_xx(rho, xvec, yvec, p1=0.0, p2=0.0, g=g)
+    elif interpretation == "xp":
+        return wigner_2mode_xp(rho, xvec, yvec, x2=0.0, p2=0.0, g=g)
+    elif interpretation == "alpha":
+        a1 = array(xvec, dtype=float) + 0j
+        a2 = array(yvec, dtype=float) + 0j
+        return wigner_2mode_alpha(rho, a1, a2)
+    else:
+        raise ValueError("interpretation must be one of {'xx','xp','alpha'}")
+
+
+def qfunc_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx"):
+    r"""
+    Two-mode Q-function with flexible coordinate interpretation.
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density matrix with dims [[N1, N2], [N1, N2]].
+    xvec, yvec : array_like
+        Coordinate arrays for the two modes.
+    g : float, default: sqrt(2)
+        Scaling factor where ħ = 2/g².
+    interpretation : str, default: "xx"
+        Coordinate interpretation (same options as :obj:`wigner_2mode`).
+        
+    Returns
+    -------
+    ndarray
+        Two-mode Q-function values with shape (len(xvec), len(yvec)).
+        Always non-negative.
+        
+    See Also
+    --------
+    qfunc_2mode_full : Complete 4D two-mode Q-function
+    wigner_2mode : Two-mode Wigner function
+        
+    Notes
+    -----
+    For the complete 4D Q-function, use :obj:`qfunc_2mode_full`.
+    """
+    if interpretation == "xx":
+        Q = qfunc_2mode_full(rho, xvec, [0.0], yvec, [0.0], g=g)
+        return Q[:, 0, :, 0]
+    elif interpretation == "xp":
+        Q = qfunc_2mode_full(rho, xvec, yvec, [0.0], [0.0], g=g)
+        return Q[:, :, 0, 0]
+    elif interpretation == "alpha":
+        a1 = array(xvec, dtype=float) + 0j
+        a2 = array(yvec, dtype=float) + 0j
+        return qfunc_2mode_alpha(rho, a1, a2)
+    else:
+        raise ValueError("interpretation must be one of {'xx','xp','alpha'}")
+        
