@@ -252,3 +252,7 @@ def test_rk_debug_stats(integrator):
     assert isinstance(stats, dict)
     assert "num_step_total" in stats
     assert "success" in stats
+    assert "times" in stats
+    assert "step_lengths" in stats
+    assert "success" in stats
+    assert "safe_dts" in stats

@@ -19,11 +19,11 @@ cdef class RKStats:
     cdef int num_interpolation_step, num_interpolation_preparation
     cdef int num_derr_computation
 
-    cdef double max_sucess_dt, min_sucess_dt, avg_sucess_dt
+    cdef double max_success_dt, min_success_dt, avg_success_dt
     cdef double max_failed_dt, min_failed_dt, avg_failed_dt
-    cdef double max_sucess_error, min_sucess_error, avg_sucess_error
+    cdef double max_success_error, min_success_error, avg_success_error
     cdef double max_failed_error, min_failed_error, avg_failed_error
-    cdef double max_sucess_safe_dt, min_sucess_safe_dt, avg_sucess_safe_dt
+    cdef double max_success_safe_dt, min_success_safe_dt, avg_success_safe_dt
     cdef double max_failed_safe_dt, min_failed_safe_dt, avg_failed_safe_dt
     cdef dict full_step_data
 

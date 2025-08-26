@@ -62,25 +62,25 @@ cdef class RKStats:
         self.num_interpolation_preparation = 0
         self.num_derr_computation = 0
 
-        self.max_sucess_dt = -1
+        self.max_success_dt = -1
         self.max_failed_dt = -1
-        self.max_sucess_error = -1
+        self.max_success_error = -1
         self.max_failed_error = -1
-        self.max_sucess_safe_dt = -1
+        self.max_success_safe_dt = -1
         self.max_failed_safe_dt = -1
 
-        self.min_sucess_dt = np.inf
+        self.min_success_dt = np.inf
         self.min_failed_dt = np.inf
-        self.min_sucess_error = np.inf
+        self.min_success_error = np.inf
         self.min_failed_error = np.inf
-        self.min_sucess_safe_dt = np.inf
+        self.min_success_safe_dt = np.inf
         self.min_failed_safe_dt = np.inf
 
-        self.avg_sucess_dt = 0
+        self.avg_success_dt = 0
         self.avg_failed_dt = 0
-        self.avg_sucess_error = 0
+        self.avg_success_error = 0
         self.avg_failed_error = 0
-        self.avg_sucess_safe_dt = 0
+        self.avg_success_safe_dt = 0
         self.avg_failed_safe_dt = 0
 
         if self.loglevel == 2:
@@ -105,22 +105,22 @@ cdef class RKStats:
         self.num_step_success += 1
         self.num_derr_computation += self.rk_step
 
-        self.max_sucess_dt = max(self.max_sucess_dt, dt)
-        self.min_sucess_dt = min(self.min_sucess_dt, dt)
-        self.avg_sucess_dt += dt
-        self.max_sucess_error = max(self.max_sucess_error, error)
-        self.min_sucess_error = min(self.min_sucess_error, error)
-        self.avg_sucess_error += error
-        self.max_sucess_safe_dt = max(self.max_sucess_error, safe_dt)
-        self.min_sucess_safe_dt = min(self.min_sucess_error, safe_dt)
-        self.avg_sucess_safe_dt += safe_dt
+        self.max_success_dt = max(self.max_success_dt, dt)
+        self.min_success_dt = min(self.min_success_dt, dt)
+        self.avg_success_dt += dt
+        self.max_success_error = max(self.max_success_error, error)
+        self.min_success_error = min(self.min_success_error, error)
+        self.avg_success_error += error
+        self.max_success_safe_dt = max(self.max_success_error, safe_dt)
+        self.min_success_safe_dt = min(self.min_success_error, safe_dt)
+        self.avg_success_safe_dt += safe_dt
 
         if self.loglevel == 1:
             return
 
         self.full_step_data["success"].append(True)
         self.full_step_data["times"].append(t)
-        self.full_step_data["step_lenghts"].append(dt)
+        self.full_step_data["step_lengths"].append(dt)
         self.full_step_data["errors"].append(error)
         self.full_step_data["safe_dts"].append(safe_dt)
 
@@ -144,7 +144,7 @@ cdef class RKStats:
 
         self.full_step_data["success"].append(False)
         self.full_step_data["times"].append(t)
-        self.full_step_data["step_lenghts"].append(dt)
+        self.full_step_data["step_lengths"].append(dt)
         self.full_step_data["errors"].append(error)
         self.full_step_data["safe_dts"].append(safe_dt)
 
@@ -167,25 +167,25 @@ cdef class RKStats:
             "num_interpolation_preparation": self.num_interpolation_preparation,
             "num_derr_computation": self.num_derr_computation,
 
-            "max_success_dt": self.max_sucess_dt,
+            "max_success_dt": self.max_success_dt,
             "max_failed_dt": self.max_failed_dt,
-            "max_success_error": self.max_sucess_error,
+            "max_success_error": self.max_success_error,
             "max_failed_error": self.max_failed_error,
-            "max_success_safe_dt": self.max_sucess_safe_dt,
+            "max_success_safe_dt": self.max_success_safe_dt,
             "max_failed_safe_dt": self.max_failed_safe_dt,
 
-            "min_success_dt": self.min_sucess_dt,
+            "min_success_dt": self.min_success_dt,
             "min_failed_dt": self.min_failed_dt,
-            "min_success_error": self.min_sucess_error,
+            "min_success_error": self.min_success_error,
             "min_failed_error": self.min_failed_error,
-            "min_success_safe_dt": self.min_sucess_safe_dt,
+            "min_success_safe_dt": self.min_success_safe_dt,
             "min_failed_safe_dt": self.min_failed_safe_dt,
         }
 
         if self.num_step_success:
-            out["avg_success_dt"] = self.avg_sucess_dt / self.num_step_success
-            out["avg_success_error"] = self.avg_sucess_error / self.num_step_success
-            out["avg_success_safe_dt"] = self.avg_sucess_safe_dt / self.num_step_success
+            out["avg_success_dt"] = self.avg_success_dt / self.num_step_success
+            out["avg_success_error"] = self.avg_success_error / self.num_step_success
+            out["avg_success_safe_dt"] = self.avg_success_safe_dt / self.num_step_success
         else:
             out["avg_success_dt"] = 0
             out["avg_success_error"] = 0
