@@ -175,7 +175,7 @@ def e_op_num(t, state):
 
 
 @pytest.mark.skipif(mpl is None, reason="matplotlib is not available.")
-@pytest.mark.parametrize('n_of_e_ops', [(1), (2), (3)])
+@pytest.mark.parametrize('n_of_e_ops', [1, 2, 3])
 def test_plot_expect(n_of_e_ops):
     H = qutip.sigmaz() + 0.3 * qutip.sigmay()
     e_ops = [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
@@ -314,8 +314,7 @@ class TestMultiTrajResult:
             [np.arange(5), np.ones(5)],
             id="dict-e-ops",
         ),
-        pytest.param(qutip.QobjEvo(qutip.num(5)), [
-                     np.arange(5)], id="qobjevo"),
+        pytest.param(qutip.QobjEvo(qutip.num(5)), [np.arange(5)], id="qobjevo"),
         pytest.param(e_op_num, [np.arange(5)], id="function"),
         pytest.param(
             [qutip.num(5), e_op_num],

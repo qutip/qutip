@@ -401,16 +401,18 @@ class Result(_BaseResult):
             raise ValueError("This is not a result after evolution.")
         if not mpl_available:
             raise ImportError(
-                "matplotlib is required for plot_expect. Please install it.")
+                "matplotlib is required for plot_expect.")
         labels = list(self.e_data.keys())
-        fig, axes = plt.subplots(len(labels))
+        if len(labels) > 1:
+            raise ValueError("Too many ops to be plotted.")
+        
+        fig, axes = plt.subplots(len(labels), 1, figsize=(10, 6 * len(labels)))
         if len(labels) == 1:
             axes = np.array([axes])
         for i, (label, values) in enumerate(zip(labels, self.expect)):
             axes[i].plot(self.times, values)
             axes[i].set_xlabel('Time')
             axes[i].set_ylabel('Exp. Val.: ' + str(label))
-        plt.close(fig)
         return fig, axes
 
     @property
