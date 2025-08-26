@@ -6,6 +6,34 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.2.1 (2025-08-25)
+========================
+
+Features
+--------
+
+- Add tsit5 integration method (#2720)
+- Provided functionality to output Qobj eigenstates as a list of kets or an operator. (#2731, by Hrishikesh Belagali)
+
+
+Bug Fixes
+---------
+
+- ENR dimension bugfix for when QobjEvo is multiplied by Coefficient (#2713, by ottosalmenkivi)
+- Use the common error definition in the homemade ODE solvers. (#2726)
+  It used to compute ``rtol`` on the vector norm, now it's computed per element.
+- Fix a bug with histogram animation showing only one bar. (#2682, by Sneha Uppula)
+
+
+Miscellaneous
+-------------
+
+- Adapt to issues with Scipy 1.16 (#2711)
+- The Liouvillian no longer expects the Hamiltonian to be Hermitian. (#2658)
+- Various improvement for supporting plug-ins. (#2718, #2719, #2723)
+- It's no longer possible to use sparse (CSR, Dia) format for the state in solvers. (#2734)
+
+
 QuTiP 5.2.0 (2025-06-06)
 ========================
 
