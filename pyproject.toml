@@ -3,14 +3,78 @@ requires = [
     "setuptools",
     "packaging",
     "wheel",
-    "cython>=0.29.20; python_version>='3.10'",
-    "cython>=0.29.20,<3.0.0; python_version<='3.9'",
-    # See https://numpy.org/doc/stable/user/depending_on_numpy.html for
-    # the recommended way to build against numpy's C API:
+    "cython>=0.29.20",
     "numpy>=2.0.0",
     "scipy>=1.9",
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "qutip"
+dynamic = ["version"]
+description = "QuTiP: The Quantum Toolbox in Python"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE.txt"}
+keywords = ["quantum", "physics", "dynamics"]
+authors = [
+  {name = "Alexander Pitchford"},
+  {name = "Paul D. Nation"},
+  {name = "Robert J. Johansson"},
+  {name = "Chris Granade"},
+  {name = "Arne Grimsmo"},
+  {name = "Nathan Shammah"},
+  {name = "Shahnawaz Ahmed"},
+  {name = "Neill Lambert"},
+  {name = "Eric Giguère"},
+  {name = "Boxi Li"},
+  {name = "Jake Lishman"},
+  {name = "Simon Cross"},
+  {email = "qutip-admin@googlegroups.com"},
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: Microsoft :: Windows",
+]
+dependencies = [
+    "numpy>=1.22",
+    "scipy>=1.9,!=1.16.0",
+    "packaging",
+]
+
+# URLs for your project
+[project.urls]
+Homepage = "https://qutip.org"
+Issues = "https://github.com/qutip/qutip/issues"
+Documentation = "https://qutip.readthedocs.io/en/stable/"
+"Source Code" = "https://github.com/qutip/qutip"
+
+[project.optional-dependencies]
+graphics = ["matplotlib>=3.5"]
+runtime_compilation = ["cython>=0.29.20", "filelock", "setuptools"]
+semidefinite = ["cvxpy>=1.0", "cvxopt"]
+tests = ["pytest>=5.2", "pytest-rerunfailures"]
+ipython = ["ipython"]
+extras = [
+  "loky; python_version>='3.11'",
+  "loky!=3.5.0; python_version<='3.10'",
+  "tqdm",
+  "mpmath",
+]
+mpi = ["mpi4py"]
+full = [
+  "qutip[graphics,runtime_compilation,semidefinite,tests,ipython,extras]",
+]
+
+[tool.setuptools]
+packages = { find = { include = ["qutip*"] } }
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
