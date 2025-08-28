@@ -403,7 +403,7 @@ class Result(_BaseResult):
             raise ImportError(
                 "matplotlib is required for plot_expect.")
         labels = list(self.e_data.keys())
-        if len(labels) > 1:
+        if len(labels) > 10:
             raise ValueError("Too many ops to be plotted.")
         
         fig, axes = plt.subplots(len(labels), 1, figsize=(10, 6 * len(labels)))
