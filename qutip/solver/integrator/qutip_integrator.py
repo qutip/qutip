@@ -138,6 +138,12 @@ class IntegratorVern7(Integrator):
 
         allow_sparse : bool, default: False
             Whether to use sparse state for the evolution. Usually much slower.
+
+        loglevel: Litteral[0, 1, 2], default: 0
+            Ammount of information stored for statistical purpose.
+            0 : No information stored.
+            1 : Averages
+            2 : Information for each steps
         """
         return self._options
 
@@ -244,6 +250,7 @@ class IntegratorDiag(Integrator):
             self._dt = dt
         self._y *= self._expH
         self._t = t
+        self.stats["num_steps"] += 1
         return self.get_state(copy)
 
     def mcstep(self, t, copy=True):
@@ -258,6 +265,7 @@ class IntegratorDiag(Integrator):
         self._t = t
         self._y = _data.matmul(self.Uinv, state0).to_array()
         self._is_set = True
+        self.stats = {"num steps": 0}
 
     @property
     def options(self):
@@ -274,6 +282,9 @@ class IntegratorDiag(Integrator):
     @options.setter
     def options(self, new_options):
         Integrator.options.fset(self, new_options)
+
+    def get_statistics(self):
+        return self.stats.copy()
 
 
 Solver.add_integrator(IntegratorVern7, 'vern7')

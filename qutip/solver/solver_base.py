@@ -466,6 +466,23 @@ class Solver:
         """
         return _ExpectFeedback(operator, default)
 
+    def get_statistics(self) -> dict:
+        """
+        Return diverse statistics of the solver.
+
+        The options ``loglevel`` control the ammount of information stored by
+        the ode solvers.
+
+        Notes
+        -----
+        Multi-trajectories (Monte Carlo, Stochastic, ...) solver's Ode
+        statistics are not reliable.
+        """
+        return {
+            **self.stats,
+            "ode_statistique": self._integrator.get_statistics()
+        }
+
 
 def _solver_deprecation(kwargs, options, solver="me"):
     """

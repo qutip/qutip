@@ -279,13 +279,12 @@ cdef class Explicit_RungeKutta:
         # interpolation to get the state at the wanted time.
         self.interpolate = interpolate
 
+        self.loglevel = loglevel
+
         self.k = []
         self._init_coeff(**butcher_tableau)
         self.butcher_tableau = butcher_tableau
         self._y_prev = None
-        self.statistics = RKStats(
-            loglevel, self.rk_step, self.rk_extra_step, self.first_same_as_last
-        )
 
     def _init_coeff(self, order, a, b, c, e=None, bi=None):
         """
@@ -373,6 +372,13 @@ cdef class Explicit_RungeKutta:
         self._t_front = t
         self._dt_int = 0
         self._y = y0
+
+        self.statistics = RKStats(
+            self.loglevel,
+            self.rk_step,
+            self.rk_extra_step,
+            self.first_same_as_last
+        )
 
         #prepare the buffers
         self.k = []

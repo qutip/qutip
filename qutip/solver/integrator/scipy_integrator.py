@@ -33,6 +33,7 @@ class IntegratorScipyAdams(Integrator):
         'first_step': 0,
         'max_step': 0,
         'min_step': 0,
+        'loglevel': 0,
     }
     support_time_dependant = True
     supports_blackbox = True
@@ -52,11 +53,19 @@ class IntegratorScipyAdams(Integrator):
         """
         Initialize the solver
         """
-        self._ode_solver = ode(self._mul_np_vec)
+        if self.options["loglevel"] >= 1:
+            self._ode_solver = ode(self._mul_np_vec_with_logs)
+        else:
+            self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('zvode')
+        options = {
+            key: value
+            for key, value in self.options.items()
+            if key != "loglevel"
+        }
         self._ode_solver._integrator = self._zvode(
             method=self.method,
-            **self.options,
+            **options,
         )
         self.name = "scipy zvode " + self.method
 
@@ -64,6 +73,17 @@ class IntegratorScipyAdams(Integrator):
         """
         Interface between scipy which use numpy and the driver, which use data.
         """
+        state = _data.dense.fast_from_numpy(vec)
+        column_unstack_dense(state, self._size, inplace=True)
+        out = self.system.matmul_data(t, state)
+        column_stack_dense(out, inplace=True)
+        return out.as_ndarray().ravel()
+
+    def _mul_np_vec_with_logs(self, t, vec):
+        """
+        Interface between scipy which use numpy and the driver, which use data.
+        """
+        self.stats["times"].append(t)
         state = _data.dense.fast_from_numpy(vec)
         column_unstack_dense(state, self._size, inplace=True)
         out = self.system.matmul_data(t, state)
@@ -79,6 +99,7 @@ class IntegratorScipyAdams(Integrator):
         if self._mat_state:
             state0 = _data.column_stack(state0)
         self._ode_solver.set_initial_value(state0.to_array().ravel(), t)
+        self.stats = {"times": []}
 
     def get_state(self, copy=True):
         if not self._is_set:
@@ -185,12 +206,20 @@ class IntegratorScipyAdams(Integrator):
             Maximum step size (0 = automatic)
             When using pulses, change to half the thinest pulse otherwise it
             may be skipped.
+
+        loglevel: Litteral[0, 1], default: 0
+            Ammount of information stored for statistical purpose.
+            0 : No information stored.
+            1 : times of each derrative computation.
     """
         return self._options
 
     @options.setter
     def options(self, new_options):
         Integrator.options.fset(self, new_options)
+
+    def get_statistics(self):
+        return self.stats.copy()
 
 
 class IntegratorScipyBDF(IntegratorScipyAdams):
@@ -210,6 +239,7 @@ class IntegratorScipyBDF(IntegratorScipyAdams):
         'first_step': 0,
         'max_step': 0,
         'min_step': 0,
+        'loglevel': 0,
     }
 
 
@@ -232,6 +262,7 @@ class IntegratorScipyDop853(Integrator):
         'ifactor': 6.0,
         'dfactor': 0.3,
         'beta': 0.0,
+        'loglevel': 0,
     }
     support_time_dependant = True
     supports_blackbox = True
@@ -241,14 +272,33 @@ class IntegratorScipyDop853(Integrator):
         """
         Initialize the solver
         """
-        self._ode_solver = ode(self._mul_np_vec)
-        self._ode_solver.set_integrator('dop853', **self.options)
+        if self.options["loglevel"] >= 1:
+            self._ode_solver = ode(self._mul_np_vec_with_logs)
+        else:
+            self._ode_solver = ode(self._mul_np_vec)
+        options = {
+            key: value
+            for key, value in self.options.items()
+            if key != "loglevel"
+        }
+        self._ode_solver.set_integrator('dop853', **options)
         self.name = "scipy ode dop853"
 
     def _mul_np_vec(self, t, vec):
         """
         Interface between scipy which use numpy and the driver, which use data.
         """
+        state = _data.dense.fast_from_numpy(vec.view(np.complex128))
+        column_unstack_dense(state, self._size, inplace=True)
+        out = self.system.matmul_data(t, state)
+        column_stack_dense(out, inplace=True)
+        return out.as_ndarray().ravel().view(np.float64)
+
+    def _mul_np_vec_with_logs(self, t, vec):
+        """
+        Interface between scipy which use numpy and the driver, which use data.
+        """
+        self.stats["times"].append(t)
         state = _data.dense.fast_from_numpy(vec.view(np.complex128))
         column_unstack_dense(state, self._size, inplace=True)
         out = self.system.matmul_data(t, state)
@@ -305,6 +355,7 @@ class IntegratorScipyDop853(Integrator):
             state0.to_array().ravel().view(np.float64),
             t
         )
+        self.stats = {"times": []}
 
     def _check_failed_integration(self):
         if self._ode_solver.successful():
@@ -347,6 +398,11 @@ class IntegratorScipyDop853(Integrator):
         beta : float, default: 0
             Beta parameter for stabilised step size control.
 
+        loglevel: Litteral[0, 1], default: 0
+            Ammount of information stored for statistical purpose.
+            0 : No information stored.
+            1 : times of each derrative computation.
+
         See scipy.integrate.ode ode for more detail
         """
         return self._options
@@ -354,6 +410,9 @@ class IntegratorScipyDop853(Integrator):
     @options.setter
     def options(self, new_options):
         Integrator.options.fset(self, new_options)
+
+    def get_statistics(self):
+        return self.stats.copy()
 
 
 class IntegratorScipylsoda(IntegratorScipyDop853):
@@ -373,6 +432,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         'first_step': 0.0,
         'max_step': 0.0,
         'min_step': 0.0,
+        'loglevel': 0,
     }
     support_time_dependant = True
     supports_blackbox = True
@@ -383,7 +443,12 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
-        self._ode_solver.set_integrator('lsoda', **self.options)
+        options = {
+            key: value
+            for key, value in self.options.items()
+            if key != "loglevel"
+        }
+        self._ode_solver.set_integrator('lsoda', **options)
         self.name = "scipy lsoda"
 
     def _check_handle(self):
@@ -516,6 +581,11 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
 
         min_step : float, default: 0
             Minimum step size (0 = automatic)
+
+        loglevel: Litteral[0, 1], default: 0
+            Ammount of information stored for statistical purpose.
+            0 : No information stored.
+            1 : times of each derrative computation.
         """
         return self._options
 

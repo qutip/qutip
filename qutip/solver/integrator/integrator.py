@@ -73,6 +73,7 @@ class Integrator:
         self._back = (np.inf, None)
         self._options = self.integrator_options.copy()
         self.options = options
+        self.stats = {}
         self._prepare()
 
     def _prepare(self):
@@ -238,3 +239,6 @@ class Integrator:
                if key in new_options and new_options[key] is not None
             }
         }
+
+    def get_statistics(self) -> dict:
+        return {}

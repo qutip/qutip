@@ -50,6 +50,7 @@ cdef class Explicit_RungeKutta:
     cdef readonly double rtol, atol, first_step, min_step, max_step
     cdef readonly int max_numsteps
     cdef readonly bint interpolate
+    cdef readonly int loglevel
 
     # Runge Kutta tableau and info
     cdef int rk_step, rk_extra_step, order, denseout_order
