@@ -46,11 +46,11 @@ You will most likely want to do this in a clean Python environment so that you d
 
 :ref:`Complete instructions for the build <install>` are elsewhere in this guide, however beware that you will need to follow the :ref:`installation from source using setuptools section <build-setuptools>`, not the general installation.
 You will need all the *build* and *tests* "optional" requirements for the package.
-The build requirements can be found in the |pyproject.toml file|_, and the testing requirements are in the ``tests`` key of the ``project.optional-dependencies`` section of |pyproject.toml|_.
+The build requirements can be found in the |pyproject.toml|_ file, and the testing requirements are in the ``tests`` key of the ``project.optional-dependencies`` section of |pyproject.toml|_.
 You will also need the requirements for any optional features you want to test as well.
 
-.. |pyproject.toml file| replace:: ``pyproject.toml`` file
-.. _pyproject.toml file: https://github.com/qutip/qutip/blob/master/pyproject.toml
+.. |pyproject.toml| replace:: ``pyproject.toml`` file
+.. _pyproject.toml: https://github.com/qutip/qutip/blob/master/pyproject.toml
 
 Refer to the main instructions for the most up-to-date version, however as of version 4.6 the requirements can be installed into a conda environment with ::
 
