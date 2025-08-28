@@ -34,10 +34,9 @@ from .core.tensor import tensor
 # Parity operator implementation (named 'parity' to match existing calls)
 def parity(N):
     """Create a parity operator for N-dimensional Hilbert space.
-    
     The parity operator is P = sum_n (-1)^n |n><n|
     """
-    from numpy import diag, arange
+    from numpy import arange
     # Create diagonal matrix with (-1)^n entries
     data = (-1) ** arange(N)
     return qdiags(data)
