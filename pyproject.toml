@@ -15,7 +15,7 @@ dynamic = ["version"]
 description = "QuTiP: The Quantum Toolbox in Python"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {name = "BSD-3-Clause"}
+license = {text = "BSD-3-Clause"}
 keywords = ["quantum", "physics", "dynamics"]
 authors = [
   {name = "Alexander Pitchford"},
