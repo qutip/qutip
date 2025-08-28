@@ -40,7 +40,7 @@ def parity(N):
     from numpy import diag, arange
     # Create diagonal matrix with (-1)^n entries
     data = (-1) ** arange(N)
-    return Qobj(diag(data))
+    return qdiags(data)
 
 import qutip.settings
 from .solver.parallel import parallel_map
