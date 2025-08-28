@@ -28,7 +28,7 @@ except ImportError:
 # Direct imports from core modules to avoid circular imports
 from .core.qobj import Qobj
 from .core.states import coherent
-from .core.operators import displace, jmat
+from .core.operators import displace, jmat, qdiags
 from .core.tensor import tensor
 
 # Parity operator implementation (named 'parity' to match existing calls)
