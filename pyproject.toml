@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools",
+    "setuptools>=77.0.3",
     "packaging",
     "wheel",
     "cython>=0.29.20",
@@ -15,7 +15,7 @@ dynamic = ["version"]
 description = "QuTiP: The Quantum Toolbox in Python"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "BSD-3-Clause"}
+license = "BSD-3-Clause"
 keywords = ["quantum", "physics", "dynamics"]
 authors = [
   {name = "Alexander Pitchford"},
