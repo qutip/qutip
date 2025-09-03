@@ -10,6 +10,7 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=*, Dense 
 cpdef Dense matmul_csr_dense_dense(CSR left, Dense right, double complex scale=*, Dense out=*)
 cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=*)
 cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=*, Dense out=*)
+cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=*, Dense out=*)
 cdef Dense matmul_data_dense(Data left, Dense right)
 cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense out)
 
