@@ -1321,7 +1321,8 @@ def qfunc_2mode_alpha(rho, alpha1, alpha2):
     for i, psi1 in enumerate(kets1):
         for j, psi2 in enumerate(kets2):
             psi = tensor(psi1, psi2)
-            val = (psi.dag() * rho * psi).tr()
+            result = psi.dag() * rho * psi
+            val = result.tr() if hasattr(result, 'tr') else result
             out[i, j] = real(val) * inv_pi2
     return out
 
