@@ -129,18 +129,12 @@ def jaynes_cummings(
 
     # Atomic spontaneous emission: sqrt(gamma) * sigma_minus
     # Check if it's a Coefficient
-    if isinstance(atomic_decay, Coefficient):
-        sqrt_atomic_decay = _create_sqrt_coefficient(atomic_decay)
-        c_ops.append(sqrt_atomic_decay * operators['sigma_minus'])
-    elif atomic_decay > 0.0:  
+    if isinstance(atomic_decay, Coefficient) or atomic_decay > 0.0:
         sqrt_atomic_decay = _create_sqrt_coefficient(atomic_decay)
         c_ops.append(sqrt_atomic_decay * operators['sigma_minus'])
 
     # Atomic pure dephasing:  sqrt(gamma_phi)* sigma_z
-    if isinstance(atomic_dephasing, Coefficient):
-        sqrt_atomic_dephasing = _create_sqrt_coefficient(atomic_dephasing)
-        c_ops.append(sqrt_atomic_dephasing * operators['sigma_z'])
-    elif atomic_dephasing > 0.0:  
+    if isinstance(atomic_dephasing, Coefficient) or atomic_dephasing > 0.0:
         sqrt_atomic_dephasing = _create_sqrt_coefficient(atomic_dephasing)
         c_ops.append(sqrt_atomic_dephasing * operators['sigma_z'])
 

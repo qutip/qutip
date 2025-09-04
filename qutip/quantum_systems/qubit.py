@@ -50,18 +50,12 @@ def qubit(omega: Union[float, Coefficient] = 1.0, decay_rate: Union[float, Coeff
     c_ops = []
     
     # Handle decay_rate: coefficient object OR positive numeric value
-    if isinstance(decay_rate, Coefficient):
-        sqrt_decay_rate = _create_sqrt_coefficient(decay_rate)
-        c_ops.append(sqrt_decay_rate * operators['sigma_minus'])
-    elif decay_rate > 0.0:  
+    if isinstance(decay_rate, Coefficient) or decay_rate > 0.0:
         sqrt_decay_rate = _create_sqrt_coefficient(decay_rate)
         c_ops.append(sqrt_decay_rate * operators['sigma_minus'])
     
     # Handle dephasing_rate: coefficient object OR positive numeric value
-    if isinstance(dephasing_rate, Coefficient):
-        sqrt_dephasing_rate = _create_sqrt_coefficient(dephasing_rate)
-        c_ops.append(sqrt_dephasing_rate * operators['sigma_z'])
-    elif dephasing_rate > 0.0:  
+    if isinstance(dephasing_rate, Coefficient) or dephasing_rate > 0.0:
         sqrt_dephasing_rate = _create_sqrt_coefficient(dephasing_rate)
         c_ops.append(sqrt_dephasing_rate * operators['sigma_z'])
 
