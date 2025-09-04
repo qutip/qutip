@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from qutip import destroy, sigmax, sigmaz, sigmay, create, coefficient
+from qutip import destroy, sigmax, sigmaz, sigmay, create, coefficient, QobjEvo
 from qutip.quantum_systems.qubit import qubit
 from qutip.quantum_systems.quantum_system import QuantumSystem
 
@@ -173,6 +173,9 @@ class TestQubit:
         assert q.parameters["omega"] == omega_coeff
         assert q.parameters["decay_rate"] == decay_coeff  
         assert q.parameters["dephasing_rate"] == dephasing_coeff
+
+        # Test that the Hamiltonian is the right format (QobjEvo for time-dependent)
+        assert isinstance(q.hamiltonian, QobjEvo)
 
         # Test that system is created successfully
         assert isinstance(q, QuantumSystem)

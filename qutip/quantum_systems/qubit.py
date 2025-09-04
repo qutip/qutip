@@ -11,16 +11,16 @@ def _create_sqrt_coefficient(rate):
         try:
             # Try to create a callable that returns sqrt of the coefficient evaluation
             def sqrt_func(t, args):
-                return np.sqrt(rate.coeff(t, args) if hasattr(rate, 'coeff') else rate(t, args))
+                return np.sqrt(rate(t, args))
             return coefficient(sqrt_func, args={})
-        except:
+        except(TypeError, AttributeError, ValueError):
             # Fallback: assume user provided the correct coefficient
             return rate
     else:
         return np.sqrt(rate)
 
-def qubit(omega: Union[float, coefficient] = 1.0, decay_rate: Union[float, coefficient] = 0.0,
-    dephasing_rate: Union[float, coefficient] = 0.0) -> QuantumSystem:
+def qubit(omega: Union[float, Coefficient] = 1.0, decay_rate: Union[float, Coefficient] = 0.0,
+    dephasing_rate: Union[float, Coefficient] = 0.0) -> QuantumSystem:
     """
     Create two-level system (qubit)
 
@@ -53,13 +53,19 @@ def qubit(omega: Union[float, coefficient] = 1.0, decay_rate: Union[float, coeff
     # Build collapse operators
     c_ops = []
     
-    # Handle decay_rate: coefficient object OR positive float
-    if isinstance(decay_rate, Coefficient) or (isinstance(decay_rate, (int, float)) and decay_rate > 0.0):
+    # Handle decay_rate: coefficient object OR positive numeric value
+    if isinstance(decay_rate, Coefficient):
+        sqrt_decay_rate = _create_sqrt_coefficient(decay_rate)
+        c_ops.append(sqrt_decay_rate * operators['sigma_minus'])
+    elif decay_rate > 0.0:  
         sqrt_decay_rate = _create_sqrt_coefficient(decay_rate)
         c_ops.append(sqrt_decay_rate * operators['sigma_minus'])
     
-    # Handle dephasing_rate: coefficient object OR positive float  
-    if isinstance(dephasing_rate, Coefficient) or (isinstance(dephasing_rate, (int, float)) and dephasing_rate > 0.0):
+    # Handle dephasing_rate: coefficient object OR positive numeric value
+    if isinstance(dephasing_rate, Coefficient):
+        sqrt_dephasing_rate = _create_sqrt_coefficient(dephasing_rate)
+        c_ops.append(sqrt_dephasing_rate * operators['sigma_z'])
+    elif dephasing_rate > 0.0:  
         sqrt_dephasing_rate = _create_sqrt_coefficient(dephasing_rate)
         c_ops.append(sqrt_dephasing_rate * operators['sigma_z'])
 

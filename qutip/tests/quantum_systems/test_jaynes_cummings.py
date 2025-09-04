@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from qutip import tensor, qeye, destroy, sigmaz, basis, expect, coefficient
+from qutip import tensor, qeye, destroy, sigmaz, basis, expect, coefficient, QobjEvo
 from qutip.quantum_systems.jaynes_cummings import jaynes_cummings
 from qutip.quantum_systems.quantum_system import QuantumSystem
 
@@ -297,6 +297,9 @@ class TestJaynesCummings:
         assert jc.parameters["g"] == g_coeff
         assert jc.parameters["cavity_decay"] == cavity_decay_coeff
         assert jc.parameters["atomic_decay"] == atomic_decay_coeff
+
+        # Test that the Hamiltonian is the right format (QobjEvo for time-dependent)
+        assert isinstance(jc.hamiltonian, QobjEvo)
 
         # Test that system is created successfully
         assert isinstance(jc, QuantumSystem)
