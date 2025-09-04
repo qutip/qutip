@@ -1,6 +1,6 @@
 import numpy as np
 import qutip as qt
-from quantum_system import QuantumSystem  # Import the QuantumSystem class
+from .quantum_system import QuantumSystem
 
 
 def linear_spin_chain(
@@ -12,7 +12,6 @@ def linear_spin_chain(
     B_x: float = 0.0,
     B_y: float = 0.0,
     B_z: float = 0.0,
-    gamma_relaxation: float = 0.0,
     gamma_dephasing: float = 0.0,
     gamma_depolarizing: float = 0.0,
     gamma_thermal: float = 0.0,
@@ -26,10 +25,10 @@ def linear_spin_chain(
     Supports various spin models and open system dynamics.
 
     Model Hamiltonians:
-    - Heisenberg: H = J * sum_i [S_i^x * S_{i+1}^x + S_i^y * S_{i+1}^y + S_i^z * S_{i+1}^z]
-    - XXZ: H = J * sum_i [S_i^x * S_{i+1}^x + S_i^y * S_{i+1}^y] + Jz * sum_i [S_i^z * S_{i+1}^z]
-    - XY: H = J * sum_i [S_i^x * S_{i+1}^x + S_i^y * S_{i+1}^y]
-    - Ising: H = J * sum_i [S_i^z * S_{i+1}^z]
+    - Heisenberg: H = J * sum_i [S_i^x * S_{i+1}^x + S_i^y * S_{i+1}^y + S_i^z * S_{i+1}^z] + fields
+    - XXZ: H = J * sum_i [S_i^x * S_{i+1}^x + S_i^y * S_{i+1}^y] + Jz * sum_i [S_i^z * S_{i+1}^z] + fields
+    - XY: H = J * sum_i [S_i^x * S_{i+1}^x + S_i^y * S_{i+1}^y] + fields
+    - Ising: H = J * sum_i [S_i^z * S_{i+1}^z] + fields
 
     Parameters:
     -----------
@@ -45,14 +44,14 @@ def linear_spin_chain(
         Boundary conditions: "open" or "periodic"
     B_x, B_y, B_z : float, default=0.0
         External magnetic field components
-    gamma_relaxation : float, default=0.0
-        Spontaneous emission rate (T1 process)
     gamma_dephasing : float, default=0.0
         Pure dephasing rate (T2* process)
     gamma_depolarizing : float, default=0.0
         Depolarizing channel rate
     gamma_thermal : float, default=0.0
-        Thermal bath coupling rate
+        Thermal bath coupling rate. At temperature=0, this gives pure 
+        spontaneous emission (T1 process). At finite temperature, includes
+        both emission and absorption processes.
     temperature : float, default=0.0
         Bath temperature (in units of transition_frequency)
     transition_frequency : float, default=1.0
@@ -67,10 +66,6 @@ def linear_spin_chain(
     # Validate inputs
     if N < 2:
         raise ValueError("Chain length N must be at least 2")
-    if N > 15:
-        print(
-            f"Warning: Large system size N={N}. Hilbert space dimension = 2^{N} = {2**N}"
-        )
 
     model_types = ["heisenberg", "xxz", "xy", "ising"]
     if model_type.lower() not in model_types:
@@ -133,7 +128,6 @@ def linear_spin_chain(
     c_ops = _build_collapse_operators(
         operators,
         N,
-        gamma_relaxation,
         gamma_dephasing,
         gamma_depolarizing,
         gamma_thermal,
@@ -146,8 +140,8 @@ def linear_spin_chain(
 
     # Return system with all components
     return QuantumSystem(
-        name=f"Linear Spin Chain ({model_type.upper()})",
         hamiltonian=hamiltonian,
+        name=f"Linear Spin Chain ({model_type.upper()})",
         operators=operators,
         c_ops=c_ops,
         latex=latex,
@@ -159,7 +153,6 @@ def linear_spin_chain(
         B_x=B_x,
         B_y=B_y,
         B_z=B_z,
-        gamma_relaxation=gamma_relaxation,
         gamma_dephasing=gamma_dephasing,
         gamma_depolarizing=gamma_depolarizing,
         gamma_thermal=gamma_thermal,
@@ -221,7 +214,6 @@ def _build_hamiltonian(
 def _build_collapse_operators(
     operators: dict,
     N: int,
-    gamma_relaxation: float,
     gamma_dephasing: float,
     gamma_depolarizing: float,
     gamma_thermal: float,
@@ -233,10 +225,6 @@ def _build_collapse_operators(
 
     # Local dissipation on each site
     for k in range(N):
-
-        # Spontaneous emission (relaxation)
-        if gamma_relaxation > 0.0:
-            c_ops.append(np.sqrt(gamma_relaxation) * operators[f"S_{k}_minus"])
 
         # Pure dephasing
         if gamma_dephasing > 0.0:
@@ -250,19 +238,19 @@ def _build_collapse_operators(
             c_ops.append(np.sqrt(rate) * operators[f"S_{k}_z"])
 
         # Thermal bath coupling
-        if gamma_thermal > 0.0 and temperature > 0.0:
-            # Thermal factors (assuming spin-1/2 transition at
-            # transition_frequency)
-            beta = 1.0 / temperature  # Assuming kB = 1
-            exp_factor = np.exp(-beta * transition_frequency)
-
-            # Thermal down transitions (relaxation)
-            p_down = 1.0 / (1.0 + exp_factor)
-            c_ops.append(np.sqrt(gamma_thermal * p_down) * operators[f"S_{k}_minus"])
-
-            # Thermal up transitions (excitation)
-            p_up = exp_factor / (1.0 + exp_factor)
-            c_ops.append(np.sqrt(gamma_thermal * p_up) * operators[f"S_{k}_plus"])
+        if gamma_thermal > 0.0:
+            if temperature > 0.0:
+                # Finite temperature case
+                beta = 1.0 / temperature
+                exp_factor = np.exp(-beta * transition_frequency)
+                p_down = 1.0 / (1.0 + exp_factor)
+                p_up = exp_factor / (1.0 + exp_factor)
+                
+                c_ops.append(np.sqrt(gamma_thermal * p_down) * operators[f"S_{k}_minus"])
+                c_ops.append(np.sqrt(gamma_thermal * p_up) * operators[f"S_{k}_plus"])
+            else:
+                # T=0 case: pure spontaneous emission (only downward transitions)
+                c_ops.append(np.sqrt(gamma_thermal) * operators[f"S_{k}_minus"])
 
     return c_ops
 
