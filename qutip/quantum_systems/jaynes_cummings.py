@@ -1,18 +1,33 @@
 import numpy as np
 from qutip import tensor, qeye, destroy, sigmax, sigmay, sigmaz, coefficient
+from qutip.core.cy.coefficient import Coefficient
 from typing import Union
 from .quantum_system import QuantumSystem
 
-
+def _create_sqrt_coefficient(rate):
+    """Helper function to create sqrt coefficient from decay rate"""
+    if isinstance(rate, Coefficient):
+        # Extract coefficient information and create sqrt version
+        try:
+            # Try to create a callable that returns sqrt of the coefficient evaluation
+            def sqrt_func(t, args):
+                return np.sqrt(rate.coeff(t, args) if hasattr(rate, 'coeff') else rate(t, args))
+            return coefficient(sqrt_func, args={})
+        except:
+            # Fallback: assume user provided the correct coefficient
+            return rate
+    else:
+        return np.sqrt(rate)
+    
 def jaynes_cummings(
     omega_c: Union[float, coefficient] = 1.0,
     omega_a: Union[float, coefficient] = 1.0,
     g: Union[float, coefficient] = 0.1,
     n_cavity: int = 10,
     rotating_wave: bool = True,
-    cavity_decay: float = 0.0,
-    atomic_decay: float = 0.0,
-    atomic_dephasing: float = 0.0,
+    cavity_decay: Union[float, coefficient] = 0.0,
+    atomic_decay: Union[float, coefficient] = 0.0,
+    atomic_dephasing: Union[float, coefficient] = 0.0,
     thermal_photons: float = 0.0) -> QuantumSystem:
     """
     Create Jaynes-Cummings system
@@ -35,12 +50,12 @@ def jaynes_cummings(
         Cavity Fock space truncation (number of photon states)
     rotating_wave : bool, default=True
         Whether to apply rotating wave approximation
-    cavity_decay : float, default=0.0
-        Cavity decay rate, kappa (photon loss rate)
+    cavity_decay : float or coefficient, default=0.0
+        Cavity decay rate, kappa (photon loss rate), can be constant or time-dependent
     atomic_decay : float or coefficient, default=0.0
-        Atomic decay rate, gamma (spontaneous emission rate)
+        Atomic decay rate, gamma (spontaneous emission rate), can be constant or time-dependent
     atomic_dephasing : float or coefficient, default=0.0
-        Atomic pure dephasing rate, gamma_phi
+        Atomic pure dephasing rate, gamma_phi, can be constant or time-dependent
     thermal_photons : float, default=0.0
         Mean thermal photon number, n_th (for thermal bath)
 
@@ -88,23 +103,44 @@ def jaynes_cummings(
     # Build collapse operators for dissipation
     c_ops = []
 
-    # Cavity relaxation: kappa(1 + n_th) * a
-    cavity_relax_rate = cavity_decay * (1 + thermal_photons)
-    if cavity_relax_rate > 0.0:
-        c_ops.append(np.sqrt(cavity_relax_rate) * operators['a'])
+    # Cavity decay with thermal effects 
+    if isinstance(cavity_decay, Coefficient) or (isinstance(cavity_decay, (int, float)) and cavity_decay > 0.0):
+        # Cavity relaxation: sqrt(kappa(1 + n_th)]) * a
+        if isinstance(cavity_decay, Coefficient):
+            # cavity_decay is coefficient, thermal_photons is float
+            def cavity_relax_func(t, args):
+                kappa = cavity_decay.coeff(t, args) if hasattr(cavity_decay, 'coeff') else cavity_decay(t, args)
+                return np.sqrt(kappa * (1 + thermal_photons))
+            sqrt_cavity_relax = coefficient(cavity_relax_func, args={})
+            c_ops.append(sqrt_cavity_relax * operators['a'])
+        else:
+            # Both are float
+            cavity_relax_rate = cavity_decay * (1 + thermal_photons)
+            c_ops.append(np.sqrt(cavity_relax_rate) * operators['a'])
 
-    # Cavity excitation (thermal): kappa * n_th * a_dag
-    cavity_excite_rate = cavity_decay * thermal_photons
-    if cavity_excite_rate > 0.0:
-        c_ops.append(np.sqrt(cavity_excite_rate) * operators['a_dag'])
+    # Cavity excitation (thermal): sqrt(kappa * n_th) * a_dag  
+    if thermal_photons > 0.0:
+        if isinstance(cavity_decay, Coefficient):
+            # cavity_decay is coefficient, thermal_photons is float
+            def cavity_excite_func(t, args):
+                kappa = cavity_decay.coeff(t, args) if hasattr(cavity_decay, 'coeff') else cavity_decay(t, args)
+                return np.sqrt(kappa * thermal_photons)
+            sqrt_cavity_excite = coefficient(cavity_excite_func, args={})
+            c_ops.append(sqrt_cavity_excite * operators['a_dag'])
+        else:
+            # Both are float
+            cavity_excite_rate = cavity_decay * thermal_photons
+            c_ops.append(np.sqrt(cavity_excite_rate) * operators['a_dag'])
 
-    # Atomic spontaneous emission: gamma * sigma_minus
-    if atomic_decay > 0.0:
-        c_ops.append(np.sqrt(atomic_decay) * operators['sigma_minus'])
+    # Atomic spontaneous emission: sqrt(gamma) * sigma_minus
+    if isinstance(atomic_decay, Coefficient) or (isinstance(atomic_decay, (int, float)) and atomic_decay > 0.0):
+        sqrt_atomic_decay = _create_sqrt_coefficient(atomic_decay)
+        c_ops.append(sqrt_atomic_decay * operators['sigma_minus'])
 
-    # Atomic pure dephasing: gamma_phi * sigma_z
-    if atomic_dephasing > 0.0:
-        c_ops.append(np.sqrt(atomic_dephasing) * operators['sigma_z'])
+    # Atomic pure dephasing:  sqrt(gamma_phi)* sigma_z
+    if isinstance(atomic_dephasing, Coefficient) or (isinstance(atomic_dephasing, (int, float)) and atomic_dephasing > 0.0):
+        sqrt_atomic_dephasing = _create_sqrt_coefficient(atomic_dephasing)
+        c_ops.append(sqrt_atomic_dephasing * operators['sigma_z'])
 
     # LaTeX representation
     if rotating_wave:

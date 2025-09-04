@@ -157,12 +157,22 @@ class TestQubit:
         """Test qubit with Coefficient parameters"""
         # Simple linear time-dependent omega
         omega_coeff = coefficient("omega_0 * (1 + 0.1 * t)",
-                    args={'omega_0': 1.5})
+                    args={"omega_0": 1.5})
+        
+        # Simple linear decay rate
+        decay_coeff = coefficient("gamma0 + rate * t", args={'gamma0': 0.1, 'rate': 0.02})
 
-        q = qubit(omega=omega_coeff)
+        # Simple linear dephasing
+        dephasing_coeff = coefficient("gamma_phi * t", args={'gamma_phi': 0.05})
+
+        q = qubit(omega=omega_coeff,
+        decay_rate=decay_coeff,
+        dephasing_rate=dephasing_coeff)
 
         # Test that coefficients are stored
         assert q.parameters["omega"] == omega_coeff
+        assert q.parameters["decay_rate"] == decay_coeff  
+        assert q.parameters["dephasing_rate"] == dephasing_coeff
 
         # Test that system is created successfully
         assert isinstance(q, QuantumSystem)

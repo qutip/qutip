@@ -285,13 +285,18 @@ class TestJaynesCummings:
         # sligtly more complex time dependant g
         g_coeff = coefficient("g0 * sin(omega_d * t)",
                 args={'g0': 0.1,'omega_d': 2.0})
+        
+        cavity_decay_coeff = coefficient("kappa0 + y * t", args={'kappa0': 0.1, 'y': 0.02})
+        atomic_decay_coeff = coefficient("b * t", args={'b': 0.1})
 
         jc = jaynes_cummings(omega_c=omega_c_coeff,
-            g=g_coeff,n_cavity=3)
+            g=g_coeff, cavity_decay=cavity_decay_coeff, atomic_decay=atomic_decay_coeff, n_cavity=3)
 
         # Test that coefficients are stored
         assert jc.parameters["omega_c"] == omega_c_coeff
         assert jc.parameters["g"] == g_coeff
+        assert jc.parameters["cavity_decay"] == cavity_decay_coeff
+        assert jc.parameters["atomic_decay"] == atomic_decay_coeff
 
         # Test that system is created successfully
         assert isinstance(jc, QuantumSystem)

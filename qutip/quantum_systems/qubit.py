@@ -1,11 +1,26 @@
 import numpy as np
 from typing import Union
 from qutip import destroy, create, sigmax, sigmay, sigmaz, coefficient
+from qutip.core.cy.coefficient import Coefficient
 from .quantum_system import QuantumSystem
 
+def _create_sqrt_coefficient(rate):
+    """Helper function to create sqrt coefficient from decay rate"""
+    if isinstance(rate, Coefficient):
+        # Extract coefficient information and create sqrt version
+        try:
+            # Try to create a callable that returns sqrt of the coefficient evaluation
+            def sqrt_func(t, args):
+                return np.sqrt(rate.coeff(t, args) if hasattr(rate, 'coeff') else rate(t, args))
+            return coefficient(sqrt_func, args={})
+        except:
+            # Fallback: assume user provided the correct coefficient
+            return rate
+    else:
+        return np.sqrt(rate)
 
-def qubit(omega: Union[float, coefficient] = 1.0, decay_rate: float = 0.0,
-    dephasing_rate: float = 0.0) -> QuantumSystem:
+def qubit(omega: Union[float, coefficient] = 1.0, decay_rate: Union[float, coefficient] = 0.0,
+    dephasing_rate: Union[float, coefficient] = 0.0) -> QuantumSystem:
     """
     Create two-level system (qubit)
 
@@ -15,10 +30,10 @@ def qubit(omega: Union[float, coefficient] = 1.0, decay_rate: float = 0.0,
     -----------
     omega : float or coefficient, default=1.0
         Transition frequency, can be constant or time-dependent
-    decay_rate : float, default=0.0
-        Relaxation rate (1/T1)
-    dephasing_rate : float, default=0.0
-        Dephasing rate (1/T2)
+    decay_rate : float or coefficient, default=0.0
+        Relaxation rate (1/T1), can be constant or time-dependent
+    dephasing_rate : float or coefficient, default=0.0
+        Dephasing rate (1/T2), can be constant or time-dependent
 
     Returns:
     --------
@@ -37,10 +52,16 @@ def qubit(omega: Union[float, coefficient] = 1.0, decay_rate: float = 0.0,
 
     # Build collapse operators
     c_ops = []
-    if decay_rate > 0.0:
-        c_ops.append(np.sqrt(decay_rate) * operators['sigma_minus'])
-    if dephasing_rate > 0.0:
-        c_ops.append(np.sqrt(dephasing_rate) * operators['sigma_z'])
+    
+    # Handle decay_rate: coefficient object OR positive float
+    if isinstance(decay_rate, Coefficient) or (isinstance(decay_rate, (int, float)) and decay_rate > 0.0):
+        sqrt_decay_rate = _create_sqrt_coefficient(decay_rate)
+        c_ops.append(sqrt_decay_rate * operators['sigma_minus'])
+    
+    # Handle dephasing_rate: coefficient object OR positive float  
+    if isinstance(dephasing_rate, Coefficient) or (isinstance(dephasing_rate, (int, float)) and dephasing_rate > 0.0):
+        sqrt_dephasing_rate = _create_sqrt_coefficient(dephasing_rate)
+        c_ops.append(sqrt_dephasing_rate * operators['sigma_z'])
 
     # LaTeX representation
     latex = r"H = \frac{\omega}{2}\sigma_z"
