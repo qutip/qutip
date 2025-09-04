@@ -8,14 +8,10 @@ def _create_sqrt_coefficient(rate):
     """Helper function to create sqrt coefficient from decay rate"""
     if isinstance(rate, Coefficient):
         # Extract coefficient information and create sqrt version
-        try:
-            # Try to create a callable that returns sqrt of the coefficient evaluation
-            def sqrt_func(t, args):
-                return np.sqrt(rate(t, args))
-            return coefficient(sqrt_func, args={})
-        except(TypeError, AttributeError, ValueError):
-            # Fallback: assume user provided the correct coefficient
-            return rate
+        def sqrt_func(t, args):
+            return np.sqrt(rate(t, args))
+            
+        return coefficient(sqrt_func, args={})
     else:
         return np.sqrt(rate)
     
@@ -40,21 +36,21 @@ def jaynes_cummings(
 
     Parameters:
     -----------
-    omega_c : float or coefficient, default=1.0
+    omega_c : float or Coefficient, default=1.0
         Cavity frequency, can be constant or time-dependent
-    omega_a : float or coefficient, default=1.0
+    omega_a : float or Coefficient, default=1.0
         Atomic transition frequency, can be constant or time-dependent
-    g : float or coefficient, default=0.1
+    g : float or Coefficient, default=0.1
         Atom-cavity coupling strength, can be constant or time-dependent
     n_cavity : int, default=10
         Cavity Fock space truncation (number of photon states)
     rotating_wave : bool, default=True
         Whether to apply rotating wave approximation
-    cavity_decay : float or coefficient, default=0.0
+    cavity_decay : float or Coefficient, default=0.0
         Cavity decay rate, kappa (photon loss rate), can be constant or time-dependent
-    atomic_decay : float or coefficient, default=0.0
+    atomic_decay : float or Coefficient, default=0.0
         Atomic decay rate, gamma (spontaneous emission rate), can be constant or time-dependent
-    atomic_dephasing : float or coefficient, default=0.0
+    atomic_dephasing : float or Coefficient, default=0.0
         Atomic pure dephasing rate, gamma_phi, can be constant or time-dependent
     thermal_photons : float, default=0.0
         Mean thermal photon number, n_th (for thermal bath)
@@ -109,6 +105,7 @@ def jaynes_cummings(
         def cavity_relax_func(t, args):
             kappa = cavity_decay(t, args)
             return np.sqrt(kappa * (1 + thermal_photons))
+        
         sqrt_cavity_relax = coefficient(cavity_relax_func, args={})
         c_ops.append(sqrt_cavity_relax * operators['a'])
     elif cavity_decay > 0.0:  
@@ -123,6 +120,7 @@ def jaynes_cummings(
             def cavity_excite_func(t, args):
                 kappa = cavity_decay(t, args)
                 return np.sqrt(kappa * thermal_photons)
+            
             sqrt_cavity_excite = coefficient(cavity_excite_func, args={})
             c_ops.append(sqrt_cavity_excite * operators['a_dag'])
         elif cavity_decay > 0.0: 

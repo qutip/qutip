@@ -8,14 +8,10 @@ def _create_sqrt_coefficient(rate):
     """Helper function to create sqrt coefficient from decay rate"""
     if isinstance(rate, Coefficient):
         # Extract coefficient information and create sqrt version
-        try:
-            # Try to create a callable that returns sqrt of the coefficient evaluation
-            def sqrt_func(t, args):
-                return np.sqrt(rate(t, args))
-            return coefficient(sqrt_func, args={})
-        except(TypeError, AttributeError, ValueError):
-            # Fallback: assume user provided the correct coefficient
-            return rate
+        def sqrt_func(t, args):
+            return np.sqrt(rate(t, args))
+            
+        return coefficient(sqrt_func, args={})
     else:
         return np.sqrt(rate)
 
@@ -28,11 +24,11 @@ def qubit(omega: Union[float, Coefficient] = 1.0, decay_rate: Union[float, Coeff
 
     Parameters:
     -----------
-    omega : float or coefficient, default=1.0
+    omega : float or Coefficient, default=1.0
         Transition frequency, can be constant or time-dependent
-    decay_rate : float or coefficient, default=0.0
+    decay_rate : float or Coefficient, default=0.0
         Relaxation rate (1/T1), can be constant or time-dependent
-    dephasing_rate : float or coefficient, default=0.0
+    dephasing_rate : float or Coefficient, default=0.0
         Dephasing rate (1/T2), can be constant or time-dependent
 
     Returns:
