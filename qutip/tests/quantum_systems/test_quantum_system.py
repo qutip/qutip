@@ -164,3 +164,25 @@ class TestQuantumSystem:
 
         # Should be Hermitian
         assert H == H.dag()
+
+    def test_repr_latex_behavior(self):
+        """Test different behaviors of _repr_latex_ depending on the latex attribute."""
+        hamiltonian = 0.1 * (0.5 * sigmaz())
+
+        # Case 1: plain LaTeX string (should get wrapped in $...$)
+        sys_plain = QuantumSystem(
+            hamiltonian,
+            name="Qubit",
+            latex=r"H = \frac{\omega}{2}\sigma_z")
+        assert sys_plain._repr_latex_() == r"$H = \frac{\omega}{2}\sigma_z$"
+
+        # Case 2: already wrapped in $...$ (should remain unchanged)
+        sys_wrapped = QuantumSystem(
+            hamiltonian,
+            name="Qubit",
+            latex=r"$H = \frac{\omega}{2}\sigma_z$")
+        assert sys_wrapped._repr_latex_() == r"$H = \frac{\omega}{2}\sigma_z$"
+
+        # Case 3: no latex provided (should fall back to system name)
+        sys_fallback = QuantumSystem(hamiltonian, name="Qubit")
+        assert sys_fallback._repr_latex_() == r"$\text{Qubit}$"

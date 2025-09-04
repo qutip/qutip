@@ -84,3 +84,16 @@ class QuantumSystem:
 
     def __repr__(self):
         return f"QuantumSystem(name='{self.name}', dim={self.dimension})"
+
+    def _repr_latex_(self):
+        """
+        Jupyter LaTeX representation.
+        Uses self.latex if provided, otherwise shows the system name.
+        """
+        if getattr(self, "latex", None):
+            s = self.latex.strip()
+            if not (s.startswith("$") or s.startswith(
+                    r"\[") or s.startswith(r"\begin{")):
+                s = f"${s}$"
+            return s
+        return rf"$\text{{{self.name}}}$"

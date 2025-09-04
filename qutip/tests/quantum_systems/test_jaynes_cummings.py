@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from qutip import tensor, qeye, destroy, sigmaz, basis, expect
+from qutip import tensor, qeye, destroy, sigmaz, basis, expect, coefficient
 from qutip.quantum_systems.jaynes_cummings import jaynes_cummings
 from qutip.quantum_systems.quantum_system import QuantumSystem
 
@@ -275,3 +275,23 @@ class TestJaynesCummings:
         assert "Jaynes-Cummings" in captured.out
         assert "Hilbert Space Dimension: [[5, 2], [5, 2]]" in captured.out
         assert "omega_c" in captured.out
+
+    def test_coefficient_parameters(self):
+        """Test Jaynes-Cummings with Coefficient parameters"""
+        # Create coefficient parameters
+        # Simple linear time-dependent omega_c
+        omega_c_coeff = coefficient("omega_c0 * 2 * t", args={'omega_c0': 1.0})
+
+        # sligtly more complex time dependant g
+        g_coeff = coefficient("g0 * sin(omega_d * t)",
+                args={'g0': 0.1,'omega_d': 2.0})
+
+        jc = jaynes_cummings(omega_c=omega_c_coeff,
+            g=g_coeff,n_cavity=3)
+
+        # Test that coefficients are stored
+        assert jc.parameters["omega_c"] == omega_c_coeff
+        assert jc.parameters["g"] == g_coeff
+
+        # Test that system is created successfully
+        assert isinstance(jc, QuantumSystem)

@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from qutip import destroy, sigmax, sigmaz, sigmay, create
+from qutip import destroy, sigmax, sigmaz, sigmay, create, coefficient
 from qutip.quantum_systems.qubit import qubit
 from qutip.quantum_systems.quantum_system import QuantumSystem
 
@@ -152,3 +152,17 @@ class TestQubit:
         assert "Qubit" in captured.out
         assert "Hilbert Space Dimension: [[2], [2]]" in captured.out
         assert "omega" in captured.out
+
+    def test_coefficient_parameters(self):
+        """Test qubit with Coefficient parameters"""
+        # Simple linear time-dependent omega
+        omega_coeff = coefficient("omega_0 * (1 + 0.1 * t)",
+                    args={'omega_0': 1.5})
+
+        q = qubit(omega=omega_coeff)
+
+        # Test that coefficients are stored
+        assert q.parameters["omega"] == omega_coeff
+
+        # Test that system is created successfully
+        assert isinstance(q, QuantumSystem)

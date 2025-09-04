@@ -1,19 +1,19 @@
 import numpy as np
-from qutip import tensor, qeye, destroy, sigmax, sigmay, sigmaz, Coefficient
+from qutip import tensor, qeye, destroy, sigmax, sigmay, sigmaz, coefficient
 from typing import Union
 from .quantum_system import QuantumSystem
 
 
 def jaynes_cummings(
-        omega_c: Union[float, Coefficient] = 1.0,
-        omega_a: Union[float, Coefficient] = 1.0,
-        g: Union[float, Coefficient] = 0.1,
-        n_cavity: int = 10,
-        rotating_wave: bool = True,
-        cavity_decay: float = 0.0,
-        atomic_decay: float = 0.0,
-        atomic_dephasing: float = 0.0,
-        thermal_photons: float = 0.0) -> QuantumSystem:
+    omega_c: Union[float, coefficient] = 1.0,
+    omega_a: Union[float, coefficient] = 1.0,
+    g: Union[float, coefficient] = 0.1,
+    n_cavity: int = 10,
+    rotating_wave: bool = True,
+    cavity_decay: float = 0.0,
+    atomic_decay: float = 0.0,
+    atomic_dephasing: float = 0.0,
+    thermal_photons: float = 0.0) -> QuantumSystem:
     """
     Create Jaynes-Cummings system
 
@@ -25,21 +25,21 @@ def jaynes_cummings(
 
     Parameters:
     -----------
-    omega_c : float, default=1.0
-        Cavity frequency
-    omega_a : float, default=1.0
-        Atomic transition frequency
-    g : float, default=0.1
-        Atom-cavity coupling strength
+    omega_c : float or coefficient, default=1.0
+        Cavity frequency, can be constant or time-dependent
+    omega_a : float or coefficient, default=1.0
+        Atomic transition frequency, can be constant or time-dependent
+    g : float or coefficient, default=0.1
+        Atom-cavity coupling strength, can be constant or time-dependent
     n_cavity : int, default=10
         Cavity Fock space truncation (number of photon states)
     rotating_wave : bool, default=True
         Whether to apply rotating wave approximation
     cavity_decay : float, default=0.0
         Cavity decay rate, kappa (photon loss rate)
-    atomic_decay : float, default=0.0
+    atomic_decay : float or coefficient, default=0.0
         Atomic decay rate, gamma (spontaneous emission rate)
-    atomic_dephasing : float, default=0.0
+    atomic_dephasing : float or coefficient, default=0.0
         Atomic pure dephasing rate, gamma_phi
     thermal_photons : float, default=0.0
         Mean thermal photon number, n_th (for thermal bath)
