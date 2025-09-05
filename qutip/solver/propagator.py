@@ -5,6 +5,7 @@ __all__ = ['Propagator', 'propagator', 'propagator_steadystate']
 
 import numbers
 import numpy as np
+import warnings
 
 from .. import Qobj, qeye, qeye_like, unstack_columns, QobjEvo, liouvillian
 from ..core import data as _data
@@ -20,10 +21,11 @@ from typing import Any
 
 def propagator(
     H: QobjEvoLike,
-    t: Number,
+    t: Number | list[Number],
     c_ops: QobjEvoLike | list[QobjEvoLike] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
+    piecewise_t: list[Number] | None = None,
     **kwargs,
 ) -> Qobj | list[Qobj]:
     r"""
@@ -58,6 +60,12 @@ def propagator(
     options : dict, optional
         Options for the solver.
 
+    piecewise_t : list, optional
+        Times where the Hamiltonian or collapse operators change values when
+        they are piecewise constant.  Providing these allows for a faster
+        computation by exponentiating the Liouvillian or Hamiltonian directly
+        on each interval.
+
     **kwargs :
         Extra parameters to use when creating the
         :obj:`.QobjEvo` from a list format ``H``. The most common are ``tlist``
@@ -82,7 +90,7 @@ def propagator(
         tlist = [0, t]
         list_output = False
     else:
-        tlist = t
+        tlist = list(t)
         list_output = True
 
     if not isinstance(H, (Qobj, QobjEvo)):
@@ -90,21 +98,85 @@ def propagator(
 
     if isinstance(c_ops, list):
         c_ops = [QobjEvo(op, args=args, **kwargs) for op in c_ops]
+    elif c_ops is not None and not isinstance(c_ops, QobjEvo):
+        c_ops = [QobjEvo(c_ops, args=args, **kwargs)]
 
-    if c_ops:
-        H = liouvillian(H, c_ops)
+    c_ops_list: list[QobjEvo] = []
+    if isinstance(c_ops, QobjEvo):
+        c_ops_list = [c_ops]
+    elif isinstance(c_ops, list):
+        c_ops_list = c_ops
 
-    U0 = qeye_like(H)
+    constant_c_ops = all(op.isconstant for op in c_ops_list)
+    H_isconstant = isinstance(H, QobjEvo) and H.isconstant
 
-    if H.issuper:
-        out = mesolve(H, U0, tlist, args=args, options=options).states
+    if piecewise_t is not None:
+        if not constant_c_ops:
+            raise ValueError(
+                "piecewise_t is provided for H, but collapse operators are not constant"
+            )
+        if H_isconstant:
+            warnings.warn(
+                "piecewise_t provided but the Hamiltonian is time-independent",
+                UserWarning,
+            )
+        piecewise_times = [
+            tt for tt in piecewise_t if tlist[0] < tt <= tlist[-1]
+        ]
+        times = sorted(set(tlist + piecewise_times))
+        target = set(tlist)
+        H_step = H(tlist[0], args)
+        if c_ops_list:
+            c_ops_q = [op(tlist[0], args) for op in c_ops_list]
+            gen = liouvillian(H_step, c_ops_q)
+        else:
+            gen = H_step if H_step.issuper else -1j * H_step
+        U = qeye_like(gen)
+        out = [U]
+        prev = times[0]
+        for nxt in times[1:]:
+            H_step = H(prev, args)
+            if c_ops_list:
+                c_ops_q = [op(prev, args) for op in c_ops_list]
+                gen = liouvillian(H_step, c_ops_q)
+            else:
+                gen = H_step if H_step.issuper else -1j * H_step
+            U = (gen * (nxt - prev)).expm() * U
+            if nxt in target:
+                out.append(U)
+            prev = nxt
+        return out if list_output else out[-1]
+
+    if H_isconstant and constant_c_ops:
+        H0 = H(tlist[0], args)
+        if c_ops_list:
+            c_ops_q = [op(tlist[0], args) for op in c_ops_list]
+            gen = liouvillian(H0, c_ops_q)
+        else:
+            gen = H0 if H0.issuper else -1j * H0
+        U = qeye_like(gen)
+        out = [U]
+        prev = tlist[0]
+        for nxt in tlist[1:]:
+            U = (gen * (nxt - prev)).expm() * U
+            out.append(U)
+            prev = nxt
+        return out if list_output else out[-1]
+
+    # Fallback to solving the master equation
+    if c_ops_list:
+        H_eff = liouvillian(H, c_ops_list)
     else:
-        out = sesolve(H, U0, tlist, args=args, options=options).states
+        H_eff = H
 
-    if list_output:
-        return out
+    U0 = qeye_like(H_eff)
+
+    if H_eff.issuper:
+        out = mesolve(H_eff, U0, tlist, args=args, options=options).states
     else:
-        return out[-1]
+        out = sesolve(H_eff, U0, tlist, args=args, options=options).states
+
+    return out if list_output else out[-1]
 
 
 def propagator_steadystate(U: Qobj) -> Qobj:

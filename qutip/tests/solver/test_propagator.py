@@ -19,6 +19,18 @@ def testPropHOB():
     assert (U - U2).norm('max') < 1e-4
 
 
+def testPropPiecewiseConst():
+    H0 = qutip.sigmaz()
+    H1 = qutip.sigmax()
+
+    def H_func(t, args):
+        return H0 if t < 1 else H1
+
+    U = propagator(H_func, 2, piecewise_t=[1])
+    expected = (-1j * H1 * 1).expm() * (-1j * H0 * 1).expm()
+    assert (U - expected).norm('max') < 1e-4
+
+
 def testPropObj():
     opt = {"method": "dop853"}
     a = destroy(5)
