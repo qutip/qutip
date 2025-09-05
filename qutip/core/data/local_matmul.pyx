@@ -6,6 +6,10 @@ from qutip.core.data.matmul import matmul, matmul_dense_dia_dense
 from qutip.core.data.add cimport iadd_dense
 import numpy as np
 
+
+__all__ = ["one_mode_matmul_data_dense", "one_mode_matmul_dual_dense_data"]
+
+
 cdef int _mul(list numbers) except -1:
     cdef int t, out = 1, N = len(numbers)
     for i in range(N):
@@ -26,7 +30,7 @@ cdef void _cut_dense(Dense base, Dense out, int loc):
     out.data = &base.data[loc]
 
 
-cpdef Dense cy_one_mode_matmul_data_dense(Data oper, Dense state, list hilbert, int mode, bint c_block=True):
+cpdef Dense one_mode_matmul_data_dense(Data oper, Dense state, list hilbert, int mode):
     cdef Dense out, out_loc, state_loc
     assert oper.shape[1] == hilbert[mode]
     cdef int step_state, step_out, i, N = _mul(hilbert)
@@ -81,7 +85,7 @@ cdef void imatmul_dense_data(Dense left, Data right, double complex scale, Dense
         iadd_dense(out, matmul(left, right, dtype=Dense), scale)
 
 
-cpdef Dense cy_one_mode_matmul_dual_dense_data(Dense state, Data oper , list hilbert, int mode, bint c_block=True):
+cpdef Dense one_mode_matmul_dual_dense_data(Dense state, Data oper, list hilbert, int mode):
     cdef Dense out, out_loc, state_loc
     assert oper.shape[0] == hilbert[mode]
     cdef int step_state, step_out, i, N = _mul(hilbert)
