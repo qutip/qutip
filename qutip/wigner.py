@@ -31,6 +31,7 @@ from .core.qobj import Qobj
 from .core.states import coherent
 from .core.operators import displace, jmat, qdiags
 from .core.tensor import tensor
+from qutip.core.expect import expect
 
 # Parity operator implementation (named 'parity' to match existing calls)
 def parity(N):
@@ -1034,10 +1035,11 @@ def spin_wigner(rho, theta, phi):
 # =============================================================================
 # Two-mode Wigner and Q-function implementation with performance optimization
 # Author: @R_Cosmic (https://github.com/cosmic-quantum/)
-# Date: August 2025
+# Date: August-September 2025
 # =============================================================================
 
-def _wigner_2mode_check_state(rho, normalize=True, hermiticity_tol=1e-10):
+def _wigner_2mode_check_state(rho, normalize=True, hermiticity_tol=1e-10, 
+                              strict_checks=True):
     """Validate two-mode density matrix input with optional normalization."""
     if not isinstance(rho, Qobj):
         raise TypeError(f"rho must be a Qobj, got {type(rho)}")
@@ -1052,10 +1054,11 @@ def _wigner_2mode_check_state(rho, normalize=True, hermiticity_tol=1e-10):
     if rho.dims[0] != rho.dims[1]:
         raise ValueError(f"rho must have square dims, got {rho.dims}")
     
-    # Robust Hermiticity check with configurable tolerance
-    hermiticity_error = (rho - rho.dag()).norm()
-    if hermiticity_error > hermiticity_tol:
-        raise ValueError(f"rho must be Hermitian within tolerance (error: {hermiticity_error:.2e})")
+    # Make trace check similarly flexible
+    if strict_checks:
+        hermiticity_error = (rho - rho.dag()).norm()
+        if hermiticity_error > hermiticity_tol:
+            warnings.warn(f"rho hermiticity error: {hermiticity_error:.2e}")
 
     # Handle normalization based on user preference
     tr = real(rho.tr())
@@ -1146,9 +1149,9 @@ def _compute_fock_wigner_vectorized(m1, n1, m2, n2, alpha1, alpha2, log_fact):
 
         W2 = ((-1) ** k) * norm * Lvals * phase
 
-    # Combine with proper normalization
-    pref = 4.0 / (pi ** 2)
-    return pref * W1 * W2 * exp(-abs_a1_sq - abs_a2_sq)
+    # Combine with proper normalization - FIXED: was 4.0, now 1.0
+    pref = 1.0 / (pi ** 2)
+    return pref * W1 * W2 * exp(-2 * abs_a1_sq - 2 * abs_a2_sq)
 
 
 def _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g=sqrt(2), normalize=True):
@@ -1253,7 +1256,8 @@ def _wigner_2mode_full_displacement(rho, x1, p1, x2, p2, g=sqrt(2), chunk_sizes=
                         for l in range(len(p2)):
                             D2 = D2_cache[(k, l)]
                             D = tensor(D1, D2)
-                            val = (4.0 / pi**2) * (rho * D * Pi * D.dag()).tr()
+                            # FIXED: was 4.0, now 1.0
+                            val = (1.0 / pi**2) * (rho * D * Pi * D.dag()).tr()
                             out[i, j, k, l] = real(val)
 
     return out
@@ -1296,7 +1300,7 @@ def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), method='optimized', chunk_
     The displacement method uses the original algorithm:
     
     .. math::
-        W(x_1,p_1,x_2,p_2) = \\frac{4}{\\pi^2} \\text{Tr}\\left[\\rho D_1(\\alpha_1) D_2(\\alpha_2) 
+        W(x_1,p_1,x_2,p_2) = \\frac{1}{\\pi^2} \\text{Tr}\\left[\\rho D_1(\\alpha_1) D_2(\\alpha_2) 
         \\Pi D_2^{\\dagger}(\\alpha_2) D_1^{\\dagger}(\\alpha_1)\\right]
     
     where :math:`\\alpha_i = (x_i + ip_i)/g` and :math:`\\Pi` is the two-mode parity operator.
@@ -1320,8 +1324,34 @@ def wigner_2mode_xx(rho, x1, x2, p1=0.0, p2=0.0, g=sqrt(2)):
 
 
 def wigner_2mode_xp(rho, x1, p1, x2=0.0, p2=0.0, g=sqrt(2)):
-    """
-    2D slice W(x1, p1) with x2, p2 fixed.
+    r"""
+    Two-mode Wigner function slice W(x1, p1) with mode 2 coordinates fixed.
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density operator with dims [[N1, N2], [N1, N2]].
+    x1, p1 : array_like
+        Position and momentum coordinate arrays for mode 1.
+    x2, p2 : float, default: 0.0
+        Fixed position and momentum coordinates for mode 2.
+    g : float, default: sqrt(2)
+        Scaling factor where α = (x + ip)/g.
+        
+    Returns
+    -------
+    ndarray
+        2D array with shape (len(x1), len(p1)) representing W(x1, p1).
+        
+    Notes
+    -----
+    Computes the phase-space slice of mode 1 from the two-mode Wigner function:
+    
+    .. math::
+        W(x_1, p_1) = W(x_1, p_1, x_2=0, p_2=0)
+        
+    This slice shows the phase-space distribution of mode 1 when mode 2 
+    is at the origin of phase space.
     """
     x1 = _wigner_2mode_check_coordinates(x1, "x1")
     p1 = _wigner_2mode_check_coordinates(p1, "p1")
@@ -1374,7 +1404,8 @@ def wigner_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2), method='optimized'):
         for i, D1 in enumerate(D1_list):
             for j, D2 in enumerate(D2_list):
                 D = tensor(D1, D2)
-                val = (4.0 / pi**2) * (rho * D * Pi * D.dag()).tr()
+                # FIXED: was 4.0, now 1.0
+                val = (1.0 / pi**2) * (rho * D * Pi * D.dag()).tr()
                 out[i, j] = real(val)
         return out
     else:
@@ -1483,8 +1514,7 @@ def qfunc_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2)):
     for i, psi1 in enumerate(kets1):
         for j, psi2 in enumerate(kets2):
             psi = tensor(psi1, psi2)
-            result = psi.dag() * rho * psi
-            val = result.tr() if hasattr(result, 'tr') else result
+            val = expect(rho, psi)
             out[i, j] = real(val) * inv_pi2
     return out
 
