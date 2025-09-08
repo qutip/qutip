@@ -108,7 +108,7 @@ def propagator(
         c_ops_list = c_ops
 
     constant_c_ops = all(op.isconstant for op in c_ops_list)
-    H_isconstant = isinstance(H, QobjEvo) and H.isconstant
+    H_isconstant = isinstance(H, Qobj) or H.isconstant
 
     if piecewise_t is not None:
         if not constant_c_ops:
