@@ -72,7 +72,7 @@ def jaynes_cummings(
     # Atomic operators (tensor with cavity system)
     operators['sigma_minus'] = tensor(qeye(n_cavity), destroy(2))
     operators['sigma_plus'] = operators['sigma_minus'].dag()
-    operators['sigma_z'] = tensor(qeye(n_cavity), sigmaz())
+    operators['sigma_z'] = operators['sigma_plus'] * operators['sigma_minus'] - operators['sigma_minus'] * operators['sigma_plus']
     operators['sigma_x'] = tensor(qeye(n_cavity), sigmax())
     operators['sigma_y'] = tensor(qeye(n_cavity), sigmay())
 
@@ -112,8 +112,7 @@ def jaynes_cummings(
         cavity_relax_rate = cavity_decay * (1 + thermal_photons)
         c_ops.append(np.sqrt(cavity_relax_rate) * operators['a'])
 
-    # Cavity excitation (thermal): sqrt(kappa * n_th) * a_dag  
-    # Cavity excitation (thermal): sqrt(kappa * n_th) * a_dag  
+    # Cavity excitation (thermal): sqrt(kappa * n_th) * a_dag   
     if thermal_photons > 0.0:
         if isinstance(cavity_decay, Coefficient):
             # cavity_decay is coefficient, thermal_photons is float
