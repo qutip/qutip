@@ -1,20 +1,33 @@
 import numpy as np
-import qutip as qt
+from qutip import tensor, qeye, sigmax, sigmay, sigmaz, coefficient, Qobj, sigmap, sigmam
+from qutip.core.cy.coefficient import Coefficient
+from typing import Union
 from .quantum_system import QuantumSystem
+
+def _create_sqrt_coefficient(rate):
+    """Helper function to create sqrt coefficient from decay rate"""
+    if isinstance(rate, Coefficient):
+        # Extract coefficient information and create sqrt version
+        def sqrt_func(t, args):
+            return np.sqrt(rate(t, args))
+            
+        return coefficient(sqrt_func, args={})
+    else:
+        return np.sqrt(rate)
 
 
 def linear_spin_chain(
     model_type: str = "heisenberg",
     N: int = 4,
-    J: float = 1.0,
-    Jz: float = None,
+    J: Union[float, Coefficient] = 1.0,
+    Jz: Union[float, Coefficient] = None,
     boundary_conditions: str = "open",
-    B_x: float = 0.0,
-    B_y: float = 0.0,
-    B_z: float = 0.0,
-    gamma_dephasing: float = 0.0,
-    gamma_depolarizing: float = 0.0,
-    gamma_thermal: float = 0.0,
+    B_x: Union[float, Coefficient] = 0.0,
+    B_y: Union[float, Coefficient] = 0.0,
+    B_z: Union[float, Coefficient] = 0.0,
+    gamma_dephasing: Union[float, Coefficient] = 0.0,
+    gamma_depolarizing: Union[float, Coefficient] = 0.0,
+    gamma_thermal: Union[float, Coefficient] = 0.0,
     temperature: float = 0.0,
     transition_frequency: float = 1.0,
 ) -> QuantumSystem:
@@ -36,19 +49,19 @@ def linear_spin_chain(
         Type of spin chain model: "heisenberg", "xxz", "xy", "ising"
     N : int, default=4
         Number of spins in the chain
-    J : float, default=1.0
+    J : float or coefficient, default=1.0
         Coupling strength for XY interactions (Sx*Sx + Sy*Sy terms)
-    Jz : float, default=None
+    Jz : float or coefficient, default=None
         Z-coupling strength (Sz*Sz terms). If None, equals J for Heisenberg, 0 for XY
     boundary_conditions : str, default="open"
         Boundary conditions: "open" or "periodic"
-    B_x, B_y, B_z : float, default=0.0
+    B_x, B_y, B_z : float or coefficient, default=0.0
         External magnetic field components
-    gamma_dephasing : float, default=0.0
+    gamma_dephasing : float or coefficient, default=0.0
         Pure dephasing rate (T2* process)
-    gamma_depolarizing : float, default=0.0
+    gamma_depolarizing : float or coefficient, default=0.0
         Depolarizing channel rate
-    gamma_thermal : float, default=0.0
+    gamma_thermal : float or coefficient, default=0.0
         Thermal bath coupling rate. At temperature=0, this gives pure 
         spontaneous emission (T1 process). At finite temperature, includes
         both emission and absorption processes.
@@ -93,11 +106,11 @@ def linear_spin_chain(
     # Individual site operators
     for k in range(N):
         # Create single-site operators in full chain Hilbert space
-        operators[f"S_{k}_x"] = _create_site_operator(N, k, qt.sigmax() / 2)
-        operators[f"S_{k}_y"] = _create_site_operator(N, k, qt.sigmay() / 2)
-        operators[f"S_{k}_z"] = _create_site_operator(N, k, qt.sigmaz() / 2)
-        operators[f"S_{k}_plus"] = _create_site_operator(N, k, qt.sigmap())
-        operators[f"S_{k}_minus"] = _create_site_operator(N, k, qt.sigmam())
+        operators[f"S_{k}_x"] = _create_site_operator(N, k, sigmax() / 2)
+        operators[f"S_{k}_y"] = _create_site_operator(N, k, sigmay() / 2)
+        operators[f"S_{k}_z"] = _create_site_operator(N, k, sigmaz() / 2)
+        operators[f"S_{k}_plus"] = _create_site_operator(N, k, sigmap())
+        operators[f"S_{k}_minus"] = _create_site_operator(N, k, sigmam())
 
     # Total spin operators
     operators["S_x_total"] = sum(operators[f"S_{k}_x"] for k in range(N))
@@ -161,11 +174,11 @@ def linear_spin_chain(
     )
 
 
-def _create_site_operator(N: int, site: int, single_op: qt.Qobj) -> qt.Qobj:
+def _create_site_operator(N: int, site: int, single_op: Qobj) -> Qobj:
     """Create operator acting on specific site in N-spin chain"""
-    op_list = [qt.qeye(2)] * N
+    op_list = [qeye(2)] * N
     op_list[site] = single_op
-    return qt.tensor(op_list)
+    return tensor(op_list)
 
 
 def _build_hamiltonian(
@@ -178,7 +191,7 @@ def _build_hamiltonian(
     B_x: float,
     B_y: float,
     B_z: float,
-) -> qt.Qobj:
+) -> Qobj:
     """Build Hamiltonian for specified model type"""
 
     # Determine number of interaction terms
@@ -227,18 +240,28 @@ def _build_collapse_operators(
     for k in range(N):
 
         # Pure dephasing
-        if gamma_dephasing > 0.0:
-            c_ops.append(np.sqrt(gamma_dephasing) * operators[f"S_{k}_z"])
+        if isinstance(gamma_dephasing, Coefficient) or gamma_dephasing > 0.0:
+            sqrt_gamma_dephasing = _create_sqrt_coefficient(gamma_dephasing)
+            c_ops.append(sqrt_gamma_dephasing * operators[f"S_{k}_z"])
 
         # Depolarizing channel
-        if gamma_depolarizing > 0.0:
-            rate = gamma_depolarizing / 3.0
-            c_ops.append(np.sqrt(rate) * operators[f"S_{k}_x"])
-            c_ops.append(np.sqrt(rate) * operators[f"S_{k}_y"])
-            c_ops.append(np.sqrt(rate) * operators[f"S_{k}_z"])
+        if isinstance(gamma_depolarizing, Coefficient) or gamma_depolarizing > 0.0:
+            if isinstance(gamma_depolarizing, Coefficient):
+                # Create coefficient for gamma/3
+                def depol_func(t, args):
+                    gamma = gamma_depolarizing(t, args) 
+                    return np.sqrt(gamma / 3.0)
+                
+                sqrt_depol_rate = coefficient(depol_func, args={})
+            else:
+                sqrt_depol_rate = np.sqrt(gamma_depolarizing / 3.0)
+            
+            c_ops.append(sqrt_depol_rate * operators[f"S_{k}_x"])
+            c_ops.append(sqrt_depol_rate * operators[f"S_{k}_y"])
+            c_ops.append(sqrt_depol_rate * operators[f"S_{k}_z"])
 
         # Thermal bath coupling
-        if gamma_thermal > 0.0:
+        if isinstance(gamma_thermal, Coefficient) or gamma_thermal > 0.0:
             if temperature > 0.0:
                 # Finite temperature case
                 beta = 1.0 / temperature
@@ -246,11 +269,28 @@ def _build_collapse_operators(
                 p_down = 1.0 / (1.0 + exp_factor)
                 p_up = exp_factor / (1.0 + exp_factor)
                 
-                c_ops.append(np.sqrt(gamma_thermal * p_down) * operators[f"S_{k}_minus"])
-                c_ops.append(np.sqrt(gamma_thermal * p_up) * operators[f"S_{k}_plus"])
+                if isinstance(gamma_thermal, Coefficient):
+                    # Create coefficients for thermal rates
+                    def thermal_down_func(t, args):
+                        gamma = gamma_thermal(t, args)
+                        return np.sqrt(gamma * p_down)
+                    
+                    def thermal_up_func(t, args):
+                        gamma = gamma_thermal(t, args)
+                        return np.sqrt(gamma * p_up)
+                    
+                    sqrt_thermal_down = coefficient(thermal_down_func, args={})
+                    sqrt_thermal_up = coefficient(thermal_up_func, args={})
+                else:
+                    sqrt_thermal_down = np.sqrt(gamma_thermal * p_down)
+                    sqrt_thermal_up = np.sqrt(gamma_thermal * p_up)
+                
+                c_ops.append(sqrt_thermal_down * operators[f"S_{k}_minus"])
+                c_ops.append(sqrt_thermal_up * operators[f"S_{k}_plus"])
             else:
                 # T=0 case: pure spontaneous emission (only downward transitions)
-                c_ops.append(np.sqrt(gamma_thermal) * operators[f"S_{k}_minus"])
+                sqrt_gamma_thermal = _create_sqrt_coefficient(gamma_thermal)
+                c_ops.append(sqrt_gamma_thermal * operators[f"S_{k}_minus"])
 
     return c_ops
 
