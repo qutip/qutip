@@ -1038,13 +1038,41 @@ def spin_wigner(rho, theta, phi):
 # Date: August-September 2025
 # =============================================================================
 
+import warnings
+
 def _wigner_2mode_check_state(rho, normalize=True, hermiticity_tol=1e-10, 
                               strict_checks=True):
-    """Validate two-mode density matrix input with optional normalization."""
+    """
+    Validate two-mode density matrix input with graceful normalization.
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Input quantum state (ket, bra, or density matrix).
+    normalize : bool, default: True
+        Whether to automatically normalize non-normalized density matrices.
+    hermiticity_tol : float, default: 1e-10
+        Tolerance for hermiticity check.
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
+        Set to False to allow advanced/unphysical calculations.
+        
+    Returns
+    -------
+    rho : Qobj
+        Validated and possibly normalized density matrix.
+    N1, N2 : int
+        Hilbert space dimensions for each mode.
+        
+    Notes
+    -----
+    Automatically converts kets and bras to density matrices, following
+    the same pattern as the standard QuTiP wigner function.
+    """
     if not isinstance(rho, Qobj):
         raise TypeError(f"rho must be a Qobj, got {type(rho)}")
     
-    # Convert kets and bras to density matrices automatically
+    # Convert kets and bras to density matrices automatically (like standard wigner function)
     if rho.isket or rho.isbra:
         rho = rho.proj()  # |ψ⟩ becomes |ψ⟩⟨ψ|
     
@@ -1054,28 +1082,41 @@ def _wigner_2mode_check_state(rho, normalize=True, hermiticity_tol=1e-10,
     if rho.dims[0] != rho.dims[1]:
         raise ValueError(f"rho must have square dims, got {rho.dims}")
     
-    # Make trace check similarly flexible
-    if strict_checks:
-        hermiticity_error = (rho - rho.dag()).norm()
-        if hermiticity_error > hermiticity_tol:
-            warnings.warn(f"rho hermiticity error: {hermiticity_error:.2e}")
-
-    # Handle normalization based on user preference
-    tr = real(rho.tr())
-    if not np.isfinite(tr) or tr <= 0:
-        raise ValueError("rho trace must be positive and finite")
-    
-    if abs(tr - 1.0) > 1e-9:
-        if normalize:
-            rho = rho / tr
-        else:
-            raise ValueError(f"rho is not normalized (trace = {tr:.6f}). Set normalize=True to auto-fix.")
-
-    # Must have exactly two modes
+    # Must have exactly two modes (this is fundamental)
     if len(rho.dims[0]) != 2:
         raise ValueError(f"rho must be a two-mode tensor operator, got dims {rho.dims}")
 
     N1, N2 = rho.dims[0]
+    
+    # Flexible validation based on strict_checks parameter
+    if strict_checks:
+        # Strict hermiticity check
+        hermiticity_error = (rho - rho.dag()).norm()
+        if hermiticity_error > hermiticity_tol:
+            raise ValueError(f"rho must be Hermitian within tolerance (error: {hermiticity_error:.2e})")
+        
+        # Strict trace check
+        tr = real(rho.tr())
+        if not np.isfinite(tr) or tr <= 0:
+            raise ValueError("rho trace must be positive and finite")
+        
+        if abs(tr - 1.0) > 1e-9:
+            if normalize:
+                rho = rho / tr
+            else:
+                raise ValueError(f"rho is not normalized (trace = {tr:.6f}). Set normalize=True to auto-fix.")
+    else:
+        # Relaxed checks for advanced/unphysical calculations
+        # Just warn about potential issues but allow computation
+        hermiticity_error = (rho - rho.dag()).norm()
+        if hermiticity_error > hermiticity_tol:
+            warnings.warn(f"rho hermiticity error: {hermiticity_error:.2e}")
+        
+        # Flexible trace handling
+        tr = real(rho.tr())
+        if normalize and tr != 0:
+            rho = rho / tr
+
     return rho, N1, N2
 
 
@@ -1154,12 +1195,12 @@ def _compute_fock_wigner_vectorized(m1, n1, m2, n2, alpha1, alpha2, log_fact):
     return pref * W1 * W2 * exp(-2 * abs_a1_sq - 2 * abs_a2_sq)
 
 
-def _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g=sqrt(2), normalize=True):
+def _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g=sqrt(2), normalize=True, strict_checks=True):
     """
     Optimized two-mode Wigner function using analytical Fock formulas.
     Avoids expensive displacement operators.
     """
-    rho, N1, N2 = _wigner_2mode_check_state(rho, normalize=normalize)
+    rho, N1, N2 = _wigner_2mode_check_state(rho, normalize=normalize, strict_checks=strict_checks)
     
     # Sanity check for empty grids
     if not (len(x1) and len(p1) and len(x2) and len(p2)):
@@ -1175,11 +1216,6 @@ def _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g=sqrt(2), normalize=True)
     # Precompute log-factorials with correct range
     max_n = max(N1, N2)
     log_fact = array([scipy.special.gammaln(i + 1) for i in range(max_n + 1)], dtype=float)
-
-    # Optimization for pure states: if rho is a ket, use outer product directly
-    if rho.isket:
-        psi = rho
-        rho = psi.proj()
 
     # Better sparse/dense rho.data handling
     try:
@@ -1209,26 +1245,27 @@ def _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g=sqrt(2), normalize=True)
     return out
 
 
-def _wigner_2mode_full_displacement(rho, x1, p1, x2, p2, g=sqrt(2), chunk_sizes=(16, 16), normalize=True):
+def _wigner_2mode_full_displacement(rho, x1, p1, x2, p2, g=sqrt(2), chunk_sizes=(16, 16), 
+                                   normalize=True, strict_checks=True):
     """
-    Original displacement-based implementation for validation.
+    Displacement-based implementation using existing QuTiP displacement operators.
     
     Notes
     -----
+    Uses the existing displace() function from QuTiP core for consistency.
     The displacement method is intended for correctness checks and small Hilbert spaces.
-    It rebuilds displacement operators for every coordinate chunk, making it significantly
-    slower than the optimized method for large systems.
     """
-    rho, N1, N2 = _wigner_2mode_check_state(rho, normalize=normalize)
+    rho, N1, N2 = _wigner_2mode_check_state(rho, normalize=normalize, strict_checks=strict_checks)
     x1 = _wigner_2mode_check_coordinates(x1, "x1")
     p1 = _wigner_2mode_check_coordinates(p1, "p1")
     x2 = _wigner_2mode_check_coordinates(x2, "x2")
     p2 = _wigner_2mode_check_coordinates(p2, "p2")
 
+    # Use existing QuTiP parity and displacement operators
     Pi = _wigner_2mode_parity(N1, N2)
     out = zeros((len(x1), len(p1), len(x2), len(p2)), dtype=float)
 
-    # Cache displacement operators for mode 2
+    # Pre-compute displacement operators using existing QuTiP displace function
     D2_cache = {}
     for k, x2_val in enumerate(x2):
         for l, p2_val in enumerate(p2):
@@ -1241,7 +1278,7 @@ def _wigner_2mode_full_displacement(rho, x1, p1, x2, p2, g=sqrt(2), chunk_sizes=
         for j0 in range(0, len(p1), cp):
             j1 = min(j0 + cp, len(p1))
 
-            # Cache D1 for current chunk
+            # Cache D1 for current chunk using existing displace function
             D1_cache = {}
             for i in range(i0, i1):
                 for j in range(j0, j1):
@@ -1263,7 +1300,8 @@ def _wigner_2mode_full_displacement(rho, x1, p1, x2, p2, g=sqrt(2), chunk_sizes=
     return out
 
 
-def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), method='optimized', chunk_sizes=(16, 16), normalize=True):
+def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), method='optimized', 
+                      chunk_sizes=(16, 16), normalize=True, strict_checks=True):
     r"""
     Full 4D two-mode Wigner function W(x1,p1,x2,p2) with performance optimization.
 
@@ -1271,6 +1309,7 @@ def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), method='optimized', chunk_
     ----------
     rho : Qobj
         Two-mode density operator with dims [[N1, N2], [N1, N2]].
+        Also accepts kets and bras, which are automatically converted to density matrices.
     x1, p1, x2, p2 : array_like
         Quadrature coordinate arrays for each mode (1D arrays).
     g : float, default: sqrt(2)
@@ -1281,6 +1320,9 @@ def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), method='optimized', chunk_
         Chunk sizes for displacement method (ignored for optimized method).
     normalize : bool, default: True
         Whether to automatically normalize non-normalized density matrices.
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
+        Set to False to allow advanced/unphysical calculations.
 
     Returns
     -------
@@ -1292,12 +1334,14 @@ def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), method='optimized', chunk_
     **Performance**: The optimized method uses analytical Fock state formulas with 
     Laguerre polynomials, avoiding expensive displacement operators. This provides 
     orders of magnitude speedup for sparse density matrices and large Hilbert spaces.
-    For 20×20 Hilbert spaces, optimized method is ~100× faster than displacement.
     
-    **Complexity**: O(N1 × N2 × len(x1) × len(p1) × len(x2) × len(p2)) for the 
-    optimized method, where N1, N2 are the Hilbert space dimensions.
+    **Type Handling**: Like the standard QuTiP wigner function, this automatically
+    converts kets and bras to density matrices via the projector |ψ⟩⟨ψ|.
     
-    The displacement method uses the original algorithm:
+    **Flexibility**: The strict_checks parameter allows advanced users to bypass
+    standard physical constraints for research purposes.
+    
+    The displacement method uses existing QuTiP operators:
     
     .. math::
         W(x_1,p_1,x_2,p_2) = \\frac{1}{\\pi^2} \\text{Tr}\\left[\\rho D_1(\\alpha_1) D_2(\\alpha_2) 
@@ -1306,24 +1350,24 @@ def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), method='optimized', chunk_
     where :math:`\\alpha_i = (x_i + ip_i)/g` and :math:`\\Pi` is the two-mode parity operator.
     """
     if method == 'optimized':
-        return _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g, normalize)
+        return _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g, normalize, strict_checks)
     elif method == 'displacement':
-        return _wigner_2mode_full_displacement(rho, x1, p1, x2, p2, g, chunk_sizes, normalize)
+        return _wigner_2mode_full_displacement(rho, x1, p1, x2, p2, g, chunk_sizes, normalize, strict_checks)
     else:
         raise ValueError("method must be 'optimized' or 'displacement'")
 
 
-def wigner_2mode_xx(rho, x1, x2, p1=0.0, p2=0.0, g=sqrt(2)):
+def wigner_2mode_xx(rho, x1, x2, p1=0.0, p2=0.0, g=sqrt(2), strict_checks=True):
     """
     2D slice W(x1, x2) with p1, p2 fixed.
     """
     x1 = _wigner_2mode_check_coordinates(x1, "x1")
     x2 = _wigner_2mode_check_coordinates(x2, "x2")
-    W = wigner_2mode_full(rho, x1, [p1], x2, [p2], g=g)
+    W = wigner_2mode_full(rho, x1, [p1], x2, [p2], g=g, strict_checks=strict_checks)
     return W[:, 0, :, 0]
 
 
-def wigner_2mode_xp(rho, x1, p1, x2=0.0, p2=0.0, g=sqrt(2)):
+def wigner_2mode_xp(rho, x1, p1, x2=0.0, p2=0.0, g=sqrt(2), strict_checks=True):
     r"""
     Two-mode Wigner function slice W(x1, p1) with mode 2 coordinates fixed.
     
@@ -1331,12 +1375,15 @@ def wigner_2mode_xp(rho, x1, p1, x2=0.0, p2=0.0, g=sqrt(2)):
     ----------
     rho : Qobj
         Two-mode density operator with dims [[N1, N2], [N1, N2]].
+        Also accepts kets and bras, which are automatically converted to density matrices.
     x1, p1 : array_like
         Position and momentum coordinate arrays for mode 1.
     x2, p2 : float, default: 0.0
         Fixed position and momentum coordinates for mode 2.
     g : float, default: sqrt(2)
         Scaling factor where α = (x + ip)/g.
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
         
     Returns
     -------
@@ -1355,18 +1402,18 @@ def wigner_2mode_xp(rho, x1, p1, x2=0.0, p2=0.0, g=sqrt(2)):
     """
     x1 = _wigner_2mode_check_coordinates(x1, "x1")
     p1 = _wigner_2mode_check_coordinates(p1, "p1")
-    W = wigner_2mode_full(rho, x1, p1, [x2], [p2], g=g)
+    W = wigner_2mode_full(rho, x1, p1, [x2], [p2], g=g, strict_checks=strict_checks)
     return W[:, :, 0, 0]
 
 
-def wigner_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2), method='optimized'):
+def wigner_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2), method='optimized', strict_checks=True):
     r"""
     Wigner function on complex phase-space grid W(α1, α2).
     
     Parameters
     ----------
     rho : Qobj
-        Two-mode density operator.
+        Two-mode density operator. Also accepts kets and bras.
     alpha1, alpha2 : array_like
         Complex coherent amplitude arrays.
     g : float, default: sqrt(2)
@@ -1374,6 +1421,8 @@ def wigner_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2), method='optimized'):
         For displacement method, α values are used directly as coherent amplitudes.
     method : str, default: 'optimized'
         Computation method.
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
         
     Notes
     -----
@@ -1388,15 +1437,15 @@ def wigner_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2), method='optimized'):
     due to their different computational strategies.
     """
     if method == 'displacement':
-        # Original displacement-based method
-        # Uses alpha directly as coherent amplitudes (no g scaling needed)
-        rho, N1, N2 = _wigner_2mode_check_state(rho)
+        # Original displacement-based method using existing QuTiP operators
+        rho, N1, N2 = _wigner_2mode_check_state(rho, strict_checks=strict_checks)
         alpha1 = array(alpha1, dtype=np.complex128)
         alpha2 = array(alpha2, dtype=np.complex128)
         if alpha1.ndim != 1 or alpha2.ndim != 1:
             raise ValueError("alpha1 and alpha2 must be 1D arrays")
 
         Pi = _wigner_2mode_parity(N1, N2)
+        # Use existing QuTiP displace function
         D1_list = [displace(N1, complex(a)) for a in alpha1]
         D2_list = [displace(N2, complex(b)) for b in alpha2]
 
@@ -1414,10 +1463,10 @@ def wigner_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2), method='optimized'):
         p1 = np.imag(alpha1) * g
         x2 = real(alpha2) * g
         p2 = np.imag(alpha2) * g
-        return _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g=g)
+        return _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g=g, strict_checks=strict_checks)
 
 
-def qfunc_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2)):
+def qfunc_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), strict_checks=True):
     r"""
     Full 4D two-mode Q-function Q(x1,p1,x2,p2).
     
@@ -1425,10 +1474,13 @@ def qfunc_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2)):
     ----------
     rho : Qobj
         Two-mode density operator with dims [[N1, N2], [N1, N2]].
+        Also accepts kets and bras, which are automatically converted to density matrices.
     x1, p1, x2, p2 : array_like
         Quadrature coordinate arrays for each mode (1D arrays).
     g : float, default: sqrt(2)
         Scaling factor where α = (x + ip)/g.
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
         
     Returns
     -------
@@ -1444,7 +1496,7 @@ def qfunc_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2)):
     
     where :math:`|\\alpha_1,\\alpha_2\\rangle = |\\alpha_1\\rangle \\otimes |\\alpha_2\\rangle`.
     """
-    rho, N1, N2 = _wigner_2mode_check_state(rho)
+    rho, N1, N2 = _wigner_2mode_check_state(rho, strict_checks=strict_checks)
     x1 = _wigner_2mode_check_coordinates(x1, "x1")
     p1 = _wigner_2mode_check_coordinates(p1, "p1")
     x2 = _wigner_2mode_check_coordinates(x2, "x2")
@@ -1453,7 +1505,7 @@ def qfunc_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2)):
     out = zeros((len(x1), len(p1), len(x2), len(p2)), dtype=float)
     inv_pi2 = 1.0 / pi**2
 
-    # Cache coherent states
+    # Cache coherent states using existing QuTiP coherent function
     ket1_cache = {}
     for i, x1_val in enumerate(x1):
         for j, p1_val in enumerate(p1):
@@ -1480,31 +1532,34 @@ def qfunc_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2)):
     return out
 
 
-def qfunc_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2)):
-    """Q-function on complex phase-space grid Q(α1, α2).
+def qfunc_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2), strict_checks=True):
+    """
+    Q-function on complex phase-space grid Q(α1, α2).
     
     Parameters
     ----------
     rho : Qobj
-        Two-mode density operator.
+        Two-mode density operator. Also accepts kets and bras.
     alpha1, alpha2 : array_like
         Complex coherent amplitude arrays.
     g : float, default: sqrt(2)
         Scaling factor. When provided, coherent amplitudes are scaled as α/g 
         for consistency with quadrature-based functions.
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
         
     Notes
     -----
     The coherent states are constructed as |α/g⟩ to maintain consistency with
     the relationship α = (x + ip)/g used in other functions.
     """
-    rho, N1, N2 = _wigner_2mode_check_state(rho)
+    rho, N1, N2 = _wigner_2mode_check_state(rho, strict_checks=strict_checks)
     alpha1 = array(alpha1, dtype=np.complex128)
     alpha2 = array(alpha2, dtype=np.complex128)
     if alpha1.ndim != 1 or alpha2.ndim != 1:
         raise ValueError("alpha1 and alpha2 must be 1D arrays")
 
-    # Scale coherent amplitudes by g for consistency
+    # Scale coherent amplitudes by g for consistency, using existing QuTiP coherent function
     kets1 = [coherent(N1, complex(a)/g) for a in alpha1]
     kets2 = [coherent(N2, complex(b)/g) for b in alpha2]
 
@@ -1519,7 +1574,7 @@ def qfunc_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2)):
     return out
 
 
-def wigner_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx"):
+def wigner_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx", strict_checks=True):
     r"""
     Two-mode Wigner function with flexible coordinate interpretation.
     
@@ -1527,6 +1582,7 @@ def wigner_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx"):
     ----------
     rho : Qobj
         Two-mode density matrix with dims [[N1, N2], [N1, N2]].
+        Also accepts kets and bras, which are automatically converted to density matrices.
     xvec, yvec : array_like
         Coordinate arrays for the two modes.
     g : float, default: sqrt(2)
@@ -1537,6 +1593,8 @@ def wigner_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx"):
         - "xx": W(x1, x2) with p1=p2=0
         - "xp": W(x1, p1) with x2=p2=0  
         - "alpha": W(Re(α1), Re(α2)) with Im(α1)=Im(α2)=0
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
         
     Returns
     -------
@@ -1544,18 +1602,18 @@ def wigner_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx"):
         Two-mode Wigner function values with shape (len(xvec), len(yvec)).
     """
     if interpretation == "xx":
-        return wigner_2mode_xx(rho, xvec, yvec, p1=0.0, p2=0.0, g=g)
+        return wigner_2mode_xx(rho, xvec, yvec, p1=0.0, p2=0.0, g=g, strict_checks=strict_checks)
     elif interpretation == "xp":
-        return wigner_2mode_xp(rho, xvec, yvec, x2=0.0, p2=0.0, g=g)
+        return wigner_2mode_xp(rho, xvec, yvec, x2=0.0, p2=0.0, g=g, strict_checks=strict_checks)
     elif interpretation == "alpha":
         a1 = array(xvec, dtype=float) + 0j
         a2 = array(yvec, dtype=float) + 0j
-        return wigner_2mode_alpha(rho, a1, a2, g=g)
+        return wigner_2mode_alpha(rho, a1, a2, g=g, strict_checks=strict_checks)
     else:
         raise ValueError("interpretation must be one of {'xx','xp','alpha'}")
 
 
-def qfunc_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx"):
+def qfunc_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx", strict_checks=True):
     r"""
     Two-mode Q-function with flexible coordinate interpretation.
     
@@ -1563,12 +1621,15 @@ def qfunc_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx"):
     ----------
     rho : Qobj
         Two-mode density matrix with dims [[N1, N2], [N1, N2]].
+        Also accepts kets and bras, which are automatically converted to density matrices.
     xvec, yvec : array_like
         Coordinate arrays for the two modes.
     g : float, default: sqrt(2)
         Scaling factor where α = (x + ip)/g.
     interpretation : str, default: "xx"
         Coordinate interpretation (same options as wigner_2mode).
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
         
     Returns
     -------
@@ -1576,14 +1637,14 @@ def qfunc_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx"):
         Two-mode Q-function values with shape (len(xvec), len(yvec)).
     """
     if interpretation == "xx":
-        Q = qfunc_2mode_full(rho, xvec, [0.0], yvec, [0.0], g=g)
+        Q = qfunc_2mode_full(rho, xvec, [0.0], yvec, [0.0], g=g, strict_checks=strict_checks)
         return Q[:, 0, :, 0]
     elif interpretation == "xp":
-        Q = qfunc_2mode_full(rho, xvec, yvec, [0.0], [0.0], g=g)
+        Q = qfunc_2mode_full(rho, xvec, yvec, [0.0], [0.0], g=g, strict_checks=strict_checks)
         return Q[:, :, 0, 0]
     elif interpretation == "alpha":
         a1 = array(xvec, dtype=float) + 0j
         a2 = array(yvec, dtype=float) + 0j
-        return qfunc_2mode_alpha(rho, a1, a2, g=g)
+        return qfunc_2mode_alpha(rho, a1, a2, g=g, strict_checks=strict_checks)
     else:
         raise ValueError("interpretation must be one of {'xx','xp','alpha'}")
