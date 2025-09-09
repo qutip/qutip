@@ -33,7 +33,7 @@ class TestJaynesCummings:
 
         expected_operators = [
             "a", "a_dag", "n_c",  # Cavity operators
-            "sigma_minus", "sigma_plus", "sigma_z", "sigma_x", "sigma_y"  # Atomic operators
+            "sigma_minus", "sigma_plus", "sigma_z"  # Atomic operators
         ]
 
         for op_name in expected_operators:

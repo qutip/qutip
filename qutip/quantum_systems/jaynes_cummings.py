@@ -73,8 +73,6 @@ def jaynes_cummings(
     operators['sigma_minus'] = tensor(qeye(n_cavity), destroy(2))
     operators['sigma_plus'] = operators['sigma_minus'].dag()
     operators['sigma_z'] = operators['sigma_plus'] * operators['sigma_minus'] - operators['sigma_minus'] * operators['sigma_plus']
-    operators['sigma_x'] = tensor(qeye(n_cavity), sigmax())
-    operators['sigma_y'] = tensor(qeye(n_cavity), sigmay())
 
     # Build Hamiltonian
     # Free cavity evolution: ω_c a†a
