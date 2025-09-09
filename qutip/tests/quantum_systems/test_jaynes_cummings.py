@@ -239,9 +239,13 @@ class TestJaynesCummings:
         expected_a = tensor(destroy(n_cavity), qeye(2))
         assert a == expected_a
 
-        # Atomic operators act on second subsystem
+        # Atomic operators act on second subsystem - test custom sigma_z definition
+        sigma_plus = jc.operators["sigma_plus"]
+        sigma_minus = jc.operators["sigma_minus"]
         sigma_z = jc.operators["sigma_z"]
-        expected_sigma_z = tensor(qeye(n_cavity), sigmaz())
+        
+        # sigma_z should match the custom definition: sigma_plus * sigma_minus - sigma_minus * sigma_plus
+        expected_sigma_z = sigma_plus * sigma_minus - sigma_minus * sigma_plus
         assert sigma_z == expected_sigma_z
 
     def test_commutation_relations(self):
