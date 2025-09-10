@@ -1,0 +1,3 @@
+Added a new quantum system module in QuTiP, which has ready to use implementation of various quantum systems. We have created a class called QuantumSystem, all quantum systems are instances of this class and configured by the factory functions. 
+The quantum system included in this PR are the Jaynes-Cummings model and a simple qubit. We describe the operators, hamiltonian construction and some common dissipation mechanism in terms of collapse operators along latex representation of the hamiltonian.
+The QuantumSystem class includes various methods that include pretty print function, ground state, eigenstates, eigenvalues, dimension etc.
