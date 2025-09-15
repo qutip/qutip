@@ -710,7 +710,8 @@ class BosonicEnvironment(abc.ABC):
             fit_time_imag = end_imag-start_imag
             full_summary = _cf_fit_summary(
                 params_real, params_imag, fit_time_real, fit_time_imag,
-                Nr, Ni, rmse_real, rmse_imag, n=4)
+                np.min([Nr, len(params_real)]), np.min([Ni, len(params_imag)]),
+                rmse_real, rmse_imag, n=4)
             fit_info = {
                 "Nr": Nr, "Ni": Ni, "fit_time_real": fit_time_real,
                 "fit_time_imag": fit_time_imag, "rmse_real": rmse_real,
@@ -738,7 +739,8 @@ class BosonicEnvironment(abc.ABC):
             params_real = [(ck[i].real, ck[i].imag, vk[i].real,
                             vk[i].imag) for i in range(len(amp))]
             fit_time_real = end_real-start_real
-            full_summary = _fit_summary(fit_time_real, rmse_real, Nr,
+            full_summary = _fit_summary(fit_time_real, rmse_real,
+                                        np.min([Nr, len(params_real)]),
                                         "Correlation Function", params_real,
                                         columns=['ckr', 'cki', 'vkr', 'vki'])
             fit_info = {
@@ -2359,29 +2361,54 @@ def _approx_cf_fit(clist, tlist, target_rmse, Nr_max, Ni_max,
                 "rmse_imag": rmse_imag, "params_real": params_real,
                 "params_imag": params_imag, "summary": full_summary}
     # Finally, generate coefficients and exponents
-    ckAR = []
-    vkAR = []
-    for term in params_real:
-        if full_ansatz:
-            a, b, c, d = term
-        else:
-            a, b, c = term
-            d = 0
-        ckAR.extend([(a + 1j * d) / 2, (a - 1j * d) / 2])
-        vkAR.extend([-b - 1j * c, -b + 1j * c])
+    if fermionic:
+        # TODO: Adjust to correct fermionic exponent expression
+        ckAR = []
+        vkAR = []
+        for term in params_real:
+            if full_ansatz:
+                a, b, c, d = term
+            else:
+                a, b, c = term
+                d = 0
+            ckAR.extend([(a + 1j * d) / 2, (a - 1j * d) / 2])
+            vkAR.extend([-b - 1j * c, -b + 1j * c])
 
-    ckAI = []
-    vkAI = []
-    for term in params_imag:
-        if full_ansatz:
-            a, b, c, d = term
-        else:
-            a, b, c = term
-            d = 0
-        ckAI.extend([-1j * (a + 1j * d) / 2, 1j * (a - 1j * d) / 2])
-        vkAI.extend([-b - 1j * c, -b + 1j * c])
+        ckAI = []
+        vkAI = []
+        for term in params_imag:
+            if full_ansatz:
+                a, b, c, d = term
+            else:
+                a, b, c = term
+                d = 0
+            ckAI.extend([-1j * (a + 1j * d) / 2, 1j * (a - 1j * d) / 2])
+            vkAI.extend([-b - 1j * c, -b + 1j * c])
+        return np.array(ckAR+ckAI), np.array(vkAR+vkAI), fit_info
+    else:
+        ckAR = []
+        vkAR = []
+        for term in params_real:
+            if full_ansatz:
+                a, b, c, d = term
+            else:
+                a, b, c = term
+                d = 0
+            ckAR.extend([(a + 1j * d) / 2, (a - 1j * d) / 2])
+            vkAR.extend([-b - 1j * c, -b + 1j * c])
 
-    return np.array(ckAR), np.array(vkAR), np.array(ckAI), np.array(vkAI), fit_info
+        ckAI = []
+        vkAI = []
+        for term in params_imag:
+            if full_ansatz:
+                a, b, c, d = term
+            else:
+                a, b, c = term
+                d = 0
+            ckAI.extend([-1j * (a + 1j * d) / 2, 1j * (a - 1j * d) / 2])
+            vkAI.extend([-b - 1j * c, -b + 1j * c])
+
+        return np.array(ckAR), np.array(vkAR), np.array(ckAI), np.array(vkAI), fit_info
 
 # --- utilities for prony ---
 
@@ -2576,8 +2603,8 @@ class FermionicEnvironment(abc.ABC):
                     method: Literal['esprit', 'prony', 'espira-I',
                                     'espira-II'],
                     tlist: ArrayLike,
-                    Nr: int,
-                    Ni: int,
+                    Np: int,
+                    Nm: int,
                     combine: bool,
                     tag: Any,
                     separate: bool):
@@ -2604,6 +2631,7 @@ class FermionicEnvironment(abc.ABC):
                          "Correlation Function ESPIRA-I"),
             "espira-ii": (self._approx_by_prony,
                           "Correlation Function ESPIRA-II"),
+            "cf": (self._approx_by_cf_fit, "Correlation Function NLSQ")
         }
 
     def approximate(self, method: str, *args, **kwargs):
@@ -2671,8 +2699,10 @@ class FermionicEnvironment(abc.ABC):
         ckm = -1j * new_res
         end = time()
         fit_time_minus = end - start
-        cls = ExponentialFermionicEnvironment(ck_plus=np.conjugate(ck), ck_minus=ckm,
-                                              vk_plus=np.conjugate(vk), vk_minus=vkm,
+        cls = ExponentialFermionicEnvironment(ck_plus=np.conjugate(ck),
+                                              ck_minus=ckm,
+                                              vk_plus=np.conjugate(vk),
+                                              vk_minus=vkm,
                                               T=self.T, mu=self.mu, tag=tag)
         # Generate summary
         Np = len(vk)
@@ -2683,12 +2713,12 @@ class FermionicEnvironment(abc.ABC):
         params_minus = [(ckm.real[i], ckm.imag[i], vkm[i].real, vkm[i].imag)
                         for i in range(len(ckm))]
         summary_plus = _fit_summary(
-            fit_time_plus, result_minus['rmse'], Np, "the power spectrum", params_plus,
-            columns=['ckr', 'cki', 'vkr', 'vki']
+            fit_time_plus, result_minus['rmse'], Np, "the power spectrum",
+            params_plus, columns=['ckr', 'cki', 'vkr', 'vki']
         )
         summary_minus = _fit_summary(
-            fit_time_minus, result_minus['rmse'], Nm, "the power spectrum", params_minus,
-            columns=['ckr', 'cki', 'vkr', 'vki']
+            fit_time_minus, result_minus['rmse'], Nm, "the power spectrum",
+            params_minus, columns=['ckr', 'cki', 'vkr', 'vki']
         )
         fitinfo = {
             "Np": Np, "Nm": Nm, "fit_time_plus": fit_time_plus,
@@ -2699,7 +2729,6 @@ class FermionicEnvironment(abc.ABC):
             "summary_minus": summary_minus}
         return cls, fitinfo
 
-    # TODO: make this work, right now is not working
     def _approx_by_cf_fit(
         self,
         method: str,
@@ -2722,12 +2751,12 @@ class FermionicEnvironment(abc.ABC):
         clist_plus = self.correlation_function_plus(tlist)
         fit_result = _approx_cf_fit(clist_plus, tlist, target_rmse, Np_max,
                                     Np_max, guess, lower, upper, sigma, maxfev,
-                                    full_ansatz, fermionic=True)
+                                    full_ansatz=True, fermionic=True)
         ck, vk, fit_info_plus = fit_result
         clist_minus = self.correlation_function_minus(tlist)
         fit_result = _approx_cf_fit(clist_minus, tlist, target_rmse, Nm_max,
                                     Nm_max, guess, lower, upper, sigma, maxfev,
-                                    full_ansatz, fermionic=True)
+                                    full_ansatz=True, fermionic=True)
         ckm, vkm, fit_info_minus = fit_result
         cls = ExponentialFermionicEnvironment(
             ck, vk, ckm, vkm, T=self.T, mu=self.mu, tag=tag)
@@ -3448,7 +3477,7 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
         result = result_fct(t).conj() / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
 
-    def correlation_function_minus(self, t, *, eps=1e-10):
+    def correlation_function_minus(self, t):
         t = np.asarray(t, dtype=float)
         if self.T is None:
             raise ValueError('The temperature must be specified for this '
@@ -3474,7 +3503,7 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
         result = self._sd(w)
         return result.item() if w.ndim == 0 else result
 
-    def power_spectrum_plus(self, w, *, eps=1e-10):
+    def power_spectrum_plus(self, w):
         if self.T is None:
             raise ValueError('The temperature must be specified for this '
                              'operation.')
@@ -3483,7 +3512,7 @@ class _FermionicEnvironment_fromSD(FermionicEnvironment):
                              'this operation.')
         return self.spectral_density(w)*fermi_dirac(w, self.beta, self.mu)
 
-    def power_spectrum_minus(self, w, *, eps=1e-10):
+    def power_spectrum_minus(self, w):
         if self.T is None:
             raise ValueError('The temperature must be specified for this '
                              'operation.')
@@ -3506,7 +3535,7 @@ class _FermionicEnvironment_fromPS(FermionicEnvironment):
 
         self.beta = None if T is None else (1 / T if T != 0 else np.inf)
 
-    def correlation_function_plus(self, t, *, eps=1e-10):
+    def correlation_function_plus(self, t):
         t = np.asarray(t, dtype=float)
         if self.T is None:
             raise ValueError('The temperature must be specified for this '
@@ -3529,7 +3558,7 @@ class _FermionicEnvironment_fromPS(FermionicEnvironment):
         result = result_fct(t).conj() / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
 
-    def correlation_function_minus(self, t, *, eps=1e-10):
+    def correlation_function_minus(self, t):
         t = np.asarray(t, dtype=float)
         if self.T is None:
             raise ValueError('The temperature must be specified for this '
@@ -3564,11 +3593,11 @@ class _FermionicEnvironment_fromPS(FermionicEnvironment):
         result = self.power_spectrum_minus(w)+self.power_spectrum_plus(w)
         return result
 
-    def power_spectrum_plus(self, w, *, eps=1e-10):
+    def power_spectrum_plus(self, w):
         w = np.array(w)
         return self._psp(w).item() if w.ndim == 0 else self._psp(w)
 
-    def power_spectrum_minus(self, w, *, eps=1e-10):
+    def power_spectrum_minus(self, w):
         w = np.array(w)
         return self._psm(w).item() if w.ndim == 0 else self._psm(w)
 
@@ -3585,7 +3614,7 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
         else:
             self.tMax = tMax
 
-    def correlation_function_plus(self, t, *, eps=1e-10):
+    def correlation_function_plus(self, t):
         t = np.asarray(t, dtype=float)
         result = np.zeros_like(t, dtype=complex)
         positive_mask = (t >= 0)
@@ -3597,7 +3626,7 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
         )
         return result.item() if t.ndim == 0 else result
 
-    def correlation_function_minus(self, t, *, eps=1e-10):
+    def correlation_function_minus(self, t):
         t = np.asarray(t, dtype=float)
         result = np.zeros_like(t, dtype=complex)
         positive_mask = (t >= 0)
@@ -3614,7 +3643,7 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
         result = self.power_spectrum_minus(w)+self.power_spectrum_plus(w)
         return result
 
-    def power_spectrum_plus(self, w, *, eps=1e-10):
+    def power_spectrum_plus(self, w):
         w = np.asarray(w, dtype=float)
         if self.T is None:
             raise ValueError('The temperature must be specified for this '
@@ -3638,7 +3667,7 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
         # floating point error
         return result
 
-    def power_spectrum_minus(self, w, *, eps=1e-10):
+    def power_spectrum_minus(self, w):
         w = np.asarray(w, dtype=float)
         if self.T is None:
             raise ValueError('The temperature must be specified for this '
@@ -3658,7 +3687,6 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
 
         result_fct = _fft(lambda w: self.correlation_function_minus(w).conj(),
                           tMax, tMax=self.tMax)
-        # for finding everything from one correlation function
         result = result_fct(w).real  # neglect small imaginart part due to
         # floating point error
         return result
