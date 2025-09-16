@@ -404,7 +404,7 @@ class BosonicEnvironment(abc.ABC):
         self,
         method: Literal['ps'],
         wlist: ArrayLike,
-        target_rmse: float = 5e-6,
+        target_rmse: float = 1e-3,
         Nmax: int = 5,
         guess: list[float] = None,
         lower: list[float] = None,
@@ -422,7 +422,7 @@ class BosonicEnvironment(abc.ABC):
         method: Literal["sd"],
         wlist: ArrayLike,
         Nk: int = 1,
-        target_rmse: float = 5e-6,
+        target_rmse: float = 1e-3,
         Nmax: int = 10,
         guess: list[float] = None,
         lower: list[float] = None,
@@ -515,7 +515,7 @@ class BosonicEnvironment(abc.ABC):
         return cls, fit_info
 
     def _approx_by_sd_fit(
-        self, method, wlist, Nk=1, target_rmse=5e-6, Nmax=10,
+        self, method, wlist, Nk=1, target_rmse=1e-3, Nmax=10,
         guess=None, lower=None, upper=None, sigma=None, maxfev=None,
         combine=True, tag=None
     ):
@@ -571,51 +571,15 @@ class BosonicEnvironment(abc.ABC):
         return approx_env, fit_info
 
     def _approx_by_ps_fit(
-        self, method, wlist, target_rmse=5e-6, Nmax=5,
+        self, method, wlist, target_rmse=1e-3, Nmax=5,
         guess=None, lower=None, upper=None, sigma=None, maxfev=None,
         combine=True, tag=None
     ):
-
         # Process arguments
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
-
-        if target_rmse is None:
-            target_rmse = 0
-            Nmin = Nmax
-        else:
-            Nmin = 1
-
-        jlist = self.power_spectrum(wlist)
-        if guess is None and lower is None and upper is None:
-            guess, lower, upper = _default_guess_ps(wlist, jlist)
-
-        # Fit
-        start = time()
-        rmse, params = iterated_fit(
-            _ps_fit_model, 4, wlist, jlist, target_rmse, Nmin, Nmax,
-            guess=guess, lower=lower, upper=upper, sigma=sigma, maxfev=maxfev
-        )
-        end = time()
-        fit_time = end - start
-
-        # Generate summary
-        N = len(params)
-        summary = _fit_summary(
-            fit_time, rmse, N, "the power spectrum", params,
-            columns=['a', 'b', 'c', 'd']
-        )
-        fit_info = {
-            "N": N, "fit_time": fit_time, "rmse": rmse,
-            "params": params, "summary": summary}
-
-        ck, vk = [], []
-        # Finally, generate environment and return
-        for a, b, c, d in params:
-            ck.append(a+1j*b)
-            vk.append(c+1j*d)
-        ck = np.array(ck)
-        vk = np.array(vk)
+        ck, vk, fit_info = _approx_ps_fit(wlist, self.power_spectrum, target_rmse, Nmax,
+                                          guess, lower, upper, sigma, maxfev)
         ckAR = np.concatenate((ck/2, ck.conj()/2))
         ckAI = np.concatenate((-1j*ck/2, 1j*ck.conj()/2))
         vkAR = np.concatenate((vk, vk.conj()))
@@ -1009,7 +973,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         self,
         method: Literal['ps'],
         wlist: ArrayLike,
-        target_rmse: float = 5e-6,
+        target_rmse: float = 1e-3,
         Nmax: int = 5,
         guess: list[float] = None,
         lower: list[float] = None,
@@ -1027,7 +991,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         method: Literal["sd"],
         wlist: ArrayLike,
         Nk: int = 1,
-        target_rmse: float = 5e-6,
+        target_rmse: float = 1e-3,
         Nmax: int = 10,
         guess: list[float] = None,
         lower: list[float] = None,
@@ -1379,7 +1343,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
         self,
         method: Literal['ps'],
         wlist: ArrayLike,
-        target_rmse: float = 5e-6,
+        target_rmse: float = 1e-3,
         Nmax: int = 5,
         guess: list[float] = None,
         lower: list[float] = None,
@@ -1397,7 +1361,7 @@ class UnderDampedEnvironment(BosonicEnvironment):
         method: Literal["sd"],
         wlist: ArrayLike,
         Nk: int = 1,
-        target_rmse: float = 5e-6,
+        target_rmse: float = 1e-3,
         Nmax: int = 10,
         guess: list[float] = None,
         lower: list[float] = None,
@@ -2197,6 +2161,10 @@ def _sd_fit_model(wlist, a, b, c):
     )
 
 
+def _sd_fit_model_f(wlist, a, b, c):
+    return a * b**2 / ((wlist - c)**2 + b**2)
+
+
 def _default_guess_sd(wlist, jlist):
     sd_abs = np.abs(jlist)
     sd_max = np.max(sd_abs)
@@ -2362,28 +2330,20 @@ def _approx_cf_fit(clist, tlist, target_rmse, Nr_max, Ni_max,
                 "params_imag": params_imag, "summary": full_summary}
     # Finally, generate coefficients and exponents
     if fermionic:
-        # TODO: Adjust to correct fermionic exponent expression
+        # TODO: Generalize for Im(C(0))!=0
         ckAR = []
         vkAR = []
         for term in params_real:
-            if full_ansatz:
-                a, b, c, d = term
-            else:
-                a, b, c = term
-                d = 0
-            ckAR.extend([(a + 1j * d) / 2, (a - 1j * d) / 2])
+            a, b, c = term
+            ckAR.extend([a / 2, a / 2])
             vkAR.extend([-b - 1j * c, -b + 1j * c])
 
         ckAI = []
         vkAI = []
         for term in params_imag:
-            if full_ansatz:
-                a, b, c, d = term
-            else:
-                a, b, c = term
-                d = 0
-            ckAI.extend([-1j * (a + 1j * d) / 2, 1j * (a - 1j * d) / 2])
-            vkAI.extend([-b - 1j * c, -b + 1j * c])
+            a, b, c = term
+            ckAI.extend([-a / 2, a / 2])
+            vkAI.extend([-b + 1j * c, -b - 1j * c])
         return np.array(ckAR+ckAI), np.array(vkAR+vkAI), fit_info
     else:
         ckAR = []
@@ -2410,6 +2370,44 @@ def _approx_cf_fit(clist, tlist, target_rmse, Nr_max, Ni_max,
 
         return np.array(ckAR), np.array(vkAR), np.array(ckAI), np.array(vkAI), fit_info
 
+
+def _approx_ps_fit(wlist, func, target_rmse=1e-3, Nmax=5,
+                   guess=None, lower=None, upper=None, sigma=None, maxfev=None):
+    slist = func(wlist)
+    if guess is None and lower is None and upper is None:
+        guess, lower, upper = _default_guess_ps(wlist, slist)
+    if target_rmse is None:
+        target_rmse = 0
+        Nmin = Nmax
+    else:
+        Nmin = 1
+    # Fit
+    start = time()
+    rmse, params = iterated_fit(
+        _ps_fit_model, 4, wlist, slist, target_rmse, Nmin, Nmax,
+        guess=guess, lower=lower, upper=upper, sigma=sigma, maxfev=maxfev
+    )
+    end = time()
+    fit_time = end - start
+
+    # Generate summary
+    N = len(params)
+    summary = _fit_summary(
+        fit_time, rmse, N, "the power spectrum", params,
+        columns=['a', 'b', 'c', 'd']
+    )
+    fit_info = {
+        "N": N, "fit_time": fit_time, "rmse": rmse,
+        "params": params, "summary": summary}
+
+    ck, vk = [], []
+    # Finally, generate environment and return
+    for a, b, c, d in params:
+        ck.append(a+1j*b)
+        vk.append(c+1j*d)
+    ck = np.array(ck)
+    vk = np.array(vk)
+    return ck, vk, fit_info
 # --- utilities for prony ---
 
 
@@ -2631,7 +2629,9 @@ class FermionicEnvironment(abc.ABC):
                          "Correlation Function ESPIRA-I"),
             "espira-ii": (self._approx_by_prony,
                           "Correlation Function ESPIRA-II"),
-            "cf": (self._approx_by_cf_fit, "Correlation Function NLSQ")
+            "cf": (self._approx_by_cf_fit, "Correlation Function NLSQ"),
+            "ps": (self._approx_by_ps_fit, "Correlation Function NLSQ"),
+            "sd": (self._approx_by_sd_fit, "Spectral Density NLSQ"),
         }
 
     def approximate(self, method: str, *args, **kwargs):
@@ -2751,12 +2751,12 @@ class FermionicEnvironment(abc.ABC):
         clist_plus = self.correlation_function_plus(tlist)
         fit_result = _approx_cf_fit(clist_plus, tlist, target_rmse, Np_max,
                                     Np_max, guess, lower, upper, sigma, maxfev,
-                                    full_ansatz=True, fermionic=True)
+                                    full_ansatz=False, fermionic=True)
         ck, vk, fit_info_plus = fit_result
         clist_minus = self.correlation_function_minus(tlist)
         fit_result = _approx_cf_fit(clist_minus, tlist, target_rmse, Nm_max,
                                     Nm_max, guess, lower, upper, sigma, maxfev,
-                                    full_ansatz=True, fermionic=True)
+                                    full_ansatz=False, fermionic=True)
         ckm, vkm, fit_info_minus = fit_result
         cls = ExponentialFermionicEnvironment(
             ck, vk, ckm, vkm, T=self.T, mu=self.mu, tag=tag)
@@ -2827,6 +2827,78 @@ class FermionicEnvironment(abc.ABC):
                                               T=self.T, mu=self.mu, tag=tag)
 
         return cls, fit_info
+
+    def _approx_by_ps_fit(
+        self, method, wlist, target_rmse=1e-3, Nmax=5,
+        guess=None, lower=None, upper=None, sigma=None, maxfev=None,
+        tag=None
+    ):
+        # Process arguments
+        if tag is None and self.tag is not None:
+            tag = (self.tag, f"{method.upper()} Fit")
+        ck, vk, fit_info = _approx_ps_fit(wlist, self.power_spectrum_plus, target_rmse, Nmax,
+                                          guess, lower, upper, sigma, maxfev)
+        ckm, vkm, fit_info = _approx_ps_fit(wlist, self.power_spectrum_minus, target_rmse, Nmax,
+                                            guess, lower, upper, sigma, maxfev)
+        approx_env = ExponentialFermionicEnvironment(ck_plus=ck.conj(), vk_plus=vk.conj(),
+                                                     ck_minus=ckm, vk_minus=vkm,
+                                                     T=self.T, mu=self.mu, tag=tag)
+        return approx_env, fit_info
+
+    def _approx_by_sd_fit(
+        self, method, wlist, Nk=1, target_rmse=1e-3, Nmax=10,
+        guess=None, lower=None, upper=None, sigma=None, maxfev=None,
+        combine=True, tag=None
+    ):
+
+        # Process arguments
+        if tag is None and self.tag is not None:
+            tag = (self.tag, f"{method.upper()} Fit")
+
+        if target_rmse is None:
+            target_rmse = 0
+            Nmin = Nmax
+        else:
+            Nmin = 1
+
+        jlist = self.spectral_density(wlist)
+        if guess is None and lower is None and upper is None:
+            guess, lower, upper = _default_guess_sd(wlist, jlist)
+
+        # Fit
+        start = time()
+        rmse, params = iterated_fit(
+            _sd_fit_model_f, 3, wlist, jlist, target_rmse, Nmin, Nmax,
+            guess=guess, lower=lower, upper=upper, sigma=sigma, maxfev=maxfev
+        )
+        end = time()
+        fit_time = end - start
+
+        # Generate summary
+        N = len(params)
+        summary = _fit_summary(
+            fit_time, rmse, N, "the spectral density", params
+        )
+        fit_info = {
+            "N": N, "Nk": Nk, "fit_time": fit_time, "rmse": rmse,
+            "params": params, "summary": summary}
+
+        ckAR, vkAR, ckAI, vkAI = [], [], [], []
+        # Finally, generate environment and return
+        for a, b, c in params:
+            env = LorentzianEnvironment(self.T, self.mu, a, b, c)
+            ck, vk = self._corr(Nk, 1)
+            ckm, vkm = self._corr(Nk, -1)
+            ckAR.extend(ck)
+            vkAR.extend(vk)
+            ckAI.extend(ckm)
+            vkAI.extend(vkm)
+        approx_env = ExponentialFermionicEnvironment(
+            ck_plus=ckAR, vk_plus=vkAR, ck_minus=ckAI,
+            vk_minus=vkAI, mu=self.mu, T=self.T, tag=tag)
+        return approx_env, fit_info
+        # TODO: All methods from spectra miss on the imaginary part of the correlation function at zero
+        # way too often, maybe a typo somewhere
 
 
 class LorentzianEnvironment(FermionicEnvironment):

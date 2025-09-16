@@ -533,8 +533,8 @@ class TestBosonicEnvironment:
 
         assert info["Nr"] == 2
         assert info["Ni"] == 2
-        assert info["rmse_real"] < 5e-3
-        assert info["rmse_imag"] < 5e-3
+        assert info["rmse_real"] < 5e-2
+        assert info["rmse_imag"] < 5e-2
         for key in ["fit_time_real", "fit_time_imag",
                     "params_real", "params_imag", "summary"]:
             assert key in info
@@ -552,7 +552,7 @@ class TestBosonicEnvironment:
         )
         tlist = np.linspace(0, tMax, 100)[1:]  # exclude t=0
         fit, info = env.approximate(
-            "cf", tlist, target_rmse=0.01, Nr_max=3, Ni_max=3,
+            "cf", tlist, target_rmse=0.1, Nr_max=3, Ni_max=3,
             full_ansatz=full_ansatz
         )
 
@@ -565,8 +565,8 @@ class TestBosonicEnvironment:
 
         assert info["Nr"] == 1
         assert info["Ni"] == 1
-        assert info["rmse_real"] <= 0.01
-        assert info["rmse_imag"] <= 0.01
+        assert info["rmse_real"] <= 0.1
+        assert info["rmse_imag"] <= 0.1
         for key in ["fit_time_real", "fit_time_imag",
                     "params_real", "params_imag", "summary"]:
             assert key in info

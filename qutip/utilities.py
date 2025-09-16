@@ -398,7 +398,7 @@ def iterated_fit(
     num_params: int,
     xdata: ArrayLike,
     ydata: ArrayLike,
-    target_rmse: float = 1e-5,
+    target_rmse: float = 1e-3,
     Nmin: int = 1,
     Nmax: int = 10,
     guess: ArrayLike | Callable[[int], ArrayLike] = None,
@@ -533,7 +533,7 @@ def _rmse(fun, xdata, ydata, params):
     if (yhat == ydata).all():
         return 0
     return (
-        np.sqrt(np.mean((yhat - ydata) ** 2) / len(ydata))
+        np.sqrt(np.mean((yhat - ydata) ** 2) )
         / (np.max(ydata) - np.min(ydata))
     )
 
