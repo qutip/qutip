@@ -26,3 +26,4 @@ Users Guide
    guide-settings.rst
    guide-measurement.rst
    guide-family.rst
+   guide-quantum-systems.rst

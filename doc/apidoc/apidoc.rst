@@ -19,3 +19,4 @@ complete list of QuTiP's public classes and functions.
    visualization.rst
    utilities.rst
    experimental.rst
+   quantum_systems.rst

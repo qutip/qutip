@@ -7,6 +7,23 @@ class QuantumSystem:
     General class for quantum systems
 
     All quantum systems are instances of this class, configured by factory functions.
+
+    Parameters
+    ----------
+    hamiltonian : Qobj
+        System Hamiltonian
+    name : str
+        Name/type of the quantum system
+    operators : dict, optional
+        Dictionary of system operators
+    c_ops : list, optional
+        List of collapse operators
+    latex : str, optional
+        LaTeX representation of the system
+    **kwargs : dict
+        Additional system-specific parameters
+
+    
     """
 
     def __init__(self, hamiltonian: Qobj, name: str = "Quantum System",
@@ -15,12 +32,12 @@ class QuantumSystem:
         """
         Initialize quantum system
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
+        hamiltonian : Qobj
+            System Hamiltonian
         name : str
             Name/type of the quantum system
-        hamiltonian : Qobj, optional
-            System Hamiltonian
         operators : dict, optional
             Dictionary of system operators
         c_ops : list, optional
