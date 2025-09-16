@@ -28,13 +28,26 @@ def jaynes_cummings(
     """
     Create Jaynes-Cummings system
 
-    The Jaynes-Cummings model describes a two-level atom interacting with a
-    single cavity mode. The Hamiltonian is:
+    The Jaynes-Cummings model is one of the most fundamental models in quantum optics,
+    describing the interaction between a two-level atom and a single mode of the
+    electromagnetic field (cavity mode). It was introduced by Edwin Jaynes and
+    Fred Cummings in 1963 and remains central to cavity quantum electrodynamics (cavity QED).
+    
+    The Hamiltonian is:
 
-    H = omega_c * a_dag * a + (omega_a/2) * sigma_z + g * (a_dag * sigma_minus + a * sigma_plus)  [with RWA]
-    H = omega_c * a_dag * a + (omega_a / 2) * sigma_z + g * (a_dag + a) * (sigma_plus + sigma_minus) [without RWA]
+    **With rotating wave approximation (RWA):**
 
-    Parameters:
+    .. math::
+   
+        H = \\omega_c a^\\dagger a + \\frac{\\omega_a}{2}\\sigma_z + g(a^\\dagger\\sigma_- + a\\sigma_+)
+
+    **Without rotating wave approximation:**
+
+    .. math::
+
+        H = \\omega_c a^\\dagger a + \\frac{\\omega_a}{2}\\sigma_z + g(a^\\dagger + a)(\\sigma_+ + \\sigma_-)
+
+    Parameters
     -----------
     omega_c : float or Coefficient, default=1.0
         Cavity frequency, can be constant or time-dependent
@@ -55,7 +68,7 @@ def jaynes_cummings(
     thermal_photons : float, default=0.0
         Mean thermal photon number, n_th (for thermal bath)
 
-    Returns:
+    Returns
     --------
     QuantumSystem
         Configured Jaynes-Cummings system instance
