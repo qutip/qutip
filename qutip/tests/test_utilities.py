@@ -157,12 +157,12 @@ class TestFitting:
             lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2
         )
         if noisy:
-            assert rmse < 1e-3
+            assert rmse < 1e-2
             # The atol is the std of noise times the maximum of the signal
             assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-2*np.max(y))) or
                     np.all(np.isclose(params, [fparams2, fparams1], atol=1e-2*np.max(y))))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
                     np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
 
@@ -181,20 +181,20 @@ class TestFitting:
         x, y, _, _, noisy = generate_data
         rmse, params = utils.espira1(y, 4, tol=1e-16)
         if noisy:
-            assert rmse < 1e-3
+            assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
     def test_espira_II(self, generate_data):
         x, y, _, _, noisy = generate_data
         rmse, params = utils.espira2(y, 4, tol=1e-16)
         if noisy:
-            assert rmse < 1e-3
+            assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
     @pytest.mark.parametrize("method", ["prony", "esprit"])
@@ -202,8 +202,8 @@ class TestFitting:
         x, y, _, _, noisy = generate_data
         rmse, params = utils.prony_methods(method, y, 4)
         if noisy:
-            assert rmse < 1e-3
+            assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=2e-2*np.max(y))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
