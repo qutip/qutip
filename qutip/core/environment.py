@@ -2180,6 +2180,21 @@ def _default_guess_sd(wlist, jlist):
     return guess, lower, upper
 
 
+def _default_guess_sd_f(wlist, jlist):
+    sd_abs = np.abs(jlist)
+    sd_max = np.max(sd_abs)
+    wc = wlist[-1]
+
+    if sd_max == 0:
+        return [0] * 3
+
+    lower = [-np.inf, -np.inf, -np.inf]
+    guess = [sd_max, wc, wc]
+    upper = [np.inf, np.inf, np.inf]
+
+    return guess, lower, upper
+
+
 def _ps_fit_model(wlist, a, b, c, d):
     return (
         2 * (a*c + b*(d-wlist)) / ((wlist - d)**2 + c**2)
@@ -2713,20 +2728,22 @@ class FermionicEnvironment(abc.ABC):
         params_minus = [(ckm.real[i], ckm.imag[i], vkm[i].real, vkm[i].imag)
                         for i in range(len(ckm))]
         summary_plus = _fit_summary(
-            fit_time_plus, result_minus['rmse'], Np, "the power spectrum",
+            fit_time_plus, result_plus['rmse'], Np, "the power spectrum",
             params_plus, columns=['ckr', 'cki', 'vkr', 'vki']
         )
+        fit_info_plus = {'fit_time': fit_time_plus, 'rmse': result_plus['rmse'],
+                         "params": params_plus, 'N': Np, 'summary': summary_plus}
         summary_minus = _fit_summary(
             fit_time_minus, result_minus['rmse'], Nm, "the power spectrum",
             params_minus, columns=['ckr', 'cki', 'vkr', 'vki']
         )
-        fitinfo = {
-            "Np": Np, "Nm": Nm, "fit_time_plus": fit_time_plus,
-            "fit_time_minus": fit_time_minus,
-            "rmse_minus": result_minus['rmse'],
-            "rmse_plus": result_plus['rmse'], "params_plus": params_plus,
-            "params_minus": params_minus, "summary_plus": summary_plus,
-            "summary_minus": summary_minus}
+        fit_info_minus = {'fit_time': fit_time_minus, 'rmse': result_minus['rmse'],
+                          "params": params_minus, 'N': Np, 'summary': summary_minus}
+        # merge both fit info dictionaries
+        fitinfo = {**{str(key) + "_plus": value for key, value
+                      in fit_info_plus.items()},
+                   **{str(key) + "_minus": value for key, value
+                       in fit_info_minus.items()}}
         return cls, fitinfo
 
     def _approx_by_cf_fit(
@@ -2814,14 +2831,7 @@ class FermionicEnvironment(abc.ABC):
             "fit_time_minus": fit_time_minus, "rmse_plus": rmse_plus,
             "rmse_minus": rmse_minus, "params_plus": params_plus,
             "params_minus": params_minus, "summary": full_summary}
-        full_summary = _cf_fit_summary(
-            params_plus, params_minus, fit_time_plus, fit_time_minus,
-            Np, Nm, rmse_plus, rmse_minus, n=4)
-        fit_info = {
-            "Np": Np, "Nm": Nm, "fit_time_plus": fit_time_plus,
-            "fit_time_minus": fit_time_minus, "rmse_plus": rmse_plus,
-            "rmse_minus": rmse_minus, "params_plus": params_plus,
-            "params_minus": params_minus, "summary": full_summary}
+
         cls = ExponentialFermionicEnvironment(ck_plus=ck, vk_plus=vk,
                                               ck_minus=ckm, vk_minus=vkm,
                                               T=self.T, mu=self.mu, tag=tag)
@@ -2829,26 +2839,29 @@ class FermionicEnvironment(abc.ABC):
         return cls, fit_info
 
     def _approx_by_ps_fit(
-        self, method, wlist, target_rmse=1e-3, Nmax=5,
+        self, method, wlist, target_rmse=1e-3, Np_max=5, Nm_max=5,
         guess=None, lower=None, upper=None, sigma=None, maxfev=None,
         tag=None
     ):
         # Process arguments
         if tag is None and self.tag is not None:
             tag = (self.tag, f"{method.upper()} Fit")
-        ck, vk, fit_info = _approx_ps_fit(wlist, self.power_spectrum_plus, target_rmse, Nmax,
-                                          guess, lower, upper, sigma, maxfev)
-        ckm, vkm, fit_info = _approx_ps_fit(wlist, self.power_spectrum_minus, target_rmse, Nmax,
-                                            guess, lower, upper, sigma, maxfev)
+        ck, vk, fit_info_plus = _approx_ps_fit(wlist, self.power_spectrum_plus, target_rmse, Np_max,
+                                               guess, lower, upper, sigma, maxfev)
+        ckm, vkm, fit_info_minus = _approx_ps_fit(wlist, self.power_spectrum_minus, target_rmse, Nm_max,
+                                                  guess, lower, upper, sigma, maxfev)
         approx_env = ExponentialFermionicEnvironment(ck_plus=ck.conj(), vk_plus=vk.conj(),
                                                      ck_minus=ckm, vk_minus=vkm,
                                                      T=self.T, mu=self.mu, tag=tag)
+        fit_info = {**{str(key) + "_plus": value for key, value
+                       in fit_info_plus.items()},
+                    **{str(key) + "_minus": value for key, value
+                       in fit_info_minus.items()}}
         return approx_env, fit_info
 
     def _approx_by_sd_fit(
         self, method, wlist, Nk=1, target_rmse=1e-3, Nmax=10,
-        guess=None, lower=None, upper=None, sigma=None, maxfev=None,
-        combine=True, tag=None
+        guess=None, lower=None, upper=None, sigma=None, maxfev=None, tag=None
     ):
 
         # Process arguments
@@ -2863,7 +2876,7 @@ class FermionicEnvironment(abc.ABC):
 
         jlist = self.spectral_density(wlist)
         if guess is None and lower is None and upper is None:
-            guess, lower, upper = _default_guess_sd(wlist, jlist)
+            guess, lower, upper = _default_guess_sd_f(wlist, jlist)
 
         # Fit
         start = time()
@@ -2886,9 +2899,9 @@ class FermionicEnvironment(abc.ABC):
         ckAR, vkAR, ckAI, vkAI = [], [], [], []
         # Finally, generate environment and return
         for a, b, c in params:
-            env = LorentzianEnvironment(self.T, self.mu, a, b, c)
-            ck, vk = self._corr(Nk, 1)
-            ckm, vkm = self._corr(Nk, -1)
+            env = LorentzianEnvironment(self.T, self.mu, a, b, c, Nk=Nk)
+            ck, vk = env._corr(Nk, 1)
+            ckm, vkm = env._corr(Nk, -1)
             ckAR.extend(ck)
             vkAR.extend(vk)
             ckAI.extend(ckm)
@@ -2898,7 +2911,7 @@ class FermionicEnvironment(abc.ABC):
             vk_minus=vkAI, mu=self.mu, T=self.T, tag=tag)
         return approx_env, fit_info
         # TODO: All methods from spectra miss on the imaginary part of the correlation function at zero
-        # way too often, maybe a typo somewhere
+        # way too often, maybe a typo somewhere of finite sampling effects
 
 
 class LorentzianEnvironment(FermionicEnvironment):
