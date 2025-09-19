@@ -102,6 +102,46 @@ class IntegratorKrylov(Integrator):
 
         return krylov_tridiag, krylov_basis
 
+    def _arnoldi_algorithm(self, psi):
+        """
+        Computes the Krylov subspace basis for a Hamiltonian 'H', a system
+        state 'psi' and Krylov dimension 'krylov_dim' using the Arnoldi
+        interation. The space is spanned by
+        {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
+
+        Parameters
+        ------------
+        psi: np.ndarray
+            State used to calculation Krylov subspace (= first basis state).
+
+        t: float, default: 0
+            Time at which to evaluate the Hamiltonian.
+        """
+        krylov_dim = self.options['krylov_dim']
+        H = self.system(0).data
+
+        h = np.zeros((krylov_dim + 1, krylov_dim), dtype=complex)
+        Q = [_data.mul(psi, 1 / _data.norm.l2(psi))]
+
+        k = 1
+        v = _data.matmul(H, psi)
+        h[0, 0] = _data.inner(psi, v)
+        h[1, 0] = _data.norm.l2(v)
+        while k < krylov_dim and h[k, k-1] > self.options['sub_system_tol']:
+            Q.append(_data.mul(v, 1 / h[k, k-1]))
+            v = _data.matmul(H, Q[-1])
+            k += 1
+            for j in range(k):  # remove projections
+                h[j, k-1] = _data.inner(Q[j], v)
+                v = v - h[j, k-1] * Q[j]
+            h[k, k-1] = _data.norm.l2(v)
+
+        krylov_hesse = _data.Dense(h[:k, :k])
+        krylov_basis = _data.Dense(
+            np.hstack([psi.to_array() for psi in Q])
+        )
+        return krylov_hesse, krylov_basis
+
     def _compute_krylov_set(self, krylov_tridiag, krylov_basis):
         """
         Compute the eigen energies, basis transformation operator (U) and e0.
