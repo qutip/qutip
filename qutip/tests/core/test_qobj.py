@@ -598,6 +598,16 @@ def test_QobjEigenStates():
         assert c[k] == kets[k]
 
 
+def test_QobjEigenStatesOutputType():
+    op = qutip.rand_herm(5)
+
+    _, kets = op.eigenstates(output_type='kets', phase_fix=0)
+    _, oper = op.eigenstates(output_type='oper', phase_fix=0)
+
+    assert qutip.Qobj(
+           np.hstack([vec.full() for vec in kets]), dims=[5, 5]) == oper
+
+
 def test_QobjExpm():
     "qutip.Qobj expm (dense)"
     data = _random_not_singular(15)

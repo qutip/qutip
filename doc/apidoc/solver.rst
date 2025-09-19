@@ -138,6 +138,9 @@ by qutip solvers. Their options are added to the solver options:
 .. autoclass:: qutip.solver.integrator.scipy_integrator.IntegratorScipyDop853
     :members: options
 
+.. autoclass:: qutip.solver.integrator.qutip_integrator.IntegratorTsit5
+    :members: options
+
 .. autoclass:: qutip.solver.integrator.qutip_integrator.IntegratorVern7
     :members: options
 
