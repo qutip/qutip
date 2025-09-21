@@ -35,10 +35,20 @@ def test_vacuum_state_integration():
     # Two-mode vacuum Wigner
     W_2mode = wigner_2mode_full(vacuum_2mode, x_range, p_range, x_range, p_range)
     
-    # Integrate over mode 2
+    # Integrate over mode 2 - handle NumPy version compatibility
     dx = x_range[1] - x_range[0]
     dp = p_range[1] - p_range[0]
-    W_integrated = np.trapz(np.trapz(W_2mode, axis=3, dx=dp), axis=2, dx=dx)
+    
+    # Use NumPy version-compatible integration
+    try:
+        # NumPy 2.0+
+        W_integrated = np.trapezoid(np.trapezoid(W_2mode, axis=3, dx=dp), axis=2, dx=dx)
+    except AttributeError:
+        # NumPy < 2.0
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            W_integrated = np.trapz(np.trapz(W_2mode, axis=3, dx=dp), axis=2, dx=dx)
     
     # Reference single-mode vacuum Wigner
     W_1mode_ref = wigner(vacuum_1mode, x_range, p_range)
