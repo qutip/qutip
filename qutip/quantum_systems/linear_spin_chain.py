@@ -3,18 +3,7 @@ from qutip import tensor, qeye, sigmax, sigmay, sigmaz, coefficient, Qobj, sigma
 from qutip.core.cy.coefficient import Coefficient
 from typing import Union
 from .quantum_system import QuantumSystem
-
-def _create_sqrt_coefficient(rate):
-    """Helper function to create sqrt coefficient from decay rate"""
-    if isinstance(rate, Coefficient):
-        # Extract coefficient information and create sqrt version
-        def sqrt_func(t, args):
-            return np.sqrt(rate(t, args))
-            
-        return coefficient(sqrt_func, args={})
-    else:
-        return np.sqrt(rate)
-
+from .jaynes_cummings import _create_sqrt_coefficient
 
 def linear_spin_chain(
     model_type: str = "heisenberg",
@@ -36,42 +25,91 @@ def linear_spin_chain(
 
     Creates a 1D chain of spin-1/2 particles with nearest-neighbor interactions.
     Supports various spin models and open system dynamics.
+    
+    **Model Hamiltonians:**
 
-    Model Hamiltonians:
-    - Heisenberg: H = J * sum_i [S_i^x * S_{i+1}^x + S_i^y * S_{i+1}^y + S_i^z * S_{i+1}^z] + fields
-    - XXZ: H = J * sum_i [S_i^x * S_{i+1}^x + S_i^y * S_{i+1}^y] + Jz * sum_i [S_i^z * S_{i+1}^z] + fields
-    - XY: H = J * sum_i [S_i^x * S_{i+1}^x + S_i^y * S_{i+1}^y] + fields
-    - Ising: H = J * sum_i [S_i^z * S_{i+1}^z] + fields
+    Heisenberg model:
 
-    Parameters:
-    -----------
+    .. math::
+        H = J \\sum_{\\langle i,j \\rangle} \\vec{S}_i \\cdot \\vec{S}_j + B_x \\sum_i S_i^x + B_y \\sum_i S_i^y + B_z \\sum_i S_i^z
+
+    XXZ model:
+
+    .. math::
+        H = J \\sum_{\\langle i,j \\rangle} (S_i^x S_j^x + S_i^y S_j^y) + J_z \\sum_{\\langle i,j \\rangle} S_i^z S_j^z + \\vec{B} \\cdot \\sum_i \\vec{S}_i
+
+    XY model:
+
+    .. math::
+        H = J \\sum_{\\langle i,j \\rangle} (S_i^x S_j^x + S_i^y S_j^y) + \\vec{B} \\cdot \\sum_i \\vec{S}_i
+
+    Ising model (with transverse field when :math:`B_x, B_y \\neq 0`):
+
+    .. math::
+        H = J \\sum_{\\langle i,j \\rangle} S_i^z S_j^z + \\vec{B} \\cdot \\sum_i \\vec{S}_i
+
+    **Dissipation Channels:**
+
+    Pure dephasing:
+
+    .. math::
+        \\mathcal{L}[\\rho] = \\gamma_{\\text{deph}} \\sum_k \\left( S_k^z \\rho S_k^z - \\frac{1}{2}\\{(S_k^z)^2, \\rho\\} \\right)
+
+    Depolarizing channel:
+
+    .. math::
+        \\mathcal{L}[\\rho] = \\frac{\\gamma_{\\text{depol}}}{3} \\sum_{k,\\alpha} \\left( S_k^\\alpha \\rho S_k^\\alpha - \\frac{1}{2}\\{(S_k^\\alpha)^2, \\rho\\} \\right)
+
+    where :math:`\\alpha \\in \\{x, y, z\\}`.
+
+    Thermal bath (:math:`T = 0`):
+
+    .. math::
+        \\mathcal{L}[\\rho] = \\gamma_{\\text{thermal}} \\sum_k \\left( S_k^- \\rho S_k^+ - \\frac{1}{2}\\{S_k^+ S_k^-, \\rho\\} \\right)
+
+    Thermal bath (:math:`T > 0`):
+
+    .. math::
+        \\mathcal{L}[\\rho] = \\gamma_{\\text{thermal}} \\sum_k \\left[ p_{\\text{down}} \\left( S_k^- \\rho S_k^+ - \\frac{1}{2}\\{S_k^+ S_k^-, \\rho\\} \\right) + p_{\\text{up}} \\left( S_k^+ \\rho S_k^- - \\frac{1}{2}\\{S_k^- S_k^+, \\rho\\} \\right) \\right]
+
+    with thermal factors:
+
+    .. math::
+        p_{\\text{down}} = \\frac{1}{1 + e^{-\\beta\\omega}}, \\quad p_{\\text{up}} = \\frac{e^{-\\beta\\omega}}{1 + e^{-\\beta\\omega}}
+
+    **Note:** These thermal factors assume **Fermi-Dirac statistics** (coupling to a fermionic bath, 
+    e.g., other spins). For bosonic environments (e.g., phonons), the rates would follow 
+    Bose-Einstein statistics with different thermal factors.
+
+    Parameters
+    ----------
     model_type : str, default="heisenberg"
         Type of spin chain model: "heisenberg", "xxz", "xy", "ising"
     N : int, default=4
         Number of spins in the chain
     J : float or coefficient, default=1.0
-        Coupling strength for XY interactions (Sx*Sx + Sy*Sy terms)
+        Coupling strength for XY interactions :math:`(S_x S_x + S_y S_y)` terms
     Jz : float or coefficient, default=None
-        Z-coupling strength (Sz*Sz terms). If None, equals J for Heisenberg, 0 for XY
+        Z-coupling strength :math:`(S_z S_z)` terms. If None, equals J for Heisenberg, 0 for XY
     boundary_conditions : str, default="open"
         Boundary conditions: "open" or "periodic"
     B_x, B_y, B_z : float or coefficient, default=0.0
-        External magnetic field components
+        External magnetic field components :math:`\\vec{B} = (B_x, B_y, B_z)`
     gamma_dephasing : float or coefficient, default=0.0
-        Pure dephasing rate (T2* process)
+        Pure dephasing rate :math:`\\gamma_{\\text{deph}} ` (T2* process)
     gamma_depolarizing : float or coefficient, default=0.0
-        Depolarizing channel rate
+        Depolarizing channel rate :math:`\\gamma_{\\text{depol}}`
     gamma_thermal : float or coefficient, default=0.0
-        Thermal bath coupling rate. At temperature=0, this gives pure 
+        Thermal bath coupling rate :math:`\\gamma_{\\text{thermal}}`. At :math:`T=0`, this gives pure 
         spontaneous emission (T1 process). At finite temperature, includes
         both emission and absorption processes.
     temperature : float, default=0.0
-        Bath temperature (in units of transition_frequency)
+        Bath temperature :math:`T` (in units of transition_frequency)
     transition_frequency : float, default=1.0
-        Energy scale for thermal factors
+        Energy scale :math:`\\omega` for thermal factors
 
-    Returns:
-    --------
+    Returns
+    -------
     QuantumSystem
         Configured linear spin chain system instance
     """
@@ -149,7 +187,7 @@ def linear_spin_chain(
     )
 
     # Generate LaTeX representation
-    latex = _generate_latex(model_type, J, Jz, B_x, B_y, B_z, boundary_conditions)
+    latex = _generate_latex(model_type, J, Jz, B_x, B_y, B_z, boundary_conditions, gamma_dephasing, gamma_depolarizing, gamma_thermal, temperature)
 
     # Return system with all components
     return QuantumSystem(
@@ -227,9 +265,9 @@ def _build_hamiltonian(
 def _build_collapse_operators(
     operators: dict,
     N: int,
-    gamma_dephasing: float,
-    gamma_depolarizing: float,
-    gamma_thermal: float,
+    gamma_dephasing: Union[float, Coefficient],
+    gamma_depolarizing: Union[float, Coefficient],
+    gamma_thermal: Union[float, Coefficient],
     temperature: float,
     transition_frequency: float,
 ) -> list:
@@ -303,6 +341,10 @@ def _generate_latex(
     B_y: float,
     B_z: float,
     boundary_conditions: str,
+    gamma_dephasing: Union[float, Coefficient],
+    gamma_depolarizing: Union[float, Coefficient],
+    gamma_thermal: Union[float, Coefficient],
+    temperature: float,
 ) -> str:
     """Generate LaTeX representation of the Hamiltonian"""
 
@@ -335,5 +377,26 @@ def _generate_latex(
     # Add boundary condition note
     bc_note = "PBC" if boundary_conditions == "periodic" else "OBC"
     latex += f" \\quad ({bc_note})"
+
+    # Add Lindblad operators 
+    noise_terms = []
+    
+    # Check for dephasing (handle both Coefficient and float)
+    if isinstance(gamma_dephasing, Coefficient) or gamma_dephasing > 0.0:
+        noise_terms.append(r"\sqrt{\gamma_{deph}} \sigma_z^{(k)}")
+    
+    # Check for depolarizing (handle both Coefficient and float)  
+    if isinstance(gamma_depolarizing, Coefficient) or gamma_depolarizing > 0.0:
+        noise_terms.append(r"\sqrt{\frac{\gamma_{depol}}{3}} \sigma_{\alpha}^{(k)}")
+    
+    # Check for thermal (handle both Coefficient and float)
+    if isinstance(gamma_thermal, Coefficient) or gamma_thermal > 0.0:
+        if temperature > 0.0:
+            noise_terms.append(r"\sqrt{\gamma_{th} p_{\downarrow}} \sigma_-^{(k)}, \sqrt{\gamma_{th} p_{\uparrow}} \sigma_+^{(k)}")
+        else:
+            noise_terms.append(r"\sqrt{\gamma_{th}} \sigma_-^{(k)}")
+
+    if noise_terms:
+        latex += r" \\ \text{Lindblad ops: } " + ", ".join(noise_terms)
 
     return latex
