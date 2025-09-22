@@ -19,12 +19,12 @@ __all__ = ["to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"]
 def flatten(l):
     """Flattens a list of lists to the first level.
 
-    Given a list containing a mix of scalars and lists or a dimension object,
+    Given a list containing a mix of scalars and lists or a space object,
     flattens it down to a list of the scalars within the original list.
 
     Parameters
     ----------
-    l : scalar, list, Space, Dimension
+    l : scalar, list, Space
         Object to flatten.
 
     Examples
@@ -35,11 +35,13 @@ def flatten(l):
 
     Notes
     -----
-    Any scalar will be returned wrapped in a list: ``flaten(1) == [1]``.
+    Any scalar will be returned wrapped in a list: ``flatten(1) == [1]``.
     A non-list iterable will not be treated as a list by flatten. For example, flatten would treat a tuple
     as a scalar.
+    Spaces with "non-pure" dimensions will be collapsed:
+    ``flatten(EnrSpace([2,2],1)) == [3]``
     """
-    if isinstance(l, (Space, Dimensions)):
+    if isinstance(l, Space):
         return l.flat()
     if not isinstance(l, list):
         return [l]
@@ -126,6 +128,9 @@ def enumerate_flat(l):
     [[[0], [1, 2]], 3]
 
     """
+    if isinstance(l, Space):
+        l._require_pure_dims("enumerate_flat")
+        l = l.as_list()
     return _enumerate_flat(l)[0]
 
 
@@ -460,7 +465,14 @@ class Space(metaclass=MetaSpace):
         return [1]
 
     def flat(self) -> list[int]:
-        """ Dimensions as a flat list. """
+        """
+        Dimensions as a flat list.
+
+        Notes
+        -----
+        Spaces with "non-pure" dimensions will be collapsed:
+        ``EnrSpace([2,2],1).flat() == [3]``
+        """
         return [self.size]
 
     def collapse(self) -> "Space":
@@ -491,6 +503,15 @@ class Space(metaclass=MetaSpace):
 
     def scalar_like(self) -> "Space":
         return Field()
+
+    def _require_pure_dims(self, operation):
+        if not self._pure_dims:
+            raise NotImplementedError(
+                f"The requested operation ({operation}) is not implemented for"
+                f" the type of Hilbert space used here (e.g., excitation"
+                f" number restricted space). A separate, specialized function"
+                f" may be available in the corresponding module."
+            )
 
 
 class Field(Space):
@@ -886,9 +907,5 @@ class Dimensions(metaclass=MetaDims):
         return Dimensions([self.to_.scalar_like(), self.from_.scalar_like()])
 
     def _require_pure_dims(self, operation):
-        if not self._pure_dims:
-            raise NotImplementedError(
-                f"The requested operation ({operation}) is not implemented for"
-                f" the type of Hilbert space used here"
-                f" (e.g., excitation number restricted space)"
-            )
+        self.from_._require_pure_dims(operation)
+        self.to_._require_pure_dims(operation)

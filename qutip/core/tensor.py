@@ -291,6 +291,7 @@ def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
     sqobj : Qobj
         The original Qobj with all named index pairs swapped with each other
     """
+    q_oper._dims._require_pure_dims("tensor swap")
     dims = q_oper.dims
     tensor_pairs = dims_idxs_to_tensor_idxs(dims, pairs)
     data = q_oper.full()
@@ -337,6 +338,7 @@ def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
         away.
 
     """
+    qobj._dims._require_pure_dims("tensor contract")
     # Record and label the original dims.
     dims = qobj.dims
     dims_idxs = enumerate_flat(dims)

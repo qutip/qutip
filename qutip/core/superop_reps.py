@@ -6,6 +6,7 @@
 This module implements transformations between superoperator representations,
 including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 """
+from __future__ import annotations
 
 __all__ = [
     'kraus_to_choi', 'kraus_to_super',
@@ -25,6 +26,7 @@ from .dimensions import Compound, Dimensions, Field, Space, SuperSpace, flatten
 from .qobj import Qobj
 from .operators import identity, sigmax, sigmay, sigmaz
 from .states import basis
+from ..typing import DimensionLike
 
 
 # TODO: revisit when creation routines have dispatching.
@@ -81,7 +83,7 @@ def _nq(dims):
     return nq
 
 
-def isqubitdims(dims: list[list[int]] | list[list[list[int]]]) -> bool:
+def isqubitdims(dims: DimensionLike) -> bool:
     """
     Checks whether all entries in a dims list are integer powers of 2.
 
@@ -96,6 +98,8 @@ def isqubitdims(dims: list[list[int]] | list[list[list[int]]]) -> bool:
         True if and only if every member of the flattened dims
         list is an integer power of 2.
     """
+    if isinstance(dims, Dimensions) and not dims._pure_dims:
+        return False
     return all(_is_power_of_two(dim) for dim in flatten(dims))
 
 

@@ -726,6 +726,7 @@ class Qobj:
         """
         # Uses the technique of Johnston and Kribs (arXiv:1102.0948), which
         # is only valid for completely positive maps.
+        self._dims._require_pure_dims("dual channel")
         if not self.iscp:
             raise ValueError("Dual channels are only implemented for CP maps.")
         J = qutip.to_choi(self)
@@ -1141,6 +1142,7 @@ class Qobj:
             Quantum object representing partial trace with selected components
             remaining.
         """
+        self._dims._require_pure_dims("partial trace")
         try:
             sel = sorted(sel)
         except TypeError:
@@ -1276,6 +1278,7 @@ class Qobj:
         P : :class:`.Qobj`
             Permuted quantum object.
         """
+        self._dims._require_pure_dims("permute")
         if self.type in ('bra', 'ket', 'oper'):
             structure = self.dims[1] if self.isbra else self.dims[0]
             new_structure = [structure[x] for x in order]

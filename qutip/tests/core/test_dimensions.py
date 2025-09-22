@@ -7,15 +7,18 @@ import qutip
 from qutip.core.dimensions import (
     flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
-    einsum, to_tensor_rep, from_tensor_rep, Dimensions, Field, Space
+    einsum, to_tensor_rep, from_tensor_rep,
+    Dimensions, Field, Space, SuperSpace
 )
 from qutip.core.energy_restricted import EnrSpace
 
 
 @pytest.mark.parametrize(["base", "flat"], [
     pytest.param([[[0], 1], 2], [0, 1, 2], id="standard"),
+    pytest.param(SuperSpace(Dimensions(Space(Space(2), Space(3)), Space(1))),
+                 [1, 2, 3], id="space"),
     pytest.param([1, 2, [3, [4]], [5, 6], [7, [[[[[[[8]]]]]]]]],
-                 [1, 2, 3, 4, 5, 6, 7, 8], id="standard"),
+                 [1, 2, 3, 4, 5, 6, 7, 8], id="deep nested"),
     pytest.param([1, 2, 3], [1, 2, 3], id="already flat"),
     pytest.param([], [], id="empty list"),
     pytest.param([[], [], [[[], [], []]]], [], id="nested empty lists"),
@@ -26,7 +29,8 @@ class TestFlattenUnflatten:
 
     def test_unflatten(self, base, flat):
         labels = enumerate_flat(base)
-        assert unflatten(flat, labels) == base
+        expected = base.as_list() if isinstance(base, Space) else base
+        assert unflatten(flat, labels) == expected
 
 
 @pytest.mark.parametrize(["base", "expected"], [
