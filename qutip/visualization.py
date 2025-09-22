@@ -351,6 +351,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     >>> fig, ax = qutip.hinton(dm, color_style="phase")
     >>> fig.show()
     """
+    rho._dims._require_pure_dims("hinton plot")
 
     fig, ax = _is_fig_and_ax(fig, ax)
 
@@ -1870,6 +1871,7 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
         if not isket(ket):
             raise Exception("Qubism works only for pure states, i.e. kets.")
             # add for dm? (perhaps a separate function, plot_qubism_dm)
+        ket._dims._require_pure_dims("qubism plot")
 
         dim_list = ket.dims[0]
         n = len(dim_list)
@@ -2035,6 +2037,7 @@ def plot_schmidt(ket, theme='light', splitting=None,
         if not isket(ket):
             err = "Schmidt plot works only for pure states, i.e. kets."
             raise Exception(err)
+        ket._dims._require_pure_dims("Schmidt plot")
 
         dim_list = ket.dims[0]
 

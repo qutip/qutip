@@ -578,12 +578,14 @@ class Qobj:
             raise ValueError(
                 f"Only implemented for states, not {self.type}."
             )
-        dims = self.dims[0 if self.isket else 1]
+        dims = self._dims[0 if self.isket else 1]
 
         if dim_separator == "auto":
             # No separator for pure qubit states but comma-separator otherwise,
             # since bitstrings are nice, but e.g. |153> would be ambiguous.
-            dim_separator = ", " if any([dim > 2 for dim in dims]) else ""
+            dim_separator = (
+                ", " if any([dim > 2 for dim in dims.flat()]) else ""
+            )
 
         template = "{} |{}>" if self.isket else "{} <{}|"
 
@@ -598,7 +600,7 @@ class Qobj:
             if np.abs(ket_full[i]) > 10**-(decimal_places):
                 coeff = ket_full.item(i)
                 basis_str = dim_separator.join(
-                    map(str, np.unravel_index(i, dims))
+                    map(str, dims.idx2dims(i))
                 )
                 parts.append(template.format(coeff, basis_str))
 
@@ -1196,6 +1198,8 @@ class Qobj:
             Quantum object with dimensions contracted.  Will be ``self`` if
             ``inplace`` is ``True``.
         """
+        self._dims._require_pure_dims("contract")
+
         if self.isket:
             sub = [x for x in self.dims[0] if x > 1] or [1]
             dims = [sub, [1]*len(sub)]
@@ -1279,6 +1283,7 @@ class Qobj:
             Permuted quantum object.
         """
         self._dims._require_pure_dims("permute")
+
         if self.type in ('bra', 'ket', 'oper'):
             structure = self.dims[1] if self.isbra else self.dims[0]
             new_structure = [structure[x] for x in order]
@@ -1336,14 +1341,34 @@ class Qobj:
         self.data = _data.tidyup(self.data, atol)
         return self
 
-    def drop_scalar_dims(self) -> Qobj:
+    def drop_scalar_dims(self, inplace: bool = False) -> Qobj:
         """
         Drops one-dimensional subsystems from the list of dimensions. After
         performing a projection, the ``dims`` of a ket could for example be
         ``[[2, 1, 3], [1]]``. This will simplify them to ``[[2, 3], [1]]``.
+
+        This differs from ``contract`` in that *all* scalar dimensions are
+        dropped for operators. For example, if the ``dims`` of an operator are
+        ``[[2, 2], [2, 1]]``, then ``contract`` will leave them unchanged, but
+        this function will simplify to ``[[2, 2], [2]]``.
+
+        Parameters
+        ----------
+        inplace: bool, optional
+            If ``True``, modify the dimensions in place.  If ``False``, return
+            a copied object.
+
+        Returns
+        -------
+        out: :class:`.Qobj`
+            Quantum object with scalar dimensions dropped.  Will be ``self`` if
+            ``inplace`` is ``True``.
         """
-        self.dims = self._dims.drop_scalar_dims()
-        return self
+        dims = self._dims.drop_scalar_dims()
+        if inplace:
+            self.dims = dims
+            return self
+        return Qobj(self.data.copy(), dims=dims, copy=False)
 
     def transform(
         self,
@@ -1401,7 +1426,7 @@ class Qobj:
             else:
                 data = _data.matmul(_data.matmul(S, self.data), S.adjoint())
         return Qobj(data,
-                    dims=self.dims,
+                    dims=self._dims,
                     isherm=self._isherm,
                     superrep=self.superrep,
                     copy=False)
@@ -1562,7 +1587,7 @@ class Qobj:
         output_type: Literal['kets'] = 'kets'
     ) -> tuple[np.ndarray, np.ndarray[Qobj]]:
         ...
-        
+
     @overload
     def eigenstates(self, 
         sparse: bool  = False,
@@ -1574,7 +1599,7 @@ class Qobj:
         output_type: Literal['oper'] = 'oper'
     ) -> tuple[np.ndarray, Qobj]:
         ...
-        
+
     def eigenstates(
         self,
         sparse: bool = False,
@@ -1649,12 +1674,8 @@ class Qobj:
             evals, evecs = _data.eigs(self.data, isherm=self._isherm,
                                       sort=sort, eigvals=eigvals)
 
-        if self.type == 'super':
-            new_dims = [self._dims[0], [1]]
-        else:
-            new_dims = [self._dims[0], [1]*len(self.dims[0])]
-
         if output_type == 'kets':
+            new_dims = [self._dims[0], self._dims[0].scalar_like()]
             ekets = np.empty((evecs.shape[1],), dtype=object)
             ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
                         for vec in _data.split_columns(evecs, False)]
@@ -1665,10 +1686,11 @@ class Qobj:
                 phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
                                   if ket[phase_fix, 0] else 1
                                   for ket in ekets])
-            
+
             oper = ekets / norms * phase
 
         elif output_type == 'oper':
+            new_dims = [self._dims[0], [evecs.shape[1]]]
             oper = Qobj(evecs, dims=[new_dims[0], [evecs.shape[1]]], copy=False)
 
             norms = np.array([1/np.linalg.norm(oper[:, i])

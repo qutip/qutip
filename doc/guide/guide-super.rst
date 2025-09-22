@@ -83,6 +83,7 @@ Meanwhile, the :func:`.super_tensor` function implements the swap on the right, 
 
    q = tensor(identity(2), basis(2))
    s_prep = sprepost(q, q.dag())
+   s_prep.drop_scalar_dims()  # clean up dims
 
 For a :math:`\scriptstyle \rm CNOT` system-environment model, the composition of these maps should give us a completely dephasing channel. The channel on both qubits is just the superunitary :math:`\scriptstyle \rm CNOT` channel:
 

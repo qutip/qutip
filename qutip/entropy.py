@@ -7,6 +7,7 @@ from .partial_transpose import partial_transpose
 from . import (ptrace, tensor, sigmay, ket2dm,
                expand_operator)
 from .core import data as _data
+from .core.dimensions import Dimensions
 
 
 def entropy_vn(rho, base=np.e, sparse=False):
@@ -94,13 +95,13 @@ def concurrence(rho):
     .. [1] `https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)`
 
     """
-    if rho.isket and rho.dims != [[2, 2], [1, 1]]:
+    if rho.isket and rho._dims != Dimensions([[2, 2], [1, 1]]):
         raise Exception("Ket must be tensor product of two qubits.")
 
-    elif rho.isbra and rho.dims != [[1, 1], [2, 2]]:
+    elif rho.isbra and rho._dims != Dimensions([[1, 1], [2, 2]]):
         raise Exception("Bra must be tensor product of two qubits.")
 
-    elif rho.isoper and rho.dims != [[2, 2], [2, 2]]:
+    elif rho.isoper and rho._dims != Dimensions([[2, 2], [2, 2]]):
         raise Exception("Density matrix must be tensor product of two qubits.")
 
     if rho.isket or rho.isbra:
@@ -130,6 +131,7 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
 
         Experimental.
     """
+    rho._dims._require_pure_dims("negativity")
     if rho.isket or rho.isbra:
         rho = ket2dm(rho)
     mask = [idx == subsys for idx, n in enumerate(rho.dims[0])]
@@ -174,6 +176,7 @@ def entropy_mutual(rho, selA, selB, base=np.e, sparse=False):
        Mutual information between selected components.
 
     """
+    rho._dims._require_pure_dims("mutual information")
     if isinstance(selA, int):
         selA = [selA]
     if isinstance(selB, int):
@@ -250,7 +253,7 @@ def entropy_relative(rho, sigma, base=np.e, sparse=False, tol=1e-12):
         sigma = ket2dm(sigma)
     if not rho.isoper or not sigma.isoper:
         raise TypeError("Inputs must be density matrices.")
-    if rho.dims != sigma.dims:
+    if rho._dims != sigma._dims:
         raise ValueError("Inputs must have the same shape and dims.")
     if base == 2:
         log_base = np.log2
@@ -368,7 +371,7 @@ def entangling_power(U):
     if not U.isoper:
         raise Exception("U must be an operator.")
 
-    if U.dims != [[2, 2], [2, 2]]:
+    if U._dims != Dimensions([[2, 2], [2, 2]]):
         raise Exception("U must be a two-qubit gate.")
 
     from qutip.core.gates import swap

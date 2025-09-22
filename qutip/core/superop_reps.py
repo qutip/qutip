@@ -114,7 +114,7 @@ def _to_superpauli(q_oper):
     """
     # Ensure we start with a column-stacking-basis superoperator.
     sqobj = to_super(q_oper)
-    if not isqubitdims(sqobj.dims):
+    if not isqubitdims(sqobj._dims):
         raise ValueError("Pauli basis is only defined for qubits.")
     nq = _int_log_two(sqobj.shape[0]) // 2
     B = _superpauli_basis(nq) * 2**(-0.5 * nq)

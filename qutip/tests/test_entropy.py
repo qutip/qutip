@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import qutip
+from qutip.core.energy_restricted import EnrSpace
 
 
 class TestVonNeumannEntropy:
@@ -171,6 +172,17 @@ class TestRelativeEntropy:
     def test_random_rho_sigma(self):
         rho = qutip.rand_dm(8)
         sigma = qutip.rand_dm(8)
+        rel = qutip.entropy_relative(rho, sigma)
+        assert rel >= 0
+        assert rel == pytest.approx(
+            self._simple_relative_entropy_implementation(rho, sigma, np.log)
+        )
+
+    @pytest.mark.repeat(20)
+    def test_with_enr(self):
+        dims = EnrSpace([3, 3], 2)
+        rho = qutip.rand_dm(dims)
+        sigma = qutip.rand_dm(dims)
         rel = qutip.entropy_relative(rho, sigma)
         assert rel >= 0
         assert rel == pytest.approx(
