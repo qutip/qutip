@@ -115,6 +115,22 @@ cdef class CSR(base.Data):
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
         col_index = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
         row_index = np.array(arg[2], dtype=idxint_dtype, copy=copy, order='C')
+
+        if data.ndim != 1 or col_index.ndim != 1 or row_index.ndim != 1:
+            raise TypeError("data, col_index, row_index must all be 1D arrays")
+
+        if data.shape != col_index.shape:
+            raise TypeError("data and col_index must have the same shape")
+
+        if not np.all(np.diff(row_index) >= 0):
+            raise TypeError("row_index must be increasing")
+
+        if data.shape[0] != row_index[-1]:
+            raise TypeError(
+                "The row_index last elements does not "
+                "match the number of elements"
+            )
+
         # This flag must be set at the same time as data, col_index and
         # row_index are assigned.  These assignments cannot raise an exception
         # in user code due to the above three lines, but further code may.
@@ -134,7 +150,8 @@ cdef class CSR(base.Data):
             self.shape[0] = cnp.PyArray_DIMS(row_index)[0] - 1
             col = 1
             for ptr in range(self.size):
-                col = self.col_index[ptr] if self.col_index[ptr] > col else col
+                if self.col_index[ptr] + 1 > col:
+                    col = self.col_index[ptr] + 1
             self.shape[1] = col
         else:
             if not isinstance(shape, tuple):
@@ -145,6 +162,15 @@ cdef class CSR(base.Data):
                     and shape[0] > 0
                     and shape[1] > 0):
                 raise ValueError("shape must be a 2-tuple of positive ints")
+            if row_index.shape[0] - 1 != shape[0]:
+                raise ValueError(
+                    "The number of row pointers does not match the shape."
+                )
+            if np.any(col_index > shape[1] - 1):
+                raise ValueError(
+                    "Some of the value's column is "
+                    "greater than the number of columns."
+                )
             self.shape = shape
         # Store a reference to the backing scipy matrix so it doesn't get
         # deallocated before us.
