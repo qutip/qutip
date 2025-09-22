@@ -19,12 +19,12 @@ __all__ = ["to_tensor_rep", "from_tensor_rep", "einsum", "Space", "Dimensions"]
 def flatten(l):
     """Flattens a list of lists to the first level.
 
-    Given a list containing a mix of scalars and lists or a space object,
+    Given a list containing a mix of scalars and lists or a dimension object,
     flattens it down to a list of the scalars within the original list.
 
     Parameters
     ----------
-    l : scalar, list, Space
+    l : scalar, list, Space, Dimension
         Object to flatten.
 
     Examples
@@ -43,6 +43,8 @@ def flatten(l):
     """
     if isinstance(l, Space):
         return l.flat()
+    if isinstance(l, Dimensions):
+        return sum(l.flat(), [])
     if not isinstance(l, list):
         return [l]
     else:
@@ -128,7 +130,7 @@ def enumerate_flat(l):
     [[[0], [1, 2]], 3]
 
     """
-    if isinstance(l, Space):
+    if isinstance(l, (Space, Dimensions)):
         l._require_pure_dims("enumerate_flat")
         l = l.as_list()
     return _enumerate_flat(l)[0]
