@@ -24,7 +24,7 @@ def _verify_input(op, state):
     if not isinstance(state, Qobj):
         raise TypeError("state must be a Qobj")
     if state.isket:
-        if op._dims.from_ != state._dims:
+        if op._dims.from_ != state._dims.to_:
             raise ValueError(
                 "op and state dims should be compatible when state is a ket")
     elif state.isoper:

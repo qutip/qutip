@@ -351,7 +351,6 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     >>> fig, ax = qutip.hinton(dm, color_style="phase")
     >>> fig.show()
     """
-    rho._dims._require_pure_dims("hinton plot")
 
     fig, ax = _is_fig_and_ax(fig, ax)
 
@@ -367,6 +366,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     for rho in rhos:
         # Extract plotting data W from the input.
         if isinstance(rho, Qobj):
+            rho._dims._require_pure_dims("hinton plot")
             if rho.isoper or rho.isoperket or rho.isoperbra:
                 if rho.isoperket:
                     rho = vector_to_operator(rho)
