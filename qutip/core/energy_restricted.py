@@ -121,6 +121,9 @@ class EnrSpace(Space):
     def idx2dims(self, idx):
         return self.idx2state[idx]
 
+    def step(self):
+        raise TypeError("ENR Space does not have homogenous array steps")
+
     def drop_scalar_dims(self):
         return EnrSpace(
             [d for d in self.dims if d != 1],

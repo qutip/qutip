@@ -13,7 +13,7 @@ from qutip.settings import settings
 from qutip.typing import SpaceLike, DimensionLike
 
 
-__all__ = ["to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"]
+__all__ = ["to_tensor_rep", "from_tensor_rep", "einsum", "Space", "Dimensions"]
 
 
 def flatten(l):
@@ -252,6 +252,7 @@ def to_tensor_rep(q_oper):
     >>> to_tensor_rep(super_oper).shape
     (2, 3, 2, 3, 2, 3, 2, 3)
     """
+    q_oper._dims._require_pure_dims("conversion to tensor representation")
     dims = q_oper._dims
     data = q_oper.full().reshape(dims._get_tensor_shape())
     return data.transpose(dims._get_tensor_perm())
@@ -278,6 +279,7 @@ def from_tensor_rep(tensorrep, dims):
     """
     from . import Qobj
     dims = Dimensions(dims)
+    dims._require_pure_dims("conversion from tensor representation")
     data = tensorrep.transpose(np.argsort(dims._get_tensor_perm()))
     return Qobj(data.reshape(dims.shape), dims=dims)
 
@@ -303,6 +305,9 @@ def einsum(subscripts, *operands):
     Qobj (numpy.complex128)
         Result of einsum as Qobj (numpy.complex128 if result is scalar)
     """
+    for op in operands:
+        op._dims._require_pure_dims("einsum")
+
     operands_array = [to_tensor_rep(op) for op in operands]
     result = np.einsum(subscripts, *operands_array)
     if result.shape == ():
