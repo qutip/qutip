@@ -125,7 +125,7 @@ cdef class CSR(base.Data):
         if not np.all(np.diff(row_index) >= 0):
             raise TypeError("row_index must be increasing")
 
-        if data.shape[0] != row_index[-1]:
+        if data.shape[0] != row_index[row_index.shape[0] - 1]:
             raise TypeError(
                 "The row_index last elements does not "
                 "match the number of elements"
