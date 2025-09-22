@@ -17,8 +17,7 @@ from . import data as _data
 from qutip.typing import LayerType, DimensionLike
 import qutip
 from .dimensions import (
-    enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions,
-    to_tensor_rep
+    enumerate_flat, flatten, unflatten, Dimensions, to_tensor_rep
 )
 
 __all__ = ['Qobj', 'ptrace']
@@ -192,6 +191,8 @@ class Qobj:
         Diagonal elements of quantum object.
     dnorm()
         Diamond norm of quantum operator.
+    drop_scalar_dims()
+        Drops one-dimensional subsystems from the list of dimensions (``dims``)
     dual_chan()
         Dual channel of quantum object representing a CP map.
     eigenenergies(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
@@ -1332,6 +1333,15 @@ class Qobj:
         self.data = _data.tidyup(self.data, atol)
         return self
 
+    def drop_scalar_dims(self) -> Qobj:
+        """
+        Drops one-dimensional subsystems from the list of dimensions. After
+        performing a projection, the ``dims`` of a ket could for example be
+        ``[[2, 1, 3], [1]]``. This will simplify them to ``[[2, 3], [1]]``.
+        """
+        self.dims = self._dims.drop_scalar_dims()
+        return self
+
     def transform(
         self,
         inpt: list[Qobj] | ArrayLike,
@@ -1827,14 +1837,10 @@ class Qobj:
             qobj = self
         else:
             qobj = qutip.to_choi(self)
-        # Possibly collapse dims.
-        if any([len(index) > 1
-                for super_index in qobj.dims
-                for index in super_index]):
-            qobj = Qobj(qobj.data,
-                        dims=collapse_dims_super(qobj.dims),
-                        superrep=qobj.superrep,
-                        copy=False)
+        # Collapse dims to ignore product structure etc of underlying spaces
+        qobj = Qobj(qobj.data,
+                    dims=qobj._dims.collapse(),
+                    copy=False)
         # We use the condition from John Watrous' lecture notes,
         # Tr_1(J(Phi)) = identity_2.
         # See: https://cs.uwaterloo.ca/~watrous/LectureNotes.html,

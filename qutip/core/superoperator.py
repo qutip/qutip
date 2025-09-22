@@ -11,7 +11,7 @@ import numpy as np
 from .qobj import Qobj
 from .cy.qobjevo import QobjEvo
 from . import data as _data
-from .dimensions import Compound, SuperSpace, Space
+from .dimensions import Compound, Dimensions, Field, SuperSpace, Space
 
 
 def _map_over_compound_operators(f):
@@ -249,8 +249,7 @@ def operator_to_vector(op: Qobj) -> Qobj:
         raise TypeError("Cannot convert object already "
                         "in super representation")
     return Qobj(stack_columns(op.data),
-                dims=[op.dims, [1]],
-                superrep="super",
+                dims=[SuperSpace(op._dims, rep='super'), Field()],
                 copy=False)
 
 
@@ -277,8 +276,8 @@ def vector_to_operator(op: Qobj) -> Qobj:
         raise TypeError("only defined for operator-kets")
     if op.superrep != "super":
         raise TypeError("only defined for operator-kets in super format")
-    dims = op.dims[0]
-    return Qobj(unstack_columns(op.data, (np.prod(dims[0]), np.prod(dims[1]))),
+    dims = op._dims[0].oper
+    return Qobj(unstack_columns(op.data, (dims[0].size, dims[1].size)),
                 dims=dims,
                 copy=False)
 
@@ -400,14 +399,6 @@ def spre(A: AnyQobj) -> AnyQobj:
                 copy=False)
 
 
-def _drop_projected_dims(dims):
-    """
-    Eliminate subsystems that has been collapsed to only one state due to
-    a projection.
-    """
-    return [d for d in dims if d != 1]
-
-
 @overload
 def sprepost(A: Qobj, B: Qobj) -> Qobj: ...
 
@@ -432,17 +423,21 @@ def sprepost(A, B):
     super : Qobj or QobjEvo
         Superoperator formed from input quantum objects.
     """
+    if not A.isoper or not B.isoper:
+        raise TypeError('Input is not a quantum operator')
+
     # To avoid circular dependencies
     from .cy.qobjevo import QobjEvo
     if (isinstance(A, QobjEvo) or isinstance(B, QobjEvo)):
         return spre(A) * spost(B)
-    dims = [[_drop_projected_dims(A.dims[0]),
-             _drop_projected_dims(B.dims[1])],
-            [_drop_projected_dims(A.dims[1]),
-             _drop_projected_dims(B.dims[0])]]
-    return Qobj(_data.kron_transpose(B.data, A.data),
+
+    data = _data.kron_transpose(B.data, A.data)
+    dims = [
+        SuperSpace(Dimensions(B._dims[1], A._dims[0]), rep='super'),
+        SuperSpace(Dimensions(B._dims[0], A._dims[1]), rep='super'),
+    ]
+    return Qobj(data,
                 dims=dims,
-                superrep='super',
                 isherm=A._isherm and B._isherm,
                 copy=False)
 

@@ -30,6 +30,7 @@ def test_ttmsolve_jc_model(call):
     superrho0cav = qutip.sprepost(
         qutip.tensor(qutip.qeye(2), psi0c), qutip.tensor(qutip.qeye(2), psi0c.dag())
     )
+    superrho0cav.drop_scalar_dims()
 
     # calculate exact solution using mesolve
     times = np.arange(0, 5.0, 0.1)

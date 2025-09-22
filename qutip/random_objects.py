@@ -13,19 +13,15 @@ __all__ = [
     "rand_super_bcsz",
 ]
 
-import numbers
-
 import numpy as np
 from numpy.random import Generator, SeedSequence, default_rng
 import scipy.linalg
 import scipy.sparse as sp
 from typing import Literal, Sequence
 
-from . import (Qobj, create, destroy, jmat, basis,
-               to_super, to_choi, to_chi, to_kraus, to_stinespring)
+from . import Qobj, create, destroy, jmat, basis, to_super, to_choi, to_chi
 from .core import data as _data
-from .core.dimensions import flatten, Dimensions, Space
-from . import settings
+from .core.dimensions import Dimensions, Space, SuperSpace
 from .typing import SpaceLike, LayerType
 
 
@@ -35,7 +31,7 @@ _UNITS = np.array([1, 1j])
 
 def _implicit_tensor_dimensions(dimensions, superoper=False):
     """
-    Total flattened size and operator dimensions for operator creation routines
+    Total size and operator dimensions for operator creation routines
     that automatically perform tensor products.
 
     Parameters
@@ -54,20 +50,18 @@ def _implicit_tensor_dimensions(dimensions, superoper=False):
     dimensions : list
         Dimension list in the form required by ``Qobj`` creation.
     """
-    if isinstance(dimensions, Space):
-        dimensions = dimensions.as_list()
-    if not isinstance(dimensions, list):
-        dimensions = [dimensions]
-    flat = flatten(dimensions)
-    if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
-        raise ValueError("All dimensions must be integers >= 0")
-    N = np.prod(flat)
+    space = Space(dimensions)
+    dims = Dimensions(space, space)
+    N = space.size
+
     if superoper:
-        if isinstance(dimensions[0], numbers.Integral):
-            dimensions = [dimensions, dimensions]
-        else:
+        if space.issuper:
             N = int(N**0.5)
-    return N, [dimensions, dimensions]
+        else:
+            space = SuperSpace(dims)
+            dims = Dimensions(space, space)
+
+    return N, dims
 
 
 def _get_generator(seed):

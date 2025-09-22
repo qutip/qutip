@@ -121,6 +121,12 @@ class EnrSpace(Space):
     def idx2dims(self, idx):
         return self.idx2state[idx]
 
+    def drop_scalar_dims(self):
+        return EnrSpace(
+            [d for d in self.dims if d != 1],
+            self.n_excitations
+        )
+
 
 def enr_fock(dims, excitations, state, *, dtype=None):
     """
