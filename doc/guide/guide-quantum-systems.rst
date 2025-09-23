@@ -48,8 +48,7 @@ There are two main ways to create QuantumSystem objects:
 
 **1. Using Factory Functions (Recommended)**
 
-.. plot::
-    :context: reset
+.. jupyter-execute::
 
     >>> from qutip.quantum_systems import jaynes_cummings, qubit
     >>> 
@@ -66,7 +65,7 @@ There are two main ways to create QuantumSystem objects:
     :context: close-figs
 
     >>> from qutip.quantum_systems import QuantumSystem
-    >>> from qutip import sigmaz, destroy, sigmax, sigmay
+    >>> from qutip import sigmaz, sigmam, sigmax, sigmay
     >>> 
     >>> # Manual creation for custom systems
     >>> H = 0.5 * sigmaz()
@@ -74,9 +73,9 @@ There are two main ways to create QuantumSystem objects:
     ...     'sigma_z': sigmaz(),
     ...     'sigma_x': sigmax(), 
     ...     'sigma_y': sigmay(),
-    ...     'sigma_minus': destroy(2)
+    ...     'sigma_minus': sigmam()
     ... }
-    >>> c_ops = [0.1 * destroy(2)]  # Decay
+    >>> c_ops = [0.1 * sigmam()]  # Decay
     >>> 
     >>> custom_system = QuantumSystem(
     ...     hamiltonian=H,
@@ -199,14 +198,6 @@ Time-Dependent Parameters
     >>> q_td = qubit(omega=omega_t)
     >>> 
     >>> q_td.pretty_print()
-
-.. _quantum_system_best_practices:
-
-Best Practices
-==============
-
-**Use Factory Functions:**
-Factory functions provide validated systems with sensible defaults.
 
 .. plot::
     :context: reset
