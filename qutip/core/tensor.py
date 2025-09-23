@@ -85,8 +85,8 @@ shape = [4, 4], type = oper, isHerm = True
             return right.linear_map(partial(tensor, left))
         if isinstance(right, Qobj):
             return left.linear_map(_reverse_partial_tensor(right))
-        left_t = left.linear_map(_reverse_partial_tensor(qeye(right.dims[0])))
-        right_t = right.linear_map(partial(tensor, qeye(left.dims[1])))
+        left_t = left.linear_map(_reverse_partial_tensor(qeye(right._dims[0])))
+        right_t = right.linear_map(partial(tensor, qeye(left._dims[1])))
         return left_t @ right_t
 
     if not all(q.superrep == args[0].superrep for q in args[1:]):
@@ -486,6 +486,8 @@ def expand_operator(
     expanded_oper : :class:`.Qobj`
         The expanded operator acting on a system with the desired dimension.
     """
+    oper._dims._require_pure_dims("expand operator")
+
     from .operators import identity
     dtype = _data._parse_default_dtype(dtype, "sparse")
     oper = oper.to(dtype)

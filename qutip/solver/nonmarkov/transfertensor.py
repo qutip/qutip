@@ -12,7 +12,7 @@ method (TTM), introduced in [1].
 
 import numpy as np
 import time
-from qutip import spre, vector_to_operator, operator_to_vector, Result
+from qutip import vector_to_operator, operator_to_vector, Result
 
 
 def ttmsolve(dynmaps, state0, times, e_ops=(), num_learning=0, options=None):
@@ -92,7 +92,7 @@ def ttmsolve(dynmaps, state0, times, e_ops=(), num_learning=0, options=None):
     if (
         not dynmaps
         or not dynmaps[0].issuper
-        or not all(dmap.dims == dynmaps[0].dims for dmap in dynmaps)
+        or not all(dmap._dims == dynmaps[0]._dims for dmap in dynmaps)
     ):
         raise ValueError("`dynmaps` entries must be super operators.")
 
