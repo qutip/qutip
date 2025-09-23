@@ -1186,6 +1186,12 @@ class Qobj:
         [[1], [1]] is returned, i.e. _multiple_ scalar dimensions are
         contracted, but one is left.
 
+        For operators, only pairs of 1D subspaces are contracted, so dimensions
+        ``[[2, 1, 1], [2, 2, 1]]`` will become ``[[2, 1], [2, 2]]``. To drop
+        all scalar dimensions, use :meth:`drop_scalar_dims` instead, resulting
+        in ``[[2], [2, 2]]`` in this example. :meth:`drop_scalar_dims` is also
+        defined for superoperators.
+
         Parameters
         ----------
         inplace: bool, optional
@@ -1347,10 +1353,10 @@ class Qobj:
         performing a projection, the ``dims`` of a ket could for example be
         ``[[2, 1, 3], [1]]``. This will simplify them to ``[[2, 3], [1]]``.
 
-        This differs from ``contract`` in that *all* scalar dimensions are
+        This differs from :meth:`contract` in that *all* scalar dimensions are
         dropped for operators. For example, if the ``dims`` of an operator are
-        ``[[2, 2], [2, 1]]``, then ``contract`` will leave them unchanged, but
-        this function will simplify to ``[[2, 2], [2]]``.
+        ``[[2, 2], [2, 1]]``, then :meth:`contract` will leave them unchanged,
+        but this function will simplify to ``[[2, 2], [2]]``.
 
         Parameters
         ----------
