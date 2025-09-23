@@ -74,7 +74,7 @@ class IntegratorKrylov(Integrator):
             State used to calculate Krylov subspace (= first basis state).
         """
         krylov_dim = self.options['krylov_dim']
-        H = self.system(0).data
+        H = (1j * self.system(0)).data
 
         v = []
         T_diag = np.zeros(krylov_dim, dtype=complex)
@@ -120,7 +120,7 @@ class IntegratorKrylov(Integrator):
             Time at which to evaluate the Hamiltonian.
         """
         krylov_dim = self.options['krylov_dim']
-        H = self.system(0).data
+        H = (1j * self.system(0)).data
 
         h = np.zeros((krylov_dim + 1, krylov_dim), dtype=complex)
         Q = [_data.mul(psi, 1 / _data.norm.l2(psi))]
