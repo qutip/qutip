@@ -1,0 +1,1 @@
+Added linear spin chain model factory function supporting multiple spin chain types (Heisenberg, XXZ, XY, Ising) with configurable boundary conditions, external magnetic fields, and comprehensive open system dynamics including local dissipation and thermal bath coupling.
