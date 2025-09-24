@@ -294,6 +294,7 @@ def einsum(subscripts, *operands):
     """
     Implementation of numpy.einsum for Qobj.
     Evaluates the Einstein summation convention on the operands.
+
     Parameters
     ----------
     subscripts: str

@@ -339,40 +339,6 @@ def test_enr_propagators_list_times(omega, ts):
     test_4x4_propagators_list_times(H_0, X, omega, ts)
 
 
-@pytest.mark.parametrize("H_0", [
-    tensor(sigmax(), sigmaz()) + tensor(qeye(2), sigmay()),
-    tensor(sigmaz(), qeye(2))
-])
-@pytest.mark.parametrize("X", [
-    tensor(qeye(2), sigmaz()),
-    tensor(sigmaz(), sigmax()) + tensor(sigmay(), qeye(2))
-])
-@pytest.mark.parametrize("omega", [
-    0, 10
-])
-@pytest.mark.parametrize("ts", [
-    [0, 0.25, 0.5],
-    [0, -0.25, -0.5],
-    [-0.1, 0, 0.1]
-])
-def test_4x4_propagators_list_times(H_0, X, omega, ts):
-    options = {'max_order': 3, 'max_dt': 0.01}
-    Us = dysolve_propagator(H_0, X, omega, ts, options=options)
-
-    # Qutip.solver.propagator
-    def H1_coeff(t, omega):
-        return np.cos(omega * t)
-
-    H = [H_0, [X, H1_coeff]]
-    args = {'omega': omega}
-    props = propagator(
-        H, ts, args=args, options={"atol": 1e-10, "rtol": 1e-8}
-    )
-
-    with CoreOptions(atol=1e-10, rtol=1e-6):
-        assert Us == props
-
-
 @pytest.mark.parametrize("H_0, X", [
     (
         sigmaz(), sigmax(),

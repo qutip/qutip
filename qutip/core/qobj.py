@@ -1697,7 +1697,7 @@ class Qobj:
 
         elif output_type == 'oper':
             new_dims = [self._dims[0], [evecs.shape[1]]]
-            oper = Qobj(evecs, dims=[new_dims[0], [evecs.shape[1]]], copy=False)
+            oper = Qobj(evecs, dims=new_dims, copy=False)
 
             norms = np.array([1/np.linalg.norm(oper[:, i])
                             for i in range(oper.shape[1])])

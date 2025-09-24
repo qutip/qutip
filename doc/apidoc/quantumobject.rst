@@ -102,7 +102,7 @@ Operators and Superoperator Dimensions
 --------------------------------------
 
 .. automodule:: qutip.core.dimensions
-    :members: to_tensor_rep, from_tensor_rep
+    :members: to_tensor_rep, from_tensor_rep, einsum
 
 Miscellaneous
 -------------

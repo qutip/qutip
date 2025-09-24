@@ -277,7 +277,7 @@ def vector_to_operator(op: Qobj) -> Qobj:
     if op.superrep != "super":
         raise TypeError("only defined for operator-kets in super format")
     dims = op._dims[0].oper
-    return Qobj(unstack_columns(op.data, (dims[0].size, dims[1].size)),
+    return Qobj(unstack_columns(op.data, dims.shape),
                 dims=dims,
                 copy=False)
 
