@@ -1147,6 +1147,9 @@ def _compute_fock_wigner_vectorized(m1, n1, m2, n2, alpha1, alpha2, log_fact):
     """
     Vectorized analytical Wigner for |m1,m2⟩⟨n1,n2| over coordinate grids.
     Uses cached Laguerre polynomials for improved performance.
+    
+    Note: Laguerre polynomial arguments use 4*|α|² scaling factor as identified 
+    by Neill Lambert to ensure correct coherent state behavior and integration.
     """
     # Precompute |alpha|^2
     abs_a1_sq = np.abs(alpha1) ** 2
@@ -1154,11 +1157,11 @@ def _compute_fock_wigner_vectorized(m1, n1, m2, n2, alpha1, alpha2, log_fact):
 
     # Mode 1 contribution
     if m1 == n1:
-        W1 = ((-1) ** m1) * _cached_genlaguerre(m1, 0)(2 * abs_a1_sq)
+        W1 = ((-1) ** m1) * _cached_genlaguerre(m1, 0)(4 * abs_a1_sq)
     else:
         k = min(m1, n1)
         d = abs(m1 - n1)
-        Lvals = _cached_genlaguerre(k, d)(2 * abs_a1_sq)
+        Lvals = _cached_genlaguerre(k, d)(4 * abs_a1_sq)
 
         # Factorial ratio sqrt(min!/max!) computed via log-factorials
         if m1 > n1:
@@ -1174,11 +1177,11 @@ def _compute_fock_wigner_vectorized(m1, n1, m2, n2, alpha1, alpha2, log_fact):
 
     # Mode 2 contribution
     if m2 == n2:
-        W2 = ((-1) ** m2) * _cached_genlaguerre(m2, 0)(2 * abs_a2_sq)
+        W2 = ((-1) ** m2) * _cached_genlaguerre(m2, 0)(4 * abs_a2_sq)
     else:
         k = min(m2, n2)
         d = abs(m2 - n2)
-        Lvals = _cached_genlaguerre(k, d)(2 * abs_a2_sq)
+        Lvals = _cached_genlaguerre(k, d)(4 * abs_a2_sq)
 
         if m2 > n2:
             log_norm = 0.5 * (log_fact[n2] - log_fact[m2])
@@ -1335,6 +1338,22 @@ def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), method='optimized',
     -----
     **COORDINATE CONVENTION**: Now uses standard QuTiP convention α = 0.5*g*(x + ip)
     to ensure consistency with existing QuTiP wigner function.
+    
+    **PLOTTING CONVENTION**: This function uses indexing='ij' for coordinate grids.
+    When plotting 2D slices or integrated results with matplotlib functions 
+    (imshow, contour, etc.), you may need to transpose arrays:
+    
+    .. code-block:: python
+    
+        W_slice = wigner_2mode_xp(rho, x_range, p_range)
+        plt.imshow(W_slice.T, ...)  # Note the .T for correct orientation
+        
+        # Or when integrating over modes:
+        W_integrated = integrate_over_mode2(W_4d)
+        plt.contour(x_grid, p_grid, W_integrated.T)  # Transpose needed
+    
+    This is due to the difference between QuTiP's indexing='ij' convention 
+    and matplotlib's default 'xy' expectation. This is expected behavior.
     
     **Performance**: The optimized method uses analytical Fock state formulas with 
     Laguerre polynomials, avoiding expensive displacement operators. This provides 
@@ -1556,8 +1575,8 @@ def qfunc_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2), strict_checks=True):
         raise ValueError("alpha1 and alpha2 must be 1D arrays")
 
     # FIXED: Use α directly for coherent states (consistent with displacement method)
-    kets1 = [coherent(N1, complex(a)/g) for a in alpha1]
-    kets2 = [coherent(N2, complex(b)/g) for b in alpha2]
+    kets1 = [coherent(N1, complex(a)) for a in alpha1]
+    kets2 = [coherent(N2, complex(b)) for b in alpha2]
 
     out = zeros((len(alpha1), len(alpha2)), dtype=float)
     inv_pi2 = 1.0 / pi**2
