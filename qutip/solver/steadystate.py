@@ -307,7 +307,7 @@ def _steadystate_expm(L, rho=None, propagator_tol=1e-5, propagator_T=10, **kw):
     while niter < max_iter:
         rho_next = prop(rho)
         rho_next = (rho_next + rho_next.dag()) / (2 * rho_next.tr())
-        if hilbert_dist(rho_next, rho) <= propagator_tol:
+        if np.real(hilbert_dist(rho_next, rho)) <= propagator_tol:
             return rho_next
         rho = rho_next
         prop = prop @ prop

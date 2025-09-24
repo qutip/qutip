@@ -93,7 +93,7 @@ def _measurement_statistics_povm_dm(density_mat, ops, tol=None):
     Parameters
     ----------
     state : :class:`.Qobj` (density matrix)
-        The ket or density matrix specifying the state to measure.
+        The density matrix specifying the state to measure.
 
     ops : list of :class:`.Qobj`
         List of measurement operators :math:`M_i` (specifying a POVM s.t.
@@ -122,6 +122,11 @@ def _measurement_statistics_povm_dm(density_mat, ops, tol=None):
     for i, op in enumerate(ops):
         st = op * density_mat * op.dag()
         p = st.tr()
+        if np.iscomplexobj(p):
+            if np.abs(np.imag(p)) > tol:
+                raise TypeError("Not defined for non-hermitian density matrix")
+            p = np.real(p)
+
         if p >= tol:
             collapsed_states.append(st/p)
             probabilities.append(p)
@@ -236,6 +241,10 @@ def measurement_statistics_observable(state, op, tol=None):
         for j in present_group:
             projector += eigenstates[j].proj()
         probability = expect(projector, state)
+        if np.iscomplexobj(probability):
+            if np.abs(np.imag(probability)) > tol:
+                raise TypeError("Not defined for non-hermitian density matrix")
+            probability = np.real(probability)
 
         if probability >= tol:
             probabilities.append(probability)
