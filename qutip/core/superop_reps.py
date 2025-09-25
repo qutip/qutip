@@ -228,10 +228,7 @@ def _super_tofrom_choi(q_oper):
     data = (
         data.reshape([s0, s1, s0, s1]).transpose(3, 1, 2, 0).reshape([d0, d1])
     )
-    return Qobj(data,
-                dims=new_dims,
-                superrep='super' if q_oper.superrep == 'choi' else 'choi',
-                copy=False)
+    return Qobj(data, dims=new_dims, copy=False)
 
 
 def _choi_to_chi(q_oper):

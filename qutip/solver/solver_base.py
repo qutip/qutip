@@ -284,8 +284,13 @@ class Solver:
         """
         Dimensions of the space that the system use:
 
-        ``qutip.basis(solver.dims)`` will create a state with proper dimensions
-        for this solver.
+        ``qutip.basis(solver.sys_dims)`` will create a state with proper
+        dimensions for this solver.
+
+        Note that this may fail for systems with unusual types of dimensions,
+        which are not fully determined by their list representation `dims`
+        (such as excitation-number restricted states). In that case, you can
+        try the internal API ``qutip.basis(solver._sys_dims)``.
         """
         return self._sys_dims.as_list()
 

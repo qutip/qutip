@@ -364,6 +364,12 @@ def spost(A: AnyQobj) -> AnyQobj:
     -------
     super : Qobj or QobjEvo
         Superoperator formed from input qauntum object.
+
+    Notes
+    -----
+    The function `spost` is only defined for square operators. For rectangular
+    operators, use instead `sprepost(qeye(...), A)` with an identity operator
+    of the appropriate dimensions.
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
@@ -388,6 +394,12 @@ def spre(A: AnyQobj) -> AnyQobj:
     -------
     super :Qobj or QobjEvo
         Superoperator formed from input quantum object.
+
+    Notes
+    -----
+    The function `spre` is only defined for square operators. For rectangular
+    operators, use instead `sprepost(A, qeye(...))` with an identity operator
+    of the appropriate dimensions.
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
@@ -423,9 +435,6 @@ def sprepost(A, B):
     super : Qobj or QobjEvo
         Superoperator formed from input quantum objects.
     """
-    if not A.isoper or not B.isoper:
-        raise TypeError('Input is not a quantum operator')
-
     # To avoid circular dependencies
     from .cy.qobjevo import QobjEvo
     if (isinstance(A, QobjEvo) or isinstance(B, QobjEvo)):
