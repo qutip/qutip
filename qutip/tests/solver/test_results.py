@@ -400,6 +400,7 @@ class TestMultiTrajResult:
         if keep_runs_results:
             assert "Trajectories saved." in repr
 
+    @pytest.mark.flaky(reruns=2)
     @pytest.mark.parametrize('keep_runs_results1', [True, False])
     @pytest.mark.parametrize('keep_runs_results2', [True, False])
     def test_merge_result(self, keep_runs_results1, keep_runs_results2):

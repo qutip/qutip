@@ -10,9 +10,8 @@ from qutip.core._brtensor import (
 )
 
 
-def _make_rand_data(shape):
-    np.random.seed(11)
-    array = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+def _make_rand_data(shape, rng):
+    array = rng.random(shape) + 1j*rng.random(shape)
     return qutip.data.Dense(array)
 
 
@@ -31,9 +30,9 @@ transform = {
                          ids=['', 'transpose', 'conj', 'dag'])
 def test_matmul_var(datatype, transleft, transright):
     shape = (5, 5)
-    np.random.seed(11)
-    left = qutip.data.to(datatype, _make_rand_data(shape))
-    right = qutip.data.to(datatype, _make_rand_data(shape))
+    rng = np.random.default_rng(seed=11)
+    left = qutip.data.to(datatype, _make_rand_data(shape, rng))
+    right = qutip.data.to(datatype, _make_rand_data(shape, rng))
 
     expected = qutip.data.matmul(
         transform[transleft](left),
