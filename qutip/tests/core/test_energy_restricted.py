@@ -5,6 +5,9 @@ import numpy as np
 import qutip
 import scipy.sparse
 
+from qutip.core.dimensions import flatten
+from qutip.core.energy_restricted import EnrSpace, Space
+
 
 def _n_enr_states(dimensions, n_excitations):
     """
@@ -69,6 +72,26 @@ class TestOperator:
         expected_size = _n_enr_states(dimensions, n_excitations)
         nstates = qutip.enr_nstates(dimensions, n_excitations)
         assert nstates == expected_size
+
+
+class TestEnrSpace:
+    @pytest.mark.parametrize(["base", "flat"], [
+        pytest.param(EnrSpace([2, 2], 1), [3], id="single"),
+        pytest.param(Space(Space(2), Space(EnrSpace([2, 2], 1), Space(4))), [2, 3, 4], id="nested"),
+    ])
+    def test_flatten_collapses(self, base, flat):
+        assert flatten(base) == flat
+        assert base.flat() == flat
+
+    @pytest.mark.parametrize(["space", "expected"], [
+        pytest.param(EnrSpace([2, 2], 1), EnrSpace([2, 2], 1), id="no-scalars"),
+        pytest.param(EnrSpace([2, 1, 3], 2), EnrSpace([2, 3], 2), id="simple"),
+        pytest.param(Space(Space(5), Space(1), EnrSpace([2, 3, 1], 1)),
+                     Space(Space(5), EnrSpace([2, 3], 1)),
+                     id="nested")
+    ])
+    def test_drop_scalar_dims(self, space, expected):
+        assert space.drop_scalar_dims() == expected
 
 
 def test_fock_state(dimensions, n_excitations):

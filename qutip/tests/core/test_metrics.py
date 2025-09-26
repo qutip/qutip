@@ -11,6 +11,8 @@ from qutip import (
     rand_unitary, to_super, to_choi, kraus_to_choi,
     to_chi, to_kraus,
 )
+from qutip.core.dimensions import Space
+from qutip.core.energy_restricted import EnrSpace
 from qutip.core.gates import snot, swap
 
 try:
@@ -27,7 +29,10 @@ from qutip import (
 from qutip.core.metrics import _hilbert_space_dims
 
 
-@pytest.fixture(scope="function", params=[2, 5, 10, 15, 25, 100])
+@pytest.fixture(scope="function", params=[
+    2, 5, 10, 15, 25, 100,
+    pytest.param(EnrSpace([2, 2], 1), id='enr')
+])
 def dimension(request):
     # There are also some cases in the file where this fixture is explicitly
     # overridden by a more local mark.  That is deliberate; this dimension is
@@ -67,8 +72,12 @@ class Test_fidelity:
     @pytest.mark.parametrize('right_dm', [True, False], ids=['mixed', 'pure'])
     @pytest.mark.parametrize('left_dm', [True, False], ids=['mixed', 'pure'])
     def test_orthogonal(self, left_dm, right_dm, dimension):
-        left = basis(dimension, 0)
-        right = basis(dimension, dimension//2)
+        if isinstance(dimension, Space):
+            left = basis(dimension, dimension.idx2dims(0))
+            right = basis(dimension, dimension.idx2dims(dimension.size // 2))
+        else:
+            left = basis(dimension, 0)
+            right = basis(dimension, dimension//2)
         if left_dm:
             left = left.proj()
         if right_dm:
@@ -122,8 +131,12 @@ class Test_tracedist:
     @pytest.mark.parametrize('right_dm', [True, False], ids=['mixed', 'pure'])
     @pytest.mark.parametrize('left_dm', [True, False], ids=['mixed', 'pure'])
     def test_orthogonal(self, left_dm, right_dm, dimension):
-        left = basis(dimension, 0)
-        right = basis(dimension, dimension//2)
+        if isinstance(dimension, Space):
+            left = basis(dimension, dimension.idx2dims(0))
+            right = basis(dimension, dimension.idx2dims(dimension.size // 2))
+        else:
+            left = basis(dimension, 0)
+            right = basis(dimension, dimension//2)
         if left_dm:
             left = left.proj()
         if right_dm:
@@ -143,8 +156,12 @@ class Test_hellinger_dist:
     @pytest.mark.parametrize('right_dm', [True, False], ids=['mixed', 'pure'])
     @pytest.mark.parametrize('left_dm', [True, False], ids=['mixed', 'pure'])
     def test_orthogonal(self, left_dm, right_dm, dimension):
-        left = basis(dimension, 0)
-        right = basis(dimension, dimension//2)
+        if isinstance(dimension, Space):
+            left = basis(dimension, dimension.idx2dims(0))
+            right = basis(dimension, dimension.idx2dims(dimension.size // 2))
+        else:
+            left = basis(dimension, 0)
+            right = basis(dimension, dimension//2)
         if left_dm:
             left = left.proj()
         if right_dm:
@@ -542,7 +559,7 @@ def test_hilbert_space_dims(superrep_conversion):
     """
     dims = [[2, 3], [4, 5]]
     u = Qobj(np.ones((np.prod(dims[0]), np.prod(dims[1]))), dims=dims)
-    assert _hilbert_space_dims(superrep_conversion(u)) == dims
+    assert _hilbert_space_dims(superrep_conversion(u)).as_list() == dims
 
 
 def test_hilbert_space_dims_chi():
@@ -551,4 +568,4 @@ def test_hilbert_space_dims_chi():
     """
     dims = [[2, 2], [2, 2]]
     u = Qobj(np.ones((np.prod(dims[0]), np.prod(dims[1]))), dims=dims)
-    assert _hilbert_space_dims(to_chi(u)) == dims
+    assert _hilbert_space_dims(to_chi(u)).as_list() == dims

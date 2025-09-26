@@ -1,7 +1,9 @@
 from qutip.solver.dysolve_propagator import DysolvePropagator, dysolve_propagator
 from qutip.solver import propagator
 from qutip.solver.cy.dysolve import cy_compute_integrals
-from qutip import sigmax, sigmay, sigmaz, qeye, qeye_like, tensor, CoreOptions
+from qutip import (
+    sigmax, sigmay, sigmaz, qeye, qeye_like, tensor, enr_destroy, CoreOptions
+)
 from scipy.special import factorial
 import numpy as np
 import pytest
@@ -10,6 +12,19 @@ import pytest
 @pytest.fixture(scope='module')
 def empty_instance():
     return DysolvePropagator.__new__(DysolvePropagator)
+
+
+def _enr_xx():
+    a, b = enr_destroy([2, 2], 1)
+    return (a + a.dag()) @ (b + b.dag())
+
+def _enr_xz():
+    a, b = enr_destroy([2, 2], 1)
+    return (a + a.dag()) @ (b.dag() @ b)
+
+def _enr_zz():
+    a, b = enr_destroy([2, 2], 1)
+    return (a.dag() @ a) @ (b.dag() @ b)
 
 
 @pytest.mark.parametrize("eff_omega", [-10.0, -1.0, -0.1, 0.1, 1.0, 10.0])
@@ -167,7 +182,8 @@ def test_matrix_elements(empty_instance, max_order, X, answer):
 
 @pytest.mark.parametrize("H_0", [
     sigmaz(), sigmay(), sigmaz(), qeye(2), tensor(sigmax(), sigmaz()),
-    tensor(sigmax(), sigmaz()) + tensor(qeye(2), sigmay())
+    tensor(sigmax(), sigmaz()) + tensor(qeye(2), sigmay()),
+    _enr_xz()
 ])
 @pytest.mark.parametrize("t_i, t_f", [
     (0, 0.1), (0, 0.5), (0, 1), (0, 10), (0, -1),
@@ -301,6 +317,28 @@ def test_4x4_propagators_list_times(H_0, X, omega, ts):
         assert Us == props
 
 
+@pytest.mark.parametrize("omega", [5, 10])
+@pytest.mark.parametrize("t_f", [1, -1])
+def test_enr_propagators_single_time(omega, t_f):
+    # reuses other test with both H_0 and X set to enr space operators
+    H_0 = _enr_zz()
+    X = _enr_xz()
+    test_4x4_propagators_single_time(H_0, X, omega, t_f)
+
+
+@pytest.mark.parametrize("omega", [0, 10])
+@pytest.mark.parametrize("ts", [
+    [0, 0.25, 0.5],
+    [0, -0.25, -0.5],
+    [-0.1, 0, 0.1]
+])
+def test_enr_propagators_list_times(omega, ts):
+    # reuses other test with both H_0 and X set to enr space operators
+    H_0 = _enr_zz()
+    X = _enr_xz()
+    test_4x4_propagators_list_times(H_0, X, omega, ts)
+
+
 @pytest.mark.parametrize("H_0, X", [
     (
         sigmaz(), sigmax(),
@@ -315,6 +353,9 @@ def test_4x4_propagators_list_times(H_0, X, omega, ts):
     (
         tensor(sigmaz(), sigmaz(), sigmaz(), sigmaz()),
         tensor(sigmax(), sigmax(), sigmax(), sigmax())
+    ),
+    (
+        _enr_zz(), _enr_xx()
     )
 ])
 def test_dims(H_0, X):

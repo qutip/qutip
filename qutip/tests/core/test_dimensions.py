@@ -2,19 +2,23 @@
 
 import pytest
 import collections
+import numpy as np
 import qutip
 from qutip.core.dimensions import (
     flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
-    collapse_dims_super, collapse_dims_oper, einsum, Dimensions,
-    to_tensor_rep, from_tensor_rep
+    einsum, to_tensor_rep, from_tensor_rep,
+    Dimensions, Field, Space, SuperSpace
 )
+from qutip.core.energy_restricted import EnrSpace
 
 
 @pytest.mark.parametrize(["base", "flat"], [
     pytest.param([[[0], 1], 2], [0, 1, 2], id="standard"),
+    pytest.param(SuperSpace(Dimensions(Space(Space(2), Space(3)), Space(1))),
+                 [1, 2, 3], id="space"),
     pytest.param([1, 2, [3, [4]], [5, 6], [7, [[[[[[[8]]]]]]]]],
-                 [1, 2, 3, 4, 5, 6, 7, 8], id="standard"),
+                 [1, 2, 3, 4, 5, 6, 7, 8], id="deep nested"),
     pytest.param([1, 2, 3], [1, 2, 3], id="already flat"),
     pytest.param([], [], id="empty list"),
     pytest.param([[], [], [[[], [], []]]], [], id="nested empty lists"),
@@ -25,7 +29,8 @@ class TestFlattenUnflatten:
 
     def test_unflatten(self, base, flat):
         labels = enumerate_flat(base)
-        assert unflatten(flat, labels) == base
+        expected = base.as_list() if isinstance(base, Space) else base
+        assert unflatten(flat, labels) == expected
 
 
 @pytest.mark.parametrize(["base", "expected"], [
@@ -121,19 +126,19 @@ class TestSuperOperatorDimsModification:
 
 @pytest.mark.parametrize("dims", [
     pytest.param([[2, 3], [1]], id="ket"),
-    pytest.param([[1, 1], [2, 3]], id="bra"),
+    pytest.param([[1], [2, 3]], id="bra"),
     pytest.param([[2, 3], [5, 7]], id="oper"),
     pytest.param([[[2], [3]], [[5], [7]]], id="super-oper"),
     pytest.param([[[2], [3]], [1]], id="oper-ket"),
-    pytest.param([[[1, 1], [1, 1]], [[2, 3], [5, 7]]], id="oper-bra"),
+    pytest.param([[1], [[2, 3], [5, 7]]], id="oper-bra"),
     pytest.param([[[2], [3, 5]], [[7], [11]]], id="super-oper-uneven"),
 ])
-class test_to_tensor_rep:
+class TestToTensorRep:
     class mylist(list):
         def at(self, i, j):
             out = self.copy()
             out[i] = j
-            return out
+            return tuple(out)
 
     def _build_qobj(self, dims, idx=-1):
         """
@@ -170,9 +175,9 @@ class test_to_tensor_rep:
         for i in range(N):
             qobj = self._build_qobj(dims, i)
             array = to_tensor_rep(qobj)
-            slices = mylist([slice(j) for j in array.shape])
+            slices = self.mylist([slice(j) for j in array.shape])
             assert all(
-                np.all(array.__getitem__(*slices.at(i, j)) == j)
+                np.all(array.__getitem__(slices.at(i, j)) == j)
                 for j in range(array.shape[i])
             )
 
@@ -202,13 +207,15 @@ class TestCollapseDims:
     @pytest.mark.parametrize(["base", "expected"], [
         pytest.param([[1], [3]], [[1], [3]], id="ket trivial"),
         pytest.param([[1, 1], [2, 3]], [[1], [6]], id="ket tensor"),
+        pytest.param(Dimensions(Field(), EnrSpace([2, 2], 1)),
+                     Dimensions(Field(), Space(3)), id="ket ENR"),
         pytest.param([[2], [1]], [[2], [1]], id="bra trivial"),
         pytest.param([[2, 3], [1, 1]], [[6], [1]], id="bra tensor"),
         pytest.param([[5], [5]], [[5], [5]], id="oper trivial"),
         pytest.param([[2, 3], [2, 3]], [[6], [6]], id="oper tensor"),
     ])
     def test_oper(self, base, expected):
-        assert collapse_dims_oper(base) == expected
+        assert Dimensions(base).collapse() == Dimensions(expected)
 
     @pytest.mark.parametrize(["base", "expected"], [
         pytest.param([[[1]], [[2, 3], [2, 3]]],
@@ -219,7 +226,7 @@ class TestCollapseDims:
                      [[[6], [6]], [[6], [6]]], id="super"),
     ])
     def test_super(self, base, expected):
-        assert collapse_dims_super(base) == expected
+        assert Dimensions(base).collapse() == Dimensions(expected)
 
 
 @pytest.mark.parametrize("dims_list", [

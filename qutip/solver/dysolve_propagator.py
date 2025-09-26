@@ -128,7 +128,7 @@ class DysolvePropagator:
             dt = remaining
             U = self._compute_subprop(t_f - dt, dt) @ U
 
-        self.U = Qobj(U, self._H_0.dims, copy=False).transform(
+        self.U = Qobj(U, self._H_0._dims, copy=False).transform(
             self._basis, True
         )
 

@@ -40,6 +40,7 @@ def partial_transpose(rho, mask, method='dense'):
         A density matrix with the selected subsystems transposed.
 
     """
+    rho._dims._require_pure_dims("partial transpose")
 
     mask = [int(i) for i in mask]
 

@@ -541,7 +541,7 @@ def _qfunc_check_state(state: Qobj):
     # than this would take computational effort we don't _need_ to do.
     isdm = (
         state.isoper
-        and state.dims[0] == state.dims[1]
+        and state._dims[0] == state._dims[1]
         and state.isherm
         and abs(state.tr() - 1) < qutip.settings.core['atol']
     )

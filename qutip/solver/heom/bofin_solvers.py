@@ -383,7 +383,7 @@ class HierarchyADOsState:
             idx = idx_or_label
         else:
             idx = self._ados.idx(idx_or_label)
-        return Qobj(self._ado_state[idx, :].T, dims=self.rho.dims)
+        return Qobj(self._ado_state[idx, :].T, dims=self.rho._dims)
 
 
 class HEOMResult(Result):
@@ -656,7 +656,6 @@ class HEOMSolver(Solver):
 
         self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
         self._sup_shape = self.L_sys.shape[0]
-        self._sys_dims = self.L_sys.dims[0]
 
         self.ados = HierarchyADOs(
             self._combine_bath_exponents(bath), max_depth,
@@ -705,14 +704,8 @@ class HEOMSolver(Solver):
         super().__init__(rhs, options=options)
 
     @property
-    def sys_dims(self):
-        """
-        Dimensions of the space that the system use, excluding any environment:
-
-        ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
-        for this solver.
-        """
-        return self._sys_dims
+    def _sys_dims(self):
+        return self.L_sys._dims[0].oper
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
@@ -740,7 +733,7 @@ class HEOMSolver(Solver):
         for b in bath:
             exponents.extend(b.exponents)
 
-        if not all(exp.Q.dims == exponents[0].Q.dims for exp in exponents):
+        if not all(exp.Q._dims == exponents[0].Q._dims for exp in exponents):
             raise ValueError(
                 "All bath exponents must have system coupling operators"
                 " with the same dimensions but a mixture of dimensions"
@@ -1039,7 +1032,7 @@ class HEOMSolver(Solver):
 
         data = _data.Dense(solution[:n ** 2].reshape((n, n), order='F'))
         data = _data.mul(_data.add(data, data.adjoint()), 0.5)
-        steady_state = Qobj(data, dims=self._sys_dims)
+        steady_state = Qobj(data, dims=self._sys_dims, copy=False)
 
         solution = solution.reshape((self._n_ados, n, n))
         steady_ados = HierarchyADOsState(steady_state, self.ados, solution)
@@ -1142,7 +1135,7 @@ class HEOMSolver(Solver):
             rho0_he = rho0_he.reshape(n ** 2 * self._n_ados)
             rho0_he = _data.create(rho0_he)
         else:
-            if rho0.dims != rho_dims:
+            if rho0._dims != rho_dims:
                 raise ValueError(
                     f"Initial state rho has dims {rho0.dims}"
                     f" but the system dims are {rho_dims}"

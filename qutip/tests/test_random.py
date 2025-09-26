@@ -1,12 +1,11 @@
 import numpy as np
 from numpy.random import SeedSequence, default_rng
-import scipy.sparse as sp
-import scipy.linalg as la
 import pytest
 
-from qutip import qeye, num, to_kraus, kraus_to_choi, CoreOptions, Qobj
+from qutip import qeye, to_kraus, kraus_to_choi, CoreOptions, Qobj
 from qutip import data as _data
 from qutip.core.dimensions import Space
+from qutip.core.energy_restricted import EnrSpace
 from qutip.random_objects import (
     rand_herm,
     rand_unitary,
@@ -25,7 +24,8 @@ from qutip.random_objects import (
     [2, 2, 3],
     [[2], [2]],
     Space(3),
-], ids=["int", "list", "tensor", "super", "Space"])
+    EnrSpace([2, 2], 1)
+], ids=["int", "list", "tensor", "super", "Space", "ENR"])
 def dimensions(request):
     return request.param
 
@@ -46,10 +46,14 @@ def _assert_density(qobj, density):
 
 def _assert_metadata(random_qobj, dims, dtype=None, super=False, ket=False):
     if isinstance(dims, int):
+        N = dims
         dims = [dims]
     elif isinstance(dims, Space):
+        N = dims.size
         dims = dims.as_list()
-    N = np.prod(dims)
+    else:
+        N = np.prod(dims)
+
     if super and not isinstance(dims[0], list):
         target_dims_0 = [dims, dims]
         shape0 = N**2
@@ -217,10 +221,6 @@ def test_rand_ket(dimensions, distribution, dtype):
         target_type = "operator-ket"
     assert random_qobj.type == target_type
     assert abs(random_qobj.norm() - 1) < 1e-14
-
-    if isinstance(dimensions, int):
-        dims = [dimensions]
-    N = np.prod(dimensions)
     _assert_metadata(random_qobj, dimensions, dtype, ket=True)
 
 
@@ -248,14 +248,15 @@ def test_rand_super_bcsz(dimensions, dtype, rank, superrep):
 
     random_qobj = rand_super_bcsz(dimensions, rank=rank,
                                   dtype=dtype, superrep=superrep)
-    if isinstance(dimensions, Space):
-        dimensions = dimensions.as_list()
     assert random_qobj.issuper
     with CoreOptions(atol=1e-9):
         assert random_qobj.iscptp
     assert random_qobj.superrep == superrep
     _assert_metadata(random_qobj, dimensions, dtype, super=True)
-    if (
+
+    if not rank and isinstance(dimensions, Space):
+        rank = dimensions.size**2
+    elif (
         not rank
         and isinstance(dimensions, list)
         and isinstance(dimensions[0], list)
@@ -265,7 +266,6 @@ def test_rand_super_bcsz(dimensions, dtype, rank, superrep):
     elif not rank:
         # dimensions = [a], qobj.dims = [[[a], [a]], [[a], [a]]]
         rank = np.prod(dimensions)**2
-    rank = rank or N
     obtained_rank = len(to_kraus(random_qobj, tol=1e-13))
     assert obtained_rank == rank
 

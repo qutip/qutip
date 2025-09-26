@@ -119,7 +119,16 @@ class EnrSpace(Space):
         return self.state2idx[tuple(dims)]
 
     def idx2dims(self, idx):
-        return self.idx2state[idx]
+        return list(self.idx2state[idx])
+
+    def step(self):
+        raise TypeError("ENR Space does not have homogenous array steps")
+
+    def drop_scalar_dims(self):
+        return EnrSpace(
+            [d for d in self.dims if d != 1],
+            self.n_excitations
+        )
 
 
 def enr_fock(dims, excitations, state, *, dtype=None):
@@ -354,6 +363,8 @@ def enr_ptrace(rho, sel):
     if rho.shape[0] != rho.shape[1]:
         raise ValueError(
             "enr_ptrace is only defined for square density matrices")
+    if not isinstance(rho._dims[0], EnrSpace):
+        raise TypeError("Not an ENR operator")
     try:
         sel = sorted(sel)
     except TypeError:

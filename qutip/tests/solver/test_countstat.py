@@ -120,3 +120,19 @@ def test_three_cumulants(method):
     np.testing.assert_allclose(current_num[0], current_ana, atol=1e-4)
     np.testing.assert_allclose(noise_num[0,0,0], noise_ana, atol=1e-4)
     np.testing.assert_allclose(skw_num[0,0], skewness_ana, atol=1e-4)
+
+@pytest.mark.parametrize("method", ["pinv", "direct"])
+def test_accepts_enr(method):
+    a1, a2 = qutip.enr_destroy([3, 2], 2)
+    L = qutip.liouvillian(a1.dag() @ a1 + a2.dag() @ a2, [a1, a2])
+    j, d, s = qutip.countstat_current_noise(L, [a1, a2], method=method)
+
+    # steady state is ground state, all cumulants are zero
+    assert j.shape == (2,)
+    assert np.allclose(j, 0)
+
+    assert d.shape == (2, 2, 1,)
+    assert np.allclose(d, 0)
+
+    assert s.shape == (2, 1,)
+    assert np.allclose(s, 0)

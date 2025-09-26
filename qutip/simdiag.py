@@ -119,7 +119,8 @@ def simdiag(
         eigvecs[:, k] = eigvecs[:, k] / la.norm(eigvecs[:, k])
 
     kets_out = [
-        Qobj(eigvecs[:, j], dims=[ops[0].dims[0], [1]])
+        Qobj(eigvecs[:, j],
+             dims=[ops[0]._dims[0], ops[0]._dims[0].scalar_like()])
         for j in range(N)
     ]
     eigvals_out = np.zeros((len(ops), N), dtype=np.float64)

@@ -47,8 +47,8 @@ Quantum Gates
     :members: rx, ry, rz, sqrtnot, snot, phasegate, qrot, cy_gate, cz_gate, s_gate, t_gate, cs_gate, ct_gate, cphase, cnot, csign, berkeley, swapalpha, swap, iswap, sqrtswap, sqrtiswap, fredkin, molmer_sorensen, toffoli, hadamard_transform, qubit_clifford_group, globalphase
 
 
-Energy Restricted Operators
----------------------------
+Excitation-Number Restricted Operators
+--------------------------------------
 
 .. automodule:: qutip.core.energy_restricted
     :members: enr_state_dictionaries, enr_thermal_dm, enr_fock, enr_destroy, enr_identity
@@ -102,7 +102,7 @@ Operators and Superoperator Dimensions
 --------------------------------------
 
 .. automodule:: qutip.core.dimensions
-    :members: to_tensor_rep, from_tensor_rep
+    :members: to_tensor_rep, from_tensor_rep, einsum
 
 Miscellaneous
 -------------

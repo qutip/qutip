@@ -46,6 +46,8 @@ def subsystem_apply(
         A density matrix with the selected subsystems transformed
         according to the specified channel.
     """
+    state._dims._require_pure_dims("subsystem_apply")
+
     # TODO: Include sparse/dense methods a la partial_transpose.
     if not (state.isket or state.isoper):
         raise ValueError("input state must be a ket or oper")
