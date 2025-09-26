@@ -804,7 +804,7 @@ class TestBosonicEnvironment:
             reference.spectral_density, T=reference.T, tag="test"
         )
         wlist = np.linspace(-wMax, wMax, 200)
-        fit, info = env.approximate("ps", wlist,Nmax=6)
+        fit, info = env.approximate("ps", wlist, Nmax=6, maxfev=1e5)
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
