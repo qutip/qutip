@@ -44,9 +44,13 @@ The QuantumSystem class stores the following components:
 Creating QuantumSystem Objects
 ==============================
 
-There are two main ways to create QuantumSystem objects:
+There are two main ways to create QuantumSystem objects, each suited for different use cases.
 
 **1. Using Factory Functions (Recommended)**
+
+Factory functions provide the most convenient and robust way to create quantum systems. 
+These functions handle all the complex details of building Hamiltonians, operators, and 
+collapse operators, while providing sensible defaults and parameter validation.
 
 .. jupyter-execute::
 
@@ -59,10 +63,16 @@ There are two main ways to create QuantumSystem objects:
     >>> jc.pretty_print()
     >>> q.pretty_print()
 
+The factory functions automatically construct all necessary operators for the system. 
+For example, the Jaynes-Cummings factory creates cavity operators (``a``, ``a_dag``, ``n_c``) 
+and atomic operators (``sigma_plus``, ``sigma_minus``, ``sigma_z``), while properly handling their tensor product structure.
+
 **2. Direct Construction**
 
-.. plot::
-    :context: close-figs
+For custom systems or when you need complete control over every component, 
+you can construct QuantumSystem objects directly by manually building all operators and the Hamiltonian.
+
+.. jupyter-execute::
 
     >>> from qutip.quantum_systems import QuantumSystem
     >>> from qutip import sigmaz, sigmam, sigmax, sigmay
@@ -89,6 +99,9 @@ There are two main ways to create QuantumSystem objects:
     >>> 
     >>> custom_system.pretty_print()
 
+This approach is useful when implementing novel quantum systems not covered by the existing factory functions, 
+or when you need to understand exactly how each component is constructed.
+
 .. _quantum_system_properties:
 
 Properties and Methods
@@ -98,8 +111,7 @@ The QuantumSystem class provides several useful properties for analysis:
 
 **Dimensional Properties:**
 
-.. plot::
-    :context: close-figs
+.. jupyter-execute::
 
     >>> from qutip.quantum_systems import jaynes_cummings
     >>> 
@@ -108,16 +120,22 @@ The QuantumSystem class provides several useful properties for analysis:
     >>> 
     >>> print(f"Hilbert space dimension: {jc.dimension}")
 
+The ``dimension`` property shows the structure of the composite Hilbert space. For the Jaynes-Cummings system, 
+this returns ``[5, 2]``, indicating a 5-dimensional cavity space tensored with a 2-dimensional atomic space.
+
 **System Properties:**
 
-.. plot::
-    :context: close-figs
+.. jupyter-execute::
 
     >>> # Access key properties
     >>> eigenvals = jc.eigenvalues
     >>> print(f"Ground state energy: {eigenvals[0]:.3f}")
     >>> print(f"Available operators: {list(jc.operators.keys())}")
     >>> print(f"Number of collapse operators: {len(jc.c_ops)}")
+
+These properties give you access to the system's spectral information and available operators. 
+The ``operators`` dictionary contains all the operators you need for setting up measurements and calculations, 
+while ``eigenvalues`` provides the energy spectrum of the system.
 
 .. _quantum_system_display:
 
@@ -126,19 +144,23 @@ Display and Usage
 
 **Pretty Printing:**
 
-.. plot::
-    :context: close-figs
+.. jupyter-execute::
 
     >>> # Display comprehensive system information
     >>> jc.pretty_print()
 
+The ``pretty_print()`` method provides a complete overview of the system, including its name, Hilbert space structure, 
+parameters, available operators, number of collapse operators and the mathematical form of the Hamiltonian.
+
 **Using with QuTiP Solvers:**
 
-.. plot::
-    :context: close-figs
+QuantumSystem objects are designed to work seamlessly with QuTiP's time evolution solvers. 
+Here's how to simulate the classic vacuum Rabi oscillations in the Jaynes-Cummings model:
+
+.. jupyter-execute::
 
     >>> from qutip.quantum_systems import jaynes_cummings
-    >>> from qutip import tensor,basis
+    >>> from qutip import tensor, basis, mesolve
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
     >>> 
@@ -180,13 +202,23 @@ Display and Usage
     >>> axes.grid(True, alpha=0.3)
     >>> plt.show()
 
+This example demonstrates the key workflow: we use the system's Hamiltonian (``jc.hamiltonian``) directly in the solver, 
+access the operators we need for measurements through the ``jc.operators`` dictionary and can also use collapse operator list by using ``jc.c_ops`` to model dissipation. 
+The resulting plot shows the characteristic energy exchange between the atom and cavity mode.
 .. _quantum_system_time_dependence:
 
 Time-Dependent Parameters
 =========================
 
-.. plot::
-    :context: close-figs
+One of the most powerful features of the `QuantumSystem` framework is support for time-dependent parameters through QuTiP's :class:`Coefficient` class. 
+This allows you to model realistic experimental scenarios where system parameters vary in time.
+
+**Understanding the Coefficient Class**
+
+The ``Coefficient`` class represents a function of time that can be used in place of any constant parameter. 
+Instead of passing a number, you pass a function that describes how the parameter changes over time.
+
+.. jupyter-execute::
 
     >>> from qutip import coefficient
     >>> 
@@ -198,6 +230,12 @@ Time-Dependent Parameters
     >>> q_td = qubit(omega=omega_t)
     >>> 
     >>> q_td.pretty_print()
+
+The ``coefficient`` function takes two arguments: the time-dependent function and an ``args`` dictionary for passing additional parameters.
+The function should accept ``t`` (time) and ``args`` as arguments and return the parameter value at that time.
+
+Time-dependent systems work seamlessly with all QuTiP solvers. The solvers automatically detect time dependence and handle it appropriately during the evolution, 
+making it straightforward to model complex experimental protocols like adiabatic parameter sweeps, pulsed driving, or realistic decay processes.
 
 .. plot::
     :context: reset

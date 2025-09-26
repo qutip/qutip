@@ -49,3 +49,4 @@ traitlets==5.14.3
 urllib3==2.5.0
 wcwidth==0.2.13
 wheel==0.44.0
+jupyter-sphinx==0.5.3
