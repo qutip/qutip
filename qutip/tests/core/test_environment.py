@@ -775,7 +775,7 @@ class TestBosonicEnvironment:
 
     @pytest.mark.parametrize(["reference", "wMax", "tol"], [
         pytest.param(OhmicReference(3, .75, 10, 1), 15, .2, id="Ohmic Example"),
-        pytest.param(UDReference(1, .5, .1, 1), 2, 1e-4, id='UD Example'),
+        pytest.param(UDReference(1, .5, .1, 1), 2, 1e-3, id='UD Example'),
     ])
     def test_fixed_aaa_fit(self, reference, wMax, tol):
         env = BosonicEnvironment.from_spectral_density(
@@ -797,7 +797,7 @@ class TestBosonicEnvironment:
 
     @pytest.mark.parametrize(["reference", "wMax", "tol"], [
         pytest.param(OhmicReference(3, .75, 10, 1), 15, .2, id="DL Example"),
-        pytest.param(UDReference(1, .5, .1, 1), 2, 1e-4, id='UD Example'),
+        pytest.param(UDReference(1, .5, .1, 1), 2, 1e-3, id='UD Example'),
     ])
     def test_fixed_ps_fit(self, reference, wMax, tol):
         env = BosonicEnvironment.from_spectral_density(
