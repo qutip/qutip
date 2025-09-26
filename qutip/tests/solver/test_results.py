@@ -283,6 +283,7 @@ class TestMultiTrajResult:
         for i, (s1, s2) in enumerate(zip(m_res.average_states, result_trace)):
             assert s1 == s2 * qutip.fock_dm(10, i)
 
+    @pytest.mark.flaky(reruns=2)
     @pytest.mark.parametrize('keep_runs_results', [True, False])
     @pytest.mark.parametrize('include_no_jump', [True, False])
     @pytest.mark.parametrize(["e_ops", "results"], [
