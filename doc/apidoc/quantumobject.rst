@@ -48,7 +48,7 @@ Quantum Gates
 
 
 Excitation-Number Restricted Operators
----------------------------
+--------------------------------------
 
 .. automodule:: qutip.core.energy_restricted
     :members: enr_state_dictionaries, enr_thermal_dm, enr_fock, enr_destroy, enr_identity
