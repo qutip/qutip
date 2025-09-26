@@ -313,6 +313,8 @@ def entropy_conditional(rho, selB, base=np.e, sparse=False):
         Value of conditional entropy
 
     """
+    rho._dims._require_pure_dims("conditional entropy")
+
     if rho.type != 'oper':
         raise TypeError("Input must be density matrix.")
     if isinstance(selB, int):
