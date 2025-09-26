@@ -205,12 +205,13 @@ Here's how to simulate the classic vacuum Rabi oscillations in the Jaynes-Cummin
 This example demonstrates the key workflow: we use the system's Hamiltonian (``jc.hamiltonian``) directly in the solver, 
 access the operators we need for measurements through the ``jc.operators`` dictionary and can also use collapse operator list by using ``jc.c_ops`` to model dissipation. 
 The resulting plot shows the characteristic energy exchange between the atom and cavity mode.
+
 .. _quantum_system_time_dependence:
 
 Time-Dependent Parameters
 =========================
 
-One of the most powerful features of the `QuantumSystem` framework is support for time-dependent parameters through QuTiP's :class:`Coefficient` class. 
+One of the most powerful features of the ``QuantumSystem`` framework is support for time-dependent parameters through QuTiP's :class:`Coefficient` class. 
 This allows you to model realistic experimental scenarios where system parameters vary in time.
 
 **Understanding the Coefficient Class**
