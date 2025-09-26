@@ -10,6 +10,13 @@ import numpy as np
 __all__ = ["one_mode_matmul_data_dense", "one_mode_matmul_dual_dense_data"]
 
 
+#TODO:
+# - One head function
+# - Reusable interne functions + factory
+# - What about jax etc?
+
+
+
 cdef int _mul(list numbers) except -1:
     cdef int t, out = 1, N = len(numbers)
     for i in range(N):
@@ -127,5 +134,191 @@ cpdef Dense one_mode_matmul_dual_dense_data(Dense state, Data oper, list hilbert
             _cut_dense(state, state_loc, i * step_state)
             _cut_dense(out, out_loc, i * step_out)
             imatmul_dense_data(state_loc, oper, 1., out_loc)  # Need real inplace
+
+    return out
+
+
+cdef class Hilbert_Iterator:
+    """
+    Allow to iterate over the ravelsome mode of an hilbert space.
+    if:
+
+        hilbert = [2, 3, 4]
+        mode = [0, 2]
+
+    then we want to iterate with:
+
+        0, 1, 2, 3, 12, 13, 14, 16
+    """
+    cdef:
+        object np_arr
+        int[::1] iterator, step, sizes
+        int N_mode, position
+
+    def __init__(self, hilbert, mode):
+        self.N_mode = len(mode)
+        self.np_arr = np.zeros((3, self.N_mode), dtype=np.int32)
+        self.position = 0
+        self.iterator = self.np_arr[0, :]
+        self.step = self.np_arr[1, :]
+        self.sizes = self.np_arr[2, :]
+
+        hilberts_steps = [1]
+        for i in range(len(hilbert)-1):
+            hilberts_steps = [
+                hilberts_steps[0] * hilbert[len(hilbert) - i - 1]
+            ] + hilberts_steps
+
+        for i in range(self.N_mode):
+            self.step[i] = hilberts_steps[mode[i]]
+            self.sizes[i] = hilbert[mode[i]]
+
+
+    cdef int start(self):
+        cdef int i
+        self.position = 0
+        for i in range(self.N_mode):
+            self.iterator[i] = 0
+
+    cdef int next(self):
+        cdef int i
+        old_pos = self.position
+        i = self.N_mode
+        while i:
+            i = i-1
+            self.iterator[i] += 1
+            self.position += self.step[i]
+            if self.iterator[i] < self.sizes[i]:
+                break
+            self.iterator[i] = 0
+            self.position -= self.sizes[i] * self.step[i]
+        else:
+            self.position = -1
+
+        return old_pos
+
+    cdef int at(int i):
+        """return the ith position"""
+        # same as self.start(); for _ in range(i): self.next(); return self.position
+        # For small hilbert space, precomputing as a vector would be the fastest.
+        # But
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+@cython.cdivision(True)
+cpdef Dense cy_N_mode_dense(
+    Dense oper, Dense state,
+    list hilbert, list mode,
+    list hilbert_out=None
+):
+    if hilbert_out is None:
+        hilbert_out = hilbert
+
+    cdef int out_size = state.shape[0] // oper.shape[1] * oper.shape[1]
+    cdef Dense out = dense.zeros(out_size, state.shape[1], state.fortran)
+    #TODO: oper sanity check, oper shape match hilbert and mode
+
+    pass_through = [hilbert[i] for i in range(len(hilbert)) if i not in mode]
+    not_mode = [i for i in range(len(hilbert)) if i not in mode]
+    cdef int N_pass_through = int(np.prod(pass_through))
+
+    cdef Hilbert_Iterator in_iter = Hilbert_Iterator(hilbert, mode)
+    cdef Hilbert_Iterator out_iter = Hilbert_Iterator(hilbert_out, mode)
+    cdef Hilbert_Iterator pass_iter = Hilbert_Iterator(hilbert, not_mode)
+
+    cdef int row, col, row_idx, col_idx, idx_pass, i, j, row_state, row_out
+    cdef list idx_state, idx_out
+    cdef int oper_row_stride, oper_col_stride, state_row_stride, state_col_stride, out_row_stride, out_col_stride
+    cdef double complex val
+
+    oper_row_stride = 1 if oper.fortran else oper.shape[0]
+    oper_col_stride = 1 if not oper.fortran else oper.shape[1]
+    state_row_stride = 1 if state.fortran else state.shape[0]
+    state_col_stride = 1 if not state.fortran else state.shape[1]
+    out_row_stride = 1 if state.fortran else state.shape[0]
+    out_col_stride = 1 if not state.fortran else state.shape[1]
+    in_iter.start()
+    out_iter.start()
+    pass_iter.start()
+
+    for row in range(oper.shape[0]):
+        row_idx = in_iter.next()
+
+        out_iter.start()
+        for col in range(oper.shape[1]):
+            val = oper.data[row * oper_row_stride + col * oper_col_stride]
+            col_idx = out_iter.next()
+
+            pass_iter.start()
+            for i in range(N_pass_through):
+                # TODO: continuous entry should use zaxpy
+                idx_pass = pass_iter.next()
+                row_state = idx_pass + col_idx
+                row_out = idx_pass + row_idx
+
+                for j in range(state.shape[1]):  # TODO: if `j` are continuous, use zaxpy
+                    out.data[row_out * out_row_stride + j * out_col_stride] += \
+                        val * state.data[row_state * state_row_stride + j * state_col_stride]
+
+    return out
+
+
+# TODO merge left and right?
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+@cython.cdivision(True)
+cpdef Dense N_mode_data_dense(
+    Data oper, Dense state,
+    list hilbert, list mode,
+    list hilbert_out=None
+):
+    if hilbert_out is None:
+        hilbert_out = hilbert
+
+    cdef int out_size = state.shape[0] // oper.shape[1] * oper.shape[1]
+    cdef Dense out = dense.zeros(out_size, state.shape[1], state.fortran)
+    #TODO: oper sanity check, oper shape match hilbert and mode
+
+    pass_through = [hilbert[i] for i in range(len(hilbert)) if i not in mode]
+    not_mode = [i for i in range(len(hilbert)) if i not in mode]
+    cdef int N_pass_through = int(np.prod(pass_through))
+
+    cdef Hilbert_Iterator in_iter = Hilbert_Iterator(hilbert, mode)
+    cdef Hilbert_Iterator out_iter = Hilbert_Iterator(hilbert_out, mode)
+    cdef Hilbert_Iterator pass_iter = Hilbert_Iterator(hilbert, not_mode)
+
+    cdef int row, col, row_idx, col_idx, idx_pass, i, j, row_state, row_out
+    cdef list idx_state, idx_out
+    cdef int oper_row_stride, oper_col_stride, state_row_stride, state_col_stride, out_row_stride, out_col_stride
+    cdef double complex val
+
+    oper_row_stride = 1 if oper.fortran else oper.shape[0]
+    oper_col_stride = 1 if not oper.fortran else oper.shape[1]
+    state_row_stride = 1 if state.fortran else state.shape[0]
+    state_col_stride = 1 if not state.fortran else state.shape[1]
+    out_row_stride = 1 if state.fortran else state.shape[0]
+    out_col_stride = 1 if not state.fortran else state.shape[1]
+    in_iter.start()
+    out_iter.start()
+    pass_iter.start()
+
+    for i in range(oper.nnz):
+        row, col, val = oper.at(i)  # Iterator over non-zeros values returning a triplet row, col, val would make it work with all
+        row_idx = in_iter.at(row)
+        col_idx = out_iter.at(col)
+
+        pass_iter.start()
+        for i in range(N_pass_through):
+            idx_pass = pass_iter.next()
+            row_state = idx_pass + col_idx
+            row_out = idx_pass + row_idx
+
+            for j in range(state.shape[1]):
+                out.data[row_out * out_row_stride + j * out_col_stride] += \
+                    val * state.data[row_state * state_row_stride + j * state_col_stride]
 
     return out
