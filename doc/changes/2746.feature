@@ -1,0 +1,1 @@
+QuantumSystem class user guide and api doc with detailed explanations of factory functions, properties, methods, and time-dependent parameters using the Coefficient class. Added jupyter-sphinx support for better code execution and LaTeX rendering in documentation examples. 

@@ -20,9 +20,16 @@ def qubit(omega: Union[float, Coefficient] = 1.0, decay_rate: Union[float, Coeff
     """
     Create two-level system (qubit)
 
-    H = (omega_a/2) * sigma_z
+    A two-level quantum system, commonly called a qubit, is the simplest non-trivial
+    quantum system and serves as the fundamental building block for quantum computing
+    and quantum information processing. It consists of two discrete energy levels,
+    typically labeled as ground state |0⟩ and excited state |1⟩.
 
-    Parameters:
+    .. math::
+
+        H = \\frac{\\omega}{2}\\sigma_z
+
+    Parameters
     -----------
     omega : float or Coefficient, default=1.0
         Transition frequency, can be constant or time-dependent
@@ -31,7 +38,7 @@ def qubit(omega: Union[float, Coefficient] = 1.0, decay_rate: Union[float, Coeff
     dephasing_rate : float or Coefficient, default=0.0
         Dephasing rate (1/T2), can be constant or time-dependent
 
-    Returns:
+    Returns
     --------
     QuantumSystem instance configured as qubit
     """

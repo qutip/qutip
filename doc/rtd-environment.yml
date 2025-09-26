@@ -53,6 +53,7 @@ dependencies:
 - urllib3==2.2.2
 - wcwidth==0.2.13
 - wheel==0.44.0
+- jupyter-sphinx==0.5.3
 - pip
 - pip:
   - ..[full]
