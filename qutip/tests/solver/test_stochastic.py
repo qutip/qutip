@@ -442,14 +442,16 @@ def test_run_from_experiment_close(method, heterodyne):
         "store_states": True,
         "method": method,
     }
-    solver = SSESolver(H, sc_ops, heterodyne, options=options)
-    res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
-    res_backward = solver.run_from_experiment(
-        psi0, tlist, res_forward.dW[0], e_ops=[H]
-    )
-    res_measure = solver.run_from_experiment(
-        psi0, tlist, res_forward.measurement[0], e_ops=[H], measurement=True
-    )
+    with CoreOptions(auto_real_casting=False):
+        solver = SSESolver(H, sc_ops, heterodyne, options=options)
+        res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
+        res_backward = solver.run_from_experiment(
+            psi0, tlist, res_forward.dW[0], e_ops=[H]
+        )
+        res_measure = solver.run_from_experiment(
+            psi0, tlist, res_forward.measurement[0],
+            e_ops=[H], measurement=True
+        )
 
     np.testing.assert_allclose(
         res_backward.measurement, res_forward.measurement[0], atol=1e-10
