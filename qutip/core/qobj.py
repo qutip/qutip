@@ -413,7 +413,7 @@ class Qobj:
     def __rsub__(self, other: Qobj | complex) -> Qobj:
         return self.__neg__().__add__(other)
 
-    def __mul__(self, other: complex) -> Qobj:
+    def __mul__(self, other: Qobj | complex) -> Qobj:
         """
         If other is a Qobj, we dispatch to __matmul__. If not, we
         check that other is a valid complex scalar, i.e., we can do
