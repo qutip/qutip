@@ -86,7 +86,8 @@ def test_exact_solution_for_simple_methods(method, kwargs):
     # with high accuracy for a small Liouvillian requiring correct weighting.
     H = qutip.identity(2)
     c_ops = [qutip.sigmam(), 1e-5 * qutip.sigmap()]
-    rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
+    with qutip.CoreOptions(auto_real_casting=False):
+        rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
     expected_rho_ss = np.array([
         [1.e-10+0.j, 0.e+00-0.j],
         [0.e+00-0.j, 1.e+00+0.j],
