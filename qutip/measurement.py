@@ -13,7 +13,7 @@ __all__ = [
 
 import numpy as np
 
-from . import Qobj, expect, identity, tensor, settings
+from . import Qobj, expect, qeye_like, settings
 
 
 def _verify_input(op, state):
@@ -24,11 +24,11 @@ def _verify_input(op, state):
     if not isinstance(state, Qobj):
         raise TypeError("state must be a Qobj")
     if state.isket:
-        if op.dims[-1] != state.dims[0]:
+        if op._dims.from_ != state._dims.to_:
             raise ValueError(
                 "op and state dims should be compatible when state is a ket")
     elif state.isoper:
-        if op.dims != state.dims:
+        if op._dims != state._dims:
             raise ValueError(
                 "op and state dims should match"
                 " when state is a density matrix")
@@ -175,7 +175,7 @@ def measurement_statistics_povm(state, ops, tol=None):
     E = [op.dag() * op for op in ops]
 
     is_ID = sum(E)
-    if not is_ID == identity(is_ID.dims[0]):
+    if not is_ID == qeye_like(is_ID):
         raise ValueError("measurement operators must sum to identity")
 
     if state.isket:

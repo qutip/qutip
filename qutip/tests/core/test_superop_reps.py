@@ -14,8 +14,10 @@ from qutip import (
     Qobj, basis, identity, sigmax, sigmay, qeye, create, rand_super,
     rand_super_bcsz, rand_dm, tensor, super_tensor, kraus_to_choi,
     kraus_to_super, to_super, to_choi, to_kraus, to_chi, to_stinespring,
-    operator_to_vector, vector_to_operator, sprepost, destroy, CoreOptions
+    operator_to_vector, vector_to_operator, sprepost, CoreOptions
 )
+from qutip.core.dimensions import Space
+from qutip.core.energy_restricted import EnrSpace
 from qutip.core.gates import swap
 
 
@@ -40,7 +42,8 @@ def assert_kraus_equivalence(a, b, tol=tol):
     np.testing.assert_allclose(a, b)
 
 
-@pytest.fixture(scope="function", params=[2, 3, 7])
+@pytest.fixture(scope="function",
+                params=[2, 3, 7, pytest.param(EnrSpace([3, 3], 2), id="enr")])
 def dimension(request):
     # There are also some cases in the file where this fixture is explicitly
     # overridden by a more local mark.  That is deliberate.
@@ -238,7 +241,11 @@ class TestSuperopReps:
         """
         Superoperator: Trace returned by to_choi matches docstring.
         """
-        assert abs(to_choi(identity(dimension)).tr() - dimension) <= tol
+        if isinstance(dimension, Space):
+            N = dimension.size
+        else:
+            N = dimension
+        assert abs(to_choi(identity(dimension)).tr() - N) <= tol
 
     def test_stinespring_cp(self, dimension):
         """
@@ -250,6 +257,7 @@ class TestSuperopReps:
         assert (A - B).norm() < tol
 
     @pytest.mark.repeat(3)
+    @pytest.mark.parametrize('dimension', [2, 3, 7])
     def test_stinespring_agrees(self, dimension):
         """
         Stinespring: Partial Tr over pair agrees w/ supermatrix.
@@ -270,6 +278,7 @@ class TestSuperopReps:
 
         assert (q1 - q2).norm('tr') <= tol
 
+    @pytest.mark.parametrize('dimension', [2, 3, 7])
     def test_stinespring_dims(self, dimension):
         """
         Stinespring: Check that dims of channels are preserved.

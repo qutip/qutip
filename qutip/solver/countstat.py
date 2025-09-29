@@ -5,20 +5,13 @@ the counting statistics formalism.
 __all__ = ['countstat_current', 'countstat_current_noise']
 
 import numpy as np
-import scipy.sparse as sp
 
 from itertools import product
 from ..core import (
-    sprepost, spre, qeye, tensor, expect, Qobj,
-    operator_to_vector, vector_to_operator, CoreOptions
+    sprepost, spre, qeye_like, Qobj, operator_to_vector, CoreOptions
 )
 from ..core import data as _data
 from .steadystate import pseudo_inverse, steadystate
-from ..settings import settings
-
-# Load MKL spsolve if avaiable
-if settings.has_mkl:
-    from qutip._mkl.spsolve import mkl_spsolve
 
 
 def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
@@ -91,11 +84,11 @@ def _noise_direct(L, wlist, rhoss, J_ops, I_ops):
     noise = np.zeros((N_j_ops, N_j_ops, len(wlist)))
     skewness = np.zeros((N_j_ops, len(wlist)))
 
-    tr_op = qeye(L.dims[0][0])
+    tr_op = qeye_like(rhoss)
     tr_op_vec = operator_to_vector(tr_op)
 
     Pop = _data.kron(rhoss_vec, tr_op_vec.data.transpose())
-    Iop = _data.identity(np.prod(L.dims[0][0]) ** 2)
+    Iop = _data.identity_like(L.data)
     Q = _data.sub(Iop, Pop)
 
     QJ_ops = [
@@ -202,12 +195,12 @@ def _noise_pseudoinv(L, wlist, rhoss, J_ops, I_ops, sparse, method):
 
     dtype = type(L.data)
 
-    tr_op = qeye(L.dims[0][0])
+    tr_op = qeye_like(rhoss)
     tr_op_vec = operator_to_vector(tr_op)
 
     P = _data.kron(rhoss_vec.data, tr_op_vec.data.transpose(), dtype=dtype)
 
-    Pop_new = Qobj(P, dims=L.dims)
+    Pop_new = Qobj(P, dims=L._dims)
     for k, w in enumerate(wlist):
         R = pseudo_inverse(L, rhoss=rhoss, w=w, sparse=sparse, method=method)
         for i, j in product(range(N_j_ops), repeat=2):

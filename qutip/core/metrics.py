@@ -12,6 +12,7 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
 from .numpy_backend import np
 from scipy import linalg as la
 import scipy.sparse as sp
+from .dimensions import Dimensions
 from .superop_reps import to_choi, _to_superpauli, to_super, kraus_to_choi
 from .superoperator import operator_to_vector, vector_to_operator
 from .operators import qeye, qeye_like
@@ -71,7 +72,7 @@ def fidelity(A, B):
         # we have to take the sqrtm of one of them.
         sqrtmA = A.sqrtm()
 
-    if sqrtmA.dims != B.dims:
+    if sqrtmA._dims != B._dims:
         raise TypeError('Density matrices do not have same dimensions.')
 
     # We don't actually need the whole matrix here, just the trace
@@ -100,15 +101,14 @@ def _hilbert_space_dims(oper):
       `oper.dims == [[dims_out, dims_out], [dims_out, dims_out]]`.
     :param oper: A quantum channel, represented by a unitary, a list of Kraus
     operators, or a superoperator
-    :return: `[dims_out, dims_in]`, where `dims_out` and `dims_in` are lists
-     of integers
+    :return: `Dimensions` object representing `[dims_out, dims_in]`
     """
     if isinstance(oper, list):
-        return oper[0].dims
+        return oper[0]._dims
     elif oper.type == 'oper':  # interpret as unitary quantum channel
-        return oper.dims
+        return oper._dims
     elif oper.type == 'super' and oper.superrep in ['choi', 'chi', 'super']:
-        return [oper.dims[0][1], oper.dims[1][0]]
+        return Dimensions(oper._dims[1].oper[0], oper._dims[0].oper[1])
     else:
         raise TypeError('oper is not a valid quantum channel!')
 
@@ -130,7 +130,7 @@ def _process_fidelity_to_id(oper):
     if dims_out != dims_in:
         raise TypeError('The process fidelity to identity is only defined '
                         'for dimension preserving channels.')
-    d = np.prod(dims_in)
+    d = dims_in.size
     if isinstance(oper, list):  # oper is a list of Kraus operators
         return np.sum([np.abs(k.tr()) ** 2 for k in oper]) / d ** 2
     elif oper.type == 'oper':  # interpret as unitary
@@ -210,7 +210,7 @@ def process_fidelity(oper, target=None):
             return process_fidelity(target, oper)  # reverse order
         oper_choi = _kraus_or_qobj_to_choi(oper)
         target_choi = _kraus_or_qobj_to_choi(target)
-        d = np.prod(dims_in)
+        d = dims_in.size
         return (fidelity(oper_choi, target_choi)/d)**2
 
 
@@ -249,7 +249,7 @@ def average_gate_fidelity(oper, target=None):
         raise TypeError(
             'target must be None or a Qobj representing a unitary.')
 
-    d = np.prod(dims_in)
+    d = dims_in.size
     return (d * process_fidelity(oper, target) + 1) / (d + 1)
 
 
@@ -284,7 +284,7 @@ def tracedist(A, B, sparse=False, tol=0):
         A = A.proj()
     if B.isket or B.isbra:
         B = B.proj()
-    if A.dims != B.dims:
+    if A._dims != B._dims:
         raise TypeError("A and B do not have same dimensions.")
     diff = A - B
     diff = diff.dag() * diff
@@ -317,7 +317,7 @@ def hilbert_dist(A, B):
         A = A.proj()
     if B.isket or B.isbra:
         B = B.proj()
-    if A.dims != B.dims:
+    if A._dims != B._dims:
         raise TypeError('A and B do not have same dimensions.')
     return ((A - B)**2).tr()
 
@@ -345,7 +345,7 @@ def bures_dist(A, B):
         A = A.proj()
     if B.isket or B.isbra:
         B = B.proj()
-    if A.dims != B.dims:
+    if A._dims != B._dims:
         raise TypeError('A and B do not have same dimensions.')
     dist = np.sqrt(2 * (1 - fidelity(A, B)))
     return dist
@@ -373,7 +373,7 @@ def bures_angle(A, B):
         A = A.proj()
     if B.isket or B.isbra:
         B = B.proj()
-    if A.dims != B.dims:
+    if A._dims != B._dims:
         raise TypeError('A and B do not have same dimensions.')
     return np.arccos(fidelity(A, B))
 
@@ -422,7 +422,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     else:
         sqrtmB = B.sqrtm(sparse=sparse, tol=tol)
 
-    if sqrtmA.dims != sqrtmB.dims:
+    if sqrtmA._dims != sqrtmB._dims:
         raise TypeError("A and B do not have compatible dimensions.")
 
     product = sqrtmA*sqrtmB
@@ -482,7 +482,9 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     if cvxpy is None:  # pragma: no cover
         raise ImportError("dnorm() requires CVXPY to be installed.")
 
-    if B is not None and A.dims != B.dims:
+    A._dims._require_pure_dims("diamond norm")
+
+    if B is not None and A._dims != B._dims:
         raise TypeError("A and B do not have the same dimensions.")
 
     # We follow the strategy of using Watrous' simpler semidefinite
