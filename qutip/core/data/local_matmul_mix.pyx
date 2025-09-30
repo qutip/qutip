@@ -1,6 +1,6 @@
 #cython: language_level=3
 
-from qutip.core.data cimport Data, Dense, dense, Dia
+from qutip.core.data cimport Data, Dense, dense, Dia, CSR
 from qutip.core.data.matmul cimport imatmul_data_dense, matmul_dense
 from qutip.core.data.matmul import matmul, matmul_dense_dia_dense
 from qutip.core.data.add cimport iadd_dense
@@ -46,7 +46,7 @@ cdef class Hilbert_Iterator:
         self.pre_computed = False
 
         hilberts_steps = [1]
-        for i in range(len(hilbert)):
+        for i in range(len(hilbert)-1):
             hilberts_steps = [
                 hilberts_steps[0] * hilbert[len(hilbert) - 1 - i]
             ] + hilberts_steps
@@ -56,11 +56,12 @@ cdef class Hilbert_Iterator:
             self.sizes[i] = hilbert[mode[i]]
 
         if hilberts_steps[0] <= pre_compute_size:
-            self.np_index = np.zeros(hilberts_steps[0], dtype=np.int32)
-            for i in range(hilberts_steps[0]):
+            self.np_index = np.zeros(np.prod(self.np_arr[2, :]), dtype=np.int32)
+            for i in range(np.prod(self.np_arr[2, :])):
                 self.np_index[i] = self.next()
             self.indexes = self.np_index[:]
             self.pre_computed = True
+            self.start()
 
     cdef int start(self):
         cdef int i
@@ -103,14 +104,136 @@ cdef class Hilbert_Iterator:
         cdef int j, current_mode_idx
 
         if self.pre_computed:
-            return self.indexes[linear_idx]
-
-        for j in range(self.N_mode - 1, -1, -1):
-            current_mode_idx = linear_idx % self.sizes[j]
-            final_pos += current_mode_idx * self.step[j]
-            linear_idx = linear_idx // self.sizes[j]
+            final_pos = self.indexes[linear_idx]
+        else:
+            for j in range(self.N_mode - 1, -1, -1):
+                current_mode_idx = linear_idx % self.sizes[j]
+                final_pos += current_mode_idx * self.step[j]
+                linear_idx = linear_idx // self.sizes[j]
 
         return final_pos
+
+    cdef (int, int) slices(self):
+        """
+        Return the starts and number of consecutive steps.
+        """
+        cdef int i = self.N_mode - 1
+        cdef int old_pos = self.position
+
+        if self.step[self.N_mode-1] != 1:
+            return self.next(), 1
+
+        if self.pre_computed:
+            old_pos = self.indexes[self.position]
+            self.position += self.sizes[self.N_mode-1]
+            return old_pos, self.sizes[self.N_mode-1]
+
+        while i:
+            i = i - 1
+            self.iterator[i] += 1
+            self.position += self.step[i]
+            if self.iterator[i] < self.sizes[i]:
+                break
+            self.iterator[i] = 0
+            self.position -= self.sizes[i] * self.step[i]
+        else:
+            self.position = -1
+
+        return old_pos, self.sizes[self.N_mode-1]
+
+
+cdef class Data_interator:
+    """
+    iterator over Data instance.
+    Data_interator.next() return a (row, col, value) tuple.
+    Data_interator.nnz is the number of iteration to go over all values.
+
+    ** After nnz call of next, it will return junk **
+    """
+    cdef int nnz
+
+    def __init__(self, Data oper):
+        self.nnz = 0
+
+    cdef (int, int, double complex) next(self):
+        return 0, 0, 0j
+
+
+cdef class Dense_iterator(Data_interator):
+    cdef Dense oper
+    cdef int position
+
+    def __init__(self, Dense oper):
+        self.position = 0
+        self.oper = oper
+        self.nnz = oper.shape[0] * oper.shape[1]
+
+    cdef (int, int, double complex) next(self):
+        cdef double complex val = self.oper.data[self.position]
+        cdef int row, col
+        if self.oper.fortran:
+            row = self.position % self.oper.shape[0]
+            col = self.position // self.oper.shape[0]
+        else:
+            row = self.position // self.oper.shape[1]
+            col = self.position % self.oper.shape[1]
+        self.position += 1
+        return row, col, val
+
+
+cdef class CSR_iterator(Data_interator):
+    cdef CSR oper
+    cdef int row, idx
+
+    def __init__(self, CSR oper):
+        self.row = 0
+        self.idx = 0
+        while self.oper.row_index[self.row + 1] == self.idx:
+            self.row += 1
+        self.oper = oper
+        self.nnz = oper.row_index[oper.shape[0]]
+
+    cdef (int, int, double complex) next(self):
+        cdef double complex val = self.oper.data[self.idx]
+        cdef int row = self.row
+        cdef int col = self.oper.col_index[self.idx]
+
+        self.idx += 1
+        while self.oper.row_index[self.row + 1] == self.idx:
+            self.row += 1
+
+        return row, col, val
+
+
+cdef class Dia_iterator(Data_interator):
+    cdef Dia oper
+    cdef int diag_N, col, offset
+
+    def __init__(self, Dia oper):
+        self.diag_N = 0
+        self.oper = oper
+        self.offset = oper.offsets[0]
+        self.col = max(0, self.offset)
+        self.nnz = 0
+        for i in range(oper.num_diag):
+            start = max(0, oper.offsets[i])
+            end = min(oper.shape[1], oper.shape[0] + oper.offsets[i])
+            self.nnz += end - start
+
+    cdef (int, int, double complex) next(self):
+        cdef double complex val =\
+            self.oper.data[self.diag_N * self.oper.shape[1] + self.col]
+        cdef int row, col = self.col
+        row = self.col - self.offset
+
+        end = min(self.oper.shape[1], self.oper.shape[0] + self.offset)
+        self.col += 1
+        if self.col == end:
+            self.diag_N += 1
+            self.offset = self.oper.offsets[self.diag_N]
+            self.col = max(0, self.offset)
+
+        return row, col, val
 
 
 @cython.boundscheck(False)
@@ -174,8 +297,6 @@ cpdef Dense cy_N_mode_dense(
     return out
 
 
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.initializedcheck(False)
@@ -201,24 +322,28 @@ cpdef Dense N_mode_data_dense(
     cdef Hilbert_Iterator pass_iter = Hilbert_Iterator(hilbert, not_mode)
 
     cdef int row, col, row_idx, col_idx, idx_pass, i, j, row_state, row_out
-    cdef list idx_state, idx_out
-    cdef int oper_row_stride, oper_col_stride, state_row_stride, state_col_stride, out_row_stride, out_col_stride
+    cdef int state_row_stride, state_col_stride, out_row_stride, out_col_stride
     cdef double complex val
+    cdef Data_interator iter
+    if type(oper) is Dense:
+      iter = Dense_iterator(oper)
+    if type(oper) is CSR:
+      iter = CSR_iterator(oper)
+    if type(oper) is Dia:
+      iter = Dia_iterator(oper)
 
-    oper_row_stride = 1 if oper.fortran else oper.shape[0]
-    oper_col_stride = 1 if not oper.fortran else oper.shape[1]
     state_row_stride = 1 if state.fortran else state.shape[0]
     state_col_stride = 1 if not state.fortran else state.shape[1]
     out_row_stride = 1 if state.fortran else state.shape[0]
     out_col_stride = 1 if not state.fortran else state.shape[1]
-    in_iter.start()
-    out_iter.start()
     pass_iter.start()
 
-    for i in range(oper.nnz):
-        row, col, val = oper.at(i)  # Iterator over non-zeros values returning a triplet row, col, val would make it work with all
+    for _ in range(iter.nnz):
+        row, col, val = iter.next()
         row_idx = in_iter.at(row)
         col_idx = out_iter.at(col)
+        if val == 0+0j:
+            continue
 
         pass_iter.start()
         for i in range(N_pass_through):
