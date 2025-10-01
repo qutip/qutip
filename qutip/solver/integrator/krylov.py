@@ -128,6 +128,7 @@ class IntegratorKrylov(Integrator):
         k = 1
         v = _data.matmul(H, psi)
         h[0, 0] = _data.inner(psi, v)
+        v = v - h[0, 0] * psi
         h[1, 0] = _data.norm.l2(v)
         while k < krylov_dim and h[k, k-1] > self.options['sub_system_tol']:
             Q.append(_data.mul(v, 1 / h[k, k-1]))
