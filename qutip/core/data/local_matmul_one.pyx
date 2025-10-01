@@ -115,7 +115,6 @@ cpdef Dense one_mode_matmul_data_dense(
         loc_shape_state = Shape(oper.shape[1], after * state.shape[1])
         loc_shape_out = Shape(oper.shape[0], after * state.shape[1])
 
-    # --- Call the Kernel ---
     _one_mode_matmul_kernel(
         oper, state, out,
         is_dual=False, loop_count=loop_count,
