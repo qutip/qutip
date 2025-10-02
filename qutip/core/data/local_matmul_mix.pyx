@@ -11,7 +11,6 @@ from scipy.linalg.cython_blas cimport zaxpy
 
 #TODO:
 # - One head function
-# - Reusable interne functions + factory
 # - What about jax etc?
 # - merge left and right?
 
@@ -24,150 +23,6 @@ cdef int _mul(list numbers) except -1:
     for i in range(N):
         out = out * numbers[i]
     return out
-
-
-cdef class Hilbert_Iterator:
-    """
-    Allow to iterate over the ravelsome mode of an hilbert space.
-    if:
-
-        hilbert = [2, 3, 4]
-        mode = [0, 2]
-
-    then we want to iterate with:
-
-        0, 1, 2, 3, 12, 13, 14, 16
-    """
-    # There are 2 methods implemented in parallel:
-    # - Create an array of all indexes at initialization
-    # - Compute the index as needed
-    cdef:
-        readonly object np_arr, np_index
-        int[::1] iterator, step, sizes
-        int[::1] indexes
-        int N_mode, position
-        bint pre_computed
-
-    def __init__(self, hilbert, mode, size, pre_compute_size=1024):
-        if not len(np.unique(mode)) == len(mode):
-            raise ValueError("Duplicated mode")
-        self.N_mode = len(mode)
-        self.np_arr = np.zeros((3, self.N_mode), dtype=np.int32)
-        self.position = 0
-        self.iterator = self.np_arr[0, :]
-        self.step = self.np_arr[1, :]
-        self.sizes = self.np_arr[2, :]
-        self.pre_computed = False
-
-        hilberts_steps = [1]
-        for i in range(len(hilbert)-1):
-            hilberts_steps = [
-                hilberts_steps[0] * hilbert[len(hilbert) - 1 - i]
-            ] + hilberts_steps
-
-        for i in range(self.N_mode):
-            self.step[i] = hilberts_steps[mode[i]]
-            self.sizes[i] = hilbert[mode[i]]
-
-        if np.prod(self.np_arr[2, :]) != size:
-            raise ValueError(
-                f"size not matcing: {size=}, {np.prod(self.np_arr[2, :])}, "
-                f"{mode=}, {hilbert=}"
-            )
-
-        if hilberts_steps[0] <= pre_compute_size:
-            self.np_index = np.zeros(np.prod(self.np_arr[2, :]), dtype=np.int32)
-            for i in range(np.prod(self.np_arr[2, :])):
-                self.np_index[i] = self.next()
-            self.indexes = self.np_index[:]
-            self.pre_computed = True
-            self.start()
-
-    cdef int start(self):
-        cdef int i
-        self.position = 0
-        for i in range(self.N_mode):
-            self.iterator[i] = 0
-
-    cdef int next(self) except -2:
-        """
-        Get the indexes in order
-        """
-        cdef int i = self.N_mode
-        cdef int old_pos
-        if self.pre_computed:
-            old_pos = self.indexes[self.position]
-            self.position += 1
-            if self.position > np.prod(self.np_arr[2, :]):
-                raise RuntimeError("Hilbert_Iterator.next out of bound (pre_computed)")
-            return old_pos
-
-        old_pos = self.position
-        if self.position == -1:
-            raise RuntimeError("Hilbert_Iterator.next out of bound (not pre_computed)")
-        while i:
-            i = i-1
-            self.iterator[i] += 1
-            self.position += self.step[i]
-            if self.iterator[i] < self.sizes[i]:
-                break
-            self.iterator[i] = 0
-            self.position -= self.sizes[i] * self.step[i]
-        else:
-            self.position = -1
-
-        return old_pos
-
-    cdef int at(self, int linear_idx) except -1:
-        """
-        Calculates and returns the index for the i-th element
-        of the iteration sequence without changing the iterator's state.
-        """
-        cdef int final_pos = 0
-        cdef int j, current_mode_idx
-
-        if self.pre_computed:
-            if linear_idx >= np.prod(self.np_arr[2, :]):
-                raise RuntimeError(
-                    f"Hilbert_Iterator.at out of bound {linear_idx=}, {np.prod(self.np_arr[2, :])}"
-                )
-            else:
-                final_pos = self.indexes[linear_idx]
-        else:
-            for j in range(self.N_mode - 1, -1, -1):
-                current_mode_idx = linear_idx % self.sizes[j]
-                final_pos += current_mode_idx * self.step[j]
-                linear_idx = linear_idx // self.sizes[j]
-
-        return final_pos
-
-    cdef (int, int) slices(self):
-        """
-        Return the starts and number of consecutive steps.
-        """
-        cdef int i = self.N_mode - 1
-        cdef int old_pos = self.position
-
-        if self.step[self.N_mode-1] != 1:
-            return self.next(), 1
-
-        if self.pre_computed:
-            old_pos = self.indexes[self.position]
-            self.position += self.sizes[self.N_mode-1]
-            return old_pos, self.sizes[self.N_mode-1]
-
-        while i:
-            i = i - 1
-            self.iterator[i] += 1
-            self.position += self.step[i]
-            if self.iterator[i] < self.sizes[i]:
-                break
-            self.iterator[i] = 0
-            self.position -= self.sizes[i] * self.step[i]
-        else:
-            self.position = -1
-
-        return old_pos, self.sizes[self.N_mode-1]
 
 
 cdef class Data_iterator:
@@ -275,149 +130,6 @@ cdef class Dia_iterator(Data_iterator):
             self.col,
             self.oper.data[self.diag_N * self.oper.shape[1] + self.col]
         )
-
-
-#@cython.boundscheck(False)
-#@cython.wraparound(False)
-#@cython.initializedcheck(False)
-#@cython.cdivision(True)
-cpdef Dense cy_N_mode_dense(
-    Dense oper, Dense state,
-    list hilbert, list mode,
-    list hilbert_out=None
-):
-    if hilbert_out is None:
-        hilbert_out = hilbert
-
-    cdef int out_size = state.shape[0] // oper.shape[1] * oper.shape[1]
-    cdef Dense out = dense.zeros(out_size, state.shape[1], state.fortran)
-    #TODO: oper sanity check, oper shape match hilbert and mode
-
-    pass_through = [hilbert[i] for i in range(len(hilbert)) if i not in mode]
-    not_mode = [i for i in range(len(hilbert)) if i not in mode]
-    cdef int N_pass_through = int(np.prod(pass_through))
-
-    cdef Hilbert_Iterator in_iter = Hilbert_Iterator(hilbert, mode)
-    cdef Hilbert_Iterator out_iter = Hilbert_Iterator(hilbert_out, mode)
-    cdef Hilbert_Iterator pass_iter = Hilbert_Iterator(hilbert, not_mode)
-
-    cdef int row, col, row_idx, col_idx, idx_pass, i, j, row_state, row_out
-    cdef list idx_state, idx_out
-    cdef int oper_row_stride, oper_col_stride, state_row_stride, state_col_stride, out_row_stride, out_col_stride
-    cdef double complex val
-
-    oper_row_stride = 1 if oper.fortran else oper.shape[0]
-    oper_col_stride = 1 if not oper.fortran else oper.shape[1]
-    state_row_stride = 1 if state.fortran else state.shape[0]
-    state_col_stride = 1 if not state.fortran else state.shape[1]
-    out_row_stride = 1 if state.fortran else state.shape[0]
-    out_col_stride = 1 if not state.fortran else state.shape[1]
-    in_iter.start()
-    out_iter.start()
-    pass_iter.start()
-
-    for row in range(oper.shape[0]):
-        row_idx = in_iter.next()
-
-        out_iter.start()
-        for col in range(oper.shape[1]):
-            val = oper.data[row * oper_row_stride + col * oper_col_stride]
-            col_idx = out_iter.next()
-
-            pass_iter.start()
-            for i in range(N_pass_through):
-                # TODO: continuous entry should use zaxpy
-                idx_pass = pass_iter.next()
-                row_state = idx_pass + col_idx
-                row_out = idx_pass + row_idx
-
-                for j in range(state.shape[1]):  # TODO: if `j` are continuous, use zaxpy
-                    out.data[row_out * out_row_stride + j * out_col_stride] += \
-                        val * state.data[row_state * state_row_stride + j * state_col_stride]
-
-    return out
-
-
-#@cython.boundscheck(False)
-#@cython.wraparound(False)
-#@cython.initializedcheck(False)
-#@cython.cdivision(True)
-cpdef Dense N_mode_data_dense(
-    Data oper, Dense state,
-    list hilbert, list mode,
-    list hilbert_out=None
-):
-    if hilbert_out is None:
-        hilbert_out = hilbert
-
-    cdef int out_size = state.shape[0] // oper.shape[1] * oper.shape[0]
-    cdef Dense out = dense.zeros(out_size, state.shape[1], state.fortran)
-    #TODO: oper sanity check, oper shape match hilbert and mode
-
-    pass_through = [hilbert[i] for i in range(len(hilbert)) if i not in mode]
-    not_mode = [i for i in range(len(hilbert)) if i not in mode]
-    cdef int N_pass_through = int(np.prod(pass_through))
-
-    cdef Hilbert_Iterator in_iter = Hilbert_Iterator(hilbert, mode, oper.shape[1])
-    cdef Hilbert_Iterator out_iter = Hilbert_Iterator(hilbert_out, mode, oper.shape[0])
-    cdef Hilbert_Iterator pass_iter_in = Hilbert_Iterator(hilbert, not_mode, state.shape[0] / oper.shape[1])
-    cdef Hilbert_Iterator pass_iter_out = Hilbert_Iterator(hilbert_out, not_mode, state.shape[0] / oper.shape[1])
-
-    cdef int row, col, row_idx, col_idx, idx_pass, i, j, row_state, row_out
-    cdef int state_row_stride, state_col_stride, out_row_stride, out_col_stride
-    cdef double complex val
-    cdef Data_iterator iter
-    if type(oper) is Dense:
-        iter = Dense_iterator(oper)
-    elif type(oper) is CSR:
-        iter = CSR_iterator(oper)
-    elif type(oper) is Dia:
-        iter = Dia_iterator(oper)
-    else:
-        raise RuntimeError(f"Can't make an iter out of {type(oper)}")
-
-    state_row_stride = 1 if state.fortran else state.shape[0]
-    state_col_stride = 1 if not state.fortran else state.shape[1]
-    out_row_stride = 1 if state.fortran else state.shape[0]
-    out_col_stride = 1 if not state.fortran else state.shape[1]
-    in_iter.start()
-    out_iter.start()
-
-    for _ in range(iter.nnz):
-        row, col, val = iter.next()
-        row_idx = out_iter.at(row)
-        col_idx = in_iter.at(col)
-        if val == 0+0j:
-            continue
-        if val == np.inf:
-            raise RuntimeError("Oper out of bound")
-
-        pass_iter_in.start()
-        pass_iter_out.start()
-        for i in range(N_pass_through):
-            row_state = pass_iter_in.next() + col_idx
-            row_out = pass_iter_out.next() + row_idx
-
-            for j in range(state.shape[1]):
-                idx_out = row_out * out_row_stride + j * out_col_stride
-                idx_state = row_state * state_row_stride + j * state_col_stride
-                if idx_out >= out.shape[0] * out.shape[1]:
-                    raise RuntimeError(
-                      f"state out of bound {idx_out=}, {row_out=}, {j=} \n"
-                      f"with {idx_pass=}, {row_idx=}, {_=}, {i=}, {col=}, {row=} \n"
-                      f"and {out_row_stride=}, {out_col_stride=}"
-                    )
-                if idx_state >= state.shape[0] * state.shape[1]:
-                    raise RuntimeError(
-                      f"state out of bound {idx_state=}, {row_state=}, {j=} \n"
-                      f"with {idx_pass=}, {col_idx=}, {_=}, {i=}, {col=}, {row=} \n"
-                      f"and {state_row_stride=}, {state_col_stride=}"
-                    )
-
-                out.data[idx_out] += val * state.data[idx_state]
-
-    return out
-
 
 
 cdef class NModeMeta:
@@ -568,6 +280,18 @@ cpdef void N_mode_kernel(Data oper, Dense state, Dense out, NModeMeta meta):
     if not state.fortran and not out.fortran:
         chunk_len *= state.shape[1]
 
+    debug = False
+
+    if not state.fortran and not out.fortran and debug:
+        print("long zaxpy")
+        print(f"{chunk_len=}")
+        print(f"{meta.np_maps=}")
+
+    if state.fortran and out.fortran and debug:
+        print("short zaxpy")
+        print(f"{chunk_len=}")
+        print(f"{meta.np_maps=}")
+
     for _ in range(iter.nnz):
         row, col, val = iter.next()
         row_idx = meta.out_map[row]
@@ -595,8 +319,8 @@ cpdef void N_mode_kernel(Data oper, Dense state, Dense out, NModeMeta meta):
 
                     zaxpy(
                         &chunk_len, &val,
-                        &state.data[idx_out], &ONE,
-                        &out.data[idx_state], &ONE
+                        &state.data[idx_state], &ONE,
+                        &out.data[idx_out], &ONE
                     )
             else:
                 for k in range(chunk_len):
@@ -606,7 +330,7 @@ cpdef void N_mode_kernel(Data oper, Dense state, Dense out, NModeMeta meta):
                     out.data[idx_out] += val * state.data[idx_state]
 
 
-cpdef Dense N_mode_data_dense_2(
+cpdef Dense N_mode_data_dense(
     Data oper, Dense state,
     list hilbert, list mode,
     list hilbert_out=None
