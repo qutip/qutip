@@ -2,18 +2,7 @@ import numpy as np
 from qutip import tensor, qeye, destroy, sigmax, sigmay, sigmaz, coefficient
 from qutip.core.cy.coefficient import Coefficient
 from typing import Union
-from .quantum_system import QuantumSystem
-
-def _create_sqrt_coefficient(rate):
-    """Helper function to create sqrt coefficient from decay rate"""
-    if isinstance(rate, Coefficient):
-        # Extract coefficient information and create sqrt version
-        def sqrt_func(t, args):
-            return np.sqrt(rate(t, args))
-            
-        return coefficient(sqrt_func, args={})
-    else:
-        return np.sqrt(rate)
+from .quantum_system import QuantumSystem, _create_sqrt_coefficient
     
 def jaynes_cummings(
     omega_c: Union[float, Coefficient] = 1.0,

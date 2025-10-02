@@ -2,8 +2,7 @@ import numpy as np
 from qutip import tensor, qeye, sigmax, sigmay, sigmaz, coefficient, Qobj, sigmap, sigmam
 from qutip.core.cy.coefficient import Coefficient
 from typing import Union
-from .quantum_system import QuantumSystem
-from .jaynes_cummings import _create_sqrt_coefficient
+from .quantum_system import QuantumSystem, _create_sqrt_coefficient
 
 def linear_spin_chain(
     model_type: str = "heisenberg",
@@ -28,46 +27,54 @@ def linear_spin_chain(
     
     **Model Hamiltonians:**
 
-    Heisenberg model:
+    **Heisenberg model:** The isotropic Heisenberg model describes quantum spins with equal coupling in all three spatial directions. 
+    In 1D, this model has a gapless ground state with no long-range magnetic order at any finite temperature, exhibiting critical 
+    behavior with power-law correlations. The model exhibits rich quantum behavior like quantum spin liquids in 1D and antiferromagnetic 
+    order in higher dimensions.
 
     .. math::
         H = J \\sum_{\\langle i,j \\rangle} \\vec{S}_i \\cdot \\vec{S}_j + B_x \\sum_i S_i^x + B_y \\sum_i S_i^y + B_z \\sum_i S_i^z
 
-    XXZ model:
+    **XXZ model:** An anisotropic spin model with different coupling strengths for in-plane (XY) and out-of-plane (Z) interactions. 
+    The anisotropy parameter Jz/J controls the phase diagram, with gapped phases for :math:`Jz/J > 1` and gapless phases for :math:`Jz/J < 1`.
 
     .. math::
         H = J \\sum_{\\langle i,j \\rangle} (S_i^x S_j^x + S_i^y S_j^y) + J_z \\sum_{\\langle i,j \\rangle} S_i^z S_j^z + \\vec{B} \\cdot \\sum_i \\vec{S}_i
 
-    XY model:
+    **XY model:** A planar spin model with interactions only in the XY plane. This model can be mapped to free fermions via 
+    Jordan-Wigner transformation and exhibits critical behavior with algebraic correlations.
 
     .. math::
         H = J \\sum_{\\langle i,j \\rangle} (S_i^x S_j^x + S_i^y S_j^y) + \\vec{B} \\cdot \\sum_i \\vec{S}_i
 
-    Ising model (with transverse field when :math:`B_x, B_y \\neq 0`):
+    **Ising model (with transverse field when :math:`B_x, B_y \\neq 0`):** The simplest spin model with interactions only along the Z-axis. 
+    When combined with transverse fields, it becomes the transverse-field Ising model, which exhibits quantum phase transitions between paramagnetic 
+    and ferromagnetic phases.
 
     .. math::
         H = J \\sum_{\\langle i,j \\rangle} S_i^z S_j^z + \\vec{B} \\cdot \\sum_i \\vec{S}_i
 
     **Dissipation Channels:**
 
-    Pure dephasing:
+    Pure dephasing: Models random fluctuations in local magnetic fields or charge noise that cause each spin to randomly accumulate phase. 
+    This destroys quantum coherences while preserving energy, spins stay in spin up or spin down but lose phase relationships between sites.
 
     .. math::
         \\mathcal{L}[\\rho] = \\gamma_{\\text{deph}} \\sum_k \\left( S_k^z \\rho S_k^z - \\frac{1}{2}\\{(S_k^z)^2, \\rho\\} \\right)
 
-    Depolarizing channel:
+    Depolarizing channel: Isotropic noise that randomly flips spins in all three directions (x, y, z) with equal probability. This drives each spin toward the maximally mixed state :math:`\\rho= I/2`, representing complete loss of quantum information.
 
     .. math::
         \\mathcal{L}[\\rho] = \\frac{\\gamma_{\\text{depol}}}{3} \\sum_{k,\\alpha} \\left( S_k^\\alpha \\rho S_k^\\alpha - \\frac{1}{2}\\{(S_k^\\alpha)^2, \\rho\\} \\right)
 
     where :math:`\\alpha \\in \\{x, y, z\\}`.
 
-    Thermal bath (:math:`T = 0`):
+    Thermal bath (:math:`T = 0`): Energy relaxation where spin up spontaneously decay to spin down by emitting energy (e.g., phonons, photons). Only downward transitions occur since no thermal energy is available for excitation.
 
     .. math::
         \\mathcal{L}[\\rho] = \\gamma_{\\text{thermal}} \\sum_k \\left( S_k^- \\rho S_k^+ - \\frac{1}{2}\\{S_k^+ S_k^-, \\rho\\} \\right)
 
-    Thermal bath (:math:`T > 0`):
+    Thermal bath (:math:`T > 0`): Both emission and absorption processes occur, with rates determined by temperature. The system evolves toward thermal equilibrium with the bath.
 
     .. math::
         \\mathcal{L}[\\rho] = \\gamma_{\\text{thermal}} \\sum_k \\left[ p_{\\text{down}} \\left( S_k^- \\rho S_k^+ - \\frac{1}{2}\\{S_k^+ S_k^-, \\rho\\} \\right) + p_{\\text{up}} \\left( S_k^+ \\rho S_k^- - \\frac{1}{2}\\{S_k^- S_k^+, \\rho\\} \\right) \\right]
