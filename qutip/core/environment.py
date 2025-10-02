@@ -1759,6 +1759,10 @@ class CFExponent:
 
         "+" and "-" are fermionic exponents.
 
+        "Input", "Output_fn_L", "Output_fn_R", "Output_L", "Output_R" are
+        special types used with InputOutputBaths from bofin_baths, and
+        are not used with other solvers.
+
     ck : complex
         The coefficient of the excitation term.
 
@@ -1789,7 +1793,9 @@ class CFExponent:
 
     All of the parameters are also available as attributes.
     """
-    types = enum.Enum("ExponentType", ["R", "I", "RI", "+", "-"])
+    types = enum.Enum("ExponentType", ["R", "I", "RI", "+", "-", "Input",
+                                       "Output_fn_L", "Output_fn_R",
+                                       "Output_L", "Output_R"])
 
     def _check_ck2(self, type, ck2):
         if type == self.types["RI"]:
@@ -1940,6 +1946,7 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
         # all None: returns False
         # all provided and lengths match: returns True
         # otherwise: raises ValueError
+        
         lists = [ck_real, vk_real, ck_imag, vk_imag]
         if all(x is None for x in lists):
             return False
@@ -1967,6 +1974,8 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
 
         lists_provided = self._check_cks_and_vks(
             ck_real, vk_real, ck_imag, vk_imag)
+            # TODO: seperate check for input/output
+            
         if exponents is None and not lists_provided:
             raise ValueError(
                 "Either the parameter `exponents` or the parameters "
@@ -1978,14 +1987,18 @@ class ExponentialBosonicEnvironment(BosonicEnvironment):
             )
 
         exponents = exponents or []
+        
         if lists_provided:
             exponents.extend(self._make_exponent("R", ck, vk, tag=tag)
                              for ck, vk in zip(ck_real, vk_real))
+                             
             exponents.extend(self._make_exponent("I", ck, vk, tag=tag)
                              for ck, vk in zip(ck_imag, vk_imag))
 
         if combine:
             exponents = self.combine(exponents)
+
+       
         self.exponents = exponents
 
     @classmethod
