@@ -1,6 +1,17 @@
 import numpy as np
-from qutip import Qobj
+from qutip import Qobj, coefficient
+from qutip.core.cy.coefficient import Coefficient
 
+def _create_sqrt_coefficient(rate):
+    """Helper function to create sqrt coefficient from decay rate"""
+    if isinstance(rate, Coefficient):
+        # Extract coefficient information and create sqrt version
+        def sqrt_func(t, args):
+            return np.sqrt(rate(t, args))
+            
+        return coefficient(sqrt_func, args={})
+    else:
+        return np.sqrt(rate)
 
 class QuantumSystem:
     """
@@ -97,3 +108,4 @@ class QuantumSystem:
                 s = f"${s}$"
             return s
         return rf"$\text{{{self.name}}}$"
+    
