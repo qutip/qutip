@@ -8,6 +8,8 @@ import numpy as np
 cimport cython
 from scipy.linalg.cython_blas cimport zaxpy
 
+cdef extern from "<complex>" namespace "std" nogil:
+    double complex _conj "conj"(double complex x)
 
 #TODO:
 # - One head function
@@ -34,9 +36,12 @@ cdef class Data_iterator:
     ** After nnz call of next, it will return 0, 0, inf **
     """
     cdef readonly int nnz
+    cdef bint trans, conj
 
-    def __init__(self, Data oper):
+    def __init__(self, Data oper, bint trans, bint conj):
         self.nnz = 0
+        self.trans = trans
+        self.conj = conj
 
     cpdef (int, int, double complex) next(self):
         return 0, 0, float('inf')
@@ -46,10 +51,12 @@ cdef class Dense_iterator(Data_iterator):
     cdef Dense oper
     cdef int position
 
-    def __init__(self, Dense oper):
+    def __init__(self, Dense oper, bint trans, bint conj):
         self.position = -1
         self.oper = oper
         self.nnz = oper.shape[0] * oper.shape[1]
+        self.trans = trans
+        self.conj = conj
 
     cpdef (int, int, double complex) next(self):
         self.position += 1
@@ -66,6 +73,10 @@ cdef class Dense_iterator(Data_iterator):
             row = self.position // self.oper.shape[1]
             col = self.position % self.oper.shape[1]
 
+        if self.conj:
+            val = _conj(val)
+        if self.trans:
+            row, col = col, row
         return row, col, val
 
 
@@ -73,11 +84,13 @@ cdef class CSR_iterator(Data_iterator):
     cdef CSR oper
     cdef int row, idx
 
-    def __init__(self, CSR oper):
+    def __init__(self, CSR oper, bint trans, bint conj):
         self.row = 0
         self.idx = -1
         self.oper = oper
         self.nnz = oper.row_index[oper.shape[0]]
+        self.trans = trans
+        self.conj = conj
 
     cpdef (int, int, double complex) next(self):
         self.idx += 1
@@ -91,15 +104,22 @@ cdef class CSR_iterator(Data_iterator):
         while self.oper.row_index[self.row + 1] == self.idx:
             self.row += 1
 
-        return self.row, col, val
+        if self.conj:
+            val = _conj(val)
+        if self.trans:
+            return col, self.row, val
+        else:
+            return self.row, col, val
 
 
 cdef class Dia_iterator(Data_iterator):
     cdef Dia oper
     cdef int diag_N, col, offset, diag_end
 
-    def __init__(self, Dia oper):
+    def __init__(self, Dia oper, bint trans, bint conj):
         self.oper = oper
+        self.trans = trans
+        self.conj = conj
 
         self.nnz = 0
         for i in range(oper.num_diag):
@@ -125,10 +145,21 @@ cdef class Dia_iterator(Data_iterator):
             else:
                 return 0, 0, np.inf
 
+        cdef double complex val = self.oper.data[self.diag_N * self.oper.shape[1] + self.col]
+        if self.conj:
+            val = _conj(val)
+
+        if self.trans:
+            return (
+                self.col,
+                self.col - self.offset,
+                val
+            )
+
         return (
             self.col - self.offset,
             self.col,
-            self.oper.data[self.diag_N * self.oper.shape[1] + self.col]
+            val
         )
 
 
@@ -233,7 +264,10 @@ cdef class NModeMeta:
 #@cython.wraparound(False)
 #@cython.initializedcheck(False)
 #@cython.cdivision(True)
-cpdef void N_mode_kernel(Data oper, Dense state, Dense out, NModeMeta meta):
+cpdef void N_mode_kernel(
+    Data oper, Dense state, Dense out,
+    NModeMeta meta, bint trans=False, bint conj=False
+):
     if oper.shape[0] != meta.oper_row and oper.shape[1] != meta.oper_col:
         raise TypeError(
             f"Expected an operator of shape ({meta.oper_row}, {meta.oper_col}),"
@@ -263,11 +297,11 @@ cpdef void N_mode_kernel(Data oper, Dense state, Dense out, NModeMeta meta):
 
     cdef Data_iterator iter
     if type(oper) is Dense:
-        iter = Dense_iterator(oper)
+        iter = Dense_iterator(oper, trans, conj)
     elif type(oper) is CSR:
-        iter = CSR_iterator(oper)
+        iter = CSR_iterator(oper, trans, conj)
     elif type(oper) is Dia:
-        iter = Dia_iterator(oper)
+        iter = Dia_iterator(oper, trans, conj)
     else:
         raise RuntimeError(f"Can't make an iter out of {type(oper)}")
 
@@ -332,10 +366,14 @@ cpdef void N_mode_kernel(Data oper, Dense state, Dense out, NModeMeta meta):
 
 cpdef Dense N_mode_data_dense(
     Data oper, Dense state,
-    list hilbert, list mode,
-    list hilbert_out=None
+    list hilbert,
+    list mode,
+    list hilbert_out=None,
+    str transform="",
 ):
     cdef NModeMeta meta = NModeMeta(hilbert, mode, hilbert_out)
     cdef Dense out = dense.zeros(meta.out_row, state.shape[1], state.fortran)
-    N_mode_kernel(oper, state, out, meta)
+    trans = transform in ["T", "D", "t", "d"]
+    conj = transform in ["C", "D", "c", "d"]
+    N_mode_kernel(oper, state, out, meta, trans, conj)
     return out
