@@ -1369,6 +1369,18 @@ def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), method='optimized',
         \\Pi D_2^{\\dagger}(\\alpha_2) D_1^{\\dagger}(\\alpha_1)\\right]
     
     where :math:`\\alpha_i = 0.5*g*(x_i + ip_i)` and :math:`\\Pi` is the two-mode parity operator.
+    
+    References
+    ----------
+    .. [1] Cahill, K. E., & Glauber, R. J. (1969). Density operators and 
+           quasiprobability distributions. Physical Review, 177(5), 1882.
+           https://doi.org/10.1103/PhysRev.177.1882
+    
+    .. [2] Leonhardt, U. (1997). Measuring the quantum state of light. 
+           Cambridge University Press.
+    
+    .. [3] Schleich, W. P. (2001). Quantum optics in phase space. 
+           Wiley-VCH. Chapter 3.
     """
     if method == 'optimized':
         return _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g, normalize, strict_checks)
