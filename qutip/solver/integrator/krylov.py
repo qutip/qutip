@@ -10,10 +10,10 @@ __all__ = ["IntegratorKrylov"]
 
 class IntegratorKrylov(Integrator):
     """
-    Evolve the state vector ("psi0") finding an approximation for the time
-    evolution operator of Hamiltonian ("H") by obtaining the projection of
-    the time evolution operator on a set of small dimensional Krylov
-    subspaces (m << dim(H)).
+    Evolve the state ("rho0") finding an approximation for the time evolution
+    operator of Hamiltonian ("H") by obtaining the projection of the time
+    evolution operator on a set of small dimensional Krylov subspaces
+    (m <= dim(H)).
     """
     integrator_options = {
         'atol': 1e-7,
