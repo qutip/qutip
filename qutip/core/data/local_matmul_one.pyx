@@ -31,8 +31,6 @@ cdef void _cut_dense(Dense base, Dense out, int loc):
 
 
 cdef void imatmul_dense_data(Dense left, Data right, double complex scale, Dense out):
-    #if type(left) is CSR:
-    #    matmul_csr_dense_dense(left, right, scale, out)
     if type(right) is Dia:
         matmul_dense_dia_dense(left, right, scale, out)
     elif type(right) is Dense:
