@@ -45,21 +45,7 @@ class IntegratorKrylov(Integrator):
             krylov_dim = min(int((N + 100)**0.5), N-1)
             self.options["krylov_dim"] = krylov_dim
 
-        if not self.options["always_compute_step"]:
-            from qutip import rand_ket
-            N = self.system.shape[0]
-            state0 = rand_ket(N)
-            krylov_tridiag, krylov_basis = \
-                self._lanczos_algorithm(state0.data)
-            if (
-                krylov_tridiag.shape[0] < krylov_dim
-                or krylov_tridiag.shape[0] == N
-            ):
-                self._max_step = np.inf
-            else:
-                self._max_step = self._compute_max_step(krylov_tridiag,
-                                                        krylov_basis,
-                                                        state0.data)
+        self._max_step = np.inf
 
     def _lanczos_algorithm(self, psi):
         """
