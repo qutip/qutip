@@ -2,7 +2,8 @@ from ..integrator import IntegratorException, Integrator
 import numpy as np
 from qutip.core import data as _data
 from scipy.optimize import root_scalar
-from ..solver_base import Solver
+from ..sesolve import SESolver
+from ..mesolve import MESolver
 
 
 __all__ = ["IntegratorKrylov"]
@@ -13,7 +14,7 @@ class IntegratorKrylov(Integrator):
     Evolve the state ("rho0") finding an approximation for the time evolution
     operator of Hamiltonian ("H") by obtaining the projection of the time
     evolution operator on a set of small dimensional Krylov subspaces
-    (m <= dim(H)).
+    (m << dim(H)).
     """
     integrator_options = {
         'atol': 1e-7,
@@ -279,4 +280,5 @@ class IntegratorKrylov(Integrator):
         Integrator.options.fset(self, new_options)
 
 
-Solver.add_integrator(IntegratorKrylov, 'krylov')
+SESolver.add_integrator(IntegratorKrylov, 'krylov')
+MESolver.add_integrator(IntegratorKrylov, 'krylov')
