@@ -3,6 +3,9 @@
 import numpy as np
 import qutip as qt
 
+import itertools
+import math
+
 from qutip.core.data.local_matmul_mix import N_mode_data_dense
 from qutip.core.data.local_matmul_one import one_mode_matmul_data_dense
 
@@ -26,7 +29,6 @@ def _unflatten_view_dense(out, shape, order):
         shape=shape,
         copy=False
     )
-
 
 
 def local_super_apply(oper, state, modes):
@@ -71,97 +73,6 @@ def local_super_apply(oper, state, modes):
     return qt.Qobj(out_data, dims_out, copy=False)
 
 
-
-
-
-def wrap_super(pres, posts, state, modes):
-    pre = qt.tensor(pres)
-    post = qt.tensor(posts)
-    return local_super_apply(qt.sprepost(pre, post), state, modes)
-
-#
-
-
-def wrap_one_mode(oper, state, mode):
-    hilbert = state.dims[0]
-    new_hilbert = hilbert.copy()
-    new_hilbert[mode] = oper.dims[0][0]
-
-    return qt.Qobj(
-        one_mode_matmul_data_dense(oper.data, state.data, hilbert, mode),
-        dims=[new_hilbert, state.dims[1]]
-    )
-
-
-
-def wrap_N_mode(opers, state, modes):
-    hilbert = state.dims[0]
-    new_hilbert = hilbert.copy()
-    for mode, oper in zip(modes, opers):
-        new_hilbert[mode] = oper.dims[0][0]
-
-    oper = qt.tensor(opers)
-    oper = oper.to(opers[0].dtype)
-    return qt.Qobj(
-        N_mode_data_dense(oper.data, state.data, hilbert, modes, new_hilbert),
-        dims=[new_hilbert, state.dims[1]]
-    )
-
-
-def wrap_N_inverse_mode(opers, state, modes):
-    hilbert = state.dims[1]
-    new_hilbert = hilbert.copy()
-    for mode, oper in zip(modes, opers):
-        new_hilbert[mode] = oper.dims[1][0]
-
-    oper = qt.tensor(opers)
-    oper = oper.to(opers[0].dtype)
-    shape = (state.shape[0], np.prod(new_hilbert))
-    dims_out = [state.dims[0], new_hilbert]
-
-    if state.data.fortran:
-        hilbert = hilbert + state.dims[0]
-        new_hilbert = new_hilbert  + state.dims[0]
-
-    else:
-        hilbert = state.dims[0] + hilbert
-        new_hilbert = state.dims[0] + new_hilbert
-        N = len(state.dims[0])
-        modes = [mode + N for mode in modes]
-
-    flat = _flatten_view_dense(state.data)
-    new = N_mode_data_dense(oper.data, flat, hilbert, modes, new_hilbert, "T")
-    restored = _unflatten_view_dense(new, shape, "F" if state.data.fortran else "C")
-
-    return qt.Qobj(restored, dims=dims_out)
-
-
-def ref_N_inverse_mode(opers, state, modes):
-    hilbert = state.dims[0]
-    if 0 not in modes:
-        out_oper = qt.qeye(hilbert[0])
-    else:
-        for mode, oper in zip(modes, opers):
-            if mode == 0:
-                out_oper = oper
-                break
-
-    for i in range(1, len(hilbert)):
-        if i not in modes:
-            out_oper = out_oper & qt.qeye(hilbert[i])
-        else:
-            for mode, oper in zip(modes, opers):
-                if mode == i:
-                    out_oper = out_oper & oper
-                    break
-
-    return state @ out_oper
-
-
-import itertools
-import math
-
-
 def _contract_hilbert_space(
     hilbert: list[int],
     modes: list[int],
@@ -200,7 +111,7 @@ def _contract_hilbert_space(
     if len(modes) != len(set(modes)):
         raise ValueError("Repeated values in 'modes' are not supported.")
 
-    group_ids = []
+    group_ids = [0]
     current_group_id = 0
 
     # Group hilbert spaces
@@ -218,31 +129,7 @@ def _contract_hilbert_space(
                 current_group_id =+ 1
 
         group_ids.append(current_group_id)
-    """
-    hilbert_new = [1]
-    hilbert_out_new = [1]
-    modes_new = []
-    i = 0
-    prev_group = 0
-    prev_mode = 0
-    while i < len(sets):
-        if sets[i] == prev_group:
-            hilbert_new[-1] *= hilbert[i]
-            hilbert_out_new[-1] *= hilbert_out[i]
-            if i in modes:
-                prev_mode += 1
-        else:
-            hilbert_new.append( hilbert[i] )
-            hilbert_out_new.append( hilbert_out[i] )
 
-            if i in modes:
-                modes_new.append( sets[modes[prev_mode]] )
-                prev_mode += 1
-
-        prev_group = sets[i]
-        i += 1
-    return hilbert_new, modes_new, hilbert_out_new
-    """
     new_hilbert = []
     new_modes = []
     new_hilbert_out = []
@@ -260,7 +147,9 @@ def _contract_hilbert_space(
         contracted_out_dim = math.prod(hilbert_out[i] for i in group_indices)
         new_hilbert_out.append(contracted_out_dim)
 
-        if group_indices[0] in modes_set:
-            new_modes.append(group_ids[modes[group_indices[0]]]) # ???
+    for mode in modes:
+        new_pos = group_ids[mode]
+        if not new_modes or new_pos != new_modes[-1]:
+            new_modes.append(new_pos)
 
     return new_hilbert, new_modes, new_hilbert_out
