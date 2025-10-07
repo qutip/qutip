@@ -19,7 +19,7 @@ from .solver_base import _kwargs_migration
 from .cy.nm_mcsolve import RateShiftCoefficient, SqrtRealCoefficient
 from ..core.coefficient import ConstantCoefficient, Coefficient
 from ..core import (
-    CoreOptions, Qobj, QobjEvo, isket, ket2dm, qeye, coefficient,
+    CoreOptions, Qobj, QobjEvo, isket, ket2dm, qeye_like, coefficient,
 )
 from ..typing import QobjEvoLike, EopsLike, CoefficientLike
 
@@ -441,11 +441,11 @@ class NonMarkovianMCSolver(MCSolver):
         a_candidate = op.tr() / op.shape[0]
         with CoreOptions(rtol=self.options["completeness_rtol"],
                          atol=self.options["completeness_atol"]):
-            if op == a_candidate * qeye(op.dims[0]):
+            if op == a_candidate * qeye_like(op):
                 return np.real(a_candidate), None
 
         a = max(op.eigenenergies())
-        L = (a * qeye(op.dims[0]) - op).sqrtm()  # new Lindblad operator
+        L = (a * qeye_like(op) - op).sqrtm()  # new Lindblad operator
         return a, L
 
     def current_martingale(self):

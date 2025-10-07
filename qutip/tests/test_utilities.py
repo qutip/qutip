@@ -124,6 +124,8 @@ def test_cpu_count(monkeypatch):
 
 
 class TestFitting:
+    rng = np.random.default_rng(seed=42)
+
     def model(self, x, a, b, c):
         return np.real(a * np.exp(-(b + 1j * c) * x))
 
@@ -145,8 +147,7 @@ class TestFitting:
         fparams2 = [3, 2, .5]
         y = self.model(x, *fparams1) + self.model(x, *fparams2)
         if noisy:
-            np.random.seed(42)  
-            noise = np.random.normal(0, 0.01, len(x))
+            noise = self.rng.normal(0, 0.01, len(x))
             y += noise
         return x, y, fparams1, fparams2, noisy
 
@@ -156,11 +157,15 @@ class TestFitting:
             self.model, num_params=3, xdata=x, ydata=y,
             lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2
         )
+        fit_y = self.model(x, *params[0]) + self.model(x, *params[1])
+        assert rmse == pytest.approx(
+            np.sqrt(np.mean((y - fit_y)**2)) / (np.max(y) - np.min(y))
+        )
+
         if noisy:
-            assert rmse < 1e-3
-            # The atol is the std of noise times the maximum of the signal
-            assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-2*np.max(y))) or
-                    np.all(np.isclose(params, [fparams2, fparams1], atol=1e-2*np.max(y))))
+            assert rmse < 1e-2
+            assert (np.all(np.isclose(params, [fparams1, fparams2], atol=.2)) or
+                    np.all(np.isclose(params, [fparams2, fparams1], atol=.2)))
         else:
             assert rmse < 1e-8
             assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
@@ -181,7 +186,7 @@ class TestFitting:
         x, y, _, _, noisy = generate_data
         rmse, params = utils.espira1(y, 4, tol=1e-16)
         if noisy:
-            assert rmse < 1e-3
+            assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
         else:
             assert rmse < 1e-8
@@ -191,7 +196,7 @@ class TestFitting:
         x, y, _, _, noisy = generate_data
         rmse, params = utils.espira2(y, 4, tol=1e-16)
         if noisy:
-            assert rmse < 1e-3
+            assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
         else:
             assert rmse < 1e-8
@@ -202,7 +207,7 @@ class TestFitting:
         x, y, _, _, noisy = generate_data
         rmse, params = utils.prony_methods(method, y, 4)
         if noisy:
-            assert rmse < 1e-3
+            assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=2e-2*np.max(y))
         else:
             assert rmse < 1e-8

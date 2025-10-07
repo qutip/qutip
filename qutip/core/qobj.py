@@ -17,8 +17,7 @@ from . import data as _data
 from qutip.typing import LayerType, DimensionLike
 import qutip
 from .dimensions import (
-    enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions,
-    to_tensor_rep
+    enumerate_flat, flatten, unflatten, Dimensions, to_tensor_rep
 )
 
 __all__ = ['Qobj', 'ptrace']
@@ -192,6 +191,8 @@ class Qobj:
         Diagonal elements of quantum object.
     dnorm()
         Diamond norm of quantum operator.
+    drop_scalar_dims()
+        Drops one-dimensional subsystems from the list of dimensions (``dims``)
     dual_chan()
         Dual channel of quantum object representing a CP map.
     eigenenergies(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
@@ -577,12 +578,14 @@ class Qobj:
             raise ValueError(
                 f"Only implemented for states, not {self.type}."
             )
-        dims = self.dims[0 if self.isket else 1]
+        dims = self._dims[0 if self.isket else 1]
 
         if dim_separator == "auto":
             # No separator for pure qubit states but comma-separator otherwise,
             # since bitstrings are nice, but e.g. |153> would be ambiguous.
-            dim_separator = ", " if any([dim > 2 for dim in dims]) else ""
+            dim_separator = (
+                ", " if any([dim > 2 for dim in dims.flat()]) else ""
+            )
 
         template = "{} |{}>" if self.isket else "{} <{}|"
 
@@ -597,7 +600,7 @@ class Qobj:
             if np.abs(ket_full[i]) > 10**-(decimal_places):
                 coeff = ket_full.item(i)
                 basis_str = dim_separator.join(
-                    map(str, np.unravel_index(i, dims))
+                    map(str, dims.idx2dims(i))
                 )
                 parts.append(template.format(coeff, basis_str))
 
@@ -725,6 +728,7 @@ class Qobj:
         """
         # Uses the technique of Johnston and Kribs (arXiv:1102.0948), which
         # is only valid for completely positive maps.
+        self._dims._require_pure_dims("dual channel")
         if not self.iscp:
             raise ValueError("Dual channels are only implemented for CP maps.")
         J = qutip.to_choi(self)
@@ -1140,6 +1144,7 @@ class Qobj:
             Quantum object representing partial trace with selected components
             remaining.
         """
+        self._dims._require_pure_dims("partial trace")
         try:
             sel = sorted(sel)
         except TypeError:
@@ -1181,6 +1186,12 @@ class Qobj:
         [[1], [1]] is returned, i.e. _multiple_ scalar dimensions are
         contracted, but one is left.
 
+        For operators, only pairs of 1D subspaces are contracted, so dimensions
+        ``[[2, 1, 1], [2, 2, 1]]`` will become ``[[2, 1], [2, 2]]``. To drop
+        all scalar dimensions, use :meth:`drop_scalar_dims` instead, resulting
+        in ``[[2], [2, 2]]`` in this example. :meth:`drop_scalar_dims` is also
+        defined for superoperators.
+
         Parameters
         ----------
         inplace: bool, optional
@@ -1193,6 +1204,8 @@ class Qobj:
             Quantum object with dimensions contracted.  Will be ``self`` if
             ``inplace`` is ``True``.
         """
+        self._dims._require_pure_dims("contract")
+
         if self.isket:
             sub = [x for x in self.dims[0] if x > 1] or [1]
             dims = [sub, [1]*len(sub)]
@@ -1275,6 +1288,8 @@ class Qobj:
         P : :class:`.Qobj`
             Permuted quantum object.
         """
+        self._dims._require_pure_dims("permute")
+
         if self.type in ('bra', 'ket', 'oper'):
             structure = self.dims[1] if self.isbra else self.dims[0]
             new_structure = [structure[x] for x in order]
@@ -1332,6 +1347,35 @@ class Qobj:
         self.data = _data.tidyup(self.data, atol)
         return self
 
+    def drop_scalar_dims(self, inplace: bool = False) -> Qobj:
+        """
+        Drops one-dimensional subsystems from the list of dimensions. After
+        performing a projection, the ``dims`` of a ket could for example be
+        ``[[2, 1, 3], [1]]``. This will simplify them to ``[[2, 3], [1]]``.
+
+        This differs from :meth:`contract` in that *all* scalar dimensions are
+        dropped for operators. For example, if the ``dims`` of an operator are
+        ``[[2, 2], [2, 1]]``, then :meth:`contract` will leave them unchanged,
+        but this function will simplify to ``[[2, 2], [2]]``.
+
+        Parameters
+        ----------
+        inplace: bool, optional
+            If ``True``, modify the dimensions in place.  If ``False``, return
+            a copied object.
+
+        Returns
+        -------
+        out: :class:`.Qobj`
+            Quantum object with scalar dimensions dropped.  Will be ``self`` if
+            ``inplace`` is ``True``.
+        """
+        dims = self._dims.drop_scalar_dims()
+        if inplace:
+            self.dims = dims
+            return self
+        return Qobj(self.data.copy(), dims=dims, copy=False)
+
     def transform(
         self,
         inpt: list[Qobj] | ArrayLike,
@@ -1388,7 +1432,7 @@ class Qobj:
             else:
                 data = _data.matmul(_data.matmul(S, self.data), S.adjoint())
         return Qobj(data,
-                    dims=self.dims,
+                    dims=self._dims,
                     isherm=self._isherm,
                     superrep=self.superrep,
                     copy=False)
@@ -1549,7 +1593,7 @@ class Qobj:
         output_type: Literal['kets'] = 'kets'
     ) -> tuple[np.ndarray, np.ndarray[Qobj]]:
         ...
-        
+
     @overload
     def eigenstates(self, 
         sparse: bool  = False,
@@ -1561,7 +1605,7 @@ class Qobj:
         output_type: Literal['oper'] = 'oper'
     ) -> tuple[np.ndarray, Qobj]:
         ...
-        
+
     def eigenstates(
         self,
         sparse: bool = False,
@@ -1636,12 +1680,8 @@ class Qobj:
             evals, evecs = _data.eigs(self.data, isherm=self._isherm,
                                       sort=sort, eigvals=eigvals)
 
-        if self.type == 'super':
-            new_dims = [self._dims[0], [1]]
-        else:
-            new_dims = [self._dims[0], [1]*len(self.dims[0])]
-
         if output_type == 'kets':
+            new_dims = [self._dims[0], self._dims[0].scalar_like()]
             ekets = np.empty((evecs.shape[1],), dtype=object)
             ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
                         for vec in _data.split_columns(evecs, False)]
@@ -1652,11 +1692,12 @@ class Qobj:
                 phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
                                   if ket[phase_fix, 0] else 1
                                   for ket in ekets])
-            
+
             oper = ekets / norms * phase
 
         elif output_type == 'oper':
-            oper = Qobj(evecs, dims=[new_dims[0], [evecs.shape[1]]], copy=False)
+            new_dims = [self._dims[0], [evecs.shape[1]]]
+            oper = Qobj(evecs, dims=new_dims, copy=False)
 
             norms = np.array([1/np.linalg.norm(oper[:, i])
                             for i in range(oper.shape[1])])
@@ -1827,14 +1868,10 @@ class Qobj:
             qobj = self
         else:
             qobj = qutip.to_choi(self)
-        # Possibly collapse dims.
-        if any([len(index) > 1
-                for super_index in qobj.dims
-                for index in super_index]):
-            qobj = Qobj(qobj.data,
-                        dims=collapse_dims_super(qobj.dims),
-                        superrep=qobj.superrep,
-                        copy=False)
+        # Collapse dims to ignore product structure etc of underlying spaces
+        qobj = Qobj(qobj.data,
+                    dims=qobj._dims.collapse(),
+                    copy=False)
         # We use the condition from John Watrous' lecture notes,
         # Tr_1(J(Phi)) = identity_2.
         # See: https://cs.uwaterloo.ca/~watrous/LectureNotes.html,
