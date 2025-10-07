@@ -7,7 +7,7 @@ import itertools
 import math
 
 from qutip.core.data.local_matmul_mix import N_mode_data_dense
-from qutip.core.data.local_matmul_one import one_mode_matmul_data_dense
+from qutip.core.data.local_matmul_one import one_mode_matmul_data_dense, one_mode_matmul_dense_data
 
 #TODO:
 # - One head function
@@ -15,7 +15,11 @@ from qutip.core.data.local_matmul_one import one_mode_matmul_data_dense
 # - What about jax etc?
 # - merge left and right?
 
+__all__ = ["target_mode_matmul", "target_mode_matmul_super"]
+
+
 def _flatten_view_dense(state):
+    # TODO: should be cython, no numpy
     return Dense(
         state.as_ndarray().ravel("A"),
         shape=(state.shape[0]*state.shape[1], 1),
@@ -24,6 +28,7 @@ def _flatten_view_dense(state):
 
 
 def _unflatten_view_dense(out, shape, order):
+    # TODO: should be cython, no numpy
     return Dense(
         out.as_ndarray().reshape(*shape, order=order),
         shape=shape,
@@ -31,46 +36,112 @@ def _unflatten_view_dense(out, shape, order):
     )
 
 
-def local_super_apply(oper, state, modes):
-    hilbert_left_state = state.dims[0]
-    hilbert_right_state = state.dims[1]
-    N = len(hilbert_left_state)
-    assert N == len(hilbert_right_state)
-    assert all(mode < N for mode in modes)
-    assert oper._dims.issuper
-    assert len(oper.dims[1][0]) == len(modes)
+def target_mode_matmul_data_dense(
+    operator: Data,
+    state: Dense,
+    modes: list[int],
+    hilbert: list[int],
+    new_hilbert: list[int],
+    dual: bool = False,
+    transpose: bool = False,
+    conj: bool = False,
+) -> Dense:
+    """
+    Apply the operator to the target modes.
 
-    hilbert_left_state_out = [
-        size if i not in modes else oper.dims[0][0][modes.index(i)]
-        for i, size in enumerate(hilbert_left_state)
-    ]
+    Roughtly equivalent to:
 
-    hilbert_right_state_out = [
-        size if i not in modes else oper.dims[0][1][modes.index(i)]
-        for i, size in enumerate(hilbert_right_state)
-    ]
+        expend_operator(operator, hilbert, modes) @ state
 
+    Parameters
+    ----------
+    operator: Qobj
+        Operator action on a smaller hilbert space than the state's.
+
+    state: Qobj
+        State to be acted on.
+
+    hilbert: list[int]
+        Hilbert space of the state on the contracted side.
+
+    new_hilbert: list[int]
+        Hilbert space of the output state on the contracted side.
+
+    modes: list[int]
+        Modes to act on.
+
+    dual: bool, default: False
+        When true, the operator is apply from the right.
+
+    transpose: bool, default: False
+        Transpose the operator before applying it.
+
+    conj: bool, default: False
+        Conjugate the operator before applying it.
+    """
+
+    hilbert, modes, hilbert_out = _contract_hilbert_space(hilbert, modes, hilbert_out)
+
+    if len(modes) == 1 and not dual and not transpose and not conj:
+        out = one_mode_matmul_data_dense(operator, state, hilbert, modes)
+    elif len(modes) == 1 and dual and not transpose and not conj:
+        out = one_mode_matmul_dense_data(state, operator, hilbert, modes)
+    elif not dual:
+        out = N_mode_data_dense(operator, state, hilbert, modes, hilbert_out, transpose, conj)
+    else:
+        if state.fortran:
+            hilbert = hilbert + [state.shape[0]]
+            hilbert_out = hilbert_out + [state.dims[0]]
+        else:
+            hilbert = [state.shape[0]] + hilbert
+            hilbert_out = [state.shape[0]] + hilbert_out
+            modes = [mode + 1 for mode in modes]
+
+        flat = _flatten_view_dense(state.data)
+        new = N_mode_data_dense(operator, flat, hilbert, modes, hilbert_out, not transpose, conj)
+        out = _unflatten_view_dense(new, shape, "F" if data.fortran else "C")
+
+    return out
+
+def target_mode_matmul_super_data_dense(
+    operator: Data,
+    state: Dense,
+    modes: list[int],
+    hilbert_left_state: list[int],
+    hilbert_right_state: list[int],
+    hilbert_left_state_out: list[int],
+    hilbert_right_state_out: list[int],
+) -> Dense:
+    """
+    Apply the super-operator to the target modes.
+
+    If operator is ``sprepost(A, B)``, it's roughtly equivalent to
+
+    expend_operator(A, hilbert_left_state, modes)
+    @ state
+    @ expend_operator(B, hilbert_right_state, modes)
+    """
     if not state.data.fortran:
         order="C"
         modes = [mode + N for mode in modes] + modes
         hilbert = hilbert_left_state + hilbert_right_state
         hilbert_out = hilbert_left_state_out + hilbert_right_state_out
-        dims_out = [hilbert_out[:N], hilbert_out[N:]]
 
     else:
         order="F"
         modes = modes + [mode + N for mode in modes]
         hilbert = hilbert_right_state + hilbert_left_state
         hilbert_out = hilbert_right_state_out + hilbert_left_state_out
-        dims_out = [hilbert_out[N:], hilbert_out[:N]]
 
-    shape = (np.prod(dims_out[0]), np.prod(dims_out[1]))
+    shape = (np.prod(hilbert_left_state_out), np.prod(hilbert_right_state_out))
+
+    hilbert, modes, hilbert_out = _contract_hilbert_space(hilbert, modes, hilbert_out)
 
     state_flat = _flatten_view_dense(state.data)
-    out_flat = N_mode_data_dense(oper.data, state_flat, hilbert, modes, hilbert_out)
-    out_data = _unflatten_view_dense(out_flat, shape, order)
-
-    return qt.Qobj(out_data, dims_out, copy=False)
+    out_flat = N_mode_data_dense(
+        oper.data, state_flat, hilbert, modes, hilbert_out
+    )
+    return _unflatten_view_dense(out_flat, shape, order)
 
 
 def _contract_hilbert_space(
@@ -153,3 +224,26 @@ def _contract_hilbert_space(
             new_modes.append(new_pos)
 
     return new_hilbert, new_modes, new_hilbert_out
+
+
+from .dispatch import Dispatcher as _Dispatcher
+
+target_mode_matmul = _Dispatcher(
+    target_mode_matmul_data_dense, name='target_mode_matmul',
+    inputs=('oper', 'state',), out=True
+)
+target_mode_matmul.add_specialisations(
+    (CSR, Dense, Dense, target_mode_matmul_data_dense),
+    (Dia, Dense, Dense, target_mode_matmul_data_dense),
+    (Dense, Dense, Dense, target_mode_matmul_data_dense),
+)
+
+target_mode_matmul_super = _Dispatcher(
+    target_mode_matmul_super_data_dense, name='target_mode_matmul_super',
+    inputs=('oper', 'state',), out=True
+)
+target_mode_matmul_super_data_dense.add_specialisations(
+    (CSR, Dense, Dense, target_mode_matmul_super_data_dense),
+    (Dia, Dense, Dense, target_mode_matmul_super_data_dense),
+    (Dense, Dense, Dense, target_mode_matmul_super_data_dense),
+)
