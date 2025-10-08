@@ -63,11 +63,10 @@ Krylov Solver in QuTiP
 ======================
 
 In QuTiP, Krylov-subspace evolution is implemented as the function :func:`.krylovsolve`.
-Arguments are nearly the same as :func:`.sesolve` function for master-equation
-evolution, except that the Hamiltonian cannot depend on time, the initial state
-must always be a ket vector, (it cannot be used to compute propagators) and an
-additional parameter ``krylov_dim`` is needed. ``krylov_dim`` defines the
-maximum allowed Krylov-subspace dimension.
+Arguments are nearly the same as :func:`.sesolve` or :func:`.mesolve` function
+for master-equation evolution, except that the Hamiltonian cannot depend on
+time and an additional parameter ``krylov_dim`` is needed.
+``krylov_dim`` defines the maximum allowed Krylov-subspace dimension.
 
 Let's solve a simple example using the algorithm in QuTiP to get familiar with the method.
 
