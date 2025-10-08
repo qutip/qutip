@@ -1,5 +1,5 @@
 from .qobj import Qobj
-from .core.local_matmul import target_mode_matmul, target_mode_matmul_super
+from .data.local_matmul import target_mode_matmul, target_mode_matmul_super
 
 
 __all__ = ["local_matmul"]
@@ -12,52 +12,55 @@ def local_matmul(
     dual: bool = False
 ) -> Qobj:
     """
-    Apply the operator on the state at the desired mode(s).
+    Applies an operator to specific modes of a quantum state or operator.
 
-    For example applying a cnot gate on qubits 2 and 4 is:
+    This function performs a tensor product operation where a smaller
+    `operator` acts only on the specified `modes` of a larger `state`.
 
-        local_matmul(cnot, state, [2, 4])
-
-    To apply a single operator on multiple modes require multiple calls or
-    extending the operator:
-
-        local_matmul(sigmax, state, [2, 4, 5])  # Error
-
-        local_matmul(tensor([sigmax]*3), state, [2, 4, 5])  # Ok
-
-    For super operator, each mode is applyed on both side as one and the state
-    must be a density matrix (operator-ket are not supported).
-    For example:
-
-        local_matmul(sprepost(sigmax, sigmax), state, [0])
-
-    will apply sigmax on the first qubit on both side.
+    Super operator are applied on the same mode on both side of a density
+    matrix at once. The state must be a density matrix
+    (operator-ket are not supported).
 
     Parameters
     ----------
     operator: Qobj
-        Operator action on a smaller hilbert space than the state's.
+        The operator to apply. Its Hilbert space dimensions must correspond to
+        the dimensions of the state on the targeted modes.
 
     state: Qobj
-        State to be acted on.
+        The quantum state to be acted upon.
 
     modes: int | list[int]
-        Modes to act on.
-
-        The hilbert space sizes must match at these modes:
-
-            operator.dims[1][i] == state.dims[0][modes[i]] for all i
+        The indices specifying the modes on which the operator should act.
 
     dual: bool, default: False
-        When true, the operator is apply from the right.
-        Ignored for super operator.
+        If True, the operator is applied from the right (state @ operator).
+        Ignored for superoperators.
 
     Returns
     -------
-    Updated state as a Qobj.
+    Qobj
+        Updated state as a Qobj.
+
+    Examples
+    --------
+    Applying a CNOT gate to a multi-qubit state:
+    >>> local_matmul(cnot(), state, modes=[2, 4])
+
+    An operator's dimension must match the number of modes. To apply the same
+    gate to multiple modes, it must be tensored first:
+    >>> # This will fail:
+    >>> # local_matmul(sigmax(), state, modes=[0, 1])
+    >>> # This is correct:
+    >>> op = tensor(sigmax(), sigmax())
+    >>> local_matmul(op, state, modes=[0, 1])
+
+    Applying a superoperator to a density matrix:
+    >>> super_operator = sprepost(a, a.dag()) - ...
+    >>> local_matmul(super_operator, rho, modes=[0])
     """
     if operator.issuper:
-        _local_super_apply(operator, state, modes)
+        return _local_super_apply(operator, state, modes)
     if not dual:
         hilbert_state = state.dims[0]
         hilbert_oper_in = operator.dims[1]
@@ -68,17 +71,26 @@ def local_matmul(
         hilbert_oper_out = operator.dims[1]
 
     N = len(hilbert_state)
-    if not isintance(modes, list):
+    if not isinstance(modes, list):
         modes = [modes]
 
     #TODO: Exotic dims could be supported if shared
-    assert operator._dims._require_pure_dims("local_matmul")
-    assert state._dims._require_pure_dims("local_matmul")
-    assert all(mode < N for mode in modes)
-    assert all(
+    operator._dims._require_pure_dims("local_matmul")
+    state._dims._require_pure_dims("local_matmul")
+    if not all(mode < N for mode in modes):
+        raise ValueError(
+            "Target mode index is out of bounds for the state's dimensions."
+        )
+    if not len(operator.dims[1]) == len(modes):
+        raise ValueError("Number of modes do not match operator dimensions.")
+    if not all(
         hilbert_oper_in[i] == hilbert_state[mode]
         for i, mode in enumerate(modes)
-    )
+    ):
+        raise TypeError(
+            "Operator's input dimensions do not match the state's "
+            "dimensions on the specified modes."
+        )
     new_hilbert = list(hilbert_state)
     for i, mode in enumerate(modes):
         new_hilbert[mode] = hilbert_oper_out[i]
@@ -103,35 +115,46 @@ def _local_super_apply(super_operator, state, modes):
     """
     Apply a local super operator on a state.
     """
+    if not isinstance(modes, list):
+        modes = [modes]
     hilbert_left_state = state.dims[0]
     hilbert_right_state = state.dims[1]
     N = len(hilbert_left_state)
-    assert oper._dims._require_pure_dims("local_matmul")
-    assert state._dims._require_pure_dims("local_matmul")
-    assert N == len(hilbert_right_state)
-    assert all(mode < N for mode in modes)
-    assert oper._dims.issuper
-    assert len(oper.dims[1][0]) == len(modes)
-    assert all(
+    super_operator._dims._require_pure_dims("local_matmul")
+    state._dims._require_pure_dims("local_matmul")
+    if not N == len(hilbert_right_state):
+        raise TypeError(
+            "The state must have the same number of subsystems "
+            "on its left and right dimensions."
+        )
+    if not all(mode < N for mode in modes):
+        raise ValueError("Target mode index is out of bounds for the state.")
+    if not super_operator._dims.issuper:
+        raise TypeError("The operator must be a superoperator.")
+    if not len(super_operator.dims[1][0]) == len(modes):
+        raise ValueError("Number of modes do not match operator dimensions.")
+    if not all(
         (
-            oper.dims[1][0][i] == state.dims[0][mode] and
-            oper.dims[1][1][i] == state.dims[1][mode]
+            super_operator.dims[1][0][i] == state.dims[0][mode] and
+            super_operator.dims[1][1][i] == state.dims[1][mode]
         )
         for i, mode in enumerate(modes)
-    )
+    ):
+        raise TypeError(
+            "Superoperator and state dimensions do not "
+            "match on the target modes."
+        )
 
-    hilbert_left_state_out = [
-        size if i not in modes else oper.dims[0][0][modes.index(i)]
-        for i, size in enumerate(hilbert_left_state)
-    ]
+    hilbert_left_state_out = list(hilbert_left_state)
+    for i, mode in enumerate(modes):
+        hilbert_left_state_out[mode] = super_operator.dims[0][0][i]
 
-    hilbert_right_state_out = [
-        size if i not in modes else oper.dims[0][1][modes.index(i)]
-        for i, size in enumerate(hilbert_right_state)
-    ]
+    hilbert_right_state_out = list(hilbert_right_state)
+    for i, mode in enumerate(modes):
+        hilbert_right_state_out[mode] = super_operator.dims[0][1][i]
 
     out_data = target_mode_matmul_super(
-        oper.data,
+        super_operator.data,
         state.data,
         modes,
         hilbert_left_state, hilbert_right_state,
@@ -139,4 +162,4 @@ def _local_super_apply(super_operator, state, modes):
     )
     dims_out = [hilbert_left_state_out, hilbert_right_state_out]
 
-    return qt.Qobj(out_data, dims_out, copy=False)
+    return Qobj(out_data, dims_out, copy=False)
