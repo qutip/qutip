@@ -1534,7 +1534,7 @@ class Qobj:
         Overlap between two state vectors or two operators.
 
         Gives the overlap (inner product) between the current bra or ket Qobj
-        and and another bra or ket Qobj. It gives the Hilbert-Schmidt overlap
+        and another bra or ket Qobj. It gives the Hilbert-Schmidt overlap
         when one of the Qobj is an operator/density matrix.
 
         Parameters
