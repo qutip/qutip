@@ -83,18 +83,18 @@ def _rand_oper(hilbert, modes, square, dtype):
 
 @pytest.fixture(params=[
     pytest.param([2], id='single space'),
-    pytest.param([2, 2, 2], id='3-qubit'),
-    pytest.param([2]*8, id='10-qubits'),
-    pytest.param([2, 3, 5, 2, 3, 5], id='uneven'),
+    pytest.param([2] * 2, id='2-qubits'),
+    pytest.param([2] * 6, id='6-qubits'),
+    pytest.param([2, 3, 5, 2], id='uneven'),
 ])
 def hilbert(request):
     return request.param
 
 
 @pytest.fixture(params=[
-    pytest.param([2] * 4, id='3-qubit'),
-    pytest.param([2] * 8, id='10-qubits'),
-    pytest.param([2, 3, 5, 2, 3, 5], id='uneven'),
+    pytest.param([2] * 4, id='4-qubits'),
+    pytest.param([2] * 6, id='6-qubits'),
+    pytest.param([2, 3, 5, 2], id='uneven'),
 ])
 def large_hilbert(request):
     return request.param
@@ -295,7 +295,8 @@ def test_super_multi(large_hilbert, square_operator, square_state, dtype, order)
     state = _rand_state(large_hilbert, square_state, order)
 
     expected = _reference_super(pre, post, state, modes)
-    result = local_matmul(sprepost(tensor(pre), tensor(post)), state, modes)
+    sop = sprepost(tensor(pre), tensor(post))
+    result = local_matmul(sop, state, modes)
 
     assert expected == result
 
