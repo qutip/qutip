@@ -375,7 +375,7 @@ cpdef void n_mode_kernel(
         if val == 0+0j:
             continue
         if val == NaN:
-            raise RuntimeError(f"Oper out of bound, {row=}, {col=}")
+            raise RuntimeError(f"Oper out of bound, row={row}, col={col}")
 
         for i in range(meta.n_pass_through):
             row_state = meta.pass_map_in[i] + col_idx
