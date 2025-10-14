@@ -2,11 +2,42 @@
 
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
+# Add this import with the other imports at the top
 
+import numpy as np
 from typing import TypedDict, Any, Callable
 from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
 from ..core import Qobj, QobjEvo, expect
+# For matplotlib check
+try:
+    import matplotlib
+    import matplotlib.pyplot as plt
+    matplotlib_available = True
+except ImportError:
+    matplotlib_available = False
+
+# Fallback cyclic colors function
+def _cyclic_colors(n):
+    """Cyclic color generator following matplotlib's default color cycle"""
+    if matplotlib_available:
+        # Use matplotlib's default color cycle
+        return plt.rcParams['axes.prop_cycle'].by_key()['color'][:n]
+    else:
+        # Fallback colors (matplotlib default colors)
+        colors = [
+            '#1f77b4',  # blue
+            '#ff7f0e',  # orange
+            '#2ca02c',  # green
+            '#d62728',  # red
+            '#9467bd',  # purple
+            '#8c564b',  # brown
+            '#e377c2',  # pink
+            '#7f7f7f',  # gray
+            '#bcbd22',  # olive
+            '#17becf'   # cyan
+        ]
+        return colors[:min(n, len(colors))]
 
 __all__ = ["Result"]
 
@@ -375,3 +406,249 @@ class Result(_BaseResult):
         if self.states:
             return self.states[-1]
         return None
+    def plot_expect(self, *, fig=None, axes=None, show=True, **kwargs):
+        """
+        Plot expectation values from the result object.
+        
+        Parameters
+        ----------
+        fig : matplotlib.figure.Figure, optional
+            Figure to use for plotting. If not provided, a new figure is created.
+        axes : matplotlib.axes.Axes or array of Axes, optional
+            Axes to use for plotting. If not provided, new axes are created.
+        show : bool, optional
+            Whether to show the plot immediately. Default is True.
+        **kwargs : dict
+            Additional keyword arguments passed to the plotting function.
+            
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the plot.
+        axes : matplotlib.axes.Axes or array of Axes
+            The axes containing the plot.
+            
+        Notes
+        -----
+        For mcsolve results, additional keyword arguments can be used:
+        - trajectories: int or list, number or indices of trajectories to plot
+        - average: bool, whether to plot the average of trajectories
+        - photocurrent: bool, whether to plot photocurrent instead of expectation values
+        """
+        if not matplotlib_available:
+            raise ImportError("Matplotlib not installed. Please install it to use plotting functions.")
+        
+        import matplotlib.pyplot as plt
+        
+        # Extract mcsolve-specific parameters from kwargs
+        mcsolve_kwargs = {}
+        for key in ['trajectories', 'average', 'photocurrent']:
+            if key in kwargs:
+                mcsolve_kwargs[key] = kwargs.pop(key)
+        
+        # Determine what type of result we have
+        if hasattr(self, 'trajectories') and getattr(self, 'trajectories', None):
+            return self._plot_mcsolve_expect(fig=fig, axes=axes, show=show, **mcsolve_kwargs)
+        else:
+            return self._plot_standard_expect(fig=fig, axes=axes, show=show, **kwargs)
+
+    def _plot_standard_expect(self, *, fig=None, axes=None, show=True, **kwargs):
+        """Plot expectation values for standard solvers."""
+        import matplotlib.pyplot as plt
+        
+        # Get expectation values data
+        if hasattr(self, 'expect'):
+            data = self.expect
+            times = self.times
+        else:
+            raise ValueError("Result object does not contain expectation values")
+        
+        # Handle e_ops as dictionary
+        labels = []
+        if hasattr(self, 'e_ops'):
+            if isinstance(self.e_ops, dict):
+                labels = list(self.e_ops.keys())
+            elif isinstance(self.e_ops, list):
+                labels = [f"Expectation {i}" for i in range(len(self.e_ops))]
+        else:
+            labels = [f"Expectation {i}" for i in range(len(data))]
+        
+        # Handle figure and axes following QuTiP pattern
+        if fig is None and axes is None:
+            fig, axes = plt.subplots(1, 1, figsize=(10, 6))
+        elif axes is None:
+            axes = fig.gca()
+        
+        if not hasattr(axes, '__len__'):
+            axes = [axes]
+        
+        # Use QuTiP's color cycling
+        colors = _cyclic_colors(len(data))
+        
+        # Plot each expectation value
+        for i, (label, values) in enumerate(zip(labels, data)):
+            if i < len(axes):
+                ax = axes[i]
+            else:
+                ax = axes[0]
+            
+            # Use the color from our cycle, but allow kwargs to override
+            plot_kwargs = kwargs.copy()
+            if 'color' not in plot_kwargs:
+                plot_kwargs['color'] = colors[i]
+            
+            ax.plot(times, values, label=label, **plot_kwargs)
+            ax.set_xlabel("Time")
+            ax.set_ylabel("Expectation value")
+            ax.legend()
+            ax.grid(True)
+        
+        # Set title
+        solver_name = getattr(self, 'solver', 'Unknown solver')
+        if len(axes) == 1:
+            axes[0].set_title(f"Expectation values - {solver_name}")
+        else:
+            fig.suptitle(f"Expectation values - {solver_name}")
+        
+        plt.tight_layout()
+        if show:
+            plt.show()
+        
+        return fig, axes[0] if len(axes) == 1 else axes
+
+    def _plot_mcsolve_expect(self, *, fig=None, axes=None, show=True, 
+                            trajectories=None, average=True, photocurrent=False, **kwargs):
+        """Plot expectation values for mcsolve results."""
+        import matplotlib.pyplot as plt
+        import numpy as np
+        
+        if photocurrent:
+            # Plot photocurrent data if available
+            if not hasattr(self, 'photocurrent'):
+                raise ValueError("No photocurrent data available in result")
+            
+            photocurrent_data = self.photocurrent
+            times = self.times
+            
+            # Handle figure and axes following QuTiP pattern
+            if fig is None and axes is None:
+                fig, axes = plt.subplots(1, 1, figsize=(10, 6))
+            elif axes is None:
+                axes = fig.gca()
+            
+            if not hasattr(axes, '__len__'):
+                axes = [axes]
+            
+            if isinstance(photocurrent_data, list):
+                # Multiple photocurrents
+                colors = _cyclic_colors(len(photocurrent_data))
+                for i, pc in enumerate(photocurrent_data):
+                    if i < len(axes):
+                        ax = axes[i]
+                    else:
+                        ax = axes[0]
+                    
+                    ax.step(times, pc, where='post', color=colors[i], 
+                        label=f"Photocurrent {i}", **kwargs)
+                    ax.set_xlabel("Time")
+                    ax.set_ylabel("Photocurrent")
+                    ax.legend()
+                    ax.grid(True)
+            else:
+                # Single photocurrent
+                axes[0].step(times, photocurrent_data, where='post', 
+                            label="Photocurrent", **kwargs)
+                axes[0].set_xlabel("Time")
+                axes[0].set_ylabel("Photocurrent")
+                axes[0].legend()
+                axes[0].grid(True)
+            
+            axes[0].set_title("Photocurrent")
+            
+        else:
+            # Plot expectation values
+            if not hasattr(self, 'expect'):
+                raise ValueError("No expectation values available in result")
+            
+            expect_data = self.expect
+            times = self.times
+            
+            # Handle trajectories selection
+            if trajectories is None:
+                trajectories = []
+            elif isinstance(trajectories, int):
+                trajectories = list(range(min(trajectories, len(expect_data[0]))))
+            
+            # Determine number of subplots needed
+            n_plots = len(expect_data)
+            
+            # Handle figure and axes following QuTiP pattern
+            if fig is None and axes is None:
+                if n_plots > 1:
+                    fig, axes = plt.subplots(n_plots, 1, figsize=(10, 4*n_plots))
+                else:
+                    fig, axes = plt.subplots(1, 1, figsize=(10, 6))
+            elif axes is None:
+                axes = fig.gca()
+            
+            if n_plots == 1:
+                axes = [axes]
+            elif not hasattr(axes, '__len__'):
+                axes = [axes]
+            
+            # Handle e_ops as dictionary
+            labels = []
+            if hasattr(self, 'e_ops'):
+                if isinstance(self.e_ops, dict):
+                    labels = list(self.e_ops.keys())
+                elif isinstance(self.e_ops, list):
+                    labels = [f"Expectation {i}" for i in range(len(self.e_ops))]
+            else:
+                labels = [f"Expectation {i}" for i in range(n_plots)]
+            
+            # Use QuTiP's color cycling
+            colors = _cyclic_colors(len(labels))
+            
+            # Plot each expectation value type
+            for i, (label, exp_values) in enumerate(zip(labels, expect_data)):
+                if i < len(axes):
+                    ax = axes[i]
+                else:
+                    ax = axes[0]
+                
+                # Plot individual trajectories
+                traj_colors = _cyclic_colors(len(trajectories))
+                for j, traj_idx in enumerate(trajectories):
+                    if traj_idx < len(exp_values):
+                        # Create copy of kwargs without alpha if it exists
+                        traj_kwargs = kwargs.copy()
+                        if 'alpha' not in traj_kwargs:
+                            traj_kwargs['alpha'] = 0.3
+                        
+                        ax.plot(times, exp_values[traj_idx], color=traj_colors[j],
+                            label=f"Trajectory {traj_idx}" if traj_idx < 5 else None, **traj_kwargs)
+                
+                # Plot average
+                if average and len(exp_values) > 0:
+                    avg_values = np.mean(exp_values, axis=0)
+                    ax.plot(times, avg_values, 'k-', linewidth=2, label="Average", **kwargs)
+                
+                ax.set_title(label)
+                ax.set_xlabel("Time")
+                ax.set_ylabel("Expectation value")
+                if trajectories or average:
+                    ax.legend()
+                ax.grid(True)
+            
+            # Set main title
+            solver_name = getattr(self, 'solver', 'mcsolve')
+            if n_plots > 1:
+                fig.suptitle(f"Expectation values - {solver_name}")
+            else:
+                axes[0].set_title(f"Expectation values - {solver_name}")
+        
+        plt.tight_layout()
+        if show:
+            plt.show()
+        
+        return fig, axes[0] if len(axes) == 1 else axes
