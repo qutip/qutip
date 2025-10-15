@@ -61,7 +61,7 @@ jobs:
             numpy-build: ">=2.1.0,<2.2.0"
             numpy-requirement: ">=1.26,<1.27"
             scipy-requirement: ">=1.11,<1.12"
-            condaforge: 1
+            pypi: 1
             oldmpl: 1
             coveralls: 1
 
@@ -71,7 +71,7 @@ jobs:
             numpy-build: ">=2.0.0,<2.1.0"
             numpy-requirement: ">=1.23,<1.24"
             scipy-requirement: ">=1.10,<1.11"
-            condaforge: 1
+            pypi: 1
             oldmpl: 1
             nomkl: 1
             coveralls: 1
