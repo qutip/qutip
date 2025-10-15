@@ -195,7 +195,10 @@ class Solver:
             e_ops, self.options,
             solver=self.name, stats=stats,
         )
-        results.add(tlist[0], self._restore_state(_data0, copy=False))
+        results.add(
+            tlist[0],
+            self._restore_state(self._integrator.get_state()[1], copy=False)
+        )
         stats['preparation time'] += time() - _time_start
 
         progress_bar = progress_bars[self.options['progress_bar']](
