@@ -23,7 +23,7 @@ def qubit(omega: Union[float, Coefficient] = 1.0, decay_rate: Union[float, Coeff
     A two-level quantum system, commonly called a qubit, is the simplest non-trivial
     quantum system and serves as the fundamental building block for quantum computing
     and quantum information processing. It consists of two discrete energy levels,
-    typically labeled as ground state |0⟩ and excited state |1⟩.
+    typically labeled as ground state ``|0⟩`` and excited state ``|1⟩``.
 
     .. math::
 
