@@ -48,8 +48,8 @@ def _measurement_statistics_povm_ket(state, ops, tol=None):
             The ket specifying the state to measure.
 
     ops : iterable of :class:`.Qobj`
-      Iterable of measurement operators :math:`M_i` (specifying a POVM s.t.
-      :math:`E_i = M_i^\dagger M_i`).
+        Iterable of measurement operators :math:`M_i` (specifying a POVM
+        such that :math:`E_i = M_i^\dagger M_i`).
 
     tol : float, optional
         Smallest value for the probabilities. Smaller probabilities will be
@@ -96,8 +96,8 @@ def _measurement_statistics_povm_dm(density_mat, ops, tol=None):
         The ket or density matrix specifying the state to measure.
 
     ops : iterable of :class:`.Qobj`
-        Iterable of measurement operators :math:`M_i` (specifying a POVM s.t.
-        :mathm:`E_i = M_i^\dagger M_i`)
+        Iterable of measurement operators :math:`M_i` (specifying a POVM
+        such that :mathm:`E_i = M_i^\dagger M_i`)
 
     tol : float, optional
         Smallest value for the probabilities. Smaller probabilities will be
@@ -146,9 +146,9 @@ def measurement_statistics_povm(state, ops, tol=None):
     ops : iterable of :class:`.Qobj`
         Iterable of measurement operators :math:`M_i` or kets.  Either:
 
-        1. specifying a POVM s.t. :math:`E_i = M_i^\dagger M_i`
+        1. specifying a POVM such that :math:`E_i = M_i^\dagger M_i`
         2. projection operators if ops correspond to
-           projectors (s.t. :math:`E_i = M_i^\dagger = M_i`)
+           projectors (such that :math:`E_i = M_i^\dagger = M_i`)
         3. kets (transformed to projectors)
 
     tol : float, optional
@@ -342,8 +342,8 @@ def measure_povm(state, ops, tol=None):
     ops : iterable of :class:`.Qobj`
         Iterable of measurement operators :math:`M_i` or kets.  Either:
 
-        1. specifying a POVM s.t. :math:`E_i = M_i^\dagger M_i`
-        2. projection operators if ops correspond to projectors (s.t.
+        1. specifying a POVM such that :math:`E_i = M_i^\dagger M_i`
+        2. projection operators if ops correspond to projectors (such that
            :math:`E_i = M_i^\dagger = M_i`)
         3. kets (transformed to projectors)
 
@@ -387,10 +387,10 @@ def measurement_statistics(state, ops, tol=None):
         - iterable of measurement operators :math:`M_i` or kets (iterable of
           :class:`.Qobj`) Either:
 
-          1. specifying a POVM s.t. :math:`E_i = M_i^\dagger * M_i`
-          2. projection operators if ops correspond to projectors (s.t.
-             :math:`E_i = M_i^\dagger = M_i`)
-          3. kets (transformed to projectors)
+        1. specifying a POVM such that :math:`E_i = M_i^\dagger * M_i`
+        2. projection operators if ops correspond to projectors (such that
+            :math:`E_i = M_i^\dagger = M_i`)
+        3. kets (transformed to projectors)
 
     tol : float, optional
         Smallest value for the probabilities.
@@ -423,10 +423,10 @@ def measure(state, ops, tol=None):
         - iterable of measurement operators :math:`M_i` or kets (iterable of
           :class:`.Qobj`) Either:
 
-          1. specifying a POVM s.t. :math:`E_i = M_i^\dagger M_i`
-          2. projection operators if ops correspond to projectors (s.t.
-             :math:`E_i = M_i^\dagger = M_i`)
-          3. kets (transformed to projectors)
+        1. specifying a POVM such that :math:`E_i = M_i^\dagger M_i`
+        2. projection operators if ops correspond to projectors (such that
+            :math:`E_i = M_i^\dagger = M_i`)
+        3. kets (transformed to projectors)
 
     tol : float, optional
         Smallest value for the probabilities.
