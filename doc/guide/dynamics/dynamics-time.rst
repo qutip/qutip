@@ -169,6 +169,7 @@ simple Harmonic oscillator with time-varying decay rate
     output = mesolve(H, psi0, times, c_ops, e_ops=[a.dag() * a])
 
 
+.. _time-qobjevo:
 
 Qobjevo
 =======
@@ -353,6 +354,8 @@ calling it with updated are will affect all parts:
     [[0. 3.]
      [3. 0.]]
 
+
+.. _time-coeff:
 
 Coefficients
 ============
