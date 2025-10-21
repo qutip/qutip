@@ -23,7 +23,6 @@ class QuantumSystem:
     **kwargs : dict
         Additional system-specific parameters
 
-    
     """
 
     def __init__(self, hamiltonian: Qobj, name: str = "Quantum System",
