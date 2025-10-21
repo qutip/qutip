@@ -2,9 +2,8 @@ from math import sqrt
 
 import numpy as np
 import pytest
-import scipy
 
-from qutip import Qobj, basis, identity, ket2dm, num, rand_ket, sigmax, sigmay, sigmaz, tensor
+from qutip import basis, identity, ket2dm, num, sigmax, sigmay, sigmaz
 from qutip.measurement import (
     measure_observable,
     measure_povm,
