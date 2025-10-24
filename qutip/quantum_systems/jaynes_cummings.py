@@ -10,11 +10,11 @@ def _create_sqrt_coefficient(rate):
         # Extract coefficient information and create sqrt version
         def sqrt_func(t, args):
             return np.sqrt(rate(t, args))
-            
+
         return coefficient(sqrt_func, args={})
     else:
         return np.sqrt(rate)
-    
+
 def jaynes_cummings(
     omega_c: Union[float, Coefficient] = 1.0,
     omega_a: Union[float, Coefficient] = 1.0,
@@ -28,14 +28,27 @@ def jaynes_cummings(
     """
     Create Jaynes-Cummings system
 
-    The Jaynes-Cummings model describes a two-level atom interacting with a
-    single cavity mode. The Hamiltonian is:
+    The Jaynes-Cummings model is one of the most fundamental models in quantum optics,
+    describing the interaction between a two-level atom and a single mode of the
+    electromagnetic field (cavity mode). It was introduced by Edwin Jaynes and
+    Fred Cummings in 1963 and remains central to cavity quantum electrodynamics (cavity QED).
 
-    H = omega_c * a_dag * a + (omega_a/2) * sigma_z + g * (a_dag * sigma_minus + a * sigma_plus)  [with RWA]
-    H = omega_c * a_dag * a + (omega_a / 2) * sigma_z + g * (a_dag + a) * (sigma_plus + sigma_minus) [without RWA]
+    The Hamiltonian is:
 
-    Parameters:
-    -----------
+    **With rotating wave approximation (RWA):**
+
+    .. math::
+
+        H = \\omega_c a^\\dagger a + \\frac{\\omega_a}{2}\\sigma_z + g(a^\\dagger\\sigma_- + a\\sigma_+)
+
+    **Without rotating wave approximation:**
+
+    .. math::
+
+        H = \\omega_c a^\\dagger a + \\frac{\\omega_a}{2}\\sigma_z + g(a^\\dagger + a)(\\sigma_+ + \\sigma_-)
+
+    Parameters
+    ----------
     omega_c : float or Coefficient, default=1.0
         Cavity frequency, can be constant or time-dependent
     omega_a : float or Coefficient, default=1.0
@@ -55,8 +68,8 @@ def jaynes_cummings(
     thermal_photons : float, default=0.0
         Mean thermal photon number, n_th (for thermal bath)
 
-    Returns:
-    --------
+    Returns
+    -------
     QuantumSystem
         Configured Jaynes-Cummings system instance
 
@@ -97,30 +110,30 @@ def jaynes_cummings(
     # Build collapse operators for dissipation
     c_ops = []
 
-    # Cavity decay with thermal effects 
+    # Cavity decay with thermal effects
     if isinstance(cavity_decay, Coefficient):
         # cavity_decay is coefficient, thermal_photons is float
         def cavity_relax_func(t, args):
             kappa = cavity_decay(t, args)
             return np.sqrt(kappa * (1 + thermal_photons))
-        
+
         sqrt_cavity_relax = coefficient(cavity_relax_func, args={})
         c_ops.append(sqrt_cavity_relax * operators['a'])
-    elif cavity_decay > 0.0:  
+    elif cavity_decay > 0.0:
         cavity_relax_rate = cavity_decay * (1 + thermal_photons)
         c_ops.append(np.sqrt(cavity_relax_rate) * operators['a'])
 
-    # Cavity excitation (thermal): sqrt(kappa * n_th) * a_dag   
+    # Cavity excitation (thermal): sqrt(kappa * n_th) * a_dag
     if thermal_photons > 0.0:
         if isinstance(cavity_decay, Coefficient):
             # cavity_decay is coefficient, thermal_photons is float
             def cavity_excite_func(t, args):
                 kappa = cavity_decay(t, args)
                 return np.sqrt(kappa * thermal_photons)
-            
+
             sqrt_cavity_excite = coefficient(cavity_excite_func, args={})
             c_ops.append(sqrt_cavity_excite * operators['a_dag'])
-        elif cavity_decay > 0.0: 
+        elif cavity_decay > 0.0:
             cavity_excite_rate = cavity_decay * thermal_photons
             c_ops.append(np.sqrt(cavity_excite_rate) * operators['a_dag'])
 

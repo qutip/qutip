@@ -10,7 +10,7 @@ def _create_sqrt_coefficient(rate):
         # Extract coefficient information and create sqrt version
         def sqrt_func(t, args):
             return np.sqrt(rate(t, args))
-            
+
         return coefficient(sqrt_func, args={})
     else:
         return np.sqrt(rate)
@@ -20,10 +20,17 @@ def qubit(omega: Union[float, Coefficient] = 1.0, decay_rate: Union[float, Coeff
     """
     Create two-level system (qubit)
 
-    H = (omega_a/2) * sigma_z
+    A two-level quantum system, commonly called a qubit, is the simplest non-trivial
+    quantum system and serves as the fundamental building block for quantum computing
+    and quantum information processing. It consists of two discrete energy levels,
+    typically labeled as ground state ``|0⟩`` and excited state ``|1⟩``.
 
-    Parameters:
-    -----------
+    .. math::
+
+        H = \\frac{\\omega}{2}\\sigma_z
+
+    Parameters
+    ----------
     omega : float or Coefficient, default=1.0
         Transition frequency, can be constant or time-dependent
     decay_rate : float or Coefficient, default=0.0
@@ -31,8 +38,8 @@ def qubit(omega: Union[float, Coefficient] = 1.0, decay_rate: Union[float, Coeff
     dephasing_rate : float or Coefficient, default=0.0
         Dephasing rate (1/T2), can be constant or time-dependent
 
-    Returns:
-    --------
+    Returns
+    -------
     QuantumSystem instance configured as qubit
     """
     # Build operators
@@ -48,12 +55,12 @@ def qubit(omega: Union[float, Coefficient] = 1.0, decay_rate: Union[float, Coeff
 
     # Build collapse operators
     c_ops = []
-    
+
     # Handle decay_rate: coefficient object OR positive numeric value
     if isinstance(decay_rate, Coefficient) or decay_rate > 0.0:
         sqrt_decay_rate = _create_sqrt_coefficient(decay_rate)
         c_ops.append(sqrt_decay_rate * operators['sigma_minus'])
-    
+
     # Handle dephasing_rate: coefficient object OR positive numeric value
     if isinstance(dephasing_rate, Coefficient) or dephasing_rate > 0.0:
         sqrt_dephasing_rate = _create_sqrt_coefficient(dephasing_rate)
