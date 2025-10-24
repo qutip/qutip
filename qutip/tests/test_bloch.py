@@ -738,9 +738,6 @@ class TestBloch:
         b2.make_sphere()
 
 
-
-
-
 def test_repr_svg():
     pytest.importorskip("matplotlib")
     pytest.importorskip("ipython")
