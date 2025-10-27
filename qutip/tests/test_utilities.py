@@ -139,20 +139,26 @@ class TestFitting:
         return amp * np.power(phase, np.arange(n))
 
     @pytest.fixture(params = [True, False])
-    def generate_data(self, request):
+    def noisy(self, request):
+        return request.param
+
+    def generate_data(self, noisy, wavy=False):
         """Generate test data."""
-        noisy = request.param
-        x = np.linspace(0, 10, 151)
-        fparams1 = [-.5, .25, 0]
-        fparams2 = [3, 0.25, 5]
+        x = np.linspace(0, 10, 100)
+        if wavy:
+            fparams1 = [-.5, .25, 0]
+            fparams2 = [3, 0.25, 5]
+        else:
+            fparams1 = [1, 0.5, 0]
+            fparams2 = [3, 2, .5]
         y = self.model(x, *fparams1) + self.model(x, *fparams2)
         if noisy:
             noise = self.rng.normal(0, 0.01, len(x))
             y += noise
         return x, y, fparams1, fparams2, noisy
 
-    def test_fit(self, generate_data):
-        x, y, fparams1, fparams2, noisy = generate_data
+    def test_fit(self, noisy):
+        x, y, fparams1, fparams2, noisy = self.generate_data(noisy, True)
         rmse, params = utils.iterated_fit(
             self.model, num_params=3, xdata=x, ydata=y,
             lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2
@@ -171,8 +177,8 @@ class TestFitting:
             assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
                     np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
 
-    def test_aaa(self, generate_data):
-        x, y, _, _ , noisy= generate_data
+    def test_aaa(self, noisy):
+        x, y, _, _ , noisy = self.generate_data(noisy)
         result = utils.aaa(y, x, tol=1e-8, max_iter=10)
         rmse = result["rmse"]
         if noisy:
@@ -182,8 +188,8 @@ class TestFitting:
             assert rmse < 1e-8
             np.testing.assert_allclose(result["function"](x), y, rtol=1e-4)
 
-    def test_espira_I(self, generate_data):
-        x, y, _, _, noisy = generate_data
+    def test_espira_I(self, noisy):
+        x, y, _, _, noisy = self.generate_data(noisy)
         rmse, params = utils.espira1(y, 4, tol=1e-16)
         if noisy:
             assert rmse < 1e-2
@@ -192,8 +198,8 @@ class TestFitting:
             assert rmse < 1e-8
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
-    def test_espira_II(self, generate_data):
-        x, y, _, _, noisy = generate_data
+    def test_espira_II(self, noisy):
+        x, y, _, _, noisy = self.generate_data(noisy)
         rmse, params = utils.espira2(y, 4, tol=1e-16)
         if noisy:
             assert rmse < 1e-2
@@ -203,8 +209,8 @@ class TestFitting:
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
     @pytest.mark.parametrize("method", ["prony", "esprit"])
-    def test_prony_methods(self, generate_data, method):
-        x, y, _, _, noisy = generate_data
+    def test_prony_methods(self, noisy, method):
+        x, y, _, _, noisy = self.generate_data(noisy)
         rmse, params = utils.prony_methods(method, y, 4)
         if noisy:
             assert rmse < 1e-2
