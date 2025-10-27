@@ -19,8 +19,8 @@ class Test_spsolve:
                            [1, 0, 1],
                            [0, 0, 1]])
         As = scipy.sparse.csr_matrix(Adense)
-        np.random.seed(1234)
-        x = np.random.randn(3)
+        rng = np.random.default_rng(seed=1234)
+        x = rng.standard_normal(3)
         b = As * x
         x2 = mkl_spsolve(As, b, verbose=True)
         np.testing.assert_allclose(x, x2)

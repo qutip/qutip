@@ -10,8 +10,10 @@ import pytest
     pytest.param(np.log(2)*5, 5, 1, id='5*log(2)'),
     pytest.param(0, 1, 0, id="0_energy"),
     pytest.param(1, -1, 0, id="neg_temp"),
-    pytest.param(np.array([np.log(2), np.log(3), np.log(4)]), 1,
-                 np.array([1, 1/2, 1/3]), id="array"),
+    pytest.param(np.array([0, np.log(2), np.log(3), np.log(4)]), 1,
+                 np.array([0, 1, 1/2, 1/3]), id="array"),
+    pytest.param(np.array([0, np.log(2), np.log(3), np.log(4)]), 0,
+                 np.array([0, 0, 0, 0]), id="array_0temp")
 ])
 def test_n_thermal(w, w_th, expected):
     np.testing.assert_allclose(n_thermal(w, w_th), expected)
@@ -119,3 +121,94 @@ def test_cpu_count(monkeypatch):
     monkeypatch.setenv("QUTIP_NUM_PROCESSES", str(0))
     new_ncpus = available_cpu_count()
     assert new_ncpus >= 1
+
+
+class TestFitting:
+    rng = np.random.default_rng(seed=42)
+
+    def model(self, x, a, b, c):
+        return np.real(a * np.exp(-(b + 1j * c) * x))
+
+    def eval_prony(self, x, params):
+        result = 0
+        for term_params in params:
+            result += self._prony_model(x, *term_params)
+        return result
+
+    def _prony_model(self, n, amp, phase):
+        return amp * np.power(phase, np.arange(n))
+
+    @pytest.fixture(params = [True, False])
+    def generate_data(self, request):
+        """Generate test data."""
+        noisy = request.param
+        x = np.linspace(0, 10, 100)
+        fparams1 = [1, .5, 0]
+        fparams2 = [3, 2, .5]
+        y = self.model(x, *fparams1) + self.model(x, *fparams2)
+        if noisy:
+            noise = self.rng.normal(0, 0.01, len(x))
+            y += noise
+        return x, y, fparams1, fparams2, noisy
+
+    def test_fit(self, generate_data):
+        x, y, fparams1, fparams2, noisy = generate_data
+        rmse, params = utils.iterated_fit(
+            self.model, num_params=3, xdata=x, ydata=y,
+            lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2
+        )
+        fit_y = self.model(x, *params[0]) + self.model(x, *params[1])
+        assert rmse == pytest.approx(
+            np.sqrt(np.mean((y - fit_y)**2)) / (np.max(y) - np.min(y))
+        )
+
+        if noisy:
+            assert rmse < 1e-2
+            assert (np.all(np.isclose(params, [fparams1, fparams2], atol=.2)) or
+                    np.all(np.isclose(params, [fparams2, fparams1], atol=.2)))
+        else:
+            assert rmse < 1e-8
+            assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
+                    np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
+
+    def test_aaa(self, generate_data):
+        x, y, _, _ , noisy= generate_data
+        result = utils.aaa(y, x, tol=1e-8, max_iter=10)
+        rmse = result["rmse"]
+        if noisy:
+            assert rmse < 2e-2
+            np.testing.assert_allclose(result["function"](x), y, atol=1e-1*np.max(y))
+        else:
+            assert rmse < 1e-8
+            np.testing.assert_allclose(result["function"](x), y, rtol=1e-4)
+
+    def test_espira_I(self, generate_data):
+        x, y, _, _, noisy = generate_data
+        rmse, params = utils.espira1(y, 4, tol=1e-16)
+        if noisy:
+            assert rmse < 1e-2
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
+        else:
+            assert rmse < 1e-8
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
+
+    def test_espira_II(self, generate_data):
+        x, y, _, _, noisy = generate_data
+        rmse, params = utils.espira2(y, 4, tol=1e-16)
+        if noisy:
+            assert rmse < 1e-2
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
+        else:
+            assert rmse < 1e-8
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
+
+    @pytest.mark.parametrize("method", ["prony", "esprit"])
+    def test_prony_methods(self, generate_data, method):
+        x, y, _, _, noisy = generate_data
+        rmse, params = utils.prony_methods(method, y, 4)
+        if noisy:
+            assert rmse < 1e-2
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=2e-2*np.max(y))
+        else:
+            assert rmse < 1e-8
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)

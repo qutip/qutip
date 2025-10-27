@@ -3,6 +3,8 @@ This module provides result classes for multi-trajectory solvers.
 Note that single trajectories are described by regular `Result` objects from the
 `qutip.solver.result` module.
 """
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
 
 from typing import TypedDict
 from ..core.numpy_backend import np
@@ -75,7 +77,7 @@ class MultiTrajResult(_BaseResult):
         The final state (if the recording of the final state was requested)
         averaged over all trajectories as a density matrix.
 
-    runs_final_state : list of :obj:`.Qobj`
+    runs_final_states : list of :obj:`.Qobj`
         The final state for each trajectory (if the recording of the final
         state and trajectories was requested).
 
@@ -980,38 +982,131 @@ class McResult(_McBaseResult):
     """
     Class for storing Monte-Carlo solver results.
 
-    Parameters
+    Attributes
     ----------
-    e_ops : :obj:`.Qobj`, :obj:`.QobjEvo`, function or list or dict of these
-        The ``e_ops`` parameter defines the set of values to record at
-        each time step ``t``. If an element is a :obj:`.Qobj` or
-        :obj:`.QobjEvo` the value recorded is the expectation value of that
-        operator given the state at ``t``. If the element is a function, ``f``,
-        the value recorded is ``f(t, state)``.
 
-        The values are recorded in the ``.expect`` attribute of this result
-        object. ``.expect`` is a list, where each item contains the values
-        of the corresponding ``e_op``.
+    times : list
+        A list of the times at which the expectation values and states were
+        recorded.
 
-    options : :obj:`~SolverResultsOptions`
-        The options for this result class.
+    average_states : list of :obj:`.Qobj`
+        The state at each time ``t`` (if the recording of the state was
+        requested) averaged over all trajectories as a density matrix.
+
+    runs_states : list of list of :obj:`.Qobj`
+        The state for each trajectory and each time ``t`` (if the recording of
+        the states and trajectories was requested)
+
+    average_final_state : :obj:`.Qobj`:
+        The final state (if the recording of the final state was requested)
+        averaged over all trajectories as a density matrix.
+
+    runs_final_states : list of :obj:`.Qobj`
+        The final state for each trajectory (if the recording of the final
+        state and trajectories was requested).
+
+    average_expect : list of array of expectation values
+        A list containing the values of each ``e_op`` averaged over each
+        trajectories. The list is in the same order in which the ``e_ops`` were
+        supplied and empty if no ``e_ops`` were given.
+
+        Each element is itself an array and contains the values of the
+        corresponding ``e_op``, with one value for each time in ``.times``.
+
+    std_expect : list of array of expectation values
+        A list containing the standard derivation of each ``e_op`` over each
+        trajectories. The list is in the same order in which the ``e_ops`` were
+        supplied and empty if no ``e_ops`` were given.
+
+        Each element is itself an array and contains the values of the
+        corresponding ``e_op``, with one value for each time in ``.times``.
+
+    runs_expect : list of array of expectation values
+        A list containing the values of each ``e_op`` for each trajectories.
+        The list is in the same order in which the ``e_ops`` were
+        supplied and empty if no ``e_ops`` were given. Only available if the
+        storing of trajectories was requested.
+
+        The order of the elements is ``runs_expect[e_ops][trajectory][time]``.
+
+        Each element is itself an array and contains the values of the
+        corresponding ``e_op``, with one value for each time in ``.times``.
+
+    average_e_data : dict
+        A dictionary containing the values of each ``e_op`` averaged over each
+        trajectories. If the ``e_ops`` were supplied as a dictionary, the keys
+        are the same as in that dictionary. Otherwise the keys are the index of
+        the ``e_op`` in the ``.expect`` list.
+
+        The lists of expectation values returned are the *same* lists as
+        those returned by ``.expect``.
+
+    std_e_data : dict
+        A dictionary containing the standard derivation of each ``e_op`` over
+        each trajectories. If the ``e_ops`` were supplied as a dictionary, the
+        keys are the same as in that dictionary. Otherwise the keys are the
+        index of the ``e_op`` in the ``.expect`` list.
+
+        The lists of expectation values returned are the *same* lists as
+        those returned by ``.expect``.
+
+    runs_e_data : dict
+        A dictionary containing the values of each ``e_op`` for each
+        trajectories. If the ``e_ops`` were supplied as a dictionary, the keys
+        are the same as in that dictionary. Otherwise the keys are the index of
+        the ``e_op`` in the ``.expect`` list. Only available if the storing
+        of trajectories was requested.
+
+        The order of the elements is ``runs_expect[e_ops][trajectory][time]``.
+
+        The lists of expectation values returned are the *same* lists as
+        those returned by ``.expect``.
+
+    num_trajectories: int
+        Number of trajectories computed.
+
+    seeds: list of SeedSequence
+        The seeds used to compute each trajectories.
+
+    trajectories: list of Result
+        If the option `keep_runs_results` is set, a list of all trajectories.
+
+    deterministic_trajectories: list of Result
+        A list of the no-jump trajectories if the option ``improved_sampling``
+        is set.
+
+    runs_weights : list
+        For each trajectory, the weight with which that trajectory enters
+        averages.
+
+    deterministic_weights : list
+        For each deterministic trajectory, (when using improved_sampling)
+        the weight with which that trajectory enters averages.
+
+    collapse : list
+        For each run, a list of every collapse as a tuple of the time it
+        happened and the corresponding ``c_ops`` index.
+
+    col_times : list
+        List of the times of the collapses for each runs.
+
+    col_which : list
+        List of the indexes of the collapses for each runs.
+
+    photocurrent : array
+        Average photocurrent or measurement of the evolution.
+
+    runs_photocurrent : list[array]
+        Photocurrent or measurement of each runs.
+
+    stats : dict or None
+        The stats generated by the solver while producing these results.
 
     solver : str or None
         The name of the solver generating these results.
 
-    stats : dict
-        The stats generated by the solver while producing these results. Note
-        that the solver may update the stats directly while producing results.
-        Must include a value for "num_collapse".
-
-    kw : dict
-        Additional parameters specific to a result sub-class.
-
-    Attributes
-    ----------
-    collapse : list
-        For each run, a list of every collapse as a tuple of the time it
-        happened and the corresponding ``c_ops`` index.
+    options : :obj:`~SolverResultsOptions`
+        The options for this result class.
     """
 
     @property
@@ -1058,35 +1153,117 @@ class NmmcResult(_McBaseResult):
     """
     Class for storing the results of the non-Markovian Monte-Carlo solver.
 
-    Parameters
-    ----------
-    e_ops : :obj:`.Qobj`, :obj:`.QobjEvo`, function or list or dict of these
-        The ``e_ops`` parameter defines the set of values to record at
-        each time step ``t``. If an element is a :obj:`.Qobj` or
-        :obj:`.QobjEvo` the value recorded is the expectation value of that
-        operator given the state at ``t``. If the element is a function, ``f``,
-        the value recorded is ``f(t, state)``.
-
-        The values are recorded in the ``.expect`` attribute of this result
-        object. ``.expect`` is a list, where each item contains the values
-        of the corresponding ``e_op``.
-
-    options : :obj:`~SolverResultsOptions`
-        The options for this result class.
-
-    solver : str or None
-        The name of the solver generating these results.
-
-    stats : dict
-        The stats generated by the solver while producing these results. Note
-        that the solver may update the stats directly while producing results.
-        Must include a value for "num_collapse".
-
-    kw : dict
-        Additional parameters specific to a result sub-class.
-
     Attributes
     ----------
+
+    times : list
+        A list of the times at which the expectation values and states were
+        recorded.
+
+    average_states : list of :obj:`.Qobj`
+        The state at each time ``t`` (if the recording of the state was
+        requested) averaged over all trajectories as a density matrix.
+
+    runs_states : list of list of :obj:`.Qobj`
+        The state for each trajectory and each time ``t`` (if the recording of
+        the states and trajectories was requested)
+
+    average_final_state : :obj:`.Qobj`:
+        The final state (if the recording of the final state was requested)
+        averaged over all trajectories as a density matrix.
+
+    runs_final_states : list of :obj:`.Qobj`
+        The final state for each trajectory (if the recording of the final
+        state and trajectories was requested).
+
+    average_expect : list of array of expectation values
+        A list containing the values of each ``e_op`` averaged over each
+        trajectories. The list is in the same order in which the ``e_ops`` were
+        supplied and empty if no ``e_ops`` were given.
+
+        Each element is itself an array and contains the values of the
+        corresponding ``e_op``, with one value for each time in ``.times``.
+
+    std_expect : list of array of expectation values
+        A list containing the standard derivation of each ``e_op`` over each
+        trajectories. The list is in the same order in which the ``e_ops`` were
+        supplied and empty if no ``e_ops`` were given.
+
+        Each element is itself an array and contains the values of the
+        corresponding ``e_op``, with one value for each time in ``.times``.
+
+    runs_expect : list of array of expectation values
+        A list containing the values of each ``e_op`` for each trajectories.
+        The list is in the same order in which the ``e_ops`` were
+        supplied and empty if no ``e_ops`` were given. Only available if the
+        storing of trajectories was requested.
+
+        The order of the elements is ``runs_expect[e_ops][trajectory][time]``.
+
+        Each element is itself an array and contains the values of the
+        corresponding ``e_op``, with one value for each time in ``.times``.
+
+    average_e_data : dict
+        A dictionary containing the values of each ``e_op`` averaged over each
+        trajectories. If the ``e_ops`` were supplied as a dictionary, the keys
+        are the same as in that dictionary. Otherwise the keys are the index of
+        the ``e_op`` in the ``.expect`` list.
+
+        The lists of expectation values returned are the *same* lists as
+        those returned by ``.expect``.
+
+    std_e_data : dict
+        A dictionary containing the standard derivation of each ``e_op`` over
+        each trajectories. If the ``e_ops`` were supplied as a dictionary, the
+        keys are the same as in that dictionary. Otherwise the keys are the
+        index of the ``e_op`` in the ``.expect`` list.
+
+        The lists of expectation values returned are the *same* lists as
+        those returned by ``.expect``.
+
+    runs_e_data : dict
+        A dictionary containing the values of each ``e_op`` for each
+        trajectories. If the ``e_ops`` were supplied as a dictionary, the keys
+        are the same as in that dictionary. Otherwise the keys are the index of
+        the ``e_op`` in the ``.expect`` list. Only available if the storing
+        of trajectories was requested.
+
+        The order of the elements is ``runs_expect[e_ops][trajectory][time]``.
+
+        The lists of expectation values returned are the *same* lists as
+        those returned by ``.expect``.
+
+    num_trajectories: int
+        Number of trajectories computed.
+
+    seeds: list of SeedSequence
+        The seeds used to compute each trajectories.
+
+    trajectories: list of Result
+        If the option `keep_runs_results` is set, a list of all trajectories.
+
+    deterministic_trajectories: list of Result
+        A list of the no-jump trajectories if the option ``improved_sampling``
+        is set.
+
+    runs_weights : list
+        For each trajectory, the weight with which that trajectory enters
+        averages.
+
+    deterministic_weights : list
+        For each deterministic trajectory, (when using improved_sampling)
+        the weight with which that trajectory enters averages.
+
+    collapse : list
+        For each run, a list of every collapse as a tuple of the time it
+        happened and the corresponding ``c_ops`` index.
+
+    col_times : list
+        List of the times of the collapses for each runs.
+
+    col_which : list
+        List of the indexes of the collapses for each runs.
+
     average_trace : list
         The average trace (i.e., averaged over all trajectories) at each time.
 
@@ -1096,6 +1273,15 @@ class NmmcResult(_McBaseResult):
     runs_trace : list of lists
         For each recorded trajectory, the trace at each time.
         Only present if ``keep_runs_results`` is set in the options.
+
+    stats : dict or None
+        The stats generated by the solver while producing these results.
+
+    solver : str or None
+        The name of the solver generating these results.
+
+    options : :obj:`~SolverResultsOptions`
+        The options for this result class.
     """
 
     def _post_init(self):

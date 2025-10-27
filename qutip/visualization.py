@@ -5,7 +5,7 @@ visualizations of quantum states and processes.
 
 __all__ = ['plot_wigner_sphere', 'hinton', 'sphereplot',
            'matrix_histogram', 'plot_energy_levels', 'plot_fock_distribution',
-           'plot_wigner', 'plot_expectation_values',
+           'plot_wigner', 'plot_qfunc', 'plot_expectation_values',
            'plot_spin_distribution', 'complex_array_to_rgb',
            'plot_qubism', 'plot_schmidt']
 
@@ -19,7 +19,7 @@ from . import (
     Qobj, isket, ket2dm, tensor, vector_to_operator, settings
 )
 from .core.superop_reps import _to_superpauli, isqubitdims
-from .wigner import wigner
+from .wigner import wigner, qfunc
 from .matplotlib_utilities import complex_phase_cmap
 
 try:
@@ -366,6 +366,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     for rho in rhos:
         # Extract plotting data W from the input.
         if isinstance(rho, Qobj):
+            rho._dims._require_pure_dims("hinton plot")
             if rho.isoper or rho.isoperket or rho.isoperbra:
                 if rho.isoperket:
                     rho = vector_to_operator(rho)
@@ -577,15 +578,27 @@ def _remove_margins(axis):
     removes margins about z = 0 and improves the style
     by monkey patching
     """
-    def _get_coord_info_new(renderer):
-        mins, maxs, centers, deltas, tc, highs = \
-            _get_coord_info_old(renderer)
+
+    def _get_coord_info_new_mpl38(renderer):
+        mins, maxs, centers, deltas, tc, highs = _get_coord_info_old(renderer)
         mins += deltas / 4
         maxs -= deltas / 4
         return mins, maxs, centers, deltas, tc, highs
 
+    def _get_coord_info_new_mpl39():
+        mins, maxs, bounds_proj, highs = _get_coord_info_old()
+        centers, deltas = axis._calc_centers_deltas(maxs, mins)
+        mins += deltas / 4
+        maxs -= deltas / 4
+        return mins, maxs, bounds_proj, highs
+
     _get_coord_info_old = axis._get_coord_info
-    axis._get_coord_info = _get_coord_info_new
+
+    # Select correct version of the function based on matplotlib version
+    if parse_version(mpl.__version__) >= parse_version("3.9"):
+        axis._get_coord_info = _get_coord_info_new_mpl39
+    else:
+        axis._get_coord_info = _get_coord_info_new_mpl38
 
 
 def _stick_to_planes(stick, azim, ax, M, spacing):
@@ -966,6 +979,8 @@ def matrix_histogram(
                     ).sum(0).flatten()
         )
 
+        frame_artists = []
+
         for i, uxpos in enumerate(xpos):
             artist = ax.bar3d(
                 uxpos,
@@ -979,9 +994,10 @@ def matrix_histogram(
                 linewidths=options["bars_lw"],
                 shade=options["shade"],
             )
-            # Setting the z-order for rendering
             artist._sort_zpos = z_order[i]
-            artist_list.append([artist])
+            frame_artists.append(artist)
+
+        artist_list.append(frame_artists)
 
     if len(Ms) == 1:
         output = ax
@@ -1286,6 +1302,118 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
         W0 = wigner(
             rho, xvec, yvec, method=method,
             g=g, sparse=sparse, parfor=parfor
+        )
+
+        W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)
+        Ws.append(W)
+
+        wlim = max(abs(W).max(), wlim)
+
+    norm = mpl.colors.Normalize(-wlim, wlim)
+
+    if cmap is None:
+        cmap = _diverging_cmap()
+
+    artist_list = list()
+    for W in Ws:
+        if projection == '2d':
+            if parse_version(mpl.__version__) >= parse_version('3.8'):
+                cf = [ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)]
+            else:
+                cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
+                                 cmap=cmap).collections
+        else:
+            X, Y = np.meshgrid(xvec, yvec)
+            cf = [ax.plot_surface(X, Y, W, rstride=5, cstride=5, linewidth=0.5,
+                                  norm=norm, cmap=cmap)]
+        artist_list.append(cf)
+
+    if len(rhos) == 1:
+        output = ax
+    else:
+        output = animation.ArtistAnimation(fig, artist_list, interval=50,
+                                           blit=True, repeat_delay=1000)
+
+    ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
+    ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
+
+    if colorbar:
+        if projection == '2d':
+            shrink = 1
+        else:
+            shrink = .75
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=shrink, pad=.1)
+        cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+
+    return fig, output
+
+
+def plot_qfunc(rho, xvec=None, yvec=None, projection='2d',
+               g=sqrt(2), *, cmap=None, colorbar=False,
+               fig=None, ax=None):
+    """
+    Plot the the Husimi-Q function for a density matrix (or ket).
+
+    Parameters
+    ----------
+    rho : :obj:`.Qobj`
+        The density matrix (or ket) of the state to visualize.
+
+    xvec : array_like, optional
+        x-coordinates at which to calculate the Husimi-Q function.
+
+    yvec : array_like, optional
+        y-coordinates at which to calculate the Husimi-Q function.
+
+    projection: str {'2d', '3d'}, default: '2d'
+        Specify whether the Husimi-Q function is to be plotted as a
+        contour graph ('2d') or surface plot ('3d').
+
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+
+    cmap : a matplotlib cmap instance, optional
+        The colormap.
+
+    colorbar : bool, default: False
+        Whether (True) or not (False) a colorbar should be attached to the
+        Husimi-Q function graph.
+
+    fig : a matplotlib Figure instance, optional
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance, optional
+        The axes context in which the plot will be drawn.
+
+    Returns
+    -------
+    fig, output : tuple
+        A tuple of the matplotlib figure and the axes instance or animation
+        instance used to produce the figure.
+    """
+
+    if projection not in ('2d', '3d'):
+        raise ValueError('Unexpected value of projection keyword argument')
+
+    fig, ax = _is_fig_and_ax(fig, ax, projection)
+
+    if not isinstance(rho, list):
+        rhos = [rho]
+    else:
+        rhos = rho
+
+    _equal_shape(rhos)
+
+    wlim = 0
+    Ws = list()
+    xvec = np.linspace(-7.5, 7.5, 200) if xvec is None else xvec
+    yvec = np.linspace(-7.5, 7.5, 200) if yvec is None else yvec
+    for rho in rhos:
+        if isket(rho):
+            rho = ket2dm(rho)
+
+        W0 = qfunc(
+            rho, xvec, yvec, g=g
         )
 
         W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)
@@ -1743,6 +1871,7 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
         if not isket(ket):
             raise Exception("Qubism works only for pure states, i.e. kets.")
             # add for dm? (perhaps a separate function, plot_qubism_dm)
+        ket._dims._require_pure_dims("qubism plot")
 
         dim_list = ket.dims[0]
         n = len(dim_list)
@@ -1908,6 +2037,7 @@ def plot_schmidt(ket, theme='light', splitting=None,
         if not isket(ket):
             err = "Schmidt plot works only for pure states, i.e. kets."
             raise Exception(err)
+        ket._dims._require_pure_dims("Schmidt plot")
 
         dim_list = ket.dims[0]
 

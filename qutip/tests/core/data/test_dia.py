@@ -14,6 +14,13 @@ _dtype_int = ['int32', 'int64']
 _dtype_uint = ['uint32']
 
 
+def _dia_eq(left, right):
+    """
+    left == right for scipy sparse dia_matrix
+    """
+    return not np.any((left != right).data)
+
+
 # Set up some fixtures for automatic parametrisation.
 
 @pytest.fixture(params=[
@@ -61,7 +68,7 @@ class TestClassMethods:
         """Test that __init__ can accept a scipy dia matrix."""
         out = dia.Dia(scipy_dia)
         assert out.shape == scipy_dia.shape
-        assert (out.as_scipy() - scipy_dia).nnz == 0
+        assert _dia_eq(out.as_scipy(), scipy_dia)
 
     def test_init_from_tuple(self, scipy_dia):
         """
@@ -71,7 +78,7 @@ class TestClassMethods:
         arg = (scipy_dia.data, scipy_dia.offsets)
         out = dia.Dia(arg, shape=scipy_dia.shape)
         assert out.shape == scipy_dia.shape
-        assert (out.as_scipy() - scipy_dia).nnz == 0
+        assert _dia_eq(out.as_scipy(), scipy_dia)
 
     @pytest.mark.parametrize('d_type', (
         _dtype_complex + _dtype_float + _dtype_int + _dtype_uint
@@ -90,7 +97,7 @@ class TestClassMethods:
         out_scipy = out.as_scipy()
         assert out.shape == scipy_dia.shape
         assert out_scipy.data.dtype == np.complex128
-        assert (out_scipy - scipy_dia).nnz == 0
+        assert _dia_eq(out_scipy, scipy_dia)
 
     @pytest.mark.parametrize(['arg', 'kwargs', 'error'], [
         pytest.param((), {}, ValueError, id="arg 0 tuple"),
@@ -189,7 +196,7 @@ class TestClassMethods:
         """
         data_diag = dia.Dia(scipy_dia)
         assert isinstance(data_diag.as_scipy(), scipy.sparse.dia_matrix)
-        assert (data_diag.as_scipy() - scipy_dia).nnz == 0
+        assert _dia_eq(data_diag.as_scipy(), scipy_dia)
 
     def test_as_scipy_of_uninitialised_is_empty(self, shape):
         ndiag = 0
@@ -243,7 +250,7 @@ class TestFactoryMethods:
         assert isinstance(base, dia.Dia)
         assert base.shape == (dimension, dimension)
         assert sci.nnz == dimension
-        assert (sci - scipy_test).nnz == 0
+        assert _dia_eq(sci, scipy_test)
 
 
     @pytest.mark.parametrize(['diagonals', 'offsets', 'shape'], [
@@ -344,8 +351,10 @@ def test_tidyup(data_diag):
 
 
 def test_autotidyup():
-    small = qeye(1) * 1e-5
-    with CoreOptions(auto_tidyup_atol=1e-3):
+    small = (qeye(1) * 1e-5).to(Dia)
+    with CoreOptions(auto_tidyup_atol=1e-3, default_dtype=Dia):
         assert (small + small).tr() == 0
-    with CoreOptions(auto_tidyup_atol=1e-3, auto_tidyup=False):
+    with CoreOptions(
+        auto_tidyup_atol=1e-3, auto_tidyup=False, default_dtype=Dia
+    ):
         assert (small + small).tr() == 2e-5

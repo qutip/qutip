@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 import qutip
 from qutip.core import gates
+from qutip import Qobj
 
 
 def _infidelity(a, b):
@@ -71,10 +72,10 @@ class TestExplicitForm:
         pytest.param(gates.berkeley, 8, lambda : -qutip.qeye([2, 2]),
                      id="berkeley"),
         pytest.param(gates.sqrtnot, 2, qutip.sigmax, id="sqrtnot"),
-        pytest.param(gates.sqrtswap, 2, gates.swap, id="cs_gate"),
-        pytest.param(gates.sqrtiswap, 2, gates.iswap, id="ct_gate"),
+        pytest.param(gates.sqrtswap, 2, gates.swap, id="sqrtswap"),
+        pytest.param(gates.sqrtiswap, 2, gates.iswap, id="sqrtiswap"),
     ])
-    def gate_power_relation(self, gate, expected, power):
+    def test_gate_power_relation(self, gate, expected, power):
         assert gate()**power == expected()
 
     @pytest.mark.parametrize(['angle', 'expected'], [
@@ -152,7 +153,7 @@ class TestCliffordGroup:
         assert len(pauli_gates) == 0
 
 
-@pytest.mark.parametrize("alias", [qutip.data.Dense, "CSR"])
+@pytest.mark.parametrize("alias", [qutip.data.Dense, "CSR", "core"])
 @pytest.mark.parametrize(["gate_func", "args"], [
         pytest.param(gates.cnot, (), id="cnot"),
         pytest.param(gates.cy_gate, (), id="cy_gate"),
@@ -191,9 +192,21 @@ class TestCliffordGroup:
 def test_metadata(gate_func, args, alias):
     gate = gate_func(*args, dtype=alias)
     dtype = qutip.data.to.parse(alias)
+    if alias == "core":
+        dtype = tuple(dtype)
     assert isinstance(gate.data, dtype)
     assert gate._isherm == qutip.data.isherm(gate.data)
     assert gate._isunitary == gate._calculate_isunitary()
     with qutip.CoreOptions(default_dtype=alias):
         gate = gate_func(*args)
         assert isinstance(gate.data, dtype)
+
+def test_phasegate_hermitian():
+    phi = 4 * np.pi / 3
+    pg = gates.phasegate(phi)
+    expected = Qobj([[1, 0], [0, np.exp(1j * phi)]])
+    assert not pg.isherm
+    assert np.allclose(pg.dag().full(), expected.dag().full())
+    diag_elements = np.diag(pg.full())
+    expected_diag = [1, np.exp(1j * phi)]
+    assert np.allclose(diag_elements, expected_diag)

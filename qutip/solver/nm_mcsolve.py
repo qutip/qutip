@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
 import numbers
@@ -16,7 +19,7 @@ from .solver_base import _kwargs_migration
 from .cy.nm_mcsolve import RateShiftCoefficient, SqrtRealCoefficient
 from ..core.coefficient import ConstantCoefficient, Coefficient
 from ..core import (
-    CoreOptions, Qobj, QobjEvo, isket, ket2dm, qeye, coefficient,
+    CoreOptions, Qobj, QobjEvo, isket, ket2dm, qeye_like, coefficient,
 )
 from ..typing import QobjEvoLike, EopsLike, CoefficientLike
 
@@ -367,6 +370,7 @@ class NonMarkovianMCSolver(MCSolver):
         "norm_steps": 5,
         "norm_t_tol": 1e-6,
         "norm_tol": 1e-4,
+        "norm_min_step": 0.0,
         "improved_sampling": False,
         "completeness_rtol": 1e-5,
         "completeness_atol": 1e-8,
@@ -437,11 +441,11 @@ class NonMarkovianMCSolver(MCSolver):
         a_candidate = op.tr() / op.shape[0]
         with CoreOptions(rtol=self.options["completeness_rtol"],
                          atol=self.options["completeness_atol"]):
-            if op == a_candidate * qeye(op.dims[0]):
+            if op == a_candidate * qeye_like(op):
                 return np.real(a_candidate), None
 
         a = max(op.eigenenergies())
-        L = (a * qeye(op.dims[0]) - op).sqrtm()  # new Lindblad operator
+        L = (a * qeye_like(op) - op).sqrtm()  # new Lindblad operator
         return a, L
 
     def current_martingale(self):
@@ -649,6 +653,13 @@ class NonMarkovianMCSolver(MCSolver):
 
         norm_steps: int, default: 5
             Maximum number of tries to find the collapse.
+
+        norm_min_step: float, default: 0.0
+            Minimum step used when finding the collapse time, given as a
+            fraction of the search interval. Must be between 0 and 0.5.
+            A small non-zero value can help avoid the worst cases of
+            convergence at the cost of increased average steps required to find
+            the collapse.
 
         improved_sampling: Bool, default: False
             Whether to use the improved sampling algorithm

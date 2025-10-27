@@ -1,7 +1,7 @@
 import pytest
 import qutip
 import numpy as np
-from scipy.special import sph_harm
+from qutip.wigner import sph_harm_y
 
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
@@ -56,7 +56,7 @@ def test_anim_sphereplot():
     theta = np.linspace(0, np.pi, 90)
     phi = np.linspace(0, 2 * np.pi, 60)
     phi_mesh, theta_mesh = np.meshgrid(phi, theta)
-    values = sph_harm(-1, 2, phi_mesh, theta_mesh).T
+    values = sph_harm_y(2, -1, theta_mesh, phi_mesh).T
     fig, ani = qutip.anim_sphereplot([values]*2, theta, phi)
     plt.close()
 
@@ -91,6 +91,17 @@ def test_anim_wigner():
     rhos = [rho]*2
 
     fig, ani = qutip.anim_wigner(rhos)
+    plt.close()
+
+    assert isinstance(fig, mpl.figure.Figure)
+    assert isinstance(ani, mpl.animation.ArtistAnimation)
+
+
+def test_anim_qfunc():
+    rho = qutip.rand_dm(5)
+    rhos = [rho]*2
+
+    fig, ani = qutip.anim_qfunc(rhos)
     plt.close()
 
     assert isinstance(fig, mpl.figure.Figure)

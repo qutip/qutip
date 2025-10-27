@@ -124,7 +124,6 @@ def test_diagonal_raise(function, message):
         [2, 3, 4],
         1,
         [1],
-        [1, 1],
         qutip.dimensions.Space([2, 3, 4]),
     ])
 def test_implicit_tensor_creation(to_test, dimensions):
@@ -256,7 +255,7 @@ def _check_meta(object, dtype):
 
 
 # random object accept `str` and base.Data
-dtype_names = ["dense", "csr"] + list(qutip.data.to.dtypes)
+dtype_names = ["dense", "csr", "core"] + list(qutip.data.to.dtypes)
 @pytest.mark.parametrize('alias', dtype_names,
                          ids=[str(dtype) for dtype in dtype_names])
 @pytest.mark.parametrize(['func', 'args'], [
@@ -297,6 +296,8 @@ dtype_names = ["dense", "csr"] + list(qutip.data.to.dtypes)
 ], ids=_id_func)
 def test_operator_type(func, args, alias):
     object = func(*args, dtype=alias)
+    if alias == "core":
+        dtype = tuple(qutip.data.to.parse(alias))
     dtype = qutip.data.to.parse(alias)
     _check_meta(object, dtype)
 

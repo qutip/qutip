@@ -13,9 +13,11 @@ import pytest
 from qutip import (
     Qobj, basis, identity, sigmax, sigmay, qeye, create, rand_super,
     rand_super_bcsz, rand_dm, tensor, super_tensor, kraus_to_choi,
-    to_super, to_choi, to_kraus, to_chi, to_stinespring, operator_to_vector,
-    vector_to_operator, sprepost, destroy, CoreOptions
+    kraus_to_super, to_super, to_choi, to_kraus, to_chi, to_stinespring,
+    operator_to_vector, vector_to_operator, sprepost, CoreOptions
 )
+from qutip.core.dimensions import Space
+from qutip.core.energy_restricted import EnrSpace
 from qutip.core.gates import swap
 
 
@@ -40,7 +42,8 @@ def assert_kraus_equivalence(a, b, tol=tol):
     np.testing.assert_allclose(a, b)
 
 
-@pytest.fixture(scope="function", params=[2, 3, 7])
+@pytest.fixture(scope="function",
+                params=[2, 3, 7, pytest.param(EnrSpace([3, 3], 2), id="enr")])
 def dimension(request):
     # There are also some cases in the file where this fixture is explicitly
     # overridden by a more local mark.  That is deliberate.
@@ -108,6 +111,19 @@ class TestSuperopReps:
         assert (test_choi - choi_matrix).norm() < tol
         assert choi_matrix.type == "super" and choi_matrix.superrep == "choi"
         assert test_choi.type == "super" and test_choi.superrep == "choi"
+
+    @pytest.mark.parametrize('sparse', [True, False])
+    def test_KrausSuperKraus(self, superoperator, sparse):
+        """
+        Superoperator: Convert superoperator to Kraus and back.
+        """
+        kraus_ops = to_kraus(superoperator)
+        test_super = kraus_to_super(kraus_ops, sparse=sparse)
+
+        # Assert both that the result is close to expected, and has the right
+        # type.
+        assert (test_super - superoperator).norm() < tol
+        assert test_super.type == "super" and test_super.superrep == "super"
 
     def test_NonSquareKrausSuperChoi(self):
         """
@@ -225,7 +241,11 @@ class TestSuperopReps:
         """
         Superoperator: Trace returned by to_choi matches docstring.
         """
-        assert abs(to_choi(identity(dimension)).tr() - dimension) <= tol
+        if isinstance(dimension, Space):
+            N = dimension.size
+        else:
+            N = dimension
+        assert abs(to_choi(identity(dimension)).tr() - N) <= tol
 
     def test_stinespring_cp(self, dimension):
         """
@@ -237,6 +257,7 @@ class TestSuperopReps:
         assert (A - B).norm() < tol
 
     @pytest.mark.repeat(3)
+    @pytest.mark.parametrize('dimension', [2, 3, 7])
     def test_stinespring_agrees(self, dimension):
         """
         Stinespring: Partial Tr over pair agrees w/ supermatrix.
@@ -257,6 +278,7 @@ class TestSuperopReps:
 
         assert (q1 - q2).norm('tr') <= tol
 
+    @pytest.mark.parametrize('dimension', [2, 3, 7])
     def test_stinespring_dims(self, dimension):
         """
         Stinespring: Check that dims of channels are preserved.

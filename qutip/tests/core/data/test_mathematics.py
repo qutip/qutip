@@ -554,6 +554,9 @@ class TestAdd(BinaryOpMixin):
         pytest.param(data.add_csr, CSR, CSR, CSR),
         pytest.param(data.add_dense, Dense, Dense, Dense),
         pytest.param(data.add_dia, Dia, Dia, Dia),
+        pytest.param(data.iadd_dense, Dense, Dense, Dense),
+        pytest.param(data.iadd_dense_data_dense, Dense, Dia, Dense),
+        pytest.param(data.iadd_data, CSR, Dia, Data),
     ]
 
     # `add` has an additional scalar parameter, because the operation is
@@ -762,6 +765,10 @@ class TestKron(BinaryOpMixin):
         pytest.param(data.kron_csr, CSR, CSR, CSR),
         pytest.param(data.kron_dense, Dense, Dense, Dense),
         pytest.param(data.kron_dia, Dia, Dia, Dia),
+        pytest.param(data.kron_dense_csr_csr, Dense, CSR, CSR),
+        pytest.param(data.kron_csr_dense_csr, CSR, Dense, CSR),
+        pytest.param(data.kron_dense_dia_dia, Dense, Dia, Dia),
+        pytest.param(data.kron_dia_dense_dia, Dia, Dense, Dia),
     ]
 
 
@@ -773,7 +780,7 @@ class TestKronT(BinaryOpMixin):
     shapes = shapes_binary_unrestricted(dim=5)
     bad_shapes = shapes_binary_bad_unrestricted(dim=5)
     specialisations = [
-        pytest.param(data.kron_transpose_data, CSR, CSR, CSR),
+        pytest.param(data.kron_transpose_data, CSR, CSR, Data),
         pytest.param(data.kron_transpose_dense, Dense, Dense, Dense),
     ]
 
@@ -794,6 +801,28 @@ class TestMatmul(BinaryOpMixin):
     ]
 
 
+class TestMatmulDag(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.matmul(left, right)
+
+    shapes = shapes_binary_matmul()
+    bad_shapes = shapes_binary_bad_matmul()
+    specialisations = [
+        pytest.param(
+            lambda l, r: data.matmul_dag_data(l, r.adjoint()),
+            CSR, CSR, CSR
+        ),
+        pytest.param(
+            lambda l, r: data.matmul_dag_dense_csr_dense(l, r.adjoint()),
+            Dense, CSR, Dense
+        ),
+        pytest.param(
+            lambda l, r: data.matmul_dag_dense(l, r.adjoint()),
+            Dense, Dense, Dense
+        ),
+    ]
+
+
 class TestMultiply(BinaryOpMixin):
     def op_numpy(self, left, right):
         return left * right
@@ -804,6 +833,26 @@ class TestMultiply(BinaryOpMixin):
         pytest.param(data.multiply_csr, CSR, CSR, CSR),
         pytest.param(data.multiply_dense, Dense, Dense, Dense),
         pytest.param(data.multiply_dia, Dia, Dia, Dia),
+    ]
+
+
+class TestMatmul_Outer(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.matmul(left, right)
+
+    shapes = shapes_binary_matmul()
+    bad_shapes = shapes_binary_bad_matmul()
+    from qutip.core.data.matmul import (
+        matmul_outer_csr_dense_sparse,
+        matmul_outer_dia_dense_sparse,
+        matmul_outer_dense_Data,
+    )
+    specialisations = [
+        pytest.param(matmul_outer_csr_dense_sparse, CSR, Dense, CSR),
+        pytest.param(matmul_outer_csr_dense_sparse, Dense, CSR, CSR),
+        pytest.param(matmul_outer_dia_dense_sparse, Dia, Dense, Dia),
+        pytest.param(matmul_outer_dia_dense_sparse, Dense, Dia, Dia),
+        pytest.param(matmul_outer_dense_Data, Dense, Dense, Data),
     ]
 
 
@@ -979,33 +1028,25 @@ class TestProject(UnaryOpMixin):
     specialisations = [
         pytest.param(data.project_csr, CSR, CSR),
         pytest.param(data.project_dia, Dia, Dia),
-        pytest.param(data.project_dense, Dense, Dense),
+        pytest.param(data.project_dense_data, Dense, Data),
     ]
 
 
 def _inv_dense(matrix):
     # Add a diagonal so `matrix` is not singular
-    return data.inv_dense(
-        data.add(
-            matrix,
-            data.diag([1.1]*matrix.shape[0], shape=matrix.shape, dtype='dense')
-        )
-    )
+    diag = data.diag([2.] * matrix.shape[0], shape=matrix.shape, dtype='dense')
+    return data.inv_dense(data.to(Dense, data.add(matrix, diag)))
 
 
 def _inv_csr(matrix):
     # Add a diagonal so `matrix` is not singular
-    return data.inv_csr(
-        data.add(
-            matrix,
-            data.diag([1.1]*matrix.shape[0], shape=matrix.shape, dtype='csr')
-        )
-    )
+    diag = data.diag([2.] * matrix.shape[0], shape=matrix.shape, dtype='csr')
+    return data.inv_csr(data.to(CSR, data.add(matrix, diag)))
 
 
 class TestInv(UnaryOpMixin):
     def op_numpy(self, matrix):
-        return np.linalg.inv(matrix + np.eye(matrix.shape[0]) * 1.1)
+        return np.linalg.inv(matrix + np.eye(matrix.shape[0]) * 2.)
 
     shapes = [
         (pytest.param((1, 1), id="scalar"),),
@@ -1044,3 +1085,46 @@ class TestIdentity_like(UnaryOpMixin):
         pytest.param(data.identity_like_data, CSR, CSR),
         pytest.param(data.identity_like_dense, Dense, Dense),
     ]
+
+
+class TestWRMN_error(BinaryOpMixin):
+    def op_numpy(self, left, right, atol, rtol):
+        return np.linalg.norm(
+            np.abs(left)
+            / (atol + rtol * np.abs(right))
+        ) / left.size**0.5
+
+    shapes = shapes_binary_identical()
+    bad_shapes = shapes_binary_bad_identical()
+    specialisations = [
+        pytest.param(data.ode.wrmn_error_csr, CSR, CSR, float),
+        pytest.param(data.ode.wrmn_error_dense, Dense, Dense, float),
+        pytest.param(data.ode.wrmn_error_dia, Dia, Dia, float),
+    ]
+
+    # `wrmn_error` has additional scalar parameters: the tolerances.
+    @pytest.mark.parametrize('atol', [1e-7, 0.5],
+                             ids=['atol[small]', 'atol[large]'])
+    @pytest.mark.parametrize('rtol', [0, 1e-10, 0.5],
+                             ids=['rtol[0]', 'rtol[small]', 'rtol[large]'])
+    def test_mathematically_correct(self, op, data_l, data_r, out_type, atol, rtol):
+        """
+        Test that the binary operation is mathematically correct for all the
+        known type specialisations.
+        """
+        left, right = data_l(), data_r()
+        expected = self.op_numpy(left.to_array(), right.to_array(), atol, rtol)
+        test = op(left, right, atol, rtol)
+
+        assert isinstance(test, out_type)
+        np.testing.assert_allclose(
+            test, expected, atol=self.atol, rtol=self.rtol
+        )
+
+    def test_incorrect_shape_raises(self, op, data_l, data_r):
+        """
+        Test that the operation produces a suitable error if the shapes of the
+        given operands are not compatible.
+        """
+        with pytest.raises(ValueError):
+            op(data_l(), data_r(), 1e-5, 1e-5)

@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver"]
 
 import numpy as np
@@ -706,7 +709,7 @@ class StochasticSolver(MultiTrajSolver):
                     "operators are expected."
                 )
         if not all(
-            isinstance(op, Qobj) and op.dims == self.rhs.sc_ops[0].dims
+            isinstance(op, Qobj) and op._dims == self.rhs.sc_ops[0]._dims
             for op in new_m_ops
         ):
             raise ValueError(

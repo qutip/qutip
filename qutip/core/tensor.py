@@ -85,8 +85,8 @@ shape = [4, 4], type = oper, isHerm = True
             return right.linear_map(partial(tensor, left))
         if isinstance(right, Qobj):
             return left.linear_map(_reverse_partial_tensor(right))
-        left_t = left.linear_map(_reverse_partial_tensor(qeye(right.dims[0])))
-        right_t = right.linear_map(partial(tensor, qeye(left.dims[1])))
+        left_t = left.linear_map(_reverse_partial_tensor(qeye(right._dims[0])))
+        right_t = right.linear_map(partial(tensor, qeye(left._dims[1])))
         return left_t @ right_t
 
     if not all(q.superrep == args[0].superrep for q in args[1:]):
@@ -291,6 +291,7 @@ def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
     sqobj : Qobj
         The original Qobj with all named index pairs swapped with each other
     """
+    q_oper._dims._require_pure_dims("tensor swap")
     dims = q_oper.dims
     tensor_pairs = dims_idxs_to_tensor_idxs(dims, pairs)
     data = q_oper.full()
@@ -337,6 +338,7 @@ def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
         away.
 
     """
+    qobj._dims._require_pure_dims("tensor contract")
     # Record and label the original dims.
     dims = qobj.dims
     dims_idxs = enumerate_flat(dims)
@@ -424,7 +426,7 @@ def _targets_to_list(targets, oper=None, N=None):
         targets = list(range(len(oper.dims[0])))
     if not hasattr(targets, '__iter__'):
         targets = [targets]
-    if not all([isinstance(t, int) for t in targets]):
+    if not all([isinstance(t, (int, np.integer)) for t in targets]):
         raise TypeError(
             "targets should be "
             "an integer or a list of integer")
@@ -484,8 +486,10 @@ def expand_operator(
     expanded_oper : :class:`.Qobj`
         The expanded operator acting on a system with the desired dimension.
     """
+    oper._dims._require_pure_dims("expand operator")
+
     from .operators import identity
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     oper = oper.to(dtype)
     N = len(dims)
     targets = _targets_to_list(targets, oper=oper, N=N)
@@ -505,4 +509,4 @@ def expand_operator(
     for i, ind in enumerate(rest_pos):
         new_order[ind] = rest_qubits[i]
     id_list = [identity(dims[i]) for i in rest_pos]
-    return tensor([oper] + id_list).permute(new_order)
+    return tensor([oper] + id_list).permute(new_order).to(dtype)

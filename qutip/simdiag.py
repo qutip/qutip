@@ -41,8 +41,13 @@ def _degen(tol, vecs, ops, i=0):
     return vecs_new
 
 
-def simdiag(ops, evals: bool = True, *,
-            tol: float = 1e-14, safe_mode: bool = True):
+def simdiag(
+    ops,
+    evals: bool = True, *,
+    tol: float = 1e-14,
+    safe_mode: bool = True,
+    use_dense_solver: bool = True,
+):
     """Simultaneous diagonalization of commuting Hermitian matrices.
 
     Parameters
@@ -58,15 +63,20 @@ def simdiag(ops, evals: bool = True, *,
     tol : float, default: 1e-14
         Tolerance for detecting degenerate eigenstates.
 
-    safe_mode : bool, default:  True
+    safe_mode : bool, default: True
         Whether to check that all ops are Hermitian and commuting. If set to
         ``False`` and operators are not commuting, the eigenvectors returned
         will often be eigenvectors of only the first operator.
 
+    use_dense_solver: bool, default: True
+        Whether to force use of numpy dense eigen solver. When ``False``
+        sparse operators will use scipy sparse eigen solver which is not
+        appropriate for this use.
+
     Returns
     -------
     eigs : tuple
-        Tuple of arrays representing eigvecs and eigvals of quantum objects
+        Tuple of arrays representing eigvals and eigvecs of quantum objects
         corresponding to simultaneous eigenvectors and eigenvalues for each
         operator.
 
@@ -89,7 +99,10 @@ def simdiag(ops, evals: bool = True, *,
             if (A * B - B * A).norm() / (A * B).norm() > tol:
                 raise TypeError('Matrices must commute.')
 
-    # TODO: rewrite using Data object
+    if use_dense_solver:
+        # Do not use sparse eigen solver.
+        ops = [op.to("Dense") for op in ops]
+
     eigvals, eigvecs = _data.eigs(ops[0].data, True, True)
     eigvecs = eigvecs.to_array()
 
@@ -106,7 +119,8 @@ def simdiag(ops, evals: bool = True, *,
         eigvecs[:, k] = eigvecs[:, k] / la.norm(eigvecs[:, k])
 
     kets_out = [
-        Qobj(eigvecs[:, j], dims=[ops[0].dims[0], [1]])
+        Qobj(eigvecs[:, j],
+             dims=[ops[0]._dims[0], ops[0]._dims[0].scalar_like()])
         for j in range(N)
     ]
     eigvals_out = np.zeros((len(ops), N), dtype=np.float64)

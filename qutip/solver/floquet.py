@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 __all__ = [
     "FloquetBasis",
     "floquet_tensor",
@@ -120,7 +123,8 @@ class FloquetBasis:
         """
         Split the Data array in a list of kets.
         """
-        dims = [self.U(0).dims[0], [1]]
+        space = self.U(0)._dims[0]
+        dims = [space, space.scalar_like()]
         return [
             Qobj(ket, dims=dims)
             for ket in _data.split_columns(kets_mat)
@@ -224,9 +228,9 @@ class FloquetBasis:
         """
         is_Qobj = isinstance(floquet_basis, Qobj)
         if is_Qobj:
-            dims = floquet_basis.dims
+            dims = floquet_basis._dims
             floquet_basis = floquet_basis.data
-            if dims[0] != self.U(0).dims[1]:
+            if dims[0] != self.U(0)._dims[1]:
                 raise ValueError(
                     "Dimensions of the state do not match the Hamiltonian"
                 )
@@ -265,9 +269,9 @@ class FloquetBasis:
         """
         is_Qobj = isinstance(lab_basis, Qobj)
         if is_Qobj:
-            dims = lab_basis.dims
+            dims = lab_basis._dims
             lab_basis = lab_basis.data
-            if dims[0] != self.U(0).dims[1]:
+            if dims[0] != self.U(0)._dims[1]:
                 raise ValueError(
                     "Dimensions of the state do not match the Hamiltonian"
                 )
@@ -526,7 +530,7 @@ def floquet_tensor(
     gamma = _floquet_gamma_matrices(x, delta, spectra_cb)
     a = _floquet_A_matrix(delta, gamma, w_th)
     r = _floquet_master_equation_tensor(a)
-    dims = floquet_basis.U(0).dims
+    dims = floquet_basis.U(0)._dims
     return Qobj(r, dims=[dims, dims], superrep="super", copy=False)
 
 

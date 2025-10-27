@@ -13,14 +13,16 @@ Users Guide
    guide-tensor.rst
    guide-super.rst
    guide-dynamics.rst
+   guide-environments.rst
    guide-heom.rst
    guide-steady.rst
    guide-piqs.rst
    guide-correlation.rst
    guide-bloch.rst
    guide-visualization.rst
+   guide-distributions.rst
    guide-saving.rst
    guide-random.rst
    guide-settings.rst
    guide-measurement.rst
-   guide-control.rst
+   guide-family.rst

@@ -6,6 +6,7 @@
 This module implements transformations between superoperator representations,
 including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 """
+from __future__ import annotations
 
 __all__ = [
     'kraus_to_choi', 'kraus_to_super',
@@ -19,12 +20,13 @@ import numpy as np
 import scipy.linalg
 
 from . import data as _data
-from .superoperator import stack_columns, unstack_columns, sprepost
+from .superoperator import unstack_columns, sprepost
 from .tensor import tensor
-from .dimensions import flatten
+from .dimensions import Compound, Dimensions, Field, Space, SuperSpace, flatten
 from .qobj import Qobj
 from .operators import identity, sigmax, sigmay, sigmaz
 from .states import basis
+from ..typing import DimensionLike
 
 
 # TODO: revisit when creation routines have dispatching.
@@ -81,7 +83,7 @@ def _nq(dims):
     return nq
 
 
-def isqubitdims(dims: list[list[int]] | list[list[list[int]]]) -> bool:
+def isqubitdims(dims: DimensionLike) -> bool:
     """
     Checks whether all entries in a dims list are integer powers of 2.
 
@@ -96,6 +98,8 @@ def isqubitdims(dims: list[list[int]] | list[list[list[int]]]) -> bool:
         True if and only if every member of the flattened dims
         list is an integer power of 2.
     """
+    if isinstance(dims, Dimensions) and not dims._pure_dims:
+        return False
     return all(_is_power_of_two(dim) for dim in flatten(dims))
 
 
@@ -110,7 +114,7 @@ def _to_superpauli(q_oper):
     """
     # Ensure we start with a column-stacking-basis superoperator.
     sqobj = to_super(q_oper)
-    if not isqubitdims(sqobj.dims):
+    if not isqubitdims(sqobj._dims):
         raise ValueError("Pauli basis is only defined for qubits.")
     nq = _int_log_two(sqobj.shape[0]) // 2
     B = _superpauli_basis(nq) * 2**(-0.5 * nq)
@@ -128,11 +132,15 @@ def _choi_to_kraus(q_oper, tol=1e-9):
     strict sub-class of Qobj.
     """
     vals, vecs = q_oper.eigenstates()
-    dims = [q_oper.dims[0][1], q_oper.dims[0][0]]
-    shape = (np.prod(q_oper.dims[0][1]), np.prod(q_oper.dims[0][0]))
-    return [Qobj(_data.mul(unstack_columns(vec.data, shape=shape), np.sqrt(val)),
-                 dims=dims, copy='False')
-            for val, vec in zip(vals, vecs) if abs(val) >= tol]
+    dims = Dimensions(q_oper._dims[0].oper[0], q_oper._dims[0].oper[1])
+    return [
+        Qobj(
+            _data.mul(unstack_columns(vec.data, shape=dims.shape),
+                      np.sqrt(val)),
+            dims=dims, copy='False'
+        )
+        for val, vec in zip(vals, vecs) if abs(val) >= tol
+    ]
 
 
 # Individual conversions from Kraus operators are public because the output
@@ -163,7 +171,7 @@ def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
     # matrix and produce [M, M] d.m.), Choi matrix Hilbert space will
     # be [[M, N], [M, N]] because Choi Hilbert space
     # is (output space) x (input space).
-    choi_dims = [kraus_ops[0].dims] * 2
+    choi_dims = [SuperSpace(kraus_ops[0]._dims, rep="choi")] * 2
     # transform a list of Qobj matrices list[sum_ij k_ij |i><j|]
     # into an array of array vectors sum_ij k_ij |i, j>> = sum_I k_I |I>>
     kraus_vectors = np.asarray([
@@ -174,10 +182,10 @@ def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
     choi_array = np.tensordot(
         kraus_vectors, kraus_vectors.conj(), axes=([0], [0])
     )
-    return Qobj(choi_array, choi_dims, superrep="choi", copy=False)
+    return Qobj(choi_array, choi_dims, copy=False)
 
 
-def kraus_to_super(kraus_list: list[Qobj]) -> Qobj:
+def kraus_to_super(kraus_list: list[Qobj], sparse=False) -> Qobj:
     """
     Convert a list of Kraus operators to a superoperator.
 
@@ -185,8 +193,13 @@ def kraus_to_super(kraus_list: list[Qobj]) -> Qobj:
     ----------
     kraus_list : list of Qobj
         The list of Kraus super operators to convert.
+    sparse: bool
+        Prevents dense intermediates if true.
     """
-    return to_super(kraus_to_choi(kraus_list))
+    if sparse:
+        return sum(sprepost(k, k.dag()) for k in kraus_list)
+    else:
+        return to_super(kraus_to_choi(kraus_list))
 
 
 def _super_tofrom_choi(q_oper):
@@ -200,19 +213,22 @@ def _super_tofrom_choi(q_oper):
     if q_oper.superrep not in ('super', 'choi'):
         raise ValueError("operator is not in super or choi format")
     data = q_oper.data.to_array()
-    dims = q_oper.dims
-    new_dims = [[dims[1][1], dims[0][1]], [dims[1][0], dims[0][0]]]
-    d0 = np.prod(flatten(new_dims[0]))
-    d1 = np.prod(flatten(new_dims[1]))
-    s0 = np.prod(dims[0][0])
-    s1 = np.prod(dims[1][1])
+    dims_from = q_oper._dims[1].oper
+    dims_to = q_oper._dims[0].oper
+    outrep = 'super' if q_oper.superrep == 'choi' else 'choi'
+    new_dims = [
+        SuperSpace(Dimensions(dims_to[1], dims_from[1]), rep=outrep),
+        SuperSpace(Dimensions(dims_to[0], dims_from[0]), rep=outrep),
+    ]
+    d0 = new_dims[0].size
+    d1 = new_dims[1].size
+    s0 = dims_to[0].size
+    s1 = dims_from[1].size
+
     data = (
         data.reshape([s0, s1, s0, s1]).transpose(3, 1, 2, 0).reshape([d0, d1])
     )
-    return Qobj(data,
-                dims=new_dims,
-                superrep='super' if q_oper.superrep == 'choi' else 'choi',
-                copy=False)
+    return Qobj(data, dims=new_dims, copy=False)
 
 
 def _choi_to_chi(q_oper):
@@ -286,9 +302,9 @@ def _generalized_kraus(q_oper, threshold=1e-10):
     # as we'll need this to make Kraus operators later.
     dL, dR = int(np.sqrt(q_oper.shape[0])), int(np.sqrt(q_oper.shape[1]))
     # Also remember the dims breakout.
-    out_dims, in_dims = q_oper.dims
-    out_left, out_right = out_dims
-    in_left, in_right = in_dims
+    out_dims, in_dims = q_oper._dims
+    out_left, out_right = out_dims.oper
+    in_left, in_right = in_dims.oper
 
     # Find the SVD.
     U, S, V = scipy.linalg.svd(q_oper.full())
@@ -323,28 +339,30 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
     dL = kU[0].shape[0]
     dR = kV[0].shape[1]
     # Also remember the dims breakout.
-    out_dims, in_dims = q_oper.dims
-    out_left, out_right = out_dims
-    in_left, in_right = in_dims
+    out_dims, in_dims = q_oper._dims
+    out_left, out_right = out_dims.oper
+    in_left, in_right = in_dims.oper
 
-    A = Qobj(_data.zeros(dK * dL, dL),
-             dims=[out_left + [dK], out_right + [1]],
-             isherm=True,
-             isunitary=False,
-             copy=False)
-    B = Qobj(_data.zeros(dK * dR, dR),
-             dims=[in_left + [dK], in_right + [1]],
-             isherm=True,
-             isunitary=False,
-             copy=False)
+    A = Qobj(
+        _data.zeros(dK * dL, dL),
+        dims=[Compound(out_left, Space(dK)), Compound(out_right, Field())],
+        isherm=True,
+        isunitary=False,
+        copy=False)
+    B = Qobj(
+        _data.zeros(dK * dR, dR),
+        dims=[Compound(in_left, Space(dK)), Compound(in_right, Field())],
+        isherm=True,
+        isunitary=False,
+        copy=False)
 
     for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
         A += tensor(KL, basis(dK, idx_kraus))
         B += tensor(KR, basis(dK, idx_kraus))
 
     # There is no input (right) Kraus index, so strip that off.
-    A.dims = [out_left + [dK], out_right]
-    B.dims = [in_left + [dK], in_right]
+    A.dims = [Compound(out_left, Space(dK)), out_right]
+    B.dims = [Compound(in_left, Space(dK)), in_right]
 
     return A, B
 

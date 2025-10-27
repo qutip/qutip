@@ -2,11 +2,11 @@ import numpy as np
 from scipy.integrate import trapezoid
 from qutip import (destroy, propagator, Propagator, propagator_steadystate,
                    steadystate, tensor, qeye, basis, QobjEvo, sesolve,
-                   liouvillian)
+                   liouvillian, rand_dm, enr_identity, enr_destroy)
 import qutip
 import pytest
 from qutip.solver.brmesolve import BRSolver
-from qutip.solver.mesolve import MESolver
+from qutip.solver.mesolve import MESolver, mesolve
 from qutip.solver.sesolve import SESolver
 from qutip.solver.mcsolve import MCSolver
 
@@ -49,6 +49,20 @@ def testPropHOTd():
     assert (U - U2).norm('max') < 1e-4
 
 
+def testPropHOTd():
+    "Propagator: func array td format + open"
+    a = destroy(5)
+    H = a.dag()*a
+    ts = np.linspace(-0.01, 1.01, 103)
+    coeffs = np.cos(ts)
+    Htd = [H, [H, coeffs]]
+    rho_0 = rand_dm(5)
+    rho_1_prop = propagator(Htd, 1, c_ops=[a], tlist=ts)(rho_0)
+    rho_1_me = mesolve(QobjEvo(Htd, tlist=ts), rho_0, [0, 1], [a]).final_state
+
+    assert (rho_1_prop - rho_1_me).norm('max') < 1e-4
+
+
 def testPropObjTd():
     a = destroy(5)
     H = a.dag()*a
@@ -82,18 +96,31 @@ def testPropHOSteady():
     assert (rho_prop - rho_ss).norm('max') < 1e-4
 
 
-def testPropHDims():
+@pytest.mark.parametrize("H", [
+    pytest.param(tensor([qeye(2), qeye(2)]), id="tensor"),
+    pytest.param(enr_identity([2, 2], 1), id="enr"),
+])
+def testPropHDims(H):
     "Propagator: preserve H dims (unitary_mode='single', parallel=False)"
     H = tensor([qeye(2), qeye(2)])
     U = propagator(H, 1)
-    assert U.dims == H.dims
+    assert U._dims == H._dims
 
 
-def testPropHSuper():
+@pytest.mark.parametrize("L", [
+    pytest.param(
+        liouvillian(qeye(2) & qeye(2), [destroy(2) & destroy(2)]),
+        id="tensor"
+    ),
+    pytest.param(
+        liouvillian(enr_identity([2, 2], 1), list(enr_destroy([2, 2], 1))),
+        id="enr"
+    ),
+])
+def testPropHSuper(L):
     "Propagator: preserve super_oper dims"
-    L = liouvillian(qeye(2) & qeye(2), [destroy(2) & destroy(2)])
     U = propagator(L, 1)
-    assert U.dims == L.dims
+    assert U._dims == L._dims
 
 
 def testPropEvo():

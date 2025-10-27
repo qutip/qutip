@@ -57,7 +57,9 @@ We follow `NEP29`_ for minimum supported versions ::
     - All minor versions of Python released 42 months prior to the project, and at minimum the two latest minor versions.
     - All minor versions of numpy and scipy released in the 24 months prior to the project, and at minimum the last three minor versions.
 
-If dependency versions need to be updated, update them in the master branch. The following files may need to be updated: `.github/workflows/tests.yml`, `setup.cfg` and `roadmap.rst`. Finally, ensure that PyPI wheels and conda builds cover at least these versions.
+If dependency versions need to be updated, update them in the master branch.
+The following files may need to be updated: `.github/workflows/tests.yml`, `pyproject.toml` and `roadmap.rst`.
+Finally, ensure that PyPI wheels and conda builds cover at least these versions.
 
 .. _NEP29: https://numpy.org/neps/nep-0029-deprecation_policy.html
 
@@ -100,16 +102,16 @@ This release should be done by branching directly off the ``master`` branch at i
 #. - Change the ``VERSION`` file to contain the new version number exactly, removing the ``.dev`` suffix.
      For example, if you are releasing the first release of the minor 4.7 track, set ``VERSION`` to contain the string ``4.7.0``.
      (*Special circumstances*: if you are making an alpha, beta or release candidate release, append a ``.a<n>``, ``.b<n>`` or ``.rc<n>`` to the version string, where ``<n>`` is an integer starting from 0 that counts how many of that pre-release track there have been.)
-   - Edit ``setup.cfg`` by changing the "Development Status" line in the ``classifiers`` section to ::
+   - Edit ``pyproject.toml`` by changing the "Development Status" line in the ``classifiers`` section to ::
 
         Development Status :: 5 - Production/Stable
 
-   Commit both changes (``git add VERSION setup.cfg; git commit -m "Set release mode for 4.7.0"``), and then push them to your fork (``git push -u origin prepare-qutip-4.7.0``)
+   Commit both changes (``git add VERSION pyproject.toml; git commit -m "Set release mode for 4.7.0"``), and then push them to your fork (``git push -u origin prepare-qutip-4.7.0``)
 #. Using GitHub, make a pull request to the release branch (e.g. ``qutip-4.7.X``) using this branch that you just created.
    You will need to change the "base branch" in the pull request, because GitHub will always try to make the PR against ``master`` at first.
    When the tests have passed, merge this in.
 #. Finally, back on ``master``, make a new pull request that changes the ``VERSION`` file to be ``<next-expected-version>.dev``, for example ``4.8.0.dev``.
-   The "Development Status" in ``setup.cfg`` on ``master`` should not have changed, and should be ::
+   The "Development Status" in ``pyproject.toml`` on ``master`` should not have changed, and should be ::
 
        Development Status :: 2 - Pre-Alpha
 
@@ -117,7 +119,7 @@ This release should be done by branching directly off the ``master`` branch at i
 
 You should now have a branch that you can see on the GitHub website that is called ``qutip-4.7.X`` (or whatever minor version), and the state of the code in it should be exactly what you want to release as the new minor release.
 If you notice you have made a mistake, you can make additional pull requests to the release branch to fix it.
-``master`` should look pretty similar, except the ``VERSION`` will be higher and have a ``.dev`` suffix, and the "Development Status" in ``setup.cfg`` will be different.
+``master`` should look pretty similar, except the ``VERSION`` will be higher and have a ``.dev`` suffix, and the "Development Status" in ``pyproject.toml`` will be different.
 
 * Activate the readthedocs build for the newly created version branch and set it as the latest.
 
@@ -302,7 +304,7 @@ When you download it, though, it will have a name that *looks* like it's the sdi
 
 Edit the ``recipe/meta.yaml`` file.
 Change the version at the top of the file, and update the sha256 checksum.
-Check that the recipe package version requirements at least match those in ``setup.cfg``, and that any changes to the build process are reflected in ``meta.yml``.
+Check that the recipe package version requirements at least match those in ``pyproject.toml``, and that any changes to the build process are reflected in ``meta.yml``.
 Also ensure that the build number is reset ::
 
     build:

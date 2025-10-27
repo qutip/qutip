@@ -4,15 +4,17 @@ tidyup functionality, etc.
 """
 import os
 import sys
-from ctypes import cdll
+from ctypes import cdll, CDLL
 import platform
+from glob import glob
 import numpy as np
+import scipy
 
 __all__ = ['settings']
 
 
-def _blas_info():
-    config = np.__config__
+def _blas_info_pre_1_26():
+    config = scipy.__config__
     if hasattr(config, 'blas_ilp64_opt_info'):
         blas_info = config.blas_ilp64_opt_info
     elif hasattr(config, 'blas_opt_info'):
@@ -32,6 +34,25 @@ def _blas_info():
     else:
         blas = 'Generic'
     return blas
+
+
+def _blas_info():
+    """
+    Find scipy blas and lapack info.
+    scipy blas version can be different from numpy's one.
+    In cython we link to blas using scipy's cython binding and it's the one
+    used for advanced use (eigen, ode, solving linear equation...)
+    Therefore it's the relevent one for our usage.
+    """
+    try:
+        config = scipy.show_config("dicts")
+    except TypeError:
+        return _blas_info_pre_1_26()
+
+    try:
+        return config["Build Dependencies"]["blas"]["name"]
+    except KeyError:
+        return 'Generic'
 
 
 def available_cpu_count() -> int:
@@ -75,47 +96,76 @@ def available_cpu_count() -> int:
 
 def _find_mkl():
     """
-    Finds the MKL runtime library for the Anaconda and Intel Python
-    distributions.
+    Finds the MKL library.
+    Look into scipy's libraries, numpy's libraries, Anaconda default location
+    and Intel Python distributions's. (In that order)
     """
-    mkl_lib = None
-    if _blas_info() == 'INTEL MKL':
-        plat = sys.platform
-        python_dir = os.path.dirname(sys.executable)
-        if plat in ['darwin', 'linux2', 'linux']:
-            python_dir = os.path.dirname(python_dir)
+    plat = sys.platform
 
-        if plat == 'darwin':
-            lib = '/libmkl_rt.dylib'
-        elif plat == 'win32':
-            lib = r'\mkl_rt.dll'
-        elif plat in ['linux2', 'linux']:
-            lib = '/libmkl_rt.so'
-        else:
-            raise Exception('Unknown platfrom.')
+    if plat.startswith("win"):
+        # TODO: fix the mkl handling on windows or use modules like pydiso to
+        # do it for us.
+        return ""
+    if plat == "emscripten":
+        # mkl is not supported on emscripten
+        return ""
 
-        if plat in ['darwin', 'linux2', 'linux']:
-            lib_dir = '/lib'
-        else:
-            lib_dir = r'\Library\bin'
-        # Try in default Anaconda location first
-        try:
-            mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-        except Exception:
-            pass
+    python_dir = os.path.dirname(sys.executable)
+    if plat in ['darwin', 'linux2', 'linux']:
+        python_dir = os.path.dirname(python_dir)
 
-        # Look in Intel Python distro location
-        if mkl_lib is None:
-            if plat in ['darwin', 'linux2', 'linux']:
-                lib_dir = '/ext/lib'
-            else:
-                lib_dir = r'\ext\lib'
-            try:
-                mkl_lib = \
-                    cdll.LoadLibrary(python_dir + lib_dir + lib)
-            except Exception:
-                pass
-    return mkl_lib
+    # Try in default Anaconda location first
+    if plat in ['darwin', 'linux2', 'linux']:
+        lib_dir_anaconda = '/lib/*'
+        lib_dir_intel_python = '/ext/lib'
+    else:
+        lib_dir_anaconda = r'\Library\bin\*'
+        lib_dir_intel_python = r'\ext\lib'
+
+    try:
+        scipy_cfg = scipy.show_config("dicts")["Build Dependencies"]
+        scipy_blas = scipy_cfg["blas"]["lib directory"]
+        scipy_lapack = scipy_cfg["lapack"]["lib directory"]
+    except (TypeError, KeyError):
+        scipy_blas = "unknown"
+        scipy_lapack = "unknown"
+
+    try:
+        numpy_cfg = np.show_config("dicts")["Build Dependencies"]
+        numpy_blas = numpy_cfg["blas"]["lib directory"]
+        numpy_lapack = numpy_cfg["lapack"]["lib directory"]
+    except (TypeError, KeyError):
+        numpy_blas = "unknown"
+        numpy_lapack = "unknown"
+
+    paths = [
+        scipy_blas,
+        scipy_lapack,
+        numpy_blas,
+        numpy_lapack,
+        python_dir + lib_dir_anaconda,
+        python_dir + lib_dir_intel_python,
+    ]
+
+    if plat == 'darwin':
+        ext = ".dylib"
+    elif plat == 'win32':
+        ext = ".dll"
+    elif plat in ['linux2', 'linux']:
+        ext = ".so"
+    else:
+        raise Exception('Unknown platfrom.')
+
+    mkl_libs = []
+    for path in paths:
+        libraries = glob(path)
+        mkl_libs += [
+            lib for lib in libraries
+            if "mkl_rt." in lib and ext in lib
+        ]
+    if mkl_libs:
+        return mkl_libs[0]
+    return ""
 
 
 class Settings:
@@ -124,6 +174,7 @@ class Settings:
     """
     def __init__(self):
         self._mkl_lib = ""
+        self._mkl_lib_loc = ""
         try:
             self.tmproot = os.path.join(os.path.expanduser("~"), '.qutip')
         except OSError:
@@ -140,11 +191,52 @@ class Settings:
         return self.mkl_lib is not None
 
     @property
-    def mkl_lib(self) -> str | None:
-        """ Location of the mkl installation. """
+    def mkl_lib_location(self) -> str | None:
+        """ Location of the mkl library file. The file is usually called:
+
+        - `libmkl_rt.so` (Linux)
+        - `libmkl_rt.dylib` (Mac)
+        - `mkl_rt.dll` (Windows)
+
+        It search for the library in the python lib path per default.
+        If the library is in other location, update this variable as needed.
+        """
+        if self._mkl_lib_loc == "":
+            _mkl_lib_loc = _find_mkl()
+            try:
+                _mkl_lib = cdll.LoadLibrary(_mkl_lib_loc)
+            except OSError:
+                _mkl_lib = None
+            if not (
+                hasattr(_mkl_lib, "pardiso")
+                and hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv")
+            ):
+                self._mkl_lib_loc = None
+                self._mkl_lib = None
+            else:
+                self._mkl_lib = _mkl_lib
+                self._mkl_lib_loc = _mkl_lib_loc
+        return self._mkl_lib_loc
+
+    @mkl_lib_location.setter
+    def mkl_lib_location(self, new: str):
+        _mkl_lib = cdll.LoadLibrary(new)
+        if not (
+            hasattr(_mkl_lib, "pardiso")
+            and hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv")
+        ):
+            raise ValueError(
+                "mkl sparse functions not available in the provided library"
+            )
+        self._mkl_lib_loc = new
+        self._mkl_lib = _mkl_lib
+
+    @property
+    def mkl_lib(self) -> CDLL | None:
+        """ Mkl library """
         if self._mkl_lib == "":
-            self._mkl_lib = _find_mkl()
-        return _find_mkl()
+            self.mkl_lib_location
+        return self._mkl_lib
 
     @property
     def ipython(self) -> bool:

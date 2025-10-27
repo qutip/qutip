@@ -30,3 +30,4 @@ cpdef Dense identity(base.idxint dimension, double complex scale=*,
                      bint fortran=*)
 cpdef Dense from_csr(CSR matrix, bint fortran=*)
 cpdef Dense from_dia(Dia matrix)
+cpdef long nnz(Dense matrix, double tol=*)
