@@ -142,9 +142,9 @@ class TestFitting:
     def generate_data(self, request):
         """Generate test data."""
         noisy = request.param
-        x = np.linspace(0, 10, 100)
-        fparams1 = [1, .5, 0]
-        fparams2 = [3, 2, .5]
+        x = np.linspace(0, 10, 151)
+        fparams1 = [-.5, .25, 0]
+        fparams2 = [3, 0.25, 5]
         y = self.model(x, *fparams1) + self.model(x, *fparams2)
         if noisy:
             noise = self.rng.normal(0, 0.01, len(x))
