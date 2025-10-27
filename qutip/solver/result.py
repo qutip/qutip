@@ -375,3 +375,114 @@ class Result(_BaseResult):
         if self.states:
             return self.states[-1]
         return None
+    
+    def plot_expect(
+        self,
+        which=None,
+        separate=False,
+        title=True,
+        ax=None,
+        legend=True,
+        show=True,
+        **plot_kwargs,
+    ):
+        """
+        Plot expectation values stored in this Result.
+
+        Parameters
+        ----------
+        which : str | list[str] | None, optional
+            Which expectation values to plot. If None, plot all.
+            If `e_ops` was a dict, the keys are used as labels.
+
+        separate : bool, default=False
+            If True, plot each expectation value in its own subplot.
+            If False, plot all in the same axis.
+
+        title : bool | str, default=True
+            If True, use solver name as title. If str, use custom title.
+            If False, omit title.
+
+        ax : matplotlib.axes.Axes | None, optional
+            Axis to draw on (only used if `separate=False`). If None,
+            create a new figure and axis.
+
+        legend : bool, default=True
+            Whether to display a legend.
+
+        show : bool, default=True
+            Call `plt.show()` after plotting.
+
+        **plot_kwargs
+            Additional keyword arguments passed to ``ax.plot()``.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The created figure.
+        axes : matplotlib.axes.Axes or ndarray of Axes
+            The axes with the plotted data.
+
+        Notes
+        -----
+        This method requires `matplotlib` to be installed.
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise ImportError(
+                "matplotlib is required for plot_expect. Please install it."
+            ) from exc
+
+        if not hasattr(self, "e_data") or not self.e_data:
+            raise ValueError("No expectation values stored in this Result.")
+
+        # Pick which values to plot
+        labels = list(self.e_data.keys())
+        values = list(self.e_data.values())
+        if which is not None:
+            if isinstance(which, str):
+                which = [which]
+            idx = [labels.index(w) for w in which]
+            labels = [labels[i] for i in idx]
+            values = [values[i] for i in idx]
+
+        if separate:
+            fig, axes = plt.subplots(len(values), 1, sharex=True,
+                                    figsize=(6, 3 * len(values)))
+            if len(values) == 1:
+                axes = [axes]  # make iterable
+            for axis, label, val in zip(axes, labels, values):
+                axis.plot(self.times, val, label=label, **plot_kwargs)
+                axis.set_ylabel(label)
+                if legend:
+                    axis.legend()
+            axes[-1].set_xlabel("time")
+        else:
+            if ax is None:
+                fig, ax = plt.subplots()
+            else:
+                fig = ax.figure
+            for label, val in zip(labels, values):
+                ax.plot(self.times, val, label=label, **plot_kwargs)
+            ax.set_xlabel("time")
+            ax.set_ylabel("expectation value")
+            if legend:
+                ax.legend()
+            axes = ax
+
+        # Handle title
+        if title is True and hasattr(self, "solver"):
+            fig.suptitle(f"Expectation values ({self.solver})")
+        elif isinstance(title, str):
+            fig.suptitle(title)
+
+        if show:
+            plt.show()
+
+        return fig, axes
+
+                    
+
+        
+
