@@ -31,7 +31,7 @@ jobs:
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.14"]
-        case-name: [python 3.14 - Latest]
+        case-name: ["python 3.14 - Latest"]
         condaforge: [1]
         numpy-build: [""]
         numpy-requirement: [""]
