@@ -2,14 +2,22 @@ __all__ = ['expect', 'variance']
 
 import numpy as np
 from typing import overload, Sequence
+import itertools
 
 from .qobj import Qobj
+from .properties import isoper
 from . import data as _data
 from ..settings import settings
+from .cy.coefficient import Coefficient
+from .coefficient import coefficient
+from .cy.qobjevo import QobjEvo
 
 
 @overload
 def expect(oper: Qobj, state: Qobj) -> complex: ...
+
+@overload
+def expect(oper: Qobj | QobjEvo, state: Qobj | QobjEvo) -> Coefficient: ...
 
 @overload
 def expect(
@@ -70,6 +78,12 @@ def expect(oper, state):
             dtype = np.float64
         return np.array([_single_qobj_expect(oper, x) for x in state],
                         dtype=dtype)
+
+    if (
+        isinstance(state, (Qobj, QobjEvo))
+        and isinstance(oper, (Qobj, QobjEvo))
+    ):
+        return _single_qobjevo_expect(oper, state)
     raise TypeError('Arguments must be quantum objects')
 
 
@@ -96,6 +110,75 @@ def _single_qobj_expect(oper, state):
     ):
         out = out.real
     return out
+
+
+def _single_qobjevo_expect(oper, state):
+    oper = QobjEvo(oper)
+    state = QobjEvo(state)
+    if not isoper(state):
+        state = state @ state.dag()
+
+    op_list = oper.to_list()
+    state_list = state.to_list()
+
+    out_coeff = coefficient(0.)
+
+    for op, rho in itertools.product(op_list, state_list):
+        if isinstance(op, Qobj):
+            op = [op, coefficient(1.)]
+        if isinstance(rho, Qobj):
+            rho = [rho, coefficient(1.)]
+
+        if isinstance(op[0], Qobj) and isinstance(rho[0], Qobj):
+            out_coeff = out_coeff + coefficient(
+                _single_qobj_expect(op[0], rho[0])
+            ) * op[1] * rho[1]
+
+        # One of the QobjEvo is in the function format:
+        # QobjEvo(lambda t, **kw: Qobj(...)
+        elif isinstance(rho[0], Qobj):
+
+            class _QevoOperExpect:
+                def __init__(self, func, args, state):
+                    self.oper = QobjEvo(func, args=args)
+                    self.state = state.copy()
+
+                def __call__(self, t, **args):
+                    return expect(self.oper(t, **args), self.state)
+
+            _qevo_oper_expect = _QevoOperExpect(op[0], op[1], rho[0])
+
+            out_coeff = out_coeff + coefficient(_qevo_oper_expect) * rho[1]
+
+        elif isinstance(op[0], Qobj):
+
+            class _QevoStateExpect:
+                def __init__(self, oper, func, args):
+                    self.oper = oper.copy()
+                    self.state = QobjEvo(func, args=args)
+
+                def __call__(self, t, **args):
+                    return expect(self.oper, self.state(t, **args))
+
+            _qevo_state_expect = _QevoStateExpect(op[0], rho[0], rho[1])
+
+            out_coeff = out_coeff + coefficient(_qevo_state_expect) * op[1]
+
+        else:
+
+            class _QevoBothExpect:
+                def __init__(self, oper, state):
+                    self.oper = QobjEvo(oper[0], args=oper[1])
+                    self.state = QobjEvo(state[0], args=state[1])
+
+                def __call__(self, t, **args):
+                    return expect(self.oper(t, **args), self.state(t, **args))
+
+            _qevo_both_expect = _QevoBothExpect(op, rho)
+
+            out_coeff = out_coeff + coefficient(_qevo_both_expect)
+
+    return out_coeff
 
 
 @overload

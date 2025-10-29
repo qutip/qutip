@@ -903,7 +903,7 @@ cdef class ConstantCoefficient(Coefficient):
 
     :obj:`ConstantCoefficient` is returned by ``qutip.coefficent.const(value)``.
     """
-    cdef complex value
+    cdef readonly complex value
 
     def __init__(self, complex value, **_):
         self.value = value
