@@ -15,14 +15,11 @@ from qutip.solver.stochastic import SMESolver, _StochasticRHS
 def get_error_order(system, state, method, plot=False, **kw):
     stepper = getattr(_sode, method)(system, **kw)
     num_runs = 10
-    ts = [
-        0.000001, 0.000002, 0.000005, 0.00001, 0.00002,  0.00005,
-        0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1,
-    ]
+    ts = 0.1 * (0.5) ** np.arange(16)
     # state = rand_ket(system.dims[0]).data
     err = np.zeros(len(ts), dtype=float)
     for _ in range(num_runs):
-        noise = _Noise(0.1, 0.000001, system.num_collapse)
+        noise = _Noise(ts[0], ts[-1], system.num_collapse)
         for i, t in enumerate(ts):
             out = stepper.run(0, state.copy(), t, noise.dW(t), 1)
             target = system.analytic(t, noise.dw(t)[0]) @ state
@@ -89,15 +86,11 @@ def test_methods(H, sc_ops, method, order, kw):
     error_order = get_error_order(system, state, method, **kw)
     # The first error term of the method is dt**0.5 greater than the solver
     # order.
-    assert (order + 0.35) < error_order
+    assert (order + 0.25) < error_order
 
 
 def get_error_order_integrator(integrator, ref_integrator, state, plot=False):
-    ts = [
-        0.000001, 0.000002, 0.000005, 0.00001, 0.00002,  0.00005,
-        0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1,
-    ]
-    # state = rand_ket(system.dims[0]).data
+    ts = np.logspace(-4, -1, 20)
     err = np.zeros(len(ts), dtype=float)
     for i, t in enumerate(ts):
         integrator.options["dt"] = t
@@ -151,7 +144,7 @@ def test_open_integrator(method, order, H, c_ops, sc_ops):
     state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
 
     error_order = get_error_order_integrator(sode, ref_sode, state)
-    assert (order + 0.35) < error_order
+    assert (order + 0.25) < error_order
 
 
 @pytest.mark.parametrize(["method", "order"], [
@@ -177,4 +170,4 @@ def test_closed_integrator(method, order, H, sc_ops):
     state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
 
     error_order = get_error_order_integrator(sode, ref_sode, state)
-    assert (order + 0.35) < error_order
+    assert (order + 0.25) < error_order

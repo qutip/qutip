@@ -93,8 +93,8 @@ class Solver:
             state = state.to(dtype)
 
         if (
-            self.rhs.dims[1] != state.dims[0]
-            and self.rhs.dims[1] != state.dims
+            self.rhs._dims[1] != state._dims[0]
+            and self.rhs._dims[1] != state._dims
         ):
             raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
@@ -104,7 +104,7 @@ class Solver:
             # This is herm flag take for granted that the liouvillian keep
             # hermiticity.  But we do not check user passed super operator for
             # anything other than dimensions.
-            'isherm': not (self.rhs.dims == state.dims) and state._isherm,
+            'isherm': not (self.rhs._dims == state._dims) and state._isherm,
         }
         if state.isket:
             norm = state.norm()
@@ -121,9 +121,9 @@ class Solver:
             # refer to the ODE tolerance and some integrator do not use it.
             and np.abs(norm - 1) <= settings.core["atol"]
             # Only ket and dm can be normalized
-            and (self.rhs.dims[1] == state.dims or state.shape[1] == 1)
+            and (self.rhs._dims[1] == state._dims or state.shape[1] == 1)
         )
-        if self.rhs.dims[1] == state.dims:
+        if self.rhs._dims[1] == state._dims:
             return stack_columns(state.data)
         return state.data
 
@@ -195,7 +195,10 @@ class Solver:
             e_ops, self.options,
             solver=self.name, stats=stats,
         )
-        results.add(tlist[0], self._restore_state(_data0, copy=False))
+        results.add(
+            tlist[0],
+            self._restore_state(self._integrator.get_state()[1], copy=False)
+        )
         stats['preparation time'] += time() - _time_start
 
         progress_bar = progress_bars[self.options['progress_bar']](
@@ -284,10 +287,22 @@ class Solver:
         """
         Dimensions of the space that the system use:
 
-        ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
-        for this solver.
+        ``qutip.basis(solver.sys_dims)`` will create a state with proper
+        dimensions for this solver.
+
+        Note that this may fail for systems with unusual types of dimensions,
+        which are not fully determined by their list representation `dims`
+        (such as excitation-number restricted states). In that case, you can
+        try the internal API ``qutip.basis(solver._sys_dims)``.
         """
-        return self.rhs.dims[0]
+        return self._sys_dims.as_list()
+
+    @property
+    def _sys_dims(self):
+        """
+        Internal version of sys_dims that returns the full ``_dims``.
+        """
+        return self.rhs._dims[0]
 
     @property
     def options(self) -> dict[str, Any]:

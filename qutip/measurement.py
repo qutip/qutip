@@ -13,7 +13,7 @@ __all__ = [
 
 import numpy as np
 
-from . import Qobj, expect, identity, tensor, settings
+from . import Qobj, expect, qeye_like, settings
 
 
 def _verify_input(op, state):
@@ -24,11 +24,11 @@ def _verify_input(op, state):
     if not isinstance(state, Qobj):
         raise TypeError("state must be a Qobj")
     if state.isket:
-        if op.dims[-1] != state.dims[0]:
+        if op._dims.from_ != state._dims.to_:
             raise ValueError(
                 "op and state dims should be compatible when state is a ket")
     elif state.isoper:
-        if op.dims != state.dims:
+        if op._dims != state._dims:
             raise ValueError(
                 "op and state dims should match"
                 " when state is a density matrix")
@@ -47,9 +47,9 @@ def _measurement_statistics_povm_ket(state, ops, tol=None):
     state : :class:`.Qobj` (ket)
             The ket specifying the state to measure.
 
-    ops : list of :class:`.Qobj`
-      List of measurement operators :math:`M_i` (specifying a POVM such that
-      :math:`E_i = M_i^\dagger M_i`).
+    ops : iterable of :class:`.Qobj`
+        Iterable of measurement operators :math:`M_i` (specifying a POVM
+        such that :math:`E_i = M_i^\dagger M_i`).
 
     tol : float, optional
         Smallest value for the probabilities. Smaller probabilities will be
@@ -95,9 +95,9 @@ def _measurement_statistics_povm_dm(density_mat, ops, tol=None):
     state : :class:`.Qobj` (density matrix)
         The density matrix specifying the state to measure.
 
-    ops : list of :class:`.Qobj`
-        List of measurement operators :math:`M_i` (specifying a POVM s.t.
-        :mathm:`E_i = M_i^\dagger M_i`)
+    ops : iterable of :class:`.Qobj`
+        Iterable of measurement operators :math:`M_i` (specifying a POVM
+        such that :mathm:`E_i = M_i^\dagger M_i`)
 
     tol : float, optional
         Smallest value for the probabilities. Smaller probabilities will be
@@ -134,7 +134,6 @@ def _measurement_statistics_povm_dm(density_mat, ops, tol=None):
             collapsed_states.append(None)
             probabilities.append(0.)
 
-
     return collapsed_states, probabilities
 
 
@@ -149,12 +148,12 @@ def measurement_statistics_povm(state, ops, tol=None):
     state : :class:`.Qobj`
         The ket or density matrix specifying the state to measure.
 
-    ops : list of :class:`.Qobj`
-        List of measurement operators :math:`M_i` or kets.  Either:
+    ops : iterable of :class:`.Qobj`
+        Iterable of measurement operators :math:`M_i` or kets.  Either:
 
-        1. specifying a POVM s.t. :math:`E_i = M_i^\dagger M_i`
+        1. specifying a POVM such that :math:`E_i = M_i^\dagger M_i`
         2. projection operators if ops correspond to
-           projectors (s.t. :math:`E_i = M_i^\dagger = M_i`)
+           projectors (such that :math:`E_i = M_i^\dagger = M_i`)
         3. kets (transformed to projectors)
 
     tol : float, optional
@@ -180,7 +179,7 @@ def measurement_statistics_povm(state, ops, tol=None):
     E = [op.dag() * op for op in ops]
 
     is_ID = sum(E)
-    if not is_ID == identity(is_ID.dims[0]):
+    if not is_ID == qeye_like(is_ID):
         raise ValueError("measurement operators must sum to identity")
 
     if state.isket:
@@ -349,11 +348,11 @@ def measure_povm(state, ops, tol=None):
     state : :class:`.Qobj`
         The ket or density matrix specifying the state to measure.
 
-    ops : list of :class:`.Qobj`
-        List of measurement operators :math:`M_i` or kets.  Either:
+    ops : iterable of :class:`.Qobj`
+        Iterable of measurement operators :math:`M_i` or kets.  Either:
 
-        1. specifying a POVM s.t. :math:`E_i = M_i^\dagger M_i`
-        2. projection operators if ops correspond to projectors (s.t.
+        1. specifying a POVM such that :math:`E_i = M_i^\dagger M_i`
+        2. projection operators if ops correspond to projectors (such that
            :math:`E_i = M_i^\dagger = M_i`)
         3. kets (transformed to projectors)
 
@@ -392,24 +391,24 @@ def measurement_statistics(state, ops, tol=None):
     state : :class:`.Qobj`
         The ket or density matrix specifying the state to measure.
 
-    ops : :class:`.Qobj` or list of :class:`.Qobj`
+    ops : :class:`.Qobj` or iterable of :class:`.Qobj`
         - measurement observable (:class:.Qobj); or
-        - list of measurement operators :math:`M_i` or kets (list of
+        - iterable of measurement operators :math:`M_i` or kets (iterable of
           :class:`.Qobj`) Either:
 
-          1. specifying a POVM s.t. :math:`E_i = M_i^\dagger * M_i`
-          2. projection operators if ops correspond to projectors (s.t.
-             :math:`E_i = M_i^\dagger = M_i`)
-          3. kets (transformed to projectors)
+        1. specifying a POVM such that :math:`E_i = M_i^\dagger * M_i`
+        2. projection operators if ops correspond to projectors (such that
+            :math:`E_i = M_i^\dagger = M_i`)
+        3. kets (transformed to projectors)
 
     tol : float, optional
         Smallest value for the probabilities.
         Default is qutip's core settings' ``atol``.
     """
-    if isinstance(ops, list):
-        return measurement_statistics_povm(state, ops, tol)
-    else:
+    if isinstance(ops, Qobj):
         return measurement_statistics_observable(state, ops, tol)
+    else:
+        return measurement_statistics_povm(state, ops, tol)
 
 
 def measure(state, ops, tol=None):
@@ -428,21 +427,21 @@ def measure(state, ops, tol=None):
     state : :class:`.Qobj`
         The ket or density matrix specifying the state to measure.
 
-    ops : :class:`.Qobj` or list of :class:`.Qobj`
+    ops : :class:`.Qobj` or iterable of :class:`.Qobj`
         - measurement observable (:class:`.Qobj`); or
-        - list of measurement operators :math:`M_i` or kets (list of
+        - iterable of measurement operators :math:`M_i` or kets (iterable of
           :class:`.Qobj`) Either:
 
-          1. specifying a POVM s.t. :math:`E_i = M_i^\dagger M_i`
-          2. projection operators if ops correspond to projectors (s.t.
-             :math:`E_i = M_i^\dagger = M_i`)
-          3. kets (transformed to projectors)
+        1. specifying a POVM such that :math:`E_i = M_i^\dagger M_i`
+        2. projection operators if ops correspond to projectors (such that
+            :math:`E_i = M_i^\dagger = M_i`)
+        3. kets (transformed to projectors)
 
     tol : float, optional
         Smallest value for the probabilities.
         Default is qutip's core settings' ``atol``.
     """
-    if isinstance(ops, list):
-        return measure_povm(state, ops, tol)
-    else:
+    if isinstance(ops, Qobj):
         return measure_observable(state, ops, tol)
+    else:
+        return measure_povm(state, ops, tol)

@@ -1,0 +1,1 @@
+Change measure functions to handle not only list[Qobj] but any iterable[Qobj] for POVM measurement

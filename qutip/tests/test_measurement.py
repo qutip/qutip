@@ -1,14 +1,15 @@
-import numpy as np
-import scipy
-import pytest
 from math import sqrt
-from qutip import (
-    Qobj, basis, ket2dm, sigmax, sigmay, sigmaz, identity, num, tensor,
-    rand_ket, CoreOptions
-)
+import numpy as np
+import pytest
+
+from qutip import CoreOptions
+from qutip import basis, identity, ket2dm, num, sigmax, sigmay, sigmaz
+
 from qutip.measurement import (
-    measure_povm, measurement_statistics_povm, measure_observable,
+    measure_observable,
+    measure_povm,
     measurement_statistics_observable,
+    measurement_statistics_povm,
 )
 
 
@@ -210,7 +211,6 @@ def test_measure_observable(op, state):
 
 
 @pytest.mark.parametrize(["ops", "state"], [
-
                     pytest.param(PZ, basis(2, 0), id="PZ_ket1"),
                     pytest.param(PZ, basis(2, 1), id="PZ_ket2"),
                     pytest.param(PZ, ket2dm(basis(2, 0)), id="PZ_dm1"),
@@ -227,7 +227,14 @@ def test_measure_observable(op, state):
 
                     pytest.param(PY, basis(2, 0), id="PY_ket1"),
                     pytest.param(PY, basis(2, 1), id="PY_ket2"),
-                    pytest.param(PY, ket2dm(basis(2, 1)), id="PY_dm")])
+                    pytest.param(PY, ket2dm(basis(2, 1)), id="PY_dm"),
+
+                    pytest.param(tuple(PZ), basis(2, 0), id="PZ_ket1_tuple"),
+                    pytest.param(tuple(PZ), basis(2, 1), id="PZ_ket2_tuple"),
+                    pytest.param(
+                        tuple(PZ), ket2dm(basis(2, 0)), id="PZ_dm1_tuple"),
+                    pytest.param(
+                        tuple(PZ), ket2dm(basis(2, 1)), id="PZ_dm2_tuple")])
 def test_measure(ops, state):
     """measure_povm: test on basis states using different projectors """
 

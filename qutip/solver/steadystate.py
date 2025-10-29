@@ -298,7 +298,7 @@ def _steadystate_svd(L, **kw):
 def _steadystate_expm(L, rho=None, propagator_tol=1e-5, propagator_T=10, **kw):
     if rho is None:
         from qutip import rand_dm
-        rho = rand_dm(L.dims[0][0])
+        rho = rand_dm(L._dims[0].oper[0])
     # Propagator at an arbitrary long time
     prop = (propagator_T * L).expm()
 
@@ -538,7 +538,6 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     elif isinstance(L.data, _data.Dense) and method in sparse_solvers:
         L = L.to("csr")
 
-    N = np.prod(L.dims[0][0])
     dtype = type(L.data)
     rhoss_vec = operator_to_vector(rhoss)
 
@@ -582,7 +581,7 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         rev_perm = np.argsort(perm)
         R = _data.permute.indices(R, rev_perm, rev_perm)
 
-    return Qobj(R, dims=L.dims)
+    return Qobj(R, dims=L._dims)
 
 
 def _compute_precond(L, args):

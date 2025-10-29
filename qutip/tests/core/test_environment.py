@@ -637,7 +637,7 @@ class TestBosonicEnvironment:
         env = BosonicEnvironment.from_correlation_function(
             reference.correlation_function, tag="test"
         )
-        tlist = np.linspace(0, tMax, 250)
+        tlist = np.linspace(0, tMax, 300)
         if separate:
             fit, info = env.approximate("prony", tlist, True, Nr=N, Ni=N)
         else:

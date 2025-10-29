@@ -710,7 +710,7 @@ class StochasticSolver(MultiTrajSolver):
                     "operators are expected."
                 )
         if not all(
-            isinstance(op, Qobj) and op.dims == self.rhs.sc_ops[0].dims
+            isinstance(op, Qobj) and op._dims == self.rhs.sc_ops[0]._dims
             for op in new_m_ops
         ):
             raise ValueError(
