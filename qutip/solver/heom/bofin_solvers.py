@@ -1387,9 +1387,11 @@ class _GatherHEOMRHS:
         ops = np.array(self._ops, dtype=[
             ("row", _data.base.idxint_dtype),
             ("col", _data.base.idxint_dtype),
-            ("op", _data.CSR),
+            ("op", _data.Data),
         ])
-        return _csr._from_csr_blocks(
+        widths_and_heights = np.full(
+            self._n_blocks, self._block_size, dtype=_data.base.idxint_dtype)
+        return _data.concat_blocks(
             ops["row"], ops["col"], ops["op"],
-            self._n_blocks, self._block_size,
+            widths_and_heights, widths_and_heights
         )
