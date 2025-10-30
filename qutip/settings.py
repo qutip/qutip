@@ -8,12 +8,13 @@ from ctypes import cdll, CDLL
 import platform
 from glob import glob
 import numpy as np
+import scipy
 
 __all__ = ['settings']
 
 
-def _blas_info():
-    config = np.__config__
+def _blas_info_pre_1_26():
+    config = scipy.__config__
     if hasattr(config, 'blas_ilp64_opt_info'):
         blas_info = config.blas_ilp64_opt_info
     elif hasattr(config, 'blas_opt_info'):
@@ -33,6 +34,25 @@ def _blas_info():
     else:
         blas = 'Generic'
     return blas
+
+
+def _blas_info():
+    """
+    Find scipy blas and lapack info.
+    scipy blas version can be different from numpy's one.
+    In cython we link to blas using scipy's cython binding and it's the one
+    used for advanced use (eigen, ode, solving linear equation...)
+    Therefore it's the relevent one for our usage.
+    """
+    try:
+        config = scipy.show_config("dicts")
+    except TypeError:
+        return _blas_info_pre_1_26()
+
+    try:
+        return config["Build Dependencies"]["blas"]["name"]
+    except KeyError:
+        return 'Generic'
 
 
 def available_cpu_count() -> int:
@@ -76,17 +96,56 @@ def available_cpu_count() -> int:
 
 def _find_mkl():
     """
-    Finds the MKL library for the Anaconda and Intel Python
-    distributions.
+    Finds the MKL library.
+    Look into scipy's libraries, numpy's libraries, Anaconda default location
+    and Intel Python distributions's. (In that order)
     """
     plat = sys.platform
-    # TODO: fix the mkl handling on windows or use modules like pydiso to do it
-    # for us.
+
     if plat.startswith("win"):
+        # TODO: fix the mkl handling on windows or use modules like pydiso to
+        # do it for us.
         return ""
+    if plat == "emscripten":
+        # mkl is not supported on emscripten
+        return ""
+
     python_dir = os.path.dirname(sys.executable)
     if plat in ['darwin', 'linux2', 'linux']:
         python_dir = os.path.dirname(python_dir)
+
+    # Try in default Anaconda location first
+    if plat in ['darwin', 'linux2', 'linux']:
+        lib_dir_anaconda = '/lib/*'
+        lib_dir_intel_python = '/ext/lib'
+    else:
+        lib_dir_anaconda = r'\Library\bin\*'
+        lib_dir_intel_python = r'\ext\lib'
+
+    try:
+        scipy_cfg = scipy.show_config("dicts")["Build Dependencies"]
+        scipy_blas = scipy_cfg["blas"]["lib directory"]
+        scipy_lapack = scipy_cfg["lapack"]["lib directory"]
+    except (TypeError, KeyError):
+        scipy_blas = "unknown"
+        scipy_lapack = "unknown"
+
+    try:
+        numpy_cfg = np.show_config("dicts")["Build Dependencies"]
+        numpy_blas = numpy_cfg["blas"]["lib directory"]
+        numpy_lapack = numpy_cfg["lapack"]["lib directory"]
+    except (TypeError, KeyError):
+        numpy_blas = "unknown"
+        numpy_lapack = "unknown"
+
+    paths = [
+        scipy_blas,
+        scipy_lapack,
+        numpy_blas,
+        numpy_lapack,
+        python_dir + lib_dir_anaconda,
+        python_dir + lib_dir_intel_python,
+    ]
 
     if plat == 'darwin':
         ext = ".dylib"
@@ -97,30 +156,15 @@ def _find_mkl():
     else:
         raise Exception('Unknown platfrom.')
 
-    # Try in default Anaconda location first
-    if plat in ['darwin', 'linux2', 'linux']:
-        lib_dir = '/lib/*'
-    else:
-        lib_dir = r'\Library\bin\*'
-
-    libraries = glob(python_dir + lib_dir)
-    mkl_libs = [lib for lib in libraries if "mkl_rt" in lib]
-
-    if not mkl_libs:
-        # Look in Intel Python distro location
-        if plat in ['darwin', 'linux2', 'linux']:
-            lib_dir = '/ext/lib'
-        else:
-            lib_dir = r'\ext\lib'
-        libraries = glob(python_dir + lib_dir)
-        mkl_libs = [
+    mkl_libs = []
+    for path in paths:
+        libraries = glob(path)
+        mkl_libs += [
             lib for lib in libraries
             if "mkl_rt." in lib and ext in lib
         ]
-
     if mkl_libs:
-        # If multiple libs are found, they should all be the same.
-        return mkl_libs[-1]
+        return mkl_libs[0]
     return ""
 
 

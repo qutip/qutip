@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from qutip import (
-    mesolve, liouvillian, QobjEvo, spre, spost,
+    mesolve, liouvillian, QobjEvo, spre, spost, CoreOptions,
     destroy, coherent, qeye, fock_dm, num, basis
 )
 from qutip.solver.stochastic import smesolve, ssesolve, SMESolver, SSESolver
@@ -442,14 +442,16 @@ def test_run_from_experiment_close(method, heterodyne):
         "store_states": True,
         "method": method,
     }
-    solver = SSESolver(H, sc_ops, heterodyne, options=options)
-    res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
-    res_backward = solver.run_from_experiment(
-        psi0, tlist, res_forward.dW[0], e_ops=[H]
-    )
-    res_measure = solver.run_from_experiment(
-        psi0, tlist, res_forward.measurement[0], e_ops=[H], measurement=True
-    )
+    with CoreOptions(auto_real_casting=False):
+        solver = SSESolver(H, sc_ops, heterodyne, options=options)
+        res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
+        res_backward = solver.run_from_experiment(
+            psi0, tlist, res_forward.dW[0], e_ops=[H]
+        )
+        res_measure = solver.run_from_experiment(
+            psi0, tlist, res_forward.measurement[0],
+            e_ops=[H], measurement=True
+        )
 
     np.testing.assert_allclose(
         res_backward.measurement, res_forward.measurement[0], atol=1e-10
@@ -545,10 +547,13 @@ def test_merge_results(store_measurement, keep_runs_results):
     result_merged = result1 + result2
     assert len(result_merged.seeds) == 15
     if store_measurement:
-        assert (
-            result_merged.average_states[0] ==
-            (initial_state1.proj() + 2 * initial_state2.proj()).unit()
-        )
+        with CoreOptions(atol=2e-8):
+            # In the numpy 1.X test, this fail with the defautl atol=1e-12
+            # One operation is computed in single precision?
+            assert (
+                result_merged.average_states[0] ==
+                (initial_state1.proj() + 2 * initial_state2.proj()).unit()
+            )
     np.testing.assert_allclose(result_merged.average_expect[0][0], 1)
     np.testing.assert_allclose(result_merged.average_expect[1], 2/3)
 

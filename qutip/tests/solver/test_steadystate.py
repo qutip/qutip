@@ -86,7 +86,8 @@ def test_exact_solution_for_simple_methods(method, kwargs):
     # with high accuracy for a small Liouvillian requiring correct weighting.
     H = qutip.identity(2)
     c_ops = [qutip.sigmam(), 1e-5 * qutip.sigmap()]
-    rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
+    with qutip.CoreOptions(auto_real_casting=False):
+        rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
     expected_rho_ss = np.array([
         [1.e-10+0.j, 0.e+00-0.j],
         [0.e+00-0.j, 1.e+00+0.j],
@@ -252,11 +253,11 @@ def test_steadystate_floquet(sparse):
 
 def test_rcm():
     N = 5
-    a = qutip.destroy(N, dtype="CSR")
-    I = qutip.qeye(N, dtype="CSR")
+    a = qutip.destroy(N)
+    I = qutip.qeye(N)
     H = (a + a.dag() & I) + (I & a * a.dag())
     c_ops = [a & I, I & a]
-    L = qutip.liouvillian(H, c_ops).data
+    L = qutip.liouvillian(H, c_ops).to("CSR").data
     b = qutip.basis(N**4).data
 
     def bandwidth(mat):
@@ -268,8 +269,8 @@ def test_rcm():
 
 def test_wbm():
     N = 5
-    a = qutip.destroy(N, dtype="CSR")
-    I = qutip.qeye(N, dtype="CSR")
+    a = qutip.destroy(N)
+    I = qutip.qeye(N)
     H = (a + a.dag() & I) + (I & a * a.dag())
     c_ops = [a & I, I & a]
     L = qutip.liouvillian(H, c_ops).data
@@ -278,7 +279,7 @@ def test_wbm():
     # shuffling the Liouvillian to ensure the diag is almost empty
     perm = np.arange(N**4)
     np.random.shuffle(perm)
-    L = _data.permute.indices(L, None, perm)
+    L = _data.permute.indices(L, None, perm, dtype="CSR")
 
     def dia_dominance(mat):
         mat = mat.to_array()

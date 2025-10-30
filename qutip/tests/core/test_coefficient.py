@@ -96,7 +96,7 @@ def coeff_generator(style, func):
         return coefficient(base(tlistlog, **args), tlist=tlistlog,
                            order=0)
     if style == "const":
-        return const(2.0)
+        return const({"f": 2.0, "g": 1j}[func])
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -161,6 +161,17 @@ def test_CoeffCallArguments(base, tol):
     _assert_eq_over_interval(coeff, expected, rtol=tol)
 
 
+def test_coefficient_update_args():
+
+    def f(t, a):
+        return a
+
+    coeff1 = coefficient(f, args={"a": 1})
+    coeff2 = coefficient(coeff1, args={"a": 2})
+
+    assert coeff2(0) == 2
+
+
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
@@ -209,9 +220,15 @@ def test_ConstantCoefficient():
 def test_CoeffOperation(style_left, style_right, oper):
     coeff_left = coeff_generator(style_left, "f")
     coeff_right = coeff_generator(style_right, "g")
+    if oper(2, 1) == 2 and "array" in style_left:
+        # Array product recompute the spline
+        rtol = 1e-7
+    else:
+        rtol = 1e-12
     _assert_eq_over_interval(
         oper(coeff_left, coeff_right),
-        lambda t: oper(coeff_left(t), coeff_right(t))
+        lambda t: oper(coeff_left(t), coeff_right(t)),
+        rtol=rtol
     )
 
 
@@ -360,6 +377,38 @@ def test_Coeffcopy(style, transform):
     coeff = transform(coeff)
     coeff_cp = coeff.copy()
     _assert_eq_over_interval(coeff, coeff_cp)
+
+
+@pytest.mark.parametrize(['style'], [
+    pytest.param("func", id="func"),
+    pytest.param("array", id="array"),
+    pytest.param("arraylog", id="logarray"),
+    pytest.param("string", id="string"),
+    pytest.param("steparray", id="steparray"),
+    pytest.param("const", id="constant"),
+])
+def test_CoeffEq(style):
+    coeff = coeff_generator(style, "f")
+    coeff2 = coeff_generator(style, "f")
+    coeff3 = coeff_generator(style, "g")
+    assert coeff == coeff
+    assert coeff == coeff2
+    assert coeff != coeff3
+    assert coeff + coeff3 == coeff + coeff3
+    assert coeff + coeff3 != coeff + coeff2
+    assert coeff * coeff3 == coeff * coeff3
+    assert coeff * coeff3 != coeff * coeff2
+    assert coeff.conj() == coeff2.conj()
+    assert coeff.conj() != coeff3.conj()
+    assert coeff.conj().conj() == coeff
+    assert norm(coeff) == norm(coeff2)
+    assert norm(coeff) != norm(coeff3)
+
+
+def test_CoeffEq_shape_missmatch():
+    coeff = coeff_generator("array", "f")
+    coeff2 = coeff_generator("arraylog", "f")
+    assert coeff != coeff2
 
 
 @pytest.mark.parametrize('order', [0, 1, 2, 3])

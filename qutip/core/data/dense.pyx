@@ -14,6 +14,7 @@ from .base import EfficiencyWarning
 from qutip.core.data cimport base, CSR, Dia
 from qutip.core.data.adjoint cimport adjoint_dense, transpose_dense, conj_dense
 from qutip.core.data.trace cimport trace_dense
+from qutip import settings
 
 cnp.import_array()
 
@@ -25,6 +26,13 @@ cdef extern from *:
     void *PyDataMem_NEW(size_t size)
     void *PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_FREE(void *ptr)
+
+
+@cython.overflowcheck(True)
+cdef size_t _mul_mem_checked(size_t a, size_t b, size_t c=0):
+    if c != 0:
+        return a * b * c
+    return a * b
 
 
 # Creation functions like 'identity' and 'from_csr' aren't exported in __all__
@@ -78,6 +86,10 @@ cdef class Dense(base.Data):
         self.fortran = cnp.PyArray_IS_F_CONTIGUOUS(self._np)
         self.shape = (shape[0], shape[1])
 
+    @classmethod
+    def sparcity(self):
+        return "dense"
+
     def __reduce__(self):
         return (fast_from_numpy, (self.as_ndarray(),))
 
@@ -122,7 +134,9 @@ cdef class Dense(base.Data):
         low-level C code).
         """
         cdef Dense out = Dense.__new__(Dense)
-        cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
+        cdef size_t size = (
+            _mul_mem_checked(self.shape[0], self.shape[1], sizeof(double complex))
+        )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
         if not ptr:
             raise MemoryError(
@@ -169,7 +183,9 @@ cdef class Dense(base.Data):
         dimensions.  This is not a view onto the data, and changes to new array
         will not affect the original data structure.
         """
-        cdef size_t size = self.shape[0]*self.shape[1]*sizeof(double complex)
+        cdef size_t size = (
+          _mul_mem_checked(self.shape[0], self.shape[1], sizeof(double complex))
+        )
         cdef double complex *ptr = <double complex *> PyDataMem_NEW(size)
         if not ptr:
             raise MemoryError(
@@ -257,7 +273,9 @@ cpdef Dense empty(base.idxint rows, base.idxint cols, bint fortran=True):
     """
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
-    out.data = <double complex *> PyDataMem_NEW(rows * cols * sizeof(double complex))
+    out.data = <double complex *> PyDataMem_NEW(
+        _mul_mem_checked(rows, cols, sizeof(double complex))
+    )
     if not out.data:
         raise MemoryError(
             "Could not allocate memory to create an empty "
@@ -282,7 +300,9 @@ cpdef Dense zeros(base.idxint rows, base.idxint cols, bint fortran=True):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = (rows, cols)
     out.data =\
-        <double complex *> PyDataMem_NEW_ZEROED(rows * cols, sizeof(double complex))
+        <double complex *> PyDataMem_NEW_ZEROED(
+            _mul_mem_checked(rows, cols), sizeof(double complex)
+        )
     if not out.data:
         raise MemoryError(
             "Could not allocate memory to create a zero "
@@ -311,8 +331,9 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = matrix.shape
     out.data = (
-        <double complex *>
-        PyDataMem_NEW_ZEROED(out.shape[0]*out.shape[1], sizeof(double complex))
+        <double complex *> PyDataMem_NEW_ZEROED(
+            _mul_mem_checked(out.shape[0], out.shape[1]), sizeof(double complex)
+        )
     )
     if not out.data:
         raise MemoryError(
@@ -342,6 +363,23 @@ cdef inline base.idxint _diagonal_length(
     if offset > 0:
         return n_rows if offset <= n_cols - n_rows else n_cols - offset
     return n_cols if offset > n_cols - n_rows else n_rows + offset
+
+
+cpdef long nnz(Dense matrix, double tol=0):
+    "Compute the number of element larger than the tolerance"
+    cdef long N = 0;
+    cdef base.idxint row, col
+    cdef double tol2
+    cdef double complex val
+    if tol:
+        tol2 = tol**2
+    else:
+        tol2 = settings.core["atol"]**2
+    for i in range(matrix.shape[0] * matrix.shape[1]):
+        val = matrix.data[i]
+        if (val.real**2 + val.imag**2) > tol2:
+            N += 1
+    return N
 
 
 @cython.wraparound(True)

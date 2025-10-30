@@ -2,6 +2,9 @@ name: Build documentation
 
 on:
   [push, pull_request]
+concurrency:
+  group: doc_${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
   build:

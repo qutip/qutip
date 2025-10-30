@@ -13,7 +13,7 @@ from qutip.settings import settings
 from qutip.typing import SpaceLike, DimensionLike
 
 
-__all__ = ["to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"]
+__all__ = ["to_tensor_rep", "from_tensor_rep", "einsum", "Space", "Dimensions"]
 
 
 def flatten(l):
@@ -35,12 +35,16 @@ def flatten(l):
 
     Notes
     -----
-    Any scalar will be returned wrapped in a list: ``flaten(1) == [1]``.
+    Any scalar will be returned wrapped in a list: ``flatten(1) == [1]``.
     A non-list iterable will not be treated as a list by flatten. For example, flatten would treat a tuple
     as a scalar.
+    Spaces with "non-pure" dimensions will be collapsed:
+    ``flatten(EnrSpace([2,2],1)) == [3]``
     """
-    if isinstance(l, (Space, Dimensions)):
-        l = l.as_list()
+    if isinstance(l, Space):
+        return l.flat()
+    if isinstance(l, Dimensions):
+        return sum(l.flat(), [])
     if not isinstance(l, list):
         return [l]
     else:
@@ -112,77 +116,6 @@ def _enumerate_flat(l, idx=0):
         return acc, idx
 
 
-def _collapse_composite_index(dims):
-    """
-    Given the dimensions specification for a composite index
-    (e.g.: [2, 3] for the right index of a ket with dims [[1], [2, 3]]),
-    returns a dimensions specification for an index of the same shape,
-    but collapsed to a single "leg." In the previous example, [2, 3]
-    would collapse to [6].
-    """
-    return [np.prod(dims)]
-
-
-def _collapse_dims_to_level(dims, level=1):
-    """
-    Recursively collapses all indices in a dimensions specification
-    appearing at a given level, such that the returned dimensions
-    specification does not represent any composite systems.
-    """
-    if level == 0:
-        return _collapse_composite_index(dims)
-    return [_collapse_dims_to_level(index, level=level - 1) for index in dims]
-
-
-def collapse_dims_oper(dims):
-    """
-    Given the dimensions specifications for a ket-, bra- or oper-type
-    Qobj, returns a dimensions specification describing the same shape
-    by collapsing all composite systems. For instance, the bra-type
-    dimensions specification ``[[2, 3], [1]]`` collapses to
-    ``[[6], [1]]``.
-
-    Parameters
-    ----------
-
-    dims : list of lists of ints
-        Dimensions specifications to be collapsed.
-
-    Returns
-    -------
-
-    collapsed_dims : list of lists of ints
-        Collapsed dimensions specification describing the same shape
-        such that ``len(collapsed_dims[0]) == len(collapsed_dims[1]) == 1``.
-    """
-    return _collapse_dims_to_level(dims, 1)
-
-
-def collapse_dims_super(dims):
-    """
-    Given the dimensions specifications for an operator-ket-, operator-bra- or
-    super-type Qobj, returns a dimensions specification describing the same
-    shape by collapsing all composite systems. For instance, the super-type
-    dimensions specification ``[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]`` collapses
-    to ``[[[6], [6]], [[6], [6]]]``.
-
-    Parameters
-    ----------
-
-    dims : list of lists of ints
-        Dimensions specifications to be collapsed.
-
-    Returns
-    -------
-
-    collapsed_dims : list of lists of ints
-        Collapsed dimensions specification describing the same shape
-        such that ``len(collapsed_dims[i][j]) == 1`` for ``i`` and ``j``
-        in ``range(2)``.
-    """
-    return _collapse_dims_to_level(dims, 2)
-
-
 def enumerate_flat(l):
     """Labels the indices at which scalars occur in a flattened list.
 
@@ -197,6 +130,9 @@ def enumerate_flat(l):
     [[[0], [1, 2]], 3]
 
     """
+    if isinstance(l, (Space, Dimensions)):
+        l._require_pure_dims("enumerate_flat")
+        l = l.as_list()
     return _enumerate_flat(l)[0]
 
 
@@ -250,7 +186,7 @@ def dims_to_tensor_shape(dims):
     tensor_shape : tuple
         NumPy shape of the corresponding tensor.
     """
-    perm = dims_to_tensor_perm(dims)
+    perm = np.argsort(dims_to_tensor_perm(dims))
     dims = flatten(dims)
     return tuple(map(partial(getitem, dims), perm))
 
@@ -318,6 +254,7 @@ def to_tensor_rep(q_oper):
     >>> to_tensor_rep(super_oper).shape
     (2, 3, 2, 3, 2, 3, 2, 3)
     """
+    q_oper._dims._require_pure_dims("conversion to tensor representation")
     dims = q_oper._dims
     data = q_oper.full().reshape(dims._get_tensor_shape())
     return data.transpose(dims._get_tensor_perm())
@@ -344,6 +281,7 @@ def from_tensor_rep(tensorrep, dims):
     """
     from . import Qobj
     dims = Dimensions(dims)
+    dims._require_pure_dims("conversion from tensor representation")
     data = tensorrep.transpose(np.argsort(dims._get_tensor_perm()))
     return Qobj(data.reshape(dims.shape), dims=dims)
 
@@ -356,6 +294,7 @@ def einsum(subscripts, *operands):
     """
     Implementation of numpy.einsum for Qobj.
     Evaluates the Einstein summation convention on the operands.
+
     Parameters
     ----------
     subscripts: str
@@ -369,6 +308,9 @@ def einsum(subscripts, *operands):
     Qobj (numpy.complex128)
         Result of einsum as Qobj (numpy.complex128 if result is scalar)
     """
+    for op in operands:
+        op._dims._require_pure_dims("einsum")
+
     operands_array = [to_tensor_rep(op) for op in operands]
     result = np.einsum(subscripts, *operands_array)
     if result.shape == ():
@@ -407,9 +349,9 @@ class MetaSpace(type):
                 cls = Compound
 
         if settings.core['auto_tidyup_dims']:
-            if cls is Compound and all(isinstance(arg, Field) for arg in args):
+            if cls is Compound and all(arg.size == 1 for arg in args):
                 cls = Field
-            if cls is SuperSpace and args[0].type == "scalar":
+            elif cls is SuperSpace and args[0].type == 'scalar':
                 cls = Field
 
         args = tuple([
@@ -531,34 +473,53 @@ class Space(metaclass=MetaSpace):
         return [1]
 
     def flat(self) -> list[int]:
-        """ Dimensions as a flat list. """
+        """
+        Dimensions as a flat list.
+
+        Notes
+        -----
+        Spaces with "non-pure" dimensions will be collapsed:
+        ``EnrSpace([2,2],1).flat() == [3]``
+        """
         return [self.size]
 
-    def remove(self, idx: int):
+    def collapse(self) -> "Space":
         """
-        Remove a Space from a Dimensons or complex Space.
+        Space with the same number of states, forgetting about the internal
+        structure. However, the distinction between super- and regular spaces
+        is preserved.
 
-        ``Space([2, 3, 4]).remove(1) == Space([2, 4])``
+        For example, a composite space with dimensions [2, 3] collapses to a
+        single space with dimension [6].
+        A superspace describing maps from a composite [2, 3] space to another
+        composite [2, 3] space collapses to a superspace mapping
+        from [6] to [6].
+        An ENR space containing N states collapses to a regular space with
+        dimension [N].
         """
-        raise RuntimeError("Cannot delete a flat space.")
+        return Space(self.size)
 
-    def replace(self, idx: int, new: int) -> "Space":
+    def drop_scalar_dims(self) -> "Space":
         """
-        Reshape a Space from a Dimensons or complex Space.
-
-        ``Space([2, 3, 4]).replace(1, 5) == Space([2, 5, 4])``
+        Eliminate subsystems that has been collapsed to only one state due to
+        a projection. For example, ``[2, 1, 3]`` becomes ``[2, 3]``.
         """
-        if idx != 0:
-            raise ValueError(
-                "Cannot replace a non-zero index in a flat space."
-            )
-        return Space(new)
+        return self
 
     def replace_superrep(self, super_rep: str) -> "Space":
         return self
 
     def scalar_like(self) -> "Space":
         return Field()
+
+    def _require_pure_dims(self, operation):
+        if not self._pure_dims:
+            raise NotImplementedError(
+                f"The requested operation ({operation}) is not implemented for"
+                f" the type of Hilbert space used here (e.g., excitation"
+                f" number restricted space). A separate, specialized function"
+                f" may be available in the corresponding module."
+            )
 
 
 class Field(Space):
@@ -588,12 +549,6 @@ class Field(Space):
 
     def flat(self) -> list[int]:
         return [1]
-
-    def remove(self, idx: int) -> Space:
-        return self
-
-    def replace(self, idx: int, new: int) -> Space:
-        return Space(new)
 
 
 Field.field_instance = Field.__new__(Field)
@@ -674,26 +629,15 @@ class Compound(Space):
     def flat(self) -> list[int]:
         return sum([space.flat() for space in self.spaces], [])
 
-    def remove(self, idx: int) -> Space:
-        new_spaces = []
-        for space in self.spaces:
-            n_indices = len(space.flat())
-            idx_space = [i for i in idx if i < n_indices]
-            idx = [i-n_indices for i in idx if i >= n_indices]
-            new_space = space.remove(idx_space)
-        if new_spaces:
-            return Compound(*new_spaces)
-        return Field()
-
-    def replace(self, idx: int, new: int) -> Space:
-        new_spaces = []
-        for space in self.spaces:
-            n_indices = len(space.flat())
-            if 0 <= idx < n_indices:
-                new_spaces.append(space.replace(idx, new))
-            else:
-                new_spaces.append(space)
-            idx -= n_indices
+    def drop_scalar_dims(self) -> "Space":
+        new_spaces = [
+            space.drop_scalar_dims()
+            for space in self.spaces if space.size > 1
+        ]
+        if len(new_spaces) == 0:
+            return Field()
+        if len(new_spaces) == 1:
+            return new_spaces[0]
         return Compound(*new_spaces)
 
     def replace_superrep(self, super_rep: str) -> Space:
@@ -753,14 +697,11 @@ class SuperSpace(Space):
     def flat(self) -> list[int]:
         return sum(self.oper.flat(), [])
 
-    def remove(self, idx: int) -> Space:
-        new_dims = self.oper.remove(idx)
-        if new_dims.type == 'scalar':
-            return Field()
-        return SuperSpace(new_dims, rep=self.superrep)
+    def collapse(self) -> Space:
+        return SuperSpace(self.oper.collapse(), rep=self.superrep)
 
-    def replace(self, idx: int, new: int) -> Space:
-        return SuperSpace(self.oper.replace(idx, new), rep=self.superrep)
+    def drop_scalar_dims(self) -> "Space":
+        return SuperSpace(self.oper.drop_scalar_dims(), rep=self.superrep)
 
     def replace_superrep(self, super_rep: str) -> Space:
         return SuperSpace(self.oper, rep=super_rep)
@@ -772,7 +713,10 @@ class SuperSpace(Space):
 class MetaDims(type):
     def __call__(cls, *args: DimensionLike, rep: str = None) -> "Dimensions":
         if len(args) == 1 and isinstance(args[0], Dimensions):
-            return args[0]
+            if rep:
+                return args[0].replace_superrep(rep)
+            else:
+                return args[0]
         elif len(args) == 1 and len(args[0]) == 2:
             args = (
                 Space(args[0][1], rep=rep),
@@ -780,11 +724,6 @@ class MetaDims(type):
             )
         elif len(args) != 2:
             raise NotImplementedError('No Dual, Ket, Bra...', args)
-        elif (
-            settings.core["auto_tidyup_dims"]
-            and args[0] == args[1] == Field()
-        ):
-            return Field()
 
         if args not in cls._stored_dims:
             instance = cls.__new__(cls)
@@ -936,45 +875,10 @@ class Dimensions(metaclass=MetaDims):
         # dims_to_tensor_perm
         stepl = self.to_.step()
         stepr = self.from_.step()
-        return list(np.concatenate([
+        return list(np.argsort(np.concatenate([
             np.argsort(stepl)[::-1],
             np.argsort(stepr)[::-1] + len(stepl)
-        ]))
-
-    def remove(self, idx: int | list[int]) -> "Dimensions":
-        """
-        Remove a Space from a Dimensons or complex Space.
-
-        ``Space([2, 3, 4]).remove(1) == Space([2, 4])``
-        """
-        if not isinstance(idx, list):
-            idx = [idx]
-        if not idx:
-            return self
-        idx = sorted(idx)
-        n_indices = len(self.to_.flat())
-        idx_to = [i for i in idx if i < n_indices]
-        idx_from = [i-n_indices for i in idx if i >= n_indices]
-        return Dimensions(
-            self.from_.remove(idx_from),
-            self.to_.remove(idx_to),
-        )
-
-    def replace(self, idx: int, new: int) -> "Dimensions":
-        """
-        Reshape a Space from a Dimensons or complex Space.
-
-        ``Space([2, 3, 4]).replace(1, 5) == Space([2, 5, 4])``
-        """
-        n_indices = len(self.to_.flat())
-        if idx < n_indices:
-            new_to = self.to_.replace(idx, new)
-            new_from = self.from_
-        else:
-            new_to = self.to_
-            new_from = self.from_.replace(idx-n_indices, new)
-
-        return Dimensions(new_from, new_to)
+        ])))
 
     def replace_superrep(self, super_rep: str) -> "Dimensions":
         if not self.issuper and super_rep is not None:
@@ -984,5 +888,32 @@ class Dimensions(metaclass=MetaDims):
             self.to_.replace_superrep(super_rep)
         )
 
+    def collapse(self) -> "Dimensions":
+        """
+        Dimensions describing object of the same shape, but forgetting about
+        the internal structure of the spaces. However, the distinction between
+        super- and regular spaces is preserved.
+
+        For instance, the bra-type dimensions specification ``[[2, 3], [1]]``
+        collapses to ``[[6], [1]]``. The super-type dimensions specification
+        ``[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]`` collapses to
+        ``[[[6], [6]], [[6], [6]]]``.
+        """
+        return Dimensions(self.from_.collapse(), self.to_.collapse())
+
+    def drop_scalar_dims(self) -> "Dimensions":
+        """
+        Eliminate subsystems that has been collapsed to only one state due to
+        a projection. For example, ``[2, 1, 3]`` becomes ``[2, 3]``.
+        """
+        return Dimensions(
+            self.from_.drop_scalar_dims(),
+            self.to_.drop_scalar_dims()
+        )
+
     def scalar_like(self) -> "Dimensions":
         return Dimensions([self.to_.scalar_like(), self.from_.scalar_like()])
+
+    def _require_pure_dims(self, operation):
+        self.from_._require_pure_dims(operation)
+        self.to_._require_pure_dims(operation)

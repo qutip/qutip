@@ -1,12 +1,11 @@
 __all__ = ['expect', 'variance']
 
-import numpy as np
 from typing import overload, Sequence
 
 from .qobj import Qobj
 from . import data as _data
 from ..settings import settings
-
+from ..core.numpy_backend import np
 
 @overload
 def expect(oper: Qobj, state: Qobj) -> complex: ...
@@ -66,7 +65,11 @@ def expect(oper, state):
 
     elif isinstance(state, Sequence):
         dtype = np.complex128
-        if oper.isherm and all(op.isherm or op.isket for op in state):
+        if (
+            oper.isherm
+            and all(op.isherm or op.isket for op in state)
+            and settings.core["auto_real_casting"]
+        ):
             dtype = np.float64
         return np.array([_single_qobj_expect(oper, x) for x in state],
                         dtype=dtype)
@@ -79,7 +82,7 @@ def _single_qobj_expect(oper, state):
     """
     if not oper.isoper or not (state.isket or state.isoper):
         raise TypeError('invalid operand types')
-    if oper.dims[1] != state.dims[0]:
+    if oper._dims[1] != state._dims[0]:
         msg = (
             "incompatible dimensions "
             + str(oper.dims[1]) + " and " + str(state.dims[0])

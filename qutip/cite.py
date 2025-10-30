@@ -19,33 +19,23 @@ def cite(save=False, path=None):
         The complete directory path to generate the bibtex file.
         If not specified then the citation will be generated in cwd
     """
-    citation = ["@article{qutip2,",
-                "doi = {10.1016/j.cpc.2012.11.019},",
-                "url = {https://doi.org/10.1016/j.cpc.2012.11.019},",
-                "year  = {2013},",
-                "month = {apr},",
-                "publisher = {Elsevier {BV}},",
-                "volume = {184},",
-                "number = {4},",
-                "pages = {1234--1240},",
-                "author = {J.R. Johansson and P.D. Nation and F. Nori},",
-                "title = {{QuTiP} 2: A {P}ython framework for the dynamics of open quantum systems},",
-                "journal = {Computer Physics Communications}",
-                "}",
-                "@article{qutip1,",
-                "doi = {10.1016/j.cpc.2012.02.021},",
-                "url = {https://doi.org/10.1016/j.cpc.2012.02.021},",
-                "year  = {2012},",
-                "month = {aug},",
-                "publisher = {Elsevier {BV}},",
-                "volume = {183},",
-                "number = {8},",
-                "pages = {1760--1772},",
-                "author = {J.R. Johansson and P.D. Nation and F. Nori},",
-                "title = {{QuTiP}: An open-source {P}ython framework for the dynamics of open quantum systems},",
-                "journal = {Computer Physics Communications}",
-                "}"]
-    print("\n".join(citation))
+    citation = """\
+@misc{qutip5,
+  title = {{QuTiP} 5: The Quantum Toolbox in {Python}},
+  author = {Lambert, Neill and Giguère, Eric and Menczel, Paul and Li, Boxi
+    and Hopf, Patrick and Suárez, Gerardo and Gali, Marc and Lishman, Jake
+    and Gadhvi, Rushiraj and Agarwal, Rochisha and Galicia, Asier
+    and Shammah, Nathan and Nation, Paul D. and Johansson, J. R.
+    and Ahmed, Shahnawaz and Cross, Simon and Pitchford, Alexander
+    and Nori, Franco},
+  year={2024},
+  eprint={2412.04705},
+  archivePrefix={arXiv},
+  primaryClass={quant-ph},
+  url={https://arxiv.org/abs/2412.04705},
+  doi={10.48550/arXiv.2412.04705},
+}"""
+    print(citation)
 
     if not path:
         path = os.getcwd()

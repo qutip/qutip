@@ -1,6 +1,6 @@
 from qutip import liouvillian, lindblad_dissipator, Qobj, qzero_like, qeye_like
 from qutip import vector_to_operator, operator_to_vector, hilbert_dist
-from qutip import settings
+from qutip import settings, CoreOptions
 import qutip.core.data as _data
 import numpy as np
 import scipy.sparse.csgraph
@@ -15,21 +15,21 @@ def _permute_wbm(L, b):
     perm = np.argsort(
         scipy.sparse.csgraph.maximum_bipartite_matching(L.as_scipy())
     )
-    L = _data.permute.indices(L, perm, None)
-    b = _data.permute.indices(b, perm, None)
+    L = _data.permute.indices(L, perm, None, dtype=type(L))
+    b = _data.permute.indices(b, perm, None, dtype=type(b))
     return L, b
 
 
 def _permute_rcm(L, b):
     perm = np.argsort(scipy.sparse.csgraph.reverse_cuthill_mckee(L.as_scipy()))
-    L = _data.permute.indices(L, perm, perm)
-    b = _data.permute.indices(b, perm, None)
+    L = _data.permute.indices(L, perm, perm, dtype=type(L))
+    b = _data.permute.indices(b, perm, None, dtype=type(b))
     return L, b, perm
 
 
 def _reverse_rcm(rho, perm):
     rev_perm = np.argsort(perm)
-    rho = _data.permute.indices(rho, rev_perm, None)
+    rho = _data.permute.indices(rho, rev_perm, None, dtype=type(rho))
     return rho
 
 
@@ -194,14 +194,18 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         kwargs.pop("power_maxiter", 0)
         kwargs.pop("power_eps", 0)
         kwargs.pop("sparse", 0)
-        rho_ss = _steadystate_direct(A, kwargs.pop("weight", 0),
-                                     method=solver, **kwargs)
+        with CoreOptions(default_dtype_scope="creation"):
+            # We want to ensure the dtype we set are kept
+            rho_ss = _steadystate_direct(A, kwargs.pop("weight", 0),
+                                         method=solver, **kwargs)
 
     elif method == "power":
         # Remove unused kwargs, so only used and pass-through ones are included
         kwargs.pop("weight", 0)
         kwargs.pop("sparse", 0)
-        rho_ss = _steadystate_power(A, method=solver, **kwargs)
+        with CoreOptions(default_dtype_scope="creation"):
+            # We want to ensure the dtype we set are kept
+            rho_ss = _steadystate_power(A, method=solver, **kwargs)
 
     elif method == "propagator":
         rho_ss = _steadystate_expm(A, **kwargs)
@@ -294,7 +298,7 @@ def _steadystate_svd(L, **kw):
 def _steadystate_expm(L, rho=None, propagator_tol=1e-5, propagator_T=10, **kw):
     if rho is None:
         from qutip import rand_dm
-        rho = rand_dm(L.dims[0][0])
+        rho = rand_dm(L._dims[0].oper[0])
     # Propagator at an arbitrary long time
     prop = (propagator_T * L).expm()
 
@@ -303,7 +307,7 @@ def _steadystate_expm(L, rho=None, propagator_tol=1e-5, propagator_T=10, **kw):
     while niter < max_iter:
         rho_next = prop(rho)
         rho_next = (rho_next + rho_next.dag()) / (2 * rho_next.tr())
-        if hilbert_dist(rho_next, rho) <= propagator_tol:
+        if np.real(hilbert_dist(rho_next, rho)) <= propagator_tol:
             return rho_next
         rho = rho_next
         prop = prop @ prop
@@ -534,7 +538,6 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     elif isinstance(L.data, _data.Dense) and method in sparse_solvers:
         L = L.to("csr")
 
-    N = np.prod(L.dims[0][0])
     dtype = type(L.data)
     rhoss_vec = operator_to_vector(rhoss)
 
@@ -578,7 +581,7 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         rev_perm = np.argsort(perm)
         R = _data.permute.indices(R, rev_perm, rev_perm)
 
-    return Qobj(R, dims=L.dims)
+    return Qobj(R, dims=L._dims)
 
 
 def _compute_precond(L, args):

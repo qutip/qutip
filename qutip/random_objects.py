@@ -13,19 +13,15 @@ __all__ = [
     "rand_super_bcsz",
 ]
 
-import numbers
-
 import numpy as np
 from numpy.random import Generator, SeedSequence, default_rng
 import scipy.linalg
 import scipy.sparse as sp
 from typing import Literal, Sequence
 
-from . import (Qobj, create, destroy, jmat, basis,
-               to_super, to_choi, to_chi, to_kraus, to_stinespring)
+from . import Qobj, create, destroy, jmat, basis, to_super, to_choi, to_chi
 from .core import data as _data
-from .core.dimensions import flatten, Dimensions, Space
-from . import settings
+from .core.dimensions import Dimensions, Space, SuperSpace
 from .typing import SpaceLike, LayerType
 
 
@@ -35,7 +31,7 @@ _UNITS = np.array([1, 1j])
 
 def _implicit_tensor_dimensions(dimensions, superoper=False):
     """
-    Total flattened size and operator dimensions for operator creation routines
+    Total size and operator dimensions for operator creation routines
     that automatically perform tensor products.
 
     Parameters
@@ -54,20 +50,18 @@ def _implicit_tensor_dimensions(dimensions, superoper=False):
     dimensions : list
         Dimension list in the form required by ``Qobj`` creation.
     """
-    if isinstance(dimensions, Space):
-        dimensions = dimensions.as_list()
-    if not isinstance(dimensions, list):
-        dimensions = [dimensions]
-    flat = flatten(dimensions)
-    if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
-        raise ValueError("All dimensions must be integers >= 0")
-    N = np.prod(flat)
+    space = Space(dimensions)
+    dims = Dimensions(space, space)
+    N = space.size
+
     if superoper:
-        if isinstance(dimensions[0], numbers.Integral):
-            dimensions = [dimensions, dimensions]
-        else:
+        if space.issuper:
             N = int(N**0.5)
-    return N, [dimensions, dimensions]
+        else:
+            space = SuperSpace(dims)
+            dims = Dimensions(space, space)
+
+    return N, dims
 
 
 def _get_generator(seed):
@@ -145,7 +139,7 @@ def _rand_jacobi_rotation(A, generator):
     cols = np.hstack(([i, j, i, j], diag))
     R = sp.coo_matrix((data, (rows, cols)), shape=(n, n), dtype=complex)
     R = _data.create(R.tocsr())
-    return _data.matmul(_data.matmul(R, A), R.adjoint())
+    return _data.to(_data.CSR, _data.matmul(_data.matmul(R, A), R.adjoint()))
 
 
 def _get_block_sizes(N, density, generator):
@@ -286,16 +280,16 @@ def rand_herm(
         while _data.csr.nnz(out) < 0.95 * nvals:
             out = _rand_jacobi_rotation(out, generator)
         out = Qobj(out, dims=dims, isherm=True, copy=False)
-        dtype = dtype or settings.core["default_dtype"] or _data.CSR
+        dtype = _data._parse_default_dtype(dtype, "sparse")
 
     else:
         pos_def = distribution == "pos_def"
         if density < 0.5:
             M = _rand_herm_sparse(N, density, pos_def, generator)
-            dtype = dtype or settings.core["default_dtype"] or _data.CSR
+            dtype = _data._parse_default_dtype(dtype, "sparse")
         else:
             M = _rand_herm_dense(N, density, pos_def, generator)
-            dtype = dtype or settings.core["default_dtype"] or _data.Dense
+            dtype = _data._parse_default_dtype(dtype, "dense")
 
         out = Qobj(M, dims=dims, isherm=True, copy=False)
 
@@ -387,7 +381,7 @@ def rand_unitary(
     oper : qobj
         Unitary quantum operator.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     N, dims = _implicit_tensor_dimensions(dimensions)
     if distribution not in ["haar", "exp"]:
         raise ValueError("distribution must be one of {'haar', 'exp'}")
@@ -497,7 +491,7 @@ def rand_ket(
     oper : qobj
         Ket quantum state vector.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
     if distribution not in ["haar", "fill"]:
@@ -520,7 +514,7 @@ def rand_ket(
         X = _data.csr.CSR(X + Y)
         ket = Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
                    copy=False, isherm=False, isunitary=False)
-    ket.dims = [dims[0], [1]]
+    ket.dims = [dims[0], dims[0].scalar_like()]
     return ket.to(dtype)
 
 
@@ -582,7 +576,7 @@ default: "ginibre"
     oper : qobj
         Density matrix quantum operator.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
     distributions = set(["eigen", "ginibre", "hs", "pure", "herm"])
@@ -694,7 +688,7 @@ def rand_kraus_map(
         N^2 x N x N qobj operators.
 
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     N, dims = _implicit_tensor_dimensions(dimensions)
     dims = Dimensions(dims)
     if dims.issuper:
@@ -737,7 +731,7 @@ def rand_super(
         Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     generator = _get_generator(seed)
     from .solver.propagator import propagator
     N, dims = _implicit_tensor_dimensions(dimensions, superoper=True)
@@ -805,7 +799,7 @@ def rand_super_bcsz(
         A superoperator acting on vectorized dim × dim density operators,
         sampled from the BCSZ distribution.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.CSR
+    dtype = _data._parse_default_dtype(dtype, "sparse")
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions, superoper=True)
 
@@ -901,7 +895,7 @@ def rand_stochastic(
     oper : qobj
         Quantum operator form of stochastic matrix.
     """
-    dtype = dtype or settings.core["default_dtype"] or _data.Dense
+    dtype = _data._parse_default_dtype(dtype, "dense")
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
     num_elems = max([int(np.ceil(N*(N+1)*density)/2), N])

@@ -69,6 +69,60 @@ class TestClassMethods:
         assert out.shape == scipy_csr.shape
         assert (out.as_scipy() - scipy_csr).nnz == 0
 
+    def test_init_from_tuple_error(self):
+        """
+        Test that __init__ raise errors with wrong format 3-tuple
+        """
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(4).reshape(2, 2), [0, 1, 0, 1], [0, 2, 4]),
+                shape=(2, 2),
+            )
+        assert "1D arrays" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(4), [0, 1, 0, 1], 4),
+                shape=(2, 2),
+            )
+        assert "1D arrays" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(2), [0, 1, 2], [0, 2]),
+                shape=(1, 2),
+            )
+        assert "same shape" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(2), [0, 1], [0, 3]),
+                shape=(1, 2),
+            )
+        assert "match the number of elements" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(2), [0, 1], [0, 1]),
+                shape=(1, 2),
+            )
+        assert "match the number of elements" in str(exc.value)
+
+    def test_init_wrong_shape(self):
+        """
+        Test that __init__ raise errors with shape not matching data
+        """
+        arg = ([1, 1, 1], [0, 2, 100], [0, 3])
+        with pytest.raises(ValueError) as exc:
+            out = data.CSR(arg, shape=(2, 100))
+
+        assert "row pointers does not match the shape." in str(exc.value)
+
+        with pytest.raises(ValueError) as exc:
+            out = data.CSR(arg, shape=(1, 10))
+
+        assert "number of columns." in str(exc.value)
+
     @pytest.mark.parametrize('d_type', (
         _dtype_complex + _dtype_float + _dtype_int + _dtype_uint
     ))
@@ -151,6 +205,15 @@ class TestClassMethods:
         copy = data_csr.copy()
         assert original is not copy
         assert (original.as_scipy() - copy.as_scipy()).nnz == 0
+
+    def test_as_scipy_initializes_correctly(self, data_csr):
+        """
+        Test that the object returned from as_scipy is initialized correctly.
+        If not, there might be some missing attributes.
+        """
+        sci = data_csr.as_scipy()
+        reference = scipy.sparse.csr_matrix((1, 0))
+        assert sci.__dict__.keys() == reference.__dict__.keys()
 
     def test_as_scipy_returns_a_view(self, data_csr):
         """
@@ -437,11 +500,13 @@ class TestFromCSRBlocks:
         A = np.array([[1, 2], [3, 4]])
         B = np.array([[0.3, 0.35], [0.4, 0.45]])
         B_op = data.to("csr", data.Dense(B))
+        raw_blocks = [
+            A[0, 0] * B_op, A[0, 1] * B_op,
+            A[1, 0] * B_op, A[1, 1] * B_op,
+        ]
         blocks = self._blocks(
-            [0, 0, 1, 1], [0, 1, 0, 1], [
-                A[0, 0] * B_op, A[0, 1] * B_op,
-                A[1, 0] * B_op, A[1, 1] * B_op,
-            ]
+            [0, 0, 1, 1], [0, 1, 0, 1],
+            [data.to(csr.CSR, b) for b in raw_blocks]
         )
         out = blocks.from_csr_blocks()
         assert out == data.kron(data.Dense(A), data.Dense(B))
@@ -449,8 +514,10 @@ class TestFromCSRBlocks:
 
 
 def test_tidyup():
-    small = qeye(1) * 1e-5
-    with CoreOptions(auto_tidyup_atol=1e-3):
+    small = (qeye(1) * 1e-5).to(csr.CSR)
+    with CoreOptions(auto_tidyup_atol=1e-3, default_dtype=csr.CSR):
         assert (small + small).tr() == 0
-    with CoreOptions(auto_tidyup_atol=1e-3, auto_tidyup=False):
+    with CoreOptions(
+        auto_tidyup_atol=1e-3, auto_tidyup=False, default_dtype=csr.CSR
+    ):
         assert (small + small).tr() == 2e-5

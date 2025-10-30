@@ -6,7 +6,7 @@ from __future__ import annotations
 import functools
 import numbers
 import warnings
-from typing import Any, Literal
+from typing import Any, Literal, Union, overload
 import numpy as np
 from numpy.typing import ArrayLike
 import scipy.sparse
@@ -17,7 +17,7 @@ from . import data as _data
 from qutip.typing import LayerType, DimensionLike
 import qutip
 from .dimensions import (
-    enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions
+    enumerate_flat, flatten, unflatten, Dimensions, to_tensor_rep
 )
 
 __all__ = ['Qobj', 'ptrace']
@@ -191,6 +191,8 @@ class Qobj:
         Diagonal elements of quantum object.
     dnorm()
         Diamond norm of quantum operator.
+    drop_scalar_dims()
+        Drops one-dimensional subsystems from the list of dimensions (``dims``)
     dual_chan()
         Dual channel of quantum object representing a CP map.
     eigenenergies(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
@@ -216,6 +218,10 @@ class Qobj:
         Overlap between two state vectors or two operators.
     permute(order)
         Returns composite qobj with indices reordered.
+    basis_expansion(decimal_places=14, term_separator=" + ",
+                    dim_separator="auto", sort="largest-first")
+        Return a string-representation of the basis expansion
+        E.g. ``"(0.5+0.15j) |010> + (0.25+0j) |000> + ..."``
     proj()
         Computes the projector for a ket or bra vector.
     ptrace(sel)
@@ -272,7 +278,8 @@ class Qobj:
         copy: bool = True,
         superrep: str = None,
         isherm: bool = None,
-        isunitary: bool = None
+        isunitary: bool = None,
+        dtype: type | str = None,
     ):
         self._isherm = isherm
         self._isunitary = isunitary
@@ -281,12 +288,23 @@ class Qobj:
         if superrep is not None:
             self.superrep = superrep
 
+        if (
+            isinstance(arg, list)
+            or dtype
+            or settings.core["default_dtype_scope"] == "full"
+        ):
+            dtype = dtype or settings.core["default_dtype"]
+            if dtype is None or isinstance(self._data, _data.to.parse(dtype)):
+                return
+            self._data = _data.to(dtype, self._data)
+
     def copy(self) -> Qobj:
         """Create identical copy"""
         return Qobj(arg=self._data,
                     dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
+                    dtype=self.dtype,
                     copy=True)
 
     @property
@@ -368,7 +386,8 @@ class Qobj:
             dims=self._dims,
             isherm=self._isherm,
             isunitary=self._isunitary,
-            copy=False
+            dtype=data_type,
+            copy=copy
         )
 
     @_require_equal_type
@@ -443,6 +462,13 @@ class Qobj:
         new_dims = self._dims @ other._dims
         if new_dims.type == 'scalar':
             return _data.inner(self._data, other._data)
+        if self.isket and other.isbra:
+            return Qobj(
+                _data.matmul_outer(self._data, other._data),
+                dims=new_dims,
+                isunitary=False,
+                copy=False
+            )
 
         return Qobj(
             _data.matmul(self._data, other._data),
@@ -512,6 +538,76 @@ class Qobj:
         if self.issuper and self.superrep != 'super':
             out += ", superrep=" + repr(self.superrep)
         return out
+
+    def basis_expansion(self, decimal_places: int = 14,
+                        term_separator: str = " + ",
+                        dim_separator: str = "auto",
+                        sort: str = "largest-first") -> str:
+        """
+        Return a string-representation of the basis expansion
+        for a ket or a bra, e.g.
+
+        ``"(0.5+0.15j) |010> + (0.25+0j) |000> + ..."``
+
+        Parameters
+        ----------
+        decimal_places : int
+            The number of decimal places to show for the coefficients.
+
+        term_separator: str
+            Separator string between terms. E.g. use " +\n"
+            to print terms on separate lines.
+
+        dim_separator: str
+            Separator string between dimension indices.
+            E.g. use ", " to print as ``"|0, 0, 0>"``.
+            If dim_separator="auto", then "" is used
+            for qubits and ", " is used otherwise.
+
+        sort: str
+            Show largest elements (by magnitude) first
+            if "largest-first". Unsorted otherwise.
+
+        Returns
+        -------
+        basis_expansion : str
+            The requested string representation.
+        """
+
+        if not (self.isket or self.isbra):
+            raise ValueError(
+                f"Only implemented for states, not {self.type}."
+            )
+        dims = self._dims[0 if self.isket else 1]
+
+        if dim_separator == "auto":
+            # No separator for pure qubit states but comma-separator otherwise,
+            # since bitstrings are nice, but e.g. |153> would be ambiguous.
+            dim_separator = (
+                ", " if any([dim > 2 for dim in dims.flat()]) else ""
+            )
+
+        template = "{} |{}>" if self.isket else "{} <{}|"
+
+        ket_full = np.round(self.full(squeeze=True), decimals=decimal_places)
+
+        indices = range(len(ket_full))
+        if sort == "largest-first":
+            indices = np.argsort(np.abs(ket_full))[::-1]
+
+        parts = []
+        for i in indices:
+            if np.abs(ket_full[i]) > 10**-(decimal_places):
+                coeff = ket_full.item(i)
+                basis_str = dim_separator.join(
+                    map(str, dims.idx2dims(i))
+                )
+                parts.append(template.format(coeff, basis_str))
+
+        if len(parts) == 0:  # return something for norm-zero states.
+            return "0"
+
+        return term_separator.join(parts)
 
     def __str__(self):
         if self.data.shape[0] * self.data.shape[0] > 100_000_000:
@@ -632,6 +728,7 @@ class Qobj:
         """
         # Uses the technique of Johnston and Kribs (arXiv:1102.0948), which
         # is only valid for completely positive maps.
+        self._dims._require_pure_dims("dual channel")
         if not self.iscp:
             raise ValueError("Dual channels are only implemented for CP maps.")
         J = qutip.to_choi(self)
@@ -824,7 +921,8 @@ class Qobj:
         return Qobj(_data.expm(self._data, dtype=dtype),
                     dims=self._dims,
                     isherm=self._isherm,
-                    copy=False)
+                    copy=False,
+                    dtype=dtype)
 
     def logm(self) -> Qobj:
         """Matrix logarithm of quantum operator.
@@ -1046,6 +1144,7 @@ class Qobj:
             Quantum object representing partial trace with selected components
             remaining.
         """
+        self._dims._require_pure_dims("partial trace")
         try:
             sel = sorted(sel)
         except TypeError:
@@ -1063,6 +1162,8 @@ class Qobj:
         elif self.issuper or self.isoper:
             dims = self.dims
             data = self.data
+        elif self.isket:
+            return _ptrace_specialization_kets(self, sel)
         else:
             dims = [self.dims[0] if self.isket else self.dims[1]] * 2
             data = _data.project(self.data)
@@ -1085,6 +1186,12 @@ class Qobj:
         [[1], [1]] is returned, i.e. _multiple_ scalar dimensions are
         contracted, but one is left.
 
+        For operators, only pairs of 1D subspaces are contracted, so dimensions
+        ``[[2, 1, 1], [2, 2, 1]]`` will become ``[[2, 1], [2, 2]]``. To drop
+        all scalar dimensions, use :meth:`drop_scalar_dims` instead, resulting
+        in ``[[2], [2, 2]]`` in this example. :meth:`drop_scalar_dims` is also
+        defined for superoperators.
+
         Parameters
         ----------
         inplace: bool, optional
@@ -1097,6 +1204,8 @@ class Qobj:
             Quantum object with dimensions contracted.  Will be ``self`` if
             ``inplace`` is ``True``.
         """
+        self._dims._require_pure_dims("contract")
+
         if self.isket:
             sub = [x for x in self.dims[0] if x > 1] or [1]
             dims = [sub, [1]*len(sub)]
@@ -1179,6 +1288,8 @@ class Qobj:
         P : :class:`.Qobj`
             Permuted quantum object.
         """
+        self._dims._require_pure_dims("permute")
+
         if self.type in ('bra', 'ket', 'oper'):
             structure = self.dims[1] if self.isbra else self.dims[0]
             new_structure = [structure[x] for x in order]
@@ -1236,6 +1347,35 @@ class Qobj:
         self.data = _data.tidyup(self.data, atol)
         return self
 
+    def drop_scalar_dims(self, inplace: bool = False) -> Qobj:
+        """
+        Drops one-dimensional subsystems from the list of dimensions. After
+        performing a projection, the ``dims`` of a ket could for example be
+        ``[[2, 1, 3], [1]]``. This will simplify them to ``[[2, 3], [1]]``.
+
+        This differs from :meth:`contract` in that *all* scalar dimensions are
+        dropped for operators. For example, if the ``dims`` of an operator are
+        ``[[2, 2], [2, 1]]``, then :meth:`contract` will leave them unchanged,
+        but this function will simplify to ``[[2, 2], [2]]``.
+
+        Parameters
+        ----------
+        inplace: bool, optional
+            If ``True``, modify the dimensions in place.  If ``False``, return
+            a copied object.
+
+        Returns
+        -------
+        out: :class:`.Qobj`
+            Quantum object with scalar dimensions dropped.  Will be ``self`` if
+            ``inplace`` is ``True``.
+        """
+        dims = self._dims.drop_scalar_dims()
+        if inplace:
+            self.dims = dims
+            return self
+        return Qobj(self.data.copy(), dims=dims, copy=False)
+
     def transform(
         self,
         inpt: list[Qobj] | ArrayLike,
@@ -1292,7 +1432,7 @@ class Qobj:
             else:
                 data = _data.matmul(_data.matmul(S, self.data), S.adjoint())
         return Qobj(data,
-                    dims=self.dims,
+                    dims=self._dims,
                     isherm=self._isherm,
                     superrep=self.superrep,
                     copy=False)
@@ -1394,7 +1534,7 @@ class Qobj:
         Overlap between two state vectors or two operators.
 
         Gives the overlap (inner product) between the current bra or ket Qobj
-        and and another bra or ket Qobj. It gives the Hilbert-Schmidt overlap
+        and another bra or ket Qobj. It gives the Hilbert-Schmidt overlap
         when one of the Qobj is an operator/density matrix.
 
         Parameters
@@ -1442,6 +1582,30 @@ class Qobj:
             out = np.conj(out)
         return out
 
+    @overload
+    def eigenstates(self, 
+        sparse: bool  = False,
+        sort: Literal["low", "high"] = 'low',
+        eigvals: int = 0,
+        tol: float = 0,
+        maxiter: int = 100000,
+        phase_fix: int = None,
+        output_type: Literal['kets'] = 'kets'
+    ) -> tuple[np.ndarray, np.ndarray[Qobj]]:
+        ...
+
+    @overload
+    def eigenstates(self, 
+        sparse: bool  = False,
+        sort: Literal["low", "high"] = 'low',
+        eigvals: int = 0,
+        tol: float = 0,
+        maxiter: int = 100000,
+        phase_fix: int = None,
+        output_type: Literal['oper'] = 'oper'
+    ) -> tuple[np.ndarray, Qobj]:
+        ...
+
     def eigenstates(
         self,
         sparse: bool = False,
@@ -1449,8 +1613,9 @@ class Qobj:
         eigvals: int = 0,
         tol: float = 0,
         maxiter: int = 100000,
-        phase_fix: int = None
-    ) -> tuple[np.ndarray, list[Qobj]]:
+        phase_fix: int = None,
+        output_type: Literal['kets', 'oper'] = 'kets'
+    ) -> tuple[np.ndarray, Union[np.ndarray[Qobj], Qobj]]:
         """Eigenstates and eigenenergies.
 
         Eigenstates and eigenenergies are defined for operators and
@@ -1478,20 +1643,29 @@ class Qobj:
             If not None, set the phase of each kets so that ket[phase_fix,0]
             is real positive.
 
+        output_type: Literal['kets', 'oper']
+            If 'kets', return the eigenstates as a list of kets.
+            If 'oper', return the eigenstates as an operator with the states
+            as columns.
+
         Returns
         -------
         eigvals : array
             Array of eigenvalues for operator.
 
-        eigvecs : array
-            Array of quantum operators representing the oprator eigenkets.
+        eigvecs : array[Qobj], Qobj
+            Array of quantum operators representing the operator eigenkets.
             Order of eigenkets is determined by order of eigenvalues.
+
+            If output_type is oper, a Qobj representing the operator
+            eigenstates is returned.
 
         Notes
         -----
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
-
+        It is designed to compute only a few eigenvalues and can give wrong
+        results when all eigenvalues are asked.
         """
         if isinstance(self.data, _data.CSR) and sparse:
             evals, evecs = _data.eigs_csr(self.data,
@@ -1506,21 +1680,38 @@ class Qobj:
             evals, evecs = _data.eigs(self.data, isherm=self._isherm,
                                       sort=sort, eigvals=eigvals)
 
-        if self.type == 'super':
-            new_dims = [self.dims[0], [1]]
-        else:
-            new_dims = [self.dims[0], [1]*len(self.dims[0])]
-        ekets = np.empty((evecs.shape[1],), dtype=object)
-        ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
-                    for vec in _data.split_columns(evecs, False)]
-        norms = np.array([ket.norm() for ket in ekets])
-        if phase_fix is None:
-            phase = np.array([1] * len(ekets))
-        else:
-            phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
-                              if ket[phase_fix, 0] else 1
-                              for ket in ekets])
-        return evals, ekets / norms * phase
+        if output_type == 'kets':
+            new_dims = [self._dims[0], self._dims[0].scalar_like()]
+            ekets = np.empty((evecs.shape[1],), dtype=object)
+            ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
+                        for vec in _data.split_columns(evecs, False)]
+            norms = np.array([ket.norm() for ket in ekets])
+            if phase_fix is None:
+                phase = np.array([1] * len(ekets))
+            else:
+                phase = np.array([np.abs(ket[phase_fix, 0]) / ket[phase_fix, 0]
+                                  if ket[phase_fix, 0] else 1
+                                  for ket in ekets])
+
+            oper = ekets / norms * phase
+
+        elif output_type == 'oper':
+            new_dims = [self._dims[0], [evecs.shape[1]]]
+            oper = Qobj(evecs, dims=new_dims, copy=False)
+
+            norms = np.array([1/np.linalg.norm(oper[:, i])
+                            for i in range(oper.shape[1])])
+            oper = oper @ qutip.qdiags(norms)
+
+            if phase_fix is not None:
+                phase = np.array([
+                    np.abs(oper[phase_fix, i]) / oper[phase_fix, i]
+                    if oper[phase_fix, i] else 1
+                    for i in range(oper.shape[1])
+                    ])
+                oper = oper @ qutip.qdiags(phase)
+
+        return evals, oper
 
     def eigenenergies(
         self,
@@ -1558,7 +1749,8 @@ class Qobj:
         -----
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
-
+        It is designed to compute only a few eigenvalues and can give wrong
+        results when all eigenvalues are asked.
         """
         # TODO: consider another way of handling the dispatch here.
         if isinstance(self.data, _data.CSR) and sparse:
@@ -1605,11 +1797,6 @@ class Qobj:
             Eigenvalue for the ground state of quantum operator.
         eigvec : :class:`.Qobj`
             Eigenket for the ground state of quantum operator.
-
-        Notes
-        -----
-        The sparse eigensolver is much slower than the dense version.
-        Use sparse only if memory requirements demand it.
         """
         eigvals = 2 if safe else 1
         evals, evecs = self.eigenstates(sparse=sparse, eigvals=eigvals,
@@ -1681,14 +1868,10 @@ class Qobj:
             qobj = self
         else:
             qobj = qutip.to_choi(self)
-        # Possibly collapse dims.
-        if any([len(index) > 1
-                for super_index in qobj.dims
-                for index in super_index]):
-            qobj = Qobj(qobj.data,
-                        dims=collapse_dims_super(qobj.dims),
-                        superrep=qobj.superrep,
-                        copy=False)
+        # Collapse dims to ignore product structure etc of underlying spaces
+        qobj = Qobj(qobj.data,
+                    dims=qobj._dims.collapse(),
+                    copy=False)
         # We use the condition from John Watrous' lecture notes,
         # Tr_1(J(Phi)) = identity_2.
         # See: https://cs.uwaterloo.ca/~watrous/LectureNotes.html,
@@ -1795,3 +1978,53 @@ def ptrace(Q: Qobj, sel: int | list[int]) -> Qobj:
     if not isinstance(Q, Qobj):
         raise TypeError("Input is not a quantum object")
     return Q.ptrace(sel)
+
+
+def _ptrace_specialization_kets(state: Qobj, keep_dims: list[int]) -> Qobj:
+    """ Faster implementation of ptrace for kets.
+
+    Example:
+        If ``|psi> = s_ijk |ijk>`` is a ket with three dimensions,
+        this code directly computes e.g. ``\\sum_j s_ijk s*_njm`` without first
+        having to compute ``|psi><psi|``, which can be prohibitively large.
+    """
+    assert state.isket
+
+    if len(keep_dims) != len(set(keep_dims)):
+        raise ValueError("Duplicate selection index in ptrace.")
+
+    dims = state.dims[0]
+    num_dims = len(dims)
+
+    # The comments below refer an example with ``state.dims = [12, 13, 14]``
+    # and ``keep_dims = [0, 2]`` (i.e. the dimensions with size 12 and 14)
+
+    # Build index lists for subsequent einsum call
+    ket_indices = list(range(num_dims))  # [0, 1, 2] in the above example
+    bra_indices = list(range(num_dims))  # [0, 1, 2] in the example
+    new_indices = list(range(num_dims, num_dims+len(keep_dims)))  # [3, 4]
+    out_indices = keep_dims + new_indices  # [0, 2, 3, 4]
+
+    for keep_index, new_index in zip(keep_dims, new_indices):
+        bra_indices[keep_index] = new_index
+    # Now bra_indices = [3, 1, 4]
+
+    state_np = to_tensor_rep(state).squeeze()
+
+    try:
+        res = np.einsum(state_np, ket_indices,           # [0, 1, 2]
+                        state_np.conj(), bra_indices,    # [3, 1, 4]
+                        out_indices,                     # [0, 2, 3, 4]
+                        optimize=True)
+    except ValueError:
+        raise IndexError("Invalid selection index in ptrace.")
+
+    new_shape = [dims[keep_ind] for keep_ind in keep_dims]  # [12, 14]
+
+    if len(res.shape) > 0:
+        res = res.reshape(np.prod(new_shape), np.prod(new_shape))
+    else:
+        # handle special case if the result is a scalar
+        new_shape = [1]
+
+    return Qobj(res, dims=[new_shape, new_shape])

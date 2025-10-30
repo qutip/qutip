@@ -17,7 +17,7 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import spsolve
 
 from qutip.settings import settings
-from qutip import state_number_enumerate
+from qutip import state_number_enumerate, CoreOptions
 from qutip.core import data as _data
 from qutip.core.data import csr as _csr
 from qutip.core.environment import (
@@ -383,7 +383,7 @@ class HierarchyADOsState:
             idx = idx_or_label
         else:
             idx = self._ados.idx(idx_or_label)
-        return Qobj(self._ado_state[idx, :].T, dims=self.rho.dims)
+        return Qobj(self._ado_state[idx, :].T, dims=self.rho._dims)
 
 
 class HEOMResult(Result):
@@ -658,7 +658,6 @@ class HEOMSolver(Solver):
 
         self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
         self._sup_shape = self.L_sys.shape[0]
-        self._sys_dims = self.L_sys.dims[0]
 
         self._post_init(options)
         # _n_ados is part of the shape/dims so should be computed here, it is
@@ -719,14 +718,8 @@ class HEOMSolver(Solver):
         return self._rhs
 
     @property
-    def sys_dims(self):
-        """
-        Dimensions of the space that the system use, excluding any environment:
-
-        ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
-        for this solver.
-        """
-        return self._sys_dims
+    def _sys_dims(self):
+        return self.L_sys._dims[0].oper
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
@@ -751,7 +744,7 @@ class HEOMSolver(Solver):
         for b in bath:
             exponents.extend(b.exponents)
 
-        if not all(exp.Q.dims == exponents[0].Q.dims for exp in exponents):
+        if not all(exp.Q._dims == exponents[0].Q._dims for exp in exponents):
             raise ValueError(
                 "All bath exponents must have system coupling operators"
                 " with the same dimensions but a mixture of dimensions"
@@ -790,7 +783,7 @@ class HEOMSolver(Solver):
             return FermionicBath.from_environment(env, Q, *args)
         raise ValueError("The HEOM solver requires the environment to have"
                         " a multi-exponential correlation function. Use"
-                        " one of the `approx_by_` functions to generate a"
+                        " the `approximate` function to generate a"
                         " multi-exponential approximation.")
 
     def _grad_n(self, he_n):
@@ -1024,7 +1017,7 @@ class HEOMSolver(Solver):
         b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
         b_mat[0] = 1.0
 
-        L = self.rhs(0).data.copy().as_scipy()
+        L = self.rhs(0).to("CSR").data.copy().as_scipy()
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()
@@ -1050,7 +1043,7 @@ class HEOMSolver(Solver):
 
         data = _data.Dense(solution[:n ** 2].reshape((n, n), order='F'))
         data = _data.mul(_data.add(data, data.adjoint()), 0.5)
-        steady_state = Qobj(data, dims=self._sys_dims)
+        steady_state = Qobj(data, dims=self._sys_dims, copy=False)
 
         solution = solution.reshape((self._n_ados, n, n))
         steady_ados = HierarchyADOsState(steady_state, self.ados, solution)
@@ -1153,7 +1146,7 @@ class HEOMSolver(Solver):
             rho0_he = rho0_he.reshape(n ** 2 * self._n_ados)
             rho0_he = _data.create(rho0_he)
         else:
-            if rho0.dims != rho_dims:
+            if rho0._dims != rho_dims:
                 raise ValueError(
                     f"Initial state rho has dims {rho0.dims}"
                     f" but the system dims are {rho_dims}"

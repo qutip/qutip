@@ -57,7 +57,7 @@ cdef class _StochasticSystem:
         """
         raise NotImplementedError
 
-    cpdef void set_state(self, double t, Dense state) except *:
+    cpdef void set_state(self, double t, Data state) except *:
         """
             Initialize the set of derrivatives.
         """
@@ -131,6 +131,7 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         diffusion = (c_i - e_i / 2) * psi
     """
     cdef readonly list cpcd_ops
+    cdef readonly object _dims
 
     def __init__(self, H, sc_ops):
         self.L = -1j * H
@@ -140,6 +141,8 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         self.num_collapse = len(self.c_ops)
         for c_op in self.c_ops:
             self.L += -0.5 * c_op.dag() * c_op
+
+        self._dims = self.L._dims
 
     cpdef Data drift(self, t, Data state):
         cdef int i
@@ -216,6 +219,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef double dt
     cdef int _is_set
     cdef bint _a_set, _b_set, _Lb_set, _L0b_set, _La_set, _LLb_set, _L0a_set
+    cdef readonly object _dims
 
     cdef Dense _a, temp, _L0a
     cdef complex[::1] expect_Cv
@@ -237,6 +241,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         self._is_set = 0
         self.N_root = int(self.state_size**0.5)
         self.dt = derr_dt
+        self._dims = self.L._dims
 
     cpdef Data drift(self, t, Data state):
         return self.L.matmul_data(t, state)
@@ -263,8 +268,9 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             expect.append(_data.trace_oper_ket(vec))
         return expect
 
-    cpdef void set_state(self, double t, Dense state) except *:
+    cpdef void set_state(self, double t, Data state_raw) except *:
         cdef n, l
+        cdef Dense state = _data.to(Dense, state_raw)
         self.t = t
         if not state.fortran:
             state = state.reorder(fortran=1)
@@ -579,7 +585,7 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
             expect.append(0j)
         return expect
 
-    cpdef void set_state(self, double t, Dense state) except *:
+    cpdef void set_state(self, double t, Data state) except *:
         self.t = t
         self.state = state
 

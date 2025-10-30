@@ -161,15 +161,20 @@ cdef class _BaseElement:
           dispatch does not yet support in-place operations. Once it does
           this method should be updated to use the new support.
         """
+        cdef Data data_t = self.data(t)
         if out is None:
-            return _data.matmul(self.data(t), state, self.coeff(t))
+            return _data.matmul[type(data_t), type(state), type(state)](
+                data_t, state, self.coeff(t)
+            )
         elif type(state) is Dense and type(out) is Dense:
-            imatmul_data_dense(self.data(t), state, self.coeff(t), out)
+            imatmul_data_dense(data_t, state, self.coeff(t), out)
             return out
         else:
-            return _data.add(
+            return _data.add[type(out), type(state), type(out)](
                 out,
-                _data.matmul(self.data(t), state, self.coeff(t))
+                _data.matmul[type(data_t), type(state), type(state)](
+                    data_t, state, self.coeff(t)
+                )
             )
 
     def linear_map(self, f, anti=False):

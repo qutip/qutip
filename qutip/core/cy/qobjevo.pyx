@@ -665,7 +665,7 @@ cdef class QobjEvo:
         elif isinstance(other, numbers.Number):
             self.elements = [element * other for element in self.elements]
         elif isinstance(other, Coefficient):
-            other = _EvoElement(qutip.qeye(self.dims[1]), other)
+            other = _EvoElement(qutip.qeye(self._dims[1]), other)
             self.elements = [element @ other for element in self.elements]
         else:
             return NotImplemented
@@ -708,6 +708,7 @@ cdef class QobjEvo:
         res.elements = [element.linear_map(Qobj.trans)
                         for element in res.elements]
         res._dims = Dimensions(res._dims[0], res._dims[1])
+        res.shape = res._dims.shape
         return res
 
     def conj(self):
@@ -723,6 +724,7 @@ cdef class QobjEvo:
         res.elements = [element.linear_map(Qobj.dag, True)
                         for element in res.elements]
         res._dims = Dimensions(res._dims[0], res._dims[1])
+        res.shape = res._dims.shape
         return res
 
     def to(self, data_type):
@@ -807,7 +809,7 @@ cdef class QobjEvo:
     ###########################################################################
     # Cleaning and compress                                                   #
     ###########################################################################
-    def _compress_merge_qobj(self, coeff_elements):
+    def _compress_merge_coeff(self, coeff_elements):
         """Merge element with matching qobj:
         ``[A, f1], [A, f2] -> [A, f1+f2]``
         """
@@ -817,11 +819,31 @@ cdef class QobjEvo:
         coeffs = []
         for element in coeff_elements:
             for i, qobj in enumerate(qobjs):
-                if element.qobj(0) == qobj:
+                if element._qobj == qobj:
                     coeffs[i] = coeffs[i] + element._coefficient
                     break
             else:
-                qobjs.append(element.qobj(0))
+                qobjs.append(element._qobj)
+                coeffs.append(element._coefficient)
+        for qobj, coeff in zip(qobjs, coeffs):
+            cleaned_elements.append(_EvoElement(qobj, coeff))
+        return cleaned_elements
+
+    def _compress_merge_qobj(self, coeff_elements):
+        """Merge element with matching coefficient:
+        ``[A, f1], [B, f1] -> [A + B, f1]``
+        """
+        cleaned_elements = []
+        # Mimic a dict with Qobj not hashable
+        qobjs = []
+        coeffs = []
+        for element in coeff_elements:
+            for i, coeff in enumerate(coeffs):
+                if element._coefficient == coeff:
+                    qobjs[i] = qobjs[i] + element._qobj
+                    break
+            else:
+                qobjs.append(element._qobj)
                 coeffs.append(element._coefficient)
         for qobj, coeff in zip(qobjs, coeffs):
             cleaned_elements.append(_EvoElement(qobj, coeff))
@@ -855,15 +877,18 @@ cdef class QobjEvo:
             else:
                 func_elements.append(element)
 
+        coeff_elements = self._compress_merge_coeff(coeff_elements)
+        coeff_elements = self._compress_merge_qobj(coeff_elements)
+
         cleaned_elements = []
         if len(cte_elements) >= 2:
             # Multiple constant parts
             cleaned_elements.append(_ConstantElement(
-                sum(element.qobj(0) for element in cte_elements)))
+                sum(element._qobj for element in cte_elements)
+            ))
         else:
             cleaned_elements += cte_elements
 
-        coeff_elements = self._compress_merge_qobj(coeff_elements)
         cleaned_elements += coeff_elements + func_elements
 
         self.elements = cleaned_elements

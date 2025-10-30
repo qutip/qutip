@@ -8,6 +8,7 @@ import scipy.linalg
 
 import qutip
 from qutip.core import data as _data
+from qutip.core.dimensions import flatten
 
 
 @pytest.fixture(params=[_data.CSR, _data.Dense], ids=["CSR", "Dense"])
@@ -66,24 +67,26 @@ def test_QobjData():
                          ids=["copy=True", "copy=False"])
 def test_QobjCopyArgument(original_data, copy):
     """Tests that Qobj copy argument works properly when instantiating Qobj."""
-    qobj_data = qutip.Qobj(original_data, copy=copy).data
+    with qutip.CoreOptions(default_dtype_scope="creation"):
+        # default_dtype_scope="full" would break the copy logic
+        qobj_data = qutip.Qobj(original_data, copy=copy).data
 
-    if isinstance(original_data, qutip.Qobj):
-        # Qobj copies the data of another Qobj, so we take `data` if
-        # original_data was a Qobj
-        original_data = original_data.data
+        if isinstance(original_data, qutip.Qobj):
+            # Qobj copies the data of another Qobj, so we take `data` if
+            # original_data was a Qobj
+            original_data = original_data.data
 
-    if isinstance(original_data, np.ndarray):
-        # For numpy object we compare with data's data. This should be dense so
-        # we get its data as ndarray.
-        qobj_data = qobj_data.as_ndarray()
+        if isinstance(original_data, np.ndarray):
+            # For numpy object we compare with data's data. This should be dense so
+            # we get its data as ndarray.
+            qobj_data = qobj_data.as_ndarray()
 
-        # We look at the memory and see if it is shared or not to asses wether
-        # copy argument worked or not.
-        assert np.shares_memory(qobj_data, original_data) != copy
+            # We look at the memory and see if it is shared or not to asses wether
+            # copy argument worked or not.
+            assert np.shares_memory(qobj_data, original_data) != copy
 
-    else:
-        assert (original_data is qobj_data) != copy
+        else:
+            assert (original_data is qobj_data) != copy
 
 
 def test_QobjType():
@@ -585,15 +588,32 @@ def test_QobjEigenEnergies():
     assert np.all(b == 5*np.arange(10))
 
 
-def test_QobjEigenStates():
+@pytest.mark.parametrize("space", [
+    qutip.core.dimensions.Space(5),
+    qutip.core.dimensions.Space([2, 3]),
+    qutip.energy_restricted.EnrSpace([2, 3], 2),
+])
+def test_QobjEigenStates(space):
     "qutip.Qobj eigenstates"
-    data = np.eye(5)
-    A = qutip.Qobj(data)
+    N = space.size
+    data = np.eye(N)
+    A = qutip.Qobj(data, dims=[space, space])
     b, c = A.eigenstates()
-    assert np.all(b == np.ones(5))
-    kets = [qutip.basis(5, k) for k in range(5)]
-    for k in range(5):
+    assert np.all(b == np.ones(N))
+    kets = [qutip.basis(space, space.idx2dims(k)) for k in range(N)]
+    for k in range(N):
+        assert c[k]._dims[0] == space
         assert c[k] == kets[k]
+
+
+def test_QobjEigenStatesOutputType():
+    op = qutip.rand_herm(5)
+
+    _, kets = op.eigenstates(output_type='kets', phase_fix=0)
+    _, oper = op.eigenstates(output_type='oper', phase_fix=0)
+
+    assert qutip.Qobj(
+           np.hstack([vec.full() for vec in kets]), dims=[5, 5]) == oper
 
 
 def test_QobjExpm():
@@ -1157,13 +1177,13 @@ def test_no_real_casting():
                  id='mixed,unchanged'),
     pytest.param([[2, 2, 2], [1, 2, 2]], [[2, 2, 2], [1, 2, 2]],
                  id='mixed,unchanged'),
-    pytest.param([[2, 2, 1], [1, 1, 1]], [[2, 2], [1, 1]], id='ket'),
-    pytest.param([[1, 2, 1], [1, 1, 1]], [[2], [1]], id='ket'),
-    pytest.param([[2, 3, 4], [1, 1, 1]], [[2, 3, 4], [1, 1, 1]],
+    pytest.param([[2, 2, 1], [1]], [[2, 2], [1]], id='ket'),
+    pytest.param([[1, 2, 1], [1]], [[2], [1]], id='ket'),
+    pytest.param([[2, 3, 4], [1]], [[2, 3, 4], [1]],
                  id='ket,unchanged'),
-    pytest.param([[1, 1, 1], [2, 2, 1]], [[1, 1], [2, 2]], id='bra'),
-    pytest.param([[1, 1, 1], [1, 2, 1]], [[1], [2]], id='bra'),
-    pytest.param([[1, 1, 1], [2, 3, 4]], [[1, 1, 1], [2, 3, 4]],
+    pytest.param([[1], [2, 2, 1]], [[1], [2, 2]], id='bra'),
+    pytest.param([[1], [1, 2, 1]], [[1], [2]], id='bra'),
+    pytest.param([[1], [2, 3, 4]], [[1], [2, 3, 4]],
                  id='bra,unchanged'),
     pytest.param([[[2, 1, 1], [2, 1, 1]], [1]], [[[2], [2]], [1]],
                  id='operket'),
@@ -1181,6 +1201,49 @@ def test_contract(expanded, contracted, inplace):
     else:
         assert out is not qobj
     assert out.dims == contracted
+    assert out.shape == qobj.shape
+    assert np.all(out.full() == qobj.full())
+
+
+@pytest.mark.parametrize('inplace', [True, False], ids=['inplace', 'new'])
+@pytest.mark.parametrize(['indims', 'outdims'], [
+    pytest.param([[1, 2, 2], [1, 2, 2]], [[2, 2], [2, 2]], id='op'),
+    pytest.param([[2, 1, 1], [2, 1, 1]], [[2], [2]], id='op'),
+    pytest.param([[5, 5], [5, 5]], [[5, 5], [5, 5]], id='op,unchanged'),
+    pytest.param([[5], [5]], [[5], [5]], id='op,unchanged'),
+    pytest.param([[2, 2], [2, 1]], [[2, 2], [2]], id='op-times-vec'),
+    pytest.param([[5, 1, 3, 1], [5, 2, 3, 1]], [[5, 3], [5, 2, 3]],
+                 id='mixed'),
+    pytest.param([[2, 1, 2], [2, 2, 2]], [[2, 2], [2, 2, 2]],
+                 id='mixed'),
+    pytest.param([[2, 2, 2], [1, 2, 2]], [[2, 2, 2], [2, 2]],
+                 id='mixed'),
+    pytest.param([[2, 2, 1], [1]], [[2, 2], [1]], id='ket'),
+    pytest.param([[1, 2, 1], [1]], [[2], [1]], id='ket'),
+    pytest.param([[2, 3, 4], [1]], [[2, 3, 4], [1]],
+                 id='ket,unchanged'),
+    pytest.param([[1], [2, 2, 1]], [[1], [2, 2]], id='bra'),
+    pytest.param([[1], [1, 2, 1]], [[1], [2]], id='bra'),
+    pytest.param([[1], [2, 3, 4]], [[1], [2, 3, 4]],
+                 id='bra,unchanged'),
+    pytest.param([[[2, 1], [1, 2]], [1]], [[[2], [2]], [1]],
+                 id='operket'),
+    pytest.param([[1], [[2, 1, 1], [2, 1, 1]]], [[1], [[2], [2]]],
+                 id='operbra'),
+    pytest.param([[[2, 1, 1], [1, 2, 1]], [[3, 4], [1]]],
+                 [[[2], [2]], [[3, 4], [1]]], id='super')
+])
+def test_drop_scalar_dims(indims, outdims, inplace):
+    shape = (np.prod(flatten(indims[0])), np.prod(flatten(indims[1])))
+    data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+    qobj = qutip.Qobj(data, dims=indims)
+    assert qobj.dims == indims
+    out = qobj.drop_scalar_dims(inplace=inplace)
+    if inplace:
+        assert out is qobj
+    else:
+        assert out is not qobj
+    assert out.dims == outdims
     assert out.shape == qobj.shape
     assert np.all(out.full() == qobj.full())
 
@@ -1279,3 +1342,26 @@ def test_qobj_dtype(dtype):
 def test_dtype_in_info_string(dtype):
     obj = qutip.qeye(2, dtype=dtype)
     assert dtype.lower() in str(obj).lower()
+
+
+def test_constructing_op_from_states():
+    obj = qutip.basis(2, dtype="Dense")
+    assert (obj @ obj.dag()).dtype == qutip.data.to.parse("csr")
+    obj = qutip.basis(2, 0, dtype="Dense") + qutip.basis(2, 1, dtype="Dense")
+    assert (obj @ obj.dag()).dtype == qutip.data.to.parse("Dense")
+
+
+@pytest.mark.parametrize(["state", "expected", "kwargs"], [
+        (qutip.basis([2, 2, 2], [1, 1, 0]), "(1+0j) |110>", {}),
+        (qutip.basis([2, 2, 2], [1, 1, 0]).dag(), "(1-0j) <110|", {}),
+        (qutip.basis([5, 5, 5], [4, 0, 2]), "(1+0j) |4, 0, 2>", {}),
+        (qutip.ket("1011001"), "(1+0j) |1011001>", {}),
+        (qutip.bell_state("00"), "(0.70711+0j) |11> + (0.70711+0j) |00>",
+            {"decimal_places": 5}),
+        (0*qutip.basis(2, 0), "0", {}),
+        (qutip.enr_fock([3, 3], 2, [1, 1]), "(1+0j) |1, 1>", {}),
+])
+def test_basis_expansion(state: qutip.Qobj, expected: str, kwargs: dict):
+    result = state.basis_expansion(**kwargs)
+
+    assert result == expected

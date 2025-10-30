@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import qutip
+from qutip.core.energy_restricted import EnrSpace
 
 
 class TestVonNeumannEntropy:
@@ -11,19 +12,32 @@ class TestVonNeumannEntropy:
         assert abs(-qutip.entropy_vn(dm, 2) - expected) < 1e-12
 
     @pytest.mark.repeat(10)
-    def test_pure_state(self):
-        assert abs(qutip.entropy_vn(qutip.rand_ket(10))) < 1e-12
+    @pytest.mark.parametrize("dim", [10, EnrSpace([3, 3], 2)])
+    def test_pure_state(self, dim):
+        assert abs(qutip.entropy_vn(qutip.rand_ket(dim))) < 1e-12
+
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize("dim", [10, EnrSpace([3, 3], 2)])
+    def test_mixed_state(self, dim):
+        assert qutip.entropy_vn(qutip.rand_dm(dim)) > 0
 
 
 class TestLinearEntropy:
     @pytest.mark.repeat(10)
-    def test_less_than_von_neumann(self):
-        dm = qutip.rand_dm(10)
+    @pytest.mark.parametrize("dim", [10, EnrSpace([3, 3], 2)])
+    def test_less_than_von_neumann(self, dim):
+        dm = qutip.rand_dm(dim)
         assert qutip.entropy_linear(dm) <= qutip.entropy_vn(dm)
 
     @pytest.mark.repeat(10)
-    def test_pure_state(self):
-        assert abs(qutip.entropy_linear(qutip.rand_ket(10))) < 1e-12
+    @pytest.mark.parametrize("dim", [10, EnrSpace([3, 3], 2)])
+    def test_pure_state(self, dim):
+        assert abs(qutip.entropy_linear(qutip.rand_ket(dim))) < 1e-12
+
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize("dim", [10, EnrSpace([3, 3], 2)])
+    def test_mixed_state(self, dim):
+        assert qutip.entropy_linear(qutip.rand_dm(dim)) > 0
 
 
 class TestConcurrence:
@@ -171,6 +185,17 @@ class TestRelativeEntropy:
     def test_random_rho_sigma(self):
         rho = qutip.rand_dm(8)
         sigma = qutip.rand_dm(8)
+        rel = qutip.entropy_relative(rho, sigma)
+        assert rel >= 0
+        assert rel == pytest.approx(
+            self._simple_relative_entropy_implementation(rho, sigma, np.log)
+        )
+
+    @pytest.mark.repeat(20)
+    def test_with_enr(self):
+        dims = EnrSpace([3, 3], 2)
+        rho = qutip.rand_dm(dims)
+        sigma = qutip.rand_dm(dims)
         rel = qutip.entropy_relative(rho, sigma)
         assert rel >= 0
         assert rel == pytest.approx(

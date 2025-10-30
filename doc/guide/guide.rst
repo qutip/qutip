@@ -20,8 +20,9 @@ Users Guide
    guide-correlation.rst
    guide-bloch.rst
    guide-visualization.rst
+   guide-distributions.rst
    guide-saving.rst
    guide-random.rst
    guide-settings.rst
    guide-measurement.rst
-   guide-control.rst
+   guide-family.rst

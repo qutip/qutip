@@ -6,6 +6,200 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.2.1 (2025-08-25)
+========================
+
+Features
+--------
+
+- Add tsit5 integration method (#2720)
+- Provided functionality to output Qobj eigenstates as a list of kets or an operator. (#2731, by Hrishikesh Belagali)
+
+
+Bug Fixes
+---------
+
+- ENR dimension bugfix for when QobjEvo is multiplied by Coefficient (#2713, by ottosalmenkivi)
+- Use the common error definition in the homemade ODE solvers. (#2726)
+  It used to compute ``rtol`` on the vector norm, now it's computed per element.
+- Fix a bug with histogram animation showing only one bar. (#2682, by Sneha Uppula)
+
+
+Miscellaneous
+-------------
+
+- Adapt to issues with Scipy 1.16 (#2711)
+- The Liouvillian no longer expects the Hamiltonian to be Hermitian. (#2658)
+- Various improvement for supporting plug-ins. (#2718, #2719, #2723)
+- It's no longer possible to use sparse (CSR, Dia) format for the state in solvers. (#2734)
+
+
+QuTiP 5.2.0 (2025-06-06)
+========================
+
+Features
+--------
+
+Improvements to Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- Two 'DrudeLorentzPadeBath' can be added with complex conjugate 'gammas' to create a Shifted-DrudeLorentzPadeBath. (#2574, by Akhil Bhartiya)
+- Adds extra fitting methods (power spectrum, prony, esprit, aaa, espira-I, espira-II) for bosonic environments (#2594, by Gerardo Jose Suarez)
+- Add support for `FermionicEnvironment` in Bloch Redfield tensor and solver. (#2628)
+
+New experimental solver
+^^^^^^^^^^^^^^^^^^^^^^^
+- Add a first version of Dysolve solver as ``dysolve_propagator``.
+  A perturbation solver for Schrödinger equation optimized for driven systems.
+  (#2648, #2679, by Mathis)
+
+Better matrix format control
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- Add "default_dtype_scope" option.
+  Give more control on matrix format used by operations. (#2519)
+- Creating operator from dense ket.proj return CSR when appropriate (#2700)
+- `|ket> @ <bra|` create sparse matrix per default. (#2611)
+- Tensor product of sparse and dense matrices return sparse matrix per default. (#2391)
+
+Other improvements
+^^^^^^^^^^^^^^^^^^
+- Add the calculation of the third cumulant to the functions of countstat.py.
+  I use a result of "Electrons in nanostructures" C. Flindt, PhD Thesis (#2435, by Daniel Moreno Galán)
+- Support pretty-printing of basis expansion for states (e.g. ``(0.5+0j) |0010> + ...``). (#2620, by Sola85)
+- Added QuTiP family package information to qutip.about().
+  The information is provided by a new QuTiP family package entry point. (#2604)
+- Speed up ptrace for kets (by several orders of magnitude for large states). (#2657, by Sola85)
+- Implement partial trace and tensor product for states in excitation-number restricted space. (#2696, magzpavz)
+
+Bug Fixes
+---------
+
+- Fix arc behind hidden behind the wireframe. (#2467, by PositroniumJS)
+- Update mkl finding to support the 'emscripten' sys.platform. (#2606)
+- Make sure that dims of rand_ket output are set correctly. (#2613, reported by Mário Filho)
+- Allow np.int as targets in expand_operator (#2634, by Sola85)
+- Fix coefficient `args` not being properly updated
+  when initiated from another coefficient. (#2646, reported by Kyle Wamer)
+- Fix equality operators for diagonal format Qobj. (#2669, reported by Richard Dong)
+- Enable again to plot a state as a point on the Bloch sphere with a RGBA tuple.
+  Enable to do the same as a vector. (#2678, by PositroniumJS)
+- Added missing abs when checking hermiticity (#2680, by Tanuj Rai, reported by tuureorell)
+- Fix types and exceptions (#2701, Emmanuel Ferdman)
+
+Documentation
+-------------
+
+- Docstrings, typing, guide page for distributions. (#2599, by Mathis)
+- Guide for qutip.distributions (#2600, by Mathis)
+- Removes the Quantum Optimal Control page in the Users Guide and adds Family guide page in Users guide. (#2616, by Kavya Rambhia)
+- Fix small typo in docstring for `sesolve`. (#2677, by Sarang Joshi)
+
+
+Miscellaneous
+-------------
+
+- Removed WignerDistribution, QDistribution from distributions with their tests.
+  Added plot_qfunc to plot Husimi-Q function with tests and animation. (#2607, by Mathis)
+- Specialized A @ B.dag() operation. (#2610)
+- Set auto_tidyup_dims default to True (#2623)
+- Change default ode method for mcsolve (#2643)
+- Fix parameter name inconsistency in qsave (#2688, by Andrey Rakhubovsky)
+- Add tests for qdiags and phasegate Hermitian fix (#2698, by Tanuj Rai)
+- Changed type hints in function visualize in distributions.py (tests failed if mpl not installed). (#2607, by Mathis)
+
+
+QuTiP 5.1.1 (2025-01-10)
+=========================
+
+Patch to add support for scipy 1.15.
+
+Features
+--------
+
+- qutip.cite() now cites the QuTiP 5 paper, https://arxiv.org/abs/2412.04705.
+- Added QuTiP family package information to qutip.about(). (#2604)
+
+
+Bug Fixes
+---------
+
+- Fix support for calculating the eigenstates of ENR operators (#2595).
+- Update various functions to use `sph_harm_y` when using scipy >= 1.15.
+- Update mkl finding to support the 'emscripten' sys.platform. (#2606)
+
+
+QuTiP 5.1.0 (2024-12-12)
+========================
+
+Features
+--------
+
+- It adds odd parity support to HEOM's fermionic solver (#2261, by Gerardo Jose Suarez)
+- Create `SMESolver.run_from_experiment`, which allows to run stochastic evolution from know noise or measurements. (#2318)
+- Add types hints. (#2327, #2473)
+- Weighted trajectories in trajectory solvers (enables improved sampling for nm_mcsolve) (#2369, by Paul Menczel)
+- Updated `qutip.core.metrics.dnorm` to have an efficient speedup when finding the difference of two unitaries. We use a result on page 18 of
+  D. Aharonov, A. Kitaev, and N. Nisan, (1998). (#2416, by owenagnel)
+- Allow mixed initial conditions for mcsolve and nm_mcsolve. (#2437, by Paul Menczel)
+- Add support for `jit` and `grad` in qutip.core.metrics (#2461, by Rochisha Agarwal)
+- Allow merging results from stochastic solvers. (#2474)
+- Support measurement statistics for `jax` and `jaxdia` dtypes (#2493, by Rochisha Agarwal)
+- Enable mcsolve with jax.grad using numpy_backend (#2499, by Rochisha Agarwal)
+- Add propagator method to steadystate (#2508)
+- Introduces the qutip.core.environment module, which contains classes that characterize bosonic and fermionic thermal environments. (#2534, by Gerardo Jose Suarez)
+- Implements a `einsum` function for Qobj dimensions (Evaluates the Einstein summation convention on the operands.) (#2545, by Franco Mayo)
+- Wave function calculations have been sped up with a Cython implementation.
+  It optimizes the update method of the HarmonicOscillatorWaveFunction class in distribution.py. (#2553, by Matheus Gomes Cordeiro)
+- Speed up `kraus_to_super` by adding a `sparse` option. (#2569, by Sola85)
+
+
+Bug Fixes
+---------
+
+- Fix a dimension problem for the argument color of Bloch.add_states
+  Clean-up of the code in  Bloch.add_state
+  Add Bloch.add_arc and Bloch.add_line in the guide on Bloch class (#2445, by PositroniumJS)
+- Fix HTMLProgressBar display (#2475)
+- Make expm, cosm, sinm work with jax. (#2484, by Rochisha Agarwal)
+- Fix stochastic solver step method (#2491)
+- `clip` gives deprecation warning, that might be a problem in the future. Hence switch to `where` (#2507, by Rochisha Agarwal)
+- Fix brmesolve detection of contant vs time-dependent system. (#2530)
+- `propagator` now accepts list format `c_ops` like `mesolve` does. (#2532)
+- Fix compatibility issue with matplotlib>=3.9 in matrix_histogram (#2544, by Andreas Maeder)
+- Resolve incompatibility of TwoModeQuadratureCorrelation class (#2548, by quantum-menace)
+- Fix sparse eigen solver issue with many degenerate eigen values. (#2586)
+- Fix getting tensor permutation for uneven super operators. (#2561)
+
+
+Documentation
+-------------
+
+- Improve guide-settings page. (#2403)
+- Tidy up formatting of type aliases in the api documentation (#2436, by Paul Menczel)
+- Update documentation
+  - Update contributors
+  - Improve apidoc readability (#2523)
+- Fix error in simdiag docstring (#2585, by Sola85)
+
+
+Miscellaneous
+-------------
+
+- Add auto_real_casting options. (#2329)
+- Add dispatcher for sqrtm (#2453, by Rochisha Agarwal)
+- Make `e_ops`, `args` and `options` keyword only.
+  Solver were inconsistent with `e_ops` usually following `c_ops` but sometime
+  preceding it. Setting it as keyword only remove the need to memorize the
+  signature of each solver. (#2489)
+- Introduces a new `NumpyBackend `class that enables dynamic selection of the numpy_backend used in `qutip`.
+  The class facilitates switching between different numpy implementations ( `numpy` and `jax.numpy` mainly ) based on the configuration specified in `settings.core`. (#2490, by Rochisha Agarwal)
+- Improve mkl lookup function. (#2497)
+- Deterministic trajectories are not counted in ``ntraj``. (#2502)
+- Allow tests to be executed multiple times in one Python session (#2538, by Zhang Maiyun)
+- Improve performance of qutip.Qobj by using static numpy version check (#2557, by Pieter Eendebak)
+- Fix towncrier check (#2542)
+
+
+
 QuTiP 5.0.4 (2024-08-30)
 ========================
 

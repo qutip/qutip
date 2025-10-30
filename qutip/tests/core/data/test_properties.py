@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import qutip
 from qutip import data as _data
 from qutip import CoreOptions
 from . import conftest
@@ -243,3 +244,13 @@ class TestIsEqual:
         A = conftest.random_diag(shape, 0.5, False)
         B = clean_dia(A)
         assert _data.isequal(A, B)
+
+    def test_dia_mismatch_structure(self):
+        true_zeros = qutip.qzero(5, dtype="dia")
+        diag_of_zeros = qutip.qdiags([0]*5)
+        id = qutip.qeye(5, dtype="dia")
+        assert true_zeros == diag_of_zeros
+        assert id != diag_of_zeros
+        assert id != true_zeros
+        assert qutip.destroy(3) + qutip.create(3) != qutip.destroy(3)
+        assert qutip.destroy(3) + qutip.create(3) != qutip.create(3)
