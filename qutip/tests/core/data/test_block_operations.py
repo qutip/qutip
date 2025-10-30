@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from qutip.core import data as _data
-from qutip.core.data import Dense
+from qutip.core.data import csr, Dense
 
 
 @pytest.mark.parametrize('outtype', _data.to.dtypes)
@@ -97,6 +97,50 @@ def test_concat_blocks_validation(outtype):
             np.array([2, 3], dtype=_data.base.idxint_dtype),
             dtype=outtype
         )
+
+
+def test_concat_blocks_csr():
+    """tests specific to the csr implementation"""
+    block = _data.one_element_csr((1, 1), (0, 0))
+
+    # Test correct error message if arrays are not sorted
+    with pytest.raises(ValueError, match="must be sorted"):
+        _data.concat_blocks_csr(
+            np.array([1, 0], dtype=_data.base.idxint_dtype),
+            np.array([0, 1], dtype=_data.base.idxint_dtype),
+            np.array([block, block], dtype=_data.Data),
+            np.array([1, 1], dtype=_data.base.idxint_dtype),
+            np.array([1, 1], dtype=_data.base.idxint_dtype),
+        )
+    with pytest.raises(ValueError, match="must be sorted"):
+        _data.concat_blocks_csr(
+            np.array([1, 1], dtype=_data.base.idxint_dtype),
+            np.array([1, 0], dtype=_data.base.idxint_dtype),
+            np.array([block, block], dtype=_data.Data),
+            np.array([1, 1], dtype=_data.base.idxint_dtype),
+            np.array([1, 1], dtype=_data.base.idxint_dtype),
+        )
+    with pytest.raises(ValueError, match="must be sorted"):
+        _data.concat_blocks_csr(
+            np.array([1, 0], dtype=_data.base.idxint_dtype),
+            np.array([1, 0], dtype=_data.base.idxint_dtype),
+            np.array([block, block], dtype=_data.Data),
+            np.array([1, 1], dtype=_data.base.idxint_dtype),
+            np.array([1, 1], dtype=_data.base.idxint_dtype),
+        )
+
+    # Test no segfault if input is csr.empty
+    # (users are not expected to be exposed to csr.empty directly, but it is
+    # good to avoid segfaults, so we test this here explicitly)
+    result = _data.concat_blocks_csr(
+        np.array([0, 0, 1, 1], dtype=_data.base.idxint_dtype),
+        np.array([0, 1, 0, 1], dtype=_data.base.idxint_dtype),
+        np.array([csr.identity(2), csr.empty(2, 2, 0), csr.empty(2, 2, 0), csr.identity(2)], dtype=_data.Data),
+        np.array([2, 2], dtype=_data.base.idxint_dtype),
+        np.array([2, 2], dtype=_data.base.idxint_dtype),
+    )
+    assert result == csr.identity(4)
+    assert csr.nnz(result) == 4
 
 
 @pytest.mark.parametrize('intype', _data.to.dtypes)

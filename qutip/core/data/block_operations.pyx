@@ -333,12 +333,12 @@ concat_blocks = _Dispatcher(
 concat_blocks.__doc__ =\
     """
     Concatenates data blocks into a block matrix.
-    
+
     The coordinates of the non-empty blocks are given by the arrays
     ``block_rows`` and ``block_cols``, and the blocks themselves in the
     ``blocks`` array. All three arrays ``block_rows``, ``block_cols``, and
     ``blocks`` should have the same length.
-    
+
     The shape of the i-th block should be
     ``(block_heights[block_rows[i]], ``block_widths[block_cols[i]])``. The
     shape of the output will be ``(sum(block_heights), sum(block_widths))``.
