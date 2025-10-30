@@ -1393,5 +1393,5 @@ class _GatherHEOMRHS:
             self._n_blocks, self._block_size, dtype=_data.base.idxint_dtype)
         return _data.concat_blocks(
             ops["row"], ops["col"], ops["op"],
-            widths_and_heights, widths_and_heights
+            widths_and_heights, widths_and_heights, dtype='CSR'
         )

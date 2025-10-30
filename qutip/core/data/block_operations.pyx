@@ -3,8 +3,8 @@
 
 from libc.string cimport memcpy
 
-from . import base, convert, csr
-from . cimport base, CSR, Data, Dense
+from . import base, convert
+from . cimport base, csr, CSR, Data, Dense
 
 import numpy as np
 cimport numpy as cnp
@@ -92,7 +92,6 @@ cpdef CSR concat_blocks_csr(
         return csr.zeros(shape1, shape2)
 
     cdef base.idxint idx, row, column, nnz = 0
-    cdef cnp.ndarray ops = np.empty((num_ops,), dtype=CSR)
     cdef Data block
 
     for idx in range(num_ops):
@@ -108,16 +107,19 @@ cpdef CSR concat_blocks_csr(
 
         # check block shape, convert to CSR if needed, calculate nnz
         block = blocks[idx]
-        if block.shape != (block_heights[row], block_widths[column]):
+        if (
+            block.shape[0] != block_heights[row]
+            or block.shape[1] != block_widths[column]
+        ):
             raise ValueError(
                 f"Block operator does not have the correct shape at row={row},"
                 f" column={column}."
             )
 
         if type(block) is not CSR:
-            block = convert.to(CSR, block)
-        ops[idx] = <CSR>block
-        nnz += csr.nnz(block)
+            block = <Data>convert.to(CSR, block)
+            blocks[idx] = block
+        nnz += csr.nnz(<CSR>block)
 
     if nnz == 0:
         return csr.zeros(shape1, shape2)
@@ -141,7 +143,7 @@ cpdef CSR concat_blocks_csr(
 
         for op_row in range(block_heights[row]):
             for i in range(prev_idx, idx):
-                op = ops[i]
+                op = <CSR>blocks[i]
                 if csr.nnz(op) == 0:
                     # empty CSR matrices have uninitialized row_index entries.
                     # it's unclear whether users should ever see such matrixes
@@ -350,7 +352,8 @@ concat_blocks.__doc__ =\
         The block column for each data block. The block column should be in
         ``range(0, len(block_widths))``.
     blocks : Data[:]
-        The data blocks themselves.
+        The data blocks themselves. For performance reasons, implementations of
+        ``concat_blocks`` are allowed to modify this array in place.
     block_widths : int[:]
         Array containing the block widths.
     block_heights : int[:]
