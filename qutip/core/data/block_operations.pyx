@@ -194,7 +194,7 @@ cpdef CSR slice_csr(CSR data,
 
 
 cpdef Dense insert_block_dense(Data data, Dense block,
-                         base.idxint above, base.idxint before):
+                               base.idxint above, base.idxint before):
     cdef base.idxint data_height, data_width, block_height, block_width
 
     data_height, data_width = data.shape
@@ -229,7 +229,7 @@ cdef void _memcpy_data(double complex* target, base.idxint target_start,
 
 
 cpdef CSR insert_block_csr(CSR data, CSR block,
-                     base.idxint above, base.idxint before):
+                           base.idxint above, base.idxint before):
     cdef base.idxint data_height, data_width, block_height, block_width
 
     data_height, data_width = data.shape
