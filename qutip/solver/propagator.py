@@ -120,11 +120,9 @@ def propagator(
                 "piecewise_t provided but the Hamiltonian is time-independent",
                 UserWarning,
             )
-        piecewise_times = [
-            tt for tt in piecewise_t if tlist[0] < tt <= tlist[-1]
-        ]
-        times = sorted(set(tlist + piecewise_times))
-        target = set(tlist)
+        piecewise_times  = {tt for tt in piecewise_t if tlist[0] < tt <= tlist[-1]}
+        times_to_display = set(tlist)
+        times  = sorted(times_to_display + piecewise_times)
         H_step = H(tlist[0], args)
         if c_ops_list:
             c_ops_q = [op(tlist[0], args) for op in c_ops_list]
@@ -142,7 +140,7 @@ def propagator(
             else:
                 gen = H_step if H_step.issuper else -1j * H_step
             U = (gen * (nxt - prev)).expm() * U
-            if nxt in target:
+            if nxt in times_to_display:
                 out.append(U)
             prev = nxt
         return out if list_output else out[-1]
