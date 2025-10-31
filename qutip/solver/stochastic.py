@@ -14,12 +14,14 @@ from .multitrajresult import MultiTrajResult
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
 from .sode._noise import PreSetWiener
 from .result import Result, ExpectOp
-from .multitraj import _MultiTrajRHS, MultiTrajSolver
+from .multitraj import MultiTrajSolver
+from .multitrajresult import MultiTrajResult
 from .. import Qobj, QobjEvo
 from ..core.dimensions import Dimensions
-from ..core import data as _data
 from .solver_base import _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
+
+from ..core import data as _data
 from ..typing import QobjEvoLike, EopsLike
 from ..settings import settings
 
@@ -230,83 +232,6 @@ class StochasticResult(MultiTrajResult):
             new._dW = np.concatenate((self.dW, other.dW), axis=0)
 
         return new
-
-
-class _StochasticRHS(_MultiTrajRHS):
-    """
-    In between object to store the stochastic system.
-
-    It store the Hamiltonian (not Liouvillian when possible), and sc_ops.
-    dims and flags are provided to be usable the the base ``Solver`` class.
-
-    We don't want to use the cython rhs (``StochasticOpenSystem``, etc.) since
-    the rouchon integrator need the part but does not use the usual drift and
-    diffusion computation.
-    """
-
-    def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
-
-        if not isinstance(H, (Qobj, QobjEvo)) or not H.isoper:
-            raise TypeError("The Hamiltonian must be an operator")
-        self.H = QobjEvo(H)
-
-        if isinstance(sc_ops, (Qobj, QobjEvo)):
-            sc_ops = [sc_ops]
-        self.sc_ops = [QobjEvo(c_op) for c_op in sc_ops]
-
-        if isinstance(c_ops, (Qobj, QobjEvo)):
-            c_ops = [c_ops]
-        self.c_ops = [QobjEvo(c_op) for c_op in c_ops]
-
-        if any(not c_op.isoper for c_op in c_ops):
-            raise TypeError("c_ops must be operators")
-
-        if any(not c_op.isoper for c_op in sc_ops):
-            raise TypeError("sc_ops must be operators")
-
-        self.issuper = issuper
-        self.heterodyne = heterodyne
-        self._noise_key = None
-
-        if heterodyne:
-            sc_ops = []
-            for c_op in self.sc_ops:
-                sc_ops.append(c_op / np.sqrt(2))
-                sc_ops.append(c_op * (-1j / np.sqrt(2)))
-            self.sc_ops = sc_ops
-
-        if self.issuper and not self.H.issuper:
-            self.dims = [self.H.dims, self.H.dims]
-            self._dims = Dimensions([self.H._dims, self.H._dims])
-        else:
-            self.dims = self.H.dims
-            self._dims = self.H._dims
-
-    def __call__(self, options):
-        if self.issuper:
-            return StochasticOpenSystem(
-                self.H, self.sc_ops, self.c_ops, options.get("derr_dt", 1e-6)
-            )
-        else:
-            return StochasticClosedSystem(self.H, self.sc_ops)
-
-    def arguments(self, args):
-        self.H.arguments(args)
-        for c_op in self.c_ops:
-            c_op.arguments(args)
-        for sc_op in self.sc_ops:
-            sc_op.arguments(args)
-
-    def _register_feedback(self, val):
-        self.H._register_feedback({"wiener_process": val}, "stochastic solver")
-        for c_op in self.c_ops:
-            c_op._register_feedback(
-                {"WienerFeedback": val}, "stochastic solver"
-            )
-        for sc_op in self.sc_ops:
-            sc_op._register_feedback(
-                {"WienerFeedback": val}, "stochastic solver"
-            )
 
 
 def smesolve(
@@ -649,11 +574,43 @@ class StochasticSolver(MultiTrajSolver):
         options: dict[str, Any] = None,
     ):
         self._heterodyne = heterodyne
+        self.options = options
         if self.name == "ssesolve" and c_ops:
             raise ValueError("c_ops are not supported by ssesolve.")
 
-        rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
-        super().__init__(rhs, options=options)
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+
+        c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
+        for c_op in c_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+
+        sc_ops = [sc_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else sc_ops
+        for c_op in sc_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+        sc_ops = [QobjEvo(op) for op in sc_ops]
+
+        self.H = QobjEvo(H)
+        self.c_ops = [QobjEvo(op) for op in c_ops]
+        if heterodyne:
+            new_sc_ops = []
+            for c_op in sc_ops:
+                new_sc_ops.append(c_op / np.sqrt(2))
+                new_sc_ops.append(c_op * (-1j / np.sqrt(2)))
+            self.sc_ops = new_sc_ops
+        else:
+            self.sc_ops = sc_ops
+
+        if self._open and not self.H.issuper:
+            self._dims = Dimensions([self.H._dims, self.H._dims])
+        else:
+            self._dims = self.H._dims
+
+        self.seed_sequence = np.random.SeedSequence()
+        self._state_metadata = {}
+        self.stats = self._initialize_stats()
 
         if heterodyne:
             self._m_ops = []
@@ -663,6 +620,18 @@ class StochasticSolver(MultiTrajSolver):
         else:
             self._m_ops = [op + op.dag() for op in sc_ops]
             self._dW_factors = np.ones(len(sc_ops))
+
+    @property
+    def rhs(self):
+        if self._rhs is None:
+            if self._open:
+                self._rhs = StochasticOpenSystem(
+                    self.H, self.sc_ops, self.c_ops,
+                    self.options.get("derr_dt", 1e-6)
+                )
+            else:
+                self._rhs = StochasticClosedSystem(self.H, self.sc_ops)
+        return self._rhs
 
     @property
     def heterodyne(self) -> bool:
@@ -701,16 +670,16 @@ class StochasticSolver(MultiTrajSolver):
         if len(new_m_ops) != len(self.m_ops):
             if self.heterodyne:
                 raise ValueError(
-                    f"2 `m_ops` per `sc_ops`, {len(self.rhs.sc_ops)} operators"
+                    f"2 `m_ops` per `sc_ops`, {len(self.sc_ops)} operators"
                     " are expected for heterodyne measurement."
                 )
             else:
                 raise ValueError(
-                    f"{len(self.rhs.sc_ops)} measurements "
+                    f"{len(self.sc_ops)} measurements "
                     "operators are expected."
                 )
         if not all(
-            isinstance(op, Qobj) and op._dims == self.rhs.sc_ops[0]._dims
+            isinstance(op, Qobj) and op._dims == self.sc_ops[0]._dims
             for op in new_m_ops
         ):
             raise ValueError(
@@ -733,12 +702,12 @@ class StochasticSolver(MultiTrajSolver):
         if len(new_dW_factors) != len(self._dW_factors):
             if self.heterodyne:
                 raise ValueError(
-                    f"2 `dW_factors` per `sc_ops`, {len(self.rhs.sc_ops)} "
+                    f"2 `dW_factors` per `sc_ops`, {len(self.sc_ops)} "
                     "values are expected for heterodyne measurement."
                 )
             else:
                 raise ValueError(
-                    f"{len(self.rhs.sc_ops)} dW_factors are expected."
+                    f"{len(self.sc_ops)} dW_factors are expected."
                 )
         self._dW_factors = new_dW_factors
 
@@ -827,7 +796,7 @@ class StochasticSolver(MultiTrajSolver):
                 raise TypeError("noise must be real.")
             noise = np.real(noise)
         generator = PreSetWiener(
-            noise, tlist, len(self.rhs.sc_ops), self.heterodyne, measurement
+            noise, tlist, len(self.sc_ops), self.heterodyne, measurement
         )
         state0 = self._prepare_state(state)
         try:
@@ -972,6 +941,15 @@ class StochasticSolver(MultiTrajSolver):
     @options.setter
     def options(self, new_options: dict[str, Any]):
         MultiTrajSolver.options.fset(self, new_options)
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and `c_ops` and other operators."""
+        if args:
+            self.H.arguments(args)
+            for op in self.c_ops:
+                op.arguments(args)
+            for op in self.sc_ops:
+                op.arguments(args)
 
     @classmethod
     def WienerFeedback(
