@@ -197,7 +197,7 @@ def propagator_steadystate(U: Qobj) -> Qobj:
     rho_data = unstack_columns(estates[ev_idx].data)
     rho_data = _data.mul(rho_data, 0.5 / _data.trace(rho_data))
     return Qobj(_data.add(rho_data, _data.adjoint(rho_data)),
-                dims=U.dims[0],
+                dims=U._dims[0].oper,
                 isherm=True,
                 copy=False)
 
@@ -285,7 +285,7 @@ class Propagator:
 
         self.times = [0]
         self.invs = [None]
-        self.props = [qeye(self.solver.sys_dims)]
+        self.props = [qeye(self.solver._sys_dims)]
         self.solver.start(self.props[0], self.times[0])
         self.cte = self.solver.rhs.isconstant
         H_0 = self.solver.rhs(0)
