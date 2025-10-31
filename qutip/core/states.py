@@ -420,12 +420,12 @@ shape = [3, 3], type = oper, isHerm = True
         if len(n) != len(dimensions.as_list()) or len(offset) != len(n):
             raise ValueError("All list inputs must be the same length.")
 
-        n_off = [m-off for m, off in zip(n, offset)]
+        n_off = [m - off for m, off in zip(n, offset)]
         try:
             location = dimensions.dims2idx(n_off)
         except IndexError:
-            raise ValueError("All basis indices must be integers in the range "
-                             "`offset <= n < dimension+offset`.")
+            raise ValueError("All fock_dm indices must be integers in the "
+                             "range `offset <= n < dimension+offset`.")
     else:
         if not isinstance(n, list):
             n = [n]
@@ -434,12 +434,11 @@ shape = [3, 3], type = oper, isHerm = True
         try:
             location = dimensions.dims2idx(n)
         except IndexError:
-            raise ValueError("All basis indices must be integers in the range "
-                             "`0 <= n < dimension`.")
+            raise ValueError("All fock_dm indices must be integers in the "
+                             "range `0 <= n < dimension`.")
 
-    data = _data.one_element[dtype]((size, size), (location, location), 1)
     return Qobj(
-        data,
+        _data.one_element[dtype]((size, size), (location, location), 1),
         dims=[dimensions, dimensions],
         isherm=True,
         isunitary=False,
