@@ -29,7 +29,7 @@ def propagator_piecewise(
     Calculate propagators for piecewise constant Hamiltonians or Liouvillians.
 
     This function computes propagators of piecewise constant Hamiltonians or
-    Liouvillian. By exponentiating the generator directly on each constant interval,
+    Liouvillians. By exponentiating the generator directly on each constant interval,
     this approach is significantly faster than numerically integrating the
     differential equation.
 
