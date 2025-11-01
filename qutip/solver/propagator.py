@@ -19,6 +19,47 @@ from numbers import Number
 from typing import Any
 
 
+def propagator_piecewise(
+    H: QobjEvo,
+    tlist: list[Number],
+    piecewise_t: list[Number],
+    c_ops: list[QobjEvo] = None,
+    args: dict[str, Any] = None,
+) -> Qobj | list[Qobj]:
+
+    constant_c_ops = c_ops is None or all(op.isconstant for op in c_ops)
+
+    if not constant_c_ops:
+        raise ValueError(
+            "Collapse operators must be constant for piecewise propagation."
+        )
+
+    piecewise_times = {tt for tt in piecewise_t if tlist[0] < tt <= tlist[-1]}
+    eval_times = set(tlist)
+    times = sorted(eval_times | piecewise_times)
+
+    out = []
+    prev = times[0]
+    for nxt in times[1:]:
+        H_step = H(prev, args)
+        if c_ops:
+            c_ops_q = [op(prev, args) for op in c_ops]
+            gen = liouvillian(H_step, c_ops_q)
+        else:
+            gen = H_step if H_step.issuper else -1j * H_step
+
+        if prev == times[0]:
+            U = qeye_like(gen)
+            if prev in eval_times:
+                out.append(U)
+
+        U = (gen * (nxt - prev)).expm() * U
+        if nxt in eval_times:
+            out.append(U)
+        prev = nxt
+    return out
+
+
 def propagator(
     H: QobjEvoLike,
     t: Number | list[Number],
@@ -111,70 +152,23 @@ def propagator(
     H_isconstant = isinstance(H, Qobj) or H.isconstant
 
     if piecewise_t is not None:
-        if not constant_c_ops:
-            raise ValueError(
-                "piecewise_t is provided for H, but collapse operators are not constant"
-            )
-        if H_isconstant:
-            warnings.warn(
-                "piecewise_t provided but the Hamiltonian is time-independent",
-                UserWarning,
-            )
-        piecewise_times  = {tt for tt in piecewise_t if tlist[0] < tt <= tlist[-1]}
-        times_to_display = set(tlist)
-        times  = sorted(times_to_display + piecewise_times)
-        H_step = H(tlist[0], args)
-        if c_ops_list:
-            c_ops_q = [op(tlist[0], args) for op in c_ops_list]
-            gen = liouvillian(H_step, c_ops_q)
-        else:
-            gen = H_step if H_step.issuper else -1j * H_step
-        U = qeye_like(gen)
-        out = [U]
-        prev = times[0]
-        for nxt in times[1:]:
-            H_step = H(prev, args)
-            if c_ops_list:
-                c_ops_q = [op(prev, args) for op in c_ops_list]
-                gen = liouvillian(H_step, c_ops_q)
-            else:
-                gen = H_step if H_step.issuper else -1j * H_step
-            U = (gen * (nxt - prev)).expm() * U
-            if nxt in times_to_display:
-                out.append(U)
-            prev = nxt
+        out = propagator_piecewise(H, tlist, piecewise_t, c_ops, args)
         return out if list_output else out[-1]
 
-    if H_isconstant and constant_c_ops:
-        H0 = H(tlist[0], args)
-        if c_ops_list:
-            c_ops_q = [op(tlist[0], args) for op in c_ops_list]
-            gen = liouvillian(H0, c_ops_q)
-        else:
-            gen = H0 if H0.issuper else -1j * H0
-        U = qeye_like(gen)
-        out = [U]
-        prev = tlist[0]
-        for nxt in tlist[1:]:
-            U = (gen * (nxt - prev)).expm() * U
-            out.append(U)
-            prev = nxt
-        return out if list_output else out[-1]
+    if c_ops:
+        H = liouvillian(H, c_ops)
 
-    # Fallback to solving the master equation
-    if c_ops_list:
-        H_eff = liouvillian(H, c_ops_list)
+    U0 = qeye_like(H)
+
+    if H.issuper:
+        out = mesolve(H, U0, tlist, args=args, options=options).states
     else:
-        H_eff = H
+        out = sesolve(H, U0, tlist, args=args, options=options).states
 
-    U0 = qeye_like(H_eff)
-
-    if H_eff.issuper:
-        out = mesolve(H_eff, U0, tlist, args=args, options=options).states
+    if list_output:
+        return out
     else:
-        out = sesolve(H_eff, U0, tlist, args=args, options=options).states
-
-    return out if list_output else out[-1]
+        return out[-1]
 
 
 def propagator_steadystate(U: Qobj) -> Qobj:
