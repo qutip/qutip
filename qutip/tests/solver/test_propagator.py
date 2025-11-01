@@ -174,3 +174,118 @@ def testPropMCSolver():
     with pytest.raises(TypeError) as err:
         Propagator(solver)
     assert str(err.value).startswith("Non-deterministic")
+
+def testPropPiecewiseConst():
+    H0 = qutip.sigmaz()
+    H1 = qutip.sigmax()
+
+    def H_func(t, args):
+        return H0 if t < 0.5 else H1
+
+    U = propagator(H_func, 2, piecewise_t=[0.5])
+    expected = (-1j * H1 * 1.5).expm() * (-1j * H0 * 0.5).expm()
+    assert (U - expected).norm('max') < 1e-4
+
+
+def testPropPiecewiseConstantH():
+    H0 = qutip.sigmaz()
+
+    def H_func(t, args):
+        return H0
+
+    U = propagator(H_func, 2, piecewise_t=[0.5, 1.0])
+    expected = (-1j * H0 * 2).expm()
+    assert (U - expected).norm('max') < 1e-4
+
+
+def testPropPiecewiseSingleCop():
+    H0 = qutip.sigmaz()
+    H1 = qutip.sigmax()
+    a = destroy(2)
+
+    def H_func(t, args):
+        return H0 if t < 1.0 else H1
+
+    U = propagator(H_func, 2, piecewise_t=[1.0], c_ops=a)
+    U2 = propagator(H_func, 2, c_ops=a)
+    assert (U - U2).norm('max') < 1e-4
+
+
+def testPropPiecewiseListCops():
+    H0 = qutip.sigmaz()
+    H1 = qutip.sigmax()
+    a = destroy(2)
+
+    def H_func(t, args):
+        return H0 if t < 0.75 else H1
+
+    kappa = 0.1
+    c_ops = [np.sqrt(kappa) * a, np.sqrt(kappa * 0.5) * a.dag()]
+
+    U = propagator(H_func, 2, piecewise_t=[0.75], c_ops=c_ops)
+    U2 = propagator(H_func, 2, c_ops=c_ops)
+    assert (U - U2).norm('max') < 1e-4
+
+
+def testPropPiecewiseSuperoperator():
+    H0 = qutip.sigmaz()
+    H1 = qutip.sigmax()
+    a = destroy(2)
+
+    L0 = liouvillian(H0, [a])
+    L1 = liouvillian(H1, [a])
+
+    def L_func(t, args):
+        return L0 if t < 1.0 else L1
+
+    U = propagator(L_func, 2, piecewise_t=[1.0])
+    U2 = propagator(L_func, 2)
+    expected = (L1 * 1.0).expm() * (L0 * 1.0).expm()
+    assert (U - expected).norm('max') < 1e-4
+    assert (U - U2).norm('max') < 1e-4
+
+
+def testPropPiecewiseMultipleTimes():
+    H0 = qutip.sigmaz()
+    H1 = qutip.sigmax()
+    H2 = qutip.sigmay()
+
+    def H_func(t, args):
+        if t < 0.5:
+            return H0
+        elif t < 1.5:
+            return H1
+        else:
+            return H2
+
+    U = propagator(H_func, 2.5, piecewise_t=[0.5, 1.5])
+    expected = (
+        (-1j * H2 * 1.0).expm() *
+        (-1j * H1 * 1.0).expm() *
+        (-1j * H0 * 0.5).expm()
+    )
+    assert (U - expected).norm('max') < 1e-4
+
+
+def testPropPiecewiseListOutput():
+    H0 = qutip.sigmaz()
+    H1 = qutip.sigmax()
+    H2 = qutip.sigmay()
+    H3 = qutip.sigmaz() + qutip.sigmax()
+
+    def H_func(t, args):
+        if t < 0.5:
+            return H0
+        elif t < 1.0:
+            return H1
+        elif t < 1.5:
+            return H2
+        else:
+            return H3
+
+    tlist = [0, 0.5, 1.0, 1.5, 2.0]
+    U_list = propagator(H_func, tlist, piecewise_t=[1.0])
+    U2_list = propagator(H_func, tlist)
+
+    for U, U2 in zip(U_list, U2_list):
+        assert (U - U2).norm('max') < 1e-4
