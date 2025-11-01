@@ -5,7 +5,6 @@ __all__ = ['Propagator', 'propagator', 'propagator_steadystate']
 
 import numbers
 import numpy as np
-import warnings
 
 from .. import Qobj, qeye, qeye_like, unstack_columns, QobjEvo, liouvillian
 from ..core import data as _data
