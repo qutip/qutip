@@ -26,6 +26,50 @@ def propagator_piecewise(
     c_ops: list[QobjEvo] = None,
     args: dict[str, Any] = None,
 ) -> Qobj | list[Qobj]:
+    r"""
+    Calculate propagators for piecewise constant Hamiltonians or Liouvillians.
+
+    This function computes propagators of piecewise constant Hamiltonians or
+    Liouvillian. By exponentiating the generator directly on each constant interval,
+    this approach is significantly faster than numerically integrating the
+    differential equation.
+
+    Parameters
+    ----------
+    H : :obj:`.QobjEvo`
+        Time-dependent Hamiltonian or Liouvillian. Must be callable with
+        signature ``H(t, args)`` that returns the constant operator valid at
+        time ``t``.
+
+    tlist : list of float
+        List of times at which to evaluate the propagator.
+
+    piecewise_t : list of float
+        Times where the Hamiltonian or Liouvillian changes discontinuously.
+        These times define the boundaries between constant intervals. Times
+        outside the range ``(tlist[0], tlist[-1]]`` are ignored.
+
+    c_ops : list of :obj:`.QobjEvo`, optional
+        List of collapse operators for open quantum systems. All collapse
+        operators must be constant (time-independent).
+
+    args : dict, optional
+        Dictionary of parameters to pass to the Hamiltonian and collapse
+        operator functions.
+
+    Returns
+    -------
+    propagators : list of :obj:`.Qobj`
+        List of propagators :math:`U(t)` evaluated at each time in ``tlist``,
+        such that :math:`\psi(t) = U(t)\psi(t_0)` for state vectors or
+        :math:`\rho_{\mathrm{vec}}(t) = U(t)\rho_{\mathrm{vec}}(t_0)` for
+        vectorized density matrices.
+
+    Raises
+    ------
+    ValueError
+        If any collapse operator is time-dependent (not constant).
+    """
 
     constant_c_ops = c_ops is None or all(op.isconstant for op in c_ops)
 
