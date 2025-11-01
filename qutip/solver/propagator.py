@@ -175,7 +175,7 @@ def propagator(
         tlist = [0, t]
         list_output = False
     else:
-        tlist = list(t)
+        tlist = t
         list_output = True
 
     if not isinstance(H, (Qobj, QobjEvo)):
@@ -183,14 +183,8 @@ def propagator(
 
     if isinstance(c_ops, list):
         c_ops = [QobjEvo(op, args=args, **kwargs) for op in c_ops]
-    elif c_ops is not None and not isinstance(c_ops, QobjEvo):
+    elif c_ops is not None:
         c_ops = [QobjEvo(c_ops, args=args, **kwargs)]
-
-    c_ops_list: list[QobjEvo] = []
-    if isinstance(c_ops, QobjEvo):
-        c_ops_list = [c_ops]
-    elif isinstance(c_ops, list):
-        c_ops_list = c_ops
 
     if piecewise_t is not None:
         out = propagator_piecewise(H, tlist, piecewise_t, c_ops, args)
