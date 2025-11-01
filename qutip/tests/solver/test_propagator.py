@@ -130,7 +130,7 @@ def testPropEvo():
     psi = QobjEvo(U) @ basis(5, 4)
     tlist = np.linspace(0, 1, 6)
     psi_expected = sesolve(
-        [H, [a + a.dag(), "w*t"]], basis(5,4), tlist=tlist, args={'w': 1}
+        [H, [a + a.dag(), "w*t"]], basis(5, 4), tlist=tlist, args={'w': 1}
     ).states
     for t, psi_t in zip(tlist, psi_expected):
         assert abs(psi(t).overlap(psi_t)) > 1-1e-6
@@ -174,6 +174,7 @@ def testPropMCSolver():
     with pytest.raises(TypeError) as err:
         Propagator(solver)
     assert str(err.value).startswith("Non-deterministic")
+
 
 def testPropPiecewiseConst():
     H0 = qutip.sigmaz()

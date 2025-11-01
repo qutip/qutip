@@ -1,0 +1,1 @@
+Add `propagator_piecewise` function and `piecewise_t` parameter to `propagator` for efficient computation of propagators for piecewise constant Hamiltonians and Liouvillians. This optimization uses direct matrix exponentiation on each constant interval instead of numerical ODE integration, providing significant speedup for systems with discontinuous time-dependence.

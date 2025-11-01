@@ -26,10 +26,13 @@ def propagator_piecewise(
     args: dict[str, Any] = None,
 ) -> Qobj | list[Qobj]:
     r"""
-    Calculate propagators for piecewise constant Hamiltonians or Liouvillians.
+    Calculate propagators for piecewise constant Hamiltonians or
+    Liouvillians.
 
-    This function computes propagators of piecewise constant Hamiltonians or
-    Liouvillians. By exponentiating the generator directly on each constant interval,
+    This function efficiently computes propagators when the Hamiltonian or
+    Liouvillian is piecewise constant, i.e., it remains constant over
+    certain time intervals and changes discontinuously at specified times.
+    By exponentiating the generator directly on each constant interval,
     this approach is significantly faster than numerically integrating the
     differential equation.
 
