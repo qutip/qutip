@@ -145,8 +145,8 @@ def propagator(
         Options for the solver.
 
     piecewise_t : list, optional
-        Times where the Hamiltonian or collapse operators change values when
-        they are piecewise constant.  Providing these allows for a faster
+        Times where the Hamiltonian or Liouvillian change values when
+        they are piecewise constant. Providing these allows for a faster
         computation by exponentiating the Liouvillian or Hamiltonian directly
         on each interval.
 
