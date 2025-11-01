@@ -148,9 +148,6 @@ def propagator(
     elif isinstance(c_ops, list):
         c_ops_list = c_ops
 
-    constant_c_ops = all(op.isconstant for op in c_ops_list)
-    H_isconstant = isinstance(H, Qobj) or H.isconstant
-
     if piecewise_t is not None:
         out = propagator_piecewise(H, tlist, piecewise_t, c_ops, args)
         return out if list_output else out[-1]
