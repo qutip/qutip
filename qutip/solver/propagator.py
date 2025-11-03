@@ -47,13 +47,14 @@ def propagator_piecewise(
         List of times at which to evaluate the propagator.
 
     piecewise_t : list of float
-        Times where the Hamiltonian or Liouvillian changes discontinuously.
-        These times define the boundaries between constant intervals. Times
-        outside the range ``(tlist[0], tlist[-1]]`` are ignored.
+        Times where the Hamiltonian or Liouvillian or collapse operators change
+        discontinuously.  These times define the boundaries between constant
+        intervals.
+        Times outside the range ``(tlist[0], tlist[-1]]`` are ignored.
 
     c_ops : list of :obj:`.QobjEvo`, optional
-        List of collapse operators for open quantum systems. All collapse
-        operators must be constant (time-independent).
+        List of collapse operators for open quantum systems.
+        Can be piecewise constant.
 
     args : dict, optional
         Dictionary of parameters to pass to the Hamiltonian and collapse
@@ -66,19 +67,7 @@ def propagator_piecewise(
         such that :math:`\psi(t) = U(t)\psi(t_0)` for state vectors or
         :math:`\rho_{\mathrm{vec}}(t) = U(t)\rho_{\mathrm{vec}}(t_0)` for
         vectorized density matrices.
-
-    Raises
-    ------
-    ValueError
-        If any collapse operator is time-dependent (not constant).
     """
-
-    constant_c_ops = c_ops is None or all(op.isconstant for op in c_ops)
-
-    if not constant_c_ops:
-        raise ValueError(
-            "Collapse operators must be constant for piecewise propagation."
-        )
 
     piecewise_times = {tt for tt in piecewise_t if tlist[0] < tt <= tlist[-1]}
     eval_times = set(tlist)
@@ -87,9 +76,11 @@ def propagator_piecewise(
     out = []
     prev = times[0]
     for nxt in times[1:]:
-        H_step = H(prev, args)
+        # Evaluate at midpoint to avoid discontinuities at boundaries
+        t_eval = (prev + nxt) / 2
+        H_step = H(t_eval, args)
         if c_ops:
-            c_ops_q = [op(prev, args) for op in c_ops]
+            c_ops_q = [op(t_eval, args) for op in c_ops]
             gen = liouvillian(H_step, c_ops_q)
         else:
             gen = H_step if H_step.issuper else -1j * H_step

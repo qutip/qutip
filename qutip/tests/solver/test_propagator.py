@@ -290,3 +290,42 @@ def testPropPiecewiseListOutput():
 
     for U, U2 in zip(U_list, U2_list):
         assert (U - U2).norm('max') < 1e-4
+
+
+def testPropPiecewiseBoundaryConsistency():
+    # Test that different boundary conditions give same result
+    H0 = qutip.sigmaz()
+    H1 = qutip.sigmax()
+
+    # Function with <= at boundary
+    def H_func_leq(t, args):
+        return H0 if t <= 1.0 else H1
+
+    # Function with < at boundary
+    def H_func_lt(t, args):
+        return H0 if t < 1.0 else H1
+
+    U_leq = propagator(H_func_leq, 2.0, piecewise_t=[1.0])
+    U_lt = propagator(H_func_lt, 2.0, piecewise_t=[1.0])
+
+    assert (U_leq - U_lt).norm('max') < 1e-10
+
+
+def testPropPiecewiseTimeDependentCops():
+    H0 = qutip.sigmaz()
+    H1 = qutip.sigmax()
+    a = destroy(2)
+
+    def H_func(t, args):
+        return H0 if t < 1.0 else H1
+
+    # Time-dependent collapse operators (piecewise constant)
+    def c_func(t, args):
+        kappa = 0.1 if t < 1.0 else 0.2
+        return np.sqrt(kappa) * a
+
+    # Should work with time-dependent collapse operators
+    U = propagator(H_func, 2.0, c_ops=c_func, piecewise_t=[1.0])
+    U2 = propagator(H_func, 2.0, c_ops=c_func)
+
+    assert (U - U2).norm('max') < 1e-4
