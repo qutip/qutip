@@ -662,7 +662,7 @@ class HEOMSolver(Solver):
         self._post_init(options)
         # _n_ados is part of the shape/dims so should be computed here, it is
         # computed with the rhs
-        self.rhs
+        _ = self.rhs
 
     @property
     def rhs(self):
@@ -676,8 +676,8 @@ class HEOMSolver(Solver):
             self._n_ados = len(self.ados.labels)
             self._n_exponents = len(self.ados.exponents)
 
-            self.stats["init ados time"] += time() - _time_start
-            self.stats["init time"] += time() - _time_start
+            self.stats["init_ados_time"] += time() - _time_start
+            self.stats["init_time"] += time() - _time_start
             self.stats["max_depth"] = self.ados.max_depth
             _time_start = time()
 
@@ -707,14 +707,14 @@ class HEOMSolver(Solver):
                 for k in range(self._n_exponents)
             ]
 
-            self.stats["init superop cache time"] += time() - _time_start
-            self.stats["init time"] += time() - _time_start
+            self.stats["init_superop_cache_time"] += time() - _time_start
+            self.stats["init_time"] += time() - _time_start
             _time_start = time()
 
             self._rhs = self._calculate_rhs()
 
-            self.stats["init rhs time"] += time() - _time_start
-            self.stats["init time"] += time() - _time_start
+            self.stats["init_rhs_time"] += time() - _time_start
+            self.stats["init_time"] += time() - _time_start
         return self._rhs
 
     @property
@@ -905,7 +905,8 @@ class HEOMSolver(Solver):
             )
         return op
 
-    def _HEOMRHS(self):
+    def _calculate_rhs_ados(self):
+        """Calculate the ADOs contribution to the RHS."""
         """ Make the RHS for the HEOM. """
         ops = _GatherHEOMRHS(
             self.ados.idx, block=self._sup_shape, nhe=self._n_ados
@@ -928,7 +929,7 @@ class HEOMSolver(Solver):
 
     def _calculate_rhs(self):
         """ Make the full RHS required by the solver. """
-        rhs_mat = self._HEOMRHS()
+        rhs_mat = self._calculate_rhs_ados()
         rhs_dims = [
             [self._sup_shape * self._n_ados], [self._sup_shape * self._n_ados]
         ]

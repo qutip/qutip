@@ -918,7 +918,7 @@ class FMESolver(MESolver):
                     **self._floquet_param
                 )
             )
-            self.stats["Build rhs time"] += time() - _time_start
+            self.stats["rhs_build_time"] += time() - _time_start
         return self._rhs
 
     def _initialize_stats(self):
@@ -927,7 +927,7 @@ class FMESolver(MESolver):
             {
                 "solver": "Floquet-Markov master equation",
                 "num_collapse": self._num_collapse,
-                "Build rhs time": 0,
+                "rhs_build_time": 0,
             }
         )
         return stats

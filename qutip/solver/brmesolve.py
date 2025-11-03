@@ -340,7 +340,7 @@ class BRSolver(Solver):
         stats = super()._initialize_stats()
         stats.update({
             "solver": "Bloch Redfield Equation Evolution",
-            "Build rhs time": 0,
+            "rhs_build_time": 0,
             "num_collapse": self._num_collapse,
             "num_a_ops": self._num_a_ops,
         })
@@ -357,7 +357,7 @@ class BRSolver(Solver):
                 br_computation_method=self.options['tensor_type']
             )
             self._rhs = QobjEvo(rhs)
-            self.stats["Build rhs time"] += time() - _time_start
+            self.stats["rhs_build_time"] += time() - _time_start
         return self._rhs
 
     def _argument(self, args):
@@ -416,7 +416,7 @@ class BRSolver(Solver):
 
     def _apply_options(self, keys):
         need_new_rhs = self._rhs is not None and not self._rhs.isconstant
-        need_new_rhs &=  'tensor_type' in keys
+        need_new_rhs &= 'tensor_type' in keys
         if need_new_rhs:
             self._rhs = None
             self._integrator_instance = None
