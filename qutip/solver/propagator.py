@@ -16,6 +16,7 @@ from .solver_base import Solver
 from .multitraj import MultiTrajSolver
 from numbers import Number
 from typing import Any
+from qutip.settings import settings
 
 
 def propagator_piecewise(
@@ -72,10 +73,16 @@ def propagator_piecewise(
     piecewise_times = {tt for tt in piecewise_t if tlist[0] < tt <= tlist[-1]}
     eval_times = set(tlist)
     times = sorted(eval_times | piecewise_times)
+    atol = settings.core["atol"]
 
     out = []
     prev = times[0]
+    prev_dt = None
+    dU = None
+
     for nxt in times[1:]:
+        dt = nxt - prev
+
         # Evaluate at midpoint to avoid discontinuities at boundaries
         t_eval = (prev + nxt) / 2
         H_step = H(t_eval, args)
@@ -90,7 +97,18 @@ def propagator_piecewise(
             if prev in eval_times:
                 out.append(U)
 
-        U = (gen * (nxt - prev)).expm() * U
+        cannot_reuse = (
+            dU is None
+            or prev_dt is None
+            or abs(dt - prev_dt) > atol
+            or prev in piecewise_times  # Moved past a switching point
+        )
+
+        if cannot_reuse:
+            dU = (gen * dt).expm()
+        U = dU @ U
+        prev_dt = dt
+
         if nxt in eval_times:
             out.append(U)
         prev = nxt

@@ -1,3 +1,4 @@
+from unittest.mock import patch
 import numpy as np
 from scipy.integrate import trapezoid
 from qutip import (destroy, propagator, Propagator, propagator_steadystate,
@@ -285,7 +286,7 @@ def testPropPiecewiseListOutput():
             return H3
 
     tlist = [0, 0.5, 1.0, 1.5, 2.0]
-    U_list = propagator(H_func, tlist, piecewise_t=[1.0])
+    U_list = propagator(H_func, tlist, piecewise_t=[0.5, 1.0, 1.5])
     U2_list = propagator(H_func, tlist)
 
     for U, U2 in zip(U_list, U2_list):
@@ -329,3 +330,52 @@ def testPropPiecewiseTimeDependentCops():
     U2 = propagator(H_func, 2.0, c_ops=c_func)
 
     assert (U - U2).norm('max') < 1e-4
+
+
+@pytest.mark.parametrize("n_points", [4, 10, 11])
+def testPropPiecewiseUniformGrid(n_points):
+    """piecewise optimization with uniform time grid"""
+    H0 = qutip.sigmaz()
+    H1 = qutip.sigmax()
+
+    def H_func(t, args):
+        return H0 if t < 1.0 else H1
+
+    tlist = np.linspace(0, 2.0, n_points)
+
+    U_list_pw = propagator(H_func, tlist, piecewise_t=[1.0])
+    U_list_reg = propagator(H_func, tlist)
+
+    assert len(U_list_pw) == n_points
+
+    for U_pw, U_reg in zip(U_list_pw, U_list_reg):
+        assert (U_pw - U_reg).norm('max') < 1e-4
+
+
+@pytest.mark.parametrize("n_points", [11, 12])
+def testPropPiecewiseCachingOptimization(n_points):
+    """verify exponential caching reduces expm calls"""
+    H0 = qutip.sigmaz()
+
+    def H_func(t, args):
+        return H0
+
+    original_expm = qutip.Qobj.expm
+
+    call_count = [0]
+
+    def counted_expm(self):
+        call_count[0] += 1
+        return original_expm(self)
+
+    with patch.object(qutip.Qobj, 'expm', counted_expm):
+        tlist = np.linspace(0, 2.0, n_points)
+
+        U_list = propagator(H_func, tlist, piecewise_t=[0.5, 1.0, 1.5])
+        assert call_count[0] <= 10
+
+        U_list_reg = propagator(H_func, tlist)
+
+        assert len(U_list) == len(U_list_reg)
+        for U_pw, U_reg in zip(U_list, U_list_reg):
+            assert (U_pw - U_reg).norm('max') < 1e-4
