@@ -69,6 +69,60 @@ class TestClassMethods:
         assert out.shape == scipy_csr.shape
         assert (out.as_scipy() - scipy_csr).nnz == 0
 
+    def test_init_from_tuple_error(self):
+        """
+        Test that __init__ raise errors with wrong format 3-tuple
+        """
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(4).reshape(2, 2), [0, 1, 0, 1], [0, 2, 4]),
+                shape=(2, 2),
+            )
+        assert "1D arrays" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(4), [0, 1, 0, 1], 4),
+                shape=(2, 2),
+            )
+        assert "1D arrays" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(2), [0, 1, 2], [0, 2]),
+                shape=(1, 2),
+            )
+        assert "same shape" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(2), [0, 1], [0, 3]),
+                shape=(1, 2),
+            )
+        assert "match the number of elements" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(2), [0, 1], [0, 1]),
+                shape=(1, 2),
+            )
+        assert "match the number of elements" in str(exc.value)
+
+    def test_init_wrong_shape(self):
+        """
+        Test that __init__ raise errors with shape not matching data
+        """
+        arg = ([1, 1, 1], [0, 2, 100], [0, 3])
+        with pytest.raises(ValueError) as exc:
+            out = data.CSR(arg, shape=(2, 100))
+
+        assert "row pointers does not match the shape." in str(exc.value)
+
+        with pytest.raises(ValueError) as exc:
+            out = data.CSR(arg, shape=(1, 10))
+
+        assert "number of columns." in str(exc.value)
+
     @pytest.mark.parametrize('d_type', (
         _dtype_complex + _dtype_float + _dtype_int + _dtype_uint
     ))

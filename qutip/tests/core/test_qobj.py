@@ -8,6 +8,7 @@ import scipy.linalg
 
 import qutip
 from qutip.core import data as _data
+from qutip.core.dimensions import flatten
 
 
 @pytest.fixture(params=[_data.CSR, _data.Dense], ids=["CSR", "Dense"])
@@ -587,14 +588,21 @@ def test_QobjEigenEnergies():
     assert np.all(b == 5*np.arange(10))
 
 
-def test_QobjEigenStates():
+@pytest.mark.parametrize("space", [
+    qutip.core.dimensions.Space(5),
+    qutip.core.dimensions.Space([2, 3]),
+    qutip.energy_restricted.EnrSpace([2, 3], 2),
+])
+def test_QobjEigenStates(space):
     "qutip.Qobj eigenstates"
-    data = np.eye(5)
-    A = qutip.Qobj(data)
+    N = space.size
+    data = np.eye(N)
+    A = qutip.Qobj(data, dims=[space, space])
     b, c = A.eigenstates()
-    assert np.all(b == np.ones(5))
-    kets = [qutip.basis(5, k) for k in range(5)]
-    for k in range(5):
+    assert np.all(b == np.ones(N))
+    kets = [qutip.basis(space, space.idx2dims(k)) for k in range(N)]
+    for k in range(N):
+        assert c[k]._dims[0] == space
         assert c[k] == kets[k]
 
 
@@ -1197,6 +1205,49 @@ def test_contract(expanded, contracted, inplace):
     assert np.all(out.full() == qobj.full())
 
 
+@pytest.mark.parametrize('inplace', [True, False], ids=['inplace', 'new'])
+@pytest.mark.parametrize(['indims', 'outdims'], [
+    pytest.param([[1, 2, 2], [1, 2, 2]], [[2, 2], [2, 2]], id='op'),
+    pytest.param([[2, 1, 1], [2, 1, 1]], [[2], [2]], id='op'),
+    pytest.param([[5, 5], [5, 5]], [[5, 5], [5, 5]], id='op,unchanged'),
+    pytest.param([[5], [5]], [[5], [5]], id='op,unchanged'),
+    pytest.param([[2, 2], [2, 1]], [[2, 2], [2]], id='op-times-vec'),
+    pytest.param([[5, 1, 3, 1], [5, 2, 3, 1]], [[5, 3], [5, 2, 3]],
+                 id='mixed'),
+    pytest.param([[2, 1, 2], [2, 2, 2]], [[2, 2], [2, 2, 2]],
+                 id='mixed'),
+    pytest.param([[2, 2, 2], [1, 2, 2]], [[2, 2, 2], [2, 2]],
+                 id='mixed'),
+    pytest.param([[2, 2, 1], [1]], [[2, 2], [1]], id='ket'),
+    pytest.param([[1, 2, 1], [1]], [[2], [1]], id='ket'),
+    pytest.param([[2, 3, 4], [1]], [[2, 3, 4], [1]],
+                 id='ket,unchanged'),
+    pytest.param([[1], [2, 2, 1]], [[1], [2, 2]], id='bra'),
+    pytest.param([[1], [1, 2, 1]], [[1], [2]], id='bra'),
+    pytest.param([[1], [2, 3, 4]], [[1], [2, 3, 4]],
+                 id='bra,unchanged'),
+    pytest.param([[[2, 1], [1, 2]], [1]], [[[2], [2]], [1]],
+                 id='operket'),
+    pytest.param([[1], [[2, 1, 1], [2, 1, 1]]], [[1], [[2], [2]]],
+                 id='operbra'),
+    pytest.param([[[2, 1, 1], [1, 2, 1]], [[3, 4], [1]]],
+                 [[[2], [2]], [[3, 4], [1]]], id='super')
+])
+def test_drop_scalar_dims(indims, outdims, inplace):
+    shape = (np.prod(flatten(indims[0])), np.prod(flatten(indims[1])))
+    data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+    qobj = qutip.Qobj(data, dims=indims)
+    assert qobj.dims == indims
+    out = qobj.drop_scalar_dims(inplace=inplace)
+    if inplace:
+        assert out is qobj
+    else:
+        assert out is not qobj
+    assert out.dims == outdims
+    assert out.shape == qobj.shape
+    assert np.all(out.full() == qobj.full())
+
+
 @pytest.mark.parametrize(["shape"], [
     pytest.param((5, 1), id='ket'),
     pytest.param((5, 2), id='tall'),
@@ -1299,7 +1350,7 @@ def test_constructing_op_from_states():
     obj = qutip.basis(2, 0, dtype="Dense") + qutip.basis(2, 1, dtype="Dense")
     assert (obj @ obj.dag()).dtype == qutip.data.to.parse("Dense")
 
-    
+
 @pytest.mark.parametrize(["state", "expected", "kwargs"], [
         (qutip.basis([2, 2, 2], [1, 1, 0]), "(1+0j) |110>", {}),
         (qutip.basis([2, 2, 2], [1, 1, 0]).dag(), "(1-0j) <110|", {}),
@@ -1307,7 +1358,8 @@ def test_constructing_op_from_states():
         (qutip.ket("1011001"), "(1+0j) |1011001>", {}),
         (qutip.bell_state("00"), "(0.70711+0j) |11> + (0.70711+0j) |00>",
             {"decimal_places": 5}),
-        (0*qutip.basis(2, 0), "0", {})
+        (0*qutip.basis(2, 0), "0", {}),
+        (qutip.enr_fock([3, 3], 2, [1, 1]), "(1+0j) |1, 1>", {}),
 ])
 def test_basis_expansion(state: qutip.Qobj, expected: str, kwargs: dict):
     result = state.basis_expansion(**kwargs)

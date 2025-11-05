@@ -8,7 +8,7 @@ import qutip
 from qutip import (
     Qobj, identity, sigmax, to_super, to_choi, rand_super_bcsz, basis,
     tensor_contract, tensor_swap, num, QobjEvo, destroy, tensor,
-    expand_operator
+    expand_operator, enr_fock
 )
 
 
@@ -111,6 +111,17 @@ def test_tensor_qobjevo():
     assert tensor(left, right)(t) == tensor(left(t), right(t))
     assert tensor(left, sigmax())(t) == tensor(left(t), sigmax())
     assert tensor(num(N), right)(t) == tensor(num(N), right(t))
+
+
+def test_tensor_qobjevo_enr():
+    dims = [3, 3]
+    excitations = 2
+    t = 1.5
+    left = QobjEvo([[enr_fock(dims, excitations, [1, 0]), "t"]])
+    right = QobjEvo([[enr_fock(dims, excitations, [0, 1]), "t"]])
+    assert tensor(left, right)(t) == tensor(left(t), right(t))
+    assert tensor(left, sigmax())(t) == tensor(left(t), sigmax())
+    assert tensor(num(5), right)(t) == tensor(num(5), right(t))
 
 
 def test_tensor_qobjevo_non_square():
