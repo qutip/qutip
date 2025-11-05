@@ -235,8 +235,8 @@ def _steadystate_direct(A, weight, **kw):
         # Dia is bad at vector and missing optimization such as `use_wbm`.
         dtype = _data.CSR
     weight_vec = _data.column_stack(_data.diag([weight] * n, 0, dtype=dtype))
-    first_row = _data.slice(A.data, 0, 1, 0, N, dtype=dtype)
-    L = _data.insert_block(
+    first_row = _data.block_extract(A.data, 0, 1, 0, N, dtype=dtype)
+    L = _data.block_overwrite(
         A.data, _data.add(first_row, weight_vec.transpose()), 0, 0, dtype=dtype
     )
     b = _data.one_element[dtype]((N, 1), (0, 0), weight)

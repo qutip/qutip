@@ -11,9 +11,9 @@ cimport numpy as cnp
 
 
 __all__ = [
-    'concat_blocks_dense', 'slice_dense', 'insert_block_dense',
-    'concat_blocks_csr', 'slice_csr', 'insert_block_csr',
-    'concat_blocks', 'slice', 'insert_block',
+    'block_build_dense', 'block_extract_dense', 'block_overwrite_dense',
+    'block_build_csr', 'block_extract_csr', 'block_overwrite_csr',
+    'block_build', 'block_extract', 'block_overwrite',
 ]
 
 
@@ -27,7 +27,7 @@ cdef base.idxint[:] _cumsum(base.idxint[:] array):
     return out
 
 
-cpdef Dense concat_blocks_dense(
+cpdef Dense block_build_dense(
     base.idxint[:] block_rows, base.idxint[:] block_cols, Data[:] blocks,
     base.idxint[:] block_widths, base.idxint[:] block_heights
 ):
@@ -70,7 +70,7 @@ cpdef Dense concat_blocks_dense(
     return Dense(result, copy=False)
 
 
-cpdef CSR concat_blocks_csr(
+cpdef CSR block_build_csr(
     base.idxint[:] block_rows, base.idxint[:] block_cols, Data[:] blocks,
     base.idxint[:] block_widths, base.idxint[:] block_heights
 ):
@@ -100,7 +100,7 @@ cpdef CSR concat_blocks_csr(
         # check ops are ordered by (row, column)
         if idx > 0 and (
             row < block_rows[idx - 1] or
-            (row == block_rows[idx - 1] and column < block_cols[idx - 1])
+            (row == block_rows[idx - 1] and column <= block_cols[idx - 1])
         ):
             raise ValueError("The arrays block_rows and block_cols must be "
                              "sorted by (row, column).")
@@ -167,7 +167,7 @@ cpdef CSR concat_blocks_csr(
     return out
 
 
-cpdef Dense slice_dense(Dense data,
+cpdef Dense block_extract_dense(Dense data,
                         base.idxint row_start, base.idxint row_stop,
                         base.idxint col_start, base.idxint col_stop):
     if (
@@ -175,12 +175,12 @@ cpdef Dense slice_dense(Dense data,
         or row_stop > data.shape[0] or col_stop > data.shape[1]
         or row_start >= row_stop or col_start >= col_stop
     ):
-        raise IndexError("Slice indices are out of bounds.")
+        raise IndexError("Block indices are out of bounds.")
     cdef cnp.ndarray array = data.as_ndarray()
     return Dense(array[row_start:row_stop, col_start:col_stop], copy=True)
 
 
-cpdef CSR slice_csr(CSR data,
+cpdef CSR block_extract_csr(CSR data,
                     base.idxint row_start, base.idxint row_stop,
                     base.idxint col_start, base.idxint col_stop):
     if (
@@ -188,12 +188,12 @@ cpdef CSR slice_csr(CSR data,
         or row_stop > data.shape[0] or col_stop > data.shape[1]
         or row_start >= row_stop or col_start >= col_stop
     ):
-        raise IndexError("Slice indices are out of bounds.")
+        raise IndexError("Block indices are out of bounds.")
     scipy = data.as_scipy()
     return CSR(scipy[row_start:row_stop, col_start:col_stop], copy=True)
 
 
-cpdef Dense insert_block_dense(Data data, Dense block,
+cpdef Dense block_overwrite_dense(Data data, Data block,
                                base.idxint above, base.idxint before):
     cdef base.idxint data_height, data_width, block_height, block_width
 
@@ -207,7 +207,11 @@ cpdef Dense insert_block_dense(Data data, Dense block,
         raise IndexError("Cannot insert block into data: doesn't fit.")
 
     cdef cnp.ndarray data_array = data.to_array()  # copies
-    cdef cnp.ndarray block_array = block.as_ndarray()  # doesn't copy
+    cdef cnp.ndarray block_array
+    if type(block) is Dense:
+        block_array = block.as_ndarray()  # doesn't copy
+    else:
+        block_array = block.to_array()
 
     data_array[above:(above+block_height),
                before:(before+block_width)] = block_array  # copies block
@@ -228,7 +232,7 @@ cdef void _memcpy_data(double complex* target, base.idxint target_start,
            length * sizeof(double complex))
 
 
-cpdef CSR insert_block_csr(CSR data, CSR block,
+cpdef CSR block_overwrite_csr(CSR data, CSR block,
                            base.idxint above, base.idxint before):
     cdef base.idxint data_height, data_width, block_height, block_width
 
@@ -248,11 +252,11 @@ cpdef CSR insert_block_csr(CSR data, CSR block,
     cdef base.idxint nnz = csr.nnz(data) + csr.nnz(block)
     for row in range(above, above + block_height):
         for idx_data in range(data.row_index[row], data.row_index[row + 1]):
-            if data.col_index[idx_data] < before:
-                continue
-            if data.col_index[idx_data] >= before + block_width:
-                break
-            nnz -= 1
+            if (
+                data.col_index[idx_data] >= before
+                and data.col_index[idx_data] < before + block_width
+            ):
+                nnz -= 1
 
     if nnz == 0:
         return csr.zeros(data_height, data_width)
@@ -286,11 +290,16 @@ cpdef CSR insert_block_csr(CSR data, CSR block,
             out.data[idx] = block.data[idx_block]
             idx += 1
 
-        # copy data after the inserted block
-        nnz = data.row_index[row + 1] - idx_data
-        _memcpy_idxs(out.col_index, idx, data.col_index, idx_data, nnz)
-        _memcpy_data(out.data, idx, data.data, idx_data, nnz)
-        idx += nnz
+        # Copy data after the inserted block. The column index of data is not
+        # guaranteed to be sorted, so we have to process the entries one by one
+        for idx_data in range(idx_data, data.row_index[row + 1]):
+            if (
+                data.col_index[idx_data] >= before + block_width
+                or data.col_index[idx_data] < before
+            ):
+                out.col_index[idx] = data.col_index[idx_data]
+                out.data[idx] = data.data[idx_data]
+                idx += 1
 
         out.row_index[row + 1] = idx
 
@@ -312,7 +321,7 @@ from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
 
-concat_blocks = _Dispatcher(
+block_build = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('block_rows',
                            _inspect.Parameter.POSITIONAL_OR_KEYWORD),
@@ -325,20 +334,20 @@ concat_blocks = _Dispatcher(
         _inspect.Parameter('block_heights',
                            _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
-    name='concat_blocks',
+    name='block_build',
     module=__name__,
     inputs=(),
     out=True,
 )
-concat_blocks.__doc__ =\
+block_build.__doc__ =\
     """
-    Concatenates data blocks into a block matrix.
-    
+    Builds a block matrix from data blocks.
+
     The coordinates of the non-empty blocks are given by the arrays
     ``block_rows`` and ``block_cols``, and the blocks themselves in the
     ``blocks`` array. All three arrays ``block_rows``, ``block_cols``, and
     ``blocks`` should have the same length.
-    
+
     The shape of the i-th block should be
     ``(block_heights[block_rows[i]], ``block_widths[block_cols[i]])``. The
     shape of the output will be ``(sum(block_heights), sum(block_widths))``.
@@ -353,19 +362,19 @@ concat_blocks.__doc__ =\
         ``range(0, len(block_widths))``.
     blocks : Data[:]
         The data blocks themselves. For performance reasons, implementations of
-        ``concat_blocks`` are allowed to modify this array in place.
+        ``block_build`` are allowed to modify this array in place.
     block_widths : int[:]
         Array containing the block widths.
     block_heights : int[:]
         Array containing the block heights.
     """
-concat_blocks.add_specialisations([
-    (CSR, concat_blocks_csr),
-    (Dense, concat_blocks_dense),
+block_build.add_specialisations([
+    (CSR, block_build_csr),
+    (Dense, block_build_dense),
 ], _defer=True)
 
 
-slice = _Dispatcher(
+block_extract = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('data', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('row_start',
@@ -377,46 +386,46 @@ slice = _Dispatcher(
         _inspect.Parameter('col_stop',
                            _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
-    name='slice',
+    name='block_extract',
     module=__name__,
     inputs=('data',),
     out=True,
 )
-slice.__doc__ =\
+block_extract.__doc__ =\
     """
     Extracts a block of data from a large matrix. The output of this function
     is the slice ``[row_start:row_stop, col_start:col_stop]``. Returns a copy,
     not a view.
     """
-slice.add_specialisations([
-    (Dense, Dense, slice_dense),
-    (CSR, CSR, slice_csr),
+block_extract.add_specialisations([
+    (Dense, Dense, block_extract_dense),
+    (CSR, CSR, block_extract_csr),
 ], _defer=True)
 
 
-insert_block = _Dispatcher(
+block_overwrite = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('data', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('block', _inspect.Parameter.POSITIONAL_ONLY),
         _inspect.Parameter('above', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('before', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
-    name='insert_block',
+    name='block_overwrite',
     module=__name__,
     inputs=('data', 'block'),
     out=True,
 )
-insert_block.__doc__ =\
+block_overwrite.__doc__ =\
     """
-    Inserts a block of data into a large matrix. The slice
+    Overwrites a block of data in a large matrix. The slice
     ``[above:(above+block_height), before:(before+block_width)]``
     of the ``data`` matrix is replaced by the ``block`` matrix, where
     ``block_height, block_width = block.shape``. The data objects ``data``
     and ``block`` are not modified, a new data object is returned.
     """
-insert_block.add_specialisations([
-    (Data, Dense, Dense, insert_block_dense),
-    (CSR, CSR, CSR, insert_block_csr),
+block_overwrite.add_specialisations([
+    (Data, Data, Dense, block_overwrite_dense),
+    (CSR, CSR, CSR, block_overwrite_csr),
 ], _defer=True)
 
 
