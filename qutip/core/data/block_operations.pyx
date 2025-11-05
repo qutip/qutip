@@ -100,7 +100,7 @@ cpdef CSR concat_blocks_csr(
         # check ops are ordered by (row, column)
         if idx > 0 and (
             row < block_rows[idx - 1] or
-            (row == block_rows[idx - 1] and column < block_cols[idx - 1])
+            (row == block_rows[idx - 1] and column <= block_cols[idx - 1])
         ):
             raise ValueError("The arrays block_rows and block_cols must be "
                              "sorted by (row, column).")
@@ -248,11 +248,11 @@ cpdef CSR insert_block_csr(CSR data, CSR block,
     cdef base.idxint nnz = csr.nnz(data) + csr.nnz(block)
     for row in range(above, above + block_height):
         for idx_data in range(data.row_index[row], data.row_index[row + 1]):
-            if data.col_index[idx_data] < before:
-                continue
-            if data.col_index[idx_data] >= before + block_width:
-                break
-            nnz -= 1
+            if (
+                data.col_index[idx_data] >= before
+                and data.col_index[idx_data] < before + block_width
+            ):
+                nnz -= 1
 
     if nnz == 0:
         return csr.zeros(data_height, data_width)
@@ -286,11 +286,16 @@ cpdef CSR insert_block_csr(CSR data, CSR block,
             out.data[idx] = block.data[idx_block]
             idx += 1
 
-        # copy data after the inserted block
-        nnz = data.row_index[row + 1] - idx_data
-        _memcpy_idxs(out.col_index, idx, data.col_index, idx_data, nnz)
-        _memcpy_data(out.data, idx, data.data, idx_data, nnz)
-        idx += nnz
+        # Copy data after the inserted block. The column index of data is not
+        # guaranteed to be sorted, so we have to process the entries one by one
+        for idx_data in range(idx_data, data.row_index[row + 1]):
+            if (
+                data.col_index[idx_data] >= before + block_width
+                or data.col_index[idx_data] < before
+            ):
+                out.col_index[idx] = data.col_index[idx_data]
+                out.data[idx] = data.data[idx_data]
+                idx += 1
 
         out.row_index[row + 1] = idx
 

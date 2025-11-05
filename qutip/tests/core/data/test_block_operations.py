@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from qutip.core import data as _data
 from qutip.core.data import csr, Dense
+from . import conftest
 
 
 @pytest.mark.parametrize('outtype', _data.to.dtypes)
@@ -22,9 +23,12 @@ def test_empty_concat_blocks(outtype):
     assert result.__class__ == outtype
 
 
-@pytest.mark.parametrize('intype', _data.to.dtypes)
+@pytest.mark.parametrize(
+        ['intype', 'shuffle_csr'],
+        [[dtype, False] for dtype in _data.to.dtypes] + [[_data.CSR, True]]
+)
 @pytest.mark.parametrize('outtype', _data.to.dtypes)
-def test_concat_blocks(intype, outtype):
+def test_concat_blocks(intype, shuffle_csr, outtype):
     """more complex example of concat_blocks"""
     block1 = np.full((2, 3), 1)
     data1 = _data.to(intype, _data.Dense(block1))
@@ -37,6 +41,12 @@ def test_concat_blocks(intype, outtype):
 
     block4 = np.full((1, 1), 4)
     data4 = _data.to(intype, _data.Dense(block4))
+
+    if shuffle_csr:
+        data1 = _data.CSR(conftest.shuffle_indices_scipy_csr(data1.as_scipy()))
+        data2 = _data.CSR(conftest.shuffle_indices_scipy_csr(data2.as_scipy()))
+        data3 = _data.CSR(conftest.shuffle_indices_scipy_csr(data3.as_scipy()))
+        data4 = _data.CSR(conftest.shuffle_indices_scipy_csr(data4.as_scipy()))
 
     block_rows = np.array([0, 0, 1, 1], dtype=_data.base.idxint_dtype)
     block_cols = np.array([0, 3, 2, 3], dtype=_data.base.idxint_dtype)
@@ -122,8 +132,8 @@ def test_concat_blocks_csr():
         )
     with pytest.raises(ValueError, match="must be sorted"):
         _data.concat_blocks_csr(
-            np.array([1, 0], dtype=_data.base.idxint_dtype),
-            np.array([1, 0], dtype=_data.base.idxint_dtype),
+            np.array([1, 1], dtype=_data.base.idxint_dtype),
+            np.array([0, 0], dtype=_data.base.idxint_dtype),
             np.array([block, block], dtype=_data.Data),
             np.array([1, 1], dtype=_data.base.idxint_dtype),
             np.array([1, 1], dtype=_data.base.idxint_dtype),
@@ -177,7 +187,10 @@ def test_slice_validation(intype):
         _data.slice(data, 1, 1, 0, 2)
 
 
-@pytest.mark.parametrize('intype', _data.to.dtypes)
+@pytest.mark.parametrize(
+        ['intype', 'shuffle_csr'],
+        [[dtype, False] for dtype in _data.to.dtypes] + [[_data.CSR, True]]
+)
 @pytest.mark.parametrize('outtype', _data.to.dtypes)
 @pytest.mark.parametrize('data_array', [
     pytest.param(np.zeros((4, 4), dtype=complex), id='zeros'),
@@ -189,9 +202,13 @@ def test_slice_validation(intype):
     pytest.param(np.array([[1, 2], [3, 4]], dtype=complex), id='block1'),
     pytest.param(np.zeros((1, 1)), id='zero')
 ])
-def test_insert_block(intype, outtype, data_array, block_array):
+def test_insert_block(intype, shuffle_csr, outtype, data_array, block_array):
     data = _data.to(intype, _data.Dense(data_array))
     block = _data.to(intype, _data.Dense(block_array))
+
+    if shuffle_csr:
+        data = _data.CSR(conftest.shuffle_indices_scipy_csr(data.as_scipy()))
+        block = _data.CSR(conftest.shuffle_indices_scipy_csr(block.as_scipy()))
 
     result = _data.insert_block(data, block, 1, 1, dtype=outtype)
     expected = np.copy(data_array)
