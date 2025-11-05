@@ -6,12 +6,12 @@ from qutip.core.data.base cimport Data, idxint
 
 cpdef Dense block_build_dense(
     idxint[:] block_rows, idxint[:] block_cols, Data[:] blocks,
-    idxint[:] block_widths, idxint[:] block_heights
+    idxint[:] block_heights, idxint[:] block_widths
 )
 
 cpdef CSR block_build_csr(
     idxint[:] block_rows, idxint[:] block_cols, Data[:] blocks,
-    idxint[:] block_widths, idxint[:] block_heights
+    idxint[:] block_heights, idxint[:] block_widths
 )
 
 cpdef Dense block_extract_dense(

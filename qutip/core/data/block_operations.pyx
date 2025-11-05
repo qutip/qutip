@@ -29,7 +29,7 @@ cdef base.idxint[:] _cumsum(base.idxint[:] array):
 
 cpdef Dense block_build_dense(
     base.idxint[:] block_rows, base.idxint[:] block_cols, Data[:] blocks,
-    base.idxint[:] block_widths, base.idxint[:] block_heights
+    base.idxint[:] block_heights, base.idxint[:] block_widths
 ):
     if len(block_rows) != len(block_cols) or len(block_rows) != len(blocks):
         raise ValueError("The arrays block_rows, block_cols and blocks must"
@@ -72,7 +72,7 @@ cpdef Dense block_build_dense(
 
 cpdef CSR block_build_csr(
     base.idxint[:] block_rows, base.idxint[:] block_cols, Data[:] blocks,
-    base.idxint[:] block_widths, base.idxint[:] block_heights
+    base.idxint[:] block_heights, base.idxint[:] block_widths
 ):
     # check arrays are the same length
     if len(block_rows) != len(block_cols) or len(block_rows) != len(blocks):
@@ -329,9 +329,9 @@ block_build = _Dispatcher(
                            _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('blocks',
                            _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('block_widths',
-                           _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('block_heights',
+                           _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('block_widths',
                            _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
     name='block_build',
@@ -363,10 +363,10 @@ block_build.__doc__ =\
     blocks : Data[:]
         The data blocks themselves. For performance reasons, implementations of
         ``block_build`` are allowed to modify this array in place.
-    block_widths : int[:]
-        Array containing the block widths.
     block_heights : int[:]
         Array containing the block heights.
+    block_widths : int[:]
+        Array containing the block widths.
     """
 block_build.add_specialisations([
     (CSR, block_build_csr),
