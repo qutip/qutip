@@ -21,6 +21,7 @@ from ..core import data as _data
 from .solver_base import _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
 from ..typing import QobjEvoLike, EopsLike
+from ..settings import settings
 
 
 class StochasticTrajResult(Result):
@@ -821,6 +822,10 @@ class StochasticSolver(MultiTrajSolver):
         dt = tlist[1] - tlist[0]
         if not np.allclose(dt, np.diff(tlist)):
             raise ValueError("tlist must be evenly spaced.")
+        if np.iscomplexobj(noise):
+            if np.any(np.abs(np.imag(noise)) > settings.core["atol"]):
+                raise TypeError("noise must be real.")
+            noise = np.real(noise)
         generator = PreSetWiener(
             noise, tlist, len(self.rhs.sc_ops), self.heterodyne, measurement
         )

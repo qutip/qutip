@@ -1,12 +1,11 @@
 __all__ = ['expect', 'variance']
 
-import numpy as np
 from typing import overload, Sequence
 
 from .qobj import Qobj
 from . import data as _data
 from ..settings import settings
-
+from ..core.numpy_backend import np
 
 @overload
 def expect(oper: Qobj, state: Qobj) -> complex: ...
@@ -66,7 +65,11 @@ def expect(oper, state):
 
     elif isinstance(state, Sequence):
         dtype = np.complex128
-        if oper.isherm and all(op.isherm or op.isket for op in state):
+        if (
+            oper.isherm
+            and all(op.isherm or op.isket for op in state)
+            and settings.core["auto_real_casting"]
+        ):
             dtype = np.float64
         return np.array([_single_qobj_expect(oper, x) for x in state],
                         dtype=dtype)
