@@ -11,11 +11,11 @@ def test_empty_block_build(outtype):
     block_rows = np.array([], dtype=_data.base.idxint_dtype)
     block_cols = np.array([], dtype=_data.base.idxint_dtype)
     blocks = np.array([], dtype=_data.Data)
-    block_widths = np.array([2, 3], dtype=_data.base.idxint_dtype)
     block_heights = np.array([4], dtype=_data.base.idxint_dtype)
+    block_widths = np.array([2, 3], dtype=_data.base.idxint_dtype)
 
     result = _data.block_build(
-        block_rows, block_cols, blocks, block_widths, block_heights,
+        block_rows, block_cols, blocks, block_heights, block_widths,
         dtype=outtype
     )
 
@@ -51,10 +51,10 @@ def test_block_build(intype, shuffle_csr, outtype):
     block_rows = np.array([0, 0, 1, 1], dtype=_data.base.idxint_dtype)
     block_cols = np.array([0, 3, 2, 3], dtype=_data.base.idxint_dtype)
     blocks = np.array([data1, data2, data3, data4], dtype=_data.Data)
-    block_widths = np.array([3, 2, 1, 1], dtype=_data.base.idxint_dtype)
     block_heights = np.array([2, 1, 1, 2], dtype=_data.base.idxint_dtype)
+    block_widths = np.array([3, 2, 1, 1], dtype=_data.base.idxint_dtype)
     result = _data.block_build(
-        block_rows, block_cols, blocks, block_widths, block_heights,
+        block_rows, block_cols, blocks, block_heights, block_widths,
         dtype=outtype
     )
 
