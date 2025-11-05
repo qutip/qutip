@@ -121,10 +121,4 @@ def krylovsolve(
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
 
-    if rho0.isket:
-        return sesolve(H, rho0, tlist, e_ops=e_ops, args=args,
-                       options=options)
-
-    solver = MESolver(H, None, options=options)
-
-    return solver.run(rho0, tlist, e_ops=e_ops)
+    return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options)

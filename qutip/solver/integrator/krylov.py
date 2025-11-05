@@ -12,9 +12,9 @@ __all__ = ["IntegratorKrylov"]
 class IntegratorKrylov(Integrator):
     """
     Evolve the state ("rho0") finding an approximation for the time evolution
-    operator of Hamiltonian ("H") by obtaining the projection of the time
-    evolution operator on a set of small dimensional Krylov subspaces
-    (m << dim(H)).
+    operator of a hermitian Hamiltonian ("H") by obtaining the projection of the
+    time evolution operator on a set of small dimensional Krylov subspaces (m <=
+    dim(H)).
     """
     integrator_options = {
         'atol': 1e-7,
@@ -31,22 +31,35 @@ class IntegratorKrylov(Integrator):
 
     def _prepare(self):
         if not self.system.isconstant:
-            raise ValueError("krylov method only support constant system.")
+            raise ValueError("Krylov method only supports constant systems.")
+        # TODO currenlty only supports hermitian, add warning? thorw error?
         self._max_step = -np.inf
         krylov_dim = self.options["krylov_dim"]
-        if krylov_dim < 0 or krylov_dim > self.system.shape[0]:
+        if krylov_dim < 0 or krylov_dim > self._max_krylov_dim():
             raise ValueError("The options 'krylov_dim', must be a positive "
-                             "integer smaller that the system size.")
-
+                             "integer that does not exceed the maximum "
+                             "dimension")
         if krylov_dim == 0:
-            # TODO: krylov_dim, max_step and error (atol) are related by
-            # err ~= exp(-krylov_dim / dt**(1~2))
-            # We could ask for 2 and determine the third one.
-            N = self.system.shape[0]
-            krylov_dim = min(int((N + 100)**0.5), N-1)
+            krylov_dim = self._max_krylov_dim()
             self.options["krylov_dim"] = krylov_dim
 
         self._max_step = np.inf
+
+    def _max_krylov_dim(self):
+        """
+        Calculates the maximum dimension of the Krylov space for the provided
+        Hamiltonian or Liouvillian.
+
+        Returns
+        ------------
+        dims: int
+            Maximum dimension the Krylov space can have.
+        """
+        if self.system.issuper:
+            d = self.system.dims[0][0][0]
+            return d**2 - d + 1
+        else:
+            return self.system.shape[0]
 
     def _lanczos_algorithm(self, psi):
         """
@@ -62,32 +75,33 @@ class IntegratorKrylov(Integrator):
         """
         krylov_dim = self.options['krylov_dim']
         H = (1j * self.system(0)).data
+        p0 = _data.inner(psi, psi) # purity
+        sp0 = np.sqrt(p0)
 
-        v = []
         T_diag = np.zeros(krylov_dim, dtype=complex)
         T_subdiag = np.zeros(krylov_dim, dtype=complex)
+        v = [psi]
 
-        v.append(_data.mul(psi, 1 / _data.norm.l2(psi)))
         w_prime = _data.matmul(H, v[-1])
-        T_diag[0] = _data.inner(w_prime, v[-1])
+        T_diag[0] = _data.inner(w_prime, v[-1]) / p0
         w = _data.add(w_prime, v[-1], -T_diag[0])
-        T_subdiag[0] = _data.norm.l2(w)
+        T_subdiag[0] = _data.norm.l2(w) / sp0
         j = 1
 
         while j < krylov_dim and T_subdiag[j-1] > self.options['sub_system_tol']:
             v.append(_data.mul(w, 1 / T_subdiag[j-1]))
             w_prime = _data.matmul(H, v[-1])
-            T_diag[j] = _data.inner(w_prime, v[-1])
+            T_diag[j] = _data.inner(w_prime, v[-1]) / p0
             w = _data.add(w_prime, v[-1], -T_diag[j])
             w = _data.add(w, v[-2], -T_subdiag[j-1])
-            T_subdiag[j] = _data.norm.l2(w)
+            T_subdiag[j] = _data.norm.l2(w) / sp0
             j += 1
 
         krylov_tridiag = _data.diag["dense"](
             [T_subdiag[:j-1], T_diag[:j], T_subdiag[:j-1]],
             [-1, 0, 1]
         )
-        krylov_basis = _data.Dense(np.hstack([psi.to_array() for psi in v]))
+        krylov_basis = _data.Dense(np.hstack([p.to_array() for p in v]))
 
         return krylov_tridiag, krylov_basis
 
@@ -108,39 +122,43 @@ class IntegratorKrylov(Integrator):
         """
         krylov_dim = self.options['krylov_dim']
         H = (1j * self.system(0)).data
+        p0 = _data.inner(psi, psi) # purity
+        sp0 = np.sqrt(p0)
 
         h = np.zeros((krylov_dim + 1, krylov_dim), dtype=complex)
-        Q = [_data.mul(psi, 1 / _data.norm.l2(psi))]
+        Q = [psi]
 
         k = 1
-        v = _data.matmul(H, psi)
-        h[0, 0] = _data.inner(psi, v)
-        v = v - h[0, 0] * psi
-        h[1, 0] = _data.norm.l2(v)
+        v = _data.matmul(H, Q[-1])
+        h[0, 0] = _data.inner(Q[-1], v) / p0
+        v = v - h[0, 0] * Q[-1]
+        h[1, 0] = _data.norm.l2(v) / sp0
         while k < krylov_dim and h[k, k-1] > self.options['sub_system_tol']:
             Q.append(_data.mul(v, 1 / h[k, k-1]))
             v = _data.matmul(H, Q[-1])
             k += 1
             for j in range(k):  # removes projections
-                h[j, k-1] = _data.inner(Q[j], v)
+                h[j, k-1] = _data.inner(Q[j], v) / p0
                 v = v - h[j, k-1] * Q[j]
-            h[k, k-1] = _data.norm.l2(v)
+            h[k, k-1] = _data.norm.l2(v) / sp0
 
+        # TODO for hermitian case we can thorw away upper triangle terms since they come from numerical errors
+        # i.e. we obtain a tridiagonal matrix again
         krylov_hesse = _data.Dense(h[:k, :k])
         krylov_basis = _data.Dense(
-            np.hstack([psi.to_array() for psi in Q])
+            np.hstack([p.to_array() for p in Q])
         )
         return krylov_hesse, krylov_basis
 
-    def _compute_krylov_set(self, krylov_tridiag, krylov_basis, initial_state):
+    def _compute_krylov_set(self, krylov_tridiag, krylov_basis):
         """
         Compute the eigen energies, basis transformation operator (U) and e0.
         """
-        eigenvalues, eigenvectors = _data.eigs(krylov_tridiag, True)
-        U = _data.matmul(krylov_basis, eigenvectors)
-        kini = krylov_basis.adjoint() @ initial_state
-        e0 = _data.matmul(eigenvectors.adjoint(), kini)
-        return eigenvalues, U, e0
+        evals, evecs = _data.eigs(krylov_tridiag, True)
+        N = evals.shape[0]
+        U = _data.matmul(krylov_basis, evecs)
+        e0 = evecs.adjoint() @ _data.one_element_dense((N, 1), (0, 0), 1.0)
+        return evals, U, e0
 
     def _compute_psi(self, dt, eigenvalues, U, e0):
         """
@@ -154,7 +172,6 @@ class IntegratorKrylov(Integrator):
             self,
             krylov_tridiag,
             krylov_basis,
-            initial_state,
             krylov_state=None
     ):
         """
@@ -162,11 +179,11 @@ class IntegratorKrylov(Integrator):
         """
         if not krylov_state:
             krylov_state = \
-                self._compute_krylov_set(krylov_tridiag, krylov_basis, initial_state)
+                self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
         small_tridiag = _data.Dense(krylov_tridiag.as_ndarray()[:-1, :-1])
         small_basis = _data.Dense(krylov_basis.as_ndarray()[:, :-1])
-        reduced_state = self._compute_krylov_set(small_tridiag, small_basis, initial_state)
+        reduced_state = self._compute_krylov_set(small_tridiag, small_basis)
 
         def krylov_error(t):
             # we divide by atol and take the log so the error returned is 0
@@ -204,7 +221,7 @@ class IntegratorKrylov(Integrator):
         self._t_0 = t
         krylov_tridiag, krylov_basis = self._lanczos_algorithm(state0)
         self._krylov_state = \
-            self._compute_krylov_set(krylov_tridiag, krylov_basis, state0)
+            self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
         if (
             krylov_tridiag.shape[0] <= self.options['krylov_dim']
@@ -219,7 +236,7 @@ class IntegratorKrylov(Integrator):
             or self.options["always_compute_step"]
         ):
             self._max_step = self._compute_max_step(
-                krylov_tridiag, krylov_basis, state0, self._krylov_state,
+                krylov_tridiag, krylov_basis, self._krylov_state,
             )
 
     def get_state(self, copy=True):
