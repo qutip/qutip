@@ -27,7 +27,7 @@ cpdef CSR block_extract_csr(
 )
 
 cpdef Dense block_overwrite_dense(
-    Data data, Dense block, idxint above, idxint before
+    Data data, Data block, idxint above, idxint before
 )
 
 cpdef CSR block_overwrite_csr(
