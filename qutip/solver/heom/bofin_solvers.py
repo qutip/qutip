@@ -1391,7 +1391,7 @@ class _GatherHEOMRHS:
         ])
         widths_and_heights = np.full(
             self._n_blocks, self._block_size, dtype=_data.base.idxint_dtype)
-        return _data.concat_blocks(
+        return _data.block_build(
             ops["row"], ops["col"], ops["op"],
             widths_and_heights, widths_and_heights, dtype='CSR'
         )
