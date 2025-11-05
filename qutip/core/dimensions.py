@@ -4,6 +4,7 @@ Internal use module for manipulating dims specifications.
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
+from collections.abc import Sequence
 import numpy as np
 import numbers
 from operator import getitem
@@ -323,16 +324,33 @@ def einsum(subscripts, *operands):
 
 
 class MetaSpace(type):
-    def __call__(cls, *args: SpaceLike, rep: str = None) -> "Space":
+    def __call__(cls, *args: SpaceLike,
+                 rep: str = None, repeat: int = None) -> "Space":
         """
         Select which subclass is instantiated.
         """
-        if cls is Space and len(args) == 1 and isinstance(args[0], list):
-            # From a list of int.
+        if (
+            cls is Space
+            and len(args) == 1
+            and isinstance(args[0], (list, tuple, _homtuple))
+        ):
+            # From a list (or tuple) of int
             return cls.from_list(args[0], rep=rep)
-        elif len(args) == 1 and isinstance(args[0], Space):
+
+        if repeat is not None and repeat == 1:
+            repeat = None
+
+        if len(args) == 1 and isinstance(args[0], Space):
             # Already a Space
-            return args[0]
+            if cls is SumSpace and repeat is not None:
+                # Actually, this is not just a single space, skip
+                pass
+            elif cls is SumSpace and isinstance(args[0], SumSpace):
+                # Skip simplification also in this case
+                # See the implementation note on SumSpace for more explanation
+                pass
+            else:
+                return args[0]
 
         if cls is Space:
             if len(args) == 0:
@@ -365,17 +383,37 @@ class MetaSpace(type):
         if cls is SuperSpace:
             args = (*args, rep or 'super')
 
-        if args not in cls._stored_dims:
+        if cls is SumSpace:
+            if len(args) > 1 and all(arg == args[0] for arg in args):
+                repeat = len(args)
+                args = (args[0],)
+            kwargs = {'repeat': repeat}
+            stored_args = (*args, *kwargs.items())
+        else:
+            kwargs = {}
+            stored_args = args
+
+        if stored_args not in cls._stored_dims:
             instance = cls.__new__(cls)
-            instance.__init__(*args)
-            cls._stored_dims[args] = instance
-        return cls._stored_dims[args]
+            instance.__init__(*args, **kwargs)
+            cls._stored_dims[stored_args] = instance
+        return cls._stored_dims[stored_args]
 
     def from_list(
         cls,
-        list_dims: list[int] | list[list[int]],
+        list_dims: list[int] | list[list[int]] | tuple[SpaceLike, ...],
         rep: str = None
     ) -> "Space":
+        if isinstance(list_dims, tuple):
+            # direct sum
+            return SumSpace(
+                *[Space(dim, rep=rep) for dim in list_dims]
+            )
+        if isinstance(list_dims, _homtuple):
+            # also direct sum
+            return SumSpace(
+                Space(list_dims.elem, rep=rep), repeat=list_dims.count
+            )
         if len(list_dims) == 0:
             raise ValueError("Empty list can't be used as dims.")
         elif (
@@ -647,6 +685,197 @@ class Compound(Space):
 
     def scalar_like(self) -> Space:
         return Space([space.scalar_like() for space in self.spaces])
+
+
+class _homtuple(Sequence):
+    """
+    Sequence where all elements are the same.
+
+    We use this instead of tuple in the list representation of a ``SumSpace``
+    if all spaces are the same. Makes the string representation of such Qobj
+    more sightly, and may save a bit of memory. (For example, the dimensions of
+    the HEOM generator can contain extremely many copies of the same space.)
+    """
+
+    def __init__(self, elem, count):
+        self.elem = elem
+        self.count = count
+
+    def __getitem__(self, i):
+        if i < 0 or i >= self.count:
+            raise IndexError
+        return self.elem
+
+    def __len__(self):
+        return self.count
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if isinstance(other, _homtuple):
+            return self.count == other.count and self.elem == other.elem
+        if isinstance(other, tuple):
+            return (
+                self.count == len(other)
+                and all(self.elem == x for x in other)
+            )
+        return NotImplemented
+
+    def __hash__(self):
+        raise NotImplementedError
+
+    def __repr__(self):
+        return f"({repr(self.elem)},) * {self.count}"
+
+
+class SumSpace(Space):
+    # Implementation note:
+    # Should SumSpace(x) (with only one argument) be simplified to just x?
+    # Answer: we perform the simplification *if x is not a SumSpace itself*.
+    #
+    # The reason is the following two requirements:
+    # 1. Consider 4 Qobj, A, B, C, and D, all with dimensions [[2], [2]]
+    #    If we first make horizontal block matrices AB and CD, and then stack
+    #    these vertically, we obtain ABCD1 = [AB\\CD].
+    #    If we first make vertical block matrices AC and BD, and then stack
+    #    those horizontally, we obtain ABCD2 (with the same data matrix).
+    #    However, in the first case, qt.component(ABCD1, 0, 0) should give AB,
+    #    whereas in the second case, qt.component(ABCD2, 0, 0) should give AC.
+    #    The different order of taking direct sums must therefore result in
+    #    different dimensions.
+    # 2. It should always be possible to make a direct sum of a ket and a
+    #    scalar, even if the ket is a direct sum itself.
+    #    More generally: consider 3 Qobj, E, F, and G, all with the same "from"
+    #    dimension. We would like for `EFG1 = direct_sum([[E], [F], [G]])` and
+    #    `EF = direct_sum([[E], [F]]); EFG2 = direct_sum([[EF], [G]])`
+    #    to be both possible.
+    #
+    # Consider if SumSpace(x) == x always. Then, the dimensions of ABCD1 and
+    # ABCD2 would both be [([2], [2]), ([2], [2])] and the first requirement
+    # cannot be satisfied.
+    # Consider if SumSpace(x) == x never. Then, the "from" dimension of EF is
+    # different from the "from" dimension of G, and the direct sum fails. For
+    # example, the "from" dimension of a direct sum ket would be ([1]).
+    #
+    # We set SumSpace(x) == x iff x is not a SumSpace. Requirement 1 is
+    # always satisfied: in our example, the dimensions are either
+    # [([2], [2]), (([2], [2]))] or [(([2], [2])), ([2], [2])].
+    # Requirement 2 will fail if the "from" dimension is a direct sum already,
+    # but this seems to be the best solution without major changes to
+    # qutip's dimensions.
+
+    _stored_dims = {}
+
+    def _check_super(self):
+        spaces = [self.spaces[0]] if self._repeat else self.spaces
+        if all(not space.issuper for space in spaces):
+            return False, None
+        if all(space.size == 1 or space.issuper for space in spaces):
+            if not all(space.size == 1 or space.superrep == 'super'
+                       for space in spaces):
+                raise ValueError("Direct sums only accept superoperators"
+                                 " in super representation.")
+            return True, 'super'
+        raise ValueError("Cannot mix super and regular spaces in direct sum.")
+
+    def __init__(self, *spaces: Space, repeat: int = None):
+        """
+        Instead of ``SumSpace(x, x, ..., x)`` with many copies of the same
+        space ``x``, you can use ``SumSpace(x, repeat=n)``.
+        """
+        # The metaclass makes the following substitutions:
+        # - SumSpace(x, x, ..., x) --> SumSpace(x, repeat=n)
+        # - SumSpace(x, repeat=1)  --> SumSpace(x)
+        # Therefore, every possible sum space only has one internal
+        # representation, either with repeat = None or with repeat > 1.
+
+        if len(spaces) == 0 or (repeat is not None and repeat <= 0):
+            raise ValueError("Need at least one space for direct sum.")
+        if repeat and len(spaces) != 1:
+            raise ValueError("Invalid arguments for sum space")
+
+        self._repeat = repeat
+        if repeat:
+            self.spaces = _homtuple(spaces[0], repeat)
+            self._space_dims = _homtuple(spaces[0].size, repeat)
+            size = spaces[0].size * repeat
+        else:
+            self.spaces = tuple(spaces)
+            self._space_dims = [space.size for space in spaces]
+            self._space_cumdims_array = np.cumsum([0] + self._space_dims)
+            size = self._space_cumdims_array[-1]
+
+        super().__init__(size)
+        self.issuper, self.superrep = self._check_super()
+        self._pure_dims = False
+
+    def _space_cumdim(self, i):
+        if self._repeat:
+            return self._space_dims[0] * i
+        return self._space_cumdims_array[i]
+
+    def __eq__(self, other) -> bool:
+        return self is other or (
+            type(self) is type(other) and
+            self.spaces == other.spaces
+        )
+
+    def __hash__(self):
+        if self._repeat:
+            return hash((self._repeat, self.spaces[0]))
+        return hash(self.spaces)
+
+    def __repr__(self) -> str:
+        if self._repeat:
+            return f"Sum({repr(self.spaces)})"
+        return f"Sum{repr(self.spaces)}"
+
+    def as_list(self) -> tuple[SpaceLike, ...]:
+        if self._repeat:
+            return _homtuple(self.spaces[0].as_list(), self._repeat)
+        return tuple(space.as_list() for space in self.spaces)
+
+    def dims2idx(self, dims: list[int]) -> int:
+        if not isinstance(dims, list) or len(dims) != 2:
+            raise ValueError("Dimensions must be a list of two elements")
+        if not (0 <= dims[0] < len(self.spaces)):
+            raise IndexError("Dimensions out of range")
+        if not isinstance(dims[0], numbers.Integral):
+            raise TypeError("Dimensions must be integers")
+        return (
+            self._space_cumdim(dims[0])
+            + self.spaces[dims[0]].dims2idx(dims[1])
+        )
+
+    def idx2dims(self, idx: int) -> list[int]:
+        if not (0 <= idx < self.size):
+            raise IndexError("Index out of range")
+        for i in range(len(self.spaces)):
+            if (
+                self._space_cumdim(i) <= idx
+                and self._space_cumdim(i + 1) > idx
+            ):
+                return [
+                    i, self.spaces[i].idx2dims(idx - self._space_cumdim(i))
+                ]
+
+    def drop_scalar_dims(self):
+        if self._repeat:
+            return SumSpace(
+                self.spaces[0].drop_scalar_dims(), repeat=self._repeat
+            )
+        return SumSpace(
+            *[space.drop_scalar_dims() for space in self.spaces]
+        )
+
+    def replace_superrep(self, super_rep: str) -> "Space":
+        if super_rep != 'super':
+            raise ValueError("Direct sums only accept superoperators"
+                             " in super representation.")
+        return self
+
+    def scalar_like(self) -> "Space":
+        return self.spaces[0].scalar_like()
 
 
 class SuperSpace(Space):

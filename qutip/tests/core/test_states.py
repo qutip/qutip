@@ -329,3 +329,12 @@ def test_state_type(func, args, alias, dtype):
 def test_state_space_input(func,  args):
     dims = qutip.dimensions.Space([2, 2, 2])
     assert func(dims, *args) == func([2, 2, 2], *args)
+
+
+@pytest.mark.parametrize("space_list", [([3], [2], [1]), ([3], [3], [3])])
+def test_sumspace_basis(space_list):
+    space = qutip.core.dimensions.Space(space_list)
+    complete_basis = [qutip.basis(space_list, space.idx2dims(i))
+                      for i in range(space.size)]
+    identity = sum(psi @ psi.dag() for psi in complete_basis)
+    assert identity == qutip.qeye(space_list)
