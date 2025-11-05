@@ -193,7 +193,7 @@ cpdef CSR block_extract_csr(CSR data,
     return CSR(scipy[row_start:row_stop, col_start:col_stop], copy=True)
 
 
-cpdef Dense block_overwrite_dense(Data data, Dense block,
+cpdef Dense block_overwrite_dense(Data data, Data block,
                                base.idxint above, base.idxint before):
     cdef base.idxint data_height, data_width, block_height, block_width
 
@@ -207,7 +207,11 @@ cpdef Dense block_overwrite_dense(Data data, Dense block,
         raise IndexError("Cannot insert block into data: doesn't fit.")
 
     cdef cnp.ndarray data_array = data.to_array()  # copies
-    cdef cnp.ndarray block_array = block.as_ndarray()  # doesn't copy
+    cdef cnp.ndarray block_array
+    if type(block) is Dense:
+        block_array = block.as_ndarray()  # doesn't copy
+    else:
+        block_array = block.to_array()
 
     data_array[above:(above+block_height),
                before:(before+block_width)] = block_array  # copies block
@@ -420,7 +424,7 @@ block_overwrite.__doc__ =\
     and ``block`` are not modified, a new data object is returned.
     """
 block_overwrite.add_specialisations([
-    (Data, Dense, Dense, block_overwrite_dense),
+    (Data, Data, Dense, block_overwrite_dense),
     (CSR, CSR, CSR, block_overwrite_csr),
 ], _defer=True)
 
