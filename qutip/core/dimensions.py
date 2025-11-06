@@ -37,8 +37,8 @@ def flatten(l):
     Notes
     -----
     Any scalar will be returned wrapped in a list: ``flatten(1) == [1]``.
-    A non-list iterable will not be treated as a list by flatten. For example, flatten would treat a tuple
-    as a scalar.
+    A non-list iterable will not be treated as a list by flatten. For example,
+    flatten would treat a tuple as a scalar.
     Spaces with "non-pure" dimensions will be collapsed:
     ``flatten(EnrSpace([2,2],1)) == [3]``
     """
@@ -641,7 +641,8 @@ class Compound(Space):
 
     def dims2idx(self, dims: list[int]) -> int:
         if len(dims) != len(self.spaces):
-            raise ValueError("Length of supplied dims does not match the number of subspaces.")
+            raise ValueError("Length of supplied dims does not"
+                             " match the number of subspaces.")
         pos = 0
         step = 1
         for space, dim in zip(self.spaces[::-1], dims[::-1]):
