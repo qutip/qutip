@@ -98,6 +98,12 @@ Superoperator Representations
     :members: kraus_to_choi, kraus_to_super, to_choi, to_chi, to_super, to_kraus, to_stinespring
     :undoc-members:
 
+Direct Sum
+----------
+
+.. automodule:: qutip.core.direct_sum
+    :members: direct_sum, direct_sum_sparse, direct_component, set_direct_component
+
 Operators and Superoperator Dimensions
 --------------------------------------
 

@@ -8,7 +8,7 @@ from qutip import (
 from qutip.core.dimensions import Dimensions
 
 from qutip.core.direct_sum import (
-    direct_sum, direct_sum_sparse, component, set_component
+    direct_sum, direct_sum_sparse, direct_component, set_direct_component
 )
 
 from numbers import Number
@@ -66,25 +66,25 @@ def test_linear(arguments, result_type, result_dims, dtype):
         return
 
     for i in range(len(arguments)):
-        cmp = component(result, i)
+        cmp = direct_component(result, i)
         _assert_equal(cmp, arguments[i])
         if type in ["ket", "operator-ket"]:
-            _assert_equal(component(result, 0, i), arguments[i])
+            _assert_equal(direct_component(result, 0, i), arguments[i])
         if type in ["bra", "operator-bra"]:
-            _assert_equal(component(result, i, 0), arguments[i])
+            _assert_equal(direct_component(result, i, 0), arguments[i])
 
         replacement = Qobj(np.full(cmp.shape, 1), dims=cmp.dims)
-        new_sum = set_component(result, replacement, i)
+        new_sum = set_direct_component(result, replacement, i)
         if isinstance(result, Qobj) or isinstance(cmp, QobjEvo):
             assert isinstance(new_sum, Qobj)
         else:
             assert isinstance(new_sum, QobjEvo)
-        _assert_equal(component(new_sum, i), replacement)
+        _assert_equal(direct_component(new_sum, i), replacement)
 
         replacement = QobjEvo([[replacement, _ramp]])
-        new_sum = set_component(result, replacement, i)
+        new_sum = set_direct_component(result, replacement, i)
         assert isinstance(new_sum, QobjEvo)
-        _assert_equal(component(new_sum, i), replacement)
+        _assert_equal(direct_component(new_sum, i), replacement)
 
 
 @pytest.mark.parametrize(
@@ -187,21 +187,21 @@ def test_matrix(arguments, result_type, result_dims, dtype):
 
     for i in range(len(arguments)):
         for j in range(len(arguments[0])):
-            cmp = component(result, i, j)
+            cmp = direct_component(result, i, j)
             _assert_equal(cmp, arguments[i][j])
 
             replacement = Qobj(np.full(cmp.shape, 1), dims=cmp.dims)
-            new_sum = set_component(result, replacement, i, j)
+            new_sum = set_direct_component(result, replacement, i, j)
             if isinstance(result, Qobj) or isinstance(cmp, QobjEvo):
                 assert isinstance(new_sum, Qobj)
             else:
                 assert isinstance(new_sum, QobjEvo)
-            _assert_equal(component(new_sum, i, j), replacement)
+            _assert_equal(direct_component(new_sum, i, j), replacement)
 
             replacement = QobjEvo([[replacement, _ramp]])
-            new_sum = set_component(result, replacement, i, j)
+            new_sum = set_direct_component(result, replacement, i, j)
             assert isinstance(new_sum, QobjEvo)
-            _assert_equal(component(new_sum, i, j), replacement)
+            _assert_equal(direct_component(new_sum, i, j), replacement)
 
 
 @pytest.mark.parametrize(
@@ -311,5 +311,8 @@ def test_sum_times_sum():
     assert result.shape == result._dims.shape
     assert result.superrep == "super"
 
-    assert component(result, 0) == operator_to_vector(sigmax() @ rho1 + rho2)
-    assert component(result, 1) == Qobj(1)
+    assert (
+        direct_component(result, 0)
+        == operator_to_vector(sigmax() @ rho1 + rho2)
+    )
+    assert direct_component(result, 1) == Qobj(1)

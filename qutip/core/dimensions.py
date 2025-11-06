@@ -734,36 +734,15 @@ class SumSpace(Space):
     # Should SumSpace(x) (with only one argument) be simplified to just x?
     # Answer: we perform the simplification *if x is not a SumSpace itself*.
     #
-    # The reason is the following two requirements:
-    # 1. Consider 4 Qobj, A, B, C, and D, all with dimensions [[2], [2]]
-    #    If we first make horizontal block matrices AB and CD, and then stack
-    #    these vertically, we obtain ABCD1 = [AB\\CD].
-    #    If we first make vertical block matrices AC and BD, and then stack
-    #    those horizontally, we obtain ABCD2 (with the same data matrix).
-    #    However, in the first case, qt.component(ABCD1, 0, 0) should give AB,
-    #    whereas in the second case, qt.component(ABCD2, 0, 0) should give AC.
-    #    The different order of taking direct sums must therefore result in
-    #    different dimensions.
-    # 2. It should always be possible to make a direct sum of a ket and a
-    #    scalar, even if the ket is a direct sum itself.
-    #    More generally: consider 3 Qobj, E, F, and G, all with the same "from"
-    #    dimension. We would like for `EFG1 = direct_sum([[E], [F], [G]])` and
-    #    `EF = direct_sum([[E], [F]]); EFG2 = direct_sum([[EF], [G]])`
-    #    to be both possible.
+    # The reason is the following. (a) With nested direct sums, for
+    # direct_component to always work as expected, we need to keep track of
+    # the order in which direct sums were taken. We therefore can't simplify
+    # SumSpace(SumSpace(...)) to SumSpace(...). (b) We expect that
+    # direct_sum(ket, scalar) always works, even if ket is a direct sum itself.
+    # Therefore, SumSpace(Field()) must simplify to Field().
     #
-    # Consider if SumSpace(x) == x always. Then, the dimensions of ABCD1 and
-    # ABCD2 would both be [([2], [2]), ([2], [2])] and the first requirement
-    # cannot be satisfied.
-    # Consider if SumSpace(x) == x never. Then, the "from" dimension of EF is
-    # different from the "from" dimension of G, and the direct sum fails. For
-    # example, the "from" dimension of a direct sum ket would be ([1]).
-    #
-    # We set SumSpace(x) == x iff x is not a SumSpace. Requirement 1 is
-    # always satisfied: in our example, the dimensions are either
-    # [([2], [2]), (([2], [2]))] or [(([2], [2])), ([2], [2])].
-    # Requirement 2 will fail if the "from" dimension is a direct sum already,
-    # but this seems to be the best solution without major changes to
-    # qutip's dimensions.
+    # Simplifying if x is not a SumSpace itself allows the maximum flexibility
+    # while still allowing direct_component to function.
 
     _stored_dims = {}
 

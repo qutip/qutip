@@ -1,3 +1,6 @@
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
 from . import data as _data
 from .cy.qobjevo import QobjEvo
 from .dimensions import Dimensions, Field, SumSpace
@@ -14,10 +17,11 @@ from typing import Any, Union, overload
 import numpy as np
 
 
+__all__ = ['direct_sum', 'direct_sum_sparse',
+           'direct_component', 'set_direct_component']
+
+
 QobjLike = Union[Number, Qobj, QobjEvo]
-
-
-__all__ = ['direct_sum', 'direct_sum_sparse']
 
 
 def _is_like_ket(qobj: Any) -> bool:
@@ -109,8 +113,48 @@ def direct_sum(
 
 
 def direct_sum(qobjs, dtype=None):
-    # TODO: docstring
-    # TODO everywhere to_ from_
+    """
+    Construct the direct sum of the provided component quantum objects.
+    The matrix representing the returned direct sum is a block matrix, where
+    the matrices of the components are all concatenated.
+
+    This function accepts either a 1D list of components or a 2D square matrix
+    (list of lists) of components. A 1D list is interpreted as a column or row
+    block vector, depending on the element types:
+
+    * If all elements are kets or scalars, the output will be a ket.
+    * If all elements are bras or scalars, the output will be a bra.
+    * If all elements are operator-kets, operators, or scalars, the operators
+      will be converted to operator-kets automatically, and the output will be
+      an operator-ket.
+    * If all elements are operator-bras, operators, or scalars, the operators
+      will be converted to operator-bras automatically, and the output will be
+      an operator-bra.
+
+    Python numbers are always accepted as scalars.
+
+    A 2D square matrix may contain any types of Qobj, but the horizontal and
+    vertical dimensions must match in each block row and block column. In a 2D
+    square matrix, entries may be ``None`` to indicate zero blocks. However,
+    each block row and each block column must contain at least one not-``None``
+    entry. For direct sums with all-zero rows or columns, consider using
+    :func:`.direct_sum_sparse`.
+
+    Parameters
+    ----------
+    qobjs : list
+        1D list or 2D square matrix of components. The components may be Python
+        numbers, :class:`.Qobj`, or :class:`.QobjEvo`.
+    dtype : type or str, optional
+        Storage representation for the output ``Qobj``. Any data-layer known
+        to ``qutip.data.to`` is accepted.
+
+    Returns
+    -------
+    direct_sum: :class:`.Qobj` or :class:`.QobjEvo`
+        The assembled direct-sum object. Returns a time-dependent object
+        (:class:`.QobjEvo`) if any input component is time-dependent.
+    """
 
     if len(qobjs) == 0:
         raise ValueError("No Qobjs provided for direct sum.")
@@ -232,7 +276,31 @@ def direct_sum_sparse(
 
 
 def direct_sum_sparse(qobjs, sum_dimensions, dtype=None):
-    # TODO: docstring
+    r"""
+    Construct the direct sum of the provided component quantum objects.
+    This is a variant of :func:`.direct_sum` suitable for large, sparse block
+    matrices. The caller must provide the dimensions of the direct sum, for
+    example in list form as in :code:`[([2], [3]), ([2], [3])]` for an operator
+    on :math:`\mathbb C^2 \oplus \mathbb C^3`.
+
+    Parameters
+    ----------
+    qobjs : dict
+        Mapping that assigns a component to the given (row, col) location in
+        the block matrix. Missing locations are filled with zero blocks. The
+        components may be Python numbers, :class:`.Qobj`, or :class:`.QobjEvo`.
+    sum_dimensions : list of tuples or lists
+        Dimensions of the resulting Qobj, like in the creation of a Qobj.
+    dtype : type or str, optional
+        Storage representation for the output ``Qobj``. Any data-layer known
+        to ``qutip.data.to`` is accepted.
+
+    Returns
+    -------
+    direct_sum: :class:`.Qobj` or :class:`.QobjEvo`
+        The assembled direct-sum object. Returns a time-dependent object
+        (:class:`.QobjEvo`) if any input component is time-dependent.
+    """
 
     sum_dimensions = Dimensions(sum_dimensions)
     to_spaces, from_spaces = _spaces_from_dims(sum_dimensions)
@@ -241,8 +309,8 @@ def direct_sum_sparse(qobjs, sum_dimensions, dtype=None):
         _check_bounds(row, 0, len(to_spaces))
         _check_bounds(col, 0, len(from_spaces))
         if (
-            _qobj_dims(qobj).to_ != to_spaces[row] or
-            _qobj_dims(qobj).from_ != from_spaces[col]
+            _qobj_dims(qobj)[0] != to_spaces[row] or
+            _qobj_dims(qobj)[1] != from_spaces[col]
         ):
             raise ValueError("Direct sum: dimension mismatch for component at"
                              f" ({row}, {col}).")
@@ -255,16 +323,7 @@ def _do_direct_sum(
         sum_dimensions: Dimensions,
         dtype: LayerType = None
 ):
-    # qobjs is assumed to be sorted and type checked
-    # sum_dimensions is assumed to be between sumspaces
-    # the blocks are assumed to fit
-    # TODO: delete this comment
-
-    # TODO: on "bofin-direct-sum" branch, I had a version of this where the
-    # QobjEvo are first decomposed into their elements, and grouped by
-    # coefficients --> check if that would be better for performance
-
-    # TODO: trim down implementation note in dimensions.py
+    """Assumes `qobjs` is sorted and performs no dimensions checks"""
 
     if settings.core["default_dtype_scope"] == "full":
         dtype = _data._parse_default_dtype(dtype, "sparse")
@@ -321,18 +380,34 @@ def _do_direct_sum(
 
 
 @overload
-def component(sum_qobj: Qobj, *index: int) -> Qobj:
+def direct_component(sum_qobj: Qobj, *index: int) -> Qobj:
     ...
 
 
 @overload
-def component(sum_qobj: QobjEvo, *index: int) -> Qobj | QobjEvo:
+def direct_component(sum_qobj: QobjEvo, *index: int) -> Qobj | QobjEvo:
     ...
 
 
-def component(sum_qobj, *index):
+def direct_component(sum_qobj, *index):
     """
-    Extracts component at index from qobj which is a direct sum.
+    Extract the component (block) at the given index from a direct sum
+    ``Qobj``.
+
+    Parameters
+    ----------
+    sum_qobj : :class:`.Qobj` or :class:`.QobjEvo`
+        A direct sum object from which to extract a component.
+    index : list of int
+        One or two indices identifying the component to extract. If both the
+        row and column spaces are sums, two indices (``row``, ``col``) are
+        required. If only one side is a sum, a single index is accepted and
+        interpreted as the index into the summed side.
+
+    Returns
+    -------
+    component: :class:`.Qobj` or :class:`.QobjEvo`
+        The extracted component.
     """
 
     if settings.core["default_dtype_scope"] == "full":
@@ -341,7 +416,7 @@ def component(sum_qobj, *index):
         dtype = sum_qobj.dtype
 
     if isinstance(sum_qobj, QobjEvo):
-        result = sum_qobj.linear_map(lambda x: component(x, *index),
+        result = sum_qobj.linear_map(lambda x: direct_component(x, *index),
                                      _skip_check=True)
         result.compress()
         return result(0) if result.isconstant else result
@@ -357,7 +432,7 @@ def component(sum_qobj, *index):
 
 
 @overload
-def set_component(
+def set_direct_component(
     sum_qobj: Qobj,
     component: Qobj,
     *index: int,
@@ -367,7 +442,7 @@ def set_component(
 
 
 @overload
-def set_component(
+def set_direct_component(
     sum_qobj: Qobj | QobjEvo,
     component: Qobj | QobjEvo,
     *index: int,
@@ -376,15 +451,34 @@ def set_component(
     ...
 
 
-def set_component(sum_qobj, component, *index, dtype=None):
+def set_direct_component(sum_qobj, component, *index):
     """
-    Sets the component of the direct sum qobjs at the given index.
+    Set (replace) a component in a direct sum ``Qobj``. The function returns a
+    new object where the component at the given index is replaced with
+    ``component``.
+
+    Parameters
+    ----------
+    sum_qobj : :class:`.Qobj` or :class:`.QobjEvo`
+        The direct sum object whose component will be replaced.
+    component : :class:`.Qobj` or :class:`.QobjEvo`
+        The new component to insert. ``None`` sets the component to zero.
+    index : list of int
+        One or two indices identifying the component to extract. If both the
+        row and column spaces are sums, two indices (``row``, ``col``) are
+        required. If only one side is a sum, a single index is accepted and
+        interpreted as the index into the summed side.
+
+    Returns
+    -------
+    updated: :class:`.Qobj` or :class:`.QobjEvo`
+        The resulting direct sum object with the component set.
     """
 
     if settings.core["default_dtype_scope"] == "full":
-        dtype = dtype or settings.core["default_dtype"] or sum_qobj.dtype
+        dtype = settings.core["default_dtype"] or sum_qobj.dtype
     else:
-        dtype = dtype or sum_qobj.dtype
+        dtype = sum_qobj.dtype
 
     to_index, from_index = _check_component_index(sum_qobj._dims, index)
     component_dims, row_start, _, col_start, _ =\
@@ -411,12 +505,12 @@ def set_component(sum_qobj, component, *index, dtype=None):
 
     if isinstance(sum_qobj, QobjEvo):
         zeroed = sum_qobj.linear_map(
-            lambda x: set_component(x, None, *index, dtype=dtype),
+            lambda x: set_direct_component(x, None, *index, dtype=dtype),
             _skip_check=True)
         zeroed.compress()
         zeroed = zeroed(0) if zeroed.isconstant else zeroed
     else:
-        zeroed = set_component(sum_qobj, None, *index, dtype=dtype)
+        zeroed = set_direct_component(sum_qobj, None, *index, dtype=dtype)
 
     blow_up_func = partial(_blow_up_qobj, sum_dimensions=sum_qobj._dims,
                            row=to_index, col=from_index, dtype=dtype)
