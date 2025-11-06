@@ -4,6 +4,7 @@ from __future__ import annotations
 from . import data as _data
 from .cy.qobjevo import QobjEvo
 from .dimensions import Dimensions, Field, SumSpace
+from .operators import qzero
 from .qobj import Qobj
 from .superoperator import operator_to_vector
 
@@ -505,12 +506,12 @@ def set_direct_component(sum_qobj, component, *index):
 
     if isinstance(sum_qobj, QobjEvo):
         zeroed = sum_qobj.linear_map(
-            lambda x: set_direct_component(x, None, *index, dtype=dtype),
+            lambda x: set_direct_component(x, None, *index),
             _skip_check=True)
         zeroed.compress()
         zeroed = zeroed(0) if zeroed.isconstant else zeroed
     else:
-        zeroed = set_direct_component(sum_qobj, None, *index, dtype=dtype)
+        zeroed = set_direct_component(sum_qobj, None, *index)
 
     blow_up_func = partial(_blow_up_qobj, sum_dimensions=sum_qobj._dims,
                            row=to_index, col=from_index, dtype=dtype)
@@ -525,6 +526,9 @@ def set_direct_component(sum_qobj, component, *index):
 def _blow_up_qobj(x: Qobj, *, sum_dimensions, row, col, dtype):
     # given small Qobj x, makes big Qobj with given dimensions
     # resulting big Qobj is zero except for the block x starting at row, col
+
+    if x is None:
+        return qzero(sum_dimensions[0], sum_dimensions[1])
 
     if isinstance(sum_dimensions[0], SumSpace):
         data_row = sum_dimensions[0]._space_cumdim(row)
@@ -546,7 +550,7 @@ def _blow_up_qobj(x: Qobj, *, sum_dimensions, row, col, dtype):
 
 def _check_bounds(given, min, max):
     if not (min <= given < max):
-        raise ValueError(f"Index ({given}) out of bounds ({min}, {max-1})"
+        raise IndexError(f"Index ({given}) out of bounds ({min}, {max-1})"
                          " for component of direct sum.")
 
 
@@ -574,7 +578,7 @@ def _check_component_index(sum_dimensions, index):
 
     if is_to_sum and is_from_sum:
         if len(index) != 2:
-            raise ValueError("Invalid number of indices provided for component"
+            raise IndexError("Invalid number of indices provided for component"
                              " of direct sum (two indices required).")
     else:
         if len(index) == 1 and is_to_sum:
@@ -582,7 +586,7 @@ def _check_component_index(sum_dimensions, index):
         elif len(index) == 1:
             index = (0, index[0])
         if len(index) != 2:
-            raise ValueError("Invalid number of indices provided for component"
+            raise IndexError("Invalid number of indices provided for component"
                              " of direct sum (one or two indices required).")
 
     return index
