@@ -85,8 +85,8 @@ shape = [4, 4], type = oper, isHerm = True
             return right.linear_map(partial(tensor, left))
         if isinstance(right, Qobj):
             return left.linear_map(_reverse_partial_tensor(right))
-        left_t = left.linear_map(_reverse_partial_tensor(qeye(right.dims[0])))
-        right_t = right.linear_map(partial(tensor, qeye(left.dims[1])))
+        left_t = left.linear_map(_reverse_partial_tensor(qeye(right._dims[0])))
+        right_t = right.linear_map(partial(tensor, qeye(left._dims[1])))
         return left_t @ right_t
 
     if not all(q.superrep == args[0].superrep for q in args[1:]):
@@ -291,6 +291,7 @@ def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
     sqobj : Qobj
         The original Qobj with all named index pairs swapped with each other
     """
+    q_oper._dims._require_pure_dims("tensor swap")
     dims = q_oper.dims
     tensor_pairs = dims_idxs_to_tensor_idxs(dims, pairs)
     data = q_oper.full()
@@ -337,6 +338,7 @@ def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
         away.
 
     """
+    qobj._dims._require_pure_dims("tensor contract")
     # Record and label the original dims.
     dims = qobj.dims
     dims_idxs = enumerate_flat(dims)
@@ -484,6 +486,8 @@ def expand_operator(
     expanded_oper : :class:`.Qobj`
         The expanded operator acting on a system with the desired dimension.
     """
+    oper._dims._require_pure_dims("expand operator")
+
     from .operators import identity
     dtype = _data._parse_default_dtype(dtype, "sparse")
     oper = oper.to(dtype)

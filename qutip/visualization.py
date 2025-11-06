@@ -366,6 +366,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
     for rho in rhos:
         # Extract plotting data W from the input.
         if isinstance(rho, Qobj):
+            rho._dims._require_pure_dims("hinton plot")
             if rho.isoper or rho.isoperket or rho.isoperbra:
                 if rho.isoperket:
                     rho = vector_to_operator(rho)
@@ -1870,6 +1871,7 @@ def plot_qubism(ket, theme='light', how='pairs', grid_iteration=1,
         if not isket(ket):
             raise Exception("Qubism works only for pure states, i.e. kets.")
             # add for dm? (perhaps a separate function, plot_qubism_dm)
+        ket._dims._require_pure_dims("qubism plot")
 
         dim_list = ket.dims[0]
         n = len(dim_list)
@@ -2035,6 +2037,7 @@ def plot_schmidt(ket, theme='light', splitting=None,
         if not isket(ket):
             err = "Schmidt plot works only for pure states, i.e. kets."
             raise Exception(err)
+        ket._dims._require_pure_dims("Schmidt plot")
 
         dim_list = ket.dims[0]
 

@@ -10,8 +10,6 @@ from qutip.core.data.mul cimport imul_data
 from qutip.core.data.tidyup import tidyup_csr
 from qutip.core.data.norm import frobenius_data
 from qutip.core.data.ode cimport cy_wrmn_error
-from .verner7efficient import vern7_coeff
-from .verner9efficient import vern9_coeff
 from cpython.exc cimport PyErr_CheckSignals
 cimport cython
 import numpy as np

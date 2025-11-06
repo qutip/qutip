@@ -874,8 +874,12 @@ class Bloch:
 
             if self._inner_point_color[k] is not None:
                 color = self._inner_point_color[k]
+                if isinstance(color, list) and len(color) > 1:
+                    color = [color[i] for i in indperm]
             elif self.point_color is not None:
                 color = self.point_color
+                if isinstance(color, list) and len(color) > 1:
+                    color = [color[i] for i in indperm]
             elif style in ['s', 'l']:
                 color = [self.point_default_color[
                     k % len(self.point_default_color)

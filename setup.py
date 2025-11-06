@@ -153,7 +153,7 @@ def _determine_version(options):
       4.5.2rc2
       5.0.0
       5.1.1a1
-    We do that here rather than in setup.cfg so we can apply the local
+    We do that here rather than in pyproject.toml so we can apply the local
     versioning number as well.
     """
     version_filename = os.path.join(options['rootdir'], 'VERSION')
@@ -303,8 +303,8 @@ if __name__ == "__main__":
     options = process_options()
     create_version_py_file(options)
     extensions = create_extension_modules(options)
-    # Most of the kwargs to setup are defined in setup.cfg; the only ones we
-    # keep here are ones that we have done some compile-time processing on.
+    # Most of the kwargs to setup are defined in pyproject.toml; the only ones
+    # we keep here are ones that we have done some compile-time processing on.
     setup(
         version=options['version'],
         ext_modules=extensions,
