@@ -164,7 +164,7 @@ jobs:
       - name: Check wheels
         run: |
           ls -R wheels
-          if ! [[ $(ls wheels/*.whl | wc -l) == 16 ]]; then exit 1; fi
+          if ! [[ $(ls wheels/*.whl | wc -l) == 20 ]]; then exit 1; fi
           if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
           if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
 
