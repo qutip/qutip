@@ -69,7 +69,6 @@ def test_block_build(intype, shuffle_csr, outtype):
     assert result.__class__ == outtype
 
 
-
 @pytest.mark.parametrize('outtype', _data.to.dtypes)
 def test_block_build_validation(outtype):
     """validation checks in block_build"""
@@ -145,7 +144,8 @@ def test_block_build_csr():
     result = _data.block_build_csr(
         np.array([0, 0, 1, 1], dtype=_data.base.idxint_dtype),
         np.array([0, 1, 0, 1], dtype=_data.base.idxint_dtype),
-        np.array([csr.identity(2), csr.empty(2, 2, 0), csr.empty(2, 2, 0), csr.identity(2)], dtype=_data.Data),
+        np.array([csr.identity(2), csr.empty(2, 2, 0),
+                  csr.empty(2, 2, 0), csr.identity(2)], dtype=_data.Data),
         np.array([2, 2], dtype=_data.base.idxint_dtype),
         np.array([2, 2], dtype=_data.base.idxint_dtype),
     )
@@ -200,14 +200,18 @@ def test_block_extract_validation(intype):
 @pytest.mark.parametrize('data_array', [
     pytest.param(np.zeros((4, 4), dtype=complex), id='zeros'),
     pytest.param(np.ones((4, 4), dtype=complex), id='full'),
-    pytest.param(np.array([[0, 0, 0, 0], [1, 1, 1, 1], [1, 1, 1, 1], [0, 0, 0, 0]], dtype=complex), id='pattern1'),
-    pytest.param(np.array([[1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1]], dtype=complex), id='pattern2'),
+    pytest.param(np.array([[0, 0, 0, 0], [1, 1, 1, 1], [1, 1, 1, 1],
+                           [0, 0, 0, 0]], dtype=complex), id='pattern1'),
+    pytest.param(np.array([[1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0],
+                           [0, 1, 0, 1]], dtype=complex), id='pattern2'),
 ])
 @pytest.mark.parametrize('block_array', [
     pytest.param(np.array([[1, 2], [3, 4]], dtype=complex), id='block1'),
     pytest.param(np.zeros((1, 1)), id='zero')
 ])
-def test_block_overwrite(intype, shuffle_csr, outtype, data_array, block_array):
+def test_block_overwrite(
+    intype, shuffle_csr, outtype, data_array, block_array
+):
     data = _data.to(intype, _data.Dense(data_array))
     block = _data.to(intype, _data.Dense(block_array))
 
@@ -217,7 +221,8 @@ def test_block_overwrite(intype, shuffle_csr, outtype, data_array, block_array):
 
     result = _data.block_overwrite(data, block, 1, 1, dtype=outtype)
     expected = np.copy(data_array)
-    expected[1:1 + block_array.shape[0], 1:1 + block_array.shape[1]] = block_array
+    expected[1:1 + block_array.shape[0], 1:1 + block_array.shape[1]] =\
+        block_array
 
     assert result.__class__ == outtype
     np.testing.assert_array_equal(result.to_array(), expected)
@@ -227,7 +232,8 @@ def test_block_overwrite(intype, shuffle_csr, outtype, data_array, block_array):
 def test_block_overwrite_validation(intype):
     """validation of block_overwrite parameters"""
     data = _data.zeros(2, 2, dtype=intype)
-    block = _data.to(intype, _data.Dense(np.array([[1, 2], [3, 4]], dtype=complex)))
+    block = _data.to(
+        intype, _data.Dense(np.array([[1, 2], [3, 4]], dtype=complex)))
 
     # Test block too large
     with pytest.raises(IndexError, match="doesn't fit"):

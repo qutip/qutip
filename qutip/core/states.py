@@ -407,8 +407,46 @@ shape = [3, 3], type = oper, isHerm = True
       [ 0.+0.j  0.+0.j  0.+0.j]]
 
     """
-    dtype = _data._parse_default_dtype(dtype, "diagonal")
-    return basis(dimensions, n, offset=offset, dtype=dtype).proj().to(dtype)
+    dtype = _data._parse_default_dtype(dtype, "sparse")
+    # Promote all parameters to Space to simplify later logic.
+    dimensions = _to_space(dimensions)
+
+    size = dimensions.size
+    if n is None:
+        location = 0
+    elif offset:
+        if not isinstance(offset, list):
+            offset = [offset]
+        if not isinstance(n, list):
+            n = [n]
+        if len(n) != len(dimensions.as_list()) or len(offset) != len(n):
+            raise ValueError("All list inputs must be the same length.")
+
+        n_off = [m - off for m, off in zip(n, offset)]
+        try:
+            location = dimensions.dims2idx(n_off)
+        except IndexError:
+            raise ValueError("All fock_dm indices must be integers in the "
+                             "range `offset <= n < dimension+offset`.")
+    else:
+        if not isinstance(n, list):
+            n = [n]
+        if len(n) != len(dimensions.as_list()):
+            raise ValueError("All list inputs must be the same length.")
+        try:
+            location = dimensions.dims2idx(n)
+        except IndexError:
+            raise ValueError("All fock_dm indices must be integers in the "
+                             "range `0 <= n < dimension`.")
+
+    return Qobj(
+        _data.one_element[dtype]((size, size), (location, location), 1),
+        dims=[dimensions, dimensions],
+        isherm=True,
+        isunitary=False,
+        copy=False,
+        dtype=dtype,
+    )
 
 
 def fock(
