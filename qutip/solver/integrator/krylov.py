@@ -105,11 +105,65 @@ class IntegratorKrylov(Integrator):
 
         return krylov_tridiag, krylov_basis
 
+    def _lanczos_full_reorth_algorithm(self, psi):
+        """
+        Computes the Krylov subspace basis for a Hamiltonian 'H', a system
+        state 'psi' and Krylov dimension 'krylov_dim' using the Lanczos
+        algorithm and reorthogonalising the basis vectors with respect to all
+        previous ones. This can drastically reduce numerical errors. The
+        difference to the Arnoldi algorithm is that the upper triangular values
+        are discarded since they originate from numerical errors and not
+        physical properties. The result is a tridiagonal matrix.
+
+        The space is spanned by
+        {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
+
+        Parameters
+        ------------
+        psi: np.ndarray
+            State used to calculation Krylov subspace (= first basis state).
+
+        t: float, default: 0
+            Time at which to evaluate the Hamiltonian.
+        """
+        krylov_dim = self.options['krylov_dim']
+        H = (1j * self.system(0)).data
+        p0 = _data.inner(psi, psi) # purity
+        sp0 = np.sqrt(p0)
+
+        h_diag = np.zeros(krylov_dim, dtype=complex)
+        h_subdiag = np.zeros(krylov_dim, dtype=complex)
+        Q = [psi]
+
+        k = 1
+        v = _data.matmul(H, Q[-1])
+        h_diag[0] = _data.inner(Q[-1], v) / p0
+        v = _data.add(v, Q[-1], -h_diag[0])
+        h_subdiag[0] = _data.norm.l2(v) / sp0
+        while k < krylov_dim and h_subdiag[k-1] > self.options['sub_system_tol']:
+            Q.append(_data.mul(v, 1 / h_subdiag[k-1]))
+            v = _data.matmul(H, Q[-1])
+            k += 1
+            for j in range(k):  # removes projections
+                ol = _data.inner(Q[j], v) / p0
+                v = _data.add(v, Q[j], -ol)
+            h_diag[k-1] = ol
+            h_subdiag[k-1] = _data.norm.l2(v) / sp0
+
+        krylov_trid = _data.diag["dense"](
+            [h_subdiag[:k-1], h_diag[:k], h_subdiag[:k-1]],
+            [-1, 0, 1]
+        )
+        krylov_basis = _data.Dense(np.hstack([p.to_array() for p in Q]))
+
+        return krylov_trid, krylov_basis
+
     def _arnoldi_algorithm(self, psi):
         """
         Computes the Krylov subspace basis for a Hamiltonian 'H', a system
         state 'psi' and Krylov dimension 'krylov_dim' using the Arnoldi
-        interation. The space is spanned by
+        interation. This results in an upper Hessenberg matrix. The space is
+        spanned by
         {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
 
         Parameters
@@ -131,7 +185,7 @@ class IntegratorKrylov(Integrator):
         k = 1
         v = _data.matmul(H, Q[-1])
         h[0, 0] = _data.inner(Q[-1], v) / p0
-        v = v - h[0, 0] * Q[-1]
+        v = _data.add(v, Q[-1], -h[0, 0])
         h[1, 0] = _data.norm.l2(v) / sp0
         while k < krylov_dim and h[k, k-1] > self.options['sub_system_tol']:
             Q.append(_data.mul(v, 1 / h[k, k-1]))
@@ -139,11 +193,9 @@ class IntegratorKrylov(Integrator):
             k += 1
             for j in range(k):  # removes projections
                 h[j, k-1] = _data.inner(Q[j], v) / p0
-                v = v - h[j, k-1] * Q[j]
+                v = _data.add(v, Q[j], -h[j, k-1])
             h[k, k-1] = _data.norm.l2(v) / sp0
 
-        # TODO for hermitian case we can thorw away upper triangle terms since they come from numerical errors
-        # i.e. we obtain a tridiagonal matrix again
         krylov_hesse = _data.Dense(h[:k, :k])
         krylov_basis = _data.Dense(
             np.hstack([p.to_array() for p in Q])
