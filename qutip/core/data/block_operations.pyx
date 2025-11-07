@@ -94,6 +94,10 @@ cpdef CSR block_build_csr(
     cdef base.idxint idx, row, column, nnz = 0
     cdef Data block
 
+    # avoid modifying blocks in-place, but only copy the array if necessary
+    cdef Data[:] blocks_copy = blocks
+    cdef bool copied = False
+
     for idx in range(num_ops):
         row = block_rows[idx]
         column = block_cols[idx]
@@ -118,7 +122,10 @@ cpdef CSR block_build_csr(
 
         if type(block) is not CSR:
             block = <Data>convert.to(CSR, block)
-            blocks[idx] = block
+            if not copied:
+                blocks_copy = np.array(blocks, dtype=Data, copy=True)
+                copied = True
+            blocks_copy[idx] = block
         nnz += csr.nnz(<CSR>block)
 
     if nnz == 0:
@@ -143,7 +150,7 @@ cpdef CSR block_build_csr(
 
         for op_row in range(block_heights[row]):
             for i in range(prev_idx, idx):
-                op = <CSR>blocks[i]
+                op = <CSR>blocks_copy[i]
                 if csr.nnz(op) == 0:
                     # empty CSR matrices have uninitialized row_index entries.
                     # it's unclear whether users should ever see such matrixes
@@ -168,8 +175,8 @@ cpdef CSR block_build_csr(
 
 
 cpdef Dense block_extract_dense(Dense data,
-                        base.idxint row_start, base.idxint row_stop,
-                        base.idxint col_start, base.idxint col_stop):
+                                base.idxint row_start, base.idxint row_stop,
+                                base.idxint col_start, base.idxint col_stop):
     if (
         row_start < 0 or col_start < 0
         or row_stop > data.shape[0] or col_stop > data.shape[1]
@@ -181,8 +188,8 @@ cpdef Dense block_extract_dense(Dense data,
 
 
 cpdef CSR block_extract_csr(CSR data,
-                    base.idxint row_start, base.idxint row_stop,
-                    base.idxint col_start, base.idxint col_stop):
+                            base.idxint row_start, base.idxint row_stop,
+                            base.idxint col_start, base.idxint col_stop):
     if (
         row_start < 0 or col_start < 0
         or row_stop > data.shape[0] or col_stop > data.shape[1]
@@ -194,7 +201,7 @@ cpdef CSR block_extract_csr(CSR data,
 
 
 cpdef Dense block_overwrite_dense(Data data, Data block,
-                               base.idxint above, base.idxint before):
+                                  base.idxint above, base.idxint before):
     cdef base.idxint data_height, data_width, block_height, block_width
 
     data_height, data_width = data.shape
@@ -233,7 +240,7 @@ cdef void _memcpy_data(double complex* target, base.idxint target_start,
 
 
 cpdef CSR block_overwrite_csr(CSR data, CSR block,
-                           base.idxint above, base.idxint before):
+                              base.idxint above, base.idxint before):
     cdef base.idxint data_height, data_width, block_height, block_width
 
     data_height, data_width = data.shape
@@ -361,8 +368,7 @@ block_build.__doc__ =\
         The block column for each data block. The block column should be in
         ``range(0, len(block_widths))``.
     blocks : Data[:]
-        The data blocks themselves. For performance reasons, implementations of
-        ``block_build`` are allowed to modify this array in place.
+        The data blocks themselves.
     block_heights : int[:]
         Array containing the block heights.
     block_widths : int[:]
