@@ -96,7 +96,7 @@ cpdef CSR block_build_csr(
 
     # avoid modifying blocks in-place, but only copy the array if necessary
     cdef Data[:] blocks_copy = blocks
-    cdef bool copied = False
+    cdef bint copied = False
 
     for idx in range(num_ops):
         row = block_rows[idx]
