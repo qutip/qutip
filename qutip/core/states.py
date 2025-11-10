@@ -21,7 +21,7 @@ from . import data as _data
 from .qobj import Qobj
 from .operators import jmat, displace, qdiags
 from .tensor import tensor
-from .dimensions import Space
+from .dimensions import Space, _homtuple
 from .. import settings
 from ..typing import SpaceLike, LayerType
 
@@ -58,7 +58,7 @@ def _to_space(dimensions):
     """
     if isinstance(dimensions, Space):
         return dimensions
-    elif isinstance(dimensions, list):
+    elif isinstance(dimensions, (list, tuple, _homtuple)):
         return Space(dimensions)
     else:
         return Space([dimensions])

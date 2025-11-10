@@ -417,11 +417,11 @@ class MetaSpace(type):
         if len(list_dims) == 0:
             raise ValueError("Empty list can't be used as dims.")
         elif (
-            sum(isinstance(entry, list) for entry in list_dims)
+            sum(isinstance(entry, (list, tuple, _homtuple)) for entry in list_dims)
             not in [0, len(list_dims)]
         ):
             raise ValueError(f"Format dims not understood {list_dims}.")
-        elif not isinstance(list_dims[0], list):
+        elif not isinstance(list_dims[0], (list, tuple, _homtuple)):
             # Tensor
             spaces = [Space(size) for size in list_dims]
         elif len(list_dims) == 1:

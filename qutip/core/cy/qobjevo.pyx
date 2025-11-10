@@ -850,7 +850,7 @@ cdef class QobjEvo:
                 cleaned_elements.append(_EvoElement(qobj, coeff))
         return cleaned_elements
 
-    def compress(self):
+    def compress(self, *, _skip_coeff=False, _skip_qobj=False):
         """
         Look for redundance in the :obj:`.QobjEvo` components:
 
@@ -878,8 +878,10 @@ cdef class QobjEvo:
             else:
                 func_elements.append(element)
 
-        coeff_elements = self._compress_merge_coeff(coeff_elements)
-        coeff_elements = self._compress_merge_qobj(coeff_elements)
+        if not _skip_qobj:
+            coeff_elements = self._compress_merge_qobj(coeff_elements)
+        if not _skip_coeff:
+            coeff_elements = self._compress_merge_coeff(coeff_elements)
 
         cleaned_elements = coeff_elements + func_elements
 

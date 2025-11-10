@@ -24,6 +24,8 @@ __all__ = ['direct_sum', 'direct_sum_sparse',
 
 QobjLike = Union[Number, Qobj, QobjEvo]
 
+ARRAY_ONE = np.full((1,), 1, dtype=_data.base.idxint_dtype)
+
 
 def _is_like_ket(qobj: Any) -> bool:
     return (
@@ -376,7 +378,7 @@ def _do_direct_sum(
             _skip_check=True
         )
     if qobjevos:
-        result.compress()
+        result.compress(_skip_coeff=True)
     return result
 
 
@@ -419,7 +421,7 @@ def direct_component(sum_qobj, *index):
     if isinstance(sum_qobj, QobjEvo):
         result = sum_qobj.linear_map(lambda x: direct_component(x, *index),
                                      _skip_check=True)
-        result.compress()
+        result.compress(_skip_coeff=True)
         return result(0) if result.isconstant else result
 
     to_index, from_index = _check_component_index(sum_qobj._dims, index)
@@ -508,7 +510,7 @@ def set_direct_component(sum_qobj, component, *index):
         zeroed = sum_qobj.linear_map(
             lambda x: set_direct_component(x, None, *index),
             _skip_check=True)
-        zeroed.compress()
+        zeroed.compress(_skip_coeff=True)
         zeroed = zeroed(0) if zeroed.isconstant else zeroed
     else:
         zeroed = set_direct_component(sum_qobj, None, *index)
@@ -540,11 +542,21 @@ def _blow_up_qobj(x: Qobj, *, sum_dimensions, row, col, dtype):
     else:
         data_col = 0
 
+    xh, xw = x.shape
+    sh, sw = sum_dimensions.shape
+
     return Qobj(
-        _data.block_overwrite(
-            _data.zeros[dtype](*sum_dimensions.shape),
-            x.data, data_row, data_col, dtype=dtype
-        ), dims=sum_dimensions, copy=False
+        _data.block_build(
+            ARRAY_ONE,
+            ARRAY_ONE,
+            np.full((1,), x.data, dtype=_data.Data),
+            np.array([data_row, xh, sh - xh - data_row],
+                     dtype=_data.base.idxint_dtype),
+            np.array([data_col, xw, sw - xw - data_col],
+                     dtype=_data.base.idxint_dtype),
+            dtype=dtype
+        ),
+        dims=sum_dimensions, copy=False
     )
 
 

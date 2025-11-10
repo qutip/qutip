@@ -255,7 +255,7 @@ class TestSumSpace:
 
     @pytest.mark.parametrize(["base", "flat"], [
         pytest.param(Space((2, 1)), [3], id="single"),
-        pytest.param(Space([2, (3, 3), 4]), [2, 6, 4], id="nested"),
+        pytest.param(Space((2, (3, 3), 4)), [12], id="nested"),
     ])
     def test_flatten_collapses(self, base, flat):
         assert flatten(base) == flat
@@ -265,7 +265,7 @@ class TestSumSpace:
         pytest.param(Space((2, 2)), Space((2, 2)), id="no-scalars"),
         pytest.param(Space((2, [3, 1], 1)), Space((2, 3, 1)), id="simple"),
         pytest.param(
-            Space([2, 1, (1, [1, 1])]), Space([2, (1, 1)]), id="nested")
+            Space((2, 1, (1, [1, 1]))), Space((2, 1, (1, 1))), id="nested")
     ])
     def test_drop_scalar_dims(self, space, expected):
         assert space.drop_scalar_dims() == expected
