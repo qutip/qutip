@@ -15,10 +15,13 @@ WARN_MISSING_MODULE[0] = 0
 
 class TestIntegratorCte():
     _analytical_se = lambda _, t: np.cos(t * np.pi)
-    se_system = qutip.QobjEvo(-1j * qutip.sigmax() * np.pi)
+    se_system = SESolver(qutip.QobjEvo(qutip.sigmax() * np.pi))
     _analytical_me = lambda _, t: 1 - np.exp(-t)
-    me_system = qutip.liouvillian(qutip.QobjEvo(qutip.qeye(2)),
-                                  c_ops=[qutip.destroy(2)])
+    me_system = MESolver(
+        qutip.liouvillian(
+            qutip.QobjEvo(qutip.qeye(2)), c_ops=[qutip.destroy(2)]
+        )
+    )
 
     @pytest.fixture(params=list(SESolver.avail_integrators().keys()))
     def se_method(self, request):
@@ -28,13 +31,13 @@ class TestIntegratorCte():
     def me_method(self, request):
         return request.param
 
-    # TODO: Change when the MCSolver is added
+
     @pytest.fixture(params=list(MCSolver.avail_integrators().keys()))
     def mc_method(self, request):
         return request.param
 
     def test_se_integration(self, se_method):
-        evol = SESolver.avail_integrators()[se_method](self.se_system, {})
+        evol = SESolver.avail_integrators()[se_method](self.se_system)
         state0 = qutip.basis(2, 0).data
         evol.set_state(0, state0)
         for t, state in evol.run(np.linspace(0, 2, 21)):
@@ -43,7 +46,7 @@ class TestIntegratorCte():
             assert state.shape == (2, 1)
 
     def test_me_integration(self, me_method):
-        evol = MESolver.avail_integrators()[me_method](self.me_system, {})
+        evol = MESolver.avail_integrators()[me_method](self.me_system)
         state0 = qutip.operator_to_vector(qutip.fock_dm(2,1)).data
         evol.set_state(0, state0)
         for t in np.linspace(0, 2, 21):
@@ -53,7 +56,7 @@ class TestIntegratorCte():
                             state.to_array()[0, 0], atol=2e-5)
 
     def test_mc_integration(self, mc_method):
-        evol = MCSolver.avail_integrators()[mc_method](self.se_system, {})
+        evol = MCSolver.avail_integrators()[mc_method](self.se_system)
         state = qutip.basis(2,0).data
         evol.set_state(0, state)
         t = 0
@@ -74,33 +77,15 @@ class TestIntegratorCte():
                 t, state = evol.mcstep(t)
 
 
-    @pytest.mark.parametrize('start', [1, -1])
-    def test_mc_integration_mixed(self, start, mc_method):
-        system = qutip.QobjEvo(qutip.qeye(1))
-        evol = Solver.avail_integrators()[mc_method](system, {})
-
-        state = qutip.basis(1,0).data
-        evol.set_state(start, state)
-        t = start
-        t_target = start + .1
-        while t < t_target:
-            t, _ = evol.mcstep(start + .1)
-        _ = evol.mcstep(start + .2)
-        t_target = (start + .1 + t) / 2
-        t, state = evol.mcstep(t_target)
-        assert (
-            state.to_array()[0, 0]
-            == pytest.approx(np.exp(t - start), abs=1e-5)
-        )
-
-
 class TestIntegrator(TestIntegratorCte):
     _analytical_se = lambda _, t: np.cos(t**2/2 * np.pi)
-    se_system = qutip.QobjEvo([-1j * qutip.sigmax() * np.pi, "t"])
+    se_system = SESolver(qutip.QobjEvo([qutip.sigmax() * np.pi, "t"]))
     _analytical_me = lambda _, t: 1 - np.exp(-(t**3) / 3)
-    me_system = qutip.liouvillian(
-        qutip.QobjEvo(qutip.qeye(2)),
-        c_ops=[qutip.QobjEvo([qutip.destroy(2), 't'])]
+    me_system = MESolver(
+        qutip.liouvillian(
+            qutip.QobjEvo(qutip.qeye(2)),
+            c_ops=[qutip.QobjEvo([qutip.destroy(2), 't'])]
+        )
     )
 
     @pytest.fixture(
@@ -125,6 +110,30 @@ class TestIntegrator(TestIntegratorCte):
         return request.param
 
 
+@pytest.mark.parametrize(
+    "mc_method",
+    list(MCSolver.avail_integrators().keys())
+)
+@pytest.mark.parametrize('start', [1, -1])
+def test_mc_integration_mixed(start, mc_method):
+    system = Solver(qutip.QobjEvo(qutip.qeye(1)))
+    evol = Solver.avail_integrators()[mc_method](system)
+
+    state = qutip.basis(1,0).data
+    evol.set_state(start, state)
+    t = start
+    t_target = start + .1
+    while t < t_target:
+        t, _ = evol.mcstep(start + .1)
+    _ = evol.mcstep(start + .2)
+    t_target = (start + .1 + t) / 2
+    t, state = evol.mcstep(t_target)
+    assert (
+        state.to_array()[0, 0]
+        == pytest.approx(np.exp(t - start), abs=1e-5)
+    )
+
+
 @pytest.mark.parametrize('sizes', [(1, 100), (10, 10), (100, 0)],
                      ids=["large", "multiple subspaces", "diagonal"])
 def test_krylov(sizes):
@@ -134,9 +143,9 @@ def test_krylov(sizes):
     H = qutip.qeye(N)
     if M:
         H = H & (qutip.num(M) + qutip.create(M) + qutip.destroy(M))
-    H = qutip.QobjEvo(-1j * H)
-    integrator = IntegratorKrylov(H, {})
-    ref_integrator = IntegratorDiag(H, {})
+    solver = SESolver(qutip.QobjEvo(H), options={"method": "krylov"})
+    integrator = IntegratorKrylov(solver)
+    ref_integrator = IntegratorDiag(solver)
     psi = qutip.basis(100, 95).data
     integrator.set_state(0, psi)
     ref_integrator.set_state(0, psi)
@@ -153,12 +162,12 @@ def test_krylov(sizes):
 def test_concurent_usage(integrator):
     opt = {'atol':1e-10, 'rtol':1e-7}
 
-    sys1 = qutip.QobjEvo(0.5 * qutip.qeye(1))
-    inter1 = integrator(sys1, opt)
+    sys1 = Solver(qutip.QobjEvo(0.5*qutip.qeye(1)), options=opt)
+    inter1 = integrator(sys1)
     inter1.set_state(0, qutip.basis(1,0).data)
 
-    sys2 = qutip.QobjEvo(-0.5 * qutip.qeye(1))
-    inter2 = integrator(sys2, opt)
+    sys2 = Solver(qutip.QobjEvo(-0.5*qutip.qeye(1)), options=opt)
+    inter2 = integrator(sys2)
     inter2.set_state(0, qutip.basis(1,0).data)
 
     for t in np.linspace(0,1,6):
@@ -171,13 +180,11 @@ def test_concurent_usage(integrator):
     [IntegratorVern7, IntegratorVern9, IntegratorTsit5],
     ids=["vern7", 'vern9', 'tsit5']
 )
-def test_pickling_rk_methods(integrator):
-    """Test whether VernN and Tsitoura's methods can be pickled and"
-    " hence used in multiprocessing"""
-    opt = {'atol':1e-10, 'rtol':1e-7}
-
-    sys = qutip.QobjEvo(0.5 * qutip.qeye(1))
-    inter = integrator(sys, opt)
+def test_pickling_vern_methods(integrator):
+    """Test whether VernN methods can be pickled and hence used in multiprocessing"""
+    sys = qutip.QobjEvo(0.5*qutip.qeye(1))
+    system = Solver(sys, options={'atol':1e-10, 'rtol':1e-7})
+    inter = integrator(system)
     inter.set_state(0, qutip.basis(1,0).data)
 
     import pickle
@@ -198,11 +205,15 @@ def test_pickling_rk_methods(integrator):
 def test_rk_options(integrator):
     """Test whether VernN and Tsitoura's methods with no dense output."""
     opt = {
-        'atol':1e-10, 'rtol':1e-7, 'interpolate':False, 'first_step':0.5
+        'atol':1e-10,
+        'rtol':1e-7,
+        'interpolate':False,
+        'first_step':0.5,
+        'method': integrator.method,
     }
 
     sys = qutip.QobjEvo(qutip.qeye(1))
-    inter = integrator(sys, opt)
+    inter = integrator(Solver(sys, options=opt))
     inter.set_state(0, qutip.basis(1,0).data)
 
     for t in np.linspace(0, 1, 6):
