@@ -830,7 +830,7 @@ cdef class ConjCoefficient(Coefficient):
             self.base.replace_arguments(_args, **kwargs)
         )
 
-    def conj(self, other):
+    def conj(self):
         return self.base
 
     def __eq__(left, right):
