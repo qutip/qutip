@@ -226,21 +226,19 @@ def _steadystate_direct(A, weight, **kw):
         weight = np.mean(A_np[A_np > 0])
 
     # Add weight to the Liouvillian
-    # A[:, 0] = vectorized(eye * weight)
-    # We don't have a function to overwrite part of an array, so
+    # L[:, 0] = A[:, 0] + vectorized(eye * weight).T
+    # L[:, 1:] = A[:, 1:]
     N = A.shape[0]
     n = int(N**0.5)
     dtype = type(A.data)
     if dtype == _data.Dia:
-        # Dia is bad at vector, the following matmul is 10x slower with Dia
-        # than CSR and Dia is missing optimization such as `use_wbm`.
+        # Dia is bad at vector and missing optimization such as `use_wbm`.
         dtype = _data.CSR
     weight_vec = _data.column_stack(_data.diag([weight] * n, 0, dtype=dtype))
-    weight_mat = _data.matmul(
-        _data.one_element[dtype]((N, 1), (0, 0), 1),
-        weight_vec.transpose()
+    first_row = _data.block_extract(A.data, 0, 1, 0, N, dtype=dtype)
+    L = _data.block_overwrite(
+        A.data, _data.add(first_row, weight_vec.transpose()), 0, 0, dtype=dtype
     )
-    L = _data.add(weight_mat, A.data)
     b = _data.one_element[dtype]((N, 1), (0, 0), weight)
 
     # Permutation are part of scipy.sparse, thus only supported for CSR.
@@ -298,7 +296,7 @@ def _steadystate_svd(L, **kw):
 def _steadystate_expm(L, rho=None, propagator_tol=1e-5, propagator_T=10, **kw):
     if rho is None:
         from qutip import rand_dm
-        rho = rand_dm(L.dims[0][0])
+        rho = rand_dm(L._dims[0].oper[0])
     # Propagator at an arbitrary long time
     prop = (propagator_T * L).expm()
 
@@ -307,7 +305,7 @@ def _steadystate_expm(L, rho=None, propagator_tol=1e-5, propagator_T=10, **kw):
     while niter < max_iter:
         rho_next = prop(rho)
         rho_next = (rho_next + rho_next.dag()) / (2 * rho_next.tr())
-        if hilbert_dist(rho_next, rho) <= propagator_tol:
+        if np.real(hilbert_dist(rho_next, rho)) <= propagator_tol:
             return rho_next
         rho = rho_next
         prop = prop @ prop
@@ -538,7 +536,6 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     elif isinstance(L.data, _data.Dense) and method in sparse_solvers:
         L = L.to("csr")
 
-    N = np.prod(L.dims[0][0])
     dtype = type(L.data)
     rhoss_vec = operator_to_vector(rhoss)
 
@@ -582,7 +579,7 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         rev_perm = np.argsort(perm)
         R = _data.permute.indices(R, rev_perm, rev_perm)
 
-    return Qobj(R, dims=L.dims)
+    return Qobj(R, dims=L._dims)
 
 
 def _compute_precond(L, args):

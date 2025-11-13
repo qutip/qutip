@@ -166,3 +166,10 @@ def test_no_real_casting(monkeypatch):
     assert isinstance(qutip.expect(sz, sz), float)
     with qutip.CoreOptions(auto_real_casting=False):
         assert isinstance(qutip.expect(sz, sz), complex)
+
+
+def test_no_real_casting_multiple_states(monkeypatch):
+    sz = qutip.sigmaz() # the choice of the matrix does not matter
+    assert isinstance(qutip.expect(sz, [sz])[0], float)
+    with qutip.CoreOptions(auto_real_casting=False):
+        assert isinstance(qutip.expect(sz, [sz])[0], complex)

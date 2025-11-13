@@ -766,7 +766,8 @@ def parse(code, args, compile_opt):
         # If there is a subscript: a[b] int are always accepted to be safe
         # with TypeError.
         # Also comparison is not supported for complex.
-        accept_int = "SUBSCR" in dis.Bytecode(code).dis()
+        dis_code = dis.Bytecode(code).dis()
+        accept_int = "SUBSCR" in dis_code or "([])" in dis_code
     if accept_float is None:
         accept_float = "COMPARE_OP" in dis.Bytecode(code).dis()
     for word in code.split():

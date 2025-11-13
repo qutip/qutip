@@ -533,7 +533,7 @@ def _rmse(fun, xdata, ydata, params):
     if (yhat == ydata).all():
         return 0
     return (
-        np.sqrt(np.mean((yhat - ydata) ** 2) )
+        np.sqrt(np.mean(np.abs(yhat - ydata) ** 2))
         / (np.max(ydata) - np.min(ydata))
     )
 

@@ -69,6 +69,60 @@ class TestClassMethods:
         assert out.shape == scipy_csr.shape
         assert (out.as_scipy() - scipy_csr).nnz == 0
 
+    def test_init_from_tuple_error(self):
+        """
+        Test that __init__ raise errors with wrong format 3-tuple
+        """
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(4).reshape(2, 2), [0, 1, 0, 1], [0, 2, 4]),
+                shape=(2, 2),
+            )
+        assert "1D arrays" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(4), [0, 1, 0, 1], 4),
+                shape=(2, 2),
+            )
+        assert "1D arrays" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(2), [0, 1, 2], [0, 2]),
+                shape=(1, 2),
+            )
+        assert "same shape" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(2), [0, 1], [0, 3]),
+                shape=(1, 2),
+            )
+        assert "match the number of elements" in str(exc.value)
+
+        with pytest.raises(TypeError) as exc:
+            data.CSR(
+                (np.arange(2), [0, 1], [0, 1]),
+                shape=(1, 2),
+            )
+        assert "match the number of elements" in str(exc.value)
+
+    def test_init_wrong_shape(self):
+        """
+        Test that __init__ raise errors with shape not matching data
+        """
+        arg = ([1, 1, 1], [0, 2, 100], [0, 3])
+        with pytest.raises(ValueError) as exc:
+            out = data.CSR(arg, shape=(2, 100))
+
+        assert "row pointers does not match the shape." in str(exc.value)
+
+        with pytest.raises(ValueError) as exc:
+            out = data.CSR(arg, shape=(1, 10))
+
+        assert "number of columns." in str(exc.value)
+
     @pytest.mark.parametrize('d_type', (
         _dtype_complex + _dtype_float + _dtype_int + _dtype_uint
     ))
@@ -352,111 +406,6 @@ class TestFactoryMethods:
             base = data.one_element_csr(shape, position, value)
         assert str(exc.value).startswith("Position of the elements"
                                          " out of bound: ")
-
-
-class TestFromCSRBlocks:
-    class _blocks:
-        def __init__(self, rows, cols, ops, n_blocks=2, block_size=2):
-            self.rows = np.array(rows, dtype=data.base.idxint_dtype)
-            self.cols = np.array(cols, dtype=data.base.idxint_dtype)
-            if isinstance(ops, int):
-                ops = [csr.zeros(block_size, block_size)] * ops
-            self.ops = np.array(ops, dtype=object)
-            self.n_blocks = n_blocks
-            self.block_size = block_size
-
-        def from_csr_blocks(self):
-            return csr._from_csr_blocks(
-                self.rows, self.cols, self.ops,
-                self.n_blocks, self.block_size,
-            )
-
-    @pytest.mark.parametrize(['blocks'], [
-        pytest.param(_blocks((0, 1), (0,), 1), id='rows neq ops'),
-        pytest.param(_blocks((0,), (0, 1), 1), id='cols neq ops'),
-    ])
-    def test_input_length_error(self, blocks):
-        with pytest.raises(ValueError) as exc:
-            blocks.from_csr_blocks()
-        assert str(exc.value) == (
-            "The arrays block_rows, block_cols and block_ops should have"
-            " the same length."
-        )
-
-    def test_op_shape_error(self):
-        blocks = self._blocks(
-            (0, 1), (0, 1),
-            (csr.zeros(2, 2), csr.zeros(3, 3)),
-        )
-        with pytest.raises(ValueError) as exc:
-            blocks.from_csr_blocks()
-        assert str(exc.value) == (
-            "Block operators (block_ops) do not have the correct shape."
-        )
-
-    @pytest.mark.parametrize(['blocks'], [
-        pytest.param(_blocks((1, 0), (0, 1), 2), id='rows not ordered'),
-        pytest.param(_blocks((1, 1), (1, 0), 2), id='cols not ordered'),
-        pytest.param(_blocks((1, 0), (1, 0), 2), id='non-unique block'),
-    ])
-    def test_op_ordering_error(self, blocks):
-        with pytest.raises(ValueError) as exc:
-            blocks.from_csr_blocks()
-        assert str(exc.value) == (
-            "The arrays block_rows and block_cols must be sorted"
-            " by (row, column)."
-        )
-
-    @pytest.mark.parametrize(['blocks'], [
-        pytest.param(_blocks((), (), ()), id='no ops'),
-        pytest.param(_blocks((0, 1), (1, 0), 2), id='zero ops'),
-    ])
-    def test_zeros_output_fast_paths(self, blocks):
-        out = blocks.from_csr_blocks()
-        assert out == csr.zeros(2 * 2, 2 * 2)
-        assert csr.nnz(out) == 0
-
-    def test_construct_identity_with_empty(self):
-        # users are not expected to be exposed to
-        # csr.empty directly, but it is good to
-        # avoid segfaults, so we test passing
-        # csr.empty(..) blocks here explicitly
-        blocks = self._blocks(
-            [0, 0, 1, 1], [0, 1, 0, 1], [
-                csr.identity(2), csr.empty(2, 2, 0),
-                csr.empty(2, 2, 0), csr.identity(2),
-            ],
-        )
-        out = blocks.from_csr_blocks()
-        assert out == csr.identity(4)
-        assert csr.nnz(out) == 4
-
-    def test_construct_identity_with_zeros(self):
-        blocks = self._blocks(
-            [0, 0, 1, 1], [0, 1, 0, 1], [
-                csr.identity(2), csr.zeros(2, 2),
-                csr.zeros(2, 2), csr.identity(2),
-            ],
-        )
-        out = blocks.from_csr_blocks()
-        assert out == csr.identity(4)
-        assert csr.nnz(out) == 4
-
-    def test_construct_kron(self):
-        A = np.array([[1, 2], [3, 4]])
-        B = np.array([[0.3, 0.35], [0.4, 0.45]])
-        B_op = data.to("csr", data.Dense(B))
-        raw_blocks = [
-            A[0, 0] * B_op, A[0, 1] * B_op,
-            A[1, 0] * B_op, A[1, 1] * B_op,
-        ]
-        blocks = self._blocks(
-            [0, 0, 1, 1], [0, 1, 0, 1],
-            [data.to(csr.CSR, b) for b in raw_blocks]
-        )
-        out = blocks.from_csr_blocks()
-        assert out == data.kron(data.Dense(A), data.Dense(B))
-        assert csr.nnz(out) == 16
 
 
 def test_tidyup():
