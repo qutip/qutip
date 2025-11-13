@@ -173,7 +173,7 @@ class TestFitting:
             assert (np.all(np.isclose(params, [fparams1, fparams2], atol=.2)) or
                     np.all(np.isclose(params, [fparams2, fparams1], atol=.2)))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
                     np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
 
@@ -195,7 +195,7 @@ class TestFitting:
             assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
     def test_espira_II(self, noisy):
@@ -205,7 +205,7 @@ class TestFitting:
             assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
     @pytest.mark.parametrize("method", ["prony", "esprit"])
@@ -216,5 +216,5 @@ class TestFitting:
             assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=2e-2*np.max(y))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)

@@ -5,8 +5,13 @@ import scipy.fftpack
 
 from .steadystate import steadystate
 from ..core import liouvillian, spre, expect
+from ..core.data import kron_csr, identity
 from ..core import data as _data
 from qutip.settings import settings
+from .heom import HEOMSolver
+from ..core import Qobj, operator_to_vector, qeye
+from qutip.core.data import solve
+
 
 def spectrum(H, wlist, c_ops, a_op, b_op, solver="es"):
     r"""
@@ -44,8 +49,10 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es"):
     spectrum : array
         An array with spectrum :math:`S(\omega)` for the frequencies
         specified in `wlist`.
-
+    TODO: ask if it should be here, refactor to be compatible with existing method
     """
+    if isinstance(H, HEOMSolver):
+        return _heom_pi(wlist, H, c_ops, a_op, b_op)
     if not H.issuper:
         L = liouvillian(H, c_ops)
     else:
@@ -53,10 +60,57 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es"):
     if solver == "es":
         return _spectrum_es(L, wlist, a_op, b_op)
     elif solver in ["pi", "solve"]:
-        return _spectrum_pi(L, wlist, a_op, b_op, use_pinv=solver=="pi")
+        return _spectrum_pi(L, wlist, a_op, b_op, use_pinv=solver == "pi")
     raise ValueError(
         f"Unrecognized choice of solver {solver} (use 'es', 'pi' or 'solve')."
     )
+
+
+def _heom_pi(wlist, result, fullss, a_op, b_op, method="lgmres", options={"atol": 1e-6}):
+    r"""
+    Calculates $S_{S}^{(\pm)}(w)$
+    Returns $2 \Re(S_{S}^{(-)}(w)+\overline{C}_{S}^{(+)}(w)))$
+    """
+    ddagd = []
+    dddag = []
+    Is, I, d1dagss, d1ss, L, d1dag, d1, sup_dim = _prepare_matrices_heom(
+        result, a_op, b_op, fullss)
+    for w in wlist:
+        # Linear Problem for S_{S}^{(+)}
+        x = solve((L-1.0j*w*I), d1ss, method=method, options=options)
+        Cp1 = d1dag  @ x  # inner product on ADOS
+        # inner product on system
+        Cp = (Is.to_array() @ Cp1.to_array()[:sup_dim])
+        ddagd.append(Cp)
+        # Linear Problem for S_{S}^{(-)}
+        x = solve((1.0j*w*I+L),  d1dagss, method=method, options=options)
+        Cm1 = d1 @ x  # inner product on ADOS
+        # inner product on system
+        Cm = (Is.to_array() @ Cm1.to_array()[:sup_dim])
+        dddag.append(Cm)
+        # the notation is used different by 2pi
+    return -2*(np.array(ddagd).flatten()+np.array(dddag).flatten()).real
+
+
+def _prepare_matrices_heom(result, a_op, b_op, fullss):
+    """Prepares constant matrices to be used
+    at each w"""
+    L = result.rhs(0).data
+    sup_dim = result._sup_shape  # size of vectorized Liouvillian
+    ado_number = result._n_ados  # number of ADOS
+    rhoss = Qobj(fullss._ado_state.reshape((ado_number*sup_dim, 1))
+                 ).to("CSR").data  # flattened steady state
+    ado_identity = identity(ado_number)
+    # d1 in the system+ADO space
+    d1_big = kron_csr(ado_identity, spre(a_op).data)
+    d1ss = d1_big @ rhoss
+    # d1dag in the system+ADO space
+    d1dag_big = kron_csr(ado_identity, spre(b_op).data)
+    d1dagss = d1dag_big @  rhoss
+    # identity on system and Full space
+    Is = operator_to_vector(qeye(int(np.sqrt(sup_dim)))).dag().to("CSR").data
+    I = identity(ado_number*sup_dim)
+    return Is, I, d1dagss, d1ss, L, d1dag_big, d1_big, sup_dim
 
 
 def spectrum_correlation_fft(tlist, y, inverse=False):
