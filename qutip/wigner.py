@@ -1,6 +1,8 @@
 __all__ = [
     'wigner', 'qfunc', 'QFunc', 'spin_q_function', 'spin_wigner',
-    'wigner_transform',
+    'wigner_transform', 'wigner_2mode', 'qfunc_2mode', 'wigner_2mode_full',
+    'wigner_2mode_xx', 'wigner_2mode_xp', 'wigner_2mode_alpha', 'qfunc_2mode_full',
+    'qfunc_2mode_alpha',
 ]
 
 import numpy as np
@@ -8,6 +10,7 @@ import warnings
 from numpy import (
     zeros, array, arange, exp, real, conj, pi, copy, sqrt, meshgrid, cos, sin,
 )
+from functools import lru_cache
 import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la
@@ -18,14 +21,29 @@ try:
     from scipy.special import sph_harm_y
 except ImportError:
     from scipy.special import sph_harm
-
     def sph_harm_y(n, m, polar, azimuthal):
         # sph_harm is set for removal.
         # Same function, but changed parameter order
         return sph_harm(m, n, azimuthal, polar)
 
-import qutip
-from qutip import Qobj, ket2dm, jmat
+# Direct imports from core modules to avoid circular imports
+from .core.qobj import Qobj
+from .core.states import coherent
+from .core.operators import displace, jmat, qdiags
+from .core.tensor import tensor
+from qutip.core.expect import expect
+
+# Parity operator implementation (named 'parity' to match existing calls)
+def parity(N):
+    """Create a parity operator for N-dimensional Hilbert space.
+    The parity operator is P = sum_n (-1)^n |n><n|
+    """
+
+    # Create diagonal matrix with (-1)^n entries
+    data = (-1) ** np.arange(N)
+    return qdiags(data)
+
+import qutip.settings
 from .solver.parallel import parallel_map
 from .utilities import clebsch
 from .core import data as _data
@@ -1011,3 +1029,649 @@ def spin_wigner(rho, theta, phi):
             W += _rho_kq(rho, j, k, q) * sph_harm_y(k, q, THETA, PHI)
 
     return W.real, THETA, PHI
+
+# =============================================================================
+# TWO-MODE WIGNER AND Q-FUNCTIONS
+# =============================================================================
+# Two-mode Wigner and Q-function implementation with performance optimization
+# Author: @R_Cosmic (https://github.com/cosmic-quantum/)
+# Date: August-September 2025
+# COORDINATE CONVENTION FIX: Now uses standard QuTiP convention α = 0.5*g*(x+ip)
+# =============================================================================
+
+import warnings
+
+def _wigner_2mode_check_state(rho, normalize=True, hermiticity_tol=1e-10, 
+                              strict_checks=True):
+    """
+    Validate two-mode density matrix input with graceful normalization.
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Input quantum state (ket, bra, or density matrix).
+    normalize : bool, default: True
+        Whether to automatically normalize non-normalized density matrices.
+    hermiticity_tol : float, default: 1e-10
+        Tolerance for hermiticity check.
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
+        Set to False to allow advanced/unphysical calculations.
+        
+    Returns
+    -------
+    rho : Qobj
+        Validated and possibly normalized density matrix.
+    N1, N2 : int
+        Hilbert space dimensions for each mode.
+        
+    Notes
+    -----
+    Automatically converts kets and bras to density matrices, following
+    the same pattern as the standard QuTiP wigner function.
+    """
+    if not isinstance(rho, Qobj):
+        raise TypeError(f"rho must be a Qobj, got {type(rho)}")
+    
+    # Convert kets and bras to density matrices automatically (like standard wigner function)
+    if rho.isket or rho.isbra:
+        rho = rho.proj()  # |ψ⟩ becomes |ψ⟩⟨ψ|
+    
+    if not rho.isoper:
+        raise ValueError("rho must be an operator (density matrix)")
+    
+    if rho.dims[0] != rho.dims[1]:
+        raise ValueError(f"rho must have square dims, got {rho.dims}")
+    
+    # Must have exactly two modes (this is fundamental)
+    if len(rho.dims[0]) != 2:
+        raise ValueError(f"rho must be a two-mode tensor operator, got dims {rho.dims}")
+
+    N1, N2 = rho.dims[0]
+    
+    # Flexible validation based on strict_checks parameter
+    if strict_checks:
+        # Strict hermiticity check
+        hermiticity_error = (rho - rho.dag()).norm()
+        if hermiticity_error > hermiticity_tol:
+            raise ValueError(f"rho must be Hermitian within tolerance (error: {hermiticity_error:.2e})")
+        
+        # Strict trace check
+        tr = real(rho.tr())
+        if not np.isfinite(tr) or tr <= 0:
+            raise ValueError("rho trace must be positive and finite")
+        
+        if abs(tr - 1.0) > 1e-9:
+            if normalize:
+                rho = rho / tr
+            else:
+                raise ValueError(f"rho is not normalized (trace = {tr:.6f}). Set normalize=True to auto-fix.")
+    else:
+        # Relaxed checks for advanced/unphysical calculations
+        # Just warn about potential issues but allow computation
+        hermiticity_error = (rho - rho.dag()).norm()
+        if hermiticity_error > hermiticity_tol:
+            warnings.warn(f"rho hermiticity error: {hermiticity_error:.2e}")
+        
+        # Flexible trace handling
+        tr = real(rho.tr())
+        if normalize and tr != 0:
+            rho = rho / tr
+
+    return rho, N1, N2
+
+
+def _wigner_2mode_check_coordinates(coords, name):
+    """Validate coordinate arrays."""
+    if coords is None or np.isscalar(coords):
+        raise TypeError(f"{name} must be a 1D array-like, got {repr(coords)}")
+    arr = array(coords, dtype=np.float64)
+    if arr.ndim != 1:
+        raise ValueError(f"{name} must be 1D, got shape {arr.shape}")
+    return arr
+
+
+def _wigner_2mode_parity(N1, N2):
+    """Create two-mode parity operator."""
+    return tensor(parity(N1), parity(N2))
+
+
+# Cache for Laguerre polynomials to improve performance for large N
+@lru_cache(maxsize=256)
+def _cached_genlaguerre(k, d):
+    """Cache Laguerre polynomials for performance in repeated calls."""
+    return genlaguerre(k, d)
+
+
+def _compute_fock_wigner_vectorized(m1, n1, m2, n2, alpha1, alpha2, log_fact):
+    """
+    Vectorized analytical Wigner for |m1,m2⟩⟨n1,n2| over coordinate grids.
+    Uses cached Laguerre polynomials for improved performance.
+    
+    Note: Laguerre polynomial arguments use 4*|α|² scaling factor as identified 
+    by Neill Lambert to ensure correct coherent state behavior and integration.
+    """
+    # Precompute |alpha|^2
+    abs_a1_sq = np.abs(alpha1) ** 2
+    abs_a2_sq = np.abs(alpha2) ** 2
+
+    # Mode 1 contribution
+    if m1 == n1:
+        W1 = ((-1) ** m1) * _cached_genlaguerre(m1, 0)(4 * abs_a1_sq)
+    else:
+        k = min(m1, n1)
+        d = abs(m1 - n1)
+        Lvals = _cached_genlaguerre(k, d)(4 * abs_a1_sq)
+
+        # Factorial ratio sqrt(min!/max!) computed via log-factorials
+        if m1 > n1:
+            log_norm = 0.5 * (log_fact[n1] - log_fact[m1])
+            norm = np.exp(log_norm)
+            phase = (2 * alpha1) ** (m1 - n1)
+        else:
+            log_norm = 0.5 * (log_fact[m1] - log_fact[n1])
+            norm = np.exp(log_norm)
+            phase = (2 * conj(alpha1)) ** (n1 - m1)
+
+        W1 = ((-1) ** k) * norm * Lvals * phase
+
+    # Mode 2 contribution
+    if m2 == n2:
+        W2 = ((-1) ** m2) * _cached_genlaguerre(m2, 0)(4 * abs_a2_sq)
+    else:
+        k = min(m2, n2)
+        d = abs(m2 - n2)
+        Lvals = _cached_genlaguerre(k, d)(4 * abs_a2_sq)
+
+        if m2 > n2:
+            log_norm = 0.5 * (log_fact[n2] - log_fact[m2])
+            norm = np.exp(log_norm)
+            phase = (2 * alpha2) ** (m2 - n2)
+        else:
+            log_norm = 0.5 * (log_fact[m2] - log_fact[n2])
+            norm = np.exp(log_norm)
+            phase = (2 * conj(alpha2)) ** (n2 - m2)
+
+        W2 = ((-1) ** k) * norm * Lvals * phase
+
+    # Combine with proper normalization - FIXED: was 4.0, now 1.0
+    pref = 1.0 / (pi ** 2)
+    return pref * W1 * W2 * exp(-2 * abs_a1_sq - 2 * abs_a2_sq)
+
+
+def _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g=sqrt(2), normalize=True, strict_checks=True):
+    """
+    Optimized two-mode Wigner function using analytical Fock formulas.
+    Avoids expensive displacement operators.
+    """
+    rho, N1, N2 = _wigner_2mode_check_state(rho, normalize=normalize, strict_checks=strict_checks)
+    
+    # Sanity check for empty grids
+    if not (len(x1) and len(p1) and len(x2) and len(p2)):
+        return zeros((len(x1), len(p1), len(x2), len(p2)), dtype=float)
+
+    # Create coordinate grids using STANDARD QuTiP convention: α = 0.5*g*(x + ip)
+    X1, P1, X2, P2 = meshgrid(x1, p1, x2, p2, indexing='ij')
+    alpha1 = 0.5 * g * (X1 + 1j * P1)  # FIXED: Now matches QuTiP convention
+    alpha2 = 0.5 * g * (X2 + 1j * P2)  # FIXED: Now matches QuTiP convention
+
+    out = zeros(X1.shape, dtype=float)
+
+    # Precompute log-factorials with correct range
+    max_n = max(N1, N2)
+    log_fact = array([scipy.special.gammaln(i + 1) for i in range(max_n + 1)], dtype=float)
+
+    # Better sparse/dense rho.data handling
+    try:
+        rho_coo = rho.data.tocoo()
+        rows, cols, data = rho_coo.row, rho_coo.col, rho_coo.data
+    except AttributeError:
+        # Fallback for dense or different data types
+        dense = array(rho.full(), dtype=complex)
+        rows, cols = np.nonzero(dense)
+        data = dense[rows, cols]
+
+    # Iterate only over nonzero elements
+    for row, col, rho_val in zip(rows, cols, data):
+        if abs(rho_val) < 1e-15:
+            continue
+
+        # Map linear index to (m1,m2) and (n1,n2)
+        m1, m2 = divmod(int(row), N2)
+        n1, n2 = divmod(int(col), N2)
+
+        # Compute analytical Wigner function for this Fock element
+        W_mn = _compute_fock_wigner_vectorized(m1, n1, m2, n2, alpha1, alpha2, log_fact)
+
+        # Accumulate contribution using real for cleaner casting
+        out += real(rho_val * W_mn)
+
+    return out
+
+
+def _wigner_2mode_full_displacement(rho, x1, p1, x2, p2, g=sqrt(2), chunk_sizes=(16, 16), 
+                                   normalize=True, strict_checks=True):
+    """
+    Displacement-based implementation using existing QuTiP displacement operators.
+    
+    Notes
+    -----
+    Uses the existing displace() function from QuTiP core for consistency.
+    The displacement method is intended for correctness checks and small Hilbert spaces.
+    """
+    rho, N1, N2 = _wigner_2mode_check_state(rho, normalize=normalize, strict_checks=strict_checks)
+    x1 = _wigner_2mode_check_coordinates(x1, "x1")
+    p1 = _wigner_2mode_check_coordinates(p1, "p1")
+    x2 = _wigner_2mode_check_coordinates(x2, "x2")
+    p2 = _wigner_2mode_check_coordinates(p2, "p2")
+
+    # Use existing QuTiP parity and displacement operators
+    Pi = _wigner_2mode_parity(N1, N2)
+    out = zeros((len(x1), len(p1), len(x2), len(p2)), dtype=float)
+
+    # Pre-compute displacement operators using STANDARD QuTiP convention
+    D2_cache = {}
+    for k, x2_val in enumerate(x2):
+        for l, p2_val in enumerate(p2):
+            alpha2 = 0.5 * g * (x2_val + 1j * p2_val)  # FIXED: Now matches QuTiP convention
+            D2_cache[(k, l)] = displace(N2, alpha2)
+
+    cx, cp = chunk_sizes
+    for i0 in range(0, len(x1), cx):
+        i1 = min(i0 + cx, len(x1))
+        for j0 in range(0, len(p1), cp):
+            j1 = min(j0 + cp, len(p1))
+
+            # Cache D1 for current chunk using existing displace function
+            D1_cache = {}
+            for i in range(i0, i1):
+                for j in range(j0, j1):
+                    alpha1 = 0.5 * g * (x1[i] + 1j * p1[j])  # FIXED: Now matches QuTiP convention
+                    D1_cache[(i, j)] = displace(N1, alpha1)
+
+            # Compute Wigner elements for this chunk
+            for i in range(i0, i1):
+                for j in range(j0, j1):
+                    D1 = D1_cache[(i, j)]
+                    for k in range(len(x2)):
+                        for l in range(len(p2)):
+                            D2 = D2_cache[(k, l)]
+                            D = tensor(D1, D2)
+                            # FIXED: was 4.0, now 1.0
+                            val = (1.0 / pi**2) * (rho * D * Pi * D.dag()).tr()
+                            out[i, j, k, l] = real(val)
+
+    return out
+
+
+def wigner_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), method='optimized', 
+                      chunk_sizes=(16, 16), normalize=True, strict_checks=True):
+    r"""
+    Full 4D two-mode Wigner function W(x1,p1,x2,p2) with performance optimization.
+
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density operator with dims [[N1, N2], [N1, N2]].
+        Also accepts kets and bras, which are automatically converted to density matrices.
+    x1, p1, x2, p2 : array_like
+        Quadrature coordinate arrays for each mode (1D arrays).
+    g : float, default: sqrt(2)
+        Scaling factor where α = 0.5*g*(x + ip) and ħ = 2/g².
+        Now uses standard QuTiP convention.
+    method : str, default: 'optimized'
+        Computation method: 'optimized' (analytical) or 'displacement' (original).
+    chunk_sizes : tuple, default: (16, 16)
+        Chunk sizes for displacement method (ignored for optimized method).
+    normalize : bool, default: True
+        Whether to automatically normalize non-normalized density matrices.
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
+        Set to False to allow advanced/unphysical calculations.
+
+    Returns
+    -------
+    ndarray
+        Real array with shape (len(x1), len(p1), len(x2), len(p2)).
+        
+    Notes
+    -----
+    **COORDINATE CONVENTION**: Now uses standard QuTiP convention α = 0.5*g*(x + ip)
+    to ensure consistency with existing QuTiP wigner function.
+    
+    **PLOTTING CONVENTION**: This function uses indexing='ij' for coordinate grids.
+    When plotting 2D slices or integrated results with matplotlib functions 
+    (imshow, contour, etc.), you may need to transpose arrays:
+    
+    .. code-block:: python
+    
+        W_slice = wigner_2mode_xp(rho, x_range, p_range)
+        plt.imshow(W_slice.T, ...)  # Note the .T for correct orientation
+        
+        # Or when integrating over modes:
+        W_integrated = integrate_over_mode2(W_4d)
+        plt.contour(x_grid, p_grid, W_integrated.T)  # Transpose needed
+    
+    This is due to the difference between QuTiP's indexing='ij' convention 
+    and matplotlib's default 'xy' expectation. This is expected behavior.
+    
+    **Performance**: The optimized method uses analytical Fock state formulas with 
+    Laguerre polynomials, avoiding expensive displacement operators. This provides 
+    orders of magnitude speedup for sparse density matrices and large Hilbert spaces.
+    
+    **Type Handling**: Like the standard QuTiP wigner function, this automatically
+    converts kets and bras to density matrices via the projector |ψ⟩⟨ψ|.
+    
+    The displacement method uses existing QuTiP operators:
+    
+    .. math::
+        W(x_1,p_1,x_2,p_2) = \\frac{1}{\\pi^2} \\text{Tr}\\left[\\rho D_1(\\alpha_1) D_2(\\alpha_2) 
+        \\Pi D_2^{\\dagger}(\\alpha_2) D_1^{\\dagger}(\\alpha_1)\\right]
+    
+    where :math:`\\alpha_i = 0.5*g*(x_i + ip_i)` and :math:`\\Pi` is the two-mode parity operator.
+    
+    References
+    ----------
+    .. [1] Cahill, K. E., & Glauber, R. J. (1969). Density operators and 
+           quasiprobability distributions. Physical Review, 177(5), 1882.
+           https://doi.org/10.1103/PhysRev.177.1882
+    
+    .. [2] Leonhardt, U. (1997). Measuring the quantum state of light. 
+           Cambridge University Press.
+    
+    .. [3] Schleich, W. P. (2001). Quantum optics in phase space. 
+           Wiley-VCH. Chapter 3.
+    """
+    if method == 'optimized':
+        return _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g, normalize, strict_checks)
+    elif method == 'displacement':
+        return _wigner_2mode_full_displacement(rho, x1, p1, x2, p2, g, chunk_sizes, normalize, strict_checks)
+    else:
+        raise ValueError("method must be 'optimized' or 'displacement'")
+
+
+def wigner_2mode_xx(rho, x1, x2, p1=0.0, p2=0.0, g=sqrt(2), strict_checks=True):
+    """
+    2D slice W(x1, x2) with p1, p2 fixed.
+    """
+    x1 = _wigner_2mode_check_coordinates(x1, "x1")
+    x2 = _wigner_2mode_check_coordinates(x2, "x2")
+    W = wigner_2mode_full(rho, x1, [p1], x2, [p2], g=g, strict_checks=strict_checks)
+    return W[:, 0, :, 0]
+
+
+def wigner_2mode_xp(rho, x1, p1, x2=0.0, p2=0.0, g=sqrt(2), strict_checks=True):
+    r"""
+    Two-mode Wigner function slice W(x1, p1) with mode 2 coordinates fixed.
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density operator with dims [[N1, N2], [N1, N2]].
+        Also accepts kets and bras, which are automatically converted to density matrices.
+    x1, p1 : array_like
+        Position and momentum coordinate arrays for mode 1.
+    x2, p2 : float, default: 0.0
+        Fixed position and momentum coordinates for mode 2.
+    g : float, default: sqrt(2)
+        Scaling factor where α = 0.5*g*(x + ip).
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
+        
+    Returns
+    -------
+    ndarray
+        2D array with shape (len(x1), len(p1)) representing W(x1, p1).
+        
+    Notes
+    -----
+    Computes the phase-space slice of mode 1 from the two-mode Wigner function:
+    
+    .. math::
+        W(x_1, p_1) = W(x_1, p_1, x_2=0, p_2=0)
+        
+    This slice shows the phase-space distribution of mode 1 when mode 2 
+    is at the origin of phase space.
+    """
+    x1 = _wigner_2mode_check_coordinates(x1, "x1")
+    p1 = _wigner_2mode_check_coordinates(p1, "p1")
+    W = wigner_2mode_full(rho, x1, p1, [x2], [p2], g=g, strict_checks=strict_checks)
+    return W[:, :, 0, 0]
+
+
+def wigner_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2), method='optimized', strict_checks=True):
+    r"""
+    Wigner function on complex phase-space grid W(α1, α2).
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density operator. Also accepts kets and bras.
+    alpha1, alpha2 : array_like
+        Complex coherent amplitude arrays.
+    g : float, default: sqrt(2)
+        Scaling factor. Now consistently uses QuTiP convention α = 0.5*g*(x + ip).
+    method : str, default: 'optimized'
+        Computation method.
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
+        
+    Notes
+    -----
+    **COORDINATE CONVENTION FIX**: Both methods now use consistent coordinate mapping:
+    α = 0.5*g*(x + ip), so x = 2*Re(α)/g and p = 2*Im(α)/g
+    
+    This eliminates the 90° rotation issue identified by Neill.
+    """
+    if method == 'displacement':
+        # Displacement method: use α with standard QuTiP scaling
+        rho, N1, N2 = _wigner_2mode_check_state(rho, strict_checks=strict_checks)
+        alpha1 = array(alpha1, dtype=np.complex128)
+        alpha2 = array(alpha2, dtype=np.complex128)
+        if alpha1.ndim != 1 or alpha2.ndim != 1:
+            raise ValueError("alpha1 and alpha2 must be 1D arrays")
+
+        Pi = _wigner_2mode_parity(N1, N2)
+        # FIXED: Use α directly with existing QuTiP displace function (consistent scaling)
+        D1_list = [displace(N1, complex(a)) for a in alpha1]
+        D2_list = [displace(N2, complex(b)) for b in alpha2]
+
+        out = zeros((len(alpha1), len(alpha2)), dtype=float)
+        for i, D1 in enumerate(D1_list):
+            for j, D2 in enumerate(D2_list):
+                D = tensor(D1, D2)
+                # FIXED: was 4.0, now 1.0
+                val = (1.0 / pi**2) * (rho * D * Pi * D.dag()).tr()
+                out[i, j] = real(val)
+        return out
+    else:
+        # FIXED: Optimized method now uses consistent coordinate conversion
+        # α = 0.5*g*(x + ip) → x = 2*Re(α)/g, p = 2*Im(α)/g
+        x1 = 2.0 * np.real(alpha1) / g
+        p1 = 2.0 * np.imag(alpha1) / g
+        x2 = 2.0 * np.real(alpha2) / g
+        p2 = 2.0 * np.imag(alpha2) / g
+        return _wigner_2mode_full_optimized(rho, x1, p1, x2, p2, g=g, strict_checks=strict_checks)
+
+
+def qfunc_2mode_full(rho, x1, p1, x2, p2, g=sqrt(2), strict_checks=True):
+    r"""
+    Full 4D two-mode Q-function Q(x1,p1,x2,p2).
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density operator with dims [[N1, N2], [N1, N2]].
+        Also accepts kets and bras, which are automatically converted to density matrices.
+    x1, p1, x2, p2 : array_like
+        Quadrature coordinate arrays for each mode (1D arrays).
+    g : float, default: sqrt(2)
+        Scaling factor where α = 0.5*g*(x + ip).
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
+        
+    Returns
+    -------
+    ndarray
+        Real array with shape (len(x1), len(p1), len(x2), len(p2)).
+    
+    Notes
+    -----
+    Computes the two-mode Q-function:
+    
+    .. math::
+        Q(\\alpha_1, \\alpha_2) = \\frac{1}{\\pi^2}\\left\\langle\\alpha_1,\\alpha_2|\\rho|\\alpha_1,\\alpha_2\\right\\rangle
+    
+    where :math:`|\\alpha_1,\\alpha_2\\rangle = |\\alpha_1\\rangle \\otimes |\\alpha_2\\rangle`.
+    """
+    rho, N1, N2 = _wigner_2mode_check_state(rho, strict_checks=strict_checks)
+    x1 = _wigner_2mode_check_coordinates(x1, "x1")
+    p1 = _wigner_2mode_check_coordinates(p1, "p1")
+    x2 = _wigner_2mode_check_coordinates(x2, "x2")
+    p2 = _wigner_2mode_check_coordinates(p2, "p2")
+
+    out = zeros((len(x1), len(p1), len(x2), len(p2)), dtype=float)
+    inv_pi2 = 1.0 / pi**2
+
+    # Cache coherent states using STANDARD QuTiP convention
+    ket1_cache = {}
+    for i, x1_val in enumerate(x1):
+        for j, p1_val in enumerate(p1):
+            alpha1 = 0.5 * g * (x1_val + 1j * p1_val)  # FIXED: Now matches QuTiP convention
+            ket1_cache[(i, j)] = coherent(N1, alpha1)
+
+    ket2_cache = {}
+    for k, x2_val in enumerate(x2):
+        for l, p2_val in enumerate(p2):
+            alpha2 = 0.5 * g * (x2_val + 1j * p2_val)  # FIXED: Now matches QuTiP convention
+            ket2_cache[(k, l)] = coherent(N2, alpha2)
+
+    for i in range(len(x1)):
+        for j in range(len(p1)):
+            psi1 = ket1_cache[(i, j)]
+            for k in range(len(x2)):
+                for l in range(len(p2)):
+                    psi2 = ket2_cache[(k, l)]
+                    psi = tensor(psi1, psi2)
+                    result = psi.dag() * rho * psi
+                    val = result.tr() if hasattr(result, 'tr') else result
+                    out[i, j, k, l] = real(val) * inv_pi2
+
+    return out
+
+
+def qfunc_2mode_alpha(rho, alpha1, alpha2, g=sqrt(2), strict_checks=True):
+    """
+    Q-function on complex phase-space grid Q(α1, α2).
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density operator. Also accepts kets and bras.
+    alpha1, alpha2 : array_like
+        Complex coherent amplitude arrays.
+    g : float, default: sqrt(2)
+        Scaling factor. Coherent amplitudes are used directly for coherent states.
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
+        
+    Notes
+    -----
+    FIXED: Now uses α directly for coherent states to maintain consistency
+    with displacement operators and standard QuTiP usage.
+    """
+    rho, N1, N2 = _wigner_2mode_check_state(rho, strict_checks=strict_checks)
+    alpha1 = array(alpha1, dtype=np.complex128)
+    alpha2 = array(alpha2, dtype=np.complex128)
+    if alpha1.ndim != 1 or alpha2.ndim != 1:
+        raise ValueError("alpha1 and alpha2 must be 1D arrays")
+
+    # FIXED: Use α directly for coherent states (consistent with displacement method)
+    kets1 = [coherent(N1, complex(a)) for a in alpha1]
+    kets2 = [coherent(N2, complex(b)) for b in alpha2]
+
+    out = zeros((len(alpha1), len(alpha2)), dtype=float)
+    inv_pi2 = 1.0 / pi**2
+
+    for i, psi1 in enumerate(kets1):
+        for j, psi2 in enumerate(kets2):
+            psi = tensor(psi1, psi2)
+            val = expect(rho, psi)
+            out[i, j] = real(val) * inv_pi2
+    return out
+
+
+def wigner_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx", strict_checks=True):
+    r"""
+    Two-mode Wigner function with flexible coordinate interpretation.
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density matrix with dims [[N1, N2], [N1, N2]].
+        Also accepts kets and bras, which are automatically converted to density matrices.
+    xvec, yvec : array_like
+        Coordinate arrays for the two modes.
+    g : float, default: sqrt(2)
+        Scaling factor where α = 0.5*g*(x + ip) and ħ = 2/g².
+    interpretation : str, default: "xx"
+        Coordinate interpretation:
+        
+        - "xx": W(x1, x2) with p1=p2=0
+        - "xp": W(x1, p1) with x2=p2=0  
+        - "alpha": W(Re(α1), Re(α2)) with Im(α1)=Im(α2)=0
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
+        
+    Returns
+    -------
+    ndarray
+        Two-mode Wigner function values with shape (len(xvec), len(yvec)).
+    """
+    if interpretation == "xx":
+        return wigner_2mode_xx(rho, xvec, yvec, p1=0.0, p2=0.0, g=g, strict_checks=strict_checks)
+    elif interpretation == "xp":
+        return wigner_2mode_xp(rho, xvec, yvec, x2=0.0, p2=0.0, g=g, strict_checks=strict_checks)
+    elif interpretation == "alpha":
+        a1 = array(xvec, dtype=float) + 0j
+        a2 = array(yvec, dtype=float) + 0j
+        return wigner_2mode_alpha(rho, a1, a2, g=g, strict_checks=strict_checks)
+    else:
+        raise ValueError("interpretation must be one of {'xx','xp','alpha'}")
+
+
+def qfunc_2mode(rho, xvec, yvec, g=sqrt(2), interpretation="xx", strict_checks=True):
+    r"""
+    Two-mode Q-function with flexible coordinate interpretation.
+    
+    Parameters
+    ----------
+    rho : Qobj
+        Two-mode density matrix with dims [[N1, N2], [N1, N2]].
+        Also accepts kets and bras, which are automatically converted to density matrices.
+    xvec, yvec : array_like
+        Coordinate arrays for the two modes.
+    g : float, default: sqrt(2)
+        Scaling factor where α = 0.5*g*(x + ip).
+    interpretation : str, default: "xx"
+        Coordinate interpretation (same options as wigner_2mode).
+    strict_checks : bool, default: True
+        Whether to enforce strict hermiticity and normalization checks.
+        
+    Returns
+    -------
+    ndarray
+        Two-mode Q-function values with shape (len(xvec), len(yvec)).
+    """
+    if interpretation == "xx":
+        Q = qfunc_2mode_full(rho, xvec, [0.0], yvec, [0.0], g=g, strict_checks=strict_checks)
+        return Q[:, 0, :, 0]
+    elif interpretation == "xp":
+        Q = qfunc_2mode_full(rho, xvec, yvec, [0.0], [0.0], g=g, strict_checks=strict_checks)
+        return Q[:, :, 0, 0]
+    elif interpretation == "alpha":
+        a1 = array(xvec, dtype=float) + 0j
+        a2 = array(yvec, dtype=float) + 0j
+        return qfunc_2mode_alpha(rho, a1, a2, g=g, strict_checks=strict_checks)
+    else:
+        raise ValueError("interpretation must be one of {'xx','xp','alpha'}")
