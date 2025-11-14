@@ -21,7 +21,7 @@ from . import data as _data
 from .qobj import Qobj
 from .operators import jmat, displace, qdiags
 from .tensor import tensor
-from .dimensions import Space
+from .dimensions import Space, _homtuple
 from .. import settings
 from ..typing import SpaceLike, LayerType
 
@@ -58,7 +58,7 @@ def _to_space(dimensions):
     """
     if isinstance(dimensions, Space):
         return dimensions
-    elif isinstance(dimensions, list):
+    elif isinstance(dimensions, (list, tuple, _homtuple)):
         return Space(dimensions)
     else:
         return Space([dimensions])
@@ -144,7 +144,9 @@ def basis(
             offset = [offset]
         if not isinstance(n, list):
             n = [n]
-        if len(n) != len(dimensions.as_list()) or len(offset) != len(n):
+        if dimensions._pure_dims and (
+            len(n) != len(dimensions.as_list()) or len(offset) != len(n)
+        ):
             raise ValueError("All list inputs must be the same length.")
 
         n_off = [m-off for m, off in zip(n, offset)]
@@ -156,7 +158,7 @@ def basis(
     else:
         if not isinstance(n, list):
             n = [n]
-        if len(n) != len(dimensions.as_list()):
+        if dimensions._pure_dims and len(n) != len(dimensions.as_list()):
             raise ValueError("All list inputs must be the same length.")
         try:
             location = dimensions.dims2idx(n)
