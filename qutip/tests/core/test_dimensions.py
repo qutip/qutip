@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import numbers
 import pytest
 import collections
 import numpy as np
@@ -8,7 +9,7 @@ from qutip.core.dimensions import (
     flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
     einsum, to_tensor_rep, from_tensor_rep,
-    Dimensions, Field, Space, SumSpace, SuperSpace
+    Dimensions, Field, Space, SumSpace, SuperSpace, _homtuple
 )
 from qutip.core.energy_restricted import EnrSpace
 
@@ -270,17 +271,64 @@ class TestSumSpace:
     def test_drop_scalar_dims(self, space, expected):
         assert space.drop_scalar_dims() == expected
 
-    def test_validation(self):
-        with pytest.raises(ValueError, match="at least one space"):
-            SumSpace()
+    @pytest.mark.parametrize(
+            "space_container", ["list", "tuple", "homtuple", "varargs"])
+    @pytest.mark.parametrize(
+            "space_type", ["none", "one-sum", "one-other", "hom", "inhom"])
+    @pytest.mark.parametrize(
+            "repeat", [None, 1, 3, 0, -1, 3.14])
+    def test_construct(self, space_container, space_type, repeat):
+        if space_container == "homtuple" and space_type == "inhom":
+            return
 
-        with pytest.raises(ValueError, match="at least one space"):
-            SumSpace(Space(3), repeat=0)
+        if space_type == "none":
+            spaces = []
+        elif space_type == "one-sum":
+            spaces = [SumSpace(Space(2), Space(3))]
+        elif space_type == "one-other":
+            spaces = [Space(3)]
+        elif space_type == "hom":
+            spaces = [Space(3), Space(3)]
+        elif space_type == "inhom":
+            spaces = [Space(3), Space(4)]
 
-        with pytest.raises(ValueError):
-            SumSpace(Space(3), Space(4), repeat=2)
+        if space_container == "tuple":
+            spaces = tuple(spaces)
+        elif space_container == "homtuple":
+            spaces = _homtuple(
+                None if len(spaces) == 0 else spaces[0], len(spaces))
+        args = spaces if space_container == "varargs" else [spaces]
 
-        with pytest.raises(ValueError, match="Cannot mix super and regular spaces"):
+        if repeat is not None and (
+            repeat < 0 or not isinstance(repeat, numbers.Integral)
+        ):
+            with pytest.raises(ValueError, match="must be a positive integer"):
+                SumSpace(*args, repeat=repeat)
+            return
+        if repeat is not None and repeat != 1 and len(spaces) != 1:
+            with pytest.raises(ValueError, match="Invalid arguments"):
+                SumSpace(*args, repeat=repeat)
+            return
+        if space_type == "none" or repeat is not None and repeat <= 0:
+            with pytest.raises(ValueError, match="at least one space"):
+                SumSpace(*args, repeat=repeat)
+            return
+
+        sum_space = SumSpace(*args, repeat=repeat)
+        if repeat is None:
+            repeat = 1
+        if space_type == "one-other" and repeat == 1:
+            assert sum_space == spaces[0]
+            return
+        assert len(sum_space.spaces) == len(spaces) * repeat
+        assert all(
+            sum_space.spaces[i] == space
+            for i, space in enumerate(list(spaces) * repeat)
+        )
+
+    def test_super_validation(self):
+        with pytest.raises(ValueError,
+                           match="Cannot mix super and regular spaces"):
             SumSpace(
                 Space(3),
                 Space([[3], [2]])

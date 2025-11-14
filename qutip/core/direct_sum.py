@@ -252,7 +252,7 @@ def direct_sum(qobjs, dtype=None):
         if space is None:
             raise ValueError(f"Direct sum: empty column {col}.")
 
-    sum_dimension = Dimensions(SumSpace(*from_spaces), SumSpace(*to_spaces))
+    sum_dimension = Dimensions(SumSpace(from_spaces), SumSpace(to_spaces))
 
     # Step 3: create direct sum
 
