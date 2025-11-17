@@ -12,7 +12,7 @@ import warnings
 
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
 from ..typing import QobjEvoLike, EopsLike
-from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
+from .multitraj import MultiTrajSolver, _InitialConditions
 from .solver_base import (
     Solver, Integrator, _solver_deprecation, _kwargs_migration
 )
@@ -205,46 +205,19 @@ def mcsolve(
     return result
 
 
-class _MCRHS(_MultiTrajRHS):
-    """
-    Container for the operators of the solver.
-    """
-
-    def __init__(self, H, c_ops, n_ops):
-        self.rhs = H
-        self.c_ops = c_ops
-        self.n_ops = n_ops
-
-    def __call__(self):
-        return self.rhs
-
-    def arguments(self, args):
-        self.rhs.arguments(args)
-        for c_op in self.c_ops:
-            c_op.arguments(args)
-        for n_op in self.n_ops:
-            n_op.arguments(args)
-
-    def _register_feedback(self, key, val):
-        self.rhs._register_feedback({key: val}, solver="McSolver")
-        for c_op in self.c_ops:
-            c_op._register_feedback({key: val}, solver="McSolver")
-        for n_op in self.n_ops:
-            n_op._register_feedback({key: val}, solver="McSolver")
-
-
 class MCIntegrator:
     """
     Integrator like object for mcsolve trajectory.
     """
     name = "mcsolve"
 
-    def __init__(self, integrator, system, options=None):
+    def __init__(self, integrator, solver):
         self._integrator = integrator
-        self.system = system
-        self._c_ops = system.c_ops
-        self._n_ops = system.n_ops
-        self.options = options
+        rhs, c_ops, n_ops = solver._sys
+        self.system = rhs
+        self._c_ops = c_ops
+        self._n_ops = n_ops
+        self.options = solver.options
         self._generator = None
         self.method = f"{self.name} {self._integrator.method}"
         self._is_set = False
@@ -276,7 +249,13 @@ class MCIntegrator:
             a trajectory with jumps
         """
         self.collapses = []
-        self.system._register_feedback("CollapseFeedback", self.collapses)
+        self.system._register_feedback(
+            {"CollapseFeedback": self.collapses}, solver="McSolver"
+        )
+        for op in self._c_ops + self._n_ops:
+            op._register_feedback(
+                {"CollapseFeedback": self.collapses}, solver="McSolver"
+            )
         self._generator = generator
         if no_jump:
             self.target_norm = 0.0
@@ -482,32 +461,43 @@ class MCSolver(MultiTrajSolver):
     ):
         _time_start = time()
 
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+        self.LH = QobjEvo(H)
+
         if isinstance(c_ops, (Qobj, QobjEvo)):
             c_ops = [c_ops]
-        c_ops = [QobjEvo(c_op) for c_op in c_ops]
+        for c_op in c_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+        self.c_ops = [QobjEvo(c_op) for c_op in c_ops]
 
-        if H.issuper:
-            self._c_ops = [
+        self._num_collapse = len(self.c_ops)
+        self._dims = self.LH._dims
+        self.seed_sequence = np.random.SeedSequence()
+
+        self._post_init(options)
+
+    @property
+    def rhs(self):
+        if self.LH.issuper:
+            c_ops = [
                 spre(c_op) * spost(c_op.dag()) if c_op.isoper else c_op
-                for c_op in c_ops
+                for c_op in self.c_ops
             ]
-            self._n_ops = self._c_ops
-            rhs = QobjEvo(H)
-            for c_op in c_ops:
+            n_ops = c_ops
+            rhs = QobjEvo(self.LH)
+            for c_op in self.c_ops:
                 cdc = c_op.dag() @ c_op
                 rhs -= 0.5 * (spre(cdc) + spost(cdc))
         else:
-            self._c_ops = c_ops
-            self._n_ops = [c_op.dag() * c_op for c_op in c_ops]
-            rhs = -1j * QobjEvo(H)
-            for n_op in self._n_ops:
+            c_ops = self.c_ops
+            n_ops = [c_op.dag() * c_op for c_op in self.c_ops]
+            rhs = -1j * QobjEvo(self.LH)
+            for n_op in n_ops:
                 rhs -= 0.5 * n_op
-
-        self._num_collapse = len(self._c_ops)
-        self.options = options
-
-        system = _MCRHS(rhs, self._c_ops, self._n_ops)
-        super().__init__(system, options=options)
+        self._sys = rhs, c_ops, n_ops
+        return rhs
 
     def _restore_state(self, data, *, copy=True):
         """
@@ -515,7 +505,7 @@ class MCSolver(MultiTrajSolver):
         """
         # Duplicated from the Solver class, but removed the check for the
         # normalize_output option, since MCSolver doesn't have that option.
-        if self._state_metadata['dims'] == self.rhs._dims[1]:
+        if self._state_metadata['dims'] == self._dims[1]:
             state = Qobj(unstack_columns(data),
                          **self._state_metadata, copy=False)
         else:
@@ -526,7 +516,6 @@ class MCSolver(MultiTrajSolver):
     def _initialize_stats(self):
         stats = super()._initialize_stats()
         stats.update({
-            "method": self.options["method"],
             "solver": "Master Equation Evolution",
             "num_collapse": self._num_collapse,
         })
@@ -671,7 +660,7 @@ class MCSolver(MultiTrajSolver):
                 raise ValueError('The ntraj parameter can only be a list if '
                                  'the initial conditions are mixed and given '
                                  'in the form of a list of pure states')
-            is_mixed = state.isoper and not self.rhs.issuper
+            is_mixed = state.isoper and not self._dims.issuper
             if is_mixed:
                 # Mixed state given as density matrix. Decompose into list
                 # format, i.e., into eigenstates and eigenvalues
@@ -785,21 +774,31 @@ class MCSolver(MultiTrajSolver):
         result.ntraj_per_initial_state = ics_info.ntraj
         return result
 
-    def _get_integrator(self):
-        _time_start = time()
-        method = self.options["method"]
-        if method in self.avail_integrators():
-            integrator = self.avail_integrators()[method]
-        elif issubclass(method, Integrator):
-            integrator = method
-        else:
-            raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs(), self.options)
-        mc_integrator = self._mc_integrator_class(
-            integrator_instance, self.rhs, self.options
-        )
-        self._init_integrator_time = time() - _time_start
-        return mc_integrator
+    @property
+    def _integrator(self):
+        if not self._integrator_instance:
+            _time_start = time()
+            method = self.options["method"]
+            if method in self.avail_integrators():
+                integrator = self.avail_integrators()[method]
+            elif issubclass(method, Integrator):
+                integrator = method
+            else:
+                raise ValueError("Integrator method not supported.")
+            base_ode = integrator(self)
+            mc_integrator = self._mc_integrator_class(base_ode, self)
+            self.stats["ODE init time"] += time() - _time_start
+            self.stats["method"] = integrator.name
+            self._integrator_instance = mc_integrator
+        return self._integrator_instance
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and other operators."""
+        if args:
+            self.LH.arguments(args)
+            for c_op in self.c_ops:
+                c_op.arguments(args)
+            self._integrator.arguments(args)
 
     @property
     def options(self) -> dict:
