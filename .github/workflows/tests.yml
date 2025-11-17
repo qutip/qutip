@@ -101,7 +101,7 @@ jobs:
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: macos - numpy fallback
-            os: macos-13  # Test on intel cpus
+            os: macos-15-intel  # Test on intel cpus
             python-version: "3.11"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=1.25,<1.26"
