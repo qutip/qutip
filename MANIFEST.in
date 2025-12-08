@@ -4,9 +4,10 @@ include VERSION
 include requirements.txt
 include CITATION.bib
 include pyproject.toml
-recursive-include qutip *.pyx
-recursive-include qutip *.pxd
-recursive-include qutip *.hpp
-recursive-include qutip *.cpp
-recursive-include qutip *.ini
-recursive-include qutip *.h
+recursive-include scr *.pyx
+recursive-include scr *.pxd
+recursive-include scr *.hpp
+recursive-include scr *.cpp
+recursive-include scr *.ini
+recursive-include scr *.h
+recursive-include tests *.py
