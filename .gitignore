@@ -23,19 +23,20 @@ lib
 lib64
 
 
-qutip/version.py
-qutip/__config__.py
+src/qutip/version.py
+src/qutip/__config__.py
 rhs*.pyx
 
-qutip/cy/*.c
+src/qutip/cy/*.c
 *.cpp
-!qutip/core/data/src/*.cpp
+!src/qutip/core/data/src/*.cpp
+!src/qutip/core/cy/openmp/src/*.cpp
 *.dat
-qutip/core/*.h
+src/qutip/core/*.h
 
 
-qutip/**/*.html
-qutip/solver/ode/*.c
+src/qutip/**/*.html
+src/qutip/solver/ode/*.c
 
 
 *.qo
