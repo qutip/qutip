@@ -253,6 +253,9 @@ def create_extension_modules(options):
     """
     out = []
     root = pathlib.Path(options['rootdir'])
+    include_path = [os.path.join(
+        options['rootdir'], 'src', 'qutip', 'core', 'data', 'src'
+    )] + options['include']
     _create_int_type_file(options)
     pyx_files = set(root.glob('src/qutip/**/*.pyx'))
     if not options['openmp']:
@@ -276,12 +279,9 @@ def create_extension_modules(options):
         # place of separators ('/' or '\'), and without the '.pyx' extension.
         pyx_module = ".".join(pyx_file.parts)[4:-4]
         pyx_sources = [pyx_file_str] + extra_sources[pyx_module]
-        print(pyx_module)
-        print(pyx_sources)
-        print()
         out.append(Extension(pyx_module,
                              sources=pyx_sources,
-                             include_dirs=options['include'],
+                             include_dirs=include_path,
                              extra_compile_args=options['cflags'],
                              extra_link_args=options['ldflags'],
                              language='c++'))

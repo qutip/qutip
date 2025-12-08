@@ -598,6 +598,9 @@ def compile_code(code, file_name, parsed, c_opt):
     # erased during cythonization process, breaking filelock.
     # Adding a prefix make them safe to use.
     lock = filelock.FileLock("compile_lock_" + file_name + ".lock")
+    intdtype_include = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "src"
+    )
     try:
         lock.acquire(timeout=0)
         for file in glob.glob(file_name + "*"):
@@ -613,7 +616,7 @@ def compile_code(code, file_name, parsed, c_opt):
                 sources=[file_name + ".pyx"],
                 extra_compile_args=c_opt['compiler_flags'].split(),
                 extra_link_args=c_opt['link_flags'].split(),
-                include_dirs=[np.get_include()],
+                include_dirs=[np.get_include(), intdtype_include],
                 language='c++'
             )
             ext_modules = cythonize(

@@ -6,6 +6,7 @@ include CITATION.bib
 include pyproject.toml
 recursive-include src *.pyx
 recursive-include src *.pxd
+recursive-include src *.pyi
 recursive-include src *.hpp
 recursive-include src *.cpp
 recursive-include src *.ini
