@@ -242,7 +242,7 @@ jobs:
             # For OpenMPI >= 5:
             export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
           fi
-          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
+          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} tests
           # Above flags are:
           #  -Werror
           #     treat warnings as errors

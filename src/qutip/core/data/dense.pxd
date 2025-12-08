@@ -2,7 +2,7 @@
 
 cimport numpy as cnp
 
-from . cimport base
+from qutip.core.data cimport base
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.dia cimport Dia
 
