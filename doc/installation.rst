@@ -227,11 +227,11 @@ Verifying the Installation
 
 QuTiP includes a collection of built-in test scripts to verify that an installation was successful.
 To run the suite of tests scripts you must also have the ``pytest`` testing library.
-After installing QuTiP, leave the installation directory and call:
+After installing QuTiP from source, in the qutip directory, call:
 
 .. code-block:: bash
 
-   pytest qutip/qutip/tests
+   pytest
 
 This will take between 10 and 30 minutes, depending on your computer.
 At the end, the testing report should report a success; it is normal for some tests to be skipped, and for some to be marked "xfail" in yellow.

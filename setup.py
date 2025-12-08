@@ -274,8 +274,11 @@ def create_extension_modules(options):
             continue
         # The module name is the same as the folder structure, but with dots in
         # place of separators ('/' or '\'), and without the '.pyx' extension.
-        pyx_module = ".".join(pyx_file.parts)[:-4]
+        pyx_module = ".".join(pyx_file.parts)[4:-4]
         pyx_sources = [pyx_file_str] + extra_sources[pyx_module]
+        print(pyx_module)
+        print(pyx_sources)
+        print()
         out.append(Extension(pyx_module,
                              sources=pyx_sources,
                              include_dirs=options['include'],

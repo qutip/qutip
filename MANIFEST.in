@@ -4,10 +4,9 @@ include VERSION
 include requirements.txt
 include CITATION.bib
 include pyproject.toml
-recursive-include scr *.pyx
-recursive-include scr *.pxd
-recursive-include scr *.hpp
-recursive-include scr *.cpp
-recursive-include scr *.ini
-recursive-include scr *.h
-recursive-include tests *.py
+recursive-include src *.pyx
+recursive-include src *.pxd
+recursive-include src *.hpp
+recursive-include src *.cpp
+recursive-include src *.ini
+recursive-include src *.h
