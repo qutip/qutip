@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.testing import assert_equal
-import unittest
+import pytest
 from qutip import *
 from qutip.settings import settings as qset
 # if qset.has_openmp:
@@ -8,7 +8,7 @@ from qutip.settings import settings as qset
 
 
 # @unittest.skipIf(qset.has_openmp == False, 'OPENMP not available.')
-@unittest.skipIf(True, 'OPENMP disabled.')
+@pytest.mark.skipif(True, reason='OPENMP disabled.')
 def test_openmp_spmv():
     "OPENMP : spmvpy_openmp == spmvpy"
     for k in range(100):
@@ -21,7 +21,7 @@ def test_openmp_spmv():
         assert (np.allclose(out, out_openmp, 1e-15))
 
 # @unittest.skipIf(qset.has_openmp == False, 'OPENMP not available.')
-@unittest.skipIf(True, 'OPENMP disabled.')
+@pytest.mark.skipif(True, reason='OPENMP disabled.')
 def test_openmp_mesolve():
     "OPENMP : mesolve"
     N = 100
@@ -66,7 +66,7 @@ def test_openmp_mesolve():
 
 
 # @unittest.skipIf(qset.has_openmp == False, 'OPENMP not available.')
-@unittest.skipIf(True, 'OPENMP disabled.')
+@pytest.mark.skipif(True, reason='OPENMP disabled.')
 def test_openmp_mesolve_td():
     "OPENMP : mesolve (td)"
     N = 100

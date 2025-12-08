@@ -722,6 +722,22 @@ class TestBloch:
         b2.make_sphere()
 
 
+    @check_pngs_equal
+    def test_color_sorting(self, fig_test=None, fig_ref=None):
+        x = [1, 0.25, 0.5, 0.75, 0]
+        y = [0, 0, 0, 0, 0]
+        z = [0, 0, 0, 0, 0]
+        colors = ['red', 'orange', 'yellow', 'cyan', 'blue']
+
+        b1 = Bloch(fig=fig_test)
+        b2 = Bloch(fig=fig_ref)
+        # Add point / color pairs in different order
+        b1.add_points([x, y, z], colors=colors)
+        b2.add_points([x[::-1], y, z], colors=colors[::-1])
+        b1.make_sphere()
+        b2.make_sphere()
+
+
 def test_repr_svg():
     pytest.importorskip("matplotlib")
     pytest.importorskip("ipython")

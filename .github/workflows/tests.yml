@@ -30,9 +30,8 @@ jobs:
         os: [ubuntu-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
-        python-version: ["3.11"]
-        case-name: [defaults]
-        # Version 2 not yet available on conda's default channel
+        python-version: ["3.14"]
+        case-name: ["python 3.14 - Latest"]
         condaforge: [1]
         numpy-build: [""]
         numpy-requirement: [""]
@@ -47,20 +46,42 @@ jobs:
           - case-name: p313 numpy 2
             os: ubuntu-latest
             python-version: "3.13"
-            numpy-build: ">=2.0.0"
-            numpy-requirement: ">=2.0.0"
+            numpy-build: ">=2.2.0,<2.3.0"
+            numpy-requirement: ">=2.2.0,<2.3.0"
+            scipy-requirement: ">=1.15,<1.16"
             pypi: 1
             # Install mpi4py to test mpi_pmap
             # Should be enough to include this in one of the runs
             includempi: 1
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
-          - case-name: p310 numpy 1.22
+          - case-name: p312, numpy fallback
+            os: ubuntu-latest
+            python-version: "3.12"
+            numpy-build: ">=2.1.0,<2.2.0"
+            numpy-requirement: ">=1.26,<1.27"
+            scipy-requirement: ">=1.11,<1.12"
+            pypi: 1
+            oldmpl: 1
+            coveralls: 1
+
+          - case-name: p311, numpy fallback, no mkl
+            os: ubuntu-latest
+            python-version: "3.11"
+            numpy-build: ">=2.0.0,<2.1.0"
+            numpy-requirement: ">=1.23,<1.24"
+            scipy-requirement: ">=1.11,<1.12"
+            pypi: 1
+            oldmpl: 1
+            nomkl: 1
+            coveralls: 1
+
+          - case-name: Oldest officially supported
             os: ubuntu-latest
             python-version: "3.10"
             numpy-build: ">=1.22.0,<1.23.0"
             numpy-requirement: ">=1.22.0,<1.23.0"
-            scipy-requirement: ">=1.10,<1.11"
+            scipy-requirement: ">=1.9,<1.10"
             semidefinite: 1
             oldcython: 1
             oldmpl: 1
@@ -68,38 +89,11 @@ jobs:
             coveralls: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\" -W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
-          # Python 3.12 and latest numpy
-          # Use conda-forge to provide Python 3.11 and latest numpy
-          - case-name: p312, numpy fallback
-            os: ubuntu-latest
-            python-version: "3.12"
-            numpy-requirement: ">=1.26,<1.27"
-            scipy-requirement: ">=1.11,<1.12"
-            condaforge: 1
-            oldmpl: 1
-            coveralls: 1
-
-          # Python 3.10, no mkl, scipy 1.9, numpy 1.23
-          # Scipy 1.9 did not support cython 3.0 yet.
-          # cython#17234
-          - case-name: p310 no mkl
-            os: ubuntu-latest
-            python-version: "3.10"
-            numpy-requirement: ">=1.23,<1.24"
-            scipy-requirement: ">=1.9,<1.10"
-            semidefinite: 1
-            condaforge: 1
-            oldcython: 1
-            oldmpl: 1
-            nomkl: 1
-            coveralls: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
-
           # Mac
           # Mac has issues with MKL since september 2022.
           - case-name: macos
             os: macos-latest
-            python-version: "3.13"
+            python-version: "3.14"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             condaforge: 1
@@ -107,7 +101,7 @@ jobs:
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: macos - numpy fallback
-            os: macos-13  # Test on intel cpus
+            os: macos-15-intel  # Test on intel cpus
             python-version: "3.11"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=1.25,<1.26"
@@ -118,7 +112,7 @@ jobs:
 
           - case-name: Windows
             os: windows-latest
-            python-version: "3.13"
+            python-version: "3.14"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
             pypi: 1
