@@ -560,26 +560,19 @@ def _blow_up_qobj(x: Qobj, *, sum_dimensions, row, col, dtype):
     xh, xw = x.shape
     sh, sw = sum_dimensions.shape
 
-    try:
-        return Qobj(
-            _data.block_build(
-                ARRAY_ONE,
-                ARRAY_ONE,
-                np.full((1,), x.data, dtype=_data.Data),
-                np.array([data_row, xh, sh - xh - data_row],
-                        dtype=_data.base.idxint_dtype),
-                np.array([data_col, xw, sw - xw - data_col],
-                        dtype=_data.base.idxint_dtype),
-                dtype=dtype
-            ),
-            dims=sum_dimensions, copy=False
-        )
-    except:
-        print("sssssssssssssssssss")
-        print(sum_dimensions)
-        print(row)
-        print(col)
-        raise
+    return Qobj(
+        _data.block_build(
+            ARRAY_ONE,
+            ARRAY_ONE,
+            np.full((1,), x.data, dtype=_data.Data),
+            np.array([data_row, xh, sh - xh - data_row],
+                     dtype=_data.base.idxint_dtype),
+            np.array([data_col, xw, sw - xw - data_col],
+                     dtype=_data.base.idxint_dtype),
+            dtype=dtype
+        ),
+        dims=sum_dimensions, copy=False
+    )
 
 
 def _check_bounds(given, min, max):

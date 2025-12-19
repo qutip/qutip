@@ -142,8 +142,8 @@ def basis(
 
     For example, the tuple ``([M], [N])`` denotes an ``(M+N)``-dimensional
     space. Its basis vectors are ``basis(([M], [N]), [0, [m]])`` for
-    :math:`0 \leq m < M` and ``basis(([M], [N]), [1, [n]])`` for
-    :math:`0 \leq n < N`.
+    :math:`0 \\leq m < M` and ``basis(([M], [N]), [1, [n]])`` for
+    :math:`0 \\leq n < N`.
     """
     dtype = _data._parse_default_dtype(dtype, "dense")
     # Promote all parameters to Space to simplify later logic.
