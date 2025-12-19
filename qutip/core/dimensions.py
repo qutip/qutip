@@ -402,6 +402,8 @@ class MetaSpace(type):
             else:
                 if repeat is not None:
                     raise ValueError("Invalid arguments for sum space")
+                elif type(args) is _homtuple:
+                    args = (args,)
                 elif all(arg == args[0] for arg in args):
                     args = (_homtuple(args[0], len(args)),)
                 else:
@@ -712,6 +714,9 @@ class _homtuple(Sequence):
         self.count = count
 
     def __getitem__(self, i):
+        if type(i) is slice:
+            num_selected = len(range(*i.indices(self.count)))
+            return _homtuple(self.elem, num_selected)
         if i < 0 or i >= self.count:
             raise IndexError
         return self.elem

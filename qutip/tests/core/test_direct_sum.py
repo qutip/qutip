@@ -248,6 +248,54 @@ def test_sparse(qobj_dict, result_dims, result_type, dtype):
                 assert cmp.norm() == 0
 
 
+def test_slicing_linear():
+    kets = [basis(2, 0),
+            basis(([2], [2]), [0, [0]]),
+            Qobj([2]),
+            QobjEvo([[basis(2, 0), _ramp]])]
+    sum = direct_sum(kets)
+
+    for start in range(len(kets)):
+        for stop in range(start + 1, len(kets) + 1):
+            slice = np.s_[start:stop]
+            _assert_equal(
+                direct_component(sum, slice), direct_sum(kets[slice])
+            )
+            _assert_equal(
+                direct_component(sum, slice, 0), direct_sum(kets[slice])
+            )
+
+    mod1 = set_direct_component(
+        sum, 2 * direct_component(sum, np.s_[2:4]), np.s_[2:4])
+    mod2 = set_direct_component(sum, None, np.s_[0:2])
+    _assert_equal(mod1 - sum, mod2)
+
+    with pytest.raises(IndexError):
+        direct_component(sum, np.s_[0:0])
+    with pytest.raises(IndexError):
+        direct_component(sum, np.s_[0:2:2])
+    with pytest.raises(IndexError):
+        direct_component(sum, np.s_[1:10])
+    with pytest.raises(IndexError):
+        direct_component(sum, np.s_[-1:3])
+
+
+def test_slicing_matrix():
+    qobjs = [[(3*i + j) * sigmax() for j in range(3)] for i in range(3)]
+    sum = direct_sum(qobjs)
+    _assert_equal(
+        direct_component(sum, 0, np.s_[1:3]), direct_sum([qobjs[0][1:3]])
+    )
+    _assert_equal(
+        direct_component(sum, np.s_[0:3], 1),
+        direct_sum([[qobjs[i][1]] for i in range(3)])
+    )
+    _assert_equal(
+        direct_component(sum, np.s_[1:3], np.s_[1:3]),
+        direct_sum([qobjs[1][1:3], qobjs[2][1:3]])
+    )
+
+
 def _assert_equal(qobj1, qobj2):
     if isinstance(qobj1, QobjEvo) and isinstance(qobj2, QobjEvo):
         # == for QobjEvo tests identity, not equality

@@ -382,12 +382,12 @@ def _do_direct_sum(
 
 
 @overload
-def direct_component(sum_qobj: Qobj, *index: int) -> Qobj:
+def direct_component(sum_qobj: Qobj, *index: int | slice) -> Qobj:
     ...
 
 
 @overload
-def direct_component(sum_qobj: QobjEvo, *index: int) -> Qobj | QobjEvo:
+def direct_component(sum_qobj: QobjEvo, *index: int | slice) -> Qobj | QobjEvo:
     ...
 
 
@@ -400,7 +400,7 @@ def direct_component(sum_qobj, *index):
     ----------
     sum_qobj : :class:`.Qobj` or :class:`.QobjEvo`
         A direct sum object from which to extract a component.
-    index : list of int
+    index : list of int or slice
         One or two indices identifying the component to extract. If both the
         row and column spaces are sums, two indices (``row``, ``col``) are
         required. If only one side is a sum, a single index is accepted and
@@ -410,6 +410,12 @@ def direct_component(sum_qobj, *index):
     -------
     component: :class:`.Qobj` or :class:`.QobjEvo`
         The extracted component.
+
+    Notes
+    -----
+    Each index may be either an int indicating a single component or a slice
+    indicating multiple components. For convenience, slices can be created
+    using `np.s_[start:stop]`. Custom steps are not supported.
     """
 
     if settings.core["default_dtype_scope"] == "full":
@@ -437,7 +443,7 @@ def direct_component(sum_qobj, *index):
 def set_direct_component(
     sum_qobj: Qobj,
     component: Qobj,
-    *index: int,
+    *index: int | slice,
     dtype: LayerType = None
 ) -> Qobj:
     ...
@@ -447,7 +453,7 @@ def set_direct_component(
 def set_direct_component(
     sum_qobj: Qobj | QobjEvo,
     component: Qobj | QobjEvo,
-    *index: int,
+    *index: int | slice,
     dtype: LayerType = None
 ) -> QobjEvo:
     ...
@@ -465,7 +471,7 @@ def set_direct_component(sum_qobj, component, *index):
         The direct sum object whose component will be replaced.
     component : :class:`.Qobj` or :class:`.QobjEvo`
         The new component to insert. ``None`` sets the component to zero.
-    index : list of int
+    index : list of int or slice
         One or two indices identifying the component to extract. If both the
         row and column spaces are sums, two indices (``row``, ``col``) are
         required. If only one side is a sum, a single index is accepted and
@@ -475,6 +481,12 @@ def set_direct_component(sum_qobj, component, *index):
     -------
     updated: :class:`.Qobj` or :class:`.QobjEvo`
         The resulting direct sum object with the component set.
+
+    Notes
+    -----
+    Each index may be either an int indicating a single component or a slice
+    indicating multiple components. For convenience, slices can be created
+    using `np.s_[start:stop]`. Custom steps are not supported.
     """
 
     if settings.core["default_dtype_scope"] == "full":
@@ -530,6 +542,10 @@ def _blow_up_qobj(x: Qobj, *, sum_dimensions, row, col, dtype):
 
     if x is None:
         return qzero(sum_dimensions[0], sum_dimensions[1])
+    if type(row) is slice:
+        row = row.start
+    if type(col) is slice:
+        col = col.start
 
     if isinstance(sum_dimensions[0], SumSpace):
         data_row = sum_dimensions[0]._space_cumdim(row)
@@ -544,23 +560,39 @@ def _blow_up_qobj(x: Qobj, *, sum_dimensions, row, col, dtype):
     xh, xw = x.shape
     sh, sw = sum_dimensions.shape
 
-    return Qobj(
-        _data.block_build(
-            ARRAY_ONE,
-            ARRAY_ONE,
-            np.full((1,), x.data, dtype=_data.Data),
-            np.array([data_row, xh, sh - xh - data_row],
-                     dtype=_data.base.idxint_dtype),
-            np.array([data_col, xw, sw - xw - data_col],
-                     dtype=_data.base.idxint_dtype),
-            dtype=dtype
-        ),
-        dims=sum_dimensions, copy=False
-    )
+    try:
+        return Qobj(
+            _data.block_build(
+                ARRAY_ONE,
+                ARRAY_ONE,
+                np.full((1,), x.data, dtype=_data.Data),
+                np.array([data_row, xh, sh - xh - data_row],
+                        dtype=_data.base.idxint_dtype),
+                np.array([data_col, xw, sw - xw - data_col],
+                        dtype=_data.base.idxint_dtype),
+                dtype=dtype
+            ),
+            dims=sum_dimensions, copy=False
+        )
+    except:
+        print("sssssssssssssssssss")
+        print(sum_dimensions)
+        print(row)
+        print(col)
+        raise
 
 
 def _check_bounds(given, min, max):
-    if not (min <= given < max):
+    if type(given) is slice:
+        if given.step and given.step != 1:
+            raise IndexError("Slicing with custom step is not supported.")
+        if given.start >= given.stop:
+            raise IndexError("Empty slice is not supported.")
+        if given.start < min or given.stop > max:
+            raise IndexError(f"Index [{given.start}:{given.stop}] out of"
+                             f" bounds ({min}, {max-1}) for component of"
+                             " direct sum")
+    elif not (min <= given < max):
         raise IndexError(f"Index ({given}) out of bounds ({min}, {max-1})"
                          " for component of direct sum.")
 
@@ -615,24 +647,36 @@ def _component_info(sum_dimensions, to_index, from_index):
     if isinstance(sum_dimensions[0], SumSpace):
         _check_bounds(to_index, 0, len(sum_dimensions[0].spaces))
         component_to = sum_dimensions[0].spaces[to_index]
-        data_row_start = sum_dimensions[0]._space_cumdim(to_index)
-        data_row_stop = sum_dimensions[0]._space_cumdim(to_index + 1)
+        if type(to_index) is slice:
+            data_row_start = sum_dimensions[0]._space_cumdim(to_index.start)
+            data_row_stop = sum_dimensions[0]._space_cumdim(to_index.stop)
+        else:
+            data_row_start = sum_dimensions[0]._space_cumdim(to_index)
+            data_row_stop = sum_dimensions[0]._space_cumdim(to_index + 1)
     else:
         _check_bounds(to_index, 0, 1)
         component_to = sum_dimensions[0]
         data_row_start = 0
         data_row_stop = sum_dimensions[0].size
+    if type(to_index) is slice:
+        component_to = SumSpace(component_to)
 
     if isinstance(sum_dimensions[1], SumSpace):
         _check_bounds(from_index, 0, len(sum_dimensions[1].spaces))
         component_from = sum_dimensions[1].spaces[from_index]
-        data_col_start = sum_dimensions[1]._space_cumdim(from_index)
-        data_col_stop = sum_dimensions[1]._space_cumdim(from_index + 1)
+        if type(from_index) is slice:
+            data_col_start = sum_dimensions[1]._space_cumdim(from_index.start)
+            data_col_stop = sum_dimensions[1]._space_cumdim(from_index.stop)
+        else:
+            data_col_start = sum_dimensions[1]._space_cumdim(from_index)
+            data_col_stop = sum_dimensions[1]._space_cumdim(from_index + 1)
     else:
         _check_bounds(from_index, 0, 1)
         component_from = sum_dimensions[1]
         data_col_start = 0
         data_col_stop = sum_dimensions[1].size
+    if type(from_index) is slice:
+        component_from = SumSpace(component_from)
 
     return (Dimensions(component_from, component_to),
             data_row_start, data_row_stop,
