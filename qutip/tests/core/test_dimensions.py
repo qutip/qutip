@@ -300,17 +300,17 @@ class TestSumSpace:
         args = spaces if space_container == "varargs" else [spaces]
 
         if repeat is not None and (
-            repeat < 0 or not isinstance(repeat, numbers.Integral)
+            repeat <= 0 or not isinstance(repeat, numbers.Integral)
         ):
             with pytest.raises(ValueError, match="must be a positive integer"):
                 SumSpace(*args, repeat=repeat)
             return
-        if repeat is not None and repeat != 1 and len(spaces) != 1:
-            with pytest.raises(ValueError, match="Invalid arguments"):
+        if space_type == "none":
+            with pytest.raises(ValueError, match="at least one space"):
                 SumSpace(*args, repeat=repeat)
             return
-        if space_type == "none" or repeat is not None and repeat <= 0:
-            with pytest.raises(ValueError, match="at least one space"):
+        if repeat is not None and repeat != 1 and len(spaces) != 1:
+            with pytest.raises(ValueError, match="Invalid arguments"):
                 SumSpace(*args, repeat=repeat)
             return
 

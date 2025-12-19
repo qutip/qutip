@@ -336,11 +336,7 @@ class MetaSpace(type):
         ):
             # From a list (or tuple) of int
             return cls.from_list(args[0], rep=rep)
-
-        if repeat is not None and repeat == 1:
-            repeat = None
-
-        if len(args) == 1 and isinstance(args[0], Space):
+        elif len(args) == 1 and isinstance(args[0], Space):
             # Already a Space
             if cls is SumSpace:
                 # Will be handled separately below
@@ -380,27 +376,36 @@ class MetaSpace(type):
             args = (*args, rep or 'super')
 
         if cls is SumSpace:
+            if repeat is not None and repeat == 1:
+                repeat = None
             if repeat is not None and (
-                not isinstance(repeat, numbers.Integral) or repeat < 0
+                not isinstance(repeat, numbers.Integral) or repeat <= 0
             ):
                 raise ValueError("Repeat must be a positive integer")
 
+            # Spaces provided as list / tuple / _homtuple instead of varargs
             if len(args) == 1 and not isinstance(args[0], Space):
                 args = args[0]
 
-            if len(args) == 1 and repeat is not None:
-                args = (_homtuple(args[0], repeat), repeat)
-            elif len(args) == 1 and not isinstance(args[0], SumSpace):
-                return args[0]
-            elif len(args) == 1:
-                args = (tuple(args), None)
+            if len(args) == 0:
+                raise ValueError("Need at least one space for direct sum.")
 
-            elif repeat is not None:
-                raise ValueError("Invalid arguments for sum space")
-            elif len(args) > 1 and all(arg == args[0] for arg in args):
-                args = (_homtuple(args[0], len(args)), len(args))
+            elif len(args) == 1:
+                if repeat is not None:
+                    args = (_homtuple(args[0], repeat),)
+                elif not isinstance(args[0], SumSpace):
+                    # see SumSpace implementation note
+                    return args[0]
+                else:
+                    args = (tuple(args),)
+
             else:
-                args = (tuple(args), None)
+                if repeat is not None:
+                    raise ValueError("Invalid arguments for sum space")
+                elif all(arg == args[0] for arg in args):
+                    args = (_homtuple(args[0], len(args)),)
+                else:
+                    args = (tuple(args),)
 
         if args not in cls._stored_dims:
             instance = cls.__new__(cls)
@@ -768,28 +773,28 @@ class SumSpace(Space):
             return True, 'super'
         raise ValueError("Cannot mix super and regular spaces in direct sum.")
 
-    def __init__(self, spaces: Space | tuple[Space], repeat: int = None):
+    def __init__(self, spaces: tuple[Space] | _homtuple[Space]):
         """
-        Instead of ``SumSpace(x, x, ..., x)`` with many copies of the same
-        space ``x``, you can use ``SumSpace(x, repeat=n)``.
+        Direct sum of the constituent spaces.
+
+        ``SumSpace`` instances can be constructed as follows:
+        * Varargs: ``SumSpace(space1, space2, ...)``.
+        * From list or tuple: ``SumSpace(spaces)`` where ``spaces`` is
+            ``list[Space]`` or ``tuple[Space]``.
+        * Using many copies of the same space: ``SumSpace(space, repeat=n)``
+            where n is a positive integer.
+            This is functionally equivalent to ``SumSpace([space] * n)``.
+        (The arguments are processed in the metaclass.)
         """
-        # The following is ensured by the metaclass:
-        if repeat is None:
-            assert type(spaces) is tuple
-            # and they are not all the same
+        if type(spaces) is _homtuple:
+            self._repeat = len(spaces)
         else:
-            assert type(spaces) is _homtuple
-            assert len(spaces) == repeat
-            assert repeat != 1
+            self._repeat = None
 
-        if len(spaces) == 0 or (repeat is not None and repeat <= 0):
-            raise ValueError("Need at least one space for direct sum.")
-
-        self._repeat = repeat
         self.spaces = spaces
         self._space_dims = _map_tuple(lambda space: space.size, spaces)
-        if repeat:
-            size = spaces[0].size * repeat
+        if self._repeat:
+            size = spaces[0].size * self._repeat
         else:
             self._space_cumdims_array = np.cumsum((0,) + self._space_dims)
             size = self._space_cumdims_array[-1]
@@ -856,7 +861,7 @@ class SumSpace(Space):
         return self
 
     def scalar_like(self) -> "Space":
-        return self.spaces[0].scalar_like()
+        return Field()
 
 
 class SuperSpace(Space):
