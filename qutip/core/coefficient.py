@@ -15,6 +15,7 @@ import importlib
 import warnings
 import numbers
 from collections import defaultdict
+from pathlib import Path
 try:
     from setuptools import setup, Extension
     from Cython.Build import cythonize
@@ -616,8 +617,11 @@ def compile_code(code, file_name, parsed, c_opt):
                 include_dirs=[np.get_include()],
                 language='c++'
             )
+            # Pass path to QuTiP's root directory to cythonize to enable .pxd files discovery in editable install
+            qutip_root = Path(__file__).resolve().parents[2]
+
             ext_modules = cythonize(
-                coeff_file, force=True, build_dir=c_opt['build_dir']
+                coeff_file, force=True, build_dir=c_opt['build_dir'], include_path=[str(qutip_root)]
             )
             setup(ext_modules=ext_modules)
         except Exception as e:
