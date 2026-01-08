@@ -460,6 +460,10 @@ def test_convert(all_qevo, dtype):
     [[qeye(N), lambda t: t], [qeye(N), lambda t: t], [qeye(N), lambda t: t]],
     [[qeye(2), "t"], [sigmax(), "t"], [sigmaz(), "t"]],
     [[qeye(2), "t"], [sigmax(), "t"], [qeye(2), "2*t"], [sigmax(), "2*t"]],
+    [0 * sigmax(), [qeye(2), "t"]],
+    [[0 * sigmax(), "2 * t"], [qeye(2), "t"]],
+    [[qeye(2), "t"], [-qeye(2), "t"]],
+    [sigmax(), [qeye(2), "t"], [-qeye(2), "t"]],
 ])
 def test_compress(as_list):
     "QobjEvo compress"

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import numbers
 import pytest
 import collections
 import numpy as np
@@ -8,7 +9,7 @@ from qutip.core.dimensions import (
     flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
     einsum, to_tensor_rep, from_tensor_rep,
-    Dimensions, Field, Space, SuperSpace
+    Dimensions, Field, Space, SumSpace, SuperSpace, _homtuple
 )
 from qutip.core.energy_restricted import EnrSpace
 
@@ -192,12 +193,18 @@ class TestTypeFromDims:
     @pytest.mark.parametrize(["base", "expected"], [
         pytest.param([[2], [2]], 'oper'),
         pytest.param([[2, 3], [2, 3]], 'oper'),
+        pytest.param([([2], [2]), ([2], [3])], 'oper'),
         pytest.param([[2], [3]], 'oper'),
         pytest.param([[2], [1]], 'ket'),
+        pytest.param([([2], [1]), [1]], 'ket'),
         pytest.param([[1], [2]], 'bra'),
+        pytest.param([[1], ([2], [1])], 'bra'),
         pytest.param([[[2, 3], [2, 3]], [1]], 'operator-ket'),
+        pytest.param([([[2], [3]], [[2], [3]]), [1]], 'operator-ket'),
         pytest.param([[1], [[2, 3], [2, 3]]], 'operator-bra'),
+        pytest.param([[1], ([[2], [3]], [[2], [3]])], 'operator-bra'),
         pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'super'),
+        pytest.param([([[3], [3]]), ([[2, 3], [2, 3]])], 'super'),
     ])
     def test_Dimensions_type(self, base, expected):
         assert Dimensions(base).type == expected
@@ -209,6 +216,8 @@ class TestCollapseDims:
         pytest.param([[1, 1], [2, 3]], [[1], [6]], id="ket tensor"),
         pytest.param(Dimensions(Field(), EnrSpace([2, 2], 1)),
                      Dimensions(Field(), Space(3)), id="ket ENR"),
+        pytest.param(Dimensions(Field(), SumSpace(Space(2), Field())),
+                     Dimensions(Field(), Space(3)), id="ket sum space"),
         pytest.param([[2], [1]], [[2], [1]], id="bra trivial"),
         pytest.param([[2, 3], [1, 1]], [[6], [1]], id="bra tensor"),
         pytest.param([[5], [5]], [[5], [5]], id="oper trivial"),
@@ -229,11 +238,119 @@ class TestCollapseDims:
         assert Dimensions(base).collapse() == Dimensions(expected)
 
 
+class TestSumSpace:
+    def test_repeat(self):
+        repeat_space = SumSpace(Space(3), repeat=5)
+        assert Space(([3], [3], [3], [3], [3])) is repeat_space
+        assert Space(repeat_space.as_list()) is repeat_space
+        assert repr(repeat_space.as_list()) == "([3],) * 5"
+        assert repr(repeat_space) == "Sum((Space(3),) * 5)"
+
+        assert SumSpace(Space(([2], [3])), repeat=1) is Space((([2], [3]),))
+
+    def test_simplification(self):
+        assert Space(([1],)) is Field()
+        assert Space(([3, 2],)) is Space([3, 2])
+        assert Space((([2],),)) is Space([2])
+        assert Space((([2], [3]),)) is not Space(([2], [3]))
+
+    @pytest.mark.parametrize(["base", "flat"], [
+        pytest.param(Space((2, 1)), [3], id="single"),
+        pytest.param(Space((2, (3, 3), 4)), [12], id="nested"),
+    ])
+    def test_flatten_collapses(self, base, flat):
+        assert flatten(base) == flat
+        assert base.flat() == flat
+
+    @pytest.mark.parametrize(["space", "expected"], [
+        pytest.param(Space((2, 2)), Space((2, 2)), id="no-scalars"),
+        pytest.param(Space((2, [3, 1], 1)), Space((2, 3, 1)), id="simple"),
+        pytest.param(
+            Space((2, 1, (1, [1, 1]))), Space((2, 1, (1, 1))), id="nested")
+    ])
+    def test_drop_scalar_dims(self, space, expected):
+        assert space.drop_scalar_dims() == expected
+
+    @pytest.mark.parametrize(
+            "space_container", ["list", "tuple", "homtuple", "varargs"])
+    @pytest.mark.parametrize(
+            "space_type", ["none", "one-sum", "one-other", "hom", "inhom"])
+    @pytest.mark.parametrize(
+            "repeat", [None, 1, 3, 0, -1, 3.14])
+    def test_construct(self, space_container, space_type, repeat):
+        if space_container == "homtuple" and space_type == "inhom":
+            return
+
+        if space_type == "none":
+            spaces = []
+        elif space_type == "one-sum":
+            spaces = [SumSpace(Space(2), Space(3))]
+        elif space_type == "one-other":
+            spaces = [Space(3)]
+        elif space_type == "hom":
+            spaces = [Space(3), Space(3)]
+        elif space_type == "inhom":
+            spaces = [Space(3), Space(4)]
+
+        if space_container == "tuple":
+            spaces = tuple(spaces)
+        elif space_container == "homtuple":
+            spaces = _homtuple(
+                None if len(spaces) == 0 else spaces[0], len(spaces))
+        args = spaces if space_container == "varargs" else [spaces]
+
+        if repeat is not None and (
+            repeat <= 0 or not isinstance(repeat, numbers.Integral)
+        ):
+            with pytest.raises(ValueError, match="must be a positive integer"):
+                SumSpace(*args, repeat=repeat)
+            return
+        if space_type == "none":
+            with pytest.raises(ValueError, match="at least one space"):
+                SumSpace(*args, repeat=repeat)
+            return
+        if repeat is not None and repeat != 1 and len(spaces) != 1:
+            with pytest.raises(ValueError, match="Invalid arguments"):
+                SumSpace(*args, repeat=repeat)
+            return
+
+        sum_space = SumSpace(*args, repeat=repeat)
+        if repeat is None:
+            repeat = 1
+        if space_type == "one-other" and repeat == 1:
+            assert sum_space == spaces[0]
+            return
+        assert len(sum_space.spaces) == len(spaces) * repeat
+        assert all(
+            sum_space.spaces[i] == space
+            for i, space in enumerate(list(spaces) * repeat)
+        )
+
+    def test_super_validation(self):
+        with pytest.raises(ValueError,
+                           match="Cannot mix super and regular spaces"):
+            SumSpace(
+                Space(3),
+                Space([[3], [2]])
+            )
+
+        with pytest.raises(ValueError, match="super representation"):
+            SumSpace(
+                Field(),
+                Space([[3], [2]], rep="choi")
+            )
+
+        with pytest.raises(ValueError, match="super representation"):
+            space = Space(([1], [[3], [2]]))
+            space.replace_superrep("choi")
+
+
 @pytest.mark.parametrize("dims_list", [
     pytest.param([0], id="zero"),
     pytest.param([], id="empty"),
     pytest.param([1, [2]], id="mixed depth"),
     pytest.param([[2], [3], [4]], id="bay type"),
+    pytest.param((), id="empty sum")
 ])
 def test_bad_dims(dims_list):
     with pytest.raises(ValueError):
@@ -288,6 +405,9 @@ def test_einsum(subscripts, operands, expected):
     pytest.param(
         [[[2, 3, 5], [2, 3, 5]], [[1, 1, 1], [1, 1, 1]]],
         [[[2, 3, 5], [2, 3, 5]], [1]]
+    ),
+    pytest.param(
+        [([4, 4], [1, 1, 1]), ([1, 1], [1, 1, 1])], [([4, 4], [1]), ([1], [1])]
     )
 ])
 def test_scalar_dims(list_dims, expected):
