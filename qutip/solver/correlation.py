@@ -1,20 +1,34 @@
 __all__ = [
-    'correlation_3op',
-    'correlation_2op_1t', 'correlation_2op_2t', 'correlation_3op_1t',
-    'correlation_3op_2t', 'coherence_function_g1', 'coherence_function_g2'
+    "correlation_3op",
+    "correlation_2op_1t",
+    "correlation_2op_2t",
+    "correlation_3op_1t",
+    "correlation_3op_2t",
+    "coherence_function_g1",
+    "coherence_function_g2",
 ]
 
 import numpy as np
 
 from ..core import (
-    Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
-    tensor, expect, qeye_like, isket
+    Qobj,
+    QobjEvo,
+    liouvillian,
+    spre,
+    unstack_columns,
+    stack_columns,
+    tensor,
+    expect,
+    qeye_like,
+    isket,
 )
+from .floquet import FloquetBasis
+from .flimesolve import FLiMESolver
 from .mesolve import MESolver
 from .mcsolve import MCSolver
+
 from .brmesolve import BRSolver
 from .heom.bofin_solvers import HEOMSolver
-
 from .steadystate import steadystate
 from ..ui.progressbar import progress_bars
 
@@ -25,9 +39,19 @@ from ..ui.progressbar import progress_bars
 # low level correlation
 
 
-def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
-                       solver="me", reverse=False, args=None,
-                       options=None):
+def correlation_2op_1t(
+    H,
+    state0,
+    taulist,
+    c_ops,
+    a_op,
+    b_op,
+    solver="me",
+    reverse=False,
+    args=None,
+    options=None,
+    **kwargs
+):
     r"""
     Calculate the two-operator one-time correlation function:
     :math:`\left<A(\tau)B(0)\right>`
@@ -62,6 +86,8 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
         ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver.
+    **kwargs: dict, optional
+        Extra options to pass through to the solvers.
 
     Returns
     -------
@@ -78,7 +104,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver)
+    solver = _make_solver(H, c_ops, args, options, solver, **kwargs)
 
     if reverse:
         A_op, B_op, C_op = a_op, b_op, 1
@@ -90,9 +116,20 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     return correlation_3op(solver, state0, [0], taulist, A_op, B_op, C_op)[0]
 
 
-def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
-                       solver="me", reverse=False, args=None,
-                       options=None):
+def correlation_2op_2t(
+    H,
+    state0,
+    tlist,
+    taulist,
+    c_ops,
+    a_op,
+    b_op,
+    solver="me",
+    reverse=False,
+    args=None,
+    options=None,
+    **kwargs
+):
     r"""
     Calculate the two-operator two-time correlation function:
     :math:`\left<A(t+\tau)B(t)\right>`
@@ -131,6 +168,8 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver.
+    **kwargs: dict, optional
+        Extra options to pass through to the solvers.
 
     Returns
     -------
@@ -148,7 +187,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver)
+    solver = _make_solver(H, c_ops, args, options, solver, **kwargs)
     if tlist is None:
         tlist = [0]
     if state0 is None:
@@ -162,8 +201,19 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     return correlation_3op(solver, state0, tlist, taulist, A_op, B_op, C_op)
 
 
-def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
-                       solver="me", args=None, options=None):
+def correlation_3op_1t(
+    H,
+    state0,
+    taulist,
+    c_ops,
+    a_op,
+    b_op,
+    c_op,
+    solver="me",
+    args=None,
+    options=None,
+    **kwargs
+):
     r"""
     Calculate the three-operator two-time correlation function:
     :math:`\left<A(0)B(\tau)C(0)\right>` along one time axis using the
@@ -199,6 +249,8 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
         ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver.
+    **kwargs: dict, optional
+        Extra options to pass through to the solvers.
 
     Returns
     -------
@@ -215,14 +267,26 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver)
+    solver = _make_solver(H, c_ops, args, options, solver, **kwargs)
     if state0 is None:
         state0 = steadystate(H, c_ops)
     return correlation_3op(solver, state0, [0], taulist, a_op, b_op, c_op)[0]
 
 
-def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       solver="me", args=None, options=None):
+def correlation_3op_2t(
+    H,
+    state0,
+    tlist,
+    taulist,
+    c_ops,
+    a_op,
+    b_op,
+    c_op,
+    solver="me",
+    args=None,
+    options=None,
+    **kwargs
+):
     r"""
     Calculate the three-operator two-time correlation function:
     :math:`\left<A(t)B(t+\tau)C(t)\right>` along two time axes using the
@@ -263,6 +327,8 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver. Only used with ``me`` solver.
+    **kwargs: dict, optional
+        Extra options to pass through to the solvers.
 
     Returns
     -------
@@ -281,7 +347,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     See, Gardiner, Quantum Noise, Section 5.2.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver)
+    solver = _make_solver(H, c_ops, args, options, solver, **kwargs)
 
     if tlist is None:
         tlist = [0]
@@ -293,8 +359,17 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
 # high level correlation
 
+
 def coherence_function_g1(
-    H, state0, taulist, c_ops, a_op, solver="me", args=None, options=None
+    H,
+    state0,
+    taulist,
+    c_ops,
+    a_op,
+    solver="me",
+    args=None,
+    options=None,
+    **kwargs
 ):
     r"""
     Calculate the normalized first-order quantum coherence function:
@@ -333,6 +408,8 @@ def coherence_function_g1(
         dictionary of parameters for time-dependent Hamiltonians
     options : dict, optional
         Options for the solver.
+    **kwargs: dict, optional
+        Extra options to pass through to the solvers.
 
     Returns
     -------
@@ -340,7 +417,7 @@ def coherence_function_g1(
         The normalized and unnormalized second-order coherence function.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver)
+    solver = _make_solver(H, c_ops, args, options, solver, **kwargs)
 
     # first calculate the photon number
     if state0 is None:
@@ -350,14 +427,25 @@ def coherence_function_g1(
         n = solver.run(state0, taulist, e_ops=[a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G1 and normalize with n to obtain g1
-    G1 = correlation_3op(solver, state0, [0], taulist, None, a_op.dag(), a_op)[0]
+    G1 = correlation_3op(solver, state0, [0], taulist, None, a_op.dag(), a_op)[
+        0
+    ]
 
     g1 = G1 / np.sqrt(n[0] * np.array(n))[0]
     return g1, G1
 
 
-def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
-                          args=None, options=None):
+def coherence_function_g2(
+    H,
+    state0,
+    taulist,
+    c_ops,
+    a_op,
+    solver="me",
+    args=None,
+    options=None,
+    **kwargs
+):
     r"""
     Calculate the normalized second-order quantum coherence function:
 
@@ -396,6 +484,8 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver.
+    **kwargs: dict, optional
+        Extra options to pass through to the solvers.
 
     Returns
     -------
@@ -403,7 +493,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         The normalized and unnormalized second-order coherence function.
 
     """
-    solver = _make_solver(H, c_ops, args, options, solver)
+    solver = _make_solver(H, c_ops, args, options, solver, **kwargs)
 
     # first calculate the photon number
     if state0 is None:
@@ -413,16 +503,30 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         n = solver.run(state0, taulist, e_ops=[a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
-    G2 = correlation_3op(solver, state0, [0], taulist,
-                         a_op.dag(), a_op.dag() * a_op, a_op)[0]
+    G2 = correlation_3op(
+        solver, state0, [0], taulist, a_op.dag(), a_op.dag() * a_op, a_op
+    )[0]
 
     g2 = G2 / (n[0] * np.array(n))
     return g2, G2
 
 
-def _make_solver(H, c_ops, args, options, solver):
-    H = QobjEvo(H, args=args)
-    c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
+def _make_solver(H, c_ops, args, options, solver, **kwargs):
+    if solver == "fme":
+        if isinstance(H, FloquetBasis):
+            floquet_basis = H
+        else:
+            floquet_basis = FloquetBasis(H, kwargs["T"], args, precompute=None)
+        solver_instance = FLiMESolver(
+            floquet_basis,
+            c_ops,
+            time_sense=kwargs.get("time_sense", 0),
+            options=options,
+            Nt=kwargs.get("Nt", 16),
+        )
+    else:
+        H = QobjEvo(H, args=args)
+        c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
     if solver == "me":
         solver_instance = MESolver(H, c_ops, options=options)
     elif solver == "es":
@@ -481,14 +585,19 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     if isinstance(solver, (MESolver, BRSolver)):
         out = _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C)
     elif isinstance(solver, MCSolver):
-        raise TypeError("Monte Carlo support for correlation was removed. "
-                        "Please, tell us on GitHub issues if you need it!")
+        raise TypeError(
+            "Monte Carlo support for correlation was removed. "
+            "Please, tell us on GitHub issues if you need it!"
+        )
     elif isinstance(solver, HEOMSolver):
-        raise TypeError("HEOM is not supported by correlation. "
-                        "Please, tell us on GitHub issues if you need it!")
+        raise TypeError(
+            "HEOM is not supported by correlation. "
+            "Please, tell us on GitHub issues if you need it!"
+        )
     else:
-        raise TypeError("Only solvers able to evolve density matrices"
-                        " are supported.")
+        raise TypeError(
+            "Only solvers able to evolve density matrices" " are supported."
+        )
 
     return out
 
@@ -501,8 +610,8 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
         solver.options["normalize_output"] = False
         solver.options["progress_bar"] = False
 
-        progress_bar = progress_bars[old_opt['progress_bar']](
-            len(taulist) + 1, **old_opt['progress_kwargs']
+        progress_bar = progress_bars[old_opt["progress_bar"]](
+            len(taulist) + 1, **old_opt["progress_kwargs"]
         )
         rho_t = solver.run(state0, tlist).states
         corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
@@ -511,9 +620,7 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
         for t_idx, rho in enumerate(rho_t):
             t = tlist[t_idx]
             corr_mat[t_idx, :] = solver.run(
-                C(t) @ rho @ A(t),
-                taulist + t,
-                e_ops=B
+                C(t) @ rho @ A(t), taulist + t, e_ops=B
             ).expect[0]
             progress_bar.update()
         progress_bar.finished()
