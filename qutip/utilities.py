@@ -6,7 +6,8 @@ qutip modules.
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
-__all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
+__all__ = ['n_thermal', 'clebsch',
+           'convert_unit', 'iterated_fit', 'fermi_dirac']
 
 from typing import Callable, Literal, Any
 
@@ -53,6 +54,48 @@ def n_thermal(w, w_th):
 
     non_zero = w != 0
     result[non_zero] = 1 / (np.exp(w[non_zero] / w_th) - 1)
+
+    return result.item() if w.ndim == 0 else result
+
+
+def fermi_dirac(w, beta, mu):
+    """
+    Return the number of fermions in thermal and chemical equilibrium for an
+    fermionic mode with frequency 'w', at the temperature described by
+    'beta' where :math:`\\beta = \\hbar/k_BT` and chemical potential
+    mu.
+
+    Parameters
+    ----------
+
+    w : float or ndarray
+        Frequency of the oscillator.
+
+    beta : float
+        The inverse temperature in units of time
+        (or the same units as `1/w`).
+    mu : float
+        The Chemical potential.
+    Returns
+    -------
+
+    n_avg : float or array
+
+        Return the number of average fermions in chemical and thermal
+        equilibrium for a fermion with the given frequency,chemical potential
+        and temperature.
+    """
+    w = np.array(w, dtype=float)
+
+    if (beta == np.inf) or (beta == -np.inf):
+        result = np.heaviside(-np.sign(beta)*(w-mu), 0.5)
+    else:
+        with np.errstate(over='ignore', under='ignore'):
+            result = 1 / (np.exp(beta*(w-mu)) + 1)
+        mask = np.isnan(result)
+        if np.any(mask):
+            result[mask] = np.exp(-beta*(w[mask]-mu)) / \
+                (np.exp(-beta*(w[mask]-mu)) + 1)
 
     return result.item() if w.ndim == 0 else result
 
@@ -355,7 +398,7 @@ def iterated_fit(
     num_params: int,
     xdata: ArrayLike,
     ydata: ArrayLike,
-    target_rmse: float = 1e-5,
+    target_rmse: float = 1e-3,
     Nmin: int = 1,
     Nmax: int = 10,
     guess: ArrayLike | Callable[[int], ArrayLike] = None,
