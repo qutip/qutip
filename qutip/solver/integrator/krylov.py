@@ -1,8 +1,8 @@
 from ..integrator import IntegratorException, Integrator
 import numpy as np
 from qutip.core import data as _data
+from qutip.core import liouvillian
 from scipy.optimize import root_scalar
-from scipy.special import factorial
 from ..sesolve import SESolver
 from ..mesolve import MESolver
 
@@ -21,6 +21,7 @@ class IntegratorKrylov(Integrator):
         'atol': 1e-7,
         'nsteps': 100,
         'max_step': 1e5,
+        'always_compute_step': False,
         'krylov_dim': 0,
         'sub_system_tol': 1e-7,
         'algorithm': 'lanczos_fro',
@@ -35,44 +36,25 @@ class IntegratorKrylov(Integrator):
         # TODO currenlty only supports hermitian, add warning? thorw error?
         self._max_step = -np.inf
         krylov_dim = self.options["krylov_dim"]
-        if krylov_dim < 0 or krylov_dim > self._max_krylov_dim():
-            raise ValueError("The options 'krylov_dim', must be a positive "
-                             "integer that does not exceed the maximum "
-                             "dimension")
+        if krylov_dim < 0:
+            raise ValueError("The options 'krylov_dim', must be an integer "
+                             "greater or equal zero.")
         if krylov_dim == 0:
             krylov_dim = self._max_krylov_dim()
             self.options["krylov_dim"] = krylov_dim
         
-        if self.options['algorithm'] == 'lanczos':
-            self._algorithm = self._lanczos_algorithm
-        elif self.options['algorithm'] == 'lanczos_fro':
+        if self.options['algorithm'] == 'lanczos_fro':
             self._algorithm = self._lanczos_full_reorth_algorithm
         elif self.options['algorithm'] == 'arnoldi':
             self._algorithm = self._arnoldi_algorithm
+        elif self.options['algorithm'] == 'lanczos':
+            self._algorithm = self._lanczos_algorithm
         else:
             raise ValueError("The requested algorithm "
                              f"{self.options['algorithm']}"
                              "for Krylov space construction is not available. "
                              "Possible options are: \'lanczos\', "
                              "\'lanczos_fro\', \'arnoldi\'.")
-
-        self._max_step = np.inf
-
-    def _max_krylov_dim(self):
-        """
-        Calculates the maximum dimension of the Krylov space for the provided
-        Hamiltonian or Liouvillian.
-
-        Returns
-        ------------
-        dims: int
-            Maximum dimension the Krylov space can have.
-        """
-        if self.system.issuper:
-            d = self.system.dims[0][0][0]
-            return d**2 - d + 1
-        else:
-            return self.system.shape[0]
 
     def _lanczos_algorithm(self, psi):
         """
@@ -87,7 +69,7 @@ class IntegratorKrylov(Integrator):
             State used to calculate Krylov subspace (= first basis state).
         """
         krylov_dim = self.options['krylov_dim']
-        H = (1j * self.system(0)).data
+        H = self.system(0).data
         p0 = _data.inner(psi, psi) # purity
         sp0 = np.sqrt(p0)
 
@@ -140,7 +122,7 @@ class IntegratorKrylov(Integrator):
             Time at which to evaluate the Hamiltonian.
         """
         krylov_dim = self.options['krylov_dim']
-        H = (1j * self.system(0)).data
+        H = self.system(0).data
         p0 = _data.inner(psi, psi) # purity
         sp0 = np.sqrt(p0)
 
@@ -188,7 +170,7 @@ class IntegratorKrylov(Integrator):
             Time at which to evaluate the Hamiltonian.
         """
         krylov_dim = self.options['krylov_dim']
-        H = (1j * self.system(0)).data
+        H = self.system(0).data
         p0 = _data.inner(psi, psi) # purity
         sp0 = np.sqrt(p0)
 
@@ -231,37 +213,75 @@ class IntegratorKrylov(Integrator):
         """
         phases = _data.Dense(np.exp(-1j * dt * eigenvalues))
         aux = _data.multiply(phases, e0)
-        return _data.matmul(U, aux)
+        statet = _data.matmul(U, aux)
+        if self._mat_state:
+            return _data.column_unstack_dense(statet, self._size, inplace=True)
+        else:
+            return statet
 
     def _compute_max_step(
             self,
-            krylov_tridiag
+            krylov_tridiag,
+            krylov_basis,
+            krylov_state=None
     ):
         """
         Compute the maximum step length to stay under the desired tolerance.
         """
-        #if not krylov_state:
-            #krylov_state = \
-                #self._compute_krylov_set(krylov_tridiag, krylov_basis)
-        dim = krylov_tridiag.shape[0]
-        if dim > 100:
-            # TODO necessary?
-            fac = (np.sqrt(2*np.pi*dim))**(1/dim) * (dim / np.exp(1)) # equals factorial at large kdim
+        if not krylov_state:
+            krylov_state = \
+                self._compute_krylov_set(krylov_tridiag, krylov_basis)
+
+        small_tridiag = _data.Dense(krylov_tridiag.as_ndarray()[:-1, :-1])
+        small_basis = _data.Dense(krylov_basis.as_ndarray()[:, :-1])
+        reduced_state = self._compute_krylov_set(small_tridiag, small_basis)
+
+        def krylov_error(t):
+            # we divide by atol and take the log so the error returned is 0
+            # at atol, which is convenient for calling root_scalar with.
+            return np.log(_data.norm.l2(
+                _data.column_stack(self._compute_psi(t, *krylov_state)) -
+                _data.column_stack(self._compute_psi(t, *reduced_state))
+            ) / self.options["atol"])
+
+        # Under 0 will cause an infinite loop in the while loop bellow.
+        dt = 1e-10
+        max_step = max(self.options["max_step"], dt)
+        err = krylov_error(dt)
+        if err > 0:
+            raise ValueError(
+                f"With the krylov dim of {self.options['krylov_dim']}, the "
+                f"error with the minimum step {dt} is {err}, higher than the "
+                f"desired tolerance of {self.options['atol']}."
+            )
+
+        while krylov_error(dt * 10) < 0 and dt < max_step:
+            dt *= 10
+
+        if dt > max_step:
+            return max_step
+
+        sol = root_scalar(f=krylov_error, bracket=[dt, dt * 10],
+                          method="brentq", xtol=self.options['atol'])
+        if sol.converged:
+            return sol.root
         else:
-            fac = factorial(dim)
-        prod = np.multiply.reduce(_data.diag(krylov_tridiag, -1))
-        if prod == 0:
-            return self._max_step
-        return fac * (self.options['atol'] / prod)**(1/dim)
+            return dt
 
     def set_state(self, t, state0):
         self._t_0 = t
+        self._mat_state = state0.shape[1] > 1
+        self._size = state0.shape[0]
+        if self._mat_state:
+            state0 = _data.column_stack(state0)
+            if not self.system.issuper: self.system = liouvillian(self.system)
+
         krylov_tridiag, krylov_basis = self._algorithm(state0)
         self._krylov_state = \
             self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
         if (
-            krylov_tridiag.shape[0] <= self.options['krylov_dim']
+            krylov_tridiag.shape[0] < self.options['krylov_dim']
             or krylov_tridiag.shape == self.system.shape
         ):
             # happy_breakdown
@@ -272,7 +292,7 @@ class IntegratorKrylov(Integrator):
             not np.isfinite(self._max_step)
             or self.options["always_compute_step"]
         ):
-            self._max_step = self._compute_max_step(krylov_tridiag)
+            self._max_step = self._compute_max_step(krylov_tridiag, krylov_basis)
 
     def get_state(self, copy=True):
         return self._t_0, self._compute_psi(0, *self._krylov_state)

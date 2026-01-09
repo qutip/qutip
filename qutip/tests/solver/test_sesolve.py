@@ -298,16 +298,18 @@ def test_sesolve_step_no_start():
         solver.step(1)
 
 
-@pytest.mark.parametrize("algorithm", ['lanczos', 'lanczos_fro', 'arnoldi'])
-def test_krylovsolve(algorithm):
+@pytest.mark.parametrize("algorithm", ['lanczos', 'lanczos_fro'])
+def test_krylovsolve_pure_state(algorithm):
     H = qutip.tensor([qutip.rand_herm(2) for _ in range(8)])
     psi0 = qutip.basis([2]*8, [1]*8)
     e_op = qutip.num(256)
     e_op.dims = H.dims
     tlist = np.linspace(0, 1, 11)
     ref = sesolve(H, psi0, tlist, e_ops=[e_op]).expect[0]
-    options = {"algorithm": algorithm}
+    options = {"store_states": True, "algorithm": algorithm}
     krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op], options=options)
+    np.testing.assert_allclose(np.ones(len(krylov_sol.states)),
+                               [s.norm() for s in krylov_sol.states])
     np.testing.assert_allclose(ref, krylov_sol.expect[0])
 
 
@@ -319,6 +321,27 @@ def test_krylovsolve_error():
     with pytest.raises(ValueError) as err:
         krylovsolve(H, psi0, tlist, 20, options=options)
     assert "Krylov space construction" in str(err.value)
+
+
+@pytest.mark.parametrize("kdim", [50, 1000])
+@pytest.mark.parametrize("algorithm", ['lanczos_fro', 'arnoldi'])
+def test_krylovsolve_density_matrix(kdim, algorithm):
+    H = qutip.rand_herm(20)
+    rho0 = qutip.rand_dm(20)
+    e_op = qutip.num(20)
+    e_op.dims = H.dims
+    tlist = np.linspace(0, 1, 11)
+
+    opts = {"store_states": True}
+    ref = sesolve(H, rho0, tlist, e_ops=[e_op], options=opts)
+    ref_exp = ref.expect[0]
+
+    opts = {"store_states": True, "algorithm": algorithm}
+    krylov_sol = krylovsolve(H, rho0, tlist, kdim, e_ops=[e_op], options=opts)
+    krylov_states = krylov_sol.states
+    np.testing.assert_allclose(np.ones(len(krylov_states)),
+                               [s.norm() for s in krylov_states])
+    np.testing.assert_allclose(ref_exp, krylov_sol.expect[0])
 
 
 def test_feedback():

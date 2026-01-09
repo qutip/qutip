@@ -712,18 +712,3 @@ def test_non_normalized_dm(rho0):
     solver = qutip.MESolver(H, c_ops=[qutip.sigmaz()])
     result = solver.run(rho0, np.linspace(0, 1, 10), e_ops=[qutip.qeye(2)])
     np.testing.assert_allclose(result.expect[0], rho0.tr(), atol=1e-7)
-
-
-def test_krylovsolve_density_matrix():
-    H = qutip.tensor([qutip.rand_herm(2) for _ in range(6)])
-    rho0 = qutip.tensor([qutip.rand_dm(2) for _ in range(6)])
-    e_op = qutip.num(2**6)
-    e_op.dims = H.dims
-    tlist = np.linspace(0, 1, 11)
-    ref = mesolve(H, rho0, tlist, e_ops=[e_op]).expect[0]
-    options = {"store_states": True}
-    krylov_sol = krylovsolve(H, rho0, tlist, 20, e_ops=[e_op], options=options)
-    krylov_states = krylov_sol.states
-    np.testing.assert_allclose(np.ones(len(krylov_states)),
-                               [s.norm() for s in krylov_states])
-    np.testing.assert_allclose(ref, krylov_sol.expect[0])

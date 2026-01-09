@@ -16,7 +16,7 @@ def krylovsolve(
     H: Qobj,
     rho0: Qobj,
     tlist: ArrayLike,
-    krylov_dim: int,
+    krylov_dim: int=0,
     _e_ops=None,
     _args=None,
     _options=None,
@@ -116,7 +116,6 @@ def krylovsolve(
     e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
     args = _kwargs_migration(_args, args, "args")
     options = _kwargs_migration(_options, options, "options")
-    H = QobjEvo(H, args=args, tlist=tlist)
     options = options or {}
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
