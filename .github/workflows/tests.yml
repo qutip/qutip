@@ -125,6 +125,7 @@ jobs:
             numpy-requirement: ">=1.24,<1.25"
             semidefinite: 1
             oldcython: 1
+            oldmpl: 1
             nocython: 1
             condaforge: 1
             nomkl: 1
@@ -201,7 +202,7 @@ jobs:
             python -m pip install cvxpy>=1.0 cvxopt
           fi
           if [[ "${{ matrix.oldmpl }}" ]]; then
-            python -m pip install matplotlib==3.7.*  # graphics
+            python -m pip install matplotlib==3.7.* "pyparsing<=3.2.0" # graphics
           else
             python -m pip install matplotlib  # graphics
           fi
