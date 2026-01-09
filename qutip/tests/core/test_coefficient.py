@@ -489,3 +489,66 @@ def test_coefficient_parallel(map_func):
     for coeff in coeffs:
         assert isinstance(coeff, Coefficient)
         _assert_eq_over_interval(coeff, expected)
+
+
+def test_coefficient_parameter_naming():
+    """
+    Test that coefficient functions handle parameter naming correctly.
+
+    QuTiP auto-detects function style based on signature:
+    - f(t, args) with exactly these names → dict style: f(t, {"key": val})
+    - Anything else → pythonic style: f(t, **{"key": val})
+
+    This test documents the behavior and catches the common mistake of
+    using 'args' as a parameter name with first parameter not named 't'.
+    """
+
+    # Case 1: CORRECT - Dict style with (t, args) signature
+    def dict_style_correct(t, args):
+        return t * args["multiplier"]
+
+    coeff1 = coefficient(dict_style_correct, args={"multiplier": 2.0})
+    assert coeff1(0.5) == 1.0
+
+    # Case 2: CORRECT - Pythonic style with different parameter names
+    def pythonic_style(t, multiplier):
+        return t * multiplier
+
+    coeff2 = coefficient(pythonic_style, args={"multiplier": 2.0})
+    assert coeff2(0.5) == 1.0
+
+    # Case 3: COMMON MISTAKE - Using 'args' parameter but first param not 't'
+    # This should raise a helpful error because auto-detection will choose
+    # pythonic style (since first param isn't 't'), but the function expects
+    # dict style (it has a parameter named 'args').
+    def mistake_time_args(time, args):
+        return time * args["multiplier"]
+
+    with pytest.raises(TypeError, match="first parameter must be named 't'"):
+        coefficient(mistake_time_args, args={"multiplier": 2.0})
+
+    # Case 4: FALSE POSITIVE - Technically valid but confusing
+    # Someone using pythonic style but naming a parameter 'args' (confusing!)
+    # The check blocks this to enforce the convention and avoid confusion.
+    # If someone really wants this, they can explicitly set style="pythonic".
+    def confusing_but_valid(time, args):
+        # In pythonic style, 'args' is just a parameter name (not a dict)
+        return time * args
+
+    # This is blocked by our check (even though it would work)
+    with pytest.raises(TypeError, match="first parameter must be named 't'"):
+        coefficient(confusing_but_valid, args={"args": 2.0})
+
+    # But can be explicitly allowed by setting style="pythonic"
+    coeff4 = coefficient(confusing_but_valid, args={"args": 2.0},
+                        function_style="pythonic")
+    assert coeff4(0.5) == 1.0
+
+    # Case 5: CORRECT - Pythonic style with 'args' param but more parameters
+    # If there are 3+ parameters, we don't flag it even with first param != 't'
+    # because it's less likely to be the common mistake pattern
+    def three_params(time, args, other):
+        return time * args * other
+
+    coeff5 = coefficient(three_params, args={"args": 2.0, "other": 3.0})
+    assert coeff5(0.5) == 3.0
