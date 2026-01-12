@@ -17,13 +17,22 @@ from .heom.bofin_solvers import HEOMSolver
 
 from .steadystate import steadystate
 from ..ui.progressbar import progress_bars
-
+from .parallel import parallel_map, _get_map  # <--- Add _get_map here
 # -----------------------------------------------------------------------------
 # PUBLIC API
 # -----------------------------------------------------------------------------
 
 # low level correlation
-
+def _correlation_worker(args):
+    """Global worker function to allow pickling for multiprocessing."""
+    t_idx, rho, tlist, taulist, solver, A, B, C = args
+    t = tlist[t_idx]
+    result = solver.run(
+        C(t) @ rho @ A(t),
+        taulist + t,
+        e_ops=B
+    ).expect[0]
+    return t_idx, result
 
 def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
                        solver="me", reverse=False, args=None,
@@ -491,34 +500,45 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
                         " are supported.")
 
     return out
-
-
 def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
     old_opt = solver.options.copy()
     try:
-        # We don't want to modify the solver
-        # TODO: Solver could have a ``with`` or ``copy``.
         solver.options["normalize_output"] = False
         solver.options["progress_bar"] = False
 
-        progress_bar = progress_bars[old_opt['progress_bar']](
-            len(taulist) + 1, **old_opt['progress_kwargs']
-        )
+        # 1. Get the initial evolution
         rho_t = solver.run(state0, tlist).states
         corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-        progress_bar.update()
 
-        for t_idx, rho in enumerate(rho_t):
-            t = tlist[t_idx]
-            corr_mat[t_idx, :] = solver.run(
-                C(t) @ rho @ A(t),
-                taulist + t,
-                e_ops=B
-            ).expect[0]
-            progress_bar.update()
-        progress_bar.finished()
+        # 2. Package arguments for parallel processing
+        task_args = [
+            (t_idx, rho, tlist, taulist, solver, A, B, C) 
+            for t_idx, rho in enumerate(rho_t)
+        ]
+
+        # 3. Choose the right map function (serial, parallel, or mpi)
+        # We use the helper to support different backend types
+        parallel_options = solver.options.get('parallel_options', {'map': 'serial'})
+        p_map, map_kw = _get_map(parallel_options)
+        
+        # Pass the progress bar and cpu count from the original options
+        map_kw['progress_bar'] = old_opt['progress_bar']
+        if 'num_cpus' in old_opt:
+            map_kw['num_cpus'] = old_opt['num_cpus']
+
+        results = p_map(
+            _correlation_worker, 
+            task_args, 
+            **map_kw
+        )
+
+        # 4. Collect the results
+        for t_idx, row in results:
+            corr_mat[t_idx, :] = row
 
     finally:
         solver.options = old_opt
-
+    
     return corr_mat
+
+
