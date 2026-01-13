@@ -115,13 +115,13 @@ cdef class _BaseElement:
           "Sub-classes of _BaseElement should implement .coeff(t)."
         )
 
-    cdef Data matmul_data_t(_BaseElement self, t, Data state, Data out=None):
+    cdef Data matmul_data_t(_BaseElement self, t, Data state, Data out=None, double complex scale=1):
         """
         Possibly in-place multiplication and addition. Multiplies a given state
         by the elemen's value at time ``t`` and adds the result to ``out``.
         Equivalent to::
 
-          out += self.coeff(t) * self.qobj(t) @ state
+          out += scale * self.coeff(t) * self.qobj(t) @ state
 
         Sub-classes may override :meth:`~matmul_data_t` to provide an more
         efficient implementation.
@@ -139,10 +139,13 @@ cdef class _BaseElement:
           the result of the multiplication is returned directly (i.e. ``out``
           is assumed to be the zero matrix).
 
+        scale : complex, optional
+          Additional scale factor to multiply the result by. Default is 1.
+
         Returns
         -------
         data
-          The result of ``self.coeff(t) * self.qobj(t) @ state + out``, with
+          The result of ``scale * self.coeff(t) * self.qobj(t) @ state + out``, with
           the addition possibly having been performed in-place on ``out``.
 
         .. note::
@@ -162,20 +165,75 @@ cdef class _BaseElement:
           this method should be updated to use the new support.
         """
         cdef Data data_t = self.data(t)
+        cdef double complex total_scale = scale * self.coeff(t)
         if out is None:
             return _data.matmul[type(data_t), type(state), type(state)](
-                data_t, state, self.coeff(t)
+                data_t, state, total_scale
             )
         elif type(state) is Dense and type(out) is Dense:
-            imatmul_data_dense(data_t, state, self.coeff(t), out)
+            imatmul_data_dense(data_t, state, total_scale, out)
             return out
         else:
             return _data.add[type(out), type(state), type(out)](
                 out,
                 _data.matmul[type(data_t), type(state), type(state)](
-                    data_t, state, self.coeff(t)
+                    data_t, state, total_scale
                 )
             )
+
+
+
+    cdef Data adjoint_rmatmul_data_t(_BaseElement self, t, Data state, Data out=None, double complex scale=1):
+        """
+        Possibly in-place adjoint right multiplication and addition. Multiplies a given state
+        by the adjoint of the element's value at time ``t`` from the right and adds the result to ``out``.
+        Equivalent to::
+
+          out += scale * state @ (self.coeff(t) * self.qobj(t))†
+
+        For Dense state and out, uses optimized in-place multiplication.
+        Otherwise falls back to explicit adjoint computation.
+
+        Parameters
+        ----------
+        t : double
+          The time, ``t``.
+
+        state : :obj:`~Data`
+          The state to multiply by the adjoint of the element term from the right.
+
+        out : :obj:`~Data` or ``NULL``
+          The output to add the result of the multiplication to. If ``NULL``,
+          the result of the multiplication is returned directly (i.e. ``out``
+          is assumed to be the zero matrix).
+
+        scale : complex, optional
+          Additional scale factor to multiply the result by. Default is 1.
+
+        Returns
+        -------
+        data
+          The result of ``scale * state @ (self.coeff(t) * self.qobj(t))† + out``, with
+          the addition possibly having been performed in-place on ``out``.
+        """
+        cdef double complex total_scale = scale * conj(self.coeff(t))
+        cdef Data data_t
+        cdef Data data_adj
+        
+        # Use optimized Dense path when both state and out are Dense
+        if type(state) is Dense and out is not None and type(out) is Dense:
+            data_t = self.data(t)
+            imatmul_dag_dense_data(<Dense>state, data_t, total_scale, <Dense>out)
+            return out
+        else:
+            # General case for non-Dense matrices
+            data_t = self.data(t)
+            data_adj = data_t.adjoint()
+            
+            if out is None:
+                return _data.matmul(state, data_adj, total_scale)
+            else:
+                return _data.add(out, _data.matmul(state, data_adj, total_scale))
 
     def linear_map(self, f, anti=False):
         """
@@ -618,19 +676,19 @@ cdef class _ProdElement(_BaseElement):
         cdef double complex out = self._left.coeff(t) * self._right.coeff(t)
         return conj(out) if self._conj else out
 
-    cdef Data matmul_data_t(_ProdElement self, t, Data state, Data out=None):
+    cdef Data matmul_data_t(_ProdElement self, t, Data state, Data out=None, double complex scale=1):
         cdef Data temp
         if not self._transform:
             temp = self._right.matmul_data_t(t, state)
-            out = self._left.matmul_data_t(t, temp, out)
+            out = self._left.matmul_data_t(t, temp, out, scale)
             return out
         elif type(state) is Dense and type(out) is Dense:
-            imatmul_data_dense(self.data(t), state, self.coeff(t), out)
+            imatmul_data_dense(self.data(t), state, scale * self.coeff(t), out)
             return out
         else:
             return _data.add(
                 out,
-                _data.matmul(self.data(t), state, self.coeff(t))
+                _data.matmul(self.data(t), state, scale * self.coeff(t))
             )
 
     def linear_map(self, f, anti=False):
